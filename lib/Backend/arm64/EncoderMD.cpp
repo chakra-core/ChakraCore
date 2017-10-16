@@ -60,7 +60,7 @@ const BYTE
 EncoderMD::GetFloatRegEncode(IR::RegOpnd *regOpnd)
 {
     BYTE regEncode = GetRegEncode(regOpnd->GetReg());
-    AssertMsg(regEncode <= LAST_FLOAT_REG_NUM, "Impossible to allocate higher registers on VFP");
+    AssertMsg(regEncode <= LAST_FLOAT_REG_ENCODE, "Impossible to allocate higher registers on VFP");
     return regEncode;
 }
 

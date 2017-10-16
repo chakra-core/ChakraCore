@@ -8036,36 +8036,28 @@ LowererMD::EmitLongToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
 void
 LowererMD::CheckOverflowOnFloatToInt32(IR::Instr* instrInsert, IR::Opnd* intOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * labelDone)
 {
-    // CMP intOpnd, 0x80000000     -- Check for overflow
-    IR::Instr* instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
-    instr->SetSrc1(intOpnd);
-    instr->SetSrc2(IR::IntConstOpnd::New(0x80000000, TyInt32, this->m_func, true));
+    // Test for 0x80000000 or 0x7FFFFFFF
+
+    // tmp = EOR src, 0x80000000;   gives 0 or -1 for overflow values
+    // tmp = EOR_ASR31 tmp, tmp;    tmp = tmp ^ ((int32)tmp >> 31) -- converts -1 or 0 to 0
+    // CBZ tmp, helper;             branch if tmp was -1 or 0
+    // B done;
+
+    IR::RegOpnd* tmp = IR::RegOpnd::New(TyInt32, this->m_func);
+
+    IR::Instr* instr = IR::Instr::New(Js::OpCode::EOR, tmp, intOpnd, IR::IntConstOpnd::New(0x80000000, TyUint32, this->m_func, true), this->m_func);
     instrInsert->InsertBefore(instr);
-    LegalizeMD::LegalizeInstr(instr, false);
 
-    // BEQ $helper
-    instr = IR::BranchInstr::New(Js::OpCode::BEQ, labelHelper, this->m_func);
+    instr = IR::Instr::New(Js::OpCode::EOR_ASR31, tmp, tmp, tmp, this->m_func);
     instrInsert->InsertBefore(instr);
 
-    // CMP intOpnd, 0x7fffffff     -- Check for overflow
-
-    IR::RegOpnd *regOpnd= IR::RegOpnd::New(TyMachReg, this->m_func);
-
-    instr = IR::Instr::New(Js::OpCode::MVN,
-        regOpnd,
-        IR::IntConstOpnd::New(0x80000000, TyInt32, this->m_func, true),
-        this->m_func);
+    // CBZ $helper
+    instr = IR::BranchInstr::New(Js::OpCode::CBZ, labelHelper, this->m_func);
+    instr->SetSrc1(tmp);
     instrInsert->InsertBefore(instr);
-    LegalizeMD::LegalizeInstr(instr, false);
 
-    instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
-    instr->SetSrc1(intOpnd);
-    instr->SetSrc2(regOpnd);
-    instrInsert->InsertBefore(instr);
-    LegalizeMD::LegalizeInstr(instr, false);
-
-    // BNE $done
-    instr = IR::BranchInstr::New(Js::OpCode::BNE, labelDone, this->m_func);
+    // B $done
+    instr = IR::BranchInstr::New(Js::OpCode::B, labelDone, this->m_func);
     instrInsert->InsertBefore(instr);
 }
 
