@@ -52,7 +52,11 @@ set _HadFailures=0
   call :doSilent rd /s/q %_LogDir%
 
   call :runTests %_TestArgs%
-  call :runNativeTests %_TestArgs%
+  if "%_ReducedTestRun%" == "1" (
+    echo -- jenkins.testone.cmd ^>^> Reduced test run: skipping native tests.
+  ) else (
+    call :runNativeTests %_TestArgs%
+  )
 
   call :summarizeLogs
 
@@ -85,7 +89,9 @@ set _HadFailures=0
 :: ============================================================================
 :runNativeTests
 
+  echo -- jenkins.testone.cmd ^>^> Running native tests... (this can take some time)
   call :do %_TestDir%\runnativetests.cmd -%1 -binDir %_BinDir% > %_LogDir%\nativetests.log 2>&1
+  echo -- jenkins.testone.cmd ^>^> Running native tests... DONE!
 
   if ERRORLEVEL 1 set _HadFailures=1
 
