@@ -7665,14 +7665,6 @@ void EmitCallTarget(
         break;
     }
 
-    case knopClassDecl:
-    {
-        Emit(pnodeTarget, byteCodeGenerator, funcInfo, false);
-        // We won't always have an assigned this register (e.g. class expression calls.) We need undefined in this case.
-        *thisLocation = funcInfo->GetThisSymbol()->GetLocation() == Js::Constants::NoRegister ? funcInfo->undefinedConstantRegister : funcInfo->GetThisSymbol()->GetLocation();
-        break;
-    }
-
     case knopName:
     {
         if (!pnodeTarget->IsSpecialName())
