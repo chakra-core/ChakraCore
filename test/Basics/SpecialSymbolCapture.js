@@ -910,6 +910,13 @@ var tests = [
             assert.throws(() => this(), TypeError, "Capturing function 'this' binding and emitting as a call target should throw if 'this' is not a function", "Function expected");
         }
     },
+    {
+        name: "Class expression as call target without 'this' binding",
+        body: function() {
+            assert.throws(() => WScript.LoadScript(`(class classExpr {}())`), TypeError, "Class expression called at global scope", "Class constructor cannot be called without the new keyword");
+            assert.throws(() => WScript.LoadScript(`(() => (class classExpr {}()))()`), TypeError, "Class expression called in global lambda", "Class constructor cannot be called without the new keyword");
+        }
+    }
 ]
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
