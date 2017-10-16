@@ -250,9 +250,8 @@ public:
                 return IndirScale4;
             }
 
-            // -4 is to avoid alignment issues popping up, we are conservative here.
-            // We might check for IsSmallStack first to push R4 register & then align.
-            static bool         IsSmallStack(uint32 size)   { return (size < (PAGESIZE - 4));}
+            // -16 is to avoid alignment issues popping up, we are conservative here.
+            static bool         IsSmallStack(uint32 size) { return (size < (PAGESIZE - MachStackAlignment)); }
 
             static void GenerateLoadTaggedType(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndTaggedType);
             static void GenerateLoadPolymorphicInlineCacheSlot(IR::Instr * instrLdSt, IR::RegOpnd * opndInlineCache, IR::RegOpnd * opndType, uint polymorphicInlineCacheSize);
