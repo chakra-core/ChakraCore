@@ -131,11 +131,20 @@ public:
         }                                                                     \
     } while (false)
 
+#define UNWRAP_RESOURCE(resource, innerType) reinterpret_cast<PlatformAgnosticIntlObject<innerType> *>(resource)->GetInstance();
+
 namespace PlatformAgnostic
 {
 namespace Intl
 {
     using namespace PlatformAgnostic::Resource;
+
+    // This file uses dynamic_cast and RTTI
+    // While most of ChakraCore has left this feature disabled for a number of reasons, ICU uses it heavily internally
+    // For instance, in creating NumberFormats, the documentation recommends the use of the NumberFormat::create* factory methods
+    // However, to use attributes and significant digits, you must be working with a DecimalFormat
+    // NumberFormat offers no indicator fields or convenience methods to convert to a DecimalFormat, as ICU expects RTTI to be enabled
+    // As such, RTTI is enabled only in the PlatformAgnostic project and only if IntlICU=true
 
     // lots of logic below requires utf8char_t ~= char and UChar ~= char16
     static_assert(sizeof(utf8char_t) == sizeof(char), "ICU-based Intl logic assumes that utf8char_t is compatible with char");
@@ -269,6 +278,14 @@ namespace Intl
         icu::NumberFormat *nf = formatterFactory(locale, error);
         ICU_ASSERT_RETURN(error, true, E_INVALIDARG);
 
+        // If the formatter produced a DecimalFormat, force it to round up
+        icu::DecimalFormat *df = dynamic_cast<icu::DecimalFormat *>(nf);
+        if (df)
+        {
+            df->setAttribute(UNUM_ROUNDING_MODE, UNUM_ROUND_HALFUP, error);
+            ICU_ASSERT(error, true);
+        }
+
         IPlatformAgnosticResource *formatterResource = new PlatformAgnosticIntlObject<icu::NumberFormat>(nf);
         if (!formatterResource)
         {
@@ -327,36 +344,42 @@ namespace Intl
         );
     }
 
-    HRESULT SetNumberFormatSignificantDigits(IPlatformAgnosticResource *resource, const uint16 minSigDigits, const uint16 maxSigDigits)
+    void SetNumberFormatSignificantDigits(IPlatformAgnosticResource *resource, const uint16 minSigDigits, const uint16 maxSigDigits)
     {
         // We know what actual type we stored in the IPlatformAgnosticResource*, so cast to it.
-        auto *numFormatResource = reinterpret_cast<PlatformAgnosticIntlObject<icu::NumberFormat> *>(resource);
-        icu::NumberFormat *nf = numFormatResource->GetInstance();
-        // REVIEW (doilij): Without RTTI support, we can't do dynamic_cast,
-        // which is the preferred way to know whether it was indeed created as a DecimalFormat,
-        // which is not something the API will indicate to us directly (create returns a NumberFormat which may or may not be a DecimalFormat)
-        icu::DecimalFormat *df = reinterpret_cast<icu::DecimalFormat *>(nf);
-        df->setMinimumSignificantDigits(minSigDigits);
-        df->setMaximumSignificantDigits(maxSigDigits);
-        return S_OK;
+        icu::NumberFormat *nf = UNWRAP_RESOURCE(resource, icu::NumberFormat);
+
+        // TODO(jahorto): Determine if we could ever have a NumberFormat that isn't a DecimalFormat (and if so, what to do here)
+        icu::DecimalFormat *df = dynamic_cast<icu::DecimalFormat *>(nf);
+        if (df)
+        {
+            df->setMinimumSignificantDigits(minSigDigits);
+            df->setMaximumSignificantDigits(maxSigDigits);
+        }
+        else
+        {
+            // if we can't use DecimalFormat-specific features because we didn't get a DecimalFormat, we should not crash.
+            // Best effort is good enough for Intl outputs, and we'd assume this is a transient issue.
+            // However, non-DecimalFormat-based output might be regarded as buggy, especially if consistently wrong.
+            // We'd like to use Debug builds to detect if this is the case and how prevalent it is, and we can make a further determination if and when we see failures here.
+            AssertMsg(false, "Could not cast an icu::NumberFormat to an icu::DecimalFormat");
+        }
     }
 
-    HRESULT SetNumberFormatIntFracDigits(IPlatformAgnosticResource *resource, const uint16 minFracDigits, const uint16 maxFracDigits, const uint16 minIntDigits)
+    void SetNumberFormatIntFracDigits(IPlatformAgnosticResource *resource, const uint16 minFracDigits, const uint16 maxFracDigits, const uint16 minIntDigits)
     {
         // We know what actual type we stored in the IPlatformAgnosticResource*, so cast to it.
-        auto *numFormatResource = reinterpret_cast<PlatformAgnosticIntlObject<icu::NumberFormat> *>(resource);
-        icu::NumberFormat *nf = numFormatResource->GetInstance();
+        icu::NumberFormat *nf = UNWRAP_RESOURCE(resource, icu::NumberFormat);
         nf->setMinimumIntegerDigits(minIntDigits);
         nf->setMinimumFractionDigits(minFracDigits);
         nf->setMaximumFractionDigits(maxFracDigits);
-        return S_OK;
     }
 
-    void SetGroupingUsed(IPlatformAgnosticResource *resource, const bool isGroupingUsed)
+    void SetNumberFormatGroupingUsed(IPlatformAgnosticResource *resource, const bool isGroupingUsed)
     {
-        icu::NumberFormat *nf = reinterpret_cast<PlatformAgnosticIntlObject<icu::NumberFormat> *>(resource)->GetInstance();
+        // We know what actual type we stored in the IPlatformAgnosticResource*, so cast to it.
+        icu::NumberFormat *nf = UNWRAP_RESOURCE(resource, icu::NumberFormat);
         nf->setGroupingUsed(isGroupingUsed);
-        return;
     }
 
     // We explicitly declare these specializations of FormatNumber so the compiler creates them
