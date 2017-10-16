@@ -2680,7 +2680,7 @@ void LowererMD::ChangeToShift(IR::Instr *const instr, const bool needFlags)
     {
         // In the variable case, generate code to do the mask.
         IR::Opnd *const src2 = instr->UnlinkSrc2();
-        instr->SetSrc2(IR::RegOpnd::New(TyMachReg, func));
+        instr->SetSrc2(IR::RegOpnd::New(TyInt32, func));
         IR::Instr *const newInstr = IR::Instr::New(
             Js::OpCode::AND, instr->GetSrc2(), src2, IR::IntConstOpnd::New(0x1f, TyInt8, func), func);
         instr->InsertBefore(newInstr);
