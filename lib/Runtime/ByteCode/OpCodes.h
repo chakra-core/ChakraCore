@@ -361,7 +361,9 @@ MACRO_EXTEND_WMS(       InitLocalLetFld,      ElementP,       OpSideEffect|OpOpn
 MACRO_EXTEND_WMS(       InitInnerFld,         ElementPIndexed,OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Declare a property with an initial value
 MACRO_EXTEND_WMS(       InitInnerLetFld,      ElementPIndexed,OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)                  // Declare a property with an initial value
 MACRO_WMS_PROFILED_OP(  InitRootFld,          ElementRootCP,  OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Declare a property with an initial value
-MACRO_BACKEND_ONLY(     LdMethodFromFlags,          ElementCP,      OpFastFldInstr|OpCanCSE)
+
+MACRO_BACKEND_ONLY(     LdGetter,             ElementCP,      OpCanCSE)
+MACRO_BACKEND_ONLY(     LdSetter,             ElementCP,      OpCanCSE)
 
 MACRO_WMS(              DeleteFld,                  ElementC,       OpSideEffect|OpOpndHasImplicitCall|OpDoNotTransfer|OpPostOpDbgBailOut)  // Remove a property
 MACRO_EXTEND_WMS(       DeleteLocalFld,             ElementU,       OpSideEffect|OpOpndHasImplicitCall|OpDoNotTransfer|OpPostOpDbgBailOut)  // Remove a property

@@ -516,6 +516,9 @@ namespace Js
 
         static Var PatchGetMethodFromObject(Var instance, RecyclableObject * propertyObject, PropertyId propertyId, PropertyValueInfo * info, ScriptContext * scriptContext, bool isRootLd);
 
+        static Var GetGetter(Var instance, PropertyId propertyId);
+        static Var GetSetter(Var instance, PropertyId propertyId);
+
         static void GetPropertyIdForInt(uint64 value, ScriptContext* scriptContext, PropertyRecord const ** propertyRecord);
         static void GetPropertyIdForInt(uint32 value, ScriptContext* scriptContext, PropertyRecord const ** propertyRecord);
         static BOOL TryConvertToUInt32(const char16* str, int length, uint32* value);

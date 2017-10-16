@@ -4183,7 +4183,8 @@ Instr::DumpFieldCopyPropTestTrace()
     case Js::OpCode::LdRootFldForTypeOf:
     case Js::OpCode::LdMethodFld:
     case Js::OpCode::LdRootMethodFld:
-    case Js::OpCode::LdMethodFromFlags:
+    case Js::OpCode::LdGetter:
+    case Js::OpCode::LdSetter:
     case Js::OpCode::ScopedLdMethodFld:
     case Js::OpCode::TypeofElem:
 

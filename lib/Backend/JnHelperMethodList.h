@@ -250,6 +250,9 @@ HELPERCALL(Op_PatchGetRootMethodPolymorphic, ((Js::Var (*)(Js::FunctionBody *con
 HELPERCALL(Op_ScopedGetMethod, ((Js::Var (*)(Js::FunctionBody *const, Js::InlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, bool))Js::JavascriptOperators::PatchScopedGetMethod<true, Js::InlineCache>), AttrCanThrow)
 HELPERCALL(Op_ScopedGetMethodPolymorphic, ((Js::Var (*)(Js::FunctionBody *const, Js::PolymorphicInlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, bool))Js::JavascriptOperators::PatchScopedGetMethod<true, Js::PolymorphicInlineCache>), AttrCanThrow)
 
+HELPERCALL(Op_GetGetter, Js::JavascriptOperators::GetGetter, 0)
+HELPERCALL(Op_GetSetter, Js::JavascriptOperators::GetSetter, 0)
+
 HELPERCALL(CheckIfTypeIsEquivalent, Js::JavascriptNativeOperators::CheckIfTypeIsEquivalent, 0)
 HELPERCALL(CheckIfTypeIsEquivalentForFixedField, Js::JavascriptNativeOperators::CheckIfTypeIsEquivalentForFixedField, 0)
 

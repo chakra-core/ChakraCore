@@ -160,7 +160,6 @@ public:
     Js::JavascriptFunction* GetFieldValueAsFunctionIfAvailable() const
     {
         Assert(!JITManager::GetJITManager()->IsJITServer());
-        Assert(IsMono() || (IsPoly() && !DoesntHaveEquivalence()));
 
         if (PHASE_OFF1(Js::ObjTypeSpecPhase)) return nullptr; // TODO: (lei)remove this after obj type spec for OOPJIT implemented
 

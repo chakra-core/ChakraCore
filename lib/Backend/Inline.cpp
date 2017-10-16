@@ -146,7 +146,7 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                         {
                             break;
                         }
-                        this->InlineDOMGetterSetterFunction(instr, inlineeData, inlinerData);
+                        this->InlineDOMGetterSetterFunction(instr, inlineeData, inlinerData, getter);
 #endif
                         break;
                     }
@@ -1486,7 +1486,8 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, const Function
         && ldMethodFldInstr->m_opcode != Js::OpCode::LdRootFld
         && ldMethodFldInstr->m_opcode != Js::OpCode::LdFld
         && ldMethodFldInstr->m_opcode != Js::OpCode::LdFldForCallApplyTarget
-        && ldMethodFldInstr->m_opcode != Js::OpCode::LdMethodFromFlags)
+        && ldMethodFldInstr->m_opcode != Js::OpCode::LdGetter
+        && ldMethodFldInstr->m_opcode != Js::OpCode::LdSetter)
     {
 #if TRACE_FIXED_FIELDS
         if (printFixedFieldsTrace)
@@ -1691,12 +1692,7 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, const Function
         return true;
     }
 
-    // Change Ld[Root]MethodFld, LdMethodFromFlags to CheckFixedFld, which doesn't need a dst.
-    if(ldMethodFldInstr->m_opcode == Js::OpCode::LdMethodFromFlags)
-    {
-        Assert(ldMethodFldInstr->HasBailOutInfo());
-        ldMethodFldInstr->ClearBailOutInfo();
-    }
+    // Change Ld[Root]MethodFld, LdGetter, LdSetter to CheckFixedFld, which doesn't need a dst.
     ldMethodFldInstr->m_opcode = Js::OpCode::CheckFixedFld;
     IR::Opnd * methodValueDstOpnd = ldMethodFldInstr->UnlinkDst();
     IR::Instr * chkMethodFldInstr = ldMethodFldInstr->ConvertToBailOutInstr(ldMethodFldInstr,
@@ -3521,9 +3517,9 @@ Inline::SimulateCallForGetterSetter(IR::Instr *accessorInstr, IR::Instr* insertI
 
     IntConstType argOutCount = isGetter ? 1 : 2; // A setter would have an additional ArgOut in the form of the value being set.
 
-    IR::Instr *ldMethodFld = IR::Instr::New(Js::OpCode::LdMethodFromFlags, IR::RegOpnd::New(TyVar, accessorInstr->m_func), methodOpnd, accessorInstr->m_func);
+    Js::OpCode op = isGetter ? Js::OpCode::LdGetter : Js::OpCode::LdSetter;
+    IR::Instr *ldMethodFld = IR::Instr::New(op, IR::RegOpnd::New(TyVar, accessorInstr->m_func), methodOpnd, accessorInstr->m_func);
     insertInstr->InsertBefore(ldMethodFld);
-    ldMethodFld = ldMethodFld->ConvertToBailOutInstr(accessorInstr, IR::BailOutFailedInlineTypeCheck);
     ldMethodFld->SetByteCodeOffset(accessorInstr);
 
     IR::Instr *startCall = IR::Instr::New(Js::OpCode::StartCall, accessorInstr->m_func);
@@ -3795,7 +3791,7 @@ Inline::InlineFunctionCommon(IR::Instr *callInstr, bool originalCallTargetOpndIs
 // A functionInfo->Index# table is created in scriptContext (and potentially movable to threadContext if WS is not a concern).
 // we use the table to identify the helper that needs to be lowered.
 // At lower time we create the call to helper, which is function entrypoint at this time.
-void Inline::InlineDOMGetterSetterFunction(IR::Instr *ldFldInstr, const FunctionJITTimeInfo *const inlineeData, const FunctionJITTimeInfo *const inlinerData)
+void Inline::InlineDOMGetterSetterFunction(IR::Instr *ldFldInstr, const FunctionJITTimeInfo *const inlineeData, const FunctionJITTimeInfo *const inlinerData, bool getter)
 {
     intptr_t functionInfo = inlineeData->GetFunctionInfoAddr();
 
@@ -3816,7 +3812,8 @@ void Inline::InlineDOMGetterSetterFunction(IR::Instr *ldFldInstr, const Function
     IR::RegOpnd * instanceOpnd = IR::RegOpnd::New(fieldSym->m_stackSym, TyMachPtr, ldFldInstr->m_func);
 
     // Find the function object from getter inline cache. Need bailout to verify.
-    IR::Instr *ldMethodFld = IR::Instr::New(Js::OpCode::LdMethodFromFlags, IR::RegOpnd::New(TyVar, ldFldInstr->m_func), ldFldInstr->GetSrc1(), ldFldInstr->m_func);
+    Js::OpCode op = getter ? Js::OpCode::LdGetter : Js::OpCode::LdSetter;
+    IR::Instr *ldMethodFld = IR::Instr::New(op, IR::RegOpnd::New(TyVar, ldFldInstr->m_func), ldFldInstr->GetSrc1(), ldFldInstr->m_func);
     ldFldInstr->InsertBefore(ldMethodFld);
     ldMethodFld = ldMethodFld->ConvertToBailOutInstr(ldFldInstr, IR::BailOutFailedInlineTypeCheck);
 

@@ -1012,24 +1012,6 @@ GlobOpt::FinishOptHoistedPropOps(Loop * loop)
 
     if (!doFieldRefOpts && !forceFieldHoisting)
     {
-        IR::Instr * instrEnd = loop->endDisableImplicitCall;
-        if (instrEnd == nullptr)
-        {
-            return;
-        }
-
-        FOREACH_INSTR_EDITING_IN_RANGE(instr, instrNext, loop->landingPad->GetFirstInstr(), instrEnd)
-        {
-            // LdMethodFromFlags must always have a type check and bailout.  If we hoisted it as a result of
-            // -force:fieldHoist, we will have to set the bailout here again, even if there are implicit calls
-            // in the loop (and DoFieldRefOpts returns false).  See Windows Blue Bugs 608503 and 610237.
-            if (instr->m_opcode == Js::OpCode::LdMethodFromFlags)
-            {
-                instr = SetTypeCheckBailOut(instr->GetSrc1(), instr, loop->bailOutInfo);
-            }
-        }
-        NEXT_INSTR_EDITING_IN_RANGE;
-
         return;
     }
 
@@ -1142,20 +1124,6 @@ GlobOpt::FinishOptHoistedPropOps(Loop * loop)
         }
         NEXT_INSTR_EDITING_IN_RANGE;
     }
-    else
-    {
-        FOREACH_INSTR_EDITING_IN_RANGE(instr, instrNext, loop->landingPad->GetFirstInstr(), instrEnd)
-        {
-            // LdMethodFromFlags must always have a type check and bailout. If we hoisted it as a result of
-            // -force:fieldHoist, we will have to set the bailout here again, even if there are implicit calls
-            // in the loop.
-            if (instr->m_opcode == Js::OpCode::LdMethodFromFlags)
-            {
-                instr = SetTypeCheckBailOut(instr->GetSrc1(), instr, loop->bailOutInfo);
-            }
-        }
-        NEXT_INSTR_EDITING_IN_RANGE;
-    }
 
     if (bvBackEdge)
     {
@@ -1263,7 +1231,7 @@ GlobOpt::FindFieldHoistStackSym(Loop * startLoop, SymID propertySymId, StackSym 
 {
     Assert(IsPropertySymId(propertySymId));
 
-    if (instrToHoist && instrToHoist->m_opcode == Js::OpCode::LdMethodFromFlags)
+    if (instrToHoist && (instrToHoist->m_opcode == Js::OpCode::LdGetter || instrToHoist->m_opcode == Js::OpCode::LdSetter))
     {
         return nullptr;
     }
@@ -1653,7 +1621,7 @@ GlobOpt::FieldHoistOptSrc(IR::Opnd *opnd, IR::Instr *instr, PropertySym * proper
     {
         return false;
     }
-    if (!instr->TransfersSrcValue() || instr->m_opcode == Js::OpCode::LdMethodFromFlags)
+    if (!instr->TransfersSrcValue() || instr->m_opcode == Js::OpCode::LdGetter || instr->m_opcode == Js::OpCode::LdSetter)
     {
         // Instructions like typeof don't transfer value of the field, we can't hoist those right now.
         return false;
@@ -2035,7 +2003,8 @@ GlobOpt::AssertCanCopyPropOrCSEFieldLoad(IR::Instr * instr)
         || instr->m_opcode == Js::OpCode::LdFldForTypeOf || instr->m_opcode == Js::OpCode::LdRootFldForTypeOf
         || instr->m_opcode == Js::OpCode::LdMethodFld || instr->m_opcode == Js::OpCode::LdMethodFldPolyInlineMiss
         || instr->m_opcode == Js::OpCode::LdRootMethodFld
-        || instr->m_opcode == Js::OpCode::LdMethodFromFlags
+        || instr->m_opcode == Js::OpCode::LdGetter
+        || instr->m_opcode == Js::OpCode::LdSetter
         || instr->m_opcode == Js::OpCode::ScopedLdMethodFld
         || instr->m_opcode == Js::OpCode::CheckFixedFld
         || instr->m_opcode == Js::OpCode::CheckPropertyGuardAndLoadType);
@@ -2910,35 +2879,26 @@ GlobOpt::SetTypeCheckBailOut(IR::Opnd *opnd, IR::Instr *instr, BailOutInfo *bail
     {
         HandleBailout(bailOutKind);
     }
-    else
+    else if (instr->HasBailOutInfo())
     {
-        if (instr->m_opcode == Js::OpCode::LdMethodFromFlags)
+        // If we already have a bailout info, but don't actually need it, let's remove it. This can happen if
+        // a CheckFixedFld added by the inliner (with bailout info) determined that the object's type has
+        // been checked upstream and no bailout is necessary here.
+        if (instr->m_opcode == Js::OpCode::CheckFixedFld)
         {
-            // If LdMethodFromFlags is hoisted to the top of the loop, we should share the same bailout Info.
-            // We don't need to do anything for LdMethodFromFlags that cannot be field hoisted.
-            HandleBailout(IR::BailOutFailedInlineTypeCheck);
+            AssertMsg(!PHASE_OFF(Js::FixedMethodsPhase, instr->m_func) ||
+                !PHASE_OFF(Js::UseFixedDataPropsPhase, instr->m_func), "CheckFixedFld with fixed method/data phase disabled?");
+            Assert(isTypeCheckProtected);
+            AssertMsg(instr->GetBailOutKind() == IR::BailOutFailedFixedFieldTypeCheck || instr->GetBailOutKind() == IR::BailOutFailedEquivalentFixedFieldTypeCheck,
+                "Only BailOutFailed[Equivalent]FixedFieldTypeCheck can be safely removed.  Why does CheckFixedFld carry a different bailout kind?.");
+            instr->ClearBailOutInfo();
         }
-        else if (instr->HasBailOutInfo())
+        else if (propertySymOpnd->MayNeedTypeCheckProtection() && propertySymOpnd->IsTypeCheckProtected())
         {
-            // If we already have a bailout info, but don't actually need it, let's remove it. This can happen if
-            // a CheckFixedFld added by the inliner (with bailout info) determined that the object's type has
-            // been checked upstream and no bailout is necessary here.
-            if (instr->m_opcode == Js::OpCode::CheckFixedFld)
-            {
-                AssertMsg(!PHASE_OFF(Js::FixedMethodsPhase, instr->m_func) ||
-                    !PHASE_OFF(Js::UseFixedDataPropsPhase, instr->m_func), "CheckFixedFld with fixed method/data phase disabled?");
-                Assert(isTypeCheckProtected);
-                AssertMsg(instr->GetBailOutKind() == IR::BailOutFailedFixedFieldTypeCheck || instr->GetBailOutKind() == IR::BailOutFailedEquivalentFixedFieldTypeCheck,
-                    "Only BailOutFailed[Equivalent]FixedFieldTypeCheck can be safely removed.  Why does CheckFixedFld carry a different bailout kind?.");
-                instr->ClearBailOutInfo();
-            }
-            else if (propertySymOpnd->MayNeedTypeCheckProtection() && propertySymOpnd->IsTypeCheckProtected())
-            {
-                // Both the type and (if necessary) the proto object have been checked.
-                // We're doing a direct slot access. No possibility of bailout here (not even implicit call).
-                Assert(instr->GetBailOutKind() == IR::BailOutMarkTempObject);
-                instr->ClearBailOutInfo();
-            }
+            // Both the type and (if necessary) the proto object have been checked.
+            // We're doing a direct slot access. No possibility of bailout here (not even implicit call).
+            Assert(instr->GetBailOutKind() == IR::BailOutMarkTempObject);
+            instr->ClearBailOutInfo();
         }
     }
 

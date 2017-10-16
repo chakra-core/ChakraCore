@@ -658,7 +658,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::PolymorphicInlin
     bool areStressEquivalent = stress;
 
     uint16 typeCount = 0;
-    for (uint16 i = 0; (areEquivalent || stress || gatherDataForInlining) && i < polyCacheSize; i++)
+    for (uint16 i = 0; (areEquivalent || stress || gatherDataForInlining || isAccessor) && i < polyCacheSize; i++)
     {
         Js::InlineCache& inlineCache = inlineCaches[i];
         if (inlineCache.IsEmpty()) continue;
@@ -688,7 +688,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::PolymorphicInlin
             }
             else
             {
-                if (!PHASE_OFF(Js::FixAccessorPropsPhase, functionBody))
+                if (!PHASE_OFF(Js::FixAccessorPropsPhase, functionBody) && inlineCache.IsAccessor())
                 {
                     isAccessor = true;
                     isGetterAccessor = inlineCache.IsGetterAccessor();
@@ -720,6 +720,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::PolymorphicInlin
                     typeId != TypeWithoutAuxSlotTag(inlineCache.u.local.type)->GetTypeId() || usesAuxSlot != TypeHasAuxSlotTag(inlineCache.u.local.type))
                 {
                     areEquivalent = false;
+                    isAccessor = false;
                 }
                 gatherDataForInlining = false;
             }
@@ -729,6 +730,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::PolymorphicInlin
                     typeId != TypeWithoutAuxSlotTag(inlineCache.u.proto.type)->GetTypeId() || usesAuxSlot != TypeHasAuxSlotTag(inlineCache.u.proto.type))
                 {
                     areEquivalent = false;
+                    isAccessor = false;
                 }
             }
             else
@@ -770,7 +772,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::PolymorphicInlin
     {
         IncInlineCacheCount(nonEquivPolyInlineCacheCount);
         cache->SetIgnoreForEquivalentObjTypeSpec(true);
-        if (!gatherDataForInlining)
+        if (!gatherDataForInlining && !isAccessor)
         {
             return nullptr;
         }
@@ -818,7 +820,8 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::PolymorphicInlin
 #endif
     // Let's get the types.
     Js::Type* localTypes[MaxPolymorphicInlineCacheSize];
-
+    Js::Type* typeWithFuncAccessor = nullptr;
+    Js::JavascriptFunction * funcAccessor = nullptr;
     uint16 typeNumber = 0;
     for (uint16 i = firstNonEmptyCacheIndex; i < polyCacheSize; i++)
     {
@@ -856,8 +859,45 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::PolymorphicInlin
 
             fixedFunctionCount++;
         }
+        else
 #endif
+        if (!areEquivalent && !areStressEquivalent && isAccessor)
+        {
+            // We don't have a fixed method, but we still want to inline the accessor if we always call the same one. Check for that condition.
+            slotIndex = inlineCache.u.accessor.slotIndex;
+            Js::Type *type = TypeWithoutAuxSlotTag(inlineCache.u.accessor.type);
+            Js::Var fieldValue;
+            if (type != inlineCache.u.accessor.type)
+            {
+                fieldValue = inlineCache.u.accessor.object->GetAuxSlot(slotIndex);
+            }
+            else
+            {
+                fieldValue = inlineCache.u.accessor.object->GetInlineSlot(slotIndex);
+            }
+            if (!Js::JavascriptFunction::Is(fieldValue))
+            {
+                return nullptr;
+            }
+            if (funcAccessor == nullptr)
+            {
+                funcAccessor = Js::JavascriptFunction::FromVar(fieldValue);
+                typeWithFuncAccessor = localTypes[typeNumber];
+            }
+            else if (funcAccessor->GetFunctionInfo() != Js::JavascriptFunction::FromVar(fieldValue)->GetFunctionInfo())
+            {
+                return nullptr;
+            }
+        }
+
         typeNumber++;
+    }
+
+    if (funcAccessor)
+    {
+        Assert(!gatherDataForInlining);
+        Assert(fixedFunctionCount == 0);
+        FixedFieldInfo::PopulateFixedField(typeWithFuncAccessor, funcAccessor, &localFixedFieldInfoArray[0]);
     }
 
     if (isAccessor && gatherDataForInlining)
