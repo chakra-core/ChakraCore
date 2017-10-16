@@ -73,21 +73,32 @@ void LegalizeMD::LegalizeInstr(IR::Instr * instr, bool fPostRegAlloc)
 
 void LegalizeMD::LegalizeRegOpnd(IR::Instr* instr, IR::Opnd* opnd)
 {
-    // Arm64 does not support 1 byte register usage, so expand anything smaller than 1 byte up to 4 bytes.
-    // UseWithNewType will make a copy if the register is already in use. We know it is in use because it is used in this instruction, and we want to reuse this operand rather than making a copy 
-    // so unuse it before calling UseWithNewType. 
-    if (opnd->GetSize() < 4)
+    // Arm64 does not support 8 or 16 bit register usage, so promote anything smaller than 32 bits up to 32 bits.
+    // Arm64 does not support 32 bit float register usage, so promote 32 bit floats to 64 bit.
+    IRType ty = opnd->GetType();
+    switch(ty)
     {
-        if (IRType_IsSignedInt(opnd->GetType()))
-        {
-            opnd->UnUse();
-            opnd->UseWithNewType(TyInt32, instr->m_func);
-        }
-        else
-        {
-            opnd->UnUse();
-            opnd->UseWithNewType(TyUint32, instr->m_func);
-        }
+    case TyInt8:
+    case TyInt16:
+        ty = TyInt32;
+        break;
+    
+    case TyUint8:
+    case TyUint16:
+        ty = TyUint32;
+        break;
+
+    case TyFloat32:
+        ty = TyFloat64;
+        break;
+    }
+
+    if (ty != opnd->GetType())
+    { 
+        // UseWithNewType will make a copy if the register is already in use. We know it is in use because it is used in this instruction, and we want to reuse this operand rather than making a copy 
+        // so UnUse it before calling UseWithNewType.
+        opnd->UnUse();
+        opnd->UseWithNewType(ty, instr->m_func);
     }
 }
 
@@ -112,7 +123,6 @@ void LegalizeMD::LegalizeDst(IR::Instr * instr, bool fPostRegAlloc)
     {
     case IR::OpndKindReg:
 #ifdef DBG
-        // No legalization possible, just report error.
         if (!(forms & L_RegMask))
         {
             IllegalInstr(instr, _u("Unexpected reg dst"));
@@ -207,7 +217,6 @@ void LegalizeMD::LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, b
     switch (opnd->GetKind())
     {
     case IR::OpndKindReg:
-        // No legalization possible, just report error.
 #ifdef DBG
         if (!(forms & L_RegMask))
         {
