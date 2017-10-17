@@ -1923,8 +1923,10 @@ public:
     bool IsPostEnumHeapValidationInProgress() const { return pfPostHeapEnumScanCallback != NULL; }
 #endif
 
-private:
+public:
     void* GetRealAddressFromInterior(void* candidate);
+
+private:
     void BeginNonCollectingMark();
     void EndNonCollectingMark();
 
