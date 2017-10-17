@@ -74,6 +74,14 @@ var tests = [
                 }
             }
         }
+    },
+    {
+        name: "Multi-unit whitespace is ignored after numeric identifier",
+        body: function () {
+            var result = 0;
+            eval("\u2028var\u2028x\u2028=\u20281234\u2028; result = x;");
+            assert.areEqual(1234, result, "Mutli-unit whitespace after numeric literal does not affect literal value");
+        }
     }
 ];
 
