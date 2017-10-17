@@ -1209,8 +1209,10 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
 
     // Opcode not yet implemented
     default:
+#if DBG_DUMP
         instr->Dump();
         Output::Flush();
+#endif
         AssertMsg(UNREACHED, "Unsupported Instruction Form");
         break;
 
