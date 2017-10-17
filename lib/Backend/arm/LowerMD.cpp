@@ -313,15 +313,15 @@ LowererMD::LowerCall(IR::Instr * callInstr, Js::ArgSlot argCount)
         IR::Opnd *helperArgOpnd = this->helperCallArgs[this->helperCallArgsCount - argsLeft];
         IR::Opnd * opndParam = nullptr;
 
-        if (helperArgOpnd->GetType() == TyMachDouble)
+        if (helperArgOpnd->IsFloat())
         {
-            opndParam = this->GetOpndForArgSlot(doubleArgsLeft - 1, true);
+            opndParam = this->GetOpndForArgSlot(doubleArgsLeft - 1, helperArgOpnd);
             AssertMsg(opndParam->IsRegOpnd(), "NYI for other kind of operands");
             --doubleArgsLeft;
         }
         else
         {
-            opndParam = this->GetOpndForArgSlot(intArgsLeft - 1);
+            opndParam = this->GetOpndForArgSlot(intArgsLeft - 1, helperArgOpnd);
             --intArgsLeft;
         }
         LowererMD::CreateAssign(opndParam, helperArgOpnd, callInstr);
@@ -695,17 +695,18 @@ LowererMD::FinishArgLowering()
 }
 
 IR::Opnd *
-LowererMD::GetOpndForArgSlot(Js::ArgSlot argSlot, bool isDoubleArgument)
+LowererMD::GetOpndForArgSlot(Js::ArgSlot argSlot, IR::Opnd * argOpnd)
 {
     IR::Opnd * opndParam = nullptr;
 
-    if (!isDoubleArgument)
+    IRType type = argOpnd ? argOpnd->GetType() : TyMachReg;
+    if (argOpnd == nullptr || !argOpnd->IsFloat())
     {
         if (argSlot < NUM_INT_ARG_REGS)
         {
             // Return an instance of the next arg register.
             IR::RegOpnd *regOpnd;
-            regOpnd = IR::RegOpnd::New(nullptr, (RegNum)(argSlot + FIRST_INT_ARG_REG), TyMachReg, this->m_func);
+            regOpnd = IR::RegOpnd::New(nullptr, (RegNum)(argSlot + FIRST_INT_ARG_REG), type, this->m_func);
 
             regOpnd->m_isCallArg = true;
 
@@ -718,7 +719,7 @@ LowererMD::GetOpndForArgSlot(Js::ArgSlot argSlot, bool isDoubleArgument)
             argSlot = argSlot - NUM_INT_ARG_REGS;
             IntConstType offset = argSlot * MachRegInt;
             IR::RegOpnd * spBase = IR::RegOpnd::New(nullptr, this->GetRegStackPointer(), TyMachReg, this->m_func);
-            opndParam = IR::IndirOpnd::New(spBase, offset, TyMachReg, this->m_func);
+            opndParam = IR::IndirOpnd::New(spBase, offset, type, this->m_func);
 
             if (this->m_func->m_argSlotsForFunctionsCalled < (uint32)(argSlot + 1))
             {
@@ -732,7 +733,7 @@ LowererMD::GetOpndForArgSlot(Js::ArgSlot argSlot, bool isDoubleArgument)
         {
             // Return an instance of the next arg register.
             IR::RegOpnd *regOpnd;
-            regOpnd = IR::RegOpnd::New(nullptr, (RegNum)(argSlot + FIRST_DOUBLE_ARG_REG), TyMachDouble, this->m_func);
+            regOpnd = IR::RegOpnd::New(nullptr, (RegNum)(argSlot + FIRST_DOUBLE_ARG_REG), type, this->m_func);
             regOpnd->m_isCallArg = true;
             opndParam = regOpnd;
         }

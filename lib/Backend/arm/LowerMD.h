@@ -223,7 +223,7 @@ public:
             IR::LabelInstr *    EnsureEpilogLabel();
             IR::Instr *         LowerEHRegionReturn(IR::Instr * insertBeforeInstr, IR::Opnd * targetOpnd);
             void                FinishArgLowering();
-            IR::Opnd *          GetOpndForArgSlot(Js::ArgSlot argSlot, bool isDoubleArgument = false);
+            IR::Opnd *          GetOpndForArgSlot(Js::ArgSlot argSlot, IR::Opnd * argOpnd = nullptr);
             bool                GenerateStackAllocation(IR::Instr *instr, uint32 allocSize, uint32 probeSize);
             void                GenerateStackDeallocation(IR::Instr *instr, uint32 allocSize);
             void                GenerateStackProbe(IR::Instr *instr, bool afterProlog);
