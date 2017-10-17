@@ -54,124 +54,178 @@ typedef uint64_t uint64;
 #include <unicode/decimfmt.h>
 #pragma warning(pop)
 
+#include "CommonDefines.h" // INTL_ICU_DEBUG
+
+#if defined(__GNUC__) || defined(__clang__)
+// Output gets included through some other path on Windows
+class Output
+{
+public:
+    static size_t __cdecl Print(const char16 *form, ...);
+};
+#endif
+
+#define ICU_ERROR_FMT _u("INTL: %S failed with error code %S\n")
+#define ICU_EXPR_FMT _u("INTL: %S failed expression check %S\n")
+
+#ifdef INTL_ICU_DEBUG
+#define ICU_DEBUG_PRINT(fmt, msg) Output::Print(fmt, __func__, (msg))
+#else
+#define ICU_DEBUG_PRINT(fmt, msg)
+#endif
+
+#define ICU_RETURN(e, expr, r)                                                \
+    do                                                                        \
+    {                                                                         \
+        if (U_FAILURE(e))                                                     \
+        {                                                                     \
+            ICU_DEBUG_PRINT(ICU_ERROR_FMT, u_errorName(e));                   \
+            return r;                                                         \
+        }                                                                     \
+        else if (!(expr))                                                     \
+        {                                                                     \
+            ICU_DEBUG_PRINT(ICU_EXPR_FMT, u_errorName(e));                    \
+            return r;                                                         \
+        }                                                                     \
+    } while (false)
+
+#define ICU_ASSERT(e, expr)                                                   \
+    do                                                                        \
+    {                                                                         \
+        if (U_FAILURE(e))                                                     \
+        {                                                                     \
+            ICU_DEBUG_PRINT(ICU_ERROR_FMT, u_errorName(e));                   \
+            AssertMsg(false, u_errorName(e));                                 \
+        }                                                                     \
+        else if (!(expr))                                                     \
+        {                                                                     \
+            ICU_DEBUG_PRINT(ICU_EXPR_FMT, u_errorName(e));                    \
+            Assert(expr);                                                     \
+        }                                                                     \
+    } while (false)
+
+#define ICU_ASSERT_RETURN(e, expr, r)                                         \
+    do                                                                        \
+    {                                                                         \
+        if (U_FAILURE(e))                                                     \
+        {                                                                     \
+            ICU_DEBUG_PRINT(ICU_ERROR_FMT, u_errorName(e));                   \
+            AssertMsg(false, u_errorName(e));                                 \
+            return r;                                                         \
+        }                                                                     \
+        else if (!(expr))                                                     \
+        {                                                                     \
+            ICU_DEBUG_PRINT(ICU_EXPR_FMT, u_errorName(e));                    \
+            Assert(expr);                                                     \
+            return r;                                                         \
+        }                                                                     \
+    } while (false)
+
+#define CHECK_UTF_CONVERSION(str, ret)                                        \
+    do                                                                        \
+    {                                                                         \
+        if (str == nullptr)                                                   \
+        {                                                                     \
+            AssertOrFailFastMsg(false, "OOM: failed to allocate string buffer"); \
+            return ret;                                                       \
+        }                                                                     \
+    } while (false)
+
 namespace PlatformAgnostic
 {
 namespace Intl
 {
     using namespace PlatformAgnostic::Resource;
 
-    bool IsWellFormedLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch)
+    // lots of logic below requires utf8char_t ~= char and UChar ~= char16
+    static_assert(sizeof(utf8char_t) == sizeof(char), "ICU-based Intl logic assumes that utf8char_t is compatible with char");
+
+    // [[ Ctrl-F: UChar_cast_explainer ]]
+    // UChar, like char16, is guaranteed to be 2 bytes on all platforms.
+    // However, we cannot use static_cast because on Windows:
+    // - char16 => WCHAR => wchar_t (native type) -- see Core/CommonTypedefs.h or Codex/Utf8Codex.h
+    // - (wchar_t is a native 2-byte type on Windows, but native 4-byte elsewhere)
+    // On other platforms:
+    // - char16 => char16_t -- see pal/inc/pal_mstypes.h
+    // All platforms:
+    // - UChar -> char16_t (all platforms)
+    static_assert(sizeof(UChar) == sizeof(char16), "ICU-based Intl logic assumes that UChar is compatible with char16");
+
+    // This function duplicates the Utf8Helper.h classes/methods
+    // See https://github.com/Microsoft/ChakraCore/pull/3913 for a (failed) attempt to use those directly
+    // Use CHECK_UTF_CONVERSION macro at the callsite to check the return value
+    // The caller is responsible for delete[]ing the memory returned here
+    // TODO(jahorto): As long as this function exists, it _must_ be kept in sync with utf8::WideStringToNarrow (Utf8Helper.h)
+    // TODO(jahorto 10/13/2017): This function should not exist for long, and should eventually be replaced with official utf8:: code
+    static utf8char_t *Utf16ToUtf8(_In_ const char16 *src, _In_ const charcount_t srcLength, _Out_ size_t *destLength)
     {
-        bool success = false;
+        // Allocate memory for the UTF8 output buffer. Need 3 bytes for each (code point + null) to satisfy SAL.
+        size_t allocSize = AllocSizeMath::Mul(AllocSizeMath::Add(srcLength, 1), 3);
+        utf8char_t *dest = new utf8char_t[allocSize];
+        if (!dest)
+        {
+            // this check has to happen in the caller regardless, so asserting here doesn't do much good
+            return nullptr;
+        }
+
+        *destLength = utf8::EncodeIntoAndNullTerminate(dest, src, srcLength);
+        return dest;
+    }
+
+    bool IsWellFormedLanguageTag(_In_z_ const char16 *langtag16, _In_ const charcount_t cch)
+    {
         UErrorCode error = UErrorCode::U_ZERO_ERROR;
         char icuLocaleId[ULOC_FULLNAME_CAPACITY] = { 0 };
         char icuLangTag[ULOC_FULLNAME_CAPACITY] = { 0 };
-        int32_t parsedLength = 0;
-        int32_t forLangTagResultLength = 0;
-        int32_t toLangTagResultLength = 0;
-        size_t inputLangTagUtf8SizeActual = 0;
-
-        // Allocate memory for the UTF8 output buffer. Need 3 bytes for each (code point + null) to satisfy SAL.
-        const size_t inputLangTagUtf8SizeAllocated = AllocSizeMath::Mul(AllocSizeMath::Add(cch, 1), 3);
-        unsigned char *inputLangTagUtf8 = new unsigned char[inputLangTagUtf8SizeAllocated];
-        if (!inputLangTagUtf8)
-        {
-            AssertOrFailFastMsg(false, "OOM: failed to allocate inputLangTagUtf8");
-            return false;
-        }
-
-        StringBufferAutoPtr<unsigned char> guard(inputLangTagUtf8);
-        memset(inputLangTagUtf8, 0, inputLangTagUtf8SizeAllocated); // explicitly zero the array
-
-        inputLangTagUtf8SizeActual = utf8::EncodeIntoAndNullTerminate(inputLangTagUtf8, languageTag, cch);
+        
+        size_t langtag8Length = 0;
+        const utf8char_t *langtag8 = Utf16ToUtf8(langtag16, cch, &langtag8Length);
+        StringBufferAutoPtr<utf8char_t> guard(langtag8);
+        CHECK_UTF_CONVERSION(langtag8, false);
 
         // Convert input language tag to a locale ID for use in uloc_toLanguageTag API.
         // We used utf8 conversion to turn char16* into utf8char_t* (unsigned char *) but uloc_forLanguageTag takes char*
         // LangTags must be 7-bit-ASCII to be valid and any of these chars being "negative" is irrelevant.
-        forLangTagResultLength = uloc_forLanguageTag(reinterpret_cast<char *>(inputLangTagUtf8),
+        int32_t parsedLength = 0;
+        int32_t forLangTagResultLength = uloc_forLanguageTag(reinterpret_cast<const char *>(langtag8),
             icuLocaleId, ULOC_FULLNAME_CAPACITY, &parsedLength, &error);
-        success = (forLangTagResultLength > 0) && (parsedLength > 0) &&
-            U_SUCCESS(error) && ((size_t)parsedLength == inputLangTagUtf8SizeActual);
-        if (!success)
-        {
-            return false;
-        }
+        ICU_RETURN(error, forLangTagResultLength > 0 && parsedLength > 0 && ((size_t) parsedLength) == langtag8Length, false);
 
-        toLangTagResultLength = uloc_toLanguageTag(icuLocaleId, icuLangTag, ULOC_FULLNAME_CAPACITY, TRUE, &error);
-        success = toLangTagResultLength && U_SUCCESS(error);
-        if (!success)
-        {
-            if (error == UErrorCode::U_ILLEGAL_ARGUMENT_ERROR)
-            {
-                AssertMsg(false, "uloc_toLanguageTag: error U_ILLEGAL_ARGUMENT_ERROR");
-            }
-            else
-            {
-                AssertMsg(false, "uloc_toLanguageTag: unexpected error (besides U_ILLEGAL_ARGUMENT_ERROR)");
-            }
-        }
+        int32_t toLangTagResultLength = uloc_toLanguageTag(icuLocaleId, icuLangTag, ULOC_FULLNAME_CAPACITY, true, &error);
+        ICU_RETURN(error, toLangTagResultLength > 0, false);
 
-        return success;
+        return true;
     }
 
     HRESULT NormalizeLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch,
         _Out_ char16 *normalized, _Out_ size_t *normalizedLength)
     {
-        bool success = false;
         UErrorCode error = UErrorCode::U_ZERO_ERROR;
         char icuLocaleId[ULOC_FULLNAME_CAPACITY] = { 0 };
         char icuLangTag[ULOC_FULLNAME_CAPACITY] = { 0 };
-        int32_t parsedLength = 0;
-        int32_t forLangTagResultLength = 0;
-        int32_t toLangTagResultLength = 0;
 
-        // Allocate memory for the UTF8 output buffer. Need 3 bytes for each (code point + null) to satisfy SAL.
-        const size_t inputLangTagUtf8SizeAllocated = AllocSizeMath::Mul(AllocSizeMath::Add(cch, 1), 3);
-        unsigned char *inputLangTagUtf8 = new unsigned char[inputLangTagUtf8SizeAllocated];
-        if (!inputLangTagUtf8)
-        {
-            AssertOrFailFastMsg(false, "OOM: failed to allocate inputLangTagUtf8.");
-            return E_OUTOFMEMORY;
-        }
-
-        StringBufferAutoPtr<unsigned char> guard(inputLangTagUtf8);
-        memset(inputLangTagUtf8, 0, inputLangTagUtf8SizeAllocated); // explicitly zero the array
-
-        utf8::EncodeIntoAndNullTerminate(inputLangTagUtf8, languageTag, cch);
+        size_t langtag8Length = 0;
+        const utf8char_t *langtag8 = Utf16ToUtf8(languageTag, cch, &langtag8Length);
+        StringBufferAutoPtr<utf8char_t> guard(langtag8);
+        CHECK_UTF_CONVERSION(langtag8, E_OUTOFMEMORY);
 
         // Convert input language tag to a locale ID for use in uloc_toLanguageTag API.
         // We used utf8 conversion to turn char16* into utf8char_t* (unsigned char *) but uloc_forLanguageTag takes char*
         // LangTags must be 7-bit-ASCII to be valid and any of these chars being "negative" is irrelevant.
-        forLangTagResultLength = uloc_forLanguageTag(reinterpret_cast<char *>(inputLangTagUtf8),
+        int32_t parsedLength = 0;
+        int32_t forLangTagResultLength = uloc_forLanguageTag(reinterpret_cast<const char *>(langtag8),
             icuLocaleId, ULOC_FULLNAME_CAPACITY, &parsedLength, &error);
-        success = forLangTagResultLength && parsedLength && U_SUCCESS(error);
-        if (!success)
-        {
-            AssertMsg(false, "uloc_forLanguageTag failed");
-            return E_INVALIDARG;
-        }
+        ICU_ASSERT_RETURN(error, forLangTagResultLength > 0 && parsedLength > 0, E_INVALIDARG);
 
         // Try to convert icuLocaleId (locale ID version of input locale string) to BCP47 language tag, using strict checks
-        toLangTagResultLength = uloc_toLanguageTag(icuLocaleId, icuLangTag, ULOC_FULLNAME_CAPACITY, TRUE, &error);
-        success = toLangTagResultLength && U_SUCCESS(error);
-        if (!success)
-        {
-            if (error == UErrorCode::U_ILLEGAL_ARGUMENT_ERROR)
-            {
-                AssertMsg(false, "uloc_toLanguageTag: error U_ILLEGAL_ARGUMENT_ERROR");
-            }
-            else
-            {
-                AssertMsg(false, "uloc_toLanguageTag: unexpected error (besides U_ILLEGAL_ARGUMENT_ERROR)");
-            }
+        int32_t toLangTagResultLength = uloc_toLanguageTag(icuLocaleId, icuLangTag, ULOC_FULLNAME_CAPACITY, true, &error);
+        ICU_ASSERT_RETURN(error, toLangTagResultLength > 0, E_INVALIDARG);
 
-            return E_INVALIDARG;
-        }
-
-        *normalizedLength = utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(normalized,
+        *normalizedLength = utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(
+            normalized,
             reinterpret_cast<utf8char_t *>(icuLangTag),
-            reinterpret_cast<utf8char_t *>(icuLangTag + toLangTagResultLength),
-            utf8::doDefault);
+            reinterpret_cast<utf8char_t *>(icuLangTag + toLangTagResultLength)
+        );
 
         return S_OK;
     }
@@ -179,99 +233,41 @@ namespace Intl
     int32_t GetCurrencyFractionDigits(_In_z_ const char16 * currencyCode)
     {
         UErrorCode error = UErrorCode::U_ZERO_ERROR;
-
-        // [[ Ctrl-F: UChar_cast_explainer ]]
-        // UChar, like char16, is guaranteed to be 2 bytes on all platforms.
-        // However, we cannot use static_cast because on Windows:
-        // - char16 => WCHAR => wchar_t (native type) -- see Core/CommonTypedefs.h or Codex/Utf8Codex.h
-        // - (wchar_t is a native 2-byte type on Windows, but native 4-byte elsewhere)
-        // On other platforms:
-        // - char16 => char16_t -- see pal/inc/pal_mstypes.h
-        // All platforms:
-        // - UChar -> char16_t (all platforms)
         const UChar *uCurrencyCode = reinterpret_cast<const UChar *>(currencyCode);
 
         // REVIEW (doilij): What does the spec say to do if a currency is not supported? Does that affect this decision?
-        int32_t minFracDigits = 2; // Picked a "reasonable" fallback value as a starting value here.
+        const int32_t fallback = 2; // Picked a "reasonable" fallback value as a starting value here.
 
         // Note: The number of fractional digits specified for a currency is not locale-dependent.
-        icu::NumberFormat *nf = icu::NumberFormat::createCurrencyInstance(error); // using default locale
-        AutoPtr<icu::NumberFormat> guard(nf); // ICU requires that the caller explicitly deletes pointers allocated by ICU (otherwise will leak)
-
-        if (U_FAILURE(error))
-        {
-#ifdef INTL_ICU_DEBUG
-            if (error == UErrorCode::U_MISSING_RESOURCE_ERROR)
-            {
-                Output::Print(_u("EntryIntl_CurrencyDigits > icu::NumberFormat::createCurrencyInstance(error) > U_MISSING_RESOURCE_ERROR (%d)\n"), error);
-            }
-            else
-            {
-                Output::Print(_u("EntryIntl_CurrencyDigits > icu::NumberFormat::createCurrencyInstance(error) > UErrorCode (%d)\n"), error);
-            }
-#endif
-            goto LReturn;
-        }
+        icu::NumberFormat *nf = icu::NumberFormat::createCurrencyInstance(error); // use default locale
+        AutoPtr<icu::NumberFormat> guard(nf);
+        ICU_RETURN(error, true, fallback);
 
         nf->setCurrency(uCurrencyCode, error);
-        if (U_FAILURE(error))
-        {
-#ifdef INTL_ICU_DEBUG
-            if (error == UErrorCode::U_MISSING_RESOURCE_ERROR)
-            {
-                Output::Print(_u("EntryIntl_CurrencyDigits > nf->setCurrency(uCurrencyCode (%s), error) > U_MISSING_RESOURCE_ERROR (%d)\n"), currencyCode, error);
-            }
-            else
-            {
-                Output::Print(_u("EntryIntl_CurrencyDigits > nf->setCurrency(uCurrencyCode (%s), error) > UErrorCode (%d)\n"), currencyCode, error);
-            }
-#endif
-            goto LReturn;
-        }
+        ICU_RETURN(error, true, fallback);
 
-        minFracDigits = nf->getMinimumFractionDigits();
-
-#ifdef INTL_ICU_DEBUG
-        Output::Print(_u("EntryIntl_CurrencyDigits > nf->getMinimumFractionDigits() successful > returned (%d)\n"), minFracDigits);
-#endif
-
-    LReturn:
-#ifdef INTL_ICU_DEBUG
-        Output::Print(_u("EntryIntl_CurrencyDigits > returning (%d)\n"), minFracDigits);
-#endif
-
-        return minFracDigits;
+        return nf->getMinimumFractionDigits();
     }
 
     template <typename Func>
-    HRESULT CreateFormatter(Func function, _In_z_ const char16 *languageTag, _In_ const charcount_t cch, _Out_ IPlatformAgnosticResource **resource)
+    HRESULT CreateFormatter(Func formatterFactory, _In_z_ const char16 *languageTag, _In_ const charcount_t cch, _Out_ IPlatformAgnosticResource **resource)
     {
         UErrorCode error = UErrorCode::U_ZERO_ERROR;
 
-        // Allocate memory for the UTF8 output buffer. Need 3 bytes for each (code point + null) to satisfy SAL.
-        const size_t inputLangTagUtf8SizeAllocated = AllocSizeMath::Mul(AllocSizeMath::Add(cch, 1), 3);
-        unsigned char *inputLangTagUtf8 = new unsigned char[inputLangTagUtf8SizeAllocated];
-        if (!inputLangTagUtf8)
+        size_t langtag8Length = 0;
+        const utf8char_t *langtag8 = Utf16ToUtf8(languageTag, cch, &langtag8Length);
+        StringBufferAutoPtr<utf8char_t> guard(langtag8);
+        CHECK_UTF_CONVERSION(langtag8, E_OUTOFMEMORY);
+
+        // TODO(jahorto): Should this createCanonical instead?
+        icu::Locale locale = icu::Locale::createFromName(reinterpret_cast<const char*>(langtag8));
+        if (locale.isBogus())
         {
-            AssertOrFailFastMsg(false, "OOM: failed to allocate inputLangTagUtf8.");
-            return E_OUTOFMEMORY;
-        }
-
-        StringBufferAutoPtr<unsigned char> guard(inputLangTagUtf8);
-        memset(inputLangTagUtf8, 0, inputLangTagUtf8SizeAllocated); // explicitly zero the array
-
-        utf8::EncodeIntoAndNullTerminate(inputLangTagUtf8, languageTag, cch);
-
-        char *localeName = reinterpret_cast<char *>(inputLangTagUtf8);
-        icu::Locale locale = icu::Locale::createFromName(localeName);
-
-        icu::NumberFormat *nf = function(locale, error);
-
-        if (U_FAILURE(error))
-        {
-            AssertMsg(false, "Creating icu::NumberFormat failed");
             return E_INVALIDARG;
         }
+
+        icu::NumberFormat *nf = formatterFactory(locale, error);
+        ICU_ASSERT_RETURN(error, true, E_INVALIDARG);
 
         IPlatformAgnosticResource *formatterResource = new PlatformAgnosticIntlObject<icu::NumberFormat>(nf);
         if (!formatterResource)
@@ -300,73 +296,35 @@ namespace Intl
     HRESULT CreateCurrencyFormatter(_In_z_ const char16 *languageTag, _In_ const charcount_t cch,
         _In_z_ const char16 *currencyCode, _In_ const NumberFormatCurrencyDisplay currencyDisplay, _Out_ IPlatformAgnosticResource **resource)
     {
-        UErrorCode error = UErrorCode::U_ZERO_ERROR;
-        unsigned char *inputLangTagUtf8 = nullptr;
-
-        // Allocate memory for the UTF8 output buffer. Need 3 bytes for each (code point + null) to satisfy SAL.
-        const size_t inputLangTagUtf8SizeAllocated = AllocSizeMath::Mul(AllocSizeMath::Add(cch, 1), 3);
-        inputLangTagUtf8 = new unsigned char[inputLangTagUtf8SizeAllocated];
-        if (!inputLangTagUtf8)
-        {
-            AssertOrFailFastMsg(false, "OOM: failed to allocate inputLangTagUtf8.");
-            return E_OUTOFMEMORY;
-        }
-
-        StringBufferAutoPtr<unsigned char> guard(inputLangTagUtf8);
-        memset(inputLangTagUtf8, 0, inputLangTagUtf8SizeAllocated); // explicitly zero the array
-
-        utf8::EncodeIntoAndNullTerminate(inputLangTagUtf8, languageTag, cch);
-
-        char *localeName = reinterpret_cast<char *>(inputLangTagUtf8);
-        icu::Locale locale = icu::Locale::createFromName(localeName);
-
-        icu::NumberFormat *nf = nullptr;
-        if (currencyDisplay == NumberFormatCurrencyDisplay::SYMBOL || currencyDisplay >= NumberFormatCurrencyDisplay::MAX)
-        {
-            // 0 (or default) => use symbol (e.g. "$" or "US$")
-            nf = icu::NumberFormat::createCurrencyInstance(locale, error);
-            if (U_FAILURE(error))
+        return CreateFormatter(
+            [&currencyDisplay, currencyCode](icu::Locale &locale, UErrorCode &error) -> icu::NumberFormat*
             {
-                AssertMsg(false, "icu::NumberFormat::createCurrencyInstance failed");
-                return E_INVALIDARG;
-            }
+                icu::NumberFormat *nf = nullptr;
+                if (currencyDisplay == NumberFormatCurrencyDisplay::SYMBOL || currencyDisplay >= NumberFormatCurrencyDisplay::MAX)
+                {
+                    // 0 (or default) => use symbol (e.g. "$" or "US$")
+                    nf = icu::NumberFormat::createCurrencyInstance(locale, error);
+                    ICU_ASSERT_RETURN(error, true, nullptr);
 
-            nf->setCurrency(reinterpret_cast<const UChar *>(currencyCode), error); // Ctrl-F: UChar_cast_explainer
-            if (U_FAILURE(error))
-            {
-                AssertMsg(false, "Failed to set currency on icu::NumberFormat");
-                return E_INVALIDARG;
-            }
-        }
-        else if (currencyDisplay == NumberFormatCurrencyDisplay::CODE || currencyDisplay == NumberFormatCurrencyDisplay::NAME)
-        {
-            // CODE e.g. "USD 42.00"; NAME (e.g. "42.00 US dollars")
-            // In both cases we need to be able to format in decimal and add the code or name afterwards.
-            // We will decide how to do this when platform.formatNumber is invoked (based on currencyDisplay again).
-            // TODO (future) (doilij): How do we handle which side of the number to put the code or name? Can ICU do this? It doesn't seem clear how at the moment.
+                    nf->setCurrency(reinterpret_cast<const UChar *>(currencyCode), error); // Ctrl-F: UChar_cast_explainer
+                    ICU_ASSERT_RETURN(error, true, nullptr);
+                }
+                else if (currencyDisplay == NumberFormatCurrencyDisplay::CODE || currencyDisplay == NumberFormatCurrencyDisplay::NAME)
+                {
+                    // CODE e.g. "USD 42.00"; NAME (e.g. "42.00 US dollars")
+                    // In both cases we need to be able to format in decimal and add the code or name afterwards.
+                    // We will decide how to do this when platform.formatNumber is invoked (based on currencyDisplay again).
+                    // TODO(doilij): How do we handle which side of the number to put the code or name? Can ICU do this? It doesn't seem clear how at the moment.
+                    nf = icu::NumberFormat::createInstance(locale, error);
+                    ICU_ASSERT_RETURN(error, true, nullptr);
+                }
 
-            nf = icu::NumberFormat::createInstance(locale, error);
-            if (U_FAILURE(error))
-            {
-                AssertMsg(false, "icu::NumberFormat::createInstance failed");
-                return E_INVALIDARG;
-            }
-        }
-
-        if (U_FAILURE(error))
-        {
-            AssertMsg(false, "Creating icu::NumberFormat failed");
-            return E_INVALIDARG;
-        }
-
-        IPlatformAgnosticResource *formatterResource = new PlatformAgnosticIntlObject<icu::NumberFormat>(nf);
-        if (!formatterResource)
-        {
-            return E_OUTOFMEMORY;
-        }
-
-        *resource = formatterResource;
-        return S_OK;
+                return nf;
+            },
+            languageTag,
+            cch,
+            resource
+        );
     }
 
     HRESULT SetNumberFormatSignificantDigits(IPlatformAgnosticResource *resource, const uint16 minSigDigits, const uint16 maxSigDigits)
@@ -404,11 +362,14 @@ namespace Intl
     // We explicitly declare these specializations of FormatNumber so the compiler creates them
     // because they will be used in another compilation unit,
     // at which time we cannot generate code for specializations of this template.
-    template const char16 *FormatNumber<>(IPlatformAgnosticResource *formatter, const int32_t val, const NumberFormatStyle formatterToUse, const NumberFormatCurrencyDisplay currencyDisplay, const char16 *currencyCode);
-    template const char16 *FormatNumber<>(IPlatformAgnosticResource *formatter, const double val, const NumberFormatStyle formatterToUse, const NumberFormatCurrencyDisplay currencyDisplay, const char16 *currencyCode);
+    template const char16 *FormatNumber<>(IPlatformAgnosticResource *formatter, const int32_t val, const NumberFormatStyle formatterToUse,
+        const NumberFormatCurrencyDisplay currencyDisplay, const char16 *currencyCode);
+    template const char16 *FormatNumber<>(IPlatformAgnosticResource *formatter, const double val, const NumberFormatStyle formatterToUse,
+        const NumberFormatCurrencyDisplay currencyDisplay, const char16 *currencyCode);
 
     template <typename T>
-    const char16 *FormatNumber(IPlatformAgnosticResource *formatter, const T val, const NumberFormatStyle formatterToUse, const NumberFormatCurrencyDisplay currencyDisplay, const char16 *currencyCode)
+    const char16 *FormatNumber(IPlatformAgnosticResource *formatter, const T val, const NumberFormatStyle formatterToUse,
+        const NumberFormatCurrencyDisplay currencyDisplay, const char16 *currencyCode)
     {
         icu::UnicodeString result;
 
@@ -432,11 +393,7 @@ namespace Intl
 
             const UChar *uCurrencyCode = reinterpret_cast<const UChar *>(currencyCode); // Ctrl-F: UChar_cast_explainer
             const char *localeName = numberFormatter->getLocale(ULocDataLocaleType::ULOC_ACTUAL_LOCALE, error).getName();
-
-            if (U_FAILURE(error))
-            {
-                AssertMsg(false, "numberFormatter->getLocale failed");
-            }
+            ICU_ASSERT(error, true);
 
             UBool isChoiceFormat = false;
             int32_t currencyNameLen = 0;
@@ -456,11 +413,7 @@ namespace Intl
             {
                 const char *pluralCount = nullptr; // REVIEW (doilij): is this okay? It's not entirely clear from the documentation whether this is an optional parameter.
                 const UChar *currencyLongName = ucurr_getPluralName(uCurrencyCode, localeName, &isChoiceFormat, pluralCount, &currencyNameLen, &error);
-
-                if (U_FAILURE(error))
-                {
-                    AssertMsg(false, "Failed to format");
-                }
+                ICU_ASSERT(error, true);
 
                 numberFormatter->format(val, result);
                 result.append(" ");
@@ -500,33 +453,19 @@ namespace Intl
         char defaultLocaleId[ULOC_FULLNAME_CAPACITY] = { 0 };
 
         int32_t written = uloc_getName(nullptr, defaultLocaleId, ULOC_FULLNAME_CAPACITY, &error);
-        if (U_SUCCESS(error) && written > 0 && written < ULOC_FULLNAME_CAPACITY)
-        {
-            defaultLocaleId[written] = 0;
-            error = UErrorCode::U_ZERO_ERROR;
-        }
-        else
-        {
-            AssertMsg(false, "uloc_getName: unexpected error getting default localeId");
-            return 0;
-        }
+        ICU_ASSERT_RETURN(error, written > 0 && written < ULOC_FULLNAME_CAPACITY, 0);
+
+        defaultLocaleId[written] = 0;
+        error = UErrorCode::U_ZERO_ERROR;
 
         written = uloc_toLanguageTag(defaultLocaleId, bcp47, ULOC_FULLNAME_CAPACITY, true, &error);
-        if (U_FAILURE(error) || written <= 0)
-        {
-            AssertMsg(false, "uloc_toLanguageTag: unexpected error getting default langtag");
-            return 0;
-        }
+        ICU_ASSERT_RETURN(error, written > 0 && written < cchLangtag, 0);
 
-        if (written < cchLangtag)
-        {
-            return utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(langtag, reinterpret_cast<const utf8char_t *>(bcp47), reinterpret_cast<utf8char_t *>(bcp47 + written));
-        }
-        else
-        {
-            AssertMsg(false, "User default language tag is larger than the provided buffer");
-            return 0;
-        }
+        return utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(
+            langtag,
+            reinterpret_cast<LPCUTF8>(bcp47),
+            reinterpret_cast<LPCUTF8>(bcp47 + written)
+        );
     }
 } // namespace Intl
 } // namespace PlatformAgnostic

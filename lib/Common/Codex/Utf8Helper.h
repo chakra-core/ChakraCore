@@ -12,6 +12,9 @@ namespace utf8
     /// The caller is responsible for freeing the memory, which is allocated
     /// using Allocator.
     /// The returned string is null terminated.
+    /// TODO(jahorto): This file's dependencies mean that it cannot be included in PlatformAgnostic
+    ///     Thus, this function is currently ~duplicated in PlatformAgnostic::Intl::Utf16ToUtf8 (Intl.cpp)
+    ///     As long as that function exists, it _must_ be updated alongside any updates here
     ///
     template <typename AllocatorFunction>
     HRESULT WideStringToNarrow(_In_ AllocatorFunction allocator, _In_ LPCWSTR sourceString, size_t sourceCount, _Out_ LPSTR* destStringPtr, _Out_ size_t* destCount, size_t* allocateCount = nullptr)
