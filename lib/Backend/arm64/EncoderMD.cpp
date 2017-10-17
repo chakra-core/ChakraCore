@@ -521,7 +521,7 @@ int EncoderMD::EmitBitfield(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitte
     Assert(size == 4 || size == 8);
     Assert(size == src1->GetSize());
 
-    IntConstType immediate = src1->GetImmediateValue(instr->m_func);
+    IntConstType immediate = src2->GetImmediateValue(instr->m_func);
     int start = immediate & 0x3f;
     int length = (immediate >> 16) & 0x3f;
     Assert(start >= 0 && start < 8 * size);
