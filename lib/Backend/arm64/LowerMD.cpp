@@ -767,8 +767,8 @@ LowererMD::GenerateStackProbe(IR::Instr *insertInstr, bool afterProlog)
     // because this function is guaranteed to be called on its base thread only.
     // If the check fails call ThreadContext::ProbeCurrentStack which will check again and must throw.
     //
-    //       LDIMM r12, ThreadContext::scriptStackLimit + frameSize //Load to register first, as this can be more than 12 bit supported in CMP
-    //       CMP   sp, r12
+    //       LDIMM r17, ThreadContext::scriptStackLimit + frameSize //Load to register first, as this can be more than 12 bit supported in CMP
+    //       CMP   sp, r17
     //       BHI   done
     // begin:
     //       LDIMM  r0, frameSize
@@ -779,12 +779,12 @@ LowererMD::GenerateStackProbe(IR::Instr *insertInstr, bool afterProlog)
     //
 
     // For thread context with script interrupt enabled:
-    //       LDIMM r12, &ThreadContext::scriptStackLimitForCurrentThread
-    //       LDR   r12, [r12]
+    //       LDIMM r17, &ThreadContext::scriptStackLimitForCurrentThread
+    //       LDR   r17, [r17]
     //       MOV   r15, frameSize
-    //       ADDS  r12, r12, r15
+    //       ADDS  r17, r17, r15
     //       BVS   $helper
-    //       CMP   sp, r12
+    //       CMP   sp, r17
     //       BHI   done
     // $helper:
     //       LDIMM  r0, frameSize
@@ -804,20 +804,20 @@ LowererMD::GenerateStackProbe(IR::Instr *insertInstr, bool afterProlog)
 
     if (doInterruptProbe || !m_func->GetThreadContextInfo()->IsThreadBound())
     {
-        // LDIMM r12, &ThreadContext::scriptStackLimitForCurrentThread
+        // LDIMM r17, &ThreadContext::scriptStackLimitForCurrentThread
         intptr_t pLimit = m_func->GetThreadContextInfo()->GetThreadStackLimitAddr();
         this->CreateAssign(scratchOpnd, IR::AddrOpnd::New(pLimit, IR::AddrOpndKindDynamicMisc, this->m_func), insertInstr);
 
-        // LDR   r12, [r12, #0]
+        // LDR   r17, [r17, #0]
         this->CreateAssign(scratchOpnd, IR::IndirOpnd::New(scratchOpnd, 0, TyMachReg, this->m_func), insertInstr);
 
-        AssertMsg(!IS_CONST_00000FFF(frameSize), "For small size we can just add frameSize to r12");
+        AssertMsg(!IS_CONST_00000FFF(frameSize), "For small size we can just add frameSize to r17");
 
         // MOV r15, frameSize
         IR::Opnd* spAllocRegOpnd = IR::RegOpnd::New(nullptr, SP_ALLOC_SCRATCH_REG, TyMachReg, this->m_func);
         this->CreateAssign(spAllocRegOpnd, IR::IntConstOpnd::New(frameSize, TyMachReg, this->m_func), insertInstr);
 
-        // ADDS r12, r12, r15
+        // ADDS r17, r17, r15
         instr = IR::Instr::New(Js::OpCode::ADDS, scratchOpnd, scratchOpnd, spAllocRegOpnd, this->m_func);
         insertInstr->InsertBefore(instr);
 
@@ -827,7 +827,7 @@ LowererMD::GenerateStackProbe(IR::Instr *insertInstr, bool afterProlog)
     }
     else
     {
-        // MOV r12, frameSize + scriptStackLimit
+        // MOV r17, frameSize + scriptStackLimit
         uint32 scriptStackLimit = (uint32)m_func->GetThreadContextInfo()->GetScriptStackLimit();
         IR::Opnd *stackLimitOpnd = IR::IntConstOpnd::New(frameSize + scriptStackLimit, TyMachReg, this->m_func);
         this->CreateAssign(scratchOpnd, stackLimitOpnd, insertInstr);
@@ -836,7 +836,7 @@ LowererMD::GenerateStackProbe(IR::Instr *insertInstr, bool afterProlog)
     IR::LabelInstr *doneLabelInstr = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, false);
     if (!IS_FAULTINJECT_STACK_PROBE_ON) // Do stack check fastpath only if not doing StackProbe fault injection
     {
-        // CMP sp, r12
+        // CMP sp, r17
         instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
         instr->SetSrc1(IR::RegOpnd::New(nullptr, GetRegStackPointer(), TyMachReg, this->m_func));
         instr->SetSrc2(scratchOpnd);
@@ -900,8 +900,8 @@ LowererMD::GenerateStackAllocation(IR::Instr *instr, uint32 allocSize, uint32 pr
 
     // Generate _chkstk call
     // LDIMM RegR15, stackSize/16
-    // LDIMM RegR12, HelperCRT_chkstk
-    // BLX RegR12
+    // LDIMM RegR17, HelperCRT_chkstk
+    // BLX RegR17
     // SUB SP, SP, x15, lsl #4
 
     //chkstk expects the stacksize argument in R15 register
@@ -1234,16 +1234,16 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         GenerateStackProbe(insertInstr, false); //stack is already aligned in this case
     }
 
-    IR::RegOpnd * r12Opnd = nullptr;
+    IR::RegOpnd * scratchOpnd = nullptr;
 
     // Zero-initialize dedicated arguments slot
     if (hasCalls)
     {
-        //R12 acts a dummy zero register which we push to arguments slot
-        //mov r12, 0
-        Assert(r12Opnd == nullptr);
-        r12Opnd = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
-        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOVZ, r12Opnd, IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
+        //r17 acts a dummy zero register which we push to arguments slot
+        //mov r17, 0
+        Assert(scratchOpnd == nullptr);
+        scratchOpnd = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
+        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOVZ, scratchOpnd, IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
         insertInstr->InsertBefore(instrMov);
         IR::LabelInstr *prologStartLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
         insertInstr->InsertBefore(prologStartLabel);
@@ -1454,22 +1454,22 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     if (m_func->GetMaxInlineeArgOutSize() != 0)
     {
         // This is done post prolog. so we don't have to emit unwind data.
-        if (r12Opnd == nullptr || isScratchRegisterThrashed)
+        if (scratchOpnd == nullptr || isScratchRegisterThrashed)
         {
-            r12Opnd = r12Opnd ? r12Opnd : IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
-            // mov r12, 0
-            IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOVZ, r12Opnd, IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
+            scratchOpnd = scratchOpnd ? scratchOpnd : IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
+            // mov r17, 0
+            IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOVZ, scratchOpnd, IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
             insertInstr->InsertBefore(instrMov);
         }
 
-        // STR argc, r12
+        // STR argc, r17
         StackSym *sym = this->m_func->m_symTable->GetArgSlotSym((Js::ArgSlot) - 1);
         sym->m_isInlinedArgSlot = true;
         sym->m_offset = 0;
         IR::Opnd *dst = IR::SymOpnd::New(sym, 0, TyMachReg, this->m_func);
         insertInstr->InsertBefore(IR::Instr::New(Js::OpCode::STR,
             dst,
-            r12Opnd,
+            scratchOpnd,
             this->m_func));
     }
 
@@ -3516,9 +3516,9 @@ LowererMD::GenerateFastMul(IR::Instr * instrMul)
     // (If not 2 Int31's, jump to $helper.)
     // s1 = SUB src1, AtomTag -- clear the var tag from the value to be multiplied
     // s2 = ASR src2, Js::VarTag_Shift  -- extract the real src2 amount from the var
-    // (r12:)s1 = SMULL s1, (r12,) s1, s2      -- do the signed mul into 64bit r12:s1, the result will be src1 * src2 * 2
-    // (SMULL doesn't set the flags but we don't have 32bit overflow <=> r12-unsigned ? r12==0 : all 33 bits of 64bit result are 1's
-    //      CMP r12, s1, ASR #31 -- check for overflow (== means no overflow)
+    // (r17:)s1 = SMULL s1, (r17,) s1, s2      -- do the signed mul into 64bit r17:s1, the result will be src1 * src2 * 2
+    // (SMULL doesn't set the flags but we don't have 32bit overflow <=> r17-unsigned ? r17==0 : all 33 bits of 64bit result are 1's
+    //      CMP r17, s1, ASR #31 -- check for overflow (== means no overflow)
     //      BNE $helper       -- bail if the result overflowed
     //      TST s1, s1        -- Check 0 vs -0 (Javascript number is technically double, so need to account for -0)
     //      BNE $result       -- TODO: consider converting 2 instructions into one: CBZ s1, $zero
@@ -3589,18 +3589,15 @@ LowererMD::GenerateFastMul(IR::Instr * instrMul)
         IR::IntConstOpnd::New(Js::VarTag_Shift, TyInt8, this->m_func), this->m_func);
     instrMul->InsertBefore(instr);
 
-    // (r12:)s1 = SMULL s1, (r12,) s1, s2      -- do the signed mul into 64bit r12:s1, the result will be src1 * src2 * 2
+    // (r17:)s1 = SMULL s1, (r17,) s1, s2      -- do the signed mul into 64bit r17:s1, the result will be src1 * src2 * 2
     instr = IR::Instr::New(Js::OpCode::SMULL, opndReg1, opndReg1, opndReg2, this->m_func);
     instrMul->InsertBefore(instr);
-
-    // ARM64_WORKITEM: This needs to be fixed up to remove R12 dependency
-    __debugbreak();
             
-    // (SMULL doesn't set the flags but we don't have 32bit overflow <=> r12-unsigned ? r12==0 : all 33 bits of 64bit result are 1's
-    //      CMP r12, s1, ASR #31 -- check for overflow (== means no overflow)
-    IR::RegOpnd* opndRegR12 = IR::RegOpnd::New(nullptr, RegR12, TyMachReg, this->m_func);
+    // (SMULL doesn't set the flags but we don't have 32bit overflow <=> r17-unsigned ? r17==0 : all 33 bits of 64bit result are 1's
+    //      CMP r17, s1, ASR #31 -- check for overflow (== means no overflow)
+    IR::RegOpnd* opndRegScratch = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
     instr = IR::Instr::New(Js::OpCode::CMP_ASR31, this->m_func);
-    instr->SetSrc1(opndRegR12);
+    instr->SetSrc1(opndRegScratch);
     instr->SetSrc2(opndReg1);
     instrMul->InsertBefore(instr);
     LegalizeMD::LegalizeInstr(instr, false);
@@ -5467,11 +5464,11 @@ bool LowererMD::TryGenerateFastMulAdd(IR::Instr * instrAdd, IR::Instr ** pInstrP
         // s2 =  ASRS mulSrc2, 1     -- shift-out tag from mulSrc2
         //       BCC  $helper        -- if not tagged int, jmp to $helper
         // (Now: mulSrc1 in s1, mulSrc2 in s2)
-        // r12 = ASR s3, 31          -- make r12 to be sign-extension of the addSrc.
-        // r12:s3 = SMLAL s1, s2     -- note: the add source comes from r12:s3, result is already tagged int = mulSrc1Val*2 * mulSrc2Val + addSrcVal * 2 + 1
+        // r17 = ASR s3, 31          -- make r17 to be sign-extension of the addSrc.
+        // r17:s3 = SMLAL s1, s2     -- note: the add source comes from r17:s3, result is already tagged int = mulSrc1Val*2 * mulSrc2Val + addSrcVal * 2 + 1
         // Overflow check:
-        // (SMLAL doesn't set the flags but we don't have 32bit overflow <=> r12-unsigned ? r12==0 : all 33 bits of 64bit result are 1's
-        //      CMP r12, s3, ASR #31 -- check for overflow (== means no overflow)
+        // (SMLAL doesn't set the flags but we don't have 32bit overflow <=> r17-unsigned ? r17==0 : all 33 bits of 64bit result are 1's
+        //      CMP r17, s3, ASR #31 -- check for overflow (== means no overflow)
         //      BNE $helper          -- bail if the result overflowed
         // Copy the result into dst
         // dst = s3
@@ -5484,7 +5481,7 @@ bool LowererMD::TryGenerateFastMulAdd(IR::Instr * instrAdd, IR::Instr ** pInstrP
         IR::RegOpnd* s1 = IR::RegOpnd::New(mulSrc1->GetType(), this->m_func);
         IR::RegOpnd* s2 = IR::RegOpnd::New(mulSrc2->GetType(), this->m_func);
         IR::RegOpnd* s3 = IR::RegOpnd::New(addSrc->GetType(), this->m_func);
-        IR::RegOpnd* opndRegR12 = IR::RegOpnd::New(nullptr, RegR12, TyMachReg, this->m_func);
+        IR::RegOpnd* opndRegScratch = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
 
         // (Load mulSrc1 at the top so we don't have to do it repeatedly)
         if (!mulSrc1->IsRegOpnd())
@@ -5525,20 +5522,20 @@ bool LowererMD::TryGenerateFastMulAdd(IR::Instr * instrAdd, IR::Instr ** pInstrP
 #endif
         // Now: mulSrc1 in s1, mulSrc2 in s2.
 
-        // r12 = ASR s3, 31      -- make r12 to be sign-extension of the addSrc.
-        instr = IR::Instr::New(Js::OpCode::ASR, opndRegR12, s3, IR::IntConstOpnd::New(31, TyVar, this->m_func), m_func);
+        // r17 = ASR s3, 31      -- make r17 to be sign-extension of the addSrc.
+        instr = IR::Instr::New(Js::OpCode::ASR, opndRegScratch, s3, IR::IntConstOpnd::New(31, TyVar, this->m_func), m_func);
         instrAdd->InsertBefore(instr);
 
-        // r12:s3 = SMLAL s1, s2  -- note: the add source comes from r12:s3, result is already tagged int = mulSrc1Val*2 * mulSrc2Val + addSrcVal * 2 + 1
+        // r17:s3 = SMLAL s1, s2  -- note: the add source comes from r17:s3, result is already tagged int = mulSrc1Val*2 * mulSrc2Val + addSrcVal * 2 + 1
         instr = IR::Instr::New(Js::OpCode::SMADDL, s3, s1, s2, this->m_func);
         instrAdd->InsertBefore(instr);
 
         // Overflow check:
-        // (SMLAL doesn't set the flags but we don't have 32bit overflow <=> r12-unsigned ? r12==0 : all 33 bits of 64bit result are 1's
-        //      CMP r12, s3, ASR #31 -- check for overflow (== means no overflow)
+        // (SMLAL doesn't set the flags but we don't have 32bit overflow <=> r17-unsigned ? r17==0 : all 33 bits of 64bit result are 1's
+        //      CMP r17, s3, ASR #31 -- check for overflow (== means no overflow)
         //      BNE $helper       -- bail if the result overflowed
         instr = IR::Instr::New(Js::OpCode::CMP_ASR31, this->m_func);
-        instr->SetSrc1(opndRegR12);
+        instr->SetSrc1(opndRegScratch);
         instr->SetSrc2(s3);
         instrAdd->InsertBefore(instr);
         LegalizeMD::LegalizeInstr(instr, false);
@@ -6750,7 +6747,7 @@ LowererMD::LowerInt4MulWithBailOut(
     Assert(src1->IsInt32());
     Assert(src2->IsInt32());
 
-    // (r12:)dst = SMULL dst, (r12,) src1, src2      -- do the signed mul into 64bit r12:dst, the result will be src1 * src2 * 2
+    // (r17:)dst = SMULL dst, (r17,) src1, src2      -- do the signed mul into 64bit r17:dst, the result will be src1 * src2 * 2
     instr->m_opcode = Js::OpCode::SMULL;
     Legalize(instr);
 
@@ -6791,15 +6788,15 @@ LowererMD::LowerInt4MulWithBailOut(
     const auto insertBeforeInstr = checkForNegativeZeroLabel ? checkForNegativeZeroLabel : bailOutLabel;
 
     //check overflow
-    //    CMP_ASR31 r12, dst
+    //    CMP_ASR31 r17, dst
     //    BNE $bailOutLabel
     if(bailOutKind & IR::BailOutOnMulOverflow || bailOutKind == IR::BailOutOnFailedHoistedLoopCountBasedBoundCheck)
     {
-        // (SMULL doesn't set the flags but we don't have 32bit overflow <=> r12-unsigned ? r12==0 : all 33 bits of 64bit result are 1's
-        //      CMP r12, dst, ASR #31 -- check for overflow (== means no overflow)
-        IR::RegOpnd* opndRegR12 = IR::RegOpnd::New(nullptr, RegR12, TyMachReg, instr->m_func);
+        // (SMULL doesn't set the flags but we don't have 32bit overflow <=> r17-unsigned ? r17==0 : all 33 bits of 64bit result are 1's
+        //      CMP r17, dst, ASR #31 -- check for overflow (== means no overflow)
+        IR::RegOpnd* opndRegScratch = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, instr->m_func);
         insertInstr = IR::Instr::New(Js::OpCode::CMP_ASR31, instr->m_func);
-        insertInstr->SetSrc1(opndRegR12);
+        insertInstr->SetSrc1(opndRegScratch);
         insertInstr->SetSrc2(dst);
         insertBeforeInstr->InsertBefore(insertInstr);
         LegalizeMD::LegalizeInstr(insertInstr, false);
