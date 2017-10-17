@@ -843,22 +843,23 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         break;
 
     case Js::OpCode::CMP_ASR31:
-        dst = instr->GetDst();
         src1 = instr->GetSrc1();
-        Assert(dst->IsRegOpnd());
+        src2 = instr->GetSrc2();
+        Assert(instr->GetDst() == nullptr);
         Assert(src1->IsRegOpnd());
+        Assert(src2->IsRegOpnd());
 
-        size = dst->GetSize();
+        size = src1->GetSize();
         Assert(size == 4 || size == 8);
-        Assert(size == src1->GetSize());
+        Assert(size == src2->GetSize());
 
         if (size == 8)
         {
-            bytes = EmitSubsRegister64(Emitter, ARMREG_ZR, this->GetRegEncode(dst->AsRegOpnd()), Arm64RegisterParam(this->GetRegEncode(src1->AsRegOpnd()), SHIFT_ASR, 63));
+            bytes = EmitSubsRegister64(Emitter, ARMREG_ZR, this->GetRegEncode(src1->AsRegOpnd()), Arm64RegisterParam(this->GetRegEncode(src2->AsRegOpnd()), SHIFT_ASR, 63));
         }
         else
         {
-            bytes = EmitSubsRegister(Emitter, ARMREG_ZR, this->GetRegEncode(dst->AsRegOpnd()), Arm64RegisterParam(this->GetRegEncode(src1->AsRegOpnd()), SHIFT_ASR, 31));
+            bytes = EmitSubsRegister(Emitter, ARMREG_ZR, this->GetRegEncode(src1->AsRegOpnd()), Arm64RegisterParam(this->GetRegEncode(src2->AsRegOpnd()), SHIFT_ASR, 31));
         }
         break;
 
