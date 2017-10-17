@@ -889,6 +889,7 @@ var tests = [
         body: function() {
             // Failure causes an assert to fire
             WScript.LoadScript(`(a = function() { this }, b = (this)) => {}`);
+            assert.throws(() => WScript.LoadScript(`[ a = function () { this; } ((this)) = 1 ] = []`), ReferenceError, "Not a valid destructuring assignment but should not fire assert", "Invalid left-hand side in assignment");
         }
     },
     {
