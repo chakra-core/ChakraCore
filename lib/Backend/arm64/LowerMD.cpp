@@ -3244,19 +3244,20 @@ LowererMD::GenerateFastAdd(IR::Instr * instrAdd)
     //
     // Generate:
     //
-    // (If not 2 Int31's, use $helper.)
-    // s1  = SUB src1, 1     -- get rid of one of the tag
-    // tmp = ADDS s1, src2   -- try an inline add
-    //       BVS $helper
-    // dst = MOV tmp
-    //       B $done
+    // (If not 2 Int31's, jump to $helper.)
+    // s1 = MOV src1
+    // s1 = ADDS s1, src2   -- try an inline add
+    //      BVS $helper     -- bail if the add overflowed
+    // s1 = ORR s1, AtomTag_IntPtr
+    // dst = MOV s1
+    //      B $fallthru
     // $helper:
     //      (caller generates helper call)
-    // $done:
+    // $fallthru:
 
     IR::Instr *      instr;
     IR::LabelInstr * labelHelper;
-    IR::LabelInstr * labelDone;
+    IR::LabelInstr * labelFallThru;
     IR::Opnd *       opndReg;
     IR::Opnd *       opndSrc1;
     IR::Opnd *       opndSrc2;
@@ -3267,75 +3268,109 @@ LowererMD::GenerateFastAdd(IR::Instr * instrAdd)
 
     // Generate fastpath for Incr_A anyway -
     // Incrementing strings representing integers can be inter-mixed with integers e.g. "1"++ -> converts 1 to an int and thereafter, integer increment is expected.
-    if (opndSrc1->IsRegOpnd() && (opndSrc1->AsRegOpnd()->m_sym->m_isNotInt || opndSrc1->GetValueType().IsString()
+    if (opndSrc1->IsRegOpnd() && (opndSrc1->AsRegOpnd()->IsNotInt() || opndSrc1->GetValueType().IsString()
         || (instrAdd->m_opcode != Js::OpCode::Incr_A && opndSrc1->GetValueType().IsLikelyString())))
     {
         return false;
     }
-    if (opndSrc2->IsRegOpnd() && (opndSrc2->AsRegOpnd()->m_sym->m_isNotInt ||
+
+    if (opndSrc2->IsRegOpnd() && (opndSrc2->AsRegOpnd()->IsNotInt() ||
         opndSrc2->GetValueType().IsLikelyString()))
     {
-        return true;
+        return false;
     }
 
-    // Load src's at the top so we don't have to do it repeatedly.
-    if (!opndSrc1->IsRegOpnd())
+    // Tagged ints?
+    bool isTaggedInts = false;
+    if (opndSrc1->IsTaggedInt())
     {
-        opndSrc1 = IR::RegOpnd::New(opndSrc1->GetType(), this->m_func);
-        LowererMD::CreateAssign(opndSrc1, instrAdd->GetSrc1(), instrAdd);
-    }
-
-    if (!opndSrc2->IsRegOpnd())
-    {
-        opndSrc2 = IR::RegOpnd::New(opndSrc2->GetType(), this->m_func);
-        LowererMD::CreateAssign(opndSrc2, instrAdd->GetSrc2(), instrAdd);
+        if (opndSrc2->IsTaggedInt())
+        {
+            isTaggedInts = true;
+        }
     }
 
     labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
 
-    // Tagged ints?
-    bool isTaggedInts = opndSrc1->IsTaggedInt() && opndSrc2->IsTaggedInt();
     if (!isTaggedInts)
     {
         // (If not 2 Int31's, jump to $helper.)
+
         this->GenerateSmIntPairTest(instrAdd, opndSrc1, opndSrc2, labelHelper);
     }
 
     if (opndSrc1->IsAddrOpnd())
     {
         // If opnd1 is a constant, just swap them.
-        Swap(opndSrc1, opndSrc2);
+        IR::Opnd *opndTmp = opndSrc1;
+        opndSrc1 = opndSrc2;
+        opndSrc2 = opndTmp;
     }
 
-    // s1  = SUB src1, 1     -- get rid of one of the tag
-    opndReg = IR::RegOpnd::New(TyMachReg, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::SUB, opndReg, opndSrc1, IR::IntConstOpnd::New(1, TyMachReg, this->m_func), this->m_func);
-    instrAdd->InsertBefore(instr);
+    //
+    // For 32 bit arithmetic we copy them and set the size of operands to be 32 bits. This is
+    // relevant only on ARM64.
+    //
 
-    // tmp = ADDS s1, src2   -- try an inline add
-    IR::RegOpnd *opndTmp = IR::RegOpnd::New(TyMachReg, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::ADDS, opndTmp, opndReg, opndSrc2, this->m_func);
-    instrAdd->InsertBefore(instr);
+    opndSrc1 = opndSrc1->UseWithNewType(TyInt32, this->m_func);
+    
+    // s1 = MOV src1
 
-    //      BVS $helper -- if overflow, branch to helper.
+    opndReg = IR::RegOpnd::New(TyInt32, this->m_func);
+    instr = IR::Instr::New(Js::OpCode::MOV, opndReg, opndSrc1, this->m_func);
+    instrAdd->InsertBefore(instr);
+    
+    if (opndSrc2->IsAddrOpnd())
+    {
+        // truncate to untag
+        int value = ::Math::PointerCastToIntegralTruncate<int>(opndSrc2->AsAddrOpnd()->m_address);
+        opndSrc2 = IR::IntConstOpnd::New(value, TyInt32, this->m_func);
+        instr = IR::Instr::New(Js::OpCode::ADDS, opndReg, opndReg, opndSrc2, this->m_func);
+    }
+    else
+    {
+        instr = IR::Instr::New(Js::OpCode::ADDS, opndReg, opndReg, opndSrc2->UseWithNewType(TyInt32, this->m_func), this->m_func);
+    }
+    
+    // s1 = ADDS s1, src2
+    instrAdd->InsertBefore(instr);
+    Legalize(instr);
+
+    //      BVS $helper
+
     instr = IR::BranchInstr::New(Js::OpCode::BVS, labelHelper, this->m_func);
     instrAdd->InsertBefore(instr);
 
-    // dst = MOV tmp
-    LowererMD::CreateAssign(instrAdd->GetDst(), opndTmp, instrAdd);
+    //
+    // Convert TyInt32 operand, back to TyMachPtr type.
+    //
 
-    //      B $done
-    labelDone = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-    instr = IR::BranchInstr::New(Js::OpCode::B, labelDone, this->m_func);
+    if(TyMachReg != opndReg->GetType())
+    {
+        opndReg = opndReg->UseWithNewType(TyMachPtr, this->m_func);
+    }
+
+    // s1 = ORR s1, AtomTag_IntPtr
+    GenerateInt32ToVarConversion(opndReg, instrAdd);
+    
+    // dst = MOV s1
+
+    instr = IR::Instr::New(Js::OpCode::MOV, instrAdd->GetDst(), opndReg, this->m_func);
+    instrAdd->InsertBefore(instr);
+
+    //      B $fallthru
+
+    labelFallThru = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+    instr = IR::BranchInstr::New(Js::OpCode::B, labelFallThru, this->m_func);
     instrAdd->InsertBefore(instr);
 
     // $helper:
     //      (caller generates helper call)
-    // $done:
-    instrAdd->InsertBefore(labelHelper);
-    instrAdd->InsertAfter(labelDone);
+    // $fallthru:
 
-    // Return true to indicate the original instr must still be lowered.
+    instrAdd->InsertBefore(labelHelper);
+    instrAdd->InsertAfter(labelFallThru);
+
     return true;
 }
 
@@ -3356,9 +3391,12 @@ LowererMD::GenerateFastSub(IR::Instr * instrSub)
     // Generate:
     //
     // (If not 2 Int31's, jump to $helper.)
-    // s1 = SUBS src1, src2   -- try an inline sub
-    //      BVS $helper       -- bail if the subtract overflowed
-    // dst = ADD s1, 1        -- restore the var tag on the result
+    // s1 = MOV src1
+    // s1 = SUBS s1, src2   -- try an inline sub
+    //      BVS $helper     -- bail if the subtract overflowed
+    //      BNE $helper
+    // s1 = ORR s1, AtomTag_IntPtr
+    // dst = MOV s1
     //      B $fallthru
     // $helper:
     //      (caller generates helper call)
@@ -3376,50 +3414,77 @@ LowererMD::GenerateFastSub(IR::Instr * instrSub)
     AssertMsg(opndSrc1 && opndSrc2, "Expected 2 src opnd's on Sub instruction");
 
     // Not tagged ints?
-    if (opndSrc1->IsRegOpnd() && opndSrc1->AsRegOpnd()->m_sym->m_isNotInt ||
-        opndSrc2->IsRegOpnd() && opndSrc2->AsRegOpnd()->m_sym->m_isNotInt)
+    if (opndSrc1->IsRegOpnd() && opndSrc1->AsRegOpnd()->IsNotInt())
+    {
+        return false;
+    }
+    if (opndSrc2->IsRegOpnd() && opndSrc2->AsRegOpnd()->IsNotInt())
     {
         return false;
     }
 
-    // Load src's at the top so we don't have to do it repeatedly.
-    if (!opndSrc1->IsRegOpnd())
+    // Tagged ints?
+    bool isTaggedInts = false;
+    if (opndSrc1->IsTaggedInt())
     {
-        opndSrc1 = IR::RegOpnd::New(opndSrc1->GetType(), this->m_func);
-        LowererMD::CreateAssign(opndSrc1, instrSub->GetSrc1(), instrSub);
-    }
-
-    if (!opndSrc2->IsRegOpnd())
-    {
-        opndSrc2 = IR::RegOpnd::New(opndSrc2->GetType(), this->m_func);
-        LowererMD::CreateAssign(opndSrc2, instrSub->GetSrc2(), instrSub);
+        if (opndSrc2->IsTaggedInt())
+        {
+            isTaggedInts = true;
+        }
     }
 
     labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
 
-    // Tagged ints?
-    bool isTaggedInts = opndSrc1->IsTaggedInt() && opndSrc2->IsTaggedInt();
     if (!isTaggedInts)
     {
         // (If not 2 Int31's, jump to $helper.)
+
         this->GenerateSmIntPairTest(instrSub, opndSrc1, opndSrc2, labelHelper);
     }
 
-    // s1 = SUBS src1, src2   -- try an inline sub
-    opndReg = IR::RegOpnd::New(TyMachReg, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::SUBS, opndReg, opndSrc1, opndSrc2, this->m_func);
+    //
+    // For 32 bit arithmetic we copy them and set the size of operands to be 32 bits. This is
+    // relevant only on ARM64.
+    //
+
+    opndSrc1    = opndSrc1->UseWithNewType(TyInt32, this->m_func);
+    opndSrc2    = opndSrc2->UseWithNewType(TyInt32, this->m_func);
+
+    // s1 = MOV src1
+
+    opndReg = IR::RegOpnd::New(TyInt32, this->m_func);
+    instr = IR::Instr::New(Js::OpCode::MOV, opndReg, opndSrc1, this->m_func);
     instrSub->InsertBefore(instr);
 
-    //      BVS $helper       -- bail if the subtract overflowed
+    // s1 = SUBS s1, src2
+
+    instr = IR::Instr::New(Js::OpCode::SUBS, opndReg, opndReg, opndSrc2, this->m_func);
+    instrSub->InsertBefore(instr);
+
+    //      BVS $helper
+
     instr = IR::BranchInstr::New(Js::OpCode::BVS, labelHelper, this->m_func);
     instrSub->InsertBefore(instr);
 
-    // dst = ADD s1, 1        -- restore the var tag on the result
-    instr = IR::Instr::New(Js::OpCode::ADD, instrSub->GetDst(), opndReg, IR::IntConstOpnd::New(1, TyMachReg, this->m_func), this->m_func);
+    //
+    // Convert TyInt32 operand, back to TyMachPtr type.
+    //
+
+    if(TyMachReg != opndReg->GetType())
+    {
+        opndReg = opndReg->UseWithNewType(TyMachPtr, this->m_func);
+    }
+
+    // s1 = ORR s1, AtomTag_IntPtr
+    GenerateInt32ToVarConversion(opndReg, instrSub);
+
+    // dst = MOV s1
+
+    instr = IR::Instr::New(Js::OpCode::MOV, instrSub->GetDst(), opndReg, this->m_func);
     instrSub->InsertBefore(instr);
-    LegalizeMD::LegalizeInstr(instr, false);
 
     //      B $fallthru
+
     labelFallThru = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
     instr = IR::BranchInstr::New(Js::OpCode::B, labelFallThru, this->m_func);
     instrSub->InsertBefore(instr);
@@ -3427,10 +3492,10 @@ LowererMD::GenerateFastSub(IR::Instr * instrSub)
     // $helper:
     //      (caller generates helper call)
     // $fallthru:
+
     instrSub->InsertBefore(labelHelper);
     instrSub->InsertAfter(labelFallThru);
 
-    // Return true to indicate the original instr must still be lowered.
     return true;
 }
 
@@ -3928,18 +3993,26 @@ LowererMD::GenerateFastNot(IR::Instr * instrNot)
 void
 LowererMD::GenerateTaggedZeroTest( IR::Opnd * opndSrc, IR::Instr * insertInstr, IR::LabelInstr * labelHelper )
 {
-    // CMP src1, AtomTag
-    IR::Instr* instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
-    instr->SetSrc1(opndSrc);
-    instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag, TyMachReg, this->m_func));
-    insertInstr->InsertBefore(instr);
-    LegalizeMD::LegalizeInstr(instr, false);
+    // Cast the var to 32 bit integer.
+    if(opndSrc->GetSize() != 4)
+    {
+        opndSrc = opndSrc->UseWithNewType(TyUint32, this->m_func);
+    }
+    AssertMsg(TySize[opndSrc->GetType()] == 4, "This technique works only on the 32-bit version");
 
-    // BEQ $helper
     if(labelHelper != nullptr)
     {
-        // BEQ $labelHelper
-        instr = IR::BranchInstr::New(Js::OpCode::BEQ, labelHelper, this->m_func);
+        // CBZ src1, $labelHelper
+        IR::Instr* instr = IR::BranchInstr::New(Js::OpCode::CBZ, labelHelper, this->m_func);
+        instr->SetSrc1(opndSrc);
+        insertInstr->InsertBefore(instr);
+    }
+    else
+    {
+        // TST src1, src1
+        IR::Instr* instr = IR::Instr::New(Js::OpCode::TST, this->m_func);
+        instr->SetSrc1(opndSrc);
+        instr->SetSrc2(opndSrc);
         insertInstr->InsertBefore(instr);
     }
 }
@@ -4203,91 +4276,85 @@ LowererMD::GenerateFastBrS(IR::BranchInstr *brInstr)
 IR::Instr *
 LowererMD::GenerateSmIntPairTest(
     IR::Instr * instrInsert,
-    IR::Opnd * src1,
-    IR::Opnd * src2,
+    IR::Opnd * opndSrc1,
+    IR::Opnd * opndSrc2,
     IR::LabelInstr * labelFail)
 {
     IR::Opnd *           opndReg;
     IR::Instr *          instrPrev = instrInsert->m_prev;
     IR::Instr *          instr;
 
-    Assert(src1->GetType() == TyVar);
-    Assert(src2->GetType() == TyVar);
+    Assert(opndSrc1->GetType() == TyVar);
+    Assert(opndSrc2->GetType() == TyVar);
 
-    //src1 and src2 can either be RegOpnd or AddrOpnd at this point
-    if (src1->IsTaggedInt())
+    if (opndSrc1->IsTaggedInt())
     {
-        Swap(src1, src2);
+        IR::Opnd *tempOpnd = opndSrc1;
+        opndSrc1 = opndSrc2;
+        opndSrc2 = tempOpnd;
     }
 
-    if (src2->IsTaggedInt())
+    if (opndSrc2->IsTaggedInt())
     {
-        if (src1->IsTaggedInt())
+        if (opndSrc1->IsTaggedInt())
         {
             return instrPrev;
         }
 
-        IR::RegOpnd *opndSrc1 = src1->AsRegOpnd();
-        //      TST src1, AtomTag
-        //      BEQ $fail
-        instr = IR::Instr::New(Js::OpCode::TST, this->m_func);
-        instr->SetSrc1(opndSrc1);
-        instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag, TyVar, this->m_func));
-        instrInsert->InsertBefore(instr);
-        LegalizeMD::LegalizeInstr(instr, false);
-    }
-    else
-    {
-        IR::RegOpnd *opndSrc1 = src1->AsRegOpnd();
-        IR::RegOpnd *opndSrc2 = src2->AsRegOpnd();
-
-        // s1 = AND src1, 1
-        //      TST s1, src2
-        //      BEQ $fail
-
-        // s1 = AND src1, AtomTag
-        opndReg = IR::RegOpnd::New(TyMachReg, this->m_func);
-        instr = IR::Instr::New(
-            Js::OpCode::AND, opndReg, opndSrc1, IR::IntConstOpnd::New(Js::AtomTag, TyMachReg, this->m_func), this->m_func);
-        instrInsert->InsertBefore(instr);
-
-        //      TST s1, src2
-        instr = IR::Instr::New(Js::OpCode::TST, this->m_func);
-        instr->SetSrc1(opndReg);
-        instr->SetSrc2(opndSrc2);
-        instrInsert->InsertBefore(instr);
-        LegalizeMD::LegalizeInstr(instr, false);
+        GenerateSmIntTest(opndSrc1, instrInsert, labelFail);
+        return instrPrev;
     }
 
-    //      BEQ $fail
-    instr = IR::BranchInstr::New(Js::OpCode::BEQ, labelFail, this->m_func);
+    opndReg = IR::RegOpnd::New(TyMachReg, this->m_func);
+
+    // s1 = MOV src1
+    // s1 = UBFX s1, VarTagShift - 16, 64 - (VarTag_Shift - 16)
+    // s2 = MOV src2
+    // s1 = BFXIL s2, VarTagShift, 64 - VarTag_Shift
+    // CMP s1, AtomTag_Pair  ------ compare the tags together to the expected tag pair
+    // JNE $fail
+
+    // s1 = MOV src1
+
+    instr = IR::Instr::New(Js::OpCode::MOV, opndReg, opndSrc1, this->m_func);
+    instrInsert->InsertBefore(instr);
+
+    // s1 = UBFX s1, VarTagShift - 16, 64 - (VarTag_Shift - 16)
+
+    instr = IR::Instr::New(Js::OpCode::UBFX, opndReg, opndReg, IR::IntConstOpnd::New(BITFIELD(Js::VarTag_Shift - 16, 64 - (Js::VarTag_Shift - 16)), TyInt8, this->m_func), this->m_func);
+    instrInsert->InsertBefore(instr);
+
+    // s2 = MOV src2
+
+    IR::Opnd * opndReg1 = IR::RegOpnd::New(TyMachReg, this->m_func);
+    instr = IR::Instr::New(Js::OpCode::MOV, opndReg1, opndSrc2, this->m_func);
+    instrInsert->InsertBefore(instr);
+
+    // s1 = BFXIL s2, VarTagShift, 64 - VarTag_Shift
+
+    instr = IR::Instr::New(Js::OpCode::BFXIL, opndReg, opndReg1, IR::IntConstOpnd::New(BITFIELD(Js::VarTag_Shift, 64 - Js::VarTag_Shift), TyInt8, this->m_func), this->m_func);
+    instrInsert->InsertBefore(instr);
+
+    opndReg = opndReg->UseWithNewType(TyInt32, this->m_func)->AsRegOpnd();
+
+    // CMP s1, AtomTag_Pair
+    instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
+    instr->SetSrc1(opndReg);
+    instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag_Pair, TyInt32, this->m_func, true));
+
+    instrInsert->InsertBefore(instr);
+
+    //      BNE $fail
+    instr = IR::BranchInstr::New(Js::OpCode::BNE, labelFail, this->m_func);
     instrInsert->InsertBefore(instr);
 
     return instrPrev;
 }
 
-void LowererMD::GenerateObjectPairTest(IR::Opnd * opndSrc1, IR::Opnd * opndSrc2, IR::Instr * insertInstr, IR::LabelInstr * labelTarget)
-{
-    // opndOr = ORR opndSrc1, opndSrc2
-    //          TST opndOr, AtomTag_Ptr
-    //          BNE $labelTarget
-
-    IR::RegOpnd * opndOr = IR::RegOpnd::New(TyMachPtr, this->m_func);
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::ORR, opndOr, opndSrc1, opndSrc2, this->m_func);
-    insertInstr->InsertBefore(instr);
-
-    instr = IR::Instr::New(Js::OpCode::TST, this->m_func);
-    instr->SetSrc1(opndOr);
-    instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag_IntPtr, TyMachReg, this->m_func));
-    insertInstr->InsertBefore(instr);
-    LegalizeMD::LegalizeInstr(instr, false);
-
-    instr = IR::BranchInstr::New(Js::OpCode::BNE, labelTarget, this->m_func);
-    insertInstr->InsertBefore(instr);
-}
-
 bool LowererMD::GenerateObjectTest(IR::Opnd * opndSrc, IR::Instr * insertInstr, IR::LabelInstr * labelTarget, bool fContinueLabel)
 {
+    AssertMsg(opndSrc->GetSize() == MachPtr, "64-bit register required");
+
     if (opndSrc->IsTaggedValue() && fContinueLabel)
     {
         // Insert delete branch opcode to tell the dbChecks not to assert on the helper label we may fall through into
@@ -4301,28 +4368,32 @@ bool LowererMD::GenerateObjectTest(IR::Opnd * opndSrc, IR::Instr * insertInstr, 
         return false;
     }
 
-    // TST s1, AtomTag_IntPtr | FloatTag_Value
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::TST, this->m_func);
-    instr->SetSrc1(opndSrc);
-    instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag_IntPtr, TyMachReg, this->m_func));
+    IR::Opnd  * opndReg = IR::RegOpnd::New(TyMachReg, this->m_func);
+
+    // s1 = MOV src1 - Move to a temporary
+    IR::Instr * instr   = IR::Instr::New(Js::OpCode::MOV, opndReg, opndSrc, this->m_func);
     insertInstr->InsertBefore(instr);
-    LegalizeMD::LegalizeInstr(instr, false);
+
+    // s1 = UBFX s1, s1, #VarTag_Shift, #64 - VarTag_Shift
+    instr = IR::Instr::New(Js::OpCode::UBFX, opndReg, opndReg, IR::IntConstOpnd::New(BITFIELD(Js::VarTag_Shift, 64 - Js::VarTag_Shift), TyInt8, this->m_func), this->m_func);
+    insertInstr->InsertBefore(instr);
 
     if (fContinueLabel)
     {
-        // BEQ $labelTarget
-        instr = IR::BranchInstr::New(Js::OpCode::BEQ, labelTarget, this->m_func);
+        // CBZ s1, $labelHelper
+        instr = IR::BranchInstr::New(Js::OpCode::CBZ, labelTarget, this->m_func);
+        instr->SetSrc1(opndReg);
         insertInstr->InsertBefore(instr);
-        IR::LabelInstr *labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+        IR::LabelInstr *labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
         insertInstr->InsertBefore(labelHelper);
     }
     else
     {
-        // BNE $labelTarget
-        instr = IR::BranchInstr::New(Js::OpCode::BNE, labelTarget, this->m_func);
+        // CBNZ s1, $labelHelper
+        instr = IR::BranchInstr::New(Js::OpCode::CBNZ, labelTarget, this->m_func);
+        instr->SetSrc1(opndReg);
         insertInstr->InsertBefore(instr);
     }
-
     return true;
 }
 
@@ -5109,9 +5180,12 @@ LowererMD::CreateStackArgumentsSlotOpnd()
 //
 void LowererMD::GenerateSmIntTest(IR::Opnd *opndSrc, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, IR::Instr **instrFirst, bool fContinueLabel /* = false */)
 {
+    AssertMsg(opndSrc->GetSize() == MachPtr, "64-bit register required");
+
+    IR::Opnd  * opndReg = IR::RegOpnd::New(TyMachReg, this->m_func);
+
     // s1 = MOV src1 - Move to a temporary
-    IR::Opnd* opndReg = IR::RegOpnd::New(TyMachReg, this->m_func);
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::MOV, opndReg, opndSrc, this->m_func);
+    IR::Instr * instr   = IR::Instr::New(Js::OpCode::MOV, opndReg, opndSrc, this->m_func);
     insertInstr->InsertBefore(instr);
 
     if (instrFirst)
@@ -5119,41 +5193,34 @@ void LowererMD::GenerateSmIntTest(IR::Opnd *opndSrc, IR::Instr *insertInstr, IR:
         *instrFirst = instr;
     }
 
-    // s1 = LSR s1, VarTag_Shift
-    instr = IR::Instr::New(Js::OpCode::LSR, opndReg, opndReg, IR::IntConstOpnd::New(Js::VarTag_Shift, TyInt8, this->m_func), this->m_func);
+    // s1 = UBFX s1, VarTag_Shift, 64 - VarTag_Shift
+    instr = IR::Instr::New(Js::OpCode::UBFX, opndReg, opndReg, IR::IntConstOpnd::New(BITFIELD(Js::VarTag_Shift, 64 - Js::VarTag_Shift), TyInt32, this->m_func), this->m_func);
     insertInstr->InsertBefore(instr);
 
     // CMP s1, AtomTag
     instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
     instr->SetSrc1(opndReg);
-    instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag, TyMachReg, this->m_func, /* dontEncode = */ true));
+    instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag, TyInt32, this->m_func, /* dontEncode = */ true));
     insertInstr->InsertBefore(instr);
-    LegalizeMD::LegalizeInstr(instr, false);
 
     if(fContinueLabel)
     {
-        //      BEQ $labelHelper
+        // JEQ $labelHelper
         instr = IR::BranchInstr::New(Js::OpCode::BEQ, labelHelper, this->m_func);
-        insertInstr->InsertBefore(instr);
     }
     else
     {
-        //      BNE $labelHelper
+        // JNE $labelHelper
         instr = IR::BranchInstr::New(Js::OpCode::BNE, labelHelper, this->m_func);
-        insertInstr->InsertBefore(instr);
     }
-
+    insertInstr->InsertBefore(instr);
 }
 
 void LowererMD::GenerateInt32ToVarConversion(IR::Opnd * opndSrc, IR::Instr * insertInstr )
 {
     AssertMsg(opndSrc->IsRegOpnd(), "NYI for other types");
 
-    IR::RegOpnd * tagOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
-    IR::Instr* instr = IR::Instr::New(Js::OpCode::LDIMM, tagOpnd, IR::IntConstOpnd::New(Js::AtomTag_IntPtr, TyMachReg, this->m_func), this->m_func);
-    insertInstr->InsertBefore(instr);
-
-    instr = IR::Instr::New(Js::OpCode::ADD, opndSrc, opndSrc, tagOpnd, this->m_func);
+    IR::Instr* instr = IR::Instr::New(Js::OpCode::ORR, opndSrc, opndSrc, IR::IntConstOpnd::New(Js::AtomTag_IntPtr, TyMachReg, this->m_func), this->m_func);
     insertInstr->InsertBefore(instr);
 }
 
