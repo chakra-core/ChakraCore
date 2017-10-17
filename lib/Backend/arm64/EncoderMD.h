@@ -36,7 +36,7 @@ enum InstructionType {
 #define LAST_CALLEE_SAVED_GP_REG    RegR28
 
 #define UNUSED_REG_FOR_STACK_ALIGN  RegR11
-#define SCRATCH_REG                 RegR12
+#define SCRATCH_REG                 RegR17
 #define ALT_LOCALS_PTR              RegR13
 #define EH_STACK_SAVE_REG           RegR14
 #define SP_ALLOC_SCRATCH_REG        RegR15

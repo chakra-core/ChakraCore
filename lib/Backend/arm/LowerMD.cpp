@@ -3497,9 +3497,9 @@ LowererMD::GenerateFastMul(IR::Instr * instrMul)
 
     // (SMULL doesn't set the flags but we don't have 32bit overflow <=> r12-unsigned ? r12==0 : all 33 bits of 64bit result are 1's
     //      CMP r12, s1, ASR #31 -- check for overflow (== means no overflow)
-    IR::RegOpnd* opndRegR12 = IR::RegOpnd::New(nullptr, RegR12, TyMachReg, this->m_func);
+    IR::RegOpnd* opndRegScratch = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
     instr = IR::Instr::New(Js::OpCode::CMP_ASR31, this->m_func);
-    instr->SetSrc1(opndRegR12);
+    instr->SetSrc1(opndRegScratch);
     instr->SetSrc2(opndReg1);
     instrMul->InsertBefore(instr);
 
@@ -5349,7 +5349,7 @@ bool LowererMD::TryGenerateFastMulAdd(IR::Instr * instrAdd, IR::Instr ** pInstrP
         IR::RegOpnd* s1 = IR::RegOpnd::New(mulSrc1->GetType(), this->m_func);
         IR::RegOpnd* s2 = IR::RegOpnd::New(mulSrc2->GetType(), this->m_func);
         IR::RegOpnd* s3 = IR::RegOpnd::New(addSrc->GetType(), this->m_func);
-        IR::RegOpnd* opndRegR12 = IR::RegOpnd::New(nullptr, RegR12, TyMachReg, this->m_func);
+        IR::RegOpnd* opndRegScratch = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
 
         // (Load mulSrc1 at the top so we don't have to do it repeatedly)
         if (!mulSrc1->IsRegOpnd())
@@ -5387,7 +5387,7 @@ bool LowererMD::TryGenerateFastMulAdd(IR::Instr * instrAdd, IR::Instr ** pInstrP
         // Now: mulSrc1 in s1, mulSrc2 in s2.
 
         // r12 = ASR s3, 31      -- make r12 to be sign-extension of the addSrc.
-        instr = IR::Instr::New(Js::OpCode::ASR, opndRegR12, s3, IR::IntConstOpnd::New(31, TyVar, this->m_func), m_func);
+        instr = IR::Instr::New(Js::OpCode::ASR, opndRegScratch, s3, IR::IntConstOpnd::New(31, TyVar, this->m_func), m_func);
         instrAdd->InsertBefore(instr);
 
         // r12:s3 = SMLAL s1, s2  -- note: the add source comes from r12:s3, result is already tagged int = mulSrc1Val*2 * mulSrc2Val + addSrcVal * 2 + 1
@@ -5399,7 +5399,7 @@ bool LowererMD::TryGenerateFastMulAdd(IR::Instr * instrAdd, IR::Instr ** pInstrP
         //      CMP r12, s3, ASR #31 -- check for overflow (== means no overflow)
         //      BNE $helper       -- bail if the result overflowed
         instr = IR::Instr::New(Js::OpCode::CMP_ASR31, this->m_func);
-        instr->SetSrc1(opndRegR12);
+        instr->SetSrc1(opndRegScratch);
         instr->SetSrc2(s3);
         instrAdd->InsertBefore(instr);
         instr = IR::BranchInstr::New(Js::OpCode::BNE, labelHelper, this->m_func);
@@ -6713,9 +6713,9 @@ LowererMD::LowerInt4MulWithBailOut(
     {
         // (SMULL doesn't set the flags but we don't have 32bit overflow <=> r12-unsigned ? r12==0 : all 33 bits of 64bit result are 1's
         //      CMP r12, dst, ASR #31 -- check for overflow (== means no overflow)
-        IR::RegOpnd* opndRegR12 = IR::RegOpnd::New(nullptr, RegR12, TyMachReg, instr->m_func);
+        IR::RegOpnd* opndRegScratch = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, instr->m_func);
         insertInstr = IR::Instr::New(Js::OpCode::CMP_ASR31, instr->m_func);
-        insertInstr->SetSrc1(opndRegR12);
+        insertInstr->SetSrc1(opndRegScratch);
         insertInstr->SetSrc2(dst);
         insertBeforeInstr->InsertBefore(insertInstr);
 
@@ -8788,12 +8788,12 @@ LowererMD::FinalLowerAssign(IR::Instr * instr)
         IR::Opnd* src1 = instr->GetSrc1();
         IR::Opnd* src2 = instr->GetSrc2();
 
-        Assert(src1->IsRegOpnd() && src1->AsRegOpnd()->GetReg() != RegR12);
-        Assert(src2->IsRegOpnd() && src2->AsRegOpnd()->GetReg() != RegR12);
+        Assert(src1->IsRegOpnd() && src1->AsRegOpnd()->GetReg() != SCRATCH_REG);
+        Assert(src2->IsRegOpnd() && src2->AsRegOpnd()->GetReg() != SCRATCH_REG);
 
         //r12 = SDIV src1, src2
-        IR::RegOpnd *regR12 = IR::RegOpnd::New(nullptr, RegR12, TyMachReg, instr->m_func);
-        IR::Instr *insertInstr = IR::Instr::New(Js::OpCode::SDIV, regR12, src1, src2, instr->m_func);
+        IR::RegOpnd *regScratch = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, instr->m_func);
+        IR::Instr *insertInstr = IR::Instr::New(Js::OpCode::SDIV, regScratch, src1, src2, instr->m_func);
         instr->InsertBefore(insertInstr);
 
         // dst = MLS (r12,) src2, src1

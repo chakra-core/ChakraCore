@@ -359,14 +359,14 @@ void UnwindInfoManager::EncodeExpandedUnwindData()
     {
         //This is rare __chkstk call case where before stack allocation there is a call to __chkstk
         // LDIMM RegR4, stackSize/4
-        // LDIMM RegR12, HelperCRT_chkstk
-        // BLX RegR12
+        // LDIMM RegR17, HelperCRT_chkstk
+        // BLX RegR17
         // SUB SP, SP, RegR4
-        xDataByteCount = this->EmitXdataNop16(xDataBuffer, xDataByteCount); //BLX RegR12
-        xDataByteCount = this->EmitXdataNop32(xDataBuffer, xDataByteCount); //MOVW RegR12, HelperCRT_chkstk
-        xDataByteCount = this->EmitXdataNop32(xDataBuffer, xDataByteCount); //MOVT RegR12, HelperCRT_chkstk
-        xDataByteCount = this->EmitXdataNop32(xDataBuffer, xDataByteCount); //MOVW RegR12, stackSize/4
-        xDataByteCount = this->EmitXdataNop32(xDataBuffer, xDataByteCount); //MOVT RegR12, stackSize/4
+        xDataByteCount = this->EmitXdataNop16(xDataBuffer, xDataByteCount); //BLX RegR17
+        xDataByteCount = this->EmitXdataNop32(xDataBuffer, xDataByteCount); //MOVW RegR17, HelperCRT_chkstk
+        xDataByteCount = this->EmitXdataNop32(xDataBuffer, xDataByteCount); //MOVT RegR17, HelperCRT_chkstk
+        xDataByteCount = this->EmitXdataNop32(xDataBuffer, xDataByteCount); //MOVW RegR17, stackSize/4
+        xDataByteCount = this->EmitXdataNop32(xDataBuffer, xDataByteCount); //MOVT RegR17, stackSize/4
     }
 
     if (hasTry)
