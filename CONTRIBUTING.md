@@ -59,7 +59,7 @@ Changes that make it into our ChakraCore GitHub master branch have a short journ
 ## Issue Labels
 
  - [`help wanted`](https://github.com/Microsoft/ChakraCore/labels/help%20wanted): these issues are specifically well suited for outside contributors.
- - [`Your first PR`](https://github.com/Microsoft/ChakraCore/labels/Your%20first%20PR): these issues are small and appropriate for people who wish to familiarize themselves with GitHub pull requests and/or ChakraCore's contributor guidelines, build process, and running tests.  We're here to help you get started in open source.
+ - [`good first issue`](https://github.com/Microsoft/ChakraCore/labels/good%20first%20issue): these issues are small and appropriate for people who wish to familiarize themselves with GitHub pull requests and/or ChakraCore's contributor guidelines, build process, and running tests.  We're here to help you get started in open source.
 
 You are welcome to work on issues that are not tagged with these labels. However, issues without these labels are often deeply involved with the requirements of the various components of ChakraCore. Therefore, please be sure to touch base with a maintainer via comments on the issue before attempting to solve it.
 
