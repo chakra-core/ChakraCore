@@ -901,6 +901,15 @@ var tests = [
                 assert.areEqual(_this, this, "Regular 'this' binding is correct");
             }
             foo.call(_this)
+            
+            function bar(a = this) {
+                eval('');
+                assert.areEqual(_this, a, "Correct default value was assigned");
+                assert.areEqual(_this, this, "Regular 'this' binding is correct");
+                function b() { return 'b'; }
+                assert.areEqual('b', b(), "Nested functions are bound to the correct slot");
+            }
+            bar.call(_this)
         }
     },
     {
