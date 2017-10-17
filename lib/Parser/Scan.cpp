@@ -651,10 +651,14 @@ LIdCheck:
     // https://tc39.github.io/ecma262/#sec-literals-numeric-literals
     // The SourceCharacter immediately following a NumericLiteral must not be an IdentifierStart or DecimalDigit.
     // For example : 3in is an error and not the two input elements 3 and in
-    codepoint_t outChar = 0;
     // If a base was speficied, use the first character denoting the constant. In this case, pchT is pointing to the base specifier.
     EncodedCharPtr startingLocation = baseSpecified ? pchT + 1 : pchT;
-    if (this->charClassifier->IsIdStart(*startingLocation))
+    codepoint_t outChar = *startingLocation;
+    if (this->IsMultiUnitChar((OLECHAR)outChar))
+    {
+        outChar = this->template ReadRest<true>((OLECHAR)outChar, startingLocation, last);
+    }
+    if (this->charClassifier->IsIdStart(outChar))
     {
         Error(ERRIdAfterLit);
     }
