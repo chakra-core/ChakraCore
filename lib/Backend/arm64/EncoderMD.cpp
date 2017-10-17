@@ -1208,7 +1208,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
 
     // Opcode not yet implemented
     default:
-#ifdef DBG
+#if DBG_DUMP
         instr->Dump();
         Output::Flush();
 #endif
