@@ -74,7 +74,6 @@ void LegalizeMD::LegalizeInstr(IR::Instr * instr, bool fPostRegAlloc)
 void LegalizeMD::LegalizeRegOpnd(IR::Instr* instr, IR::Opnd* opnd)
 {
     // Arm64 does not support 8 or 16 bit register usage, so promote anything smaller than 32 bits up to 32 bits.
-    // Arm64 does not support 32 bit float register usage, so promote 32 bit floats to 64 bit.
     IRType ty = opnd->GetType();
     switch(ty)
     {
@@ -86,10 +85,6 @@ void LegalizeMD::LegalizeRegOpnd(IR::Instr* instr, IR::Opnd* opnd)
     case TyUint8:
     case TyUint16:
         ty = TyUint32;
-        break;
-
-    case TyFloat32:
-        ty = TyFloat64;
         break;
     }
 
