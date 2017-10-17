@@ -746,7 +746,8 @@ void UnwindInfoManager::SetSavedReg(BYTE reg)
 }
 bool UnwindInfoManager::TestSavedReg(BYTE reg) const
 {
-    return (this->savedRegMask & (1 << reg));
+    DWORD mask = 1 << reg;
+    return (this->savedRegMask & mask) == mask;
 }
 
 void UnwindInfoManager::SetDoubleSavedRegList(DWORD doubleRegMask)
