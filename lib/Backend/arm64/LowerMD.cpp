@@ -5365,9 +5365,7 @@ LowererMD::LoadCheckedFloat(
     }
 
     IR::Opnd    *opndOrig_32 = opndOrig->UseWithNewType(TyInt32, this->m_func);
-
-    IR::Instr   *fcvt = IR::Instr::New(Js::OpCode::FCVT, opndFloat, opndOrig_32, this->m_func);
-    instrInsert->InsertBefore(fcvt);
+    EmitIntToFloat(opndFloat, opndOrig_32, instrInsert);
 
     IR::Instr   *jmpInline = IR::BranchInstr::New(Js::OpCode::B, labelInline, this->m_func);
     instrInsert->InsertBefore(jmpInline);
@@ -5380,7 +5378,7 @@ LowererMD::LoadCheckedFloat(
     IR::Instr   *mov = IR::Instr::New(Js::OpCode::MOV, s2, opndOrig, this->m_func);
     instrInsert->InsertBefore(mov);
 
-    IR::Instr   *xorTag = IR::Instr::New(Js::OpCode::EOR,
+    IR::Instr   *eorTag = IR::Instr::New(Js::OpCode::EOR,
         s2,
         s2,
         IR::IntConstOpnd::New(Js::FloatTag_Value,
@@ -5388,8 +5386,7 @@ LowererMD::LoadCheckedFloat(
             this->m_func,
             /* dontEncode = */ true),
         this->m_func);
-    instrInsert->InsertBefore(xorTag);
-    LowererMD::Legalize(xorTag);
+    instrInsert->InsertBefore(eorTag);
 
     IR::Instr   *movFloat = IR::Instr::New(Js::OpCode::FCVT, opndFloat, s2, this->m_func);
     instrInsert->InsertBefore(movFloat);
