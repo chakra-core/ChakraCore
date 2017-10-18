@@ -37,6 +37,12 @@
       <PrecompiledHeaderFile>RuntimePlatformAgnosticPch.h</PrecompiledHeaderFile>
     </ClCompile>
   </ItemDefinitionGroup>
+  <!-- We have to enable RTTI for ICU because ICU expects dynamic_cast to be used for NumberFormat -> DecimalFormat casts -->
+  <ItemDefinitionGroup Condition="'$(IntlICU)'=='true'">
+    <ClCompile>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)RuntimePlatformAgnosticPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>

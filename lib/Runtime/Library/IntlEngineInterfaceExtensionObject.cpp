@@ -920,18 +920,10 @@ namespace Js
 
         Assert(numberFormatter);
 
-        // TODO (doilij): Render signed zero.
-        // TODO(jahorto): isDecimalPointAlwaysDisplayed seems like a Windows-only construct
-        bool isDecimalPointAlwaysDisplayed = false;
-        if (GetTypedPropertyBuiltInFrom(options, __isDecimalPointAlwaysDisplayed, JavascriptBoolean))
-        {
-            isDecimalPointAlwaysDisplayed = JavascriptBoolean::FromVar(propertyValue)->GetValue();
-        }
-
         if (GetTypedPropertyBuiltInFrom(options, __useGrouping, JavascriptBoolean))
         {
             bool useGrouping = JavascriptBoolean::FromVar(propertyValue)->GetValue();
-            SetGroupingUsed(numberFormatter, useGrouping);
+            SetNumberFormatGroupingUsed(numberFormatter, useGrouping);
         }
 
         // Numeral system is in the locale and is therefore already set on the icu::NumberFormat
