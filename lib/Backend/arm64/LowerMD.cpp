@@ -5335,36 +5335,28 @@ LowererMD::LoadCheckedFloat(
     IR::Instr *instrInsert,
     const bool checkForNullInLoopBody)
 {
+    //
+    //   if (TaggedInt::Is(opndOrig))
+    //       opndFloat = FCVT opndOrig_32
+    //                   B $labelInline
+    //   else
+    //                   B $labelOpndIsNotInt
+    //
+    // $labelOpndIsNotInt:
+    //   if (TaggedFloat::Is(opndOrig))
+    //       s2        = MOV opndOrig
+    //       s2        = EOR FloatTag_Value
+    //       opndFloat = FCVT s2
+    //   else
+    //                   B $labelHelper
+    //
+    // $labelInline:
+    //
 
-    // ARM64_WORKITEM
-    __debugbreak();
-    return NULL;
+    IR::Instr *instrFirst = nullptr;
 
-#if 0
-    // Load one floating-point var into a VFP register, inserting checks to see if it's really a float:
-    // Rx = ASRS src, 1
-    //      BCC $non-int
-    // Dx = VMOV Rx
-    // flt = VCVT.F64.S32 Dx
-    //     B $labelInline
-    // $non-int
-    //     LDR Ry, [src]
-    //     CMP Ry, JavascriptNumber::`vtable'
-    //     BNE $labelHelper
-    // flt = VLDR [t0 + offset(value)]
-
-    IR::Instr * instr = nullptr;
-    IR::Opnd * opnd = IR::RegOpnd::New(TyMachReg, this->m_func);
-
-    IR::Instr * instrFirst = IR::Instr::New(Js::OpCode::ASRS, opnd, opndOrig,
-                                            IR::IntConstOpnd::New(Js::AtomTag, TyMachReg, this->m_func),
-                                            this->m_func);
-    instrInsert->InsertBefore(instrFirst);
-    LegalizeMD::LegalizeInstr(instrFirst, false);
-
-    IR::LabelInstr * labelVar = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-    instr = IR::BranchInstr::New(Js::OpCode::BCC, labelVar, this->m_func);
-    instrInsert->InsertBefore(instr);
+    IR::LabelInstr *labelOpndIsNotInt = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+    GenerateSmIntTest(opndOrig, instrInsert, labelOpndIsNotInt, &instrFirst);
 
     if (opndOrig->GetValueType().IsLikelyFloat())
     {
@@ -5372,24 +5364,34 @@ LowererMD::LoadCheckedFloat(
         instrInsert->InsertBefore(IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true));
     }
 
-    //Convert integer to floating point
-    Assert(opndFloat->GetType() == TyMachDouble);
-    instr = IR::Instr::New(Js::OpCode::VMOVARMVFP, opndFloat, opnd, this->m_func);
-    instrInsert->InsertBefore(instr);
+    IR::Opnd    *opndOrig_32 = opndOrig->UseWithNewType(TyInt32, this->m_func);
+    EmitIntToFloat(opndFloat, opndOrig_32, instrInsert);
 
-    //VCVT.F64.S32 opndFloat, opndFloat
-    instr = IR::Instr::New(Js::OpCode::VCVTF64S32, opndFloat, opndFloat, this->m_func);
-    instrInsert->InsertBefore(instr);
+    IR::Instr   *jmpInline = IR::BranchInstr::New(Js::OpCode::B, labelInline, this->m_func);
+    instrInsert->InsertBefore(jmpInline);
 
-    instr = IR::BranchInstr::New(Js::OpCode::B, labelInline, this->m_func);
-    instrInsert->InsertBefore(instr);
+    instrInsert->InsertBefore(labelOpndIsNotInt);
 
-    instrInsert->InsertBefore(labelVar);
+    GenerateFloatTest(opndOrig, instrInsert, labelHelper, checkForNullInLoopBody);
 
-    LoadFloatValue(opndOrig, opndFloat, labelHelper, instrInsert, checkForNullInLoopBody);
+    IR::RegOpnd *s2 = IR::RegOpnd::New(TyMachReg, this->m_func);
+    IR::Instr   *mov = IR::Instr::New(Js::OpCode::MOV, s2, opndOrig, this->m_func);
+    instrInsert->InsertBefore(mov);
+
+    IR::Instr   *eorTag = IR::Instr::New(Js::OpCode::EOR,
+        s2,
+        s2,
+        IR::IntConstOpnd::New(Js::FloatTag_Value,
+            TyMachReg,
+            this->m_func,
+            /* dontEncode = */ true),
+        this->m_func);
+    instrInsert->InsertBefore(eorTag);
+
+    IR::Instr   *movFloat = IR::Instr::New(Js::OpCode::FCVT, opndFloat, s2, this->m_func);
+    instrInsert->InsertBefore(movFloat);
 
     return instrFirst;
-#endif
 }
 
 void
