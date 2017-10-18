@@ -4364,6 +4364,10 @@ bool Inline::InlConstFoldArg(IR::Instr *instr, __in_ecount_opt(callerArgOutCount
     {
         return false;
     }
+    if (instr->m_func->GetJITFunctionBody()->HasTry())
+    {
+        return false;
+    }
 
     IR::Opnd *src1 = instr->GetSrc1();
     IntConstType value;

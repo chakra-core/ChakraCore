@@ -145,4 +145,9 @@
       <files>nestedinlinestackwalkbug.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>tryfinallyinlinebug.js</files>
+    </default>
+  </test>
 </regress-exe>
