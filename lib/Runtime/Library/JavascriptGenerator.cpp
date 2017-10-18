@@ -30,6 +30,14 @@ namespace Js
         }
     }
 
+    JavascriptGenerator *JavascriptGenerator::New(Recycler *recycler, DynamicType *generatorType, Arguments &args,
+        Js::JavascriptGenerator::GeneratorState generatorState)
+    {
+        JavascriptGenerator *obj = JavascriptGenerator::New(recycler, generatorType, args, nullptr);
+        obj->SetState(generatorState);
+        return obj;
+    }
+
     bool JavascriptGenerator::Is(Var var)
     {
         return JavascriptOperators::GetTypeId(var) == TypeIds_Generator;
@@ -59,6 +67,14 @@ namespace Js
             this->GetScriptContext()->GetRecycler()->RegisterPendingWriteBarrierBlock(frame, bytes);
         }
 #endif
+    }
+
+    void JavascriptGenerator::SetFrameSlots(Js::RegSlot slotCount, Field(Var)* frameSlotArray)
+    {
+        AssertMsg(this->frame->GetFunctionBody()->GetLocalsCount() == slotCount, "Unexpected mismatch in frame slot count for generated.");
+        for (Js::RegSlot i = 0; i < slotCount; i++) {
+            this->GetFrame()->m_localSlots[i] = frameSlotArray[i];
+        }
     }
 
 #if GLOBAL_ENABLE_WRITE_BARRIER
@@ -232,14 +248,151 @@ namespace Js
     }
 
 #if ENABLE_TTD
+
+    void JavascriptGenerator::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        if (this->scriptFunction != nullptr)
+        {
+            extractor->MarkVisitVar(this->scriptFunction);
+        }
+
+        // frame is null when generator has been completed
+        if (this->frame != nullptr)
+        {
+            // mark slot variables for traversal
+            Js::RegSlot slotCount = this->frame->GetFunctionBody()->GetLocalsCount();
+            for (Js::RegSlot i = 0; i < slotCount; i++)
+            {
+                Js::Var curr = this->frame->m_localSlots[i];
+                if (curr != nullptr)
+                {
+                    extractor->MarkVisitVar(curr);
+                }
+            }
+        }
+
+        // args.Values is null when generator has been completed
+        if (this->args.Values != nullptr)
+        {
+            // mark argument variables for traversal
+            uint32 argCount = this->args.GetArgCountWithExtraArgs();
+            for (uint32 i = 0; i < argCount; i++)
+            {
+                Js::Var curr = this->args[i];
+                if (curr != nullptr)
+                {
+                    extractor->MarkVisitVar(curr);
+                }
+            }
+        }
+    }
+
     TTD::NSSnapObjects::SnapObjectType JavascriptGenerator::GetSnapTag_TTD() const
     {
-        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+        return TTD::NSSnapObjects::SnapObjectType::SnapGenerator;
     }
 
     void JavascriptGenerator::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        TTDAssert(false, "Invalid -- JavascriptGenerator");
+        TTD::NSSnapObjects::SnapGeneratorInfo* gi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapGeneratorInfo>();
+
+        // TODO: BUGBUG - figure out how to determine what the prototype was
+        gi->generatorPrototype = 0;
+        //if (this->GetPrototype() == this->GetScriptContext()->GetLibrary()->GetNull()) 
+        //{
+        //    gi->generatorPrototype = 1;
+        //}
+        //else if (this->GetType() == this->GetScriptContext()->GetLibrary()->GetGeneratorConstructorPrototypeObjectType())
+        //{
+        //    // check type here, not prototype, since type is static across generators
+        //    gi->generatorPrototype = 2;
+        //}
+        //else
+        //{
+        //    //TTDAssert(false, "unexpected prototype found JavascriptGenerator");
+        //}
+
+        gi->scriptFunction = TTD_CONVERT_VAR_TO_PTR_ID(this->scriptFunction);
+        gi->state = static_cast<uint32>(this->state);
+
+
+        // grab slot info from InterpreterStackFrame
+        gi->frame_slotCount = 0;
+        gi->frame_slotArray = nullptr;
+        if (this->frame != nullptr)
+        {
+            gi->frame_slotCount = this->frame->GetFunctionBody()->GetLocalsCount();
+            if (gi->frame_slotCount > 0)
+            {
+                gi->frame_slotArray = alloc.SlabAllocateArray<TTD::TTDVar>(gi->frame_slotCount);
+            }
+            for (Js::RegSlot i = 0; i < gi->frame_slotCount; i++)
+            {
+                gi->frame_slotArray[i] = this->frame->m_localSlots[i];
+            }
+        }
+
+        // grab arguments
+        TTD_PTR_ID* depArray = nullptr;
+        uint32 depCount = 0;
+
+        if (this->args.Values == nullptr)
+        {
+            gi->arguments_count = 0;
+        }
+        else
+        {
+            gi->arguments_count = this->args.GetArgCountWithExtraArgs();
+        }
+
+        gi->arguments_values = nullptr;
+        if (gi->arguments_count > 0)
+        {
+            gi->arguments_values = alloc.SlabAllocateArray<TTD::TTDVar>(gi->arguments_count);
+            depArray = alloc.SlabReserveArraySpace<TTD_PTR_ID>(gi->arguments_count);
+        }
+
+        for (uint32 i = 0; i < gi->arguments_count; i++)
+        {
+            gi->arguments_values[i] = this->args[i];
+            if (gi->arguments_values[i] != nullptr && TTD::JsSupport::IsVarComplexKind(gi->arguments_values[i]))
+            {
+                depArray[depCount] = TTD_CONVERT_VAR_TO_PTR_ID(gi->arguments_values[i]);
+                depCount++;
+            }
+        }
+
+        if (depCount > 0)
+        {
+            alloc.SlabCommitArraySpace<TTD_PTR_ID>(depCount, gi->arguments_count);
+        }
+        else if (gi->arguments_count > 0)
+        {
+            alloc.SlabAbortArraySpace<TTD::NSSnapObjects::SnapES5ArrayGetterSetterEntry>(gi->arguments_count);
+        }
+
+        if (this->frame != nullptr)
+        {
+            gi->byteCodeReader_offset = this->frame->GetReader()->GetCurrentOffset();
+        }
+        else
+        {
+            gi->byteCodeReader_offset = 0;
+        }
+
+        // Copy the CallInfo data into the struct
+        memcpy(&gi->arguments_callInfo, &this->args.Info, sizeof(Js::CallInfo));
+
+        if (depCount == 0)
+        {
+            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapGeneratorInfo*, TTD::NSSnapObjects::SnapObjectType::SnapGenerator>(objData, gi);
+        }
+        else
+        {
+            TTDAssert(depArray != nullptr, "depArray should be non-null if depCount is > 0");
+            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapGeneratorInfo*, TTD::NSSnapObjects::SnapObjectType::SnapGenerator>(objData, gi, alloc, depCount, depArray);
+        }
+
     }
 #endif
 }

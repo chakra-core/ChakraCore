@@ -13,6 +13,7 @@
 CompileAssert(MaxPreInitializedObjectTypeInlineSlotCount <= USHRT_MAX);
 
 #include "StringCache.h"
+#include "Library/JavascriptGenerator.h"
 
 class ScriptSite;
 class ActiveScriptExternalLibrary;
@@ -413,6 +414,7 @@ namespace Js
         Field(JavascriptFunction*) arrayPrototypeToLocaleStringFunction;
         Field(JavascriptFunction*) identityFunction;
         Field(JavascriptFunction*) throwerFunction;
+        Field(JavascriptFunction*) generatorReturnFunction;
         Field(JavascriptFunction*) generatorNextFunction;
         Field(JavascriptFunction*) generatorThrowFunction;
 
@@ -751,6 +753,9 @@ namespace Js
 
         Js::JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* CreateRemainingElementsWrapper_TTD(Js::ScriptContext* ctx, uint32 value);
         Js::RecyclableObject* CreatePromiseAllResolveElementFunction_TTD(Js::JavascriptPromiseCapability* capabilities, uint32 index, Js::JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* wrapper, Js::RecyclableObject* values, bool alreadyCalled);
+        Js::RecyclableObject* CreateJavascriptGenerator_TTD(Js::ScriptContext *ctx,
+                                                            Js::RecyclableObject *prototype, Js::Arguments &arguments,
+                                                            Js::JavascriptGenerator::GeneratorState generatorState);
 #endif
 
 #ifdef ENABLE_INTL_OBJECT
@@ -808,6 +813,8 @@ namespace Js
         DynamicType * GetWebAssemblyInstanceType()  const { return webAssemblyInstanceType; }
         DynamicType * GetWebAssemblyMemoryType() const { return webAssemblyMemoryType; }
         DynamicType * GetWebAssemblyTableType() const { return webAssemblyTableType; }
+        DynamicType * GetGeneratorConstructorPrototypeObjectType() const { return generatorConstructorPrototypeObjectType; }
+
 #ifdef ENABLE_WASM
         JavascriptFunction* GetWebAssemblyQueryResponseFunction() const { return webAssemblyQueryResponseFunction; }
         JavascriptFunction* GetWebAssemblyCompileFunction() const { return webAssemblyCompileFunction; }
@@ -1070,6 +1077,7 @@ namespace Js
 #endif
         ScriptFunctionWithInlineCache * CreateScriptFunctionWithInlineCache(FunctionProxy* proxy);
         GeneratorVirtualScriptFunction * CreateGeneratorVirtualScriptFunction(FunctionProxy* proxy);
+
         DynamicType * CreateGeneratorType(RecyclableObject* prototype);
 
 #if 0
@@ -1077,6 +1085,7 @@ namespace Js
 #endif
         JavascriptNumber* CreateNumber(double value, RecyclerJavascriptNumberAllocator * numberAllocator);
         JavascriptGeneratorFunction* CreateGeneratorFunction(JavascriptMethod entryPoint, GeneratorVirtualScriptFunction* scriptFunction);
+        JavascriptGeneratorFunction* CreateGeneratorFunction(JavascriptMethod entryPoint, bool isAnonymousFunction);
         JavascriptAsyncFunction* CreateAsyncFunction(JavascriptMethod entryPoint, GeneratorVirtualScriptFunction* scriptFunction);
         JavascriptExternalFunction* CreateExternalFunction(ExternalMethod entryPointer, PropertyId nameId, Var signature, UINT64 flags, bool isLengthAvailable = false);
         JavascriptExternalFunction* CreateExternalFunction(ExternalMethod entryPointer, Var nameId, Var signature, UINT64 flags, bool isLengthAvailable = false);
@@ -1144,6 +1153,7 @@ namespace Js
 
         JavascriptFunction* EnsurePromiseResolveFunction();
         JavascriptFunction* EnsurePromiseThenFunction();
+        JavascriptFunction* EnsureGeneratorReturnFunction();
         JavascriptFunction* EnsureGeneratorNextFunction();
         JavascriptFunction* EnsureGeneratorThrowFunction();
         JavascriptFunction* EnsureArrayPrototypeForEachFunction();

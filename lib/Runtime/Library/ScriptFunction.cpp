@@ -625,6 +625,17 @@ namespace Js
         TTDAssert(this->GetFunctionInfo() != nullptr, "We are only doing this for functions with ParseableFunctionInfo.");
 
         TTD::NSSnapObjects::SnapScriptFunctionInfo* ssfi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapScriptFunctionInfo>();
+
+        this->ExtractSnapObjectDataIntoSnapScriptFunctionInfo(ssfi, alloc);
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapScriptFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapScriptFunctionObject>(objData, ssfi);
+    }
+    
+    // TODO:  Fixup function definition - something funky w/ header file includes - cycles?
+    void ScriptFunction::ExtractSnapObjectDataIntoSnapScriptFunctionInfo(/*TTD::NSSnapObjects::SnapScriptFunctionInfo* */ void* snapScriptFunctionInfo, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapScriptFunctionInfo* ssfi = reinterpret_cast<TTD::NSSnapObjects::SnapScriptFunctionInfo*>(snapScriptFunctionInfo);
+
         Js::FunctionBody* fb = TTD::JsSupport::ForceAndGetFunctionBody(this->GetParseableFunctionInfo());
 
         alloc.CopyNullTermStringInto(fb->GetDisplayName(), ssfi->DebugFunctionName);
@@ -633,19 +644,19 @@ namespace Js
 
         Js::FrameDisplay* environment = this->GetEnvironment();
         ssfi->ScopeId = TTD_INVALID_PTR_ID;
-        if(environment->GetLength() != 0)
+        if (environment->GetLength() != 0)
         {
             ssfi->ScopeId = TTD_CONVERT_SCOPE_TO_PTR_ID(environment);
         }
 
         ssfi->CachedScopeObjId = TTD_INVALID_PTR_ID;
-        if(this->cachedScopeObj != nullptr)
+        if (this->cachedScopeObj != nullptr)
         {
             ssfi->CachedScopeObjId = TTD_CONVERT_VAR_TO_PTR_ID(this->cachedScopeObj);
         }
 
         ssfi->HomeObjId = TTD_INVALID_PTR_ID;
-        if(this->homeObj != nullptr)
+        if (this->homeObj != nullptr)
         {
             ssfi->HomeObjId = TTD_CONVERT_VAR_TO_PTR_ID(this->homeObj);
         }
@@ -653,8 +664,6 @@ namespace Js
         ssfi->ComputedNameInfo = TTD_CONVERT_JSVAR_TO_TTDVAR(this->computedNameVar);
 
         ssfi->HasSuperReference = this->hasSuperReference;
-
-        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapScriptFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapScriptFunctionObject>(objData, ssfi);
     }
 #endif
 
