@@ -959,6 +959,10 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         bytes = this->EmitOp3Register(Emitter, instr, EmitMul, EmitMul64);
         break;
 
+    case Js::OpCode::MVN:
+        bytes = this->EmitOp2Register(Emitter, instr, EmitMvnRegister, EmitMvnRegister64);
+        break;
+
     // SMULL dst, src1, src2. src1 and src2 are 32-bit. dst is 64-bit.
     case Js::OpCode::SMULL:
         dst = instr->GetDst();

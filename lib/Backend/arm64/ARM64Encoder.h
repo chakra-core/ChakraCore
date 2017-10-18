@@ -1771,7 +1771,7 @@ EmitMovRegister(
     Arm64CodeEmitter &Emitter,
     Arm64SimpleRegisterParam Dest,
     Arm64SimpleRegisterParam Src
-    )
+)
 {
     return EmitOrrRegister(Emitter, Dest, ARMREG_ZR, Src);
 }
@@ -1782,9 +1782,31 @@ EmitMovRegister64(
     Arm64CodeEmitter &Emitter,
     Arm64SimpleRegisterParam Dest,
     Arm64SimpleRegisterParam Src
-    )
+)
 {
     return EmitOrrRegister64(Emitter, Dest, ARMREG_ZR, Src);
+}
+
+inline
+int
+EmitMvnRegister(
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
+    Arm64SimpleRegisterParam Src
+)
+{
+    return EmitOrnRegister(Emitter, Dest, ARMREG_ZR, Src);
+}
+
+inline
+int
+EmitMvnRegister64(
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
+    Arm64SimpleRegisterParam Src
+)
+{
+    return EmitOrnRegister64(Emitter, Dest, ARMREG_ZR, Src);
 }
 
 //
