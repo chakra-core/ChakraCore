@@ -6582,21 +6582,27 @@ LowererMD::LowerInt4RemWithBailOut(
 void
 LowererMD::EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32, bool isHelper)
 {
-    //  s2 = LSL s1, Js::VarTag_Shift  -- restore the var tag on the result
-    //       BO $ToVar (branch on overflow)
-    //  dst = OR s2, 1
-    //       B $done
-    //$ToVar:
-    //       EmitLoadVarNoCheck
-    //$Done:
+    //    MOV.32 e1, e_src1
+    //    TBNZ e1, #31, $Helper [uint32]  -- overflows?
+    //    ORR r1, 1<<VarTag_Shift
+    //    MOV r_dst, r1
+    //    JMP $done             [uint32]
+    // $helper                  [uint32]
+    //    EmitLoadVarNoCheck
+    // $done                    [uint32]
 
-    AssertMsg(instrLoad->GetSrc1()->IsRegOpnd(), "Should be regOpnd");
-    bool isInt = false;
-    bool isNotInt = false;
-    IR::RegOpnd *src1 = instrLoad->GetSrc1()->AsRegOpnd();
-    IR::LabelInstr *labelToVar = nullptr;
-    IR::LabelInstr *labelDone = nullptr;
-    IR::Instr *instr;
+
+    Assert(instrLoad->GetSrc1()->IsRegOpnd());
+    Assert(instrLoad->GetDst()->GetType() == TyVar);
+
+    bool isInt            = false;
+    IR::Opnd *dst         = instrLoad->GetDst();
+    IR::RegOpnd *src1     = instrLoad->GetSrc1()->AsRegOpnd();
+    IR::LabelInstr *labelHelper = nullptr;
+
+    // TODO: Fix bad lowering. We shouldn't get TyVars here.
+    // Assert(instrLoad->GetSrc1()->GetType() == TyInt32);
+    src1->SetType(TyInt32);
 
     if (src1->IsTaggedInt())
     {
@@ -6604,80 +6610,62 @@ LowererMD::EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32, bool isHelper)
     }
     else if (src1->IsNotInt())
     {
-        isNotInt = true;
+        // ToVar()
+        this->EmitLoadVarNoCheck(dst->AsRegOpnd(), src1, instrLoad, isFromUint32, isHelper);
+        return;
     }
 
-    if (!isNotInt)
+    IR::RegOpnd *r1 = IR::RegOpnd::New(TyVar, m_func);
+
+    // e1 = MOV src1
+    // (Use 32-bit MOV here as we rely on the register copy to clear the upper 32 bits.)
+    IR::RegOpnd *e1 = r1->Copy(m_func)->AsRegOpnd();
+    e1->SetType(TyInt32);
+    instrLoad->InsertBefore(IR::Instr::New(Js::OpCode::MOV,
+        e1,
+        src1,
+        m_func));
+
+    if (!isInt && isFromUint32)
     {
-        IR::Opnd * opndSrc1 = src1->UseWithNewType(TyMachReg, this->m_func);
+        Assert(!labelHelper);
+        labelHelper = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
 
-        if (!isInt)
-        {
-            labelToVar = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-            if (!isFromUint32)
-            {
-                // TEQ src1,src1 LS_u(#1) - TIOFLW is an alias for this pattern.
-                // XOR the src with itself shifted left one. If there's no overflow,
-                // the result should be positive (top bit clear).
-                instr = IR::Instr::New(Js::OpCode::TIOFLW, this->m_func);
-                instr->SetSrc1(opndSrc1);
-                instrLoad->InsertBefore(instr);
-
-                // BMI $ToVar
-                // Branch on negative result of the preceding test.
-                instr = IR::BranchInstr::New(Js::OpCode::BMI, labelToVar, this->m_func);
-                instrLoad->InsertBefore(instr);
-            }
-            else
-            {
-                //TST src1, 0xC0000000 -- test for length that is negative or overflows tagged int
-                instr = IR::Instr::New(Js::OpCode::TST, this->m_func);
-                instr->SetSrc1(opndSrc1);
-                instr->SetSrc2(IR::IntConstOpnd::New((int64)0x8000000000000000 >> Js::VarTag_Shift, TyMachReg, this->m_func));
-                instrLoad->InsertBefore(instr);
-                LegalizeMD::LegalizeInstr(instr, false);
-
-                //     BNE $helper
-                instr = IR::BranchInstr::New(Js::OpCode::BNE, labelToVar, this->m_func);
-                instrLoad->InsertBefore(instr);
-            }
-
-        }
-
-        // dst = ADD s1 tag
-
-        IR::RegOpnd * tagOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
-        instr = IR::Instr::New(Js::OpCode::LDIMM, tagOpnd, IR::IntConstOpnd::New(Js::AtomTag_IntPtr, TyMachReg, this->m_func), this->m_func);
+        // TBNZ e1, #31, $helper
+        IR::Instr* instr = IR::BranchInstr::New(Js::OpCode::TBNZ, labelHelper, m_func);
+        instr->SetSrc1(e1);
+        instr->SetSrc2(IR::IntConstOpnd::New(31, TyInt32, m_func));
         instrLoad->InsertBefore(instr);
-
-        instr = IR::Instr::New(Js::OpCode::ADD, instrLoad->GetDst(), opndSrc1, tagOpnd, this->m_func);
-        instrLoad->InsertBefore(instr);
-
-        if (!isInt)
-        {
-            //      B $done
-
-            labelDone = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, isHelper);
-            instr = IR::BranchInstr::New(Js::OpCode::B, labelDone, this->m_func);
-            instrLoad->InsertBefore(instr);
-        }
     }
 
-    instr = instrLoad;
-    if (!isInt)
-    {
-        //$ToVar:
-        if (labelToVar)
-        {
-            instrLoad->InsertBefore(labelToVar);
-        }
+    // The previous operation clears the top 32 bits.
+    // ORR r1, 1<<VarTag_Shift
+    this->GenerateInt32ToVarConversion(r1, instrLoad);
 
-        this->EmitLoadVarNoCheck(instrLoad->GetDst()->AsRegOpnd(), src1, instrLoad, isFromUint32, isHelper);
-    }
-    //$Done:
-    if (labelDone)
+    // REVIEW: We need r1 only if we could generate sn = Ld_A_I4 sn. i.e. the destination and
+    // source are the same.
+    // r_dst = MOV r1
+    instrLoad->InsertBefore(IR::Instr::New(Js::OpCode::MOV,
+        dst,
+        r1,
+        m_func));
+
+    if (labelHelper)
     {
-        instr->InsertAfter(labelDone);
+        Assert(isFromUint32);
+
+        // B $done
+        IR::LabelInstr * labelDone = IR::LabelInstr::New(Js::OpCode::Label, m_func, isHelper);
+        instrLoad->InsertBefore(IR::BranchInstr::New(Js::OpCode::B, labelDone, m_func));
+
+        // $helper
+        instrLoad->InsertBefore(labelHelper);
+
+        // ToVar()
+        this->EmitLoadVarNoCheck(dst->AsRegOpnd(), src1, instrLoad, isFromUint32, true);
+
+        // $done
+        instrLoad->InsertBefore(labelDone);
     }
     instrLoad->Remove();
 }

@@ -1219,26 +1219,6 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
 
     }
 
-/*
-
-MACRO(TIOFLW,  Reg1,       OpSideEffect,   0,  LEGAL_CMP1,     INSTR_TYPE(Forms_TIOFLW), D___)
-
-// Pseudo-op that loads the size of the arg out area. A special op with no src is used so that the
-// actual arg out size can be fixed up by the encoder.
-MACRO(LDARGOUTSZ,Reg1,     0,              0,  LEGAL_REG1,     INSTR_TYPE(Forms_LDIMM), D___)
-
-// Pseudo-op: dst = EOR src, src ASR #31
-MACRO(CLRSIGN, Reg2,       0,              0,  LEGAL_REG2,     INSTR_TYPE(Forms_CLRSIGN), D___)
-
-// Pseudo-op: dst = SUB src1, src2 ASR #31
-MACRO(SBCMPLNT, Reg3,      0,              0,  LEGAL_REG3,     INSTR_TYPE(Forms_SBCMPLNT), D___)
-
-
-//VFP instructions:
-    }
-
-*/
-
     return Emitter.Opcode();
 }
 
