@@ -6432,31 +6432,37 @@ LowererMD::LowerInt4MulWithBailOut(
     Assert(skipBailOutLabel);
 
     IR::Opnd *dst = instr->GetDst();
-    IR::Opnd *src1 = instr->GetSrc1();
-    IR::Opnd *src2 = instr->GetSrc2();
+    IR::Opnd *src1 = instr->UnlinkSrc1();
+    IR::Opnd *src2 = instr->UnlinkSrc2();
     IR::Instr *insertInstr;
 
     Assert(dst->IsInt32());
     Assert(src1->IsInt32());
     Assert(src2->IsInt32());
 
-    // (r17:)dst = SMULL dst, (r17,) src1, src2      -- do the signed mul into 64bit r17:dst, the result will be src1 * src2 * 2
-    instr->m_opcode = Js::OpCode::SMULL;
-    Legalize(instr);
+    // s3 = SMULL src1, src2 // result is i64
+    IR::Opnd* s3 = IR::RegOpnd::New(TyInt64, instr->m_func);
+    insertInstr = IR::Instr::New(Js::OpCode::SMULL, s3, src1, src2, instr->m_func);
+    instr->InsertBefore(insertInstr);
+    LegalizeMD::LegalizeInstr(insertInstr, false);
 
-    //check negative zero
+    // dst = MOV s3
+    instr->m_opcode = Js::OpCode::MOV;
+    instr->SetSrc1(s3->UseWithNewType(TyInt32, instr->m_func));
+
+    // check negative zero
     //
-    //If the result is zero, we need to check and only bail out if it would be -0.
+    // If the result is zero, we need to check and only bail out if it would be -0.
     // We know that if the result is 0/-0, at least operand should be zero.
     // We should bailout if src1 + src2 < 0, as this proves that the other operand is negative
     //
     //    CMN src1, src2
     //    BPL $skipBailOutLabel
     //
-    //$bailOutLabel
+    // $bailOutLabel
     //    GenerateBailout
     //
-    //$skipBailOutLabel
+    // $skipBailOutLabel
     IR::LabelInstr *checkForNegativeZeroLabel = nullptr;
     if(bailOutKind & IR::BailOutOnNegativeZero)
     {
@@ -6478,25 +6484,19 @@ LowererMD::LowerInt4MulWithBailOut(
         // Fall through to bailOutLabel
     }
 
-    const auto insertBeforeInstr = checkForNegativeZeroLabel ? checkForNegativeZeroLabel : bailOutLabel;
+    IR::LabelInstr* insertBeforeInstr = checkForNegativeZeroLabel ? checkForNegativeZeroLabel : bailOutLabel;
 
     //check overflow
-    //    CMP_ASR31 r17, dst
-    //    BNE $bailOutLabel
     if(bailOutKind & IR::BailOutOnMulOverflow || bailOutKind == IR::BailOutOnFailedHoistedLoopCountBasedBoundCheck)
     {
-        // (SMULL doesn't set the flags but we don't have 32bit overflow <=> r17-unsigned ? r17==0 : all 33 bits of 64bit result are 1's
-        //      CMP r17, dst, ASR #31 -- check for overflow (== means no overflow)
-        IR::RegOpnd* opndRegScratch = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, instr->m_func);
-        insertInstr = IR::Instr::New(Js::OpCode::CMP_ASR31, instr->m_func);
-        insertInstr->SetSrc1(opndRegScratch);
-        insertInstr->SetSrc2(dst);
-        insertBeforeInstr->InsertBefore(insertInstr);
-        LegalizeMD::LegalizeInstr(insertInstr, false);
+        insertInstr = IR::Instr::New(Js::OpCode::CMP_SXTW, instr->m_func);
+        insertInstr->SetSrc1(s3);
+        insertInstr->SetSrc2(s3);
+        instr->InsertBefore(insertInstr);
 
-        // BNE $bailOutLabel       -- bail if the result overflowed
+        // BNE $bailOutHelper
         insertInstr = IR::BranchInstr::New(Js::OpCode::BNE, bailOutLabel, instr->m_func);
-        insertBeforeInstr->InsertBefore(insertInstr);
+        instr->InsertBefore(insertInstr);
     }
 
     if(bailOutKind & IR::BailOutOnNegativeZero)

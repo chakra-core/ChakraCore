@@ -842,27 +842,6 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         bytes = this->EmitConditionalSelect(Emitter, instr, COND_PL, EmitCsneg, EmitCsneg64);
         break;
 
-    case Js::OpCode::CMP_ASR31:
-        src1 = instr->GetSrc1();
-        src2 = instr->GetSrc2();
-        Assert(instr->GetDst() == nullptr);
-        Assert(src1->IsRegOpnd());
-        Assert(src2->IsRegOpnd());
-
-        size = src1->GetSize();
-        Assert(size == 4 || size == 8);
-        Assert(size == src2->GetSize());
-
-        if (size == 8)
-        {
-            bytes = EmitSubsRegister64(Emitter, ARMREG_ZR, this->GetRegEncode(src1->AsRegOpnd()), Arm64RegisterParam(this->GetRegEncode(src2->AsRegOpnd()), SHIFT_ASR, 63));
-        }
-        else
-        {
-            bytes = EmitSubsRegister(Emitter, ARMREG_ZR, this->GetRegEncode(src1->AsRegOpnd()), Arm64RegisterParam(this->GetRegEncode(src2->AsRegOpnd()), SHIFT_ASR, 31));
-        }
-        break;
-
     case Js::OpCode::CMP_SXTW:
         src1 = instr->GetSrc1();
         src2 = instr->GetSrc2();
@@ -985,6 +964,10 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         Assert(dst->IsRegOpnd());
         Assert(src1->IsRegOpnd());
         Assert(src2->IsRegOpnd());
+
+        Assert(dst->GetSize() == 8);
+        Assert(src1->GetSize() == 4);
+        Assert(src2->GetSize() == 4);
         bytes = EmitSmull(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
         break;
 
