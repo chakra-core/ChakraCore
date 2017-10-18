@@ -9,7 +9,7 @@ namespace Js
 {
     FunctionExecutionStateMachine::FunctionExecutionStateMachine() :
         owner(nullptr),
-        executionMode(ExecutionMode::Interpreter),
+        executionState(ExecutionState::Interpreter),
         interpreterLimit(0),
         autoProfilingInterpreter0Limit(0),
         profilingInterpreter0Limit(0),
@@ -91,7 +91,7 @@ namespace Js
             profilingInterpreter1Limit = 0;
         }
 
-        uint16 fullJitThreshold =
+        uint16 fullJitThresholdConfig =
             static_cast<uint16>(
                 configFlags.AutoProfilingInterpreter0Limit +
                 configFlags.ProfilingInterpreter0Limit +
@@ -134,22 +134,25 @@ namespace Js
                     fullJitDelayMultiplier = 1.6;
                 }
 
-                const uint16 newFullJitThreshold = static_cast<uint16>(fullJitThreshold * fullJitDelayMultiplier);
-                scale += newFullJitThreshold - fullJitThreshold;
-                fullJitThreshold = newFullJitThreshold;
+                const uint16 newFullJitThreshold = static_cast<uint16>(fullJitThresholdConfig * fullJitDelayMultiplier);
+                scale += newFullJitThreshold - fullJitThresholdConfig;
+                fullJitThresholdConfig = newFullJitThreshold;
             }
         }
 
-        Assert(fullJitThreshold >= scale);
-        this->fullJitThreshold = fullJitThreshold - scale;
+        Assert(fullJitThresholdConfig >= scale);
+        fullJitThreshold = fullJitThresholdConfig - scale;
         SetInterpretedCount(0);
-        SetExecutionMode(GetDefaultInterpreterExecutionMode());
-        SetFullJitThreshold(fullJitThreshold);
+        SetDefaultInterpreterExecutionMode();
+        SetFullJitThreshold(fullJitThresholdConfig);
         TryTransitionToNextInterpreterExecutionMode();
     }
 
     void FunctionExecutionStateMachine::ReinitializeExecutionModeAndLimits(FunctionBody* functionBody)
     {
+        // TODO: Investigate what it would take to make this invariant hold. Currently fails in AsmJS tests
+        // Assert(initializedExecutionModeAndLimits);
+
         fullJitRequeueThreshold = 0;
         committedProfiledIterations = 0;
         InitializeExecutionModeAndLimits(functionBody);
@@ -157,40 +160,57 @@ namespace Js
 
     bool FunctionExecutionStateMachine::InterpretedSinceCallCountCollection() const
     {
-        return this->interpretedCount != this->lastInterpretedCount;
+        return interpretedCount != lastInterpretedCount;
     }
 
     void FunctionExecutionStateMachine::CollectInterpretedCounts()
     {
-        this->lastInterpretedCount = this->interpretedCount;
+        lastInterpretedCount = interpretedCount;
     }
 
     ExecutionMode FunctionExecutionStateMachine::GetExecutionMode() const
     {
+        ExecutionMode executionMode = StateToMode(executionState);
+
         VerifyExecutionMode(executionMode);
         return executionMode;
     }
 
-    void FunctionExecutionStateMachine::SetExecutionMode(ExecutionMode mode)
+    void FunctionExecutionStateMachine::SetExecutionState(ExecutionState state)
     {
-        VerifyExecutionMode(mode);
-        executionMode = mode;
+        // TODO: Investigate what it would take to make this invariant hold
+        // Assert(state == GetDefaultInterpreterExecutionState() || IsTerminalState(state));
+        VerifyExecutionMode(StateToMode(state));
+        executionState = state;
     }
 
-    ExecutionMode FunctionExecutionStateMachine::GetDefaultInterpreterExecutionMode() const
+    void FunctionExecutionStateMachine::SetAsmJsExecutionMode()
+    {
+        SetExecutionState(ExecutionState::FullJit);
+    }
+
+    void FunctionExecutionStateMachine::SetDefaultInterpreterExecutionMode()
+    {
+        SetExecutionState(GetDefaultInterpreterExecutionState());
+    }
+
+    FunctionExecutionStateMachine::ExecutionState FunctionExecutionStateMachine::GetDefaultInterpreterExecutionState() const
     {
         if (!owner->DoInterpreterProfile())
         {
             VerifyExecutionMode(ExecutionMode::Interpreter);
-            return ExecutionMode::Interpreter;
+            return ExecutionState::Interpreter;
         }
-        if (owner->DoInterpreterAutoProfile())
+        else if (owner->DoInterpreterAutoProfile())
         {
             VerifyExecutionMode(ExecutionMode::AutoProfilingInterpreter);
-            return ExecutionMode::AutoProfilingInterpreter;
+            return ExecutionState::AutoProfilingInterpreter0;
         }
-        VerifyExecutionMode(ExecutionMode::ProfilingInterpreter);
-        return ExecutionMode::ProfilingInterpreter;
+        else
+        {
+            VerifyExecutionMode(ExecutionMode::ProfilingInterpreter);
+            return ExecutionState::ProfilingInterpreter0;
+        }
     }
 
     ExecutionMode FunctionExecutionStateMachine::GetInterpreterExecutionMode(const bool isPostBailout)
@@ -212,7 +232,7 @@ namespace Js
         case ExecutionMode::SimpleJit:
             if (CONFIG_FLAG(NewSimpleJit))
             {
-                return GetDefaultInterpreterExecutionMode();
+                return StateToMode(GetDefaultInterpreterExecutionState());
             }
             // fall through
 
@@ -358,9 +378,95 @@ namespace Js
         VerifyExecutionModeLimits();
     }
 
-    // Safely moves from one execution mode to another and updates appropriate execution state for the next
-    // mode. Note that there are other functions that modify executionMode that do not involve this function.
-    // This function transitions ExecutionMode in the following order:
+    FunctionExecutionStateMachine::ExecutionState FunctionExecutionStateMachine::ModeToState(ExecutionMode mode) const
+    {
+        switch (mode)
+        {
+        case ExecutionMode::AutoProfilingInterpreter:
+            return ExecutionState::AutoProfilingInterpreter0;
+
+        case ExecutionMode::ProfilingInterpreter:
+            return ExecutionState::ProfilingInterpreter0;
+
+        case ExecutionMode::SimpleJit:
+            return ExecutionState::SimpleJit;
+
+        case ExecutionMode::FullJit:
+            return ExecutionState::FullJit;
+
+        default:
+            Assert(!"Unexpected ExecutionMode for ExecutionState");
+            // fall through
+        case ExecutionMode::Interpreter:
+            return ExecutionState::Interpreter;
+        }
+    }
+
+    ExecutionMode  FunctionExecutionStateMachine::StateToMode(ExecutionState state) const
+    {
+        switch (state)
+        {
+        case ExecutionState::AutoProfilingInterpreter0:
+        case ExecutionState::AutoProfilingInterpreter1:
+            return ExecutionMode::AutoProfilingInterpreter;
+
+        case ExecutionState::ProfilingInterpreter0:
+        case ExecutionState::ProfilingInterpreter1:
+            return ExecutionMode::ProfilingInterpreter;
+
+        case ExecutionState::SimpleJit:
+            return ExecutionMode::SimpleJit;
+
+        case ExecutionState::FullJit:
+            return ExecutionMode::FullJit;
+
+        default:
+            Assert(!"Unexpected ExecutionState for ExecutionMode");
+            // fall through
+        case ExecutionState::Interpreter:
+            return ExecutionMode::Interpreter;
+        }
+    }
+
+    uint16& FunctionExecutionStateMachine::GetStateLimit(ExecutionState state)
+    {
+        switch (state)
+        {
+        case ExecutionState::Interpreter:
+            return interpreterLimit;
+
+        case ExecutionState::AutoProfilingInterpreter0:
+            return autoProfilingInterpreter0Limit;
+
+        case ExecutionState::AutoProfilingInterpreter1:
+            return autoProfilingInterpreter1Limit;
+
+        case ExecutionState::ProfilingInterpreter0:
+            return profilingInterpreter0Limit;
+
+        case ExecutionState::ProfilingInterpreter1:
+            return profilingInterpreter1Limit;
+
+        case ExecutionState::SimpleJit:
+            return simpleJitLimit;
+
+        default:
+            Assert(!"Unexpected ExecutionState for limit");
+            return interpreterLimit;
+        }
+    }
+
+    // An execution state is terminal if the current FunctionExecutionStateMachine's limits
+    // allow the state to continue to run.
+    // FullJit is always a terminal state and is the last terminal state.
+    bool FunctionExecutionStateMachine::IsTerminalState(ExecutionState state)
+    {
+        return state == ExecutionState::FullJit || GetStateLimit(state) != 0;
+    }
+
+    // Safely moves from one execution mode to another and updates appropriate class members for the next
+    // mode. Note that there are other functions that modify execution state that do not involve this function.
+    // This function transitions ExecutionMode as ExecutionState in the following order:
     //
     //       +-- Interpreter
     //       |
@@ -376,147 +482,93 @@ namespace Js
     //       +-> FullJit
     //
     // Transition to the next mode occurs when the limit for the current execution mode reaches 0.
-    // Returns true when a transition occurs (i.e., the execution mode was updated since the beginning of
+    // Returns true when a transition occurs (i.e., the execution state was updated since the beginning of
     // this function call). Otherwise, returns false to indicate no change in state.
     // See more details of each mode in ExecutionModes.h
     bool FunctionExecutionStateMachine::TryTransitionToNextExecutionMode()
     {
         Assert(initializedExecutionModeAndLimits);
 
-        switch (GetExecutionMode())
+        bool isStateChanged = false;
+        if (executionState != ExecutionState::FullJit)
         {
-            // Managing transition from Interpreter
-        case ExecutionMode::Interpreter:
-            if (GetInterpretedCount() < interpreterLimit)
-            {
-                VerifyExecutionMode(GetExecutionMode());
-                return false;
-            }
-            CommitExecutedIterations(interpreterLimit, interpreterLimit);
-            goto TransitionToFullJit;
-
-            // Managing transition to and from AutoProfilingInterpreter
-        TransitionToAutoProfilingInterpreter:
-            if (autoProfilingInterpreter0Limit != 0 || autoProfilingInterpreter1Limit != 0)
-            {
-                SetExecutionMode(ExecutionMode::AutoProfilingInterpreter);
-                SetInterpretedCount(0);
-                return true;
-            }
-            goto TransitionFromAutoProfilingInterpreter;
-
-        case ExecutionMode::AutoProfilingInterpreter:
-        {
-            // autoProfilingInterpreter0Limit is the default limit for this mode
-            // autoProfilingInterpreter1Limit becomes the limit for this mode when this owner has
-            // already previously run in ProfilingInterpreter and AutoProfilingInterpreter
-            uint16 &autoProfilingInterpreterLimit =
-                autoProfilingInterpreter0Limit == 0 && profilingInterpreter0Limit == 0
-                ? autoProfilingInterpreter1Limit
-                : autoProfilingInterpreter0Limit;
-            if (GetInterpretedCount() < autoProfilingInterpreterLimit)
-            {
-                VerifyExecutionMode(GetExecutionMode());
-                return false;
-            }
-            CommitExecutedIterations(autoProfilingInterpreterLimit, autoProfilingInterpreterLimit);
-            // fall through
-        }
-
-    TransitionFromAutoProfilingInterpreter:
-        Assert(autoProfilingInterpreter0Limit == 0 || autoProfilingInterpreter1Limit == 0);
-        if (profilingInterpreter0Limit == 0 && autoProfilingInterpreter1Limit == 0)
-        {
-            goto TransitionToSimpleJit;
-        }
-        // fall through
-
-        // Managing transition to and from ProfilingInterpreter
-    TransitionToProfilingInterpreter:
-        if (profilingInterpreter0Limit != 0 || profilingInterpreter1Limit != 0)
-        {
-            SetExecutionMode(ExecutionMode::ProfilingInterpreter);
-            SetInterpretedCount(0);
-            return true;
-        }
-        goto TransitionFromProfilingInterpreter;
-
-        case ExecutionMode::ProfilingInterpreter:
-        {
-            // profilingInterpreter0Limit is the default limit for this mode
-            // profilingInterpreter1Limit becomes the limit for this mode when this owner has already
-            // previously run in ProfilingInterpreter, AutoProfilingInterpreter, and SimpleJIT
-            uint16 &profilingInterpreterLimit =
-                profilingInterpreter0Limit == 0 && autoProfilingInterpreter1Limit == 0 && simpleJitLimit == 0
-                ? profilingInterpreter1Limit
-                : profilingInterpreter0Limit;
-            if (GetInterpretedCount() < profilingInterpreterLimit)
-            {
-                VerifyExecutionMode(GetExecutionMode());
-                return false;
-            }
-            CommitExecutedIterations(profilingInterpreterLimit, profilingInterpreterLimit);
-            // fall through
-        }
-
-    TransitionFromProfilingInterpreter:
-        Assert(profilingInterpreter0Limit == 0 || profilingInterpreter1Limit == 0);
-        if (autoProfilingInterpreter1Limit == 0 && simpleJitLimit == 0 && profilingInterpreter1Limit == 0)
-        {
-            goto TransitionToFullJit;
-        }
-        goto TransitionToAutoProfilingInterpreter;
-
-        // Managing transition to and from SimpleJit
-    TransitionToSimpleJit:
-        if (simpleJitLimit != 0)
-        {
-            SetExecutionMode(ExecutionMode::SimpleJit);
-
-            // Zero the interpreted count here too, so that we can determine how many interpreter iterations ran
-            // while waiting for simple JIT
-            SetInterpretedCount(0);
-            return true;
-        }
-        goto TransitionToProfilingInterpreter;
-
-        case ExecutionMode::SimpleJit:
-        {
+            bool isTransitionNeeded;
+            uint16& stateLimit = GetStateLimit(executionState);
             FunctionEntryPointInfo *const simpleJitEntryPointInfo = owner->GetSimpleJitEntryPointInfo();
-            if (!simpleJitEntryPointInfo || simpleJitEntryPointInfo->callsCount != 0)
+
+            // Determine if the current state should not transition when
+            // - for non-JITed states, the interpreted count is less than the limit
+            // - for JITed states (specifically, SimpleJIT because it can transition), the callsCount
+            //   is non-zero. CallsCount starts at the limit and decrements to 0 to indicate transition.
+            if ((executionState != ExecutionState::SimpleJit && GetInterpretedCount() < stateLimit)
+                || (simpleJitEntryPointInfo != nullptr && simpleJitEntryPointInfo->callsCount > 0))
             {
-                VerifyExecutionMode(GetExecutionMode());
-                return false;
+                // Since the current state is under its limit, no transition is needed.
+                // Simply verify the current state's execution mode before returning.
+                isTransitionNeeded = false;
             }
-            CommitExecutedIterations(simpleJitLimit, simpleJitLimit);
-            goto TransitionToProfilingInterpreter;
+            else
+            {
+                // Since the current state's limit is reached, transition from this state to the next state
+                // First, save data from the current state
+                CommitExecutedIterations(stateLimit, stateLimit);
+
+                // Then, reset data for the next state
+                SetInterpretedCount(0);
+
+                isTransitionNeeded = true;
+            }
+
+            if (isTransitionNeeded)
+            {
+                // Keep advancing the state until a terminal state is found or until there are no more 
+                // states to reach. The path of advancement is described in the banner comment above.
+                ExecutionState newState = executionState;
+                while (isTransitionNeeded && !IsTerminalState(newState))
+                {
+                    if (newState != ExecutionState::Interpreter)
+                    {
+                        // Most states simply advance to the next state
+                        newState = static_cast<ExecutionState>(static_cast<uint8>(newState) + 1);
+                    }
+                    else
+                    {
+                        // Interpreter advances straight to FullJit
+                        newState = ExecutionState::FullJit;
+                    }
+
+                    // If FullJit is the next state, but FullJit is disabled, then no transition
+                    // is needed.
+                    if (newState == ExecutionState::FullJit && PHASE_OFF(FullJitPhase, owner))
+                    {
+                        isTransitionNeeded = false;
+                    }
+                    else
+                    {
+                        // Otherwise, transition is needed because there is new state available
+                        isTransitionNeeded = true;
+                    }
+                }
+
+                // Only update the execution state when the new state is a terminal state
+                if (isTransitionNeeded && IsTerminalState(newState))
+                {
+                    Assert(newState != executionState);
+                    SetExecutionState(newState);
+                    isStateChanged = true;
+                }
+            }
         }
 
-    TransitionToFullJit:
-        if (!PHASE_OFF(FullJitPhase, owner))
-        {
-            SetExecutionMode(ExecutionMode::FullJit);
-            return true;
-        }
-        // fall through
-
-        // Managing transtion to FullJit
-        case ExecutionMode::FullJit:
-            VerifyExecutionMode(GetExecutionMode());
-            return false;
-
-        default:
-            Assert(false);
-            __assume(false);
-        }
+        return isStateChanged;
     }
-
+    
     void FunctionExecutionStateMachine::TryTransitionToNextInterpreterExecutionMode()
     {
         Assert(IsInterpreterExecutionMode());
 
         TryTransitionToNextExecutionMode();
-        SetExecutionMode(GetInterpreterExecutionMode(false));
+        SetExecutionState(ModeToState(GetInterpreterExecutionMode(false)));
     }
 
     bool FunctionExecutionStateMachine::TryTransitionToJitExecutionMode()
@@ -559,7 +611,7 @@ namespace Js
         fullJitThreshold = simpleJitLimit + profilingInterpreter1Limit;
 
         VerifyExecutionModeLimits();
-        SetExecutionMode(ExecutionMode::SimpleJit);
+        SetExecutionState(ExecutionState::SimpleJit);
     }
 
     void FunctionExecutionStateMachine::TransitionToFullJitExecutionMode()
@@ -575,7 +627,7 @@ namespace Js
         fullJitThreshold = 0;
 
         VerifyExecutionModeLimits();
-        SetExecutionMode(ExecutionMode::FullJit);
+        SetExecutionState(ExecutionState::FullJit);
     }
 
     void FunctionExecutionStateMachine::SetIsSpeculativeJitCandidate()
@@ -609,11 +661,10 @@ namespace Js
     void FunctionExecutionStateMachine::ResetSimpleJitLimit()
     {
         Assert(initializedExecutionModeAndLimits);
-        Assert(GetExecutionMode() == ExecutionMode::SimpleJit);
+
+        SetExecutionState(ExecutionState::SimpleJit);
 
         const uint16 simpleJitNewLimit = static_cast<uint8>(Configuration::Global.flags.SimpleJitLimit);
-        // Why do we need this assert?
-        Assert(simpleJitNewLimit == Configuration::Global.flags.SimpleJitLimit);
         if (simpleJitLimit < simpleJitNewLimit)
         {
             fullJitThreshold += simpleJitNewLimit - simpleJitLimit;

@@ -14,11 +14,28 @@
 #define FieldWithBarrier(type) type
 
 #define CONFIG_FLAG(flag) 10
-#define PHASE_OFF(foo, bar) false
+#define PHASE_OFF(foo, bar) FunctionExecutionTest::PhaseOff(foo, bar)
 #define PHASE_FORCE(foo, bar) false
-#define NewSimpleJit
-#define FullJitPhase
+#define NewSimpleJit 1
+#define FullJitPhase 2
 #define DEFAULT_CONFIG_MinSimpleJitIterations 0
+
+namespace FunctionExecutionTest
+{
+    static bool FullJitPhaseOffFlag = false;
+    bool PhaseOff(int phase, void*)
+    {
+        if (phase == FullJitPhase)
+        {
+            return FullJitPhaseOffFlag;
+        }
+        else
+        {
+            Assert(!"Unknown Phase");
+            return false;
+        }
+    }
+}
 
 namespace Js
 {

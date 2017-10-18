@@ -26,8 +26,12 @@ namespace FunctionExecutionTest
     //ExecutionMode - function : testfn((#1.1), #2), mode : SimpleJit, size : 36, limits : 0.0.0.21.0 = 21
     //ExecutionMode - function : testfn((#1.1), #2), mode : SimpleJit, size : 36, limits : 0.0.0.21.0 = 21
     //ExecutionMode - function : testfn((#1.1), #2), mode : FullJit, size : 36, limits : 0.0.0.0.0 = 0
-    TEST_CASE("FuncExe_NormalExecution")
+    template <bool TFullJitPhase, ExecutionMode TFinalMode>
+    void NormalExecution()
     {
+        bool prevValue = FullJitPhaseOffFlag;
+        FullJitPhaseOffFlag = TFullJitPhase;
+
         // Setup the function environment
         int calls = 0;
         Js::Configuration::Global.flags.SetDefaults();
@@ -187,8 +191,20 @@ namespace FunctionExecutionTest
         //16 chakra!ScriptEngine::ParseScriptTextCore
         //17 chakra!ScriptEngine::ParseScriptText
         f.TryTransitionToNextExecutionMode();
-        CHECK(f.GetExecutionMode() == ExecutionMode::FullJit);
+        CHECK(f.GetExecutionMode() == TFinalMode);
         CHECK(f.GetInterpretedCount() == 0);
+
+        FullJitPhaseOffFlag = prevValue;
+    }
+
+    TEST_CASE("FuncExe_NormalExecution")
+    {
+        NormalExecution<false, ExecutionMode::FullJit>();
+    }
+
+    TEST_CASE("FuncExe_NormalExecutionNoFullJit")
+    {
+        NormalExecution<true, ExecutionMode::SimpleJit>();
     }
 
     // test what happens when we jit a Loop Body
@@ -253,8 +269,12 @@ namespace FunctionExecutionTest
 
     // Emulate/test what happens when we have the cmd args similar to JS unittests as DynaPogo:
     // -bvt -BaselineMode  -DumpOnCrash -forceNative -off:simpleJit -bgJitDelay:0
-    TEST_CASE("FuncExe_JSUnitTestDynapogo")
+    template <bool TFullJitPhase, ExecutionMode TInitialMode, ExecutionMode TFinalMode>
+    void JSUnitTestDynapogo()
     {
+        bool prevValue = FullJitPhaseOffFlag;
+        FullJitPhaseOffFlag = TFullJitPhase;
+
         Js::Configuration::Global.flags.SetDynaPogoValues();
         Js::FunctionExecutionStateMachine f;
         Js::FunctionBody body(true, true, false);
@@ -277,7 +297,7 @@ namespace FunctionExecutionTest
         //03 chakra!Js::FunctionBody::MarkScript
         //04 chakra!Js::ByteCodeWriter::End
         f.InitializeExecutionModeAndLimits(&body);
-        CHECK(f.GetExecutionMode() == ExecutionMode::ProfilingInterpreter);
+        CHECK(f.GetExecutionMode() == TInitialMode);
         CHECK(f.GetInterpretedCount() == 0);
 
         // to full
@@ -288,8 +308,20 @@ namespace FunctionExecutionTest
         //04 chakra!NativeCodeGenerator::CheckCodeGen
         //05 chakra!NativeCodeGenerator::CheckCodeGenThunk
         f.TryTransitionToJitExecutionMode();
-        CHECK(f.GetExecutionMode() == ExecutionMode::FullJit);
-        CHECK(f.GetInterpretedCount() == 0); // Interpreter is never invoked
+        CHECK(f.GetExecutionMode() == TFinalMode);
+        CHECK(f.GetInterpretedCount() == 0);
+
+        FullJitPhaseOffFlag = prevValue;
+    }
+
+    TEST_CASE("FuncExe_JSUnitTestDynapogo")
+    {
+        JSUnitTestDynapogo<false, ExecutionMode::ProfilingInterpreter, ExecutionMode::FullJit>();
+    }
+
+    TEST_CASE("FuncExe_JSUnitTestDynapogoNoFullJit")
+    {
+        JSUnitTestDynapogo<true, ExecutionMode::AutoProfilingInterpreter, ExecutionMode::AutoProfilingInterpreter>();
     }
 
     // test what hits TransitionToSimpleJitExecutionMode

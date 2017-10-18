@@ -2599,10 +2599,10 @@ namespace Js
         FunctionEntryPointInfo *GetSimpleJitEntryPointInfo() const;
         void SetSimpleJitEntryPointInfo(FunctionEntryPointInfo *const entryPointInfo);
 
-        ExecutionMode GetDefaultInterpreterExecutionMode() const;
+        void SetAsmJsExecutionMode();
+        void SetDefaultInterpreterExecutionMode();
         ExecutionMode GetExecutionMode() const;
         ExecutionMode GetInterpreterExecutionMode(const bool isPostBailout);
-        void SetExecutionMode(const ExecutionMode executionMode);
     private:
         bool IsInterpreterExecutionMode() const;
 
