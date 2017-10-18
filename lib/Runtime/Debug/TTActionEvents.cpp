@@ -536,6 +536,26 @@ namespace TTD
             }
         }
 
+        void LessThanAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)
+        {
+            TTD_REPLAY_ACTIVE_CONTEXT(executeContext);
+            const JsRTDoubleVarSingleScalarArgumentAction* action = GetInlineEventDataAs<JsRTDoubleVarSingleScalarArgumentAction, EventKind::LessThanActionTag>(evt);
+            Js::Var object1 = InflateVarInReplay(executeContext, GetVarItem_0(action));
+            TTD_REPLAY_VALIDATE_INCOMING_REFERENCE(object1, ctx);
+            Js::Var object2 = InflateVarInReplay(executeContext, GetVarItem_1(action));
+            TTD_REPLAY_VALIDATE_INCOMING_REFERENCE(object2, ctx);
+
+            //Result is not needed but trigger computation for any effects
+            if (GetScalarItem_0(action))
+            {
+                Js::JavascriptOperators::LessEqual(object1, object2, ctx);
+            }
+            else
+            {
+                Js::JavascriptOperators::Less(object1, object2, ctx);
+            }
+        }
+
         void GetPropertyIdFromSymbolAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)
         {
             TTD_REPLAY_ACTIVE_CONTEXT(executeContext);
