@@ -354,4 +354,11 @@
     <tags>exclude_jshost,exclude_win7,exclude_xplat</tags>
   </default>
 </test>
+<test>
+  <default>
+    <files>loopyield.js</files>
+    <compile-flags>-forcejitloopbody</compile-flags>
+    <tags>exclude_jshost,exclude_win7,exclude_xplat</tags>
+  </default>
+</test>
 </regress-exe>
