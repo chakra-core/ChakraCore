@@ -114,6 +114,10 @@ struct Const {
 typedef std::vector<Const> ConstVector;
 
 enum class ExprType {
+  AtomicLoad,
+  AtomicStore,
+  AtomicRmw,
+  AtomicRmwCmpxchg,
   Binary,
   Block,
   Br,
@@ -315,6 +319,10 @@ class LoadStoreExpr : public ExprMixin<TypeEnum> {
 
 typedef LoadStoreExpr<ExprType::Load> LoadExpr;
 typedef LoadStoreExpr<ExprType::Store> StoreExpr;
+typedef LoadStoreExpr<ExprType::AtomicLoad> AtomicLoadExpr;
+typedef LoadStoreExpr<ExprType::AtomicStore> AtomicStoreExpr;
+typedef LoadStoreExpr<ExprType::AtomicRmw> AtomicRmwExpr;
+typedef LoadStoreExpr<ExprType::AtomicRmwCmpxchg> AtomicRmwCmpxchgExpr;
 
 struct Exception {
   Exception() = default;

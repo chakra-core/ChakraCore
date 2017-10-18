@@ -50,6 +50,78 @@ namespace interpreter {
     }                              \
   } while (0)
 
+std::string TypedValueToString(const TypedValue& tv) {
+  switch (tv.type) {
+    case Type::I32:
+      return StringPrintf("i32:%u", tv.value.i32);
+
+    case Type::I64:
+      return StringPrintf("i64:%" PRIu64, tv.value.i64);
+
+    case Type::F32: {
+      float value;
+      memcpy(&value, &tv.value.f32_bits, sizeof(float));
+      return StringPrintf("f32:%f", value);
+    }
+
+    case Type::F64: {
+      double value;
+      memcpy(&value, &tv.value.f64_bits, sizeof(double));
+      return StringPrintf("f64:%f", value);
+    }
+
+    default:
+      WABT_UNREACHABLE;
+  }
+}
+
+void WriteTypedValue(Stream* stream, const TypedValue& tv) {
+  std::string s = TypedValueToString(tv);
+  stream->WriteData(s.data(), s.size());
+}
+
+void WriteTypedValues(Stream* stream, const TypedValues& values) {
+  for (size_t i = 0; i < values.size(); ++i) {
+    WriteTypedValue(stream, values[i]);
+    if (i != values.size() - 1)
+      stream->Writef(", ");
+  }
+}
+
+#define V(name, str) str,
+  static const char* s_trap_strings[] = {FOREACH_INTERPRETER_RESULT(V)};
+#undef V
+
+const char* ResultToString(Result result) {
+  return s_trap_strings[static_cast<size_t>(result)];
+}
+
+void WriteResult(Stream* stream, const char* desc, Result result) {
+  stream->Writef("%s: %s\n", desc, ResultToString(result));
+}
+
+void WriteCall(Stream* stream,
+               string_view module_name,
+               string_view func_name,
+               const TypedValues& args,
+               const TypedValues& results,
+               Result result) {
+  if (!module_name.empty())
+    stream->Writef(PRIstringview ".", WABT_PRINTF_STRING_VIEW_ARG(module_name));
+  stream->Writef(PRIstringview "(", WABT_PRINTF_STRING_VIEW_ARG(func_name));
+  WriteTypedValues(stream, args);
+  stream->Writef(") =>");
+  if (result == Result::Ok) {
+    if (results.size() > 0) {
+      stream->Writef(" ");
+      WriteTypedValues(stream, results);
+    }
+    stream->Writef("\n");
+  } else {
+    WriteResult(stream, " error", result);
+  }
+}
+
 Environment::Environment() : istream_(new OutputBuffer()) {}
 
 Index Environment::FindModuleIndex(string_view name) const {
@@ -73,10 +145,12 @@ Module* Environment::FindRegisteredModule(string_view name) {
 
 Thread::Options::Options(uint32_t value_stack_size,
                          uint32_t call_stack_size,
-                         IstreamOffset pc)
+                         IstreamOffset pc,
+                         Stream* trace_stream)
     : value_stack_size(value_stack_size),
       call_stack_size(call_stack_size),
-      pc(pc) {}
+      pc(pc),
+      trace_stream(trace_stream) {}
 
 Thread::Thread(Environment* env, const Options& options)
     : env_(env),
@@ -86,7 +160,8 @@ Thread::Thread(Environment* env, const Options& options)
       value_stack_end_(value_stack_.data() + value_stack_.size()),
       call_stack_top_(call_stack_.data()),
       call_stack_end_(call_stack_.data() + call_stack_.size()),
-      pc_(options.pc) {}
+      pc_(options.pc),
+      trace_stream_(options.trace_stream) {}
 
 FuncSignature::FuncSignature(Index param_count,
                              Type* param_types,
@@ -168,8 +243,7 @@ HostModule* Environment::AppendHostModule(string_view name) {
   return module;
 }
 
-Result Thread::PushArgs(const FuncSignature* sig,
-                        const std::vector<TypedValue>& args) {
+Result Thread::PushArgs(const FuncSignature* sig, const TypedValues& args) {
   if (sig->param_types.size() != args.size())
     return interpreter::Result::ArgumentTypeMismatch;
 
@@ -186,8 +260,7 @@ Result Thread::PushArgs(const FuncSignature* sig,
   return interpreter::Result::Ok;
 }
 
-void Thread::CopyResults(const FuncSignature* sig,
-                         std::vector<TypedValue>* out_results) {
+void Thread::CopyResults(const FuncSignature* sig, TypedValues* out_results) {
   size_t expected_results = sig->result_types.size();
   size_t value_stack_depth = value_stack_top_ - value_stack_.data();
   WABT_USE(value_stack_depth);
@@ -590,6 +663,28 @@ Memory* Thread::ReadMemory(const uint8_t** pc) {
   return &env_->memories_[memory_index];
 }
 
+template <typename MemType>
+Result Thread::GetAccessAddress(const uint8_t** pc, void** out_address) {
+  Memory* memory = ReadMemory(pc);
+  uint64_t addr = static_cast<uint64_t>(Pop<uint32_t>()) + ReadU32(pc);
+  TRAP_IF(addr + sizeof(MemType) > memory->data.size(),
+          MemoryAccessOutOfBounds);
+  *out_address = memory->data.data() + static_cast<IstreamOffset>(addr);
+  return Result::Ok;
+}
+
+template <typename MemType>
+Result Thread::GetAtomicAccessAddress(const uint8_t** pc, void** out_address) {
+  Memory* memory = ReadMemory(pc);
+  uint64_t addr = static_cast<uint64_t>(Pop<uint32_t>()) + ReadU32(pc);
+  TRAP_IF(addr + sizeof(MemType) > memory->data.size(),
+          MemoryAccessOutOfBounds);
+  uint32_t addr_align = addr != 0 ? (1 << wabt_ctz_u32(addr)) : UINT32_MAX;
+  TRAP_IF(addr_align < sizeof(MemType), AtomicMemoryAccessUnaligned);
+  *out_address = memory->data.data() + static_cast<IstreamOffset>(addr);
+  return Result::Ok;
+}
+
 Value& Thread::Top() {
   return Pick(1);
 }
@@ -645,6 +740,16 @@ IstreamOffset Thread::PopCall() {
   return *--call_stack_top_;
 }
 
+template <typename T>
+void LoadFromMemory(T* dst, const void* src) {
+  memcpy(dst, src, sizeof(T));
+}
+
+template <typename T>
+void StoreToMemory(void* dst, T value) {
+  memcpy(dst, &value, sizeof(T));
+}
+
 template <typename MemType, typename ResultType>
 Result Thread::Load(const uint8_t** pc) {
   typedef typename ExtendMemType<ResultType, MemType>::type ExtendedType;
@@ -652,27 +757,71 @@ Result Thread::Load(const uint8_t** pc) {
                     std::is_floating_point<ExtendedType>::value,
                 "Extended type should be float iff MemType is float");
 
-  Memory* memory = ReadMemory(pc);
-  uint64_t offset = static_cast<uint64_t>(Pop<uint32_t>()) + ReadU32(pc);
+  void* src;
+  CHECK_TRAP(GetAccessAddress<MemType>(pc, &src));
   MemType value;
-  TRAP_IF(offset + sizeof(value) > memory->data.size(),
-          MemoryAccessOutOfBounds);
-  void* src = memory->data.data() + static_cast<IstreamOffset>(offset);
-  memcpy(&value, src, sizeof(value));
+  LoadFromMemory<MemType>(&value, src);
   return Push<ResultType>(static_cast<ExtendedType>(value));
 }
 
 template <typename MemType, typename ResultType>
 Result Thread::Store(const uint8_t** pc) {
   typedef typename WrapMemType<ResultType, MemType>::type WrappedType;
-  Memory* memory = ReadMemory(pc);
   WrappedType value = PopRep<ResultType>();
-  uint64_t offset = static_cast<uint64_t>(Pop<uint32_t>()) + ReadU32(pc);
-  TRAP_IF(offset + sizeof(value) > memory->data.size(),
-          MemoryAccessOutOfBounds);
-  void* dst = memory->data.data() + static_cast<IstreamOffset>(offset);
-  memcpy(dst, &value, sizeof(value));
+  void* dst;
+  CHECK_TRAP(GetAccessAddress<MemType>(pc, &dst));
+  StoreToMemory<WrappedType>(dst, value);
   return Result::Ok;
+}
+
+template <typename MemType, typename ResultType>
+Result Thread::AtomicLoad(const uint8_t** pc) {
+  typedef typename ExtendMemType<ResultType, MemType>::type ExtendedType;
+  static_assert(!std::is_floating_point<MemType>::value,
+                "AtomicLoad type can't be float");
+  void* src;
+  CHECK_TRAP(GetAtomicAccessAddress<MemType>(pc, &src));
+  MemType value;
+  LoadFromMemory<MemType>(&value, src);
+  return Push<ResultType>(static_cast<ExtendedType>(value));
+}
+
+template <typename MemType, typename ResultType>
+Result Thread::AtomicStore(const uint8_t** pc) {
+  typedef typename WrapMemType<ResultType, MemType>::type WrappedType;
+  WrappedType value = PopRep<ResultType>();
+  void* dst;
+  CHECK_TRAP(GetAtomicAccessAddress<MemType>(pc, &dst));
+  StoreToMemory<WrappedType>(dst, value);
+  return Result::Ok;
+}
+
+template <typename MemType, typename ResultType>
+Result Thread::AtomicRmw(BinopFunc<ResultType, ResultType> func,
+                         const uint8_t** pc) {
+  typedef typename ExtendMemType<ResultType, MemType>::type ExtendedType;
+  MemType rhs = PopRep<ResultType>();
+  void* addr;
+  CHECK_TRAP(GetAtomicAccessAddress<MemType>(pc, &addr));
+  MemType read;
+  LoadFromMemory<MemType>(&read, addr);
+  StoreToMemory<MemType>(addr, func(read, rhs));
+  return Push<ResultType>(static_cast<ExtendedType>(read));
+}
+
+template <typename MemType, typename ResultType>
+Result Thread::AtomicRmwCmpxchg(const uint8_t** pc) {
+  typedef typename ExtendMemType<ResultType, MemType>::type ExtendedType;
+  MemType replace = PopRep<ResultType>();
+  MemType expect = PopRep<ResultType>();
+  void* addr;
+  CHECK_TRAP(GetAtomicAccessAddress<MemType>(pc, &addr));
+  MemType read;
+  LoadFromMemory<MemType>(&read, addr);
+  if (read == expect) {
+    StoreToMemory<MemType>(addr, replace);
+  }
+  return Push<ResultType>(static_cast<ExtendedType>(read));
 }
 
 template <typename R, typename T>
@@ -1056,6 +1205,12 @@ ValueTypeRep<T> IntExtendS(ValueTypeRep<T> v_rep) {
   return ToRep(static_cast<TS>(Bitcast<E>(static_cast<EU>(v_rep))));
 }
 
+// i{32,64}.atomic.rmw(8,16,32}_u.xchg
+template <typename T>
+ValueTypeRep<T> Xchg(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  return rhs_rep;
+}
+
 bool Environment::FuncSignaturesAreEqual(Index sig_index_0,
                                          Index sig_index_1) const {
   if (sig_index_0 == sig_index_1)
@@ -1067,8 +1222,8 @@ bool Environment::FuncSignaturesAreEqual(Index sig_index_0,
 }
 
 Result Thread::RunFunction(Index func_index,
-                           const std::vector<TypedValue>& args,
-                           std::vector<TypedValue>* out_results) {
+                           const TypedValues& args,
+                           TypedValues* out_results) {
   Func* func = env_->GetFunc(func_index);
   FuncSignature* sig = env_->GetFuncSignature(func->sig_index);
 
@@ -1087,51 +1242,59 @@ Result Thread::RunFunction(Index func_index,
   return result;
 }
 
-Result Thread::TraceFunction(Index func_index,
-                             Stream* stream,
-                             const std::vector<TypedValue>& args,
-                             std::vector<TypedValue>* out_results) {
-  Func* func = env_->GetFunc(func_index);
-  FuncSignature* sig = env_->GetFuncSignature(func->sig_index);
+Result Thread::RunStartFunction(DefinedModule* module) {
+  if (module->start_func_index == kInvalidIndex)
+    return Result::Ok;
 
-  Result result = PushArgs(sig, args);
-  if (result == Result::Ok) {
-    result = func->is_host ? CallHost(cast<HostFunc>(func))
-                           : TraceDefinedFunction(
-                                 cast<DefinedFunc>(func)->offset, stream);
-    if (result == Result::Ok)
-      CopyResults(sig, out_results);
+  if (trace_stream_) {
+    trace_stream_->Writef(">>> running start function:\n");
   }
-
-  // Always reset the value and call stacks.
-  value_stack_top_ = value_stack_.data();
-  call_stack_top_ = call_stack_.data();
+  TypedValues args;
+  TypedValues results;
+  Result result = RunFunction(module->start_func_index, args, &results);
+  assert(results.size() == 0);
   return result;
 }
 
-Result Thread::RunDefinedFunction(IstreamOffset function_offset) {
-  const int kNumInstructions = 1000;
-  Result result = Result::Ok;
-  pc_ = function_offset;
-  IstreamOffset* call_stack_return_top = call_stack_top_;
-  while (result == Result::Ok) {
-    result = Run(kNumInstructions, call_stack_return_top);
+Result Thread::RunExport(const Export* export_,
+                         const TypedValues& args,
+                         TypedValues* out_results) {
+  if (trace_stream_) {
+    trace_stream_->Writef(">>> running export \"" PRIstringview "\":\n",
+                          WABT_PRINTF_STRING_VIEW_ARG(export_->name));
   }
-  if (result != Result::Returned)
-    return result;
-  // Use OK instead of RETURNED for consistency.
-  return Result::Ok;
+
+  assert(export_->kind == ExternalKind::Func);
+  return RunFunction(export_->index, args, out_results);
 }
 
-Result Thread::TraceDefinedFunction(IstreamOffset function_offset,
-                                    Stream* stream) {
-  const int kNumInstructions = 1;
+Result Thread::RunExportByName(interpreter::Module* module,
+                               string_view name,
+                               const TypedValues& args,
+                               TypedValues* out_results) {
+  interpreter::Export* export_ = module->GetExport(name);
+  if (!export_)
+    return interpreter::Result::UnknownExport;
+  if (export_->kind != ExternalKind::Func)
+    return interpreter::Result::ExportKindMismatch;
+  return RunExport(export_, args, out_results);
+}
+
+Result Thread::RunDefinedFunction(IstreamOffset function_offset) {
   Result result = Result::Ok;
   pc_ = function_offset;
   IstreamOffset* call_stack_return_top = call_stack_top_;
-  while (result == Result::Ok) {
-    Trace(stream);
-    result = Run(kNumInstructions, call_stack_return_top);
+  if (trace_stream_) {
+    const int kNumInstructions = 1;
+    while (result == Result::Ok) {
+      Trace(trace_stream_);
+      result = Run(kNumInstructions, call_stack_return_top);
+    }
+  } else {
+    const int kNumInstructions = 1000;
+    while (result == Result::Ok) {
+      result = Run(kNumInstructions, call_stack_return_top);
+    }
   }
   if (result != Result::Returned)
     return result;
@@ -1146,8 +1309,8 @@ Result Thread::CallHost(HostFunc* func) {
   size_t num_results = sig->result_types.size();
   // + 1 is a workaround for using data() below; UBSAN doesn't like calling
   // data() with an empty vector.
-  std::vector<TypedValue> params(num_params + 1);
-  std::vector<TypedValue> results(num_results + 1);
+  TypedValues params(num_params + 1);
+  TypedValues results(num_results + 1);
 
   for (size_t i = num_params; i > 0; --i) {
     params[i - 1].value = Pop();
@@ -1175,6 +1338,7 @@ Result Thread::Run(int num_instructions, IstreamOffset* call_stack_return_top) {
   const uint8_t* pc = &istream[pc_];
   for (int i = 0; i < num_instructions; ++i) {
     Opcode opcode = ReadOpcode(&pc);
+    assert(!opcode.IsInvalid());
     switch (opcode) {
       case Opcode::Select: {
         uint32_t cond = Pop<uint32_t>();
@@ -1392,6 +1556,122 @@ Result Thread::Run(int num_instructions, IstreamOffset* call_stack_return_top) {
 
       case Opcode::F64Store:
         CHECK_TRAP(Store<double>(&pc));
+        break;
+
+      case Opcode::I32AtomicLoad8U:
+        CHECK_TRAP(AtomicLoad<uint8_t, uint32_t>(&pc));
+        break;
+
+      case Opcode::I32AtomicLoad16U:
+        CHECK_TRAP(AtomicLoad<uint16_t, uint32_t>(&pc));
+        break;
+
+      case Opcode::I64AtomicLoad8U:
+        CHECK_TRAP(AtomicLoad<uint8_t, uint64_t>(&pc));
+        break;
+
+      case Opcode::I64AtomicLoad16U:
+        CHECK_TRAP(AtomicLoad<uint16_t, uint64_t>(&pc));
+        break;
+
+      case Opcode::I64AtomicLoad32U:
+        CHECK_TRAP(AtomicLoad<uint32_t, uint64_t>(&pc));
+        break;
+
+      case Opcode::I32AtomicLoad:
+        CHECK_TRAP(AtomicLoad<uint32_t>(&pc));
+        break;
+
+      case Opcode::I64AtomicLoad:
+        CHECK_TRAP(AtomicLoad<uint64_t>(&pc));
+        break;
+
+      case Opcode::I32AtomicStore8:
+        CHECK_TRAP(AtomicStore<uint8_t, uint32_t>(&pc));
+        break;
+
+      case Opcode::I32AtomicStore16:
+        CHECK_TRAP(AtomicStore<uint16_t, uint32_t>(&pc));
+        break;
+
+      case Opcode::I64AtomicStore8:
+        CHECK_TRAP(AtomicStore<uint8_t, uint64_t>(&pc));
+        break;
+
+      case Opcode::I64AtomicStore16:
+        CHECK_TRAP(AtomicStore<uint16_t, uint64_t>(&pc));
+        break;
+
+      case Opcode::I64AtomicStore32:
+        CHECK_TRAP(AtomicStore<uint32_t, uint64_t>(&pc));
+        break;
+
+      case Opcode::I32AtomicStore:
+        CHECK_TRAP(AtomicStore<uint32_t>(&pc));
+        break;
+
+      case Opcode::I64AtomicStore:
+        CHECK_TRAP(AtomicStore<uint64_t>(&pc));
+        break;
+
+#define ATOMIC_RMW(rmwop, func)                                     \
+  case Opcode::I32AtomicRmw##rmwop:                                 \
+    CHECK_TRAP(AtomicRmw<uint32_t, uint32_t>(func<uint32_t>, &pc)); \
+    break;                                                          \
+  case Opcode::I64AtomicRmw##rmwop:                                 \
+    CHECK_TRAP(AtomicRmw<uint64_t, uint64_t>(func<uint64_t>, &pc)); \
+    break;                                                          \
+  case Opcode::I32AtomicRmw8U##rmwop:                               \
+    CHECK_TRAP(AtomicRmw<uint8_t, uint32_t>(func<uint32_t>, &pc));  \
+    break;                                                          \
+  case Opcode::I32AtomicRmw16U##rmwop:                              \
+    CHECK_TRAP(AtomicRmw<uint16_t, uint32_t>(func<uint32_t>, &pc)); \
+    break;                                                          \
+  case Opcode::I64AtomicRmw8U##rmwop:                               \
+    CHECK_TRAP(AtomicRmw<uint8_t, uint64_t>(func<uint64_t>, &pc));  \
+    break;                                                          \
+  case Opcode::I64AtomicRmw16U##rmwop:                              \
+    CHECK_TRAP(AtomicRmw<uint16_t, uint64_t>(func<uint64_t>, &pc)); \
+    break;                                                          \
+  case Opcode::I64AtomicRmw32U##rmwop:                              \
+    CHECK_TRAP(AtomicRmw<uint32_t, uint64_t>(func<uint64_t>, &pc)); \
+    break /* no semicolon */
+
+        ATOMIC_RMW(Add, Add);
+        ATOMIC_RMW(Sub, Sub);
+        ATOMIC_RMW(And, IntAnd);
+        ATOMIC_RMW(Or, IntOr);
+        ATOMIC_RMW(Xor, IntXor);
+        ATOMIC_RMW(Xchg, Xchg);
+
+#undef ATOMIC_RMW
+
+      case Opcode::I32AtomicRmwCmpxchg:
+        CHECK_TRAP(AtomicRmwCmpxchg<uint32_t, uint32_t>(&pc));
+        break;
+
+      case Opcode::I64AtomicRmwCmpxchg:
+        CHECK_TRAP(AtomicRmwCmpxchg<uint64_t, uint64_t>(&pc));
+        break;
+
+      case Opcode::I32AtomicRmw8UCmpxchg:
+        CHECK_TRAP(AtomicRmwCmpxchg<uint8_t, uint32_t>(&pc));
+        break;
+
+      case Opcode::I32AtomicRmw16UCmpxchg:
+        CHECK_TRAP(AtomicRmwCmpxchg<uint16_t, uint32_t>(&pc));
+        break;
+
+      case Opcode::I64AtomicRmw8UCmpxchg:
+        CHECK_TRAP(AtomicRmwCmpxchg<uint8_t, uint64_t>(&pc));
+        break;
+
+      case Opcode::I64AtomicRmw16UCmpxchg:
+        CHECK_TRAP(AtomicRmwCmpxchg<uint16_t, uint64_t>(&pc));
+        break;
+
+      case Opcode::I64AtomicRmw32UCmpxchg:
+        CHECK_TRAP(AtomicRmwCmpxchg<uint32_t, uint64_t>(&pc));
         break;
 
       case Opcode::CurrentMemory:
@@ -2017,16 +2297,24 @@ Result Thread::Run(int num_instructions, IstreamOffset* call_stack_return_top) {
         break;
       }
 
-      case Opcode::InterpreterData:
-        /* shouldn't ever execute this */
-        assert(0);
-        break;
-
       case Opcode::Nop:
         break;
 
-      default:
-        assert(0);
+      // The following opcodes are either never generated or should never be
+      // executed.
+      case Opcode::Block:
+      case Opcode::Catch:
+      case Opcode::CatchAll:
+      case Opcode::Else:
+      case Opcode::End:
+      case Opcode::If:
+      case Opcode::InterpreterData:
+      case Opcode::Invalid:
+      case Opcode::Loop:
+      case Opcode::Rethrow:
+      case Opcode::Throw:
+      case Opcode::Try:
+        WABT_UNREACHABLE;
         break;
     }
   }
@@ -2046,10 +2334,13 @@ void Thread::Trace(Stream* stream) {
                  pc - istream, value_stack_depth);
 
   Opcode opcode = ReadOpcode(&pc);
+  assert(!opcode.IsInvalid());
   switch (opcode) {
     case Opcode::Select:
-      stream->Writef("%s %u, %" PRIu64 ", %" PRIu64 "\n", opcode.GetName(),
-                     Pick(3).i32, Pick(2).i64, Pick(1).i64);
+      // TODO(binji): We don't know the type here so we can't display the value
+      // to the user. This used to display the full 64-bit value, but that
+      // will potentially display garbage if the value is 32-bit.
+      stream->Writef("%s %u, %%[-2], %%[-1]\n", opcode.GetName(), Pick(3).i32);
       break;
 
     case Opcode::Br:
@@ -2126,6 +2417,13 @@ void Thread::Trace(Stream* stream) {
       stream->Writef("%s $%u\n", opcode.GetName(), ReadU32At(pc));
       break;
 
+    case Opcode::I32AtomicLoad8U:
+    case Opcode::I32AtomicLoad16U:
+    case Opcode::I32AtomicLoad:
+    case Opcode::I64AtomicLoad8U:
+    case Opcode::I64AtomicLoad16U:
+    case Opcode::I64AtomicLoad32U:
+    case Opcode::I64AtomicLoad:
     case Opcode::I32Load8S:
     case Opcode::I32Load8U:
     case Opcode::I32Load16S:
@@ -2146,6 +2444,27 @@ void Thread::Trace(Stream* stream) {
       break;
     }
 
+    case Opcode::I32AtomicStore:
+    case Opcode::I32AtomicStore8:
+    case Opcode::I32AtomicStore16:
+    case Opcode::I32AtomicRmw8UAdd:
+    case Opcode::I32AtomicRmw16UAdd:
+    case Opcode::I32AtomicRmwAdd:
+    case Opcode::I32AtomicRmw8USub:
+    case Opcode::I32AtomicRmw16USub:
+    case Opcode::I32AtomicRmwSub:
+    case Opcode::I32AtomicRmw8UAnd:
+    case Opcode::I32AtomicRmw16UAnd:
+    case Opcode::I32AtomicRmwAnd:
+    case Opcode::I32AtomicRmw8UOr:
+    case Opcode::I32AtomicRmw16UOr:
+    case Opcode::I32AtomicRmwOr:
+    case Opcode::I32AtomicRmw8UXor:
+    case Opcode::I32AtomicRmw16UXor:
+    case Opcode::I32AtomicRmwXor:
+    case Opcode::I32AtomicRmw8UXchg:
+    case Opcode::I32AtomicRmw16UXchg:
+    case Opcode::I32AtomicRmwXchg:
     case Opcode::I32Store8:
     case Opcode::I32Store16:
     case Opcode::I32Store: {
@@ -2155,6 +2474,44 @@ void Thread::Trace(Stream* stream) {
       break;
     }
 
+    case Opcode::I32AtomicRmwCmpxchg:
+    case Opcode::I32AtomicRmw8UCmpxchg:
+    case Opcode::I32AtomicRmw16UCmpxchg: {
+      Index memory_index = ReadU32(&pc);
+      stream->Writef("%s $%" PRIindex ":%u+$%u, %u, %u\n", opcode.GetName(),
+                     memory_index, Pick(3).i32, ReadU32At(pc), Pick(2).i32,
+                     Pick(1).i32);
+      break;
+    }
+
+    case Opcode::I64AtomicStore8:
+    case Opcode::I64AtomicStore16:
+    case Opcode::I64AtomicStore32:
+    case Opcode::I64AtomicStore:
+    case Opcode::I64AtomicRmw8UAdd:
+    case Opcode::I64AtomicRmw16UAdd:
+    case Opcode::I64AtomicRmw32UAdd:
+    case Opcode::I64AtomicRmwAdd:
+    case Opcode::I64AtomicRmw8USub:
+    case Opcode::I64AtomicRmw16USub:
+    case Opcode::I64AtomicRmw32USub:
+    case Opcode::I64AtomicRmwSub:
+    case Opcode::I64AtomicRmw8UAnd:
+    case Opcode::I64AtomicRmw16UAnd:
+    case Opcode::I64AtomicRmw32UAnd:
+    case Opcode::I64AtomicRmwAnd:
+    case Opcode::I64AtomicRmw8UOr:
+    case Opcode::I64AtomicRmw16UOr:
+    case Opcode::I64AtomicRmw32UOr:
+    case Opcode::I64AtomicRmwOr:
+    case Opcode::I64AtomicRmw8UXor:
+    case Opcode::I64AtomicRmw16UXor:
+    case Opcode::I64AtomicRmw32UXor:
+    case Opcode::I64AtomicRmwXor:
+    case Opcode::I64AtomicRmw8UXchg:
+    case Opcode::I64AtomicRmw16UXchg:
+    case Opcode::I64AtomicRmw32UXchg:
+    case Opcode::I64AtomicRmwXchg:
     case Opcode::I64Store8:
     case Opcode::I64Store16:
     case Opcode::I64Store32:
@@ -2163,6 +2520,17 @@ void Thread::Trace(Stream* stream) {
       stream->Writef("%s $%" PRIindex ":%u+$%u, %" PRIu64 "\n",
                      opcode.GetName(), memory_index, Pick(2).i32, ReadU32At(pc),
                      Pick(1).i64);
+      break;
+    }
+
+    case Opcode::I64AtomicRmwCmpxchg:
+    case Opcode::I64AtomicRmw8UCmpxchg:
+    case Opcode::I64AtomicRmw16UCmpxchg:
+    case Opcode::I64AtomicRmw32UCmpxchg: {
+      Index memory_index = ReadU32(&pc);
+      stream->Writef("%s $%" PRIindex ":%u+$%u, %" PRIu64 ", %" PRIu64 "\n",
+                     opcode.GetName(), memory_index, Pick(3).i32, ReadU32At(pc),
+                     Pick(2).i64, Pick(1).i64);
       break;
     }
 
@@ -2221,6 +2589,8 @@ void Thread::Trace(Stream* stream) {
     case Opcode::I32Ctz:
     case Opcode::I32Popcnt:
     case Opcode::I32Eqz:
+    case Opcode::I32Extend16S:
+    case Opcode::I32Extend8S:
       stream->Writef("%s %u\n", opcode.GetName(), Top().i32);
       break;
 
@@ -2257,6 +2627,9 @@ void Thread::Trace(Stream* stream) {
     case Opcode::I64Ctz:
     case Opcode::I64Popcnt:
     case Opcode::I64Eqz:
+    case Opcode::I64Extend16S:
+    case Opcode::I64Extend32S:
+    case Opcode::I64Extend8S:
       stream->Writef("%s %" PRIu64 "\n", opcode.GetName(), Top().i64);
       break;
 
@@ -2374,13 +2747,21 @@ void Thread::Trace(Stream* stream) {
                      *(pc + 4));
       break;
 
+    // The following opcodes are either never generated or should never be
+    // executed.
+    case Opcode::Block:
+    case Opcode::Catch:
+    case Opcode::CatchAll:
+    case Opcode::Else:
+    case Opcode::End:
+    case Opcode::If:
     case Opcode::InterpreterData:
-      /* shouldn't ever execute this */
-      assert(0);
-      break;
-
-    default:
-      assert(0);
+    case Opcode::Invalid:
+    case Opcode::Loop:
+    case Opcode::Rethrow:
+    case Opcode::Throw:
+    case Opcode::Try:
+      WABT_UNREACHABLE;
       break;
   }
 }
@@ -2400,6 +2781,7 @@ void Environment::Disassemble(Stream* stream,
     stream->Writef("%4" PRIzd "| ", pc - istream);
 
     Opcode opcode = ReadOpcode(&pc);
+    assert(!opcode.IsInvalid());
     switch (opcode) {
       case Opcode::Select:
         stream->Writef("%s %%[-3], %%[-2], %%[-1]\n", opcode.GetName());
@@ -2478,6 +2860,13 @@ void Environment::Disassemble(Stream* stream,
         stream->Writef("%s $%u\n", opcode.GetName(), ReadU32(&pc));
         break;
 
+      case Opcode::I32AtomicLoad:
+      case Opcode::I64AtomicLoad:
+      case Opcode::I32AtomicLoad8U:
+      case Opcode::I32AtomicLoad16U:
+      case Opcode::I64AtomicLoad8U:
+      case Opcode::I64AtomicLoad16U:
+      case Opcode::I64AtomicLoad32U:
       case Opcode::I32Load8S:
       case Opcode::I32Load8U:
       case Opcode::I32Load16S:
@@ -2498,6 +2887,55 @@ void Environment::Disassemble(Stream* stream,
         break;
       }
 
+      case Opcode::I32AtomicStore:
+      case Opcode::I64AtomicStore:
+      case Opcode::I32AtomicStore8:
+      case Opcode::I32AtomicStore16:
+      case Opcode::I64AtomicStore8:
+      case Opcode::I64AtomicStore16:
+      case Opcode::I64AtomicStore32:
+      case Opcode::I32AtomicRmwAdd:
+      case Opcode::I64AtomicRmwAdd:
+      case Opcode::I32AtomicRmw8UAdd:
+      case Opcode::I32AtomicRmw16UAdd:
+      case Opcode::I64AtomicRmw8UAdd:
+      case Opcode::I64AtomicRmw16UAdd:
+      case Opcode::I64AtomicRmw32UAdd:
+      case Opcode::I32AtomicRmwSub:
+      case Opcode::I64AtomicRmwSub:
+      case Opcode::I32AtomicRmw8USub:
+      case Opcode::I32AtomicRmw16USub:
+      case Opcode::I64AtomicRmw8USub:
+      case Opcode::I64AtomicRmw16USub:
+      case Opcode::I64AtomicRmw32USub:
+      case Opcode::I32AtomicRmwAnd:
+      case Opcode::I64AtomicRmwAnd:
+      case Opcode::I32AtomicRmw8UAnd:
+      case Opcode::I32AtomicRmw16UAnd:
+      case Opcode::I64AtomicRmw8UAnd:
+      case Opcode::I64AtomicRmw16UAnd:
+      case Opcode::I64AtomicRmw32UAnd:
+      case Opcode::I32AtomicRmwOr:
+      case Opcode::I64AtomicRmwOr:
+      case Opcode::I32AtomicRmw8UOr:
+      case Opcode::I32AtomicRmw16UOr:
+      case Opcode::I64AtomicRmw8UOr:
+      case Opcode::I64AtomicRmw16UOr:
+      case Opcode::I64AtomicRmw32UOr:
+      case Opcode::I32AtomicRmwXor:
+      case Opcode::I64AtomicRmwXor:
+      case Opcode::I32AtomicRmw8UXor:
+      case Opcode::I32AtomicRmw16UXor:
+      case Opcode::I64AtomicRmw8UXor:
+      case Opcode::I64AtomicRmw16UXor:
+      case Opcode::I64AtomicRmw32UXor:
+      case Opcode::I32AtomicRmwXchg:
+      case Opcode::I64AtomicRmwXchg:
+      case Opcode::I32AtomicRmw8UXchg:
+      case Opcode::I32AtomicRmw16UXchg:
+      case Opcode::I64AtomicRmw8UXchg:
+      case Opcode::I64AtomicRmw16UXchg:
+      case Opcode::I64AtomicRmw32UXchg:
       case Opcode::I32Store8:
       case Opcode::I32Store16:
       case Opcode::I32Store:
@@ -2508,7 +2946,20 @@ void Environment::Disassemble(Stream* stream,
       case Opcode::F32Store:
       case Opcode::F64Store: {
         Index memory_index = ReadU32(&pc);
-        stream->Writef("%s %%[-2]+$%" PRIindex ", $%u:%%[-1]\n",
+        stream->Writef("%s $%" PRIindex ":%%[-2]+$%u, %%[-1]\n",
+                       opcode.GetName(), memory_index, ReadU32(&pc));
+        break;
+      }
+
+      case Opcode::I32AtomicRmwCmpxchg:
+      case Opcode::I64AtomicRmwCmpxchg:
+      case Opcode::I32AtomicRmw8UCmpxchg:
+      case Opcode::I32AtomicRmw16UCmpxchg:
+      case Opcode::I64AtomicRmw8UCmpxchg:
+      case Opcode::I64AtomicRmw16UCmpxchg:
+      case Opcode::I64AtomicRmw32UCmpxchg: {
+        Index memory_index = ReadU32(&pc);
+        stream->Writef("%s $%" PRIindex ":%%[-3]+$%u, %%[-2], %%[-1]\n",
                        opcode.GetName(), memory_index, ReadU32(&pc));
         break;
       }
@@ -2647,6 +3098,11 @@ void Environment::Disassemble(Stream* stream,
       case Opcode::I32TruncUSatF64:
       case Opcode::I64TruncSSatF64:
       case Opcode::I64TruncUSatF64:
+      case Opcode::I32Extend16S:
+      case Opcode::I32Extend8S:
+      case Opcode::I64Extend16S:
+      case Opcode::I64Extend32S:
+      case Opcode::I64Extend8S:
         stream->Writef("%s %%[-1]\n", opcode.GetName());
         break;
 
@@ -2698,8 +3154,20 @@ void Environment::Disassemble(Stream* stream,
         break;
       }
 
-      default:
-        assert(0);
+      // The following opcodes are either never generated or should never be
+      // executed.
+      case Opcode::Block:
+      case Opcode::Catch:
+      case Opcode::CatchAll:
+      case Opcode::Else:
+      case Opcode::End:
+      case Opcode::If:
+      case Opcode::Invalid:
+      case Opcode::Loop:
+      case Opcode::Rethrow:
+      case Opcode::Throw:
+      case Opcode::Try:
+        WABT_UNREACHABLE;
         break;
     }
   }

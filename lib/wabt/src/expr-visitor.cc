@@ -25,6 +25,23 @@ ExprVisitor::ExprVisitor(Delegate* delegate) : delegate_(delegate) {}
 
 Result ExprVisitor::VisitExpr(Expr* expr) {
   switch (expr->type()) {
+    case ExprType::AtomicLoad:
+      CHECK_RESULT(delegate_->OnAtomicLoadExpr(cast<AtomicLoadExpr>(expr)));
+      break;
+
+    case ExprType::AtomicStore:
+      CHECK_RESULT(delegate_->OnAtomicStoreExpr(cast<AtomicStoreExpr>(expr)));
+      break;
+
+    case ExprType::AtomicRmw:
+      CHECK_RESULT(delegate_->OnAtomicRmwExpr(cast<AtomicRmwExpr>(expr)));
+      break;
+
+    case ExprType::AtomicRmwCmpxchg:
+      CHECK_RESULT(
+          delegate_->OnAtomicRmwCmpxchgExpr(cast<AtomicRmwCmpxchgExpr>(expr)));
+      break;
+
     case ExprType::Binary:
       CHECK_RESULT(delegate_->OnBinaryExpr(cast<BinaryExpr>(expr)));
       break;

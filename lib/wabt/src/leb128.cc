@@ -16,6 +16,8 @@
 
 #include "src/leb128.h"
 
+#include <type_traits>
+
 #include "src/stream.h"
 
 #define MAX_U32_LEB128_BYTES 5
@@ -123,5 +125,157 @@ void WriteS64Leb128(Stream* stream, uint64_t value, const char* desc) {
 }
 
 #undef LEB128_LOOP_UNTIL
+
+#define BYTE_AT(type, i, shift) ((static_cast<type>(p[i]) & 0x7f) << (shift))
+
+#define LEB128_1(type) (BYTE_AT(type, 0, 0))
+#define LEB128_2(type) (BYTE_AT(type, 1, 7) | LEB128_1(type))
+#define LEB128_3(type) (BYTE_AT(type, 2, 14) | LEB128_2(type))
+#define LEB128_4(type) (BYTE_AT(type, 3, 21) | LEB128_3(type))
+#define LEB128_5(type) (BYTE_AT(type, 4, 28) | LEB128_4(type))
+#define LEB128_6(type) (BYTE_AT(type, 5, 35) | LEB128_5(type))
+#define LEB128_7(type) (BYTE_AT(type, 6, 42) | LEB128_6(type))
+#define LEB128_8(type) (BYTE_AT(type, 7, 49) | LEB128_7(type))
+#define LEB128_9(type) (BYTE_AT(type, 8, 56) | LEB128_8(type))
+#define LEB128_10(type) (BYTE_AT(type, 9, 63) | LEB128_9(type))
+
+#define SHIFT_AMOUNT(type, sign_bit) (sizeof(type) * 8 - 1 - (sign_bit))
+#define SIGN_EXTEND(type, value, sign_bit)                       \
+  (static_cast<type>((value) << SHIFT_AMOUNT(type, sign_bit)) >> \
+   SHIFT_AMOUNT(type, sign_bit))
+
+size_t ReadU32Leb128(const uint8_t* p,
+                     const uint8_t* end,
+                     uint32_t* out_value) {
+  if (p < end && (p[0] & 0x80) == 0) {
+    *out_value = LEB128_1(uint32_t);
+    return 1;
+  } else if (p + 1 < end && (p[1] & 0x80) == 0) {
+    *out_value = LEB128_2(uint32_t);
+    return 2;
+  } else if (p + 2 < end && (p[2] & 0x80) == 0) {
+    *out_value = LEB128_3(uint32_t);
+    return 3;
+  } else if (p + 3 < end && (p[3] & 0x80) == 0) {
+    *out_value = LEB128_4(uint32_t);
+    return 4;
+  } else if (p + 4 < end && (p[4] & 0x80) == 0) {
+    // The top bits set represent values > 32 bits.
+    if (p[4] & 0xf0)
+      return 0;
+    *out_value = LEB128_5(uint32_t);
+    return 5;
+  } else {
+    // past the end.
+    *out_value = 0;
+    return 0;
+  }
+}
+
+size_t ReadS32Leb128(const uint8_t* p,
+                     const uint8_t* end,
+                     uint32_t* out_value) {
+  if (p < end && (p[0] & 0x80) == 0) {
+    uint32_t result = LEB128_1(uint32_t);
+    *out_value = SIGN_EXTEND(int32_t, result, 6);
+    return 1;
+  } else if (p + 1 < end && (p[1] & 0x80) == 0) {
+    uint32_t result = LEB128_2(uint32_t);
+    *out_value = SIGN_EXTEND(int32_t, result, 13);
+    return 2;
+  } else if (p + 2 < end && (p[2] & 0x80) == 0) {
+    uint32_t result = LEB128_3(uint32_t);
+    *out_value = SIGN_EXTEND(int32_t, result, 20);
+    return 3;
+  } else if (p + 3 < end && (p[3] & 0x80) == 0) {
+    uint32_t result = LEB128_4(uint32_t);
+    *out_value = SIGN_EXTEND(int32_t, result, 27);
+    return 4;
+  } else if (p + 4 < end && (p[4] & 0x80) == 0) {
+    // The top bits should be a sign-extension of the sign bit.
+    bool sign_bit_set = (p[4] & 0x8);
+    int top_bits = p[4] & 0xf0;
+    if ((sign_bit_set && top_bits != 0x70) ||
+        (!sign_bit_set && top_bits != 0)) {
+      return 0;
+    }
+    uint32_t result = LEB128_5(uint32_t);
+    *out_value = result;
+    return 5;
+  } else {
+    // Past the end.
+    return 0;
+  }
+}
+
+size_t ReadS64Leb128(const uint8_t* p,
+                     const uint8_t* end,
+                     uint64_t* out_value) {
+  if (p < end && (p[0] & 0x80) == 0) {
+    uint64_t result = LEB128_1(uint64_t);
+    *out_value = SIGN_EXTEND(int64_t, result, 6);
+    return 1;
+  } else if (p + 1 < end && (p[1] & 0x80) == 0) {
+    uint64_t result = LEB128_2(uint64_t);
+    *out_value = SIGN_EXTEND(int64_t, result, 13);
+    return 2;
+  } else if (p + 2 < end && (p[2] & 0x80) == 0) {
+    uint64_t result = LEB128_3(uint64_t);
+    *out_value = SIGN_EXTEND(int64_t, result, 20);
+    return 3;
+  } else if (p + 3 < end && (p[3] & 0x80) == 0) {
+    uint64_t result = LEB128_4(uint64_t);
+    *out_value = SIGN_EXTEND(int64_t, result, 27);
+    return 4;
+  } else if (p + 4 < end && (p[4] & 0x80) == 0) {
+    uint64_t result = LEB128_5(uint64_t);
+    *out_value = SIGN_EXTEND(int64_t, result, 34);
+    return 5;
+  } else if (p + 5 < end && (p[5] & 0x80) == 0) {
+    uint64_t result = LEB128_6(uint64_t);
+    *out_value = SIGN_EXTEND(int64_t, result, 41);
+    return 6;
+  } else if (p + 6 < end && (p[6] & 0x80) == 0) {
+    uint64_t result = LEB128_7(uint64_t);
+    *out_value = SIGN_EXTEND(int64_t, result, 48);
+    return 7;
+  } else if (p + 7 < end && (p[7] & 0x80) == 0) {
+    uint64_t result = LEB128_8(uint64_t);
+    *out_value = SIGN_EXTEND(int64_t, result, 55);
+    return 8;
+  } else if (p + 8 < end && (p[8] & 0x80) == 0) {
+    uint64_t result = LEB128_9(uint64_t);
+    *out_value = SIGN_EXTEND(int64_t, result, 62);
+    return 9;
+  } else if (p + 9 < end && (p[9] & 0x80) == 0) {
+    // The top bits should be a sign-extension of the sign bit.
+    bool sign_bit_set = (p[9] & 0x1);
+    int top_bits = p[9] & 0xfe;
+    if ((sign_bit_set && top_bits != 0x7e) ||
+        (!sign_bit_set && top_bits != 0)) {
+      return 0;
+    }
+    uint64_t result = LEB128_10(uint64_t);
+    *out_value = result;
+    return 10;
+  } else {
+    // Past the end.
+    return 0;
+  }
+}
+
+#undef BYTE_AT
+#undef LEB128_1
+#undef LEB128_2
+#undef LEB128_3
+#undef LEB128_4
+#undef LEB128_5
+#undef LEB128_6
+#undef LEB128_7
+#undef LEB128_8
+#undef LEB128_9
+#undef LEB128_10
+#undef SHIFT_AMOUNT
+#undef SIGN_EXTEND
 
 }  // namespace wabt

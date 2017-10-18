@@ -45,7 +45,6 @@ struct ObjdumpOptions {
   bool disassemble;
   bool debug;
   bool relocs;
-  Features features;
   ObjdumpMode mode;
   const char* filename;
   const char* section_name;
