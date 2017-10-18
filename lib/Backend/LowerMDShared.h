@@ -7,14 +7,26 @@
 
 class Lowerer;
 
-enum LegalForms : uint
+enum LegalForms : uint8
 {
-    L_None = 0x0,
-    L_Reg = 0x1,
-    L_Mem = 0x2,
-    L_Imm32 = 0x4,  // supports 8-bit, 16-bit, and 32-bit immediate values
-    L_Ptr = 0x8     // supports 8-bit, 16-bit, 32-bit, and 64-bit immediate values on 64-bit architectures
+    L_None  = 0,
+    L_Reg   = 1 << 0,
+    L_Mem   = 1 << 1,
+    L_Imm32 = 1 << 2,  // supports 8-bit, 16-bit, and 32-bit immediate values
+    L_Ptr   = 1 << 3,  // supports 8-bit, 16-bit, 32-bit, and 64-bit immediate values on 64-bit architectures
+
+    L_FormMask = (L_Ptr << 1) - 1,
+
+    // Start flags for common behavior
+    LF_Custom   = 1 << 4,   // Legal Form Flag: Custom Legal forms, must be handled in the Legalizer Switch-Case
+#if DBG
+    LF_Optional = 1 << 5,   // Legal Form Flag: legal for the opnd to be missing
+#else
+    LF_Optional = 0,        // Legal Form Flag: legal for the opnd to be missing
+#endif
 };
+ENUM_CLASS_HELPERS(LegalForms, uint8);
+
 
 #include "LowererMDArch.h"
 
@@ -111,11 +123,11 @@ public:
             static void     Legalize(IR::Instr *const instr, bool fPostRegAlloc = false);
 private:
             template <bool verify>
-            static void     LegalizeOpnds(IR::Instr *const instr, const uint dstForms, const uint src1Forms, uint src2Forms);
+            static void     LegalizeOpnds(IR::Instr *const instr, const LegalForms dstForms, LegalForms src1Forms, LegalForms src2Forms);
             template <bool verify>
-            static void     LegalizeDst(IR::Instr *const instr, const uint forms);
+            static void     LegalizeDst(IR::Instr *const instr, const LegalForms forms);
             template <bool verify>
-            static void     LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const uint forms);
+            static void     LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const LegalForms forms);
             template <bool verify = false>
             static void     MakeDstEquSrc1(IR::Instr *const instr);
             static bool     HoistLargeConstant(IR::IndirOpnd *indirOpnd, IR::Opnd *src, IR::Instr *instr);

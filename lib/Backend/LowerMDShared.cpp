@@ -1105,7 +1105,7 @@ void LowererMD::ChangeToAdd(IR::Instr *const instr, const bool needFlags)
     }
 
     instr->m_opcode = Js::OpCode::ADD;
-    MakeDstEquSrc1(instr);
+    Legalize(instr);
 
     if (!needFlags)
     {
@@ -1293,6 +1293,51 @@ LowererMD::ForceDstToReg(IR::Instr *instr)
     instr->SinkDst(Js::OpCode::MOV);
 }
 
+struct LegalInstrForms
+{
+    const LegalForms dst, src[2];
+};
+namespace LegalInstrFormsImpl
+{
+LegalInstrForms LEGAL_NONE = { L_None, { L_None, L_None } };
+LegalInstrForms LEGAL_CUSTOM = { LF_Custom, { LF_Custom, LF_Custom } };
+LegalInstrForms LEGAL_CALL = { LF_Optional | L_Reg, { L_Reg | L_Mem | L_Ptr, L_None } };
+
+LegalInstrForms LEGAL_R = { L_Reg, { L_None, L_None } };
+LegalInstrForms LEGAL_M = { L_Mem, { L_None, L_None } };
+LegalInstrForms LEGAL_RM = { L_Reg | L_Mem, { L_None, L_None } };
+
+LegalInstrForms LEGAL_N_I = { L_None, { L_Imm32, L_None } };
+LegalInstrForms LEGAL_N_RMI = { L_None, { L_Reg | L_Mem | L_Imm32, L_None } };
+LegalInstrForms LEGAL_R_R = { L_Reg, { L_Reg, L_None } };
+LegalInstrForms LEGAL_R_M = { L_Reg, { L_Mem, L_None } };
+LegalInstrForms LEGAL_M_M = { L_Mem, { L_Mem, L_None } };
+LegalInstrForms LEGAL_R_OR = { L_Reg, { LF_Optional | L_Reg, L_None } };
+LegalInstrForms LEGAL_R_RM = { L_Reg, { L_Reg | L_Mem, L_None } };
+LegalInstrForms LEGAL_R_RMI = { L_Reg, { L_Reg | L_Mem | L_Imm32, L_None } };
+LegalInstrForms LEGAL_RM_RM = { L_Reg | L_Mem, { L_Reg | L_Mem, L_None } };
+
+LegalInstrForms LEGAL_N_R_R = { L_None, { L_Reg, L_Reg } };
+LegalInstrForms LEGAL_N_I_OR = { L_None, { L_Imm32, LF_Optional | L_Reg } };
+LegalInstrForms LEGAL_N_R_RM = { L_None, { L_Reg, L_Reg | L_Mem } };
+LegalInstrForms LEGAL_N_RM_RI = { L_None, { L_Reg | L_Mem, L_Reg | L_Imm32 } };
+LegalInstrForms LEGAL_N_RM_RMI = { L_None, { L_Reg | L_Mem, L_Reg | L_Mem | L_Imm32 } };
+LegalInstrForms LEGAL_R_R_RM = { L_Reg, { L_Reg, L_Reg | L_Mem } };
+LegalInstrForms LEGAL_R_R_RI = { L_Reg, { L_Reg, L_Reg | L_Imm32 } };
+LegalInstrForms LEGAL_R_R_RMI = { L_Reg, { L_Reg, L_Reg | L_Mem | L_Imm32 } };
+LegalInstrForms LEGAL_RM_R_I = { L_Reg | L_Mem, { L_Reg, L_Imm32 } };
+LegalInstrForms LEGAL_R_RM_I = { L_Reg, { L_Reg | L_Mem, L_Imm32 } };
+LegalInstrForms LEGAL_RM_RM_RM = { L_Reg | L_Mem, { L_Reg | L_Mem, L_Reg | L_Mem } };
+LegalInstrForms LEGAL_RM_RM_RI = { L_Reg | L_Mem, { L_Reg | L_Mem, L_Reg | L_Imm32 } };
+LegalInstrForms LEGAL_RM_RM_RMI = { L_Reg | L_Mem, { L_Reg | L_Mem, L_Reg | L_Mem | L_Imm32 } };
+};
+
+LegalInstrForms AllLegalInstrForms[] = {
+#define MACRO(name, jnLayout, attrib, byte2, form, opByte, dope, leadIn, legal, ...) LegalInstrFormsImpl::legal,
+#include "MdOpCodes.h"
+#undef MACRO
+};
+
 template <bool verify>
 void
 LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
@@ -1301,8 +1346,38 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
     Assert(!instr->isInlineeEntryInstr
         || (instr->m_opcode == Js::OpCode::MOV && instr->GetSrc1()->IsIntConstOpnd()));
 
+    const bool isMDOpCode = instr->m_opcode > Js::OpCode::MDStart;
+    Assert(isMDOpCode || Lowerer::ValidOpcodeAfterLower(instr, instr->m_func));
+
+    const LegalInstrForms legalInstrForms = isMDOpCode ? AllLegalInstrForms[instr->m_opcode - (Js::OpCode::MDStart + 1)] : LegalInstrFormsImpl::LEGAL_NONE;
+    LegalForms dstForms = legalInstrForms.dst;
+    LegalForms src1Forms = legalInstrForms.src[0];
+    LegalForms src2Forms = legalInstrForms.src[1];
+
+    bool hasSwitchCase = true;
+    bool isCustomForm = (dstForms & LF_Custom) != 0;;
     switch(instr->m_opcode)
     {
+        case Js::OpCode::JA:
+        case Js::OpCode::JAE:
+        case Js::OpCode::JB:
+        case Js::OpCode::JBE:
+        case Js::OpCode::JEQ:
+        case Js::OpCode::JNE:
+        case Js::OpCode::JLT:
+        case Js::OpCode::JLE:
+        case Js::OpCode::JGT:
+        case Js::OpCode::JGE:
+        case Js::OpCode::JNO:
+        case Js::OpCode::JO:
+        case Js::OpCode::JP:
+        case Js::OpCode::JNP:
+        case Js::OpCode::JNSB:
+        case Js::OpCode::JSB:
+        case Js::OpCode::JMP:
+            Assert(instr->IsBranchInstr());
+            break;
+
         case Js::OpCode::MOV:
         {
             Assert(instr->GetSrc2() == nullptr);
@@ -1447,7 +1522,8 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
 
             if(instr->m_opcode == Js::OpCode::MOV)
             {
-                uint src1Forms = L_Reg | L_Mem | L_Ptr;     // Allow 64 bit values in x64 as well
+                // Allow 64 bit values in x64 as well
+                src1Forms = L_Reg | L_Mem | L_Ptr;
                 if (dst->IsMemoryOpnd())
                 {
 #if _M_X64
@@ -1520,19 +1596,21 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
             break;
 
         case Js::OpCode::MOVSD:
-            Assert(AutoSystemInfo::Data.SSE2Available());
         case Js::OpCode::MOVSS:
-        {
             Assert(instr->GetDst()->GetType() == (instr->m_opcode == Js::OpCode::MOVSD? TyFloat64 : TyFloat32) || instr->GetDst()->IsSimd128());
             Assert(instr->GetSrc1()->GetType() == (instr->m_opcode == Js::OpCode::MOVSD ? TyFloat64 : TyFloat32) || instr->GetSrc1()->IsSimd128());
+            goto LegalizeDefault;
 
-            LegalizeOpnds<verify>(
-                instr,
-                L_Reg | L_Mem,
-                instr->GetDst()->IsMemoryOpnd()?
-                    L_Reg : L_Reg | L_Mem,   // LegalizeOpnds doesn't check if dst/src1 are both memopnd, check it here.
-                L_None);
-
+        case Js::OpCode::NOP:
+        {
+            Assert(!instr->GetSrc2());
+#if _M_IX86
+            RegNum edx = RegEDX;
+#else
+            RegNum edx = RegRDX;
+#endif
+            // Special case handled by peeps
+            Assert(!instr->GetDst() || (instr->GetDst()->IsRegOpnd() && instr->GetDst()->AsRegOpnd()->GetReg() == edx));
             break;
         }
         case Js::OpCode::MOVSX:
@@ -1540,32 +1618,7 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
             Assert(instr->GetDst()->GetSize() == 4 || instr->GetDst()->GetSize() == 8);
             Assert(instr->m_opcode != Js::OpCode::MOVSX || instr->GetSrc1()->GetSize() == 1);
             Assert(instr->m_opcode != Js::OpCode::MOVSXW || instr->GetSrc1()->GetSize() == 2);
-            LegalizeOpnds<verify>(
-                instr,
-                L_Reg,
-                L_Reg | L_Mem,
-                L_None);
-            break;
-
-        case Js::OpCode::MOVUPS:
-        case Js::OpCode::MOVAPS:
-        {
-            LegalizeOpnds<verify>(
-                instr,
-                L_Reg | L_Mem,
-                instr->GetDst()->IsMemoryOpnd()?
-                    L_Reg : L_Reg | L_Mem,   // LegalizeOpnds doesn't check if dst/src1 are both memopnd, check it here.
-                L_None);
-            break;
-        }
-
-        case Js::OpCode::CMP:
-            LegalizeOpnds<verify>(
-                instr,
-                L_None,
-                L_Reg | L_Mem,
-                L_Reg | L_Mem | L_Imm32);
-            break;
+            goto LegalizeDefault;
 
         case Js::OpCode::LOCKCMPXCHG8B:
         case Js::OpCode::CMPXCHG8B:
@@ -1576,7 +1629,7 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
                 return opnd->AsListOpnd()->Reduce(
                 [](int i, IR::Opnd* opnd) {
                     Assert(opnd->IsRegOpnd());
-                    return 1 << opnd->AsRegOpnd()->GetReg(); 
+                    return 1 << opnd->AsRegOpnd()->GetReg();
                 },
                 [](int i, uint32 regmask, uint32 allReg)
                 {
@@ -1615,129 +1668,7 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
                 }
                 instr->SwapOpnds();
             }
-            LegalizeOpnds<verify>(
-                instr,
-                L_None,
-                L_Reg | L_Mem,
-                L_Reg | L_Imm32);
-            break;
-
-        case Js::OpCode::COMISD:
-        case Js::OpCode::UCOMISD:
-            Assert(AutoSystemInfo::Data.SSE2Available());
-        case Js::OpCode::COMISS:
-        case Js::OpCode::UCOMISS:
-            LegalizeOpnds<verify>(
-                instr,
-                L_None,
-                L_Reg,
-                L_Reg | L_Mem);
-            break;
-
-        case Js::OpCode::INC:
-        case Js::OpCode::DEC:
-        case Js::OpCode::NEG:
-            MakeDstEquSrc1<verify>(instr);
-            LegalizeOpnds<verify>(
-                instr,
-                L_Reg | L_Mem,
-                L_Reg | L_Mem,
-                L_None);
-            break;
-
-#ifdef _M_IX86
-        case Js::OpCode::ADC:
-#endif
-        case Js::OpCode::ADD:
-        case Js::OpCode::SUB:
-        case Js::OpCode::SBB:
-        case Js::OpCode::AND:
-        case Js::OpCode::OR:
-        case Js::OpCode::XOR:
-            MakeDstEquSrc1<verify>(instr);
-            LegalizeOpnds<verify>(
-                instr,
-                L_Reg | L_Mem,
-                L_Reg | L_Mem,
-                L_Reg | L_Mem | L_Imm32);
-            break;
-
-        case Js::OpCode::ADDSD:
-        case Js::OpCode::ADDPD:
-        case Js::OpCode::SUBSD:
-        case Js::OpCode::ANDPD:
-        case Js::OpCode::ANDNPD:
-        case Js::OpCode::DIVPD:
-        case Js::OpCode::MAXPD:
-        case Js::OpCode::MINPD:
-        case Js::OpCode::MULPD:
-        case Js::OpCode::SUBPD:
-            Assert(AutoSystemInfo::Data.SSE2Available());
-
-        case Js::OpCode::ADDPS:
-        case Js::OpCode::ADDSS:
-        case Js::OpCode::SUBSS:
-        case Js::OpCode::ANDPS:
-        case Js::OpCode::ANDNPS:
-        case Js::OpCode::DIVPS:
-        case Js::OpCode::MAXPS:
-        case Js::OpCode::MINPS:
-        case Js::OpCode::MULPS:
-        case Js::OpCode::ORPS:
-        case Js::OpCode::PADDB:
-        case Js::OpCode::PADDSB:
-        case Js::OpCode::PADDD:
-        case Js::OpCode::PADDQ:
-        case Js::OpCode::PADDW:
-        case Js::OpCode::PADDSW:
-        case Js::OpCode::PADDUSB:
-        case Js::OpCode::PADDUSW:
-        case Js::OpCode::PAND:
-        case Js::OpCode::PANDN:
-        case Js::OpCode::PCMPEQB:
-        case Js::OpCode::PCMPEQD:
-        case Js::OpCode::PCMPEQW:
-        case Js::OpCode::PCMPGTB:
-        case Js::OpCode::PCMPGTW:
-        case Js::OpCode::PCMPGTD:
-        case Js::OpCode::PMAXSW:
-        case Js::OpCode::PMAXUB:
-        case Js::OpCode::PMINSW:
-        case Js::OpCode::PMINUB:
-        case Js::OpCode::PMULLW:
-        case Js::OpCode::PMULUDQ:
-        case Js::OpCode::POR:
-        case Js::OpCode::PSUBB:
-        case Js::OpCode::PSUBSB:
-        case Js::OpCode::PSUBD:
-        case Js::OpCode::PSUBQ:
-        case Js::OpCode::PSUBW:
-        case Js::OpCode::PSUBSW:
-        case Js::OpCode::PSUBUSB:
-        case Js::OpCode::PSUBUSW:
-        case Js::OpCode::PXOR:
-        case Js::OpCode::SUBPS:
-        case Js::OpCode::XORPS:
-        case Js::OpCode::CMPLTPS:
-        case Js::OpCode::CMPLEPS:
-        case Js::OpCode::CMPEQPS:
-        case Js::OpCode::CMPNEQPS:
-        case Js::OpCode::CMPLTPD:
-        case Js::OpCode::CMPLEPD:
-        case Js::OpCode::CMPEQPD:
-        case Js::OpCode::CMPNEQPD:
-        case Js::OpCode::CMPUNORDPS:
-        case Js::OpCode::PUNPCKLBW:
-        case Js::OpCode::PUNPCKLDQ:
-        case Js::OpCode::PUNPCKLWD:
-
-            MakeDstEquSrc1<verify>(instr);
-            LegalizeOpnds<verify>(
-                instr,
-                L_Reg,
-                L_Reg,
-                L_Reg | L_Mem);
-            break;
+            goto LegalizeDefault;
 
         case Js::OpCode::SHL:
         case Js::OpCode::SHR:
@@ -1759,87 +1690,40 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
                 }
                 instr->GetSrc2()->SetType(TyUint8);
             }
-            MakeDstEquSrc1<verify>(instr);
-            LegalizeOpnds<verify>(
-                instr,
-                L_Reg | L_Mem,
-                L_Reg | L_Mem,
-                L_Reg | L_Imm32);
-            break;
-
-        case Js::OpCode::IMUL2:
-            MakeDstEquSrc1<verify>(instr); // the encoder does not support IMUL3 r, r/m, imm
-            LegalizeOpnds<verify>(
-                instr,
-                L_Reg,
-                L_Reg,
-                L_Reg | L_Mem | L_Imm32); // for L_Imm32, the encoder converts it into an IMUL3
-            break;
+            goto LegalizeDefault;
 
         case Js::OpCode::TZCNT:
+            Assert(AutoSystemInfo::Data.TZCntAvailable());
+            goto LegalizeDefault;
         case Js::OpCode::LZCNT:
-            Assert(
-                (instr->m_opcode == Js::OpCode::LZCNT && AutoSystemInfo::Data.LZCntAvailable()) ||
-                (instr->m_opcode == Js::OpCode::TZCNT && AutoSystemInfo::Data.TZCntAvailable())
-            );
-        case Js::OpCode::BSF:
-        case Js::OpCode::BSR:
-            LegalizeOpnds<verify>(
-                instr,
-                L_Reg,
-                L_Reg | L_Mem,
-                L_None);
-            break;
-
-        case Js::OpCode::LEA:
-            Assert(instr->GetDst()->IsRegOpnd());
-            Assert(instr->GetSrc1()->IsIndirOpnd() || instr->GetSrc1()->IsSymOpnd()
-                   || instr->GetSrc1()->IsMemRefOpnd());  // We may convert IndirOpnd to MemRefOpnd
-            Assert(!instr->GetSrc2());
-            break;
-        case Js::OpCode::PSRLDQ:
-        case Js::OpCode::PSLLDQ:
-        case Js::OpCode::PSRLW:
-        case Js::OpCode::PSRLD:
-        case Js::OpCode::PSRLQ:
-        case Js::OpCode::PSRAW:
-        case Js::OpCode::PSRAD:
-        case Js::OpCode::PSLLW:
-        case Js::OpCode::PSLLD:
-        case Js::OpCode::PSLLQ:
-
-            Assert(AutoSystemInfo::Data.SSE2Available());
-            MakeDstEquSrc1<verify>(instr);
-            LegalizeOpnds<verify>(
-                instr,
-                L_Reg,
-                L_Reg,
-                L_Reg | L_Imm32);
-            break;
+            Assert(AutoSystemInfo::Data.LZCntAvailable());
+            goto LegalizeDefault;
 
         case Js::OpCode::ROUNDSD:
         case Js::OpCode::ROUNDSS:
             Assert(AutoSystemInfo::Data.SSE4_1Available());
-            break;
+            goto LegalizeDefault;
 
-        case Js::OpCode::CVTDQ2PD:
-        case Js::OpCode::CVTDQ2PS:
-        case Js::OpCode::CVTPD2PS:
-        case Js::OpCode::CVTPS2PD:
-        case Js::OpCode::CVTSD2SI:
-        case Js::OpCode::CVTSD2SS:
-        case Js::OpCode::CVTSI2SD:
-        case Js::OpCode::CVTSS2SD:
-        case Js::OpCode::CVTTPD2DQ:
-        case Js::OpCode::CVTTPS2DQ:
-        case Js::OpCode::CVTTSD2SI:
-        case Js::OpCode::DIVSD:
-        case Js::OpCode::SQRTPD:
-        case Js::OpCode::SQRTSD:
-        case Js::OpCode::SHUFPD:
-            Assert(AutoSystemInfo::Data.SSE2Available());
-            break;
+        default:
+LegalizeDefault:
+            if (isMDOpCode)
+            {
+                AssertMsg(!isCustomForm, "Custom legal forms should have a case in the switch statement");
+                hasSwitchCase = false;
 
+                if (EncoderMD::IsOPEQ(instr))
+                {
+                    MakeDstEquSrc1<verify>(instr);
+                    Assert((dstForms & L_FormMask) == (src1Forms & L_FormMask));
+                }
+
+                LegalizeOpnds<verify>(
+                    instr,
+                    dstForms,
+                    src1Forms,
+                    src2Forms);
+            }
+            break;
     }
 
 #if DBG
@@ -1877,15 +1761,15 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
 }
 
 template <bool verify>
-void LowererMD::LegalizeOpnds(IR::Instr *const instr, const uint dstForms, const uint src1Forms, uint src2Forms)
+void LowererMD::LegalizeOpnds(IR::Instr *const instr, const LegalForms dstForms, LegalForms src1Forms, LegalForms src2Forms)
 {
     Assert(instr);
-    Assert(!instr->GetDst() == !dstForms);
-    Assert(!instr->GetSrc1() == !src1Forms);
-    Assert(!instr->GetSrc2() == !src2Forms);
+    Assert(dstForms & LF_Optional || !instr->GetDst() == !dstForms);
+    Assert(src1Forms & LF_Optional || !instr->GetSrc1() == !src1Forms);
+    Assert(src2Forms & LF_Optional || !instr->GetSrc2() == !src2Forms);
     Assert(src1Forms || !src2Forms);
 
-    const auto NormalizeForms = [](uint forms) -> uint
+    const auto NormalizeForms = [](LegalForms forms) -> LegalForms
     {
     #ifdef _M_X64
         if(forms & L_Ptr)
@@ -1895,33 +1779,45 @@ void LowererMD::LegalizeOpnds(IR::Instr *const instr, const uint dstForms, const
     #else
         if(forms & (L_Imm32 | L_Ptr))
         {
-            forms |= L_Imm32 | L_Ptr;
+            forms = L_Imm32 | L_Ptr;
         }
     #endif
+        // Remove Legal Flags
+        forms &= L_FormMask;
         return forms;
     };
 
-    if(dstForms)
+    if(dstForms && instr->GetDst())
     {
         LegalizeDst<verify>(instr, NormalizeForms(dstForms));
     }
-    if(!src1Forms)
+    if(!src1Forms || !instr->GetSrc1())
     {
         return;
     }
+    bool hasMemOpnd = instr->GetDst() && instr->GetDst()->IsMemoryOpnd();
+
+    // Allow src1 to be a mem opnd if dst & src1 must be the same
+    if (hasMemOpnd && src1Forms & L_Mem && !EncoderMD::IsOPEQ(instr))
+    {
+        src1Forms ^= L_Mem;
+    }
     LegalizeSrc<verify>(instr, instr->GetSrc1(), NormalizeForms(src1Forms));
-    if(src2Forms & L_Mem && instr->GetSrc1()->IsMemoryOpnd())
+
+    hasMemOpnd |= instr->GetSrc1()->IsMemoryOpnd();
+    // If dst or src1 is a mem opnd, mem2 cannot be a mem opnd
+    if(hasMemOpnd && src2Forms & L_Mem)
     {
         src2Forms ^= L_Mem;
     }
-    if(src2Forms)
+    if(src2Forms && instr->GetSrc2())
     {
         LegalizeSrc<verify>(instr, instr->GetSrc2(), NormalizeForms(src2Forms));
     }
 }
 
 template <bool verify>
-void LowererMD::LegalizeDst(IR::Instr *const instr, const uint forms)
+void LowererMD::LegalizeDst(IR::Instr *const instr, const LegalForms forms)
 {
     Assert(instr);
     Assert(forms);
@@ -2023,7 +1919,7 @@ bool LowererMD::HoistLargeConstant(IR::IndirOpnd *indirOpnd, IR::Opnd *src, IR::
 }
 
 template <bool verify>
-void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const uint forms)
+void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const LegalForms forms)
 {
     Assert(instr);
     Assert(src);
@@ -2200,16 +2096,16 @@ void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const uint fo
 }
 
 template void LowererMD::Legalize<false>(IR::Instr *const instr, bool fPostRegAlloc);
-template void LowererMD::LegalizeOpnds<false>(IR::Instr *const instr, const uint dstForms, const uint src1Forms, uint src2Forms);
-template void LowererMD::LegalizeDst<false>(IR::Instr *const instr, const uint forms);
-template void LowererMD::LegalizeSrc<false>(IR::Instr *const instr, IR::Opnd *src, const uint forms);
+template void LowererMD::LegalizeOpnds<false>(IR::Instr *const instr, const LegalForms dstForms, const LegalForms src1Forms, LegalForms src2Forms);
+template void LowererMD::LegalizeDst<false>(IR::Instr *const instr, const LegalForms forms);
+template void LowererMD::LegalizeSrc<false>(IR::Instr *const instr, IR::Opnd *src, const LegalForms forms);
 template void LowererMD::MakeDstEquSrc1<false>(IR::Instr *const instr);
 
 #if DBG
 template void LowererMD::Legalize<true>(IR::Instr *const instr, bool fPostRegAlloc);
-template void LowererMD::LegalizeOpnds<true>(IR::Instr *const instr, const uint dstForms, const uint src1Forms, uint src2Forms);
-template void LowererMD::LegalizeDst<true>(IR::Instr *const instr, const uint forms);
-template void LowererMD::LegalizeSrc<true>(IR::Instr *const instr, IR::Opnd *src, const uint forms);
+template void LowererMD::LegalizeOpnds<true>(IR::Instr *const instr, const LegalForms dstForms, const LegalForms src1Forms, LegalForms src2Forms);
+template void LowererMD::LegalizeDst<true>(IR::Instr *const instr, const LegalForms forms);
+template void LowererMD::LegalizeSrc<true>(IR::Instr *const instr, IR::Opnd *src, const LegalForms forms);
 template void LowererMD::MakeDstEquSrc1<true>(IR::Instr *const instr);
 #endif
 
@@ -3954,7 +3850,7 @@ LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func)
 
     // Now insert write barrier if necessary
 #ifdef RECYCLER_WRITE_BARRIER_JIT
-    if (isPossibleBarrieredDest 
+    if (isPossibleBarrieredDest
         && assignInstr->m_opcode == Js::OpCode::MOV // ignore SSE instructions like MOVSD
         && assignInstr->GetSrc1()->IsWriteBarrierTriggerableValue())
     {
@@ -6760,7 +6656,7 @@ LowererMD::MakeDstEquSrc1(IR::Instr *const instr)
 
     if (verify)
     {
-        AssertMsg(false, "Missing legalization");
+        AssertMsg(false, "dst and src1 should be the same at this point. Missing Legalization");
         return;
     }
 
@@ -6897,7 +6793,7 @@ void LowererMD::EmitSignExtend(IR::Instr * instr)
         IR::RegOpnd * eaxReg = IR::RegOpnd::New(RegEAX, TyInt32, m_func);
         IR::RegOpnd * edxReg = IR::RegOpnd::New(RegEDX, TyInt32, m_func);
 
-        instr->InsertBefore(IR::Instr::New(op, eaxReg, srcPair.low->UseWithNewType(fromType, m_func), m_func)); 
+        instr->InsertBefore(IR::Instr::New(op, eaxReg, srcPair.low->UseWithNewType(fromType, m_func), m_func));
         Legalize(instr->m_prev);
         instr->InsertBefore(IR::Instr::New(Js::OpCode::CDQ, edxReg, m_func));
         Legalize(instr->m_prev);
@@ -7552,7 +7448,6 @@ LowererMD::LowerToFloat(IR::Instr *instr)
             opnd = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetMaskNegDoubleAddr(), TyMachDouble, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
         }
         instr->SetSrc2(opnd);
-        Legalize(instr);
         break;
     }
 
@@ -7578,7 +7473,7 @@ LowererMD::LowerToFloat(IR::Instr *instr)
         Assume(UNREACHED);
     }
 
-    this->MakeDstEquSrc1(instr);
+    Legalize(instr);
 
     return instr;
 }
