@@ -6489,7 +6489,9 @@ LowererMD::LowerInt4MulWithBailOut(
     //check overflow
     if(bailOutKind & IR::BailOutOnMulOverflow || bailOutKind == IR::BailOutOnFailedHoistedLoopCountBasedBoundCheck)
     {
-        insertInstr = IR::Instr::New(Js::OpCode::CMP_SXTW, nullptr, s3, s3, instr->m_func);
+        insertInstr = IR::Instr::New(Js::OpCode::CMP_SXTW, instr->m_func);
+        insertInstr->SetSrc1(s3);
+        insertInstr->SetSrc2(s3);
         instr->InsertBefore(insertInstr);
 
         // BNE $bailOutHelper
