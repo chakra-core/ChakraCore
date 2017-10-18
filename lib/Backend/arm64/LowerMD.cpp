@@ -4338,8 +4338,8 @@ LowererMD::GenerateSmIntPairTest(
     instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
     instr->SetSrc1(opndReg);
     instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag_Pair, TyInt32, this->m_func, true));
-
     instrInsert->InsertBefore(instr);
+    Legalize(instr);
 
     //      BNE $fail
     instr = IR::BranchInstr::New(Js::OpCode::BNE, labelFail, this->m_func);
