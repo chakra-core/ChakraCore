@@ -3412,13 +3412,16 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, ParseNode *breakOnBodySc
 
                 PushFuncInfo(_u("StartEmitFunction"), funcInfo);
 
-                if (!funcInfo->IsBodyAndParamScopeMerged())
+                if (funcInfo->byteCodeFunction->IsFunctionParsed() && funcInfo->GetParsedFunctionBody()->GetByteCode() == nullptr)
                 {
-                    this->EmitScopeList(pnode->sxFnc.pnodeBodyScope->sxBlock.pnodeScopes);
-                }
-                else
-                {
-                    this->EmitScopeList(pnode->sxFnc.pnodeScopes);
+                    if (!funcInfo->IsBodyAndParamScopeMerged())
+                    {
+                        this->EmitScopeList(pnode->sxFnc.pnodeBodyScope->sxBlock.pnodeScopes);
+                    }
+                    else
+                    {
+                        this->EmitScopeList(pnode->sxFnc.pnodeScopes);
+                    }
                 }
 
                 this->EmitOneFunction(pnode);
@@ -3813,9 +3816,12 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
 
         PushScope(paramScope);
 
-        // While emitting the functions we have to stop when we see the body scope block.
-        // Otherwise functions defined in the body scope will not be able to get the right references.
-        this->EmitScopeList(paramBlock->sxBlock.pnodeScopes, pnodeFnc->sxFnc.pnodeBodyScope);
+        if (funcInfo->byteCodeFunction->IsFunctionParsed() && funcInfo->GetParsedFunctionBody()->GetByteCode() == nullptr)
+        {
+            // While emitting the functions we have to stop when we see the body scope block.
+            // Otherwise functions defined in the body scope will not be able to get the right references.
+            this->EmitScopeList(paramBlock->sxBlock.pnodeScopes, pnodeFnc->sxFnc.pnodeBodyScope);
+        }
         Assert(this->GetCurrentScope() == paramScope);
     }
 
