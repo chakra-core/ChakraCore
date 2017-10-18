@@ -985,6 +985,10 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         Assert(dst->IsRegOpnd());
         Assert(src1->IsRegOpnd());
         Assert(src2->IsRegOpnd());
+
+        Assert(dst->GetSize() == 8);
+        Assert(src1->GetSize() == 4);
+        Assert(src2->GetSize() == 4);
         bytes = EmitSmull(Emitter, this->GetRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), this->GetRegEncode(src2->AsRegOpnd()));
         break;
 
