@@ -4338,8 +4338,8 @@ LowererMD::GenerateSmIntPairTest(
     instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
     instr->SetSrc1(opndReg);
     instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag_Pair, TyInt32, this->m_func, true));
-
     instrInsert->InsertBefore(instr);
+    Legalize(instr);
 
     //      BNE $fail
     instr = IR::BranchInstr::New(Js::OpCode::BNE, labelFail, this->m_func);
@@ -5193,12 +5193,14 @@ void LowererMD::GenerateSmIntTest(IR::Opnd *opndSrc, IR::Instr *insertInstr, IR:
     // s1 = UBFX s1, VarTag_Shift, 64 - VarTag_Shift
     instr = IR::Instr::New(Js::OpCode::UBFX, opndReg, opndReg, IR::IntConstOpnd::New(BITFIELD(Js::VarTag_Shift, 64 - Js::VarTag_Shift), TyInt32, this->m_func), this->m_func);
     insertInstr->InsertBefore(instr);
+    Legalize(instr);
 
     // CMP s1, AtomTag
     instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
     instr->SetSrc1(opndReg);
     instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag, TyInt32, this->m_func, /* dontEncode = */ true));
     insertInstr->InsertBefore(instr);
+    Legalize(instr);
 
     if(fContinueLabel)
     {
