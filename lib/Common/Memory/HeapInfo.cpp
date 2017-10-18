@@ -578,7 +578,7 @@ HeapInfo::Initialize(Recycler * recycler
 #ifdef DUMP_FRAGMENTATION_STATS
     if (recycler->GetRecyclerFlagsTable().flags.DumpFragmentationStats)
     {
-        printf("[FRAG %d] Start", ::GetTickCount());
+        Output::Print(_u("[FRAG %d] Start"), ::GetTickCount());
     }
 #endif
 

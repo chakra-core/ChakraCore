@@ -161,7 +161,7 @@ namespace Js
                     *(serialization_alignment T*)(buffer + this->offset + SENTINEL_BYTE_COUNT) = this->value;
                     DebugOnly(size = sizeof(T) + 1);
 #if INSTRUMENT_BUFFER_INTS
-                    printf("[BCGENSTATS] %d, %d\n", value, sizeof(T));
+                    Output::Print(_u("[BCGENSTATS] %d, %d\n"), value, sizeof(T));
 #endif
                 }
             }

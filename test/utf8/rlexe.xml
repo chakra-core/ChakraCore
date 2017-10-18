@@ -42,4 +42,11 @@
       <tags>require_winglob</tags> <!-- Microsoft/ChakraCore#3777: Fix this test under ICU -->
     </default>
   </test>
+  <test>
+    <default>
+      <files>utf8_console_log.js</files>
+      <baseline>utf8_console_log.baseline</baseline>
+      <tags>exclude_jshost</tags>
+    </default>
+  </test>
 </regress-exe>

@@ -1651,7 +1651,7 @@ LHexError:
             //
             //TODO: the host should give us a print callback which we can use here
             //
-            wprintf(_u("%ls\n"), jsString->GetSz());
+            Output::Print(_u("%ls\n"), jsString->GetSz());
             fflush(stdout);
         }
 

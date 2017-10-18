@@ -1665,7 +1665,7 @@ JsErrorCode WScriptJsrt::NotifyModuleReadyCallback(_In_opt_ JsModuleRecord refer
 
         if (HostConfigFlags::flags.TraceHostCallbackIsEnabled)
         {
-            printf("NotifyModuleReadyCallback(exception) %s\n", fileName.GetString());
+            wprintf(_u("NotifyModuleReadyCallback(exception) %S\n"), fileName.GetString());
         }
 
         PrintException(*fileName, JsErrorScriptException);
