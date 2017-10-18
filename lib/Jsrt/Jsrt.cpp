@@ -2221,6 +2221,36 @@ CHAKRA_API JsGetIndexedPropertiesExternalData(
     END_JSRT_NO_EXCEPTION
 }
 
+CHAKRA_API JsLessThan(_In_ JsValueRef object1, _In_ JsValueRef object2, _Out_ bool *result)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTLessThan, object1, object2, false);
+
+        VALIDATE_INCOMING_REFERENCE(object1, scriptContext);
+        VALIDATE_INCOMING_REFERENCE(object2, scriptContext);
+        PARAM_NOT_NULL(result);
+
+        *result = Js::JavascriptOperators::Less((Js::Var)object1, (Js::Var)object2, scriptContext) != 0;
+
+        return JsNoError;
+    });
+}
+
+CHAKRA_API JsLessThanOrEqual(_In_ JsValueRef object1, _In_ JsValueRef object2, _Out_ bool *result)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTLessThan, object1, object2, true);
+
+        VALIDATE_INCOMING_REFERENCE(object1, scriptContext);
+        VALIDATE_INCOMING_REFERENCE(object2, scriptContext);
+        PARAM_NOT_NULL(result);
+
+        *result = Js::JavascriptOperators::LessEqual((Js::Var)object1, (Js::Var)object2, scriptContext) != 0;
+
+        return JsNoError;
+    });
+}
+
 CHAKRA_API JsEquals(_In_ JsValueRef object1, _In_ JsValueRef object2, _Out_ bool *result)
 {
     return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
