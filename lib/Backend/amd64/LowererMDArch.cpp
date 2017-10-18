@@ -2199,7 +2199,6 @@ LowererMDArch::EmitInt4Instr(IR::Instr *instr, bool signExtend /* = false */)
     IR::Instr *newInstr = nullptr;
     IR::RegOpnd *regEDX;
 
-    bool legalize = false;
     bool isInt64Instr = instr->AreAllOpndInt64();
     if (!isInt64Instr)
     {
@@ -2216,10 +2215,6 @@ LowererMDArch::EmitInt4Instr(IR::Instr *instr, bool signExtend /* = false */)
             src2->SetType(TyInt32);
         }
     }
-    else
-    {
-        legalize = true;
-    }
 
     switch (instr->m_opcode)
     {
@@ -2233,17 +2228,14 @@ LowererMDArch::EmitInt4Instr(IR::Instr *instr, bool signExtend /* = false */)
 
     case Js::OpCode::Add_I4:
         LowererMD::ChangeToAdd(instr, false /* needFlags */);
-        legalize = true;
         break;
 
     case Js::OpCode::Sub_I4:
         LowererMD::ChangeToSub(instr, false /* needFlags */);
-        legalize = true;
         break;
 
     case Js::OpCode::Mul_I4:
         instr->m_opcode = Js::OpCode::IMUL2;
-        legalize = true;
         break;
 
     case Js::OpCode::DivU_I4:
@@ -2307,7 +2299,6 @@ idiv_common:
     case Js::OpCode::Rol_I4:
     case Js::OpCode::Ror_I4:
         LowererMD::ChangeToShift(instr, false /* needFlags */);
-        legalize = true;
         break;
 
     case Js::OpCode::BrTrue_I4:
@@ -2383,15 +2374,7 @@ br2_Common:
         instr->InsertAfter(IR::Instr::New(Js::OpCode::MOVSXD, dst64, instr->GetDst(), instr->m_func));
     }
 
-    if(legalize)
-    {
-        LowererMD::Legalize(instr);
-    }
-    else
-    {
-        // OpEq's
-        LowererMD::MakeDstEquSrc1(instr);
-    }
+    LowererMD::Legalize(instr);
 }
 
 #if !FLOATVAR
