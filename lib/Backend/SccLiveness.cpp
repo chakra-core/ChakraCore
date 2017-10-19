@@ -383,6 +383,10 @@ SCCLiveness::ProcessSrc(IR::Opnd *src, IR::Instr *instr)
             }
         }
     }
+    else if (src->IsListOpnd())
+    {
+        src->AsListOpnd()->Map([&](int i, IR::Opnd* opnd) { this->ProcessSrc(opnd, instr); });
+    }
     else if (!this->lastCall && src->IsSymOpnd() && src->AsSymOpnd()->m_sym->AsStackSym()->IsParamSlotSym())
     {
         IR::SymOpnd *symOpnd = src->AsSymOpnd();
@@ -439,6 +443,10 @@ SCCLiveness::ProcessDst(IR::Opnd *dst, IR::Instr *instr)
     else if (dst->IsRegOpnd())
     {
         this->ProcessRegDef(dst->AsRegOpnd(), instr);
+    }
+    else if (dst->IsListOpnd())
+    {
+        dst->AsListOpnd()->Map([&](int i, IR::Opnd* opnd) { this->ProcessDst(opnd, instr); });
     }
 }
 

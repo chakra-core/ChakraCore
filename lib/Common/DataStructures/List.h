@@ -399,7 +399,7 @@ namespace JsUtil
             return pos;
         }
 
-        int32 AddRange(__readonly _In_reads_(count) const T* items, int32 count)
+        int32 AddRange(__readonly _In_reads_(count) T const * items, int32 count)
         {
             Assert(items != nullptr);
             Assert(count > 0);

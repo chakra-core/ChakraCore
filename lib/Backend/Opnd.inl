@@ -408,6 +408,28 @@ Opnd::AsAddrOpnd() const
     return reinterpret_cast<const AddrOpnd *>(this);
 }
 
+inline bool
+Opnd::IsListOpnd() const
+{
+    return GetKind() == OpndKindList;
+}
+
+inline ListOpnd *
+Opnd::AsListOpnd()
+{
+    AssertMsg(this->IsListOpnd(), "Bad call to AsListOpnd()");
+
+    return static_cast<ListOpnd *>(this);
+}
+
+inline const ListOpnd *
+Opnd::AsListOpnd() const
+{
+    AssertMsg(this->IsListOpnd(), "Bad call to AsListOpnd() const");
+
+    return static_cast<const ListOpnd *>(this);
+}
+
 ///----------------------------------------------------------------------------
 ///
 /// Opnd::IsIndirOpnd

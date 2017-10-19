@@ -160,6 +160,9 @@ Opnd::CloneDef(Func *func)
     case OpndKindIndir:
         return static_cast<IndirOpnd*>(this)->CloneDefInternal(func);
 
+    case OpndKindList:
+        return static_cast<ListOpnd*>(this)->CloneDefInternal(func);
+
     default:
         return this->Copy(func);
     };
@@ -190,6 +193,9 @@ Opnd::CloneUse(Func *func)
 
     case OpndKindIndir:
         return static_cast<IndirOpnd*>(this)->CloneUseInternal(func);
+
+    case OpndKindList:
+        return static_cast<ListOpnd*>(this)->CloneUseInternal(func);
 
     default:
         return this->Copy(func);
@@ -249,6 +255,10 @@ void Opnd::Free(Func *func)
 
     case OpndKindIndir:
         static_cast<IndirOpnd*>(this)->FreeInternal(func);
+        break;
+
+    case OpndKindList:
+        static_cast<ListOpnd*>(this)->FreeInternal(func);
         break;
 
     case OpndKindMemRef:
@@ -316,6 +326,9 @@ bool Opnd::IsEqual(Opnd *opnd)
     case OpndKindIndir:
         return static_cast<IndirOpnd*>(this)->IsEqualInternal(opnd);
 
+    case OpndKindList:
+        return static_cast<ListOpnd*>(this)->IsEqualInternal(opnd);
+
     case OpndKindMemRef:
         return static_cast<MemRefOpnd*>(this)->IsEqualInternal(opnd);
 
@@ -375,6 +388,9 @@ Opnd * Opnd::Copy(Func *func)
 
     case OpndKindIndir:
         return static_cast<IndirOpnd*>(this)->CopyInternal(func);
+
+    case OpndKindList:
+        return static_cast<ListOpnd*>(this)->CopyInternal(func);
 
     case OpndKindMemRef:
         return static_cast<MemRefOpnd*>(this)->CopyInternal(func);
@@ -2288,6 +2304,110 @@ AddrOpnd::SetAddress(Js::Var address, AddrOpndKind addrOpndKind)
 
 ///----------------------------------------------------------------------------
 ///
+/// ListOpnd
+///
+///     ListOpnd API
+///
+///----------------------------------------------------------------------------
+
+ListOpnd *
+ListOpnd::New(Func *func, __in_ecount(count) ListOpndType** opnds, int count)
+{
+    return JitAnew(func->m_alloc, ListOpnd, func, opnds, count);
+}
+
+ListOpnd::~ListOpnd()
+{
+    Func* func = this->m_func;
+    for (int i = 0; i < Count(); ++i)
+    {
+        Item(i)->UnUse();
+        Item(i)->Free(func);
+    }
+    JitAdeleteArray(func->m_alloc, count, opnds);
+}
+
+ListOpnd::ListOpnd(Func* func, __in_ecount(_count) ListOpndType** _opnds, int _count):
+    Opnd(), m_func(func), count(_count)
+{
+    AssertOrFailFast(count > 0);
+    Assert(func->isPostLower || func->IsInPhase(Js::LowererPhase));
+    m_kind = OpndKindList;
+    m_type = TyMisc;
+
+    opnds = JitAnewArray(func->m_alloc, ListOpndType*, count);
+    for (int i = 0; i < count; ++i)
+    {
+        opnds[i] = _opnds[i]->Use(func)->AsRegOpnd();
+    }
+}
+
+void ListOpnd::FreeInternal(Func * func)
+{
+    Assert(m_kind == OpndKindList);
+    JitAdelete(func->m_alloc, this);
+}
+
+bool ListOpnd::IsEqualInternal(Opnd * opnd)
+{
+    Assert(m_kind == OpndKindList);
+    if (!opnd->IsListOpnd())
+    {
+        return false;
+    }
+    ListOpnd* l2 = opnd->AsListOpnd();
+    if (l2->Count() != Count())
+    {
+        return false;
+    }
+    for (int i = 0; i < Count(); ++i)
+    {
+        if (!Item(i)->IsEqual(l2->Item(i)))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+Opnd * ListOpnd::CloneUseInternal(Func * func)
+{
+    Assert(m_kind == OpndKindList);
+    int count = Count();
+    ListOpndType** opnds = JitAnewArray(func->m_alloc, ListOpndType*, count);
+    for (int i = 0; i < count; ++i)
+    {
+        ListOpndType* newOpnd = Item(i)->CloneUse(func)->AsRegOpnd();
+        opnds[i] = newOpnd;
+    }
+    ListOpnd* newList = ListOpnd::New(func, opnds, count);
+    JitAdeleteArray(func->m_alloc, count, opnds);
+    return newList;
+}
+
+Opnd * ListOpnd::CloneDefInternal(Func * func)
+{
+    Assert(m_kind == OpndKindList);
+    int count = Count();
+    ListOpndType** opnds = JitAnewArray(func->m_alloc, RegOpnd*, count);
+    for (int i = 0; i < count; ++i)
+    {
+        ListOpndType* newOpnd = Item(i)->CloneDef(func)->AsRegOpnd();
+        opnds[i] = newOpnd;
+    }
+    ListOpnd* newList = ListOpnd::New(func, opnds, count);
+    JitAdeleteArray(func->m_alloc, count, opnds);
+    return newList;
+}
+
+Opnd * ListOpnd::CopyInternal(Func * func)
+{
+    Assert(m_kind == OpndKindList);
+    return ListOpnd::New(func, opnds, Count());
+}
+
+///----------------------------------------------------------------------------
+///
 /// IndirOpnd::New
 ///
 ///     Creates a new IndirOpnd.
@@ -3325,6 +3445,22 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
         }
 
         Output::Print(_u("]"));
+        break;
+    }
+    case IR::OpndKindList:
+    {
+        IR::ListOpnd* list = this->AsListOpnd();
+        Output::Print(_u("{"));
+        int count = list->Count();
+        list->Map([flags, func, count](int i, IR::Opnd* opnd)
+        {
+            opnd->Dump(flags, func);
+            if (i + 1 < count)
+            {
+                Output::Print(_u(","));
+            }
+        });
+        Output::Print(_u("}"));
         break;
     }
     case OpndKindMemRef:

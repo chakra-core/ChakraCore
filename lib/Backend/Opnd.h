@@ -20,6 +20,7 @@ class PropertySymOpnd;
 class RegOpnd;
 class ArrayRegOpnd;
 class AddrOpnd;
+class ListOpnd;
 class IndirOpnd;
 class LabelOpnd;
 class MemRefOpnd;
@@ -39,7 +40,8 @@ enum OpndKind : BYTE {
     OpndKindIndir,
     OpndKindLabel,
     OpndKindMemRef,
-    OpndKindRegBV
+    OpndKindRegBV,
+    OpndKindList
 };
 
 enum AddrOpndKind : BYTE {
@@ -189,6 +191,9 @@ public:
     bool                IsAddrOpnd() const;
     AddrOpnd *          AsAddrOpnd();
     const AddrOpnd *    AsAddrOpnd() const;
+    bool                IsListOpnd() const;
+    ListOpnd *          AsListOpnd();
+    const ListOpnd *    AsListOpnd() const;
     bool                IsIndirOpnd() const;
     IndirOpnd *         AsIndirOpnd();
     const IndirOpnd *   AsIndirOpnd() const;
@@ -1465,6 +1470,103 @@ public:
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
     bool                    wasVar;
 #endif
+};
+
+typedef RegOpnd ListOpndType;
+class ListOpnd : public Opnd
+{
+    template<typename... T>
+    struct ListOpndInit
+    {
+        static constexpr int length = sizeof...(T);
+        ListOpndInit(T...rest)
+        {
+            insert(0, rest...);
+        }
+        ListOpndType* values[length];
+    private:
+        template<typename K1, typename... K>
+        void insert(int index, K1 arg, K... rest)
+        {
+            values[index] = arg;
+            insert(index + 1, rest...);
+        }
+        template<typename K>
+        void insert(int index, K last)
+        {
+            values[index] = last;
+        }
+    };
+public:
+    ~ListOpnd();
+    static ListOpnd* ListOpnd::New(Func *func, __in_ecount(count) ListOpndType** opnds, DECLSPEC_GUARD_OVERFLOW int count);
+    template<typename... T>
+    static ListOpnd* New(Func *func, T... opnds)
+    {
+        auto a = ListOpndInit<T...>{ opnds... };
+        return ListOpnd::New(func, a.values, a.length);
+    }
+
+public:
+    void FreeInternal(Func* func);
+    bool IsEqualInternal(Opnd* opnd);
+    Opnd* CloneUseInternal(Func* func);
+    Opnd* CloneDefInternal(Func* func);
+    Opnd* CopyInternal(Func* func);
+
+    int Count() const { return count; }
+    ListOpndType* Item(int i) const { Assert(i < count); return opnds[i]; }
+    template <typename TConditionalFunction> bool Any(TConditionalFunction function)
+    {
+        for (int i = 0; i < count; ++i)
+        {
+            if (function(this->opnds[i]))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    template <typename TConditionalFunction> bool All(TConditionalFunction function)
+    {
+        for (int i = 0; i < count; ++i)
+        {
+            if (!function(this->opnds[i]))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+    template <typename TConditionalFunction> void Map(TConditionalFunction function)
+    {
+        for (int i = 0; i < count; ++i)
+        {
+            function(i, this->opnds[i]);
+        }
+    }
+    template<typename Result, typename Selector, typename Aggregator>
+    Result Reduce(Selector sel, Aggregator agg, Result init)
+    {
+        Result result = init;
+        for (int i = 0; i < count; ++i)
+        {
+            result = agg(
+                i,
+                sel(i, this->opnds[i]),
+                result
+            );
+        }
+        return result;
+    }
+
+private:
+    ListOpnd(Func* func, __in_ecount(count) ListOpndType** opnds, DECLSPEC_GUARD_OVERFLOW int count);
+
+private:
+    int count;
+    ListOpndType** opnds;
+    Func* m_func; // We need the allocator to copy/free the individual Opnd
 };
 
 ///---------------------------------------------------------------------------
