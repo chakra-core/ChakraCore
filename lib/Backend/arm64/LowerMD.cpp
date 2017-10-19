@@ -7973,33 +7973,16 @@ void LowererMD::GenerateFloatTest(IR::RegOpnd * opndSrc, IR::Instr * insertInstr
         return;
     }
 
-    if(checkForNullInLoopBody && m_func->IsLoopBody())
-    {
-        // It's possible that the value was determined dead by the jitted function and was not restored. The jitted loop
-        // body may not realize that it's dead and may try to use it. Check for null in loop bodies.
-        //     test src1, src1
-        //     jz $helper (bail out)
-        m_lowerer->InsertCompareBranch(
-            opndSrc,
-            IR::AddrOpnd::NewNull(m_func),
-            Js::OpCode::BrEq_A,
-            labelHelper,
-            insertInstr);
-    }
-
-    IR::RegOpnd *vt = IR::RegOpnd::New(TyMachPtr, this->m_func);
-    IR::Opnd* opnd = IR::IndirOpnd::New(opndSrc, (int32)0, TyMachPtr, this->m_func);
-    LowererMD::CreateAssign(vt, opnd, insertInstr);
-
-    // CMP [number], JavascriptNumber::vtable
-    IR::Instr* instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
-    instr->SetSrc1(vt);
-    instr->SetSrc2(m_lowerer->LoadVTableValueOpnd(insertInstr, VTableValue::VtableJavascriptNumber));
+    // TST s1, floatTagReg
+    IR::Opnd* floatTag = IR::IntConstOpnd::New(Js::FloatTag_Value, TyMachReg, this->m_func, /* dontEncode = */ true);
+    IR::Instr* instr = IR::Instr::New(Js::OpCode::TST, this->m_func);
+    instr->SetSrc1(opndSrc);
+    instr->SetSrc2(floatTag);
     insertInstr->InsertBefore(instr);
-    LegalizeMD::LegalizeInstr(instr,false);
+    LegalizeMD::LegalizeInstr(instr, false);
 
-    // BNE $helper
-    instr = IR::BranchInstr::New(Js::OpCode::BNE, labelHelper, this->m_func);
+    // BZ $helper
+    instr = IR::BranchInstr::New(Js::OpCode::BEQ /* BZ */, labelHelper, this->m_func);
     insertInstr->InsertBefore(instr);
 }
 
