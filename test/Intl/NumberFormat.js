@@ -17,7 +17,12 @@ function format() {
         [locale, options, n] = arguments;
     }
 
-    return new Intl.NumberFormat(locale, options).format(n);
+    const format = new Intl.NumberFormat(locale, options).format(n);
+    const localeString = n.toLocaleString(locale, options);
+
+    assert.isTrue(format === localeString, `[locale = ${JSON.stringify(locale)}, options = ${JSON.stringify(options)}] new Intl.NumberFormat().format(${n}) -> ${format} !== ${n}.toLocaleString() -> ${localeString}`);
+
+    return format;
 }
 
 const tests = [
