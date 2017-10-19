@@ -16,7 +16,7 @@ function testBuiltInFunction(options, builtInConstructor, builtInName, builtInFu
         }
     }
     catch (ex) {
-        console.log(ex.message);
+        console.log(`Error: testBuiltInFunction(${[...arguments].join(",")}) threw message ${ex.message}`);
     }
 }
 

@@ -17,7 +17,7 @@ function testCollatorOptions(option, value, str1, str2, expected) {
         }
     } catch (ex) {
         passed = false;
-        WScript.Echo("Error testCollatorOptions: " + ex.message);
+        WScript.Echo(`Error: testCollatorOptions(${[...arguments].join(",")}) threw message ${ex.message}`);
     }
 }
 

@@ -1318,18 +1318,20 @@ case_2:
                 IntlEngineInterfaceExtensionObject* intlExtensionObject = static_cast<IntlEngineInterfaceExtensionObject*>(nativeEngineInterfaceObj->GetEngineExtension(EngineInterfaceExtensionKind_Intl));
                 if (args.Info.Count == 2)
                 {
-                    auto undefined = scriptContext->GetLibrary()->GetUndefined();
-                    CallInfo toPass(callInfo.Flags, 7);
-                    return intlExtensionObject->EntryIntl_CompareString(function, toPass, undefined, pThis, pThat, undefined, undefined, undefined, undefined);
+                    // we can fast-path this call if no locale or options negotiation needs to be done in Intl.js
+                    CallInfo toPass(callInfo.Flags, 3);
+                    return intlExtensionObject->EntryIntl_CompareString(function, toPass, scriptContext->GetLibrary()->GetUndefined(), pThis, pThat);
                 }
                 else
                 {
+                    // Check if String.prototype.localeCompare/Intl.Collator was already initialized
                     JavascriptFunction* func = intlExtensionObject->GetStringLocaleCompare();
                     if (func)
                     {
                         return func->CallFunction(args);
                     }
-                    // Initialize String.prototype.toLocaleCompare
+
+                    // String.prototype.localeCompare/Intl.Collator was not initialized yet, so we need to manually initialize it here
                     scriptContext->GetLibrary()->InitializeIntlForStringPrototype();
                     func = intlExtensionObject->GetStringLocaleCompare();
                     if (func)

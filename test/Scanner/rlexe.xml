@@ -4,6 +4,7 @@
     <default>
       <files>NumericLiteralSuffix.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
+      <tags>require_winglob</tags> <!-- Microsoft/ChakraCore#3777: Fix this test under ICU -->
     </default>
   </test>
 </regress-exe>

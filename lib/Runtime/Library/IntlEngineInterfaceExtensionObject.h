@@ -39,10 +39,12 @@ namespace Js
 
             static NoProfileFunctionInfo Intl_IsWellFormedLanguageTag;
             static NoProfileFunctionInfo Intl_NormalizeLanguageTag;
+            static NoProfileFunctionInfo Intl_IsLocaleAvailable;
             static NoProfileFunctionInfo Intl_ResolveLocaleLookup;
             static NoProfileFunctionInfo Intl_ResolveLocaleBestFit;
             static NoProfileFunctionInfo Intl_GetDefaultLocale;
             static NoProfileFunctionInfo Intl_GetExtensions;
+            static NoProfileFunctionInfo Intl_CollatorGetCollation;
             static NoProfileFunctionInfo Intl_CompareString;
             static NoProfileFunctionInfo Intl_CurrencyDigits;
             static NoProfileFunctionInfo Intl_FormatNumber;
@@ -70,10 +72,12 @@ namespace Js
 
         static Var EntryIntl_IsWellFormedLanguageTag(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryIntl_NormalizeLanguageTag(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryIntl_IsLocaleAvailable(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryIntl_ResolveLocaleLookup(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryIntl_ResolveLocaleBestFit(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryIntl_GetDefaultLocale(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryIntl_GetExtensions(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryIntl_CollatorGetCollation(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryIntl_CompareString(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryIntl_CurrencyDigits(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryIntl_FormatNumber(RecyclableObject* function, CallInfo callInfo, ...);
