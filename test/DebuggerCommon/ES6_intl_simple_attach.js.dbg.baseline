@@ -519,7 +519,7 @@
               "caller": "Error <large string>",
               "arguments": "Error <large string>"
             },
-            "length": "number 0"
+            "length": "number 1"
           },
           "resolvedOptions": {
             "#__proto__": {
