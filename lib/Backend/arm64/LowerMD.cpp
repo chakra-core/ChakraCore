@@ -6690,26 +6690,32 @@ LowererMD::EmitLoadVarNoCheck(IR::RegOpnd * dst, IR::RegOpnd * src, IR::Instr *i
 bool
 LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed, bool bailOutOnHelper, IR::LabelInstr * labelBailOut)
 {
-    // isInt:
-    //   dst = ASR r1, AtomTag
+    //
+    //    r1 = MOV src1
+    // rtest = UBFX src1, AtomTag_Shift, 64 - AtomTag_Shift
+    //         EOR rtest, 1
+    //         CBNZ $helper or $float
+    // r_dst = MOV.32 e_src1
+    //         B $done
+    //  $float:
+    //     dst = ConvertToFloat(r1, $helper)
+    // $helper:
+    // r_dst = ToInt32()
+    //
 
-    // isNotInt:
-    //   dst = ToInt32(r1)
+    Assert(instrLoad->GetSrc1()->IsRegOpnd());
+    Assert(instrLoad->GetSrc1()->GetType() == TyVar);
 
-    // else:
-    //   dst = ASRS r1, AtomTag
-    //         BCS $Done
-    //   dst = ToInt32(r1)
-    // $Done
+    // TODO: Fix bad lowering. We shouldn't see TyVars here.
+    // Assert(instrLoad->GetDst()->GetType() == TyInt32);
 
-    AssertMsg(instrLoad->GetSrc1()->IsRegOpnd(), "Should be regOpnd");
-    bool isInt = false;
-    bool isNotInt = false;
-    IR::RegOpnd *src1 = instrLoad->GetSrc1()->AsRegOpnd();
-    IR::LabelInstr *labelDone = nullptr;
+    bool isInt             = false;
+    bool isNotInt          = false;
+    IR::Opnd *dst          = instrLoad->GetDst();
+    IR::RegOpnd *src1      = instrLoad->GetSrc1()->AsRegOpnd();
+    IR::LabelInstr *helper = nullptr;
     IR::LabelInstr *labelFloat = nullptr;
-    IR::LabelInstr *labelHelper = nullptr;
-    IR::Instr *instr;
+    IR::LabelInstr *done   = nullptr;
 
     if (src1->IsTaggedInt())
     {
@@ -6720,39 +6726,44 @@ LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed,
         isNotInt = true;
     }
 
-    if (isInt)
+    if (src1->IsEqual(instrLoad->GetDst()) == false)
     {
-        instrLoad->m_opcode = Js::OpCode::MOV;
-        instrLoad->SetSrc1(src1->UseWithNewType(TyInt32, instrLoad->m_func));
+        // r1 = MOV src1
+        IR::RegOpnd *r1 = IR::RegOpnd::New(TyVar, instrLoad->m_func);
+        r1->SetValueType(src1->GetValueType());
+        instrLoad->InsertBefore(IR::Instr::New(Js::OpCode::MOV, r1, src1, instrLoad->m_func));
+        src1 = r1;
+    }
+
+    const ValueType src1ValueType(src1->GetValueType());
+    const bool doFloatToIntFastPath =
+        (src1ValueType.IsLikelyFloat() || src1ValueType.IsLikelyUntaggedInt()) &&
+        !(instrLoad->HasBailOutInfo() && (instrLoad->GetBailOutKind() == IR::BailOutIntOnly || instrLoad->GetBailOutKind() == IR::BailOutExpectingInteger));
+
+    if (isNotInt)
+    {
+        // Known to be non-integer. If we are required to bail out on helper call, just re-jit.
+        if (!doFloatToIntFastPath && bailOutOnHelper)
+        {
+            if(!GlobOpt::DoEliminateArrayAccessHelperCall(this->m_func))
+            {
+                // Array access helper call removal is already off for some reason. Prevent trying to rejit again
+                // because it won't help and the same thing will happen again. Just abort jitting this function.
+                if(PHASE_TRACE(Js::BailOutPhase, this->m_func))
+                {
+                    Output::Print(_u("    Aborting JIT because EliminateArrayAccessHelperCall is already off\n"));
+                    Output::Flush();
+                }
+                throw Js::OperationAbortedException();
+            }
+
+            throw Js::RejitException(RejitReason::ArrayAccessHelperCallEliminationDisabled);
+        }
     }
     else
     {
-        const ValueType src1ValueType(src1->GetValueType());
-        const bool doFloatToIntFastPath =
-            (src1ValueType.IsLikelyFloat() || src1ValueType.IsLikelyUntaggedInt()) &&
-            !(instrLoad->HasBailOutInfo() && (instrLoad->GetBailOutKind() == IR::BailOutIntOnly || instrLoad->GetBailOutKind() == IR::BailOutExpectingInteger));
-
-        if (isNotInt)
-        {
-            // Known to be non-integer. If we are required to bail out on helper call, just re-jit.
-            if (!doFloatToIntFastPath && bailOutOnHelper)
-            {
-                if(!GlobOpt::DoEliminateArrayAccessHelperCall(this->m_func))
-                {
-                    // Array access helper call removal is already off for some reason. Prevent trying to rejit again
-                    // because it won't help and the same thing will happen again. Just abort jitting this function.
-                    if(PHASE_TRACE(Js::BailOutPhase, this->m_func))
-                    {
-                        Output::Print(_u("    Aborting JIT because EliminateArrayAccessHelperCall is already off\n"));
-                        Output::Flush();
-                    }
-                    throw Js::OperationAbortedException();
-                }
-
-                throw Js::RejitException(RejitReason::ArrayAccessHelperCallEliminationDisabled);
-            }
-        }
-        else
+        // It could be an integer in this case.
+        if (!isInt)
         {
             if(doFloatToIntFastPath)
             {
@@ -6760,45 +6771,52 @@ LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed,
             }
             else
             {
-                labelHelper = IR::LabelInstr::New(Js::OpCode::Label, instrLoad->m_func, true);
+                helper = IR::LabelInstr::New(Js::OpCode::Label, instrLoad->m_func, true);
             }
 
-            this->GenerateSmIntTest(src1, instrLoad, labelFloat ? labelFloat : labelHelper);
-
-            instr = IR::Instr::New(Js::OpCode::MOV, instrLoad->GetDst(), src1->UseWithNewType(TyInt32, instrLoad->m_func), instrLoad->m_func);
-            instrLoad->InsertBefore(instr);
-
-            labelDone = instrLoad->GetOrCreateContinueLabel();
-            instr = IR::BranchInstr::New(Js::OpCode::B, labelDone, instrLoad->m_func);
-            instrLoad->InsertBefore(instr);
+            this->GenerateSmIntTest(src1, instrLoad, labelFloat ? labelFloat : helper);
         }
+        IR::RegOpnd *src132 = src1->UseWithNewType(TyInt32, instrLoad->m_func)->AsRegOpnd();
 
+        instrLoad->InsertBefore(IR::Instr::New(Js::OpCode::MOV,
+            dst->UseWithNewType(TyInt32, instrLoad->m_func),
+            src132,
+            instrLoad->m_func));
+
+        if (!isInt)
+        {
+            // JMP $done
+            done = instrLoad->GetOrCreateContinueLabel();
+            instrLoad->InsertBefore(IR::BranchInstr::New(Js::OpCode::B, done, m_func));
+        }
+    }
+
+    if (!isInt)
+    {
         if(doFloatToIntFastPath)
         {
             if(labelFloat)
             {
                 instrLoad->InsertBefore(labelFloat);
             }
-
-            if(!labelHelper)
+            if(!helper)
             {
-                labelHelper = IR::LabelInstr::New(Js::OpCode::Label, instrLoad->m_func, true);
+                helper = IR::LabelInstr::New(Js::OpCode::Label, instrLoad->m_func, true);
             }
 
-            if(!labelDone)
+            if(!done)
             {
-                labelDone = instrLoad->GetOrCreateContinueLabel();
+                done = instrLoad->GetOrCreateContinueLabel();
             }
-
-            IR::RegOpnd* floatOpnd = this->CheckFloatAndUntag(src1, instrLoad, labelHelper);
-            this->ConvertFloatToInt32(instrLoad->GetDst(), floatOpnd, labelHelper, labelDone, instrLoad);
+            IR::RegOpnd* floatOpnd = this->CheckFloatAndUntag(src1, instrLoad, helper);
+            this->ConvertFloatToInt32(instrLoad->GetDst(), floatOpnd, helper, done, instrLoad);
         }
 
-        if(labelHelper)
+        // $helper:
+        if (helper)
         {
-            instrLoad->InsertBefore(labelHelper);
+            instrLoad->InsertBefore(helper);
         }
-
         if(instrLoad->HasBailOutInfo() && (instrLoad->GetBailOutKind() == IR::BailOutIntOnly || instrLoad->GetBailOutKind() == IR::BailOutExpectingInteger))
         {
             // Avoid bailout if we have a JavascriptNumber whose value is a signed 32-bit integer
@@ -6811,17 +6829,21 @@ LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed,
         if (bailOutOnHelper)
         {
             Assert(labelBailOut);
-            this->m_lowerer->InsertBranch(Js::OpCode::Br, labelBailOut, instrLoad);
+            m_lowerer->InsertBranch(Js::OpCode::Br, labelBailOut, instrLoad);
             instrLoad->Remove();
         }
         else if (conversionFromObjectAllowed)
         {
-            this->m_lowerer->LowerUnaryHelperMem(instrLoad, IR::HelperConv_ToInt32);
+            m_lowerer->LowerUnaryHelperMem(instrLoad, IR::HelperConv_ToInt32);
         }
         else
         {
-            this->m_lowerer->LowerUnaryHelperMemWithBoolReference(instrLoad, IR::HelperConv_ToInt32_NoObjects, true /*useBoolForBailout*/);
+            m_lowerer->LowerUnaryHelperMemWithBoolReference(instrLoad, IR::HelperConv_ToInt32_NoObjects, true /*useBoolForBailout*/);
         }
+    }
+    else
+    {
+        instrLoad->Remove();
     }
 
     return false;
