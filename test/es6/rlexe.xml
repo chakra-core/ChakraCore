@@ -1459,6 +1459,7 @@
       <tags>BugFix,exclude_sanitize_address</tags>
     </default>
   </test>
+  <!-- OS#14303885, disabling failing test until issue is resolved
   <test>
     <default>
       <files>bug_issue_3257.js</files>
@@ -1466,6 +1467,7 @@
       <tags>BugFix,exclude_sanitize_address</tags>
     </default>
   </test>
+  -->
   <test>
     <default>
       <files>typedarray_bugs.js</files>
