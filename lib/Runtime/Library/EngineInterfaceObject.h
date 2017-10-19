@@ -88,12 +88,12 @@ namespace Js
 
 #ifndef GlobalBuiltIn
 #define GlobalBuiltIn(global, method) \
-            static NoProfileFunctionInfo Intl_BuiltIn_##global##_##method##; \
+            static NoProfileFunctionInfo BuiltIn_##global##_##method##; \
 
 #define GlobalBuiltInConstructor(global)
 
 #define BuiltInRaiseException(exceptionType, exceptionID) \
-     static NoProfileFunctionInfo Intl_BuiltIn_raise##exceptionID;
+     static NoProfileFunctionInfo BuiltIn_raise##exceptionID;
 
 #define BuiltInRaiseException1(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID)
 #define BuiltInRaiseException2(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID)
@@ -123,7 +123,7 @@ namespace Js
 #define GlobalBuiltInConstructor(global)
 
 #define BuiltInRaiseException(exceptionType, exceptionID) \
-        static Var EntryIntl_BuiltIn_raise##exceptionID(RecyclableObject *function, CallInfo callInfo, ...);
+        static Var Entry_BuiltIn_raise##exceptionID(RecyclableObject *function, CallInfo callInfo, ...);
 
 #define BuiltInRaiseException1(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID)
 #define BuiltInRaiseException2(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID)
