@@ -738,7 +738,7 @@ namespace JSON
                             for (uint32 i = 0; i < propertyCount; i++)
                             {
                                 id = typeHandler->GetPropertyId(scriptContext, (Js::PropertyId)i);
-                                if (id == Js::Constants::NoProperty)
+                                if (id == Js::Constants::NoProperty || id < Js::InternalPropertyIds::Count)
                                 {
                                     continue;
                                 }

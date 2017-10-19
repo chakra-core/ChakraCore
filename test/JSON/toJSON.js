@@ -151,6 +151,20 @@ fnc.prototype.toJSON = function() {
   TEST(JSON.stringify(obj), '{"a":1}');
 }
 
+// test internal properties
+{
+  let obj = {foo: 1};
+  let wm = new WeakMap();
+  // Add internal WeakMapKeyMap property to obj
+  wm.set(obj,obj);
+  TEST('{"foo":1}', JSON.stringify(obj));
+  Object.defineProperty(obj, "getter", {get: function () { return 2}, enumerable: true, configurable: true});
+  TEST('{"foo":1,"getter":2}', JSON.stringify(obj));
+
+  const err = new Error("message");
+  TEST('{}', JSON.stringify(err));
+}
+
 // test - function prototype new instance
 TEST("\"1\"", JSON.stringify(new fnc(1)))
 
