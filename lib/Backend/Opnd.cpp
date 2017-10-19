@@ -2374,7 +2374,7 @@ Opnd * ListOpnd::CloneUseInternal(Func * func)
 {
     Assert(m_kind == OpndKindList);
     int count = Count();
-    ListOpndType** opnds = JitAnewArray(func->m_alloc, RegOpnd*, count);
+    ListOpndType** opnds = JitAnewArray(func->m_alloc, ListOpndType*, count);
     for (int i = 0; i < count; ++i)
     {
         ListOpndType* newOpnd = Item(i)->CloneUse(func)->AsRegOpnd();

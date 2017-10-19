@@ -1472,33 +1472,31 @@ public:
 #endif
 };
 
-
 typedef RegOpnd ListOpndType;
-
-template<typename... T>
-struct ListOpndInit
-{
-    template<typename K1, typename... K>
-    void insert(int index, K1 arg, K... rest)
-    {
-        values[index] = arg;
-        insert(index + 1, rest...);
-    }
-    template<typename K>
-    void insert(int index, K last)
-    {
-        values[index] = last;
-    }
-    static constexpr int length = sizeof...(T);
-    ListOpndInit(T...rest)
-    {
-        insert(0, rest...);
-    }
-    ListOpndType* values[length];
-};
-
 class ListOpnd : public Opnd
 {
+    template<typename... T>
+    struct ListOpndInit
+    {
+        static constexpr int length = sizeof...(T);
+        ListOpndInit(T...rest)
+        {
+            insert(0, rest...);
+        }
+        ListOpndType* values[length];
+    private:
+        template<typename K1, typename... K>
+        void insert(int index, K1 arg, K... rest)
+        {
+            values[index] = arg;
+            insert(index + 1, rest...);
+        }
+        template<typename K>
+        void insert(int index, K last)
+        {
+            values[index] = last;
+        }
+    };
 public:
     ~ListOpnd();
     static ListOpnd* ListOpnd::New(Func *func, __in_ecount(count) ListOpndType** opnds, DECLSPEC_GUARD_OVERFLOW int count);
