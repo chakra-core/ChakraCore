@@ -16,7 +16,7 @@
 static errno_t SetFPUControlDefault(void)
 {
 #if _WIN32
-#if _M_AMD64 || _M_ARM
+#if _M_AMD64 || _M_ARM || _M_ARM64
     return _controlfp_s(0, _RC_NEAR + _DN_SAVE + _EM_INVALID + _EM_ZERODIVIDE +
         _EM_OVERFLOW + _EM_UNDERFLOW + _EM_INEXACT,
         _MCW_EM | _MCW_DN | _MCW_RC);
@@ -49,7 +49,7 @@ static errno_t GetFPUControl(unsigned int *pctrl)
 static errno_t SetFPUControl(unsigned int fpctrl)
 {
 #if _WIN32
-#if _M_AMD64 || _M_ARM
+#if _M_AMD64 || _M_ARM || _M_ARM64
     return _controlfp_s(0, fpctrl, _MCW_EM | _MCW_DN | _MCW_RC);
 #elif _M_IX86
     _control87(fpctrl, (unsigned int)(-1));
