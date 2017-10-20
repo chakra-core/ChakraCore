@@ -5391,7 +5391,7 @@ LowererMD::LoadCheckedFloat(
         this->m_func);
     instrInsert->InsertBefore(eorTag);
 
-    IR::Instr   *movFloat = IR::Instr::New(Js::OpCode::FCVT, opndFloat, s2, this->m_func);
+    IR::Instr   *movFloat = IR::Instr::New(Js::OpCode::FMOV_GEN, opndFloat, s2, this->m_func);
     instrInsert->InsertBefore(movFloat);
 
     return instrFirst;
