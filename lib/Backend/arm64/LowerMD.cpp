@@ -1096,7 +1096,8 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
             // ARM64 stack needs SP to be 16 byte aligned and we use STP to push registers, keep no. of registers even and push a extra register
             Assert(firstUnusedDoubleReg != RegNOREG);
             Assert(!this->m_func->m_regsUsed.Test(firstUnusedDoubleReg));
-            usedDoubleRegs.Set(RegEncode[firstUnusedDoubleReg] - RegEncode[RegD0]);
+            regEncode = RegEncode[firstUnusedDoubleReg] - RegEncode[RegD0];
+            usedDoubleRegs.Set(regEncode);
             doubleRegCount++;
         }
 
@@ -1321,16 +1322,17 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         for (RegNum reg = FIRST_CALLEE_SAVED_DBL_REG; reg <= LAST_CALLEE_SAVED_DBL_REG; reg = (RegNum)(reg + 1))
         {
             Assert(LinearScan::IsCalleeSaved(reg));
-            if (usedDoubleRegs.Test(RegEncode[reg]))
+            regEncode = RegEncode[reg] - RegEncode[RegD0];
+            if (usedDoubleRegs.Test(regEncode))
             {
                 if (src1 == nullptr)
                 {
-                    src1 = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
+                    src1 = IR::RegOpnd::New(reg, TyMachDouble, this->m_func);
                 }
                 else
                 {
                     Assert(src2 == nullptr);
-                    src2 = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
+                    src2 = IR::RegOpnd::New(reg, TyMachDouble, this->m_func);
                 }
             }
 
@@ -1565,7 +1567,7 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
         usedRegs.Set(regEncode);
     }
 
-    BVUnit savedDoubleRegs(this->m_func->m_unwindInfo.GetDoubleSavedRegList());
+    BVUnit32 savedDoubleRegs(this->m_func->m_unwindInfo.GetDoubleSavedRegList());
 
     if (usedRegs.IsEmpty() && savedDoubleRegs.IsEmpty())
     {
@@ -1662,16 +1664,16 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
         {
             Assert(LinearScan::IsCalleeSaved(reg));
             Assert(reg != RegLR);
-            if (savedDoubleRegs.Test(RegEncode[reg]))
+            if (savedDoubleRegs.Test(RegEncode[reg] - RegEncode[RegD0]))
             {
                 if (reg1Opnd == nullptr)
                 {
-                    reg1Opnd = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
+                    reg1Opnd = IR::RegOpnd::New(reg, TyMachDouble, this->m_func);
                 }
                 else
                 {
                     Assert(reg2Opnd == nullptr);
-                    reg2Opnd = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
+                    reg2Opnd = IR::RegOpnd::New(reg, TyMachDouble, this->m_func);
                 }
             }
 
@@ -7927,6 +7929,8 @@ LowererMD::LoadFloatZero(IR::Opnd * opndDst, IR::Instr * instrInsert)
 {
     Assert(opndDst->GetType() == TyFloat64);
     IR::Opnd * zero = IR::MemRefOpnd::New(instrInsert->m_func->GetThreadContextInfo()->GetDoubleZeroAddr(), TyFloat64, instrInsert->m_func, IR::AddrOpndKindDynamicDoubleRef);
+
+    // Todo(magardn): Make sure the correct opcode is used for moving between float and non-float regs (FMOV_GEN)
     return Lowerer::InsertMove(opndDst, zero, instrInsert);
 }
 
@@ -8014,20 +8018,6 @@ IR::RegOpnd* LowererMD::CheckFloatAndUntag(IR::RegOpnd * opndSrc, IR::Instr * in
     instr = IR::Instr::New(Js::OpCode::FMOV_GEN, floatReg, untaggedFloat, this->m_func);
     insertInstr->InsertBefore(instr);
     return floatReg;
-}
-
-void LowererMD::LoadFloatValue(IR::RegOpnd * javascriptNumber, IR::RegOpnd * opndFloat, IR::LabelInstr * labelHelper, IR::Instr * instrInsert, const bool checkForNullInLoopBody)
-{
-    IR::Instr* instr;
-    IR::Opnd* opnd;
-
-    // Make sure it is float
-    this->GenerateFloatTest(javascriptNumber, instrInsert, labelHelper, checkForNullInLoopBody);
-
-    // VLDR opndFloat, [number + offsetof(value)]
-    opnd = IR::IndirOpnd::New(javascriptNumber, Js::JavascriptNumber::GetValueOffset(), TyMachDouble, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::FLDR, opndFloat, opnd, this->m_func);
-    instrInsert->InsertBefore(instr);
 }
 
 template <bool verify>
