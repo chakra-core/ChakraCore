@@ -565,19 +565,22 @@ int EncoderMD::EmitConditionalSelect(Arm64CodeEmitter &Emitter, IR::Instr *instr
 template<typename _Emitter>
 int EncoderMD::EmitOp2FpRegister(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitter emitter)
 {
-    IR::Opnd* dst = instr->GetDst();
-    IR::Opnd* src1 = instr->GetSrc1();
+    return EmitOp2FpRegister(Emitter, instr->GetDst(), instr->GetSrc1(), emitter);
+}
 
-    Assert(dst->IsRegOpnd());
-    Assert(src1->IsRegOpnd());
+template<typename _Emitter>
+int EncoderMD::EmitOp2FpRegister(Arm64CodeEmitter &Emitter, IR::Opnd* opnd1, IR::Opnd* opnd2, _Emitter emitter)
+{
+    Assert(opnd1->IsRegOpnd());
+    Assert(opnd2->IsRegOpnd());
 
-    int size = dst->GetSize();
+    int size = opnd1->GetSize();
     Assert(size == 4 || size == 8);
-    Assert(size == src1->GetSize());
+    Assert(size == opnd2->GetSize());
 
     NEON_SIZE neonSize = (size == 8) ? SIZE_1D : SIZE_1S;
 
-    return emitter(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), this->GetFloatRegEncode(src1->AsRegOpnd()), neonSize);
+    return emitter(Emitter, this->GetFloatRegEncode(opnd1->AsRegOpnd()), this->GetFloatRegEncode(opnd2->AsRegOpnd()), neonSize);
 }
 
 template<typename _Emitter>
@@ -1072,7 +1075,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         break;
 
     case Js::OpCode::FCMP:
-        bytes = this->EmitOp2FpRegister(Emitter, instr, EmitNeonFcmp);
+        bytes = this->EmitOp2FpRegister(Emitter, instr->GetSrc1(), instr->GetSrc2(), EmitNeonFcmp);
         break;
 
     case Js::OpCode::FCVT:
