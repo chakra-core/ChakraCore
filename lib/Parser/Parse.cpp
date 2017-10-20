@@ -5194,6 +5194,10 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
             bool isRedecl = false;
             ParseNodePtr vardecl = CreateVarDeclNode(pnodeFnc->sxFnc.pnodeName->sxVar.pid, STVariable, false, nullptr, false, &isRedecl);
             vardecl->sxVar.isBlockScopeFncDeclVar = true;
+            if (vardecl->sxVar.sym->GetIsFormal())
+            {
+                GetCurrentFunctionNode()->sxFnc.SetHasAnyWriteToFormals(true);
+            }
             if (isRedecl)
             {
                 vardecl->sxVar.sym->SetHasBlockFncVarRedecl();
