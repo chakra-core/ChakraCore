@@ -2067,18 +2067,16 @@ namespace Js
         case AsmJsRetType::Uint32x4:
         case AsmJsRetType::Uint16x8:
         case AsmJsRetType::Uint8x16:
-#ifdef ENABLE_SIMDJS
-            if (function->GetScriptContext()->GetConfig()->IsSimdjsEnabled())
-            {
-                *(AsmJsSIMDValue*)retDst = asmJsReturn.simd;
-                break;
-            }
-#endif
+
+#if defined(ENABLE_WASM_SIMD) || defined(ENABLE_SIMDJS)
 
 #ifdef ENABLE_WASM_SIMD
             if (function->GetScriptContext()->GetConfig()->IsWasmSimdEnabled())
+#elif ENABLE_SIMDJS
+            if (function->GetScriptContext()->GetConfig()->IsSimdjsEnabled())
+#endif
             {
-                function->GetScriptContext()->asmJsReturnValue.simdVal = asmJsReturn.simd;
+                *(AsmJsSIMDValue*)retDst = asmJsReturn.simd;
                 break;
             }
 #endif
