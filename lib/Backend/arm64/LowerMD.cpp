@@ -6317,7 +6317,7 @@ LowererMD::LowerInt4NegWithBailOut(
 
     // Lower the instruction
     instr->m_opcode = Js::OpCode::SUBS;
-    instr->SetSrc2(instr->GetSrc1());
+    instr->SetSrc2(instr->UnlinkSrc1());
     instr->SetSrc1(IR::RegOpnd::New(nullptr, RegZR, TyMachReg, instr->m_func));
     Legalize(instr);
 
