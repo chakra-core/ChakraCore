@@ -259,6 +259,8 @@ namespace Js {
         // Lookup the name in the function environment if provided, then the module environment
         // indicate the origin of the symbol if specified
         AsmJsSymbol* LookupIdentifier( PropertyName name, AsmJsFunc* func = nullptr, AsmJsLookupSource::Source* lookupSource = nullptr );
+        template<typename T>
+        T* LookupIdentifier(PropertyName name);
         AsmJsFunctionDeclaration* LookupFunction( PropertyName name );
         bool DefineIdentifier( PropertyName name, AsmJsSymbol* symbol );
         bool AddNumericVar( PropertyName name, ParseNode* pnode, bool isFloat, bool isMutable = true);
@@ -321,6 +323,20 @@ namespace Js {
         bool IsSimdjsEnabled() { return GetScriptContext()->GetConfig()->IsSimdjsEnabled(); }
 #endif
     };
+
+    template<typename T>
+    T* Js::AsmJsModuleCompiler::LookupIdentifier(PropertyName name)
+    {
+        if (name)
+        {
+            AsmJsSymbol* sym = LookupIdentifier(name);
+            if (T::Is(sym))
+            {
+                return T::FromSymbol(sym);
+            }
+        }
+        return nullptr;
+    }
 
     struct AsmJsSlot
     {

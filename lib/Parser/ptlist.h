@@ -10,7 +10,7 @@
 //
 //     Node oper
 //                    , "Node name"
-//                                          , pcode
+//                                         , pcode
 //                                                    , parse node kind
 //                                                                  , flags
 //                                                                                          , JSON Name
@@ -22,14 +22,12 @@ PTNODE(knopNone       , "<none>"           , Nop      , None        , fnopNone  
     Leaf nodes.
 ***************************************************************************/
 PTNODE(knopName       , "name"             , Nop      , Pid         , fnopLeaf              , "NameExpr"                       )
+PTNODE(knopSpecialName, "special name"     , Nop      , SpecialName , fnopLeaf              , "SpecialNameExpr"                )
 PTNODE(knopInt        , "int const"        , Nop      , Int         , fnopLeaf|fnopConst    , "NumberLit"                      )
-PTNODE(knopImport     , "import"           , Nop      , None        , fnopLeaf              , "ImportExpr"                      )
+PTNODE(knopImport     , "import"           , Nop      , None        , fnopLeaf              , "ImportExpr"                     )
 PTNODE(knopFlt        , "flt const"        , Nop      , Flt         , fnopLeaf|fnopConst    , "NumberLit"                      )
 PTNODE(knopStr        , "str const"        , Nop      , Pid         , fnopLeaf|fnopConst    , "StringLit"                      )
 PTNODE(knopRegExp     , "reg expr"         , Nop      , Pid         , fnopLeaf|fnopConst    , "RegExprLit"                     )
-PTNODE(knopThis       , "this"             , Nop      , None        , fnopLeaf              , "ThisExpr"                       )
-PTNODE(knopSuper      , "super"            , Nop      , None        , fnopLeaf              , "SuperExpr"                      )
-PTNODE(knopNewTarget  , "new.target"       , Nop      , None        , fnopLeaf              , "NewTargetExpr"                  )
 PTNODE(knopNull       , "null"             , Nop      , None        , fnopLeaf              , "NullLit"                        )
 PTNODE(knopFalse      , "false"            , Nop      , None        , fnopLeaf              , "FalseLit"                       )
 PTNODE(knopTrue       , "true"             , Nop      , None        , fnopLeaf              , "TrueLit"                        )
@@ -157,6 +155,8 @@ PTNODE(knopObjectPatternMember, "{:} = "   , Nop      , Bin         , fnopBin   
 PTNODE(knopArrayPattern, "[] = "           , Nop      , ArrLit      , fnopUni                , "ArrayAssignmentPattern"        )
 PTNODE(knopParamPattern, "({[]})"          , Nop      , ParamPattern, fnopUni                , "DestructurePattern"            )
 PTNODE(knopExportDefault, "export default" , Nop      , ExportDefault,fnopNone               , "ExportDefault"                 )
+PTNODE(knopSuperReference, "super ref"     , Nop      , SuperReference, fnopBin              , "SuperReference"                )
+PTNODE(knopSuperCall  , "super call"       , Nop      , SuperCall   , fnopBin                , "SuperCall"                     )
 
 
 #undef PTNODE

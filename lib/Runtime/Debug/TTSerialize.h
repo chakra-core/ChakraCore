@@ -187,7 +187,7 @@ namespace TTD
 
         ////
 
-        virtual void WriteSeperator(NSTokens::Separator separator) = 0;
+        virtual void WriteSeparator(NSTokens::Separator separator) = 0;
         virtual void WriteKey(NSTokens::Key key, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
 
         void WriteLengthValue(uint32 length, NSTokens::Separator separator = NSTokens::Separator::NoSeparator);
@@ -270,7 +270,7 @@ namespace TTD
 
         ////
 
-        virtual void WriteSeperator(NSTokens::Separator separator) override;
+        virtual void WriteSeparator(NSTokens::Separator separator) override;
         virtual void WriteKey(NSTokens::Key key, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
 
         virtual void WriteSequenceStart(NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
@@ -317,7 +317,7 @@ namespace TTD
 
         ////
 
-        virtual void WriteSeperator(NSTokens::Separator separator) override;
+        virtual void WriteSeparator(NSTokens::Separator separator) override;
         virtual void WriteKey(NSTokens::Key key, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
 
         virtual void WriteSequenceStart(NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
@@ -506,7 +506,7 @@ namespace TTD
         FileReader(JsTTDStreamHandle handle, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~FileReader();
 
-        virtual void ReadSeperator(bool readSeparator) = 0;
+        virtual void ReadSeparator(bool readSeparator) = 0;
         virtual void ReadKey(NSTokens::Key keyCheck, bool readSeparator = false) = 0;
 
         uint32 ReadLengthValue(bool readSeparator = false);
@@ -620,7 +620,7 @@ namespace TTD
         TextFormatReader(JsTTDStreamHandle handle, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~TextFormatReader();
 
-        virtual void ReadSeperator(bool readSeparator) override;
+        virtual void ReadSeparator(bool readSeparator) override;
         virtual void ReadKey(NSTokens::Key keyCheck, bool readSeparator = false) override;
 
         virtual void ReadSequenceStart(bool readSeparator = false) override;
@@ -662,7 +662,7 @@ namespace TTD
         BinaryFormatReader(JsTTDStreamHandle handle, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~BinaryFormatReader();
 
-        virtual void ReadSeperator(bool readSeparator) override;
+        virtual void ReadSeparator(bool readSeparator) override;
         virtual void ReadKey(NSTokens::Key keyCheck, bool readSeparator = false) override;
 
         virtual void ReadSequenceStart(bool readSeparator = false) override;
@@ -715,7 +715,7 @@ namespace TTD
     void SetDiagnosticOriginInformation(DiagnosticOrigin& info, uint32 sourceLine, uint64 eTime, uint64 fTime, uint64 lTime);
 
     void EmitDiagnosticOriginInformation(const DiagnosticOrigin& info, FileWriter* writer, NSTokens::Separator separator);
-    void ParseDiagnosticOriginInformation(DiagnosticOrigin& info, bool readSeperator, FileReader* reader);
+    void ParseDiagnosticOriginInformation(DiagnosticOrigin& info, bool readSeparator, FileReader* reader);
 #endif
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE

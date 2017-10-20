@@ -25,6 +25,7 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF3_WMS( CUSTOM_ASMJS     , I_Call       , OP_I_AsmCall                 , AsmCall             )
   DEF3_WMS( CUSTOM_ASMJS     , ProfiledI_Call, OP_ProfiledI_AsmCall        , ProfiledAsmCall     )
   DEF3_WMS( CUSTOM_ASMJS     , Call         , OP_AsmCall                   , AsmCall             )
+  DEF3    ( CUSTOM_ASMJS     , CheckHeap    , OP_EnsureHeapAttached        , Empty               )
   DEF2_WMS( D1toR1Out        , I_ArgOut_Db  , OP_I_SetOutAsmDb                                   ) // set double as internal outparam
   DEF2_WMS( D1toR1Out        , ArgOut_Db    , OP_SetOutAsmDb                                     ) // convert double to var and set it as outparam
   DEF2_WMS( I1toR1Out        , I_ArgOut_Int , OP_I_SetOutAsmInt                                  ) // set int as internal outparam
@@ -89,6 +90,13 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2_WMS( F1toF1Mem        , Return_Flt   , (float)                                            )
   DEF2_WMS( I1toI1Mem        , Return_Int   , (int)                                              )
   DEF2_WMS( L1toL1Mem        , Return_Long  , (int64)                                            )
+
+// Wasm Sign Extension operators
+  DEF2_WMS( I1toI1Mem        , I32Extend8_s , (Wasm::WasmMath::SignExtend<int32, int8> )         )
+  DEF2_WMS( I1toI1Mem        , I32Extend16_s, (Wasm::WasmMath::SignExtend<int32, int16>)         )
+  DEF2_WMS( L1toL1Mem        , I64Extend8_s , (Wasm::WasmMath::SignExtend<int64, int8> )         )
+  DEF2_WMS( L1toL1Mem        , I64Extend16_s, (Wasm::WasmMath::SignExtend<int64, int16>)         )
+  DEF2_WMS( L1toL1Mem        , I64Extend32_s, (Wasm::WasmMath::SignExtend<int64, int32>)         )
 
   DEF2_WMS( I1toI1Mem        , BeginSwitch_Int, (int)                                            )
   DEF2    ( BR_ASM           , EndSwitch_Int, OP_Br                                              )

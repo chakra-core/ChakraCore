@@ -652,5 +652,10 @@ namespace Js
          //Return true if this type handler is reseattable/false if we don't want to try
          virtual bool IsResetableForTTD(uint32 snapMaxIndex) const;
 #endif
+
+#if DBG_DUMP
+    public:
+         virtual void Dump(unsigned indent = 0) const;
+#endif
     };
 }

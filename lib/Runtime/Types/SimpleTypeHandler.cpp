@@ -492,7 +492,7 @@ namespace Js
         // or we have to add it to the dictionary, in which case we need to get or create a PropertyRecord.
         // Thus, just get or create one and call the PropertyId overload of SetProperty.
         PropertyRecord const* propertyRecord;
-        instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+        instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         return SimpleTypeHandler<size>::SetProperty(instance, propertyRecord->GetPropertyId(), value, flags, info);
     }
 
@@ -1136,6 +1136,14 @@ namespace Js
         return Js::Constants::NoBigSlot;
     }
 
+#endif
+
+#if DBG_DUMP
+    template<size_t size>
+    void SimpleTypeHandler<size>::Dump(unsigned indent) const
+    {
+        Output::Print(_u("%*sSimpleTypeHandler<%u> (0x%p): Dump unimplemented\n"), indent, _u(""), size, this);
+    }
 #endif
 
     template class SimpleTypeHandler<1>;

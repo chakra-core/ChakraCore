@@ -34,6 +34,15 @@ bool MarkContext::AddMarkedObject(void * objectAddress, size_t objectSize)
     return markStack.Push(markCandidate);
 }
 
+#ifdef RECYCLER_VISITED_HOST
+inline bool MarkContext::AddPreciselyTracedObject(IRecyclerVisitedObject* obj)
+{
+    FAULTINJECT_MEMORY_MARK_NOTHROW(_u("AddPreciselyTracedObject"), 0);
+
+    return preciseStack.Push(obj);
+}
+#endif
+
 #if ENABLE_CONCURRENT_GC
 inline
 bool MarkContext::AddTrackedObject(FinalizableObject * obj)
@@ -134,12 +143,6 @@ void MarkContext::Mark(void * candidate, void * parentReference)
 
     if (interior)
     {
-#if ENABLE_CONCURRENT_GC
-        Assert(recycler->enableScanInteriorPointers
-            || (!recycler->IsConcurrentState() && recycler->collectionState != CollectionStateParallelMark));
-#else
-        Assert(recycler->enableScanInteriorPointers || recycler->collectionState != CollectionStateParallelMark);
-#endif
         recycler->heapBlockMap.MarkInterior<parallel>(candidate, this);
         return;
     }
@@ -194,41 +197,64 @@ void MarkContext::ProcessMark()
     }
 #endif
 
-#if defined(_M_IX86) || defined(_M_X64)
-    MarkCandidate current, next;
-
-    while (markStack.Pop(&current))
+#ifdef RECYCLER_VISITED_HOST
+    // Flip between processing the generic mark stack (conservatively traced with ScanMemory) and
+    // the precise stack (precisely traced via IRecyclerVisitedObject::Trace). Each of those
+    // operations on an object has the potential to add new marked objects to either or both
+    // stacks so we must loop until they are both empty.
+    while (!markStack.IsEmpty() || !preciseStack.IsEmpty())
+#endif
     {
-        // Process entries and prefetch as we go.
-        while (markStack.Pop(&next))
-        {
-            // Prefetch the next entry so it's ready when we need it.
-            _mm_prefetch((char *)next.obj, _MM_HINT_T0);
+#if defined(_M_IX86) || defined(_M_X64)
+        MarkCandidate current, next;
 
-            // Process the previously retrieved entry.
+        while (markStack.Pop(&current))
+        {
+            // Process entries and prefetch as we go.
+            while (markStack.Pop(&next))
+            {
+                // Prefetch the next entry so it's ready when we need it.
+                _mm_prefetch((char *)next.obj, _MM_HINT_T0);
+
+                // Process the previously retrieved entry.
+                ScanObject<parallel, interior>(current.obj, current.byteCount);
+
+                _mm_prefetch((char *)*(next.obj), _MM_HINT_T0);
+
+                current = next;
+            }
+
+            // The stack is empty, but we still have a previously retrieved entry; process it now.
             ScanObject<parallel, interior>(current.obj, current.byteCount);
 
-            _mm_prefetch((char *)*(next.obj), _MM_HINT_T0);
-
-            current = next;
+            // Processing that entry may have generated more entries in the mark stack, so continue the loop.
         }
-
-        // The stack is empty, but we still have a previously retrieved entry; process it now.
-        ScanObject<parallel, interior>(current.obj, current.byteCount);
-
-        // Processing that entry may have generated more entries in the mark stack, so continue the loop.
-    }
 #else
-    // _mm_prefetch intrinsic is specific to Intel platforms.
-    // CONSIDER: There does seem to be a compiler intrinsic for prefetch on ARM,
-    // however, the information on this is scarce, so for now just don't do prefetch on ARM.
-    MarkCandidate current;
+        // _mm_prefetch intrinsic is specific to Intel platforms.
+        // CONSIDER: There does seem to be a compiler intrinsic for prefetch on ARM,
+        // however, the information on this is scarce, so for now just don't do prefetch on ARM.
+        MarkCandidate current;
 
-    while (markStack.Pop(&current))
-    {
-        ScanObject<parallel, interior>(current.obj, current.byteCount);
-    }
+        while (markStack.Pop(&current))
+        {
+            ScanObject<parallel, interior>(current.obj, current.byteCount);
+        }
 #endif
 
-    Assert(markStack.IsEmpty());
+        Assert(markStack.IsEmpty());
+
+#ifdef RECYCLER_VISITED_HOST
+        if (!preciseStack.IsEmpty())
+        {
+            MarkContextWrapper<parallel> markContextWrapper(this);
+            IRecyclerVisitedObject* tracedObject;
+            while (preciseStack.Pop(&tracedObject))
+            {
+                tracedObject->Trace(&markContextWrapper);
+            }
+        }
+
+        Assert(preciseStack.IsEmpty());
+#endif
+    }
 }

@@ -223,4 +223,10 @@ inline int64 WasmMath::Ror(int64 aLeft, int64 aRight)
     return _rotr64(aLeft, (int)aRight);
 }
 
+template<typename To, typename From>
+To WasmMath::SignExtend(To value)
+{
+    return static_cast<To>(static_cast<From>(value));
+}
+
 }

@@ -35,7 +35,6 @@
         $(MSBuildThisFileDirectory)..\..\Runtime\Math;
         $(MSBuildThisFileDirectory)..\..\JITClient;
         $(ChakraJITIDLIntDir);
-        $(IcuIncludeDir)\common;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>

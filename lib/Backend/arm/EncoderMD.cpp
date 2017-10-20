@@ -2236,8 +2236,9 @@ EncoderMD::BaseAndOffsetFromSym(IR::SymOpnd *symOpnd, RegNum *pBaseReg, int32 *p
         Assert(offset >= 0);
         Assert(baseReg != RegSP || (uint)offset >= (func->m_argSlotsForFunctionsCalled * MachRegInt));
 
-        if (func->HasInlinee())
+        if (func->GetMaxInlineeArgOutSize() != 0)
         {
+            Assert(func->HasInlinee());
             Assert(baseReg == RegSP);
             if (stackSym->IsArgSlotSym() && !stackSym->m_isOrphanedArg)
             {

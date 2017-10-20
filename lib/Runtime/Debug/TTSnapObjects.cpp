@@ -328,7 +328,7 @@ namespace TTD
                         {
                             //get the value to see if it is alreay ok
                             Js::Var currentValue = nullptr;
-                            Js::JavascriptOperators::GetOwnProperty(obj, pid, &currentValue, obj->GetScriptContext());
+                            Js::JavascriptOperators::GetOwnProperty(obj, pid, &currentValue, obj->GetScriptContext(), nullptr);
 
                             if(currentValue == pVal)
                             {
@@ -499,9 +499,9 @@ namespace TTD
             writer->WriteRecordEnd(NSTokens::Separator::BigSpaceSeparator);
         }
 
-        void ParseObject(SnapObject* snpObject, bool readSeperator, FileReader* reader, SlabAllocator& alloc, const SnapObjectVTable* vtable, const TTDIdentifierDictionary<TTD_PTR_ID, NSSnapType::SnapType*>& ptrIdToTypeMap)
+        void ParseObject(SnapObject* snpObject, bool readSeparator, FileReader* reader, SlabAllocator& alloc, const SnapObjectVTable* vtable, const TTDIdentifierDictionary<TTD_PTR_ID, NSSnapType::SnapType*>& ptrIdToTypeMap)
         {
-            reader->ReadRecordStart(readSeperator);
+            reader->ReadRecordStart(readSeparator);
 
             snpObject->ObjectPtrId = reader->ReadAddr(NSTokens::Key::objectId);
             snpObject->SnapObjectTag = reader->ReadTag<SnapObjectType>(NSTokens::Key::objectType, true);

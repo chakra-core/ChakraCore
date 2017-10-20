@@ -616,7 +616,35 @@ namespace Js
         }
         return nullptr;
     }
-
+#if ENABLE_NATIVE_CODEGEN
+    void JavascriptStackWalker::WalkAndClearInlineeFrameCallInfoOnException()
+    {
+        // Walk the stack and when we find the first JavascriptFrame, we clear the inlinee's callinfo for this frame
+        // It is sufficient we stop at the first Javascript frame which had the enclosing try-catch
+        // TODO : Revisit when we start inlining functions with try-catch/try-finally
+        while (this->Walk(true))
+        {
+            if (this->IsJavascriptFrame())
+            {
+                if (!this->isNativeLibraryFrame)
+                {
+                    if (HasInlinedFramesOnStack())
+                    {
+                        for (int index = inlinedFrameWalker.GetFrameCount() - 1; index >= 0; index--)
+                        {
+                            auto inlinedFrame = inlinedFrameWalker.GetFrameAtIndex(index);
+                            inlinedFrame->callInfo.Clear();
+                        }
+                    }
+                    if (this->currentFrame.GetFrame() == this->scriptContext->GetThreadContext()->GetTryCatchFrameAddr())
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+#endif
     // Note: noinline is to make sure that when we unwind to the unwindToAddress, there is at least one frame to unwind.
     _NOINLINE
     JavascriptStackWalker::JavascriptStackWalker(ScriptContext * scriptContext, bool useEERContext, PVOID returnAddress, bool _forceFullWalk /*=false*/) :

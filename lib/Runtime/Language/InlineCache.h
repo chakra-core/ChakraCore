@@ -268,14 +268,6 @@ namespace Js
             Type *const type,
             ScriptContext *const requestContext);
 
-        void CacheMissing(
-            DynamicObject *const missingPropertyHolder,
-            const PropertyId propertyId,
-            const PropertyIndex propertyIndex,
-            const bool isInlineSlot,
-            Type *const type,
-            ScriptContext *const requestContext);
-
         void CacheAccessor(
             const bool isGetter,
             const PropertyId propertyId,

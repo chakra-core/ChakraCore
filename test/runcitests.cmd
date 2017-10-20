@@ -69,6 +69,7 @@ set _HadFailures=0
   :: Include _RunAll in the check because if it is specified it
   :: should trump this early out.
   if "%_RunAll%%_BuildArch%" == "arm" goto :noTests
+  if "%_RunAll%%_BuildArch%" == "arm64" goto :noTests
   if "%_RunAll%%_BuildType%" == "release" goto :noTests
 
   pushd %_RootDir%\test

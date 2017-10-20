@@ -19,7 +19,7 @@ namespace TTD
 
         if(this->m_marks.MarkAndTestAddr<MarkTableTag::TypeTag>(type))
         {
-            if(Js::DynamicType::Is(type->GetTypeId()))
+            if(Js::DynamicType::Is(type))
             {
                 Js::DynamicTypeHandler* handler = (static_cast<Js::DynamicType*>(type))->GetTypeHandler();
 
@@ -68,14 +68,12 @@ namespace TTD
     {
         if(this->m_marks.IsMarked(jstype))
         {
-            if(Js::DynamicType::Is(jstype->GetTypeId()))
+            NSSnapType::SnapHandler* sHandler = nullptr;
+
+            if(Js::DynamicType::Is(jstype))
             {
                 this->ExtractHandlerIfNeeded(static_cast<Js::DynamicType*>(jstype)->GetTypeHandler(), threadContext);
-            }
 
-            NSSnapType::SnapHandler* sHandler = nullptr;
-            if(Js::DynamicType::Is(jstype->GetTypeId()))
-            {
                 Js::DynamicTypeHandler* dhandler = static_cast<const Js::DynamicType*>(jstype)->GetTypeHandler();
 
                 TTD_PTR_ID handlerId = TTD_CONVERT_TYPEINFO_TO_PTR_ID(dhandler);
@@ -100,7 +98,8 @@ namespace TTD
             slotInfo->SlotId = TTD_CONVERT_VAR_TO_PTR_ID(scope);
             slotInfo->ScriptContextLogId = ctx->ScriptContextLogTag;
 
-            slotInfo->SlotCount = slots.GetCount();
+            slotInfo->SlotCount = static_cast<uint>(slots.GetCount());
+
             slotInfo->Slots = this->m_pendingSnap->GetSnapshotSlabAllocator().SlabAllocateArray<TTDVar>(slotInfo->SlotCount);
 
             for(uint32 j = 0; j < slotInfo->SlotCount; ++j)
@@ -324,8 +323,7 @@ namespace TTD
                     if(this->m_marks.MarkAndTestAddr<MarkTableTag::SlotArrayTag>(scope))
                     {
                         Js::ScopeSlots slotArray = (Js::Var*)scope;
-                        uint slotArrayCount = slotArray.GetCount();
-
+                        uint slotArrayCount = static_cast<uint>(slotArray.GetCount());
                         if(slotArray.IsFunctionScopeSlotArray())
                         {
                             this->MarkFunctionBody(slotArray.GetFunctionInfo()->GetFunctionBody());

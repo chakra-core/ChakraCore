@@ -29,6 +29,30 @@ SmallFinalizableWithBarrierHeapBlockT<TBlockAttributes>::Delete(SmallFinalizable
 }
 #endif
 
+#ifdef RECYCLER_VISITED_HOST
+template <class TBlockAttributes>
+SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>*
+SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::New(HeapBucketT<SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>> * bucket)
+{
+    CompileAssert(TBlockAttributes::MaxObjectSize <= USHRT_MAX);
+    Assert(bucket->sizeCat <= TBlockAttributes::MaxObjectSize);
+    Assert((TBlockAttributes::PageCount * AutoSystemInfo::PageSize) / bucket->sizeCat <= USHRT_MAX);
+
+    ushort objectSize = (ushort)bucket->sizeCat;
+    ushort objectCount = (ushort)(TBlockAttributes::PageCount * AutoSystemInfo::PageSize) / objectSize;
+    return NoMemProtectHeapNewNoThrowPlusPrefixZ(Base::GetAllocPlusSize(objectCount), SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>, bucket, objectSize, objectCount);
+}
+
+template <class TBlockAttributes>
+void
+SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::Delete(SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>* heapBlock)
+{
+    Assert(heapBlock->IsRecyclerVisitedHostBlock());
+
+    NoMemProtectHeapDeletePlusPrefix(Base::GetAllocPlusSize(heapBlock->objectCount), heapBlock);
+}
+#endif
+
 template <class TBlockAttributes>
 SmallFinalizableHeapBlockT<TBlockAttributes> *
 SmallFinalizableHeapBlockT<TBlockAttributes>::New(HeapBucketT<SmallFinalizableHeapBlockT<TBlockAttributes>> * bucket)
@@ -74,6 +98,20 @@ SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::SmallFinalizableHea
     Assert(!this->isPendingDispose);
 }
 
+#ifdef RECYCLER_VISITED_HOST
+template <class TBlockAttributes>
+SmallFinalizableHeapBlockT<TBlockAttributes>::SmallFinalizableHeapBlockT(HeapBucketT<SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>> * bucket, ushort objectSize, ushort objectCount, HeapBlockType blockType)
+    : SmallNormalHeapBlockT<TBlockAttributes>(bucket, objectSize, objectCount, blockType)
+{
+    // We used AllocZ
+    Assert(this->finalizeCount == 0);
+    Assert(this->pendingDisposeCount == 0);
+    Assert(this->disposedObjectList == nullptr);
+    Assert(this->disposedObjectListTail == nullptr);
+    Assert(!this->isPendingDispose);
+}
+#endif
+
 #ifdef RECYCLER_WRITE_BARRIER
 template <class TBlockAttributes>
 SmallFinalizableHeapBlockT<TBlockAttributes>::SmallFinalizableHeapBlockT(HeapBucketT<SmallFinalizableWithBarrierHeapBlockT<TBlockAttributes>> * bucket, ushort objectSize, ushort objectCount, HeapBlockType blockType)
@@ -102,6 +140,146 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::SetAttributes(void * address, unsi
     heapInfo->newFinalizableObjectCount++;
 #endif
 }
+
+#ifdef RECYCLER_VISITED_HOST
+template <class TBlockAttributes>
+void
+SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::SetAttributes(void * address, unsigned char attributes)
+{
+    // Don't call __super, since that has behavior we don't want (it asserts that FinalizeBit is set
+    // but recycler visited block allows traced only objects; it also unconditionally bumps the heap info
+    // live/new finalizable object counts which will become unbalance if FinalizeBit is not set).
+    // We do want the grandparent class behavior though, which actually sets the ObjectInfo bits.
+    SmallFinalizableHeapBlockT<TBlockAttributes>::Base::SetAttributes(address, attributes);
+
+#ifdef RECYCLER_FINALIZE_CHECK
+    if (attributes & FinalizeBit)
+    {
+        finalizeCount++;
+        HeapInfo * heapInfo = this->heapBucket->heapInfo;
+        heapInfo->liveFinalizableObjectCount++;
+        heapInfo->newFinalizableObjectCount++;
+    }
+#endif
+}
+
+template <class TBlockAttributes>
+template <bool doSpecialMark>
+_NOINLINE
+void SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::ProcessMarkedObject(void* objectAddress, MarkContext * markContext)
+{
+    unsigned char * attributes = nullptr;
+    if (!this->TryGetAddressOfAttributes(objectAddress, &attributes))
+    {
+        return;
+    }
+
+    if (!this->template UpdateAttributesOfMarkedObjects<doSpecialMark>(markContext, objectAddress, this->objectSize, *attributes,
+        [&](unsigned char _attributes) { *attributes = _attributes; }))
+    {
+        // Couldn't mark children- bail out and come back later
+        this->SetNeedOOMRescan(markContext->GetRecycler());
+    }
+}
+
+template <class TBlockAttributes>
+template <bool doSpecialMark, typename Fn>
+bool SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::UpdateAttributesOfMarkedObjects(MarkContext * markContext, void * objectAddress, size_t objectSize, unsigned char attributes, Fn fn)
+{
+    bool noOOMDuringMark = true;
+
+    if (attributes & TrackBit)
+    {
+        Assert((attributes & LeafBit) == 0);
+        IRecyclerVisitedObject* recyclerVisited = static_cast<IRecyclerVisitedObject*>(objectAddress);
+        noOOMDuringMark = markContext->AddPreciselyTracedObject(recyclerVisited);
+
+        if (noOOMDuringMark)
+        {
+            // Object has been successfully processed, so clear NewTrackBit
+            attributes &= ~NewTrackBit;
+        }
+        else
+        {
+            // Set the NewTrackBit, so that the main thread will redo tracking
+            attributes |= NewTrackBit;
+            noOOMDuringMark = false;
+        }
+        fn(attributes);
+    }
+
+#ifdef RECYCLER_STATS
+    RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), markData.markCount);
+    RECYCLER_STATS_INTERLOCKED_ADD(markContext->GetRecycler(), markData.markBytes, objectSize);
+
+    // Count track or finalize if we don't have to process it in thread because of OOM.
+    if ((attributes & (TrackBit | NewTrackBit)) != (TrackBit | NewTrackBit))
+    {
+        // Only count those we have queued, so we don't double count
+        if (attributes & TrackBit)
+        {
+            RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), trackCount);
+        }
+        if (attributes & FinalizeBit)
+        {
+            // we counted the finalizable object here,
+            // turn off the new bit so we don't count it again
+            // on Rescan
+            attributes &= ~NewFinalizeBit;
+            fn(attributes);
+            RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), finalizeCount);
+        }
+    }
+#endif
+
+    return noOOMDuringMark;
+}
+
+// static
+template <class TBlockAttributes>
+bool
+SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::RescanObject(SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes> * block, __in_ecount(localObjectSize) char * objectAddress, uint localObjectSize,
+    uint objectIndex, Recycler * recycler)
+{
+    unsigned char const attributes = block->ObjectInfo(objectIndex);
+
+    if ((attributes & TrackBit) != 0)
+    {
+        Assert((attributes & LeafBit) == 0);
+        Assert(block->GetAddressIndex(objectAddress) != SmallHeapBlockT<TBlockAttributes>::InvalidAddressBit);
+
+        if (!recycler->AddPreciselyTracedMark(reinterpret_cast<IRecyclerVisitedObject*>(objectAddress)))
+        {
+            // Failed to add to the mark stack due to OOM.
+            return false;
+        }
+
+        // We have processed this object as tracked, we can clear the NewTrackBit
+        block->ObjectInfo(objectIndex) &= ~NewTrackBit;
+        RECYCLER_STATS_INC(recycler, trackCount);
+
+        RECYCLER_STATS_INC(recycler, markData.rescanObjectCount);
+        RECYCLER_STATS_ADD(recycler, markData.rescanObjectByteCount, localObjectSize);
+    }
+
+#ifdef RECYCLER_STATS
+    if (attributes & FinalizeBit)
+    {
+        // Concurrent thread mark the object before the attribute is set and missed the finalize count
+        // For finalized object, we will always write a dummy vtable before returning to the call,
+        // so the page will always need to be rescanned, and we can count those here.
+
+        // NewFinalizeBit is cleared if the background thread has already counted the object.
+        // So if it is still set here, we need to count it
+
+        RECYCLER_STATS_INC_IF(attributes & NewFinalizeBit, recycler, finalizeCount);
+        block->ObjectInfo(objectIndex) &= ~NewFinalizeBit;
+    }
+#endif
+
+    return true;
+}
+#endif
 
 template <class TBlockAttributes>
 bool
@@ -476,6 +654,14 @@ namespace Memory
     template class SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>;
     template void SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<true>(void* objectAddress, MarkContext * markContext);;
     template void SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<false>(void* objectAddress, MarkContext * markContext);;
+#ifdef RECYCLER_VISITED_HOST
+    template class SmallRecyclerVisitedHostHeapBlockT<SmallAllocationBlockAttributes>;
+    template void SmallRecyclerVisitedHostHeapBlockT<SmallAllocationBlockAttributes>::ProcessMarkedObject<true>(void* objectAddress, MarkContext * markContext);
+    template void SmallRecyclerVisitedHostHeapBlockT<SmallAllocationBlockAttributes>::ProcessMarkedObject<false>(void* objectAddress, MarkContext * markContext);
+    template class SmallRecyclerVisitedHostHeapBlockT<MediumAllocationBlockAttributes>;
+    template void SmallRecyclerVisitedHostHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<true>(void* objectAddress, MarkContext * markContext);;
+    template void SmallRecyclerVisitedHostHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<false>(void* objectAddress, MarkContext * markContext);;
+#endif
 
 #ifdef RECYCLER_WRITE_BARRIER
     template class SmallFinalizableWithBarrierHeapBlockT<SmallAllocationBlockAttributes>;

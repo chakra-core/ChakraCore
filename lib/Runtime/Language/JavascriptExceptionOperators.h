@@ -43,6 +43,17 @@ namespace Js
             ~AutoCatchHandlerExists();
         };
 
+        class TryCatchFrameAddrStack
+        {
+          private:
+            void * m_prevTryCatchFrameAddr;
+            ThreadContext* m_threadContext;
+
+          public:
+            TryCatchFrameAddrStack(ScriptContext* scriptContext, void *frameAddr);
+            ~TryCatchFrameAddrStack();
+        };
+
         static void __declspec(noreturn) OP_Throw(Var object, ScriptContext* scriptContext);
         static void __declspec(noreturn) Throw(Var object, ScriptContext* scriptContext);
         static void __declspec(noreturn) ThrowExceptionObject(Js::JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext, bool considerPassingToDebugger = false, PVOID returnAddress = NULL, bool resetStack = false);
@@ -80,6 +91,9 @@ namespace Js
         static Var ThrowTypeErrorRestrictedPropertyAccessor(RecyclableObject* function, CallInfo callInfo, ...);
         static Var StackTraceAccessor(RecyclableObject* function, CallInfo callInfo, ...);
         static void WalkStackForExceptionContext(ScriptContext& scriptContext, JavascriptExceptionContext& exceptionContext, Var thrownObject, uint64 stackCrawlLimit, PVOID returnAddress, bool isThrownException = true, bool resetSatck = false);
+#if ENABLE_NATIVE_CODEGEN
+        static void WalkStackForCleaningUpInlineeInfo(ScriptContext *scriptContext, PVOID returnAddress);
+#endif
         static void AddStackTraceToObject(Var obj, JavascriptExceptionContext::StackTrace* stackTrace, ScriptContext& scriptContext, bool isThrownException = true, bool resetSatck = false);
         static uint64 StackCrawlLimitOnThrow(Var thrownObject, ScriptContext& scriptContext);
 

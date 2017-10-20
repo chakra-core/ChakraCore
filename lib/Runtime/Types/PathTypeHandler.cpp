@@ -209,7 +209,7 @@ namespace Js
     {
         // Consider: Implement actual string hash lookup
         PropertyRecord const* propertyRecord;
-        instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+        instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         return PathTypeHandlerBase::HasProperty(instance, propertyRecord->GetPropertyId());
     }
 
@@ -231,8 +231,7 @@ namespace Js
 
         // Check numeric propertyId only if objectArray available
         uint32 indexVal;
-        ScriptContext* scriptContext = instance->GetScriptContext();
-        if (instance->HasObjectArray() && scriptContext->IsNumericPropertyId(propertyId, &indexVal))
+        if (instance->HasObjectArray() && requestContext->IsNumericPropertyId(propertyId, &indexVal))
         {
             return PathTypeHandlerBase::GetItem(instance, originalInstance, indexVal, value, requestContext);
         }
@@ -274,7 +273,7 @@ namespace Js
     {
         // Consider: Implement actual string hash lookup
         PropertyRecord const* propertyRecord;
-        instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+        instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         return PathTypeHandlerBase::SetProperty(instance, propertyRecord->GetPropertyId(), value, flags, info);
     }
 
@@ -2481,6 +2480,13 @@ namespace Js
 #endif
     }
 
+#if DBG_DUMP
+    void SimplePathTypeHandler::Dump(unsigned indent) const
+    {
+        Output::Print(_u("%*sSimplePathTypeHandler (0x%p): Dump unimplemented\n"), indent, _u(""), this);
+    }
+#endif
+
     PathTypeHandler * PathTypeHandler::New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked, bool isShared, DynamicType* predecessorType)
     {
         return New(scriptContext, typePath, pathLength, max(pathLength, inlineSlotCapacity), inlineSlotCapacity, offsetOfInlineSlots, isLocked, isShared, predecessorType);
@@ -2671,4 +2677,11 @@ namespace Js
         }
         propertySuccessors->Item(propertyRecord->GetPropertyId(), typeWeakRef);
     }
+
+#if DBG_DUMP
+    void PathTypeHandler::Dump(unsigned indent) const
+    {
+        Output::Print(_u("%*sPathTypeHandler (0x%p): Dump unimplemented\n"), indent, _u(""), this);
+    }
+#endif
 }

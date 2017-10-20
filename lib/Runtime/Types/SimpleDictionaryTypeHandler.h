@@ -314,6 +314,11 @@ namespace Js
 
         virtual Js::BigPropertyIndex GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord) override;
 #endif
+
+#if DBG_DUMP
+    public:
+        void Dump(unsigned indent = 0) const override;
+#endif
     };
 
 }

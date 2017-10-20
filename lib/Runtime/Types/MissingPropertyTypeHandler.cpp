@@ -224,4 +224,11 @@ namespace Js
         Throw::FatalInternalError();
     }
 #endif
+
+#if DBG_DUMP
+    void MissingPropertyTypeHandler::Dump(unsigned indent) const
+    {
+        Output::Print(_u("%*sMissingPropertyTypeHandler (0x%p): Dump unimplemented\n"), indent, _u(""), this);
+    }
+#endif
 }

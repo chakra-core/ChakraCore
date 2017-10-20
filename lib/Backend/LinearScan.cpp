@@ -1117,6 +1117,16 @@ LinearScan::SetUses(IR::Instr *instr, IR::Opnd *opnd)
             }
         }
         break;
+
+    case IR::OpndKindList:
+    {
+        opnd->AsListOpnd()->Map([&](int i, IR::Opnd* opnd)
+        {
+            this->SetUses(instr, opnd);
+        });
+    }
+    break;
+
     case IR::OpndKindIntConst:
     case IR::OpndKindAddr:
         this->linearScanMD.LegalizeConstantUse(instr, opnd);
@@ -1412,6 +1422,14 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         // To indicate this is a subsequent bailout from an inlinee
         bailOutRecord->bailOutOpcode = Js::OpCode::InlineeEnd;
 #endif
+        if (this->func->HasTry())
+        {
+            RegionType currentRegionType = this->currentRegion->GetType();
+            if (currentRegionType == RegionTypeTry || currentRegionType == RegionTypeCatch || currentRegionType == RegionTypeFinally)
+            {
+                bailOutRecord->ehBailoutData = this->currentRegion->ehBailoutData;
+            }
+        }
         funcBailOutData[funcIndex].bailOutRecord->parent = bailOutRecord;
         funcIndex--;
         funcBailOutData[funcIndex].bailOutRecord = bailOutRecord;
@@ -3372,7 +3390,7 @@ LinearScan::InsertLoad(IR::Instr *instr, StackSym *sym, RegNum reg)
             sym->m_isConst = true;
             sym->m_isIntConst = oldSym->m_isIntConst;
             sym->m_isInt64Const = oldSym->m_isInt64Const;
-            sym->m_isTaggableIntConst = sym->m_isTaggableIntConst;
+            sym->m_isTaggableIntConst = oldSym->m_isTaggableIntConst;
         }
     }
     else
@@ -3902,8 +3920,18 @@ LinearScan::ProcessSecondChanceBoundaryHelper(IR::BranchInstr *branchInstr, IR::
                     nextInstr->m_opcode != Js::OpCode::BailOutStackRestore &&
                     this->currentBlock->HasData())
                 {
-                    // Clone with shallow copy
-                    branchLabel->m_loweredBasicBlock = this->currentBlock;
+                    IR::Instr* branchNextInstr = branchInstr->GetNextRealInstrOrLabel();
+                    if (branchNextInstr->IsLabelInstr())
+                    {
+                        // Clone with shallow copy
+                        branchLabel->m_loweredBasicBlock = this->currentBlock;
+                    }
+                    else
+                    {
+                        // Dead code after the unconditional branch causes the currentBlock data to be freed later on...  
+                        // Deep copy in this case.
+                        branchLabel->m_loweredBasicBlock = this->currentBlock->Clone(this->tempAlloc);
+                    }
                 }
             }
         }

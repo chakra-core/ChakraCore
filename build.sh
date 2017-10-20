@@ -153,7 +153,7 @@ while [[ $# -gt 0 ]]; do
         ;;
 
     -v | --verbose)
-        _VERBOSE="V=1"
+        _VERBOSE="VERBOSE=1"
         ;;
 
     -d | --debug)
@@ -272,18 +272,23 @@ while [[ $# -gt 0 ]]; do
         _TARGET_OS=$1
         _TARGET_OS="${_TARGET_OS:9}"
         if [[ $_TARGET_OS =~ "android" ]]; then
-            OLD_PATH=$PATH
-            export TOOLCHAIN=$PWD/android-toolchain-arm
+            if [[ -z "$TOOLCHAIN" ]]; then
+                OLD_PATH=$PATH
+                export TOOLCHAIN=$PWD/android-toolchain-arm
+                export PATH=$TOOLCHAIN/bin:$OLD_PATH
+                export AR=arm-linux-androideabi-ar
+                export CC=arm-linux-androideabi-clang
+                export CXX=arm-linux-androideabi-clang++
+                export LINK=arm-linux-androideabi-clang++
+                export STRIP=arm-linux-androideabi-strip
+                # override CXX and CC
+                _CXX="${TOOLCHAIN}/bin/${CXX}"
+                _CC="${TOOLCHAIN}/bin/${CC}"
+            fi
             TARGET_OS="-DCC_TARGET_OS_ANDROID_SH=1 -DANDROID_TOOLCHAIN_DIR=${TOOLCHAIN}/arm-linux-androideabi"
-            export PATH=$TOOLCHAIN/bin:$OLD_PATH
-            export AR=arm-linux-androideabi-ar
-            export CC=arm-linux-androideabi-clang
-            export CXX=arm-linux-androideabi-clang++
-            export LINK=arm-linux-androideabi-clang++
-            export STRIP=arm-linux-androideabi-strip
-            # override CXX and CC
-            _CXX="${TOOLCHAIN}/bin/${CXX}"
-            _CC="${TOOLCHAIN}/bin/${CC}"
+            # inherit CXX and CC
+            _CXX="${CXX}"
+            _CC="${CC}"
         fi
         ;;
 
@@ -521,6 +526,7 @@ BUILD_RELATIVE_DIRECTORY=$(python -c "import os.path;print \
 ################# Write-barrier check/analyze run #################
 WB_FLAG=
 WB_TARGET=
+
 if [[ $WB_CHECK || $WB_ANALYZE ]]; then
     # build software write barrier checker clang plugin
     $CHAKRACORE_DIR/tools/RecyclerChecker/build.sh --cxx=$_CXX || exit 1

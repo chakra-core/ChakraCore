@@ -102,20 +102,9 @@ namespace Js
         return NewWithBuffer(content, GetBufferLength(content), scriptContext);
     }
 
-    JavascriptString* JavascriptString::NewWithArenaSz(__in_z const char16 * content, ScriptContext * scriptContext)
-    {
-        AssertMsg(content != nullptr, "NULL value passed to JavascriptString::New");
-        return NewWithArenaBuffer(content, GetBufferLength(content), scriptContext);
-    }
-
     JavascriptString* JavascriptString::NewWithBuffer(__in_ecount(cchUseLength) const char16 * content, charcount_t cchUseLength, ScriptContext * scriptContext)
     {
         return NewWithBufferT<LiteralString, false>(content, cchUseLength, scriptContext);
-    }
-
-    JavascriptString* JavascriptString::NewWithArenaBuffer(__in_ecount(cchUseLength) const char16* content, charcount_t cchUseLength, ScriptContext* scriptContext)
-    {
-        return NewWithBufferT<ArenaLiteralString, false>(content, cchUseLength, scriptContext);
     }
 
     JavascriptString* JavascriptString::NewCopySz(__in_z const char16* content, ScriptContext* scriptContext)
@@ -126,21 +115,6 @@ namespace Js
     JavascriptString* JavascriptString::NewCopyBuffer(__in_ecount(cchUseLength) const char16* content, charcount_t cchUseLength, ScriptContext* scriptContext)
     {
         return NewWithBufferT<LiteralString, true>(content, cchUseLength, scriptContext);
-    }
-
-    JavascriptString* JavascriptString::NewCopySzFromArena(__in_z const char16* content,
-        ScriptContext* scriptContext, ArenaAllocator *arena, charcount_t cchUseLength)
-    {
-        AssertMsg(content != nullptr, "NULL value passed to JavascriptString::New");
-
-        if (!cchUseLength)
-        {
-            cchUseLength = JavascriptString::GetBufferLength(content);
-        }
-
-        char16* buffer = JavascriptString::AllocateAndCopySz(arena, content, cchUseLength);
-        return ArenaLiteralString::New(scriptContext->GetLibrary()->GetStringTypeStatic(),
-            buffer, cchUseLength, arena);
     }
 
     Var JavascriptString::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1758,7 +1732,7 @@ case_2:
 
     Var JavascriptString::GetRegExSymbolFunction(Var regExp, PropertyId propertyId, ScriptContext* scriptContext)
     {
-        return JavascriptOperators::GetProperty(
+        return JavascriptOperators::GetPropertyNoCache(
             RecyclableObject::FromVar(JavascriptOperators::ToObject(regExp, scriptContext)),
             propertyId,
             scriptContext);
@@ -3079,7 +3053,9 @@ case_2:
 
             // a. Let s be the value of value's [[StringData]] internal slot.
             // b. If s is not undefined, then return s.
-            *pString = JavascriptString::FromVar(CrossSite::MarshalVar(scriptContext, pStringObj->Unwrap()));
+            *pString = pStringObj->Unwrap();
+            *pString = JavascriptString::FromVar(CrossSite::MarshalVar(scriptContext,
+              *pString, pStringObj->GetScriptContext()));
             return TRUE;
         }
 

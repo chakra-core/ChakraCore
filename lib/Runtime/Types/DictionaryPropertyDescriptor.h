@@ -101,6 +101,11 @@ namespace Js
                 (!(this->Attributes & PropertyDeleted) && (this->Data != NoSlots || this->Getter != NoSlots || this->Setter != NoSlots)));
         }
 #endif
+
+#if DBG_DUMP
+    public:
+        void Dump(unsigned indent = 0) const;
+#endif
     };
 
 
@@ -272,7 +277,44 @@ namespace Js
 #if ENABLE_FIXED_FIELDS
         this->IsInitialized = descriptor.IsInitialized;
         this->IsFixed = descriptor.IsFixed;
-        this->UsedAsFixed = descriptor.UsedAsFixed;        
+        this->UsedAsFixed = descriptor.UsedAsFixed;
 #endif
     }
+
+#if DBG_DUMP
+    template<typename TPropertyIndex>
+    void DictionaryPropertyDescriptor<TPropertyIndex>::Dump(unsigned indent) const
+    {
+        const auto padding(_u(""));
+        const unsigned fieldIndent(indent + 2);
+
+        Output::Print(_u("%*sDictionaryPropertyDescriptor (0x%p)\n"), indent, padding, this);
+        Output::Print(_u("%*sPreventFalseReference: %d\n"), fieldIndent, padding, this->PreventFalseReference);
+        Output::Print(_u("%*sIsShadowed: %d\n"), fieldIndent, padding, this->IsShadowed);
+        Output::Print(_u("%*sIsAccessor: %d\n"), fieldIndent, padding, this->IsAccessor);
+#if ENABLE_FIXED_FIELDS
+        Output::Print(_u("%*sIsInitialized: %d\n"), fieldIndent, padding, this->IsInitialized);
+        Output::Print(_u("%*sIsOnlyOneAccessorInitialized: %d\n"), fieldIndent, padding, this->IsOnlyOneAccessorInitialized);
+        Output::Print(_u("%*sIsFixed: %d\n"), fieldIndent, padding, this->IsFixed);
+        Output::Print(_u("%*sUsedAsFixed: %d\n"), fieldIndent, padding, this->UsedAsFixed);
+#endif
+        Output::Print(_u("%*sAttributes: 0x%02x "), fieldIndent, padding, this->Attributes);
+        if (this->Attributes != PropertyNone)
+        {
+            if (this->Attributes & PropertyEnumerable) Output::Print(_u("PropertyEnumerable "));
+            if (this->Attributes & PropertyConfigurable) Output::Print(_u("PropertyConfigurable "));
+            if (this->Attributes & PropertyWritable) Output::Print(_u("PropertyWritable "));
+            if (this->Attributes & PropertyDeleted) Output::Print(_u("PropertyDeleted "));
+            if (this->Attributes & PropertyLetConstGlobal) Output::Print(_u("PropertyLetConstGlobal "));
+            if (this->Attributes & PropertyDeclaredGlobal) Output::Print(_u("PropertyDeclaredGlobal "));
+            if (this->Attributes & PropertyLet) Output::Print(_u("PropertyLet "));
+            if (this->Attributes & PropertyConst) Output::Print(_u("PropertyConst "));
+        }
+        Output::Print(_u("\n"));
+
+        Output::Print(_u("%*sData: %d\n"), fieldIndent, padding, static_cast<int32>(this->Data));
+        Output::Print(_u("%*sGetter: %d\n"), fieldIndent, padding, static_cast<int32>(this->Getter));
+        Output::Print(_u("%*sSetter: %d\n"), fieldIndent, padding, static_cast<int32>(this->Setter));
+    }
+#endif
 }

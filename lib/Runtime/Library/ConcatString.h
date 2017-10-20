@@ -18,11 +18,12 @@ namespace Js
         template <typename StringType> static LiteralStringWithPropertyStringPtr * ConvertString(StringType * originalString);
 
         static uint GetOffsetOfPropertyString() { return offsetof(LiteralStringWithPropertyStringPtr, propertyString); }
-
+        static bool Is(Var var);
+        static bool Is(RecyclableObject* var);
+        template <typename T> static LiteralStringWithPropertyStringPtr* TryFromVar(T var);
     protected:
         LiteralStringWithPropertyStringPtr(StaticType* stringTypeStatic);
         DEFINE_VTABLE_CTOR(LiteralStringWithPropertyStringPtr, LiteralString);
-        DECLARE_CONCRETE_STRING_CLASS;
 
     public:
         virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
@@ -30,6 +31,18 @@ namespace Js
             return VTableValue::VtableLiteralStringWithPropertyStringPtr;
         }
     };
+
+    // Templated so that the Is call dispatchs to different function depending
+    // on if argument is already a RecyclableObject* or only known to be a Var
+    //
+    // In case it is known to be a RecyclableObject*, the Is call skips that check
+    template <typename T>
+    inline LiteralStringWithPropertyStringPtr * LiteralStringWithPropertyStringPtr::TryFromVar(T var)
+    {
+        return LiteralStringWithPropertyStringPtr::Is(var)
+            ? reinterpret_cast<LiteralStringWithPropertyStringPtr*>(var)
+            : nullptr;
+    }
 
     // Base class for concat strings.
     // Concat string is a virtual string, or a non-leaf node in concat string tree.
@@ -80,7 +93,6 @@ namespace Js
     protected:
         ConcatStringN(StaticType* stringTypeStatic, bool doZeroSlotsAndLength = true);
         DEFINE_VTABLE_CTOR(ConcatStringN<N>, ConcatStringBase);
-        DECLARE_CONCRETE_STRING_CLASS;
 
         virtual void CopyVirtual(_Out_writes_(m_charLength) char16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos, const byte recursionDepth) override
         {
@@ -111,7 +123,6 @@ namespace Js
         ConcatString(JavascriptString* a, JavascriptString* b);
     protected:
         DEFINE_VTABLE_CTOR(ConcatString, ConcatStringN<2>);
-        DECLARE_CONCRETE_STRING_CLASS;
     public:
         static ConcatString* New(JavascriptString* a, JavascriptString* b);
         static const int MaxDepth = 1000;
@@ -141,7 +152,6 @@ namespace Js
 
     protected:
         DEFINE_VTABLE_CTOR(ConcatStringBuilder, ConcatStringBase);
-        DECLARE_CONCRETE_STRING_CLASS;
         virtual void CopyVirtual(_Out_writes_(m_charLength) char16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos, const byte recursionDepth) override sealed;
 
     public:
@@ -174,7 +184,6 @@ namespace Js
 
     protected:
         DEFINE_VTABLE_CTOR(ConcatStringWrapping, ConcatStringBase);
-        DECLARE_CONCRETE_STRING_CLASS;
         virtual void CopyVirtual(_Out_writes_(m_charLength) char16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos, const byte recursionDepth) override sealed
         {
             const_cast<ConcatStringWrapping *>(this)->EnsureAllSlots();
@@ -223,7 +232,6 @@ namespace Js
     protected:
         ConcatStringMulti(uint slotCount, JavascriptString * a1, JavascriptString * a2, StaticType* stringTypeStatic);
         DEFINE_VTABLE_CTOR(ConcatStringMulti, ConcatStringBase);
-        DECLARE_CONCRETE_STRING_CLASS;
 
         virtual void CopyVirtual(_Out_writes_(m_charLength) char16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos, const byte recursionDepth) override
         {
@@ -264,5 +272,3 @@ namespace Js
         }
     };
 }
-
-

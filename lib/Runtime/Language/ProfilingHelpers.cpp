@@ -576,9 +576,10 @@ namespace Js
 
         args.Values[0] = nullptr;
         Var array;
+        Js::RecyclableObject* calleeObject = RecyclableObject::FromVar(callee);
         if (arrayInfo->IsNativeIntArray())
         {
-            array = JavascriptNativeIntArray::NewInstance(RecyclableObject::FromVar(callee), args);
+            array = JavascriptNativeIntArray::NewInstance(calleeObject, args);
             if (VirtualTableInfo<JavascriptNativeIntArray>::HasVirtualTable(array))
             {
                 JavascriptNativeIntArray *const intArray = static_cast<JavascriptNativeIntArray *>(array);
@@ -600,7 +601,7 @@ namespace Js
         }
         else if (arrayInfo->IsNativeFloatArray())
         {
-            array = JavascriptNativeFloatArray::NewInstance(RecyclableObject::FromVar(callee), args);
+            array = JavascriptNativeFloatArray::NewInstance(calleeObject, args);
             if (VirtualTableInfo<JavascriptNativeFloatArray>::HasVirtualTable(array))
             {
                 JavascriptNativeFloatArray *const floatArray = static_cast<JavascriptNativeFloatArray *>(array);
@@ -613,10 +614,10 @@ namespace Js
         }
         else
         {
-            array = JavascriptArray::NewInstance(RecyclableObject::FromVar(callee), args);
+            array = JavascriptArray::NewInstance(calleeObject, args);
         }
 
-        return CrossSite::MarshalVar(scriptContext, array);
+        return CrossSite::MarshalVar(scriptContext, array, calleeObject->GetScriptContext());
     }
 
     Var ProfilingHelpers::ProfiledNewScObject(

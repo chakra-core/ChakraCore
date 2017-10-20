@@ -527,7 +527,7 @@
       <files>unicode_6_identifiers_utf8.js</files>
       <baseline>unicode_6_identifiers_utf8.baseline</baseline>
       <compile-flags> -ES6Unicode</compile-flags>
-      <tags>exclude_win7</tags>
+      <tags>exclude_win7,require_winglob</tags> <!-- Microsoft/ChakraCore#3777: Fix this test under ICU -->
     </default>
   </test>
   <test>
@@ -730,7 +730,7 @@
   </test>
   <test>
     <default>
-      <files>proxycall.js</files>
+      <files>ProxyCall.js</files>
     </default>
   </test>
   <test>
@@ -903,6 +903,12 @@
     <default>
       <files>destructuring_params.js</files>
       <compile-flags>-ES6Rest -ES6Classes -ES6Destructuring -ES6DefaultArgs -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>destructuring_params.js</files>
+      <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -1374,6 +1380,7 @@
       <tags>exclude_sanitize_address</tags>
     </default>
   </test>
+  <!-- Test disabled until issue #3778 is resolved
   <test>
     <default>
       <files>module-namespace.js</files>
@@ -1381,6 +1388,7 @@
       <tags>exclude_sanitize_address</tags>
     </default>
   </test>
+  -->
   <test>
     <default>
       <files>module-bugfixes.js</files>
@@ -1451,6 +1459,7 @@
       <tags>BugFix,exclude_sanitize_address</tags>
     </default>
   </test>
+  <!-- OS#14303885, disabling failing test until issue is resolved
   <test>
     <default>
       <files>bug_issue_3257.js</files>
@@ -1458,6 +1467,7 @@
       <tags>BugFix,exclude_sanitize_address</tags>
     </default>
   </test>
+  -->
   <test>
     <default>
       <files>typedarray_bugs.js</files>
@@ -1470,6 +1480,12 @@
       <files>bug-OS10595959.js</files>
       <compile-flags>-maxsimplejitruncount:1 -maxinterpretcount:1 -off:stackargopt -stress:bailonnoprofile -args summary -endargs</compile-flags>
       <tags>BugFix</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>deferSpreadRestError.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

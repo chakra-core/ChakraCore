@@ -433,7 +433,9 @@ namespace Js
         }
 
         // Discard the buffer
-        AutoDiscardPTR<DetachedStateBase>(arrayBuffer->DetachAndGetState());
+        DetachedStateBase* state = arrayBuffer->DetachAndGetState();
+        state->CleanUp();
+
         return scriptContext->GetLibrary()->GetUndefined();
     }
 #endif
@@ -688,21 +690,37 @@ namespace Js
         return result;
     }
 
+    template <typename FreeFN>
+    void Js::ArrayBuffer::ArrayBufferDetachedState<FreeFN>::DiscardState()
+    {
+        if (this->buffer != nullptr)
+        {
+            freeFunction(this->buffer);
+            this->buffer = nullptr;
+            this->recycler->ReportExternalMemoryFree(this->bufferLength);
+        }
+        this->bufferLength = 0;
+    }
+
     ArrayBufferDetachedStateBase* JavascriptArrayBuffer::CreateDetachedState(BYTE* buffer, uint32 bufferLength)
     {
+        FreeFn* freeFn = nullptr;
+        ArrayBufferAllocationType allocationType;
 #if ENABLE_FAST_ARRAYBUFFER
         if (IsValidVirtualBufferLength(bufferLength))
         {
-            return HeapNew(ArrayBufferDetachedState<FreeFn>, buffer, bufferLength, FreeMemAlloc, ArrayBufferAllocationType::MemAlloc);
+            allocationType = ArrayBufferAllocationType::MemAlloc;
+            freeFn = FreeMemAlloc;
         }
         else
-        {
-            return HeapNew(ArrayBufferDetachedState<FreeFn>, buffer, bufferLength, free, ArrayBufferAllocationType::Heap);
-        }
-#else
-        return HeapNew(ArrayBufferDetachedState<FreeFn>, buffer, bufferLength, free, ArrayBufferAllocationType::Heap);
 #endif
+        {
+            allocationType = ArrayBufferAllocationType::Heap;
+            freeFn = free;
+        }
+        return HeapNew(ArrayBufferDetachedState<FreeFn>, buffer, bufferLength, freeFn, GetScriptContext()->GetRecycler(), allocationType);
     }
+
 
     bool JavascriptArrayBuffer::IsValidAsmJsBufferLengthAlgo(uint length, bool forceCheck)
     {

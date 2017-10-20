@@ -21,7 +21,7 @@ PeepsMD::ProcessImplicitRegs(IR::Instr *instr)
         this->peeps->ClearReg(RegR1);
         this->peeps->ClearReg(RegR2);
         this->peeps->ClearReg(RegR3);
-        this->peeps->ClearReg(RegR12);
+        this->peeps->ClearReg(SCRATCH_REG);
         this->peeps->ClearReg(RegLR);
         this->peeps->ClearReg(RegD0);
         this->peeps->ClearReg(RegD1);
@@ -37,7 +37,7 @@ PeepsMD::ProcessImplicitRegs(IR::Instr *instr)
     {
         // As we don't currently have support for 4 operand instrs, we use R12 as 4th operand,
         // Notify the peeps that we use r12: SMULL, dst, r12, src1, src2.
-        this->peeps->ClearReg(RegR12);
+        this->peeps->ClearReg(SCRATCH_REG);
     }
 }
 

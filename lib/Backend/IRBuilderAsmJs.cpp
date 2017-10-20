@@ -1039,6 +1039,11 @@ IRBuilderAsmJs::BuildEmpty(Js::OpCodeAsmJs newOpcode, uint32 offset)
     Js::RegSlot retSlot;
     switch (newOpcode)
     {
+    case Js::OpCodeAsmJs::CheckHeap:
+        instr = IR::Instr::New(Js::OpCode::ArrayDetachedCheck, m_func);
+        instr->SetSrc1(IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ArrayReg, TyVar), Js::ArrayBuffer::GetIsDetachedOffset(), TyInt8, m_func));
+        AddInstr(instr, offset);
+        break;
     case Js::OpCodeAsmJs::Unreachable_Void:
         instr = IR::Instr::New(Js::OpCode::ThrowRuntimeError, m_func);
         instr->SetSrc1(IR::IntConstOpnd::New(SCODE_CODE(WASMERR_Unreachable), TyInt32, instr->m_func));
@@ -1809,23 +1814,13 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
     {
         m_func->m_argSlotsForFunctionsCalled = argCount;
     }
-    if (m_asmFuncInfo->UsesHeapBuffer())
-    {
-        // heap buffer can change for wasm
 #ifdef ENABLE_WASM
-        if (m_func->GetJITFunctionBody()->IsWasmFunction())
+    // heap buffer can change for wasm
+    if (m_asmFuncInfo->UsesHeapBuffer() && m_func->GetJITFunctionBody()->IsWasmFunction())
         {
             BuildHeapBufferReload(offset);
         }
 #endif
-        // after foreign function call, we need to make sure that the heap hasn't been detached
-        if (newOpcode == Js::OpCodeAsmJs::Call)
-        {
-            IR::Instr * instrArrayDetachedCheck = IR::Instr::New(Js::OpCode::ArrayDetachedCheck, m_func);
-            instrArrayDetachedCheck->SetSrc1(IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::ArrayReg, TyVar), Js::ArrayBuffer::GetIsDetachedOffset(), TyInt8, m_func));
-            AddInstr(instrArrayDetachedCheck, offset);
-        }
-    }
 }
 
 void
@@ -2421,6 +2416,13 @@ IRBuilderAsmJs::BuildInt2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
     case Js::OpCodeAsmJs::GrowMemory:
         instr = IR::Instr::New(Js::OpCode::GrowWasmMemory, dstOpnd, BuildSrcOpnd(AsmJsRegSlots::WasmMemoryReg, TyVar), srcOpnd, m_func);
         break;
+
+    case Js::OpCodeAsmJs::I32Extend8_s: 
+        instr = CreateSignExtendInstr(dstOpnd, srcOpnd, TyInt8);
+        break;
+    case Js::OpCodeAsmJs::I32Extend16_s:
+        instr = CreateSignExtendInstr(dstOpnd, srcOpnd, TyInt16);
+        break;
     default:
         Assume(UNREACHED);
     }
@@ -2447,6 +2449,15 @@ IR::RegOpnd* IRBuilderAsmJs::BuildTrapIfMinIntOverNegOne(IR::RegOpnd* src1Opnd, 
     newSrc->SetValueType(ValueType::GetInt(false));
     AddInstr(IR::Instr::New(Js::OpCode::TrapIfMinIntOverNegOne, newSrc, src1Opnd, src2Opnd, m_func), offset);
     return newSrc;
+}
+
+IR::Instr* IRBuilderAsmJs::CreateSignExtendInstr(IR::Opnd* dst, IR::Opnd* src, IRType fromType)
+{
+    // Since CSE ignores the type of the type, the int const value carries that information to prevent
+    // cse of sign extension of different types.
+    IR::Opnd* fromTypeOpnd = IR::IntConstOpnd::New(fromType, fromType, m_func);
+    // Src2 is a dummy source, used only to carry the type to cast from
+    return IR::Instr::New(Js::OpCode::Conv_Prim, dst, src, fromTypeOpnd, m_func);
 }
 
 void
@@ -3066,6 +3077,15 @@ IRBuilderAsmJs::BuildLong2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot
             IR::Instr* slotInstr = GenerateStSlotForReturn(srcOpnd, IRType::TyInt64);
             AddInstr(slotInstr, offset);
         }
+        break;
+    case Js::OpCodeAsmJs::I64Extend8_s:
+        instr = CreateSignExtendInstr(dstOpnd, srcOpnd, TyInt8);
+        break;
+    case Js::OpCodeAsmJs::I64Extend16_s:
+        instr = CreateSignExtendInstr(dstOpnd, srcOpnd, TyInt16);
+        break;
+    case Js::OpCodeAsmJs::I64Extend32_s:
+        instr = CreateSignExtendInstr(dstOpnd, srcOpnd, TyInt32);
         break;
     default:
         Assume(UNREACHED);

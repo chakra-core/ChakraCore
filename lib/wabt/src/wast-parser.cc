@@ -32,6 +32,8 @@ namespace wabt {
 
 namespace {
 
+static const size_t kMaxErrorTokenLength = 80;
+
 bool IsPowerOfTwo(uint32_t x) {
   return x && ((x & (x - 1)) == 0);
 }
@@ -161,6 +163,10 @@ bool IsPlainInstr(TokenType token_type) {
     case TokenType::GrowMemory:
     case TokenType::Throw:
     case TokenType::Rethrow:
+    case TokenType::AtomicLoad:
+    case TokenType::AtomicStore:
+    case TokenType::AtomicRmw:
+    case TokenType::AtomicRmwCmpxchg:
       return true;
     default:
       return false;
@@ -322,7 +328,7 @@ Location WastParser::GetLocation() {
 TokenType WastParser::Peek(size_t n) {
   while (tokens_.size() <= n)
     tokens_.push_back(lexer_->GetToken(this));
-  return tokens_.at(n).token_type;
+  return tokens_.at(n).token_type();
 }
 
 TokenTypePair WastParser::PeekPair() {
@@ -362,7 +368,8 @@ Result WastParser::Expect(TokenType type) {
   if (!Match(type)) {
     Token token = Consume();
     Error(token.loc, "unexpected token %s, expected %s.",
-          token.to_string().c_str(), GetTokenTypeName(type));
+          token.to_string_clamp(kMaxErrorTokenLength).c_str(),
+          GetTokenTypeName(type));
     return Result::Error;
   }
 
@@ -383,8 +390,9 @@ Result WastParser::Synchronize(SynchronizeFunc func) {
       return Result::Ok;
 
     Token token = Consume();
-    if (token.token_type == TokenType::Reserved) {
-      Error(token.loc, "unexpected token %s.", token.to_string().c_str());
+    if (token.token_type() == TokenType::Reserved) {
+      Error(token.loc, "unexpected token %s.",
+            token.to_string_clamp(kMaxErrorTokenLength).c_str());
     }
   }
 
@@ -392,7 +400,7 @@ Result WastParser::Synchronize(SynchronizeFunc func) {
 }
 
 void WastParser::ErrorUnlessOpcodeEnabled(const Token& token) {
-  Opcode opcode = token.opcode;
+  Opcode opcode = token.opcode();
   if (!opcode.IsEnabled(options_->features))
     Error(token.loc, "opcode not allowed: %s", opcode.GetName());
 }
@@ -421,7 +429,8 @@ Result WastParser::ErrorExpected(const std::vector<std::string>& expected,
     }
   }
 
-  Error(token.loc, "unexpected token \"%s\"%s.", token.to_string().c_str(),
+  Error(token.loc, "unexpected token \"%s\"%s.",
+        token.to_string_clamp(kMaxErrorTokenLength).c_str(),
         expected_str.c_str());
   return Result::Error;
 }
@@ -437,7 +446,7 @@ void WastParser::ParseBindVarOpt(std::string* name) {
   WABT_TRACE(ParseBindVarOpt);
   if (PeekMatch(TokenType::Var)) {
     Token token = Consume();
-    *name = token.text.to_string();
+    *name = token.text();
   }
 }
 
@@ -445,7 +454,7 @@ Result WastParser::ParseVar(Var* out_var) {
   WABT_TRACE(ParseVar);
   if (PeekMatch(TokenType::Nat)) {
     Token token = Consume();
-    string_view sv = token.literal.text.to_string_view();
+    string_view sv = token.literal().text;
     uint64_t index = kInvalidIndex;
     if (Failed(ParseUint64(sv.begin(), sv.end(), &index))) {
       // Print an error, but don't fail parsing.
@@ -457,7 +466,7 @@ Result WastParser::ParseVar(Var* out_var) {
     return Result::Ok;
   } else if (PeekMatch(TokenType::Var)) {
     Token token = Consume();
-    *out_var = Var(token.text.to_string_view(), token.loc);
+    *out_var = Var(token.text(), token.loc);
     return Result::Ok;
   } else {
     return ErrorExpected({"a numeric index", "a name"}, "12 or $foo");
@@ -505,7 +514,7 @@ bool WastParser::ParseTextListOpt(std::vector<uint8_t>* out_data) {
   WABT_TRACE(ParseTextListOpt);
   TextVector texts;
   while (PeekMatch(TokenType::Text))
-    texts.push_back(Consume().text.to_string());
+    texts.push_back(Consume().text());
 
   RemoveEscapes(texts, std::back_inserter(*out_data));
   return !texts.empty();
@@ -534,14 +543,14 @@ Result WastParser::ParseValueType(Type* out_type) {
   if (!PeekMatch(TokenType::ValueType))
     return ErrorExpected({"i32", "i64", "f32", "f64"});
 
-  *out_type = Consume().type;
+  *out_type = Consume().type();
   return Result::Ok;
 }
 
 Result WastParser::ParseValueTypeList(TypeVector* out_type_list) {
   WABT_TRACE(ParseValueTypeList);
   while (PeekMatch(TokenType::ValueType))
-    out_type_list->push_back(Consume().type);
+    out_type_list->push_back(Consume().type());
 
   CHECK_RESULT(ErrorIfLpar({"i32", "i64", "f32", "f64"}));
   return Result::Ok;
@@ -552,7 +561,7 @@ Result WastParser::ParseQuotedText(std::string* text) {
   if (!PeekMatch(TokenType::Text))
     return ErrorExpected({"a quoted string"}, "\"foo\"");
 
-  RemoveEscapes(Consume().text.to_string_view(), std::back_inserter(*text));
+  RemoveEscapes(Consume().text(), std::back_inserter(*text));
   return Result::Ok;
 }
 
@@ -561,7 +570,7 @@ bool WastParser::ParseOffsetOpt(uint32_t* out_offset) {
   if (PeekMatch(TokenType::OffsetEqNat)) {
     Token token = Consume();
     uint64_t offset64;
-    string_view sv = token.text.to_string_view();
+    string_view sv = token.text();
     if (Failed(ParseInt64(sv.begin(), sv.end(), &offset64,
                           ParseIntType::SignedAndUnsigned))) {
       Error(token.loc, "invalid offset \"" PRIstringview "\"",
@@ -583,7 +592,7 @@ bool WastParser::ParseAlignOpt(uint32_t* out_align) {
   WABT_TRACE(ParseAlignOpt);
   if (PeekMatch(TokenType::AlignEqNat)) {
     Token token = Consume();
-    string_view sv = token.text.to_string_view();
+    string_view sv = token.text();
     if (Failed(ParseInt32(sv.begin(), sv.end(), out_align,
                           ParseIntType::UnsignedOnly))) {
       Error(token.loc, "invalid alignment \"" PRIstringview "\"",
@@ -603,13 +612,21 @@ bool WastParser::ParseAlignOpt(uint32_t* out_align) {
 
 Result WastParser::ParseLimits(Limits* out_limits) {
   WABT_TRACE(ParseLimits);
-  CHECK_RESULT(ParseNat(&out_limits->initial));
 
+  if (PeekMatch(TokenType::Lpar)) {
+    Consume();
+    EXPECT(Shared);
+    out_limits->is_shared = true;
+  }
+  CHECK_RESULT(ParseNat(&out_limits->initial));
   if (PeekMatch(TokenType::Nat)) {
     CHECK_RESULT(ParseNat(&out_limits->max));
     out_limits->has_max = true;
   } else {
     out_limits->has_max = false;
+  }
+  if (out_limits->is_shared) {
+    EXPECT(Rpar);
   }
 
   return Result::Ok;
@@ -621,7 +638,7 @@ Result WastParser::ParseNat(uint64_t* out_nat) {
     return ErrorExpected({"a natural number"}, "123");
 
   Token token = Consume();
-  string_view sv = token.literal.text.to_string_view();
+  string_view sv = token.literal().text;
   if (Failed(ParseUint64(sv.begin(), sv.end(), out_nat))) {
     Error(token.loc, "invalid int \"" PRIstringview "\"",
           WABT_PRINTF_STRING_VIEW_ARG(sv));
@@ -1204,6 +1221,20 @@ Result WastParser::ParsePlainInstrVar(Location loc,
   return Result::Ok;
 }
 
+template <typename T>
+Result WastParser::ParsePlainLoadStoreInstr(Location loc,
+                                            Token token,
+                                            std::unique_ptr<Expr>* out_expr) {
+  Opcode opcode = token.opcode();
+  uint32_t offset;
+  uint32_t align;
+  ParseOffsetOpt(&offset);
+  ParseAlignOpt(&align);
+  out_expr->reset(new T(opcode, align, offset, loc));
+  return Result::Ok;
+}
+
+
 Result WastParser::ParsePlainInstr(std::unique_ptr<Expr>* out_expr) {
   WABT_TRACE(ParsePlainInstr);
   Location loc = GetLocation();
@@ -1288,25 +1319,15 @@ Result WastParser::ParsePlainInstr(std::unique_ptr<Expr>* out_expr) {
       CHECK_RESULT(ParsePlainInstrVar<SetGlobalExpr>(loc, out_expr));
       break;
 
-    case TokenType::Load: {
-      Opcode opcode = Consume().opcode;
-      uint32_t offset;
-      uint32_t align;
-      ParseOffsetOpt(&offset);
-      ParseAlignOpt(&align);
-      out_expr->reset(new LoadExpr(opcode, align, offset, loc));
+    case TokenType::Load:
+      CHECK_RESULT(
+          ParsePlainLoadStoreInstr<LoadExpr>(loc, Consume(), out_expr));
       break;
-    }
 
-    case TokenType::Store: {
-      Opcode opcode = Consume().opcode;
-      uint32_t offset;
-      uint32_t align;
-      ParseOffsetOpt(&offset);
-      ParseAlignOpt(&align);
-      out_expr->reset(new StoreExpr(opcode, align, offset, loc));
+    case TokenType::Store:
+      CHECK_RESULT(
+          ParsePlainLoadStoreInstr<StoreExpr>(loc, Consume(), out_expr));
       break;
-    }
 
     case TokenType::Const: {
       Const const_;
@@ -1318,22 +1339,22 @@ Result WastParser::ParsePlainInstr(std::unique_ptr<Expr>* out_expr) {
     case TokenType::Unary: {
       Token token = Consume();
       ErrorUnlessOpcodeEnabled(token);
-      out_expr->reset(new UnaryExpr(token.opcode, loc));
+      out_expr->reset(new UnaryExpr(token.opcode(), loc));
       break;
     }
 
     case TokenType::Binary:
-      out_expr->reset(new BinaryExpr(Consume().opcode, loc));
+      out_expr->reset(new BinaryExpr(Consume().opcode(), loc));
       break;
 
     case TokenType::Compare:
-      out_expr->reset(new CompareExpr(Consume().opcode, loc));
+      out_expr->reset(new CompareExpr(Consume().opcode(), loc));
       break;
 
     case TokenType::Convert: {
       Token token = Consume();
       ErrorUnlessOpcodeEnabled(token);
-      out_expr->reset(new ConvertExpr(token.opcode, loc));
+      out_expr->reset(new ConvertExpr(token.opcode(), loc));
       break;
     }
 
@@ -1357,6 +1378,38 @@ Result WastParser::ParsePlainInstr(std::unique_ptr<Expr>* out_expr) {
       CHECK_RESULT(ParsePlainInstrVar<RethrowExpr>(loc, out_expr));
       break;
 
+    case TokenType::AtomicLoad: {
+      Token token = Consume();
+      ErrorUnlessOpcodeEnabled(token);
+      CHECK_RESULT(
+          ParsePlainLoadStoreInstr<AtomicLoadExpr>(loc, token, out_expr));
+      break;
+    }
+
+    case TokenType::AtomicStore: {
+      Token token = Consume();
+      ErrorUnlessOpcodeEnabled(token);
+      CHECK_RESULT(
+          ParsePlainLoadStoreInstr<AtomicStoreExpr>(loc, token, out_expr));
+      break;
+    }
+
+    case TokenType::AtomicRmw: {
+      Token token = Consume();
+      ErrorUnlessOpcodeEnabled(token);
+      CHECK_RESULT(
+          ParsePlainLoadStoreInstr<AtomicRmwExpr>(loc, token, out_expr));
+      break;
+    }
+
+    case TokenType::AtomicRmwCmpxchg: {
+      Token token = Consume();
+      ErrorUnlessOpcodeEnabled(token);
+      CHECK_RESULT(
+          ParsePlainLoadStoreInstr<AtomicRmwCmpxchgExpr>(loc, token, out_expr));
+      break;
+    }
+
     default:
       assert(
           !"ParsePlainInstr should only be called when IsPlainInstr() is true");
@@ -1368,8 +1421,8 @@ Result WastParser::ParsePlainInstr(std::unique_ptr<Expr>* out_expr) {
 
 Result WastParser::ParseConst(Const* const_) {
   WABT_TRACE(ParseConst);
-  Opcode opcode = Consume().opcode;
-  LiteralTerminal literal;
+  Opcode opcode = Consume().opcode();
+  Literal literal;
 
   Location loc = GetLocation();
 
@@ -1377,14 +1430,14 @@ Result WastParser::ParseConst(Const* const_) {
     case TokenType::Nat:
     case TokenType::Int:
     case TokenType::Float:
-      literal = Consume().literal;
+      literal = Consume().literal();
       break;
 
     default:
       return ErrorExpected({"a numeric literal"}, "123, -45, 6.7e8");
   }
 
-  string_view sv = literal.text.to_string_view();
+  string_view sv = literal.text;
   const char* s = sv.begin();
   const char* end = sv.end();
 
@@ -1418,7 +1471,7 @@ Result WastParser::ParseConst(Const* const_) {
   }
 
   if (Failed(result)) {
-    Error(loc, "invalid literal \"%s\"", literal.text.to_string().c_str());
+    Error(loc, "invalid literal \"%s\"", literal.text.c_str());
   }
 
   return Result::Ok;
@@ -1505,7 +1558,7 @@ Result WastParser::ParseBlockInstr(std::unique_ptr<Expr>* out_expr) {
 Result WastParser::ParseLabelOpt(std::string* out_label) {
   WABT_TRACE(ParseLabelOpt);
   if (PeekMatch(TokenType::Var)) {
-    *out_label = Consume().text.to_string();
+    *out_label = Consume().text();
   } else {
     out_label->clear();
   }
@@ -1652,7 +1705,7 @@ Result WastParser::ParseCatchInstrList(CatchVector* catches) {
   while (IsCatch(Peek())) {
     Catch catch_(GetLocation());
 
-    if (Consume().token_type == TokenType::Catch)
+    if (Consume().token_type() == TokenType::Catch)
       CHECK_RESULT(ParseVar(&catch_.var));
 
     CHECK_RESULT(ParseInstrList(&catch_.exprs));
@@ -1668,7 +1721,7 @@ Result WastParser::ParseCatchExprList(CatchVector* catches) {
     Consume();
     Catch catch_(GetLocation());
 
-    if (Consume().token_type == TokenType::Catch)
+    if (Consume().token_type() == TokenType::Catch)
       CHECK_RESULT(ParseVar(&catch_.var));
 
     CHECK_RESULT(ParseTerminatingInstrList(&catch_.exprs));
@@ -1958,7 +2011,12 @@ Result WastParser::ParseScriptModule(
       auto tsm = MakeUnique<TextScriptModule>();
       tsm->module.name = name;
       tsm->module.loc = loc;
-      CHECK_RESULT(ParseModuleFieldList(&tsm->module));
+      if (IsModuleField(PeekPair())) {
+        CHECK_RESULT(ParseModuleFieldList(&tsm->module));
+      } else if (!PeekMatch(TokenType::Rpar)) {
+        ConsumeIfLpar();
+        return ErrorExpected({"a module field"});
+      }
       *out_module = std::move(tsm);
       break;
     }

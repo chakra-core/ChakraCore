@@ -10,6 +10,7 @@ add_library (Chakra.Runtime.Base OBJECT
     Exception.cpp
     ExpirableObject.cpp
     FunctionBody.cpp
+    FunctionExecutionStateMachine.cpp
     FunctionInfo.cpp
     LeaveScriptObject.cpp
     LineOffsetCache.cpp

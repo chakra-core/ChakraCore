@@ -2790,7 +2790,7 @@ void GetCurrentThreadStackLimits(ULONG_PTR* lowLimit, ULONG_PTR* highLimit)
     status = pthread_getattr_np(currentThreadHandle, &attr);
     _ASSERT_MSG(status == 0, "pthread_getattr_np call failed");
 #else
-#   error "Dont know how to get thread attributes on this platform!"
+#   error "Don't know how to get thread attributes on this platform!"
 #endif
 
     status = pthread_attr_getstack(&attr, &stackend, &stacksize);

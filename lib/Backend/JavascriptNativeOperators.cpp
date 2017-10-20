@@ -53,7 +53,7 @@ namespace Js
                 const EquivalentPropertyEntry* refInfo = &record.properties[failedPropertyIndex];
                 Js::PropertyEquivalenceInfo info(Constants::NoSlot, false, false);
                 const PropertyRecord* propertyRecord = scriptContext->GetPropertyName(refInfo->propertyId);
-                if (DynamicType::Is(type->GetTypeId()))
+                if (DynamicType::Is(type))
                 {
                     Js::DynamicTypeHandler* typeHandler = (static_cast<const DynamicType*>(type))->GetTypeHandler();
                     typeHandler->GetPropertyEquivalenceInfo(propertyRecord, info);
@@ -202,7 +202,7 @@ namespace Js
         Assert(cache->record.propertyCount > 0);
 
         // Before checking for equivalence, track existing cached non-shared types
-        DynamicType * dynamicType = (type && DynamicType::Is(type->GetTypeId())) ? static_cast<DynamicType*>(type) : nullptr;
+        DynamicType * dynamicType = (type && DynamicType::Is(type)) ? static_cast<DynamicType*>(type) : nullptr;
         bool isEquivTypesCacheFull = equivTypes[EQUIVALENT_TYPE_CACHE_SIZE - 1] != nullptr;
         int emptySlotIndex = -1;
         int nonSharedTypeSlotIndex = -1;
@@ -211,7 +211,7 @@ namespace Js
             // Track presence of cached non-shared type if cache is full
             if (isEquivTypesCacheFull)
             {
-                if (DynamicType::Is(equivTypes[i]->GetTypeId()) &&
+                if (DynamicType::Is(equivTypes[i]) &&
                     nonSharedTypeSlotIndex == -1 &&
                     !(static_cast<DynamicType*>(equivTypes[i]))->GetIsShared())
                 {

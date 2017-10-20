@@ -11,7 +11,7 @@
 *Purpose:
 *       This file contains the code that does all the work for the
 *       printf family of functions.  It should not be called directly, only
-*       by the *printf functions.  We don't make any assumtions about the
+*       by the *printf functions.  We don't make any assumptions about the
 *       sizes of ints, longs, shorts, or long doubles, but if types do overlap,
 *       we also try to be efficient.  We do assume that pointers are the same
 *       size as either ints or longs.
@@ -19,7 +19,7 @@
 *       **** DOESN'T CURRENTLY DO MTHREAD LOCKING ****
 *
 *Note:
-*       this file is included in safecrt.lib build directly, plese refer
+*       this file is included in safecrt.lib build directly, please refer
 *       to safecrt_[w]output_s.c
 *
 *******************************************************************************/
@@ -677,7 +677,7 @@ _CRTIMP int __cdecl _tcprintf_s (
 *       The format string is parsed by using a finite state automaton
 *       based on the current state and the current character read from
 *       the format string.  Thus, looping is on a per-character basis,
-*       not a per conversion specifier basis.  Once the format specififying
+*       not a per conversion specifier basis.  Once the format specifying
 *       character is read, output is performed.
 *
 *Entry:

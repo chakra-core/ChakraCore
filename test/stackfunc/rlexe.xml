@@ -594,7 +594,7 @@
       <files>funcexpr_2.js</files>
       <baseline>funcexpr_2.deferparse.native.baseline</baseline>
       <compile-flags>-testtrace:stackfunc -off:redeferral -on:stackfunc -force:deferparse -forceNative -off:simpleJit -off:disablestackfuncondeferredescape</compile-flags>
-      <tags>exclude_fre,exclude_dynapogo,exclude_arm</tags>
+      <tags>exclude_fre,exclude_dynapogo,exclude_arm,exclude_nonative</tags>
     </default>
   </test>
   <test>

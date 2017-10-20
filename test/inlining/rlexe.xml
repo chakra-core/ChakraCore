@@ -139,6 +139,7 @@
       <files>bug515849.js</files>
       <baseline>bug515849.baseline</baseline>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -msjrc:0 -force:inline</compile-flags>
+      <tags>exclude_arm64</tags>
     </default>
   </test>
   <test>

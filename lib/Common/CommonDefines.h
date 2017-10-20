@@ -109,6 +109,7 @@
 #if !defined(CHAKRACORE_LITE) && (defined(_WIN32) || defined(INTL_ICU))
 #define ENABLE_INTL_OBJECT                          // Intl support
 #endif
+//#define INTL_ICU 1                    // NOTE: uncomment this to allow the IDE to see INTL_ICU blocks
 #ifdef INTL_ICU
 #ifdef DBG
 //#define INTL_ICU_DEBUG 1              // NOTE: uncomment this to display INTL_ICU-specific debug output
@@ -238,6 +239,10 @@
 #error "Background page zeroing can't be turned on if freeing pages in the background is disabled"
 #endif
 
+#ifdef _WIN32
+#define RECYCLER_VISITED_HOST
+#endif
+
 // JIT features
 
 #if DISABLE_JIT
@@ -285,7 +290,8 @@
 // Other features
 // #define CHAKRA_CORE_DOWN_COMPAT 1
 
-#ifdef _WIN32
+// todo:: Enable vectorcall on NTBUILD. OS#13609380
+#if defined(_WIN32) && !defined(NTBUILD) && defined(_M_IX86)
 #define VECTORCALL __vectorcall
 #else
 #define VECTORCALL
@@ -685,7 +691,7 @@
 #endif
 
 #ifndef FLOATVAR
-#if defined(_M_X64)
+#if defined(_M_X64_OR_ARM64)
 #define FLOATVAR 1
 #else
 #define FLOATVAR 0

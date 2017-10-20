@@ -29,24 +29,6 @@ namespace Js
     bool IsValidCharCount(size_t charCount);
     const charcount_t k_InvalidCharCount = static_cast<charcount_t>(-1);
 
-
-    //
-    // To inspect strings in hybrid debugging, we use vtable lookup to find out concrete string type
-    // then inspect string content accordingly.
-    //
-    // To ensure all known string vtables are listed and exported from chakra.dll and handler class
-    // exists in chakradiag.dll, declare an abstract method in base JavascriptString class. Any concrete
-    // subclass that has runtime string instance must DECLARE_CONCRETE_STRING_CLASS, otherwise
-    // we'll get a compile time error.
-    //
-#if DBG && defined(NTBUILD)
-#define DECLARE_CONCRETE_STRING_CLASS_BASE  virtual void _declareConcreteStringClass() = 0
-#define DECLARE_CONCRETE_STRING_CLASS       virtual void _declareConcreteStringClass() override
-#else
-#define DECLARE_CONCRETE_STRING_CLASS_BASE
-#define DECLARE_CONCRETE_STRING_CLASS
-#endif
-
     class JavascriptString _ABSTRACT : public RecyclableObject
     {
         friend Lowerer;
@@ -173,7 +155,6 @@ namespace Js
         JavascriptString(StaticType * type);
         JavascriptString(StaticType * type, charcount_t charLength, const char16* szValue);
         DEFINE_VTABLE_CTOR_ABSTRACT(JavascriptString, RecyclableObject);
-        DECLARE_CONCRETE_STRING_CLASS_BASE;
 
         void SetLength(charcount_t newLength);
         void SetBuffer(const char16* buffer);
@@ -190,11 +171,6 @@ namespace Js
         static JavascriptString* NewWithBuffer(__in_ecount(charLength) const char16 * content, charcount_t charLength, ScriptContext * scriptContext);
         static JavascriptString* NewCopySz(__in_z const char16* content, ScriptContext* scriptContext);
         static JavascriptString* NewCopyBuffer(__in_ecount(charLength)  const char16* content, charcount_t charLength, ScriptContext* scriptContext);
-
-        static JavascriptString* NewWithArenaSz(__in_z const char16 * content, ScriptContext* scriptContext);
-        static JavascriptString* NewWithArenaBuffer(__in_ecount(charLength) const char16 * content, charcount_t charLength, ScriptContext * scriptContext);
-
-        static JavascriptString* NewCopySzFromArena(__in_z const char16* content, ScriptContext* scriptContext, ArenaAllocator *arena, charcount_t cchUseLength = 0);
 
         static __ecount(length+1) char16* AllocateLeafAndCopySz(__in Recycler* recycler, __in_ecount(length) const char16* content, charcount_t length);
         static __ecount(length+1) char16* AllocateAndCopySz(__in ArenaAllocator* arena, __in_ecount(length) const char16* content, charcount_t length);
@@ -390,7 +366,7 @@ namespace Js
                 JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1->GetString(), str2->GetBuffer(), str1->GetLength()));
         }
 
-        inline static uint GetHashCode(JavascriptString * str)
+        inline static hash_t GetHashCode(JavascriptString * str)
         {
             return JsUtil::CharacterBuffer<WCHAR>::StaticGetHashCode(str->GetString(), str->GetLength());
         }
@@ -418,7 +394,7 @@ struct DefaultComparer<Js::JavascriptString*>
         return Js::JavascriptString::Equals(x, y);
     }
 
-    inline static uint GetHashCode(Js::JavascriptString * pStr)
+    inline static hash_t GetHashCode(Js::JavascriptString * pStr)
     {
         return JsUtil::CharacterBuffer<char16>::StaticGetHashCode(pStr->GetString(), pStr->GetLength());
     }

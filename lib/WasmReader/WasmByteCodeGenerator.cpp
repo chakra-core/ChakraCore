@@ -9,6 +9,8 @@
 #include "Language/WebAssemblySource.h"
 #include "ByteCode/WasmByteCodeWriter.h"
 #include "EmptyWasmByteCodeWriter.h"
+#include "ByteCode/ByteCodeDumper.h"
+#include "AsmJsByteCodeDumper.h"
 
 #if DBG_DUMP
 #define DebugPrintOp(op) if (DO_WASM_TRACE_BYTECODE) { PrintOpBegin(op); }
@@ -99,10 +101,24 @@ case wb##opname: \
     case wbBr:
     case wbBrIf: Output::Print(_u(" depth: %u"), GetReader()->m_currentNode.br.depth); break;
     case wbBrTable: Output::Print(_u(" %u cases, default: %u"), GetReader()->m_currentNode.brTable.numTargets, GetReader()->m_currentNode.brTable.defaultTarget); break;
-    case wbCall:
     case wbCallIndirect:
     {
-        uint id = GetReader()->m_currentNode.call.num;
+        uint32 sigId = GetReader()->m_currentNode.call.num;
+        if (sigId < m_module->GetSignatureCount())
+        {
+            Output::Print(_u(" "));
+            WasmSignature* sig = m_module->GetSignature(sigId);
+            sig->Dump(20);
+        }
+        else
+        {
+            Output::Print(_u(" invalid signature id %u"), sigId);
+        }
+        break;
+    }
+    case wbCall:
+    {
+        uint32 id = GetReader()->m_currentNode.call.num;
         if (id < m_module->GetWasmFunctionCount())
         {
             FunctionIndexTypes::Type funcType = GetReader()->m_currentNode.call.funcType;
@@ -119,7 +135,7 @@ case wb##opname: \
         }
         else
         {
-            Output::Print(_u(" invalid id"));
+            Output::Print(_u(" invalid id %u"), id);
         }
         break;
     }
@@ -217,6 +233,9 @@ WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::W
 
 Js::WebAssemblyModule* WasmModuleGenerator::GenerateModule()
 {
+    Js::AutoProfilingPhase wasmPhase(m_scriptContext, Js::WasmReaderPhase);
+    Unused(wasmPhase);
+
     m_module->GetReader()->InitializeReader();
 
     BVStatic<bSectLimit + 1> visitedSections;
@@ -228,7 +247,7 @@ Js::WebAssemblyModule* WasmModuleGenerator::GenerateModule()
         SectionCode sectionCode = sectionHeader.code;
         if (sectionCode == bSectLimit)
         {
-            TRACE_WASM_SECTION(_u("Done reading module's sections"));
+            TRACE_WASM(PHASE_TRACE1(Js::WasmSectionPhase), _u("Done reading module's sections"));
             break;
         }
 
@@ -309,12 +328,6 @@ Js::WebAssemblyModule* WasmModuleGenerator::GenerateModule()
     }
 #endif
 
-#if DBG_DUMP
-    if (PHASE_TRACE1(Js::WasmReaderPhase))
-    {
-        GetReader()->PrintOps();
-    }
-#endif
     // If we see a FunctionSignatures section we need to see a FunctionBodies section
     if (visitedSections.Test(bSectFunction) && !visitedSections.Test(bSectFunctionBodies))
     {
@@ -530,9 +543,16 @@ void WasmBytecodeGenerator::GenerateFunction()
     AutoDisableInterrupt autoDisableInterrupt(m_scriptContext->GetThreadContext(), true);
 
 #if DBG_DUMP
-    if (PHASE_DUMP(Js::ByteCodePhase, GetFunctionBody()) && !IsValidating())
+    if ((
+        PHASE_DUMP(Js::WasmBytecodePhase, GetFunctionBody()) ||
+        PHASE_DUMP(Js::ByteCodePhase, GetFunctionBody()) 
+        ) && !IsValidating())
     {
         Js::AsmJsByteCodeDumper::Dump(GetFunctionBody(), &mTypedRegisterAllocator, nullptr);
+    }
+    if (PHASE_DUMP(Js::WasmOpCodeDistributionPhase, GetFunctionBody()))
+    {
+        m_module->GetReader()->PrintOps();
     }
 #endif
 
@@ -976,7 +996,7 @@ void WasmBytecodeGenerator::EmitBlockCommon(BlockInfo* blockInfo, bool* endOnEls
     DebugPrintOp(op);
     if (blockInfo && blockInfo->HasYield())
     {
-        EmitInfo info = PopEvalStack();
+        EmitInfo info = PopStackPolymorphic();
         YieldToBlock(*blockInfo, info);
         ReleaseLocation(&info);
     }
@@ -1250,6 +1270,12 @@ EmitInfo WasmBytecodeGenerator::EmitCall()
     }
     AdeleteArray(&m_alloc, nArgs, argsList);
 
+    if (isImportCall && (m_module->HasMemory() || m_module->HasMemoryImport()))
+    {
+        m_writer->EmptyAsm(Js::OpCodeAsmJs::CheckHeap);
+        SetUsesMemory(0);
+    }
+
     // track stack requirements for out params
 
     // + 1 for return address
@@ -1309,22 +1335,14 @@ void WasmBytecodeGenerator::EmitBrTable()
     const uint32 defaultEntry = GetReader()->m_currentNode.brTable.defaultTarget;
 
     // Compile scrutinee
-    EmitInfo scrutineeInfo = PopEvalStack(WasmTypes::I32, _u("br_table expression must be of type i32"));
+    EmitInfo scrutineeInfo = PopStackPolymorphic(WasmTypes::I32, _u("br_table expression must be of type i32"));
 
     m_writer->AsmReg2(Js::OpCodeAsmJs::BeginSwitch_Int, scrutineeInfo.location, scrutineeInfo.location);
     EmitInfo yieldValue;
     BlockInfo defaultBlockInfo = GetBlockInfo(defaultEntry);
     if (defaultBlockInfo.HasYield())
     {
-        // If the scrutinee is any then check the stack before popping
-        if (scrutineeInfo.type == WasmTypes::Any && m_evalStack.Peek().type == WasmTypes::Limit)
-        {
-            yieldValue = scrutineeInfo;
-        }
-        else
-        {
-            yieldValue = PopEvalStack();
-        }
+        yieldValue = PopStackPolymorphic();
     }
 
     // Compile cases
@@ -1362,7 +1380,7 @@ EmitInfo WasmBytecodeGenerator::EmitGrowMemory()
 
 EmitInfo WasmBytecodeGenerator::EmitDrop()
 {
-    EmitInfo info = PopEvalStack();
+    EmitInfo info = PopValuePolymorphic();
     ReleaseLocation(&info);
     return EmitInfo();
 }
@@ -1614,7 +1632,7 @@ void WasmBytecodeGenerator::EmitReturnExpr(EmitInfo* explicitRetInfo)
 {
     if (m_funcInfo->GetResultType() != WasmTypes::Void)
     {
-        EmitInfo retExprInfo = explicitRetInfo ? *explicitRetInfo : PopEvalStack();
+        EmitInfo retExprInfo = explicitRetInfo ? *explicitRetInfo : PopStackPolymorphic();
         if (retExprInfo.type != WasmTypes::Any && m_funcInfo->GetResultType() != retExprInfo.type)
         {
             throw WasmCompilationException(_u("Result type must match return type"));
@@ -1632,7 +1650,7 @@ void WasmBytecodeGenerator::EmitReturnExpr(EmitInfo* explicitRetInfo)
 EmitInfo WasmBytecodeGenerator::EmitSelect()
 {
     EmitInfo conditionInfo = PopEvalStack(WasmTypes::I32, _u("select condition must have i32 type"));
-    EmitInfo falseInfo = PopEvalStack();
+    EmitInfo falseInfo = PopValuePolymorphic();
     EmitInfo trueInfo = PopEvalStack(falseInfo.type, _u("select operands must both have same type"));
     ReleaseLocation(&conditionInfo);
     ReleaseLocation(&falseInfo);
@@ -1680,7 +1698,7 @@ void WasmBytecodeGenerator::EmitBr()
     BlockInfo blockInfo = GetBlockInfo(depth);
     if (blockInfo.HasYield())
     {
-        EmitInfo info = PopEvalStack();
+        EmitInfo info = PopStackPolymorphic();
         YieldToBlock(blockInfo, info);
         ReleaseLocation(&info);
     }
@@ -1699,7 +1717,7 @@ EmitInfo WasmBytecodeGenerator::EmitBrIf()
     BlockInfo blockInfo = GetBlockInfo(depth);
     if (blockInfo.HasYield())
     {
-        info = PopEvalStack();
+        info = PopStackPolymorphic();
         YieldToBlock(blockInfo, info);
         if (info.type == WasmTypes::Any)
         {
@@ -1881,6 +1899,17 @@ FOREACH_SIMD_TYPE(SIMD_CASE)
     default:
         return nullptr;
     }
+}
+
+
+Wasm::EmitInfo WasmBytecodeGenerator::PopStackPolymorphic(WasmTypes::WasmType expectedType, const char16* mismatchMessage)
+{
+    // Check the stack before popping, it is valid to yield nothing if we are Unreachable
+    if (IsUnreachable() && m_evalStack.Peek().type == WasmTypes::Limit)
+    {
+        return EmitInfo(WasmTypes::Any);
+    }
+    return PopEvalStack(expectedType, mismatchMessage);
 }
 
 EmitInfo WasmBytecodeGenerator::PopEvalStack(WasmTypes::WasmType expectedType, const char16* mismatchMessage)

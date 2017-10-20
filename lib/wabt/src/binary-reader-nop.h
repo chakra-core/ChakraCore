@@ -175,6 +175,26 @@ class BinaryReaderNop : public BinaryReaderDelegate {
   Result OnOpcodeBlockSig(Index num_types, Type* sig_types) override {
     return Result::Ok;
   }
+  Result OnAtomicLoadExpr(Opcode opcode,
+                          uint32_t alignment_log2,
+                          Address offset) override {
+    return Result::Ok;
+  }
+  Result OnAtomicStoreExpr(Opcode opcode,
+                           uint32_t alignment_log2,
+                           Address offset) override {
+    return Result::Ok;
+  }
+  Result OnAtomicRmwExpr(Opcode opcode,
+                         uint32_t alignment_log2,
+                         Address offset) override {
+    return Result::Ok;
+  }
+  Result OnAtomicRmwCmpxchgExpr(Opcode opcode,
+                                uint32_t alignment_log2,
+                                Address offset) override {
+    return Result::Ok;
+  }
   Result OnBinaryExpr(Opcode opcode) override { return Result::Ok; }
   Result OnBlockExpr(Index num_types, Type* sig_types) override {
     return Result::Ok;

@@ -1474,7 +1474,7 @@ public:
         case TypeIds_String:
         {
             auto size = PrependByte(builder, _u("String Constant 16"), 
-                VirtualTableInfo<Js::PropertyString>::HasVirtualTable(var)? ctPropertyString16 : ctString16);
+                Js::PropertyString::Is(var)? ctPropertyString16 : ctString16);
             return size + PrependStringConstant(builder, var);
         }
 
@@ -3933,7 +3933,7 @@ public:
             // Read source information
             current = ReadSmallSpanSequence(current, &(*functionBody)->m_sourceInfo.pSpanSequence);
 
-            (*functionBody)->InitializeExecutionModeAndLimits();
+            (*functionBody)->executionState.InitializeExecutionModeAndLimits(*functionBody);
         }
 
         // Read lexically nested functions
@@ -4302,7 +4302,7 @@ HRESULT ByteCodeSerializer::SerializeToBuffer(ScriptContext * scriptContext, Are
 #if INSTRUMENT_BUFFER_INTS
     for (int i = 0; i < 4; i++)
     {
-        printf("[BCGENSTATS] %d, %d\n", i, Counts[i]);
+        Output::Print(_u("[BCGENSTATS] %d, %d\n"), i, Counts[i]);
     }
 #endif
     return hr;

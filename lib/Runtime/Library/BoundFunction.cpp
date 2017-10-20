@@ -46,7 +46,7 @@ namespace Js
         // Here although we won't use value of length, this is just to make sure that we call traps involved with HasOwnProperty(Target, "length") and Get(Target, "length")
         if (JavascriptProxy::Is(targetFunction))
         {
-            if (JavascriptOperators::HasOwnProperty(targetFunction, PropertyIds::length, scriptContext) == TRUE)
+            if (JavascriptOperators::HasOwnProperty(targetFunction, PropertyIds::length, scriptContext, nullptr) == TRUE)
             {
                 int len = 0;
                 Var varLength;
@@ -275,7 +275,7 @@ namespace Js
         JavascriptString* displayName = GetLibrary()->GetEmptyString();
         if (targetFunction != nullptr)
         {
-            Var value = JavascriptOperators::GetProperty(targetFunction, PropertyIds::name, targetFunction->GetScriptContext());
+            Var value = JavascriptOperators::GetPropertyNoCache(targetFunction, PropertyIds::name, targetFunction->GetScriptContext());
             if (JavascriptString::Is(value))
             {
                 displayName = JavascriptString::FromVar(value);

@@ -68,9 +68,9 @@ HRESULT JITProcessManager::CreateServerProcess(int argc, __in_ecount(argc) LPWST
 
 #pragma warning(suppress: 6386) // buffer overrun
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    hr = StringCchCopyW(cmdLine, cmdLineSize, L"ch.exe -OOPCFGRegistration- -CheckOpHelpers -jitserver:");
+    hr = StringCchCopyW(cmdLine, cmdLineSize, _u("ch.exe -OOPCFGRegistration- -CheckOpHelpers -jitserver:"));
 #else
-    hr = StringCchCopyW(cmdLine, cmdLineSize, L"ch.exe -jitserver:");
+    hr = StringCchCopyW(cmdLine, cmdLineSize, _u("ch.exe -jitserver:"));
 #endif
     if (FAILED(hr))
     {
@@ -91,7 +91,7 @@ HRESULT JITProcessManager::CreateServerProcess(int argc, __in_ecount(argc) LPWST
 
     for (int i = 1; i < argc; ++i)
     {
-        hr = StringCchCatW(cmdLine, cmdLineSize, L" ");
+        hr = StringCchCatW(cmdLine, cmdLineSize, _u(" "));
         if (FAILED(hr))
         {
             return hr;

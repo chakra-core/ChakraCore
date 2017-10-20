@@ -1020,7 +1020,7 @@
       <baseline>test143.baseline</baseline>
       <compile-flags>-bgJit- -off:simpleJit -loopInterpretCount:1 -testTrace:arrayCheckHoist</compile-flags>
       <!-- ch.exe doesn't output entire baseline before exiting; -testTrace flush issue? -->
-      <tags>exclude_dynapogo,exclude_forceserialized</tags>
+      <tags>exclude_dynapogo,exclude_forceserialized,exclude_nonative</tags>
     </default>
   </test>
   <test>
@@ -1242,7 +1242,7 @@
       <files>BoundCheckElimination.js</files>
       <baseline>BoundCheckElimination.baseline</baseline>
       <compile-flags>-bgJit- -minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -off:bailOnNoProfile -testTrace:boundCheckElimination -testTrace:boundCheckHoist</compile-flags>
-      <tags>exclude_dynapogo,exclude_serialized,exclude_default</tags>
+      <tags>exclude_dynapogo,exclude_serialized,exclude_default,exclude_nonative</tags>
     </default>
   </test>
   <test>

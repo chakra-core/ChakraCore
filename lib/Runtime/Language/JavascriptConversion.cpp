@@ -22,12 +22,7 @@ namespace Js
     // construct the message string before knowing whether or not the object is coercible.
     BOOL JavascriptConversion::CheckObjectCoercible(Var aValue, ScriptContext* scriptContext)
     {
-        TypeId typeId = JavascriptOperators::GetTypeId(aValue);
-        if (typeId == TypeIds_Null || typeId == TypeIds_Undefined)
-        {
-            return FALSE;
-        }
-        return TRUE;
+        return !JavascriptOperators::IsUndefinedOrNull(aValue);
     }
 
     //ES5 9.11  Undefined, Null, Boolean, Number, String - return false
@@ -63,15 +58,9 @@ namespace Js
         TypeId leftType = JavascriptOperators::GetTypeId(aLeft);
         TypeId rightType = JavascriptOperators::GetTypeId(aRight);
 
-        //Check for undefined and null type;
-        if (leftType == TypeIds_Undefined )
+        if (JavascriptOperators::IsUndefinedOrNullType(leftType))
         {
-            return rightType == TypeIds_Undefined;
-        }
-
-        if (leftType == TypeIds_Null)
-        {
-            return rightType == TypeIds_Null;
+            return leftType == rightType;
         }
 
         double dblLeft, dblRight;
@@ -287,10 +276,14 @@ CommonNumber:
     // ToPropertyKey() takes a value and converts it to a property key
     // Implementation of ES6 7.1.14
     //----------------------------------------------------------------------------
-    void JavascriptConversion::ToPropertyKey(Var argument, ScriptContext* scriptContext, const PropertyRecord** propertyRecord)
+    void JavascriptConversion::ToPropertyKey(
+        Var argument,
+        _In_ ScriptContext* scriptContext,
+        _Out_ const PropertyRecord** propertyRecord,
+        _Out_opt_ PropertyString** propString)
     {
         Var key = JavascriptConversion::ToPrimitive(argument, JavascriptHint::HintString, scriptContext);
-
+        PropertyString * propertyString = nullptr;
         if (JavascriptSymbol::Is(key))
         {
             // If we are looking up a property keyed by a symbol, we already have the PropertyId in the symbol
@@ -301,29 +294,43 @@ CommonNumber:
             // For all other types, convert the key into a string and use that as the property name
             JavascriptString * propName = JavascriptConversion::ToString(key, scriptContext);
 
-            if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(propName))
+            // Check if we have one of the JavascriptString types which allow us to directly read the PropertyRecord
+            propertyString = PropertyString::TryFromVar(propName);
+            if (propertyString != nullptr)
             {
-                PropertyString * propertyString = (PropertyString *)propName;
+                // If we have a PropertyString, we can simply read the PropertyRecord off of it
                 *propertyRecord = propertyString->GetPropertyRecord();
-            }
-            else if (VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(propName))
-            {
-                LiteralStringWithPropertyStringPtr * str = (LiteralStringWithPropertyStringPtr *)propName;
-                if (str->GetPropertyString())
-                {
-                    *propertyRecord = str->GetPropertyString()->GetPropertyRecord();
-                }
-                else
-                {
-                    scriptContext->GetOrAddPropertyRecord(propName->GetString(), propName->GetLength(), propertyRecord);
-                    PropertyString * propStr = scriptContext->GetPropertyString((*propertyRecord)->GetPropertyId());
-                    str->SetPropertyString(propStr);
-                }
             }
             else
             {
-                scriptContext->GetOrAddPropertyRecord(propName->GetString(), propName->GetLength(), propertyRecord);
+                LiteralStringWithPropertyStringPtr * strWithPtr = LiteralStringWithPropertyStringPtr::TryFromVar(propName);
+                if (strWithPtr != nullptr)
+                {
+                    propertyString = strWithPtr->GetPropertyString();
+                    if (propertyString != nullptr)
+                    {
+                        // If the PropertyString field is set, we can again simply read the propertyRecord
+                        *propertyRecord = propertyString->GetPropertyRecord();
+                    }
+                    else
+                    {
+                        // Otherwise, we need to do a lookup for the PropertyRecord
+                        scriptContext->GetOrAddPropertyRecord(propName, propertyRecord);
+                        // While we have the PropertyRecord available, let's find/create a PropertyString so future usage can be optimized
+                        strWithPtr->SetPropertyString(scriptContext->GetPropertyString((*propertyRecord)->GetPropertyId()));
+                    }
+                }
+                else
+                {
+                    // If we don't have any special JavascriptString, we need to do a lookup for the PropertyRecord
+                    scriptContext->GetOrAddPropertyRecord(propName->GetString(), propName->GetLength(), propertyRecord);
+                }
             }
+        }
+
+        if (propString)
+        {
+            *propString = propertyString;
         }
     }
 
@@ -369,22 +376,22 @@ CommonNumber:
         case TypeIds_StringObject:
             {
                 JavascriptStringObject * stringObject = JavascriptStringObject::FromVar(aValue);
-
-                if (stringObject->GetScriptContext()->optimizationOverrides.GetSideEffects() & (hint == JavascriptHint::HintString ? SideEffects_ToString : SideEffects_ValueOf))
+                ScriptContext * objectScriptContext = stringObject->GetScriptContext();
+                if (objectScriptContext->optimizationOverrides.GetSideEffects() & (hint == JavascriptHint::HintString ? SideEffects_ToString : SideEffects_ValueOf))
                 {
                     return MethodCallToPrimitive(aValue, hint, requestContext);
                 }
 
-                return CrossSite::MarshalVar(requestContext, stringObject->Unwrap());
+                return CrossSite::MarshalVar(requestContext, stringObject->Unwrap(), objectScriptContext);
             }
 
         case TypeIds_NumberObject:
             {
                 JavascriptNumberObject * numberObject = JavascriptNumberObject::FromVar(aValue);
-
+                ScriptContext * objectScriptContext = numberObject->GetScriptContext();
                 if (hint == JavascriptHint::HintString)
                 {
-                    if (numberObject->GetScriptContext()->optimizationOverrides.GetSideEffects() & SideEffects_ToString)
+                    if (objectScriptContext->optimizationOverrides.GetSideEffects() & SideEffects_ToString)
                     {
                         return MethodCallToPrimitive(aValue, hint, requestContext);
                     }
@@ -392,11 +399,12 @@ CommonNumber:
                 }
                 else
                 {
-                    if (numberObject->GetScriptContext()->optimizationOverrides.GetSideEffects() & SideEffects_ValueOf)
+                    if (objectScriptContext->optimizationOverrides.GetSideEffects() & SideEffects_ValueOf)
                     {
                         return MethodCallToPrimitive(aValue, hint, requestContext);
                     }
-                    return CrossSite::MarshalVar(requestContext, numberObject->Unwrap());
+
+                    return CrossSite::MarshalVar(requestContext, numberObject->Unwrap(), objectScriptContext);
                 }
             }
 
@@ -673,8 +681,11 @@ CommonNumber:
                 }
 
             case TypeIds_String:
-                return JavascriptString::FromVar(CrossSite::MarshalVar(scriptContext, aValue));
-
+                {
+                    ScriptContext* aValueScriptContext = Js::RecyclableObject::FromVar(aValue)->GetScriptContext();
+                    return JavascriptString::FromVar(CrossSite::MarshalVar(scriptContext,
+                      aValue, aValueScriptContext));
+                }
             case TypeIds_VariantDate:
                 return JavascriptVariantDate::FromVar(aValue)->GetValueString(scriptContext);
 

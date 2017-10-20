@@ -42,7 +42,6 @@ namespace Js
         virtual const char16* GetSz() override;
     protected:
         DEFINE_VTABLE_CTOR(JSONString, JavascriptString);
-        DECLARE_CONCRETE_STRING_CLASS;
     private:
         Field(JavascriptString*) m_originalString;
         Field(charcount_t) m_start; /* start of the escaping operation */

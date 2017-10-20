@@ -15,7 +15,7 @@
 *       and then includes this file in order to implement _cscanf().
 *
 *Note:
-*       this file is included in safecrt.lib build directly, plese refer
+*       this file is included in safecrt.lib build directly, please refer
 *       to safecrt_[w]input_s.c
 *
 *******************************************************************************/

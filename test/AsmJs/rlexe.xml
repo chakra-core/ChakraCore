@@ -620,6 +620,11 @@
   </test>
   <test>
     <default>
+      <files>symBug.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>brbool.js</files>
     </default>
   </test>

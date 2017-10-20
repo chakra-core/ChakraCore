@@ -269,8 +269,12 @@ Security::InsertSmallNOP(IR::Instr * instr, DWORD nopSize)
     }
 
     instr->InsertBefore(nopInstr);
-#else
-    AssertMsg(false, "Unimplemented");
+#elif defined(_M_ARM64)
+
+    // All ARM64 instructions are 4 bytes.
+    IR::Instr *nopInstr = IR::Instr::New(Js::OpCode::NOP, instr->m_func);
+    instr->InsertBefore(nopInstr);
+
 #endif
 }
 
@@ -297,6 +301,11 @@ Security::DontEncode(IR::Opnd *opnd)
     {
         IR::IndirOpnd *indirOpnd = opnd->AsIndirOpnd();
         return indirOpnd->m_dontEncode || indirOpnd->GetOffset() == 0;
+    }
+    case IR::OpndKindList:
+    {
+        // We should only have RegOpnd in the ListOpnd therefor, we don't need to encode anything
+        Assert(opnd->AsListOpnd()->All([](IR::ListOpndType* opnd) { return DontEncode(opnd); }));
     }
     default:
         return true;

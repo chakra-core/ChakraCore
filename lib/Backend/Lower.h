@@ -487,7 +487,6 @@ private:
     IR::LabelInstr *GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr = nullptr, IR::LabelInstr * labelBailOut = nullptr, IR::LabelInstr * collectRuntimeStatsLabel = nullptr);
     void            GenerateJumpToEpilogForBailOut(BailOutInfo * bailOutInfo, IR::Instr *instrAfter);
     void            GenerateThrow(IR::Opnd* errorCode, IR::Instr * instr);
-    void            LowerLdI4(IR::Instr * const instr);
     void            LowerDivI4(IR::Instr * const instr);
     void            LowerRemI4(IR::Instr * const instr);
     void            LowerTrapIfZero(IR::Instr * const instr);
@@ -666,6 +665,7 @@ private:
     void            GenerateHasObjectArrayCheck(IR::RegOpnd * objectOpnd, IR::RegOpnd * typeOpnd, IR::LabelInstr * hasObjectArray, IR::Instr * insertBeforeInstr);
 
     IR::LabelInstr* InsertLoopTopLabel(IR::Instr * insertBeforeInstr);
+    IR::Instr *     AddBailoutToHelperCallInstr(IR::Instr * helperCallInstr, BailOutInfo * bailoutInfo, IR::BailOutKind  bailoutKind, IR::Instr * primaryBailoutInstr);
 public:
     static IRType   GetImplicitCallFlagsType()
     {

@@ -833,7 +833,7 @@ namespace TTD
                 else
                 {
                     Js::Var pitem = nullptr;
-                    BOOL isproperty = Js::JavascriptOperators::GetOwnProperty(curr, precord->GetPropertyId(), &pitem, ctx);
+                    BOOL isproperty = Js::JavascriptOperators::GetOwnProperty(curr, precord->GetPropertyId(), &pitem, ctx, nullptr);
                     TTDAssert(isproperty, "Not sure what went wrong.");
 
                     this->EnqueueNewPathVarAsNeeded(curr, pitem, precord, nullptr);

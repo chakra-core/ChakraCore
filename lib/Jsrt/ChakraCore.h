@@ -244,6 +244,9 @@ typedef bool (CHAKRA_CALLBACK * JsSerializedLoadScriptCallback)
 /// </summary>
 /// <remarks>
 ///     <para>
+///        Requires an active script context.
+///     </para>
+///     <para>
 ///         Input string can be either ASCII or Utf8
 ///     </para>
 /// </remarks>
@@ -263,6 +266,9 @@ CHAKRA_API
 ///     Create JavascriptString variable from Utf16 string
 /// </summary>
 /// <remarks>
+///     <para>
+///        Requires an active script context.
+///     </para>
 ///     <para>
 ///         Expects Utf16 string
 ///     </para>
@@ -738,6 +744,52 @@ CHAKRA_API
         _Out_opt_ JsValueRef *arrayBuffer,
         _Out_opt_ unsigned int *byteOffset,
         _Out_opt_ unsigned int *byteLength);
+
+/// <summary>
+///     Determine if one JavaScript value is less than another JavaScript value.
+/// </summary>
+/// <remarks>
+///     <para>
+///     This function is equivalent to the <c>&lt;</c> operator in Javascript.
+///     </para>
+///     <para>
+///     Requires an active script context.
+///     </para>
+/// </remarks>
+/// <param name="object1">The first object to compare.</param>
+/// <param name="object2">The second object to compare.</param>
+/// <param name="result">Whether object1 is less than object2.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsLessThan(
+    _In_ JsValueRef object1,
+    _In_ JsValueRef object2,
+    _Out_ bool *result);
+
+/// <summary>
+///     Determine if one JavaScript value is less than or equal to another JavaScript value.
+/// </summary>
+/// <remarks>
+///     <para>
+///     This function is equivalent to the <c>&lt;=</c> operator in Javascript.
+///     </para>
+///     <para>
+///     Requires an active script context.
+///     </para>
+/// </remarks>
+/// <param name="object1">The first object to compare.</param>
+/// <param name="object2">The second object to compare.</param>
+/// <param name="result">Whether object1 is less than or equal to object2.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsLessThanOrEqual(
+    _In_ JsValueRef object1,
+    _In_ JsValueRef object2,
+    _Out_ bool *result);
 
 #endif // _CHAKRACOREBUILD
 #endif // _CHAKRACORE_H_

@@ -28,6 +28,9 @@
     <ClCompile Include="RuntimePlatformAgnosticPch.cpp" />
     <ClCompile Include="Platform\Common\UnicodeText.Common.cpp" />
   </ItemGroup>
+  <ItemGroup Condition="'$(IntlICU)'=='true'">
+    <ClCompile Include="Platform\Common\Intl.cpp" />
+  </ItemGroup>
   <ItemGroup>
     <Filter Include="Interfaces">
       <UniqueIdentifier>{8f95626a-111e-4c10-874a-d2729b8d495a}</UniqueIdentifier>
@@ -52,6 +55,9 @@
       <Filter>Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="PerfTrace.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="IPlatformAgnosticResource.h">
       <Filter>Interfaces</Filter>
     </ClInclude>
   </ItemGroup>

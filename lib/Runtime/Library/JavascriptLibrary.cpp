@@ -87,6 +87,8 @@ namespace Js
         InitializeStaticValues();
         PrecalculateArrayAllocationBuckets();
 
+        this->cache.toStringTagCache = ScriptContextPolymorphicInlineCache::New(32, this);
+
 #if ENABLE_COPYONACCESS_ARRAY
         if (!PHASE_OFF1(CopyOnAccessArrayPhase))
         {
@@ -652,6 +654,9 @@ namespace Js
             objectHeaderInlinedTypes[i] =
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr, typeHandler, true, true);
         }
+
+        SimplePathTypeHandler * typeHandler = SimplePathTypeHandler::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true);
+        nullPrototypeObjectType = DynamicType::New(scriptContext, TypeIds_Object, nullValue, nullptr, typeHandler, true, true);
 
         // Initialize regex types
         TypePath *const regexResultPath = TypePath::New(recycler);
@@ -4019,7 +4024,7 @@ namespace Js
     {
         Var arrayIteratorPrototypeNext = nullptr;
         ImplicitCallFlags flags = scriptContext->GetThreadContext()->TryWithDisabledImplicitCall(
-            [&]() { arrayIteratorPrototypeNext = JavascriptOperators::GetProperty(scriptContext->GetLibrary()->GetArrayIteratorPrototype(), PropertyIds::next, scriptContext); });
+            [&]() { arrayIteratorPrototypeNext = JavascriptOperators::GetPropertyNoCache(scriptContext->GetLibrary()->GetArrayIteratorPrototype(), PropertyIds::next, scriptContext); });
 
         return (flags != ImplicitCall_None) || arrayIteratorPrototypeNext != scriptContext->GetLibrary()->GetArrayIteratorPrototypeBuiltinNextFunction();
     }
@@ -6897,9 +6902,24 @@ namespace Js
     DynamicObject* JavascriptLibrary::CreateObject(RecyclableObject* prototype, uint16 requestedInlineSlotCapacity)
     {
         Assert(JavascriptOperators::IsObjectOrNull(prototype));
-
-        DynamicType* dynamicType = CreateObjectType(prototype, requestedInlineSlotCapacity);
-        return DynamicObject::New(this->GetRecycler(), dynamicType);
+        DynamicType* type = nullptr;
+        // If requested capacity is 0, we can't shrink, so it is already fixed and we can reuse the cached types
+        // For other inline slot capacities, we might want to shrink so we can't use the cached types (whose slot capacities are fixed)
+        //
+        // REVIEW: Do we really need non-fixed inline slot capacity? The obvious downside is it prevents type sharing with the cached types
+        if (requestedInlineSlotCapacity == 0 && JavascriptOperators::IsNull(prototype))
+        {
+            type = GetNullPrototypeObjectType();
+        }
+        else if(requestedInlineSlotCapacity == 0 && prototype == GetObjectPrototype())
+        {
+            type = GetObjectType();
+        }
+        else
+        {
+            type = CreateObjectType(prototype, requestedInlineSlotCapacity);
+        }
+        return DynamicObject::New(this->GetRecycler(), type);
     }
 
     PropertyStringCacheMap* JavascriptLibrary::EnsurePropertyStringMap()

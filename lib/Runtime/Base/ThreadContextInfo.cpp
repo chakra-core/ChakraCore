@@ -450,9 +450,9 @@ ThreadContextInfo::SetValidCallTargetForCFG(PVOID callTargetAddress, bool isSetV
                 //Throw OOM, if there is not enough virtual memory for paging (required for CFG BitMap)
                 Js::Throw::OutOfMemory();
             }
-            else if (gle == STATUS_PROCESS_IS_TERMINATING)
+            else if (gle == ERROR_ACCESS_DENIED)
             {
-                // When this error is set, the target process is exiting and thus cannot proceed with
+                // When this error is set, the target process may be exiting and thus cannot proceed with
                 // JIT output. Throw this exception to safely abort this call.
                 throw Js::OperationAbortedException();
             }

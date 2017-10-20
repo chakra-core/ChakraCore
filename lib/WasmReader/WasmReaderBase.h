@@ -7,12 +7,6 @@
 #ifdef ENABLE_WASM
 namespace Wasm
 {
-    struct FunctionBodyReaderInfo
-    {
-        Field(uint32) size;
-        Field(intptr_t) startOffset;
-    };
-
     class WasmReaderBase
     {
     public:

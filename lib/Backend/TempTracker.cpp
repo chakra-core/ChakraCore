@@ -1214,6 +1214,9 @@ ObjectTemp::GetStackSym(IR::Opnd * opnd, IR::PropertySymOpnd ** pPropertySymOpnd
         case IR::OpndKindIndir:
             stackSym = opnd->AsIndirOpnd()->GetBaseOpnd()->m_sym;
             break;
+        case IR::OpndKindList:
+            Assert(UNREACHED);
+            break;
     };
     return stackSym;
 }

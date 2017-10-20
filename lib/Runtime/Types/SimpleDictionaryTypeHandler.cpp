@@ -57,13 +57,14 @@ namespace Js
     const PropertyRecord* TMapKey_ConvertKey(ScriptContext* scriptContext, JavascriptString* key)
     {
         PropertyRecord const * propertyRecord;
-        if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(key))
+        PropertyString * propertyString = PropertyString::TryFromVar(key);
+        if (propertyString != nullptr)
         {
-            propertyRecord = ((PropertyString*)key)->GetPropertyRecord();
+            propertyRecord = propertyString->GetPropertyRecord();
         }
         else
         {
-            scriptContext->GetOrAddPropertyRecord(key->GetString(), key->GetLength(), &propertyRecord);
+            scriptContext->GetOrAddPropertyRecord(key, &propertyRecord);
         }
         return propertyRecord;
     }
@@ -95,9 +96,10 @@ namespace Js
     const PropertyRecord* TMapKey_ConvertKey_TTD(ThreadContext* threadContext, JavascriptString* key)
     {
         PropertyRecord const * propertyRecord;
-        if(VirtualTableInfo<Js::PropertyString>::HasVirtualTable(key))
+        PropertyString * propertyString = PropertyString::TryFromVar(key);
+        if (propertyString != nullptr)
         {
-            propertyRecord = ((PropertyString*)key)->GetPropertyRecord();
+            propertyRecord = propertyString->GetPropertyRecord();
         }
         else
         {
@@ -110,7 +112,7 @@ namespace Js
     bool TPropertyKey_IsInternalPropertyId(JavascriptString* key)
     {
         // WARNING: This will return false for PropertyStrings that are actually InternalPropertyIds
-        Assert(!VirtualTableInfo<PropertyString>::HasVirtualTable(key) || !IsInternalPropertyId(((PropertyString*)key)->GetPropertyRecord()->GetPropertyId()));
+        Assert(!PropertyString::Is(key) || !IsInternalPropertyId(((PropertyString*)key)->GetPropertyRecord()->GetPropertyId()));
         return false;
     }
 
@@ -1221,7 +1223,7 @@ namespace Js
         // or we have to add it to the dictionary, in which case we need to get or create a PropertyRecord.
         // Thus, just get or create one and call the PropertyId overload of SetProperty.
         PropertyRecord const * propertyRecord;
-        instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+        instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         return SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::SetProperty(instance, propertyRecord->GetPropertyId(), value, flags, info);
     }
 
@@ -3430,6 +3432,14 @@ namespace Js
 
         TTDAssert(false, "We found this during enum so what is going on here?");
         return Js::Constants::NoBigSlot;
+    }
+#endif
+
+#if DBG_DUMP
+    template<typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
+    void SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::Dump(unsigned indent) const
+    {
+        Output::Print(_u("%*sSimpleDictionaryTypeHandlerBase (0x%p): Dump unimplemented\n"), indent, _u(""), this);
     }
 #endif
 

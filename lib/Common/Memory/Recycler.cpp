@@ -3094,11 +3094,11 @@ void Recycler::DisplayMemStats()
 {
 #ifdef PERF_COUNTERS
 #if DBG_DUMP
-    printf("Recycler Live Object Count  %u\n", PerfCounter::RecyclerCounterSet::GetLiveObjectCounter().GetValue());
-    printf("Recycler Live Object Size   %u\n", PerfCounter::RecyclerCounterSet::GetLiveObjectSizeCounter().GetValue());
+    Output::Print(_u("Recycler Live Object Count  %u\n"), PerfCounter::RecyclerCounterSet::GetLiveObjectCounter().GetValue());
+    Output::Print(_u("Recycler Live Object Size   %u\n"), PerfCounter::RecyclerCounterSet::GetLiveObjectSizeCounter().GetValue());
 #endif
 
-    printf("Recycler Used Page Size %u\n", PerfCounter::PageAllocatorCounterSet::GetUsedSizeCounter(PageAllocatorType::PageAllocatorType_Recycler).GetValue());
+    Output::Print(_u("Recycler Used Page Size %u\n"), PerfCounter::PageAllocatorCounterSet::GetUsedSizeCounter(PageAllocatorType::PageAllocatorType_Recycler).GetValue());
 #endif
 }
 #endif
@@ -8723,3 +8723,9 @@ RecyclerHeapObjectInfo::GetSize() const
 }
 
 template char* Recycler::AllocWithAttributesInlined<(Memory::ObjectInfoBits)32, false>(size_t);
+#ifdef RECYCLER_VISITED_HOST
+template char* Recycler::AllocZeroWithAttributesInlined<RecyclerVisitedHostTracedFinalizableBits, /* nothrow = */true>(size_t);
+template char* Recycler::AllocZeroWithAttributesInlined<RecyclerVisitedHostFinalizableBits, /* nothrow = */true>(size_t);
+template char* Recycler::AllocZeroWithAttributesInlined<RecyclerVisitedHostTracedBits, /* nothrow = */true>(size_t);
+template char* Recycler::AllocZeroWithAttributesInlined<LeafBit, /* nothrow = */true>(size_t);
+#endif

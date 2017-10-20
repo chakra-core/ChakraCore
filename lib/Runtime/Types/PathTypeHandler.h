@@ -252,6 +252,10 @@ namespace Js
         static SimplePathTypeHandler * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static SimplePathTypeHandler * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static SimplePathTypeHandler * New(ScriptContext * scriptContext, SimplePathTypeHandler * typeHandler, bool isLocked, bool isShared);
+#if DBG_DUMP
+    public:
+        void Dump(unsigned indent = 0) const override;
+#endif
     };
 
     class PathTypeHandler sealed : public PathTypeHandlerBase
@@ -284,5 +288,9 @@ namespace Js
         static PathTypeHandler * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static PathTypeHandler * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static PathTypeHandler * New(ScriptContext * scriptContext, PathTypeHandler * typeHandler, bool isLocked, bool isShared);
+#if DBG_DUMP
+    public:
+        void Dump(unsigned indent = 0) const override;
+#endif
     };
 }

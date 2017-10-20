@@ -36,10 +36,10 @@ PHASE(All)
         PHASE(GatherCodeGenData)
     PHASE(Wasm)
         // Wasm frontend
-        PHASE(WasmBytecode)
-        PHASE(WasmReader)
-            PHASE(WasmSection)
-            PHASE(WasmLEB128)
+        PHASE(WasmBytecode) // Supports -off,-dump,-trace,-profile
+        PHASE(WasmReader) // Support -trace,-profile
+        PHASE(WasmSection) // Supports -trace
+        PHASE(WasmOpCodeDistribution) // Support -dump
         // Wasm features per functions
         PHASE(WasmDeferred)
         PHASE(WasmValidatePrejit)
@@ -401,11 +401,13 @@ PHASE(All)
     #define DEFAULT_CONFIG_WasmFastArray    (false)
 #endif
 #define DEFAULT_CONFIG_WasmCheckVersion     (true)
+#define DEFAULT_CONFIG_WasmIgnoreLimits     (false)
 #define DEFAULT_CONFIG_WasmFold             (true)
 #define DEFAULT_CONFIG_WasmMathExFilter     (false)
 #define DEFAULT_CONFIG_WasmIgnoreResponse   (false)
 #define DEFAULT_CONFIG_WasmMaxTableSize     (10000000)
 #define DEFAULT_CONFIG_WasmSimd             (false)
+#define DEFAULT_CONFIG_WasmSignExtends      (false)
 #define DEFAULT_CONFIG_BgJitDelayFgBuffer   (0)
 #define DEFAULT_CONFIG_BgJitPendingFuncCap  (31)
 #define DEFAULT_CONFIG_CurrentSourceInfo    (true)
@@ -508,6 +510,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_RegexTracing         (false)
 #define DEFAULT_CONFIG_RegexProfile         (false)
 #define DEFAULT_CONFIG_RegexDebug           (false)
+#define DEFAULT_CONFIG_RegexBytecodeDebug   (false)
 #define DEFAULT_CONFIG_RegexOptimize        (true)
 #define DEFAULT_CONFIG_DynamicRegexMruListSize (16)
 #define DEFAULT_CONFIG_GoptCleanupThreshold  (25)
@@ -871,9 +874,11 @@ FLAGNR(Boolean, WasmI64               , "Enable Int64 testing for WebAssembly. A
 FLAGNR(Boolean, WasmFastArray         , "Enable fast array implementation for WebAssembly", DEFAULT_CONFIG_WasmFastArray)
 FLAGNR(Boolean, WasmMathExFilter      , "Enable Math exception filter for WebAssembly", DEFAULT_CONFIG_WasmMathExFilter)
 FLAGNR(Boolean, WasmCheckVersion      , "Check the binary version for WebAssembly", DEFAULT_CONFIG_WasmCheckVersion)
+FLAGNR(Boolean, WasmIgnoreLimits      , "Ignore the WebAssembly binary limits ", DEFAULT_CONFIG_WasmIgnoreLimits)
 FLAGNR(Boolean, WasmFold              , "Enable i32/i64 const folding", DEFAULT_CONFIG_WasmFold)
 FLAGNR(Boolean, WasmIgnoreResponse    , "Ignore the type of the Response object", DEFAULT_CONFIG_WasmIgnoreResponse)
 FLAGNR(Number,  WasmMaxTableSize      , "Maximum size allowed to the WebAssembly.Table", DEFAULT_CONFIG_WasmMaxTableSize)
+FLAGNR(Boolean, WasmSignExtends       , "Use new WebAssembly sign extension operators", DEFAULT_CONFIG_WasmSignExtends)
 #ifdef ENABLE_WASM_SIMD
 FLAGR(Boolean, WasmSimd, "Enable SIMD in WebAssembly", DEFAULT_CONFIG_WasmSimd)
 #endif
@@ -1056,6 +1061,9 @@ FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExPrototypeProperties, "Enable ES6 propert
 #ifndef COMPILE_DISABLE_ES6RegExSymbols
     #define COMPILE_DISABLE_ES6RegExSymbols 0
 #endif
+
+// When we enable ES6RegExSymbols check all String and Regex built-ins which are inlined in JIT and make sure the helper
+// sets implicit call flag before calling into script
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExSymbols        , "Enable ES6 RegExp symbols"                                , DEFAULT_CONFIG_ES6RegExSymbols)
 
 FLAGPR           (Boolean, ES6, ES6HasInstance         , "Enable ES6 @@hasInstance symbol"                          , DEFAULT_CONFIG_ES6HasInstance)
@@ -1116,7 +1124,7 @@ FLAGNR(Boolean, ForceStaticInterpreterThunk, "Force using static interpreter thu
 FLAGNR(Boolean, DumpCommentsFromReferencedFiles, "Allow printing comments of comment-table of the referenced file as well (use with -trace:CommentTable)", DEFAULT_CONFIG_DumpCommentsFromReferencedFiles)
 FLAGNR(Number,  DelayFullJITSmallFunc , "Scale Full JIT threshold for small functions which are going to be inlined soon. To provide fraction scale, the final scale is scale following this option divided by 10", DEFAULT_CONFIG_DelayFullJITSmallFunc)
 
-#ifdef _M_ARM
+#if defined(_M_ARM32_OR_ARM64)
 FLAGNR(Boolean, ForceLocalsPtr        , "Force use of alternative locals pointer (JIT only)", false)
 #endif
 FLAGNR(Boolean, DeferLoadingAvailableSource, "Treat available source code as a dummy defer-mappable object to go through that code path.", DEFAULT_CONFIG_DeferLoadingAvailableSource)
@@ -1251,7 +1259,9 @@ FLAGNR(Boolean, OOPJITMissingOpts     , "Use optimizations that are missing from
 FLAGNR(Boolean, OOPCFGRegistration    , "Do CFG registration OOP (under OOP JIT)", DEFAULT_CONFIG_OOPCFGRegistration)
 FLAGNR(Boolean, ForceJITCFGCheck      , "Have JIT code always do CFG check even if range check succeeded", DEFAULT_CONFIG_ForceJITCFGCheck)
 FLAGNR(Boolean, UseJITTrampoline      , "Use trampoline for JIT entry points and emit range checks for it", DEFAULT_CONFIG_UseJITTrampoline)
-#ifdef _ARM64_
+
+#if defined(_M_ARM64) && !defined(ENABLE_DEBUG_CONFIG_OPTIONS)
+// Disable JIT in ARM64 release build till it is stable. Enable in debug and test build for testing
 FLAGR (Boolean, NoNative              , "Disable native codegen", true)
 #else
 FLAGR (Boolean, NoNative              , "Disable native codegen", false)
@@ -1430,6 +1440,7 @@ FLAGNR(Boolean, ValidateHeapEnum      , "Validate that heap enumeration is repor
 FLAGR (Boolean, RegexTracing          , "Trace all Regex invocations to the output.", DEFAULT_CONFIG_RegexTracing)
 FLAGR (Boolean, RegexProfile          , "Collect usage statistics on all Regex invocations.", DEFAULT_CONFIG_RegexProfile)
 FLAGR (Boolean, RegexDebug            , "Trace compilation of UnifiedRegex expressions.", DEFAULT_CONFIG_RegexDebug)
+FLAGR (Boolean, RegexBytecodeDebug    , "Display layout of UnifiedRegex bytecode (requires -RegexDebug to view).", DEFAULT_CONFIG_RegexBytecodeDebug)
 FLAGR (Boolean, RegexOptimize         , "Optimize regular expressions in the unified Regex system (default: true)", DEFAULT_CONFIG_RegexOptimize)
 FLAGR (Number,  DynamicRegexMruListSize, "Size of the MRU list for dynamic regexes", DEFAULT_CONFIG_DynamicRegexMruListSize)
 #endif

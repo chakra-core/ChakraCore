@@ -874,7 +874,7 @@ namespace Js
         // or we have to add it to the dictionary, in which case we need to get or create a PropertyRecord.
         // Thus, just get or create one and call the PropertyId overload of SetProperty.
         PropertyRecord const * propertyRecord;
-        instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+        instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         return DictionaryTypeHandlerBase<T>::SetProperty(instance, propertyRecord->GetPropertyId(), value, flags, info);
     }
 
@@ -1856,6 +1856,9 @@ namespace Js
             {
                 if (descriptor->IsAccessor && !(attributes & PropertyLetConstGlobal))
                 {
+#if DEBUG
+                    Var ctor = JavascriptOperators::GetProperty(instance, PropertyIds::constructor, scriptContext);
+#endif
                     AssertMsg(RootObjectBase::Is(instance) || JavascriptFunction::IsBuiltinProperty(instance, propertyId) ||
                         // ValidateAndApplyPropertyDescriptor says to preserve Configurable and Enumerable flags
 
@@ -1867,7 +1870,7 @@ namespace Js
                         // something else.  All we need to do is convert the descriptor to a data descriptor.
                         // Built-in Function.prototype properties 'length', 'arguments', and 'caller' are special cases.
 
-                        (JavascriptOperators::IsClassConstructor(JavascriptOperators::GetProperty(instance, PropertyIds::constructor, scriptContext)) &&
+                        ((JavascriptOperators::IsClassConstructor(ctor) || JavascriptOperators::IsClassMethod(ctor)) &&
                             (attributes & PropertyClassMemberDefaults) == PropertyClassMemberDefaults),
                         // 14.3.9: InitClassMember sets property descriptor to {writable:true, enumerable:false, configurable:true}
 
@@ -2014,7 +2017,7 @@ namespace Js
     template <typename T>
     Var DictionaryTypeHandlerBase<T>::CanonicalizeAccessor(Var accessor, /*const*/ JavascriptLibrary* library)
     {
-        if (accessor == nullptr || JavascriptOperators::IsUndefinedObject(accessor, library))
+        if (accessor == nullptr || JavascriptOperators::IsUndefinedObject(accessor))
         {
             accessor = library->GetDefaultAccessorFunction();
         }
@@ -2198,14 +2201,12 @@ namespace Js
             SetPropertyValueInfo(info, instance, index, attributes);
         }
 
-        if (!IsInternalPropertyId(propertyRecord->GetPropertyId()) && ((this->GetFlags() & IsPrototypeFlag)
-            || JavascriptOperators::HasProxyOrPrototypeInlineCacheProperty(instance, propertyRecord->GetPropertyId())))
-        {
-            // We don't evolve dictionary types when adding a field, so we need to invalidate prototype caches.
-            // We only have to do this though if the current type is used as a prototype, or the current property
-            // is found on the prototype chain.
-            scriptContext->InvalidateProtoCaches(propertyRecord->GetPropertyId());
-        }
+        // Always invalidate prototype caches when we add a property.  Previously, we only did this if the current
+        // type is used as a prototype, or if the new property is also found on the prototype chain (because
+        // adding a new field doesn't create a new dictionary type).  However, if the new property is already in
+        // the cache as a missing property, we have to invalidate the prototype caches.
+        scriptContext->InvalidateProtoCaches(propertyRecord->GetPropertyId());
+
         SetPropertyUpdateSideEffect(instance, propertyRecord->GetPropertyId(), value, possibleSideEffects);
         return true;
     }
@@ -2907,6 +2908,42 @@ namespace Js
         TTDAssert(false, "We found this and not accessor but NoBigSlot for index?");
         return Js::Constants::NoBigSlot;
     }
+#endif
+
+#if DBG_DUMP
+    template<typename T> void DictionaryTypeHandlerBase<T>::Dump(unsigned indent) const {
+        const auto padding(_u(""));
+        const unsigned fieldIndent(indent + 2);
+        const unsigned mapLabelIndent(indent + 4);
+        const unsigned mapValueIndent(indent + 6);
+
+        Output::Print(_u("%*sDictionaryTypeHandlerBase (0x%p):\n"), indent, padding, this);
+        DynamicTypeHandler::Dump(indent + 2);
+        if (this->propertyMap == nullptr)
+        {
+            Output::Print(_u("%*spropertyMap: <null>\n"), fieldIndent, padding);
+        }
+        else
+        {
+            Output::Print(_u("%*spropertyMap: 0x%p\n"), fieldIndent, padding, static_cast<void*>(this->propertyMap));
+            this->propertyMap->Map([&](const PropertyRecord *key, const DictionaryPropertyDescriptor<T> &value)
+            {
+                Output::Print(_u("%*sKey:\n"), mapLabelIndent, padding);
+                if (key == nullptr)
+                {
+                    Output::Print(_u("%*s<null>\n"), mapValueIndent, padding);
+                }
+                else
+                {
+                    key->Dump(mapValueIndent);
+                }
+                Output::Print(_u("%*sValue\n"), mapLabelIndent, padding);
+                value.Dump(mapValueIndent);
+            });
+        }
+        Output::Print(_u("%*snextPropertyIndex: %d\n"), fieldIndent, padding, static_cast<int32>(this->nextPropertyIndex));
+    }
+
 #endif
 
     template class DictionaryTypeHandlerBase<PropertyIndex>;

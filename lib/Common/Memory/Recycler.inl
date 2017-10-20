@@ -46,8 +46,12 @@ template <ObjectInfoBits attributes, bool nothrow>
 inline char *
 Recycler::AllocWithAttributesInlined(DECLSPEC_GUARD_OVERFLOW size_t size)
 {
-    // All tracked objects are client tracked objects
+    // All tracked objects are client tracked or recycler host visited objects
+#ifndef RECYCLER_VISITED_HOST
     CompileAssert((attributes & TrackBit) == 0 || (attributes & ClientTrackedBit) != 0);
+#else
+    CompileAssert((attributes & TrackBit) == 0 || (attributes & ClientTrackedBit) != 0 || (attributes & RecyclerVisitedHostBit) != 0);
+#endif
     Assert(this->enableScanImplicitRoots || (attributes & ImplicitRootBit) == 0);
     AssertMsg(this->disableThreadAccessCheck || this->mainThreadId == GetCurrentThreadContextId(),
         "Allocating from the recycler can only be done on the main thread");
@@ -517,6 +521,15 @@ Recycler::AddMark(void * candidate, size_t byteCount) throw()
     return markContext.AddMarkedObject(candidate, byteCount);
 }
 
+#ifdef RECYCLER_VISITED_HOST
+inline bool
+Recycler::AddPreciselyTracedMark(IRecyclerVisitedObject * candidate) throw()
+{
+    // This API cannot be used for parallel marking as we don't have enough information to determine which MarkingContext to use.
+    Assert((this->collectionState & Collection_Parallel) == 0);
+    return markContext.AddPreciselyTracedObject(candidate);
+}
+#endif
 
 template <typename T>
 void

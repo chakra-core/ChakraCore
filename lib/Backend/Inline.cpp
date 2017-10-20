@@ -1399,8 +1399,6 @@ bool
 Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, const FunctionJITTimeInfo * inlineeInfo, bool isPolymorphic, bool isBuiltIn, bool isCtor, bool isInlined, bool &safeThis,
                                             bool dontOptimizeJustCheck, uint i /*i-th inlinee at a polymorphic call site*/)
 {
-    Assert(!callInstr->m_func->GetJITFunctionBody()->HasTry());
-
     if (PHASE_OFF(Js::FixedMethodsPhase, callInstr->m_func))
     {
         return false;
@@ -2169,7 +2167,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * 
 
         if(tmpDst)
         {
-            IR::Instr * ldInstr = IR::Instr::New(Js::OpCode::Ld_A, callInstrDst, tmpDst, callInstr->m_func);
+            IR::Instr * ldInstr = IR::Instr::New(Func::GetLoadOpForType(callInstrDst->GetType()), callInstrDst, tmpDst, callInstr->m_func);
             inlineBuiltInEndInstr->InsertBefore(ldInstr);
         }
 
@@ -3021,7 +3019,7 @@ Inline::InlineCall(IR::Instr *callInstr, const FunctionJITTimeInfo *funcInfo, co
         // Change ArgOut to use temp as src1.
         StackSym * stackSym = StackSym::New(orgSrc1->GetStackSym()->GetType(), argImplicitInstr->m_func);
         IR::Opnd* tempDst = IR::RegOpnd::New(stackSym, orgSrc1->GetType(), argImplicitInstr->m_func);
-        IR::Instr *assignInstr = IR::Instr::New(Js::OpCode::Ld_A, tempDst, orgSrc1, argImplicitInstr->m_func);
+        IR::Instr *assignInstr = IR::Instr::New(Func::GetLoadOpForType(orgSrc1->GetType()), tempDst, orgSrc1, argImplicitInstr->m_func);
         assignInstr->SetByteCodeOffset(orgArgout);
         tempDst->SetIsJITOptimizedReg(true);
         orgArgout->InsertBefore(assignInstr);
@@ -4366,6 +4364,10 @@ bool Inline::InlConstFoldArg(IR::Instr *instr, __in_ecount_opt(callerArgOutCount
     {
         return false;
     }
+    if (instr->m_func->GetJITFunctionBody()->HasTry())
+    {
+        return false;
+    }
 
     IR::Opnd *src1 = instr->GetSrc1();
     IntConstType value;
@@ -4872,7 +4874,7 @@ Inline::MapFormals(Func *inlinee,
                 if (instr->m_func->GetJITFunctionBody()->IsAsmJsMode())
                 {
                     instr->SetSrc1(argOut->GetSrc1());
-                    instr->m_opcode = Js::OpCode::Ld_A;
+                    instr->m_opcode = Func::GetLoadOpForType(argOut->GetSrc1()->GetType());
                 }
                 else
                 {
@@ -5198,7 +5200,7 @@ Inline::MapFormals(Func *inlinee,
             else
             {
                 Assert(instr->GetSrc1() != nullptr);
-                instr->m_opcode = Js::OpCode::Ld_A;
+                instr->m_opcode = Func::GetLoadOpForType(instr->GetSrc1()->GetType());
                 instr->SetDst(retOpnd);
             }
             break;

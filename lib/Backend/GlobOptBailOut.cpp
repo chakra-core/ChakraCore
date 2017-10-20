@@ -730,7 +730,7 @@ void GlobOpt::RecordInlineeFrameInfo(IR::Instr* inlineeEnd)
                 frameInfo->function = InlineFrameInfoValue(functionObject->m_sym);
             }
         }
-        else
+        else if(!GetIsAsmJSFunc()) // don't care about saving arg syms for wasm/asm.js
         {
             Js::ArgSlot argSlot = argInstr->GetDst()->AsSymOpnd()->m_sym->AsStackSym()->GetArgSlotNum();
             IR::Opnd* argOpnd = argInstr->GetSrc1();

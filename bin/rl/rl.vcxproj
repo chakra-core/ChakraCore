@@ -27,6 +27,7 @@
         xmllite.lib;
         $(NoThrowNewLib)
       </AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SdkLibPath)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

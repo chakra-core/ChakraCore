@@ -322,29 +322,11 @@ Result BinaryReaderLogging::OnIfExpr(Index num_types, Type* sig_types) {
   return reader_->OnIfExpr(num_types, sig_types);
 }
 
-Result BinaryReaderLogging::OnLoadExpr(Opcode opcode,
-                                       uint32_t alignment_log2,
-                                       Address offset) {
-  LOGF("OnLoadExpr(opcode: \"%s\" (%u), align log2: %u, offset: %" PRIaddress
-       ")\n",
-       opcode.GetName(), opcode.GetCode(), alignment_log2, offset);
-  return reader_->OnLoadExpr(opcode, alignment_log2, offset);
-}
-
 Result BinaryReaderLogging::OnLoopExpr(Index num_types, Type* sig_types) {
   LOGF("OnLoopExpr(sig: ");
   LogTypes(num_types, sig_types);
   LOGF_NOINDENT(")\n");
   return reader_->OnLoopExpr(num_types, sig_types);
-}
-
-Result BinaryReaderLogging::OnStoreExpr(Opcode opcode,
-                                        uint32_t alignment_log2,
-                                        Address offset) {
-  LOGF("OnStoreExpr(opcode: \"%s\" (%u), align log2: %u, offset: %" PRIaddress
-       ")\n",
-       opcode.GetName(), opcode.GetCode(), alignment_log2, offset);
-  return reader_->OnStoreExpr(opcode, alignment_log2, offset);
 }
 
 Result BinaryReaderLogging::OnTryExpr(Index num_types, Type* sig_types) {
@@ -494,6 +476,15 @@ Result BinaryReaderLogging::OnSymbolInfo(string_view name, uint32_t flags) {
     return reader_->name(opcode);                                      \
   }
 
+#define DEFINE_LOAD_STORE_OPCODE(name)                                      \
+  Result BinaryReaderLogging::name(Opcode opcode, uint32_t alignment_log2,  \
+                                   Address offset) {                        \
+    LOGF(#name "(opcode: \"%s\" (%u), align log2: %u, offset: %" PRIaddress \
+               ")\n",                                                       \
+         opcode.GetName(), opcode.GetCode(), alignment_log2, offset);       \
+    return reader_->name(opcode, alignment_log2, offset);                   \
+  }
+
 #define DEFINE0(name)                  \
   Result BinaryReaderLogging::name() { \
     LOGF(#name "\n");                  \
@@ -545,6 +536,10 @@ DEFINE_INDEX(OnFunctionBodyCount)
 DEFINE_INDEX(BeginFunctionBody)
 DEFINE_INDEX(EndFunctionBody)
 DEFINE_INDEX(OnLocalDeclCount)
+DEFINE_LOAD_STORE_OPCODE(OnAtomicLoadExpr);
+DEFINE_LOAD_STORE_OPCODE(OnAtomicRmwExpr);
+DEFINE_LOAD_STORE_OPCODE(OnAtomicRmwCmpxchgExpr);
+DEFINE_LOAD_STORE_OPCODE(OnAtomicStoreExpr);
 DEFINE_OPCODE(OnBinaryExpr)
 DEFINE_INDEX_DESC(OnCallExpr, "func_index")
 DEFINE_INDEX_DESC(OnCallIndirectExpr, "sig_index")
@@ -559,12 +554,14 @@ DEFINE0(OnEndExpr)
 DEFINE_INDEX_DESC(OnGetGlobalExpr, "index")
 DEFINE_INDEX_DESC(OnGetLocalExpr, "index")
 DEFINE0(OnGrowMemoryExpr)
+DEFINE_LOAD_STORE_OPCODE(OnLoadExpr);
 DEFINE0(OnNopExpr)
 DEFINE_INDEX_DESC(OnRethrowExpr, "depth");
 DEFINE0(OnReturnExpr)
 DEFINE0(OnSelectExpr)
 DEFINE_INDEX_DESC(OnSetGlobalExpr, "index")
 DEFINE_INDEX_DESC(OnSetLocalExpr, "index")
+DEFINE_LOAD_STORE_OPCODE(OnStoreExpr);
 DEFINE_INDEX_DESC(OnTeeLocalExpr, "index")
 DEFINE_INDEX_DESC(OnThrowExpr, "except_index")
 DEFINE0(OnUnreachableExpr)

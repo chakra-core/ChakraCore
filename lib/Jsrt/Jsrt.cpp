@@ -1221,12 +1221,22 @@ CHAKRA_API JsStringToPointer(_In_ JsValueRef stringValue, _Outptr_result_buffer_
 
 CHAKRA_API JsConvertValueToString(_In_ JsValueRef value, _Out_ JsValueRef *result)
 {
+    PARAM_NOT_NULL(result);
+    *result = nullptr;
+
+    if (value != nullptr && Js::JavascriptString::Is(value))
+    {
+        return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+            VALIDATE_INCOMING_REFERENCE(value, scriptContext);
+
+            *result = value;
+            return JsNoError;
+        });
+    }
+
     return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
         PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTVarToStringConversion, (Js::Var)value);
-
         VALIDATE_INCOMING_REFERENCE(value, scriptContext);
-        PARAM_NOT_NULL(result);
-        *result = nullptr;
 
         *result = (JsValueRef) Js::JavascriptConversion::ToString((Js::Var)value, scriptContext);
 
@@ -2211,6 +2221,36 @@ CHAKRA_API JsGetIndexedPropertiesExternalData(
     END_JSRT_NO_EXCEPTION
 }
 
+CHAKRA_API JsLessThan(_In_ JsValueRef object1, _In_ JsValueRef object2, _Out_ bool *result)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTLessThan, object1, object2, false);
+
+        VALIDATE_INCOMING_REFERENCE(object1, scriptContext);
+        VALIDATE_INCOMING_REFERENCE(object2, scriptContext);
+        PARAM_NOT_NULL(result);
+
+        *result = Js::JavascriptOperators::Less((Js::Var)object1, (Js::Var)object2, scriptContext) != 0;
+
+        return JsNoError;
+    });
+}
+
+CHAKRA_API JsLessThanOrEqual(_In_ JsValueRef object1, _In_ JsValueRef object2, _Out_ bool *result)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTLessThan, object1, object2, true);
+
+        VALIDATE_INCOMING_REFERENCE(object1, scriptContext);
+        VALIDATE_INCOMING_REFERENCE(object2, scriptContext);
+        PARAM_NOT_NULL(result);
+
+        *result = Js::JavascriptOperators::LessEqual((Js::Var)object1, (Js::Var)object2, scriptContext) != 0;
+
+        return JsNoError;
+    });
+}
+
 CHAKRA_API JsEquals(_In_ JsValueRef object1, _In_ JsValueRef object2, _Out_ bool *result)
 {
     return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
@@ -2817,14 +2857,12 @@ CHAKRA_API JsIsRuntimeExecutionDisabled(_In_ JsRuntimeHandle runtimeHandle, _Out
     return JsNoError;
 }
 
-CHAKRA_API JsGetPropertyIdFromName(_In_z_ const WCHAR *name, _Out_ JsPropertyIdRef *propertyId)
+inline JsErrorCode JsGetPropertyIdFromNameInternal(_In_z_ const WCHAR *name, size_t cPropertyNameLength, _Out_ JsPropertyIdRef *propertyId)
 {
     return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext * scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(name);
         PARAM_NOT_NULL(propertyId);
         *propertyId = nullptr;
-
-        size_t cPropertyNameLength = wcslen(name);
 
         if (cPropertyNameLength <= INT_MAX)
         {
@@ -2837,6 +2875,11 @@ CHAKRA_API JsGetPropertyIdFromName(_In_z_ const WCHAR *name, _Out_ JsPropertyIdR
             return JsErrorOutOfMemory;
         }
     });
+}
+
+CHAKRA_API JsGetPropertyIdFromName(_In_z_ const WCHAR *name, _Out_ JsPropertyIdRef *propertyId)
+{
+    return JsGetPropertyIdFromNameInternal(name, wcslen(name), propertyId);
 }
 
 CHAKRA_API JsGetPropertyIdFromSymbol(_In_ JsValueRef symbol, _Out_ JsPropertyIdRef *propertyId)
@@ -4401,7 +4444,7 @@ CHAKRA_API JsCreatePropertyId(
         return JsErrorOutOfMemory;
     }
 
-    return JsGetPropertyIdFromName(wname, propertyId);
+    return JsGetPropertyIdFromNameInternal(wname, wname.Length(), propertyId);
 }
 
 CHAKRA_API JsCopyPropertyId(
@@ -4618,6 +4661,11 @@ CHAKRA_API JsCreateWeakReference(
     PARAM_NOT_NULL(weakRef);
     *weakRef = nullptr;
 
+    if (Js::TaggedNumber::Is(value))
+    {
+        return JsNoWeakRefRequired;
+    }
+
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
         ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
         if (threadContext == nullptr)
@@ -4629,6 +4677,13 @@ CHAKRA_API JsCreateWeakReference(
         if (recycler->IsInObjectBeforeCollectCallback())
         {
             return JsErrorInObjectBeforeCollectCallback;
+        }
+
+        RecyclerHeapObjectInfo dummyObjectInfo;
+        if (!recycler->FindHeapObject(value, Memory::FindHeapObjectFlags::FindHeapObjectFlags_NoFlags, dummyObjectInfo))
+        {
+            // value is not recyler-allocated
+            return JsErrorInvalidArgument;
         }
 
         recycler->FindOrCreateWeakReferenceHandle<char>(

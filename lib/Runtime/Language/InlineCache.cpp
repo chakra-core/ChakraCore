@@ -442,7 +442,7 @@ namespace Js
 
         Assert(propertyOwnerType != nullptr);
 
-        if (Js::DynamicType::Is(propertyOwnerType->GetTypeId()))
+        if (Js::DynamicType::Is(propertyOwnerType))
         {
             Js::DynamicTypeHandler* propertyOwnerTypeHandler = ((Js::DynamicType*)propertyOwnerType)->GetTypeHandler();
             Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(cacheId);

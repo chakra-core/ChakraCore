@@ -578,6 +578,28 @@ LowererMDArch::SetMaxArgSlots(Js::ArgSlot actualCount /*including this*/)
     return;
 }
 
+void
+LowererMDArch::GenerateMemInit(IR::RegOpnd * opnd, int32 offset, size_t value, IR::Instr * insertBeforeInstr, bool isZeroed)
+{
+    IRType type = TyVar;
+    if (isZeroed)
+    {
+        if (value == 0)
+        {
+            // Recycler memory are zero initialized
+            return;
+        }
+
+        type = value <= UINT_MAX ?
+            (value <= USHORT_MAX ?
+            (value <= UCHAR_MAX ? TyUint8 : TyUint16) :
+                TyUint32) :
+            type;
+    }
+    Func * func = this->m_func;
+    lowererMD->GetLowerer()->InsertMove(IR::IndirOpnd::New(opnd, offset, type, func), IR::IntConstOpnd::New(value, type, func), insertBeforeInstr);
+}
+
 IR::Instr *
 LowererMDArch::LowerCallIDynamic(IR::Instr *callInstr, IR::Instr*saveThisArgOutInstr, IR::Opnd *argsLength, ushort callFlags, IR::Instr * insertBeforeInstrForCFG)
 {
@@ -2135,13 +2157,6 @@ LowererMDArch::LowerExitInstrAsmJs(IR::ExitInstr * exitInstr)
     return LowerExitInstr(exitInstr);
 }
 
-IR::Instr *
-LowererMDArch::LowerInt64Assign(IR::Instr * instr)
-{
-    this->lowererMD->ChangeToAssign(instr);
-    return instr;
-}
-
 void
 LowererMDArch::EmitInt4Instr(IR::Instr *instr, bool signExtend /* = false */)
 {
@@ -2227,9 +2242,7 @@ idiv_common:
                 // we need to ensure that register allocator doesn't muck about with rdx
                 instr->HoistSrc2(Js::OpCode::MOV, RegRCX);
 
-                newInstr = IR::Instr::New(Js::OpCode::Ld_I4, regEDX, IR::IntConstOpnd::New(0, src1->GetType(), instr->m_func), instr->m_func);
-                instr->InsertBefore(newInstr);
-                LowererMD::ChangeToAssign(newInstr);
+                Lowerer::InsertMove(regEDX, IR::IntConstOpnd::New(0, src1->GetType(), instr->m_func), instr);
                 // NOP ensures that the EDX = Ld_I4 0 doesn't get deadstored, will be removed in peeps
                 instr->InsertBefore(IR::Instr::New(Js::OpCode::NOP, regEDX, regEDX, instr->m_func));
             }

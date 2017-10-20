@@ -2196,4 +2196,57 @@ namespace JsRTApiTest
         JsRTApiTest::RunWithAttributes(JsRTApiTest::JsCopyStringOneByteMethodTest);
     }
 
+    void JsLessThanTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
+    {
+        // Create some values
+        JsValueRef number1 = JS_INVALID_REFERENCE;  // number1 = 1
+        REQUIRE(JsDoubleToNumber(1, &number1) == JsNoError);
+        JsValueRef number2 = JS_INVALID_REFERENCE;  // number2 = 2
+        REQUIRE(JsDoubleToNumber(2, &number2) == JsNoError);
+        JsValueRef stringa = JS_INVALID_REFERENCE;  // stringa = "1"
+        REQUIRE(JsPointerToString(_u("1"), wcslen(_u("1")), &stringa) == JsNoError);
+        JsValueRef undefined = GetUndefined();
+        JsValueRef nullValue = JS_INVALID_REFERENCE;
+        REQUIRE(JsGetNullValue(&nullValue) == JsNoError);
+        JsValueRef trueValue = JS_INVALID_REFERENCE;
+        REQUIRE(JsGetTrueValue(&trueValue) == JsNoError);
+        JsValueRef falseValue = JS_INVALID_REFERENCE;
+        REQUIRE(JsGetFalseValue(&falseValue) == JsNoError);
+
+        bool result;
+        REQUIRE(JsLessThan(number1, number2, &result) == JsNoError);
+        CHECK(result == true);
+        REQUIRE(JsLessThan(number1, stringa, &result) == JsNoError);
+        CHECK(result == false);
+        REQUIRE(JsLessThan(number1, undefined, &result) == JsNoError);
+        CHECK(result == false);
+        REQUIRE(JsLessThan(falseValue, trueValue, &result) == JsNoError);
+        CHECK(result == true);
+        REQUIRE(JsLessThan(undefined, undefined, &result) == JsNoError);
+        CHECK(result == false);
+        REQUIRE(JsLessThan(nullValue, undefined, &result) == JsNoError);
+        CHECK(result == false);
+
+        REQUIRE(JsLessThanOrEqual(number1, number2, &result) == JsNoError);
+        CHECK(result == true);
+        REQUIRE(JsLessThanOrEqual(number1, number1, &result) == JsNoError);
+        CHECK(result == true);
+        REQUIRE(JsLessThanOrEqual(number1, stringa, &result) == JsNoError);
+        CHECK(result == true);
+        REQUIRE(JsLessThanOrEqual(trueValue, trueValue, &result) == JsNoError);
+        CHECK(result == true);
+        REQUIRE(JsLessThanOrEqual(falseValue, nullValue, &result) == JsNoError);
+        CHECK(result == true);
+        REQUIRE(JsLessThanOrEqual(falseValue, undefined, &result) == JsNoError);
+        CHECK(result == false);
+        REQUIRE(JsLessThanOrEqual(undefined, undefined, &result) == JsNoError);
+        CHECK(result == false);
+        REQUIRE(JsLessThanOrEqual(nullValue, undefined, &result) == JsNoError);
+        CHECK(result == false);
+    }
+
+    TEST_CASE("ApiTest_JsLessThanTest", "[ApiTest]")
+    {
+        JsRTApiTest::RunWithAttributes(JsRTApiTest::JsLessThanTest);
+    }
 }

@@ -14,7 +14,11 @@ namespace Js {
         static Var ToPrimitive(Var aValue, JavascriptHint hint, ScriptContext * scriptContext);
         static BOOL CanonicalNumericIndexString(JavascriptString *aValue, double *indexValue, ScriptContext * scriptContext);
 
-        static void ToPropertyKey(Var argument, ScriptContext* scriptContext, const PropertyRecord** propertyRecord);
+        static void ToPropertyKey(
+            Var argument,
+            _In_ ScriptContext* scriptContext,
+            _Out_ const PropertyRecord** propertyRecord,
+            _Out_opt_ PropertyString** propString);
 
         static PropertyQueryFlags BooleanToPropertyQueryFlags(BOOL val) { return val ? PropertyQueryFlags::Property_Found : PropertyQueryFlags::Property_NotFound; }
         static BOOL PropertyQueryFlagsToBoolean(PropertyQueryFlags val) { return val == PropertyQueryFlags::Property_Found; }

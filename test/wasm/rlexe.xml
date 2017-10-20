@@ -2,6 +2,13 @@
 <regress-exe>
 <test>
   <default>
+    <files>regress.js</files>
+    <compile-flags>-wasm</compile-flags>
+    <tags>exclude_jshost,exclude_win7</tags>
+  </default>
+</test>
+<test>
+  <default>
     <files>rot.js</files>
     <baseline>rot.baseline</baseline>
     <compile-flags>-wasm</compile-flags>
@@ -268,6 +275,13 @@
 </test>
 <test>
   <default>
+    <files>signextend.js</files>
+    <compile-flags>-wasm -args --no-verbose -endargs</compile-flags>
+    <tags>exclude_jshost,exclude_win7,exclude_xplat</tags>
+  </default>
+</test>
+<test>
+  <default>
     <files>unsigned.js</files>
     <baseline>baselines/unsigned.baseline</baseline>
     <compile-flags>-wasm</compile-flags>
@@ -331,6 +345,13 @@
     <compile-flags>-wasm -args --no-verbose --start 12 -endargs</compile-flags>
     <timeout>300</timeout>
     <tags>exclude_xplat,exclude_jshost,exclude_win7,exclude_chk,exclude_dynapogo,exclude_x86,Slow</tags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>loopstslot.js</files>
+    <compile-flags>-forcejitloopbody</compile-flags>
+    <tags>exclude_jshost,exclude_win7,exclude_xplat</tags>
   </default>
 </test>
 </regress-exe>

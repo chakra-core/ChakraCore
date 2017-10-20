@@ -168,7 +168,8 @@ const BYTE InterpreterThunkEmitter::InterpreterThunk[] = {
     0x00, 0x00, 0x00, 0x00,                                         //movk        x1, #0x00, lsl #32    ;This is overwritten with the actual thunk address(48 - 32 bits) move
     0x00, 0x00, 0x00, 0x00,                                         //movk        x1, #0x00, lsl #48    ;This is overwritten with the actual thunk address(64 - 48 bits) move
     0xE0, 0x43, 0x00, 0x91,                                         //add         x0, sp, #16
-    0x60, 0x00, 0x1F, 0xD6                                          //br          x3
+    0x60, 0x00, 0x1F, 0xD6,                                         //br          x3
+    0xCC, 0xCC, 0xCC, 0xCC                                          //int 3 for 8byte alignment
 };
 
 const BYTE InterpreterThunkEmitter::JmpOffset = 4;
@@ -588,9 +589,14 @@ void InterpreterThunkEmitter::EncodeInterpreterThunk(
 DWORD InterpreterThunkEmitter::EncodeMove(DWORD opCode, int reg, DWORD imm16)
 {
     DWORD encodedMove = reg << 24;
+#if _M_ARM
     DWORD encodedImm = 0;
     EncoderMD::EncodeImmediate16(imm16, &encodedImm);
     encodedMove |= encodedImm;
+#elif _M_ARM64
+    // ToDo (SaAgarwa) - From Aaron change. Validate for ARM64
+    encodedMove |= (imm16 & 0xFFFF) << 5;
+#endif
     AssertMsg((encodedMove & opCode) == 0, "Any bits getting overwritten?");
     encodedMove |= opCode;
     return encodedMove;
@@ -674,9 +680,14 @@ void InterpreterThunkEmitter::EncodeInterpreterThunk(
 DWORD InterpreterThunkEmitter::EncodeMove(DWORD opCode, int reg, DWORD imm16)
 {
     DWORD encodedMove = reg << 0;
+#if _M_ARM
     DWORD encodedImm = 0;
     EncoderMD::EncodeImmediate16(imm16, &encodedImm);
     encodedMove |= encodedImm;
+#elif _M_ARM64
+    // ToDo (SaAgarwa) - From Aaron change. Validate for ARM64
+    encodedMove |= (imm16 & 0xFFFF) << 5;
+#endif
     AssertMsg((encodedMove & opCode) == 0, "Any bits getting overwritten?");
     encodedMove |= opCode;
     return encodedMove;

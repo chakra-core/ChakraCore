@@ -164,7 +164,9 @@ private:
     IR::Instr*              GenerateStSlotForReturn(IR::RegOpnd* srcOpnd, IRType type);
     IR::RegOpnd*            BuildTrapIfZero(IR::RegOpnd* srcOpnd, uint32 offset);
     IR::RegOpnd*            BuildTrapIfMinIntOverNegOne(IR::RegOpnd* src1Opnd, IR::RegOpnd* src2Opnd, uint32 offset);
-    
+
+    IR::Instr*              CreateSignExtendInstr(IR::Opnd* dst, IR::Opnd* src, IRType fromType);
+
     JitArenaAllocator *     m_tempAlloc;
     JitArenaAllocator *     m_funcAlloc;
     Func *                  m_func;

@@ -8,7 +8,7 @@
 
 void TTDAbort_fatal_error(const char* msg)
 {
-    printf("TTD assert failed: %s\n", msg);
+    Output::Print(_u("TTD assert failed: %S\n"), msg);
 
     int scenario = 101;
     ReportFatalException(NULL, E_UNEXPECTED, Fatal_TTDAbort, scenario);
@@ -66,14 +66,14 @@ namespace TTD
 
     TTDMode TTModeStack::Peek() const
     {
-        TTDAssert(this->m_stackTop > 0, "Undeflow in stack pop.");
+        TTDAssert(this->m_stackTop > 0, "Underflow in stack pop.");
 
         return this->m_stackEntries[this->m_stackTop - 1];
     }
 
     void TTModeStack::Pop()
     {
-        TTDAssert(this->m_stackTop > 0, "Undeflow in stack pop.");
+        TTDAssert(this->m_stackTop > 0, "Underflow in stack pop.");
 
         this->m_stackTop--;
     }

@@ -276,7 +276,7 @@ namespace TTD
         template <typename T, NSLogEvents::EventKind tag>
         NSLogEvents::EventLogEntry* RecordGetInitializedEvent(T** extraData)
         {
-            AssertMsg(TTD_EVENT_PLUS_DATA_SIZE_DIRECT(sizeof(T)) == this->m_eventListVTable[(uint32)tag].DataSize, "Computed and extracted data sizes dont' match!!!");
+            AssertMsg(TTD_EVENT_PLUS_DATA_SIZE_DIRECT(sizeof(T)) == this->m_eventListVTable[(uint32)tag].DataSize, "Computed and extracted data sizes don't match!!!");
 
             NSLogEvents::EventLogEntry* res = this->m_eventList.GetNextAvailableEntry<T>();
             NSLogEvents::EventLogEntry_Initialize<tag>(res, this->GetCurrentEventTimeAndAdvance());
@@ -288,7 +288,7 @@ namespace TTD
         template <typename T, NSLogEvents::EventKind tag>
         T* RecordGetInitializedEvent_DataOnly()
         {
-            AssertMsg(TTD_EVENT_PLUS_DATA_SIZE_DIRECT(sizeof(T)) == this->m_eventListVTable[(uint32)tag].DataSize, "Computed and extracted data sizes dont' match!!!");
+            AssertMsg(TTD_EVENT_PLUS_DATA_SIZE_DIRECT(sizeof(T)) == this->m_eventListVTable[(uint32)tag].DataSize, "Computed and extracted data sizes don't match!!!");
 
             NSLogEvents::EventLogEntry* res = this->m_eventList.GetNextAvailableEntry<T>();
             NSLogEvents::EventLogEntry_Initialize<tag>(res, this->GetCurrentEventTimeAndAdvance());
@@ -560,6 +560,7 @@ namespace TTD
         void RecordJsRTHasOwnProperty(TTDJsRTActionResultAutoRecorder& actionPopper, const Js::PropertyRecord* pRecord, Js::Var var);
         void RecordJsRTInstanceOf(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var object, Js::Var constructor);
         void RecordJsRTEquals(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var1, Js::Var var2, bool doStrict);
+        void RecordJsRTLessThan(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var1, Js::Var var2, bool allowsEqual);
 
         //Record getters with native results
         void RecordJsRTGetPropertyIdFromSymbol(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var sym);

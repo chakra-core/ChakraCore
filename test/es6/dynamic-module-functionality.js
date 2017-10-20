@@ -59,6 +59,25 @@ function testDynamicImport(importFunc, thenFunc, catchFunc, _asyncEnter, _asyncE
     });
 }
 
+function testDoubleDynamicImport(importFunc, secondFunc, thirdFunc, catchFunc, _asyncEnter, _asyncExit) {
+	let promise = importFunc();
+    assert.isTrue(promise instanceof Promise);
+    promise.then((v)=>{
+        _asyncEnter();
+		let secondPromise = secondFunc(v);
+		secondPromise.then((v2)=>{
+			_asyncEnter();
+			thirdFunc(v2);
+			_asyncExit();
+		});
+        _asyncExit();
+	}).catch((err)=>{
+        _asyncEnter();
+        catchFunc(err);
+        _asyncExit();
+	});
+}
+
 var tests = [
     {
         name: "Runtime evaluation of module specifier",
@@ -367,6 +386,21 @@ var tests = [
             testModuleScript(functionBody, "Test importing a simple exported function", false, true);
         }
     },
+    {
+        name: "Test dynamic import of an un-parsed module from a module",
+        body: function () {
+            let functionBody =
+                `testDoubleDynamicImport(
+                    ()=>{ return import('testDynamicImportfromModule.js'); },
+					(v)=>{ return v.foo; },
+					(v2)=>{ assert.areEqual(true, v.foo.success, "Failed to load module dynamicly from module");},
+                    (err)=>{ assert.fail(err.message); }, _asyncEnter, _asyncExit
+                )`;
+			testModuleScript(functionBody, "Test dynamic import of an un-parsed module from a module", false, true);
+			//note exclusion of testScript case intentional - running the code from a script loads the module
+			//then the test from Module uses the one loaded by the script - do not add testScript here
+        }
+	},
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

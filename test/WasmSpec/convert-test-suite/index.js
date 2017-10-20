@@ -5,24 +5,20 @@
 /* eslint-env node */
 const path = require("path");
 const fs = require("fs-extra");
+const Bluebird = require("bluebird");
 const {spawn} = require("child_process");
 const slash = require("slash");
 
+Bluebird.promisifyAll(fs);
 const config = require("./config.json");
-const rlRoot = path.join(__dirname, "..");
+const rlRoot = path.resolve(__dirname, "..");
+const folders = config.folders.map(folder => path.resolve(rlRoot, folder));
 const baselineDir = path.join(rlRoot, "baselines");
 
 const argv = require("yargs")
   .help()
   .alias("help", "h")
   .options({
-    suite: {
-      string: true,
-      alias: "s",
-      description: "Path to the test suite",
-      default: path.join(rlRoot, "testsuite"),
-      demand: true,
-    },
     rebase: {
       string: true,
       description: "Path to host to run the test create/update the baselines"
@@ -31,14 +27,16 @@ const argv = require("yargs")
   .argv;
 
 // Make sure all arguments are valid
-fs.statSync(argv.suite).isDirectory();
+for (const folder of folders) {
+  fs.statSync(folder).isDirectory();
+}
 
 function hostFlags(specFile) {
-  return `-wasm -args ${slash(path.relative(rlRoot, specFile))} -endargs`;
+  return `-wasm -args ${slash(specFile.relative)} -endargs`;
 }
 
 function getBaselinePath(specFile) {
-  return `${slash(path.relative(rlRoot, path.join(baselineDir, path.basename(specFile, path.extname(specFile)))))}.baseline`;
+  return `${slash(path.relative(rlRoot, path.join(baselineDir, specFile.basename)))}.baseline`;
 }
 
 function removePossiblyEmptyFolder(folder) {
@@ -53,18 +51,16 @@ function removePossiblyEmptyFolder(folder) {
   });
 }
 
-function main() {
-  const chakraTestsDestination = path.join(argv.suite, "chakra");
-  const chakraTests = require("./generateTests");
+function generateChakraTests() {
+  const chakraTestsDestination = path.join(rlRoot, "chakra");
 
-  return Promise.all([
-    removePossiblyEmptyFolder(chakraTestsDestination),
-  ]).then(() => {
-    fs.ensureDirSync(chakraTestsDestination);
-    return Promise.all(chakraTests.map(test => test.getContent(argv.suite)
-      .then(content => new Promise((resolve, reject) => {
+  const chakraTests = require("./generateTests");
+  return removePossiblyEmptyFolder(chakraTestsDestination)
+    .then(() => fs.ensureDirAsync(chakraTestsDestination))
+    .then(() => Promise.all(chakraTests.map(test => test.getContent(rlRoot)
+      .then(content => {
         if (!content) {
-          return resolve();
+          return;
         }
         const testPath = path.join(chakraTestsDestination, `${test.name}.wast`);
         const copyrightHeader =
@@ -73,63 +69,89 @@ function main() {
 ;; Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 ;;-------------------------------------------------------------------------------------------------------
 `;
-        fs.writeFile(testPath, `${copyrightHeader};;AUTO-GENERATED do not modify\n${content}`, err => {
-          if (err) {
-            return reject(err);
-          }
-          console.log(`Generated ${testPath}`);
-          return resolve(testPath);
-        });
-      }))));
-  }).then(chakraTests => new Promise((resolve) => {
-    const specFiles = [...chakraTests];
-    fs.walk(path.join(argv.suite, "core"))
+        return fs.writeFileAsync(testPath, `${copyrightHeader};;AUTO-GENERATED do not modify\n${content}`);
+      })
+    )));
+}
+
+function main() {
+  let runs;
+  return generateChakraTests(
+    // Walk all the folders to find test files
+  ).then(() => Bluebird.reduce(folders, (specFiles, folder) => new Promise((resolve) => {
+    fs.walk(folder)
       .on("data", item => {
-        if (
-          path.extname(item.path) === ".wast" &&
-          item.path.indexOf(".fail") === -1 &&
-          !config.excludes.includes(path.basename(item.path, ".wast"))
+        const ext = path.extname(item.path);
+        const basename = path.basename(item.path, ext);
+        if ((
+            (ext === ".wast" && item.path.indexOf(".fail") === -1) ||
+            (ext === ".js")
+          ) &&
+          !config.excludes.includes(basename)
         ) {
-          specFiles.push(item.path);
+          specFiles.push({
+            path: item.path,
+            basename,
+            ext,
+            dirname: path.dirname(item.path),
+            relative: path.relative(rlRoot, item.path)
+          });
         }
       })
       .on("end", () => {
         resolve(specFiles);
       });
-  })).then(specFiles => new Promise((resolve) => {
-    fs.walk(path.join(argv.suite, "js-api"))
-      .on("data", item => {
-        if (path.extname(item.path) === ".js") {
-          specFiles.push(item.path);
-        }
-      })
-      .on("end", () => {
-        resolve(specFiles);
-      });
-  })).then(specFiles => {
+  }), [])
+  ).then(specFiles => {
+    // Verify that no 2 file have the same name. We use the name as key even if they're in different folders
+    const map = {};
+    for (const file of specFiles) {
+      if (map[file.basename]) {
+        throw new Error(`Duplicate filename entry
+original : ${map[file.basename].path}
+duplicate: ${file.path}`);
+      }
+      map[file.basename] = file;
+    }
+    return specFiles;
+  }).then(specFiles => {
     const runners = {
       ".wast": "spec.js",
       ".js": "jsapi.js",
     };
-    const runs = specFiles.map(specFile => {
-      const ext = path.extname(specFile);
-      const basename = path.basename(specFile, ext);
-      const isXplatExcluded = config["xplat-excludes"].indexOf(path.basename(specFile, ext)) !== -1;
+    runs = specFiles.map(specFile => {
+      const ext = specFile.ext;
+      const basename = specFile.basename;
+      const dirname = path.dirname(specFile.path);
+
+      const useFeature = (allowRequired, feature) => !(allowRequired ^ feature.required) && (
+        (feature.files || []).includes(basename) ||
+        (feature.folders || []).map(folder => path.join(rlRoot, folder)).includes(dirname)
+      );
+
+      const isXplatExcluded = config["xplat-excludes"].indexOf(basename) !== -1;
       const baseline = getBaselinePath(specFile);
       const flags = hostFlags(specFile);
       const runner = runners[ext];
+
+      const requiredFeature = config.features
+        // Use first required feature found
+        .filter(useFeature.bind(null, true))[0] ||
+        // Or use default
+        {rltags: [], flags: []};
+
       const tests = [{
         runner,
-        tags: [],
+        tags: [].concat(requiredFeature.rltags || []),
         baseline,
-        flags: [flags]
+        flags: [flags].concat(requiredFeature.flags || [])
       }, {
         runner,
-        tags: ["exclude_dynapogo"],
+        tags: ["exclude_dynapogo"].concat(requiredFeature.rltags || []),
         baseline,
-        flags: [flags, "-nonative"]
+        flags: [flags, "-nonative"].concat(requiredFeature.flags || [])
       }].concat(config.features
-        .filter(feature => feature.files.includes(basename))
+        .filter(useFeature.bind(null, false))
         .map(feature => ({
           runner,
           baseline,
@@ -158,16 +180,14 @@ function main() {
 }
 </regress-exe>
 `);
-    return new Promise((resolve, reject) => {
-      fs.writeFile(path.join(__dirname, "..", "rlexe.xml"), rlexe, err => err ? reject(err) : resolve(runs));
-    });
-  }).then(runs => {
+    return fs.writeFileAsync(path.join(rlRoot, "rlexe.xml"), rlexe);
+  }).then(() => {
     if (!argv.rebase) {
       return;
     }
     fs.removeSync(baselineDir);
     fs.ensureDirSync(baselineDir);
-    return Promise.all(runs.map(run => new Promise((resolve, reject) => {
+    const startRuns = runs.map(run => () => new Bluebird((resolve, reject) => {
       const test = run[0];
       const baseline = fs.createWriteStream(test.baseline);
       baseline.on("open", () => {
@@ -186,7 +206,23 @@ function main() {
         engine.on("close", resolve);
       });
       baseline.on("error", reject);
-    })));
+    }));
+
+    const cucurrentRuns = 8;
+    let running = startRuns.splice(0, cucurrentRuns).map(start => start());
+    return new Promise((resolve, reject) => {
+      const checkIfContinue = () => {
+        // Keep only runs that are not done
+        running = running.filter(run => !run.isFulfilled());
+        // If we have nothing left to run, terminate
+        if (running.length === 0 && startRuns.length === 0) {
+          return resolve();
+        }
+        running.push(...(startRuns.splice(0, cucurrentRuns - running.length).map(start => start())));
+        Bluebird.any(running).then(checkIfContinue).catch(reject);
+      };
+      checkIfContinue();
+    });
   });
 }
 

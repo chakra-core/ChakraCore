@@ -199,13 +199,17 @@ namespace Js
         {
             propertyStringName = this->MoveAndGetNextNoCache(propertyId, &propertyAttributes);
 
-            if (propertyStringName && VirtualTableInfo<PropertyString>::HasVirtualTable(propertyStringName))
+            if (propertyStringName)
             {
-                Assert(enumeratedCount < this->initialPropertyCount);
-                cachedData->strings[enumeratedCount] = (PropertyString*)propertyStringName;
-                cachedData->indexes[enumeratedCount] = this->objectIndex;
-                cachedData->attributes[enumeratedCount] = propertyAttributes;
-                cachedData->cachedCount = ++enumeratedCount;
+                PropertyString* propertyString = PropertyString::TryFromVar(propertyStringName);
+                if (propertyString != nullptr)
+                {
+                    Assert(enumeratedCount < this->initialPropertyCount);
+                    cachedData->strings[enumeratedCount] = propertyString;
+                    cachedData->indexes[enumeratedCount] = this->objectIndex;
+                    cachedData->attributes[enumeratedCount] = propertyAttributes;
+                    cachedData->cachedCount = ++enumeratedCount;
+                }
             }
             else
             {

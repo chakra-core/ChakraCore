@@ -27,6 +27,7 @@ namespace Js
         InterpreterStackFrameFlags_FromBailOut = 8,
         InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall = 0x10,
         InterpreterStackFrameFlags_ProcessingBailOutFromEHCode = 0x20,
+        InterpreterStackFrameFlags_FromInlineeCodeInEHBailOut = 0x40,
         InterpreterStackFrameFlags_All = 0xFFFF,
     };
 
@@ -51,9 +52,9 @@ namespace Js
             InterpreterStackFrame * AllocateAndInitialize(bool doProfile, bool * releaseAlloc);
 
 #if DBG
-            InterpreterStackFrame * InitializeAllocation(__in_ecount(varAllocCount) Var * allocation, bool initParams, bool profileParams, Var loopHeaderArray, DWORD_PTR stackAddr, Var invalidStackVar);
+            InterpreterStackFrame * InitializeAllocation(__in_ecount(varAllocCount) Var * allocation, bool initParams, bool profileParams, LoopHeader* loopHeaderArray, DWORD_PTR stackAddr, Var invalidStackVar);
 #else
-            InterpreterStackFrame * InitializeAllocation(__in_ecount(varAllocCount) Var * allocation, bool initParams, bool profileParams, Var loopHeaderArray, DWORD_PTR stackAddr);
+            InterpreterStackFrame * InitializeAllocation(__in_ecount(varAllocCount) Var * allocation, bool initParams, bool profileParams, LoopHeader* loopHeaderArray, DWORD_PTR stackAddr);
 #endif
             uint GetLocalCount() const { return localCount; }
 
@@ -118,7 +119,7 @@ namespace Js
         void * returnAddress;
         void * addressOfReturnAddress;  // Tag this frame with stack position, used by (remote) stack walker to test partially initialized interpreter stack frame.
         InterpreterStackFrame *previousInterpreterFrame;
-        Var  loopHeaderArray;          // Keeps alive any JITted loop bodies while the function is being interpreted
+        LoopHeader*  loopHeaderArray;          // Keeps alive any JITted loop bodies while the function is being interpreted
 
         // 'stack address' of the frame, used for recursion detection during stepping.
         // For frames created via interpreter path, we use 'this', for frames created by bailout we use stack addr of actual jitted frame
@@ -223,6 +224,7 @@ namespace Js
         FrameDisplay * GetFrameDisplayForNestedFunc() const;
         Var InnerScopeFromRegSlot(RegSlot reg) const;
         void SetClosureInitDone(bool done) { closureInitDone = done; }
+        bool IsClosureInitDone() const { return closureInitDone; }
 
         void ValidateRegValue(Var value, bool allowStackVar = false, bool allowStackVarOnDisabledStackNestedFunc = true) const;
         int OP_GetMemorySize();
@@ -336,8 +338,7 @@ namespace Js
         static int GetRetType(JavascriptFunction* func);
         static int GetAsmJsArgSize(AsmJsCallStackLayout * stack);
         static int GetDynamicRetType(AsmJsCallStackLayout * stack);
-        static DWORD GetAsmJsReturnValueOffset(AsmJsCallStackLayout * stack);
-        _NOINLINE   static int  AsmJsInterpreter(AsmJsCallStackLayout * stack);
+        _NOINLINE static void AsmJsInterpreter(AsmJsCallStackLayout * stack, byte* retDst);
 #elif _M_X64
         template <typename T>
         static T AsmJsInterpreter(AsmJsCallStackLayout* layout);
@@ -482,6 +483,7 @@ namespace Js
         template <class T> void OP_ProfileReturnTypeCallCommon(const unaligned T *playout, RecyclableObject * aFunc, unsigned flags, ProfileId profileId, const Js::AuxArray<uint32> *spreadIndices = nullptr);
         
         template <class T> void OP_AsmCall(const unaligned T* playout);
+        template <class T> void OP_EnsureHeapAttached(const unaligned T* playout);
 
         template <class T> void OP_CallI(const unaligned T* playout) { OP_CallCommon(playout, OP_CallGetFunc(GetRegAllowStackVar(playout->Function)), Js::CallFlags_None); }
         template <class T> void OP_CallIFlags(const unaligned T* playout) { OP_CallCommon(playout, OP_CallGetFunc(GetRegAllowStackVar(playout->Function)), playout->callFlags); }
@@ -755,8 +757,6 @@ namespace Js
         template <class T> void OP_InitClass(const unaligned OpLayoutT_Class<T> * playout);
         inline Var OP_LdHomeObj(ScriptContext * scriptContext);
         inline Var OP_LdFuncObj(ScriptContext * scriptContext);
-        inline Var OP_ScopedLdHomeObj(ScriptContext * scriptContext);
-        inline Var OP_ScopedLdFuncObj(ScriptContext * scriptContext);
         template <typename T> void OP_LdElementUndefined(const unaligned OpLayoutT_ElementU<T>* playout);
         template <typename T> void OP_LdLocalElementUndefined(const unaligned OpLayoutT_ElementRootU<T>* playout);
         template <typename T> void OP_LdElementUndefinedScoped(const unaligned OpLayoutT_ElementScopedU<T>* playout);

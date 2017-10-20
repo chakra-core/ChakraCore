@@ -392,8 +392,8 @@ namespace Js
     {
     public:
         typedef JsUtil::BaseDictionary<void *, uint, HeapAllocator> RangeMap;
-        typedef JsUtil::BaseDictionary<void *, RangeMap*, HeapAllocator> JITPageAddrToFuncRangeMap;
-        typedef JsUtil::BaseDictionary<void *, uint, HeapAllocator> LargeJITFuncAddrToSizeMap;
+        typedef JsUtil::BaseDictionary<void *, RangeMap*, HeapAllocator, PrimeSizePolicy> JITPageAddrToFuncRangeMap;
+        typedef JsUtil::BaseDictionary<void *, uint, HeapAllocator, PrimeSizePolicy> LargeJITFuncAddrToSizeMap;
 
     private:
         JITPageAddrToFuncRangeMap * jitPageAddrToFuncRangeMap;
@@ -440,14 +440,6 @@ namespace Js
         ScriptContext *next;
         ScriptContext *prev;
         bool IsRegistered() { return next != nullptr || prev != nullptr || threadContext->GetScriptContextList() == this; }
-        union
-        {
-            int64 int64Val;
-            float floatVal;
-            double dbVal;
-            AsmJsSIMDValue simdVal; // stores raw simd result for Asm interpreter
-        } asmJsReturnValue;
-        static DWORD GetAsmJsReturnValueOffset() { return offsetof(ScriptContext, asmJsReturnValue); }
 
         ScriptContextOptimizationOverrideInfo optimizationOverrides;
 
@@ -843,8 +835,6 @@ private:
         EventHandler disposeScriptByFaultInjectionEventHandler;
 #endif
 
-        JsUtil::BaseDictionary<uint, JavascriptString *, ArenaAllocator> integerStringMap;
-
         double lastNumberToStringRadix10;
         double lastUtcTimeFromStr;
 
@@ -932,7 +922,6 @@ private:
         char16 const * url;
 
         void PrintStats();
-        BOOL LeaveScriptStartCore(void * frameAddress, bool leaveForHost);
 
         void InternalClose();
 
@@ -1069,7 +1058,6 @@ private:
 
         template <typename TCacheType>
         void CleanDynamicFunctionCache(TCacheType* cacheType);
-        void CleanEvalMapCache(Js::EvalCacheTopLevelDictionary * cacheType);
 
         template <class TDelegate>
         void MapFunction(TDelegate mapper);
@@ -1205,7 +1193,6 @@ private:
         void SetFastDOMenabled();
         BOOL VerifyAlive(BOOL isJSFunction = FALSE, ScriptContext* requestScriptContext = nullptr);
         void VerifyAliveWithHostContext(BOOL isJSFunction, HostScriptContext* requestHostScriptContext);
-        void AddFunctionBodyToPropIdMap(FunctionBody* body);
 
         void BindReference(void* addr);
 
@@ -1224,13 +1211,14 @@ private:
         {
             GetOrAddPropertyRecord(propertyName, N - 1, propertyRecord);
         }
+        void GetOrAddPropertyRecord(_In_ Js::JavascriptString * propertyString, _Out_ PropertyRecord const** propertyRecord);
         PropertyId GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR> const& propName);
         template <size_t N> PropertyId GetOrAddPropertyIdTracked(const char16(&propertyName)[N])
         {
             return GetOrAddPropertyIdTracked(propertyName, N - 1);
         }
         PropertyId GetOrAddPropertyIdTracked(__in_ecount(propertyNameLength) LPCWSTR pszPropertyName, __in int propertyNameLength);
-        void GetOrAddPropertyRecord(__in_ecount(propertyNameLength) LPCWSTR pszPropertyName, __in int propertyNameLength, PropertyRecord const** propertyRecord);
+        void GetOrAddPropertyRecord(__in_ecount(propertyNameLength) LPCWSTR pszPropertyName, _In_ int propertyNameLength, _Out_ PropertyRecord const** propertyRecord);
         BOOL IsNumericPropertyId(PropertyId propertyId, uint32* value);
 
         void RegisterWeakReferenceDictionary(JsUtil::IWeakReferenceDictionary* weakReferenceDictionary);
@@ -1442,13 +1430,7 @@ private:
     public:
         Js::PropertyId GetEmptyStringPropertyId()
         {
-            if (emptyStringPropertyId == Js::PropertyIds::_none)
-            {
-                Js::PropertyRecord const * propertyRecord;
-                this->GetOrAddPropertyRecord(_u(""), 0, &propertyRecord);
-                emptyStringPropertyId = propertyRecord->GetPropertyId();
-            }
-            return emptyStringPropertyId;
+            return threadContext->GetEmptyStringPropertyId();
         }
 
         void FreeFunctionEntryPoint(Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress);

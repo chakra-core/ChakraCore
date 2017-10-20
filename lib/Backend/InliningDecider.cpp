@@ -23,17 +23,18 @@ bool InliningDecider::InlineIntoTopFunc() const
     {
         return false;
     }
-
+#ifdef _M_IX86
     if (this->topFunc->GetHasTry())
     {
 #if defined(DBG_DUMP) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
         char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
         INLINE_TESTTRACE(_u("INLINING: Skip Inline: Has try\tCaller: %s (%s)\n"), this->topFunc->GetDisplayName(),
-            this->topFunc->GetDebugNumberSet(debugStringBuffer));
+        this->topFunc->GetDebugNumberSet(debugStringBuffer));
         // Glob opt doesn't run on function with try, so we can't generate bailout for it
         return false;
     }
+#endif
 
     return InlineIntoInliner(topFunc);
 }
@@ -183,6 +184,10 @@ uint InliningDecider::InlinePolymorphicCallSite(Js::FunctionBody *const inliner,
 Js::FunctionInfo *InliningDecider::Inline(Js::FunctionBody *const inliner, Js::FunctionInfo* functionInfo,
     bool isConstructorCall, bool isPolymorphicCall, uint16 constantArgInfo, Js::ProfileId callSiteId, uint recursiveInlineDepth, bool allowRecursiveInlining)
 {
+#if defined(_M_ARM64)
+    INLINE_TESTTRACE(_u("INLINING: Inline disabled for ARM64"));
+    return nullptr;
+#else // #if defined(_M_ARM64)
 #if defined(DBG_DUMP) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
     char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
@@ -218,13 +223,15 @@ Js::FunctionInfo *InliningDecider::Inline(Js::FunctionBody *const inliner, Js::F
             return nullptr;
         }
 
+#ifdef _M_IX86
         if (inlinee->GetHasTry())
         {
             INLINE_TESTTRACE(_u("INLINING: Skip Inline: Has try\tInlinee: %s (%s)\tCaller: %s (%s)\n"),
-                inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer), inliner->GetDisplayName(),
-                inliner->GetDebugNumberSet(debugStringBuffer2));
+            inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer), inliner->GetDisplayName(),
+            inliner->GetDebugNumberSet(debugStringBuffer2));
             return nullptr;
         }
+#endif
 
         // This is a hard limit as the argOuts array is statically sized.
         if (inlinee->GetInParamsCount() > Js::InlineeCallInfo::MaxInlineeArgoutCount)
@@ -298,6 +305,7 @@ Js::FunctionInfo *InliningDecider::Inline(Js::FunctionBody *const inliner, Js::F
 
     // Note: for built-ins at this time we don't have enough data (the instr) to decide whether it's going to be inlined.
     return functionInfo;
+#endif // #if defined(_M_ARM64)
 }
 
 

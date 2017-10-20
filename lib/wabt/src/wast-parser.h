@@ -169,6 +169,8 @@ class WastParser {
 
   template <typename T>
   Result ParsePlainInstrVar(Location, std::unique_ptr<Expr>*);
+  template <typename T>
+  Result ParsePlainLoadStoreInstr(Location, Token, std::unique_ptr<Expr>*);
 
   Result ParseCommandList(Script*, CommandPtrVector*);
   Result ParseCommand(Script*, CommandPtr*);

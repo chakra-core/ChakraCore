@@ -77,6 +77,8 @@ public:
       SCACHE_INIT_DEFAULT(GetObjectNumberDisplayString),
       SCACHE_INIT_DEFAULT(GetObjectRegExpDisplayString),
       SCACHE_INIT_DEFAULT(GetObjectStringDisplayString),
+      SCACHE_INIT_DEFAULT(GetObjectNullDisplayString),
+      SCACHE_INIT_DEFAULT(GetObjectUndefinedDisplayString),
       SCACHE_INIT_DEFAULT(GetUndefinedDisplayString),
       SCACHE_INIT_DEFAULT(GetNaNDisplayString),
       SCACHE_INIT_DEFAULT(GetNullDisplayString),
@@ -155,6 +157,8 @@ public:
     DEFINE_CACHED_STRING(GetObjectNumberDisplayString, _u("[object Number]"))
     DEFINE_CACHED_STRING(GetObjectRegExpDisplayString, _u("[object RegExp]"))
     DEFINE_CACHED_STRING(GetObjectStringDisplayString, _u("[object String]"))
+    DEFINE_CACHED_STRING(GetObjectNullDisplayString, _u("[object Null]"))
+    DEFINE_CACHED_STRING(GetObjectUndefinedDisplayString, _u("[object Undefined]"))
     DEFINE_CACHED_STRING(GetUndefinedDisplayString, _u("undefined"))
     DEFINE_CACHED_STRING(GetNaNDisplayString, _u("NaN"))
     DEFINE_CACHED_STRING(GetNullDisplayString, _u("null"))

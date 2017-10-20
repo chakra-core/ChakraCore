@@ -13,11 +13,20 @@ namespace Js
     {
         union
         {
-            int retIntVal;
-            int64 retInt64Val;
-            float retFloatVal;
-            double retDoubleVal;
-            AsmJsSIMDValue retSimdVal;
+            byte xmm[sizeof(AsmJsSIMDValue)];
+            float f32;
+            double f64;
+            AsmJsSIMDValue simd;
+        };
+        union
+        {
+            int32 i32;
+            int64 i64;
+            struct
+            {
+                int32 low;
+                int32 high;
+            };
         };
     };
 
@@ -102,9 +111,9 @@ namespace Js
         Var CallRootFunction(Arguments args, ScriptContext * scriptContext, bool inScript);
 #ifdef ASMJS_PLAT
         template <typename T>
-        static T VECTORCALL CallAsmJsFunction(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv);
+        static T VECTORCALL CallAsmJsFunction(RecyclableObject * function, JavascriptMethod entryPoint, Var * argv, uint argsSize, byte* reg);
+        static PossibleAsmJsReturnValues CallAsmJsFunctionX86Thunk(RecyclableObject * function, JavascriptMethod entryPoint, Var * argv, uint argsSize, byte* reg);
 #endif
-        static PossibleAsmJsReturnValues CallAsmJsFunctionX86Thunk(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv);
         template <bool isConstruct>
         static Var CalloutHelper(RecyclableObject* function, Var thisArg, Var overridingNewTarget, Var argArray, ScriptContext* scriptContext);
 

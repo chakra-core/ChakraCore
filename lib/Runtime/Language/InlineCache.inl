@@ -277,7 +277,7 @@ namespace Js
 #endif
             Assert(object->GetScriptContext() == requestContext); // we never cache a type from another script context
             Assert(typeWithProperty);
-            Assert(DynamicType::Is(typeWithProperty->GetTypeId()));
+            Assert(DynamicType::Is(typeWithProperty));
             Assert(((DynamicType*)typeWithProperty)->GetIsShared());
             Assert(((DynamicType*)typeWithProperty)->GetTypeHandler()->IsPathTypeHandler());
             AssertMsg(!((DynamicType*)u.local.typeWithoutProperty)->GetTypeHandler()->GetIsPrototype(), "Why did we cache a property add for a prototype?");
@@ -314,7 +314,7 @@ namespace Js
 
             Assert(object->GetScriptContext() == requestContext); // we never cache a type from another script context
             Assert(typeWithProperty);
-            Assert(DynamicType::Is(typeWithProperty->GetTypeId()));
+            Assert(DynamicType::Is(typeWithProperty));
             Assert(((DynamicType*)typeWithProperty)->GetIsShared());
             Assert(((DynamicType*)typeWithProperty)->GetTypeHandler()->IsPathTypeHandler());
             AssertMsg(!((DynamicType*)TypeWithoutAuxSlotTag(u.local.typeWithoutProperty))->GetTypeHandler()->GetIsPrototype(), "Why did we cache a property add for a prototype?");

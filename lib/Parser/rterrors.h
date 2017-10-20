@@ -394,7 +394,7 @@ RT_ERROR_MSG(WASMERR_TableIndexOutOfRange, 7016, "", "Table index is out of rang
 RT_ERROR_MSG(WASMERR_ArrayIndexOutOfRange, 7017, "", "Memory index is out of range", kjstWebAssemblyRuntimeError, 0)
 RT_ERROR_MSG(WASMERR_InvalidInstantiateArgument, 7018, "", "Invalid arguments to instantiate", kjstTypeError, 0)
 RT_ERROR_MSG(WASMERR_WasmLinkError, 7019, "%s", "Linking failed.", kjstWebAssemblyLinkError, 0)
-RT_ERROR_MSG(WASMERR_NeedResponse, 7020, "%s is not a Reponse", "Response expected", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_NeedResponse, 7020, "%s is not a Response", "Response expected", kjstTypeError, 0)
 RT_ERROR_MSG(WASMERR_CantDetach, 7021, "", "Not allowed to detach WebAssembly.Memory buffer", kjstTypeError, 0)
 RT_ERROR_MSG(WASMERR_BufferGrowOnly, 7022, "", "WebAssembly.Memory can only grow", kjstTypeError, 0)
 RT_ERROR_MSG(WASMERR_LinkSignatureMismatch, 7023, "Cannot link import %s in link table due to a signature mismatch", "Function called with invalid signature", kjstWebAssemblyRuntimeError, 0)

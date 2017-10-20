@@ -468,7 +468,7 @@ namespace Js
         {
             bool isArray = JavascriptArray::Is(argArray);
             TypeId typeId = JavascriptOperators::GetTypeId(argArray);
-            bool isNullOrUndefined = (typeId == TypeIds_Null || typeId == TypeIds_Undefined);
+            bool isNullOrUndefined = typeId <= TypeIds_UndefinedOrNull;
 
             if (!isNullOrUndefined && !JavascriptOperators::IsObject(argArray)) // ES5: throw if Type(argArray) is not Object
             {
@@ -652,8 +652,10 @@ namespace Js
         ScriptContext* scriptContext = func->GetScriptContext();
         if (scriptContext->GetThreadContext()->HasPreviousHostScriptContext())
         {
-            ScriptContext* requestContext = scriptContext->GetThreadContext()->GetPreviousHostScriptContext()->GetScriptContext();
-            func = JavascriptFunction::FromVar(CrossSite::MarshalVar(requestContext, func));
+            ScriptContext* requestContext = scriptContext->GetThreadContext()->
+              GetPreviousHostScriptContext()->GetScriptContext();
+            func = JavascriptFunction::FromVar(CrossSite::MarshalVar(requestContext,
+              func, scriptContext));
         }
         return func->CallRootFunction(args, scriptContext, true);
     }
@@ -1108,89 +1110,53 @@ namespace Js
 
 #if _M_IX86
 #ifdef ASMJS_PLAT
-    template <> int JavascriptFunction::CallAsmJsFunction<int>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv)
+    template <> int JavascriptFunction::CallAsmJsFunction<int>(RecyclableObject * function, JavascriptMethod entryPoint, Var * argv, uint argsSize, byte* reg)
     {
-        return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retIntVal;
+        return CallAsmJsFunctionX86Thunk(function, entryPoint, argv, argsSize, reg).i32;
     }
-    template <> int64 JavascriptFunction::CallAsmJsFunction<int64>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv)
+    template <> int64 JavascriptFunction::CallAsmJsFunction<int64>(RecyclableObject * function, JavascriptMethod entryPoint, Var * argv, uint argsSize, byte* reg)
     {
-        return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retInt64Val;
+        return CallAsmJsFunctionX86Thunk(function, entryPoint, argv, argsSize, reg).i64;
     }
-    template <> float JavascriptFunction::CallAsmJsFunction<float>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv)
+    template <> float JavascriptFunction::CallAsmJsFunction<float>(RecyclableObject * function, JavascriptMethod entryPoint, Var * argv, uint argsSize, byte* reg)
     {
-        return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retFloatVal;
+        return CallAsmJsFunctionX86Thunk(function, entryPoint, argv, argsSize, reg).f32;
     }
-    template <> double JavascriptFunction::CallAsmJsFunction<double>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv)
+    template <> double JavascriptFunction::CallAsmJsFunction<double>(RecyclableObject * function, JavascriptMethod entryPoint, Var * argv, uint argsSize, byte* reg)
     {
-        return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retDoubleVal;
+        return CallAsmJsFunctionX86Thunk(function, entryPoint, argv, argsSize, reg).f64;
     }
-    template <> AsmJsSIMDValue JavascriptFunction::CallAsmJsFunction<AsmJsSIMDValue>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv)
+    template <> AsmJsSIMDValue JavascriptFunction::CallAsmJsFunction<AsmJsSIMDValue>(RecyclableObject * function, JavascriptMethod entryPoint, Var * argv, uint argsSize, byte* reg)
     {
-        return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retSimdVal;
+        return CallAsmJsFunctionX86Thunk(function, entryPoint, argv, argsSize, reg).simd;
     }
 
-    PossibleAsmJsReturnValues JavascriptFunction::CallAsmJsFunctionX86Thunk(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv)
+    PossibleAsmJsReturnValues JavascriptFunction::CallAsmJsFunctionX86Thunk(RecyclableObject * function, JavascriptMethod entryPoint, Var * argv, uint argsSize, byte*)
     {
-        enum {
-            IsFloat = 1 << AsmJsRetType::Float,
-            IsDouble = 1 << AsmJsRetType::Double,
-            IsInt64 = 1 << AsmJsRetType::Int64,
-            IsSimd =
-            1 << AsmJsRetType::Int32x4 |
-            1 << AsmJsRetType::Bool32x4 |
-            1 << AsmJsRetType::Bool16x8 |
-            1 << AsmJsRetType::Bool8x16 |
-            1 << AsmJsRetType::Float32x4 |
-            1 << AsmJsRetType::Float64x2 |
-            1 << AsmJsRetType::Int16x8 |
-            1 << AsmJsRetType::Int8x16 |
-            1 << AsmJsRetType::Uint32x4 |
-            1 << AsmJsRetType::Uint16x8 |
-            1 << AsmJsRetType::Uint8x16,
-            CannotUseEax = IsFloat | IsDouble | IsInt64 | IsSimd
-        };
+        void* savedEsp;
+        _declspec(align(16)) PossibleAsmJsReturnValues retVals;
+        CompileAssert(sizeof(PossibleAsmJsReturnValues) == sizeof(int64) + sizeof(AsmJsSIMDValue));
+        CompileAssert(offsetof(PossibleAsmJsReturnValues, low) == offsetof(PossibleAsmJsReturnValues, i32));
+        CompileAssert(offsetof(PossibleAsmJsReturnValues, high) == offsetof(PossibleAsmJsReturnValues, i32) + sizeof(int32));
 
-        AsmJsFunctionInfo* asmInfo = ((ScriptFunction*)function)->GetFunctionBody()->GetAsmJsFunctionInfo();
-        Assert((uint)((ArgSlot)asmInfo->GetArgCount() + 1) == (uint)(asmInfo->GetArgCount() + 1));
-        uint argsSize = asmInfo->GetArgByteSize();
-        uint alignedSize = ::Math::Align<int32>(argsSize, 8);
-        ScriptContext * scriptContext = function->GetScriptContext();
-        PROBE_STACK_CALL(scriptContext, function, alignedSize);
-
-        PossibleAsmJsReturnValues retVals;
-        AsmJsRetType::Which retType = asmInfo->GetReturnType().which();
-
-        void *data = nullptr;
-        void *savedEsp = nullptr;
-        __asm
-        {
-            // Save ESP
-            mov savedEsp, esp;
-            mov eax, alignedSize;
-            // Make sure we don't go beyond guard page
-            cmp eax, 0x1000;
-            jge alloca_probe;
-            sub esp, eax;
-            jmp dbl_align;
-alloca_probe :
-            // Use alloca to allocate more then a page size
-            // Alloca assumes eax, contains size, and adjust ESP while
-            // probing each page.
-            call _alloca_probe_16;
-dbl_align :
-            and esp,-8
-                mov data, esp;
-        }
-
-        {
-            Var* outParam = argv + 1;
-            void* dest = (void*)data;
-            memmove(dest, outParam, argsSize);
-
-        }
         // call variable argument function provided in entryPoint
         __asm
         {
+            mov savedEsp, esp;
+            mov eax, argsSize;
+            cmp eax, 0x1000;
+            jl allocate_stack;
+            // Use _chkstk to probe each page when using more then a page size
+            call _chkstk;
+allocate_stack:
+            sub esp, eax;
+
+            mov edi, esp;
+            mov esi, argv;
+            add esi, 4; // Skip function
+            mov ecx, argsSize;
+            rep movs byte ptr[edi], byte ptr[esi];
+
 #ifdef _CONTROL_FLOW_GUARD
             // verify that the call target is valid
             mov  ecx, entryPoint
@@ -1199,35 +1165,9 @@ dbl_align :
 #endif
             push function;
             call entryPoint;
-            push edx; // save possible int64 return value
-            mov ecx, retType;
-            mov edx, 1;
-            shl edx, cl;
-            pop ecx; // restore possible int64 return value
-            and edx, CannotUseEax;
-            jz FromEax;
-            and edx, ~IsInt64;
-            jz FromEaxEcx;
-            and edx, ~IsFloat;
-            jz FromXmmWord;
-            and edx, ~IsDouble;
-            jz FromXmmDWord;
-            // simd
-            movups retVals.retSimdVal, xmm0;
-            jmp end
-                FromEax:
-            mov retVals.retIntVal, eax;
-            jmp end;
-FromEaxEcx:
-            mov retVals.retIntVal, eax;
-            mov retVals.retIntVal + 4, ecx;
-            jmp end;
-FromXmmWord:
-            movss retVals.retFloatVal, xmm0;
-            jmp end;
-FromXmmDWord:
-            movsd retVals.retDoubleVal, xmm0;
-end:
+            mov retVals.low, eax;
+            mov retVals.high, edx;
+            movaps retVals.xmm, xmm0;
             // Restore ESP
             mov esp, savedEsp;
         }
@@ -2842,7 +2782,7 @@ LABEL1:
             }
             else
             {
-                *value = CrossSite::MarshalVar(requestContext, funcCaller);
+                *value = CrossSite::MarshalVar(requestContext, funcCaller, funcCaller->GetScriptContext());
             }
         }
 
@@ -3367,7 +3307,7 @@ LABEL1:
         }
         else
         {
-            funcPrototype = JavascriptOperators::GetProperty(this, PropertyIds::prototype, scriptContext, nullptr);
+            funcPrototype = JavascriptOperators::GetPropertyNoCache(this, PropertyIds::prototype, scriptContext);
         }
         funcPrototype = CrossSite::MarshalVar(scriptContext, funcPrototype);
         return JavascriptFunction::HasInstance(funcPrototype, instance, scriptContext, inlineCache, this);
@@ -3435,7 +3375,8 @@ LABEL1:
         // However, object o's type (even if it is of the same "shape" as before, and even if o is the very same object) will be different,
         // because the object types are permanently bound and unique to the script context from which they were created.
 
-        Var prototype = JavascriptOperators::GetPrototype(RecyclableObject::FromVar(instance));
+        RecyclableObject* instanceObject = RecyclableObject::FromVar(instance);
+        Var prototype = JavascriptOperators::GetPrototype(instanceObject);
 
         if (!JavascriptOperators::IsObject(funcPrototype))
         {
@@ -3444,7 +3385,7 @@ LABEL1:
 
         // Since we missed the cache, we must now walk the prototype chain of the object to check if the given function's prototype is somewhere in
         // that chain. If it is, we return true. Otherwise (i.e., we hit the end of the chain before finding the function's prototype) we return false.
-        while (JavascriptOperators::GetTypeId(prototype) != TypeIds_Null)
+        while (!JavascriptOperators::IsNull(prototype))
         {
             if (prototype == funcPrototype)
             {

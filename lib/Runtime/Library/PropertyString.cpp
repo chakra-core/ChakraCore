@@ -37,6 +37,18 @@ namespace Js
         return this->stElemInlineCache;
     }
 
+    /* static */
+    bool PropertyString::Is(RecyclableObject * obj)
+    {
+        return VirtualTableInfo<Js::PropertyString>::HasVirtualTable(obj);
+    }
+
+    /* static */
+    bool PropertyString::Is(Var var)
+    {
+        return RecyclableObject::Is(var) && PropertyString::Is(RecyclableObject::FromVar(var));
+    }
+
     void const * PropertyString::GetOriginalStringReference()
     {
         // Property record is the allocation containing the string buffer
@@ -48,7 +60,61 @@ namespace Js
         return this->hitRate > (int)CONFIG_FLAG(StringCacheMissThreshold);
     }
 
-    void PropertyString::LogCacheMiss()
+    bool PropertyString::TrySetPropertyFromCache(
+        RecyclableObject *const object,
+        Var propertyValue,
+        ScriptContext *const requestContext,
+        const PropertyOperationFlags propertyOperationFlags,
+        PropertyValueInfo *const propertyValueInfo)
+    {
+        if (ShouldUseCache())
+        {
+            PropertyValueInfo::SetCacheInfo(propertyValueInfo, this, GetStElemInlineCache(), true /* allowResizing */);
+            bool found = CacheOperators::TrySetProperty<
+                true,   // CheckLocal
+                true,   // CheckLocalTypeWithoutProperty
+                true,   // CheckAccessor
+                true,   // CheckPolymorphicInlineCache
+                true,   // CheckTypePropertyCache
+                false,  // IsInlineCacheAvailable
+                true,   // IsPolymorphicInlineCacheAvailable
+                false>  // ReturnOperationInfo
+                   (object,
+                    false, // isRoot
+                    this->propertyRecord->GetPropertyId(),
+                    propertyValue,
+                    requestContext,
+                    propertyOperationFlags,
+                    nullptr, // operationInfo
+                    propertyValueInfo);
+
+            if(found)
+            {
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+                if (PHASE_TRACE1(PropertyStringCachePhase))
+                {
+                    Output::Print(_u("PropertyCache: SetElem cache hit for '%s': type %p\n"), GetString(), object->GetType());
+                }
+#endif
+                RegisterCacheHit();
+                return true;
+            }
+        }
+        RegisterCacheMiss();
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        if (PHASE_TRACE1(PropertyStringCachePhase))
+        {
+            Output::Print(_u("PropertyCache: SetElem cache miss for '%s': type %p, index %d\n"),
+                GetString(),
+                object->GetType(),
+                GetStElemInlineCache()->GetInlineCacheIndexForType(object->GetType()));
+            DumpCache(false);
+        }
+#endif
+        return false;
+    }
+
+    void PropertyString::RegisterCacheMiss()
     {
         this->hitRate -= (int)CONFIG_FLAG(StringCacheMissPenalty);
         if (this->hitRate < (int)CONFIG_FLAG(StringCacheMissReset))

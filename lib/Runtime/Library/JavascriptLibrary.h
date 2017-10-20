@@ -43,6 +43,7 @@ namespace Js
     typedef TwoLevelHashDictionary<FastEvalMapString, ScriptFunction*, EvalMapRecord, EvalCacheTopLevelDictionary, EvalMapString> EvalCacheDictionary;
 
     typedef JsUtil::BaseDictionary<JavascriptMethod, JavascriptFunction*, Recycler, PrimeSizePolicy> BuiltInLibraryFunctionMap;
+    typedef JsUtil::BaseDictionary<uint, JavascriptString *, Recycler> StringMap;
 
     // valid if object!= NULL
     struct EnumeratedObjectCache
@@ -74,6 +75,7 @@ namespace Js
         Field(EvalCacheDictionary*) evalCacheDictionary;
         Field(EvalCacheDictionary*) indirectEvalCacheDictionary;
         Field(NewFunctionCache*) newFunctionCache;
+        Field(StringMap *) integerStringMap;
         Field(RegexPatternMruMap *) dynamicRegexMap;
         Field(SourceContextInfoMap*) sourceContextInfoMap;   // maps host provided context cookie to the URL of the script buffer passed.
         Field(DynamicSourceContextInfoMap*) dynamicSourceContextInfoMap;
@@ -81,11 +83,13 @@ namespace Js
         Field(SRCINFO*) noContextGlobalSourceInfo;
         Field(Field(SRCINFO const *)*) moduleSrcInfo;
         Field(BuiltInLibraryFunctionMap*) builtInLibraryFunctions;
+        Field(ScriptContextPolymorphicInlineCache*) toStringTagCache;
 #if ENABLE_PROFILE_INFO
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         Field(DynamicProfileInfoList*) profileInfoList;
 #endif
 #endif
+        Cache() : toStringTagCache(nullptr) { }
     };
 
     class MissingPropertyTypeHandler;
@@ -226,6 +230,7 @@ namespace Js
         static DWORD GetBuiltinFunctionsOffset() { return offsetof(JavascriptLibrary, builtinFunctions); }
         static DWORD GetCharStringCacheOffset() { return offsetof(JavascriptLibrary, charStringCache); }
         static DWORD GetCharStringCacheAOffset() { return GetCharStringCacheOffset() + CharStringCache::GetCharStringCacheAOffset(); }
+        PolymorphicInlineCache *GetToStringTagCache() const { return cache.toStringTagCache; }
         const  JavascriptLibraryBase* GetLibraryBase() const { return static_cast<const JavascriptLibraryBase*>(this); }
         void SetGlobalObject(GlobalObject* globalObject) {this->globalObject = globalObject; }
         static DWORD GetRandSeed0Offset() { return offsetof(JavascriptLibrary, randSeed0); }
@@ -358,6 +363,7 @@ namespace Js
         Field(DynamicType *) numberTypeDynamic;
         Field(DynamicType *) objectTypes[PreInitializedObjectTypeCount];
         Field(DynamicType *) objectHeaderInlinedTypes[PreInitializedObjectTypeCount];
+        Field(DynamicType *) nullPrototypeObjectType;
         Field(DynamicType *) regexPrototypeType;
         Field(DynamicType *) regexType;
         Field(DynamicType *) regexResultType;
@@ -581,6 +587,7 @@ namespace Js
             bindRefChunkCurrent(nullptr),
             bindRefChunkEnd(nullptr),
             dynamicFunctionReference(nullptr)
+
         {
             this->globalObject = globalObject;
         }
@@ -649,6 +656,8 @@ namespace Js
         SCACHE_FUNCTION_PROXY(GetObjectNumberDisplayString)
         SCACHE_FUNCTION_PROXY(GetObjectRegExpDisplayString)
         SCACHE_FUNCTION_PROXY(GetObjectStringDisplayString)
+        SCACHE_FUNCTION_PROXY(GetObjectNullDisplayString)
+        SCACHE_FUNCTION_PROXY(GetObjectUndefinedDisplayString)
         SCACHE_FUNCTION_PROXY(GetUndefinedDisplayString)
         SCACHE_FUNCTION_PROXY(GetNaNDisplayString)
         SCACHE_FUNCTION_PROXY(GetNullDisplayString)
@@ -809,6 +818,7 @@ namespace Js
         DynamicType * GetObjectLiteralType(uint16 requestedInlineSlotCapacity);
         DynamicType * GetObjectHeaderInlinedLiteralType(uint16 requestedInlineSlotCapacity);
         DynamicType * GetObjectType() const { return objectTypes[0]; }
+        DynamicType * GetNullPrototypeObjectType() const { return nullPrototypeObjectType; }
         DynamicType * GetObjectHeaderInlinedType() const { return objectHeaderInlinedTypes[0]; }
         StaticType  * GetSymbolTypeStatic() const { return symbolTypeStatic; }
         DynamicType * GetSymbolTypeDynamic() const { return symbolTypeDynamic; }

@@ -4,37 +4,30 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines/chakra_i64.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/chakra/chakra_i64.wast -endargs</compile-flags>
+      <baseline>baselines/chakra_extends_i32.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_extends_i32.wast -endargs -wasmSignExtends</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines/chakra_i64.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/chakra/chakra_i64.wast -endargs -nonative</compile-flags>
+      <baseline>baselines/chakra_extends_i32.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_extends_i32.wast -endargs -nonative -wasmSignExtends</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines/chakra_i64.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/chakra/chakra_i64.wast -endargs -wasmMathExFilter</compile-flags>
+      <baseline>baselines/chakra_extends_i64.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_extends_i64.wast -endargs -wasmSignExtends</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines/chakra_i32.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/chakra/chakra_i32.wast -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines/chakra_i32.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/chakra/chakra_i32.wast -endargs -nonative</compile-flags>
+      <baseline>baselines/chakra_extends_i64.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_extends_i64.wast -endargs -nonative -wasmSignExtends</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -42,7 +35,44 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_i32.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/chakra/chakra_i32.wast -endargs -wasmMathExFilter</compile-flags>
+      <compile-flags>-wasm -args chakra/chakra_i32.wast -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/chakra_i32.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_i32.wast -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/chakra_i32.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_i32.wast -endargs -wasmMathExFilter</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/chakra_i64.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_i64.wast -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/chakra_i64.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_i64.wast -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/chakra_i64.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_i64.wast -endargs -wasmMathExFilter</compile-flags>
     </default>
   </test>
   <test>
@@ -1138,6 +1168,36 @@
       <files>jsapi.js</files>
       <baseline>baselines/jsapi.baseline</baseline>
       <compile-flags>-wasm -args testsuite/js-api/jsapi.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/extends_i32.baseline</baseline>
+      <compile-flags>-wasm -args features/extends/extends_i32.wast -endargs -wasmSignExtends</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/extends_i32.baseline</baseline>
+      <compile-flags>-wasm -args features/extends/extends_i32.wast -endargs -nonative -wasmSignExtends</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/extends_i64.baseline</baseline>
+      <compile-flags>-wasm -args features/extends/extends_i64.wast -endargs -wasmSignExtends</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/extends_i64.baseline</baseline>
+      <compile-flags>-wasm -args features/extends/extends_i64.wast -endargs -nonative -wasmSignExtends</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>

@@ -474,6 +474,22 @@ var tests = [
       catch(e) {}
     }
   },
+  {
+    name: "OS: 12681861: SetPropertyWithAttributes assert does not cover static constructor case",
+    body: function () {
+      class tvawjo {
+        static constructor() { }
+        static get igwgep() { }
+        static igwgep() { }
+      };
+    }
+  },
+  {
+    name: "#3040 Class extends clause accepts LHS expressions only",
+    body: function() {
+      assert.throws(function () { eval("1,class extends[]/print(1){}"); }, SyntaxError, "Parsing extends expr should not go past a term", "Expected '{'");
+    }
+  }
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
