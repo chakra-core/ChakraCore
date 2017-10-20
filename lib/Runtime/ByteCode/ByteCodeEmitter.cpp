@@ -1336,10 +1336,11 @@ void ByteCodeGenerator::DefineUserVars(FuncInfo *funcInfo)
                 if (!funcInfo->root->sxFnc.HasNonSimpleParameterList())
                 {
                     EmitPropStoreForSpecialSymbol(sym->GetLocation(), sym, sym->GetPid(), funcInfo, true);
-                }
-                if (ShouldTrackDebuggerMetadata() && !sym->IsInSlot(funcInfo))
-                {
-                    byteCodeFunction->InsertSymbolToRegSlotList(sym->GetName(), sym->GetLocation(), funcInfo->varRegsCount);
+
+                    if (ShouldTrackDebuggerMetadata() && !sym->IsInSlot(funcInfo))
+                    {
+                        byteCodeFunction->InsertSymbolToRegSlotList(sym->GetName(), sym->GetLocation(), funcInfo->varRegsCount);
+                    }
                 }
 
                 continue;
@@ -3017,6 +3018,8 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             funcInfo->ReleaseTmpRegister(tempReg);
         }
 
+        DefineUserVars(funcInfo);
+
         // Emit all scope-wide function definitions before emitting function bodies
         // so that calls may reference functions they precede lexically.
         // Note, global eval scope is a fake local scope and is handled as if it were
@@ -3027,8 +3030,6 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             // This only handles function declarations, which param scope cannot have any.
             DefineFunctions(funcInfo);
         }
-
-        DefineUserVars(funcInfo);
 
         if (pnode->sxFnc.HasNonSimpleParameterList() || !funcInfo->IsBodyAndParamScopeMerged())
         {
@@ -3669,6 +3670,22 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                 MapFormalsFromPattern(pnodeFnc, [&](ParseNode *pnode) { pnode->sxVar.sym->EnsureScopeSlot(funcInfo); });
             }
 
+            for (pnode = pnodeFnc->sxFnc.pnodeVars; pnode; pnode = pnode->sxVar.pnodeNext)
+            {
+                sym = pnode->sxVar.sym;
+                if (!(pnode->sxVar.isBlockScopeFncDeclVar && sym->GetIsBlockVar()))
+                {
+                    if (sym->GetIsCatch() || (pnode->nop == knopVarDecl && sym->GetIsBlockVar()))
+                    {
+                        sym = funcInfo->bodyScope->FindLocalSymbol(sym->GetName());
+                    }
+                    if (sym->GetSymbolType() == STVariable && !sym->IsArguments())
+                    {
+                        sym->EnsureScopeSlot(funcInfo);
+                    }
+                }
+            }
+
             auto ensureFncDeclScopeSlots = [&](ParseNode *pnodeScope)
             {
                 for (pnode = pnodeScope; pnode;)
@@ -3695,22 +3712,6 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                 }
             };
             pnodeFnc->sxFnc.MapContainerScopes(ensureFncDeclScopeSlots);
-
-            for (pnode = pnodeFnc->sxFnc.pnodeVars; pnode; pnode = pnode->sxVar.pnodeNext)
-            {
-                sym = pnode->sxVar.sym;
-                if (!(pnode->sxVar.isBlockScopeFncDeclVar && sym->GetIsBlockVar()))
-                {
-                    if (sym->GetIsCatch() || (pnode->nop == knopVarDecl && sym->GetIsBlockVar()))
-                    {
-                        sym = funcInfo->bodyScope->FindLocalSymbol(sym->GetName());
-                    }
-                    if (sym->GetSymbolType() == STVariable && !sym->IsArguments())
-                    {
-                        sym->EnsureScopeSlot(funcInfo);
-                    }
-                }
-            }
 
             if (pnodeFnc->sxFnc.pnodeBody)
             {

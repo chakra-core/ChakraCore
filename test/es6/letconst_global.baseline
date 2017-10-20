@@ -20,6 +20,6 @@ function e() { }
 
 for-in enumeration of this
 
-e: function e() { }
 a: global var a
+e: function e() { }
 b: global undecl b

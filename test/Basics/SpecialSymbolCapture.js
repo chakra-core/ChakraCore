@@ -901,6 +901,75 @@ var tests = [
                 assert.areEqual(_this, this, "Regular 'this' binding is correct");
             }
             foo.call(_this)
+            
+            function bar(a = this) {
+                eval('');
+                assert.areEqual(_this, a, "Correct default value was assigned");
+                assert.areEqual(_this, this, "Regular 'this' binding is correct");
+                function b() { return 'b'; }
+                assert.areEqual('b', b(), "Nested functions are bound to the correct slot");
+            }
+            bar.call(_this)
+
+            function baz(a = this, c = function() { return 'c'; }) {
+                eval('');
+                assert.areEqual(_this, a, "Correct default value was assigned");
+                assert.areEqual(_this, this, "Regular 'this' binding is correct");
+                function b() { return 'b'; }
+                assert.areEqual('b', b(), "Nested functions are bound to the correct slot");
+                assert.areEqual('c', c(), "Function expression in param scope default argument is bound to the correct slot");
+            }
+            baz.call(_this)
+
+            function baz2(a = this, c = function() { function nested() { return 'c' }; return nested; }) {
+                eval('');
+                assert.areEqual(_this, a, "Correct default value was assigned");
+                assert.areEqual(_this, this, "Regular 'this' binding is correct");
+                function b() { return 'b'; }
+                assert.areEqual('b', b(), "Nested functions are bound to the correct slot");
+                assert.areEqual('c', c()(), "Function decl nested in function expression assigned to default argument");
+            }
+            baz2.call(_this)
+
+            function baz3(c = function() { return 'c'; }, a = this) {
+                eval('');
+                assert.areEqual(_this, a, "Correct default value was assigned");
+                assert.areEqual(_this, this, "Regular 'this' binding is correct");
+                function b() { return 'b'; }
+                assert.areEqual('b', b(), "Nested functions are bound to the correct slot");
+                assert.areEqual('c', c(), "Function expression in param scope default argument is bound to the correct slot");
+            }
+            baz3.call(_this)
+
+            function bat(a = this, c = () => 'c') {
+                eval('');
+                assert.areEqual(_this, a, "Correct default value was assigned");
+                assert.areEqual(_this, this, "Regular 'this' binding is correct");
+                function b() { return 'b'; }
+                assert.areEqual('b', b(), "Nested functions are bound to the correct slot");
+                assert.areEqual('c', c(), "Lambda expression in param scope default argument is bound to the correct slot");
+            }
+            bat.call(_this)
+
+            function bat2(a = this, c = () => () => 'c') {
+                eval('');
+                assert.areEqual(_this, a, "Correct default value was assigned");
+                assert.areEqual(_this, this, "Regular 'this' binding is correct");
+                function b() { return 'b'; }
+                assert.areEqual('b', b(), "Nested functions are bound to the correct slot");
+                assert.areEqual('c', c()(), "Lambda function decl nested in lambda expression assigned to default argument");
+            }
+            bat2.call(_this)
+
+            function bat3(c = () => () => 'c', a = this) {
+                eval('');
+                assert.areEqual(_this, a, "Correct default value was assigned");
+                assert.areEqual(_this, this, "Regular 'this' binding is correct");
+                function b() { return 'b'; }
+                assert.areEqual('b', b(), "Nested functions are bound to the correct slot");
+                assert.areEqual('c', c()(), "Lambda function decl nested in lambda expression assigned to default argument");
+            }
+            bat3.call(_this)
         }
     },
     {
