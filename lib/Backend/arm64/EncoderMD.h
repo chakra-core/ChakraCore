@@ -43,12 +43,12 @@ enum InstructionType {
 #define CATCH_OBJ_REG               RegR1
 
 #define RETURN_DBL_REG              RegD0
-#define FIRST_CALLEE_SAVED_DBL_REG  RegD16
-#define LAST_CALLEE_SAVED_DBL_REG   RegD29
+#define FIRST_CALLEE_SAVED_DBL_REG  RegD8
+#define LAST_CALLEE_SAVED_DBL_REG   RegD15
 #define CALLEE_SAVED_DOUBLE_REG_COUNT\
     ((LAST_CALLEE_SAVED_DBL_REG - FIRST_CALLEE_SAVED_DBL_REG) + 1)
-#define FIRST_CALLEE_SAVED_DBL_REG_NUM  16
-#define LAST_CALLEE_SAVED_DBL_REG_NUM   29
+#define FIRST_CALLEE_SAVED_DBL_REG_NUM  8
+#define LAST_CALLEE_SAVED_DBL_REG_NUM   15
 
 
 // See comment in LowerEntryInstr: even in a global function, we'll home r0 and r1
