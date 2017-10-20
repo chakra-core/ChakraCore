@@ -7928,6 +7928,8 @@ LowererMD::LoadFloatZero(IR::Opnd * opndDst, IR::Instr * instrInsert)
 {
     Assert(opndDst->GetType() == TyFloat64);
     IR::Opnd * zero = IR::MemRefOpnd::New(instrInsert->m_func->GetThreadContextInfo()->GetDoubleZeroAddr(), TyFloat64, instrInsert->m_func, IR::AddrOpndKindDynamicDoubleRef);
+
+    // Todo(magardn): Make sure the correct opcode is used for moving between float and non-float regs (FMOV_GEN)
     return Lowerer::InsertMove(opndDst, zero, instrInsert);
 }
 
@@ -8032,20 +8034,6 @@ IR::RegOpnd* LowererMD::CheckFloatAndUntag(IR::RegOpnd * opndSrc, IR::Instr * in
     instr = IR::Instr::New(Js::OpCode::FMOV_GEN, floatReg, untaggedFloat, this->m_func);
     insertInstr->InsertBefore(instr);
     return floatReg;
-}
-
-void LowererMD::LoadFloatValue(IR::RegOpnd * javascriptNumber, IR::RegOpnd * opndFloat, IR::LabelInstr * labelHelper, IR::Instr * instrInsert, const bool checkForNullInLoopBody)
-{
-    IR::Instr* instr;
-    IR::Opnd* opnd;
-
-    // Make sure it is float
-    this->GenerateFloatTest(javascriptNumber, instrInsert, labelHelper, checkForNullInLoopBody);
-
-    // VLDR opndFloat, [number + offsetof(value)]
-    opnd = IR::IndirOpnd::New(javascriptNumber, Js::JavascriptNumber::GetValueOffset(), TyMachDouble, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::FLDR, opndFloat, opnd, this->m_func);
-    instrInsert->InsertBefore(instr);
 }
 
 template <bool verify>
