@@ -664,6 +664,10 @@
 // #define RECYCLER_MARK_TRACK
 // #define INTERNAL_MEM_PROTECT_HEAP_ALLOC
 
+#if defined(ENABLE_JS_ETW) || defined(DUMP_FRAGMENTATION_STATS)
+#define ENABLE_MEM_STATS 1
+#endif
+
 #define NO_SANITIZE_ADDRESS
 #if defined(__has_feature)
 #if __has_feature(address_sanitizer)

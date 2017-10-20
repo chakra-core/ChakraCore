@@ -6161,11 +6161,8 @@ Recycler::FinishCollection()
     }
 #endif
 
-#ifdef DUMP_FRAGMENTATION_STATS
-    if (GetRecyclerFlagsTable().DumpFragmentationStats)
-    {
-        autoHeap.DumpFragmentationStats();
-    }
+#if ENABLE_MEM_STATS
+    autoHeap.ReportMemStats();
 #endif
 
     RECORD_TIMESTAMP(currentCollectionEndTime);
@@ -6786,7 +6783,9 @@ Recycler::PrintHeapBlockMemoryStats(char16 const * name, HeapBlock::HeapBlockTyp
         allocableFreeByteCount -= partialUnusedBytes;
     }
 #endif
-    size_t totalByteCount = (collectionStats.heapBlockCount[type] - collectionStats.heapBlockFreeCount[type]) * AutoSystemInfo::PageSize;
+    size_t blockPages = type < HeapBlock::HeapBlockType::SmallAllocBlockTypeCount ?
+        SmallAllocationBlockAttributes::PageCount : MediumAllocationBlockAttributes::PageCount;
+    size_t totalByteCount = (collectionStats.heapBlockCount[type] - collectionStats.heapBlockFreeCount[type]) * blockPages * AutoSystemInfo::PageSize;
     size_t liveByteCount = totalByteCount - collectionStats.heapBlockFreeByteCount[type];
     Output::Print(_u(" %6s: %10d %10d"), name, liveByteCount, allocableFreeByteCount);
 
