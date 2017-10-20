@@ -150,4 +150,9 @@
       <files>tryfinallyinlinebug.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>asyncintrystackwalkbug.js</files>
+    </default>
+  </test>
 </regress-exe>
