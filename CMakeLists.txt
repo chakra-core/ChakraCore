@@ -346,8 +346,13 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
     add_compile_options(
         -fasm-blocks
         -fms-extensions
-        -fwrapv                 # Treat signed integer overflow as two's complement
+        -fwrapv # Treat signed integer overflow as two's complement
     )
+
+    # Only disable RTTI in release builds so that TrackAlloc works for debug and test builds
+    if(CMAKE_BUILD_TYPE STREQUAL Release)
+        add_compile_options(-fno-rtti)
+    endif()
 
     # Clang -fsanitize.
     if (CLANG_SANITIZE_SH)
