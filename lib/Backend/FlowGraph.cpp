@@ -325,10 +325,9 @@ FlowGraph::Build(void)
                     instr->m_func->SetHasCallsOnSelfAndParents();
                 }
 
-                // For ARM & X64 because of their register calling convention
+                // For ARM, ARM64 & X64 (non x86) because of their register calling convention
                 // the ArgOuts need to be moved next to the call.
-#if defined(_M_ARM) || defined(_M_X64)
-
+#if !defined(_M_IX86)
                 IR::Instr* argInsertInstr = instr;
                 instr->IterateArgInstrs([&](IR::Instr* argInstr)
                 {
