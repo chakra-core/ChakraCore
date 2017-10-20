@@ -2845,7 +2845,7 @@ Inline::InlineCallApplyTarget_Shared(IR::Instr *callInstr, bool originalCallTarg
     // instrNext
     IR::Instr* instrNext = callInstr->m_next;
 
-    return InlineFunctionCommon(callInstr, originalCallTargetOpndIsJITOpt, originalCallTargetStackSym, inlineeData, inlinee, instrNext, returnValueOpnd, callInstr, nullptr, recursiveInlineDepth, safeThis, isApplyTarget);
+    return InlineFunctionCommon(callInstr, originalCallTargetOpndIsJITOpt, originalCallTargetStackSym, inlineeData, inlinee, instrNext, returnValueOpnd, callInstr, nullptr, recursiveInlineDepth, safeThis, isApplyTarget)->m_prev;
 }
 
 IR::Opnd *
