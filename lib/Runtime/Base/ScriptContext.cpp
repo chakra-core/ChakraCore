@@ -1795,12 +1795,12 @@ namespace Js
                 integerStringMapCacheMissCount = 0;
                 if (integerStringMapCacheUseCount >= NUMBER_TO_STRING_RE_CACHE_REASON_LIMIT)
                 {
-                    this->integerStringMap.Clear();
+                    integerStringMap->Clear();
                 }
                 integerStringMapCacheUseCount = 0;
             }
 
-            if (this->integerStringMap.Count() > NUMBER_TO_STRING_CACHE_SIZE)
+            if (integerStringMap->Count() > NUMBER_TO_STRING_CACHE_SIZE)
             {
 #endif
                 // Use recycler memory
