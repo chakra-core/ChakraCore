@@ -81,7 +81,6 @@ IRBuilderAsmJs::Build()
     m_func->m_exitInstr = IR::ExitInstr::New(Js::OpCode::FunctionExit, m_func);
     m_func->m_tailInstr = m_func->m_exitInstr;
     m_func->m_headInstr->InsertAfter(m_func->m_tailInstr);
-    m_func->m_isLeaf = true;  // until proven otherwise
 
     m_functionStartOffset = m_jnReader.GetCurrentOffset();
     m_lastInstr = m_func->m_headInstr;

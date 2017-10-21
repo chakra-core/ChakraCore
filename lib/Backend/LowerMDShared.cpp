@@ -5835,6 +5835,7 @@ LowererMD::GenerateCFGCheck(IR::Opnd * entryPointOpnd, IR::Instr * insertBeforeI
     //Generate CheckCFG CALL here
     IR::HelperCallOpnd *cfgCallOpnd = IR::HelperCallOpnd::New(IR::HelperGuardCheckCall, this->m_func);
     IR::Instr* cfgCallInstr = IR::Instr::New(Js::OpCode::CALL, this->m_func);
+    this->m_func->SetHasCallsOnSelfAndParents();
 
 #if _M_IX86
     //call[__guard_check_icall_fptr]
@@ -7722,6 +7723,7 @@ LowererMD::EmitInt64toFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr)
     LoadInt64HelperArgument(instr, srcOpnd);
 
     IR::Instr* callinstr = IR::Instr::New(Js::OpCode::CALL, dst, this->m_func);
+    this->m_func->SetHasCallsOnSelfAndParents();
     instr->InsertBefore(callinstr);
     CompileAssert(sizeof(IRType) == 1);
     const uint16 fromToType = dst->GetType() | (srcOpnd->GetType() << 8);
@@ -9032,7 +9034,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             IR::Instr *floatCall = IR::Instr::New(Js::OpCode::CALL, floatCallDst, s1, this->m_func);
             instr->InsertBefore(floatCall);
 #endif
-            instr->m_func->SetHasCalls();
+            instr->m_func->SetHasCallsOnSelfAndParents();
             // Save the result.
             instr->m_opcode = Js::OpCode::MOVSD;
             instr->SetSrc1(floatCall->GetDst());
