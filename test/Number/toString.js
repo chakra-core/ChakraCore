@@ -8,7 +8,9 @@ runTest('new Number(-444123)');
 runTest('new Number("444" + "123.789123456789875436")');
 runTest('new Number(-444123.78963636363636363636)');
 runTest('new Number(0)');
+runTest('0.9999999999999999e21');
 runTest('1e21');
+runTest('1.0000000000000001e21');
 
 function runTest(numberToTestAsString)
 {
