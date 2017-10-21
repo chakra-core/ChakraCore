@@ -129,4 +129,9 @@
       <tags>Slow</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>MilitaryTimeZone.js</files>
+    </default>
+  </test>
 </regress-exe>

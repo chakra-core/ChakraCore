@@ -1159,8 +1159,8 @@ Error:
                     // military version of time zone
                     // z = GMT
                     // j isn't used
-                    // a to m are -1 to -12
-                    // n to y are 1 to 12
+                    // a to m are 1 to 12
+                    // n to y are -1 to -12
                     if (lwNil != lwZone)
                     {
                         goto LError;
@@ -1171,11 +1171,11 @@ Error:
                         {
                             goto LError;
                         }
-                        lwZone = -(int32)(ch - 'a' + (ch < 'j')) * 60;
+                        lwZone = (int32)(ch - 'a' + (ch < 'j')) * 60;
                     }
                     else if (ch <= 'y')
                     {
-                        lwZone = (int32)(ch - 'm') * 60;
+                        lwZone = -(int32)(ch - 'm') * 60;
                     }
                     else if (ch == 'z')
                     {
