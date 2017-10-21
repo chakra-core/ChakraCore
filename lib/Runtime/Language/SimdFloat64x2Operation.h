@@ -43,6 +43,7 @@ namespace Js {
         static SIMDValue OpGreaterThan(const SIMDValue& aValue, const SIMDValue& bValue);
         static SIMDValue OpGreaterThanOrEqual(const SIMDValue& aValue, const SIMDValue& bValue);
         static SIMDValue OpSelect(const SIMDValue& mV, const SIMDValue& tV, const SIMDValue& fV);
+        template<typename T> static void OpConv(SIMDValue* dst, SIMDValue* src);
     };
 
 } // namespace Js

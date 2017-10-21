@@ -723,6 +723,10 @@ EXDEF2_WMS(SIMD_D2_2toD2_1, Simd128_Neq_D2, Js::SIMDFloat64x2Operation::OpNotEqu
 EXDEF2_WMS(SIMD_D2_2toD2_1, Simd128_GtEq_D2, Js::SIMDFloat64x2Operation::OpGreaterThanOrEqual)
 EXDEF2_WMS(SIMD_D2_2toD2_1, Simd128_Gt_D2, Js::SIMDFloat64x2Operation::OpGreaterThan)
 EXDEF2_WMS(SIMD_D2_1toD2_1, Simd128_Sqrt_D2, SIMDFloat64x2Operation::OpSqrt)
+EXDEF2_WMS(SIMD_I2_1toI2_P, Simd128_FromInt64x2_D2, SIMDFloat64x2Operation::OpConv<int64>)
+EXDEF2_WMS(SIMD_I2_1toI2_P, Simd128_FromUint64x2_D2, SIMDFloat64x2Operation::OpConv<uint64>)
+EXDEF2_WMS(SIMD_I2_1toI2_P, Simd128_FromFloat64x2_I2, SIMDInt64x2Operation::OpTrunc<int64>)
+EXDEF2_WMS(SIMD_I2_1toI2_P, Simd128_FromFloat64x2_U2, SIMDInt64x2Operation::OpTrunc<uint64>)
 
 #if 0
 EXDEF2_WMS(SIMD_D2toD2_1, Simd128_DoublesToD2, SIMDFloat64x2Operation::OpFloat64x2)

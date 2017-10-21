@@ -16,6 +16,7 @@ namespace Js {
         //pointer-based arguments are used to ensure that calling conventions are consistent across x86/x64
         //and match call sequences JIT generates.
         //TODO: nikolayk back to "const SIMDValue& a"
+        template<typename T> static void OpTrunc(SIMDValue* dst, SIMDValue* src);
         static void OpShiftLeftByScalar(SIMDValue* dst, SIMDValue* src, int count);
         static void OpShiftRightByScalar(SIMDValue* dst, SIMDValue* src, int count);
         static void OpShiftRightByScalarU(SIMDValue* dst, SIMDValue* src, int count);

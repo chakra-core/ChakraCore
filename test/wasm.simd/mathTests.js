@@ -20,7 +20,8 @@ const arrays = {
     "i16x8" : new Int16Array (memObj.buffer),
     "i8x16" : new Int8Array (memObj.buffer),
     "f32x4" : new Float32Array (memObj.buffer),
-    "f64x2" : new Float64Array (memObj.buffer)
+    "f64x2" : new Float64Array (memObj.buffer),
+    "i64x2" : new Int32Array (memObj.buffer)
 };
 
 function moveArgsIntoArray(args, offset, arr) {
@@ -65,6 +66,28 @@ let testMathOps = function (funcname, args1, args2, resultArr) {
             assertEquals(true, Number.isNaN(arr[i]));
         } else {
             assertEquals(resultArr[i], arr[i]);
+        }
+
+    }
+}
+
+let reverse64x2Type = (type) => type === "f64x2" ? "i64x2" : "f64x2";
+let testTruncConvOps = function (funcname, args1, resultArr) {
+
+    const len = args1.length;
+    const type = funcname.split('_')[1];
+    const resultType = reverse64x2Type(type);
+    const arr = arrays[resultType];
+    const resultArrView = arrays[type];
+
+    moveArgsIntoArray(args1, 0, arr);
+    instance[funcname]();
+
+    for (let i = 0; i < resultArr.length; i++) {
+        if (type === "f64x2" && Number.isNaN(resultArr[i])) {
+            assertEquals(true, Number.isNaN(resultArrView[i]));
+        } else {
+            assertEquals(resultArr[i], resultArrView[i]);
         }
 
     }
@@ -355,6 +378,36 @@ testMathOps("func_i8x16_shuffle_test2",
     [0  ,  1 , 2  , 3  , 4  , 5  , 6  , 7  , 8  , 9  , 10 , 11 , 12 , 13 , 14 , 15],
     [16 , 17 , 18 , 19 , 20 , 21 , 22 , 23 , 24 , 25 , 26 , 27 , 28 , 29 , 30 , 31],
     [0  , 17 , 1  , 18 , 2  , 19 , 3  , 20 , 4  , 21 , 5  , 22 , 6  , 23  , 7  , 24]
+);
+
+testTruncConvOps("func_f64x2_convert_u",
+    [0xffffffff|0, 0xffffffff|0, 0, 0],
+    [1.8446744073709552e+19, 0]
+);
+
+testTruncConvOps("func_f64x2_convert_s",
+    [0xffffffff|0, 0x7fffffff|0, 0x0|0, 0x80000000|0],
+    [9.2233720368547758e+18, -9.2233720368547758e+18]
+);
+
+testTruncConvOps("func_i64x2_trunc_u",
+    [1.8446744073709553e+19, -1],
+    [0xffffffff|0, 0xffffffff|0, 0, 0]
+);
+
+testTruncConvOps("func_i64x2_trunc_u",
+    [12345.6, Number.NaN],
+    [12345, 0, 0, 0]
+);
+
+testTruncConvOps("func_i64x2_trunc_s",
+    [9.2233720368547759e+18, -9.2233720368547759e+18],
+    [0xffffffff|0, 0x7fffffff|0, 0x0|0, 0x80000000|0]
+);
+
+testTruncConvOps("func_i64x2_trunc_s",
+    [-12345.6, Number.NaN],
+    [-12345, -1, 0, 0]
 );
 
 if (passed) {

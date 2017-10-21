@@ -4672,7 +4672,6 @@ IRBuilderAsmJs::BuildInt64x2_3(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_S
 void
 IRBuilderAsmJs::BuildInt64x2_2(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_SIMD_ARGS_REG2)
 {
-    Assert(newOpcode == Js::OpCodeAsmJs::Simd128_Neg_I2);
     BuildSimd_2(newOpcode, offset, dstRegSlot, src1RegSlot, TySimd128I2);
 }
 

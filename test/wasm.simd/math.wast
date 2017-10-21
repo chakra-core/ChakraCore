@@ -311,4 +311,24 @@
         (set_local $v1 (m128.load offset=0 align=4 (i32.const 0)))
         (m128.store offset=0 (i32.const 0) (f64x2.sqrt (get_local $v1)))
     )
+
+    (func (export "func_i64x2_trunc_s")  (local $v1 m128)
+        (set_local $v1 (m128.load offset=0 align=4 (i32.const 0)))
+        (m128.store offset=0 (i32.const 0) (i64x2.trunc_s (get_local $v1)))
+    )
+
+    (func (export "func_i64x2_trunc_u")  (local $v1 m128)
+        (set_local $v1 (m128.load offset=0 align=4 (i32.const 0)))
+        (m128.store offset=0 (i32.const 0) (i64x2.trunc_u (get_local $v1)))
+    )
+
+    (func (export "func_f64x2_convert_s")  (local $v1 m128)
+        (set_local $v1 (m128.load offset=0 align=4 (i32.const 0)))
+        (m128.store offset=0 (i32.const 0) (f64x2.convert_s (get_local $v1)))
+    )
+
+    (func (export "func_f64x2_convert_u")  (local $v1 m128)
+        (set_local $v1 (m128.load offset=0 align=4 (i32.const 0)))
+        (m128.store offset=0 (i32.const 0) (f64x2.convert_u (get_local $v1)))
+    )
 )
