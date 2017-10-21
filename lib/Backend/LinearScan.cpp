@@ -250,6 +250,12 @@ LinearScan::RegAlloc()
             this->ProcessSecondChanceBoundary(instr->AsLabelInstr());
         }
 
+        if (instr->m_opcode == Js::OpCode::CALL)
+        {
+            // The Prolog on x64 needs to know if there are any calls in the func
+            instr->m_func->SetHasCallsOnSelfAndParents();
+        }
+
 #if DBG
         this->CheckInvariants();
 #endif // DBG

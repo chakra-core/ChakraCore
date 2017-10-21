@@ -785,7 +785,6 @@ LowererMDArch::LowerInt64CallDst(IR::Instr * callInstr)
 IR::Instr *
 LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
 {
-
     IR::Instr * argInstr;
     int32 argCount = 0;
 
@@ -1142,9 +1141,6 @@ LowererMDArch::LowerCall(IR::Instr * callInstr, uint32 argCount, RegNum regNum)
 {
     IR::Instr *retInstr = callInstr;
     callInstr->m_opcode = Js::OpCode::CALL;
-
-    // This is required here due to calls created during lowering
-    callInstr->m_func->SetHasCallsOnSelfAndParents();
 
     if (callInstr->GetDst())
     {

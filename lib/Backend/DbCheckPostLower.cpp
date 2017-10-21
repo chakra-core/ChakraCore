@@ -197,7 +197,8 @@ DbCheckPostLower::Check()
                 }
                 break;
             case Js::OpCode::CALL:
-                Assert(!instr->m_func->IsTrueLeaf());
+                // RegAlloc will track the CALLs on the func and its parents
+                Assert(!instr->m_func->isPostRegAlloc || !instr->m_func->IsTrueLeaf());
                 break;
             }
 #endif

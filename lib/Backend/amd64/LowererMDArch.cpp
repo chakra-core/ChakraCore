@@ -839,9 +839,6 @@ LowererMDArch::LowerCall(IR::Instr * callInstr, uint32 argCount)
     IR::Instr *retInstr = callInstr;
     callInstr->m_opcode = Js::OpCode::CALL;
 
-    // This is required here due to calls create during lowering
-    callInstr->m_func->SetHasCallsOnSelfAndParents();
-
     if (callInstr->GetDst())
     {
         IR::Opnd *       dstOpnd;
