@@ -1374,13 +1374,14 @@ EncoderMD::BaseAndOffsetFromSym(IR::SymOpnd *symOpnd, RegNum *pBaseReg, int32 *p
     {
         // SP points to the base of the argument area. Non-reg SP points directly to the locals.
         offset += (func->m_argSlotsForFunctionsCalled * MachRegInt);
-        if (func->HasInlinee())
+    }
+
+    if (func->HasInlinee())
+    {
+        Assert(func->HasInlinee());
+        if ((!stackSym->IsArgSlotSym() || stackSym->m_isOrphanedArg) && !stackSym->IsParamSlotSym())
         {
-            Assert(func->HasInlinee());
-            if ((!stackSym->IsArgSlotSym() || stackSym->m_isOrphanedArg) && !stackSym->IsParamSlotSym())
-            {
-                offset += func->GetInlineeArgumentStackSize();
-            }
+            offset += func->GetInlineeArgumentStackSize();
         }
     }
 

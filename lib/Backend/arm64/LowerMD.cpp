@@ -953,6 +953,13 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     UnwindInfoManager *unwindInfo = &this->m_func->m_unwindInfo;
     unwindInfo->Init(this->m_func);
 
+    if (this->m_func->HasInlinee())
+    {
+        // Allocate the inlined arg out stack in the locals. Allocate an additional slot so that
+        // we can unconditionally clear the first slot past the current frame.
+        this->m_func->m_localStackHeight += this->m_func->GetInlineeArgumentStackSize();
+    }
+
     //First calculate the local stack
     if (hasTry)
     {
@@ -961,13 +968,6 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         // but without a locals area, and both must be 16-byte aligned. So adding the locals area can't change
         // the alignment.
         this->m_func->m_localStackHeight = Math::Align<int32>(this->m_func->m_localStackHeight, MachStackAlignment);
-    }
-
-    if (this->m_func->HasInlinee())
-    {
-        // Allocate the inlined arg out stack in the locals. Allocate an additional slot so that
-        // we can unconditionally clear the first slot past the current frame.
-        this->m_func->m_localStackHeight += this->m_func->GetInlineeArgumentStackSize();
     }
 
     int32 stackAdjust = this->m_func->m_localStackHeight + (this->m_func->m_argSlotsForFunctionsCalled * MachPtr);
