@@ -155,4 +155,9 @@
       <files>asyncintrystackwalkbug.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>ehinlinearmbug.js</files>
+    </default>
+  </test>
 </regress-exe>
