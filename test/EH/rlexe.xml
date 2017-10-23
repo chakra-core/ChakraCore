@@ -169,5 +169,8 @@
     <default>
       <files>helperlabelbug2.js</files>
   </default>
+      <files>tryfinallyinlineswbug.js</files>
+      <compile-flags> -force:inline </compile-flags>
+    </default>
   </test>
 </regress-exe>

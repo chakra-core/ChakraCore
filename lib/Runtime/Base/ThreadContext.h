@@ -681,6 +681,7 @@ private:
     ThreadServiceWrapper* threadServiceWrapper;
     uint functionCount;
     uint sourceInfoCount;
+    bool isInlineeCleared;
     void * tryCatchFrameAddr;
     enum RedeferralState
     {
@@ -1259,6 +1260,8 @@ public:
 
     void * GetTryCatchFrameAddr() { return this->tryCatchFrameAddr; }
     void SetTryCatchFrameAddr(void * frameAddr) { this->tryCatchFrameAddr = frameAddr; }
+    bool GetCurrentTryCatchWalkedAndCleared() { return this->isInlineeCleared; }
+    void SetCurrentTryCatchWalkedAndCleared(bool isCleared) { this->isInlineeCleared = isCleared; }
 
     template <bool leaveForHost>
     void LeaveScriptStart(void *);
