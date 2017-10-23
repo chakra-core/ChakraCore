@@ -7723,7 +7723,6 @@ LowererMD::EmitInt64toFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr)
     LoadInt64HelperArgument(instr, srcOpnd);
 
     IR::Instr* callinstr = IR::Instr::New(Js::OpCode::CALL, dst, this->m_func);
-    this->m_func->SetHasCallsOnSelfAndParents();
     instr->InsertBefore(callinstr);
     CompileAssert(sizeof(IRType) == 1);
     const uint16 fromToType = dst->GetType() | (srcOpnd->GetType() << 8);
