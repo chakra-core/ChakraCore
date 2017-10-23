@@ -50,7 +50,7 @@ namespace Js
     {
         if (JavascriptFunction::Is(var))
         {
-            JavascriptFunction* obj = JavascriptFunction::FromVar(var);
+            JavascriptFunction* obj = JavascriptFunction::UnsafeFromVar(var);
 
             return VirtualTableInfo<JavascriptGeneratorFunction>::HasVirtualTable(obj)
                 || VirtualTableInfo<CrossSiteObject<JavascriptGeneratorFunction>>::HasVirtualTable(obj);
@@ -61,6 +61,13 @@ namespace Js
 
     JavascriptGeneratorFunction* JavascriptGeneratorFunction::FromVar(Var var)
     {
+        AssertOrFailFast(JavascriptGeneratorFunction::Is(var) || JavascriptAsyncFunction::Is(var));
+
+        return static_cast<JavascriptGeneratorFunction*>(var);
+    }
+
+    JavascriptGeneratorFunction* JavascriptGeneratorFunction::UnsafeFromVar(Var var)
+    {
         Assert(JavascriptGeneratorFunction::Is(var) || JavascriptAsyncFunction::Is(var));
 
         return static_cast<JavascriptGeneratorFunction*>(var);
@@ -70,7 +77,7 @@ namespace Js
     {
         if (JavascriptFunction::Is(var))
         {
-            JavascriptFunction* obj = JavascriptFunction::FromVar(var);
+            JavascriptFunction* obj = JavascriptFunction::UnsafeFromVar(var);
 
             return VirtualTableInfo<JavascriptAsyncFunction>::HasVirtualTable(obj)
                 || VirtualTableInfo<CrossSiteObject<JavascriptAsyncFunction>>::HasVirtualTable(obj);
@@ -80,6 +87,13 @@ namespace Js
     }
 
     JavascriptAsyncFunction* JavascriptAsyncFunction::FromVar(Var var)
+    {
+        AssertOrFailFast(JavascriptAsyncFunction::Is(var));
+
+        return static_cast<JavascriptAsyncFunction*>(var);
+    }
+
+    JavascriptAsyncFunction* JavascriptAsyncFunction::UnsafeFromVar(Var var)
     {
         Assert(JavascriptAsyncFunction::Is(var));
 

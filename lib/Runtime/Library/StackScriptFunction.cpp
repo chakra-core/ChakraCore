@@ -65,6 +65,14 @@ namespace Js
     StackScriptFunction *
     StackScriptFunction::FromVar(Var var)
     {
+        AssertOrFailFast(ScriptFunction::Is(var));
+        Assert(ThreadContext::IsOnStack(var));
+        return static_cast<StackScriptFunction *>(var);
+    }
+
+    StackScriptFunction *
+    StackScriptFunction::UnsafeFromVar(Var var)
+    {
         Assert(ScriptFunction::Is(var));
         Assert(ThreadContext::IsOnStack(var));
         return static_cast<StackScriptFunction *>(var);

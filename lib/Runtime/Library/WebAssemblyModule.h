@@ -46,6 +46,7 @@ public:
 
     static bool Is(Var aValue);
     static WebAssemblyModule * FromVar(Var aValue);
+    static WebAssemblyModule * UnsafeFromVar(Var aValue);
 
     static WebAssemblyModule * CreateModule(
         ScriptContext* scriptContext,

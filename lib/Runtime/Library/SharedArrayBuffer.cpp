@@ -232,9 +232,16 @@ namespace Js
 
     SharedArrayBuffer* SharedArrayBuffer::FromVar(Var aValue)
     {
-        AssertMsg(Is(aValue), "var must be an SharedArrayBuffer");
+        AssertOrFailFastMsg(Is(aValue), "var must be an SharedArrayBuffer");
 
         return static_cast<SharedArrayBuffer *>(RecyclableObject::FromVar(aValue));
+    }
+
+    SharedArrayBuffer* SharedArrayBuffer::UnsafeFromVar(Var aValue)
+    {
+        AssertMsg(Is(aValue), "var must be an SharedArrayBuffer");
+
+        return static_cast<SharedArrayBuffer *>(RecyclableObject::UnsafeFromVar(aValue));
     }
 
     bool  SharedArrayBuffer::Is(Var aValue)

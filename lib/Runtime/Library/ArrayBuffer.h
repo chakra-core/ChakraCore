@@ -82,6 +82,7 @@ namespace Js
 
         static bool Is(Var value);
         static ArrayBufferBase* FromVar(Var value);
+        static ArrayBufferBase* UnsafeFromVar(Var value);
         static int GetIsDetachedOffset() { return offsetof(ArrayBufferBase, isDetached); }
 
     protected:
@@ -152,6 +153,7 @@ namespace Js
         static bool Is(Var aValue);
         static ArrayBuffer* NewFromDetachedState(DetachedStateBase* state, JavascriptLibrary *library);
         static ArrayBuffer* FromVar(Var aValue);
+        static ArrayBuffer* UnsafeFromVar(Var aValue);
 
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;

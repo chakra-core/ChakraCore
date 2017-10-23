@@ -24,6 +24,7 @@ namespace Js
 
         double GetTime() { return m_date.GetMilliSeconds(); }
         static JavascriptDate* FromVar(Var aValue);
+        static JavascriptDate* UnsafeFromVar(Var aValue);
 
         class EntryInfo
         {

@@ -78,7 +78,7 @@ namespace Js
 
     JavascriptSIMDObject* JavascriptSIMDObject::FromVar(Var aValue)
     {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptSIMD'");
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptSIMD'");
 
         return static_cast<JavascriptSIMDObject *>(RecyclableObject::FromVar(aValue));
     }

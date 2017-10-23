@@ -59,8 +59,14 @@ namespace Js
 
     ThrowErrorObject* ThrowErrorObject::FromVar(Var aValue)
     {
-        Assert(Is(aValue));
+        AssertOrFailFast(Is(aValue));
         return static_cast<ThrowErrorObject*>(RecyclableObject::FromVar(aValue));
+    }
+
+    ThrowErrorObject* ThrowErrorObject::UnsafeFromVar(Var aValue)
+    {
+        Assert(Is(aValue));
+        return static_cast<ThrowErrorObject*>(RecyclableObject::UnsafeFromVar(aValue));
     }
 
     RecyclableObject* ThrowErrorObject::CreateThrowErrorObject(CreateErrorFunc createError, ScriptContext* scriptContext, int32 hCode, PCWSTR varName)

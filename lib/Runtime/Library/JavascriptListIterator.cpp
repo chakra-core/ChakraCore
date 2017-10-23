@@ -23,10 +23,18 @@ namespace Js
 
     JavascriptListIterator* JavascriptListIterator::FromVar(Var aValue)
     {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptListIterator'");
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptListIterator'");
 
         return static_cast<JavascriptListIterator *>(RecyclableObject::FromVar(aValue));
     }
+
+    JavascriptListIterator* JavascriptListIterator::UnsafeFromVar(Var aValue)
+    {
+        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptListIterator'");
+
+        return static_cast<JavascriptListIterator *>(RecyclableObject::UnsafeFromVar(aValue));
+    }
+
 
     Var JavascriptListIterator::EntryNext(RecyclableObject* function, CallInfo callInfo, ...)
     {

@@ -49,6 +49,7 @@ public:
 
     static bool Is(Js::Var value);
     static JsrtExternalObject * FromVar(Js::Var value);
+    static JsrtExternalObject * UnsafeFromVar(Js::Var value);
     static JsrtExternalObject * Create(void *data, JsFinalizeCallback finalizeCallback, Js::ScriptContext *scriptContext);
 
     JsrtExternalType * GetExternalType() const { return (JsrtExternalType *)this->GetType(); }

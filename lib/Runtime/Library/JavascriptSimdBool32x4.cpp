@@ -36,7 +36,7 @@ namespace Js
     JavascriptSIMDBool32x4* JavascriptSIMDBool32x4::FromVar(Var aValue)
     {
         Assert(aValue);
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptSIMDBool32x4'");
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptSIMDBool32x4'");
 
         return reinterpret_cast<JavascriptSIMDBool32x4 *>(aValue);
     }

@@ -45,6 +45,12 @@ namespace Js
 
         static inline DataView* FromVar(Var aValue)
         {
+            AssertOrFailFast(DataView::Is(aValue));
+            return static_cast<DataView*>(aValue);
+        }
+
+        static inline DataView* UnsafeFromVar(Var aValue)
+        {
             Assert(DataView::Is(aValue));
             return static_cast<DataView*>(aValue);
         }

@@ -44,9 +44,16 @@ namespace Js
 
     JavascriptStringObject* JavascriptStringObject::FromVar(Var aValue)
     {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptString'");
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptString'");
 
         return static_cast<JavascriptStringObject *>(RecyclableObject::FromVar(aValue));
+    }
+
+    JavascriptStringObject* JavascriptStringObject::UnsafeFromVar(Var aValue)
+    {
+        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptString'");
+
+        return static_cast<JavascriptStringObject *>(RecyclableObject::UnsafeFromVar(aValue));
     }
 
     void JavascriptStringObject::Initialize(JavascriptString* value)

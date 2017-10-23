@@ -29,6 +29,7 @@ namespace Js
         JavascriptStringObject(JavascriptString* value, DynamicType * type);
         static bool Is(Var aValue);
         static JavascriptStringObject* FromVar(Var aValue);
+        static JavascriptStringObject* UnsafeFromVar(Var aValue);
 
         void Initialize(JavascriptString* value);
         JavascriptString* Unwrap() { return InternalUnwrap(); }

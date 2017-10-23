@@ -27,6 +27,7 @@ namespace Js
 
         static bool Is(Var aValue);
         static JavascriptVariantDate* FromVar(Var aValue);
+        static JavascriptVariantDate* UnsafeFromVar(Var aValue);
 
         // Used for making function calls to external objects requiring string params.
         JavascriptString* GetValueString(ScriptContext* scriptContext);

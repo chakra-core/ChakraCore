@@ -21,6 +21,7 @@ namespace Js
 
         static bool Is(Var aValue);
         static JavascriptWeakSet* FromVar(Var aValue);
+        static JavascriptWeakSet* UnsafeFromVar(Var aValue);
 
         void Add(RecyclableObject* key);
         bool Delete(RecyclableObject* key);

@@ -18,7 +18,7 @@ namespace Js
     {
         if (JavascriptFunction::Is(func))
         {
-            JavascriptFunction *function = JavascriptFunction::FromVar(func);
+            JavascriptFunction *function = JavascriptFunction::UnsafeFromVar(func);
             return ScriptFunction::Test(function) || JavascriptGeneratorFunction::Test(function)
                 || JavascriptAsyncFunction::Test(function);
         }
@@ -27,6 +27,12 @@ namespace Js
     }
 
     ScriptFunctionBase * ScriptFunctionBase::FromVar(Var func)
+    {
+        AssertOrFailFast(ScriptFunctionBase::Is(func));
+        return reinterpret_cast<ScriptFunctionBase *>(func);
+    }
+
+    ScriptFunctionBase * ScriptFunctionBase::UnsafeFromVar(Var func)
     {
         Assert(ScriptFunctionBase::Is(func));
         return reinterpret_cast<ScriptFunctionBase *>(func);
@@ -155,10 +161,16 @@ namespace Js
 
     bool ScriptFunction::Is(Var func)
     {
-        return JavascriptFunction::Is(func) && JavascriptFunction::FromVar(func)->GetFunctionInfo()->HasBody();
+        return JavascriptFunction::Is(func) && JavascriptFunction::UnsafeFromVar(func)->GetFunctionInfo()->HasBody();
     }
 
     ScriptFunction * ScriptFunction::FromVar(Var func)
+    {
+        AssertOrFailFast(ScriptFunction::Is(func));
+        return reinterpret_cast<ScriptFunction *>(func);
+    }
+
+    ScriptFunction * ScriptFunction::UnsafeFromVar(Var func)
     {
         Assert(ScriptFunction::Is(func));
         return reinterpret_cast<ScriptFunction *>(func);
@@ -653,10 +665,16 @@ namespace Js
 
     bool AsmJsScriptFunction::Is(Var func)
     {
-        return ScriptFunction::Is(func) && ScriptFunction::FromVar(func)->IsAsmJsFunction();
+        return ScriptFunction::Is(func) && ScriptFunction::UnsafeFromVar(func)->IsAsmJsFunction();
     }
 
     AsmJsScriptFunction* AsmJsScriptFunction::FromVar(Var func)
+    {
+        AssertOrFailFast(AsmJsScriptFunction::Is(func));
+        return reinterpret_cast<AsmJsScriptFunction *>(func);
+    }
+
+    AsmJsScriptFunction* AsmJsScriptFunction::UnsafeFromVar(Var func)
     {
         Assert(AsmJsScriptFunction::Is(func));
         return reinterpret_cast<AsmJsScriptFunction *>(func);
@@ -704,10 +722,16 @@ namespace Js
 
     bool WasmScriptFunction::Is(Var func)
     {
-        return ScriptFunction::Is(func) && ScriptFunction::FromVar(func)->IsWasmFunction();
+        return ScriptFunction::Is(func) && ScriptFunction::UnsafeFromVar(func)->IsWasmFunction();
     }
 
     WasmScriptFunction* WasmScriptFunction::FromVar(Var func)
+    {
+        AssertOrFailFast(WasmScriptFunction::Is(func));
+        return reinterpret_cast<WasmScriptFunction *>(func);
+    }
+
+    WasmScriptFunction* WasmScriptFunction::UnsafeFromVar(Var func)
     {
         Assert(WasmScriptFunction::Is(func));
         return reinterpret_cast<WasmScriptFunction *>(func);
@@ -729,10 +753,16 @@ namespace Js
 
     bool ScriptFunctionWithInlineCache::Is(Var func)
     {
-        return ScriptFunction::Is(func) && ScriptFunction::FromVar(func)->GetHasInlineCaches();
+        return ScriptFunction::Is(func) && ScriptFunction::UnsafeFromVar(func)->GetHasInlineCaches();
     }
 
     ScriptFunctionWithInlineCache* ScriptFunctionWithInlineCache::FromVar(Var func)
+    {
+        AssertOrFailFast(ScriptFunctionWithInlineCache::Is(func));
+        return reinterpret_cast<ScriptFunctionWithInlineCache *>(func);
+    }
+
+    ScriptFunctionWithInlineCache* ScriptFunctionWithInlineCache::UnsafeFromVar(Var func)
     {
         Assert(ScriptFunctionWithInlineCache::Is(func));
         return reinterpret_cast<ScriptFunctionWithInlineCache *>(func);

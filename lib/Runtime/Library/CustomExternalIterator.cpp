@@ -148,8 +148,14 @@ namespace Js
 
     CustomExternalIterator* CustomExternalIterator::FromVar(Var aValue)
     {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'ExternalIterator'");
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'ExternalIterator'");
         return static_cast<CustomExternalIterator *>(RecyclableObject::FromVar(aValue));
+    }
+
+    CustomExternalIterator* CustomExternalIterator::UnsafeFromVar(Var aValue)
+    {
+        AssertMsg(Is(aValue), "Ensure var is actually a 'ExternalIterator'");
+        return static_cast<CustomExternalIterator *>(RecyclableObject::UnsafeFromVar(aValue));
     }
 
     Var CustomExternalIterator::CreateNextFunction(JavascriptLibrary *library, JavascriptTypeId typeId)

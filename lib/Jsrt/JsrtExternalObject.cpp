@@ -57,6 +57,12 @@ bool JsrtExternalObject::Is(Js::Var value)
 
 JsrtExternalObject * JsrtExternalObject::FromVar(Js::Var value)
 {
+    AssertOrFailFast(Is(value));
+    return static_cast<JsrtExternalObject *>(value);
+}
+
+JsrtExternalObject * JsrtExternalObject::UnsafeFromVar(Js::Var value)
+{
     Assert(Is(value));
     return static_cast<JsrtExternalObject *>(value);
 }

@@ -21,6 +21,7 @@ namespace Js
 
         static bool Is(Var aValue);
         static JavascriptStringIterator* FromVar(Var aValue);
+        static JavascriptStringIterator* UnsafeFromVar(Var aValue);
 
         class EntryInfo
         {

@@ -777,7 +777,7 @@ namespace Js
                 {
                     Var group = getGroup(captureIndex, nonMatchValue);
                     if (JavascriptString::Is(group))
-                        concatenated.Append(JavascriptString::FromVar(group));
+                        concatenated.Append(JavascriptString::UnsafeFromVar(group));
                     else if (group != nonMatchValue)
                         concatenated.Append(replace, substitutionOffset, offset - substitutionOffset);
                 }
@@ -1583,7 +1583,7 @@ namespace Js
             speciesConstructor,
             Js::Arguments(callInfo, args),
             scriptContext);
-        RecyclableObject* splitter = RecyclableObject::FromVar(regEx);
+        RecyclableObject* splitter = RecyclableObject::UnsafeFromVar(regEx);
 
         JavascriptArray* arrayResult = scriptContext->GetLibrary()->CreateArray();
 
@@ -2308,7 +2308,7 @@ namespace Js
         // an Object or Null. RegExp algorithms have special conditions for when the result is Null,
         // so we can directly cast to RecyclableObject.
         Assert(!JavascriptOperators::IsNull(result));
-        return RecyclableObject::FromVar(result);
+        return RecyclableObject::UnsafeFromVar(result);
     }
 
     JavascriptString* RegexHelper::GetMatchStrFromResult(RecyclableObject* result, ScriptContext* scriptContext)

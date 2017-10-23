@@ -13,9 +13,16 @@ namespace Js
 
     JavascriptVariantDate* JavascriptVariantDate::FromVar(Js::Var aValue)
     {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptVariantDate'");
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptVariantDate'");
 
         return static_cast<JavascriptVariantDate *>(RecyclableObject::FromVar(aValue));
+    }
+
+    JavascriptVariantDate* JavascriptVariantDate::UnsafeFromVar(Js::Var aValue)
+    {
+        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptVariantDate'");
+
+        return static_cast<JavascriptVariantDate *>(RecyclableObject::UnsafeFromVar(aValue));
     }
 
     Var JavascriptVariantDate::GetTypeOfString(ScriptContext* requestContext)

@@ -250,6 +250,7 @@ namespace Js
         const char16 * GetSz() override sealed;
         static bool Is(Var var);
         static ConcatStringMulti * FromVar(Var value);
+        static ConcatStringMulti * UnsafeFromVar(Var value);
         static size_t GetAllocSize(uint slotCount);
         void SetItem(_In_range_(0, slotCount - 1) uint index, JavascriptString* value);
 

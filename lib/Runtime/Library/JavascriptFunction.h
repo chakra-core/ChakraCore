@@ -107,6 +107,7 @@ namespace Js
 
         static bool Is(Var aValue);
         static JavascriptFunction* FromVar(Var aValue);
+        static JavascriptFunction* UnsafeFromVar(Var aValue);
         Var CallFunction(Arguments args);
         Var CallRootFunction(Arguments args, ScriptContext * scriptContext, bool inScript);
 #ifdef ASMJS_PLAT

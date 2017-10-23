@@ -18,6 +18,7 @@ namespace Js
             WithScopeObject(RecyclableObject *wrappedObject, StaticType * type) : RecyclableObject(type), wrappedObject(wrappedObject) {}
             static bool Is(Var aValue);
             static WithScopeObject* FromVar(Var value);
+            static WithScopeObject* UnsafeFromVar(Var value);
             RecyclableObject *GetWrappedObject() { return wrappedObject; }
             virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId) override;
             virtual BOOL HasOwnProperty(PropertyId propertyId) override;

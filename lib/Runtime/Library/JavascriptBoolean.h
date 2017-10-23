@@ -22,6 +22,7 @@ namespace Js
 
         static inline bool Is(Var aValue);
         static inline JavascriptBoolean* FromVar(Var aValue);
+        static inline JavascriptBoolean* UnsafeFromVar(Var aValue);
         static Var ToVar(BOOL fValue,ScriptContext* scriptContext);
 
         class EntryInfo

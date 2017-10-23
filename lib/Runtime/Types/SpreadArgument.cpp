@@ -10,7 +10,14 @@ namespace Js
     {
         return JavascriptOperators::GetTypeId(aValue) == TypeIds_SpreadArgument;
     }
+
     SpreadArgument* SpreadArgument::FromVar(Var aValue)
+    {
+        AssertOrFailFast(SpreadArgument::Is(aValue));
+        return static_cast<SpreadArgument*>(aValue);
+    }
+
+    SpreadArgument* SpreadArgument::UnsafeFromVar(Var aValue)
     {
         Assert(SpreadArgument::Is(aValue));
         return static_cast<SpreadArgument*>(aValue);
@@ -51,7 +58,7 @@ namespace Js
             }
             else if (TypedArrayBase::Is(iterator))
             {
-                TypedArrayBase *typedArray = TypedArrayBase::FromVar(iterator);
+                TypedArrayBase *typedArray = TypedArrayBase::UnsafeFromVar(iterator);
 
                 if (typedArray->IsDetachedBuffer())
                 {

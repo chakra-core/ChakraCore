@@ -46,7 +46,7 @@ namespace Js
     /* static */
     bool PropertyString::Is(Var var)
     {
-        return RecyclableObject::Is(var) && PropertyString::Is(RecyclableObject::FromVar(var));
+        return RecyclableObject::Is(var) && PropertyString::Is(RecyclableObject::UnsafeFromVar(var));
     }
 
     void const * PropertyString::GetOriginalStringReference()

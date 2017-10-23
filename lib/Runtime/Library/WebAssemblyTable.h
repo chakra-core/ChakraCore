@@ -32,6 +32,7 @@ namespace Js
 
         static bool Is(Var aValue);
         static WebAssemblyTable * FromVar(Var aValue);
+        static WebAssemblyTable * UnsafeFromVar(Var aValue);
 
         static WebAssemblyTable * Create(uint32 initial, uint32 maximum, ScriptContext * scriptContext);
 

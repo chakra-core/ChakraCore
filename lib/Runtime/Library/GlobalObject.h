@@ -123,6 +123,7 @@ namespace Js
 
         static bool Is(Var aValue);
         static GlobalObject* FromVar(Var aValue);
+        static GlobalObject* UnsafeFromVar(Var aValue);
 
         typedef ScriptFunction* (*EvalHelperType)(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, uint32 grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode);
         FieldNoBarrier(EvalHelperType) EvalHelper;

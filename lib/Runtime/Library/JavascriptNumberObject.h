@@ -20,6 +20,7 @@ namespace Js
         JavascriptNumberObject(Var value, DynamicType * type);
         static bool Is(Var aValue);
         static JavascriptNumberObject* FromVar(Var aValue);
+        static JavascriptNumberObject* UnsafeFromVar(Var aValue);
         double GetValue() const;
         void SetValue(Var value);
         Var Unwrap() const;

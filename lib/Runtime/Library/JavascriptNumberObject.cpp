@@ -27,9 +27,16 @@ namespace Js
 
     JavascriptNumberObject* JavascriptNumberObject::FromVar(Var aValue)
     {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptNumber'");
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptNumber'");
 
         return static_cast<JavascriptNumberObject *>(RecyclableObject::FromVar(aValue));
+    }
+
+    JavascriptNumberObject* JavascriptNumberObject::UnsafeFromVar(Var aValue)
+    {
+        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptNumber'");
+
+        return static_cast<JavascriptNumberObject *>(RecyclableObject::UnsafeFromVar(aValue));
     }
 
     Var JavascriptNumberObject::Unwrap() const
