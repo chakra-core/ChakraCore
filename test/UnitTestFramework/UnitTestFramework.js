@@ -36,6 +36,7 @@
 //     assert.throws(function, SyntaxError, "function should throw (in this case, specifically a SyntaxError with fooMessage", "fooMessage");
 //     assert.doesNotThrow(function, "this function should not throw anything");
 //     assert.fail("error");
+//     assert.matches(/regex/, actual, "actual should match regex")
 //
 //   Some useful helpers:
 //     helpers.writeln("works in both", "console", "and", "browser);
@@ -507,6 +508,16 @@ var assert = function assert() {
         fail: function fail(message) {
             ///<summary>Can be used to fail the test.</summary>
             throwMessage(message);
+        },
+
+        matches: function matches(expected, actual, message) {
+            if (!(expected instanceof RegExp)) {
+                throwMessage(addMessage("assert.matches failed: did not provide a valid regex", message));
+            }
+
+            if (!expected.test(actual)) {
+                throwMessage(addMessage("assert.matches failed", message));
+            }
         }
     }
 }(); // assert.

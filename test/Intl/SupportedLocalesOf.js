@@ -5,35 +5,27 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
-var tests = [
+const ctors = [Intl.Collator, Intl.NumberFormat, Intl.DateTimeFormat];
+const tests = [
     {
-        name: "Test Correct Errors",
+        name: "supportedLocalesOf throws correct errors",
         body: function () {
-            assert.throws(function () { new Intl.Collator.supportedLocalesOf(); }, TypeError, "", "Function 'Intl.Collator.supportedLocalesOf' is not a constructor");
-            assert.throws(function () { new Intl.NumberFormat.supportedLocalesOf(); }, TypeError, "", "Function 'Intl.NumberFormat.supportedLocalesOf' is not a constructor");
-            assert.throws(function () { new Intl.DateTimeFormat.supportedLocalesOf(); }, TypeError, "", "Function 'Intl.DateTimeFormat.supportedLocalesOf' is not a constructor");
-
             const rangeErrorMessage = "Option value 'incorrect' for 'localeMatcher' is outside of valid range. Expected: ['best fit', 'lookup']";
-            assert.throws(function () { Intl.Collator.supportedLocalesOf(["en-US"], { localeMatcher: "incorrect" }) }, RangeError, "", rangeErrorMessage);
-            assert.throws(function () { Intl.NumberFormat.supportedLocalesOf(["en-US"], { localeMatcher: "incorrect" }) }, RangeError, "", rangeErrorMessage);
-            assert.throws(function () { Intl.DateTimeFormat.supportedLocalesOf(["en-US"], { localeMatcher: "incorrect" }) }, RangeError, "", rangeErrorMessage);
+            const fakeLocales = { get length() { throw new Error("User-provided locale object throws"); } };
 
-            assert.throws(function () { Intl.Collator.supportedLocalesOf(null) }, TypeError, "", "Object expected");
-            assert.throws(function () { Intl.NumberFormat.supportedLocalesOf(null) }, TypeError, "", "Object expected");
-            assert.throws(function () { Intl.DateTimeFormat.supportedLocalesOf(null) }, TypeError, "", "Object expected");
+            function test(ctor) {
+                assert.throws(() => new ctor.supportedLocalesOf(), TypeError, "", `Function 'Intl.${ctor.name}.supportedLocalesOf' is not a constructor`);
+                assert.throws(() => ctor.supportedLocalesOf(["en-US"], { localeMatcher: "incorrect" }), RangeError, "", rangeErrorMessage);
+                assert.throws(() => ctor.supportedLocalesOf(null), TypeError, "", "Object expected");
+                assert.throws(() => ctor.supportedLocalesOf(fakeLocales), Error, "", "User-provided locale object throws");
+            }
 
-            assert.throws(function () {
-                var locales = { get length() { throw new Error("Intentional throw"); } };
-                Intl.Collator.supportedLocalesOf(locales);
-                console.log("Intentional throw didn't throw.");
-            }, Error, "", "Intentional throw");
+            ctors.forEach(test);
         }
     },
     {
-        name: "",
+        name: "supportedLocalesOf basic tests",
         body: function () {
-            const ctors = [Intl.Collator, Intl.NumberFormat, Intl.DateTimeFormat];
-
             function test(ctor) {
                 assert.areEqual(ctor.supportedLocalesOf(["en"]).toString(), "en");
                 assert.areEqual(ctor.supportedLocalesOf(["en"], { localeMatcher: "lookup" }).toString(), "en-US");
