@@ -69,6 +69,9 @@ namespace Js
         friend class JavascriptNativeArray; // for xplat offsetof field access
         friend class JavascriptOperators; // for ReplaceType
         friend class PathTypeHandlerBase; // for ReplaceType
+        friend class SimplePathTypeHandlerNoAttr;
+        friend class SimplePathTypeHandlerWithAttr;
+        friend class PathTypeHandlerNoAttr;
         friend class JavascriptLibrary;  // for ReplaceType
         friend class ScriptFunction; // for ReplaceType;
         friend class JSON::JSONParser; //for ReplaceType

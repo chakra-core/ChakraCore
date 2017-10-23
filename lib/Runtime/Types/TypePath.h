@@ -57,6 +57,9 @@ public:
     class TypePath
     {
         friend class PathTypeHandlerBase;
+        friend class SimplePathTypeHandlerWithAttr;
+        friend class PathTypeHandlerWithAttr;
+
     public:
         // This is the space between the end of the TypePath and the allocation granularity that can be used for assignments too.
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
