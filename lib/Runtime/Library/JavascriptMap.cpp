@@ -26,9 +26,16 @@ namespace Js
 
     JavascriptMap* JavascriptMap::FromVar(Var aValue)
     {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptMap'");
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptMap'");
 
         return static_cast<JavascriptMap *>(RecyclableObject::FromVar(aValue));
+    }
+
+    JavascriptMap* JavascriptMap::UnsafeFromVar(Var aValue)
+    {
+        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptMap'");
+
+        return static_cast<JavascriptMap *>(RecyclableObject::UnsafeFromVar(aValue));
     }
 
     JavascriptMap::MapDataList::Iterator JavascriptMap::GetIterator()

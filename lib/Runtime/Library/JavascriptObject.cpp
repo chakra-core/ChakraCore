@@ -267,7 +267,7 @@ namespace Js
         }
 
         // Set to new prototype
-        if (object->IsExternal() || (DynamicType::Is(object->GetTypeId()) && (DynamicObject::FromVar(object))->IsCrossSiteObject()))
+        if (object->IsExternal() || (DynamicType::Is(object->GetTypeId()) && (DynamicObject::UnsafeFromVar(object))->IsCrossSiteObject()))
         {
             CrossSite::ForceCrossSiteThunkOnPrototypeChain(newPrototype);
         }
@@ -409,7 +409,7 @@ namespace Js
         }
 
         // 3. Let O be ToObject(this value).
-        RecyclableObject *thisArgAsObject = RecyclableObject::FromVar(JavascriptOperators::ToObject(thisArg, scriptContext));
+        RecyclableObject *thisArgAsObject = RecyclableObject::UnsafeFromVar(JavascriptOperators::ToObject(thisArg, scriptContext));
 
         // 15. Let tag be ? Get(O, @@toStringTag).
         Var tag = JavascriptObject::GetToStringTagValue(thisArgAsObject, scriptContext);

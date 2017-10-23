@@ -29,6 +29,7 @@ namespace Js
 
         static bool Is(Var aValue);
         static WebAssemblyMemory * FromVar(Var aValue);
+        static WebAssemblyMemory * UnsafeFromVar(Var aValue);
 
         static WebAssemblyMemory * CreateMemoryObject(uint32 initial, uint32 maximum, ScriptContext * scriptContext);
 

@@ -27,9 +27,16 @@ namespace Js
 
     JavascriptArrayIterator* JavascriptArrayIterator::FromVar(Var aValue)
     {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptArrayIterator'");
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptArrayIterator'");
 
         return static_cast<JavascriptArrayIterator *>(RecyclableObject::FromVar(aValue));
+    }
+
+    JavascriptArrayIterator* JavascriptArrayIterator::UnsafeFromVar(Var aValue)
+    {
+        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptArrayIterator'");
+
+        return static_cast<JavascriptArrayIterator *>(RecyclableObject::UnsafeFromVar(aValue));
     }
 
     Var JavascriptArrayIterator::EntryNext(RecyclableObject* function, CallInfo callInfo, ...)
@@ -70,7 +77,7 @@ namespace Js
         }
         else if (TypedArrayBase::Is(iterable))
         {
-            typedArrayBase = TypedArrayBase::FromVar(iterable);
+            typedArrayBase = TypedArrayBase::UnsafeFromVar(iterable);
             if (typedArrayBase->IsDetachedBuffer())
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray);

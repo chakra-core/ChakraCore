@@ -17,6 +17,7 @@ namespace Js
     public:
         static bool Is(Var func);
         static ScriptFunctionBase * FromVar(Var func);
+        static ScriptFunctionBase * UnsafeFromVar(Var func);
 
         virtual Var  GetHomeObj() const = 0;
         virtual void SetHomeObj(Var homeObj) = 0;
@@ -47,6 +48,7 @@ namespace Js
         static bool Is(Var func);
         inline static BOOL Test(JavascriptFunction *func) { return func->GetFunctionInfo()->HasBody(); }
         static ScriptFunction * FromVar(Var func);
+        static ScriptFunction * UnsafeFromVar(Var func);
         static ScriptFunction * OP_NewScFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef);
 
         ProxyEntryPointInfo* GetEntryPointInfo() const;
@@ -127,6 +129,7 @@ namespace Js
 
         static bool Is(Var func);
         static AsmJsScriptFunction* FromVar(Var func);
+        static AsmJsScriptFunction* UnsafeFromVar(Var func);
         static AsmJsScriptFunction * OP_NewAsmJsFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef);
 
         virtual bool IsAsmJsFunction() const override { return true; }
@@ -153,6 +156,7 @@ namespace Js
 
         static bool Is(Var func);
         static WasmScriptFunction* FromVar(Var func);
+        static WasmScriptFunction* UnsafeFromVar(Var func);
 
         void SetSignature(Wasm::WasmSignature * sig) { m_signature = sig; }
         Wasm::WasmSignature * GetSignature() const { return m_signature; }
@@ -204,6 +208,7 @@ namespace Js
         ScriptFunctionWithInlineCache(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType);
         static bool Is(Var func);
         static ScriptFunctionWithInlineCache * FromVar(Var func);
+        static ScriptFunctionWithInlineCache * UnsafeFromVar(Var func);
         void CreateInlineCache();
         void AllocateInlineCache();
         void ClearInlineCacheOnFunctionObject();

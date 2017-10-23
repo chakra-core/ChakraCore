@@ -36,7 +36,7 @@ namespace Js
     /* static */
     bool LiteralStringWithPropertyStringPtr::Is(Var var)
     {
-        return RecyclableObject::Is(var) && LiteralStringWithPropertyStringPtr::Is(RecyclableObject::FromVar(var));
+        return RecyclableObject::Is(var) && LiteralStringWithPropertyStringPtr::Is(RecyclableObject::UnsafeFromVar(var));
     }
 
     /////////////////////// ConcatStringBase //////////////////////////
@@ -362,6 +362,13 @@ namespace Js
 
     ConcatStringMulti *
     ConcatStringMulti::FromVar(Var var)
+    {
+        AssertOrFailFast(ConcatStringMulti::Is(var));
+        return static_cast<ConcatStringMulti *>(var);
+    }
+
+    ConcatStringMulti *
+    ConcatStringMulti::UnsafeFromVar(Var var)
     {
         Assert(ConcatStringMulti::Is(var));
         return static_cast<ConcatStringMulti *>(var);

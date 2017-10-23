@@ -19,9 +19,16 @@ namespace Js
 
     JavascriptWeakMap* JavascriptWeakMap::FromVar(Var aValue)
     {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptWeakMap'");
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptWeakMap'");
 
         return static_cast<JavascriptWeakMap *>(RecyclableObject::FromVar(aValue));
+    }
+
+    JavascriptWeakMap* JavascriptWeakMap::UnsafeFromVar(Var aValue)
+    {
+        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptWeakMap'");
+
+        return static_cast<JavascriptWeakMap *>(RecyclableObject::UnsafeFromVar(aValue));
     }
 
     JavascriptWeakMap::WeakMapKeyMap* JavascriptWeakMap::GetWeakMapKeyMapFromKey(RecyclableObject* key) const

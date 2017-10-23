@@ -22,7 +22,7 @@ namespace Js
 #endif
         else
         {
-            auto typeId = RecyclableObject::FromVar(aValue)->GetTypeId();
+            auto typeId = RecyclableObject::UnsafeFromVar(aValue)->GetTypeId();
 #if DBG
             auto isExternal = RecyclableObject::FromVar(aValue)->CanHaveInterceptors();
             AssertMsg(typeId < TypeIds_Limit || isExternal, "GetTypeId aValue has invalid TypeId");

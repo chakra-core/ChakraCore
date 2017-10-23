@@ -23,6 +23,7 @@ namespace Js
 
         inline static bool Is(Var var);
         inline static JavascriptPromiseResolveOrRejectFunction* FromVar(Var var);
+        inline static JavascriptPromiseResolveOrRejectFunction* UnsafeFromVar(Var var);
 
         JavascriptPromise* GetPromise();
         bool IsRejectFunction();
@@ -54,6 +55,7 @@ namespace Js
 
         inline static bool Is(Var var);
         inline static JavascriptPromiseAsyncSpawnExecutorFunction* FromVar(Var var);
+        inline static JavascriptPromiseAsyncSpawnExecutorFunction* UnsafeFromVar(Var var);
 
         JavascriptGenerator* GetGenerator();
         Var GetTarget();
@@ -82,6 +84,7 @@ namespace Js
 
         inline static bool Is(Var var);
         inline static JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* FromVar(Var var);
+        inline static JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* UnsafeFromVar(Var var);
 
         JavascriptGenerator* GetGenerator();
         Var GetReject();
@@ -116,6 +119,7 @@ namespace Js
 
         inline static bool Is(Var var);
         inline static JavascriptPromiseCapabilitiesExecutorFunction* FromVar(Var var);
+        inline static JavascriptPromiseCapabilitiesExecutorFunction* UnsafeFromVar(Var var);
 
         JavascriptPromiseCapability* GetCapability();
 
@@ -146,7 +150,7 @@ namespace Js
         {
             if (JavascriptFunction::Is(var))
             {
-                JavascriptFunction* obj = JavascriptFunction::FromVar(var);
+                JavascriptFunction* obj = JavascriptFunction::UnsafeFromVar(var);
 
                 return VirtualTableInfo<JavascriptPromiseResolveThenableTaskFunction>::HasVirtualTable(obj)
                     || VirtualTableInfo<CrossSiteObject<JavascriptPromiseResolveThenableTaskFunction>>::HasVirtualTable(obj);
@@ -157,7 +161,7 @@ namespace Js
 
         inline static JavascriptPromiseResolveThenableTaskFunction* FromVar(Var var)
         {
-            Assert(JavascriptPromiseResolveThenableTaskFunction::Is(var));
+            AssertOrFailFast(JavascriptPromiseResolveThenableTaskFunction::Is(var));
 
             return static_cast<JavascriptPromiseResolveThenableTaskFunction*>(var);
         }
@@ -196,7 +200,7 @@ namespace Js
         {
             if (JavascriptFunction::Is(var))
             {
-                JavascriptFunction* obj = JavascriptFunction::FromVar(var);
+                JavascriptFunction* obj = JavascriptFunction::UnsafeFromVar(var);
 
                 return VirtualTableInfo<JavascriptPromiseReactionTaskFunction>::HasVirtualTable(obj)
                     || VirtualTableInfo<CrossSiteObject<JavascriptPromiseReactionTaskFunction>>::HasVirtualTable(obj);
@@ -207,7 +211,7 @@ namespace Js
 
         inline static JavascriptPromiseReactionTaskFunction* FromVar(Var var)
         {
-            Assert(JavascriptPromiseReactionTaskFunction::Is(var));
+            AssertOrFailFast(JavascriptPromiseReactionTaskFunction::Is(var));
 
             return static_cast<JavascriptPromiseReactionTaskFunction*>(var);
         }
@@ -245,6 +249,7 @@ namespace Js
 
         inline static bool Is(Var var);
         inline static JavascriptPromiseAllResolveElementFunction* FromVar(Var var);
+        inline static JavascriptPromiseAllResolveElementFunction* UnsafeFromVar(Var var);
 
         JavascriptPromiseCapability* GetCapabilities();
         uint32 GetIndex();
@@ -421,6 +426,7 @@ namespace Js
 
         static bool Is(Var aValue);
         static JavascriptPromise* FromVar(Js::Var aValue);
+        static JavascriptPromise* UnsafeFromVar(Js::Var aValue);
 
         static Var CreateRejectedPromise(Var resolution, ScriptContext* scriptContext, Var promiseConstructor = nullptr);
         static Var CreateResolvedPromise(Var resolution, ScriptContext* scriptContext, Var promiseConstructor = nullptr);

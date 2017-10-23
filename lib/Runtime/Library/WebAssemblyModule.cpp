@@ -56,6 +56,14 @@ WebAssemblyModule::Is(Var value)
 WebAssemblyModule *
 WebAssemblyModule::FromVar(Var value)
 {
+    AssertOrFailFast(WebAssemblyModule::Is(value));
+    return static_cast<WebAssemblyModule*>(value);
+}
+
+/* static */
+WebAssemblyModule *
+WebAssemblyModule::UnsafeFromVar(Var value)
+{
     Assert(WebAssemblyModule::Is(value));
     return static_cast<WebAssemblyModule*>(value);
 }

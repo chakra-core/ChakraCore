@@ -35,7 +35,7 @@ namespace Js
         if (CheckLocal && type == u.local.type)
         {
             Assert(propertyObject->GetScriptContext() == requestContext); // we never cache a type from another script context
-            *propertyValue = DynamicObject::FromVar(propertyObject)->GetInlineSlot(u.local.slotIndex);
+            *propertyValue = DynamicObject::UnsafeFromVar(propertyObject)->GetInlineSlot(u.local.slotIndex);
             Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
                 (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
             if (ReturnOperationInfo)
@@ -49,7 +49,7 @@ namespace Js
         if (CheckLocal && TypeWithAuxSlotTag(type) == u.local.type)
         {
             Assert(propertyObject->GetScriptContext() == requestContext); // we never cache a type from another script context
-            *propertyValue = DynamicObject::FromVar(propertyObject)->GetAuxSlot(u.local.slotIndex);
+            *propertyValue = DynamicObject::UnsafeFromVar(propertyObject)->GetAuxSlot(u.local.slotIndex);
             Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
                 (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
             if (ReturnOperationInfo)
@@ -93,7 +93,7 @@ namespace Js
             Assert(propertyObject->GetScriptContext() == requestContext); // we never cache a type from another script context
             Assert(u.accessor.flags & InlineCacheGetterFlag);
 
-            RecyclableObject *const function = RecyclableObject::FromVar(u.accessor.object->GetInlineSlot(u.accessor.slotIndex));
+            RecyclableObject *const function = RecyclableObject::UnsafeFromVar(u.accessor.object->GetInlineSlot(u.accessor.slotIndex));
 
             *propertyValue = JavascriptOperators::CallGetter(function, instance, requestContext);
 
@@ -114,7 +114,7 @@ namespace Js
             Assert(propertyObject->GetScriptContext() == requestContext); // we never cache a type from another script context
             Assert(u.accessor.flags & InlineCacheGetterFlag);
 
-            RecyclableObject *const function = RecyclableObject::FromVar(u.accessor.object->GetAuxSlot(u.accessor.slotIndex));
+            RecyclableObject *const function = RecyclableObject::UnsafeFromVar(u.accessor.object->GetAuxSlot(u.accessor.slotIndex));
 
             *propertyValue = JavascriptOperators::CallGetter(function, instance, requestContext);
 
@@ -239,7 +239,7 @@ namespace Js
             Assert(isRoot || object->GetPropertyIndex(propertyId) == DynamicObject::FromVar(object)->GetTypeHandler()->InlineOrAuxSlotIndexToPropertyIndex(u.local.slotIndex, true));
             Assert(!isRoot || RootObjectBase::FromVar(object)->GetRootPropertyIndex(propertyId) == DynamicObject::FromVar(object)->GetTypeHandler()->InlineOrAuxSlotIndexToPropertyIndex(u.local.slotIndex, true));
             Assert(object->CanStorePropertyValueDirectly(propertyId, isRoot));
-            DynamicObject::FromVar(object)->SetInlineSlot(SetSlotArgumentsRoot(propertyId, isRoot, u.local.slotIndex, propertyValue));
+            DynamicObject::UnsafeFromVar(object)->SetInlineSlot(SetSlotArgumentsRoot(propertyId, isRoot, u.local.slotIndex, propertyValue));
             if (ReturnOperationInfo)
             {
                 operationInfo->cacheType = CacheType_Local;
@@ -255,7 +255,7 @@ namespace Js
             Assert(isRoot || object->GetPropertyIndex(propertyId) == DynamicObject::FromVar(object)->GetTypeHandler()->InlineOrAuxSlotIndexToPropertyIndex(u.local.slotIndex, false));
             Assert(!isRoot || RootObjectBase::FromVar(object)->GetRootPropertyIndex(propertyId) == DynamicObject::FromVar(object)->GetTypeHandler()->InlineOrAuxSlotIndexToPropertyIndex(u.local.slotIndex, false));
             Assert(object->CanStorePropertyValueDirectly(propertyId, isRoot));
-            DynamicObject::FromVar(object)->SetAuxSlot(SetSlotArgumentsRoot(propertyId, isRoot, u.local.slotIndex, propertyValue));
+            DynamicObject::UnsafeFromVar(object)->SetAuxSlot(SetSlotArgumentsRoot(propertyId, isRoot, u.local.slotIndex, propertyValue));
             if (ReturnOperationInfo)
             {
                 operationInfo->cacheType = CacheType_Local;
@@ -283,7 +283,7 @@ namespace Js
             AssertMsg(!((DynamicType*)u.local.typeWithoutProperty)->GetTypeHandler()->GetIsPrototype(), "Why did we cache a property add for a prototype?");
             Assert(((DynamicType*)typeWithProperty)->GetTypeHandler()->CanStorePropertyValueDirectly((const DynamicObject*)object, propertyId, isRoot));
 
-            DynamicObject *const dynamicObject = DynamicObject::FromVar(object);
+            DynamicObject *const dynamicObject = DynamicObject::UnsafeFromVar(object);
 
             // If we're adding a property to an inlined slot, we should never need to adjust auxiliary slot array size.
             Assert(newAuxSlotCapacity == 0);
@@ -320,7 +320,7 @@ namespace Js
             AssertMsg(!((DynamicType*)TypeWithoutAuxSlotTag(u.local.typeWithoutProperty))->GetTypeHandler()->GetIsPrototype(), "Why did we cache a property add for a prototype?");
             Assert(((DynamicType*)typeWithProperty)->GetTypeHandler()->CanStorePropertyValueDirectly((const DynamicObject*)object, propertyId, isRoot));
 
-            DynamicObject *const dynamicObject = DynamicObject::FromVar(object);
+            DynamicObject *const dynamicObject = DynamicObject::UnsafeFromVar(object);
 
             if (newAuxSlotCapacity > 0)
             {
@@ -351,7 +351,7 @@ namespace Js
             Assert(object->GetScriptContext() == requestContext); // we never cache a type from another script context
             Assert(u.accessor.flags & InlineCacheSetterFlag);
 
-            RecyclableObject *const function = RecyclableObject::FromVar(u.accessor.object->GetInlineSlot(u.accessor.slotIndex));
+            RecyclableObject *const function = RecyclableObject::UnsafeFromVar(u.accessor.object->GetInlineSlot(u.accessor.slotIndex));
 
             Assert(setterValue == nullptr || setterValue == function);
             Js::JavascriptOperators::CallSetter(function, object, propertyValue, requestContext);
@@ -369,7 +369,7 @@ namespace Js
             Assert(object->GetScriptContext() == requestContext); // we never cache a type from another script context
             Assert(u.accessor.flags & InlineCacheSetterFlag);
 
-            RecyclableObject *const function = RecyclableObject::FromVar(u.accessor.object->GetAuxSlot(u.accessor.slotIndex));
+            RecyclableObject *const function = RecyclableObject::UnsafeFromVar(u.accessor.object->GetAuxSlot(u.accessor.slotIndex));
 
             Assert(setterValue == nullptr || setterValue == function);
             Js::JavascriptOperators::CallSetter(function, object, propertyValue, requestContext);

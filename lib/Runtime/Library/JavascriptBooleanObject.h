@@ -17,6 +17,7 @@ namespace Js
         JavascriptBooleanObject(JavascriptBoolean* value, DynamicType * type);
         static bool Is(Var aValue);
         static JavascriptBooleanObject* FromVar(Js::Var aValue);
+        static JavascriptBooleanObject* UnsafeFromVar(Js::Var aValue);
 
         BOOL GetValue() const;
         void Initialize(JavascriptBoolean* value);

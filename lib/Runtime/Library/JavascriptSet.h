@@ -27,6 +27,7 @@ namespace Js
 
         static bool Is(Var aValue);
         static JavascriptSet* FromVar(Var aValue);
+        static JavascriptSet* UnsafeFromVar(Var aValue);
 
         void Add(Var value);
         void Clear();

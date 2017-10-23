@@ -18,6 +18,7 @@ namespace Js
         JavascriptSymbolObject(JavascriptSymbol* value, DynamicType * type);
         static bool Is(Var aValue);
         static JavascriptSymbolObject* FromVar(Js::Var aValue);
+        static JavascriptSymbolObject* UnsafeFromVar(Js::Var aValue);
 
         inline const PropertyRecord* GetValue()
         {

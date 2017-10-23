@@ -25,7 +25,7 @@ namespace Js
     JavascriptSIMDFloat64x2* JavascriptSIMDFloat64x2::FromVar(Var aValue)
     {
         Assert(aValue);
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptSIMDFloat64x2'");
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptSIMDFloat64x2'");
 
         return reinterpret_cast<JavascriptSIMDFloat64x2 *>(aValue);
     }

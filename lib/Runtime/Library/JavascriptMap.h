@@ -28,6 +28,7 @@ namespace Js
 
         static bool Is(Var aValue);
         static JavascriptMap* FromVar(Var aValue);
+        static JavascriptMap* UnsafeFromVar(Var aValue);
 
         void Clear();
         bool Delete(Var key);

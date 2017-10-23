@@ -32,6 +32,14 @@ WebAssemblyMemory::Is(Var value)
 WebAssemblyMemory *
 WebAssemblyMemory::FromVar(Var value)
 {
+    AssertOrFailFast(WebAssemblyMemory::Is(value));
+    return static_cast<WebAssemblyMemory*>(value);
+}
+
+/* static */
+WebAssemblyMemory *
+WebAssemblyMemory::UnsafeFromVar(Var value)
+{
     Assert(WebAssemblyMemory::Is(value));
     return static_cast<WebAssemblyMemory*>(value);
 }

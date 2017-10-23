@@ -57,6 +57,7 @@ namespace Js
         static bool Is(Var var);
         static bool Is(RecyclableObject * obj);
         static RootObjectBase * FromVar(Var var);
+        static RootObjectBase * UnsafeFromVar(Var var);
 
     protected:
         DEFINE_VTABLE_CTOR(RootObjectBase, DynamicObject);
