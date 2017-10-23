@@ -1954,12 +1954,12 @@ void SmallHeapBlockT<TBlockAttributes>::Verify(bool pendingDispose)
 }
 #endif
 
-#ifdef DUMP_FRAGMENTATION_STATS
+#if ENABLE_MEM_STATS
 template <class TBlockAttributes>
 void
 SmallHeapBlockT<TBlockAttributes>::AggregateBlockStats(HeapBucketStats& stats, bool isAllocatorBlock, FreeObject* freeObjectList, bool isBumpAllocated)
 {
-    stats.totalBlockCount++;
+    DUMP_FRAGMENTATION_STATS_ONLY(stats.totalBlockCount++);
 
     ushort blockObjectCount = this->objectCount;
     BVIndex blockFreeCount = this->GetFreeBitVector()->Count();
@@ -1967,15 +1967,15 @@ SmallHeapBlockT<TBlockAttributes>::AggregateBlockStats(HeapBucketStats& stats, b
 
     if (this->segment == nullptr)
     {
-        stats.emptyBlockCount++;
+        DUMP_FRAGMENTATION_STATS_ONLY(stats.emptyBlockCount++);
         blockObjectCount = 0;
         blockFreeCount = 0;
     }
 
-    int objectCount = 0;
+    uint objectCount = 0;
     if (isBumpAllocated)
     {
-        objectCount = ((char*) freeObjectList - this->address) / blockObjectSize;
+        objectCount = static_cast<uint>(((char*) freeObjectList - this->address) / blockObjectSize);
     }
     else
     {
@@ -2011,22 +2011,23 @@ SmallHeapBlockT<TBlockAttributes>::AggregateBlockStats(HeapBucketStats& stats, b
     // Don't count empty blocks as allocable
     if (this->segment != nullptr)
     {
-        stats.totalByteCount += AutoSystemInfo::PageSize;
+        stats.totalByteCount += this->GetPageCount() * AutoSystemInfo::PageSize;
     }
 
-    stats.objectCount += objectCount;
+    DUMP_FRAGMENTATION_STATS_ONLY(stats.objectCount += objectCount);
     stats.objectByteCount += (objectCount * blockObjectSize);
 
+#ifdef DUMP_FRAGMENTATION_STATS
     if (!isAllocatorBlock)
     {
         if (this->IsAnyFinalizableBlock())
         {
-            SmallFinalizableHeapBlock* finalizableBlock = this->AsFinalizableBlock<TBlockAttributes>();
-
+            auto finalizableBlock = this->AsFinalizableBlock<TBlockAttributes>();
             stats.finalizeBlockCount++;
             stats.finalizeCount += (finalizableBlock->GetFinalizeCount());
         }
     }
+#endif
 }
 #endif
 

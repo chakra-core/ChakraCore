@@ -21,6 +21,12 @@ HeapBucket::HeapBucket() :
 }
 
 uint
+HeapBucket::GetSizeCat() const
+{
+    return this->sizeCat;
+}
+
+uint
 HeapBucket::GetBucketIndex() const
 {
     return HeapInfo::GetBucketIndex(this->sizeCat);
@@ -1422,7 +1428,7 @@ HeapBucketT<TBlockType>::Check(bool checkCount)
 }
 #endif
 
-#ifdef DUMP_FRAGMENTATION_STATS
+#if ENABLE_MEM_STATS
 template <typename TBlockType>
 void
 HeapBucketT<TBlockType>::AggregateBucketStats(HeapBucketStats& stats)
