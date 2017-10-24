@@ -1405,6 +1405,7 @@ EncoderMD::BaseAndOffsetFromSym(IR::SymOpnd *symOpnd, RegNum *pBaseReg, int32 *p
 
         if (func->HasInlinee())
         {
+            // TODO (megupta): BaseReg will be a pre-reserved non SP register when we start supporting try
             Assert(baseReg == RegSP);
             if (stackSym->IsArgSlotSym() && !stackSym->m_isOrphanedArg)
             {
@@ -1415,6 +1416,7 @@ EncoderMD::BaseAndOffsetFromSym(IR::SymOpnd *symOpnd, RegNum *pBaseReg, int32 *p
             {
                 AssertMsg(stackSym->IsAllocated(), "StackSym offset should be set");
                 //Assert((uint)offset > ((func->m_argSlotsForFunctionsCalled + func->GetMaxInlineeArgOutCount()) * MachRegInt));
+                //Assert(offset > (func->HasTry() ? (int32)func->GetMaxInlineeArgOutSize() : (int32)(func->m_argSlotsForFunctionsCalled * MachRegInt + func->GetMaxInlineeArgOutSize())));
             }
         }
         // TODO: restore the following assert (very useful) once we have a way to tell whether prolog/epilog
