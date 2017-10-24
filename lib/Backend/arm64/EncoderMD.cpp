@@ -908,6 +908,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         break;
 
     case Js::OpCode::MOV:
+    case Js::OpCode::MOV_TRUNC:
         bytes = this->EmitOp2Register(Emitter, instr, EmitMovRegister, EmitMovRegister64);
         break;
 
