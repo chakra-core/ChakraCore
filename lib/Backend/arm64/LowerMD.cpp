@@ -8196,15 +8196,38 @@ LowererMD::FinalLowerAssign(IR::Instr * instr)
 
         Assert(src1->IsRegOpnd());
         Assert(src2->IsRegOpnd());
-        Assert(dst->AsRegOpnd()->GetReg() != src1->AsRegOpnd()->GetReg());
-        Assert(dst->AsRegOpnd()->GetReg() != src2->AsRegOpnd()->GetReg());
 
-        // dst = SDIV src1, src2
-        IR::Instr *divInstr = IR::Instr::New(Js::OpCode::SDIV, dst, src1, src2, instr->m_func);
-        instr->InsertBefore(divInstr);
+        RegNum dstReg = dst->AsRegOpnd()->GetReg();
 
-        // dst = MSUB src1, src2, dst (dst = src1 - src2 * dst)
-        instr->m_opcode = Js::OpCode::MSUB;
+        if (dstReg == src1->AsRegOpnd()->GetReg() || dstReg == src2->AsRegOpnd()->GetReg())
+        {
+            Assert(src1->AsRegOpnd()->GetReg() != SCRATCH_REG);
+            Assert(src2->AsRegOpnd()->GetReg() != SCRATCH_REG);
+            Assert(src1->GetType() == src2->GetType());
+
+            // r17 = SDIV src1, src2
+            IR::RegOpnd *regScratch = IR::RegOpnd::New(nullptr, SCRATCH_REG, src1->GetType(), instr->m_func);
+            IR::Instr *insertInstr = IR::Instr::New(Js::OpCode::SDIV, regScratch, src1, src2, instr->m_func);
+            instr->InsertBefore(insertInstr);
+
+            // r17 = MSUB src1, src2, r17 (r17 = src1 - src2 * r17)
+            insertInstr = IR::Instr::New(Js::OpCode::MSUB, regScratch, src1, src2, instr->m_func);
+            instr->InsertBefore(insertInstr);
+
+            // mov dst, r17
+            insertInstr = IR::Instr::New(dst->IsFloat() ? Js::OpCode::FMOV : Js::OpCode::MOV, dst, regScratch, instr->m_func);
+            instr->InsertBefore(insertInstr);
+            instr->Remove();
+        }
+        else
+        {
+            // dst = SDIV src1, src2
+            IR::Instr *divInstr = IR::Instr::New(Js::OpCode::SDIV, dst, src1, src2, instr->m_func);
+            instr->InsertBefore(divInstr);
+
+            // dst = MSUB src1, src2, dst (dst = src1 - src2 * dst)
+            instr->m_opcode = Js::OpCode::MSUB;
+        }
         return true;
     }
 
