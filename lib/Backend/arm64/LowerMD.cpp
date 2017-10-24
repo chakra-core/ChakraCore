@@ -3800,6 +3800,7 @@ LowererMD::GenerateTaggedZeroTest( IR::Opnd * opndSrc, IR::Instr * insertInstr, 
         instr->SetSrc1(opndSrc);
         instr->SetSrc2(opndSrc);
         insertInstr->InsertBefore(instr);
+        LegalizeMD::LegalizeInstr(instr, false);
     }
 }
 

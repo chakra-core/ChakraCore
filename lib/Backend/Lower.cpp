@@ -8374,12 +8374,12 @@ Lowerer::LowerAddLeftDeadForString(IR::Instr *instr)
         Js::OpCode::BrNeq_A, labelHelper, insertBeforeInstr);
 
     // if lastBlockInfo.charLength < lastBlockInfo.charCapacity
-    IR::IndirOpnd *indirCharLength = IR::IndirOpnd::New(opndLeft->AsRegOpnd(), (int32)Js::CompoundString::GetOffsetOfLastBlockInfo()+ (int32)Js::CompoundString::GetOffsetOfLastBlockInfoCharLength(), TyMachPtr, m_func);
+    IR::IndirOpnd *indirCharLength = IR::IndirOpnd::New(opndLeft->AsRegOpnd(), (int32)Js::CompoundString::GetOffsetOfLastBlockInfo() + (int32)Js::CompoundString::GetOffsetOfLastBlockInfoCharLength(), TyUint32, m_func);
     IR::RegOpnd *charLengthOpnd = IR::RegOpnd::New(TyUint32, this->m_func);
     InsertMove(charLengthOpnd, indirCharLength, insertBeforeInstr);
-    InsertCompareBranch(charLengthOpnd, IR::IndirOpnd::New(opndLeft->AsRegOpnd(), (int32)Js::CompoundString::GetOffsetOfLastBlockInfo() + (int32)Js::CompoundString::GetOffsetOfLastBlockInfoCharCapacity(), TyMachPtr, m_func), Js::OpCode::BrGe_A, labelHelper, insertBeforeInstr);
+    InsertCompareBranch(charLengthOpnd, IR::IndirOpnd::New(opndLeft->AsRegOpnd(), (int32)Js::CompoundString::GetOffsetOfLastBlockInfo() + (int32)Js::CompoundString::GetOffsetOfLastBlockInfoCharCapacity(), TyUint32, m_func), Js::OpCode::BrGe_A, labelHelper, insertBeforeInstr);
 
-    // load c= right->m_pszValue[0]
+    // load c = right->m_pszValue[0]
     IR::RegOpnd *pszValue0Opnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
     IR::IndirOpnd *indirRightPszOpnd = IR::IndirOpnd::New(opndRight->AsRegOpnd(), offsetof(Js::JavascriptString, m_pszValue), TyMachPtr, this->m_func);
     InsertMove(pszValue0Opnd, indirRightPszOpnd, insertBeforeInstr);
