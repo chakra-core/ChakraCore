@@ -12,14 +12,14 @@ bool MarkContext::AddMarkedObject(void * objectAddress, size_t objectSize)
 
     FAULTINJECT_MEMORY_MARK_NOTHROW(_u("AddMarkedObject"), objectSize);
 
+    RECYCLER_STATS_INTERLOCKED_ADD(recycler, markData.markBytes, objectSize);
+
 #if DBG_DUMP
     if (recycler->forceTraceMark || recycler->GetRecyclerFlagsTable().Trace.IsEnabled(Js::MarkPhase))
     {
         Output::Print(_u(" %p"), objectAddress);
     }
 #endif
-
-    RECYCLER_STATS_INTERLOCKED_INC(recycler, scanCount);
 
     MarkCandidate markCandidate;
 
@@ -119,6 +119,8 @@ void MarkContext::ScanObject(void ** obj, size_t byteCount)
 {
     BEGIN_DUMP_OBJECT(recycler, obj);
 
+    RECYCLER_STATS_INTERLOCKED_INC(recycler, scanCount);
+
     ScanMemory<parallel, interior, false>(obj, byteCount);
 
     END_DUMP_OBJECT(recycler);
@@ -132,6 +134,8 @@ void MarkContext::Mark(void * candidate, void * parentReference)
     // We should never reach here while we are processing Rescan.
     // Otherwise our rescanState could be out of sync with mark state.
     Assert(!recycler->isProcessingRescan);
+
+    RECYCLER_STATS_INTERLOCKED_INC(recycler, tryMarkCount);
 
 #if defined(RECYCLER_STATS) || !defined(_M_X64)
     if ((size_t)candidate < 0x10000)

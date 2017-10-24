@@ -63,6 +63,7 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
     if (chunk == nullptr)
     {
         // False reference; no further processing needed.
+        RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), tryMarkNonRecyclerMemoryCount);
         return;
     }
 
@@ -72,6 +73,7 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
         {
             this->OnSpecialMark(chunk, candidate);
         }
+        RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), remarkCount);
         return;
     }
 
@@ -92,11 +94,13 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
     {
     case HeapBlock::HeapBlockType::FreeBlockType:
         // False reference.  Do nothing.
+        RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), tryMarkNonRecyclerMemoryCount);
         break;
 
     case HeapBlock::HeapBlockType::SmallLeafBlockType:
     case HeapBlock::HeapBlockType::MediumLeafBlockType:
         // Leaf blocks don't need to be scanned.  Do nothing.
+        RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), markData.markCount);
         break;
 
     case HeapBlock::HeapBlockType::SmallNormalBlockType:
@@ -110,12 +114,19 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
             if (!HeapInfo::GetInvalidBitVectorForBucket<SmallAllocationBlockAttributes>(bucketIndex)->Test(SmallHeapBlock::GetAddressBitIndex(candidate)))
             {
                 uint objectSize = HeapInfo::GetObjectSizeForBucketIndex<SmallAllocationBlockAttributes>(bucketIndex);
+                RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), markData.markCount);
                 if (!markContext->AddMarkedObject(candidate, objectSize))
                 {
                     // Failed to mark due to OOM.
                     ((SmallHeapBlock *)chunk->map[id2])->SetNeedOOMRescan(markContext->GetRecycler());
                 }
             }
+#ifdef RECYCLER_STATS
+            else
+            {
+                RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), tryMarkNonRecyclerMemoryCount);
+            }
+#endif
         }
         break;
     case HeapBlock::HeapBlockType::MediumNormalBlockType:
@@ -128,18 +139,26 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
             if (!HeapInfo::GetInvalidBitVectorForBucket<MediumAllocationBlockAttributes>(bucketIndex)->Test(MediumHeapBlock::GetAddressBitIndex(candidate)))
             {
                 uint objectSize = HeapInfo::GetObjectSizeForBucketIndex<MediumAllocationBlockAttributes>(bucketIndex);
+                RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), markData.markCount);
                 if (!markContext->AddMarkedObject(candidate, objectSize))
                 {
                     // Failed to mark due to OOM.
                     ((MediumHeapBlock *)chunk->map[id2])->SetNeedOOMRescan(markContext->GetRecycler());
                 }
             }
+#ifdef RECYCLER_STATS
+            else
+            {
+                RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), tryMarkNonRecyclerMemoryCount);
+            }
+#endif
         }
         break;
     case HeapBlock::HeapBlockType::SmallFinalizableBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
     case HeapBlock::HeapBlockType::SmallFinalizableBlockWithBarrierType:
 #endif
+        RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), markData.markCount);
         ((SmallFinalizableHeapBlock*)chunk->map[id2])->ProcessMarkedObject<doSpecialMark>(candidate, markContext);
         break;
 #ifdef RECYCLER_VISITED_HOST
@@ -150,7 +169,7 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
             {
                 break;
             }
-
+            RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), markData.markCount);
             ((SmallRecyclerVisitedHostHeapBlock*)chunk->map[id2])->ProcessMarkedObject<doSpecialMark>(realCandidate, markContext);
         }
         break;
@@ -159,6 +178,7 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
 #ifdef RECYCLER_WRITE_BARRIER
     case HeapBlock::HeapBlockType::MediumFinalizableBlockWithBarrierType:
 #endif
+        RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), markData.markCount);
         ((MediumFinalizableHeapBlock*)chunk->map[id2])->ProcessMarkedObject<doSpecialMark>(candidate, markContext);
         break;
 #ifdef RECYCLER_VISITED_HOST
@@ -169,12 +189,13 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
             {
                 break;
             }
-
+            RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), markData.markCount);
             ((MediumRecyclerVisitedHostHeapBlock*)chunk->map[id2])->ProcessMarkedObject<doSpecialMark>(realCandidate, markContext);
         }
         break;
 #endif
     case HeapBlock::HeapBlockType::LargeBlockType:
+        RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), markData.markCount);
         ((LargeHeapBlock*)chunk->map[id2])->Mark<doSpecialMark>(candidate, markContext);
         break;
 
@@ -306,6 +327,7 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
     if (MarkInternal<interlocked>(chunk, candidate))
     {
         // Already marked (mark internal-then-actual first)
+        RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), remarkCount);
         return;
     }
 
@@ -453,6 +475,12 @@ HeapBlockMap64::Mark(void * candidate, MarkContext * markContext)
 {
     if (!list || !HeapInfo::IsAlignedAddress(candidate) || (size_t)candidate < 0x10000)
     {
+#ifdef RECYCLER_STATS
+        if (!HeapInfo::IsAlignedAddress(candidate))
+        {
+            RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), tryMarkUnalignedCount);
+        }
+#endif
         return;
     }
     uint index = GetNodeIndex(candidate);
@@ -472,6 +500,7 @@ HeapBlockMap64::Mark(void * candidate, MarkContext * markContext)
     }
 
     // No Node found; must be an invalid reference. Do nothing.
+    RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), tryMarkNonRecyclerMemoryCount);
 }
 
 template <bool interlocked>
@@ -479,6 +508,7 @@ inline
 void
 HeapBlockMap64::MarkInterior(void * candidate, MarkContext * markContext)
 {
+    RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), tryMarkInteriorCount);
     if (!list || (size_t)candidate < 0x10000)
     {
         return;
@@ -500,6 +530,7 @@ HeapBlockMap64::MarkInterior(void * candidate, MarkContext * markContext)
     }
 
     // No Node found; must be an invalid reference. Do nothing.
+    RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), tryMarkInteriorNonRecyclerMemoryCount);
 }
 
 #endif // defined(_M_X64_OR_ARM64)

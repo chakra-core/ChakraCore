@@ -6787,7 +6787,7 @@ Recycler::PrintHeapBlockMemoryStats(char16 const * name, HeapBlock::HeapBlockTyp
         SmallAllocationBlockAttributes::PageCount : MediumAllocationBlockAttributes::PageCount;
     size_t totalByteCount = (collectionStats.heapBlockCount[type] - collectionStats.heapBlockFreeCount[type]) * blockPages * AutoSystemInfo::PageSize;
     size_t liveByteCount = totalByteCount - collectionStats.heapBlockFreeByteCount[type];
-    Output::Print(_u(" %6s: %10d %10d"), name, liveByteCount, allocableFreeByteCount);
+    Output::Print(_u(" %8s: %10d %10d"), name, liveByteCount, allocableFreeByteCount);
 
 #if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect &&

@@ -462,8 +462,8 @@ struct RecyclerCollectionStats
     size_t scanCount;           // non-leaf objects marked.
     size_t trackCount;
     size_t finalizeCount;
-    size_t markThruNewObjCount;
-    size_t markThruFalseNewObjCount;
+    size_t markThruNewObjCount;      // UNUSED no longer relevant?
+    size_t markThruFalseNewObjCount; // UNUSED no longer relevant?
 
     struct MarkData
     {
@@ -623,6 +623,7 @@ class Recycler
     friend class MarkContext;
     friend class HeapBlock;
     friend class HeapBlockMap32;
+    friend class HeapBlockMap64;
 #if ENABLE_CONCURRENT_GC
     friend class RecyclerParallelThread;
 #endif

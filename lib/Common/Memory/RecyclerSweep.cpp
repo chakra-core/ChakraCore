@@ -683,6 +683,10 @@ RecyclerSweep::AdjustPartialHeuristics()
         // new objects in thread.
         if (collectEfficacy < MinPartialCollectEfficacy)
         {
+#ifdef RECYCLER_STATS
+            recycler->collectionStats.collectEfficacy = collectEfficacy;
+            recycler->collectionStats.partialCollectSmallHeapBlockReuseMinFreeBytes = (size_t)(AutoSystemInfo::PageSize * collectEfficacy);
+#endif
             return false;
         }
 
