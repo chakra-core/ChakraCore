@@ -874,11 +874,10 @@ namespace UnifiedRegex
         INST_BODY
     };
 
+    template <bool isNegation>
     struct WordBoundaryTestInst : Inst
     {
-        bool isNegation;
-
-        inline WordBoundaryTestInst(bool isNegation) : Inst(WordBoundaryTest), isNegation(isNegation) {}
+        inline WordBoundaryTestInst();
 
         INST_BODY
     };

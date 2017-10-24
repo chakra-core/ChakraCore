@@ -384,7 +384,7 @@ namespace UnifiedRegex
         size_t size = sizeof(*((T *)that));
         byte *endByte = startByte + size;
         byte *currentByte = startByte;
-        w->Print(_u("0x%p[+0x%03x](0x%03x)(sizeof:0x%03x)(alignof:0x%03x) [%s]:"), startByte, offset, size, sizeof(T), alignof(T), annotation);
+        w->Print(_u("0x%p[+0x%03x](0x%03x)(size:0x%02x)(align:0x%02x) [%s]:"), startByte, offset, size, sizeof(T), alignof(T), annotation);
 
         for (; currentByte < endByte; ++currentByte)
         {
@@ -409,7 +409,7 @@ namespace UnifiedRegex
         byte *startByte = (byte *)(&(start->tag));
         byte *endByte = startByte + size;
         byte *currentByte = startByte;
-        w->Print(_u("0x%p[+0x%03x](0x%03x) [%s]:"), startByte, offsetToData, size, annotation);
+        w->Print(_u("0x%p[+0x%03x](0x%03x)(size:0x%02x)(align:0x%02x) [%s]:"), startByte, offsetToData, size, sizeof(Inst), alignof(Inst), annotation);
         for (; currentByte < endByte; ++currentByte)
         {
             if ((currentByte - endByte) % 4 == 0)
@@ -1557,7 +1557,6 @@ namespace UnifiedRegex
     {
         PRINT_RE_BYTECODE_BEGIN("BOLTest");
         PRINT_RE_BYTECODE_MID();
-        PRINT_BYTES(BOLTestInst);
         PRINT_RE_BYTECODE_END();
     }
 #endif
@@ -1585,7 +1584,6 @@ namespace UnifiedRegex
     {
         PRINT_RE_BYTECODE_BEGIN("EOLTest");
         PRINT_RE_BYTECODE_MID();
-        PRINT_BYTES(EOLTestInst);
         PRINT_RE_BYTECODE_END();
     }
 #endif
@@ -1594,7 +1592,13 @@ namespace UnifiedRegex
     // WordBoundaryTestInst
     // ----------------------------------------------------------------------
 
-    inline bool WordBoundaryTestInst::Exec(REGEX_INST_EXEC_PARAMETERS) const
+    template <>
+    inline WordBoundaryTestInst<true>::WordBoundaryTestInst() : Inst(NegatedWordBoundaryTest) {}
+    template <>
+    inline WordBoundaryTestInst<false>::WordBoundaryTestInst() : Inst(WordBoundaryTest) {}
+
+    template <bool isNegation>
+    inline bool WordBoundaryTestInst<isNegation>::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
 #if ENABLE_REGEX_CONFIG_OPTIONS
         matcher.CompStats();
@@ -1611,11 +1615,19 @@ namespace UnifiedRegex
     }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-    int WordBoundaryTestInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    template <bool isNegation>
+    int WordBoundaryTestInst<isNegation>::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        PRINT_RE_BYTECODE_BEGIN("WordBoundaryTest");
+        if (isNegation)
+        {
+            PRINT_RE_BYTECODE_BEGIN("NegatedWordBoundaryTest");
+        }
+        else
+        {
+            PRINT_RE_BYTECODE_BEGIN("WordBoundaryTest");
+        }
+
         PRINT_RE_BYTECODE_MID();
-        PRINT_BYTES(WordBoundaryTestInst);
         PRINT_RE_BYTECODE_END();
     }
 #endif

@@ -746,7 +746,15 @@ namespace UnifiedRegex
         //
         //   WordBoundaryTest
         //
-        EMIT(compiler, WordBoundaryTestInst, isNegation);
+        if (isNegation)
+        {
+            EMIT(compiler, WordBoundaryTestInst<true>);
+        }
+        else
+        {
+            EMIT(compiler, WordBoundaryTestInst<false>);
+
+        }
     }
 
     CharCount WordBoundaryNode::EmitScan(Compiler& compiler, bool isHeadSyncronizingNode)

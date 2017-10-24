@@ -28,7 +28,8 @@ M(BOLTest)
 M(EOLTest)
 // TODO (doilij) update Tag numbers
 // 0x10
-M(WordBoundaryTest)
+MTemplate(NegatedWordBoundaryTest, template<bool isNegation>, WordBoundaryTestInst, WordBoundaryTestInst<true>)
+MTemplate(WordBoundaryTest, template<bool isNegation>, WordBoundaryTestInst, WordBoundaryTestInst<false>)
 M(MatchChar)
 M(MatchChar2)
 M(MatchChar3)
