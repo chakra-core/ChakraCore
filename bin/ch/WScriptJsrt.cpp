@@ -1076,14 +1076,12 @@ Error:
 
 int js_fgets(char* buf, int size, FILE* file)
 {
-	int  i, n, c;
-	bool crflag;
-
-	n = size - 1;
+	int n = size - 1;
 	if (n < 0)
 		return -1;
 
-	crflag = false;
+	bool crflag = false;
+	int c, i = 0;
 
 	for (i = 0; i < n && (c = getc(file)) != EOF; i++) {
 		buf[i] = (char)c;
@@ -1152,7 +1150,6 @@ JsValueRef __stdcall WScriptJsrt::ReadLineStdinCallback(JsValueRef callee, bool 
 	/* Treat the empty string specially. */
 	if (buflength == 0) {
 		if (feof(from)) {
-			// TODO: Return null
 			goto Error;
 		}
 		else {
