@@ -188,7 +188,9 @@ IR::Instr * LegalizeMD::LegalizeStore(IR::Instr *instr, LegalForms forms, bool f
         // We don't expect to hit this point after register allocation, because we
         // can't guarantee that the instruction will be legal.
         Assert(!fPostRegAlloc);
-        instr = instr->SinkDst(LowererMD::GetStoreOp(instr->GetDst()->GetType()), RegNOREG);
+        IR::Instr * newInstr = instr->SinkDst(LowererMD::GetStoreOp(instr->GetDst()->GetType()), RegNOREG);
+        LegalizeMD::LegalizeRegOpnd(instr, instr->GetDst());
+        instr = newInstr;
     }
 
     return instr;
@@ -288,7 +290,6 @@ void LegalizeMD::LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, b
 
 IR::Instr * LegalizeMD::LegalizeLoad(IR::Instr *instr, uint opndNum, LegalForms forms, bool fPostRegAlloc)
 {
-    IR::Instr* legalized = instr;
     if (LowererMD::IsAssign(instr) && instr->GetDst()->IsRegOpnd())
     {
         // We can just change this to a load in place.
@@ -297,21 +298,12 @@ IR::Instr * LegalizeMD::LegalizeLoad(IR::Instr *instr, uint opndNum, LegalForms 
     else
     {
         // Hoist the memory opnd. The caller will verify the offset.
-        if (opndNum == 1)
-        {
-            AssertMsg(!fPostRegAlloc || instr->GetSrc1()->GetType() == TyMachReg, "Post RegAlloc other types disallowed");
-            legalized = instr->HoistSrc1(LowererMD::GetLoadOp(instr->GetSrc1()->GetType()), fPostRegAlloc ? SCRATCH_REG : RegNOREG);
-            LegalizeRegOpnd(instr, instr->GetSrc1());
-        }
-        else
-        {
-            AssertMsg(!fPostRegAlloc || instr->GetSrc2()->GetType() == TyMachReg, "Post RegAlloc other types disallowed");
-            legalized = instr->HoistSrc2(LowererMD::GetLoadOp(instr->GetSrc2()->GetType()), fPostRegAlloc ? SCRATCH_REG : RegNOREG);
-            LegalizeRegOpnd(instr, instr->GetSrc2());
-        }
+        IR::Opnd* src = (opndNum == 1) ? instr->GetSrc1() : instr->GetSrc2();
+        AssertMsg(!fPostRegAlloc || src->GetType() == TyMachReg, "Post RegAlloc other types disallowed");
+        instr = GenerateHoistSrc(instr, opndNum, LowererMD::GetLoadOp(src->GetType()), fPostRegAlloc ? SCRATCH_REG : RegNOREG, fPostRegAlloc);
     }
 
-    return legalized;
+    return instr;
 }
 
 void LegalizeMD::LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpnd, LegalForms forms, bool fPostRegAlloc)
@@ -436,7 +428,7 @@ void LegalizeMD::LegalizeImmed(
     {
         if (instr->m_opcode != Js::OpCode::LDIMM)
         {
-            instr = LegalizeMD::GenerateLDIMM(instr, opndNum, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
+            instr = LegalizeMD::GenerateLDIMM(instr, opndNum, fPostRegAlloc ? SCRATCH_REG : RegNOREG, fPostRegAlloc);
         }
 
         if (fPostRegAlloc)
@@ -454,7 +446,7 @@ void LegalizeMD::LegalizeLabelOpnd(
 {
     if (instr->m_opcode != Js::OpCode::LDIMM)
     {
-        instr = LegalizeMD::GenerateLDIMM(instr, opndNum, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
+        instr = LegalizeMD::GenerateLDIMM(instr, opndNum, fPostRegAlloc ? SCRATCH_REG : RegNOREG, fPostRegAlloc);
     }
     if (fPostRegAlloc)
     {
@@ -462,7 +454,23 @@ void LegalizeMD::LegalizeLabelOpnd(
     }
 }
 
-IR::Instr * LegalizeMD::GenerateLDIMM(IR::Instr * instr, uint opndNum, RegNum scratchReg)
+IR::Instr * LegalizeMD::GenerateHoistSrc(IR::Instr * instr, uint opndNum, Js::OpCode op, RegNum scratchReg, bool fPostRegAlloc)
+{
+    IR::Instr * newInstr;
+    if (opndNum == 1)
+    {
+        newInstr = instr->HoistSrc1(op, scratchReg);
+        LegalizeMD::LegalizeRegOpnd(instr, instr->GetSrc1());
+    }
+    else
+    {
+        newInstr = instr->HoistSrc2(op, scratchReg);
+        LegalizeMD::LegalizeRegOpnd(instr, instr->GetSrc2());
+    }
+    return newInstr;
+}
+
+IR::Instr * LegalizeMD::GenerateLDIMM(IR::Instr * instr, uint opndNum, RegNum scratchReg, bool fPostRegAlloc)
 {
     if (LowererMD::IsAssign(instr) && instr->GetDst()->IsRegOpnd())
     {
@@ -470,14 +478,7 @@ IR::Instr * LegalizeMD::GenerateLDIMM(IR::Instr * instr, uint opndNum, RegNum sc
     }
     else
     {
-        if (opndNum == 1)
-        {
-            instr = instr->HoistSrc1(Js::OpCode::LDIMM, scratchReg);
-        }
-        else
-        {
-            instr = instr->HoistSrc2(Js::OpCode::LDIMM, scratchReg);
-        }
+        instr = GenerateHoistSrc(instr, opndNum, Js::OpCode::LDIMM, scratchReg, fPostRegAlloc);
     }
 
     return instr;
