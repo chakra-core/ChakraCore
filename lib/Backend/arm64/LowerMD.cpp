@@ -1252,73 +1252,41 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         this->m_func->m_unwindInfo.SetPrologStartLabel(prologStartLabel->m_id);
     }
 
-    // STP fp, lr, [sp, -preIndexedOffset]!
-    // STP r19 to r28 (in pairs), [sp, +ve offset]
-    // STP d16 to d29 (in pairs), [sp, +ve offset]
-    // STP r0 to r7 (in pairs), [sp, +ve offset]
+    // SUB SP, SP, #regSaveSize
+    // STP D8 to D15 (in pairs), [sp, +ve offset]
+    // STP X19 to X28 (in pairs), [sp, +ve offset]
+    // STP FP, LR (in pairs), [sp, +ve offset]
+    // ADD FP, SP , #callee saved registers; FP points (SP) to where FP was saved
+    // STP X0 to X7 (in pairs), [sp, +ve offset]
 
     // homed args * MachRegInt + double registers * MachRegDouble + usedRegs * MachRegInt
-    int32 preIndexedOffset = -1 * ((paramRegs.Count() * MachRegInt) + (usedDoubleRegs.Count() * MachRegDouble) + (usedRegs.Count() * MachRegInt));
+    int32 regSaveSize = (paramRegs.Count() * MachRegInt) + (usedDoubleRegs.Count() * MachRegDouble) + (usedRegs.Count() * MachRegInt);
 
     if (hasCalls)
     {
-        preIndexedOffset = preIndexedOffset - (2 * MachRegInt); // 2 * 8 for fp and lr
-        IR::Instr * instrStp = IR::Instr::New(Js::OpCode::STP_PRE, this->m_func);
-        instrStp->SetDst(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), preIndexedOffset, TyMachReg, this->m_func));
-        instrStp->SetSrc1(IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func));
-        instrStp->SetSrc2(IR::RegOpnd::New(nullptr, RegLR, TyMachReg, this->m_func));
-        insertInstr->InsertBefore(instrStp);
-
-        // Generate MOV fp,sp
-        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::ADD,
-            IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func),
-            IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func),
-            IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
-        insertInstr->InsertBefore(instrMov);
-
-        // Saved fp, lr now we need to store all registers with +ve offset
-        preIndexedOffset = 2 * MachRegInt;
+        regSaveSize += 2 * MachRegInt; // 2 * 8 for fp and lr
     }
 
-    if (!usedRegs.IsEmpty())
+    // sub sp, sp, #regSaveSize
+    if (regSaveSize > 0)
     {
-        IR::RegOpnd* src1 = nullptr;
-        IR::RegOpnd* src2 = nullptr;
-        for (RegNum reg = FIRST_CALLEE_SAVED_GP_REG; reg <= LAST_CALLEE_SAVED_GP_REG; reg = (RegNum)(reg + 1))
-        {
-            if (usedRegs.Test(RegEncode[reg]))
-            {
-                if (src1 == nullptr)
-                {
-                    src1 = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
-                }
-                else
-                {
-                    Assert(src2 == nullptr);
-                    src2 = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
-                }
-            }
-
-            if (src1 != nullptr && src2 != nullptr)
-            {
-                IR::Instr * instrStp = IR::Instr::New(preIndexedOffset < 0 ? Js::OpCode::STP_PRE : Js::OpCode::STP,
-                    IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), preIndexedOffset, TyMachReg, this->m_func),
-                    src1, src2, this->m_func);
-                insertInstr->InsertBefore(instrStp);
-                src1 = src2 = nullptr;
-                preIndexedOffset = (preIndexedOffset < 0) ? 2 * MachRegInt : preIndexedOffset + 2 * MachRegInt;
-            }
-        }
-
-        // NOTE - We made sure that usedRegs is even
-        Assert(src1 == nullptr);
-        Assert(src2 == nullptr);
+        IR::Instr * instrSub = IR::Instr::New(Js::OpCode::SUB,
+            IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func),
+            IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func),
+            IR::IntConstOpnd::New(regSaveSize, TyMachReg, this->m_func), this->m_func);
+        insertInstr->InsertBefore(instrSub);
     }
 
+    int32 spSaveOffset = 0;
+    IR::Instr * instrStp = nullptr;
+    IR::RegOpnd* src1 = nullptr;
+    IR::RegOpnd* src2 = nullptr;
+
+    // STP D8 to D15 (in pairs), [sp, #spSaveOffset]
     if (!usedDoubleRegs.IsEmpty())
     {
-        IR::RegOpnd* src1 = nullptr;
-        IR::RegOpnd* src2 = nullptr;
+        Assert(src1 == nullptr);
+        Assert(src2 == nullptr);
         for (RegNum reg = FIRST_CALLEE_SAVED_DBL_REG; reg <= LAST_CALLEE_SAVED_DBL_REG; reg = (RegNum)(reg + 1))
         {
             Assert(LinearScan::IsCalleeSaved(reg));
@@ -1338,24 +1306,77 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
 
             if (src1 != nullptr && src2 != nullptr)
             {
-                IR::Instr * instrStp = IR::Instr::New(preIndexedOffset < 0 ? Js::OpCode::STP_PRE : Js::OpCode::FSTP,
-                    IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), preIndexedOffset, TyMachReg, this->m_func),
+                instrStp = IR::Instr::New(Js::OpCode::FSTP,
+                    IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spSaveOffset, TyMachReg, this->m_func),
                     src1, src2, this->m_func);
                 insertInstr->InsertBefore(instrStp);
                 src1 = src2 = nullptr;
-                preIndexedOffset = (preIndexedOffset < 0) ? 2 * MachRegDouble : preIndexedOffset + 2 * MachRegDouble;
+                spSaveOffset += 2 * MachRegDouble;
             }
         }
-
-        // NOTE - We made sure that usedDoubleRegs is even
-        Assert(src1 == nullptr);
-        Assert(src2 == nullptr);
     }
 
+    // STP X19 to X28 (in pairs), [sp, +ve offset]
+    if (!usedRegs.IsEmpty())
+    {
+        Assert(src1 == nullptr);
+        Assert(src2 == nullptr);
+        for (RegNum reg = FIRST_CALLEE_SAVED_GP_REG; reg <= LAST_CALLEE_SAVED_GP_REG; reg = (RegNum)(reg + 1))
+        {
+            if (usedRegs.Test(RegEncode[reg]))
+            {
+                if (src1 == nullptr)
+                {
+                    src1 = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
+                }
+                else
+                {
+                    Assert(src2 == nullptr);
+                    src2 = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
+                }
+            }
+
+            if (src1 != nullptr && src2 != nullptr)
+            {
+                instrStp = IR::Instr::New(Js::OpCode::STP,
+                    IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spSaveOffset, TyMachReg, this->m_func),
+                    src1, src2, this->m_func);
+                insertInstr->InsertBefore(instrStp);
+                src1 = src2 = nullptr;
+                spSaveOffset += 2 * MachRegInt;
+            }
+        }
+    }
+
+    // STP FP, LR (in pairs), [sp, +ve offset]
+    if (hasCalls)
+    {
+        Assert(src1 == nullptr);
+        Assert(src2 == nullptr);
+        instrStp = IR::Instr::New(Js::OpCode::STP, this->m_func);
+        src1 = IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func);
+        src2 = IR::RegOpnd::New(nullptr, RegLR, TyMachReg, this->m_func);
+        instrStp->SetDst(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spSaveOffset, TyMachReg, this->m_func));
+        instrStp->SetSrc1(src1);
+        instrStp->SetSrc2(src2);
+        insertInstr->InsertBefore(instrStp);
+        src1 = src2 = nullptr;
+
+        // Generate mov fp,sp
+        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::ADD,
+            IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func),
+            IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func),
+            IR::IntConstOpnd::New(spSaveOffset, TyMachReg, this->m_func), this->m_func);
+        insertInstr->InsertBefore(instrMov);
+
+        spSaveOffset += 2 * MachRegInt;
+    }
+
+    // STP X0 to X7 (in pairs), [sp, +ve offset]
     if (!paramRegs.IsEmpty())
     {
-        IR::RegOpnd* src1 = nullptr;
-        IR::RegOpnd* src2 = nullptr;
+        Assert(src1 == nullptr);
+        Assert(src2 == nullptr);
         for (RegNum reg = FIRST_INT_ARG_REG; reg <= LAST_INT_ARG_REG; reg = (RegNum)(reg + 1))
         {
             if (paramRegs.Test(RegEncode[reg]))
@@ -1373,19 +1394,17 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
 
             if (src1 != nullptr && src2 != nullptr)
             {
-                IR::Instr * instrStp = IR::Instr::New(preIndexedOffset < 0 ? Js::OpCode::STP_PRE : Js::OpCode::STP,
-                    IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), preIndexedOffset, TyMachReg, this->m_func),
+                instrStp = IR::Instr::New(Js::OpCode::STP,
+                    IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spSaveOffset, TyMachReg, this->m_func),
                     src1, src2, this->m_func);
                 insertInstr->InsertBefore(instrStp);
                 src1 = src2 = nullptr;
-                preIndexedOffset = (preIndexedOffset < 0) ? 2 * MachRegInt : preIndexedOffset + 2 * MachRegInt;
+                spSaveOffset += 2 * MachRegInt;
             }
         }
-
-        // NOTE - We made sure that homedParamRegCount is even
-        Assert(src1 == nullptr);
-        Assert(src2 == nullptr);
     }
+
+    Assert(spSaveOffset == regSaveArea);
 
     if (hasTry)
     {
@@ -1605,61 +1624,13 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
     }
 
     int32 spOffset = 0;
+    IR::RegOpnd* reg1Opnd = nullptr;
+    IR::RegOpnd* reg2Opnd = nullptr;
 
-    if (hasCalls)
-    {
-        // Generate LDP {fp,lr}
-        IR::Instr * instrLoadFpLr = IR::Instr::New(Js::OpCode::LDP,
-            IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func),
-            IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), 0, TyMachReg, this->m_func),
-            IR::RegOpnd::New(nullptr, RegLR, TyMachReg, this->m_func), this->m_func);
-        exitInstr->InsertBefore(instrLoadFpLr);
-
-        spOffset += 2 * MachRegInt;
-    }
-
-    // 1. Restore saved int registers.
-    if (!usedRegs.IsEmpty())
-    {
-        Assert(usedRegs.Count() % 2 == 0);
-        IR::RegOpnd* reg1Opnd = nullptr;
-        IR::RegOpnd* reg2Opnd = nullptr;
-        for (RegNum reg = FIRST_CALLEE_SAVED_GP_REG; reg <= LAST_CALLEE_SAVED_GP_REG; reg = (RegNum)(reg + 1))
-        {
-            if (usedRegs.Test(RegEncode[reg]))
-            {
-                if (reg1Opnd == nullptr)
-                {
-                    reg1Opnd = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
-                }
-                else
-                {
-                    Assert(reg2Opnd == nullptr);
-                    reg2Opnd = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
-                }
-            }
-
-            if (reg1Opnd != nullptr && reg2Opnd != nullptr)
-            {
-                IR::Instr * instrLoadRegister = IR::Instr::New(Js::OpCode::LDP,
-                    reg1Opnd,
-                    IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spOffset, TyMachReg, this->m_func),
-                    reg2Opnd,
-                    this->m_func);
-                exitInstr->InsertBefore(instrLoadRegister);
-                reg1Opnd = reg2Opnd = nullptr;
-
-                spOffset += 2 * MachRegInt;
-            }
-        }
-    }
-
-    // 2. Restore saved double registers.
     if (!savedDoubleRegs.IsEmpty())
     {
         Assert(savedDoubleRegs.Count() % 2 == 0);
-        IR::RegOpnd* reg1Opnd = nullptr;
-        IR::RegOpnd* reg2Opnd = nullptr;
+
         for (RegNum reg = FIRST_CALLEE_SAVED_DBL_REG; reg <= LAST_CALLEE_SAVED_DBL_REG; reg = (RegNum)(reg + 1))
         {
             Assert(LinearScan::IsCalleeSaved(reg));
@@ -1690,6 +1661,53 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
                 spOffset += 2 * MachRegDouble;
             }
         }
+    }
+
+    if (!usedRegs.IsEmpty())
+    {
+        Assert(usedRegs.Count() % 2 == 0);
+        Assert(reg1Opnd == nullptr);
+        Assert(reg2Opnd == nullptr);
+        for (RegNum reg = FIRST_CALLEE_SAVED_GP_REG; reg <= LAST_CALLEE_SAVED_GP_REG; reg = (RegNum)(reg + 1))
+        {
+            if (usedRegs.Test(RegEncode[reg]))
+            {
+                if (reg1Opnd == nullptr)
+                {
+                    reg1Opnd = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
+                }
+                else
+                {
+                    Assert(reg2Opnd == nullptr);
+                    reg2Opnd = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
+                }
+            }
+
+            if (reg1Opnd != nullptr && reg2Opnd != nullptr)
+            {
+                IR::Instr * instrLoadRegister = IR::Instr::New(Js::OpCode::LDP,
+                    reg1Opnd,
+                    IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spOffset, TyMachReg, this->m_func),
+                    reg2Opnd,
+                    this->m_func);
+                exitInstr->InsertBefore(instrLoadRegister);
+                reg1Opnd = reg2Opnd = nullptr;
+
+                spOffset += 2 * MachRegInt;
+            }
+        }
+    }
+
+    if (hasCalls)
+    {
+        // Generate LDP {fp,lr}
+        IR::Instr * instrLoadFpLr = IR::Instr::New(Js::OpCode::LDP,
+            IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func),
+            IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spOffset, TyMachReg, this->m_func),
+            IR::RegOpnd::New(nullptr, RegLR, TyMachReg, this->m_func), this->m_func);
+        exitInstr->InsertBefore(instrLoadFpLr);
+
+        spOffset += 2 * MachRegInt;
     }
 
     if (spOffset > 0)
