@@ -3817,7 +3817,8 @@ LowererMD::GenerateFastNeg(IR::Instr * instrNeg)
     //       if src == 0     -- test for zero (must be handled by the runtime to preserve
     //       BEQ $helper     -- Difference between +0 and -0)
     // dst = SUB dst, 0, src -- do an inline NEG
-    // dst = ADD dst, 2      -- restore the var tag on the result
+    //       BVS $helper     -- bail if the subtract overflowed
+    // dst = OR dst, tag     -- restore the var tag on the result
     //       BVS $helper
     //       B $fallthru
     // $helper:
@@ -3829,9 +3830,10 @@ LowererMD::GenerateFastNeg(IR::Instr * instrNeg)
     IR::LabelInstr * labelFallThru = nullptr;
     IR::Opnd *       opndSrc1;
     IR::Opnd *       opndDst;
-
+    bool usingNewDst = false;
     opndSrc1 = instrNeg->GetSrc1();
     AssertMsg(opndSrc1, "Expected src opnd on Neg instruction");
+
 
     if (opndSrc1->IsRegOpnd() && opndSrc1->AsRegOpnd()->m_sym->IsIntConst())
     {
@@ -3860,41 +3862,34 @@ LowererMD::GenerateFastNeg(IR::Instr * instrNeg)
 
     bool isInt = (opndSrc1->IsTaggedInt());
 
-    if (opndSrc1->IsRegOpnd() && opndSrc1->AsRegOpnd()->m_sym->m_isNotInt)
+    if (opndSrc1->IsRegOpnd() && opndSrc1->AsRegOpnd()->IsNotInt())
     {
         return true;
     }
 
     labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-
-    // Load src's at the top so we don't have to do it repeatedly.
-    if (!opndSrc1->IsRegOpnd())
-    {
-        opndSrc1 = IR::RegOpnd::New(opndSrc1->GetType(), this->m_func);
-        LowererMD::CreateAssign(opndSrc1, instrNeg->GetSrc1(), instrNeg);
-    }
-
     if (!isInt)
     {
         GenerateSmIntTest(opndSrc1, instrNeg, labelHelper);
     }
 
+    // For 32 bit arithmetic we copy them and set the size of operands to be 32 bits.
+    opndSrc1 = opndSrc1->UseWithNewType(TyInt32, this->m_func);
     GenerateTaggedZeroTest(opndSrc1, instrNeg, labelHelper);
 
-    opndDst = instrNeg->GetDst();
-    if (!opndDst->IsRegOpnd())
+    if (opndSrc1->IsEqual(instrNeg->GetDst()))
     {
-        opndDst = IR::RegOpnd::New(opndDst->GetType(), this->m_func);
+        usingNewDst = true;
+        opndDst = IR::RegOpnd::New(TyInt32, this->m_func);
+    }
+    else
+    {
+        opndDst = instrNeg->GetDst()->UseWithNewType(TyInt32, this->m_func);
     }
 
-    // dst = SUB zr, src
+    // dst = SUBS zr, src
 
-    instr = IR::Instr::New(Js::OpCode::SUB, opndDst, IR::RegOpnd::New(nullptr, RegZR, TyMachReg, this->m_func), opndSrc1, this->m_func);
-    instrNeg->InsertBefore(instr);
-
-    // dst = ADD dst, 2
-
-    instr = IR::Instr::New(Js::OpCode::ADDS, opndDst, opndDst, IR::IntConstOpnd::New(2, TyMachReg, this->m_func), this->m_func);
+    instr = IR::Instr::New(Js::OpCode::SUBS, opndDst, IR::RegOpnd::New(nullptr, RegZR, TyInt32, this->m_func), opndSrc1, this->m_func);
     instrNeg->InsertBefore(instr);
 
     // BVS $helper
@@ -3902,9 +3897,18 @@ LowererMD::GenerateFastNeg(IR::Instr * instrNeg)
     instr = IR::BranchInstr::New(Js::OpCode::BVS, labelHelper, this->m_func);
     instrNeg->InsertBefore(instr);
 
-    if (opndDst != instrNeg->GetDst())
+    //
+    // Convert TyInt32 operand, back to TyMachPtr type.
+    //
+    if (TyMachReg != opndDst->GetType())
     {
-        //Now store the result.
+        opndDst = opndDst->UseWithNewType(TyMachPtr, this->m_func);
+    }
+
+    GenerateInt32ToVarConversion(opndDst, instrNeg);
+
+    if (usingNewDst)
+    {
         LowererMD::CreateAssign(instrNeg->GetDst(), opndDst, instrNeg);
     }
 
