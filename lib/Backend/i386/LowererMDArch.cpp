@@ -870,6 +870,7 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
 
     IR::Instr * retInstr = callInstr;
     callInstr->m_opcode = Js::OpCode::CALL;
+    callInstr->m_func->SetHasCallsOnSelfAndParents();
 
     if (callInstr->GetDst())
     {
