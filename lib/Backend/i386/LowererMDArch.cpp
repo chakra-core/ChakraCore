@@ -340,7 +340,7 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs)
                 // the function object for generator calls is a GeneratorVirtualScriptFunction object
                 // and we need to pass the real JavascriptGeneratorFunction object so grab it instead
                 IR::RegOpnd *tmpOpnd = IR::RegOpnd::New(TyMachReg, func);
-                LowererMD::CreateAssign(tmpOpnd, srcOpnd, instrArgs);
+                Lowerer::InsertMove(tmpOpnd, srcOpnd, instrArgs);
 
                 srcOpnd = IR::IndirOpnd::New(tmpOpnd, Js::GeneratorVirtualScriptFunction::GetRealFunctionOffset(), TyMachPtr, func);
             }
@@ -482,7 +482,7 @@ LowererMDArch::LoadNewScObjFirstArg(IR::Instr * instr, IR::Opnd * dst, ushort ex
 {
     // No need to do anything different for spread calls on x86 since we push args.
     IR::SymOpnd *   argOpnd     = IR::SymOpnd::New(this->m_func->m_symTable->GetArgSlotSym(1), TyVar, this->m_func);
-    IR::Instr *     argInstr    = LowererMD::CreateAssign(argOpnd, dst, instr);
+    IR::Instr *     argInstr    = Lowerer::InsertMove(argOpnd, dst, instr);
     return argInstr;
 }
 
@@ -1250,7 +1250,7 @@ LowererMDArch::LowerStartCall(IR::Instr * startCallInstr, IR::Instr* insertInstr
         //     call _chkstk
 
         IR::RegOpnd *eaxOpnd = IR::RegOpnd::New(nullptr, this->GetRegChkStkParam(), TyMachReg, this->m_func);
-        this->lowererMD->CreateAssign(eaxOpnd, IR::IntConstOpnd::New(sizeValue, TyInt32, this->m_func, /*dontEncode*/true), insertInstr);
+        Lowerer::InsertMove(eaxOpnd, IR::IntConstOpnd::New(sizeValue, TyInt32, this->m_func, /*dontEncode*/true), insertInstr);
 
         newStartCall = IR::Instr::New(Js::OpCode::Call, this->m_func);
 
@@ -1301,7 +1301,7 @@ LowererMDArch::LowerStartCallAsmJs(IR::Instr * startCallInstr, IR::Instr * inser
         //     call _chkstk
 
         IR::RegOpnd *eaxOpnd = IR::RegOpnd::New(nullptr, GetRegChkStkParam(), TyMachReg, m_func);
-        lowererMD->CreateAssign(eaxOpnd, IR::IntConstOpnd::New(sizeValue, TyInt32, m_func, /*dontEncode*/true), insertInstr);
+        Lowerer::InsertMove(eaxOpnd, IR::IntConstOpnd::New(sizeValue, TyInt32, m_func, /*dontEncode*/true), insertInstr);
 
         newStartCall = IR::Instr::New(Js::OpCode::Call, m_func);
 
@@ -1541,7 +1541,7 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
             this->LowerCall(callInstr, 0, RegECX);
 
             IR::IntConstOpnd * stackSizeOpnd = IR::IntConstOpnd::New(stackSize, TyMachReg, this->m_func);
-            this->lowererMD->CreateAssign(eaxOpnd, stackSizeOpnd, entryInstr->m_next);
+            Lowerer::InsertMove(eaxOpnd, stackSizeOpnd, entryInstr->m_next);
         }
     }
 
@@ -1618,7 +1618,7 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, size_t frameSiz
         stackLimitOpnd = IR::RegOpnd::New(nullptr, RegEAX, TyMachReg, this->m_func);
         intptr_t pLimit = m_func->GetThreadContextInfo()->GetThreadStackLimitAddr();
         IR::MemRefOpnd * memOpnd = IR::MemRefOpnd::New(pLimit, TyMachReg, this->m_func);
-        this->lowererMD->CreateAssign(stackLimitOpnd, memOpnd, insertInstr);
+        Lowerer::InsertMove(stackLimitOpnd, memOpnd, insertInstr);
 
         instr = IR::Instr::New(Js::OpCode::ADD, stackLimitOpnd, stackLimitOpnd,
                                IR::IntConstOpnd::New(frameSize, TyMachReg, this->m_func), this->m_func);
@@ -3157,7 +3157,7 @@ bool
 
         if (opndSrc2->IsAddrOpnd())
         {
-            instr = lowererMD->CreateAssign(
+            instr = Lowerer::InsertMove(
                 IR::RegOpnd::New(opndSrc2->GetType(), instrShift->m_func),
                 opndSrc2, instrShift);
             opndSrc2 = instr->GetDst();
