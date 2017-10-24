@@ -935,7 +935,7 @@ bool WScriptJsrt::Initialize()
 
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(global, "read", LoadTextFileCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(global, "readbuffer", LoadBinaryFileCallback));
-	IfFalseGo(WScriptJsrt::InstallObjectsOnObject(global, "readline", ReadLineStdinCallback));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(global, "readline", ReadLineStdinCallback));
 
     JsValueRef console;
     IfJsrtErrorFail(ChakraRTInterface::JsCreateObject(&console), false);
@@ -1076,108 +1076,108 @@ Error:
 
 int js_fgets(char* buf, int size, FILE* file)
 {
-	int n = size - 1;
-	if (n < 0)
-		return -1;
+    int n = size - 1;
+    if (n < 0)
+        return -1;
 
-	bool crflag = false;
-	int c, i = 0;
+    bool crflag = false;
+    int c, i = 0;
 
-	for (i = 0; i < n && (c = getc(file)) != EOF; i++) {
-		buf[i] = (char)c;
-		if (c == '\n') {        // any \n ends a line
-			i++;                // keep the \n; we know there is room for \0
-			break;
-		}
-		if (crflag) {           // \r not followed by \n ends line at the \r
-			ungetc(c, file);
-			break;              // and overwrite c in buf with \0
-		}
-		crflag = (c == '\r');
-	}
+    for (i = 0; i < n && (c = getc(file)) != EOF; i++) {
+        buf[i] = (char)c;
+        if (c == '\n') {        // any \n ends a line
+            i++;                // keep the \n; we know there is room for \0
+            break;
+        }
+        if (crflag) {           // \r not followed by \n ends line at the \r
+            ungetc(c, file);
+            break;              // and overwrite c in buf with \0
+        }
+        crflag = (c == '\r');
+    }
 
-	buf[i] = '\0';
-	return i;
+    buf[i] = '\0';
+    return i;
 }
 
 JsValueRef __stdcall WScriptJsrt::ReadLineStdinCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
-	HRESULT hr = E_FAIL;
-	JsValueRef returnValue = JS_INVALID_REFERENCE;
-	JsErrorCode errorCode = JsNoError;
+    HRESULT hr = E_FAIL;
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsErrorCode errorCode = JsNoError;
 
 #define BUFSIZE 256
-	FILE* from = stdin;
-	int buflength = 0;
-	int bufsize = BUFSIZE;
-	char* buf = (char*)malloc(bufsize);
-	bool sawNewline = false;
-	char* tmp;
-	if (!buf)
-		goto Error;
+    FILE* from = stdin;
+    int buflength = 0;
+    int bufsize = BUFSIZE;
+    char* buf = (char*)malloc(bufsize);
+    bool sawNewline = false;
+    char* tmp;
+    if (!buf)
+        goto Error;
 
-	int gotlength;
-	while ((gotlength = js_fgets(buf + buflength, bufsize - buflength, from)) > 0) {
-		buflength += gotlength;
+    int gotlength;
+    while ((gotlength = js_fgets(buf + buflength, bufsize - buflength, from)) > 0) {
+        buflength += gotlength;
 
-		/* Are we done? */
-		if (buf[buflength - 1] == '\n') {
-			buf[buflength - 1] = '\0';
-			sawNewline = true;
-			break;
-		}
-		else if (buflength < bufsize - 1) {
-			break;
-		}
+        /* Are we done? */
+        if (buf[buflength - 1] == '\n') {
+            buf[buflength - 1] = '\0';
+            sawNewline = true;
+            break;
+        }
+        else if (buflength < bufsize - 1) {
+            break;
+        }
 
-		/* Else, grow our buffer for another pass. */
-		bufsize *= 2;
-		if (bufsize > buflength) {
-			tmp = static_cast<char*>(realloc(buf, bufsize));
-		}
-		else {
-			goto Error;
-		}
+        /* Else, grow our buffer for another pass. */
+        bufsize *= 2;
+        if (bufsize > buflength) {
+            tmp = static_cast<char*>(realloc(buf, bufsize));
+        }
+        else {
+            goto Error;
+        }
 
-		if (!tmp) {
-			free(buf);
-			goto Error;
-		}
+        if (!tmp) {
+            free(buf);
+            goto Error;
+        }
 
-		buf = tmp;
-	}
+        buf = tmp;
+    }
 
-	/* Treat the empty string specially. */
-	if (buflength == 0) {
-		if (feof(from)) {
-			goto Error;
-		}
-		else {
-			JsValueRef emptyStringObject;
-			IfJsrtErrorSetGo(ChakraRTInterface::JsCreateString(buf, buflength, &emptyStringObject));
-			return emptyStringObject;
-		}
-	}
+    /* Treat the empty string specially. */
+    if (buflength == 0) {
+        if (feof(from)) {
+            goto Error;
+        }
+        else {
+            JsValueRef emptyStringObject;
+            IfJsrtErrorSetGo(ChakraRTInterface::JsCreateString(buf, buflength, &emptyStringObject));
+            return emptyStringObject;
+        }
+    }
 
-	/* Shrink the buffer to the real size. */
-	tmp = static_cast<char*>(realloc(buf, buflength));
-	if (!tmp) {
-		free(buf);
-		goto Error;
-	}
+    /* Shrink the buffer to the real size. */
+    tmp = static_cast<char*>(realloc(buf, buflength));
+    if (!tmp) {
+        free(buf);
+        goto Error;
+    }
 
-	buf = tmp;
+    buf = tmp;
 
-	/*
-	* Turn buf into a JSString. Note that buflength includes the trailing null
-	* character.
-	*/
-	JsValueRef stringObject;
-	IfJsrtErrorSetGo(ChakraRTInterface::JsCreateString(buf, sawNewline ? buflength - 1 : buflength, &stringObject));
-	return stringObject;
+    /*
+    * Turn buf into a JSString. Note that buflength includes the trailing null
+    * character.
+    */
+    JsValueRef stringObject;
+    IfJsrtErrorSetGo(ChakraRTInterface::JsCreateString(buf, sawNewline ? buflength - 1 : buflength, &stringObject));
+    return stringObject;
 
 Error:
-	return returnValue;
+    return returnValue;
 }
 
 JsValueRef __stdcall WScriptJsrt::LoadBinaryFileCallback(JsValueRef callee,
