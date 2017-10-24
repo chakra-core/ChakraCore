@@ -9407,6 +9407,7 @@ ParseNodePtr Parser::ParseTryCatchFinally()
             Error(ERRnoCatch);
         }
         Assert(!buildAST || pnodeTC);
+        this->m_tryCatchOrFinallyDepth--;
         return pnodeTC;
     }
 
