@@ -7759,6 +7759,36 @@ CommonNumber:
         return value;
     }
 
+    Var JavascriptOperators::GetGetter(Var instance, PropertyId propertyId)
+    {
+        Assert(!TaggedNumber::Is(instance));
+        Var varGetter = nullptr;
+        Var varSetter = nullptr;
+        RecyclableObject *object = RecyclableObject::FromVar(instance);
+        ScriptContext *scriptContext = object->GetScriptContext();
+        bool found = object->GetAccessors(propertyId, &varGetter, &varSetter, scriptContext);
+        if (!found)
+        {
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
+        return varGetter;
+    }
+
+    Var JavascriptOperators::GetSetter(Var instance, PropertyId propertyId)
+    {
+        Assert(!TaggedNumber::Is(instance));
+        Var varGetter = nullptr;
+        Var varSetter = nullptr;
+        RecyclableObject *object = RecyclableObject::FromVar(instance);
+        ScriptContext *scriptContext = object->GetScriptContext();
+        bool found = object->GetAccessors(propertyId, &varGetter, &varSetter, scriptContext);
+        if (!found)
+        {
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
+        return varSetter;
+    }
+
     template <bool IsFromFullJit, class TInlineCache>
     inline void JavascriptOperators::PatchPutValue(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags)
     {

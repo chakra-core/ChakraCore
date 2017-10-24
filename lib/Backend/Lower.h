@@ -329,6 +329,23 @@ private:
     void            GenerateGetSingleCharString(IR::RegOpnd * charCodeOpnd, IR::Opnd * resultOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * doneLabel, IR::Instr * instr, bool isCodePoint);
     void            GenerateFastBrBReturn(IR::Instr * instr);
 
+    void            GenerateLoadTaggedType(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndTaggedType);
+    bool            GenerateFastLdMethodFromFlags(IR::Instr * instrLdFld);
+    void            GenerateFlagInlineCacheCheck(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelNext);
+
+    void            GenerateFlagInlineCacheCheckForGetterSetter(
+                        IR::Instr * insertBeforeInstr,
+                        IR::RegOpnd * opndInlineCache,
+                        IR::LabelInstr * labelNext);
+
+    void            GenerateLdFldFromFlagInlineCache(
+                        IR::Instr * insertBeforeInstr,
+                        IR::RegOpnd * opndBase,
+                        IR::Opnd * opndDst,
+                        IR::RegOpnd * opndInlineCache,
+                        IR::LabelInstr * labelFallThru,
+                        bool isInlineSlot);
+
 public:
     static IR::LabelInstr *     InsertLabel(const bool isHelper, IR::Instr *const insertBeforeInstr);
 

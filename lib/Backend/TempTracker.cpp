@@ -673,7 +673,8 @@ NumberTemp::IsTempPropertyTransferLoad(IR::Instr * instr, BackwardPass * backwar
         case Js::OpCode::LdFldForTypeOf:
         case Js::OpCode::LdMethodFld:
         case Js::OpCode::LdFldForCallApplyTarget:
-        case Js::OpCode::LdMethodFromFlags:
+        case Js::OpCode::LdGetter:
+        case Js::OpCode::LdSetter:
             {
                 // Only care about load from possible stack allocated object.
                 return instr->GetSrc1()->CanStoreTemp();
@@ -1005,7 +1006,8 @@ ObjectTemp::IsTempUseOpCodeSym(IR::Instr * instr, Js::OpCode opcode, Sym * sym)
     case Js::OpCode::LdFldForTypeOf:
     case Js::OpCode::LdMethodFld:
     case Js::OpCode::LdFldForCallApplyTarget:
-    case Js::OpCode::LdMethodFromFlags:
+    case Js::OpCode::LdGetter:
+    case Js::OpCode::LdSetter:
         return instr->GetSrc1()->AsPropertySymOpnd()->GetObjectSym() == sym;
     case Js::OpCode::InitFld:
         if (Js::PropertyRecord::DefaultAttributesForPropertyId(

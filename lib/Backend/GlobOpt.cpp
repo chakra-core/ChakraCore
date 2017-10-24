@@ -3353,7 +3353,8 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                 case Js::OpCode::DeleteRootFldStrict:
                 case Js::OpCode::ScopedDeleteFld:
                 case Js::OpCode::ScopedDeleteFldStrict:
-                case Js::OpCode::LdMethodFromFlags:
+                case Js::OpCode::LdGetter:
+                case Js::OpCode::LdSetter:
                 case Js::OpCode::BrOnNoProperty:
                 case Js::OpCode::BrOnHasProperty:
                 case Js::OpCode::LdMethodFldPolyInlineMiss:
@@ -3804,7 +3805,8 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
         case Js::OpCode::LdRootFld:
         case Js::OpCode::LdMethodFld:
         case Js::OpCode::LdRootMethodFld:
-        case Js::OpCode::LdMethodFromFlags:
+        case Js::OpCode::LdGetter:
+        case Js::OpCode::LdSetter:
         case Js::OpCode::ScopedLdMethodFld:
             instr->m_opcode = Js::OpCode::Ld_A;
         case Js::OpCode::Ld_A:
@@ -4063,13 +4065,10 @@ GlobOpt::CopyPropReplaceOpnd(IR::Instr * instr, IR::Opnd * opnd, StackSym * copy
     case Js::OpCode::LdMethodFld:
     case Js::OpCode::LdRootMethodFld:
     case Js::OpCode::ScopedLdMethodFld:
-        instr->m_opcode = Js::OpCode::Ld_A;
-        break;
-
-    case Js::OpCode::LdMethodFromFlags:
+    case Js::OpCode::LdGetter:
+    case Js::OpCode::LdSetter:
         // The bailout is checked on the loop top and we don't need to check bailout again in loop.
         instr->m_opcode = Js::OpCode::Ld_A;
-        instr->ClearBailOutInfo();
         break;
 
     case Js::OpCode::TypeofElem:
@@ -4797,7 +4796,8 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
     case Js::OpCode::LdMethodFld:
     case Js::OpCode::LdRootMethodFld:
     case Js::OpCode::ScopedLdMethodFld:
-    case Js::OpCode::LdMethodFromFlags:
+    case Js::OpCode::LdGetter:
+    case Js::OpCode::LdSetter:
         if (instr->IsProfiledInstr())
         {
             ValueType profiledValueType(instr->AsProfiledInstr()->u.FldInfo().valueType);
