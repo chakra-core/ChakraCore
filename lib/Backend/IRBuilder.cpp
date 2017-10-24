@@ -413,7 +413,6 @@ IRBuilder::Build()
     m_func->m_exitInstr = IR::ExitInstr::New(Js::OpCode::FunctionExit, m_func);
     m_func->m_tailInstr = m_func->m_exitInstr;
     m_func->m_headInstr->InsertAfter(m_func->m_tailInstr);
-    m_func->m_isLeaf = true;  // until proven otherwise
 
     if (m_func->GetJITFunctionBody()->IsParamAndBodyScopeMerged())
     {
@@ -5776,7 +5775,6 @@ template <typename SizePolicy>
 void
 IRBuilder::BuildCallI(Js::OpCode newOpcode, uint32 offset)
 {
-    this->m_func->m_isLeaf = false;
     Assert(Js::OpCodeUtil::IsCallOp(newOpcode) || newOpcode == Js::OpCode::NewScObject || newOpcode == Js::OpCode::NewScObjArray);
     Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_CallI<SizePolicy>>();
@@ -5794,7 +5792,6 @@ template <typename SizePolicy>
 void
 IRBuilder::BuildCallIFlags(Js::OpCode newOpcode, uint32 offset)
 {
-    this->m_func->m_isLeaf = false;
     Assert(Js::OpCodeUtil::IsCallOp(newOpcode) || newOpcode == Js::OpCode::NewScObject || newOpcode == Js::OpCode::NewScObjArray);
     Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_CallIFlags<SizePolicy>>();
@@ -5835,7 +5832,6 @@ template <typename SizePolicy>
 void
 IRBuilder::BuildCallIExtended(Js::OpCode newOpcode, uint32 offset)
 {
-    this->m_func->m_isLeaf = false;
     Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_CallIExtended<SizePolicy>>();
 
@@ -5877,7 +5873,6 @@ template <typename SizePolicy>
 void
 IRBuilder::BuildCallIExtendedFlags(Js::OpCode newOpcode, uint32 offset)
 {
-    this->m_func->m_isLeaf = false;
     Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_CallIExtendedFlags<SizePolicy>>();
 
@@ -5918,7 +5913,6 @@ template <typename SizePolicy>
 void
 IRBuilder::BuildProfiledCallIFlagsWithICIndex(Js::OpCode newOpcode, uint32 offset)
 {
-    this->m_func->m_isLeaf = false;
     Assert(OpCodeAttr::IsProfiledOpWithICIndex(newOpcode) || Js::OpCodeUtil::IsProfiledCallOpWithICIndex(newOpcode));
     Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutDynamicProfile<Js::OpLayoutT_CallIFlagsWithICIndex<SizePolicy>>>();
@@ -5944,7 +5938,6 @@ template <typename SizePolicy>
 void
 IRBuilder::BuildProfiledCallIWithICIndex(Js::OpCode newOpcode, uint32 offset)
 {
-    this->m_func->m_isLeaf = false;
     Assert(OpCodeAttr::IsProfiledOpWithICIndex(newOpcode) || Js::OpCodeUtil::IsProfiledCallOpWithICIndex(newOpcode));
     Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutDynamicProfile<Js::OpLayoutT_CallIWithICIndex<SizePolicy>>>();
@@ -5969,7 +5962,6 @@ template <typename SizePolicy>
 void
 IRBuilder::BuildProfiledCallIExtendedFlags(Js::OpCode newOpcode, uint32 offset)
 {
-    this->m_func->m_isLeaf = false;
     Assert(OpCodeAttr::IsProfiledOp(newOpcode) || Js::OpCodeUtil::IsProfiledCallOp(newOpcode)
         || Js::OpCodeUtil::IsProfiledReturnTypeCallOp(newOpcode));
     Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
@@ -5997,7 +5989,6 @@ template <typename SizePolicy>
 void
 IRBuilder::BuildProfiledCallIExtendedWithICIndex(Js::OpCode newOpcode, uint32 offset)
 {
-    this->m_func->m_isLeaf = false;
     Assert(OpCodeAttr::IsProfiledOpWithICIndex(newOpcode) || Js::OpCodeUtil::IsProfiledCallOpWithICIndex(newOpcode));
     Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutDynamicProfile<Js::OpLayoutT_CallIExtendedWithICIndex<SizePolicy>>>();
@@ -6022,7 +6013,6 @@ template <typename SizePolicy>
 void
 IRBuilder::BuildProfiledCallIExtendedFlagsWithICIndex(Js::OpCode newOpcode, uint32 offset)
 {
-    this->m_func->m_isLeaf = false;
     Assert(OpCodeAttr::IsProfiledOpWithICIndex(newOpcode) || Js::OpCodeUtil::IsProfiledCallOpWithICIndex(newOpcode));
     Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutDynamicProfile<Js::OpLayoutT_CallIExtendedFlagsWithICIndex<SizePolicy>>>();
@@ -6049,7 +6039,6 @@ template <typename SizePolicy>
 void
 IRBuilder::BuildProfiledCallI(Js::OpCode newOpcode, uint32 offset)
 {
-    this->m_func->m_isLeaf = false;
     Assert(OpCodeAttr::IsProfiledOp(newOpcode) || Js::OpCodeUtil::IsProfiledCallOp(newOpcode)
         || Js::OpCodeUtil::IsProfiledReturnTypeCallOp(newOpcode));
     Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
@@ -6068,7 +6057,6 @@ template <typename SizePolicy>
 void
 IRBuilder::BuildProfiledCallIFlags(Js::OpCode newOpcode, uint32 offset)
 {
-    this->m_func->m_isLeaf = false;
     Assert(OpCodeAttr::IsProfiledOp(newOpcode) || Js::OpCodeUtil::IsProfiledCallOp(newOpcode)
         || Js::OpCodeUtil::IsProfiledReturnTypeCallOp(newOpcode));
     Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
@@ -6172,7 +6160,6 @@ template <typename SizePolicy>
 void
 IRBuilder::BuildProfiledCallIExtended(Js::OpCode newOpcode, uint32 offset)
 {
-    this->m_func->m_isLeaf = false;
     Assert(OpCodeAttr::IsProfiledOp(newOpcode) || Js::OpCodeUtil::IsProfiledCallOp(newOpcode)
         || Js::OpCodeUtil::IsProfiledReturnTypeCallOp(newOpcode));
     Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
@@ -6203,7 +6190,6 @@ template <typename SizePolicy>
 void
 IRBuilder::BuildProfiled2CallI(Js::OpCode newOpcode, uint32 offset)
 {
-    this->m_func->m_isLeaf = false;
     Assert(OpCodeAttr::IsProfiledOp(newOpcode));
     Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutDynamicProfile2<Js::OpLayoutT_CallI<SizePolicy>>>();
@@ -6279,7 +6265,6 @@ template <typename SizePolicy>
 void
 IRBuilder::BuildProfiled2CallIExtended(Js::OpCode newOpcode, uint32 offset)
 {
-    this->m_func->m_isLeaf = false;
     Assert(OpCodeAttr::IsProfiledOp(newOpcode));
     Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutDynamicProfile2<Js::OpLayoutT_CallIExtended<SizePolicy>>>();

@@ -219,6 +219,7 @@ LinearScanMD::GenerateBailInForGeneratorYield(IR::Instr * resumeLabelInstr, Bail
             newInstr = IR::Instr::New(Js::OpCode::CALL, this->func);
             newInstr->SetSrc1(IR::HelperCallOpnd::New(IR::HelperCRT_chkstk, this->func));
             instrAfter->InsertBefore(newInstr);
+            this->func->SetHasCallsOnSelfAndParents();
         }
         else
         {
