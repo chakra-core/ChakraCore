@@ -65,6 +65,7 @@ class HeapBucket
 public:
     HeapBucket();
 
+    uint GetSizeCat() const;
     uint GetBucketIndex() const;
     uint GetMediumBucketIndex() const;
 
@@ -141,7 +142,7 @@ public:
     void ResetMarks(ResetMarkFlags flags);
     void ScanNewImplicitRoots(Recycler * recycler);
 
-#ifdef DUMP_FRAGMENTATION_STATS
+#if ENABLE_MEM_STATS
     void AggregateBucketStats(HeapBucketStats& stats);
 #endif
     uint Rescan(Recycler * recycler, RescanFlags flags);

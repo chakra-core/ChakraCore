@@ -88,7 +88,9 @@ private:
 
     static void LegalizeLDIMM(IR::Instr * instr, IntConstType immed);
     static void LegalizeLdLabel(IR::Instr * instr, IR::Opnd * opnd);
-    static IR::Instr * GenerateLDIMM(IR::Instr * instr, uint opndNum, RegNum scratchReg);
+    static IR::Instr * GenerateLDIMM(IR::Instr * instr, uint opndNum, RegNum scratchReg, bool fPostRegAlloc);
+
+    static IR::Instr * GenerateHoistSrc(IR::Instr * instr, uint opndNum, Js::OpCode op, RegNum scratchReg, bool fPostRegAlloc);
 
     static void ObfuscateLDIMM(IR::Instr * instrMov, IR::Instr * instrMovt);
     static void EmitRandomNopBefore(IR::Instr * instrMov, UINT_PTR rand, RegNum targetReg);

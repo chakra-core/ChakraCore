@@ -16,17 +16,17 @@ SmallNormalHeapBucketBase<TBlockType>::SmallNormalHeapBucketBase()
 {
 }
 
-#ifdef DUMP_FRAGMENTATION_STATS
+#if ENABLE_MEM_STATS
 template <typename TBlockType>
 void
 SmallNormalHeapBucketBase<TBlockType>::AggregateBucketStats(HeapBucketStats& stats)
 {
     __super::AggregateBucketStats(stats);
 
-    HeapBlockList::ForEach(partialHeapBlockList, [&stats](SmallHeapBlock* heapBlock) {
+    HeapBlockList::ForEach(partialHeapBlockList, [&stats](TBlockType* heapBlock) {
         heapBlock->AggregateBlockStats(stats);
     });
-    HeapBlockList::ForEach(partialSweptHeapBlockList, [&stats](SmallHeapBlock* heapBlock) {
+    HeapBlockList::ForEach(partialSweptHeapBlockList, [&stats](TBlockType* heapBlock) {
         heapBlock->AggregateBlockStats(stats);
     });
 }

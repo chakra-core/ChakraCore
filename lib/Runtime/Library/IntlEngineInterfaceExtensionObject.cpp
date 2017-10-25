@@ -1703,41 +1703,53 @@ namespace Js
     */
     Var IntlEngineInterfaceExtensionObject::EntryIntl_RegisterBuiltInFunction(RecyclableObject* function, CallInfo callInfo, ...)
     {
+        // Don't put this in a header or add it to the namespace even in this file. Keep it to the minimum scope needed.
+        enum class IntlBuiltInFunctionID : int32 {
+            Min = 0,
+            DateToLocaleString = Min,
+            DateToLocaleDateString,
+            DateToLocaleTimeString,
+            NumberToLocaleString,
+            StringLocaleCompare,
+            Max
+        };
+
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        //This function will only be used during the construction of the Intl object, hence Asserts are in place.
+        // This function will only be used during the construction of the Intl object, hence Asserts are in place.
         Assert(args.Info.Count >= 3 && JavascriptFunction::Is(args.Values[1]) && TaggedInt::Is(args.Values[2]));
 
         JavascriptFunction *func = JavascriptFunction::FromVar(args.Values[1]);
         int32 id = TaggedInt::ToInt32(args.Values[2]);
+        Assert(id >= (int32)IntlBuiltInFunctionID::Min && id < (int32)IntlBuiltInFunctionID::Max);
 
-        Assert(id >= 0 && id < 5);
         EngineInterfaceObject* nativeEngineInterfaceObj = scriptContext->GetLibrary()->GetEngineInterfaceObject();
         IntlEngineInterfaceExtensionObject* extensionObject = static_cast<IntlEngineInterfaceExtensionObject*>(nativeEngineInterfaceObj->GetEngineExtension(EngineInterfaceExtensionKind_Intl));
 
-        switch (id)
+        IntlBuiltInFunctionID functionID = static_cast<IntlBuiltInFunctionID>(id);
+        switch (functionID)
         {
-        case 0:
+        case IntlBuiltInFunctionID::DateToLocaleString:
             extensionObject->dateToLocaleString = func;
             break;
-        case 1:
+        case IntlBuiltInFunctionID::DateToLocaleDateString:
             extensionObject->dateToLocaleDateString = func;
             break;
-        case 2:
+        case IntlBuiltInFunctionID::DateToLocaleTimeString:
             extensionObject->dateToLocaleTimeString = func;
             break;
-        case 3:
+        case IntlBuiltInFunctionID::NumberToLocaleString:
             extensionObject->numberToLocaleString = func;
             break;
-        case 4:
+        case IntlBuiltInFunctionID::StringLocaleCompare:
             extensionObject->stringLocaleCompare = func;
             break;
         default:
-            Assert(false);//Shouldn't hit here, the previous assert should catch this.
+            AssertMsg(false, "functionID was not one of the allowed values. The previous assert should catch this.");
             break;
         }
 
-        //Don't need to return anything
+        // Don't need to return anything
         return scriptContext->GetLibrary()->GetUndefined();
     }
 

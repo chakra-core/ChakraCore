@@ -787,20 +787,6 @@ LowererMD::ChangeToLea(IR::Instr * instr, bool postRegAlloc)
 
 ///----------------------------------------------------------------------------
 ///
-/// LowererMD::CreateAssign
-///
-///     Create a MOV.
-///
-///----------------------------------------------------------------------------
-
-IR::Instr *
-LowererMD::CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt, bool generateWriteBarrier)
-{
-    return Lowerer::InsertMove(dst, src, instrInsertPt, generateWriteBarrier);
-}
-
-///----------------------------------------------------------------------------
-///
 /// LowererMD::LowerRet
 ///
 ///     Lower Ret to "MOV EAX, src"
@@ -2880,7 +2866,7 @@ void LowererMD::GenerateFastCmXx(IR::Instr *instr)
     if (!isIntDst)
     {
         opnd = this->m_lowerer->LoadLibraryValueOpnd(instr, LibraryValue::ValueFalse);
-        LowererMD::CreateAssign(tmp, opnd, done);
+        Lowerer::InsertMove(tmp, opnd, done);
     }
 
     Js::OpCode useCC;
@@ -5842,6 +5828,7 @@ LowererMD::GenerateCFGCheck(IR::Opnd * entryPointOpnd, IR::Instr * insertBeforeI
     //Generate CheckCFG CALL here
     IR::HelperCallOpnd *cfgCallOpnd = IR::HelperCallOpnd::New(IR::HelperGuardCheckCall, this->m_func);
     IR::Instr* cfgCallInstr = IR::Instr::New(Js::OpCode::CALL, this->m_func);
+    this->m_func->SetHasCallsOnSelfAndParents();
 
 #if _M_IX86
     //call[__guard_check_icall_fptr]
@@ -8168,19 +8155,19 @@ LowererMD::LowerCommitScope(IR::Instr *instrCommit)
     if (firstVarSlot < propIds->count)
     {
         IR::RegOpnd *undefOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
-        LowererMD::CreateAssign(undefOpnd, m_lowerer->LoadLibraryValueOpnd(insertInstr, LibraryValue::ValueUndefined), insertInstr);
+        Lowerer::InsertMove(undefOpnd, m_lowerer->LoadLibraryValueOpnd(insertInstr, LibraryValue::ValueUndefined), insertInstr);
 
         IR::RegOpnd *slotBaseOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
 
         // Load a pointer to the aux slots. We assume that all ActivationObject's have only aux slots.
 
         opnd = IR::IndirOpnd::New(baseOpnd, Js::DynamicObject::GetOffsetOfAuxSlots(), TyMachReg, this->m_func);
-        this->CreateAssign(slotBaseOpnd, opnd, insertInstr);
+        Lowerer::InsertMove(slotBaseOpnd, opnd, insertInstr);
 
         for (uint i = firstVarSlot; i < propIds->count; i++)
         {
             opnd = IR::IndirOpnd::New(slotBaseOpnd, i << this->GetDefaultIndirScale(), TyMachReg, this->m_func);
-            this->CreateAssign(opnd, undefOpnd, insertInstr);
+            Lowerer::InsertMove(opnd, undefOpnd, insertInstr);
         }
     }
 
@@ -8659,7 +8646,7 @@ LowererMD::EmitReinterpretPrimitive(IR::Opnd* dst, IR::Opnd* src, IR::Instr* ins
 
             // shufps modifies the register, we shouldn't change the source here
             IR::RegOpnd* tmpDouble = IR::RegOpnd::New(TyFloat64, m_func);
-            this->CreateAssign(tmpDouble, src, insertBeforeInstr);
+            Lowerer::InsertMove(tmpDouble, src, insertBeforeInstr);
             LegalizeInsert(IR::Instr::New(Js::OpCode::MOVD, dstPair.low, tmpDouble, m_func));
             LegalizeInsert(IR::Instr::New(Js::OpCode::SHUFPS, tmpDouble, tmpDouble, IR::IntConstOpnd::New(1, TyInt8, m_func, true), m_func));
             LegalizeInsert(IR::Instr::New(Js::OpCode::MOVD, dstPair.high, tmpDouble, m_func));
@@ -9039,7 +9026,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             IR::Instr *floatCall = IR::Instr::New(Js::OpCode::CALL, floatCallDst, s1, this->m_func);
             instr->InsertBefore(floatCall);
 #endif
-            instr->m_func->SetHasCalls();
+            instr->m_func->SetHasCallsOnSelfAndParents();
             // Save the result.
             instr->m_opcode = Js::OpCode::MOVSD;
             instr->SetSrc1(floatCall->GetDst());

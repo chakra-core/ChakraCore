@@ -19,7 +19,7 @@ public:
     void FinalizeAllObjects();
     static void FinalizeHeapBlockList(THeapBlockType * list);
 
-#ifdef DUMP_FRAGMENTATION_STATS
+#if ENABLE_MEM_STATS
     void AggregateBucketStats(HeapBucketStats& stats);
 #endif
 protected:

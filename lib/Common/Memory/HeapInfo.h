@@ -46,8 +46,8 @@ public:
     const bool IsPageHeapEnabled() const{ return false; }
 #endif
 
-#ifdef DUMP_FRAGMENTATION_STATS
-    void DumpFragmentationStats();
+#if ENABLE_MEM_STATS
+    void ReportMemStats();
 #endif
 
     template <ObjectInfoBits attributes, bool nothrow>

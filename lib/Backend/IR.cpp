@@ -2531,7 +2531,7 @@ Instr::HoistIndirOffset(IR::IndirOpnd *indirOpnd, RegNum regNum)
     indirOpnd->SetOffset(0);
     indirOpnd->SetIndexOpnd(indexOpnd);
 
-    Instr *instrAssign = LowererMD::CreateAssign(indexOpnd, offsetOpnd, this);
+    Instr *instrAssign = Lowerer::InsertMove(indexOpnd, offsetOpnd, this);
     indexOpnd->m_sym->SetIsIntConst(offset);
     return instrAssign;
 }
