@@ -286,25 +286,41 @@ LowererMD::LowerCall(IR::Instr * callInstr, Js::ArgSlot argCount)
     IR::Opnd *dstOpnd = callInstr->GetDst();
     if (dstOpnd)
     {
-        IR::Instr * movInstr;
+        Js::OpCode assignOp;
+        RegNum returnReg;
+
         if(dstOpnd->IsFloat64())
         {
-            movInstr = callInstr->SinkDst(Js::OpCode::FMOV);
-
-            callInstr->GetDst()->AsRegOpnd()->SetReg(RETURN_DBL_REG);
-            movInstr->GetSrc1()->AsRegOpnd()->SetReg(RETURN_DBL_REG);
-
-            retInstr = movInstr;
+            assignOp = Js::OpCode::FMOV;
+            returnReg = RETURN_DBL_REG;
         }
         else
         {
-            movInstr = callInstr->SinkDst(Js::OpCode::MOV);
+            assignOp = Js::OpCode::MOV;
+            returnReg = RETURN_REG;
 
-            callInstr->GetDst()->AsRegOpnd()->SetReg(RETURN_REG);
-            movInstr->GetSrc1()->AsRegOpnd()->SetReg(RETURN_REG);
-
-            retInstr = movInstr;
+            if (callInstr->GetSrc1()->IsHelperCallOpnd())
+            {
+                // Truncate the result of a conversion to 32-bit int, because the C++ code doesn't.
+                IR::HelperCallOpnd *helperOpnd = callInstr->GetSrc1()->AsHelperCallOpnd();
+                if (helperOpnd->m_fnHelper == IR::HelperConv_ToInt32 ||
+                    helperOpnd->m_fnHelper == IR::HelperConv_ToInt32_Full ||
+                    helperOpnd->m_fnHelper == IR::HelperConv_ToInt32Core ||
+                    helperOpnd->m_fnHelper == IR::HelperConv_ToUInt32 ||
+                    helperOpnd->m_fnHelper == IR::HelperConv_ToUInt32_Full ||
+                    helperOpnd->m_fnHelper == IR::HelperConv_ToUInt32Core)
+                {
+                    assignOp = Js::OpCode::MOV_TRUNC;
+                }
+            }
         }
+
+        IR::Instr * movInstr = callInstr->SinkDst(assignOp);
+
+        callInstr->GetDst()->AsRegOpnd()->SetReg(returnReg);
+        movInstr->GetSrc1()->AsRegOpnd()->SetReg(returnReg);
+
+        retInstr = movInstr;
     }
 
     //
@@ -3671,25 +3687,15 @@ LowererMD::GenerateFastMul(IR::Instr * instrMul)
 
     instrMul->InsertBefore(labelNonZero);
 
-    //
-    // Convert TyInt32 operand, back to TyMachPtr type.
-    // Cast is fine. We know ChangeType returns IR::Opnd * but it
-    // preserves the Type.
-    //
+    // dst = MOV_TRUNC s3
 
-    if(TyMachReg != s3->GetType())
-    {
-        s3 = static_cast<IR::RegOpnd *>(s3->UseWithNewType(TyMachPtr, this->m_func));
-    }
+    instr = IR::Instr::New(Js::OpCode::MOV_TRUNC, instrMul->GetDst(), s3, this->m_func);
+    instrMul->InsertBefore(instr);
 
-    // s3 = OR s3, AtomTag_IntPtr
+    // dst = OR dst, AtomTag_IntPtr
 
     GenerateInt32ToVarConversion(s3, instrMul);
 
-    // dst = MOV s3
-
-    instr = IR::Instr::New(Js::OpCode::MOV, instrMul->GetDst(), s3, this->m_func);
-    instrMul->InsertBefore(instr);
 
     //      B $fallthru
 
@@ -5108,8 +5114,8 @@ LowererMD::GenerateUntagVar(IR::RegOpnd * src, IR::LabelInstr * labelFail, IR::I
         this->GenerateSmIntTest(opnd, assignInstr, labelFail);
     }
 
-    // Doing a 32-bit MOV clears the tag bits on ARM64.
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::MOV, valueOpnd, src->UseWithNewType(TyInt32, this->m_func), this->m_func);
+    // Doing a 32-bit MOV clears the tag bits on ARM64. Use MOV_TRUNC so it doesn't get peeped away.
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::MOV_TRUNC, valueOpnd, src->UseWithNewType(TyInt32, this->m_func), this->m_func);
     assignInstr->InsertBefore(instr);
     return valueOpnd;
 }
@@ -6326,8 +6332,9 @@ LowererMD::LowerInt4NegWithBailOut(
 
     // Lower the instruction
     instr->m_opcode = Js::OpCode::SUBS;
-    instr->SetSrc2(instr->UnlinkSrc1());
-    instr->SetSrc1(IR::RegOpnd::New(nullptr, RegZR, TyMachReg, instr->m_func));
+    instr->ReplaceDst(instr->GetDst()->UseWithNewType(TyInt32, instr->m_func));
+    instr->SetSrc2(instr->UnlinkSrc1()->UseWithNewType(TyInt32, instr->m_func));
+    instr->SetSrc1(IR::RegOpnd::New(nullptr, RegZR, TyInt32, instr->m_func));
     Legalize(instr);
 
     if(bailOutKind & IR::BailOutOnOverflow)
@@ -6460,8 +6467,8 @@ LowererMD::LowerInt4MulWithBailOut(
     instr->InsertBefore(insertInstr);
     LegalizeMD::LegalizeInstr(insertInstr, false);
 
-    // dst = MOV s3
-    instr->m_opcode = Js::OpCode::MOV;
+    // dst = MOV_TRUNC s3
+    instr->m_opcode = Js::OpCode::MOV_TRUNC;
     instr->SetSrc1(s3->UseWithNewType(TyInt32, instr->m_func));
 
     // check negative zero
@@ -6631,11 +6638,11 @@ LowererMD::EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32, bool isHelper)
 
     IR::RegOpnd *r1 = IR::RegOpnd::New(TyVar, m_func);
 
-    // e1 = MOV src1
-    // (Use 32-bit MOV here as we rely on the register copy to clear the upper 32 bits.)
+    // e1 = MOV_TRUNC src1
+    // (Use 32-bit MOV_TRUNC here as we rely on the register copy to clear the upper 32 bits.)
     IR::RegOpnd *e1 = r1->Copy(m_func)->AsRegOpnd();
     e1->SetType(TyInt32);
-    instrLoad->InsertBefore(IR::Instr::New(Js::OpCode::MOV,
+    instrLoad->InsertBefore(IR::Instr::New(Js::OpCode::MOV_TRUNC,
         e1,
         src1,
         m_func));
@@ -6788,11 +6795,10 @@ LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed,
 
             this->GenerateSmIntTest(src1, instrLoad, labelFloat ? labelFloat : helper);
         }
-        IR::RegOpnd *src132 = src1->UseWithNewType(TyInt32, instrLoad->m_func)->AsRegOpnd();
 
-        instrLoad->InsertBefore(IR::Instr::New(Js::OpCode::MOV,
+        instrLoad->InsertBefore(IR::Instr::New(Js::OpCode::MOV_TRUNC,
             dst->UseWithNewType(TyInt32, instrLoad->m_func),
-            src132,
+            src1->UseWithNewType(TyInt32, instrLoad->m_func),
             instrLoad->m_func));
 
         if (!isInt)
