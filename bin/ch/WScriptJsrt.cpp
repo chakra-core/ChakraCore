@@ -1074,7 +1074,7 @@ Error:
     return returnValue;
 }
 
-int js_fgets(char* buf, int size, FILE* file)
+int JsFgets(char* buf, int size, FILE* file)
 {
     int n = size - 1;
     if (n < 0)
@@ -1106,7 +1106,7 @@ JsValueRef __stdcall WScriptJsrt::ReadLineStdinCallback(JsValueRef callee, bool 
     JsValueRef returnValue = JS_INVALID_REFERENCE;
     JsErrorCode errorCode = JsNoError;
 
-#define BUFSIZE 256
+    const int BUFSIZE = 256;
     FILE* from = stdin;
     int buflength = 0;
     int bufsize = BUFSIZE;
@@ -1117,7 +1117,7 @@ JsValueRef __stdcall WScriptJsrt::ReadLineStdinCallback(JsValueRef callee, bool 
         goto Error;
 
     int gotlength;
-    while ((gotlength = js_fgets(buf + buflength, bufsize - buflength, from)) > 0) {
+    while ((gotlength = JsFgets(buf + buflength, bufsize - buflength, from)) > 0) {
         buflength += gotlength;
 
         /* Are we done? */
@@ -1140,7 +1140,6 @@ JsValueRef __stdcall WScriptJsrt::ReadLineStdinCallback(JsValueRef callee, bool 
         }
 
         if (!tmp) {
-            free(buf);
             goto Error;
         }
 
@@ -1155,14 +1154,14 @@ JsValueRef __stdcall WScriptJsrt::ReadLineStdinCallback(JsValueRef callee, bool 
         else {
             JsValueRef emptyStringObject;
             IfJsrtErrorSetGo(ChakraRTInterface::JsCreateString(buf, buflength, &emptyStringObject));
+            free(buf);
             return emptyStringObject;
         }
     }
 
     /* Shrink the buffer to the real size. */
-    tmp = static_cast<char*>(realloc(buf, buflength));
+    tmp = static_cast<char*>(buf);
     if (!tmp) {
-        free(buf);
         goto Error;
     }
 
@@ -1174,9 +1173,12 @@ JsValueRef __stdcall WScriptJsrt::ReadLineStdinCallback(JsValueRef callee, bool 
     */
     JsValueRef stringObject;
     IfJsrtErrorSetGo(ChakraRTInterface::JsCreateString(buf, sawNewline ? buflength - 1 : buflength, &stringObject));
+    free(buf);
     return stringObject;
 
 Error:
+    if (buf)
+        free(buf);
     return returnValue;
 }
 
