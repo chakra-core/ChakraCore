@@ -1159,14 +1159,6 @@ JsValueRef __stdcall WScriptJsrt::ReadLineStdinCallback(JsValueRef callee, bool 
         }
     }
 
-    /* Shrink the buffer to the real size. */
-    tmp = static_cast<char*>(buf);
-    if (!tmp) {
-        goto Error;
-    }
-
-    buf = tmp;
-
     /*
     * Turn buf into a JSString. Note that buflength includes the trailing null
     * character.
@@ -1178,7 +1170,9 @@ JsValueRef __stdcall WScriptJsrt::ReadLineStdinCallback(JsValueRef callee, bool 
 
 Error:
     if (buf)
+    {
         free(buf);
+    }
     return returnValue;
 }
 
