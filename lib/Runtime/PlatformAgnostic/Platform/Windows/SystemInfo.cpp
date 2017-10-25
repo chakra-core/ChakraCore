@@ -9,17 +9,6 @@
 
 namespace PlatformAgnostic
 {
-    SystemInfo::PlatformData SystemInfo::data;
-
-    SystemInfo::PlatformData::PlatformData()
-    {
-        ULONGLONG ram;
-        if (GetPhysicallyInstalledSystemMemory(&ram) == TRUE)
-        {
-            totalRam = static_cast<size_t>(ram) * 1024;
-        }
-    }
-
     bool SystemInfo::GetMaxVirtualMemory(size_t *totalAS)
     {
         SYSTEM_INFO info;
@@ -27,5 +16,4 @@ namespace PlatformAgnostic
         *totalAS = (size_t) info.lpMaximumApplicationAddress;
         return true;
     }
-
 }

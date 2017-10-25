@@ -9,6 +9,16 @@ set(ch_source_files
   RuntimeThreadData.cpp
   )
 
+if(CC_TARGET_OS_LINUX)
+  set(ch_source_files "${ch_source_files}"
+    PlatformAgnostic/Platform/Linux/SystemInfo.cpp
+    )
+elseif(CC_TARGET_OS_OSX)
+  set(ch_source_files "${ch_source_files}"
+    PlatformAgnostic/Platform/Unix/Module.cpp
+    )
+endif()
+
 if (STATIC_LIBRARY)
   set(ch_source_files "${ch_source_files}"
     ../ChakraCore/TestHooks.cpp
@@ -30,6 +40,7 @@ endif()
 
 target_include_directories (ch
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+  PlatformAgnostic
   ../ChakraCore
   ../../lib/Common
   ../../lib/Jsrt

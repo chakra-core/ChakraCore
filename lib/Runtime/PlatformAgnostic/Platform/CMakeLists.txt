@@ -10,7 +10,6 @@ set(PL_SOURCE_FILES
   Linux/Thread.cpp
   Linux/PerfTrace.cpp
   Common/Trace.cpp
-  Common/SystemInfo.Common.cpp
   )
 
 if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
