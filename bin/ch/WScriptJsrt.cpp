@@ -1121,7 +1121,13 @@ JsValueRef __stdcall WScriptJsrt::ReadLineStdinCallback(JsValueRef callee, bool 
         buflength += gotlength;
 
         /* Are we done? */
-        if (buf[buflength - 1] == '\n') {
+        if (buf[buflength - 2] == '\r' && buf[buflength - 1] == '\n') {
+            buf[buflength - 1] = '\0';
+            buf[buflength - 2] = '\0';
+            sawNewline = true;
+            break;
+        }
+        else if (buf[buflength - 1] == '\n') {
             buf[buflength - 1] = '\0';
             sawNewline = true;
             break;
