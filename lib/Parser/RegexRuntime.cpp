@@ -386,12 +386,6 @@ namespace UnifiedRegex
         byte *currentByte = startByte;
         w->Print(_u("0x%p[+0x%03x](0x%03x) [%s]:"), startByte, offset, size, annotation);
 
-        if ((T *)this == that)
-        {
-            w->PrintEOL(_u(" (no unique data -- skipping)"));
-            return;
-        }
-
         for (; currentByte < endByte; ++currentByte)
         {
             if ((currentByte - endByte) % 4 == 0)
@@ -412,7 +406,7 @@ namespace UnifiedRegex
         ptrdiff_t offsetToData = (byte *)&(start->tag) - ((byte *)start);
         size_t size = baseSize - offsetToData;
 
-        byte *startByte = (byte *)(&(start->tag)); // skip over the vtable pointer
+        byte *startByte = (byte *)(&(start->tag));
         byte *endByte = startByte + size;
         byte *currentByte = startByte;
         w->Print(_u("0x%p[+0x%03x](0x%03x) [%s]:"), startByte, offsetToData, size, annotation);
@@ -5722,7 +5716,6 @@ namespace UnifiedRegex
         return res;
     }
 
-
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void Matcher::Print(DebugWriter* w, const Char* const input, const CharCount inputLength, CharCount inputOffset, const uint8* instPointer, ContStack &contStack, AssertionStack &assertionStack) const
     {
@@ -5759,7 +5752,28 @@ namespace UnifiedRegex
         if (program->tag == Program::BOIInstructionsTag || program->tag == Program::InstructionsTag)
         {
             w->Print(_u("instPointer: "));
-            ((const Inst*)instPointer)->Print(w, InstPointerToLabel(instPointer), program->rep.insts.litbuf);
+
+            const Inst* inst = (const Inst*)instPointer;
+            switch (inst->tag)
+            {
+#define MBase(TagName, ClassName) \
+            case Inst::TagName: \
+            { \
+                const ClassName *actualInst = static_cast<const ClassName *>(inst); \
+                actualInst->Print(w, InstPointerToLabel(instPointer), program->rep.insts.litbuf); \
+                break; \
+            }
+#define M(TagName) MBase(TagName, TagName##Inst)
+#define MTemplate(TagName, TemplateDeclaration, GenericClassName, SpecializedClassName) MBase(TagName, SpecializedClassName)
+#include "RegexOpCodes.h"
+#undef MBase
+#undef M
+#undef MTemplate
+            default:
+                Assert(false);
+                __assume(false);
+            }
+
             w->PrintEOL(_u("groups:"));
             w->Indent();
             for (int i = 0; i < program->numGroups; i++)
@@ -5920,7 +5934,26 @@ namespace UnifiedRegex
                 int i = 0;
                 while (curr != instsLim)
                 {
-                    curr += ((Inst*)curr)->Print(w, (Label)(isBaselineMode ? i++ : curr - rep.insts.insts), rep.insts.litbuf);
+                    const Inst *inst = (const Inst*)curr;
+                    switch (inst->tag)
+                    {
+#define MBase(TagName, ClassName) \
+                    case Inst::TagName: \
+                    { \
+                        const ClassName *actualInst = static_cast<const ClassName *>(inst); \
+                        curr += actualInst->Print(w, (Label)(isBaselineMode ? i++ : curr - rep.insts.insts), rep.insts.litbuf); \
+                        break; \
+                    }
+#define M(TagName) MBase(TagName, TagName##Inst)
+#define MTemplate(TagName, TemplateDeclaration, GenericClassName, SpecializedClassName) MBase(TagName, SpecializedClassName)
+#include "RegexOpCodes.h"
+#undef MBase
+#undef M
+#undef MTemplate
+                    default:
+                        Assert(false);
+                        __assume(false);
+                    }
                 }
                 w->Unindent();
                 w->PrintEOL(_u("}"));

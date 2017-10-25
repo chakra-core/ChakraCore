@@ -723,7 +723,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
         static bool IsBaselineMode();
         static Label GetPrintLabel(Label label);
-        virtual int Print(DebugWriter*w, Label label, const Char* litbuf) const = 0;
+
         template <typename T>
         void PrintBytes(DebugWriter *w, Inst *inst, T *that, const char16 *annotation) const;
 #endif
@@ -737,7 +737,7 @@ namespace UnifiedRegex
     }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-#define INST_BODY_PRINT virtual int Print(DebugWriter*w, Label label, const Char* litbuf) const override;
+#define INST_BODY_PRINT int Print(DebugWriter*w, Label label, const Char* litbuf) const;
 #else
 #define INST_BODY_PRINT
 #endif
