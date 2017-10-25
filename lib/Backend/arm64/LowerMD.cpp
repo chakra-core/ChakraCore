@@ -3617,7 +3617,7 @@ LowererMD::GenerateFastMul(IR::Instr * instrMul)
         // s2 = MOV src2
 
         opndReg2 = IR::RegOpnd::New(TyInt32, this->m_func);
-        instr = IR::Instr::New(Js::OpCode::MOV, opndReg2, opnd2, this->m_func);
+        instr = IR::Instr::New(Js::OpCode::LDIMM, opndReg2, opnd2, this->m_func);
         instrMul->InsertBefore(instr);
     }
     else
@@ -3675,7 +3675,7 @@ LowererMD::GenerateFastMul(IR::Instr * instrMul)
 
     // dst = ToVar(-0.0)    -- load negative 0
 
-    instr = IR::Instr::New(Js::OpCode::MOV, instrMul->GetDst(), m_lowerer->LoadLibraryValueOpnd(instrMul, LibraryValue::ValueNegativeZero), this->m_func);
+    instr = IR::Instr::New(Js::OpCode::LDIMM, instrMul->GetDst(), m_lowerer->LoadLibraryValueOpnd(instrMul, LibraryValue::ValueNegativeZero), this->m_func);
     instrMul->InsertBefore(instr);
 
     //      B $fallthru
