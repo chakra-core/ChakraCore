@@ -147,6 +147,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JITThunkEmitter.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptNativeOperators.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)EquivalentTypeSet.cpp" />
+    <ClCompile Include="arm64\ARM64UnwindEncoder.cpp">
+      <Filter>arm64</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />
@@ -372,6 +375,9 @@
     <ClInclude Include="JavascriptNativeOperators.h" />
     <ClInclude Include="EquivalentTypeSet.h" />
     <ClInclude Include="arm64\MdOpCodes.h">
+      <Filter>arm64</Filter>
+    </ClInclude>
+    <ClInclude Include="arm64\ARM64UnwindEncoder.h">
       <Filter>arm64</Filter>
     </ClInclude>
   </ItemGroup>

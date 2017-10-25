@@ -145,6 +145,10 @@
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM64'">true</ExcludedFromBuild>
       <ObjectFileName Condition="'$(Platform)'!='ARM64'">$(IntDir)\arm64</ObjectFileName>
     </ClCompile>
+    <ClCompile Include="arm64\ARM64UnwindEncoder.cpp">
+      <ExcludedFromBuild Condition="'$(Platform)'!='ARM64'">true</ExcludedFromBuild>
+      <ObjectFileName Condition="'$(Platform)'!='ARM64'">$(IntDir)\arm64</ObjectFileName>
+    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)arm64\EncoderMD.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM64'">true</ExcludedFromBuild>
       <!-- Since there are more then one EncoderMD.cpp, we need to set them output into different directory, even when they are ExcludedFromBuild -->
@@ -258,6 +262,9 @@
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="arm64\ARM64NeonEncoder.h">
+      <ExcludedFromBuild Condition="'$(Platform)'!='ARM64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="arm64\ARM64UnwindEncoder.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="arm64\EncoderMD.h">

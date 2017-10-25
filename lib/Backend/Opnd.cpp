@@ -3026,7 +3026,7 @@ Opnd::DumpAddress(void *address, bool printToConsole, bool skipMaskedAddress)
     }
     else
     {
-#ifdef _M_X64
+#ifdef _M_X64_OR_ARM64
         Output::Print(_u("0x%012I64X"), address);
 #else
         Output::Print(_u("0x%08X"), address);
