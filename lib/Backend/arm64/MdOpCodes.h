@@ -65,6 +65,8 @@ MACRO(LEA,        Reg3,       0,              UNUSED,   LEGAL_LOAD,     UNUSED, 
 MACRO(LSL,        Reg2,       0,              UNUSED,   LEGAL_SHIFT,    UNUSED,   D___)
 MACRO(LSR,        Reg2,       0,              UNUSED,   LEGAL_SHIFT,    UNUSED,   D___)
 MACRO(MOV,        Reg2,       0,              UNUSED,   LEGAL_REG2,     UNUSED,   DM__)
+// Alias of MOV that won't get optimized out when src and dst are the same.
+MACRO(MOV_TRUNC,  Reg2,       0,              UNUSED,   LEGAL_REG2,     UNUSED,   DM__)
 MACRO(MOVK,       Reg2,       0,              UNUSED,   LEGAL_LDIMM,    UNUSED,   DM__)
 MACRO(MOVN,       Reg2,       0,              UNUSED,   LEGAL_LDIMM,    UNUSED,   DM__)
 MACRO(MOVZ,       Reg2,       0,              UNUSED,   LEGAL_LDIMM,    UNUSED,   DM__)
