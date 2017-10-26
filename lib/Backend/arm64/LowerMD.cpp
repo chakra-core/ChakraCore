@@ -869,13 +869,14 @@ LowererMD::GenerateStackProbe(IR::Instr *insertInstr, bool afterProlog)
 
     // ToDo (SaAgarwa): Make sure all SP offsets are correct
     // Zero out the pointer to the list of stack nested funcs, since the functions won't be initialized on this path.
+    /*
     scratchOpnd = IR::RegOpnd::New(nullptr, RegR0, TyMachReg, m_func);
     IR::RegOpnd *frameReg = IR::RegOpnd::New(nullptr, GetRegFramePointer(), TyMachReg, m_func);
     Lowerer::InsertMove(scratchOpnd, IR::IntConstOpnd::New(0, TyMachReg, m_func), insertInstr);
     IR::Opnd *indirOpnd = IR::IndirOpnd::New(
         frameReg, -(int32)(Js::Constants::StackNestedFuncList * sizeof(Js::Var)), TyMachReg, m_func);
     Lowerer::InsertMove(indirOpnd, scratchOpnd, insertInstr);
-
+    */
     IR::RegOpnd *r0Opnd = IR::RegOpnd::New(nullptr, RegR0, TyMachReg, this->m_func);
     Lowerer::InsertMove(r0Opnd, IR::IntConstOpnd::New(frameSize, TyMachReg, this->m_func, true), insertInstr);
 
