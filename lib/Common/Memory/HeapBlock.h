@@ -37,17 +37,37 @@ template <typename TBlockType> class HeapBucketT;
 class  RecyclerSweep;
 class MarkContext;
 
-#ifdef DUMP_FRAGMENTATION_STATS
-struct HeapBucketStats
+#if ENABLE_MEM_STATS
+struct MemStats
 {
+    size_t objectByteCount;
+    size_t totalByteCount;
+
+    MemStats() : objectByteCount(0), totalByteCount(0) {}
+
+    void Aggregate(const MemStats& other)
+    {
+        objectByteCount += other.objectByteCount;
+        totalByteCount += other.totalByteCount;
+    }
+};
+
+struct HeapBucketStats: MemStats
+{
+#ifdef DUMP_FRAGMENTATION_STATS
     uint totalBlockCount;
     uint emptyBlockCount;
     uint finalizeBlockCount;
     uint objectCount;
     uint finalizeCount;
-    uint objectByteCount;
-    uint totalByteCount;
+#endif
 };
+
+#ifdef DUMP_FRAGMENTATION_STATS
+#define DUMP_FRAGMENTATION_STATS_ONLY(x) x
+#else
+#define DUMP_FRAGMENTATION_STATS_ONLY(x)
+#endif
 #endif
 
 #if defined(PROFILE_RECYCLER_ALLOC) || defined(RECYCLER_MEMORY_VERIFY) || defined(MEMSPECT_TRACKING) || defined(RECYCLER_PERF_COUNTERS) || defined(ETW_MEMORY_TRACKING)
@@ -635,7 +655,7 @@ public:
     void InduceFalsePositive(Recycler * recycler);
 #endif
 
-#ifdef DUMP_FRAGMENTATION_STATS
+#if ENABLE_MEM_STATS
     void AggregateBlockStats(HeapBucketStats& stats, bool isAllocatorBlock = false, FreeObject* freeObjectList = nullptr, bool isBumpAllocated = false);
 #endif
 

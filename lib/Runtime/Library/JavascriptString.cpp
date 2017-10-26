@@ -1733,7 +1733,7 @@ case_2:
     Var JavascriptString::GetRegExSymbolFunction(Var regExp, PropertyId propertyId, ScriptContext* scriptContext)
     {
         return JavascriptOperators::GetPropertyNoCache(
-            RecyclableObject::FromVar(JavascriptOperators::ToObject(regExp, scriptContext)),
+            JavascriptOperators::ToObject(regExp, scriptContext),
             propertyId,
             scriptContext);
     }

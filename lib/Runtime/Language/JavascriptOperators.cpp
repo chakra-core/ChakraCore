@@ -9986,7 +9986,7 @@ CommonNumber:
         return Less_Full(aLeft, aRight, scriptContext);
     }
 
-    Var JavascriptOperators::ToObject(Var aRight, ScriptContext* scriptContext)
+    RecyclableObject* JavascriptOperators::ToObject(Var aRight, ScriptContext* scriptContext)
     {
         RecyclableObject* object = nullptr;
         if (FALSE == JavascriptConversion::ToObject(aRight, scriptContext, &object))
@@ -10131,13 +10131,13 @@ CommonNumber:
     // GetIterator as described in ES6.0 (draft 22) Section 7.4.1
     RecyclableObject* JavascriptOperators::GetIterator(Var iterable, ScriptContext* scriptContext, bool optional)
     {
-        RecyclableObject* iterableObj = RecyclableObject::FromVar(JavascriptOperators::ToObject(iterable, scriptContext));
+        RecyclableObject* iterableObj = JavascriptOperators::ToObject(iterable, scriptContext);
         return JavascriptOperators::GetIterator(iterableObj, scriptContext, optional);
     }
 
     RecyclableObject* JavascriptOperators::GetIteratorFunction(Var iterable, ScriptContext* scriptContext, bool optional)
     {
-        RecyclableObject* iterableObj = RecyclableObject::FromVar(JavascriptOperators::ToObject(iterable, scriptContext));
+        RecyclableObject* iterableObj = JavascriptOperators::ToObject(iterable, scriptContext);
         return JavascriptOperators::GetIteratorFunction(iterableObj, scriptContext, optional);
     }
 

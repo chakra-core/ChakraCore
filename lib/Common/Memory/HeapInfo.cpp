@@ -576,7 +576,7 @@ HeapInfo::Initialize(Recycler * recycler
 {
     this->recycler = recycler;
 #ifdef DUMP_FRAGMENTATION_STATS
-    if (recycler->GetRecyclerFlagsTable().flags.DumpFragmentationStats)
+    if (recycler->GetRecyclerFlagsTable().DumpFragmentationStats)
     {
         Output::Print(_u("[FRAG %d] Start"), ::GetTickCount());
     }
@@ -1150,39 +1150,95 @@ HeapInfo::Rescan(RescanFlags flags)
 }
 
 #ifdef DUMP_FRAGMENTATION_STATS
+template <ObjectInfoBits TBucketType>
+struct DumpBucketTypeName { static char16 name[]; };
+template<> char16 DumpBucketTypeName<NoBit>::name[] = _u("Normal ");
+template<> char16 DumpBucketTypeName<LeafBit>::name[] = _u("Leaf   ");
+template<> char16 DumpBucketTypeName<FinalizeBit>::name[] = _u("Fin    ");
+template<> char16 DumpBucketTypeName<WithBarrierBit>::name[] = _u("NormWB ");
+template<> char16 DumpBucketTypeName<FinalizableWithBarrierBit>::name[] = _u("FinWB  ");
+template<> char16 DumpBucketTypeName<RecyclerVisitedHostBit>::name[] = _u("Visited");
+template <typename TBlockType>
+struct DumpBlockTypeName { static char16 name[]; };
+template<> char16 DumpBlockTypeName<SmallAllocationBlockAttributes>::name[] = _u("(S)");
+template<> char16 DumpBlockTypeName<MediumAllocationBlockAttributes>::name[] = _u("(M)");
+#endif
 
-template <ObjectInfoBits TBucketType, class TBlockAttributes>
-void DumpBucket(uint bucketIndex, typename SmallHeapBlockType<TBucketType, TBlockAttributes>::BucketType& bucket)
+#if ENABLE_MEM_STATS
+template <class TBlockAttributes, ObjectInfoBits TBucketType>
+void GetBucketStats(HeapBucketGroup<TBlockAttributes>& group, MemStats& total, bool dumpFragmentationStats)
 {
-    HeapBucketStats stats = { 0 };
-
+    auto& bucket = group.GetBucket<TBucketType>();
+    HeapBucketStats stats = {};
     bucket.AggregateBucketStats(stats);
+    total.Aggregate(stats);
 
-    Output::Print(_u("%d,%d,"), bucketIndex, (bucketIndex + 1) << HeapConstants::ObjectAllocationShift);
-    Output::Print(_u("%d,%d,%d,%d,%d,%d,%d\n"), stats.totalBlockCount, stats.finalizeBlockCount, stats.emptyBlockCount, stats.objectCount, stats.finalizeCount, stats.objectByteCount, stats.totalByteCount);
+#ifdef DUMP_FRAGMENTATION_STATS
+    if (dumpFragmentationStats && stats.totalByteCount > 0)
+    {
+        Output::Print(_u("%-7s%s %4d : "),
+            DumpBucketTypeName<TBucketType>::name, DumpBlockTypeName<TBlockAttributes>::name, bucket.GetSizeCat());
+        Output::Print(_u("%7d %7d %7d %7d %7d %10lu %10lu\n"),
+            stats.totalBlockCount, stats.finalizeBlockCount, stats.emptyBlockCount,
+            stats.objectCount, stats.finalizeCount,
+            static_cast<ulong>(stats.objectByteCount), static_cast<ulong>(stats.totalByteCount));
+    }
+#endif
 }
 
 void
-HeapInfo::DumpFragmentationStats()
+HeapInfo::ReportMemStats()
 {
-    Output::Print(_u("[FRAG %d] Post-Collection State\n"), ::GetTickCount());
-    Output::Print(_u("Bucket,SizeCat,Block Count,Finalizable Block Count,Empty Block Count, Object Count, Finalizable Object Count, Object size, Block Size\n"));
+    bool dumpFragmentationStats = false;
 
+#ifdef DUMP_FRAGMENTATION_STATS
+    if (recycler->GetRecyclerFlagsTable().DumpFragmentationStats)
+    {
+        dumpFragmentationStats = true;
+        Output::Print(_u("[FRAG %d] Post-Collection State\n"), ::GetTickCount());
+        Output::Print(_u("---------------------------------------------------------------------------------------\n"));
+        Output::Print(_u("                     #Blk  #FinBlk  #EmpBlk  #Objs    #Fin    ObjBytes  TotalBytes\n"));
+        Output::Print(_u("---------------------------------------------------------------------------------------\n"));
+    }
+#endif
+
+    if (!dumpFragmentationStats)  // TODO: or ETW off
+    {
+        return;
+    }
+
+    MemStats total;
     for (uint i = 0; i < HeapConstants::BucketCount; i++)
     {
-        DumpBucket<NoBit, SmallAllocationBlockAttributes>(i, heapBuckets[i].GetBucket<NoBit>());
-        DumpBucket<FinalizeBit, SmallAllocationBlockAttributes>(i, heapBuckets[i].GetBucket<FinalizeBit>());
-        DumpBucket<LeafBit, SmallAllocationBlockAttributes>(i, heapBuckets[i].GetBucket<LeafBit>());
+        GetBucketStats<SmallAllocationBlockAttributes, NoBit>(heapBuckets[i], total, dumpFragmentationStats);
+        GetBucketStats<SmallAllocationBlockAttributes, LeafBit>(heapBuckets[i], total, dumpFragmentationStats);
+        GetBucketStats<SmallAllocationBlockAttributes, FinalizeBit>(heapBuckets[i], total, dumpFragmentationStats);
+#ifdef RECYCLER_WRITE_BARRIER
+        GetBucketStats<SmallAllocationBlockAttributes, WithBarrierBit>(heapBuckets[i], total, dumpFragmentationStats);
+        GetBucketStats<SmallAllocationBlockAttributes, FinalizableWithBarrierBit>(heapBuckets[i], total, dumpFragmentationStats);
+#endif
+#ifdef RECYCLER_VISITED_HOST
+        GetBucketStats<SmallAllocationBlockAttributes, RecyclerVisitedHostBit>(heapBuckets[i], total, dumpFragmentationStats);
+#endif
     }
 
 #if defined(BUCKETIZE_MEDIUM_ALLOCATIONS) && SMALLBLOCK_MEDIUM_ALLOC
     for (uint i = 0; i < HeapConstants::MediumBucketCount; i++)
     {
-        DumpBucket<NoBit, MediumAllocationBlockAttributes>(i, mediumHeapBuckets[i].GetBucket<NoBit>());
-        DumpBucket<FinalizeBit, MediumAllocationBlockAttributes>(i, mediumHeapBuckets[i].GetBucket<FinalizeBit>());
-        DumpBucket<LeafBit, MediumAllocationBlockAttributes>(i, mediumHeapBuckets[i].GetBucket<LeafBit>());
+        GetBucketStats<MediumAllocationBlockAttributes, NoBit>(mediumHeapBuckets[i], total, dumpFragmentationStats);
+        GetBucketStats<MediumAllocationBlockAttributes, LeafBit>(mediumHeapBuckets[i], total, dumpFragmentationStats);
+        GetBucketStats<MediumAllocationBlockAttributes, FinalizeBit>(mediumHeapBuckets[i], total, dumpFragmentationStats);
+#ifdef RECYCLER_WRITE_BARRIER
+        GetBucketStats<MediumAllocationBlockAttributes, WithBarrierBit>(mediumHeapBuckets[i], total, dumpFragmentationStats);
+        GetBucketStats<MediumAllocationBlockAttributes, FinalizableWithBarrierBit>(mediumHeapBuckets[i], total, dumpFragmentationStats);
+#endif
+#ifdef RECYCLER_VISITED_HOST
+        GetBucketStats<MediumAllocationBlockAttributes, RecyclerVisitedHostBit>(mediumHeapBuckets[i], total, dumpFragmentationStats);
+#endif
     }
 #endif
+
+    // TODO: Large bucket
 }
 #endif
 

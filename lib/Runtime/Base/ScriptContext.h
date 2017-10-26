@@ -835,6 +835,10 @@ private:
         EventHandler disposeScriptByFaultInjectionEventHandler;
 #endif
 
+#ifndef CC_LOW_MEMORY_TARGET
+        uint integerStringMapCacheMissCount;
+        uint integerStringMapCacheUseCount;
+#endif
         double lastNumberToStringRadix10;
         double lastUtcTimeFromStr;
 

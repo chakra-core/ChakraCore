@@ -28,6 +28,9 @@ if(ICU_INTL_ENABLED)
 set(PL_SOURCE_FILES ${PL_SOURCE_FILES}
   Common/Intl.cpp
   )
+add_compile_options(
+  -frtti
+)
 endif()
 
 if(NOT STATIC_LIBRARY)
