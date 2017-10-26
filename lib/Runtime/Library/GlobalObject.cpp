@@ -1454,7 +1454,6 @@ namespace Js
                 bs->AppendChars(chw);
             }
         }
-
         LEAVE_PINNED_SCOPE();   // src
 
         return bs;

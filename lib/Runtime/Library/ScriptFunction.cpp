@@ -430,7 +430,7 @@ namespace Js
 
         returnStr = LiteralString::NewCopyBuffer(funcBodyStr, (charcount_t)totalLength, scriptContext);
 
-        LEAVE_PINNED_SCOPE();
+        LEAVE_PINNED_SCOPE();   //  computedName
         LeavePinnedScope();     //  inputString
 
         return returnStr;
