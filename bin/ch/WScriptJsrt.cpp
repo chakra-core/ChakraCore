@@ -1110,54 +1110,66 @@ JsValueRef __stdcall WScriptJsrt::ReadLineStdinCallback(JsValueRef callee, bool 
     FILE* from = stdin;
     int buflength = 0;
     int bufsize = BUFSIZE;
-    char* buf = (char*)malloc(bufsize);
-    bool sawNewline = false;
+    char* buf = static_cast<char*>(malloc(bufsize));
     char* tmp;
     if (!buf)
+    {
         goto Error;
+    }
 
-    int gotlength;
-    while ((gotlength = JsFgets(buf + buflength, bufsize - buflength, from)) > 0) {
+    int gotlength = 0;
+
+    while ((gotlength = JsFgets(buf + buflength, bufsize - buflength, from)) > 0) 
+    {
         buflength += gotlength;
 
-        /* Are we done? */
-        if (buf[buflength - 2] == '\r' && buf[buflength - 1] == '\n') {
+        // are we done?
+        if (buf[buflength - 2] == '\r' && buf[buflength - 1] == '\n') 
+        {
             buf[buflength - 1] = '\0';
             buf[buflength - 2] = '\0';
-            sawNewline = true;
+            buflength -= 2;
             break;
         }
-        else if (buf[buflength - 1] == '\n') {
+        else if (buf[buflength - 1] == '\n') 
+        {
             buf[buflength - 1] = '\0';
-            sawNewline = true;
+            buflength -= 1;
             break;
         }
-        else if (buflength < bufsize - 1) {
+        else if (buflength < bufsize - 1) 
+        {
             break;
         }
 
-        /* Else, grow our buffer for another pass. */
+        // Else, grow our buffer for another pass.
         bufsize *= 2;
-        if (bufsize > buflength) {
+        if (bufsize > buflength) 
+        {
             tmp = static_cast<char*>(realloc(buf, bufsize));
         }
-        else {
+        else 
+        {
             goto Error;
         }
 
-        if (!tmp) {
+        if (!tmp) 
+        {
             goto Error;
         }
 
         buf = tmp;
     }
 
-    /* Treat the empty string specially. */
-    if (buflength == 0) {
-        if (feof(from)) {
+    //Treat the empty string specially.
+    if (buflength == 0) 
+    {
+        if (feof(from)) 
+        {
             goto Error;
         }
-        else {
+        else 
+        {
             JsValueRef emptyStringObject;
             IfJsrtErrorSetGo(ChakraRTInterface::JsCreateString(buf, buflength, &emptyStringObject));
             free(buf);
@@ -1165,12 +1177,10 @@ JsValueRef __stdcall WScriptJsrt::ReadLineStdinCallback(JsValueRef callee, bool 
         }
     }
 
-    /*
-    * Turn buf into a JSString. Note that buflength includes the trailing null
-    * character.
-    */
+   
+    // Turn buf into a JSString. Note that buflength includes the trailing null character.
     JsValueRef stringObject;
-    IfJsrtErrorSetGo(ChakraRTInterface::JsCreateString(buf, sawNewline ? buflength - 1 : buflength, &stringObject));
+    IfJsrtErrorSetGo(ChakraRTInterface::JsCreateString(buf, buflength, &stringObject));
     free(buf);
     return stringObject;
 
