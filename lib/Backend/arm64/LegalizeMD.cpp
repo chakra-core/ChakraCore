@@ -308,11 +308,36 @@ IR::Instr * LegalizeMD::LegalizeLoad(IR::Instr *instr, uint opndNum, LegalForms 
 
 void LegalizeMD::LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpnd, LegalForms forms, bool fPostRegAlloc)
 {
-    int32 offset = indirOpnd->GetOffset();
+   int32 offset = indirOpnd->GetOffset();
 
-    // Can't have both offset and index, so hoist the offset and try again.
-    if (indirOpnd->GetIndexOpnd() != NULL && offset != 0)
+    if (indirOpnd->IsFloat())
     {
+        IR::RegOpnd *baseOpnd = indirOpnd->GetBaseOpnd();
+        IR::RegOpnd *indexOpnd = indirOpnd->UnlinkIndexOpnd(); //Clears index operand
+        byte scale = indirOpnd->GetScale();
+
+        if (indexOpnd)
+        {
+            if (scale > 0)
+            {
+                // There is no support for ADD instruction with barrel shifter in encoder, hence add an explicit instruction to left shift the index operand
+                // Reason is this requires 4 operand in IR and there is no support for this yet.
+                // If we encounter more such scenarios, its better to solve the root cause.
+                // Also VSTR & VLDR don't take index operand as parameter
+                IR::RegOpnd* newIndexOpnd = IR::RegOpnd::New(indexOpnd->GetType(), instr->m_func);
+                IR::Instr* newInstr = IR::Instr::New(Js::OpCode::LSL, newIndexOpnd, indexOpnd,
+                    IR::IntConstOpnd::New(scale, TyMachReg, instr->m_func), instr->m_func);
+                instr->InsertBefore(newInstr);
+                indirOpnd->SetScale(0); //Clears scale
+                indexOpnd = newIndexOpnd;
+            }
+
+            instr->HoistIndirIndexOpndAsAdd(indirOpnd, baseOpnd, indexOpnd, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
+        }
+    }
+    else if (indirOpnd->GetIndexOpnd() != NULL && offset != 0)
+    {
+        // Can't have both offset and index, so hoist the offset and try again.
         IR::Instr *addInstr = instr->HoistIndirOffset(indirOpnd, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
         LegalizeMD::LegalizeInstr(addInstr, fPostRegAlloc);
         return;
@@ -754,43 +779,6 @@ bool LegalizeMD::LegalizeDirectBranch(IR::BranchInstr *branchInstr, uint32 branc
     branchInstr->m_opcode = Js::OpCode::B;
     return true;
 }
-
-void LegalizeMD::LegalizeIndirOpndForVFP(IR::Instr* insertInstr, IR::IndirOpnd *indirOpnd, bool fPostRegAlloc)
-{
-    IR::RegOpnd *baseOpnd = indirOpnd->GetBaseOpnd();
-    int32 offset = indirOpnd->GetOffset();
-
-    IR::RegOpnd *indexOpnd = indirOpnd->UnlinkIndexOpnd(); //Clears index operand
-    byte scale = indirOpnd->GetScale();
-    IR::Instr *instr = NULL;
-
-    if (indexOpnd)
-    {
-        if (scale > 0)
-        {
-            // There is no support for ADD instruction with barrel shifter in encoder, hence add an explicit instruction to left shift the index operand
-            // Reason is this requires 4 operand in IR and there is no support for this yet.
-            // If we encounter more such scenarios, its better to solve the root cause.
-            // Also VSTR & VLDR don't take index operand as parameter
-            IR::RegOpnd* newIndexOpnd = IR::RegOpnd::New(indexOpnd->GetType(), insertInstr->m_func);
-            instr = IR::Instr::New(Js::OpCode::LSL, newIndexOpnd, indexOpnd,
-                                   IR::IntConstOpnd::New(scale, TyMachReg, insertInstr->m_func), insertInstr->m_func);
-            insertInstr->InsertBefore(instr);
-            indirOpnd->SetScale(0); //Clears scale
-            indexOpnd = newIndexOpnd;
-        }
-
-        insertInstr->HoistIndirIndexOpndAsAdd(indirOpnd, baseOpnd, indexOpnd, fPostRegAlloc? SCRATCH_REG : RegNOREG);
-    }
-
-    if (IS_CONST_UINT10((offset < 0? -offset: offset)))
-    {
-        return;
-    }
-    IR::Instr* instrAdd = insertInstr->HoistIndirOffsetAsAdd(indirOpnd, indirOpnd->GetBaseOpnd(), offset, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
-    LegalizeMD::LegalizeInstr(instrAdd, fPostRegAlloc);
-}
-
 
 #ifdef DBG
 

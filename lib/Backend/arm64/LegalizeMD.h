@@ -74,8 +74,6 @@ public:
     static void LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, bool fPostRegAlloc);
 
     static bool LegalizeDirectBranch(IR::BranchInstr *instr, uint32 branchOffset); // DirectBranch has no src & dst operands.
-    //Returns IndexOpnd which is removed from VFP indirect operand
-    static void LegalizeIndirOpndForVFP(IR::Instr* insertInstr, IR::IndirOpnd *indirOpnd, bool fPostRegAlloc);
 
 private:
     static void LegalizeRegOpnd(IR::Instr* instr, IR::Opnd* opnd);

@@ -5626,7 +5626,7 @@ LowererMD::EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, I
 
     if (dst->IsIndirOpnd())
     {
-        LegalizeMD::LegalizeIndirOpndForVFP(insertInstr, dst->AsIndirOpnd(), false);
+        LegalizeMD::LegalizeDst(insertInstr, false);
     }
 
     labelDone = EmitLoadFloatCommon(dst, src, insertInstr, true);
