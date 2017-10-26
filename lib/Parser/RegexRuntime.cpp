@@ -901,12 +901,11 @@ namespace UnifiedRegex
     }
 #endif
 
-    template <int n>
+    template <uint8 n>
     void SwitchMixin<n>::AddCase(char16 c, Label targetLabel)
     {
-        Assert(numCases < MaxCases);
-        int i;
-        __analysis_assume(numCases < MaxCases);
+        AnalysisAssert(numCases < MaxCases);
+        uint8 i;
         for (i = 0; i < numCases; i++)
         {
             Assert(cases[i].c != c);
@@ -916,7 +915,7 @@ namespace UnifiedRegex
             }
         }
         __analysis_assume(numCases < MaxCases);
-        for (int j = numCases; j > i; j--)
+        for (uint8 j = numCases; j > i; j--)
         {
             cases[j] = cases[j - 1];
         }
@@ -927,29 +926,36 @@ namespace UnifiedRegex
 
     void UnifiedRegexSwitchMixinForceAllInstantiations()
     {
-        {
-            SwitchMixin<10> x;
-            x.AddCase(0, 0);
 #if ENABLE_REGEX_CONFIG_OPTIONS
-            x.Print(0, 0);
+#define SWITCH_FORCE_INSTANTIATION_PRINT x.Print(0, 0)
+#else
+#define SWITCH_FORCE_INSTANTIATION_PRINT
 #endif
+
+#define SWITCH_FORCE_INSTANTIATION(n)                       \
+        {                                                   \
+            SwitchMixin<n> x;                               \
+            x.AddCase(0, 0);                                \
+            SWITCH_FORCE_INSTANTIATION_PRINT;               \
         }
-        {
-            SwitchMixin<20> x;
-            x.AddCase(0, 0);
-#if ENABLE_REGEX_CONFIG_OPTIONS
-            x.Print(0, 0);
-#endif
-        }
+
+        SWITCH_FORCE_INSTANTIATION(2);
+        SWITCH_FORCE_INSTANTIATION(4);
+        SWITCH_FORCE_INSTANTIATION(8);
+        SWITCH_FORCE_INSTANTIATION(16);
+        SWITCH_FORCE_INSTANTIATION(24);
+
+#undef SWITCH_FORCE_INSTANTIATION_PRINT
+#undef SWITCH_FORCE_INSTANTIATION
     }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-    template <int n>
+    template <uint8 n>
     void SwitchMixin<n>::Print(DebugWriter* w, const char16* litbuf) const
     {
         w->EOL();
         w->Indent();
-        for (int i = 0; i < numCases; i++)
+        for (uint8 i = 0; i < numCases; i++)
         {
             cases[i].Print(w);
         }
@@ -1173,270 +1179,73 @@ namespace UnifiedRegex
 #endif
 
     // ----------------------------------------------------------------------
-    // Switch10Inst (optimized instruction)
+    // Switch(AndConsume)Inst (optimized instructions)
     // ----------------------------------------------------------------------
 
-    inline bool Switch10Inst::Exec(REGEX_INST_EXEC_PARAMETERS) const
-    {
-        if (inputOffset >= inputLength)
-        {
-            return matcher.Fail(FAIL_PARAMETERS);
-        }
-#if 0
-        int l = 0;
-        int h = numCases - 1;
-        while (l <= h)
-        {
-            int m = (l + h) / 2;
 #if ENABLE_REGEX_CONFIG_OPTIONS
-            matcher.CompStats();
-#endif
-            if (cases[m].c == input[inputOffset])
-            {
-                instPointer = matcher.LabelToInstPointer(cases[m].targetLabel);
-                return false;
-            }
-            else if (cases[m].c < input[inputOffset])
-            {
-                l = m + 1;
-            }
-            else
-            {
-                h = m - 1;
-            }
-        }
+#define COMP_STATS matcher.CompStats()
+#define SwitchAndConsumeInstPrintImpl(BaseName, n)                                              \
+    int BaseName##n##Inst::Print(DebugWriter* w, Label label, const Char* litbuf) const         \
+    {                                                                                           \
+        PRINT_RE_BYTECODE_BEGIN("SwitchAndConsume"#n);                                          \
+        PRINT_MIXIN(SwitchMixin<n>);                                                            \
+        PRINT_RE_BYTECODE_MID();                                                                \
+        PRINT_BYTES(SwitchMixin<n>);                                                            \
+        PRINT_RE_BYTECODE_END();                                                                \
+    }
 #else
-        const int localNumCases = numCases;
-        for (int i = 0; i < localNumCases; i++)
-        {
-#if ENABLE_REGEX_CONFIG_OPTIONS
-            matcher.CompStats();
-#endif
-            if (cases[i].c == input[inputOffset])
-            {
-                instPointer = matcher.LabelToInstPointer(cases[i].targetLabel);
-                return false;
-            }
-            else if (cases[i].c > input[inputOffset])
-            {
-                break;
-            }
-        }
+#define COMP_STATS
+#define SwitchAndConsumeInstPrintImpl(BaseName, n)
 #endif
 
-        instPointer += sizeof(*this);
-        return false;
-    }
+#define SwitchAndConsumeInstImpl(BaseName, n) \
+    inline bool BaseName##n##Inst::Exec(REGEX_INST_EXEC_PARAMETERS) const                       \
+    {                                                                                           \
+        if (inputOffset >= inputLength)                                                         \
+        {                                                                                       \
+            return matcher.Fail(FAIL_PARAMETERS);                                               \
+        }                                                                                       \
+                                                                                                \
+        const uint8 localNumCases = numCases;                                                     \
+        for (int i = 0; i < localNumCases; i++)                                                 \
+        {                                                                                       \
+            COMP_STATS;                                                                         \
+            if (cases[i].c == input[inputOffset])                                               \
+            {                                                                                   \
+                CONSUME;                                                                        \
+                instPointer = matcher.LabelToInstPointer(cases[i].targetLabel);                 \
+                return false;                                                                   \
+            }                                                                                   \
+            else if (cases[i].c > input[inputOffset])                                           \
+            {                                                                                   \
+                break;                                                                          \
+            }                                                                                   \
+        }                                                                                       \
+                                                                                                \
+        instPointer += sizeof(*this);                                                           \
+        return false;                                                                           \
+    }                                                                                           \
+    SwitchAndConsumeInstPrintImpl(BaseName, n);
 
-#if ENABLE_REGEX_CONFIG_OPTIONS
-    int Switch10Inst::Print(DebugWriter* w, Label label, const Char* litbuf) const
-    {
-        PRINT_RE_BYTECODE_BEGIN("Switch10");
-        PRINT_MIXIN(SwitchMixin<10>);
-        PRINT_RE_BYTECODE_MID();
-        PRINT_BYTES(SwitchMixin<10>);
-        PRINT_RE_BYTECODE_END();
-    }
-#endif
+#define CONSUME
+    SwitchAndConsumeInstImpl(Switch, 2);
+    SwitchAndConsumeInstImpl(Switch, 4);
+    SwitchAndConsumeInstImpl(Switch, 8);
+    SwitchAndConsumeInstImpl(Switch, 16);
+    SwitchAndConsumeInstImpl(Switch, 24);
+#undef CONSUME
 
-    // ----------------------------------------------------------------------
-    // Switch20Inst (optimized instruction)
-    // ----------------------------------------------------------------------
+#define CONSUME inputOffset++
+    SwitchAndConsumeInstImpl(SwitchAndConsume, 2);
+    SwitchAndConsumeInstImpl(SwitchAndConsume, 4);
+    SwitchAndConsumeInstImpl(SwitchAndConsume, 8);
+    SwitchAndConsumeInstImpl(SwitchAndConsume, 16);
+    SwitchAndConsumeInstImpl(SwitchAndConsume, 24);
+#undef CONSUME
 
-    inline bool Switch20Inst::Exec(REGEX_INST_EXEC_PARAMETERS) const
-    {
-        if (inputOffset >= inputLength)
-            return matcher.Fail(FAIL_PARAMETERS);
-#if 0
-        int l = 0;
-        int h = numCases - 1;
-        while (l <= h)
-        {
-            int m = (l + h) / 2;
-#if ENABLE_REGEX_CONFIG_OPTIONS
-            matcher.CompStats();
-#endif
-            if (cases[m].c == input[inputOffset])
-            {
-                instPointer = matcher.LabelToInstPointer(cases[m].targetLabel);
-                return false;
-            }
-            else if (cases[m].c < input[inputOffset])
-            {
-                l = m + 1;
-            }
-            else
-            {
-                h = m - 1;
-            }
-        }
-#else
-        const int localNumCases = numCases;
-        for (int i = 0; i < localNumCases; i++)
-        {
-#if ENABLE_REGEX_CONFIG_OPTIONS
-            matcher.CompStats();
-#endif
-            if (cases[i].c == input[inputOffset])
-            {
-                instPointer = matcher.LabelToInstPointer(cases[i].targetLabel);
-                return false;
-            }
-            else if (cases[i].c > input[inputOffset])
-            {
-                break;
-            }
-        }
-#endif
-
-        instPointer += sizeof(*this);
-        return false;
-    }
-
-#if ENABLE_REGEX_CONFIG_OPTIONS
-    int Switch20Inst::Print(DebugWriter* w, Label label, const Char* litbuf) const
-    {
-        PRINT_RE_BYTECODE_BEGIN("Switch20");
-        PRINT_MIXIN(SwitchMixin<20>);
-        PRINT_RE_BYTECODE_MID();
-        PRINT_BYTES(SwitchMixin<20>);
-        PRINT_RE_BYTECODE_END();
-    }
-#endif
-
-    // ----------------------------------------------------------------------
-    // SwitchAndConsume10Inst (optimized instruction)
-    // ----------------------------------------------------------------------
-
-    inline bool SwitchAndConsume10Inst::Exec(REGEX_INST_EXEC_PARAMETERS) const
-    {
-        if (inputOffset >= inputLength)
-            return matcher.Fail(FAIL_PARAMETERS);
-#if 0
-        int l = 0;
-        int h = numCases - 1;
-        while (l <= h)
-        {
-            int m = (l + h) / 2;
-#if ENABLE_REGEX_CONFIG_OPTIONS
-            matcher.CompStats();
-#endif
-            if (cases[m].c == input[inputOffset])
-            {
-                inputOffset++;
-                instPointer = matcher.LabelToInstPointer(cases[m].targetLabel);
-                return false;
-            }
-            else if (cases[m].c < input[inputOffset])
-            {
-                l = m + 1;
-            }
-            else
-            {
-                h = m - 1;
-            }
-        }
-#else
-        const int localNumCases = numCases;
-        for (int i = 0; i < localNumCases; i++)
-        {
-#if ENABLE_REGEX_CONFIG_OPTIONS
-            matcher.CompStats();
-#endif
-            if (cases[i].c == input[inputOffset])
-            {
-                inputOffset++;
-                instPointer = matcher.LabelToInstPointer(cases[i].targetLabel);
-                return false;
-            }
-            else if (cases[i].c > input[inputOffset])
-            {
-                break;
-            }
-        }
-#endif
-
-        instPointer += sizeof(*this);
-        return false;
-    }
-
-#if ENABLE_REGEX_CONFIG_OPTIONS
-    int SwitchAndConsume10Inst::Print(DebugWriter* w, Label label, const Char* litbuf) const
-    {
-        PRINT_RE_BYTECODE_BEGIN("SwitchAndConsume10");
-        PRINT_MIXIN(SwitchMixin<10>);
-        PRINT_RE_BYTECODE_MID();
-        PRINT_BYTES(SwitchMixin<10>);
-        PRINT_RE_BYTECODE_END();
-    }
-#endif
-
-    // ----------------------------------------------------------------------
-    // SwitchAndConsume20Inst (optimized instruction)
-    // ----------------------------------------------------------------------
-
-    inline bool SwitchAndConsume20Inst::Exec(REGEX_INST_EXEC_PARAMETERS) const
-    {
-        if (inputOffset >= inputLength)
-            return matcher.Fail(FAIL_PARAMETERS);
-#if 0
-        int l = 0;
-        int h = numCases - 1;
-        while (l <= h)
-        {
-            int m = (l + h) / 2;
-#if ENABLE_REGEX_CONFIG_OPTIONS
-            matcher.CompStats();
-#endif
-            if (cases[m].c == input[inputOffset])
-            {
-                inputOffset++;
-                instPointer = matcher.LabelToInstPointer(cases[m].targetLabel);
-                return false;
-            }
-            else if (cases[m].c < input[inputOffset])
-            {
-                l = m + 1;
-            }
-            else
-            {
-                h = m - 1;
-            }
-        }
-#else
-        const int localNumCases = numCases;
-        for (int i = 0; i < localNumCases; i++)
-        {
-#if ENABLE_REGEX_CONFIG_OPTIONS
-            matcher.CompStats();
-#endif
-            if (cases[i].c == input[inputOffset])
-            {
-                inputOffset++;
-                instPointer = matcher.LabelToInstPointer(cases[i].targetLabel);
-                return false;
-            }
-            else if (cases[i].c > input[inputOffset])
-            {
-                break;
-            }
-        }
-#endif
-
-        instPointer += sizeof(*this);
-        return false;
-    }
-
-#if ENABLE_REGEX_CONFIG_OPTIONS
-    int SwitchAndConsume20Inst::Print(DebugWriter* w, Label label, const Char* litbuf) const
-    {
-        PRINT_RE_BYTECODE_BEGIN("SwitchAndConsume20");
-        PRINT_MIXIN(SwitchMixin<20>);
-        PRINT_RE_BYTECODE_MID();
-        PRINT_BYTES(SwitchMixin<20>);
-        PRINT_RE_BYTECODE_END();
-    }
-#endif
+#undef COMP_STATS
+#undef SwitchAndConsumeInstPrintImpl
+#undef SwitchAndConsumeInstImpl
 
     // ----------------------------------------------------------------------
     // BOITestInst
@@ -6018,8 +5827,11 @@ namespace UnifiedRegex
 #endif
 
     // Template parameter here is the max number of cases
-    template void UnifiedRegex::SwitchMixin<10>::AddCase(char16, unsigned int);
-    template void UnifiedRegex::SwitchMixin<20>::AddCase(char16, unsigned int);
+    template void UnifiedRegex::SwitchMixin<2>::AddCase(char16, Label);
+    template void UnifiedRegex::SwitchMixin<4>::AddCase(char16, Label);
+    template void UnifiedRegex::SwitchMixin<8>::AddCase(char16, Label);
+    template void UnifiedRegex::SwitchMixin<16>::AddCase(char16, Label);
+    template void UnifiedRegex::SwitchMixin<24>::AddCase(char16, Label);
 
 #define M(...)
 #define MTemplate(TagName, TemplateDeclaration, GenericClassName, SpecializedClassName) template struct SpecializedClassName;
