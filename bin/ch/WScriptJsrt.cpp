@@ -205,7 +205,7 @@ JsValueRef WScriptJsrt::LoadScriptFileHelper(JsValueRef callee, JsValueRef *argu
             }
             else
             {
-                returnValue = LoadScript(callee, *fileName, fileContent, *scriptInjectType ? *scriptInjectType : "self", isSourceModule, WScriptJsrt::FinalizeFree);
+                returnValue = LoadScript(callee, *fileName, fileContent, *scriptInjectType ? *scriptInjectType : "self", isSourceModule, WScriptJsrt::FinalizeFree, true);
             }
         }
     }
@@ -258,6 +258,7 @@ JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall
         AutoString fileName;
         AutoString scriptInjectType;
         char fileNameBuffer[MAX_PATH];
+        bool isFile = true;
 
         IfJsrtErrorSetGo(fileContent.Initialize(arguments[1]));
         // ExternalArrayBuffer Finalize will clean this up
@@ -275,17 +276,21 @@ JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall
             }
         }
 
-        if (!fileNameNarrow && isSourceModule)
+        if (!fileNameNarrow)
         {
-            sprintf_s(fileNameBuffer, MAX_PATH, "moduleScript%i.js", (int)sourceContext);
-            fileNameNarrow = fileNameBuffer;
+            isFile = false;
+            if (isSourceModule)
+            {
+                sprintf_s(fileNameBuffer, MAX_PATH, "moduleScript%i.js", (int)sourceContext);
+                fileNameNarrow = fileNameBuffer;
+            }
         }
 
         if (*fileContent)
         {
             // TODO: This is CESU-8. How to tell the engine?
             // TODO: How to handle this source (script) life time?
-            returnValue = LoadScript(callee, fileNameNarrow, *fileContent, *scriptInjectType ? *scriptInjectType : "self", isSourceModule, WScriptJsrt::FinalizeFree);
+            returnValue = LoadScript(callee, fileNameNarrow, *fileContent, *scriptInjectType ? *scriptInjectType : "self", isSourceModule, WScriptJsrt::FinalizeFree, isFile);
         }
     }
 
@@ -347,7 +352,7 @@ void WScriptJsrt::GetDir(LPCSTR fullPathNarrow, std::string *fullDirNarrow)
     *fullDirNarrow = result;
 }
 
-JsErrorCode WScriptJsrt::LoadModuleFromString(LPCSTR fileName, LPCSTR fileContent, LPCSTR fullName)
+JsErrorCode WScriptJsrt::LoadModuleFromString(LPCSTR fileName, LPCSTR fileContent, LPCSTR fullName, bool isFile)
 {
     DWORD_PTR dwSourceCookie = WScriptJsrt::GetNextSourceContext();
     JsModuleRecord requestModule = JS_INVALID_REFERENCE;
@@ -390,6 +395,15 @@ JsErrorCode WScriptJsrt::LoadModuleFromString(LPCSTR fileName, LPCSTR fileConten
 
     // ParseModuleSource is sync, while additional fetch & evaluation are async.
     unsigned int fileContentLength = (fileContent == nullptr) ? 0 : (unsigned int)strlen(fileContent);
+ 
+    if (isFile && fullName)
+    {
+        JsValueRef moduleUrl;
+        ChakraRTInterface::JsCreateString(fullName, strlen(fullName), &moduleUrl);
+        errorCode = ChakraRTInterface::JsSetModuleHostInfo(requestModule, JsModuleHostInfo_Url, moduleUrl);
+        IfJsrtErrorFail(errorCode, errorCode);
+    }
+ 
     errorCode = ChakraRTInterface::JsParseModuleSource(requestModule, dwSourceCookie, (LPBYTE)fileContent,
         fileContentLength, JsParseModuleSourceFlags_DataIsUTF8, &errorObject);
     if ((errorCode != JsNoError) && errorObject != JS_INVALID_REFERENCE && fileContent != nullptr && !HostConfigFlags::flags.IgnoreScriptErrorCode)
@@ -402,7 +416,7 @@ JsErrorCode WScriptJsrt::LoadModuleFromString(LPCSTR fileName, LPCSTR fileConten
 
 
 JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName,
-    LPCSTR fileContent, LPCSTR scriptInjectType, bool isSourceModule, JsFinalizeCallback finalizeCallback)
+    LPCSTR fileContent, LPCSTR scriptInjectType, bool isSourceModule, JsFinalizeCallback finalizeCallback, bool isFile)
 {
     HRESULT hr = E_FAIL;
     JsErrorCode errorCode = JsNoError;
@@ -419,7 +433,7 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName,
     IfJsrtErrorSetGo(ChakraRTInterface::JsGetRuntime(currentContext, &runtime));
 
     if (fileName == nullptr)
-        {
+    {
         fileName = "script.js";
     }
 
@@ -432,7 +446,7 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName,
     // treated as a module source text instead of opening a new file.
     if (isSourceModule || (strcmp(scriptInjectType, "module") == 0))
     {
-        errorCode = LoadModuleFromString(fileName, fileContent, fullPath);
+        errorCode = LoadModuleFromString(fileName, fileContent, fullPath, isFile);
     }
     else if (strcmp(scriptInjectType, "self") == 0)
     {
@@ -1350,7 +1364,7 @@ bool WScriptJsrt::PrintException(LPCSTR fileName, JsErrorCode jsErrorCode)
 
                 int line;
                 int column;
-
+                
                 IfJsrtErrorFail(CreatePropertyIdFromString("line", &linePropertyId), false);
                 IfJsrtErrorFail(ChakraRTInterface::JsGetProperty(exception, linePropertyId, &lineProperty), false);
                 IfJsrtErrorFail(ChakraRTInterface::JsNumberToInt(lineProperty, &line), false);
@@ -1558,11 +1572,11 @@ HRESULT WScriptJsrt::ModuleMessage::Call(LPCSTR fileName)
                     fprintf(stderr, "Couldn't load file.\n");
                 }
 
-                LoadScript(nullptr, fullPath, nullptr, "module", true, WScriptJsrt::FinalizeFree);
+                LoadScript(nullptr, fullPath, nullptr, "module", true, WScriptJsrt::FinalizeFree, false);
             }
             else
             {
-                LoadScript(nullptr, fullPath, fileContent, "module", true, WScriptJsrt::FinalizeFree);
+                LoadScript(nullptr, fullPath, fileContent, "module", true, WScriptJsrt::FinalizeFree, true);
             }
         }
     }

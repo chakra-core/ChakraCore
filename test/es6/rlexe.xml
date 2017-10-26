@@ -1354,6 +1354,11 @@
   </test>
   <test>
     <default>
+      <files>moduleUrlInError.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>dynamic-module-functionality.js</files>
       <compile-flags>-ES6Module -args summary -endargs</compile-flags>
       <tags>exclude_sanitize_address</tags>
