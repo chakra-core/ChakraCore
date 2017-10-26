@@ -705,7 +705,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
     IR::Opnd* dst = 0;
     IR::Opnd* src1 = 0;
     IR::Opnd* src2 = 0;
-    int bytes;
+    int bytes = 0;
     int size;
 
     switch (instr->m_opcode)
@@ -913,15 +913,15 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         break;
 
     case Js::OpCode::MOVK:
-        this->EmitMovConstant(Emitter, instr, EmitMovk, EmitMovk64);
+        bytes = this->EmitMovConstant(Emitter, instr, EmitMovk, EmitMovk64);
         break;
     
     case Js::OpCode::MOVN:
-        this->EmitMovConstant(Emitter, instr, EmitMovn, EmitMovn64);
+        bytes = this->EmitMovConstant(Emitter, instr, EmitMovn, EmitMovn64);
         break;
 
     case Js::OpCode::MOVZ:
-        this->EmitMovConstant(Emitter, instr, EmitMovz, EmitMovz64);
+        bytes = this->EmitMovConstant(Emitter, instr, EmitMovz, EmitMovz64);
         break;
 
     case Js::OpCode::MRS_FPCR:
@@ -1165,17 +1165,17 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         Assert(dst->IsFloat() != src1->IsFloat());
         if (dst->IsFloat())
         {
-            EmitNeonIns(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), 0, this->GetRegEncode(src1->AsRegOpnd()), (size == 8) ? SIZE_1D : SIZE_1S);
+            bytes = EmitNeonIns(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), 0, this->GetRegEncode(src1->AsRegOpnd()), (size == 8) ? SIZE_1D : SIZE_1S);
         }
         else
         {
             if (size == 8)
             { 
-                EmitNeonUmov64(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), 0, (size == 8) ? SIZE_1D : SIZE_1S);
+                bytes = EmitNeonUmov64(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), 0, (size == 8) ? SIZE_1D : SIZE_1S);
             }
             else
             {
-                EmitNeonUmov(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), 0, (size == 8) ? SIZE_1D : SIZE_1S);
+                bytes = EmitNeonUmov(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), 0, (size == 8) ? SIZE_1D : SIZE_1S);
             }
         }
         break;
@@ -1222,6 +1222,8 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         break;
 
     }
+
+    Assert(bytes != 0);
 
     return Emitter.Opcode();
 }
