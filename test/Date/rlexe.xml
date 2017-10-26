@@ -35,6 +35,11 @@
   </test>
   <test>
     <default>
+      <files>DateParse3.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>toISO_3.js</files>
       <baseline>toISO_3.baseline</baseline>
     </default>
