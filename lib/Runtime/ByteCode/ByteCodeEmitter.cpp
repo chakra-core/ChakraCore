@@ -3413,16 +3413,13 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, ParseNode *breakOnBodySc
 
                 PushFuncInfo(_u("StartEmitFunction"), funcInfo);
 
-                if (funcInfo->byteCodeFunction->IsFunctionParsed() && funcInfo->GetParsedFunctionBody()->GetByteCode() == nullptr)
+                if (!funcInfo->IsBodyAndParamScopeMerged())
                 {
-                    if (!funcInfo->IsBodyAndParamScopeMerged())
-                    {
-                        this->EmitScopeList(pnode->sxFnc.pnodeBodyScope->sxBlock.pnodeScopes);
-                    }
-                    else
-                    {
-                        this->EmitScopeList(pnode->sxFnc.pnodeScopes);
-                    }
+                    this->EmitScopeList(pnode->sxFnc.pnodeBodyScope->sxBlock.pnodeScopes);
+                }
+                else
+                {
+                    this->EmitScopeList(pnode->sxFnc.pnodeScopes);
                 }
 
                 this->EmitOneFunction(pnode);
@@ -3499,9 +3496,9 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
     Scope * const bodyScope = funcInfo->GetBodyScope();
     Scope * const paramScope = funcInfo->GetParamScope();
 
-    if (funcInfo->byteCodeFunction->IsFunctionParsed() && funcInfo->GetParsedFunctionBody()->GetByteCode() == nullptr)
+    if (funcInfo->byteCodeFunction->IsFunctionParsed())
     {
-        if (!(flags & (fscrEval | fscrImplicitThis | fscrImplicitParents)))
+        if (funcInfo->GetParsedFunctionBody()->GetByteCode() == nullptr && !(flags & (fscrEval | fscrImplicitThis | fscrImplicitParents)))
         {
             // Only set the environment depth if it's truly known (i.e., not in eval or event handler).
             funcInfo->GetParsedFunctionBody()->SetEnvDepth(this->envDepth);
@@ -3816,12 +3813,9 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
 
         PushScope(paramScope);
 
-        if (funcInfo->byteCodeFunction->IsFunctionParsed() && funcInfo->GetParsedFunctionBody()->GetByteCode() == nullptr)
-        {
-            // While emitting the functions we have to stop when we see the body scope block.
-            // Otherwise functions defined in the body scope will not be able to get the right references.
-            this->EmitScopeList(paramBlock->sxBlock.pnodeScopes, pnodeFnc->sxFnc.pnodeBodyScope);
-        }
+        // While emitting the functions we have to stop when we see the body scope block.
+        // Otherwise functions defined in the body scope will not be able to get the right references.
+        this->EmitScopeList(paramBlock->sxBlock.pnodeScopes, pnodeFnc->sxFnc.pnodeBodyScope);
         Assert(this->GetCurrentScope() == paramScope);
     }
 
