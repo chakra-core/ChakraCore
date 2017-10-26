@@ -77,7 +77,18 @@ JsParseModuleSource(
         SourceContextInfo* sourceContextInfo = scriptContext->GetSourceContextInfo(sourceContext, nullptr);
         if (sourceContextInfo == nullptr)
         {
-            sourceContextInfo = scriptContext->CreateSourceContextInfo(sourceContext, nullptr, 0, nullptr, nullptr, 0);
+            if(moduleRecord->GetModuleURL() != nullptr)
+            {
+                Js::JavascriptString *moduleURL = Js::JavascriptString::FromVar(moduleRecord->GetModuleURL());
+                const char16 *moduleURLSz = moduleURL->GetSz();
+                size_t moduleURLLen = moduleURL->GetLength();
+                
+                sourceContextInfo = scriptContext->CreateSourceContextInfo(sourceContext, moduleURLSz, moduleURLLen, nullptr, nullptr, 0);
+            }
+            else
+            {
+                sourceContextInfo = scriptContext->CreateSourceContextInfo(sourceContext, nullptr, 0, nullptr, nullptr, 0);
+            }
         }
         SRCINFO si = {
             /* sourceContextInfo   */ sourceContextInfo,
@@ -164,6 +175,9 @@ JsSetModuleHostInfo(
         case JsModuleHostInfo_NotifyModuleReadyCallback:
             currentContext->GetHostScriptContext()->SetNotifyModuleReadyCallback(reinterpret_cast<NotifyModuleReadyCallback>(hostInfo));
             break;
+        case JsModuleHostInfo_ModuleURL:
+            moduleRecord->SetModuleURL(hostInfo);    
+            break;
         default:
             return JsInvalidModuleHostInfoKind;
         };
@@ -207,6 +221,9 @@ JsGetModuleHostInfo(
             break;
         case JsModuleHostInfo_NotifyModuleReadyCallback:
             *hostInfo = reinterpret_cast<void*>(currentContext->GetHostScriptContext()->GetNotifyModuleReadyCallback());
+            break;
+        case JsModuleHostInfo_ModuleURL:
+            *hostInfo = reinterpret_cast<void*>(moduleRecord->GetModuleURL());
             break;
         default:
             return JsInvalidModuleHostInfoKind;
