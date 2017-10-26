@@ -280,6 +280,7 @@ namespace UnifiedRegex
     // Mix-in types
     // ----------------------------------------------------------------------
 
+#pragma pack(push, 1)
     // Contains information about how much to back up after syncing to a literal (for the SyncTo... instructions)
     struct BackupMixin
     {
@@ -693,9 +694,11 @@ namespace UnifiedRegex
     // Instructions
     // ----------------------------------------------------------------------
 
+    // NOTE: #pragma pack(1) applies to all Inst structs as well as all Mixin structs (see above).
+
     struct Inst : protected Chars<char16>
     {
-        enum InstTag : uint32
+        enum InstTag : uint8
         {
 #define M(TagName) TagName,
 #define MTemplate(TagName, ...) M(TagName)
@@ -1496,6 +1499,7 @@ namespace UnifiedRegex
 
         INST_BODY
     };
+#pragma pack(pop)
 
     // ----------------------------------------------------------------------
     // Matcher state
