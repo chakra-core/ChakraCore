@@ -844,7 +844,7 @@ namespace UnifiedRegex
     template <bool canHardFail>
     struct BOITestInst : Inst
     {
-        inline BOITestInst();
+        BOITestInst();
 
         INST_BODY
     };
@@ -853,7 +853,7 @@ namespace UnifiedRegex
     template <bool canHardFail>
     struct EOITestInst : Inst
     {
-        inline EOITestInst();
+        EOITestInst();
 
         INST_BODY
     };
@@ -877,7 +877,7 @@ namespace UnifiedRegex
     template <bool isNegation>
     struct WordBoundaryTestInst : Inst
     {
-        inline WordBoundaryTestInst();
+        WordBoundaryTestInst();
 
         INST_BODY
     };

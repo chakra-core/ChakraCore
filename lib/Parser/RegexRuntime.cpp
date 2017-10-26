@@ -1443,9 +1443,9 @@ namespace UnifiedRegex
     // ----------------------------------------------------------------------
 
     template <>
-    inline BOITestInst<true>::BOITestInst() : Inst(BOIHardFailTest) {}
+    BOITestInst<true>::BOITestInst() : Inst(BOIHardFailTest) {}
     template <>
-    inline BOITestInst<false>::BOITestInst() : Inst(BOITest) {}
+    BOITestInst<false>::BOITestInst() : Inst(BOITest) {}
 
     template <bool canHardFail>
     inline bool BOITestInst<canHardFail>::Exec(REGEX_INST_EXEC_PARAMETERS) const
@@ -1491,9 +1491,9 @@ namespace UnifiedRegex
     // ----------------------------------------------------------------------
 
     template <>
-    inline EOITestInst<true>::EOITestInst() : Inst(EOIHardFailTest) {}
+    EOITestInst<true>::EOITestInst() : Inst(EOIHardFailTest) {}
     template <>
-    inline EOITestInst<false>::EOITestInst() : Inst(EOITest) {}
+    EOITestInst<false>::EOITestInst() : Inst(EOITest) {}
 
     template <bool canHardFail>
     inline bool EOITestInst<canHardFail>::Exec(REGEX_INST_EXEC_PARAMETERS) const
@@ -1593,9 +1593,9 @@ namespace UnifiedRegex
     // ----------------------------------------------------------------------
 
     template <>
-    inline WordBoundaryTestInst<true>::WordBoundaryTestInst() : Inst(NegatedWordBoundaryTest) {}
+    WordBoundaryTestInst<true>::WordBoundaryTestInst() : Inst(NegatedWordBoundaryTest) {}
     template <>
-    inline WordBoundaryTestInst<false>::WordBoundaryTestInst() : Inst(WordBoundaryTest) {}
+    WordBoundaryTestInst<false>::WordBoundaryTestInst() : Inst(WordBoundaryTest) {}
 
     template <bool isNegation>
     inline bool WordBoundaryTestInst<isNegation>::Exec(REGEX_INST_EXEC_PARAMETERS) const
