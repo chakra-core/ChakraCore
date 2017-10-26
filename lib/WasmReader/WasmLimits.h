@@ -26,7 +26,7 @@ namespace Wasm {
         static const uint32 MaxMemoryInitialPages = 16384;
         static const uint32 MaxMemoryMaximumPages = 65536;
         static const uint32 MaxModuleSize = 1024 * 1024 * 1024;
-        static const uint32 MaxFunctionSize = 128 * 1024;
+        static const uint32 MaxFunctionSize = 7654321;
     public:
         // Use accessors to easily switch to config flags if needed
         static uint32 GetMaxTypes() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxTypes; }
