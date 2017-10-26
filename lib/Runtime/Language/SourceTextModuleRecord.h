@@ -50,6 +50,10 @@ namespace Js
         Var GetSpecifier() const { return normalizedSpecifier; }
         const char16 *GetSpecifierSz() const { return JavascriptString::FromVar(this->normalizedSpecifier)->GetSz(); }
 
+        void SetModuleURL(Var moduleURL) {this->moduleURL = moduleURL;}
+        Var GetModuleURL() const { return moduleURL;}
+        const char16 *GetModuleURLSz() const { return JavascriptString::FromVar(this->moduleURL)->GetSz(); }
+
         Var GetErrorObject() const { return errorObject; }
 
         bool WasParsed() const { return wasParsed; }
@@ -137,6 +141,7 @@ namespace Js
 
         Field(Js::JavascriptFunction*) rootFunction;
         Field(void*) hostDefined;
+        Field(Var) moduleURL;
         Field(Var) normalizedSpecifier;
         Field(Var) errorObject;
         Field(Field(Var)*) localExportSlots;

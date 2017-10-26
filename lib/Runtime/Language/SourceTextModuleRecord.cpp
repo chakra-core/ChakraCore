@@ -31,6 +31,7 @@ namespace Js
         localExportMapByLocalName(nullptr),
         localExportIndexList(nullptr),
         normalizedSpecifier(nullptr),
+        moduleURL(nullptr),
         errorObject(nullptr),
         hostDefined(nullptr),
         exportedNames(nullptr),
@@ -171,7 +172,14 @@ namespace Js
         {
             if (*exceptionVar == nullptr)
             {
-                *exceptionVar = JavascriptError::CreateFromCompileScriptException(scriptContext, &se);
+                if(this->GetModuleURL() != nullptr)
+                {
+                    *exceptionVar = JavascriptError::CreateFromCompileScriptException(scriptContext, &se, this->GetModuleURLSz());
+                }
+                else
+                {
+                    *exceptionVar = JavascriptError::CreateFromCompileScriptException(scriptContext, &se);                    
+                }
             }
             if (this->parser)
             {
@@ -831,7 +839,14 @@ namespace Js
         this->rootFunction = scriptContext->GenerateRootFunction(parseTree, sourceIndex, this->parser, this->pSourceInfo->GetParseFlags(), &se, _u("module"));
         if (rootFunction == nullptr)
         {
-            this->errorObject = JavascriptError::CreateFromCompileScriptException(scriptContext, &se);
+            if(this->GetModuleURL() != nullptr)
+            {
+                this->errorObject = JavascriptError::CreateFromCompileScriptException(scriptContext, &se, this->GetModuleURLSz());
+            }
+            else
+            {
+                this->errorObject = JavascriptError::CreateFromCompileScriptException(scriptContext, &se);                    
+            }
             OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentAsNeeded rootFunction == nullptr\n"));
             NotifyParentsAsNeeded();
         }
