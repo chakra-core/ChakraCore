@@ -506,14 +506,17 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
         }
 
         // Short-circuit simple inverted 16-bit immediates that can be implicitly truncated to 32 bits
-        IntConstType invImmed32 = ~immed & 0xffffffffull;
-        if ((invImmed32 & 0xffff) == invImmed32 || (invImmed32 & 0xffff0000) == invImmed32)
+        if (immed == (uint32)immed)
         {
-            instr->GetDst()->SetType(TyInt32);
-            IR::IntConstOpnd *src1 = IR::IntConstOpnd::New(invImmed32, TyInt64, instr->m_func);
-            instr->ReplaceSrc1(src1);
-            instr->m_opcode = Js::OpCode::MOVN;
-            return;
+            IntConstType invImmed32 = ~immed & 0xffffffffull;
+            if ((invImmed32 & 0xffff) == invImmed32 || (invImmed32 & 0xffff0000) == invImmed32)
+            {
+                instr->GetDst()->SetType(TyInt32);
+                IR::IntConstOpnd *src1 = IR::IntConstOpnd::New(invImmed32, TyInt64, instr->m_func);
+                instr->ReplaceSrc1(src1);
+                instr->m_opcode = Js::OpCode::MOVN;
+                return;
+            }
         }
 
         // Short-circuit 32-bit logical constants
