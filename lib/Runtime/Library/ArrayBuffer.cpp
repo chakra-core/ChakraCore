@@ -13,6 +13,12 @@ namespace Js
 
     ArrayBufferBase* ArrayBufferBase::FromVar(Var value)
     {
+        AssertOrFailFast(ArrayBufferBase::Is(value));
+        return static_cast<ArrayBuffer *> (value);
+    }
+
+    ArrayBufferBase* ArrayBufferBase::UnsafeFromVar(Var value)
+    {
         Assert(ArrayBufferBase::Is(value));
         return static_cast<ArrayBuffer *> (value);
     }
@@ -60,7 +66,7 @@ namespace Js
                         VirtualTableInfo<CrossSiteObject<Int8Array>>::SetVirtualTable(parent);
                     }
                 }
-                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                TypedArrayBase::UnsafeFromVar(parent)->ClearLengthAndBufferOnDetach();
                 break;
 
         case TypeIds_Uint8Array:
@@ -76,7 +82,7 @@ namespace Js
                         VirtualTableInfo<CrossSiteObject<Uint8Array>>::SetVirtualTable(parent);
                     }
                 }
-                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                TypedArrayBase::UnsafeFromVar(parent)->ClearLengthAndBufferOnDetach();
                 break;
 
         case TypeIds_Uint8ClampedArray:
@@ -92,7 +98,7 @@ namespace Js
                         VirtualTableInfo<CrossSiteObject<Uint8ClampedArray>>::SetVirtualTable(parent);
                     }
                 }
-                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                TypedArrayBase::UnsafeFromVar(parent)->ClearLengthAndBufferOnDetach();
                 break;
 
         case TypeIds_Int16Array:
@@ -108,7 +114,7 @@ namespace Js
                         VirtualTableInfo<CrossSiteObject<Int16Array>>::SetVirtualTable(parent);
                     }
                 }
-                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                TypedArrayBase::UnsafeFromVar(parent)->ClearLengthAndBufferOnDetach();
                 break;
 
         case TypeIds_Uint16Array:
@@ -124,7 +130,7 @@ namespace Js
                         VirtualTableInfo<CrossSiteObject<Uint16Array>>::SetVirtualTable(parent);
                     }
                 }
-                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                TypedArrayBase::UnsafeFromVar(parent)->ClearLengthAndBufferOnDetach();
                 break;
 
         case TypeIds_Int32Array:
@@ -140,7 +146,7 @@ namespace Js
                         VirtualTableInfo<CrossSiteObject<Int32Array>>::SetVirtualTable(parent);
                     }
                 }
-                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                TypedArrayBase::UnsafeFromVar(parent)->ClearLengthAndBufferOnDetach();
                 break;
 
         case TypeIds_Uint32Array:
@@ -156,7 +162,7 @@ namespace Js
                         VirtualTableInfo<CrossSiteObject<Uint32Array>>::SetVirtualTable(parent);
                     }
                 }
-                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                TypedArrayBase::UnsafeFromVar(parent)->ClearLengthAndBufferOnDetach();
                 break;
 
         case TypeIds_Float32Array:
@@ -172,7 +178,7 @@ namespace Js
                         VirtualTableInfo<CrossSiteObject<Float32Array>>::SetVirtualTable(parent);
                     }
                 }
-                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                TypedArrayBase::UnsafeFromVar(parent)->ClearLengthAndBufferOnDetach();
                 break;
 
         case TypeIds_Float64Array:
@@ -188,14 +194,14 @@ namespace Js
                         VirtualTableInfo<CrossSiteObject<Float64Array>>::SetVirtualTable(parent);
                     }
                 }
-                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                TypedArrayBase::UnsafeFromVar(parent)->ClearLengthAndBufferOnDetach();
                 break;
 
         case TypeIds_Int64Array:
         case TypeIds_Uint64Array:
         case TypeIds_CharArray:
         case TypeIds_BoolArray:
-                TypedArrayBase::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                TypedArrayBase::UnsafeFromVar(parent)->ClearLengthAndBufferOnDetach();
             break;
 
         case TypeIds_DataView:
@@ -568,9 +574,16 @@ namespace Js
 
     ArrayBuffer* ArrayBuffer::FromVar(Var aValue)
     {
+        AssertOrFailFastMsg(Is(aValue), "var must be an ArrayBuffer");
+
+        return static_cast<ArrayBuffer *>(aValue);
+    }
+
+    ArrayBuffer* ArrayBuffer::UnsafeFromVar(Var aValue)
+    {
         AssertMsg(Is(aValue), "var must be an ArrayBuffer");
 
-        return static_cast<ArrayBuffer *>(RecyclableObject::FromVar(aValue));
+        return static_cast<ArrayBuffer *>(aValue);
     }
 
     bool  ArrayBuffer::Is(Var aValue)

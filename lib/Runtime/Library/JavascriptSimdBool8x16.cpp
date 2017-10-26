@@ -39,7 +39,7 @@ namespace Js
     JavascriptSIMDBool8x16* JavascriptSIMDBool8x16::FromVar(Var aValue)
     {
         Assert(aValue);
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptSIMDBool8x16'");
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptSIMDBool8x16'");
 
         return reinterpret_cast<JavascriptSIMDBool8x16 *>(aValue);
     }

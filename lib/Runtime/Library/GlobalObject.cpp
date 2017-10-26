@@ -55,10 +55,16 @@ namespace Js
 
     bool GlobalObject::Is(Var aValue)
     {
-        return RecyclableObject::Is(aValue) && (RecyclableObject::FromVar(aValue)->GetTypeId() == TypeIds_GlobalObject);
+        return RecyclableObject::Is(aValue) && (RecyclableObject::UnsafeFromVar(aValue)->GetTypeId() == TypeIds_GlobalObject);
     }
 
     GlobalObject* GlobalObject::FromVar(Var aValue)
+    {
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'GlobalObject'");
+        return static_cast<GlobalObject*>(aValue);
+    }
+
+    GlobalObject* GlobalObject::UnsafeFromVar(Var aValue)
     {
         AssertMsg(Is(aValue), "Ensure var is actually a 'GlobalObject'");
         return static_cast<GlobalObject*>(aValue);

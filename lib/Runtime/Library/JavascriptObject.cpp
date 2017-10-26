@@ -267,7 +267,7 @@ namespace Js
         }
 
         // Set to new prototype
-        if (object->IsExternal() || (DynamicType::Is(object->GetTypeId()) && (DynamicObject::FromVar(object))->IsCrossSiteObject()))
+        if (object->IsExternal() || (DynamicType::Is(object->GetTypeId()) && (DynamicObject::UnsafeFromVar(object))->IsCrossSiteObject()))
         {
             CrossSite::ForceCrossSiteThunkOnPrototypeChain(newPrototype);
         }

@@ -23,9 +23,16 @@ namespace Js
 
     JavascriptMapIterator* JavascriptMapIterator::FromVar(Var aValue)
     {
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptMapIterator'");
+
+        return static_cast<JavascriptMapIterator *>(aValue);
+    }
+
+    JavascriptMapIterator* JavascriptMapIterator::UnsafeFromVar(Var aValue)
+    {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptMapIterator'");
 
-        return static_cast<JavascriptMapIterator *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptMapIterator *>(aValue);
     }
 
     Var JavascriptMapIterator::EntryNext(RecyclableObject* function, CallInfo callInfo, ...)

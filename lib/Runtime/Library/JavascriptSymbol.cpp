@@ -13,9 +13,16 @@ namespace Js
 
     JavascriptSymbol* JavascriptSymbol::FromVar(Js::Var aValue)
     {
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptSymbol'");
+
+        return static_cast<JavascriptSymbol *>(aValue);
+    }
+
+    JavascriptSymbol* JavascriptSymbol::UnsafeFromVar(Js::Var aValue)
+    {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptSymbol'");
 
-        return static_cast<JavascriptSymbol *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptSymbol *>(aValue);
     }
 
     Var JavascriptSymbol::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)

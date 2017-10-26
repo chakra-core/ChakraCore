@@ -31,6 +31,14 @@ WebAssemblyTable::Is(Var value)
 WebAssemblyTable *
 WebAssemblyTable::FromVar(Var value)
 {
+    AssertOrFailFast(WebAssemblyTable::Is(value));
+    return static_cast<WebAssemblyTable*>(value);
+}
+
+/* static */
+WebAssemblyTable *
+WebAssemblyTable::UnsafeFromVar(Var value)
+{
     Assert(WebAssemblyTable::Is(value));
     return static_cast<WebAssemblyTable*>(value);
 }

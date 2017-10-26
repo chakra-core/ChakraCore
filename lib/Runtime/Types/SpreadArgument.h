@@ -20,6 +20,7 @@ namespace Js
     public:
         static bool Is(Var aValue);
         static SpreadArgument* FromVar(Var value);
+        static SpreadArgument* UnsafeFromVar(Var value);
         SpreadArgument(Var iterator, bool useDirectCall, DynamicType * type);
         const Var* GetArgumentSpread() const { return iteratorIndices ? iteratorIndices->GetBuffer() : nullptr; }
         uint GetArgumentSpreadCount()  const { return iteratorIndices ? iteratorIndices->Count() : 0; }

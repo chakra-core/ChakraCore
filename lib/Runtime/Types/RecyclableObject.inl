@@ -27,6 +27,15 @@ namespace Js
     {
         AssertMsg(AtomTag_Object == 0, "Ensure GC objects do not need to be marked");
         AssertMsg(Is(aValue), "Ensure instance is a RecyclableObject");
+        AssertOrFailFastMsg(!TaggedNumber::Is(aValue), "Tagged value being used as RecyclableObject");
+
+        return reinterpret_cast<RecyclableObject *>(aValue);
+    }
+
+    inline RecyclableObject* RecyclableObject::UnsafeFromVar(const Js::Var aValue)
+    {
+        AssertMsg(AtomTag_Object == 0, "Ensure GC objects do not need to be marked");
+        AssertMsg(Is(aValue), "Ensure instance is a RecyclableObject");
         AssertMsg(!TaggedNumber::Is(aValue), "Tagged value being used as RecyclableObject");
 
         return reinterpret_cast<RecyclableObject *>(aValue);

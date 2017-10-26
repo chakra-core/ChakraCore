@@ -22,6 +22,7 @@ namespace Js
 
         static bool Is(Var aValue);
         static JavascriptSymbol* FromVar(Var aValue);
+        static JavascriptSymbol* UnsafeFromVar(Var aValue);
 
         class EntryInfo
         {
