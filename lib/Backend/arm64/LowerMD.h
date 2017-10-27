@@ -243,7 +243,7 @@ public:
 
             static BYTE         GetDefaultIndirScale()
             {
-                return IndirScale4;
+                return IndirScale8;
             }
 
             // -16 is to avoid alignment issues popping up, we are conservative here.

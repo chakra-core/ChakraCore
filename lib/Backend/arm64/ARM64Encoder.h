@@ -246,6 +246,18 @@ enum SHIFT_EXTEND_TYPE
     EXTEND_SXTX = 15,
 };
 
+//
+// Bit shift for scale of indir access
+//
+
+enum INDEX_SCALE
+{
+    INDEX_SCALE_1 = 0,
+    INDEX_SCALE_2 = 1,
+    INDEX_SCALE_4 = 2,
+    INDEX_SCALE_8 = 3,
+};
+
 static const BYTE RegEncode[] =
 {
 #define REGDAT(Name, Listing, Encoding, ...) Encoding,
@@ -3500,7 +3512,7 @@ EmitLdrbRegister(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, 0, 0x38600800);
+    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, INDEX_SCALE_1, 0x38600800);
 }
 
 inline
@@ -3512,7 +3524,7 @@ EmitLdrsbRegister(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, 0, 0x38e00800);
+    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, INDEX_SCALE_1, 0x38e00800);
 }
 
 inline
@@ -3524,7 +3536,7 @@ EmitLdrsbRegister64(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, 0, 0x38a00800);
+    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, INDEX_SCALE_1, 0x38a00800);
 }
 
 inline
@@ -3536,7 +3548,7 @@ EmitLdrhRegister(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, 1, 0x78600800);
+    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, INDEX_SCALE_2, 0x78600800);
 }
 
 inline
@@ -3548,7 +3560,7 @@ EmitLdrshRegister(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, 1, 0x78e00800);
+    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, INDEX_SCALE_2, 0x78e00800);
 }
 
 inline
@@ -3560,7 +3572,7 @@ EmitLdrshRegister64(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, 1, 0x78a00800);
+    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, INDEX_SCALE_2, 0x78a00800);
 }
 
 inline
@@ -3572,7 +3584,7 @@ EmitLdrRegister(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, 2, 0xb8600800);
+    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, INDEX_SCALE_4, 0xb8600800);
 }
 
 inline
@@ -3584,7 +3596,7 @@ EmitLdrswRegister64(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, 2, 0xb8a00800);
+    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, INDEX_SCALE_4, 0xb8a00800);
 }
 
 inline
@@ -3596,7 +3608,7 @@ EmitLdrRegister64(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, 2, 0xf8600800);
+    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, INDEX_SCALE_8, 0xf8600800);
 }
 
 inline
@@ -3608,7 +3620,7 @@ EmitStrbRegister(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Source, Addr, Index, 0, 0x38200800);
+    return EmitLdrStrRegisterCommon(Emitter, Source, Addr, Index, INDEX_SCALE_1, 0x38200800);
 }
 
 inline
@@ -3620,7 +3632,7 @@ EmitStrhRegister(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Source, Addr, Index, 1, 0x78200800);
+    return EmitLdrStrRegisterCommon(Emitter, Source, Addr, Index, INDEX_SCALE_2, 0x78200800);
 }
 
 inline
@@ -3632,7 +3644,7 @@ EmitStrRegister(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Source, Addr, Index, 2, 0xb8200800);
+    return EmitLdrStrRegisterCommon(Emitter, Source, Addr, Index, INDEX_SCALE_4, 0xb8200800);
 }
 
 inline
@@ -3644,7 +3656,7 @@ EmitStrRegister64(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Source, Addr, Index, 2, 0xf8200800);
+    return EmitLdrStrRegisterCommon(Emitter, Source, Addr, Index, INDEX_SCALE_8, 0xf8200800);
 }
 
 inline
@@ -3655,7 +3667,7 @@ EmitPrfmRegister(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, ARMREG_R0 /* PLDL1KEEP */, Addr, Index, 2, 0xf8a00800);
+    return EmitLdrStrRegisterCommon(Emitter, ARMREG_R0 /* PLDL1KEEP */, Addr, Index, INDEX_SCALE_4, 0xf8a00800);
 }
 
 //
