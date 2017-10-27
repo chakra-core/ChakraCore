@@ -1464,6 +1464,10 @@ Error:
                 lwYear = -lwYear + 1;
             }
         }
+        else if (lwYear < 50 && isDateNegativeVersion5 == false)
+        {
+            lwYear += 2000;
+        }
         else if (lwYear < 100 && isDateNegativeVersion5 == false)
         {
             lwYear += 1900;
