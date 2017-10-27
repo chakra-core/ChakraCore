@@ -404,6 +404,12 @@ LowererMD::SetMaxArgSlots(Js::ArgSlot actualCount /*including this*/)
     return;
 }
 
+void
+LowererMD::GenerateMemInit(IR::RegOpnd * opnd, int32 offset, size_t value, IR::Instr * insertBeforeInstr, bool isZeroed)
+{
+    m_lowerer->GenerateMemInit(opnd, offset, (uint32)value, insertBeforeInstr, isZeroed);
+}
+
 IR::Instr *
 LowererMD::LowerCallIDynamic(IR::Instr *callInstr, IR::Instr*saveThisArgOutInstr, IR::Opnd *argsLength, ushort callFlags, IR::Instr * insertBeforeInstrForCFG)
 {
@@ -1605,9 +1611,8 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
 
     BVUnit32 savedDoubleRegs(this->m_func->m_unwindInfo.GetDoubleSavedRegList());
 
-    if (usedRegs.IsEmpty() && savedDoubleRegs.IsEmpty())
+    if (usedRegs.IsEmpty() && savedDoubleRegs.IsEmpty() && !hasCalls)
     {
-        Assert(!hasCalls);
         // Didn't had call, no registers where save, include homedParams while deallocating stack
         stackAdjust += homedParams * MachRegInt;
     }
@@ -1941,46 +1946,32 @@ LowererMD::LoadInputParamPtr(IR::Instr * instrInsert, IR::RegOpnd * optionalDstO
 ///
 /// LowererMD::LoadInputParamCount
 ///
-///     Load the passed-in parameter count from the appropriate r11 slot.
+///     Load the passed-in parameter count from the appropriate slot.
 ///
 ///----------------------------------------------------------------------------
 
 IR::Instr *
 LowererMD::LoadInputParamCount(IR::Instr * instrInsert, int adjust, bool needFlags)
 {
-    IR::Instr *   instr;
-    IR::RegOpnd * dstOpnd;
-    IR::SymOpnd * srcOpnd;
+    //  LDR  Rz, CallInfo
+    //  UBFX Rx, Rz, 27, #1 // Get CallEval bit.
+    //  UBFX Rz, Rz, 0, #24 // Extract call count 
+    //  SUB  Rz, Rz, Rx     // Now Rz has the right number of parameters
 
-    //  LDR Rz, CallInfo
-    //  LSR Rx, Rz, #28  // Get CallEval bit as bottom bit.
-    //  AND Rx, Rx, #1   // Mask higher 3 bits, Rx has 1 if FrameDisplay is present, zero otherwise
-    //  LSL Rz, Rz, #8   // Mask higher 8 bits to get the number of arguments
-    //  LSR Rz, Rz, #8
-    //  SUB Rz, Rz, Rx   // Now Rz has the right number of parameters
+    IR::SymOpnd * srcOpnd = Lowerer::LoadCallInfo(instrInsert);
+    IR::RegOpnd * dstOpnd = IR::RegOpnd::New(TyMachReg,  this->m_func);
 
-    srcOpnd = Lowerer::LoadCallInfo(instrInsert);
-
-    dstOpnd = IR::RegOpnd::New(TyMachReg,  this->m_func);
-
-    instr = IR::Instr::New(Js::OpCode::LDR, dstOpnd, srcOpnd,  this->m_func);
+    IR::Instr *instr = IR::Instr::New(Js::OpCode::LDR, dstOpnd, srcOpnd,  this->m_func);
     instrInsert->InsertBefore(instr);
 
-    // mask the "calling eval" bit and subtract it from the incoming count.
-    // ("Calling eval" means the last param is the frame display, which only the eval built-in should see.)
+    // "Calling eval" means the last param is the frame display, which only the eval built-in should see.
 
     IR::RegOpnd * evalBitOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::LSR, evalBitOpnd, dstOpnd, IR::IntConstOpnd::New(Math::Log2(Js::CallFlags_ExtraArg) + Js::CallInfo::ksizeofCount, TyMachReg, this->m_func), this->m_func);
+    instr = IR::Instr::New(Js::OpCode::UBFX, evalBitOpnd, dstOpnd, IR::IntConstOpnd::New(BITFIELD(Math::Log2(Js::CallFlags_ExtraArg) + Js::CallInfo::ksizeofCount, 1), TyMachReg, this->m_func), this->m_func);
     instrInsert->InsertBefore(instr);
 
-    // Mask off other call flags from callinfo
-    instr = IR::Instr::New(Js::OpCode::AND, evalBitOpnd, evalBitOpnd, IR::IntConstOpnd::New(0x01, TyUint8, this->m_func), this->m_func);
-    instrInsert->InsertBefore(instr);
-
-    instr = IR::Instr::New(Js::OpCode::LSL, dstOpnd, dstOpnd, IR::IntConstOpnd::New(Js::CallInfo::ksizeofCallFlags, TyMachReg, this->m_func), this->m_func);
-    instrInsert->InsertBefore(instr);
-
-    instr = IR::Instr::New(Js::OpCode::LSR, dstOpnd, dstOpnd, IR::IntConstOpnd::New(Js::CallInfo::ksizeofCallFlags, TyMachReg, this->m_func), this->m_func);
+    // Get the actual call count. On ARM64 top 32 bits are unused
+    instr = IR::Instr::New(Js::OpCode::UBFX, dstOpnd, dstOpnd, IR::IntConstOpnd::New(BITFIELD(0, Js::CallInfo::ksizeofCount), TyMachReg, this->m_func), this->m_func);
     instrInsert->InsertBefore(instr);
 
     if (adjust != 0)
