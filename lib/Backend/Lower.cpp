@@ -12592,7 +12592,7 @@ Lowerer::GetFuncObjectOpnd(IR::Instr* insertBeforeInstr)
     }
     else
     {
-#if defined(_M_ARM)
+#if defined(_M_ARM32_OR_ARM64)
         StackSym * paramSym = this->m_lowererMD.GetImplicitParamSlotSym(0);
 #else
         StackSym *paramSym = StackSym::New(TyMachReg, this->m_func);
