@@ -453,17 +453,6 @@ namespace UnifiedRegex
 #endif
     };
 
-    struct HardFailMixin
-    {
-        bool canHardFail;
-
-        inline HardFailMixin(bool canHardFail) : canHardFail(canHardFail) {}
-
-#if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const char16* litbuf) const;
-#endif
-    };
-
     struct GroupMixin
     {
         const int groupId;
@@ -723,7 +712,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
         static bool IsBaselineMode();
         static Label GetPrintLabel(Label label);
-        virtual int Print(DebugWriter*w, Label label, const Char* litbuf) const = 0;
+
         template <typename T>
         void PrintBytes(DebugWriter *w, Inst *inst, T *that, const char16 *annotation) const;
 #endif
@@ -737,7 +726,7 @@ namespace UnifiedRegex
     }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-#define INST_BODY_PRINT virtual int Print(DebugWriter*w, Label label, const Char* litbuf) const override;
+#define INST_BODY_PRINT int Print(DebugWriter*w, Label label, const Char* litbuf) const;
 #else
 #define INST_BODY_PRINT
 #endif
@@ -851,20 +840,25 @@ namespace UnifiedRegex
     // Built-in assertions
     //
 
-    struct BOITestInst : Inst, HardFailMixin
+    // BOI = Beginning of Input
+    template <bool canHardFail>
+    struct BOITestInst : Inst
     {
-        inline BOITestInst(bool canHardFail) : Inst(BOITest), HardFailMixin(canHardFail) {}
+        BOITestInst();
 
         INST_BODY
     };
 
-    struct EOITestInst : Inst, HardFailMixin
+    // EOI = End of Input
+    template <bool canHardFail>
+    struct EOITestInst : Inst
     {
-        inline EOITestInst(bool canHardFail) : Inst(EOITest), HardFailMixin(canHardFail) {}
+        EOITestInst();
 
         INST_BODY
     };
 
+    // BOL = Beginning of Line (/^.../)
     struct BOLTestInst : Inst
     {
         inline BOLTestInst() : Inst(BOLTest) {}
@@ -872,6 +866,7 @@ namespace UnifiedRegex
         INST_BODY
     };
 
+    // EOL = End of Line (/...$/)
     struct EOLTestInst : Inst
     {
         inline EOLTestInst() : Inst(EOLTest) {}
@@ -879,11 +874,10 @@ namespace UnifiedRegex
         INST_BODY
     };
 
+    template <bool isNegation>
     struct WordBoundaryTestInst : Inst
     {
-        bool isNegation;
-
-        inline WordBoundaryTestInst(bool isNegation) : Inst(WordBoundaryTest), isNegation(isNegation) {}
+        WordBoundaryTestInst();
 
         INST_BODY
     };

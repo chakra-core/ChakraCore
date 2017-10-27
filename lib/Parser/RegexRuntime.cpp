@@ -384,13 +384,7 @@ namespace UnifiedRegex
         size_t size = sizeof(*((T *)that));
         byte *endByte = startByte + size;
         byte *currentByte = startByte;
-        w->Print(_u("0x%p[+0x%03x](0x%03x) [%s]:"), startByte, offset, size, annotation);
-
-        if ((T *)this == that)
-        {
-            w->PrintEOL(_u(" (no unique data -- skipping)"));
-            return;
-        }
+        w->Print(_u("0x%p[+0x%03x](0x%03x)(size:0x%02x)(align:0x%02x) [%s]:"), startByte, offset, size, sizeof(T), alignof(T), annotation);
 
         for (; currentByte < endByte; ++currentByte)
         {
@@ -412,10 +406,10 @@ namespace UnifiedRegex
         ptrdiff_t offsetToData = (byte *)&(start->tag) - ((byte *)start);
         size_t size = baseSize - offsetToData;
 
-        byte *startByte = (byte *)(&(start->tag)); // skip over the vtable pointer
+        byte *startByte = (byte *)(&(start->tag));
         byte *endByte = startByte + size;
         byte *currentByte = startByte;
-        w->Print(_u("0x%p[+0x%03x](0x%03x) [%s]:"), startByte, offsetToData, size, annotation);
+        w->Print(_u("0x%p[+0x%03x](0x%03x)(size:0x%02x)(align:0x%02x) [%s]:"), startByte, offsetToData, size, sizeof(Inst), alignof(Inst), annotation);
         for (; currentByte < endByte; ++currentByte)
         {
             if ((currentByte - endByte) % 4 == 0)
@@ -785,13 +779,6 @@ namespace UnifiedRegex
     void TrieMixin::Print(DebugWriter* w, const char16* litbuf) const
     {
         trie.Print(w);
-    }
-#endif
-
-#if ENABLE_REGEX_CONFIG_OPTIONS
-    void HardFailMixin::Print(DebugWriter* w, const char16* litbuf) const
-    {
-        w->Print(_u("hardFail: %s"), canHardFail ? _u("true") : _u("false"));
     }
 #endif
 
@@ -1455,7 +1442,13 @@ namespace UnifiedRegex
     // BOITestInst
     // ----------------------------------------------------------------------
 
-    inline bool BOITestInst::Exec(REGEX_INST_EXEC_PARAMETERS) const
+    template <>
+    BOITestInst<true>::BOITestInst() : Inst(BOIHardFailTest) {}
+    template <>
+    BOITestInst<false>::BOITestInst() : Inst(BOITest) {}
+
+    template <bool canHardFail>
+    inline bool BOITestInst<canHardFail>::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
         if (inputOffset > 0)
         {
@@ -1474,12 +1467,21 @@ namespace UnifiedRegex
     }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-    int BOITestInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    template <bool canHardFail>
+    int BOITestInst<canHardFail>::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        PRINT_RE_BYTECODE_BEGIN("BOITest");
-        PRINT_MIXIN(HardFailMixin);
+        if (canHardFail)
+        {
+            PRINT_RE_BYTECODE_BEGIN("BOIHardFailTest");
+        }
+        else
+        {
+            PRINT_RE_BYTECODE_BEGIN("BOITest");
+        }
+
+        w->Print(_u("<hardFail>: %s"), canHardFail ? _u("true") : _u("false"));
+
         PRINT_RE_BYTECODE_MID();
-        PRINT_BYTES(HardFailMixin);
         PRINT_RE_BYTECODE_END();
     }
 #endif
@@ -1488,7 +1490,13 @@ namespace UnifiedRegex
     // EOITestInst
     // ----------------------------------------------------------------------
 
-    inline bool EOITestInst::Exec(REGEX_INST_EXEC_PARAMETERS) const
+    template <>
+    EOITestInst<true>::EOITestInst() : Inst(EOIHardFailTest) {}
+    template <>
+    EOITestInst<false>::EOITestInst() : Inst(EOITest) {}
+
+    template <bool canHardFail>
+    inline bool EOITestInst<canHardFail>::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
         if (inputOffset < inputLength)
         {
@@ -1507,12 +1515,21 @@ namespace UnifiedRegex
     }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-    int EOITestInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    template <bool canHardFail>
+    int EOITestInst<canHardFail>::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        PRINT_RE_BYTECODE_BEGIN("EOITest");
-        PRINT_MIXIN(HardFailMixin);
+        if (canHardFail)
+        {
+            PRINT_RE_BYTECODE_BEGIN("EOIHardFailTest");
+        }
+        else
+        {
+            PRINT_RE_BYTECODE_BEGIN("EOITest");
+        }
+
+        w->Print(_u("<hardFail>: %s"), canHardFail ? _u("true") : _u("false"));
+
         PRINT_RE_BYTECODE_MID();
-        PRINT_BYTES(HardFailMixin);
         PRINT_RE_BYTECODE_END();
     }
 #endif
@@ -1540,7 +1557,6 @@ namespace UnifiedRegex
     {
         PRINT_RE_BYTECODE_BEGIN("BOLTest");
         PRINT_RE_BYTECODE_MID();
-        PRINT_BYTES(BOLTestInst);
         PRINT_RE_BYTECODE_END();
     }
 #endif
@@ -1568,7 +1584,6 @@ namespace UnifiedRegex
     {
         PRINT_RE_BYTECODE_BEGIN("EOLTest");
         PRINT_RE_BYTECODE_MID();
-        PRINT_BYTES(EOLTestInst);
         PRINT_RE_BYTECODE_END();
     }
 #endif
@@ -1577,7 +1592,13 @@ namespace UnifiedRegex
     // WordBoundaryTestInst
     // ----------------------------------------------------------------------
 
-    inline bool WordBoundaryTestInst::Exec(REGEX_INST_EXEC_PARAMETERS) const
+    template <>
+    WordBoundaryTestInst<true>::WordBoundaryTestInst() : Inst(NegatedWordBoundaryTest) {}
+    template <>
+    WordBoundaryTestInst<false>::WordBoundaryTestInst() : Inst(WordBoundaryTest) {}
+
+    template <bool isNegation>
+    inline bool WordBoundaryTestInst<isNegation>::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
 #if ENABLE_REGEX_CONFIG_OPTIONS
         matcher.CompStats();
@@ -1594,11 +1615,19 @@ namespace UnifiedRegex
     }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-    int WordBoundaryTestInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    template <bool isNegation>
+    int WordBoundaryTestInst<isNegation>::Print(DebugWriter* w, Label label, const Char* litbuf) const
     {
-        PRINT_RE_BYTECODE_BEGIN("WordBoundaryTest");
+        if (isNegation)
+        {
+            PRINT_RE_BYTECODE_BEGIN("NegatedWordBoundaryTest");
+        }
+        else
+        {
+            PRINT_RE_BYTECODE_BEGIN("WordBoundaryTest");
+        }
+
         PRINT_RE_BYTECODE_MID();
-        PRINT_BYTES(WordBoundaryTestInst);
         PRINT_RE_BYTECODE_END();
     }
 #endif
@@ -5722,7 +5751,6 @@ namespace UnifiedRegex
         return res;
     }
 
-
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void Matcher::Print(DebugWriter* w, const Char* const input, const CharCount inputLength, CharCount inputOffset, const uint8* instPointer, ContStack &contStack, AssertionStack &assertionStack) const
     {
@@ -5759,7 +5787,28 @@ namespace UnifiedRegex
         if (program->tag == Program::BOIInstructionsTag || program->tag == Program::InstructionsTag)
         {
             w->Print(_u("instPointer: "));
-            ((const Inst*)instPointer)->Print(w, InstPointerToLabel(instPointer), program->rep.insts.litbuf);
+
+            const Inst* inst = (const Inst*)instPointer;
+            switch (inst->tag)
+            {
+#define MBase(TagName, ClassName) \
+            case Inst::TagName: \
+            { \
+                const ClassName *actualInst = static_cast<const ClassName *>(inst); \
+                actualInst->Print(w, InstPointerToLabel(instPointer), program->rep.insts.litbuf); \
+                break; \
+            }
+#define M(TagName) MBase(TagName, TagName##Inst)
+#define MTemplate(TagName, TemplateDeclaration, GenericClassName, SpecializedClassName) MBase(TagName, SpecializedClassName)
+#include "RegexOpCodes.h"
+#undef MBase
+#undef M
+#undef MTemplate
+            default:
+                Assert(false);
+                __assume(false);
+            }
+
             w->PrintEOL(_u("groups:"));
             w->Indent();
             for (int i = 0; i < program->numGroups; i++)
@@ -5920,7 +5969,26 @@ namespace UnifiedRegex
                 int i = 0;
                 while (curr != instsLim)
                 {
-                    curr += ((Inst*)curr)->Print(w, (Label)(isBaselineMode ? i++ : curr - rep.insts.insts), rep.insts.litbuf);
+                    const Inst *inst = (const Inst*)curr;
+                    switch (inst->tag)
+                    {
+#define MBase(TagName, ClassName) \
+                    case Inst::TagName: \
+                    { \
+                        const ClassName *actualInst = static_cast<const ClassName *>(inst); \
+                        curr += actualInst->Print(w, (Label)(isBaselineMode ? i++ : curr - rep.insts.insts), rep.insts.litbuf); \
+                        break; \
+                    }
+#define M(TagName) MBase(TagName, TagName##Inst)
+#define MTemplate(TagName, TemplateDeclaration, GenericClassName, SpecializedClassName) MBase(TagName, SpecializedClassName)
+#include "RegexOpCodes.h"
+#undef MBase
+#undef M
+#undef MTemplate
+                    default:
+                        Assert(false);
+                        __assume(false);
+                    }
                 }
                 w->Unindent();
                 w->PrintEOL(_u("}"));

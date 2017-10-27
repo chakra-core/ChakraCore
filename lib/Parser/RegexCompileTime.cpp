@@ -525,7 +525,15 @@ namespace UnifiedRegex
                         //  - not in a negative assertion
                         //  - backtracking could never rewind the input pointer
                         //
-                        EMIT(compiler, BOITestInst, isAtLeastOnce && isNotNegated && isPrevWillNotRegress);
+                        bool canHardFail = isAtLeastOnce && isNotNegated && isPrevWillNotRegress;
+                        if (canHardFail)
+                        {
+                            EMIT(compiler, BOITestInst<true>);
+                        }
+                        else
+                        {
+                            EMIT(compiler, BOITestInst<false>);
+                        }
                     }
                 }
                 break;
@@ -533,13 +541,16 @@ namespace UnifiedRegex
         case EOL:
             {
                 if ((compiler.program->flags & MultilineRegexFlag) != 0)
+                {
                     //
                     // Compilation scheme:
                     //
                     //   EOLTest
                     //
                     EMIT(compiler, EOLTestInst);
+                }
                 else
+                {
                     //
                     // Compilation scheme:
                     //
@@ -550,7 +561,16 @@ namespace UnifiedRegex
                     //  - not in a negative assertion
                     //  - backtracking could never advance the input pointer
                     //
-                    EMIT(compiler, EOITestInst, isAtLeastOnce && isNotNegated && isPrevWillNotProgress);
+                    bool canHardFail = isAtLeastOnce && isNotNegated && isPrevWillNotRegress;
+                    if (canHardFail)
+                    {
+                        EMIT(compiler, EOITestInst<true>);
+                    }
+                    else
+                    {
+                        EMIT(compiler, EOITestInst<false>);
+                    }
+                }
                 break;
             }
         default:
@@ -726,7 +746,15 @@ namespace UnifiedRegex
         //
         //   WordBoundaryTest
         //
-        EMIT(compiler, WordBoundaryTestInst, isNegation);
+        if (isNegation)
+        {
+            EMIT(compiler, WordBoundaryTestInst<true>);
+        }
+        else
+        {
+            EMIT(compiler, WordBoundaryTestInst<false>);
+
+        }
     }
 
     CharCount WordBoundaryNode::EmitScan(Compiler& compiler, bool isHeadSyncronizingNode)
