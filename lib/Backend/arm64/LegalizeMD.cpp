@@ -557,6 +557,8 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
         // Short-circuit 64-bit logical constants
         if (EncoderMD::CanEncodeLogicalConst(immed, 8))
         {
+            Assert(instr->GetDst()->GetSize() == 8 || immed == (uint32)immed);
+            instr->GetDst()->SetType(TyInt64);
             instr->SetSrc2(instr->GetSrc1());
             instr->ReplaceSrc1(IR::RegOpnd::New(NULL, RegZR, TyInt64, instr->m_func));
             instr->m_opcode = Js::OpCode::ORR;
