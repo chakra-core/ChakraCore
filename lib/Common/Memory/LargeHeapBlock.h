@@ -186,6 +186,10 @@ public:
 
     void EnumerateObjects(ObjectInfoBits infoBits, void (*CallBackFunction)(void * address, size_t size));
 
+#if ENABLE_MEM_STATS
+    void AggregateBlockStats(HeapBucketStats& stats);
+#endif
+
 #ifdef RECYCLER_SLOW_CHECK_ENABLED
     void Check(bool expectFull, bool expectPending);
 #endif

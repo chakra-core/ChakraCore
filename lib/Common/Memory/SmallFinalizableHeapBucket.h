@@ -20,7 +20,7 @@ public:
     static void FinalizeHeapBlockList(THeapBlockType * list);
 
 #if ENABLE_MEM_STATS
-    void AggregateBucketStats(HeapBucketStats& stats);
+    void AggregateBucketStats();
 #endif
 protected:
     void EnumerateObjects(ObjectInfoBits infoBits, void (*CallBackFunction)(void * address, size_t size));

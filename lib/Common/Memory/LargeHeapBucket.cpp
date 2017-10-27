@@ -1123,3 +1123,24 @@ LargeHeapBucket::VerifyMark()
 }
 #endif
 
+#if ENABLE_MEM_STATS
+void
+LargeHeapBucket::AggregateBucketStats()
+{
+    HeapBucket::AggregateBucketStats();  // call super
+
+    auto blockStatsAggregator = [this](LargeHeapBlock* largeHeapBlock) {
+        largeHeapBlock->AggregateBlockStats(this->memStats);
+    };
+
+    HeapBlockList::ForEach(largeBlockList, blockStatsAggregator);
+    HeapBlockList::ForEach(fullLargeBlockList, blockStatsAggregator);
+    HeapBlockList::ForEach(pendingDisposeLargeBlockList, blockStatsAggregator);
+#if ENABLE_CONCURRENT_GC
+    HeapBlockList::ForEach(pendingSweepLargeBlockList, blockStatsAggregator);
+#if ENABLE_PARTIAL_GC
+    HeapBlockList::ForEach(partialSweptLargeBlockList, blockStatsAggregator);
+#endif
+#endif
+}
+#endif

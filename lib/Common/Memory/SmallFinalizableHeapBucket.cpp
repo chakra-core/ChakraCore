@@ -83,12 +83,12 @@ SmallFinalizableHeapBucketBaseT<TBlockType>::ResetMarks(ResetMarkFlags flags)
 #if ENABLE_MEM_STATS
 template <class TBlockType>
 void
-SmallFinalizableHeapBucketBaseT<TBlockType>::AggregateBucketStats(HeapBucketStats& stats)
+SmallFinalizableHeapBucketBaseT<TBlockType>::AggregateBucketStats()
 {
-    __super::AggregateBucketStats(stats);
+    __super::AggregateBucketStats();
 
-    HeapBlockList::ForEach(pendingDisposeList, [&stats](TBlockType* heapBlock) {
-        heapBlock->AggregateBlockStats(stats);
+    HeapBlockList::ForEach(pendingDisposeList, [this](TBlockType* heapBlock) {
+        heapBlock->AggregateBlockStats(this->memStats);
     });
 }
 #endif

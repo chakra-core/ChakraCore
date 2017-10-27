@@ -19,15 +19,15 @@ SmallNormalHeapBucketBase<TBlockType>::SmallNormalHeapBucketBase()
 #if ENABLE_MEM_STATS
 template <typename TBlockType>
 void
-SmallNormalHeapBucketBase<TBlockType>::AggregateBucketStats(HeapBucketStats& stats)
+SmallNormalHeapBucketBase<TBlockType>::AggregateBucketStats()
 {
-    __super::AggregateBucketStats(stats);
+    __super::AggregateBucketStats();
 
-    HeapBlockList::ForEach(partialHeapBlockList, [&stats](TBlockType* heapBlock) {
-        heapBlock->AggregateBlockStats(stats);
+    HeapBlockList::ForEach(partialHeapBlockList, [this](TBlockType* heapBlock) {
+        heapBlock->AggregateBlockStats(this->memStats);
     });
-    HeapBlockList::ForEach(partialSweptHeapBlockList, [&stats](TBlockType* heapBlock) {
-        heapBlock->AggregateBlockStats(stats);
+    HeapBlockList::ForEach(partialSweptHeapBlockList, [this](TBlockType* heapBlock) {
+        heapBlock->AggregateBlockStats(this->memStats);
     });
 }
 #endif
