@@ -587,7 +587,7 @@ namespace Js
         template <class T> void DoInitProperty_NoFastPath(unaligned T* playout, Var instance);
         template <class T> void ProfiledInitProperty(unaligned T* playout, Var instance);
 
-        template <class T> bool TrySetPropertyLocalFastPath(unaligned T* playout, PropertyId pid, Var instance, InlineCache*& inlineCache, PropertyOperationFlags flags = PropertyOperation_None);
+        template <class T> bool TrySetPropertyLocalFastPath(unaligned T* playout, PropertyId pid, RecyclableObject* instance, InlineCache*& inlineCache, PropertyOperationFlags flags = PropertyOperation_None);
 
         template <bool doProfile> Var ProfiledDivide(Var aLeft, Var aRight, ScriptContext* scriptContext, ProfileId profileId);
         template <bool doProfile> Var ProfileModulus(Var aLeft, Var aRight, ScriptContext* scriptContext, ProfileId profileId);

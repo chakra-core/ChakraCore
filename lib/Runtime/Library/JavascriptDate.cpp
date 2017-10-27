@@ -31,9 +31,16 @@ namespace Js
 
     JavascriptDate* JavascriptDate::FromVar(Var aValue)
     {
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'Date'");
+
+        return static_cast<JavascriptDate *>(aValue);
+    }
+
+    JavascriptDate* JavascriptDate::UnsafeFromVar(Var aValue)
+    {
         AssertMsg(Is(aValue), "Ensure var is actually a 'Date'");
 
-        return static_cast<JavascriptDate *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptDate *>(aValue);
     }
 
     Var JavascriptDate::GetDateData(JavascriptDate* date, DateImplementation::DateData dd, ScriptContext* scriptContext)

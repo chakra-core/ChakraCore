@@ -169,6 +169,13 @@ namespace Js
 
     inline JavascriptNumber* JavascriptNumber::FromVar(Var aValue)
     {
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptNumber'");
+
+        return reinterpret_cast<JavascriptNumber *>(aValue);
+    }
+
+    inline JavascriptNumber* JavascriptNumber::UnsafeFromVar(Var aValue)
+    {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptNumber'");
 
         return reinterpret_cast<JavascriptNumber *>(aValue);

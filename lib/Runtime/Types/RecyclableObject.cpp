@@ -165,7 +165,7 @@ namespace Js
     {
         if (DynamicType::Is(this->GetTypeId()))
         {
-            DynamicObject* dynamicThis = DynamicObject::FromVar(this);
+            DynamicObject* dynamicThis = DynamicObject::UnsafeFromVar(this);
             dynamicThis->SetIsPrototype();      // Call the DynamicObject::SetIsPrototype
         }
     }
@@ -174,7 +174,7 @@ namespace Js
     {
         if (DynamicType::Is(this->GetTypeId()))
         {
-            DynamicObject* obj = DynamicObject::FromVar(this);
+            DynamicObject* obj = DynamicObject::UnsafeFromVar(this);
             return obj->GetTypeHandler()->GetHasOnlyWritableDataProperties() &&
                 (!obj->HasObjectArray() || obj->GetObjectArrayOrFlagsAsArray()->HasOnlyWritableDataProperties());
         }
@@ -186,7 +186,7 @@ namespace Js
     {
         if (DynamicType::Is(this->GetTypeId()))
         {
-            DynamicObject* obj = DynamicObject::FromVar(this);
+            DynamicObject* obj = DynamicObject::UnsafeFromVar(this);
             obj->GetTypeHandler()->ClearWritableDataOnlyDetectionBit();
             if (obj->HasObjectArray())
             {
@@ -199,7 +199,7 @@ namespace Js
     {
         if (DynamicType::Is(this->GetTypeId()))
         {
-            DynamicObject* obj = DynamicObject::FromVar(this);
+            DynamicObject* obj = DynamicObject::UnsafeFromVar(this);
             return obj->GetTypeHandler()->IsWritableDataOnlyDetectionBitSet() ||
                 (obj->HasObjectArray() && obj->GetObjectArrayOrFlagsAsArray()->IsWritableDataOnlyDetectionBitSet());
         }

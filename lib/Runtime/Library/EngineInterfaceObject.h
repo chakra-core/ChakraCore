@@ -65,6 +65,7 @@ namespace Js
         static EngineInterfaceObject* New(Recycler * recycler, DynamicType * type);
         static bool Is(Var aValue);
         static EngineInterfaceObject* FromVar(Var aValue);
+        static EngineInterfaceObject* UnsafeFromVar(Var aValue);
 
 #if ENABLE_TTD
         virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;

@@ -227,6 +227,7 @@ namespace Js {
     public:
         static bool Is(Var aValue);
         static RecyclableObject* FromVar(Var varValue);
+        static RecyclableObject* UnsafeFromVar(Var varValue);
         RecyclableObject(Type * type);
 #if DBG_EXTRAFIELD
         // This dtor should only be call when OOM occurs and RecyclableObject ctor has completed

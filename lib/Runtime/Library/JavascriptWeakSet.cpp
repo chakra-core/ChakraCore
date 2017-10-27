@@ -19,9 +19,16 @@ namespace Js
 
     JavascriptWeakSet* JavascriptWeakSet::FromVar(Var aValue)
     {
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptWeakSet'");
+
+        return static_cast<JavascriptWeakSet *>(aValue);
+    }
+
+    JavascriptWeakSet* JavascriptWeakSet::UnsafeFromVar(Var aValue)
+    {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptWeakSet'");
 
-        return static_cast<JavascriptWeakSet *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptWeakSet *>(aValue);
     }
 
     Var JavascriptWeakSet::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)

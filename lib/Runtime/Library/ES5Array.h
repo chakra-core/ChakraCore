@@ -41,6 +41,7 @@ namespace Js
     public:
         static bool Is(Var instance);
         static ES5Array* FromVar(Var instance);
+        static ES5Array* UnsafeFromVar(Var instance);
         static uint32 ToLengthValue(Var value, ScriptContext* scriptContext);
         bool IsLengthWritable() const;
 

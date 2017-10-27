@@ -544,7 +544,7 @@ namespace Js
             CacheOperators::CachePropertyReadForGetter(info, originalInstance, propertyT, requestContext);
             PropertyValueInfo::SetNoCache(info, instance); // we already cached getter, so we don't have to do it once more
 
-            RecyclableObject* func = RecyclableObject::FromVar(instance->GetSlot(descriptor->GetGetterPropertyIndex()));
+            RecyclableObject* func = RecyclableObject::UnsafeFromVar(instance->GetSlot(descriptor->GetGetterPropertyIndex()));
             *value = JavascriptOperators::CallGetter(func, originalInstance, requestContext);
             return true;
         }

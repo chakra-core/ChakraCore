@@ -33,6 +33,14 @@ namespace Js
 
         static JavascriptTypedNumber<T>* FromVar(Var value)
         {
+            AssertOrFailFastMsg(JavascriptOperators::GetTypeId(value) == TypeIds_Int64Number ||
+                JavascriptOperators::GetTypeId(value) == TypeIds_UInt64Number, "invalid typed number");
+
+            return static_cast<JavascriptTypedNumber<T>*>(value);
+        };
+
+        static JavascriptTypedNumber<T>* UnsafeFromVar(Var value)
+        {
 #if DBG
             AssertMsg(JavascriptOperators::GetTypeId(value) == TypeIds_Int64Number ||
                 JavascriptOperators::GetTypeId(value) == TypeIds_UInt64Number, "invalid typed number");

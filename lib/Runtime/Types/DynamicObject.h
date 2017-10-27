@@ -131,6 +131,7 @@ namespace Js
 
         static bool Is(Var aValue);
         static DynamicObject* FromVar(Var value);
+        static DynamicObject* UnsafeFromVar(Var value);
 
         void EnsureSlots(int oldCount, int newCount, ScriptContext * scriptContext, DynamicTypeHandler * newTypeHandler = nullptr);
         void EnsureSlots(int newCount, ScriptContext *scriptContext);

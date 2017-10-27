@@ -109,9 +109,16 @@ namespace Js
 
     JavascriptFunction* JavascriptFunction::FromVar(Var aValue)
     {
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptFunction'");
+
+        return static_cast<JavascriptFunction *>(aValue);
+    }
+
+    JavascriptFunction* JavascriptFunction::UnsafeFromVar(Var aValue)
+    {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptFunction'");
 
-        return static_cast<JavascriptFunction *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptFunction *>(aValue);
     }
 
     BOOL JavascriptFunction::IsStrictMode() const
@@ -856,8 +863,8 @@ namespace Js
             resultObject = JavascriptOperators::NewScObjectNoCtor(v, scriptContext);
         }
 
-        // JavascriptOperators::NewScObject should have thrown if 'v' is not a constructor
-        RecyclableObject* functionObj = RecyclableObject::FromVar(v);
+        // JavascriptOperators::NewScObjectNoCtor should have thrown if 'v' is not a constructor
+        RecyclableObject* functionObj = RecyclableObject::UnsafeFromVar(v);
 
         Var* newValues = args.Values;
         CallFlags newFlags = args.Info.Flags;
@@ -867,7 +874,8 @@ namespace Js
 
         if (overridingNewTarget != nullptr)
         {
-            if (ScriptFunction::Is(functionObj) && ScriptFunction::FromVar(functionObj)->GetFunctionInfo()->IsClassConstructor())
+            ScriptFunction * scriptFunctionObj = JavascriptOperators::TryFromVar<ScriptFunction>(functionObj);
+            if (scriptFunctionObj && scriptFunctionObj->GetFunctionInfo()->IsClassConstructor())
             {
                 thisAlreadySpecified = true;
                 args.Values[0] = overridingNewTarget;
@@ -3328,7 +3336,7 @@ LABEL1:
                 && scriptContext == function->GetScriptContext())// only register when function has same scriptContext
             {
                 inlineCache->Cache(RecyclableObject::Is(instance) ?
-                    RecyclableObject::FromVar(instance)->GetType() : nullptr,
+                    RecyclableObject::UnsafeFromVar(instance)->GetType() : nullptr,
                     function, scriptContext->GetLibrary()->GetFalse(), scriptContext);
             }
             return result;

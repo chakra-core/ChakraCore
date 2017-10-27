@@ -721,7 +721,7 @@ NativeCodeGenerator::IsValidVar(const Js::Var var, Recycler *const recycler)
     }
 #endif
 
-    RecyclableObject *const recyclableObject = RecyclableObject::FromVar(var);
+    RecyclableObject *const recyclableObject = RecyclableObject::UnsafeFromVar(var);
     if(!recycler->IsValidObject(recyclableObject, sizeof(*recyclableObject)))
     {
         return false;
