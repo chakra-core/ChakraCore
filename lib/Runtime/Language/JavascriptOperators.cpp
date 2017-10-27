@@ -7183,30 +7183,21 @@ CommonNumber:
         RecyclableObject* object = RecyclableObject::FromVar(instance);
 
         BOOL result;
-        if( indexType == Js::IndexType_Number )
+        if (indexType == Js::IndexType_Number)
         {
-            if (JavascriptArray::Is(object)) 
-            {
-                JavascriptArray* array = JavascriptArray::FromVar(object);
-                if (array->HasNoMissingValues() && index < array->GetHead()->length)
-                {
-                    return scriptContext->GetLibrary()->GetTrue();
-                }
-            }
-
-            result = JavascriptOperators::HasItem( object, index );
+            result = JavascriptOperators::HasItem(object, index);
         }
         else
         {
             PropertyId propertyId = propertyRecord->GetPropertyId();
-            result = JavascriptOperators::HasProperty( object, propertyId );
+            result = JavascriptOperators::HasProperty(object, propertyId);
 
 #ifdef TELEMETRY_JSO
             {
                 Assert(indexType != Js::IndexType_JavascriptString);
-                if( indexType == Js::IndexType_PropertyId )
+                if (indexType == Js::IndexType_PropertyId)
                 {
-                    scriptContext->GetTelemetry().GetOpcodeTelemetry().IsIn( instance, propertyId, result != 0 );
+                    scriptContext->GetTelemetry().GetOpcodeTelemetry().IsIn(instance, propertyId, result != 0);
                 }
             }
 #endif

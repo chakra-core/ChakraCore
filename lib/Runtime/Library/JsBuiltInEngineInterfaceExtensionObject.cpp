@@ -55,9 +55,6 @@ namespace Js
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_RegisterFunction(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_RegisterFunction));
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_RegisterChakraLibraryFunction(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_RegisterChakraLibraryFunction));
 
-    NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ToLengthFunction(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ToLengthFunction));
-    NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ToIntegerFunction(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ToIntegerFunction));
-
     void JsBuiltInEngineInterfaceExtensionObject::Initialize()
     {
         if (wasInitialized)
@@ -287,39 +284,8 @@ namespace Js
 
         scriptContext->GetLibrary()->AddMember(prototype, functionIdentifier, scriptFunction);
 
-        if (functionIdentifier == PropertyIds::indexOf)
-        {
-            // Special case for Intl who requires to call the non-overriden (by the user) IndexOf function.
-            scriptContext->GetLibrary()->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), Js::PropertyIds::builtInJavascriptArrayEntryIndexOf, scriptFunction);
-        }
-
         //Don't need to return anything
         return scriptContext->GetLibrary()->GetUndefined();
-    }
-
-    Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ToLengthFunction(RecyclableObject * function, CallInfo callInfo, ...)
-    {
-        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-        AssertOrFailFast(args.Info.Count >= 2);
-        return JavascriptNumber::ToVar(JavascriptConversion::ToLength(args.Values[1], scriptContext), scriptContext);
-    }
-
-    Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ToIntegerFunction(RecyclableObject * function, CallInfo callInfo, ...)
-    {
-        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-        AssertOrFailFast(args.Info.Count >= 2);
-
-        Var value = args.Values[1];
-        if (JavascriptOperators::IsUndefinedOrNull(value))
-        {
-            return TaggedInt::ToVarUnchecked(0);
-        }
-        else if (TaggedInt::Is(value))
-        {
-            return value;
-        }
-
-        return JavascriptNumber::ToVarNoCheck(JavascriptConversion::ToInteger(value, scriptContext), scriptContext);
     }
 
 #endif // ENABLE_JS_BUILTINS

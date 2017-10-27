@@ -24,9 +24,6 @@ namespace Js
         public:
             static NoProfileFunctionInfo JsBuiltIn_RegisterChakraLibraryFunction;
             static NoProfileFunctionInfo JsBuiltIn_RegisterFunction;
-
-            static NoProfileFunctionInfo JsBuiltIn_Internal_ToLengthFunction;
-            static NoProfileFunctionInfo JsBuiltIn_Internal_ToIntegerFunction;
         };
 
     private:
@@ -40,9 +37,6 @@ namespace Js
         static DynamicObject* GetPrototypeFromName(Js::PropertyIds propertyId, ScriptContext* scriptContext);
         static Var EntryJsBuiltIn_RegisterChakraLibraryFunction(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryJsBuiltIn_RegisterFunction(RecyclableObject* function, CallInfo callInfo, ...);
-
-        static Var EntryJsBuiltIn_Internal_ToLengthFunction(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntryJsBuiltIn_Internal_ToIntegerFunction(RecyclableObject* function, CallInfo callInfo, ...);
     };
 }
 #endif // ENABLE_JS_BUILTINS
