@@ -92,13 +92,19 @@ namespace Js
 
             Js::ScriptFunction *function = scriptContext->GetLibrary()->CreateScriptFunction(jsBuiltInByteCode->GetNestedFunctionForExecution(0));
 
+#ifdef ENABLE_SCRIPT_PROFILING
             // If we are profiling, we need to register the script to the profiler callback, so the script compiled event will be sent.
             if (scriptContext->IsProfiling())
             {
                 scriptContext->RegisterScript(function->GetFunctionProxy());
             }
-            // Mark we are profiling library code already, so that any initialization library code called here won't be reported to profiler
-            AutoProfilingUserCode autoProfilingUserCode(scriptContext->GetThreadContext(), /*isProfilingUserCode*/false);
+#endif
+
+#ifdef ENABLE_SCRIPT_DEBUGGING
+            // Mark we are profiling library code already, so that any initialization library code called here won't be reported to profiler.
+            // Also tell the debugger not to record events during intialization so that we don't leak information about initialization.
+            AutoInitLibraryCodeScope autoInitLibraryCodeScope(scriptContext);
+#endif
 
             Js::Var args[] = { scriptContext->GetLibrary()->GetUndefined(), scriptContext->GetLibrary()->GetEngineInterfaceObject() };
             Js::CallInfo callInfo(Js::CallFlags_Value, _countof(args));
@@ -124,7 +130,7 @@ namespace Js
         }
     }
 
-    void JsBuiltInEngineInterfaceExtensionObject::InitializeJsBuiltInNativeInterfaces(DynamicObject * builtInNativeInterfaces, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JsBuiltInEngineInterfaceExtensionObject::InitializeJsBuiltInNativeInterfaces(DynamicObject * builtInNativeInterfaces, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(builtInNativeInterfaces, mode, 16);
 
@@ -135,6 +141,7 @@ namespace Js
         library->AddFunctionToLibraryObject(builtInNativeInterfaces, Js::PropertyIds::registerFunction, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_RegisterFunction, 2);
 
         builtInNativeInterfaces->SetHasNoEnumerableProperties(true);
+        return true;
     }
 
 #if DBG
@@ -163,7 +170,7 @@ namespace Js
             SRCINFO *hsi = scriptContext->AddHostSrcInfo(&si);
             uint32 flags = fscrJsBuiltIn | (CONFIG_FLAG(CreateFunctionProxy) && !scriptContext->IsProfiling() ? fscrAllowFunctionProxy : 0);
 
-            HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, (LPCUTF8)nullptr, hsi, (byte*)Library_Bytecode_jsbuiltin, nullptr, &jsBuiltInByteCode);
+            HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, (LPCUTF8)nullptr, hsi, (byte*)Library_Bytecode_JsBuiltIn, nullptr, &jsBuiltInByteCode);
 
             IfFailAssertMsgAndThrowHr(hr, "Failed to deserialize JsBuiltIn.js bytecode - very probably the bytecode needs to be rebuilt.");
         }

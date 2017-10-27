@@ -761,8 +761,8 @@ namespace Js
 
         void EnsureBuiltInEngineIsReady();
 
-        static void __cdecl InitializeChakraLibraryObject(DynamicObject* chakraLibraryObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeBuiltInObject(DynamicObject* builtInEngineObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static bool __cdecl InitializeChakraLibraryObject(DynamicObject* chakraLibraryObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static bool __cdecl InitializeBuiltInObject(DynamicObject* builtInEngineObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
 #endif
 

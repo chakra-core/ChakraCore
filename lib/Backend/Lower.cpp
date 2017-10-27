@@ -18823,7 +18823,7 @@ void Lowerer::GenerateFastInlineIsIn(IR::Instr * instr)
 
     IR::RegOpnd* src1Untagged = GenerateUntagVar(src1->AsRegOpnd(), helperLabel, instr);
     IR::RegOpnd* src2RegOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
-    LowererMD::CreateAssign(src2RegOpnd, src2, instr);
+    InsertMove(src2RegOpnd, src2, instr);
 
     IR::AutoReuseOpnd autoReuseArrayOpnd;
     m_lowererMD.GenerateObjectTest(src2RegOpnd, instr, helperLabel);

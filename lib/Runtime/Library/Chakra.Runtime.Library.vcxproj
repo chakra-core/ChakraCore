@@ -154,6 +154,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)UriHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ExternalLibraryBase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)IntlEngineInterfaceExtensionObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JsBuiltInEngineInterfaceExtensionObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmLibrary.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptListIterator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)AtomicsObject.cpp" />
@@ -167,6 +168,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)WabtInterface.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CustomExternalIterator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptExceptionMetadata.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)VerifyMarkFalseReference.cpp" />
     <ClCompile Include="JSONStringBuilder.cpp" />
     <ClCompile Include="JSONStringifier.cpp" />
     <ClCompile Include="LazyJSONString.cpp" />

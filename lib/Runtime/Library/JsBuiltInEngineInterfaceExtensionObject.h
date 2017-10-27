@@ -13,7 +13,7 @@ namespace Js
         void Initialize();
         void InjectJsBuiltInLibraryCode(ScriptContext * scriptContext);
 
-        static void __cdecl InitializeJsBuiltInNativeInterfaces(DynamicObject* intlNativeInterfaces, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static bool __cdecl InitializeJsBuiltInNativeInterfaces(DynamicObject* intlNativeInterfaces, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
 #if DBG
         void DumpByteCode() override;

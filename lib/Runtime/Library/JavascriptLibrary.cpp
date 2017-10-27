@@ -5307,7 +5307,7 @@ namespace Js
 
 #ifdef ENABLE_JS_BUILTINS
 
-    void JavascriptLibrary::InitializeBuiltInObject(DynamicObject* builtInObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeBuiltInObject(DynamicObject* builtInObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(builtInObject, mode,  /*initSlotCapacity*/ 2);
 
@@ -5319,6 +5319,7 @@ namespace Js
             };
             builtInObject->GetLibrary()->InitializeBuiltInForPrototypes(builtInInitializer);
         }
+        return true;
     }
 
     void JavascriptLibrary::EnsureBuiltInEngineIsReady()
@@ -5344,7 +5345,7 @@ namespace Js
         }
     }
 
-    void JavascriptLibrary::InitializeChakraLibraryObject(DynamicObject * chakraLibraryObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeChakraLibraryObject(DynamicObject * chakraLibraryObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         JavascriptLibrary* library = chakraLibraryObject->GetLibrary();
         typeHandler->Convert(chakraLibraryObject, mode, 16);
@@ -5355,6 +5356,7 @@ namespace Js
         library->AddMember(chakraLibraryObject, PropertyIds::Object, library->objectConstructor);
 
         chakraLibraryObject->SetHasNoEnumerableProperties(true);
+        return true;
     }
 
 #endif

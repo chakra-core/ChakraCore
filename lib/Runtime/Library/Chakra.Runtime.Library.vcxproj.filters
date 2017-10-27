@@ -124,7 +124,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JsBuiltInEngineInterfaceExtensionObject.cpp" />
     <ClCompile Include="LazyJSONString.cpp" />
     <ClCompile Include="JSONStringifier.cpp" />
-    <ClCompile Include="JSONStringBuilder.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
