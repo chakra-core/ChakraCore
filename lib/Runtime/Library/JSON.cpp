@@ -38,20 +38,16 @@ namespace JSON
             Js::JavascriptError::ThrowSyntaxError(scriptContext, ERRsyntax);
         }
 
-        Js::JavascriptString* input;
         Js::Var value = args[1];
-        if (Js::JavascriptString::Is(value))
-        {
-            input = Js::JavascriptString::FromVar(value);
-        }
-        else
+        Js::JavascriptString * input = JavascriptOperators::TryFromVar<Js::JavascriptString>(value);
+        if (!input)
         {
             input = Js::JavascriptConversion::ToString(value, scriptContext);
         }
         Js::RecyclableObject* reviver = NULL;
         if (args.Info.Count > 2 && Js::JavascriptConversion::IsCallable(args[2]))
         {
-            reviver = Js::RecyclableObject::FromVar(args[2]);
+            reviver = Js::RecyclableObject::UnsafeFromVar(args[2]);
         }
 
         return Parse(input, reviver, scriptContext);
@@ -134,7 +130,7 @@ namespace JSON
             {
                 Js::Throw::FatalInternalError(); // nameTable buffer calculation is wrong
             }
-            Js::JavascriptString *propertyName = Js::JavascriptString::FromVar(value);
+            Js::JavascriptString *propertyName = Js::JavascriptString::UnsafeFromVar(value);
             nameTable[tableLen].propName = propertyName;
             Js::PropertyRecord const * propertyRecord;
             scriptContext->GetOrAddPropertyRecord(propertyName, &propertyRecord);
@@ -204,13 +200,12 @@ namespace JSON
             if (Js::JavascriptOperators::IsArray(replacerArg))
             {
                 uint32 length;
-                Js::JavascriptArray *reArray = nullptr;
-                Js::RecyclableObject *reRemoteArray = Js::RecyclableObject::FromVar(replacerArg);
+                Js::JavascriptArray *reArray = JavascriptOperators::TryFromVar<JavascriptArray>(replacerArg);
+                Js::RecyclableObject *reRemoteArray = Js::RecyclableObject::UnsafeFromVar(replacerArg);
                 bool isArray = false;
 
-                if (Js::JavascriptArray::Is(replacerArg))
+                if (reArray)
                 {
-                    reArray = Js::JavascriptArray::FromVar(replacerArg);
                     length = reArray->GetLength();
                     isArray = true;
                 }
@@ -313,7 +308,7 @@ namespace JSON
             }
             else if (Js::JavascriptConversion::IsCallable(replacerArg))
             {
-                stringifySession.InitReplacer(Js::RecyclableObject::FromVar(replacerArg));
+                stringifySession.InitReplacer(Js::RecyclableObject::UnsafeFromVar(replacerArg));
             }
         }
 
@@ -372,10 +367,10 @@ namespace JSON
             }
         case Js::TypeIds_String:
             {
-                len = min(static_cast<charcount_t>(JSONspaceSize), Js::JavascriptString::FromVar(space)->GetLength());
+                len = min(static_cast<charcount_t>(JSONspaceSize), Js::JavascriptString::UnsafeFromVar(space)->GetLength());
                 if(len)
                 {
-                    gap = Js::JavascriptString::NewCopyBuffer(Js::JavascriptString::FromVar(space)->GetString(), len, scriptContext);
+                    gap = Js::JavascriptString::NewCopyBuffer(Js::JavascriptString::UnsafeFromVar(space)->GetString(), len, scriptContext);
                 }
                 break;
             }
@@ -384,10 +379,10 @@ namespace JSON
                 Js::Var spaceString = Js::JavascriptConversion::ToString(space, scriptContext);
                 if(Js::JavascriptString::Is(spaceString))
                 {
-                    len = min(static_cast<charcount_t>(JSONspaceSize), Js::JavascriptString::FromVar(spaceString)->GetLength());
+                    len = min(static_cast<charcount_t>(JSONspaceSize), Js::JavascriptString::UnsafeFromVar(spaceString)->GetLength());
                     if(len)
                     {
-                        gap = Js::JavascriptString::NewCopyBuffer(Js::JavascriptString::FromVar(spaceString)->GetString(), len, scriptContext);
+                        gap = Js::JavascriptString::NewCopyBuffer(Js::JavascriptString::UnsafeFromVar(spaceString)->GetString(), len, scriptContext);
                     }
                 }
                 break;
@@ -402,9 +397,9 @@ namespace JSON
         Js::Var value = nullptr;
         Js::RecyclableObject *undefined = scriptContext->GetLibrary()->GetUndefined();
 
-        if (Js::JavascriptArray::Is(holder->GetTypeId()) && !Js::JavascriptArray::FromAnyArray(holder)->IsCrossSiteObject())
+        if (Js::JavascriptArray::Is(holder->GetTypeId()) && !Js::JavascriptArray::UnsafeFromAnyArray(holder)->IsCrossSiteObject())
         {
-            value = Js::JavascriptArray::FromAnyArray(holder)->DirectGetItem(index);
+            value = Js::JavascriptArray::UnsafeFromAnyArray(holder)->DirectGetItem(index);
             if (Js::JavascriptOperators::IsUndefinedObject(value, undefined))
             {
                 return value;
@@ -456,10 +451,9 @@ namespace JSON
         return StrHelper(key, value, holder);
     }
 
-    inline bool Get_ToJSON(ScriptContext* scriptContext, Js::JavascriptString* key, Js::Var* value, Js::TypeId typeId)
+    inline bool Get_ToJSON(ScriptContext* scriptContext, Js::JavascriptString* key, Js::RecyclableObject* object, Js::Var* value, Js::TypeId typeId)
     {
         Js::Var toJSON = nullptr;
-        Js::RecyclableObject* object = Js::RecyclableObject::FromVar(*value);
         while (typeId != Js::TypeIds_Null)
         {
             PropertyQueryFlags result = object->GetPropertyQuery(object, Js::PropertyIds::toJSON, &toJSON, nullptr, scriptContext);
@@ -471,7 +465,7 @@ namespace JSON
                 args.Values[0] = *value;
                 args.Values[1] = key;
 
-                Js::RecyclableObject* func = Js::RecyclableObject::FromVar(toJSON);
+                Js::RecyclableObject* func = Js::RecyclableObject::UnsafeFromVar(toJSON);
                 *value = Js::JavascriptFunction::CallFunction<true>(func, func->GetEntryPoint(), args);
                 return true;
             }
@@ -493,7 +487,7 @@ namespace JSON
         //check and apply 'toJSON' filter
         if (Js::JavascriptOperators::IsJsNativeObject(value) || (Js::JavascriptOperators::IsObject(value)))
         {
-            if (Get_ToJSON(scriptContext, key, &value, id))
+            if (Get_ToJSON(scriptContext, key, Js::RecyclableObject::UnsafeFromVar(value), &value, id))
             {
                 id = Js::JavascriptOperators::GetTypeId(value);
             }
@@ -527,7 +521,7 @@ namespace JSON
         }
         else if (Js::TypeIds_BooleanObject == id)
         {
-            value = Js::JavascriptBooleanObject::FromVar(value)->GetValue() ?
+            value = Js::JavascriptBooleanObject::UnsafeFromVar(value)->GetValue() ?
                 scriptContext->GetLibrary()->GetTrue()
             :
                 scriptContext->GetLibrary()->GetFalse();
@@ -547,10 +541,10 @@ namespace JSON
             return scriptContext->GetIntegerString(value);
 
         case Js::TypeIds_Boolean:
-            return (Js::JavascriptBoolean::FromVar(value)->GetValue()) ? scriptContext->GetLibrary()->GetTrueDisplayString() : scriptContext->GetLibrary()->GetFalseDisplayString();
+            return (Js::JavascriptBoolean::UnsafeFromVar(value)->GetValue()) ? scriptContext->GetLibrary()->GetTrueDisplayString() : scriptContext->GetLibrary()->GetFalseDisplayString();
 
         case Js::TypeIds_Int64Number:
-            if (Js::NumberUtilities::IsFinite(static_cast<double>(Js::JavascriptInt64Number::FromVar(value)->GetValue())))
+            if (Js::NumberUtilities::IsFinite(static_cast<double>(Js::JavascriptInt64Number::UnsafeFromVar(value)->GetValue())))
             {
                 return Js::JavascriptConversion::ToString(value, scriptContext);
             }
@@ -560,7 +554,7 @@ namespace JSON
             }
 
         case Js::TypeIds_UInt64Number:
-            if (Js::NumberUtilities::IsFinite(static_cast<double>(Js::JavascriptUInt64Number::FromVar(value)->GetValue())))
+            if (Js::NumberUtilities::IsFinite(static_cast<double>(Js::JavascriptUInt64Number::UnsafeFromVar(value)->GetValue())))
             {
                 return Js::JavascriptConversion::ToString(value, scriptContext);
             }
@@ -580,7 +574,7 @@ namespace JSON
             }
 
         case Js::TypeIds_String:
-            return Quote(Js::JavascriptString::FromVar(value));
+            return Quote(Js::JavascriptString::UnsafeFromVar(value));
 
         default:
             Js::Var ret = undefined;
@@ -650,7 +644,7 @@ namespace JSON
         {
             if (JavascriptProxy::Is(object))
             {
-                JavascriptProxy* proxyObject = JavascriptProxy::FromVar(object);
+                JavascriptProxy* proxyObject = JavascriptProxy::UnsafeFromVar(object);
                 JavascriptArray* proxyResult = proxyObject->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertyNamesKind, this->scriptContext);
 
                 // filter enumerable keys
@@ -667,7 +661,7 @@ namespace JSON
                     PropertyDescriptor propertyDescriptor;
                     JavascriptConversion::ToPropertyKey(propertyName, scriptContext, &propRecord, nullptr);
                     id = propRecord->GetPropertyId();
-                    if (JavascriptOperators::GetOwnPropertyDescriptor(RecyclableObject::FromVar(proxyObject), id, scriptContext, &propertyDescriptor))
+                    if (JavascriptOperators::GetOwnPropertyDescriptor(RecyclableObject::UnsafeFromVar(proxyObject), id, scriptContext, &propertyDescriptor))
                     {
                         if (propertyDescriptor.IsEnumerable())
                         {
@@ -1046,7 +1040,8 @@ namespace JSON
         *pIsPrecise = false;
 
         uint32 count = object->GetPropertyCount();
-        if (Js::DynamicObject::Is(object) && Js::DynamicObject::FromVar(object)->HasObjectArray())
+        Js::DynamicObject * dynObject = JavascriptOperators::TryFromVar<Js::DynamicObject>(object);
+        if (dynObject && dynObject->HasObjectArray())
         {
             // Can't use array->GetLength() as this can be sparse array for which we stringify only real/set properties.
             // Do one walk through the elements.

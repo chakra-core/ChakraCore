@@ -134,4 +134,9 @@
       <files>MilitaryTimeZone.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>TwoDigitYears.js</files>
+    </default>
+  </test>
 </regress-exe>

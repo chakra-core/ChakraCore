@@ -139,11 +139,17 @@ namespace Js
 
     EngineInterfaceObject* EngineInterfaceObject::FromVar(Var aValue)
     {
-        AssertMsg(Is(aValue), "aValue is actually an EngineInterfaceObject");
+        AssertOrFailFastMsg(Is(aValue), "aValue is actually an EngineInterfaceObject");
 
-        return static_cast<EngineInterfaceObject *>(RecyclableObject::FromVar(aValue));
+        return static_cast<EngineInterfaceObject *>(aValue);
     }
 
+    EngineInterfaceObject* EngineInterfaceObject::UnsafeFromVar(Var aValue)
+    {
+        AssertMsg(Is(aValue), "aValue is actually an EngineInterfaceObject");
+
+        return static_cast<EngineInterfaceObject *>(aValue);
+    }
     void EngineInterfaceObject::Initialize()
     {
         Recycler* recycler = this->GetRecycler();

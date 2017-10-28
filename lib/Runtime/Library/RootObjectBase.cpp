@@ -23,7 +23,7 @@ namespace Js
 
     bool RootObjectBase::Is(Var var)
     {
-        return RecyclableObject::Is(var) && RootObjectBase::Is(RecyclableObject::FromVar(var));
+        return RecyclableObject::Is(var) && RootObjectBase::Is(RecyclableObject::UnsafeFromVar(var));
     }
 
     bool RootObjectBase::Is(RecyclableObject* obj)
@@ -33,6 +33,12 @@ namespace Js
     }
 
     RootObjectBase * RootObjectBase::FromVar(Var var)
+    {
+        AssertOrFailFast(RootObjectBase::Is(var));
+        return static_cast<Js::RootObjectBase *>(var);
+    }
+
+    RootObjectBase * RootObjectBase::UnsafeFromVar(Var var)
     {
         Assert(RootObjectBase::Is(var));
         return static_cast<Js::RootObjectBase *>(var);

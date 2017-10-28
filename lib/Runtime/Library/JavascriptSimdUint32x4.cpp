@@ -36,7 +36,7 @@ namespace Js
     JavascriptSIMDUint32x4* JavascriptSIMDUint32x4::FromVar(Var aValue)
     {
         Assert(aValue);
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptSIMDUint32x4'");
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptSIMDUint32x4'");
 
         return reinterpret_cast<JavascriptSIMDUint32x4 *>(aValue);
     }

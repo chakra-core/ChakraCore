@@ -71,6 +71,7 @@ namespace Js
 
         static bool Is(Var aValue);
         static SharedArrayBuffer* FromVar(Var aValue);
+        static SharedArrayBuffer* UnsafeFromVar(Var aValue);
 
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;

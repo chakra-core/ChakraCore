@@ -88,6 +88,7 @@ namespace Js
 
         static bool Is(Var aValue);
         static CustomExternalIterator* FromVar(Var aValue);
+        static CustomExternalIterator* UnsafeFromVar(Var aValue);
         static Var CreateNextFunction(JavascriptLibrary *library, JavascriptTypeId typeId);
         static Var EntryNext(RecyclableObject* function, CallInfo callInfo, ...);
     };

@@ -70,6 +70,6 @@ namespace Js
     FunctionInfo::Attributes FunctionInfo::GetAttributes(Js::RecyclableObject * function)
     {
         return function->GetTypeId() == Js::TypeIds_Function ?
-            Js::JavascriptFunction::FromVar(function)->GetFunctionInfo()->GetAttributes() : Js::FunctionInfo::None;
+            Js::JavascriptFunction::UnsafeFromVar(function)->GetFunctionInfo()->GetAttributes() : Js::FunctionInfo::None;
     }
 }

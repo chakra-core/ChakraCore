@@ -19,9 +19,16 @@ namespace Js
 
     JavascriptBooleanObject* JavascriptBooleanObject::FromVar(Js::Var aValue)
     {
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptBooleanObject'");
+
+        return static_cast<JavascriptBooleanObject *>(aValue);
+    }
+
+    JavascriptBooleanObject* JavascriptBooleanObject::UnsafeFromVar(Js::Var aValue)
+    {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptBooleanObject'");
 
-        return static_cast<JavascriptBooleanObject *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptBooleanObject *>(aValue);
     }
 
     BOOL JavascriptBooleanObject::GetValue() const

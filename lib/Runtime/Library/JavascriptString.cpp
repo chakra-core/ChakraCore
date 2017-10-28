@@ -138,10 +138,11 @@ namespace Js
 
         if (args.Info.Count > 1)
         {
-            if (JavascriptSymbol::Is(args[1]) && !(callInfo.Flags & CallFlags_New))
+            JavascriptSymbol * symbol = JavascriptOperators::TryFromVar<JavascriptSymbol>(args[1]);
+            if (symbol && !(callInfo.Flags & CallFlags_New))
             {
                 // By ES2015 21.1.1.1 step 2, calling the String constructor directly results in an explicit ToString, which does not throw.
-                return JavascriptSymbol::ToString(JavascriptSymbol::FromVar(args[1])->GetValue(), scriptContext);
+                return JavascriptSymbol::ToString(symbol->GetValue(), scriptContext);
                 // Calling with new is an implicit ToString on the Symbol, resulting in a throw. For this case we can let JavascriptConversion handle the call.
             }
             str = JavascriptConversion::ToString(args[1], scriptContext);
@@ -161,7 +162,7 @@ namespace Js
         }
 
         return isCtorSuperCall ?
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), RecyclableObject::FromVar(result), nullptr, scriptContext) :
+            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), RecyclableObject::UnsafeFromVar(result), nullptr, scriptContext) :
             result;
     }
 
@@ -227,9 +228,16 @@ namespace Js
 
     JavascriptString* JavascriptString::FromVar(Var aValue)
     {
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptString'");
+
+        return static_cast<JavascriptString *>(aValue);
+    }
+
+    JavascriptString* JavascriptString::UnsafeFromVar(Var aValue)
+    {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptString'");
 
-        return static_cast<JavascriptString *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptString *>(aValue);
     }
 
     charcount_t
@@ -848,15 +856,11 @@ case_2:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("String.prototype.concat"));
         }
 
-        JavascriptString* pstr = nullptr;
         JavascriptString* accum = nullptr;
         for (uint index = 0; index < args.Info.Count; index++)
         {
-            if (JavascriptString::Is(args[index]))
-            {
-                pstr = JavascriptString::FromVar(args[index]);
-            }
-            else
+            JavascriptString * pstr = JavascriptOperators::TryFromVar<JavascriptString>(args[index]);
+            if (!pstr)
             {
                 pstr = JavascriptConversion::ToString(args[index], scriptContext);
             }
@@ -1115,14 +1119,11 @@ case_2:
         GetThisStringArgument(args, scriptContext, _u("String.prototype.lastIndexOf"), &pThis);
 
         // default search string if the search argument is not provided
-        JavascriptString * searchArg;
+        JavascriptString * searchArg = nullptr;
         if(args.Info.Count > 1)
         {
-            if (JavascriptString::Is(args[1]))
-            {
-                searchArg = JavascriptString::FromVar(args[1]);
-            }
-            else
+            searchArg = JavascriptOperators::TryFromVar<JavascriptString>(args[1]);
+            if (!searchArg)
             {
                 searchArg = JavascriptConversion::ToString(args[1], scriptContext);
             }
@@ -1238,16 +1239,10 @@ case_2:
         }
         AssertMsg(args.Info.Count > 0, "Negative argument count");
 
-        JavascriptString * pThis;
-        if (JavascriptString::Is(args[0]))
+        JavascriptString * pThis = JavascriptOperators::TryFromVar<JavascriptString>(args[0]);
+        if (!pThis)
         {
-            pThis = JavascriptString::FromVar(args[0]);
-        }
-        else
-        {
-
             pThis = JavascriptConversion::CoerseString(args[0], scriptContext , apiNameForErrorMsg);
-
         }
 
         *ppThis = pThis;
@@ -1270,13 +1265,13 @@ case_2:
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_FirstCannotBeRegExp, apiNameForErrorMsg);
             }
-            else if (JavascriptString::Is(args[1]))
-            {
-                pSearch = JavascriptString::FromVar(args[1]);
-            }
             else
             {
-                pSearch = JavascriptConversion::ToString(args[1], scriptContext);
+                pSearch = JavascriptOperators::TryFromVar<JavascriptString>(args[1]);
+                if (!pSearch)
+                {
+                    pSearch = JavascriptConversion::ToString(args[1], scriptContext);
+                }
             }
         }
 
@@ -1417,12 +1412,8 @@ case_2:
 
         if (args.Info.Count >= 2 && !(JavascriptOperators::IsUndefinedObject(args.Values[1])))
         {
-            JavascriptString *formStr = nullptr;
-            if (JavascriptString::Is(args[1]))
-            {
-                formStr = JavascriptString::FromVar(args[1]);
-            }
-            else
+            JavascriptString *formStr = JavascriptOperators::TryFromVar<JavascriptString>(args[1]);
+            if (!formStr)
             {
                 formStr = JavascriptConversion::ToString(args[1], scriptContext);
             }
@@ -1746,7 +1737,7 @@ case_2:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid, varName);
         }
 
-        RecyclableObject* fnObj = RecyclableObject::FromVar(fn);
+        RecyclableObject* fnObj = RecyclableObject::UnsafeFromVar(fn);
         return CallRegExFunction<argCount>(fnObj, regExp, args, scriptContext);
     }
 
@@ -1867,7 +1858,7 @@ case_2:
             if (!scriptContext->GetConfig()->IsES6RegExSymbolsEnabled()
                 && JavascriptRegExp::Is(args[1]))
             {
-                return RegexHelper::RegexSplit(scriptContext, JavascriptRegExp::FromVar(args[1]), input, limit,
+                return RegexHelper::RegexSplit(scriptContext, JavascriptRegExp::UnsafeFromVar(args[1]), input, limit,
                     RegexHelper::IsResultNotUsed(callInfo.Flags));
             }
             else
@@ -2172,7 +2163,7 @@ case_2:
             if (JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch)
             {
                 Var result;
-                if (RecyclableObject::FromVar(args[0])->InvokeBuiltInOperationRemotely(EntryToString, args, &result))
+                if (RecyclableObject::UnsafeFromVar(args[0])->InvokeBuiltInOperationRemotely(EntryToString, args, &result))
                 {
                     return result;
                 }
@@ -2649,7 +2640,7 @@ case_2:
             if (JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch)
             {
                 Var result;
-                if (RecyclableObject::FromVar(args[0])->InvokeBuiltInOperationRemotely(EntryValueOf, args, &result))
+                if (RecyclableObject::UnsafeFromVar(args[0])->InvokeBuiltInOperationRemotely(EntryValueOf, args, &result))
                 {
                     return result;
                 }
@@ -3089,7 +3080,7 @@ case_2:
         charcount_t cchPropertyValue;
         charcount_t cchTotalChars;
         charcount_t ich;
-        JavascriptString * pThis;
+        JavascriptString * pThis = nullptr;
         JavascriptString * pPropertyValue = nullptr;
         const char16 * propertyValueStr = nullptr;
         uint quotesCount = 0;
@@ -3130,11 +3121,8 @@ case_2:
             }
         }
 
-        if (JavascriptString::Is(args[0]))
-        {
-            pThis = JavascriptString::FromVar(args[0]);
-        }
-        else
+        pThis = JavascriptOperators::TryFromVar<JavascriptString>(args[0]);
+        if (!pThis)
         {
             pThis = JavascriptConversion::ToString(args[0], scriptContext);
         }
@@ -3150,11 +3138,8 @@ case_2:
             // Need one string argument.
             if (args.Info.Count >= 2)
             {
-                if (JavascriptString::Is(args[1]))
-                {
-                    pPropertyValue = JavascriptString::FromVar(args[1]);
-                }
-                else
+                pPropertyValue = JavascriptOperators::TryFromVar<JavascriptString>(args[1]);
+                if (!pPropertyValue)
                 {
                     pPropertyValue = JavascriptConversion::ToString(args[1], scriptContext);
                 }
@@ -3301,13 +3286,9 @@ case_2:
     {
         using namespace PlatformAgnostic::UnicodeText;
 
-        JavascriptString * pThis;
+        JavascriptString * pThis = JavascriptOperators::TryFromVar<JavascriptString>(thisObj);
 
-        if (JavascriptString::Is(thisObj))
-        {
-            pThis = JavascriptString::FromVar(thisObj);
-        }
-        else
+        if (!pThis)
         {
             pThis = JavascriptConversion::ToString(thisObj, scriptContext);
         }
@@ -3885,8 +3866,8 @@ case_2:
 
         if (aLeft == aRight) return true;
 
-        T *leftString = T::FromVar(aLeft);
-        T *rightString = T::FromVar(aRight);
+        T *leftString = T::UnsafeFromVar(aLeft);
+        T *rightString = T::UnsafeFromVar(aRight);
 
         if (leftString->GetLength() != rightString->GetLength())
         {

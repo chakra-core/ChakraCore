@@ -15,9 +15,15 @@ namespace Js
 
     inline JavascriptBoolean* JavascriptBoolean::FromVar(Js::Var aValue)
     {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptBoolean'");
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptBoolean'");
 
-        return static_cast<JavascriptBoolean *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptBoolean *>(aValue);
     }
 
+    inline JavascriptBoolean* JavascriptBoolean::UnsafeFromVar(Js::Var aValue)
+    {
+        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptBoolean'");
+
+        return static_cast<JavascriptBoolean *>(aValue);
+    }
 } // namespace Js

@@ -26,9 +26,16 @@ namespace Js
 
     JavascriptSet* JavascriptSet::FromVar(Var aValue)
     {
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptSet'");
+
+        return static_cast<JavascriptSet *>(aValue);
+    }
+
+    JavascriptSet* JavascriptSet::UnsafeFromVar(Var aValue)
+    {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptSet'");
 
-        return static_cast<JavascriptSet *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptSet *>(aValue);
     }
 
     JavascriptSet::SetDataList::Iterator JavascriptSet::GetIterator()
