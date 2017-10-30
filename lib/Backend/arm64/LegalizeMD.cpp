@@ -759,20 +759,30 @@ bool LegalizeMD::LegalizeDirectBranch(IR::BranchInstr *branchInstr, uint32 branc
     Assert(labelOffset); //Label offset must be set.
 
     int32 offset = labelOffset - branchOffset;
-    //We should never run out of 24 bits which corresponds to +-16MB of code size.
-    AssertMsg(IS_CONST_INT24(offset >> 1), "Cannot encode more that 16 MB offset");
+    //We should never run out of 26 bits which corresponds to +-64MB of code size.
+    AssertMsg(IS_CONST_INT26(offset >> 1), "Cannot encode more that 64 MB offset");
 
     if (LowererMD::IsUnconditionalBranch(branchInstr))
     {
         return false;
     }
 
-    if (IS_CONST_INT21(offset))
+    if (branchInstr->m_opcode == Js::OpCode::TBZ || branchInstr->m_opcode == Js::OpCode::TBNZ)
     {
-        return false;
+        if (IS_CONST_INT14(offset))
+        {
+            return false;
+        }
+    }
+    else
+    {
+        if (IS_CONST_INT19(offset))
+        {
+            return false;
+        }
     }
 
-    // Convert a conditional branch which can only be +-1MB to unconditional branch which is +-16MB
+    // Convert a conditional branch which can only be +-512kb to unconditional branch which is +-64MB
     // Convert beq Label (where Label is long jump) to something like this
     //          bne Fallback
     //          b Label
@@ -780,6 +790,19 @@ bool LegalizeMD::LegalizeDirectBranch(IR::BranchInstr *branchInstr, uint32 branc
 
     IR::LabelInstr *doneLabelInstr = IR::LabelInstr::New(Js::OpCode::Label, branchInstr->m_func, false);
     IR::BranchInstr *newBranchInstr = IR::BranchInstr::New(branchInstr->m_opcode, doneLabelInstr, branchInstr->m_func);
+
+    // CBZ | CBNZ | TBZ | TBNZ
+    if (branchInstr->GetSrc1() != nullptr)
+    {
+        newBranchInstr->SetSrc1(branchInstr->UnlinkSrc1());
+    }
+
+    // TBZ | TBNZ
+    if (branchInstr->GetSrc2() != nullptr)
+    {
+        newBranchInstr->SetSrc2(branchInstr->UnlinkSrc2());
+    }
+
     LowererMD::InvertBranch(newBranchInstr);
 
     branchInstr->InsertBefore(newBranchInstr);
