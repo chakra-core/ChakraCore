@@ -208,6 +208,7 @@ namespace Js
         template<bool unscopables>
         static BOOL DeleteProperty_Impl(RecyclableObject* instance, PropertyId propertyId, PropertyOperationFlags propertyOperationFlags = PropertyOperation_None);
         static TypeId GetTypeId(Var instance);
+        static TypeId GetTypeId(RecyclableObject* instance);
         static TypeId GetTypeIdNoCheck(Var instance);
         template <typename T>
         __forceinline static T* TryFromVar(Var value)
