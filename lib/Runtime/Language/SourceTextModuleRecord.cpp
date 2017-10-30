@@ -171,7 +171,7 @@ namespace Js
         {
             if (*exceptionVar == nullptr)
             {
-                *exceptionVar = JavascriptError::CreateFromCompileScriptException(scriptContext, &se);
+                *exceptionVar = JavascriptError::CreateFromCompileScriptException(scriptContext, &se, this->GetSpecifierSz());
             }
             if (this->parser)
             {
@@ -831,7 +831,7 @@ namespace Js
         this->rootFunction = scriptContext->GenerateRootFunction(parseTree, sourceIndex, this->parser, this->pSourceInfo->GetParseFlags(), &se, _u("module"));
         if (rootFunction == nullptr)
         {
-            this->errorObject = JavascriptError::CreateFromCompileScriptException(scriptContext, &se);
+            this->errorObject = JavascriptError::CreateFromCompileScriptException(scriptContext, &se, this->GetSpecifierSz());
             OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentAsNeeded rootFunction == nullptr\n"));
             NotifyParentsAsNeeded();
         }

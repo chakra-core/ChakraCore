@@ -77,7 +77,10 @@ JsParseModuleSource(
         SourceContextInfo* sourceContextInfo = scriptContext->GetSourceContextInfo(sourceContext, nullptr);
         if (sourceContextInfo == nullptr)
         {
-            sourceContextInfo = scriptContext->CreateSourceContextInfo(sourceContext, nullptr, 0, nullptr, nullptr, 0);
+            Js::JavascriptString *specifier = Js::JavascriptString::FromVar(moduleRecord->GetSpecifier());
+            const char16 *urlSz = specifier->GetSz();
+            size_t urlLength = specifier->GetLength();
+            sourceContextInfo = scriptContext->CreateSourceContextInfo(sourceContext, urlSz, urlLength, nullptr, nullptr, 0);
         }
         SRCINFO si = {
             /* sourceContextInfo   */ sourceContextInfo,
