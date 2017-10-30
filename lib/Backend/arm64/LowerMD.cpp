@@ -5762,7 +5762,7 @@ LowererMD::GenerateFastRecyclerAlloc(size_t allocSize, IR::RegOpnd* newObjDst, I
 void
 LowererMD::GenerateClz(IR::Instr * instr)
 {
-    Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32());
+    Assert(instr->GetSrc1()->IsIntegral32());
     Assert(IRType_IsNativeInt(instr->GetDst()->GetType()));
     instr->m_opcode = Js::OpCode::CLZ;
     LegalizeMD::LegalizeInstr(instr, false);
@@ -7772,7 +7772,7 @@ LowererMD::EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
     IR::Instr *instr;
 
     Assert(dst->IsRegOpnd() && dst->IsFloat64());
-    Assert(src->IsRegOpnd() && src->IsUInt32());
+    Assert(src->IsRegOpnd() && src->IsIntegral32());
 
     // Convert to Float
     instr = IR::Instr::New(Js::OpCode::FCVT, dst, src, this->m_func);
