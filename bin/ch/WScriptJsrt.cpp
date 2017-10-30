@@ -1112,12 +1112,12 @@ JsValueRef __stdcall WScriptJsrt::ReadLineStdinCallback(JsValueRef callee, bool 
     int bufsize = BUFSIZE;
     char* buf = static_cast<char*>(malloc(bufsize));
     char* tmp;
+    int gotlength = 0;
+
     if (!buf)
     {
         goto Error;
     }
-
-    int gotlength = 0;
 
     while ((gotlength = JsFgets(buf + buflength, bufsize - buflength, from)) > 0) 
     {
