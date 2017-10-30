@@ -1461,7 +1461,13 @@ bool EncoderMD::TryConstFold(IR::Instr *instr, IR::RegOpnd *regOpnd)
             return false;
         }
 
-        instr->ReplaceSrc(regOpnd, regOpnd->m_sym->GetConstOpnd());
+        IR::Opnd* constOpnd = regOpnd->m_sym->GetConstOpnd();
+        if (constOpnd->GetSize() > regOpnd->GetSize())
+        {
+            return false;
+        }
+
+        instr->ReplaceSrc(regOpnd, constOpnd);
         LegalizeMD::LegalizeInstr(instr, false);
 
         return true;
