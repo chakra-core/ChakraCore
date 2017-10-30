@@ -1,10 +1,11 @@
 [
   {
     "this": {
+      "readline": "function <large string>",
+      "callcount": "number 3",
       "Call": "function <large string>",
       "bar": "function <large string>",
-      "Run": "function <large string>",
-      "callcount": "number 3"
+      "Run": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -16,18 +17,20 @@
       "z": "number 1"
     },
     "globals": {
+      "readline": "function <large string>",
+      "callcount": "number 3",
       "Call": "function <large string>",
       "bar": "function <large string>",
-      "Run": "function <large string>",
-      "callcount": "number 3"
+      "Run": "function <large string>"
     }
   },
   {
     "this": {
+      "readline": "function <large string>",
+      "callcount": "number 3",
       "Call": "function <large string>",
       "bar": "function <large string>",
-      "Run": "function <large string>",
-      "callcount": "number 3"
+      "Run": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -45,10 +48,11 @@
       "z": "number 2"
     },
     "globals": {
+      "readline": "function <large string>",
+      "callcount": "number 3",
       "Call": "function <large string>",
       "bar": "function <large string>",
-      "Run": "function <large string>",
-      "callcount": "number 3"
+      "Run": "function <large string>"
     }
   }
 ]

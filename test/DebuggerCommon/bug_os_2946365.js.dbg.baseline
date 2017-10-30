@@ -1,13 +1,12 @@
 [
   {
     "this": {
-      "foo": {
+      "readline": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
-        "name": "string foo",
+        "name": "string readline",
         "caller": "object null",
-        "arguments": "Object {...}",
-        "length": "number 0"
+        "arguments": "object null"
       },
       "a": {
         "#__proto__": "Array []",
@@ -22,6 +21,14 @@
         "[7]": "string 8",
         "[8]": "string 9",
         "[9]": "string 10"
+      },
+      "foo": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
       }
     },
     "arguments": {
@@ -60,13 +67,12 @@
       "x": "undefined undefined"
     },
     "globals": {
-      "foo": {
+      "readline": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
-        "name": "string foo",
+        "name": "string readline",
         "caller": "object null",
-        "arguments": "Object {...}",
-        "length": "number 0"
+        "arguments": "object null"
       },
       "a": {
         "#__proto__": "Array []",
@@ -81,6 +87,14 @@
         "[7]": "string 8",
         "[8]": "string 9",
         "[9]": "string 10"
+      },
+      "foo": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
       }
     }
   }

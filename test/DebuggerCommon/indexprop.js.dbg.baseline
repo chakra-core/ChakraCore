@@ -137,13 +137,30 @@
         }
       }
     },
-    "globals": {}
+    "globals": {
+      "readline": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      }
+    }
   },
   {
     "this": {
+      "readline": "function <large string>",
       "[200]": "string 200"
     },
-    "locals": {},
+    "locals": {
+      "readline": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      }
+    },
     "globals": {}
   }
 ]

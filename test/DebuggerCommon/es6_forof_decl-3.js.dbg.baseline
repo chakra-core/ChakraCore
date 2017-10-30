@@ -2,25 +2,42 @@
   {
     "this": "Object {...}",
     "locals": {
+      "readline": "function <large string>",
       "x": "number 1"
     }
   },
   {
     "this": {
+      "readline": "function <large string>",
       "x": "number 0"
     },
     "locals": {
       "z": "number 1",
+      "readline": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "x": "number 0"
     },
     "globals": {}
   },
   {
     "this": {
+      "readline": "function <large string>",
       "x": "number 1"
     },
     "locals": {
       "z": "number 1",
+      "readline": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "x": "number 1"
     },
     "globals": {}

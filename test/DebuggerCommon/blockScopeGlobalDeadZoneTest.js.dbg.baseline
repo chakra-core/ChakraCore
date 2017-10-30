@@ -2,12 +2,14 @@
   {
     "this": "Object {...}",
     "locals": {
+      "readline": "function <large string>",
       "a": "undefined undefined"
     }
   },
   {
     "this": "Object {...}",
     "locals": {
+      "readline": "function <large string>",
       "a": "number 0"
     }
   },
@@ -15,6 +17,7 @@
     "this": "Object {...}",
     "locals": {
       "b": "number 1",
+      "readline": "function <large string>",
       "a": "number 0"
     }
   },
@@ -23,6 +26,7 @@
     "locals": {
       "b": "number 1",
       "c": "number 2",
+      "readline": "function <large string>",
       "a": "number 0"
     }
   }

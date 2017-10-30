@@ -5,10 +5,19 @@
     }
   },
   {
-    "this": {},
+    "this": {
+      "readline": "function <large string>"
+    },
     "locals": {
       "a": "number 100",
-      "b": "number 200"
+      "b": "number 200",
+      "readline": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      }
     },
     "globals": {}
   }

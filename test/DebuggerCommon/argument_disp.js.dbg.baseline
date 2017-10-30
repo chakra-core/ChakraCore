@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "readline": "function <large string>",
       "F1": "function <large string>",
       "F2": "function <large string>"
     },
@@ -15,6 +16,7 @@
       "a": "string Hello"
     },
     "globals": {
+      "readline": "function <large string>",
       "F1": "function <large string>",
       "F2": "function <large string>"
     }

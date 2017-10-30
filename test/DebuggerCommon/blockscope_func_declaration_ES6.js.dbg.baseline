@@ -1,11 +1,19 @@
 [
   {
     "this": {
+      "readline": "function <large string>",
       "x": "undefined undefined",
       "foo": "undefined undefined",
       "bar": "undefined undefined"
     },
     "locals": {
+      "readline": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "x": "undefined undefined",
       "foo": "undefined undefined",
       "bar": "undefined undefined"
@@ -14,11 +22,19 @@
   },
   {
     "this": {
+      "readline": "function <large string>",
       "x": "number 1",
       "foo": "function <large string>",
       "bar": "function <large string>"
     },
     "locals": {
+      "readline": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "x": "number 1",
       "foo": {
         "#__proto__": "function <large string>",

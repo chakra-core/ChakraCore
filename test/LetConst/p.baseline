@@ -11,5 +11,6 @@ WScript
 print
 read
 readbuffer
+readline
 console
 a

@@ -55,6 +55,16 @@
       }
     },
     "globals": {
+      "readline": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "o": {
+        "#__proto__": "Object {...}"
+      },
       "foo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -62,9 +72,6 @@
         "caller": "object null",
         "arguments": "Object {...}",
         "length": "number 0"
-      },
-      "o": {
-        "#__proto__": "Object {...}"
       }
     }
   }

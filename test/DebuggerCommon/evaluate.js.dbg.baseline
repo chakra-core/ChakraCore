@@ -107,6 +107,7 @@
   {
     "evaluate": {
       "  this  ": {
+        "readline": "function function readline() { [native code] }",
         "not_used": "number 0"
       }
     }
@@ -159,6 +160,7 @@
   {
     "evaluate": {
       "  this  ": {
+        "readline": "function function readline() { [native code] }",
         "not_used": "number 0"
       }
     }

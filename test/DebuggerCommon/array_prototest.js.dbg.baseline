@@ -1,6 +1,13 @@
 [
   {
     "this": {
+      "readline": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "foo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -195,6 +202,13 @@
       "dummy": "undefined undefined"
     },
     "globals": {
+      "readline": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "foo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -223,6 +237,13 @@
   },
   {
     "this": {
+      "readline": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "foo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -440,6 +461,13 @@
       }
     },
     "globals": {
+      "readline": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "foo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -468,6 +496,7 @@
   },
   {
     "this": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "foo1": "function <large string>",
       "foo2": "function <large string>"
@@ -486,6 +515,7 @@
       }
     },
     "globals": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "foo1": "function <large string>",
       "foo2": "function <large string>"
@@ -493,6 +523,7 @@
   },
   {
     "this": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "foo1": "function <large string>",
       "foo2": "function <large string>"
@@ -512,6 +543,7 @@
       }
     },
     "globals": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "foo1": "function <large string>",
       "foo2": "function <large string>"
@@ -519,6 +551,7 @@
   },
   {
     "this": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "foo1": "function <large string>",
       "foo2": "function <large string>"
@@ -539,6 +572,7 @@
       }
     },
     "globals": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "foo1": "function <large string>",
       "foo2": "function <large string>"
@@ -546,6 +580,7 @@
   },
   {
     "this": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "foo1": "function <large string>",
       "foo2": "function <large string>"
@@ -570,6 +605,7 @@
       }
     },
     "globals": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "foo1": "function <large string>",
       "foo2": "function <large string>"

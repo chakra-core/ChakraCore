@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "Run": "function <large string>"
@@ -22,6 +23,7 @@
       "z": "number 1"
     },
     "globals": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "Run": "function <large string>"

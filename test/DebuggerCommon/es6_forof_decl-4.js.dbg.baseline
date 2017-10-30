@@ -1,12 +1,20 @@
 [
   {
     "this": {
+      "readline": "function <large string>",
       "x": "number 1",
       "y": "number 2",
       "a": "Array [1,2]"
     },
     "locals": {
       "y": "number 2",
+      "readline": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "x": "number 1",
       "a": {
         "#__proto__": "Array []",
@@ -19,12 +27,20 @@
   },
   {
     "this": {
+      "readline": "function <large string>",
       "x": "number 1",
       "y": "number 2",
       "a": "Array [1,2]"
     },
     "locals": {
       "y": "number 2",
+      "readline": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "x": "number 1",
       "a": {
         "#__proto__": "Array []",
