@@ -42,7 +42,6 @@
 
 #define PROCESS_FUNCtoA1Mem(name, func) PROCESS_FUNCtoA1Mem_COMMON(name, func,)
 
-
 #define PROCESS_CUSTOM_ASMJS_COMMON(name, func, layout, suffix) \
     case OpCodeAsmJs::name: \
     { \
@@ -872,6 +871,18 @@ if (switchProfileMode) \
     break; \
     }
 #define PROCESS_SIMD_I2_1toI2_1  (name, func) PROCESS_SIMD_I2_1toI2_1_COMMON(name, func,)
+
+#define PROCESS_SIMD_I2_1toI2_P_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+    { \
+    PROCESS_READ_LAYOUT_ASMJS(name, Int64x2_2, suffix); \
+    SIMDValue result {0}; \
+    SIMDValue src = GetRegRawSimd(playout->I2_1); \
+    func(&result, &src); \
+    SetRegRawSimd(playout->I2_0, result); \
+    break; \
+    }
+#define PROCESS_SIMD_I2_1toI2_P(name, func) PROCESS_SIMD_I2_1toI2_P_COMMON(name, func,)
 
 #define PROCESS_SIMD_I2_1I1toI2_1_COMMON(name, func, suffix) \
     case OpCodeAsmJs::name: \
