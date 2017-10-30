@@ -147,7 +147,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JITThunkEmitter.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptNativeOperators.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)EquivalentTypeSet.cpp" />
-    <ClCompile Include="arm64\ARM64UnwindEncoder.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)arm64\ARM64UnwindEncoder.cpp">
       <Filter>arm64</Filter>
     </ClCompile>
   </ItemGroup>
