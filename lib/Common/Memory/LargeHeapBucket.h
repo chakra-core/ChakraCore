@@ -94,6 +94,10 @@ public:
 #endif
 #endif
 
+#if ENABLE_MEM_STATS
+    void AggregateBucketStats();
+#endif
+
 private:
     char * SnailAlloc(Recycler * recycler, DECLSPEC_GUARD_OVERFLOW size_t sizeCat, size_t size, ObjectInfoBits attributes, bool nothrow);
     char * TryAlloc(Recycler * recycler, DECLSPEC_GUARD_OVERFLOW size_t sizeCat, ObjectInfoBits attributes);

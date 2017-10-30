@@ -1149,6 +1149,9 @@ HeapInfo::Rescan(RescanFlags flags)
     return scannedPageCount;
 }
 
+
+#if ENABLE_MEM_STATS
+
 #ifdef DUMP_FRAGMENTATION_STATS
 template <ObjectInfoBits TBucketType>
 struct DumpBucketTypeName { static char16 name[]; };
@@ -1164,13 +1167,26 @@ template<> char16 DumpBlockTypeName<SmallAllocationBlockAttributes>::name[] = _u
 template<> char16 DumpBlockTypeName<MediumAllocationBlockAttributes>::name[] = _u("(M)");
 #endif
 
-#if ENABLE_MEM_STATS
+template <class TBlockType>
+void PreAggregateBucketStats(TBlockType* list)
+{
+    HeapBlockList::ForEach(list, [](auto heapBlock)
+    {
+        // Process blocks not in allocator in pre-pass. They are not put into buckets yet.
+        if (!heapBlock->IsInAllocator())
+        {
+            heapBlock->heapBucket->PreAggregateBucketStats(heapBlock);
+        }
+    });
+}
+
 template <class TBlockAttributes, ObjectInfoBits TBucketType>
-void GetBucketStats(HeapBucketGroup<TBlockAttributes>& group, MemStats& total, bool dumpFragmentationStats)
+void GetBucketStats(HeapBucketGroup<TBlockAttributes>& group, HeapBucketStats& total, bool dumpFragmentationStats)
 {
     auto& bucket = group.GetBucket<TBucketType>();
-    HeapBucketStats stats = {};
-    bucket.AggregateBucketStats(stats);
+    bucket.AggregateBucketStats();
+
+    const auto& stats = bucket.GetMemStats();
     total.Aggregate(stats);
 
 #ifdef DUMP_FRAGMENTATION_STATS
@@ -1178,10 +1194,23 @@ void GetBucketStats(HeapBucketGroup<TBlockAttributes>& group, MemStats& total, b
     {
         Output::Print(_u("%-7s%s %4d : "),
             DumpBucketTypeName<TBucketType>::name, DumpBlockTypeName<TBlockAttributes>::name, bucket.GetSizeCat());
-        Output::Print(_u("%7d %7d %7d %7d %7d %10lu %10lu\n"),
-            stats.totalBlockCount, stats.finalizeBlockCount, stats.emptyBlockCount,
-            stats.objectCount, stats.finalizeCount,
-            static_cast<ulong>(stats.objectByteCount), static_cast<ulong>(stats.totalByteCount));
+        stats.Dump();
+    }
+#endif
+}
+
+void GetBucketStats(LargeHeapBucket& bucket, HeapBucketStats& total, bool dumpFragmentationStats)
+{
+    bucket.AggregateBucketStats();
+
+    const auto& stats = bucket.GetMemStats();
+    total.Aggregate(stats);
+
+#ifdef DUMP_FRAGMENTATION_STATS
+    if (dumpFragmentationStats && stats.totalByteCount > 0)
+    {
+        Output::Print(_u("Large           : "));
+        stats.Dump();
     }
 #endif
 }
@@ -1197,7 +1226,7 @@ HeapInfo::ReportMemStats()
         dumpFragmentationStats = true;
         Output::Print(_u("[FRAG %d] Post-Collection State\n"), ::GetTickCount());
         Output::Print(_u("---------------------------------------------------------------------------------------\n"));
-        Output::Print(_u("                     #Blk  #FinBlk  #EmpBlk  #Objs    #Fin    ObjBytes  TotalBytes\n"));
+        Output::Print(_u("                  #Blk   #Objs    #Fin     ObjBytes   FreeBytes  TotalBytes UsedPercent\n"));
         Output::Print(_u("---------------------------------------------------------------------------------------\n"));
     }
 #endif
@@ -1207,7 +1236,34 @@ HeapInfo::ReportMemStats()
         return;
     }
 
-    MemStats total;
+#if ENABLE_CONCURRENT_GC
+    // Pre aggregate pass on all the heap blocks that are not merged into bucket's lists yet
+    PreAggregateBucketStats(this->newNormalHeapBlockList);
+    PreAggregateBucketStats(this->newLeafHeapBlockList);
+    PreAggregateBucketStats(this->newFinalizableHeapBlockList);
+#ifdef RECYCLER_WRITE_BARRIER
+    PreAggregateBucketStats(this->newNormalWithBarrierHeapBlockList);
+    PreAggregateBucketStats(this->newFinalizableWithBarrierHeapBlockList);
+#endif
+#ifdef RECYCLER_VISITED_HOST
+    PreAggregateBucketStats(this->newRecyclerVisitedHostHeapBlockList);
+#endif
+
+#if defined(BUCKETIZE_MEDIUM_ALLOCATIONS) && SMALLBLOCK_MEDIUM_ALLOC
+    PreAggregateBucketStats(this->newMediumNormalHeapBlockList);
+    PreAggregateBucketStats(this->newMediumLeafHeapBlockList);
+    PreAggregateBucketStats(this->newMediumFinalizableHeapBlockList);
+#ifdef RECYCLER_WRITE_BARRIER
+    PreAggregateBucketStats(this->newMediumNormalWithBarrierHeapBlockList);
+    PreAggregateBucketStats(this->newMediumFinalizableWithBarrierHeapBlockList);
+#endif
+#ifdef RECYCLER_VISITED_HOST
+    PreAggregateBucketStats(this->newMediumRecyclerVisitedHostHeapBlockList);
+#endif
+#endif
+#endif  // ENABLE_CONCURRENT_GC
+
+    HeapBucketStats total;
     for (uint i = 0; i < HeapConstants::BucketCount; i++)
     {
         GetBucketStats<SmallAllocationBlockAttributes, NoBit>(heapBuckets[i], total, dumpFragmentationStats);
@@ -1238,9 +1294,20 @@ HeapInfo::ReportMemStats()
     }
 #endif
 
-    // TODO: Large bucket
-}
+    GetBucketStats(largeObjectBucket, total, dumpFragmentationStats);
+
+#ifdef DUMP_FRAGMENTATION_STATS
+    if (dumpFragmentationStats)
+    {
+        Output::Print(_u("---------------------------------------------------------------------------------------\n"));
+        Output::Print(_u("Total           : "));
+        total.Dump();
+    }
 #endif
+}
+
+#endif  // ENABLE_MEM_STATS
+
 
 #if ENABLE_PARTIAL_GC
 void

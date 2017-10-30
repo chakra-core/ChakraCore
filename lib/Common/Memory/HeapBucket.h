@@ -83,6 +83,7 @@ protected:
 #endif
 
 #ifdef RECYCLER_PAGE_HEAP
+protected:
     bool isPageHeapEnabled;
 public:
     inline bool IsPageHeapEnabled(ObjectInfoBits attributes) const
@@ -91,6 +92,27 @@ public:
         return isPageHeapEnabled && ((attributes & ClientTrackableObjectBits) == 0);
     }
 #endif
+
+#if ENABLE_MEM_STATS
+protected:
+    HeapBucketStats memStats;  // mem stats per bucket
+public:
+    const HeapBucketStats& GetMemStats() const { return memStats; }
+
+    template <typename TBlockType>
+    void PreAggregateBucketStats(TBlockType* heapBlock)
+    {
+        Assert(heapBlock->heapBucket == this);
+        memStats.PreAggregate();
+        heapBlock->AggregateBlockStats(memStats);
+    }
+
+    void AggregateBucketStats()
+    {
+        memStats.BeginAggregate();  // Begin aggregate, clear if needed
+    }
+#endif
+
     Recycler * GetRecycler() const;
 
     template <typename TBlockType>
@@ -143,8 +165,9 @@ public:
     void ScanNewImplicitRoots(Recycler * recycler);
 
 #if ENABLE_MEM_STATS
-    void AggregateBucketStats(HeapBucketStats& stats);
+    void AggregateBucketStats();
 #endif
+
     uint Rescan(Recycler * recycler, RescanFlags flags);
 #if ENABLE_CONCURRENT_GC
     void MergeNewHeapBlock(TBlockType * heapBlock);

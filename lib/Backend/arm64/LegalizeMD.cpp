@@ -514,6 +514,14 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
     // In case of inlined entry instruction, we don't know the offset till the encoding phase
     if (!instr->isInlineeEntryInstr)
     {
+
+        // If the source is a tagged int, and the dest is int32 or uint32, untag the value so that it fits in 32 bits.
+        if (instr->GetDst()->IsIntegral32() && instr->GetSrc1()->IsTaggedInt())
+        {
+            immed = (uint32)immed;
+            instr->ReplaceSrc1(IR::IntConstOpnd::New(immed, instr->GetDst()->GetType(), instr->m_func));
+        }
+
         // Short-circuit simple 16-bit immediates
         if ((immed & 0xffff) == immed || (immed & 0xffff0000) == immed || (immed & 0xffff00000000ll) == immed || (immed & 0xffff000000000000ll) == immed)
         {
