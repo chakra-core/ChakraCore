@@ -228,6 +228,7 @@ public:
     bool                IsInt64() const { return IRType_IsInt64(this->m_type); }
     bool                IsInt32() const { return this->m_type == TyInt32; }
     bool                IsUInt32() const { return this->m_type == TyUint32; }
+    bool                IsIntegral32() const { return IsInt32() || IsUInt32(); }
     bool                IsFloat32() const { return this->m_type == TyFloat32; }
     bool                IsFloat64() const { return this->m_type == TyFloat64; }
     bool                IsFloat() const { return this->IsFloat32() || this->IsFloat64(); }
