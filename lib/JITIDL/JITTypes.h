@@ -827,9 +827,9 @@ typedef struct JITOutputIDL
     unsigned int propertyGuardCount;
     unsigned int ctorCachesCount;
 
-#if defined(_M_X64)
+#if TARGET_64
     CHAKRA_PTR xdataAddr;
-#elif defined(_M_ARM) || defined(_M_ARM64)
+#elif defined(_M_ARM)
     unsigned int xdataOffset;
 #else
     X86_PAD4(0)

@@ -1270,10 +1270,10 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         scratchOpnd = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
         IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOVZ, scratchOpnd, IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
         insertInstr->InsertBefore(instrMov);
-        IR::LabelInstr *prologStartLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-        insertInstr->InsertBefore(prologStartLabel);
-        this->m_func->m_unwindInfo.SetPrologStartLabel(prologStartLabel->m_id);
     }
+    IR::LabelInstr *prologStartLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+    insertInstr->InsertBefore(prologStartLabel);
+    this->m_func->m_unwindInfo.SetFunctionOffsetLabel(UnwindPrologStart, prologStartLabel);
 
     // SUB SP, SP, #regSaveSize
     // STP D8 to D15 (in pairs), [sp, +ve offset]
@@ -1479,6 +1479,11 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         isScratchRegisterThrashed = GenerateStackAllocation(insertInstr, stackAdjust, probeSize);
     }
 
+    // This marks the end of the formal prolog (for EH purposes); create and register a label
+    IR::LabelInstr *prologEndLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+    insertInstr->InsertBefore(prologEndLabel);
+    this->m_func->m_unwindInfo.SetFunctionOffsetLabel(UnwindPrologEnd, prologEndLabel);
+
     if (hasTry)
     {
         // ToDo (SaAgarwa): Make sure this is correct when we have try catch working
@@ -1536,15 +1541,14 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
     int32 homedParams = this->m_func->m_unwindInfo.GetHomedParamCount();
     Assert(homedParams % 2 == 0);
 
+    IR::LabelInstr* epilogStartLabel = this->EnsureEpilogLabel();
+    this->m_func->m_unwindInfo.SetFunctionOffsetLabel(UnwindEpilogStart, epilogStartLabel);
+
     BOOL hasTry = this->m_func->HasTry();
     RegNum localsReg = this->m_func->GetLocalsPointer();
     int32 stackAdjust;
     if (hasTry)
     {
-        if (this->m_func->DoOptimizeTry())
-        {
-            this->EnsureEpilogLabel();
-        }
         // We'll only deallocate the arg out area then restore SP from the value saved on the stack.
         stackAdjust = (this->m_func->m_argSlotsForFunctionsCalled * MachRegInt);
     }
@@ -1627,9 +1631,6 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
         GenerateStackDeallocation(exitInstr, stackAdjust);
     }
 
-    // This is the stack size that the pdata cares about.
-    this->m_func->m_unwindInfo.SetStackDepth(stackAdjust);
-
     if (hasTry)
     {
         // Now restore the locals area by popping the stack.
@@ -1645,15 +1646,66 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
             exitInstr);
     }
 
-    int32 spOffset = 0;
+    int32 initialSpOffset = MachRegInt * (usedRegs.Count() + (hasCalls ? 2 : 0)) + MachRegDouble * savedDoubleRegs.Count();
+    int32 spOffset = initialSpOffset;
     IR::RegOpnd* reg1Opnd = nullptr;
     IR::RegOpnd* reg2Opnd = nullptr;
+
+    if (hasCalls)
+    {
+        spOffset -= 2 * MachRegInt;
+
+        // Generate LDP {fp,lr}
+        IR::Instr * instrLoadFpLr = IR::Instr::New(Js::OpCode::LDP,
+            IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func),
+            IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spOffset, TyMachReg, this->m_func),
+            IR::RegOpnd::New(nullptr, RegLR, TyMachReg, this->m_func), this->m_func);
+        exitInstr->InsertBefore(instrLoadFpLr);
+    }
+
+    if (!usedRegs.IsEmpty())
+    {
+        Assert(usedRegs.Count() % 2 == 0);
+        Assert(reg1Opnd == nullptr);
+        Assert(reg2Opnd == nullptr);
+
+        // work in reverse order from prolog to help unwind encoding
+        for (RegNum reg = LAST_CALLEE_SAVED_GP_REG; reg >= FIRST_CALLEE_SAVED_GP_REG; reg = (RegNum)(reg - 1))
+        {
+            if (usedRegs.Test(RegEncode[reg]))
+            {
+                if (reg1Opnd == nullptr)
+                {
+                    reg1Opnd = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
+                }
+                else
+                {
+                    Assert(reg2Opnd == nullptr);
+                    reg2Opnd = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
+                }
+            }
+
+            if (reg1Opnd != nullptr && reg2Opnd != nullptr)
+            {
+                spOffset -= 2 * MachRegInt;
+
+                IR::Instr * instrLoadRegister = IR::Instr::New(Js::OpCode::LDP,
+                    reg2Opnd,
+                    IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spOffset, TyMachReg, this->m_func),
+                    reg1Opnd,
+                    this->m_func);
+                exitInstr->InsertBefore(instrLoadRegister);
+                reg1Opnd = reg2Opnd = nullptr;
+            }
+        }
+    }
 
     if (!savedDoubleRegs.IsEmpty())
     {
         Assert(savedDoubleRegs.Count() % 2 == 0);
 
-        for (RegNum reg = FIRST_CALLEE_SAVED_DBL_REG; reg <= LAST_CALLEE_SAVED_DBL_REG; reg = (RegNum)(reg + 1))
+        // work in reverse order from prolog to help unwind encoding
+        for (RegNum reg = LAST_CALLEE_SAVED_DBL_REG; reg >= FIRST_CALLEE_SAVED_DBL_REG; reg = (RegNum)(reg - 1))
         {
             Assert(LinearScan::IsCalleeSaved(reg));
             Assert(reg != RegLR);
@@ -1672,71 +1724,26 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
 
             if (reg1Opnd != nullptr && reg2Opnd != nullptr)
             {
+                spOffset -= 2 * MachRegDouble;
+
                 IR::Instr * instrLoadRegister = IR::Instr::New(Js::OpCode::FLDP,
-                    reg1Opnd,
-                    IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spOffset, TyMachReg, this->m_func),
                     reg2Opnd,
+                    IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spOffset, TyMachReg, this->m_func),
+                    reg1Opnd,
                     this->m_func);
                 exitInstr->InsertBefore(instrLoadRegister);
                 reg1Opnd = reg2Opnd = nullptr;
-
-                spOffset += 2 * MachRegDouble;
             }
         }
     }
 
-    if (!usedRegs.IsEmpty())
+    Assert(spOffset == 0);
+
+    if (initialSpOffset > 0)
     {
-        Assert(usedRegs.Count() % 2 == 0);
-        Assert(reg1Opnd == nullptr);
-        Assert(reg2Opnd == nullptr);
-        for (RegNum reg = FIRST_CALLEE_SAVED_GP_REG; reg <= LAST_CALLEE_SAVED_GP_REG; reg = (RegNum)(reg + 1))
-        {
-            if (usedRegs.Test(RegEncode[reg]))
-            {
-                if (reg1Opnd == nullptr)
-                {
-                    reg1Opnd = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
-                }
-                else
-                {
-                    Assert(reg2Opnd == nullptr);
-                    reg2Opnd = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
-                }
-            }
+        initialSpOffset += homedParams * MachRegInt;
 
-            if (reg1Opnd != nullptr && reg2Opnd != nullptr)
-            {
-                IR::Instr * instrLoadRegister = IR::Instr::New(Js::OpCode::LDP,
-                    reg1Opnd,
-                    IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spOffset, TyMachReg, this->m_func),
-                    reg2Opnd,
-                    this->m_func);
-                exitInstr->InsertBefore(instrLoadRegister);
-                reg1Opnd = reg2Opnd = nullptr;
-
-                spOffset += 2 * MachRegInt;
-            }
-        }
-    }
-
-    if (hasCalls)
-    {
-        // Generate LDP {fp,lr}
-        IR::Instr * instrLoadFpLr = IR::Instr::New(Js::OpCode::LDP,
-            IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func),
-            IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spOffset, TyMachReg, this->m_func),
-            IR::RegOpnd::New(nullptr, RegLR, TyMachReg, this->m_func), this->m_func);
-        exitInstr->InsertBefore(instrLoadFpLr);
-
-        spOffset += 2 * MachRegInt;
-    }
-
-    if (spOffset > 0)
-    {
-        spOffset += homedParams * MachRegInt;
-
-        GenerateStackDeallocation(exitInstr, spOffset);
+        GenerateStackDeallocation(exitInstr, initialSpOffset);
     }
 
     IR::Instr *  instrRet = IR::Instr::New(
@@ -1748,7 +1755,7 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
 
     IR::LabelInstr *epilogEndLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
     exitInstr->InsertBefore(epilogEndLabel);
-    this->m_func->m_unwindInfo.SetEpilogEndLabel(epilogEndLabel->m_id);
+    this->m_func->m_unwindInfo.SetFunctionOffsetLabel(UnwindEpilogEnd, epilogEndLabel);
 
     return exitInstr;
 }

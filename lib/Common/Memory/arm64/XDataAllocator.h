@@ -5,61 +5,97 @@
 #if !defined(_M_ARM64)
 CompileAssert(false)
 #endif
+#pragma once
 
-struct XDataAllocation sealed : public SecondaryAllocation
+// ARM64 TODO: this is nearly identical to AMD64, consider merging in the future
+namespace Memory
 {
-    // ---- Methods ----- //
-    XDataAllocation() :
-        pdataCount(0)
-        , functionTable(NULL)
-        , xdataSize(0)
-    {}
+#ifdef _WIN32
+#define XDATA_SIZE (100)
+#else
+#define XDATA_SIZE (0x80)
+#endif
 
-    RUNTIME_FUNCTION* GetPdataArray() const
+    struct XDataAllocation : public SecondaryAllocation
     {
-        return reinterpret_cast<RUNTIME_FUNCTION*>(address + xdataSize);
-    }
+        XDataAllocation()
+        {}
 
-    bool IsFreed() const
+        bool IsFreed() const
+        {
+            return address == nullptr;
+        }
+        void Free()
+        {
+            address = nullptr;
+        }
+
+#ifdef _WIN32
+        RUNTIME_FUNCTION pdata;
+        FunctionTableHandle functionTable;
+#endif
+    };
+
+    //
+    // Allocates xdata and pdata entries for ARM64 architecture.
+    //
+    // xdata
+    // ------
+    // ARM64 architecture requires the xdata to be within 32-bit address range of the jitted code itself
+    // Hence, for every page segment we have an instance of the xdata allocator that allocates
+    // xdata entries in some specified non-executable region at the end of the page segment.
+    //
+    // pdata
+    // -------
+    // XDataAllocator also manages the pdata entries for a the page segment range. It allocates the table of pdata entries
+    // on the heap to do that.
+    //
+    class XDataAllocator sealed : public SecondaryAllocator
     {
-        return address == nullptr;
-    }
+        // -------- Private members ---------/
+    private:
+        struct XDataAllocationEntry : XDataAllocation
+        {
+            XDataAllocationEntry* next;
+        };
+        BYTE* start;
+        BYTE* current;
+        uint  size;
 
-    void Free()
-    {
-        address = nullptr;
-        pdataCount = 0;
-        functionTable = nullptr;
-        xdataSize = 0;
-    }
+        XDataAllocationEntry* freeList;
 
-    // ---- Data members ---- //
-    ushort pdataCount;                   // ARM requires more than 1 pdata/function
-    FunctionTableHandle functionTable;   // stores the handle to the growable function table
-    ushort xdataSize;
-};
+        // --------- Public functions ---------/
+    public:
+        XDataAllocator(BYTE* address, uint size);
+        virtual ~XDataAllocator();
 
-//
-// Allocates xdata and pdata entries for ARM architecture on the heap. They are freed when released.
-//
-//
-class XDataAllocator sealed : public SecondaryAllocator
-{
-    // --------- Public functions ---------/
-public:
-    XDataAllocator(BYTE* address, uint size);
+        bool Initialize(void* segmentStart, void* segmentEnd);
+        void Delete();
+        bool Alloc(ULONG_PTR functionStart, DWORD functionSize, ushort pdataCount, ushort xdataSize, SecondaryAllocation* allocation);
+        void Release(const SecondaryAllocation& address);
+        bool CanAllocate();
 
-    bool Initialize(void* segmentStart, void* segmentEnd);
-    void Delete();
-    bool Alloc(ULONG_PTR functionStart, DWORD functionSize, ushort pdataCount, ushort xdataSize, SecondaryAllocation* allocation);
-    void Release(const SecondaryAllocation& address);
-    bool CanAllocate();
-    static DWORD GetAllocSize(ushort pdataCount, ushort xdataSize)
-    {
-        // ToDo (SaAgarwa): Copied from arm32, validate that this is correct for arm64
-        return sizeof(RUNTIME_FUNCTION) * pdataCount + xdataSize;
-    }
+        static void Register(XDataAllocation * xdataInfo, ULONG_PTR functionStart, DWORD functionSize);
+        static void Unregister(XDataAllocation * xdataInfo);
 
-    static void Register(XDataAllocation * xdataInfo, intptr_t functionStart, DWORD functionSize);
-    static void Unregister(XDataAllocation * xdataInfo);
-};
+        // -------- Private helpers ---------/
+    private:
+        BYTE* End() { return start + size; }
+
+#ifndef _WIN32
+        // Read .eh_frame data head (length record). 0 means empty.
+        static uint32 ReadHead(const void* p)
+        {
+            return *reinterpret_cast<const uint32*>(p);
+        }
+
+        // Clear .eh_frame data head (length record). Set to 0 to mark empty.
+        static void ClearHead(void* p)
+        {
+            *reinterpret_cast<uint32*>(p) = 0;
+        }
+#endif
+
+        void ClearFreeList();
+    };
+}

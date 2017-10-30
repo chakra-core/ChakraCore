@@ -8795,14 +8795,14 @@ namespace Js
         {
             // Unregister xdataInfo before OnCleanup() which may release xdataInfo->address
 #if ENABLE_NATIVE_CODEGEN
-#if defined(_M_X64)
+#if defined(_M_X64_OR_ARM64)
             if (this->xdataInfo != nullptr)
             {
                 XDataAllocator::Unregister(this->xdataInfo);
                 HeapDelete(this->xdataInfo);
                 this->xdataInfo = nullptr;
             }
-#elif defined(_M_ARM32_OR_ARM64)
+#elif defined(_M_ARM)
             if (this->xdataInfo != nullptr)
             {
                 XDataAllocator::Unregister(this->xdataInfo);

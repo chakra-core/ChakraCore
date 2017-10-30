@@ -218,7 +218,7 @@ JITOutput::RecordInlineeFrameOffsetsInfo(unsigned int offsetsArrayOffset, unsign
     m_outputData->inlineeFrameOffsetArrayCount = offsetsArrayCount;
 }
 
-#if _M_X64
+#if _M_X64_OR_ARM64
 void
 JITOutput::RecordUnwindInfo(BYTE *unwindInfo, size_t size, BYTE * xdataAddr, BYTE* localXdataAddr)
 {
@@ -229,12 +229,12 @@ JITOutput::RecordUnwindInfo(BYTE *unwindInfo, size_t size, BYTE * xdataAddr, BYT
 
 #elif _M_ARM
 size_t
-JITOutput::RecordUnwindInfo(size_t offset, BYTE *unwindInfo, size_t size, BYTE * xdataAddr)
+JITOutput::RecordUnwindInfo(size_t offset, const BYTE *unwindInfo, size_t size, BYTE * xdataAddr)
 {
     BYTE *xdataFinal = xdataAddr + offset;
 
     Assert(xdataFinal);
-    Assert(((DWORD)xdataFinal & 0x3) == 0); // 4 byte aligned
+    Assert(((ULONG_PTR)xdataFinal & 0x3) == 0); // 4 byte aligned
     memcpy_s(xdataFinal, size, unwindInfo, size);
 
     return (size_t)xdataFinal;
