@@ -1950,6 +1950,30 @@ LargeHeapBlock::EnumerateObjects(ObjectInfoBits infoBits, void (*CallBackFunctio
     }
 }
 
+#if ENABLE_MEM_STATS
+void
+LargeHeapBlock::AggregateBlockStats(HeapBucketStats& stats)
+{
+    DUMP_FRAGMENTATION_STATS_ONLY(uint objectCount = 0);
+    size_t objectSize = 0;
+    for (uint i = 0; i < allocCount; i++)
+    {
+        LargeObjectHeader * header = this->GetHeaderByIndex(i);
+        if (header)
+        {
+            DUMP_FRAGMENTATION_STATS_ONLY(objectCount++);
+            objectSize += header->objectSize;
+        }
+    }
+
+    DUMP_FRAGMENTATION_STATS_ONLY(stats.totalBlockCount++);
+    DUMP_FRAGMENTATION_STATS_ONLY(stats.objectCount += objectCount);
+    DUMP_FRAGMENTATION_STATS_ONLY(stats.finalizeCount += this->finalizeCount);
+
+    stats.objectByteCount += objectSize;
+    stats.totalByteCount += AutoSystemInfo::PageSize * pageCount;
+}
+#endif  // ENABLE_MEM_STATS
 
 uint
 LargeHeapBlock::GetMaxLargeObjectCount(size_t pageCount, size_t firstAllocationSize)

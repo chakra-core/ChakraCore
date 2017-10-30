@@ -21,7 +21,7 @@ public:
 #endif
 
 #if ENABLE_MEM_STATS
-    void AggregateBucketStats(HeapBucketStats& stats);
+    void AggregateBucketStats();
 #endif
 protected:
     template <class TBlockAttributes>
