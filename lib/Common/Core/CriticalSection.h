@@ -6,10 +6,10 @@
 
 class CriticalSection
 #ifndef _WIN32
-: public CCSpinLock<true>
+: public CCLock
 {
 public:
-    CriticalSection(DWORD spincount = 0): CCSpinLock(spincount) { }
+    CriticalSection(DWORD spincount = 0): CCLock(true) { }
 };
 #else // _WIN32
 {

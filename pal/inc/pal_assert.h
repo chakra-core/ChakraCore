@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -34,19 +34,8 @@ extern "C" {
 #endif // __cplusplus
 
 #if defined(_DEBUG)
-#define _ASSERTE(e) do {                                        \
-        if (!(e)) {                                             \
-            fprintf (stderr,                                    \
-                     "ASSERT FAILED\n"                          \
-                     "\tExpression: %s\n"                       \
-                     "\tLocation:   line %d in %s\n"            \
-                     "\tFunction:   %s\n"                       \
-                     "\tProcess:    %d\n",                      \
-                     #e, __LINE__, __FILE__, __FUNCTION__,      \
-                     GetCurrentProcessId());                    \
-            __builtin_trap();                                       \
-        }                                                       \
-    }while (0)
+#include "assert_only.h"
+#define _ASSERTE(e) Assert(e)
 #else // !DEBUG
 #define _ASSERTE(e) ((void)0)
 #endif
