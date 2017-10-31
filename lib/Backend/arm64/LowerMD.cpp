@@ -3693,7 +3693,7 @@ LowererMD::GenerateFastMul(IR::Instr * instrMul)
 
     // dst = OR dst, AtomTag_IntPtr
 
-    GenerateInt32ToVarConversion(s3, instrMul);
+    GenerateInt32ToVarConversion(instrMul->GetDst(), instrMul);
 
 
     //      B $fallthru
