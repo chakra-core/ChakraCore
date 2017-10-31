@@ -1425,7 +1425,7 @@ namespace Js
 
             bool isTaggedInt = TaggedInt::Is(item);
             bool isTaggedIntMissingValue = false;
-#ifdef _M_AMD64
+#ifdef TARGET_64
             if (isTaggedInt)
             {
                 int32 iValue = TaggedInt::ToInt32(item);
