@@ -4854,7 +4854,7 @@ LowererMD::GenerateFastScopedFld(IR::Instr * instrScopedFld, bool isLoad)
     // CMP s3, s5                               -- check type
     // BNE $helper
 
-    opndInlineCache = IR::RegOpnd::New(TyInt32, this->m_func);
+    opndInlineCache = IR::RegOpnd::New(TyMachReg, this->m_func);
     opndReg2->m_sym->m_isNotInt = true;
 
     IR::RegOpnd * opndType = IR::RegOpnd::New(TyMachReg, this->m_func);
