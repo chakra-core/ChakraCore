@@ -1000,8 +1000,6 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         unwindInfo->SetHasCalls(true);
     }
 
-    bool hasStackNestedFuncList = false;
-
     // We need to have the same register saves in the prolog as the arm_CallEhFrame, so that we can use the same
     // epilog.  So always allocate a slot for the stack nested func here whether we actually do have any stack
     // nested func or not
@@ -1010,7 +1008,6 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     {
         // Just force it to have calls if we have stack nested func so we have a stable
         // location for the stack nested function list
-        hasStackNestedFuncList = true;
         unwindInfo->SetHasCalls(true);
     }
 
@@ -1146,19 +1143,6 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         regSaveArea += 2 * MachRegInt; // EH_STACK_SAVE_REG twice to keep stack aligned
     }
 
-    /*
-    // ToDo (SaAgarwa): Review if such thing is needed
-    if (hasStackNestedFuncList)
-    {
-        // use r11 it allocate one more slot in the register save area
-        // We will zero it later
-        regEncode = RegEncode[RegR11];
-        usedRegs.Set(regEncode);
-        unwindInfo->SetSavedReg(regEncode);
-        fpOffsetSize += MachRegInt;
-    }
-    */
-
     regSaveArea += fpOffsetSize;
 
     this->m_func->m_ArgumentsOffset = fpOffsetSize;
@@ -1173,10 +1157,15 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
 
     if (hasCalls)
     {
-        //Update register save area and offset to actual in params
-        //account for frame register setup push {fp,lr} - 2 * MachRegInt
-        regSaveArea += 2 * MachRegInt;
-        this->m_func->m_ArgumentsOffset += 2 * MachRegInt;
+        // Update register save area and offset to actual in params
+        // Account for frame register setup push {fp,lr} - 2 * MachRegInt
+        // Account for dedicated arguments slot (fp-8) See LoadArgumentsFromFrame/LoadHeapArguments/LoadHeapArgsCached/CreateStackArgumentsSlotOpnd
+        // Account for StackFunctionListStackSym at fp-16 (See EnsureStackFunctionListStackSym)
+
+        Assert((2 * MachRegInt) == (Js::Constants::StackNestedFuncList * sizeof(Js::Var)));
+
+        regSaveArea += 4 * MachRegInt;
+        this->m_func->m_ArgumentsOffset += 4 * MachRegInt;
 
         //Note: Separate push instruction is generated for fp & lr push and hence usedRegs mask is not updated with
         //bit mask for these registers.
@@ -1259,18 +1248,6 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         GenerateStackProbe(insertInstr, false); //stack is already aligned in this case
     }
 
-    IR::RegOpnd * scratchOpnd = nullptr;
-
-    // Zero-initialize dedicated arguments slot
-    if (hasCalls)
-    {
-        //r17 acts a dummy zero register which we push to arguments slot
-        //mov r17, 0
-        Assert(scratchOpnd == nullptr);
-        scratchOpnd = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
-        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOVZ, scratchOpnd, IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
-        insertInstr->InsertBefore(instrMov);
-    }
     IR::LabelInstr *prologStartLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
     insertInstr->InsertBefore(prologStartLabel);
     this->m_func->m_unwindInfo.SetFunctionOffsetLabel(UnwindPrologStart, prologStartLabel);
@@ -1278,6 +1255,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     // SUB SP, SP, #regSaveSize
     // STP D8 to D15 (in pairs), [sp, +ve offset]
     // STP X19 to X28 (in pairs), [sp, +ve offset]
+    // ZR, ZR StackArgumentsSlot and StackFunctionListStackSym
     // STP FP, LR (in pairs), [sp, +ve offset]
     // ADD FP, SP , #callee saved registers; FP points (SP) to where FP was saved
     // STP X0 to X7 (in pairs), [sp, +ve offset]
@@ -1287,7 +1265,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
 
     if (hasCalls)
     {
-        regSaveSize += 2 * MachRegInt; // 2 * 8 for fp and lr
+        regSaveSize += 4 * MachRegInt; // 2 * 8 for fp and lr, 2 * 8 for StackArgumentsSlot and StackFunctionListStackSym
     }
 
     // sub sp, sp, #regSaveSize
@@ -1371,11 +1349,15 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         }
     }
 
-    // STP FP, LR (in pairs), [sp, +ve offset]
     if (hasCalls)
     {
         Assert(src1 == nullptr);
         Assert(src2 == nullptr);
+
+        // Adjust for StackArgumentsSlot and StackFunctionListStackSym we will zero it after prolog
+        spSaveOffset += 2 * MachRegInt; 
+
+        // STP FP, LR (in pairs), [sp, +ve offset]
         instrStp = IR::Instr::New(Js::OpCode::STP, this->m_func);
         src1 = IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func);
         src2 = IR::RegOpnd::New(nullptr, RegLR, TyMachReg, this->m_func);
@@ -1484,6 +1466,19 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     insertInstr->InsertBefore(prologEndLabel);
     this->m_func->m_unwindInfo.SetFunctionOffsetLabel(UnwindPrologEnd, prologEndLabel);
 
+    IR::RegOpnd* zeroRegOpnd = IR::RegOpnd::New(nullptr, RegZR, TyMachReg, this->m_func);
+
+    // Zero the StackArgumentsSlot and StackFunctionListStackSym
+    if (hasCalls)
+    {
+        instrStp = IR::Instr::New(Js::OpCode::STP,
+            IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func), -2 * MachRegInt, TyMachReg, this->m_func),
+            zeroRegOpnd,
+            zeroRegOpnd,
+            this->m_func);
+        insertInstr->InsertBefore(instrStp);
+    }
+
     if (hasTry)
     {
         // ToDo (SaAgarwa): Make sure this is correct when we have try catch working
@@ -1504,22 +1499,14 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     if (m_func->GetMaxInlineeArgOutSize() != 0)
     {
         // This is done post prolog. so we don't have to emit unwind data.
-        if (scratchOpnd == nullptr || isScratchRegisterThrashed)
-        {
-            scratchOpnd = scratchOpnd ? scratchOpnd : IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
-            // mov r17, 0
-            IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOVZ, scratchOpnd, IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
-            insertInstr->InsertBefore(instrMov);
-        }
-
-        // STR argc, r17
+        // STR argc, zr
         StackSym *sym = this->m_func->m_symTable->GetArgSlotSym((Js::ArgSlot) - 1);
         sym->m_isInlinedArgSlot = true;
         sym->m_offset = 0;
         IR::Opnd *dst = IR::SymOpnd::New(sym, 0, TyMachReg, this->m_func);
         insertInstr->InsertBefore(IR::Instr::New(Js::OpCode::STR,
             dst,
-            scratchOpnd,
+            zeroRegOpnd,
             this->m_func));
     }
 
@@ -1586,18 +1573,6 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
         }
     }
 
-    /*
-    // ToDo (SaAgarwa): Review if such thing is needed
-    // We need to have the same register saves in the prolog as the arm_CallEhFrame, so that we can use the same
-    // epilog.  So always allocate a slot for the stack nested func here whether we actually do have any stack
-    // nested func or not
-    // TODO-STACK-NESTED-FUNC:  May be use a different arm_CallEhFrame for when we have stack nested func?
-    if (this->m_func->HasAnyStackNestedFunc() || hasTry)
-    {
-        usedRegs.Set(RegEncode[RegR11]);
-    }
-    */
-
     bool hasCalls = this->m_func->m_unwindInfo.GetHasCalls();
 
     if (usedRegs.Count() % 2 == 1)
@@ -1646,7 +1621,7 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
             exitInstr);
     }
 
-    int32 initialSpOffset = MachRegInt * (usedRegs.Count() + (hasCalls ? 2 : 0)) + MachRegDouble * savedDoubleRegs.Count();
+    int32 initialSpOffset = MachRegInt * (usedRegs.Count() + (hasCalls ? 4 : 0)) + MachRegDouble * savedDoubleRegs.Count();
     int32 spOffset = initialSpOffset;
     IR::RegOpnd* reg1Opnd = nullptr;
     IR::RegOpnd* reg2Opnd = nullptr;
@@ -1661,6 +1636,8 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
             IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spOffset, TyMachReg, this->m_func),
             IR::RegOpnd::New(nullptr, RegLR, TyMachReg, this->m_func), this->m_func);
         exitInstr->InsertBefore(instrLoadFpLr);
+
+        spOffset -= 2 * MachRegInt; // For StackArgumentsSlot and StackFunctionListStackSym
     }
 
     if (!usedRegs.IsEmpty())
@@ -2183,9 +2160,7 @@ LowererMD::LoadHeapArguments(IR::Instr * instrArgs)
             this->LoadHelperArgument(instrArgs, srcOpnd);
 
             // Save the newly-created args object to its dedicated stack slot.
-            IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, FRAME_REG , TyMachReg, func),
-                -MachArgsSlotOffset, TyMachPtr, m_func);
-            Lowerer::InsertMove(indirOpnd, instrArgs->GetDst(), instrArgs->m_next);
+            Lowerer::InsertMove(CreateStackArgumentsSlotOpnd(), instrArgs->GetDst(), instrArgs->m_next);
         }
         this->ChangeToHelperCall(instrArgs, IR::HelperOp_LoadHeapArguments);
     }
@@ -2287,9 +2262,7 @@ LowererMD::LoadHeapArgsCached(IR::Instr * instrArgs)
 
 
             // Save the newly-created args object to its dedicated stack slot.
-            IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, FRAME_REG, TyMachReg, func),
-                -MachArgsSlotOffset, TyMachPtr, m_func);
-            Lowerer::InsertMove(indirOpnd, instrArgs->GetDst(), instrArgs->m_next);
+            Lowerer::InsertMove(CreateStackArgumentsSlotOpnd(), instrArgs->GetDst(), instrArgs->m_next);
 
         }
 
@@ -4870,8 +4843,8 @@ LowererMD::GenerateFastScopedFld(IR::Instr * instrScopedFld, bool isLoad)
     instrScopedFld->InsertBefore(instr);
 
     // LDR s2, [base, offset(scopes)]           -- load the first scope
-    indirOpnd = IR::IndirOpnd::New(opndBase, Js::FrameDisplay::GetOffsetOfScopes(), TyInt32,this->m_func);
-    opndReg2 = IR::RegOpnd::New(TyInt32, this->m_func);
+    indirOpnd = IR::IndirOpnd::New(opndBase, Js::FrameDisplay::GetOffsetOfScopes(), TyMachReg,this->m_func);
+    opndReg2 = IR::RegOpnd::New(TyMachReg, this->m_func);
     instr = IR::Instr::New(Js::OpCode::LDR, opndReg2, indirOpnd, this->m_func);
     instrScopedFld->InsertBefore(instr);
 
