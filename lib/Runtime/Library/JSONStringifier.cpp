@@ -8,6 +8,8 @@
 namespace Js
 {
 
+const charcount_t JSONStringifier::MaxGapLength = 10;
+
 JSONStringifier::JSONStringifier(_In_ ScriptContext* scriptContext) :
     scriptContext(scriptContext),
     replacerFunction(nullptr),
@@ -108,7 +110,7 @@ JSONStringifier::AddToPropertyList(_In_ Var item, _Inout_ BVSparse<Recycler>* pr
             PropertyListElement elem;
             elem.propertyName = propertyName;
             elem.propertyRecord = propertyRecord;
-            this->propertyList->Append(elem);
+            this->propertyList->Push(elem);
         }
     }
 }
@@ -156,6 +158,8 @@ JSONStringifier::ReadReplacer(_In_opt_ Var replacer)
                         }
                     }
                 }
+                // PropertyList is an SList, which only has push/pop, so need to reverse list for it to be in order
+                this->propertyList->Reverse();
             }
         }
     }
@@ -412,11 +416,12 @@ JSONStringifier::ReadObjectElement(
     _In_ JSONObject* jsonObject,
     _In_ JSONObjectStack* objectStack)
 {
-    JSONProperty element;
-    this->ReadProperty(propertyName, obj, &element, nullptr, propertyRecord, objectStack);
+    JSONObjectProperty prop;
+    prop.propertyName = propertyName;
+    this->ReadProperty(propertyName, obj, &prop.propertyValue, nullptr, propertyRecord, objectStack);
 
     // Undefined result is not concatenated
-    if (element.type != JSONContentType::Undefined)
+    if (prop.propertyValue.type != JSONContentType::Undefined)
     {
         // Increase length for the name of the property
         this->totalStringLength = UInt32Math::Add(this->totalStringLength, CalculateStringElementLength(propertyName));
@@ -427,7 +432,7 @@ JSONStringifier::ReadObjectElement(
             // If gap is specified, a space is appended
             UInt32Math::Inc(this->totalStringLength);
         }
-        jsonObject->Append(element);
+        jsonObject->Push(prop);
     }
 }
 
@@ -520,11 +525,11 @@ JSONStringifier::ReadObject(_In_ RecyclableObject* obj, _In_ JSONObjectStack* ob
     // If we are given a property list, we should only read the listed properties
     if (this->propertyList != nullptr)
     {
-        FOREACH_DLIST_ENTRY(PropertyListElement, Recycler, entry, this->propertyList)
+        FOREACH_SLIST_ENTRY(PropertyListElement, entry, this->propertyList)
         {
             this->ReadObjectElement(entry.propertyName, entry.propertyRecord, obj, jsonObject, &stack);
         }
-        NEXT_DLIST_ENTRY;
+        NEXT_SLIST_ENTRY;
     }
     else if (JavascriptProxy::Is(obj))
     {
@@ -537,6 +542,7 @@ JSONStringifier::ReadObject(_In_ RecyclableObject* obj, _In_ JSONObjectStack* ob
         JavascriptStaticEnumerator enumerator;
         if (obj->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::EphemeralReference, this->scriptContext))
         {
+            enumerator.GetInitialPropertyCount();
             JavascriptString* propertyName = nullptr;
             PropertyId nextKey = Constants::NoProperty;
             while ((propertyName = enumerator.MoveAndGetNext(nextKey)) != nullptr)
@@ -551,6 +557,8 @@ JSONStringifier::ReadObject(_In_ RecyclableObject* obj, _In_ JSONObjectStack* ob
             }
         }
     }
+    // JSONObject is an SList, which only has push/pop, so need to reverse list for it to be in order
+    jsonObject->Reverse();
     const uint propertyCount = jsonObject->Count();
 
     this->CalculateStringifiedLength(propertyCount, stepbackLength);
@@ -730,7 +738,13 @@ RecheckValue(_In_ Var value, _Out_ RecyclableObject** valueObj, _Out_ bool* isOb
 }
 
 void
-JSONStringifier::ReadProperty(_In_ JavascriptString* key, _In_opt_ RecyclableObject* holder, _Out_ JSONProperty* prop, _In_opt_ Var value, _In_opt_ const PropertyRecord* propertyRecord, _In_ JSONObjectStack* objectStack)
+JSONStringifier::ReadProperty(
+    _In_ JavascriptString* key,
+    _In_opt_ RecyclableObject* holder,
+    _Out_ JSONProperty* prop,
+    _In_opt_ Var value,
+    _In_opt_ const PropertyRecord* propertyRecord,
+    _In_ JSONObjectStack* objectStack)
 {
     PROBE_STACK(this->scriptContext, Constants::MinStackDefault);
     if (propertyRecord == nullptr)
@@ -739,12 +753,10 @@ JSONStringifier::ReadProperty(_In_ JavascriptString* key, _In_opt_ RecyclableObj
     }
     if (value == nullptr)
     {
-        Assert(holder != nullptr);
+        // If we don't have a value, we must have an object from which we can read it
+        AnalysisAssert(holder != nullptr);
         value = this->ReadValue(key, propertyRecord, holder);
     }
-
-    prop->propertyRecord = propertyRecord;
-    prop->propertyName = key;
 
     // Save these to avoid having to recheck conditions unless value is modified by ToJSON or a replacer function
     RecyclableObject* valueObj = nullptr;

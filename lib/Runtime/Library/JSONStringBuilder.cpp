@@ -136,7 +136,7 @@ JSONStringBuilder::AppendObjectString(_In_ JSONObject* valueList)
     }
 
     bool isFirstMember = true;
-    FOREACH_DLISTCOUNTED_ENTRY(JSONProperty, Recycler, entry, valueList)
+    FOREACH_SLISTCOUNTED_ENTRY(JSONObjectProperty, entry, valueList)
     {
         if (!isFirstMember)
         {
@@ -158,11 +158,11 @@ JSONStringBuilder::AppendObjectString(_In_ JSONObject* valueList)
             this->AppendCharacter(_u(' '));
         }
 
-        this->AppendJSONPropertyString(&entry);
+        this->AppendJSONPropertyString(&entry.propertyValue);
 
         isFirstMember = false;
     }
-    NEXT_DLISTCOUNTED_ENTRY;
+    NEXT_SLISTCOUNTED_ENTRY;
 
     if (this->gap != nullptr)
     {

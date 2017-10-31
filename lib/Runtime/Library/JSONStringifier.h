@@ -33,7 +33,7 @@ class JSONStringifier
 {
 private:
     // Spec defined limit on the gap length
-    static const charcount_t MaxGapLength = 10;
+    static const charcount_t MaxGapLength;
 
     struct PropertyListElement
     {
@@ -41,7 +41,7 @@ private:
         JavascriptString* propertyName;
     };
 
-    typedef DList<PropertyListElement, Recycler> PropertyList;
+    typedef SList<PropertyListElement, Recycler> PropertyList;
 
     ScriptContext* scriptContext;
     RecyclableObject* replacerFunction;
@@ -51,7 +51,6 @@ private:
     charcount_t gapLength;
     char16* gap;
 
-    // TODO: refactor
     _Ret_notnull_ const PropertyRecord* GetPropertyRecord(_In_ JavascriptString* string);
     Var TryConvertPrimitiveObject(_In_ RecyclableObject* value);
     Var ToJSON(_In_ JavascriptString* key, _In_ RecyclableObject* valueObject);
@@ -99,6 +98,8 @@ public:
     const char16* GetGap() const { return this->gap; };
     charcount_t GetGapLength() const { return this->gapLength; }
     bool HasReplacerFunction() const { return this->replacerFunction != nullptr; }
+
+    bool HasComplexGap() const;
 
     static LazyJSONString* Stringify(_In_ ScriptContext* scriptContext, _In_ Var value, _In_opt_ Var replacer, _In_opt_ Var space);
 

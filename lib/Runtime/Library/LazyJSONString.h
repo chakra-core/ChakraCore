@@ -7,7 +7,7 @@
 
 namespace Js
 {
-
+struct JSONObjectProperty;
 struct JSONProperty;
 struct JSONArray;
 
@@ -23,7 +23,8 @@ enum class JSONContentType : uint8
     String
 };
 
-typedef DListCounted<JSONProperty, Recycler> JSONObject;
+typedef SListCounted<JSONObjectProperty, Recycler> JSONObject;
+
 
 struct JSONNumberData
 {
@@ -31,11 +32,10 @@ struct JSONNumberData
     Field(JavascriptString*) string;
 };
 
+
 struct JSONProperty
 {
     Field(JSONContentType) type;
-    Field(const PropertyRecord*) propertyRecord;
-    Field(JavascriptString*) propertyName;
     union
     {
         Field(JSONNumberData) numericValue;
@@ -47,6 +47,25 @@ struct JSONProperty
     JSONProperty()
     {
         memset(this, 0, sizeof(JSONProperty));
+    }
+    JSONProperty(const JSONProperty& other)
+    {
+        memcpy_s(this, sizeof(JSONProperty), &other, sizeof(JSONProperty));
+    }
+};
+
+struct JSONObjectProperty
+{
+    Field(JavascriptString*) propertyName;
+    Field(JSONProperty) propertyValue;
+
+    JSONObjectProperty() : propertyName(nullptr), propertyValue()
+    {
+    }
+    JSONObjectProperty(const JSONObjectProperty& other) :
+        propertyName(other.propertyName),
+        propertyValue(other.propertyValue)
+    {
     }
 };
 
@@ -63,16 +82,19 @@ private:
     Field(JSONProperty*) jsonContent;
     Field(const char16*) gap;
 
-    DynamicObject* ParseObject(_In_ JSONObject* valueList) const;
-    JavascriptArray* ParseArray(_In_ JSONArray* valueArray) const;
-    Var Parse(_In_ JSONProperty* content) const;
+    DynamicObject* ReconstructObject(_In_ JSONObject* valueList) const;
+    JavascriptArray* ReconstructArray(_In_ JSONArray* valueArray) const;
+    Var ReconstructVar(_In_ JSONProperty* content) const;
 
 protected:
     DEFINE_VTABLE_CTOR(LazyJSONString, JavascriptString);
 
 public:
     LazyJSONString(_In_ JSONProperty* content, charcount_t length, _In_opt_ const char16* gap, charcount_t gapLength, _In_ StaticType* type);
-    Var Parse() const;
+    Var TryParse() const;
+
+    // Tells if the string has a gap with characters that might impact JSON.parse
+    bool HasComplexGap() const;
 
     const char16* GetSz() override sealed;
 

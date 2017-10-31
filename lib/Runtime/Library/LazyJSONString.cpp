@@ -18,35 +18,70 @@ LazyJSONString::LazyJSONString(_In_ JSONProperty* jsonContent, charcount_t lengt
     SetLength(length);
 }
 
-DynamicObject*
-LazyJSONString::ParseObject(_In_ JSONObject* valueList) const
+bool
+LazyJSONString::HasComplexGap() const
 {
-    const uint elementCount = valueList->Count();
-    PropertyIndex requestedInlineSlotCapacity = static_cast<PropertyIndex>(elementCount);
-    DynamicObject* obj = this->GetLibrary()->CreateObject(true, requestedInlineSlotCapacity);
-    FOREACH_DLISTCOUNTED_ENTRY(JSONProperty, Recycler, entry, valueList)
+    for (charcount_t i = 0; i < this->gapLength; ++i)
     {
-        Var propertyValue = Parse(&entry);
-        PropertyValueInfo info;
-        PropertyString* propertyString = PropertyString::TryFromVar(entry.propertyName);
-        if (!propertyString || !propertyString->TrySetPropertyFromCache(obj, propertyValue, this->GetScriptContext(), PropertyOperation_None, &info))
+        switch (this->gap[i])
         {
-            JavascriptOperators::SetProperty(obj, obj, entry.propertyRecord->GetPropertyId(), propertyValue, &info, this->GetScriptContext());
+        // This is not exhaustive, just a useful subset of semantics preserving characters
+        case _u(' '):
+        case _u('\t'):
+        case _u('\n'):
+            continue;
+        default:
+            return true;
         }
     }
-    NEXT_DLISTCOUNTED_ENTRY;
+    return false;
+}
+
+DynamicObject*
+LazyJSONString::ReconstructObject(_In_ JSONObject* valueList) const
+{
+    const uint elementCount = valueList->Count();
+
+    // This is just a heuristic, so overflow doesn't matter
+    PropertyIndex requestedInlineSlotCapacity = static_cast<PropertyIndex>(elementCount);
+
+    DynamicObject* obj = this->GetLibrary()->CreateObject(
+        true, // allowObjectHeaderInlining
+        requestedInlineSlotCapacity);
+
+    FOREACH_SLISTCOUNTED_ENTRY(JSONObjectProperty, entry, valueList)
+    {
+        Var propertyValue = ReconstructVar(&entry.propertyValue);
+        JavascriptString* propertyName = entry.propertyName;
+        PropertyString* propertyString = PropertyString::TryFromVar(propertyName);
+        PropertyValueInfo info;
+        if (!propertyString || !propertyString->TrySetPropertyFromCache(obj, propertyValue, this->GetScriptContext(), PropertyOperation_None, &info))
+        {
+            const PropertyRecord* propertyRecord = nullptr;
+            if (propertyString)
+            {
+                propertyRecord = propertyString->GetPropertyRecord();
+            }
+            else
+            {
+                this->GetScriptContext()->GetOrAddPropertyRecord(propertyName, &propertyRecord);
+            }
+            JavascriptOperators::SetProperty(obj, obj, propertyRecord->GetPropertyId(), propertyValue, &info, this->GetScriptContext());
+        }
+    }
+    NEXT_SLISTCOUNTED_ENTRY;
     return obj;
 }
 
 JavascriptArray*
-LazyJSONString::ParseArray(_In_ JSONArray* jsonArray) const
+LazyJSONString::ReconstructArray(_In_ JSONArray* jsonArray) const
 {
     const uint32 length = jsonArray->length;
     JavascriptArray* arr = this->GetLibrary()->CreateArrayLiteral(length);
     JSONProperty* prop = jsonArray->arr;
     for (uint i = 0; i < length; ++i)
     {
-        Var element = Parse(&prop[i]);
+        Var element = ReconstructVar(&prop[i]);
         BOOL result = arr->SetItem(i, element, PropertyOperation_None);
         Assert(result); // Setting item in an array we just allocated should always succeed
     }
@@ -54,12 +89,12 @@ LazyJSONString::ParseArray(_In_ JSONArray* jsonArray) const
 }
 
 Var
-LazyJSONString::Parse(_In_ JSONProperty* prop) const
+LazyJSONString::ReconstructVar(_In_ JSONProperty* prop) const
 {
     switch (prop->type)
     {
     case JSONContentType::Array:
-        return ParseArray(prop->arr);
+        return ReconstructArray(prop->arr);
     case JSONContentType::Null:
         return this->GetLibrary()->GetNull();
     case JSONContentType::True:
@@ -71,7 +106,7 @@ LazyJSONString::Parse(_In_ JSONProperty* prop) const
     case JSONContentType::String:
         return prop->stringValue;
     case JSONContentType::Object:
-        return ParseObject(prop->obj);
+        return ReconstructObject(prop->obj);
     default:
         Assume(UNREACHED);
         return nullptr;
@@ -79,29 +114,35 @@ LazyJSONString::Parse(_In_ JSONProperty* prop) const
 }
 
 Var
-LazyJSONString::Parse() const
+LazyJSONString::TryParse() const
 {
-    // If the gap is a non-space character, then parsing will be non-trivial transformation
-    for (charcount_t i = 0; i < this->gapLength; ++i)
+    // If we have thrown away our metadata, we won't be able to Parse
+    if (this->jsonContent == nullptr)
     {
-        switch (this->gap[i])
-        {
-        // This is not exhaustive, just a useful subset of semantics preserving characters
-        case _u(' '):
-        case _u('\t'):
-        case _u('\n'):
-            continue;
-        default:
-            return nullptr;
-        }
+        return nullptr;
     }
-    return Parse(this->jsonContent);
+
+    // If the gap is complex, this means that parse will be a non-trivial transformation,
+    // so fall back to the real parse
+    if (this->HasComplexGap())
+    {
+        return nullptr;
+    }
+
+    Var result = ReconstructVar(this->jsonContent);
+
+    return result;
 }
 
 const char16*
 LazyJSONString::GetSz()
 {
-    const charcount_t allocSize = SafeSzSize();
+    if (this->IsFinalized())
+    {
+        return this->UnsafeGetBuffer();
+    }
+
+    const charcount_t allocSize = this->SafeSzSize();
 
     Recycler* recycler = GetScriptContext()->GetRecycler();
     char16* target = RecyclerNewArrayLeaf(recycler, char16, allocSize);
@@ -116,7 +157,14 @@ LazyJSONString::GetSz()
 
     builder.Build();
 
-    SetBuffer(target);
+    this->SetBuffer(target);
+
+    if (this->HasComplexGap())
+    {
+        // If we have a complex gap, there is no reason to keep content around after flattening
+        this->jsonContent = nullptr;
+    }
+
     return target;
 }
 

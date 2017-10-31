@@ -65,7 +65,7 @@ namespace JSON
             {
                 // Try to reconstruct object based on the data collected during stringify
                 // In case of semantically important gap, this call may fail and we will need to do real parse
-                result = lazyString->Parse();
+                result = lazyString->TryParse();
             }
             if (result == nullptr)
             {
