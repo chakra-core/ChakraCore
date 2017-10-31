@@ -7,14 +7,16 @@
 #include "ARM64LogicalImmediates.h"
 
 
-// ToDo (SaAgarwa) - Copied from old ARMEncode.h file to make debug build
-//Add more, if required
+#define IS_CONST_00001FFF(x) (((x) & ~0x00001fff) == 0)
+#define IS_CONST_0003FFFF(x) (((x) & ~0x0003ffff) == 0)
 #define IS_CONST_01FFFFFF(x) (((x) & ~0x01ffffff) == 0)
 
-//Add more, if required
+#define IS_CONST_NEG_14(x)   (((x) & ~0x00001fff) == ~0x00001fff)
+#define IS_CONST_NEG_19(x)   (((x) & ~0x0003ffff) == ~0x0003ffff)
 #define IS_CONST_NEG_26(x)   (((x) & ~0x01ffffff) == ~0x01ffffff)
 
-//Add more, if required
+#define IS_CONST_INT14(x)    (IS_CONST_00001FFF(x) || IS_CONST_NEG_14(x))
+#define IS_CONST_INT19(x)    (IS_CONST_0003FFFF(x) || IS_CONST_NEG_19(x))
 #define IS_CONST_INT26(x)    (IS_CONST_01FFFFFF(x) || IS_CONST_NEG_26(x))
 
 

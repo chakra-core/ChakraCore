@@ -759,31 +759,56 @@ bool LegalizeMD::LegalizeDirectBranch(IR::BranchInstr *branchInstr, uint32 branc
     Assert(labelOffset); //Label offset must be set.
 
     int32 offset = labelOffset - branchOffset;
-    //We should never run out of 24 bits which corresponds to +-16MB of code size.
-    AssertMsg(IS_CONST_INT24(offset >> 1), "Cannot encode more that 16 MB offset");
+    //We should never run out of 26 bits which corresponds to +-64MB of code size.
+    AssertMsg(IS_CONST_INT26(offset >> 1), "Cannot encode more that 64 MB offset");
 
     if (LowererMD::IsUnconditionalBranch(branchInstr))
     {
         return false;
     }
 
-    if (IS_CONST_INT21(offset))
+    if (branchInstr->m_opcode == Js::OpCode::TBZ || branchInstr->m_opcode == Js::OpCode::TBNZ)
     {
-        return false;
+        // TBZ and TBNZ are limited to 14 bit offsets.
+        if (IS_CONST_INT14(offset))
+        {
+            return false;
+        }
+    }
+    else
+    {
+        // Other conditional branches are limited to 19 bit offsets.
+        if (IS_CONST_INT19(offset))
+        {
+            return false;
+        }
     }
 
-    // Convert a conditional branch which can only be +-1MB to unconditional branch which is +-16MB
+    // Convert a conditional branch which can only be +-256kb(+-8kb for TBZ/TBNZ) to unconditional branch which is +-64MB
     // Convert beq Label (where Label is long jump) to something like this
     //          bne Fallback
     //          b Label
     // Fallback:
 
-    IR::LabelInstr *doneLabelInstr = IR::LabelInstr::New(Js::OpCode::Label, branchInstr->m_func, false);
-    IR::BranchInstr *newBranchInstr = IR::BranchInstr::New(branchInstr->m_opcode, doneLabelInstr, branchInstr->m_func);
-    LowererMD::InvertBranch(newBranchInstr);
+    IR::LabelInstr *fallbackLabel = IR::LabelInstr::New(Js::OpCode::Label, branchInstr->m_func, false);
+    IR::BranchInstr *fallbackBranch = IR::BranchInstr::New(branchInstr->m_opcode, fallbackLabel, branchInstr->m_func);
 
-    branchInstr->InsertBefore(newBranchInstr);
-    branchInstr->InsertAfter(doneLabelInstr);
+    // CBZ | CBNZ | TBZ | TBNZ
+    if (branchInstr->GetSrc1() != nullptr)
+    {
+        fallbackBranch->SetSrc1(branchInstr->UnlinkSrc1());
+    }
+
+    // TBZ | TBNZ
+    if (branchInstr->GetSrc2() != nullptr)
+    {
+        fallbackBranch->SetSrc2(branchInstr->UnlinkSrc2());
+    }
+
+    LowererMD::InvertBranch(fallbackBranch);
+
+    branchInstr->InsertBefore(fallbackBranch);
+    branchInstr->InsertAfter(fallbackLabel);
     branchInstr->m_opcode = Js::OpCode::B;
     return true;
 }
