@@ -99,7 +99,7 @@ IRBuilder::DoBailOnNoProfile()
         return false;
     }
 
-    if (!m_func->DoGlobOpt() || m_func->GetTopFunc()->HasTry())
+    if (!m_func->DoGlobOpt())
     {
         return false;
     }
