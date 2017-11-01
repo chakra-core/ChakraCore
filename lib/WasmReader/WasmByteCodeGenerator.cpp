@@ -480,9 +480,8 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext* scriptContext, W
     // Init reader to current func offset
     GetReader()->SeekToFunctionBody(m_funcInfo);
 
-    // Use binary size to estimate bytecode size
-    const uint32 astSize = readerInfo->m_funcInfo->m_readerInfo.size;
-    m_writer->InitData(&m_alloc, astSize);
+    const uint32 estimated = GetReader()->EstimateCurrentFunctionBytecodeSize();
+    m_writer->InitData(&m_alloc, estimated);
 }
 
 void WasmBytecodeGenerator::GenerateFunction()
