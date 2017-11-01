@@ -9,10 +9,15 @@ namespace Wasm
 {
     class WasmReaderBase;
 
+    // All the Wasm function's share the same reader (except when using CustomReaders)
+    // This struct is used to remember where is this particular function in the buffer
     struct FunctionBodyReaderInfo
     {
-        Field(uint32) size;
-        Field(intptr_t) startOffset;
+        friend class WasmBinaryReader;
+        FunctionBodyReaderInfo(uint32 size = 0, size_t startOffset = 0): size(size), startOffset(startOffset) {}
+    private:
+        Field(uint32) size = 0;
+        Field(size_t) startOffset = 0;
     };
 
     class WasmFunctionInfo
@@ -45,7 +50,16 @@ namespace Wasm
         FieldNoBarrier(WasmImport*) importedFunctionReference;
 #endif
 
-        Field(FunctionBodyReaderInfo) m_readerInfo;
+        FunctionBodyReaderInfo GetReaderInfo() const
+        {
+            AssertMsg(!m_customReader, "ReaderInfo is not needed and invalid when a custom reader is present");
+            return m_readerInfo;
+        }
+        void SetReaderInfo(FunctionBodyReaderInfo info)
+        {
+            AssertMsg(!m_customReader, "ReaderInfo is not needed and invalid when a custom reader is present");
+            m_readerInfo = info;
+        }
     private:
 
         FieldNoBarrier(ArenaAllocator*) m_alloc;
@@ -58,5 +72,6 @@ namespace Wasm
         Field(const char16*) m_name;
         Field(uint32) m_nameLength;
         Field(uint32) m_number;
+        Field(FunctionBodyReaderInfo) m_readerInfo;
     };
 } // namespace Wasm

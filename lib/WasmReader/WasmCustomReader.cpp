@@ -44,5 +44,11 @@ void WasmCustomReader::AddNode(WasmNode node)
     m_nodes.Add(node);
 }
 
+const uint32 WasmCustomReader::GetCurrentFunctionSize() const
+{
+    // Use number of nodes for the function size
+    return (uint32)m_nodes.Count();
+}
+
 };
 #endif
