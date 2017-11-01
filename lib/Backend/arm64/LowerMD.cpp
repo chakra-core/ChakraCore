@@ -3294,40 +3294,29 @@ LowererMD::GenerateFastAdd(IR::Instr * instrAdd)
         this->GenerateSmIntPairTest(instrAdd, opndSrc1, opndSrc2, labelHelper);
     }
 
-    if (opndSrc1->IsAddrOpnd())
-    {
-        // If opnd1 is a constant, just swap them.
-        IR::Opnd *opndTmp = opndSrc1;
-        opndSrc1 = opndSrc2;
-        opndSrc2 = opndTmp;
-    }
-
     //
     // For 32 bit arithmetic we copy them and set the size of operands to be 32 bits. This is
     // relevant only on ARM64.
     //
 
     opndSrc1 = opndSrc1->UseWithNewType(TyInt32, this->m_func);
-    
+    opndSrc2 = opndSrc2->UseWithNewType(TyInt32, this->m_func);
+
     // s1 = MOV src1
 
     opndReg = IR::RegOpnd::New(TyInt32, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::MOV, opndReg, opndSrc1, this->m_func);
-    instrAdd->InsertBefore(instr);
-    
-    if (opndSrc2->IsAddrOpnd())
+    Lowerer::InsertMove(opndReg, opndSrc1, instrAdd);
+
+    if (opndSrc2->IsImmediateOpnd())
     {
-        // truncate to untag
-        int value = ::Math::PointerCastToIntegralTruncate<int>(opndSrc2->AsAddrOpnd()->m_address);
-        opndSrc2 = IR::IntConstOpnd::New(value, TyInt32, this->m_func);
-        instr = IR::Instr::New(Js::OpCode::ADDS, opndReg, opndReg, opndSrc2, this->m_func);
-    }
-    else
-    {
-        instr = IR::Instr::New(Js::OpCode::ADDS, opndReg, opndReg, opndSrc2->UseWithNewType(TyInt32, this->m_func), this->m_func);
+        IR::Opnd* tmp = IR::RegOpnd::New(TyInt32, this->m_func);
+        instr = IR::Instr::New(Js::OpCode::LDIMM, tmp, opndSrc2, this->m_func);
+        instrAdd->InsertBefore(instr);
+        opndSrc2 = tmp;
     }
     
     // s1 = ADDS s1, src2
+    instr = IR::Instr::New(Js::OpCode::ADDS, opndReg, opndReg, opndSrc2, this->m_func);
     instrAdd->InsertBefore(instr);
     Legalize(instr);
 
@@ -3340,7 +3329,7 @@ LowererMD::GenerateFastAdd(IR::Instr * instrAdd)
     // Convert TyInt32 operand, back to TyMachPtr type.
     //
 
-    if(TyMachReg != opndReg->GetType())
+    if (TyMachReg != opndReg->GetType())
     {
         opndReg = opndReg->UseWithNewType(TyMachPtr, this->m_func);
     }
@@ -3442,19 +3431,26 @@ LowererMD::GenerateFastSub(IR::Instr * instrSub)
     // relevant only on ARM64.
     //
 
-    opndSrc1    = opndSrc1->UseWithNewType(TyInt32, this->m_func);
-    opndSrc2    = opndSrc2->UseWithNewType(TyInt32, this->m_func);
+    opndSrc1 = opndSrc1->UseWithNewType(TyInt32, this->m_func);
+    opndSrc2 = opndSrc2->UseWithNewType(TyInt32, this->m_func);
 
     // s1 = MOV src1
 
     opndReg = IR::RegOpnd::New(TyInt32, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::MOV, opndReg, opndSrc1, this->m_func);
-    instrSub->InsertBefore(instr);
+    Lowerer::InsertMove(opndReg, opndSrc1, instrSub);
+
+    if (opndSrc2->IsImmediateOpnd())
+    {
+        IR::Opnd* tmp = IR::RegOpnd::New(TyInt32, this->m_func);
+        instr = IR::Instr::New(Js::OpCode::LDIMM, tmp, opndSrc2, this->m_func);
+        instrSub->InsertBefore(instr);
+        opndSrc2 = tmp;
+    }
 
     // s1 = SUBS s1, src2
-
     instr = IR::Instr::New(Js::OpCode::SUBS, opndReg, opndReg, opndSrc2, this->m_func);
     instrSub->InsertBefore(instr);
+    Legalize(instr);
 
     //      BVS $helper
 
