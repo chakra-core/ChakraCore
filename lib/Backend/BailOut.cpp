@@ -1833,8 +1833,14 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
 
     Js::FunctionEntryPointInfo *entryPointInfo = function->GetFunctionEntryPointInfo();
     uint8 callsCount = entryPointInfo->callsCount > 255 ? 255 : static_cast<uint8>(entryPointInfo->callsCount);
+
+    // When rejitReason is set to a non-none value, the function will be rejitted based on new 
+    // profile data or more conservative optimization
     RejitReason rejitReason = RejitReason::None;
+    // When reThunk is true, rejitting should be complete and ready for access via a new thunk
     bool reThunk = false;
+    // When reProfile is true, the function will rerun under the interpreter to collect updated profiling data for 
+    bool reProfile = false;
 
     callsCount = callsCount <= Js::FunctionEntryPointInfo::GetDecrCallCountPerBailout() ? 0 : callsCount - Js::FunctionEntryPointInfo::GetDecrCallCountPerBailout() ;
 
@@ -1976,6 +1982,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
                 }
                 else
                 {
+                    reProfile = true;
                     rejitReason = RejitReason::ExpectingNativeArray;
                 }
                 break;
@@ -2348,6 +2355,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
         reThunk = false;
         rejitReason = RejitReason::AfterLoopBodyRejit;
     }
+
     if (reThunk)
     {
         Js::FunctionEntryPointInfo *const defaultEntryPointInfo = executeFunction->GetDefaultFunctionEntryPointInfo();
@@ -2356,13 +2364,24 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
     else if (rejitReason != RejitReason::None)
     {
 #ifdef REJIT_STATS
-        executeFunction->GetScriptContext()->LogRejit(executeFunction, rejitReason);
+        if (reProfile)
+        {
+            executeFunction->GetScriptContext()->LogReprofile(executeFunction, rejitReason);
+        }
+        else
+        {
+            executeFunction->GetScriptContext()->LogRejit(executeFunction, rejitReason);
+        }
 #endif
         executeFunction->ClearDontRethunkAfterBailout();
 
         GenerateFunction(executeFunction->GetScriptContext()->GetNativeCodeGenerator(), executeFunction, function);
 
-        if(executeFunction->GetExecutionMode() != ExecutionMode::FullJit)
+        if (reProfile)
+        {
+            executeFunction->ReprofileAndRejit();
+        }
+        else if(executeFunction->GetExecutionMode() != ExecutionMode::FullJit)
         {
             // With expiry, it's possible that the execution mode is currently interpreter or simple JIT. Transition to full JIT
             // after successfully scheduling the rejit work item (in case of OOM).
@@ -2386,6 +2405,10 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
             if(bailOutKind != IR::BailOutInvalid)
             {
                 Output::Print(_u(" (%S)"), ::GetBailOutKindName(bailOutKind));
+            }
+            if (reProfile)
+            {
+                Output::Print(_u(" **ReProfile**"));
             }
             Output::Print(_u("\n"));
             Output::Flush();

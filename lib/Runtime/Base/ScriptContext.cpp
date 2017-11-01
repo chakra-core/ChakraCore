@@ -171,6 +171,7 @@ namespace Js
         , bailoutReasonCountsCap(nullptr)
         , rejitReasonCounts(nullptr)
         , rejitReasonCountsCap(nullptr)
+        , reprofileReasonCounts(nullptr)
 #endif
 #ifdef ENABLE_BASIC_TELEMETRY
         , telemetry(nullptr)
@@ -330,6 +331,7 @@ namespace Js
         rejitReasonCountsCap = AnewArrayZ(GeneralAllocator(), uint, NumRejitReasons);
         bailoutReasonCounts = Anew(GeneralAllocator(), BailoutStatsMap, GeneralAllocator());
         bailoutReasonCountsCap = Anew(GeneralAllocator(), BailoutStatsMap, GeneralAllocator());
+        reprofileReasonCounts = AnewArrayZ(GeneralAllocator(), uint, NumRejitReasons);
 #endif
 
 #ifdef ENABLE_BASIC_TELEMETRY
@@ -5545,6 +5547,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         {
             uint totalBailouts = 0;
             uint totalRejits = 0;
+            uint totalReprofiles = 0;
             WCHAR buf[256];
 
             // Dump bailout data.
@@ -5576,6 +5579,20 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 }
             }
             Output::Print(_u("%-40s %6d\n"), _u("TOTAL,"), totalRejits);
+            Output::Print(_u("\n\n"));
+
+            // Dump reprofile data.
+            Output::Print(_u("%-40s %6s\n"), _u("Reprofile Reason,"), _u("Count"));
+            for (uint i = 0; i < NumRejitReasons; ++i)
+            {
+                totalReprofiles += reprofileReasonCounts[i];
+                if (reprofileReasonCounts[i] != 0)
+                {
+                    swprintf_s(buf, _u("%S,"), RejitReasonNames[i]);
+                    Output::Print(_u("%-40s %6d\n"), buf, reprofileReasonCounts[i]);
+                }
+            }
+            Output::Print(_u("%-40s %6d\n"), _u("TOTAL,"), totalReprofiles);
             Output::Print(_u("\n\n"));
 
             // If in verbose mode, dump data for each FunctionBody
@@ -5801,6 +5818,20 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         }
 #endif
     }
+    void ScriptContext::LogReprofile(Js::FunctionBody *body, RejitReason reason)
+    {
+        byte reasonIndex = static_cast<byte>(reason);
+        Assert(reasonIndex < NumRejitReasons);
+        reprofileReasonCounts[reasonIndex]++;
+
+#if defined(FLAG) || defined(FLAG_REGOVR_EXP)
+        if (Js::Configuration::Global.flags.Verbose)
+        {
+            LogDataForFunctionBody(body, reasonIndex, true);
+        }
+#endif
+    }
+    
     void ScriptContext::LogBailout(Js::FunctionBody *body, uint kind)
     {
         if (!bailoutReasonCounts->ContainsKey(kind))

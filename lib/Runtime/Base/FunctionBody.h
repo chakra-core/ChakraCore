@@ -2621,6 +2621,7 @@ namespace Js
         bool TryTransitionToJitExecutionMode();
         void TransitionToSimpleJitExecutionMode();
         void TransitionToFullJitExecutionMode();
+        void ReprofileAndRejit();
 
         void ReinitializeExecutionModeAndLimits();
 

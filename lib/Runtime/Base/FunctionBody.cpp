@@ -6674,6 +6674,11 @@ namespace Js
         executionState.TransitionToFullJitExecutionMode();
     }
 
+    void FunctionBody::ReprofileAndRejit()
+    {
+        executionState.ReprofileAndRejit();
+    }
+
     void FunctionBody::ReinitializeExecutionModeAndLimits()
     {
         // Do not remove wasCalledFromLoop 
