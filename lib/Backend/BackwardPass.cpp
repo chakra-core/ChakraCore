@@ -7050,6 +7050,10 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
     {
         return false;
     }
+    if (this->currentRegion && (this->currentRegion->GetType() == RegionTypeCatch || this->currentRegion->GetType() == RegionTypeFinally))
+    {
+        return false;
+    }
 
     IR::Instr *curInstr = instr->m_prev;
 
@@ -7145,6 +7149,11 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
             continue;
         }
 
+        if (pred->GetFirstInstr()->AsLabelInstr()->GetRegion() != this->currentRegion)
+        {
+            break;
+        }
+
         // If all successors of this predecessor start with a BailOnNoProfile, we should be
         // okay to hoist this bail to the predecessor.
         FOREACH_SUCCESSOR_BLOCK(predSucc, pred)
@@ -7164,6 +7173,7 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
         {
             IR::Instr *predInstr = pred->GetLastInstr();
             IR::Instr *instrCopy = instr->Copy();
+
 
             if (predInstr->EndsBasicBlock())
             {
