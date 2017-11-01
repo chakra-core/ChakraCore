@@ -91,7 +91,7 @@ void WasmBinaryReader::InitializeReader()
     m_readerState = READER_STATE_UNKNOWN;
 }
 
-void WasmBinaryReader::ThrowDecodingError(const char16* msg, ...)
+void WasmBinaryReader::ThrowDecodingError(const char16* msg, ...) const
 {
     va_list argptr;
     va_start(argptr, msg);
@@ -295,8 +295,7 @@ void WasmBinaryReader::ReadFunctionHeaders()
         {
             ThrowDecodingError(_u("Function body too big"));
         }
-        funcInfo->m_readerInfo.size = funcSize;
-        funcInfo->m_readerInfo.startOffset = (m_pc - m_start);
+        funcInfo->SetReaderInfo(FunctionBodyReaderInfo(funcSize, (m_pc - m_start)));
         CheckBytesLeft(funcSize);
         TRACE_WASM_DECODER(_u("Function body header: index = %u, size = %u"), funcIndex, funcSize);
         const byte* end = m_pc + funcSize;
@@ -306,8 +305,8 @@ void WasmBinaryReader::ReadFunctionHeaders()
 
 void WasmBinaryReader::SeekToFunctionBody(class WasmFunctionInfo* funcInfo)
 {
-    FunctionBodyReaderInfo readerInfo = funcInfo->m_readerInfo;
-    if (readerInfo.startOffset >= (m_end - m_start))
+    FunctionBodyReaderInfo readerInfo = funcInfo->GetReaderInfo();
+    if (m_end < m_start || readerInfo.startOffset >= (size_t)(m_end - m_start))
     {
         ThrowDecodingError(_u("Function byte offset out of bounds"));
     }
@@ -378,6 +377,17 @@ void WasmBinaryReader::FunctionEnd()
 bool WasmBinaryReader::IsCurrentFunctionCompleted() const
 {
     return m_pc == m_curFuncEnd;
+}
+
+
+const uint32 WasmBinaryReader::EstimateCurrentFunctionBytecodeSize() const
+{
+    if (m_readerState != READER_STATE_FUNCTION)
+    {
+        ThrowDecodingError(_u("Wasm reader in an invalid state to get function information"));
+    }
+    // Use binary size to estimate bytecode size
+    return m_funcState.size;
 }
 
 WasmOp WasmBinaryReader::ReadOpCode()
