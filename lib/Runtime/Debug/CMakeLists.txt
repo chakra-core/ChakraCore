@@ -16,7 +16,7 @@ add_library (Chakra.Runtime.Debug OBJECT
     TTEvents.cpp
     TTExecutionInfo.cpp
     TTInflateMap.cpp
-    TTRuntmeInfoTracker.cpp
+    TTRuntimeInfoTracker.cpp
     TTSerialize.cpp
     TTSnapObjects.cpp
     TTSnapshot.cpp
