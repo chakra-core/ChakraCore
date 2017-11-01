@@ -19,7 +19,7 @@ namespace ChPlatformAgnostic
             return false;
         }
 
-        LPWSTR wpath = (WCHAR*)malloc(bufferSize);
+        LPWSTR wpath = new WCHAR[size];
         if (!wpath)
         {
             printf("GetBinaryLocation failed: out of memory!");
@@ -30,7 +30,7 @@ namespace ChPlatformAgnostic
         if (numCharsCopied == 0)
         {
             printf("GetBinaryLocation failed: GetModuleFileNameW failed with 0x%x!", ::GetLastError());
-            free(wpath);
+            delete[] wpath;
             return false;
         }
 
@@ -38,7 +38,7 @@ namespace ChPlatformAgnostic
         wpath[size - 1] = L'\0';
 
         numCharsCopied = WideCharToMultiByte(CP_UTF8, 0, wpath, -1, path, size, NULL, NULL);
-        free(wpath);
+        delete[] wpath;
 
         if (numCharsCopied == 0)
         {

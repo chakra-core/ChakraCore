@@ -11,7 +11,7 @@ set(ch_source_files
 
 if(CC_TARGET_OS_LINUX)
   set(ch_source_files "${ch_source_files}"
-    PlatformAgnostic/Platform/Linux/SystemInfo.cpp
+    PlatformAgnostic/Platform/Linux/Module.cpp
     )
 elseif(CC_TARGET_OS_OSX)
   set(ch_source_files "${ch_source_files}"
