@@ -51,7 +51,7 @@
 
     TTL Lib\Common\arm\arm64_CallEhFrame.asm
 
-    IMPORT __chkstk
+    IMPORT  __chkstk
     EXPORT  arm64_CallEhFrame
 
     TEXTAREA
@@ -80,6 +80,7 @@
     PROLOG_SAVE_REG_PAIR x23, x24, #(16 + 8*16 + 4*8)
     PROLOG_SAVE_REG_PAIR x25, x26, #(16 + 8*16 + 6*8)
     PROLOG_SAVE_REG_PAIR x27, x28, #(16 + 8*16 + 8*8)
+
     ; Save a pointer to the saved registers
     mov     x16, sp
     str     x16, [sp, #0]
@@ -89,18 +90,18 @@
     mov     fp, x1
 
     ; Allocate the arg out area, calling chkstk if necessary
-    cmp     x3,#4095
-    bgt     chkstk_call
-    sub     sp,sp,x3
+    cmp     x3, #4095
+    bhi     chkstk_call
+    sub     sp, sp, x3
 
     ; Thunk to the jitted code (and don't return)
     br      x0
 
-|chkstk_call|
+chkstk_call
     ; Call chkstk, passing a size/16 count in x15
-    lsr     x15,x3,#4
-    bl      |__chkstk|
-    sub     sp,sp,x15,lsl #4
+    lsr     x15, x3, #4
+    bl      __chkstk
+    sub     sp, sp, x15, lsl #4
 
     ; Thunk to the jitted code (and don't return)
     br      x0
@@ -138,6 +139,7 @@
     PROLOG_SAVE_REG_PAIR x23, x24, #(16 + 8*16 + 4*8)
     PROLOG_SAVE_REG_PAIR x25, x26, #(16 + 8*16 + 6*8)
     PROLOG_SAVE_REG_PAIR x27, x28, #(16 + 8*16 + 8*8)
+
     ; Save a pointer to the saved registers
     mov     x16, sp
     str     x16, [sp, #0]
@@ -145,21 +147,21 @@
     ; Set up the frame pointer and locals pointer
     mov     x28, x2
     mov     fp, x1
+    mov     x1, x4
 
     ; Allocate the arg out area, calling chkstk if necessary
-    cmp     x3,#4095
-    mov     x1, x4
+    cmp     x3, #4095
     bgt     chkstk_call_catch
-    sub     sp,sp,x3
+    sub     sp, sp, x3
 
     ; Thunk to the jitted code (and don't return)
     br      x0
 
-|chkstk_call_catch|
+chkstk_call_catch
     ; Call chkstk, passing a size/16 count in x15
-    lsr     x15,x3,#4
-    bl      |__chkstk|
-    sub     sp,sp,x15,lsl #4
+    lsr     x15, x3, #4
+    bl      __chkstk
+    sub     sp, sp, x15, lsl #4
 
     ; Thunk to the jitted code (and don't return)
     br      x0
