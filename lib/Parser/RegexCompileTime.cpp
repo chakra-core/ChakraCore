@@ -4,9 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #include "ParserPch.h"
 
-#pragma warning(push)
-#pragma warning(disable:4366)
-
 namespace UnifiedRegex
 {
 
@@ -4781,5 +4778,3 @@ namespace UnifiedRegex
 #endif
     }
 }
-
-#pragma warning(pop)

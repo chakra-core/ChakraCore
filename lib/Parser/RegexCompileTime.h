@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "RuntimeCommon.h"
+
 namespace UnifiedRegex
 {
     // FORWARD
@@ -619,8 +621,9 @@ namespace UnifiedRegex
         T* Emit();
 
         // The instruction buffer may move, so we need to remember label fixup's relative to the instruction base
-        // rather than as machine addresses
-        inline Label GetFixup(Label* pLabel)
+        // rather than as machine addresses.
+        // NOTE: pLabel is declared unaligned because Inst structs are unaligned in the inst buffer (thanks to #pragma pack(1)).
+        inline Label GetFixup(unaligned Label* pLabel)
         {
             Assert((uint8*)pLabel >= instBuf && (uint8*)pLabel < instBuf + instNext);
             return (Label)((uint8*)pLabel - instBuf);
