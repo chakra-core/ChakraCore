@@ -169,8 +169,7 @@ namespace Js
     {
         inline static bool Equals(PropertyRecord const * str1, PropertyRecord const * str2)
         {
-            return (str1->GetLength() == str2->GetLength() &&
-                JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1->GetBuffer(), str2->GetBuffer(), str1->GetLength()));
+            return str1->GetPropertyId() == str2->GetPropertyId();
         }
 
         inline static bool Equals(PropertyRecord const * str1, JsUtil::CharacterBuffer<WCHAR> const * str2)
