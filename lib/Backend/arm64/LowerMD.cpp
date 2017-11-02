@@ -3293,7 +3293,7 @@ LowererMD::GenerateFastAdd(IR::Instr * instrAdd)
         this->GenerateSmIntPairTest(instrAdd, opndSrc1, opndSrc2, labelHelper);
     }
 
-    if (opndSrc1->IsAddrOpnd())
+    if (opndSrc1->IsImmediateOpnd())
     {
         // If opnd1 is a constant, just swap them.
         IR::Opnd *opndTmp = opndSrc1;
@@ -3307,26 +3307,16 @@ LowererMD::GenerateFastAdd(IR::Instr * instrAdd)
     //
 
     opndSrc1 = opndSrc1->UseWithNewType(TyInt32, this->m_func);
-    
+    opndSrc2 = opndSrc2->UseWithNewType(TyInt32, this->m_func);
+
     // s1 = MOV src1
 
     opndReg = IR::RegOpnd::New(TyInt32, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::MOV, opndReg, opndSrc1, this->m_func);
-    instrAdd->InsertBefore(instr);
-    
-    if (opndSrc2->IsAddrOpnd())
-    {
-        // truncate to untag
-        int value = ::Math::PointerCastToIntegralTruncate<int>(opndSrc2->AsAddrOpnd()->m_address);
-        opndSrc2 = IR::IntConstOpnd::New(value, TyInt32, this->m_func);
-        instr = IR::Instr::New(Js::OpCode::ADDS, opndReg, opndReg, opndSrc2, this->m_func);
-    }
-    else
-    {
-        instr = IR::Instr::New(Js::OpCode::ADDS, opndReg, opndReg, opndSrc2->UseWithNewType(TyInt32, this->m_func), this->m_func);
-    }
+    Lowerer::InsertMove(opndReg, opndSrc1, instrAdd);
     
     // s1 = ADDS s1, src2
+
+    instr = IR::Instr::New(Js::OpCode::ADDS, opndReg, opndReg, opndSrc2, this->m_func);
     instrAdd->InsertBefore(instr);
     Legalize(instr);
 
@@ -3454,6 +3444,7 @@ LowererMD::GenerateFastSub(IR::Instr * instrSub)
 
     instr = IR::Instr::New(Js::OpCode::SUBS, opndReg, opndReg, opndSrc2, this->m_func);
     instrSub->InsertBefore(instr);
+    Legalize(instr);
 
     //      BVS $helper
 
