@@ -660,12 +660,12 @@ namespace UnifiedRegex
 #endif
     };
 
-    template <int n>
+    template <uint8 n>
     struct SwitchMixin
     {
-        static const int MaxCases = n;
+        static constexpr uint8 MaxCases = n;
 
-        int numCases;
+        uint8 numCases;
         // numCases cases, in increasing character order
         SwitchCase cases[MaxCases];
 
@@ -673,7 +673,7 @@ namespace UnifiedRegex
         inline SwitchMixin() : numCases(0)
         {
 #if DBG
-            for (int i = 0; i < MaxCases; i++)
+            for (uint8 i = 0; i < MaxCases; i++)
             {
                 cases[i].c = (char16)-1;
                 cases[i].targetLabel = (Label)-1;
@@ -804,37 +804,31 @@ namespace UnifiedRegex
         INST_BODY_FREE(SetMixin<false>)
     };
 
-    struct Switch10Inst : Inst, SwitchMixin<10>
-    {
-        // Cases must always be added
-        inline Switch10Inst() : Inst(Switch10), SwitchMixin() {}
-
-        INST_BODY
+#define SwitchInstActual(n)                                                 \
+    struct Switch##n##Inst : Inst, SwitchMixin<n>                           \
+    {                                                                       \
+        inline Switch##n##Inst() : Inst(Switch##n), SwitchMixin() {}        \
+        INST_BODY                                                           \
     };
+    SwitchInstActual(2);
+    SwitchInstActual(4);
+    SwitchInstActual(8);
+    SwitchInstActual(16);
+    SwitchInstActual(24);
+#undef SwitchInstActual
 
-    struct Switch20Inst : Inst, SwitchMixin<20>
-    {
-        // Cases must always be added
-        inline Switch20Inst() : Inst(Switch20), SwitchMixin() {}
-
-        INST_BODY
+#define SwitchAndConsumeInstActual(n)                                                            \
+    struct SwitchAndConsume##n##Inst : Inst, SwitchMixin<n>                                     \
+    {                                                                                           \
+        inline SwitchAndConsume##n##Inst() : Inst(SwitchAndConsume##n), SwitchMixin() {}        \
+        INST_BODY                                                                               \
     };
-
-    struct SwitchAndConsume10Inst : Inst, SwitchMixin<10>
-    {
-        // Cases must always be added
-        inline SwitchAndConsume10Inst() : Inst(SwitchAndConsume10), SwitchMixin() {}
-
-        INST_BODY
-    };
-
-    struct SwitchAndConsume20Inst : Inst, SwitchMixin<20>
-    {
-        // Cases must always be added
-        inline SwitchAndConsume20Inst() : Inst(SwitchAndConsume20), SwitchMixin() {}
-
-        INST_BODY
-    };
+    SwitchAndConsumeInstActual(2);
+    SwitchAndConsumeInstActual(4);
+    SwitchAndConsumeInstActual(8);
+    SwitchAndConsumeInstActual(16);
+    SwitchAndConsumeInstActual(24);
+#undef SwitchAndConsumeInstActual
 
     //
     // Built-in assertions
