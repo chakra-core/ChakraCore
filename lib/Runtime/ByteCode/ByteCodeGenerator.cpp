@@ -1403,6 +1403,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
         parseableFunctionInfo->deferredParseNextFunctionId = pnode->sxFnc.deferredParseNextFunctionId;
 #endif
         parseableFunctionInfo->SetIsDeclaration(pnode->sxFnc.IsDeclaration() != 0);
+        parseableFunctionInfo->SetIsMethod(pnode->sxFnc.IsMethod() != 0);
         parseableFunctionInfo->SetIsAccessor(pnode->sxFnc.IsAccessor() != 0);
         if (pnode->sxFnc.IsAccessor())
         {

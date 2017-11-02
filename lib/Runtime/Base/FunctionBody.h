@@ -2025,6 +2025,8 @@ namespace Js
         LPCUTF8 GetStartOfDocument(const char16* reason = nullptr) const;
         bool IsReparsed() const { return m_reparsed; }
         void SetReparsed(bool set) { m_reparsed = set; }
+        bool IsMethod() const { return m_isMethod; }
+        void SetIsMethod(bool set) { m_isMethod = set; }
         bool GetExternalDisplaySourceName(BSTR* sourceName);
 
         void CleanupToReparse();
@@ -2159,10 +2161,9 @@ namespace Js
         FieldWithBarrier(bool) m_isEval : 1;              // Source code is in 'eval'
         FieldWithBarrier(bool) m_isDynamicFunction : 1;   // Source code is in 'Function'
         FieldWithBarrier(bool) m_hasImplicitArgIns : 1;
-        FieldWithBarrier(bool) m_dontInline : 1;            // Used by the JIT's inliner
-
-        // Indicates if the function has been reparsed for debug attach/detach scenario.
-        FieldWithBarrier(bool) m_reparsed : 1;
+        FieldWithBarrier(bool) m_dontInline : 1;          // Used by the JIT's inliner
+        FieldWithBarrier(bool) m_reparsed : 1;            // Indicates if the function has been reparsed for debug attach/detach scenario.
+        FieldWithBarrier(bool) m_isMethod : 1;            // Function is an object literal method
 
         // This field is not required for deferred parsing but because our thunks can't handle offsets > 128 bytes
         // yet, leaving this here for now. We can look at optimizing the function info and function proxy structures some
