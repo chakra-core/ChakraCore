@@ -139,7 +139,8 @@ BOOL FuncInfo::IsClassMember() const
     return this->byteCodeFunction->IsClassMethod();
 }
 
-BOOL FuncInfo::IsLambda() const {
+BOOL FuncInfo::IsLambda() const
+{
     return this->byteCodeFunction->IsLambda();
 }
 

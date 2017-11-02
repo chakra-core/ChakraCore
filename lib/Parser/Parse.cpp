@@ -1693,11 +1693,10 @@ ParseNodePtr Parser::CreateSpecialVarDeclIfNeeded(ParseNodePtr pnodeFnc, IdentPt
     return nullptr;
 }
 
-template<bool buildAST>
 void Parser::CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc, bool isGlobal)
 {
     // Lambda function cannot have any special bindings.
-    if (!buildAST || pnodeFnc->sxFnc.IsLambda())
+    if (pnodeFnc->sxFnc.IsLambda())
     {
         return;
     }
@@ -5689,7 +5688,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
             UpdateArgumentsNode(pnodeFnc, argNode);
         }
 
-        CreateSpecialSymbolDeclarations<buildAST>(pnodeFnc, false);
+        CreateSpecialSymbolDeclarations(pnodeFnc, false);
 
         // Restore the lists of scopes that contain function expressions.
 
@@ -6981,7 +6980,7 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
 
     FinishParseBlock(pnodeInnerBlock);
 
-    CreateSpecialSymbolDeclarations<buildAST>(pnodeFnc, false);
+    CreateSpecialSymbolDeclarations(pnodeFnc, false);
 
     FinishParseBlock(pnodeBlock);
 
@@ -11241,7 +11240,7 @@ void Parser::FinishDeferredFunction(ParseNodePtr pnodeScopeList)
                 UpdateArgumentsNode(pnodeFnc, argNode);
             }
 
-            CreateSpecialSymbolDeclarations<true>(pnodeFnc, false);
+            CreateSpecialSymbolDeclarations(pnodeFnc, false);
 
             this->FinishParseBlock(pnodeBlock);
             if (pnodeFncExprBlock)
@@ -11624,7 +11623,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
     // We only need to create special symbol bindings for 'this' for indirect eval
     if ((this->m_grfscr & fscrEvalCode) && !(this->m_grfscr & fscrEval))
     {
-        CreateSpecialSymbolDeclarations<true>(pnodeProg, true);
+        CreateSpecialSymbolDeclarations(pnodeProg, true);
     }
 
     // Append an EndCode node.
