@@ -99,6 +99,7 @@ Scanner<EncodingPolicy>::Scanner(Parser* parser, HashTbl *phtbl, Token *ptoken, 
     m_tempChBufSecondary.m_pscanner = this;
 
     m_iecpLimTokPrevious = (size_t)-1;
+    m_ichLimTokPrevious = (charcount_t)-1;
 
     this->charClassifier = scriptContext->GetCharClassifier();
 
@@ -1552,6 +1553,7 @@ tokens Scanner<EncodingPolicy>::ScanCore(bool identifyKwds)
     // store the last token
     m_tkPrevious = m_ptoken->tk;
     m_iecpLimTokPrevious = IecpLimTok();    // Introduced for use by lambda parsing to find correct span of expression lambdas
+    m_ichLimTokPrevious = IchLimTok();
 
     if (p >= last)
     {
