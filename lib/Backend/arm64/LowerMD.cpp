@@ -3661,7 +3661,7 @@ LowererMD::GenerateFastMul(IR::Instr * instrMul)
 
     // dst = MOV_TRUNC s3
 
-    instr = IR::Instr::New(Js::OpCode::MOV_TRUNC, instrMul->GetDst(), s3, this->m_func);
+    instr = IR::Instr::New(Js::OpCode::MOV_TRUNC, instrMul->GetDst()->UseWithNewType(TyInt32,this->m_func), s3->UseWithNewType(TyInt32, this->m_func), this->m_func);
     instrMul->InsertBefore(instr);
 
     // dst = OR dst, AtomTag_IntPtr
