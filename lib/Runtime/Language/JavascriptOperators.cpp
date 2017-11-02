@@ -1351,7 +1351,7 @@ CommonNumber:
         {
             return TRUE;
         }
-       
+
         JavascriptProxy* proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(instance);
         if (proxy)
         {
@@ -4466,45 +4466,39 @@ CommonNumber:
 
         if (indexType == IndexType_Number)
         {
+SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             return JavascriptOperators::SetItem(receiver, object, indexVal, value, scriptContext, flags);
         }
         else if (indexType == IndexType_JavascriptString)
         {
             Assert(propertyNameString);
-            JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
 
-            if (BuiltInPropertyRecords::NaN.Equals(propertyName))
+            // At this point, we know that the propertyNameString is neither PropertyString
+            // or LiteralStringWithPropertyStringPtr.. Get PropertyRecord!
+            // we will get it anyways otherwise. (Also, 1:1 string comparison for Builtin types will be expensive.)
+
+            if (propertyRecord == nullptr)
             {
-                // Follow SetProperty convention for NaN
-                return JavascriptOperators::SetProperty(receiver, object, PropertyIds::NaN, value, scriptContext, flags);
+                scriptContext->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
+                if (propertyRecord->IsNumeric())
+                {
+                    indexVal = propertyRecord->GetNumericValue();
+                    goto SetElementIHelper_INDEX_TYPE_IS_NUMBER;
+                }
             }
-            else if (BuiltInPropertyRecords::Infinity.Equals(propertyName))
-            {
-                // Follow SetProperty convention for Infinity
-                return JavascriptOperators::SetProperty(receiver, object, PropertyIds::Infinity, value, scriptContext, flags);
-            }
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-            if (PHASE_TRACE1(PropertyStringCachePhase))
-            {
-                Output::Print(_u("PropertyCache: SetElem No property string for '%s'\n"), propertyNameString->GetString());
-            }
-#endif
-            return SetPropertyWPCache(receiver, object, propertyNameString, value, scriptContext, flags, &propertyValueInfo);
         }
-        else
+
+        Assert(indexType == IndexType_PropertyId || indexType == IndexType_JavascriptString);
+        Assert(propertyRecord);
+        PropertyId propId = propertyRecord->GetPropertyId();
+        if (propId == PropertyIds::NaN || propId == PropertyIds::Infinity)
         {
-            Assert(indexType == IndexType_PropertyId);
-            Assert(propertyRecord);
-            PropertyId propId = propertyRecord->GetPropertyId();
-            if (propId == PropertyIds::NaN || propId == PropertyIds::Infinity)
-            {
-                // As we no longer convert o[x] into o.x for NaN and Infinity, we need to follow SetProperty convention for these,
-                // which would check for read-only properties, strict mode, etc.
-                // Note that "-Infinity" does not qualify as property name, so we don't have to take care of it.
-                return JavascriptOperators::SetProperty(receiver, object, propId, value, scriptContext, flags);
-            }
-            return SetPropertyWPCache(receiver, object, propId, value, scriptContext, flags, &propertyValueInfo);
+            // As we no longer convert o[x] into o.x for NaN and Infinity, we need to follow SetProperty convention for these,
+            // which would check for read-only properties, strict mode, etc.
+            // Note that "-Infinity" does not qualify as property name, so we don't have to take care of it.
+            return JavascriptOperators::SetProperty(receiver, object, propId, value, scriptContext, flags);
         }
+        return SetPropertyWPCache(receiver, object, propId, value, scriptContext, flags, &propertyValueInfo);
     }
 
     BOOL JavascriptOperators::OP_SetNativeIntElementI(
