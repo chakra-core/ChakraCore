@@ -531,6 +531,12 @@ public:
         return m_iecpLimTokPrevious;
     }
 
+    charcount_t IchLimTokPrevious() const
+    {
+        AssertMsg(m_ichLimTokPrevious != (charcount_t)-1, "IchLimTokPrevious() cannot be called before scanning a token");
+        return m_ichLimTokPrevious;
+    }
+
     IdentPtr PidAt(size_t iecpMin, size_t iecpLim);
 
     // Returns the character offset within the stream of the first character on the current line.
@@ -549,6 +555,7 @@ public:
     void SetCurrentCharacter(charcount_t offset, ULONG lineNumber = 0)
     {
         DebugOnly(m_iecpLimTokPrevious = (size_t)-1);
+        DebugOnly(m_ichLimTokPrevious = (charcount_t)-1);
         size_t length = m_pchLast - m_pchBase;
         if (offset > length) offset = static_cast< charcount_t >(length);
         size_t ibOffset = this->CharacterOffsetToUnitOffset(m_pchBase, m_currentCharacter, m_pchLast, offset);
@@ -713,6 +720,7 @@ private:
 
     tokens m_tkPrevious;
     size_t m_iecpLimTokPrevious;
+    charcount_t m_ichLimTokPrevious;
 
     Scanner(Parser* parser, HashTbl *phtbl, Token *ptoken, Js::ScriptContext *scriptContext);
     ~Scanner(void);

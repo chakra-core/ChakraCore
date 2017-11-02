@@ -1416,6 +1416,7 @@ namespace Js
         bool IsConstructor() const;
         bool IsGenerator() const;
         bool IsClassConstructor() const;
+        bool IsBaseClassConstructor() const;
         bool IsClassMethod() const;
         bool IsModule() const;
         bool IsWasmFunction() const;
@@ -1720,6 +1721,13 @@ namespace Js
         Assert(GetFunctionInfo());
         Assert(GetFunctionInfo()->GetFunctionProxy() == this);
         return GetFunctionInfo()->IsClassConstructor();
+    }
+
+    inline bool FunctionProxy::IsBaseClassConstructor() const
+    {
+        Assert(GetFunctionInfo());
+        Assert(GetFunctionInfo()->GetFunctionProxy() == this);
+        return GetFunctionInfo()->GetBaseConstructorKind();
     }
 
     inline bool FunctionProxy::IsClassMethod() const
