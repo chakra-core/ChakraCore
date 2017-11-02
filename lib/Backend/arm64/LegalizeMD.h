@@ -31,8 +31,7 @@ enum LegalForms
     L_SymMask =    (L_SymSU12I9 | L_SymSI7 | L_SymU12),
 
     L_Lab20 =      0x100000,
-
-    L_RegBV =      0x1000000,
+    L_Label =      0x200000
 };
 
 struct LegalInstrForms
@@ -56,6 +55,7 @@ struct LegalInstrForms
 #define LEGAL_LDIMM    { L_Reg,     { L_Imm,     L_None } }
 #define LEGAL_LOAD     { L_Reg,     { (LegalForms)(L_IndirSU12I9 | L_SymSU12I9), L_None } }
 #define LEGAL_LOADP    { L_Reg,     { (LegalForms)(L_IndirSI7 | L_SymSI7), L_Reg } }
+#define LEGAL_MOVLABEL { L_Reg,     { L_Label,   L_ImmU6 } }
 #define LEGAL_PLD      { L_None,    { (LegalForms)(L_IndirSU12I9 | L_SymSU12I9), L_None } }
 #define LEGAL_REG1     { L_Reg,     { L_None,    L_None } }
 #define LEGAL_REG2     { L_Reg,     { L_Reg,     L_None } }
