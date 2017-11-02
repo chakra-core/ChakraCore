@@ -11,6 +11,7 @@ namespace Js
 void
 JSONStringBuilder::AppendCharacter(char16 character)
 {
+    AssertOrFailFast(this->currentLocation < endLocation);
     *this->currentLocation = character;
     ++this->currentLocation;
 }
@@ -18,6 +19,7 @@ JSONStringBuilder::AppendCharacter(char16 character)
 void
 JSONStringBuilder::AppendBuffer(_In_ const char16* buffer, charcount_t length)
 {
+    AssertOrFailFast(this->currentLocation + length <= endLocation);
     wmemcpy_s(this->currentLocation, length, buffer, length);
     this->currentLocation += length;
 }
@@ -262,8 +264,8 @@ JSONStringBuilder::Build()
 {
     this->AppendJSONPropertyString(this->jsonContent);
     // Null terminate the string
+    AssertOrFailFast(this->currentLocation == endLocation);
     *this->currentLocation = _u('\0');
-    Assert(this->currentLocation == buffer + bufferLength - 1);
 }
 
 JSONStringBuilder::JSONStringBuilder(
@@ -274,13 +276,12 @@ JSONStringBuilder::JSONStringBuilder(
     _In_opt_ const char16* gap,
     charcount_t gapLength) :
         scriptContext(scriptContext),
-        buffer(buffer),
+        endLocation(buffer + bufferLength - 1),
         currentLocation(buffer),
         jsonContent(jsonContent),
         gap(gap),
         gapLength(gapLength),
-        indentLevel(0),
-        bufferLength(bufferLength)
+        indentLevel(0)
 {
 }
 

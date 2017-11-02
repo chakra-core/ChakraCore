@@ -159,11 +159,9 @@ LazyJSONString::GetSz()
 
     this->SetBuffer(target);
 
-    if (this->HasComplexGap())
-    {
-        // If we have a complex gap, there is no reason to keep content around after flattening
-        this->jsonContent = nullptr;
-    }
+    // You probably aren't going to parse if you are using the string buffer
+    // Let's throw away the metadata so we can reclaim the memory
+    this->jsonContent = nullptr;
 
     return target;
 }

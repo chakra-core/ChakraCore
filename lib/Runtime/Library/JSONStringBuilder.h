@@ -12,13 +12,12 @@ class JSONStringBuilder
 {
 private:
     ScriptContext* scriptContext;
-    char16* buffer;
+    const char16* endLocation;
     char16* currentLocation;
     JSONProperty* jsonContent;
     const char16* gap;
     charcount_t gapLength;
     uint32 indentLevel;
-    charcount_t bufferLength;
 
     void AppendGap(uint32 count);
     void AppendCharacter(char16 character);
