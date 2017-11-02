@@ -1181,7 +1181,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
         case Js::OpCode::LdThis:
         {
-            if (noFieldFastPath || !m_lowererMD.GenerateLdThisCheck(instr))
+            if (noFieldFastPath || !GenerateLdThisCheck(instr))
             {
                 IR::JnHelperMethod meth;
                 if (instr->IsJitProfilingInstr())
@@ -1233,7 +1233,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::CheckThis:
-            m_lowererMD.GenerateLdThisCheck(instr);
+            GenerateLdThisCheck(instr);
             instr->FreeSrc1();
             this->GenerateBailOut(instr);
             break;
@@ -20652,7 +20652,7 @@ Lowerer::GenerateIsBuiltinRecyclableObject(IR::RegOpnd *regOpnd, IR::Instr *inse
             m_lowererMD.GenerateObjectTest(regOpnd, insertInstr, labelHelper);
         }
 
-        m_lowererMD.GenerateIsDynamicObject(regOpnd, insertInstr, labelFallthrough, true);
+        GenerateIsDynamicObject(regOpnd, insertInstr, labelFallthrough, true);
     }
 
     IR::RegOpnd * typeRegOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
@@ -20692,6 +20692,109 @@ Lowerer::GenerateIsBuiltinRecyclableObject(IR::RegOpnd *regOpnd, IR::Instr *inse
     insertInstr->InsertBefore(labelFallthrough);
 
     return typeRegOpnd;
+}
+
+void Lowerer::GenerateIsDynamicObject(IR::RegOpnd *regOpnd, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, bool fContinueLabel)
+{
+    // CMP [srcReg], Js::DynamicObject::`vtable'
+    InsertCompare(
+        IR::IndirOpnd::New(regOpnd, 0, TyMachPtr, m_func),
+        LoadVTableValueOpnd(insertInstr, VTableValue::VtableDynamicObject),
+        insertInstr);
+
+    if (fContinueLabel)
+    {
+        // JEQ $fallThough
+        Lowerer::InsertBranch(Js::OpCode::BrEq_A, labelHelper, insertInstr);
+    }
+    else
+    {
+        // JNE $helper
+        Lowerer::InsertBranch(Js::OpCode::BrNeq_A, labelHelper, insertInstr);
+    }
+}
+
+void Lowerer::GenerateIsRecyclableObject(IR::RegOpnd *regOpnd, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, bool checkObjectAndDynamicObject)
+{
+    // CMP [srcReg], Js::DynamicObject::`vtable'
+    // JEQ $fallThough
+    // MOV r1, [src1 + offset(type)]                      -- get the type id
+    // MOV r1, [r1 + offset(typeId)]
+    // ADD r1, ~TypeIds_LastJavascriptPrimitiveType       -- if (typeId > TypeIds_LastJavascriptPrimitiveType && typeId <= TypeIds_LastTrueJavascriptObjectType)
+    // CMP r1, (TypeIds_LastTrueJavascriptObjectType - TypeIds_LastJavascriptPrimitiveType - 1)
+    // JA $helper
+    //fallThrough:
+
+    IR::LabelInstr *labelFallthrough = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+
+    if (checkObjectAndDynamicObject)
+    {
+        if (!regOpnd->IsNotTaggedValue())
+        {
+            m_lowererMD.GenerateObjectTest(regOpnd, insertInstr, labelHelper);
+        }
+
+        this->GenerateIsDynamicObject(regOpnd, insertInstr, labelFallthrough, true);
+    }
+
+    IR::RegOpnd * typeRegOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
+    IR::RegOpnd * typeIdRegOpnd = IR::RegOpnd::New(TyInt32, this->m_func);
+
+    //  MOV r1, [src1 + offset(type)]
+    InsertMove(typeRegOpnd, IR::IndirOpnd::New(regOpnd, Js::RecyclableObject::GetOffsetOfType(), TyMachReg, this->m_func), insertInstr);
+
+    //  MOV r1, [r1 + offset(typeId)]
+    InsertMove(typeIdRegOpnd, IR::IndirOpnd::New(typeRegOpnd, Js::Type::GetOffsetOfTypeId(), TyInt32, this->m_func), insertInstr);
+
+    // ADD r1, ~TypeIds_LastJavascriptPrimitiveType
+    InsertAdd(false, typeIdRegOpnd, typeIdRegOpnd, IR::IntConstOpnd::New(~Js::TypeIds_LastJavascriptPrimitiveType, TyInt32, this->m_func, true), insertInstr);
+
+    // CMP r1, (TypeIds_LastTrueJavascriptObjectType - TypeIds_LastJavascriptPrimitiveType - 1)
+    InsertCompare(
+        typeIdRegOpnd,
+        IR::IntConstOpnd::New(Js::TypeIds_LastTrueJavascriptObjectType - Js::TypeIds_LastJavascriptPrimitiveType - 1, TyInt32, this->m_func),
+        insertInstr);
+
+    // JA $helper
+    InsertBranch(Js::OpCode::BrGe_A, true, labelHelper, insertInstr);
+
+    // $fallThrough
+    insertInstr->InsertBefore(labelFallthrough);
+}
+
+bool
+Lowerer::GenerateLdThisCheck(IR::Instr * instr)
+{
+    //
+    // If not a recyclable object, jump to $helper
+    // MOV dst, src1                                      -- return the object itself
+    // JMP $fallthrough
+    // $helper:
+    //      (caller generates helper call)
+    // $fallthrough:
+    //
+    IR::RegOpnd * src1 = instr->GetSrc1()->AsRegOpnd();
+    IR::LabelInstr * helper = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
+    IR::LabelInstr * fallthrough = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+
+    GenerateIsRecyclableObject(src1, instr, helper);
+
+    // MOV dst, src1
+    if (instr->GetDst() && !instr->GetDst()->IsEqual(src1))
+    {
+        InsertMove(instr->GetDst(), src1, instr);
+    }
+
+    // JMP $fallthrough
+    InsertBranch(Js::OpCode::Br, fallthrough, instr);
+
+    // $helper:
+    //      (caller generates helper call)
+    // $fallthrough:
+    instr->InsertBefore(helper);
+    instr->InsertAfter(fallthrough);
+
+    return true;
 }
 
 void Lowerer::GenerateBooleanNegate(IR::Instr * instr, IR::Opnd * srcBool, IR::Opnd * dst)
@@ -21210,13 +21313,13 @@ bool Lowerer::GenerateFastBooleanAndObjectEqLikely(IR::Instr * instr, IR::Opnd *
             // If not strictBr, verify both sides are dynamic objects
             this->m_lowererMD.GenerateObjectTest(src1->AsRegOpnd(), instr, labelHelper, false);
             this->m_lowererMD.GenerateObjectTest(src2->AsRegOpnd(), instr, labelHelper, false);
-            this->m_lowererMD.GenerateIsDynamicObject(src1->AsRegOpnd(), instr, labelTypeIdCheck, false);
+            GenerateIsDynamicObject(src1->AsRegOpnd(), instr, labelTypeIdCheck, false);
         }
         else
         {
             this->m_lowererMD.GenerateObjectTest(src2->AsRegOpnd(), instr, labelHelper, false);
         }
-        this->m_lowererMD.GenerateIsDynamicObject(src2->AsRegOpnd(), instr, labelEqualLikely, true);
+        GenerateIsDynamicObject(src2->AsRegOpnd(), instr, labelEqualLikely, true);
 
         instr->InsertBefore(labelTypeIdCheck);
 
@@ -25351,7 +25454,7 @@ Lowerer::GenerateInitForInEnumeratorFastPath(IR::Instr * instr, Js::ForInCache *
 
     // Tagged check and object check
     m_lowererMD.GenerateObjectTest(objectOpnd, instr, helperLabel);
-    m_lowererMD.GenerateIsDynamicObject(objectOpnd, instr, helperLabel);
+    GenerateIsDynamicObject(objectOpnd, instr, helperLabel);
 
     // Type check with cache
     //
