@@ -270,9 +270,8 @@ LowererMD::LowerCall(IR::Instr * callInstr, Js::ArgSlot argCount)
         if (!callInstr->HasBailOutInfo())
         {
             IR::RegOpnd     *regOpnd = IR::RegOpnd::New(nullptr, RegLR, TyMachPtr, this->m_func);
-            IR::Instr       *movInstr = IR::Instr::New(Js::OpCode::LDIMM, regOpnd, callInstr->GetSrc1(), this->m_func);
+            IR::Instr       *movInstr = IR::Instr::New(Js::OpCode::LDIMM, regOpnd, callInstr->UnlinkSrc1(), this->m_func);
             regOpnd->m_isCallArg = true;
-            callInstr->UnlinkSrc1();
             callInstr->SetSrc1(regOpnd);
             callInstr->InsertBefore(movInstr);
         }
@@ -6164,8 +6163,8 @@ LowererMD::EmitInt4Instr(IR::Instr *instr)
     {
     case Js::OpCode::Neg_I4:
         instr->m_opcode = Js::OpCode::SUB;
-        instr->SetSrc2(instr->GetSrc1());
-        instr->SetSrc1(IR::RegOpnd::New(nullptr, RegZR, TyMachReg, instr->m_func));
+        instr->SetSrc2(instr->UnlinkSrc1());
+        instr->SetSrc1(IR::RegOpnd::New(nullptr, RegZR, TyInt32, instr->m_func));
         break;
 
     case Js::OpCode::Not_I4:
