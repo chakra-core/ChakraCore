@@ -630,24 +630,42 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
     }
     else
     {
-        // ARM64_WORKITEM: This needs to be understood better
+        // Since we don't know the value yet, we're going to handle it when we do
+        // This is done by having the load be from a label operand, which is later
+        // changed such that its offset is the correct value to ldimm
+
+        // The assembly generated becomes something like
+        // Label (offset:fake)
+        // MOVZ DST, Label
+        // MOVK DST, Label
+        // MOVK DST, Label
+        // MOVK DST, Label <- was the LDIMM
+
         Assert(Security::DontEncode(instr->GetSrc1()));
-        Assert(false);
-/*      IR::LabelInstr *label = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func, false);
+
+        // The label with the special offset value, used for reloc
+        IR::LabelInstr *label = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func, false);
         instr->InsertBefore(label);
         Assert((immed & 0x0000000F) == immed);
-        label->SetOffset(immed);
+        label->SetOffset((uint32)immed);
+        label->isInlineeEntryInstr = true;
 
         IR::LabelOpnd *target = IR::LabelOpnd::New(label, instr->m_func);
 
-        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOVZ, instr->GetDst(), target, instr->m_func);
-        instr->InsertBefore(instrMov);
+        // We'll handle splitting this up to properly load the immediates now
+        // Typically (and worst case) we'll need to load 64 bits.
+        IR::Instr* bits48_63 = IR::Instr::New(Js::OpCode::MOVZ_SHIFT, instr->GetDst(), target, IR::IntConstOpnd::New(48, IRType::TyUint8, instr->m_func, true), instr->m_func);
+        instr->InsertBefore(bits48_63);
+        IR::Instr* bits32_47 = IR::Instr::New(Js::OpCode::MOVK_SHIFT, instr->GetDst(), target, IR::IntConstOpnd::New(32, IRType::TyUint8, instr->m_func, true), instr->m_func);
+        instr->InsertBefore(bits32_47);
+        IR::Instr* bits16_31 = IR::Instr::New(Js::OpCode::MOVK_SHIFT, instr->GetDst(), target, IR::IntConstOpnd::New(16, IRType::TyUint8, instr->m_func, true), instr->m_func);
+        instr->InsertBefore(bits16_31);
 
         instr->ReplaceSrc1(target);
-        instr->m_opcode = Js::OpCode::MOVK64;
+        instr->SetSrc2(IR::IntConstOpnd::New(0, IRType::TyUint8, instr->m_func, true));
+        instr->m_opcode = Js::OpCode::MOVK_SHIFT;
 
-        label->isInlineeEntryInstr = true;
-        instr->isInlineeEntryInstr = false;*/
+        instr->isInlineeEntryInstr = false;
     }
 }
 
@@ -740,14 +758,22 @@ void LegalizeMD::LegalizeLdLabel(IR::Instr * instr, IR::Opnd * opnd)
     Assert(instr->m_opcode == Js::OpCode::LDIMM);
     Assert(opnd->IsLabelOpnd());
 
-    instr->m_opcode = Js::OpCode::ADR;
+    if (opnd->AsLabelOpnd()->GetLabel()->isInlineeEntryInstr)
+    {
+        // We want to leave it as LDIMMs so that we can easily disambiguate later
+        return;
+    }
+    else
+    {
+        instr->m_opcode = Js::OpCode::ADR;
+    }
 }
 
 bool LegalizeMD::LegalizeDirectBranch(IR::BranchInstr *branchInstr, uint32 branchOffset)
 {
     Assert(branchInstr->IsBranchInstr());
 
-    uint32 labelOffset = branchInstr->GetTarget()->GetOffset();
+    uint32 labelOffset = (uint32)branchInstr->GetTarget()->GetOffset();
     Assert(labelOffset); //Label offset must be set.
 
     int32 offset = labelOffset - branchOffset;
