@@ -353,7 +353,7 @@ namespace Js
 
         if (pCodeAddr)
         {
-#if defined(_M_ARM32_OR_ARM64)
+#if defined(_M_ARM)
             // Note that DWORD_PTR is not actually a pointer type (!) but is simple unsigned long/__int64 (see BaseTsd.h).
             // Thus, decrement would be by 1 byte and not 4 bytes as in pointer arithmetic. That's exactly what we need.
             // For ARM the 'return address' is always odd and is 'next instr addr' + 1 byte, so to get to the BLX instr, we need to subtract 2 bytes from it.
