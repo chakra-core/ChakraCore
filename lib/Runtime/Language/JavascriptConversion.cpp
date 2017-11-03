@@ -538,27 +538,25 @@ CommonNumber:
         }
 
         // If exoticToPrim is not undefined, then
-        if (nullptr != exoticToPrim)
+        Assert(nullptr != exoticToPrim);
+        ThreadContext * threadContext = requestContext->GetThreadContext();
+        result = threadContext->ExecuteImplicitCall(exoticToPrim, ImplicitCall_ToPrimitive, [=]()->Js::Var
         {
-            ThreadContext * threadContext = requestContext->GetThreadContext();
-            result = threadContext->ExecuteImplicitCall(exoticToPrim, ImplicitCall_ToPrimitive, [=]()->Js::Var
-            {
-                // Stack object should have a pre-op bail on implicit call.  We shouldn't see them here.
-                Assert(!ThreadContext::IsOnStack(recyclableObject));
+            // Stack object should have a pre-op bail on implicit call.  We shouldn't see them here.
+            Assert(!ThreadContext::IsOnStack(recyclableObject));
 
-                // Let result be the result of calling the[[Call]] internal method of exoticToPrim, with input as thisArgument and(hint) as argumentsList.
-                return CALL_FUNCTION(threadContext, exoticToPrim, CallInfo(CallFlags_Value, 2), recyclableObject, hintString);
-            });
+            // Let result be the result of calling the[[Call]] internal method of exoticToPrim, with input as thisArgument and(hint) as argumentsList.
+            return CALL_FUNCTION(threadContext, exoticToPrim, CallInfo(CallFlags_Value, 2), recyclableObject, hintString);
+        });
 
-            if (!result)
-            {
-                // There was an implicit call and implicit calls are disabled. This would typically cause a bailout.
-                Assert(threadContext->IsDisableImplicitCall());
-                return requestContext->GetLibrary()->GetNull();
-            }
-
-            Assert(!CrossSite::NeedMarshalVar(result, requestContext));
+        if (!result)
+        {
+            // There was an implicit call and implicit calls are disabled. This would typically cause a bailout.
+            Assert(threadContext->IsDisableImplicitCall());
+            return requestContext->GetLibrary()->GetNull();
         }
+
+        Assert(!CrossSite::NeedMarshalVar(result, requestContext));
         // If result is an ECMAScript language value and Type(result) is not Object, then return result.
         if (TaggedInt::Is(result) || !JavascriptOperators::IsObjectType(JavascriptOperators::GetTypeId(result)))
         {

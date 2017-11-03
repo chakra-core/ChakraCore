@@ -35,7 +35,7 @@ HELPERCALL(ScrObj_LdStrictInnerFrameDisplayNoParent, Js::JavascriptOperators::OP
 HELPERCALL(ScrObj_OP_IsInst, Js::JavascriptOperators::OP_IsInst, AttrCanThrow)
 
 HELPERCALL(Op_IsIn, Js::JavascriptOperators::IsIn, AttrCanThrow)
-HELPERCALL(Op_IsObject, Js::JavascriptOperators::IsObject, AttrCanThrow)
+HELPERCALL(Op_IsObject, (BOOL (*) (Js::Var))Js::JavascriptOperators::IsObject, AttrCanThrow)
 HELPERCALL(Op_IsClassConstructor, Js::JavascriptOperators::IsClassConstructor, AttrCanThrow)
 HELPERCALL(Op_IsBaseConstructorKind, Js::JavascriptOperators::IsBaseConstructorKind, AttrCanThrow)
 HELPERCALL(Op_LoadHeapArguments, Js::JavascriptOperators::LoadHeapArguments, 0)

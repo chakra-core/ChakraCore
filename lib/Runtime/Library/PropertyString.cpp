@@ -61,11 +61,11 @@ namespace Js
     }
 
     bool PropertyString::TrySetPropertyFromCache(
-        RecyclableObject *const object,
-        Var propertyValue,
-        ScriptContext *const requestContext,
+        _In_ RecyclableObject *const object,
+        _In_ Var propertyValue,
+        _In_ ScriptContext *const requestContext,
         const PropertyOperationFlags propertyOperationFlags,
-        PropertyValueInfo *const propertyValueInfo)
+        _Inout_ PropertyValueInfo *const propertyValueInfo)
     {
         if (ShouldUseCache())
         {

@@ -53,11 +53,11 @@ namespace JSON
             reviver(rv),  arenaAllocatorObject(nullptr), arenaAllocator(nullptr), typeCacheList(nullptr)
         {
         };
+        void Finalizer();
 
         Js::Var Parse(LPCWSTR str, uint length);
         Js::Var Parse(Js::JavascriptString* input);
         Js::Var Walk(Js::JavascriptString* name, Js::PropertyId id, Js::Var holder, uint32 index = Js::JavascriptArray::InvalidIndex);
-        void Finalizer();
 
     private:
         tokens Scan()

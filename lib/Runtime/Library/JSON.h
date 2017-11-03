@@ -6,9 +6,6 @@
 
 namespace JSON
 {
-    class JSONStack;
-    class JSONParser;
-
     class EntryInfo
     {
     public:
@@ -18,89 +15,4 @@ namespace JSON
 
     Js::Var Stringify(Js::RecyclableObject* function, Js::CallInfo callInfo, ...);
     Js::Var Parse(Js::RecyclableObject* function, Js::CallInfo callInfo, ...);
-
-    class StringifySession
-    {
-    public:
-        enum ReplacerType
-        {
-            ReplacerNone,
-            ReplacerFunction,
-            ReplacerArray
-        };
-        struct StringTable
-        {
-            Js::JavascriptString     * propName;
-            Js::PropertyRecord const * propRecord;
-        };
-
-        StringifySession(Js::ScriptContext* sc)
-            :   scriptContext(sc),
-                replacerType(ReplacerNone),
-                gap(NULL),
-                indent(0),
-                propertySeparator(NULL)
-        {
-            replacer.propertyList.propertyNames = NULL;
-            replacer.propertyList.length = 0;
-        };
-
-        Js::Var Stringify(){};
-
-        // Init operation is split in three functions
-        void InitReplacer(Js::RecyclableObject* f)
-        {
-            replacerType = ReplacerFunction;
-            replacer.ReplacerFunction = f;
-        }
-        void InitReplacer(StringTable *nameTable, uint len)
-        {
-            replacerType = ReplacerArray;
-            replacer.propertyList.propertyNames = nameTable;
-            replacer.propertyList.length = len;
-        }
-        void CompleteInit(Js::Var space, ArenaAllocator* alloc);
-
-        Js::Var Str(Js::JavascriptString* key, Js::PropertyId keyId, Js::Var holder, Js::Var value = nullptr);
-        Js::Var Str(uint32 index, Js::RecyclableObject * holder);
-
-    private:
-        Js::JavascriptString* Quote(Js::JavascriptString* value);
-
-        Js::Var StringifyObject(Js::Var value);
-
-        Js::Var StringifyArray(Js::RecyclableObject * arrayValue);
-        Js::JavascriptString* GetArrayElementString(uint32 index, Js::RecyclableObject * arrayValue);
-        Js::JavascriptString* GetPropertySeparator();
-        Js::JavascriptString* GetIndentString(uint count);
-        Js::JavascriptString* GetMemberSeparator(Js::JavascriptString* indentString);
-        void StringifyMemberObject(Js::JavascriptString* propertyName, Js::PropertyId id,
-          Js::Var value, Js::ConcatStringBuilder* result, Js::JavascriptString* &indentString,
-          Js::JavascriptString* &memberSeparator, bool &isFirstMember, bool &isEmpty,
-          Js::Var propertyValue = nullptr );
-
-        uint32 GetPropertyCount(Js::RecyclableObject* object, Js::JavascriptStaticEnumerator* enumerator);
-        uint32 GetPropertyCount(Js::RecyclableObject* object, Js::JavascriptStaticEnumerator* enumerator, bool* isPrecise);
-
-        JSONStack *objectStack;
-
-        Js::ScriptContext* scriptContext;
-        ReplacerType replacerType;
-
-        union
-        {
-            Js::RecyclableObject* ReplacerFunction;
-            struct PropertyList
-            {
-                StringTable *propertyNames;
-                uint length;
-            } propertyList;
-
-        } replacer;
-
-        Js::JavascriptString* gap;
-        uint indent;
-        Js::JavascriptString* propertySeparator;     // colon or colon+space
-        Js::Var StrHelper(Js::JavascriptString* key, Js::Var value, Js::Var holder);
-    };
 } // namespace JSON

@@ -84,12 +84,13 @@ namespace Js
         Field(Field(SRCINFO const *)*) moduleSrcInfo;
         Field(BuiltInLibraryFunctionMap*) builtInLibraryFunctions;
         Field(ScriptContextPolymorphicInlineCache*) toStringTagCache;
+        Field(ScriptContextPolymorphicInlineCache*) toJSONCache;
 #if ENABLE_PROFILE_INFO
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         Field(DynamicProfileInfoList*) profileInfoList;
 #endif
 #endif
-        Cache() : toStringTagCache(nullptr) { }
+        Cache() : toStringTagCache(nullptr), toJSONCache(nullptr) { }
     };
 
     class MissingPropertyTypeHandler;

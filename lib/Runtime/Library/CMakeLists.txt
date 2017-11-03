@@ -45,6 +45,8 @@ set(CRLIB_SOURCE_CODES
     JSONScanner.cpp
     JSONStack.cpp
     JSONString.cpp
+    JSONStringBuilder.cpp
+    JSONStringifier.cpp
     JavascriptArray.cpp
     JavascriptArrayIndexEnumerator.cpp
     JavascriptArrayIndexEnumeratorBase.cpp
@@ -101,6 +103,7 @@ set(CRLIB_SOURCE_CODES
     JavascriptVariantDate.cpp
     JavascriptWeakMap.cpp
     JavascriptWeakSet.cpp
+    LazyJSONString.cpp
     LiteralString.cpp
     MathLibrary.cpp
     ModuleRoot.cpp

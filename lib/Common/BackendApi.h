@@ -235,6 +235,7 @@ enum VTableValue {
     VtableDynamicObject,
     VtableInvalid,
     VtablePropertyString,
+    VtableLazyJSONString,
     VtableLiteralStringWithPropertyStringPtr,
     VtableJavascriptBoolean,
     VtableJavascriptArray,

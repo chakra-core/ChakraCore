@@ -45,6 +45,7 @@ namespace Js
         bool GetSnapShotSemantics() const;
         bool GetUseCache() const;
         ScriptContext * GetScriptContext() const { return scriptContext; }
+        BigPropertyIndex GetInitialPropertyCount() const { return this->initialPropertyCount; }
 
         bool Initialize(DynamicObject * object, EnumeratorFlags flags, ScriptContext * requestContext, ForInCache * forInCache);
         bool IsNullEnumerator() const;
