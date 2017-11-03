@@ -1071,7 +1071,6 @@ namespace Js
         if (callInfo.Flags & Js::CallFlags_ExtraArg)
         {
             callInfo.Flags = (CallFlags)(callInfo.Flags & ~Js::CallFlags_ExtraArg);
-            callInfo.Count--;
         }
 
         return callInfo;

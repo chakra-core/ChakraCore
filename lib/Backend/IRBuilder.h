@@ -172,27 +172,27 @@ private:
                             Js::RegSlot regSlot, Js::ProfileId profileId);
     void                BuildElementUnsigned1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot baseRegSlot, uint32 index, Js::RegSlot regSlot);
     IR::Instr *         BuildCallI_Helper(Js::OpCode newOpcode, uint32 offset, Js::RegSlot Return, Js::RegSlot Function, Js::ArgSlot ArgCount,
-                            Js::ProfileId profileId, Js::InlineCacheIndex inlineCacheIndex = Js::Constants::NoInlineCacheIndex);
+                            Js::ProfileId profileId, Js::CallFlags flags = Js::CallFlags_None, Js::InlineCacheIndex inlineCacheIndex = Js::Constants::NoInlineCacheIndex);
     IR::Instr *         BuildProfiledCallI(Js::OpCode opcode, uint32 offset, Js::RegSlot returnValue, Js::RegSlot function,
-                            Js::ArgSlot argCount, Js::ProfileId profileId, Js::InlineCacheIndex inlineCacheIndex = Js::Constants::NoInlineCacheIndex);
+                            Js::ArgSlot argCount, Js::ProfileId profileId, Js::CallFlags flags = Js::CallFlags_None, Js::InlineCacheIndex inlineCacheIndex = Js::Constants::NoInlineCacheIndex);
     IR::Instr *         BuildProfiledCallIExtended(Js::OpCode opcode, uint32 offset, Js::RegSlot returnValue, Js::RegSlot function,
-                            Js::ArgSlot argCount, Js::ProfileId profileId, Js::CallIExtendedOptions options, uint32 spreadAuxOffset);
+                            Js::ArgSlot argCount, Js::ProfileId profileId, Js::CallIExtendedOptions options, uint32 spreadAuxOffset, Js::CallFlags flags = Js::CallFlags_None);
     IR::Instr *         BuildProfiledCallIWithICIndex(Js::OpCode opcode, uint32 offset, Js::RegSlot returnValue, Js::RegSlot function,
                             Js::ArgSlot argCount, Js::ProfileId profileId, Js::InlineCacheIndex inlineCacheIndex);
     void                BuildProfiledCallIExtendedFlags(Js::OpCode opcode, uint32 offset, Js::RegSlot returnValue, Js::RegSlot function,
-                                Js::ArgSlot argCount, Js::ProfileId profileId, Js::CallIExtendedOptions options, uint32 spreadAuxOffset);
+                            Js::ArgSlot argCount, Js::ProfileId profileId, Js::CallIExtendedOptions options, uint32 spreadAuxOffset);
     void                BuildProfiledCallIExtendedWithICIndex(Js::OpCode opcode, uint32 offset, Js::RegSlot returnValue, Js::RegSlot function,
-                                Js::ArgSlot argCount, Js::ProfileId profileId, Js::CallIExtendedOptions options, uint32 spreadAuxOffset);
+                            Js::ArgSlot argCount, Js::ProfileId profileId, Js::CallIExtendedOptions options, uint32 spreadAuxOffset);
     void                BuildProfiledCallIExtendedFlagsWithICIndex(Js::OpCode opcode, uint32 offset, Js::RegSlot returnValue, Js::RegSlot function,
-                                Js::ArgSlot argCount, Js::ProfileId profileId, Js::CallIExtendedOptions options, uint32 spreadAuxOffset);
+                            Js::ArgSlot argCount, Js::ProfileId profileId, Js::CallIExtendedOptions options, uint32 spreadAuxOffset);
     void                BuildProfiled2CallI(Js::OpCode opcode, uint32 offset, Js::RegSlot returnValue, Js::RegSlot function,
                             Js::ArgSlot argCount, Js::ProfileId profileId, Js::ProfileId profileId2);
     void                BuildProfiled2CallIExtended(Js::OpCode opcode, uint32 offset, Js::RegSlot returnValue, Js::RegSlot function,
                             Js::ArgSlot argCount, Js::ProfileId profileId, Js::ProfileId profileId2, Js::CallIExtendedOptions options, uint32 spreadAuxOffset);
     void                BuildLdSpreadIndices(uint32 offset, uint32 spreadAuxOffset);
     IR::Instr *         BuildCallIExtended(Js::OpCode newOpcode, uint32 offset, Js::RegSlot returnValue, Js::RegSlot function,
-                            Js::ArgSlot argCount, Js::CallIExtendedOptions options, uint32 spreadAuxOffset);
-    void                BuildCallCommon(IR::Instr *instr, StackSym *symDst, Js::ArgSlot argCount);
+                            Js::ArgSlot argCount, Js::CallIExtendedOptions options, uint32 spreadAuxOffset, Js::CallFlags flags = Js::CallFlags_None);
+    void                BuildCallCommon(IR::Instr *instr, StackSym *symDst, Js::ArgSlot argCount, Js::CallFlags flags = Js::CallFlags_None);
     void                BuildRegexFromPattern(Js::RegSlot dstRegSlot, uint32 patternIndex, uint32 offset);
     void                BuildClass(Js::OpCode newOpcode, uint32 offset, Js::RegSlot constructor, Js::RegSlot extends);
     void                BuildBrReg1(Js::OpCode newOpcode, uint32 offset, uint targetOffset, Js::RegSlot srcRegSlot);

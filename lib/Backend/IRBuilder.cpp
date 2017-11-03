@@ -5811,7 +5811,7 @@ IRBuilder::BuildCallIFlags(Js::OpCode newOpcode, uint32 offset)
         this->DoClosureRegCheck(layout->Function);
     }
 
-    IR::Instr* instr = BuildCallI_Helper(newOpcode, offset, layout->Return, layout->Function, layout->ArgCount, Js::Constants::NoProfileId);
+    IR::Instr* instr = BuildCallI_Helper(newOpcode, offset, layout->Return, layout->Function, layout->ArgCount, Js::Constants::NoProfileId, layout->callFlags);
     Assert(instr->m_opcode == Js::OpCode::CallIFlags);
     if (instr->m_opcode == Js::OpCode::CallIFlags)
     {
@@ -5855,13 +5855,13 @@ IRBuilder::BuildCallIExtended(Js::OpCode newOpcode, uint32 offset)
 
 IR::Instr*
 IRBuilder::BuildCallIExtended(Js::OpCode newOpcode, uint32 offset, Js::RegSlot returnValue, Js::RegSlot function,
-                               Js::ArgSlot argCount, Js::CallIExtendedOptions options, uint32 spreadAuxOffset)
+                               Js::ArgSlot argCount, Js::CallIExtendedOptions options, uint32 spreadAuxOffset, Js::CallFlags flags)
 {
     if (options & Js::CallIExtended_SpreadArgs)
     {
         BuildLdSpreadIndices(offset, spreadAuxOffset);
     }
-    return BuildCallI_Helper(newOpcode, offset, returnValue, function, argCount, Js::Constants::NoProfileId);
+    return BuildCallI_Helper(newOpcode, offset, returnValue, function, argCount, Js::Constants::NoProfileId, flags);
 }
 
 template <typename SizePolicy>
@@ -5891,7 +5891,7 @@ IRBuilder::BuildCallIExtendedFlags(Js::OpCode newOpcode, uint32 offset)
         this->DoClosureRegCheck(layout->Function);
     }
 
-    IR::Instr* instr = BuildCallIExtended(newOpcode, offset, layout->Return, layout->Function, layout->ArgCount, layout->Options, layout->SpreadAuxOffset);
+    IR::Instr* instr = BuildCallIExtended(newOpcode, offset, layout->Return, layout->Function, layout->ArgCount, layout->Options, layout->SpreadAuxOffset, layout->callFlags);
 
     Assert(instr->m_opcode == Js::OpCode::CallIExtendedFlags);
     if (instr->m_opcode == Js::OpCode::CallIExtendedFlags)
@@ -5964,7 +5964,7 @@ IR::Instr*
 IRBuilder::BuildProfiledCallIWithICIndex(Js::OpCode opcode, uint32 offset, Js::RegSlot returnValue, Js::RegSlot function,
                             Js::ArgSlot argCount, Js::ProfileId profileId, Js::InlineCacheIndex inlineCacheIndex)
 {
-    return BuildProfiledCallI(opcode, offset, returnValue, function, argCount, profileId, inlineCacheIndex);
+    return BuildProfiledCallI(opcode, offset, returnValue, function, argCount, profileId, Js::CallFlags_None, inlineCacheIndex);
 }
 
 template <typename SizePolicy>
@@ -5982,7 +5982,7 @@ IRBuilder::BuildProfiledCallIExtendedFlags(Js::OpCode newOpcode, uint32 offset)
         this->DoClosureRegCheck(layout->Function);
     }
 
-    IR::Instr* instr = BuildProfiledCallIExtended(newOpcode, offset, layout->Return, layout->Function, layout->ArgCount, layout->profileId, layout->Options, layout->SpreadAuxOffset);
+    IR::Instr* instr = BuildProfiledCallIExtended(newOpcode, offset, layout->Return, layout->Function, layout->ArgCount, layout->profileId, layout->Options, layout->SpreadAuxOffset, layout->callFlags);
     Assert(instr->m_opcode == Js::OpCode::CallIExtendedFlags);
     if (instr->m_opcode == Js::OpCode::CallIExtendedFlags)
     {
@@ -6077,7 +6077,7 @@ IRBuilder::BuildProfiledCallIFlags(Js::OpCode newOpcode, uint32 offset)
         this->DoClosureRegCheck(layout->Function);
     }
 
-    IR::Instr* instr = BuildProfiledCallI(newOpcode, offset, layout->Return, layout->Function, layout->ArgCount, layout->profileId);
+    IR::Instr* instr = BuildProfiledCallI(newOpcode, offset, layout->Return, layout->Function, layout->ArgCount, layout->profileId, layout->callFlags);
     Assert(instr->m_opcode == Js::OpCode::CallIFlags);
     if (instr->m_opcode == Js::OpCode::CallIFlags)
     {
@@ -6090,7 +6090,7 @@ IRBuilder::BuildProfiledCallIFlags(Js::OpCode newOpcode, uint32 offset)
 
 IR::Instr *
 IRBuilder::BuildProfiledCallI(Js::OpCode opcode, uint32 offset, Js::RegSlot returnValue, Js::RegSlot function,
-                            Js::ArgSlot argCount, Js::ProfileId profileId, Js::InlineCacheIndex inlineCacheIndex)
+                            Js::ArgSlot argCount, Js::ProfileId profileId, Js::CallFlags flags, Js::InlineCacheIndex inlineCacheIndex)
 {
     Js::OpCode newOpcode;
     ValueType returnType;
@@ -6155,7 +6155,7 @@ IRBuilder::BuildProfiledCallI(Js::OpCode opcode, uint32 offset, Js::RegSlot retu
             newOpcode = opcode;
         }
     }
-    IR::Instr * callInstr = BuildCallI_Helper(newOpcode, offset, returnValue, function, argCount, profileId, inlineCacheIndex);
+    IR::Instr * callInstr = BuildCallI_Helper(newOpcode, offset, returnValue, function, argCount, profileId, flags, inlineCacheIndex);
     callInstr->isCallInstrProtectedByNoProfileBailout = isProtectedByNoProfileBailout;
 
     if (callInstr->GetDst() && (callInstr->GetDst()->GetValueType().IsUninitialized() || callInstr->GetDst()->GetValueType() == ValueType::UninitializedObject))
@@ -6186,13 +6186,13 @@ IRBuilder::BuildProfiledCallIExtended(Js::OpCode newOpcode, uint32 offset)
 IR::Instr *
 IRBuilder::BuildProfiledCallIExtended(Js::OpCode opcode, uint32 offset, Js::RegSlot returnValue, Js::RegSlot function,
                                       Js::ArgSlot argCount, Js::ProfileId profileId, Js::CallIExtendedOptions options,
-                                      uint32 spreadAuxOffset)
+                                      uint32 spreadAuxOffset, Js::CallFlags flags)
 {
     if (options & Js::CallIExtended_SpreadArgs)
     {
         BuildLdSpreadIndices(offset, spreadAuxOffset);
     }
-    return BuildProfiledCallI(opcode, offset, returnValue, function, argCount, profileId);
+    return BuildProfiledCallI(opcode, offset, returnValue, function, argCount, profileId, flags);
 }
 
 template <typename SizePolicy>
@@ -6300,7 +6300,7 @@ IRBuilder::BuildProfiled2CallIExtended(Js::OpCode opcode, uint32 offset, Js::Reg
 }
 
 IR::Instr *
-IRBuilder::BuildCallI_Helper(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot Src1RegSlot, Js::ArgSlot ArgCount, Js::ProfileId profileId, Js::InlineCacheIndex inlineCacheIndex)
+IRBuilder::BuildCallI_Helper(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot Src1RegSlot, Js::ArgSlot ArgCount, Js::ProfileId profileId, Js::CallFlags flags, Js::InlineCacheIndex inlineCacheIndex)
 {
     IR::Instr * instr;
     IR::RegOpnd *   dstOpnd;
@@ -6383,13 +6383,13 @@ IRBuilder::BuildCallI_Helper(Js::OpCode newOpcode, uint32 offset, Js::RegSlot ds
 
     this->AddInstr(instr, offset);
 
-    this->BuildCallCommon(instr, symDst, ArgCount);
+    this->BuildCallCommon(instr, symDst, ArgCount, flags);
 
     return instr;
 }
 
 void
-IRBuilder::BuildCallCommon(IR::Instr * instr, StackSym * symDst, Js::ArgSlot argCount)
+IRBuilder::BuildCallCommon(IR::Instr * instr, StackSym * symDst, Js::ArgSlot argCount, Js::CallFlags flags)
 {
     Js::OpCode newOpcode = instr->m_opcode;
 
@@ -6425,6 +6425,8 @@ IRBuilder::BuildCallCommon(IR::Instr * instr, StackSym * symDst, Js::ArgSlot arg
 #endif
         m_argsOnStack++;
     }
+
+    argCount = Js::CallInfo::GetArgCountWithExtraArgs(flags, argCount);
 
     if (argInstr)
     {

@@ -135,7 +135,7 @@ namespace Js
         static Var CallRootFunction(RecyclableObject* obj, Arguments args, ScriptContext * scriptContext, bool inScript);
         static Var CallRootFunctionInternal(RecyclableObject* obj, Arguments args, ScriptContext * scriptContext, bool inScript);
         static Var CallSpreadFunction(RecyclableObject* obj, Arguments args, const Js::AuxArray<uint32> *spreadIndices);
-        static uint32 GetSpreadSize(const Arguments args, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext);
+        static ArgSlot GetSpreadSize(const Arguments args, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext);
         static void SpreadArgs(const Arguments args, Arguments& destArgs, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext);
         static Var EntrySpreadCall(const Js::AuxArray<uint32> *spreadIndices, RecyclableObject* function, CallInfo callInfo, ...);
         static void CheckAlignment();

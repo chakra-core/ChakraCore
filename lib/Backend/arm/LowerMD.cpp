@@ -1895,27 +1895,13 @@ LowererMD::LoadInputParamCount(IR::Instr * instrInsert, int adjust, bool needFla
     // mask the "calling eval" bit and subtract it from the incoming count.
     // ("Calling eval" means the last param is the frame display, which only the eval built-in should see.)
 
-    IR::RegOpnd * evalBitOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::LSR, evalBitOpnd, dstOpnd, IR::IntConstOpnd::New(Math::Log2(Js::CallFlags_ExtraArg) + Js::CallInfo::ksizeofCount, TyMachReg, this->m_func), this->m_func);
-    instrInsert->InsertBefore(instr);
-
-    // Mask off other call flags from callinfo
-    instr = IR::Instr::New(Js::OpCode::AND, evalBitOpnd, evalBitOpnd, IR::IntConstOpnd::New(0x01, TyUint8, this->m_func), this->m_func);
-    instrInsert->InsertBefore(instr);
-
     instr = IR::Instr::New(Js::OpCode::LSL, dstOpnd, dstOpnd, IR::IntConstOpnd::New(Js::CallInfo::ksizeofCallFlags, TyMachReg, this->m_func), this->m_func);
     instrInsert->InsertBefore(instr);
 
     instr = IR::Instr::New(Js::OpCode::LSR, dstOpnd, dstOpnd, IR::IntConstOpnd::New(Js::CallInfo::ksizeofCallFlags, TyMachReg, this->m_func), this->m_func);
     instrInsert->InsertBefore(instr);
 
-    if (adjust != 0)
-    {
-        Assert(adjust < 0);
-        Lowerer::InsertAdd(false, evalBitOpnd, evalBitOpnd, IR::IntConstOpnd::New(-adjust, TyUint32, this->m_func), instrInsert);
-    }
-
-    return Lowerer::InsertSub(needFlags, dstOpnd, dstOpnd, evalBitOpnd, instrInsert);
+    return Lowerer::InsertSub(needFlags, dstOpnd, dstOpnd, IR::IntConstOpnd::New(-adjust, TyUint32, this->m_func), instrInsert);
 }
 
 IR::Instr *

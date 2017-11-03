@@ -154,10 +154,8 @@ namespace Js
 
         // SkipDefaultNewObject function flag should have prevented the default object from
         // being created, except when call true a host dispatch.
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
-        Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr
-            || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
+        Var newTarget = args.GetNewTarget();
+        bool isCtorSuperCall = JavascriptOperators::GetAndAssertIsConstructorSuperCall(args);
 
         JavascriptString* separator = library->GetCommaDisplayString();
 
@@ -620,12 +618,6 @@ namespace Js
         /// If not, throw TypeError
         ///
         uint argCount = args.Info.Count;
-        if (callInfo.Flags & CallFlags_ExtraArg)
-        {
-            // The last argument is the "extra". Don't consider it in the logic below.
-            // It will either remain in place (argCount == 1) or be copied.
-            argCount--;
-        }
         if (argCount == 0 || !JavascriptConversion::IsCallable(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, _u("Function.prototype.call"));
@@ -869,12 +861,12 @@ namespace Js
         Var* newValues = args.Values;
         CallFlags newFlags = args.Info.Flags;
 
-        ushort newCount = args.Info.Count;
         bool thisAlreadySpecified = false;
 
         if (overridingNewTarget != nullptr)
         {
             ScriptFunction * scriptFunctionObj = JavascriptOperators::TryFromVar<ScriptFunction>(functionObj);
+            ushort newCount = args.Info.Count;
             if (scriptFunctionObj && scriptFunctionObj->GetFunctionInfo()->IsClassConstructor())
             {
                 thisAlreadySpecified = true;
@@ -914,7 +906,7 @@ namespace Js
             newValues[0] = resultObject;
         }
 
-        CallInfo newCallInfo(newFlags, newCount);
+        CallInfo newCallInfo(newFlags, args.Info.Count);
         Arguments newArgs(newCallInfo, newValues);
 
         if (JavascriptProxy::Is(v))
@@ -983,23 +975,30 @@ namespace Js
         return JavascriptFunction::CallSpreadFunction(function, args, spreadIndices);
     }
 
-    uint32 JavascriptFunction::GetSpreadSize(const Arguments args, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext)
+    ArgSlot JavascriptFunction::GetSpreadSize(const Arguments args, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext)
     {
         // Work out the expanded number of arguments.
-        uint32 totalLength = args.Info.Count - spreadIndices->count;
-        ::Math::RecordOverflowPolicy overflow;
-        for (unsigned i = 0; i < spreadIndices->count; ++i)
+        AssertOrFailFast(args.Info.Count <= Js::Constants::MaxAllowedArgs && args.Info.Count >= spreadIndices->count);
+
+        ArgSlot spreadArgsCount = (ArgSlot)spreadIndices->count;
+        uint32 totalLength = args.Info.Count - spreadArgsCount;
+
+        for (unsigned i = 0; i < spreadArgsCount; ++i)
         {
             uint32 elementLength = JavascriptArray::GetSpreadArgLen(args[spreadIndices->elements[i]], scriptContext);
-            totalLength = UInt32Math::Add(totalLength, elementLength, overflow);
+            if (elementLength >= Js::Constants::MaxAllowedArgs)
+            {
+                JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgListTooLarge);
+            }
+            totalLength = UInt32Math::Add(totalLength, elementLength);
         }
 
-        if (totalLength >= CallInfo::kMaxCountArgs || overflow.HasOverflowed())
+        if (totalLength >= Js::Constants::MaxAllowedArgs)
         {
             JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgListTooLarge);
         }
 
-        return totalLength;
+        return (ArgSlot)totalLength;
     }
 
     void JavascriptFunction::SpreadArgs(const Arguments args, Arguments& destArgs, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext)
@@ -1008,14 +1007,16 @@ namespace Js
         Assert(destArgs.Values != nullptr);
 
         CallInfo callInfo = args.Info;
-        size_t destArgsByteSize = destArgs.Info.Count * sizeof(Var);
+        unsigned argCount = args.GetArgCountWithExtraArgs();
+        unsigned destArgCount = destArgs.GetArgCountWithExtraArgs();
+        size_t destArgsByteSize = destArgCount * sizeof(Var);
 
         destArgs.Values[0] = args[0];
 
         // Iterate over the arguments, spreading inline. We skip 'this'.
 
         uint32 argsIndex = 1;
-        for (unsigned i = 1, spreadArgIndex = 0; i < callInfo.Count; ++i)
+        for (unsigned i = 1, spreadArgIndex = 0; i < argCount; ++i)
         {
             uint32 spreadIndex = spreadIndices->elements[spreadArgIndex]; // Next index to be spread.
             if (i < spreadIndex)
@@ -1035,7 +1036,7 @@ namespace Js
                 js_memcpy_s(destArgs.Values + argsIndex,
                             destArgsByteSize - (argsIndex * sizeof(Var)),
                             args.Values + i,
-                            (args.Info.Count - i) * sizeof(Var));
+                            (argCount - i) * sizeof(Var));
                 break;
             }
             else
@@ -1069,7 +1070,7 @@ namespace Js
                 }
             }
         }
-        if (argsIndex > destArgs.Info.Count)
+        if (argsIndex > destArgCount)
         {
             AssertMsg(false, "The array length has changed since we allocated the destArgs buffer?");
             Throw::FatalInternalError();
@@ -1082,17 +1083,17 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         // Work out the expanded number of arguments.
-        uint32 actualLength = GetSpreadSize(args, spreadIndices, scriptContext);
+        ArgSlot spreadSize = GetSpreadSize(args, spreadIndices, scriptContext);
+        uint32 actualLength = CallInfo::GetArgCountWithExtraArgs(args.Info.Flags, spreadSize);
 
         // Allocate (if needed) space for the expanded arguments.
-        Arguments outArgs(CallInfo(args.Info.Flags, 0), nullptr);
-        outArgs.Info.Count = actualLength;
+        Arguments outArgs(CallInfo(args.Info.Flags, spreadSize), nullptr);
         Var stackArgs[STACK_ARGS_ALLOCA_THRESHOLD];
         size_t outArgsSize = 0;
-        if (outArgs.Info.Count > STACK_ARGS_ALLOCA_THRESHOLD)
+        if (actualLength > STACK_ARGS_ALLOCA_THRESHOLD)
         {
-            PROBE_STACK(scriptContext, outArgs.Info.Count * sizeof(Var) + Js::Constants::MinStackDefault); // args + function call
-            outArgsSize = outArgs.Info.Count * sizeof(Var);
+            PROBE_STACK(scriptContext, actualLength * sizeof(Var) + Js::Constants::MinStackDefault); // args + function call
+            outArgsSize = actualLength * sizeof(Var);
             outArgs.Values = (Var*)_alloca(outArgsSize);
             ZeroMemory(outArgs.Values, outArgsSize);
         }
@@ -1210,7 +1211,8 @@ void __cdecl _alloca_probe_16()
 #endif
         // compute size of stack to reserve
         CallInfo callInfo = args.Info;
-        uint argsSize = callInfo.Count * sizeof(Var);
+        uint argCount = args.GetArgCountWithExtraArgs();
+        uint argsSize = argCount * sizeof(Var);
 
         ScriptContext * scriptContext = function->GetScriptContext();
 
@@ -1246,7 +1248,7 @@ dbl_align:
 
             Var* dest = (Var*)data;
             Var* src = args.Values;
-            for(unsigned int i =0; i < callInfo.Count; i++)
+            for(unsigned int i =0; i < argCount; i++)
             {
                 dest[i] = src[i];
             }
@@ -1290,8 +1292,9 @@ dbl_align:
     Var JavascriptFunction::CallFunction(RecyclableObject *function, JavascriptMethod entryPoint, Arguments args)
     {
         // compute size of stack to reserve and make sure we have enough stack.
-        CallInfo callInfo = args.Info;
-        uint argsSize = callInfo.Count * sizeof(Var);
+        uint argCount = args.GetArgCountWithExtraArgs();
+        uint argsSize = argCount * sizeof(Var);
+
         if (doStackProbe == true)
         {
             PROBE_STACK_CALL(function->GetScriptContext(), function, argsSize);
@@ -1300,7 +1303,7 @@ dbl_align:
         CheckIsExecutable(function, entryPoint);
 #endif
 
-        return amd64_CallFunction(function, entryPoint, args.Info, args.Info.Count, &args.Values[0]);
+        return amd64_CallFunction(function, entryPoint, args.Info, argCount, &args.Values[0]);
     }
 #elif defined(_M_ARM)
     extern "C"
@@ -1312,8 +1315,8 @@ dbl_align:
     Var JavascriptFunction::CallFunction(RecyclableObject* function, JavascriptMethod entryPoint, Arguments args)
     {
         // compute size of stack to reserve and make sure we have enough stack.
-        CallInfo callInfo = args.Info;
-        uint argsSize = callInfo.Count * sizeof(Var);
+        uint argCount = args.GetArgCountWithExtraArgs();
+        uint argsSize = argCount * sizeof(Var);
         if (doStackProbe)
         {
             PROBE_STACK_CALL(function->GetScriptContext(), function, argsSize);
@@ -1354,8 +1357,8 @@ dbl_align:
     Var JavascriptFunction::CallFunction(RecyclableObject* function, JavascriptMethod entryPoint, Arguments args)
     {
         // compute size of stack to reserve and make sure we have enough stack.
-        CallInfo callInfo = args.Info;
-        uint argsSize = callInfo.Count * sizeof(Var);
+        uint argCount = args.GetArgCountWithExtraArgs();
+        uint argsSize = argCount * sizeof(Var);
         if (doStackProbe)
         {
             PROBE_STACK_CALL(function->GetScriptContext(), function, argsSize);

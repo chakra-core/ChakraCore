@@ -165,6 +165,55 @@ namespace Js
             return Values[idxArg];
         }
 
+        bool IsDirectEvalCall() const
+        {
+            // This was recognized as an eval call at compile time. The last one or two args are internal to us.
+            // Argcount will be one of the following when called from global code
+            //  - eval("...")     : argcount 3 : this, evalString, frameDisplay
+            //  - eval.call("..."): argcount 2 : this(which is string) , frameDisplay
+
+            return (Info.Flags & (CallFlags_ExtraArg | CallFlags_NewTarget)) == CallFlags_ExtraArg;  // ExtraArg == 1 && NewTarget == 0
+        }
+
+        bool HasExtraArg() const
+        {
+            return Info.HasExtraArg();
+        }
+
+        bool HasArg() const
+        {
+            return Info.Count > 0;
+        }
+
+        ushort GetArgCountWithExtraArgs() const
+        {
+            return Info.GetArgCountWithExtraArgs();
+        }
+
+        FrameDisplay* GetFrameDisplay() const
+        {
+            AssertOrFailFast(Info.Flags & CallFlags_ExtraArg);
+
+            // There is an extra arg, so values should have Count + 1 members
+            return (FrameDisplay*)(this->Values[Info.Count]);
+        }
+
+        bool IsNewCall() const
+        {
+            return Info.Flags & CallFlags_New;
+        }
+
+        bool HasNewTarget() const
+        {
+            return Info.HasNewTarget();
+        }
+
+        // New target value is passed as an extra argument which is nto included in the Info.Count
+        Var GetNewTarget() const
+        {
+            return CallInfo::GetNewTarget(Info.Flags, this->Values, Info.Count);
+        }
+
         // swb: Arguments is mostly used on stack and does not need write barrier.
         // It is recycler allocated with ES6 generators. We handle that specially.
         FieldNoBarrier(CallInfo) Info;
@@ -191,7 +240,7 @@ namespace Js
     private:
         void AdjustArguments(CallInfo *callInfo)
         {
-            AssertMsg(!(Info.Flags & Js::CallFlags_NewTarget) || (Info.Flags & Js::CallFlags_ExtraArg), "NewTarget flag must be used together with ExtraArg.");
+            AssertMsg(!this->HasNewTarget() || (Info.Flags & Js::CallFlags_ExtraArg), "NewTarget flag must be used together with ExtraArg.");
             if (Info.Flags & Js::CallFlags_ExtraArg)
             {
                 // If "calling eval" is set, then the last param is the frame display, which only
@@ -203,9 +252,7 @@ namespace Js
                 // the stack version. Both seem risky. It would be safer and more robust to just
                 // change the stack version.
                 Info.Flags = (CallFlags)(Info.Flags & ~Js::CallFlags_ExtraArg);
-                Info.Count--;
                 callInfo->Flags = (CallFlags)(callInfo->Flags & ~Js::CallFlags_ExtraArg);
-                callInfo->Count--;
             }
         }
     };
