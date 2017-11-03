@@ -16,18 +16,21 @@
 #include "asmconstants.h"
 
 #ifdef __i686__
+.global C_FUNC(GetCurrentIP)
+.global C_FUNC(GetCurrentSP)
 //
 // UINT_PTR __stdcall GetCurrentIP(void);
-LEAF_ENTRY GetCurrentIP, _TEXT
+C_FUNC(GetCurrentIP):
+.intel_syntax
     mov     eax, [esp]
     ret
-LEAF_END GetCurrentIP, _TEXT
 
 // LPVOID __stdcall GetCurrentSP(void);
-LEAF_ENTRY GetCurrentSP, _TEXT
+C_FUNC(GetCurrentSP):
+.intel_syntax
     mov     eax, esp
     ret
-LEAF_END GetCurrentSP, _TEXT
+
 #else
 LEAF_ENTRY GetCurrentSP, _TEXT
         mov rax, rsp
