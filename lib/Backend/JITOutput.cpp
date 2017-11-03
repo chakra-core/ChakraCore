@@ -250,6 +250,7 @@ JITOutput::RecordXData(BYTE * xdata)
 void
 JITOutput::FinalizeNativeCode()
 {
+    CustomHeap::Allocation * allocation = GetAllocation();
 #if ENABLE_OOP_NATIVE_CODEGEN
     if (JITManager::GetJITManager()->IsJITServer())
     {
@@ -258,7 +259,7 @@ JITOutput::FinalizeNativeCode()
 #if _M_IX86 || _M_X64
         if (!m_func->IsLoopBody() && CONFIG_FLAG(UseJITTrampoline))
         {
-            m_outputData->thunkAddress = m_func->GetOOPThreadContext()->GetJITThunkEmitter()->CreateThunk(m_outputData->codeAddress);
+            allocation->thunkAddress = m_func->GetOOPThreadContext()->GetJITThunkEmitter()->CreateThunk(m_outputData->codeAddress);
         }
 #endif
 #endif
@@ -278,16 +279,28 @@ JITOutput::FinalizeNativeCode()
 #if _M_IX86 || _M_X64
         if (!m_func->IsLoopBody() && CONFIG_FLAG(UseJITTrampoline))
         {
-            m_outputData->thunkAddress = m_func->GetInProcThreadContext()->GetJITThunkEmitter()->CreateThunk(m_outputData->codeAddress);
+            allocation->thunkAddress = m_func->GetInProcThreadContext()->GetJITThunkEmitter()->CreateThunk(m_outputData->codeAddress);
         }
 #endif
 #endif
     }
-
-    if (!m_outputData->thunkAddress && CONFIG_FLAG(OOPCFGRegistration))
+    m_outputData->thunkAddress = allocation->thunkAddress;
+    if (!allocation->thunkAddress && CONFIG_FLAG(OOPCFGRegistration))
     {
         m_func->GetThreadContextInfo()->SetValidCallTargetForCFG((PVOID)m_outputData->codeAddress);
     }
+}
+
+CustomHeap::Allocation *
+JITOutput::GetAllocation() const
+{
+#if ENABLE_OOP_NATIVE_CODEGEN
+    if (JITManager::GetJITManager()->IsJITServer())
+    {
+        return m_oopAlloc->allocation;
+    }
+#endif
+    return m_inProcAlloc->allocation;
 }
 
 JITOutputIDL *

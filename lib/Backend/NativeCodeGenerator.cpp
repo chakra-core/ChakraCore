@@ -3174,24 +3174,17 @@ bool NativeCodeGenerator::TryReleaseNonHiPriWorkItem(CodeGenWorkItem* workItem)
 }
 
 void
-NativeCodeGenerator::FreeNativeCodeGenAllocation(void* codeAddress, void* thunkAddress)
+NativeCodeGenerator::FreeNativeCodeGenAllocation(void* codeAddress)
 {
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
         ThreadContext * context = this->scriptContext->GetThreadContext();
-        HRESULT hr = JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)codeAddress, (intptr_t)thunkAddress);
+        HRESULT hr = JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)codeAddress);
         JITManager::HandleServerCallResult(hr, RemoteCallType::MemFree);
     }
     else if(this->backgroundAllocators)
     {
         this->backgroundAllocators->emitBufferManager.FreeAllocation(codeAddress);
-        
-#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
-        if (thunkAddress)
-        {
-            this->scriptContext->GetThreadContext()->GetJITThunkEmitter()->FreeThunk((uintptr_t)thunkAddress);
-        }
-#endif
     }
 }
 
@@ -3205,7 +3198,7 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* codeAddress, void * 
         return;
     }
 
-    if (!JITManager::GetJITManager()->IsOOPJITEnabled() || !CONFIG_FLAG(OOPCFGRegistration))
+    if (JITManager::GetJITManager()->IsOOPJITEnabled() && !CONFIG_FLAG(OOPCFGRegistration))
     {
         //DeRegister Entry Point for CFG
         if (thunkAddress)
@@ -3228,12 +3221,6 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* codeAddress, void * 
     // The foreground allocators may have been used
     if(this->foregroundAllocators && this->foregroundAllocators->emitBufferManager.FreeAllocation(codeAddress))
     {
-#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
-        if (thunkAddress)
-        {
-            this->scriptContext->GetThreadContext()->GetJITThunkEmitter()->FreeThunk((uintptr_t)thunkAddress);
-        }
-#endif
         return;
     }
 
@@ -3695,6 +3682,10 @@ JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
         break;
     }
 
+    if (CONFIG_FLAG(CrashOnOOPJITFailure))
+    {
+        RpcFailure_fatal_error(hr);
+    }
     // we only expect to see these hresults in case server has been closed. failfast otherwise
     if (hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED) &&
         hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED_DNE))

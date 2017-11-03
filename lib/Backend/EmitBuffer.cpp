@@ -10,11 +10,12 @@
 //----------------------------------------------------------------------------
 template <typename TAlloc, typename TPreReservedAlloc, typename SyncObject>
 EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::EmitBufferManager(ArenaAllocator * allocator, CustomHeap::CodePageAllocators<TAlloc, TPreReservedAlloc> * codePageAllocators,
-    Js::ScriptContext * scriptContext, LPCWSTR name, HANDLE processHandle) :
+    Js::ScriptContext * scriptContext, ThreadContextInfo * threadContext, LPCWSTR name, HANDLE processHandle) :
     allocationHeap(allocator, codePageAllocators, processHandle),
     allocator(allocator),
     allocations(nullptr),
     scriptContext(scriptContext),
+    threadContext(threadContext),
     processHandle(processHandle)
 {
 #if DBG_DUMP
@@ -193,12 +194,14 @@ bool
 EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::FreeAllocation(void* address)
 {
     AutoRealOrFakeCriticalSection<SyncObject> autoCs(&this->criticalSection);
-
+#if _M_ARM
+    address = (void*)((uintptr_t)address & ~0x1); // clear the thumb bit
+#endif
     TEmitBufferAllocation* previous = nullptr;
     TEmitBufferAllocation* allocation = allocations;
     while(allocation != nullptr)
     {
-        if (address >= allocation->allocation->address && address < (allocation->allocation->address + allocation->bytesUsed))
+        if (address == allocation->allocation->address)
         {
             if (previous == nullptr)
             {
@@ -214,6 +217,26 @@ EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::FreeAllocation(void* a
                 this->scriptContext->GetThreadContext()->SubCodeSize(allocation->bytesCommitted);
             }
 
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+            if (allocation->allocation->thunkAddress)
+            {
+                if (JITManager::GetJITManager()->IsJITServer())
+                {
+                    ((ServerThreadContext*)this->threadContext)->GetJITThunkEmitter()->FreeThunk(allocation->allocation->thunkAddress);
+                }
+                else
+                {
+                    ((ThreadContext*)this->threadContext)->GetJITThunkEmitter()->FreeThunk(allocation->allocation->thunkAddress);
+                }
+            }
+            else
+#endif
+            {
+                if (!JITManager::GetJITManager()->IsJITServer() || CONFIG_FLAG(OOPCFGRegistration))
+                {
+                    threadContext->SetValidCallTargetForCFG(address, false);
+                }
+            }
             VerboseHeapTrace(_u("Freeing 0x%p, allocation: 0x%p\n"), address, allocation->allocation->address);
 
             this->allocationHeap.Free(allocation->allocation);
