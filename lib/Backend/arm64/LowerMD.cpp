@@ -74,7 +74,8 @@ LowererMD::IsIndirectBranch(const IR::Instr *instr)
 bool
 LowererMD::IsUnconditionalBranch(const IR::Instr *instr)
 {
-    return instr->m_opcode == Js::OpCode::B;
+    return (instr->m_opcode == Js::OpCode::B || 
+            instr->m_opcode == Js::OpCode::BR);
 }
 
 bool
