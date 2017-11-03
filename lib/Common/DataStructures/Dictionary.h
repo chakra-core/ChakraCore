@@ -345,7 +345,8 @@ namespace JsUtil
 
         void Resize()
         {
-            int newSize = PrimePolicy::GetSize(count * 2, &modFunctionIndex);
+            int modIndex = UNKNOWN_MOD_INDEX;
+            int newSize = PrimePolicy::GetSize(count * 2, &modIndex);
 
             if (newSize <= count)
             {
@@ -358,6 +359,7 @@ namespace JsUtil
             EntryType* newEntries = RecyclerNewArray(recycler, EntryType, newSize);
             CopyArray<EntryType, Field(const RecyclerWeakReference<TKey>*)>(newEntries, newSize, entries, count);
             AnalysisAssert(count < newSize);
+            modFunctionIndex = modIndex;
             for (int i = 0; i < count; i++)
             {
                 uint bucket = PrimePolicy::GetBucket(newEntries[i].hash, newSize, modFunctionIndex);
@@ -437,7 +439,8 @@ namespace JsUtil
 
         void Initialize(int capacity)
         {
-            int size = PrimePolicy::GetSize(capacity, &modFunctionIndex);
+            int modIndex = UNKNOWN_MOD_INDEX;
+            int size = PrimePolicy::GetSize(capacity, &modIndex);
 
             int* buckets = RecyclerNewArrayLeaf(recycler, int, size);
             EntryType * entries = RecyclerNewArray(recycler, EntryType, size);
@@ -451,6 +454,7 @@ namespace JsUtil
                 for (int i = 0; i < size; i++) buckets[i] = -1;
                 this->entries = entries;
                 this->freeList = -1;
+                this->modFunctionIndex = modIndex;
             }
         }
 
