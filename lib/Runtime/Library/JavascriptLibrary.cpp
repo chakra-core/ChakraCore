@@ -5301,8 +5301,10 @@ namespace Js
 
         auto intlInitializer = [&](IntlEngineInterfaceExtensionObject* intlExtension, ScriptContext * scriptContext, DynamicObject* intlObject) ->void
         {
+            intlExtension->SetNeedsInit(true);
             intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::Intl);
         };
+
         IntlObject->GetLibrary()->InitializeIntlForPrototypes(intlInitializer);
 
         return true;
@@ -5312,6 +5314,7 @@ namespace Js
     {
         auto stringPrototypeInitializer = [&](IntlEngineInterfaceExtensionObject* intlExtension, ScriptContext * scriptContext, DynamicObject* intlObject) ->void
         {
+            intlExtension->SetNeedsInit(true);
             intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::StringPrototype);
         };
         InitializeIntlForPrototypes(stringPrototypeInitializer);
@@ -5321,6 +5324,7 @@ namespace Js
     {
         auto datePrototypeInitializer = [&](IntlEngineInterfaceExtensionObject* intlExtension, ScriptContext * scriptContext, DynamicObject* intlObject) ->void
         {
+            intlExtension->SetNeedsInit(true);
             intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::DatePrototype);
         };
         InitializeIntlForPrototypes(datePrototypeInitializer);
@@ -5330,6 +5334,7 @@ namespace Js
     {
         auto numberPrototypeInitializer = [&](IntlEngineInterfaceExtensionObject* intlExtension, ScriptContext * scriptContext, DynamicObject* intlObject) ->void
         {
+            intlExtension->SetNeedsInit(true);
             intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::NumberPrototype);
         };
         InitializeIntlForPrototypes(numberPrototypeInitializer);
