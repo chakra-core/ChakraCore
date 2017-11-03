@@ -2063,6 +2063,7 @@ namespace JsRTApiTest
         JsRTApiTest::WithSetup(JsRuntimeAttributeEnableExperimentalFeatures, ReentrantParseModuleTest);
     }
 
+
     ModuleResponseData reentrantNoErrorParseData;
     static JsErrorCode CALLBACK reentrantNoErrorParse_FIMC(_In_ JsModuleRecord referencingModule, _In_ JsValueRef specifier, _Outptr_result_maybenull_ JsModuleRecord* dependentModuleRecord)
     {
@@ -2131,6 +2132,49 @@ namespace JsRTApiTest
         JsRTApiTest::WithSetup(JsRuntimeAttributeEnableExperimentalFeatures, ReentrantNoErrorParseModuleTest);
     }
 
+    static JsErrorCode CALLBACK FIMC1(_In_ JsModuleRecord referencingModule, _In_ JsValueRef specifier, _Outptr_result_maybenull_ JsModuleRecord* dependentModuleRecord)
+    {
+        JsModuleRecord moduleRecord = JS_INVALID_REFERENCE;
+        LPCWSTR specifierStr;
+        size_t length;
+        JsErrorCode errorCode = JsStringToPointer(specifier, &specifierStr, &length);
+        REQUIRE(errorCode == JsNoError);
+
+        if (wcscmp(specifierStr, _u("foo.js")) == 0)
+        {
+            errorCode = JsInitializeModuleRecord(referencingModule, specifier, &moduleRecord);
+            REQUIRE(errorCode == JsNoError);
+            *dependentModuleRecord = moduleRecord;
+        }
+        return JsNoError;
+    }
+
+    static JsErrorCode CALLBACK NMRC1(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef exceptionVar)
+    {
+        // NotifyModuleReadyCallback handling.
+
+        return JsNoError;
+    }
+
+    void SomebugTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
+    {
+        JsModuleRecord rec;
+        JsInitializeModuleRecord(nullptr, nullptr, &rec);
+        JsSetModuleHostInfo(rec, JsModuleHostInfo_FetchImportedModuleCallback, FIMC1);
+        JsSetModuleHostInfo(rec, JsModuleHostInfo_FetchImportedModuleFromScriptCallback, FIMC1);
+        JsSetModuleHostInfo(rec, JsModuleHostInfo_NotifyModuleReadyCallback, NMRC1);
+
+        JsValueRef F = JS_INVALID_REFERENCE;
+        JsErrorCode err = JsRunScript(_u("var j = import('foo.js').then(mod => { mod.bar(); })"), 0, _u(""), &F);
+
+        CHECK(err == JsNoError);
+    }
+
+    TEST_CASE("ApiTest_SomebugTest", "[ApiTest]")
+    {
+        JsRTApiTest::WithSetup(JsRuntimeAttributeEnableExperimentalFeatures, SomebugTest);
+
+    }
     void ObjectHasOwnPropertyMethodTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
     {
         JsValueRef proto = JS_INVALID_REFERENCE;
