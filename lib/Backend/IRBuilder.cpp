@@ -1094,7 +1094,7 @@ IRBuilder::CreateLabel(IR::BranchInstr * branchInstr, uint& offset)
         instrPrev = targetInstr->GetPrevRealInstrOrLabel();
     }
 
-    if (instrPrev && instrPrev->IsLabelInstr())
+    if (instrPrev && instrPrev->IsLabelInstr() && instrPrev->GetByteCodeOffset() == offset)
     {
         // Found an existing label at the right offset. Just reuse it.
         labelInstr = instrPrev->AsLabelInstr();
@@ -1103,7 +1103,7 @@ IRBuilder::CreateLabel(IR::BranchInstr * branchInstr, uint& offset)
     {
         // No label at the desired offset. Create one.
 
-        labelInstr = IR::LabelInstr::New( Js::OpCode::Label, this->m_func);
+        labelInstr = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
         labelInstr->SetByteCodeOffset(offset);
         if (instrPrev)
         {
@@ -2690,35 +2690,52 @@ IRBuilder::BuildUnsigned1(Js::OpCode newOpcode, uint32 offset, uint32 num)
 
         case Js::OpCode::ProfiledLoopBodyStart:
         {
-            if (!(m_func->DoSimpleJitDynamicProfile() && m_func->GetJITFunctionBody()->DoJITLoopBody()))
+            // This opcode is removed from the IR when we aren't doing Profiling SimpleJit or not jitting loop bodies
+            if (m_func->DoSimpleJitDynamicProfile() && m_func->GetJITFunctionBody()->DoJITLoopBody())
             {
-                // This opcode is removed from the IR when we aren't doing Profiling SimpleJit or not jitting loop bodies
-                break;
+                // Attach a register to the dest of this instruction to communicate whether we should bail out (the deciding of this is done in lowering)
+                IR::Opnd* fullJitExists = IR::RegOpnd::New(TyUint8, m_func);
+                auto start = m_lastInstr;
+
+                if (start->m_opcode == Js::OpCode::InitLoopBodyCount)
+                {
+                    Assert(this->IsLoopBody());
+                    start = start->m_prev;
+                }
+
+                Assert(start->m_opcode == Js::OpCode::ProfiledLoopStart && start->GetDst());
+                IR::JitProfilingInstr* instr = IR::JitProfilingInstr::New(Js::OpCode::ProfiledLoopBodyStart, fullJitExists, start->GetDst(), m_func);
+                // profileId is used here to represent the loop number
+                instr->loopNumber = num;
+                this->AddInstr(instr, offset);
+
+                // If fullJitExists isn't 0, bail out so that we can get the fulljitted version
+                BailOutInfo * bailOutInfo = JitAnew(m_func->m_alloc, BailOutInfo, instr->GetByteCodeOffset(), m_func);
+                IR::BailOutInstr * bailInstr = IR::BailOutInstr::New(Js::OpCode::BailOnNotEqual, IR::BailOnSimpleJitToFullJitLoopBody, bailOutInfo, bailOutInfo->bailOutFunc);
+                bailInstr->SetSrc1(fullJitExists);
+                bailInstr->SetSrc2(IR::IntConstOpnd::New(0, TyUint8, m_func, true));
+                this->AddInstr(bailInstr, offset);
+
             }
 
-            // Attach a register to the dest of this instruction to communicate whether we should bail out (the deciding of this is done in lowering)
-            IR::Opnd* fullJitExists = IR::RegOpnd::New(TyUint8, m_func);
-            auto start = m_lastInstr->m_prev;
-
-            if (start->m_opcode == Js::OpCode::InitLoopBodyCount)
+            Js::ImplicitCallFlags flags = Js::ImplicitCall_HasNoInfo;
+            Js::LoopFlags loopFlags;
+            if (this->m_func->HasProfileInfo())
             {
-                Assert(this->IsLoopBody());
-                start = start->m_prev;
+                flags = m_func->GetReadOnlyProfileInfo()->GetLoopImplicitCallFlags(num);
+                loopFlags = m_func->GetReadOnlyProfileInfo()->GetLoopFlags(num);
             }
 
-            Assert(start->m_opcode == Js::OpCode::ProfiledLoopStart && start->GetDst());
-            IR::JitProfilingInstr* instr = IR::JitProfilingInstr::New(Js::OpCode::ProfiledLoopBodyStart, fullJitExists, start->GetDst(), m_func);
-            // profileId is used here to represent the loop number
-            instr->loopNumber = num;
-            this->AddInstr(instr, offset);
+            // Put a label the instruction stream to carry the profile info
+            IR::ProfiledLabelInstr * labelInstr = IR::ProfiledLabelInstr::New(Js::OpCode::Label, this->m_func, flags, loopFlags);
+#if DBG
+            labelInstr->loopNum = num;
+#endif
+            m_lastInstr->InsertAfter(labelInstr);
+            m_lastInstr = labelInstr;
 
-            // If fullJitExists isn't 0, bail out so that we can get the fulljitted version
-            BailOutInfo * bailOutInfo = JitAnew(m_func->m_alloc, BailOutInfo, instr->GetByteCodeOffset(), m_func);
-            IR::BailOutInstr * bailInstr = IR::BailOutInstr::New(Js::OpCode::BailOnNotEqual, IR::BailOnSimpleJitToFullJitLoopBody, bailOutInfo, bailOutInfo->bailOutFunc);
-            bailInstr->SetSrc1(fullJitExists);
-            bailInstr->SetSrc2(IR::IntConstOpnd::New(0, TyUint8, m_func, true));
-            this->AddInstr(bailInstr, offset);
-
+            // Set it to the offset to the start of the loop
+            labelInstr->SetByteCodeOffset(m_jnReader.GetCurrentOffset());
             break;
         }
 
@@ -2750,29 +2767,10 @@ IRBuilder::BuildUnsigned1(Js::OpCode newOpcode, uint32 offset, uint32 num)
                 this->AddInstr(instr, offset);
             }
 
-            Js::ImplicitCallFlags flags = Js::ImplicitCall_HasNoInfo;
-            Js::LoopFlags loopFlags;
-            if (this->m_func->HasProfileInfo())
-            {
-                flags = m_func->GetReadOnlyProfileInfo()->GetLoopImplicitCallFlags(num);
-                loopFlags = m_func->GetReadOnlyProfileInfo()->GetLoopFlags(num);
-            }
-
             if (this->IsLoopBody() && !m_loopCounterSym)
             {
                 InsertInitLoopBodyLoopCounter(num);
             }
-
-            // Put a label the instruction stream to carry the profile info
-            IR::ProfiledLabelInstr * labelInstr = IR::ProfiledLabelInstr::New(Js::OpCode::Label, this->m_func, flags, loopFlags);
-#if DBG
-            labelInstr->loopNum = num;
-#endif
-            m_lastInstr->InsertAfter(labelInstr);
-            m_lastInstr = labelInstr;
-
-            // Set it to the offset to the start of the loop
-            labelInstr->SetByteCodeOffset(m_jnReader.GetCurrentOffset());
             break;
         }
 
