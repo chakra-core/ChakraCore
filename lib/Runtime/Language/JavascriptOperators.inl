@@ -31,6 +31,18 @@ namespace Js
         }
     }
 
+    __forceinline TypeId JavascriptOperators::GetTypeId(Js::RecyclableObject* aValue)
+    {
+        AssertMsg(aValue != nullptr, "GetTypeId aValue is null");
+
+        auto typeId = RecyclableObject::UnsafeFromVar(aValue)->GetTypeId();
+#if DBG
+        auto isExternal = RecyclableObject::FromVar(aValue)->CanHaveInterceptors();
+        AssertMsg(typeId < TypeIds_Limit || isExternal, "GetTypeId aValue has invalid TypeId");
+#endif
+        return typeId;
+    }
+
     __forceinline TypeId JavascriptOperators::GetTypeIdNoCheck(const Var aValue)
     {
         AssertMsg(aValue != nullptr, "GetTypeId aValue is null");
