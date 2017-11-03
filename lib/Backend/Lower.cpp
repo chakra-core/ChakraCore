@@ -19797,7 +19797,7 @@ Lowerer::GenerateFastArgumentsLdElemI(IR::Instr* ldElem, IR::LabelInstr *labelFa
         {
             // Load actuals count, LoadHeapArguments will reuse the generated instructions here
             IR::Instr      *loadInputParamCountInstr = this->m_lowererMD.LoadInputParamCount(ldElem, -1 /* don't include 'this' while counting actuals. */);
-            actualParamOpnd = loadInputParamCountInstr->GetDst()->AsRegOpnd();
+            actualParamOpnd = loadInputParamCountInstr->GetDst()->UseWithNewType(TyInt32,this->m_func);
         }
 
         if (hasIntConstIndex)
