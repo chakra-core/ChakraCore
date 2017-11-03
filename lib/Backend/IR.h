@@ -679,7 +679,7 @@ private:
     union labelLocation
     {
         BYTE *                  pc;     // Used by encoder and is the real pc offset
-        uint32                  offset; // Used by preEncoder and is an estimation pc offset, not accurate
+        uintptr_t               offset; // Used by preEncoder and is an estimation pc offset, not accurate
     } m_pc;
 
     BasicBlock *            m_block;
@@ -689,9 +689,9 @@ public:
 
     inline void             SetPC(BYTE * pc);
     inline BYTE *           GetPC(void) const;
-    inline void             SetOffset(uint32 offset);
-    inline void             ResetOffset(uint32 offset);
-    inline uint32           GetOffset(void) const;
+    inline void             SetOffset(uintptr_t offset);
+    inline void             ResetOffset(uintptr_t offset);
+    inline uintptr_t        GetOffset(void) const;
     inline void             SetBasicBlock(BasicBlock * block);
     inline BasicBlock *     GetBasicBlock(void) const;
     inline void             SetLoop(Loop *loop);
