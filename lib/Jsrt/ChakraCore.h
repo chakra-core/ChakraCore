@@ -54,7 +54,8 @@ typedef enum JsModuleHostInfoKind
     JsModuleHostInfo_HostDefined = 0x02,
     JsModuleHostInfo_NotifyModuleReadyCallback = 0x3,
     JsModuleHostInfo_FetchImportedModuleCallback = 0x4,
-    JsModuleHostInfo_FetchImportedModuleFromScriptCallback = 0x5
+    JsModuleHostInfo_FetchImportedModuleFromScriptCallback = 0x5,
+    JsModuleHostInfo_Url = 0x6
 } JsModuleHostInfoKind;
 
 /// <summary>
