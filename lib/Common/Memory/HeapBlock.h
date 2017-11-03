@@ -70,8 +70,10 @@ struct HeapBucketStats: MemStats
 
 #ifdef DUMP_FRAGMENTATION_STATS
 #define DUMP_FRAGMENTATION_STATS_ONLY(x) x
+#define DUMP_FRAGMENTATION_STATS_IS(x) x
 #else
 #define DUMP_FRAGMENTATION_STATS_ONLY(x)
+#define DUMP_FRAGMENTATION_STATS_IS(x) false
 #endif
 #endif  // ENABLE_MEM_STATS
 

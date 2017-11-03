@@ -1158,152 +1158,244 @@ struct DumpBucketTypeName { static char16 name[]; };
 template<> char16 DumpBucketTypeName<NoBit>::name[] = _u("Normal ");
 template<> char16 DumpBucketTypeName<LeafBit>::name[] = _u("Leaf   ");
 template<> char16 DumpBucketTypeName<FinalizeBit>::name[] = _u("Fin    ");
+#ifdef RECYCLER_WRITE_BARRIER
 template<> char16 DumpBucketTypeName<WithBarrierBit>::name[] = _u("NormWB ");
 template<> char16 DumpBucketTypeName<FinalizableWithBarrierBit>::name[] = _u("FinWB  ");
+#endif
+#ifdef RECYCLER_VISITED_HOST
 template<> char16 DumpBucketTypeName<RecyclerVisitedHostBit>::name[] = _u("Visited");
+#endif
 template <typename TBlockType>
 struct DumpBlockTypeName { static char16 name[]; };
 template<> char16 DumpBlockTypeName<SmallAllocationBlockAttributes>::name[] = _u("(S)");
 template<> char16 DumpBlockTypeName<MediumAllocationBlockAttributes>::name[] = _u("(M)");
-#endif
+#endif  // DUMP_FRAGMENTATION_STATS
 
-template <class TBlockType>
-void PreAggregateBucketStats(TBlockType* list)
+template <ObjectInfoBits TBucketType>
+struct EtwBucketTypeEnum { static uint16 code; };
+template<> uint16 EtwBucketTypeEnum<NoBit>::code = 0;
+template<> uint16 EtwBucketTypeEnum<LeafBit>::code = 1;
+template<> uint16 EtwBucketTypeEnum<FinalizeBit>::code = 2;
+#ifdef RECYCLER_WRITE_BARRIER
+template<> uint16 EtwBucketTypeEnum<WithBarrierBit>::code = 3;
+template<> uint16 EtwBucketTypeEnum<FinalizableWithBarrierBit>::code = 4;
+#endif
+#ifdef RECYCLER_VISITED_HOST
+template<> uint16 EtwBucketTypeEnum<RecyclerVisitedHostBit>::code = 5;
+#endif
+template <typename TBlockType>
+struct EtwBlockTypeEnum { static uint16 code; };
+template<> uint16 EtwBlockTypeEnum<SmallAllocationBlockAttributes>::code = 0;
+template<> uint16 EtwBlockTypeEnum<MediumAllocationBlockAttributes>::code = 1;
+
+class BucketStatsReporter
 {
-    HeapBlockList::ForEach(list, [](auto heapBlock)
+private:
+    static const uint16 LargeBucketNameCode = 2 << 8;
+    static const uint16 TotalBucketNameCode = 3 << 8;
+
+    Recycler* recycler;
+    HeapBucketStats total;
+
+    template <class TBlockAttributes, ObjectInfoBits TBucketType>
+    uint16 BucketNameCode() const
     {
-        // Process blocks not in allocator in pre-pass. They are not put into buckets yet.
-        if (!heapBlock->IsInAllocator())
+        return EtwBucketTypeEnum<TBucketType>::code + (EtwBlockTypeEnum<TBlockAttributes>::code << 8);
+    }
+
+    bool IsMemProtectMode() const
+    {
+        return recycler->IsMemProtectMode();
+    }
+
+public:
+    BucketStatsReporter(Recycler* recycler)
+        : recycler(recycler)
+    {
+        DUMP_FRAGMENTATION_STATS_ONLY(DumpHeader());
+    }
+
+    bool IsEtwEnabled() const
+    {
+        return IS_GCETW_Enabled(GC_BUCKET_STATS);
+    }
+
+    bool IsDumpEnabled() const
+    {
+        return DUMP_FRAGMENTATION_STATS_IS(!!recycler->GetRecyclerFlagsTable().DumpFragmentationStats);
+    }
+
+    bool IsEnabled() const
+    {
+        return IsEtwEnabled() || IsDumpEnabled();
+    }
+
+    template <class TBlockType>
+    void PreAggregateBucketStats(TBlockType* list)
+    {
+        HeapBlockList::ForEach(list, [](TBlockType* heapBlock)
         {
-            heapBlock->heapBucket->PreAggregateBucketStats(heapBlock);
+            // Process blocks not in allocator in pre-pass. They are not put into buckets yet.
+            if (!heapBlock->IsInAllocator())
+            {
+                heapBlock->heapBucket->PreAggregateBucketStats(heapBlock);
+            }
+        });
+    }
+
+    template <class TBlockAttributes, ObjectInfoBits TBucketType>
+    void GetBucketStats(HeapBucketGroup<TBlockAttributes>& group)
+    {
+        auto& bucket = group.template GetBucket<TBucketType>();
+        bucket.AggregateBucketStats();
+
+        const auto& stats = bucket.GetMemStats();
+        total.Aggregate(stats);
+
+        if (stats.totalByteCount > 0)
+        {
+            const uint16 bucketNameCode = BucketNameCode<TBlockAttributes, TBucketType>();
+            const uint16 sizeCat = static_cast<uint16>(bucket.GetSizeCat());
+            GCETW(GC_BUCKET_STATS, (recycler, bucketNameCode, sizeCat, stats.objectByteCount, stats.totalByteCount));
+#ifdef DUMP_FRAGMENTATION_STATS
+            DumpStats<TBlockAttributes, TBucketType>(sizeCat, stats);
+#endif
         }
-    });
-}
+    }
 
-template <class TBlockAttributes, ObjectInfoBits TBucketType>
-void GetBucketStats(HeapBucketGroup<TBlockAttributes>& group, HeapBucketStats& total, bool dumpFragmentationStats)
-{
-    auto& bucket = group.GetBucket<TBucketType>();
-    bucket.AggregateBucketStats();
+    void GetBucketStats(LargeHeapBucket& bucket)
+    {
+        bucket.AggregateBucketStats();
 
-    const auto& stats = bucket.GetMemStats();
-    total.Aggregate(stats);
+        const auto& stats = bucket.GetMemStats();
+        total.Aggregate(stats);
+
+        if (stats.totalByteCount > 0)
+        {
+            const uint16 sizeCat = static_cast<uint16>(bucket.GetSizeCat());
+            GCETW(GC_BUCKET_STATS, (recycler, LargeBucketNameCode, sizeCat, stats.objectByteCount, stats.totalByteCount));
+            DUMP_FRAGMENTATION_STATS_ONLY(DumpLarge(stats));
+        }
+    }
+
+    void Report()
+    {
+        GCETW(GC_BUCKET_STATS, (recycler, TotalBucketNameCode, 0, total.objectByteCount, total.totalByteCount));
+        DUMP_FRAGMENTATION_STATS_ONLY(DumpFooter());
+    }
 
 #ifdef DUMP_FRAGMENTATION_STATS
-    if (dumpFragmentationStats && stats.totalByteCount > 0)
+    void DumpHeader()
     {
-        Output::Print(_u("%-7s%s %4d : "),
-            DumpBucketTypeName<TBucketType>::name, DumpBlockTypeName<TBlockAttributes>::name, bucket.GetSizeCat());
-        stats.Dump();
+        if (IsDumpEnabled())
+        {
+            Output::Print(_u("[FRAG %d] Post-Collection State\n"), ::GetTickCount());
+            Output::Print(_u("---------------------------------------------------------------------------------------\n"));
+            Output::Print(_u("                  #Blk   #Objs    #Fin     ObjBytes   FreeBytes  TotalBytes UsedPercent\n"));
+            Output::Print(_u("---------------------------------------------------------------------------------------\n"));
+        }
+    }
+
+    template <class TBlockAttributes, ObjectInfoBits TBucketType>
+    void DumpStats(uint sizeCat, const HeapBucketStats& stats)
+    {
+        if (IsDumpEnabled())
+        {
+            Output::Print(_u("%-7s%s %4d : "),
+                DumpBucketTypeName<TBucketType>::name, DumpBlockTypeName<TBlockAttributes>::name, sizeCat);
+            stats.Dump();
+        }
+    }
+
+    void DumpLarge(const HeapBucketStats& stats)
+    {
+        if (IsDumpEnabled())
+        {
+            Output::Print(_u("Large           : "));
+            stats.Dump();
+        }
+    }
+
+    void DumpFooter()
+    {
+        if (IsDumpEnabled())
+        {
+            Output::Print(_u("---------------------------------------------------------------------------------------\n"));
+            Output::Print(_u("Total           : "));
+            total.Dump();
+        }
     }
 #endif
-}
-
-void GetBucketStats(LargeHeapBucket& bucket, HeapBucketStats& total, bool dumpFragmentationStats)
-{
-    bucket.AggregateBucketStats();
-
-    const auto& stats = bucket.GetMemStats();
-    total.Aggregate(stats);
-
-#ifdef DUMP_FRAGMENTATION_STATS
-    if (dumpFragmentationStats && stats.totalByteCount > 0)
-    {
-        Output::Print(_u("Large           : "));
-        stats.Dump();
-    }
-#endif
-}
+};
 
 void
 HeapInfo::ReportMemStats()
 {
-    bool dumpFragmentationStats = false;
-
-#ifdef DUMP_FRAGMENTATION_STATS
-    if (recycler->GetRecyclerFlagsTable().DumpFragmentationStats)
-    {
-        dumpFragmentationStats = true;
-        Output::Print(_u("[FRAG %d] Post-Collection State\n"), ::GetTickCount());
-        Output::Print(_u("---------------------------------------------------------------------------------------\n"));
-        Output::Print(_u("                  #Blk   #Objs    #Fin     ObjBytes   FreeBytes  TotalBytes UsedPercent\n"));
-        Output::Print(_u("---------------------------------------------------------------------------------------\n"));
-    }
-#endif
-
-    if (!dumpFragmentationStats)  // TODO: or ETW off
+    BucketStatsReporter report(recycler);
+    if (!report.IsEnabled())
     {
         return;
     }
 
 #if ENABLE_CONCURRENT_GC
     // Pre aggregate pass on all the heap blocks that are not merged into bucket's lists yet
-    PreAggregateBucketStats(this->newNormalHeapBlockList);
-    PreAggregateBucketStats(this->newLeafHeapBlockList);
-    PreAggregateBucketStats(this->newFinalizableHeapBlockList);
+    report.PreAggregateBucketStats(this->newNormalHeapBlockList);
+    report.PreAggregateBucketStats(this->newLeafHeapBlockList);
+    report.PreAggregateBucketStats(this->newFinalizableHeapBlockList);
 #ifdef RECYCLER_WRITE_BARRIER
-    PreAggregateBucketStats(this->newNormalWithBarrierHeapBlockList);
-    PreAggregateBucketStats(this->newFinalizableWithBarrierHeapBlockList);
+    report.PreAggregateBucketStats(this->newNormalWithBarrierHeapBlockList);
+    report.PreAggregateBucketStats(this->newFinalizableWithBarrierHeapBlockList);
 #endif
 #ifdef RECYCLER_VISITED_HOST
-    PreAggregateBucketStats(this->newRecyclerVisitedHostHeapBlockList);
+    report.PreAggregateBucketStats(this->newRecyclerVisitedHostHeapBlockList);
 #endif
 
 #if defined(BUCKETIZE_MEDIUM_ALLOCATIONS) && SMALLBLOCK_MEDIUM_ALLOC
-    PreAggregateBucketStats(this->newMediumNormalHeapBlockList);
-    PreAggregateBucketStats(this->newMediumLeafHeapBlockList);
-    PreAggregateBucketStats(this->newMediumFinalizableHeapBlockList);
+    report.PreAggregateBucketStats(this->newMediumNormalHeapBlockList);
+    report.PreAggregateBucketStats(this->newMediumLeafHeapBlockList);
+    report.PreAggregateBucketStats(this->newMediumFinalizableHeapBlockList);
 #ifdef RECYCLER_WRITE_BARRIER
-    PreAggregateBucketStats(this->newMediumNormalWithBarrierHeapBlockList);
-    PreAggregateBucketStats(this->newMediumFinalizableWithBarrierHeapBlockList);
+    report.PreAggregateBucketStats(this->newMediumNormalWithBarrierHeapBlockList);
+    report.PreAggregateBucketStats(this->newMediumFinalizableWithBarrierHeapBlockList);
 #endif
 #ifdef RECYCLER_VISITED_HOST
-    PreAggregateBucketStats(this->newMediumRecyclerVisitedHostHeapBlockList);
+    report.PreAggregateBucketStats(this->newMediumRecyclerVisitedHostHeapBlockList);
 #endif
 #endif
 #endif  // ENABLE_CONCURRENT_GC
 
-    HeapBucketStats total;
     for (uint i = 0; i < HeapConstants::BucketCount; i++)
     {
-        GetBucketStats<SmallAllocationBlockAttributes, NoBit>(heapBuckets[i], total, dumpFragmentationStats);
-        GetBucketStats<SmallAllocationBlockAttributes, LeafBit>(heapBuckets[i], total, dumpFragmentationStats);
-        GetBucketStats<SmallAllocationBlockAttributes, FinalizeBit>(heapBuckets[i], total, dumpFragmentationStats);
+        report.GetBucketStats<SmallAllocationBlockAttributes, NoBit>(heapBuckets[i]);
+        report.GetBucketStats<SmallAllocationBlockAttributes, LeafBit>(heapBuckets[i]);
+        report.GetBucketStats<SmallAllocationBlockAttributes, FinalizeBit>(heapBuckets[i]);
 #ifdef RECYCLER_WRITE_BARRIER
-        GetBucketStats<SmallAllocationBlockAttributes, WithBarrierBit>(heapBuckets[i], total, dumpFragmentationStats);
-        GetBucketStats<SmallAllocationBlockAttributes, FinalizableWithBarrierBit>(heapBuckets[i], total, dumpFragmentationStats);
+        report.GetBucketStats<SmallAllocationBlockAttributes, WithBarrierBit>(heapBuckets[i]);
+        report.GetBucketStats<SmallAllocationBlockAttributes, FinalizableWithBarrierBit>(heapBuckets[i]);
 #endif
 #ifdef RECYCLER_VISITED_HOST
-        GetBucketStats<SmallAllocationBlockAttributes, RecyclerVisitedHostBit>(heapBuckets[i], total, dumpFragmentationStats);
+        report.GetBucketStats<SmallAllocationBlockAttributes, RecyclerVisitedHostBit>(heapBuckets[i]);
 #endif
     }
 
 #if defined(BUCKETIZE_MEDIUM_ALLOCATIONS) && SMALLBLOCK_MEDIUM_ALLOC
     for (uint i = 0; i < HeapConstants::MediumBucketCount; i++)
     {
-        GetBucketStats<MediumAllocationBlockAttributes, NoBit>(mediumHeapBuckets[i], total, dumpFragmentationStats);
-        GetBucketStats<MediumAllocationBlockAttributes, LeafBit>(mediumHeapBuckets[i], total, dumpFragmentationStats);
-        GetBucketStats<MediumAllocationBlockAttributes, FinalizeBit>(mediumHeapBuckets[i], total, dumpFragmentationStats);
+        report.GetBucketStats<MediumAllocationBlockAttributes, NoBit>(mediumHeapBuckets[i]);
+        report.GetBucketStats<MediumAllocationBlockAttributes, LeafBit>(mediumHeapBuckets[i]);
+        report.GetBucketStats<MediumAllocationBlockAttributes, FinalizeBit>(mediumHeapBuckets[i]);
 #ifdef RECYCLER_WRITE_BARRIER
-        GetBucketStats<MediumAllocationBlockAttributes, WithBarrierBit>(mediumHeapBuckets[i], total, dumpFragmentationStats);
-        GetBucketStats<MediumAllocationBlockAttributes, FinalizableWithBarrierBit>(mediumHeapBuckets[i], total, dumpFragmentationStats);
+        report.GetBucketStats<MediumAllocationBlockAttributes, WithBarrierBit>(mediumHeapBuckets[i]);
+        report.GetBucketStats<MediumAllocationBlockAttributes, FinalizableWithBarrierBit>(mediumHeapBuckets[i]);
 #endif
 #ifdef RECYCLER_VISITED_HOST
-        GetBucketStats<MediumAllocationBlockAttributes, RecyclerVisitedHostBit>(mediumHeapBuckets[i], total, dumpFragmentationStats);
+        report.GetBucketStats<MediumAllocationBlockAttributes, RecyclerVisitedHostBit>(mediumHeapBuckets[i]);
 #endif
     }
 #endif
 
-    GetBucketStats(largeObjectBucket, total, dumpFragmentationStats);
-
-#ifdef DUMP_FRAGMENTATION_STATS
-    if (dumpFragmentationStats)
-    {
-        Output::Print(_u("---------------------------------------------------------------------------------------\n"));
-        Output::Print(_u("Total           : "));
-        total.Dump();
-    }
-#endif
+    report.GetBucketStats(largeObjectBucket);
+    report.Report();
 }
 
 #endif  // ENABLE_MEM_STATS
