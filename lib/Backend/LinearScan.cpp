@@ -2806,18 +2806,30 @@ LinearScan::FindReg(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool force)
                 regsBv = this->linearScanMD.FilterRegIntSizeConstraints(regsBv, regSizeBv);
             }
 
+            BitVector regsBvNoTemps = regsBv;
+
             if (!this->tempRegs.IsEmpty())
             {
-                // avoid the temp reg that we have loaded in this basic block
-                BitVector regsBvTemp = regsBv;
-                regsBvTemp.Minus(this->tempRegs);
-                regIndex = regsBvTemp.GetPrevBit();
+                // Avoid the temp reg that we have loaded in this basic block
+                regsBvNoTemps.Minus(this->tempRegs);
+            }
+            
+            BitVector regsBvNoTempsNoCallee = regsBvNoTemps;
+            // Try to find a non-callee saved reg so that we don't have to save it in prolog
+            regsBvNoTempsNoCallee.Minus(this->calleeSavedRegs);
+
+            // Allocate a non-callee saved reg from the other end of the bit vector so that it can keep live for longer
+            regIndex = regsBvNoTempsNoCallee.GetPrevBit();
+            
+            if (regIndex == BVInvalidIndex)
+            {
+                // If we don't have any non-callee saved reg then get the first available callee saved reg so that prolog can store adjacent registers
+                regIndex = regsBvNoTemps.GetNextBit();
             }
 
             if (regIndex == BVInvalidIndex)
             {
-                // allocate a temp reg from the other end of the bit vector so that it can
-                // keep live for longer.
+                // Everything is used, get the temp from other end
                 regIndex = regsBv.GetPrevBit();
             }
         }

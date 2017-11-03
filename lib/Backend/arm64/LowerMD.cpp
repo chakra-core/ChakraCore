@@ -1085,28 +1085,19 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     short doubleRegCount = 0;
     RegNum firstUnusedDoubleReg = RegNOREG;
 
-    if (!hasTry)
+    for (RegNum reg = FIRST_CALLEE_SAVED_DBL_REG; reg <= LAST_CALLEE_SAVED_DBL_REG; reg = (RegNum)(reg+1))
     {
-        for (RegNum reg = FIRST_CALLEE_SAVED_DBL_REG; reg <= LAST_CALLEE_SAVED_DBL_REG; reg = (RegNum)(reg+1))
+        Assert(LinearScan::IsCalleeSaved(reg));
+        if (this->m_func->m_regsUsed.Test(reg) || hasTry)
         {
-            Assert(LinearScan::IsCalleeSaved(reg));
-            if (this->m_func->m_regsUsed.Test(reg))
-            {
-                regEncode = RegEncode[reg] - RegEncode[RegD0];
-                usedDoubleRegs.Set(regEncode);
-                doubleRegCount++;
-            }
-            else if (firstUnusedDoubleReg == RegNOREG)
-            {
-                firstUnusedDoubleReg = reg;
-            }
+            regEncode = RegEncode[reg] - RegEncode[RegD0];
+            usedDoubleRegs.Set(regEncode);
+            doubleRegCount++;
         }
-    }
-    else
-    {
-        // Set for all the callee saved double registers
-        usedDoubleRegs.SetRange(LAST_CALLEE_SAVED_DBL_REG - FIRST_CALLEE_SAVED_DBL_REG, CALLEE_SAVED_DOUBLE_REG_COUNT);
-        doubleRegCount = CALLEE_SAVED_DOUBLE_REG_COUNT;
+        else if (firstUnusedDoubleReg == RegNOREG)
+        {
+            firstUnusedDoubleReg = reg;
+        }
     }
 
     if (doubleRegCount)
@@ -1307,6 +1298,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
 
             if (src1 != nullptr && src2 != nullptr)
             {
+                AssertMsg(src1->GetReg() + 1 == src2->GetReg(), "Unwind can only encode adjacent STPs");
                 instrStp = IR::Instr::New(Js::OpCode::FSTP,
                     IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spSaveOffset, TyMachReg, this->m_func),
                     src1, src2, this->m_func);
@@ -1339,6 +1331,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
 
             if (src1 != nullptr && src2 != nullptr)
             {
+                AssertMsg(src1->GetReg() + 1 == src2->GetReg(), "Unwind can only encode adjacent STPs");
                 instrStp = IR::Instr::New(Js::OpCode::STP,
                     IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spSaveOffset, TyMachReg, this->m_func),
                     src1, src2, this->m_func);
@@ -1399,6 +1392,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
 
             if (src1 != nullptr && src2 != nullptr)
             {
+                AssertMsg(src1->GetReg() + 1 == src2->GetReg(), "Unwind can only encode adjacent STPs");
                 instrStp = IR::Instr::New(Js::OpCode::STP,
                     IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spSaveOffset, TyMachReg, this->m_func),
                     src1, src2, this->m_func);
@@ -1409,7 +1403,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         }
     }
 
-    Assert(spSaveOffset == regSaveArea);
+    Assert(spSaveOffset == regSaveSize);
 
     if (hasTry)
     {
@@ -1483,7 +1477,6 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     {
         // ToDo (SaAgarwa): Make sure this is correct when we have try catch working
         // EH_STACK_SAVE_REG space was counted as part of stackAdjust and if there is a try EH_STACK_SAVE_REG space and alignPad are not part of m_localStackHeight
-        Assert(stackAdjust != 0);
 
         // Save the reg we used above to save the address of the top of the locals area.
         IR::RegOpnd* ehSaveOpnd = IR::RegOpnd::New(EH_STACK_SAVE_REG, TyMachReg, this->m_func);
