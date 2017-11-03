@@ -27,7 +27,7 @@ const OpcodeList Arm64UnwindCodeGenerator::PrologOpcodes =
 const OpcodeList Arm64UnwindCodeGenerator::EpilogOpcodes =
 {
     { 0xff8003ff, 0x910003ff },         // add sp, sp, #imm
-    { 0xff8003ff, 0xd10003fd },         // sub fp, sp, #imm
+    { 0xff8003ff, 0xd10003bf },         // sub sp, fp, #imm
     { 0xffc003e0, 0xa94003e0 },         // ldp rt, rt2, [sp, #offs]
     { 0xffc003e0, 0xa8c003e0 },         // ldp rt, rt2, [sp], #offs
     { 0xffc003e0, 0xf94003e0 },         // ldr rt, [sp, #offs]

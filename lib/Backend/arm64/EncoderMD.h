@@ -51,7 +51,7 @@ enum InstructionType {
 #define LAST_CALLEE_SAVED_DBL_REG_NUM   15
 
 
-// See comment in LowerEntryInstr: even in a global function, we'll home r0 and r1
+// See comment in LowerEntryInstr: even in a global function, we'll home x0 and x1
 #define MIN_HOMED_PARAM_REGS 2
 
 #define FRAME_REG           RegFP
