@@ -34,7 +34,7 @@ struct DefaultComparer<double>
     inline static hash_t GetHashCode(double d)
     {
         __int64 i64 = *(__int64*)&d;
-        return (uint)((i64>>32) ^ (uint)i64);
+        return (hash_t)((i64>>32) ^ (uint)i64);
     }
 };
 
@@ -51,8 +51,7 @@ struct DefaultComparer<T *>
         // Shifting helps us eliminate any sameness due to our alignment strategy.
         // TODO: This works for Arena memory only. Recycler memory is 16 byte aligned.
         // Find a good universal hash for pointers.
-        uint hash = (uint)(((size_t)i) >> ArenaAllocator::ObjectAlignmentBitShift);
-        return hash;
+        return (hash_t)(((size_t)i) >> ArenaAllocator::ObjectAlignmentBitShift);
     }
 };
 
@@ -64,15 +63,15 @@ struct DefaultComparer<size_t>
         return x == y;
     }
 
-    inline static uint GetHashCode(size_t i)
+    inline static hash_t GetHashCode(size_t i)
     {
 #if _WIN64
         // For 64 bits we want all 64 bits of the pointer to be represented in the hash code.
         uint32 hi = ((UINT_PTR) i >> 32);
         uint32 lo = (uint32) (i & 0xFFFFFFFF);
-        uint hash = hi ^ lo;
+        hash_t hash = hi ^ lo;
 #else
-        uint hash = i;
+        hash_t hash = i;
 #endif
         return hash;
     }
@@ -109,8 +108,7 @@ struct RecyclerPointerComparer
         // Shifting helps us eliminate any sameness due to our alignment strategy.
         // TODO: This works for Recycler memory only. Arena memory is 8 byte aligned.
         // Find a good universal hash for pointers.
-        uint hash = (uint)(((size_t)i) >> HeapConstants::ObjectAllocationShift);
-        return hash;
+        return (hash_t)(((size_t)i) >> HeapConstants::ObjectAllocationShift);
     }
 };
 
@@ -125,7 +123,7 @@ struct RecyclerPointerComparer
 //       FNV-1a above results better but expensive for lookups in small data sets.
 #define CC_HASH_OFFSET_VALUE 0
 #define CC_HASH_LOGIC(hash, byte) \
-    hash ^= _rotl(hash, 7);       \
+    hash = _rotl(hash, 7);        \
     hash ^= byte;
 
 template <>
