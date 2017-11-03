@@ -705,6 +705,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
     IR::Opnd* dst = 0;
     IR::Opnd* src1 = 0;
     IR::Opnd* src2 = 0;
+    int64 immediate;
     int bytes = 0;
     int size;
 
@@ -926,6 +927,29 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
 
     case Js::OpCode::MOVZ:
         bytes = this->EmitMovConstant(Emitter, instr, EmitMovz, EmitMovz64);
+        break;
+
+    case Js::OpCode::MOV_LABEL:
+        dst = instr->GetDst();
+        src1 = instr->GetSrc1();
+        src2 = instr->GetSrc2();
+        Assert(dst->IsRegOpnd());
+        Assert(src1->IsLabelOpnd());
+        Assert(src2->IsImmediateOpnd());
+
+        Assert(dst->GetSize() == 8);
+        immediate = src2->GetImmediateValue(instr->m_func);
+        Assert(immediate == 0 || immediate == 16 || immediate == 32);
+
+        EncodeReloc::New(&m_relocList, RelocTypeLabelChunk, m_pc, src1->AsLabelOpnd()->GetLabel(), m_encoder->m_tempAlloc);
+        if (immediate == 0)
+        {
+            bytes = EmitMovz64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), 0, ULONG(immediate));
+        }
+        else
+        {
+            bytes = EmitMovk64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), 0, ULONG(immediate));
+        }
         break;
 
     case Js::OpCode::MRS_FPCR:
@@ -1435,10 +1459,33 @@ EncoderMD::ApplyRelocs(size_t codeBufferAddress, size_t codeSize, uint* bufferCR
 {
     for (EncodeReloc *reloc = m_relocList; reloc; reloc = reloc->m_next)
     {
-        BYTE * relocAddress = reloc->m_consumerOffset;
+        PULONG relocAddress = PULONG(reloc->m_consumerOffset);
         IR::LabelInstr * labelInstr = reloc->m_relocInstr->AsLabelInstr();
+        ULONG immediate;
+        int shift;
 
-        ArmBranchLinker::LinkRaw((PULONG)relocAddress, (PULONG)labelInstr->GetPC());
+        switch (reloc->m_relocType)
+        {
+        case RelocTypeBranch14:
+        case RelocTypeBranch19:
+        case RelocTypeBranch26:
+            ArmBranchLinker::LinkRaw(relocAddress, (PULONG)labelInstr->GetPC());
+            break;
+
+        case RelocTypeLabel:
+            // no-op?
+            break;
+
+        case RelocTypeLabelChunk:
+            shift = 16 * ((*relocAddress >> 21) & 3);
+            immediate = (ULONG_PTR(labelInstr->GetPC()) >> shift) & 0xffff;
+            *relocAddress = (*relocAddress & ~(0xffff << 5)) | (immediate << 5);
+            break;
+
+        default:
+            // unknown reloc type
+            Assert(false);
+        }
     }
 }
 
