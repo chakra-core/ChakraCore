@@ -149,7 +149,7 @@
     ; Allocate the arg out area, calling chkstk if necessary
     cmp     x3,#4095
     mov     x1, x4
-    bgt     chkstk_call
+    bgt     chkstk_call_catch
     sub     sp,sp,x3
 
     ; Thunk to the jitted code (and don't return)

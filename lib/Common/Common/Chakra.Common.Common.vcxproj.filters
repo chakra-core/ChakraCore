@@ -56,8 +56,5 @@
     <ARMASM Include="$(MSBuildThisFileDirectory)arm\arm_GET_CURRENT_FRAME.asm">
       <Filter>arm</Filter>
     </ARMASM>
-    <ARMASM Include="$(MSBuildThisFileDirectory)arm64\arm64_GET_CURRENT_FRAME.asm">
-      <Filter>arm64</Filter>
-    </ARMASM>
   </ItemGroup>
 </Project>
