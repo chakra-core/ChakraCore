@@ -20284,9 +20284,16 @@ Lowerer::GenerateAuxSlotAdjustmentRequiredCheck(
     IR::IndirOpnd * memSlotCap = IR::IndirOpnd::New(opndInlineCache, (int32)offsetof(Js::InlineCache, u.local.rawUInt16), TyUint16, instrToInsertBefore->m_func);
     InsertMove(regSlotCap, memSlotCap, instrToInsertBefore);
 
+#if _M_ARM64
+    // Arm64 does not have shifts that set flags, so do a test with a fixed mask instead.
+    CompileAssert(Js::InlineCache::CacheLayoutSelectorBitCount == 1);
+    IR::Opnd* bitMaskOpnd = IR::IntConstOpnd::New(~1, TyInt32, this->m_func, true);
+    InsertTestBranch(regSlotCap, bitMaskOpnd, Js::OpCode::BrEq_A, labelHelper, instrToInsertBefore);
+#else
     // SAR regSlotCap, Js::InlineCache::CacheLayoutSelectorBitCount
     IR::IntConstOpnd * constSelectorBitCount = IR::IntConstOpnd::New(Js::InlineCache::CacheLayoutSelectorBitCount, TyUint16, instrToInsertBefore->m_func, /* dontEncode = */ true);
     InsertShiftBranch(Js::OpCode::Shr_A, regSlotCap, regSlotCap, constSelectorBitCount, Js::OpCode::BrNeq_A, true, labelHelper, instrToInsertBefore);
+#endif
 }
 
 void
