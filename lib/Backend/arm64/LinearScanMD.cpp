@@ -357,21 +357,13 @@ LinearScanMD::GenerateBailInForGeneratorYield(IR::Instr * resumeLabelInstr, Bail
 
 uint LinearScanMD::GetRegisterSaveIndex(RegNum reg)
 {
-    if (RegTypes[reg] == TyFloat64)
-    {
-        Assert(reg+1 >= RegD0);
-        return (reg - RegD0) * 2 + RegD0;
-    }
-    else
-    {
-        return reg;
-    }
+    return reg;
 }
 
 // static
 RegNum LinearScanMD::GetRegisterFromSaveIndex(uint offset)
 {
-    return (RegNum)(offset >= RegD0 ? (offset - RegD0) / 2  + RegD0 : offset);
+    return (RegNum)offset;
 }
 
 RegNum LinearScanMD::GetParamReg(IR::SymOpnd *symOpnd, Func *func)
