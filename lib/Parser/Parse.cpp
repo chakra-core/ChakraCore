@@ -3522,7 +3522,7 @@ LFunction :
         break;
 
     case tkIMPORT:
-        if (m_scriptContext->GetConfig()->IsES6ModuleEnabled())
+        if (m_scriptContext->GetConfig()->IsES6ModuleEnabled() && m_scriptContext->GetConfig()->IsESDynamicImportEnabled())
         {
             m_pscan->Scan();
             ChkCurTokNoScan(tkLParen, ERRnoLparen);

@@ -1366,14 +1366,14 @@
   <test>
     <default>
       <files>dynamic-module-functionality.js</files>
-      <compile-flags>-ES6Module -args summary -endargs</compile-flags>
+      <compile-flags>-ES6Module -ESDynamicImport -args summary -endargs</compile-flags>
       <tags>exclude_sanitize_address</tags>
     </default>
   </test>
   <test>
     <default>
       <files>dynamic-module-import-specifier.js</files>
-      <compile-flags>-MuteHostErrorMsg -ES6Module -args summary -endargs</compile-flags>
+      <compile-flags>-MuteHostErrorMsg -ESDynamicImport -ES6Module -args summary -endargs</compile-flags>
       <tags>exclude_sanitize_address</tags>
     </default>
   </test>
