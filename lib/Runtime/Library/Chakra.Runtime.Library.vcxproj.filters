@@ -122,8 +122,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)CustomExternalIterator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)VerifyMarkFalseReference.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JsBuiltInEngineInterfaceExtensionObject.cpp" />
-    <ClCompile Include="LazyJSONString.cpp" />
-    <ClCompile Include="JSONStringifier.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)LazyJSONString.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringifier.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />

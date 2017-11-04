@@ -169,9 +169,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)CustomExternalIterator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptExceptionMetadata.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)VerifyMarkFalseReference.cpp" />
-    <ClCompile Include="JSONStringBuilder.cpp" />
-    <ClCompile Include="JSONStringifier.cpp" />
-    <ClCompile Include="LazyJSONString.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringBuilder.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringifier.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)LazyJSONString.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\DetachedStateBase.h" />
