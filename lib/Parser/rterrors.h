@@ -373,6 +373,9 @@ RT_ERROR_MSG(JSERR_InvalidIteratorObject, 5672, "%s : Invalid iterator object", 
 //Host errors
 RT_ERROR_MSG(JSERR_HostMaybeMissingPromiseContinuationCallback, 5700, "", "Host may not have set any promise continuation callback. Promises may not be executed.", kjstTypeError, 0)
 
+// Built In functions Errors
+RT_ERROR_MSG(JSERR_BuiltInNotAvailable, 5800, "", "Built In functions are not available.", kjstTypeError, 0)
+
 // WebAssembly Errors
 RT_ERROR_MSG(WASMERR_WasmCompileError, 7000, "%s", "Compilation failed.", kjstWebAssemblyCompileError, 0)
 RT_ERROR_MSG(WASMERR_Unreachable, 7001, "", "Unreachable Code", kjstWebAssemblyRuntimeError, 0)

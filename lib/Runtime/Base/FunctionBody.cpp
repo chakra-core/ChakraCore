@@ -3046,7 +3046,7 @@ namespace Js
 
     bool FunctionBody::GetLineCharOffsetFromStartChar(int startCharOfStatement, ULONG* _line, LONG* _charOffset, bool canAllocateLineCache /*= true*/)
     {
-        Assert(!this->GetUtf8SourceInfo()->GetIsLibraryCode());
+        Assert(!this->GetUtf8SourceInfo()->GetIsLibraryCode() || this->IsJsBuiltInCode());
 
         // The following adjusts for where the script is within the document
         ULONG line = this->GetHostStartLine();
@@ -4389,26 +4389,29 @@ namespace Js
 
         GetLineCharOffsetFromStartChar(cchStartOffset, &line, &col, false /*canAllocateLineCache*/);
 
-        WORD color = 0;
-        if (Js::Configuration::Global.flags.DumpLineNoInColor)
+        if (sourceInfo->GetSourceHolder() != ISourceHolder::GetEmptySourceHolder())
         {
-            color = Output::SetConsoleForeground(12);
-        }
-        Output::Print(_u("\n\n  Line %3d: "), line + 1);
-        // Need to match up cchStartOffset to appropriate cbStartOffset given function's cbStartOffset and cchStartOffset
-        size_t i = utf8::CharacterIndexToByteIndex(source, sourceInfo->GetCbLength(), cchStartOffset, this->m_cbStartOffset, this->m_cchStartOffset);
+            WORD color = 0;
+            if (Js::Configuration::Global.flags.DumpLineNoInColor)
+            {
+                color = Output::SetConsoleForeground(12);
+            }
+            Output::Print(_u("\n\n  Line %3d: "), line + 1);
+            // Need to match up cchStartOffset to appropriate cbStartOffset given function's cbStartOffset and cchStartOffset
+            size_t i = utf8::CharacterIndexToByteIndex(source, sourceInfo->GetCbLength(), cchStartOffset, this->m_cbStartOffset, this->m_cchStartOffset);
 
-        size_t lastOffset = StartOffset() + LengthInBytes();
-        for (;i < lastOffset && source[i] != '\n' && source[i] != '\r'; i++)
-        {
-            Output::Print(_u("%C"), source[i]);
-        }
-        Output::Print(_u("\n"));
-        Output::Print(_u("  Col %4d:%s^\n"), col + 1, ((col+1)<10000) ? _u(" ") : _u(""));
+            size_t lastOffset = StartOffset() + LengthInBytes();
+            for (;i < lastOffset && source[i] != '\n' && source[i] != '\r'; i++)
+            {
+                Output::Print(_u("%C"), source[i]);
+            }
+            Output::Print(_u("\n"));
+            Output::Print(_u("  Col %4d:%s^\n"), col + 1, ((col+1)<10000) ? _u(" ") : _u(""));
 
-        if (color != 0)
-        {
-            Output::SetConsoleForeground(color);
+            if (color != 0)
+            {
+                Output::SetConsoleForeground(color);
+            }
         }
     }
 #endif // DBG_DUMP

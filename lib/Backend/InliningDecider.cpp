@@ -69,7 +69,7 @@ bool InliningDecider::InlineIntoInliner(Js::FunctionBody *const inliner) const
         return false;
     }
 
-    if (!Js::DynamicProfileInfo::HasCallSiteInfo(inliner))
+    if (!inliner->GetAnyDynamicProfileInfo()->HasCallSiteInfo(inliner))
     {
         INLINE_TESTTRACE(_u("INLINING: Skip Inline: No call site info\tCaller: %s (#%d)\n"), inliner->GetDisplayName(),
             inliner->GetDebugNumberSet(debugStringBuffer));
@@ -683,8 +683,12 @@ bool InliningDecider::DeciderInlineIntoInliner(Js::FunctionBody * inlinee, Js::F
     {
         return false;
     }
-
-    if (PHASE_FORCE(Js::InlinePhase, this->topFunc) ||
+// Force inline all Js Builtins functions
+// The existing JsBuiltInForceInline flag can work only when we explictly create scriptFunction
+// We can also have methods that we define on the prototype like next of ArrayIterator for which we don't explictly create a script function
+// TODO (megupta) : use forceInline for methods defined on the prototype using ObjectDefineProperty
+    if (inlinee->GetSourceContextId() == Js::Constants::JsBuiltInSourceContextId ||
+        PHASE_FORCE(Js::InlinePhase, this->topFunc) ||
         PHASE_FORCE(Js::InlinePhase, inliner) ||
         PHASE_FORCE(Js::InlinePhase, inlinee))
     {

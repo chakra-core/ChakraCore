@@ -174,6 +174,11 @@ FunctionJITTimeInfo::HasSharedPropertyGuard(Js::PropertyId id) const
     return false;
 }
 
+bool FunctionJITTimeInfo::IsJsBuiltInForceInline() const
+{
+    return this->GetBody()->GetSourceContextId() == Js::Constants::JsBuiltInSourceContextId;
+}
+
 intptr_t
 FunctionJITTimeInfo::GetFunctionInfoAddr() const
 {

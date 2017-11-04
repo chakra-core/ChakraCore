@@ -1434,11 +1434,16 @@ CommonNumber:
         // We know we're going to read from this array. Do the conversion before we try to perform checks on the head segment.
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray(aRight);
 #endif
+
+#ifdef ENABLE_JS_BUILTINS
+        scriptContext->GetLibrary()->EnsureBuiltInEngineIsReady();
+#endif
+
         RecyclableObject* function = GetIteratorFunction(aRight, scriptContext);
         JavascriptMethod method = function->GetEntryPoint();
         if (((JavascriptArray::Is(aRight) &&
               (
-                  method == JavascriptArray::EntryInfo::Values.GetOriginalEntryPoint()
+                  JavascriptLibrary::IsDefaultArrayValuesFunction(function, scriptContext)
                   // Verify that the head segment of the array covers all elements with no gaps.
                   // Accessing an element on the prototype could have side-effects that would invalidate the optimization.
                   && JavascriptArray::UnsafeFromVar(aRight)->GetHead()->next == nullptr
@@ -6379,6 +6384,11 @@ CommonNumber:
         return scriptContext->GetLibrary()->GetNaN();
     }
 
+    Var JavascriptOperators::OP_LdChakraLib(ScriptContext* scriptContext)
+    {
+        return scriptContext->GetLibrary()->GetChakraLib();
+    }
+
     Var JavascriptOperators::OP_LdInfinity(ScriptContext* scriptContext)
     {
         return scriptContext->GetLibrary()->GetPositiveInfinite();
@@ -7178,21 +7188,21 @@ CommonNumber:
         RecyclableObject* object = RecyclableObject::FromVar(instance);
 
         BOOL result;
-        if( indexType == Js::IndexType_Number )
+        if (indexType == Js::IndexType_Number)
         {
-            result = JavascriptOperators::HasItem( object, index );
+            result = JavascriptOperators::HasItem(object, index);
         }
         else
         {
             PropertyId propertyId = propertyRecord->GetPropertyId();
-            result = JavascriptOperators::HasProperty( object, propertyId );
+            result = JavascriptOperators::HasProperty(object, propertyId);
 
 #ifdef TELEMETRY_JSO
             {
                 Assert(indexType != Js::IndexType_JavascriptString);
-                if( indexType == Js::IndexType_PropertyId )
+                if (indexType == Js::IndexType_PropertyId)
                 {
-                    scriptContext->GetTelemetry().GetOpcodeTelemetry().IsIn( instance, propertyId, result != 0 );
+                    scriptContext->GetTelemetry().GetOpcodeTelemetry().IsIn(instance, propertyId, result != 0);
                 }
             }
 #endif

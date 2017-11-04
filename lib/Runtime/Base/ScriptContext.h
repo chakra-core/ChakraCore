@@ -1035,6 +1035,7 @@ private:
 
         void InitializeGlobalObject();
         bool IsIntlEnabled();
+        bool IsJsBuiltInEnabled();
         JavascriptLibrary* GetLibrary() const { return javascriptLibrary; }
         Js::Cache* Cache() const{ return &this->javascriptLibrary->cache; }
         const JavascriptLibraryBase* GetLibraryBase() const { return javascriptLibrary->GetLibraryBase(); }
@@ -1749,6 +1750,8 @@ private:
         virtual intptr_t GetDebugFrameAddressAddr() const override;
         virtual intptr_t GetDebugScriptIdWhenSetAddr() const override;
 #endif
+
+        virtual intptr_t GetChakraLibAddr() const override;
 
 #if ENABLE_NATIVE_CODEGEN
         virtual void AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper) override;

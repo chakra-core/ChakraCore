@@ -9,6 +9,7 @@
 #include "DebugWriter.h"
 #include "RegexStats.h"
 
+#include "ConfigFlagsList.h"
 #include "ByteCode/ByteCodeApi.h"
 #include "Library/ProfileString.h"
 #ifdef ENABLE_SCRIPT_DEBUGGING
@@ -4826,6 +4827,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         contextData.debugStepTypeAddr = GetDebugStepTypeAddr();
         contextData.debugFrameAddressAddr = GetDebugFrameAddressAddr();
         contextData.debugScriptIdWhenSetAddr = GetDebugScriptIdWhenSetAddr();
+        contextData.chakraLibAddr = (intptr_t)GetLibrary()->GetChakraLib();
 #endif
         contextData.numberAllocatorAddr = (intptr_t)GetNumberAllocator();
 #ifdef ENABLE_SIMDJS
@@ -5014,6 +5016,11 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         return (intptr_t)this->threadContext->GetDebugManager()->stepController.GetAddressOfScriptIdWhenSet();
     }
 #endif
+
+    intptr_t Js::ScriptContext::GetChakraLibAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetChakraLib();
+    }
 
     bool ScriptContext::GetRecyclerAllowNativeCodeBumpAllocation() const
     {
@@ -5947,6 +5954,11 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 #endif
         return false;
     }
+    bool ScriptContext::IsJsBuiltInEnabled()
+    {
+        return CONFIG_FLAG(JsBuiltIn);
+    }
+
 
 #ifdef INLINE_CACHE_STATS
     void ScriptContext::LogCacheUsage(Js::PolymorphicInlineCache *cache, bool isGetter, Js::PropertyId propertyId, bool hit, bool collision)

@@ -154,6 +154,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)UriHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ExternalLibraryBase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)IntlEngineInterfaceExtensionObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JsBuiltInEngineInterfaceExtensionObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmLibrary.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptListIterator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)AtomicsObject.cpp" />
@@ -179,6 +180,11 @@
     <ClInclude Include="..\SerializableFunctionFields.h" />
     <ClInclude Include="AtomicsObject.h" />
     <ClInclude Include="CustomExternalIterator.h" />
+    <ClInclude Include="JsBuiltInEngineInterfaceExtensionObject.h" />
+    <ClInclude Include="JsBuiltIn\JsBuiltIn.js.bc.32b.h" />
+    <ClInclude Include="JsBuiltIn\JsBuiltIn.js.bc.64b.h" />
+    <ClInclude Include="JsBuiltIn\JsBuiltIn.js.nojit.bc.32b.h" />
+    <ClInclude Include="JsBuiltIn\JsBuiltIn.js.nojit.bc.64b.h" />
     <ClInclude Include="ExternalLibraryBase.h" />
     <ClInclude Include="IntlEngineInterfaceExtensionObject.h" />
     <ClInclude Include="JavascriptExceptionMetadata.h" />
@@ -339,6 +345,7 @@
     <None Include="amd64\JavascriptFunctionA.S">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </None>
+    <None Include="JsBuiltIn\JsBuiltIn.js" />
     <None Include="InJavascript\GenByteCode.cmd" />
     <None Include="InJavascript\Intl.js" />
     <None Include="ConcatString.inl" />

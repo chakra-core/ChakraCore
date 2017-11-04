@@ -4326,8 +4326,10 @@ HRESULT ByteCodeSerializer::DeserializeFromBufferInternal(ScriptContext * script
 
     auto alloc = scriptContext->SourceCodeAllocator();
     bool isLibraryCode = ((scriptFlags & fscrIsLibraryCode) == fscrIsLibraryCode);
-    int builtInPropertyCount = isLibraryCode ? PropertyIds::_countJSOnlyProperty : TotalNumberOfBuiltInProperties;
-    auto reader = Anew(alloc, ByteCodeBufferReader, scriptContext, buffer, isLibraryCode, builtInPropertyCount);
+    bool isJsBuiltInCode = ((scriptFlags & fscrJsBuiltIn) == fscrJsBuiltIn);
+    bool isLibraryOrJsBuiltInCode = isLibraryCode || isJsBuiltInCode;
+    int builtInPropertyCount = isLibraryOrJsBuiltInCode ? PropertyIds::_countJSOnlyProperty : TotalNumberOfBuiltInProperties;
+    auto reader = Anew(alloc, ByteCodeBufferReader, scriptContext, buffer, isLibraryOrJsBuiltInCode, builtInPropertyCount);
     auto hr = reader->ReadHeader();
     if (FAILED(hr))
     {
@@ -4346,7 +4348,7 @@ HRESULT ByteCodeSerializer::DeserializeFromBufferInternal(ScriptContext * script
         }
 
         sourceInfo = Js::Utf8SourceInfo::NewWithHolder(scriptContext, sourceHolder,
-            reader->sourceCharLength, pinnedSrcInfo, isLibraryCode);
+            reader->sourceCharLength, pinnedSrcInfo, isLibraryOrJsBuiltInCode);
 
         reader->utf8SourceInfo = sourceInfo;
         reader->sourceIndex = scriptContext->SaveSourceNoCopy(sourceInfo, reader->sourceCharLength, false);

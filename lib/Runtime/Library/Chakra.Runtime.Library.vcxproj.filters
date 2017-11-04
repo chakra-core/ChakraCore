@@ -121,9 +121,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)WabtInterface.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CustomExternalIterator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)VerifyMarkFalseReference.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JsBuiltInEngineInterfaceExtensionObject.cpp" />
     <ClCompile Include="LazyJSONString.cpp" />
     <ClCompile Include="JSONStringifier.cpp" />
-    <ClCompile Include="JSONStringBuilder.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
@@ -265,6 +265,11 @@
     <ClInclude Include="LazyJSONString.h" />
     <ClInclude Include="JSONStringifier.h" />
     <ClInclude Include="JSONStringBuilder.h" />
+    <ClInclude Include="JsBuiltInEngineInterfaceExtensionObject.h" />
+    <ClInclude Include="JsBuiltIn\JsBuiltIn.js.bc.32b.h" />
+    <ClInclude Include="JsBuiltIn\JsBuiltIn.js.bc.64b.h" />
+    <ClInclude Include="JsBuiltIn\JsBuiltIn.js.nojit.bc.32b.h" />
+    <ClInclude Include="JsBuiltIn\JsBuiltIn.js.nojit.bc.64b.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ConcatString.inl" />
@@ -279,6 +284,7 @@
     <None Include="amd64\JavascriptFunctionA.S">
       <Filter>amd64</Filter>
     </None>
+    <None Include="JsBuiltIn\JsBuiltIn.js" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="arm">

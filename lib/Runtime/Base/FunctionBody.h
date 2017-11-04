@@ -1291,6 +1291,9 @@ namespace Js
         void SetIsPublicLibraryCode() { m_isPublicLibraryCode = true; }
         bool IsPublicLibraryCode() const { return m_isPublicLibraryCode; }
 
+        void SetIsJsBuiltInCode() { m_isJsBuiltInCode = true; }
+        bool IsJsBuiltInCode() const { return m_isJsBuiltInCode; }
+
 #if DBG
         bool HasValidEntryPoint() const;
 #if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
@@ -1350,6 +1353,7 @@ namespace Js
 
         FieldWithBarrier(bool) m_isTopLevel : 1; // Indicates that this function is top-level function, currently being used in script profiler and debugger
         FieldWithBarrier(bool) m_isPublicLibraryCode: 1; // Indicates this function is public boundary library code that should be visible in JS stack
+        FieldWithBarrier(bool) m_isJsBuiltInCode: 1; // Indicates this function comes from the JS Built In implementation
         FieldWithBarrier(bool) m_canBeDeferred : 1;
         FieldWithBarrier(bool) m_displayNameIsRecyclerAllocated : 1;
 
@@ -2347,6 +2351,8 @@ namespace Js
 
         FieldWithBarrier(bool) m_hasFirstTmpRegister : 1;
         FieldWithBarrier(bool) m_hasActiveReference : 1;
+
+        FieldWithBarrier(bool) m_isJsBuiltInForceInline : 1;
 #if DBG
         FieldWithBarrier(bool) m_isSerialized : 1;
 #endif
@@ -2541,6 +2547,9 @@ namespace Js
         void SetDebuggerScopeIndex(uint32 index) { debuggerScopeIndex = index; }
 
         size_t GetLoopBodyName(uint loopNumber, _Out_writes_opt_z_(sizeInChars) WCHAR* displayName, _In_ size_t sizeInChars);
+
+        void SetJsBuiltInForceInline() { m_isJsBuiltInForceInline = true; }
+        bool IsJsBuiltInForceInline() const { return m_isJsBuiltInForceInline; }
 
         void AllocateLoopHeaders();
         void ReleaseLoopHeaders();
