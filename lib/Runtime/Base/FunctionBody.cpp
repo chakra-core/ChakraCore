@@ -1583,7 +1583,8 @@ namespace Js
       paramScopeSlotArraySize(0),
       m_reparsed(false),
       m_isAsmJsFunction(false),
-      m_tag21(true)
+      m_tag21(true),
+      m_isMethod(false)
 #if DBG
         ,m_wasEverAsmjsMode(false)
         ,scopeObjectSize(0)
@@ -1633,6 +1634,7 @@ namespace Js
       m_isStaticNameFunction(proxy->GetIsStaticNameFunction()),
       m_reportedInParamCount(proxy->GetReportedInParamsCount()),
       m_reparsed(proxy->IsReparsed()),
+      m_isMethod(proxy->IsMethod()),
       m_tag21(true)
 #if DBG
       , m_wasEverAsmjsMode(proxy->m_wasEverAsmjsMode)
@@ -2319,6 +2321,16 @@ namespace Js
                         // (not a function declaration statement).
                         grfscr |= fscrDeferredFncExpression;
                     }
+
+                    if (funcBody->IsMethod())
+                    {
+                        grfscr |= fscrDeferredFncIsMethod;
+                    }
+                    else
+                    {
+                        grfscr &= ~fscrDeferredFncIsMethod;
+                    }
+
                     if (!CONFIG_FLAG(DeferNested) || isDebugOrAsmJsReparse)
                     {
                         grfscr &= ~fscrDeferFncParse; // Disable deferred parsing if not DeferNested, or doing a debug/asm.js re-parse

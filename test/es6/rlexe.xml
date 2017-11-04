@@ -1505,4 +1505,40 @@
       <tags>BugFix</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>DeferParseLambda.js</files>
+      <compile-flags>-off:deferparse -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>DeferParseLambda.js</files>
+      <compile-flags>-off:deferparse -args summary -endargs -deferparse</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>DeferParseLambda.js</files>
+      <compile-flags>-off:deferparse -args summary -endargs -deferparse -forceundodefer</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>DeferParseMethods.js</files>
+      <compile-flags>-off:deferparse -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>DeferParseMethods.js</files>
+      <compile-flags>-off:deferparse -args summary -endargs -deferparse</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>DeferParseMethods.js</files>
+      <compile-flags>-off:deferparse -args summary -endargs -deferparse -forceundodefer</compile-flags>
+    </default>
+  </test>
 </regress-exe>
