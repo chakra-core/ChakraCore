@@ -4,11 +4,13 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-namespace PlatformAgnostic
+typedef unsigned __int32 charcount_t;
+
+namespace ChPlatformAgnostic
 {
-    class SystemInfo
+    class Module
     {
     public:
-        static bool GetMaxVirtualMemory(size_t *totalAS);
+        static bool GetBinaryLocation(char* const path, const charcount_t size, charcount_t* const resultStrLength);
     };
-} // namespace PlatformAgnostic
+} // namespace ChPlatformAgnostic

@@ -57,6 +57,7 @@
     <ClInclude Include="HostConfigFlagsList.h" />
     <ClInclude Include="JITProcessManager.h" />
     <ClInclude Include="MessageQueue.h" />
+    <ClInclude Include="PlatformAgnostic\ChPlatformAgnostic.h" />
     <ClInclude Include="RuntimeThreadData.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="WScriptJsrt.h" />
@@ -69,6 +70,9 @@
     <ClCompile Include="Helpers.cpp" />
     <ClCompile Include="HostConfigFlags.cpp" />
     <ClCompile Include="JITProcessManager.cpp" />
+    <None Include="PlatformAgnostic\Platform\Linux\Module.cpp" />
+    <None Include="PlatformAgnostic\Platform\Unix\Module.cpp" />
+    <ClCompile Include="PlatformAgnostic\Platform\Windows\Module.cpp" />
     <ClCompile Include="RuntimeThreadData.cpp" />
     <ClCompile Include="WScriptJsrt.cpp" />
   </ItemGroup>
