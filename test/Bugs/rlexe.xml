@@ -58,8 +58,6 @@
       <files>randombug.js</files>
       <baseline>randombug.baseline</baseline>
       <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
-      <!-- todo: enable this back (ccrobot) once #2780 is fixed -->
-      <tags>exclude_ccrobot</tags>
     </default>
   </test>
   <test>
