@@ -25,7 +25,7 @@ namespace Js
     }
 
     JavascriptString * LiteralStringWithPropertyStringPtr::
-    NewFromWideString(const uint16_t * wideString, const CharCount charCount, JavascriptLibrary *const library)
+    NewFromWideString(LPCWSTR wideString, const CharCount charCount, JavascriptLibrary *const library)
     {
         Assert(library != nullptr && wideString != nullptr);
 

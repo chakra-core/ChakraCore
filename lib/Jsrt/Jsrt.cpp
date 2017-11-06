@@ -1383,22 +1383,6 @@ CHAKRA_API JsPreventExtension(_In_ JsValueRef object)
     });
 }
 
-static JsErrorCode InternalGetPropertyRecord(Js::ScriptContext * scriptContext,
-    Js::RecyclableObject * key, _Out_ const Js::PropertyRecord ** propertyRecord)
-{
-    Assert(propertyRecord != nullptr);
-    *propertyRecord = nullptr;
-
-    if (key->GetTypeId() != Js::TypeIds_String)
-    {
-        return JsErrorInvalidArgument;
-    }
-
-    scriptContext->GetOrAddPropertyRecord(Js::JavascriptString::FromVar(key),
-        (Js::PropertyRecord const **)propertyRecord);
-    return JsNoError;
-}
-
 CHAKRA_API JsHasOwnPropertyCommon(Js::ScriptContext * scriptContext, _In_ JsValueRef object,
     _In_ const Js::PropertyRecord * propertyRecord, _Out_ bool *hasOwnProperty,
     TTDRecorder& _actionEntryPopper)
@@ -1428,6 +1412,22 @@ CHAKRA_API JsHasOwnProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propert
 }
 
 #ifdef _CHAKRACOREBUILD
+static JsErrorCode InternalGetPropertyRecord(Js::ScriptContext * scriptContext,
+    Js::RecyclableObject * key, _Out_ const Js::PropertyRecord ** propertyRecord)
+{
+    Assert(propertyRecord != nullptr);
+    *propertyRecord = nullptr;
+
+    if (key->GetTypeId() != Js::TypeIds_String)
+    {
+        return JsErrorInvalidArgument;
+    }
+
+    scriptContext->GetOrAddPropertyRecord(Js::JavascriptString::FromVar(key),
+        (Js::PropertyRecord const **)propertyRecord);
+    return JsNoError;
+}
+
 CHAKRA_API JsObjectHasOwnProperty(_In_ JsValueRef object, _In_ JsValueRef propertyId, _Out_ bool *hasOwnProperty)
 {
     return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext,
@@ -4571,7 +4571,7 @@ CHAKRA_API JsCreateStringUtf16(
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
 
         Js::JavascriptString *stringValue = Js::LiteralStringWithPropertyStringPtr::
-            NewFromWideString(content, (CharCount)length, scriptContext->GetLibrary());
+            NewFromWideString((LPCWSTR)content, (CharCount)length, scriptContext->GetLibrary());
 
         PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTCreateString, stringValue->GetSz(), stringValue->GetLength());
 
