@@ -4571,7 +4571,7 @@ CHAKRA_API JsCreateStringUtf16(
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
 
         Js::JavascriptString *stringValue = Js::LiteralStringWithPropertyStringPtr::
-            NewFromWideString((LPCWSTR)content, (CharCount)length, scriptContext->GetLibrary());
+            NewFromWideString(content, (CharCount)length, scriptContext->GetLibrary());
 
         PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTCreateString, stringValue->GetSz(), stringValue->GetLength());
 

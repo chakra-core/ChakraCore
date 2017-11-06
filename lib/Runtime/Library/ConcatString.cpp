@@ -25,7 +25,7 @@ namespace Js
     }
 
     JavascriptString * LiteralStringWithPropertyStringPtr::
-    NewFromWideString(LPCWSTR wideString, const CharCount charCount, JavascriptLibrary *const library)
+    NewFromWideString(const char16 * wideString, const CharCount charCount, JavascriptLibrary *const library)
     {
         Assert(library != nullptr && wideString != nullptr);
 
@@ -55,7 +55,7 @@ namespace Js
             Js::JavascriptError::ThrowOutOfMemoryError(scriptContext);
         }
 
-        js_wmemcpy_s(destString, charCount, (LPWSTR)wideString, charCount);
+        js_wmemcpy_s(destString, charCount, wideString, charCount);
         destString[charCount] = char16(0);
 
         return (JavascriptString*) RecyclerNew(library->GetRecycler(), LiteralStringWithPropertyStringPtr, destString, charCount, library);
