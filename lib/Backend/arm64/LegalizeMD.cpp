@@ -737,18 +737,10 @@ void LegalizeMD::EmitRandomNopBefore(IR::Instr *insertInstr, UINT_PTR rand, RegN
 
 void LegalizeMD::LegalizeLdLabel(IR::Instr * instr, IR::Opnd * opnd)
 {
-    // ARM64_WORKITEM
-    __debugbreak();
-#if 0
-
     Assert(instr->m_opcode == Js::OpCode::LDIMM);
     Assert(opnd->IsLabelOpnd());
 
-    IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOVW, instr->GetDst(), opnd, instr->m_func);
-    instr->InsertBefore(instrMov);
-
-    instr->m_opcode = Js::OpCode::MOVT;
-#endif
+    instr->m_opcode = Js::OpCode::ADR;
 }
 
 bool LegalizeMD::LegalizeDirectBranch(IR::BranchInstr *branchInstr, uint32 branchOffset)
