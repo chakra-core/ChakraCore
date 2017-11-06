@@ -870,6 +870,8 @@ extern BOOL FSyncEnumDirs;
 extern BOOL FNogpfnt;
 extern BOOL FTest;
 extern BOOL FAppendTestNameToExtraCCFlags;
+extern BOOL FNoProgramOutput;
+extern BOOL FOnlyAssertOutput;
 
 #define MAXOPTIONS 60
 extern const char *OptFlags[MAXOPTIONS + 1], *PogoOptFlags[MAXOPTIONS + 1];
