@@ -3357,7 +3357,7 @@ namespace UnifiedRegex
                 // Since loop body is non-deterministic and does not define groups the rewind continuation must be on top of the stack.
                 Cont *top = contStack.Top();
                 Assert(top != 0);
-                Assert(top->tag == Cont::RewindLoopFixed);
+                Assert(top->tag == Cont::ContTag::RewindLoopFixed);
                 RewindLoopFixedCont* rewind = (RewindLoopFixedCont*)top;
                 rewind->tryingBody = false;
             }
@@ -3640,7 +3640,7 @@ namespace UnifiedRegex
                 // Since loop body is non-deterministic and does not define groups the rewind continuation must be on top of the stack.
                 Cont *top = contStack.Top();
                 Assert(top != 0);
-                Assert(top->tag == Cont::RewindLoopFixedGroupLastIteration);
+                Assert(top->tag == Cont::ContTag::RewindLoopFixedGroupLastIteration);
                 RewindLoopFixedGroupLastIterationCont* rewind = (RewindLoopFixedGroupLastIterationCont*)top;
                 rewind->tryingBody = false;
             }
@@ -3736,7 +3736,7 @@ namespace UnifiedRegex
             // Therefore we can simply update the Resume continuation still on the top of the stack with the current
             // input pointer.
             Cont* top = contStack.Top();
-            Assert(top != 0 && top->tag == Cont::Resume);
+            Assert(top != 0 && top->tag == Cont::ContTag::Resume);
             ResumeCont* resume = (ResumeCont*)top;
             resume->origInputOffset = inputOffset;
 
@@ -4508,7 +4508,7 @@ namespace UnifiedRegex
     // RestoreLoopCont
     // ----------------------------------------------------------------------
 
-    inline RestoreLoopCont::RestoreLoopCont(int loopId, LoopInfo& origLoopInfo, Matcher& matcher) : Cont(RestoreLoop), loopId(loopId)
+    inline RestoreLoopCont::RestoreLoopCont(int loopId, LoopInfo& origLoopInfo, Matcher& matcher) : Cont(ContTag::RestoreLoop), loopId(loopId)
     {
         this->origLoopInfo.number = origLoopInfo.number;
         this->origLoopInfo.startInputOffset = origLoopInfo.startInputOffset;
@@ -4960,14 +4960,14 @@ namespace UnifiedRegex
     }
 
 #if DBG
-    const uint32 contTags[] = {
-#define M(O) Cont::O,
+    const Cont::ContTag contTags[] = {
+#define M(O) Cont::ContTag::O,
 #include "RegexContcodes.h"
 #undef M
     };
 
-    const uint32 minContTag = contTags[0];
-    const uint32 maxContTag = contTags[(sizeof(contTags) / sizeof(uint32)) - 1];
+    const Cont::ContTag minContTag = contTags[0];
+    const Cont::ContTag maxContTag = contTags[(sizeof(contTags) / sizeof(Cont::ContTag)) - 1];
 #endif
 
     void Matcher::DoQueryContinue(const uint qcTicks)
@@ -5077,7 +5077,7 @@ namespace UnifiedRegex
             const Cont::ContTag tag = cont->tag;
             switch (tag)
             {
-#define M(O) case Cont::O: if (((O##Cont*)cont)->Exec(*this, input, inputOffset, instPointer, contStack, assertionStack, qcTicks)) return false; break;
+#define M(O) case Cont::ContTag::O: if (((O##Cont*)cont)->Exec(*this, input, inputOffset, instPointer, contStack, assertionStack, qcTicks)) return false; break;
 #include "RegexContcodes.h"
 #undef M
             default:

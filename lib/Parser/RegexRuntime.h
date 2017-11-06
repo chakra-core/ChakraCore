@@ -1575,7 +1575,7 @@ namespace UnifiedRegex
 
     struct Cont : protected Chars<char16>
     {
-        enum ContTag : uint32
+        enum class ContTag : uint8
         {
 #define M(O) O,
 #include "RegexContcodes.h"
@@ -1606,7 +1606,7 @@ namespace UnifiedRegex
         CharCount origInputOffset;
         Label origInstLabel;
 
-        inline ResumeCont(CharCount origInputOffset, Label origInstLabel) : Cont(Resume), origInputOffset(origInputOffset), origInstLabel(origInstLabel) {}
+        inline ResumeCont(CharCount origInputOffset, Label origInstLabel) : Cont(ContTag::Resume), origInputOffset(origInputOffset), origInstLabel(origInstLabel) {}
 
         CONT_BODY
     };
@@ -1627,7 +1627,7 @@ namespace UnifiedRegex
         GroupInfo origGroupInfo;
 
         RestoreGroupCont(int groupId, const GroupInfo &origGroupInfo)
-            : Cont(RestoreGroup), groupId(groupId), origGroupInfo(origGroupInfo)
+            : Cont(ContTag::RestoreGroup), groupId(groupId), origGroupInfo(origGroupInfo)
         {
         }
 
@@ -1638,7 +1638,7 @@ namespace UnifiedRegex
     {
         const int groupId;
 
-        ResetGroupCont(const int groupId) : Cont(ResetGroup), groupId(groupId) {}
+        ResetGroupCont(const int groupId) : Cont(ContTag::ResetGroup), groupId(groupId) {}
 
         CONT_BODY
     };
@@ -1649,7 +1649,7 @@ namespace UnifiedRegex
         const int toGroupId;
 
         ResetGroupRangeCont(const int fromGroupId, const int toGroupId)
-            : Cont(ResetGroupRange), fromGroupId(fromGroupId), toGroupId(toGroupId)
+            : Cont(ContTag::ResetGroupRange), fromGroupId(fromGroupId), toGroupId(toGroupId)
         {
             Assert(fromGroupId >= 0);
             Assert(toGroupId >= 0);
@@ -1664,14 +1664,14 @@ namespace UnifiedRegex
         Label beginLabel;           // label of BeginLoop instruction
         CharCount origInputOffset;  // where to go back to
 
-        inline RepeatLoopCont(Label beginLabel, CharCount origInputOffset) : Cont(RepeatLoop), beginLabel(beginLabel), origInputOffset(origInputOffset) {}
+        inline RepeatLoopCont(Label beginLabel, CharCount origInputOffset) : Cont(ContTag::RepeatLoop), beginLabel(beginLabel), origInputOffset(origInputOffset) {}
 
         CONT_BODY
     };
 
     struct PopAssertionCont : Cont
     {
-        inline PopAssertionCont() : Cont(PopAssertion) {}
+        inline PopAssertionCont() : Cont(ContTag::PopAssertion) {}
 
         CONT_BODY
     };
@@ -1681,7 +1681,7 @@ namespace UnifiedRegex
         Label beginLabel;   // label of BeginLoopFixed instruction
         bool tryingBody;    // true if attempting an additional iteration of loop body, otherwise attempting loop follow
 
-        inline RewindLoopFixedCont(Label beginLabel, bool tryingBody) : Cont(RewindLoopFixed), beginLabel(beginLabel), tryingBody(tryingBody) {}
+        inline RewindLoopFixedCont(Label beginLabel, bool tryingBody) : Cont(ContTag::RewindLoopFixed), beginLabel(beginLabel), tryingBody(tryingBody) {}
 
         CONT_BODY
     };
@@ -1690,7 +1690,7 @@ namespace UnifiedRegex
     {
         Label beginLabel;   // label of LoopSet instruction
 
-        inline RewindLoopSetCont(Label beginLabel) : Cont(RewindLoopSet), beginLabel(beginLabel) {}
+        inline RewindLoopSetCont(Label beginLabel) : Cont(ContTag::RewindLoopSet), beginLabel(beginLabel) {}
 
         CONT_BODY
     };
@@ -1699,7 +1699,7 @@ namespace UnifiedRegex
     {
         Label beginLabel;   // label of LoopSet instruction
 
-        inline RewindLoopSetWithFollowFirstCont(Label beginLabel) : Cont(RewindLoopSetWithFollowFirst), beginLabel(beginLabel) {}
+        inline RewindLoopSetWithFollowFirstCont(Label beginLabel) : Cont(ContTag::RewindLoopSetWithFollowFirst), beginLabel(beginLabel) {}
 
         CONT_BODY
     };
@@ -1709,7 +1709,7 @@ namespace UnifiedRegex
         Label beginLabel;   // label of BeginLoopFixedGroupLastIteration instruction
         bool tryingBody;    // true if attempting an additional iteration of loop body, otherwise attempting loop follow
 
-        inline RewindLoopFixedGroupLastIterationCont(Label beginLabel, bool tryingBody) : Cont(RewindLoopFixedGroupLastIteration), beginLabel(beginLabel), tryingBody(tryingBody) {}
+        inline RewindLoopFixedGroupLastIterationCont(Label beginLabel, bool tryingBody) : Cont(ContTag::RewindLoopFixedGroupLastIteration), beginLabel(beginLabel), tryingBody(tryingBody) {}
 
         CONT_BODY
     };
