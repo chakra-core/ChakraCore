@@ -10,6 +10,12 @@
 #include <fcntl.h>
 #endif
 
+#ifdef __linux__
+#include <sys/sysinfo.h>
+#elif defined(__APPLE__)
+#include <sys/sysctl.h>
+#endif
+
 unsigned int MessageBase::s_messageCount = 0;
 Debugger* Debugger::debugger = nullptr;
 
@@ -525,20 +531,52 @@ Error:
 static HRESULT CreateRuntime(JsRuntimeHandle *runtime)
 {
     HRESULT hr = E_FAIL;
+
+#ifndef _WIN32
+    // On Posix, malloc optimistically returns a non-null address without
+    // checking if it's actually able to back that allocation in memory
+    // Upon use of that address however, if the address space for that allocation
+    // can't be committed, the process is killed
+    // See the man page for malloc
+    //
+    // In order to avoid having to deal with this, we set the memory limit for the
+    // runtime to the size of the physical memory on the system
+    // TODO: 
+    // We could move the following into its own platform agnostic API
+    // but in this case, this is a one-time call thats not applicable
+    // on Windows so decided to leave as is
+    // Additionally, we can probably do better than just limit to the physical memory
+    // size
+
+#if defined(__APPLE__) || defined(__linux__)
+    size_t memoryLimit;
+#ifdef __APPLE__
+    int totalRamHW[] = { CTL_HW, HW_MEMSIZE };
+    size_t length = sizeof(memoryLimit);
+    if (sysctl(totalRamHW, 2, &memoryLimit, &length, NULL, 0) == -1)
+    {
+        memoryLimit = 0;
+    }
+#else
+    struct sysinfo sysInfo;
+    if (sysinfo(&sysInfo) == -1)
+    {
+        memoryLimit = 0;
+    }
+    else
+    {
+        memoryLimit = sysInfo.totalram;
+    }
+#endif // __APPLE__
+#endif // __APPLE__ || __linux
+#endif // !_WIN32
+
     IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, runtime));
 
 #ifndef _WIN32
-    // On Posix, malloc may not return NULL even if there is no
-    // memory left. However, kernel will send SIGKILL to process
-    // in case we use that `not actually available` memory address.
-    // (See posix man malloc and OOM)
-
-    size_t memoryLimit;
-    if (PlatformAgnostic::SystemInfo::GetTotalRam(&memoryLimit))
-    {
-        IfJsErrorFailLog(ChakraRTInterface::JsSetRuntimeMemoryLimit(*runtime, memoryLimit));
-    }
+    IfJsErrorFailLog(ChakraRTInterface::JsSetRuntimeMemoryLimit(*runtime, memoryLimit));
 #endif
+
     hr = S_OK;
 Error:
     return hr;

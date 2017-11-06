@@ -8,28 +8,7 @@ namespace PlatformAgnostic
 {
     class SystemInfo
     {
-
-        class PlatformData
-        {
-            public:
-            size_t totalRam;
-
-            PlatformData();
-        };
-        static PlatformData data;
     public:
-
-        static bool GetTotalRam(size_t *totalRam)
-        {
-            if (SystemInfo::data.totalRam == 0)
-            {
-                return false;
-            }
-
-            *totalRam = SystemInfo::data.totalRam;
-            return true;
-        }
-
         static bool GetMaxVirtualMemory(size_t *totalAS);
 
 #define SET_BINARY_PATH_ERROR_MESSAGE(path, msg) \
