@@ -5,11 +5,7 @@
 #include "Backend.h"
 #include "ARM64UnwindEncoder.h"
 
-UnwindInfoManager::UnwindInfoManager() :
-    m_hasCalls(false),
-    m_homedParamCount(0),
-    m_savedRegMask(0),
-    m_savedDoubleRegMask(0)
+UnwindInfoManager::UnwindInfoManager()
 {
     for (int which = UnwindInvalid; which < UnwindFunctionOffsetCount; which++)
     {
