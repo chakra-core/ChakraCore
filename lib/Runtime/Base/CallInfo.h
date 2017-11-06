@@ -94,7 +94,7 @@ namespace Js
 
         static bool HasNewTarget(CallFlags flags)
         {
-            return flags & CallFlags_NewTarget;
+            return (flags & CallFlags_NewTarget) == CallFlags_NewTarget;
         }
 
         // New target value is passed as an extra argument which is nto included in the Count

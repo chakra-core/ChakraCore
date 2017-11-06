@@ -106,8 +106,8 @@ namespace Js
         static BOOL IsArray(_In_ Var instanceVar);
         static BOOL IsConstructor(Var instanceVar);
         static BOOL IsConcatSpreadable(Var instanceVar);
-        static BOOL IsConstructorSuperCall(Arguments args);
-        static BOOL GetAndAssertIsConstructorSuperCall(Arguments args);
+        static bool IsConstructorSuperCall(Arguments args);
+        static bool GetAndAssertIsConstructorSuperCall(Arguments args);
         static RecyclableObject* ToObject(Var aRight,ScriptContext* scriptContext);
         static Var ToWithObject(Var aRight, ScriptContext* scriptContext);
         static Var OP_LdCustomSpreadIteratorList(Var aRight, ScriptContext* scriptContext);

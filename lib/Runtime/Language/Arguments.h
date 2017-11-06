@@ -200,7 +200,7 @@ namespace Js
 
         bool IsNewCall() const
         {
-            return Info.Flags & CallFlags_New;
+            return (Info.Flags & CallFlags_New) == CallFlags_New;
         }
 
         bool HasNewTarget() const
