@@ -5548,7 +5548,7 @@ namespace Js
     }
     JavascriptString* JavascriptLibrary::CreateEmptyString()
     {
-        return LiteralString::CreateEmptyString(GetStringTypeStatic());
+        return LiteralStringWithPropertyStringPtr::CreateEmptyString(this);
     }
 
     JavascriptRegExp* JavascriptLibrary::CreateEmptyRegExp()

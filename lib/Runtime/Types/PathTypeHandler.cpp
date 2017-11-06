@@ -448,16 +448,14 @@ namespace Js
         // Consider: Implement actual string hash lookup
         Assert(requestContext);
         PropertyRecord const* propertyRecord;
-        char16 const * propertyName = propertyNameString->GetString();
-        charcount_t const propertyNameLength = propertyNameString->GetLength();
 
         if (instance->HasObjectArray())
         {
-            requestContext->GetOrAddPropertyRecord(propertyName, propertyNameLength, &propertyRecord);
+            requestContext->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         }
         else
         {
-            requestContext->FindPropertyRecord(propertyName, propertyNameLength, &propertyRecord);
+            requestContext->FindPropertyRecord(propertyNameString, &propertyRecord);
             if (propertyRecord == nullptr)
             {
                 *value = requestContext->GetMissingPropertyResult();

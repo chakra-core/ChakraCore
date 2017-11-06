@@ -57,15 +57,7 @@ LazyJSONString::ReconstructObject(_In_ JSONObject* valueList) const
         PropertyValueInfo info;
         if (!propertyString || !propertyString->TrySetPropertyFromCache(obj, propertyValue, this->GetScriptContext(), PropertyOperation_None, &info))
         {
-            const PropertyRecord* propertyRecord = nullptr;
-            if (propertyString)
-            {
-                propertyRecord = propertyString->GetPropertyRecord();
-            }
-            else
-            {
-                this->GetScriptContext()->GetOrAddPropertyRecord(propertyName, &propertyRecord);
-            }
+            const PropertyRecord* propertyRecord = propertyName->GetPropertyRecord();
             JavascriptOperators::SetProperty(obj, obj, propertyRecord->GetPropertyId(), propertyValue, &info, this->GetScriptContext());
         }
     }

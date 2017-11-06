@@ -91,19 +91,20 @@ namespace Js
             }
             else
             {
-                char16 buffer[20];
-                ::_itow_s(indexInt, buffer, sizeof(buffer) / sizeof(char16), 10);
-                charcount_t length = JavascriptString::GetBufferLength(buffer);
+                char16 stringBuffer[22];
+
+                int pos = TaggedInt::ToBuffer(indexInt, stringBuffer, _countof(stringBuffer));
+                charcount_t length = (_countof(stringBuffer) - 1) - pos;
                 if (createIfNotFound || preferJavascriptStringOverPropertyRecord)
                 {
                     // When preferring JavascriptString objects, just return a PropertyRecord instead
                     // of creating temporary JavascriptString objects for every negative integer that
                     // comes through here.
-                    scriptContext->GetOrAddPropertyRecord(buffer, length, propertyRecord);
+                    scriptContext->GetOrAddPropertyRecord(stringBuffer + pos, length, propertyRecord);
                 }
                 else
                 {
-                    scriptContext->FindPropertyRecord(buffer, length, propertyRecord);
+                    scriptContext->FindPropertyRecord(stringBuffer + pos, length, propertyRecord);
                 }
                 return IndexType_PropertyId;
             }
@@ -117,27 +118,24 @@ namespace Js
                 // We already know what the PropertyRecord is since it is stored in the JavascriptSymbol itself so just return it.
 
                 *propertyRecord = symbol->GetValue();
-
                 return IndexType_PropertyId;
             }
             else
             {
                 JavascriptString* indexStr = JavascriptConversion::ToString(indexVar, scriptContext);
-                char16 const * propertyName = indexStr->GetString();
-                charcount_t const propertyLength = indexStr->GetLength();
+                *propertyRecord = indexStr->GetPropertyRecord();
 
-                if (!createIfNotFound && preferJavascriptStringOverPropertyRecord)
+                if ((*propertyRecord)->IsNumeric())
                 {
-                    if (JavascriptOperators::TryConvertToUInt32(propertyName, propertyLength, index) &&
-                        (*index != JavascriptArray::InvalidIndex))
-                    {
-                        return IndexType_Number;
-                    }
-
-                    *propertyNameString = indexStr;
-                    return IndexType_JavascriptString;
+                    *index = (*propertyRecord)->GetNumericValue();
+                    return IndexType_Number;
                 }
-                return GetIndexTypeFromString(propertyName, propertyLength, scriptContext, index, propertyRecord, createIfNotFound);
+
+                if (preferJavascriptStringOverPropertyRecord)
+                {
+                    *propertyNameString = indexStr;
+                }
+                return IndexType_PropertyId;
             }
         }
     }
@@ -3741,17 +3739,17 @@ CommonNumber:
             temp = JavascriptOperators::TryFromVar<JavascriptString>(index);
             if (temp && RecyclableObject::Is(instance)) // fastpath for PropertyStrings
             {
-                Assert(temp->GetScriptContext() == scriptContext);
-
-                PropertyString * propertyString = PropertyString::TryFromVar(temp);
-                if (propertyString == nullptr)
+                PropertyString * propertyString = nullptr;
+                if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(temp))
                 {
-                    LiteralStringWithPropertyStringPtr * strWithPtr = LiteralStringWithPropertyStringPtr::TryFromVar(temp);
-                    if (strWithPtr)
-                    {
-                        propertyString = strWithPtr->GetPropertyString();
-                    }
+                    propertyString = (PropertyString*)temp;
                 }
+                else if (VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(temp))
+                {
+                    LiteralStringWithPropertyStringPtr * propStr = (LiteralStringWithPropertyStringPtr *)temp;
+                    propertyString = propStr->GetOrAddPropertyString();
+                }
+
                 if (propertyString != nullptr)
                 {
                     RecyclableObject* object = nullptr;
@@ -4393,13 +4391,8 @@ CommonNumber:
             LiteralStringWithPropertyStringPtr * strWithPtr = LiteralStringWithPropertyStringPtr::TryFromVar(index);
             if (strWithPtr != nullptr)
             {
-                propertyString = strWithPtr->GetPropertyString();
-                if (propertyString == nullptr)
-                {
-                    scriptContext->GetOrAddPropertyRecord(strWithPtr, &propertyRecord);
-                    propertyString = scriptContext->GetPropertyString(propertyRecord->GetPropertyId());
-                    strWithPtr->SetPropertyString(propertyString);
-                }
+                propertyString = strWithPtr->GetOrAddPropertyString();
+                propertyRecord = propertyString->GetPropertyRecord();
             }
         }
 
@@ -10493,15 +10486,8 @@ CommonNumber:
 
     BOOL JavascriptOperators::CheckPrototypesForAccessorOrNonWritableProperty(RecyclableObject* instance, JavascriptString* propertyNameString, Var* setterValue, DescriptorFlags* flags, PropertyValueInfo* info, ScriptContext* scriptContext)
     {
-        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
-        if (Js::BuiltInPropertyRecords::__proto__.Equals(propertyName))
-        {
-            return CheckPrototypesForAccessorOrNonWritablePropertyCore<JavascriptString*, false, false>(instance, propertyNameString, setterValue, flags, info, scriptContext);
-        }
-        else
-        {
-            return CheckPrototypesForAccessorOrNonWritablePropertyCore<JavascriptString*, true, false>(instance, propertyNameString, setterValue, flags, info, scriptContext);
-        }
+        PropertyId propertyId = propertyNameString->GetPropertyRecord()->GetPropertyId();
+        return CheckPrototypesForAccessorOrNonWritableProperty(instance, propertyId, setterValue, flags, info, scriptContext);
     }
 
     BOOL JavascriptOperators::SetProperty(Var instance, RecyclableObject* object, PropertyId propertyId, Var newValue, ScriptContext* requestContext, PropertyOperationFlags propertyOperationFlags)
@@ -10553,4 +10539,3 @@ CommonNumber:
         return constructor;
     }
 } // namespace Js
- 

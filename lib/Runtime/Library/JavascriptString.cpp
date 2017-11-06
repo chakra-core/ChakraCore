@@ -224,6 +224,19 @@ namespace Js
         return JavascriptOperators::GetTypeId(aValue) == TypeIds_String;
     }
 
+    Js::PropertyRecord const * JavascriptString::GetPropertyRecord(bool dontLookupFromDictionary)
+    {
+        if (dontLookupFromDictionary)
+        {
+            return nullptr;
+        }
+
+        Js::PropertyRecord const * propertyRecord;
+        GetScriptContext()->GetOrAddPropertyRecord(GetString(), GetLength(), &propertyRecord);
+
+        return propertyRecord;
+    }
+
     JavascriptString* JavascriptString::FromVar(Var aValue)
     {
         AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptString'");

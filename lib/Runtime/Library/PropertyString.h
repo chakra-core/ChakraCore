@@ -18,9 +18,13 @@ protected:
 
     PropertyString(StaticType* type, const Js::PropertyRecord* propertyRecord);
 public:
+    virtual Js::PropertyRecord const * GetPropertyRecord(bool dontLookupFromDictionary = false) override
+    {
+        return this->propertyRecord;
+    }
+
     PolymorphicInlineCache * GetLdElemInlineCache() const;
     PolymorphicInlineCache * GetStElemInlineCache() const;
-    Js::PropertyRecord const * GetPropertyRecord() const { return this->propertyRecord; }
     PolymorphicInlineCache * CreateBiggerPolymorphicInlineCache(bool isLdElem);
     void RegisterCacheMiss();
     int GetHitRate() const { return this->hitRate; };

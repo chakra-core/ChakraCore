@@ -859,14 +859,7 @@ namespace Js
 
     void ScriptContext::GetOrAddPropertyRecord(_In_ Js::JavascriptString * propertyString, _Out_ PropertyRecord const** propertyRecord)
     {
-        if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(propertyString) && propertyString->GetScriptContext() == this)
-        {
-            *propertyRecord = ((Js::PropertyString*)propertyString)->GetPropertyRecord();
-        }
-        else
-        {
-            GetOrAddPropertyRecord(propertyString->GetString(), propertyString->GetLength(), propertyRecord);
-        }
+        *propertyRecord = propertyString->GetPropertyRecord();
     }
 
     void ScriptContext::GetOrAddPropertyRecord(JsUtil::CharacterBuffer<WCHAR> const& propertyName, PropertyRecord const ** propertyRecord)
@@ -2115,9 +2108,9 @@ namespace Js
 
     void ScriptContext::OnScriptStart(bool isRoot, bool isScript)
     {
-        const bool isForcedEnter = 
+        const bool isForcedEnter =
 #ifdef ENABLE_SCRIPT_DEBUGGING
-            this->GetDebugContext() != nullptr ? this->GetDebugContext()->GetProbeContainer()->isForcedToEnterScriptStart : 
+            this->GetDebugContext() != nullptr ? this->GetDebugContext()->GetProbeContainer()->isForcedToEnterScriptStart :
 #endif
             false;
         if (this->scriptStartEventHandler != nullptr && ((isRoot && threadContext->GetCallRootLevel() == 1) || isForcedEnter))
