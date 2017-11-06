@@ -28,13 +28,13 @@ using namespace PlatformAgnostic::Resource;
 #pragma warning(disable:4838) // conversion from 'int' to 'const char' requires a narrowing conversion
 
 #if DISABLE_JIT
-#if _M_AMD64
+#if TARGET_64
 #include "InJavascript/Intl.js.nojit.bc.64b.h"
 #else
 #include "InJavascript/Intl.js.nojit.bc.32b.h"
 #endif
 #else
-#if _M_AMD64
+#if TARGET_64
 #include "InJavascript/Intl.js.bc.64b.h"
 #else
 #include "InJavascript/Intl.js.bc.32b.h"
