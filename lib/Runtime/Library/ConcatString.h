@@ -29,7 +29,7 @@ namespace Js
         NewFromCString(const char * cString, const CharCount charCount, JavascriptLibrary *const library);
 
         static JavascriptString *
-        NewFromWideString(const uint16_t * wString, const CharCount charCount, JavascriptLibrary *const library);
+        NewFromWideString(LPCWSTR wString, const CharCount charCount, JavascriptLibrary *const library);
 
         static JavascriptString * CreateEmptyString(JavascriptLibrary *const library);
 
