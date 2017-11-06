@@ -19620,7 +19620,7 @@ Lowerer::GenerateLoadStackArgumentByIndex(IR::Opnd *dst, IR::RegOpnd *indexOpnd,
     IR::IndirOpnd *argIndirOpnd = nullptr;
 
     // The stack looks like this:
-    //       [new.target or FrameDisplay] <== EBP + formalParamOffset (4) + callInfo.Count - 1
+    //       [new.target or FrameDisplay] <== EBP + formalParamOffset (4) + callInfo.Count
     //       arguments[n]                 <== EBP + formalParamOffset (4) + n
     //       ...
     //       arguments[1]                 <== EBP + formalParamOffset (4) + 2
@@ -23081,8 +23081,8 @@ Lowerer::GenerateLoadNewTarget(IR::Instr* instrInsert)
 
     InsertAnd(s1, s1, IR::IntConstOpnd::New(0x00FFFFFF, TyUint32, func, true), instrInsert); // callInfo.Count
 
-    // [formalOffset (4) + callInfo.Count -1] points to 'new.target' - see diagram in GenerateLoadStackArgumentByIndex()
-    GenerateLoadStackArgumentByIndex(dstOpnd, s1, instrInsert, -1, m_func);
+    // [formalOffset (4) + callInfo.Count] points to 'new.target' - see diagram in GenerateLoadStackArgumentByIndex()
+    GenerateLoadStackArgumentByIndex(dstOpnd, s1, instrInsert, 0, m_func);
 
     instrInsert->InsertBefore(labelDone);
     instrInsert->Remove();

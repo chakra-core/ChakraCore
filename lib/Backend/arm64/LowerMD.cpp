@@ -1654,23 +1654,11 @@ LowererMD::LoadInputParamCount(IR::Instr * instrInsert, int adjust, bool needFla
     IR::Instr *instr = IR::Instr::New(Js::OpCode::LDR, dstOpnd, srcOpnd,  this->m_func);
     instrInsert->InsertBefore(instr);
 
-    // "Calling eval" means the last param is the frame display, which only the eval built-in should see.
-
-    IR::RegOpnd * evalBitOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::UBFX, evalBitOpnd, dstOpnd, IR::IntConstOpnd::New(BITFIELD(Math::Log2(Js::CallFlags_ExtraArg) + Js::CallInfo::ksizeofCount, 1), TyMachReg, this->m_func), this->m_func);
-    instrInsert->InsertBefore(instr);
-
     // Get the actual call count. On ARM64 top 32 bits are unused
     instr = IR::Instr::New(Js::OpCode::UBFX, dstOpnd, dstOpnd, IR::IntConstOpnd::New(BITFIELD(0, Js::CallInfo::ksizeofCount), TyMachReg, this->m_func), this->m_func);
     instrInsert->InsertBefore(instr);
 
-    if (adjust != 0)
-    {
-        Assert(adjust < 0);
-        Lowerer::InsertAdd(false, evalBitOpnd, evalBitOpnd, IR::IntConstOpnd::New(-adjust, TyUint32, this->m_func), instrInsert);
-    }
-
-    return Lowerer::InsertSub(needFlags, dstOpnd, dstOpnd, evalBitOpnd, instrInsert);
+    return Lowerer::InsertSub(needFlags, dstOpnd, dstOpnd, IR::IntConstOpnd::New(-adjust, TyUint32, this->m_func), instrInsert);
 }
 
 IR::Instr *

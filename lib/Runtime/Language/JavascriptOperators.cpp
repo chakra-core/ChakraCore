@@ -1428,6 +1428,21 @@ CommonNumber:
         return JavascriptOperators::IsArray(instance);
     }
 
+    BOOL JavascriptOperators::IsConstructorSuperCall(Arguments args)
+    {
+        Var newTarget = args.GetNewTarget();
+        return args.IsNewCall() && newTarget != nullptr
+                && !JavascriptOperators::IsUndefined(newTarget);
+    }
+
+    BOOL JavascriptOperators::GetAndAssertIsConstructorSuperCall(Arguments args)
+    {
+        BOOL isCtorSuperCall = JavascriptOperators::IsConstructorSuperCall(args);
+        Assert(isCtorSuperCall || !args.IsNewCall()
+                || args[0] == nullptr || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
+        return isCtorSuperCall;
+    }
+
     Var JavascriptOperators::OP_LdCustomSpreadIteratorList(Var aRight, ScriptContext* scriptContext)
     {
 #if ENABLE_COPYONACCESS_ARRAY
