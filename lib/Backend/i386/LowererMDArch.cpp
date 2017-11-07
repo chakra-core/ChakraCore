@@ -1767,7 +1767,7 @@ LowererMDArch::ChangeToAssignInt64(IR::Instr * instr)
 
         instr->SetSrc1(src1Pair.low);
         instr->SetDst(dstPair.low);
-        LowererMD::ChangeToAssign(instr);
+        LowererMD::ChangeToAssignNoBarrierCheck(instr);  // No WriteBarrier for assigning int64 on x86
         IR::Instr * insertBeforeInstr = instr->m_next;
 
         // Do not store to memory if we wanted less than 8 bytes
@@ -1778,7 +1778,7 @@ LowererMDArch::ChangeToAssignInt64(IR::Instr * instr)
             if (!isLoadFromWordMem)
             {
                 // Normal case, assign source's high bits to dst's high bits
-                Lowerer::InsertMove(dstPair.high, src1Pair.high, insertBeforeInstr);
+                Lowerer::InsertMove(dstPair.high, src1Pair.high, insertBeforeInstr, /*generateWriteBarrier*/false);
             }
             else
             {
@@ -1787,12 +1787,12 @@ LowererMDArch::ChangeToAssignInt64(IR::Instr * instr)
                 if (IRType_IsUnsignedInt(src1->GetType()))
                 {
                     // If this is an unsigned assign from memory, we can simply set the high bits to 0
-                    Lowerer::InsertMove(dstPair.high, IR::IntConstOpnd::New(0, TyInt32, m_func), insertBeforeInstr);
+                    Lowerer::InsertMove(dstPair.high, IR::IntConstOpnd::New(0, TyInt32, m_func), insertBeforeInstr, /*generateWriteBarrier*/false);
                 }
                 else
                 {
                     // If this is a signed assign from memory, we need to extend the sign
-                    IR::Instr* highExtendInstr = Lowerer::InsertMove(dstPair.high, dstPair.low, insertBeforeInstr);
+                    IR::Instr* highExtendInstr = Lowerer::InsertMove(dstPair.high, dstPair.low, insertBeforeInstr, /*generateWriteBarrier*/false);
 
                     highExtendInstr = IR::Instr::New(Js::OpCode::SAR, dstPair.high, dstPair.high, IR::IntConstOpnd::New(31, TyInt32, m_func), m_func);
                     insertBeforeInstr->InsertBefore(highExtendInstr);
