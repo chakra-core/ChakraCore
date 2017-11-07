@@ -37,8 +37,13 @@ private:
 
     struct PropertyListElement
     {
-        PropertyRecord const* propertyRecord;
-        JavascriptString* propertyName;
+        Field(PropertyRecord const*) propertyRecord;
+        Field(JavascriptString*) propertyName;
+
+        PropertyListElement() {}
+        PropertyListElement(const PropertyListElement& other)
+            : propertyRecord(other.propertyRecord), propertyName(other.propertyName)
+        {}
     };
 
     typedef SList<PropertyListElement, Recycler> PropertyList;

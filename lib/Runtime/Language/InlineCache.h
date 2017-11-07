@@ -364,6 +364,7 @@ namespace Js
 
     class PolymorphicInlineCache _ABSTRACT : public FinalizableObject
     {
+        DECLARE_RECYCLER_VERIFY_MARK_FRIEND()
 #ifdef INLINE_CACHE_STATS
         friend class Js::ScriptContext;
 #endif
