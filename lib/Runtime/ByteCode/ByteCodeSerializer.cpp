@@ -69,7 +69,7 @@ namespace Js
 
     // Serialized files are architecture specific
 #ifndef VALIDATE_SERIALIZED_BYTECODE
-#if _M_AMD64
+#if TARGET_64
     const byte magicArchitecture = 64;
 #else
     const byte magicArchitecture = 32;
@@ -223,7 +223,7 @@ enum FunctionFlags
     ffIsAnonymous                      = 0x100000,
     ffUsesArgumentsObject              = 0x200000,
     ffDoScopeObjectCreation            = 0x400000,
-    ffIsParamAndBodyScopeMerged        = 0x800000
+    ffIsParamAndBodyScopeMerged        = 0x800000,
 };
 
 // Kinds of constant
@@ -2064,10 +2064,11 @@ public:
                 | FunctionInfo::Attributes::CapturesThis
                 | FunctionInfo::Attributes::Generator
                 | FunctionInfo::Attributes::ClassConstructor
+                | FunctionInfo::Attributes::BaseConstructorKind
                 | FunctionInfo::Attributes::ClassMethod
                 | FunctionInfo::Attributes::EnclosedByGlobalFunc
                 | FunctionInfo::Attributes::AllowDirectSuper)) == 0,
-            "Only the ErrorOnNew|SuperReference|Lambda|CapturesThis|Generator|ClassConstructor|Async|ClassMember|EnclosedByGlobalFunc|AllowDirectSuper attributes should be set on a serialized function");
+            "Only the ErrorOnNew|SuperReference|Lambda|CapturesThis|Generator|ClassConstructor|BaseConstructorKind|Async|ClassMember|EnclosedByGlobalFunc|AllowDirectSuper attributes should be set on a serialized function");
         if (attributes != FunctionInfo::Attributes::None)
         {
             definedFields.has_attributes = true;
@@ -4325,8 +4326,10 @@ HRESULT ByteCodeSerializer::DeserializeFromBufferInternal(ScriptContext * script
 
     auto alloc = scriptContext->SourceCodeAllocator();
     bool isLibraryCode = ((scriptFlags & fscrIsLibraryCode) == fscrIsLibraryCode);
-    int builtInPropertyCount = isLibraryCode ? PropertyIds::_countJSOnlyProperty : TotalNumberOfBuiltInProperties;
-    auto reader = Anew(alloc, ByteCodeBufferReader, scriptContext, buffer, isLibraryCode, builtInPropertyCount);
+    bool isJsBuiltInCode = ((scriptFlags & fscrJsBuiltIn) == fscrJsBuiltIn);
+    bool isLibraryOrJsBuiltInCode = isLibraryCode || isJsBuiltInCode;
+    int builtInPropertyCount = isLibraryOrJsBuiltInCode ? PropertyIds::_countJSOnlyProperty : TotalNumberOfBuiltInProperties;
+    auto reader = Anew(alloc, ByteCodeBufferReader, scriptContext, buffer, isLibraryOrJsBuiltInCode, builtInPropertyCount);
     auto hr = reader->ReadHeader();
     if (FAILED(hr))
     {
@@ -4345,7 +4348,7 @@ HRESULT ByteCodeSerializer::DeserializeFromBufferInternal(ScriptContext * script
         }
 
         sourceInfo = Js::Utf8SourceInfo::NewWithHolder(scriptContext, sourceHolder,
-            reader->sourceCharLength, pinnedSrcInfo, isLibraryCode);
+            reader->sourceCharLength, pinnedSrcInfo, isLibraryOrJsBuiltInCode);
 
         reader->utf8SourceInfo = sourceInfo;
         reader->sourceIndex = scriptContext->SaveSourceNoCopy(sourceInfo, reader->sourceCharLength, false);

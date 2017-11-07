@@ -74,7 +74,8 @@ LowererMD::IsIndirectBranch(const IR::Instr *instr)
 bool
 LowererMD::IsUnconditionalBranch(const IR::Instr *instr)
 {
-    return instr->m_opcode == Js::OpCode::B;
+    return (instr->m_opcode == Js::OpCode::B || 
+            instr->m_opcode == Js::OpCode::BR);
 }
 
 bool
@@ -270,18 +271,13 @@ LowererMD::LowerCall(IR::Instr * callInstr, Js::ArgSlot argCount)
         if (!callInstr->HasBailOutInfo())
         {
             IR::RegOpnd     *regOpnd = IR::RegOpnd::New(nullptr, RegLR, TyMachPtr, this->m_func);
-            IR::Instr       *movInstr = IR::Instr::New(Js::OpCode::LDIMM, regOpnd, callInstr->GetSrc1(), this->m_func);
+            IR::Instr       *movInstr = IR::Instr::New(Js::OpCode::LDIMM, regOpnd, callInstr->UnlinkSrc1(), this->m_func);
             regOpnd->m_isCallArg = true;
-            callInstr->UnlinkSrc1();
             callInstr->SetSrc1(regOpnd);
             callInstr->InsertBefore(movInstr);
         }
         callInstr->m_opcode = Js::OpCode::BLR;
     }
-
-    // For the sake of the prolog/epilog, note that we're not in a leaf. (Deliberately not
-    // overloading Func::m_isLeaf here, as that's used for other purposes.)
-    this->m_func->m_unwindInfo.SetHasCalls(true);
 
     IR::Opnd *dstOpnd = callInstr->GetDst();
     if (dstOpnd)
@@ -965,16 +961,177 @@ LowererMD::GenerateStackDeallocation(IR::Instr *instr, uint32 allocSize)
     LegalizeMD::LegalizeInstr(spAdjustInstr, true);
 }
 
+
+
+class ARM64StackLayout
+{
+    //
+    // Canonical ARM64 prolog/epilog stack layout (stack grows downward):
+    //
+    //    +-------------------------------------+
+    //    |     caller-allocated parameters     |
+    //    +=====================================+-----> SP at time of call
+    //    |   callee-saved parameters (x0-x7)   |
+    //    +-------------------------------------+
+    //    |    frame pointer + link register    |
+    //    +-------------------------------------+-----> updated FP points here
+    //    |  arguments slot + StackFunctionList |
+    //    +-------------------------------------+
+    //    |   callee-saved registers (x19-x28)  |
+    //    +-------------------------------------+
+    //    |    callee-saved FP regs (d8-d15)    |
+    //    +-------------------------------------+-----> == regOffset
+    //    |            locals area              |
+    //    +-------------------------------------+-----> locals pointer if not SP
+    //    |     caller-allocated parameters     |
+    //    +=====================================+-----> SP points here when done
+    //
+
+public:
+    ARM64StackLayout(Func* func);
+
+    // Getters
+    bool HasCalls() const { return m_hasCalls; }
+    bool HasTry() const { return m_hasTry; }
+    ULONG ArgSlotCount() const { return m_argSlotCount; }
+    BitVector HomedParams() const { return m_homedParams; }
+    BitVector SavedRegisters() const { return m_savedRegisters; }
+    BitVector SavedDoubles() const { return m_savedDoubles; }
+
+    // Locals area sits right after space allocated for argments
+    ULONG LocalsOffset() const { return this->m_argSlotCount * MachRegInt; }
+    ULONG LocalsSize() const { return this->m_localsArea; }
+
+    // Saved non-volatile double registers sit past the locals area
+    ULONG SavedDoublesOffset() const { return this->LocalsOffset() + this->LocalsSize(); }
+    ULONG SavedDoublesSize() const { return this->m_savedDoubles.Count() * MachRegDouble; }
+
+    // Saved non-volatile integer registers sit after the saved doubles
+    ULONG SavedRegistersOffset() const { return this->SavedDoublesOffset() + this->SavedDoublesSize(); }
+    ULONG SavedRegistersSize() const { return this->m_savedRegisters.Count() * MachRegInt; }
+
+    // The argument slot and StackFunctionList entry come after the saved integer registers
+    ULONG ArgSlotOffset() const { return this->SavedRegistersOffset() + this->SavedRegistersSize(); }
+    ULONG ArgSlotSize() const { return this->m_hasCalls ? (2 * MachRegInt) : 0; }
+
+    // Next comes the frame chain
+    ULONG FpLrOffset() const { return this->ArgSlotOffset() + this->ArgSlotSize(); }
+    ULONG FpLrSize() const { return this->m_hasCalls ? (2 * MachRegInt) : 0; }
+
+    // Followed by any homed parameters
+    ULONG HomedParamsOffset() const { return this->FpLrOffset() + this->FpLrSize(); }
+    ULONG HomedParamsSize() const { return this->m_homedParams.Count() * MachRegInt; }
+
+    // And that's the total stack allocation
+    ULONG TotalStackSize() const { return this->HomedParamsOffset() + this->HomedParamsSize(); }
+
+    // The register area is the area at the far end that doesn't include locals or arg slots
+    ULONG RegisterAreaOffset() const { return this->SavedDoublesOffset(); }
+    ULONG RegisterAreaSize() const { return this->TotalStackSize() - this->RegisterAreaOffset(); }
+
+private:
+    bool m_hasCalls;
+    bool m_hasTry;
+    ULONG m_argSlotCount;
+    ULONG m_localsArea;
+    BitVector m_homedParams;
+    BitVector m_savedRegisters;
+    BitVector m_savedDoubles;
+};
+
+ARM64StackLayout::ARM64StackLayout(Func* func)
+    : m_hasCalls(false),
+    m_hasTry(func->HasTry()),
+    m_argSlotCount(func->m_argSlotsForFunctionsCalled),
+    m_localsArea(func->m_localStackHeight)
+{
+    Assert(m_localsArea % 16 == 0);
+    Assert(m_argSlotCount % 2 == 0);
+
+    // Determine integer register saves. Since registers are always saved in pairs, mark both registers
+    // in each pair as being saved even if only one is actually used.
+    for (RegNum curReg = FIRST_CALLEE_SAVED_GP_REG; curReg <= LAST_CALLEE_SAVED_GP_REG; curReg = RegNum(curReg + 2))
+    {
+        Assert(LinearScan::IsCalleeSaved(curReg));
+        RegNum nextReg = RegNum(curReg + 1);
+        Assert(LinearScan::IsCalleeSaved(nextReg));
+        if (func->m_regsUsed.Test(curReg) || func->m_regsUsed.Test(nextReg))
+        {
+            this->m_savedRegisters.SetRange(curReg, 2);
+        }
+    }
+
+    // Determine double register saves. Since registers are always saved in pairs, mark both registers
+    // in each pair as being saved even if only one is actually used.
+    for (RegNum curReg = FIRST_CALLEE_SAVED_DBL_REG; curReg <= LAST_CALLEE_SAVED_DBL_REG; curReg = RegNum(curReg + 2))
+    {
+        Assert(LinearScan::IsCalleeSaved(curReg));
+        RegNum nextReg = RegNum(curReg + 1);
+        Assert(LinearScan::IsCalleeSaved(nextReg));
+        if (func->m_regsUsed.Test(curReg) || func->m_regsUsed.Test(nextReg))
+        {
+            this->m_savedDoubles.SetRange(curReg, 2);
+        }
+    }
+
+    // Determine if there are nested calls.
+    //
+    // If the function has a try, we need to have the same register saves in the prolog as the 
+    // arm64_CallEhFrame helper, so that we can use the same epilog. So always allocate a slot 
+    // for the stack nested func here whether we actually do have any stack nested func or not
+    // TODO-STACK-NESTED-FUNC:  May be use a different arm64_CallEhFrame for when we have 
+    // stack nested func?
+    //
+    // Note that this->TotalStackSize() will not include the homed parameters yet, so we add in
+    // the worst case assumption (homing all NUM_INT_ARG_REGS).
+    this->m_hasCalls = this->m_hasTry || 
+        func->GetHasCalls() ||
+        func->HasAnyStackNestedFunc() || 
+        !LowererMD::IsSmallStack(this->TotalStackSize() + NUM_INT_ARG_REGS * MachRegInt);
+
+    // Home the params. This is done to enable on-the-fly creation of the arguments object,
+    // Dyno bailout code, etc. For non-global functions, that means homing all the param registers
+    // (since we have to assume they all have valid parameters). For the global function,
+    // just home x0 (function object) and x1 (callinfo), which the runtime can't get by any other means.
+    // Note: home all the param registers if there's a try, because that's what the try helpers do.
+    int homedParams = MIN_HOMED_PARAM_REGS;
+    if (func->IsLoopBody() && !this->m_hasTry)
+    {
+        // Jitted loop body takes only one "user" param: the pointer to the local slots.
+        homedParams += 1;
+    }
+    else if (!this->m_hasCalls)
+    {
+        // A leaf function (no calls of any kind, including helpers) may still need its params, or, if it
+        // has none, may still need the function object and call info.
+        homedParams += func->GetInParamsCount();
+    }
+    else
+    {
+        homedParams = NUM_INT_ARG_REGS;
+    }
+
+    // Round up to an even number to keep stack alignment
+    if (homedParams % 2 != 0)
+    {
+        homedParams += 1;
+    }
+    this->m_homedParams.SetRange(0, (homedParams < NUM_INT_ARG_REGS) ? homedParams : NUM_INT_ARG_REGS);
+}
+
 IR::Instr *
 LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
 {
     IR::Instr *insertInstr = entryInstr->m_next;
-    BYTE regEncode;
-    BOOL hasTry = this->m_func->HasTry();
 
     // Begin recording info for later pdata/xdata emission.
-    UnwindInfoManager *unwindInfo = &this->m_func->m_unwindInfo;
-    unwindInfo->Init(this->m_func);
+    this->m_func->m_unwindInfo.Init(this->m_func);
+
+    // Ensure there are an even number of slots for called functions
+    if (this->m_func->m_argSlotsForFunctionsCalled % 2 != 0)
+    {
+        this->m_func->m_argSlotsForFunctionsCalled += 1;
+    }
 
     if (this->m_func->HasInlinee())
     {
@@ -983,544 +1140,206 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         this->m_func->m_localStackHeight += this->m_func->GetInlineeArgumentStackSize();
     }
 
-    //First calculate the local stack
-    if (hasTry)
-    {
-        // If there's a try in the function, then the locals area must be 16-byte-aligned. That's because
-        // the main function will allocate a locals area, and the try helper will allocate the same stack
-        // but without a locals area, and both must be 16-byte aligned. So adding the locals area can't change
-        // the alignment.
-        this->m_func->m_localStackHeight = Math::Align<int32>(this->m_func->m_localStackHeight, MachStackAlignment);
-    }
+    // Ensure the locals area is 16 byte aligned.
+    this->m_func->m_localStackHeight = Math::Align<int32>(this->m_func->m_localStackHeight, MachStackAlignment);
 
-    int32 stackAdjust = this->m_func->m_localStackHeight + (this->m_func->m_argSlotsForFunctionsCalled * MachPtr);
-    if (stackAdjust != 0)
-    {
-        //We might need to call ProbeStack or __chkstk hence mark this function as hasCalls
-        unwindInfo->SetHasCalls(true);
-    }
+    // Now that the localStackHeight has been adjusted, compute the final layout
+    ARM64StackLayout layout(this->m_func);
+    Assert(layout.TotalStackSize() % 16 == 0);
 
-    bool hasStackNestedFuncList = false;
+    // Set the arguments offset relative to the end of the locals area
+    this->m_func->m_ArgumentsOffset = layout.HomedParamsOffset() - (layout.LocalsOffset() + layout.LocalsSize());
 
-    // We need to have the same register saves in the prolog as the arm_CallEhFrame, so that we can use the same
-    // epilog.  So always allocate a slot for the stack nested func here whether we actually do have any stack
-    // nested func or not
-    // TODO-STACK-NESTED-FUNC:  May be use a different arm_CallEhFrame for when we have stack nested func?
-    if (this->m_func->HasAnyStackNestedFunc() || hasTry)
-    {
-        // Just force it to have calls if we have stack nested func so we have a stable
-        // location for the stack nested function list
-        hasStackNestedFuncList = true;
-        unwindInfo->SetHasCalls(true);
-    }
-
-    bool hasCalls = unwindInfo->GetHasCalls();
-
-    // Home the params. This is done to enable on-the-fly creation of the arguments object,
-    // Dyno bailout code, etc. For non-global functions, that means homing all the param registers
-    // (since we have to assume they all have valid parameters). For the global function,
-    // just home r0 (function object) and r1 (callinfo), which the runtime can't get by any other means.
-
-    int32 regSaveArea = 0;
-    BVUnit paramRegs;
-    int homedParamRegCount;
-    // Note: home all the param registers if there's a try, because that's what the try helpers do.
-    if (this->m_func->IsLoopBody() && !hasTry)
-    {
-        // Jitted loop body takes only one "user" param: the pointer to the local slots.
-        homedParamRegCount = MIN_HOMED_PARAM_REGS + 1;
-        Assert(homedParamRegCount <= NUM_INT_ARG_REGS);
-    }
-    else if (!hasCalls)
-    {
-        // A leaf function (no calls of any kind, including helpers) may still need its params, or, if it
-        // has none, may still need the function object and call info.
-        homedParamRegCount = MIN_HOMED_PARAM_REGS + this->m_func->GetInParamsCount();
-        if (homedParamRegCount > NUM_INT_ARG_REGS)
-        {
-            homedParamRegCount = NUM_INT_ARG_REGS;
-        }
-    }
-    else
-    {
-        homedParamRegCount = NUM_INT_ARG_REGS;
-    }
-
-    if ((homedParamRegCount < NUM_INT_ARG_REGS) && (homedParamRegCount % 2 == 1))
-    {
-        // ARM64 stack needs SP to be 16 byte aligned and we use STP to push registers, keep no. of registers even
-        homedParamRegCount += 1;
-    }
-
-    Assert((BYTE)homedParamRegCount == homedParamRegCount);
-    Assert(homedParamRegCount % 2 == 0);
-    unwindInfo->SetHomedParamCount((BYTE)homedParamRegCount);
-
-    for (int i = 0; i < homedParamRegCount; i++)
-    {
-        RegNum reg = (RegNum)(FIRST_INT_ARG_REG + i);
-        paramRegs.Set(RegEncode[reg]);
-        regSaveArea += MachRegInt;
-    }
-
-    // Record used callee-saved registers. This is in the form of a fixed bitfield.
-    BVUnit usedRegs;
-    int32 fpOffsetSize = 0;
-    RegNum firstUnusedReg = RegNOREG;
-    for (RegNum reg = FIRST_CALLEE_SAVED_GP_REG; reg <= LAST_CALLEE_SAVED_GP_REG; reg = (RegNum)(reg+1))
-    {
-        Assert(LinearScan::IsCalleeSaved(reg));
-        // Save all the regs if there's a try, because that's what the try helpers have to do.
-        if (this->m_func->m_regsUsed.Test(reg) || hasTry)
-        {
-            regEncode = RegEncode[reg];
-            usedRegs.Set(regEncode);
-            unwindInfo->SetSavedReg(regEncode);
-            fpOffsetSize += MachRegInt;
-        }
-        else if (firstUnusedReg == RegNOREG)
-        {
-            firstUnusedReg = reg;
-        }
-    }
-
-    BVUnit32 usedDoubleRegs;
-    short doubleRegCount = 0;
-    RegNum firstUnusedDoubleReg = RegNOREG;
-
-    if (!hasTry)
-    {
-        for (RegNum reg = FIRST_CALLEE_SAVED_DBL_REG; reg <= LAST_CALLEE_SAVED_DBL_REG; reg = (RegNum)(reg+1))
-        {
-            Assert(LinearScan::IsCalleeSaved(reg));
-            if (this->m_func->m_regsUsed.Test(reg))
-            {
-                regEncode = RegEncode[reg] - RegEncode[RegD0];
-                usedDoubleRegs.Set(regEncode);
-                doubleRegCount++;
-            }
-            else if (firstUnusedDoubleReg == RegNOREG)
-            {
-                firstUnusedDoubleReg = reg;
-            }
-        }
-    }
-    else
-    {
-        // Set for all the callee saved double registers
-        usedDoubleRegs.SetRange(LAST_CALLEE_SAVED_DBL_REG - FIRST_CALLEE_SAVED_DBL_REG, CALLEE_SAVED_DOUBLE_REG_COUNT);
-        doubleRegCount = CALLEE_SAVED_DOUBLE_REG_COUNT;
-    }
-
-    if (doubleRegCount)
-    {
-        if (doubleRegCount % 2 == 1)
-        {
-            // ARM64 stack needs SP to be 16 byte aligned and we use STP to push registers, keep no. of registers even and push a extra register
-            Assert(firstUnusedDoubleReg != RegNOREG);
-            Assert(!this->m_func->m_regsUsed.Test(firstUnusedDoubleReg));
-            regEncode = RegEncode[firstUnusedDoubleReg] - RegEncode[RegD0];
-            usedDoubleRegs.Set(regEncode);
-            doubleRegCount++;
-        }
-
-        Assert(doubleRegCount % 2 == 0);
-
-        unwindInfo->SetDoubleSavedRegList(usedDoubleRegs.GetWord());
-        fpOffsetSize += (doubleRegCount * MachRegDouble);
-
-        //When there is try-catch we allocate registers even if there are no calls. For scenarios see Win8 487030.
-        //This seems to be overkill but consistent with int registers.
-        AssertMsg(hasCalls || hasTry, "Assigned double registers without any calls?");
-        //Anyway handle it for free builds
-        if (!hasCalls)
-        {
-            this->m_func->m_unwindInfo.SetHasCalls(true);
-            hasCalls = true;
-        }
-    }
-
-    if (hasTry)
-    {
-        // Account for the saved SP on the stack.
-        regSaveArea += 2 * MachRegInt; // EH_STACK_SAVE_REG twice to keep stack aligned
-    }
-
-    /*
-    // ToDo (SaAgarwa): Review if such thing is needed
-    if (hasStackNestedFuncList)
-    {
-        // use r11 it allocate one more slot in the register save area
-        // We will zero it later
-        regEncode = RegEncode[RegR11];
-        usedRegs.Set(regEncode);
-        unwindInfo->SetSavedReg(regEncode);
-        fpOffsetSize += MachRegInt;
-    }
-    */
-
-    regSaveArea += fpOffsetSize;
-
-    this->m_func->m_ArgumentsOffset = fpOffsetSize;
-
-    bool useDynamicStackProbe = (m_func->GetJITFunctionBody()->DoInterruptProbe() || !m_func->GetThreadContextInfo()->IsThreadBound());
-
-    if (useDynamicStackProbe && !hasCalls)
-    {
-        this->m_func->m_unwindInfo.SetHasCalls(true);
-        hasCalls = true;
-    }
-
-    if (hasCalls)
-    {
-        //Update register save area and offset to actual in params
-        //account for frame register setup push {fp,lr} - 2 * MachRegInt
-        regSaveArea += 2 * MachRegInt;
-        this->m_func->m_ArgumentsOffset += 2 * MachRegInt;
-
-        //Note: Separate push instruction is generated for fp & lr push and hence usedRegs mask is not updated with
-        //bit mask for these registers.
-
-        if (usedRegs.Count() % 2 == 1)
-        {
-            // ARM64 stack needs SP to be 16 byte aligned and we use STP to push registers, keep no. of registers even and push a extra register
-            if (firstUnusedReg == RegNOREG)
-            {
-                firstUnusedReg = UNUSED_REG_FOR_STACK_ALIGN;
-            }
-            Assert(!this->m_func->m_regsUsed.Test(firstUnusedReg));
-            regEncode = RegEncode[firstUnusedReg];
-            Assert(!usedRegs.Test(regEncode));
-            usedRegs.Set(regEncode);
-            unwindInfo->SetSavedReg(regEncode);
-            regSaveArea += MachRegInt;
-            fpOffsetSize += MachRegInt;
-            this->m_func->m_ArgumentsOffset += MachRegInt;
-        }
-
-        // Frame size is local var area plus stack arg area, 16-byte-aligned (if we're in a non-leaf).
-        AssertMsg(regSaveArea % MachStackAlignment == 0, "regSaveArea should be aligned");
-
-        int32 bytesOnStack = stackAdjust + regSaveArea;
-        int32 alignPad = Math::Align<int32>(bytesOnStack, MachStackAlignment) - bytesOnStack;
-        if (alignPad)
-        {
-            stackAdjust += alignPad;
-            if (hasTry)
-            {
-                // We have to align the arg area, since the helper won't allocate a locals area.
-                Assert(alignPad % MachRegInt == 0);
-                this->m_func->m_argSlotsForFunctionsCalled += alignPad / MachRegInt;
-            }
-            else
-            {
-                // Treat the alignment pad as part of the locals area, which will put it as far from SP as possible.
-                // Note that we've already handled the change to the stack height above in checking
-                // for dynamic probes.
-                this->m_func->m_localStackHeight += alignPad;
-            }
-        }
-    }
-    else if (usedRegs.Count() % 2 == 1)
-    {
-        // ARM64 stack needs SP to be 16 byte aligned and we use STP to push registers, keep no. of registers even and push a extra register
-        if (firstUnusedReg == RegNOREG)
-        {
-            firstUnusedReg = UNUSED_REG_FOR_STACK_ALIGN;
-        }
-        Assert(!this->m_func->m_regsUsed.Test(firstUnusedReg));
-        regEncode = RegEncode[firstUnusedReg];
-        Assert(!usedRegs.Test(regEncode));
-        usedRegs.Set(regEncode);
-        unwindInfo->SetSavedReg(regEncode);
-        regSaveArea += MachRegInt;
-        fpOffsetSize += MachRegInt;
-        this->m_func->m_ArgumentsOffset += MachRegInt;
-    }
-
-    Assert(fpOffsetSize >= 0);
-    Assert(regSaveArea % MachStackAlignment == 0);
-    Assert(this->m_func->m_ArgumentsOffset % MachStackAlignment == 0);
-    Assert(stackAdjust % MachStackAlignment == 0);
-    Assert(paramRegs.Count() % 2 == 0);
-    Assert(usedRegs.Count() % 2 == 0);
-    Assert(usedDoubleRegs.Count() % 2 == 0);
-
+    // Set the frame height if inlinee arguments are needed
     if (m_func->GetMaxInlineeArgOutSize() != 0)
     {
         // subtracting 2 for frame pointer & return address
         this->m_func->GetJITOutput()->SetFrameHeight(this->m_func->m_localStackHeight + this->m_func->m_ArgumentsOffset - 2 * MachRegInt);
     }
 
-    //Generate StackProbe for large stack's first even before register push
-    bool fStackProbeAfterProlog = IsSmallStack(stackAdjust);
+    // Two situations to handle:
+    //
+    //    1. If total stack allocation < 512, we can do a single allocation up front
+    //    2. Otherwise, we allocate the register area first, save regs, then allocate locals
+    //
+    // Breaking this down, there are two stack allocations
+    //
+    //    Allocation 1 = situation1 ? TotalStackSize : RegisterAreaSize
+    //    Allocation 2 = TotalStackSize - Allocation 1
+    //
+    //    <probe>
+    // prologStart:
+    //    sub   sp, sp, #allocation1
+    //    stp   d8-d15, [sp, #savedDoublesOffset - allocation2]
+    //    stp   x19-x28, [sp, #savedRegistersOffset - allocation2]
+    //    stp   fp, lr, [sp, #fpLrOffset - allocation2]
+    //    add   fp, sp, #fpLrOffset - allocation2
+    //    sub   sp, sp, #allocation2 (might be call to _chkstk)
+    // prologEnd:
+    //    stp   zr, zr, [fp, #argSlotOffset - fpLrOffset]
+    //    stp   x0-x7, [fp, #paramSaveOffset - fpLrOffset]
+    //    add   localsptr, sp, #localsOffset
+    //    sub   ehsave, fp, #fpLrOffset - registerAreaOffset
+    //
+
+    // Determine the 1 or 2 stack allocation sizes
+    ULONG stackAllocation1 = (layout.TotalStackSize() < 512) ? layout.TotalStackSize() : layout.RegisterAreaSize();
+    ULONG stackAllocation2 = layout.TotalStackSize() - stackAllocation1;
+
+//    this->GenerateDebugBreak(insertInstr);
+
+    // Generate a stack probe for large stacks first even before register push
+    bool fStackProbeAfterProlog = IsSmallStack(layout.TotalStackSize());
     if (!fStackProbeAfterProlog)
     {
-        GenerateStackProbe(insertInstr, false); //stack is already aligned in this case
+        GenerateStackProbe(insertInstr, false);
     }
 
-    IR::RegOpnd * scratchOpnd = nullptr;
+    // Create the prologStart label
+    IR::LabelInstr *prologStartLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+    insertInstr->InsertBefore(prologStartLabel);
+    this->m_func->m_unwindInfo.SetFunctionOffsetLabel(UnwindPrologStart, prologStartLabel);
 
-    // Zero-initialize dedicated arguments slot
-    if (hasCalls)
+    // Perform the initial stack allocation (guaranteed to be small)
+    IR::RegOpnd *spOpnd = IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func);
+    if (stackAllocation1 > 0)
     {
-        //r17 acts a dummy zero register which we push to arguments slot
-        //mov r17, 0
-        Assert(scratchOpnd == nullptr);
-        scratchOpnd = IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
-        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOVZ, scratchOpnd, IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
-        insertInstr->InsertBefore(instrMov);
-        IR::LabelInstr *prologStartLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-        insertInstr->InsertBefore(prologStartLabel);
-        this->m_func->m_unwindInfo.SetPrologStartLabel(prologStartLabel->m_id);
-    }
-
-    // SUB SP, SP, #regSaveSize
-    // STP D8 to D15 (in pairs), [sp, +ve offset]
-    // STP X19 to X28 (in pairs), [sp, +ve offset]
-    // STP FP, LR (in pairs), [sp, +ve offset]
-    // ADD FP, SP , #callee saved registers; FP points (SP) to where FP was saved
-    // STP X0 to X7 (in pairs), [sp, +ve offset]
-
-    // homed args * MachRegInt + double registers * MachRegDouble + usedRegs * MachRegInt
-    int32 regSaveSize = (paramRegs.Count() * MachRegInt) + (usedDoubleRegs.Count() * MachRegDouble) + (usedRegs.Count() * MachRegInt);
-
-    if (hasCalls)
-    {
-        regSaveSize += 2 * MachRegInt; // 2 * 8 for fp and lr
-    }
-
-    // sub sp, sp, #regSaveSize
-    if (regSaveSize > 0)
-    {
-        IR::Instr * instrSub = IR::Instr::New(Js::OpCode::SUB,
-            IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func),
-            IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func),
-            IR::IntConstOpnd::New(regSaveSize, TyMachReg, this->m_func), this->m_func);
+        IR::Instr * instrSub = IR::Instr::New(Js::OpCode::SUB, spOpnd, spOpnd, IR::IntConstOpnd::New(stackAllocation1, TyMachReg, this->m_func), this->m_func);
         insertInstr->InsertBefore(instrSub);
     }
 
-    int32 spSaveOffset = 0;
-    IR::Instr * instrStp = nullptr;
-    IR::RegOpnd* src1 = nullptr;
-    IR::RegOpnd* src2 = nullptr;
-
-    // STP D8 to D15 (in pairs), [sp, #spSaveOffset]
-    if (!usedDoubleRegs.IsEmpty())
+    // Save doubles in pairs
+    if (!layout.SavedDoubles().IsEmpty())
     {
-        Assert(src1 == nullptr);
-        Assert(src2 == nullptr);
-        for (RegNum reg = FIRST_CALLEE_SAVED_DBL_REG; reg <= LAST_CALLEE_SAVED_DBL_REG; reg = (RegNum)(reg + 1))
+        ULONG curOffset = layout.SavedDoublesOffset() - stackAllocation2;
+        for (RegNum curReg = FIRST_CALLEE_SAVED_DBL_REG; curReg <= LAST_CALLEE_SAVED_DBL_REG; curReg = RegNum(curReg + 2))
         {
-            Assert(LinearScan::IsCalleeSaved(reg));
-            regEncode = RegEncode[reg] - RegEncode[RegD0];
-            if (usedDoubleRegs.Test(regEncode))
+            if (layout.SavedDoubles().Test(curReg))
             {
-                if (src1 == nullptr)
-                {
-                    src1 = IR::RegOpnd::New(reg, TyMachDouble, this->m_func);
-                }
-                else
-                {
-                    Assert(src2 == nullptr);
-                    src2 = IR::RegOpnd::New(reg, TyMachDouble, this->m_func);
-                }
-            }
-
-            if (src1 != nullptr && src2 != nullptr)
-            {
-                instrStp = IR::Instr::New(Js::OpCode::FSTP,
-                    IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spSaveOffset, TyMachReg, this->m_func),
-                    src1, src2, this->m_func);
+                RegNum nextReg = RegNum(curReg + 1);
+                IR::Instr * instrStp = IR::Instr::New(Js::OpCode::FSTP,
+                    IR::IndirOpnd::New(spOpnd, curOffset, TyMachReg, this->m_func),
+                    IR::RegOpnd::New(curReg, TyMachDouble, this->m_func),
+                    IR::RegOpnd::New(nextReg, TyMachDouble, this->m_func), this->m_func);
                 insertInstr->InsertBefore(instrStp);
-                src1 = src2 = nullptr;
-                spSaveOffset += 2 * MachRegDouble;
+                curOffset += 2 * MachRegDouble;
             }
         }
     }
 
-    // STP X19 to X28 (in pairs), [sp, +ve offset]
-    if (!usedRegs.IsEmpty())
+    // Save integer registers in pairs
+    if (!layout.SavedRegisters().IsEmpty())
     {
-        Assert(src1 == nullptr);
-        Assert(src2 == nullptr);
-        for (RegNum reg = FIRST_CALLEE_SAVED_GP_REG; reg <= LAST_CALLEE_SAVED_GP_REG; reg = (RegNum)(reg + 1))
+        ULONG curOffset = layout.SavedRegistersOffset() - stackAllocation2;
+        for (RegNum curReg = FIRST_CALLEE_SAVED_GP_REG; curReg <= LAST_CALLEE_SAVED_GP_REG; curReg = RegNum(curReg + 2))
         {
-            if (usedRegs.Test(RegEncode[reg]))
+            if (layout.SavedRegisters().Test(curReg))
             {
-                if (src1 == nullptr)
-                {
-                    src1 = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
-                }
-                else
-                {
-                    Assert(src2 == nullptr);
-                    src2 = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
-                }
-            }
-
-            if (src1 != nullptr && src2 != nullptr)
-            {
-                instrStp = IR::Instr::New(Js::OpCode::STP,
-                    IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spSaveOffset, TyMachReg, this->m_func),
-                    src1, src2, this->m_func);
+                RegNum nextReg = RegNum(curReg + 1);
+                IR::Instr * instrStp = IR::Instr::New(Js::OpCode::STP,
+                    IR::IndirOpnd::New(spOpnd, curOffset, TyMachReg, this->m_func),
+                    IR::RegOpnd::New(curReg, TyMachReg, this->m_func),
+                    IR::RegOpnd::New(nextReg, TyMachReg, this->m_func), this->m_func);
                 insertInstr->InsertBefore(instrStp);
-                src1 = src2 = nullptr;
-                spSaveOffset += 2 * MachRegInt;
+                curOffset += 2 * MachRegInt;
             }
         }
     }
 
-    // STP FP, LR (in pairs), [sp, +ve offset]
-    if (hasCalls)
+    // Save FP/LR and compute FP
+    IR::RegOpnd *fpOpnd = fpOpnd = IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func);
+    if (layout.HasCalls())
     {
-        Assert(src1 == nullptr);
-        Assert(src2 == nullptr);
-        instrStp = IR::Instr::New(Js::OpCode::STP, this->m_func);
-        src1 = IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func);
-        src2 = IR::RegOpnd::New(nullptr, RegLR, TyMachReg, this->m_func);
-        instrStp->SetDst(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spSaveOffset, TyMachReg, this->m_func));
-        instrStp->SetSrc1(src1);
-        instrStp->SetSrc2(src2);
+        // STP fp, lr, [sp, #offs]
+        ULONG fpOffset = layout.FpLrOffset() - stackAllocation2;
+        IR::Instr * instrStp = IR::Instr::New(Js::OpCode::STP,
+            IR::IndirOpnd::New(spOpnd, fpOffset, TyMachReg, this->m_func),
+            fpOpnd, IR::RegOpnd::New(RegLR, TyMachReg, this->m_func), this->m_func);
         insertInstr->InsertBefore(instrStp);
-        src1 = src2 = nullptr;
 
-        // Generate mov fp,sp
-        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::ADD,
-            IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func),
-            IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func),
-            IR::IntConstOpnd::New(spSaveOffset, TyMachReg, this->m_func), this->m_func);
-        insertInstr->InsertBefore(instrMov);
-
-        spSaveOffset += 2 * MachRegInt;
+        // ADD fp, sp, #offs
+        IR::Instr * instrAdd = IR::Instr::New(Js::OpCode::ADD, fpOpnd, spOpnd, IR::IntConstOpnd::New(fpOffset, TyMachReg, this->m_func), this->m_func);
+        insertInstr->InsertBefore(instrAdd);
     }
 
-    // STP X0 to X7 (in pairs), [sp, +ve offset]
-    if (!paramRegs.IsEmpty())
+    // Perform the second (potentially large) stack allocation
+    if (stackAllocation2 > 0)
     {
-        Assert(src1 == nullptr);
-        Assert(src2 == nullptr);
-        for (RegNum reg = FIRST_INT_ARG_REG; reg <= LAST_INT_ARG_REG; reg = (RegNum)(reg + 1))
-        {
-            if (paramRegs.Test(RegEncode[reg]))
-            {
-                if (src1 == nullptr)
-                {
-                    src1 = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
-                }
-                else
-                {
-                    Assert(src2 == nullptr);
-                    src2 = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
-                }
-            }
+        // TODO: is the probeSize parameter correct here?
+        this->GenerateStackAllocation(insertInstr, stackAllocation2, stackAllocation1 + stackAllocation2);
+    }
 
-            if (src1 != nullptr && src2 != nullptr)
+    // Future work in the register area should be done FP-relative if it is set up
+    IR::RegOpnd *regAreaBaseOpnd = layout.HasCalls() ? fpOpnd : spOpnd;
+    ULONG regAreaBaseOffset = layout.HasCalls() ? layout.FpLrOffset() : 0;
+
+    // This marks the end of the formal prolog (for EH purposes); create and register a label
+    IR::LabelInstr *prologEndLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+    insertInstr->InsertBefore(prologEndLabel);
+    this->m_func->m_unwindInfo.SetFunctionOffsetLabel(UnwindPrologEnd, prologEndLabel);
+
+    // Zero the argument slot if present
+    IR::RegOpnd *zrOpnd = IR::RegOpnd::New(nullptr, RegZR, TyMachReg, this->m_func);
+    if (layout.ArgSlotSize() > 0)
+    {
+        IR::Instr * instrStp = IR::Instr::New(Js::OpCode::STP,
+            IR::IndirOpnd::New(regAreaBaseOpnd, layout.ArgSlotOffset() - regAreaBaseOffset, TyMachReg, this->m_func),
+            zrOpnd, zrOpnd, this->m_func);
+        insertInstr->InsertBefore(instrStp);
+    }
+
+    // Home parameter registers in pairs
+    if (!layout.HomedParams().IsEmpty())
+    {
+        ULONG curOffset = layout.HomedParamsOffset() - regAreaBaseOffset;
+        for (RegNum curReg = FIRST_INT_ARG_REG; curReg <= LAST_INT_ARG_REG; curReg = RegNum(curReg + 2))
+        {
+            if (layout.HomedParams().Test(curReg))
             {
-                instrStp = IR::Instr::New(Js::OpCode::STP,
-                    IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spSaveOffset, TyMachReg, this->m_func),
-                    src1, src2, this->m_func);
+                RegNum nextReg = RegNum(curReg + 1);
+                IR::Instr * instrStp = IR::Instr::New(Js::OpCode::STP,
+                    IR::IndirOpnd::New(regAreaBaseOpnd, curOffset, TyMachReg, this->m_func),
+                    IR::RegOpnd::New(curReg, TyMachReg, this->m_func),
+                    IR::RegOpnd::New(nextReg, TyMachReg, this->m_func), this->m_func);
                 insertInstr->InsertBefore(instrStp);
-                src1 = src2 = nullptr;
-                spSaveOffset += 2 * MachRegInt;
+                curOffset += 2 * MachRegInt;
             }
         }
     }
 
-    Assert(spSaveOffset == regSaveArea);
-
-    if (hasTry)
+    // Compute the stack save register value if there is a try
+    if (this->m_func->HasTry())
     {
-        // Copy the value of SP before we allocate the locals area. We'll save this value on the stack below.
-        Lowerer::InsertMove(
-            IR::RegOpnd::New(nullptr, EH_STACK_SAVE_REG, TyMachReg, this->m_func),
-            IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func),
-            insertInstr);
+        // SUB EH_STACK_SAVE_REG, fp, #delta
+        IR::RegOpnd* ehOpnd = IR::RegOpnd::New(nullptr, EH_STACK_SAVE_REG, TyMachReg, this->m_func);
+        IR::Instr * instrSub = IR::Instr::New(Js::OpCode::SUB, ehOpnd, fpOpnd, 
+                IR::IntConstOpnd::New(layout.FpLrOffset() - layout.RegisterAreaOffset(), TyMachReg, this->m_func), this->m_func);
+        insertInstr->InsertBefore(instrSub);
     }
 
-    bool isScratchRegisterThrashed = false;
-
-    uint32 probeSize = stackAdjust;
+    // Compute the locals pointer if needed
     RegNum localsReg = this->m_func->GetLocalsPointer();
     if (localsReg != RegSP)
     {
-        Assert(hasTry);
-        // Allocate just the locals area first and let the locals pointer point to it.
-        // This may or may not generate a chkstk.
-        uint32 localsSize = this->m_func->m_localStackHeight;
-
-        // If we have try we made sure m_localStackHeight is aligned above
-        Assert(localsSize % MachStackAlignment == 0);
-
-        if (localsSize != 0)
-        {
-            isScratchRegisterThrashed = GenerateStackAllocation(insertInstr, localsSize, localsSize);
-            stackAdjust -= localsSize;
-            if (!IsSmallStack(localsSize))
-            {
-                // The first alloc generated a chkstk, so we only have to probe (again) if the remaining
-                // allocation also exceeds a page.
-                probeSize = stackAdjust;
-            }
-        }
-
-        // Set up the locals pointer.
-        Lowerer::InsertMove(
-            IR::RegOpnd::New(nullptr, localsReg, TyMachReg, this->m_func),
-            IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func),
-            insertInstr);
+        IR::RegOpnd* localsOpnd = IR::RegOpnd::New(nullptr, EH_STACK_SAVE_REG, TyMachReg, this->m_func);
+        IR::Instr * instrAdd = IR::Instr::New(Js::OpCode::ADD, localsOpnd, spOpnd, IR::IntConstOpnd::New(layout.LocalsOffset(), TyMachReg, this->m_func), this->m_func);
+        insertInstr->InsertBefore(instrAdd);
     }
-
-    // If the stack size is less than a page allocate the stack first & then do the stack probe
-    // stack limit has a buffer of StackOverflowHandlingBufferPages pages and we are okay here
-    if (stackAdjust != 0)
-    {
-        Assert(stackAdjust % MachStackAlignment == 0);
-        isScratchRegisterThrashed = GenerateStackAllocation(insertInstr, stackAdjust, probeSize);
-    }
-
-    if (hasTry)
-    {
-        // ToDo (SaAgarwa): Make sure this is correct when we have try catch working
-        // EH_STACK_SAVE_REG space was counted as part of stackAdjust and if there is a try EH_STACK_SAVE_REG space and alignPad are not part of m_localStackHeight
-        Assert(stackAdjust != 0);
-
-        // Save the reg we used above to save the address of the top of the locals area.
-        IR::RegOpnd* ehSaveOpnd = IR::RegOpnd::New(EH_STACK_SAVE_REG, TyMachReg, this->m_func);
-        IR::Instr * instrPush = IR::Instr::New(Js::OpCode::STP,
-            IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), stackAdjust - (2 * MachRegInt), TyMachReg, this->m_func),
-            ehSaveOpnd, ehSaveOpnd, this->m_func);
-        insertInstr->InsertBefore(instrPush);
-    }
-
-    //As we have already allocated the stack here, we can safely zero out the inlinee argout slot.
 
     // Zero initialize the first inlinee frames argc.
-    if (m_func->GetMaxInlineeArgOutSize() != 0)
+    if (this->m_func->GetMaxInlineeArgOutSize() != 0)
     {
-        // This is done post prolog. so we don't have to emit unwind data.
-        if (scratchOpnd == nullptr || isScratchRegisterThrashed)
-        {
-            scratchOpnd = scratchOpnd ? scratchOpnd : IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func);
-            // mov r17, 0
-            IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOVZ, scratchOpnd, IR::IntConstOpnd::New(0, TyMachReg, this->m_func), this->m_func);
-            insertInstr->InsertBefore(instrMov);
-        }
-
-        // STR argc, r17
+        // STR argc, zr
         StackSym *sym = this->m_func->m_symTable->GetArgSlotSym((Js::ArgSlot) - 1);
         sym->m_isInlinedArgSlot = true;
         sym->m_offset = 0;
-        IR::Opnd *dst = IR::SymOpnd::New(sym, 0, TyMachReg, this->m_func);
-        insertInstr->InsertBefore(IR::Instr::New(Js::OpCode::STR,
-            dst,
-            scratchOpnd,
-            this->m_func));
+        IR::Instr * instrStr = IR::Instr::New(Js::OpCode::STR, IR::SymOpnd::New(sym, 0, TyMachReg, this->m_func), zrOpnd, this->m_func);
+        insertInstr->InsertBefore(instrStr);
     }
 
     // Now do the stack probe for small stacks
     // hasCalls catches the recursion case
-    if ((stackAdjust != 0 || hasCalls) && fStackProbeAfterProlog)
+    if (layout.HasCalls() && fStackProbeAfterProlog)
     {
         GenerateStackProbe(insertInstr, true); //stack is already aligned in this case
     }
@@ -1531,224 +1350,95 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
 IR::Instr *
 LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
 {
-    // See how many params were homed. We don't need to restore the values, just recover the stack space.
+    // Compute the final layout (should match the prolog)
+    ARM64StackLayout layout(this->m_func);
+    Assert(layout.TotalStackSize() % 16 == 0);
 
-    int32 homedParams = this->m_func->m_unwindInfo.GetHomedParamCount();
-    Assert(homedParams % 2 == 0);
+    // Determine the 1 or 2 stack allocation sizes
+    ULONG stackAllocation1 = (layout.TotalStackSize() < 512) ? layout.TotalStackSize() : layout.RegisterAreaSize();
+    ULONG stackAllocation2 = layout.TotalStackSize() - stackAllocation1;
 
-    BOOL hasTry = this->m_func->HasTry();
-    RegNum localsReg = this->m_func->GetLocalsPointer();
-    int32 stackAdjust;
-    if (hasTry)
+    // Mark the start of the epilog
+    IR::LabelInstr* epilogStartLabel = this->EnsureEpilogLabel();
+    this->m_func->m_unwindInfo.SetFunctionOffsetLabel(UnwindEpilogStart, epilogStartLabel);
+
+    IR::RegOpnd *spOpnd = IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func);
+    IR::RegOpnd *fpOpnd = IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func);
+
+    // Undo the last stack allocation, unless we have calls (in which case we recover SP from FP)
+    if (stackAllocation2 > 0 && !layout.HasCalls())
     {
-        if (this->m_func->DoOptimizeTry())
+        GenerateStackDeallocation(exitInstr, stackAllocation2);
+    }
+
+    // Recover FP and LR
+    if (layout.HasCalls())
+    {
+        // SUB fp, sp, #offs
+        ULONG fpOffset = layout.FpLrOffset();
+        IR::Instr * instrSub = IR::Instr::New(Js::OpCode::SUB, spOpnd, fpOpnd, IR::IntConstOpnd::New(fpOffset, TyMachReg, this->m_func), this->m_func);
+        exitInstr->InsertBefore(instrSub);
+        Legalize(instrSub);
+
+        // LDP fp, lr, [sp, #offs]
+        IR::Instr * instrLdp = IR::Instr::New(Js::OpCode::LDP, fpOpnd,
+            IR::IndirOpnd::New(spOpnd, fpOffset, TyMachReg, this->m_func),
+            IR::RegOpnd::New(RegLR, TyMachReg, this->m_func), this->m_func);
+        exitInstr->InsertBefore(instrLdp);
+    }
+
+    // Recover integer registers in pairs
+    if (!layout.SavedRegisters().IsEmpty())
+    {
+        ULONG curOffset = layout.SavedRegistersOffset() - stackAllocation2 + layout.SavedRegistersSize();
+        for (RegNum curReg = RegNum(LAST_CALLEE_SAVED_GP_REG - 1); curReg >= FIRST_CALLEE_SAVED_GP_REG; curReg = RegNum(curReg - 2))
         {
-            this->EnsureEpilogLabel();
-        }
-        // We'll only deallocate the arg out area then restore SP from the value saved on the stack.
-        stackAdjust = (this->m_func->m_argSlotsForFunctionsCalled * MachRegInt);
-    }
-    else if (localsReg != RegSP)
-    {
-        // We're going to restore SP from the locals pointer and then deallocate only the locals area.
-        Lowerer::InsertMove(
-            IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func),
-            IR::RegOpnd::New(nullptr, localsReg, TyMachReg, this->m_func),
-            exitInstr);
-        stackAdjust = this->m_func->m_localStackHeight;
-    }
-    else
-    {
-        // We're going to deallocate the locals and out arg area at once.
-        stackAdjust = (this->m_func->m_argSlotsForFunctionsCalled * MachRegInt) + this->m_func->m_localStackHeight;
-    }
-
-    Assert(stackAdjust % MachStackAlignment == 0);
-
-    // Record used callee-saved registers. This is in the form of a fixed bitfield.
-
-    BVUnit usedRegs;
-    RegNum firstUnusedReg = RegNOREG;
-    for (RegNum reg = FIRST_CALLEE_SAVED_GP_REG; reg <= LAST_CALLEE_SAVED_GP_REG; reg = (RegNum)(reg+1))
-    {
-        Assert(LinearScan::IsCalleeSaved(reg));
-        if (this->m_func->m_regsUsed.Test(reg) || hasTry)
-        {
-            usedRegs.Set(RegEncode[reg]);
-        }
-        else if (firstUnusedReg == RegNOREG)
-        {
-            firstUnusedReg = reg;
-        }
-    }
-
-    /*
-    // ToDo (SaAgarwa): Review if such thing is needed
-    // We need to have the same register saves in the prolog as the arm_CallEhFrame, so that we can use the same
-    // epilog.  So always allocate a slot for the stack nested func here whether we actually do have any stack
-    // nested func or not
-    // TODO-STACK-NESTED-FUNC:  May be use a different arm_CallEhFrame for when we have stack nested func?
-    if (this->m_func->HasAnyStackNestedFunc() || hasTry)
-    {
-        usedRegs.Set(RegEncode[RegR11]);
-    }
-    */
-
-    bool hasCalls = this->m_func->m_unwindInfo.GetHasCalls();
-
-    if (usedRegs.Count() % 2 == 1)
-    {
-        if (firstUnusedReg == RegNOREG)
-        {
-            firstUnusedReg = UNUSED_REG_FOR_STACK_ALIGN;
-        }
-
-        BYTE regEncode = RegEncode[firstUnusedReg];
-        Assert(this->m_func->m_unwindInfo.TestSavedReg(regEncode));
-        Assert(!usedRegs.Test(regEncode));
-        usedRegs.Set(regEncode);
-    }
-
-    BVUnit32 savedDoubleRegs(this->m_func->m_unwindInfo.GetDoubleSavedRegList());
-
-    if (usedRegs.IsEmpty() && savedDoubleRegs.IsEmpty() && !hasCalls)
-    {
-        // Didn't had call, no registers where save, include homedParams while deallocating stack
-        stackAdjust += homedParams * MachRegInt;
-    }
-
-    Assert(stackAdjust % MachStackAlignment == 0);
-
-    // 1. Deallocate the stack. In the case of a leaf function with no saved registers, let this
-    // deallocation also account for the homed params.
-
-    if (stackAdjust != 0)
-    {
-        GenerateStackDeallocation(exitInstr, stackAdjust);
-    }
-
-    // This is the stack size that the pdata cares about.
-    this->m_func->m_unwindInfo.SetStackDepth(stackAdjust);
-
-    if (hasTry)
-    {
-        // Now restore the locals area by popping the stack.
-        IR::Instr * instrStp = IR::Instr::New(Js::OpCode::LDP, this->m_func);
-        instrStp->SetSrc1(IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), 0, TyMachReg, this->m_func));
-        instrStp->SetDst(IR::RegOpnd::New(nullptr, EH_STACK_SAVE_REG, TyMachReg, this->m_func));
-        instrStp->SetSrc2(IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachReg, this->m_func));
-        exitInstr->InsertBefore(instrStp);
-
-        Lowerer::InsertMove(
-            IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func),
-            IR::RegOpnd::New(nullptr, EH_STACK_SAVE_REG, TyMachReg, this->m_func),
-            exitInstr);
-    }
-
-    int32 spOffset = 0;
-    IR::RegOpnd* reg1Opnd = nullptr;
-    IR::RegOpnd* reg2Opnd = nullptr;
-
-    if (!savedDoubleRegs.IsEmpty())
-    {
-        Assert(savedDoubleRegs.Count() % 2 == 0);
-
-        for (RegNum reg = FIRST_CALLEE_SAVED_DBL_REG; reg <= LAST_CALLEE_SAVED_DBL_REG; reg = (RegNum)(reg + 1))
-        {
-            Assert(LinearScan::IsCalleeSaved(reg));
-            Assert(reg != RegLR);
-            if (savedDoubleRegs.Test(RegEncode[reg] - RegEncode[RegD0]))
+            if (layout.SavedRegisters().Test(curReg))
             {
-                if (reg1Opnd == nullptr)
-                {
-                    reg1Opnd = IR::RegOpnd::New(reg, TyMachDouble, this->m_func);
-                }
-                else
-                {
-                    Assert(reg2Opnd == nullptr);
-                    reg2Opnd = IR::RegOpnd::New(reg, TyMachDouble, this->m_func);
-                }
-            }
-
-            if (reg1Opnd != nullptr && reg2Opnd != nullptr)
-            {
-                IR::Instr * instrLoadRegister = IR::Instr::New(Js::OpCode::FLDP,
-                    reg1Opnd,
-                    IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spOffset, TyMachReg, this->m_func),
-                    reg2Opnd,
-                    this->m_func);
-                exitInstr->InsertBefore(instrLoadRegister);
-                reg1Opnd = reg2Opnd = nullptr;
-
-                spOffset += 2 * MachRegDouble;
+                curOffset -= 2 * MachRegInt;
+                RegNum nextReg = RegNum(curReg + 1);
+                IR::Instr * instrLdp = IR::Instr::New(Js::OpCode::LDP,
+                    IR::RegOpnd::New(curReg, TyMachReg, this->m_func),
+                    IR::IndirOpnd::New(spOpnd, curOffset, TyMachReg, this->m_func),
+                    IR::RegOpnd::New(nextReg, TyMachReg, this->m_func), this->m_func);
+                exitInstr->InsertBefore(instrLdp);
             }
         }
     }
 
-    if (!usedRegs.IsEmpty())
+    // Recover doubles in pairs
+    if (!layout.SavedDoubles().IsEmpty())
     {
-        Assert(usedRegs.Count() % 2 == 0);
-        Assert(reg1Opnd == nullptr);
-        Assert(reg2Opnd == nullptr);
-        for (RegNum reg = FIRST_CALLEE_SAVED_GP_REG; reg <= LAST_CALLEE_SAVED_GP_REG; reg = (RegNum)(reg + 1))
+        ULONG curOffset = layout.SavedDoublesOffset() - stackAllocation2 + layout.SavedDoublesSize();
+        for (RegNum curReg = RegNum(LAST_CALLEE_SAVED_DBL_REG - 1); curReg >= FIRST_CALLEE_SAVED_DBL_REG; curReg = RegNum(curReg - 2))
         {
-            if (usedRegs.Test(RegEncode[reg]))
+            if (layout.SavedDoubles().Test(curReg))
             {
-                if (reg1Opnd == nullptr)
-                {
-                    reg1Opnd = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
-                }
-                else
-                {
-                    Assert(reg2Opnd == nullptr);
-                    reg2Opnd = IR::RegOpnd::New(reg, TyMachReg, this->m_func);
-                }
-            }
-
-            if (reg1Opnd != nullptr && reg2Opnd != nullptr)
-            {
-                IR::Instr * instrLoadRegister = IR::Instr::New(Js::OpCode::LDP,
-                    reg1Opnd,
-                    IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spOffset, TyMachReg, this->m_func),
-                    reg2Opnd,
-                    this->m_func);
-                exitInstr->InsertBefore(instrLoadRegister);
-                reg1Opnd = reg2Opnd = nullptr;
-
-                spOffset += 2 * MachRegInt;
+                curOffset -= 2 * MachRegDouble;
+                RegNum nextReg = RegNum(curReg + 1);
+                IR::Instr * instrLdp = IR::Instr::New(Js::OpCode::FLDP,
+                    IR::RegOpnd::New(curReg, TyMachDouble, this->m_func),
+                    IR::IndirOpnd::New(spOpnd, curOffset, TyMachReg, this->m_func),
+                    IR::RegOpnd::New(nextReg, TyMachDouble, this->m_func), this->m_func);
+                exitInstr->InsertBefore(instrLdp);
             }
         }
     }
 
-    if (hasCalls)
+    // Final stack deallocation
+    if (stackAllocation1 > 0)
     {
-        // Generate LDP {fp,lr}
-        IR::Instr * instrLoadFpLr = IR::Instr::New(Js::OpCode::LDP,
-            IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func),
-            IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func), spOffset, TyMachReg, this->m_func),
-            IR::RegOpnd::New(nullptr, RegLR, TyMachReg, this->m_func), this->m_func);
-        exitInstr->InsertBefore(instrLoadFpLr);
-
-        spOffset += 2 * MachRegInt;
+        GenerateStackDeallocation(exitInstr, stackAllocation1);
     }
 
-    if (spOffset > 0)
-    {
-        spOffset += homedParams * MachRegInt;
-
-        GenerateStackDeallocation(exitInstr, spOffset);
-    }
-
-    IR::Instr *  instrRet = IR::Instr::New(
-        Js::OpCode::RET,
-        nullptr,
-        IR::RegOpnd::New(nullptr, RegLR, TyMachReg, this->m_func),
-        this->m_func);
+    // Return
+    IR::Instr *  instrRet = IR::Instr::New(Js::OpCode::RET, nullptr, IR::RegOpnd::New(nullptr, RegLR, TyMachReg, this->m_func), this->m_func);
     exitInstr->InsertBefore(instrRet);
 
+    // Label the end
     IR::LabelInstr *epilogEndLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
     exitInstr->InsertBefore(epilogEndLabel);
-    this->m_func->m_unwindInfo.SetEpilogEndLabel(epilogEndLabel->m_id);
+    this->m_func->m_unwindInfo.SetFunctionOffsetLabel(UnwindEpilogEnd, epilogEndLabel);
 
     return exitInstr;
 }
@@ -1964,23 +1654,11 @@ LowererMD::LoadInputParamCount(IR::Instr * instrInsert, int adjust, bool needFla
     IR::Instr *instr = IR::Instr::New(Js::OpCode::LDR, dstOpnd, srcOpnd,  this->m_func);
     instrInsert->InsertBefore(instr);
 
-    // "Calling eval" means the last param is the frame display, which only the eval built-in should see.
-
-    IR::RegOpnd * evalBitOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::UBFX, evalBitOpnd, dstOpnd, IR::IntConstOpnd::New(BITFIELD(Math::Log2(Js::CallFlags_ExtraArg) + Js::CallInfo::ksizeofCount, 1), TyMachReg, this->m_func), this->m_func);
-    instrInsert->InsertBefore(instr);
-
     // Get the actual call count. On ARM64 top 32 bits are unused
     instr = IR::Instr::New(Js::OpCode::UBFX, dstOpnd, dstOpnd, IR::IntConstOpnd::New(BITFIELD(0, Js::CallInfo::ksizeofCount), TyMachReg, this->m_func), this->m_func);
     instrInsert->InsertBefore(instr);
 
-    if (adjust != 0)
-    {
-        Assert(adjust < 0);
-        Lowerer::InsertAdd(false, evalBitOpnd, evalBitOpnd, IR::IntConstOpnd::New(-adjust, TyUint32, this->m_func), instrInsert);
-    }
-
-    return Lowerer::InsertSub(needFlags, dstOpnd, dstOpnd, evalBitOpnd, instrInsert);
+    return Lowerer::InsertSub(needFlags, dstOpnd, dstOpnd, IR::IntConstOpnd::New(-adjust, TyUint32, this->m_func), instrInsert);
 }
 
 IR::Instr *
@@ -2176,9 +1854,7 @@ LowererMD::LoadHeapArguments(IR::Instr * instrArgs)
             this->LoadHelperArgument(instrArgs, srcOpnd);
 
             // Save the newly-created args object to its dedicated stack slot.
-            IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, FRAME_REG , TyMachReg, func),
-                -MachArgsSlotOffset, TyMachPtr, m_func);
-            Lowerer::InsertMove(indirOpnd, instrArgs->GetDst(), instrArgs->m_next);
+            Lowerer::InsertMove(CreateStackArgumentsSlotOpnd(), instrArgs->GetDst(), instrArgs->m_next);
         }
         this->ChangeToHelperCall(instrArgs, IR::HelperOp_LoadHeapArguments);
     }
@@ -2280,9 +1956,7 @@ LowererMD::LoadHeapArgsCached(IR::Instr * instrArgs)
 
 
             // Save the newly-created args object to its dedicated stack slot.
-            IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, FRAME_REG, TyMachReg, func),
-                -MachArgsSlotOffset, TyMachPtr, m_func);
-            Lowerer::InsertMove(indirOpnd, instrArgs->GetDst(), instrArgs->m_next);
+            Lowerer::InsertMove(CreateStackArgumentsSlotOpnd(), instrArgs->GetDst(), instrArgs->m_next);
 
         }
 
@@ -3314,7 +2988,7 @@ LowererMD::GenerateFastAdd(IR::Instr * instrAdd)
         this->GenerateSmIntPairTest(instrAdd, opndSrc1, opndSrc2, labelHelper);
     }
 
-    if (opndSrc1->IsAddrOpnd())
+    if (opndSrc1->IsImmediateOpnd())
     {
         // If opnd1 is a constant, just swap them.
         IR::Opnd *opndTmp = opndSrc1;
@@ -3328,26 +3002,16 @@ LowererMD::GenerateFastAdd(IR::Instr * instrAdd)
     //
 
     opndSrc1 = opndSrc1->UseWithNewType(TyInt32, this->m_func);
-    
+    opndSrc2 = opndSrc2->UseWithNewType(TyInt32, this->m_func);
+
     // s1 = MOV src1
 
     opndReg = IR::RegOpnd::New(TyInt32, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::MOV, opndReg, opndSrc1, this->m_func);
-    instrAdd->InsertBefore(instr);
-    
-    if (opndSrc2->IsAddrOpnd())
-    {
-        // truncate to untag
-        int value = ::Math::PointerCastToIntegralTruncate<int>(opndSrc2->AsAddrOpnd()->m_address);
-        opndSrc2 = IR::IntConstOpnd::New(value, TyInt32, this->m_func);
-        instr = IR::Instr::New(Js::OpCode::ADDS, opndReg, opndReg, opndSrc2, this->m_func);
-    }
-    else
-    {
-        instr = IR::Instr::New(Js::OpCode::ADDS, opndReg, opndReg, opndSrc2->UseWithNewType(TyInt32, this->m_func), this->m_func);
-    }
+    Lowerer::InsertMove(opndReg, opndSrc1, instrAdd);
     
     // s1 = ADDS s1, src2
+
+    instr = IR::Instr::New(Js::OpCode::ADDS, opndReg, opndReg, opndSrc2, this->m_func);
     instrAdd->InsertBefore(instr);
     Legalize(instr);
 
@@ -3475,6 +3139,7 @@ LowererMD::GenerateFastSub(IR::Instr * instrSub)
 
     instr = IR::Instr::New(Js::OpCode::SUBS, opndReg, opndReg, opndSrc2, this->m_func);
     instrSub->InsertBefore(instr);
+    Legalize(instr);
 
     //      BVS $helper
 
@@ -3681,12 +3346,12 @@ LowererMD::GenerateFastMul(IR::Instr * instrMul)
 
     // dst = MOV_TRUNC s3
 
-    instr = IR::Instr::New(Js::OpCode::MOV_TRUNC, instrMul->GetDst(), s3, this->m_func);
+    instr = IR::Instr::New(Js::OpCode::MOV_TRUNC, instrMul->GetDst()->UseWithNewType(TyInt32,this->m_func), s3->UseWithNewType(TyInt32, this->m_func), this->m_func);
     instrMul->InsertBefore(instr);
 
     // dst = OR dst, AtomTag_IntPtr
 
-    GenerateInt32ToVarConversion(s3, instrMul);
+    GenerateInt32ToVarConversion(instrMul->GetDst(), instrMul);
 
 
     //      B $fallthru
@@ -4863,8 +4528,8 @@ LowererMD::GenerateFastScopedFld(IR::Instr * instrScopedFld, bool isLoad)
     instrScopedFld->InsertBefore(instr);
 
     // LDR s2, [base, offset(scopes)]           -- load the first scope
-    indirOpnd = IR::IndirOpnd::New(opndBase, Js::FrameDisplay::GetOffsetOfScopes(), TyInt32,this->m_func);
-    opndReg2 = IR::RegOpnd::New(TyInt32, this->m_func);
+    indirOpnd = IR::IndirOpnd::New(opndBase, Js::FrameDisplay::GetOffsetOfScopes(), TyMachReg,this->m_func);
+    opndReg2 = IR::RegOpnd::New(TyMachReg, this->m_func);
     instr = IR::Instr::New(Js::OpCode::LDR, opndReg2, indirOpnd, this->m_func);
     instrScopedFld->InsertBefore(instr);
 
@@ -4874,7 +4539,7 @@ LowererMD::GenerateFastScopedFld(IR::Instr * instrScopedFld, bool isLoad)
     // CMP s3, s5                               -- check type
     // BNE $helper
 
-    opndInlineCache = IR::RegOpnd::New(TyInt32, this->m_func);
+    opndInlineCache = IR::RegOpnd::New(TyMachReg, this->m_func);
     opndReg2->m_sym->m_isNotInt = true;
 
     IR::RegOpnd * opndType = IR::RegOpnd::New(TyMachReg, this->m_func);
@@ -6184,8 +5849,8 @@ LowererMD::EmitInt4Instr(IR::Instr *instr)
     {
     case Js::OpCode::Neg_I4:
         instr->m_opcode = Js::OpCode::SUB;
-        instr->SetSrc2(instr->GetSrc1());
-        instr->SetSrc1(IR::RegOpnd::New(nullptr, RegZR, TyMachReg, instr->m_func));
+        instr->SetSrc2(instr->UnlinkSrc1());
+        instr->SetSrc1(IR::RegOpnd::New(nullptr, RegZR, TyInt32, instr->m_func));
         break;
 
     case Js::OpCode::Not_I4:
@@ -7079,132 +6744,6 @@ LowererMD::GenerateLdThisStrict(IR::Instr* insertInstr)
     return true;
 }
 
-void LowererMD::GenerateIsDynamicObject(IR::RegOpnd *regOpnd, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, bool fContinueLabel)
-{
-    // CMP [srcReg], Js::DynamicObject::`vtable'
-
-    IR::Instr *cmp = IR::Instr::New(Js::OpCode::CMP, this->m_func);
-    cmp->SetSrc1(IR::IndirOpnd::New(regOpnd, 0, TyMachPtr, m_func));
-    cmp->SetSrc2(m_lowerer->LoadVTableValueOpnd(insertInstr, VTableValue::VtableDynamicObject));
-    insertInstr->InsertBefore(cmp);
-    LegalizeMD::LegalizeInstr(cmp, false);
-
-    if (fContinueLabel)
-    {
-        // BEQ $continue
-        IR::Instr * jne = IR::BranchInstr::New(Js::OpCode::BEQ, labelHelper, this->m_func);
-        insertInstr->InsertBefore(jne);
-    }
-    else
-    {
-        // BNE $helper
-        IR::Instr * jne = IR::BranchInstr::New(Js::OpCode::BNE, labelHelper, this->m_func);
-        insertInstr->InsertBefore(jne);
-    }
-}
-
-void LowererMD::GenerateIsRecyclableObject(IR::RegOpnd *regOpnd, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, bool checkObjectAndDynamicObject)
-{
-    // CMP [srcReg], Js::DynamicObject::`vtable'
-    // BEQ $fallThough
-    // LDR r1, [src1 + offset(type)]
-    // LDR r1, [r1 + offset(typeId)]
-    // SUB r1, -(~TypeIds_LastJavascriptPrimitiveType)       -- if (typeId > TypeIds_LastJavascriptPrimitiveType && typeId <= TypeIds_LastTrueJavascriptObjectType)
-    // CMP r1, (TypeIds_LastTrueJavascriptObjectType - TypeIds_LastJavascriptPrimitiveType - 1)
-    // BHI $helper
-    //fallThrough:
-
-
-    IR::LabelInstr *labelFallthrough = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-
-    if (checkObjectAndDynamicObject)
-    {
-        if (!regOpnd->m_sym->m_isNotInt)
-        {
-            GenerateObjectTest(regOpnd, insertInstr, labelHelper);
-        }
-
-        this->GenerateIsDynamicObject(regOpnd, insertInstr, labelFallthrough, true);
-    }
-
-    IR::RegOpnd * r1 = IR::RegOpnd::New(TyMachReg, this->m_func);
-
-    //  LDR r1, [src1 + offset(type)]
-    {
-        IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(regOpnd, Js::RecyclableObject::GetOffsetOfType(), TyMachReg, this->m_func);
-        Lowerer::InsertMove(r1, indirOpnd, insertInstr);
-    }
-
-    //  LDR r1, [r1 + offset(typeId)]
-    {
-        IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(r1, Js::Type::GetOffsetOfTypeId(), TyMachReg, this->m_func);
-        Lowerer::InsertMove(r1, indirOpnd, insertInstr);
-    }
-
-    // SUB r1, -(~TypeIds_LastJavascriptPrimitiveType)
-    {
-        IR::Instr * add = IR::Instr::New(Js::OpCode::SUB, r1, r1, IR::IntConstOpnd::New(-(~Js::TypeIds_LastJavascriptPrimitiveType), TyMachReg, this->m_func, true), this->m_func);
-        insertInstr->InsertBefore(add);
-        LegalizeMD::LegalizeInstr(add, false);
-    }
-
-    // CMP r1, (TypeIds_LastTrueJavascriptObjectType - TypeIds_LastJavascriptPrimitiveType - 1)
-    {
-        IR::Instr * cmp = IR::Instr::New(Js::OpCode::CMP, this->m_func);
-        cmp->SetSrc1(r1);
-        cmp->SetSrc2(IR::IntConstOpnd::New(Js::TypeIds_LastTrueJavascriptObjectType - Js::TypeIds_LastJavascriptPrimitiveType - 1, TyMachReg, this->m_func));
-        insertInstr->InsertBefore(cmp);
-        LegalizeMD::LegalizeInstr(cmp, false);
-    }
-
-    // BHI $helper
-    {
-        IR::Instr * jbe = IR::BranchInstr::New(Js::OpCode::BHI, labelHelper, this->m_func);
-        insertInstr->InsertBefore(jbe);
-    }
-
-    // $fallThrough
-    insertInstr->InsertBefore(labelFallthrough);
-}
-
-bool
-LowererMD::GenerateLdThisCheck(IR::Instr * instr)
-{
-    //
-    // If not an object, jump to $helper
-    // MOV dst, src1                                      -- return the object itself
-    // B $fallthrough
-    // $helper:
-    //      (caller generates helper call)
-    // $fallthrough:
-    //
-    IR::RegOpnd * src1 = instr->GetSrc1()->AsRegOpnd();
-    IR::LabelInstr * helper = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
-    IR::LabelInstr * fallthrough = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-
-    this->GenerateIsRecyclableObject(src1, instr, helper);
-
-    // MOV dst, src1
-    if (instr->GetDst() && !instr->GetDst()->IsEqual(src1))
-    {
-        Lowerer::InsertMove(instr->GetDst(), src1, instr);
-    }
-
-    // B $fallthrough
-    {
-        IR::Instr * jmp = IR::BranchInstr::New(Js::OpCode::B, fallthrough, this->m_func);
-        instr->InsertBefore(jmp);
-    }
-
-    // $helper:
-    //      (caller generates helper call)
-    // $fallthrough:
-    instr->InsertBefore(helper);
-    instr->InsertAfter(fallthrough);
-
-    return true;
-}
-
 // given object instanceof function, functionReg is a register with function,
 // objectReg is a register with instance and inlineCache is an InstIsInlineCache.
 // We want to generate:
@@ -7451,7 +6990,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 void
 LowererMD::GenerateFastInlineBuiltInMathAbs(IR::Instr *inlineInstr)
 {
-    IR::Opnd* src = inlineInstr->GetSrc1();
+    IR::Opnd* src = inlineInstr->GetSrc1()->Copy(this->m_func);
     IR::Opnd* dst = inlineInstr->UnlinkDst();
     Assert(src);
     IR::Instr* tmpInstr;
@@ -8370,3 +7909,6 @@ void LowererMD::GenerateDebugBreak( IR::Instr * insertInstr )
     insertInstr->InsertBefore(int3);
 }
 #endif
+
+
+

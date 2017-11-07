@@ -29,7 +29,7 @@ namespace Js
          * to pass this object by reference. Interpreter stack setup code expects
          * CallInfo to be passed by value.
          */
-        explicit CallInfo(ushort count)
+        explicit CallInfo(ArgSlot count)
             : Flags(CallFlags_None)
             , Count(count)
 #ifdef TARGET_64
@@ -38,7 +38,7 @@ namespace Js
         {
         }
 
-        CallInfo(CallFlags flags, ushort count)
+        CallInfo(CallFlags flags, ArgSlot count)
             : Flags(flags)
             , Count(count)
 #ifdef TARGET_64
@@ -49,6 +49,66 @@ namespace Js
 
         CallInfo(VirtualTableInfoCtorEnum v)
         {
+        }
+
+        ArgSlot GetArgCountWithExtraArgs() const
+        {
+            return CallInfo::GetArgCountWithExtraArgs(this->Flags, this->Count);
+        }
+
+        bool HasExtraArg() const
+        {
+            return (this->Flags & CallFlags_ExtraArg) || this->HasNewTarget();
+        }
+
+        bool HasNewTarget() const
+        {
+            return CallInfo::HasNewTarget(this->Flags);
+        }
+
+
+        // For Eval calls the FrameDisplay is passed in as an extra argument.
+        // This is not counted in Info.Count. Use this API to get the updated count.
+        static ArgSlot GetArgCountWithExtraArgs(CallFlags flags, ArgSlot count)
+        {
+            if (flags & CallFlags_ExtraArg)
+            {
+                ArgSlotMath::Inc(count);
+            }
+            return count;
+        }
+
+        static ArgSlot GetArgCountWithoutExtraArgs(CallFlags flags, ArgSlot count)
+        {
+            ArgSlot newCount = count;
+            if (flags & Js::CallFlags_ExtraArg)
+            {
+                if (count == 0)
+                {
+                    ::Math::DefaultOverflowPolicy();
+                }
+                newCount = count - 1;
+            }
+            return newCount;
+        }
+
+        static bool HasNewTarget(CallFlags flags)
+        {
+            return flags & CallFlags_NewTarget;
+        }
+
+        // New target value is passed as an extra argument which is nto included in the Count
+        static Var GetNewTarget(CallFlags flag, Var* values, ArgSlot count)
+        {
+            if (HasNewTarget(flag))
+            {
+                return values[count];
+            }
+            else
+            {
+                AssertOrFailFast(count > 0);
+                return values[0];
+            }
         }
 
         // Assumes big-endian layout
@@ -72,16 +132,6 @@ namespace Js
         static const ushort ksizeofCount;
         static const ushort ksizeofCallFlags;
         static const uint kMaxCountArgs;
-
-        static bool isDirectEvalCall(CallFlags flags)
-        {
-            // This was recognized as an eval call at compile time. The last one or two args are internal to us.
-            // Argcount will be one of the following when called from global code
-            //  - eval("...")     : argcount 3 : this, evalString, frameDisplay
-            //  - eval.call("..."): argcount 2 : this(which is string) , frameDisplay
-
-            return (flags & (CallFlags_ExtraArg | CallFlags_NewTarget)) == CallFlags_ExtraArg;  // ExtraArg == 1 && NewTarget == 0
-        }
     };
 
     struct InlineeCallInfo

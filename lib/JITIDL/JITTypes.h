@@ -77,7 +77,7 @@ typedef unsigned char boolean;
 #define __JITTypes_h__
 
 // TODO: OOP JIT, how do we make this better?
-const int VTABLE_COUNT = 48;
+const int VTABLE_COUNT = 49;
 const int EQUIVALENT_TYPE_CACHE_SIZE = 8;
 
 typedef IDL_DEF([context_handle]) void * PTHREADCONTEXT_HANDLE;
@@ -370,6 +370,7 @@ typedef struct ScriptContextDataIDL
     CHAKRA_PTR debugStepTypeAddr;
     CHAKRA_PTR debugFrameAddressAddr;
     CHAKRA_PTR debugScriptIdWhenSetAddr;
+    CHAKRA_PTR chakraLibAddr;
 #endif
 } ScriptContextDataIDL;
 
@@ -827,9 +828,9 @@ typedef struct JITOutputIDL
     unsigned int propertyGuardCount;
     unsigned int ctorCachesCount;
 
-#if defined(_M_X64)
+#if TARGET_64
     CHAKRA_PTR xdataAddr;
-#elif defined(_M_ARM) || defined(_M_ARM64)
+#elif defined(_M_ARM)
     unsigned int xdataOffset;
 #else
     X86_PAD4(0)

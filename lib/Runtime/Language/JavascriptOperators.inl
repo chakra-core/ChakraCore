@@ -6,7 +6,19 @@
 
 namespace Js
 {
-    __forceinline TypeId JavascriptOperators::GetTypeId(const Var aValue)
+    __forceinline TypeId JavascriptOperators::GetTypeId(_In_ RecyclableObject* obj)
+    {
+        AssertMsg(obj != nullptr, "GetTypeId aValue is null");
+
+        auto typeId = obj->GetTypeId();
+#if DBG
+        auto isExternal = obj->CanHaveInterceptors();
+        AssertMsg(typeId < TypeIds_Limit || isExternal, "GetTypeId aValue has invalid TypeId");
+#endif
+        return typeId;
+    }
+
+    __forceinline TypeId JavascriptOperators::GetTypeId(_In_ const Var aValue)
     {
         AssertMsg(aValue != nullptr, "GetTypeId aValue is null");
 
@@ -22,12 +34,7 @@ namespace Js
 #endif
         else
         {
-            auto typeId = RecyclableObject::UnsafeFromVar(aValue)->GetTypeId();
-#if DBG
-            auto isExternal = RecyclableObject::FromVar(aValue)->CanHaveInterceptors();
-            AssertMsg(typeId < TypeIds_Limit || isExternal, "GetTypeId aValue has invalid TypeId");
-#endif
-            return typeId;
+            return JavascriptOperators::GetTypeId(RecyclableObject::UnsafeFromVar(aValue));
         }
     }
 

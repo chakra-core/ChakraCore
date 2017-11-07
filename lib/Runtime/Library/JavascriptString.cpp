@@ -128,10 +128,8 @@ namespace Js
 
         // SkipDefaultNewObject function flag should have prevented the default object from
         // being created, except when call true a host dispatch.
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
-        Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr
-            || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
+        Var newTarget = args.GetNewTarget();
+        bool isCtorSuperCall = JavascriptOperators::GetAndAssertIsConstructorSuperCall(args);
 
         JavascriptString* str;
         Var result;
@@ -224,6 +222,19 @@ namespace Js
     bool JavascriptString::Is(Var aValue)
     {
         return JavascriptOperators::GetTypeId(aValue) == TypeIds_String;
+    }
+
+    Js::PropertyRecord const * JavascriptString::GetPropertyRecord(bool dontLookupFromDictionary)
+    {
+        if (dontLookupFromDictionary)
+        {
+            return nullptr;
+        }
+
+        Js::PropertyRecord const * propertyRecord;
+        GetScriptContext()->GetOrAddPropertyRecord(GetString(), GetLength(), &propertyRecord);
+
+        return propertyRecord;
     }
 
     JavascriptString* JavascriptString::FromVar(Var aValue)

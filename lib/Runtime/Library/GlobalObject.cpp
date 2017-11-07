@@ -493,7 +493,7 @@ namespace Js
     }
 
 #endif /* IR_VIEWER */
-    Var GlobalObject::EntryEvalHelper(ScriptContext* scriptContext, RecyclableObject* function, CallInfo callInfo, Js::Arguments& args)
+    Var GlobalObject::EntryEvalHelper(ScriptContext* scriptContext, RecyclableObject* function, Js::Arguments& args)
     {
         FrameDisplay* environment = (FrameDisplay*)&NullFrameDisplay;
         ModuleID moduleID = kmodGlobal;
@@ -501,31 +501,16 @@ namespace Js
         // TODO: Handle call from global scope, strict mode
         BOOL isIndirect = FALSE;
 
-        if (Js::CallInfo::isDirectEvalCall(args.Info.Flags))
+        if (args.IsDirectEvalCall())
         {
             // This was recognized as an eval call at compile time. The last one or two args are internal to us.
             // Argcount will be one of the following when called from global code
             //  - eval("...")     : argcount 3 : this, evalString, frameDisplay
             //  - eval.call("..."): argcount 2 : this(which is string) , frameDisplay
-            if (args.Info.Count >= 2)
+            if (args.Info.Count >= 1)
             {
-                environment = (FrameDisplay*)(args[args.Info.Count - 1]);
-
-                // Check for a module root passed from the caller. If it's there, use its module ID to compile the eval.
-                // when called inside a module root, module root would be added before the frame display in above scenarios
-
-                // ModuleRoot is optional
-                //  - eval("...")     : argcount 3/4 : this, evalString , [module root], frameDisplay
-                //  - eval.call("..."): argcount 2/3 : this(which is string) , [module root], frameDisplay
-
+                environment = args.GetFrameDisplay();
                 strictMode = environment->GetStrictMode();
-
-                if (args.Info.Count >= 3 && JavascriptOperators::GetTypeId(args[args.Info.Count - 2]) == TypeIds_ModuleRoot)
-                {
-                    moduleID = ((Js::ModuleRoot*)(RecyclableObject::FromVar(args[args.Info.Count - 2])))->GetModuleID();
-                    args.Info.Count--;
-                }
-                args.Info.Count--;
             }
         }
         else
@@ -553,7 +538,7 @@ namespace Js
 
         scriptContext->CheckEvalRestriction();
 
-        return EntryEvalHelper(scriptContext, function, callInfo, args);
+        return EntryEvalHelper(scriptContext, function, args);
     }
 
     // This function is used to decipher eval function parameters and we don't want the stack arguments optimization by C++ compiler so turning off the optimization
@@ -567,7 +552,7 @@ namespace Js
         JavascriptLibrary* library = function->GetLibrary();
         ScriptContext* scriptContext = library->GetScriptContext();
 
-        return EntryEvalHelper(scriptContext, function, callInfo, args);
+        return EntryEvalHelper(scriptContext, function, args);
     }
 
     Var GlobalObject::VEval(JavascriptLibrary* library, FrameDisplay* environment, ModuleID moduleID, bool strictMode, bool isIndirect,

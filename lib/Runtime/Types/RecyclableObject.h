@@ -72,7 +72,11 @@ namespace Js {
         static void SetCacheInfo(PropertyValueInfo* info, InlineCache *const inlineCache);
         static void SetCacheInfo(PropertyValueInfo* info, FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, const bool allowResizingPolymorphicInlineCache);
         static void SetCacheInfo(PropertyValueInfo* info, FunctionBody *const functionBody, PolymorphicInlineCache *const polymorphicInlineCache, const InlineCacheIndex inlineCacheIndex, const bool allowResizingPolymorphicInlineCache);
-        static void SetCacheInfo(PropertyValueInfo* info, PropertyString *const propertyString, PolymorphicInlineCache *const polymorphicInlineCache, bool allowResizing);
+        static void SetCacheInfo(
+            _Out_ PropertyValueInfo* info,
+            _In_opt_ PropertyString *const propertyString,
+            _In_ PolymorphicInlineCache *const polymorphicInlineCache,
+            bool allowResizing);
         static void ClearCacheInfo(PropertyValueInfo* info);
 
         InlineCache * GetInlineCache() const

@@ -153,7 +153,6 @@ public:
     intptr_t GetIsInstInlineCache(uint index) const;
     Js::TypeId GetConstantType(Js::RegSlot location) const;
     void * GetConstTable() const;
-    bool IsConstRegPropertyString(Js::RegSlot reg, ScriptContextInfo * context) const;
 
     intptr_t GetRootObject() const;
     intptr_t GetLoopHeaderAddr(uint loopNum) const;

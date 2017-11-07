@@ -23,9 +23,9 @@ namespace Js
     }
 
     void PropertyValueInfo::SetCacheInfo(
-        PropertyValueInfo* info,
-        PropertyString *const propertyString,
-        PolymorphicInlineCache *const polymorphicInlineCache,
+        _Out_ PropertyValueInfo* info,
+        _In_opt_ PropertyString *const propertyString,
+        _In_ PolymorphicInlineCache *const polymorphicInlineCache,
         bool allowResizing)
     {
         Assert(info);

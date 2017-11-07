@@ -700,9 +700,7 @@ namespace Js
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
-        Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr);
+        JavascriptOperators::GetAndAssertIsConstructorSuperCall(args);
 
         JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidTypedArray_Constructor);
     }
@@ -717,8 +715,8 @@ namespace Js
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && RecyclableObject::Is(newTarget);
+        Var newTarget = args.GetNewTarget();
+        bool isCtorSuperCall = JavascriptOperators::IsConstructorSuperCall(args);
         Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr);
 
         if (!(callInfo.Flags & CallFlags_New) || (newTarget && JavascriptOperators::IsUndefinedObject(newTarget)))
@@ -1867,6 +1865,26 @@ namespace Js
     Var TypedArrayBase::GetKeysEntriesValuesHelper(Arguments& args, ScriptContext *scriptContext, LPCWSTR apiName, JavascriptArrayIteratorKind kind)
     {
         TypedArrayBase* typedArrayBase = ValidateTypedArray(args, scriptContext, apiName);
+#ifdef ENABLE_JS_BUILTINS
+        JavascriptLibrary * library = scriptContext->GetLibrary();
+        if (scriptContext->IsJsBuiltInEnabled())
+        {
+            JavascriptString* methodName = JavascriptString::NewWithSz(_u("CreateArrayIterator"), scriptContext);
+            PropertyIds functionIdentifier = JavascriptOperators::GetPropertyId(methodName, scriptContext);
+            Var scriptFunction = JavascriptOperators::OP_GetProperty(library->GetChakraLib(), functionIdentifier, scriptContext);
+
+            Assert(!JavascriptOperators::IsUndefinedOrNull(scriptFunction));
+            Assert(JavascriptConversion::IsCallable(scriptFunction));
+
+            RecyclableObject* function = RecyclableObject::FromVar(scriptFunction);
+
+            Var chakraLibObj = JavascriptOperators::OP_GetProperty(library->GetGlobalObject(), PropertyIds::__chakraLibrary, scriptContext);
+            Var argsIt[] = { chakraLibObj, args[0], TaggedInt::ToVarUnchecked((int)kind) };
+            CallInfo callInfo(CallFlags_Value, 3);
+            return JavascriptFunction::CallFunction<true>(function, function->GetEntryPoint(), Js::Arguments(callInfo, argsIt));
+        }
+        else
+#endif
         return scriptContext->GetLibrary()->CreateArrayIterator(typedArrayBase, kind);
     }
 

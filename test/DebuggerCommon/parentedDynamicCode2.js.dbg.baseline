@@ -2,76 +2,76 @@
   {
     "sources": [
       {
-        "scriptId": 1,
         "fileName": "parentedDynamicCode2.js",
         "lineCount": 22,
-        "sourceLength": 756
+        "sourceLength": 756,
+        "scriptId": 1
       },
       {
-        "scriptId": 2,
-        "parentScriptId": 1,
         "scriptType": "eval code",
         "lineCount": 1,
-        "sourceLength": 11
+        "sourceLength": 11,
+        "scriptId": 3,
+        "parentScriptId": 1
       },
       {
-        "scriptId": 4,
-        "parentScriptId": 1,
         "scriptType": "eval code",
         "lineCount": 1,
-        "sourceLength": 11
+        "sourceLength": 11,
+        "scriptId": 6,
+        "parentScriptId": 1
       }
     ]
   },
   {
     "sources": [
       {
-        "scriptId": 1,
         "fileName": "parentedDynamicCode2.js",
         "lineCount": 22,
-        "sourceLength": 756
+        "sourceLength": 756,
+        "scriptId": 1
       },
       {
-        "scriptId": 2,
-        "parentScriptId": 1,
         "scriptType": "eval code",
         "lineCount": 1,
-        "sourceLength": 11
+        "sourceLength": 11,
+        "scriptId": 3,
+        "parentScriptId": 1
       },
       {
-        "scriptId": 4,
-        "parentScriptId": 1,
         "scriptType": "eval code",
         "lineCount": 1,
-        "sourceLength": 11
-      },
-      {
+        "sourceLength": 11,
         "scriptId": 6,
-        "parentScriptId": 1,
-        "scriptType": "eval code",
-        "lineCount": 1,
-        "sourceLength": 11
+        "parentScriptId": 1
       },
       {
-        "scriptId": 7,
-        "parentScriptId": 1,
         "scriptType": "eval code",
         "lineCount": 1,
-        "sourceLength": 10
-      },
-      {
+        "sourceLength": 11,
         "scriptId": 8,
-        "parentScriptId": 1,
+        "parentScriptId": 1
+      },
+      {
+        "scriptType": "eval code",
+        "lineCount": 1,
+        "sourceLength": 10,
+        "scriptId": 9,
+        "parentScriptId": 1
+      },
+      {
         "scriptType": "Function code",
         "lineCount": 3,
-        "sourceLength": 25
+        "sourceLength": 25,
+        "scriptId": 10,
+        "parentScriptId": 1
       },
       {
-        "scriptId": 9,
-        "parentScriptId": 1,
         "scriptType": "eval code",
         "lineCount": 1,
-        "sourceLength": 11
+        "sourceLength": 11,
+        "scriptId": 11,
+        "parentScriptId": 1
       }
     ]
   }

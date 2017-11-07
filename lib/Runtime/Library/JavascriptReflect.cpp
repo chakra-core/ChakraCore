@@ -409,6 +409,7 @@ namespace Js
         }
 
         Var argArray = args.Info.Count > 2 ? args[2] : undefinedValue;
+        AnalysisAssert(argArray != nullptr);
         if (!(JavascriptOperators::IsObjectType(JavascriptOperators::GetTypeId(argArray))))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedArrayLike, _u("Reflect.construct"));

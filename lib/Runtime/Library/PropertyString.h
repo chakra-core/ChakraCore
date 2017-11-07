@@ -18,9 +18,13 @@ protected:
 
     PropertyString(StaticType* type, const Js::PropertyRecord* propertyRecord);
 public:
+    virtual Js::PropertyRecord const * GetPropertyRecord(bool dontLookupFromDictionary = false) override
+    {
+        return this->propertyRecord;
+    }
+
     PolymorphicInlineCache * GetLdElemInlineCache() const;
     PolymorphicInlineCache * GetStElemInlineCache() const;
-    Js::PropertyRecord const * GetPropertyRecord() const { return this->propertyRecord; }
     PolymorphicInlineCache * CreateBiggerPolymorphicInlineCache(bool isLdElem);
     void RegisterCacheMiss();
     int GetHitRate() const { return this->hitRate; };
@@ -28,11 +32,11 @@ public:
     bool ShouldUseCache() const;
 
     bool TrySetPropertyFromCache(
-        RecyclableObject *const object,
-        Var propertyValue,
-        ScriptContext *const requestContext,
+        _In_ RecyclableObject *const object,
+        _In_ Var propertyValue,
+        _In_ ScriptContext *const requestContext,
         const PropertyOperationFlags propertyOperationFlags,
-        PropertyValueInfo *const propertyValueInfo);
+        _Inout_ PropertyValueInfo *const propertyValueInfo);
 
 
     template <bool OwnPropertyOnly>

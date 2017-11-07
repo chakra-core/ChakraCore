@@ -1895,27 +1895,13 @@ LowererMD::LoadInputParamCount(IR::Instr * instrInsert, int adjust, bool needFla
     // mask the "calling eval" bit and subtract it from the incoming count.
     // ("Calling eval" means the last param is the frame display, which only the eval built-in should see.)
 
-    IR::RegOpnd * evalBitOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::LSR, evalBitOpnd, dstOpnd, IR::IntConstOpnd::New(Math::Log2(Js::CallFlags_ExtraArg) + Js::CallInfo::ksizeofCount, TyMachReg, this->m_func), this->m_func);
-    instrInsert->InsertBefore(instr);
-
-    // Mask off other call flags from callinfo
-    instr = IR::Instr::New(Js::OpCode::AND, evalBitOpnd, evalBitOpnd, IR::IntConstOpnd::New(0x01, TyUint8, this->m_func), this->m_func);
-    instrInsert->InsertBefore(instr);
-
     instr = IR::Instr::New(Js::OpCode::LSL, dstOpnd, dstOpnd, IR::IntConstOpnd::New(Js::CallInfo::ksizeofCallFlags, TyMachReg, this->m_func), this->m_func);
     instrInsert->InsertBefore(instr);
 
     instr = IR::Instr::New(Js::OpCode::LSR, dstOpnd, dstOpnd, IR::IntConstOpnd::New(Js::CallInfo::ksizeofCallFlags, TyMachReg, this->m_func), this->m_func);
     instrInsert->InsertBefore(instr);
 
-    if (adjust != 0)
-    {
-        Assert(adjust < 0);
-        Lowerer::InsertAdd(false, evalBitOpnd, evalBitOpnd, IR::IntConstOpnd::New(-adjust, TyUint32, this->m_func), instrInsert);
-    }
-
-    return Lowerer::InsertSub(needFlags, dstOpnd, dstOpnd, evalBitOpnd, instrInsert);
+    return Lowerer::InsertSub(needFlags, dstOpnd, dstOpnd, IR::IntConstOpnd::New(-adjust, TyUint32, this->m_func), instrInsert);
 }
 
 IR::Instr *
@@ -7268,132 +7254,6 @@ LowererMD::GenerateLdThisStrict(IR::Instr* insertInstr)
 
     // $fallthrough:
     insertInstr->InsertAfter(fallthrough);
-    return true;
-}
-
-void LowererMD::GenerateIsDynamicObject(IR::RegOpnd *regOpnd, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, bool fContinueLabel)
-{
-    // CMP [srcReg], Js::DynamicObject::`vtable'
-
-    IR::Instr *cmp = IR::Instr::New(Js::OpCode::CMP, this->m_func);
-    cmp->SetSrc1(IR::IndirOpnd::New(regOpnd, 0, TyMachPtr, m_func));
-    cmp->SetSrc2(m_lowerer->LoadVTableValueOpnd(insertInstr, VTableValue::VtableDynamicObject));
-    insertInstr->InsertBefore(cmp);
-    LegalizeMD::LegalizeInstr(cmp, false);
-
-    if (fContinueLabel)
-    {
-        // BEQ $continue
-        IR::Instr * jne = IR::BranchInstr::New(Js::OpCode::BEQ, labelHelper, this->m_func);
-        insertInstr->InsertBefore(jne);
-    }
-    else
-    {
-        // BNE $helper
-        IR::Instr * jne = IR::BranchInstr::New(Js::OpCode::BNE, labelHelper, this->m_func);
-        insertInstr->InsertBefore(jne);
-    }
-}
-
-void LowererMD::GenerateIsRecyclableObject(IR::RegOpnd *regOpnd, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, bool checkObjectAndDynamicObject)
-{
-    // CMP [srcReg], Js::DynamicObject::`vtable'
-    // BEQ $fallThough
-    // LDR r1, [src1 + offset(type)]
-    // LDR r1, [r1 + offset(typeId)]
-    // SUB r1, -(~TypeIds_LastJavascriptPrimitiveType)       -- if (typeId > TypeIds_LastJavascriptPrimitiveType && typeId <= TypeIds_LastTrueJavascriptObjectType)
-    // CMP r1, (TypeIds_LastTrueJavascriptObjectType - TypeIds_LastJavascriptPrimitiveType - 1)
-    // BHI $helper
-    //fallThrough:
-
-
-    IR::LabelInstr *labelFallthrough = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-
-    if (checkObjectAndDynamicObject)
-    {
-        if (!regOpnd->m_sym->m_isNotInt)
-        {
-            GenerateObjectTest(regOpnd, insertInstr, labelHelper);
-        }
-
-        this->GenerateIsDynamicObject(regOpnd, insertInstr, labelFallthrough, true);
-    }
-
-    IR::RegOpnd * r1 = IR::RegOpnd::New(TyMachReg, this->m_func);
-
-    //  LDR r1, [src1 + offset(type)]
-    {
-        IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(regOpnd, Js::RecyclableObject::GetOffsetOfType(), TyMachReg, this->m_func);
-        Lowerer::InsertMove(r1, indirOpnd, insertInstr);
-    }
-
-    //  LDR r1, [r1 + offset(typeId)]
-    {
-        IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(r1, Js::Type::GetOffsetOfTypeId(), TyMachReg, this->m_func);
-        Lowerer::InsertMove(r1, indirOpnd, insertInstr);
-    }
-
-    // SUB r1, -(~TypeIds_LastJavascriptPrimitiveType)
-    {
-        IR::Instr * add = IR::Instr::New(Js::OpCode::SUB, r1, r1, IR::IntConstOpnd::New(-(~Js::TypeIds_LastJavascriptPrimitiveType), TyInt32, this->m_func, true), this->m_func);
-        insertInstr->InsertBefore(add);
-        LegalizeMD::LegalizeInstr(add, false);
-    }
-
-    // CMP r1, (TypeIds_LastTrueJavascriptObjectType - TypeIds_LastJavascriptPrimitiveType - 1)
-    {
-        IR::Instr * cmp = IR::Instr::New(Js::OpCode::CMP, this->m_func);
-        cmp->SetSrc1(r1);
-        cmp->SetSrc2(IR::IntConstOpnd::New(Js::TypeIds_LastTrueJavascriptObjectType - Js::TypeIds_LastJavascriptPrimitiveType - 1, TyInt32, this->m_func));
-        insertInstr->InsertBefore(cmp);
-        LegalizeMD::LegalizeInstr(cmp, false);
-    }
-
-    // BHI $helper
-    {
-        IR::Instr * jbe = IR::BranchInstr::New(Js::OpCode::BHI, labelHelper, this->m_func);
-        insertInstr->InsertBefore(jbe);
-    }
-
-    // $fallThrough
-    insertInstr->InsertBefore(labelFallthrough);
-}
-
-bool
-LowererMD::GenerateLdThisCheck(IR::Instr * instr)
-{
-    //
-    // If not an object, jump to $helper
-    // MOV dst, src1                                      -- return the object itself
-    // B $fallthrough
-    // $helper:
-    //      (caller generates helper call)
-    // $fallthrough:
-    //
-    IR::RegOpnd * src1 = instr->GetSrc1()->AsRegOpnd();
-    IR::LabelInstr * helper = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
-    IR::LabelInstr * fallthrough = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-
-    this->GenerateIsRecyclableObject(src1, instr, helper);
-
-    // MOV dst, src1
-    if (instr->GetDst() && !instr->GetDst()->IsEqual(src1))
-    {
-        Lowerer::InsertMove(instr->GetDst(), src1, instr);
-    }
-
-    // B $fallthrough
-    {
-        IR::Instr * jmp = IR::BranchInstr::New(Js::OpCode::B, fallthrough, this->m_func);
-        instr->InsertBefore(jmp);
-    }
-
-    // $helper:
-    //      (caller generates helper call)
-    // $fallthrough:
-    instr->InsertBefore(helper);
-    instr->InsertAfter(fallthrough);
-
     return true;
 }
 

@@ -1227,6 +1227,7 @@ namespace Js
         bool IsConstructor() const;
         bool IsGenerator() const;
         bool IsClassConstructor() const;
+        bool IsBaseClassConstructor() const;
         bool IsClassMethod() const;
         bool IsModule() const;
         bool IsWasmFunction() const;
@@ -1290,6 +1291,9 @@ namespace Js
         void SetIsPublicLibraryCode() { m_isPublicLibraryCode = true; }
         bool IsPublicLibraryCode() const { return m_isPublicLibraryCode; }
 
+        void SetIsJsBuiltInCode() { m_isJsBuiltInCode = true; }
+        bool IsJsBuiltInCode() const { return m_isJsBuiltInCode; }
+
 #if DBG
         bool HasValidEntryPoint() const;
 #if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
@@ -1349,6 +1353,7 @@ namespace Js
 
         FieldWithBarrier(bool) m_isTopLevel : 1; // Indicates that this function is top-level function, currently being used in script profiler and debugger
         FieldWithBarrier(bool) m_isPublicLibraryCode: 1; // Indicates this function is public boundary library code that should be visible in JS stack
+        FieldWithBarrier(bool) m_isJsBuiltInCode: 1; // Indicates this function comes from the JS Built In implementation
         FieldWithBarrier(bool) m_canBeDeferred : 1;
         FieldWithBarrier(bool) m_displayNameIsRecyclerAllocated : 1;
 
@@ -1531,6 +1536,13 @@ namespace Js
         Assert(GetFunctionInfo());
         Assert(GetFunctionInfo()->GetFunctionProxy() == this);
         return GetFunctionInfo()->IsClassConstructor();
+    }
+
+    inline bool FunctionProxy::IsBaseClassConstructor() const
+    {
+        Assert(GetFunctionInfo());
+        Assert(GetFunctionInfo()->GetFunctionProxy() == this);
+        return GetFunctionInfo()->GetBaseConstructorKind();
     }
 
     inline bool FunctionProxy::IsClassMethod() const
@@ -1831,6 +1843,8 @@ namespace Js
         LPCUTF8 GetStartOfDocument(const char16* reason = nullptr) const;
         bool IsReparsed() const { return m_reparsed; }
         void SetReparsed(bool set) { m_reparsed = set; }
+        bool IsMethod() const { return m_isMethod; }
+        void SetIsMethod(bool set) { m_isMethod = set; }
 #ifdef NTBUILD
         bool GetExternalDisplaySourceName(BSTR* sourceName);
 #endif
@@ -1967,12 +1981,11 @@ namespace Js
         FieldWithBarrier(bool) m_isEval : 1;              // Source code is in 'eval'
         FieldWithBarrier(bool) m_isDynamicFunction : 1;   // Source code is in 'Function'
         FieldWithBarrier(bool) m_hasImplicitArgIns : 1;
-        FieldWithBarrier(bool) m_dontInline : 1;            // Used by the JIT's inliner
-
-        // Indicates if the function has been reparsed for debug attach/detach scenario.
-        FieldWithBarrier(bool) m_reparsed : 1;
+        FieldWithBarrier(bool) m_dontInline : 1;          // Used by the JIT's inliner
+        FieldWithBarrier(bool) m_reparsed : 1;            // Indicates if the function has been reparsed for debug attach/detach scenario.
+        FieldWithBarrier(bool) m_isMethod : 1;            // Function is an object literal method
 #if DBG
-        FieldWithBarrier(bool) m_wasEverAsmjsMode : 1; // has m_isAsmjsMode ever been true
+        FieldWithBarrier(bool) m_wasEverAsmjsMode : 1;    // has m_isAsmjsMode ever been true
 #endif
 
         // This field is not required for deferred parsing but because our thunks can't handle offsets > 128 bytes
@@ -2339,6 +2352,8 @@ namespace Js
 
         FieldWithBarrier(bool) m_hasFirstTmpRegister : 1;
         FieldWithBarrier(bool) m_hasActiveReference : 1;
+
+        FieldWithBarrier(bool) m_isJsBuiltInForceInline : 1;
 #if DBG
         FieldWithBarrier(bool) m_isSerialized : 1;
 #endif
@@ -2533,6 +2548,9 @@ namespace Js
         void SetDebuggerScopeIndex(uint32 index) { debuggerScopeIndex = index; }
 
         size_t GetLoopBodyName(uint loopNumber, _Out_writes_opt_z_(sizeInChars) WCHAR* displayName, _In_ size_t sizeInChars);
+
+        void SetJsBuiltInForceInline() { m_isJsBuiltInForceInline = true; }
+        bool IsJsBuiltInForceInline() const { return m_isJsBuiltInForceInline; }
 
         void AllocateLoopHeaders();
         void ReleaseLoopHeaders();

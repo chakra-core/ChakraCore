@@ -1138,10 +1138,8 @@ namespace Js
         // SkipDefaultNewObject function flag should have prevented the default object
         // being created, except when call true a host dispatch.
         const CallInfo &callInfo = args.Info;
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
-        Assert( isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr
-            || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
+        Var newTarget = args.GetNewTarget();
+        bool isCtorSuperCall = JavascriptOperators::GetAndAssertIsConstructorSuperCall(args);
 
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptArray* pNew = nullptr;
@@ -1425,7 +1423,7 @@ namespace Js
 
             bool isTaggedInt = TaggedInt::Is(item);
             bool isTaggedIntMissingValue = false;
-#ifdef _M_AMD64
+#ifdef TARGET_64
             if (isTaggedInt)
             {
                 int32 iValue = TaggedInt::ToInt32(item);
@@ -8453,6 +8451,11 @@ Case0:
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
+
+#ifdef ENABLE_JS_BUILTINS
+        Assert(!scriptContext->IsJsBuiltInEnabled());
+#endif
+
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
         Assert(!(callInfo.Flags & CallFlags_New));
@@ -8485,6 +8488,11 @@ Case0:
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
+
+#ifdef ENABLE_JS_BUILTINS
+        Assert(!scriptContext->IsJsBuiltInEnabled());
+#endif
+
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
         Assert(!(callInfo.Flags & CallFlags_New));
@@ -8517,6 +8525,11 @@ Case0:
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
+
+#ifdef ENABLE_JS_BUILTINS
+        Assert(!scriptContext->IsJsBuiltInEnabled());
+#endif
+
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
         Assert(!(callInfo.Flags & CallFlags_New));

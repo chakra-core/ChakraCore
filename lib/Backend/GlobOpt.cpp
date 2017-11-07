@@ -3571,6 +3571,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                 ChangeValueType(this->currentBlock, CurrentBlockData()->FindValue(opnd->AsRegOpnd()->m_sym), valueType, false);
             }
         }
+
         opnd->SetValueType(valueType);
 
         if(!IsLoopPrePass() && opnd->IsSymOpnd() && valueType.IsDefinite())

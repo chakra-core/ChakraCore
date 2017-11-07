@@ -3842,11 +3842,13 @@ namespace Js
 #endif
 #endif
 
+        ArgSlot argCount = playout->ArgCount;
         if (playout->Return == Js::Constants::NoRegister)
         {
             flags |= CallFlags_NotUsed;
             Arguments args(CallInfo((CallFlags)flags, playout->ArgCount), m_outParams);
             AssertMsg(static_cast<unsigned>(args.Info.Flags) == flags, "Flags don't fit into the CallInfo field?");
+                argCount = args.GetArgCountWithExtraArgs();
             if (spreadIndices != nullptr)
             {
                 JavascriptFunction::CallSpreadFunction(function, args, spreadIndices);
@@ -3861,6 +3863,7 @@ namespace Js
             flags |= CallFlags_Value;
             Arguments args(CallInfo((CallFlags)flags, playout->ArgCount), m_outParams);
             AssertMsg(static_cast<unsigned>(args.Info.Flags) == flags, "Flags don't fit into the CallInfo field?");
+            argCount = args.GetArgCountWithExtraArgs();
             if (spreadIndices != nullptr)
             {
                 SetReg((RegSlot)playout->Return, JavascriptFunction::CallSpreadFunction(function, args, spreadIndices));
@@ -3872,7 +3875,7 @@ namespace Js
         }
 
         threadContext->SetImplicitCallFlags(savedImplicitCallFlags);
-        PopOut(playout->ArgCount);
+        PopOut(argCount);
     }
 
     template <class T>
@@ -8424,9 +8427,9 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     template <class T>
     void InterpreterStackFrame::OP_LdNewTarget(const unaligned T* playout)
     {
-        if (this->m_callFlags & CallFlags_NewTarget)
+        if (Js::CallInfo::HasNewTarget(this->m_callFlags))
         {
-            SetRegAllowStackVar(playout->R0, (Js::RecyclableObject*)this->m_inParams[this->m_inSlotsCount]);
+            SetRegAllowStackVar(playout->R0, (Js::RecyclableObject*)Js::CallInfo::GetNewTarget(this->m_callFlags, this->m_inParams, (ArgSlot)this->m_inSlotsCount));
         }
         else if (this->m_callFlags & CallFlags_New)
         {

@@ -9,6 +9,7 @@
 #include "DebugWriter.h"
 #include "RegexStats.h"
 
+#include "ConfigFlagsList.h"
 #include "ByteCode/ByteCodeApi.h"
 #include "Library/ProfileString.h"
 #ifdef ENABLE_SCRIPT_DEBUGGING
@@ -858,14 +859,7 @@ namespace Js
 
     void ScriptContext::GetOrAddPropertyRecord(_In_ Js::JavascriptString * propertyString, _Out_ PropertyRecord const** propertyRecord)
     {
-        if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(propertyString) && propertyString->GetScriptContext() == this)
-        {
-            *propertyRecord = ((Js::PropertyString*)propertyString)->GetPropertyRecord();
-        }
-        else
-        {
-            GetOrAddPropertyRecord(propertyString->GetString(), propertyString->GetLength(), propertyRecord);
-        }
+        *propertyRecord = propertyString->GetPropertyRecord();
     }
 
     void ScriptContext::GetOrAddPropertyRecord(JsUtil::CharacterBuffer<WCHAR> const& propertyName, PropertyRecord const ** propertyRecord)
@@ -2114,9 +2108,9 @@ namespace Js
 
     void ScriptContext::OnScriptStart(bool isRoot, bool isScript)
     {
-        const bool isForcedEnter = 
+        const bool isForcedEnter =
 #ifdef ENABLE_SCRIPT_DEBUGGING
-            this->GetDebugContext() != nullptr ? this->GetDebugContext()->GetProbeContainer()->isForcedToEnterScriptStart : 
+            this->GetDebugContext() != nullptr ? this->GetDebugContext()->GetProbeContainer()->isForcedToEnterScriptStart :
 #endif
             false;
         if (this->scriptStartEventHandler != nullptr && ((isRoot && threadContext->GetCallRootLevel() == 1) || isForcedEnter))
@@ -4826,6 +4820,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         contextData.debugStepTypeAddr = GetDebugStepTypeAddr();
         contextData.debugFrameAddressAddr = GetDebugFrameAddressAddr();
         contextData.debugScriptIdWhenSetAddr = GetDebugScriptIdWhenSetAddr();
+        contextData.chakraLibAddr = (intptr_t)GetLibrary()->GetChakraLib();
 #endif
         contextData.numberAllocatorAddr = (intptr_t)GetNumberAllocator();
 #ifdef ENABLE_SIMDJS
@@ -5014,6 +5009,11 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         return (intptr_t)this->threadContext->GetDebugManager()->stepController.GetAddressOfScriptIdWhenSet();
     }
 #endif
+
+    intptr_t Js::ScriptContext::GetChakraLibAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetChakraLib();
+    }
 
     bool ScriptContext::GetRecyclerAllowNativeCodeBumpAllocation() const
     {
@@ -5947,6 +5947,11 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 #endif
         return false;
     }
+    bool ScriptContext::IsJsBuiltInEnabled()
+    {
+        return CONFIG_FLAG(JsBuiltIn);
+    }
+
 
 #ifdef INLINE_CACHE_STATS
     void ScriptContext::LogCacheUsage(Js::PolymorphicInlineCache *cache, bool isGetter, Js::PropertyId propertyId, bool hit, bool collision)

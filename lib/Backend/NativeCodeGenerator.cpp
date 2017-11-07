@@ -1072,7 +1072,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         workItem->GetEntryPoint()->GetJitTransferData()->SetIsReady();
     }
 
-#if defined(_M_X64)
+#if defined(_M_X64_OR_ARM64)
     XDataAllocation * xdataInfo = HeapNewZ(XDataAllocation);
     xdataInfo->address = (byte*)jitWriteData.xdataAddr;
     XDataAllocator::Register(xdataInfo, jitWriteData.codeAddress, jitWriteData.codeSize);
@@ -3599,7 +3599,7 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
         bool isConstructorCall = false;
         bool isPolymorphicCall = false;
 
-        if (!inliningDecider.HasCallSiteInfo(inlineeFunctionBody, profiledCallSiteId))
+        if (!inlineeFunctionBody->IsJsBuiltInCode() && !inliningDecider.HasCallSiteInfo(inlineeFunctionBody, profiledCallSiteId))
         {
             //There is no callsite information. We should hit bailonnoprofile for these callsites. Ignore.
             continue;

@@ -403,8 +403,6 @@ namespace TTD
 
             if(snpObject->SnapType->HasNoEnumerableProperties != obj->GetDynamicType()->GetHasNoEnumerableProperties())
             {
-                TTDAssert(!obj->GetDynamicType()->GetIsShared(), "This is shared so we are mucking something up.");
-
                 obj->GetDynamicType()->SetHasNoEnumerableProperties(snpObject->SnapType->HasNoEnumerableProperties);
             }
         }

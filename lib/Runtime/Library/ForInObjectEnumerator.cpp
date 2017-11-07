@@ -152,7 +152,7 @@ namespace Js
     }
 
     JavascriptString * ForInObjectEnumerator::MoveAndGetNext(PropertyId& propertyId)
-    {        
+    {
         PropertyRecord const * propRecord;
         PropertyAttributes attributes = PropertyNone;
 
@@ -184,24 +184,16 @@ namespace Js
                 // Property Id does not exist.
                 if (propertyId == Constants::NoProperty)
                 {
-                    PropertyString * propertyString = PropertyString::TryFromVar(currentIndex);
-                    if(propertyString != nullptr)
+                    propRecord = currentIndex->GetPropertyRecord(true);
+                    if (propRecord == nullptr)
                     {
-                        // If we have a property string, it is assumed that the propertyId is being
-                        // kept alive with the object
-                        propertyId = propertyString->GetPropertyRecord()->GetPropertyId();
-                    }
-                    else
-                    {
-                        ScriptContext* scriptContext = currentIndex->GetScriptContext();
-                        scriptContext->GetOrAddPropertyRecord(currentIndex, &propRecord);
-                        propertyId = propRecord->GetPropertyId();
-
+                        propRecord = currentIndex->GetPropertyRecord(false); // will create
                         // We keep the track of what is enumerated using a bit vector of propertyID.
                         // so the propertyId can't be collected until the end of the for in enumerator
                         // Keep a list of the property string.
                         this->shadowData->newPropertyStrings.Prepend(GetScriptContext()->GetRecycler(), propRecord);
                     }
+                    propertyId = propRecord->GetPropertyId();
                 }
 
                 if (TestAndSetEnumerated(propertyId) //checks if the property is already enumerated or not
@@ -220,7 +212,7 @@ namespace Js
 
                 RecyclableObject * object;
                 if (!this->enumeratingPrototype)
-                {  
+                {
                     this->enumeratingPrototype = true;
                     object = this->shadowData->firstPrototype;
                     this->shadowData->currentObject = object;

@@ -18,6 +18,8 @@ namespace Js
         // Id of the NoContextSourceContextInfo
         static const uint               NoSourceContext             = (uint)-1;
         // Variable indicating no source context cookie was passed in by the host- indicates Dynamic Script
+        static const uint               JsBuiltInSourceContextId    = (uint)-2;
+        static const DWORD_PTR          JsBuiltInSourceContext      = (DWORD_PTR)-2;
         static const DWORD_PTR          NoHostSourceContext         = (DWORD_PTR)-1;
         static const DWORD_PTR          FunctionBodyUnavailable     = (DWORD_PTR)NULL; // Not a valid Var
         static const LocalFunctionId    NoFunctionId                = (LocalFunctionId)-1;
@@ -155,14 +157,17 @@ namespace Js
         static const  char16 StringReplace[];
         static const  char16 StringMatch[];
 
-        static const size_t AnonymousFunctionLength = _countof(_u("Anonymous function")) - 1;
-        static const size_t AnonymousLength         = _countof(_u("anonymous")) - 1;
-        static const size_t AnonymousClassLength    = _countof(_u("Anonymous class")) - 1;
-        static const size_t FunctionCodeLength      = _countof(_u("Function code")) - 1;
-        static const size_t GlobalFunctionLength    = _countof(_u("glo")) - 1;
-        static const size_t GlobalCodeLength        = _countof(_u("Global code")) - 1;
-        static const size_t EvalCodeLength          = _countof(_u("eval code")) - 1;
-        static const size_t UnknownScriptCodeLength = _countof(_u("Unknown script code")) - 1;
+        static const charcount_t AnonymousFunctionLength = _countof(_u("Anonymous function")) - 1;
+        static const charcount_t AnonymousLength         = _countof(_u("anonymous")) - 1;
+        static const charcount_t AnonymousClassLength    = _countof(_u("Anonymous class")) - 1;
+        static const charcount_t FunctionCodeLength      = _countof(_u("Function code")) - 1;
+        static const charcount_t GlobalFunctionLength    = _countof(_u("glo")) - 1;
+        static const charcount_t GlobalCodeLength        = _countof(_u("Global code")) - 1;
+        static const charcount_t EvalCodeLength          = _countof(_u("eval code")) - 1;
+        static const charcount_t UnknownScriptCodeLength = _countof(_u("Unknown script code")) - 1;
+        static const charcount_t NullStringLength = _countof(_u("Null")) - 1;
+        static const charcount_t TrueStringLength = _countof(_u("True")) - 1;
+        static const charcount_t FalseStringLength = _countof(_u("False")) - 1;
     };
 
     extern const FrameDisplay NullFrameDisplay;

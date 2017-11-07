@@ -91,19 +91,20 @@ namespace Js
             }
             else
             {
-                char16 buffer[20];
-                ::_itow_s(indexInt, buffer, sizeof(buffer) / sizeof(char16), 10);
-                charcount_t length = JavascriptString::GetBufferLength(buffer);
+                char16 stringBuffer[22];
+
+                int pos = TaggedInt::ToBuffer(indexInt, stringBuffer, _countof(stringBuffer));
+                charcount_t length = (_countof(stringBuffer) - 1) - pos;
                 if (createIfNotFound || preferJavascriptStringOverPropertyRecord)
                 {
                     // When preferring JavascriptString objects, just return a PropertyRecord instead
                     // of creating temporary JavascriptString objects for every negative integer that
                     // comes through here.
-                    scriptContext->GetOrAddPropertyRecord(buffer, length, propertyRecord);
+                    scriptContext->GetOrAddPropertyRecord(stringBuffer + pos, length, propertyRecord);
                 }
                 else
                 {
-                    scriptContext->FindPropertyRecord(buffer, length, propertyRecord);
+                    scriptContext->FindPropertyRecord(stringBuffer + pos, length, propertyRecord);
                 }
                 return IndexType_PropertyId;
             }
@@ -117,27 +118,24 @@ namespace Js
                 // We already know what the PropertyRecord is since it is stored in the JavascriptSymbol itself so just return it.
 
                 *propertyRecord = symbol->GetValue();
-
                 return IndexType_PropertyId;
             }
             else
             {
                 JavascriptString* indexStr = JavascriptConversion::ToString(indexVar, scriptContext);
-                char16 const * propertyName = indexStr->GetString();
-                charcount_t const propertyLength = indexStr->GetLength();
+                *propertyRecord = indexStr->GetPropertyRecord();
 
-                if (!createIfNotFound && preferJavascriptStringOverPropertyRecord)
+                if ((*propertyRecord)->IsNumeric())
                 {
-                    if (JavascriptOperators::TryConvertToUInt32(propertyName, propertyLength, index) &&
-                        (*index != JavascriptArray::InvalidIndex))
-                    {
-                        return IndexType_Number;
-                    }
-
-                    *propertyNameString = indexStr;
-                    return IndexType_JavascriptString;
+                    *index = (*propertyRecord)->GetNumericValue();
+                    return IndexType_Number;
                 }
-                return GetIndexTypeFromString(propertyName, propertyLength, scriptContext, index, propertyRecord, createIfNotFound);
+
+                if (preferJavascriptStringOverPropertyRecord)
+                {
+                    *propertyNameString = indexStr;
+                }
+                return IndexType_PropertyId;
             }
         }
     }
@@ -1325,30 +1323,34 @@ CommonNumber:
         return type->GetPrototype();
     }
 
-    BOOL JavascriptOperators::IsArray(Var instanceVar)
+    BOOL JavascriptOperators::IsArray(_In_ RecyclableObject* instance)
     {
-        if (!RecyclableObject::Is(instanceVar))
-        {
-            return FALSE;
-        }
-        RecyclableObject* instance = RecyclableObject::UnsafeFromVar(instanceVar);
         if (DynamicObject::IsAnyArray(instance))
         {
             return TRUE;
         }
 
-        JavascriptProxy* proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(instanceVar);
+        JavascriptProxy* proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(instance);
         if (proxy)
         {
             return IsArray(proxy->GetTarget());
         }
         TypeId remoteTypeId = TypeIds_Limit;
-        if (JavascriptOperators::GetRemoteTypeId(instanceVar, &remoteTypeId) &&
+        if (JavascriptOperators::GetRemoteTypeId(instance, &remoteTypeId) &&
             DynamicObject::IsAnyArrayTypeId(remoteTypeId))
         {
             return TRUE;
         }
         return FALSE;
+    }
+
+    BOOL JavascriptOperators::IsArray(_In_ Var instanceVar)
+    {
+        if (!RecyclableObject::Is(instanceVar))
+        {
+            return FALSE;
+        }
+        return IsArray(RecyclableObject::FromVar(instanceVar));
     }
 
     BOOL JavascriptOperators::IsConstructor(Var instanceVar)
@@ -1424,17 +1426,37 @@ CommonNumber:
         return JavascriptOperators::IsArray(instance);
     }
 
+    BOOL JavascriptOperators::IsConstructorSuperCall(Arguments args)
+    {
+        Var newTarget = args.GetNewTarget();
+        return args.IsNewCall() && newTarget != nullptr
+                && !JavascriptOperators::IsUndefined(newTarget);
+    }
+
+    BOOL JavascriptOperators::GetAndAssertIsConstructorSuperCall(Arguments args)
+    {
+        BOOL isCtorSuperCall = JavascriptOperators::IsConstructorSuperCall(args);
+        Assert(isCtorSuperCall || !args.IsNewCall()
+                || args[0] == nullptr || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
+        return isCtorSuperCall;
+    }
+
     Var JavascriptOperators::OP_LdCustomSpreadIteratorList(Var aRight, ScriptContext* scriptContext)
     {
 #if ENABLE_COPYONACCESS_ARRAY
         // We know we're going to read from this array. Do the conversion before we try to perform checks on the head segment.
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray(aRight);
 #endif
+
+#ifdef ENABLE_JS_BUILTINS
+        scriptContext->GetLibrary()->EnsureBuiltInEngineIsReady();
+#endif
+
         RecyclableObject* function = GetIteratorFunction(aRight, scriptContext);
         JavascriptMethod method = function->GetEntryPoint();
         if (((JavascriptArray::Is(aRight) &&
               (
-                  method == JavascriptArray::EntryInfo::Values.GetOriginalEntryPoint()
+                  JavascriptLibrary::IsDefaultArrayValuesFunction(function, scriptContext)
                   // Verify that the head segment of the array covers all elements with no gaps.
                   // Accessing an element on the prototype could have side-effects that would invalidate the optimization.
                   && JavascriptArray::UnsafeFromVar(aRight)->GetHead()->next == nullptr
@@ -3717,17 +3739,17 @@ CommonNumber:
             temp = JavascriptOperators::TryFromVar<JavascriptString>(index);
             if (temp && RecyclableObject::Is(instance)) // fastpath for PropertyStrings
             {
-                Assert(temp->GetScriptContext() == scriptContext);
-
-                PropertyString * propertyString = PropertyString::TryFromVar(temp);
-                if (propertyString == nullptr)
+                PropertyString * propertyString = nullptr;
+                if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(temp))
                 {
-                    LiteralStringWithPropertyStringPtr * strWithPtr = LiteralStringWithPropertyStringPtr::TryFromVar(temp);
-                    if (strWithPtr)
-                    {
-                        propertyString = strWithPtr->GetPropertyString();
-                    }
+                    propertyString = (PropertyString*)temp;
                 }
+                else if (VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(temp))
+                {
+                    LiteralStringWithPropertyStringPtr * propStr = (LiteralStringWithPropertyStringPtr *)temp;
+                    propertyString = propStr->GetOrAddPropertyString();
+                }
+
                 if (propertyString != nullptr)
                 {
                     RecyclableObject* object = nullptr;
@@ -4369,13 +4391,8 @@ CommonNumber:
             LiteralStringWithPropertyStringPtr * strWithPtr = LiteralStringWithPropertyStringPtr::TryFromVar(index);
             if (strWithPtr != nullptr)
             {
-                propertyString = strWithPtr->GetPropertyString();
-                if (propertyString == nullptr)
-                {
-                    scriptContext->GetOrAddPropertyRecord(strWithPtr, &propertyRecord);
-                    propertyString = scriptContext->GetPropertyString(propertyRecord->GetPropertyId());
-                    strWithPtr->SetPropertyString(propertyString);
-                }
+                propertyString = strWithPtr->GetOrAddPropertyString();
+                propertyRecord = propertyString->GetPropertyRecord();
             }
         }
 
@@ -6375,6 +6392,11 @@ CommonNumber:
         return scriptContext->GetLibrary()->GetNaN();
     }
 
+    Var JavascriptOperators::OP_LdChakraLib(ScriptContext* scriptContext)
+    {
+        return scriptContext->GetLibrary()->GetChakraLib();
+    }
+
     Var JavascriptOperators::OP_LdInfinity(ScriptContext* scriptContext)
     {
         return scriptContext->GetLibrary()->GetPositiveInfinite();
@@ -7174,21 +7196,21 @@ CommonNumber:
         RecyclableObject* object = RecyclableObject::FromVar(instance);
 
         BOOL result;
-        if( indexType == Js::IndexType_Number )
+        if (indexType == Js::IndexType_Number)
         {
-            result = JavascriptOperators::HasItem( object, index );
+            result = JavascriptOperators::HasItem(object, index);
         }
         else
         {
             PropertyId propertyId = propertyRecord->GetPropertyId();
-            result = JavascriptOperators::HasProperty( object, propertyId );
+            result = JavascriptOperators::HasProperty(object, propertyId);
 
 #ifdef TELEMETRY_JSO
             {
                 Assert(indexType != Js::IndexType_JavascriptString);
-                if( indexType == Js::IndexType_PropertyId )
+                if (indexType == Js::IndexType_PropertyId)
                 {
-                    scriptContext->GetTelemetry().GetOpcodeTelemetry().IsIn( instance, propertyId, result != 0 );
+                    scriptContext->GetTelemetry().GetOpcodeTelemetry().IsIn(instance, propertyId, result != 0);
                 }
             }
 #endif
@@ -10045,9 +10067,14 @@ CommonNumber:
         return JavascriptNumber::ToVarNoCheck(JavascriptConversion::ToNumber_Full(aRight, scriptContext), scriptContext);
     }
 
-    BOOL JavascriptOperators::IsObject(Var aValue)
+    BOOL JavascriptOperators::IsObject(_In_ RecyclableObject* instance)
     {
-        return GetTypeId(aValue) > TypeIds_LastJavascriptPrimitiveType;
+        return GetTypeId(instance) > TypeIds_LastJavascriptPrimitiveType;
+    }
+
+    BOOL JavascriptOperators::IsObject(_In_ Var instance)
+    {
+        return GetTypeId(instance) > TypeIds_LastJavascriptPrimitiveType;
     }
 
     BOOL JavascriptOperators::IsObjectType(TypeId typeId)
@@ -10064,6 +10091,11 @@ CommonNumber:
     {
         TypeId typeId = GetTypeId(instance);
         return IsObjectType(typeId) || typeId == TypeIds_Null;
+    }
+
+    BOOL JavascriptOperators::IsUndefined(_In_ RecyclableObject* instance)
+    {
+        return JavascriptOperators::GetTypeId(instance) == TypeIds_Undefined;
     }
 
     BOOL JavascriptOperators::IsUndefined(Var instance)
@@ -10408,6 +10440,11 @@ CommonNumber:
 
     BOOL JavascriptOperators::GetItem(RecyclableObject* instance, uint64 index, Var* value, ScriptContext* requestContext)
     {
+        if (index < JavascriptArray::InvalidIndex)
+        {
+            // In case index fits in uint32, we can avoid the (slower) big-index path
+            return GetItem(instance, static_cast<uint32>(index), value, requestContext);
+        }
         PropertyRecord const * propertyRecord = nullptr;
         JavascriptOperators::GetPropertyIdForInt(index, requestContext, &propertyRecord);
         return JavascriptOperators::GetProperty(instance, propertyRecord->GetPropertyId(), value, requestContext);
@@ -10449,15 +10486,8 @@ CommonNumber:
 
     BOOL JavascriptOperators::CheckPrototypesForAccessorOrNonWritableProperty(RecyclableObject* instance, JavascriptString* propertyNameString, Var* setterValue, DescriptorFlags* flags, PropertyValueInfo* info, ScriptContext* scriptContext)
     {
-        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
-        if (Js::BuiltInPropertyRecords::__proto__.Equals(propertyName))
-        {
-            return CheckPrototypesForAccessorOrNonWritablePropertyCore<JavascriptString*, false, false>(instance, propertyNameString, setterValue, flags, info, scriptContext);
-        }
-        else
-        {
-            return CheckPrototypesForAccessorOrNonWritablePropertyCore<JavascriptString*, true, false>(instance, propertyNameString, setterValue, flags, info, scriptContext);
-        }
+        PropertyId propertyId = propertyNameString->GetPropertyRecord()->GetPropertyId();
+        return CheckPrototypesForAccessorOrNonWritableProperty(instance, propertyId, setterValue, flags, info, scriptContext);
     }
 
     BOOL JavascriptOperators::SetProperty(Var instance, RecyclableObject* object, PropertyId propertyId, Var newValue, ScriptContext* requestContext, PropertyOperationFlags propertyOperationFlags)
@@ -10509,4 +10539,3 @@ CommonNumber:
         return constructor;
     }
 } // namespace Js
- 

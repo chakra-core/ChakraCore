@@ -143,7 +143,8 @@ namespace JsUtil
             }
         }
 
-        BaseDictionary(const BaseDictionary &other) : alloc(other.alloc)
+        BaseDictionary(const BaseDictionary &other) :
+          alloc(other.alloc)
         {
             if(other.Count() == 0)
             {
@@ -153,6 +154,7 @@ namespace JsUtil
                 entries = nullptr;
                 count = 0;
                 freeCount = 0;
+                modFunctionIndex = UNKNOWN_MOD_INDEX;
 
 #if PROFILE_DICTIONARY
                 stats = nullptr;
@@ -182,6 +184,7 @@ namespace JsUtil
             count = other.count;
             freeList = other.freeList;
             freeCount = other.freeCount;
+            modFunctionIndex = other.modFunctionIndex;
 
             CopyArray(buckets, bucketCount, other.buckets, bucketCount);
             CopyArray<EntryType, Field(ValueType, TAllocator), TAllocator>(
@@ -298,6 +301,7 @@ namespace JsUtil
             this->entries = nullptr;
             this->count = 0;
             this->freeCount = 0;
+            this->modFunctionIndex = UNKNOWN_MOD_INDEX;
         }
 
         void Reset()
@@ -307,6 +311,7 @@ namespace JsUtil
                 DeleteBuckets(buckets, bucketCount);
                 buckets = nullptr;
                 bucketCount = 0;
+                this->modFunctionIndex = UNKNOWN_MOD_INDEX;
             }
             else
             {
@@ -317,6 +322,7 @@ namespace JsUtil
                 DeleteEntries(entries, size);
                 entries = nullptr;
                 freeCount = count = size = 0;
+                this->modFunctionIndex = UNKNOWN_MOD_INDEX;
             }
             else
             {
@@ -714,6 +720,7 @@ namespace JsUtil
             count = other->count;
             freeList = other->freeList;
             freeCount = other->freeCount;
+            modFunctionIndex = other->modFunctionIndex;
 
             CopyArray(buckets, bucketCount, other->buckets, bucketCount);
             CopyArray<EntryType, Field(ValueType, TAllocator), TAllocator>(
@@ -875,7 +882,8 @@ namespace JsUtil
         {
             // minimum capacity is 4
             int initSize = max(capacity, 4);
-            uint initBucketCount = SizePolicy::GetBucketSize(initSize, &modFunctionIndex);
+            int modIndex = UNKNOWN_MOD_INDEX;
+            uint initBucketCount = SizePolicy::GetBucketSize(initSize, &modIndex);
             AssertMsg(initBucketCount > 0, "Size returned by policy should be greater than 0");
 
             int* newBuckets = nullptr;
@@ -887,6 +895,7 @@ namespace JsUtil
             this->entries = newEntries;
             this->bucketCount = initBucketCount;
             this->size = initSize;
+            this->modFunctionIndex = modIndex;
             Assert(this->freeCount == 0);
 #if PROFILE_DICTIONARY
             stats = DictionaryStats::Create(typeid(this).name(), size);
@@ -1015,7 +1024,8 @@ namespace JsUtil
             AutoDoResize autoDoResize(*this);
 
             int newSize = SizePolicy::GetNextSize(count);
-            uint newBucketCount = SizePolicy::GetBucketSize(newSize, &modFunctionIndex);
+            int modIndex = UNKNOWN_MOD_INDEX;
+            uint newBucketCount = SizePolicy::GetBucketSize(newSize, &modIndex);
 
             __analysis_assume(newSize > count);
             int* newBuckets = nullptr;
@@ -1031,6 +1041,7 @@ namespace JsUtil
 
                 this->entries = newEntries;
                 this->size = newSize;
+                this->modFunctionIndex = modIndex;
                 return;
             }
 
@@ -1041,6 +1052,7 @@ namespace JsUtil
             // When TAllocator is of type Recycler, it is possible that the Allocate above causes a collection, which
             // in turn can cause entries in the dictionary to be removed - i.e. the dictionary contains weak references
             // that remove themselves when no longer valid. This means the free list might not be empty anymore.
+            this->modFunctionIndex = modIndex;
             for (int i = 0; i < count; i++)
             {
                 __analysis_assume(i < newSize);

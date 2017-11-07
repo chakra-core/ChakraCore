@@ -84,6 +84,16 @@ typedef struct {} TTDRecorder;
             MARSHAL_OBJECT(p, scriptContext)   \
         }
 
+#define VALIDATE_INCOMING_RECYCLABLE(p, scriptContext) \
+{ \
+    VALIDATE_JSREF(p); \
+    if (!Js::RecyclableObject::Is(p)) \
+    { \
+        return JsErrorInvalidArgument; \
+    } \
+    MARSHAL_OBJECT(p, scriptContext)   \
+}
+
 #define VALIDATE_INCOMING_OBJECT_OR_NULL(p, scriptContext) \
         { \
             VALIDATE_JSREF(p); \

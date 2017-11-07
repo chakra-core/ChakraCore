@@ -907,8 +907,12 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitLsrRegister, EmitLsrRegister64, EmitLsrImmediate, EmitLsrImmediate64);
         break;
 
-    case Js::OpCode::MOV:
     case Js::OpCode::MOV_TRUNC:
+        Assert(instr->GetDst()->GetSize() == 4);
+        Assert(instr->GetSrc1()->GetSize() == 4);
+        // fall through.
+
+    case Js::OpCode::MOV:
         bytes = this->EmitOp2Register(Emitter, instr, EmitMovRegister, EmitMovRegister64);
         break;
 
@@ -1047,7 +1051,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         break;
 
     case Js::OpCode::SUB_LSL4:
-        bytes = this->EmitOp3RegisterShifted(Emitter, instr, SHIFT_LSL, 4, EmitSubRegister, EmitSubRegister64);
+        bytes = this->EmitOp3RegisterShifted(Emitter, instr, EXTEND_UXTX, 4, EmitSubRegister, EmitSubRegister64);
         break;
 
     case Js::OpCode::TBZ:
@@ -1293,18 +1297,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
             else
             {
                 instr->AsLabelInstr()->SetPC(m_pc);
-                if (instr->AsLabelInstr()->m_id == m_func->m_unwindInfo.GetPrologStartLabel())
-                {
-                    m_func->m_unwindInfo.SetPrologOffset(DWORD(m_pc - m_encoder->m_encodeBuffer));
-                }
-                else if (instr->AsLabelInstr()->m_id == m_func->m_unwindInfo.GetEpilogEndLabel())
-                {
-                    // This is the last instruction in the epilog. Any instructions that follow
-                    // are separated code, so the unwind info will have to represent them as a function
-                    // fragment. (If there's no separated code, then this offset will equal the total
-                    // code size.)
-                    m_func->m_unwindInfo.SetEpilogEndOffset(DWORD(m_pc - m_encoder->m_encodeBuffer - m_func->m_unwindInfo.GetPrologOffset()));
-                }
+                m_func->m_unwindInfo.SetLabelOffset(instr->AsLabelInstr()->m_id, DWORD(m_pc - m_encoder->m_encodeBuffer));
             }
         }
     #if DBG_DUMP
@@ -1472,7 +1465,13 @@ bool EncoderMD::TryConstFold(IR::Instr *instr, IR::RegOpnd *regOpnd)
             return false;
         }
 
-        instr->ReplaceSrc(regOpnd, regOpnd->m_sym->GetConstOpnd());
+        IR::Opnd* constOpnd = regOpnd->m_sym->GetConstOpnd();
+        if (constOpnd->GetSize() > regOpnd->GetSize())
+        {
+            return false;
+        }
+
+        instr->ReplaceSrc(regOpnd, constOpnd);
         LegalizeMD::LegalizeInstr(instr, false);
 
         return true;

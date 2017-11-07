@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
-#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_PROJECTION)
+#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_JS_BUILTINS) || defined(ENABLE_PROJECTION)
 
 #include "errstr.h"
 #include "Library/EngineInterfaceObject.h"
@@ -198,8 +198,7 @@ namespace Js
     {
         typeHandler->Convert(commonNativeInterfaces, mode, 38);
 
-        ScriptContext* scriptContext = commonNativeInterfaces->GetScriptContext();
-        JavascriptLibrary* library = scriptContext->GetLibrary();
+        JavascriptLibrary* library = commonNativeInterfaces->GetScriptContext()->GetLibrary();
 
 #ifndef GlobalBuiltIn
 #define GlobalBuiltIn(global, method) \
@@ -389,4 +388,4 @@ namespace Js
 #endif
 
 }
-#endif // ENABLE_INTL_OBJECT || ENABLE_PROJECTION
+#endif // ENABLE_INTL_OBJECT || ENABLE_JS_BUILTINS || ENABLE_PROJECTION

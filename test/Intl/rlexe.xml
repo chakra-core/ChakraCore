@@ -84,6 +84,14 @@
       <tags>Intl,exclude_drt</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <compile-flags>-Intl -JsBuiltIn-</compile-flags>
+      <files>IntlTaintingTests.js</files>
+      <baseline>IntlTaintingTests.baseline</baseline>
+      <tags>Intl,exclude_winglob</tags>
+    </default>
+  </test>
 
   <test>
     <default>

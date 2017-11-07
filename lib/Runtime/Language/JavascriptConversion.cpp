@@ -293,39 +293,7 @@ CommonNumber:
         {
             // For all other types, convert the key into a string and use that as the property name
             JavascriptString * propName = JavascriptConversion::ToString(key, scriptContext);
-
-            // Check if we have one of the JavascriptString types which allow us to directly read the PropertyRecord
-            propertyString = PropertyString::TryFromVar(propName);
-            if (propertyString != nullptr)
-            {
-                // If we have a PropertyString, we can simply read the PropertyRecord off of it
-                *propertyRecord = propertyString->GetPropertyRecord();
-            }
-            else
-            {
-                LiteralStringWithPropertyStringPtr * strWithPtr = LiteralStringWithPropertyStringPtr::TryFromVar(propName);
-                if (strWithPtr != nullptr)
-                {
-                    propertyString = strWithPtr->GetPropertyString();
-                    if (propertyString != nullptr)
-                    {
-                        // If the PropertyString field is set, we can again simply read the propertyRecord
-                        *propertyRecord = propertyString->GetPropertyRecord();
-                    }
-                    else
-                    {
-                        // Otherwise, we need to do a lookup for the PropertyRecord
-                        scriptContext->GetOrAddPropertyRecord(propName, propertyRecord);
-                        // While we have the PropertyRecord available, let's find/create a PropertyString so future usage can be optimized
-                        strWithPtr->SetPropertyString(scriptContext->GetPropertyString((*propertyRecord)->GetPropertyId()));
-                    }
-                }
-                else
-                {
-                    // If we don't have any special JavascriptString, we need to do a lookup for the PropertyRecord
-                    scriptContext->GetOrAddPropertyRecord(propName->GetString(), propName->GetLength(), propertyRecord);
-                }
-            }
+            *propertyRecord = propName->GetPropertyRecord();
         }
 
         if (propString)
@@ -538,27 +506,25 @@ CommonNumber:
         }
 
         // If exoticToPrim is not undefined, then
-        if (nullptr != exoticToPrim)
+        Assert(nullptr != exoticToPrim);
+        ThreadContext * threadContext = requestContext->GetThreadContext();
+        result = threadContext->ExecuteImplicitCall(exoticToPrim, ImplicitCall_ToPrimitive, [=]()->Js::Var
         {
-            ThreadContext * threadContext = requestContext->GetThreadContext();
-            result = threadContext->ExecuteImplicitCall(exoticToPrim, ImplicitCall_ToPrimitive, [=]()->Js::Var
-            {
-                // Stack object should have a pre-op bail on implicit call.  We shouldn't see them here.
-                Assert(!ThreadContext::IsOnStack(recyclableObject));
+            // Stack object should have a pre-op bail on implicit call.  We shouldn't see them here.
+            Assert(!ThreadContext::IsOnStack(recyclableObject));
 
-                // Let result be the result of calling the[[Call]] internal method of exoticToPrim, with input as thisArgument and(hint) as argumentsList.
-                return CALL_FUNCTION(threadContext, exoticToPrim, CallInfo(CallFlags_Value, 2), recyclableObject, hintString);
-            });
+            // Let result be the result of calling the[[Call]] internal method of exoticToPrim, with input as thisArgument and(hint) as argumentsList.
+            return CALL_FUNCTION(threadContext, exoticToPrim, CallInfo(CallFlags_Value, 2), recyclableObject, hintString);
+        });
 
-            if (!result)
-            {
-                // There was an implicit call and implicit calls are disabled. This would typically cause a bailout.
-                Assert(threadContext->IsDisableImplicitCall());
-                return requestContext->GetLibrary()->GetNull();
-            }
-
-            Assert(!CrossSite::NeedMarshalVar(result, requestContext));
+        if (!result)
+        {
+            // There was an implicit call and implicit calls are disabled. This would typically cause a bailout.
+            Assert(threadContext->IsDisableImplicitCall());
+            return requestContext->GetLibrary()->GetNull();
         }
+
+        Assert(!CrossSite::NeedMarshalVar(result, requestContext));
         // If result is an ECMAScript language value and Type(result) is not Object, then return result.
         if (TaggedInt::Is(result) || !JavascriptOperators::IsObjectType(JavascriptOperators::GetTypeId(result)))
         {

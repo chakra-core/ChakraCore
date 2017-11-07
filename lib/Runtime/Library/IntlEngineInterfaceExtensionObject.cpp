@@ -28,13 +28,13 @@ using namespace PlatformAgnostic::Resource;
 #pragma warning(disable:4838) // conversion from 'int' to 'const char' requires a narrowing conversion
 
 #if DISABLE_JIT
-#if _M_AMD64
+#if TARGET_64
 #include "InJavascript/Intl.js.nojit.bc.64b.h"
 #else
 #include "InJavascript/Intl.js.nojit.bc.32b.h"
 #endif
 #else
-#if _M_AMD64
+#if TARGET_64
 #include "InJavascript/Intl.js.bc.64b.h"
 #else
 #include "InJavascript/Intl.js.bc.32b.h"
@@ -333,7 +333,7 @@ namespace Js
     void IntlEngineInterfaceExtensionObject::DumpByteCode()
     {
         Output::Print(_u("Dumping Intl Byte Code:"));
-        this->EnsureIntlByteCode(scriptContext);
+        Assert(this->intlByteCode);
         Js::ByteCodeDumper::DumpRecursively(intlByteCode);
     }
 #endif
@@ -463,6 +463,8 @@ namespace Js
             HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, (LPCUTF8)nullptr, hsi, (byte*)Library_Bytecode_Intl, nullptr, &this->intlByteCode);
 
             IfFailAssertMsgAndThrowHr(hr, "Failed to deserialize Intl.js bytecode - very probably the bytecode needs to be rebuilt.");
+
+            this->SetHasBytecode();
         }
     }
 
@@ -550,6 +552,14 @@ namespace Js
                 deletePrototypePropertyHelper(scriptContext, intlObject, Js::PropertyIds::NumberFormat, Js::PropertyIds::format);
                 deletePrototypePropertyHelper(scriptContext, intlObject, Js::PropertyIds::DateTimeFormat, Js::PropertyIds::format);
             }
+
+#if DBG_DUMP
+            if (PHASE_DUMP(Js::ByteCodePhase, function->GetFunctionProxy()) && Js::Configuration::Global.flags.Verbose)
+            {
+                DumpByteCode();
+            }
+#endif
+
         }
         catch (const JavascriptException& err)
         {

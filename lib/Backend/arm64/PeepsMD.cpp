@@ -4,6 +4,14 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 
+static const uint8 RegAttribs[RegNumCount] =
+{
+#define REGDAT(Name, ListName, Encode, Type, Attribs) Attribs,
+#include "RegList.h"
+#undef REGDAT
+};
+
+
 // PeepsMD::Init
 void
 PeepsMD::Init(Peeps *peeps)
@@ -17,20 +25,18 @@ PeepsMD::ProcessImplicitRegs(IR::Instr *instr)
 {
     if (LowererMD::IsCall(instr))
     {
-        this->peeps->ClearReg(RegR0);
-        this->peeps->ClearReg(RegR1);
-        this->peeps->ClearReg(RegR2);
-        this->peeps->ClearReg(RegR3);
+        FOREACH_REG(reg)
+        {
+            // not DONTALLOCATE, not CALLEESAVED
+            if (RegAttribs[reg] == 0)
+            {
+                this->peeps->ClearReg(reg);
+            }
+        } NEXT_REG
+
+        // The SCRATCH_REG (RegR17) is marked DONTALLOCATE, so it will be missed above.
+        Assert(RegAttribs[SCRATCH_REG] & RA_DONTALLOCATE);
         this->peeps->ClearReg(SCRATCH_REG);
-        this->peeps->ClearReg(RegLR);
-        this->peeps->ClearReg(RegD0);
-        this->peeps->ClearReg(RegD1);
-        this->peeps->ClearReg(RegD2);
-        this->peeps->ClearReg(RegD3);
-        this->peeps->ClearReg(RegD4);
-        this->peeps->ClearReg(RegD5);
-        this->peeps->ClearReg(RegD6);
-        this->peeps->ClearReg(RegD7);
     }
     else if (instr->m_opcode == Js::OpCode::SMULL ||
              instr->m_opcode == Js::OpCode::SMADDL)

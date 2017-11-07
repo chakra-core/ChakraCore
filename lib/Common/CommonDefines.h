@@ -108,6 +108,7 @@
 
 #if !defined(CHAKRACORE_LITE) && (defined(_WIN32) || defined(INTL_ICU))
 #define ENABLE_INTL_OBJECT                          // Intl support
+#define ENABLE_JS_BUILTINS                          // Built In functions support
 #endif
 //#define INTL_ICU 1                    // NOTE: uncomment this to allow the IDE to see INTL_ICU blocks
 #ifdef INTL_ICU

@@ -595,6 +595,7 @@ namespace Js
         static Js::SourceId const BuiltInSourceId   = (SourceId)-2;
         static Js::SourceId const CurrentSourceId   = (SourceId)-3; // caller and callee in the same file
         static Js::SourceId const InvalidSourceId   = (SourceId)-4;
+        static Js::SourceId const JsBuiltInSourceId = (SourceId)-5;
 
         bool MatchFunctionBody(FunctionBody * functionBody);
 

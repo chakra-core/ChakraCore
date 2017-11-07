@@ -42,6 +42,8 @@ namespace Js
         // Need a constructor cache on every function (script and native) to avoid extra checks on the fast path, if the function isn't fixed.
         Field(ConstructorCache*) constructorCache;
 
+        Field(bool) isJsBuiltInCode;
+
     protected:
 
         Field(FunctionInfo *) functionInfo;  // Underlying function
@@ -133,7 +135,7 @@ namespace Js
         static Var CallRootFunction(RecyclableObject* obj, Arguments args, ScriptContext * scriptContext, bool inScript);
         static Var CallRootFunctionInternal(RecyclableObject* obj, Arguments args, ScriptContext * scriptContext, bool inScript);
         static Var CallSpreadFunction(RecyclableObject* obj, Arguments args, const Js::AuxArray<uint32> *spreadIndices);
-        static uint32 GetSpreadSize(const Arguments args, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext);
+        static ArgSlot GetSpreadSize(const Arguments args, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext);
         static void SpreadArgs(const Arguments args, Arguments& destArgs, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext);
         static Var EntrySpreadCall(const Js::AuxArray<uint32> *spreadIndices, RecyclableObject* function, CallInfo callInfo, ...);
         static void CheckAlignment();
@@ -181,6 +183,9 @@ namespace Js
         BOOL IsLambda() const;
         virtual inline BOOL IsConstructor() const;
         bool HasRestrictedProperties() const;
+
+        void SetIsJsBuiltInCode();
+        bool IsJsBuiltIn();
 
         ConstructorCache* GetConstructorCache() { Assert(this->constructorCache != nullptr); return this->constructorCache; }
         ConstructorCache* EnsureValidConstructorCache();

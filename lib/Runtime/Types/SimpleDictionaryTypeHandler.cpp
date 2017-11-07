@@ -57,15 +57,7 @@ namespace Js
     const PropertyRecord* TMapKey_ConvertKey(ScriptContext* scriptContext, JavascriptString* key)
     {
         PropertyRecord const * propertyRecord;
-        PropertyString * propertyString = PropertyString::TryFromVar(key);
-        if (propertyString != nullptr)
-        {
-            propertyRecord = propertyString->GetPropertyRecord();
-        }
-        else
-        {
-            scriptContext->GetOrAddPropertyRecord(key, &propertyRecord);
-        }
+        scriptContext->GetOrAddPropertyRecord(key, &propertyRecord);
         return propertyRecord;
     }
 
