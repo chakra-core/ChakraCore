@@ -1374,8 +1374,8 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
     // Recover FP and LR
     if (layout.HasCalls())
     {
-        // SUB fp, sp, #offs
-        ULONG fpOffset = layout.FpLrOffset();
+        // SUB sp, fp, #offs
+        ULONG fpOffset = layout.FpLrOffset() - stackAllocation2;
         IR::Instr * instrSub = IR::Instr::New(Js::OpCode::SUB, spOpnd, fpOpnd, IR::IntConstOpnd::New(fpOffset, TyMachReg, this->m_func), this->m_func);
         exitInstr->InsertBefore(instrSub);
         Legalize(instrSub);
