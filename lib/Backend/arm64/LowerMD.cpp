@@ -5280,11 +5280,6 @@ LowererMD::EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, I
     Assert(dst->GetType() == TyFloat64 || TyFloat32);
     Assert(src->IsRegOpnd());
 
-    if (dst->IsIndirOpnd())
-    {
-        LegalizeMD::LegalizeDst(insertInstr, false);
-    }
-
     labelDone = EmitLoadFloatCommon(dst, src, insertInstr, true);
 
     if (labelDone == nullptr)
