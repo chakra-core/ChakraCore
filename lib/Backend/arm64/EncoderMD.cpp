@@ -718,6 +718,17 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitAddsRegister, EmitAddsRegister64, EmitAddsImmediate, EmitAddsImmediate64);
         break;
 
+    case Js::OpCode::ADR:
+        dst = instr->GetDst();
+        src1 = instr->GetSrc1();
+        Assert(dst->IsRegOpnd());
+        Assert(src1->IsLabelOpnd());
+
+        Assert(dst->GetSize() == 8);
+        EncodeReloc::New(&m_relocList, RelocTypeLabelAdr, m_pc, src1->AsLabelOpnd()->GetLabel(), m_encoder->m_tempAlloc);
+        bytes = EmitAdr(Emitter, this->GetRegEncode(dst->AsRegOpnd()), 0);
+        break;
+
     case Js::OpCode::AND:
         bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitAndRegister, EmitAndRegister64, EmitAndImmediate, EmitAndImmediate64);
         break;
@@ -1435,10 +1446,29 @@ EncoderMD::ApplyRelocs(size_t codeBufferAddress, size_t codeSize, uint* bufferCR
 {
     for (EncodeReloc *reloc = m_relocList; reloc; reloc = reloc->m_next)
     {
-        BYTE * relocAddress = reloc->m_consumerOffset;
-        IR::LabelInstr * labelInstr = reloc->m_relocInstr->AsLabelInstr();
+        PULONG relocAddress = PULONG(reloc->m_consumerOffset);
+        PULONG targetAddress = PULONG(reloc->m_relocInstr->AsLabelInstr()->GetPC());
+        ULONG_PTR immediate;
 
-        ArmBranchLinker::LinkRaw((PULONG)relocAddress, (PULONG)labelInstr->GetPC());
+        switch (reloc->m_relocType)
+        {
+        case RelocTypeBranch14:
+        case RelocTypeBranch19:
+        case RelocTypeBranch26:
+            ArmBranchLinker::LinkRaw(relocAddress, targetAddress);
+            break;
+
+        case RelocTypeLabelAdr:
+            immediate = ULONG_PTR(targetAddress) - ULONG_PTR(relocAddress);
+            Assert(IS_CONST_INT21(immediate));
+            *relocAddress = (*relocAddress & ~(3 << 29)) | ULONG((immediate & 3) << 29);
+            *relocAddress = (*relocAddress & ~(0x7ffff << 5)) | ULONG(((immediate >> 2) & 0x7ffff) << 5);
+            break;
+
+        default:
+            // unexpected/unimplemented type
+            Assert(false);
+        }
     }
 }
 

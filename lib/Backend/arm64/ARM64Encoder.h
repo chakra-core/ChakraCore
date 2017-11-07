@@ -2953,6 +2953,47 @@ EmitLoadImmediate(
 }
 
 //
+// ADR dest, offset
+// ADRP dest, pageoffs
+//
+
+inline
+int
+EmitAdrAdrp(
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
+    LONG Offset,
+    ULONG Opcode
+)
+{
+
+    Assert(Offset >= -(1 << 21) && Offset < (1 << 21));
+    return Emitter.EmitFourBytes(Opcode | ((Offset & 3) << 29) | (((Offset >> 2) & 0x7ffff) << 5) | Dest.RawRegister());
+}
+
+inline
+int
+EmitAdr(
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
+    LONG Offset
+)
+{
+    return EmitAdrAdrp(Emitter, Dest, Offset, 0x10000000);
+}
+
+inline
+int
+EmitAdrp(
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
+    LONG PageOffset
+)
+{
+    return EmitAdrAdrp(Emitter, Dest, PageOffset, 0x90000000);
+}
+
+//
 // ADD dest, source, immediate
 // ADDS dest, source, immediate
 // SUB dest, source, immediate

@@ -17,6 +17,7 @@
 
 MACRO(ADD,        Reg3,       0,              UNUSED,   LEGAL_ADDSUB,   UNUSED,   D___)
 MACRO(ADDS,       Reg3,       OpSideEffect,   UNUSED,   LEGAL_ADDSUB,   UNUSED,   D__S)
+MACRO(ADR,        Reg3,       0,              UNUSED,   LEGAL_LABEL,    UNUSED,   D___)
 MACRO(AND,        Reg3,       0,              UNUSED,   LEGAL_ALU3,     UNUSED,   D___)
 MACRO(ANDS,       Reg3,       0,              UNUSED,   LEGAL_ALU3,     UNUSED,   D__S)
 MACRO(ASR,        Reg3,       0,              UNUSED,   LEGAL_SHIFT,    UNUSED,   D___)
