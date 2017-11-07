@@ -1413,7 +1413,7 @@ EncoderMD::BaseAndOffsetFromSym(IR::SymOpnd *symOpnd, RegNum *pBaseReg, int32 *p
         if (func->HasInlinee())
         {
             // TODO (megupta): BaseReg will be a pre-reserved non SP register when we start supporting try
-            Assert(baseReg == RegSP);
+            Assert(baseReg == RegSP || baseReg == ALT_LOCALS_PTR);
             if (stackSym->IsArgSlotSym() && !stackSym->m_isOrphanedArg)
             {
                 Assert(stackSym->m_isInlinedArgSlot);
