@@ -217,6 +217,15 @@ namespace Js
         return GetTypeHandler()->GetPropertyCount();
     }
 
+    int DynamicObject::GetPropertyCountForEnum()
+    {
+        if (!this->GetTypeHandler()->EnsureObjectReady(this))
+        {
+            return 0;
+        }
+        return GetTypeHandler()->GetPropertyCountForEnum();
+    }
+
     PropertyId DynamicObject::GetPropertyId(PropertyIndex index)
     {
         return GetTypeHandler()->GetPropertyId(this->GetScriptContext(), index);

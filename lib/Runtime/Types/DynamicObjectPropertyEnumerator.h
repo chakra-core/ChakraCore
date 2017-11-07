@@ -37,6 +37,7 @@ namespace Js
         JavascriptString * MoveAndGetNextNoCache(PropertyId& propertyId, PropertyAttributes * attributes);
 
         void Initialize(DynamicType * type, CachedData * data, Js::BigPropertyIndex initialPropertyCount);
+        BigPropertyIndex PropertyIndexToPropertyEnumeration(BigPropertyIndex index) const { return object->GetTypeHandler()->PropertyIndexToPropertyEnumeration(index); }
     public:
         DynamicObject * GetObject() const { return object; }
         EnumeratorFlags GetFlags() const { return flags; }

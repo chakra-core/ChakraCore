@@ -158,6 +158,24 @@ private:
     bool            GenerateLdThisStrict(IR::Instr * instr);
     bool            GenerateFastIsInst(IR::Instr * instr);
 
+    void GenerateProtoLdFldFromFlagInlineCache(
+        IR::Instr * insertBeforeInstr,
+        IR::Opnd * opndDst,
+        IR::RegOpnd * opndInlineCache,
+        IR::LabelInstr * labelFallThru,
+        bool isInlineSlot);
+    void GenerateLocalLdFldFromFlagInlineCache(
+        IR::Instr * insertBeforeInstr,
+        IR::RegOpnd * opndBase,
+        IR::Opnd * opndDst,
+        IR::RegOpnd * opndInlineCache,
+        IR::LabelInstr * labelFallThru,
+        bool isInlineSlot);
+
+    void            GenerateFlagProtoCheck(IR::Instr * insertBeforeInstr, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelFail);
+    void            GenerateFlagInlineCacheCheck(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelNext);
+    bool            GenerateFastLdMethodFromFlags(IR::Instr * instrLdFld);
+
     void            EnsureStackFunctionListStackSym();
     void            EnsureZeroLastStackFunctionNext();
     void            AllocStackClosure();
@@ -614,7 +632,6 @@ private:
     void GenerateLdFldFromFlagInlineCache(IR::Instr * insertBeforeInstr, IR::RegOpnd * opndBase, IR::Opnd * opndDst, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelFallThru, bool isInlineSlot);
     static IR::BranchInstr * GenerateLocalInlineCacheCheck(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelNext, bool checkTypeWithoutProperty = false);
     static IR::BranchInstr * GenerateProtoInlineCacheCheck(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelNext);
-    static IR::BranchInstr * GenerateFlagInlineCacheCheck(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelNext);
     static void GenerateLdFldFromLocalInlineCache(IR::Instr * instrLdFld, IR::RegOpnd * opndBase, IR::Opnd * opndDst, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelFallThru, bool isInlineSlot);
     static void GenerateLdFldFromProtoInlineCache(IR::Instr * instrLdFld, IR::RegOpnd * opndBase, IR::Opnd * opndDst, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelFallThru, bool isInlineSlot);
 

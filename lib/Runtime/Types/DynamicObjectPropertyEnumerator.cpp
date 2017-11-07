@@ -110,7 +110,7 @@ namespace Js
             return true;
         }
 
-        uint propertyCount = this->object->GetPropertyCount();
+        uint propertyCount = this->object->GetPropertyCountForEnum();
         data = RecyclerNewStructPlus(requestContext->GetRecycler(),
             propertyCount * sizeof(Field(PropertyString*)) + propertyCount * sizeof(BigPropertyIndex) + propertyCount * sizeof(PropertyAttributes), CachedData);
         data->scriptContext = requestContext;
@@ -245,7 +245,7 @@ namespace Js
             PropertyValueInfo::ClearCacheInfo(&info);
             if (!this->object->FindNextProperty(newIndex, &propertyString, &propertyId, attributes,
                 GetTypeToEnumerate(), flags, this->scriptContext, &info)
-                || (GetSnapShotSemantics() && newIndex >= initialPropertyCount))
+                || (GetSnapShotSemantics() && PropertyIndexToPropertyEnumeration(newIndex) >= initialPropertyCount))
             {
                 // No more properties
                 newIndex--;

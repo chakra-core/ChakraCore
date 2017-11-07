@@ -93,7 +93,15 @@ namespace Js
             Assert(propertyObject->GetScriptContext() == requestContext); // we never cache a type from another script context
             Assert(u.accessor.flags & InlineCacheGetterFlag);
 
-            RecyclableObject *const function = RecyclableObject::UnsafeFromVar(u.accessor.object->GetInlineSlot(u.accessor.slotIndex));
+            RecyclableObject * function;
+            if (u.accessor.isOnProto)
+            {
+                function = RecyclableObject::UnsafeFromVar(u.accessor.object->GetInlineSlot(u.accessor.slotIndex));
+            }
+            else
+            {
+                function = RecyclableObject::UnsafeFromVar(DynamicObject::UnsafeFromVar(propertyObject)->GetInlineSlot(u.accessor.slotIndex));
+            }
 
             *propertyValue = JavascriptOperators::CallGetter(function, instance, requestContext);
 
@@ -114,7 +122,15 @@ namespace Js
             Assert(propertyObject->GetScriptContext() == requestContext); // we never cache a type from another script context
             Assert(u.accessor.flags & InlineCacheGetterFlag);
 
-            RecyclableObject *const function = RecyclableObject::UnsafeFromVar(u.accessor.object->GetAuxSlot(u.accessor.slotIndex));
+            RecyclableObject * function;
+            if (u.accessor.isOnProto)
+            {
+                function = RecyclableObject::UnsafeFromVar(u.accessor.object->GetAuxSlot(u.accessor.slotIndex));
+            }
+            else
+            {
+                function = RecyclableObject::UnsafeFromVar(DynamicObject::FromVar(propertyObject)->GetAuxSlot(u.accessor.slotIndex));
+            }
 
             *propertyValue = JavascriptOperators::CallGetter(function, instance, requestContext);
 
@@ -300,7 +316,6 @@ namespace Js
                 operationInfo->cacheType = CacheType_LocalWithoutProperty;
                 operationInfo->slotType = SlotType_Inline;
             }
-            Assert(canSetField);
             return true;
         }
 
@@ -342,7 +357,6 @@ namespace Js
                 operationInfo->cacheType = CacheType_LocalWithoutProperty;
                 operationInfo->slotType = SlotType_Aux;
             }
-            Assert(canSetField);
             return true;
         }
 
@@ -351,7 +365,15 @@ namespace Js
             Assert(object->GetScriptContext() == requestContext); // we never cache a type from another script context
             Assert(u.accessor.flags & InlineCacheSetterFlag);
 
-            RecyclableObject *const function = RecyclableObject::UnsafeFromVar(u.accessor.object->GetInlineSlot(u.accessor.slotIndex));
+            RecyclableObject * function;
+            if (u.accessor.isOnProto)
+            {
+                function = RecyclableObject::UnsafeFromVar(u.accessor.object->GetInlineSlot(u.accessor.slotIndex));
+            }
+            else
+            {
+                function = RecyclableObject::UnsafeFromVar(DynamicObject::FromVar(object)->GetInlineSlot(u.accessor.slotIndex));
+            }
 
             Assert(setterValue == nullptr || setterValue == function);
             Js::JavascriptOperators::CallSetter(function, object, propertyValue, requestContext);
@@ -369,7 +391,15 @@ namespace Js
             Assert(object->GetScriptContext() == requestContext); // we never cache a type from another script context
             Assert(u.accessor.flags & InlineCacheSetterFlag);
 
-            RecyclableObject *const function = RecyclableObject::UnsafeFromVar(u.accessor.object->GetAuxSlot(u.accessor.slotIndex));
+            RecyclableObject * function;
+            if (u.accessor.isOnProto)
+            {
+                function = RecyclableObject::UnsafeFromVar(u.accessor.object->GetAuxSlot(u.accessor.slotIndex));
+            }
+            else
+            {
+                function = RecyclableObject::UnsafeFromVar(DynamicObject::FromVar(object)->GetAuxSlot(u.accessor.slotIndex));
+            }
 
             Assert(setterValue == nullptr || setterValue == function);
             Js::JavascriptOperators::CallSetter(function, object, propertyValue, requestContext);

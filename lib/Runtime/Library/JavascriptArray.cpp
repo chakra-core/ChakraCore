@@ -507,14 +507,14 @@ namespace Js
 
     JavascriptArray* JavascriptArray::FromVar(Var aValue)
     {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptArray'");
+        AssertOrFailFastMsg(IsAnyArray(aValue), "Ensure var is actually a 'JavascriptArray'");
 
         return static_cast<JavascriptArray *>(aValue);
     }
 
     JavascriptArray* JavascriptArray::UnsafeFromVar(Var aValue)
     {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptArray'");
+        AssertMsg(IsAnyArray(aValue), "Ensure var is actually a 'JavascriptArray'");
 
         return static_cast<JavascriptArray *>(aValue);
     }

@@ -41,6 +41,7 @@ namespace Js
         InlineCacheNoFlags              = 0x0,
         InlineCacheGetterFlag           = 0x1,
         InlineCacheSetterFlag           = 0x2,
+        InlineCacheIsOnProtoFlag        = 0x4,
     };
 
     #define PropertyNone            0x00
@@ -62,6 +63,25 @@ namespace Js
     #define PropertyNoRedecl                (PropertyLet|PropertyConst)
     #define PropertyClassMemberDefaults     (PropertyConfigurable|PropertyWritable)
     #define PropertyModuleNamespaceDefault  (PropertyEnumerable|PropertyWritable)
+
+    static const uint ObjectSlotAttr_BitSize = 8;
+    typedef uint8 ObjectSlotAttr_TSize;
+
+    enum ObjectSlotAttributes : ObjectSlotAttr_TSize
+    {
+        ObjectSlotAttr_None =         0x00,
+        ObjectSlotAttr_Enumerable =   0x01,
+        ObjectSlotAttr_Configurable = 0x02,
+        ObjectSlotAttr_Writable =     0x04,
+        ObjectSlotAttr_Deleted =      0x08,
+        ObjectSlotAttr_Accessor =     0x10,
+        ObjectSlotAttr_Int =          0x20,
+        ObjectSlotAttr_Double =       0x40,
+        ObjectSlotAttr_Default =      (ObjectSlotAttr_Writable|ObjectSlotAttr_Enumerable|ObjectSlotAttr_Configurable),
+        ObjectSlotAttr_PropertyAttributesMask = (ObjectSlotAttr_Default|ObjectSlotAttr_Deleted),
+        ObjectSlotAttr_All =          0xFF,
+        ObjectSlotAttr_Setter =       ObjectSlotAttr_All ^ ObjectSlotAttr_Deleted,   // an impossible value indicating "setter"
+    };
 
     BEGIN_ENUM_UINT(InternalPropertyIds)
 #define INTERNALPROPERTY(n) n,

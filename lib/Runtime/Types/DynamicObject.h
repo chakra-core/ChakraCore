@@ -224,6 +224,7 @@ namespace Js
 
         void InitSlots(DynamicObject* instance);
         virtual int GetPropertyCount() override;
+        int GetPropertyCountForEnum();
         virtual PropertyId GetPropertyId(PropertyIndex index) override;
         virtual PropertyId GetPropertyId(BigPropertyIndex index) override;
         PropertyIndex GetPropertyIndex(PropertyId propertyId) sealed;

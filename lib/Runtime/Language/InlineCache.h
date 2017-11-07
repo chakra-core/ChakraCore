@@ -318,7 +318,7 @@ namespace Js
         bool TryGetFixedMethodFromCache(Js::FunctionBody* functionBody, uint cacheId, Js::JavascriptFunction** pFixedMethod);
 #endif
 
-        bool GetGetterSetter(Type *const type, RecyclableObject **callee);
+        bool GetGetterSetter(RecyclableObject *object, RecyclableObject **callee);
         bool GetCallApplyTarget(RecyclableObject* obj, RecyclableObject **callee);
 
         static uint GetGetterFlagMask()
@@ -337,6 +337,11 @@ namespace Js
         {
             // First bit is marked for isAccessor in the accessor cache layout.
             return  (InlineCacheGetterFlag | InlineCacheSetterFlag) << 1;
+        }
+
+        static uint GetIsOnProtoFlagMask()
+        {
+            return InlineCacheIsOnProtoFlag << 1;
         }
 
         bool NeedsToBeRegisteredForProtoInvalidation() const;

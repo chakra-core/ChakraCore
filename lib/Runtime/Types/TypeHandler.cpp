@@ -737,6 +737,15 @@ namespace Js
         return !ThreadContext::IsOnStack(instance);
     }
 
+    Var DynamicTypeHandler::CanonicalizeAccessor(Var accessor, /*const*/ JavascriptLibrary* library)
+    {
+        if (accessor == nullptr || JavascriptOperators::IsUndefinedObject(accessor))
+        {
+            accessor = library->GetDefaultAccessorFunction();
+        }
+        return accessor;
+    }
+
     BOOL DynamicTypeHandler::DeleteProperty(DynamicObject* instance, JavascriptString* propertyNameString, PropertyOperationFlags flags)
     {
         PropertyRecord const *propertyRecord = nullptr;

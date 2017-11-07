@@ -307,21 +307,27 @@ namespace Js
         return false;
     }
 
-    bool InlineCache::GetGetterSetter(Type *const type, RecyclableObject **callee)
+    bool InlineCache::GetGetterSetter(RecyclableObject *object, RecyclableObject **callee)
     {
-        Type *const taggedType = TypeWithAuxSlotTag(type);
         *callee = nullptr;
 
         if (u.accessor.flags & (InlineCacheGetterFlag | InlineCacheSetterFlag))
         {
+            Type *type = object->GetType();
+            Type *const taggedType = TypeWithAuxSlotTag(type);
+            if (u.accessor.isOnProto)
+            {
+               object = u.accessor.object;
+            }
+
             if (type == u.accessor.type)
             {
-                *callee = RecyclableObject::FromVar(u.accessor.object->GetInlineSlot(u.accessor.slotIndex));
+                *callee = RecyclableObject::FromVar(DynamicObject::FromVar(object)->GetInlineSlot(u.accessor.slotIndex));
                 return true;
             }
             else if (taggedType == u.accessor.type)
             {
-                *callee = RecyclableObject::FromVar(u.accessor.object->GetAuxSlot(u.accessor.slotIndex));
+                *callee = RecyclableObject::FromVar(DynamicObject::FromVar(object)->GetAuxSlot(u.accessor.slotIndex));
                 return true;
             }
         }
@@ -435,9 +441,13 @@ namespace Js
             // (given by the cache) and see if its a function. Only then, does it make sense to check with the type handler.
             propertyOwnerType = this->u.proto.prototypeObject->GetType();
         }
-        else
+        else if (u.accessor.isOnProto)
         {
             propertyOwnerType = this->u.accessor.object->GetType();
+        }
+        else
+        {
+            propertyOwnerType = TypeWithoutAuxSlotTag(this->u.accessor.type);
         }
 
         Assert(propertyOwnerType != nullptr);

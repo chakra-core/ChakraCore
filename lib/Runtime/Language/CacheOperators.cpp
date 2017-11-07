@@ -243,7 +243,8 @@ namespace Js
 
                 // We are adding only one property here.  If some other properties were added as a side effect on the slow path
                 // we should never cache the type transition, as the other property slots will not be populated by the fast path.
-                AssertMsg(((PathTypeHandlerBase *)oldTypeHandler)->GetPropertyCount() + 1 == ((PathTypeHandlerBase *)newTypeHandler)->GetPropertyCount(),
+                AssertMsg(((PathTypeHandlerBase *)oldTypeHandler)->GetPropertyCount() + 1 == ((PathTypeHandlerBase *)newTypeHandler)->GetPropertyCount() ||
+                          ((PathTypeHandlerBase *)oldTypeHandler)->GetPropertyCount() == ((PathTypeHandlerBase *)newTypeHandler)->GetPropertyCount(),
                     "Don't cache type transitions that add multiple properties.");
 
                 // InlineCache::TrySetProperty assumes the following invariants to decide if and how to adjust auxiliary slot capacity.
