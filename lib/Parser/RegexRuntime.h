@@ -698,7 +698,7 @@ namespace UnifiedRegex
 
     struct Inst : protected Chars<char16>
     {
-        enum InstTag : uint8
+        enum class InstTag : uint8
         {
 #define M(TagName) TagName,
 #define MTemplate(TagName, ...) M(TagName)
@@ -744,21 +744,21 @@ namespace UnifiedRegex
 
     struct NopInst : Inst
     {
-        inline NopInst() : Inst(Nop) {}
+        inline NopInst() : Inst(InstTag::Nop) {}
 
         INST_BODY
     };
 
     struct FailInst : Inst
     {
-        inline FailInst() : Inst(Fail) {}
+        inline FailInst() : Inst(InstTag::Fail) {}
 
         INST_BODY
     };
 
     struct SuccInst : Inst
     {
-        inline SuccInst() : Inst(Succ) {}
+        inline SuccInst() : Inst(InstTag::Succ) {}
 
         INST_BODY
     };
@@ -766,7 +766,7 @@ namespace UnifiedRegex
     struct JumpInst : Inst, JumpMixin
     {
         // targetLabel must always be fixed up
-        inline JumpInst() : Inst(Jump), JumpMixin() {}
+        inline JumpInst() : Inst(InstTag::Jump), JumpMixin() {}
 
         INST_BODY
     };
@@ -774,7 +774,7 @@ namespace UnifiedRegex
     struct JumpIfNotCharInst : Inst, CharMixin, JumpMixin
     {
         // targetLabel must always be fixed up
-        inline JumpIfNotCharInst(Char c) : Inst(JumpIfNotChar), CharMixin(c), JumpMixin() {}
+        inline JumpIfNotCharInst(Char c) : Inst(InstTag::JumpIfNotChar), CharMixin(c), JumpMixin() {}
 
         INST_BODY
     };
@@ -782,7 +782,7 @@ namespace UnifiedRegex
     struct MatchCharOrJumpInst : Inst, CharMixin, JumpMixin
     {
         // targetLabel must always be fixed up
-        inline MatchCharOrJumpInst(Char c) : Inst(MatchCharOrJump), CharMixin(c), JumpMixin() {}
+        inline MatchCharOrJumpInst(Char c) : Inst(InstTag::MatchCharOrJump), CharMixin(c), JumpMixin() {}
 
         INST_BODY
     };
@@ -791,7 +791,7 @@ namespace UnifiedRegex
     {
         // set must always be cloned from source
         // targetLabel must always be fixed up
-        inline JumpIfNotSetInst() : Inst(JumpIfNotSet), JumpMixin() {}
+        inline JumpIfNotSetInst() : Inst(InstTag::JumpIfNotSet), JumpMixin() {}
 
         INST_BODY
         INST_BODY_FREE(SetMixin<false>)
@@ -801,7 +801,7 @@ namespace UnifiedRegex
     {
         // set must always be cloned from source
         // targetLabel must always be fixed up
-        inline MatchSetOrJumpInst() : Inst(MatchSetOrJump), JumpMixin() {}
+        inline MatchSetOrJumpInst() : Inst(InstTag::MatchSetOrJump), JumpMixin() {}
 
         INST_BODY
         INST_BODY_FREE(SetMixin<false>)
@@ -810,7 +810,7 @@ namespace UnifiedRegex
 #define SwitchInstActual(n)                                                 \
     struct Switch##n##Inst : Inst, SwitchMixin<n>                           \
     {                                                                       \
-        inline Switch##n##Inst() : Inst(Switch##n), SwitchMixin() {}        \
+        inline Switch##n##Inst() : Inst(InstTag::Switch##n), SwitchMixin() {}        \
         INST_BODY                                                           \
     };
     SwitchInstActual(2);
@@ -823,7 +823,7 @@ namespace UnifiedRegex
 #define SwitchAndConsumeInstActual(n)                                                            \
     struct SwitchAndConsume##n##Inst : Inst, SwitchMixin<n>                                     \
     {                                                                                           \
-        inline SwitchAndConsume##n##Inst() : Inst(SwitchAndConsume##n), SwitchMixin() {}        \
+        inline SwitchAndConsume##n##Inst() : Inst(InstTag::SwitchAndConsume##n), SwitchMixin() {}        \
         INST_BODY                                                                               \
     };
     SwitchAndConsumeInstActual(2);
@@ -858,7 +858,7 @@ namespace UnifiedRegex
     // BOL = Beginning of Line (/^.../)
     struct BOLTestInst : Inst
     {
-        inline BOLTestInst() : Inst(BOLTest) {}
+        inline BOLTestInst() : Inst(InstTag::BOLTest) {}
 
         INST_BODY
     };
@@ -866,7 +866,7 @@ namespace UnifiedRegex
     // EOL = End of Line (/...$/)
     struct EOLTestInst : Inst
     {
-        inline EOLTestInst() : Inst(EOLTest) {}
+        inline EOLTestInst() : Inst(InstTag::EOLTest) {}
 
         INST_BODY
     };
@@ -885,14 +885,14 @@ namespace UnifiedRegex
 
     struct MatchCharInst : Inst, CharMixin
     {
-        inline MatchCharInst(Char c) : Inst(MatchChar), CharMixin(c) {}
+        inline MatchCharInst(Char c) : Inst(InstTag::MatchChar), CharMixin(c) {}
 
         INST_BODY
     };
 
     struct MatchChar2Inst : Inst, Char2Mixin
     {
-        inline MatchChar2Inst(Char c0, Char c1) : Inst(MatchChar2), Char2Mixin(c0, c1) {}
+        inline MatchChar2Inst(Char c0, Char c1) : Inst(InstTag::MatchChar2), Char2Mixin(c0, c1) {}
 
         INST_BODY
     };
@@ -900,14 +900,14 @@ namespace UnifiedRegex
 
     struct MatchChar3Inst : Inst, Char3Mixin
     {
-        inline MatchChar3Inst(Char c0, Char c1, Char c2) : Inst(MatchChar3), Char3Mixin(c0, c1, c2) {}
+        inline MatchChar3Inst(Char c0, Char c1, Char c2) : Inst(InstTag::MatchChar3), Char3Mixin(c0, c1, c2) {}
 
         INST_BODY
     };
 
     struct MatchChar4Inst : Inst, Char4Mixin
     {
-        inline MatchChar4Inst(Char c0, Char c1, Char c2, Char c3) : Inst(MatchChar4), Char4Mixin(c0, c1, c2, c3) {}
+        inline MatchChar4Inst(Char c0, Char c1, Char c2, Char c3) : Inst(InstTag::MatchChar4), Char4Mixin(c0, c1, c2, c3) {}
 
         INST_BODY
     };
@@ -916,7 +916,7 @@ namespace UnifiedRegex
     struct MatchSetInst : Inst, SetMixin<IsNegation>
     {
         // set must always be cloned from source
-        inline MatchSetInst() : Inst(IsNegation ? MatchNegatedSet : MatchSet) {}
+        inline MatchSetInst() : Inst(IsNegation ? InstTag::MatchNegatedSet : InstTag::MatchSet) {}
 
         INST_BODY
         INST_BODY_FREE(SetMixin<IsNegation>)
@@ -924,14 +924,14 @@ namespace UnifiedRegex
 
     struct MatchLiteralInst : Inst, LiteralMixin
     {
-        inline MatchLiteralInst(CharCount offset, CharCount length) : Inst(MatchLiteral), LiteralMixin(offset, length) {}
+        inline MatchLiteralInst(CharCount offset, CharCount length) : Inst(InstTag::MatchLiteral), LiteralMixin(offset, length) {}
 
         INST_BODY
     };
 
     struct MatchLiteralEquivInst : Inst, LiteralMixin
     {
-        inline MatchLiteralEquivInst(CharCount offset, CharCount length) : Inst(MatchLiteralEquiv), LiteralMixin(offset, length) {}
+        inline MatchLiteralEquivInst(CharCount offset, CharCount length) : Inst(InstTag::MatchLiteralEquiv), LiteralMixin(offset, length) {}
 
         INST_BODY
     };
@@ -939,7 +939,7 @@ namespace UnifiedRegex
     struct MatchTrieInst : Inst, TrieMixin
     {
         // Trie must always be cloned
-        inline MatchTrieInst() : Inst(MatchTrie) {}
+        inline MatchTrieInst() : Inst(InstTag::MatchTrie) {}
         void FreeBody(ArenaAllocator* rtAllocator);
 
         INST_BODY
@@ -947,7 +947,7 @@ namespace UnifiedRegex
 
     struct OptMatchCharInst : Inst, CharMixin
     {
-        inline OptMatchCharInst(Char c) : Inst(OptMatchChar), CharMixin(c) {}
+        inline OptMatchCharInst(Char c) : Inst(InstTag::OptMatchChar), CharMixin(c) {}
 
         INST_BODY
     };
@@ -955,7 +955,7 @@ namespace UnifiedRegex
     struct OptMatchSetInst : Inst, SetMixin<false>
     {
         // set must always be cloned from source
-        inline OptMatchSetInst() : Inst(OptMatchSet) {}
+        inline OptMatchSetInst() : Inst(InstTag::OptMatchSet) {}
 
         INST_BODY
         INST_BODY_FREE(SetMixin<false>)
@@ -968,14 +968,14 @@ namespace UnifiedRegex
 
     struct SyncToCharAndContinueInst : Inst, CharMixin
     {
-        inline SyncToCharAndContinueInst(Char c) : Inst(SyncToCharAndContinue), CharMixin(c) {}
+        inline SyncToCharAndContinueInst(Char c) : Inst(InstTag::SyncToCharAndContinue), CharMixin(c) {}
 
         INST_BODY
     };
 
     struct SyncToChar2SetAndContinueInst : Inst, Char2Mixin
     {
-        inline SyncToChar2SetAndContinueInst(Char c0, Char c1) : Inst(SyncToChar2SetAndContinue), Char2Mixin(c0, c1) {}
+        inline SyncToChar2SetAndContinueInst(Char c0, Char c1) : Inst(InstTag::SyncToChar2SetAndContinue), Char2Mixin(c0, c1) {}
 
         INST_BODY
     };
@@ -984,7 +984,7 @@ namespace UnifiedRegex
     struct SyncToSetAndContinueInst : Inst, SetMixin<IsNegation>
     {
         // set must always be cloned from source
-        inline SyncToSetAndContinueInst() : Inst(IsNegation ? SyncToNegatedSetAndContinue : SyncToSetAndContinue) {}
+        inline SyncToSetAndContinueInst() : Inst(IsNegation ? InstTag::SyncToNegatedSetAndContinue : InstTag::SyncToSetAndContinue) {}
 
         INST_BODY
         INST_BODY_FREE(SetMixin<IsNegation>)
@@ -1002,14 +1002,14 @@ namespace UnifiedRegex
     struct SyncToChar2LiteralAndContinueInst : SyncToLiteralAndContinueInstT<Char2LiteralScannerMixin>
     {
         SyncToChar2LiteralAndContinueInst(Char c0, Char c1) :
-            SyncToLiteralAndContinueInstT(SyncToChar2LiteralAndContinue, 0, 2) { Char2LiteralScannerMixin::Setup(c0, c1); }
+            SyncToLiteralAndContinueInstT(InstTag::SyncToChar2LiteralAndContinue, 0, 2) { Char2LiteralScannerMixin::Setup(c0, c1); }
     };
 
     struct SyncToLiteralAndContinueInst : SyncToLiteralAndContinueInstT<ScannerMixin>
     {
         // scanner must be setup
         SyncToLiteralAndContinueInst(CharCount offset, CharCount length) :
-            SyncToLiteralAndContinueInstT(SyncToLiteralAndContinue, offset, length) {}
+            SyncToLiteralAndContinueInstT(InstTag::SyncToLiteralAndContinue, offset, length) {}
 
         INST_BODY_FREE(ScannerMixin)
     };
@@ -1018,7 +1018,7 @@ namespace UnifiedRegex
     {
         // scanner must be setup
         SyncToLinearLiteralAndContinueInst(CharCount offset, CharCount length) :
-            SyncToLiteralAndContinueInstT(SyncToLinearLiteralAndContinue, offset, length) {}
+            SyncToLiteralAndContinueInstT(InstTag::SyncToLinearLiteralAndContinue, offset, length) {}
 
         INST_BODY_FREE(ScannerMixin_WithLinearCharMap)
     };
@@ -1027,7 +1027,7 @@ namespace UnifiedRegex
     {
         // scanner must be setup
         SyncToLiteralEquivAndContinueInst(CharCount offset, CharCount length) :
-            SyncToLiteralAndContinueInstT(SyncToLiteralEquivAndContinue, offset, length) {}
+            SyncToLiteralAndContinueInstT(InstTag::SyncToLiteralEquivAndContinue, offset, length) {}
 
         INST_BODY_FREE(EquivScannerMixin)
     };
@@ -1036,21 +1036,21 @@ namespace UnifiedRegex
     {
         // scanner must be setup
         SyncToLiteralEquivTrivialLastPatCharAndContinueInst(CharCount offset, CharCount length) :
-            SyncToLiteralAndContinueInstT(SyncToLiteralEquivTrivialLastPatCharAndContinue, offset, length) {}
+            SyncToLiteralAndContinueInstT(InstTag::SyncToLiteralEquivTrivialLastPatCharAndContinue, offset, length) {}
 
         INST_BODY_FREE(EquivTrivialLastPatCharScannerMixin)
     };
 
     struct SyncToCharAndConsumeInst : Inst, CharMixin
     {
-        inline SyncToCharAndConsumeInst(Char c) : Inst(SyncToCharAndConsume), CharMixin(c) {}
+        inline SyncToCharAndConsumeInst(Char c) : Inst(InstTag::SyncToCharAndConsume), CharMixin(c) {}
 
         INST_BODY
     };
 
     struct SyncToChar2SetAndConsumeInst : Inst, Char2Mixin
     {
-        inline SyncToChar2SetAndConsumeInst(Char c0, Char c1) : Inst(SyncToChar2SetAndConsume), Char2Mixin(c0, c1) {}
+        inline SyncToChar2SetAndConsumeInst(Char c0, Char c1) : Inst(InstTag::SyncToChar2SetAndConsume), Char2Mixin(c0, c1) {}
 
         INST_BODY
     };
@@ -1059,7 +1059,7 @@ namespace UnifiedRegex
     struct SyncToSetAndConsumeInst : Inst, SetMixin<IsNegation>
     {
         // set must always be cloned from source
-        inline SyncToSetAndConsumeInst() : Inst(IsNegation ? SyncToNegatedSetAndConsume : SyncToSetAndConsume) {}
+        inline SyncToSetAndConsumeInst() : Inst(IsNegation ? InstTag::SyncToNegatedSetAndConsume : InstTag::SyncToSetAndConsume) {}
 
         INST_BODY
         INST_BODY_FREE(SetMixin<IsNegation>)
@@ -1077,14 +1077,14 @@ namespace UnifiedRegex
     struct SyncToChar2LiteralAndConsumeInst : SyncToLiteralAndConsumeInstT<Char2LiteralScannerMixin>
     {
         SyncToChar2LiteralAndConsumeInst(Char c0, Char c1) :
-            SyncToLiteralAndConsumeInstT(SyncToChar2LiteralAndConsume, 0, 2) { Char2LiteralScannerMixin::Setup(c0, c1); }
+            SyncToLiteralAndConsumeInstT(InstTag::SyncToChar2LiteralAndConsume, 0, 2) { Char2LiteralScannerMixin::Setup(c0, c1); }
     };
 
     struct SyncToLiteralAndConsumeInst : SyncToLiteralAndConsumeInstT<ScannerMixin>
     {
         // scanner must be setup
         SyncToLiteralAndConsumeInst(CharCount offset, CharCount length) :
-            SyncToLiteralAndConsumeInstT(SyncToLiteralAndConsume, offset, length) {}
+            SyncToLiteralAndConsumeInstT(InstTag::SyncToLiteralAndConsume, offset, length) {}
 
         INST_BODY_FREE(ScannerMixin)
     };
@@ -1093,7 +1093,7 @@ namespace UnifiedRegex
     {
         // scanner must be setup
         SyncToLinearLiteralAndConsumeInst(CharCount offset, CharCount length) :
-            SyncToLiteralAndConsumeInstT(SyncToLinearLiteralAndConsume, offset, length) {}
+            SyncToLiteralAndConsumeInstT(InstTag::SyncToLinearLiteralAndConsume, offset, length) {}
 
         INST_BODY_FREE(ScannerMixin_WithLinearCharMap)
     };
@@ -1102,7 +1102,7 @@ namespace UnifiedRegex
     {
         // scanner must be setup
         SyncToLiteralEquivAndConsumeInst(CharCount offset, CharCount length) :
-            SyncToLiteralAndConsumeInstT(SyncToLiteralEquivAndConsume,offset, length) {}
+            SyncToLiteralAndConsumeInstT(InstTag::SyncToLiteralEquivAndConsume,offset, length) {}
 
         INST_BODY_FREE(EquivScannerMixin)
     };
@@ -1111,14 +1111,14 @@ namespace UnifiedRegex
     {
         // scanner must be setup
         SyncToLiteralEquivTrivialLastPatCharAndConsumeInst(CharCount offset, CharCount length) :
-            SyncToLiteralAndConsumeInstT(SyncToLiteralEquivTrivialLastPatCharAndConsume, offset, length) {}
+            SyncToLiteralAndConsumeInstT(InstTag::SyncToLiteralEquivTrivialLastPatCharAndConsume, offset, length) {}
 
         INST_BODY_FREE(EquivTrivialLastPatCharScannerMixin)
     };
 
     struct SyncToCharAndBackupInst : Inst, CharMixin, BackupMixin
     {
-        inline SyncToCharAndBackupInst(Char c, const CountDomain& backup) : Inst(SyncToCharAndBackup), CharMixin(c), BackupMixin(backup) {}
+        inline SyncToCharAndBackupInst(Char c, const CountDomain& backup) : Inst(InstTag::SyncToCharAndBackup), CharMixin(c), BackupMixin(backup) {}
 
         INST_BODY
     };
@@ -1127,7 +1127,7 @@ namespace UnifiedRegex
     struct SyncToSetAndBackupInst : Inst, SetMixin<IsNegation>, BackupMixin
     {
         // set must always be cloned from source
-        inline SyncToSetAndBackupInst(const CountDomain& backup) : Inst(IsNegation ? SyncToNegatedSetAndBackup : SyncToSetAndBackup), BackupMixin(backup) {}
+        inline SyncToSetAndBackupInst(const CountDomain& backup) : Inst(IsNegation ? InstTag::SyncToNegatedSetAndBackup : InstTag::SyncToSetAndBackup), BackupMixin(backup) {}
 
         INST_BODY
         INST_BODY_FREE(SetMixin<IsNegation>)
@@ -1145,14 +1145,14 @@ namespace UnifiedRegex
     struct SyncToChar2LiteralAndBackupInst : SyncToLiteralAndBackupInstT<Char2LiteralScannerMixin>
     {
         SyncToChar2LiteralAndBackupInst(Char c0, Char c1, const CountDomain& backup) :
-            SyncToLiteralAndBackupInstT(SyncToChar2LiteralAndBackup, 0, 2, backup) { Char2LiteralScannerMixin::Setup(c0, c1); }
+            SyncToLiteralAndBackupInstT(InstTag::SyncToChar2LiteralAndBackup, 0, 2, backup) { Char2LiteralScannerMixin::Setup(c0, c1); }
     };
 
     struct SyncToLiteralAndBackupInst : SyncToLiteralAndBackupInstT<ScannerMixin>
     {
         // scanner must be setup
         SyncToLiteralAndBackupInst(CharCount offset, CharCount length, const CountDomain& backup) :
-            SyncToLiteralAndBackupInstT(SyncToLiteralAndBackup, offset, length, backup) {}
+            SyncToLiteralAndBackupInstT(InstTag::SyncToLiteralAndBackup, offset, length, backup) {}
 
         INST_BODY_FREE(ScannerMixin)
     };
@@ -1161,7 +1161,7 @@ namespace UnifiedRegex
     {
         // scanner must be setup
         SyncToLinearLiteralAndBackupInst(CharCount offset, CharCount length, const CountDomain& backup) :
-            SyncToLiteralAndBackupInstT(SyncToLinearLiteralAndBackup, offset, length, backup) {}
+            SyncToLiteralAndBackupInstT(InstTag::SyncToLinearLiteralAndBackup, offset, length, backup) {}
 
         INST_BODY_FREE(ScannerMixin_WithLinearCharMap)
     };
@@ -1170,7 +1170,7 @@ namespace UnifiedRegex
     {
         // scanner must be setup
          SyncToLiteralEquivAndBackupInst(CharCount offset, CharCount length, const CountDomain& backup) :
-             SyncToLiteralAndBackupInstT(SyncToLiteralEquivAndBackup, offset, length, backup) {}
+             SyncToLiteralAndBackupInstT(InstTag::SyncToLiteralEquivAndBackup, offset, length, backup) {}
 
         INST_BODY_FREE(EquivScannerMixin)
     };
@@ -1179,7 +1179,7 @@ namespace UnifiedRegex
     {
         // scanner must be setup
          SyncToLiteralEquivTrivialLastPatCharAndBackupInst(CharCount offset, CharCount length, const CountDomain& backup) :
-             SyncToLiteralAndBackupInstT(SyncToLiteralEquivTrivialLastPatCharAndBackup, offset, length, backup) {}
+             SyncToLiteralAndBackupInstT(InstTag::SyncToLiteralEquivTrivialLastPatCharAndBackup, offset, length, backup) {}
 
         INST_BODY_FREE(EquivTrivialLastPatCharScannerMixin)
     };
@@ -1188,7 +1188,7 @@ namespace UnifiedRegex
     {
         // scanner mixins must be setup
         inline SyncToLiteralsAndBackupInst(Recycler *recycler, Program *program, const CountDomain& backup)
-            : Inst(SyncToLiteralsAndBackup), ScannersMixin(recycler, program), BackupMixin(backup)
+            : Inst(InstTag::SyncToLiteralsAndBackup), ScannersMixin(recycler, program), BackupMixin(backup)
         {
         }
 
@@ -1202,14 +1202,14 @@ namespace UnifiedRegex
 
     struct MatchGroupInst : Inst, GroupMixin
     {
-        inline MatchGroupInst(int groupId) : Inst(MatchGroup), GroupMixin(groupId) {}
+        inline MatchGroupInst(int groupId) : Inst(InstTag::MatchGroup), GroupMixin(groupId) {}
 
         INST_BODY
     };
 
     struct BeginDefineGroupInst : Inst, GroupMixin
     {
-        inline BeginDefineGroupInst(int groupId) : Inst(BeginDefineGroup), GroupMixin(groupId) {}
+        inline BeginDefineGroupInst(int groupId) : Inst(InstTag::BeginDefineGroup), GroupMixin(groupId) {}
 
         INST_BODY
     };
@@ -1217,7 +1217,7 @@ namespace UnifiedRegex
     struct EndDefineGroupInst : Inst, GroupMixin, NoNeedToSaveMixin
     {
         inline EndDefineGroupInst(int groupId, bool noNeedToSave)
-            : Inst(EndDefineGroup), GroupMixin(groupId), NoNeedToSaveMixin(noNeedToSave)
+            : Inst(InstTag::EndDefineGroup), GroupMixin(groupId), NoNeedToSaveMixin(noNeedToSave)
         {
         }
 
@@ -1226,7 +1226,7 @@ namespace UnifiedRegex
 
     struct DefineGroupFixedInst : Inst, GroupMixin, FixedLengthMixin, NoNeedToSaveMixin
     {
-        inline DefineGroupFixedInst(int groupId, CharCount length, bool noNeedToSave) : Inst(DefineGroupFixed), GroupMixin(groupId), FixedLengthMixin(length), NoNeedToSaveMixin(noNeedToSave) {}
+        inline DefineGroupFixedInst(int groupId, CharCount length, bool noNeedToSave) : Inst(InstTag::DefineGroupFixed), GroupMixin(groupId), FixedLengthMixin(length), NoNeedToSaveMixin(noNeedToSave) {}
 
         INST_BODY
     };
@@ -1239,7 +1239,7 @@ namespace UnifiedRegex
     {
         // exitLabel must always be fixed up
         inline BeginLoopInst(int loopId, const CountDomain& repeats, bool hasOuterLoops, bool hasInnerNondet, int minBodyGroupId, int maxBodyGroupId, bool isGreedy)
-            : Inst(BeginLoop), BeginLoopMixin(loopId, repeats, hasOuterLoops, hasInnerNondet), BodyGroupsMixin(minBodyGroupId, maxBodyGroupId), GreedyMixin(isGreedy)
+            : Inst(InstTag::BeginLoop), BeginLoopMixin(loopId, repeats, hasOuterLoops, hasInnerNondet), BodyGroupsMixin(minBodyGroupId, maxBodyGroupId), GreedyMixin(isGreedy)
         {}
 
         INST_BODY
@@ -1247,7 +1247,7 @@ namespace UnifiedRegex
 
     struct RepeatLoopInst : Inst, RepeatLoopMixin
     {
-        inline RepeatLoopInst(Label beginLabel) : Inst(RepeatLoop), RepeatLoopMixin(beginLabel) {}
+        inline RepeatLoopInst(Label beginLabel) : Inst(InstTag::RepeatLoop), RepeatLoopMixin(beginLabel) {}
 
         INST_BODY
     };
@@ -1256,7 +1256,7 @@ namespace UnifiedRegex
     {
         // exitLabel must always be fixed up
         inline BeginLoopIfCharInst(Char c, int loopId, const CountDomain& repeats, bool hasOuterLoops, bool hasInnerNondet, int minBodyGroupId, int maxBodyGroupId)
-            : Inst(BeginLoopIfChar), CharMixin(c), BeginLoopMixin(loopId, repeats, hasOuterLoops, hasInnerNondet), BodyGroupsMixin(minBodyGroupId, maxBodyGroupId) {}
+            : Inst(InstTag::BeginLoopIfChar), CharMixin(c), BeginLoopMixin(loopId, repeats, hasOuterLoops, hasInnerNondet), BodyGroupsMixin(minBodyGroupId, maxBodyGroupId) {}
 
         INST_BODY
     };
@@ -1266,7 +1266,7 @@ namespace UnifiedRegex
         // set must always be cloned from source
         // exitLabel must always be fixed up
         inline BeginLoopIfSetInst(int loopId, const CountDomain& repeats, bool hasOuterLoops, bool hasInnerNondet, int minBodyGroupId, int maxBodyGroupId)
-            : Inst(BeginLoopIfSet), BeginLoopMixin(loopId, repeats, hasOuterLoops, hasInnerNondet), BodyGroupsMixin(minBodyGroupId, maxBodyGroupId) {}
+            : Inst(InstTag::BeginLoopIfSet), BeginLoopMixin(loopId, repeats, hasOuterLoops, hasInnerNondet), BodyGroupsMixin(minBodyGroupId, maxBodyGroupId) {}
 
         INST_BODY
         INST_BODY_FREE(SetMixin)
@@ -1274,14 +1274,14 @@ namespace UnifiedRegex
 
     struct RepeatLoopIfCharInst : Inst, RepeatLoopMixin
     {
-        inline RepeatLoopIfCharInst(Label beginLabel) : Inst(RepeatLoopIfChar), RepeatLoopMixin(beginLabel) {}
+        inline RepeatLoopIfCharInst(Label beginLabel) : Inst(InstTag::RepeatLoopIfChar), RepeatLoopMixin(beginLabel) {}
 
         INST_BODY
     };
 
     struct RepeatLoopIfSetInst : Inst, RepeatLoopMixin
     {
-        inline RepeatLoopIfSetInst(Label beginLabel) : Inst(RepeatLoopIfSet), RepeatLoopMixin(beginLabel) {}
+        inline RepeatLoopIfSetInst(Label beginLabel) : Inst(InstTag::RepeatLoopIfSet), RepeatLoopMixin(beginLabel) {}
 
         INST_BODY
     };
@@ -1291,14 +1291,14 @@ namespace UnifiedRegex
     {
         // exitLabel must always be fixed up
         inline BeginLoopFixedInst(int loopId, const CountDomain& repeats, bool hasOuterLoops, CharCount length)
-            : Inst(BeginLoopFixed), BeginLoopMixin(loopId, repeats, hasOuterLoops, false), FixedLengthMixin(length) {}
+            : Inst(InstTag::BeginLoopFixed), BeginLoopMixin(loopId, repeats, hasOuterLoops, false), FixedLengthMixin(length) {}
 
         INST_BODY
     };
 
     struct RepeatLoopFixedInst : Inst, RepeatLoopMixin
     {
-        inline RepeatLoopFixedInst(Label beginLabel) : Inst(RepeatLoopFixed), RepeatLoopMixin(beginLabel) {}
+        inline RepeatLoopFixedInst(Label beginLabel) : Inst(InstTag::RepeatLoopFixed), RepeatLoopMixin(beginLabel) {}
 
         INST_BODY
     };
@@ -1308,7 +1308,7 @@ namespace UnifiedRegex
     {
         // set must always be cloned from source
         inline LoopSetInst(int loopId, const CountDomain& repeats, bool hasOuterLoops)
-            : Inst(LoopSet), BeginLoopBasicsMixin(loopId, repeats, hasOuterLoops) {}
+            : Inst(InstTag::LoopSet), BeginLoopBasicsMixin(loopId, repeats, hasOuterLoops) {}
 
         inline LoopSetInst(InstTag tag, int loopId, const CountDomain& repeats, bool hasOuterLoops)
             : Inst(tag), BeginLoopBasicsMixin(loopId, repeats, hasOuterLoops) {}
@@ -1331,14 +1331,14 @@ namespace UnifiedRegex
     {
         // exitLabel must always be fixed up
         inline BeginLoopFixedGroupLastIterationInst(int loopId, const CountDomain& repeats, bool hasOuterLoops, CharCount length, int groupId, bool noNeedToSave)
-            : Inst(BeginLoopFixedGroupLastIteration), BeginLoopMixin(loopId, repeats, hasOuterLoops, false), FixedLengthMixin(length), GroupMixin(groupId), NoNeedToSaveMixin(noNeedToSave) {}
+            : Inst(InstTag::BeginLoopFixedGroupLastIteration), BeginLoopMixin(loopId, repeats, hasOuterLoops, false), FixedLengthMixin(length), GroupMixin(groupId), NoNeedToSaveMixin(noNeedToSave) {}
 
         INST_BODY
     };
 
     struct RepeatLoopFixedGroupLastIterationInst : Inst, RepeatLoopMixin
     {
-        inline RepeatLoopFixedGroupLastIterationInst(Label beginLabel) : Inst(RepeatLoopFixedGroupLastIteration), RepeatLoopMixin(beginLabel) {}
+        inline RepeatLoopFixedGroupLastIterationInst(Label beginLabel) : Inst(InstTag::RepeatLoopFixedGroupLastIteration), RepeatLoopMixin(beginLabel) {}
 
         INST_BODY
     };
@@ -1347,14 +1347,14 @@ namespace UnifiedRegex
     struct BeginGreedyLoopNoBacktrackInst : Inst, GreedyLoopNoBacktrackMixin
     {
         // exitLabel must always be fixed up
-        inline BeginGreedyLoopNoBacktrackInst(int loopId) : Inst(BeginGreedyLoopNoBacktrack), GreedyLoopNoBacktrackMixin(loopId) {}
+        inline BeginGreedyLoopNoBacktrackInst(int loopId) : Inst(InstTag::BeginGreedyLoopNoBacktrack), GreedyLoopNoBacktrackMixin(loopId) {}
 
         INST_BODY
     };
 
     struct RepeatGreedyLoopNoBacktrackInst : Inst, RepeatLoopMixin
     {
-        inline RepeatGreedyLoopNoBacktrackInst(Label beginLabel) : Inst(RepeatGreedyLoopNoBacktrack), RepeatLoopMixin(beginLabel) {}
+        inline RepeatGreedyLoopNoBacktrackInst(Label beginLabel) : Inst(InstTag::RepeatGreedyLoopNoBacktrack), RepeatLoopMixin(beginLabel) {}
 
         INST_BODY
     };
@@ -1362,7 +1362,7 @@ namespace UnifiedRegex
     template<ChompMode Mode>
     struct ChompCharInst : Inst, CharMixin
     {
-        ChompCharInst(const Char c) : Inst(Mode == ChompMode::Star ? ChompCharStar : ChompCharPlus), CharMixin(c) {}
+        ChompCharInst(const Char c) : Inst(Mode == ChompMode::Star ? InstTag::ChompCharStar : InstTag::ChompCharPlus), CharMixin(c) {}
 
         INST_BODY
     };
@@ -1371,7 +1371,7 @@ namespace UnifiedRegex
     struct ChompSetInst : Inst, SetMixin<false>
     {
         // set must always be cloned from source
-        ChompSetInst() : Inst(Mode == ChompMode::Star ? ChompSetStar : ChompSetPlus) {}
+        ChompSetInst() : Inst(Mode == ChompMode::Star ? InstTag::ChompSetStar : InstTag::ChompSetPlus) {}
 
         INST_BODY
         INST_BODY_FREE(SetMixin)
@@ -1381,7 +1381,7 @@ namespace UnifiedRegex
     struct ChompCharGroupInst : Inst, CharMixin, GroupMixin, NoNeedToSaveMixin
     {
         ChompCharGroupInst(const Char c, const int groupId, const bool noNeedToSave)
-            : Inst(Mode == ChompMode::Star ? ChompCharGroupStar : ChompCharGroupPlus),
+            : Inst(Mode == ChompMode::Star ? InstTag::ChompCharGroupStar : InstTag::ChompCharGroupPlus),
             CharMixin(c),
             GroupMixin(groupId),
             NoNeedToSaveMixin(noNeedToSave)
@@ -1396,7 +1396,7 @@ namespace UnifiedRegex
     {
         // set must always be cloned from source
         ChompSetGroupInst(const int groupId, const bool noNeedToSave)
-            : Inst(Mode == ChompMode::Star ? ChompSetGroupStar : ChompSetGroupPlus),
+            : Inst(Mode == ChompMode::Star ? InstTag::ChompSetGroupStar : InstTag::ChompSetGroupPlus),
             GroupMixin(groupId),
             NoNeedToSaveMixin(noNeedToSave)
         {
@@ -1408,7 +1408,7 @@ namespace UnifiedRegex
 
     struct ChompCharBoundedInst : Inst, CharMixin, ChompBoundedMixin
     {
-        inline ChompCharBoundedInst(Char c, const CountDomain& repeats) : Inst(ChompCharBounded), CharMixin(c), ChompBoundedMixin(repeats) {}
+        inline ChompCharBoundedInst(Char c, const CountDomain& repeats) : Inst(InstTag::ChompCharBounded), CharMixin(c), ChompBoundedMixin(repeats) {}
 
         INST_BODY
     };
@@ -1416,7 +1416,7 @@ namespace UnifiedRegex
     struct ChompSetBoundedInst : Inst, SetMixin<false>, ChompBoundedMixin
     {
         // set must always be cloned from source
-        inline ChompSetBoundedInst(const CountDomain& repeats) : Inst(ChompSetBounded), ChompBoundedMixin(repeats) {}
+        inline ChompSetBoundedInst(const CountDomain& repeats) : Inst(InstTag::ChompSetBounded), ChompBoundedMixin(repeats) {}
 
         INST_BODY
         INST_BODY_FREE(SetMixin)
@@ -1425,7 +1425,7 @@ namespace UnifiedRegex
     struct ChompSetBoundedGroupLastCharInst : Inst, SetMixin<false>, ChompBoundedMixin, GroupMixin, NoNeedToSaveMixin
     {
         // set must always be cloned from source
-        inline ChompSetBoundedGroupLastCharInst(const CountDomain& repeats, int groupId, bool noNeedToSave) : Inst(ChompSetBoundedGroupLastChar), ChompBoundedMixin(repeats), GroupMixin(groupId), NoNeedToSaveMixin(noNeedToSave) {}
+        inline ChompSetBoundedGroupLastCharInst(const CountDomain& repeats, int groupId, bool noNeedToSave) : Inst(InstTag::ChompSetBoundedGroupLastChar), ChompBoundedMixin(repeats), GroupMixin(groupId), NoNeedToSaveMixin(noNeedToSave) {}
 
         INST_BODY
         INST_BODY_FREE(SetMixin)
@@ -1438,7 +1438,7 @@ namespace UnifiedRegex
     struct TryInst : Inst, TryMixin
     {
         // failLabel must always be fixed up
-        inline TryInst() : Inst(Try), TryMixin() {}
+        inline TryInst() : Inst(InstTag::Try), TryMixin() {}
 
         INST_BODY
     };
@@ -1446,7 +1446,7 @@ namespace UnifiedRegex
     struct TryIfCharInst : Inst, CharMixin, TryMixin
     {
         // failLabel must always be fixed up
-        inline TryIfCharInst(Char c) : Inst(TryIfChar), CharMixin(c), TryMixin() {}
+        inline TryIfCharInst(Char c) : Inst(InstTag::TryIfChar), CharMixin(c), TryMixin() {}
 
         INST_BODY
     };
@@ -1454,7 +1454,7 @@ namespace UnifiedRegex
     struct TryMatchCharInst : Inst, CharMixin, TryMixin
     {
         // failLabel must always be fixed up
-        inline TryMatchCharInst(Char c) : Inst(TryMatchChar), CharMixin(c), TryMixin() {}
+        inline TryMatchCharInst(Char c) : Inst(InstTag::TryMatchChar), CharMixin(c), TryMixin() {}
 
         INST_BODY
     };
@@ -1463,7 +1463,7 @@ namespace UnifiedRegex
     {
         // set is always same as matching BeginLoopIfSetInst set
         // failLabel must always be fixed up
-        inline TryIfSetInst() : Inst(TryIfSet), TryMixin() {}
+        inline TryIfSetInst() : Inst(InstTag::TryIfSet), TryMixin() {}
 
         INST_BODY
         INST_BODY_FREE(SetMixin)
@@ -1473,7 +1473,7 @@ namespace UnifiedRegex
     {
         // set is always same as matching BeginLoopIfSetInst set
         // failLabel must always be fixed up
-        inline TryMatchSetInst() : Inst(TryMatchSet), TryMixin() {}
+        inline TryMatchSetInst() : Inst(InstTag::TryMatchSet), TryMixin() {}
 
         INST_BODY
         INST_BODY_FREE(SetMixin)
@@ -1487,7 +1487,7 @@ namespace UnifiedRegex
     {
         // nextLabel must always be fixed up
         inline BeginAssertionInst(bool isNegation, int minBodyGroupId, int maxBodyGroupId)
-            : Inst(BeginAssertion), BodyGroupsMixin(minBodyGroupId, maxBodyGroupId), NegationMixin(isNegation), NextLabelMixin()
+            : Inst(InstTag::BeginAssertion), BodyGroupsMixin(minBodyGroupId, maxBodyGroupId), NegationMixin(isNegation), NextLabelMixin()
         {}
 
         INST_BODY
@@ -1495,7 +1495,7 @@ namespace UnifiedRegex
 
     struct EndAssertionInst : Inst
     {
-        inline EndAssertionInst() : Inst(EndAssertion) {}
+        inline EndAssertionInst() : Inst(InstTag::EndAssertion) {}
 
         INST_BODY
     };

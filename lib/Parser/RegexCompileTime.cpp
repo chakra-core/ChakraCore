@@ -54,7 +54,7 @@ namespace UnifiedRegex
     }
 
 #define EMIT(compiler, T, ...) (new (compiler.Emit(sizeof(T))) T(__VA_ARGS__))
-#define L2I(O, label) LabelToInstPointer<O##Inst>(Inst::O, label)
+#define L2I(O, label) LabelToInstPointer<O##Inst>(Inst::InstTag::O, label)
 
     // Remember: The machine address of an instruction is no longer valid after a subsequent emit,
     //           so all label fixups must be done using Compiler::GetFixup / Compiler::DoFixup

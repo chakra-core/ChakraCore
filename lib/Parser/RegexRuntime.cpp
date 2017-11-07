@@ -34,7 +34,7 @@ namespace UnifiedRegex
 
 #define PUSH(contStack, T, ...) (new (contStack.Push<T>()) T(__VA_ARGS__))
 #define PUSHA(assertionStack, T, ...) (new (assertionStack.Push()) T(__VA_ARGS__))
-#define L2I(O, label) LabelToInstPointer<O##Inst>(Inst::O, label)
+#define L2I(O, label) LabelToInstPointer<O##Inst>(Inst::InstTag::O, label)
 
 #define FAIL_PARAMETERS input, inputOffset, instPointer, contStack, assertionStack, qcTicks
 #define HARDFAIL_PARAMETERS(mode) input, inputLength, matchStart, inputOffset, instPointer, contStack, assertionStack, qcTicks, mode
@@ -1252,9 +1252,9 @@ namespace UnifiedRegex
     // ----------------------------------------------------------------------
 
     template <>
-    BOITestInst<true>::BOITestInst() : Inst(BOIHardFailTest) {}
+    BOITestInst<true>::BOITestInst() : Inst(InstTag::BOIHardFailTest) {}
     template <>
-    BOITestInst<false>::BOITestInst() : Inst(BOITest) {}
+    BOITestInst<false>::BOITestInst() : Inst(InstTag::BOITest) {}
 
     template <bool canHardFail>
     inline bool BOITestInst<canHardFail>::Exec(REGEX_INST_EXEC_PARAMETERS) const
@@ -1300,9 +1300,9 @@ namespace UnifiedRegex
     // ----------------------------------------------------------------------
 
     template <>
-    EOITestInst<true>::EOITestInst() : Inst(EOIHardFailTest) {}
+    EOITestInst<true>::EOITestInst() : Inst(InstTag::EOIHardFailTest) {}
     template <>
-    EOITestInst<false>::EOITestInst() : Inst(EOITest) {}
+    EOITestInst<false>::EOITestInst() : Inst(InstTag::EOITest) {}
 
     template <bool canHardFail>
     inline bool EOITestInst<canHardFail>::Exec(REGEX_INST_EXEC_PARAMETERS) const
@@ -1402,9 +1402,9 @@ namespace UnifiedRegex
     // ----------------------------------------------------------------------
 
     template <>
-    WordBoundaryTestInst<true>::WordBoundaryTestInst() : Inst(NegatedWordBoundaryTest) {}
+    WordBoundaryTestInst<true>::WordBoundaryTestInst() : Inst(InstTag::NegatedWordBoundaryTest) {}
     template <>
-    WordBoundaryTestInst<false>::WordBoundaryTestInst() : Inst(WordBoundaryTest) {}
+    WordBoundaryTestInst<false>::WordBoundaryTestInst() : Inst(InstTag::WordBoundaryTest) {}
 
     template <bool isNegation>
     inline bool WordBoundaryTestInst<isNegation>::Exec(REGEX_INST_EXEC_PARAMETERS) const
@@ -5089,16 +5089,16 @@ namespace UnifiedRegex
     }
 
 #if DBG
-    const uint32 instTags[] = {
-#define M(TagName) Inst::TagName,
+    const Inst::InstTag instTags[] = {
+#define M(TagName) Inst::InstTag::TagName,
 #define MTemplate(TagName, ...) M(TagName)
 #include "RegexOpCodes.h"
 #undef M
 #undef MTemplate
     };
 
-    const uint32 minInstTag = instTags[0];
-    const uint32 maxInstTag = instTags[(sizeof(instTags) / sizeof(uint32)) - 1];
+    const Inst::InstTag minInstTag = instTags[0];
+    const Inst::InstTag maxInstTag = instTags[(sizeof(instTags) / sizeof(Inst::InstTag)) - 1];
 #endif
 
     inline void Matcher::Run(const Char* const input, const CharCount inputLength, CharCount &matchStart, CharCount &nextSyncInputOffset, ContStack &contStack, AssertionStack &assertionStack, uint &qcTicks, bool firstIteration)
@@ -5124,7 +5124,7 @@ namespace UnifiedRegex
             switch (tag)
             {
 #define MBase(TagName, ClassName) \
-                case Inst::TagName: \
+                case Inst::InstTag::TagName: \
                     if (((const ClassName *)inst)->Exec(*this, input, inputLength, matchStart, inputOffset, nextSyncInputOffset, instPointer, contStack, assertionStack, qcTicks, firstIteration)) { return; } \
                     break;
 #define M(TagName) MBase(TagName, TagName##Inst)
@@ -5601,7 +5601,7 @@ namespace UnifiedRegex
             switch (inst->tag)
             {
 #define MBase(TagName, ClassName) \
-            case Inst::TagName: \
+            case Inst::InstTag::TagName: \
             { \
                 const ClassName *actualInst = static_cast<const ClassName *>(inst); \
                 actualInst->Print(w, InstPointerToLabel(instPointer), program->rep.insts.litbuf); \
@@ -5720,7 +5720,7 @@ namespace UnifiedRegex
             switch(inst->tag)
             {
 #define MBase(TagName, ClassName) \
-                case Inst::TagName: \
+                case Inst::InstTag::TagName: \
                 { \
                     const auto actualInst = static_cast<ClassName *>(inst); \
                     actualInst->FreeBody(rtAllocator); \
@@ -5782,7 +5782,7 @@ namespace UnifiedRegex
                     switch (inst->tag)
                     {
 #define MBase(TagName, ClassName) \
-                    case Inst::TagName: \
+                    case Inst::InstTag::TagName: \
                     { \
                         const ClassName *actualInst = static_cast<const ClassName *>(inst); \
                         curr += actualInst->Print(w, (Label)(isBaselineMode ? i++ : curr - rep.insts.insts), rep.insts.litbuf); \
