@@ -591,8 +591,9 @@ namespace Js
         // so this Eval acts as the first source compile for scriptContext, transition to debugMode as needed
         scriptContext->TransitionToDebugModeIfFirstSource(/* utf8SourceInfo = */ nullptr);
 
-        JavascriptString *argString = JavascriptString::FromVar(evalArg);
         ScriptFunction *pfuncScript = nullptr;
+        ENTER_PINNED_SCOPE(JavascriptString, argString);
+        argString = JavascriptString::FromVar(evalArg);
         char16 const * sourceString = argString->GetSz();
         charcount_t sourceLen = argString->GetLength();
         FastEvalMapString key(sourceString, sourceLen, moduleID, strictMode, isLibraryCode);
@@ -614,7 +615,6 @@ namespace Js
                 scriptContext->AddToEvalMap(key, isIndirect, pfuncScript);
             }
         }
-
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         else
         {
@@ -673,6 +673,8 @@ namespace Js
             }
         }
 #endif
+
+        LEAVE_PINNED_SCOPE();    // argString
 
         //We shouldn't be serializing eval functions; unless with -ForceSerialized flag
         if (CONFIG_FLAG(ForceSerialized)) {
@@ -1233,7 +1235,8 @@ namespace Js
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
-        JavascriptString *str;
+        double result = 0;
+        ENTER_PINNED_SCOPE(JavascriptString, str);
 
         if(args.Info.Count < 2)
         {
@@ -1271,7 +1274,8 @@ namespace Js
         const char16 *pch = scriptContext->GetCharClassifier()->SkipWhiteSpace(str->GetSz());
 
         // perform the string -> float conversion
-        double result = NumberUtilities::StrToDbl(pch, &pch, scriptContext);
+        result = NumberUtilities::StrToDbl(pch, &pch, scriptContext);
+        LEAVE_PINNED_SCOPE();   // str
 
         return JavascriptNumber::ToVarNoCheck(result, scriptContext);
     }
@@ -1407,9 +1411,11 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefinedDisplayString();
         }
 
-        JavascriptString *src = JavascriptConversion::ToString(args[1], scriptContext);
+        CompoundString * bs = nullptr;
+        ENTER_PINNED_SCOPE(JavascriptString, src);
+        src = JavascriptConversion::ToString(args[1], scriptContext);
+        bs = CompoundString::NewWithCharCapacity(src->GetLength(), scriptContext->GetLibrary());
 
-        CompoundString *const bs = CompoundString::NewWithCharCapacity(src->GetLength(), scriptContext->GetLibrary());
         char16 chw;
         char16 * pchSrc;
         char16 * pchLim;
@@ -1443,6 +1449,8 @@ namespace Js
             }
         }
 
+        LEAVE_PINNED_SCOPE();   // src
+
         return bs;
     }
 
@@ -1469,10 +1477,10 @@ namespace Js
         char16 * pchLim;
         char16 * pchMin;
 
-        JavascriptString *src = JavascriptConversion::ToString(args[1], scriptContext);
-
-        CompoundString *const bs = CompoundString::NewWithCharCapacity(src->GetLength(), scriptContext->GetLibrary());
-
+        CompoundString * bs = nullptr;
+        ENTER_PINNED_SCOPE(JavascriptString, src);
+        src = JavascriptConversion::ToString(args[1], scriptContext);
+        bs = CompoundString::NewWithCharCapacity(src->GetLength(), scriptContext->GetLibrary());
         pchSrc = const_cast<char16 *>(src->GetString());
         pchLim = pchSrc + src->GetLength();
         while (pchSrc < pchLim)
@@ -1525,6 +1533,8 @@ LHexError:
 
             bs->AppendChars(chw);
         }
+
+        LEAVE_PINNED_SCOPE();   // src
 
         return bs;
     }

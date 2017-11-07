@@ -222,10 +222,9 @@ LinearScan::RegAlloc()
         }
 
         this->SetSrcRegs(instr);
+        this->EndDeadLifetimes(instr);
 
         this->CheckOpHelper(instr);
-
-        this->EndDeadLifetimes(instr);
 
         this->KillImplicitRegs(instr);
 
@@ -907,9 +906,9 @@ LinearScan::SetDstReg(IR::Instr *instr)
             if (!lifetime->isDeadStore && !lifetime->isSecondChanceAllocated)
             {
                 // Insert a store since the lifetime is spilled
-                this->InsertStore(instr, regOpnd->m_sym, reg);
+                    this->InsertStore(instr, regOpnd->m_sym, reg);
+                }
             }
-        }
         else
         {
             if (lifetime->isOpHelperSpilled)

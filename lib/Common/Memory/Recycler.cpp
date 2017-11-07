@@ -4858,6 +4858,7 @@ Recycler::FinalizeConcurrent(bool restoreState)
     }
 
     this->threadService = nullptr;
+
     if (concurrentThread != NULL)
     {
         CloseHandle(concurrentThread);

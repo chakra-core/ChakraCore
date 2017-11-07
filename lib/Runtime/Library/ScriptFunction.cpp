@@ -225,17 +225,17 @@ namespace Js
             entryPointInfo->jsMethod = entryPoint;
         }
 
-        ProxyEntryPointInfo* oldEntryPointInfo = this->GetScriptFunctionType()->GetEntryPointInfo();
-        if (oldEntryPointInfo
-            && oldEntryPointInfo != entryPointInfo
-            && oldEntryPointInfo->SupportsExpiration())
-        {
-            // The old entry point could be executing so we need root it to make sure
-            // it isn't prematurely collected. The rooting is done by queuing it up on the threadContext
-            ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
+    ProxyEntryPointInfo* oldEntryPointInfo = this->GetScriptFunctionType()->GetEntryPointInfo();
+    if (oldEntryPointInfo
+	    && oldEntryPointInfo != entryPointInfo
+	    && oldEntryPointInfo->SupportsExpiration())
+    {
+	    // The old entry point could be executing so we need root it to make sure
+	    // it isn't prematurely collected. The rooting is done by queuing it up on the threadContext
+	    ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
 
-            threadContext->QueueFreeOldEntryPointInfoIfInScript((FunctionEntryPointInfo*)oldEntryPointInfo);
-        }
+	    threadContext->QueueFreeOldEntryPointInfoIfInScript((FunctionEntryPointInfo*)oldEntryPointInfo);
+    }
 
         this->GetScriptFunctionType()->SetEntryPointInfo(entryPointInfo);
     }
@@ -323,6 +323,10 @@ namespace Js
     {
         FunctionProxy* proxy = this->GetFunctionProxy();
         ParseableFunctionInfo * pFuncBody = proxy->EnsureDeserialized();
+        Var returnStr = nullptr;
+
+        EnterPinnedScope((volatile void**)& inputString);
+
         const char16 * inputStr = inputString->GetString();
         const char16 * paramStr = wcschr(inputStr, _u('('));
 
@@ -340,7 +344,6 @@ namespace Js
         uint prefixStringLength = 0;
         const char16* name = _u("");
         charcount_t nameLength = 0;
-        Var returnStr = nullptr;
 
         if (!isClassMethod)
         {
@@ -374,7 +377,6 @@ namespace Js
         }
         else
         {
-
             if (this->GetFunctionInfo()->IsClassConstructor())
             {
                 name = _u("constructor");
@@ -422,6 +424,7 @@ namespace Js
         returnStr = LiteralString::NewCopyBuffer(funcBodyStr, (charcount_t)totalLength, scriptContext);
 
         LEAVE_PINNED_SCOPE();
+        LeavePinnedScope();     //  inputString
 
         return returnStr;
     }
@@ -553,7 +556,7 @@ namespace Js
             case Js::ScopeType::ScopeType_SlotArray:
             {
                 Js::ScopeSlots slotArray = (Js::Var*)scope;
-                uint slotArrayCount = slotArray.GetCount();
+                uint slotArrayCount = static_cast<uint>(slotArray.GetCount());
 
                 //get the function body associated with the scope
                 if(slotArray.IsFunctionScopeSlotArray())

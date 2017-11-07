@@ -308,7 +308,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     // s2 = current function.
                     IR::Opnd * paramOpnd = LoadFunctionBodyOpnd(instr);
                     this->m_lowererMD.LoadHelperArgument(instr, paramOpnd);
-                    
+
                     m_lowererMD.ChangeToHelperCallMem(instr, IR::HelperOP_NewScopeObjectWithFormals);
                 }
                 else
@@ -6376,7 +6376,7 @@ Lowerer::GenerateScriptFunctionInit(IR::RegOpnd * regOpnd, IR::Opnd * vtableAddr
     IR::Opnd * typeOpnd = IR::RegOpnd::New(TyMachPtr, func);
     InsertMove(typeOpnd, IR::IndirOpnd::New(functionProxyOpnd->AsRegOpnd(), Js::FunctionProxy::GetOffsetOfDeferredPrototypeType(),
         TyMachPtr, func), insertBeforeInstr);
-    
+
     IR::LabelInstr * labelHelper = IR::LabelInstr::New(Js::OpCode::Label, func, true);
     InsertTestBranch(typeOpnd, typeOpnd, Js::OpCode::BrEq_A, labelHelper, insertBeforeInstr);
     IR::LabelInstr * labelDone = IR::LabelInstr::New(Js::OpCode::Label, func, false);
@@ -6389,7 +6389,7 @@ Lowerer::GenerateScriptFunctionInit(IR::RegOpnd * regOpnd, IR::Opnd * vtableAddr
     insertBeforeInstr->InsertBefore(callHelperInstr);
     m_lowererMD.LowerCall(callHelperInstr, 0);
     insertBeforeInstr->InsertBefore(labelDone);
-    
+
     GenerateMemInit(regOpnd, 0, vtableAddressOpnd, insertBeforeInstr, isZeroed);
     GenerateMemInit(regOpnd, Js::ScriptFunction::GetOffsetOfType(), typeOpnd, insertBeforeInstr, isZeroed);
     GenerateMemInitNull(regOpnd, Js::ScriptFunction::GetOffsetOfAuxSlots(), insertBeforeInstr, isZeroed);
@@ -6397,7 +6397,7 @@ Lowerer::GenerateScriptFunctionInit(IR::RegOpnd * regOpnd, IR::Opnd * vtableAddr
     GenerateMemInit(regOpnd, Js::ScriptFunction::GetOffsetOfConstructorCache(),
     LoadLibraryValueOpnd(insertBeforeInstr, LibraryValue::ValueConstructorCacheDefaultInstance),
         insertBeforeInstr, isZeroed);
-    
+
     GenerateMemInit(regOpnd, Js::ScriptFunction::GetOffsetOfFunctionInfo(), functionInfoOpnd, insertBeforeInstr, isZeroed);
     GenerateMemInit(regOpnd, Js::ScriptFunction::GetOffsetOfEnvironment(), envOpnd, insertBeforeInstr, isZeroed);
     GenerateMemInitNull(regOpnd, Js::ScriptFunction::GetOffsetOfCachedScopeObj(), insertBeforeInstr, isZeroed);
@@ -10853,14 +10853,14 @@ Lowerer::LowerArgInAsmJs(IR::Instr * instr)
     Assert(instr && instr->m_opcode == Js::OpCode::ArgIn_A);
     IR::Instr* instrPrev = instr->m_prev;
 #ifdef _M_IX86
-    if (instr->GetDst()->IsInt64())
-    {
+        if (instr->GetDst()->IsInt64())
+        {
         m_lowererMD.LowerInt64Assign(instr);
-    }
-    else
+        }
+        else
 #endif
-    {
-        m_lowererMD.ChangeToAssign(instr);
+        {
+            m_lowererMD.ChangeToAssign(instr);
     }
 
     return instrPrev;
@@ -13374,6 +13374,14 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
         // src1 on BailOnNotStackArgs is helping CSE
         instr->FreeSrc1();
     }
+
+    if (instr->GetSrc2() != nullptr)
+    {
+        // Ideally we should never be in this situation but incase we reached a
+        // condition where we didn't freed src2. Free it here.
+        instr->FreeSrc2();
+    }
+
     // Call the bail out wrapper
     instr->m_opcode = Js::OpCode::Call;
     if(instr->GetDst())
@@ -18822,7 +18830,7 @@ void Lowerer::GenerateTruncWithCheck(IR::Instr* instr)
         {
             m_lowererMD.LoadFloatHelperArgument(instr, instr->GetSrc1());
         }
-        else 
+        else
         {
             m_lowererMD.LoadDoubleHelperArgument(instr, instr->GetSrc1());
         }
@@ -22173,7 +22181,7 @@ Lowerer::TryGenerateFastBrOrCmTypeOf(IR::Instr *instr, IR::Instr **prev, bool is
             return true;
         }
     }
-    
+
     if (instrSrc1 && instrSrc1->GetStackSym()->IsSingleDef() && instrSrc2 && instrSrc2->GetStackSym()->IsSingleDef() &&
         instrSrc1->GetStackSym()->GetInstrDef()->m_opcode == Js::OpCode::Typeof &&
         instrSrc2->GetStackSym()->GetInstrDef()->m_opcode == Js::OpCode::Typeof)
@@ -22423,7 +22431,7 @@ Lowerer::GenerateFastCmTypeOf(IR::Instr *compare, IR::RegOpnd *object, IR::IntCo
     IR::LabelInstr *helper= IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
     IR::RegOpnd    *dst      = compare->GetDst()->IsRegOpnd() ? compare->GetDst()->AsRegOpnd() : nullptr;
     IR::RegOpnd    *typeRegOpnd  = IR::RegOpnd::New(TyMachReg, m_func);
-    
+
     Assert(dst);
 
     if (dst->IsEqual(object))
@@ -23362,7 +23370,7 @@ Lowerer::GenerateRecyclerAlloc(IR::JnHelperMethod allocHelper, size_t allocSize,
 }
 
 void
-Lowerer::GenerateMemInit(IR::RegOpnd * opnd, int32 offset, int value, IR::Instr * insertBeforeInstr, bool isZeroed)
+Lowerer::GenerateMemInit(IR::RegOpnd * opnd, int32 offset, int32 value, IR::Instr * insertBeforeInstr, bool isZeroed)
 {
     IRType type = TyInt32;
     if (isZeroed)
@@ -23919,7 +23927,7 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
             {
                 InsertCompareBranch(src2, IR::IntConstOpnd::NewFromType(-1, src2->GetType(), m_func), Js::OpCode::BrNeq_A, divLabel, divLabel);
             }
-            
+
             InsertMove(dst, !isRem ? src1 : IR::IntConstOpnd::NewFromType(0, dst->GetType(), m_func), divLabel);
             InsertBranch(Js::OpCode::Br, doneLabel, divLabel);
         }
@@ -24187,7 +24195,7 @@ Lowerer::LowerNewScopeSlots(IR::Instr * instr, bool doStackSlots)
     IR::RegOpnd * dst = instr->UnlinkDst()->AsRegOpnd();
 
     // dst = RecyclerAlloc(allocSize)
-    // dst[EncodedSlotCountSlotIndex = EncodedSlotCountSlotIOndex];
+    // dst[EncodedSlotCountSlotIndex] = min(actualSlotCount, MaxEncodedSlotCount);
     // dst[ScopeMetadataSlotIndex] = FunctionBody;
     // mov undefinedOpnd, undefined
     // dst[FirstSlotIndex..count] = undefinedOpnd;
@@ -24198,8 +24206,10 @@ Lowerer::LowerNewScopeSlots(IR::Instr * instr, bool doStackSlots)
     {
         GenerateRecyclerAlloc(IR::HelperAllocMemForVarArray, allocSize, dst, instr);
     }
-    GenerateMemInit(dst, Js::ScopeSlots::EncodedSlotCountSlotIndex * sizeof(Js::Var),
-        min<uint>(actualSlotCount, Js::ScopeSlots::MaxEncodedSlotCount), instr, !doStackSlots);
+
+    m_lowererMD.GenerateMemInit(dst, Js::ScopeSlots::EncodedSlotCountSlotIndex * sizeof(Js::Var),
+            (size_t)min<uint>(actualSlotCount, Js::ScopeSlots::MaxEncodedSlotCount), instr, !doStackSlots);
+
     IR::Opnd * functionInfoOpnd = this->LoadFunctionInfoOpnd(instr);
     GenerateMemInit(dst, Js::ScopeSlots::ScopeMetadataSlotIndex * sizeof(Js::Var),
         functionInfoOpnd, instr, !doStackSlots);
@@ -25139,7 +25149,8 @@ Lowerer::LowerFrameDisplayCheck(IR::Instr * instr)
 
                 indirOpnd = IR::IndirOpnd::New(slotArrayOpnd,
                                                Js::ScopeSlots::EncodedSlotCountSlotIndex * sizeof(Js::Var),
-                                               TyUint32, m_func, true);
+                                               TyVar, m_func, true);
+
                 IR::IntConstOpnd * slotIdOpnd = IR::IntConstOpnd::New(slotId - Js::ScopeSlots::FirstSlotIndex,
                                                                       TyUint32, m_func);
                 InsertCompareBranch(indirOpnd, slotIdOpnd, Js::OpCode::BrLe_A, true, errorLabel, insertInstr);
@@ -25194,7 +25205,7 @@ Lowerer::LowerSlotArrayCheck(IR::Instr * instr)
 
         IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(IR::RegOpnd::New(stackSym, TyVar, m_func),
                                                        Js::ScopeSlots::EncodedSlotCountSlotIndex * sizeof(Js::Var),
-                                                       TyUint32, m_func, true);
+                                                       TyVar, m_func, true);
 
         slotIdOpnd->SetValue(slotId - Js::ScopeSlots::FirstSlotIndex);
         InsertCompareBranch(indirOpnd, slotIdOpnd, Js::OpCode::BrGt_A, true, continueLabel, insertInstr);

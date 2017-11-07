@@ -463,6 +463,7 @@ struct PnCall
     BYTE callOfConstants : 1;
     BYTE isApplyCall : 1;
     BYTE isEvalCall : 1;
+    BYTE hasDestructuring : 1;
 };
 
 struct PnStmt

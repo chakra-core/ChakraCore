@@ -2553,7 +2553,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     else if (instr->m_opcode == Js::OpCode::BrOnException || instr->m_opcode == Js::OpCode::BrOnNoException)
     {
         if (this->ProcessExceptionHandlingEdges(instr))
-        {
+            {
             *isInstrRemoved = true;
             return instrNext;
         }
@@ -14661,6 +14661,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                     IR::Opnd* lowerBound = baseOwnerIndir->GetIndexOpnd()
                         ? static_cast<IR::Opnd *>(baseOwnerIndir->GetIndexOpnd())
                         : IR::IntConstOpnd::New(baseOwnerIndir->GetOffset(), TyInt32, instr->m_func);
+
                     lowerBound->SetIsJITOptimizedReg(true);
                     IR::Opnd* upperBound = IR::RegOpnd::New(headSegmentLengthSym, headSegmentLengthSym->GetType(), instr->m_func);
                     upperBound->SetIsJITOptimizedReg(true);
@@ -17081,6 +17082,7 @@ GlobOpt::IsSwitchOptEnabled(Func const * func)
 {
     Assert(func->IsTopFunc());
     return !PHASE_OFF(Js::SwitchOptPhase, func) && !func->IsSwitchOptDisabled() && !IsTypeSpecPhaseOff(func)
+        && DoAggressiveIntTypeSpec(func)
         && func->DoGlobOpt() && !func->HasTry();
 }
 
@@ -17721,9 +17723,9 @@ GlobOpt::RemoveFlowEdgeToFinallyOnExceptionBlock(IR::Instr * instr)
 
     Assert(finallyBlock && predBlock);
 
-    if (this->func->m_fg->FindEdge(predBlock, finallyBlock))
-    {
-        predBlock->RemoveDeadSucc(finallyBlock, this->func->m_fg);
+        if (this->func->m_fg->FindEdge(predBlock, finallyBlock))
+        {
+            predBlock->RemoveDeadSucc(finallyBlock, this->func->m_fg);
 
         if (instr->m_opcode == Js::OpCode::BrOnException)
         {
@@ -17747,11 +17749,11 @@ GlobOpt::RemoveFlowEdgeToFinallyOnExceptionBlock(IR::Instr * instr)
             } NEXT_PREDECESSOR_BLOCK;
         }
 
-        if (predBlock == this->currentBlock)
-        {
-            predBlock->DecrementDataUseCount();
+            if (predBlock == this->currentBlock)
+            {
+                predBlock->DecrementDataUseCount();
+            }
         }
-    }
 
     return true;
 }

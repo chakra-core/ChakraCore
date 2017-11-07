@@ -185,8 +185,6 @@ namespace Js
         bool allowTestInputs = CONFIG_FLAG(WasmI64);
 #endif
 
-        AsmJsModuleInfo::EnsureHeapAttached(func);
-
         ArgumentReader reader(&callInfo, origArgs);
         uint actualArgCount = reader.Info.Count - 1; // -1 for ScriptFunction
         argDst = argDst + MachPtr; // add one first so as to skip the ScriptFunction argument
@@ -411,6 +409,9 @@ namespace Js
             }
             ++origArgs;
         }
+
+        AsmJsModuleInfo::EnsureHeapAttached(func);
+
         // for convenience, lets take the opportunity to return the asm.js entrypoint address
         return address;
     }
@@ -573,9 +574,6 @@ namespace Js
         int argSize = info->GetArgByteSize();
         void* dst;
         Var returnValue = 0;
-
-        // TODO (michhol): wasm, heap should not ever be detached
-        AsmJsModuleInfo::EnsureHeapAttached(func);
 
         argSize = ::Math::Align<int32>(argSize, 8);
         // Allocate stack space for args

@@ -60,4 +60,4 @@
 // Chakra RELEASE flag
 // Mostly redundant with CHAKRA_CORE_VERSION_RELEASE,
 // but semantically refers to Chakra rather than ChakraCore.
-#define CHAKRA_VERSION_RELEASE 0
+#define CHAKRA_VERSION_RELEASE 1

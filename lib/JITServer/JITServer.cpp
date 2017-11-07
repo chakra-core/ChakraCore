@@ -263,12 +263,12 @@ ServerInitializeThreadContext(
         *threadContextInfoAddress = (PTHREADCONTEXT_HANDLE)EncodePointer(contextInfo);
 
 #if defined(_CONTROL_FLOW_GUARD)
-        if (!PHASE_OFF1(Js::PreReservedHeapAllocPhase))
-        {
-            *prereservedRegionAddr = (intptr_t)contextInfo->GetPreReservedSectionAllocator()->EnsurePreReservedRegion();
-        }
+            if (!PHASE_OFF1(Js::PreReservedHeapAllocPhase))
+            {
+                *prereservedRegionAddr = (intptr_t)contextInfo->GetPreReservedSectionAllocator()->EnsurePreReservedRegion();
+            }
 #if _M_IX86 || _M_X64
-        *jitThunkAddr = (intptr_t)contextInfo->GetJITThunkEmitter()->EnsureInitialized();
+            *jitThunkAddr = (intptr_t)contextInfo->GetJITThunkEmitter()->EnsureInitialized();
 #endif
 #endif
 
@@ -449,6 +449,7 @@ ServerCleanupScriptContext(
         scriptContextInfo->Close();
         ServerContextManager::UnRegisterScriptContext(scriptContextInfo);
     }
+
     // This tells the run-time, when it is marshalling the out
     // parameters, that the context handle has been closed normally.
     *scriptContextInfoAddress = nullptr;

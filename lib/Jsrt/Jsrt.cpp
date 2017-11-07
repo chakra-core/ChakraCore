@@ -270,7 +270,8 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes,
             JsRuntimeAttributeDisableEval |
             JsRuntimeAttributeDisableNativeCodeGeneration |
             JsRuntimeAttributeEnableExperimentalFeatures |
-            JsRuntimeAttributeDispatchSetExceptionsToDebugger
+            JsRuntimeAttributeDispatchSetExceptionsToDebugger |
+            JsRuntimeAttributeDisableFatalOnOOM
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
             | JsRuntimeAttributeSerializeLibraryByteCode
 #endif
@@ -320,6 +321,11 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes,
         if (attributes & JsRuntimeAttributeDisableNativeCodeGeneration)
         {
             threadContext->SetThreadContextFlag(ThreadContextFlagNoJIT);
+        }
+
+        if (attributes & JsRuntimeAttributeDisableFatalOnOOM)
+        {
+            threadContext->SetThreadContextFlag(ThreadContextFlagDisableFatalOnOOM);
         }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -1586,7 +1592,7 @@ CHAKRA_API JsGetSharedArrayBufferContent(_In_ JsValueRef sharedArrayBuffer, _Out
         {
             return JsErrorInvalidArgument;
         }
-
+        
         Js::SharedContents**& content = (Js::SharedContents**&)sharedContents;
         *content = Js::SharedArrayBuffer::FromVar(sharedArrayBuffer)->GetSharedContents();
 

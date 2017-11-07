@@ -669,7 +669,7 @@ namespace Js
         // Stop profiling if present
         DeRegisterProfileProbe(S_OK, nullptr);
 #endif
-
+        
         this->EnsureClearDebugDocument();
 
         if (this->debugContext != nullptr)
@@ -6284,3 +6284,4 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     }
 
 } // End namespace Js
+

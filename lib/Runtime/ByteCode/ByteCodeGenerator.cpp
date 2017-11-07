@@ -720,6 +720,32 @@ ByteCodeGenerator::ByteCodeGenerator(Js::ScriptContext* scriptContext, Js::Scope
     m_writer.Create();
 }
 
+void ByteCodeGenerator::FinalizeFuncInfos()
+{
+    if (this->funcInfosToFinalize == nullptr)
+    {
+        return;
+    }
+
+    FOREACH_SLIST_ENTRY(FuncInfo*, funcInfo, this->funcInfosToFinalize)
+    {
+        funcInfo->byteCodeFunction->SetAttributes(funcInfo->originalAttributes);
+    }
+    NEXT_SLIST_ENTRY;
+
+    this->funcInfosToFinalize = nullptr;
+}
+
+void ByteCodeGenerator::AddFuncInfoToFinalizationSet(FuncInfo * funcInfo)
+{
+    if (this->funcInfosToFinalize == nullptr)
+    {
+        this->funcInfosToFinalize = Anew(alloc, SList<FuncInfo*>, alloc);
+    }
+
+    this->funcInfosToFinalize->Prepend(funcInfo);
+}
+
 /* static */
 bool ByteCodeGenerator::IsFalse(ParseNode* node)
 {
@@ -979,11 +1005,10 @@ void ByteCodeGenerator::RestoreScopeInfo(Js::ScopeInfo *scopeInfo, FuncInfo * fu
 
         if (newFunc)
         {
-            func = Anew(alloc, FuncInfo, pfi->GetDisplayName(), alloc, nullptr, nullptr, nullptr, pfi);
-            newFunc = true;
+            func = Anew(alloc, FuncInfo, pfi->GetDisplayName(), alloc, this, nullptr, nullptr, nullptr, pfi);
         }
 
-
+        // Recursively restore enclosing scope info so outermost scopes/funcs are pushed first.
         this->RestoreScopeInfo(scopeInfo->GetParentScopeInfo(), func);
         this->RestoreOneScope(scopeInfo, func);
 
@@ -1007,7 +1032,7 @@ void ByteCodeGenerator::RestoreScopeInfo(Js::ScopeInfo *scopeInfo, FuncInfo * fu
         if (func == nullptr || !func->byteCodeFunction->GetIsGlobalFunc())
         {
             func = Anew(alloc, FuncInfo, Js::Constants::GlobalFunction,
-                alloc, nullptr, nullptr/*currentScope*/, nullptr, nullptr/*functionBody*/);
+                alloc, this, nullptr, nullptr/*currentScope*/, nullptr, nullptr/*functionBody*/);
             PushFuncInfo(_u("RestoreScopeInfo"), func);
         }
         func->SetBodyScope(currentScope);
@@ -1110,7 +1135,7 @@ FuncInfo * ByteCodeGenerator::StartBindGlobalStatements(ParseNode *pnode)
     }
 
     FuncInfo *funcInfo = Anew(alloc, FuncInfo, Js::Constants::GlobalFunction,
-        alloc, nullptr, globalScope, pnode, byteCodeFunction);
+        alloc, this, nullptr, globalScope, pnode, byteCodeFunction);
 
     int32 currentAstSize = pnode->sxFnc.astSize;
     if (currentAstSize > this->maxAstSize)
@@ -1405,7 +1430,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
         parseableFunctionInfo->SetIsStrictMode();
     }
 
-    FuncInfo *funcInfo = Anew(alloc, FuncInfo, name, alloc, paramScope, bodyScope, pnode, parseableFunctionInfo);
+    FuncInfo *funcInfo = Anew(alloc, FuncInfo, name, alloc, this, paramScope, bodyScope, pnode, parseableFunctionInfo);
 
 #if DBG
     funcInfo->isReused = (reuseNestedFunc != nullptr);
@@ -1963,6 +1988,19 @@ void ByteCodeGenerator::Generate(__in ParseNode *pnode, uint32 grfscr, __in Byte
     sourceContextInfo->EnsureInitialized();
 
     ArenaAllocator localAlloc(_u("ByteCode"), threadContext->GetPageAllocator(), Js::Throw::OutOfMemory);
+
+    // Make sure FuncInfo's get finalized when byte code gen is done.
+    struct AutoFinalizeFuncInfos {
+        AutoFinalizeFuncInfos(ByteCodeGenerator * byteCodeGenerator) : byteCodeGenerator(byteCodeGenerator) {}
+        ~AutoFinalizeFuncInfos() {
+            if (byteCodeGenerator)
+            {
+                byteCodeGenerator->FinalizeFuncInfos();
+            }
+        }
+        ByteCodeGenerator * byteCodeGenerator;
+    } autoFinalizeFuncInfos(byteCodeGenerator);
+
     byteCodeGenerator->parser = parser;
     byteCodeGenerator->SetCurrentSourceIndex(sourceIndex);
     byteCodeGenerator->Begin(&localAlloc, grfscr, *ppRootFunc);
@@ -2129,6 +2167,7 @@ void ByteCodeGenerator::Begin(
     this->loopDepth = 0;
     this->envDepth = 0;
     this->trackEnvDepth = false;
+    this->funcInfosToFinalize = nullptr;
 
     this->funcInfoStack = Anew(alloc, SList<FuncInfo*>, alloc);
 
@@ -3320,7 +3359,6 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
                         && reuseNestedFunc->IsFunctionBody())
                     {
                         byteCodeGenerator->pCurrentFunction = reuseNestedFunc->GetFunctionBody();
-                        byteCodeGenerator->pCurrentFunction->CleanupToReparse();
                     }
                 }
             }

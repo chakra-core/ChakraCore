@@ -44,9 +44,9 @@ PeepsMD::ProcessImplicitRegs(IR::Instr *instr)
     else if (instr->m_opcode == Js::OpCode::XCHG)
     {
         // At time of writing, I believe that src1 is always identical to dst, but clear both for robustness.
-
+        
         // Either of XCHG's operands (but not both) can be a memory address, so only clear registers.
-        if (instr->GetSrc1()->IsRegOpnd())
+        if (instr->GetSrc1()->IsRegOpnd()) 
         {
             this->peeps->ClearReg(instr->GetSrc1()->AsRegOpnd()->GetReg());
         }

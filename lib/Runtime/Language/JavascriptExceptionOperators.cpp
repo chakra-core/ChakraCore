@@ -1033,11 +1033,19 @@ namespace Js
         ThreadContext *threadContext = scriptContext ?
             scriptContext->GetThreadContext() :
             ThreadContext::GetContextForCurrentThread();
-        threadContext->ClearDisableImplicitFlags();
 
-        JavascriptExceptionObject *oom = JavascriptExceptionOperators::GetOutOfMemoryExceptionObject(scriptContext);
+        if (CONFIG_FLAG(EnableFatalErrorOnOOM) && !threadContext->TestThreadContextFlag(ThreadContextFlagDisableFatalOnOOM))
+        {
+            OutOfMemory_fatal_error();
+        }
+        else
+        {
+            threadContext->ClearDisableImplicitFlags();
 
-        JavascriptExceptionOperators::ThrowExceptionObject(oom, scriptContext);
+            JavascriptExceptionObject *oom = JavascriptExceptionOperators::GetOutOfMemoryExceptionObject(scriptContext);
+
+            JavascriptExceptionOperators::ThrowExceptionObject(oom, scriptContext);
+        }
     }
 
     void JavascriptExceptionOperators::ThrowStackOverflow(ScriptContext *scriptContext, PVOID returnAddress)

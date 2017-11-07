@@ -1601,8 +1601,9 @@ namespace Js
         }
 #endif
 
-        // Code below has potential to throw due to OOM or SO. Just FailFast on those cases
         ScriptContext *scriptContext = intArray->GetScriptContext();
+
+        // Code below has potential to throw due to OOM or SO. Just FailFast on those cases
         AutoDisableInterrupt failFastError(scriptContext->GetThreadContext());
 
         // Grow the segments
@@ -3070,18 +3071,19 @@ namespace Js
     template<typename T>
     void JavascriptArray::ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds,
         Js::Arguments& args, ScriptContext* scriptContext, uint start, BigIndex startIdxDest,
-        BOOL FirstPromotedItemIsSpreadable, BigIndex FirstPromotedItemLength, bool spreadableCheckedAndTrue)
+        ConcatSpreadableState previousItemSpreadableState /*= ConcatSpreadableState_NotChecked*/, BigIndex *firstPromotedItemLength /* = nullptr */)
     {
         // This never gets called.
         Throw::InternalError();
     }
+
     //
     // Helper for EntryConcat. Concat args or elements of arg arrays into dest array.
     //
     template<typename T>
     void JavascriptArray::ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds,
         Js::Arguments& args, ScriptContext* scriptContext, uint start, uint startIdxDest,
-        BOOL firstPromotedItemIsSpreadable, BigIndex firstPromotedItemLength, bool spreadableCheckedAndTrue)
+        ConcatSpreadableState previousItemSpreadableState /*= ConcatSpreadableState_NotChecked*/, BigIndex *firstPromotedItemLength /* = nullptr */)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
         JavascriptArray* pDestArray = nullptr;
@@ -3090,30 +3092,32 @@ namespace Js
         {
             // ConcatArgs function expects to work on the Var array so we are ensuring it.
             pDestArray = EnsureNonNativeArray(JavascriptArray::FromVar(pDestObj));
+            SET_SECOND_OBJECT_FOR_MUTATION(jsReentLock, pDestArray);
         }
+
+        AssertOrFailFast(scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled()); // ConcatSpreadable is enabled already - not going back.
 
         T idxDest = startIdxDest;
         for (uint idxArg = start; idxArg < args.Info.Count; idxArg++)
         {
             Var aItem = args[idxArg];
-            bool spreadable = spreadableCheckedAndTrue;
-            if (!spreadable && scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled())
-            {
-                // firstPromotedItemIsSpreadable is ONLY used to resume after a type promotion from uint32 to uint64
-                // we do this because calls to IsConcatSpreadable are observable (a big deal for proxies) and we don't
-                // want to do the work a second time as soon as we record the length we clear the flag.
-                JS_REENTRANT(jsReentLock, spreadable = firstPromotedItemIsSpreadable || JavascriptOperators::IsConcatSpreadable(aItem));
+            SETOBJECT_FOR_MUTATION(jsReentLock, aItem);
 
-                if (!spreadable)
-                {
-                    JS_REENTRANT(jsReentLock, JavascriptArray::SetConcatItem<T>(aItem, idxArg, pDestArray, pDestObj, idxDest, scriptContext));
-                    ++idxDest;
-                    continue;
-                }
-            }
-            else
+            bool spreadable = previousItemSpreadableState == ConcatSpreadableState_CheckedAndTrue;
+
+            if (previousItemSpreadableState == ConcatSpreadableState_NotChecked)
             {
-                spreadableCheckedAndTrue = false; // if it was `true`, reset after the first use
+                JS_REENTRANT(jsReentLock, spreadable = !!JavascriptOperators::IsConcatSpreadable(aItem));
+            }
+
+            // Reset the state for the next item in the array
+            previousItemSpreadableState = ConcatSpreadableState_NotChecked;
+
+            if (!spreadable)
+            {
+                JS_REENTRANT(jsReentLock, JavascriptArray::SetConcatItem<T>(aItem, idxArg, pDestArray, pDestObj, idxDest, scriptContext));
+                ++idxDest;
+                continue;
             }
 
             if (pDestArray && JavascriptArray::IsDirectAccessArray(aItem) && JavascriptArray::IsDirectAccessArray(pDestArray)
@@ -3122,13 +3126,13 @@ namespace Js
                 if (JavascriptNativeIntArray::Is(aItem))
                 {
                     JavascriptNativeIntArray *pItemArray = JavascriptNativeIntArray::FromVar(aItem);
-                    JS_REENTRANT(jsReentLock, CopyNativeIntArrayElementsToVar(pDestArray, BigIndex(idxDest).GetSmallIndex(), pItemArray));
+                    JS_REENTRANT_NO_MUTATE(jsReentLock, CopyNativeIntArrayElementsToVar(pDestArray, BigIndex(idxDest).GetSmallIndex(), pItemArray));
                     idxDest = idxDest + pItemArray->length;
                 }
                 else if (JavascriptNativeFloatArray::Is(aItem))
                 {
                     JavascriptNativeFloatArray *pItemArray = JavascriptNativeFloatArray::FromVar(aItem);
-                    JS_REENTRANT(jsReentLock, CopyNativeFloatArrayElementsToVar(pDestArray, BigIndex(idxDest).GetSmallIndex(), pItemArray));
+                    JS_REENTRANT_NO_MUTATE(jsReentLock, CopyNativeFloatArrayElementsToVar(pDestArray, BigIndex(idxDest).GetSmallIndex(), pItemArray));
                     idxDest = idxDest + pItemArray->length;
                 }
                 else
@@ -3140,87 +3144,80 @@ namespace Js
             }
             else
             {
-                // Flatten if other array or remote array (marked with TypeIds_Array)
-                if (DynamicObject::IsAnyArray(aItem) || remoteTypeIds[idxArg] == TypeIds_Array || spreadable)
+                AssertOrFailFast(RecyclableObject::Is(aItem));
+
+                //CONSIDER: enumerating remote array instead of walking all indices
+                BigIndex length;
+                if (firstPromotedItemLength != nullptr)
                 {
-                    //CONSIDER: enumerating remote array instead of walking all indices
-                    BigIndex length;
-                    if (firstPromotedItemIsSpreadable)
-                    {
-                        firstPromotedItemIsSpreadable = false;
-                        length = firstPromotedItemLength;
-                    }
-                    else
-                    {
-                        JS_REENTRANT(jsReentLock, length = OP_GetLength(aItem, scriptContext));
-                    }
-
-                    if (PromoteToBigIndex(length,idxDest))
-                    {
-                        // This is a special case for spreadable objects. We do not pre-calculate the length
-                        // in EntryConcat like we do with Arrays because a getProperty on an object Length
-                        // is observable. The result is we have to check for overflows separately for
-                        // spreadable objects and promote to a bigger index type when we find them.
-                        ConcatArgs<BigIndex>(pDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest, /*firstPromotedItemIsSpreadable*/true, length);
-                        return;
-                    }
-
-                    if (length + idxDest > FiftyThirdPowerOfTwoMinusOne) // 2^53-1: from ECMA 22.1.3.1 Array.prototype.concat(...arguments)
-                    {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_IllegalArraySizeAndLength);
-                    }
-
-                    RecyclableObject* itemObject = RecyclableObject::FromVar(aItem);
-                    Var subItem;
-                    uint32 lengthToUin32Max = length.IsSmallIndex() ? length.GetSmallIndex() : MaxArrayLength;
-                    for (uint32 idxSubItem = 0u; idxSubItem < lengthToUin32Max; ++idxSubItem)
-                    {
-                        JS_REENTRANT(jsReentLock, BOOL hasItem = JavascriptOperators::HasItem(itemObject, idxSubItem));
-                        if (hasItem)
-                        {
-                            JS_REENTRANT(jsReentLock, subItem = JavascriptOperators::GetItem(itemObject, idxSubItem, scriptContext));
-
-                            if (pDestArray)
-                            {
-                                pDestArray->GenericDirectSetItemAt(idxDest, subItem);
-                            }
-                            else
-                            {
-                                JS_REENTRANT(jsReentLock, ThrowErrorOnFailure(SetArrayLikeObjects(pDestObj, idxDest, subItem), scriptContext, idxDest));
-                            }
-                        }
-                        ++idxDest;
-                    }
-
-                    for (BigIndex idxSubItem = MaxArrayLength; idxSubItem < length; ++idxSubItem)
-                    {
-                        PropertyRecord const * propertyRecord;
-                        JavascriptOperators::GetPropertyIdForInt(idxSubItem.GetBigIndex(), scriptContext, &propertyRecord);
-                        JS_REENTRANT(jsReentLock, BOOL hasProp = JavascriptOperators::HasProperty(itemObject, propertyRecord->GetPropertyId()));
-                        if (hasProp)
-                        {
-                            JS_REENTRANT(jsReentLock, subItem = JavascriptOperators::GetProperty(itemObject, propertyRecord->GetPropertyId(), scriptContext));
-                            if (pDestArray)
-                            {
-                                pDestArray->GenericDirectSetItemAt(idxDest, subItem);
-                            }
-                            else
-                            {
-                                JS_REENTRANT(jsReentLock, ThrowErrorOnFailure(SetArrayLikeObjects(pDestObj, idxDest, subItem), scriptContext, idxSubItem));
-                            }
-                        }
-                        ++idxDest;
-                    }
+                    length = *firstPromotedItemLength;
                 }
-                else // concat 1 item
+                else
                 {
-                    JS_REENTRANT(jsReentLock, JavascriptArray::SetConcatItem<T>(aItem, idxArg, pDestArray, pDestObj, idxDest, scriptContext));
+                    JS_REENTRANT(jsReentLock, length = OP_GetLength(aItem, scriptContext));
+                }
+
+                if (PromoteToBigIndex(length, idxDest))
+                {
+                    // This is a special case for spreadable objects. We do not pre-calculate the length
+                    // in EntryConcat like we do with Arrays because a getProperty on an object Length
+                    // is observable. The result is we have to check for overflows separately for
+                    // spreadable objects and promote to a bigger index type when we find them.
+                    JS_REENTRANT(jsReentLock, ConcatArgs<BigIndex>(pDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest, ConcatSpreadableState_CheckedAndTrue, &length));
+                    return;
+                }
+
+                if (length + idxDest > FiftyThirdPowerOfTwoMinusOne) // 2^53-1: from ECMA 22.1.3.1 Array.prototype.concat(...arguments)
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_IllegalArraySizeAndLength);
+                }
+
+                RecyclableObject* itemObject = RecyclableObject::FromVar(aItem);
+                Var subItem;
+                uint32 lengthToUin32Max = length.IsSmallIndex() ? length.GetSmallIndex() : MaxArrayLength;
+                for (uint32 idxSubItem = 0u; idxSubItem < lengthToUin32Max; ++idxSubItem)
+                {
+                    JS_REENTRANT(jsReentLock, BOOL hasItem = JavascriptOperators::HasItem(itemObject, idxSubItem));
+                    if (hasItem)
+                    {
+                        JS_REENTRANT(jsReentLock, subItem = JavascriptOperators::GetItem(itemObject, idxSubItem, scriptContext));
+
+                        if (pDestArray)
+                        {
+                            pDestArray->GenericDirectSetItemAt(idxDest, subItem);
+                        }
+                        else
+                        {
+                            JS_REENTRANT(jsReentLock, ThrowErrorOnFailure(SetArrayLikeObjects(pDestObj, idxDest, subItem), scriptContext, idxDest));
+                        }
+                    }
+                    ++idxDest;
+                }
+
+                for (BigIndex idxSubItem = MaxArrayLength; idxSubItem < length; ++idxSubItem)
+                {
+                    PropertyRecord const * propertyRecord;
+                    JavascriptOperators::GetPropertyIdForInt(idxSubItem.GetBigIndex(), scriptContext, &propertyRecord);
+                    JS_REENTRANT(jsReentLock, BOOL hasProp = JavascriptOperators::HasProperty(itemObject, propertyRecord->GetPropertyId()));
+                    if (hasProp)
+                    {
+                        JS_REENTRANT(jsReentLock, subItem = JavascriptOperators::GetProperty(itemObject, propertyRecord->GetPropertyId(), scriptContext));
+                        if (pDestArray)
+                        {
+                            pDestArray->GenericDirectSetItemAt(idxDest, subItem);
+                        }
+                        else
+                        {
+                            JS_REENTRANT(jsReentLock, ThrowErrorOnFailure(SetArrayLikeObjects(pDestObj, idxDest, subItem), scriptContext, idxSubItem));
+                        }
+                    }
                     ++idxDest;
                 }
             }
 
-            firstPromotedItemIsSpreadable = false;
+            firstPromotedItemLength = nullptr;
         }
+
         if (!pDestArray)
         {
             JS_REENTRANT(jsReentLock, pDestObj->SetProperty(PropertyIds::length, ConvertToIndex<T, Var>(idxDest, scriptContext), Js::PropertyOperation_None, nullptr));
@@ -3250,46 +3247,50 @@ namespace Js
     JavascriptArray* JavascriptArray::ConcatIntArgs(JavascriptNativeIntArray* pDestArray, TypeId *remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SET_SECOND_OBJECT_FOR_MUTATION(jsReentLock, pDestArray);
+
+        AssertOrFailFast(scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled());
+        Assert(pDestArray->GetTypeId() == TypeIds_NativeIntArray);
+
         uint idxDest = 0u;
         for (uint idxArg = 0; idxArg < args.Info.Count; idxArg++)
         {
             Var aItem = args[idxArg];
-            bool spreadableCheckedAndTrue = false;
+            SETOBJECT_FOR_MUTATION(jsReentLock, aItem);
 
-            if (scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled())
+            bool spreadable = false;
+            JS_REENTRANT(jsReentLock, spreadable = !!JavascriptOperators::IsConcatSpreadable(aItem));
+
+            if (!JavascriptNativeIntArray::Is(pDestArray))
             {
-                JS_REENTRANT(jsReentLock, spreadableCheckedAndTrue = !scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled() || JavascriptOperators::IsConcatSpreadable(aItem));
-                if (!JavascriptNativeIntArray::Is(pDestArray))
+                JS_REENTRANT(jsReentLock, ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest,
+                                                spreadable ? ConcatSpreadableState_CheckedAndTrue : ConcatSpreadableState_CheckedAndFalse));
+                return pDestArray;
+            }
+
+            if (!spreadable)
+            {
+                JS_REENTRANT(jsReentLock, pDestArray->SetItem(idxDest, aItem, PropertyOperation_ThrowIfNotExtensible));
+                idxDest++;
+                if (!JavascriptNativeIntArray::Is(pDestArray)) // SetItem could convert pDestArray to a var array if aItem is not an integer if so fall back
                 {
-                    ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest, spreadableCheckedAndTrue);
+                    JS_REENTRANT(jsReentLock, ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest, ConcatSpreadableState_NotChecked));
                     return pDestArray;
                 }
-
-                if(!spreadableCheckedAndTrue)
-                {
-                    JS_REENTRANT(jsReentLock, pDestArray->SetItem(idxDest, aItem, PropertyOperation_ThrowIfNotExtensible));
-                    idxDest = idxDest + 1;
-                    if (!JavascriptNativeIntArray::Is(pDestArray)) // SetItem could convert pDestArray to a var array if aItem is not an integer if so fall back
-                    {
-                        JS_REENTRANT(jsReentLock, ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest));
-                        return pDestArray;
-                    }
-                    continue;
-                }
+                continue;
             }
 
             if (JavascriptNativeIntArray::Is(aItem) && !JavascriptNativeIntArray::FromVar(aItem)->IsFillFromPrototypes()) // Fast path
             {
                 JavascriptNativeIntArray* pItemArray = JavascriptNativeIntArray::FromVar(aItem);
-
-                JS_REENTRANT(jsReentLock, bool converted = CopyNativeIntArrayElements(pDestArray, idxDest, pItemArray));
+                JS_REENTRANT_NO_MUTATE(jsReentLock, bool converted = CopyNativeIntArrayElements(pDestArray, idxDest, pItemArray));
 
                 idxDest = idxDest + pItemArray->length;
                 if (converted)
                 {
                     // Copying the last array forced a conversion, so switch over to the var version
                     // to finish.
-                    JS_REENTRANT(jsReentLock, ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest));
+                    JS_REENTRANT(jsReentLock, ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest, ConcatSpreadableState_NotChecked));
                     return pDestArray;
                 }
             }
@@ -3316,10 +3317,11 @@ namespace Js
                 JavascriptArray *pVarDestArray = JavascriptNativeIntArray::ConvertToVarArray(pDestArray);
                 BigIndex length;
                 JS_REENTRANT(jsReentLock, length = OP_GetLength(aItem, scriptContext),
-                    ConcatArgs<uint>(pVarDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest, spreadableCheckedAndTrue, length));
+                    ConcatArgs<uint>(pVarDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest, ConcatSpreadableState_CheckedAndTrue, &length));
                 return pVarDestArray;
             }
         }
+
         if (pDestArray->GetLength() != idxDest)
         {
             pDestArray->SetLength(idxDest);
@@ -3330,34 +3332,37 @@ namespace Js
     JavascriptArray* JavascriptArray::ConcatFloatArgs(JavascriptNativeFloatArray* pDestArray, TypeId *remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SET_SECOND_OBJECT_FOR_MUTATION(jsReentLock, pDestArray);
+
+        AssertOrFailFast(scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled());
+
         uint idxDest = 0u;
         for (uint idxArg = 0; idxArg < args.Info.Count; idxArg++)
         {
             Var aItem = args[idxArg];
+            SETOBJECT_FOR_MUTATION(jsReentLock, aItem);
 
-            bool spreadableCheckedAndTrue = false;
+            bool spreadable = false;
+            JS_REENTRANT(jsReentLock, spreadable = !!JavascriptOperators::IsConcatSpreadable(aItem));
 
-            if (scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled())
+            if (!JavascriptNativeFloatArray::Is(pDestArray))
             {
-                JS_REENTRANT(jsReentLock, spreadableCheckedAndTrue = !scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled() || JavascriptOperators::IsConcatSpreadable(aItem));
-                if (!JavascriptNativeFloatArray::Is(pDestArray))
+                JS_REENTRANT(jsReentLock, ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest,
+                                            spreadable ? ConcatSpreadableState_CheckedAndTrue : ConcatSpreadableState_CheckedAndFalse));
+                return pDestArray;
+            }
+
+            if (!spreadable)
+            {
+                JS_REENTRANT(jsReentLock, pDestArray->SetItem(idxDest, aItem, PropertyOperation_ThrowIfNotExtensible));
+
+                idxDest = idxDest + 1;
+                if (!JavascriptNativeFloatArray::Is(pDestArray)) // SetItem could convert pDestArray to a var array if aItem is not an integer if so fall back
                 {
-                    ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest, spreadableCheckedAndTrue);
+                    JS_REENTRANT(jsReentLock, ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest, ConcatSpreadableState_NotChecked));
                     return pDestArray;
                 }
-
-                if (!spreadableCheckedAndTrue)
-                {
-                    JS_REENTRANT(jsReentLock, pDestArray->SetItem(idxDest, aItem, PropertyOperation_ThrowIfNotExtensible));
-
-                    idxDest = idxDest + 1;
-                    if (!JavascriptNativeFloatArray::Is(pDestArray)) // SetItem could convert pDestArray to a var array if aItem is not an integer if so fall back
-                    {
-                        JS_REENTRANT(jsReentLock, ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest));
-                        return pDestArray;
-                    }
-                    continue;
-                }
+                continue;
             }
 
             bool converted = false;
@@ -3366,8 +3371,7 @@ namespace Js
                 if (JavascriptNativeIntArray::Is(aItem) && !JavascriptArray::FromVar(aItem)->IsFillFromPrototypes()) // Fast path
                 {
                     JavascriptNativeIntArray *pIntArray = JavascriptNativeIntArray::FromVar(aItem);
-
-                    JS_REENTRANT(jsReentLock, converted = CopyNativeIntArrayElementsToFloat(pDestArray, idxDest, pIntArray));
+                    JS_REENTRANT_NO_MUTATE(jsReentLock, converted = CopyNativeIntArrayElementsToFloat(pDestArray, idxDest, pIntArray));
 
                     idxDest = idxDest + pIntArray->length;
                 }
@@ -3375,7 +3379,7 @@ namespace Js
                 {
                     JavascriptNativeFloatArray* pItemArray = JavascriptNativeFloatArray::FromVar(aItem);
 
-                    JS_REENTRANT(jsReentLock, converted = CopyNativeFloatArrayElements(pDestArray, idxDest, pItemArray));
+                    JS_REENTRANT_NO_MUTATE(jsReentLock, converted = CopyNativeFloatArrayElements(pDestArray, idxDest, pItemArray));
 
                     idxDest = idxDest + pItemArray->length;
                 }
@@ -3385,7 +3389,7 @@ namespace Js
 
                     BigIndex length;
                     JS_REENTRANT(jsReentLock, length = OP_GetLength(aItem, scriptContext),
-                        ConcatArgs<uint>(pVarDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest, spreadableCheckedAndTrue, length));
+                        ConcatArgs<uint>(pVarDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest, ConcatSpreadableState_CheckedAndTrue, &length));
 
                     return pVarDestArray;
                 }
@@ -3394,8 +3398,7 @@ namespace Js
                 {
                     // Copying the last array forced a conversion, so switch over to the var version
                     // to finish.
-
-                    JS_REENTRANT(jsReentLock, ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest));
+                    JS_REENTRANT(jsReentLock, ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest, ConcatSpreadableState_NotChecked));
 
                     return pDestArray;
                 }
@@ -3561,7 +3564,7 @@ namespace Js
         RecyclableObject* pDestObj = nullptr;
         bool isArray = false;
 
-        JS_REENTRANT(jsReentLock, pDestObj = ArraySpeciesCreate(args[0], 0, scriptContext));
+        JS_REENTRANT_NO_MUTATE(jsReentLock, pDestObj = ArraySpeciesCreate(args[0], 0, scriptContext));
 
         if (pDestObj)
         {
@@ -3758,6 +3761,7 @@ namespace Js
     Var JavascriptArray::IndexOfHelper(Arguments const & args, ScriptContext *scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, args[0]);
 
         RecyclableObject* obj = nullptr;
         JavascriptArray* pArr = nullptr;
@@ -3766,8 +3770,7 @@ namespace Js
         Var falseValue = scriptContext->GetLibrary()->GetFalse();
 
         JS_REENTRANT(jsReentLock, TryGetArrayAndLength(args[0], scriptContext, _u("Array.prototype.indexOf"), &pArr, &obj, &length));
-
-        Var search = nullptr;
+        Var search;
         uint32 fromIndex = 0;
         uint64 fromIndex64 = 0;
 
@@ -3834,14 +3837,14 @@ namespace Js
                 switch (pArr->GetTypeId())
                 {
                 case Js::TypeIds_Array:
-                JS_REENTRANT_UNLOCK(jsReentLock, return TemplatedIndexOfHelper<includesAlgorithm>(pArr, search, fromIndex, len, scriptContext));
+                    JS_REENTRANT_UNLOCK(jsReentLock, return TemplatedIndexOfHelper<includesAlgorithm>(pArr, search, fromIndex, len, scriptContext));
                 case Js::TypeIds_NativeIntArray:
-                JS_REENTRANT_UNLOCK(jsReentLock, return TemplatedIndexOfHelper<includesAlgorithm>(JavascriptNativeIntArray::FromVar(pArr), search, fromIndex, len, scriptContext));
+                    JS_REENTRANT_UNLOCK(jsReentLock, return TemplatedIndexOfHelper<includesAlgorithm>(JavascriptNativeIntArray::FromVar(pArr), search, fromIndex, len, scriptContext));
                 case Js::TypeIds_NativeFloatArray:
-                JS_REENTRANT_UNLOCK(jsReentLock, return TemplatedIndexOfHelper<includesAlgorithm>(JavascriptNativeFloatArray::FromVar(pArr), search, fromIndex, len, scriptContext));
+                    JS_REENTRANT_UNLOCK(jsReentLock, return TemplatedIndexOfHelper<includesAlgorithm>(JavascriptNativeFloatArray::FromVar(pArr), search, fromIndex, len, scriptContext));
                 default:
                     AssertMsg(FALSE, "invalid array typeid");
-                JS_REENTRANT_UNLOCK(jsReentLock, return TemplatedIndexOfHelper<includesAlgorithm>(pArr, search, fromIndex, len, scriptContext));
+                    JS_REENTRANT_UNLOCK(jsReentLock, return TemplatedIndexOfHelper<includesAlgorithm>(pArr, search, fromIndex, len, scriptContext));
                 }
             }
         }
@@ -4311,6 +4314,8 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.join"));
         }
 
+        SETOBJECT_FOR_MUTATION(jsReentLock, args[0]);
+
         JavascriptString* separator;
         if (args.Info.Count >= 2)
         {
@@ -4349,6 +4354,7 @@ namespace Js
     JavascriptString* JavascriptArray::JoinHelper(Var thisArg, JavascriptString* separator, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, thisArg);
 
         bool isArray = JavascriptArray::Is(thisArg) && (scriptContext == JavascriptArray::FromVar(thisArg)->GetScriptContext());
         bool isProxy = JavascriptProxy::Is(thisArg) && (scriptContext == JavascriptProxy::FromVar(thisArg)->GetScriptContext());
@@ -4446,6 +4452,7 @@ namespace Js
     JavascriptString* JavascriptArray::JoinArrayHelper(T * arr, JavascriptString* separator, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, arr);
 
         Assert(VirtualTableInfo<T>::HasVirtualTable(arr) || VirtualTableInfo<CrossSiteObject<T>>::HasVirtualTable(arr));
         const uint32 arrLength = arr->length;
@@ -4461,7 +4468,7 @@ CaseDefault:
                         static_cast<charcount_t>(arrLength + (hasSeparator ? arrLength - 1 : 0)));
                 CompoundString *const cs =
                     CompoundString::NewWithPointerCapacity(estimatedAppendCount, scriptContext->GetLibrary());
-                Var item = nullptr;
+                Var item;
                 BOOL gotItem;
                 JS_REENTRANT(jsReentLock, gotItem = TemplatedGetItem(arr, 0u, &item, scriptContext));
                 if (gotItem)
@@ -4495,7 +4502,7 @@ CaseDefault:
                 }
 
                 JavascriptString *res = nullptr;
-                Var item = nullptr;
+                Var item;
 
                 JS_REENTRANT(jsReentLock, gotItem = TemplatedGetItem(arr, 0u, &item, scriptContext));
                 if (gotItem)
@@ -4519,7 +4526,7 @@ CaseDefault:
 
             case 1:
             {
-                Var item = nullptr;
+                Var item;
                 BOOL gotItem;
                 JS_REENTRANT(jsReentLock, gotItem = TemplatedGetItem(arr, 0u, &item, scriptContext));
                 if (gotItem)
@@ -4538,6 +4545,7 @@ Case0:
     JavascriptString* JavascriptArray::JoinOtherHelper(RecyclableObject* object, JavascriptString* separator, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, object);
 
         // In ES6-mode, we always load the length property from the object instead of using the internal slot.
         // Even for arrays, this is now observable via proxies.
@@ -4558,7 +4566,7 @@ CaseDefault:
                         static_cast<charcount_t>(cSrcLength + (hasSeparator ? cSrcLength - 1 : 0)));
                 CompoundString *const cs =
                     CompoundString::NewWithPointerCapacity(estimatedAppendCount, scriptContext->GetLibrary());
-                Var value = nullptr;
+                Var value;
                 JS_REENTRANT(jsReentLock, gotItem = JavascriptOperators::GetItem(object, 0u, &value, scriptContext));
                 if (gotItem)
                 {
@@ -4589,7 +4597,7 @@ CaseDefault:
                 }
 
                 JavascriptString *res = nullptr;
-                Var value = nullptr;
+                Var value;
                 JS_REENTRANT(jsReentLock, gotItem = JavascriptOperators::GetItem(object, 0u, &value, scriptContext));
                 if (gotItem)
                 {
@@ -4610,7 +4618,7 @@ CaseDefault:
 
             case 1:
             {
-                Var value = nullptr;
+                Var value;
                 JS_REENTRANT(jsReentLock, BOOL gotItem = JavascriptOperators::GetItem(object, 0u, &value, scriptContext));
                 if (gotItem)
                 {
@@ -4632,6 +4640,7 @@ Case0:
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, args[0]);
 
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_lastIndexOf);
 
@@ -4643,7 +4652,7 @@ Case0:
 
         JS_REENTRANT(jsReentLock, TryGetArrayAndLength(args[0], scriptContext, _u("Array.prototype.lastIndexOf"), &pArr, &obj, &length));
 
-        Var search = nullptr;
+        Var search;
         int64 fromIndex;
         JS_REENTRANT(jsReentLock,
             BOOL gotParam = GetParamForLastIndexOf(length, args, search, fromIndex, scriptContext));
@@ -4866,6 +4875,8 @@ Case0:
     Var JavascriptArray::EntryPopJavascriptArray(ScriptContext * scriptContext, JavascriptArray* arr)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, arr);
+
         uint32 length = arr->length;
 
         if (length == 0)
@@ -4875,7 +4886,7 @@ Case0:
         }
 
         uint32 index = length - 1;
-        Var element = nullptr;
+        Var element;
         JS_REENTRANT(jsReentLock, BOOL gotItem = arr->DirectGetItemAtFull(index, &element));
 
         if (!gotItem)
@@ -4902,6 +4913,8 @@ Case0:
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.pop"));
         }
+        SETOBJECT_FOR_MUTATION(jsReentLock, dynamicObject);
+
         JS_REENTRANT(jsReentLock, BigIndex length = OP_GetLength(dynamicObject, scriptContext));
 
         ThrowTypeErrorOnFailureHelper h(scriptContext, _u("Array.prototype.pop"));
@@ -4914,7 +4927,7 @@ Case0:
         }
         BigIndex index = length;
         --index;
-        Var element = nullptr;
+        Var element;
         if (index.IsSmallIndex())
         {
             JS_REENTRANT(jsReentLock, BOOL gotItem = JavascriptOperators::GetItem(dynamicObject, index.GetSmallIndex(), &element, scriptContext));
@@ -4948,6 +4961,7 @@ Case0:
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, args[0]);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -5059,6 +5073,7 @@ Case0:
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.push"));
         }
+        SETOBJECT_FOR_MUTATION(jsReentLock, obj);
 
         JS_REENTRANT_UNLOCK(jsReentLock, Var length = JavascriptOperators::OP_GetLength(obj, scriptContext));
         if(JavascriptOperators::GetTypeId(length) == TypeIds_Undefined && scriptContext->GetThreadContext()->IsDisableImplicitCall() &&
@@ -5196,6 +5211,8 @@ Case0:
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
         JavascriptArray * arr = JavascriptArray::FromAnyArray(args[0]);
+        SETOBJECT_FOR_MUTATION(jsReentLock, arr);
+
         uint n = arr->length;
         ThrowTypeErrorOnFailureHelper h(scriptContext, _u("Array.prototype.push"));
 
@@ -5377,6 +5394,7 @@ Case0:
     Var JavascriptArray::ReverseHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, pArr);
 
         T middle = length / 2;
         Var lowerValue = nullptr, upperValue = nullptr;
@@ -5418,14 +5436,13 @@ Case0:
                 // so we cannot fill it from the prototypes.
                 if (length % 2 == 0)
                 {
-                    JS_REENTRANT(jsReentLock, pArr->FillFromPrototypes(0, (uint32)length));
+                    pArr->FillFromPrototypes(0, (uint32)length);
                 }
                 else
                 {
                     middle = length / 2;
-                    JS_REENTRANT(jsReentLock,
-                        pArr->FillFromPrototypes(0, (uint32)middle),
-                        pArr->FillFromPrototypes(1 + (uint32)middle, (uint32)length));
+                    pArr->FillFromPrototypes(0, (uint32)middle);
+                    pArr->FillFromPrototypes(1 + (uint32)middle, (uint32)length);
                 }
             }
 
@@ -5517,7 +5534,12 @@ Case0:
                         ((SparseArraySegment<Var>*)seg)->ReverseSegment(recycler);
                     }
 
-                    seg->left = ((uint32)length) > (seg->left + seg->length) ? ((uint32)length) - (seg->left + seg->length) : 0;
+                    if (((uint32)length) < (seg->left + seg->length))
+                    {
+                        Js::Throw::FatalInternalError();
+                    }
+                    
+                    seg->left = ((uint32)length) - (seg->left + seg->length);
 
                     seg->next = prevSeg;
                     // Make sure size doesn't overlap with next segment.
@@ -5744,6 +5766,7 @@ Case0:
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, args[0]);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -5771,7 +5794,7 @@ Case0:
 
             if(pArr->IsFillFromPrototypes())
             {
-                JS_REENTRANT(jsReentLock, pArr->FillFromPrototypes(0, pArr->length)); // We need find all missing value from [[proto]] object
+                pArr->FillFromPrototypes(0, pArr->length); // We need find all missing value from [[proto]] object
             }
 
             // As we have already established that the FillFromPrototype should not change the bound of the array.
@@ -5973,6 +5996,7 @@ Case0:
     void JavascriptArray::SliceHelper(JavascriptArray* pArr,  JavascriptArray* pnewArr, uint32 start, uint32 newLen)
     {
         JS_REENTRANCY_LOCK(jsReentLock, pArr->GetScriptContext()->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, pArr);
 
         SparseArraySegment<T>* headSeg = SparseArraySegment<T>::From(pArr->head);
         SparseArraySegment<T>* pnewHeadSeg = SparseArraySegment<T>::From(pnewArr->head);
@@ -5996,7 +6020,7 @@ Case0:
                 // need recheck array type before checking array item [i + start]
                 if (pArr->IsMissingItem(i + start))
                 {
-                    Var element = nullptr;
+                    Var element;
                     pnewArr->SetHasNoMissingValues(false);
                     JS_REENTRANT(jsReentLock, BOOL gotItem = pArr->DirectGetItemAtFull(i + start, &element));
                     if (gotItem)
@@ -6100,6 +6124,7 @@ Case0:
     Var JavascriptArray::SliceHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, pArr);
 
         JavascriptArray* newArr = nullptr;
         RecyclableObject* newObj = nullptr;
@@ -6162,13 +6187,13 @@ Case0:
 
         else if (pArr != nullptr)
         {
-            JS_REENTRANT(jsReentLock, newObj = ArraySpeciesCreate(pArr, newLenT, scriptContext, &isIntArray, &isFloatArray, &isBuiltinArrayCtor));
+            JS_REENTRANT_NO_MUTATE(jsReentLock, newObj = ArraySpeciesCreate(pArr, newLenT, scriptContext, &isIntArray, &isFloatArray, &isBuiltinArrayCtor));
         }
 
         // skip the typed array and "pure" array case, we still need to handle special arrays like es5array, remote array, and proxy of array.
         else
         {
-            JS_REENTRANT(jsReentLock, newObj = ArraySpeciesCreate(obj, newLenT, scriptContext, nullptr, nullptr, &isBuiltinArrayCtor));
+            JS_REENTRANT_NO_MUTATE(jsReentLock, newObj = ArraySpeciesCreate(obj, newLenT, scriptContext, nullptr, nullptr, &isBuiltinArrayCtor));
         }
 
         // If we didn't create a new object above we will create a new array here.
@@ -6190,6 +6215,7 @@ Case0:
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(newArr);
 #endif
             newObj = newArr;
+            SET_SECOND_OBJECT_FOR_MUTATION(jsReentLock, newArr);
         }
         else
         {
@@ -6269,7 +6295,7 @@ Case0:
                 else
                 {
                     AssertMsg(CONFIG_FLAG(ForceES5Array), "newArr can only be ES5Array when it is forced");
-                    Var element = nullptr;
+                    Var element;
                     for (uint32 i = 0; i < newLen; i++)
                     {
                         JS_REENTRANT(jsReentLock, BOOL gotItem = pArr->DirectGetItemAtFull(i + start, &element));
@@ -6293,7 +6319,7 @@ Case0:
             else
             {
                 // The constructed object isn't an array, we'll need to use normal object manipulation
-                Var element = nullptr;
+                Var element;
 
                 for (uint32 i = 0; i < newLen; i++)
                 {
@@ -6377,11 +6403,12 @@ Case0:
     Var JavascriptArray::SliceObjectHelper(RecyclableObject* obj, uint32 sliceStart, uint32 start, JavascriptArray* newArr, RecyclableObject* newObj, uint32 newLen, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, obj);
 
         for (uint32 i = start; i < newLen; i++)
         {
             JS_REENTRANT(jsReentLock, BOOL hasItem = JavascriptOperators::HasItem(obj, i + sliceStart));
-                if (hasItem)
+            if (hasItem)
             {
                 JS_REENTRANT(jsReentLock, Var element = JavascriptOperators::GetItem(obj, i + sliceStart, scriptContext));
                 if (newArr != nullptr)
@@ -6390,13 +6417,13 @@ Case0:
                 }
                 else
                 {
-                        JS_REENTRANT(jsReentLock, ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i));
+                    JS_REENTRANT(jsReentLock, ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i));
                 }
             }
         }
 
-            JS_REENTRANT(jsReentLock,
-                JavascriptOperators::SetProperty(newObj, newObj, Js::PropertyIds::length, JavascriptNumber::ToVar(newLen, scriptContext), scriptContext, PropertyOperation_ThrowIfNotExtensible));
+        JS_REENTRANT(jsReentLock,
+            JavascriptOperators::SetProperty(newObj, newObj, Js::PropertyIds::length, JavascriptNumber::ToVar(newLen, scriptContext), scriptContext, PropertyOperation_ThrowIfNotExtensible));
 
 #ifdef VALIDATE_ARRAY
         if (JavascriptArray::Is(newObj))
@@ -6515,6 +6542,8 @@ Case0:
         {
             return;
         }
+
+        SETOBJECT_FOR_MUTATION(jsReentLock, this);
 
         this->EnsureHead<Var>();
         ScriptContext* scriptContext = this->GetScriptContext();
@@ -6755,6 +6784,8 @@ Case0:
             }
         }
 
+        SETOBJECT_FOR_MUTATION(jsReentLock, args[0]);
+
         bool useNoSideEffectSort = JavascriptArray::Is(args[0])
             && !JavascriptArray::FromVar(args[0])->IsCrossSiteObject()
             && !HasAnyES5ArrayInPrototypeChain(JavascriptArray::FromVar(args[0]));
@@ -6772,7 +6803,7 @@ Case0:
 
             if(arr->IsFillFromPrototypes())
             {
-                JS_REENTRANT(jsReentLock, arr->FillFromPrototypes(0, arr->length)); // We need find all missing value from [[proto]] object
+                arr->FillFromPrototypes(0, arr->length); // We need find all missing value from [[proto]] object
             }
 
             // As we have already established that the FillFromPrototype should not change the bound of the array.
@@ -6833,7 +6864,7 @@ Case0:
 
                 for (uint32 i = 0; i < len; i++)
                 {
-                    Var item = nullptr;
+                    Var item;
                     JS_REENTRANT(jsReentLock, BOOL gotItem = JavascriptOperators::GetItem(pObj, i, &item, scriptContext));
                     if (gotItem)
                     {
@@ -6890,6 +6921,8 @@ Case0:
         uint64 length = 0u;
 
         JS_REENTRANT(jsReentLock, TryGetArrayAndLength(args[0], scriptContext, _u("Array.prototype.splice"), &pArr, &pObj, &length));
+
+        SETOBJECT_FOR_MUTATION(jsReentLock, pArr);
 
         switch (args.Info.Count)
         {
@@ -7295,6 +7328,7 @@ Case0:
         Var* insertArgs, uint32 insertLen, ScriptContext *scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, pArr);
 
         Assert(pArr != nullptr);
 
@@ -7368,7 +7402,7 @@ Case0:
 
         // If the source object is an Array exotic object (Array.isArray) we should try to load the constructor property
         // and use it to construct the return object.
-        JS_REENTRANT(jsReentLock, newObj = ArraySpeciesCreate(pArr, deleteLen, scriptContext, nullptr, nullptr, &isBuiltinArrayCtor));
+        JS_REENTRANT_NO_MUTATE(jsReentLock, newObj = ArraySpeciesCreate(pArr, deleteLen, scriptContext, nullptr, nullptr, &isBuiltinArrayCtor));
         if (newObj != nullptr)
         {
             pArr = EnsureNonNativeArray(pArr);
@@ -7379,6 +7413,7 @@ Case0:
                 JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(newObj);
 #endif
                 newArr = JavascriptArray::FromVar(newObj);
+                SET_SECOND_OBJECT_FOR_MUTATION(jsReentLock, newArr);
             }
         }
         else
@@ -7522,11 +7557,13 @@ Case0:
         T deleteLen, Var* insertArgs, uint32 insertLen, ScriptContext *scriptContext, RecyclableObject* pNewObj)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, pObj);
+
         JavascriptArray *pnewArr = nullptr;
 
         if (pNewObj == nullptr)
         {
-            JS_REENTRANT(jsReentLock, pNewObj = ArraySpeciesCreate(pObj, deleteLen, scriptContext));
+            JS_REENTRANT_NO_MUTATE(jsReentLock, pNewObj = ArraySpeciesCreate(pObj, deleteLen, scriptContext));
             if (pNewObj == nullptr)
             {
                 if (deleteLen > UINT_MAX)
@@ -7547,6 +7584,7 @@ Case0:
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(pNewObj);
 #endif
             pnewArr = JavascriptArray::FromVar(pNewObj);
+            SET_SECOND_OBJECT_FOR_MUTATION(jsReentLock, pnewArr);
         }
 
         // copy elements to delete to new array
@@ -7645,6 +7683,7 @@ Case0:
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, args[0]);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -7681,6 +7720,7 @@ Case0:
     void JavascriptArray::Unshift(RecyclableObject* obj, const T& toIndex, P start, P end, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, obj);
 
         typedef IndexTrace<T> index_trace;
 
@@ -7770,6 +7810,7 @@ Case0:
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, args[0]);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -7802,7 +7843,7 @@ Case0:
                 uint32 length = pArr->length;
                 if (pArr->IsFillFromPrototypes())
                 {
-                    JS_REENTRANT(jsReentLock, pArr->FillFromPrototypes(0, pArr->length)); // We need find all missing value from [[proto]] object
+                    pArr->FillFromPrototypes(0, pArr->length); // We need find all missing value from [[proto]] object
                 }
 
                 // As we have already established that the FillFromPrototype should not change the bound of the array.
@@ -7826,7 +7867,6 @@ Case0:
                 pArr->ClearSegmentMap(); // Dump segmentMap on unshift (before any possible allocation and throw)
 
                 Assert(pArr->length <= MaxArrayLength - unshiftElements);
-
                 bool isIntArray = false;
                 bool isFloatArray = false;
 
@@ -7980,6 +8020,8 @@ Case0:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.toString"));
         }
 
+        SETOBJECT_FOR_MUTATION(jsReentLock, obj);
+
         // In ES5 we could be calling a user defined join, even on array. We must [[Get]] join at runtime.
         JS_REENTRANT(jsReentLock, Var join = JavascriptOperators::GetProperty(obj, PropertyIds::join, scriptContext));
         if (JavascriptConversion::IsCallable(join))
@@ -8095,6 +8137,7 @@ Case0:
     JavascriptString* JavascriptArray::ToLocaleString(T* arr, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, arr);
 
         uint32 length = 0;
         if (TypedArrayBase::Is(arr))
@@ -8121,7 +8164,7 @@ Case0:
             scriptContext->PushObject(arr);
             pushedObject = true;
 
-            Var element = nullptr;
+            Var element;
             JS_REENTRANT(jsReentLock, BOOL gotItem = ItemTrace<T>::GetItem(arr, 0, &element, scriptContext));
             if (gotItem)
             {
@@ -8213,13 +8256,14 @@ Case0:
 
         JS_REENTRANT_UNLOCK(jsReentLock, TryGetArrayAndLength(args[0], scriptContext, _u("Array.prototype.find"), &pArr, &obj, &length));
 
-            return JavascriptArray::FindHelper<false>(pArr, nullptr, obj, length, args, scriptContext);
+        return JavascriptArray::FindHelper<false>(pArr, nullptr, obj, length, args, scriptContext);
     }
 
     template <bool findIndex>
     Var JavascriptArray::FindHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, int64 length, Arguments& args, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, pArr);
 
         if (args.Info.Count < 2 || !JavascriptConversion::IsCallable(args[1]))
         {
@@ -8324,6 +8368,7 @@ Case0:
     Var JavascriptArray::FindObjectHelper(RecyclableObject* obj, int64 length, int64 start, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, obj);
 
         // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
         CallFlags flags = CallFlags_Value;
@@ -8335,10 +8380,10 @@ Case0:
             JS_REENTRANT(jsReentLock, element = JavascriptOperators::GetItem(obj, (uint64)k, scriptContext));
             Var index = JavascriptNumber::ToVar(k, scriptContext);
 
-                JS_REENTRANT(jsReentLock,
+            JS_REENTRANT(jsReentLock,
                     testResult = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 4), thisArg,
-                    element,
-                    index,
+                element,
+                index,
                         obj));
 
             if (JavascriptConversion::ToBoolean(testResult, scriptContext))
@@ -8513,6 +8558,7 @@ Case0:
     Var JavascriptArray::EveryHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, pArr);
 
         if (args.Info.Count < 2 || !JavascriptConversion::IsCallable(args[1]))
         {
@@ -8617,6 +8663,7 @@ Case0:
     Var JavascriptArray::EveryObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, obj);
 
         // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
         CallFlags flags = CallFlags_Value;
@@ -8626,15 +8673,15 @@ Case0:
         for (T k = start; k < length; k++)
         {
             // According to es6 spec, we need to call Has first before calling Get
-                JS_REENTRANT(jsReentLock, BOOL hasItem = JavascriptOperators::HasItem(obj, k));
-                if (hasItem)
+            JS_REENTRANT(jsReentLock, BOOL hasItem = JavascriptOperators::HasItem(obj, k));
+            if (hasItem)
             {
-                    JS_REENTRANT(jsReentLock,
-                        element = JavascriptOperators::GetItem(obj, k, scriptContext),
-                        testResult = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 4), thisArg,
+                JS_REENTRANT(jsReentLock,
+                    element = JavascriptOperators::GetItem(obj, k, scriptContext),
+                    testResult = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 4), thisArg,
                         element,
                         JavascriptNumber::ToVar(k, scriptContext),
-                            obj));
+                        obj));
 
                 if (!JavascriptConversion::ToBoolean(testResult, scriptContext))
                 {
@@ -8685,6 +8732,7 @@ Case0:
     Var JavascriptArray::SomeHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, pArr);
 
         if (args.Info.Count < 2 || !JavascriptConversion::IsCallable(args[1]))
         {
@@ -8733,7 +8781,7 @@ Case0:
                     continue;
                 }
 
-                JS_REENTRANT_UNLOCK(jsReentLock,
+                JS_REENTRANT_UNLOCK(jsReentLock, 
                     testResult = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 4), thisArg,
                         element,
                         JavascriptNumber::ToVar(k, scriptContext),
@@ -8764,7 +8812,7 @@ Case0:
 
                 element = typedArrayBase->DirectGetItem(k);
 
-                JS_REENTRANT_UNLOCK(jsReentLock,
+                JS_REENTRANT_UNLOCK(jsReentLock, 
                     testResult = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 4), thisArg,
                         element,
                         JavascriptNumber::ToVar(k, scriptContext),
@@ -8788,6 +8836,7 @@ Case0:
     Var JavascriptArray::SomeObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, obj);
 
         // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
         CallFlags flags = CallFlags_Value;
@@ -8823,6 +8872,7 @@ Case0:
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, args[0]);
 
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.forEach"));
 
@@ -8913,13 +8963,14 @@ Case0:
         int64 length;
 
         JS_REENTRANT_UNLOCK(jsReentLock, TryGetArrayAndLength(args[0], scriptContext, _u("Array.prototype.copyWithin"), &pArr, &obj, &length));
-            return JavascriptArray::CopyWithinHelper(pArr, nullptr, obj, length, args, scriptContext);
+        return JavascriptArray::CopyWithinHelper(pArr, nullptr, obj, length, args, scriptContext);
     }
 
     // Array.prototype.copyWithin as defined in ES6.0 (draft 22) Section 22.1.3.3
     Var JavascriptArray::CopyWithinHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, int64 length, Arguments& args, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, pArr);
 
         Assert(args.Info.Count > 0);
 
@@ -9051,7 +9102,7 @@ Case0:
                 }
                 else
                 {
-                    obj->DeleteItem(toIndex, PropertyOperation_ThrowOnDeleteIfNotConfig);
+                    JS_REENTRANT(jsReentLock, obj->DeleteItem(toIndex, PropertyOperation_ThrowOnDeleteIfNotConfig));
                 }
 
                 fromIndex += direction;
@@ -9079,13 +9130,14 @@ Case0:
 
         JS_REENTRANT_UNLOCK(jsReentLock,
             TryGetArrayAndLength(args[0], scriptContext, _u("Array.prototype.fill"), &pArr, &obj, &length));
-            return JavascriptArray::FillHelper(pArr, nullptr, obj, length, args, scriptContext);
+        return JavascriptArray::FillHelper(pArr, nullptr, obj, length, args, scriptContext);
     }
 
     // Array.prototype.fill as defined in ES6.0 (draft 22) Section 22.1.3.6
     Var JavascriptArray::FillHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, int64 length, Arguments& args, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, pArr);
 
         Assert(args.Info.Count > 0);
 
@@ -9146,7 +9198,7 @@ Case0:
                 }
                 else
                 {
-                    JS_REENTRANT(jsReentLock,
+                    JS_REENTRANT(jsReentLock, 
                         JavascriptOperators::OP_SetElementI_UInt32(obj, u32k, fillValue, scriptContext, Js::PropertyOperation_ThrowIfNotExtensible));
                 }
 
@@ -9229,6 +9281,7 @@ Case0:
     Var JavascriptArray::MapHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, pArr);
 
         RecyclableObject* newObj = nullptr;
         JavascriptArray* newArr = nullptr;
@@ -9269,10 +9322,10 @@ Case0:
         // and use it to construct the return object.
         if (isTypedArrayEntryPoint)
         {
-            JS_REENTRANT(jsReentLock,
+            JS_REENTRANT(jsReentLock, 
                 Var constructor = JavascriptOperators::SpeciesConstructor(
                     typedArrayBase, TypedArrayBase::GetDefaultConstructor(args[0], scriptContext), scriptContext));
-
+            
             isBuiltinArrayCtor = false;
 
             Assert(JavascriptOperators::IsConstructor(constructor));
@@ -9284,7 +9337,7 @@ Case0:
         // skip the typed array and "pure" array case, we still need to handle special arrays like es5array, remote array, and proxy of array.
         else if (pArr == nullptr || scriptContext->GetConfig()->IsES6SpeciesEnabled())
         {
-            JS_REENTRANT(jsReentLock, newObj = ArraySpeciesCreate(obj, length, scriptContext, nullptr, nullptr, &isBuiltinArrayCtor));
+            JS_REENTRANT_NO_MUTATE(jsReentLock, newObj = ArraySpeciesCreate(obj, length, scriptContext, nullptr, nullptr, &isBuiltinArrayCtor));
         }
 
         if (newObj == nullptr)
@@ -9306,6 +9359,7 @@ Case0:
                 JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(newObj);
 #endif
                 newArr = JavascriptArray::FromVar(newObj);
+                SET_SECOND_OBJECT_FOR_MUTATION(jsReentLock, newArr);
             }
         }
 
@@ -9387,7 +9441,7 @@ Case0:
                 // No need to do HasItem, as it cannot be observable unless 'typedArrayBase' is proxy. And we have established that it is indeed typedarray.
 
                 element = typedArrayBase->DirectGetItem(k);
-                JS_REENTRANT(jsReentLock,
+                JS_REENTRANT(jsReentLock, 
                     mappedValue = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, callBackFnInfo, thisArg,
                         element,
                         JavascriptNumber::ToVar(k, scriptContext),
@@ -9424,6 +9478,7 @@ Case0:
         bool isBuiltinArrayCtor, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, obj);
 
         // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
         CallFlags callBackFnflags = CallFlags_Value;
@@ -9433,24 +9488,24 @@ Case0:
 
         for (T k = start; k < length; k++)
         {
-                JS_REENTRANT(jsReentLock, BOOL hasItem = JavascriptOperators::HasItem(obj, k));
-                if (hasItem)
+            JS_REENTRANT(jsReentLock, BOOL hasItem = JavascriptOperators::HasItem(obj, k));
+            if (hasItem)
             {
-                    JS_REENTRANT(jsReentLock,
-                        element = JavascriptOperators::GetItem(obj, k, scriptContext),
-                        mappedValue = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, callBackFnInfo, thisArg,
+                JS_REENTRANT(jsReentLock,
+                    element = JavascriptOperators::GetItem(obj, k, scriptContext),
+                    mappedValue = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, callBackFnInfo, thisArg,
                         element,
                         JavascriptNumber::ToVar(k, scriptContext),
-                            obj));
+                        obj));
 
-                if (newArr && isBuiltinArrayCtor)
-                {
-                    newArr->SetItem((uint32)k, mappedValue, PropertyOperation_None);
-                }
-                else
-                {
-                    JS_REENTRANT(jsReentLock, ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, BigIndex(k), mappedValue), scriptContext, BigIndex(k)));
-                }
+                    if (newArr && isBuiltinArrayCtor)
+                    {
+                        newArr->SetItem((uint32)k, mappedValue, PropertyOperation_None);
+                    }
+                    else
+                    {
+                        JS_REENTRANT(jsReentLock, ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, BigIndex(k), mappedValue), scriptContext, BigIndex(k)));
+                    }
             }
         }
 
@@ -9492,7 +9547,6 @@ Case0:
         {
             JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::FilterHelper(pArr, obj, length.GetSmallIndex(), args, scriptContext));
         }
-
         JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::FilterHelper(pArr, obj, length.GetBigIndex(), args, scriptContext));
     }
 
@@ -9500,6 +9554,7 @@ Case0:
     Var JavascriptArray::FilterHelper(JavascriptArray* pArr, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, pArr);
 
         if (args.Info.Count < 2 || !JavascriptConversion::IsCallable(args[1]))
         {
@@ -9520,7 +9575,7 @@ Case0:
 
         // If the source object is an Array exotic object we should try to load the constructor property and use it to construct the return object.
         bool isBuiltinArrayCtor = true;
-        JS_REENTRANT(jsReentLock, RecyclableObject* newObj = ArraySpeciesCreate(obj, 0, scriptContext, nullptr, nullptr, &isBuiltinArrayCtor));
+        JS_REENTRANT_NO_MUTATE(jsReentLock, RecyclableObject* newObj = ArraySpeciesCreate(obj, 0, scriptContext, nullptr, nullptr, &isBuiltinArrayCtor));
         JavascriptArray* newArr = nullptr;
 
         if (newObj == nullptr)
@@ -9538,6 +9593,7 @@ Case0:
                 JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(newObj);
 #endif
                 newArr = JavascriptArray::FromVar(newObj);
+                SET_SECOND_OBJECT_FOR_MUTATION(jsReentLock, newArr);
             }
         }
 
@@ -9566,7 +9622,7 @@ Case0:
                     continue;
                 }
 
-                JS_REENTRANT(jsReentLock,
+                JS_REENTRANT(jsReentLock, 
                     selected = CALL_ENTRYPOINT(scriptContext->GetThreadContext(),
                         callBackFn->GetEntryPoint(), callBackFn, CallInfo(CallFlags_Value, 4),
                         thisArg,
@@ -9617,6 +9673,7 @@ Case0:
         RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, obj);
 
         Var element = nullptr;
         Var selected = nullptr;
@@ -9624,17 +9681,17 @@ Case0:
 
         for (T k = start; k < length; k++)
         {
-                JS_REENTRANT(jsReentLock, BOOL hasItem = JavascriptOperators::HasItem(obj, k));
-                if (hasItem)
+            JS_REENTRANT(jsReentLock, BOOL hasItem = JavascriptOperators::HasItem(obj, k));
+            if (hasItem)
             {
-                    JS_REENTRANT(jsReentLock,
-                        element = JavascriptOperators::GetItem(obj, k, scriptContext),
-                        selected = CALL_ENTRYPOINT(scriptContext->GetThreadContext(),
-                            callBackFn->GetEntryPoint(), callBackFn, CallInfo(CallFlags_Value, 4),
+                JS_REENTRANT(jsReentLock,
+                    element = JavascriptOperators::GetItem(obj, k, scriptContext),
+                    selected = CALL_ENTRYPOINT(scriptContext->GetThreadContext(),
+                        callBackFn->GetEntryPoint(), callBackFn, CallInfo(CallFlags_Value, 4),
                         thisArg,
                         element,
                         JavascriptNumber::ToVar(k, scriptContext),
-                            obj));
+                        obj));
 
                 if (JavascriptConversion::ToBoolean(selected, scriptContext))
                 {
@@ -9644,7 +9701,7 @@ Case0:
                     }
                     else
                     {
-                            JS_REENTRANT(jsReentLock, ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i));
+                        JS_REENTRANT(jsReentLock, ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i));
                     }
 
                     ++i;
@@ -9699,6 +9756,7 @@ Case0:
     Var JavascriptArray::ReduceHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, pArr);
 
         if (args.Info.Count < 2 || !JavascriptConversion::IsCallable(args[1]))
         {
@@ -9855,6 +9913,7 @@ Case0:
     Var JavascriptArray::ReduceObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* callBackFn, Var accumulator, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, obj);
 
         // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
         CallFlags flags = CallFlags_Value;
@@ -9862,16 +9921,16 @@ Case0:
 
         for (T k = start; k < length; k++)
         {
-                JS_REENTRANT(jsReentLock, BOOL hasItem = JavascriptOperators::HasItem(obj, k));
-                if (hasItem)
+            JS_REENTRANT(jsReentLock, BOOL hasItem = JavascriptOperators::HasItem(obj, k));
+            if (hasItem)
             {
-                    JS_REENTRANT(jsReentLock,
-                        element = JavascriptOperators::GetItem(obj, k, scriptContext),
-                        accumulator = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 5), scriptContext->GetLibrary()->GetUndefined(),
-                            accumulator,
-                            element,
-                            JavascriptNumber::ToVar(k, scriptContext),
-                            obj));
+                JS_REENTRANT(jsReentLock,
+                    element = JavascriptOperators::GetItem(obj, k, scriptContext),
+                    accumulator = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 5), scriptContext->GetLibrary()->GetUndefined(),
+                    accumulator,
+                    element,
+                    JavascriptNumber::ToVar(k, scriptContext),
+                        obj));
             }
         }
 
@@ -9915,6 +9974,7 @@ Case0:
     Var JavascriptArray::ReduceRightHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, pArr);
 
         if (args.Info.Count < 2 || !JavascriptConversion::IsCallable(args[1]))
         {
@@ -10071,6 +10131,7 @@ Case0:
     Var JavascriptArray::ReduceRightObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* callBackFn, Var accumulator, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, obj);
 
         // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
         CallFlags flags = CallFlags_Value;
@@ -10133,6 +10194,8 @@ Case0:
 #endif
             itemsArr = JavascriptArray::FromVar(items);
         }
+
+        SETOBJECT_FOR_MUTATION(jsReentLock, itemsArr);
 
         bool mapping = false;
         JavascriptFunction* mapFn = nullptr;
@@ -10351,6 +10414,8 @@ Case0:
                 JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(newObj);
 #endif
                 newArr = JavascriptArray::FromVar(newObj);
+                SETOBJECT_FOR_MUTATION(jsReentLock, newArr);
+
             }
             else if (TypedArrayBase::Is(newObj))
             {
@@ -10511,10 +10576,41 @@ Case0:
     }
 #endif
 
+#if DBG
+    void JavascriptArray::DoTypeMutation()
+    {
+        // Type transition
+
+        uint32 random1 = static_cast<uint32>(rand());
+        if (random1 % 2 == 0)
+        {
+            if (JavascriptNativeIntArray::Is(this))
+            {
+                uint32 random2 = static_cast<uint32>(rand());
+                if (random2 % 2 == 0)
+                {
+                    JavascriptNativeIntArray::ToNativeFloatArray(static_cast<JavascriptNativeIntArray*>(this));
+                }
+                else
+                {
+                    JavascriptNativeIntArray::ToVarArray(static_cast<JavascriptNativeIntArray*>(this));
+                }
+            }
+            else if (JavascriptNativeFloatArray::Is(this))
+            {
+                JavascriptNativeFloatArray::ToVarArray(static_cast<JavascriptNativeFloatArray*>(this));
+            }
+        }
+    }
+#endif
+
     template <typename Fn>
     void JavascriptArray::ForEachOwnMissingArrayIndexOfObject(JavascriptArray *baseArray, JavascriptArray *destArray, RecyclableObject* obj, uint32 startIndex, uint32 limitIndex, uint32 destIndex, Fn fn)
     {
         JS_REENTRANCY_LOCK(jsReentLock, baseArray->GetScriptContext()->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, baseArray);
+        SET_SECOND_OBJECT_FOR_MUTATION(jsReentLock, destArray);
+
         Assert(DynamicObject::IsAnyArray(obj) || JavascriptOperators::IsObject(obj));
 
         Var oldValue;
@@ -11317,6 +11413,7 @@ Case0:
     Var JavascriptArray::SpreadArrayArgs(Var arrayToSpread, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, arrayToSpread);
 
         // At this stage we have an array literal with some arguments to be spread.
         // First we need to calculate the real size of the final literal.
@@ -11364,7 +11461,7 @@ Case0:
 
                 for (uint32 j = start; j < end; j++)
                 {
-                    Var element = nullptr;
+                    Var element;
                     JS_REENTRANT(jsReentLock, BOOL gotItem = JavascriptOperators::GetItem(srcArray, propertyObject, j, &element, scriptContext));
                     if (!gotItem)
                     {
@@ -11875,6 +11972,9 @@ Case0:
             return nullptr;
         }
 
+        JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, originalArray);
+
         if (JavascriptArray::Is(originalArray)
             && !DynamicObject::FromVar(originalArray)->GetDynamicType()->GetTypeHandler()->GetIsNotPathTypeHandlerOrHasUserDefinedCtor()
             && DynamicObject::FromVar(originalArray)->GetPrototype() == scriptContext->GetLibrary()->GetArrayPrototype()
@@ -11887,7 +11987,8 @@ Case0:
 
         if (JavascriptOperators::IsArray(originalArray))
         {
-            if (!JavascriptOperators::GetProperty(RecyclableObject::FromVar(originalArray), PropertyIds::constructor, &constructor, scriptContext))
+            JS_REENTRANT(jsReentLock, BOOL getProp = JavascriptOperators::GetProperty(RecyclableObject::FromVar(originalArray), PropertyIds::constructor, &constructor, scriptContext));
+            if (!getProp)
             {
                 return nullptr;
             }
@@ -11906,7 +12007,8 @@ Case0:
 
             if (JavascriptOperators::IsObject(constructor))
             {
-                if (!JavascriptOperators::GetProperty((RecyclableObject*)constructor, PropertyIds::_symbolSpecies, &constructor, scriptContext))
+                JS_REENTRANT(jsReentLock, getProp = JavascriptOperators::GetProperty((RecyclableObject*)constructor, PropertyIds::_symbolSpecies, &constructor, scriptContext));
+                if (!getProp)
                 {
                     if (pIsBuiltinArrayCtor != nullptr)
                     {
@@ -11954,7 +12056,13 @@ Case0:
         Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(length, scriptContext) };
         Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
 
-        return RecyclableObject::FromVar(JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext));
+        AssertOrFailFast(Js::RecyclableObject::Is(constructor));
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        Var scObject = threadContext->ExecuteImplicitCall((RecyclableObject*)constructor, ImplicitCall_Accessor, [&]()->Js::Var
+        {
+            JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext));
+        });
+        return RecyclableObject::FromVar(scObject);
     }
     /*static*/
     PropertyId const JavascriptArray::specialPropertyIds[] =
@@ -12289,7 +12397,7 @@ Case0:
 
     PropertyQueryFlags JavascriptArray::HasItemQuery(uint32 index)
     {
-        Var value = nullptr;
+        Var value;
         return JavascriptConversion::BooleanToPropertyQueryFlags(this->DirectGetItemAt<Var>(index, &value));
     }
 

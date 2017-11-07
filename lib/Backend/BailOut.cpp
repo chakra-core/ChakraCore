@@ -1228,6 +1228,10 @@ BailOutRecord::BailOutFromLoopBodyInlinedCommon(Js::JavascriptCallStackLayout * 
     uint32 bailOutOffset, void * returnAddress, IR::BailOutKind bailOutKind, Js::Var branchValue)
 {
     Assert(bailOutRecord->parent != nullptr);
+    // This isn't strictly necessary if there's no allocations on this path, but because such an
+    // issue would be hard to notice and introduce some significant issues, we can do this copy.
+    // The problem from not doing this and then doing an allocation before RestoreValues is that
+    // the GC doesn't check the BailOutRegisterSaveSpace.
     Js::Var registerSaves[BailOutRegisterSaveSlotCount];
     js_memcpy_s(registerSaves, sizeof(registerSaves), (Js::Var *)layout->functionObject->GetScriptContext()->GetThreadContext()->GetBailOutRegisterSaveSpace(),
         sizeof(registerSaves));
@@ -2504,7 +2508,7 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
                 }
                 else
                 {
-                    rejitReason = RejitReason::ExpectingNativeArray;
+                rejitReason = RejitReason::ExpectingNativeArray;
                 }
                 break;
 
@@ -2951,7 +2955,6 @@ void  GlobalBailOutRecordDataTable::AddOrUpdateRow(JitArenaAllocator *allocator,
         if(rowToUpdate->offset == offset &&
             rowToUpdate->isInt == (unsigned)isInt &&
             rowToUpdate->isFloat == (unsigned)isFloat &&
-
 #ifdef ENABLE_SIMDJS
             // SIMD_JS
             rowToUpdate->isSimd128F4    == (unsigned) isSimd128F4 &&
@@ -3002,3 +3005,4 @@ void  GlobalBailOutRecordDataTable::AddOrUpdateRow(JitArenaAllocator *allocator,
     rowToInsert->regSlot = regSlot;
     *lastUpdatedRowIndex = length++;
 }
+

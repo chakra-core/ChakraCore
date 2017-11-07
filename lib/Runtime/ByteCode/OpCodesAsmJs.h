@@ -40,6 +40,7 @@ MACRO           ( Ret                        , Empty           , None           
 // External Function calls
 MACRO           ( StartCall                  , StartCall       , None            ) // Initialize memory for a call
 MACRO_WMS       ( Call                       , AsmCall         , None            ) // Execute call and place return value in register
+MACRO           ( CheckHeap                  , Empty           , None            ) // Make sure the heap is not detached
 MACRO_WMS       ( ArgOut_Int                 , Reg1Int1        , None            ) // convert int to var and place it for function call
 MACRO_WMS       ( ArgOut_Long                , Reg1Long1       , None            ) // convert int64 to var and place it for function call
 MACRO_WMS       ( ArgOut_Flt                 , Reg1Float1      , None            ) // convert float to var and place it for function call

@@ -378,6 +378,12 @@ LowererMD::SetMaxArgSlots(Js::ArgSlot actualCount /*including this*/)
     return;
 }
 
+void
+LowererMD::GenerateMemInit(IR::RegOpnd * opnd, int32 offset, size_t value, IR::Instr * insertBeforeInstr, bool isZeroed)
+{
+    m_lowerer->GenerateMemInit(opnd, offset, (uint32)value, insertBeforeInstr, isZeroed);
+}
+
 IR::Instr *
 LowererMD::LowerCallIDynamic(IR::Instr *callInstr, IR::Instr*saveThisArgOutInstr, IR::Opnd *argsLength, ushort callFlags, IR::Instr * insertBeforeInstrForCFG)
 {
@@ -8424,7 +8430,6 @@ LowererMD::EmitFloatToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert, 
 
     instr = IR::Instr::New(Js::OpCode::Call, dst, this->m_func);
     instrInsert->InsertBefore(instr);
-
     if (BailOutInfo::IsBailOutOnImplicitCalls(bailOutKind))
     {
         _Analysis_assume_(instrBailOut != nullptr);

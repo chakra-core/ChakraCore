@@ -60,14 +60,9 @@ var tests = [
         }
     },
     {
-        name: "String.prototype.padStart OOM scenario",
+        name: "String.prototype.padStart out of bound scenario",
         body: function () {
-            try {
-                'foo'.padStart(2147483647);
-            }
-            catch(e) {
-               assert.areEqual(e.message, "Out of memory", "validating out of memory for maxLength >= int_max"); 
-            }
+            assert.throws(() => { 'foo'.padStart(2147483647);}, RangeError, "index is out of bound", "String length is out of bound");
         }
     }
 ];

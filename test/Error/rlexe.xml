@@ -24,6 +24,8 @@
     <default>
       <files>outofmem.js</files>
       <baseline>outofmem.baseline</baseline>
+      <!-- large string concat (2^31) leads to OOM. -EnableFatalErrorOnOOM- to disable fatal error for this test case. Bug will be filed to address this later -->
+      <compile-flags>-EnableFatalErrorOnOOM-</compile-flags>
     </default>
   </test>
   <test>
@@ -128,6 +130,7 @@
     <default>
       <files>encodeoverflow.js</files>
       <baseline>encodeoverflow.baseline</baseline>
+      <compile-flags>-EnableFatalErrorOnOOM-</compile-flags>
       <tags>Slow</tags>
       <timeout>300</timeout>
     </default>

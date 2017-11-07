@@ -90,6 +90,8 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_stoppedDeferredParse = FALSE;
     m_hasParallelJob = false;
     m_doingFastScan = false;
+    m_isInParsingArgList = false;
+    m_hasDestructuringPattern = false;
     m_scriptContext = scriptContext;
     m_pCurrentAstSize = nullptr;
     m_arrayDepth = 0;
@@ -909,7 +911,7 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
             // because in that case we don't need a GlobalEvalScope.
             Assert(!fBlockScope || (this->m_grfscr & fscrConsoleScopeEval) == fscrConsoleScopeEval);
             CheckRedeclarationErrorForBlockId(pid, 1);
-        }
+            }
         else if (!pnodeFnc->sxFnc.IsBodyAndParamScopeMerged()
             && scope->GetScopeType() == ScopeType_FunctionBody
             && (pnode->nop == knopLetDecl || pnode->nop == knopConstDecl))
@@ -1210,7 +1212,7 @@ Parser::CreateCallNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2,char
     pnode->sxCall.callOfConstants = false;
     pnode->sxCall.isApplyCall = false;
     pnode->sxCall.isEvalCall = false;
-
+    pnode->sxCall.hasDestructuring = false;
     pnode->ichMin = ichMin;
     pnode->ichLim = ichLim;
 
@@ -3461,6 +3463,8 @@ ParseNodePtr Parser::ParsePostfixOperators(
         {
         case tkLParen:
             {
+                AutoMarkInParsingArgs autoMarkInParsingArgs(this);
+
                 if (fInNew)
                 {
                     ParseNodePtr pnodeArgs = ParseArgList<buildAST>(&callOfConstants, &spreadArgCount, &count);
@@ -3472,6 +3476,8 @@ ParseNodePtr Parser::ParsePostfixOperators(
                         pnode->sxCall.callOfConstants = callOfConstants;
                         pnode->sxCall.isApplyCall = false;
                         pnode->sxCall.isEvalCall = false;
+                        pnode->sxCall.hasDestructuring = m_hasDestructuringPattern;
+                        Assert(!m_hasDestructuringPattern || count > 0);
                         pnode->sxCall.argCount = count;
                         pnode->sxCall.spreadArgCount = spreadArgCount;
                         pnode->ichLim = m_pscan->IchLimTok();
@@ -3525,6 +3531,8 @@ ParseNodePtr Parser::ParsePostfixOperators(
                         pnode->sxCall.spreadArgCount = spreadArgCount;
                         pnode->sxCall.isApplyCall = false;
                         pnode->sxCall.isEvalCall = fCallIsEval;
+                        pnode->sxCall.hasDestructuring = m_hasDestructuringPattern;
+                        Assert(!m_hasDestructuringPattern || count > 0);
                         pnode->sxCall.argCount = count;
                         pnode->ichLim = m_pscan->IchLimTok();
                     }
@@ -4387,20 +4395,66 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
                 {
                     Error(ERRUnexpectedEllipsis);
                 }
-                pnodeExpr = ParseDestructuredVarDecl<buildAST>(declarationType, declarationType != tkLCurly, nullptr/* *hasSeenRest*/, false /*topLevel*/, false /*allowEmptyExpression*/);
 
-                if (m_token.tk != tkComma && m_token.tk != tkRCurly)
+                RestorePoint atExpression;
+                if (!buildAST && declarationType == tkLCurly && IsPossiblePatternStart())
                 {
-                    if (m_token.IsOperator())
+                    m_pscan->Capture(&atExpression);
+
+                    // It is possible that we might encounter the shorthand init error. Lets find that out.
+                    bool savedDeferredInitError = m_hasDeferredShorthandInitError;
+                    m_hasDeferredShorthandInitError = false;
+
+                    IdentToken token;
+                    BOOL fLikelyPattern = false;
+
+                    // First identify that the current expression is indeed the object/array literal. Otherwise we will just use the ParsrExpr to parse that.
+
+                    ParseTerm<buildAST>(/* fAllowCall */ m_token.tk != tkSUPER, nullptr /*pNameHint*/, nullptr /*pHintLength*/, nullptr /*pShortNameOffset*/, &token, false /*fUnaryOrParen*/,
+                        nullptr /*pfCanAssign*/, &fLikelyPattern);
+
+                    m_pscan->SeekTo(atExpression);
+
+                    if (fLikelyPattern)
                     {
-                        Error(ERRDestructNoOper);
+                        pnodeExpr = ParseDestructuredVarDecl<buildAST>(declarationType, declarationType != tkLCurly, nullptr/* *hasSeenRest*/, false /*topLevel*/, false /*allowEmptyExpression*/);
+                        if (m_token.tk != tkComma && m_token.tk != tkRCurly)
+                        {
+                            if (m_token.IsOperator())
+                            {
+                                Error(ERRDestructNoOper);
+                            }
+                            Error(ERRsyntax);
+                        }
                     }
-                    Error(ERRsyntax);
+                    else
+                    {
+                        if (m_hasDeferredShorthandInitError)
+                        {
+                            Error(ERRnoColon);
+                        }
+
+                        pnodeExpr = ParseExpr<buildAST>(koplCma, nullptr/*pfCantAssign*/, TRUE/*fAllowIn*/, FALSE/*fAllowEllipsis*/, pFullNameHint, &fullNameHintLength, &shortNameOffset);
+                    }
+
+                    m_hasDeferredShorthandInitError = savedDeferredInitError;
+                }
+                else
+                {
+                    pnodeExpr = ParseDestructuredVarDecl<buildAST>(declarationType, declarationType != tkLCurly, nullptr/* *hasSeenRest*/, false /*topLevel*/, false /*allowEmptyExpression*/);
+                    if (m_token.tk != tkComma && m_token.tk != tkRCurly)
+                    {
+                        if (m_token.IsOperator())
+                        {
+                            Error(ERRDestructNoOper);
+                        }
+                        Error(ERRsyntax);
+                    }
                 }
             }
             else
             {
-                pnodeExpr = ParseExpr<buildAST>(koplCma, nullptr, TRUE, FALSE, pFullNameHint, &fullNameHintLength, &shortNameOffset);
+                pnodeExpr = ParseExpr<buildAST>(koplCma, nullptr/*pfCantAssign*/, TRUE/*fAllowIn*/, FALSE/*fAllowEllipsis*/, pFullNameHint, &fullNameHintLength, &shortNameOffset);
             }
 #if DEBUG
             if((m_grfscr & fscrEnforceJSON) && !IsJSONValid(pnodeExpr))
@@ -5272,6 +5326,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
                     }
                     return false;
                 });
+
                 if (pnodeFnc->sxFnc.IsBodyAndParamScopeMerged() && !fDeclaration && pnodeFnc->sxFnc.pnodeName != nullptr)
                 {
                     Symbol* funcSym = pnodeFnc->sxFnc.pnodeName->sxVar.sym;
@@ -8338,11 +8393,9 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
 
             if (buildAST)
             {
+                this->SetHasDestructuringPattern(true);
                 pnode = ConvertToPattern(pnode);
             }
-
-            // The left-hand side is found to be destructuring pattern - so the shorthand can have initializer.
-            m_hasDeferredShorthandInitError = false;
         }
 
         if (buildAST)
@@ -10257,7 +10310,7 @@ LGetJumpStatement:
 
         if (needTerminator)
         {
-            goto LNeedTerminator;
+        goto LNeedTerminator;
         }
         else
         {
@@ -12467,6 +12520,12 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
 
     if (IsPossiblePatternStart())
     {
+        // For the possible pattern start we do not allow the parens before
+        if (parenCount != 0)
+        {
+            Error(ERRDestructIDRef);
+        }
+
         // Go recursively
         pnodeElem = ParseDestructuredLiteral<buildAST>(declarationType, isDecl, false /*topLevel*/, seenRest ? DIC_ShouldNotParseInitializer : DIC_None);
         if (!isDecl)
@@ -12536,6 +12595,14 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
             m_pscan->Scan();
             --parenCount;
         }
+
+        // Restore the Block ID of the current block after the parsing of destructured variable declarations and initializers.
+        GetCurrentBlock()->sxBlock.blockId = originalCurrentBlockId;
+    }
+
+    if (parenCount != 0)
+    {
+        Error(ERRnoRparen);
     }
 
     if (hasSeenRest != nullptr)
@@ -12573,19 +12640,6 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
         pnodeElem = pnodeRest;
     }
 
-    // We eat the left parentheses only when its not a declaration. This will make sure we throw syntax errors early. We need to do the same for right parentheses.
-    if (!isDecl)
-    {
-        while (m_token.tk == tkRParen)
-        {
-            m_pscan->Scan();
-            --parenCount;
-        }
-
-        // Restore the Block ID of the current block after the parsing of destructured variable declarations and initializers.
-        GetCurrentBlock()->sxBlock.blockId = originalCurrentBlockId;
-    }
-
     if (!(m_token.tk == tkComma || m_token.tk == tkRBrack || m_token.tk == tkRCurly))
     {
         if (m_token.IsOperator())
@@ -12595,10 +12649,6 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
         Error(ERRsyntax);
     }
 
-    if (parenCount != 0)
-    {
-        Error(ERRnoRparen);
-    }
     return pnodeElem;
 }
 

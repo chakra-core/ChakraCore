@@ -120,6 +120,14 @@ var tests = [
         }
     },
     {
+        name: "Reflect.set",
+        body: function ()
+        {
+            assert.isTrue(Reflect.set([1950, 1960, 1970, 1980, 1990], "0", 1), "Should be able to set property on int array");
+            assert.isTrue(Reflect.set([1950, 1960.1, 1970, 1980, 1990], "0", 1), "Should be able to set property on float array");
+        }
+    },
+    {
         name: "Reflect.defineProperty",
         body: function ()
         {
@@ -198,7 +206,7 @@ var tests = [
             var handler = {
                 getPrototypeOf: function(target, name){
                     return x;
-                }
+    }
             };
             var s= [1,5,3,4,5,6,8,9,10,11,12];
             p = new Proxy(s, handler);

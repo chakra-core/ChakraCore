@@ -73,6 +73,7 @@ namespace Js
         template <class T> void OP_BrEqConst( const unaligned T* playout );
         template <class T> void OP_BrTrue( const unaligned T* playout );
         template <class T> void OP_Empty( const unaligned T* playout );
+        template <class T> void OP_CheckHeap(const unaligned T* playout);
         template <class T> void Op_LdSlot_Db( const unaligned T* playout );
         template <class T> void Op_LdSlot_Int(const unaligned T* playout);
         template <class T> void Op_LdSlot_Flt(const unaligned T* playout);

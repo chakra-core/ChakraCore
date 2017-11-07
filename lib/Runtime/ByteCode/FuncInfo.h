@@ -122,6 +122,7 @@ public:
     Js::RegSlot firstThunkArgReg;
     short thunkArgCount;
     short staticFuncId;
+    Js::FunctionInfo::Attributes originalAttributes;
 
     uint callsEval : 1;
     uint childCallsEval : 1;
@@ -190,6 +191,7 @@ public:
     FuncInfo(
         const char16 *name,
         ArenaAllocator *alloc,
+        ByteCodeGenerator *byteCodeGenerator,
         Scope *paramScope,
         Scope *bodyScope,
         ParseNode *pnode,

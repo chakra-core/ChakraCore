@@ -4184,13 +4184,13 @@ CommonNumber:
                     if (VirtualTableInfo<Int8VirtualArray>::HasVirtualTable(instance))
                     {
                         Int8VirtualArray* int8Array = Int8VirtualArray::FromVar(instance);
-                        returnValue = int8Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
-                    }
+                            returnValue = int8Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
+                        }
                     else if( VirtualTableInfo<Int8Array>::HasVirtualTable(instance))
                     {
                         Int8Array* int8Array = Int8Array::FromVar(instance);
-                        returnValue = int8Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
-                    }
+                            returnValue = int8Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
+                        }
                     break;
                 }
 
@@ -4200,13 +4200,13 @@ CommonNumber:
                     if (VirtualTableInfo<Uint8VirtualArray>::HasVirtualTable(instance))
                     {
                         Uint8VirtualArray* uint8Array = Uint8VirtualArray::FromVar(instance);
-                        returnValue = uint8Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
-                    }
+                            returnValue = uint8Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
+                        }
                     else if (VirtualTableInfo<Uint8Array>::HasVirtualTable(instance))
                     {
                         Uint8Array* uint8Array = Uint8Array::FromVar(instance);
-                        returnValue = uint8Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
-                    }
+                            returnValue = uint8Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
+                        }
                     break;
                 }
 
@@ -4216,13 +4216,13 @@ CommonNumber:
                     if (VirtualTableInfo<Uint8ClampedVirtualArray>::HasVirtualTable(instance))
                     {
                         Uint8ClampedVirtualArray* uint8ClampedArray = Uint8ClampedVirtualArray::FromVar(instance);
-                        returnValue = uint8ClampedArray->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
-                    }
+                            returnValue = uint8ClampedArray->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
+                        }
                     else if(VirtualTableInfo<Uint8ClampedArray>::HasVirtualTable(instance))
                     {
                         Uint8ClampedArray* uint8ClampedArray = Uint8ClampedArray::FromVar(instance);
-                        returnValue = uint8ClampedArray->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
-                    }
+                            returnValue = uint8ClampedArray->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
+                        }
                     break;
                 }
 
@@ -4232,13 +4232,13 @@ CommonNumber:
                     if (VirtualTableInfo<Int16VirtualArray>::HasVirtualTable(instance))
                     {
                         Int16VirtualArray* int16Array = Int16VirtualArray::FromVar(instance);
-                        returnValue = int16Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
-                    }
+                            returnValue = int16Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
+                        }
                     else if (VirtualTableInfo<Int16Array>::HasVirtualTable(instance))
                     {
                         Int16Array* int16Array = Int16Array::FromVar(instance);
-                        returnValue = int16Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
-                    }
+                            returnValue = int16Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
+                        }
                     break;
                 }
 
@@ -4249,13 +4249,13 @@ CommonNumber:
                     if (VirtualTableInfo<Uint16VirtualArray>::HasVirtualTable(instance))
                     {
                         Uint16VirtualArray* uint16Array = Uint16VirtualArray::FromVar(instance);
-                        returnValue = uint16Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
-                    }
+                            returnValue = uint16Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
+                        }
                     else if (VirtualTableInfo<Uint16Array>::HasVirtualTable(instance))
                     {
                         Uint16Array* uint16Array = Uint16Array::FromVar(instance);
-                        returnValue = uint16Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
-                    }
+                            returnValue = uint16Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
+                        }
                     break;
                 }
                 case TypeIds_Int32Array:
@@ -4264,13 +4264,13 @@ CommonNumber:
                     if (VirtualTableInfo<Int32VirtualArray>::HasVirtualTable(instance))
                     {
                         Int32VirtualArray* int32Array = Int32VirtualArray::FromVar(instance);
-                        returnValue = int32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
-                    }
+                            returnValue = int32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
+                        }
                     else if(VirtualTableInfo<Int32Array>::HasVirtualTable(instance))
                     {
                         Int32Array* int32Array = Int32Array::FromVar(instance);
-                        returnValue = int32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
-                    }
+                            returnValue = int32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
+                        }
                     break;
                 }
                 case TypeIds_Uint32Array:
@@ -4280,13 +4280,13 @@ CommonNumber:
                     if (VirtualTableInfo<Uint32VirtualArray>::HasVirtualTable(instance))
                     {
                         Uint32VirtualArray* uint32Array = Uint32VirtualArray::FromVar(instance);
-                        returnValue = uint32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
-                    }
+                            returnValue = uint32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
+                        }
                     else if (VirtualTableInfo<Uint32Array>::HasVirtualTable(instance))
                     {
                         Uint32Array* uint32Array = Uint32Array::FromVar(instance);
-                        returnValue = uint32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
-                    }
+                            returnValue = uint32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
+                        }
                     break;
                 }
                 case TypeIds_Float32Array:
@@ -4295,13 +4295,13 @@ CommonNumber:
                     if (VirtualTableInfo<Float32VirtualArray>::HasVirtualTable(instance))
                     {
                         Float32VirtualArray* float32Array = Float32VirtualArray::FromVar(instance);
-                        returnValue = float32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
-                    }
+                            returnValue = float32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
+                        }
                     else if (VirtualTableInfo<Float32Array>::HasVirtualTable(instance))
                     {
                         Float32Array* float32Array = Float32Array::FromVar(instance);
-                        returnValue = float32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
-                    }
+                            returnValue = float32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
+                        }
                     break;
                 }
                 case TypeIds_Float64Array:
@@ -4310,13 +4310,13 @@ CommonNumber:
                     if (VirtualTableInfo<Float64VirtualArray>::HasVirtualTable(instance))
                     {
                         Float64VirtualArray* float64Array = Float64VirtualArray::FromVar(instance);
-                        returnValue = float64Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
-                    }
+                            returnValue = float64Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
+                        }
                     else if (VirtualTableInfo<Float64Array>::HasVirtualTable(instance))
                     {
                         Float64Array* float64Array = Float64Array::FromVar(instance);
-                        returnValue = float64Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
-                    }
+                            returnValue = float64Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
+                        }
                     break;
                 }
                 }
@@ -6993,7 +6993,7 @@ CommonNumber:
     Field(Var)* JavascriptOperators::OP_CloneScopeSlots(Field(Var) *slotArray, ScriptContext *scriptContext)
     {
         ScopeSlots slots((Js::Var*)slotArray);
-        uint size = ScopeSlots::FirstSlotIndex + slots.GetCount();
+        uint size = ScopeSlots::FirstSlotIndex + static_cast<uint>(slots.GetCount());
 
         Field(Var)* slotArrayClone = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), size);
         CopyArray(slotArrayClone, size, slotArray, size);

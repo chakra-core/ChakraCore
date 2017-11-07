@@ -577,6 +577,28 @@ LowererMDArch::SetMaxArgSlots(Js::ArgSlot actualCount /*including this*/)
     return;
 }
 
+void
+LowererMDArch::GenerateMemInit(IR::RegOpnd * opnd, int32 offset, size_t value, IR::Instr * insertBeforeInstr, bool isZeroed)
+{
+    IRType type = TyVar;
+    if (isZeroed)
+    {
+        if (value == 0)
+        {
+            // Recycler memory are zero initialized
+            return;
+        }
+
+        type = value <= UINT_MAX ?
+            (value <= USHORT_MAX ?
+            (value <= UCHAR_MAX ? TyUint8 : TyUint16) :
+                TyUint32) :
+            type;
+    }
+    Func * func = this->m_func;
+    lowererMD->GetLowerer()->InsertMove(IR::IndirOpnd::New(opnd, offset, type, func), IR::IntConstOpnd::New(value, type, func), insertBeforeInstr);
+}
+
 IR::Instr *
 LowererMDArch::LowerCallIDynamic(IR::Instr *callInstr, IR::Instr*saveThisArgOutInstr, IR::Opnd *argsLength, ushort callFlags, IR::Instr * insertBeforeInstrForCFG)
 {

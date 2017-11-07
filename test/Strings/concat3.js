@@ -3,25 +3,6 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-// Test out-of-memory limits for very long strings
-try
-{
-  var longString = "A";
-  for (var i = 0; i < 31; i++)
-    longString += longString;
-
-  WScript.Echo(longString);
-
-  WScript.Echo("FAIL: Was expecting Out of Memory exception.");
-}
-catch (e)
-{
-  if(e.number == -2146828281) //Out of Memory
-    WScript.Echo("PASS");
-  else
-    WScript.Echo("FAIL: Got the wrong exception code.");
-}
-
 //YUI issue with string builder
 var a = {0:"foo",1:"bar"};
 a.length = 2;

@@ -20,7 +20,7 @@ namespace Js
         stringBuilder(nullptr),
         activeMutationBP(_activeMutationBP)
     {
-        Assert(executingFunction || (stopType == STOP_EXCEPTIONTHROW || stopType == STOP_MUTATIONBREAKPOINT));
+        Assert(executingFunction || (stopType == STOP_EXCEPTIONTHROW || stopType == STOP_MUTATIONBREAKPOINT || stopType == STOP_DOMMUTATIONBREAKPOINT));
     }
 
     FunctionBody* InterpreterHaltState::GetFunction()

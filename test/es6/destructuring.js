@@ -180,9 +180,9 @@ var tests = [
       assert.throws(function () { eval("const [a)] = [];"); },    SyntaxError, "Destructured const array declaration with a mismatched paren count throws");
       assert.throws(function () { eval("var a; [a)] = [];"); },   SyntaxError, "Destructured var array assignment with a mismatched paren count throws",    "Expected ']'");
       assert.throws(function () { eval("let a; [a)] = [];"); },   SyntaxError, "Destructured let array assignment with a mismatched paren count throws");
-      assert.throws(function () { eval("var [((((a)))), b] = [];"); }, SyntaxError, "Destructured var array declaration with some nested parens does not throw");
-      assert.throws(function () { eval("let [((((a)))), b] = [];"); }, SyntaxError, "Destructured let array declaration with some nested parens does not throw");
-      assert.throws(function () { eval("const [((((a)))), b] = [];"); }, SyntaxError, "Destructured const array declaration with some nested parens does not throw");
+      assert.throws(function () { eval("var [((((a)))), b] = [];"); }, SyntaxError, "Destructured var array declaration with some nested parens throws");
+      assert.throws(function () { eval("let [((((a)))), b] = [];"); }, SyntaxError, "Destructured let array declaration with some nested parens throws");
+      assert.throws(function () { eval("const [((((a)))), b] = [];"); }, SyntaxError, "Destructured const array declaration with some nested parens throws");
       
       assert.doesNotThrow(function () { eval("var a, b; [((((a)))), b] = [];"); }, "Destructured var array assignment with some nested parens does not throw");
       assert.doesNotThrow(function () { eval("let a, b; [((((a)))), b] = [];"); }, "Destructured let array assignment with some nested parens does not throw");
@@ -198,11 +198,14 @@ var tests = [
       assert.doesNotThrow(function () { eval("var a, b; [[...a], ...b] = [[],];"); }, "Destructured var array assignment with valid nested rest parameters does not throw");
       assert.doesNotThrow(function () { eval("let a, b; [[...a], ...b] = [[],];"); }, "Destructured let array assignment with valid nested rest parameters does not throw");
 
-      assert.throws(function () { eval("var [[(a)], ((((((([b])))))))] = [[],[]];"); }, SyntaxError, "Destructured var array declaration with valid mixed paren and array nesting does not throw");
-      assert.throws(function () { eval("let [[(a)], ((((((([b])))))))] = [[],[]];"); }, SyntaxError, "Destructured let array declaration with valid mixed paren and array nesting does not throw");
+      assert.throws(function () { eval("var [[(a)], ((((((([b])))))))] = [[],[]];"); }, SyntaxError, "Destructured var array declaration with valid mixed paren and array nesting throws");
+      assert.throws(function () { eval("let [[(a)], ((((((([b])))))))] = [[],[]];"); }, SyntaxError, "Destructured let array declaration with valid mixed paren and array nesting throws");
       assert.throws(function () { eval("const [[(a)], ((((((([b])))))))] = [[],[]];"); }, SyntaxError, "Destructured const array declaration with valid mixed paren and array nesting does not throw");
-      assert.doesNotThrow(function () { eval("var a, b; [[(a)], ((((((([b])))))))] = [[],[]];"); }, "Destructured var array assignment with valid mixed paren and array nesting does not throw");
-      assert.doesNotThrow(function () { eval("let a, b; [[(a)], ((((((([b])))))))] = [[],[]];"); }, "Destructured let array assignment with valid mixed paren and array nesting does not throw");
+      assert.throws(function () { eval("const [[(a)], ((((((([b])))))))] = [[],[]];"); }, SyntaxError, "Destructured const array declaration with valid mixed paren and array nesting does not throw");
+      assert.throws(function () { eval("var a; [([a])] = [[]];"); }, SyntaxError, "Destructured var array assignment with nested patterns surrounded by paren is not valid syntax");
+      assert.throws(function () { eval("var a, b; [([a]), (((([b]))))] = [[], []];"); }, SyntaxError, "Destructured var array assignment with nested patterns surrounded by paren is not valid syntax");
+      assert.throws(function () { eval("var a, b; [({a}), (((({b}))))] = [{}, {}];"); }, SyntaxError, "Destructured var array assignment with nested patterns surrounded by paren is not valid syntax");
+      assert.throws(function () { eval("var a, b; ({a:({a}), b:((({b})))} = {a:{}, b:{}} );"); }, SyntaxError, "Destructured var array assignment with nested patterns surrounded by paren is not valid syntax");
 
       // Redeclarations
       assert.doesNotThrow(function () { eval("var [a, a] = [];"); },    "Destructured var array declaration with a repeated identifier reference does not throw");

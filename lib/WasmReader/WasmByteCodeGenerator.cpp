@@ -1030,6 +1030,12 @@ EmitInfo WasmBytecodeGenerator::EmitCall()
         m_writer->AsmReg2(convertOp, retInfo.location, 0);
     }
 
+    if (isImportCall && (m_module->HasMemory() || m_module->HasMemoryImport()))
+    {
+        m_writer->EmptyAsm(Js::OpCodeAsmJs::CheckHeap);
+        SetUsesMemory(0);
+    }
+
     // track stack requirements for out params
 
     // + 1 for return address
