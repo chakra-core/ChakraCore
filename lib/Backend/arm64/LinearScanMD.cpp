@@ -251,26 +251,18 @@ LinearScanMD::GenerateBailOut(
     // Save registers used for parameters, and lr, if necessary, into the register save space
     if(bailOutInfo->branchConditionOpnd && registerSaveSyms[RegR1 - 1] && registerSaveSyms[RegR0 - 1])
     {
-        // ARM64_WORKITEM: Needs looking at
-        __debugbreak();
-#if 0
-        // Save r1 and r0 with one push:
-        //     LoadRegSaveSpaceIntoScratch(RegR2)
-        //     push [SCRATCH_REG], {r0 - r1}
-        LoadRegSaveSpaceIntoScratch(RegR2);
-        IR::Instr *instrPush = IR::Instr::New(
-            Js::OpCode::PUSH,
-            IR::IndirOpnd::New(
-            IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachPtr, func),
-            0,
-            TyMachReg,
-            func),
-            IR::RegBVOpnd::New(BVUnit32((1 << RegR1) - 1), TyMachReg, func),
+        // Save r0 and r1 with one store pair:
+        //     LoadRegSaveSpaceIntoScratch(RegR0)
+        //     STP r0, r1, [SCRATCH_REG]
+        LoadRegSaveSpaceIntoScratch(RegR0);
+        IR::Instr *instrSTP = IR::Instr::New(Js::OpCode::STP,
+            IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, SCRATCH_REG, TyMachPtr, func), 0, TyMachReg, func),
+            IR::RegOpnd::New(registerSaveSyms[RegR0 - 1], RegR0, RegTypes[RegR0], func),
+            IR::RegOpnd::New(registerSaveSyms[RegR1 - 1], RegR1, RegTypes[RegR1], func),
             func);
 
-        instr->InsertBefore(instrPush);
-        instrPush->CopyNumber(instr);
-#endif
+        instr->InsertBefore(instrSTP);
+        instrSTP->CopyNumber(instr);
     }
     else if(bailOutInfo->branchConditionOpnd && registerSaveSyms[RegR1 - 1])
     {
