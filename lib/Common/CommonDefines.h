@@ -240,7 +240,7 @@
 #error "Background page zeroing can't be turned on if freeing pages in the background is disabled"
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32) && !GLOBAL_ENABLE_WRITE_BARRIER
 #define RECYCLER_VISITED_HOST
 #endif
 

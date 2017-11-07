@@ -126,9 +126,9 @@ typedef struct EquivalentTypeSetIDL
 
 typedef struct FixedFieldIDL
 {
+    IDL_Field(unsigned short) valueType;
     IDL_Field(boolean) nextHasSameFixedField;
     IDL_Field(boolean) isClassCtor;
-    IDL_Field(unsigned short) valueType;
     IDL_Field(unsigned int) localFuncId;
     IDL_Field(TypeIDL) type;
     IDL_Field(CHAKRA_WB_PTR) fieldValue;
