@@ -1321,7 +1321,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     RegNum localsReg = this->m_func->GetLocalsPointer();
     if (localsReg != RegSP)
     {
-        IR::RegOpnd* localsOpnd = IR::RegOpnd::New(nullptr, EH_STACK_SAVE_REG, TyMachReg, this->m_func);
+        IR::RegOpnd* localsOpnd = IR::RegOpnd::New(nullptr, localsReg, TyMachReg, this->m_func);
         IR::Instr * instrAdd = IR::Instr::New(Js::OpCode::ADD, localsOpnd, spOpnd, IR::IntConstOpnd::New(layout.LocalsOffset(), TyMachReg, this->m_func), this->m_func);
         insertInstr->InsertBefore(instrAdd);
     }
