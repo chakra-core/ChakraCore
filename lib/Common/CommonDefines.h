@@ -302,20 +302,13 @@
 #define DELAYLOAD_SET_CFG_TARGET 1
 #endif
 
-// Configure whether we configure a signal handler
-// to produce perf-<pid>.map files
-#ifndef PERFMAP_TRACE_ENABLED
-#define PERFMAP_TRACE_ENABLED 0
-#endif
 #ifndef PERFMAP_SIGNAL
 #define PERFMAP_SIGNAL SIGUSR2
 #endif
 
 #ifndef NTBUILD
 #define DELAYLOAD_SECTIONAPI 1
-#endif
-
-#ifdef NTBUILD
+#else
 #define ENABLE_PROJECTION
 #define ENABLE_FOUNDATION_OBJECT
 #define ENABLE_EXPERIMENTAL_FLAGS
