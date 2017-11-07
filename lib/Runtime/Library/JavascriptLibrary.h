@@ -191,7 +191,9 @@ namespace Js
         friend class ExternalLibraryBase;
         friend class ActiveScriptExternalLibrary;
         friend class IntlEngineInterfaceExtensionObject;
+#ifdef ENABLE_JS_BUILTINS
         friend class JsBuiltInEngineInterfaceExtensionObject;
+#endif
         friend class ChakraHostScriptContext;
 #ifdef ENABLE_PROJECTION
         friend class ProjectionExternalLibrary;
