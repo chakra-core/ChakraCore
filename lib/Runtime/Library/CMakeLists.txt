@@ -103,6 +103,7 @@ set(CRLIB_SOURCE_CODES
     JavascriptVariantDate.cpp
     JavascriptWeakMap.cpp
     JavascriptWeakSet.cpp
+    JsBuiltInEngineInterfaceExtensionObject.cpp
     LazyJSONString.cpp
     LiteralString.cpp
     MathLibrary.cpp
