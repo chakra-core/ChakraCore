@@ -130,8 +130,7 @@ namespace Js
         scriptContext->GetOrAddPropertyRecord(this->GetSz(), static_cast<int>(this->GetLength()),
             (Js::PropertyRecord const **)&propertyRecord);
 
-        this->propertyString = scriptContext->GetPropertyString(propertyRecord->GetPropertyId());
-        this->SetBuffer(this->propertyString->GetString()); // use the same buffer
+        this->SetPropertyString(scriptContext->GetPropertyString(propertyRecord->GetPropertyId()));
 
         return this->propertyString;
     }
@@ -139,6 +138,19 @@ namespace Js
     void LiteralStringWithPropertyStringPtr::SetPropertyString(PropertyString * propStr)
     {
         this->propertyString = propStr;
+        if (propStr != nullptr)
+        {
+            if (propStr->GetString() == propStr->GetPropertyRecord()->GetBuffer())
+            {
+                // propertyString using buffer from propertyRecord, use ours.
+                propStr->SetBuffer(this->GetString());
+            }
+            else
+            {
+                // propertyString using another non propertyRecord buffer. Use it here too.
+                this->SetBuffer(propStr->GetString());
+            }
+        }
     }
 
     /* static */

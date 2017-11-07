@@ -158,15 +158,14 @@ namespace Js
         JavascriptString(StaticType * type);
         JavascriptString(StaticType * type, charcount_t charLength, const char16* szValue);
         DEFINE_VTABLE_CTOR_ABSTRACT(JavascriptString, RecyclableObject);
-
-        void SetLength(charcount_t newLength);
-        void SetBuffer(const char16* buffer);
         bool IsValidIndexValue(charcount_t idx) const;
 
         static charcount_t SafeSzSize(charcount_t length); // Throws on overflow
         charcount_t SafeSzSize() const; // Throws on overflow
 
     public:
+        void SetLength(charcount_t newLength);
+        void SetBuffer(const char16* buffer);
         bool IsFinalized() const { return this->UnsafeGetBuffer() != NULL; }
 
     public:
@@ -311,6 +310,9 @@ namespace Js
         static charcount_t GetBufferLength(const char16 *content, int charLengthOrMinusOne);
         static bool IsASCII7BitChar(char16 ch) { return ch < 0x0080; }
         static char ToASCII7BitChar(char16 ch) { Assert(IsASCII7BitChar(ch)); return static_cast<char>(ch); }
+
+        // Share the string buffer, if both left and right strings are hosting the same content.
+        static void ShareStringBuffer(JavascriptString * leftString, JavascriptString * rightString);
 
     private:
         static int IndexOf(ArgumentReader& args, ScriptContext* scriptContext, const char16* apiNameForErrorMsg, bool isRegExpAnAllowedArg);

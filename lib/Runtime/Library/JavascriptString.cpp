@@ -231,8 +231,9 @@ namespace Js
             return nullptr;
         }
 
+        ScriptContext *scriptContext = GetScriptContext();
         Js::PropertyRecord const * propertyRecord;
-        GetScriptContext()->GetOrAddPropertyRecord(GetString(), GetLength(), &propertyRecord);
+        scriptContext->GetOrAddPropertyRecord(GetString(), GetLength(), &propertyRecord);
 
         return propertyRecord;
     }
@@ -3885,11 +3886,117 @@ case_2:
             return false;
         }
 
-        if (wmemcmp(leftString->GetString(), rightString->GetString(), leftString->GetLength()) == 0)
+        LPCWSTR rstr = rightString->GetString();
+        LPCWSTR lstr = leftString->GetString();
+
+        if (lstr == rstr)
         {
             return true;
         }
+
+        if (wmemcmp(lstr, rstr, leftString->GetLength()) == 0)
+        {
+            // at this point we know both leftString and rightString are flattened
+            // why not share the buffer?
+            T::ShareStringBuffer(leftString, rightString);
+            return true;
+        }
         return false;
+    }
+
+    void JavascriptString::ShareStringBuffer(JavascriptString * leftString, JavascriptString * rightString)
+    {
+        LPCWSTR rstr = rightString->GetString();
+        LPCWSTR lstr = leftString->GetString();
+
+        Assert(leftString->GetLength() == rightString->GetLength());
+        Assert(wmemcmp(lstr, rstr, leftString->GetLength()) == 0);
+
+        if (leftString->IsSubstring() || rightString->IsSubstring())
+        {
+            return;
+        }
+
+        bool leftIsPropertyString = VirtualTableInfo<Js::PropertyString>::HasVirtualTable(leftString);
+
+        // if one of the strings is a LiteralStringWithPropertyStringPtr and the other is PropertyString
+        // check if we could SetPropertyString if it wasn't set.
+        // besides, try to replace PropertyString buffer with non-propertyRecord buffer.
+        if (leftIsPropertyString)
+        {
+            bool rightIsLiteralStringWithPropertyStringPtr = VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(rightString);
+            PropertyString * leftPropertyString = (Js::PropertyString*)leftString;
+            if (rightIsLiteralStringWithPropertyStringPtr)
+            {
+                Js::LiteralStringWithPropertyStringPtr * rightStringWithPtr = (Js::LiteralStringWithPropertyStringPtr*)rightString;
+                rightStringWithPtr->SetPropertyString(leftPropertyString);
+            }
+            else if (leftPropertyString->GetPropertyRecord()->GetBuffer() == lstr) // leftString using buffer from propertyRecord
+            {
+                leftString->SetBuffer(rstr); // use it from literalString
+            }
+            else
+            {
+                rightString->SetBuffer(lstr); // use it from propertyString, it's no longer the buffer from propertyRecord
+            }
+            return;
+        }
+
+        bool leftIsLiteralStringWithPropertyStringPtr = VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(leftString);
+
+        if (leftIsLiteralStringWithPropertyStringPtr)
+        {
+            bool rightIsLiteralStringWithPropertyStringPtr = VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(rightString);
+            Js::LiteralStringWithPropertyStringPtr * leftStringWithPtr = (Js::LiteralStringWithPropertyStringPtr*)leftString;
+
+            if (rightIsLiteralStringWithPropertyStringPtr)
+            {
+                Js::LiteralStringWithPropertyStringPtr * rightStringWithPtr = (Js::LiteralStringWithPropertyStringPtr*)rightString;
+
+                if (leftStringWithPtr->GetPropertyString() == nullptr && rightStringWithPtr->GetPropertyString() != nullptr)
+                {
+                    leftStringWithPtr->SetPropertyString(rightStringWithPtr->GetPropertyString());
+                    return;
+                }
+
+                if (rightStringWithPtr->GetPropertyString() == nullptr && leftStringWithPtr->GetPropertyString() != nullptr)
+                {
+                    rightStringWithPtr->SetPropertyString(leftStringWithPtr->GetPropertyString());
+                }
+                else
+                {   // both left and right are full OR empty. Order doesn't matter
+                    rightString->SetBuffer(lstr);
+                }
+
+                return;
+            }
+            else if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(rightString))
+            {
+                PropertyString * rightPropertyString = (Js::PropertyString*)rightString;
+                leftStringWithPtr->SetPropertyString(rightPropertyString);
+                return;
+            }
+
+            rightString->SetBuffer(lstr);
+            return;
+        }
+
+        if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(rightString))
+        {
+            PropertyString * rightPropertyString = (Js::PropertyString*)rightString;
+            if (rightPropertyString->GetPropertyRecord()->GetBuffer() == rstr) // rightString using buffer from propertyRecord
+            {
+                rightString->SetBuffer(lstr); // use it from literalString
+            }
+            else
+            {
+                leftString->SetBuffer(rstr); // use it from propertyString, it's no longer the buffer from propertyRecord
+            }
+        }
+        else
+        {
+            rightString->SetBuffer(lstr); // two literal strings. doesn't matter?
+        }
     }
 
 #if ENABLE_NATIVE_CODEGEN
