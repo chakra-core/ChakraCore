@@ -30,6 +30,7 @@ namespace UnifiedRegex
 
     struct Program : private Chars<char16>
     {
+        friend class Lowerer;
         friend class Compiler;
         friend struct MatchLiteralNode;
         friend struct AltNode;
@@ -64,7 +65,7 @@ namespace UnifiedRegex
         Field(RegexFlags) flags;
 
     private:
-        enum ProgramTag : uint8
+        enum class ProgramTag : uint8
         {
             InstructionsTag,
             BOIInstructionsTag,

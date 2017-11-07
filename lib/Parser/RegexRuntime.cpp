@@ -5476,7 +5476,7 @@ namespace UnifiedRegex
         bool isStickyPresent = this->pattern->IsSticky();
         switch (prog->tag)
         {
-        case Program::BOIInstructionsTag:
+        case Program::ProgramTag::BOIInstructionsTag:
             if (offset != 0)
             {
                 groupInfos[0].Reset();
@@ -5486,14 +5486,14 @@ namespace UnifiedRegex
 
             // fall through
 
-        case Program::BOIInstructionsForStickyFlagTag:
-            AssertMsg(prog->tag == Program::BOIInstructionsTag || isStickyPresent, "prog->tag should be BOIInstructionsForStickyFlagTag if sticky = true.");
+        case Program::ProgramTag::BOIInstructionsForStickyFlagTag:
+            AssertMsg(prog->tag == Program::ProgramTag::BOIInstructionsTag || isStickyPresent, "prog->tag should be BOIInstructionsForStickyFlagTag if sticky = true.");
 
             loopMatchHere = false;
 
             // fall through
 
-        case Program::InstructionsTag:
+        case Program::ProgramTag::InstructionsTag:
             {
                 previousQcTime = 0;
                 uint qcTicks = 0;
@@ -5519,7 +5519,7 @@ namespace UnifiedRegex
                 break;
             }
 
-        case Program::SingleCharTag:
+        case Program::ProgramTag::SingleCharTag:
             if (this->pattern->IsIgnoreCase())
             {
                 res = MatchSingleCharCaseInsensitive(input, inputLength, offset, prog->rep.singleChar.c);
@@ -5531,19 +5531,19 @@ namespace UnifiedRegex
 
             break;
 
-        case Program::BoundedWordTag:
+        case Program::ProgramTag::BoundedWordTag:
             res = MatchBoundedWord(input, inputLength, offset);
             break;
 
-        case Program::LeadingTrailingSpacesTag:
+        case Program::ProgramTag::LeadingTrailingSpacesTag:
             res = MatchLeadingTrailingSpaces(input, inputLength, offset);
             break;
 
-        case Program::OctoquadTag:
+        case Program::ProgramTag::OctoquadTag:
             res = MatchOctoquad(input, inputLength, offset, prog->rep.octoquad.matcher);
             break;
 
-        case Program::BOILiteral2Tag:
+        case Program::ProgramTag::BOILiteral2Tag:
             res = MatchBOILiteral2(input, inputLength, offset, prog->rep.boiLiteral2.literal);
             break;
 
@@ -5593,7 +5593,7 @@ namespace UnifiedRegex
             }
             w->EOL();
         }
-        if (program->tag == Program::BOIInstructionsTag || program->tag == Program::InstructionsTag)
+        if (program->tag == Program::ProgramTag::BOIInstructionsTag || program->tag == Program::ProgramTag::InstructionsTag)
         {
             w->Print(_u("instPointer: "));
 
@@ -5662,7 +5662,7 @@ namespace UnifiedRegex
         , numGroups(0)
         , numLoops(0)
     {
-        tag = InstructionsTag;
+        tag = ProgramTag::InstructionsTag;
         rep.insts.insts = nullptr;
         rep.insts.instsLen = 0;
         rep.insts.litbuf = nullptr;
@@ -5677,7 +5677,7 @@ namespace UnifiedRegex
 
     Field(ScannerInfo *)*Program::CreateScannerArrayForSyncToLiterals(Recycler *const recycler)
     {
-        Assert(tag == InstructionsTag);
+        Assert(tag == ProgramTag::InstructionsTag);
         Assert(!rep.insts.scannersForSyncToLiterals);
         Assert(recycler);
 
@@ -5693,7 +5693,7 @@ namespace UnifiedRegex
         const CharCount length,
         const bool isEquivClass)
     {
-        Assert(tag == InstructionsTag);
+        Assert(tag == ProgramTag::InstructionsTag);
         Assert(rep.insts.scannersForSyncToLiterals);
         Assert(recycler);
         Assert(scannerIndex >= 0);
@@ -5707,7 +5707,7 @@ namespace UnifiedRegex
 
     void Program::FreeBody(ArenaAllocator* rtAllocator)
     {
-        if (tag != InstructionsTag || !rep.insts.insts)
+        if (tag != ProgramTag::InstructionsTag || !rep.insts.insts)
         {
             return;
         }
@@ -5764,12 +5764,12 @@ namespace UnifiedRegex
         w->PrintEOL(_u("numLoops:     %d"), numLoops);
         switch (tag)
         {
-        case BOIInstructionsTag:
-        case InstructionsTag:
+        case ProgramTag::BOIInstructionsTag:
+        case ProgramTag::InstructionsTag:
             {
                 w->PrintEOL(_u("instructions: {"));
                 w->Indent();
-                if (tag == BOIInstructionsTag)
+                if (tag == ProgramTag::BOIInstructionsTag)
                 {
                     w->PrintEOL(_u("       BOITest(hardFail: true)"));
                 }
@@ -5803,19 +5803,19 @@ namespace UnifiedRegex
                 w->PrintEOL(_u("}"));
             }
             break;
-        case SingleCharTag:
+        case ProgramTag::SingleCharTag:
             w->Print(_u("special form: <match single char "));
             w->PrintQuotedChar(rep.singleChar.c);
             w->PrintEOL(_u(">"));
             break;
-        case BoundedWordTag:
+        case ProgramTag::BoundedWordTag:
             w->PrintEOL(_u("special form: <match bounded word>"));
             break;
-        case LeadingTrailingSpacesTag:
+        case ProgramTag::LeadingTrailingSpacesTag:
             w->PrintEOL(_u("special form: <match leading/trailing spaces: minBegin=%d minEnd=%d>"),
                 rep.leadingTrailingSpaces.beginMinMatch, rep.leadingTrailingSpaces.endMinMatch);
             break;
-        case OctoquadTag:
+        case ProgramTag::OctoquadTag:
             w->Print(_u("special form: <octoquad "));
             rep.octoquad.matcher->Print(w);
             w->PrintEOL(_u(">"));
