@@ -22689,9 +22689,9 @@ Lowerer::GenerateCheckForCallFlagNew(IR::Instr* instrInsert)
     IR::SymOpnd* callInfoOpnd = Lowerer::LoadCallInfo(instrInsert);
     Assert(Js::CallInfo::ksizeofCount == 24);
 
-    IR::RegOpnd* isNewFlagSetRegOpnd = IR::RegOpnd::New(TyUint32, func);
+    IR::RegOpnd* isNewFlagSetRegOpnd = IR::RegOpnd::New(TyMachReg, func);
 
-    InsertAnd(isNewFlagSetRegOpnd, callInfoOpnd, IR::IntConstOpnd::New((IntConstType)Js::CallFlags_New << Js::CallInfo::ksizeofCount, TyUint32, func, true), instrInsert);
+    InsertAnd(isNewFlagSetRegOpnd, callInfoOpnd, IR::IntConstOpnd::New((IntConstType)Js::CallFlags_New << Js::CallInfo::ksizeofCount, TyMachReg, func, true), instrInsert);
     InsertTestBranch(isNewFlagSetRegOpnd, isNewFlagSetRegOpnd, Js::OpCode::BrNeq_A, labelDone, instrInsert);
 
     IR::Instr *throwInstr = IR::Instr::New(
