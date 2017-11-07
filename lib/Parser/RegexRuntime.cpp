@@ -166,9 +166,9 @@ namespace UnifiedRegex
     {
         switch (mode)
         {
-        case BacktrackAndLater:
+        case HardFailMode::BacktrackAndLater:
             return Fail(FAIL_PARAMETERS);
-        case BacktrackOnly:
+        case HardFailMode::BacktrackOnly:
             if (Fail(FAIL_PARAMETERS))
             {
                 // No use trying any more start positions
@@ -179,7 +179,7 @@ namespace UnifiedRegex
             {
                 return false;
             }
-        case LaterOnly:
+        case HardFailMode::LaterOnly:
 #if ENABLE_REGEX_CONFIG_OPTIONS
             if (w != 0)
             {
@@ -189,7 +189,7 @@ namespace UnifiedRegex
             contStack.Clear();
             assertionStack.Clear();
             return true; // STOP EXECUTING
-        case ImmediateFail:
+        case HardFailMode::ImmediateFail:
             // No use trying any more start positions
             matchStart = inputLength;
             return true; // STOP EXECUTING
@@ -1264,7 +1264,7 @@ namespace UnifiedRegex
             if (canHardFail)
             {
                 // Clearly trying to start from later in the input won't help, and we know backtracking can't take us earlier in the input
-                return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+                return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
             }
             else
             {
@@ -1312,7 +1312,7 @@ namespace UnifiedRegex
             if (canHardFail)
             {
                 // We know backtracking can never take us later in the input, but starting from later in the input could help
-                return matcher.HardFail(HARDFAIL_PARAMETERS(LaterOnly));
+                return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::LaterOnly));
             }
             else
             {
@@ -1931,7 +1931,7 @@ namespace UnifiedRegex
     {
         if (!this->Match(matcher, input, inputLength, inputOffset))
         {
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         matchStart = inputOffset;
@@ -2026,7 +2026,7 @@ namespace UnifiedRegex
 
         if (inputOffset >= inputLength)
         {
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         matchStart = inputOffset++;
@@ -2066,7 +2066,7 @@ namespace UnifiedRegex
 
         if (inputOffset >= inputLength)
         {
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         matchStart = inputOffset++;
@@ -2106,7 +2106,7 @@ namespace UnifiedRegex
 
         if (inputOffset >= inputLength)
         {
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         matchStart = inputOffset++;
@@ -2144,7 +2144,7 @@ namespace UnifiedRegex
     {
         if (!this->Match(matcher, input, inputLength, inputOffset))
         {
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         matchStart = inputOffset;
@@ -2229,7 +2229,7 @@ namespace UnifiedRegex
         if (backup.lower > inputLength - matchStart)
         {
             // Even match at very end doesn't allow for minimum backup
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         if (inputOffset < nextSyncInputOffset)
@@ -2257,7 +2257,7 @@ namespace UnifiedRegex
 
         if (inputOffset >= inputLength)
         {
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         nextSyncInputOffset = inputOffset + 1;
@@ -2299,7 +2299,7 @@ namespace UnifiedRegex
         if (backup.lower > inputLength - matchStart)
         {
             // Even match at very end doesn't allow for minimum backup
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         if (inputOffset < nextSyncInputOffset)
@@ -2327,7 +2327,7 @@ namespace UnifiedRegex
 
         if (inputOffset >= inputLength)
         {
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         nextSyncInputOffset = inputOffset + 1;
@@ -2378,7 +2378,7 @@ namespace UnifiedRegex
         if (backup.lower > inputLength - matchStart)
         {
             // Even match at very end doesn't allow for minimum backup
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         if(inputOffset < nextSyncInputOffset)
@@ -2397,7 +2397,7 @@ namespace UnifiedRegex
 
         if (!this->Match(matcher, input, inputLength, inputOffset))
         {
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         nextSyncInputOffset = inputOffset + 1;
@@ -2503,7 +2503,7 @@ namespace UnifiedRegex
         if (backup.lower > inputLength - matchStart)
         {
             // Even match at very end doesn't allow for minimum backup
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         if (inputOffset < nextSyncInputOffset)
@@ -2586,7 +2586,7 @@ namespace UnifiedRegex
         if (besti < 0)
         {
             // No literals matched
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         nextSyncInputOffset = bestMatchOffset + 1;

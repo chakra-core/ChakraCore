@@ -1755,7 +1755,7 @@ namespace UnifiedRegex
         AssertionStack assertionStack;
     };
 
-    enum HardFailMode
+    enum class HardFailMode
     {
         BacktrackAndLater,
         BacktrackOnly,
