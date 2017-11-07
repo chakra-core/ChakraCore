@@ -1465,6 +1465,10 @@ EncoderMD::ApplyRelocs(size_t codeBufferAddress, size_t codeSize, uint* bufferCR
             *relocAddress = (*relocAddress & ~(0x7ffff << 5)) | ULONG(((immediate >> 2) & 0x7ffff) << 5);
             break;
 
+        case RelocTypeLabel:
+            *(ULONG_PTR*)relocAddress = ULONG_PTR(targetAddress) - ULONG_PTR(m_encoder->m_encodeBuffer) + ULONG_PTR(codeBufferAddress);
+            break;
+
         default:
             // unexpected/unimplemented type
             Assert(false);
