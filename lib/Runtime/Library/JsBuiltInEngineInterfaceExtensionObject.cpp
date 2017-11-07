@@ -226,6 +226,24 @@ namespace Js
         }
     }
 
+
+    void JsBuiltInEngineInterfaceExtensionObject::RecordDefaultIteratorFunctions(Js::PropertyIds propertyId, ScriptContext * scriptContext, JavascriptFunction * iteratorFunc)
+    {
+        JavascriptLibrary* library = scriptContext->GetLibrary();
+
+        switch (propertyId) {
+        case PropertyIds::entries:
+            library->arrayPrototypeEntriesFunction = iteratorFunc;
+            break;
+        case PropertyIds::values:
+            library->arrayPrototypeValuesFunction = iteratorFunc;
+            break;
+        case PropertyIds::keys:
+            library->arrayPrototypeKeysFunction = iteratorFunc;
+            break;
+        }
+    }
+
     Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_RegisterChakraLibraryFunction(RecyclableObject* function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
@@ -338,9 +356,9 @@ namespace Js
             library->AddMember(prototype, aliasFunctionIdentifier, scriptFunction);
         }
 
-        if (functionIdentifier == PropertyIds::values)
+        if (prototype == library->arrayPrototype)
         {
-            library->arrayPrototypeDefaultValuesFunction = func;
+            RecordDefaultIteratorFunctions(functionIdentifier, scriptContext, scriptFunction);
         }
 
         //Don't need to return anything
