@@ -418,7 +418,6 @@ namespace Js
         Field(JavascriptFunction*) objectToStringFunction;
 
 #ifdef ENABLE_JS_BUILTINS
-        Field(JavascriptFunction*) arrayPrototypeDefaultValuesFunction;
         Field(JavascriptFunction*) isArrayFunction;
 #endif
 

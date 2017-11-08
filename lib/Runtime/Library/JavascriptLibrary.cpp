@@ -1440,7 +1440,6 @@ namespace Js
 
         JsBuiltInEngineInterfaceExtensionObject* builtInExtension = RecyclerNew(recycler, JsBuiltInEngineInterfaceExtensionObject, scriptContext);
         engineInterfaceObject->SetEngineExtension(EngineInterfaceExtensionKind_JsBuiltIn, builtInExtension);
-        this->arrayPrototypeDefaultValuesFunction = nullptr;
         this->isArrayFunction = this->DefaultCreateFunction(&JavascriptArray::EntryInfo::IsArray, 1, nullptr, nullptr, PropertyIds::isArray);
 #endif
 
@@ -1644,10 +1643,8 @@ namespace Js
 #ifdef ENABLE_JS_BUILTINS
         if (scriptContext->IsJsBuiltInEnabled())
         {
-            if (JavascriptFunction::Is(function))
-            {
-                return JavascriptFunction::FromVar(function)->IsJsBuiltIn();
-            }
+            scriptContext->GetLibrary()->EnsureBuiltInEngineIsReady();
+            return JavascriptFunction::Is(function) && JavascriptFunction::FromVar(function)->IsJsBuiltIn();
         }
 #endif
         JavascriptMethod method = function->GetEntryPoint();
@@ -1677,7 +1674,7 @@ namespace Js
             }
             else
             {
-                arrayPrototypeKeysFunction = JavascriptFunction::FromVar(JavascriptOperators::OP_GetProperty(this->arrayPrototype, Js::PropertyIds::keys, scriptContext));
+                this->EnsureBuiltInEngineIsReady();
             }
 #endif
         }
@@ -1697,7 +1694,7 @@ namespace Js
             }
             else
             {
-                arrayPrototypeValuesFunction = JavascriptFunction::FromVar(JavascriptOperators::OP_GetProperty(this->arrayPrototype, Js::PropertyIds::values, scriptContext));
+                this->EnsureBuiltInEngineIsReady();
             }
 #endif
         }
@@ -1717,7 +1714,7 @@ namespace Js
             }
             else
             {
-                arrayPrototypeEntriesFunction = JavascriptFunction::FromVar(JavascriptOperators::OP_GetProperty(this->arrayPrototype, Js::PropertyIds::entries, scriptContext));
+                this->EnsureBuiltInEngineIsReady();
             }
 #endif
         }
@@ -6336,14 +6333,8 @@ namespace Js
 
         Recycler *recycler = this->GetRecycler();
 
-#ifdef ENABLE_JS_BUILTINS
-        if (scriptContext->IsJsBuiltInEnabled())
-        {
-            this->EnsureBuiltInEngineIsReady();
-        }
-#else
         EnsureArrayPrototypeValuesFunction(); //InitializeArrayPrototype can be delay loaded, which could prevent us from access to array.prototype.values
-#endif
+
         DynamicType * argumentsType = nullptr;
 
         if (isStrictMode)
