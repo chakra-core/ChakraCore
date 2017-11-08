@@ -482,45 +482,36 @@ int EncoderMD::EmitMovConstant(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emi
 {
     IR::Opnd* dst = instr->GetDst();
     IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* src2 = instr->GetSrc2();
     Assert(dst->IsRegOpnd());
-    Assert(src1->IsImmediateOpnd());
+    Assert(src1->IsImmediateOpnd() || src1->IsLabelOpnd());
+    Assert(src2->IsIntConstOpnd());
 
     int size = dst->GetSize();
     Assert(size == 4 || size == 8);
 
-    IntConstType immediate = src1->GetImmediateValue(instr->m_func);
-    int shift = 0;
-    while ((immediate & 0xFFFF) != immediate)
-    {
-        immediate = ULONG64(immediate) >> 16;
-        shift += 16;
-    }
+    uint32 shift = src2->AsIntConstOpnd()->AsUint32();
     Assert(shift < 32 || size == 8);
+    Assert(shift == 0 || shift == 16 || (size == 8 && (shift == 32 || shift == 48)));
 
-    if (size == 8)
+    IntConstType immediate = 0;
+    if (src1->IsImmediateOpnd())
     {
-        return emitter64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), ULONG(immediate), shift);
+        immediate = src1->GetImmediateValue(instr->m_func);
     }
     else
     {
-        return emitter(Emitter, this->GetRegEncode(dst->AsRegOpnd()), ULONG(immediate), shift);
+        Assert(src1->IsLabelOpnd());
+        IR::LabelInstr* labelInstr = src1->AsLabelOpnd()->GetLabel();
+
+        // Here the LabelOpnd's offset is a post-lower immediate value; we need
+        // to mask in just the part indicated by our own shift amount, and send
+        // that along as our immediate load value.
+        uintptr_t fullvalue = labelInstr->GetOffset();
+        immediate = (fullvalue & (0xffff << shift)) >> shift;
     }
-}
 
-template<typename _Emitter, typename _Emitter64>
-int EncoderMD::EmitMovConstantKnownShift(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitter emitter, _Emitter64 emitter64, uint32 shift)
-{
-    IR::Opnd* dst = instr->GetDst();
-    IR::Opnd* src1 = instr->GetSrc1();
-    Assert(dst->IsRegOpnd());
-    Assert(src1->IsImmediateOpnd());
-
-    int size = dst->GetSize();
-    Assert(size == 4 || size == 8);
-
-    IntConstType immediate = src1->GetImmediateValue(instr->m_func);
     Assert((immediate & 0xFFFF) == immediate);
-    Assert(shift == 0 || shift == 16 || (size == 8 && (shift == 32 || shift == 48)));
 
     if (size == 8)
     {
@@ -963,38 +954,6 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
 
     case Js::OpCode::MOVZ:
         bytes = this->EmitMovConstant(Emitter, instr, EmitMovz, EmitMovz64);
-        break;
-
-    case Js::OpCode::MOVK_SHIFT:
-    {
-        Assert(instr->GetSrc1()->IsLabelOpnd());
-        Assert(instr->GetSrc2()->IsIntConstOpnd());
-        IR::LabelInstr* labelInstr = instr->GetSrc1()->AsLabelOpnd()->GetLabel();
-        uint32 shift = instr->GetSrc2()->AsIntConstOpnd()->AsUint32();
-
-        // We're going to drop src2, set src1 to just the masked bits from the label
-        // offset (so we don't even need to go into relocation), and emit it.
-        instr->UnlinkSrc2();
-        uintptr_t fullvalue = labelInstr->GetOffset();
-        instr->ReplaceSrc1(IR::IntConstOpnd::New((fullvalue & (0xffff << shift)) >> shift, IRType::TyUint16, instr->m_func, true));
-        bytes = this->EmitMovConstantKnownShift(Emitter, instr, EmitMovk, EmitMovk64, shift);
-    }
-        break;
-
-    case Js::OpCode::MOVZ_SHIFT:
-    {
-        Assert(instr->GetSrc1()->IsLabelOpnd());
-        Assert(instr->GetSrc2()->IsIntConstOpnd());
-        IR::LabelInstr* labelInstr = instr->GetSrc1()->AsLabelOpnd()->GetLabel();
-        uint32 shift = instr->GetSrc2()->AsIntConstOpnd()->AsUint32();
-
-        // We're going to drop src2, set src1 to just the masked bits from the label
-        // offset (so we don't even need to go into relocation), and emit it.
-        instr->UnlinkSrc2();
-        uintptr_t fullvalue = labelInstr->GetOffset();
-        instr->ReplaceSrc1(IR::IntConstOpnd::New((fullvalue & (0xffff << shift)) >> shift, IRType::TyUint16, instr->m_func, true));
-        bytes = this->EmitMovConstantKnownShift(Emitter, instr, EmitMovz, EmitMovz64, shift);
-    }
         break;
 
     case Js::OpCode::MRS_FPCR:
