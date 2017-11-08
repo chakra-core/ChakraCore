@@ -6275,7 +6275,7 @@ LowererMD::EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32, bool isHelper)
 
     // TODO: Fix bad lowering. We shouldn't get TyVars here.
     // Assert(instrLoad->GetSrc1()->GetType() == TyInt32);
-    src1->SetType(TyInt32);
+    src1->SetType(isFromUint32 ? TyUint32 : TyInt32);
 
     if (src1->IsTaggedInt())
     {
@@ -7306,7 +7306,7 @@ LowererMD::EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
     IR::Instr *instr;
 
     Assert(dst->IsRegOpnd() && dst->IsFloat64());
-    Assert(src->IsRegOpnd() && src->IsIntegral32());
+    Assert(src->IsRegOpnd() && src->IsUInt32());
 
     // Convert to Float
     instr = IR::Instr::New(Js::OpCode::FCVT, dst, src, this->m_func);

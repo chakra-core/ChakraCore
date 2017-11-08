@@ -25391,7 +25391,7 @@ Lowerer::LoadIndexFromLikelyFloat(
 
     //Convert uint32 to back to float for comparison that conversion was indeed successful
     IR::RegOpnd *floatOpndFromUint32 = IR::RegOpnd::New(TyFloat64, func);
-    m_lowererMD.EmitUIntToFloat(floatOpndFromUint32, int32IndexOpnd, insertBeforeInstr);
+    m_lowererMD.EmitUIntToFloat(floatOpndFromUint32, int32IndexOpnd->UseWithNewType(TyUint32, this->m_func), insertBeforeInstr);
 
     // compare with float from the original indexOpnd, we need floatIndex == (float64)(uint32)floatIndex
     InsertCompareBranch(floatOpndFromUint32, floatIndexOpnd, Js::OpCode::BrNeq_A, notIntLabel, insertBeforeInstr, false);
