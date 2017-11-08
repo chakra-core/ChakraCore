@@ -317,6 +317,8 @@ LowererMD::LowerCall(IR::Instr * callInstr, Js::ArgSlot argCount)
         movInstr->GetSrc1()->AsRegOpnd()->SetReg(returnReg);
 
         retInstr = movInstr;
+
+        Legalize(retInstr);
     }
 
     //
