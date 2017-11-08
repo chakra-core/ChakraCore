@@ -25003,6 +25003,21 @@ Lowerer::InsertBitTestBranch(IR::Opnd * bitMaskOpnd, IR::Opnd * bitIndex, bool j
     InsertMove(lenBitOpnd, IR::IntConstOpnd::New(1, TyUint32, this->m_func), insertBeforeInstr);
     InsertShift(Js::OpCode::Shl_I4, false, lenBitOpnd, lenBitOpnd, bitIndex, insertBeforeInstr);
     InsertTestBranch(lenBitOpnd, bitMaskOpnd, jumpIfBitOn? Js::OpCode::BrNeq_A :Js::OpCode::BrEq_A, targetLabel, insertBeforeInstr);
+#elif defined(_M_ARM64)
+    // ARM64 don't have bit test instruction, but can use test branch. TBZ/TBNZ are limited to immediates < 64 so
+    // rather than shifting 1 to the bit index, shift the mask down to put that bit's mask value in the low bit.
+    // MOV r1, bitMask
+    // SHR r1, bitIndex
+    // TBZ/TBNZ r1, 1, targetLabel
+    Func * func = this->m_func;
+    IR::RegOpnd * maskOpnd = IR::RegOpnd::New(TyUint32, func);
+    InsertMove(maskOpnd, bitMaskOpnd, insertBeforeInstr);
+    InsertShift(Js::OpCode::Shr_I4, false, maskOpnd, maskOpnd, bitIndex, insertBeforeInstr);
+
+    IR::Instr* branchInstr = InsertBranch(jumpIfBitOn ? Js::OpCode::TBZ : Js::OpCode::TBNZ, targetLabel, insertBeforeInstr);
+    branchInstr->SetSrc1(maskOpnd);
+    branchInstr->SetSrc2(IR::IntConstOpnd::New(1, TyUint32, this->m_func));
+    
 #else
     AssertMsg(false, "Not implemented");
 #endif
