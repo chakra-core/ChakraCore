@@ -38,6 +38,10 @@ replace(/b/ /*lastIndex=0*/ , "abc", "$12345678");
 "a$12345678c"
 r.lastIndex=0
 RegExp.${_,1,...,9}=["abc","","","","","","","","",""]
+replace(/([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])([ab])/ /*lastIndex=0*/ , "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "$100");
+"a0"
+r.lastIndex=0
+RegExp.${_,1,...,9}=["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","a","a","a","a","a","a","a","a","a"]
 
 replace(/b/ /*lastIndex=0*/ , "abc", []);
 "ac"
