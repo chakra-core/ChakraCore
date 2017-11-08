@@ -70,6 +70,11 @@ public:
 
         return reinterpret_cast<JITJavascriptString*>(var);
     }
+
+    static void ShareStringBuffer(JITJavascriptString * leftString, JITJavascriptString * rightString)
+    {
+        // no-op
+    }
 };
 
 class JITJavascriptNumber : JITRecyclableObject
