@@ -748,8 +748,8 @@ SCCLiveness::InsertLifetime(StackSym *stackSym, RegNum reg, IR::Instr *const cur
 bool
 SCCLiveness::FoldIndir(IR::Instr *instr, IR::Opnd *opnd)
 {
-#ifdef _M_ARM
-    // Can't be folded on ARM
+#ifdef _M_ARM32_OR_ARM64
+    // Can't be folded on ARM or ARM64
     return false;
 #else
     IR::IndirOpnd *indir = opnd->AsIndirOpnd();
