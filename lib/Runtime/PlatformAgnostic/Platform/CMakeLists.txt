@@ -8,7 +8,6 @@ set(PL_SOURCE_FILES
   Linux/UnicodeText.ICU.cpp
   Linux/NumbersUtility.cpp
   Linux/Thread.cpp
-  Linux/PerfTrace.cpp
   Common/Trace.cpp
   Common/SystemInfo.Common.cpp
   )
@@ -16,11 +15,13 @@ set(PL_SOURCE_FILES
 if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
 set(PL_SOURCE_FILES ${PL_SOURCE_FILES}
   Linux/SystemInfo.cpp
+  Linux/PerfTrace.cpp
   )
 elseif(CC_TARGET_OS_OSX)
 set(PL_SOURCE_FILES ${PL_SOURCE_FILES}
   Unix/AssemblyCommon.cpp
   Unix/SystemInfo.cpp
+# Linux/PerfTrace.cpp # TODO : implement for OSX?
   )
 endif()
 
