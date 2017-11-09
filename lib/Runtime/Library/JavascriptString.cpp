@@ -1347,12 +1347,20 @@ case_2:
             EngineInterfaceObject* nativeEngineInterfaceObj = scriptContext->GetLibrary()->GetEngineInterfaceObject();
             if (nativeEngineInterfaceObj)
             {
-                IntlEngineInterfaceExtensionObject* intlExtensionObject = static_cast<IntlEngineInterfaceExtensionObject*>(nativeEngineInterfaceObj->GetEngineExtension(EngineInterfaceExtensionKind_Intl));
+                IntlEngineInterfaceExtensionObject* intlExtensionObject = static_cast<IntlEngineInterfaceExtensionObject*>(
+                    nativeEngineInterfaceObj->GetEngineExtension(EngineInterfaceExtensionKind_Intl));
                 if (args.Info.Count == 2)
                 {
                     auto undefined = scriptContext->GetLibrary()->GetUndefined();
                     CallInfo toPass(callInfo.Flags, 7);
-                    return intlExtensionObject->EntryIntl_CompareString(function, toPass, undefined, pThis, pThat, undefined, undefined, undefined, undefined);
+                    ThreadContext *threadContext = scriptContext->GetThreadContext();
+                    return threadContext->ExecuteImplicitCall(function, ImplicitCall_Accessor,
+                        [threadContext, intlExtensionObject, function, toPass, undefined, pThis, pThat]() -> Var
+                        {
+                            return CALL_ENTRYPOINT(threadContext, intlExtensionObject->EntryIntl_CompareString,
+                                function, toPass, undefined, pThis, pThat, undefined, undefined, undefined, undefined);
+                        }
+                    );
                 }
                 else
                 {
