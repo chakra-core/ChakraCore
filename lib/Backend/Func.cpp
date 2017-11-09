@@ -989,7 +989,6 @@ void Func::Int64SplitExtendLoopLifetime(Loop* loop)
 }
 #endif
 
-// ToDo (SaAgarwa) Enabled GetLocalsPointer for AMR64 as well. Validate is the implementation correct for ARM64
 #if defined(_M_ARM32_OR_ARM64)
 
 RegNum
