@@ -53,6 +53,47 @@
 
     IMPORT  __chkstk
     EXPORT  arm64_CallEhFrame
+    EXPORT  arm64_CallCatch
+
+    MACRO
+    STANDARD_PROLOG
+
+    ;
+    ; Generate a prolog that will match the original function's, with all
+    ; parameters homed and all non-volatile registers saved:
+    ;
+    ;    Size  Offset
+    ;    ----  ------ 
+    ;     64    176    Homed parameters
+    ;     16    160    Saved FP/LR
+    ;     16    144    ArgOut / stack function list
+    ;     80     64    Saved x19-x28
+    ;     64      0    Saved d8-d15
+    ;  = 240 total
+    ;
+    ; The try/catch/finally blocks will jump to the epilog code skipping
+    ; the instruction that deallocates the locals, in order to allow these
+    ; thunks to skip re-allocating locals space.
+    ;
+
+    PROLOG_SAVE_REG_PAIR d8, d9, #-240!
+    PROLOG_SAVE_REG_PAIR d10, d11, #16
+    PROLOG_SAVE_REG_PAIR d12, d13, #32
+    PROLOG_SAVE_REG_PAIR d14, d15, #48
+    PROLOG_SAVE_REG_PAIR x19, x20, #64
+    PROLOG_SAVE_REG_PAIR x21, x22, #80
+    PROLOG_SAVE_REG_PAIR x23, x24, #96
+    PROLOG_SAVE_REG_PAIR x25, x26, #112
+    PROLOG_SAVE_REG_PAIR x27, x28, #128
+    PROLOG_SAVE_REG_PAIR fp, lr, #160
+    
+    stp     xzr, xzr, [sp, #144]
+    stp     x0, x1, [sp, #176]
+    stp     x2, x3, [sp, #192]
+    stp     x4, x5, [sp, #208]
+    stp     x6, x7, [sp, #224]
+
+    MEND
 
     TEXTAREA
 
@@ -64,44 +105,11 @@
     ; x2 -- locals pointer
     ; x3 -- size of stack args area
 
-    ; Home params and save registers
-    PROLOG_SAVE_REG_PAIR fp, lr, #-80!
-    PROLOG_NOP stp x0, x1, [sp, #16]
-    PROLOG_NOP stp x2, x3, [sp, #32]
-    PROLOG_NOP stp x4, x5, [sp, #48]
-    PROLOG_NOP stp x6, x7, [sp, #64]
-    PROLOG_STACK_ALLOC (10*8 + 8*16 + 32)
-    PROLOG_NOP stp q8, q9, [sp, #(16 + 0*16)]
-    PROLOG_NOP stp q10, q11, [sp, #(16 + 2*16)]
-    PROLOG_NOP stp q12, q13, [sp, #(16 + 4*16)]
-    PROLOG_NOP stp q14, q15, [sp, #(16 + 6*16)]
-    PROLOG_SAVE_REG_PAIR x19, x20, #(16 + 8*16 + 0*8)
-    PROLOG_SAVE_REG_PAIR x21, x22, #(16 + 8*16 + 2*8)
-    PROLOG_SAVE_REG_PAIR x23, x24, #(16 + 8*16 + 4*8)
-    PROLOG_SAVE_REG_PAIR x25, x26, #(16 + 8*16 + 6*8)
-    PROLOG_SAVE_REG_PAIR x27, x28, #(16 + 8*16 + 8*8)
+    STANDARD_PROLOG
 
-    ; Save a pointer to the saved registers
-    mov     x16, sp
-    str     x16, [sp, #0]
-
-    ; Set up the frame pointer and locals pointer
+    ; Set up the locals pointer and frame pointer
     mov     x28, x2
     mov     fp, x1
-
-    ; Allocate the arg out area, calling chkstk if necessary
-    cmp     x3, #4095
-    bhi     chkstk_call
-    sub     sp, sp, x3
-
-    ; Thunk to the jitted code (and don't return)
-    br      x0
-
-chkstk_call
-    ; Call chkstk, passing a size/16 count in x15
-    lsr     x15, x3, #4
-    bl      __chkstk
-    sub     sp, sp, x15, lsl #4
 
     ; Thunk to the jitted code (and don't return)
     br      x0
@@ -123,45 +131,12 @@ chkstk_call
     ; x3 -- size of stack args area
     ; x4 -- exception object
 
-    ; Home params and save registers
-    PROLOG_SAVE_REG_PAIR fp, lr, #-80!
-    PROLOG_NOP stp x0, x1, [sp, #16]
-    PROLOG_NOP stp x2, x3, [sp, #32]
-    PROLOG_NOP stp x4, x5, [sp, #48]
-    PROLOG_NOP stp x6, x7, [sp, #64]
-    PROLOG_STACK_ALLOC (10*8 + 8*16 + 32)
-    PROLOG_NOP stp q8, q9, [sp, #(16 + 0*16)]
-    PROLOG_NOP stp q10, q11, [sp, #(16 + 2*16)]
-    PROLOG_NOP stp q12, q13, [sp, #(16 + 4*16)]
-    PROLOG_NOP stp q14, q15, [sp, #(16 + 6*16)]
-    PROLOG_SAVE_REG_PAIR x19, x20, #(16 + 8*16 + 0*8)
-    PROLOG_SAVE_REG_PAIR x21, x22, #(16 + 8*16 + 2*8)
-    PROLOG_SAVE_REG_PAIR x23, x24, #(16 + 8*16 + 4*8)
-    PROLOG_SAVE_REG_PAIR x25, x26, #(16 + 8*16 + 6*8)
-    PROLOG_SAVE_REG_PAIR x27, x28, #(16 + 8*16 + 8*8)
+    STANDARD_PROLOG
 
-    ; Save a pointer to the saved registers
-    mov     x16, sp
-    str     x16, [sp, #0]
-
-    ; Set up the frame pointer and locals pointer
+    ; Set up the locals pointer and frame pointer and catch object handler
     mov     x28, x2
     mov     fp, x1
     mov     x1, x4
-
-    ; Allocate the arg out area, calling chkstk if necessary
-    cmp     x3, #4095
-    bgt     chkstk_call_catch
-    sub     sp, sp, x3
-
-    ; Thunk to the jitted code (and don't return)
-    br      x0
-
-chkstk_call_catch
-    ; Call chkstk, passing a size/16 count in x15
-    lsr     x15, x3, #4
-    bl      __chkstk
-    sub     sp, sp, x15, lsl #4
 
     ; Thunk to the jitted code (and don't return)
     br      x0

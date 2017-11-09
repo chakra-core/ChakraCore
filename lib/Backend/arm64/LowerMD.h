@@ -213,7 +213,7 @@ public:
             IR::Instr *         LowerTry(IR::Instr *instr, IR::JnHelperMethod helperMethod);
             IR::Instr *         LowerLeave(IR::Instr *instr, IR::LabelInstr * targetInstr, bool fromFinalLower, bool isOrphanedLeave = false);
             IR::Instr *         LowerLeaveNull(IR::Instr *instr);
-            IR::LabelInstr *    EnsureEpilogLabel();
+            IR::LabelInstr *    EnsureEHEpilogLabel();
             IR::Instr *         LowerEHRegionReturn(IR::Instr * insertBeforeInstr, IR::Opnd * targetOpnd);
             void                FinishArgLowering();
             IR::Opnd *          GetOpndForArgSlot(Js::ArgSlot argSlot, IR::Opnd * argOpnd = nullptr);
@@ -231,6 +231,7 @@ public:
             void                GenerateFastInlineBuiltInMathMinMax(IR::Instr *callInstr);
             static RegNum       GetRegStackPointer() { return RegSP; }
             static RegNum       GetRegFramePointer() { return RegFP; }
+
             static RegNum       GetRegReturn(IRType type) { return IRType_IsFloat(type) ? RegNOREG : RegR0; }
             static RegNum       GetRegArgI4(int32 argNum) { return RegNOREG; }
             static RegNum       GetRegArgR8(int32 argNum) { return RegNOREG; }
