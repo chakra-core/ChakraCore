@@ -1350,7 +1350,7 @@ dbl_align:
 #elif defined(_M_ARM64)
     extern "C"
     {
-        extern Var arm64_CallFunction(JavascriptFunction* function, CallInfo info, Var* values, JavascriptMethod entryPoint);
+        extern Var arm64_CallFunction(JavascriptFunction* function, CallInfo info, uint argCount, Var* values, JavascriptMethod entryPoint);
     }
 
     template <bool doStackProbe>
@@ -1369,7 +1369,7 @@ dbl_align:
 #endif
         Js::Var varResult;
 
-        varResult = arm64_CallFunction((JavascriptFunction*)function, args.Info, args.Values, entryPoint);
+        varResult = arm64_CallFunction((JavascriptFunction*)function, args.Info, argCount, args.Values, entryPoint);
 
         return varResult;
     }
