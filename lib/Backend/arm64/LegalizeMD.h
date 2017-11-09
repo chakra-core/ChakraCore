@@ -87,6 +87,18 @@ private:
     static void LegalizeImmed(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, IntConstType immed, LegalForms forms, bool fPostRegAlloc);
     static void LegalizeLabelOpnd(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, bool fPostRegAlloc);
 
+    static inline uint32 ShiftTo16(UIntConstType* immed)
+    {
+        uint32 shift = 0;
+        while (((*immed) & 0xffff) != *immed)
+        {
+            (*immed) >>= 16;
+            shift += 16;
+        }
+        Assert(shift == 0 || shift == 16 || shift == 32 || shift == 48);
+        return shift;
+    }
+
     static void LegalizeLDIMM(IR::Instr * instr, IntConstType immed);
     static void LegalizeLdLabel(IR::Instr * instr, IR::Opnd * opnd);
     static IR::Instr * GenerateLDIMM(IR::Instr * instr, uint opndNum, RegNum scratchReg, bool fPostRegAlloc);
