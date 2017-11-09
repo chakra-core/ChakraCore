@@ -82,7 +82,15 @@ namespace Js
             }
             case 1:
             {
-                return library->GetCharStringCache().GetStringForChar((char16(*cString)));
+                // If the high bit of the byte is set, it cannot be a complete utf8 codepoint, so fall back to the unicode replacement char
+                if ((*cString & 0x80) != 0x80)
+                {
+                    return library->GetCharStringCache().GetStringForChar((char16(*cString)));
+                }
+                else
+                {
+                    return library->GetCharStringCache().GetStringForChar(0xFFFD);
+                }
             }
             default:
                 break;
