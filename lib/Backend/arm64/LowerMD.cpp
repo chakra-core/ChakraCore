@@ -1050,75 +1050,87 @@ ARM64StackLayout::ARM64StackLayout(Func* func)
     Assert(m_localsArea % 16 == 0);
     Assert(m_argSlotCount % 2 == 0);
 
-    // Determine integer register saves. Since registers are always saved in pairs, mark both registers
-    // in each pair as being saved even if only one is actually used.
-    for (RegNum curReg = FIRST_CALLEE_SAVED_GP_REG; curReg <= LAST_CALLEE_SAVED_GP_REG; curReg = RegNum(curReg + 2))
+    // If there is a try, behave specially because the try/catch/finally helpers assume a
+    // fully-populated stack layout.
+    if (this->m_hasTry)
     {
-        Assert(LinearScan::IsCalleeSaved(curReg));
-        RegNum nextReg = RegNum(curReg + 1);
-        Assert(LinearScan::IsCalleeSaved(nextReg));
-        if (func->m_regsUsed.Test(curReg) || func->m_regsUsed.Test(nextReg))
-        {
-            this->m_savedRegisters.SetRange(curReg, 2);
-        }
+        this->m_hasCalls = true;
+        this->m_savedRegisters.SetRange(FIRST_CALLEE_SAVED_GP_REG, CALLEE_SAVED_GP_REG_COUNT);
+        this->m_savedDoubles.SetRange(FIRST_CALLEE_SAVED_DBL_REG, CALLEE_SAVED_DOUBLE_REG_COUNT);
+        this->m_homedParams.SetRange(0, NUM_INT_ARG_REGS);
     }
 
-    // Determine double register saves. Since registers are always saved in pairs, mark both registers
-    // in each pair as being saved even if only one is actually used.
-    for (RegNum curReg = FIRST_CALLEE_SAVED_DBL_REG; curReg <= LAST_CALLEE_SAVED_DBL_REG; curReg = RegNum(curReg + 2))
-    {
-        Assert(LinearScan::IsCalleeSaved(curReg));
-        RegNum nextReg = RegNum(curReg + 1);
-        Assert(LinearScan::IsCalleeSaved(nextReg));
-        if (func->m_regsUsed.Test(curReg) || func->m_regsUsed.Test(nextReg))
-        {
-            this->m_savedDoubles.SetRange(curReg, 2);
-        }
-    }
-
-    // Determine if there are nested calls.
-    //
-    // If the function has a try, we need to have the same register saves in the prolog as the 
-    // arm64_CallEhFrame helper, so that we can use the same epilog. So always allocate a slot 
-    // for the stack nested func here whether we actually do have any stack nested func or not
-    // TODO-STACK-NESTED-FUNC:  May be use a different arm64_CallEhFrame for when we have 
-    // stack nested func?
-    //
-    // Note that this->TotalStackSize() will not include the homed parameters yet, so we add in
-    // the worst case assumption (homing all NUM_INT_ARG_REGS).
-    this->m_hasCalls = this->m_hasTry || 
-        func->GetHasCalls() ||
-        func->HasAnyStackNestedFunc() || 
-        !LowererMD::IsSmallStack(this->TotalStackSize() + NUM_INT_ARG_REGS * MachRegInt);
-
-    // Home the params. This is done to enable on-the-fly creation of the arguments object,
-    // Dyno bailout code, etc. For non-global functions, that means homing all the param registers
-    // (since we have to assume they all have valid parameters). For the global function,
-    // just home x0 (function object) and x1 (callinfo), which the runtime can't get by any other means.
-    // Note: home all the param registers if there's a try, because that's what the try helpers do.
-    int homedParams = MIN_HOMED_PARAM_REGS;
-    if (func->IsLoopBody() && !this->m_hasTry)
-    {
-        // Jitted loop body takes only one "user" param: the pointer to the local slots.
-        homedParams += 1;
-    }
-    else if (!this->m_hasCalls)
-    {
-        // A leaf function (no calls of any kind, including helpers) may still need its params, or, if it
-        // has none, may still need the function object and call info.
-        homedParams += func->GetInParamsCount();
-    }
+    // Otherwise, be more selective
     else
     {
-        homedParams = NUM_INT_ARG_REGS;
-    }
+        // Determine integer register saves. Since registers are always saved in pairs, mark both registers
+        // in each pair as being saved even if only one is actually used.
+        for (RegNum curReg = FIRST_CALLEE_SAVED_GP_REG; curReg <= LAST_CALLEE_SAVED_GP_REG; curReg = RegNum(curReg + 2))
+        {
+            Assert(LinearScan::IsCalleeSaved(curReg));
+            RegNum nextReg = RegNum(curReg + 1);
+            Assert(LinearScan::IsCalleeSaved(nextReg));
+            if (func->m_regsUsed.Test(curReg) || func->m_regsUsed.Test(nextReg))
+            {
+                this->m_savedRegisters.SetRange(curReg, 2);
+            }
+        }
 
-    // Round up to an even number to keep stack alignment
-    if (homedParams % 2 != 0)
-    {
-        homedParams += 1;
+        // Determine double register saves. Since registers are always saved in pairs, mark both registers
+        // in each pair as being saved even if only one is actually used.
+        for (RegNum curReg = FIRST_CALLEE_SAVED_DBL_REG; curReg <= LAST_CALLEE_SAVED_DBL_REG; curReg = RegNum(curReg + 2))
+        {
+            Assert(LinearScan::IsCalleeSaved(curReg));
+            RegNum nextReg = RegNum(curReg + 1);
+            Assert(LinearScan::IsCalleeSaved(nextReg));
+            if (func->m_regsUsed.Test(curReg) || func->m_regsUsed.Test(nextReg))
+            {
+                this->m_savedDoubles.SetRange(curReg, 2);
+            }
+        }
+
+        // Determine if there are nested calls.
+        //
+        // If the function has a try, we need to have the same register saves in the prolog as the 
+        // arm64_CallEhFrame helper, so that we can use the same epilog. So always allocate a slot 
+        // for the stack nested func here whether we actually do have any stack nested func or not
+        // TODO-STACK-NESTED-FUNC:  May be use a different arm64_CallEhFrame for when we have 
+        // stack nested func?
+        //
+        // Note that this->TotalStackSize() will not include the homed parameters yet, so we add in
+        // the worst case assumption (homing all NUM_INT_ARG_REGS).
+        this->m_hasCalls = func->GetHasCalls() ||
+            func->HasAnyStackNestedFunc() || 
+            !LowererMD::IsSmallStack(this->TotalStackSize() + NUM_INT_ARG_REGS * MachRegInt);
+
+        // Home the params. This is done to enable on-the-fly creation of the arguments object,
+        // Dyno bailout code, etc. For non-global functions, that means homing all the param registers
+        // (since we have to assume they all have valid parameters). For the global function,
+        // just home x0 (function object) and x1 (callinfo), which the runtime can't get by any other means.
+        int homedParams = MIN_HOMED_PARAM_REGS;
+        if (func->IsLoopBody())
+        {
+            // Jitted loop body takes only one "user" param: the pointer to the local slots.
+            homedParams += 1;
+        }
+        else if (!this->m_hasCalls)
+        {
+            // A leaf function (no calls of any kind, including helpers) may still need its params, or, if it
+            // has none, may still need the function object and call info.
+            homedParams += func->GetInParamsCount();
+        }
+        else
+        {
+            homedParams = NUM_INT_ARG_REGS;
+        }
+
+        // Round up to an even number to keep stack alignment
+        if (homedParams % 2 != 0)
+        {
+            homedParams += 1;
+        }
+        this->m_homedParams.SetRange(0, (homedParams < NUM_INT_ARG_REGS) ? homedParams : NUM_INT_ARG_REGS);
     }
-    this->m_homedParams.SetRange(0, (homedParams < NUM_INT_ARG_REGS) ? homedParams : NUM_INT_ARG_REGS);
 }
 
 IR::Instr *
@@ -1309,16 +1321,6 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         }
     }
 
-    // Compute the stack save register value if there is a try
-    if (this->m_func->HasTry())
-    {
-        // SUB EH_STACK_SAVE_REG, fp, #delta
-        IR::RegOpnd* ehOpnd = IR::RegOpnd::New(nullptr, EH_STACK_SAVE_REG, TyMachReg, this->m_func);
-        IR::Instr * instrSub = IR::Instr::New(Js::OpCode::SUB, ehOpnd, fpOpnd, 
-                IR::IntConstOpnd::New(layout.FpLrOffset() - layout.RegisterAreaOffset(), TyMachReg, this->m_func), this->m_func);
-        insertInstr->InsertBefore(instrSub);
-    }
-
     // Compute the locals pointer if needed
     RegNum localsReg = this->m_func->GetLocalsPointer();
     if (localsReg != RegSP)
@@ -1357,32 +1359,37 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
     Assert(layout.TotalStackSize() % 16 == 0);
 
     // Determine the 1 or 2 stack allocation sizes
-    ULONG stackAllocation1 = (layout.TotalStackSize() < 512) ? layout.TotalStackSize() : layout.RegisterAreaSize();
+    // Note that on exit, if there is a try, we always do a 2-step deallocation because the
+    // epilog is re-used by the try/catch/finally code
+    ULONG stackAllocation1 = (layout.TotalStackSize() < 512 && !layout.HasTry()) ? layout.TotalStackSize() : layout.RegisterAreaSize();
     ULONG stackAllocation2 = layout.TotalStackSize() - stackAllocation1;
 
     // Mark the start of the epilog
-    IR::LabelInstr* epilogStartLabel = this->EnsureEpilogLabel();
+    IR::LabelInstr *epilogStartLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+    exitInstr->InsertBefore(epilogStartLabel);
     this->m_func->m_unwindInfo.SetFunctionOffsetLabel(UnwindEpilogStart, epilogStartLabel);
 
     IR::RegOpnd *spOpnd = IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func);
     IR::RegOpnd *fpOpnd = IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func);
 
-    // Undo the last stack allocation, unless we have calls (in which case we recover SP from FP)
-    if (stackAllocation2 > 0 && !layout.HasCalls())
+    // Undo the last stack allocation
+    if (stackAllocation2 > 0)
     {
         GenerateStackDeallocation(exitInstr, stackAllocation2);
+    }
+
+    // Exception handling regions exit via the same epilog just skipping the stackAllocation2 recovery
+    IR::LabelInstr* ehEpilogLabel = this->EnsureEHEpilogLabel();
+    if (ehEpilogLabel != nullptr)
+    {
+        exitInstr->InsertBefore(ehEpilogLabel);
     }
 
     // Recover FP and LR
     if (layout.HasCalls())
     {
-        // SUB sp, fp, #offs
-        ULONG fpOffset = layout.FpLrOffset() - stackAllocation2;
-        IR::Instr * instrSub = IR::Instr::New(Js::OpCode::SUB, spOpnd, fpOpnd, IR::IntConstOpnd::New(fpOffset, TyMachReg, this->m_func), this->m_func);
-        exitInstr->InsertBefore(instrSub);
-        Legalize(instrSub);
-
         // LDP fp, lr, [sp, #offs]
+        ULONG fpOffset = layout.FpLrOffset() - stackAllocation2;
         IR::Instr * instrLdp = IR::Instr::New(Js::OpCode::LDP, fpOpnd,
             IR::IndirOpnd::New(spOpnd, fpOffset, TyMachReg, this->m_func),
             IR::RegOpnd::New(RegLR, TyMachReg, this->m_func), this->m_func);
@@ -1564,7 +1571,7 @@ LowererMD::LowerEHRegionReturn(IR::Instr * insertBeforeInstr, IR::Opnd * targetO
     // Load the continuation address into the return register.
     Lowerer::InsertMove(retReg, targetOpnd, insertBeforeInstr);
 
-    IR::LabelInstr *epilogLabel = this->EnsureEpilogLabel();
+    IR::LabelInstr *epilogLabel = this->EnsureEHEpilogLabel();
     IR::BranchInstr *jmpInstr = IR::BranchInstr::New(Js::OpCode::B, epilogLabel, this->m_func);
     insertBeforeInstr->InsertBefore(jmpInstr);
 
@@ -1692,7 +1699,7 @@ LowererMD::LoadStackArgPtr(IR::Instr * instr)
     }
     else
     {
-        // Get the args pointer relative to r11. We assume that r11 is set up, since we'll only be looking
+        // Get the args pointer relative to fp. We assume that fp is set up, since we'll only be looking
         // for the stack arg pointer in a non-leaf.
 
         // dst = ADD r11, "this" offset + sizeof(var)
@@ -6657,22 +6664,14 @@ LowererMD::GetImplicitParamSlotSym(Js::ArgSlot argSlot, Func * func)
 }
 
 IR::LabelInstr *
-LowererMD::EnsureEpilogLabel()
+LowererMD::EnsureEHEpilogLabel()
 {
     if (this->m_func->m_epilogLabel)
     {
         return this->m_func->m_epilogLabel;
     }
 
-    IR::Instr *exitInstr = this->m_func->m_exitInstr;
-    IR::Instr *prevInstr = exitInstr->GetPrevRealInstrOrLabel();
-    if (prevInstr->IsLabelInstr())
-    {
-        this->m_func->m_epilogLabel = prevInstr->AsLabelInstr();
-        return prevInstr->AsLabelInstr();
-    }
     IR::LabelInstr *labelInstr = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-    exitInstr->InsertBefore(labelInstr);
     this->m_func->m_epilogLabel = labelInstr;
     return labelInstr;
 }

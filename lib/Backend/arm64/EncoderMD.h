@@ -32,14 +32,15 @@ enum InstructionType {
 
 #define FIRST_CALLEE_SAVED_GP_REG   RegR19
 #define LAST_CALLEE_SAVED_GP_REG    RegR28
+#define CALLEE_SAVED_GP_REG_COUNT\
+    ((LAST_CALLEE_SAVED_GP_REG - FIRST_CALLEE_SAVED_GP_REG) + 1)
 
-// Note that both CATCH_OBJ_REG and EH_STACK_SAVE_REG are implicitly referenced in
+// Note that CATCH_OBJ_REG and ALT_LOCALS_PTR are implicitly referenced in
 // arm64_CallEhFrame.asm and must be updated there as well if these are changed.
 #define CATCH_OBJ_REG               RegR1
 #define UNUSED_REG_FOR_STACK_ALIGN  RegR11
 #define SP_ALLOC_SCRATCH_REG        RegR15
 #define SCRATCH_REG                 RegR17
-#define EH_STACK_SAVE_REG           RegR27
 #define ALT_LOCALS_PTR              RegR28
 
 #define RETURN_DBL_REG              RegD0
