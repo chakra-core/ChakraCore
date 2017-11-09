@@ -5725,6 +5725,7 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
     IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(regSrcStr->AsRegOpnd(), Js::JavascriptString::GetOffsetOfpszValue(), TyMachPtr, this->m_func);
     instr = IR::Instr::New(Js::OpCode::MOV, r1, indirOpnd, this->m_func);
     insertInstr->InsertBefore(instr);
+    Legalize(instr);
 
     // CBZ r1, $helper -- Null pointer test
     instr = IR::BranchInstr::New(Js::OpCode::CBZ, labelHelper, this->m_func);
