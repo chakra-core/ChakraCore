@@ -20284,14 +20284,14 @@ Lowerer::GenerateAuxSlotAdjustmentRequiredCheck(
     IR::IndirOpnd * memSlotCap = IR::IndirOpnd::New(opndInlineCache, (int32)offsetof(Js::InlineCache, u.local.rawUInt16), TyUint16, instrToInsertBefore->m_func);
     InsertMove(regSlotCap, memSlotCap, instrToInsertBefore);
 
+    IR::IntConstOpnd * constSelectorBitCount = IR::IntConstOpnd::New(Js::InlineCache::CacheLayoutSelectorBitCount, TyUint16, instrToInsertBefore->m_func, /* dontEncode = */ true);
+
 #if _M_ARM64
-    // Arm64 does not have shifts that set flags, so do a test with a fixed mask instead.
-    CompileAssert(Js::InlineCache::CacheLayoutSelectorBitCount == 1);
-    IR::Opnd* bitMaskOpnd = IR::IntConstOpnd::New(1, TyInt32, this->m_func, true);
-    InsertTestBranch(regSlotCap, bitMaskOpnd, Js::OpCode::BrNeq_A, labelHelper, instrToInsertBefore);
+    IR::Instr * testBranch = InsertBranch(Js::OpCode::TBZ, labelHelper, instrToInsertBefore);
+    testBranch->SetSrc1(regSlotCap);
+    testBranch->SetSrc2(constSelectorBitCount);
 #else
     // SAR regSlotCap, Js::InlineCache::CacheLayoutSelectorBitCount
-    IR::IntConstOpnd * constSelectorBitCount = IR::IntConstOpnd::New(Js::InlineCache::CacheLayoutSelectorBitCount, TyUint16, instrToInsertBefore->m_func, /* dontEncode = */ true);
     InsertShiftBranch(Js::OpCode::Shr_A, regSlotCap, regSlotCap, constSelectorBitCount, Js::OpCode::BrNeq_A, true, labelHelper, instrToInsertBefore);
 #endif
 }
@@ -25002,21 +25002,28 @@ Lowerer::InsertBitTestBranch(IR::Opnd * bitMaskOpnd, IR::Opnd * bitIndex, bool j
     IR::RegOpnd * lenBitOpnd = IR::RegOpnd::New(TyUint32, func);
     InsertMove(lenBitOpnd, IR::IntConstOpnd::New(1, TyUint32, this->m_func), insertBeforeInstr);
     InsertShift(Js::OpCode::Shl_I4, false, lenBitOpnd, lenBitOpnd, bitIndex, insertBeforeInstr);
-    InsertTestBranch(lenBitOpnd, bitMaskOpnd, jumpIfBitOn? Js::OpCode::BrNeq_A :Js::OpCode::BrEq_A, targetLabel, insertBeforeInstr);
+    InsertTestBranch(lenBitOpnd, bitMaskOpnd, jumpIfBitOn ? Js::OpCode::BrNeq_A : Js::OpCode::BrEq_A, targetLabel, insertBeforeInstr);
 #elif defined(_M_ARM64)
-    // ARM64 don't have bit test instruction, but can use test branch. TBZ/TBNZ are limited to immediates < 64 so
-    // rather than shifting 1 to the bit index, shift the mask down to put that bit's mask value in the low bit.
-    // MOV r1, bitMask
-    // SHR r1, bitIndex
-    // TBZ/TBNZ r1, 1, targetLabel
-    Func * func = this->m_func;
-    IR::RegOpnd * maskOpnd = IR::RegOpnd::New(TyUint32, func);
-    InsertMove(maskOpnd, bitMaskOpnd, insertBeforeInstr);
-    InsertShift(Js::OpCode::Shr_I4, false, maskOpnd, maskOpnd, bitIndex, insertBeforeInstr);
 
-    IR::Instr* branchInstr = InsertBranch(jumpIfBitOn ? Js::OpCode::TBZ : Js::OpCode::TBNZ, targetLabel, insertBeforeInstr);
-    branchInstr->SetSrc1(maskOpnd);
-    branchInstr->SetSrc2(IR::IntConstOpnd::New(1, TyUint32, this->m_func));
+    if (bitIndex->IsImmediateOpnd())
+    {
+        // TBZ/TBNZ bitMaskOpnd, bitIndex, targetLabel
+        IR::Instr* branchInstr = InsertBranch(jumpIfBitOn ? Js::OpCode::TBNZ : Js::OpCode::TBZ, targetLabel, insertBeforeInstr);
+        branchInstr->SetSrc1(bitMaskOpnd);
+        branchInstr->SetSrc2(bitIndex);
+    }
+    else
+    {
+        // TBZ/TBNZ require an immediate for the bit to test, so shift the mask to place the bit we want to test at bit zero, and then test bit zero.
+        Func * func = this->m_func;
+        IR::RegOpnd * maskOpnd = IR::RegOpnd::New(TyUint32, func);
+        InsertShift(Js::OpCode::Shr_I4, false, maskOpnd, bitMaskOpnd, bitIndex, insertBeforeInstr);
+
+        IR::Instr* branchInstr = InsertBranch(jumpIfBitOn ? Js::OpCode::TBNZ : Js::OpCode::TBZ, targetLabel, insertBeforeInstr);
+        branchInstr->SetSrc1(maskOpnd);
+        branchInstr->SetSrc2(IR::IntConstOpnd::New(0, TyUint32, this->m_func));
+    }
+
     
 #else
     AssertMsg(false, "Not implemented");
