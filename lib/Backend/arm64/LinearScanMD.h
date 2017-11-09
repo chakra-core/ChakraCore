@@ -29,8 +29,14 @@ public:
 
     uint        UnAllocatableRegCount(Func *func) const
     { 
-        // number of regs marked RA_DONTALLOCATE, including ALT_LOCALS_PTR when not the SP
-        return func->GetLocalsPointer() != RegSP ? 6 : 5;
+        // number of regs marked RA_DONTALLOCATE, including:
+        //   ALT_LOCALS_PTR when not the SP
+        uint result = 5;
+        if (func->GetLocalsPointer() != RegSP)
+        {
+            result += 1;
+        }
+        return result;
     }
 
     StackSym   *EnsureSpillSymForVFPReg(RegNum reg, Func *func);
