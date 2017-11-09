@@ -26,9 +26,16 @@ namespace Js
 
     JavascriptSet* JavascriptSet::FromVar(Var aValue)
     {
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptSet'");
+
+        return static_cast<JavascriptSet *>(aValue);
+    }
+
+    JavascriptSet* JavascriptSet::UnsafeFromVar(Var aValue)
+    {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptSet'");
 
-        return static_cast<JavascriptSet *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptSet *>(aValue);
     }
 
     JavascriptSet::SetDataList::Iterator JavascriptSet::GetIterator()
@@ -45,9 +52,8 @@ namespace Js
         JavascriptLibrary* library = scriptContext->GetLibrary();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Set"));
 
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
-        Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr);
+        Var newTarget = args.GetNewTarget();
+        bool isCtorSuperCall = JavascriptOperators::GetAndAssertIsConstructorSuperCall(args);
         CHAKRATEL_LANGSTATS_INC_DATACOUNT(ES6_Set);
 
         JavascriptSet* setObject = nullptr;

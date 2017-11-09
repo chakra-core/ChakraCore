@@ -13,7 +13,7 @@ else:
     platform = "so"
 
 build_type = sys.argv[1]
-if sys.argv.__len__() > 2 and sys.argv[2] != None:
+if len(sys.argv) > 2 and sys.argv[2] != None:
     so_path = sys.argv[2]
 else:
     so_path = "../../../out/" + build_type + "/libChakraCore." + platform

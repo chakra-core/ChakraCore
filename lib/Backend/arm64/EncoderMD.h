@@ -14,9 +14,7 @@ enum RelocType {
     RelocTypeBranch14,
     RelocTypeBranch19,
     RelocTypeBranch26,
-    RelocTypeDataLabelLow,
-    RelocTypeLabelLow,
-    RelocTypeLabelHigh,
+    RelocTypeLabelAdr,
     RelocTypeLabel
 };
 
@@ -35,23 +33,25 @@ enum InstructionType {
 #define FIRST_CALLEE_SAVED_GP_REG   RegR19
 #define LAST_CALLEE_SAVED_GP_REG    RegR28
 
-#define UNUSED_REG_FOR_STACK_ALIGN  RegR11
-#define SCRATCH_REG                 RegR17
-#define ALT_LOCALS_PTR              RegR13
-#define EH_STACK_SAVE_REG           RegR14
-#define SP_ALLOC_SCRATCH_REG        RegR15
+// Note that both CATCH_OBJ_REG and EH_STACK_SAVE_REG are implicitly referenced in
+// arm64_CallEhFrame.asm and must be updated there as well if these are changed.
 #define CATCH_OBJ_REG               RegR1
+#define UNUSED_REG_FOR_STACK_ALIGN  RegR11
+#define SP_ALLOC_SCRATCH_REG        RegR15
+#define SCRATCH_REG                 RegR17
+#define EH_STACK_SAVE_REG           RegR27
+#define ALT_LOCALS_PTR              RegR28
 
 #define RETURN_DBL_REG              RegD0
-#define FIRST_CALLEE_SAVED_DBL_REG  RegD16
-#define LAST_CALLEE_SAVED_DBL_REG   RegD29
+#define FIRST_CALLEE_SAVED_DBL_REG  RegD8
+#define LAST_CALLEE_SAVED_DBL_REG   RegD15
 #define CALLEE_SAVED_DOUBLE_REG_COUNT\
     ((LAST_CALLEE_SAVED_DBL_REG - FIRST_CALLEE_SAVED_DBL_REG) + 1)
-#define FIRST_CALLEE_SAVED_DBL_REG_NUM  16
-#define LAST_CALLEE_SAVED_DBL_REG_NUM   29
+#define FIRST_CALLEE_SAVED_DBL_REG_NUM  8
+#define LAST_CALLEE_SAVED_DBL_REG_NUM   15
 
 
-// See comment in LowerEntryInstr: even in a global function, we'll home r0 and r1
+// See comment in LowerEntryInstr: even in a global function, we'll home x0 and x1
 #define MIN_HOMED_PARAM_REGS 2
 
 #define FRAME_REG           RegFP
@@ -247,6 +247,7 @@ private:
 
     // Floating point instructions
     template<typename _Emitter> int EmitOp2FpRegister(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitter emitter);
+    template<typename _Emitter> int EmitOp2FpRegister(Arm64CodeEmitter &Emitter, IR::Opnd* opnd1, IR::Opnd* opnd2, _Emitter emitter);
     template<typename _Emitter> int EmitOp3FpRegister(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitter emitter);
     template<typename _LoadStoreFunc> int EmitLoadStoreFp(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR::Opnd* memOpnd, IR::Opnd* srcDstOpnd, _LoadStoreFunc loadStore);
     template<typename _LoadStoreFunc> int EmitLoadStoreFpPair(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR::Opnd* memOpnd, IR::Opnd* srcDst1Opnd, IR::Opnd* srcDst2Opnd, _LoadStoreFunc loadStore);

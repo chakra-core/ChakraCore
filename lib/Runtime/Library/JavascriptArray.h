@@ -208,11 +208,13 @@ namespace Js
         static bool Is(Var aValue);
         static bool Is(TypeId typeId);
         static JavascriptArray* FromVar(Var aValue);
+        static JavascriptArray* UnsafeFromVar(Var aValue);
 
         static bool IsVarArray(Var aValue);
         static bool IsVarArray(TypeId typeId);
 
         static JavascriptArray* FromAnyArray(Var aValue);
+        static JavascriptArray* UnsafeFromAnyArray(Var aValue);
         static bool IsDirectAccessArray(Var aValue);
         static bool IsInlineSegment(SparseArraySegmentBase *seg, JavascriptArray *pArr);
 
@@ -953,6 +955,7 @@ namespace Js
         static bool Is(Var aValue);
         static bool Is(TypeId typeId);
         static JavascriptNativeArray* FromVar(Var aValue);
+        static JavascriptNativeArray* UnsafeFromVar(Var aValue);
 
         void SetArrayCallSite(ProfileId index, RecyclerWeakReference<FunctionBody> *weakRef)
         {
@@ -1013,6 +1016,7 @@ namespace Js
         static bool Is(Var aValue);
         static bool Is(TypeId typeId);
         static JavascriptNativeIntArray* FromVar(Var aValue);
+        static JavascriptNativeIntArray* UnsafeFromVar(Var aValue);
         static bool IsNonCrossSite(Var aValue);
 
         typedef int32 TElement;
@@ -1111,6 +1115,7 @@ namespace Js
         static bool Is(Var aValue);
         static bool Is(TypeId typeId);
         static JavascriptCopyOnAccessNativeIntArray* FromVar(Var aValue);
+        static JavascriptCopyOnAccessNativeIntArray* UnsafeFromVar(Var aValue);
 
         static DynamicType * GetInitialType(ScriptContext * scriptContext);
         void ConvertCopyOnAccessSegment();
@@ -1177,6 +1182,7 @@ namespace Js
         static bool Is(Var aValue);
         static bool Is(TypeId typeId);
         static JavascriptNativeFloatArray* FromVar(Var aValue);
+        static JavascriptNativeFloatArray* UnsafeFromVar(Var aValue);
         static bool IsNonCrossSite(Var aValue);
 
         typedef double TElement;

@@ -5,6 +5,7 @@
 #include "RuntimeByteCodePch.h"
 #include "FormalsUtil.h"
 #include "Language/AsmJs.h"
+#include "ConfigFlagsList.h"
 
 void EmitReference(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
 void EmitAssignment(ParseNode *asgnNode, ParseNode *lhs, Js::RegSlot rhsLocation, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
@@ -1336,10 +1337,11 @@ void ByteCodeGenerator::DefineUserVars(FuncInfo *funcInfo)
                 if (!funcInfo->root->sxFnc.HasNonSimpleParameterList())
                 {
                     EmitPropStoreForSpecialSymbol(sym->GetLocation(), sym, sym->GetPid(), funcInfo, true);
-                }
-                if (ShouldTrackDebuggerMetadata() && !sym->IsInSlot(funcInfo))
-                {
-                    byteCodeFunction->InsertSymbolToRegSlotList(sym->GetName(), sym->GetLocation(), funcInfo->varRegsCount);
+
+                    if (ShouldTrackDebuggerMetadata() && !sym->IsInSlot(funcInfo))
+                    {
+                        byteCodeFunction->InsertSymbolToRegSlotList(sym->GetName(), sym->GetLocation(), funcInfo->varRegsCount);
+                    }
                 }
 
                 continue;
@@ -3017,6 +3019,8 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             funcInfo->ReleaseTmpRegister(tempReg);
         }
 
+        DefineUserVars(funcInfo);
+
         // Emit all scope-wide function definitions before emitting function bodies
         // so that calls may reference functions they precede lexically.
         // Note, global eval scope is a fake local scope and is handled as if it were
@@ -3027,8 +3031,6 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             // This only handles function declarations, which param scope cannot have any.
             DefineFunctions(funcInfo);
         }
-
-        DefineUserVars(funcInfo);
 
         if (pnode->sxFnc.HasNonSimpleParameterList() || !funcInfo->IsBodyAndParamScopeMerged())
         {
@@ -3412,16 +3414,13 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, ParseNode *breakOnBodySc
 
                 PushFuncInfo(_u("StartEmitFunction"), funcInfo);
 
-                if (funcInfo->byteCodeFunction->IsFunctionParsed() && funcInfo->GetParsedFunctionBody()->GetByteCode() == nullptr)
+                if (!funcInfo->IsBodyAndParamScopeMerged())
                 {
-                    if (!funcInfo->IsBodyAndParamScopeMerged())
-                    {
-                        this->EmitScopeList(pnode->sxFnc.pnodeBodyScope->sxBlock.pnodeScopes);
-                    }
-                    else
-                    {
-                        this->EmitScopeList(pnode->sxFnc.pnodeScopes);
-                    }
+                    this->EmitScopeList(pnode->sxFnc.pnodeBodyScope->sxBlock.pnodeScopes);
+                }
+                else
+                {
+                    this->EmitScopeList(pnode->sxFnc.pnodeScopes);
                 }
 
                 this->EmitOneFunction(pnode);
@@ -3498,9 +3497,9 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
     Scope * const bodyScope = funcInfo->GetBodyScope();
     Scope * const paramScope = funcInfo->GetParamScope();
 
-    if (funcInfo->byteCodeFunction->IsFunctionParsed() && funcInfo->GetParsedFunctionBody()->GetByteCode() == nullptr)
+    if (funcInfo->byteCodeFunction->IsFunctionParsed())
     {
-        if (!(flags & (fscrEval | fscrImplicitThis | fscrImplicitParents)))
+        if (funcInfo->GetParsedFunctionBody()->GetByteCode() == nullptr && !(flags & (fscrEval | fscrImplicitThis | fscrImplicitParents)))
         {
             // Only set the environment depth if it's truly known (i.e., not in eval or event handler).
             funcInfo->GetParsedFunctionBody()->SetEnvDepth(this->envDepth);
@@ -3670,6 +3669,21 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                     MapFormalsFromPattern(pnodeFnc, [&](ParseNode *pnode) { pnode->sxVar.sym->EnsureScopeSlot(funcInfo); });
                 }
 
+                for (pnode = pnodeFnc->sxFnc.pnodeVars; pnode; pnode = pnode->sxVar.pnodeNext)
+                {
+                    sym = pnode->sxVar.sym;
+                    if (!(pnode->sxVar.isBlockScopeFncDeclVar && sym->GetIsBlockVar()))
+                    {
+                        if (sym->GetIsCatch() || (pnode->nop == knopVarDecl && sym->GetIsBlockVar()))
+                        {
+                            sym = funcInfo->bodyScope->FindLocalSymbol(sym->GetName());
+                        }
+                        if (sym->GetSymbolType() == STVariable && !sym->IsArguments())
+                        {
+                            sym->EnsureScopeSlot(funcInfo);
+                        }
+                    }
+                }
                 auto ensureFncDeclScopeSlots = [&](ParseNode *pnodeScope)
                 {
                     for (pnode = pnodeScope; pnode;)
@@ -3696,22 +3710,6 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                     }
                 };
                 pnodeFnc->sxFnc.MapContainerScopes(ensureFncDeclScopeSlots);
-
-                for (pnode = pnodeFnc->sxFnc.pnodeVars; pnode; pnode = pnode->sxVar.pnodeNext)
-                {
-                    sym = pnode->sxVar.sym;
-                    if (!(pnode->sxVar.isBlockScopeFncDeclVar && sym->GetIsBlockVar()))
-                    {
-                        if (sym->GetIsCatch() || (pnode->nop == knopVarDecl && sym->GetIsBlockVar()))
-                        {
-                            sym = funcInfo->bodyScope->FindLocalSymbol(sym->GetName());
-                        }
-                        if (sym->GetSymbolType() == STVariable && !sym->IsArguments())
-                        {
-                            sym->EnsureScopeSlot(funcInfo);
-                        }
-                    }
-                }
 
                 if (pnodeFnc->sxFnc.pnodeBody)
                 {
@@ -3816,12 +3814,9 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
 
         PushScope(paramScope);
 
-        if (funcInfo->byteCodeFunction->IsFunctionParsed() && funcInfo->GetParsedFunctionBody()->GetByteCode() == nullptr)
-        {
-            // While emitting the functions we have to stop when we see the body scope block.
-            // Otherwise functions defined in the body scope will not be able to get the right references.
-            this->EmitScopeList(paramBlock->sxBlock.pnodeScopes, pnodeFnc->sxFnc.pnodeBodyScope);
-        }
+        // While emitting the functions we have to stop when we see the body scope block.
+        // Otherwise functions defined in the body scope will not be able to get the right references.
+        this->EmitScopeList(paramBlock->sxBlock.pnodeScopes, pnodeFnc->sxFnc.pnodeBodyScope);
         Assert(this->GetCurrentScope() == paramScope);
     }
 
@@ -5120,6 +5115,11 @@ void ByteCodeGenerator::EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, Ident
                 break;
             case Js::PropertyIds::undefined:
                 opcode = Js::OpCode::LdUndef;
+                break;
+            case Js::PropertyIds::__chakraLibrary:
+                if (CONFIG_FLAG(LdChakraLib)) {
+                    opcode = Js::OpCode::LdChakraLib;
+                }
                 break;
             }
 
@@ -7114,19 +7114,8 @@ Js::ArgSlot EmitArgListEnd(
 
         evalEnv = byteCodeGenerator->PrependLocalScopes(evalEnv, evalLocation, funcInfo);
 
-        Js::ModuleID moduleID = byteCodeGenerator->GetModuleID();
-        if (moduleID != kmodGlobal)
-        {
-            // Pass both the module root and the environment.
-            fEvalInModule = true;
-            byteCodeGenerator->Writer()->ArgOut<true>(argSlotIndex + 1, ByteCodeGenerator::RootObjectRegister, callSiteId);
-            evalIndex = argSlotIndex + 2;
-        }
-        else
-        {
-            // Just pass the environment.
-            evalIndex = argSlotIndex + 1;
-        }
+        // Passing the FrameDisplay as an extra argument
+        evalIndex = argSlotIndex + 1;
 
         if (evalEnv == funcInfo->GetEnvRegister() || evalEnv == funcInfo->frameDisplayRegister)
         {
@@ -8019,6 +8008,7 @@ void EmitCall(
     unsigned int argCount = CountArguments(pnode->sxCall.pnodeArgs, &fSideEffectArgs);
 
     BOOL fIsEval = pnode->sxCall.isEvalCall;
+    Js::ArgSlot argSlotCount = (Js::ArgSlot)argCount;
 
     if (fIsEval)
     {
@@ -8031,25 +8021,10 @@ void EmitCall(
         //
         if (argCount > 1)
         {
-            // Check the module ID as well. If it's not the global (default) module,
-            // we need to pass the root to eval so it can do the right global lookups.
-            // (Passing the module root is the least disruptive way to get the module ID
-            // to the helper, given the current set of byte codes. Once we have a full set
-            // of byte code ops taking immediate opnds, passing the ID is more intuitive.)
-            Js::ModuleID moduleID = byteCodeGenerator->GetModuleID();
-            if (moduleID == kmodGlobal)
-            {
-                argCount++;
-            }
-            else
-            {
-                // Module ID must be passed
-                argCount += 2;
-            }
+            argCount++;
         }
     }
-
-    if (fHasNewTarget)
+    else if (fHasNewTarget)
     {
         // When we need to pass new.target explicitly, it is passed as an extra argument.
         // This is similar to how eval passes an extra argument for the frame display and is
@@ -8059,9 +8034,9 @@ void EmitCall(
         argCount++;
     }
 
-    Js::ArgSlot argSlotCount = (Js::ArgSlot)argCount;
-
-    if (argCount != (unsigned int)argSlotCount)
+    // argCount indicates the total arguments count including the extra arguments.
+    // argSlotCount indicates the actual arguments count. So argCount should always never be les sthan argSlotCount.
+    if (argCount < (unsigned int)argSlotCount)
     {
         Js::Throw::OutOfMemory();
     }
@@ -8099,26 +8074,25 @@ void EmitCall(
 
     // Evaluate the arguments (nothing mode-specific here).
     // Start call, allocate out param space
-    funcInfo->StartRecordingOutArgs(argSlotCount);
+    // We have to use the arguments count including the extra args to Start Call as we use it to allocated space for all the args
+    funcInfo->StartRecordingOutArgs(argCount);
 
     Js::ProfileId callSiteId = byteCodeGenerator->GetNextCallSiteId(Js::OpCode::CallI);
 
     Js::AuxArray<uint32> *spreadIndices;
-    Js::ArgSlot actualArgCount = EmitArgList(pnodeArgs, thisLocation, newTargetLocation, fIsEval, fEvaluateComponents, byteCodeGenerator, funcInfo, callSiteId, argSlotCount, pnode->sxCall.hasDestructuring, spreadArgCount, &spreadIndices);
-
-    Assert(argSlotCount == actualArgCount);
+    EmitArgList(pnodeArgs, thisLocation, newTargetLocation, fIsEval, fEvaluateComponents, byteCodeGenerator, funcInfo, callSiteId, (Js::ArgSlot)argCount, pnode->sxCall.hasDestructuring, spreadArgCount, &spreadIndices);
 
     if (!fEvaluateComponents)
     {
-        EmitCallInstrNoEvalComponents(pnode, fIsEval, thisLocation, callObjLocation, actualArgCount, byteCodeGenerator, funcInfo, callSiteId, spreadIndices);
+        EmitCallInstrNoEvalComponents(pnode, fIsEval, thisLocation, callObjLocation, argSlotCount, byteCodeGenerator, funcInfo, callSiteId, spreadIndices);
     }
     else
     {
-        EmitCallInstr(pnode, fIsEval, fHasNewTarget, releaseThisLocation ? thisLocation : Js::Constants::NoRegister, callObjLocation, actualArgCount, byteCodeGenerator, funcInfo, callSiteId, spreadIndices);
+        EmitCallInstr(pnode, fIsEval, fHasNewTarget, releaseThisLocation ? thisLocation : Js::Constants::NoRegister, callObjLocation, argSlotCount, byteCodeGenerator, funcInfo, callSiteId, spreadIndices);
     }
 
     // End call, pop param space
-    funcInfo->EndRecordingOutArgs(argSlotCount);
+    funcInfo->EndRecordingOutArgs((Js::ArgSlot)argCount);
 }
 
 void EmitInvoke(

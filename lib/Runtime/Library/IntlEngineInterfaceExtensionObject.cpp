@@ -28,13 +28,13 @@ using namespace PlatformAgnostic::Resource;
 #pragma warning(disable:4838) // conversion from 'int' to 'const char' requires a narrowing conversion
 
 #if DISABLE_JIT
-#if _M_AMD64
+#if TARGET_64
 #include "InJavascript/Intl.js.nojit.bc.64b.h"
 #else
 #include "InJavascript/Intl.js.nojit.bc.32b.h"
 #endif
 #else
-#if _M_AMD64
+#if TARGET_64
 #include "InJavascript/Intl.js.bc.64b.h"
 #else
 #include "InJavascript/Intl.js.bc.32b.h"
@@ -333,7 +333,7 @@ namespace Js
     void IntlEngineInterfaceExtensionObject::DumpByteCode()
     {
         Output::Print(_u("Dumping Intl Byte Code:"));
-        this->EnsureIntlByteCode(scriptContext);
+        Assert(this->intlByteCode);
         Js::ByteCodeDumper::DumpRecursively(intlByteCode);
     }
 #endif
@@ -463,6 +463,8 @@ namespace Js
             HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, (LPCUTF8)nullptr, hsi, (byte*)Library_Bytecode_Intl, nullptr, &this->intlByteCode);
 
             IfFailAssertMsgAndThrowHr(hr, "Failed to deserialize Intl.js bytecode - very probably the bytecode needs to be rebuilt.");
+
+            this->SetHasBytecode();
         }
     }
 
@@ -550,6 +552,14 @@ namespace Js
                 deletePrototypePropertyHelper(scriptContext, intlObject, Js::PropertyIds::NumberFormat, Js::PropertyIds::format);
                 deletePrototypePropertyHelper(scriptContext, intlObject, Js::PropertyIds::DateTimeFormat, Js::PropertyIds::format);
             }
+
+#if DBG_DUMP
+            if (PHASE_DUMP(Js::ByteCodePhase, function->GetFunctionProxy()) && Js::Configuration::Global.flags.Verbose)
+            {
+                DumpByteCode();
+            }
+#endif
+
         }
         catch (const JavascriptException& err)
         {
@@ -1703,41 +1713,53 @@ namespace Js
     */
     Var IntlEngineInterfaceExtensionObject::EntryIntl_RegisterBuiltInFunction(RecyclableObject* function, CallInfo callInfo, ...)
     {
+        // Don't put this in a header or add it to the namespace even in this file. Keep it to the minimum scope needed.
+        enum class IntlBuiltInFunctionID : int32 {
+            Min = 0,
+            DateToLocaleString = Min,
+            DateToLocaleDateString,
+            DateToLocaleTimeString,
+            NumberToLocaleString,
+            StringLocaleCompare,
+            Max
+        };
+
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        //This function will only be used during the construction of the Intl object, hence Asserts are in place.
+        // This function will only be used during the construction of the Intl object, hence Asserts are in place.
         Assert(args.Info.Count >= 3 && JavascriptFunction::Is(args.Values[1]) && TaggedInt::Is(args.Values[2]));
 
         JavascriptFunction *func = JavascriptFunction::FromVar(args.Values[1]);
         int32 id = TaggedInt::ToInt32(args.Values[2]);
+        Assert(id >= (int32)IntlBuiltInFunctionID::Min && id < (int32)IntlBuiltInFunctionID::Max);
 
-        Assert(id >= 0 && id < 5);
         EngineInterfaceObject* nativeEngineInterfaceObj = scriptContext->GetLibrary()->GetEngineInterfaceObject();
         IntlEngineInterfaceExtensionObject* extensionObject = static_cast<IntlEngineInterfaceExtensionObject*>(nativeEngineInterfaceObj->GetEngineExtension(EngineInterfaceExtensionKind_Intl));
 
-        switch (id)
+        IntlBuiltInFunctionID functionID = static_cast<IntlBuiltInFunctionID>(id);
+        switch (functionID)
         {
-        case 0:
+        case IntlBuiltInFunctionID::DateToLocaleString:
             extensionObject->dateToLocaleString = func;
             break;
-        case 1:
+        case IntlBuiltInFunctionID::DateToLocaleDateString:
             extensionObject->dateToLocaleDateString = func;
             break;
-        case 2:
+        case IntlBuiltInFunctionID::DateToLocaleTimeString:
             extensionObject->dateToLocaleTimeString = func;
             break;
-        case 3:
+        case IntlBuiltInFunctionID::NumberToLocaleString:
             extensionObject->numberToLocaleString = func;
             break;
-        case 4:
+        case IntlBuiltInFunctionID::StringLocaleCompare:
             extensionObject->stringLocaleCompare = func;
             break;
         default:
-            Assert(false);//Shouldn't hit here, the previous assert should catch this.
+            AssertMsg(false, "functionID was not one of the allowed values. The previous assert should catch this.");
             break;
         }
 
-        //Don't need to return anything
+        // Don't need to return anything
         return scriptContext->GetLibrary()->GetUndefined();
     }
 

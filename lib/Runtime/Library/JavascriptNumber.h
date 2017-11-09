@@ -160,6 +160,7 @@ namespace Js
         static Var ToVar(double value);
 #else
         static JavascriptNumber* FromVar(Var aValue);
+        static JavascriptNumber* UnsafeFromVar(Var aValue);
 #endif
 
     private:

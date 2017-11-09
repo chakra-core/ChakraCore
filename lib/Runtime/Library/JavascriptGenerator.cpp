@@ -37,6 +37,13 @@ namespace Js
 
     JavascriptGenerator* JavascriptGenerator::FromVar(Var var)
     {
+        AssertOrFailFastMsg(Is(var), "Ensure var is actually a 'JavascriptGenerator'");
+
+        return static_cast<JavascriptGenerator*>(var);
+    }
+
+    JavascriptGenerator* JavascriptGenerator::UnsafeFromVar(Var var)
+    {
         AssertMsg(Is(var), "Ensure var is actually a 'JavascriptGenerator'");
 
         return static_cast<JavascriptGenerator*>(var);

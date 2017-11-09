@@ -19,9 +19,16 @@ namespace Js
 
     JavascriptWeakMap* JavascriptWeakMap::FromVar(Var aValue)
     {
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptWeakMap'");
+
+        return static_cast<JavascriptWeakMap *>(aValue);
+    }
+
+    JavascriptWeakMap* JavascriptWeakMap::UnsafeFromVar(Var aValue)
+    {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptWeakMap'");
 
-        return static_cast<JavascriptWeakMap *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptWeakMap *>(RecyclableObject::UnsafeFromVar(aValue));
     }
 
     JavascriptWeakMap::WeakMapKeyMap* JavascriptWeakMap::GetWeakMapKeyMapFromKey(RecyclableObject* key) const
@@ -78,9 +85,8 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
-        Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr);
+        Var newTarget = args.GetNewTarget();
+        bool isCtorSuperCall = JavascriptOperators::GetAndAssertIsConstructorSuperCall(args);
         CHAKRATEL_LANGSTATS_INC_DATACOUNT(ES6_WeakMap);
 
         JavascriptWeakMap* weakMapObject = nullptr;

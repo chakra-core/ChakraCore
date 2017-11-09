@@ -34,7 +34,7 @@ namespace Js
     JavascriptSIMDInt16x8* JavascriptSIMDInt16x8::FromVar(Var aValue)
     {
         Assert(aValue);
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptSIMDInt16x8'");
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptSIMDInt16x8'");
 
         return reinterpret_cast<JavascriptSIMDInt16x8 *>(aValue);
     }

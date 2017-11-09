@@ -7,6 +7,95 @@
 #include <cxxabi.h>
 #endif
 
+
+#if ENABLE_MEM_STATS
+MemStats::MemStats()
+    : objectByteCount(0), totalByteCount(0)
+{}
+
+void MemStats::Reset()
+{
+    objectByteCount = 0;
+    totalByteCount = 0;
+}
+
+size_t MemStats::FreeBytes() const
+{
+    return totalByteCount - objectByteCount;
+}
+
+double MemStats::UsedRatio() const
+{
+    return (double)objectByteCount / totalByteCount;
+}
+
+void MemStats::Aggregate(const MemStats& other)
+{
+    objectByteCount += other.objectByteCount;
+    totalByteCount += other.totalByteCount;
+}
+
+#ifdef DUMP_FRAGMENTATION_STATS
+HeapBucketStats::HeapBucketStats()
+    : totalBlockCount(0), objectCount(0), finalizeCount(0)
+{}
+
+void HeapBucketStats::Reset()
+{
+    MemStats::Reset();
+    totalBlockCount = 0;
+    objectCount = 0;
+    finalizeCount = 0;
+}
+
+void HeapBucketStats::Dump() const
+{
+    Output::Print(_u("%5d %7d %7d %11lu %11lu %11lu   %6.2f%%\n"),
+        totalBlockCount, objectCount, finalizeCount,
+        static_cast<ULONG>(objectByteCount),
+        static_cast<ULONG>(FreeBytes()),
+        static_cast<ULONG>(totalByteCount),
+        UsedRatio() * 100);
+}
+#endif
+
+void HeapBucketStats::PreAggregate()
+{
+    // When first enter Pre-Aggregate state, clear data and mark state.
+    if (!(totalByteCount & 1))
+    {
+        Reset();
+        totalByteCount |= 1;
+    }
+}
+
+void HeapBucketStats::BeginAggregate()
+{
+    // If was Pre-Aggregate state, keep data and clear state
+    if (totalByteCount & 1)
+    {
+        totalByteCount &= ~1;
+    }
+    else
+    {
+        Reset();
+    }
+}
+
+void HeapBucketStats::Aggregate(const HeapBucketStats& other)
+{
+    MemStats::Aggregate(other);
+#ifdef DUMP_FRAGMENTATION_STATS
+    totalBlockCount += other.totalBlockCount;
+    objectCount += other.objectCount;
+    finalizeCount += other.finalizeCount;
+#endif
+}
+#endif  // ENABLE_MEM_STATS
+
+//========================================================================================================
+// HeapBlock
+//========================================================================================================
 template <typename TBlockAttributes>
 SmallNormalHeapBlockT<TBlockAttributes> *
 HeapBlock::AsNormalBlock()
@@ -887,7 +976,7 @@ void HeapBlock::PrintVerifyMarkFailure(Recycler* recycler, char* objectAddress, 
             }
             else
             {
-                auto dumpFalsePositive = [&]() 
+                auto dumpFalsePositive = [&]()
                 {
                     if (CONFIG_FLAG(Verbose))
                     {
@@ -904,7 +993,7 @@ void HeapBlock::PrintVerifyMarkFailure(Recycler* recycler, char* objectAddress, 
                 //TODO: (leish)(swb) analyze pdb to check if the field is a pointer field or not
                 Output::Print(_u("Missing Barrier\nOn type %S+0x%x\n"), typeName, offset);
             }
-        }        
+        }
 
 
         targetStartAddress = target - targetOffset;
@@ -1954,28 +2043,26 @@ void SmallHeapBlockT<TBlockAttributes>::Verify(bool pendingDispose)
 }
 #endif
 
-#ifdef DUMP_FRAGMENTATION_STATS
+#if ENABLE_MEM_STATS
 template <class TBlockAttributes>
 void
 SmallHeapBlockT<TBlockAttributes>::AggregateBlockStats(HeapBucketStats& stats, bool isAllocatorBlock, FreeObject* freeObjectList, bool isBumpAllocated)
 {
-    stats.totalBlockCount++;
+    if (this->segment == nullptr || this->IsInAllocator() != isAllocatorBlock)
+    {
+        return;  // skip empty blocks, or blocks mismatching isInAllocator to avoid double count
+    }
+
+    DUMP_FRAGMENTATION_STATS_ONLY(stats.totalBlockCount++);
 
     ushort blockObjectCount = this->objectCount;
     BVIndex blockFreeCount = this->GetFreeBitVector()->Count();
     ushort blockObjectSize = this->objectSize;
 
-    if (this->segment == nullptr)
-    {
-        stats.emptyBlockCount++;
-        blockObjectCount = 0;
-        blockFreeCount = 0;
-    }
-
-    int objectCount = 0;
+    uint objectCount = 0;
     if (isBumpAllocated)
     {
-        objectCount = ((char*) freeObjectList - this->address) / blockObjectSize;
+        objectCount = static_cast<uint>(((char*) freeObjectList - this->address) / blockObjectSize);
     }
     else
     {
@@ -1999,34 +2086,20 @@ SmallHeapBlockT<TBlockAttributes>::AggregateBlockStats(HeapBucketStats& stats, b
         }
     }
 
-    // If we have a block that's on the allocator, it could also be on the heap block list
-    // In that case, we need to make sure we don't double-count this. To do that, we take out
-    // the block's allocatorCount/freeCount and adjust it later when we see the block
-    if (isAllocatorBlock)
-    {
-        objectCount -= blockObjectCount;
-        objectCount += blockFreeCount;
-    }
-
-    // Don't count empty blocks as allocable
-    if (this->segment != nullptr)
-    {
-        stats.totalByteCount += AutoSystemInfo::PageSize;
-    }
-
-    stats.objectCount += objectCount;
+    DUMP_FRAGMENTATION_STATS_ONLY(stats.objectCount += objectCount);
     stats.objectByteCount += (objectCount * blockObjectSize);
+    stats.totalByteCount += this->GetPageCount() * AutoSystemInfo::PageSize;
 
+#ifdef DUMP_FRAGMENTATION_STATS
     if (!isAllocatorBlock)
     {
         if (this->IsAnyFinalizableBlock())
         {
-            SmallFinalizableHeapBlock* finalizableBlock = this->AsFinalizableBlock<TBlockAttributes>();
-
-            stats.finalizeBlockCount++;
+            auto finalizableBlock = this->AsFinalizableBlock<TBlockAttributes>();
             stats.finalizeCount += (finalizableBlock->GetFinalizeCount());
         }
     }
+#endif
 }
 #endif
 

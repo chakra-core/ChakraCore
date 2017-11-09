@@ -59,6 +59,7 @@ namespace Wasm
         WasmOp ReadOpCode(); //@TODO might need to be moved into WasmReaderBase
         virtual WasmOp ReadExpr() override;
         virtual void FunctionEnd() override;
+        virtual const uint32 EstimateCurrentFunctionBytecodeSize() const override;
 #if DBG_DUMP
         void PrintOps();
 #endif
@@ -116,7 +117,7 @@ namespace Wasm
         void CheckBytesLeft(uint32 bytesNeeded);
         bool EndOfFunc();
         bool EndOfModule();
-        DECLSPEC_NORETURN void ThrowDecodingError(const char16* msg, ...);
+        DECLSPEC_NORETURN void ThrowDecodingError(const char16* msg, ...) const;
         Wasm::WasmTypes::WasmType ReadWasmType(uint32& length);
 
         ArenaAllocator* m_alloc;

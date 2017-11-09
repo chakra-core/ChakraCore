@@ -31,6 +31,7 @@ namespace Js
         GeneratorVirtualScriptFunction* GetGeneratorVirtualScriptFunction() { return scriptFunction; }
 
         static JavascriptGeneratorFunction* FromVar(Var var);
+        static JavascriptGeneratorFunction* UnsafeFromVar(Var var);
         static bool Is(Var var);
         inline static bool Test(JavascriptFunction *obj)
         {
@@ -111,6 +112,7 @@ namespace Js
         static DWORD GetOffsetOfScriptFunction() { return JavascriptGeneratorFunction::GetOffsetOfScriptFunction(); }
 
         static JavascriptAsyncFunction* FromVar(Var var);
+        static JavascriptAsyncFunction* UnsafeFromVar(Var var);
         static bool Is(Var var);
         inline static bool Test(JavascriptFunction *obj)
         {

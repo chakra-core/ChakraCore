@@ -15,7 +15,7 @@ namespace Js
         objectArray(nullptr)
     {
         Assert(!UsesObjectArrayOrFlagsAsFlags());
-        if(initSlots)
+        if (initSlots)
         {
             InitSlots(this);
         }
@@ -101,12 +101,20 @@ namespace Js
 
     bool DynamicObject::Is(Var aValue)
     {
-        return RecyclableObject::Is(aValue) && (RecyclableObject::FromVar(aValue)->GetTypeId() == TypeIds_Object);
+        return RecyclableObject::Is(aValue) && (RecyclableObject::UnsafeFromVar(aValue)->GetTypeId() == TypeIds_Object);
     }
 
     DynamicObject* DynamicObject::FromVar(Var aValue)
     {
         RecyclableObject* obj = RecyclableObject::FromVar(aValue);
+        AssertMsg(obj->DbgIsDynamicObject(), "Ensure instance is actually a DynamicObject");
+        AssertOrFailFast(DynamicType::Is(obj->GetTypeId()));
+        return static_cast<DynamicObject*>(obj);
+    }
+
+    DynamicObject* DynamicObject::UnsafeFromVar(Var aValue)
+    {
+        RecyclableObject* obj = RecyclableObject::UnsafeFromVar(aValue);
         AssertMsg(obj->DbgIsDynamicObject(), "Ensure instance is actually a DynamicObject");
         Assert(DynamicType::Is(obj->GetTypeId()));
         return static_cast<DynamicObject*>(obj);

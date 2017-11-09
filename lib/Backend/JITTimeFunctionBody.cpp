@@ -957,17 +957,6 @@ JITTimeFunctionBody::GetConstTable() const
     return m_bodyData.constTable;
 }
 
-bool
-JITTimeFunctionBody::IsConstRegPropertyString(Js::RegSlot reg, ScriptContextInfo * context) const
-{
-    RecyclableObjectIDL * content = m_bodyData.constTableContent->content[reg - Js::FunctionBody::FirstRegSlot];
-    if (content != nullptr && content->vtbl == context->GetVTableAddress(VtablePropertyString))
-    {
-        return true;
-    }
-    return false;
-}
-
 intptr_t
 JITTimeFunctionBody::GetRootObject() const
 {

@@ -528,6 +528,14 @@ PHASE(All)
 #define DEFAULT_CONFIG_Intl                    (true)
 #define DEFAULT_CONFIG_IntlBuiltIns            (true)
 
+#ifdef ENABLE_JS_BUILTINS
+    #define DEFAULT_CONFIG_JsBuiltIn             (true)
+#else
+    #define DEFAULT_CONFIG_JsBuiltIn             (false)
+#endif
+
+#define DEFAULT_CONFIG_LdChakraLib             (false)
+
 // ES6 DEFAULT BEHAVIOR
 #define DEFAULT_CONFIG_ES6                     (true)  // master flag to gate all P0-spec-test compliant ES6 features
 
@@ -597,6 +605,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES7TrailingComma        (true)
 #define DEFAULT_CONFIG_ES7ValuesEntries        (true)
 #define DEFAULT_CONFIG_ESObjectGetOwnPropertyDescriptors (true)
+#define DEFAULT_CONFIG_ESDynamicImport         (false)
 
 #define DEFAULT_CONFIG_ESSharedArrayBuffer     (true)
 
@@ -995,6 +1004,9 @@ FLAGNR(Boolean, CollectGarbage        , "Enable CollectGarbage API", DEFAULT_CON
 FLAGR (Boolean, Intl                  , "Intl object support", DEFAULT_CONFIG_Intl)
 FLAGNR(Boolean, IntlBuiltIns          , "Intl built-in function support", DEFAULT_CONFIG_IntlBuiltIns)
 
+FLAGNR(Boolean, JsBuiltIn             , "JS Built-in function support", DEFAULT_CONFIG_JsBuiltIn)
+
+FLAGNR(Boolean, LdChakraLib           , "Access to the Chakra internal library with the __chakraLibrary keyword", DEFAULT_CONFIG_LdChakraLib)
 // ES6 (BLUE+1) features/flags
 
 // Master ES6 flag to enable STABLE ES6 features/flags
@@ -1029,6 +1041,11 @@ FLAGPR           (Boolean, ES6, ES7ValuesEntries       , "Enable ES7 Object.valu
 FLAGPR           (Boolean, ES6, ES7TrailingComma       , "Enable ES7 trailing comma in function"                    , DEFAULT_CONFIG_ES7TrailingComma)
 FLAGPR           (Boolean, ES6, ES6IsConcatSpreadable  , "Enable ES6 isConcatSpreadable Symbol"                     , DEFAULT_CONFIG_ES6IsConcatSpreadable)
 FLAGPR           (Boolean, ES6, ES6Math                , "Enable ES6 Math extensions"                               , DEFAULT_CONFIG_ES6Math)
+
+#ifndef COMPILE_DISABLE_ESDynamicImport
+    #define COMPILE_DISABLE_ESDynamicImport 0
+#endif
+FLAGPR_REGOVR_EXP(Boolean, ES6, ESDynamicImport        , "Enable dynamic import"                                    , DEFAULT_CONFIG_ESDynamicImport)
 
 FLAGPR           (Boolean, ES6, ES6Module              , "Enable ES6 Modules"                                       , DEFAULT_CONFIG_ES6Module)
 FLAGPR           (Boolean, ES6, ES6Object              , "Enable ES6 Object extensions"                             , DEFAULT_CONFIG_ES6Object)

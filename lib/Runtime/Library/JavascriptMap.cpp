@@ -26,9 +26,16 @@ namespace Js
 
     JavascriptMap* JavascriptMap::FromVar(Var aValue)
     {
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptMap'");
+
+        return static_cast<JavascriptMap *>(aValue);
+    }
+
+    JavascriptMap* JavascriptMap::UnsafeFromVar(Var aValue)
+    {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptMap'");
 
-        return static_cast<JavascriptMap *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptMap *>(aValue);
     }
 
     JavascriptMap::MapDataList::Iterator JavascriptMap::GetIterator()
@@ -45,9 +52,8 @@ namespace Js
         JavascriptLibrary* library = scriptContext->GetLibrary();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Map"));
 
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
-        Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr);
+        Var newTarget = args.GetNewTarget();
+        bool isCtorSuperCall = JavascriptOperators::GetAndAssertIsConstructorSuperCall(args);
         CHAKRATEL_LANGSTATS_INC_DATACOUNT(ES6_Map);
 
         JavascriptMap* mapObject = nullptr;

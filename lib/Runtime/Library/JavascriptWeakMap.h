@@ -62,6 +62,7 @@ namespace Js
 
         static bool Is(Var aValue);
         static JavascriptWeakMap* FromVar(Var aValue);
+        static JavascriptWeakMap* UnsafeFromVar(Var aValue);
 
         void Clear();
         bool Delete(RecyclableObject* key);

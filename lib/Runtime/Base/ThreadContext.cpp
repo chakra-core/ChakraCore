@@ -883,6 +883,13 @@ ThreadContext::GetPropertyNameImpl(Js::PropertyId propertyId)
 void
 ThreadContext::FindPropertyRecord(Js::JavascriptString *pstName, Js::PropertyRecord const ** propertyRecord)
 {
+    const Js::PropertyRecord * propRecord = pstName->GetPropertyRecord(true);
+    if (propRecord != nullptr)
+    {
+        *propertyRecord = propRecord;
+        return;
+    }
+
     LPCWSTR psz = pstName->GetSz();
     FindPropertyRecord(psz, pstName->GetLength(), propertyRecord);
 }
@@ -2963,7 +2970,7 @@ ThreadContext::InExpirableCollectMode()
     // and when debugger is attaching, it might have set the function to deferredParse.
     return (expirableObjectList != nullptr &&
             numExpirableObjects > 0 &&
-            expirableCollectModeGcCount >= 0 
+            expirableCollectModeGcCount >= 0
 #ifdef ENABLE_SCRIPT_DEBUGGING
         &&
             (this->GetDebugManager() != nullptr &&

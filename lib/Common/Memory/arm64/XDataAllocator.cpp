@@ -2,8 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-// This one works only for ARM64
 #include "CommonMemoryPch.h"
+
+// ARM64 TODO: this is nearly identical to AMD64, consider merging in the future
+
+// This one works only for ARM64
 #if !defined(_M_ARM64)
 CompileAssert(false)
 #endif
@@ -11,82 +14,136 @@ CompileAssert(false)
 #include "XDataAllocator.h"
 #include "Core/DelayLoadLibrary.h"
 
-// ToDo (SaAgarwa): Everything here is copied from arm32. Validate that this is correct
+#ifndef _WIN32
+#include "PlatformAgnostic/AssemblyCommon.h" // __REGISTER_FRAME / __DEREGISTER_FRAME
+#endif
 
-XDataAllocator::XDataAllocator(BYTE* address, uint size)
+XDataAllocator::XDataAllocator(BYTE* address, uint size) :
+    freeList(nullptr),
+    start(address),
+    current(address),
+    size(size)
 {
-    Assert(size == 0);
+    Assert(size > 0);
+    Assert(address != nullptr);
 }
 
+bool XDataAllocator::Initialize(void* segmentStart, void* segmentEnd)
+{
+    Assert(segmentEnd > segmentStart);
+    return true;
+}
+
+XDataAllocator::~XDataAllocator()
+{
+    current = nullptr;
+    ClearFreeList();
+}
 
 void XDataAllocator::Delete()
 {
     HeapDelete(this);
 }
 
-bool XDataAllocator::Initialize(void* segmentStart, void* segmentEnd)
-{
-    return true;
-}
-
-bool XDataAllocator::Alloc(ULONG_PTR functionStart, DWORD functionSize, ushort pdataCount, ushort xdataSize, SecondaryAllocation* allocation)
+bool XDataAllocator::Alloc(ULONG_PTR functionStart, DWORD functionSize,
+    ushort pdataCount, ushort xdataSize, SecondaryAllocation* allocation)
 {
     XDataAllocation* xdata = static_cast<XDataAllocation*>(allocation);
-    Assert(pdataCount > 0);
-    Assert(xdataSize >= 0);
-    Assert(xdata);
+    Assert(start != nullptr);
+    Assert(current != nullptr);
+    Assert(current >= start);
+    Assert(xdataSize <= XDATA_SIZE);
+    Assert(pdataCount == 1);
 
-    DWORD size = GetAllocSize(pdataCount, xdataSize);
-    BYTE* alloc = HeapNewNoThrowArray(BYTE, size);
-    if (alloc != nullptr)
+    // Allocate a new xdata entry
+    if((End() - current) >= XDATA_SIZE)
     {
-        xdata->address = alloc;
-        xdata->xdataSize = xdataSize;
-        xdata->pdataCount = pdataCount;
-
-        return true; //success
+        xdata->address = current;
+        current += XDATA_SIZE;
+    } // try allocating from the free list
+    else if(freeList)
+    {
+        auto entry = freeList;
+        xdata->address = entry->address;
+        this->freeList = entry->next;
+        HeapDelete(entry);
     }
-    return false; //fail;
-}
+    else
+    {
+        xdata->address = nullptr;
+        OUTPUT_TRACE(Js::XDataAllocatorPhase, _u("No space for XDATA.\n"));
+    }
 
+#ifndef _WIN32
+    if (xdata->address)
+    {
+        ClearHead(xdata->address);  // mark empty .eh_frame
+    }
+#endif
+
+    return xdata->address != nullptr;
+}
 
 void XDataAllocator::Release(const SecondaryAllocation& allocation)
 {
     const XDataAllocation& xdata = static_cast<const XDataAllocation&>(allocation);
-    if (xdata.address != nullptr)
+    Assert(allocation.address);
+    // Add it to free list
+    auto freed = HeapNewNoThrowStruct(XDataAllocationEntry);
+    if(freed)
     {
-        HeapDeleteArray(GetAllocSize(xdata.pdataCount, xdata.xdataSize), xdata.address);
+        freed->address = xdata.address;
+        freed->next = this->freeList;
+        this->freeList = freed;
     }
 }
 
+bool XDataAllocator::CanAllocate()
+{
+    return ((End() - current) >= XDATA_SIZE) || this->freeList;
+}
+
+void XDataAllocator::ClearFreeList()
+{
+    XDataAllocationEntry* next = this->freeList;
+    XDataAllocationEntry* entry;
+    while(next)
+    {
+        entry = next;
+        next = entry->next;
+        entry->address = nullptr;
+        HeapDelete(entry);
+    }
+    this->freeList = NULL;
+}
+
 /* static */
-void XDataAllocator::Register(XDataAllocation * xdataInfo, intptr_t functionStart, DWORD functionSize)
+void XDataAllocator::Register(XDataAllocation * xdataInfo, ULONG_PTR functionStart, DWORD functionSize)
 {
 #ifdef _WIN32
-    RUNTIME_FUNCTION* pdataArray = xdataInfo->GetPdataArray();
-    for (ushort i = 0; i < xdataInfo->pdataCount; i++)
-    {
-        RUNTIME_FUNCTION* pdata = pdataArray + i;
-        Assert(pdata->UnwindData != 0);
-        Assert(pdata->BeginAddress != 0);
-        pdata->BeginAddress = pdata->BeginAddress - (DWORD)functionStart;
-        if (pdata->Flag != 1) // if it is not packed unwind data
-        {
-            pdata->UnwindData = pdata->UnwindData - (DWORD)functionStart;
-        }
-    }
-    Assert(xdataInfo->functionTable == nullptr);
+    ULONG_PTR baseAddress = functionStart;
+    xdataInfo->pdata.BeginAddress = (DWORD)(functionStart - baseAddress);
+    xdataInfo->pdata.UnwindData = (DWORD)((intptr_t)xdataInfo->address - baseAddress);
 
-    // Since we do not expect many thunk functions to be created, we are using 1 table/function
-    // for now. This can be optimized further if needed.
     DWORD status = NtdllLibrary::Instance->AddGrowableFunctionTable(&xdataInfo->functionTable,
-        pdataArray,
-        /*MaxEntryCount*/ xdataInfo->pdataCount,
-        /*Valid entry count*/ xdataInfo->pdataCount,
+        &xdataInfo->pdata,
+        /*MaxEntryCount*/ 1,
+        /*Valid entry count*/ 1,
         /*RangeBase*/ functionStart,
         /*RangeEnd*/ functionStart + functionSize);
+    BOOLEAN success = NT_SUCCESS(status);
+    if (success)
+    {
+        Assert(xdataInfo->functionTable != nullptr);
+    }
+    Js::Throw::CheckAndThrowOutOfMemory(success);
 
-    Js::Throw::CheckAndThrowOutOfMemory(NT_SUCCESS(status));
+#if DBG
+    // Validate that the PDATA registration succeeded
+    ULONG64            imageBase = 0;
+    RUNTIME_FUNCTION  *runtimeFunction = RtlLookupFunctionEntry((DWORD64)functionStart, &imageBase, nullptr);
+    Assert(runtimeFunction != NULL);
+#endif
 
 #else  // !_WIN32
     Assert(ReadHead(xdataInfo->address));  // should be non-empty .eh_frame
@@ -98,14 +155,10 @@ void XDataAllocator::Register(XDataAllocation * xdataInfo, intptr_t functionStar
 void XDataAllocator::Unregister(XDataAllocation * xdataInfo)
 {
 #ifdef _WIN32
+    // Delete the table
     NtdllLibrary::Instance->DeleteGrowableFunctionTable(xdataInfo->functionTable);
 #else  // !_WIN32
     Assert(ReadHead(xdataInfo->address));  // should be non-empty .eh_frame
     __DEREGISTER_FRAME(xdataInfo->address);
 #endif
-}
-
-bool XDataAllocator::CanAllocate()
-{
-    return true;
 }

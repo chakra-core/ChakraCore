@@ -31,9 +31,16 @@ namespace Js
 
     JavascriptDate* JavascriptDate::FromVar(Var aValue)
     {
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'Date'");
+
+        return static_cast<JavascriptDate *>(aValue);
+    }
+
+    JavascriptDate* JavascriptDate::UnsafeFromVar(Var aValue)
+    {
         AssertMsg(Is(aValue), "Ensure var is actually a 'Date'");
 
-        return static_cast<JavascriptDate *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptDate *>(aValue);
     }
 
     Var JavascriptDate::GetDateData(JavascriptDate* date, DateImplementation::DateData dd, ScriptContext* scriptContext)
@@ -71,10 +78,8 @@ namespace Js
 
         // SkipDefaultNewObject function flag should have prevented the default object from
         // being created, except when call true a host dispatch.
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
-        Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr
-            || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
+        Var newTarget = args.GetNewTarget();
+        bool isCtorSuperCall = JavascriptOperators::GetAndAssertIsConstructorSuperCall(args);
 
         if (!(callInfo.Flags & CallFlags_New))
         {
@@ -255,8 +260,9 @@ namespace Js
             if (JavascriptString::Is(args[1]))
             {
                 JavascriptString* StringObject = JavascriptString::FromVar(args[1]);
+                const char16 * str = StringObject->GetString();
 
-                if (wcscmp(StringObject->UnsafeGetBuffer(), _u("default")) == 0 || wcscmp(StringObject->UnsafeGetBuffer(), _u("string")) == 0)
+                if (wcscmp(str, _u("default")) == 0 || wcscmp(str, _u("string")) == 0)
                 {
                     // Date objects, are unique among built-in ECMAScript object in that they treat "default" as being equivalent to "string"
                     // If hint is the string value "string" or the string value "default", then
@@ -265,7 +271,7 @@ namespace Js
                 }
                 // Else if hint is the string value "number", then
                 // Let tryFirst be "number".
-                else if(wcscmp(StringObject->UnsafeGetBuffer(), _u("number")) == 0)
+                else if(wcscmp(str, _u("number")) == 0)
                 {
                     return JavascriptConversion::OrdinaryToPrimitive(args[0], JavascriptHint::HintNumber/*tryFirst*/, scriptContext);
                 }

@@ -57,6 +57,15 @@ public:
     {
         Assert(offsetof(JITJavascriptString, m_pszValue) == Js::JavascriptString::GetOffsetOfpszValue());
         Assert(offsetof(JITJavascriptString, m_charLength) == Js::JavascriptString::GetOffsetOfcharLength());
+        AssertOrFailFast(Is(var));
+
+        return reinterpret_cast<JITJavascriptString*>(var);
+    }
+
+    static JITJavascriptString * UnsafeFromVar(Js::Var var)
+    {
+        Assert(offsetof(JITJavascriptString, m_pszValue) == Js::JavascriptString::GetOffsetOfpszValue());
+        Assert(offsetof(JITJavascriptString, m_charLength) == Js::JavascriptString::GetOffsetOfcharLength());
         Assert(Is(var));
 
         return reinterpret_cast<JITJavascriptString*>(var);

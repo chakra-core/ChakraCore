@@ -13,14 +13,12 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+        AssertMsg(args.HasArg(), "Should always have implicit 'this'");
 
         // SkipDefaultNewObject function flag should have prevented the default object from
         // being created, except when call true a host dispatch.
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
-        Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr
-            || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
+        Var newTarget = args.GetNewTarget();
+        bool isCtorSuperCall = JavascriptOperators::GetAndAssertIsConstructorSuperCall(args);
 
         if (args.Info.Count > 1)
         {
@@ -267,7 +265,7 @@ namespace Js
         }
 
         // Set to new prototype
-        if (object->IsExternal() || (DynamicType::Is(object->GetTypeId()) && (DynamicObject::FromVar(object))->IsCrossSiteObject()))
+        if (object->IsExternal() || (DynamicType::Is(object->GetTypeId()) && (DynamicObject::UnsafeFromVar(object))->IsCrossSiteObject()))
         {
             CrossSite::ForceCrossSiteThunkOnPrototypeChain(newPrototype);
         }
@@ -409,7 +407,7 @@ namespace Js
         }
 
         // 3. Let O be ToObject(this value).
-        RecyclableObject *thisArgAsObject = RecyclableObject::FromVar(JavascriptOperators::ToObject(thisArg, scriptContext));
+        RecyclableObject *thisArgAsObject = JavascriptOperators::ToObject(thisArg, scriptContext);
 
         // 15. Let tag be ? Get(O, @@toStringTag).
         Var tag = JavascriptObject::GetToStringTagValue(thisArgAsObject, scriptContext);
@@ -594,12 +592,12 @@ namespace Js
         RecyclableObject* obj = nullptr;
         if (args.Info.Count < 2)
         {
-            obj = RecyclableObject::FromVar(JavascriptOperators::ToObject(scriptContext->GetLibrary()->GetUndefined(), scriptContext));
+            obj = JavascriptOperators::ToObject(scriptContext->GetLibrary()->GetUndefined(), scriptContext);
         }
         else
         {
             // Convert the argument to object first
-            obj = RecyclableObject::FromVar(JavascriptOperators::ToObject(args[1], scriptContext));
+            obj = JavascriptOperators::ToObject(args[1], scriptContext);
         }
 
         // If the object is HostDispatch try to invoke the operation remotely
@@ -665,12 +663,12 @@ namespace Js
 
         if (args.Info.Count < 2)
         {
-            obj = RecyclableObject::FromVar(JavascriptOperators::ToObject(scriptContext->GetLibrary()->GetUndefined(), scriptContext));
+            obj = JavascriptOperators::ToObject(scriptContext->GetLibrary()->GetUndefined(), scriptContext);
         }
         else
         {
             // Convert the argument to object first
-            obj = RecyclableObject::FromVar(JavascriptOperators::ToObject(args[1], scriptContext));
+            obj = JavascriptOperators::ToObject(args[1], scriptContext);
         }
 
         // If the object is HostDispatch try to invoke the operation remotely
@@ -982,7 +980,7 @@ namespace Js
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_getOwnPropertyNames);
 
         Var tempVar = args.Info.Count < 2 ? scriptContext->GetLibrary()->GetUndefined() : args[1];
-        RecyclableObject *object = RecyclableObject::FromVar(JavascriptOperators::ToObject(tempVar, scriptContext));
+        RecyclableObject *object = JavascriptOperators::ToObject(tempVar, scriptContext);
 
         if (object->GetTypeId() == TypeIds_HostDispatch)
         {
@@ -1006,7 +1004,7 @@ namespace Js
         Assert(!(callInfo.Flags & CallFlags_New));
 
         Var tempVar = args.Info.Count < 2 ? scriptContext->GetLibrary()->GetUndefined() : args[1];
-        RecyclableObject *object = RecyclableObject::FromVar(JavascriptOperators::ToObject(tempVar, scriptContext));
+        RecyclableObject *object = JavascriptOperators::ToObject(tempVar, scriptContext);
 
         if (object->GetTypeId() == TypeIds_HostDispatch)
         {
@@ -1031,7 +1029,7 @@ namespace Js
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_keys);
 
         Var tempVar = args.Info.Count < 2 ? scriptContext->GetLibrary()->GetUndefined() : args[1];
-        RecyclableObject *object = RecyclableObject::FromVar(JavascriptOperators::ToObject(tempVar, scriptContext));
+        RecyclableObject *object = JavascriptOperators::ToObject(tempVar, scriptContext);
 
         if (object->GetTypeId() == TypeIds_HostDispatch)
         {
@@ -1100,7 +1098,7 @@ namespace Js
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_values);
 
         Var tempVar = args.Info.Count < 2 ? scriptContext->GetLibrary()->GetUndefined() : args[1];
-        RecyclableObject *object = RecyclableObject::FromVar(JavascriptOperators::ToObject(tempVar, scriptContext));
+        RecyclableObject *object = JavascriptOperators::ToObject(tempVar, scriptContext);
 
         return GetValuesOrEntries(object, true /*valuesToReturn*/, scriptContext);
     }
@@ -1116,7 +1114,7 @@ namespace Js
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_entries);
 
         Var tempVar = args.Info.Count < 2 ? scriptContext->GetLibrary()->GetUndefined() : args[1];
-        RecyclableObject *object = RecyclableObject::FromVar(JavascriptOperators::ToObject(tempVar, scriptContext));
+        RecyclableObject *object = JavascriptOperators::ToObject(tempVar, scriptContext);
 
         return GetValuesOrEntries(object, false /*valuesToReturn*/, scriptContext);
     }

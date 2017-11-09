@@ -42,6 +42,7 @@ namespace Js
     private:
         static ScriptFunction * Box(StackScriptFunction * stackScriptFunction, void * returnAddress);
         static StackScriptFunction * FromVar(Var var);
+        static StackScriptFunction * UnsafeFromVar(Var var);
         struct BoxState
         {
         public:

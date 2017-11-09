@@ -15,6 +15,7 @@ namespace Wasm
         virtual bool IsCurrentFunctionCompleted() const override;
         virtual WasmOp ReadExpr() override;
         virtual void FunctionEnd() override;
+        virtual const uint32 EstimateCurrentFunctionBytecodeSize() const override;
 
         void AddNode(WasmNode node);
     private:

@@ -102,10 +102,13 @@ namespace Js
     {
     // Methods
     public:
-        static BOOL IsArray(Var instanceVar);
+        static BOOL IsArray(_In_ RecyclableObject* instanceObj);
+        static BOOL IsArray(_In_ Var instanceVar);
         static BOOL IsConstructor(Var instanceVar);
         static BOOL IsConcatSpreadable(Var instanceVar);
-        static Var ToObject(Var aRight,ScriptContext* scriptContext);
+        static bool IsConstructorSuperCall(Arguments args);
+        static bool GetAndAssertIsConstructorSuperCall(Arguments args);
+        static RecyclableObject* ToObject(Var aRight,ScriptContext* scriptContext);
         static Var ToWithObject(Var aRight, ScriptContext* scriptContext);
         static Var OP_LdCustomSpreadIteratorList(Var aRight, ScriptContext* scriptContext);
         static Var ToNumber(Var aRight,ScriptContext* scriptContext);
@@ -207,12 +210,20 @@ namespace Js
         static BOOL DeletePropertyUnscopables(RecyclableObject* instance, PropertyId propertyId, PropertyOperationFlags propertyOperationFlags = PropertyOperation_None);
         template<bool unscopables>
         static BOOL DeleteProperty_Impl(RecyclableObject* instance, PropertyId propertyId, PropertyOperationFlags propertyOperationFlags = PropertyOperation_None);
-        static TypeId GetTypeId(Var instance);
+        static TypeId GetTypeId(_In_ const Var instance);
+        static TypeId GetTypeId(_In_ RecyclableObject* instance);
         static TypeId GetTypeIdNoCheck(Var instance);
-        static BOOL IsObject(Var instance);
+        template <typename T>
+        __forceinline static T* TryFromVar(Var value)
+        {
+            return T::Is(value) ? T::UnsafeFromVar(value) : nullptr;
+        }
+        static BOOL IsObject(_In_ Var instance);
+        static BOOL IsObject(_In_ RecyclableObject* instance);
         static BOOL IsExposedType(TypeId typeId);
         static BOOL IsObjectType(TypeId typeId);
         static BOOL IsObjectOrNull(Var instance);
+        static BOOL IsUndefined(_In_ RecyclableObject* instance);
         static BOOL IsUndefined(Var instance);
         static BOOL IsUndefinedObject(RecyclableObject* instance);
         static BOOL IsUndefinedOrNullType(TypeId);
@@ -440,6 +451,7 @@ namespace Js
         static Var OP_LdNull(ScriptContext* scriptContext);
         static Var OP_LdUndef(ScriptContext* scriptContext);
         static Var OP_LdNaN(ScriptContext* scriptContext);
+        static Var OP_LdChakraLib(ScriptContext* scriptContext);
         static Var OP_LdInfinity(ScriptContext* scriptContext);
         static FrameDisplay* OP_LdHandlerScope(Var argThis, ScriptContext* scriptContext);
         static FrameDisplay* OP_LdFrameDisplay(void *argHead, void *argEnv, ScriptContext* scriptContext);

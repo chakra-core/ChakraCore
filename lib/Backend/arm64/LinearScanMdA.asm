@@ -45,8 +45,9 @@
     stp x23, x24, [x16, #23*8]
     stp x25, x26, [x16, #25*8]
     stp x27, x28, [x16, #27*8]
-    ; skip fp, lr, sp
-    add x16, x16, #32*8
+    str fp, [x16, #29*8]
+    ; skip lr, sp, zr
+    add x16, x16, #33*8
     stp d0, d1, [x16, #0*8]
     stp d2, d3, [x16, #2*8]
     stp d4, d5, [x16, #4*8]
@@ -62,7 +63,7 @@
     stp d24, d25, [x16, #24*8]
     stp d26, d27, [x16, #26*8]
     stp d28, d29, [x16, #28*8]
-    stp d30, d31, [x16, #30*8]
+    ;stp d30, d31, [x16, #30*8]
 
     b |?BailOut@BailOutRecord@@SAPEAXPEBV1@@Z|
 
@@ -93,8 +94,9 @@
     stp x23, x24, [x16, #23*8]
     stp x25, x26, [x16, #25*8]
     stp x27, x28, [x16, #27*8]
-    ; skip fp, lr, sp
-    add x16, x16, #32*8
+    str fp, [x16, #29*8]
+    ; skip lr, sp, zr
+    add x16, x16, #33*8
     stp d0, d1, [x16, #0*8]
     stp d2, d3, [x16, #2*8]
     stp d4, d5, [x16, #4*8]
@@ -110,7 +112,7 @@
     stp d24, d25, [x16, #24*8]
     stp d26, d27, [x16, #26*8]
     stp d28, d29, [x16, #28*8]
-    stp d30, d31, [x16, #30*8]
+    ;stp d30, d31, [x16, #30*8]
 
     b |?BailOut@BranchBailOutRecord@@SAPEAXPEBV1@H@Z|
 

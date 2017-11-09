@@ -36,6 +36,11 @@
                     symbol="JSCRIPT_RUNDOWNEND_KEYWORD"
                     />
                 <keyword
+                    mask="0x8"
+                    name="JScriptGCBucketStats"
+                    symbol="JSCRIPT_GC_BUCKET_STATS_KEYWORD"
+                    />
+                <keyword
                     mask="0x10"
                     name="JScriptProjection"
                     symbol="JSCRIPT_PROJECTION_KEYWORD"
@@ -140,6 +145,11 @@
                     mask="0x1000000"
                     name="Internal"
                     symbol="INTERNAL_KEYWORD"
+                    />
+                <keyword
+                    mask="0x2000000"
+                    name="MemProtectGCBucketStats"
+                    symbol="MEMPROTECT_GC_BUCKET_STATS_KEYWORD"
                     />
             </keywords>
             <tasks>
@@ -938,6 +948,16 @@
                     name="Jscript_Internal_Generic_Event"
                     value="108"
                     />
+                <task
+                    eventGUID="{3b122f5b-4f0d-4bef-a973-7a3953f9bcc8}"
+                    name="Jscript_GC_Bucket_Stats"
+                    value="109"
+                    />
+                <task
+                    eventGUID="{2780AF73-7C2B-4D48-B73A-285F95F5C9F4}"
+                    name="Memprotect_GC_Bucket_Stats"
+                    value="110"
+                    />
             </tasks>
             <maps>
                 <valueMap name="MethodAddressRangeMap">
@@ -1000,6 +1020,64 @@
                 <map
                     message="$(string.JScriptProvider.Source.ReasonLength)"
                     value="0x2"
+                    />
+                </valueMap>
+                <valueMap name="GCBucketNames">
+                <map
+                    message="$(string.JScriptProvider.GCBucket.Normal_S})"
+                    value="0x0000"
+                    />
+                <map
+                    message="$(string.JScriptProvider.GCBucket.Leaf_S})"
+                    value="0x0001"
+                    />
+                <map
+                    message="$(string.JScriptProvider.GCBucket.Fin_S})"
+                    value="0x0002"
+                    />
+                <map
+                    message="$(string.JScriptProvider.GCBucket.NormWB_S})"
+                    value="0x0003"
+                    />
+                <map
+                    message="$(string.JScriptProvider.GCBucket.FinWB_S})"
+                    value="0x0004"
+                    />
+                <map
+                    message="$(string.JScriptProvider.GCBucket.Visited_S})"
+                    value="0x0005"
+                    />
+                <map
+                    message="$(string.JScriptProvider.GCBucket.Normal_M})"
+                    value="0x0100"
+                    />
+                <map
+                    message="$(string.JScriptProvider.GCBucket.Leaf_M})"
+                    value="0x0101"
+                    />
+                <map
+                    message="$(string.JScriptProvider.GCBucket.Fin_M})"
+                    value="0x0102"
+                    />
+                <map
+                    message="$(string.JScriptProvider.GCBucket.NormWB_M})"
+                    value="0x0103"
+                    />
+                <map
+                    message="$(string.JScriptProvider.GCBucket.FinWB_M})"
+                    value="0x0104"
+                    />
+                <map
+                    message="$(string.JScriptProvider.GCBucket.Visited_M})"
+                    value="0x0105"
+                    />
+                <map
+                    message="$(string.JScriptProvider.GCBucket.Large)"
+                    value="0x0200"
+                    />
+                <map
+                    message="$(string.JScriptProvider.GCBucket.Total)"
+                    value="0x0300"
                     />
                 </valueMap>
             </maps>
@@ -1215,6 +1293,31 @@
                 <data
                     inType="win:UInt32"
                     name="SweptBytes"
+                    />
+                </template>
+                <template tid="GCBucketStats">
+                <data
+                    inType="win:Pointer"
+                    name="RecyclerID"
+                    outType="win:HexInt64"
+                    />
+                <data
+                    inType="win:UInt16"
+                    name="Type"
+                    map="GCBucketNames"
+                    outType="win:HexInt16"
+                    />
+                <data
+                    inType="win:UInt16"
+                    name="SizeCat"
+                    />
+                <data
+                    inType="win:UInt64"
+                    name="UsedBytes"
+                    />
+                <data
+                    inType="win:UInt64"
+                    name="TotalBytes"
                     />
                 </template>
                 <template tid="ProfileSave">
@@ -3865,6 +3968,24 @@
                     template="InternalGenericEvent"
                     value="242"
                     />
+                <event
+                    keywords="JScriptGCBucketStats"
+                    level="win:Verbose"
+                    opcode="win:Info"
+                    symbol="JSCRIPT_GC_BUCKET_STATS"
+                    task="Jscript_GC_Bucket_Stats"
+                    template="GCBucketStats"
+                    value="243"
+                    />
+                <event
+                    keywords="MemProtectGCBucketStats"
+                    level="win:Verbose"
+                    opcode="win:Info"
+                    symbol="MEMPROTECT_GC_BUCKET_STATS"
+                    task="Memprotect_GC_Bucket_Stats"
+                    template="GCBucketStats"
+                    value="244"
+                    />
             </events>
             </provider>
         </events>
@@ -3911,6 +4032,62 @@
                 <string
                     id="JScriptProvider.Source.Reason"
                     value="Reason"
+                    />
+                <string
+                    id="JScriptProvider.GCBucket.Normal_S}"
+                    value="Normal (S)"
+                    />
+                <string
+                    id="JScriptProvider.GCBucket.Leaf_S}"
+                    value="Leaf (S)"
+                    />
+                <string
+                    id="JScriptProvider.GCBucket.Fin_S}"
+                    value="Fin (S)"
+                    />
+                <string
+                    id="JScriptProvider.GCBucket.NormWB_S}"
+                    value="NormWB (S)"
+                    />
+                <string
+                    id="JScriptProvider.GCBucket.FinWB_S}"
+                    value="FinWB (S)"
+                    />
+                <string
+                    id="JScriptProvider.GCBucket.Visited_S}"
+                    value="Visited (S)"
+                    />
+                <string
+                    id="JScriptProvider.GCBucket.Normal_M}"
+                    value="Normal (M)"
+                    />
+                <string
+                    id="JScriptProvider.GCBucket.Leaf_M}"
+                    value="Leaf (M)"
+                    />
+                <string
+                    id="JScriptProvider.GCBucket.Fin_M}"
+                    value="Fin (M)"
+                    />
+                <string
+                    id="JScriptProvider.GCBucket.NormWB_M}"
+                    value="NormWB (M)"
+                    />
+                <string
+                    id="JScriptProvider.GCBucket.FinWB_M}"
+                    value="FinWB (M)"
+                    />
+                <string
+                    id="JScriptProvider.GCBucket.Visited_M}"
+                    value="Visited (M)"
+                    />
+                <string
+                    id="JScriptProvider.GCBucket.Large"
+                    value="Large"
+                    />
+                <string
+                    id="JScriptProvider.GCBucket.Total"
+                    value="Total"
                     />
             </stringTable>
         </resources>

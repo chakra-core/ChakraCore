@@ -21,6 +21,12 @@ HeapBucket::HeapBucket() :
 }
 
 uint
+HeapBucket::GetSizeCat() const
+{
+    return this->sizeCat;
+}
+
+uint
 HeapBucket::GetBucketIndex() const
 {
     return HeapInfo::GetBucketIndex(this->sizeCat);
@@ -1422,11 +1428,13 @@ HeapBucketT<TBlockType>::Check(bool checkCount)
 }
 #endif
 
-#ifdef DUMP_FRAGMENTATION_STATS
+#if ENABLE_MEM_STATS
 template <typename TBlockType>
 void
-HeapBucketT<TBlockType>::AggregateBucketStats(HeapBucketStats& stats)
+HeapBucketT<TBlockType>::AggregateBucketStats()
 {
+    HeapBucket::AggregateBucketStats();  // call super
+
     auto allocatorHead = &this->allocatorHead;
     auto allocatorCurr = allocatorHead;
 
@@ -1435,16 +1443,15 @@ HeapBucketT<TBlockType>::AggregateBucketStats(HeapBucketStats& stats)
         TBlockType* allocatorHeapBlock = allocatorCurr->GetHeapBlock();
         if (allocatorHeapBlock)
         {
-            allocatorHeapBlock->AggregateBlockStats(stats, true, allocatorCurr->freeObjectList, allocatorCurr->endAddress != 0);
+            allocatorHeapBlock->AggregateBlockStats(this->memStats, true, allocatorCurr->freeObjectList, allocatorCurr->endAddress != 0);
         }
         allocatorCurr = allocatorCurr->GetNext();
     } while (allocatorCurr != allocatorHead);
 
-    auto blockStatsAggregator = [&stats](TBlockType* heapBlock) {
-        heapBlock->AggregateBlockStats(stats);
+    auto blockStatsAggregator = [this](TBlockType* heapBlock) {
+        heapBlock->AggregateBlockStats(this->memStats);
     };
 
-    HeapBlockList::ForEach(emptyBlockList, blockStatsAggregator);
     HeapBlockList::ForEach(fullBlockList, blockStatsAggregator);
 #if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))

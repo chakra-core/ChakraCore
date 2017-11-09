@@ -2471,19 +2471,9 @@ namespace Js
                                 {
                                     if (propertyId == Constants::NoProperty)
                                     {
-                                        PropertyString * propertyString = PropertyString::TryFromVar(obj);
-                                        if (propertyString != nullptr)
-                                        {
-                                            // If we have a property string, it is assumed that the propertyId is being
-                                            // kept alive with the object
-                                            propertyId = propertyString->GetPropertyRecord()->GetPropertyId();
-                                        }
-                                        else
-                                        {
-                                            const PropertyRecord* propertyRecord;
-                                            objectContext->GetOrAddPropertyRecord(obj, &propertyRecord);
-                                            propertyId = propertyRecord->GetPropertyId();
-                                        }
+                                        const PropertyRecord* propertyRecord;
+                                        objectContext->GetOrAddPropertyRecord(obj, &propertyRecord);
+                                        propertyId = propertyRecord->GetPropertyId();
                                     }
                                     // MoveAndGetNext shouldn't return an internal property id
                                     Assert(!Js::IsInternalPropertyId(propertyId));
@@ -2597,6 +2587,7 @@ namespace Js
                                 // We need to special-case RegExp constructor here because it has some special properties (above) and some
                                 // special enumerable properties which should all show up in the debugger.
                                 JavascriptRegExpConstructor* regExp = scriptContext->GetLibrary()->GetRegExpConstructor();
+                                Js::JavascriptFunction* jsFunction = Js::JavascriptFunction::FromVar(object);
 
                                 if (regExp == object)
                                 {
@@ -2612,7 +2603,7 @@ namespace Js
                                         InsertItem(originalObject, object, propertyId, isConst, isUnscoped, &pMethodsGroupWalker);
                                     }
                                 }
-                                else if (Js::JavascriptFunction::FromVar(object)->IsScriptFunction() || Js::JavascriptFunction::FromVar(object)->IsBoundFunction())
+                                else if ((jsFunction->IsScriptFunction() && !jsFunction->IsJsBuiltIn()) || jsFunction->IsBoundFunction())
                                 {
                                     // Adding special property length for the ScriptFunction, like it is done in JavascriptFunction::GetSpecialNonEnumerablePropertyName
                                     InsertItem(originalObject, object, PropertyIds::length, true/*not editable*/, false /*isUnscoped*/, &pMethodsGroupWalker);
@@ -3275,9 +3266,9 @@ namespace Js
 
     BOOL RecyclableTypedArrayAddress::Set(Var updateObject)
     {
-        if (Js::TypedArrayBase::Is(parentArray))
+        Js::TypedArrayBase* typedArrayObj = JavascriptOperators::TryFromVar<Js::TypedArrayBase>(parentArray);
+        if (typedArrayObj)
         {
-            Js::TypedArrayBase* typedArrayObj = Js::TypedArrayBase::FromVar(parentArray);
             return typedArrayObj->SetItem(index, updateObject, PropertyOperation_None);
         }
 
@@ -3295,9 +3286,9 @@ namespace Js
 
     BOOL RecyclableTypedArrayDisplay::HasChildren()
     {
-        if (Js::TypedArrayBase::Is(instance))
+        Js::TypedArrayBase* typedArrayObj = JavascriptOperators::TryFromVar<Js::TypedArrayBase>(instance);
+        if (typedArrayObj)
         {
-            Js::TypedArrayBase* typedArrayObj = Js::TypedArrayBase::FromVar(instance);
             if (typedArrayObj->GetLength() > 0)
             {
                 return TRUE;

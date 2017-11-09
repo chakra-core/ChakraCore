@@ -177,6 +177,8 @@ goto :main
   if /i "%1" == "-binaryRoot"       set _binaryRoot=%~f2&                                       goto :ArgOkShift2
   if /i "%1" == "-variants"         set _Variants=%~2&                                          goto :ArgOkShift2
   if /i "%1" == "-cleanupall"       set _CleanUpAll=1&                                          goto :ArgOk
+  if /i "%1" == "-noprogramoutput"  set _NoProgramOutput=-noprogramoutput&                      goto :ArgOk
+  if /i "%1" == "-onlyassertoutput"  set _OnlyAssertOutput=-onlyassertoutput&                   goto :ArgOk
 
   ::Extra ch.exe command line flags
   if /i "%1" == "-ExtraHostFlags"   set _ExtraHostFlags=%~2&                                    goto :ArgOkShift2
@@ -272,6 +274,8 @@ goto :main
   set _ExtraHostFlags=
   set _DumpOnCrash=
   set _CrashOnException=
+  set _NoProgramOutput=
+  set _OnlyAssertOutput=
 
   goto :eof
 
@@ -476,6 +480,8 @@ goto :main
   set _rlArgs=%_rlArgs% %_exclude_nodeferparse%
   set _rlArgs=%_rlArgs% %_exclude_forceundodefer%
   set _rlArgs=%_rlArgs% %_ExcludeApolloTests%
+  set _rlArgs=%_rlArgs% %_NoProgramOutput%
+  set _rlArgs=%_rlArgs% %_OnlyAssertOutput%
   set _rlArgs=%_rlArgs% %_quiet%
   set _rlArgs=%_rlArgs% -exe
   set _rlArgs=%_rlArgs% %EXTRA_RL_FLAGS%

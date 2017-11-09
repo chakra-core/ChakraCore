@@ -71,6 +71,7 @@ namespace Js
 
         static bool Is(Var var);
         static JavascriptGenerator* FromVar(Var var);
+        static JavascriptGenerator* UnsafeFromVar(Var var);
 
         class EntryInfo
         {

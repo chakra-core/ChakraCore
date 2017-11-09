@@ -158,6 +158,7 @@ ENTRY(blink)
 ENTRY(bold)
 ENTRY2(boolean_, _u("boolean")) // "boolean" cannot be an identifier in C++ so using "boolean_" instead
 ENTRY(Boolean)
+ENTRY(JsBuiltIn)
 ENTRY(call)
 ENTRY(CanvasPixelArray)
 ENTRY(cast)
@@ -717,6 +718,18 @@ ENTRY(Common)
 ENTRY(Promise)
 ENTRY(MissingProperty)
 ENTRY(winglob)
+//Built In
+ENTRY(__chakraLibrary)
+ENTRY(registerChakraLibraryFunction)
+ENTRY(registerFunction)
+ENTRY(className)
+ENTRY(methodName)
+ENTRY(argumentsCount)
+ENTRY(forceInline)
+ENTRY(alias)
+ENTRY(GetLength)
+ENTRY(GetIteratorPrototype)
+ENTRY(InitInternalProperties)
 
 // These are ES5/6/7+ builtins that are tracked for telemetry purposes, but currently not implemented by Chakra or are otherwise special.
 // IMPORTANT NOTE: See notes at top of this file regarding GenByteCode and test failures after changing this list.

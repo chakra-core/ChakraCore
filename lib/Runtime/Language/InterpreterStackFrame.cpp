@@ -1717,7 +1717,7 @@ namespace Js
 
     Var InterpreterStackFrame::InterpreterThunk(JavascriptCallStackLayout* layout)
     {
-        Js::ScriptFunction * function = Js::ScriptFunction::FromVar(layout->functionObject);
+        Js::ScriptFunction * function = Js::ScriptFunction::UnsafeFromVar(layout->functionObject);
         Js::ArgumentReader args(&layout->callInfo, layout->args);
         void* localReturnAddress = _ReturnAddress();
         void* localAddressOfReturnAddress = _AddressOfReturnAddress();
@@ -1768,7 +1768,7 @@ namespace Js
         Assert(threadContext->IsScriptActive());
         Assert(threadContext->IsInScript());
 
-        FunctionBody* executeFunction = JavascriptFunction::FromVar(function)->GetFunctionBody();
+        FunctionBody* executeFunction = JavascriptFunction::UnsafeFromVar(function)->GetFunctionBody();
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (!isAsmJs && executeFunction->IsInDebugMode() != functionScriptContext->IsScriptContextInDebugMode()) // debug mode mismatch
         {
@@ -3510,17 +3510,15 @@ namespace Js
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(varInstance);
 #endif
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
-        RecyclableObject* obj = NULL;
-        if (RecyclableObject::Is(varInstance))
+        RecyclableObject* obj = JavascriptOperators::TryFromVar<RecyclableObject>(varInstance);
+        if (obj)
         {
-            obj = RecyclableObject::FromVar(varInstance);
-
-            if ((propertyId == PropertyIds::apply || propertyId == PropertyIds::call) && ScriptFunction::Is(obj))
+            ScriptFunction *fn = JavascriptOperators::TryFromVar<ScriptFunction>(obj);
+            if ((propertyId == PropertyIds::apply || propertyId == PropertyIds::call) && fn)
             {
                 // If the property being loaded is "apply"/"call", make an optimistic assumption that apply/call is not overridden and
                 // undefer the function right here if it was defer parsed before. This is required so that the load of "apply"/"call"
                 // happens from the same "type". Otherwise, we will have a polymorphic cache for load of "apply"/"call".
-                ScriptFunction *fn = ScriptFunction::FromVar(obj);
                 if(fn->GetType()->GetEntryPoint() == JavascriptFunction::DeferredParsingThunk)
                 {
                     JavascriptFunction::DeferredParse(&fn);
@@ -3575,7 +3573,7 @@ namespace Js
         Js::Var instance = this->GetRootObject();
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
         InlineCache *inlineCache = this->GetInlineCache(playout->inlineCacheIndex);
-        DynamicObject *obj = DynamicObject::FromVar(instance);
+        DynamicObject *obj = DynamicObject::UnsafeFromVar(instance);
 
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
@@ -3601,7 +3599,7 @@ namespace Js
             GetFunctionBody(),
             GetInlineCache(playout->inlineCacheIndex),
             playout->inlineCacheIndex,
-            DynamicObject::FromVar(rootInstance),
+            DynamicObject::UnsafeFromVar(rootInstance),
             propertyId
         );
 
@@ -3877,11 +3875,13 @@ namespace Js
 #endif
 #endif
 
+        ArgSlot argCount = playout->ArgCount;
         if (playout->Return == Js::Constants::NoRegister)
         {
             flags |= CallFlags_NotUsed;
             Arguments args(CallInfo((CallFlags)flags, playout->ArgCount), m_outParams);
             AssertMsg(static_cast<unsigned>(args.Info.Flags) == flags, "Flags don't fit into the CallInfo field?");
+                argCount = args.GetArgCountWithExtraArgs();
             if (spreadIndices != nullptr)
             {
                 JavascriptFunction::CallSpreadFunction(function, args, spreadIndices);
@@ -3896,6 +3896,7 @@ namespace Js
             flags |= CallFlags_Value;
             Arguments args(CallInfo((CallFlags)flags, playout->ArgCount), m_outParams);
             AssertMsg(static_cast<unsigned>(args.Info.Flags) == flags, "Flags don't fit into the CallInfo field?");
+            argCount = args.GetArgCountWithExtraArgs();
             if (spreadIndices != nullptr)
             {
                 SetReg((RegSlot)playout->Return, JavascriptFunction::CallSpreadFunction(function, args, spreadIndices));
@@ -3907,7 +3908,7 @@ namespace Js
         }
 
         threadContext->SetImplicitCallFlags(savedImplicitCallFlags);
-        PopOut(playout->ArgCount);
+        PopOut(argCount);
     }
 
     template <class T>
@@ -3956,7 +3957,7 @@ namespace Js
         InlineCache *inlineCache = this->GetInlineCache(playout->inlineCacheIndex);
 
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
-        DynamicObject * obj = DynamicObject::FromVar(instance);
+        DynamicObject * obj = DynamicObject::UnsafeFromVar(instance);
 
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
@@ -3981,7 +3982,7 @@ namespace Js
             GetFunctionBody(),
             GetInlineCache(playout->inlineCacheIndex),
             playout->inlineCacheIndex,
-            DynamicObject::FromVar(rootInstance),
+            DynamicObject::UnsafeFromVar(rootInstance),
             propertyId
         );
 
@@ -4006,7 +4007,7 @@ namespace Js
             GetFunctionBody(),
             GetInlineCache(playout->inlineCacheIndex),
             playout->inlineCacheIndex,
-            DynamicObject::FromVar(rootInstance),
+            DynamicObject::UnsafeFromVar(rootInstance),
             propertyId
         );
 
@@ -4155,9 +4156,9 @@ namespace Js
     {
         InlineCache *inlineCache = GetInlineCache(playout->inlineCacheIndex);
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
-        if (RecyclableObject::Is(instance))
+        RecyclableObject* obj = JavascriptOperators::TryFromVar<RecyclableObject>(instance);
+        if (obj)
         {
-            RecyclableObject* obj = RecyclableObject::FromVar(instance);
             PropertyValueInfo info;
             PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
 
@@ -4305,7 +4306,7 @@ namespace Js
         int length = pScope->GetLength();
         if ( 1 == length )
         {
-            DynamicObject *obj = (DynamicObject*)pScope->GetItem(0);
+            RecyclableObject *obj = RecyclableObject::FromVar(pScope->GetItem(0));
             PropertyValueInfo info;
             PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
             Var value;
@@ -4405,11 +4406,10 @@ namespace Js
         ScriptContext* scriptContext = GetScriptContext();
         Var value = GetReg(playout->Value);
 
-        DynamicObject *obj;
         int length = pScope->GetLength();
         if ( 1 == length )
         {
-            obj = (DynamicObject*)pScope->GetItem(0);
+            RecyclableObject* obj = RecyclableObject::FromVar(pScope->GetItem(0));
             PropertyValueInfo info;
             PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
             if (CacheOperators::TrySetProperty<true, false, false, false, false, true, false, false>(
@@ -4464,18 +4464,15 @@ namespace Js
     }
 
     template <class T>
-    inline bool InterpreterStackFrame::TrySetPropertyLocalFastPath(unaligned T* playout, PropertyId pid, Var instance, InlineCache*& inlineCache, PropertyOperationFlags flags)
+    inline bool InterpreterStackFrame::TrySetPropertyLocalFastPath(unaligned T* playout, PropertyId pid, RecyclableObject* instance, InlineCache*& inlineCache, PropertyOperationFlags flags)
     {
-        Assert(!TaggedNumber::Is(instance));
-
-        RecyclableObject* obj = RecyclableObject::FromVar(instance);
         inlineCache = this->GetInlineCache(playout->inlineCacheIndex);
 
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
         return
             CacheOperators::TrySetProperty<true, false, false, false, false, true, false, false>(
-                obj,
+                instance,
                 !!(flags & PropertyOperation_Root),
                 pid,
                 GetReg(playout->Value),
@@ -4494,7 +4491,7 @@ namespace Js
         InlineCache *inlineCache;
 
         if (!TaggedNumber::Is(instance)
-            && TrySetPropertyLocalFastPath(playout, propertyId, instance, inlineCache, flags))
+            && TrySetPropertyLocalFastPath(playout, propertyId, RecyclableObject::UnsafeFromVar(instance), inlineCache, flags))
         {
             if(GetJavascriptFunction()->GetConstructorCache()->NeedsUpdateAfterCtor())
             {
@@ -4771,7 +4768,7 @@ namespace Js
 
         Assert(!TaggedNumber::Is(instance));
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
-        if (TrySetPropertyLocalFastPath(playout, propertyId, instance, inlineCache))
+        if (TrySetPropertyLocalFastPath(playout, propertyId, RecyclableObject::UnsafeFromVar(instance), inlineCache))
         {
             return;
         }
@@ -4801,7 +4798,7 @@ namespace Js
 
         Assert(!TaggedNumber::Is(instance));
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
-        if (!TrySetPropertyLocalFastPath(playout, propertyId, instance, inlineCache, flags))
+        if (!TrySetPropertyLocalFastPath(playout, propertyId, RecyclableObject::UnsafeFromVar(instance), inlineCache, flags))
         {
             JavascriptOperators::OP_InitClassMember(instance, propertyId, GetReg(playout->Value));
         }
@@ -4863,7 +4860,7 @@ namespace Js
 
         Assert(!TaggedNumber::Is(instance));
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
-        if (!TrySetPropertyLocalFastPath(playout, propertyId, instance, inlineCache, flags))
+        if (!TrySetPropertyLocalFastPath(playout, propertyId, RecyclableObject::UnsafeFromVar(instance), inlineCache, flags))
         {
             JavascriptOperators::OP_InitLetProperty(instance, propertyId, GetReg(playout->Value));
         }
@@ -4877,7 +4874,7 @@ namespace Js
 
         Assert(!TaggedNumber::Is(instance));
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
-        if (!TrySetPropertyLocalFastPath(playout, propertyId, instance, inlineCache, flags))
+        if (!TrySetPropertyLocalFastPath(playout, propertyId, RecyclableObject::UnsafeFromVar(instance), inlineCache, flags))
         {
             JavascriptOperators::OP_InitConstProperty(instance, propertyId, GetReg(playout->Value));
         }
@@ -5083,7 +5080,7 @@ namespace Js
         {
             element =
                 ProfilingHelpers::ProfiledLdElem_FastPath(
-                    JavascriptArray::FromVar(instance),
+                    JavascriptArray::UnsafeFromVar(instance),
                     GetReg(playout->Element),
                     GetScriptContext());
         }
@@ -5121,7 +5118,7 @@ namespace Js
             !JavascriptOperators::SetElementMayHaveImplicitCalls(GetScriptContext()))
         {
             ProfilingHelpers::ProfiledStElem_FastPath(
-                JavascriptArray::FromVar(instance),
+                JavascriptArray::UnsafeFromVar(instance),
                 varIndex,
                 value,
                 GetScriptContext(),
@@ -8522,9 +8519,9 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     template <class T>
     void InterpreterStackFrame::OP_LdNewTarget(const unaligned T* playout)
     {
-        if (this->m_callFlags & CallFlags_NewTarget)
+        if (Js::CallInfo::HasNewTarget(this->m_callFlags))
         {
-            SetRegAllowStackVar(playout->R0, (Js::RecyclableObject*)this->m_inParams[this->m_inSlotsCount]);
+            SetRegAllowStackVar(playout->R0, (Js::RecyclableObject*)Js::CallInfo::GetNewTarget(this->m_callFlags, this->m_inParams, (ArgSlot)this->m_inSlotsCount));
         }
         else if (this->m_callFlags & CallFlags_New)
         {

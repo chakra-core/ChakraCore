@@ -40,5 +40,6 @@ namespace Js {
 
         static bool Is(Var aValue);
         static JavascriptEnumerator* FromVar(Var varValue);
+        static JavascriptEnumerator* UnsafeFromVar(Var varValue);
     };
 }

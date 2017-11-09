@@ -2205,16 +2205,18 @@ EncoderMD::BaseAndOffsetFromSym(IR::SymOpnd *symOpnd, RegNum *pBaseReg, int32 *p
 
     RegNum baseReg = func->GetLocalsPointer();
     int32 offset = stackSym->m_offset + symOpnd->m_offset;
+
     if (baseReg == RegSP)
     {
         // SP points to the base of the argument area. Non-reg SP points directly to the locals.
         offset += (func->m_argSlotsForFunctionsCalled * MachRegInt);
-        if (func->HasInlinee())
+    }
+
+    if (func->HasInlinee())
+    {
+        if ((!stackSym->IsArgSlotSym() || stackSym->m_isOrphanedArg) && !stackSym->IsParamSlotSym())
         {
-            if ((!stackSym->IsArgSlotSym() || stackSym->m_isOrphanedArg) && !stackSym->IsParamSlotSym())
-            {
-                offset += func->GetInlineeArgumentStackSize();
-            }
+            offset += func->GetInlineeArgumentStackSize();
         }
     }
 
@@ -2239,7 +2241,7 @@ EncoderMD::BaseAndOffsetFromSym(IR::SymOpnd *symOpnd, RegNum *pBaseReg, int32 *p
         if (func->GetMaxInlineeArgOutSize() != 0)
         {
             Assert(func->HasInlinee());
-            Assert(baseReg == RegSP);
+            Assert(baseReg == (func->HasTry() ?  RegR7 : RegSP));
             if (stackSym->IsArgSlotSym() && !stackSym->m_isOrphanedArg)
             {
                 Assert(stackSym->m_isInlinedArgSlot);
@@ -2248,7 +2250,7 @@ EncoderMD::BaseAndOffsetFromSym(IR::SymOpnd *symOpnd, RegNum *pBaseReg, int32 *p
             else
             {
                 AssertMsg(stackSym->IsAllocated(), "StackSym offset should be set");
-                Assert((uint)offset > func->m_argSlotsForFunctionsCalled * MachRegInt + func->GetMaxInlineeArgOutSize());
+                Assert(offset > (func->HasTry() ? (int32)func->GetMaxInlineeArgOutSize() : (int32)(func->m_argSlotsForFunctionsCalled * MachRegInt + func->GetMaxInlineeArgOutSize())));
             }
         }
         // TODO: restore the following assert (very useful) once we have a way to tell whether prolog/epilog

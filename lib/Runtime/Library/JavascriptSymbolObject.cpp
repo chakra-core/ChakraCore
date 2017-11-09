@@ -19,9 +19,16 @@ namespace Js
 
     JavascriptSymbolObject* JavascriptSymbolObject::FromVar(Js::Var aValue)
     {
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptSymbolObject'");
+
+        return static_cast<JavascriptSymbolObject *>(aValue);
+    }
+
+    JavascriptSymbolObject* JavascriptSymbolObject::UnsafeFromVar(Js::Var aValue)
+    {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptSymbolObject'");
 
-        return static_cast<JavascriptSymbolObject *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptSymbolObject *>(aValue);
     }
 
     BOOL JavascriptSymbolObject::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)

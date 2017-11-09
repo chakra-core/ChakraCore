@@ -13,7 +13,7 @@ JsrtExternalType::JsrtExternalType(Js::ScriptContext* scriptContext, JsFinalizeC
         Js::TypeIds_Object,
         scriptContext->GetLibrary()->GetObjectPrototype(),
         nullptr,
-        Js::SimplePathTypeHandler::New(scriptContext, scriptContext->GetLibrary()->GetRootPath(), 0, 0, 0, true, true),
+        Js::SimplePathTypeHandlerNoAttr::New(scriptContext, scriptContext->GetLibrary()->GetRootPath(), 0, 0, 0, true, true),
         true,
         true)
         , jsFinalizeCallback(finalizeCallback)
@@ -56,6 +56,12 @@ bool JsrtExternalObject::Is(Js::Var value)
 }
 
 JsrtExternalObject * JsrtExternalObject::FromVar(Js::Var value)
+{
+    AssertOrFailFast(Is(value));
+    return static_cast<JsrtExternalObject *>(value);
+}
+
+JsrtExternalObject * JsrtExternalObject::UnsafeFromVar(Js::Var value)
 {
     Assert(Is(value));
     return static_cast<JsrtExternalObject *>(value);

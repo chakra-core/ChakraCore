@@ -565,19 +565,22 @@ int EncoderMD::EmitConditionalSelect(Arm64CodeEmitter &Emitter, IR::Instr *instr
 template<typename _Emitter>
 int EncoderMD::EmitOp2FpRegister(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitter emitter)
 {
-    IR::Opnd* dst = instr->GetDst();
-    IR::Opnd* src1 = instr->GetSrc1();
+    return EmitOp2FpRegister(Emitter, instr->GetDst(), instr->GetSrc1(), emitter);
+}
 
-    Assert(dst->IsRegOpnd());
-    Assert(src1->IsRegOpnd());
+template<typename _Emitter>
+int EncoderMD::EmitOp2FpRegister(Arm64CodeEmitter &Emitter, IR::Opnd* opnd1, IR::Opnd* opnd2, _Emitter emitter)
+{
+    Assert(opnd1->IsRegOpnd());
+    Assert(opnd2->IsRegOpnd());
 
-    int size = dst->GetSize();
+    int size = opnd1->GetSize();
     Assert(size == 4 || size == 8);
-    Assert(size == src1->GetSize());
+    Assert(size == opnd2->GetSize());
 
     NEON_SIZE neonSize = (size == 8) ? SIZE_1D : SIZE_1S;
 
-    return emitter(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), this->GetFloatRegEncode(src1->AsRegOpnd()), neonSize);
+    return emitter(Emitter, this->GetFloatRegEncode(opnd1->AsRegOpnd()), this->GetFloatRegEncode(opnd2->AsRegOpnd()), neonSize);
 }
 
 template<typename _Emitter>
@@ -702,7 +705,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
     IR::Opnd* dst = 0;
     IR::Opnd* src1 = 0;
     IR::Opnd* src2 = 0;
-    int bytes;
+    int bytes = 0;
     int size;
 
     switch (instr->m_opcode)
@@ -713,6 +716,17 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
 
     case Js::OpCode::ADDS:
         bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitAddsRegister, EmitAddsRegister64, EmitAddsImmediate, EmitAddsImmediate64);
+        break;
+
+    case Js::OpCode::ADR:
+        dst = instr->GetDst();
+        src1 = instr->GetSrc1();
+        Assert(dst->IsRegOpnd());
+        Assert(src1->IsLabelOpnd());
+
+        Assert(dst->GetSize() == 8);
+        EncodeReloc::New(&m_relocList, RelocTypeLabelAdr, m_pc, src1->AsLabelOpnd()->GetLabel(), m_encoder->m_tempAlloc);
+        bytes = EmitAdr(Emitter, this->GetRegEncode(dst->AsRegOpnd()), 0);
         break;
 
     case Js::OpCode::AND:
@@ -904,20 +918,25 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitLsrRegister, EmitLsrRegister64, EmitLsrImmediate, EmitLsrImmediate64);
         break;
 
+    case Js::OpCode::MOV_TRUNC:
+        Assert(instr->GetDst()->GetSize() == 4);
+        Assert(instr->GetSrc1()->GetSize() == 4);
+        // fall through.
+
     case Js::OpCode::MOV:
         bytes = this->EmitOp2Register(Emitter, instr, EmitMovRegister, EmitMovRegister64);
         break;
 
     case Js::OpCode::MOVK:
-        this->EmitMovConstant(Emitter, instr, EmitMovk, EmitMovk64);
+        bytes = this->EmitMovConstant(Emitter, instr, EmitMovk, EmitMovk64);
         break;
     
     case Js::OpCode::MOVN:
-        this->EmitMovConstant(Emitter, instr, EmitMovn, EmitMovn64);
+        bytes = this->EmitMovConstant(Emitter, instr, EmitMovn, EmitMovn64);
         break;
 
     case Js::OpCode::MOVZ:
-        this->EmitMovConstant(Emitter, instr, EmitMovz, EmitMovz64);
+        bytes = this->EmitMovConstant(Emitter, instr, EmitMovz, EmitMovz64);
         break;
 
     case Js::OpCode::MRS_FPCR:
@@ -1043,7 +1062,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         break;
 
     case Js::OpCode::SUB_LSL4:
-        bytes = this->EmitOp3RegisterShifted(Emitter, instr, SHIFT_LSL, 4, EmitSubRegister, EmitSubRegister64);
+        bytes = this->EmitOp3RegisterShifted(Emitter, instr, EXTEND_UXTX, 4, EmitSubRegister, EmitSubRegister64);
         break;
 
     case Js::OpCode::TBZ:
@@ -1072,7 +1091,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         break;
 
     case Js::OpCode::FCMP:
-        bytes = this->EmitOp2FpRegister(Emitter, instr, EmitNeonFcmp);
+        bytes = this->EmitOp2FpRegister(Emitter, instr->GetSrc1(), instr->GetSrc2(), EmitNeonFcmp);
         break;
 
     case Js::OpCode::FCVT:
@@ -1161,17 +1180,17 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         Assert(dst->IsFloat() != src1->IsFloat());
         if (dst->IsFloat())
         {
-            EmitNeonIns(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), 0, this->GetRegEncode(src1->AsRegOpnd()), (size == 8) ? SIZE_1D : SIZE_1S);
+            bytes = EmitNeonIns(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), 0, this->GetRegEncode(src1->AsRegOpnd()), (size == 8) ? SIZE_1D : SIZE_1S);
         }
         else
         {
             if (size == 8)
             { 
-                EmitNeonUmov64(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), 0, (size == 8) ? SIZE_1D : SIZE_1S);
+                bytes = EmitNeonUmov64(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), 0, (size == 8) ? SIZE_1D : SIZE_1S);
             }
             else
             {
-                EmitNeonUmov(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), 0, (size == 8) ? SIZE_1D : SIZE_1S);
+                bytes = EmitNeonUmov(Emitter, this->GetFloatRegEncode(dst->AsRegOpnd()), this->GetRegEncode(src1->AsRegOpnd()), 0, (size == 8) ? SIZE_1D : SIZE_1S);
             }
         }
         break;
@@ -1218,6 +1237,8 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         break;
 
     }
+
+    Assert(bytes != 0);
 
     return Emitter.Opcode();
 }
@@ -1287,18 +1308,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
             else
             {
                 instr->AsLabelInstr()->SetPC(m_pc);
-                if (instr->AsLabelInstr()->m_id == m_func->m_unwindInfo.GetPrologStartLabel())
-                {
-                    m_func->m_unwindInfo.SetPrologOffset(DWORD(m_pc - m_encoder->m_encodeBuffer));
-                }
-                else if (instr->AsLabelInstr()->m_id == m_func->m_unwindInfo.GetEpilogEndLabel())
-                {
-                    // This is the last instruction in the epilog. Any instructions that follow
-                    // are separated code, so the unwind info will have to represent them as a function
-                    // fragment. (If there's no separated code, then this offset will equal the total
-                    // code size.)
-                    m_func->m_unwindInfo.SetEpilogEndOffset(DWORD(m_pc - m_encoder->m_encodeBuffer - m_func->m_unwindInfo.GetPrologOffset()));
-                }
+                m_func->m_unwindInfo.SetLabelOffset(instr->AsLabelInstr()->m_id, DWORD(m_pc - m_encoder->m_encodeBuffer));
             }
         }
     #if DBG_DUMP
@@ -1371,13 +1381,14 @@ EncoderMD::BaseAndOffsetFromSym(IR::SymOpnd *symOpnd, RegNum *pBaseReg, int32 *p
     {
         // SP points to the base of the argument area. Non-reg SP points directly to the locals.
         offset += (func->m_argSlotsForFunctionsCalled * MachRegInt);
-        if (func->HasInlinee())
+    }
+
+    if (func->HasInlinee())
+    {
+        Assert(func->HasInlinee());
+        if ((!stackSym->IsArgSlotSym() || stackSym->m_isOrphanedArg) && !stackSym->IsParamSlotSym())
         {
-            Assert(func->HasInlinee());
-            if ((!stackSym->IsArgSlotSym() || stackSym->m_isOrphanedArg) && !stackSym->IsParamSlotSym())
-            {
-                offset += func->GetInlineeArgumentStackSize();
-            }
+            offset += func->GetInlineeArgumentStackSize();
         }
     }
 
@@ -1401,7 +1412,8 @@ EncoderMD::BaseAndOffsetFromSym(IR::SymOpnd *symOpnd, RegNum *pBaseReg, int32 *p
 
         if (func->HasInlinee())
         {
-            Assert(baseReg == RegSP);
+            // TODO (megupta): BaseReg will be a pre-reserved non SP register when we start supporting try
+            Assert(baseReg == RegSP || baseReg == ALT_LOCALS_PTR);
             if (stackSym->IsArgSlotSym() && !stackSym->m_isOrphanedArg)
             {
                 Assert(stackSym->m_isInlinedArgSlot);
@@ -1411,6 +1423,7 @@ EncoderMD::BaseAndOffsetFromSym(IR::SymOpnd *symOpnd, RegNum *pBaseReg, int32 *p
             {
                 AssertMsg(stackSym->IsAllocated(), "StackSym offset should be set");
                 //Assert((uint)offset > ((func->m_argSlotsForFunctionsCalled + func->GetMaxInlineeArgOutCount()) * MachRegInt));
+                //Assert(offset > (func->HasTry() ? (int32)func->GetMaxInlineeArgOutSize() : (int32)(func->m_argSlotsForFunctionsCalled * MachRegInt + func->GetMaxInlineeArgOutSize())));
             }
         }
         // TODO: restore the following assert (very useful) once we have a way to tell whether prolog/epilog
@@ -1433,10 +1446,33 @@ EncoderMD::ApplyRelocs(size_t codeBufferAddress, size_t codeSize, uint* bufferCR
 {
     for (EncodeReloc *reloc = m_relocList; reloc; reloc = reloc->m_next)
     {
-        BYTE * relocAddress = reloc->m_consumerOffset;
-        IR::LabelInstr * labelInstr = reloc->m_relocInstr->AsLabelInstr();
+        PULONG relocAddress = PULONG(reloc->m_consumerOffset);
+        PULONG targetAddress = PULONG(reloc->m_relocInstr->AsLabelInstr()->GetPC());
+        ULONG_PTR immediate;
 
-        ArmBranchLinker::LinkRaw((PULONG)relocAddress, (PULONG)labelInstr->GetPC());
+        switch (reloc->m_relocType)
+        {
+        case RelocTypeBranch14:
+        case RelocTypeBranch19:
+        case RelocTypeBranch26:
+            ArmBranchLinker::LinkRaw(relocAddress, targetAddress);
+            break;
+
+        case RelocTypeLabelAdr:
+            immediate = ULONG_PTR(targetAddress) - ULONG_PTR(relocAddress);
+            Assert(IS_CONST_INT21(immediate));
+            *relocAddress = (*relocAddress & ~(3 << 29)) | ULONG((immediate & 3) << 29);
+            *relocAddress = (*relocAddress & ~(0x7ffff << 5)) | ULONG(((immediate >> 2) & 0x7ffff) << 5);
+            break;
+
+        case RelocTypeLabel:
+            *(ULONG_PTR*)relocAddress = ULONG_PTR(targetAddress) - ULONG_PTR(m_encoder->m_encodeBuffer) + ULONG_PTR(codeBufferAddress);
+            break;
+
+        default:
+            // unexpected/unimplemented type
+            Assert(false);
+        }
     }
 }
 
@@ -1463,7 +1499,13 @@ bool EncoderMD::TryConstFold(IR::Instr *instr, IR::RegOpnd *regOpnd)
             return false;
         }
 
-        instr->ReplaceSrc(regOpnd, regOpnd->m_sym->GetConstOpnd());
+        IR::Opnd* constOpnd = regOpnd->m_sym->GetConstOpnd();
+        if (constOpnd->GetSize() > regOpnd->GetSize())
+        {
+            return false;
+        }
+
+        instr->ReplaceSrc(regOpnd, constOpnd);
         LegalizeMD::LegalizeInstr(instr, false);
 
         return true;

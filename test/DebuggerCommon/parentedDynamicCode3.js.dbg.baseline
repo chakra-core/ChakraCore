@@ -7,24 +7,24 @@
   {
     "sources": [
       {
-        "scriptId": 1,
         "fileName": "parentedDynamicCode3.js",
         "lineCount": 18,
-        "sourceLength": 750
+        "sourceLength": 750,
+        "scriptId": 1
       },
       {
+        "scriptType": "eval code",
+        "lineCount": 1,
+        "sourceLength": 11,
         "scriptId": 2,
-        "parentScriptId": 1,
-        "scriptType": "eval code",
-        "lineCount": 1,
-        "sourceLength": 11
+        "parentScriptId": 1
       },
       {
-        "scriptId": 4,
-        "parentScriptId": 1,
         "scriptType": "eval code",
         "lineCount": 1,
-        "sourceLength": 11
+        "sourceLength": 11,
+        "scriptId": 5,
+        "parentScriptId": 1
       }
     ]
   },
@@ -36,38 +36,38 @@
   {
     "sources": [
       {
-        "scriptId": 1,
         "fileName": "parentedDynamicCode3.js",
         "lineCount": 18,
-        "sourceLength": 750
+        "sourceLength": 750,
+        "scriptId": 1
       },
       {
+        "scriptType": "eval code",
+        "lineCount": 1,
+        "sourceLength": 11,
         "scriptId": 2,
-        "parentScriptId": 1,
-        "scriptType": "eval code",
-        "lineCount": 1,
-        "sourceLength": 11
+        "parentScriptId": 1
       },
       {
-        "scriptId": 4,
-        "parentScriptId": 1,
         "scriptType": "eval code",
         "lineCount": 1,
-        "sourceLength": 11
+        "sourceLength": 11,
+        "scriptId": 5,
+        "parentScriptId": 1
       },
       {
-        "scriptId": 8,
-        "parentScriptId": 1,
         "scriptType": "eval code",
         "lineCount": 1,
-        "sourceLength": 11
+        "sourceLength": 11,
+        "scriptId": 10,
+        "parentScriptId": 1
       },
       {
-        "scriptId": 9,
-        "parentScriptId": 1,
         "scriptType": "eval code",
         "lineCount": 1,
-        "sourceLength": 11
+        "sourceLength": 11,
+        "scriptId": 11,
+        "parentScriptId": 1
       }
     ]
   }

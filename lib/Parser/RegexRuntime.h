@@ -280,6 +280,7 @@ namespace UnifiedRegex
     // Mix-in types
     // ----------------------------------------------------------------------
 
+#pragma pack(push, 1)
     // Contains information about how much to back up after syncing to a literal (for the SyncTo... instructions)
     struct BackupMixin
     {
@@ -448,17 +449,6 @@ namespace UnifiedRegex
         // Only used at compile time
         ScannerInfo* Add(Recycler *recycler, Program *program, CharCount offset, CharCount length, bool isEquivClass);
         void FreeBody(ArenaAllocator* rtAllocator);
-#if ENABLE_REGEX_CONFIG_OPTIONS
-        void Print(DebugWriter* w, const char16* litbuf) const;
-#endif
-    };
-
-    struct HardFailMixin
-    {
-        bool canHardFail;
-
-        inline HardFailMixin(bool canHardFail) : canHardFail(canHardFail) {}
-
 #if ENABLE_REGEX_CONFIG_OPTIONS
         void Print(DebugWriter* w, const char16* litbuf) const;
 #endif
@@ -671,12 +661,12 @@ namespace UnifiedRegex
 #endif
     };
 
-    template <int n>
+    template <uint8 n>
     struct SwitchMixin
     {
-        static const int MaxCases = n;
+        static constexpr uint8 MaxCases = n;
 
-        int numCases;
+        uint8 numCases;
         // numCases cases, in increasing character order
         SwitchCase cases[MaxCases];
 
@@ -684,7 +674,7 @@ namespace UnifiedRegex
         inline SwitchMixin() : numCases(0)
         {
 #if DBG
-            for (int i = 0; i < MaxCases; i++)
+            for (uint8 i = 0; i < MaxCases; i++)
             {
                 cases[i].c = (char16)-1;
                 cases[i].targetLabel = (Label)-1;
@@ -704,9 +694,11 @@ namespace UnifiedRegex
     // Instructions
     // ----------------------------------------------------------------------
 
+    // NOTE: #pragma pack(1) applies to all Inst structs as well as all Mixin structs (see above).
+
     struct Inst : protected Chars<char16>
     {
-        enum InstTag : uint32
+        enum InstTag : uint8
         {
 #define M(TagName) TagName,
 #define MTemplate(TagName, ...) M(TagName)
@@ -723,7 +715,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
         static bool IsBaselineMode();
         static Label GetPrintLabel(Label label);
-        virtual int Print(DebugWriter*w, Label label, const Char* litbuf) const = 0;
+
         template <typename T>
         void PrintBytes(DebugWriter *w, Inst *inst, T *that, const char16 *annotation) const;
 #endif
@@ -737,7 +729,7 @@ namespace UnifiedRegex
     }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-#define INST_BODY_PRINT virtual int Print(DebugWriter*w, Label label, const Char* litbuf) const override;
+#define INST_BODY_PRINT int Print(DebugWriter*w, Label label, const Char* litbuf) const;
 #else
 #define INST_BODY_PRINT
 #endif
@@ -815,56 +807,55 @@ namespace UnifiedRegex
         INST_BODY_FREE(SetMixin<false>)
     };
 
-    struct Switch10Inst : Inst, SwitchMixin<10>
-    {
-        // Cases must always be added
-        inline Switch10Inst() : Inst(Switch10), SwitchMixin() {}
-
-        INST_BODY
+#define SwitchInstActual(n)                                                 \
+    struct Switch##n##Inst : Inst, SwitchMixin<n>                           \
+    {                                                                       \
+        inline Switch##n##Inst() : Inst(Switch##n), SwitchMixin() {}        \
+        INST_BODY                                                           \
     };
+    SwitchInstActual(2);
+    SwitchInstActual(4);
+    SwitchInstActual(8);
+    SwitchInstActual(16);
+    SwitchInstActual(24);
+#undef SwitchInstActual
 
-    struct Switch20Inst : Inst, SwitchMixin<20>
-    {
-        // Cases must always be added
-        inline Switch20Inst() : Inst(Switch20), SwitchMixin() {}
-
-        INST_BODY
+#define SwitchAndConsumeInstActual(n)                                                            \
+    struct SwitchAndConsume##n##Inst : Inst, SwitchMixin<n>                                     \
+    {                                                                                           \
+        inline SwitchAndConsume##n##Inst() : Inst(SwitchAndConsume##n), SwitchMixin() {}        \
+        INST_BODY                                                                               \
     };
-
-    struct SwitchAndConsume10Inst : Inst, SwitchMixin<10>
-    {
-        // Cases must always be added
-        inline SwitchAndConsume10Inst() : Inst(SwitchAndConsume10), SwitchMixin() {}
-
-        INST_BODY
-    };
-
-    struct SwitchAndConsume20Inst : Inst, SwitchMixin<20>
-    {
-        // Cases must always be added
-        inline SwitchAndConsume20Inst() : Inst(SwitchAndConsume20), SwitchMixin() {}
-
-        INST_BODY
-    };
+    SwitchAndConsumeInstActual(2);
+    SwitchAndConsumeInstActual(4);
+    SwitchAndConsumeInstActual(8);
+    SwitchAndConsumeInstActual(16);
+    SwitchAndConsumeInstActual(24);
+#undef SwitchAndConsumeInstActual
 
     //
     // Built-in assertions
     //
 
-    struct BOITestInst : Inst, HardFailMixin
+    // BOI = Beginning of Input
+    template <bool canHardFail>
+    struct BOITestInst : Inst
     {
-        inline BOITestInst(bool canHardFail) : Inst(BOITest), HardFailMixin(canHardFail) {}
+        BOITestInst();
 
         INST_BODY
     };
 
-    struct EOITestInst : Inst, HardFailMixin
+    // EOI = End of Input
+    template <bool canHardFail>
+    struct EOITestInst : Inst
     {
-        inline EOITestInst(bool canHardFail) : Inst(EOITest), HardFailMixin(canHardFail) {}
+        EOITestInst();
 
         INST_BODY
     };
 
+    // BOL = Beginning of Line (/^.../)
     struct BOLTestInst : Inst
     {
         inline BOLTestInst() : Inst(BOLTest) {}
@@ -872,6 +863,7 @@ namespace UnifiedRegex
         INST_BODY
     };
 
+    // EOL = End of Line (/...$/)
     struct EOLTestInst : Inst
     {
         inline EOLTestInst() : Inst(EOLTest) {}
@@ -879,11 +871,10 @@ namespace UnifiedRegex
         INST_BODY
     };
 
+    template <bool isNegation>
     struct WordBoundaryTestInst : Inst
     {
-        bool isNegation;
-
-        inline WordBoundaryTestInst(bool isNegation) : Inst(WordBoundaryTest), isNegation(isNegation) {}
+        WordBoundaryTestInst();
 
         INST_BODY
     };
@@ -1508,6 +1499,7 @@ namespace UnifiedRegex
 
         INST_BODY
     };
+#pragma pack(pop)
 
     // ----------------------------------------------------------------------
     // Matcher state

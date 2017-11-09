@@ -98,9 +98,16 @@ namespace Js
 
     JavascriptRegExp* JavascriptRegExp::FromVar(Var aValue)
     {
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptRegExp'");
+
+        return static_cast<JavascriptRegExp *>(aValue);
+    }
+
+    JavascriptRegExp* JavascriptRegExp::UnsafeFromVar(Var aValue)
+    {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptRegExp'");
 
-        return static_cast<JavascriptRegExp *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptRegExp *>(aValue);
     }
 
     CharCount JavascriptRegExp::GetLastIndexProperty(RecyclableObject* instance, ScriptContext* scriptContext)
@@ -180,15 +187,16 @@ namespace Js
 
     JavascriptRegExp* JavascriptRegExp::ToRegExp(Var var, PCWSTR varName, ScriptContext* scriptContext)
     {
-        if (JavascriptRegExp::Is(var))
+        JavascriptRegExp * regExp = JavascriptOperators::TryFromVar<JavascriptRegExp>(var);
+        if (regExp)
         {
-            return JavascriptRegExp::FromVar(var);
+            return regExp;
         }
 
         if (JavascriptOperators::GetTypeId(var) == TypeIds_HostDispatch)
         {
             TypeId remoteTypeId = TypeIds_Limit;
-            RecyclableObject* reclObj = RecyclableObject::FromVar(var);
+            RecyclableObject* reclObj = RecyclableObject::UnsafeFromVar(var);
             if (reclObj->GetRemoteTypeId(&remoteTypeId) && remoteTypeId == TypeIds_RegEx)
             {
                 return static_cast<JavascriptRegExp *>(reclObj->GetRemoteObject());
@@ -215,13 +223,17 @@ namespace Js
         {
             return scriptContext->GetLibrary()->GetUndefinedDisplayString();
         }
-        else if (JavascriptString::Is(args[1]))
-        {
-            return JavascriptString::FromVar(args[1]);
-        }
         else
         {
-            return JavascriptConversion::ToString(args[1], scriptContext);
+            JavascriptString *jsString = JavascriptOperators::TryFromVar<JavascriptString>(args[1]);
+            if (jsString)
+            {
+                return jsString;
+            }
+            else
+            {
+                return JavascriptConversion::ToString(args[1], scriptContext);
+            }
         }
     }
 
@@ -243,10 +255,8 @@ namespace Js
 
         // SkipDefaultNewObject function flag should have prevented the default object from
         // being created, except when call true a host dispatch.
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : function;
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
-        Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr
-            || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
+        Var newTarget = args.HasNewTarget() ? args.Values[args.Info.Count] : function;
+        bool isCtorSuperCall = JavascriptOperators::GetAndAssertIsConstructorSuperCall(args);
 
         UnifiedRegex::RegexPattern* pattern = nullptr;
         UnifiedRegex::RegexPattern* splitPattern = nullptr;
@@ -863,7 +873,7 @@ namespace Js
         Var exec = JavascriptOperators::GetProperty(thisObj, PropertyIds::exec, scriptContext);
         if (JavascriptConversion::IsCallable(exec))
         {
-            RecyclableObject* execFn = RecyclableObject::FromVar(exec);
+            RecyclableObject* execFn = RecyclableObject::UnsafeFromVar(exec);
             Var result = CALL_FUNCTION(scriptContext->GetThreadContext(), execFn, CallInfo(CallFlags_Value, 2), thisObj, string);
 
             if (!JavascriptOperators::IsObjectOrNull(result))

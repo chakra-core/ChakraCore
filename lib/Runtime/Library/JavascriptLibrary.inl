@@ -46,9 +46,13 @@ namespace Js
     template <>
     inline void JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray(const Var instance)
     {
-        if (instance && JavascriptCopyOnAccessNativeIntArray::Is(instance))
+        if (instance )
         {
-            JavascriptCopyOnAccessNativeIntArray::FromVar(instance)->ConvertCopyOnAccessSegment();
+            JavascriptCopyOnAccessNativeIntArray * copyOnAccessArray = JavascriptOperators::TryFromVar<JavascriptCopyOnAccessNativeIntArray>(instance);
+            if (copyOnAccessArray)
+            {
+                copyOnAccessArray->ConvertCopyOnAccessSegment();
+            }
         }
     }
 

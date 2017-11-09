@@ -7,14 +7,16 @@
 #include "ARM64LogicalImmediates.h"
 
 
-// ToDo (SaAgarwa) - Copied from old ARMEncode.h file to make debug build
-//Add more, if required
+#define IS_CONST_00001FFF(x) (((x) & ~0x00001fff) == 0)
+#define IS_CONST_0003FFFF(x) (((x) & ~0x0003ffff) == 0)
 #define IS_CONST_01FFFFFF(x) (((x) & ~0x01ffffff) == 0)
 
-//Add more, if required
+#define IS_CONST_NEG_14(x)   (((x) & ~0x00001fff) == ~0x00001fff)
+#define IS_CONST_NEG_19(x)   (((x) & ~0x0003ffff) == ~0x0003ffff)
 #define IS_CONST_NEG_26(x)   (((x) & ~0x01ffffff) == ~0x01ffffff)
 
-//Add more, if required
+#define IS_CONST_INT14(x)    (IS_CONST_00001FFF(x) || IS_CONST_NEG_14(x))
+#define IS_CONST_INT19(x)    (IS_CONST_0003FFFF(x) || IS_CONST_NEG_19(x))
 #define IS_CONST_INT26(x)    (IS_CONST_01FFFFFF(x) || IS_CONST_NEG_26(x))
 
 
@@ -244,6 +246,18 @@ enum SHIFT_EXTEND_TYPE
     EXTEND_SXTH = 13,
     EXTEND_SXTW = 14,
     EXTEND_SXTX = 15,
+};
+
+//
+// Bit shift for scale of indir access
+//
+
+enum INDEX_SCALE
+{
+    INDEX_SCALE_1 = 0,
+    INDEX_SCALE_2 = 1,
+    INDEX_SCALE_4 = 2,
+    INDEX_SCALE_8 = 3,
 };
 
 static const BYTE RegEncode[] =
@@ -2939,6 +2953,47 @@ EmitLoadImmediate(
 }
 
 //
+// ADR dest, offset
+// ADRP dest, pageoffs
+//
+
+inline
+int
+EmitAdrAdrp(
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
+    LONG Offset,
+    ULONG Opcode
+)
+{
+
+    Assert(Offset >= -(1 << 21) && Offset < (1 << 21));
+    return Emitter.EmitFourBytes(Opcode | ((Offset & 3) << 29) | (((Offset >> 2) & 0x7ffff) << 5) | Dest.RawRegister());
+}
+
+inline
+int
+EmitAdr(
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
+    LONG Offset
+)
+{
+    return EmitAdrAdrp(Emitter, Dest, Offset, 0x10000000);
+}
+
+inline
+int
+EmitAdrp(
+    Arm64CodeEmitter &Emitter,
+    Arm64SimpleRegisterParam Dest,
+    LONG PageOffset
+)
+{
+    return EmitAdrAdrp(Emitter, Dest, PageOffset, 0x90000000);
+}
+
+//
 // ADD dest, source, immediate
 // ADDS dest, source, immediate
 // SUB dest, source, immediate
@@ -3500,7 +3555,7 @@ EmitLdrbRegister(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, 0, 0x38600800);
+    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, INDEX_SCALE_1, 0x38600800);
 }
 
 inline
@@ -3512,7 +3567,7 @@ EmitLdrsbRegister(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, 0, 0x38e00800);
+    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, INDEX_SCALE_1, 0x38e00800);
 }
 
 inline
@@ -3524,7 +3579,7 @@ EmitLdrsbRegister64(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, 0, 0x38a00800);
+    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, INDEX_SCALE_1, 0x38a00800);
 }
 
 inline
@@ -3536,7 +3591,7 @@ EmitLdrhRegister(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, 1, 0x78600800);
+    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, INDEX_SCALE_2, 0x78600800);
 }
 
 inline
@@ -3548,7 +3603,7 @@ EmitLdrshRegister(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, 1, 0x78e00800);
+    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, INDEX_SCALE_2, 0x78e00800);
 }
 
 inline
@@ -3560,7 +3615,7 @@ EmitLdrshRegister64(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, 1, 0x78a00800);
+    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, INDEX_SCALE_2, 0x78a00800);
 }
 
 inline
@@ -3572,7 +3627,7 @@ EmitLdrRegister(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, 2, 0xb8600800);
+    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, INDEX_SCALE_4, 0xb8600800);
 }
 
 inline
@@ -3584,7 +3639,7 @@ EmitLdrswRegister64(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, 2, 0xb8a00800);
+    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, INDEX_SCALE_4, 0xb8a00800);
 }
 
 inline
@@ -3596,7 +3651,7 @@ EmitLdrRegister64(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, 2, 0xf8600800);
+    return EmitLdrStrRegisterCommon(Emitter, Dest, Addr, Index, INDEX_SCALE_8, 0xf8600800);
 }
 
 inline
@@ -3608,7 +3663,7 @@ EmitStrbRegister(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Source, Addr, Index, 0, 0x38200800);
+    return EmitLdrStrRegisterCommon(Emitter, Source, Addr, Index, INDEX_SCALE_1, 0x38200800);
 }
 
 inline
@@ -3620,7 +3675,7 @@ EmitStrhRegister(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Source, Addr, Index, 1, 0x78200800);
+    return EmitLdrStrRegisterCommon(Emitter, Source, Addr, Index, INDEX_SCALE_2, 0x78200800);
 }
 
 inline
@@ -3632,7 +3687,7 @@ EmitStrRegister(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Source, Addr, Index, 2, 0xb8200800);
+    return EmitLdrStrRegisterCommon(Emitter, Source, Addr, Index, INDEX_SCALE_4, 0xb8200800);
 }
 
 inline
@@ -3644,7 +3699,7 @@ EmitStrRegister64(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, Source, Addr, Index, 2, 0xf8200800);
+    return EmitLdrStrRegisterCommon(Emitter, Source, Addr, Index, INDEX_SCALE_8, 0xf8200800);
 }
 
 inline
@@ -3655,7 +3710,7 @@ EmitPrfmRegister(
     Arm64RegisterParam Index
     )
 {
-    return EmitLdrStrRegisterCommon(Emitter, ARMREG_R0 /* PLDL1KEEP */, Addr, Index, 2, 0xf8a00800);
+    return EmitLdrStrRegisterCommon(Emitter, ARMREG_R0 /* PLDL1KEEP */, Addr, Index, INDEX_SCALE_4, 0xf8a00800);
 }
 
 //

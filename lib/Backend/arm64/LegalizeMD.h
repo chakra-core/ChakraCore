@@ -31,6 +31,7 @@ enum LegalForms
     L_SymMask =    (L_SymSU12I9 | L_SymSI7 | L_SymU12),
 
     L_Lab20 =      0x100000,
+    L_Label =      0x200000,
 
     L_RegBV =      0x1000000,
 };
@@ -53,6 +54,7 @@ struct LegalInstrForms
 #define LEGAL_BLAB     LEGAL_NONE
 #define LEGAL_CALL     { L_Reg,     { L_Lab20 ,  L_None } } // Not currently generated, offset check is missing
 #define LEGAL_CBZ      { L_None,    { L_Reg } }
+#define LEGAL_LABEL    { L_Reg,     { L_Label } }
 #define LEGAL_LDIMM    { L_Reg,     { L_Imm,     L_None } }
 #define LEGAL_LOAD     { L_Reg,     { (LegalForms)(L_IndirSU12I9 | L_SymSU12I9), L_None } }
 #define LEGAL_LOADP    { L_Reg,     { (LegalForms)(L_IndirSI7 | L_SymSI7), L_Reg } }
@@ -74,8 +76,6 @@ public:
     static void LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, bool fPostRegAlloc);
 
     static bool LegalizeDirectBranch(IR::BranchInstr *instr, uint32 branchOffset); // DirectBranch has no src & dst operands.
-    //Returns IndexOpnd which is removed from VFP indirect operand
-    static void LegalizeIndirOpndForVFP(IR::Instr* insertInstr, IR::IndirOpnd *indirOpnd, bool fPostRegAlloc);
 
 private:
     static void LegalizeRegOpnd(IR::Instr* instr, IR::Opnd* opnd);
@@ -88,7 +88,9 @@ private:
 
     static void LegalizeLDIMM(IR::Instr * instr, IntConstType immed);
     static void LegalizeLdLabel(IR::Instr * instr, IR::Opnd * opnd);
-    static IR::Instr * GenerateLDIMM(IR::Instr * instr, uint opndNum, RegNum scratchReg);
+    static IR::Instr * GenerateLDIMM(IR::Instr * instr, uint opndNum, RegNum scratchReg, bool fPostRegAlloc);
+
+    static IR::Instr * GenerateHoistSrc(IR::Instr * instr, uint opndNum, Js::OpCode op, RegNum scratchReg, bool fPostRegAlloc);
 
     static void ObfuscateLDIMM(IR::Instr * instrMov, IR::Instr * instrMovt);
     static void EmitRandomNopBefore(IR::Instr * instrMov, UINT_PTR rand, RegNum targetReg);

@@ -1583,7 +1583,8 @@ namespace Js
       paramScopeSlotArraySize(0),
       m_reparsed(false),
       m_isAsmJsFunction(false),
-      m_tag21(true)
+      m_tag21(true),
+      m_isMethod(false)
 #if DBG
         ,m_wasEverAsmjsMode(false)
         ,scopeObjectSize(0)
@@ -1633,6 +1634,7 @@ namespace Js
       m_isStaticNameFunction(proxy->GetIsStaticNameFunction()),
       m_reportedInParamCount(proxy->GetReportedInParamsCount()),
       m_reparsed(proxy->IsReparsed()),
+      m_isMethod(proxy->IsMethod()),
       m_tag21(true)
 #if DBG
       , m_wasEverAsmjsMode(proxy->m_wasEverAsmjsMode)
@@ -2319,6 +2321,16 @@ namespace Js
                         // (not a function declaration statement).
                         grfscr |= fscrDeferredFncExpression;
                     }
+
+                    if (funcBody->IsMethod())
+                    {
+                        grfscr |= fscrDeferredFncIsMethod;
+                    }
+                    else
+                    {
+                        grfscr &= ~fscrDeferredFncIsMethod;
+                    }
+
                     if (!CONFIG_FLAG(DeferNested) || isDebugOrAsmJsReparse)
                     {
                         grfscr &= ~fscrDeferFncParse; // Disable deferred parsing if not DeferNested, or doing a debug/asm.js re-parse
@@ -3046,7 +3058,7 @@ namespace Js
 
     bool FunctionBody::GetLineCharOffsetFromStartChar(int startCharOfStatement, ULONG* _line, LONG* _charOffset, bool canAllocateLineCache /*= true*/)
     {
-        Assert(!this->GetUtf8SourceInfo()->GetIsLibraryCode());
+        Assert(!this->GetUtf8SourceInfo()->GetIsLibraryCode() || this->IsJsBuiltInCode());
 
         // The following adjusts for where the script is within the document
         ULONG line = this->GetHostStartLine();
@@ -4389,26 +4401,29 @@ namespace Js
 
         GetLineCharOffsetFromStartChar(cchStartOffset, &line, &col, false /*canAllocateLineCache*/);
 
-        WORD color = 0;
-        if (Js::Configuration::Global.flags.DumpLineNoInColor)
+        if (sourceInfo->GetSourceHolder() != ISourceHolder::GetEmptySourceHolder())
         {
-            color = Output::SetConsoleForeground(12);
-        }
-        Output::Print(_u("\n\n  Line %3d: "), line + 1);
-        // Need to match up cchStartOffset to appropriate cbStartOffset given function's cbStartOffset and cchStartOffset
-        size_t i = utf8::CharacterIndexToByteIndex(source, sourceInfo->GetCbLength(), cchStartOffset, this->m_cbStartOffset, this->m_cchStartOffset);
+            WORD color = 0;
+            if (Js::Configuration::Global.flags.DumpLineNoInColor)
+            {
+                color = Output::SetConsoleForeground(12);
+            }
+            Output::Print(_u("\n\n  Line %3d: "), line + 1);
+            // Need to match up cchStartOffset to appropriate cbStartOffset given function's cbStartOffset and cchStartOffset
+            size_t i = utf8::CharacterIndexToByteIndex(source, sourceInfo->GetCbLength(), cchStartOffset, this->m_cbStartOffset, this->m_cchStartOffset);
 
-        size_t lastOffset = StartOffset() + LengthInBytes();
-        for (;i < lastOffset && source[i] != '\n' && source[i] != '\r'; i++)
-        {
-            Output::Print(_u("%C"), source[i]);
-        }
-        Output::Print(_u("\n"));
-        Output::Print(_u("  Col %4d:%s^\n"), col + 1, ((col+1)<10000) ? _u(" ") : _u(""));
+            size_t lastOffset = StartOffset() + LengthInBytes();
+            for (;i < lastOffset && source[i] != '\n' && source[i] != '\r'; i++)
+            {
+                Output::Print(_u("%C"), source[i]);
+            }
+            Output::Print(_u("\n"));
+            Output::Print(_u("  Col %4d:%s^\n"), col + 1, ((col+1)<10000) ? _u(" ") : _u(""));
 
-        if (color != 0)
-        {
-            Output::SetConsoleForeground(color);
+            if (color != 0)
+            {
+                Output::SetConsoleForeground(color);
+            }
         }
     }
 #endif // DBG_DUMP
@@ -8795,14 +8810,14 @@ namespace Js
         {
             // Unregister xdataInfo before OnCleanup() which may release xdataInfo->address
 #if ENABLE_NATIVE_CODEGEN
-#if defined(_M_X64)
+#if defined(_M_X64_OR_ARM64)
             if (this->xdataInfo != nullptr)
             {
                 XDataAllocator::Unregister(this->xdataInfo);
                 HeapDelete(this->xdataInfo);
                 this->xdataInfo = nullptr;
             }
-#elif defined(_M_ARM32_OR_ARM64)
+#elif defined(_M_ARM)
             if (this->xdataInfo != nullptr)
             {
                 XDataAllocator::Unregister(this->xdataInfo);

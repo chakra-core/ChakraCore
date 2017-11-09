@@ -341,7 +341,7 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs)
                 // the function object for generator calls is a GeneratorVirtualScriptFunction object
                 // and we need to pass the real JavascriptGeneratorFunction object so grab it instead
                 IR::RegOpnd *tmpOpnd = IR::RegOpnd::New(TyMachReg, func);
-                LowererMD::CreateAssign(tmpOpnd, srcOpnd, instrArgs);
+                Lowerer::InsertMove(tmpOpnd, srcOpnd, instrArgs);
 
                 srcOpnd = IR::IndirOpnd::New(tmpOpnd, Js::GeneratorVirtualScriptFunction::GetRealFunctionOffset(), TyMachPtr, func);
             }
@@ -483,7 +483,7 @@ LowererMDArch::LoadNewScObjFirstArg(IR::Instr * instr, IR::Opnd * dst, ushort ex
 {
     // No need to do anything different for spread calls on x86 since we push args.
     IR::SymOpnd *   argOpnd     = IR::SymOpnd::New(this->m_func->m_symTable->GetArgSlotSym(1), TyVar, this->m_func);
-    IR::Instr *     argInstr    = LowererMD::CreateAssign(argOpnd, dst, instr);
+    IR::Instr *     argInstr    = Lowerer::InsertMove(argOpnd, dst, instr);
     return argInstr;
 }
 
@@ -871,6 +871,7 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
 
     IR::Instr * retInstr = callInstr;
     callInstr->m_opcode = Js::OpCode::CALL;
+    callInstr->m_func->SetHasCallsOnSelfAndParents();
 
     if (callInstr->GetDst())
     {
@@ -1280,7 +1281,7 @@ LowererMDArch::LowerStartCall(IR::Instr * startCallInstr, IR::Instr* insertInstr
         //     call _chkstk
 
         IR::RegOpnd *eaxOpnd = IR::RegOpnd::New(nullptr, this->GetRegChkStkParam(), TyMachReg, this->m_func);
-        this->lowererMD->CreateAssign(eaxOpnd, IR::IntConstOpnd::New(sizeValue, TyInt32, this->m_func, /*dontEncode*/true), insertInstr);
+        Lowerer::InsertMove(eaxOpnd, IR::IntConstOpnd::New(sizeValue, TyInt32, this->m_func, /*dontEncode*/true), insertInstr);
 
         newStartCall = IR::Instr::New(Js::OpCode::Call, this->m_func);
 
@@ -1331,7 +1332,7 @@ LowererMDArch::LowerStartCallAsmJs(IR::Instr * startCallInstr, IR::Instr * inser
         //     call _chkstk
 
         IR::RegOpnd *eaxOpnd = IR::RegOpnd::New(nullptr, GetRegChkStkParam(), TyMachReg, m_func);
-        lowererMD->CreateAssign(eaxOpnd, IR::IntConstOpnd::New(sizeValue, TyInt32, m_func, /*dontEncode*/true), insertInstr);
+        Lowerer::InsertMove(eaxOpnd, IR::IntConstOpnd::New(sizeValue, TyInt32, m_func, /*dontEncode*/true), insertInstr);
 
         newStartCall = IR::Instr::New(Js::OpCode::Call, m_func);
 
@@ -1571,7 +1572,7 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
             this->LowerCall(callInstr, 0, RegECX);
 
             IR::IntConstOpnd * stackSizeOpnd = IR::IntConstOpnd::New(stackSize, TyMachReg, this->m_func);
-            this->lowererMD->CreateAssign(eaxOpnd, stackSizeOpnd, entryInstr->m_next);
+            Lowerer::InsertMove(eaxOpnd, stackSizeOpnd, entryInstr->m_next);
         }
     }
 
@@ -1648,7 +1649,7 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, size_t frameSiz
         stackLimitOpnd = IR::RegOpnd::New(nullptr, RegEAX, TyMachReg, this->m_func);
         intptr_t pLimit = m_func->GetThreadContextInfo()->GetThreadStackLimitAddr();
         IR::MemRefOpnd * memOpnd = IR::MemRefOpnd::New(pLimit, TyMachReg, this->m_func);
-        this->lowererMD->CreateAssign(stackLimitOpnd, memOpnd, insertInstr);
+        Lowerer::InsertMove(stackLimitOpnd, memOpnd, insertInstr);
 
         instr = IR::Instr::New(Js::OpCode::ADD, stackLimitOpnd, stackLimitOpnd,
                                IR::IntConstOpnd::New(frameSize, TyMachReg, this->m_func), this->m_func);
@@ -1797,7 +1798,7 @@ LowererMDArch::ChangeToAssignInt64(IR::Instr * instr)
 
         instr->SetSrc1(src1Pair.low);
         instr->SetDst(dstPair.low);
-        LowererMD::ChangeToAssign(instr);
+        LowererMD::ChangeToAssignNoBarrierCheck(instr);  // No WriteBarrier for assigning int64 on x86
         IR::Instr * insertBeforeInstr = instr->m_next;
 
         // Do not store to memory if we wanted less than 8 bytes
@@ -1808,7 +1809,7 @@ LowererMDArch::ChangeToAssignInt64(IR::Instr * instr)
             if (!isLoadFromWordMem)
             {
                 // Normal case, assign source's high bits to dst's high bits
-                Lowerer::InsertMove(dstPair.high, src1Pair.high, insertBeforeInstr);
+                Lowerer::InsertMove(dstPair.high, src1Pair.high, insertBeforeInstr, /*generateWriteBarrier*/false);
             }
             else
             {
@@ -1817,12 +1818,12 @@ LowererMDArch::ChangeToAssignInt64(IR::Instr * instr)
                 if (IRType_IsUnsignedInt(src1->GetType()))
                 {
                     // If this is an unsigned assign from memory, we can simply set the high bits to 0
-                    Lowerer::InsertMove(dstPair.high, IR::IntConstOpnd::New(0, TyInt32, m_func), insertBeforeInstr);
+                    Lowerer::InsertMove(dstPair.high, IR::IntConstOpnd::New(0, TyInt32, m_func), insertBeforeInstr, /*generateWriteBarrier*/false);
                 }
                 else
                 {
                     // If this is a signed assign from memory, we need to extend the sign
-                    IR::Instr* highExtendInstr = Lowerer::InsertMove(dstPair.high, dstPair.low, insertBeforeInstr);
+                    IR::Instr* highExtendInstr = Lowerer::InsertMove(dstPair.high, dstPair.low, insertBeforeInstr, /*generateWriteBarrier*/false);
 
                     highExtendInstr = IR::Instr::New(Js::OpCode::SAR, dstPair.high, dstPair.high, IR::IntConstOpnd::New(31, TyInt32, m_func), m_func);
                     insertBeforeInstr->InsertBefore(highExtendInstr);
@@ -3188,7 +3189,7 @@ bool
 
         if (opndSrc2->IsAddrOpnd())
         {
-            instr = lowererMD->CreateAssign(
+            instr = Lowerer::InsertMove(
                 IR::RegOpnd::New(opndSrc2->GetType(), instrShift->m_func),
                 opndSrc2, instrShift);
             opndSrc2 = instr->GetDst();

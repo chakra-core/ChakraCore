@@ -402,6 +402,13 @@
   </test>
   <test>
     <default>
+      <files>array_indexOf.js</files>
+      <compile-flags>-JsBuiltIn-</compile-flags>
+      <baseline>array_indexOf.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>array_indexOfSparse.js</files>
       <baseline>array_indexOfSparse.baseline</baseline>
     </default>

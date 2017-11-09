@@ -61,6 +61,8 @@ public:
     virtual intptr_t GetDebugScriptIdWhenSetAddr() const override;
 #endif
 
+    virtual intptr_t GetChakraLibAddr() const override;
+
     virtual intptr_t GetAddr() const override;
 
     virtual intptr_t GetVTableAddress(VTableValue vtableType) const override;

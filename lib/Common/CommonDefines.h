@@ -108,6 +108,7 @@
 
 #if !defined(CHAKRACORE_LITE) && (defined(_WIN32) || defined(INTL_ICU))
 #define ENABLE_INTL_OBJECT                          // Intl support
+#define ENABLE_JS_BUILTINS                          // Built In functions support
 #endif
 //#define INTL_ICU 1                    // NOTE: uncomment this to allow the IDE to see INTL_ICU blocks
 #ifdef INTL_ICU
@@ -239,7 +240,7 @@
 #error "Background page zeroing can't be turned on if freeing pages in the background is disabled"
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32) && !GLOBAL_ENABLE_WRITE_BARRIER
 #define RECYCLER_VISITED_HOST
 #endif
 
@@ -301,20 +302,13 @@
 #define DELAYLOAD_SET_CFG_TARGET 1
 #endif
 
-// Configure whether we configure a signal handler
-// to produce perf-<pid>.map files
-#ifndef PERFMAP_TRACE_ENABLED
-#define PERFMAP_TRACE_ENABLED 0
-#endif
 #ifndef PERFMAP_SIGNAL
 #define PERFMAP_SIGNAL SIGUSR2
 #endif
 
 #ifndef NTBUILD
 #define DELAYLOAD_SECTIONAPI 1
-#endif
-
-#ifdef NTBUILD
+#else
 #define ENABLE_PROJECTION
 #define ENABLE_FOUNDATION_OBJECT
 #define ENABLE_EXPERIMENTAL_FLAGS
@@ -663,6 +657,10 @@
 // #define CHECK_MEMORY_LEAK
 // #define RECYCLER_MARK_TRACK
 // #define INTERNAL_MEM_PROTECT_HEAP_ALLOC
+
+#if defined(ENABLE_JS_ETW) || defined(DUMP_FRAGMENTATION_STATS)
+#define ENABLE_MEM_STATS 1
+#endif
 
 #define NO_SANITIZE_ADDRESS
 #if defined(__has_feature)

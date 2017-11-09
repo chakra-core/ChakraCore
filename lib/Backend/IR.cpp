@@ -2531,7 +2531,7 @@ Instr::HoistIndirOffset(IR::IndirOpnd *indirOpnd, RegNum regNum)
     indirOpnd->SetOffset(0);
     indirOpnd->SetIndexOpnd(indexOpnd);
 
-    Instr *instrAssign = LowererMD::CreateAssign(indexOpnd, offsetOpnd, this);
+    Instr *instrAssign = Lowerer::InsertMove(indexOpnd, offsetOpnd, this);
     indexOpnd->m_sym->SetIsIntConst(offset);
     return instrAssign;
 }
@@ -2629,7 +2629,7 @@ Instr::HoistIndirIndexOpndAsAdd(IR::IndirOpnd *orgOpnd, IR::Opnd *baseOpnd, IR::
 {
         IR::RegOpnd *newBaseOpnd = IR::RegOpnd::New(StackSym::New(TyMachPtr, this->m_func), regNum, TyMachPtr, this->m_func);
 
-        IR::Instr * instrAdd = IR::Instr::New(Js::OpCode::ADD, newBaseOpnd, baseOpnd, indexOpnd, this->m_func);
+        IR::Instr * instrAdd = IR::Instr::New(Js::OpCode::ADD, newBaseOpnd, baseOpnd, indexOpnd->UseWithNewType(TyMachPtr, this->m_func), this->m_func);
 
         this->InsertBefore(instrAdd);
 

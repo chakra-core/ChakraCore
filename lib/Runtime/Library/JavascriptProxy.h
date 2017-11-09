@@ -50,8 +50,10 @@ namespace Js
 
         JavascriptProxy(DynamicType * type);
         JavascriptProxy(DynamicType * type, ScriptContext * scriptContext, RecyclableObject* target, RecyclableObject* handler);
-        static BOOL Is(Var obj);
-        static JavascriptProxy* FromVar(Var obj) { Assert(Is(obj)); return static_cast<JavascriptProxy*>(obj); }
+        static BOOL Is(_In_ Var obj);
+        static BOOL Is(_In_ RecyclableObject* obj);
+        static JavascriptProxy* FromVar(Var obj) { AssertOrFailFast(Is(obj)); return static_cast<JavascriptProxy*>(obj); }
+        static JavascriptProxy* UnsafeFromVar(Var obj) { Assert(Is(obj)); return static_cast<JavascriptProxy*>(obj); }
 #ifndef IsJsDiag
         RecyclableObject* GetTarget();
         RecyclableObject* GetHandler();

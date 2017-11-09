@@ -123,7 +123,7 @@ namespace Js
         JavascriptOperators::SetProperty(pError, pError, PropertyIds::description, descriptionString, scriptContext);
         pError->SetNotEnumerable(PropertyIds::description);
 
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
+        Var newTarget = args.GetNewTarget();
         return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message);
     }
 
@@ -134,7 +134,7 @@ namespace Js
         ARGUMENTS(args, callInfo); \
         ScriptContext* scriptContext = function->GetScriptContext(); \
         JavascriptError* pError = scriptContext->GetLibrary()->Create##name(); \
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0]; \
+        Var newTarget = args.GetNewTarget(); \
         Var message = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined(); \
         return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message); \
     }
@@ -159,7 +159,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptError* pError = scriptContext->GetHostScriptContext()->CreateWinRTError(nullptr, nullptr);
 
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
+        Var newTarget = args.GetNewTarget();
         Var message = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
         return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message);
     }

@@ -58,8 +58,9 @@
     blr     x16                                 ; call it
 #endif
 
-    and     x4, x1, #0xffffff                   ; clear high order 40 bits of x1(callInfo)
-                                                ;   (clean callInfo.Flags which shares same word as callInfo.Count)
+    ubfx    x4, x1, #0, #24                     ; low 24 bits of x1(callInfo) is the count
+    ubfx    x5, x1, #27, #1                     ; bit 27 (CallFlags bit 3) is the ExtraArg value
+    add     x4, x4, x5                          ; account for extra arg
     subs    x5, x4, #6                          ; more than 6 parameters?
     bgt     StackAlloc                          ; if so, allocate necessary stack
 

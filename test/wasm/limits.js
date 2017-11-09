@@ -21,7 +21,7 @@ const MaxBrTableElems = 1000000;
 const MaxMemoryInitialPages = 16384;
 const MaxMemoryMaximumPages = 65536;
 const MaxModuleSize = 1024 * 1024 * 1024;
-const MaxFunctionSize = 128 * 1024;
+const MaxFunctionSize = 7654321;
 
 /* global assert,testRunner */ // eslint rule
 WScript.LoadScriptFile("../UnitTestFrameWork/UnitTestFrameWork.js");

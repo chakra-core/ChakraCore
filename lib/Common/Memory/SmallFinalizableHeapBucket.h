@@ -19,8 +19,8 @@ public:
     void FinalizeAllObjects();
     static void FinalizeHeapBlockList(THeapBlockType * list);
 
-#ifdef DUMP_FRAGMENTATION_STATS
-    void AggregateBucketStats(HeapBucketStats& stats);
+#if ENABLE_MEM_STATS
+    void AggregateBucketStats();
 #endif
 protected:
     void EnumerateObjects(ObjectInfoBits infoBits, void (*CallBackFunction)(void * address, size_t size));

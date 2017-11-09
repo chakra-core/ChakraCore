@@ -39,6 +39,7 @@ namespace Js
         void Reset();
         uint32 GetCurrentItemIndex();
         JavascriptString * MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr);
+        BigPropertyIndex GetInitialPropertyCount() const { return this->propertyEnumerator.GetInitialPropertyCount(); }
 
         static uint32 GetOffsetOfCurrentEnumerator() { return offsetof(JavascriptStaticEnumerator, currentEnumerator); }
         static uint32 GetOffsetOfPrefixEnumerator() { return offsetof(JavascriptStaticEnumerator, prefixEnumerator); }

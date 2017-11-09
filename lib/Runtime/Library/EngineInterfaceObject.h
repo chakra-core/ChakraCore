@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_PROJECTION)
+#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_JS_BUILTINS) || defined(ENABLE_PROJECTION)
 
 namespace Js
 {
@@ -12,8 +12,9 @@ namespace Js
 
     enum EngineInterfaceExtensionKind
     {
-        EngineInterfaceExtensionKind_Intl = 0,
-        EngineInterfaceExtensionKind_WinRTPromise = 1,
+        EngineInterfaceExtensionKind_JsBuiltIn = 0,
+        EngineInterfaceExtensionKind_Intl = 1,
+        EngineInterfaceExtensionKind_WinRTPromise = 2,
         MaxEngineInterfaceExtensionKind = EngineInterfaceExtensionKind_WinRTPromise
     };
 
@@ -24,10 +25,13 @@ namespace Js
             extensionKind(kind),
             scriptContext(context)
         {
+            hasBytecode = false;
         }
 
         EngineInterfaceExtensionKind GetExtensionKind() const { return extensionKind; }
         ScriptContext* GetScriptContext() const { return scriptContext; }
+        bool GetHasByteCode() const { return hasBytecode; }
+        void SetHasBytecode() { hasBytecode = true; }
         virtual void Initialize() = 0;
 #if DBG
         virtual void DumpByteCode() = 0;
@@ -36,6 +40,7 @@ namespace Js
     protected:
         Field(EngineInterfaceExtensionKind) extensionKind;
         Field(ScriptContext*) scriptContext;
+        Field(bool) hasBytecode;
     };
 
 #define EngineInterfaceObject_CommonFunctionProlog(function, callInfo) \
@@ -65,6 +70,7 @@ namespace Js
         static EngineInterfaceObject* New(Recycler * recycler, DynamicType * type);
         static bool Is(Var aValue);
         static EngineInterfaceObject* FromVar(Var aValue);
+        static EngineInterfaceObject* UnsafeFromVar(Var aValue);
 
 #if ENABLE_TTD
         virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
@@ -142,4 +148,4 @@ namespace Js
     };
 }
 
-#endif // ENABLE_INTL_OBJECT || ENABLE_PROJECTION
+#endif // ENABLE_INTL_OBJECT || ENABLE_JS_BUILTINS || ENABLE_PROJECTION

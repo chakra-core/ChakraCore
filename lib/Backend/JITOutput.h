@@ -42,10 +42,10 @@ public:
     void RecordNativeCode(const BYTE* sourceBuffer, BYTE* localCodeAddress);
     void RecordInlineeFrameOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount);
 
-#if _M_X64
+#if _M_X64_OR_ARM64
     void RecordUnwindInfo(BYTE *unwindInfo, size_t size, BYTE * xdataAddr, BYTE* localXdataAddr);
 #elif _M_ARM
-    size_t RecordUnwindInfo(size_t offset, BYTE *unwindInfo, size_t size, BYTE * xdataAddr);
+    size_t RecordUnwindInfo(size_t offset, const BYTE *unwindInfo, size_t size, BYTE * xdataAddr);
 #endif
 
     void FinalizeNativeCode();

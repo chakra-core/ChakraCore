@@ -17,6 +17,7 @@
 
 MACRO(ADD,        Reg3,       0,              UNUSED,   LEGAL_ADDSUB,   UNUSED,   D___)
 MACRO(ADDS,       Reg3,       OpSideEffect,   UNUSED,   LEGAL_ADDSUB,   UNUSED,   D__S)
+MACRO(ADR,        Reg3,       0,              UNUSED,   LEGAL_LABEL,    UNUSED,   D___)
 MACRO(AND,        Reg3,       0,              UNUSED,   LEGAL_ALU3,     UNUSED,   D___)
 MACRO(ANDS,       Reg3,       0,              UNUSED,   LEGAL_ALU3,     UNUSED,   D__S)
 MACRO(ASR,        Reg3,       0,              UNUSED,   LEGAL_SHIFT,    UNUSED,   D___)
@@ -65,6 +66,8 @@ MACRO(LEA,        Reg3,       0,              UNUSED,   LEGAL_LOAD,     UNUSED, 
 MACRO(LSL,        Reg2,       0,              UNUSED,   LEGAL_SHIFT,    UNUSED,   D___)
 MACRO(LSR,        Reg2,       0,              UNUSED,   LEGAL_SHIFT,    UNUSED,   D___)
 MACRO(MOV,        Reg2,       0,              UNUSED,   LEGAL_REG2,     UNUSED,   DM__)
+// Alias of MOV that won't get optimized out when src and dst are the same.
+MACRO(MOV_TRUNC,  Reg2,       0,              UNUSED,   LEGAL_REG2,     UNUSED,   DM__)
 MACRO(MOVK,       Reg2,       0,              UNUSED,   LEGAL_LDIMM,    UNUSED,   DM__)
 MACRO(MOVN,       Reg2,       0,              UNUSED,   LEGAL_LDIMM,    UNUSED,   DM__)
 MACRO(MOVZ,       Reg2,       0,              UNUSED,   LEGAL_LDIMM,    UNUSED,   DM__)

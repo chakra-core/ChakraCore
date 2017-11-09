@@ -20,6 +20,12 @@ namespace Js
 
     ES5Array* ES5Array::FromVar(Var instance)
     {
+        AssertOrFailFast(Is(instance));
+        return static_cast<ES5Array*>(instance);
+    }
+
+    ES5Array* ES5Array::UnsafeFromVar(Var instance)
+    {
         Assert(Is(instance));
         return static_cast<ES5Array*>(instance);
     }

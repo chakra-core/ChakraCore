@@ -114,7 +114,8 @@ bool InliningHeuristics::BackendInlineIntoInliner(const FunctionJITTimeInfo * in
         return false;
     }
 
-    if(PHASE_FORCE(Js::InlinePhase, this->topFunc) ||
+    if(inlinee->IsJsBuiltInForceInline() ||
+        PHASE_FORCE(Js::InlinePhase, this->topFunc) ||
         PHASE_FORCE(Js::InlinePhase, inliner) ||
         PHASE_FORCE(Js::InlinePhase, inlinee))
     {

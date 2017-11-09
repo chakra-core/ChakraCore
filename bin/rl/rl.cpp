@@ -367,6 +367,8 @@ unsigned NumberOfThreads = 0;
 TestList DirList, ExcludeDirList;
 BOOL FUserSpecifiedFiles = FALSE;
 BOOL FUserSpecifiedDirs = TRUE;
+BOOL FNoProgramOutput = FALSE;
+BOOL FOnlyAssertOutput = FALSE;
 BOOL FExcludeDirs = FALSE;
 BOOL FGenLst = FALSE;
 char *ResumeDir, *MatchDir;
@@ -2875,6 +2877,16 @@ ParseArg(
             s = ComplainIfNoArg(arg, s);
             AddTagToTagsList(&DirectoryTagsList, &DirectoryTagsLast, s, strcmp(&arg[1], "dirtags") == 0);
 
+            break;
+         }
+
+         if (!_stricmp(&arg[1], "noprogramoutput")) {
+            FNoProgramOutput = TRUE;
+            break;
+         }
+
+         if (!_stricmp(&arg[1], "onlyassertoutput")) {
+            FOnlyAssertOutput = TRUE;
             break;
          }
 

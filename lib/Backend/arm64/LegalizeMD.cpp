@@ -188,7 +188,9 @@ IR::Instr * LegalizeMD::LegalizeStore(IR::Instr *instr, LegalForms forms, bool f
         // We don't expect to hit this point after register allocation, because we
         // can't guarantee that the instruction will be legal.
         Assert(!fPostRegAlloc);
-        instr = instr->SinkDst(LowererMD::GetStoreOp(instr->GetDst()->GetType()), RegNOREG);
+        IR::Instr * newInstr = instr->SinkDst(LowererMD::GetStoreOp(instr->GetDst()->GetType()), RegNOREG);
+        LegalizeMD::LegalizeRegOpnd(instr, instr->GetDst());
+        instr = newInstr;
     }
 
     return instr;
@@ -288,7 +290,6 @@ void LegalizeMD::LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, b
 
 IR::Instr * LegalizeMD::LegalizeLoad(IR::Instr *instr, uint opndNum, LegalForms forms, bool fPostRegAlloc)
 {
-    IR::Instr* legalized = instr;
     if (LowererMD::IsAssign(instr) && instr->GetDst()->IsRegOpnd())
     {
         // We can just change this to a load in place.
@@ -297,30 +298,46 @@ IR::Instr * LegalizeMD::LegalizeLoad(IR::Instr *instr, uint opndNum, LegalForms 
     else
     {
         // Hoist the memory opnd. The caller will verify the offset.
-        if (opndNum == 1)
-        {
-            AssertMsg(!fPostRegAlloc || instr->GetSrc1()->GetType() == TyMachReg, "Post RegAlloc other types disallowed");
-            legalized = instr->HoistSrc1(LowererMD::GetLoadOp(instr->GetSrc1()->GetType()), fPostRegAlloc ? SCRATCH_REG : RegNOREG);
-            LegalizeRegOpnd(instr, instr->GetSrc1());
-        }
-        else
-        {
-            AssertMsg(!fPostRegAlloc || instr->GetSrc2()->GetType() == TyMachReg, "Post RegAlloc other types disallowed");
-            legalized = instr->HoistSrc2(LowererMD::GetLoadOp(instr->GetSrc2()->GetType()), fPostRegAlloc ? SCRATCH_REG : RegNOREG);
-            LegalizeRegOpnd(instr, instr->GetSrc2());
-        }
+        IR::Opnd* src = (opndNum == 1) ? instr->GetSrc1() : instr->GetSrc2();
+        AssertMsg(!fPostRegAlloc || src->GetType() == TyMachReg, "Post RegAlloc other types disallowed");
+        instr = GenerateHoistSrc(instr, opndNum, LowererMD::GetLoadOp(src->GetType()), fPostRegAlloc ? SCRATCH_REG : RegNOREG, fPostRegAlloc);
     }
 
-    return legalized;
+    return instr;
 }
 
 void LegalizeMD::LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpnd, LegalForms forms, bool fPostRegAlloc)
 {
-    int32 offset = indirOpnd->GetOffset();
+   int32 offset = indirOpnd->GetOffset();
 
-    // Can't have both offset and index, so hoist the offset and try again.
-    if (indirOpnd->GetIndexOpnd() != NULL && offset != 0)
+    if (indirOpnd->IsFloat())
     {
+        IR::RegOpnd *baseOpnd = indirOpnd->GetBaseOpnd();
+        IR::RegOpnd *indexOpnd = indirOpnd->UnlinkIndexOpnd(); //Clears index operand
+        byte scale = indirOpnd->GetScale();
+
+        if (indexOpnd)
+        {
+            if (scale > 0)
+            {
+                // There is no support for ADD instruction with barrel shifter in encoder, hence add an explicit instruction to left shift the index operand
+                // Reason is this requires 4 operand in IR and there is no support for this yet.
+                // If we encounter more such scenarios, its better to solve the root cause.
+                // Also VSTR & VLDR don't take index operand as parameter
+                IR::RegOpnd* newIndexOpnd = IR::RegOpnd::New(indexOpnd->GetType(), instr->m_func);
+                IR::Instr* newInstr = IR::Instr::New(Js::OpCode::LSL, newIndexOpnd, indexOpnd,
+                    IR::IntConstOpnd::New(scale, TyMachReg, instr->m_func), instr->m_func);
+                instr->InsertBefore(newInstr);
+                indirOpnd->SetScale(0); //Clears scale
+                indexOpnd = newIndexOpnd;
+            }
+
+            instr->HoistIndirIndexOpndAsAdd(indirOpnd, baseOpnd, indexOpnd, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
+        }
+    }
+    else if (indirOpnd->GetIndexOpnd() != NULL && offset != 0)
+    {
+        // Can't have both offset and index, so hoist the offset and try again.
         IR::Instr *addInstr = instr->HoistIndirOffset(indirOpnd, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
         LegalizeMD::LegalizeInstr(addInstr, fPostRegAlloc);
         return;
@@ -436,7 +453,7 @@ void LegalizeMD::LegalizeImmed(
     {
         if (instr->m_opcode != Js::OpCode::LDIMM)
         {
-            instr = LegalizeMD::GenerateLDIMM(instr, opndNum, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
+            instr = LegalizeMD::GenerateLDIMM(instr, opndNum, fPostRegAlloc ? SCRATCH_REG : RegNOREG, fPostRegAlloc);
         }
 
         if (fPostRegAlloc)
@@ -454,7 +471,7 @@ void LegalizeMD::LegalizeLabelOpnd(
 {
     if (instr->m_opcode != Js::OpCode::LDIMM)
     {
-        instr = LegalizeMD::GenerateLDIMM(instr, opndNum, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
+        instr = LegalizeMD::GenerateLDIMM(instr, opndNum, fPostRegAlloc ? SCRATCH_REG : RegNOREG, fPostRegAlloc);
     }
     if (fPostRegAlloc)
     {
@@ -462,7 +479,23 @@ void LegalizeMD::LegalizeLabelOpnd(
     }
 }
 
-IR::Instr * LegalizeMD::GenerateLDIMM(IR::Instr * instr, uint opndNum, RegNum scratchReg)
+IR::Instr * LegalizeMD::GenerateHoistSrc(IR::Instr * instr, uint opndNum, Js::OpCode op, RegNum scratchReg, bool fPostRegAlloc)
+{
+    IR::Instr * newInstr;
+    if (opndNum == 1)
+    {
+        newInstr = instr->HoistSrc1(op, scratchReg);
+        LegalizeMD::LegalizeRegOpnd(instr, instr->GetSrc1());
+    }
+    else
+    {
+        newInstr = instr->HoistSrc2(op, scratchReg);
+        LegalizeMD::LegalizeRegOpnd(instr, instr->GetSrc2());
+    }
+    return newInstr;
+}
+
+IR::Instr * LegalizeMD::GenerateLDIMM(IR::Instr * instr, uint opndNum, RegNum scratchReg, bool fPostRegAlloc)
 {
     if (LowererMD::IsAssign(instr) && instr->GetDst()->IsRegOpnd())
     {
@@ -470,14 +503,7 @@ IR::Instr * LegalizeMD::GenerateLDIMM(IR::Instr * instr, uint opndNum, RegNum sc
     }
     else
     {
-        if (opndNum == 1)
-        {
-            instr = instr->HoistSrc1(Js::OpCode::LDIMM, scratchReg);
-        }
-        else
-        {
-            instr = instr->HoistSrc2(Js::OpCode::LDIMM, scratchReg);
-        }
+        instr = GenerateHoistSrc(instr, opndNum, Js::OpCode::LDIMM, scratchReg, fPostRegAlloc);
     }
 
     return instr;
@@ -488,6 +514,14 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
     // In case of inlined entry instruction, we don't know the offset till the encoding phase
     if (!instr->isInlineeEntryInstr)
     {
+
+        // If the source is a tagged int, and the dest is int32 or uint32, untag the value so that it fits in 32 bits.
+        if (instr->GetDst()->IsIntegral32() && instr->GetSrc1()->IsTaggedInt())
+        {
+            immed = (int32)immed;
+            instr->ReplaceSrc1(IR::IntConstOpnd::New(immed, instr->GetDst()->GetType(), instr->m_func));
+        }
+
         // Short-circuit simple 16-bit immediates
         if ((immed & 0xffff) == immed || (immed & 0xffff0000) == immed || (immed & 0xffff00000000ll) == immed || (immed & 0xffff000000000000ll) == immed)
         {
@@ -505,14 +539,17 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
         }
 
         // Short-circuit simple inverted 16-bit immediates that can be implicitly truncated to 32 bits
-        IntConstType invImmed32 = ~immed & 0xffffffffull;
-        if ((invImmed32 & 0xffff) == invImmed32 || (invImmed32 & 0xffff0000) == invImmed32)
+        if (immed == (uint32)immed)
         {
-            instr->GetDst()->SetType(TyInt32);
-            IR::IntConstOpnd *src1 = IR::IntConstOpnd::New(invImmed32, TyInt64, instr->m_func);
-            instr->ReplaceSrc1(src1);
-            instr->m_opcode = Js::OpCode::MOVN;
-            return;
+            IntConstType invImmed32 = ~immed & 0xffffffffull;
+            if ((invImmed32 & 0xffff) == invImmed32 || (invImmed32 & 0xffff0000) == invImmed32)
+            {
+                instr->GetDst()->SetType(TyInt32);
+                IR::IntConstOpnd *src1 = IR::IntConstOpnd::New(invImmed32, TyInt64, instr->m_func);
+                instr->ReplaceSrc1(src1);
+                instr->m_opcode = Js::OpCode::MOVN;
+                return;
+            }
         }
 
         // Short-circuit 32-bit logical constants
@@ -526,7 +563,7 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
         }
 
         // Short-circuit 64-bit logical constants
-        if (EncoderMD::CanEncodeLogicalConst(immed, 8))
+        if (instr->GetDst()->GetSize() == 8 && EncoderMD::CanEncodeLogicalConst(immed, 8))
         {
             instr->SetSrc2(instr->GetSrc1());
             instr->ReplaceSrc1(IR::RegOpnd::New(NULL, RegZR, TyInt64, instr->m_func));
@@ -700,18 +737,10 @@ void LegalizeMD::EmitRandomNopBefore(IR::Instr *insertInstr, UINT_PTR rand, RegN
 
 void LegalizeMD::LegalizeLdLabel(IR::Instr * instr, IR::Opnd * opnd)
 {
-    // ARM64_WORKITEM
-    __debugbreak();
-#if 0
-
     Assert(instr->m_opcode == Js::OpCode::LDIMM);
     Assert(opnd->IsLabelOpnd());
 
-    IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOVW, instr->GetDst(), opnd, instr->m_func);
-    instr->InsertBefore(instrMov);
-
-    instr->m_opcode = Js::OpCode::MOVT;
-#endif
+    instr->m_opcode = Js::OpCode::ADR;
 }
 
 bool LegalizeMD::LegalizeDirectBranch(IR::BranchInstr *branchInstr, uint32 branchOffset)
@@ -722,71 +751,59 @@ bool LegalizeMD::LegalizeDirectBranch(IR::BranchInstr *branchInstr, uint32 branc
     Assert(labelOffset); //Label offset must be set.
 
     int32 offset = labelOffset - branchOffset;
-    //We should never run out of 24 bits which corresponds to +-16MB of code size.
-    AssertMsg(IS_CONST_INT24(offset >> 1), "Cannot encode more that 16 MB offset");
+    //We should never run out of 26 bits which corresponds to +-64MB of code size.
+    AssertMsg(IS_CONST_INT26(offset >> 1), "Cannot encode more that 64 MB offset");
 
     if (LowererMD::IsUnconditionalBranch(branchInstr))
     {
         return false;
     }
 
-    if (IS_CONST_INT21(offset))
+    if (branchInstr->m_opcode == Js::OpCode::TBZ || branchInstr->m_opcode == Js::OpCode::TBNZ)
     {
-        return false;
+        // TBZ and TBNZ are limited to 14 bit offsets.
+        if (IS_CONST_INT14(offset))
+        {
+            return false;
+        }
+    }
+    else
+    {
+        // Other conditional branches are limited to 19 bit offsets.
+        if (IS_CONST_INT19(offset))
+        {
+            return false;
+        }
     }
 
-    // Convert a conditional branch which can only be +-1MB to unconditional branch which is +-16MB
+    // Convert a conditional branch which can only be +-256kb(+-8kb for TBZ/TBNZ) to unconditional branch which is +-64MB
     // Convert beq Label (where Label is long jump) to something like this
     //          bne Fallback
     //          b Label
     // Fallback:
 
-    IR::LabelInstr *doneLabelInstr = IR::LabelInstr::New(Js::OpCode::Label, branchInstr->m_func, false);
-    IR::BranchInstr *newBranchInstr = IR::BranchInstr::New(branchInstr->m_opcode, doneLabelInstr, branchInstr->m_func);
-    LowererMD::InvertBranch(newBranchInstr);
+    IR::LabelInstr *fallbackLabel = IR::LabelInstr::New(Js::OpCode::Label, branchInstr->m_func, false);
+    IR::BranchInstr *fallbackBranch = IR::BranchInstr::New(branchInstr->m_opcode, fallbackLabel, branchInstr->m_func);
 
-    branchInstr->InsertBefore(newBranchInstr);
-    branchInstr->InsertAfter(doneLabelInstr);
+    // CBZ | CBNZ | TBZ | TBNZ
+    if (branchInstr->GetSrc1() != nullptr)
+    {
+        fallbackBranch->SetSrc1(branchInstr->UnlinkSrc1());
+    }
+
+    // TBZ | TBNZ
+    if (branchInstr->GetSrc2() != nullptr)
+    {
+        fallbackBranch->SetSrc2(branchInstr->UnlinkSrc2());
+    }
+
+    LowererMD::InvertBranch(fallbackBranch);
+
+    branchInstr->InsertBefore(fallbackBranch);
+    branchInstr->InsertAfter(fallbackLabel);
     branchInstr->m_opcode = Js::OpCode::B;
     return true;
 }
-
-void LegalizeMD::LegalizeIndirOpndForVFP(IR::Instr* insertInstr, IR::IndirOpnd *indirOpnd, bool fPostRegAlloc)
-{
-    IR::RegOpnd *baseOpnd = indirOpnd->GetBaseOpnd();
-    int32 offset = indirOpnd->GetOffset();
-
-    IR::RegOpnd *indexOpnd = indirOpnd->UnlinkIndexOpnd(); //Clears index operand
-    byte scale = indirOpnd->GetScale();
-    IR::Instr *instr = NULL;
-
-    if (indexOpnd)
-    {
-        if (scale > 0)
-        {
-            // There is no support for ADD instruction with barrel shifter in encoder, hence add an explicit instruction to left shift the index operand
-            // Reason is this requires 4 operand in IR and there is no support for this yet.
-            // If we encounter more such scenarios, its better to solve the root cause.
-            // Also VSTR & VLDR don't take index operand as parameter
-            IR::RegOpnd* newIndexOpnd = IR::RegOpnd::New(indexOpnd->GetType(), insertInstr->m_func);
-            instr = IR::Instr::New(Js::OpCode::LSL, newIndexOpnd, indexOpnd,
-                                   IR::IntConstOpnd::New(scale, TyMachReg, insertInstr->m_func), insertInstr->m_func);
-            insertInstr->InsertBefore(instr);
-            indirOpnd->SetScale(0); //Clears scale
-            indexOpnd = newIndexOpnd;
-        }
-
-        insertInstr->HoistIndirIndexOpndAsAdd(indirOpnd, baseOpnd, indexOpnd, fPostRegAlloc? SCRATCH_REG : RegNOREG);
-    }
-
-    if (IS_CONST_UINT10((offset < 0? -offset: offset)))
-    {
-        return;
-    }
-    IR::Instr* instrAdd = insertInstr->HoistIndirOffsetAsAdd(indirOpnd, indirOpnd->GetBaseOpnd(), offset, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
-    LegalizeMD::LegalizeInstr(instrAdd, fPostRegAlloc);
-}
-
 
 #ifdef DBG
 

@@ -37,18 +37,45 @@ template <typename TBlockType> class HeapBucketT;
 class  RecyclerSweep;
 class MarkContext;
 
-#ifdef DUMP_FRAGMENTATION_STATS
-struct HeapBucketStats
+#if ENABLE_MEM_STATS
+struct MemStats
 {
+    size_t objectByteCount;
+    size_t totalByteCount;
+
+    MemStats();
+
+    void Reset();
+    size_t FreeBytes() const;
+    double UsedRatio() const;
+    void Aggregate(const MemStats& other);
+};
+
+struct HeapBucketStats: MemStats
+{
+#ifdef DUMP_FRAGMENTATION_STATS
     uint totalBlockCount;
-    uint emptyBlockCount;
-    uint finalizeBlockCount;
     uint objectCount;
     uint finalizeCount;
-    uint objectByteCount;
-    uint totalByteCount;
-};
+
+    HeapBucketStats();
+    void Reset();
+    void Dump() const;
 #endif
+
+    void PreAggregate();
+    void BeginAggregate();
+    void Aggregate(const HeapBucketStats& other);
+};
+
+#ifdef DUMP_FRAGMENTATION_STATS
+#define DUMP_FRAGMENTATION_STATS_ONLY(x) x
+#define DUMP_FRAGMENTATION_STATS_IS(x) x
+#else
+#define DUMP_FRAGMENTATION_STATS_ONLY(x)
+#define DUMP_FRAGMENTATION_STATS_IS(x) false
+#endif
+#endif  // ENABLE_MEM_STATS
 
 #if defined(PROFILE_RECYCLER_ALLOC) || defined(RECYCLER_MEMORY_VERIFY) || defined(MEMSPECT_TRACKING) || defined(RECYCLER_PERF_COUNTERS) || defined(ETW_MEMORY_TRACKING)
 #define RECYCLER_TRACK_NATIVE_ALLOCATED_OBJECTS
@@ -635,7 +662,7 @@ public:
     void InduceFalsePositive(Recycler * recycler);
 #endif
 
-#ifdef DUMP_FRAGMENTATION_STATS
+#if ENABLE_MEM_STATS
     void AggregateBlockStats(HeapBucketStats& stats, bool isAllocatorBlock = false, FreeObject* freeObjectList = nullptr, bool isBumpAllocated = false);
 #endif
 
