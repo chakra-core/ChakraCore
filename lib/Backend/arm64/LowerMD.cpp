@@ -1379,9 +1379,10 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
     }
 
     // Exception handling regions exit via the same epilog just skipping the stackAllocation2 recovery
-    IR::LabelInstr* ehEpilogLabel = this->EnsureEHEpilogLabel();
+    IR::LabelInstr* ehEpilogLabel = this->m_func->m_epilogLabel;
     if (ehEpilogLabel != nullptr)
     {
+        ehEpilogLabel->Unlink();
         exitInstr->InsertBefore(ehEpilogLabel);
     }
 
@@ -6673,6 +6674,7 @@ LowererMD::EnsureEHEpilogLabel()
 
     IR::LabelInstr *labelInstr = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
     this->m_func->m_epilogLabel = labelInstr;
+    this->m_func->m_exitInstr->InsertBefore(labelInstr);
     return labelInstr;
 }
 
