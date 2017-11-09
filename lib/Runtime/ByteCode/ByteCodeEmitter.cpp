@@ -3497,7 +3497,7 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
     Scope * const bodyScope = funcInfo->GetBodyScope();
     Scope * const paramScope = funcInfo->GetParamScope();
 
-    if (funcInfo->byteCodeFunction->IsFunctionParsed())
+    if (funcInfo->byteCodeFunction->IsFunctionParsed() && funcInfo->root->sxFnc.pnodeBody != nullptr)
     {
         if (funcInfo->GetParsedFunctionBody()->GetByteCode() == nullptr && !(flags & (fscrEval | fscrImplicitThis | fscrImplicitParents)))
         {
