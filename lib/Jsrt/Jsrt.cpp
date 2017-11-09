@@ -4544,6 +4544,17 @@ CHAKRA_API JsCreateString(
 {
     PARAM_NOT_NULL(content);
     PARAM_NOT_NULL(value);
+    *value = JS_INVALID_REFERENCE;
+
+    if (length == static_cast<size_t>(-1))
+    {
+        length = strlen(content);
+    }
+
+    if (length > static_cast<CharCount>(-1))
+    {
+        return JsErrorOutOfMemory;
+    }
 
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
 
@@ -4567,6 +4578,17 @@ CHAKRA_API JsCreateStringUtf16(
 {
     PARAM_NOT_NULL(content);
     PARAM_NOT_NULL(value);
+    *value = JS_INVALID_REFERENCE;
+
+    if (length == static_cast<size_t>(-1))
+    {
+        length = wcslen((const char16 *)content);
+    }
+
+    if (length > static_cast<CharCount>(-1))
+    {
+        return JsErrorOutOfMemory;
+    }
 
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
 
