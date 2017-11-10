@@ -106,6 +106,7 @@ void JsrtDebugManager::DispatchHalt(Js::InterpreterHaltState* haltState)
     case Js::STOP_EXCEPTIONTHROW: /*JsDiagDebugEventRuntimeException*/
         this->ReportExceptionBreak(haltState);
         break;
+    case Js::STOP_DOMMUTATIONBREAKPOINT:
     case Js::STOP_MUTATIONBREAKPOINT:
         AssertMsg(false, "Not yet handled");
         break;

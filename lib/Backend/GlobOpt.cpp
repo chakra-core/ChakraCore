@@ -14702,6 +14702,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                     IR::Opnd* lowerBound = baseOwnerIndir->GetIndexOpnd()
                         ? static_cast<IR::Opnd *>(baseOwnerIndir->GetIndexOpnd())
                         : IR::IntConstOpnd::New(baseOwnerIndir->GetOffset(), TyInt32, instr->m_func);
+
                     lowerBound->SetIsJITOptimizedReg(true);
                     IR::Opnd* upperBound = IR::RegOpnd::New(headSegmentLengthSym, headSegmentLengthSym->GetType(), instr->m_func);
                     upperBound->SetIsJITOptimizedReg(true);

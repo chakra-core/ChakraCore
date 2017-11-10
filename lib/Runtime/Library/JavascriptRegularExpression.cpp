@@ -329,7 +329,11 @@ namespace Js
 
     UnifiedRegex::RegexPattern* JavascriptRegExp::CreatePattern(Var aValue, Var options, ScriptContext *scriptContext)
     {
-        JavascriptString * strBody;
+        UnifiedRegex::RegexPattern* pattern = nullptr;
+
+        ENTER_PINNED_SCOPE(JavascriptString, strBody);
+        ENTER_PINNED_SCOPE(JavascriptString, strOptions);
+        strOptions = nullptr;
 
         if (JavascriptString::Is(aValue))
         {
@@ -349,7 +353,6 @@ namespace Js
         int cOpts = 0;
         const char16 *szOptions = nullptr;
 
-        JavascriptString * strOptions = nullptr;
         if (options != nullptr && !JavascriptOperators::IsUndefinedObject(options))
         {
             if (JavascriptString::Is(options))
@@ -365,7 +368,10 @@ namespace Js
             cOpts = strOptions->GetLength();
         }
 
-        UnifiedRegex::RegexPattern* pattern = RegexHelper::CompileDynamic(scriptContext, szRegex, cBody, szOptions, cOpts, false);
+        pattern = RegexHelper::CompileDynamic(scriptContext, szRegex, cBody, szOptions, cOpts, false);
+
+        LEAVE_PINNED_SCOPE();   //strOptions
+        LEAVE_PINNED_SCOPE();   //strBody
 
         return pattern;
     }
@@ -567,7 +573,11 @@ namespace Js
         else
         {
             //compile with a string
-            JavascriptString * strBody;
+            ENTER_PINNED_SCOPE(JavascriptString, strBody);
+            ENTER_PINNED_SCOPE(JavascriptString, strOptions);
+            strBody = nullptr;
+            strOptions = nullptr;
+
             if (JavascriptString::Is(args[1]))
             {
                 strBody = JavascriptString::FromVar(args[1]);
@@ -586,7 +596,6 @@ namespace Js
             int cOpts = 0;
             const char16 *szOptions = nullptr;
 
-            JavascriptString * strOptions = nullptr;
             if (callInfo.Count > 2 && !JavascriptOperators::IsUndefinedObject(args[2]))
             {
                 if (JavascriptString::Is(args[2]))
@@ -601,7 +610,11 @@ namespace Js
                 szOptions = strOptions->GetSz(); // must be null terminated!
                 cOpts = strOptions->GetLength();
             }
+
             pattern = RegexHelper::CompileDynamic(scriptContext, szRegex, cBody, szOptions, cOpts, false);
+
+            LEAVE_PINNED_SCOPE();   //strOptions
+            LEAVE_PINNED_SCOPE();   //strBody
         }
 
         thisRegularExpression->SetPattern(pattern);

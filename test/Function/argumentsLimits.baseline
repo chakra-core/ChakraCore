@@ -1,1 +1,8 @@
-Out of memory
+SyntaxError: Out of memory
+65532 is too many arguments
+SyntaxError: Out of memory
+65531 is too many arguments
+SyntaxError: Out of memory
+65530 is too many arguments
+arguments[65528] == 65528
+Arguments limit: 65529

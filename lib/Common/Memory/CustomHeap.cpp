@@ -620,6 +620,13 @@ bool Heap<TAlloc, TPreReservedAlloc>::AllocInPage(Page* page, size_t bytes, usho
         return false;
     }
 
+    //Section of the Page should already be freed.
+    if (!page->freeBitVector.TestRange(index, length))
+    {
+        CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+        return false;
+    }
+
     page->freeBitVector.ClearRange(index, length);
     VerboseHeapTrace(_u("ChunkSize: %d, Index: %d, Free bit vector in page: "), length, index);
 

@@ -644,6 +644,7 @@ namespace Js
                 else if (pFBody->GetPropertyIdsForScopeSlotArray() != nullptr)
                 {
                     uint slotArrayCount = static_cast<uint>(slotArray.GetCount());
+
                     pMembersList = JsUtil::List<DebuggerPropertyDisplayInfo *, ArenaAllocator>::New(arena, slotArrayCount);
 
                     for (uint32 i = 0; i < slotArrayCount; i++)

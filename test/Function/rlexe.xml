@@ -63,9 +63,8 @@
     <default>
       <files>argumentsLimits.js</files>
       <baseline>argumentsLimits.baseline</baseline>
-      <!-- this test takes a long time with dynapogo on chk build-->
-      <!-- it's pretty slow on test builds too though-->
-      <tags>exclude_chk,Slow</tags>
+      <compile-flags>-EnableFatalErrorOnOOM-</compile-flags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -426,7 +425,8 @@
   <test>
     <default>
       <files>failnativecodeinstall.js</files>
-      <compile-flags>-maxinterpretcount:2 -lic:1 -bgjit -off:simplejit -on:failnativecodeinstall</compile-flags>
+      <!-- This test expects OOM, -EnableFatalErrorOnOOM- to disable fatal error for this test case. Bug will be filed to address this later -->
+      <compile-flags>-EnableFatalErrorOnOOM- -maxinterpretcount:2 -lic:1 -bgjit -off:simplejit -on:failnativecodeinstall</compile-flags>
       <tags>exclude_dynapogo,require_backend</tags>
       <baseline>failnativecodeinstall.baseline</baseline>
     </default>

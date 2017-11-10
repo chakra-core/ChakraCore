@@ -81,6 +81,7 @@ public:
     }
 
 };
+
 using ArgSlotMath = UInt16Math;
 
 template <>

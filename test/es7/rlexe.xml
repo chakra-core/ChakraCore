@@ -95,14 +95,15 @@
   <test>
     <default>
       <files>arraybuffer_transfer.js</files>
-      <compile-flags>-es6experimental -args 0x1000 -endargs</compile-flags>
+      <!-- This test expects OOM, -EnableFatalErrorOnOOM- to disable fatal error for this test case. Bug will be filed to address this later -->
+      <compile-flags>-EnableFatalErrorOnOOM- -es6experimental -args 0x1000 -endargs</compile-flags>
       <tags>exclude_amd64</tags>
     </default>
   </test>
   <test>
     <default>
       <files>arraybuffer_transfer.js</files>
-      <compile-flags>-es6experimental -args 0 -endargs</compile-flags>
+      <compile-flags>-EnableFatalErrorOnOOM- -es6experimental -args 0 -endargs</compile-flags>
       <tags>exclude_amd64</tags>
     </default>
   </test>

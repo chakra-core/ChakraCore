@@ -298,6 +298,8 @@ Security::DontEncode(IR::Opnd *opnd)
         IR::IndirOpnd *indirOpnd = opnd->AsIndirOpnd();
         return indirOpnd->m_dontEncode || indirOpnd->GetOffset() == 0;
     }
+    case IR::OpndKindInt64Const:
+        return false;
     default:
         return true;
     }
@@ -312,6 +314,13 @@ Security::CalculateConstSize(IR::Opnd *opnd)
     }
     switch (opnd->GetKind())
     {
+#if TARGET_64
+    case IR::OpndKindInt64Const:
+    {
+        IR::Int64ConstOpnd *intConstOpnd = opnd->AsInt64ConstOpnd();
+        return GetByteCount(intConstOpnd->GetValue());
+    }
+#endif
     case IR::OpndKindIntConst:
     {
         IR::IntConstOpnd *intConstOpnd = opnd->AsIntConstOpnd();
@@ -411,7 +420,7 @@ Security::EncodeOpnd(IR::Instr * instr, IR::Opnd *opnd)
             {
                 IR::RegOpnd * newBaseOpnd = IR::RegOpnd::New(TyMachReg, instr->m_func);
                 Lowerer::InsertAdd(false, newBaseOpnd, newOpnd, indirOpnd->GetBaseOpnd(), instr);
-                indirOpnd->SetBaseOpnd(newBaseOpnd);
+                indirOpnd->ReplaceBaseOpnd(newBaseOpnd);
             }
             else
             {

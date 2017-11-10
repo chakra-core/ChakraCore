@@ -84,6 +84,13 @@ namespace Js
         Field(SparseArraySegmentBase *) lastUsedSegment;
     };
 
+    enum ConcatSpreadableState
+    {
+        ConcatSpreadableState_NotChecked,
+        ConcatSpreadableState_CheckedAndFalse,
+        ConcatSpreadableState_CheckedAndTrue
+    };
+
     class JavascriptArray : public ArrayObject
     {
         template <class TPropertyIndex>
@@ -323,6 +330,9 @@ namespace Js
         void CheckForceES5Array();
 #endif
 
+#if DBG
+        void DoTypeMutation();
+#endif
         virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId) override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
         virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
@@ -814,7 +824,7 @@ namespace Js
         };
 
         void GenericDirectSetItemAt(const BigIndex& index, Var newValue) { index.SetItem(this, newValue); }
-        void GenericDirectSetItemAt(const uint32 index, Var newValue) { this->DirectSetItemAt(index, newValue); }
+        void GenericDirectSetItemAt(const uint32 index, Var newValue);
         void DirectSetItemIfNotExist(const BigIndex& index, Var newValue) { index.SetItemIfNotExist(this, newValue); }
         void DirectAppendItem(Var newValue) { BigIndex(this->GetLength()).SetItem(this, newValue); }
         void TruncateToProperties(const BigIndex& index, uint32 start);
@@ -839,9 +849,13 @@ namespace Js
         static void SetConcatItem(Var aItem, uint idxArg, JavascriptArray* pDestArray, RecyclableObject* pDestObj, T idxDest, ScriptContext *scriptContext);
 
         template<typename T>
-        static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start, BigIndex startIdxDest, BOOL firstPromotedItemIsSpreadable, BigIndex firstPromotedItemLength, bool spreadableCheckedAndTrue = false);
+        static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start, 
+            BigIndex startIdxDest, ConcatSpreadableState previousItemSpreadableState = ConcatSpreadableState_NotChecked, BigIndex *firstPromotedItemLength = nullptr);
+
         template<typename T>
-        static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start = 0, uint startIdxDest = 0u, BOOL FirstPromotedItemIsSpreadable = false, BigIndex FirstPromotedItemLength = 0u, bool spreadableCheckedAndTrue = false);
+        static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start = 0, uint startIdxDest = 0u, 
+            ConcatSpreadableState previousItemSpreadableState = ConcatSpreadableState_NotChecked, BigIndex *firstPromotedItemLength = nullptr);
+
         static JavascriptArray* ConcatIntArgs(JavascriptNativeIntArray* pDestArray, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext);
         static bool PromoteToBigIndex(BigIndex lhs, BigIndex rhs);
         static bool PromoteToBigIndex(BigIndex lhs, uint32 rhs);

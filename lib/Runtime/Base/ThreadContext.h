@@ -41,6 +41,7 @@ enum ThreadContextFlags
     ThreadContextFlagCanDisableExecution           = 0x00000001,
     ThreadContextFlagEvalDisabled                  = 0x00000002,
     ThreadContextFlagNoJIT                         = 0x00000004,
+    ThreadContextFlagDisableFatalOnOOM             = 0x00000008,
 };
 
 const int LS_MAX_STACK_SIZE_KB = 300;
@@ -750,6 +751,7 @@ private:
     uint unregisteredInlineCacheCount;
 #if DBG
     uint totalUnregisteredCacheCount;
+    uint arrayMutationSeed; // This is mostly to aid in debugging.
 #endif
 
     typedef JsUtil::BaseDictionary<Js::Var, Js::IsInstInlineCache*, ArenaAllocator, PrimeSizePolicy> IsInstInlineCacheListMapByFunction;
@@ -1835,10 +1837,18 @@ private:
 class JsReentLock
 {
     ThreadContext *m_threadContext;
+#if DBG
+    Js::Var m_arrayObject;
+    Js::Var m_arrayObject2; // This is for adding the second object in the mutation equation.
+#endif
+
     bool m_savedNoJsReentrancy;
 
 public:
     JsReentLock(ThreadContext *threadContext)
+#if DBG
+        : m_arrayObject(nullptr), m_arrayObject2(nullptr)
+#endif
     {
         m_savedNoJsReentrancy = threadContext->GetNoJsReentrancy();
         threadContext->SetNoJsReentrancy(true);
@@ -1848,9 +1858,19 @@ public:
     void unlock() { m_threadContext->SetNoJsReentrancy(m_savedNoJsReentrancy); }
     void relock() { m_threadContext->SetNoJsReentrancy(true); }
 
+#if DBG
+    void setObjectForMutation(Js::Var object);
+    void setSecondObjectForMutation(Js::Var object);
+    void MutateArrayObject();
+#endif
+
     ~JsReentLock()
     {
         m_threadContext->SetNoJsReentrancy(m_savedNoJsReentrancy);
     }
+#if DBG
+private:
+    static void MutateArrayObject(Js::Var arrayObject);
+#endif
 };
 #endif

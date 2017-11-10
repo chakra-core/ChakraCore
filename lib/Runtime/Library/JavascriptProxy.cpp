@@ -4,7 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
-
 namespace Js
 {
     BOOL JavascriptProxy::Is(Var obj)
@@ -2191,6 +2190,7 @@ namespace Js
             {
                 newValues = stackArgs;
             }
+
             CallInfo calleeInfo((CallFlags)(args.Info.Flags), newCount);
             if (isNewCall)
             {
