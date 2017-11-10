@@ -2875,6 +2875,9 @@ bool LowererMD::GenerateFastCmXxTaggedInt(IR::Instr *instr, bool isInHelper  /* 
     //      LDIMM dst, falseResult
     //      B $fallthru
 
+    src1 = src1->UseWithNewType(TyInt32, m_func);
+    src2 = src2->UseWithNewType(TyInt32, m_func);
+
     instr->InsertBefore(IR::Instr::New(Js::OpCode::LDIMM, dst, opndTrue, m_func));
     IR::Instr *instrCmp = IR::Instr::New(Js::OpCode::CMP, m_func);
     instrCmp->SetSrc1(src1);
