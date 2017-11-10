@@ -174,11 +174,13 @@ Var WebAssemblyModule::EntryCustomSections(RecyclableObject* function, CallInfo 
     Var sectionNameVar = args.Info.Count > 2 ? args[2] : scriptContext->GetLibrary()->GetUndefined();
 
     WebAssemblyModule * module = WebAssemblyModule::FromVar(args[1]);
-    JavascriptString * sectionName = JavascriptConversion::ToString(sectionNameVar, scriptContext);
+    Var customSections = nullptr;
+    ENTER_PINNED_SCOPE(JavascriptString, sectionName);
+    sectionName = JavascriptConversion::ToString(sectionNameVar, scriptContext);
     const char16* sectionNameBuf = sectionName->GetString();
     charcount_t sectionNameLength = sectionName->GetLength();
 
-    Var customSections = JavascriptOperators::NewJavascriptArrayNoArg(scriptContext);
+    customSections = JavascriptOperators::NewJavascriptArrayNoArg(scriptContext);
     for (uint32 i = 0; i < module->GetCustomSectionCount(); ++i)
     {
         Wasm::CustomSection customSection = module->GetCustomSection(i);
@@ -195,6 +197,8 @@ Var WebAssemblyModule::EntryCustomSections(RecyclableObject* function, CallInfo 
             JavascriptArray::Push(scriptContext, customSections, arrayBuffer);
         }
     }
+
+    LEAVE_PINNED_SCOPE();   // sectionName
 
     return customSections;
 }

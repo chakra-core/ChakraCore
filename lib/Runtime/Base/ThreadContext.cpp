@@ -267,6 +267,11 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
 #endif
 #endif
 
+#if DBG
+    arrayMutationSeed = (Js::Configuration::Global.flags.ArrayMutationTestSeed != 0) ? (uint)Js::Configuration::Global.flags.ArrayMutationTestSeed : (uint)time(NULL);
+    srand(arrayMutationSeed);
+#endif
+
     this->InitAvailableCommit();
 }
 
@@ -1838,7 +1843,8 @@ void ThreadContext::DisposeOnLeaveScript()
 {
     PHASE_PRINT_TRACE1(Js::DisposePhase, _u("[Dispose] NeedDispose in LeaveScriptStart: %d\n"), this->recycler->NeedDispose());
 
-    if (this->callDispose && this->recycler->NeedDispose())
+    if (this->callDispose && this->recycler->NeedDispose()
+        && !recycler->IsCollectionDisabled())
     {
         this->recycler->FinishDisposeObjectsNow<FinishDispose>();
     }
@@ -2508,10 +2514,8 @@ ThreadContext::UnregisterScriptContext(Js::ScriptContext *scriptContext)
     {
         scriptContext->next->prev = scriptContext->prev;
     }
-
     scriptContext->prev = nullptr;
     scriptContext->next = nullptr;
-
 #if DBG || defined(RUNTIME_DATA_COLLECTION)
     scriptContextCount--;
 #endif
@@ -4772,3 +4776,61 @@ AutoTagNativeLibraryEntry::~AutoTagNativeLibraryEntry()
     Assert(threadContext->PeekNativeLibraryEntry() == &entry);
     threadContext->PopNativeLibraryEntry();
 }
+
+#if ENABLE_JS_REENTRANCY_CHECK
+#if DBG
+
+void JsReentLock::setObjectForMutation(Js::Var object)
+{
+    m_arrayObject = nullptr;
+
+    if (object != nullptr && Js::DynamicObject::IsAnyArray(object))
+    {
+        m_arrayObject = object;
+    }
+
+    // Don't care about any other objects for now
+}
+
+void JsReentLock::setSecondObjectForMutation(Js::Var object)
+{
+    m_arrayObject2 = nullptr;
+
+    if (object != nullptr && Js::DynamicObject::IsAnyArray(object))
+    {
+        m_arrayObject2 = object;
+    }
+
+    // Don't care about any other objects for now
+}
+
+void JsReentLock::MutateArrayObject(Js::Var arrayObject)
+{
+    if (arrayObject)
+    {
+        Js::JavascriptArray *arr = Js::JavascriptArray::FromAnyArray(arrayObject);
+        uint32 random = static_cast<unsigned int>(rand());
+
+        if (random % 20 == 0)
+        {
+            arr->DoTypeMutation();
+        }
+        else if (random % 20 == 1)
+        {
+            // TODO : modify the length of the current array
+            //       Or other opportunities
+        }
+    }
+}
+
+void JsReentLock::MutateArrayObject()
+{
+    if (CONFIG_FLAG(EnableArrayTypeMutation))
+    {
+        JsReentLock::MutateArrayObject(m_arrayObject);
+        JsReentLock::MutateArrayObject(m_arrayObject2);
+    }
+}
+
+#endif
+#endif

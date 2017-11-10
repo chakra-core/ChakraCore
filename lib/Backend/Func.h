@@ -725,7 +725,7 @@ public:
     bool                hasThrow : 1;
     bool                hasUnoptimizedArgumentsAccess : 1; // True if there are any arguments access beyond the simple case of this.apply pattern
     bool                m_canDoInlineArgsOpt : 1;
-    bool                applyTargetInliningRemovedArgumentsAccess :1;
+    bool                applyTargetInliningRemovedArgumentsAccess : 1;
     bool                isGetterSetter : 1;
     const bool          isInlinedConstructor: 1;
     bool                hasImplicitCalls: 1;

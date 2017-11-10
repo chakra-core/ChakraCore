@@ -27,6 +27,7 @@ enum ErrorReason
     Fatal_JsReentrancy_Error = 19,
     Fatal_TTDAbort = 20,
     Fatal_Failed_API_Result = 21,
+    Fatal_OutOfMemory = 22
 };
 
 extern "C" void ReportFatalException(
@@ -70,6 +71,7 @@ void LargeHeapBlock_Metadata_Corrupted(
 void FromDOM_NoScriptScope_fatal_error();
 void Debugger_AttachDetach_fatal_error(HRESULT hr);
 void RpcFailure_fatal_error(HRESULT hr);
+void OutOfMemory_fatal_error();
 
 #ifndef DISABLE_SEH
 // RtlReportException is available on Vista and up, but we cannot use it for OOB release.

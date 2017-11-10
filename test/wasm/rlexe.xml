@@ -39,14 +39,14 @@
   <default>
     <files>f32.js</files>
     <compile-flags>-wasm</compile-flags>
-    <tags>exclude_jshost,exclude_win7</tags>
+    <tags>exclude_jshost,exclude_drt,exclude_win7</tags>
   </default>
 </test>
 <test>
   <default>
     <files>f64.js</files>
     <compile-flags>-wasm</compile-flags>
-    <tags>exclude_jshost,exclude_win7</tags>
+    <tags>exclude_jshost,exclude_drt,exclude_win7</tags>
   </default>
 </test>
 <test>
@@ -155,7 +155,15 @@
   <default>
     <files>bugs.js</files>
     <compile-flags>-wasm</compile-flags>
-    <tags>exclude_jshost,exclude_win7</tags>
+    <tags>exclude_jshost,exclude_drt,exclude_win7</tags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>params.js</files>
+    <baseline>baselines/params.baseline</baseline>
+    <compile-flags>-wasm -EnableFatalErrorOnOOM- -args 14000 -endargs</compile-flags>
+    <tags>exclude_jshost,exclude_drt,exclude_win7,exclude_dynapogo</tags>
   </default>
 </test>
 <test>
@@ -170,55 +178,56 @@
     <default>
       <files>debugger_basic.js</files>
       <compile-flags>-wasm -dbgbaseline:debugger_basic.js.dbg.baseline</compile-flags>
-      <tags>exclude_jshost,exclude_win7,exclude_snap,require_debugger,exclude_xplat</tags>
+      <tags>exclude_jshost,exclude_win7,exclude_drt,exclude_snap,require_debugger,exclude_xplat</tags>
     </default>
   </test>
   <test>
     <default>
       <files>debugger_basic.js</files>
       <compile-flags>-wasm -maic:1 -dbgbaseline:debugger_basic.js.dbg.baseline</compile-flags>
-      <tags>exclude_jshost,exclude_win7,exclude_snap,require_debugger,exclude_xplat</tags>
+      <tags>exclude_jshost,exclude_win7,exclude_drt,exclude_snap,require_debugger,exclude_xplat</tags>
     </default>
   </test>
   <test>
     <default>
       <files>debugger_basic.js</files>
       <compile-flags>-wasm -debuglaunch -args debuglaunch -endargs -dbgbaseline:debugger_basic_launch.js.dbg.baseline</compile-flags>
-      <tags>exclude_jshost,exclude_win7,exclude_snap,require_debugger,exclude_xplat</tags>
+      <tags>exclude_jshost,exclude_win7,exclude_drt,exclude_snap,require_debugger,exclude_xplat</tags>
     </default>
   </test>
   <test>
     <default>
       <files>wasmcctx.js</files>
       <compile-flags>-wasm -dbgbaseline:wasmcctx.js.dbg.baseline -InspectMaxStringLength:50</compile-flags>
-      <tags>exclude_jshost,exclude_win7,exclude_snap,require_debugger,exclude_xplat</tags>
+      <tags>exclude_jshost,exclude_win7,exclude_drt,exclude_snap,require_debugger,exclude_xplat</tags>
     </default>
   </test>
 <test>
   <default>
     <files>oom_wasm.js</files>
-    <compile-flags>-wasm -args 0 16384 -endargs</compile-flags>
+      <!-- These tests expect OOM, -EnableFatalErrorOnOOM- to disable fatal error for this test case. Bug will be filed to address this later -->
+    <compile-flags>-EnableFatalErrorOnOOM- -wasm -args 0 16384 -endargs</compile-flags>
     <tags>exclude_amd64</tags>
   </default>
 </test>
 <test>
   <default>
     <files>oom_wasm.js</files>
-    <compile-flags>-wasm -args 3 16381 -endargs</compile-flags>
+    <compile-flags>-EnableFatalErrorOnOOM- -wasm -args 3 16381 -endargs</compile-flags>
     <tags>exclude_amd64</tags>
   </default>
 </test>
 <test>
   <default>
     <files>oom.js</files>
-    <compile-flags>-wasm -args 0 16384 -endargs</compile-flags>
+    <compile-flags>-EnableFatalErrorOnOOM- -wasm -args 0 16384 -endargs</compile-flags>
     <tags>exclude_amd64</tags>
   </default>
 </test>
 <test>
   <default>
     <files>oom.js</files>
-    <compile-flags>-wasm -args 3 16381 -endargs</compile-flags>
+    <compile-flags>-EnableFatalErrorOnOOM- -wasm -args 3 16381 -endargs</compile-flags>
     <tags>exclude_amd64</tags>
   </default>
 </test>
@@ -227,7 +236,7 @@
     <files>response.js</files>
     <baseline>baselines/response.baseline</baseline>
     <compile-flags>-wasm</compile-flags>
-    <tags>exclude_jshost,exclude_win7,exclude_xplat</tags>
+    <tags>exclude_jshost,exclude_drt,exclude_win7,exclude_xplat</tags>
   </default>
 </test>
 <test>
@@ -248,7 +257,7 @@
   <default>
     <files>nestedblocks.js</files>
     <compile-flags>-wasm</compile-flags>
-    <tags>exclude_jshost,exclude_win7,exclude_dynapogo,exclude_xplat</tags>
+    <tags>exclude_jshost,exclude_drt,exclude_win7,exclude_dynapogo,exclude_xplat</tags>
   </default>
 </test>
 <test>
@@ -256,7 +265,7 @@
     <files>cse.js</files>
     <baseline>baselines/cse.baseline</baseline>
     <compile-flags>-wasm -maic:0 -testtrace:cse:2.0-99.999</compile-flags>
-    <tags>exclude_jshost,exclude_win7,exclude_interpreted</tags>
+    <tags>exclude_jshost,exclude_drt,exclude_win7,exclude_interpreted</tags>
   </default>
 </test>
 <test>
@@ -264,28 +273,35 @@
     <files>unsigned.js</files>
     <baseline>baselines/unsigned.baseline</baseline>
     <compile-flags>-wasm</compile-flags>
-    <tags>exclude_jshost,exclude_win7,exclude_xplat</tags>
+    <tags>exclude_jshost,exclude_drt,exclude_win7,exclude_xplat</tags>
   </default>
 </test>
 <test>
   <default>
     <files>memory.js</files>
     <compile-flags>-wasm -ArrayBufferTransfer</compile-flags>
-    <tags>exclude_jshost,exclude_win7,exclude_xplat</tags>
+    <tags>exclude_jshost,exclude_drt,exclude_win7,exclude_xplat</tags>
   </default>
 </test>
 <test>
   <default>
     <files>memory.js</files>
     <compile-flags>-wasm -ArrayBufferTransfer -wasmfastarray-</compile-flags>
-    <tags>exclude_jshost,exclude_win7,exclude_xplat</tags>
+    <tags>exclude_jshost,exclude_drt,exclude_win7,exclude_xplat</tags>
   </default>
 </test>
 <test>
   <default>
     <files>superlongsignaturemismatch.js</files>
     <compile-flags>-wasm</compile-flags>
-    <tags>exclude_xplat,exclude_jshost,exclude_win7</tags>
+    <tags>exclude_xplat,exclude_jshost,exclude_drt,exclude_win7</tags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>binary.js</files>
+    <compile-flags>-wasm -args --no-verbose -endargs</compile-flags>
+    <tags>exclude_xplat</tags>
   </default>
 </test>
 <test>
@@ -307,7 +323,7 @@
     <files>limits.js</files>
     <compile-flags>-wasm -args --no-verbose --end 4 -endargs</compile-flags>
     <timeout>300</timeout>
-    <tags>exclude_xplat,exclude_jshost,exclude_win7,exclude_chk,exclude_dynapogo,exclude_x86,Slow</tags>
+    <tags>exclude_xplat,exclude_jshost,exclude_drt,exclude_win7,exclude_chk,exclude_dynapogo,exclude_x86,Slow</tags>
   </default>
 </test>
 <test>
@@ -315,7 +331,7 @@
     <files>limits.js</files>
     <compile-flags>-wasm -args --no-verbose --start 4 --end 12 -endargs</compile-flags>
     <timeout>300</timeout>
-    <tags>exclude_xplat,exclude_jshost,exclude_win7,exclude_chk,exclude_dynapogo,exclude_x86,Slow</tags>
+    <tags>exclude_xplat,exclude_jshost,exclude_drt,exclude_win7,exclude_chk,exclude_dynapogo,exclude_x86,Slow</tags>
   </default>
 </test>
 <test>
@@ -323,7 +339,7 @@
     <files>limits.js</files>
     <compile-flags>-wasm -args --no-verbose --start 12 -endargs</compile-flags>
     <timeout>300</timeout>
-    <tags>exclude_xplat,exclude_jshost,exclude_win7,exclude_chk,exclude_dynapogo,exclude_x86,Slow</tags>
+    <tags>exclude_xplat,exclude_jshost,exclude_drt,exclude_win7,exclude_chk,exclude_dynapogo,exclude_x86,Slow</tags>
   </default>
 </test>
 </regress-exe>

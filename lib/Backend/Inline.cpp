@@ -1716,7 +1716,7 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, const Function
     else
     {
         // We patch later for constructor inlining.
-        Assert(
+        AssertOrFailFast(
             callInstr->m_opcode == Js::OpCode::NewScObject ||
             callInstr->m_opcode == Js::OpCode::NewScObjArray);
     }
@@ -3759,7 +3759,7 @@ void Inline::InlineDOMGetterSetterFunction(IR::Instr *ldFldInstr, const Function
     // type-specific optimizations. Otherwise, this optimization to reduce calls into the host will also
     // result in relatively more expensive calls in the runtime.
     tmpDst->SetValueType(ldFldInstr->GetDst()->GetValueType());
-    
+
     IR::Opnd * callInstrDst = ldFldInstr->UnlinkDst();
     ldFldInstr->SetDst(tmpDst);
 

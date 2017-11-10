@@ -1405,6 +1405,7 @@ namespace Js
             mWriter.EmptyAsm(OpCodeAsmJs::CheckHeap);
             mCompiler->SetUsesHeapBuffer(true);
         }
+
         EndStatement(pnode);
         --mNestedCallCount;
         Assert(mNestedCallCount >= 0);

@@ -55,7 +55,7 @@ X64WriteBarrierCardTableManager::OnThreadInit()
     // So any writes to stack allocated vars can also have the write barrier set
 
     // xplat-todo: Replace this on Windows too with GetCurrentThreadStackBounds
-#ifdef _WIN32
+#if defined(_WIN32) && defined(_M_X64)
     // check StackProber.cpp for the stack pages layout information
     NT_TIB* teb = (NT_TIB*) ::NtCurrentTeb();
     char* stackBase = (char*) teb->StackBase;

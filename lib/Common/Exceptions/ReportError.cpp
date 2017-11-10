@@ -138,4 +138,10 @@ _NOINLINE void RpcFailure_fatal_error(HRESULT hr)
     ReportFatalException(NULL, hr, Fatal_RpcFailure, scenario);
 }
 
+_NOINLINE void OutOfMemory_fatal_error()
+{
+    int scenario = 9;
+    ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
+}
+
 #pragma optimize("",on)

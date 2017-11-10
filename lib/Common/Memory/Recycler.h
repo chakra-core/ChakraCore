@@ -2533,8 +2533,13 @@ extern bool IsLikelyRuntimeFalseReference(
     private: \
         friend bool ::IsLikelyRuntimeFalseReference( \
             char* objectStartAddress, size_t offset, const char* typeName);
+#define IMPLEMENT_STUB_IsLikelyRuntimeFalseReference() \
+    bool IsLikelyRuntimeFalseReference( \
+            char* objectStartAddress, size_t offset, const char* typeName) \
+    {  return false; }
 #else
 #define DECLARE_RECYCLER_VERIFY_MARK_FRIEND()
+#define IMPLEMENT_STUB_IsLikelyRuntimeFalseReference()
 #endif
 
 template <typename ExternalAllocFunc>

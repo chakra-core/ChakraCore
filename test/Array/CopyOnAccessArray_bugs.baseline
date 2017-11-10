@@ -28,16 +28,18 @@ PASSED
 PASSED
 *** Running test #11 (10): OS3713376: Accessing COA through proxy
 PASSED
-*** Running test #12 (11): Reflect.defineProperty
+*** Running test #12 (11): Reflect.set
 PASSED
-*** Running test #13 (12): Reflect.set
+*** Running test #13 (12): Reflect.defineProperty
 PASSED
-*** Running test #14 (13): Array.of
+*** Running test #14 (13): Reflect.set
 PASSED
-*** Running test #15 (14): CopyOnAccess in ForInEnumerator - native ints
+*** Running test #15 (14): Array.of
 PASSED
-*** Running test #16 (15): CopyOnAccess in ForInEnumerator - native floats
+*** Running test #16 (15): CopyOnAccess in ForInEnumerator - native ints
 PASSED
-*** Running test #17 (16): CopyOnAccess in for..of - native ints
+*** Running test #17 (16): CopyOnAccess in ForInEnumerator - native floats
 PASSED
-Summary of tests: total executed: 17; passed: 17; failed: 0
+*** Running test #18 (17): CopyOnAccess in for..of - native ints
+PASSED
+Summary of tests: total executed: 18; passed: 18; failed: 0

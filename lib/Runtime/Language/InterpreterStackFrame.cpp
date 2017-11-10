@@ -1919,6 +1919,7 @@ namespace Js
             // when resuming a generator and so it only used here if a frame already exists on the
             // generator object.
             AssertOrFailFastMsg(args.Info.Count == 2 && ((args.Info.Flags & CallFlags_ExtraArg) == CallFlags_None), "Generator ScriptFunctions should only be invoked by generator APIs with the pair of arguments they pass in -- the generator object and a ResumeYieldData pointer");
+
             JavascriptGenerator* generator = JavascriptGenerator::FromVar(args[0]);
             newInstance = generator->GetFrame();
 
@@ -8795,7 +8796,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         if (!PHASE_OFF(ClosureRangeCheckPhase, this->m_functionBody))
         {
-            if (((FrameDisplay*)instance)->GetLength() < slotIndex - Js::FrameDisplay::GetOffsetOfScopes()/sizeof(Var))
+            if (((FrameDisplay*)instance)->GetLength() <= slotIndex - Js::FrameDisplay::GetOffsetOfScopes()/sizeof(Var))
             {
                 Js::Throw::FatalInternalError();
             }

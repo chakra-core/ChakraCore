@@ -10,6 +10,7 @@ import "wtypes.idl";
 #include "sdkddkver.h"
 #endif
 
+
 #if defined(WINVER) && WINVER >= _WIN32_WINNT_WINBLUE // on 8.1+, RPC can marshal process handle for us
 #ifdef __midl
 cpp_quote("#define USE_RPC_HANDLE_MARSHALLING 1")

@@ -1060,8 +1060,10 @@ case_2:
         // The indexOf function is intentionally generic; it does not require that its this value be a String object. Therefore, it can be transferred to other kinds of objects for use as a method.
         //
 
-        JavascriptString * pThis;
-        JavascriptString * searchString;
+        int result = -1;
+
+        ENTER_PINNED_SCOPE(JavascriptString, pThis);
+        ENTER_PINNED_SCOPE(JavascriptString, searchString);
 
         GetThisAndSearchStringArguments(args, scriptContext, apiNameForErrorMsg, &pThis, &searchString, isRegExpAnAllowedArg);
 
@@ -1088,8 +1090,6 @@ case_2:
         {
             return position;
         }
-
-        int result = -1;
 
         if (position < pThis->GetLengthAsSignedInt())
         {
@@ -1118,6 +1118,10 @@ case_2:
                 }
             }
         }
+
+        LEAVE_PINNED_SCOPE();   //  searchString
+        LEAVE_PINNED_SCOPE();   //  pThis
+
         return result;
     }
 
@@ -1137,11 +1141,14 @@ case_2:
         // 2. Let S be ? ToString(O).
         // 3. Let searchStr be ? ToString(searchString).
 
-        JavascriptString * pThis = nullptr;
+        // default search string if the search argument is not provided
+        ENTER_PINNED_SCOPE(JavascriptString, pThis);
+        ENTER_PINNED_SCOPE(JavascriptString, searchArg);
+        pThis = nullptr;
+        searchArg = nullptr;
+
         GetThisStringArgument(args, scriptContext, _u("String.prototype.lastIndexOf"), &pThis);
 
-        // default search string if the search argument is not provided
-        JavascriptString * searchArg;
         if(args.Info.Count > 1)
         {
             if (JavascriptString::Is(args[1]))
@@ -1249,6 +1256,10 @@ case_2:
             }
             --currentPos;
         }
+
+        LEAVE_PINNED_SCOPE(); //pThis
+        LEAVE_PINNED_SCOPE(); //searchArg
+
         return JavascriptNumber::ToVar(-1, scriptContext);
     }
 
@@ -1324,8 +1335,9 @@ case_2:
         }
         AssertMsg(args.Info.Count > 0, "Negative argument count");
 
-        JavascriptString * pThis;
-        JavascriptString * pThat;
+        Var resultVar = scriptContext->GetLibrary()->GetUndefined();
+        ENTER_PINNED_SCOPE(JavascriptString, pThis);
+        ENTER_PINNED_SCOPE(JavascriptString, pThat);
 
         GetThisAndSearchStringArguments(args, scriptContext, _u("String.prototype.localeCompare"), &pThis, &pThat, true);
 
@@ -1380,12 +1392,17 @@ case_2:
             JavascriptError::ThrowRangeError(function->GetScriptContext(),
                 VBSERR_InternalError /* TODO-ERROR: _u("Failed compare operation")*/ );
         }
-        return JavascriptNumber::ToVar(result-2, scriptContext);
+        resultVar = JavascriptNumber::ToVar(result-2, scriptContext);
 #else // !ENABLE_GLOBALIZATION
         // no ICU / or external support for localization. Use c-lib
         const int result = wcscmp(pThisStr, pThatStr);
-        return JavascriptNumber::ToVar(result > 0 ? 1 : result == 0 ? 0 : -1, scriptContext);
+        resultVar = JavascriptNumber::ToVar(result > 0 ? 1 : result == 0 ? 0 : -1, scriptContext);
 #endif
+
+        LEAVE_PINNED_SCOPE();    //  pThat
+        LEAVE_PINNED_SCOPE();    //  pThis
+
+        return resultVar;
     }
 
 
@@ -2081,7 +2098,7 @@ case_2:
 
         if (maxLength > JavascriptString::MaxCharLength)
         {
-            Throw::OutOfMemory();
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_OutOfBoundString);
         }
 
         JavascriptString * fillerString = nullptr;
@@ -2243,6 +2260,8 @@ case_2:
 
     Var JavascriptString::ToCaseCore(JavascriptString* pThis, ToCase toCase)
     {
+        Var resultVar = nullptr;
+        EnterPinnedScope((volatile void**)& pThis);
         charcount_t count = pThis->GetLength();
 
         const char16* inStr = pThis->GetString();
@@ -2302,7 +2321,7 @@ case_2:
             *o++ = *inStr++;
         }
 
-        if(toCase == ToUpper)
+        if (toCase == ToUpper)
         {
 #if DBG
             DWORD converted =
@@ -2324,7 +2343,11 @@ case_2:
             Assert(converted == countToCase);
         }
 
-        return builder.ToString();
+        resultVar = builder.ToString();
+
+        LeavePinnedScope();     //  pThis
+
+        return resultVar;
     }
 
     Var JavascriptString::EntryTrim(RecyclableObject* function, CallInfo callInfo, ...)
@@ -2499,11 +2522,14 @@ case_2:
         Assert(currentString->GetLength() > 0);
         Assert(count > 0);
 
+        charcount_t finalBufferCount = 0;
+        char16* buffer = nullptr;
+        EnterPinnedScope((volatile void**)& currentString);
         const char16* currentRawString = currentString->GetString();
         charcount_t currentLength = currentString->GetLength();
 
-        charcount_t finalBufferCount = UInt32Math::Add(UInt32Math::Mul(count, currentLength), 1);
-        char16* buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, finalBufferCount);
+        finalBufferCount = UInt32Math::Add(UInt32Math::Mul(count, currentLength), 1);
+        buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, finalBufferCount);
 
         if (currentLength == 1)
         {
@@ -2526,6 +2552,8 @@ case_2:
             *bufferDst = '\0';
         }
 
+        LeavePinnedScope();     //  currentString
+
         return JavascriptString::NewWithBuffer(buffer, finalBufferCount - 1, scriptContext);
     }
 
@@ -2545,8 +2573,8 @@ case_2:
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(String_Prototype_startsWith);
 
-        JavascriptString * pThis;
-        JavascriptString * pSearch;
+        ENTER_PINNED_SCOPE(JavascriptString, pThis);
+        ENTER_PINNED_SCOPE(JavascriptString, pSearch);
 
         GetThisAndSearchStringArguments(args, scriptContext, _u("String.prototype.startsWith"), &pThis, &pSearch, false);
 
@@ -2579,6 +2607,9 @@ case_2:
             }
         }
 
+        LEAVE_PINNED_SCOPE();   //  pSearch
+        LEAVE_PINNED_SCOPE();  //  pThis
+
         return scriptContext->GetLibrary()->GetFalse();
     }
 
@@ -2598,8 +2629,8 @@ case_2:
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(String_Prototype_endsWith);
 
-        JavascriptString * pThis;
-        JavascriptString * pSearch;
+        ENTER_PINNED_SCOPE(JavascriptString, pThis);
+        ENTER_PINNED_SCOPE(JavascriptString, pSearch);
 
         GetThisAndSearchStringArguments(args, scriptContext, _u("String.prototype.endsWith"), &pThis, &pSearch, false);
 
@@ -2631,6 +2662,9 @@ case_2:
                 return scriptContext->GetLibrary()->GetTrue();
             }
         }
+
+        LEAVE_PINNED_SCOPE();   //  pSearch
+        LEAVE_PINNED_SCOPE();  //  pThis
 
         return scriptContext->GetLibrary()->GetFalse();
     }
@@ -3115,8 +3149,11 @@ case_2:
         charcount_t cchPropertyValue;
         charcount_t cchTotalChars;
         charcount_t ich;
-        JavascriptString * pThis;
-        JavascriptString * pPropertyValue = nullptr;
+        JavascriptString * resultString = nullptr;
+        ENTER_PINNED_SCOPE(JavascriptString, pThis);
+        ENTER_PINNED_SCOPE(JavascriptString, pPropertyValue);
+        pThis = nullptr;
+        pPropertyValue = nullptr;
         const char16 * propertyValueStr = nullptr;
         uint quotesCount = 0;
         const char16 quotStr[] = _u("&quot;");
@@ -3321,13 +3358,18 @@ case_2:
         // Assert we ended at the right place.
         AssertMsg((charcount_t)(pResult - builder.DangerousGetWritableBuffer()) == cchTotalChars, "Exceeded allocated string limit");
 
-        return builder.ToString();
+        resultString = builder.ToString();
+
+        LEAVE_PINNED_SCOPE();   // pThis
+        LEAVE_PINNED_SCOPE();   // pPropertyValue
+
+        return resultString;
     }
     Var JavascriptString::ToLocaleCaseHelper(Var thisObj, bool toUpper, ScriptContext *scriptContext)
     {
         using namespace PlatformAgnostic::UnicodeText;
-
-        JavascriptString * pThis;
+        JavascriptString * resultString = nullptr;
+        ENTER_PINNED_SCOPE(JavascriptString, pThis);
 
         if (JavascriptString::Is(thisObj))
         {
@@ -3367,7 +3409,11 @@ case_2:
             Throw::InternalError();
         }
 
-        return builder.ToString();
+        resultString = builder.ToString();
+
+        LEAVE_PINNED_SCOPE();   // pThis
+
+        return resultString;
     }
 
     int JavascriptString::IndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, charcount_t len, const char16* searchStr, int searchLen, int position)
@@ -3516,6 +3562,16 @@ case_2:
     {
         uint i;
 
+        // We want to pin the strings string and substring because flattening of any of these strings could cause a GC and result in the other string getting collected if it was optimized
+        // away by the compiler. We would normally have called the EnterPinnedScope/LeavePinnedScope methods here but it adds extra call instructions to the assembly code. As Equals
+        // methods could get called a lot of times this can show up as regressions in benchmarks.
+        volatile Js::JavascriptString** keepAliveString1 = (volatile Js::JavascriptString**)& string;
+        volatile Js::JavascriptString** keepAliveString2 = (volatile Js::JavascriptString**)& substring;
+        auto keepAliveLambda = [&]() {
+            UNREFERENCED_PARAMETER(keepAliveString1);
+            UNREFERENCED_PARAMETER(keepAliveString2);
+        };
+
         const char16 *stringOrig = string->GetString();
         uint stringLenOrig = string->GetLength();
         const char16 *stringSz = stringOrig + start;
@@ -3568,6 +3624,16 @@ case_2:
     {
         uint string1Len = string1->GetLength();
         uint string2Len = string2->GetLength();
+
+        // We want to pin the strings string1 and string2 because flattening of any of these strings could cause a GC and result in the other string getting collected if it was optimized
+        // away by the compiler. We would normally have called the EnterPinnedScope/LeavePinnedScope methods here but it adds extra call instructions to the assembly code. As Equals
+        // methods could get called a lot of times this can show up as regressions in benchmarks.
+        volatile Js::JavascriptString** keepAliveString1 = (volatile Js::JavascriptString**)& string1;
+        volatile Js::JavascriptString** keepAliveString2 = (volatile Js::JavascriptString**)& string2;
+        auto keepAliveLambda = [&]() {
+            UNREFERENCED_PARAMETER(keepAliveString1);
+            UNREFERENCED_PARAMETER(keepAliveString2);
+        };
 
         int result = wmemcmp(string1->GetString(), string2->GetString(), min(string1Len, string2Len));
 
@@ -3914,6 +3980,16 @@ case_2:
         T *leftString = T::FromVar(aLeft);
         T *rightString = T::FromVar(aRight);
 
+        // We want to pin the strings leftString and rightString because flattening of any of these strings could cause a GC and result in the other string getting collected if it was optimized
+        // away by the compiler. We would normally have called the EnterPinnedScope/LeavePinnedScope methods here but it adds extra call instructions to the assembly code. As Equals
+        // methods could get called a lot of times this can show up as regressions in benchmarks.
+        volatile T** keepAliveLeftString = (volatile T**)& leftString;
+        volatile T** keepAliveRightString = (volatile T**)& rightString;
+        auto keepAliveLambda = [&]() {
+            UNREFERENCED_PARAMETER(keepAliveLeftString);
+            UNREFERENCED_PARAMETER(keepAliveRightString);
+        };
+
         if (leftString->GetLength() != rightString->GetLength())
         {
             return false;
@@ -3923,6 +3999,7 @@ case_2:
         {
             return true;
         }
+
         return false;
     }
 
