@@ -1273,8 +1273,12 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         insertInstr->InsertBefore(instrStp);
 
         // ADD fp, sp, #offs
-        IR::Instr * instrAdd = IR::Instr::New(Js::OpCode::ADD, fpOpnd, spOpnd, IR::IntConstOpnd::New(fpOffset, TyMachReg, this->m_func), this->m_func);
-        insertInstr->InsertBefore(instrAdd);
+        // For exception handling, do this part AFTER the prolog to allow for proper unwinding
+        if (!layout.HasTry())
+        {
+            IR::Instr * instrAdd = IR::Instr::New(Js::OpCode::ADD, fpOpnd, spOpnd, IR::IntConstOpnd::New(fpOffset, TyMachReg, this->m_func), this->m_func);
+            insertInstr->InsertBefore(instrAdd);
+        }
     }
 
     // Perform the second (potentially large) stack allocation
@@ -1292,6 +1296,14 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     IR::LabelInstr *prologEndLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
     insertInstr->InsertBefore(prologEndLabel);
     this->m_func->m_unwindInfo.SetFunctionOffsetLabel(UnwindPrologEnd, prologEndLabel);
+
+    // Compute the FP now if there is a try present
+    if (layout.HasTry())
+    {
+        IR::Instr * instrAdd = IR::Instr::New(Js::OpCode::ADD, fpOpnd, spOpnd, IR::IntConstOpnd::New(layout.FpLrOffset(), TyMachReg, this->m_func), this->m_func);
+        insertInstr->InsertBefore(instrAdd);
+        Legalize(instrAdd);
+    }
 
     // Zero the argument slot if present
     IR::RegOpnd *zrOpnd = IR::RegOpnd::New(nullptr, RegZR, TyMachReg, this->m_func);
@@ -1373,18 +1385,18 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
     IR::RegOpnd *spOpnd = IR::RegOpnd::New(nullptr, RegSP, TyMachReg, this->m_func);
     IR::RegOpnd *fpOpnd = IR::RegOpnd::New(nullptr, RegFP, TyMachReg, this->m_func);
 
-    // Undo the last stack allocation
-    if (stackAllocation2 > 0)
-    {
-        GenerateStackDeallocation(exitInstr, stackAllocation2);
-    }
-
-    // Exception handling regions exit via the same epilog just skipping the stackAllocation2 recovery
+    // Exception handling regions exit via the same epilog
     IR::LabelInstr* ehEpilogLabel = this->m_func->m_epilogLabel;
     if (ehEpilogLabel != nullptr)
     {
         ehEpilogLabel->Unlink();
         exitInstr->InsertBefore(ehEpilogLabel);
+    }
+
+    // Undo the last stack allocation
+    if (stackAllocation2 > 0)
+    {
+        GenerateStackDeallocation(exitInstr, stackAllocation2);
     }
 
     // Recover FP and LR
