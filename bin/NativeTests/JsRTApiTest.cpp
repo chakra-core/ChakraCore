@@ -2294,4 +2294,31 @@ namespace JsRTApiTest
     {
         JsRTApiTest::RunWithAttributes(JsRTApiTest::JsLessThanTest);
     }
+
+    void JsCreateStringTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
+    {
+        // Passing in invalid utf8 sequences should result in the unicode replacement character
+        const char invalidUtf8[] = { -127 /* 0x80 */, '\0' };
+        JsValueRef result;
+        REQUIRE(JsCreateString(invalidUtf8, 1, &result) == JsNoError);
+        uint16_t utf16Result[2];
+        size_t written;
+        REQUIRE(JsCopyStringUtf16(result, 0, 1, utf16Result, &written) == JsNoError);
+        CHECK(written == 1);
+        CHECK(utf16Result[0] == 0xFFFD);
+
+        // Creating a utf8 string and then copying it back out should give an identical string
+        // Specifying -1 as the length should result in using strlen as the length
+        const char validUtf8Input[] = {'T', 'e', 's', 't', ' ', -30 /* 0xe2 */, -104 /* 0x98 */, -125 /* 0x83 */, 0};
+        REQUIRE(JsCreateString(validUtf8Input, static_cast<size_t>(-1), &result) == JsNoError);
+        char utf8Result[10];
+        REQUIRE(JsCopyString(result,utf8Result, 10, &written) == JsNoError);
+        CHECK(written == strlen(validUtf8Input));
+        CHECK(memcmp(utf8Result, validUtf8Input, written) == 0);
+    }
+
+    TEST_CASE("ApiTest_JsCreateStringTest", "[ApiTest]")
+    {
+        JsRTApiTest::RunWithAttributes(JsRTApiTest::JsCreateStringTest);
+    }
 }
