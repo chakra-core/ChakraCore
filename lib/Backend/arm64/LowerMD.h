@@ -70,7 +70,6 @@ public:
             IR::Instr *     ChangeToHelperCallMem(IR::Instr * instr, IR::JnHelperMethod helperMethod);
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr);
     static  IR::Instr *     ChangeToAssignNoBarrierCheck(IR::Instr * instr);
-    static  IR::Instr *     ChangeToAssign(IR::Instr * instr, IRType type);
     static  IR::Instr *     ChangeToLea(IR::Instr *const instr, bool postRegAlloc = false);
     static  IR::Instr *     ForceDstToReg(IR::Instr *instr);
     static  void            ImmedSrcToReg(IR::Instr * instr, IR::Opnd * newOpnd, int srcNum);
@@ -237,7 +236,6 @@ public:
             static RegNum       GetRegArgR8(int32 argNum) { return RegNOREG; }
             static Js::OpCode   GetLoadOp(IRType type) { return IRType_IsFloat(type) ? Js::OpCode::FLDR : Js::OpCode::LDR; }
             static Js::OpCode   GetStoreOp(IRType type) { return IRType_IsFloat(type) ? Js::OpCode::FSTR : Js::OpCode::STR; }
-            static Js::OpCode   GetMoveOp(IRType type) { return IRType_IsFloat(type) ? Js::OpCode::FMOV : Js::OpCode::MOV; }
 
             static BYTE         GetDefaultIndirScale()
             {
@@ -271,6 +269,7 @@ public:
 public:
     static IR::Instr * InsertCmovCC(const Js::OpCode opCode, IR::Opnd * dst, IR::Opnd* src1, IR::Instr* insertBeforeInstr, bool postRegAlloc);
 private:
+    static  IR::Instr *     ChangeToAssign(IR::Instr * instr, IRType destType);
     void GenerateFlagInlineCacheCheckForGetterSetter(
         IR::Instr * insertBeforeInstr,
         IR::RegOpnd * opndInlineCache,
