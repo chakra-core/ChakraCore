@@ -56,6 +56,7 @@ struct LegalInstrForms
 #define LEGAL_CBZ      { L_None,    { L_Reg } }
 #define LEGAL_LABEL    { L_Reg,     { L_Label } }
 #define LEGAL_LDIMM    { L_Reg,     { L_Imm,     L_None } }
+#define LEGAL_LDIMM_S  { L_Reg,     { (LegalForms)(L_ImmU16 | L_Label),     L_ImmU6 } }
 #define LEGAL_LOAD     { L_Reg,     { (LegalForms)(L_IndirSU12I9 | L_SymSU12I9), L_None } }
 #define LEGAL_LOADP    { L_Reg,     { (LegalForms)(L_IndirSI7 | L_SymSI7), L_Reg } }
 #define LEGAL_PLD      { L_None,    { (LegalForms)(L_IndirSU12I9 | L_SymSU12I9), L_None } }
@@ -85,6 +86,18 @@ private:
     static void LegalizeSymOffset(IR::Instr * instr, IR::SymOpnd * indirOpnd, LegalForms forms, bool fPostRegAlloc);
     static void LegalizeImmed(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, IntConstType immed, LegalForms forms, bool fPostRegAlloc);
     static void LegalizeLabelOpnd(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, bool fPostRegAlloc);
+
+    static inline uint32 ShiftTo16(UIntConstType* immed)
+    {
+        uint32 shift = 0;
+        while (((*immed) & 0xffff) != *immed)
+        {
+            (*immed) >>= 16;
+            shift += 16;
+        }
+        Assert(shift == 0 || shift == 16 || shift == 32 || shift == 48);
+        return shift;
+    }
 
     static void LegalizeLDIMM(IR::Instr * instr, IntConstType immed);
     static void LegalizeLdLabel(IR::Instr * instr, IR::Opnd * opnd);

@@ -482,20 +482,36 @@ int EncoderMD::EmitMovConstant(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emi
 {
     IR::Opnd* dst = instr->GetDst();
     IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* src2 = instr->GetSrc2();
     Assert(dst->IsRegOpnd());
-    Assert(src1->IsImmediateOpnd());
+    Assert(src1->IsImmediateOpnd() || src1->IsLabelOpnd());
+    Assert(src2->IsIntConstOpnd());
 
     int size = dst->GetSize();
     Assert(size == 4 || size == 8);
 
-    IntConstType immediate = src1->GetImmediateValue(instr->m_func);
-    int shift = 0;
-    while ((immediate & 0xFFFF) != immediate)
-    {
-        immediate = ULONG64(immediate) >> 16;
-        shift += 16;
-    }
+    uint32 shift = src2->AsIntConstOpnd()->AsUint32();
     Assert(shift < 32 || size == 8);
+    Assert(shift == 0 || shift == 16 || (size == 8 && (shift == 32 || shift == 48)));
+
+    IntConstType immediate = 0;
+    if (src1->IsImmediateOpnd())
+    {
+        immediate = src1->GetImmediateValue(instr->m_func);
+    }
+    else
+    {
+        Assert(src1->IsLabelOpnd());
+        IR::LabelInstr* labelInstr = src1->AsLabelOpnd()->GetLabel();
+
+        // Here the LabelOpnd's offset is a post-lower immediate value; we need
+        // to mask in just the part indicated by our own shift amount, and send
+        // that along as our immediate load value.
+        uintptr_t fullvalue = labelInstr->GetOffset();
+        immediate = (fullvalue & (0xffff << shift)) >> shift;
+    }
+
+    Assert((immediate & 0xFFFF) == immediate);
 
     if (size == 8)
     {
@@ -725,6 +741,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         Assert(src1->IsLabelOpnd());
 
         Assert(dst->GetSize() == 8);
+        Assert(!src1->AsLabelOpnd()->GetLabel()->isInlineeEntryInstr);
         EncodeReloc::New(&m_relocList, RelocTypeLabelAdr, m_pc, src1->AsLabelOpnd()->GetLabel(), m_encoder->m_tempAlloc);
         bytes = EmitAdr(Emitter, this->GetRegEncode(dst->AsRegOpnd()), 0);
         break;
@@ -1303,7 +1320,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
                 Assert(encodeResult);
                 //We are re-using offset to save the inlineeCallInfo which will be patched in ApplyRelocs
                 //This is a cleaner way to patch MOVW\MOVT pair with the right inlineeCallInfo
-                instr->AsLabelInstr()->ResetOffset((uint32)inlineeCallInfo);
+                instr->AsLabelInstr()->ResetOffset((uintptr_t)inlineeCallInfo);
             }
             else
             {
@@ -1459,6 +1476,7 @@ EncoderMD::ApplyRelocs(size_t codeBufferAddress, size_t codeSize, uint* bufferCR
             break;
 
         case RelocTypeLabelAdr:
+            Assert(!reloc->m_relocInstr->isInlineeEntryInstr);
             immediate = ULONG_PTR(targetAddress) - ULONG_PTR(relocAddress);
             Assert(IS_CONST_INT21(immediate));
             *relocAddress = (*relocAddress & ~(3 << 29)) | ULONG((immediate & 3) << 29);

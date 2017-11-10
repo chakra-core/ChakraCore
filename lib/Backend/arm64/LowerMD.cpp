@@ -7613,7 +7613,7 @@ LowererMD::FinalLower()
 
                 if (branchInstr->GetTarget() && !LowererMD::IsUnconditionalBranch(branchInstr)) //Ignore BX register based branches & B
                 {
-                    uint32 targetOffset = branchInstr->GetTarget()->GetOffset();
+                    uint32 targetOffset = (uint32)branchInstr->GetTarget()->GetOffset();
 
                     if (targetOffset != 0)
                     {
