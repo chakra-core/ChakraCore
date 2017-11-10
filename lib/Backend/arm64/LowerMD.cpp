@@ -2079,17 +2079,18 @@ LowererMD::ChangeToAssign(IR::Instr * instr)
 }
 
 IR::Instr *
-LowererMD::ChangeToAssign(IR::Instr * instr, IRType type)
+LowererMD::ChangeToAssign(IR::Instr * instr, IRType destType)
 {
     Assert(!instr->HasBailOutInfo() || instr->GetBailOutKind() == IR::BailOutExpectingInteger
                                        || instr->GetBailOutKind() == IR::BailOutExpectingString);
 
     IR::Opnd *src = instr->GetSrc1();
+    IRType srcType = src->GetType();
     if (src->IsImmediateOpnd() || src->IsLabelOpnd())
     {
         instr->m_opcode = Js::OpCode::LDIMM;
     }
-    else if(type == TyFloat32 && instr->GetDst()->IsRegOpnd())
+    else if(destType == TyFloat32 && instr->GetDst()->IsRegOpnd())
     {
         Assert(instr->GetSrc1()->IsFloat32());
         instr->m_opcode = Js::OpCode::FLDR;
@@ -2102,9 +2103,30 @@ LowererMD::ChangeToAssign(IR::Instr * instr, IRType type)
             instr->ReplaceSrc1(instr->GetSrc1()->UseWithNewType(TyFloat64, instr->m_func));
         }
     }
+    else if (TySize[destType] > TySize[srcType] && (IRType_IsSignedInt(destType) || IRType_IsUnsignedInt(destType)))
+    {
+        // If we're moving between different lengths of registers, we need to use the
+        // right operator - sign extend if the source is int, zero extend if uint.
+        if (IRType_IsSignedInt(srcType))
+        {
+            instr->ReplaceSrc1(src->UseWithNewType(IRType_EnsureSigned(destType), instr->m_func));
+            instr->SetSrc2(IR::IntConstOpnd::New(BITFIELD(0, (TySize[srcType] * MachBits) - 1), TyMachReg, instr->m_func, true));
+            instr->m_opcode = Js::OpCode::SBFX;
+        }
+        else if (IRType_IsUnsignedInt(srcType))
+        {
+            instr->ReplaceSrc1(src->UseWithNewType(IRType_EnsureUnsigned(destType), instr->m_func));
+            instr->SetSrc2(IR::IntConstOpnd::New(BITFIELD(0, (TySize[srcType] * MachBits) - 1), TyMachReg, instr->m_func, true));
+            instr->m_opcode = Js::OpCode::UBFX;
+        }
+        else
+        {
+            AssertMsg(false, "argument size mismatch for mov instruction, with non int/uint types!");
+        }
+    }
     else
     {
-        instr->m_opcode = LowererMD::GetMoveOp(type);
+        instr->m_opcode = IRType_IsFloat(destType) ? Js::OpCode::FMOV : Js::OpCode::MOV;
     }
     LegalizeMD::LegalizeInstr(instr, false);
 
@@ -4511,6 +4533,7 @@ LowererMD::GenerateFastScopedFld(IR::Instr * instrScopedFld, bool isLoad)
     IR::PropertySymOpnd * propertySymOpnd = propertyBase->AsPropertySymOpnd();
 
     opndBase = propertySymOpnd->CreatePropertyOwnerOpnd(m_func);
+    const IR::AutoReuseOpnd holdAfterLegalization(opndBase, m_func);
     AssertMsg(opndBase->m_sym->m_isSingleDef, "We assume this isn't redefined");
 
     labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
