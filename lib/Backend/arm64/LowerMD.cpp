@@ -1890,7 +1890,7 @@ LowererMD::LoadHeapArgsCached(IR::Instr * instrArgs)
 
     if (instrArgs->m_func->IsStackArgsEnabled())
     {
-        instrArgs->m_opcode = Js::OpCode::MOV;
+        instrArgs->m_opcode = Js::OpCode::LDIMM;
         instrArgs->ReplaceSrc1(IR::AddrOpnd::NewNull(func));
 
         if (PHASE_TRACE1(Js::StackArgFormalsOptPhase) && func->GetJITFunctionBody()->GetInParamsCount() > 1)
