@@ -63,7 +63,7 @@ DbgHelpSymbolManager::Initialize()
 
     if (wcscmp(wszModule, _u("")) == 0)
     {
-        if (GetModuleFileName(NULL, wszModuleName, static_cast<DWORD>(ceModuleName)))
+        if (PlatformAgnostic::SystemInfo::GetBinaryLocation(wszModuleName, static_cast<DWORD>(ceModuleName)))
         {
             wszModule = wszModuleName;
         }
