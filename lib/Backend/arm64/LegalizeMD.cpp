@@ -528,13 +528,7 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
         if ((immed & 0xffff) == immed || (immed & 0xffff0000) == immed || (immed & 0xffff00000000ll) == immed || (immed & 0xffff000000000000ll) == immed)
         {
             instr->m_opcode = Js::OpCode::MOVZ;
-            uint32 shift = 0;
-            while ((immed & 0xffff) != immed)
-            {
-                immed >>= 16;
-                shift += 16;
-            }
-            Assert(shift == 0 || shift == 16 || shift == 32 || shift == 48);
+            uint32 shift = ShiftTo16((UIntConstType*)&immed);
             instr->ReplaceSrc1(IR::IntConstOpnd::New(immed, TyUint16, instr->m_func));
             instr->SetSrc2(IR::IntConstOpnd::New(shift, TyUint8, instr->m_func));
             return;
@@ -546,13 +540,7 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
         {
             instr->m_opcode = Js::OpCode::MOVN;
             immed = invImmed;
-            uint32 shift = 0;
-            while ((immed & 0xffff) != immed)
-            {
-                immed >>= 16;
-                shift += 16;
-            }
-            Assert(shift == 0 || shift == 16 || shift == 32 || shift == 48);
+            uint32 shift = ShiftTo16((UIntConstType*)&immed);
             instr->ReplaceSrc1(IR::IntConstOpnd::New(immed, TyUint16, instr->m_func));
             instr->SetSrc2(IR::IntConstOpnd::New(shift, TyUint8, instr->m_func));
             return;
@@ -565,12 +553,8 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
             if ((invImmed32 & 0xffff) == invImmed32 || (invImmed32 & 0xffff0000) == invImmed32)
             {
                 instr->GetDst()->SetType(TyInt32);
-                int shift = 0;
-                if ((invImmed32 & 0xffff0000) == invImmed32)
-                {
-                    shift = 16;
-                }
-                IR::IntConstOpnd *src1 = IR::IntConstOpnd::New((invImmed32 >> shift) & 0xFFFF, TyInt16, instr->m_func);
+                uint32 shift = ShiftTo16((UIntConstType*)&invImmed32);
+                IR::IntConstOpnd *src1 = IR::IntConstOpnd::New(invImmed32 & 0xFFFF, TyInt16, instr->m_func);
                 IR::IntConstOpnd *src2 = IR::IntConstOpnd::New(shift, TyUint8, instr->m_func);
                 instr->ReplaceSrc1(src1);
                 instr->SetSrc2(src2);
