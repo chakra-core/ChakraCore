@@ -508,6 +508,31 @@ int EncoderMD::EmitMovConstant(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emi
 }
 
 template<typename _Emitter, typename _Emitter64>
+int EncoderMD::EmitMovConstantKnownShift(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitter emitter, _Emitter64 emitter64, uint32 shift)
+{
+    IR::Opnd* dst = instr->GetDst();
+    IR::Opnd* src1 = instr->GetSrc1();
+    Assert(dst->IsRegOpnd());
+    Assert(src1->IsImmediateOpnd());
+
+    int size = dst->GetSize();
+    Assert(size == 4 || size == 8);
+
+    IntConstType immediate = src1->GetImmediateValue(instr->m_func);
+    Assert((immediate & 0xFFFF) == immediate);
+    Assert(shift == 0 || shift == 16 || (size == 8 && (shift == 32 || shift == 48)));
+
+    if (size == 8)
+    {
+        return emitter64(Emitter, this->GetRegEncode(dst->AsRegOpnd()), ULONG(immediate), shift);
+    }
+    else
+    {
+        return emitter(Emitter, this->GetRegEncode(dst->AsRegOpnd()), ULONG(immediate), shift);
+    }
+}
+
+template<typename _Emitter, typename _Emitter64>
 int EncoderMD::EmitBitfield(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitter emitter, _Emitter64 emitter64)
 {
     IR::Opnd* dst = instr->GetDst();
@@ -725,6 +750,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         Assert(src1->IsLabelOpnd());
 
         Assert(dst->GetSize() == 8);
+        Assert(!src1->AsLabelOpnd()->GetLabel()->isInlineeEntryInstr);
         EncodeReloc::New(&m_relocList, RelocTypeLabelAdr, m_pc, src1->AsLabelOpnd()->GetLabel(), m_encoder->m_tempAlloc);
         bytes = EmitAdr(Emitter, this->GetRegEncode(dst->AsRegOpnd()), 0);
         break;
@@ -937,6 +963,38 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
 
     case Js::OpCode::MOVZ:
         bytes = this->EmitMovConstant(Emitter, instr, EmitMovz, EmitMovz64);
+        break;
+
+    case Js::OpCode::MOVK_SHIFT:
+    {
+        Assert(instr->GetSrc1()->IsLabelOpnd());
+        Assert(instr->GetSrc2()->IsIntConstOpnd());
+        IR::LabelInstr* labelInstr = instr->GetSrc1()->AsLabelOpnd()->GetLabel();
+        uint32 shift = instr->GetSrc2()->AsIntConstOpnd()->AsUint32();
+
+        // We're going to drop src2, set src1 to just the masked bits from the label
+        // offset (so we don't even need to go into relocation), and emit it.
+        instr->UnlinkSrc2();
+        uintptr_t fullvalue = labelInstr->GetOffset();
+        instr->ReplaceSrc1(IR::IntConstOpnd::New((fullvalue & (0xffff << shift)) >> shift, IRType::TyUint16, instr->m_func, true));
+        bytes = this->EmitMovConstantKnownShift(Emitter, instr, EmitMovk, EmitMovk64, shift);
+    }
+        break;
+
+    case Js::OpCode::MOVZ_SHIFT:
+    {
+        Assert(instr->GetSrc1()->IsLabelOpnd());
+        Assert(instr->GetSrc2()->IsIntConstOpnd());
+        IR::LabelInstr* labelInstr = instr->GetSrc1()->AsLabelOpnd()->GetLabel();
+        uint32 shift = instr->GetSrc2()->AsIntConstOpnd()->AsUint32();
+
+        // We're going to drop src2, set src1 to just the masked bits from the label
+        // offset (so we don't even need to go into relocation), and emit it.
+        instr->UnlinkSrc2();
+        uintptr_t fullvalue = labelInstr->GetOffset();
+        instr->ReplaceSrc1(IR::IntConstOpnd::New((fullvalue & (0xffff << shift)) >> shift, IRType::TyUint16, instr->m_func, true));
+        bytes = this->EmitMovConstantKnownShift(Emitter, instr, EmitMovz, EmitMovz64, shift);
+    }
         break;
 
     case Js::OpCode::MRS_FPCR:
@@ -1303,7 +1361,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
                 Assert(encodeResult);
                 //We are re-using offset to save the inlineeCallInfo which will be patched in ApplyRelocs
                 //This is a cleaner way to patch MOVW\MOVT pair with the right inlineeCallInfo
-                instr->AsLabelInstr()->ResetOffset((uint32)inlineeCallInfo);
+                instr->AsLabelInstr()->ResetOffset((uintptr_t)inlineeCallInfo);
             }
             else
             {
@@ -1459,6 +1517,7 @@ EncoderMD::ApplyRelocs(size_t codeBufferAddress, size_t codeSize, uint* bufferCR
             break;
 
         case RelocTypeLabelAdr:
+            Assert(!reloc->m_relocInstr->isInlineeEntryInstr);
             immediate = ULONG_PTR(targetAddress) - ULONG_PTR(relocAddress);
             Assert(IS_CONST_INT21(immediate));
             *relocAddress = (*relocAddress & ~(3 << 29)) | ULONG((immediate & 3) << 29);

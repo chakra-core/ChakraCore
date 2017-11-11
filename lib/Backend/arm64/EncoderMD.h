@@ -243,6 +243,7 @@ private:
 
     // Misc operations
     template<typename _Emitter, typename _Emitter64> int EmitMovConstant(Arm64CodeEmitter &Emitter, IR::Instr* instr, _Emitter emitter, _Emitter64 emitter64);
+    template<typename _Emitter, typename _Emitter64> int EmitMovConstantKnownShift(Arm64CodeEmitter &Emitter, IR::Instr* instr, _Emitter emitter, _Emitter64 emitter64, uint32 shift);
     template<typename _Emitter, typename _Emitter64> int EmitBitfield(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emitter emitter, _Emitter64 emitter64);
     template<typename _Emitter, typename _Emitter64> int EmitConditionalSelect(Arm64CodeEmitter &Emitter, IR::Instr *instr, int condition, _Emitter emitter, _Emitter64 emitter64);
 
