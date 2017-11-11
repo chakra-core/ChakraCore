@@ -4533,6 +4533,7 @@ LowererMD::GenerateFastScopedFld(IR::Instr * instrScopedFld, bool isLoad)
     IR::PropertySymOpnd * propertySymOpnd = propertyBase->AsPropertySymOpnd();
 
     opndBase = propertySymOpnd->CreatePropertyOwnerOpnd(m_func);
+    const IR::AutoReuseOpnd holdAfterLegalization(opndBase, m_func);
     AssertMsg(opndBase->m_sym->m_isSingleDef, "We assume this isn't redefined");
 
     labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
