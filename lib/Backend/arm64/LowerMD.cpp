@@ -3142,8 +3142,7 @@ LowererMD::GenerateFastSub(IR::Instr * instrSub)
     // s1 = MOV src1
 
     opndReg = IR::RegOpnd::New(TyInt32, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::MOV, opndReg, opndSrc1, this->m_func);
-    instrSub->InsertBefore(instr);
+    Lowerer::InsertMove(opndReg, opndSrc1, instrSub);
 
     // s1 = SUBS s1, src2
 
@@ -3272,29 +3271,12 @@ LowererMD::GenerateFastMul(IR::Instr * instrMul)
     // s1 = MOV src1
 
     opndReg1 = IR::RegOpnd::New(TyInt32, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::MOV, opndReg1, opndSrc1, this->m_func);
-    instrMul->InsertBefore(instr);
+    Lowerer::InsertMove(opndReg1, opndSrc1, instrMul);
 
-    if (opndSrc2->IsImmediateOpnd())
-    {
-        Assert(opndSrc2->IsAddrOpnd() && opndSrc2->AsAddrOpnd()->IsVar());
+    // s2 = MOV src2
 
-        IR::Opnd *opnd2 = IR::IntConstOpnd::New(Js::TaggedInt::ToInt32(opndSrc2->AsAddrOpnd()->m_address), TyInt32, this->m_func);
-
-        // s2 = MOV src2
-
-        opndReg2 = IR::RegOpnd::New(TyInt32, this->m_func);
-        instr = IR::Instr::New(Js::OpCode::LDIMM, opndReg2, opnd2, this->m_func);
-        instrMul->InsertBefore(instr);
-    }
-    else
-    {
-        // s2 = MOV src2
-
-        opndReg2 = IR::RegOpnd::New(TyInt32, this->m_func);
-        instr = IR::Instr::New(Js::OpCode::MOV, opndReg2, opndSrc2, this->m_func);
-        instrMul->InsertBefore(instr);
-    }
+    opndReg2 = IR::RegOpnd::New(TyInt32, this->m_func);
+    Lowerer::InsertMove(opndReg2, opndSrc2, instrMul);
 
     // s3 = SMULL s1, s2
 
@@ -3711,10 +3693,8 @@ LowererMD::GenerateFastShiftRight(IR::Instr * instrShift)
     else
     {
         // s2 = MOV src2
-        opndSrc2 = opndSrc2->UseWithNewType(TyInt32, this->m_func);
         opndReg = IR::RegOpnd::New(TyInt32, this->m_func);
-        instr = IR::Instr::New(Js::OpCode::MOV, opndReg, opndSrc2, this->m_func);
-        instrShift->InsertBefore(instr);
+        Lowerer::InsertMove(opndReg, opndSrc2, instrShift);
         opndSrc2 = opndReg;
     }
 
@@ -3732,8 +3712,7 @@ LowererMD::GenerateFastShiftRight(IR::Instr * instrShift)
 
     // s1 = MOV src1
     opndReg = IR::RegOpnd::New(TyInt32, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::MOV, opndReg, opndSrc1, this->m_func);
-    instrShift->InsertBefore(instr);
+    Lowerer::InsertMove(opndReg, opndSrc1, instrShift);
 
     // s1 = ASR/LSR s1, RCX
     instr = IR::Instr::New(isUnsigned ? Js::OpCode::LSR : Js::OpCode::ASR, opndReg, opndReg, opndSrc2, this->m_func);
@@ -5583,8 +5562,7 @@ LowererMD::GenerateFastAbs(IR::Opnd *dst, IR::Opnd *src, IR::Instr *callInstr, I
 
         // s1 = MOV src
         IR::RegOpnd *regSrc = IR::RegOpnd::New(TyInt32, this->m_func);
-        instr = IR::Instr::New(Js::OpCode::MOV, regSrc, src, this->m_func);
-        insertInstr->InsertBefore(instr);
+        Lowerer::InsertMove(regSrc, src, insertInstr);
 
         //      CMP s1, #0
         instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
@@ -7603,8 +7581,7 @@ LowererMD::FinalLower()
             switch (instr->m_opcode)
             {
             case Js::OpCode::Leave:
-                // ToDo (SaAgarwa) - Commented to compile debug build
-                // Assert(this->m_func->DoOptimizeTryCatch() && !this->m_func->IsLoopBodyInTry());
+                Assert(this->m_func->DoOptimizeTry() && !this->m_func->IsLoopBodyInTry());
                 instrPrev = this->LowerLeave(instr, instr->AsBranchInstr()->GetTarget(), true /*fromFinalLower*/);
                 break;
             }
@@ -7897,7 +7874,6 @@ LowererMD::LowerTypeof(IR::Instr* typeOfInstr)
     m_lowerer->LowerUnaryHelperMem(typeOfInstr, IR::HelperOp_Typeof);
 }
 
-// ToDo (SaAgarwa) - Copied from arm\LowerMD.cpp to compile debug build
 #if DBG
 //
 // Helps in debugging of fast paths.
