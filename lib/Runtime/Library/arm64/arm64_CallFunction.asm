@@ -3,10 +3,10 @@
 ; Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 ;-------------------------------------------------------------------------------------------------------
 
-;Var arm64_CallFunction(JavascriptFunction* function, CallInfo info, uint argCount, Var* values, JavascriptMethod entryPoint)
+;Var arm64_CallFunction(JavascriptFunction* function, CallInfo info, Var* values, JavascriptMethod entryPoint)
 ;
 ;   This method should be called as follows
-;       varResult = arm64_CallFunction((JavascriptFunction*)function, args.Info, argCount, args.Values, entryPoint);
+;       varResult = arm64_CallFunction((JavascriptFunction*)function, args.Info, args.Values, entryPoint);
 ;
 ;   and makes the following call
 ;           return entryPoint(function, info, values[0], values[1], ..., values[n-2], values[n-1]);
@@ -50,8 +50,7 @@
 
     PROLOG_SAVE_REG_PAIR fp, lr, #-16!          ; save fp/lr (implicitly saves SP in FP)
 
-    mov     x8, x4                              ; copy entry point to x8
-    mov     x9, x3                              ; copy values pointer to x9
+    mov     x15, x3                             ; copy entry point to x15
 
 #if _CONTROL_FLOW_GUARD
     adrp    x16, __guard_check_icall_fptr       ;
@@ -59,21 +58,24 @@
     blr     x16                                 ; call it
 #endif
 
-    subs    x5, x2, #6                          ; more than 6 parameters?
+    ubfx    x4, x1, #0, #24                     ; low 24 bits of x1(callInfo) is the count
+    ubfx    x5, x1, #27, #1                     ; bit 27 (CallFlags bit 3) is the ExtraArg value
+    add     x4, x4, x5                          ; account for extra arg
+    subs    x5, x4, #6                          ; more than 6 parameters?
     bgt     StackAlloc                          ; if so, allocate necessary stack
 
     adr     x5, CopyZero                        ; get bottom of parameter copy loop
-    sub     x5, x5, x2, lsl #2                  ; compute address of where to start
+    sub     x5, x5, x4, lsl #2                  ; compute address of where to start
     br      x5                                  ; branch there
 CopyAll
-    ldr     x7, [x9, #40]                       ; load remaining 6 registers here
-    ldr     x6, [x9, #32]                       ;
-    ldr     x5, [x9, #24]                       ;
-    ldr     x4, [x9, #16]                       ;
-    ldr     x3, [x9, #8]                        ;
-    ldr     x2, [x9, #0]                        ;
+    ldr     x7, [x2, #40]                       ; load remaining 6 registers here
+    ldr     x6, [x2, #32]                       ;
+    ldr     x5, [x2, #24]                       ;
+    ldr     x4, [x2, #16]                       ;
+    ldr     x3, [x2, #8]                        ;
+    ldr     x2, [x2, #0]                        ;
 CopyZero
-    blr     x8                                  ; call saved entry point
+    blr     x15                                 ; call saved entry point
 
     mov     sp, fp                              ; explicitly restore sp
     EPILOG_RESTORE_REG_PAIR fp, lr, #16!        ; restore FP/LR
@@ -84,13 +86,14 @@ StackAlloc
     lsr     x15, x15, #1                        ; divide by 2
     bl      __chkstk                            ; ensure stack is allocated
     sub     sp, sp, x15, lsl #4                 ; then allocate the space
-    add     x3, x3, #48                         ; use x3 = source
-    mov     x4, sp                              ; use x4 = dest
+    add     x6, x2, #48                         ; use x6 = source
+    mov     x7, sp                              ; use x7 = dest
 CopyLoop
     subs    x5, x5, #1                          ; decrement param count by 1
-    ldr     x7, [x3], #8                        ; read param from source
-    str     x7, [x4], #8                        ; store param to dest
+    ldr     x4, [x6], #8                        ; read param from source
+    str     x4, [x7], #8                        ; store param to dest
     bne     CopyLoop                            ; loop until all copied
+    mov     x15, x3                             ; recover entry point in x15
     b       CopyAll                             ; jump ahead to copy all 6 remaining parameters
 
     NESTED_END
