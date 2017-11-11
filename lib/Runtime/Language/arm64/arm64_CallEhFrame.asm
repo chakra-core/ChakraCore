@@ -76,13 +76,6 @@
     ; thunks to skip re-allocating locals space.
     ;
 
-    ; Params:
-    ; x0 -- thunk target
-    ; x1 -- frame pointer
-    ; x2 -- locals pointer
-    ; x3 -- size of stack args area
-    ; x4 -- exception object (for arm64_CallCatch only)
-
     PROLOG_SAVE_REG_PAIR d8, d9, #-240!
     PROLOG_SAVE_REG_PAIR d10, d11, #16
     PROLOG_SAVE_REG_PAIR d12, d13, #32
@@ -92,20 +85,25 @@
     PROLOG_SAVE_REG_PAIR x23, x24, #96
     PROLOG_SAVE_REG_PAIR x25, x26, #112
     PROLOG_SAVE_REG_PAIR x27, x28, #128
-    PROLOG_SAVE_REG_PAIR_NO_FP fp, lr, #160
-
-    sub     x15, x1, x2         ; x15 = frame pointer minus locals pointer
-    sub     x15, x15, #160      ; x15 -= space we already allocated
-    add     x15, x15, x3        ; x15 += argout area = same stack allocation as original function
-    lsr     x15, x15, #4        ; x15 /= 16
-    bl      __chkstk            ; verify the allocation is ok
-    sub     sp, sp, x15, lsl #4 ; allocate the stack
+    PROLOG_SAVE_REG_PAIR fp, lr, #160
     
+    stp     xzr, xzr, [sp, #144]
+    stp     x0, x1, [sp, #176]
+    stp     x2, x3, [sp, #192]
+    stp     x4, x5, [sp, #208]
+    stp     x6, x7, [sp, #224]
+
     MEND
 
     TEXTAREA
 
     NESTED_ENTRY arm64_CallEhFrame
+
+    ; Params:
+    ; x0 -- thunk target
+    ; x1 -- frame pointer
+    ; x2 -- locals pointer
+    ; x3 -- size of stack args area
 
     STANDARD_PROLOG
 
