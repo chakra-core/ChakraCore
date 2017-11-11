@@ -19,13 +19,11 @@ public:
     void Set(Js::OpCode opcode, IntConstType immed, int shift)
     {
         m_opcode = opcode;
-        m_immed = immed;
-        m_shift = shift;
+        m_immed = immed << shift;
     }
 
     Js::OpCode m_opcode;
     IntConstType m_immed;
-    int m_shift;
 };
 
 
@@ -305,11 +303,6 @@ IR::Instr * LegalizeMD::LegalizeLoad(IR::Instr *instr, uint opndNum, LegalForms 
         instr = GenerateHoistSrc(instr, opndNum, LowererMD::GetLoadOp(src->GetType()), fPostRegAlloc ? SCRATCH_REG : RegNOREG, fPostRegAlloc);
     }
 
-    if (instr->m_opcode == Js::OpCode::LDR && instr->GetSrc1()->IsSigned())
-    {
-        instr->m_opcode = Js::OpCode::LDRS;
-    }
-
     return instr;
 }
 
@@ -533,9 +526,6 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
         if ((immed & 0xffff) == immed || (immed & 0xffff0000) == immed || (immed & 0xffff00000000ll) == immed || (immed & 0xffff000000000000ll) == immed)
         {
             instr->m_opcode = Js::OpCode::MOVZ;
-            uint32 shift = ShiftTo16((UIntConstType*)&immed);
-            instr->ReplaceSrc1(IR::IntConstOpnd::New(immed, TyUint16, instr->m_func));
-            instr->SetSrc2(IR::IntConstOpnd::New(shift, TyUint8, instr->m_func));
             return;
         }
 
@@ -543,11 +533,8 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
         IntConstType invImmed = ~immed;
         if ((invImmed & 0xffff) == invImmed || (invImmed & 0xffff0000) == invImmed || (invImmed & 0xffff00000000ll) == invImmed || (invImmed & 0xffff000000000000ll) == invImmed)
         {
+            instr->ReplaceSrc1(IR::IntConstOpnd::New(invImmed, TyInt64, instr->m_func));
             instr->m_opcode = Js::OpCode::MOVN;
-            immed = invImmed;
-            uint32 shift = ShiftTo16((UIntConstType*)&immed);
-            instr->ReplaceSrc1(IR::IntConstOpnd::New(immed, TyUint16, instr->m_func));
-            instr->SetSrc2(IR::IntConstOpnd::New(shift, TyUint8, instr->m_func));
             return;
         }
 
@@ -558,11 +545,8 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
             if ((invImmed32 & 0xffff) == invImmed32 || (invImmed32 & 0xffff0000) == invImmed32)
             {
                 instr->GetDst()->SetType(TyInt32);
-                uint32 shift = ShiftTo16((UIntConstType*)&invImmed32);
-                IR::IntConstOpnd *src1 = IR::IntConstOpnd::New(invImmed32 & 0xFFFF, TyInt16, instr->m_func);
-                IR::IntConstOpnd *src2 = IR::IntConstOpnd::New(shift, TyUint8, instr->m_func);
+                IR::IntConstOpnd *src1 = IR::IntConstOpnd::New(invImmed32, TyInt64, instr->m_func);
                 instr->ReplaceSrc1(src1);
-                instr->SetSrc2(src2);
                 instr->m_opcode = Js::OpCode::MOVN;
                 return;
             }
@@ -628,17 +612,14 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
         // Insert extra opcodes as needed
         for (int opNum = 0; opNum < opcodeListIndex - 1; opNum++)
         {
-            IR::IntConstOpnd *src1 = IR::IntConstOpnd::New(opcodeList[opNum].m_immed, TyInt16, instr->m_func);
-            IR::IntConstOpnd *src2 = IR::IntConstOpnd::New(opcodeList[opNum].m_shift, TyUint8, instr->m_func);
-            IR::Instr * instrMov = IR::Instr::New(opcodeList[opNum].m_opcode, instr->GetDst(), src1, src2, instr->m_func);
+            IR::IntConstOpnd *src1 = IR::IntConstOpnd::New(opcodeList[opNum].m_immed, TyInt64, instr->m_func);
+            IR::Instr * instrMov = IR::Instr::New(opcodeList[opNum].m_opcode, instr->GetDst(), src1, instr->m_func);
             instr->InsertBefore(instrMov);
         }
 
         // Replace the LDIMM with the final opcode
-        IR::IntConstOpnd *src1 = IR::IntConstOpnd::New(opcodeList[opcodeListIndex - 1].m_immed, TyInt16, instr->m_func);
-        IR::IntConstOpnd *src2 = IR::IntConstOpnd::New(opcodeList[opcodeListIndex - 1].m_shift, TyUint8, instr->m_func);
+        IR::IntConstOpnd *src1 = IR::IntConstOpnd::New(opcodeList[opcodeListIndex - 1].m_immed, TyInt64, instr->m_func);
         instr->ReplaceSrc1(src1);
-        instr->SetSrc2(src2);
         instr->m_opcode = opcodeList[opcodeListIndex - 1].m_opcode;
 
         if (!fDontEncode)
@@ -649,42 +630,24 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
     }
     else
     {
-        // Since we don't know the value yet, we're going to handle it when we do
-        // This is done by having the load be from a label operand, which is later
-        // changed such that its offset is the correct value to ldimm
-
-        // The assembly generated becomes something like
-        // Label (offset:fake)
-        // MOVZ DST, Label
-        // MOVK DST, Label
-        // MOVK DST, Label
-        // MOVK DST, Label <- was the LDIMM
-
+        // ARM64_WORKITEM: This needs to be understood better
         Assert(Security::DontEncode(instr->GetSrc1()));
-
-        // The label with the special offset value, used for reloc
-        IR::LabelInstr *label = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func, false);
+        Assert(false);
+/*      IR::LabelInstr *label = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func, false);
         instr->InsertBefore(label);
         Assert((immed & 0x0000000F) == immed);
-        label->SetOffset((uint32)immed);
-        label->isInlineeEntryInstr = true;
+        label->SetOffset(immed);
 
         IR::LabelOpnd *target = IR::LabelOpnd::New(label, instr->m_func);
 
-        // We'll handle splitting this up to properly load the immediates now
-        // Typically (and worst case) we'll need to load 64 bits.
-        IR::Instr* bits48_63 = IR::Instr::New(Js::OpCode::MOVZ, instr->GetDst(), target, IR::IntConstOpnd::New(48, IRType::TyUint8, instr->m_func, true), instr->m_func);
-        instr->InsertBefore(bits48_63);
-        IR::Instr* bits32_47 = IR::Instr::New(Js::OpCode::MOVK, instr->GetDst(), target, IR::IntConstOpnd::New(32, IRType::TyUint8, instr->m_func, true), instr->m_func);
-        instr->InsertBefore(bits32_47);
-        IR::Instr* bits16_31 = IR::Instr::New(Js::OpCode::MOVK, instr->GetDst(), target, IR::IntConstOpnd::New(16, IRType::TyUint8, instr->m_func, true), instr->m_func);
-        instr->InsertBefore(bits16_31);
+        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOVZ, instr->GetDst(), target, instr->m_func);
+        instr->InsertBefore(instrMov);
 
         instr->ReplaceSrc1(target);
-        instr->SetSrc2(IR::IntConstOpnd::New(0, IRType::TyUint8, instr->m_func, true));
-        instr->m_opcode = Js::OpCode::MOVK;
+        instr->m_opcode = Js::OpCode::MOVK64;
 
-        instr->isInlineeEntryInstr = false;
+        label->isInlineeEntryInstr = true;
+        instr->isInlineeEntryInstr = false;*/
     }
 }
 
@@ -777,22 +740,14 @@ void LegalizeMD::LegalizeLdLabel(IR::Instr * instr, IR::Opnd * opnd)
     Assert(instr->m_opcode == Js::OpCode::LDIMM);
     Assert(opnd->IsLabelOpnd());
 
-    if (opnd->AsLabelOpnd()->GetLabel()->isInlineeEntryInstr)
-    {
-        // We want to leave it as LDIMMs so that we can easily disambiguate later
-        return;
-    }
-    else
-    {
-        instr->m_opcode = Js::OpCode::ADR;
-    }
+    instr->m_opcode = Js::OpCode::ADR;
 }
 
 bool LegalizeMD::LegalizeDirectBranch(IR::BranchInstr *branchInstr, uint32 branchOffset)
 {
     Assert(branchInstr->IsBranchInstr());
 
-    uint32 labelOffset = (uint32)branchInstr->GetTarget()->GetOffset();
+    uint32 labelOffset = branchInstr->GetTarget()->GetOffset();
     Assert(labelOffset); //Label offset must be set.
 
     int32 offset = labelOffset - branchOffset;
