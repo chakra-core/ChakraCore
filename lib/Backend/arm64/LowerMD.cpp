@@ -2103,20 +2103,20 @@ LowererMD::ChangeToAssign(IR::Instr * instr, IRType destType)
             instr->ReplaceSrc1(instr->GetSrc1()->UseWithNewType(TyFloat64, instr->m_func));
         }
     }
-    else if ((IRType_IsSignedInt(destType) || IRType_IsUnsignedInt(destType)) && TySize[destType] > TySize[srcType])
+    else if (TySize[destType] > TySize[srcType] && (IRType_IsSignedInt(destType) || IRType_IsUnsignedInt(destType)))
     {
         // If we're moving between different lengths of registers, we need to use the
         // right operator - sign extend if the source is int, zero extend if uint.
         if (IRType_IsSignedInt(srcType))
         {
             instr->ReplaceSrc1(src->UseWithNewType(IRType_EnsureSigned(destType), instr->m_func));
-            instr->SetSrc2(IR::IntConstOpnd::New(BITFIELD(0, (TySize[srcType]*8)-1), TyMachReg, instr->m_func, true));
+            instr->SetSrc2(IR::IntConstOpnd::New(BITFIELD(0, (TySize[srcType] * MachBits) - 1), TyMachReg, instr->m_func, true));
             instr->m_opcode = Js::OpCode::SBFX;
         }
         else if (IRType_IsUnsignedInt(srcType))
         {
             instr->ReplaceSrc1(src->UseWithNewType(IRType_EnsureUnsigned(destType), instr->m_func));
-            instr->SetSrc2(IR::IntConstOpnd::New(BITFIELD(0, (TySize[srcType]*8)-1), TyMachReg, instr->m_func, true));
+            instr->SetSrc2(IR::IntConstOpnd::New(BITFIELD(0, (TySize[srcType] * MachBits) - 1), TyMachReg, instr->m_func, true));
             instr->m_opcode = Js::OpCode::UBFX;
         }
         else
