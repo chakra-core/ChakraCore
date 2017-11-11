@@ -27,7 +27,7 @@ namespace Js
         InterpreterStackFrameFlags_FromBailOut = 8,
         InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall = 0x10,
         InterpreterStackFrameFlags_ProcessingBailOutFromEHCode = 0x20,
-        InterpreterStackFrameFlags_FromInlineeCodeInEHBailOut = 0x40,
+        InterpreterStackFrameFlags_FromBailOutInInlinee = 0x40,
         InterpreterStackFrameFlags_All = 0xFFFF,
     };
 
@@ -289,6 +289,8 @@ namespace Js
         void SetArgumentsObject(Var args) { m_arguments = args; }
         UINT16 GetFlags() const { return m_flags; }
         void OrFlags(UINT16 addTo) { m_flags |= addTo; }
+        void ClearFlags(UINT16 flags) { m_flags &= ~flags; }
+        bool TestFlags(UINT16 flags) { return (m_flags & flags) != 0; }
         bool IsInCatchOrFinallyBlock();
         static bool IsDelayDynamicInterpreterThunk(JavascriptMethod entryPoint);
 
