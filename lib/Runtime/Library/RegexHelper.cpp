@@ -669,21 +669,21 @@ namespace Js
         const bool isSticky = pattern->IsSticky();
         const bool useCache = !isGlobal && !isSticky;
 
-        RegExpTestCache* cache = nullptr;
+        UnifiedRegex::RegExpTestCache* cache = nullptr;
         JavascriptString * cachedInput = nullptr;
         uint cacheIndex = 0;
         bool cacheHit = false;
         bool cachedResult = false;
         if (useCache)
         {
-            cache = regularExpression->EnsureTestCache();
-            cacheIndex = JavascriptRegExp::GetTestCacheIndex(input);
+            cache = pattern->EnsureTestCache();
+            cacheIndex = UnifiedRegex::RegexPattern::GetTestCacheIndex(input);
             cachedInput = cache[cacheIndex].input != nullptr ? cache[cacheIndex].input->Get() : nullptr;
             cacheHit = cachedInput == input;
         }
 #if ENABLE_REGEX_CONFIG_OPTIONS
         RegexHelperTrace(scriptContext, UnifiedRegex::RegexStats::Test, regularExpression, input);
-        JavascriptRegExp::TraceTestCache(cacheHit, input, cachedInput, !useCache);
+        UnifiedRegex::RegexPattern::TraceTestCache(cacheHit, input, cachedInput, !useCache);
 #endif
 
         if (cacheHit)

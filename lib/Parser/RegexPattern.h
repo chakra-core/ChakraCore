@@ -15,8 +15,17 @@ namespace UnifiedRegex
     class Matcher;
     struct TrigramInfo;
 
+    static const uint TestCacheSize = 8;
+
+    struct RegExpTestCache
+    {
+        Field(bool) result;
+        Field(RecyclerWeakReference<Js::JavascriptString>*) input;
+    };
+
     struct RegexPattern : FinalizableObject
     {
+        Field(RegExpTestCache*) testCache;
 
         struct UnifiedRep
         {
@@ -60,9 +69,17 @@ namespace UnifiedRegex
 
         Js::InternalString GetSource() const;
         RegexFlags GetFlags() const;
+
+        Field(RegExpTestCache*) EnsureTestCache();
+        static uint GetTestCacheIndex(Js::JavascriptString* str);
+
 #if ENABLE_REGEX_CONFIG_OPTIONS
         void Print(DebugWriter* w);
 #endif
         RegexPattern *CopyToScriptContext(Js::ScriptContext *scriptContext);
+
+#if ENABLE_REGEX_CONFIG_OPTIONS
+        static void TraceTestCache(bool cacheHit, Js::JavascriptString* input, Js::JavascriptString* cachedValue, bool disabled);
+#endif
     };
 }
