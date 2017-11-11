@@ -7067,7 +7067,7 @@ LowererMD::GenerateFastInlineBuiltInMathFloorCeilRound(IR::Instr* instr)
 
     // MSR FPSR, xzr
     IR::Instr* setFPSRInstr = IR::Instr::New(Js::OpCode::MSR_FPSR, instr->m_func);
-    setFPSRInstr->SetSrc1(IR::RegOpnd::New(nullptr, RegZR, TyMachReg, instr->m_func));
+    setFPSRInstr->SetSrc1(IR::RegOpnd::New(nullptr, RegZR, TyUint32, instr->m_func));
     instr->InsertBefore(setFPSRInstr);
 
     // FMOV_GEN negZeroReg, floatOpnd (note this is done before the 0.5 add below)
@@ -7094,7 +7094,7 @@ LowererMD::GenerateFastInlineBuiltInMathFloorCeilRound(IR::Instr* instr)
     }
 
     // MRS exceptReg, FPSR
-    IR::Opnd * exceptReg = IR::RegOpnd::New(TyMachReg, this->m_func);
+    IR::Opnd * exceptReg = IR::RegOpnd::New(TyUint32, this->m_func);
     instr->InsertBefore(IR::Instr::New(Js::OpCode::MRS_FPSR, exceptReg, instr->m_func));
 
     // CBZ negZeroReg, bailout
