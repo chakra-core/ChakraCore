@@ -109,15 +109,15 @@ template<> Types RegisterSpace::GetRegisterSpaceType<AsmJsSIMDValue>(){return WA
 #endif
     }
 
-    uint32 ConvertOffset(uint32 ptr, uint32 fromSize, uint32 toSize)
+    uint32 ConvertOffset(uint32 offset, uint32 fromSize, uint32 toSize)
     {
         if (fromSize == toSize)
         {
-            return ptr;
+            return offset;
         }
-        uint64 tmp = ptr * fromSize;
+        uint64 tmp = (uint64)offset * (uint64)fromSize;
         tmp = Math::Align<uint64>(tmp, toSize);
-        tmp /= toSize;
+        tmp /= (uint64)toSize;
         if (tmp > (uint64)UINT32_MAX)
         {
             Math::DefaultOverflowPolicy();
@@ -283,8 +283,8 @@ template<> Types RegisterSpace::GetRegisterSpaceType<AsmJsSIMDValue>(){return WA
         // These bytes offset already calculated the alignment, used them to determine how many Js::Var we need to do the allocation
         uint32 stackByteSize = offset;
         uint32 bytesUsedForConst = constSourcesInfo.bytesUsed;
-        uint32 jsVarUsedForConstsTable = ConvertToJsVarOffset<byte>(bytesUsedForConst);
-        uint32 totalVarsNeeded = ConvertToJsVarOffset<byte>(stackByteSize);
+        uint32 jsVarUsedForConstsTable = ConvertOffset<byte, Js::Var>(bytesUsedForConst);
+        uint32 totalVarsNeeded = ConvertOffset<byte, Js::Var>(stackByteSize);
 
         uint32 jsVarNeededForVars = totalVarsNeeded - jsVarUsedForConstsTable;
         if (totalVarsNeeded < jsVarUsedForConstsTable)
@@ -313,7 +313,7 @@ template<> Types RegisterSpace::GetRegisterSpaceType<AsmJsSIMDValue>(){return WA
         // this value is the number of Var slots needed to allocate all the const
         uint32 bytesUsedForConst = GetConstSourceInfos().bytesUsed;
         // Add the registers not included in the const table
-        uint32 nbConst = ConvertToJsVarOffset<byte>(bytesUsedForConst) + Js::FunctionBody::FirstRegSlot;
+        uint32 nbConst = ConvertOffset<byte, Js::Var>(bytesUsedForConst) + Js::FunctionBody::FirstRegSlot;
         body->CheckAndSetConstantCount(nbConst);
     }
 
