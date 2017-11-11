@@ -34,6 +34,7 @@ LowererMD::IsAssign(const IR::Instr *instr)
             instr->m_opcode == Js::OpCode::FMOV ||
             instr->m_opcode == Js::OpCode::LDIMM ||
             instr->m_opcode == Js::OpCode::LDR ||
+            instr->m_opcode == Js::OpCode::LDRS ||
             instr->m_opcode == Js::OpCode::FLDR ||
             instr->m_opcode == Js::OpCode::STR ||
             instr->m_opcode == Js::OpCode::FSTR);
@@ -4541,8 +4542,7 @@ LowererMD::GenerateFastScopedFld(IR::Instr * instrScopedFld, bool isLoad)
     // LDR s1, [base, offset(length)]     -- get the length on array and test if it is 1.
     indirOpnd = IR::IndirOpnd::New(opndBase, Js::FrameDisplay::GetOffsetOfLength(), TyInt16, this->m_func);
     opndReg1 = IR::RegOpnd::New(TyInt32, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::LDR, opndReg1, indirOpnd, this->m_func);
-    instrScopedFld->InsertBefore(instr);
+    Lowerer::InsertMove(opndReg1, indirOpnd, instrScopedFld);
 
     // CMP s1, 1                                -- get the length on array and test if it is 1.
     instr = IR::Instr::New(Js::OpCode::CMP,  this->m_func);
@@ -4558,8 +4558,7 @@ LowererMD::GenerateFastScopedFld(IR::Instr * instrScopedFld, bool isLoad)
     // LDR s2, [base, offset(scopes)]           -- load the first scope
     indirOpnd = IR::IndirOpnd::New(opndBase, Js::FrameDisplay::GetOffsetOfScopes(), TyMachReg,this->m_func);
     opndReg2 = IR::RegOpnd::New(TyMachReg, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::LDR, opndReg2, indirOpnd, this->m_func);
-    instrScopedFld->InsertBefore(instr);
+    Lowerer::InsertMove(opndReg2, indirOpnd, instrScopedFld);
 
     // LDR s3, [s2, offset(type)]
     // LDIMM s4, inlineCache
@@ -5814,8 +5813,8 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
     }
     // LDRH charReg, [r1 + r2 * 2]  -- this is the value of the char
     IR::RegOpnd *charReg = IR::RegOpnd::New(TyMachReg, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::LDR, charReg, indirOpnd, this->m_func);
-    insertInstr->InsertBefore(instr);
+    Lowerer::InsertMove(charReg, indirOpnd, insertInstr);
+
     if (index == Js::BuiltinFunction::JavascriptString_CharAt)
     {
         IR::Opnd *resultOpnd;

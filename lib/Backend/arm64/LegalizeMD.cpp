@@ -305,6 +305,11 @@ IR::Instr * LegalizeMD::LegalizeLoad(IR::Instr *instr, uint opndNum, LegalForms 
         instr = GenerateHoistSrc(instr, opndNum, LowererMD::GetLoadOp(src->GetType()), fPostRegAlloc ? SCRATCH_REG : RegNOREG, fPostRegAlloc);
     }
 
+    if (instr->m_opcode == Js::OpCode::LDR && instr->GetSrc1()->IsSigned())
+    {
+        instr->m_opcode = Js::OpCode::LDRS;
+    }
+
     return instr;
 }
 
