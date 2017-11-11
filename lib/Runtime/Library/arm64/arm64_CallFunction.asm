@@ -50,7 +50,8 @@
 
     PROLOG_SAVE_REG_PAIR fp, lr, #-16!          ; save fp/lr (implicitly saves SP in FP)
 
-    mov     x15, x4                             ; copy entry point to x15
+    mov     x8, x4                              ; copy entry point to x8
+    mov     x9, x3                              ; copy values pointer to x9
 
 #if _CONTROL_FLOW_GUARD
     adrp    x16, __guard_check_icall_fptr       ;
@@ -65,14 +66,14 @@
     sub     x5, x5, x2, lsl #2                  ; compute address of where to start
     br      x5                                  ; branch there
 CopyAll
-    ldr     x7, [x3, #40]                       ; load remaining 6 registers here
-    ldr     x6, [x3, #32]                       ;
-    ldr     x5, [x3, #24]                       ;
-    ldr     x4, [x3, #16]                       ;
-    ldr     x3, [x3, #8]                        ;
-    ldr     x2, [x3, #0]                        ;
+    ldr     x7, [x9, #40]                       ; load remaining 6 registers here
+    ldr     x6, [x9, #32]                       ;
+    ldr     x5, [x9, #24]                       ;
+    ldr     x4, [x9, #16]                       ;
+    ldr     x3, [x9, #8]                        ;
+    ldr     x2, [x9, #0]                        ;
 CopyZero
-    blr     x15                                 ; call saved entry point
+    blr     x8                                  ; call saved entry point
 
     mov     sp, fp                              ; explicitly restore sp
     EPILOG_RESTORE_REG_PAIR fp, lr, #16!        ; restore FP/LR
@@ -83,14 +84,13 @@ StackAlloc
     lsr     x15, x15, #1                        ; divide by 2
     bl      __chkstk                            ; ensure stack is allocated
     sub     sp, sp, x15, lsl #4                 ; then allocate the space
-    add     x6, x3, #48                         ; use x6 = source
-    mov     x7, sp                              ; use x7 = dest
+    add     x3, x3, #48                         ; use x3 = source
+    mov     x4, sp                              ; use x4 = dest
 CopyLoop
     subs    x5, x5, #1                          ; decrement param count by 1
-    ldr     x8, [x6], #8                        ; read param from source
-    str     x8, [x7], #8                        ; store param to dest
+    ldr     x7, [x3], #8                        ; read param from source
+    str     x7, [x4], #8                        ; store param to dest
     bne     CopyLoop                            ; loop until all copied
-    mov     x15, x4                             ; recover entry point in x15
     b       CopyAll                             ; jump ahead to copy all 6 remaining parameters
 
     NESTED_END
