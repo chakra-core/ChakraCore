@@ -905,10 +905,12 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         break;
 
     case Js::OpCode::LDR:
+        Assert(instr->GetDst()->GetSize() <= instr->GetSrc1()->GetSize() || instr->GetSrc1()->IsUnsigned());
         bytes = this->EmitLoadStore(Emitter, instr, instr->GetSrc1(), instr->GetDst(), EmitLdrbRegister, EmitLdrhRegister, EmitLdrRegister, EmitLdrRegister64, EmitLdrbOffset, EmitLdrhOffset, EmitLdrOffset, EmitLdrOffset64);
         break;
 
     case Js::OpCode::LDRS:
+        Assert(instr->GetDst()->GetSize() <= instr->GetSrc1()->GetSize() || instr->GetSrc1()->IsSigned());
         bytes = this->EmitLoadStore(Emitter, instr, instr->GetSrc1(), instr->GetDst(), EmitLdrsbRegister, EmitLdrshRegister, EmitLdrswRegister64, EmitLdrRegister64, EmitLdrsbOffset, EmitLdrshOffset, EmitLdrswOffset64, EmitLdrOffset64);
         break;
 
