@@ -15049,7 +15049,7 @@ void Lowerer::InsertFloatCheckForZeroOrNanBranch(
     //     When NaN is ignored, BEQ branches when equal and not unordered, and BNE branches when not equal or unordered. So,
     //     when comparing src with zero, an unordered check needs to be added before the BEQ/BNE.
     branchOnEqualOrNotEqual; // satisfy the compiler
-#ifdef _M_ARM
+#ifdef _M_ARM32_OR_ARM64
     InsertBranch(
         Js::OpCode::BVS,
         branchOnZeroOrNan
