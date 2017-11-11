@@ -7142,6 +7142,7 @@ LowererMD::GenerateFastInlineBuiltInMathMinMax(IR::Instr* instr)
         cmpInstr->SetSrc1(src1);
         cmpInstr->SetSrc2(src2);
         instr->InsertBefore(cmpInstr);
+        Legalize(cmpInstr);
 
         // (min) CSELLT dst, src1, src2
         // (max) CSELLT dst, src2, src1
