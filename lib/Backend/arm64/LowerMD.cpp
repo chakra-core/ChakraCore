@@ -2111,13 +2111,13 @@ LowererMD::ChangeToAssign(IR::Instr * instr, IRType destType)
         if (IRType_IsSignedInt(srcType))
         {
             instr->ReplaceSrc1(src->UseWithNewType(IRType_EnsureSigned(destType), instr->m_func));
-            instr->SetSrc2(IR::IntConstOpnd::New(BITFIELD(0, (TySize[srcType] * MachBits) - 1), TyMachReg, instr->m_func, true));
+            instr->SetSrc2(IR::IntConstOpnd::New(BITFIELD(0, TySize[srcType] * MachBits), TyMachReg, instr->m_func, true));
             instr->m_opcode = Js::OpCode::SBFX;
         }
         else if (IRType_IsUnsignedInt(srcType))
         {
             instr->ReplaceSrc1(src->UseWithNewType(IRType_EnsureUnsigned(destType), instr->m_func));
-            instr->SetSrc2(IR::IntConstOpnd::New(BITFIELD(0, (TySize[srcType] * MachBits) - 1), TyMachReg, instr->m_func, true));
+            instr->SetSrc2(IR::IntConstOpnd::New(BITFIELD(0, TySize[srcType] * MachBits), TyMachReg, instr->m_func, true));
             instr->m_opcode = Js::OpCode::UBFX;
         }
         else
