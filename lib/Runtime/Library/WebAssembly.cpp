@@ -171,7 +171,7 @@ Var WebAssembly::EntryInstantiateBound(RecyclableObject* function, CallInfo call
     Var importObj = callInfo.Count > 1 ? args[1] : function->GetScriptContext()->GetLibrary()->GetUndefined();
     Var bufferSrc = callInfo.Count > 2 ? args[2] : function->GetScriptContext()->GetLibrary()->GetUndefined();
 
-    return EntryInstantiate(function, CallInfo(CallFlags_Value, 3), thisVar, bufferSrc, importObj);
+    return CALL_ENTRYPOINT_NOASSERT(EntryInstantiate, function, CallInfo(CallFlags_Value, 3), thisVar, bufferSrc, importObj);
 }
 
 Var WebAssembly::EntryValidate(RecyclableObject* function, CallInfo callInfo, ...)
