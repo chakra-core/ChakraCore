@@ -443,44 +443,29 @@ LowererMD::GenerateFunctionObjectTest(IR::Instr * callInstr, IR::RegOpnd  *funct
 {
     AssertMsg(!m_func->IsJitInDebugMode() || continueAfterExLabel, "When jit is in debug mode, continueAfterExLabel must be provided otherwise continue after exception may cause AV.");
 
+    // Need check and error if we are calling a tagged int.
     if (!functionObjOpnd->IsNotTaggedValue())
     {
-        IR::Instr * insertBeforeInstr = callInstr;
-        // Need check and error if we are calling a tagged int.
-        if (!functionObjOpnd->IsTaggedInt())
+        IR::LabelInstr * helperLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
+        if (this->GenerateObjectTest(functionObjOpnd, callInstr, helperLabel))
         {
-            // TST functionObjOpnd, 1
-            IR::Instr * instr = IR::Instr::New(Js::OpCode::TST, this->m_func);
-            instr->SetSrc1(functionObjOpnd);
-            instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag, TyMachReg, this->m_func));
-            callInstr->InsertBefore(instr);
-            LegalizeMD::LegalizeInstr(instr, false);
-
-            // BNE $helper
-            // B $callLabel
-
-            IR::LabelInstr * helperLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-            instr = IR::BranchInstr::New(Js::OpCode::BNE, helperLabel, this->m_func);
-            callInstr->InsertBefore(instr);
 
             IR::LabelInstr * callLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, isHelper);
-            instr = IR::BranchInstr::New(Js::OpCode::B, callLabel, this->m_func);
+            IR::Instr * instr = IR::BranchInstr::New(Js::OpCode::B, callLabel, this->m_func);
             callInstr->InsertBefore(instr);
 
             callInstr->InsertBefore(helperLabel);
             callInstr->InsertBefore(callLabel);
 
-            insertBeforeInstr = callLabel;
-        }
+            this->m_lowerer->GenerateRuntimeError(callLabel, JSERR_NeedFunction);
 
-        this->m_lowerer->GenerateRuntimeError(insertBeforeInstr, JSERR_NeedFunction);
-
-        if (continueAfterExLabel)
-        {
-            // Under debugger the RuntimeError (exception) can be ignored, generate branch right after RunTimeError instr
-            // to jmp to a safe place (which would normally be debugger bailout check).
-            IR::BranchInstr* continueAfterEx = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, continueAfterExLabel, this->m_func);
-            insertBeforeInstr->InsertBefore(continueAfterEx);
+            if (continueAfterExLabel)
+            {
+                // Under debugger the RuntimeError (exception) can be ignored, generate branch to jmp to safe place
+                // (which would normally be debugger bailout check).
+                IR::BranchInstr* continueAfterEx = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, continueAfterExLabel, this->m_func);
+                callLabel->InsertBefore(continueAfterEx);
+            }
         }
     }
 }
