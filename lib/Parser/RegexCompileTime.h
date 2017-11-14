@@ -374,10 +374,8 @@ namespace UnifiedRegex
             , isEquivClass(false)
         {
             cs[0] = c;
-#if DBG
             for (int i = 1; i < CaseInsensitive::EquivClassSize; i++)
-                cs[i] = (Char)-1;
-#endif
+                cs[i] = c;
         }
 
         NODE_DECL
