@@ -10,17 +10,7 @@ namespace Js
     {
         AssertMsg(aValue != nullptr, "GetTypeId aValue is null");
 
-        if (TaggedInt::Is(aValue))
-        {
-            return TypeIds_Integer;
-        }
-#if FLOATVAR
-        else if (JavascriptNumber::Is_NoTaggedIntCheck(aValue))
-        {
-            return TypeIds_Number;
-        }
-#endif
-        else
+        if (RecyclableObject::Is(aValue))
         {
             auto typeId = RecyclableObject::FromVar(aValue)->GetTypeId();
 #if DBG
@@ -29,27 +19,48 @@ namespace Js
 #endif
             return typeId;
         }
+#if FLOATVAR
+        else if (TaggedInt::Is(aValue))
+        {
+            return TypeIds_Integer;
+        }
+        else
+        {
+            Assert(JavascriptNumber::Is_NoTaggedIntCheck(aValue));
+            return TypeIds_Number;
+        }
+#else
+        else
+        {
+            return TypeIds_Integer;
+        }
+#endif
     }
 
     __forceinline TypeId JavascriptOperators::GetTypeIdNoCheck(const Var aValue)
     {
         AssertMsg(aValue != nullptr, "GetTypeId aValue is null");
 
-        if (TaggedInt::Is(aValue))
+        if (RecyclableObject::Is(aValue))
+        {
+            return RecyclableObject::FromVar(aValue)->GetTypeId();
+        }
+#if FLOATVAR
+        else if (TaggedInt::Is(aValue))
         {
             return TypeIds_Integer;
         }
-#if FLOATVAR
-        else if (JavascriptNumber::Is_NoTaggedIntCheck(aValue))
-        {
-            return TypeIds_Number;
-        }
-#endif
         else
         {
-            auto typeId = RecyclableObject::FromVar(aValue)->GetTypeId();
-            return typeId;
+            Assert(JavascriptNumber::Is_NoTaggedIntCheck(aValue));
+            return TypeIds_Number;
         }
+#else
+        else
+        {
+            return TypeIds_Integer;
+        }
+#endif
     }
 
     // A helper function which will do the IteratorStep and fetch value - however in the event of an exception it will perform the IteratorClose as well.

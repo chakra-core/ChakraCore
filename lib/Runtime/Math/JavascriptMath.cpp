@@ -186,15 +186,18 @@ namespace Js
                     return JavascriptString::Concat(JavascriptString::FromVar(aLeft), JavascriptString::FromVar(aRight));
                 }
             }
-            else if(typeLeft == TypeIds_Number && typeRight == TypeIds_Integer)
+            else if (typeLeft <= TypeIds_LastNumberType)
             {
-                double sum = JavascriptNumber::GetValue(aLeft) + TaggedInt::ToDouble(aRight);
-                return JavascriptNumber::ToVarNoCheck(sum, scriptContext);
-            }
-            else if(typeLeft == TypeIds_Integer && typeRight == TypeIds_Number)
-            {
-                double sum = TaggedInt::ToDouble(aLeft) + JavascriptNumber::GetValue(aRight);
-                return JavascriptNumber::ToVarNoCheck(sum, scriptContext);
+                if (typeRight == TypeIds_Integer && typeLeft == TypeIds_Number)
+                {
+                    double sum = JavascriptNumber::GetValue(aLeft) + TaggedInt::ToDouble(aRight);
+                    return JavascriptNumber::ToVarNoCheck(sum, scriptContext);
+                }
+                else if (typeRight == TypeIds_Number && typeLeft == TypeIds_Integer)
+                {
+                    double sum = TaggedInt::ToDouble(aLeft) + JavascriptNumber::GetValue(aRight);
+                    return JavascriptNumber::ToVarNoCheck(sum, scriptContext);
+                }
             }
 
             return Add_FullHelper_Wrapper(aLeft, aRight, scriptContext, nullptr, false);
