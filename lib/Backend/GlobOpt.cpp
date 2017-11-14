@@ -18165,8 +18165,8 @@ GlobOpt::TrackTempObjectSyms(IR::Instr * instr, IR::RegOpnd * opnd)
             (instr->GetSrc1()->IsRegOpnd() && globOptData.canStoreTempObjectSyms->Test(instr->GetSrc1()->AsRegOpnd()->m_sym->m_id))
             && (!instr->GetSrc2() || (instr->GetSrc2()->IsRegOpnd() && globOptData.canStoreTempObjectSyms->Test(instr->GetSrc2()->AsRegOpnd()->m_sym->m_id))));
 
-        Assert(!canStoreTemp || instr->dstIsTempObject);
-        Assert(!maybeTemp || instr->dstIsTempObject);
+        AssertOrFailFast(!canStoreTemp || instr->dstIsTempObject);
+        AssertOrFailFast(!maybeTemp || instr->dstIsTempObject);
     }
 
     // Need to get the var equiv sym as assignment of type specialized sym kill the var sym value anyway.
