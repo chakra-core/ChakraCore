@@ -11,7 +11,14 @@ var tests = [
     body: function () {
          Date.prototype[Symbol.toPrimitive].call({},'strin' + 'g');
     }
-  }
+  },
+  {
+    name: "updated stackTraceLimit should not fire re-entrancy assert",
+    body: function () {
+        Error.__defineGetter__('stackTraceLimit', function () { return 1;});
+        assert.throws(()=> Array.prototype.map.call([]));
+    }
+  },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
