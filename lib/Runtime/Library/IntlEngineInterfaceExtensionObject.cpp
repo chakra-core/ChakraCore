@@ -12,16 +12,20 @@
 #include "ByteCode/ByteCodeSerializer.h"
 #include "errstr.h"
 #include "ByteCode/ByteCodeDumper.h"
+#include "Codex/Utf8Helper.h"
+
 #ifdef INTL_WINGLOB
 using namespace Windows::Globalization;
 #endif
+
 #ifdef INTL_ICU
 #include <CommonPal.h>
 #include "PlatformAgnostic/IPlatformAgnosticResource.h"
-#include "PlatformAgnostic/Intl.h"
-using namespace PlatformAgnostic::Intl;
 using namespace PlatformAgnostic::Resource;
 #endif
+
+#include "PlatformAgnostic/Intl.h"
+using namespace PlatformAgnostic::Intl;
 
 #pragma warning(push)
 #pragma warning(disable:4309) // truncation of constant value
@@ -274,10 +278,12 @@ namespace Js
     NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_RaiseAssert(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_RaiseAssert));
     NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_IsWellFormedLanguageTag(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_IsWellFormedLanguageTag));
     NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_NormalizeLanguageTag(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_NormalizeLanguageTag));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_IsLocaleAvailable(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_IsLocaleAvailable));
     NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_ResolveLocaleLookup(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_ResolveLocaleLookup));
     NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_ResolveLocaleBestFit(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_ResolveLocaleBestFit));
     NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetDefaultLocale(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_GetDefaultLocale));
     NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetExtensions(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_GetExtensions));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CollatorGetCollation(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_CollatorGetCollation));
     NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CompareString(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_CompareString));
     NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CurrencyDigits(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_CurrencyDigits));
     NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_FormatNumber(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_FormatNumber));
@@ -349,10 +355,12 @@ namespace Js
         library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::isWellFormedLanguageTag, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_IsWellFormedLanguageTag, 1);
         library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::normalizeLanguageTag, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_NormalizeLanguageTag, 1);
         library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::compareString, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CompareString, 1);
+        library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::isLocaleAvailable, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_IsLocaleAvailable, 1);
         library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::resolveLocaleLookup, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_ResolveLocaleLookup, 1);
         library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::resolveLocaleBestFit, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_ResolveLocaleBestFit, 1);
         library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::getDefaultLocale, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetDefaultLocale, 1);
         library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::getExtensions, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetExtensions, 1);
+        library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::collatorGetCollation, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CollatorGetCollation, 1);
         library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::formatNumber, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_FormatNumber, 1);
 
         library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::cacheNumberFormat, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CacheNumberFormat, 1);
@@ -697,31 +705,45 @@ namespace Js
 
         return retVal;
     }
+
+    Var IntlEngineInterfaceExtensionObject::EntryIntl_IsLocaleAvailable(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+#ifdef INTL_ICU
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+
+        if (args.Info.Count < 2 || !JavascriptString::Is(args.Values[1]))
+        {
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        JavascriptString *locale = JavascriptString::FromVar(args.Values[1]);
+        utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
+
+        return TO_JSBOOL(scriptContext, IsLocaleAvailable(locale8));
+#else
+        AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call CollatorGetCollation");
+        return nullptr;
+#endif
+    }
+
     Var IntlEngineInterfaceExtensionObject::EntryIntl_ResolveLocaleLookup(RecyclableObject* function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
         if (args.Info.Count < 2 || !JavascriptString::Is(args.Values[1]))
         {
-            // NormalizeLanguageTag of undefined or non-string is undefined
+            // ResolveLocaleLookup of undefined or non-string is undefined
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        JavascriptString *argString = JavascriptString::FromVar(args.Values[1]);
-        PCWSTR passedLocale = argString->GetSz();
-
 #if defined(INTL_ICU)
-        char16 resolvedLocaleName[ULOC_FULLNAME_CAPACITY] = { 0 };
-        if (ResolveLocaleLookup(passedLocale, resolvedLocaleName))
-        {
-            return JavascriptString::NewCopySz(resolvedLocaleName, scriptContext);
-        }
-
-#ifdef INTL_ICU_DEBUG
+#if defined(INTL_ICU_DEBUG)
         Output::Print(_u("Intl::ResolveLocaleLookup returned false: EntryIntl_ResolveLocaleLookup returning null to fallback to JS\n"));
 #endif
         return scriptContext->GetLibrary()->GetNull();
 #else
+        JavascriptString *argString = JavascriptString::FromVar(args.Values[1]);
+        PCWSTR passedLocale = argString->GetSz();
         // REVIEW should we zero the whole array for safety?
         WCHAR resolvedLocaleName[LOCALE_NAME_MAX_LENGTH];
         resolvedLocaleName[0] = '\0';
@@ -789,14 +811,7 @@ namespace Js
         char16 defaultLocale[LOCALE_NAME_MAX_LENGTH];
         defaultLocale[0] = '\0';
 
-        if (
-#if defined(INTL_WINGLOB)
-            // XPLAT-TODO (doilij): Implement this in PlatformAgnostic
-            GetUserDefaultLocaleName(defaultLocale, _countof(defaultLocale)) == 0
-#else
-            GetUserDefaultLanguageTag(defaultLocale, _countof(defaultLocale)) == 0
-#endif
-            || defaultLocale[0] == '\0')
+        if (GetUserDefaultLocaleName(defaultLocale, _countof(defaultLocale)) == 0)
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
@@ -900,13 +915,13 @@ namespace Js
         const char16 *locale = localeJSstr->GetSz();
         const charcount_t cch = localeJSstr->GetLength();
 
-        NumberFormatStyle formatterToUseVal = NumberFormatStyle::DEFAULT;
+        NumberFormatStyle formatterToUseVal = NumberFormatStyle::Default;
         if (GetTypedPropertyBuiltInFrom(options, __formatterToUse, TaggedInt)
-            && (formatterToUseVal = static_cast<NumberFormatStyle>(TaggedInt::ToUInt16(propertyValue))) == NumberFormatStyle::PERCENT)
+            && (formatterToUseVal = static_cast<NumberFormatStyle>(TaggedInt::ToUInt16(propertyValue))) == NumberFormatStyle::Percent)
         {
             IfFailThrowHr(CreatePercentFormatter(locale, cch, &numberFormatter));
         }
-        else if (formatterToUseVal == NumberFormatStyle::CURRENCY)
+        else if (formatterToUseVal == NumberFormatStyle::Currency)
         {
             if (!GetTypedPropertyBuiltInFrom(options, __currency, JavascriptString))
             {
@@ -1053,10 +1068,6 @@ namespace Js
         IfFailThrowHr(numberFormatter->QueryInterface(__uuidof(NumberFormatting::INumberFormatterOptions), reinterpret_cast<void**>(&numberFormatterOptions)));
         Assert(numberFormatterOptions);
 
-        if (GetTypedPropertyBuiltInFrom(options, __isDecimalPointAlwaysDisplayed, JavascriptBoolean))
-        {
-            IfFailThrowHr(numberFormatterOptions->put_IsDecimalPointAlwaysDisplayed((boolean)(JavascriptBoolean::FromVar(propertyValue)->GetValue())));
-        }
         if (GetTypedPropertyBuiltInFrom(options, __useGrouping, JavascriptBoolean))
         {
             IfFailThrowHr(numberFormatterOptions->put_IsGrouped((boolean)(JavascriptBoolean::FromVar(propertyValue)->GetValue())));
@@ -1228,164 +1239,205 @@ namespace Js
 #endif
     }
 
-    DWORD getFlagsForSensitivity(LPCWSTR sensitivity)
+#ifdef INTL_WINGLOB
+    static DWORD GetCompareStringComparisonFlags(CollatorSensitivity sensitivity, bool ignorePunctuation, bool numeric)
     {
-        if (wcscmp(sensitivity, _u("base")) == 0)
+        DWORD flags = 0;
+
+        if (sensitivity == CollatorSensitivity::Base)
         {
-            return LINGUISTIC_IGNOREDIACRITIC | LINGUISTIC_IGNORECASE | NORM_IGNOREKANATYPE | NORM_IGNOREWIDTH;
+            flags |= LINGUISTIC_IGNOREDIACRITIC | LINGUISTIC_IGNORECASE | NORM_IGNOREKANATYPE | NORM_IGNOREWIDTH;
         }
-        else if (wcscmp(sensitivity, _u("accent")) == 0)
+        else if (sensitivity == CollatorSensitivity::Accent)
         {
-            return LINGUISTIC_IGNORECASE | NORM_IGNOREKANATYPE | NORM_IGNOREWIDTH;
+            flags |= LINGUISTIC_IGNORECASE | NORM_IGNOREKANATYPE | NORM_IGNOREWIDTH;
         }
-        else if (wcscmp(sensitivity, _u("case")) == 0)
+        else if (sensitivity == CollatorSensitivity::Case)
         {
-            return  NORM_IGNOREKANATYPE | NORM_IGNOREWIDTH | LINGUISTIC_IGNOREDIACRITIC;
+            flags |= NORM_IGNOREKANATYPE | NORM_IGNOREWIDTH | LINGUISTIC_IGNOREDIACRITIC;
         }
-        else if (wcscmp(sensitivity, _u("variant")) == 0)
+        else if (sensitivity == CollatorSensitivity::Variant)
         {
-            return NORM_LINGUISTIC_CASING;
+            flags |= NORM_LINGUISTIC_CASING;
         }
-        return 0;
+
+        if (ignorePunctuation)
+        {
+            flags |= NORM_IGNORESYMBOLS;
+        }
+
+        if (numeric)
+        {
+            flags |= SORT_DIGITSASNUMBERS;
+        }
+
+        return flags;
+    }
+#endif
+
+    Var IntlEngineInterfaceExtensionObject::EntryIntl_CollatorGetCollation(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+#if defined(INTL_ICU)
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+
+        if (args.Info.Count < 2 || !JavascriptString::Is(args.Values[1]))
+        {
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        JavascriptString *locale = JavascriptString::FromVar(args.Values[1]);
+        utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
+
+        char collation8[LOCALE_NAME_MAX_LENGTH] = { 0 };
+        CollatorGetCollation(locale8, collation8, _countof(collation8));
+
+        utf8::NarrowToWide collation(collation8);
+
+        return JavascriptString::NewCopySz(collation, scriptContext);
+#else
+        AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call CollatorGetCollation");
+        return nullptr;
+#endif
     }
 
-    // Takes arguments as follows(all required):
-    //     - [1] - String 1 for comparison
-    //     - [2] - String 2 for comparison
-    //     - [3] - Locale string (or undefined)
-    //     - [4] - Sensitivity string (or undefined)
-    //     - [5] - IgnorePunctuation boolean (or undefined)
-    //     - [6] - Numeric boolean (or undefined)
     Var IntlEngineInterfaceExtensionObject::EntryIntl_CompareString(RecyclableObject* function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        if (args.Info.Count < 7 || !JavascriptString::Is(args.Values[1]) || !JavascriptString::Is(args.Values[2]))
+        if (args.Info.Count < 3 || !JavascriptString::Is(args.Values[1]) || !JavascriptString::Is(args.Values[2]))
         {
-            // CompareStringEx of undefined or non-strings is undefined
-            return scriptContext->GetLibrary()->GetUndefined();
+            JavascriptError::MapAndThrowError(scriptContext, E_INVALIDARG);
         }
 
-        DWORD compareFlags = 0;
-        JavascriptString* str1 = JavascriptString::FromVar(args.Values[1]);
-        JavascriptString* str2 = JavascriptString::FromVar(args.Values[2]);
+        JavascriptString *str1 = JavascriptString::FromVar(args.Values[1]);
+        JavascriptString *str2 = JavascriptString::FromVar(args.Values[2]);
 
-        WCHAR defaultLocale[LOCALE_NAME_MAX_LENGTH];
-        const char16 *givenLocale = nullptr;
-        defaultLocale[0] = '\0';
+        const char16 *locale = nullptr; // args[3]
+        char16 defaultLocale[LOCALE_NAME_MAX_LENGTH] = { 0 };
+        CollatorSensitivity sensitivity = CollatorSensitivity::Default; // args[4]
+        bool ignorePunctuation = false; // args[5]
+        bool numeric = false; // args[6]
+        CollatorCaseFirst caseFirst = CollatorCaseFirst::Default; // args[7]
 
-        if (!JavascriptOperators::IsUndefinedObject(args.Values[3]))
+        // we only need to parse arguments 3 through 7 if locale and options are provided
+        // see fast path in JavascriptString::EntryLocaleCompare
+        if (args.Info.Count > 3)
         {
-            if (!JavascriptString::Is(args.Values[3]))
+            if (args.Info.Count < 8)
             {
-                return scriptContext->GetLibrary()->GetUndefined();
+                JavascriptError::MapAndThrowError(scriptContext, E_INVALIDARG);
             }
-            givenLocale = JavascriptString::FromVar(args.Values[3])->GetSz();
-        }
 
-        if (!JavascriptOperators::IsUndefinedObject(args.Values[4]))
-        {
-            if (!JavascriptString::Is(args.Values[4]))
+            if (!JavascriptOperators::IsUndefinedObject(args.Values[3]) && JavascriptString::Is(args.Values[3]))
             {
-                return scriptContext->GetLibrary()->GetUndefined();
+                locale = JavascriptString::FromVar(args.Values[3])->GetSz();
             }
-            compareFlags |= getFlagsForSensitivity(JavascriptString::FromVar(args.Values[4])->GetSz());
+            else
+            {
+                JavascriptError::MapAndThrowError(scriptContext, E_INVALIDARG);
+            }
+
+            if (!JavascriptOperators::IsUndefinedObject(args.Values[4]) && TaggedInt::Is(args.Values[4]))
+            {
+                sensitivity = static_cast<CollatorSensitivity>(TaggedInt::ToUInt16(args.Values[4]));
+            }
+
+            if (!JavascriptOperators::IsUndefinedObject(args.Values[5]) && JavascriptBoolean::Is(args.Values[5]))
+            {
+                ignorePunctuation = (JavascriptBoolean::FromVar(args.Values[5])->GetValue() != 0);
+            }
+
+            if (!JavascriptOperators::IsUndefinedObject(args.Values[6]) && JavascriptBoolean::Is(args.Values[6]))
+            {
+                numeric = (JavascriptBoolean::FromVar(args.Values[6])->GetValue() != 0);
+            }
+
+            if (!JavascriptOperators::IsUndefinedObject(args.Values[7]) && TaggedInt::Is(args.Values[7]))
+            {
+                caseFirst = static_cast<CollatorCaseFirst>(TaggedInt::ToUInt16(args.Values[7]));
+            }
         }
         else
         {
-            compareFlags |= NORM_LINGUISTIC_CASING;
-        }
-
-        if (!JavascriptOperators::IsUndefinedObject(args.Values[5]))
-        {
-            if (!JavascriptBoolean::Is(args.Values[5]))
+            if (GetUserDefaultLocaleName(defaultLocale, _countof(defaultLocale)) != 0)
             {
-                return scriptContext->GetLibrary()->GetUndefined();
+                locale = defaultLocale;
             }
-            else if ((boolean)(JavascriptBoolean::FromVar(args.Values[5])->GetValue()))
+            else
             {
-                compareFlags |= NORM_IGNORESYMBOLS;
-            }
-        }
-
-        if (!JavascriptOperators::IsUndefinedObject(args.Values[6]))
-        {
-            if (!JavascriptBoolean::Is(args.Values[6]))
-            {
-                return scriptContext->GetLibrary()->GetUndefined();
-            }
-            else if ((boolean)(JavascriptBoolean::FromVar(args.Values[6])->GetValue()))
-            {
-                compareFlags |= SORT_DIGITSASNUMBERS;
-            }
-        }
-
-        if (givenLocale == nullptr &&
 #if defined(INTL_WINGLOB)
-            // XPLAT-TODO (doilij): Implement this in PlatformAgnostic
-            GetUserDefaultLocaleName(defaultLocale, _countof(defaultLocale)) == 0
-#else
-            GetUserDefaultLanguageTag(defaultLocale, _countof(defaultLocale)) == 0
+                // win32 GetUserDefaultLocaleName returns its error through GetLastError
+                JavascriptError::MapAndThrowError(scriptContext, HRESULT_FROM_WIN32(GetLastError()));
+#elif defined(INTL_ICU)
+                // TODO(jahorto): what error should we throw here for INTL_ICU?
+                JavascriptError::MapAndThrowError(scriptContext, E_FAIL);
 #endif
-            )
-        {
-            JavascriptError::MapAndThrowError(scriptContext, HRESULT_FROM_WIN32(GetLastError()));
+            }
         }
 
-        int compareResult = 0;
-        DWORD lastError = S_OK;
-        BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, _u("localeCompare"))
+        Assert(locale != nullptr);
+        Assert((int)sensitivity >= 0 && sensitivity < CollatorSensitivity::Max);
+        Assert((int)caseFirst >= 0 && caseFirst < CollatorCaseFirst::Max);
+
+        BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, _u("EntryIntl_CompareString"));
+
+        // TODO(jahorto): Investigate using ICU's built-in in-line normalization techniques if possible.
+        const char16 *left = nullptr;
+        charcount_t leftLen = 0;
+        if (UnicodeText::IsNormalizedString(UnicodeText::NormalizationForm::C, str1->GetSz(), str1->GetLength()))
         {
-            using namespace PlatformAgnostic;
-            char16 * aLeft = nullptr;
-            char16 * aRight = nullptr;
-            charcount_t size1 = 0;
-            charcount_t size2 = 0;
-            auto canonicalEquivalentForm = UnicodeText::NormalizationForm::C;
-            if (!UnicodeText::IsNormalizedString(canonicalEquivalentForm, str1->GetSz(), -1))
-            {
-                aLeft = str1->GetNormalizedString(canonicalEquivalentForm, tempAllocator, size1);
-            }
+            left = str1->GetSz();
+            leftLen = str1->GetLength();
+        }
+        else
+        {
+            left = str1->GetNormalizedString(UnicodeText::NormalizationForm::C, tempAllocator, leftLen);
+        }
 
-            if (!UnicodeText::IsNormalizedString(canonicalEquivalentForm, str2->GetSz(), -1))
-            {
-                aRight = str2->GetNormalizedString(canonicalEquivalentForm, tempAllocator, size2);
-            }
+        const char16 *right = nullptr;
+        charcount_t rightLen = 0;
+        if (UnicodeText::IsNormalizedString(UnicodeText::NormalizationForm::C, str2->GetSz(), str2->GetLength()))
+        {
+            right = str2->GetSz();
+            rightLen = str2->GetLength();
+        }
+        else
+        {
+            right = str2->GetNormalizedString(UnicodeText::NormalizationForm::C, tempAllocator, rightLen);
+        }
 
-            if (aLeft == nullptr)
-            {
-                aLeft = const_cast<char16*>(str1->GetSz());
-                size1 = str1->GetLength();
-            }
-            if (aRight == nullptr)
-            {
-                aRight = const_cast<char16*>(str2->GetSz());
-                size2 = str2->GetLength();
-            }
-
-#ifdef _WIN32
-            // xplat-todo: Need to replace this with platform-agnostic API
-            compareResult = CompareStringEx(givenLocale != nullptr ? givenLocale : defaultLocale, compareFlags, aLeft, size1, aRight, size2, NULL, NULL, 0);
-#else
-            // FIXME (doilij): when CompareStringEx is implemented in PlatformAgnostic, call that function here
-            compareResult = 2; // 2 means strings are equal (reasonable default)
+        // CompareStringEx on Windows returns 0 for error, 1 if less, 2 if equal, 3 if greater
+        // Default to the strings being equal, because sorting with == causes no change in the order but converges, whereas < would cause an infinite loop.
+        int compareResult = 2;
+        HRESULT error = S_OK;
+#if defined(INTL_WINGLOB)
+        DWORD comparisonFlags = GetCompareStringComparisonFlags(sensitivity, ignorePunctuation, numeric);
+        compareResult = CompareStringEx(locale, comparisonFlags, left, leftLen, right, rightLen, NULL, NULL, 0);
+        error = HRESULT_FROM_WIN32(GetLastError());
+#elif defined(INTL_ICU)
+        utf8::WideToNarrow locale8(locale);
+        compareResult = CollatorCompare(
+            locale8,
+            left,
+            leftLen,
+            right,
+            rightLen,
+            sensitivity,
+            ignorePunctuation,
+            numeric,
+            caseFirst,
+            &error
+        );
 #endif
 
-            // Get the last error code so that it won't be affected by END_TEMP_ALLOCATOR.
-            if (compareResult == 0)
-            {
-                lastError = GetLastError();
-            }
-        }
         END_TEMP_ALLOCATOR(tempAllocator, scriptContext);
 
-        // CompareStringEx returns 1, 2, 3 on success; 2 if the strings are equal, 1 if the first string is lexically less than second, 3 otherwise.
-        if (compareResult != 0)
+        if (compareResult == 0)
         {
-            return JavascriptNumber::ToVar(compareResult - 2, scriptContext); // Convert 1,2,3 to -1,0,1
+            JavascriptError::MapAndThrowError(scriptContext, error);
         }
 
-        JavascriptError::MapAndThrowError(scriptContext, HRESULT_FROM_WIN32(lastError));
+        return JavascriptNumber::ToVar(compareResult - 2, scriptContext);
     }
 
     Var IntlEngineInterfaceExtensionObject::EntryIntl_CurrencyDigits(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1495,8 +1547,8 @@ namespace Js
         const char16 *strBuf = nullptr;
         Var propertyValue = nullptr;
 
-        NumberFormatStyle formatterToUse = NumberFormatStyle::DEFAULT;
-        NumberFormatCurrencyDisplay currencyDisplay = NumberFormatCurrencyDisplay::DEFAULT;
+        NumberFormatStyle formatterToUse = NumberFormatStyle::Default;
+        NumberFormatCurrencyDisplay currencyDisplay = NumberFormatCurrencyDisplay::Default;
         JavascriptString *currencyCodeJsString = nullptr;
 
         // It is okay for currencyCode to be nullptr if we are NOT formatting a currency.

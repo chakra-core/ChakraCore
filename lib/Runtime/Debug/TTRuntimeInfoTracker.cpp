@@ -774,6 +774,7 @@ namespace TTD
 
         this->EnqueueRootPathObject(_u("global"), ctx->GetGlobalObject());
         this->EnqueueRootPathObject(_u("null"), ctx->GetLibrary()->GetNull());
+        this->EnqueueRootPathObject(_u("undeclBlockVar"), Js::RecyclableObject::FromVar(ctx->GetLibrary()->GetUndeclBlockVar()));
 
         this->EnqueueRootPathObject(_u("_defaultAccessor"), ctx->GetLibrary()->GetDefaultAccessorFunction());
 

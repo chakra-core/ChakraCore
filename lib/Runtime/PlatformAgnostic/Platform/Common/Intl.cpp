@@ -52,6 +52,7 @@ typedef uint64_t uint64;
 #include <unicode/numfmt.h>
 #include <unicode/enumset.h>
 #include <unicode/decimfmt.h>
+#include <unicode/ucol.h>
 #pragma warning(pop)
 
 #include "CommonDefines.h" // INTL_ICU_DEBUG
@@ -64,6 +65,8 @@ public:
     static size_t __cdecl Print(const char16 *form, ...);
 };
 #endif
+
+// #define INTL_ICU_DEBUG
 
 #define ICU_ERROR_FMT _u("INTL: %S failed with error code %S\n")
 #define ICU_EXPR_FMT _u("INTL: %S failed expression check %S\n")
@@ -95,29 +98,27 @@ public:
         if (U_FAILURE(e))                                                     \
         {                                                                     \
             ICU_DEBUG_PRINT(ICU_ERROR_FMT, u_errorName(e));                   \
-            AssertMsg(false, u_errorName(e));                                 \
+            AssertOrFailFastMsg(false, u_errorName(e));                       \
         }                                                                     \
         else if (!(expr))                                                     \
         {                                                                     \
             ICU_DEBUG_PRINT(ICU_EXPR_FMT, u_errorName(e));                    \
-            Assert(expr);                                                     \
+            AssertOrFailFast(expr);                                           \
         }                                                                     \
     } while (false)
 
-#define ICU_ASSERT_RETURN(e, expr, r)                                         \
+#define ICU_GOTO(e, expr, l)                                                  \
     do                                                                        \
     {                                                                         \
         if (U_FAILURE(e))                                                     \
         {                                                                     \
             ICU_DEBUG_PRINT(ICU_ERROR_FMT, u_errorName(e));                   \
-            AssertMsg(false, u_errorName(e));                                 \
-            return r;                                                         \
+            goto l;                                                           \
         }                                                                     \
         else if (!(expr))                                                     \
         {                                                                     \
             ICU_DEBUG_PRINT(ICU_EXPR_FMT, u_errorName(e));                    \
-            Assert(expr);                                                     \
-            return r;                                                         \
+            goto l;                                                           \
         }                                                                     \
     } while (false)
 
@@ -128,6 +129,15 @@ public:
         {                                                                     \
             AssertOrFailFastMsg(false, "OOM: failed to allocate string buffer"); \
             return ret;                                                       \
+        }                                                                     \
+    } while (false)
+
+#define ASSERT_ENUM(T, e)                                                     \
+    do                                                                        \
+    {                                                                         \
+        if ((int)(e) < 0 || (e) >= T::Max)                                    \
+        {                                                                     \
+            AssertOrFailFastMsg(false, #e " of type " #T " has an invalid value"); \
         }                                                                     \
     } while (false)
 
@@ -186,7 +196,7 @@ namespace Intl
         UErrorCode error = UErrorCode::U_ZERO_ERROR;
         char icuLocaleId[ULOC_FULLNAME_CAPACITY] = { 0 };
         char icuLangTag[ULOC_FULLNAME_CAPACITY] = { 0 };
-        
+
         size_t langtag8Length = 0;
         const utf8char_t *langtag8 = Utf16ToUtf8(langtag16, cch, &langtag8Length);
         StringBufferAutoPtr<utf8char_t> guard(langtag8);
@@ -224,11 +234,11 @@ namespace Intl
         int32_t parsedLength = 0;
         int32_t forLangTagResultLength = uloc_forLanguageTag(reinterpret_cast<const char *>(langtag8),
             icuLocaleId, ULOC_FULLNAME_CAPACITY, &parsedLength, &error);
-        ICU_ASSERT_RETURN(error, forLangTagResultLength > 0 && parsedLength > 0, E_INVALIDARG);
+        ICU_ASSERT(error, forLangTagResultLength > 0 && parsedLength > 0);
 
         // Try to convert icuLocaleId (locale ID version of input locale string) to BCP47 language tag, using strict checks
         int32_t toLangTagResultLength = uloc_toLanguageTag(icuLocaleId, icuLangTag, ULOC_FULLNAME_CAPACITY, true, &error);
-        ICU_ASSERT_RETURN(error, toLangTagResultLength > 0, E_INVALIDARG);
+        ICU_ASSERT(error, toLangTagResultLength > 0);
 
         *normalizedLength = utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(
             normalized,
@@ -276,7 +286,7 @@ namespace Intl
         }
 
         icu::NumberFormat *nf = formatterFactory(locale, error);
-        ICU_ASSERT_RETURN(error, true, E_INVALIDARG);
+        ICU_ASSERT(error, true);
 
         // If the formatter produced a DecimalFormat, force it to round up
         icu::DecimalFormat *df = dynamic_cast<icu::DecimalFormat *>(nf);
@@ -317,23 +327,23 @@ namespace Intl
             [&currencyDisplay, currencyCode](icu::Locale &locale, UErrorCode &error) -> icu::NumberFormat*
             {
                 icu::NumberFormat *nf = nullptr;
-                if (currencyDisplay == NumberFormatCurrencyDisplay::SYMBOL || currencyDisplay >= NumberFormatCurrencyDisplay::MAX)
+                if (currencyDisplay == NumberFormatCurrencyDisplay::Symbol || currencyDisplay >= NumberFormatCurrencyDisplay::Max)
                 {
                     // 0 (or default) => use symbol (e.g. "$" or "US$")
                     nf = icu::NumberFormat::createCurrencyInstance(locale, error);
-                    ICU_ASSERT_RETURN(error, true, nullptr);
+                    ICU_ASSERT(error, true);
 
                     nf->setCurrency(reinterpret_cast<const UChar *>(currencyCode), error); // Ctrl-F: UChar_cast_explainer
-                    ICU_ASSERT_RETURN(error, true, nullptr);
+                    ICU_ASSERT(error, true);
                 }
-                else if (currencyDisplay == NumberFormatCurrencyDisplay::CODE || currencyDisplay == NumberFormatCurrencyDisplay::NAME)
+                else if (currencyDisplay == NumberFormatCurrencyDisplay::Code || currencyDisplay == NumberFormatCurrencyDisplay::Name)
                 {
                     // CODE e.g. "USD 42.00"; NAME (e.g. "42.00 US dollars")
                     // In both cases we need to be able to format in decimal and add the code or name afterwards.
                     // We will decide how to do this when platform.formatNumber is invoked (based on currencyDisplay again).
                     // TODO(doilij): How do we handle which side of the number to put the code or name? Can ICU do this? It doesn't seem clear how at the moment.
                     nf = icu::NumberFormat::createInstance(locale, error);
-                    ICU_ASSERT_RETURN(error, true, nullptr);
+                    ICU_ASSERT(error, true);
                 }
 
                 return nf;
@@ -394,6 +404,8 @@ namespace Intl
     const char16 *FormatNumber(IPlatformAgnosticResource *formatter, const T val, const NumberFormatStyle formatterToUse,
         const NumberFormatCurrencyDisplay currencyDisplay, const char16 *currencyCode)
     {
+        ASSERT_ENUM(NumberFormatStyle, formatterToUse);
+        ASSERT_ENUM(NumberFormatCurrencyDisplay, currencyDisplay);
         icu::UnicodeString result;
 
         auto *formatterHolder = reinterpret_cast<PlatformAgnosticIntlObject<icu::NumberFormat> *>(formatter);
@@ -405,12 +417,12 @@ namespace Intl
 
         icu::NumberFormat *numberFormatter = formatterHolder->GetInstance();
 
-        if (formatterToUse == NumberFormatStyle::DECIMAL || formatterToUse == NumberFormatStyle::PERCENT)
+        if (formatterToUse == NumberFormatStyle::Decimal || formatterToUse == NumberFormatStyle::Percent)
         {
             // we already created the formatter to format things according to the above options, so nothing else to do
             numberFormatter->format(val, result);
         }
-        else if (formatterToUse == NumberFormatStyle::CURRENCY)
+        else if (formatterToUse == NumberFormatStyle::Currency)
         {
             UErrorCode error = UErrorCode::U_ZERO_ERROR;
 
@@ -421,18 +433,18 @@ namespace Intl
             UBool isChoiceFormat = false;
             int32_t currencyNameLen = 0;
 
-            if (currencyDisplay == NumberFormatCurrencyDisplay::SYMBOL || currencyDisplay >= NumberFormatCurrencyDisplay::MAX) // (e.g. "$42.00")
+            if (currencyDisplay == NumberFormatCurrencyDisplay::Symbol || currencyDisplay == NumberFormatCurrencyDisplay::Default) // (e.g. "$42.00")
             {
                 // the formatter is set up to render the symbol by default
                 numberFormatter->format(val, result);
             }
-            else if (currencyDisplay == NumberFormatCurrencyDisplay::CODE) // (e.g. "USD 42.00")
+            else if (currencyDisplay == NumberFormatCurrencyDisplay::Code) // (e.g. "USD 42.00")
             {
                 result.append(uCurrencyCode);
                 result.append("\u00a0"); // NON-BREAKING SPACE
                 numberFormatter->format(val, result);
             }
-            else if (currencyDisplay == NumberFormatCurrencyDisplay::NAME) // (e.g. "US dollars")
+            else if (currencyDisplay == NumberFormatCurrencyDisplay::Name) // (e.g. "US dollars")
             {
                 const char *pluralCount = nullptr; // REVIEW (doilij): is this okay? It's not entirely clear from the documentation whether this is an optional parameter.
                 const UChar *currencyLongName = ucurr_getPluralName(uCurrencyCode, localeName, &isChoiceFormat, pluralCount, &currencyNameLen, &error);
@@ -455,40 +467,200 @@ namespace Intl
         return ret;
     }
 
-    bool ResolveLocaleLookup(_In_z_ const char16 *locale, _Out_ char16 *resolved)
+    bool IsLocaleAvailable(_In_z_ const char *locale)
     {
-        // TODO (doilij): implement ResolveLocaleLookup
-        resolved[0] = '\0';
+        int32_t countAvailable = uloc_countAvailable();
+        Assert(countAvailable > 0);
+        for (int i = 0; i < countAvailable; i++)
+        {
+            const char *candidate = uloc_getAvailable(i);
+            if (strcmp(locale, candidate) == 0)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
     bool ResolveLocaleBestFit(_In_z_ const char16 *locale, _Out_ char16 *resolved)
     {
-        // Note: the "best fit" matcher is implementation-defined, so it is okay to return the same result as ResolveLocaleLookup.
+        // Note: the "best fit" matcher is implementation-defined, so ICU currently uses the JS implementation of resolveLocaleLookup as its best fit
         // TODO (doilij): implement a better "best fit" matcher
-        return ResolveLocaleLookup(locale, resolved);
+        resolved[0] = '\0';
+        return false;
     }
 
-    size_t GetUserDefaultLanguageTag(_Out_ char16* langtag, _In_ size_t cchLangtag)
+    size_t GetUserDefaultLocaleName(_Out_ char16* langtag, _In_ size_t cchLangtag)
     {
         UErrorCode error = UErrorCode::U_ZERO_ERROR;
         char bcp47[ULOC_FULLNAME_CAPACITY] = { 0 };
         char defaultLocaleId[ULOC_FULLNAME_CAPACITY] = { 0 };
 
         int32_t written = uloc_getName(nullptr, defaultLocaleId, ULOC_FULLNAME_CAPACITY, &error);
-        ICU_ASSERT_RETURN(error, written > 0 && written < ULOC_FULLNAME_CAPACITY, 0);
+        ICU_ASSERT(error, written > 0 && written < ULOC_FULLNAME_CAPACITY);
 
         defaultLocaleId[written] = 0;
         error = UErrorCode::U_ZERO_ERROR;
 
         written = uloc_toLanguageTag(defaultLocaleId, bcp47, ULOC_FULLNAME_CAPACITY, true, &error);
-        ICU_ASSERT_RETURN(error, written > 0 && written < cchLangtag, 0);
+        ICU_ASSERT(error, written > 0 && static_cast<size_t>(written) < cchLangtag);
 
         return utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(
             langtag,
             reinterpret_cast<LPCUTF8>(bcp47),
             reinterpret_cast<LPCUTF8>(bcp47 + written)
         );
+    }
+
+    // Determines the BCP47 collation value that a given language tag will actually use
+    // returns the count of bytes written into collation (guaranteed to be less than cchCollation)
+    size_t CollatorGetCollation(_In_z_ const char *langtag, _Out_ char *collation, _In_ size_t cchCollation)
+    {
+        AssertOrFailFast(langtag != nullptr && collation != nullptr && cchCollation < ULOC_FULLNAME_CAPACITY);
+        collation[0] = 0;
+        size_t ret = 0;
+
+        UErrorCode error = U_ZERO_ERROR;
+        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        int32_t length = 0;
+        uloc_forLanguageTag(langtag, localeID, ULOC_FULLNAME_CAPACITY, &length, &error);
+        ICU_ASSERT(error, length > 0);
+
+        UCollator *collator = ucol_open(localeID, &error);
+        ICU_ASSERT(error, true);
+
+        const char *collatorLocaleID = ucol_getLocaleByType(collator, ULOC_VALID_LOCALE, &error);
+        ICU_ASSERT(error, true);
+
+        char collatorCollation[ULOC_FULLNAME_CAPACITY] = { 0 };
+        int32_t collatorCollationLength = uloc_getKeywordValue(collatorLocaleID, "collation", collatorCollation, _countof(collatorCollation), &error);
+        ICU_ASSERT(error, collatorCollationLength >= 0);
+        if (collatorCollationLength == 0)
+        {
+            // We were given a langtag without a -u-co value, which is completely valid. Simply don't write anything into *collation
+            goto LCloseCollator;
+        }
+
+        const char *bcpValue = uloc_toUnicodeLocaleType("collation", collatorCollation);
+        size_t cchBcpValue = strlen(bcpValue);
+        if (cchBcpValue != 0 && cchBcpValue < cchCollation)
+        {
+            errno_t err = memcpy_s(collation, cchCollation, bcpValue, cchBcpValue);
+            if (err == 0)
+            {
+                collation[cchBcpValue] = 0;
+            }
+            else
+            {
+                AssertOrFailFastMsg(false, "Could not copy result of CollatorGetCollation to out param");
+            }
+        }
+        else
+        {
+            AssertOrFailFastMsg(false, "UCollator says it's using a collation value that has no equivalent unicode extension");
+        }
+
+        ret = cchBcpValue;
+
+LCloseCollator:
+        ucol_close(collator);
+        return ret;
+    }
+
+    // Compares left and right in the given locale with the given options
+    // returns 0 on error, 1 for less, 2 for equal, and 3 for greater to match Win32 CompareStringEx API
+    // *hr is set in all cases
+    // TODO(jahorto): cache this UCollator object for later use
+    int CollatorCompare(_In_z_ const char *langtag, _In_z_ const char16 *left, _In_ charcount_t cchLeft, _In_z_ const char16 *right, _In_ charcount_t cchRight,
+        _In_ CollatorSensitivity sensitivity, _In_ bool ignorePunctuation, _In_ bool numeric, _In_ CollatorCaseFirst caseFirst, _Out_ HRESULT *hr)
+    {
+        ASSERT_ENUM(CollatorSensitivity, sensitivity);
+        ASSERT_ENUM(CollatorCaseFirst, caseFirst);
+        Assert(langtag != nullptr && left != nullptr && right != nullptr && hr != nullptr);
+        int ret = 0;
+        *hr = E_INVALIDARG;
+
+        UErrorCode error = U_ZERO_ERROR;
+        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        int32_t length = 0;
+        uloc_forLanguageTag(reinterpret_cast<const char *>(langtag), localeID, ULOC_FULLNAME_CAPACITY, &length, &error);
+        ICU_ASSERT(error, length > 0);
+
+        UCollator *collator = ucol_open(localeID, &error);
+        ICU_ASSERT(error, true);
+
+        if (sensitivity == CollatorSensitivity::Base)
+        {
+            ucol_setStrength(collator, UCOL_PRIMARY);
+        }
+        else if (sensitivity == CollatorSensitivity::Accent)
+        {
+            ucol_setStrength(collator, UCOL_SECONDARY);
+        }
+        else if (sensitivity == CollatorSensitivity::Case)
+        {
+            // see "description" for the caseLevel default option: http://userguide.icu-project.org/collation/customization
+            ucol_setStrength(collator, UCOL_PRIMARY);
+            ucol_setAttribute(collator, UCOL_CASE_LEVEL, UCOL_ON, &error);
+            ICU_ASSERT(error, true);
+        }
+        else if (sensitivity == CollatorSensitivity::Variant)
+        {
+            ucol_setStrength(collator, UCOL_TERTIARY);
+        }
+        else
+        {
+            goto LCloseCollator;
+        }
+
+        if (ignorePunctuation)
+        {
+            // see http://userguide.icu-project.org/collation/customization/ignorepunct
+            ucol_setAttribute(collator, UCOL_ALTERNATE_HANDLING, UCOL_SHIFTED, &error);
+            ICU_ASSERT(error, true);
+        }
+
+        if (numeric)
+        {
+            ucol_setAttribute(collator, UCOL_NUMERIC_COLLATION, UCOL_ON, &error);
+            ICU_ASSERT(error, true);
+        }
+
+        if (caseFirst == CollatorCaseFirst::Upper)
+        {
+            ucol_setAttribute(collator, UCOL_CASE_FIRST, UCOL_UPPER_FIRST, &error);
+            ICU_ASSERT(error, true);
+        }
+        else if (caseFirst == CollatorCaseFirst::Lower)
+        {
+            ucol_setAttribute(collator, UCOL_CASE_FIRST, UCOL_LOWER_FIRST, &error);
+            ICU_ASSERT(error, true);
+        }
+
+        *hr = S_OK;
+        UCollationResult result = ucol_strcoll(collator, reinterpret_cast<const UChar *>(left), cchLeft, reinterpret_cast<const UChar *>(right), cchRight);
+        if (result == UCOL_LESS)
+        {
+            ret = 1;
+        }
+        else if (result == UCOL_EQUAL)
+        {
+            ret = 2;
+        }
+        else if (result == UCOL_GREATER)
+        {
+            ret = 3;
+        }
+        else
+        {
+            *hr = E_FAIL;
+            ret = 0;
+        }
+
+LCloseCollator:
+        ucol_close(collator);
+        return ret;
     }
 } // namespace Intl
 } // namespace PlatformAgnostic
