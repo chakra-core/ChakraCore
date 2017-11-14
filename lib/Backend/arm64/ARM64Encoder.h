@@ -3064,7 +3064,7 @@ EmitAddSubImmediateCommon(
     //
     // Otherwise fail.
     //
-
+    AssertMsg(false, "EmitAddSubImmediateCommon failed to emit");
     return 0;
 }
 
@@ -3092,6 +3092,8 @@ EmitAddImmediate64(
     if (LONG(Immediate) == Immediate) {
         return EmitAddSubImmediateCommon(Emitter, Dest, Src, LONG(Immediate), false, true, 0x80000000);
     }
+
+    AssertMsg(false, "EmitAddImmediate64 failed to emit");
     return 0;
 }
 
@@ -3119,6 +3121,8 @@ EmitAddsImmediate64(
     if (LONG(Immediate) == Immediate) {
         return EmitAddSubImmediateCommon(Emitter, Dest, Src, LONG(Immediate), true, true, 0x80000000);
     }
+
+    AssertMsg(false, "EmitAddsImmediate64 failed to emit");
     return 0;
 }
 
@@ -3146,6 +3150,8 @@ EmitSubImmediate64(
     if (-LONG(Immediate) == -LONG64(Immediate)) {
         return EmitAddSubImmediateCommon(Emitter, Dest, Src, -LONG(Immediate), false, false, 0x80000000);
     }
+
+    AssertMsg(false, "EmitSubImmediate64 failed to emit");
     return 0;
 }
 
@@ -3173,6 +3179,8 @@ EmitSubsImmediate64(
     if (-LONG(Immediate) == -LONG64(Immediate)) {
         return EmitAddSubImmediateCommon(Emitter, Dest, Src, -LONG(Immediate), true, false, 0x80000000);
     }
+
+    AssertMsg(false, "EmitSubsImmediate64 failed to emit");
     return 0;
 }
 
@@ -3255,6 +3263,8 @@ EmitLogicalImmediateCommon(
 
             return Emitter.EmitFourBytes(NotRegisterOpcode | (31 << 16) | (Src.RawRegister() << 5) | Dest.RawRegister());
         }
+
+        AssertMsg(false, "EmitLogicalImmediateCommon failed to emit");
         return 0;
     }
 
@@ -3540,6 +3550,7 @@ EmitLdrStrRegisterCommon(
     if (Index.ShiftType() != SHIFT_NONE && Index.ShiftCount() == AccessShift) {
         Amount = 1;
     } else if (Index.ShiftCount() != 0) {
+        AssertMsg(false, "EmitLdrStrRegisterCommon failed to emit");
         return 0;
     }
 
@@ -3747,6 +3758,7 @@ EmitLdrStrOffsetCommon(
         return Emitter.EmitFourBytes(OpcodeUnscaled | ((Offset & 0x1ff) << 12) | (Addr.RawRegister() << 5) | SrcDest.RawRegister());
     }
 
+    AssertMsg(false, "EmitLdrStrOffsetCommon failed to emit");
     return 0;
 }
 
@@ -4018,6 +4030,8 @@ EmitLdpStpOffsetCommon(
     if ((EncodeOffset << AccessShift) == Offset && EncodeOffset >= -0x40 && EncodeOffset <= 0x3f) {
         return Emitter.EmitFourBytes(Opcode | ((EncodeOffset & 0x7f) << 15) | (SrcDest2.RawRegister() << 10) | (Addr.RawRegister() << 5) | SrcDest1.RawRegister());
     }
+
+    AssertMsg(false, "EmitLdpStpOffsetCommon failed to emit");
     return 0;
 }
 
