@@ -1509,7 +1509,7 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
     {
         if (this->m_func->DoOptimizeTry())
         {
-            this->EnsureEpilogLabel();
+            this->m_lowerer->EnsureEpilogLabel();
         }
         // We'll only deallocate the arg out area then restore SP from the value saved on the stack.
         stackAdjust = (this->m_func->m_argSlotsForFunctionsCalled * MachRegInt);
@@ -1793,7 +1793,7 @@ LowererMD::LowerEHRegionReturn(IR::Instr * insertBeforeInstr, IR::Opnd * targetO
     // Load the continuation address into the return register.
     Lowerer::InsertMove(retReg, targetOpnd, insertBeforeInstr);
 
-    IR::LabelInstr *epilogLabel = this->EnsureEpilogLabel();
+    IR::LabelInstr *epilogLabel = this->m_lowerer->EnsureEpilogLabel();
     IR::BranchInstr *jmpInstr = IR::BranchInstr::New(Js::OpCode::B, epilogLabel, this->m_func);
     insertBeforeInstr->InsertBefore(jmpInstr);
 
@@ -7169,27 +7169,6 @@ LowererMD::GetImplicitParamSlotSym(Js::ArgSlot argSlot, Func * func)
     func->SetArgOffset(stackSym, argSlot * MachPtr);
     func->SetHasImplicitParamLoad();
     return stackSym;
-}
-
-IR::LabelInstr *
-LowererMD::EnsureEpilogLabel()
-{
-    if (this->m_func->m_epilogLabel)
-    {
-        return this->m_func->m_epilogLabel;
-    }
-
-    IR::Instr *exitInstr = this->m_func->m_exitInstr;
-    IR::Instr *prevInstr = exitInstr->GetPrevRealInstrOrLabel();
-    if (prevInstr->IsLabelInstr())
-    {
-        this->m_func->m_epilogLabel = prevInstr->AsLabelInstr();
-        return prevInstr->AsLabelInstr();
-    }
-    IR::LabelInstr *labelInstr = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-    exitInstr->InsertBefore(labelInstr);
-    this->m_func->m_epilogLabel = labelInstr;
-    return labelInstr;
 }
 
 bool

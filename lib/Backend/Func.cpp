@@ -116,8 +116,8 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     stackClosure(false)
 #if defined(_M_ARM32_OR_ARM64)
     , m_ArgumentsOffset(0)
-    , m_epilogLabel(nullptr)
 #endif
+    , m_epilogLabel(nullptr)
     , m_funcStartLabel(nullptr)
     , m_funcEndLabel(nullptr)
 #if DBG

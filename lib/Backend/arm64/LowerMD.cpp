@@ -1571,7 +1571,7 @@ LowererMD::LowerEHRegionReturn(IR::Instr * insertBeforeInstr, IR::Opnd * targetO
     // Load the continuation address into the return register.
     Lowerer::InsertMove(retReg, targetOpnd, insertBeforeInstr);
 
-    IR::LabelInstr *epilogLabel = this->EnsureEHEpilogLabel();
+    IR::LabelInstr *epilogLabel = this->m_lowerer->EnsureEpilogLabel();
     IR::BranchInstr *jmpInstr = IR::BranchInstr::New(Js::OpCode::B, epilogLabel, this->m_func);
     insertBeforeInstr->InsertBefore(jmpInstr);
 
@@ -6672,20 +6672,6 @@ LowererMD::GetImplicitParamSlotSym(Js::ArgSlot argSlot, Func * func)
     func->SetArgOffset(stackSym, argSlot * MachPtr);
     func->SetHasImplicitParamLoad();
     return stackSym;
-}
-
-IR::LabelInstr *
-LowererMD::EnsureEHEpilogLabel()
-{
-    if (this->m_func->m_epilogLabel)
-    {
-        return this->m_func->m_epilogLabel;
-    }
-
-    IR::LabelInstr *labelInstr = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-    this->m_func->m_epilogLabel = labelInstr;
-    this->m_func->m_exitInstr->InsertBefore(labelInstr);
-    return labelInstr;
 }
 
 bool

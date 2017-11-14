@@ -212,7 +212,6 @@ public:
             IR::Instr *         LowerTry(IR::Instr *instr, IR::JnHelperMethod helperMethod);
             IR::Instr *         LowerLeave(IR::Instr *instr, IR::LabelInstr * targetInstr, bool fromFinalLower, bool isOrphanedLeave = false);
             IR::Instr *         LowerLeaveNull(IR::Instr *instr);
-            IR::LabelInstr *    EnsureEHEpilogLabel();
             IR::Instr *         LowerEHRegionReturn(IR::Instr * insertBeforeInstr, IR::Opnd * targetOpnd);
             void                FinishArgLowering();
             IR::Opnd *          GetOpndForArgSlot(Js::ArgSlot argSlot, IR::Opnd * argOpnd = nullptr);
