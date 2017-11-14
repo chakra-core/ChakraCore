@@ -313,7 +313,7 @@ int EncoderMD::EmitOp3RegisterOrImmediate(Arm64CodeEmitter &Emitter, IR::Instr* 
     }
     else
     {
-        Assert(false);
+        AssertMsg(false, "EmitOp3RegisterOrImmediate failed to encode");
         return 0;
     }
 }
@@ -415,7 +415,7 @@ int EncoderMD::EmitLoadStorePair(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR
     if (DecodeMemoryOpnd(memOpnd, baseReg, indexReg, indexScale, offset))
     {
         // Should never get here
-        Assert(false);
+        AssertMsg(false, "EmitLoadStorePair failed to encode");
         return 0;
     }
     else
@@ -647,7 +647,7 @@ int EncoderMD::EmitLoadStoreFp(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR::
     if (DecodeMemoryOpnd(memOpnd, baseReg, indexReg, indexScale, offset))
     {
         // Should never get here
-        Assert(false);
+        AssertMsg(false, "EmitLoadStoreFp failed to encode");
         return 0;
     }
     else
@@ -671,7 +671,7 @@ int EncoderMD::EmitLoadStoreFpPair(Arm64CodeEmitter &Emitter, IR::Instr* instr, 
     if (DecodeMemoryOpnd(memOpnd, baseReg, indexReg, indexScale, offset))
     {
         // Should never get here
-        Assert(false);
+        AssertMsg(false, "EmitLoadStoreFpPair failed to encode");
         return 0;
     }
     else
@@ -713,7 +713,7 @@ int EncoderMD::EmitConvertToInt(Arm64CodeEmitter &Emitter, IR::Instr* instr, _In
     }
     
     // Shouldn't get here
-    Assert(false);
+    AssertMsg(false, "EmitConvertToInt failed to encode");
     return 0;
 }
 

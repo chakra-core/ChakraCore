@@ -2091,17 +2091,26 @@ LowererMD::ChangeToAssign(IR::Instr * instr, IRType destType)
     }
     else if (TySize[destType] > TySize[srcType] && (IRType_IsSignedInt(destType) || IRType_IsUnsignedInt(destType)))
     {
+        IR::Opnd *newSrcOpnd = src;
+
+        // If we have a indirect opnd and a scale we can't just change the source type, move the result to scratch reg and use that as src
+        if (newSrcOpnd->IsIndirOpnd() && newSrcOpnd->AsIndirOpnd()->GetScale() != 0)
+        {
+            newSrcOpnd = IR::RegOpnd::New(nullptr, SCRATCH_REG, srcType, instr->m_func);
+            Lowerer::InsertMove(newSrcOpnd, src, instr);
+            Assert(TySize[newSrcOpnd->GetType()] >= TySize[srcType]);
+        }
         // If we're moving between different lengths of registers, we need to use the
         // right operator - sign extend if the source is int, zero extend if uint.
         if (IRType_IsSignedInt(srcType))
         {
-            instr->ReplaceSrc1(src->UseWithNewType(IRType_EnsureSigned(destType), instr->m_func));
+            instr->ReplaceSrc1(newSrcOpnd->UseWithNewType(IRType_EnsureSigned(destType), instr->m_func));
             instr->SetSrc2(IR::IntConstOpnd::New(BITFIELD(0, TySize[srcType] * MachBits), TyMachReg, instr->m_func, true));
             instr->m_opcode = Js::OpCode::SBFX;
         }
         else if (IRType_IsUnsignedInt(srcType))
         {
-            instr->ReplaceSrc1(src->UseWithNewType(IRType_EnsureUnsigned(destType), instr->m_func));
+            instr->ReplaceSrc1(newSrcOpnd->UseWithNewType(IRType_EnsureUnsigned(destType), instr->m_func));
             instr->SetSrc2(IR::IntConstOpnd::New(BITFIELD(0, TySize[srcType] * MachBits), TyMachReg, instr->m_func, true));
             instr->m_opcode = Js::OpCode::UBFX;
         }
