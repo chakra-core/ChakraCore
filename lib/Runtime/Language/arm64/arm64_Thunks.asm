@@ -15,6 +15,8 @@
     EXPORT  |?EnsureDynamicProfileInfoThunk@DynamicProfileInfo@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ|
     ; Var ScriptContext::ProfileModeDeferredParsingThunk(RecyclableObject* function, CallInfo callInfo, ...)
     EXPORT  |?ProfileModeDeferredParsingThunk@ScriptContext@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ|
+    ; Var InterpreterStackFrame::StaticInterpreterThunk(RecyclableObject* function, CallInfo callInfo)
+    EXPORT  |?StaticInterpreterThunk@InterpreterStackFrame@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ|
 
     ;JavascriptMethod InterpreterStackFrame::EnsureDynamicInterpreterThunk(Js::ScriptFunction * function)
     IMPORT  |?EnsureDynamicInterpreterThunk@InterpreterStackFrame@Js@@CAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVScriptFunction@2@@Z|
@@ -24,7 +26,8 @@
     IMPORT  |?ProfileModeDeferredParse@ScriptContext@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVScriptFunction@2@@Z|
     ;JavascriptMethod ScriptContext::ProfileModeDeferredDeserialize(ScriptFunction *function)
     IMPORT  |?ProfileModeDeferredDeserialize@ScriptContext@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVScriptFunction@2@@Z|
-
+    ;Var InterpreterStackFrame::InterpreterThunk(JavascriptCallStackLayout* layout)
+    IMPORT  |?InterpreterThunk@InterpreterStackFrame@Js@@SAPEAXPEAVJavascriptCallStackLayout@2@@Z|
     TEXTAREA
 
 ;;============================================================================================================
@@ -122,6 +125,26 @@
     ldp   x0, x1, [sp, #16]
     EPILOG_RESTORE_REG_PAIR fp, lr, #80!
     EPILOG_NOP br x16             ; jump (tail call) to new entryPoint
+
+    NESTED_END
+
+;;============================================================================================================
+;; InterpreterStackFrame::StaticInterpreterThunk
+;;============================================================================================================
+    ;; Var InterpreterStackFrame::StaticInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...)
+    NESTED_ENTRY ?StaticInterpreterThunk@InterpreterStackFrame@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ
+
+    PROLOG_SAVE_REG_PAIR fp, lr, #-80!
+    stp   x0, x1, [sp, #16]
+    stp   x2, x3, [sp, #32]
+    stp   x4, x5, [sp, #48]
+    stp   x6, x7, [sp, #64]
+
+    add   x0, sp, #16
+    bl |?InterpreterThunk@InterpreterStackFrame@Js@@SAPEAXPEAVJavascriptCallStackLayout@2@@Z| ; call InterpreterStackFrame::InterpreterThunk
+    
+    EPILOG_RESTORE_REG_PAIR fp, lr, #80!
+    EPILOG_RETURN
 
     NESTED_END
 ;;============================================================================================================

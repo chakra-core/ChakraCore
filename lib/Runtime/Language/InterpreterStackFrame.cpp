@@ -1709,10 +1709,14 @@ namespace Js
     }
 #endif
 
+#if !defined(_M_ARM64)
     Var InterpreterStackFrame::StaticInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
         return InterpreterThunk((JavascriptCallStackLayout*)&function);
     }
+#else
+    // Language\arm64\arm64_Thunks.asm
+#endif
 #pragma optimize("", on)
 
     Var InterpreterStackFrame::InterpreterThunk(JavascriptCallStackLayout* layout)
