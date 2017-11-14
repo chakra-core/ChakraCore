@@ -702,8 +702,8 @@ public:
     //For leaf functions this is (saved registers) * MachRegInt
     int32               m_ArgumentsOffset;
     UnwindInfoManager   m_unwindInfo;
-    IR::LabelInstr *    m_epilogLabel;
 #endif
+    IR::LabelInstr *    m_epilogLabel;
     IR::LabelInstr *    m_funcStartLabel;
     IR::LabelInstr *    m_funcEndLabel;
 

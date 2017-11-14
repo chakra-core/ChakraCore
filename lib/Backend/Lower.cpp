@@ -13370,22 +13370,33 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
     return collectRuntimeStatsLabel ? collectRuntimeStatsLabel : bailOutLabel;
 }
 
+IR::LabelInstr *
+Lowerer::EnsureEpilogLabel()
+{
+    if (this->m_func->m_epilogLabel)
+    {
+        return this->m_func->m_epilogLabel;
+    }
+
+    IR::Instr *exitInstr = this->m_func->m_exitInstr;
+    IR::Instr *prevInstr = exitInstr->GetPrevRealInstrOrLabel();
+    if (prevInstr->IsLabelInstr())
+    {
+        this->m_func->m_epilogLabel = prevInstr->AsLabelInstr();
+        return prevInstr->AsLabelInstr();
+    }
+
+    IR::LabelInstr *labelInstr = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+    exitInstr->InsertBefore(labelInstr);
+    this->m_func->m_epilogLabel = labelInstr;
+    return labelInstr;
+}
+
 void
 Lowerer::GenerateJumpToEpilogForBailOut(BailOutInfo * bailOutInfo, IR::Instr *instr)
 {
-    IR::Instr * exitPrevInstr = this->m_func->m_exitInstr->m_prev;
     // JMP to the epilog
-    IR::LabelInstr * exitTargetInstr;
-    if (exitPrevInstr->IsLabelInstr())
-    {
-        exitTargetInstr = exitPrevInstr->AsLabelInstr();
-    }
-    else
-    {
-        exitTargetInstr = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, false);
-        exitPrevInstr->InsertAfter(exitTargetInstr);
-    }
-
+    IR::LabelInstr * exitTargetInstr = EnsureEpilogLabel();
     exitTargetInstr = m_lowererMD.GetBailOutStackRestoreLabel(bailOutInfo, exitTargetInstr);
 
     IR::Instr * instrAfter = instr->m_next;
