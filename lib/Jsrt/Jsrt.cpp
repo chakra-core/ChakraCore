@@ -1418,13 +1418,19 @@ static JsErrorCode InternalGetPropertyRecord(Js::ScriptContext * scriptContext,
     Assert(propertyRecord != nullptr);
     *propertyRecord = nullptr;
 
-    if (key->GetTypeId() != Js::TypeIds_String)
+    switch(key->GetTypeId())
     {
+    case Js::TypeIds_String:
+        scriptContext->GetOrAddPropertyRecord(Js::JavascriptString::FromVar(key),
+            (Js::PropertyRecord const **)propertyRecord);
+        break;
+    case Js::TypeIds_Symbol:
+        *propertyRecord = Js::JavascriptSymbol::FromVar(key)->GetValue();
+        break;
+    default:
         return JsErrorInvalidArgument;
-    }
+    };
 
-    scriptContext->GetOrAddPropertyRecord(Js::JavascriptString::FromVar(key),
-        (Js::PropertyRecord const **)propertyRecord);
     return JsNoError;
 }
 
