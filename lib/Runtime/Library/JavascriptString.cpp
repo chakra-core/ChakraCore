@@ -3340,7 +3340,7 @@ case_2:
         using namespace PlatformAgnostic::UnicodeText;
         JavascriptString * resultString = nullptr;
         ENTER_PINNED_SCOPE(JavascriptString, pThis);
-        JavascriptString * pThis = JavascriptOperators::TryFromVar<JavascriptString>(thisObj);
+        pThis = JavascriptOperators::TryFromVar<JavascriptString>(thisObj);
 
         if (!pThis)
         {

@@ -3137,7 +3137,7 @@ namespace Js
                 JavascriptNativeIntArray *pIntItemArray = JavascriptOperators::TryFromVar<JavascriptNativeIntArray>(aItem);
                 if (pIntItemArray)
                 {
-                    JS_REENTRANT_NO_MUTATE(jsReentLock, CopyNativeIntArrayElementsToVar(pDestArray, BigIndex(idxDest).GetSmallIndex(), pItemArray));
+                    JS_REENTRANT_NO_MUTATE(jsReentLock, CopyNativeIntArrayElementsToVar(pDestArray, BigIndex(idxDest).GetSmallIndex(), pIntItemArray));
                     idxDest = idxDest + pIntItemArray->length;
                 }
                 else 
@@ -3145,7 +3145,7 @@ namespace Js
                     JavascriptNativeFloatArray *pFloatItemArray = JavascriptOperators::TryFromVar<JavascriptNativeFloatArray>(aItem);
                     if (pFloatItemArray)
                     {
-                        JS_REENTRANT_NO_MUTATE(jsReentLock, CopyNativeFloatArrayElementsToVar(pDestArray, BigIndex(idxDest).GetSmallIndex(), pItemArray));
+                        JS_REENTRANT_NO_MUTATE(jsReentLock, CopyNativeFloatArrayElementsToVar(pDestArray, BigIndex(idxDest).GetSmallIndex(), pFloatItemArray));
                         idxDest = idxDest + pFloatItemArray->length;
                     }
                     else
