@@ -7,7 +7,7 @@
 namespace Js
 {
     class ScriptContext;
-    struct InlineCache;    
+    struct InlineCache;
     class CodeGenRecyclableData;
 #ifdef ENABLE_SCRIPT_DEBUGGING
     class DebugManager;
@@ -1457,7 +1457,7 @@ public:
         }
     }
 
-    static BOOLEAN IsOnStack(void const *ptr);
+    static bool IsOnStack(void const *ptr);
     _NOINLINE bool IsStackAvailable(size_t size);
     _NOINLINE bool IsStackAvailableNoThrow(size_t size = Js::Constants::MinStackDefault);
     static bool IsCurrentStackAvailable(size_t size);
