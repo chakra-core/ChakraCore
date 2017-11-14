@@ -6389,3 +6389,4 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 #endif
 
 } // End namespace Js
+

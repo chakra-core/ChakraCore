@@ -1396,7 +1396,7 @@
     <default>
       <files>module-namespace.js</files>
       <compile-flags>-ES6Module -Es6ToStringTag -args summary -endargs</compile-flags>
-      <tags>exclude_sanitize_address</tags>
+      <tags>exclude_dynapogo,exclude_drt,exclude_sanitize_address</tags>
     </default>
   </test>
   -->

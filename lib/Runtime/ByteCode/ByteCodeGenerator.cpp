@@ -1023,10 +1023,9 @@ void ByteCodeGenerator::RestoreScopeInfo(Js::ScopeInfo *scopeInfo, FuncInfo * fu
         if (newFunc)
         {
             func = Anew(alloc, FuncInfo, pfi->GetDisplayName(), alloc, this, nullptr, nullptr, nullptr, pfi);
-            newFunc = true;
         }
 
-
+        // Recursively restore enclosing scope info so outermost scopes/funcs are pushed first.
         this->RestoreScopeInfo(scopeInfo->GetParentScopeInfo(), func);
         this->RestoreOneScope(scopeInfo, func);
 

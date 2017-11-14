@@ -8253,7 +8253,6 @@ LowererMD::EmitFloatToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert, 
 
     instr = IR::Instr::New(Js::OpCode::Call, dst, this->m_func);
     instrInsert->InsertBefore(instr);
-
     if (BailOutInfo::IsBailOutOnImplicitCalls(bailOutKind))
     {
         _Analysis_assume_(instrBailOut != nullptr);

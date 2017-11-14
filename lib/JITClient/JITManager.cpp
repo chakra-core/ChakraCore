@@ -218,7 +218,11 @@ HRESULT
 JITManager::ConnectRpcServer(__in HANDLE jitProcessHandle, __in_opt void* serverSecurityDescriptor, __in UUID connectionUuid)
 {
     Assert(IsOOPJITEnabled());
-    Assert(m_rpcBindingHandle == nullptr);
+    if(m_rpcBindingHandle != nullptr)
+    {
+        // TODO: change this to allow connecting a new JIT process to new ThreadContexts
+        return E_FAIL;
+    }
 
     HRESULT hr = E_FAIL;
 

@@ -44,7 +44,6 @@ namespace Js {
         Field(BYTE) mustInstantiate : 1;       // the scope must be instantiated as an object/array
         Field(BYTE) isCached : 1;              // indicates that local vars and functions are cached across invocations
         Field(BYTE) areNamesCached : 1;
-        Field(BYTE) canMergeWithBodyScope : 1;
         Field(BYTE) hasLocalInClosure : 1;
 
         FieldNoBarrier(Scope *) scope;

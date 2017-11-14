@@ -51,3 +51,4 @@ void ConfigParserAPI::DisplayInitialOutput(__in LPWSTR moduleName)
 {
 }
 
+IMPLEMENT_STUB_IsLikelyRuntimeFalseReference()

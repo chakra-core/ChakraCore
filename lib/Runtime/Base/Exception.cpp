@@ -12,18 +12,27 @@ namespace Js
     {
         ThreadContext *threadContext = ThreadContext::GetContextForCurrentThread();
 
-        if (threadContext != nullptr && threadContext->IsScriptActive())
+        if (threadContext != nullptr)
         {
-            switch (kind) {
-            case ExceptionKind_OutOfMemory:
-                AssertMsg(returnAddress == NULL, "should not have returnAddress passed in");
-                JavascriptError::ThrowOutOfMemoryError(scriptContext);
+            if (kind == ExceptionKind_OutOfMemory &&
+                CONFIG_FLAG(EnableFatalErrorOnOOM) && !threadContext->TestThreadContextFlag(ThreadContextFlagDisableFatalOnOOM))
+            {
+                OutOfMemory_fatal_error();
+            }
 
-            case ExceptionKind_StackOverflow:
-                JavascriptError::ThrowStackOverflowError(scriptContext, returnAddress);
+            if (threadContext->IsScriptActive())
+            {
+                switch (kind) {
+                case ExceptionKind_OutOfMemory:
+                    AssertMsg(returnAddress == NULL, "should not have returnAddress passed in");
+                    JavascriptError::ThrowOutOfMemoryError(scriptContext);
 
-            default:
-                AssertMsg(false, "Invalid ExceptionKind");
+                case ExceptionKind_StackOverflow:
+                    JavascriptError::ThrowStackOverflowError(scriptContext, returnAddress);
+
+                default:
+                    AssertMsg(false, "Invalid ExceptionKind");
+                }
             }
         }
 

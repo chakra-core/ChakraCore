@@ -874,15 +874,27 @@ namespace Js
         return false;
     }
 
+    bool AlignAndCheckAddressOfReturnAddressMatch(void* addressOfReturnAddress, void* nativeLibraryEntryAddress)
+    {
+        return addressOfReturnAddress == nativeLibraryEntryAddress
+#if defined(_M_IX86)
+            // Under some odd cases on x86, addressOfReturnAddress and stashed entry address need to be aligned.
+            // This happens when code is generated using two stack pointers. One or both have the address of 
+            // return address offset by 4, 8, or 12.
+            || ((uint)addressOfReturnAddress & ~0xFF) == ((uint)nativeLibraryEntryAddress & ~0xFF)
+#endif
+            ;
+    }
+
     void ** JavascriptStackWalker::GetCurrentArgv() const
     {
         Assert(this->IsJavascriptFrame());
         Assert(this->interpreterFrame != nullptr ||
-               (this->prevNativeLibraryEntry && this->currentFrame.GetAddressOfReturnAddress() == this->prevNativeLibraryEntry->addr) ||
+               (this->prevNativeLibraryEntry && AlignAndCheckAddressOfReturnAddressMatch(this->currentFrame.GetAddressOfReturnAddress(), this->prevNativeLibraryEntry->addr)) ||
                JavascriptFunction::IsNativeAddress(this->scriptContext, (void*)this->currentFrame.GetInstructionPointer()));
 
         bool isNativeAddr = (this->interpreterFrame == nullptr) &&
-                            (!this->prevNativeLibraryEntry || (this->currentFrame.GetAddressOfReturnAddress() != this->prevNativeLibraryEntry->addr));
+                            (!this->prevNativeLibraryEntry || !AlignAndCheckAddressOfReturnAddressMatch(this->currentFrame.GetAddressOfReturnAddress(), this->prevNativeLibraryEntry->addr));
         void ** argv = currentFrame.GetArgv(isNativeAddr, false /*shouldCheckForNativeAddr*/);
         Assert(argv);
         return argv;
@@ -943,8 +955,9 @@ namespace Js
         if (IsLibraryStackFrameEnabled(this->scriptContext) && this->nativeLibraryEntry)
         {
             void* addressOfReturnAddress = this->currentFrame.GetAddressOfReturnAddress();
-            AssertMsg(addressOfReturnAddress <= this->nativeLibraryEntry->addr, "Missed matching native library entry?");
-            if (addressOfReturnAddress == this->nativeLibraryEntry->addr)
+            void* nativeLibraryEntryAddress = this->nativeLibraryEntry->addr;
+            AssertMsg(addressOfReturnAddress <= nativeLibraryEntryAddress, "Missed matching native library entry?");
+            if (AlignAndCheckAddressOfReturnAddressMatch(addressOfReturnAddress, nativeLibraryEntryAddress))
             {
                 this->isNativeLibraryFrame = true;
                 this->shouldDetectPartiallyInitializedInterpreterFrame = false;

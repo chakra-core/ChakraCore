@@ -929,6 +929,7 @@ namespace Js
         this->RedeferFunctionObjectTypes();
 
         this->Cleanup(false);
+
         if (GetIsFuncRegistered())
         {
             this->GetUtf8SourceInfo()->RemoveFunctionBody(this);

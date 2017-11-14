@@ -81,7 +81,20 @@ private:
     static const BYTE CallBlockStartAddressInstrOffset;
     static const BYTE CallThunkSizeInstrOffset;
 #endif
-    static const BYTE InterpreterThunk[];
+#ifdef _M_X64
+#ifdef _WIN32
+#define INTERPRETER_THUNK_SIZE 96
+#else  // Sys V AMD64
+#define INTERPRETER_THUNK_SIZE 72
+#endif
+#elif defined(_M_ARM)
+#define INTERPRETER_THUNK_SIZE 72
+#elif defined(_M_ARM64)
+#define INTERPRETER_THUNK_SIZE 60
+#else
+#define INTERPRETER_THUNK_SIZE 56
+#endif
+    static const BYTE InterpreterThunk[INTERPRETER_THUNK_SIZE];
 
     // Call buffer includes a call to the inner interpreter thunk and eventual jump to the epilog
     static const BYTE JmpOffset;

@@ -151,7 +151,8 @@ protected:
         ignoreOverflowBitCount(32),
         isCtorCall(false),
         isCallInstrProtectedByNoProfileBailout(false),
-        hasSideEffects(false)
+        hasSideEffects(false),
+        isNonFastPathFrameDisplay(false)
     {
     }
 public:

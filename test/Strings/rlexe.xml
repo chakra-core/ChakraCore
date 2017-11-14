@@ -248,10 +248,12 @@
       <tags>exclude_win7</tags>
     </default>
   </test>
+  <!--  This test is disabled as this is going to throw out of memory. Since this test takes time to reach the memory boundary, 
+        it does not seem to be a good test to keep it enabled with -EnableFatalErrorOnOOM-
   <test>
     <default>
       <files>repeatBug.js</files>
       <tags>exclude_chk,Slow</tags>
     </default>
-  </test>
+  </test>  -->
 </regress-exe>

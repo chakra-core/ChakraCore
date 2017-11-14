@@ -4801,7 +4801,6 @@ namespace UnifiedRegex
         // If loopInfo->number now is less than begins->repeats.lower, the loop
         // shouldn't match anything. In that case, stop backtracking.
         loopInfo->number = max(loopInfo->number, begin->repeats.lower);
-
         // Rewind input
         inputOffset = loopInfo->startInputOffset + loopInfo->number;
 

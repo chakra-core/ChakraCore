@@ -449,6 +449,7 @@ ServerCleanupScriptContext(
         scriptContextInfo->Close();
         ServerContextManager::UnRegisterScriptContext(scriptContextInfo);
     }
+
     // This tells the run-time, when it is marshalling the out
     // parameters, that the context handle has been closed normally.
     *scriptContextInfoAddress = nullptr;

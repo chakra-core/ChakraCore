@@ -9,7 +9,8 @@ namespace Js
     Var UriHelper::EncodeCoreURI(ScriptContext* scriptContext, Arguments& args, unsigned char flags )
     {
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        JavascriptString * strURI;
+        Var result = nullptr;
+        ENTER_PINNED_SCOPE(JavascriptString, strURI);
         //TODO make sure this string is pinned when the memory recycler is in
         if(args.Info.Count < 2)
         {
@@ -27,7 +28,11 @@ namespace Js
                 strURI = JavascriptConversion::ToString(args[1], scriptContext);
             }
         }
-        return Encode(strURI->GetSz(), strURI->GetLength(), flags, scriptContext);
+
+        result = Encode(strURI->GetSz(), strURI->GetLength(), flags, scriptContext);
+
+        LEAVE_PINNED_SCOPE();   //strURI
+        return result;
     }
 
     unsigned char UriHelper::s_uriProps[128] =
@@ -242,7 +247,10 @@ namespace Js
     Var UriHelper::DecodeCoreURI(ScriptContext* scriptContext, Arguments& args, unsigned char reservedFlags )
     {
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        JavascriptString * strURI;
+
+        Var result = nullptr;
+        ENTER_PINNED_SCOPE(JavascriptString, strURI);
+
         //TODO make sure this string is pinned when the memory recycler is in
         if(args.Info.Count < 2)
         {
@@ -260,7 +268,12 @@ namespace Js
                 strURI = JavascriptConversion::ToString(args[1], scriptContext);
             }
         }
-        return Decode(strURI->GetSz(), strURI->GetLength(), reservedFlags, scriptContext);
+
+        result = Decode(strURI->GetSz(), strURI->GetLength(), reservedFlags, scriptContext);
+
+        LEAVE_PINNED_SCOPE();   // strURI
+
+        return result;
     }
 
     // The Decode algorithm described in sec. 15.1.3 of the spec. The input string is
