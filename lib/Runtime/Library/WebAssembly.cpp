@@ -264,7 +264,7 @@ Var WebAssembly::TryResolveResponse(RecyclableObject* function, Var thisArg, Var
         CallInfo newCallInfo;
         newCallInfo.Count = 2;
         // We already have a response object, query it now
-        responsePromise = EntryQueryResponse(function, Js::CallInfo(CallFlags_Value, 2), thisArg, responseArg);
+        responsePromise = CALL_ENTRYPOINT_NOASSERT(EntryQueryResponse, function, Js::CallInfo(CallFlags_Value, 2), thisArg, responseArg);
     }
     else if (JavascriptPromise::Is(responseArg))
     {
