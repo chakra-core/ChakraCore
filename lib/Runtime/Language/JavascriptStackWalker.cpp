@@ -540,7 +540,7 @@ namespace Js
 #endif
 
                 // We might've bailed out of an inlinee, so check if there were any inlinees.
-                if (this->interpreterFrame->GetFlags() & InterpreterStackFrameFlags_FromBailOut)
+                if (this->interpreterFrame->TestFlags(InterpreterStackFrameFlags_FromBailOut))
                 {
                     previousInterpreterFrameIsFromBailout = true;
 
@@ -895,7 +895,7 @@ namespace Js
         void * codeAddr = this->currentFrame.GetInstructionPointer();
         if (this->tempInterpreterFrame && codeAddr == this->tempInterpreterFrame->GetReturnAddress())
         {
-            bool isBailoutInterpreter = (this->tempInterpreterFrame->GetFlags() & Js::InterpreterStackFrameFlags_FromBailOut) != 0;
+            bool isBailoutInterpreter = this->tempInterpreterFrame->TestFlags(Js::InterpreterStackFrameFlags_FromBailOut);
 
             // We need to skip over the first interpreter frame on the stack if it is the partially initialized frame
             // otherwise it is a real frame and we should continue.
@@ -928,7 +928,7 @@ namespace Js
                 // The return address of the interpreterFrame is the same as the entryPoint for a jitted loop body.
                 // This can only ever happen when we have bailed out from a function inlined in the loop body. We
                 // wouldn't have created a new interpreterFrame if the bailout were from the loop body itself.
-                Assert((this->interpreterFrame->GetFlags() & Js::InterpreterStackFrameFlags_FromBailOut) != 0);
+                Assert(this->interpreterFrame->TestFlags(Js::InterpreterStackFrameFlags_FromBailOut));
                 InlinedFrameWalker tmpFrameWalker;
                 Assert(InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, Js::ScriptFunction::FromVar(argv[JavascriptFunctionArgIndex_Function]),
                     true /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this, false /*useInternalFrameInfo*/, true /*noAlloc*/));
