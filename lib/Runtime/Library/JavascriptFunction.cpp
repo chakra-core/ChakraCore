@@ -158,9 +158,14 @@ namespace Js
         bool isCtorSuperCall = JavascriptOperators::GetAndAssertIsConstructorSuperCall(args);
 
         JavascriptString* separator = library->GetCommaDisplayString();
+        JavascriptFunction* pfuncScript;
 
+        ENTER_PINNED_SCOPE(JavascriptString, formals);
+        ENTER_PINNED_SCOPE(JavascriptString, fnBody);
+        fnBody = NULL;
         // Gather all the formals into a string like (fml1, fml2, fml3)
-        JavascriptString *formals = library->GetOpenRBracketString();
+        formals = library->GetOpenRBracketString();
+
         for (uint i = 1; i < args.Info.Count - 1; ++i)
         {
             if (i != 1)
@@ -171,7 +176,6 @@ namespace Js
         }
         formals = JavascriptString::Concat(formals, library->GetNewLineCloseRBracketString());
         // Function body, last argument to Function(...)
-        JavascriptString *fnBody = NULL;
         if (args.Info.Count > 1)
         {
             fnBody = JavascriptConversion::ToString(args.Values[args.Info.Count - 1], scriptContext);
@@ -185,11 +189,13 @@ namespace Js
             0 // " {"  GetSpaceOpenBracketString
             == numberLinesPrependedToAnonymousFunction); // Be sure to add exactly one line to anonymous function
 
-        JavascriptString *bs = functionKind == FunctionKind::Async ?
+        ENTER_PINNED_SCOPE(JavascriptString, bs);
+        bs = functionKind == FunctionKind::Async ?
             library->GetAsyncFunctionAnonymouseString() :
             functionKind == FunctionKind::Generator ?
             library->GetFunctionPTRAnonymousString() :
             library->GetFunctionAnonymousString();
+
         bs = JavascriptString::Concat(bs, formals);
         bs = JavascriptString::Concat(bs, library->GetSpaceOpenBracketString());
         if (fnBody != NULL)
@@ -203,7 +209,6 @@ namespace Js
 
         BOOL strictMode = FALSE;
 
-        JavascriptFunction *pfuncScript;
         FunctionInfo *pfuncInfoCache = NULL;
         char16 const * sourceString = bs->GetSz();
         charcount_t sourceLen = bs->GetLength();
@@ -297,6 +302,10 @@ namespace Js
             }
         }
 #endif
+
+        LEAVE_PINNED_SCOPE();   //  bs
+        LEAVE_PINNED_SCOPE();   //  fnBody
+        LEAVE_PINNED_SCOPE();   //  formals
 
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(pfuncScript, EtwTrace::GetFunctionId(pfuncScript->GetFunctionProxy())));
 
@@ -1303,7 +1312,8 @@ dbl_align:
         CheckIsExecutable(function, entryPoint);
 #endif
 
-        return amd64_CallFunction(function, entryPoint, args.Info, argCount, &args.Values[0]);
+        return JS_REENTRANCY_CHECK(function->GetScriptContext()->GetThreadContext(),
+            amd64_CallFunction(function, entryPoint, args.Info, argCount, &args.Values[0]));
     }
 #elif defined(_M_ARM)
     extern "C"
@@ -1342,7 +1352,8 @@ dbl_align:
         }
         else
         {
-            varResult = arm_CallFunction((JavascriptFunction*)function, args.Info, args.Values, entryPoint);
+            varResult = JS_REENTRANCY_CHECK(function->GetScriptContext()->GetThreadContext(),
+                arm_CallFunction((JavascriptFunction*)function, args.Info, args.Values, entryPoint));
         }
 
         return varResult;
@@ -1369,7 +1380,8 @@ dbl_align:
 #endif
         Js::Var varResult;
 
-        varResult = arm64_CallFunction((JavascriptFunction*)function, args.Info, argCount, args.Values, entryPoint);
+        varResult = JS_REENTRANCY_CHECK(function->GetScriptContext()->GetThreadContext(),
+            arm64_CallFunction((JavascriptFunction*)function, args.Info, argCount, args.Values, entryPoint));
 
         return varResult;
     }
@@ -1656,7 +1668,7 @@ LABEL1:
     }
         catch (JavascriptException&)
         {
-                Js::Throw::FatalInternalError();
+            Js::Throw::FatalInternalError();
         }
     }
 

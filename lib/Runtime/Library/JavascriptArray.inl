@@ -5,6 +5,8 @@
 
 #pragma once
 
+#define Assert_FailFast(x) if (!(x)) { Assert(x); Js::Throw::FatalInternalError(); }
+
 namespace Js
 {
     //
@@ -401,12 +403,14 @@ namespace Js
         return NewLiteral<typename T::TElement, T, InlinePropertySlots>(length, arrayType, arrayType->GetRecycler());
     }
 
-    template<typename T>
-    inline void JavascriptArray::DirectSetItemAt(uint32 itemIndex, T newValue)
+    template <>
+    inline void JavascriptArray::DirectSetItemAt<int32>(uint32 itemIndex, int32 newValue)
     {
+        Assert_FailFast(this->GetTypeId() == TypeIds_NativeIntArray);
+
         Assert(itemIndex < InvalidIndex); // Otherwise the code below could overflow and set length = 0
 
-        SparseArraySegment<T> *seg = (SparseArraySegment<T>*)this->GetLastUsedSegment();
+        SparseArraySegment<int32> *seg = (SparseArraySegment<int32>*)this->GetLastUsedSegment();
         uint32 offset = itemIndex - seg->left;
         if(itemIndex >= seg->left && offset < seg->size)
         {
@@ -414,6 +418,60 @@ namespace Js
             return;
         }
         DirectSetItem_Full(itemIndex, newValue);
+    }
+
+    template <>
+    inline void JavascriptArray::DirectSetItemAt<double>(uint32 itemIndex, double newValue)
+    {
+        Assert_FailFast(this->GetTypeId() == TypeIds_NativeFloatArray);
+
+        Assert(itemIndex < InvalidIndex); // Otherwise the code below could overflow and set length = 0
+
+        SparseArraySegment<double> *seg = (SparseArraySegment<double>*)this->GetLastUsedSegment();
+        uint32 offset = itemIndex - seg->left;
+        if (itemIndex >= seg->left && offset < seg->size)
+        {
+            DirectSetItemInLastUsedSegmentAt(offset, newValue);
+            return;
+        }
+        DirectSetItem_Full(itemIndex, newValue);
+    }
+
+    template <>
+    inline void JavascriptArray::DirectSetItemAt<Var>(uint32 itemIndex, Var newValue)
+    {
+        Assert_FailFast(this->GetTypeId() == TypeIds_Array || this->GetTypeId() == TypeIds_ES5Array);
+
+        Assert(itemIndex < InvalidIndex); // Otherwise the code below could overflow and set length = 0
+
+        SparseArraySegment<Var> *seg = (SparseArraySegment<Var>*)this->GetLastUsedSegment();
+        uint32 offset = itemIndex - seg->left;
+        if (itemIndex >= seg->left && offset < seg->size)
+        {
+            DirectSetItemInLastUsedSegmentAt(offset, newValue);
+            return;
+        }
+        DirectSetItem_Full(itemIndex, newValue);
+    }
+
+    template <typename T>
+    inline void JavascriptArray::DirectSetItemAt(uint32 itemIndex, T newValue)
+    {
+        Assert(itemIndex < InvalidIndex); // Otherwise the code below could overflow and set length = 0
+
+        SparseArraySegment<T> *seg = (SparseArraySegment<T>*)this->GetLastUsedSegment();
+        uint32 offset = itemIndex - seg->left;
+        if (itemIndex >= seg->left && offset < seg->size)
+        {
+            DirectSetItemInLastUsedSegmentAt(offset, newValue);
+            return;
+        }
+        DirectSetItem_Full(itemIndex, newValue);
+    }
+
+    inline void JavascriptArray::GenericDirectSetItemAt(const uint32 index, Var newValue)
+    {
+        this->DirectSetItemAt(index, newValue);
     }
 
     template<typename T>

@@ -25,7 +25,7 @@ const BYTE InterpreterThunkEmitter::StackAllocSize = 0x28;
 // Hence, we allocate 0x28 bytes of stack space for the callee to use. The callee uses 8 bytes to push the first
 // argument and the rest 0x20 ensures alignment is correct.
 //
-const BYTE InterpreterThunkEmitter::InterpreterThunk[] = {
+const BYTE InterpreterThunkEmitter::InterpreterThunk[INTERPRETER_THUNK_SIZE] = {
     0x48, 0x89, 0x54, 0x24, 0x10,                                  // mov         qword ptr [rsp+10h],rdx
     0x48, 0x89, 0x4C, 0x24, 0x08,                                  // mov         qword ptr [rsp+8],rcx
     0x4C, 0x89, 0x44, 0x24, 0x18,                                  // mov         qword ptr [rsp+18h],r8
@@ -69,7 +69,7 @@ const BYTE InterpreterThunkEmitter::ThunkAddressOffset = 61;
 const BYTE InterpreterThunkEmitter::PrologSize = 60;
 const BYTE InterpreterThunkEmitter::StackAllocSize = 0x0;
 
-const BYTE InterpreterThunkEmitter::InterpreterThunk[] = {
+const BYTE InterpreterThunkEmitter::InterpreterThunk[INTERPRETER_THUNK_SIZE] = {
     0x55,                                                       // push   rbp                   // Prolog - setup the stack frame
     0x48, 0x89, 0xe5,                                           // mov    rbp, rsp
     0x48, 0x8b, 0x47, 0x00,                                     // mov    rax, qword ptr [rdi + FunctionInfoOffset]
@@ -106,7 +106,7 @@ const BYTE InterpreterThunkEmitter::CallBlockStartAddressInstrOffset = 42;
 const BYTE InterpreterThunkEmitter::CallThunkSizeInstrOffset = 54;
 const BYTE InterpreterThunkEmitter::ErrorOffset = 64;
 
-const BYTE InterpreterThunkEmitter::InterpreterThunk[] = {
+const BYTE InterpreterThunkEmitter::InterpreterThunk[INTERPRETER_THUNK_SIZE] = {
     0x0F, 0xB4,                                                      // push        {r0-r3}
     0x2D, 0xE9, 0x00, 0x48,                                          // push        {r11,lr}
     0xEB, 0x46,                                                      // mov         r11,sp
@@ -152,7 +152,7 @@ const BYTE InterpreterThunkEmitter::DynamicThunkAddressOffset = 32;
 const BYTE InterpreterThunkEmitter::ThunkAddressOffset = 36;
 
 //TODO: saravind :Implement Range Check for ARM64
-const BYTE InterpreterThunkEmitter::InterpreterThunk[] = {
+const BYTE InterpreterThunkEmitter::InterpreterThunk[INTERPRETER_THUNK_SIZE] = {
     0xFD, 0x7B, 0xBB, 0xA9,                                         //stp         fp, lr, [sp, #-80]!   ;Prologue
     0xFD, 0x03, 0x00, 0x91,                                         //mov         fp, sp                ;update frame pointer to the stack pointer
     0xE0, 0x07, 0x01, 0xA9,                                         //stp         x0, x1, [sp, #16]     ;Prologue again; save all registers
@@ -192,7 +192,7 @@ const BYTE InterpreterThunkEmitter::ThunkSizeOffset = 26;
 const BYTE InterpreterThunkEmitter::ErrorOffset = 33;
 const BYTE InterpreterThunkEmitter::ThunkAddressOffset = 44;
 
-const BYTE InterpreterThunkEmitter::InterpreterThunk[] = {
+const BYTE InterpreterThunkEmitter::InterpreterThunk[INTERPRETER_THUNK_SIZE] = {
     0x55,                                                           //   push        ebp                ;Prolog - setup the stack frame
     0x8B, 0xEC,                                                     //   mov         ebp,esp
     0x8B, 0x45, 0x08,                                               //   mov         eax, dword ptr [ebp+8]
@@ -548,7 +548,7 @@ void InterpreterThunkEmitter::EncodeInterpreterThunk(
     __in const DWORD epilogSize,
     __in const intptr_t interpreterThunk)
 {
-    _Analysis_assume_(thunkSize == HeaderSize());
+    _Analysis_assume_(thunkSize == INTERPRETER_THUNK_SIZE);
     // Encode MOVW
     DWORD lowerThunkBits = (uint32)interpreterThunk & 0x0000FFFF;
     DWORD movW = EncodeMove(/*Opcode*/ 0x0000F240, /*register*/1, lowerThunkBits);
@@ -627,7 +627,7 @@ void InterpreterThunkEmitter::EncodeInterpreterThunk(
 {
     int addrOffset = ThunkAddressOffset;
 
-    _Analysis_assume_(thunkSize == HeaderSize());
+    _Analysis_assume_(thunkSize == INTERPRETER_THUNK_SIZE);
     AssertMsg(thunkSize == HeaderSize(), "Mismatch in the size of the InterpreterHeaderThunk and the thunkSize used in this API (EncodeInterpreterThunk)");
 
     // Following 4 MOV Instrs are to move the 64-bit address of the InterpreterThunk address into register x1.

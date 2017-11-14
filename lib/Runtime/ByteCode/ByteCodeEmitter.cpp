@@ -2073,7 +2073,7 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
                     this->m_writer.Property(Js::OpCode::StFuncExpr, sym->GetLocation(), scopeLocation,
                         funcInfo->FindOrAddReferencedPropertyId(sym->GetPosition()));
                 }
-                else if (funcInfo->bodyScope->GetIsObject())
+                else if ((funcInfo->paramScope->GetIsObject() || (funcInfo->paramScope->GetCanMerge() && funcInfo->bodyScope->GetIsObject())))
                 {
                     this->m_writer.ElementU(Js::OpCode::StLocalFuncExpr, sym->GetLocation(),
                         funcInfo->FindOrAddReferencedPropertyId(sym->GetPosition()));
@@ -2759,7 +2759,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
     // we're generating byte code.
     if (deferParseFunction->IsDeferred() || (funcInfo->originalAttributes & Js::FunctionInfo::Attributes::CanDefer))
     {
-        Js::ScopeInfo::SaveEnclosingScopeInfo(this, funcInfo);        
+        Js::ScopeInfo::SaveEnclosingScopeInfo(this, funcInfo);
     }
 
     if (funcInfo->root->sxFnc.pnodeBody == nullptr)
@@ -3390,7 +3390,7 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, ParseNode *breakOnBodySc
                 }
                 else
                 {
-                    // if asm.js parse error happened, reparse with asm.js disabled.
+                    // If deferral is not allowed, throw and reparse everything with asm.js disabled.
                     throw Js::AsmJsParseException();
                 }
             }
@@ -7924,7 +7924,6 @@ void EmitNew(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* f
     }
     else
     {
-
         uint32 actualArgCount = 0;
 
         if (IsCallOfConstants(pnode))
@@ -7949,8 +7948,10 @@ void EmitNew(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* f
 
 
             Js::AuxArray<uint32> *spreadIndices = nullptr;
+
             actualArgCount = EmitArgList(pnode->sxCall.pnodeArgs, Js::Constants::NoRegister, Js::Constants::NoRegister,
                 false, true, byteCodeGenerator, funcInfo, callSiteId, argCount, pnode->sxCall.hasDestructuring, pnode->sxCall.spreadArgCount, &spreadIndices);
+
             funcInfo->ReleaseLoc(pnode->sxCall.pnodeTarget);
 
             if (pnode->sxCall.spreadArgCount > 0)

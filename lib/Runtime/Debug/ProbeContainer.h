@@ -137,6 +137,9 @@ namespace Js
         // When on mutation breakpoint hit
         void DispatchMutationBreakpoint(InterpreterHaltState* pHaltState);
 
+        // When DOM mutation breakpoint hit
+        void DispatchDOMMutationBreakpoint();
+
         void UpdateStep(bool fDuringSetupDebugApp = false);
         void DeactivateStep();
 

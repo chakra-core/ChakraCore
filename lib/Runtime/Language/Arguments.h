@@ -85,6 +85,16 @@ inline int _count_args(const T1&, const T2&, const T3&, const T4&, Js::CallInfo 
     CALL_ENTRYPOINT_NOASSERT(function->GetEntryPoint(), \
                     function, callInfo, ##__VA_ARGS__)
 
+#if DBG && ENABLE_JS_REENTRANCY_CHECK
+#define SETOBJECT_FOR_MUTATION(reentrancyLock, arrayObject) reentrancyLock.setObjectForMutation(arrayObject)
+#define SET_SECOND_OBJECT_FOR_MUTATION(reentrancyLock, arrayObject) reentrancyLock.setSecondObjectForMutation(arrayObject)
+#define MUTATE_ARRAY_OBJECT(reentrancyLock) reentrancyLock.MutateArrayObject()
+#else
+#define SETOBJECT_FOR_MUTATION(reentrancyLock, arrayObject) 
+#define SET_SECOND_OBJECT_FOR_MUTATION(reentrancyLock, arrayObject) 
+#define MUTATE_ARRAY_OBJECT(reentrancyLock) 
+#endif
+
 #if ENABLE_JS_REENTRANCY_CHECK && DBG && ENABLE_NATIVE_CODEGEN
 #define CALL_FUNCTION(threadContext, function, callInfo, ...) \
     (threadContext->AssertJsReentrancy(), \
@@ -100,10 +110,18 @@ inline int _count_args(const T1&, const T2&, const T3&, const T4&, Js::CallInfo 
 #endif
 
 #if ENABLE_JS_REENTRANCY_CHECK
+#define JS_REENTRANCY_CHECK(threadContext, ...) \
+    (threadContext->AssertJsReentrancy(), \
+    __VA_ARGS__);
 #define CALL_ENTRYPOINT(threadContext, entryPoint, function, callInfo, ...) \
     (threadContext->AssertJsReentrancy(), \
     CALL_ENTRYPOINT_NOASSERT(entryPoint, function, callInfo, ##__VA_ARGS__));
 #define JS_REENTRANT(reentrancyLock, ...) \
+    reentrancyLock.unlock(); \
+    __VA_ARGS__; \
+    MUTATE_ARRAY_OBJECT(reentrancyLock); \
+    reentrancyLock.relock();
+#define JS_REENTRANT_NO_MUTATE(reentrancyLock, ...) \
     reentrancyLock.unlock(); \
     __VA_ARGS__; \
     reentrancyLock.relock();
@@ -117,6 +135,8 @@ inline int _count_args(const T1&, const T2&, const T3&, const T4&, Js::CallInfo 
 #define CALL_ENTRYPOINT(threadContext, entryPoint, function, callInfo, ...) \
     CALL_ENTRYPOINT_NOASSERT(entryPoint, function, callInfo, ##__VA_ARGS__);
 #define JS_REENTRANT(reentrancyLock, ...) \
+    __VA_ARGS__;
+#define JS_REENTRANT_NO_MUTATE(reentrancyLock, ...) \
     __VA_ARGS__;
 #define JS_REENTRANT_UNLOCK(reentrancyLock, ...) \
     __VA_ARGS__;

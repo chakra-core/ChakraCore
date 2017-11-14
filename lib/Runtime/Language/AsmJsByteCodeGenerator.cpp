@@ -1292,6 +1292,7 @@ namespace Js
             mWriter.EmptyAsm(OpCodeAsmJs::CheckHeap);
             mCompiler->SetUsesHeapBuffer(true);
         }
+
         EndStatement(pnode);
 
         return info;

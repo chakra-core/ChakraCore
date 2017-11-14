@@ -10,6 +10,7 @@
 
 ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data, HANDLE processHandle) :
     m_autoProcessHandle(processHandle),
+    m_processHandle(processHandle),
     m_threadContextData(*data),
     m_refCount(0),
     m_numericPropertyBV(nullptr),

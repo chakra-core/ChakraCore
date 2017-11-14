@@ -1798,7 +1798,7 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, const Function
     else
     {
         // We patch later for constructor inlining.
-        Assert(
+        AssertOrFailFast(
             callInstr->m_opcode == Js::OpCode::NewScObject ||
             callInstr->m_opcode == Js::OpCode::NewScObjArray);
     }

@@ -297,10 +297,6 @@ namespace Js
         Field(JavascriptSymbol*) symbolToPrimitive;
         Field(JavascriptSymbol*) symbolToStringTag;
         Field(JavascriptSymbol*) symbolUnscopables;
-        Field(JavascriptFunction*) arrayPrototypeForEachFunction;
-        Field(JavascriptFunction*) arrayPrototypeKeysFunction;
-        Field(JavascriptFunction*) arrayPrototypeValuesFunction;
-        Field(JavascriptFunction*) arrayPrototypeEntriesFunction;
 
     public:
         Field(ScriptContext*) scriptContext;
@@ -311,6 +307,10 @@ namespace Js
         virtual void Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
 
     protected:
+        Field(JavascriptFunction*) arrayPrototypeForEachFunction;
+        Field(JavascriptFunction*) arrayPrototypeKeysFunction;
+        Field(JavascriptFunction*) arrayPrototypeValuesFunction;
+        Field(JavascriptFunction*) arrayPrototypeEntriesFunction;
         Field(JavascriptFunction*) debugEval;
         Field(JavascriptFunction*) getStackTrace;
 #ifdef EDIT_AND_CONTINUE

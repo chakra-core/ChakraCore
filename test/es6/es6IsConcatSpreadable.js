@@ -677,6 +677,65 @@ var tests = [
             test([undefined, NaN, function(){}]);
         }
     },
+    {
+        name: "[@@isConcatSpreadable] should be called once when the destination array changes it's type",
+        body: function ()
+        {
+            var obj1 = [21];
+            var arr2 = [1];
+            var arr2ICSCalled = 0;
+            Object.defineProperty(arr2,  Symbol.isConcatSpreadable, { get : function() { arr2ICSCalled++; dst[2] = {}; return false; } } );
+
+            var dst = [1, 2, 3];
+            var FakeConstructor = function () {
+                return dst;
+            };
+
+            FakeConstructor[Symbol.species] = FakeConstructor;
+
+            var arr = [2, 4];
+            arr.constructor = FakeConstructor;
+
+            var out = arr.concat(arr2, obj1);
+            areEqual(1, arr2ICSCalled, 'isConcatSpreadable for arr2 should be called once');
+            areEqual([2, 4, [1], 21], out);
+        }
+    },
+    {
+        name: "[@@isConcatSpreadable] the array 'arr2' should be spread to dest array, regardless of dest array changed to ES5 array during the IsConcatSpreadable call",
+        body: function ()
+        {
+            var obj1 = [21, 22];
+            var arr2 = [1, 2, 3];
+            var first = true;
+            var arr2ICSCalled = 0;
+            Object.defineProperty(arr2,  Symbol.isConcatSpreadable, { get : function() {
+                arr2ICSCalled++; 
+                if (first) {
+                    // Changin the array to ES5 array.
+                    Object.defineProperty(dst,  "2", { get : function() { return 1; } } );
+
+                    first = false;
+                }
+                return true; 
+                } 
+            } );
+
+            var dst = [1, 2, 3];
+            var FakeConstructor = function () {
+                return dst;
+            };
+
+            FakeConstructor[Symbol.species] = FakeConstructor;
+
+            var arr = [2, 4];
+            arr.constructor = FakeConstructor;
+
+            var out = arr.concat(arr2, obj1);
+            areEqual(1, arr2ICSCalled, 'isConcatSpreadable for arr2 should be called once');
+            areEqual([2,4,1,2,3,21,22], out, 'arr2 should be part of the spread');
+        }
+    },
     ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

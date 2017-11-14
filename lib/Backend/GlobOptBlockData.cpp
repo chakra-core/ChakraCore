@@ -1052,16 +1052,16 @@ GlobOptBlockData::MergeValueInfo(
     ValueInfo *const toDataValueInfo = toDataVal->GetValueInfo();
     ValueInfo *const fromDataValueInfo = fromDataVal->GetValueInfo();
 
-    // Same value
-    if (toDataValueInfo == fromDataValueInfo)
-    {
-        return toDataValueInfo;
-    }
-
     if (toDataValueInfo->IsJsType() || fromDataValueInfo->IsJsType())
     {
         Assert(toDataValueInfo->IsJsType() && fromDataValueInfo->IsJsType());
         return this->MergeJsTypeValueInfo(toDataValueInfo->AsJsType(), fromDataValueInfo->AsJsType(), isLoopBackEdge, sameValueNumber);
+    }
+
+    // Same value
+    if (toDataValueInfo == fromDataValueInfo)
+    {
+        return toDataValueInfo;
     }
 
     ValueType newValueType(toDataValueInfo->Type().Merge(fromDataValueInfo->Type()));
@@ -1118,8 +1118,6 @@ GlobOptBlockData::MergeValueInfo(
 JsTypeValueInfo*
 GlobOptBlockData::MergeJsTypeValueInfo(JsTypeValueInfo * toValueInfo, JsTypeValueInfo * fromValueInfo, bool isLoopBackEdge, bool sameValueNumber)
 {
-    Assert(toValueInfo != fromValueInfo);
-
     // On loop back edges we must be conservative and only consider type values which are invariant throughout the loop.
     // That's because in dead store pass we can't correctly track object pointer assignments (o = p), and we may not
     // be able to register correct type checks for the right properties upstream. If we ever figure out how to enhance
@@ -1127,6 +1125,11 @@ GlobOptBlockData::MergeJsTypeValueInfo(JsTypeValueInfo * toValueInfo, JsTypeValu
     if (isLoopBackEdge && !sameValueNumber)
     {
         return nullptr;
+    }
+
+    if (toValueInfo == fromValueInfo)
+    {
+        return toValueInfo;
     }
 
     const JITTypeHolder toType = toValueInfo->GetJsType();

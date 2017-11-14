@@ -25267,6 +25267,7 @@ Lowerer::LowerFrameDisplayCheck(IR::Instr * instr)
                 indirOpnd = IR::IndirOpnd::New(slotArrayOpnd,
                                                Js::ScopeSlots::EncodedSlotCountSlotIndex * sizeof(Js::Var),
                                                TyVar, m_func, true);
+
                 IR::IntConstOpnd * slotIdOpnd = IR::IntConstOpnd::New(slotId - Js::ScopeSlots::FirstSlotIndex,
                                                                       TyUint32, m_func);
                 InsertCompareBranch(indirOpnd, slotIdOpnd, Js::OpCode::BrLe_A, true, errorLabel, insertInstr);

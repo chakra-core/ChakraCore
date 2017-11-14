@@ -1962,3 +1962,4 @@ private:
 #define RELEASE_TEMP_GUEST_ALLOCATOR(allocator, scriptContext) \
     if (tempGuest##allocator) \
     scriptContext->ReleaseTemporaryGuestAllocator(tempGuest##allocator);
+

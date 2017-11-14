@@ -746,21 +746,25 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        JavascriptString *argString = JavascriptString::FromVar(args.Values[1]);
-        PCWSTR passedLocale = argString->GetSz();
+        Var toReturn = nullptr;
+        ENTER_PINNED_SCOPE(JavascriptString, localeStrings);
+        localeStrings = JavascriptString::FromVar(args.Values[1]);
+        PCWSTR passedLocale = localeStrings->GetSz();
 
 #if defined(INTL_ICU)
         char16 resolvedLocaleName[ULOC_FULLNAME_CAPACITY] = { 0 };
         if (ResolveLocaleBestFit(passedLocale, resolvedLocaleName))
         {
-            return JavascriptString::NewCopySz(resolvedLocaleName, scriptContext);
+            toReturn = JavascriptString::NewCopySz(resolvedLocaleName, scriptContext);
         }
-
+        else
+        {
 #ifdef INTL_ICU_DEBUG
-        Output::Print(_u("Intl::ResolveLocaleBestFit returned false: EntryIntl_ResolveLocaleBestFit returning null to fallback to JS\n"));
+            Output::Print(_u("Intl::ResolveLocaleBestFit returned false: EntryIntl_ResolveLocaleBestFit returning null to fallback to JS\n"));
 #endif
-        return scriptContext->GetLibrary()->GetNull();
-#else
+            toReturn = scriptContext->GetLibrary()->GetNull();
+        }
+#else // !INTL_ICU
         DelayLoadWindowsGlobalization* wgl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
         WindowsGlobalizationAdapter* wga = GetWindowsGlobalizationAdapter(scriptContext);
 
@@ -771,6 +775,7 @@ namespace Js
             HandleOOMSOEHR(hr);
             return scriptContext->GetLibrary()->GetUndefined();
         }
+
         AutoHSTRING locale;
         if (FAILED(hr = wga->GetResolvedLanguage(formatter, &locale)))
         {
@@ -778,8 +783,13 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        return JavascriptString::NewCopySz(wgl->WindowsGetStringRawBuffer(*locale, NULL), scriptContext);
+        toReturn = JavascriptString::NewCopySz(wgl->WindowsGetStringRawBuffer(*locale, NULL), scriptContext);
+
 #endif
+
+        LEAVE_PINNED_SCOPE();   // localeStrings
+
+        return toReturn;
     }
 
     Var IntlEngineInterfaceExtensionObject::EntryIntl_GetDefaultLocale(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1267,12 +1277,18 @@ namespace Js
         }
 
         DWORD compareFlags = 0;
-        JavascriptString* str1 = JavascriptString::FromVar(args.Values[1]);
-        JavascriptString* str2 = JavascriptString::FromVar(args.Values[2]);
-
+        int compareResult = 0;
+        DWORD lastError = S_OK;
         WCHAR defaultLocale[LOCALE_NAME_MAX_LENGTH];
         const char16 *givenLocale = nullptr;
         defaultLocale[0] = '\0';
+
+        ENTER_PINNED_SCOPE(JavascriptString, str1);
+        ENTER_PINNED_SCOPE(JavascriptString, str2);
+        ENTER_PINNED_SCOPE(JavascriptString, givenLocaleStr);
+        str1 = JavascriptString::FromVar(args.Values[1]);
+        str2 = JavascriptString::FromVar(args.Values[2]);
+        givenLocaleStr = nullptr;
 
         if (!JavascriptOperators::IsUndefinedObject(args.Values[3]))
         {
@@ -1280,7 +1296,8 @@ namespace Js
             {
                 return scriptContext->GetLibrary()->GetUndefined();
             }
-            givenLocale = JavascriptString::FromVar(args.Values[3])->GetSz();
+            givenLocaleStr = JavascriptString::FromVar(args.Values[3]);
+            givenLocale = givenLocaleStr->GetSz();
         }
 
         if (!JavascriptOperators::IsUndefinedObject(args.Values[4]))
@@ -1332,8 +1349,6 @@ namespace Js
             JavascriptError::MapAndThrowError(scriptContext, HRESULT_FROM_WIN32(GetLastError()));
         }
 
-        int compareResult = 0;
-        DWORD lastError = S_OK;
         BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, _u("localeCompare"))
         {
             using namespace PlatformAgnostic;
@@ -1378,6 +1393,10 @@ namespace Js
             }
         }
         END_TEMP_ALLOCATOR(tempAllocator, scriptContext);
+
+        LEAVE_PINNED_SCOPE();   //  str1
+        LEAVE_PINNED_SCOPE();   //  str2
+        LEAVE_PINNED_SCOPE();   //  givenLocaleStr
 
         // CompareStringEx returns 1, 2, 3 on success; 2 if the strings are equal, 1 if the first string is lexically less than second, 3 otherwise.
         if (compareResult != 0)
