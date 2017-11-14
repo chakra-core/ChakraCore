@@ -226,8 +226,9 @@ private:
     // General 3-operand instructions (ADD, AND, SUB, etc) follow a very standard pattern
     template<typename _RegFunc32, typename _RegFunc64> int EmitOp3Register(Arm64CodeEmitter &Emitter, IR::Instr* instr, _RegFunc32 reg32, _RegFunc64 reg64);
     template<typename _RegFunc32, typename _RegFunc64> int EmitOp3RegisterShifted(Arm64CodeEmitter &Emitter, IR::Instr* instr, SHIFT_EXTEND_TYPE shiftType, int shiftAmount, _RegFunc32 reg32, _RegFunc64 reg64);
-        template<typename _ImmFunc32, typename _ImmFunc64> int EmitOp3Immediate(Arm64CodeEmitter &Emitter, IR::Instr* instr, _ImmFunc32 imm32, _ImmFunc64 imm64);
+    template<typename _ImmFunc32, typename _ImmFunc64> int EmitOp3Immediate(Arm64CodeEmitter &Emitter, IR::Instr* instr, _ImmFunc32 imm32, _ImmFunc64 imm64);
     template<typename _RegFunc32, typename _RegFunc64, typename _ImmFunc32, typename _ImmFunc64> int EmitOp3RegisterOrImmediate(Arm64CodeEmitter &Emitter, IR::Instr* instr, _RegFunc32 reg32, _RegFunc64 reg64, _ImmFunc32 imm32, _ImmFunc64 imm64);
+    template<typename _RegFunc32, typename _RegFunc64, typename _ImmFunc32, typename _ImmFunc64> int EmitOp3RegisterOrImmediateExtendSP(Arm64CodeEmitter &Emitter, IR::Instr* instr, _RegFunc32 reg32, _RegFunc64 reg64, _ImmFunc32 imm32, _ImmFunc64 imm64);
 
     // Load/store operations
     int EmitPrefetch(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR::Opnd* memOpnd);

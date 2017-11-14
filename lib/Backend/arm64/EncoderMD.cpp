@@ -313,9 +313,20 @@ int EncoderMD::EmitOp3RegisterOrImmediate(Arm64CodeEmitter &Emitter, IR::Instr* 
     }
     else
     {
-        Assert(false);
+        AssertMsg(false, "EmitOp3RegisterOrImmediate failed to encode");
         return 0;
     }
+}
+
+template<typename _RegFunc32, typename _RegFunc64, typename _ImmFunc32, typename _ImmFunc64>
+int EncoderMD::EmitOp3RegisterOrImmediateExtendSP(Arm64CodeEmitter &Emitter, IR::Instr* instr, _RegFunc32 reg32, _RegFunc64 reg64, _ImmFunc32 imm32, _ImmFunc64 imm64)
+{
+    if (instr->GetSrc1()->AsRegOpnd()->GetReg() == RegSP)
+    {
+        return this->EmitOp3RegisterShifted(Emitter, instr, EXTEND_UXTX, 0, reg32, reg64);
+    }
+
+    return EmitOp3RegisterOrImmediate(Emitter, instr, reg32, reg64, imm32, imm64);
 }
 
 int EncoderMD::EmitPrefetch(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR::Opnd* memOpnd)
@@ -404,7 +415,7 @@ int EncoderMD::EmitLoadStorePair(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR
     if (DecodeMemoryOpnd(memOpnd, baseReg, indexReg, indexScale, offset))
     {
         // Should never get here
-        Assert(false);
+        AssertMsg(false, "EmitLoadStorePair failed to encode");
         return 0;
     }
     else
@@ -636,7 +647,7 @@ int EncoderMD::EmitLoadStoreFp(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR::
     if (DecodeMemoryOpnd(memOpnd, baseReg, indexReg, indexScale, offset))
     {
         // Should never get here
-        Assert(false);
+        AssertMsg(false, "EmitLoadStoreFp failed to encode");
         return 0;
     }
     else
@@ -660,7 +671,7 @@ int EncoderMD::EmitLoadStoreFpPair(Arm64CodeEmitter &Emitter, IR::Instr* instr, 
     if (DecodeMemoryOpnd(memOpnd, baseReg, indexReg, indexScale, offset))
     {
         // Should never get here
-        Assert(false);
+        AssertMsg(false, "EmitLoadStoreFpPair failed to encode");
         return 0;
     }
     else
@@ -702,7 +713,7 @@ int EncoderMD::EmitConvertToInt(Arm64CodeEmitter &Emitter, IR::Instr* instr, _In
     }
     
     // Shouldn't get here
-    Assert(false);
+    AssertMsg(false, "EmitConvertToInt failed to encode");
     return 0;
 }
 
@@ -731,7 +742,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         break;
 
     case Js::OpCode::ADDS:
-        bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitAddsRegister, EmitAddsRegister64, EmitAddsImmediate, EmitAddsImmediate64);
+        bytes = this->EmitOp3RegisterOrImmediateExtendSP(Emitter, instr, EmitAddsRegister, EmitAddsRegister64, EmitAddsImmediate, EmitAddsImmediate64);
         break;
 
     case Js::OpCode::ADR:
@@ -1077,7 +1088,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         break;
 
     case Js::OpCode::SUBS:
-        bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitSubsRegister, EmitSubsRegister64, EmitSubsImmediate, EmitSubsImmediate64);
+        bytes = this->EmitOp3RegisterOrImmediateExtendSP(Emitter, instr, EmitSubsRegister, EmitSubsRegister64, EmitSubsImmediate, EmitSubsImmediate64);
         break;
 
     case Js::OpCode::SUB_LSL4:

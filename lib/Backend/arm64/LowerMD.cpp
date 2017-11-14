@@ -443,44 +443,29 @@ LowererMD::GenerateFunctionObjectTest(IR::Instr * callInstr, IR::RegOpnd  *funct
 {
     AssertMsg(!m_func->IsJitInDebugMode() || continueAfterExLabel, "When jit is in debug mode, continueAfterExLabel must be provided otherwise continue after exception may cause AV.");
 
+    // Need check and error if we are calling a tagged int.
     if (!functionObjOpnd->IsNotTaggedValue())
     {
-        IR::Instr * insertBeforeInstr = callInstr;
-        // Need check and error if we are calling a tagged int.
-        if (!functionObjOpnd->IsTaggedInt())
+        IR::LabelInstr * helperLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
+        if (this->GenerateObjectTest(functionObjOpnd, callInstr, helperLabel))
         {
-            // TST functionObjOpnd, 1
-            IR::Instr * instr = IR::Instr::New(Js::OpCode::TST, this->m_func);
-            instr->SetSrc1(functionObjOpnd);
-            instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag, TyMachReg, this->m_func));
-            callInstr->InsertBefore(instr);
-            LegalizeMD::LegalizeInstr(instr, false);
-
-            // BNE $helper
-            // B $callLabel
-
-            IR::LabelInstr * helperLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-            instr = IR::BranchInstr::New(Js::OpCode::BNE, helperLabel, this->m_func);
-            callInstr->InsertBefore(instr);
 
             IR::LabelInstr * callLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, isHelper);
-            instr = IR::BranchInstr::New(Js::OpCode::B, callLabel, this->m_func);
+            IR::Instr * instr = IR::BranchInstr::New(Js::OpCode::B, callLabel, this->m_func);
             callInstr->InsertBefore(instr);
 
             callInstr->InsertBefore(helperLabel);
             callInstr->InsertBefore(callLabel);
 
-            insertBeforeInstr = callLabel;
-        }
+            this->m_lowerer->GenerateRuntimeError(callLabel, JSERR_NeedFunction);
 
-        this->m_lowerer->GenerateRuntimeError(insertBeforeInstr, JSERR_NeedFunction);
-
-        if (continueAfterExLabel)
-        {
-            // Under debugger the RuntimeError (exception) can be ignored, generate branch right after RunTimeError instr
-            // to jmp to a safe place (which would normally be debugger bailout check).
-            IR::BranchInstr* continueAfterEx = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, continueAfterExLabel, this->m_func);
-            insertBeforeInstr->InsertBefore(continueAfterEx);
+            if (continueAfterExLabel)
+            {
+                // Under debugger the RuntimeError (exception) can be ignored, generate branch to jmp to safe place
+                // (which would normally be debugger bailout check).
+                IR::BranchInstr* continueAfterEx = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, continueAfterExLabel, this->m_func);
+                callLabel->InsertBefore(continueAfterEx);
+            }
         }
     }
 }
@@ -1504,7 +1489,7 @@ LowererMD::LowerTry(IR::Instr * tryInstr, IR::JnHelperMethod helperMethod)
     if (tryInstr->m_opcode == Js::OpCode::TryCatch || this->m_func->DoOptimizeTry())
     {
         // Arg 6 : hasBailedOutOffset
-        IR::Opnd * hasBailedOutOffset = IR::IntConstOpnd::New(this->m_func->m_hasBailedOutSym->m_offset, TyInt32, this->m_func);
+        IR::Opnd * hasBailedOutOffset = IR::IntConstOpnd::New(this->m_func->m_hasBailedOutSym->m_offset + tryInstr->m_func->GetInlineeArgumentStackSize(), TyInt32, this->m_func);
         this->LoadHelperArgument(tryAddr, hasBailedOutOffset);
     }
 
@@ -2106,18 +2091,27 @@ LowererMD::ChangeToAssign(IR::Instr * instr, IRType destType)
     }
     else if (TySize[destType] > TySize[srcType] && (IRType_IsSignedInt(destType) || IRType_IsUnsignedInt(destType)))
     {
+        IR::Opnd *newSrcOpnd = src;
+
+        // If we have a indirect opnd and a scale we can't just change the source type, move the result to scratch reg and use that as src
+        if (newSrcOpnd->IsIndirOpnd() && newSrcOpnd->AsIndirOpnd()->GetScale() != 0)
+        {
+            newSrcOpnd = IR::RegOpnd::New(nullptr, SCRATCH_REG, srcType, instr->m_func);
+            Lowerer::InsertMove(newSrcOpnd, src, instr);
+            Assert(TySize[newSrcOpnd->GetType()] >= TySize[srcType]);
+        }
         // If we're moving between different lengths of registers, we need to use the
         // right operator - sign extend if the source is int, zero extend if uint.
         if (IRType_IsSignedInt(srcType))
         {
-            instr->ReplaceSrc1(src->UseWithNewType(IRType_EnsureSigned(destType), instr->m_func));
-            instr->SetSrc2(IR::IntConstOpnd::New(BITFIELD(0, (TySize[srcType] * MachBits) - 1), TyMachReg, instr->m_func, true));
+            instr->ReplaceSrc1(newSrcOpnd->UseWithNewType(IRType_EnsureSigned(destType), instr->m_func));
+            instr->SetSrc2(IR::IntConstOpnd::New(BITFIELD(0, TySize[srcType] * MachBits), TyMachReg, instr->m_func, true));
             instr->m_opcode = Js::OpCode::SBFX;
         }
         else if (IRType_IsUnsignedInt(srcType))
         {
-            instr->ReplaceSrc1(src->UseWithNewType(IRType_EnsureUnsigned(destType), instr->m_func));
-            instr->SetSrc2(IR::IntConstOpnd::New(BITFIELD(0, (TySize[srcType] * MachBits) - 1), TyMachReg, instr->m_func, true));
+            instr->ReplaceSrc1(newSrcOpnd->UseWithNewType(IRType_EnsureUnsigned(destType), instr->m_func));
+            instr->SetSrc2(IR::IntConstOpnd::New(BITFIELD(0, TySize[srcType] * MachBits), TyMachReg, instr->m_func, true));
             instr->m_opcode = Js::OpCode::UBFX;
         }
         else

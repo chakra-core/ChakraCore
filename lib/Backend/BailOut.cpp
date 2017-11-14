@@ -1614,7 +1614,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
     }
     if (isInlinee)
     {
-        newInstance->OrFlags(Js::InterpreterStackFrameFlags_FromInlineeCodeInEHBailOut);
+        newInstance->OrFlags(Js::InterpreterStackFrameFlags_FromBailOutInInlinee);
     }
 
     ThreadContext *threadContext = newInstance->GetScriptContext()->GetThreadContext();

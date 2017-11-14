@@ -54,6 +54,7 @@
     mov     x9, x3                              ; copy values pointer to x9
 
 #if _CONTROL_FLOW_GUARD
+    mov     x15, x4                             ; __guard_check_icall_fptr requires the call target in x15
     adrp    x16, __guard_check_icall_fptr       ;
     ldr     x16, [x16, __guard_check_icall_fptr]; fetch address of guard check handler
     blr     x16                                 ; call it
