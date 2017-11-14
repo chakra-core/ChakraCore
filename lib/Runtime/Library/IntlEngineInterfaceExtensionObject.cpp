@@ -681,7 +681,7 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        JavascriptString* toReturn = nullptr;
+        Var toReturn = nullptr;
         ENTER_PINNED_SCOPE(JavascriptString, localeStrings);
         localeStrings = JavascriptString::FromVar(args.Values[1]);
         PCWSTR passedLocale = localeStrings->GetSz();
@@ -690,14 +690,16 @@ namespace Js
         char16 resolvedLocaleName[ULOC_FULLNAME_CAPACITY] = { 0 };
         if (ResolveLocaleBestFit(passedLocale, resolvedLocaleName))
         {
-            return JavascriptString::NewCopySz(resolvedLocaleName, scriptContext);
+            toReturn = JavascriptString::NewCopySz(resolvedLocaleName, scriptContext);
         }
-
+        else
+        {
 #ifdef INTL_ICU_DEBUG
-        Output::Print(_u("Intl::ResolveLocaleBestFit returned false: EntryIntl_ResolveLocaleBestFit returning null to fallback to JS\n"));
+            Output::Print(_u("Intl::ResolveLocaleBestFit returned false: EntryIntl_ResolveLocaleBestFit returning null to fallback to JS\n"));
 #endif
-        return scriptContext->GetLibrary()->GetNull();
-#else
+            toReturn = scriptContext->GetLibrary()->GetNull();
+        }
+#else // !INTL_ICU
         DelayLoadWindowsGlobalization* wgl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
         WindowsGlobalizationAdapter* wga = GetWindowsGlobalizationAdapter(scriptContext);
 
@@ -718,10 +720,11 @@ namespace Js
 
         toReturn = JavascriptString::NewCopySz(wgl->WindowsGetStringRawBuffer(*locale, NULL), scriptContext);
 
+#endif
+
         LEAVE_PINNED_SCOPE();   // localeStrings
 
         return toReturn;
-#endif
     }
 
     Var IntlEngineInterfaceExtensionObject::EntryIntl_GetDefaultLocale(RecyclableObject* function, CallInfo callInfo, ...)
