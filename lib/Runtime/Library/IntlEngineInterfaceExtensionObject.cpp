@@ -214,7 +214,7 @@ namespace Js
     class AutoIcuJsObject : public FinalizableObject
     {
     private:
-        T *instance;
+        FieldNoBarrier(T *) instance;
 
     public:
         DEFINE_VTABLE_CTOR_NOBASE(AutoIcuJsObject<T>);
