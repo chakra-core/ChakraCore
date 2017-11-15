@@ -1,12 +1,12 @@
 
-shadowingBug.js(1, 97)
+[Dynamic code](1, 97)
 	Asm.js Compilation Error function : None::f1
 	Invalid identifier f64
 
 Asm.js compilation failed.
 0
 
-shadowingBug.js(1, 97)
+[Dynamic code](1, 97)
 	Asm.js Compilation Error function : None::f1
 	Invalid identifier f64
 
