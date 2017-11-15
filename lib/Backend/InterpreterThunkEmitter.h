@@ -90,7 +90,7 @@ private:
 #elif defined(_M_ARM)
 #define INTERPRETER_THUNK_SIZE 72
 #elif defined(_M_ARM64)
-#define INTERPRETER_THUNK_SIZE 60
+#define INTERPRETER_THUNK_SIZE 64
 #else
 #define INTERPRETER_THUNK_SIZE 56
 #endif
