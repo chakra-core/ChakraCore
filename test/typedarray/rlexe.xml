@@ -117,6 +117,12 @@
         <baseline>nan.x64.baseline</baseline>
       </override>
     </condition>
+    <condition order="2" type="include">
+      <target>arm64</target>
+      <override>
+        <baseline>nan.x64.baseline</baseline>
+      </override>
+    </condition>
   </test>
   <test>
     <default>
