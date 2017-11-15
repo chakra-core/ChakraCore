@@ -250,7 +250,7 @@
     <files>response.js</files>
     <baseline>baselines/response.baseline</baseline>
     <compile-flags>-wasm</compile-flags>
-    <tags>exclude_jshost,exclude_drt,exclude_win7,exclude_xplat</tags>
+    <tags>exclude_jshost,exclude_drt,exclude_win7</tags>
   </default>
 </test>
 <test>

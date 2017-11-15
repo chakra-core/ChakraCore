@@ -393,7 +393,12 @@ PHASE(All)
 #endif
 #endif // #ifdef ENABLE_SIMDJS
 
+#ifdef _WIN32
 #define DEFAULT_CONFIG_Wasm               (true)
+#else
+// Do not enable wasm by default on xplat builds
+#define DEFAULT_CONFIG_Wasm               (false)
+#endif
 #define DEFAULT_CONFIG_WasmI64            (false)
 #if ENABLE_FAST_ARRAYBUFFER
     #define DEFAULT_CONFIG_WasmFastArray    (true)
