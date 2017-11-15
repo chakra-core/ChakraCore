@@ -10,6 +10,7 @@ namespace Js
     {
     private:
         Field(PropertyString*) propertyString;
+        Field(const Js::PropertyRecord*) propertyRecord;
 
     public:
         virtual Js::PropertyRecord const * GetPropertyRecord(bool dontLookupFromDictionary = false) override;
@@ -272,7 +273,8 @@ namespace Js
         static uint32 GetOffsetOfSlots() { return offsetof(ConcatStringMulti, m_slots); }
     protected:
         Field(uint) slotCount;
-        Field(uint) __alignment;
+        Field(uint)   __alignment;
+        Field(size_t) __alignmentPTR;
         Field(JavascriptString*) m_slots[];   // These contain the child nodes.
 
 #if DBG
