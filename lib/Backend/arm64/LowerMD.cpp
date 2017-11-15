@@ -2089,8 +2089,64 @@ LowererMD::ChangeToAssign(IR::Instr * instr, IRType destType)
             instr->ReplaceSrc1(instr->GetSrc1()->UseWithNewType(TyFloat64, instr->m_func));
         }
     }
+    else if (IRType_IsFloat(destType) && !IRType_IsFloat(srcType))
+    {
+        // We're moving an integer into a float reg. This needs a particular instruction.
+        IR::Opnd *newSrcOpnd = src;
+
+        // If we have a indirect opnd and a scale we can't just change the source type, move the result to scratch reg and use that as src
+        if ((newSrcOpnd->IsIndirOpnd() && newSrcOpnd->AsIndirOpnd()->GetScale() != 0) || (TySize[srcType] != TySize[TyUint32] && TySize[srcType] != TySize[TyUint64]))
+        {
+            IRType newSrcType = srcType;
+            if (TySize[srcType] != TySize[TyUint32] && TySize[srcType] != TySize[TyUint64])
+            {
+                Assert(TySize[srcType] < TySize[TyUint32]);
+                // We need to grow the input value with this move-to-temp, as the
+                // smallest CVTF is from a whole 32-bit reg.
+                if (IRType_IsSignedInt(srcType))
+                {
+                    newSrcType = TyInt32;
+                }
+                else if (IRType_IsUnsignedInt(srcType))
+                {
+                    newSrcType = TyUint32;
+                }
+                else
+                {
+                    AssertMsg(false, "Unexpected non-int");
+                }
+            }
+            newSrcOpnd = IR::RegOpnd::New(nullptr, SCRATCH_REG, newSrcType, instr->m_func);
+            Lowerer::InsertMove(newSrcOpnd, src, instr);
+            Assert(TySize[newSrcOpnd->GetType()] >= TySize[srcType]);
+            srcType = newSrcType;
+        }
+
+        Assert(IRType_IsSignedInt(srcType) || IRType_IsUnsignedInt(srcType));
+        instr->ReplaceSrc1(newSrcOpnd->Use(instr->m_func));
+        instr->m_opcode = Js::OpCode::FCVT;
+    }
+    else if (!IRType_IsFloat(destType) && IRType_IsFloat(srcType))
+    {
+        Assert(IRType_IsSignedInt(destType) || IRType_IsUnsignedInt(destType));
+        // We're moving a float into an integer reg. This needs a particular instruction.
+        IR::Opnd *newSrcOpnd = src;
+
+        // If we have a indirect opnd and a scale we can't just change the source type, move the result to scratch reg and use that as src
+        if ((newSrcOpnd->IsIndirOpnd() && newSrcOpnd->AsIndirOpnd()->GetScale() != 0))
+        {
+            newSrcOpnd = IR::RegOpnd::New(nullptr, SCRATCH_REG, srcType, instr->m_func);
+            Lowerer::InsertMove(newSrcOpnd, src, instr);
+            Assert(TySize[newSrcOpnd->GetType()] >= TySize[srcType]);
+        }
+
+        instr->ReplaceSrc1(newSrcOpnd->Use(instr->m_func));
+        instr->m_opcode = Js::OpCode::FCVTN;
+    }
     else if (TySize[destType] > TySize[srcType] && (IRType_IsSignedInt(destType) || IRType_IsUnsignedInt(destType)))
     {
+        // If we're moving an integer into a larger-size dest, we need to unsigned-
+        // or signed- extend it.
         IR::Opnd *newSrcOpnd = src;
 
         // If we have a indirect opnd and a scale we can't just change the source type, move the result to scratch reg and use that as src
@@ -6971,9 +7027,6 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
         //      dst = InsertMove call->dst (d0)
 
         // Src1
-        AssertMsg(instr->GetDst()->IsFloat(), "Currently accepting only float args for math helpers -- dst.");
-        AssertMsg(instr->GetSrc1()->IsFloat(), "Currently accepting only float args for math helpers -- src1.");
-        AssertMsg(!instr->GetSrc2() || instr->GetSrc2()->IsFloat(), "Currently accepting only float args for math helpers -- src2.");
         this->GenerateAssignForBuiltinArg((RegNum)FIRST_FLOAT_REG, instr->UnlinkSrc1(), instr);
 
         // Src2
