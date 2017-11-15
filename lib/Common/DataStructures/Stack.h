@@ -65,5 +65,11 @@ namespace JsUtil
         {
             list.Add(item);
         }
+
+        template<typename Fn>
+        void Map(Fn fn)
+        {
+            list.Map(fn);
+        }
     };
 }

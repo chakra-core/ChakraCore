@@ -418,6 +418,12 @@ typedef struct WasmSignatureIDL
     IDL_DEF([size_is(paramsCount)]) int * params;
 } WasmSignatureIDL;
 
+typedef struct WasmRegisterInfoIDL
+{
+    unsigned int location;
+    unsigned int type;
+} WasmRegisterInfoIDL;
+
 typedef struct TypedSlotInfo
 {
     boolean isValidType;
@@ -697,7 +703,7 @@ typedef struct CodeGenWorkItemIDL
     unsigned int loopNumber;
     unsigned int inlineeInfoCount;
     unsigned int symIdToValueTypeMapCount;
-    X64_PAD4(1)
+    unsigned int wasmLoopYieldRegCount;
     XProcNumberPageSegment * xProcNumberPageSegment;
 
     PolymorphicInlineCacheInfoIDL * selfInfo;
@@ -706,6 +712,8 @@ typedef struct CodeGenWorkItemIDL
 
     // TODO: OOP JIT, move loop body data to separate struct
     IDL_DEF([size_is(symIdToValueTypeMapCount)]) unsigned short * symIdToValueTypeMap;
+    // This is used only by WebAssembly Jit loop body
+    IDL_DEF([size_is(wasmLoopYieldRegCount)]) WasmRegisterInfoIDL * wasmLoopYieldRegs;
 
     FunctionJITTimeDataIDL * jitData;
     CHAKRA_PTR jittedLoopIterationsSinceLastBailoutAddr;
