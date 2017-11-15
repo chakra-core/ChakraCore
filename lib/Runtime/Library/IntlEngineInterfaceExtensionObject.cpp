@@ -747,8 +747,7 @@ namespace Js
         }
 
         Var toReturn = nullptr;
-        ENTER_PINNED_SCOPE(JavascriptString, localeStrings);
-        localeStrings = JavascriptString::FromVar(args.Values[1]);
+        JavascriptString *localeStrings = JavascriptString::FromVar(args.Values[1]);
         PCWSTR passedLocale = localeStrings->GetSz();
 
 #if defined(INTL_ICU)
@@ -786,8 +785,6 @@ namespace Js
         toReturn = JavascriptString::NewCopySz(wgl->WindowsGetStringRawBuffer(*locale, NULL), scriptContext);
 
 #endif
-
-        LEAVE_PINNED_SCOPE();   // localeStrings
 
         return toReturn;
     }
@@ -1283,12 +1280,8 @@ namespace Js
         const char16 *givenLocale = nullptr;
         defaultLocale[0] = '\0';
 
-        ENTER_PINNED_SCOPE(JavascriptString, str1);
-        ENTER_PINNED_SCOPE(JavascriptString, str2);
-        ENTER_PINNED_SCOPE(JavascriptString, givenLocaleStr);
-        str1 = JavascriptString::FromVar(args.Values[1]);
-        str2 = JavascriptString::FromVar(args.Values[2]);
-        givenLocaleStr = nullptr;
+        JavascriptString *str1 = JavascriptString::FromVar(args.Values[1]);
+        JavascriptString *str2 = JavascriptString::FromVar(args.Values[2]);
 
         if (!JavascriptOperators::IsUndefinedObject(args.Values[3]))
         {
@@ -1296,8 +1289,7 @@ namespace Js
             {
                 return scriptContext->GetLibrary()->GetUndefined();
             }
-            givenLocaleStr = JavascriptString::FromVar(args.Values[3]);
-            givenLocale = givenLocaleStr->GetSz();
+            givenLocale = JavascriptString::FromVar(args.Values[3])->GetSz();
         }
 
         if (!JavascriptOperators::IsUndefinedObject(args.Values[4]))
@@ -1393,10 +1385,6 @@ namespace Js
             }
         }
         END_TEMP_ALLOCATOR(tempAllocator, scriptContext);
-
-        LEAVE_PINNED_SCOPE();   //  str1
-        LEAVE_PINNED_SCOPE();   //  str2
-        LEAVE_PINNED_SCOPE();   //  givenLocaleStr
 
         // CompareStringEx returns 1, 2, 3 on success; 2 if the strings are equal, 1 if the first string is lexically less than second, 3 otherwise.
         if (compareResult != 0)
