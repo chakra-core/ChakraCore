@@ -56,11 +56,10 @@ private:
     charcount_t gapLength;
     char16* gap;
 
-    _Ret_notnull_ const PropertyRecord* GetPropertyRecord(_In_ JavascriptString* string);
     Var TryConvertPrimitiveObject(_In_ RecyclableObject* value);
     Var ToJSON(_In_ JavascriptString* key, _In_ RecyclableObject* valueObject);
     Var CallReplacerFunction(_In_opt_ RecyclableObject* holder, _In_ JavascriptString* key, _In_ Var value);
-    _Ret_notnull_ Var ReadValue(_In_ JavascriptString* key, _In_ const PropertyRecord* propertyRecord, _In_ RecyclableObject* holder);
+    _Ret_notnull_ Var ReadValue(_In_ JavascriptString* key, _In_opt_ const PropertyRecord* propertyRecord, _In_ RecyclableObject* holder);
     uint32 ReadArrayLength(_In_ RecyclableObject* value);
     JSONArray* ReadArray(_In_ RecyclableObject* arr, _In_ JSONObjectStack* objectStack);
 
