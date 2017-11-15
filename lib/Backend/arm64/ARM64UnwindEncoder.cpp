@@ -73,7 +73,11 @@ void Arm64XdataGenerator::Generate(PULONG prologStart, PULONG prologEnd, PULONG 
     // single records are capped to 0x40000 instructions, or 1MB total code size
     // future: if needed, break functions into parts
     ptrdiff_t functionLength = functionEnd - prologStart;
-    Assert(functionLength < 0x40000);
+    if (functionLength >= 0x40000)
+    {
+        // forcenative can hit this, so instead of asserting abort jit
+        throw Js::OperationAbortedException();
+    }
 
     // first generate the codes for prolog
     Arm64UnwindCodeGenerator generator;
