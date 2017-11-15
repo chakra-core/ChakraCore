@@ -28,7 +28,7 @@ JsrtExternalObject::JsrtExternalObject(JsrtExternalType * type, void *data) :
 }
 
 /* static */
-JsrtExternalObject* JsrtExternalObject::Create(void *data, JsFinalizeCallback finalizeCallback, Js::ScriptContext *scriptContext)
+JsrtExternalObject* JsrtExternalObject::Create(void *data, JsFinalizeCallback finalizeCallback, Js::RecyclableObject * prototype, Js::ScriptContext *scriptContext)
 {
     Js::DynamicType * dynamicType = scriptContext->GetLibrary()->GetCachedJsrtExternalType(reinterpret_cast<uintptr_t>(finalizeCallback));
 
@@ -41,7 +41,14 @@ JsrtExternalObject* JsrtExternalObject::Create(void *data, JsFinalizeCallback fi
     Assert(dynamicType->IsJsrtExternal());
     Assert(dynamicType->GetIsShared());
 
-    return RecyclerNewFinalized(scriptContext->GetRecycler(), JsrtExternalObject, static_cast<JsrtExternalType*>(dynamicType), data);
+    JsrtExternalObject * externalObject = RecyclerNewFinalized(scriptContext->GetRecycler(), JsrtExternalObject, static_cast<JsrtExternalType*>(dynamicType), data);
+
+    if (prototype != nullptr)
+    {
+        externalObject->SetPrototype(prototype);
+    }
+
+    return externalObject;
 }
 
 bool JsrtExternalObject::Is(Js::Var value)

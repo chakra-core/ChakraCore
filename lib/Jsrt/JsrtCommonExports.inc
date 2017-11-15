@@ -122,4 +122,12 @@
     JsHasOwnProperty
     JsCopyStringOneByte
     JsGetDataViewInfo
+    JsCreateExternalObjectWithPrototype
+    JsObjectGetProperty
+    JsObjectHasProperty
+    JsObjectSetProperty
+    JsObjectDeleteProperty
+    JsObjectHasOwnProperty
+    JsObjectGetOwnPropertyDescriptor
+    JsObjectDefineProperty
 #endif

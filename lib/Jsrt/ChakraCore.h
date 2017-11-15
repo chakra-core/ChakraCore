@@ -793,6 +793,28 @@ CHAKRA_API
         _Out_ bool *result);
 
 /// <summary>
+///     Creates a new object (with prototype) that stores some external data.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="data">External data that the object will represent. May be null.</param>
+/// <param name="finalizeCallback">
+///     A callback for when the object is finalized. May be null.
+/// </param>
+/// <param name="prototype">Prototype object or nullptr.</param>
+/// <param name="object">The new object.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsCreateExternalObjectWithPrototype(
+        _In_opt_ void *data,
+        _In_opt_ JsFinalizeCallback finalizeCallback,
+        _In_ JsValueRef prototype,
+        _Out_ JsValueRef *object);
+
+/// <summary>
 ///     Gets an object's property.
 /// </summary>
 /// <remarks>
