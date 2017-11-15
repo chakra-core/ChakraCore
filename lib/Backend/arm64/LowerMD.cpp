@@ -6713,7 +6713,7 @@ LowererMD::GenerateLdThisStrict(IR::Instr* insertInstr)
 
     // LDR r1, [r1 + offset(typeId)]
     {
-        IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(type, Js::Type::GetOffsetOfTypeId(), TyMachReg, this->m_func);
+        IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(type, Js::Type::GetOffsetOfTypeId(), TyInt32, this->m_func);
         Lowerer::InsertMove(typeId, indirOpnd, insertInstr);
     }
 
