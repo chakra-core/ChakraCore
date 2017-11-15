@@ -5782,7 +5782,7 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
         // Remove the tag
         // MOV r2, r2 [32-bit move zeros upper 32 bits and thus the tag]
         IR::Opnd * r2_32 = r2->UseWithNewType(TyInt32, this->m_func);
-        instr = IR::Instr::New(Js::OpCode::MOV, r2_32, r2_32, this->m_func);
+        instr = IR::Instr::New(Js::OpCode::MOV_TRUNC, r2_32, r2_32, this->m_func);
         insertInstr->InsertBefore(instr);
         r2 = r2_32->AsRegOpnd();
 
