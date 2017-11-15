@@ -853,7 +853,9 @@ namespace Js
             // Under some odd cases on x86, addressOfReturnAddress and stashed entry address need to be aligned.
             // This happens when code is generated using two stack pointers. One or both have the address of 
             // return address offset by 4, 8, or 12.
-            || ((uint)addressOfReturnAddress & ~0xFF) == ((uint)nativeLibraryEntryAddress & ~0xFF)
+            || (((uint)nativeLibraryEntryAddress - (uint)addressOfReturnAddress < 0x10) &&
+                *(void**)addressOfReturnAddress == *(void**)nativeLibraryEntryAddress
+               )
 #endif
             ;
     }
