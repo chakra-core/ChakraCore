@@ -1740,6 +1740,9 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         NativeCodeData::AllocatorNoFixup<BVFixed>* allocatorT = (NativeCodeData::AllocatorNoFixup<BVFixed>*)allocator;
         BVFixed * argOutFloat64Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
         BVFixed * argOutLosslessInt32Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+#ifdef _M_IX86
+        BVFixed * isOrphanedArgSlot = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+#endif
         // SIMD_JS
         BVFixed * argOutSimd128F4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
         BVFixed * argOutSimd128I4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
@@ -1772,7 +1775,8 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
             uint outParamCount = bailOutInfo->GetStartCallOutParamCount(i);
             startCallOutParamCounts[i] = outParamCount;
 #ifdef _M_IX86
-            startCallArgRestoreAdjustCounts[i] = bailOutInfo->startCallInfo[i].argRestoreAdjustCount;
+            uint orphanedArgCount = 0;
+            uint deadArgCount = 0;
             // Only x86 has a progression of pushes of out args, with stack alignment.
             bool fDoStackAdjust = false;
             if (!bailOutInfo->inlinedStartCall->Test(i))
@@ -1833,6 +1837,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                 currentBailOutRecord->argOutOffsetInfo->startCallIndex = i;
                 currentBailOutRecord->argOutOffsetInfo->startCallOutParamCounts = &startCallOutParamCounts[i];
 #ifdef _M_IX86
+                currentBailOutRecord->argOutOffsetInfo->isOrphanedArgSlot = isOrphanedArgSlot;
                 currentBailOutRecord->startCallArgRestoreAdjustCounts = &startCallArgRestoreAdjustCounts[i];
 #endif
                 currentBailOutRecord->argOutOffsetInfo->outParamOffsets = &outParamOffsets[outParamStart];
@@ -1842,13 +1847,13 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 
 #ifdef ENABLE_SIMDJS
                 // SIMD_JS
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128F4Syms  = argOutSimd128F4Syms;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128I4Syms  = argOutSimd128I4Syms  ;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128I8Syms  = argOutSimd128I8Syms  ;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128I16Syms = argOutSimd128I16Syms ;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128U4Syms  = argOutSimd128U4Syms  ;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128U8Syms  = argOutSimd128U8Syms  ;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128U16Syms = argOutSimd128U16Syms ;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128F4Syms = argOutSimd128F4Syms;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128I4Syms = argOutSimd128I4Syms;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128I8Syms = argOutSimd128I8Syms;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128I16Syms = argOutSimd128I16Syms;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128U4Syms = argOutSimd128U4Syms;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128U8Syms = argOutSimd128U8Syms;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128U16Syms = argOutSimd128U16Syms;
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128B4Syms = argOutSimd128U4Syms;
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128B8Syms = argOutSimd128U8Syms;
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128B16Syms = argOutSimd128U16Syms;
@@ -1866,6 +1871,11 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                 StackSym * sym = bailOutInfo->argOutSyms[argOutSlot];
                 if (sym == nullptr)
                 {
+#ifdef _M_IX86
+#if DBG
+                    deadArgCount++;
+#endif
+#endif
                     // This can happen when instr with bailout occurs before all ArgOuts for current call instr are processed.
                     continue;
                 }
@@ -2015,6 +2025,13 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                                     // Stack offset are negative, includes the PUSH EBP and return address
                                     outParamOffsets[outParamOffsetIndex] = sym->m_offset - (2 * MachPtr);
 #endif
+#ifdef _M_IX86
+                                    isOrphanedArgSlot->Set(outParamOffsetIndex);
+                                    bailOutInfo->startCallInfo[i].isOrphanedCall = true;
+#if DBG
+                                    orphanedArgCount++;
+#endif
+#endif
                                 }
 #ifdef _M_IX86
                                 else if (fDoStackAdjust)
@@ -2135,6 +2152,41 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 #endif
                 }
             }
+#ifdef _M_IX86
+            uint liveArgCount = bailOutInfo->startCallInfo[i /*startCallCount*/].argCount - orphanedArgCount - deadArgCount;
+            if (liveArgCount == 0)
+            {
+                bailOutInfo->startCallInfo[i].isOrphanedCall = true;
+            }
+#endif
+        }
+
+        for (int i = startCallCount - 1; i >= 0; i--)
+        {
+#ifdef _M_IX86
+            uint argRestoreAdjustCount = 0;
+            if (this->currentRegion && (this->currentRegion->GetType() == RegionTypeTry || this->currentRegion->GetType() == RegionTypeFinally))
+            {
+                // For a bailout in argument evaluation from an EH region, the esp is offset by the TryCatch helper's frame. So, the argouts are not actually pushed at the
+                // offsets stored in the bailout record, which are relative to ebp. Need to restore the argouts from the actual value of esp before calling the Bailout helper.
+                // For nested calls, argouts for the outer call need to be restored from an offset of stack-adjustment-done-by-the-inner-call from esp.
+                if ((unsigned)(i + 1) == bailOutInfo->startCallCount)
+                {
+                    argRestoreAdjustCount = 0;
+                }
+                else
+                {
+                    uint argCount = bailOutInfo->startCallInfo[i + 1].isOrphanedCall ? 0 : bailOutInfo->startCallInfo[i + 1].argCount;
+                    argRestoreAdjustCount = bailOutInfo->startCallInfo[i + 1].argRestoreAdjustCount + argCount;
+                    if ((Math::Align<int32>(argCount * MachPtr, MachStackAlignment) - (argCount * MachPtr)) != 0)
+                    {
+                        argRestoreAdjustCount++;
+                    }
+                }
+                bailOutInfo->startCallInfo[i].argRestoreAdjustCount = argRestoreAdjustCount;
+            }
+            startCallArgRestoreAdjustCounts[i] = bailOutInfo->startCallInfo[i].argRestoreAdjustCount;
+#endif
         }
     }
     else

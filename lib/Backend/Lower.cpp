@@ -24982,19 +24982,21 @@ Lowerer::EmitEHBailoutStackRestore(IR::Instr * bailoutInstr)
 
 #ifdef _M_IX86
     BailOutInfo * bailoutInfo = bailoutInstr->GetBailOutInfo();
+    uint totalLiveArgCount = 0;
     if (bailoutInfo->startCallCount != 0)
     {
         uint totalStackToBeRestored = 0;
         uint stackAlignmentAdjustment = 0;
         for (uint i = 0; i < bailoutInfo->startCallCount; i++)
         {
-            uint startCallOutParamCount = bailoutInfo->GetStartCallOutParamCount(i);
-            if ((Math::Align<int32>(startCallOutParamCount * MachPtr, MachStackAlignment) - (startCallOutParamCount * MachPtr)) != 0)
+            uint startCallLiveArgCount = bailoutInfo->startCallInfo[i].isOrphanedCall ? 0 : bailoutInfo->GetStartCallOutParamCount(i);
+            if ((Math::Align<int32>(startCallLiveArgCount * MachPtr, MachStackAlignment) - (startCallLiveArgCount * MachPtr)) != 0)
             {
                 stackAlignmentAdjustment++;
             }
+            totalLiveArgCount += startCallLiveArgCount;
         }
-        totalStackToBeRestored = (bailoutInfo->totalOutParamCount + stackAlignmentAdjustment) * MachPtr;
+        totalStackToBeRestored = (totalLiveArgCount + stackAlignmentAdjustment) * MachPtr;
 
         IR::RegOpnd * espOpnd = IR::RegOpnd::New(NULL, LowererMD::GetRegStackPointer(), TyMachReg, this->m_func);
         IR::Opnd * opnd = IR::IndirOpnd::New(espOpnd, totalStackToBeRestored, TyMachReg, this->m_func);
