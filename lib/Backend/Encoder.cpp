@@ -399,10 +399,11 @@ Encoder::Encode()
 #ifdef _M_X64_OR_ARM64
 #ifdef _M_X64
     PrologEncoder &unwindInfo = m_func->m_prologEncoder;
+    unwindInfo.FinalizeUnwindInfo((BYTE*)m_func->GetJITOutput()->GetCodeAddress(), (DWORD)codeSize);
 #else
     UnwindInfoManager &unwindInfo = m_func->m_unwindInfo;
+    unwindInfo.FinalizeUnwindInfo((BYTE*)localAddress, (DWORD)codeSize);
 #endif
-    unwindInfo.FinalizeUnwindInfo((BYTE*)m_func->GetJITOutput()->GetCodeAddress(), (DWORD)codeSize);
 
     char * localXdataAddr = nullptr;
 #if ENABLE_OOP_NATIVE_CODEGEN
