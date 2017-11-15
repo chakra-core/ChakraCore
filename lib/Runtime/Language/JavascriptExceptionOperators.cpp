@@ -1137,6 +1137,10 @@ namespace Js
     {
         if (scriptContext)
         {
+            ThreadContext *threadContext = scriptContext->GetThreadContext();
+#if ENABLE_JS_REENTRANCY_CHECK
+            threadContext->SetNoJsReentrancy(false);
+#endif
             if (fillExceptionContext)
             {
                 Assert(exceptionObject);
@@ -1147,22 +1151,17 @@ namespace Js
                 exceptionObject->FillError(exceptionContext, scriptContext);
                 AddStackTraceToObject(thrownObject, exceptionContext.GetStackTrace(), *scriptContext, /*isThrownException=*/ true, resetStack);
             }
-            Assert(!scriptContext ||
-                   // If we disabled implicit calls and we did record an implicit call, do not throw.
+            Assert(// If we disabled implicit calls and we did record an implicit call, do not throw.
                    // Check your helper to see if a call recorded an implicit call that might cause an invalid value
                    !(
-                       scriptContext->GetThreadContext()->IsDisableImplicitCall() &&
-                       scriptContext->GetThreadContext()->GetImplicitCallFlags() & (~ImplicitCall_None)
+                       threadContext->IsDisableImplicitCall() &&
+                       threadContext->GetImplicitCallFlags() & (~ImplicitCall_None)
                     ) ||
                    // Make sure we didn't disable exceptions
-                   !scriptContext->GetThreadContext()->IsDisableImplicitException()
+                   !threadContext->IsDisableImplicitException()
             );
 
-            ThreadContext *threadContext = scriptContext->GetThreadContext();
             threadContext->ClearDisableImplicitFlags();
-#if ENABLE_JS_REENTRANCY_CHECK
-            threadContext->SetNoJsReentrancy(false);
-#endif
 
             if (fillExceptionContext && considerPassingToDebugger)
             {
