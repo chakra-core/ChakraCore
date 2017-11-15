@@ -85,7 +85,7 @@ IRBuilderAsmJs::Build()
     m_functionStartOffset = m_jnReader.GetCurrentOffset();
     m_lastInstr = m_func->m_headInstr;
 
-    AssertMsg(sizeof(SymID) >= sizeof(Js::RegSlot), "sizeof(SymID) != sizeof(Js::RegSlot)!!");
+    CompileAssert(sizeof(SymID) == sizeof(Js::RegSlot));
 
     offset = m_functionStartOffset;
 
@@ -96,16 +96,40 @@ IRBuilderAsmJs::Build()
     uint32 offsetToInstructionCount = lastOffset;
     if (this->IsLoopBody())
     {
-        // LdSlot needs to cover all the register, including the temps, because we might treat
-        // those as if they are local for the value of the with statement
+        // LdSlot & StSlot needs to cover all the register, including the temps, because we might treat
+        // those as if they are local for yielding
         this->m_ldSlots = BVFixed::New<JitArenaAllocator>(GetLastTmp(WAsmJs::LastType), m_tempAlloc);
-        this->m_stSlots = BVFixed::New<JitArenaAllocator>(GetFirstTmp(WAsmJs::FirstType), m_tempAlloc);
+        this->m_stSlots = BVFixed::New<JitArenaAllocator>(GetLastTmp(WAsmJs::LastType), m_tempAlloc);
+        uint count = m_func->GetWorkItem()->GetWorkItemData()->wasmLoopYieldRegCount;
+        if (count > 0)
+        {
+            this->m_yieldRegs = BVFixed::New<JitArenaAllocator>(GetLastTmp(WAsmJs::LastType), m_tempAlloc);
+            WasmRegisterInfoIDL* infos = m_func->GetWorkItem()->GetWorkItemData()->wasmLoopYieldRegs;
+            AssertOrFailFast(infos);
+            for (uint i = 0; i < count; ++i)
+            {
+                Js::RegSlot loc = infos[i].location;
+                CompileAssert(sizeof(Wasm::WasmTypes::WasmType) == sizeof(infos[i].type));
+                Wasm::WasmTypes::WasmType type = (Wasm::WasmTypes::WasmType)infos[i].type;
+                Js::RegSlot regSlot = 0;
+                switch (type)
+                {
+                case Wasm::WasmTypes::I32: regSlot = GetRegSlotFromTypedReg(loc, WAsmJs::INT32); break;
+                case Wasm::WasmTypes::I64: regSlot = GetRegSlotFromTypedReg(loc, WAsmJs::INT64); break;
+                case Wasm::WasmTypes::F32: regSlot = GetRegSlotFromTypedReg(loc, WAsmJs::FLOAT32); break;
+                case Wasm::WasmTypes::F64: regSlot = GetRegSlotFromTypedReg(loc, WAsmJs::FLOAT64); break;
+                default:
+                    Assert(UNREACHED);
+                    break;
+                }
+                this->m_yieldRegs->Set(regSlot);
+            }
+        }
         this->m_loopBodyRetIPSym = StackSym::New(TyInt32, this->m_func);
 #if DBG
-        uint32 tmpCount = GetLastTmp(WAsmJs::LastType) - GetFirstTmp(WAsmJs::FirstType);
-        if (tmpCount != 0)
+        if (m_tempCount > 0)
         {
-            this->m_usedAsTemp = BVFixed::New<JitArenaAllocator>(tmpCount, m_tempAlloc);
+            this->m_usedAsTemp = BVFixed::New<JitArenaAllocator>(m_tempCount, m_tempAlloc);
         }
 #endif
         lastOffset = m_func->GetWorkItem()->GetLoopHeader()->endOffset;
@@ -258,8 +282,16 @@ IRBuilderAsmJs::AddInstr(IR::Instr * instr, uint32 offset)
 IR::RegOpnd *
 IRBuilderAsmJs::BuildDstOpnd(Js::RegSlot dstRegSlot, IRType type)
 {
-    SymID symID;
-    if (RegIsTemp(dstRegSlot))
+    SymID symID = static_cast<SymID>(dstRegSlot);
+    if (IsLoopBody() && (RegIsVar(dstRegSlot) || RegIsYield(dstRegSlot)))
+    {
+        // Loop body and not constants
+        this->m_stSlots->Set(dstRegSlot);
+        // We need to make sure that the symbols is loaded as well
+        // so that the sym will be defined on all path.
+        this->EnsureLoopBodyAsmJsLoadSlot(symID, type);
+    }
+    else if (RegIsTemp(dstRegSlot))
     {
 #if DBG
         if (this->IsLoopBody())
@@ -303,26 +335,15 @@ IRBuilderAsmJs::BuildDstOpnd(Js::RegSlot dstRegSlot, IRType type)
             }
         }
     }
+    else if (RegIsConstant(dstRegSlot))
+    {
+        // Don't need to track constant registers for bailout. Don't set the byte code register for constant.
+        dstRegSlot = Js::Constants::NoRegister;
+    }
     else
     {
-        symID = static_cast<SymID>(dstRegSlot);
-        if (RegIsConstant(dstRegSlot))
-        {
-            // Don't need to track constant registers for bailout. Don't set the byte code register for constant.
-            dstRegSlot = Js::Constants::NoRegister;
-        }
-        else if (IsLoopBody() && RegIsVar(dstRegSlot))
-        {
-            // Loop body and not constants
-            this->m_stSlots->Set(symID);
-            // We need to make sure that the symbols is loaded as well
-            // so that the sym will be defined on all path.
-            this->EnsureLoopBodyAsmJsLoadSlot(symID, type);
-        }
-        else
-        {
-            Assert(!IsLoopBody() || dstRegSlot == 0); // if loop body then one of the above two conditions should hold true
-        }
+        // if loop body then one of the above conditions should hold true
+        Assert(!IsLoopBody() || dstRegSlot == 0);
     }
 
     //Simd return values of different IR types share the same reg slot.
@@ -370,9 +391,13 @@ IRBuilderAsmJs::BuildIntConstOpnd(Js::RegSlot regSlot)
 SymID
 IRBuilderAsmJs::BuildSrcStackSymID(Js::RegSlot regSlot, IRType type /*= IRType::TyVar*/)
 {
-    SymID symID;
+    SymID symID = static_cast<SymID>(regSlot);
 
-    if (this->RegIsTemp(regSlot))
+    if (IsLoopBody() && (RegIsVar(regSlot) || RegIsYield(regSlot)))
+    {
+        this->EnsureLoopBodyAsmJsLoadSlot(regSlot, type);
+    }
+    else if (this->RegIsTemp(regSlot))
     {
         // This is a use of a temp. Map the reg slot to its sym ID.
         //     !!!NOTE: always process an instruction's temp uses before its temp defs!!!
@@ -386,22 +411,13 @@ IRBuilderAsmJs::BuildSrcStackSymID(Js::RegSlot regSlot, IRType type /*= IRType::
 
             symID = static_cast<SymID>(regSlot);
             this->SetMappedTemp(regSlot, symID);
-            this->EnsureLoopBodyAsmJsLoadSlot(symID, type);
+            this->EnsureLoopBodyAsmJsLoadSlot(regSlot, type);
         }
         this->SetTempUsed(regSlot, TRUE);
     }
     else
     {
-        symID = static_cast<SymID>(regSlot);
-        if (IsLoopBody() && RegIsVar(regSlot))
-        {
-            this->EnsureLoopBodyAsmJsLoadSlot(symID, type);
-
-        }
-        else
-        {
-            Assert(!IsLoopBody() || this->RegIsConstant(regSlot) || regSlot == 0);
-        }
+        Assert(!IsLoopBody() || this->RegIsConstant(regSlot) || regSlot == 0);
     }
     return symID;
 
@@ -551,7 +567,7 @@ IRBuilderAsmJs::SetMappedTemp(Js::RegSlot reg, SymID tempId)
     m_tempMap[tempIndex] = tempId;
 }
 
-BOOL
+bool
 IRBuilderAsmJs::GetTempUsed(Js::RegSlot reg)
 {
     AssertMsg(RegIsTemp(reg), "Processing non-temp reg as a temp?");
@@ -559,11 +575,11 @@ IRBuilderAsmJs::GetTempUsed(Js::RegSlot reg)
 
     Js::RegSlot tempIndex = reg - GetFirstTmp(WAsmJs::FirstType);
     AssertOrFailFast(tempIndex < m_tempCount);
-    return m_fbvTempUsed->Test(tempIndex);
+    return !!m_fbvTempUsed->Test(tempIndex);
 }
 
 void
-IRBuilderAsmJs::SetTempUsed(Js::RegSlot reg, BOOL used)
+IRBuilderAsmJs::SetTempUsed(Js::RegSlot reg, bool used)
 {
     AssertMsg(RegIsTemp(reg), "Processing non-temp reg as a temp?");
     AssertMsg(m_fbvTempUsed, "Processing non-temp reg without a used BV?");
@@ -580,13 +596,13 @@ IRBuilderAsmJs::SetTempUsed(Js::RegSlot reg, BOOL used)
     }
 }
 
-BOOL
+bool
 IRBuilderAsmJs::RegIsTemp(Js::RegSlot reg)
 {
     return reg >= GetFirstTmp(WAsmJs::FirstType);
 }
 
-BOOL
+bool
 IRBuilderAsmJs::RegIsVar(Js::RegSlot reg)
 {
     for (int i = 0; i < WAsmJs::LIMIT; ++i)
@@ -599,10 +615,38 @@ IRBuilderAsmJs::RegIsVar(Js::RegSlot reg)
     return false;
 }
 
-BOOL
+bool
 IRBuilderAsmJs::RegIsTypedVar(Js::RegSlot reg, WAsmJs::Types type)
 {
     return reg >= GetFirstVar(type) && reg < GetLastVar(type);
+}
+
+bool
+IRBuilderAsmJs::RegIsTypedConst(Js::RegSlot reg, WAsmJs::Types type)
+{
+    return reg >= GetFirstConst(type) && reg < GetLastConst(type);
+}
+
+bool
+IRBuilderAsmJs::RegIsTypedTmp(Js::RegSlot reg, WAsmJs::Types type)
+{
+    return reg >= GetFirstTmp(type) && reg < GetLastTmp(type);
+}
+
+bool
+IRBuilderAsmJs::RegIs(Js::RegSlot reg, WAsmJs::Types type)
+{
+    return (
+        RegIsTypedVar(reg, type) ||
+        RegIsTypedConst(reg, type) ||
+        RegIsTypedTmp(reg, type)
+    );
+}
+
+bool
+IRBuilderAsmJs::RegIsYield(Js::RegSlot reg)
+{
+    return m_yieldRegs && m_yieldRegs->Test(reg);
 }
 
 bool
@@ -611,7 +655,7 @@ IRBuilderAsmJs::RegIsSimd128ReturnVar(Js::RegSlot reg)
     return (reg == GetFirstConst(WAsmJs::SIMD) &&
             Js::AsmJsRetType(m_asmFuncInfo->GetRetType()).toVarType().isSIMD());
 }
-BOOL
+bool
 IRBuilderAsmJs::RegIsConstant(Js::RegSlot reg)
 {
     return (reg > 0 && reg < GetLastConst(WAsmJs::LastType));
@@ -2389,8 +2433,8 @@ IRBuilderAsmJs::BuildInt2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
         instr = IR::Instr::New(Js::OpCode::Ld_I4, dstOpnd, srcOpnd, m_func);
         if (m_func->IsLoopBody())
         {
-            IR::Instr* slotInstr = GenerateStSlotForReturn(srcOpnd, IRType::TyInt32);
-            AddInstr(slotInstr, offset);
+            // Make sure we set that slot when done with the loop
+            this->m_stSlots->Set(dstRegSlot);
         }
 
         break;
@@ -2655,8 +2699,8 @@ IRBuilderAsmJs::BuildDouble2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSl
         instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
         if (m_func->IsLoopBody())
         {
-            IR::Instr* slotInstr = GenerateStSlotForReturn(srcOpnd, IRType::TyFloat64);
-            AddInstr(slotInstr, offset);
+            // Make sure we set that slot when done with the loop
+            this->m_stSlots->Set(dstRegSlot);
         }
         break;
     case Js::OpCodeAsmJs::Trunc_Db:
@@ -2708,8 +2752,8 @@ IRBuilderAsmJs::BuildFloat2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlo
         instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
         if (m_func->IsLoopBody())
         {
-            IR::Instr* slotInstr = GenerateStSlotForReturn(srcOpnd, IRType::TyFloat32);
-            AddInstr(slotInstr, offset);
+            // Make sure we set that slot when done with the loop
+            this->m_stSlots->Set(dstRegSlot);
         }
         break;
     case Js::OpCodeAsmJs::Trunc_Flt:
@@ -3060,8 +3104,8 @@ IRBuilderAsmJs::BuildLong2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot
         instr = IR::Instr::New(Js::OpCode::Ld_I4, dstOpnd, srcOpnd, m_func);
         if (m_func->IsLoopBody())
         {
-            IR::Instr* slotInstr = GenerateStSlotForReturn(srcOpnd, IRType::TyInt64);
-            AddInstr(slotInstr, offset);
+            // Make sure we set that slot when done with the loop
+            this->m_stSlots->Set(dstRegSlot);
         }
         break;
     case Js::OpCodeAsmJs::I64Extend8_s:
@@ -3451,15 +3495,16 @@ IRBuilderAsmJs::InsertLoopBodyReturnIPInstr(uint targetOffset, uint offset)
 }
 
 IR::SymOpnd *
-IRBuilderAsmJs::BuildAsmJsLoopBodySlotOpnd(SymID symId, IRType opndType)
+IRBuilderAsmJs::BuildAsmJsLoopBodySlotOpnd(Js::RegSlot regSlot, IRType opndType)
 {
+    Assert(IsLoopBody());
     // There is no unsigned locals, make sure we create only signed locals
     opndType = IRType_EnsureSigned(opndType);
     // Get the interpreter frame instance that was passed in.
     StackSym *loopParamSym = m_func->EnsureLoopParamSym();
 
     // property ID is the offset
-    Js::PropertyId propOffSet = CalculatePropertyOffset(symId, opndType);
+    Js::PropertyId propOffSet = CalculatePropertyOffset(regSlot, opndType);
 
     // Get the bytecodeRegSlot and Get the offset from m_localSlots
     PropertySym * fieldSym = PropertySym::FindOrCreate(loopParamSym->m_id, propOffSet, (uint32)-1, (uint)-1, PropertyKindLocalSlots, m_func);
@@ -3467,16 +3512,17 @@ IRBuilderAsmJs::BuildAsmJsLoopBodySlotOpnd(SymID symId, IRType opndType)
 }
 
 void
-IRBuilderAsmJs::EnsureLoopBodyAsmJsLoadSlot(SymID symId, IRType type)
+IRBuilderAsmJs::EnsureLoopBodyAsmJsLoadSlot(Js::RegSlot regSlot, IRType type)
 {
-    if (this->m_ldSlots->TestAndSet(symId))
+    Assert(IsLoopBody());
+    if (this->m_ldSlots->TestAndSet(regSlot))
     {
         return;
     }
 
-    IR::SymOpnd * fieldSymOpnd = this->BuildAsmJsLoopBodySlotOpnd(symId, type);
+    IR::SymOpnd * fieldSymOpnd = this->BuildAsmJsLoopBodySlotOpnd(regSlot, type);
 
-    StackSym * symDst = StackSym::FindOrCreate(symId, (Js::RegSlot)symId, m_func, fieldSymOpnd->GetType());
+    StackSym * symDst = StackSym::FindOrCreate(static_cast<SymID>(regSlot), regSlot, m_func, fieldSymOpnd->GetType());
     IR::RegOpnd * dstOpnd = IR::RegOpnd::New(symDst, symDst->GetType(), m_func);
     IR::Instr * ldSlotInstr = IR::Instr::New(Js::OpCode::LdSlot, dstOpnd, fieldSymOpnd, m_func);
 
@@ -3508,43 +3554,38 @@ IRBuilderAsmJs::GenerateLoopBodySlotAccesses(uint offset)
     IR::Instr *instrArgIn = IR::Instr::New(Js::OpCode::ArgIn_A, loopParamOpnd, srcOpnd, m_func);
     m_func->m_headInstr->InsertAfter(instrArgIn);
 
-    GenerateLoopBodyStSlots(loopParamSym->m_id, offset);
-}
-
-void
-IRBuilderAsmJs::GenerateLoopBodyStSlots(SymID loopParamSymId, uint offset)
-{
     if (this->m_stSlots->Count() == 0)
     {
         return;
     }
+    SymID loopParamSymId = loopParamSym->m_id;
 
-    FOREACH_BITSET_IN_FIXEDBV(regSlot, this->m_stSlots)
+    FOREACH_BITSET_IN_FIXEDBV(index, this->m_stSlots)
     {
-        Assert(!this->RegIsConstant((Js::RegSlot)regSlot));
+        Js::RegSlot regSlot = (Js::RegSlot)index;
         IRType type = IRType::TyInt32;
         ValueType valueType = ValueType::GetInt(false);
-        if (RegIsIntVar(regSlot))
+        if (RegIs(regSlot, WAsmJs::INT32))
         {
             type = IRType::TyInt32;
             valueType = ValueType::GetInt(false);
         }
-        else if (RegIsFloatVar(regSlot))
+        else if (RegIs(regSlot, WAsmJs::FLOAT32))
         {
             type = IRType::TyFloat32;
             valueType = ValueType::Float;
         }
-        else if (RegIsDoubleVar(regSlot))
+        else if (RegIs(regSlot, WAsmJs::FLOAT64))
         {
             type = IRType::TyFloat64;
             valueType = ValueType::Float;
         }
-        else if (RegIsInt64Var(regSlot))
+        else if (RegIs(regSlot, WAsmJs::INT64))
         {
             type = IRType::TyInt64;
             valueType = ValueType::GetInt(false);
         }
-        else if (RegIsSimd128Var(regSlot))
+        else if (RegIs(regSlot, WAsmJs::SIMD))
         {
             type = IRType::TySimd128F4;
             // SIMD regs are non-typed. There is no way to know the incoming SIMD type to a StSlot after a loop body, so we pick any type.
@@ -3554,10 +3595,11 @@ IRBuilderAsmJs::GenerateLoopBodyStSlots(SymID loopParamSymId, uint offset)
         else
         {
             AnalysisAssert(UNREACHED);
+            continue;
         }
 
         Js::PropertyId propOffSet = CalculatePropertyOffset(regSlot, type);
-        IR::RegOpnd* regOpnd = this->BuildSrcOpnd((Js::RegSlot)regSlot, type);
+        IR::RegOpnd* regOpnd = this->BuildSrcOpnd(regSlot, type);
         regOpnd->SetValueType(valueType);
 
         // Get the bytecodeRegSlot and Get the offset from m_localSlots
@@ -3571,7 +3613,7 @@ IRBuilderAsmJs::GenerateLoopBodyStSlots(SymID loopParamSymId, uint offset)
     NEXT_BITSET_IN_FIXEDBV;
 }
 
-Js::PropertyId IRBuilderAsmJs::CalculatePropertyOffset(SymID id, IRType type, bool isVar)
+Js::PropertyId IRBuilderAsmJs::CalculatePropertyOffset(Js::RegSlot regSlot, IRType type)
 {
     // Compute the offset to the start of the interpreter frame's locals array as a Var index.
     size_t localsOffset = 0;
@@ -3582,33 +3624,8 @@ Js::PropertyId IRBuilderAsmJs::CalculatePropertyOffset(SymID id, IRType type, bo
     Assert(localsOffset % sizeof(AsmJsSIMDValue) == 0);
     WAsmJs::Types asmType = WAsmJs::FromIRType(type);
     const auto typedInfo = m_asmFuncInfo->GetTypedSlotInfo(asmType);
-    uint32 regSlot = 0;
-    if (isVar)
-    {
-        // Get the bytecodeRegSlot
-        regSlot = id - GetFirstVar(asmType) + typedInfo.constCount;
-    }
-
-    return (Js::PropertyId)(regSlot * TySize[type] + typedInfo.byteOffset + localsOffset);
-}
-
-IR::Instr* IRBuilderAsmJs::GenerateStSlotForReturn(IR::RegOpnd* srcOpnd, IRType retType)
-{
-    // Compute the offset to the start of the interpreter frame's locals array as a Var index.
-    size_t localsOffset = 0;
-    if (!m_IsTJLoopBody)
-    {
-        localsOffset = Js::InterpreterStackFrame::GetOffsetOfLocals();
-    }
-    Assert(localsOffset % sizeof(AsmJsSIMDValue) == 0);
-    StackSym *loopParamSym = m_func->EnsureLoopParamSym();
-    Js::PropertyId propOffSet = CalculatePropertyOffset(0, retType, false);
-    // Get the bytecodeRegSlot and Get the offset from m_localSlots
-    PropertySym * fieldSym = PropertySym::FindOrCreate(loopParamSym->m_id, propOffSet, (uint32)-1, (uint)-1, PropertyKindLocalSlots, m_func);
-    IR::SymOpnd * fieldSymOpnd = IR::SymOpnd::New(fieldSym, srcOpnd->GetType(), m_func);
-    Js::OpCode opcode = Js::OpCode::StSlot;
-    IR::Instr * stSlotInstr = IR::Instr::New(opcode, fieldSymOpnd, srcOpnd, m_func);
-    return stSlotInstr;
+    uint32 bytecodeRegSlot = GetTypedRegFromRegSlot(regSlot, asmType);
+    return (Js::PropertyId)(bytecodeRegSlot * TySize[type] + typedInfo.byteOffset + localsOffset);
 }
 
 Js::OpCode IRBuilderAsmJs::GetSimdOpcode(Js::OpCodeAsmJs asmjsOpcode)
@@ -4564,8 +4581,8 @@ IRBuilderAsmJs::BuildFloat64x2_2(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD
     case Js::OpCodeAsmJs::Simd128_Return_D2:
     if (m_func->IsLoopBody())
     {
-        IR::Instr* slotInstr = GenerateStSlotForReturn(src1Opnd, IRType::TySimd128D2);
-        AddInstr(slotInstr, offset);
+        // Make sure we set that slot when done with the loop
+        this->m_stSlots->Set(dstRegSlot);
     }
     opcode = Js::OpCode::Ld_A;
     break;
@@ -6280,8 +6297,8 @@ void IRBuilderAsmJs::BuildSimd_2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::R
     case Js::OpCodeAsmJs::Simd128_Return_B16:
         if (m_func->IsLoopBody())
         {
-            IR::Instr* slotInstr = GenerateStSlotForReturn(src1Opnd, simdType);
-            AddInstr(slotInstr, offset);
+            // Make sure we set that slot when done with the loop
+            this->m_stSlots->Set(dstRegSlot);
         }
         opcode = Js::OpCode::Ld_A;
         break;

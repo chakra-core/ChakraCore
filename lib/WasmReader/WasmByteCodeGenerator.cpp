@@ -939,9 +939,24 @@ EmitInfo WasmBytecodeGenerator::EmitLoop()
     Js::ByteCodeLabel loopLandingPadLabel = m_writer->DefineLabel();
 
     uint32 loopId = m_writer->EnterLoop(loopHeadLabel);
+    // Push possibly yielding loop label before capturing all the yielding registers
+    BlockInfo implicitBlockInfo = PushLabel(loopTailLabel);
+
+    // Save all the possible blocks the loop could yield to
+    Js::WasmLoopYieldInfo* loopYieldInfo = EnsureWasmLoopYieldInfo(loopId);
+    m_blockInfos.Map([loopYieldInfo](int i, BlockInfo block)
+    {
+        if (block.HasYield())
+        {
+            EmitInfo info = block.yieldInfo->info;
+            CompileAssert(sizeof(WasmRegisterInfoIDL) == sizeof(EmitInfo));
+            CompileAssert(offsetof(WasmRegisterInfoIDL, location) == offsetof(EmitInfo, location));
+            CompileAssert(offsetof(WasmRegisterInfoIDL, type) == offsetof(EmitInfo, type));
+            loopYieldInfo->Add(*(WasmRegisterInfoIDL*)&info);
+        }
+    });
 
     // Internally we create a block for loop to exit, but semantically, they don't exist so pop it
-    BlockInfo implicitBlockInfo = PushLabel(loopTailLabel);
     m_blockInfos.Pop();
 
     // We don't want nested block to jump directly to the loop header
@@ -1619,6 +1634,33 @@ WasmBytecodeGenerator::GetNextProfileId()
     Js::ProfileId nextProfileId = this->currentProfileId;
     UInt16Math::Inc(this->currentProfileId);
     return nextProfileId;
+}
+
+Js::WasmLoopYieldInfo* WasmBytecodeGenerator::EnsureWasmLoopYieldInfo(uint32 _loopId)
+{
+    Js::WasmLoopsYieldInfo* loopsInfo = m_funcInfo->GetBody()->GetAsmJsFunctionInfo()->GetWasmLoopsYieldInfo();
+    if (!loopsInfo)
+    {
+        // This is the first loop, create the loops list
+        loopsInfo = RecyclerNew(m_module->GetRecycler(), Js::WasmLoopsYieldInfo, m_module->GetRecycler());
+        m_funcInfo->GetBody()->GetAsmJsFunctionInfo()->SetWasmLoopsYieldInfo(loopsInfo);
+    }
+
+    AssertOrFailFast(_loopId < (uint32)INT_MAX);
+    int32 loopId = (int32)_loopId;
+    int32 oldCount = loopsInfo->Count();
+    if (loopId >= oldCount)
+    {
+        loopsInfo->SetItem(loopId, RecyclerNew(m_module->GetRecycler(), Js::WasmLoopYieldInfo, m_module->GetRecycler()));
+
+        // Initialize any new item in the list to nullptr
+        for (int32 count = oldCount; count < loopId; ++count)
+        {
+            loopsInfo->SetItem(count, nullptr);
+        }
+    }
+
+    return loopsInfo->Item(loopId);
 }
 
 WasmRegisterSpace* WasmBytecodeGenerator::GetRegisterSpace(WasmTypes::WasmType type)
