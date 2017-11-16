@@ -52,6 +52,10 @@ REGDAT(SP,      sp,       ARMREG_SP,   TyInt64,    RA_DONTALLOCATE)
 REGDAT(ZR,      zr,       ARMREG_ZR,   TyInt64,    RA_DONTALLOCATE)
 //REGDAT(PC,      pc,       ARMREG_PC,  TyInt64,    RA_DONTALLOCATE)
 
+#ifndef INT_ARG_REG_COUNT
+#define INT_ARG_REG_COUNT 8
+#endif
+
 // VFP Floating Point Registers
 REGDAT(D0,      d0,       NEONREG_D0,    TyFloat64,  0)
 REGDAT(D1,      d1,       NEONREG_D1,    TyFloat64,  0)
