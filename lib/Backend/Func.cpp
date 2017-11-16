@@ -297,7 +297,7 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     {
         Func func(alloc, workItem, threadContextInfo,
             scriptContextInfo, outputData, epInfo, runtimeInfo,
-            polymorphicInlineCacheInfo, codeGenAllocators, 
+            polymorphicInlineCacheInfo, codeGenAllocators,
 #if !FLOATVAR
             numberAllocator,
 #endif
@@ -375,6 +375,11 @@ void
 Func::TryCodegen()
 {
     Assert(!IsJitInDebugMode() || !GetJITFunctionBody()->HasTry());
+
+     if (this->GetScriptContext()->IsInDebugButCantDoJITInDebug())
+     {
+         return;
+     }
 
     BEGIN_CODEGEN_PHASE(this, Js::BackEndPhase);
     {
@@ -581,7 +586,7 @@ Func::TryCodegen()
                 if (CONFIG_FLAG(OOPJITFixupValidate))
                 {
                     // Scan memory to see if there's missing pointer needs to be fixed up
-                    // This can hit false positive if some data field happens to have value 
+                    // This can hit false positive if some data field happens to have value
                     // falls into the NativeCodeData memory range.
                     NativeCodeData::DataChunk *next2 = chunk;
                     while (next2)
