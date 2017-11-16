@@ -1235,7 +1235,7 @@ namespace Js
         //analyze duplication
         uintptr_t savedOffset = 0;
         auto& mainModule = modulePath;
-        GetModuleFileName(NULL, mainModule, MAX_PATH);
+        PlatformAgnostic::SystemInfo::GetBinaryLocation(mainModule, MAX_PATH);
         // multiple session of Fault Injection run shares the single crash offset recording file
         _snwprintf_s(filename, _TRUNCATE, _u("%s.FICrashes.txt"), mainModule);
 

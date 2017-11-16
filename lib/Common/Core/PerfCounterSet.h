@@ -55,7 +55,7 @@ namespace PerfCounter
             if (IsProviderInitialized())
             {
                 char16 wszModuleName[_MAX_PATH];
-                if (!GetModuleFileName(NULL, wszModuleName, _MAX_PATH))
+                if (!PlatformAgnostic::SystemInfo::GetBinaryLocation(wszModuleName, _MAX_PATH))
                 {
                     return false;
                 }

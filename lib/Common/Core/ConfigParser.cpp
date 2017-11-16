@@ -594,7 +594,7 @@ HRESULT ConfigParser::SetOutputFile(const WCHAR* outputFile, const WCHAR* openMo
 
     char16 fileName[_MAX_PATH];
     char16 moduleName[_MAX_PATH];
-    GetModuleFileName(0, moduleName, _MAX_PATH);
+    PlatformAgnostic::SystemInfo::GetBinaryLocation(moduleName, _MAX_PATH);
     _wsplitpath_s(moduleName, nullptr, 0, nullptr, 0, fileName, _MAX_PATH, nullptr, 0);
     if (_wcsicmp(fileName, _u("WWAHost")) == 0 ||
         _wcsicmp(fileName, _u("ByteCodeGenerator")) == 0 ||
