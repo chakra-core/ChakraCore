@@ -587,8 +587,7 @@ namespace Js
 #endif
 
         ScriptFunction *pfuncScript = nullptr;
-        ENTER_PINNED_SCOPE(JavascriptString, argString);
-        argString = JavascriptString::FromVar(evalArg);
+        JavascriptString *argString = JavascriptString::FromVar(evalArg);
         char16 const * sourceString = argString->GetSz();
         charcount_t sourceLen = argString->GetLength();
         FastEvalMapString key(sourceString, sourceLen, moduleID, strictMode, isLibraryCode);
@@ -668,8 +667,6 @@ namespace Js
             }
         }
 #endif
-
-        LEAVE_PINNED_SCOPE();    // argString
 
         //We shouldn't be serializing eval functions; unless with -ForceSerialized flag
         if (CONFIG_FLAG(ForceSerialized)) {

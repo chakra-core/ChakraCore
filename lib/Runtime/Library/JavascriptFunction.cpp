@@ -158,13 +158,9 @@ namespace Js
         bool isCtorSuperCall = JavascriptOperators::GetAndAssertIsConstructorSuperCall(args);
 
         JavascriptString* separator = library->GetCommaDisplayString();
-        JavascriptFunction* pfuncScript;
 
-        ENTER_PINNED_SCOPE(JavascriptString, formals);
-        ENTER_PINNED_SCOPE(JavascriptString, fnBody);
-        fnBody = NULL;
         // Gather all the formals into a string like (fml1, fml2, fml3)
-        formals = library->GetOpenRBracketString();
+        JavascriptString *formals = library->GetOpenRBracketString();
 
         for (uint i = 1; i < args.Info.Count - 1; ++i)
         {
@@ -176,6 +172,7 @@ namespace Js
         }
         formals = JavascriptString::Concat(formals, library->GetNewLineCloseRBracketString());
         // Function body, last argument to Function(...)
+        JavascriptString *fnBody = NULL;
         if (args.Info.Count > 1)
         {
             fnBody = JavascriptConversion::ToString(args.Values[args.Info.Count - 1], scriptContext);
@@ -189,8 +186,7 @@ namespace Js
             0 // " {"  GetSpaceOpenBracketString
             == numberLinesPrependedToAnonymousFunction); // Be sure to add exactly one line to anonymous function
 
-        ENTER_PINNED_SCOPE(JavascriptString, bs);
-        bs = functionKind == FunctionKind::Async ?
+        JavascriptString *bs = functionKind == FunctionKind::Async ?
             library->GetAsyncFunctionAnonymouseString() :
             functionKind == FunctionKind::Generator ?
             library->GetFunctionPTRAnonymousString() :
@@ -209,6 +205,7 @@ namespace Js
 
         BOOL strictMode = FALSE;
 
+        JavascriptFunction* pfuncScript;
         FunctionInfo *pfuncInfoCache = NULL;
         char16 const * sourceString = bs->GetSz();
         charcount_t sourceLen = bs->GetLength();
@@ -302,10 +299,6 @@ namespace Js
             }
         }
 #endif
-
-        LEAVE_PINNED_SCOPE();   //  bs
-        LEAVE_PINNED_SCOPE();   //  fnBody
-        LEAVE_PINNED_SCOPE();   //  formals
 
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(pfuncScript, EtwTrace::GetFunctionId(pfuncScript->GetFunctionProxy())));
 

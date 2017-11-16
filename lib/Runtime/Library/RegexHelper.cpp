@@ -323,9 +323,7 @@ namespace Js
         Assert(regExp);
         Assert(input);
 
-        EnterPinnedScope((volatile void**)& input);
         RegexHelperTrace(scriptContext, use, regExp, input->GetString(), input->GetLength());
-        LeavePinnedScope();    // input
     }
 
     static void RegexHelperTrace(ScriptContext* scriptContext, UnifiedRegex::RegexStats::Use use, JavascriptRegExp* regExp, JavascriptString* input, JavascriptString* replace)
@@ -334,12 +332,7 @@ namespace Js
         Assert(input);
         Assert(replace);
 
-        EnterPinnedScope((volatile void**)& input);
-        EnterPinnedScope((volatile void**)& replace);
         RegexHelperTrace(scriptContext, use, regExp, input->GetString(), input->GetLength(), replace->GetString(), replace->GetLength());
-
-        LeavePinnedScope();    // replace
-        LeavePinnedScope();    // input
     }
 #endif
 
@@ -435,11 +428,7 @@ namespace Js
     template <bool updateHistory>
     Var RegexHelper::RegexEs5MatchImpl(ScriptContext* scriptContext, JavascriptRegExp *regularExpression, JavascriptString *input, bool noResult, void *const stackAllocationPointer)
     {
-        JavascriptArray* arrayResult = nullptr;
         UnifiedRegex::RegexPattern* pattern = regularExpression->GetPattern();
-
-        EnterPinnedScope((volatile void**)& input);
-
         const char16* inputStr = input->GetString();
         CharCount inputLength = input->GetLength();
 
@@ -477,7 +466,7 @@ namespace Js
 
                 Assert(pattern->IsGlobal());
 
-                arrayResult = CreateMatchResult(stackAllocationPointer, scriptContext, /* isGlobal */ true, pattern->NumGroups(), input);
+                JavascriptArray* arrayResult = CreateMatchResult(stackAllocationPointer, scriptContext, /* isGlobal */ true, pattern->NumGroups(), input);
                 FinalizeMatchResult(scriptContext, /* isGlobal */ true, arrayResult, lastSuccessfulMatch);
 
                 if (trigramInfo->resultCount > 0)
@@ -517,6 +506,7 @@ namespace Js
 
         const bool isGlobal = pattern->IsGlobal();
         const bool isSticky = pattern->IsSticky();
+        JavascriptArray* arrayResult = 0;
         RegexMatchState state;
 
         // If global = false and sticky = true, set offset = lastIndex, else set offset = 0
@@ -590,8 +580,6 @@ namespace Js
         {
             FinalizeMatchResult(scriptContext, /* isGlobal */ true, arrayResult, lastSuccessfulMatch);
         }
-
-        LeavePinnedScope();    // input
 
         return arrayResult;
     }
@@ -1074,9 +1062,7 @@ namespace Js
                     CharCount substringLength = position - nextSourcePosition;
                     accumulatedResultBuilder.Append(input, nextSourcePosition, substringLength);
 
-                    EnterPinnedScope((volatile void**)& matchStr);
                     appendReplacement(accumulatedResultBuilder, tempAlloc, matchStr, (int) numberOfCapturesToKeep, (Var*)captures, position);
-                    LeavePinnedScope();     // matchStr
 
                     nextSourcePosition = JavascriptRegExp::AddIndex(position, matchStr->GetLength());
                 }

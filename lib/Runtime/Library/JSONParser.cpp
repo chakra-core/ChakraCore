@@ -43,11 +43,7 @@ namespace JSON
 
     Js::Var JSONParser::Parse(Js::JavascriptString* input)
     {
-        Js::Var result = nullptr;
-        EnterPinnedScope((volatile void**)& input);
-        result = Parse(input->GetSz(), input->GetLength());
-        LeavePinnedScope();    // input
-        return result;
+        return Parse(input->GetSz(), input->GetLength());
     }
 
     Js::Var JSONParser::Walk(Js::JavascriptString* name, Js::PropertyId id, Js::Var holder, uint32 index)
