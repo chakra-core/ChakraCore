@@ -1082,9 +1082,8 @@ namespace Js
         }
 
         JavascriptString *result = nullptr;
-        ENTER_PINNED_SCOPE(JavascriptString, dblStr);
-        dblStr = JavascriptString::FromVar(FormatDoubleToString(value, NumberUtilities::FormatFixed, -1, scriptContext));
 
+        JavascriptString *dblStr = JavascriptString::FromVar(FormatDoubleToString(value, NumberUtilities::FormatFixed, -1, scriptContext));
         const char16* szValue = dblStr->GetSz();
         const size_t szLength = dblStr->GetLength();
 
@@ -1115,8 +1114,6 @@ namespace Js
                 result = JavascriptString::NewCopySz(pszRes, scriptContext);
             }
         }
-
-        LEAVE_PINNED_SCOPE();   //  dblStr
 
         if ( pszToBeFreed )
         {
