@@ -111,10 +111,12 @@ namespace Js
             return nullptr;
         }
 
-#if DBG && ENABLE_NATIVE_CODEGEN
+#if DBG && ENABLE_NATIVE_CODEGEN && defined(_WIN32)
         // the lock for work item queue should not be locked while accessing AuxPtrs in background thread
         auto jobProcessor = this->GetScriptContext()->GetThreadContext()->GetJobProcessor();
         auto jobProcessorCS = jobProcessor->GetCriticalSection();
+
+        // ->IsLocked is not supported on xplat
         Assert(!jobProcessorCS || !jobProcessor->ProcessesInBackground() || !jobProcessorCS->IsLocked());
 #endif
 
@@ -947,7 +949,7 @@ namespace Js
         this->MapFunctionObjectTypes([&](ScriptFunctionType* functionType)
         {
             Assert(functionType->GetTypeId() == TypeIds_Function);
-            
+
             if (!CrossSite::IsThunk(functionType->GetEntryPoint()))
             {
                 functionType->SetEntryPoint(GetScriptContext()->DeferredParsingThunk);
@@ -2188,7 +2190,7 @@ namespace Js
 
         {
             AutoRestoreFunctionInfo autoRestoreFunctionInfo(this, DefaultEntryThunk);
-            
+
 
             // If m_hasBeenParsed = true, one of the following things happened things happened:
             // - We had multiple function objects which were all defer-parsed, but with the same function body and one of them
@@ -6376,7 +6378,7 @@ namespace Js
         this->SetConstTable(nullptr);
         this->byteCodeBlock = nullptr;
 
-        // Also, remove the function body from the source info to prevent any further processing 
+        // Also, remove the function body from the source info to prevent any further processing
         // of the function such as attempts to set breakpoints.
         if (GetIsFuncRegistered())
         {
@@ -6631,7 +6633,7 @@ namespace Js
     }
 
     uint32 FunctionBody::IncreaseInterpretedCount()
-    { 
+    {
         return executionState.IncreaseInterpretedCount();
     }
 
@@ -6692,7 +6694,7 @@ namespace Js
 
     void FunctionBody::ReinitializeExecutionModeAndLimits()
     {
-        // Do not remove wasCalledFromLoop 
+        // Do not remove wasCalledFromLoop
         wasCalledFromLoop = false;
         executionState.ReinitializeExecutionModeAndLimits(this);
     }
@@ -7359,7 +7361,7 @@ namespace Js
         this->SetScopeSlotArraySizes(0, 0);
 
         // Manually clear these values to break any circular references
-        // that might prevent the script context from being disposed        
+        // that might prevent the script context from being disposed
         this->auxPtrs = nullptr;
         this->byteCodeBlock = nullptr;
         this->entryPoints = nullptr;
@@ -9218,7 +9220,7 @@ namespace Js
         this->functionProxy->MapFunctionObjectTypes([&](ScriptFunctionType* functionType)
         {
             Assert(functionType->GetTypeId() == TypeIds_Function);
-            
+
             if (functionType->GetEntryPointInfo() == this)
             {
                 functionType->SetEntryPointInfo(entryPoint);
@@ -9386,7 +9388,7 @@ namespace Js
         if (this->IsCodeGenDone())
 #endif
         {
-            JS_ETW(EtwTrace::LogLoopBodyUnloadEvent(this->loopHeader->functionBody, this, 
+            JS_ETW(EtwTrace::LogLoopBodyUnloadEvent(this->loopHeader->functionBody, this,
                 this->loopHeader->functionBody->GetLoopNumber(this->loopHeader)));
 
 #if ENABLE_NATIVE_CODEGEN
