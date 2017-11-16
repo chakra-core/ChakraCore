@@ -19,6 +19,24 @@ var tests = [
         assert.throws(()=> Array.prototype.map.call([]));
     }
   },
+  {
+    name: "Array.prototype.slice should not fire re-entrancy error when the species returns proxy",
+    body: function () {
+        let arr = [1, 2];
+        arr.__proto__ = {
+          constructor: {
+            [Symbol.species]: function () {
+              return new Proxy({}, {
+                defineProperty(...args) {
+                  return Reflect.defineProperty(...args);
+                }
+              });
+            }
+          }
+        }
+        Array.prototype.slice.call(arr);
+    }
+  },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
