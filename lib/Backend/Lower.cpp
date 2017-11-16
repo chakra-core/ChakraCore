@@ -12751,7 +12751,7 @@ void Lowerer::LowerBoundCheck(IR::Instr *const instr)
     {
         // Try to aggregate right + offset into a constant offset
         IntConstType newOffset;
-        if(!IntConstMath::Add(offset, rightOpnd->AsIntConstOpnd()->GetValue(), &newOffset))
+        if(!IntConstMath::Add(offset, rightOpnd->AsIntConstOpnd()->GetValue(), TyInt32, &newOffset))
         {
             offset = newOffset;
             rightOpnd = nullptr;

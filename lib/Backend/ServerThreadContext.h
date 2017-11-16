@@ -68,10 +68,10 @@ private:
     SectionAllocWrapper m_sectionAllocator;
     CustomHeap::OOPCodePageAllocators m_thunkPageAllocators;
     CustomHeap::OOPCodePageAllocators  m_codePageAllocators;
+    OOPCodeGenAllocators m_codeGenAlloc;
 #if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
     OOPJITThunkEmitter m_jitThunkEmitter;
 #endif
-    OOPCodeGenAllocators m_codeGenAlloc;
     // only allocate with this from foreground calls (never from CodeGen calls)
     PageAllocator m_pageAlloc;
     HANDLE m_processHandle;

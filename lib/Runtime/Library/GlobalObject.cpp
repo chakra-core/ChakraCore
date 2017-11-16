@@ -597,7 +597,13 @@ namespace Js
         char16 const * sourceString = argString->GetSz();
         charcount_t sourceLen = argString->GetLength();
         FastEvalMapString key(sourceString, sourceLen, moduleID, strictMode, isLibraryCode);
-        bool found = scriptContext->IsInEvalMap(key, isIndirect, &pfuncScript);
+
+
+
+        // PropertyString's buffer references to PropertyRecord's inline buffer, if both PropertyString and PropertyRecord are collected
+        // we'll leave the PropertyRecord's interior buffer pointer in the EvalMap. So do not use evalmap if we are evaluating PropertyString
+        bool useEvalMap = !VirtualTableInfo<PropertyString>::HasVirtualTable(argString);
+        bool found = useEvalMap && scriptContext->IsInEvalMap(key, isIndirect, &pfuncScript);
         if (!found || (!isIndirect && pfuncScript->GetEnvironment() != &NullFrameDisplay))
         {
             uint32 grfscr = additionalGrfscr | fscrReturnExpression | fscrEval | fscrEvalCode | fscrGlobalCode;
@@ -610,7 +616,7 @@ namespace Js
             pfuncScript = library->GetGlobalObject()->EvalHelper(scriptContext, argString->GetSz(), argString->GetLength(), moduleID,
                 grfscr, Constants::EvalCode, doRegisterDocument, isIndirect, strictMode);
 
-            if (!found)
+            if (useEvalMap && !found)
             {
                 scriptContext->AddToEvalMap(key, isIndirect, pfuncScript);
             }
@@ -1448,7 +1454,6 @@ namespace Js
                 bs->AppendChars(chw);
             }
         }
-
         LEAVE_PINNED_SCOPE();   // src
 
         return bs;

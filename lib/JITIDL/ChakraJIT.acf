@@ -5,3 +5,10 @@
 
 typedef [context_handle_noserialize] PTHREADCONTEXT_HANDLE;
 typedef [context_handle_noserialize] PSCRIPTCONTEXT_HANDLE;
+
+[
+    type_strict_context_handle
+]
+interface IChakraJIT
+{
+}

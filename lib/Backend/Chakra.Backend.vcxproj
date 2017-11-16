@@ -218,6 +218,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptBlockData.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ValueInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITThunkEmitter.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)IntConstMath.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />
@@ -259,6 +260,7 @@
     <ClInclude Include="FunctionJITRuntimeInfo.h" />
     <ClInclude Include="FunctionJITTimeInfo.h" />
     <ClInclude Include="GlobOptBlockData.h" />
+    <ClInclude Include="IntConstMath.h" />
     <ClInclude Include="IRBaseTypeList.h" />
     <ClInclude Include="IRBuilderAsmJs.h" />
     <ClInclude Include="BackendOpCodeAttrAsmJs.h" />

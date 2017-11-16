@@ -2505,7 +2505,7 @@ ModuleImportOrExportEntry* Parser::AddModuleImportOrExportEntry(ModuleImportOrEx
 
 void Parser::AddModuleLocalExportEntry(ParseNodePtr varDeclNode)
 {
-    Assert(varDeclNode->nop == knopVarDecl || varDeclNode->nop == knopLetDecl || varDeclNode->nop == knopConstDecl);
+    AssertOrFailFast(varDeclNode->nop == knopVarDecl || varDeclNode->nop == knopLetDecl || varDeclNode->nop == knopConstDecl);
 
     IdentPtr localName = varDeclNode->sxVar.pid;
     varDeclNode->sxVar.sym->SetIsModuleExportStorage(true);
@@ -3014,15 +3014,19 @@ ParseVarDecl:
 
             if (buildAST)
             {
-                ParseNodePtr temp = pnode;
-                while (temp->nop == knopList)
-                {
-                    ParseNodePtr varDeclNode = temp->sxBin.pnode1;
-                    temp = temp->sxBin.pnode2;
-
-                    AddModuleLocalExportEntry(varDeclNode);
-                }
-                AddModuleLocalExportEntry(temp);
+                ForEachItemInList(pnode, [&](ParseNodePtr item) {
+                    if (item->nop == knopAsg)
+                    {
+                        Parser::MapBindIdentifier(item, [&](ParseNodePtr subItem)
+                        {
+                            AddModuleLocalExportEntry(subItem);
+                        });
+                    }
+                    else
+                    {
+                        AddModuleLocalExportEntry(item);
+                    }
+                });
             }
         }
         break;
@@ -5194,6 +5198,10 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
             bool isRedecl = false;
             ParseNodePtr vardecl = CreateVarDeclNode(pnodeFnc->sxFnc.pnodeName->sxVar.pid, STVariable, false, nullptr, false, &isRedecl);
             vardecl->sxVar.isBlockScopeFncDeclVar = true;
+            if (vardecl->sxVar.sym->GetIsFormal())
+            {
+                GetCurrentFunctionNode()->sxFnc.SetHasAnyWriteToFormals(true);
+            }
             if (isRedecl)
             {
                 vardecl->sxVar.sym->SetHasBlockFncVarRedecl();
@@ -12962,6 +12970,7 @@ ParseNodePtr Parser::ParseDestructuredInitializer(ParseNodePtr lhsNode,
         pnodeDestructAsg = CreateNodeWithScanner<knopAsg>();
         pnodeDestructAsg->sxBin.pnode1 = lhsNode;
         pnodeDestructAsg->sxBin.pnode2 = pnodeDefault;
+        pnodeDestructAsg->sxBin.pnodeNext = nullptr;
         pnodeDestructAsg->ichMin = lhsNode->ichMin;
         pnodeDestructAsg->ichLim = pnodeDefault->ichLim;
     }

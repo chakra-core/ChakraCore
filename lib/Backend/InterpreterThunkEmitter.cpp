@@ -242,7 +242,7 @@ const BYTE InterpreterThunkEmitter::HeaderSize()
 }
 
 InterpreterThunkEmitter::InterpreterThunkEmitter(Js::ScriptContext* context, ArenaAllocator* allocator, CustomHeap::InProcCodePageAllocators * codePageAllocators, bool isAsmInterpreterThunk) :
-    emitBufferManager(allocator, codePageAllocators, /*scriptContext*/ nullptr, _u("Interpreter thunk buffer"), GetCurrentProcess()),
+    emitBufferManager(allocator, codePageAllocators, /*scriptContext*/ nullptr, nullptr, _u("Interpreter thunk buffer"), GetCurrentProcess()),
     scriptContext(context),
     allocator(allocator),
     thunkCount(0),

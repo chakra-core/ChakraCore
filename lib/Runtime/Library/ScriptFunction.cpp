@@ -430,7 +430,7 @@ namespace Js
 
         returnStr = LiteralString::NewCopyBuffer(funcBodyStr, (charcount_t)totalLength, scriptContext);
 
-        LEAVE_PINNED_SCOPE();
+        LEAVE_PINNED_SCOPE();   //  computedName
         LeavePinnedScope();     //  inputString
 
         return returnStr;
@@ -717,7 +717,7 @@ namespace Js
     InlineCache * ScriptFunctionWithInlineCache::GetInlineCache(uint index)
     {
         void** inlineCaches = this->GetInlineCaches();
-        Assert(inlineCaches != nullptr);
+        AssertOrFailFast(inlineCaches != nullptr);
         AssertOrFailFast(index < this->GetInlineCacheCount());
 #if DBG
         Assert(this->m_inlineCacheTypes[index] == InlineCacheTypeNone ||
@@ -730,12 +730,22 @@ namespace Js
     Field(void**) ScriptFunctionWithInlineCache::GetInlineCaches()
     {
         // If script function have inline caches pointing to function body and function body got reparsed we need to reset cache
-        if (this->GetHasInlineCaches() &&
-            !this->GetHasOwnInlineCaches() &&
-            this->m_inlineCaches != this->GetFunctionBody()->GetInlineCaches())
+        if (this->GetHasInlineCaches() && !this->GetHasOwnInlineCaches())
         {
-            Assert(this->GetFunctionBody()->GetCompileCount() > 1);
-            this->SetInlineCachesFromFunctionBody();
+            // Script function have inline caches pointing to function body
+            if (!this->HasFunctionBody())
+            {
+                // Function body got re-deferred and have not been re-parsed yet. Reset cache to null
+                this->m_inlineCaches = nullptr;
+                this->inlineCacheCount = 0;
+                this->SetHasInlineCaches(false);
+            }
+            else if (this->m_inlineCaches != this->GetFunctionBody()->GetInlineCaches())
+            {
+                // Function body got reparsed we need to reset cache
+                Assert(this->GetFunctionBody()->GetCompileCount() > 1);
+                this->SetInlineCachesFromFunctionBody();
+            }
         }
 
         return this->m_inlineCaches;

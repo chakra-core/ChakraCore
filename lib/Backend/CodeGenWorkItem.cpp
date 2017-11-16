@@ -205,7 +205,7 @@ void CodeGenWorkItem::OnWorkItemProcessFail(NativeCodeGenerator* codeGen)
 #if DBG
         this->allocation->allocation->isNotExecutableBecauseOOM = true;
 #endif
-        codeGen->FreeNativeCodeGenAllocation(this->allocation->allocation->address, nullptr);
+        codeGen->FreeNativeCodeGenAllocation(this->allocation->allocation->address);
     }
 }
 

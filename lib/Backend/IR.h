@@ -334,10 +334,10 @@ public:
     bool            IsCmCC_R8();
     bool            IsCmCC_I4();
     bool            IsNeq();
-    bool            BinaryCalculator(IntConstType src1Const, IntConstType src2Const, IntConstType *pResult);
+    bool            BinaryCalculator(IntConstType src1Const, IntConstType src2Const, IntConstType *pResult, IRType type);
     template <typename T>     
     bool            BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult, bool checkWouldTrap);
-    bool            UnaryCalculator(IntConstType src1Const, IntConstType *pResult);
+    bool            UnaryCalculator(IntConstType src1Const, IntConstType *pResult, IRType type);
     IR::Instr*      GetNextArg();
 
     // Iterates argument chain

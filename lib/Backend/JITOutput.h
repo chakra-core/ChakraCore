@@ -54,6 +54,7 @@ public:
 private:
     template <typename TEmitBufferAllocation, typename TCodeGenAllocators>
     void RecordNativeCode(const BYTE* sourceBuffer, BYTE* localCodeAddress, TEmitBufferAllocation allocation, TCodeGenAllocators codeGenAllocators);
+    CustomHeap::Allocation * GetAllocation() const;
     union
     {
         EmitBufferAllocation<VirtualAllocWrapper, PreReservedVirtualAllocWrapper> * m_inProcAlloc;

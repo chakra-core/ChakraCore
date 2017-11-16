@@ -86,6 +86,7 @@ struct Allocation
         } largeObjectAllocation;
     };
 
+    uintptr_t thunkAddress;
     __field_bcount(size) char* address;
     size_t size;
 

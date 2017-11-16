@@ -1058,7 +1058,7 @@ ValueType ValueType::ToDefiniteNumber() const
 ValueType ValueType::ToDefiniteAnyNumber() const
 {
     // Not asserting on expected value type because Conv_Num allows converting values of arbitrary types to number
-    if(OneOn(Bits::Object))
+    if(OneOn(Bits::Object | Bits::PrimitiveOrObject))
         return Verify(Bits::Number | Bits::CanBeTaggedValue);
     Bits numberBits =
         bits &

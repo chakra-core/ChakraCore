@@ -2845,7 +2845,7 @@ Inline::InlineCallApplyTarget_Shared(IR::Instr *callInstr, bool originalCallTarg
     // instrNext
     IR::Instr* instrNext = callInstr->m_next;
 
-    return InlineFunctionCommon(callInstr, originalCallTargetOpndIsJITOpt, originalCallTargetStackSym, inlineeData, inlinee, instrNext, returnValueOpnd, callInstr, nullptr, recursiveInlineDepth, safeThis, isApplyTarget);
+    return InlineFunctionCommon(callInstr, originalCallTargetOpndIsJITOpt, originalCallTargetStackSym, inlineeData, inlinee, instrNext, returnValueOpnd, callInstr, nullptr, recursiveInlineDepth, safeThis, isApplyTarget)->m_prev;
 }
 
 IR::Opnd *
@@ -4419,7 +4419,7 @@ bool Inline::InlConstFold(IR::Instr *instr, IntConstType *pValue, __in_ecount_op
     {
         IntConstType src2Constant = *pValue;
 
-        if (!instr->BinaryCalculator(src1Constant, src2Constant, pValue)
+        if (!instr->BinaryCalculator(src1Constant, src2Constant, pValue, TyInt32)
             || !Math::FitsInDWord(*pValue))
         {
             return false;
@@ -4457,7 +4457,7 @@ bool Inline::InlConstFold(IR::Instr *instr, IntConstType *pValue, __in_ecount_op
     }
     else
     {
-        if (!instr->UnaryCalculator(src1Constant, pValue)
+        if (!instr->UnaryCalculator(src1Constant, pValue, TyInt32)
             || !Math::FitsInDWord(*pValue))
         {
             // Skip over BytecodeArgOutCapture

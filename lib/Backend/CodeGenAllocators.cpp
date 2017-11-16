@@ -5,10 +5,10 @@
 #include "Backend.h"
 
 template<typename TAlloc, typename TPreReservedAlloc>
-CodeGenAllocators<TAlloc, TPreReservedAlloc>::CodeGenAllocators(AllocationPolicyManager * policyManager, Js::ScriptContext * scriptContext, CustomHeap::CodePageAllocators<TAlloc, TPreReservedAlloc> * codePageAllocators, HANDLE processHandle)
+CodeGenAllocators<TAlloc, TPreReservedAlloc>::CodeGenAllocators(AllocationPolicyManager * policyManager, Js::ScriptContext * scriptContext, ThreadContextInfo * threadContext, CustomHeap::CodePageAllocators<TAlloc, TPreReservedAlloc> * codePageAllocators, HANDLE processHandle)
 : pageAllocator(policyManager, Js::Configuration::Global.flags, PageAllocatorType_BGJIT, 0)
 , allocator(_u("NativeCode"), &pageAllocator, Js::Throw::OutOfMemory)
-, emitBufferManager(&allocator, codePageAllocators, scriptContext, _u("JIT code buffer"), processHandle)
+, emitBufferManager(&allocator, codePageAllocators, scriptContext, threadContext, _u("JIT code buffer"), processHandle)
 #if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
 , canCreatePreReservedSegment(false)
 #endif
