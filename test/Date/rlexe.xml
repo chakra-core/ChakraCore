@@ -88,6 +88,7 @@
     <default>
       <files>date_cache_bug.js</files>
       <baseline>date_cache_bug.baseline</baseline>
+      <timeout>120</timeout> <!-- ARM64 take more than 60 -->
     </default>
   </test>
   <test>
