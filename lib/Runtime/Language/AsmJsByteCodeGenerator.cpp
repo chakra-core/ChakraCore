@@ -272,20 +272,31 @@ namespace Js
             col = 0;
         }
 
-        char16 filename[_MAX_FNAME];
-        char16 ext[_MAX_EXT];
-        _wsplitpath_s( Configuration::Global.flags.Filename, NULL, 0, NULL, 0, filename, _MAX_FNAME, ext, _MAX_EXT );
-
         LPCOLESTR NoneName = _u("None");
         LPCOLESTR moduleName = NoneName;
-        if(mCompiler->GetModuleFunctionName())
+        if (mCompiler->GetModuleFunctionName())
         {
             moduleName = mCompiler->GetModuleFunctionName()->Psz();
         }
 
-        AsmJSCompiler::OutputError(mCompiler->GetScriptContext(),
+        char16 filename[_MAX_FNAME];
+        char16 ext[_MAX_EXT];
+        bool hasURL = mFunction->GetFuncBody()->GetSourceContextInfo()->url != nullptr;
+        Assert(hasURL || mFunction->GetFuncBody()->GetSourceContextInfo()->IsDynamic());
+        if (hasURL)
+        {
+            _wsplitpath_s(mFunction->GetFuncBody()->GetSourceContextInfo()->url, NULL, 0, NULL, 0, filename, _MAX_FNAME, ext, _MAX_EXT);
+        }
+        AsmJSCompiler::OutputError(
+            mCompiler->GetScriptContext(),
             _u("\n%s%s(%d, %d)\n\tAsm.js Compilation Error function : %s::%s\n\t%s\n"),
-            filename, ext, line + 1, col + 1, moduleName, mFunction->GetName()->Psz(), msg);
+            hasURL ? filename : _u("[Dynamic code]"),
+            hasURL ? ext : _u(""),
+            line + 1,
+            col + 1,
+            moduleName,
+            mFunction->GetName()->Psz(),
+            msg);
     }
 
     void AsmJSByteCodeGenerator::DefineLabels()
