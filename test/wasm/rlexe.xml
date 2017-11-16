@@ -391,4 +391,11 @@
     <tags>exclude_jshost,exclude_win7,exclude_xplat</tags>
   </default>
 </test>
+<test>
+  <default>
+    <files>loopyieldregress.js</files>
+    <compile-flags>-lic:0 -bgjit-</compile-flags>
+    <tags>exclude_win7,exclude_xplat</tags>
+  </default>
+</test>
 </regress-exe>

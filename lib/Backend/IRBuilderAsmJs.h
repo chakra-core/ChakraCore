@@ -87,7 +87,7 @@ private:
 #if DBG
     BVFixed *               m_usedAsTemp;
 #endif
-    Js::RegSlot             GetTypedRegFromRegSlot(Js::RegSlot reg, WAsmJs::Types type);
+    uint32                  GetTypedRegFromRegSlot(Js::RegSlot reg, WAsmJs::Types type);
     Js::RegSlot             GetRegSlotFromTypedReg(Js::RegSlot srcReg, WAsmJs::Types type);
     Js::RegSlot             GetRegSlotFromPtrReg(Js::RegSlot srcReg)
     {
@@ -121,6 +121,7 @@ private:
     bool                    RegIsTypedTmp(Js::RegSlot reg, WAsmJs::Types type);
     bool                    RegIs(Js::RegSlot reg, WAsmJs::Types type);
     bool                    RegIsYield(Js::RegSlot reg);
+    void                    CheckIsYieldOutsideOfLoop(Js::RegSlot reg, IRType type);
 
     void                    BuildArgOut(IR::Opnd* srcOpnd, uint32 dstRegSlot, uint32 offset, IRType type, ValueType valueType = ValueType::Uninitialized);
     void                    BuildFromVar(uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot srcRegSlot, IRType irType, ValueType valueType);

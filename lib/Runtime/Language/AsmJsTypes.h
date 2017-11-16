@@ -896,8 +896,11 @@ namespace Js
         }
     };
 
-    typedef JsUtil::List<WasmRegisterInfoIDL> WasmLoopYieldInfo;
-    typedef JsUtil::List<WasmLoopYieldInfo*> WasmLoopsYieldInfo;
+    struct WasmLoopYieldInfo
+    {
+        uint32 minYield[WAsmJs::LIMIT] = {0,0,0,0,0};
+    };
+    typedef JsUtil::List<WasmLoopYieldInfo> WasmLoopsYieldInfo;
     class AsmJsFunctionInfo
     {
         Field(WAsmJs::TypedSlotInfo) mTypedSlotInfos[WAsmJs::LIMIT];
