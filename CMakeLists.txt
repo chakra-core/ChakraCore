@@ -350,8 +350,12 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
     )
 
     # Only disable RTTI in release builds so that TrackAlloc works for debug and test builds
+    # Also disable RTTI when building a shared library
+    # TODO: why does the shared library break with rtti disabled?
     if(CMAKE_BUILD_TYPE STREQUAL Release)
-        add_compile_options(-fno-rtti)
+        if(STATIC_LIBRARY OR NOT ICU_INTL_ENABLED)
+            add_compile_options(-fno-rtti)
+        endif()
     endif()
 
     # Clang -fsanitize.
