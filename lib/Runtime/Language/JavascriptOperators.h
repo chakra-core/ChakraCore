@@ -104,6 +104,7 @@ namespace Js
     public:
         static BOOL IsArray(_In_ RecyclableObject* instanceObj);
         static BOOL IsArray(_In_ Var instanceVar);
+        static BOOL IsArray(_In_ JavascriptProxy * proxy);
         static BOOL IsConstructor(Var instanceVar);
         static BOOL IsConcatSpreadable(Var instanceVar);
         static bool IsConstructorSuperCall(Arguments args);
@@ -689,6 +690,8 @@ namespace Js
 
         static BOOL ToPropertyDescriptorForProxyObjects(Var propertySpec, PropertyDescriptor* descriptor, ScriptContext* scriptContext);
         static BOOL ToPropertyDescriptorForGenericObjects(Var propertySpec, PropertyDescriptor* descriptor, ScriptContext* scriptContext);
+
+        static BOOL IsRemoteArray(RecyclableObject* instance);
     };
 
 } // namespace Js

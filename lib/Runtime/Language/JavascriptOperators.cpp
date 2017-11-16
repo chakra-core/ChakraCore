@@ -1323,25 +1323,42 @@ CommonNumber:
         return type->GetPrototype();
     }
 
+    BOOL JavascriptOperators::IsRemoteArray(RecyclableObject* instance)
+    {
+        TypeId remoteTypeId = TypeIds_Limit;
+        return (JavascriptOperators::GetRemoteTypeId(instance, &remoteTypeId) &&
+            DynamicObject::IsAnyArrayTypeId(remoteTypeId));
+    }
+
+    BOOL JavascriptOperators::IsArray(_In_ JavascriptProxy * instance)
+    {
+        // If it is a proxy, follow to the end of the proxy chain before checking if it is an array again.
+        JavascriptProxy * proxy = instance;
+        while (true)
+        {
+            RecyclableObject * targetInstance = proxy->GetTarget();
+            proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(targetInstance);
+            if (proxy == nullptr)
+            {
+                return DynamicObject::IsAnyArray(targetInstance) || IsRemoteArray(targetInstance);
+            }
+        }
+    }
+
     BOOL JavascriptOperators::IsArray(_In_ RecyclableObject* instance)
     {
         if (DynamicObject::IsAnyArray(instance))
         {
             return TRUE;
         }
-
+       
         JavascriptProxy* proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(instance);
         if (proxy)
         {
-            return IsArray(proxy->GetTarget());
+            return IsArray(proxy);
         }
-        TypeId remoteTypeId = TypeIds_Limit;
-        if (JavascriptOperators::GetRemoteTypeId(instance, &remoteTypeId) &&
-            DynamicObject::IsAnyArrayTypeId(remoteTypeId))
-        {
-            return TRUE;
-        }
-        return FALSE;
+
+        return IsRemoteArray(instance);
     }
 
     BOOL JavascriptOperators::IsArray(_In_ Var instanceVar)
