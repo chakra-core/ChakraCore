@@ -1049,10 +1049,8 @@ case_2:
         // The indexOf function is intentionally generic; it does not require that its this value be a String object. Therefore, it can be transferred to other kinds of objects for use as a method.
         //
 
-        int result = -1;
-
-        ENTER_PINNED_SCOPE(JavascriptString, pThis);
-        ENTER_PINNED_SCOPE(JavascriptString, searchString);
+        JavascriptString * pThis;
+        JavascriptString * searchString;
 
         GetThisAndSearchStringArguments(args, scriptContext, apiNameForErrorMsg, &pThis, &searchString, isRegExpAnAllowedArg);
 
@@ -1079,6 +1077,8 @@ case_2:
         {
             return position;
         }
+
+        int result = -1;
 
         if (position < pThis->GetLengthAsSignedInt())
         {
@@ -1107,10 +1107,6 @@ case_2:
                 }
             }
         }
-
-        LEAVE_PINNED_SCOPE();   //  searchString
-        LEAVE_PINNED_SCOPE();   //  pThis
-
         return result;
     }
 
@@ -1131,13 +1127,12 @@ case_2:
         // 3. Let searchStr be ? ToString(searchString).
 
         // default search string if the search argument is not provided
-        ENTER_PINNED_SCOPE(JavascriptString, pThis);
-        ENTER_PINNED_SCOPE(JavascriptString, searchArg);
-        pThis = nullptr;
-        searchArg = nullptr;
+
+        JavascriptString * pThis = nullptr;
 
         GetThisStringArgument(args, scriptContext, _u("String.prototype.lastIndexOf"), &pThis);
 
+        JavascriptString * searchArg = nullptr;
         if(args.Info.Count > 1)
         {
             searchArg = JavascriptOperators::TryFromVar<JavascriptString>(args[1]);
@@ -1242,10 +1237,6 @@ case_2:
             }
             --currentPos;
         }
-
-        LEAVE_PINNED_SCOPE(); //pThis
-        LEAVE_PINNED_SCOPE(); //searchArg
-
         return JavascriptNumber::ToVar(-1, scriptContext);
     }
 
@@ -1315,9 +1306,8 @@ case_2:
         }
         AssertMsg(args.Info.Count > 0, "Negative argument count");
 
-        Var resultVar = scriptContext->GetLibrary()->GetUndefined();
-        ENTER_PINNED_SCOPE(JavascriptString, pThis);
-        ENTER_PINNED_SCOPE(JavascriptString, pThat);
+        JavascriptString * pThis;
+        JavascriptString * pThat;
 
         GetThisAndSearchStringArguments(args, scriptContext, _u("String.prototype.localeCompare"), &pThis, &pThat, true);
 
@@ -1380,17 +1370,12 @@ case_2:
             JavascriptError::ThrowRangeError(function->GetScriptContext(),
                 VBSERR_InternalError /* TODO-ERROR: _u("Failed compare operation")*/ );
         }
-        resultVar = JavascriptNumber::ToVar(result-2, scriptContext);
+        return JavascriptNumber::ToVar(result-2, scriptContext);
 #else // !ENABLE_GLOBALIZATION
         // no ICU / or external support for localization. Use c-lib
         const int result = wcscmp(pThisStr, pThatStr);
-        resultVar = JavascriptNumber::ToVar(result > 0 ? 1 : result == 0 ? 0 : -1, scriptContext);
+        return JavascriptNumber::ToVar(result > 0 ? 1 : result == 0 ? 0 : -1, scriptContext);
 #endif
-
-        LEAVE_PINNED_SCOPE();    //  pThat
-        LEAVE_PINNED_SCOPE();    //  pThis
-
-        return resultVar;
     }
 
 
@@ -2506,14 +2491,11 @@ case_2:
         Assert(currentString->GetLength() > 0);
         Assert(count > 0);
 
-        charcount_t finalBufferCount = 0;
-        char16* buffer = nullptr;
-        EnterPinnedScope((volatile void**)& currentString);
         const char16* currentRawString = currentString->GetString();
         charcount_t currentLength = currentString->GetLength();
 
-        finalBufferCount = UInt32Math::Add(UInt32Math::Mul(count, currentLength), 1);
-        buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, finalBufferCount);
+        charcount_t finalBufferCount = UInt32Math::Add(UInt32Math::Mul(count, currentLength), 1);
+        char16* buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, finalBufferCount);
 
         if (currentLength == 1)
         {
@@ -2535,8 +2517,6 @@ case_2:
             Assert(bufferDstSize == 1);
             *bufferDst = '\0';
         }
-
-        LeavePinnedScope();     //  currentString
 
         return JavascriptString::NewWithBuffer(buffer, finalBufferCount - 1, scriptContext);
     }
@@ -3133,11 +3113,8 @@ case_2:
         charcount_t cchPropertyValue;
         charcount_t cchTotalChars;
         charcount_t ich;
-        JavascriptString * resultString = nullptr;
-        ENTER_PINNED_SCOPE(JavascriptString, pThis);
-        ENTER_PINNED_SCOPE(JavascriptString, pPropertyValue);
-        pThis = nullptr;
-        pPropertyValue = nullptr;
+        JavascriptString * pThis = nullptr;
+        JavascriptString * pPropertyValue = nullptr;
         const char16 * propertyValueStr = nullptr;
         uint quotesCount = 0;
         const char16 quotStr[] = _u("&quot;");
@@ -3336,19 +3313,13 @@ case_2:
         // Assert we ended at the right place.
         AssertMsg((charcount_t)(pResult - builder.DangerousGetWritableBuffer()) == cchTotalChars, "Exceeded allocated string limit");
 
-        resultString = builder.ToString();
-
-        LEAVE_PINNED_SCOPE();   // pThis
-        LEAVE_PINNED_SCOPE();   // pPropertyValue
-
-        return resultString;
+        return builder.ToString();
     }
     Var JavascriptString::ToLocaleCaseHelper(Var thisObj, bool toUpper, ScriptContext *scriptContext)
     {
         using namespace PlatformAgnostic::UnicodeText;
-        JavascriptString * resultString = nullptr;
-        ENTER_PINNED_SCOPE(JavascriptString, pThis);
-        pThis = JavascriptOperators::TryFromVar<JavascriptString>(thisObj);
+
+        JavascriptString * pThis = JavascriptOperators::TryFromVar<JavascriptString>(thisObj);
 
         if (!pThis)
         {
@@ -3384,11 +3355,7 @@ case_2:
             Throw::InternalError();
         }
 
-        resultString = builder.ToString();
-
-        LEAVE_PINNED_SCOPE();   // pThis
-
-        return resultString;
+        return builder.ToString();
     }
 
     int JavascriptString::IndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, charcount_t len, const char16* searchStr, int searchLen, int position)
@@ -3536,16 +3503,6 @@ case_2:
     uint JavascriptString::strstr(JavascriptString *string, JavascriptString *substring, bool useBoyerMoore, uint start)
     {
         uint i;
-
-        // We want to pin the strings string and substring because flattening of any of these strings could cause a GC and result in the other string getting collected if it was optimized
-        // away by the compiler. We would normally have called the EnterPinnedScope/LeavePinnedScope methods here but it adds extra call instructions to the assembly code. As Equals
-        // methods could get called a lot of times this can show up as regressions in benchmarks.
-        volatile Js::JavascriptString** keepAliveString1 = (volatile Js::JavascriptString**)& string;
-        volatile Js::JavascriptString** keepAliveString2 = (volatile Js::JavascriptString**)& substring;
-        auto keepAliveLambda = [&]() {
-            UNREFERENCED_PARAMETER(keepAliveString1);
-            UNREFERENCED_PARAMETER(keepAliveString2);
-        };
 
         const char16 *stringOrig = string->GetString();
         uint stringLenOrig = string->GetLength();

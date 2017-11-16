@@ -120,11 +120,10 @@ namespace Js
         AssertMsg(args.Info.Count, "Should always have implicit 'this'.");
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptLibrary* library = scriptContext->GetLibrary();
-        const Js::PropertyRecord* propertyRecord = nullptr;
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        ENTER_PINNED_SCOPE(JavascriptString, key);
+        JavascriptString* key;
 
         if (args.Info.Count > 1)
         {
@@ -138,7 +137,7 @@ namespace Js
         // Search the global symbol registration map for a symbol with description equal to the string key.
         // The map can only have one symbol with that description so if we found a symbol, that is the registered
         // symbol for the string key.
-        propertyRecord = scriptContext->GetThreadContext()->GetSymbolFromRegistrationMap(key->GetString(), key->GetLength());
+        const Js::PropertyRecord* propertyRecord = scriptContext->GetThreadContext()->GetSymbolFromRegistrationMap(key->GetString(), key->GetLength());
 
         // If we didn't find a PropertyRecord in the map, we'll create a new symbol with description equal to the key string.
         // This is the only place we add new PropertyRecords to the map, so we should never have multiple PropertyRecords in the
@@ -147,8 +146,6 @@ namespace Js
         {
             propertyRecord = scriptContext->GetThreadContext()->AddSymbolToRegistrationMap(key->GetString(), key->GetLength());
         }
-
-        LEAVE_PINNED_SCOPE();   //  key
 
         Assert(propertyRecord != nullptr);
 
