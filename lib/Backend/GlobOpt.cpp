@@ -7465,7 +7465,7 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
 
         case Js::OpCode::InlineMathPow:
         {
-#ifndef _M_ARM
+#ifndef _M_ARM32_OR_ARM64
             if (src2Val->GetValueInfo()->IsLikelyInt())
             {
                 bool lossy = false;
@@ -7498,7 +7498,7 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
             {
 #endif
                 this->TypeSpecializeFloatBinary(instr, src1Val, src2Val, pDstVal);
-#ifndef _M_ARM
+#ifndef _M_ARM32_OR_ARM64
             }
 #endif
             break;
