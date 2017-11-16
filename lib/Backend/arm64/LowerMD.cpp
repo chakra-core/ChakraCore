@@ -6952,9 +6952,12 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 
     case Js::OpCode::InlineMathFloor:
     case Js::OpCode::InlineMathCeil:
+        Assert(helperMethod == (IR::JnHelperMethod)0);
+        return GenerateFastInlineBuiltInMathFloorCeil(instr);
+
     case Js::OpCode::InlineMathRound:
         Assert(helperMethod == (IR::JnHelperMethod)0);
-        return GenerateFastInlineBuiltInMathFloorCeilRound(instr);
+        return GenerateFastInlineBuiltInMathRound(instr);
 
     case Js::OpCode::InlineMathMin:
     case Js::OpCode::InlineMathMax:
@@ -7043,8 +7046,75 @@ LowererMD::GenerateFastInlineBuiltInMathAbs(IR::Instr *inlineInstr)
     }
 }
 
+
 void
-LowererMD::GenerateFastInlineBuiltInMathFloorCeilRound(IR::Instr* instr)
+LowererMD::GenerateFastInlineBuiltInMathRound(IR::Instr* instr)
+{
+    Assert(instr->GetDst()->IsInt32());
+
+    IR::LabelInstr * doneLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+
+    // Allocate an integer register for negative zero checks if needed
+    IR::Opnd * negZeroReg = nullptr;
+    if (instr->ShouldCheckForNegativeZero())
+    {
+        negZeroReg = IR::RegOpnd::New(TyInt64, this->m_func);
+    }
+
+    // FMOV floatOpnd, src
+    IR::Opnd * src = instr->UnlinkSrc1();
+    IR::RegOpnd* floatOpnd = IR::RegOpnd::New(TyFloat64, this->m_func);
+    this->m_lowerer->InsertMove(floatOpnd, src, instr);
+
+    IR::LabelInstr * bailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);;
+    bool sharedBailout = (instr->GetBailOutInfo()->bailOutInstr != instr) ? true : false;
+
+    // FMOV_GEN negZeroReg, floatOpnd (note this is done before the 0.5 add below)
+    if (negZeroReg)
+    {
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::FMOV_GEN, negZeroReg, floatOpnd, instr->m_func));
+    }
+
+    // Add 0.5
+    IR::Opnd * pointFive = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoublePointFiveAddr(), IRType::TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+    this->m_lowerer->InsertAdd(false, floatOpnd, floatOpnd, pointFive, instr);
+
+    // FCVTM intOpnd, floatOpnd
+    IR::Opnd * intOpnd = IR::RegOpnd::New(TyInt32, this->m_func);
+    instr->InsertBefore(IR::Instr::New(Js::OpCode::FCVTM, intOpnd, floatOpnd, instr->m_func));
+
+    // CBNZ intOpnd, done
+    IR::BranchInstr * cbnzInstr = IR::BranchInstr::New(Js::OpCode::CBNZ, doneLabel, instr->m_func);
+    cbnzInstr->SetSrc1(intOpnd);
+    instr->InsertBefore(cbnzInstr);
+
+    if (negZeroReg)
+    {
+        // TBZ negZeroReg, 63
+        IR::BranchInstr * tbzInstr = IR::BranchInstr::New(Js::OpCode::TBZ, doneLabel, instr->m_func);
+        tbzInstr->SetSrc1(negZeroReg);
+        tbzInstr->SetSrc2(IR::IntConstOpnd::New(63, TyMachReg, instr->m_func));
+        instr->InsertBefore(tbzInstr);
+    }
+
+    IR::Opnd * dst = instr->UnlinkDst();
+    instr->InsertAfter(doneLabel);
+    if (!sharedBailout)
+    {
+        instr->InsertBefore(bailoutLabel);
+    }
+
+    // In case of a shared bailout, we should jump to the code that sets some data on the bailout record which is specific
+    // to this bailout. Pass the bailoutLabel to GenerateFunction so that it may use the label as the collectRuntimeStatsLabel.
+    this->m_lowerer->GenerateBailOut(instr, nullptr, nullptr, sharedBailout ? bailoutLabel : nullptr);
+
+    // MOV dst, intOpnd
+    IR::Instr* movInstr = IR::Instr::New(Js::OpCode::MOV, dst, intOpnd, this->m_func);
+    doneLabel->InsertAfter(movInstr);
+}
+
+void
+LowererMD::GenerateFastInlineBuiltInMathFloorCeil(IR::Instr* instr)
 {
     Assert(instr->GetDst()->IsInt32());
 
@@ -7074,13 +7144,6 @@ LowererMD::GenerateFastInlineBuiltInMathFloorCeilRound(IR::Instr* instr)
     if (negZeroReg)
     {
         instr->InsertBefore(IR::Instr::New(Js::OpCode::FMOV_GEN, negZeroReg, floatOpnd, instr->m_func));
-    }
-
-    // Add 0.5 if rounding
-    if (instr->m_opcode == Js::OpCode::InlineMathRound)
-    {
-        IR::Opnd * pointFive = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoublePointFiveAddr(), IRType::TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
-        this->m_lowerer->InsertAdd(false, floatOpnd, floatOpnd, pointFive, instr);
     }
 
     // FCVTM/FCVTP intOpnd, floatOpnd
