@@ -4391,16 +4391,29 @@ CommonNumber:
             LiteralStringWithPropertyStringPtr * strWithPtr = LiteralStringWithPropertyStringPtr::TryFromVar(index);
             if (strWithPtr != nullptr)
             {
-                propertyString = strWithPtr->GetOrAddPropertyString();
-                propertyRecord = propertyString->GetPropertyRecord();
+                propertyString = strWithPtr->GetPropertyString(); // do not force create the PropertyString,
+                                                                  // if it wasn't there, it won't be efficient for now.
+                propertyRecord = strWithPtr->GetPropertyRecord(true /* dontLookupFromDictionary */);
+                if (propertyRecord == nullptr)
+                {
+                    propertyRecord = strWithPtr->GetPropertyRecord(); // lookup-cache propertyRecord
+                                                                      // later this call, there will be a lookup anyways!
+                }
+                else if (propertyString == nullptr)
+                {
+                    propertyString = strWithPtr->GetOrAddPropertyString(); // this is the second time this property is here
+                                                                           // we already had created the propertyRecord..
+                                                                           // now create the propertyString!
+                }
             }
         }
-
-        if (propertyString != nullptr)
+        else
         {
-            Assert(propertyString->GetScriptContext() == scriptContext);
             propertyRecord = propertyString->GetPropertyRecord();
+        }
 
+        if (propertyRecord != nullptr)
+        {
             if (propertyRecord->IsNumeric())
             {
                 indexType = IndexType_Number;
@@ -4408,8 +4421,9 @@ CommonNumber:
             }
             else
             {
-                if (receiver == object)
+                if (propertyString != nullptr && receiver == object)
                 {
+                    Assert(propertyString->GetScriptContext() == scriptContext);
                     if (propertyString->TrySetPropertyFromCache(object, value, scriptContext, flags, &propertyValueInfo))
                     {
                         return true;

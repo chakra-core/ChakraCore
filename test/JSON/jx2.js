@@ -29,7 +29,7 @@ var rev1 = function(name, value) {
     else {
         write(value);
     }
-    
+
 
     write("+++out reviver");
     if (value == 3) {
@@ -101,7 +101,7 @@ write(jsObjStringParsed.dateMember.getUTCFullYear());
 
 var rev2 = function(name, value) {
     if (this[name] != value) {
-        write("error");
+        write("error " + this[name] + " != " + value);
     }
     if (value == 3.14) {
         return undefined;
@@ -245,7 +245,7 @@ for (var i = 0; i < objectArray.length; i++) {
         reStringified = JSON.stringify(parsedObj);
         write("=== Parsed and restringified :")
         write(reStringified);
-        
+
         parsedObj = JSON.parse(stringifiedObj, rev2);
         reStringified = JSON.stringify(parsedObj);
         write("=== Parsed with reviver and restringified :")
@@ -302,7 +302,7 @@ for (var k = 0; k < replacerArray.length; k++) {
                 parsedObj = JSON.parse(stringifiedObj);
                 reStringified = JSON.stringify(parsedObj);
                 write("=== Parsed with no reviver and restringified :")
-                
+
                 write(reStringified);
                 parsedObj = JSON.parse(stringifiedObj, rev2);
                 reStringified = JSON.stringify(parsedObj);
@@ -321,7 +321,7 @@ for (var k = 0; k < replacerArray.length; k++) {
         parsedObj = JSON.parse(stringifiedObj);
         reStringified = JSON.stringify(parsedObj);
         write("=== Parsed with no reviver and restringified :")
-        
+
         checkStrEqual(reStringified, expectedString);
         parsedObj = JSON.parse(stringifiedObj, rev2);
         reStringified = JSON.stringify(parsedObj);
