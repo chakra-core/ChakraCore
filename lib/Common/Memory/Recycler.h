@@ -615,7 +615,6 @@ private:
 };
 #endif
 
-
 class Recycler
 {
     friend class RecyclerScanMemoryCallback;
@@ -877,6 +876,14 @@ private:
     };
 
     SavedRegisterState savedThreadContext;
+
+#if __has_feature(address_sanitizer)
+    void* savedAsanFakeStack;
+#define SAVE_THREAD_ASAN_FAKE_STACK() \
+        this->savedAsanFakeStack = __asan_get_current_fake_stack()
+#else
+#define SAVE_THREAD_ASAN_FAKE_STACK()
+#endif
 
     bool inDispose;
 
@@ -1570,8 +1577,11 @@ private:
 
     inline void ScanObjectInline(void ** obj, size_t byteCount);
     inline void ScanObjectInlineInterior(void ** obj, size_t byteCount);
+
     template <bool doSpecialMark>
-    inline void ScanMemoryInline(void ** obj, size_t byteCount);
+    inline void ScanMemoryInline(void ** obj, size_t byteCount
+        ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType scanMemoryType = RecyclerScanMemoryType::General));
+
     template <bool doSpecialMark>
     void ScanMemory(void ** obj, size_t byteCount) { if (byteCount != 0) { ScanMemoryInline<doSpecialMark>(obj, byteCount); } }
     bool AddMark(void * candidate, size_t byteCount) throw();

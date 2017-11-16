@@ -1593,9 +1593,14 @@ ThreadContext::SetForceOneIdleCollection()
 
 }
 
-BOOLEAN
+bool
 ThreadContext::IsOnStack(void const *ptr)
 {
+    if (IS_ASAN_FAKE_STACK_ADDR(ptr))
+    {
+        return true;
+    }
+
 #if defined(_M_IX86) && defined(_MSC_VER)
     return ptr < (void*)__readfsdword(0x4) && ptr >= (void*)__readfsdword(0xE0C);
 #elif defined(_M_AMD64) && defined(_MSC_VER)
@@ -2218,9 +2223,11 @@ ThreadContext::PushEntryExitRecord(Js::ScriptEntryExitRecord * record)
         // then the list somehow got messed up
         if (
 #if defined(JSRT_VERIFY_RUNTIME_STATE) || defined(DEBUG)
-        !IsOnStack(lastRecord) ||
+            !IsOnStack(lastRecord) ||
 #endif
-        (uintptr_t)record >= (uintptr_t)lastRecord)
+            ((uintptr_t)record >= (uintptr_t)lastRecord
+                && !IS_ASAN_FAKE_STACK_ADDR(record)
+                && !IS_ASAN_FAKE_STACK_ADDR(lastRecord)))
         {
             EntryExitRecord_Corrupted_fatal_error();
         }
@@ -2240,7 +2247,9 @@ void ThreadContext::PopEntryExitRecord(Js::ScriptEntryExitRecord * record)
 #if defined(JSRT_VERIFY_RUNTIME_STATE) || defined(DEBUG)
         !IsOnStack(next) ||
 #endif
-    (uintptr_t)this->entryExitRecord >= (uintptr_t)next))
+        ((uintptr_t)this->entryExitRecord >= (uintptr_t)next
+            && !IS_ASAN_FAKE_STACK_ADDR(this->entryExitRecord)
+            && !IS_ASAN_FAKE_STACK_ADDR(next))))
     {
         EntryExitRecord_Corrupted_fatal_error();
     }

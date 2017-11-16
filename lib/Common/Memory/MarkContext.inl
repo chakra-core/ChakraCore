@@ -64,7 +64,8 @@ bool MarkContext::AddTrackedObject(FinalizableObject * obj)
 template <bool parallel, bool interior, bool doSpecialMark>
 NO_SANITIZE_ADDRESS
 inline
-void MarkContext::ScanMemory(void ** obj, size_t byteCount)
+void MarkContext::ScanMemory(void ** obj, size_t byteCount
+        ADDRESS_SANITIZER_APPEND(void *asanFakeStack))
 {
     Assert(byteCount != 0);
     Assert(byteCount % sizeof(void *) == 0);
@@ -77,6 +78,11 @@ void MarkContext::ScanMemory(void ** obj, size_t byteCount)
     {
         Output::Print(_u("Scanning %p(%8d): "), obj, byteCount);
     }
+#endif
+
+#if __has_feature(address_sanitizer)
+    void *fakeFrameBegin = nullptr;
+    void *fakeFrameEnd = nullptr;
 #endif
 
     do
@@ -95,7 +101,30 @@ void MarkContext::ScanMemory(void ** obj, size_t byteCount)
 #if DBG
         this->parentRef = obj;
 #endif
-        Mark<parallel, interior, doSpecialMark>(candidate, parentObject);
+
+#if __has_feature(address_sanitizer)
+        bool isFakeStackAddr = false;
+        if (asanFakeStack)
+        {
+            void *beg = nullptr;
+            void *end = nullptr;
+            isFakeStackAddr = __asan_addr_is_in_fake_stack(asanFakeStack, candidate, &beg, &end) != nullptr;
+            if (isFakeStackAddr && (beg != fakeFrameBegin || end != fakeFrameEnd))
+            {
+                ScanMemory<parallel, interior, doSpecialMark>((void**)beg, (char*)end - (char*)beg);
+                fakeFrameBegin = beg;
+                fakeFrameEnd = end;
+            }
+        }
+
+        if (!isFakeStackAddr)
+        {
+#endif
+            Mark<parallel, interior, doSpecialMark>(candidate, parentObject);
+
+#if __has_feature(address_sanitizer)
+        }
+#endif
         obj++;
     } while (obj != objEnd);
 
