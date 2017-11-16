@@ -229,6 +229,7 @@ public:
             void                GenerateFastInlineBuiltInMathRound(IR::Instr *callInstr);
             void                GenerateFastInlineBuiltInMathFloorCeil(IR::Instr *callInstr);
             void                GenerateFastInlineBuiltInMathMinMax(IR::Instr *callInstr);
+     static void                GenerateFastInlineMathFround(IR::Instr* instr);
             static RegNum       GetRegStackPointer() { return RegSP; }
             static RegNum       GetRegFramePointer() { return RegFP; }
 
