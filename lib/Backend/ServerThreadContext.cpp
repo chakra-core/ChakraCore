@@ -18,7 +18,7 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data, HANDLE pro
     m_sectionAllocator(processHandle),
     m_thunkPageAllocators(nullptr, /* allocXData */ false, &m_sectionAllocator, nullptr, processHandle),
     m_codePageAllocators(nullptr, ALLOC_XDATA, &m_sectionAllocator, &m_preReservedSectionAllocator, processHandle),
-#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64_OR_ARM64)
     m_jitThunkEmitter(this, &m_sectionAllocator, processHandle),
 #endif
     m_codeGenAlloc(nullptr, nullptr, this, &m_codePageAllocators, processHandle),
@@ -139,7 +139,7 @@ ServerThreadContext::GetCodeGenAllocators()
     return &m_codeGenAlloc;
 }
 
-#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64_OR_ARM64)
 OOPJITThunkEmitter *
 ServerThreadContext::GetJITThunkEmitter()
 {
