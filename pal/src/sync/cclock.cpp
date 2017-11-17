@@ -49,14 +49,18 @@ void CCLock::Enter()
 {
     pthread_mutex_t *mutex = (pthread_mutex_t*)this->mutexPtr;
     int err = pthread_mutex_lock(mutex);
+#ifdef __APPLE__ // xplat-todo: pal pthread-exit strategy needs a revisit for the last! thread.
     AssertMsg(err == 0, "Mutex Enter has failed");
+#endif
 }
 
 void CCLock::Leave()
 {
     pthread_mutex_t *mutex = (pthread_mutex_t*)this->mutexPtr;
     int err = pthread_mutex_unlock(mutex);
+#ifdef __APPLE__ // xplat-todo: pal pthread-exit strategy needs a revisit for the last! thread.
     AssertMsg(err == 0, "Mutex Leave has failed");
+#endif
 }
 
 bool CCLock::TryEnter()
