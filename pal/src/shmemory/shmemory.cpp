@@ -393,8 +393,6 @@ memory if no other process has done it.
 --*/
 BOOL SHMInitialize(void)
 {
-    shm_critsec.Reset();
-
     init_waste();
 
         int size;
@@ -762,6 +760,7 @@ section usage
 --*/
 int SHMLock(void)
 {
+    shm_critsec.Reset(); // this won't actually reset it but will initialize, if it wasn't.
     shm_critsec.Enter();
 
     lock_count++;
