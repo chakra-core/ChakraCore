@@ -6,6 +6,7 @@
 #pragma once
 
 #ifdef ASMJS_PLAT
+#include "Language/WAsmjsUtils.h"
 namespace Js
 {
     ///----------------------------------------------------------------------------
@@ -482,6 +483,13 @@ namespace Js
     struct OpLayoutT_AsmUnsigned1
     {
         typename SizePolicy::UnsignedType C1;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_WasmLoopStart
+    {
+        typename SizePolicy::UnsignedType loopId;
+        typename SizePolicy::UnsignedType curRegs[WAsmJs::LIMIT];
     };
 
     struct OpLayoutAsmBr

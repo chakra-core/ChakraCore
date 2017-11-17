@@ -697,8 +697,7 @@ typedef struct CodeGenWorkItemIDL
     unsigned int loopNumber;
     unsigned int inlineeInfoCount;
     unsigned int symIdToValueTypeMapCount;
-    // This is used only by WebAssembly Jit loop body
-    unsigned int wasmLoopYieldMins[5];
+    X64_PAD4(1)
     XProcNumberPageSegment * xProcNumberPageSegment;
 
     PolymorphicInlineCacheInfoIDL * selfInfo;

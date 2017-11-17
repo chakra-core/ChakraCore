@@ -68,15 +68,16 @@ MACRO_WMS       ( Conv_VTF                   , Float1Reg1      , None           
 MACRO_WMS       ( Conv_VTD                   , Double1Reg1     , None            ) // convert var to double
 MACRO_WMS       ( Conv_VTL                   , Long1Reg1       , None            ) // convert var to int64
 // Internal calls
-MACRO           ( I_StartCall                , StartCall       , None            )    // Initialize memory for a call
-MACRO_WMS_PROFILED( I_Call                   , AsmCall         , None            )    // Execute call and place return value in register
-MACRO_WMS       ( I_ArgOut_Db                , Reg1Double1     , None            )    // place double arg for function call
-MACRO_WMS       ( I_ArgOut_Int               , Reg1Int1        , None            )    // place int arg for function call
-MACRO_WMS       ( I_ArgOut_Long              , Reg1Long1       , None            )    // place int64 arg for function call
-MACRO_WMS       ( I_ArgOut_Flt               , Reg1Float1      , None            )    // place float arg for function call
+MACRO           ( I_StartCall                , StartCall       , None            ) // Initialize memory for a call
+MACRO_WMS_PROFILED( I_Call                   , AsmCall         , None            ) // Execute call and place return value in register
+MACRO_WMS       ( I_ArgOut_Db                , Reg1Double1     , None            ) // place double arg for function call
+MACRO_WMS       ( I_ArgOut_Int               , Reg1Int1        , None            ) // place int arg for function call
+MACRO_WMS       ( I_ArgOut_Long              , Reg1Long1       , None            ) // place int64 arg for function call
+MACRO_WMS       ( I_ArgOut_Flt               , Reg1Float1      , None            ) // place float arg for function call
 
 // loop
-MACRO_WMS       ( AsmJsLoopBodyStart         , AsmUnsigned1    , None            )    // Marks the start of a loop body
+MACRO_WMS       ( AsmJsLoopBodyStart         , AsmUnsigned1    , None            ) // Marks the start of an asm.js loop body
+MACRO_WMS       ( WasmLoopBodyStart          , WasmLoopStart   , None            ) // Marks the start of a wasm loop body
 // Branching
 MACRO           ( AsmBr                      , AsmBr           , OpNoFallThrough ) // Unconditional branch
 MACRO_WMS       ( BrTrue_Int                 , BrInt1          , None            ) // Jumps to offset if int value is not 0

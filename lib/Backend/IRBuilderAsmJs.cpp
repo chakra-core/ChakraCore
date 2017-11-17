@@ -98,21 +98,13 @@ IRBuilderAsmJs::Build()
     {
         // LdSlot & StSlot needs to cover all the register, including the temps, because we might treat
         // those as if they are local for yielding
-        this->m_ldSlots = BVFixed::New<JitArenaAllocator>(GetLastTmp(WAsmJs::LastType), m_tempAlloc);
-        this->m_stSlots = BVFixed::New<JitArenaAllocator>(GetLastTmp(WAsmJs::LastType), m_tempAlloc);
-        this->m_yieldRegs = nullptr;
-#ifdef ENABLE_WASM
-        if (m_func->GetJITFunctionBody()->IsWasmFunction())
-        {
-            this->m_yieldRegs = BVFixed::New<JitArenaAllocator>(GetLastTmp(WAsmJs::LastType), m_tempAlloc);
-        }
-#endif
-        this->m_loopBodyRetIPSym = StackSym::New(TyInt32, this->m_func);
+        m_jitLoopBodyData = JitAnew(m_tempAlloc, JitLoopBodyData,
+            BVFixed::New<JitArenaAllocator>(GetLastTmp(WAsmJs::LastType), m_tempAlloc),
+            BVFixed::New<JitArenaAllocator>(GetLastTmp(WAsmJs::LastType), m_tempAlloc),
+            StackSym::New(TyInt32, this->m_func)
+        );
 #if DBG
-        if (m_tempCount > 0)
-        {
-            this->m_usedAsTemp = BVFixed::New<JitArenaAllocator>(m_tempCount, m_tempAlloc);
-        }
+        GetJitLoopBodyData().m_usedAsTemp = BVFixed::New<JitArenaAllocator>(GetLastTmp(WAsmJs::LastType), m_tempAlloc);
 #endif
         lastOffset = m_func->GetWorkItem()->GetLoopHeader()->endOffset;
         // Ret is created at lastOffset + 1, so we need lastOffset + 2 entries
@@ -265,17 +257,10 @@ IR::RegOpnd *
 IRBuilderAsmJs::BuildDstOpnd(Js::RegSlot dstRegSlot, IRType type)
 {
     SymID symID = static_cast<SymID>(dstRegSlot);
-    if (RegIsYield(dstRegSlot))
+    if (IsLoopBody() && (RegIsVar(dstRegSlot) || RegIsJitLoopYield(dstRegSlot)))
     {
-        // Use default symID for yield registers
-    }
-    else if (IsLoopBody() && RegIsVar(dstRegSlot))
-    {
-        // Loop body and not constants
-        this->m_stSlots->Set(dstRegSlot);
-        // We need to make sure that the symbols is loaded as well
-        // so that the sym will be defined on all path.
-        this->EnsureLoopBodyAsmJsLoadSlot(symID, type);
+        // Use default symID for yield and var registers
+        EnsureLoopBodyAsmJsStoreSlot(dstRegSlot, type);
     }
     else if (RegIsTemp(dstRegSlot))
     {
@@ -286,8 +271,8 @@ IRBuilderAsmJs::BuildDstOpnd(Js::RegSlot dstRegSlot, IRType type)
             // That means that we have detected that the slot is live coming in to the loop.
             // This would only happen for the value of a "with" statement, so there shouldn't
             // be any def for those
-            Assert(!this->m_ldSlots->Test(dstRegSlot));
-            this->m_usedAsTemp->Set(dstRegSlot - GetFirstTmp(WAsmJs::FirstType));
+            Assert(!GetJitLoopBodyData().GetLdSlots()->Test(dstRegSlot));
+            GetJitLoopBodyData().m_usedAsTemp->Set(dstRegSlot);
         }
 #endif
         // This is a def of a temp. Create a new sym ID for it if it's been used since its last def.
@@ -379,7 +364,7 @@ IRBuilderAsmJs::BuildSrcStackSymID(Js::RegSlot regSlot, IRType type /*= IRType::
 {
     SymID symID = static_cast<SymID>(regSlot);
 
-    if (IsLoopBody() && (RegIsVar(regSlot) || RegIsYield(regSlot)))
+    if (IsLoopBody() && (RegIsVar(regSlot) || RegIsJitLoopYield(regSlot)))
     {
         this->EnsureLoopBodyAsmJsLoadSlot(regSlot, type);
     }
@@ -393,7 +378,7 @@ IRBuilderAsmJs::BuildSrcStackSymID(Js::RegSlot regSlot, IRType type /*= IRType::
             // We might have temps that are live through the loop body via "with" statement
             // We need to treat those as if they are locals and don't remap them
             Assert(this->IsLoopBody());
-            Assert(!this->m_usedAsTemp->Test(regSlot - GetFirstTmp(WAsmJs::FirstType)));
+            Assert(!GetJitLoopBodyData().m_usedAsTemp->Test(regSlot));
 
             symID = static_cast<SymID>(regSlot);
             this->SetMappedTemp(regSlot, symID);
@@ -630,35 +615,46 @@ IRBuilderAsmJs::RegIs(Js::RegSlot reg, WAsmJs::Types type)
 }
 
 bool
-IRBuilderAsmJs::RegIsYield(Js::RegSlot reg)
+IRBuilderAsmJs::RegIsJitLoopYield(Js::RegSlot reg)
 {
-    return m_yieldRegs && m_yieldRegs->Test(reg);
+    return IsLoopBody() && GetJitLoopBodyData().IsYieldReg(reg);
 }
 
 void
-IRBuilderAsmJs::CheckIsYieldOutsideOfLoop(Js::RegSlot reg, IRType type)
+IRBuilderAsmJs::CheckJitLoopReturn(Js::RegSlot reg, IRType type)
 {
-#ifdef ENABLE_WASM
-    if (m_yieldRegs && !m_yieldRegs->Test(reg))
+    if (IsLoopBody())
     {
-        Assert(m_func->IsLoopBody());
-        WAsmJs::Types wasmType = WAsmJs::FromIRType(type);
-        Assert(wasmType < WAsmJs::LIMIT);
-        uint32 typedReg = GetTypedRegFromRegSlot(reg, wasmType);
-        if (typedReg < m_func->GetWorkItem()->GetWorkItemData()->wasmLoopYieldMins[wasmType])
+#ifdef ENABLE_WASM
+        if (GetJitLoopBodyData().IsLoopCurRegsInitialized())
         {
-            Assert(!RegIsTemp(reg) || GetMappedTemp(reg) == (SymID)reg || GetMappedTemp(reg) == 0);
-            m_yieldRegs->Set(reg);
-            // Make sure we set that slot when done with the loop
-            m_stSlots->Set(reg);
-            // We need to make sure that the symbols is loaded as well
-            // so that the sym will be defined on all path.
-            this->EnsureLoopBodyAsmJsLoadSlot(reg, type);
+            Assert(m_func->GetJITFunctionBody()->IsWasmFunction());
+            // In Wasm we use the Return opcode for Yields
+            // Check if that yield is outside of the loop (this also covers return)
+            if (!RegIsJitLoopYield(reg))
+            {
+                WAsmJs::Types wasmType = WAsmJs::FromIRType(type);
+                Assert(wasmType < WAsmJs::LIMIT);
+                uint32 typedReg = GetTypedRegFromRegSlot(reg, wasmType);
+                if (GetJitLoopBodyData().IsRegOutsideOfLoop(typedReg, wasmType))
+                {
+                    // The reg should be either a constant (return register)
+                    // Or a temp, in which case, make sure we haven't mapped that temp to something else
+                    Assert(RegIsConstant(reg) || (RegIsTemp(reg) && (GetMappedTemp(reg) == (SymID)reg || GetMappedTemp(reg) == 0)));
+                    GetJitLoopBodyData().SetRegIsYield(reg);
+                    EnsureLoopBodyAsmJsStoreSlot(reg, type);
+                }
+            }
+        }
+        else
+#endif
+        {
+            // In Asm.js there is no Yields outside of the loop, if we're here
+            // It means we are probably returning a value from the loop
+            Assert(RegIsConstant(reg));
+            EnsureLoopBodyAsmJsStoreSlot(reg, type);
         }
     }
-#else
-    Assert(!m_yieldRegs);
-#endif
 }
 
 bool
@@ -1174,11 +1170,26 @@ IRBuilderAsmJs::BuildElementSlot(Js::OpCodeAsmJs newOpcode, uint32 offset)
 
 template <typename SizePolicy>
 void
-IRBuilderAsmJs::BuildAsmUnsigned1(Js::OpCodeAsmJs newOpcode, uint value)
+IRBuilderAsmJs::BuildAsmUnsigned1(Js::OpCodeAsmJs newOpcode, uint offset)
 {
+    Assert(!m_func->GetJITFunctionBody()->IsWasmFunction());
    // we do not support counter in loop body ,just read the layout here
    m_jnReader.GetLayout<Js::OpLayoutT_AsmUnsigned1<SizePolicy>>();
 }
+
+template <typename SizePolicy>
+void
+IRBuilderAsmJs::BuildWasmLoopStart(Js::OpCodeAsmJs newOpcode, uint offset)
+{
+    Assert(m_func->GetJITFunctionBody()->IsWasmFunction());
+    auto loopStart = m_jnReader.GetLayout<Js::OpLayoutT_WasmLoopStart<SizePolicy>>();
+    if (IsLoopBody() && !this->GetJitLoopBodyData().IsLoopCurRegsInitialized())
+    {
+        // There can be nested loop, only initialize with the first loop found
+        this->GetJitLoopBodyData().InitLoopCurRegs(loopStart->curRegs, BVFixed::New<JitArenaAllocator>(GetLastTmp(WAsmJs::LastType), m_tempAlloc));
+    }
+}
+
 void
 IRBuilderAsmJs::BuildElementSlot(Js::OpCodeAsmJs newOpcode, uint32 offset, int32 slotIndex, Js::RegSlot value, Js::RegSlot instance)
 {
@@ -2443,7 +2454,7 @@ IRBuilderAsmJs::BuildInt2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
 
     case Js::OpCodeAsmJs::Return_Int:
         instr = IR::Instr::New(Js::OpCode::Ld_I4, dstOpnd, srcOpnd, m_func);
-        CheckIsYieldOutsideOfLoop(dstRegSlot, TyInt32);
+        CheckJitLoopReturn(dstRegSlot, TyInt32);
         break;
 
     case Js::OpCodeAsmJs::Eqz_Int:
@@ -2704,7 +2715,7 @@ IRBuilderAsmJs::BuildDouble2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSl
         break;
     case Js::OpCodeAsmJs::Return_Db:
         instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
-        CheckIsYieldOutsideOfLoop(dstRegSlot, TyFloat64);
+        CheckJitLoopReturn(dstRegSlot, TyFloat64);
         break;
     case Js::OpCodeAsmJs::Trunc_Db:
         instr = IR::Instr::New(Js::OpCode::Trunc_A, dstOpnd, srcOpnd, m_func);
@@ -2753,7 +2764,7 @@ IRBuilderAsmJs::BuildFloat2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlo
         break;
     case Js::OpCodeAsmJs::Return_Flt:
         instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
-        CheckIsYieldOutsideOfLoop(dstRegSlot, TyFloat32);
+        CheckJitLoopReturn(dstRegSlot, TyFloat32);
         break;
     case Js::OpCodeAsmJs::Trunc_Flt:
         instr = IR::Instr::New(Js::OpCode::Trunc_A, dstOpnd, srcOpnd, m_func);
@@ -3101,7 +3112,7 @@ IRBuilderAsmJs::BuildLong2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot
 
     case Js::OpCodeAsmJs::Return_Long:
         instr = IR::Instr::New(Js::OpCode::Ld_I4, dstOpnd, srcOpnd, m_func);
-        CheckIsYieldOutsideOfLoop(dstRegSlot, TyInt64);
+        CheckJitLoopReturn(dstRegSlot, TyInt64);
         break;
     case Js::OpCodeAsmJs::I64Extend8_s:
         instr = CreateSignExtendInstr(dstOpnd, srcOpnd, TyInt8);
@@ -3452,7 +3463,7 @@ bool
 IRBuilderAsmJs::IsLoopBodyReturnIPInstr(IR::Instr * instr) const
 {
     IR::Opnd * dst = instr->GetDst();
-    return (dst && dst->IsRegOpnd() && dst->AsRegOpnd()->m_sym == m_loopBodyRetIPSym);
+    return (dst && dst->IsRegOpnd() && dst->AsRegOpnd()->m_sym == GetJitLoopBodyData().GetLoopBodyRetIPSym());
 }
 
 bool
@@ -3473,18 +3484,12 @@ IRBuilderAsmJs::GetLoopBodyExitInstrOffset() const
     return m_func->GetWorkItem()->GetLoopHeader()->endOffset + 1;
 }
 
-IR::Instr *
-IRBuilderAsmJs::CreateLoopBodyReturnIPInstr(uint targetOffset, uint offset)
-{
-    IR::RegOpnd * retOpnd = IR::RegOpnd::New(m_loopBodyRetIPSym, TyInt32, m_func);
-    IR::IntConstOpnd * exitOffsetOpnd = IR::IntConstOpnd::New(targetOffset, TyInt32, m_func);
-    return IR::Instr::New(Js::OpCode::Ld_I4, retOpnd, exitOffsetOpnd, m_func);
-}
-
 IR::Opnd *
 IRBuilderAsmJs::InsertLoopBodyReturnIPInstr(uint targetOffset, uint offset)
 {
-    IR::Instr * setRetValueInstr = CreateLoopBodyReturnIPInstr(targetOffset, offset);
+    IR::RegOpnd * retOpnd = IR::RegOpnd::New(GetJitLoopBodyData().GetLoopBodyRetIPSym(), TyInt32, m_func);
+    IR::IntConstOpnd * exitOffsetOpnd = IR::IntConstOpnd::New(targetOffset, TyInt32, m_func);
+    IR::Instr * setRetValueInstr = IR::Instr::New(Js::OpCode::Ld_I4, retOpnd, exitOffsetOpnd, m_func);
     this->AddInstr(setRetValueInstr, offset);
     return setRetValueInstr->GetDst();
 }
@@ -3509,8 +3514,7 @@ IRBuilderAsmJs::BuildAsmJsLoopBodySlotOpnd(Js::RegSlot regSlot, IRType opndType)
 void
 IRBuilderAsmJs::EnsureLoopBodyAsmJsLoadSlot(Js::RegSlot regSlot, IRType type)
 {
-    Assert(IsLoopBody());
-    if (this->m_ldSlots->TestAndSet(regSlot))
+    if (GetJitLoopBodyData().GetLdSlots()->TestAndSet(regSlot))
     {
         return;
     }
@@ -3526,6 +3530,14 @@ IRBuilderAsmJs::EnsureLoopBodyAsmJsLoadSlot(Js::RegSlot regSlot, IRType type)
     {
         m_lastInstr = ldSlotInstr;
     }
+}
+
+void
+IRBuilderAsmJs::EnsureLoopBodyAsmJsStoreSlot(Js::RegSlot regSlot, IRType type)
+{
+    Assert(!RegIsTemp(regSlot) || RegIsJitLoopYield(regSlot));
+    GetJitLoopBodyData().GetStSlots()->Set(regSlot);
+    EnsureLoopBodyAsmJsLoadSlot(regSlot, type);
 }
 
 void
@@ -3549,13 +3561,13 @@ IRBuilderAsmJs::GenerateLoopBodySlotAccesses(uint offset)
     IR::Instr *instrArgIn = IR::Instr::New(Js::OpCode::ArgIn_A, loopParamOpnd, srcOpnd, m_func);
     m_func->m_headInstr->InsertAfter(instrArgIn);
 
-    if (this->m_stSlots->Count() == 0)
+    if (GetJitLoopBodyData().GetLdSlots()->Count() == 0)
     {
         return;
     }
     SymID loopParamSymId = loopParamSym->m_id;
 
-    FOREACH_BITSET_IN_FIXEDBV(index, this->m_stSlots)
+    FOREACH_BITSET_IN_FIXEDBV(index, GetJitLoopBodyData().GetLdSlots())
     {
         Js::RegSlot regSlot = (Js::RegSlot)index;
         IRType type = IRType::TyInt32;
@@ -3611,11 +3623,7 @@ IRBuilderAsmJs::GenerateLoopBodySlotAccesses(uint offset)
 Js::PropertyId IRBuilderAsmJs::CalculatePropertyOffset(Js::RegSlot regSlot, IRType type)
 {
     // Compute the offset to the start of the interpreter frame's locals array as a Var index.
-    size_t localsOffset = 0;
-    if (!m_IsTJLoopBody)
-    {
-        localsOffset  = Js::InterpreterStackFrame::GetOffsetOfLocals();
-    }
+    size_t localsOffset = Js::InterpreterStackFrame::GetOffsetOfLocals();
     Assert(localsOffset % sizeof(AsmJsSIMDValue) == 0);
     WAsmJs::Types asmType = WAsmJs::FromIRType(type);
     const auto typedInfo = m_asmFuncInfo->GetTypedSlotInfo(asmType);
@@ -4574,11 +4582,7 @@ IRBuilderAsmJs::BuildFloat64x2_2(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD
     switch (newOpcode)
     {
     case Js::OpCodeAsmJs::Simd128_Return_D2:
-    if (m_func->IsLoopBody())
-    {
-        // Make sure we set that slot when done with the loop
-        this->m_stSlots->Set(dstRegSlot);
-    }
+        CheckJitLoopReturn(dstRegSlot, TySimd128D2);
     opcode = Js::OpCode::Ld_A;
     break;
     case Js::OpCodeAsmJs::Simd128_Ld_D2:
@@ -6290,7 +6294,7 @@ void IRBuilderAsmJs::BuildSimd_2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::R
     case Js::OpCodeAsmJs::Simd128_Return_B4:
     case Js::OpCodeAsmJs::Simd128_Return_B8:
     case Js::OpCodeAsmJs::Simd128_Return_B16:
-        CheckIsYieldOutsideOfLoop(dstRegSlot, simdType);
+        CheckJitLoopReturn(dstRegSlot, simdType);
     case Js::OpCodeAsmJs::Simd128_Ld_F4:
     case Js::OpCodeAsmJs::Simd128_Ld_I4:
     case Js::OpCodeAsmJs::Simd128_Ld_I8:

@@ -612,6 +612,13 @@ namespace Js
     {
         DumpU4(data->C1);
     }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpWasmLoopStart(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpU4(data->loopId);
+    }
+
     void AsmJsByteCodeDumper::DumpEmpty(OpCodeAsmJs op, const unaligned OpLayoutEmpty* data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
         // empty

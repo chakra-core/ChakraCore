@@ -896,11 +896,6 @@ namespace Js
         }
     };
 
-    struct WasmLoopYieldInfo
-    {
-        uint32 minYield[WAsmJs::LIMIT] = {0,0,0,0,0};
-    };
-    typedef JsUtil::List<WasmLoopYieldInfo> WasmLoopsYieldInfo;
     class AsmJsFunctionInfo
     {
         Field(WAsmJs::TypedSlotInfo) mTypedSlotInfos[WAsmJs::LIMIT];
@@ -910,24 +905,15 @@ namespace Js
         Field(uint *) mArgSizes;
         Field(ArgSlot) mArgByteSize;
         Field(AsmJsRetType) mReturnType;
+#ifdef ENABLE_WASM
+        Field(Wasm::WasmSignature *) mSignature;
+        Field(Wasm::WasmReaderInfo*) mWasmReaderInfo;
+        Field(WebAssemblyModule*) mWasmModule;
+#endif
         Field(bool) mUsesHeapBuffer;
 
-        // Asm.js only fields
-        struct
-        {
-            Field(FunctionBody*) asmJsModuleFunctionBody;
-        };
-#ifdef ENABLE_WASM
-        // WebAssembly only fields
-        struct
-        {
-            Field(Wasm::WasmSignature*) mSignature;
-            Field(Wasm::WasmReaderInfo*) mWasmReaderInfo;
-            Field(WebAssemblyModule*) mWasmModule;
-            Field(Js::JavascriptError*) mLazyError;
-            Field(WasmLoopsYieldInfo*) mWasmLoopsYieldInfo;
-        };
-#endif
+        Field(FunctionBody*) asmJsModuleFunctionBody;
+        Field(Js::JavascriptError *) mLazyError;
 
     public:
         AsmJsFunctionInfo() : mArgCount(0),
@@ -940,8 +926,6 @@ namespace Js
                               mWasmReaderInfo(nullptr),
                               mSignature(nullptr),
                               mWasmModule(nullptr),
-                              mLazyError(nullptr),
-                              mWasmLoopsYieldInfo(nullptr),
 #endif
                               mUsesHeapBuffer(false),
                               mArgType(nullptr),
@@ -976,6 +960,9 @@ namespace Js
         inline bool UsesHeapBuffer() const{ return mUsesHeapBuffer; }
 
         inline int GetSimdAllCount() const { return GetSimdConstCount() + GetSimdVarCount() + GetSimdTmpCount(); }
+
+        Js::JavascriptError * GetLazyError() const { return mLazyError; }
+        void SetLazyError(Js::JavascriptError * val) { mLazyError = val; }
 
         int GetTotalSizeinBytes()const;
         void SetArgType(AsmJsVarType type, ArgSlot index);
@@ -1014,11 +1001,7 @@ namespace Js
         {
             mArgType = val;
         }
-
 #ifdef ENABLE_WASM
-        Js::JavascriptError * GetLazyError() const { return mLazyError; }
-        void SetLazyError(Js::JavascriptError * val) { mLazyError = val; }
-
         Wasm::WasmSignature * GetWasmSignature()
         {
             return mSignature;
@@ -1031,10 +1014,8 @@ namespace Js
         Wasm::WasmReaderInfo* GetWasmReaderInfo() const {return mWasmReaderInfo;}
         void SetWasmReaderInfo(Wasm::WasmReaderInfo* reader) {mWasmReaderInfo = reader;}
         WebAssemblyModule* GetWebAssemblyModule() const { return mWasmModule; }
-        void SetWebAssemblyModule(WebAssemblyModule * module) { mWasmModule = module; }
+        void SetWebAssemblyModule(WebAssemblyModule * module) { mWasmModule= module; }
         bool IsWasmDeferredParse() const { return mWasmReaderInfo != nullptr; }
-        WasmLoopsYieldInfo* GetWasmLoopsYieldInfo() const { return mWasmLoopsYieldInfo; }
-        void SetWasmLoopsYieldInfo(WasmLoopsYieldInfo* info) { mWasmLoopsYieldInfo = info; }
 #endif
     };
 

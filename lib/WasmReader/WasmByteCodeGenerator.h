@@ -248,8 +248,6 @@ namespace Wasm
         Js::ProfileId GetNextProfileId();
         bool IsValidating() const { return m_originalWriter == m_emptyWriter; }
 
-        Js::WasmLoopYieldInfo* EnsureWasmLoopYieldInfo(uint32 loopId);
-
         ArenaAllocator m_alloc;
 
         bool isUnreachable;

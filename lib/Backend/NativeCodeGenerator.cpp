@@ -677,17 +677,6 @@ void NativeCodeGenerator::GenerateLoopBody(Js::FunctionBody * fn, Js::LoopHeader
                 }
             }
         }
-#ifdef ENABLE_WASM
-        else if (fn->IsWasmFunction())
-        {
-            CodeGenWorkItemIDL* data = workitem->GetJITData();
-            Js::AsmJsFunctionInfo* asmInfo = fn->GetAsmJsFunctionInfoWithLock();
-            AssertOrFailFast(data->loopNumber < (uint)asmInfo->GetWasmLoopsYieldInfo()->Count());
-            Js::WasmLoopYieldInfo& loopYieldInfo = asmInfo->GetWasmLoopsYieldInfo()->Item(data->loopNumber);
-            CompileAssert(sizeof(data->wasmLoopYieldMins) == sizeof(loopYieldInfo.minYield));
-            memcpy_s(data->wasmLoopYieldMins, sizeof(data->wasmLoopYieldMins), loopYieldInfo.minYield, sizeof(loopYieldInfo.minYield));
-        }
-#endif
 
         workitem->SetJitMode(ExecutionMode::FullJit);
         AddToJitQueue(workitem, /*prioritize*/ true, /*lock*/ true);
