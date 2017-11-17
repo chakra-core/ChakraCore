@@ -18967,6 +18967,11 @@ Lowerer::GenerateFastInlineMathFround(IR::Instr* instr)
     Assert(dst->IsFloat());
     Assert(src1->IsFloat());
 
+    // This function is supposed to convert a float to the closest float32 representation.
+    // However, it is a bit loose about types, which the ARM64 encoder takes issue with.
+#ifdef _M_ARM64
+    LowererMD::GenerateFastInlineMathFround(instr);
+#else
     IR::Instr* fcvt64to32 = IR::Instr::New(LowererMD::MDConvertFloat64ToFloat32Opcode, dst, src1, instr->m_func);
 
     instr->InsertBefore(fcvt64to32);
@@ -18980,6 +18985,7 @@ Lowerer::GenerateFastInlineMathFround(IR::Instr* instr)
     }
 
     instr->Remove();
+#endif
     return;
 }
 

@@ -7048,6 +7048,54 @@ LowererMD::GenerateFastInlineBuiltInMathAbs(IR::Instr *inlineInstr)
 
 
 void
+LowererMD::GenerateFastInlineMathFround(IR::Instr* instr)
+{
+    // Note that this is fround, not round; this operation is to
+    // round a double to Float32 precision.
+    IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* dst = instr->GetDst();
+
+    Assert(dst->IsFloat());
+    Assert(src1->IsFloat());
+
+    IRType srcType = src1->GetType();
+    IRType dstType = dst->GetType();
+
+    if (srcType == TyFloat32)
+    {
+        if (dstType == TyFloat32)
+        {
+            LowererMD::ChangeToAssign(instr);
+        }
+        else
+        {
+            Assert(dstType == TyFloat64);
+            instr->m_opcode = Js::OpCode::FCVT;
+            LegalizeMD::LegalizeInstr(instr, false);
+        }
+    }
+    else
+    {
+        Assert(srcType == TyFloat64);
+        if (dstType == TyFloat32)
+        {
+            instr->m_opcode = Js::OpCode::FCVT;
+            LegalizeMD::LegalizeInstr(instr, false);
+        }
+        else
+        {
+            Assert(dstType == TyFloat64);
+            IR::RegOpnd* tempOpnd = IR::RegOpnd::New(TyFloat32, instr->m_func);
+            IR::Instr* shortener = IR::Instr::New(Js::OpCode::FCVT, tempOpnd, instr->UnlinkSrc1(), instr->m_func);
+            instr->InsertBefore(shortener);
+            instr->SetSrc1(tempOpnd);
+            instr->m_opcode = Js::OpCode::FCVT;
+            LegalizeMD::LegalizeInstr(instr, false);
+        }
+    }
+}
+
+void
 LowererMD::GenerateFastInlineBuiltInMathRound(IR::Instr* instr)
 {
     Assert(instr->GetDst()->IsInt32());
