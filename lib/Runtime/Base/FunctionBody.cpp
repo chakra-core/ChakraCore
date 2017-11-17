@@ -9292,7 +9292,6 @@ namespace Js
                     if (!PHASE_OFF(Js::BackEndPhase, functionBody) && !functionBody->GetScriptContext()->GetConfig()->IsNoNative())
                     {
                         GenerateFunction(functionBody->GetScriptContext()->GetNativeCodeGenerator(), functionBody);
-                        newEntryPoint = functionBody->GetDefaultFunctionEntryPointInfo();
                     }
 #endif
                 }
