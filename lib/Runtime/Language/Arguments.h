@@ -210,6 +210,11 @@ namespace Js
             return Info.GetArgCountWithExtraArgs();
         }
 
+        uint GetLargeArgCountWithExtraArgs() const
+        {
+            return Info.GetLargeArgCountWithExtraArgs();
+        }
+
         FrameDisplay* GetFrameDisplay() const
         {
             AssertOrFailFast(Info.Flags & CallFlags_ExtraArg);

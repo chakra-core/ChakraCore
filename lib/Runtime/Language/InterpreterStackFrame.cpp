@@ -2307,7 +2307,8 @@ namespace Js
 
     inline void InterpreterStackFrame::PopOut(ArgSlot argCount)
     {
-        m_outSp -= (argCount+1);
+        ArgSlotMath::Inc(argCount);
+        m_outSp -= argCount;
         m_outParams = (Var*)*m_outSp;
 
         AssertMsg(m_localSlots + this->m_functionBody->GetLocalsCount() <= m_outSp &&
@@ -3850,7 +3851,7 @@ namespace Js
         if (playout->Return == Js::Constants::NoRegister)
         {
             flags |= CallFlags_NotUsed;
-            Arguments args(CallInfo((CallFlags)flags, playout->ArgCount), m_outParams);
+            Arguments args(CallInfo((CallFlags)flags, argCount), m_outParams);
             AssertMsg(static_cast<unsigned>(args.Info.Flags) == flags, "Flags don't fit into the CallInfo field?");
                 argCount = args.GetArgCountWithExtraArgs();
             if (spreadIndices != nullptr)
@@ -3865,7 +3866,7 @@ namespace Js
         else
         {
             flags |= CallFlags_Value;
-            Arguments args(CallInfo((CallFlags)flags, playout->ArgCount), m_outParams);
+            Arguments args(CallInfo((CallFlags)flags, argCount), m_outParams);
             AssertMsg(static_cast<unsigned>(args.Info.Flags) == flags, "Flags don't fit into the CallInfo field?");
             argCount = args.GetArgCountWithExtraArgs();
             if (spreadIndices != nullptr)
