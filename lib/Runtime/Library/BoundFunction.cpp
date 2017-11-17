@@ -214,7 +214,8 @@ namespace Js
         }
 
         RecyclableObject* actualFunction = RecyclableObject::FromVar(targetFunction);
-        Var aReturnValue = JavascriptFunction::CallFunction<true>(actualFunction, actualFunction->GetEntryPoint(), actualArgs);
+        // Number of arguments are allowed to be more than Constants::MaxAllowedArgs in runtime. Need to use the larger argcount logic for this call.
+        Var aReturnValue = JavascriptFunction::CallFunction<true>(actualFunction, actualFunction->GetEntryPoint(), actualArgs, /* useLargeArgCount */ true);
 
         //
         // [[Construct]] and call returned a non-object
