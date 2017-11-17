@@ -9286,7 +9286,15 @@ namespace Js
                 else
                 {
                     newEntryPoint = functionBody->CreateNewDefaultEntryPoint();
-                    functionBody->SetDefaultInterpreterExecutionMode();
+                    functionBody->ReinitializeExecutionModeAndLimits();
+#if ENABLE_NATIVE_CODEGEN
+                    // In order for the function to ever get JIT again, we need to call GenerateFunction now
+                    if (!PHASE_OFF(Js::BackEndPhase, functionBody) && !functionBody->GetScriptContext()->GetConfig()->IsNoNative())
+                    {
+                        GenerateFunction(functionBody->GetScriptContext()->GetNativeCodeGenerator(), functionBody);
+                        newEntryPoint = functionBody->GetDefaultFunctionEntryPointInfo();
+                    }
+#endif
                 }
                 functionBody->TraceExecutionMode("JitCodeExpired");
             }
