@@ -191,10 +191,6 @@ Function:
 --*/
 BOOL TLSInitialize()
 {
-    // This will be called once and can't be called during/after another lock
-    // in place due to PAL is not yet initialized. The underlying issue here is
-    // related to whole lib/pal initialization on start.
-    free_threads_spinlock.Reset();
     /* Create the pthread key for thread objects, which we use
        for fast access to the current thread object. */
     if (pthread_key_create(&thObjKey, InternalEndCurrentThreadWrapper))

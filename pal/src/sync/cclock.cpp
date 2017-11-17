@@ -14,12 +14,13 @@
 
 void CCLock::Reset(bool shouldTrackThreadId)
 {
-    Assert(sizeof(pthread_mutex_t) <= sizeof(this->mutexPtr));
+    Assert(sizeof(pthread_mutex_t) <= sizeof(this->mutexPtr) - 1);
 
     if (*((size_t*)mutexPtr) != 0)
     {
         return; // already initialized
     }
+    this->mutexPtr[sizeof(this->mutexPtr) - 1] = shouldTrackThreadId;
 
     int err;
     pthread_mutexattr_t mtconf;
@@ -47,6 +48,7 @@ CCLock::~CCLock()
 
 void CCLock::Enter()
 {
+    Reset(this->mutexPtr[sizeof(this->mutexPtr) - 1]);
     pthread_mutex_t *mutex = (pthread_mutex_t*)this->mutexPtr;
     int err = pthread_mutex_lock(mutex);
     AssertMsg(err == 0, "Mutex Enter has failed");

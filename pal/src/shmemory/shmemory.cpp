@@ -393,8 +393,6 @@ memory if no other process has done it.
 --*/
 BOOL SHMInitialize(void)
 {
-    shm_critsec.Reset();
-
     init_waste();
 
         int size;
