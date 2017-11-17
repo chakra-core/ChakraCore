@@ -782,6 +782,8 @@ CThreadSuspensionInfo::InitializeSuspensionLock()
         return;
     }
     m_fSuspmutexInitialized = TRUE;
+#else
+    m_nSpinlock.Reset(false); // do it explicitly
 #endif // DEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX
 }
 
