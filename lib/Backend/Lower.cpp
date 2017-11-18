@@ -19518,19 +19518,47 @@ Lowerer::LowerCallIDynamic(IR::Instr * callInstr, ushort callFlags)
 IR::Opnd*
 Lowerer::GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsInstr)
 {
+
+// For architectures were we only pass 4 parameters in registers, the
+// generated code looks something like this:
 //    s25.var       =  LdLen_A          s4.var
 //    s26.var       =  Ld_A             s25.var
-//                    BrNeq_I4          $L3, s25.var,0
+//                    BrEq_I4          $L3, s25.var,0                    // If we have no further arguments to pass, don't pass them
 //    $L2:
-//                    BrNeq_I4          $L4, s25.var,1
+//                    BrEq_I4          $L4, s25.var,1                    // Loop through the rest of the arguments, putting them on the stack
 //    s25.var       = SUB_I4            s25.var, 0x1
 //    s10.var       = LdElemI_A         [s4.var+s25.var].var
 //                    ArgOut_A_Dynamic  s10.var, s25.var
 //                    Br $L2
 //    $L4:
-//    s10.var       = LdElemI_A         [s4.var].var
+//    s25.var       = LdImm             0                                // set s25 to 0, since it'll be 1 on the way into this block
+//    s10.var       = LdElemI_A         [s4.var + 0 * MachReg].var // The last one has to be put into argslot 4, since this is likely a register, not a stack location.
 //                    ArgOut_A_Dynamic  s10.var, 4
-//    $L3
+//    $L3:
+//
+// Generalizing this for more register-passed parameters gives us code
+// something like this:
+//    s25.var       =  LdLen_A          s4.var
+//    s26.var       =  Ld_A             s25.var
+//                    BrLe_I4          $L3, s25.var,0                    // If we have no further arguments to pass, don't pass them
+//    $L2:
+//                    BrLe_I4          $L4, s25.var,INT_REG_COUNT-3      // Loop through the rest of the arguments up to the number passed in registers, putting them on the stack
+//    s25.var       = SUB_I4            s25.var, 0x1
+//    s10.var       = LdElemI_A         [s4.var+s25.var].var
+//                    ArgOut_A_Dynamic  s10.var, s25.var
+//                    Br $L2
+//    $L4:
+//    foreach of the remaining ones, N going down from (the number we can pass in regs -1) to 1 (0 omitted as we know that it'll be at least one register argument):
+//                    BrEq_I4          $L__N, s25.var, N
+//    end foreach
+//    foreach of the remaining ones, N going down from (the number we can pass in regs -1) to 0:
+//    $L__N:
+//    s10.var       = LdElemI_A         [s4.var + N * MachReg].var // The last one has to be put into argslot 4, since this is likely a register, not a stack location.
+//                    ArgOut_A_Dynamic  s10.var, N+3
+//    end foreach
+//    $L3:
+
+
 #if defined(_M_IX86)
      Assert(false);
 #endif
@@ -19567,7 +19595,7 @@ Lowerer::GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsIn
     Loop * loop = startLoop->GetLoop();
     IR::LabelInstr* endLoop = IR::LabelInstr::New(Js::OpCode::Label, func);
 
-    IR::Instr* branchOutOfLoop = IR::BranchInstr::New(Js::OpCode::BrEq_I4, endLoop, ldLenDstOpnd, IR::IntConstOpnd::New(1, TyInt8, func),func);
+    IR::Instr* branchOutOfLoop = IR::BranchInstr::New(Js::OpCode::BrLe_I4, endLoop, ldLenDstOpnd, IR::IntConstOpnd::New(INT_ARG_REG_COUNT - 3, TyInt8, func),func);
     callInstr->InsertBefore(branchOutOfLoop);
     this->m_lowererMD.EmitInt4Instr(branchOutOfLoop);
 
@@ -19590,26 +19618,66 @@ Lowerer::GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsIn
 
     IR::BranchInstr *tailBranch = IR::BranchInstr::New(Js::OpCode::Br, startLoop, func);
     callInstr->InsertBefore(tailBranch);
-    callInstr->InsertBefore(endLoop);
     this->m_lowererMD.LowerUncondBranch(tailBranch);
+
+    callInstr->InsertBefore(endLoop);
 
     loop->regAlloc.liveOnBackEdgeSyms->Set(ldLenDstOpnd->m_sym->m_id);
 
-    subInstr = IR::Instr::New(Js::OpCode::Sub_I4, ldLenDstOpnd, ldLenDstOpnd, IR::IntConstOpnd::New(1, TyMachReg, func),func);
-    callInstr->InsertBefore(subInstr);
-    this->m_lowererMD.EmitInt4Instr(subInstr);
+    // Note: This loop iteratively adds instructions in two locations; in the block
+    // of branches that jump to the "load elements to argOuts" instructions, and in
+    // the the block of load elements to argOuts instructions themselves.
 
-    nthArgument = IR::IndirOpnd::New(stackArgs, ldLenDstOpnd, TyMachReg, func);
-    ldElemDstOpnd = IR::RegOpnd::New(TyMachReg,func);
-    const IR::AutoReuseOpnd autoReuseldElemDstOpnd2(ldElemDstOpnd, func);
-    ldElem = IR::Instr::New(Js::OpCode::LdElemI_A, ldElemDstOpnd, nthArgument, func);
-    callInstr->InsertBefore(ldElem);
-    GenerateFastStackArgumentsLdElemI(ldElem);
+    // 4 to denote this is 4th register after this, callinfo & function object
+    // INT_ARG_REG_COUNT is the number of parameters passed in int regs
+    uint current_reg_pass =
+#if defined(_M_IX86)
+        // We get a compilation error on x86 due to assiging a negative to a uint
+        // TODO: don't even define this function on x86 - we Assert(false) anyway there.
+        0;
+#else
+        INT_ARG_REG_COUNT - 4;
+#endif
 
-    argout = IR::Instr::New(Js::OpCode::ArgOut_A_Dynamic, func);
-    argout->SetSrc1(ldElemDstOpnd);
-    callInstr->InsertBefore(argout);
-    this->m_lowererMD.LoadDynamicArgument(argout, 4); //4 to denote this is 4th register after this, callinfo & function object
+    do
+    {
+        // If we're on this pass we know we have to do at least one of these, so skip
+        // the branch if we're on the last one.
+        if (current_reg_pass != INT_ARG_REG_COUNT - 4)
+        {
+            IR::LabelInstr* loadBlockLabel = IR::LabelInstr::New(Js::OpCode::Label, func);
+            IR::Instr* branchToBlock = IR::BranchInstr::New(Js::OpCode::BrEq_I4, loadBlockLabel, ldLenDstOpnd, IR::IntConstOpnd::New(current_reg_pass + 1, TyInt8, func), func);
+            endLoop->InsertAfter(branchToBlock);
+            callInstr->InsertBefore(loadBlockLabel);
+        }
+
+        // TODO: We can further optimize this with a GenerateFastStackArgumentsLdElemI that can
+        // handle us passing along constant argument references and encode them into the offset
+        // instead of having to use an IndirOpnd; this would allow us to save a few bytes here,
+        // and reduce register pressure a hair
+
+        // stemp.var = LdImm current_reg_pass
+        IR::RegOpnd* localTemp = IR::RegOpnd::New(TyInt32, func);
+        // We need to make it a tagged int because GenerateFastStackArgumentsLdElemI asserts if
+        // it is not.
+        localTemp->SetValueType(ValueType::GetTaggedInt());
+        const IR::AutoReuseOpnd autoReuseldElemDstOpnd3(localTemp, func);
+        this->InsertMove(localTemp, IR::IntConstOpnd::New(current_reg_pass, TyInt8, func, true), callInstr);
+
+        // sTemp = LdElem_I   [s4.var + current_reg_pass (aka stemp.var) ]
+        nthArgument = IR::IndirOpnd::New(stackArgs, localTemp, TyMachReg, func);
+        ldElemDstOpnd = IR::RegOpnd::New(TyMachReg, func);
+        const IR::AutoReuseOpnd autoReuseldElemDstOpnd2(ldElemDstOpnd, func);
+        ldElem = IR::Instr::New(Js::OpCode::LdElemI_A, ldElemDstOpnd, nthArgument, func);
+        callInstr->InsertBefore(ldElem);
+        GenerateFastStackArgumentsLdElemI(ldElem);
+
+        argout = IR::Instr::New(Js::OpCode::ArgOut_A_Dynamic, func);
+        argout->SetSrc1(ldElemDstOpnd);
+        callInstr->InsertBefore(argout);
+        this->m_lowererMD.LoadDynamicArgument(argout, current_reg_pass + 4);
+    }
+    while (current_reg_pass-- != 0);
 
     callInstr->InsertBefore(doneArgs);
 
