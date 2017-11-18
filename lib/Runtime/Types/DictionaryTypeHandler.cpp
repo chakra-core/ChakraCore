@@ -1870,8 +1870,10 @@ namespace Js
                         // something else.  All we need to do is convert the descriptor to a data descriptor.
                         // Built-in Function.prototype properties 'length', 'arguments', and 'caller' are special cases.
 
-                        ((JavascriptOperators::IsClassConstructor(ctor) || JavascriptOperators::IsClassMethod(ctor)) &&
-                            (attributes & PropertyClassMemberDefaults) == PropertyClassMemberDefaults),
+                        ((JavascriptOperators::IsClassConstructor(instance) // Static method
+                            || JavascriptOperators::IsClassConstructor(ctor)
+                            || JavascriptOperators::IsClassMethod(ctor))
+                            && (attributes & PropertyClassMemberDefaults) == PropertyClassMemberDefaults),
                         // 14.3.9: InitClassMember sets property descriptor to {writable:true, enumerable:false, configurable:true}
 
                         "Expect to only come down this path for InitClassMember or InitRootFld (on the global object) overwriting existing accessor property");
