@@ -496,6 +496,7 @@ namespace Js
         bool IsDiagnosticsScriptContext() const { return this->isDiagnosticsScriptContext; }
         bool IsScriptContextInNonDebugMode() const;
         bool IsScriptContextInDebugMode() const;
+        bool IsInDebugButCantDoJITInDebug() const;
         bool IsScriptContextInSourceRundownOrDebugMode() const;
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
@@ -1594,7 +1595,7 @@ private:
         private:
             ScriptContext* m_scriptContext;
         };
-#endif        
+#endif
 
 #ifdef EDIT_AND_CONTINUE
     private:
@@ -1678,7 +1679,7 @@ private:
         HRESULT OnDispatchFunctionExit(const WCHAR *pwszFunctionName);
 
 #endif // ENABLE_SCRIPT_PROFILING
-       
+
         void OnStartupComplete();
         void SaveStartupProfileAndRelease(bool isSaveOnClose = false);
 

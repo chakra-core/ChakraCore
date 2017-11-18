@@ -479,7 +479,16 @@ PHASE(All)
 #define DEFAULT_CONFIG_ForceOldDateAPI      (false)
 #define DEFAULT_CONFIG_Loop                 (1)
 #define DEFAULT_CONFIG_ForceDiagnosticsMode (false)
+// xplat-todo: (obastemur) Enable JIT on Debug mode
+// CodeGen entrypoint can be deleted before we are able to unregister
+// due to how we handle xdata on xplat, resetting the entrypoints below might affect CodeGen process.
+// it is safer (on xplat) to turn JIT off during Debug for now.
+// once this enabled, also update Configuration::EnableJitInDebugMode()!
+#ifdef _WIN32
 #define DEFAULT_CONFIG_EnableJitInDiagMode  (true)
+#else
+#define DEFAULT_CONFIG_EnableJitInDiagMode  (false)
+#endif
 #define DEFAULT_CONFIG_UseFullName          (true)
 #define DEFAULT_CONFIG_EnableContinueAfterExceptionWrappersForHelpers  (true)
 #define DEFAULT_CONFIG_EnableContinueAfterExceptionWrappersForBuiltIns  (true)

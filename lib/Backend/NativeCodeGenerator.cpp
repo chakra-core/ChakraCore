@@ -799,6 +799,11 @@ volatile UINT_PTR NativeCodeGenerator::CodegenFailureSeed = 0;
 void
 NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* workItem, const bool foreground)
 {
+    if (workItem->GetScriptContext()->IsInDebugButCantDoJITInDebug())
+    {
+        return;
+    }
+
     if(foreground)
     {
         // Func::Codegen has a lot of things on the stack, so probe the stack here instead
@@ -1566,8 +1571,11 @@ NativeCodeGenerator::CheckCodeGen(Js::ScriptFunction * function)
         entryPoint = defaultEntryPointInfo;
     }
 
+    const bool isInDebugButCantDoJITInDebug = scriptContext->IsInDebugButCantDoJITInDebug();
+
     // If a transition to JIT needs to be forced, JIT right away
-    if(Js::Configuration::Global.flags.EnforceExecutionModeLimits &&
+    if( !isInDebugButCantDoJITInDebug &&
+        Js::Configuration::Global.flags.EnforceExecutionModeLimits &&
         functionBody->GetExecutionMode() != ExecutionMode::SimpleJit &&
         functionBody->TryTransitionToJitExecutionMode())
     {
@@ -1575,7 +1583,8 @@ NativeCodeGenerator::CheckCodeGen(Js::ScriptFunction * function)
         return CheckCodeGenDone(functionBody, entryPoint, function);
     }
 
-    if(!nativeCodeGen->Processor()->PrioritizeJob(nativeCodeGen, entryPoint, function))
+    if(isInDebugButCantDoJITInDebug ||
+       !nativeCodeGen->Processor()->PrioritizeJob(nativeCodeGen, entryPoint, function))
     {
 #if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
 #define originalEntryPoint_IS_ProfileDeferredParsingThunk \
@@ -3191,7 +3200,7 @@ NativeCodeGenerator::FreeNativeCodeGenAllocation(void* codeAddress, void* thunkA
     else if(this->backgroundAllocators)
     {
         this->backgroundAllocators->emitBufferManager.FreeAllocation(codeAddress);
-        
+
 #if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
         if (thunkAddress)
         {

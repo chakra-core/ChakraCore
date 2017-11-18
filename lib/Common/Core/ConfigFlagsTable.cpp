@@ -1262,7 +1262,14 @@ namespace Js
 
     bool Configuration::EnableJitInDebugMode()
     {
+#ifdef _WIN32
         return CONFIG_FLAG(EnableJitInDiagMode);
+#else
+        // xplat-todo: remove this only when JIT in Debug mode is enabled.
+        // why it's here? to benefit debugger tests for Windows with explicit EnableJitInDebugMode
+        // origininally, EnableJitInDiagMode call was ifdef-ed out for similar purposes.
+        return false;
+#endif
     }
 
     Configuration        Configuration::Global;
