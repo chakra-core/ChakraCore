@@ -111,6 +111,10 @@ REG_XMM_ARG(1, XMM1)
 REG_XMM_ARG(2, XMM2)
 REG_XMM_ARG(3, XMM3)
 
+#ifndef INT_ARG_REG_COUNT
+#define INT_ARG_REG_COUNT 4
+#endif
+
 #else  // System V x64
 REG_INT_ARG(0, RDI)
 REG_INT_ARG(1, RSI)
@@ -127,6 +131,11 @@ REG_XMM_ARG(4, XMM4)
 REG_XMM_ARG(5, XMM5)
 REG_XMM_ARG(6, XMM6)
 REG_XMM_ARG(7, XMM7)
+
+#ifndef INT_ARG_REG_COUNT
+#define INT_ARG_REG_COUNT 4
+#endif
+
 #endif  // !_WIN32
 
 #undef REGDAT
