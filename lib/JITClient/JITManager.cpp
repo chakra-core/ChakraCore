@@ -547,15 +547,14 @@ JITManager::CloseScriptContext(
 HRESULT
 JITManager::FreeAllocation(
     __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-    __in intptr_t codeAddress,
-    __in intptr_t thunkAddress)
+    __in intptr_t codeAddress)
 {
     Assert(IsOOPJITEnabled());
 
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
-        hr = ClientFreeAllocation(m_rpcBindingHandle, threadContextInfoAddress, codeAddress, thunkAddress);
+        hr = ClientFreeAllocation(m_rpcBindingHandle, threadContextInfoAddress, codeAddress);
     }
     RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {

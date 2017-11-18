@@ -3864,28 +3864,28 @@ bool Instr::BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult, bool che
 template bool Instr::BinaryCalculatorT<int>(int src1Const64, int src2Const64, int64 *pResult, bool checkWouldTrap);
 template bool Instr::BinaryCalculatorT<int64>(int64 src1Const64, int64 src2Const64, int64 *pResult, bool checkWouldTrap);
 
-bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, IntConstType *pResult)
+bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, IntConstType *pResult, IRType type)
 {
     IntConstType value = 0;
 
     switch (this->m_opcode)
     {
     case Js::OpCode::Add_A:
-        if (IntConstMath::Add(src1Const, src2Const, &value))
+        if (IntConstMath::Add(src1Const, src2Const, type, &value))
         {
             return false;
         }
         break;
 
     case Js::OpCode::Sub_A:
-        if (IntConstMath::Sub(src1Const, src2Const, &value))
+        if (IntConstMath::Sub(src1Const, src2Const, type, &value))
         {
             return false;
         }
         break;
 
     case Js::OpCode::Mul_A:
-        if (IntConstMath::Mul(src1Const, src2Const, &value))
+        if (IntConstMath::Mul(src1Const, src2Const, type, &value))
         {
             return false;
         }
@@ -3909,7 +3909,7 @@ bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, Int
             // folds to -0. Bail for now...
             return false;
         }
-        if (IntConstMath::Div(src1Const, src2Const, &value))
+        if (IntConstMath::Div(src1Const, src2Const, type, &value))
         {
             return false;
         }
@@ -3927,7 +3927,7 @@ bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, Int
             // Bail for now...
             return false;
         }
-        if (IntConstMath::Mod(src1Const, src2Const, &value))
+        if (IntConstMath::Mod(src1Const, src2Const, type, &value))
         {
             return false;
         }
@@ -3941,17 +3941,15 @@ bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, Int
 
     case Js::OpCode::Shl_A:
         // We don't care about overflow here
-        IntConstMath::Shl(src1Const, src2Const & 0x1F, &value);
+        value = src1Const << (src2Const & 0x1F);
         break;
 
     case Js::OpCode::Shr_A:
-        // We don't care about overflow here, and there shouldn't be any
-        IntConstMath::Shr(src1Const, src2Const & 0x1F, &value);
+        value = src1Const >> (src2Const & 0x1F);
         break;
 
     case Js::OpCode::ShrU_A:
-        // We don't care about overflow here, and there shouldn't be any
-        IntConstMath::ShrU(src1Const, src2Const & 0x1F, &value);
+        value = ((UIntConstType)src1Const) >> (src2Const & 0x1F);
         if (value < 0)
         {
             // ShrU produces a UInt32.  If it doesn't fit in an Int32, bail as we don't
@@ -3961,18 +3959,15 @@ bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, Int
         break;
 
     case Js::OpCode::And_A:
-        // We don't care about overflow here, and there shouldn't be any
-        IntConstMath::And(src1Const, src2Const, &value);
+        value = src1Const & src2Const;
         break;
 
     case Js::OpCode::Or_A:
-        // We don't care about overflow here, and there shouldn't be any
-        IntConstMath::Or(src1Const, src2Const, &value);
+        value = src1Const | src2Const;
         break;
 
     case Js::OpCode::Xor_A:
-        // We don't care about overflow here, and there shouldn't be any
-        IntConstMath::Xor(src1Const, src2Const, &value);
+        value = src1Const ^ src2Const;
         break;
 
     case Js::OpCode::InlineMathMin:
@@ -3992,7 +3987,7 @@ bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, Int
     return true;
 }
 
-bool Instr::UnaryCalculator(IntConstType src1Const, IntConstType *pResult)
+bool Instr::UnaryCalculator(IntConstType src1Const, IntConstType *pResult, IRType type)
 {
     IntConstType value = 0;
 
@@ -4005,14 +4000,14 @@ bool Instr::UnaryCalculator(IntConstType src1Const, IntConstType *pResult)
             return false;
         }
 
-        if (IntConstMath::Neg(src1Const, &value))
+        if (IntConstMath::Neg(src1Const, type, &value))
         {
             return false;
         }
         break;
 
     case Js::OpCode::Not_A:
-        IntConstMath::Not(src1Const, &value);
+        value = ~src1Const;
         break;
 
     case Js::OpCode::Ld_A:
@@ -4030,14 +4025,14 @@ bool Instr::UnaryCalculator(IntConstType src1Const, IntConstType *pResult)
         break;
 
     case Js::OpCode::Incr_A:
-        if (IntConstMath::Inc(src1Const, &value))
+        if (IntConstMath::Inc(src1Const, type, &value))
         {
             return false;
         }
         break;
 
     case Js::OpCode::Decr_A:
-        if (IntConstMath::Dec(src1Const, &value))
+        if (IntConstMath::Dec(src1Const, type, &value))
         {
             return false;
         }

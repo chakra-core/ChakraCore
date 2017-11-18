@@ -10,7 +10,7 @@ function test0(){
   var func0 = function(){
   }
   var func1 = function(argObj0,argArr1,argMath2){
-    eval("");
+    eval("  ");
     func0();
   }
   Object.prototype.method0 = func1; 

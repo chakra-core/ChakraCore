@@ -101,7 +101,7 @@ public:
     void UpdateQueueForDebugMode();
     bool IsBackgroundJIT() const;
     void EnterScriptStart();
-    void FreeNativeCodeGenAllocation(void* codeAddress, void* thunkAddress);
+    void FreeNativeCodeGenAllocation(void* codeAddress);
     bool TryReleaseNonHiPriWorkItem(CodeGenWorkItem* workItem);
 
     void QueueFreeNativeCodeGenAllocation(void* codeAddress, void* thunkAddress);
@@ -129,7 +129,7 @@ private:
 
     InProcCodeGenAllocators *CreateAllocators(PageAllocator *const pageAllocator)
     {
-        return HeapNew(InProcCodeGenAllocators, pageAllocator->GetAllocationPolicyManager(), scriptContext, scriptContext->GetThreadContext()->GetCodePageAllocators(), GetCurrentProcess());
+        return HeapNew(InProcCodeGenAllocators, pageAllocator->GetAllocationPolicyManager(), scriptContext, scriptContext->GetThreadContext(), scriptContext->GetThreadContext()->GetCodePageAllocators(), GetCurrentProcess());
     }
 
     InProcCodeGenAllocators *EnsureForegroundAllocators(PageAllocator * pageAllocator)
@@ -276,7 +276,7 @@ private:
             FreeLoopBodyJob* freeLoopBodyJob = static_cast<FreeLoopBodyJob*>(job);
 
             // Free Loop Body
-            nativeCodeGen->FreeNativeCodeGenAllocation(freeLoopBodyJob->codeAddress, freeLoopBodyJob->thunkAddress);
+            nativeCodeGen->FreeNativeCodeGenAllocation(freeLoopBodyJob->codeAddress);
 
             return true;
         }
