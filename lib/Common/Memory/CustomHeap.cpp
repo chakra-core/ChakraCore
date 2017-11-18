@@ -467,6 +467,7 @@ Allocation* Heap<TAlloc, TPreReservedAlloc>::AllocLargeObject(size_t bytes, usho
     allocation->largeObjectAllocation.segment = segment;
     allocation->largeObjectAllocation.isDecommitted = false;
     allocation->size = pages * AutoSystemInfo::PageSize;
+    allocation->thunkAddress = 0;
 
 #if PDATA_ENABLED
     allocation->xdata = xdata;
@@ -607,6 +608,7 @@ bool Heap<TAlloc, TPreReservedAlloc>::AllocInPage(Page* page, size_t bytes, usho
     allocation->page = page;
     allocation->size = bytes;
     allocation->address = address;
+    allocation->thunkAddress = 0;
 
 #if DBG_DUMP
     this->allocationsSinceLastCompact += bytes;

@@ -5850,6 +5850,8 @@ Case0:
             {
                 isFloatArray = true;
             }
+            // Code below has potential to throw due to OOM or SO. Just FailFast on those cases
+            AutoDisableInterrupt failFastOnError(scriptContext->GetThreadContext());
 
             if (pArr->head->length != 0)
             {
@@ -5909,6 +5911,8 @@ Case0:
             {
                 ShiftHelper<Var>(pArr, scriptContext);
             }
+
+            failFastOnError.Completed();
         }
         else
         {

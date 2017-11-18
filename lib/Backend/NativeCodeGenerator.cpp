@@ -2335,130 +2335,137 @@ NativeCodeGenerator::GatherCodeGenData(
             bool isPolymorphic = (cacheType & Js::FldInfo_Polymorphic) != 0;
             if (!isPolymorphic)
             {
-                Js::InlineCache *inlineCache;
+                Js::InlineCache *inlineCache = nullptr;
+
                 if(function && Js::ScriptFunctionWithInlineCache::Is(function))
                 {
-                    inlineCache = Js::ScriptFunctionWithInlineCache::FromVar(function)->GetInlineCache(i);
+                    if (Js::ScriptFunctionWithInlineCache::FromVar(function)->GetInlineCaches() != nullptr)
+                    {
+                        inlineCache = Js::ScriptFunctionWithInlineCache::FromVar(function)->GetInlineCache(i);
+                    }
                 }
                 else
                 {
                     inlineCache = functionBody->GetInlineCache(i);
                 }
 
-                ObjTypeSpecFldInfo* objTypeSpecFldInfo = nullptr;
+                if (inlineCache != nullptr)
+                {
+                    ObjTypeSpecFldInfo* objTypeSpecFldInfo = nullptr;
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-                if (PHASE_VERBOSE_TRACE(Js::ObjTypeSpecPhase, topFunctionBody) || PHASE_VERBOSE_TRACE(Js::EquivObjTypeSpecPhase, topFunctionBody))
-                {
-                    char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                    Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(i);
-                    Js::PropertyRecord const * const propertyRecord = functionBody->GetScriptContext()->GetPropertyName(propertyId);
-                    Output::Print(_u("ObTypeSpec: top function %s (%s), function %s (%s): cloning mono cache for %s (#%d) cache %d \n"),
-                        topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer),
-                        functionBody->GetDisplayName(), functionBody->GetDebugNumberSet(debugStringBuffer2), propertyRecord->GetBuffer(), propertyId, i);
-                    Output::Flush();
-                }
+                    if (PHASE_VERBOSE_TRACE(Js::ObjTypeSpecPhase, topFunctionBody) || PHASE_VERBOSE_TRACE(Js::EquivObjTypeSpecPhase, topFunctionBody))
+                    {
+                        char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                        Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(i);
+                        Js::PropertyRecord const * const propertyRecord = functionBody->GetScriptContext()->GetPropertyName(propertyId);
+                        Output::Print(_u("ObTypeSpec: top function %s (%s), function %s (%s): cloning mono cache for %s (#%d) cache %d \n"),
+                            topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer),
+                            functionBody->GetDisplayName(), functionBody->GetDebugNumberSet(debugStringBuffer2), propertyRecord->GetBuffer(), propertyId, i);
+                        Output::Flush();
+                    }
 #endif
 
-                IncInlineCacheCount(monoInlineCacheCount);
+                    IncInlineCacheCount(monoInlineCacheCount);
 
-                if (inlineCache->IsEmpty())
-                {
-                    IncInlineCacheCount(emptyMonoInlineCacheCount);
-                }
-
-                if(!PHASE_OFF(Js::ObjTypeSpecPhase, functionBody) || !PHASE_OFF(Js::FixedMethodsPhase, functionBody) || !PHASE_OFF(Js::UseFixedDataPropsPhase, functionBody))
-                {
-                    if(cacheType & (Js::FldInfo_FromLocal | Js::FldInfo_FromLocalWithoutProperty | Js::FldInfo_FromProto))
+                    if (inlineCache->IsEmpty())
                     {
-                        // WinBlue 170722: Disable ObjTypeSpec optimization for activation object in debug mode,
-                        // as it can result in BailOutFailedTypeCheck before locals are set to undefined,
-                        // which can result in using garbage object during bailout/restore values.
-                        if (!(functionBody->IsInDebugMode() && inlineCache->GetType() &&
-                              inlineCache->GetType()->GetTypeId() == Js::TypeIds_ActivationObject))
-                        {
-                            objTypeSpecFldInfo = ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), inlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
-                            if (objTypeSpecFldInfo)
-                            {
-                                IncInlineCacheCount(clonedMonoInlineCacheCount);
+                        IncInlineCacheCount(emptyMonoInlineCacheCount);
+                    }
 
-                                if (!PHASE_OFF(Js::InlineApplyTargetPhase, functionBody) && (cacheType & Js::FldInfo_InlineCandidate))
+                    if(!PHASE_OFF(Js::ObjTypeSpecPhase, functionBody) || !PHASE_OFF(Js::FixedMethodsPhase, functionBody) || !PHASE_OFF(Js::UseFixedDataPropsPhase, functionBody))
+                    {
+                        if(cacheType & (Js::FldInfo_FromLocal | Js::FldInfo_FromLocalWithoutProperty | Js::FldInfo_FromProto))
+                        {
+                            // WinBlue 170722: Disable ObjTypeSpec optimization for activation object in debug mode,
+                            // as it can result in BailOutFailedTypeCheck before locals are set to undefined,
+                            // which can result in using garbage object during bailout/restore values.
+                            if (!(functionBody->IsInDebugMode() && inlineCache->GetType() &&
+                                inlineCache->GetType()->GetTypeId() == Js::TypeIds_ActivationObject))
+                            {
+                                objTypeSpecFldInfo = ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), inlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
+                                if (objTypeSpecFldInfo)
                                 {
-                                    if (IsInlinee || objTypeSpecFldInfo->IsBuiltin())
+                                    IncInlineCacheCount(clonedMonoInlineCacheCount);
+
+                                    if (!PHASE_OFF(Js::InlineApplyTargetPhase, functionBody) && (cacheType & Js::FldInfo_InlineCandidate))
                                     {
-                                        inlineApplyTarget = true;
+                                        if (IsInlinee || objTypeSpecFldInfo->IsBuiltin())
+                                        {
+                                            inlineApplyTarget = true;
+                                        }
                                     }
-                                }
 
-                                if (!PHASE_OFF(Js::InlineCallTargetPhase, functionBody) && (cacheType & Js::FldInfo_InlineCandidate))
-                                {
-                                    inlineCallTarget = true;
-                                }
-                                if (!isJitTimeDataComputed)
-                                {
-                                    jitTimeData->GetObjTypeSpecFldInfoArray()->SetInfo(recycler, functionBody, i, objTypeSpecFldInfo);
-                                    objTypeSpecFldInfoList->Prepend(objTypeSpecFldInfo);
-                                }
-                            }
-                        }
-                    }
-                }
-                if(!PHASE_OFF(Js::FixAccessorPropsPhase, functionBody))
-                {
-                    if (!objTypeSpecFldInfo && (cacheType & Js::FldInfo_FromAccessor) && (cacheType & Js::FldInfo_InlineCandidate))
-                    {
-                        objTypeSpecFldInfo = ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), inlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
-                        if (objTypeSpecFldInfo)
-                        {
-                            inlineGetterSetter = true;
-                            if (!isJitTimeDataComputed)
-                            {
-                                IncInlineCacheCount(clonedMonoInlineCacheCount);
-                                jitTimeData->GetObjTypeSpecFldInfoArray()->SetInfo(recycler, functionBody, i, objTypeSpecFldInfo);
-                                objTypeSpecFldInfoList->Prepend(objTypeSpecFldInfo);
-                            }
-                        }
-
-                    }
-                }
-                if (!PHASE_OFF(Js::RootObjectFldFastPathPhase, functionBody))
-                {
-                    if (i >= functionBody->GetRootObjectLoadInlineCacheStart() && inlineCache->IsLocal())
-                    {
-                        void * rawType = inlineCache->u.local.type;
-                        Js::Type * type = TypeWithoutAuxSlotTag(rawType);
-                        Js::RootObjectBase * rootObject = functionBody->GetRootObject();
-                        if (rootObject->GetType() == type)
-                        {
-                            Js::BigPropertyIndex propertyIndex = inlineCache->u.local.slotIndex;
-                            if (rawType == type)
-                            {
-                                // type is not tagged, inline slot
-                                propertyIndex = rootObject->GetPropertyIndexFromInlineSlotIndex(inlineCache->u.local.slotIndex);
-                            }
-                            else
-                            {
-                                propertyIndex = rootObject->GetPropertyIndexFromAuxSlotIndex(inlineCache->u.local.slotIndex);
-                            }
-                            Js::PropertyAttributes attributes;
-                            if (rootObject->GetAttributesWithPropertyIndex(functionBody->GetPropertyIdFromCacheId(i), propertyIndex, &attributes)
-                                && (attributes & PropertyConfigurable) == 0
-                                && !isJitTimeDataComputed)
-                            {
-                                // non configurable
-                                if (objTypeSpecFldInfo == nullptr)
-                                {
-                                    objTypeSpecFldInfo = ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), inlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
-                                    if (objTypeSpecFldInfo)
+                                    if (!PHASE_OFF(Js::InlineCallTargetPhase, functionBody) && (cacheType & Js::FldInfo_InlineCandidate))
                                     {
-                                        IncInlineCacheCount(clonedMonoInlineCacheCount);
+                                        inlineCallTarget = true;
+                                    }
+                                    if (!isJitTimeDataComputed)
+                                    {
                                         jitTimeData->GetObjTypeSpecFldInfoArray()->SetInfo(recycler, functionBody, i, objTypeSpecFldInfo);
                                         objTypeSpecFldInfoList->Prepend(objTypeSpecFldInfo);
                                     }
                                 }
-                                if (objTypeSpecFldInfo != nullptr)
+                            }
+                        }
+                    }
+                    if(!PHASE_OFF(Js::FixAccessorPropsPhase, functionBody))
+                    {
+                        if (!objTypeSpecFldInfo && (cacheType & Js::FldInfo_FromAccessor) && (cacheType & Js::FldInfo_InlineCandidate))
+                        {
+                            objTypeSpecFldInfo = ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), inlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
+                            if (objTypeSpecFldInfo)
+                            {
+                                inlineGetterSetter = true;
+                                if (!isJitTimeDataComputed)
                                 {
-                                    objTypeSpecFldInfo->SetRootObjectNonConfigurableField(i < functionBody->GetRootObjectStoreInlineCacheStart());
+                                    IncInlineCacheCount(clonedMonoInlineCacheCount);
+                                    jitTimeData->GetObjTypeSpecFldInfoArray()->SetInfo(recycler, functionBody, i, objTypeSpecFldInfo);
+                                    objTypeSpecFldInfoList->Prepend(objTypeSpecFldInfo);
+                                }
+                            }
+
+                        }
+                    }
+                    if (!PHASE_OFF(Js::RootObjectFldFastPathPhase, functionBody))
+                    {
+                        if (i >= functionBody->GetRootObjectLoadInlineCacheStart() && inlineCache->IsLocal())
+                        {
+                            void * rawType = inlineCache->u.local.type;
+                            Js::Type * type = TypeWithoutAuxSlotTag(rawType);
+                            Js::RootObjectBase * rootObject = functionBody->GetRootObject();
+                            if (rootObject->GetType() == type)
+                            {
+                                Js::BigPropertyIndex propertyIndex = inlineCache->u.local.slotIndex;
+                                if (rawType == type)
+                                {
+                                    // type is not tagged, inline slot
+                                    propertyIndex = rootObject->GetPropertyIndexFromInlineSlotIndex(inlineCache->u.local.slotIndex);
+                                }
+                                else
+                                {
+                                    propertyIndex = rootObject->GetPropertyIndexFromAuxSlotIndex(inlineCache->u.local.slotIndex);
+                                }
+                                Js::PropertyAttributes attributes;
+                                if (rootObject->GetAttributesWithPropertyIndex(functionBody->GetPropertyIdFromCacheId(i), propertyIndex, &attributes)
+                                    && (attributes & PropertyConfigurable) == 0
+                                    && !isJitTimeDataComputed)
+                                {
+                                    // non configurable
+                                    if (objTypeSpecFldInfo == nullptr)
+                                    {
+                                        objTypeSpecFldInfo = ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), inlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
+                                        if (objTypeSpecFldInfo)
+                                        {
+                                            IncInlineCacheCount(clonedMonoInlineCacheCount);
+                                            jitTimeData->GetObjTypeSpecFldInfoArray()->SetInfo(recycler, functionBody, i, objTypeSpecFldInfo);
+                                            objTypeSpecFldInfoList->Prepend(objTypeSpecFldInfo);
+                                        }
+                                    }
+                                    if (objTypeSpecFldInfo != nullptr)
+                                    {
+                                        objTypeSpecFldInfo->SetRootObjectNonConfigurableField(i < functionBody->GetRootObjectStoreInlineCacheStart());
+                                    }
                                 }
                             }
                         }
@@ -2468,33 +2475,36 @@ NativeCodeGenerator::GatherCodeGenData(
             // Even if the FldInfo says that the field access may be polymorphic, be optimistic that if the function object has inline caches, they'll be monomorphic
             else if(function && Js::ScriptFunctionWithInlineCache::Is(function) && (cacheType & Js::FldInfo_InlineCandidate || !polymorphicCacheOnFunctionBody))
             {
-                Js::InlineCache *inlineCache = Js::ScriptFunctionWithInlineCache::FromVar(function)->GetInlineCache(i);
-                ObjTypeSpecFldInfo* objTypeSpecFldInfo = nullptr;
-
-                if(!PHASE_OFF(Js::ObjTypeSpecPhase, functionBody) || !PHASE_OFF(Js::FixedMethodsPhase, functionBody))
+                if (Js::ScriptFunctionWithInlineCache::FromVar(function)->GetInlineCaches() != nullptr)
                 {
-                    if(cacheType & (Js::FldInfo_FromLocal | Js::FldInfo_FromProto))  // Remove FldInfo_FromLocal?
+                    Js::InlineCache *inlineCache = Js::ScriptFunctionWithInlineCache::FromVar(function)->GetInlineCache(i);
+                    ObjTypeSpecFldInfo* objTypeSpecFldInfo = nullptr;
+
+                    if(!PHASE_OFF(Js::ObjTypeSpecPhase, functionBody) || !PHASE_OFF(Js::FixedMethodsPhase, functionBody))
                     {
-
-                        // WinBlue 170722: Disable ObjTypeSpec optimization for activation object in debug mode,
-                        // as it can result in BailOutFailedTypeCheck before locals are set to undefined,
-                        // which can result in using garbage object during bailout/restore values.
-                        if (!(functionBody->IsInDebugMode() && inlineCache->GetType() &&
-                              inlineCache->GetType()->GetTypeId() == Js::TypeIds_ActivationObject))
+                        if(cacheType & (Js::FldInfo_FromLocal | Js::FldInfo_FromProto))  // Remove FldInfo_FromLocal?
                         {
-                            objTypeSpecFldInfo = ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), inlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
-                            if (objTypeSpecFldInfo)
-                            {
-                                IncInlineCacheCount(clonedMonoInlineCacheCount);
 
-                                if (!PHASE_OFF(Js::InlineApplyTargetPhase, functionBody) && IsInlinee && (cacheType & Js::FldInfo_InlineCandidate))
+                            // WinBlue 170722: Disable ObjTypeSpec optimization for activation object in debug mode,
+                            // as it can result in BailOutFailedTypeCheck before locals are set to undefined,
+                            // which can result in using garbage object during bailout/restore values.
+                            if (!(functionBody->IsInDebugMode() && inlineCache->GetType() &&
+                                inlineCache->GetType()->GetTypeId() == Js::TypeIds_ActivationObject))
+                            {
+                                objTypeSpecFldInfo = ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), inlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
+                                if (objTypeSpecFldInfo)
                                 {
-                                    inlineApplyTarget = true;
-                                }
-                                if (!isJitTimeDataComputed)
-                                {
-                                    jitTimeData->GetObjTypeSpecFldInfoArray()->SetInfo(recycler, functionBody, i, objTypeSpecFldInfo);
-                                    objTypeSpecFldInfoList->Prepend(objTypeSpecFldInfo);
+                                    IncInlineCacheCount(clonedMonoInlineCacheCount);
+
+                                    if (!PHASE_OFF(Js::InlineApplyTargetPhase, functionBody) && IsInlinee && (cacheType & Js::FldInfo_InlineCandidate))
+                                    {
+                                        inlineApplyTarget = true;
+                                    }
+                                    if (!isJitTimeDataComputed)
+                                    {
+                                        jitTimeData->GetObjTypeSpecFldInfoArray()->SetInfo(recycler, functionBody, i, objTypeSpecFldInfo);
+                                        objTypeSpecFldInfoList->Prepend(objTypeSpecFldInfo);
+                                    }
                                 }
                             }
                         }
@@ -2601,21 +2611,25 @@ NativeCodeGenerator::GatherCodeGenData(
                     // the inline caches, as their cached data is not guaranteed to be stable while jitting.
                     Js::InlineCache *const inlineCache =
                         function && Js::ScriptFunctionWithInlineCache::Is(function)
-                            ? Js::ScriptFunctionWithInlineCache::FromVar(function)->GetInlineCache(i)
+                            ? (Js::ScriptFunctionWithInlineCache::FromVar(function)->GetInlineCaches() != nullptr ? Js::ScriptFunctionWithInlineCache::FromVar(function)->GetInlineCache(i) : nullptr)
                             : functionBody->GetInlineCache(i);
-                    Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(i);
-                    const auto clone = runtimeData->ClonedInlineCaches()->GetInlineCache(functionBody, i);
-                    if (clone)
+
+                    if (inlineCache != nullptr)
                     {
-                        inlineCache->CopyTo(propertyId, functionBody->GetScriptContext(), clone);
-                    }
-                    else
-                    {
-                        runtimeData->ClonedInlineCaches()->SetInlineCache(
-                            recycler,
-                            functionBody,
-                            i,
-                            inlineCache->Clone(propertyId, functionBody->GetScriptContext()));
+                        Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(i);
+                        const auto clone = runtimeData->ClonedInlineCaches()->GetInlineCache(functionBody, i);
+                        if (clone)
+                        {
+                            inlineCache->CopyTo(propertyId, functionBody->GetScriptContext(), clone);
+                        }
+                        else
+                        {
+                            runtimeData->ClonedInlineCaches()->SetInlineCache(
+                                recycler,
+                                functionBody,
+                                i,
+                                inlineCache->Clone(propertyId, functionBody->GetScriptContext()));
+                        }
                     }
                 }
             }
@@ -2728,7 +2742,10 @@ NativeCodeGenerator::GatherCodeGenData(
             {
                 if(function && Js::ScriptFunctionWithInlineCache::Is(function))
                 {
-                    inlineCache = Js::ScriptFunctionWithInlineCache::FromVar(function)->GetInlineCache(ldFldInlineCacheIndex);
+                    if (Js::ScriptFunctionWithInlineCache::FromVar(function)->GetInlineCaches() != nullptr)
+                    {
+                        inlineCache = Js::ScriptFunctionWithInlineCache::FromVar(function)->GetInlineCache(ldFldInlineCacheIndex);
+                    }
                 }
                 else
                 {
@@ -3180,24 +3197,17 @@ bool NativeCodeGenerator::TryReleaseNonHiPriWorkItem(CodeGenWorkItem* workItem)
 }
 
 void
-NativeCodeGenerator::FreeNativeCodeGenAllocation(void* codeAddress, void* thunkAddress)
+NativeCodeGenerator::FreeNativeCodeGenAllocation(void* codeAddress)
 {
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
         ThreadContext * context = this->scriptContext->GetThreadContext();
-        HRESULT hr = JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)codeAddress, (intptr_t)thunkAddress);
+        HRESULT hr = JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)codeAddress);
         JITManager::HandleServerCallResult(hr, RemoteCallType::MemFree);
     }
     else if(this->backgroundAllocators)
     {
         this->backgroundAllocators->emitBufferManager.FreeAllocation(codeAddress);
-        
-#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
-        if (thunkAddress)
-        {
-            this->scriptContext->GetThreadContext()->GetJITThunkEmitter()->FreeThunk((uintptr_t)thunkAddress);
-        }
-#endif
     }
 }
 
@@ -3211,7 +3221,7 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* codeAddress, void * 
         return;
     }
 
-    if (!JITManager::GetJITManager()->IsOOPJITEnabled() || !CONFIG_FLAG(OOPCFGRegistration))
+    if (JITManager::GetJITManager()->IsOOPJITEnabled() && !CONFIG_FLAG(OOPCFGRegistration))
     {
         //DeRegister Entry Point for CFG
         if (thunkAddress)
@@ -3234,12 +3244,6 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* codeAddress, void * 
     // The foreground allocators may have been used
     if(this->foregroundAllocators && this->foregroundAllocators->emitBufferManager.FreeAllocation(codeAddress))
     {
-#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
-        if (thunkAddress)
-        {
-            this->scriptContext->GetThreadContext()->GetJITThunkEmitter()->FreeThunk((uintptr_t)thunkAddress);
-        }
-#endif
         return;
     }
 
@@ -3701,6 +3705,10 @@ JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
         break;
     }
 
+    if (CONFIG_FLAG(CrashOnOOPJITFailure))
+    {
+        RpcFailure_fatal_error(hr);
+    }
     // we only expect to see these hresults in case server has been closed. failfast otherwise
     if (hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED) &&
         hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED_DNE))

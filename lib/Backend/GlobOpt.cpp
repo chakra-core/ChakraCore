@@ -12370,7 +12370,7 @@ GlobOpt::OptConstFoldBinary(
     }
 
     IntConstType tmpValueOut;
-    if (!instr->BinaryCalculator(src1IntConstantValue, src2IntConstantValue, &tmpValueOut)
+    if (!instr->BinaryCalculator(src1IntConstantValue, src2IntConstantValue, &tmpValueOut, TyInt32)
         || !Math::FitsInDWord(tmpValueOut))
     {
         return false;

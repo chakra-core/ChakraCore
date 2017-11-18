@@ -18,10 +18,10 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data, HANDLE pro
     m_sectionAllocator(processHandle),
     m_thunkPageAllocators(nullptr, /* allocXData */ false, &m_sectionAllocator, nullptr, processHandle),
     m_codePageAllocators(nullptr, ALLOC_XDATA, &m_sectionAllocator, &m_preReservedSectionAllocator, processHandle),
-    m_codeGenAlloc(nullptr, nullptr, &m_codePageAllocators, processHandle),
 #if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
     m_jitThunkEmitter(this, &m_sectionAllocator, processHandle),
 #endif
+    m_codeGenAlloc(nullptr, nullptr, this, &m_codePageAllocators, processHandle),
     m_pageAlloc(nullptr, Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
         AutoSystemInfo::Data.IsLowMemoryProcess() ?
         PageAllocator::DefaultLowMaxFreePageCount :

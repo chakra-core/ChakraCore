@@ -1005,7 +1005,7 @@ IRBuilderAsmJs::CreateLabel(IR::BranchInstr * branchInstr, uint & offset)
     }
 
     IR::LabelInstr * labelInstr;
-    if (instrPrev && instrPrev->IsLabelInstr())
+    if (instrPrev && instrPrev->IsLabelInstr() && instrPrev->GetByteCodeOffset() == offset)
     {
         // Found an existing label at the right offset. Just reuse it.
         labelInstr = instrPrev->AsLabelInstr();

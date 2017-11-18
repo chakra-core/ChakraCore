@@ -7,7 +7,7 @@ function test0(){
   var obj0 = {};
   var arrObj0 = {};
   var func0 = function(){
-    eval("");
+    eval("  ");
   }
   var func1 = function(){
     var obj4 = {nd0: {nd0: {lf0: {prop0: -46, prop1: 3, prop2: -2147483648, length: -6.02625054824609E+18 , method0: func0}}}};

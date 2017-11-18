@@ -1051,6 +1051,7 @@ namespace Js
         if (this->function->GetHasInlineCaches() && Js::ScriptFunctionWithInlineCache::Is(this->function))
         {
             this->inlineCaches = (void**)Js::ScriptFunctionWithInlineCache::FromVar(this->function)->GetInlineCaches();
+            Assert(this->inlineCaches != nullptr);
         }
         else
         {
