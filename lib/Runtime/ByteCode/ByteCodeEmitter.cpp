@@ -2115,7 +2115,7 @@ void ByteCodeGenerator::InvalidateCachedOuterScopes(FuncInfo *funcInfo)
         {
             if (func->Escapes() && func->GetHasCachedScope())
             {
-                Assert(scope->GetIsObject());
+                AssertOrFailFast(scope->GetIsObject());
                 this->m_writer.Unsigned1(Js::OpCode::InvalCachedScope, envIndex);
             }
         }
@@ -4091,7 +4091,7 @@ void ByteCodeGenerator::StartEmitWith(ParseNode *pnodeWith)
 
     Scope *scope = pnodeWith->sxWith.scope;
 
-    Assert(scope->GetIsObject());
+    AssertOrFailFast(scope->GetIsObject());
 
     PushScope(scope);
 }
@@ -4237,7 +4237,7 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
 
             Js::RegSlot tmpReg = funcInfo->AcquireTmpRegister();
 
-            Assert(scope->GetIsObject());
+            AssertOrFailFast(scope->GetIsObject());
             this->m_writer.SlotI1(Js::OpCode::LdEnvObj, tmpReg,
                 envIndex + Js::FrameDisplay::GetOffsetOfScopes() / sizeof(Js::Var));
 
@@ -4257,7 +4257,7 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
                 funcInfo->FindOrAddReferencedPropertyId(propertyId));
 
             Assert(!unwrapWithObj);
-            Assert(scope->GetIsObject());
+            AssertOrFailFast(scope->GetIsObject());
             this->m_writer.Reg1(Js::OpCode::LdLocalObj, instLocation);
             if (thisLocation != Js::Constants::NoRegister)
             {
@@ -4330,7 +4330,7 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
     {
         if (envIndex != -1)
         {
-            Assert(scope->GetIsObject());
+            AssertOrFailFast(scope->GetIsObject());
             this->m_writer.SlotI1(Js::OpCode::LdEnvObj, instLocation,
                 envIndex + Js::FrameDisplay::GetOffsetOfScopes() / sizeof(Js::Var));
         }
@@ -4630,7 +4630,7 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
 
             Js::RegSlot instLocation = funcInfo->AcquireTmpRegister();
 
-            Assert(scope->GetIsObject());
+            AssertOrFailFast(scope->GetIsObject());
             this->m_writer.SlotI1(
                 Js::OpCode::LdEnvObj,
                 instLocation,
@@ -4875,7 +4875,7 @@ ByteCodeGenerator::GetLdSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLoca
     }
     else
     {
-        Assert(scope->GetIsObject());
+        AssertOrFailFast(scope->GetIsObject());
         op = Js::OpCode::LdObjSlot;
     }
 
@@ -4994,7 +4994,7 @@ void ByteCodeGenerator::EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, Ident
 
             Js::RegSlot instLocation = funcInfo->AcquireTmpRegister();
 
-            Assert(scope->GetIsObject());
+            AssertOrFailFast(scope->GetIsObject());
             this->m_writer.SlotI1(
                 Js::OpCode::LdEnvObj,
                 instLocation,
@@ -5160,7 +5160,7 @@ void ByteCodeGenerator::EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, Ident
         }
         else
         {
-            Assert(scope->GetIsObject());
+            AssertOrFailFast(scope->GetIsObject());
             this->m_writer.Slot(op, lhsLocation, scopeLocation, slot, profileId);
         }
 
@@ -5250,7 +5250,7 @@ void ByteCodeGenerator::EmitPropDelete(Js::RegSlot lhsLocation, Symbol *sym, Ide
 
             Js::RegSlot instLocation = funcInfo->AcquireTmpRegister();
 
-            Assert(scope->GetIsObject());
+            AssertOrFailFast(scope->GetIsObject());
             this->m_writer.SlotI1(
                 Js::OpCode::LdEnvObj,
                 instLocation,
@@ -5420,7 +5420,7 @@ void ByteCodeGenerator::EmitPropTypeof(Js::RegSlot lhsLocation, Symbol *sym, Ide
 
             Js::RegSlot instLocation = funcInfo->AcquireTmpRegister();
 
-            Assert(scope->GetIsObject());
+            AssertOrFailFast(scope->GetIsObject());
             this->m_writer.SlotI1(Js::OpCode::LdEnvObj,
                 instLocation,
                 envIndex + Js::FrameDisplay::GetOffsetOfScopes() / sizeof(Js::Var));
@@ -5529,7 +5529,7 @@ void ByteCodeGenerator::EmitPropTypeof(Js::RegSlot lhsLocation, Symbol *sym, Ide
         }
         else
         {
-            Assert(scope->GetIsObject());
+            AssertOrFailFast(scope->GetIsObject());
             this->m_writer.Slot(op, tmpLocation, scopeLocation, slot, profileId);
         }
 
