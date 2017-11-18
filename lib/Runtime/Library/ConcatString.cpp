@@ -135,8 +135,6 @@ namespace Js
         }
 
         this->propertyString = scriptContext->GetPropertyString(propertyRecord->GetPropertyId());
-        this->SetBuffer(this->propertyString->GetString()); // use the same buffer
-
         return this->propertyString;
     }
 
