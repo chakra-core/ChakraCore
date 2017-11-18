@@ -342,7 +342,8 @@ Below test fails with difference in space. Investigate the cause and re-enable t
   <test>
     <default>
       <files>reentry1.js</files>
-      <timeout>300</timeout>
+      <timeout>480</timeout> <!-- ARM64 takes ~8 min -->
+      <tags>xplatslow,Slow</tags>
     </default>
   </test>
   <test>

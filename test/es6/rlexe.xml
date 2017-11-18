@@ -114,6 +114,7 @@
     <default>
       <files>function.name.js</files>
       <compile-flags>-ES6Generators -ES6Classes -es6functionnamefull -force:deferparse -args summary -endargs</compile-flags>
+      <timeout>120</timeout> <!-- ARM64 take more than 60 -->
     </default>
   </test>
   <test>

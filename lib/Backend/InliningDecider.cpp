@@ -184,6 +184,10 @@ uint InliningDecider::InlinePolymorphicCallSite(Js::FunctionBody *const inliner,
 Js::FunctionInfo *InliningDecider::Inline(Js::FunctionBody *const inliner, Js::FunctionInfo* functionInfo,
     bool isConstructorCall, bool isPolymorphicCall, uint16 constantArgInfo, Js::ProfileId callSiteId, uint recursiveInlineDepth, bool allowRecursiveInlining)
 {
+#ifdef _M_ARM64
+    // ToDo: Enable inlining on ARM64
+    return nullptr;
+#else
 #if defined(DBG_DUMP) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
     char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
@@ -301,6 +305,7 @@ Js::FunctionInfo *InliningDecider::Inline(Js::FunctionBody *const inliner, Js::F
 
     // Note: for built-ins at this time we don't have enough data (the instr) to decide whether it's going to be inlined.
     return functionInfo;
+#endif
 }
 
 

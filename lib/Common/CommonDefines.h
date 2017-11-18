@@ -291,7 +291,8 @@
 #define ENABLE_OOP_NATIVE_CODEGEN 1     // Out of process JIT
 #endif
 
-#if _WIN64
+// ToDo (SaAgarwa): Disable VirtualTypedArray on ARM64 till we make sure it works correctly
+#if _WIN64 && !defined(_M_ARM64)
 #define ENABLE_FAST_ARRAYBUFFER 1
 #endif
 #endif
