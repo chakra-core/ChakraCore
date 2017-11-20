@@ -218,7 +218,11 @@ HRESULT
 JITManager::ConnectRpcServer(__in HANDLE jitProcessHandle, __in_opt void* serverSecurityDescriptor, __in UUID connectionUuid)
 {
     Assert(IsOOPJITEnabled());
-    Assert(m_rpcBindingHandle == nullptr);
+    if(m_rpcBindingHandle != nullptr)
+    {
+        // TODO: change this to allow connecting a new JIT process to new ThreadContexts
+        return E_FAIL;
+    }
 
     HRESULT hr = E_FAIL;
 
@@ -543,15 +547,14 @@ JITManager::CloseScriptContext(
 HRESULT
 JITManager::FreeAllocation(
     __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-    __in intptr_t codeAddress,
-    __in intptr_t thunkAddress)
+    __in intptr_t codeAddress)
 {
     Assert(IsOOPJITEnabled());
 
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
-        hr = ClientFreeAllocation(m_rpcBindingHandle, threadContextInfoAddress, codeAddress, thunkAddress);
+        hr = ClientFreeAllocation(m_rpcBindingHandle, threadContextInfoAddress, codeAddress);
     }
     RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {

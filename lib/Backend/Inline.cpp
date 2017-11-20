@@ -1798,7 +1798,7 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, const Function
     else
     {
         // We patch later for constructor inlining.
-        Assert(
+        AssertOrFailFast(
             callInstr->m_opcode == Js::OpCode::NewScObject ||
             callInstr->m_opcode == Js::OpCode::NewScObjArray);
     }
@@ -2382,6 +2382,11 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, const FunctionJITTimeInfo *
     // We may still decide not to inline.
     *pIsInlined = false;
 
+    if (argsCount == 0)
+    {
+        return callInstr;
+    }
+
     Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(applyData->GetFunctionInfoAddr(), this->topFunc->GetThreadContextInfo());
     const FunctionJITTimeInfo * inlineeData = nullptr;
 
@@ -2476,6 +2481,10 @@ IR::Instr * Inline::InlineApplyWithArgumentsObject(IR::Instr * callInstr, IR::In
     IR::Instr * argumentsObjArgOut = nullptr;
     uint argOutCount = 0;
     this->GetArgInstrsForCallAndApply(callInstr, &implicitThisArgOut, &explicitThisArgOut, &argumentsObjArgOut, argOutCount);
+    
+    Assert(implicitThisArgOut);
+    Assert(explicitThisArgOut);
+    Assert(argumentsObjArgOut);
 
     //      BailOnNotEqual  s4.var                  ---------------New additional BAILOUT if not stack args or actuals exceed 16 at runtime.
     //      Bailout: #004e (BailOutOnInlineFunction)
@@ -2567,6 +2576,10 @@ IR::Instr * Inline::InlineApplyWithArray(IR::Instr * callInstr, const FunctionJI
     uint argOutCount = 0;
     this->GetArgInstrsForCallAndApply(callInstr, &implicitThisArgOut, &explicitThisArgOut, &arrayArgOut, argOutCount);
 
+    Assert(implicitThisArgOut);
+    Assert(explicitThisArgOut);
+    Assert(arrayArgOut);
+
     TryFixedMethodAndPrepareInsertionPoint(callInstr, funcInfo, false /*isPolymorphic*/, true /*isBuiltIn*/, false /*isCtor*/, true /*isInlined*/);
 
     IR::Instr* builtInEndInstr = InsertInlineeBuiltInStartEndTags(callInstr, 3); // 3 args (implicit this + explicit this + array = 3)
@@ -2625,6 +2638,9 @@ IR::Instr * Inline::InlineApplyWithoutArrayArgument(IR::Instr *callInstr, const 
     uint argOutCount = 0;
     this->GetArgInstrsForCallAndApply(callInstr, &implicitThisArgOut, &explicitThisArgOut, &dummyInstr, argOutCount);
 
+    Assert(implicitThisArgOut);
+    Assert(explicitThisArgOut);
+    
     TryFixedMethodAndPrepareInsertionPoint(callInstr, applyInfo, false /*isPolymorphic*/, true /*isBuiltIn*/, false /*isCtor*/, true /*isInlined*/);
 
     InsertInlineeBuiltInStartEndTags(callInstr, 2); // 2 args (implicit this + explicit this)
@@ -2927,7 +2943,7 @@ Inline::InlineCallApplyTarget_Shared(IR::Instr *callInstr, bool originalCallTarg
     // instrNext
     IR::Instr* instrNext = callInstr->m_next;
 
-    return InlineFunctionCommon(callInstr, originalCallTargetOpndIsJITOpt, originalCallTargetStackSym, inlineeData, inlinee, instrNext, returnValueOpnd, callInstr, nullptr, recursiveInlineDepth, safeThis, isApplyTarget);
+    return InlineFunctionCommon(callInstr, originalCallTargetOpndIsJITOpt, originalCallTargetStackSym, inlineeData, inlinee, instrNext, returnValueOpnd, callInstr, nullptr, recursiveInlineDepth, safeThis, isApplyTarget)->m_prev;
 }
 
 IR::Opnd *
@@ -2987,6 +3003,8 @@ Inline::InlineCall(IR::Instr *callInstr, const FunctionJITTimeInfo *funcInfo, co
     IR::Instr * dummyInstr1 = nullptr;
     IR::Instr * dummyInstr2 = nullptr;
     this->GetArgInstrsForCallAndApply(callInstr, &argImplicitInstr, &dummyInstr1, &dummyInstr2, actualCount);
+
+    Assert(argImplicitInstr);
 
     IR::SymOpnd* orgLinkOpnd = callInstr->GetSrc2()->AsSymOpnd();
 
@@ -4510,7 +4528,7 @@ bool Inline::InlConstFold(IR::Instr *instr, IntConstType *pValue, __in_ecount_op
     {
         IntConstType src2Constant = *pValue;
 
-        if (!instr->BinaryCalculator(src1Constant, src2Constant, pValue)
+        if (!instr->BinaryCalculator(src1Constant, src2Constant, pValue, TyInt32)
             || !Math::FitsInDWord(*pValue))
         {
             return false;
@@ -4548,7 +4566,7 @@ bool Inline::InlConstFold(IR::Instr *instr, IntConstType *pValue, __in_ecount_op
     }
     else
     {
-        if (!instr->UnaryCalculator(src1Constant, pValue)
+        if (!instr->UnaryCalculator(src1Constant, pValue, TyInt32)
             || !Math::FitsInDWord(*pValue))
         {
             // Skip over BytecodeArgOutCapture

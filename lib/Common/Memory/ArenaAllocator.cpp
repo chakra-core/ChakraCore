@@ -588,9 +588,10 @@ Free(void * buffer, size_t byteSize)
 
         void **policy = &this->freeList;
 #if DBG
+        void *delayFreeList;
         if (needsDelayFreeList)
         {
-            void *delayFreeList = reinterpret_cast<FreeObject **>(this->freeList) + (MaxSmallObjectSize >> ObjectAlignmentBitShift);
+            delayFreeList = reinterpret_cast<FreeObject **>(this->freeList) + (MaxSmallObjectSize >> ObjectAlignmentBitShift);
             policy = &delayFreeList;
         }
 #endif

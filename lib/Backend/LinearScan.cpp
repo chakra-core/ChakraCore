@@ -233,10 +233,9 @@ LinearScan::RegAlloc()
         }
 
         this->SetSrcRegs(instr);
+        this->EndDeadLifetimes(instr);
 
         this->CheckOpHelper(instr);
-
-        this->EndDeadLifetimes(instr);
 
         this->KillImplicitRegs(instr);
 

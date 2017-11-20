@@ -36,6 +36,18 @@ namespace Js
             , unused(0)
 #endif
         {
+            // Keeping this version to avoid the assert
+        }
+
+        // The bool is used to avoid the signature confusion between the ArgSlot and uint version of the constructor
+        explicit CallInfo(uint count, bool unusedBool)
+            : Flags(CallFlags_None)
+            , Count(count)
+#ifdef TARGET_64
+            , unused(0)
+#endif
+        {
+            AssertOrFailFastMsg(count < CallInfo::kMaxCountArgs, "Argument list too large");
         }
 
         CallInfo(CallFlags flags, ArgSlot count)
@@ -45,6 +57,18 @@ namespace Js
             , unused(0)
 #endif
         {
+            // Keeping this version to avoid the assert
+        }
+
+        // The bool is used to avoid the signature confusion between the ArgSlot and uint version of the constructor
+        CallInfo(CallFlags flags, uint count, bool unusedBool)
+            : Flags(flags)
+            , Count(count)
+#ifdef TARGET_64
+            , unused(0)
+#endif
+        {
+            AssertOrFailFastMsg(count < CallInfo::kMaxCountArgs, "Argument list too large");
         }
 
         CallInfo(VirtualTableInfoCtorEnum v)
@@ -54,6 +78,11 @@ namespace Js
         ArgSlot GetArgCountWithExtraArgs() const
         {
             return CallInfo::GetArgCountWithExtraArgs(this->Flags, this->Count);
+        }
+
+        uint GetLargeArgCountWithExtraArgs() const
+        {
+            return CallInfo::GetLargeArgCountWithExtraArgs(this->Flags, this->Count);
         }
 
         bool HasExtraArg() const
@@ -74,6 +103,15 @@ namespace Js
             if (flags & CallFlags_ExtraArg)
             {
                 ArgSlotMath::Inc(count);
+            }
+            return count;
+        }
+
+        static uint GetLargeArgCountWithExtraArgs(CallFlags flags, uint count)
+        {
+            if (flags & CallFlags_ExtraArg)
+            {
+                UInt32Math::Inc(count);
             }
             return count;
         }

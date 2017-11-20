@@ -40,6 +40,7 @@ add_library (Chakra.Backend OBJECT
     InliningDecider.cpp
     InliningHeuristics.cpp
     IntBounds.cpp
+    IntConstMath.cpp
     InterpreterThunkEmitter.cpp
     JavascriptNativeOperators.cpp
     JITThunkEmitter.cpp

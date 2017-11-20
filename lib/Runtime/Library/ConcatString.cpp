@@ -13,14 +13,16 @@ namespace Js
     // Note: see also: ConcatString.inl
     LiteralStringWithPropertyStringPtr::LiteralStringWithPropertyStringPtr(StaticType* stringType) :
         LiteralString(stringType),
-        propertyString(nullptr)
+        propertyString(nullptr),
+        propertyRecord(nullptr)
     {
     }
 
     LiteralStringWithPropertyStringPtr::LiteralStringWithPropertyStringPtr(const char16 * wString,
       const CharCount stringLength, JavascriptLibrary *const library) :
         LiteralString(library->GetStringTypeStatic(), wString, stringLength),
-        propertyString(nullptr)
+        propertyString(nullptr),
+        propertyRecord(nullptr)
     {
     }
 
@@ -82,7 +84,15 @@ namespace Js
             }
             case 1:
             {
-                return library->GetCharStringCache().GetStringForChar((char16(*cString)));
+                // If the high bit of the byte is set, it cannot be a complete utf8 codepoint, so fall back to the unicode replacement char
+                if ((*cString & 0x80) != 0x80)
+                {
+                    return library->GetCharStringCache().GetStringForChar((char16(*cString)));
+                }
+                else
+                {
+                    return library->GetCharStringCache().GetStringForChar(0xFFFD);
+                }
             }
             default:
                 break;
@@ -126,19 +136,23 @@ namespace Js
 
         ScriptContext * scriptContext = this->GetScriptContext();
 
-        Js::PropertyRecord *propertyRecord = nullptr;
-        scriptContext->GetOrAddPropertyRecord(this->GetSz(), static_cast<int>(this->GetLength()),
-            (Js::PropertyRecord const **)&propertyRecord);
+        if (this->propertyRecord == nullptr)
+        {
+            scriptContext->GetOrAddPropertyRecord(this->GetSz(), static_cast<int>(this->GetLength()),
+                (Js::PropertyRecord const **)&(this->propertyRecord));
+        }
 
         this->propertyString = scriptContext->GetPropertyString(propertyRecord->GetPropertyId());
-        this->SetBuffer(this->propertyString->GetString()); // use the same buffer
-
         return this->propertyString;
     }
 
     void LiteralStringWithPropertyStringPtr::SetPropertyString(PropertyString * propStr)
     {
         this->propertyString = propStr;
+        if (propStr != nullptr)
+        {
+            this->propertyRecord = propStr->GetPropertyRecord();
+        }
     }
 
     /* static */
@@ -155,8 +169,15 @@ namespace Js
 
     Js::PropertyRecord const * LiteralStringWithPropertyStringPtr::GetPropertyRecord(bool dontLookupFromDictionary)
     {
-        // ignores dontLookupFromDictionary
-        return GetOrAddPropertyString()->GetPropertyRecord();
+        ScriptContext * scriptContext = this->GetScriptContext();
+
+        if (this->propertyRecord == nullptr && !dontLookupFromDictionary)
+        {
+            scriptContext->GetOrAddPropertyRecord(this->GetSz(), static_cast<int>(this->GetLength()),
+                (Js::PropertyRecord const **)&(this->propertyRecord));
+        }
+
+        return this->propertyRecord;
     }
 
     /////////////////////// ConcatStringBase //////////////////////////

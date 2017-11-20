@@ -23,6 +23,10 @@ REGDAT(EBP,  ebp,       5,      TyInt32,      RA_DONTALLOCATE)
 REGDAT(ESI,  esi,       6,      TyInt32,      RA_CALLEESAVE)
 REGDAT(EDI,  edi,       7,      TyInt32,      RA_CALLEESAVE)
 
+#ifndef INT_ARG_REG_COUNT
+#define INT_ARG_REG_COUNT 0
+#endif
+
 REGDAT(XMM0, xmm0,      0,      TyFloat64,    0)
 REGDAT(XMM1, xmm1,      1,      TyFloat64,    0)
 REGDAT(XMM2, xmm2,      2,      TyFloat64,    0)

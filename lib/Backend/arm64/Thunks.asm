@@ -40,11 +40,11 @@
     bl      |?CheckCodeGen@NativeCodeGenerator@@SAP6APEAXPEAVRecyclableObject@Js@@UCallInfo@3@ZZPEAVScriptFunction@3@@Z|  ; call  NativeCodeGenerator::CheckCodeGen
 
 #if defined(_CONTROL_FLOW_GUARD)
-    mov     x19, x0               ; save entryPoint in x19
+    mov     x15, x0               ; __guard_check_icall_fptr requires the call target in x15
     adrp    x17, __guard_check_icall_fptr
     ldr     x17, [x17, __guard_check_icall_fptr]
     blr     x17
-    mov     x17, x19              ; restore entryPoint in x17
+    mov     x17, x15              ; restore entryPoint in x17
 #else
     mov     x17, x0               ; back up entryPoint in x17
 #endif

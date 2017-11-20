@@ -83,8 +83,7 @@ public:
 
     HRESULT FreeAllocation(
         __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-        __in intptr_t codeAddress,
-        __in intptr_t thunkAddress);
+        __in intptr_t codeAddress);
 
     HRESULT SetIsPRNGSeeded(
         __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
@@ -204,8 +203,7 @@ public:
 
     HRESULT FreeAllocation(
         __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-        __in intptr_t codeAddress,
-        __in intptr_t thunkAddress)
+        __in intptr_t codeAddress)
         { Assert(false); return E_FAIL; }
 
     HRESULT SetIsPRNGSeeded(

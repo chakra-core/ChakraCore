@@ -313,9 +313,20 @@ int EncoderMD::EmitOp3RegisterOrImmediate(Arm64CodeEmitter &Emitter, IR::Instr* 
     }
     else
     {
-        Assert(false);
+        AssertMsg(false, "EmitOp3RegisterOrImmediate failed to encode");
         return 0;
     }
+}
+
+template<typename _RegFunc32, typename _RegFunc64, typename _ImmFunc32, typename _ImmFunc64>
+int EncoderMD::EmitOp3RegisterOrImmediateExtendSP(Arm64CodeEmitter &Emitter, IR::Instr* instr, _RegFunc32 reg32, _RegFunc64 reg64, _ImmFunc32 imm32, _ImmFunc64 imm64)
+{
+    if (instr->GetSrc1()->AsRegOpnd()->GetReg() == RegSP)
+    {
+        return this->EmitOp3RegisterShifted(Emitter, instr, EXTEND_UXTX, 0, reg32, reg64);
+    }
+
+    return EmitOp3RegisterOrImmediate(Emitter, instr, reg32, reg64, imm32, imm64);
 }
 
 int EncoderMD::EmitPrefetch(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR::Opnd* memOpnd)
@@ -404,7 +415,7 @@ int EncoderMD::EmitLoadStorePair(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR
     if (DecodeMemoryOpnd(memOpnd, baseReg, indexReg, indexScale, offset))
     {
         // Should never get here
-        Assert(false);
+        AssertMsg(false, "EmitLoadStorePair failed to encode");
         return 0;
     }
     else
@@ -482,20 +493,36 @@ int EncoderMD::EmitMovConstant(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emi
 {
     IR::Opnd* dst = instr->GetDst();
     IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* src2 = instr->GetSrc2();
     Assert(dst->IsRegOpnd());
-    Assert(src1->IsImmediateOpnd());
+    Assert(src1->IsImmediateOpnd() || src1->IsLabelOpnd());
+    Assert(src2->IsIntConstOpnd());
 
     int size = dst->GetSize();
     Assert(size == 4 || size == 8);
 
-    IntConstType immediate = src1->GetImmediateValue(instr->m_func);
-    int shift = 0;
-    while ((immediate & 0xFFFF) != immediate)
-    {
-        immediate = ULONG64(immediate) >> 16;
-        shift += 16;
-    }
+    uint32 shift = src2->AsIntConstOpnd()->AsUint32();
     Assert(shift < 32 || size == 8);
+    Assert(shift == 0 || shift == 16 || (size == 8 && (shift == 32 || shift == 48)));
+
+    IntConstType immediate = 0;
+    if (src1->IsImmediateOpnd())
+    {
+        immediate = src1->GetImmediateValue(instr->m_func);
+    }
+    else
+    {
+        Assert(src1->IsLabelOpnd());
+        IR::LabelInstr* labelInstr = src1->AsLabelOpnd()->GetLabel();
+
+        // Here the LabelOpnd's offset is a post-lower immediate value; we need
+        // to mask in just the part indicated by our own shift amount, and send
+        // that along as our immediate load value.
+        uintptr_t fullvalue = labelInstr->GetOffset();
+        immediate = (fullvalue & (0xffff << shift)) >> shift;
+    }
+
+    Assert((immediate & 0xFFFF) == immediate);
 
     if (size == 8)
     {
@@ -620,7 +647,7 @@ int EncoderMD::EmitLoadStoreFp(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR::
     if (DecodeMemoryOpnd(memOpnd, baseReg, indexReg, indexScale, offset))
     {
         // Should never get here
-        Assert(false);
+        AssertMsg(false, "EmitLoadStoreFp failed to encode");
         return 0;
     }
     else
@@ -644,7 +671,7 @@ int EncoderMD::EmitLoadStoreFpPair(Arm64CodeEmitter &Emitter, IR::Instr* instr, 
     if (DecodeMemoryOpnd(memOpnd, baseReg, indexReg, indexScale, offset))
     {
         // Should never get here
-        Assert(false);
+        AssertMsg(false, "EmitLoadStoreFpPair failed to encode");
         return 0;
     }
     else
@@ -686,7 +713,7 @@ int EncoderMD::EmitConvertToInt(Arm64CodeEmitter &Emitter, IR::Instr* instr, _In
     }
     
     // Shouldn't get here
-    Assert(false);
+    AssertMsg(false, "EmitConvertToInt failed to encode");
     return 0;
 }
 
@@ -715,7 +742,19 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         break;
 
     case Js::OpCode::ADDS:
-        bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitAddsRegister, EmitAddsRegister64, EmitAddsImmediate, EmitAddsImmediate64);
+        bytes = this->EmitOp3RegisterOrImmediateExtendSP(Emitter, instr, EmitAddsRegister, EmitAddsRegister64, EmitAddsImmediate, EmitAddsImmediate64);
+        break;
+
+    case Js::OpCode::ADR:
+        dst = instr->GetDst();
+        src1 = instr->GetSrc1();
+        Assert(dst->IsRegOpnd());
+        Assert(src1->IsLabelOpnd());
+
+        Assert(dst->GetSize() == 8);
+        Assert(!src1->AsLabelOpnd()->GetLabel()->isInlineeEntryInstr);
+        EncodeReloc::New(&m_relocList, RelocTypeLabelAdr, m_pc, src1->AsLabelOpnd()->GetLabel(), m_encoder->m_tempAlloc);
+        bytes = EmitAdr(Emitter, this->GetRegEncode(dst->AsRegOpnd()), 0);
         break;
 
     case Js::OpCode::AND:
@@ -877,10 +916,12 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         break;
 
     case Js::OpCode::LDR:
+        Assert(instr->GetDst()->GetSize() <= instr->GetSrc1()->GetSize() || instr->GetSrc1()->IsUnsigned());
         bytes = this->EmitLoadStore(Emitter, instr, instr->GetSrc1(), instr->GetDst(), EmitLdrbRegister, EmitLdrhRegister, EmitLdrRegister, EmitLdrRegister64, EmitLdrbOffset, EmitLdrhOffset, EmitLdrOffset, EmitLdrOffset64);
         break;
 
     case Js::OpCode::LDRS:
+        Assert(instr->GetDst()->GetSize() <= instr->GetSrc1()->GetSize() || instr->GetSrc1()->IsSigned());
         bytes = this->EmitLoadStore(Emitter, instr, instr->GetSrc1(), instr->GetDst(), EmitLdrsbRegister, EmitLdrshRegister, EmitLdrswRegister64, EmitLdrRegister64, EmitLdrsbOffset, EmitLdrshOffset, EmitLdrswOffset64, EmitLdrOffset64);
         break;
 
@@ -1047,7 +1088,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         break;
 
     case Js::OpCode::SUBS:
-        bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitSubsRegister, EmitSubsRegister64, EmitSubsImmediate, EmitSubsImmediate64);
+        bytes = this->EmitOp3RegisterOrImmediateExtendSP(Emitter, instr, EmitSubsRegister, EmitSubsRegister64, EmitSubsImmediate, EmitSubsImmediate64);
         break;
 
     case Js::OpCode::SUB_LSL4:
@@ -1292,7 +1333,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
                 Assert(encodeResult);
                 //We are re-using offset to save the inlineeCallInfo which will be patched in ApplyRelocs
                 //This is a cleaner way to patch MOVW\MOVT pair with the right inlineeCallInfo
-                instr->AsLabelInstr()->ResetOffset((uint32)inlineeCallInfo);
+                instr->AsLabelInstr()->ResetOffset((uintptr_t)inlineeCallInfo);
             }
             else
             {
@@ -1402,7 +1443,7 @@ EncoderMD::BaseAndOffsetFromSym(IR::SymOpnd *symOpnd, RegNum *pBaseReg, int32 *p
         if (func->HasInlinee())
         {
             // TODO (megupta): BaseReg will be a pre-reserved non SP register when we start supporting try
-            Assert(baseReg == RegSP);
+            Assert(baseReg == RegSP || baseReg == ALT_LOCALS_PTR);
             if (stackSym->IsArgSlotSym() && !stackSym->m_isOrphanedArg)
             {
                 Assert(stackSym->m_isInlinedArgSlot);
@@ -1435,10 +1476,34 @@ EncoderMD::ApplyRelocs(size_t codeBufferAddress, size_t codeSize, uint* bufferCR
 {
     for (EncodeReloc *reloc = m_relocList; reloc; reloc = reloc->m_next)
     {
-        BYTE * relocAddress = reloc->m_consumerOffset;
-        IR::LabelInstr * labelInstr = reloc->m_relocInstr->AsLabelInstr();
+        PULONG relocAddress = PULONG(reloc->m_consumerOffset);
+        PULONG targetAddress = PULONG(reloc->m_relocInstr->AsLabelInstr()->GetPC());
+        ULONG_PTR immediate;
 
-        ArmBranchLinker::LinkRaw((PULONG)relocAddress, (PULONG)labelInstr->GetPC());
+        switch (reloc->m_relocType)
+        {
+        case RelocTypeBranch14:
+        case RelocTypeBranch19:
+        case RelocTypeBranch26:
+            ArmBranchLinker::LinkRaw(relocAddress, targetAddress);
+            break;
+
+        case RelocTypeLabelAdr:
+            Assert(!reloc->m_relocInstr->isInlineeEntryInstr);
+            immediate = ULONG_PTR(targetAddress) - ULONG_PTR(relocAddress);
+            Assert(IS_CONST_INT21(immediate));
+            *relocAddress = (*relocAddress & ~(3 << 29)) | ULONG((immediate & 3) << 29);
+            *relocAddress = (*relocAddress & ~(0x7ffff << 5)) | ULONG(((immediate >> 2) & 0x7ffff) << 5);
+            break;
+
+        case RelocTypeLabel:
+            *(ULONG_PTR*)relocAddress = ULONG_PTR(targetAddress) - ULONG_PTR(m_encoder->m_encodeBuffer) + ULONG_PTR(codeBufferAddress);
+            break;
+
+        default:
+            // unexpected/unimplemented type
+            Assert(false);
+        }
     }
 }
 

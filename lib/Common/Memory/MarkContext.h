@@ -10,6 +10,10 @@ class Recycler;
 
 typedef JsUtil::SynchronizedDictionary<void *, void *, NoCheckHeapAllocator, PrimeSizePolicy, RecyclerPointerComparer, JsUtil::SimpleDictionaryEntry, Js::DefaultContainerLockPolicy, CriticalSection> MarkMap;
 
+#if __has_feature(address_sanitizer)
+enum class RecyclerScanMemoryType { General, Stack };
+#endif
+
 class MarkContext
 {
 private:
@@ -44,8 +48,11 @@ public:
     void MarkInterior(void * candidate);
     template <bool parallel, bool interior>
     void ScanObject(void ** obj, size_t byteCount);
+
     template <bool parallel, bool interior, bool doSpecialMark>
-    void ScanMemory(void ** obj, size_t byteCount);
+    void ScanMemory(void ** obj, size_t byteCount
+            ADDRESS_SANITIZER_APPEND(void *asanFakeStack = nullptr));
+
     template <bool parallel, bool interior>
     void ProcessMark();
 
@@ -62,12 +69,12 @@ public:
     bool HasPendingPreciselyTracedObjects() const { return !preciseStack.IsEmpty(); }
 #endif
     bool HasPendingTrackObjects() const { return !trackStack.IsEmpty(); }
-    bool HasPendingObjects() const { 
-        return HasPendingMarkObjects() 
+    bool HasPendingObjects() const {
+        return HasPendingMarkObjects()
 #ifdef RECYCLER_VISITED_HOST
-            || HasPendingPreciselyTracedObjects() 
+            || HasPendingPreciselyTracedObjects()
 #endif
-            || HasPendingTrackObjects(); 
+            || HasPendingTrackObjects();
     }
 
     PageAllocator * GetPageAllocator() { return this->pagePool->GetPageAllocator(); }
@@ -102,12 +109,12 @@ public:
 
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    void SetMaxPageCount(size_t maxPageCount) { 
-        markStack.SetMaxPageCount(maxPageCount); 
+    void SetMaxPageCount(size_t maxPageCount) {
+        markStack.SetMaxPageCount(maxPageCount);
 #ifdef RECYCLER_VISITED_HOST
-        preciseStack.SetMaxPageCount(maxPageCount); 
+        preciseStack.SetMaxPageCount(maxPageCount);
 #endif
-        trackStack.SetMaxPageCount(maxPageCount); 
+        trackStack.SetMaxPageCount(maxPageCount);
     }
 #endif
 

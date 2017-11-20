@@ -441,18 +441,19 @@ namespace Js
 
 #ifdef REGEX_TRIGRAMS
         UnifiedRegex::TrigramAlphabet* trigramAlphabet = scriptContext->GetTrigramAlphabet();
-        UnifiedRegex::TrigramInfo* trigramInfo= pattern->rep.unified.trigramInfo;
-        if (trigramAlphabet!=NULL && inputLength>=MinTrigramInputLength && trigramInfo!=NULL)
+        UnifiedRegex::TrigramInfo* trigramInfo = pattern->rep.unified.trigramInfo;
+        if (trigramAlphabet != NULL && inputLength >= MinTrigramInputLength && trigramInfo != NULL)
         {
-            if (trigramAlphabet->input==NULL)
-                trigramAlphabet->MegaMatch((char16*)inputStr,inputLength);
-
+            if (trigramAlphabet->input == NULL)
+            {
+                trigramAlphabet->MegaMatch((char16*)inputStr, inputLength);
+            }
             if (trigramInfo->isTrigramPattern)
             {
                 if (trigramInfo->resultCount > 0)
                 {
-                    lastSuccessfulMatch.offset=trigramInfo->offsets[trigramInfo->resultCount-1];
-                    lastSuccessfulMatch.length=UnifiedRegex::TrigramInfo::PatternLength;
+                    lastSuccessfulMatch.offset = trigramInfo->offsets[trigramInfo->resultCount - 1];
+                    lastSuccessfulMatch.length = UnifiedRegex::TrigramInfo::PatternLength;
                 }
                 // else: leave lastMatch undefined
 
@@ -480,7 +481,7 @@ namespace Js
                     }
                     else
                     {
-                        for (int k = 0;  k < trigramInfo->resultCount; k++)
+                        for (int k = 0; k < trigramInfo->resultCount; k++)
                         {
                             JavascriptString * str = SubString::New(input, trigramInfo->offsets[k], UnifiedRegex::TrigramInfo::PatternLength);
                             trigramInfo->cachedResult[k] = str;
@@ -535,7 +536,7 @@ namespace Js
                 if (arrayResult == 0)
                     arrayResult = CreateMatchResult(stackAllocationPointer, scriptContext, isGlobal, pattern->NumGroups(), input);
                 JavascriptString *const matchedString = SubString::New(input, lastActualMatch.offset, lastActualMatch.length);
-                if(isGlobal)
+                if (isGlobal)
                     arrayResult->DirectSetItemAt(globalIndex, matchedString);
                 else
                 {
@@ -549,7 +550,7 @@ namespace Js
             offset = lastActualMatch.offset + max(lastActualMatch.length, static_cast<CharCountOrFlag>(1));
         } while (isGlobal);
         PrimEndMatch(state, scriptContext, pattern);
-        if(updateHistory)
+        if (updateHistory)
         {
             PropagateLastMatch(scriptContext, isGlobal, isSticky, regularExpression, input, lastSuccessfulMatch, lastActualMatch, true, true);
         }
@@ -1231,9 +1232,9 @@ namespace Js
     Var RegexHelper::RegexEs5ReplaceImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptFunction* replacefn)
     {
         UnifiedRegex::RegexPattern* pattern = regularExpression->GetPattern();
+        JavascriptString* newString = nullptr;
         const char16* inputStr = input->GetString();
         CharCount inputLength = input->GetLength();
-        JavascriptString* newString = nullptr;
         const int numGroups = pattern->NumGroups();
         Var nonMatchValue = NonMatchValue(scriptContext, false);
         UnifiedRegex::GroupInfo lastMatch; // initially undefined
@@ -1464,8 +1465,8 @@ namespace Js
             CharCount newLength = prefixLength + postfixLength + replace->GetLength();
             BufferStringBuilder bufferString(newLength, match->GetScriptContext());
             bufferString.SetContent(prefixStr, prefixLength,
-                                    replace->GetString(), replace->GetLength(),
-                                    postfixStr, postfixLength);
+                replace->GetString(), replace->GetLength(),
+                postfixStr, postfixLength);
             return bufferString.ToString();
         }
 

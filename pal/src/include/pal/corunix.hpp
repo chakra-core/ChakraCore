@@ -23,7 +23,7 @@ Abstract:
 #define _CORUNIX_H
 
 #include "palinternal.h"
-#include "CCSpinLock.hpp"
+#include "cclock.hpp"
 
 namespace CorUnix
 {

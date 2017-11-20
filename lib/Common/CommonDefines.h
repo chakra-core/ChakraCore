@@ -72,6 +72,14 @@
 #define TARGET_64 1
 #endif
 
+#ifndef DECLSPEC_CHPE_GUEST
+// For CHPE build aka Arm64.x86
+// https://osgwiki.com/wiki/ARM64_CHPE
+// On ChakraCore alone we do not support this
+// so we define to nothing to avoid build breaks
+#define DECLSPEC_CHPE_GUEST
+#endif
+
 // Memory Protections
 #ifdef _CONTROL_FLOW_GUARD
 #define PAGE_EXECUTE_RO_TARGETS_INVALID   (PAGE_EXECUTE_READ | PAGE_TARGETS_INVALID)
@@ -240,7 +248,7 @@
 #error "Background page zeroing can't be turned on if freeing pages in the background is disabled"
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32) && !GLOBAL_ENABLE_WRITE_BARRIER
 #define RECYCLER_VISITED_HOST
 #endif
 
@@ -283,7 +291,8 @@
 #define ENABLE_OOP_NATIVE_CODEGEN 1     // Out of process JIT
 #endif
 
-#if _WIN64
+// ToDo (SaAgarwa): Disable VirtualTypedArray on ARM64 till we make sure it works correctly
+#if _WIN64 && !defined(_M_ARM64)
 #define ENABLE_FAST_ARRAYBUFFER 1
 #endif
 #endif
@@ -302,20 +311,13 @@
 #define DELAYLOAD_SET_CFG_TARGET 1
 #endif
 
-// Configure whether we configure a signal handler
-// to produce perf-<pid>.map files
-#ifndef PERFMAP_TRACE_ENABLED
-#define PERFMAP_TRACE_ENABLED 0
-#endif
 #ifndef PERFMAP_SIGNAL
 #define PERFMAP_SIGNAL SIGUSR2
 #endif
 
 #ifndef NTBUILD
 #define DELAYLOAD_SECTIONAPI 1
-#endif
-
-#ifdef NTBUILD
+#else
 #define ENABLE_PROJECTION
 #define ENABLE_FOUNDATION_OBJECT
 #define ENABLE_EXPERIMENTAL_FLAGS
@@ -367,6 +369,7 @@
         //#define TELEMETRY_ESB_GetConstructorPropertyPolyfillDetection // Whether telemetry will inspect the `.constructor` property of every Object instance to determine if it's a polyfill of a known ES built-in.
     #endif
 
+    #define REJIT_STATS
 #else
 
     #define TELEMETRY_OPCODE_OFFSET_ENABLED false
@@ -667,15 +670,6 @@
 
 #if defined(ENABLE_JS_ETW) || defined(DUMP_FRAGMENTATION_STATS)
 #define ENABLE_MEM_STATS 1
-#endif
-
-#define NO_SANITIZE_ADDRESS
-#if defined(__has_feature)
-#if __has_feature(address_sanitizer)
-#undef NO_SANITIZE_ADDRESS
-#define NO_SANITIZE_ADDRESS __attribute__((no_sanitize("address")))
-#define NO_SANITIZE_ADDRESS_FIXVC
-#endif
 #endif
 
 //----------------------------------------------------------------------------------------------------

@@ -62,7 +62,10 @@ namespace Js
         Field(EngineExtensionObjectBase*) engineExtensions[MaxEngineInterfaceExtensionKind + 1];
 
     public:
-        EngineInterfaceObject(DynamicType * type) : DynamicObject(type) {}
+        EngineInterfaceObject(DynamicType * type)
+            : DynamicObject(type), commonNativeInterfaces(nullptr), engineExtensions()
+        {}
+
         DynamicObject* GetCommonNativeInterfaces() const { return commonNativeInterfaces; }
         EngineExtensionObjectBase* GetEngineExtension(EngineInterfaceExtensionKind extensionKind) const;
         void SetEngineExtension(EngineInterfaceExtensionKind extensionKind, EngineExtensionObjectBase* extensionObject);
@@ -81,6 +84,7 @@ namespace Js
 #endif
 
         void Initialize();
+        bool IsInitialized() const { return commonNativeInterfaces != nullptr; }
 
         static bool __cdecl InitializeCommonNativeInterfaces(DynamicObject* engineInterface, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 

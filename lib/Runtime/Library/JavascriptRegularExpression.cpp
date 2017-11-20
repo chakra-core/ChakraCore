@@ -614,6 +614,7 @@ namespace Js
                 szOptions = strOptions->GetSz(); // must be null terminated!
                 cOpts = strOptions->GetLength();
             }
+
             pattern = RegexHelper::CompileDynamic(scriptContext, szRegex, cBody, szOptions, cOpts, false);
         }
 

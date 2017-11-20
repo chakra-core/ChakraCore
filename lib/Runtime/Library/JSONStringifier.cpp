@@ -67,7 +67,7 @@ JSONStringifier::ReadSpace(_In_opt_ Var space)
             break;
         }
         case TypeIds_String:
-            this->SetStringGap(JavascriptString::FromVar(space));
+            this->SetStringGap(JavascriptString::UnsafeFromVar(space));
             break;
         case TypeIds_StringObject:
             this->SetStringGap(JavascriptConversion::ToString(space, this->scriptContext));
@@ -88,7 +88,7 @@ JSONStringifier::AddToPropertyList(_In_ Var item, _Inout_ BVSparse<Recycler>* pr
         propertyName = this->scriptContext->GetIntegerString(item);
         break;
     case TypeIds_String:
-        propertyName = JavascriptString::FromVar(item);
+        propertyName = JavascriptString::UnsafeFromVar(item);
         break;
     case TypeIds_Number:
     case TypeIds_NumberObject:
@@ -121,9 +121,9 @@ JSONStringifier::ReadReplacer(_In_opt_ Var replacer)
 {
     if (replacer != nullptr)
     {
-        if (JavascriptOperators::IsObject(replacer))
+        RecyclableObject* replacerObj = JavascriptOperators::TryFromVar<RecyclableObject>(replacer);
+        if (replacerObj && JavascriptOperators::IsObject(replacerObj))
         {
-            RecyclableObject* replacerObj = RecyclableObject::FromVar(replacer);
             if (JavascriptConversion::IsCallable(replacerObj))
             {
                 this->replacerFunction = replacerObj;
@@ -134,9 +134,9 @@ JSONStringifier::ReadReplacer(_In_opt_ Var replacer)
 
                 BVSparse<Recycler> propertyListBV(recycler);
                 this->propertyList = RecyclerNew(recycler, PropertyList, recycler);
-                if (JavascriptArray::Is(replacerObj))
+                JavascriptArray* propertyArray = JavascriptOperators::TryFromVar<JavascriptArray>(replacer);
+                if (propertyArray != nullptr)
                 {
-                    JavascriptArray* propertyArray = JavascriptArray::FromVar(replacerObj);
                     uint32 length = propertyArray->GetLength();
                     for (uint32 i = 0; i < length; i++)
                     {
@@ -218,28 +218,26 @@ JSONStringifier::Stringify(_In_ ScriptContext* scriptContext, _In_ Var value, _I
     }
 }
 
-_Ret_notnull_ const PropertyRecord*
-JSONStringifier::GetPropertyRecord(_In_ JavascriptString* key)
-{
-    return key->GetPropertyRecord();
-}
-
-
 _Ret_notnull_ Var
-JSONStringifier::ReadValue(_In_ JavascriptString* key, _In_ const PropertyRecord* propertyRecord, _In_ RecyclableObject* holder)
+JSONStringifier::ReadValue(_In_ JavascriptString* key, _In_opt_ const PropertyRecord* propertyRecord, _In_ RecyclableObject* holder)
 {
     Var value = nullptr;
     PropertyString* propertyString = PropertyString::TryFromVar(key);
+    PropertyValueInfo info;
     if (propertyString != nullptr)
     {
-        PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, propertyString, propertyString->GetLdElemInlineCache(), false);
         if (propertyString->TryGetPropertyFromCache<false /* ownPropertyOnly */>(holder, holder, &value, this->scriptContext, &info))
         {
             return value;
         }
     }
-    JavascriptOperators::GetProperty(holder, propertyRecord->GetPropertyId(), &value, this->scriptContext);
+
+    if (propertyRecord == nullptr)
+    {
+        propertyRecord = key->GetPropertyRecord();
+    }
+    JavascriptOperators::GetProperty(holder, propertyRecord->GetPropertyId(), &value, this->scriptContext, &info);
     return value;
 }
 
@@ -260,7 +258,7 @@ JSONStringifier::TryConvertPrimitiveObject(_In_ RecyclableObject* value)
     }
     else if (TypeIds_BooleanObject == id)
     {
-        return (JavascriptBooleanObject::FromVar(value)->GetValue() != FALSE)
+        return (JavascriptBooleanObject::UnsafeFromVar(value)->GetValue() != FALSE)
             ? this->scriptContext->GetLibrary()->GetTrue()
             : this->scriptContext->GetLibrary()->GetFalse();
     }
@@ -300,7 +298,7 @@ JSONStringifier::ToJSON(_In_ JavascriptString* key, _In_ RecyclableObject* value
     }
     if (JavascriptConversion::IsCallable(toJSON))
     {
-        RecyclableObject* func = RecyclableObject::FromVar(toJSON);
+        RecyclableObject* func = RecyclableObject::UnsafeFromVar(toJSON);
         Var values[2];
         Arguments args(2, values);
         args.Values[0] = valueObject;
@@ -313,9 +311,10 @@ JSONStringifier::ToJSON(_In_ JavascriptString* key, _In_ RecyclableObject* value
 uint32
 JSONStringifier::ReadArrayLength(_In_ RecyclableObject* value)
 {
-    if (JavascriptArray::Is(value))
+    JavascriptArray* arr = JavascriptOperators::TryFromVar<JavascriptArray>(value);
+    if (arr != nullptr)
     {
-        return JavascriptArray::FromVar(value)->GetLength();
+        return arr->GetLength();
     }
 
     int64 len = JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(value, this->scriptContext), this->scriptContext);
@@ -331,9 +330,10 @@ void
 JSONStringifier::ReadArrayElement(uint32 index, _In_ RecyclableObject* arr, _Out_ JSONProperty* prop, _In_ JSONObjectStack* objectStack)
 {
     Var value = nullptr;
-    if (JavascriptArray::Is(arr) && !JavascriptArray::FromVar(arr)->IsCrossSiteObject())
+    JavascriptArray* jsArray = JavascriptOperators::TryFromVar<JavascriptArray>(arr);
+    if (jsArray && !jsArray->IsCrossSiteObject())
     {
-        value = JavascriptArray::FromVar(arr)->DirectGetItem(index);
+        value = jsArray->DirectGetItem(index);
     }
     else
     {
@@ -458,12 +458,11 @@ JSONStringifier::ReadProxy(_In_ JavascriptProxy* proxyObject, _In_ JSONObject* j
     {
         Var element = ownPropertyNames->DirectGetItem(i);
 
-        Assert(JavascriptString::Is(element));
         // Array should only have string elements, but let's check to be safe
-        if (JavascriptString::Is(element))
+        JavascriptString* propertyName = JavascriptOperators::TryFromVar<JavascriptString>(element);
+        Assert(propertyName);
+        if (propertyName != nullptr)
         {
-            JavascriptString* propertyName = JavascriptString::FromVar(element);
-
             PropertyDescriptor propertyDescriptor;
             PropertyRecord const* propertyRecord;
             JavascriptConversion::ToPropertyKey(propertyName, scriptContext, &propertyRecord, nullptr);
@@ -508,29 +507,32 @@ JSONStringifier::ReadObject(_In_ RecyclableObject* obj, _In_ JSONObjectStack* ob
         }
         NEXT_SLIST_ENTRY;
     }
-    else if (JavascriptProxy::Is(obj))
-    {
-        // Enumerating proxies is different than normal objects, so enumerate them separately
-        JavascriptProxy* proxyObject = JavascriptProxy::FromVar(obj);
-        this->ReadProxy(proxyObject, jsonObject, &stack);
-    }
     else
     {
-        JavascriptStaticEnumerator enumerator;
-        if (obj->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::EphemeralReference, this->scriptContext))
+        // Enumerating proxies is different than normal objects, so enumerate them separately
+        JavascriptProxy* proxyObject = JavascriptOperators::TryFromVar<JavascriptProxy>(obj);
+        if (proxyObject != nullptr)
         {
-            enumerator.GetInitialPropertyCount();
-            JavascriptString* propertyName = nullptr;
-            PropertyId nextKey = Constants::NoProperty;
-            while ((propertyName = enumerator.MoveAndGetNext(nextKey)) != nullptr)
+            this->ReadProxy(proxyObject, jsonObject, &stack);
+        }
+        else
+        {
+            JavascriptStaticEnumerator enumerator;
+            if (obj->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::EphemeralReference, this->scriptContext))
             {
-                PropertyRecord const * propertyRecord = nullptr;
-                if (nextKey == Constants::NoProperty)
+                enumerator.GetInitialPropertyCount();
+                JavascriptString* propertyName = nullptr;
+                PropertyId nextKey = Constants::NoProperty;
+                while ((propertyName = enumerator.MoveAndGetNext(nextKey)) != nullptr)
                 {
-                    this->scriptContext->GetOrAddPropertyRecord(propertyName, &propertyRecord);
-                    nextKey = propertyRecord->GetPropertyId();
+                    PropertyRecord const * propertyRecord = nullptr;
+                    if (nextKey == Constants::NoProperty)
+                    {
+                        this->scriptContext->GetOrAddPropertyRecord(propertyName, &propertyRecord);
+                        nextKey = propertyRecord->GetPropertyId();
+                    }
+                    this->ReadObjectElement(propertyName, propertyRecord, obj, jsonObject, &stack);
                 }
-                this->ReadObjectElement(propertyName, propertyRecord, obj, jsonObject, &stack);
             }
         }
     }
@@ -589,8 +591,11 @@ JSONStringifier::CalculateStringElementLength(_In_ JavascriptString* str)
 {
     const charcount_t strLength = str->GetLength();
 
+    // To avoid overflow checks, use uint64 for intermediate size calculation. We cannot overflow uint64,
+    // as stringification will be at most a 5x expansion of the original string (which has max length INT_MAX - 1)
+    //
     // All JSON strings are enclosed in double quotes, so add 2 to the length to account for them
-    charcount_t escapedStrLength = strLength + 2;
+    uint64 escapedStrLength = strLength + 2;
     const char16* bufferStart = str->GetString();
     for (const char16* index = str->GetString(); index < bufferStart + strLength; ++index)
     {
@@ -600,10 +605,14 @@ JSONStringifier::CalculateStringElementLength(_In_ JavascriptString* str)
         // to determine how many extra characters are needed
         if (currentCharacter < _countof(JSONString::escapeMapCount))
         {
-            escapedStrLength = UInt32Math::Add(escapedStrLength, JSONString::escapeMapCount[currentCharacter]);
+            escapedStrLength += JSONString::escapeMapCount[currentCharacter];
         }
     }
-    return escapedStrLength;
+    if (escapedStrLength > UINT32_MAX)
+    {
+        Js::Throw::OutOfMemory();
+    }
+    return static_cast<charcount_t>(escapedStrLength);
 }
 
 void
@@ -618,7 +627,7 @@ JSONStringifier::ReadData(_In_ RecyclableObject* valueObj, _Out_ JSONProperty* p
         return;
 
     case TypeIds_Boolean:
-        if (JavascriptBoolean::FromVar(valueObj)->GetValue() != FALSE)
+        if (JavascriptBoolean::UnsafeFromVar(valueObj)->GetValue() != FALSE)
         {
             prop->type = JSONContentType::True;
             this->totalStringLength = UInt32Math::Add(this->totalStringLength, Constants::TrueStringLength);
@@ -631,11 +640,11 @@ JSONStringifier::ReadData(_In_ RecyclableObject* valueObj, _Out_ JSONProperty* p
         return;
 
     case TypeIds_Int64Number:
-        this->SetNumericProperty(static_cast<double>(JavascriptInt64Number::FromVar(valueObj)->GetValue()), valueObj, prop);
+        this->SetNumericProperty(static_cast<double>(JavascriptInt64Number::UnsafeFromVar(valueObj)->GetValue()), valueObj, prop);
         return;
 
     case TypeIds_UInt64Number:
-        this->SetNumericProperty(static_cast<double>(JavascriptUInt64Number::FromVar(valueObj)->GetValue()), valueObj, prop);
+        this->SetNumericProperty(static_cast<double>(JavascriptUInt64Number::UnsafeFromVar(valueObj)->GetValue()), valueObj, prop);
         return;
 
 #if !FLOATVAR
@@ -645,7 +654,7 @@ JSONStringifier::ReadData(_In_ RecyclableObject* valueObj, _Out_ JSONProperty* p
 #endif
 
     case TypeIds_String:
-        prop->stringValue = JavascriptString::FromVar(valueObj);
+        prop->stringValue = JavascriptString::UnsafeFromVar(valueObj);
         prop->type = JSONContentType::String;
         this->totalStringLength = UInt32Math::Add(this->totalStringLength, CalculateStringElementLength(prop->stringValue));
         return;
@@ -668,9 +677,10 @@ JSONStringifier::ReadData(_In_ RecyclableObject* valueObj, _Out_ JSONProperty* p
 void
 JSONStringifier::ReadData(_In_ Var value, _Out_ JSONProperty* prop)
 {
-    if (RecyclableObject::Is(value))
+    RecyclableObject* valueObj = JavascriptOperators::TryFromVar<RecyclableObject>(value);
+    if (valueObj != nullptr)
     {
-        ReadData(RecyclableObject::FromVar(value), prop);
+        ReadData(valueObj, prop);
         return;
     }
 
@@ -702,14 +712,13 @@ JSONStringifier::ReadData(_In_ Var value, _Out_ JSONProperty* prop)
 void
 RecheckValue(_In_ Var value, _Out_ RecyclableObject** valueObj, _Out_ bool* isObject)
 {
-    if (RecyclableObject::Is(value))
+    *valueObj = JavascriptOperators::TryFromVar<RecyclableObject>(value);
+    if (*valueObj != nullptr)
     {
-        *valueObj = RecyclableObject::FromVar(value);
         *isObject = JavascriptOperators::IsObject(value) != FALSE;
     }
     else
     {
-        *valueObj = nullptr;
         *isObject = false;
     }
 }
@@ -724,10 +733,6 @@ JSONStringifier::ReadProperty(
     _In_ JSONObjectStack* objectStack)
 {
     PROBE_STACK(this->scriptContext, Constants::MinStackDefault);
-    if (propertyRecord == nullptr)
-    {
-        propertyRecord = this->GetPropertyRecord(key);
-    }
     if (value == nullptr)
     {
         // If we don't have a value, we must have an object from which we can read it
@@ -736,11 +741,10 @@ JSONStringifier::ReadProperty(
     }
 
     // Save these to avoid having to recheck conditions unless value is modified by ToJSON or a replacer function
-    RecyclableObject* valueObj = nullptr;
+    RecyclableObject* valueObj = JavascriptOperators::TryFromVar<RecyclableObject>(value);
     bool isObject = false;
-    if (RecyclableObject::Is(value))
+    if (valueObj)
     {
-        valueObj = RecyclableObject::FromVar(value);
         isObject = JavascriptOperators::IsObject(value) != FALSE;
         if (isObject)
         {

@@ -831,7 +831,7 @@ WebAssemblyModule::GetModuleEnvironmentSize() const
     uint32 size = 3;
     size = UInt32Math::Add(size, GetWasmFunctionCount());
     size = UInt32Math::Add(size, GetImportedFunctionCount());
-    size = UInt32Math::Add(size, WAsmJs::ConvertToJsVarOffset<byte>(GetGlobalsByteSize()));
+    size = UInt32Math::Add(size, WAsmJs::ConvertOffset<byte, Js::Var>(GetGlobalsByteSize()));
     return size;
 }
 
@@ -865,7 +865,7 @@ WebAssemblyModule::GetOffsetForGlobal(Wasm::WasmGlobal* global) const
         throw Wasm::WasmCompilationException(_u("Invalid Global type"));
     }
 
-    uint32 offset = WAsmJs::ConvertFromJsVarOffset<byte>(GetGlobalOffset());
+    uint32 offset = WAsmJs::ConvertOffset<Js::Var, byte>(GetGlobalOffset());
 
     for (uint i = 1; i < (uint)type; i++)
     {

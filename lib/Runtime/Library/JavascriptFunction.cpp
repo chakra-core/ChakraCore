@@ -161,6 +161,7 @@ namespace Js
 
         // Gather all the formals into a string like (fml1, fml2, fml3)
         JavascriptString *formals = library->GetOpenRBracketString();
+
         for (uint i = 1; i < args.Info.Count - 1; ++i)
         {
             if (i != 1)
@@ -190,6 +191,7 @@ namespace Js
             functionKind == FunctionKind::Generator ?
             library->GetFunctionPTRAnonymousString() :
             library->GetFunctionAnonymousString();
+
         bs = JavascriptString::Concat(bs, formals);
         bs = JavascriptString::Concat(bs, library->GetSpaceOpenBracketString());
         if (fnBody != NULL)
@@ -203,7 +205,7 @@ namespace Js
 
         BOOL strictMode = FALSE;
 
-        JavascriptFunction *pfuncScript;
+        JavascriptFunction* pfuncScript;
         FunctionInfo *pfuncInfoCache = NULL;
         char16 const * sourceString = bs->GetSz();
         charcount_t sourceLen = bs->GetLength();
@@ -556,7 +558,8 @@ namespace Js
         }
         else
         {
-            return JavascriptFunction::CallFunction<true>(pFunc, pFunc->GetEntryPoint(), outArgs);
+            // Apply scenarios can have more than Constants::MaxAllowedArgs number of args. Need to use the large argCount logic here.
+            return JavascriptFunction::CallFunction<true>(pFunc, pFunc->GetEntryPoint(), outArgs, /* useLargeArgCount */true);
         }
     }
 
@@ -975,30 +978,30 @@ namespace Js
         return JavascriptFunction::CallSpreadFunction(function, args, spreadIndices);
     }
 
-    ArgSlot JavascriptFunction::GetSpreadSize(const Arguments args, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext)
+    uint JavascriptFunction::GetSpreadSize(const Arguments args, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext)
     {
         // Work out the expanded number of arguments.
-        AssertOrFailFast(args.Info.Count <= Js::Constants::MaxAllowedArgs && args.Info.Count >= spreadIndices->count);
+        AssertOrFailFast(args.Info.Count < CallInfo::kMaxCountArgs && args.Info.Count >= spreadIndices->count);
 
-        ArgSlot spreadArgsCount = (ArgSlot)spreadIndices->count;
+        uint spreadArgsCount = spreadIndices->count;
         uint32 totalLength = args.Info.Count - spreadArgsCount;
 
         for (unsigned i = 0; i < spreadArgsCount; ++i)
         {
             uint32 elementLength = JavascriptArray::GetSpreadArgLen(args[spreadIndices->elements[i]], scriptContext);
-            if (elementLength >= Js::Constants::MaxAllowedArgs)
+            if (elementLength >= CallInfo::kMaxCountArgs)
             {
                 JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgListTooLarge);
             }
             totalLength = UInt32Math::Add(totalLength, elementLength);
         }
 
-        if (totalLength >= Js::Constants::MaxAllowedArgs)
+        if (totalLength >= CallInfo::kMaxCountArgs)
         {
             JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgListTooLarge);
         }
 
-        return (ArgSlot)totalLength;
+        return totalLength;
     }
 
     void JavascriptFunction::SpreadArgs(const Arguments args, Arguments& destArgs, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext)
@@ -1007,8 +1010,8 @@ namespace Js
         Assert(destArgs.Values != nullptr);
 
         CallInfo callInfo = args.Info;
-        unsigned argCount = args.GetArgCountWithExtraArgs();
-        unsigned destArgCount = destArgs.GetArgCountWithExtraArgs();
+        uint argCount = args.GetArgCountWithExtraArgs();
+        unsigned destArgCount = destArgs.GetLargeArgCountWithExtraArgs(); // Result can be bigger than Constants::MaxAllowedArgs
         size_t destArgsByteSize = destArgCount * sizeof(Var);
 
         destArgs.Values[0] = args[0];
@@ -1083,11 +1086,11 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         // Work out the expanded number of arguments.
-        ArgSlot spreadSize = GetSpreadSize(args, spreadIndices, scriptContext);
-        uint32 actualLength = CallInfo::GetArgCountWithExtraArgs(args.Info.Flags, spreadSize);
+        uint spreadSize = GetSpreadSize(args, spreadIndices, scriptContext);
+        uint32 actualLength = CallInfo::GetLargeArgCountWithExtraArgs(args.Info.Flags, spreadSize);
 
         // Allocate (if needed) space for the expanded arguments.
-        Arguments outArgs(CallInfo(args.Info.Flags, spreadSize), nullptr);
+        Arguments outArgs(CallInfo(args.Info.Flags, spreadSize, /* unUsedBool */ false), nullptr);
         Var stackArgs[STACK_ARGS_ALLOCA_THRESHOLD];
         size_t outArgsSize = 0;
         if (actualLength > STACK_ARGS_ALLOCA_THRESHOLD)
@@ -1106,7 +1109,8 @@ namespace Js
 
         SpreadArgs(args, outArgs, spreadIndices, scriptContext);
 
-        return JavascriptFunction::CallFunction<true>(function, function->GetEntryPoint(), outArgs);
+        // Number of arguments are allowed to be more than Constants::MaxAllowedArgs in runtime. Need to use the large argcount logic in this case.
+        return JavascriptFunction::CallFunction<true>(function, function->GetEntryPoint(), outArgs, true);
     }
 
     Var JavascriptFunction::CallFunction(Arguments args)
@@ -1114,8 +1118,8 @@ namespace Js
         return JavascriptFunction::CallFunction<true>(this, this->GetEntryPoint(), args);
     }
 
-    template Var JavascriptFunction::CallFunction<true>(RecyclableObject* function, JavascriptMethod entryPoint, Arguments args);
-    template Var JavascriptFunction::CallFunction<false>(RecyclableObject* function, JavascriptMethod entryPoint, Arguments args);
+    template Var JavascriptFunction::CallFunction<true>(RecyclableObject* function, JavascriptMethod entryPoint, Arguments args, bool useLargeArgCount);
+    template Var JavascriptFunction::CallFunction<false>(RecyclableObject* function, JavascriptMethod entryPoint, Arguments args, bool useLargeArgCount);
 
 #if _M_IX86
 #ifdef ASMJS_PLAT
@@ -1202,7 +1206,7 @@ void __cdecl _alloca_probe_16()
 #endif
 
     static Var LocalCallFunction(RecyclableObject* function,
-        JavascriptMethod entryPoint, Arguments args, bool doStackProbe)
+        JavascriptMethod entryPoint, Arguments args, bool doStackProbe, bool useLargeArgCount = false)
     {
         Js::Var varResult;
 
@@ -1211,7 +1215,7 @@ void __cdecl _alloca_probe_16()
 #endif
         // compute size of stack to reserve
         CallInfo callInfo = args.Info;
-        uint argCount = args.GetArgCountWithExtraArgs();
+        uint argCount = useLargeArgCount ? args.GetLargeArgCountWithExtraArgs() : args.GetArgCountWithExtraArgs();
         uint argsSize = argCount * sizeof(Var);
 
         ScriptContext * scriptContext = function->GetScriptContext();
@@ -1282,17 +1286,17 @@ dbl_align:
     // when __asm op is under a template function
     template <bool doStackProbe>
     Var JavascriptFunction::CallFunction(RecyclableObject* function,
-        JavascriptMethod entryPoint, Arguments args)
+        JavascriptMethod entryPoint, Arguments args, bool useLargeArgCount)
     {
-        return LocalCallFunction(function, entryPoint, args, doStackProbe);
+        return LocalCallFunction(function, entryPoint, args, doStackProbe, useLargeArgCount);
     }
 
 #elif _M_X64
     template <bool doStackProbe>
-    Var JavascriptFunction::CallFunction(RecyclableObject *function, JavascriptMethod entryPoint, Arguments args)
+    Var JavascriptFunction::CallFunction(RecyclableObject *function, JavascriptMethod entryPoint, Arguments args, bool useLargeArgCount)
     {
         // compute size of stack to reserve and make sure we have enough stack.
-        uint argCount = args.GetArgCountWithExtraArgs();
+        uint argCount = useLargeArgCount ? args.GetLargeArgCountWithExtraArgs() : args.GetArgCountWithExtraArgs();
         uint argsSize = argCount * sizeof(Var);
 
         if (doStackProbe == true)
@@ -1303,7 +1307,8 @@ dbl_align:
         CheckIsExecutable(function, entryPoint);
 #endif
 
-        return amd64_CallFunction(function, entryPoint, args.Info, argCount, &args.Values[0]);
+        return JS_REENTRANCY_CHECK(function->GetScriptContext()->GetThreadContext(),
+            amd64_CallFunction(function, entryPoint, args.Info, argCount, &args.Values[0]));
     }
 #elif defined(_M_ARM)
     extern "C"
@@ -1312,10 +1317,10 @@ dbl_align:
     }
 
     template <bool doStackProbe>
-    Var JavascriptFunction::CallFunction(RecyclableObject* function, JavascriptMethod entryPoint, Arguments args)
+    Var JavascriptFunction::CallFunction(RecyclableObject* function, JavascriptMethod entryPoint, Arguments args, bool useLargeArgCount)
     {
         // compute size of stack to reserve and make sure we have enough stack.
-        uint argCount = args.GetArgCountWithExtraArgs();
+        uint argCount = useLargeArgCount ? args.GetLargeArgCountWithExtraArgs() : args.GetArgCountWithExtraArgs();
         uint argsSize = argCount * sizeof(Var);
         if (doStackProbe)
         {
@@ -1342,7 +1347,8 @@ dbl_align:
         }
         else
         {
-            varResult = arm_CallFunction((JavascriptFunction*)function, args.Info, args.Values, entryPoint);
+            varResult = JS_REENTRANCY_CHECK(function->GetScriptContext()->GetThreadContext(),
+                arm_CallFunction((JavascriptFunction*)function, args.Info, args.Values, entryPoint));
         }
 
         return varResult;
@@ -1350,14 +1356,14 @@ dbl_align:
 #elif defined(_M_ARM64)
     extern "C"
     {
-        extern Var arm64_CallFunction(JavascriptFunction* function, CallInfo info, Var* values, JavascriptMethod entryPoint);
+        extern Var arm64_CallFunction(JavascriptFunction* function, CallInfo info, uint argCount, Var* values, JavascriptMethod entryPoint);
     }
 
     template <bool doStackProbe>
-    Var JavascriptFunction::CallFunction(RecyclableObject* function, JavascriptMethod entryPoint, Arguments args)
+    Var JavascriptFunction::CallFunction(RecyclableObject* function, JavascriptMethod entryPoint, Arguments args, bool useLargeArgCount)
     {
         // compute size of stack to reserve and make sure we have enough stack.
-        uint argCount = args.GetArgCountWithExtraArgs();
+        uint argCount = useLargeArgCount ? args.GetLargeArgCountWithExtraArgs() : args.GetArgCountWithExtraArgs();
         uint argsSize = argCount * sizeof(Var);
         if (doStackProbe)
         {
@@ -1369,7 +1375,8 @@ dbl_align:
 #endif
         Js::Var varResult;
 
-        varResult = arm64_CallFunction((JavascriptFunction*)function, args.Info, args.Values, entryPoint);
+        varResult = JS_REENTRANCY_CHECK(function->GetScriptContext()->GetThreadContext(),
+            arm64_CallFunction((JavascriptFunction*)function, args.Info, argCount, args.Values, entryPoint));
 
         return varResult;
     }
@@ -1656,7 +1663,7 @@ LABEL1:
     }
         catch (JavascriptException&)
         {
-                Js::Throw::FatalInternalError();
+            Js::Throw::FatalInternalError();
         }
     }
 

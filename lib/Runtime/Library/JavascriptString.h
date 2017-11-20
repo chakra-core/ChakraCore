@@ -144,6 +144,7 @@ namespace Js
         static Var ToCaseCore(JavascriptString* pThis, ToCase toCase);
         static int IndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, charcount_t len, const char16* searchStr, int searchLen, int position);
         static int LastIndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, charcount_t len, const char16* searchStr, charcount_t searchLen, charcount_t position);
+
         static bool BuildLastCharForwardBoyerMooreTable(JmpTable jmpTable, const char16* searchStr, int searchLen);
         static bool BuildFirstCharBackwardBoyerMooreTable(JmpTable jmpTable, const char16* searchStr, int searchLen);
         static charcount_t ConvertToIndex(Var varIndex, ScriptContext *scriptContext);
@@ -353,6 +354,16 @@ namespace Js
     {
         inline static bool Equals(JavascriptString * str1, JavascriptString * str2)
         {
+            // We want to pin the strings str1 and str2 because flattening of any of these strings could cause a GC and result in the other string getting collected if it was optimized 
+            // away by the compiler. We would normally have called the EnterPinnedScope/LeavePinnedScope methods here but it adds extra call instructions to the assembly code. As Equals 
+            // methods could get called a lot of times this can show up as regressions in benchmarks.
+            volatile Js::JavascriptString** keepAliveString1 = (volatile Js::JavascriptString**)& str1;
+            volatile Js::JavascriptString** keepAliveString2 = (volatile Js::JavascriptString**)& str2;
+            auto keepAliveLambda = [&]() {
+                UNREFERENCED_PARAMETER(keepAliveString1);
+                UNREFERENCED_PARAMETER(keepAliveString2);
+            };
+
             return (str1->GetLength() == str2->GetLength() &&
                 JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1->GetString(), str2->GetString(), str1->GetLength()));
         }

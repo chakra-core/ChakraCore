@@ -60,7 +60,7 @@ CONST BYTE WAKEUPCODE=0x2A;
 suspension mutex or spinlock. The downside is that it restricts us to only
 performing one suspension or resumption in the PAL at a time. */
 #ifdef USE_GLOBAL_LOCK_FOR_SUSPENSION
-static CCSpinLock<false> g_ssSuspensionLock;
+static CCLock g_ssSuspensionLock;
 #endif
 
 /*++

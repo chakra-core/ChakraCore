@@ -12,6 +12,7 @@ import "wtypes.idl";
 #include "sdkddkver.h"
 #endif
 
+
 #if defined(WINVER) && WINVER >= _WIN32_WINNT_WINBLUE // on 8.1+, RPC can marshal process handle for us
 #ifdef __midl
 cpp_quote("#define USE_RPC_HANDLE_MARSHALLING 1")
@@ -126,9 +127,9 @@ typedef struct EquivalentTypeSetIDL
 
 typedef struct FixedFieldIDL
 {
+    IDL_Field(unsigned short) valueType;
     IDL_Field(boolean) nextHasSameFixedField;
     IDL_Field(boolean) isClassCtor;
-    IDL_Field(unsigned short) valueType;
     IDL_Field(unsigned int) localFuncId;
     IDL_Field(TypeIDL) type;
     IDL_Field(CHAKRA_WB_PTR) fieldValue;

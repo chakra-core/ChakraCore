@@ -1126,10 +1126,12 @@ case_2:
         // 2. Let S be ? ToString(O).
         // 3. Let searchStr be ? ToString(searchString).
 
+        // default search string if the search argument is not provided
+
         JavascriptString * pThis = nullptr;
+
         GetThisStringArgument(args, scriptContext, _u("String.prototype.lastIndexOf"), &pThis);
 
-        // default search string if the search argument is not provided
         JavascriptString * searchArg = nullptr;
         if(args.Info.Count > 1)
         {
@@ -1315,12 +1317,20 @@ case_2:
             EngineInterfaceObject* nativeEngineInterfaceObj = scriptContext->GetLibrary()->GetEngineInterfaceObject();
             if (nativeEngineInterfaceObj)
             {
-                IntlEngineInterfaceExtensionObject* intlExtensionObject = static_cast<IntlEngineInterfaceExtensionObject*>(nativeEngineInterfaceObj->GetEngineExtension(EngineInterfaceExtensionKind_Intl));
+                IntlEngineInterfaceExtensionObject* intlExtensionObject = static_cast<IntlEngineInterfaceExtensionObject*>(
+                    nativeEngineInterfaceObj->GetEngineExtension(EngineInterfaceExtensionKind_Intl));
                 if (args.Info.Count == 2)
                 {
-                    // we can fast-path this call if no locale or options negotiation needs to be done in Intl.js
+                    auto undefined = scriptContext->GetLibrary()->GetUndefined();
                     CallInfo toPass(callInfo.Flags, 3);
-                    return intlExtensionObject->EntryIntl_CompareString(function, toPass, scriptContext->GetLibrary()->GetUndefined(), pThis, pThat);
+                    ThreadContext *threadContext = scriptContext->GetThreadContext();
+                    return threadContext->ExecuteImplicitCall(function, ImplicitCall_Accessor,
+                        [threadContext, intlExtensionObject, function, toPass, undefined, pThis, pThat]() -> Var
+                        {
+                            return CALL_ENTRYPOINT(threadContext, intlExtensionObject->EntryIntl_CompareString,
+                                function, toPass, undefined, pThis, pThat);
+                        }
+                    );
                 }
                 else
                 {
@@ -2059,7 +2069,7 @@ case_2:
 
         if (maxLength > JavascriptString::MaxCharLength)
         {
-            Throw::OutOfMemory();
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_OutOfBoundString);
         }
 
         JavascriptString * fillerString = nullptr;
@@ -2221,6 +2231,8 @@ case_2:
 
     Var JavascriptString::ToCaseCore(JavascriptString* pThis, ToCase toCase)
     {
+        Var resultVar = nullptr;
+        EnterPinnedScope((volatile void**)& pThis);
         charcount_t count = pThis->GetLength();
 
         const char16* inStr = pThis->GetString();
@@ -2280,7 +2292,7 @@ case_2:
             *o++ = *inStr++;
         }
 
-        if(toCase == ToUpper)
+        if (toCase == ToUpper)
         {
 #if DBG
             DWORD converted =
@@ -2301,8 +2313,10 @@ case_2:
 
             Assert(converted == countToCase);
         }
+        resultVar = builder.ToString();
+        LeavePinnedScope();     //  pThis
 
-        return builder.ToString();
+        return resultVar;
     }
 
     Var JavascriptString::EntryTrim(RecyclableObject* function, CallInfo callInfo, ...)
@@ -2523,8 +2537,8 @@ case_2:
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(String_Prototype_startsWith);
 
-        JavascriptString * pThis;
-        JavascriptString * pSearch;
+        ENTER_PINNED_SCOPE(JavascriptString, pThis);
+        ENTER_PINNED_SCOPE(JavascriptString, pSearch);
 
         GetThisAndSearchStringArguments(args, scriptContext, _u("String.prototype.startsWith"), &pThis, &pSearch, false);
 
@@ -2556,6 +2570,8 @@ case_2:
                 return scriptContext->GetLibrary()->GetTrue();
             }
         }
+        LEAVE_PINNED_SCOPE();   //  pSearch
+        LEAVE_PINNED_SCOPE();  //  pThis
 
         return scriptContext->GetLibrary()->GetFalse();
     }
@@ -2576,8 +2592,8 @@ case_2:
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(String_Prototype_endsWith);
 
-        JavascriptString * pThis;
-        JavascriptString * pSearch;
+        ENTER_PINNED_SCOPE(JavascriptString, pThis);
+        ENTER_PINNED_SCOPE(JavascriptString, pSearch);
 
         GetThisAndSearchStringArguments(args, scriptContext, _u("String.prototype.endsWith"), &pThis, &pSearch, false);
 
@@ -2609,6 +2625,9 @@ case_2:
                 return scriptContext->GetLibrary()->GetTrue();
             }
         }
+
+        LEAVE_PINNED_SCOPE();   //  pSearch
+        LEAVE_PINNED_SCOPE();  //  pThis
 
         return scriptContext->GetLibrary()->GetFalse();
     }
@@ -3537,6 +3556,15 @@ case_2:
         uint string1Len = string1->GetLength();
         uint string2Len = string2->GetLength();
 
+        // We want to pin the strings string1 and string2 because flattening of any of these strings could cause a GC and result in the other string getting collected if it was optimized
+        // away by the compiler. We would normally have called the EnterPinnedScope/LeavePinnedScope methods here but it adds extra call instructions to the assembly code. As Equals
+        // methods could get called a lot of times this can show up as regressions in benchmarks.
+        volatile Js::JavascriptString** keepAliveString1 = (volatile Js::JavascriptString**)& string1;
+        volatile Js::JavascriptString** keepAliveString2 = (volatile Js::JavascriptString**)& string2;
+        auto keepAliveLambda = [&]() {
+            UNREFERENCED_PARAMETER(keepAliveString1);
+            UNREFERENCED_PARAMETER(keepAliveString2);
+        };
         int result = wmemcmp(string1->GetString(), string2->GetString(), min(string1Len, string2Len));
 
         return (result == 0) ? (int)(string1Len - string2Len) : result;
@@ -3882,6 +3910,14 @@ case_2:
         T *leftString = T::UnsafeFromVar(aLeft);
         T *rightString = T::UnsafeFromVar(aRight);
 
+        // methods could get called a lot of times this can show up as regressions in benchmarks.
+        volatile T** keepAliveLeftString = (volatile T**)& leftString;
+        volatile T** keepAliveRightString = (volatile T**)& rightString;
+        auto keepAliveLambda = [&]() {
+            UNREFERENCED_PARAMETER(keepAliveLeftString);
+            UNREFERENCED_PARAMETER(keepAliveRightString);
+        };
+
         if (leftString->GetLength() != rightString->GetLength())
         {
             return false;
@@ -3891,6 +3927,7 @@ case_2:
         {
             return true;
         }
+
         return false;
     }
 

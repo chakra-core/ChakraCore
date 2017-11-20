@@ -822,7 +822,7 @@ namespace UnifiedRegex
         {
             // We'll need to expand each character of literal into its equivalence class
             isEquivClass = true;
-            return length * CaseInsensitive::EquivClassSize;
+            return UInt32Math::MulAdd<CaseInsensitive::EquivClassSize,0>(length);
         }
         else
             return length;
@@ -1785,7 +1785,7 @@ namespace UnifiedRegex
         {
             Assert(curr->head->tag != Concat);
             Assert(prev == 0 || !(prev->head->LiteralLength() > 0 && curr->head->LiteralLength() > 0));
-            n += curr->head->TransferPass0(compiler, litbuf);
+            n = UInt32Math::Add(n, curr->head->TransferPass0(compiler, litbuf));
 #if DBG
             prev = curr;
 #endif
@@ -2116,7 +2116,7 @@ namespace UnifiedRegex
         {
             Assert(curr->head->tag != Alt);
             Assert(prev == 0 || !(prev->head->IsCharOrPositiveSet() && curr->head->IsCharOrPositiveSet()));
-            n += curr->head->TransferPass0(compiler, litbuf);
+            n = UInt32Math::Add(n, curr->head->TransferPass0(compiler, litbuf));
 #if DBG
             prev = curr;
 #endif
@@ -4519,6 +4519,11 @@ namespace UnifiedRegex
     {
         // Program will own literal buffer. Prepare buffer and nodes for case-invariant matching if necessary.
         CharCount finalLen = root->TransferPass0(*this, litbuf);
+        if (finalLen < root->LiteralLength()) // overflowed
+        {
+            Js::Throw::OutOfMemory();
+        }
+
         program->rep.insts.litbuf = finalLen == 0 ? 0 : RecyclerNewArrayLeaf(scriptContext->GetRecycler(), Char, finalLen);
 
         program->rep.insts.litbufLen = 0;

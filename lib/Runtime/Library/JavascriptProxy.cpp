@@ -4,7 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
-
 namespace Js
 {
     BOOL JavascriptProxy::Is(_In_ RecyclableObject* obj)
@@ -2151,6 +2150,7 @@ namespace Js
             {
                 newValues = stackArgs;
             }
+
             CallInfo calleeInfo((CallFlags)(args.Info.Flags), args.Info.Count);
             if (isNewCall)
             {

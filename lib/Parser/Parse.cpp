@@ -900,7 +900,7 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
             // because in that case we don't need a GlobalEvalScope.
             Assert(!fBlockScope || (this->m_grfscr & fscrConsoleScopeEval) == fscrConsoleScopeEval);
             CheckRedeclarationErrorForBlockId(pid, 1);
-        }
+            }
         else if (!pnodeFnc->sxFnc.IsBodyAndParamScopeMerged()
             && scope->GetScopeType() == ScopeType_FunctionBody
             && (pnode->nop == knopLetDecl || pnode->nop == knopConstDecl))
@@ -2494,7 +2494,7 @@ ModuleImportOrExportEntry* Parser::AddModuleImportOrExportEntry(ModuleImportOrEx
 
 void Parser::AddModuleLocalExportEntry(ParseNodePtr varDeclNode)
 {
-    Assert(varDeclNode->nop == knopVarDecl || varDeclNode->nop == knopLetDecl || varDeclNode->nop == knopConstDecl);
+    AssertOrFailFast(varDeclNode->nop == knopVarDecl || varDeclNode->nop == knopLetDecl || varDeclNode->nop == knopConstDecl);
 
     IdentPtr localName = varDeclNode->sxVar.pid;
     varDeclNode->sxVar.sym->SetIsModuleExportStorage(true);
@@ -2646,6 +2646,11 @@ ParseNodePtr Parser::ParseImport()
     // import()
     if (m_token.tk == tkLParen)
     {
+        if (!m_scriptContext->GetConfig()->IsESDynamicImportEnabled())
+        {
+            Error(ERRsyntax);
+        }
+
         ParseNodePtr pnode = ParseImportCall<buildAST>();
         BOOL fCanAssign;
         IdentToken token;
@@ -3003,15 +3008,19 @@ ParseVarDecl:
 
             if (buildAST)
             {
-                ParseNodePtr temp = pnode;
-                while (temp->nop == knopList)
-                {
-                    ParseNodePtr varDeclNode = temp->sxBin.pnode1;
-                    temp = temp->sxBin.pnode2;
-
-                    AddModuleLocalExportEntry(varDeclNode);
-                }
-                AddModuleLocalExportEntry(temp);
+                ForEachItemInList(pnode, [&](ParseNodePtr item) {
+                    if (item->nop == knopAsg)
+                    {
+                        Parser::MapBindIdentifier(item, [&](ParseNodePtr subItem)
+                        {
+                            AddModuleLocalExportEntry(subItem);
+                        });
+                    }
+                    else
+                    {
+                        AddModuleLocalExportEntry(item);
+                    }
+                });
             }
         }
         break;
@@ -3522,7 +3531,7 @@ LFunction :
         break;
 
     case tkIMPORT:
-        if (m_scriptContext->GetConfig()->IsES6ModuleEnabled())
+        if (m_scriptContext->GetConfig()->IsES6ModuleEnabled() && m_scriptContext->GetConfig()->IsESDynamicImportEnabled())
         {
             m_pscan->Scan();
             ChkCurTokNoScan(tkLParen, ERRnoLparen);
@@ -3696,6 +3705,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
         case tkLParen:
             {
                 AutoMarkInParsingArgs autoMarkInParsingArgs(this);
+
                 if (fInNew)
                 {
                     ParseNodePtr pnodeArgs = ParseArgList<buildAST>(&callOfConstants, &spreadArgCount, &count);
@@ -4673,20 +4683,66 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
                 {
                     Error(ERRUnexpectedEllipsis);
                 }
-                pnodeExpr = ParseDestructuredVarDecl<buildAST>(declarationType, declarationType != tkLCurly, nullptr/* *hasSeenRest*/, false /*topLevel*/, false /*allowEmptyExpression*/);
 
-                if (m_token.tk != tkComma && m_token.tk != tkRCurly)
+                RestorePoint atExpression;
+                if (!buildAST && declarationType == tkLCurly && IsPossiblePatternStart())
                 {
-                    if (m_token.IsOperator())
+                    m_pscan->Capture(&atExpression);
+
+                    // It is possible that we might encounter the shorthand init error. Lets find that out.
+                    bool savedDeferredInitError = m_hasDeferredShorthandInitError;
+                    m_hasDeferredShorthandInitError = false;
+
+                    IdentToken token;
+                    BOOL fLikelyPattern = false;
+
+                    // First identify that the current expression is indeed the object/array literal. Otherwise we will just use the ParsrExpr to parse that.
+
+                    ParseTerm<buildAST>(/* fAllowCall */ m_token.tk != tkSUPER, nullptr /*pNameHint*/, nullptr /*pHintLength*/, nullptr /*pShortNameOffset*/, &token, false /*fUnaryOrParen*/,
+                        nullptr /*pfCanAssign*/, &fLikelyPattern);
+
+                    m_pscan->SeekTo(atExpression);
+
+                    if (fLikelyPattern)
                     {
-                        Error(ERRDestructNoOper);
+                        pnodeExpr = ParseDestructuredVarDecl<buildAST>(declarationType, declarationType != tkLCurly, nullptr/* *hasSeenRest*/, false /*topLevel*/, false /*allowEmptyExpression*/);
+                        if (m_token.tk != tkComma && m_token.tk != tkRCurly)
+                        {
+                            if (m_token.IsOperator())
+                            {
+                                Error(ERRDestructNoOper);
+                            }
+                            Error(ERRsyntax);
+                        }
                     }
-                    Error(ERRsyntax);
+                    else
+                    {
+                        if (m_hasDeferredShorthandInitError)
+                        {
+                            Error(ERRnoColon);
+                        }
+
+                        pnodeExpr = ParseExpr<buildAST>(koplCma, nullptr/*pfCantAssign*/, TRUE/*fAllowIn*/, FALSE/*fAllowEllipsis*/, pFullNameHint, &fullNameHintLength, &shortNameOffset);
+                    }
+
+                    m_hasDeferredShorthandInitError = savedDeferredInitError;
+                }
+                else
+                {
+                    pnodeExpr = ParseDestructuredVarDecl<buildAST>(declarationType, declarationType != tkLCurly, nullptr/* *hasSeenRest*/, false /*topLevel*/, false /*allowEmptyExpression*/);
+                    if (m_token.tk != tkComma && m_token.tk != tkRCurly)
+                    {
+                        if (m_token.IsOperator())
+                        {
+                            Error(ERRDestructNoOper);
+                        }
+                        Error(ERRsyntax);
+                    }
                 }
             }
             else
             {
-                pnodeExpr = ParseExpr<buildAST>(koplCma, nullptr, TRUE, FALSE, pFullNameHint, &fullNameHintLength, &shortNameOffset);
+                pnodeExpr = ParseExpr<buildAST>(koplCma, nullptr/*pfCantAssign*/, TRUE/*fAllowIn*/, FALSE/*fAllowEllipsis*/, pFullNameHint, &fullNameHintLength, &shortNameOffset);
             }
 #if DEBUG
             if((m_grfscr & fscrEnforceJSON) && !IsJSONValid(pnodeExpr))
@@ -5148,6 +5204,10 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
             // as the function scoped "var" binding.
             ParseNodePtr vardecl = CreateVarDeclNode(pnodeFnc->sxFnc.pnodeName->sxVar.pid, STVariable, false, nullptr, false);
             vardecl->sxVar.isBlockScopeFncDeclVar = true;
+            if (vardecl->sxVar.sym->GetIsFormal())
+            {
+                GetCurrentFunctionNode()->sxFnc.SetHasAnyWriteToFormals(true);
+            }
         }
     }
 
@@ -5562,6 +5622,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
                     }
                     return false;
                 });
+
                 if (pnodeFnc->sxFnc.IsBodyAndParamScopeMerged() && !fDeclaration && pnodeFnc->sxFnc.pnodeName != nullptr)
                 {
                     Symbol* funcSym = pnodeFnc->sxFnc.pnodeName->sxVar.sym;
@@ -8807,9 +8868,6 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 this->SetHasDestructuringPattern(true);
                 pnode = ConvertToPattern(pnode);
             }
-
-            // The left-hand side is found to be destructuring pattern - so the shorthand can have initializer.
-            m_hasDeferredShorthandInitError = false;
         }
 
         if (buildAST)
@@ -12985,6 +13043,7 @@ ParseNodePtr Parser::ParseDestructuredInitializer(ParseNodePtr lhsNode,
         pnodeDestructAsg = CreateNodeWithScanner<knopAsg>();
         pnodeDestructAsg->sxBin.pnode1 = lhsNode;
         pnodeDestructAsg->sxBin.pnode2 = pnodeDefault;
+        pnodeDestructAsg->sxBin.pnodeNext = nullptr;
         pnodeDestructAsg->ichMin = lhsNode->ichMin;
         pnodeDestructAsg->ichLim = pnodeDefault->ichLim;
     }
@@ -13075,6 +13134,12 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
 
     if (IsPossiblePatternStart())
     {
+        // For the possible pattern start we do not allow the parens before
+        if (parenCount != 0)
+        {
+            Error(ERRDestructIDRef);
+        }
+
         // Go recursively
         pnodeElem = ParseDestructuredLiteral<buildAST>(declarationType, isDecl, false /*topLevel*/, seenRest ? DIC_ShouldNotParseInitializer : DIC_None);
         if (!isDecl)
@@ -13144,6 +13209,14 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
             m_pscan->Scan();
             --parenCount;
         }
+
+        // Restore the Block ID of the current block after the parsing of destructured variable declarations and initializers.
+        GetCurrentBlock()->sxBlock.blockId = originalCurrentBlockId;
+    }
+
+    if (parenCount != 0)
+    {
+        Error(ERRnoRparen);
     }
 
     if (hasSeenRest != nullptr)
@@ -13181,19 +13254,6 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
         pnodeElem = pnodeRest;
     }
 
-    // We eat the left parentheses only when its not a declaration. This will make sure we throw syntax errors early. We need to do the same for right parentheses.
-    if (!isDecl)
-    {
-        while (m_token.tk == tkRParen)
-        {
-            m_pscan->Scan();
-            --parenCount;
-        }
-
-        // Restore the Block ID of the current block after the parsing of destructured variable declarations and initializers.
-        GetCurrentBlock()->sxBlock.blockId = originalCurrentBlockId;
-    }
-
     if (!(m_token.tk == tkComma || m_token.tk == tkRBrack || m_token.tk == tkRCurly))
     {
         if (m_token.IsOperator())
@@ -13203,10 +13263,6 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
         Error(ERRsyntax);
     }
 
-    if (parenCount != 0)
-    {
-        Error(ERRnoRparen);
-    }
     return pnodeElem;
 }
 

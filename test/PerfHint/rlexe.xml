@@ -21,7 +21,7 @@
       <files>arguments1.js</files>
       <baseline>arguments1.baseline</baseline>
       <compile-flags>-oopjit- -trace:PerfHint -off:simplejit</compile-flags>
-      <tags>exclude_dynapogo,exclude_nonative</tags>
+      <tags>exclude_dynapogo,exclude_nonative,exclude_arm64</tags>
     </default>
   </test>
   <test>
@@ -29,7 +29,7 @@
       <files>polymorphictest.js</files>
       <baseline>polymorphictest.baseline</baseline>
       <compile-flags>-oopjit- -trace:PerfHint -off:simplejit</compile-flags>
-      <tags>exclude_dynapogo,exclude_nonative</tags>
+      <tags>exclude_dynapogo,exclude_nonative,exclude_arm64</tags>
     </default>
   </test>
 </regress-exe>

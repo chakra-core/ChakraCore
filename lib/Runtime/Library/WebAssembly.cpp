@@ -171,7 +171,7 @@ Var WebAssembly::EntryInstantiateBound(RecyclableObject* function, CallInfo call
     Var importObj = callInfo.Count > 1 ? args[1] : function->GetScriptContext()->GetLibrary()->GetUndefined();
     Var bufferSrc = callInfo.Count > 2 ? args[2] : function->GetScriptContext()->GetLibrary()->GetUndefined();
 
-    return EntryInstantiate(function, CallInfo(CallFlags_Value, 3), thisVar, bufferSrc, importObj);
+    return CALL_ENTRYPOINT_NOASSERT(EntryInstantiate, function, CallInfo(CallFlags_Value, 3), thisVar, bufferSrc, importObj);
 }
 
 Var WebAssembly::EntryValidate(RecyclableObject* function, CallInfo callInfo, ...)
@@ -264,7 +264,7 @@ Var WebAssembly::TryResolveResponse(RecyclableObject* function, Var thisArg, Var
         CallInfo newCallInfo;
         newCallInfo.Count = 2;
         // We already have a response object, query it now
-        responsePromise = EntryQueryResponse(function, Js::CallInfo(CallFlags_Value, 2), thisArg, responseArg);
+        responsePromise = CALL_ENTRYPOINT_NOASSERT(EntryQueryResponse, function, Js::CallInfo(CallFlags_Value, 2), thisArg, responseArg);
     }
     else if (JavascriptPromise::Is(responseArg))
     {

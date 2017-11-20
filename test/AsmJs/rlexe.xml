@@ -929,6 +929,7 @@
     <default>
       <files>bug12239366.js</files>
       <compile-flags>-lic:1 -bgjit-</compile-flags>
+      <tags>exclude_drt</tags>
     </default>
   </test>
   <test>
@@ -941,6 +942,12 @@
   <test>
     <default>
       <files>bugGH2270.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>lotsOfLocals.js</files>
+      <tags>exclude_chk,exclude_razzle</tags>
     </default>
   </test>
   <test>
@@ -964,7 +971,7 @@
     <default>
       <files>params.js</files>
       <baseline>params.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -args 14000 -endargs</compile-flags>
+      <compile-flags>-testtrace:asmjs -args 14000 -endargs -EnableFatalErrorOnOOM-</compile-flags>
       <!-- todo:: On unix platforms there is more stack available,
            so we need to find the right limit to test in order to not timeout -->
       <tags>exclude_dynapogo,exclude_xplat</tags>
@@ -989,6 +996,22 @@
     <default>
       <files>lambda.js</files>
       <baseline>lambda.baseline</baseline>
+      <compile-flags>-testtrace:asmjs</compile-flags>
+      <tags>exclude_drt</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>badFunctionType.js</files>
+      <baseline>badFunctionType.baseline</baseline>
+      <compile-flags>-testtrace:asmjs</compile-flags>
+      <tags>exclude_drt</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>badFunctionType.js</files>
+      <baseline>badFunctionType.baseline</baseline>
       <compile-flags>-testtrace:asmjs</compile-flags>
       <tags>exclude_drt</tags>
     </default>

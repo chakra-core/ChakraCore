@@ -103,12 +103,6 @@ Opnd::IsWriteBarrierTriggerableValue()
         return false;
     }
 
-    // If this operand is known address, then it doesn't need a write barrier, the address is either not a GC address or is pinned
-    if (this->IsAddrOpnd() && this->AsAddrOpnd()->GetAddrOpndKind() == AddrOpndKindDynamicVar)
-    {
-        return false;
-    }
-
     if (TySize[this->GetType()] != sizeof(void*))
     {
         return false;
@@ -120,6 +114,12 @@ Opnd::IsWriteBarrierTriggerableValue()
         return true; // No further optimization if we are in verification
     }
 #endif
+
+    // If this operand is known address, then it doesn't need a write barrier, the address is either not a GC address or is pinned
+    if (this->IsAddrOpnd() && this->AsAddrOpnd()->GetAddrOpndKind() == AddrOpndKindDynamicVar)
+    {
+        return false;
+    }
 
     // If its null/boolean/undefined, we don't need a write barrier since the javascript library will keep those guys alive
     return !(this->GetValueType().IsBoolean() || this->GetValueType().IsNull() || this->GetValueType().IsUndefined());

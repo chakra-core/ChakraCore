@@ -615,7 +615,6 @@ private:
 };
 #endif
 
-
 class Recycler
 {
     friend class RecyclerScanMemoryCallback;
@@ -850,7 +849,7 @@ private:
 #elif _M_ARM
         static const int NumRegistersToSave = 13;
 #elif _M_ARM64
-        static const int NumRegistersToSave = 13;
+        static const int NumRegistersToSave = 27;
 #elif _M_AMD64
         static const int NumRegistersToSave = 16;
 #endif
@@ -877,6 +876,14 @@ private:
     };
 
     SavedRegisterState savedThreadContext;
+
+#if __has_feature(address_sanitizer)
+    void* savedAsanFakeStack;
+#define SAVE_THREAD_ASAN_FAKE_STACK() \
+        this->savedAsanFakeStack = __asan_get_current_fake_stack()
+#else
+#define SAVE_THREAD_ASAN_FAKE_STACK()
+#endif
 
     bool inDispose;
 
@@ -1570,8 +1577,11 @@ private:
 
     inline void ScanObjectInline(void ** obj, size_t byteCount);
     inline void ScanObjectInlineInterior(void ** obj, size_t byteCount);
+
     template <bool doSpecialMark>
-    inline void ScanMemoryInline(void ** obj, size_t byteCount);
+    inline void ScanMemoryInline(void ** obj, size_t byteCount
+        ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType scanMemoryType = RecyclerScanMemoryType::General));
+
     template <bool doSpecialMark>
     void ScanMemory(void ** obj, size_t byteCount) { if (byteCount != 0) { ScanMemoryInline<doSpecialMark>(obj, byteCount); } }
     bool AddMark(void * candidate, size_t byteCount) throw();
@@ -2551,8 +2561,13 @@ extern bool IsLikelyRuntimeFalseReference(
     private: \
         friend bool ::IsLikelyRuntimeFalseReference( \
             char* objectStartAddress, size_t offset, const char* typeName);
+#define IMPLEMENT_STUB_IsLikelyRuntimeFalseReference() \
+    bool IsLikelyRuntimeFalseReference( \
+            char* objectStartAddress, size_t offset, const char* typeName) \
+    {  return false; }
 #else
 #define DECLARE_RECYCLER_VERIFY_MARK_FRIEND()
+#define IMPLEMENT_STUB_IsLikelyRuntimeFalseReference()
 #endif
 
 template <typename ExternalAllocFunc>

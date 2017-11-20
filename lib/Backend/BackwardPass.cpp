@@ -2047,8 +2047,8 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr)
 bool
 BackwardPass::IsImplicitCallBailOutCurrentlyNeeded(IR::Instr * instr, bool mayNeedImplicitCallBailOut, bool hasLiveFields)
 {
-    return this->globOpt->IsImplicitCallBailOutCurrentlyNeeded(
-        instr, nullptr, nullptr, this->currentBlock, hasLiveFields, mayNeedImplicitCallBailOut, false);
+    return this->globOpt->IsImplicitCallBailOutCurrentlyNeeded(instr, nullptr, nullptr, this->currentBlock, hasLiveFields, mayNeedImplicitCallBailOut, false) ||
+        this->NeedBailOutOnImplicitCallsForTypedArrayStore(instr);
 }
 
 void
@@ -2233,6 +2233,30 @@ BackwardPass::DeadStoreImplicitCallBailOut(IR::Instr * instr, bool hasLiveFields
         }
 #endif
     }
+}
+
+bool
+BackwardPass::NeedBailOutOnImplicitCallsForTypedArrayStore(IR::Instr* instr)
+{
+    if ((instr->m_opcode == Js::OpCode::StElemI_A || instr->m_opcode == Js::OpCode::StElemI_A_Strict) &&
+        instr->GetDst()->IsIndirOpnd() &&
+        instr->GetDst()->AsIndirOpnd()->GetBaseOpnd()->GetValueType().IsLikelyTypedArray())
+    {
+        IR::Opnd * opnd = instr->GetSrc1();
+        if (opnd->IsRegOpnd())
+        {
+            return !opnd->AsRegOpnd()->GetValueType().IsPrimitive() &&
+                !opnd->AsRegOpnd()->m_sym->IsInt32() &&
+                !opnd->AsRegOpnd()->m_sym->IsFloat64() &&
+                !opnd->AsRegOpnd()->m_sym->IsFloatConst() &&
+                !opnd->AsRegOpnd()->m_sym->IsIntConst();
+        }
+        else
+        {
+            Assert(opnd->IsIntConstOpnd() || opnd->IsInt64ConstOpnd() || opnd->IsFloat32ConstOpnd() || opnd->IsFloatConstOpnd() || opnd->IsAddrOpnd());
+        }
+    }
+    return false;
 }
 
 void
