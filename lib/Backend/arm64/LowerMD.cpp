@@ -4134,8 +4134,7 @@ LowererMD::GenerateLdFldFromLocalInlineCache(
     // s2 = LDR [inlineCache, offset(u.local.slotIndex)] -- load the cached slot index
     IR::RegOpnd * s2 = IR::RegOpnd::New(TyUint16, instrLdFld->m_func);
     opndIndir = IR::IndirOpnd::New(opndInlineCache, offsetof(Js::InlineCache, u.local.slotIndex), TyUint16, instrLdFld->m_func);
-    instr = IR::Instr::New(Js::OpCode::LDR, s2, opndIndir, instrLdFld->m_func);
-    instrLdFld->InsertBefore(instr);
+    Lowerer::InsertMove(s2, opndIndir, instrLdFld);
 
     if (isInlineSlot)
     {
@@ -4195,8 +4194,7 @@ LowererMD::GenerateLdFldFromProtoInlineCache(
     // LDR s2, [inlineCache, offset(u.proto.slotIndex)]
     IR::RegOpnd * opndSlotIndex = IR::RegOpnd::New(TyUint16, instrLdFld->m_func);
     opndIndir = IR::IndirOpnd::New(opndInlineCache, offsetof(Js::InlineCache, u.proto.slotIndex), TyUint16, instrLdFld->m_func);
-    instr = IR::Instr::New(Js::OpCode::LDR, opndSlotIndex, opndIndir, instrLdFld->m_func);
-    instrLdFld->InsertBefore(instr);
+    Lowerer::InsertMove(opndSlotIndex, opndIndir, instrLdFld);
 
     if (isInlineSlot)
     {
@@ -4249,8 +4247,7 @@ LowererMD::GenerateLdLocalFldFromFlagInlineCache(
     // s2 = LDR [inlineCache, offset(u.local.slotIndex)] -- load the cached slot index
     IR::RegOpnd * s2 = IR::RegOpnd::New(TyUint16, instrLdFld->m_func);
     opndIndir = IR::IndirOpnd::New(opndInlineCache, offsetof(Js::InlineCache, u.accessor.slotIndex), TyUint16, instrLdFld->m_func);
-    instr = IR::Instr::New(Js::OpCode::LDR, s2, opndIndir, instrLdFld->m_func);
-    instrLdFld->InsertBefore(instr);
+    Lowerer::InsertMove(s2, opndIndir, instrLdFld);
 
     if (isInlineSlot)
     {
@@ -4310,8 +4307,7 @@ LowererMD::GenerateLdFldFromFlagInlineCache(
     // LDR s2, [inlineCache, offset(u.flags.slotIndex)]
     IR::RegOpnd * opndSlotIndex = IR::RegOpnd::New(TyUint16, this->m_func);
     opndIndir = IR::IndirOpnd::New(opndInlineCache, offsetof(Js::InlineCache, u.accessor.slotIndex), TyUint16, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::LDR, opndSlotIndex, opndIndir, this->m_func);
-    insertBeforeInstr->InsertBefore(instr);
+    Lowerer::InsertMove(opndSlotIndex, opndIndir, insertBeforeInstr);
 
     if (isInlineSlot)
     {
@@ -4690,8 +4686,7 @@ LowererMD::GenerateStFldFromLocalInlineCache(
     // LDR s5, [s2, offset(u.local.slotIndex)] -- load the cached slot index
     IR::RegOpnd *opndSlotIndex = IR::RegOpnd::New(TyUint16, instrStFld->m_func);
     opndIndir = IR::IndirOpnd::New(opndInlineCache, offsetof(Js::InlineCache, u.local.slotIndex), TyUint16, instrStFld->m_func);
-    instr = IR::Instr::New(Js::OpCode::LDR, opndSlotIndex, opndIndir, instrStFld->m_func);
-    instrStFld->InsertBefore(instr);
+    Lowerer::InsertMove(opndSlotIndex, opndIndir, instrStFld);
 
     if (isInlineSlot)
     {
