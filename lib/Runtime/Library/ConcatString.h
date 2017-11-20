@@ -9,7 +9,7 @@ namespace Js
     class LiteralStringWithPropertyStringPtr : public LiteralString
     {
     private:
-        PropertyString * propertyString;
+        Field(PropertyString *) propertyString;
 
     public:
         PropertyString * GetPropertyString() const;
