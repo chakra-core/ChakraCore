@@ -33,9 +33,9 @@ REGDAT(R12,     r12,      ARMREG_R12,  TyInt64,    0)
 REGDAT(R13,     r13,      ARMREG_R13,  TyInt64,    0)
 REGDAT(R14,     r14,      ARMREG_R14,  TyInt64,    0)
 REGDAT(R15,     r15,      ARMREG_R15,  TyInt64,    0)
-REGDAT(R16,     r16,      ARMREG_R16,  TyInt64,    0)
+REGDAT(R16,     r16,      ARMREG_R16,  TyInt64,    RA_DONTALLOCATE) // x16, x17 are "inter-procedural scratch registers", linker is free to insert stubs/islands/etc that use both of them and the surrounding code cannot assume they will be preserved
 REGDAT(R17,     r17,      ARMREG_R17,  TyInt64,    RA_DONTALLOCATE) // scratch
-REGDAT(R18,     r18,      ARMREG_R18,  TyInt64,    RA_DONTALLOCATE) // platform register (TEB)
+REGDAT(R18,     r18,      ARMREG_R18,  TyInt64,    RA_DONTALLOCATE) // platform register (TEB). x18 is a platform register, should not be touched/modified/saved/restored
 REGDAT(R19,     r19,      ARMREG_R19,  TyInt64,    RA_CALLEESAVE)
 REGDAT(R20,     r20,      ARMREG_R20,  TyInt64,    RA_CALLEESAVE)
 REGDAT(R21,     r21,      ARMREG_R21,  TyInt64,    RA_CALLEESAVE)
