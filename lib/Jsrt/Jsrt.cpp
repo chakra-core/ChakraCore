@@ -208,7 +208,7 @@ void CALLBACK CreateExternalObject_TTDCallback(Js::ScriptContext* ctx, Js::Var* 
 {
     TTDAssert(object != nullptr, "This should always be a valid location");
 
-    *object = JsrtExternalObject::Create(nullptr, nullptr, ctx);
+    *object = JsrtExternalObject::Create(nullptr, nullptr, nullptr, ctx);
 }
 
 void CALLBACK TTDDummyPromiseContinuationCallback(JsValueRef task, void *callbackState)
@@ -1285,13 +1285,45 @@ CHAKRA_API JsCreateExternalObject(_In_opt_ void *data, _In_opt_ JsFinalizeCallba
 
         PARAM_NOT_NULL(object);
 
-        *object = JsrtExternalObject::Create(data, finalizeCallback, scriptContext);
+        *object = JsrtExternalObject::Create(data, finalizeCallback, nullptr, scriptContext);
 
         PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, object);
 
         return JsNoError;
     });
 }
+
+#ifndef NTBUILD
+CHAKRA_API JsCreateExternalObjectWithPrototype(_In_opt_ void *data,
+    _In_opt_ JsFinalizeCallback finalizeCallback,
+    _In_ JsValueRef prototype,
+    _Out_ JsValueRef *object)
+{
+    return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTAllocateExternalObject);
+
+        PARAM_NOT_NULL(object);
+
+        Js::RecyclableObject * prototypeObject = nullptr;
+        if (prototype != nullptr)
+        {
+            VALIDATE_INCOMING_OBJECT(prototype, scriptContext);
+            prototypeObject = Js::RecyclableObject::FromVar(prototype);
+        }
+
+        *object = JsrtExternalObject::Create(data, finalizeCallback, prototypeObject, scriptContext);
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, object);
+
+        if (prototypeObject != nullptr)
+        {
+            PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTSetPrototype, *object, prototypeObject);
+        }
+
+        return JsNoError;
+    });
+}
+#endif
 
 CHAKRA_API JsConvertValueToObject(_In_ JsValueRef value, _Out_ JsValueRef *result)
 {
