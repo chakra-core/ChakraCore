@@ -19,8 +19,8 @@ namespace UnifiedRegex
 
     struct RegExpTestCache
     {
-        Field(bool) result;
-        Field(RecyclerWeakReference<Js::JavascriptString>*) input;
+        Field(BVStatic<TestCacheSize>) resultBV;
+        Field(RecyclerWeakReference<Js::JavascriptString>*) inputArray[];
     };
 
     struct RegexPattern : FinalizableObject

@@ -678,7 +678,7 @@ namespace Js
         {
             cache = pattern->EnsureTestCache();
             cacheIndex = UnifiedRegex::RegexPattern::GetTestCacheIndex(input);
-            cachedInput = cache[cacheIndex].input != nullptr ? cache[cacheIndex].input->Get() : nullptr;
+            cachedInput = cache->inputArray[cacheIndex] != nullptr ? cache->inputArray[cacheIndex]->Get() : nullptr;
             cacheHit = cachedInput == input;
         }
 #if ENABLE_REGEX_CONFIG_OPTIONS
@@ -689,7 +689,7 @@ namespace Js
         if (cacheHit)
         {
             Assert(useCache);
-            cachedResult = cache[cacheIndex].result;
+            cachedResult = cache->resultBV.Test(cacheIndex);
             // for debug builds, let's still do the real test so we can validate values in the cache
 #if !DBG
             return JavascriptBoolean::ToVar(cachedResult, scriptContext);
@@ -705,8 +705,8 @@ namespace Js
                 Assert(offset == 0);
                 Assert(!cacheHit || cachedInput == input);
                 Assert(!cacheHit || cachedResult == false);
-                cache[cacheIndex].input = regularExpression->GetRecycler()->CreateWeakReferenceHandle(input);
-                cache[cacheIndex].result = false;
+                cache->inputArray[cacheIndex] = regularExpression->GetRecycler()->CreateWeakReferenceHandle(input);
+                cache->resultBV.Clear(cacheIndex);
             }
             return scriptContext->GetLibrary()->GetFalse();
         }
@@ -724,8 +724,15 @@ namespace Js
             Assert(offset == 0);
             Assert(!cacheHit || cachedInput == input);
             Assert(!cacheHit || cachedResult == wasFound);
-            cache[cacheIndex].input = regularExpression->GetRecycler()->CreateWeakReferenceHandle(input);
-            cache[cacheIndex].result = wasFound;
+            cache->inputArray[cacheIndex] = regularExpression->GetRecycler()->CreateWeakReferenceHandle(input);
+            if (wasFound)
+            {
+                cache->resultBV.Set(cacheIndex);
+            }
+            else
+            {
+                cache->resultBV.Clear(cacheIndex);
+            }
         }
         return JavascriptBoolean::ToVar(wasFound, scriptContext);
     }

@@ -132,7 +132,7 @@ namespace UnifiedRegex
     {
         if (this->testCache == nullptr)
         {
-            this->testCache = RecyclerNewArrayZ(this->library->GetRecycler(), RegExpTestCache, TestCacheSize);
+            this->testCache = RecyclerNewPlusZ(this->library->GetRecycler(), TestCacheSize * sizeof(void*), RegExpTestCache);
         }
         return this->testCache;
     }
