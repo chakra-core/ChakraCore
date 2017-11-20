@@ -849,7 +849,7 @@ private:
 #elif _M_ARM
         static const int NumRegistersToSave = 13;
 #elif _M_ARM64
-        static const int NumRegistersToSave = 13;
+        static const int NumRegistersToSave = 27;
 #elif _M_AMD64
         static const int NumRegistersToSave = 16;
 #endif
