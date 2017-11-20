@@ -31,7 +31,7 @@ public:
     { 
         // number of regs marked RA_DONTALLOCATE, including:
         //   ALT_LOCALS_PTR when not the SP
-        uint result = 5;
+        uint result = 6;
         if (func->GetLocalsPointer() != RegSP)
         {
             result += 1;
