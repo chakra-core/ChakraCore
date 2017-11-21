@@ -8,7 +8,7 @@
 const OpcodeMatcher Arm64UnwindCodeGenerator::MovkOpcode            = { 0x1f800000, 0x12800000 };
 const OpcodeMatcher Arm64UnwindCodeGenerator::BlrOpcode             = { 0xfffffc1f, 0xd63f0000 };
 const OpcodeMatcher Arm64UnwindCodeGenerator::RetOpcode             = { 0xffffffff, 0xd65f03c0 };
-const OpcodeMatcher Arm64UnwindCodeGenerator::SubSpSpX15Uxtx4Opcode = { 0xffffffff, 0x4b2f73ff };
+const OpcodeMatcher Arm64UnwindCodeGenerator::SubSpSpX15Uxtx4Opcode = { 0xffffffff, 0xcb2f73ff };
 
 const OpcodeList Arm64UnwindCodeGenerator::PrologOpcodes =
 {
