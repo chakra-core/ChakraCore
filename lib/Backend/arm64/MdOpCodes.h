@@ -62,7 +62,7 @@ MACRO(LDP,        Reg3,       0,              UNUSED,   LEGAL_LOADP,    UNUSED, 
 MACRO(LDP_POST,   Reg3,       0,              UNUSED,   LEGAL_LOADP,    UNUSED,   DL__)
 MACRO(LDR,        Reg2,       0,              UNUSED,   LEGAL_LOAD,     UNUSED,   DL__)
 MACRO(LDRS,       Reg2,       0,              UNUSED,   LEGAL_LOAD,     UNUSED,   DL__)
-MACRO(LEA,        Reg3,       0,              UNUSED,   LEGAL_LOAD,     UNUSED,   D___)
+MACRO(LEA,        Reg3,       0,              UNUSED,   LEGAL_LEA,      UNUSED,   D___)
 MACRO(LSL,        Reg2,       0,              UNUSED,   LEGAL_SHIFT,    UNUSED,   D___)
 MACRO(LSR,        Reg2,       0,              UNUSED,   LEGAL_SHIFT,    UNUSED,   D___)
 MACRO(MOV,        Reg2,       0,              UNUSED,   LEGAL_REG2,     UNUSED,   DM__)
