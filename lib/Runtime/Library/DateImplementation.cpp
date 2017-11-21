@@ -1032,6 +1032,7 @@ Error:
             ssNil,
             ssMinutes,
             ssSeconds,
+            ssMillisecond,
             ssAddOffset,
             ssSubOffset,
             ssDate,
@@ -1041,6 +1042,7 @@ Error:
 
         char16 *pchBase;
         char16 *pch;
+        char16 *pchEndOfDigits = nullptr;
         char16 ch;
         char16 *pszSrc = nullptr;
 
@@ -1052,6 +1054,7 @@ Error:
         int32 lwMonth = lwNil;
         int32 lwDate = lwNil;
         int32 lwTime = lwNil;
+        int32 lwMillisecond = lwNil;
         int32 lwZone = lwNil;
         int32 lwOffset = lwNil;
 
@@ -1257,15 +1260,15 @@ Error:
 
             for (lwT = ch - '0'; !FBig(*pch) && isdigit(*pch); pch++)
             {
+                // to avoid overflow
+                if (pch - pchBase > 6)
+                {
+                    goto LError;
+                }
                 lwT = lwT * 10 + *pch - '0';
             }
 
-            // to avoid overflow
-            if (pch - pchBase > 6)
-            {
-                goto LError;
-            }
-
+            pchEndOfDigits = pch;
             // skip to the next real character
             while (0 != (ch = *pch) && (ch <= ' ' || classifier->IsBiDirectionalChar(ch)))
             {
@@ -1306,6 +1309,35 @@ Error:
                     if (lwT >= 60)
                         goto LError;
                     lwTime += lwT;
+                    ss = (ch == '.') ? (pch++, ssMillisecond) : ssNil;
+                    break;
+                }
+                case ssMillisecond:
+                {
+                    AssertMsg(isNextFieldDateNegativeVersion5 == false, "isNextFieldDateNegativeVersion5 == false");
+
+                    size_t numOfDigits = static_cast<size_t>(pchEndOfDigits - pchBase);
+                    if (numOfDigits <= 1)
+                    {
+                        // 1 digit only, treat it as hundreds
+                        lwMillisecond = lwT * 100;
+                    }
+                    else if (numOfDigits <= 2)
+                    {
+                        // 2 digit only, treat it as tens
+                        lwMillisecond = lwT * 10;
+                    }
+                    else if (numOfDigits <= 3)
+                    {
+                        // canonical 3 digit, per EcmaScript spec
+                        lwMillisecond = lwT;
+                    }
+                    else
+                    {
+                        // ignore any digits beyond the third
+                        lwMillisecond = (pchBase[0] - '0') * 100 + (pchBase[1] - '0') * 10 + (pchBase[2] - '0');
+                    }
+
                     ss = ssNil;
                     break;
                 }
@@ -1508,6 +1540,11 @@ Error:
             lwTime = 0;
         }
 
+        if (lwNil == lwMillisecond)
+        {
+            lwMillisecond = 0;
+        }
+
         if (lwNil != lwZone)
         {
             lwTime -= lwZone * 60;
@@ -1523,7 +1560,7 @@ Error:
         }
 
         // Rebuild time.
-        tv = TvFromDate(lwYear, lwMonth, lwDate - 1, (double)lwTime * 1000);
+        tv = TvFromDate(lwYear, lwMonth, lwDate - 1, (double)lwTime * 1000 + lwMillisecond);
         if (!fUtc)
         {
             tv = GetTvUtc(tv, scriptContext);

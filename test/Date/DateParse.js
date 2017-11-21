@@ -108,8 +108,8 @@ for (var ts in toStrings)
 // No milliseconds
 WScript.Echo(Date.parse("2011-11-08T19:48:43"));
 
-// Missing digits after .
-WScript.Echo(Date.parse("2011-11-08T19:48:43."));
+// Missing digits after .: invalid
+WScript.Echo(Date.parse("2011-11-08T19:48:43.Z"));
 
 // milliseconds, 1 digit only, treat it as hundreds
 WScript.Echo(Date.parse("2011-11-08T19:48:43.1"));
