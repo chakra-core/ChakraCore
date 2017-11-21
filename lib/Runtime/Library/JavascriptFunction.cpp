@@ -1313,7 +1313,7 @@ dbl_align:
 #elif defined(_M_ARM)
     extern "C"
     {
-        extern Var arm_CallFunction(JavascriptFunction* function, CallInfo info, Var* values, JavascriptMethod entryPoint);
+        extern Var arm_CallFunction(JavascriptFunction* function, CallInfo info, uint argCount, Var* values, JavascriptMethod entryPoint);
     }
 
     template <bool doStackProbe>
@@ -1334,13 +1334,12 @@ dbl_align:
 
         //The ARM can pass 4 arguments via registers so handle the cases for 0 or 1 values without resorting to asm code
         //(so that the asm code can assume 0 or more values will go on the stack: putting -1 values on the stack is unhealthy).
-        unsigned count = args.Info.Count;
-        if (count == 0)
+        if (argCount == 0)
         {
             varResult = CALL_ENTRYPOINT(function->GetScriptContext()->GetThreadContext(),
                 entryPoint, (JavascriptFunction*)function, args.Info);
         }
-        else if (count == 1)
+        else if (argCount == 1)
         {
             varResult = CALL_ENTRYPOINT(function->GetScriptContext()->GetThreadContext(),
                 entryPoint, (JavascriptFunction*)function, args.Info, args.Values[0]);
@@ -1348,7 +1347,7 @@ dbl_align:
         else
         {
             varResult = JS_REENTRANCY_CHECK(function->GetScriptContext()->GetThreadContext(),
-                arm_CallFunction((JavascriptFunction*)function, args.Info, args.Values, entryPoint));
+                arm_CallFunction((JavascriptFunction*)function, args.Info, argCount, args.Values, entryPoint));
         }
 
         return varResult;
