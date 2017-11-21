@@ -111,13 +111,13 @@ bool EncoderMD::CanonicalizeInstr(IR::Instr* instr)
 
 void EncoderMD::CanonicalizeLea(IR::Instr * instr)
 {
-    RegNum baseReg;
     int32 offset;
 
     IR::Opnd* src1 = instr->UnlinkSrc1();
 
     if (src1->IsSymOpnd())
     {
+        RegNum baseReg;
         // We may as well turn this LEA into the equivalent ADD instruction and let the common ADD
         // logic handle it.
         IR::SymOpnd *symOpnd = src1->AsSymOpnd();
