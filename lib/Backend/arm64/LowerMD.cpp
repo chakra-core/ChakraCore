@@ -1262,8 +1262,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         // For exception handling, do this part AFTER the prolog to allow for proper unwinding
         if (!layout.HasTry())
         {
-            IR::Instr * instrAdd = IR::Instr::New(Js::OpCode::ADD, fpOpnd, spOpnd, IR::IntConstOpnd::New(fpOffset, TyMachReg, this->m_func), this->m_func);
-            insertInstr->InsertBefore(instrAdd);
+            Lowerer::InsertAdd(false, fpOpnd, spOpnd, IR::IntConstOpnd::New(fpOffset, TyMachReg, this->m_func), insertInstr);
         }
     }
 
@@ -1286,9 +1285,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     // Compute the FP now if there is a try present
     if (layout.HasTry())
     {
-        IR::Instr * instrAdd = IR::Instr::New(Js::OpCode::ADD, fpOpnd, spOpnd, IR::IntConstOpnd::New(layout.FpLrOffset(), TyMachReg, this->m_func), this->m_func);
-        insertInstr->InsertBefore(instrAdd);
-        Legalize(instrAdd);
+        Lowerer::InsertAdd(false, fpOpnd, spOpnd, IR::IntConstOpnd::New(layout.FpLrOffset(), TyMachReg, this->m_func), insertInstr);
     }
 
     // Zero the argument slot if present
@@ -1325,8 +1322,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     if (localsReg != RegSP)
     {
         IR::RegOpnd* localsOpnd = IR::RegOpnd::New(nullptr, localsReg, TyMachReg, this->m_func);
-        IR::Instr * instrAdd = IR::Instr::New(Js::OpCode::ADD, localsOpnd, spOpnd, IR::IntConstOpnd::New(layout.LocalsOffset(), TyMachReg, this->m_func), this->m_func);
-        insertInstr->InsertBefore(instrAdd);
+        Lowerer::InsertAdd(false, localsOpnd, spOpnd, IR::IntConstOpnd::New(layout.LocalsOffset(), TyMachReg, this->m_func), insertInstr);
     }
 
     // Zero initialize the first inlinee frames argc.
@@ -1709,6 +1705,7 @@ LowererMD::LoadStackArgPtr(IR::Instr * instr)
     }
 
     instr->m_opcode = Js::OpCode::ADD;
+    Legalize(instr);
 
     return instr->m_prev;
 }
@@ -4367,12 +4364,10 @@ LowererMD::GenerateLoadPolymorphicInlineCacheSlot(IR::Instr * instrLdSt, IR::Reg
     Assert(rightShiftAmount > leftShiftAmount);
     instr = IR::Instr::New(Js::OpCode::LSR, opndOffset, opndOffset, IR::IntConstOpnd::New(rightShiftAmount - leftShiftAmount, TyUint8, instrLdSt->m_func, true), instrLdSt->m_func);
     instrLdSt->InsertBefore(instr);
-    instr = IR::Instr::New(Js::OpCode::AND, opndOffset, opndOffset, IR::IntConstOpnd::New((polymorphicInlineCacheSize - 1) << leftShiftAmount, TyMachPtr, instrLdSt->m_func, true), instrLdSt->m_func);
-    instrLdSt->InsertBefore(instr);
+    Lowerer::InsertAnd(opndOffset, opndOffset, IR::IntConstOpnd::New((polymorphicInlineCacheSize - 1) << leftShiftAmount, TyMachPtr, instrLdSt->m_func, true), instrLdSt);
 
     // ADD inlineCache, inlineCache, r1
-    instr = IR::Instr::New(Js::OpCode::ADD, opndInlineCache, opndInlineCache, opndOffset, instrLdSt->m_func);
-    instrLdSt->InsertBefore(instr);
+    Lowerer::InsertAdd(false, opndInlineCache, opndInlineCache, opndOffset, instrLdSt);
 }
 
 ///----------------------------------------------------------------------------
@@ -5123,8 +5118,7 @@ LowererMD::EmitLoadFloatFromNumber(IR::Opnd *dst, IR::Opnd *src, IR::Instr *inse
         // LEA r3, tempSymDouble
         IR::RegOpnd *reg3Opnd = IR::RegOpnd::New(TyMachReg, this->m_func);
         tempSymOpnd = IR::SymOpnd::New(this->m_func->tempSymDouble, TyFloat64, this->m_func);
-        instr = IR::Instr::New(Js::OpCode::LEA, reg3Opnd, tempSymOpnd, this->m_func);
-        insertInstr->InsertBefore(instr);
+        Lowerer::InsertLea(reg3Opnd, tempSymOpnd, insertInstr);
 
         // regBoolResult = to_number_fromPrimitive(value, &dst, allowUndef, scriptContext);
 
@@ -5334,8 +5328,7 @@ LowererMD::EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, I
 
     // LEA r3, dst
     IR::RegOpnd *reg3Opnd = IR::RegOpnd::New(TyMachReg, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::LEA, reg3Opnd, memAddress, this->m_func);
-    insertInstr->InsertBefore(instr);
+    Lowerer::InsertLea(reg3Opnd, memAddress, insertInstr);
 
     // to_number_full(value, &dst, scriptContext);
     // Create dummy binary op to convert into helper
