@@ -5594,6 +5594,7 @@ LowererMD::GenerateFastAbs(IR::Opnd *dst, IR::Opnd *src, IR::Instr *callInstr, I
         // s1 = CSNEGPL s1, s1
         instr = IR::Instr::New(Js::OpCode::CSNEGPL, regSrc, regSrc, regSrc, this->m_func);
         insertInstr->InsertBefore(instr);
+        Legalize(instr);
 
         //      TBNZ s1, #31, $labelHelper
         instr = IR::BranchInstr::New(Js::OpCode::TBNZ, labelHelper, this->m_func);
@@ -7021,6 +7022,7 @@ LowererMD::GenerateFastInlineBuiltInMathAbs(IR::Instr *inlineInstr)
         // dst = CSNEGPL dst, src, src
         tmpInstr = IR::Instr::New(Js::OpCode::CSNEGPL, dst, src, src, this->m_func);
         nextInstr->InsertBefore(tmpInstr);
+        Legalize(tmpInstr);
     }
     else if (srcType == IRType::TyFloat64)
     {
@@ -7247,7 +7249,9 @@ LowererMD::GenerateFastInlineBuiltInMathMinMax(IR::Instr* instr)
         // (max) CSELLT dst, src2, src1
         IR::Opnd* op1 = (instr->m_opcode == Js::OpCode::InlineMathMin) ? src1 : src2;
         IR::Opnd* op2 = (instr->m_opcode == Js::OpCode::InlineMathMin) ? src2 : src1;
-        instr->InsertBefore(IR::Instr::New(Js::OpCode::CSELLT, dst, op1, op2, instr->m_func));
+        IR::Instr * csellinstr = IR::Instr::New(Js::OpCode::CSELLT, dst, op1, op2, instr->m_func);
+        instr->InsertBefore(csellinstr);
+        Legalize(csellinstr);
 
         instr->Remove();
     }
