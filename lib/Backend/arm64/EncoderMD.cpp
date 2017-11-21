@@ -125,6 +125,7 @@ void EncoderMD::CanonicalizeLea(IR::Instr * instr)
         this->BaseAndOffsetFromSym(symOpnd, &baseReg, &offset, this->m_func);
         symOpnd->Free(this->m_func);
         instr->SetSrc1(IR::RegOpnd::New(nullptr, baseReg, TyMachReg, this->m_func));
+        Assert(IS_CONST_00000FFF(offset) || IS_CONST_00FFF000(offset));
         instr->SetSrc2(IR::IntConstOpnd::New(offset, TyMachReg, this->m_func));
     }
     else
@@ -144,6 +145,8 @@ void EncoderMD::CanonicalizeLea(IR::Instr * instr)
         }
         else
         {
+            // We want to emit a legal instruction
+            Assert(IS_CONST_00000FFF(offset) || IS_CONST_00FFF000(offset));
             instr->SetSrc2(IR::IntConstOpnd::New(offset, TyMachReg, this->m_func));
         }
         indirOpnd->Free(this->m_func);
