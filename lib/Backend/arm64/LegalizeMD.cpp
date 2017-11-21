@@ -423,6 +423,15 @@ void LegalizeMD::LegalizeSymOffset(
         }
     }
 
+    // This is so far used for LEA, where the offset ends up needing to be a valid ADD immediate
+    if (forms & L_SymU12Lsl12)
+    {
+        if (IS_CONST_00000FFF(offset) || IS_CONST_00FFF000(offset))
+        {
+            return;
+        }
+    }
+
     // scaled signed 9-bit offset
     if (forms & L_SymSI7)
     {
