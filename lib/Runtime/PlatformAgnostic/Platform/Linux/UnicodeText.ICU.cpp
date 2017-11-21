@@ -26,10 +26,6 @@ namespace PlatformAgnostic
 {
     namespace UnicodeText
     {
-#if DBG
-        static UErrorCode g_lastErrorCode = U_ZERO_ERROR;
-#endif
-
         static_assert(sizeof(char16) == sizeof(UChar),
             "This implementation depends on ICU char size matching char16's size");
 
@@ -119,10 +115,6 @@ namespace PlatformAgnostic
 
         static ApiError TranslateUErrorCode(UErrorCode icuError)
         {
-#if DBG
-            g_lastErrorCode = icuError;
-#endif
-
             switch (icuError)
             {
                 case U_BUFFER_OVERFLOW_ERROR:
@@ -263,8 +255,7 @@ namespace PlatformAgnostic
             // Return insufficient buffer in that case
             return resultStringLength;
         }
-#else
-
+#else // HAS_REAL_ICU
         bool IsWhitespace(codepoint_t ch)
         {
             if (ch > 127)
@@ -301,7 +292,7 @@ namespace PlatformAgnostic
             // TODO: implement this
             EMPTY_COPY
         }
-#endif
+#endif // HAS_REAL_ICU
 
         bool IsIdStart(codepoint_t ch)
         {
@@ -378,7 +369,7 @@ namespace PlatformAgnostic
                 }
             }
             return bufferLength;
-#else
+#else // HAS_REAL_ICU
             // Assert pointers
             Assert(stringToChange != nullptr);
             ApiError error = NoError;
@@ -394,7 +385,7 @@ namespace PlatformAgnostic
             Assert(error == ApiError::NoError);
             Assert(ret > 0);
             return (uint32) ret;
-#endif
+#endif // HAS_REAL_ICU
         }
 
         int LogicalStringCompare(const char16* string1, const char16* string2)
