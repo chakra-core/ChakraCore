@@ -690,7 +690,7 @@ namespace Js
         if (cacheHit)
         {
             Assert(useCache);
-            cachedResult = cache->resultBV.Test(cacheIndex);
+            cachedResult = (cache->resultBV.Test(cacheIndex) != 0);
             // for debug builds, let's still do the real test so we can validate values in the cache
 #if !DBG
             return JavascriptBoolean::ToVar(cachedResult, scriptContext);
