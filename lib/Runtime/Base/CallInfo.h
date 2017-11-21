@@ -95,40 +95,11 @@ namespace Js
             return CallInfo::HasNewTarget(this->Flags);
         }
 
+        static ArgSlot GetArgCountWithExtraArgs(CallFlags flags, uint count);
 
-        // For Eval calls the FrameDisplay is passed in as an extra argument.
-        // This is not counted in Info.Count. Use this API to get the updated count.
-        static ArgSlot GetArgCountWithExtraArgs(CallFlags flags, ArgSlot count)
-        {
-            if (flags & CallFlags_ExtraArg)
-            {
-                ArgSlotMath::Inc(count);
-            }
-            return count;
-        }
+        static uint GetLargeArgCountWithExtraArgs(CallFlags flags, uint count);
 
-        static uint GetLargeArgCountWithExtraArgs(CallFlags flags, uint count)
-        {
-            if (flags & CallFlags_ExtraArg)
-            {
-                UInt32Math::Inc(count);
-            }
-            return count;
-        }
-
-        static ArgSlot GetArgCountWithoutExtraArgs(CallFlags flags, ArgSlot count)
-        {
-            ArgSlot newCount = count;
-            if (flags & Js::CallFlags_ExtraArg)
-            {
-                if (count == 0)
-                {
-                    ::Math::DefaultOverflowPolicy();
-                }
-                newCount = count - 1;
-            }
-            return newCount;
-        }
+        static ArgSlot GetArgCountWithoutExtraArgs(CallFlags flags, ArgSlot count);
 
         static bool HasNewTarget(CallFlags flags)
         {
