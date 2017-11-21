@@ -366,6 +366,13 @@ void LegalizeMD::LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpn
             return;
         }
     }
+    if (forms & L_IndirU12Lsl12)
+    {
+        if (IS_CONST_UINT12(offset) || IS_CONST_UINT12LSL12(offset))
+        {
+            return;
+        }
+    }
 
     // scaled signed 9-bit offset
     if (forms & L_IndirSI7)
