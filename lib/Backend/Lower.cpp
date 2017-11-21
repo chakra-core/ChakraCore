@@ -14427,7 +14427,14 @@ IR::Instr *Lowerer::InsertMove(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const in
         return LoadFloatFromNonReg(src, dst, insertBeforeInstr);
     }
 
-    if(TySize[dst->GetType()] < TySize[src->GetType()])
+    if(TySize[dst->GetType()] < TySize[src->GetType()]
+#if _M_ARM64
+        // Review: I think this should in general just apply for ints/uints, not floats or such
+        // However, this should only be an issue on arm64 where we implicitly do the conversion
+        && (IRType_IsSignedInt(dst->GetType()) || IRType_IsUnsignedInt(dst->GetType()))
+        && (IRType_IsSignedInt(src->GetType()) || IRType_IsUnsignedInt(src->GetType()))
+#endif
+        )
     {
 #if _M_IX86
         if (IRType_IsInt64(src->GetType()))
