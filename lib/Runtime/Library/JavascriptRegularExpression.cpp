@@ -15,8 +15,7 @@ namespace Js
         pattern(pattern),
         splitPattern(nullptr),
         lastIndexVar(nullptr),
-        lastIndexOrFlag(0),
-        testCache(nullptr)
+        lastIndexOrFlag(0)
     {
         Assert(type->GetTypeId() == TypeIds_RegEx);
         Assert(!this->GetType()->AreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties());
@@ -42,8 +41,7 @@ namespace Js
         pattern(nullptr),
         splitPattern(nullptr),
         lastIndexVar(nullptr),
-        lastIndexOrFlag(0),
-        testCache(nullptr)
+        lastIndexOrFlag(0)
     {
         Assert(type->GetTypeId() == TypeIds_RegEx);
 
@@ -61,8 +59,7 @@ namespace Js
         pattern(instance->GetPattern()),
         splitPattern(instance->GetSplitPattern()),
         lastIndexVar(instance->lastIndexVar),
-        lastIndexOrFlag(instance->lastIndexOrFlag),
-        testCache(nullptr)
+        lastIndexOrFlag(instance->lastIndexOrFlag)
     {
         // For boxing stack instance
         Assert(ThreadContext::IsOnStack(instance));
@@ -621,7 +618,6 @@ namespace Js
         thisRegularExpression->SetPattern(pattern);
         thisRegularExpression->SetSplitPattern(splitPattern);
         thisRegularExpression->SetLastIndex(0);
-        thisRegularExpression->ClearTestCache();
         return thisRegularExpression;
     }
 
@@ -1566,58 +1562,6 @@ namespace Js
             ? specialPropertyIdsAll
             : specialPropertyIdsWithoutUnicode;
     }
-
-    Field(RegExpTestCache*) JavascriptRegExp::EnsureTestCache()
-    {
-        if (this->testCache != nullptr)
-        {
-            return this->testCache;
-        }
-
-        this->testCache = RecyclerNewArrayZ(GetRecycler(), RegExpTestCache, TestCacheSize);
-        return this->testCache;
-    }
-
-    /* static */
-    uint JavascriptRegExp::GetTestCacheIndex(JavascriptString* str)
-    {
-        return (uint)(((uintptr_t)str) >> PolymorphicInlineCacheShift) & (TestCacheSize - 1);
-    }
-
-    void JavascriptRegExp::ClearTestCache()
-    {
-        this->testCache = nullptr;
-    }
-
-#if ENABLE_REGEX_CONFIG_OPTIONS
-    /* static */
-    void JavascriptRegExp::TraceTestCache(bool cacheHit, JavascriptString* input, JavascriptString* cachedValue, bool disabled)
-    {
-        if (REGEX_CONFIG_FLAG(RegexTracing))
-        {
-            if (disabled)
-            {
-                Output::Print(_u("Regexp Test Cache Disabled.\n"));
-            }
-            else if (cacheHit)
-            {
-                Output::Print(_u("Regexp Test Cache Hit.\n"));
-            }
-            else
-            {
-                Output::Print(_u("Regexp Test Cache Miss. "));
-                if (cachedValue != nullptr)
-                {
-                    Output::Print(_u("Input: (%p); Cached String: (%p) '%s'\n"), input, cachedValue, cachedValue->GetString());
-                }
-                else
-                {
-                    Output::Print(_u("Cache was empty\n"));
-                }
-            }
-        }
-    }
-#endif
 
 #if ENABLE_TTD
     TTD::NSSnapObjects::SnapObjectType JavascriptRegExp::GetSnapTag_TTD() const
