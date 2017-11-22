@@ -120,7 +120,7 @@ public:
 private:
     void                Init();
     bool                SkipNumberedInstr(IR::Instr *instr);
-    void                EndDeadLifetimes(IR::Instr *instr);
+    void                EndDeadLifetimes(IR::Instr *instr, bool isLoopBackEdge);
     void                EndDeadOpHelperLifetimes(IR::Instr *instr);
     void                AllocateNewLifetimes(IR::Instr *instr);
     RegNum              Spill(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool dontSpillCurrent, bool force);

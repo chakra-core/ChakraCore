@@ -46,44 +46,6 @@ SCCLiveness::Build()
         IR::Opnd *dst, *src1, *src2;
         uint32 instrNum = instr->GetNumber();
 
-        // End of loop?
-        if (this->curLoop && instrNum >= this->curLoop->regAlloc.loopEnd)
-        {
-            AssertMsg(this->loopNest > 0, "Loop nest is messed up");
-            AssertMsg(instr->IsBranchInstr(), "Loop tail should be a branchInstr");
-            AssertMsg(instr->AsBranchInstr()->IsLoopTail(this->func), "Loop tail not marked correctly");
-
-            Loop *loop = this->curLoop;
-            while (loop && loop->regAlloc.loopEnd == this->curLoop->regAlloc.loopEnd)
-            {
-                FOREACH_SLIST_ENTRY(Lifetime *, lifetime, loop->regAlloc.extendedLifetime)
-                {
-                    if (loop->regAlloc.hasNonOpHelperCall)
-                    {
-                        lifetime->isLiveAcrossUserCalls = true;
-                    }
-                    if (loop->regAlloc.hasCall)
-                    {
-                        lifetime->isLiveAcrossCalls = true;
-                    }
-                    if (lifetime->end == loop->regAlloc.loopEnd)
-                    {
-                        lifetime->totalOpHelperLengthByEnd = this->totalOpHelperFullVisitedLength + CurrentOpHelperVisitedLength(instr);
-                    }
-                }
-                NEXT_SLIST_ENTRY;
-
-                loop->regAlloc.helperLength = this->totalOpHelperFullVisitedLength + CurrentOpHelperVisitedLength(instr);
-                Assert(!loop->parent || loop->parent && loop->parent->regAlloc.loopEnd >= loop->regAlloc.loopEnd);
-                loop = loop->parent;
-            }
-            while (this->curLoop && instrNum >= this->curLoop->regAlloc.loopEnd)
-            {
-                this->curLoop = this->curLoop->parent;
-                this->loopNest--;
-            }
-        }
-
         if (instr->HasBailOutInfo())
         {
             // At this point, the bailout should be lowered to a CALL to BailOut
@@ -122,6 +84,44 @@ SCCLiveness::Build()
             if (src2)
             {
                 this->ProcessSrc(src2, instr);
+            }
+        }
+
+        // End of loop?
+        if (this->curLoop && instrNum >= this->curLoop->regAlloc.loopEnd)
+        {
+            AssertMsg(this->loopNest > 0, "Loop nest is messed up");
+            AssertMsg(instr->IsBranchInstr(), "Loop tail should be a branchInstr");
+            AssertMsg(instr->AsBranchInstr()->IsLoopTail(this->func), "Loop tail not marked correctly");
+
+            Loop *loop = this->curLoop;
+            while (loop && loop->regAlloc.loopEnd == this->curLoop->regAlloc.loopEnd)
+            {
+                FOREACH_SLIST_ENTRY(Lifetime *, lifetime, loop->regAlloc.extendedLifetime)
+                {
+                    if (loop->regAlloc.hasNonOpHelperCall)
+                    {
+                        lifetime->isLiveAcrossUserCalls = true;
+                    }
+                    if (loop->regAlloc.hasCall)
+                    {
+                        lifetime->isLiveAcrossCalls = true;
+                    }
+                    if (lifetime->end == loop->regAlloc.loopEnd)
+                    {
+                        lifetime->totalOpHelperLengthByEnd = this->totalOpHelperFullVisitedLength + CurrentOpHelperVisitedLength(instr);
+                    }
+                }
+                NEXT_SLIST_ENTRY;
+
+                loop->regAlloc.helperLength = this->totalOpHelperFullVisitedLength + CurrentOpHelperVisitedLength(instr);
+                Assert(!loop->parent || loop->parent && loop->parent->regAlloc.loopEnd >= loop->regAlloc.loopEnd);
+                loop = loop->parent;
+            }
+            while (this->curLoop && instrNum >= this->curLoop->regAlloc.loopEnd)
+            {
+                this->curLoop = this->curLoop->parent;
+                this->loopNest--;
             }
         }
 
