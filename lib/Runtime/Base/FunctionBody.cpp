@@ -1134,6 +1134,13 @@ namespace Js
     void
     FunctionBody::SetOutParamMaxDepth(RegSlot cOutParamsDepth)
     {
+#if _M_X64
+        const RegSlot minAsmJsOutParams = MinAsmJsOutParams();
+        if (GetIsAsmJsFunction() && cOutParamsDepth < minAsmJsOutParams)
+        {
+            cOutParamsDepth = minAsmJsOutParams;
+        }
+#endif
         SetCountField(CounterFields::OutParamMaxDepth, cOutParamsDepth);
     }
 

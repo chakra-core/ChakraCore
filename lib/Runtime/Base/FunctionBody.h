@@ -3123,6 +3123,11 @@ namespace Js
         RegSlot GetOutParamMaxDepth();
         void SetOutParamMaxDepth(RegSlot cOutParamsDepth);
         void CheckAndSetOutParamMaxDepth(RegSlot cOutParamsDepth);
+#if _M_X64
+        // 1 Var to push current m_outparam, 1 Var for "this"
+        // 6 Vars for register optimization in InterpreterStackFrame::OP_CallAsmInternalCommon
+        static constexpr RegSlot MinAsmJsOutParams() { return 1 + 1 + 6; }
+#endif
 
         RegSlot GetYieldRegister();
 
