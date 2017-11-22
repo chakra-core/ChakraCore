@@ -145,4 +145,12 @@
       <files>TwoDigitYears.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>toStringAndToUTCStringYearPadding.js</files>
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
+      <tags>exclude_jenkins</tags>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>
