@@ -342,7 +342,7 @@ int EncoderMD::EmitOp3RegisterOrImmediateExtendSPReg(Arm64CodeEmitter &Emitter, 
         if (src2->GetReg() == RegSP || (src1->GetReg() == RegZR && dst->GetReg() == RegSP))
         {
             // We can only really do this for addition, so we failfast if it's a sub
-            AssertOrFailFastMsg(instr->m_opcode != Js::OpCode::SUB, "Tried to encode a SUB with RegSP as the second operand or as the dest with RegZR in first operand - tighten legalization restrictions!");
+            AssertOrFailFastMsg(instr->m_opcode != Js::OpCode::SUB && instr->m_opcode != Js::OpCode::SUBS, "Tried to encode a SUB/SUBS with RegSP as the second operand or as the dest with RegZR in first operand - tighten legalization restrictions!");
             // We need to swap the arguments
             instr->UnlinkSrc1();
             instr->UnlinkSrc2();
@@ -360,21 +360,6 @@ int EncoderMD::EmitOp3RegisterOrImmediateExtendSPReg(Arm64CodeEmitter &Emitter, 
             // Regardless, we do it by 0, so it should just be directly using the register
             return this->EmitOp3RegisterShifted(Emitter, instr, EXTEND_UXTX, 0, reg32, reg64);
         }
-    }
-
-    return EmitOp3RegisterOrImmediate(Emitter, instr, reg32, reg64, imm32, imm64);
-}
-
-template<typename _RegFunc32, typename _RegFunc64, typename _ImmFunc32, typename _ImmFunc64>
-int EncoderMD::EmitOp3RegisterOrImmediateExtendSP(Arm64CodeEmitter &Emitter, IR::Instr* instr, _RegFunc32 reg32, _RegFunc64 reg64, _ImmFunc32 imm32, _ImmFunc64 imm64)
-{
-    // ADDS and SUBS have no valid encoding where dst == RegSP
-    Assert((!(instr->m_opcode == Js::OpCode::ADDS || instr->m_opcode == Js::OpCode::SUBS)) || instr->GetDst()->AsRegOpnd()->GetReg() != RegSP);
-    // We could theoretically handle this for ADDS (see above function), but for SUBS it'd be a bigger issue
-    AssertMsg(!(instr->GetSrc2()->IsRegOpnd() && (instr->GetSrc2()->AsRegOpnd()->GetReg() == RegSP)), "ADDS/SUBS can't handle RegSP as argument 2");
-    if (instr->GetSrc1()->AsRegOpnd()->GetReg() == RegSP && instr->GetSrc2()->IsRegOpnd())
-    {
-        return this->EmitOp3RegisterShifted(Emitter, instr, EXTEND_UXTX, 0, reg32, reg64);
     }
 
     return EmitOp3RegisterOrImmediate(Emitter, instr, reg32, reg64, imm32, imm64);
@@ -793,7 +778,9 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         break;
 
     case Js::OpCode::ADDS:
-        bytes = this->EmitOp3RegisterOrImmediateExtendSP(Emitter, instr, EmitAddsRegister, EmitAddsRegister64, EmitAddsImmediate, EmitAddsImmediate64);
+        // ADDS and SUBS have no valid encoding where dst == RegSP
+        Assert(instr->GetDst()->AsRegOpnd()->GetReg() != RegSP);
+        bytes = this->EmitOp3RegisterOrImmediateExtendSPReg(Emitter, instr, EmitAddsRegister, EmitAddsRegister64, EmitAddsImmediate, EmitAddsImmediate64);
         break;
 
     case Js::OpCode::ADR:
@@ -1139,7 +1126,9 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         break;
 
     case Js::OpCode::SUBS:
-        bytes = this->EmitOp3RegisterOrImmediateExtendSP(Emitter, instr, EmitSubsRegister, EmitSubsRegister64, EmitSubsImmediate, EmitSubsImmediate64);
+        // ADDS and SUBS have no valid encoding where dst == RegSP
+        Assert(instr->GetDst()->AsRegOpnd()->GetReg() != RegSP);
+        bytes = this->EmitOp3RegisterOrImmediateExtendSPReg(Emitter, instr, EmitSubsRegister, EmitSubsRegister64, EmitSubsImmediate, EmitSubsImmediate64);
         break;
 
     case Js::OpCode::SUB_LSL4:
