@@ -1028,6 +1028,10 @@ LEcmaLineBreak:
             {
                 // Notify the scanner to update current line, number of lines etc
                 NotifyScannedNewLine();
+
+                // We haven't updated m_currentCharacter yet, so make sure the MinLine info is correct in case we error out.
+                m_pchMinLine = p;
+
                 break;
             }
 
@@ -1318,6 +1322,10 @@ LEcmaEscapeLineBreak:
 
                     // Template literal strings ignore all escaped line continuation tokens
                     NotifyScannedNewLine();
+
+                    // We haven't updated m_currentCharacter yet, so make sure the MinLine info is correct in case we error out.
+                    m_pchMinLine = p;
+
                     continue;
                 }
 

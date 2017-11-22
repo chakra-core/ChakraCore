@@ -114,6 +114,7 @@
     <default>
       <files>function.name.js</files>
       <compile-flags>-ES6Generators -ES6Classes -es6functionnamefull -force:deferparse -args summary -endargs</compile-flags>
+      <timeout>120</timeout> <!-- ARM64 take more than 60 -->
     </default>
   </test>
   <test>
@@ -1396,7 +1397,7 @@
     <default>
       <files>module-namespace.js</files>
       <compile-flags>-ES6Module -Es6ToStringTag -args summary -endargs</compile-flags>
-      <tags>exclude_sanitize_address</tags>
+      <tags>exclude_dynapogo,exclude_drt,exclude_sanitize_address</tags>
     </default>
   </test>
   -->

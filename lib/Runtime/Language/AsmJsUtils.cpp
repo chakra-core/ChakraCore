@@ -408,6 +408,7 @@ namespace Js
             }
             ++origArgs;
         }
+
         AsmJsModuleInfo::EnsureHeapAttached(func);
 
         // for convenience, lets take the opportunity to return the asm.js entrypoint address

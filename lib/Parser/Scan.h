@@ -480,17 +480,31 @@ public:
     // have if the entire file was converted to Unicode (UTF16-LE).
     charcount_t IchMinTok(void) const
     {
-        Assert(m_pchMinTok - m_pchBase >= 0);
-        Assert(m_pchMinTok - m_pchBase <= LONG_MAX);
-        return static_cast< charcount_t >(m_pchMinTok - m_pchBase - m_cMinTokMultiUnits);
+
+        AssertOrFailFast(m_pchMinTok - m_pchBase >= 0);
+        AssertOrFailFast(m_pchMinTok - m_pchBase <= LONG_MAX);
+        if (static_cast<charcount_t>(m_pchMinTok - m_pchBase) < m_cMinTokMultiUnits)
+        {
+            AssertMsg(false, "IchMinTok subtraction overflow");
+            return 0;
+        }
+
+        return static_cast<charcount_t>(m_pchMinTok - m_pchBase - m_cMinTokMultiUnits);
     }
 
     // Returns the character offset of the character immediately following the token. The character offset is the offset the first
     // character of the token would have if the entire file was converted to Unicode (UTF16-LE).
     charcount_t IchLimTok(void) const
     {
-        Assert(m_currentCharacter - m_pchBase >= 0);
-        Assert(m_currentCharacter - m_pchBase <= LONG_MAX);
+
+        AssertOrFailFast(m_currentCharacter - m_pchBase >= 0);
+        AssertOrFailFast(m_currentCharacter - m_pchBase <= LONG_MAX);
+        if (static_cast<charcount_t>(m_currentCharacter - m_pchBase) < this->m_cMultiUnits)
+        {
+            AssertMsg(false, "IchLimTok subtraction overflow");
+            return 0;
+        }
+
         return static_cast< charcount_t >(m_currentCharacter - m_pchBase - this->m_cMultiUnits);
     }
 
@@ -542,8 +556,15 @@ public:
     // Returns the character offset within the stream of the first character on the current line.
     charcount_t IchMinLine(void) const
     {
-        Assert(m_pchMinLine - m_pchBase >= 0);
-        Assert(m_pchMinLine - m_pchBase <= LONG_MAX);
+
+        AssertOrFailFast(m_pchMinLine - m_pchBase >= 0);
+        AssertOrFailFast(m_pchMinLine - m_pchBase <= LONG_MAX);
+        if (static_cast<charcount_t>(m_pchMinLine - m_pchBase) < m_cMinLineMultiUnits)
+        {
+            AssertMsg(false, "IchMinLine subtraction overflow");
+            return 0;
+        }
+
         return static_cast<charcount_t>(m_pchMinLine - m_pchBase - m_cMinLineMultiUnits);
     }
 

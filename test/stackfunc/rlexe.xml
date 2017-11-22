@@ -520,7 +520,7 @@
       <files>inlinee_box.js</files>
       <baseline>inlinee_box.baseline</baseline>
       <compile-flags>-testtrace:stackfunc -off:redeferral -off:simpleJit -on:stackfunc -force:inline</compile-flags>
-      <tags>exclude_fre,exclude_dynapogo,exclude_nonative,exclude_arm</tags>
+      <tags>exclude_fre,exclude_dynapogo,exclude_nonative,exclude_arm,exclude_arm64</tags>
     </default>
   </test>
   <test>
@@ -544,7 +544,7 @@
       <files>jitdefer.js</files>
       <baseline>jitdefer.deferparse.baseline</baseline>
       <compile-flags>-testtrace:stackfunc -off:redeferral -off:simpleJit -on:stackfunc -force:deferparse -off:cachescopeinfonames</compile-flags>
-      <tags>exclude_fre,exclude_dynapogo,exclude_arm,exclude_nonative</tags>
+      <tags>exclude_fre,exclude_dynapogo,exclude_arm,exclude_nonative,exclude_arm64</tags>
     </default>
   </test>
   <test>
@@ -553,7 +553,7 @@
       <baseline>box_bailout.deferparse.baseline</baseline>
       <!--Top Level function parsing on first call to script is turned off here, as this tests order of functions executed-->
       <compile-flags>-DeferTopLevelTillFirstCall- -testtrace:stackfunc -off:redeferral -off:simpleJit -on:stackfunc -force:deferparse -off:disablestackfuncondeferredescape</compile-flags>
-      <tags>exclude_fre,exclude_dynapogo,exclude_arm,exclude_nonative</tags>
+      <tags>exclude_fre,exclude_dynapogo,exclude_arm,exclude_nonative,exclude_arm64</tags>
     </default>
   </test>
   <test>
@@ -562,7 +562,7 @@
       <baseline>box_inline_bailout.deferparse.baseline</baseline>
       <!--Top Level function parsing on first call to script is turned off here, as this tests order of functions executed-->
       <compile-flags>-DeferTopLevelTillFirstCall- -testtrace:stackfunc -off:redeferral -off:simpleJit -on:stackfunc -force:deferparse -off:disablestackfuncondeferredescape</compile-flags>
-      <tags>exclude_fre,exclude_dynapogo,exclude_arm,exclude_nonative</tags>
+      <tags>exclude_fre,exclude_dynapogo,exclude_arm,exclude_nonative,exclude_arm64</tags>
     </default>
   </test>
   <test>

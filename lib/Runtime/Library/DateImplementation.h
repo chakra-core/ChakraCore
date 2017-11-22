@@ -382,6 +382,40 @@ namespace Js {
         return GetDateDefaultString<StringBuilder>(&ymd, &tzd, DateTimeFlag::None, scriptContext, newStringBuilder);
     }
 
+    const auto ConvertUInt32ToString_ZeroPad_4 = [](const uint32 value, char16 *const buffer, const CharCount charCapacity)
+    {
+        Assert(charCapacity >= 4);
+        if (value < 10)
+        {
+            buffer[0] = _u('0');
+            buffer[1] = _u('0');
+            buffer[2] = _u('0');
+            buffer[3] = static_cast<char16>(value + _u('0'));
+            buffer[4] = 0;
+        }
+        else if (value < 100)
+        {
+            buffer[0] = _u('0');
+            buffer[1] = _u('0');
+            buffer[2] = static_cast<char16>((value / 10) + _u('0'));
+            buffer[3] = static_cast<char16>((value % 10) + _u('0'));
+            buffer[4] = 0;
+        }
+        else if (value < 1000)
+        {
+            buffer[0] = _u('0');
+            buffer[1] = static_cast<char16>((value / 100) + _u('0'));
+            buffer[2] = static_cast<char16>(((value / 10) % 10) + _u('0'));
+            buffer[3] = static_cast<char16>((value % 10) + _u('0'));
+            buffer[4] = 0;
+        }
+        else
+        {
+            const errno_t err = _ultow_s(value, buffer, charCapacity, 10);
+            Assert(err == 0);
+        }
+    };
+
     //
     // Get default date string, shared with hybrid debugging.
     //  StringBuilder: A Js::StringBuilder/CompoundString like class, used to build strings.
@@ -418,7 +452,16 @@ namespace Js {
             bs->AppendChars(_u(' '));
 
             // year is directly after day, month, daydigit for IE11+
-            bs->AppendChars(pymd->year, 10, ConvertLongToString);
+            if ((pymd->year) > 0)
+            {
+                bs->AppendChars(pymd->year, 10, ConvertUInt32ToString_ZeroPad_4);
+            }
+            else
+            {
+                int positiveYear = -(pymd->year); // pymd->year is negative
+                bs->AppendChars(_u('-'));
+                bs->AppendChars(positiveYear, 10, ConvertUInt32ToString_ZeroPad_4);
+            }
 
             if(!(noDateTime & DateTimeFlag::NoTime))
             {

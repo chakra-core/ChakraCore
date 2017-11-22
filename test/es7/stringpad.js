@@ -15,12 +15,12 @@ var tests = [
             assert.areEqual(1, String.prototype.padEnd.length, "padEnd method takes one argument");
             assert.areEqual("padStart", String.prototype.padStart.name, "padStart.name is 'padStart'");
             assert.areEqual("padEnd", String.prototype.padEnd.name, "padEnd.name is 'padEnd'");
-            
+
             var descriptor = Object.getOwnPropertyDescriptor(String.prototype, 'padStart');
             assert.isTrue(descriptor.writable, "writable(padStart) must be true");
             assert.isFalse(descriptor.enumerable, "enumerable(padStart) must be false");
             assert.isTrue(descriptor.configurable, "configurable(padStart) must be true");
-            
+
             descriptor = Object.getOwnPropertyDescriptor(String.prototype, 'padEnd');
             assert.isTrue(descriptor.writable, "writable(padEnd) must be true");
             assert.isFalse(descriptor.enumerable, "enumerable(padEnd) must be false");
@@ -60,14 +60,9 @@ var tests = [
         }
     },
     {
-        name: "String.prototype.padStart OOM scenario",
+        name: "String.prototype.padStart out of bound scenario",
         body: function () {
-            try {
-                'foo'.padStart(2147483647);
-            }
-            catch(e) {
-               assert.areEqual(e.message, "Out of memory", "validating out of memory for maxLength >= int_max"); 
-            }
+            assert.throws(() => { 'foo'.padStart(2147483647);}, RangeError, "index is out of bound", "String length is out of bound");
         }
     }
 ];

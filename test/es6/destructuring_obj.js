@@ -140,12 +140,9 @@ var tests = [
     name: "Object destructuring syntax on misc expressions",
     body: function () {
       assert.doesNotThrow(function () { eval("let a; ({a:((((a1))))} = {a:20})"); }, "Object expression pattern with parens is valid syntax");
-      assert.doesNotThrow(function () { eval("let a; ({a:((((a1 = 31))))} = {})"); }, "Object expression pattern with parens and defaults is valid syntax");
       assert.doesNotThrow(function () { eval("let a, r1; ({a:a1 = r1} = {})"); }, "Object expression pattern with defaults as reference is valid syntax");
-      assert.doesNotThrow(function () { eval("let a, r1; ({a:((((a1 = r1))))} = {})"); }, "Object expression pattern with defaults as reference under parens is valid syntax");
       assert.doesNotThrow(function () { eval("let a, r1; ({a:a1 = r1 = 44} = {})"); }, "Object expression pattern with chained assignments as defaults is valid syntax");
-      assert.doesNotThrow(function () { eval("let a, r1; ({a:(a1 = r1 = 44)} = {})"); }, "Object expression pattern with chained assignments as defaults under paren is valid syntax");
-      assert.throws(function () { eval("let a, r1; ({a:(a1 = r1) = 44} = {})"); }, SyntaxError, "Object expression pattern with chained assignments but paren in between is not valid syntax", "Unexpected operator in destructuring expression");
+      assert.throws(function () { eval("let a, r1; ({a:(a1 = r1) = 44} = {})"); }, SyntaxError, "Object expression pattern with chained assignments but paren in between is not valid syntax", "Expected ')'");
       assert.doesNotThrow(function () { eval("var a; `${({a} = {})}`"); }, "Object expression pattern inside a string template is valid syntax");
       assert.throws(function () { eval("for (let {x} = {} of []) {}"); }, SyntaxError, "for.of has declaration pattern with initializer is not valid syntax", "for-of loop head declarations cannot have an initializer");
       assert.throws(function () { eval("for (let {x} = {} in []) {}"); }, SyntaxError, "for.in has declaration pattern with initializer is not valid syntax", "for-in loop head declarations cannot have an initializer");
@@ -167,6 +164,10 @@ var tests = [
       assert.throws(function () { eval("({set ['foo'](a) {}} = {});"); }, SyntaxError, "Invalid object expression pattern as it has the set function name as computed property instead of binding identifier", "Invalid destructuring assignment target");
 
       assert.throws(function () { eval("for(var [z] = function ([a]) { } in []) {}"); }, SyntaxError, "Initializer as function expression is not valid syntax", "for-in loop head declarations cannot have an initializer");
+      assert.throws(function () { eval("({a: {d = 1,c = 1}.c = 2} = {});"); }, SyntaxError, "Object expression pattern with dot node should not identify as object literal", "Expected ':'");
+      assert.throws(function () { eval("({a: ({d = 1,c = 1}.c) = 2} = {});"); }, SyntaxError, "Object expression pattern with dot node under paren should not identify as object literal", "Destructuring expressions can only have identifier references");
+      assert.doesNotThrow(function () { eval("({a: [b = 1, c = 2][1]} = {a:[]});"); }, "index node instead of array literal is a valid syntax");
+      assert.doesNotThrow(function () { eval("({a: [b = 1, c = 2].b} = {a:[]});"); }, "dot node instead of array literal is a valid syntax");
     }
   },
   {

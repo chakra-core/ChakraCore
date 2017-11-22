@@ -116,9 +116,8 @@ void __stdcall PrintChakraCoreVersion()
     char16 dir[_MAX_DIR];
 
     LPCWSTR chakraDllName = GetChakraDllNameW();
-
     char16 modulename[_MAX_PATH];
-    if (!GetModuleFileNameW(NULL, modulename, _MAX_PATH))
+    if (!PlatformAgnostic::SystemInfo::GetBinaryLocation(modulename, _MAX_PATH))
     {
         return;
     }

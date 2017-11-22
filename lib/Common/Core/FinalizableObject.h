@@ -15,7 +15,7 @@ public:
         Mark(static_cast<Recycler*>(recycler));
     }
 
-    void Trace(IRecyclerHeapMarkingContext* markingContext) final
+    void Trace(IRecyclerHeapMarkingContext* markingContext)
     {
         AssertMsg(false, "Trace called on object that isn't implemented by the host");
     }

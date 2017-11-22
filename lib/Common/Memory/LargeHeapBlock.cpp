@@ -553,6 +553,16 @@ LargeHeapBlock::AllocFreeListEntry(DECLSPEC_GUARD_OVERFLOW size_t size, ObjectIn
 #ifdef RECYCLER_WRITE_BARRIER
     header->hasWriteBarrier = (attributes & WithBarrierBit) == WithBarrierBit;
 #endif
+
+    if ((attributes & (FinalizeBit | TrackBit)) != 0)
+    {
+        // Make sure a valid vtable is installed as once the attributes have been set this allocation may be traced by background marking
+        allocObject = (char *)new (allocObject) DummyVTableObject();
+#if defined(_M_ARM32_OR_ARM64)
+        // On ARM, make sure the v-table write is performed before setting the attributes
+        MemoryBarrier();
+#endif
+    }
     header->SetAttributes(this->heapInfo->recycler->Cookie, (attributes & StoredObjectInfoBitMask));
     header->markOnOOMRescan = false;
     header->SetNext(this->heapInfo->recycler->Cookie, nullptr);
@@ -618,6 +628,15 @@ LargeHeapBlock::Alloc(DECLSPEC_GUARD_OVERFLOW size_t size, ObjectInfoBits attrib
 #ifdef RECYCLER_WRITE_BARRIER
     header->hasWriteBarrier = (attributes&WithBarrierBit) == WithBarrierBit;
 #endif
+    if ((attributes & (FinalizeBit | TrackBit)) != 0)
+    {
+        // Make sure a valid vtable is installed as once the attributes have been set this allocation may be traced by background marking
+        allocObject = (char *)new (allocObject) DummyVTableObject();
+#if defined(_M_ARM32_OR_ARM64)
+        // On ARM, make sure the v-table write is performed before setting the attributes
+        MemoryBarrier();
+#endif
+    }
     header->SetAttributes(recycler->Cookie, (attributes & StoredObjectInfoBitMask));
     HeaderList()[allocCount++] = header;
     finalizeCount += ((attributes & FinalizeBit) != 0);

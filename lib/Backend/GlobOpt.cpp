@@ -7465,7 +7465,7 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
 
         case Js::OpCode::InlineMathPow:
         {
-#ifndef _M_ARM
+#ifndef _M_ARM32_OR_ARM64
             if (src2Val->GetValueInfo()->IsLikelyInt())
             {
                 bool lossy = false;
@@ -7498,7 +7498,7 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
             {
 #endif
                 this->TypeSpecializeFloatBinary(instr, src1Val, src2Val, pDstVal);
-#ifndef _M_ARM
+#ifndef _M_ARM32_OR_ARM64
             }
 #endif
             break;
@@ -12370,7 +12370,7 @@ GlobOpt::OptConstFoldBinary(
     }
 
     IntConstType tmpValueOut;
-    if (!instr->BinaryCalculator(src1IntConstantValue, src2IntConstantValue, &tmpValueOut)
+    if (!instr->BinaryCalculator(src1IntConstantValue, src2IntConstantValue, &tmpValueOut, TyInt32)
         || !Math::FitsInDWord(tmpValueOut))
     {
         return false;
@@ -14721,6 +14721,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                     IR::Opnd* lowerBound = baseOwnerIndir->GetIndexOpnd()
                         ? static_cast<IR::Opnd *>(baseOwnerIndir->GetIndexOpnd())
                         : IR::IntConstOpnd::New(baseOwnerIndir->GetOffset(), TyInt32, instr->m_func);
+
                     lowerBound->SetIsJITOptimizedReg(true);
                     IR::Opnd* upperBound = IR::RegOpnd::New(headSegmentLengthSym, headSegmentLengthSym->GetType(), instr->m_func);
                     upperBound->SetIsJITOptimizedReg(true);

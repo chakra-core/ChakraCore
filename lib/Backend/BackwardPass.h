@@ -101,6 +101,7 @@ private:
     void DeadStoreImplicitCallBailOut(IR::Instr * instr, bool hasLiveFields);
     void DeadStoreTypeCheckBailOut(IR::Instr * instr);
     bool IsImplicitCallBailOutCurrentlyNeeded(IR::Instr * instr, bool mayNeedImplicitCallBailOut, bool hasLiveFields);
+    bool NeedBailOutOnImplicitCallsForTypedArrayStore(IR::Instr* instr);
     bool TrackNoImplicitCallInlinees(IR::Instr *instr);
     bool ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block);
 

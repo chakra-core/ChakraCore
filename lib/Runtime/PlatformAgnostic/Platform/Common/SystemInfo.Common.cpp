@@ -6,6 +6,7 @@
 #include "RuntimePlatformAgnosticPch.h"
 #include "../../Common/Core/CommonTypedefs.h"
 #include "../../Common/PlatformAgnostic/SystemInfo.h"
+#include "../../../../Common/Codex/Utf8Codex.h"
 
 #if defined(__APPLE__)
 #include <mach-o/dyld.h> // _NSGetExecutablePath
@@ -15,7 +16,7 @@
 
 namespace PlatformAgnostic
 {
-    void SystemInfo::GetBinaryLocation(char *path, const unsigned size)
+    bool SystemInfo::GetBinaryLocation(char *path, const unsigned size)
     {
         // TODO: make AssertMsg available under PlatformAgnostic
         //AssertMsg(path != nullptr, "Path can not be nullptr");
@@ -27,7 +28,7 @@ namespace PlatformAgnostic
         if (_NSGetExecutablePath(path, &path_size))
         {
             SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: _NSGetExecutablePath has failed.");
-            return;
+            return false;
         }
 
         tmp = (char*)malloc(size);
@@ -36,17 +37,37 @@ namespace PlatformAgnostic
         memcpy(path, result, str_len);
         free(tmp);
         path[str_len] = char(0);
+        return true;
 #elif defined(__linux__)
         int str_len = readlink("/proc/self/exe", path, size - 1);
         if (str_len <= 0)
         {
             SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: /proc/self/exe has failed.");
-            return;
+            return false;
         }
         path[str_len] = char(0);
+        return true;
 #else
         #warning "Implement GetBinaryLocation for this platform"
 #endif
     }
 
+    bool SystemInfo::GetBinaryLocation(char16 *path, const unsigned size)
+    {
+        int tmp_size = size * 3;
+        char *tmp = (char*)malloc(tmp_size);
+        if (!GetBinaryLocation(tmp, tmp_size))
+        {
+            free(tmp);
+            return false;
+        }
+        if (utf8::DecodeUnitsIntoAndNullTerminate(path, (LPCUTF8&)tmp, (LPCUTF8)tmp + strlen(tmp)) <= 0)
+        {
+            free(tmp);
+            wcscpy_s(path, size, _u("GetBinaryLocation: DecodeUnitsIntoAndNullTerminate has failed."));
+            return false;
+        }
+        free(tmp);
+        return true;
+    }
 } // namespace PlatformAgnostic

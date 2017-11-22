@@ -540,7 +540,7 @@ namespace Js
 #endif
 
                 // We might've bailed out of an inlinee, so check if there were any inlinees.
-                if (this->interpreterFrame->GetFlags() & InterpreterStackFrameFlags_FromBailOut)
+                if (this->interpreterFrame->TestFlags(InterpreterStackFrameFlags_FromBailOut))
                 {
                     previousInterpreterFrameIsFromBailout = true;
 
@@ -874,15 +874,29 @@ namespace Js
         return false;
     }
 
+    bool AlignAndCheckAddressOfReturnAddressMatch(void* addressOfReturnAddress, void* nativeLibraryEntryAddress)
+    {
+        return addressOfReturnAddress == nativeLibraryEntryAddress
+#if defined(_M_IX86)
+            // Under some odd cases on x86, addressOfReturnAddress and stashed entry address need to be aligned.
+            // This happens when code is generated using two stack pointers. One or both have the address of 
+            // return address offset by 4, 8, or 12.
+            || (((uint)nativeLibraryEntryAddress - (uint)addressOfReturnAddress < 0x10) &&
+                *(void**)addressOfReturnAddress == *(void**)nativeLibraryEntryAddress
+               )
+#endif
+            ;
+    }
+
     void ** JavascriptStackWalker::GetCurrentArgv() const
     {
         Assert(this->IsJavascriptFrame());
         Assert(this->interpreterFrame != nullptr ||
-               (this->prevNativeLibraryEntry && this->currentFrame.GetAddressOfReturnAddress() == this->prevNativeLibraryEntry->addr) ||
+               (this->prevNativeLibraryEntry && AlignAndCheckAddressOfReturnAddressMatch(this->currentFrame.GetAddressOfReturnAddress(), this->prevNativeLibraryEntry->addr)) ||
                JavascriptFunction::IsNativeAddress(this->scriptContext, (void*)this->currentFrame.GetInstructionPointer()));
 
         bool isNativeAddr = (this->interpreterFrame == nullptr) &&
-                            (!this->prevNativeLibraryEntry || (this->currentFrame.GetAddressOfReturnAddress() != this->prevNativeLibraryEntry->addr));
+                            (!this->prevNativeLibraryEntry || !AlignAndCheckAddressOfReturnAddressMatch(this->currentFrame.GetAddressOfReturnAddress(), this->prevNativeLibraryEntry->addr));
         void ** argv = currentFrame.GetArgv(isNativeAddr, false /*shouldCheckForNativeAddr*/);
         Assert(argv);
         return argv;
@@ -895,7 +909,7 @@ namespace Js
         void * codeAddr = this->currentFrame.GetInstructionPointer();
         if (this->tempInterpreterFrame && codeAddr == this->tempInterpreterFrame->GetReturnAddress())
         {
-            bool isBailoutInterpreter = (this->tempInterpreterFrame->GetFlags() & Js::InterpreterStackFrameFlags_FromBailOut) != 0;
+            bool isBailoutInterpreter = this->tempInterpreterFrame->TestFlags(Js::InterpreterStackFrameFlags_FromBailOut);
 
             // We need to skip over the first interpreter frame on the stack if it is the partially initialized frame
             // otherwise it is a real frame and we should continue.
@@ -928,7 +942,7 @@ namespace Js
                 // The return address of the interpreterFrame is the same as the entryPoint for a jitted loop body.
                 // This can only ever happen when we have bailed out from a function inlined in the loop body. We
                 // wouldn't have created a new interpreterFrame if the bailout were from the loop body itself.
-                Assert((this->interpreterFrame->GetFlags() & Js::InterpreterStackFrameFlags_FromBailOut) != 0);
+                Assert(this->interpreterFrame->TestFlags(Js::InterpreterStackFrameFlags_FromBailOut));
                 InlinedFrameWalker tmpFrameWalker;
                 Assert(InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, Js::ScriptFunction::FromVar(argv[JavascriptFunctionArgIndex_Function]),
                     true /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this, false /*useInternalFrameInfo*/, true /*noAlloc*/));
@@ -943,8 +957,9 @@ namespace Js
         if (IsLibraryStackFrameEnabled(this->scriptContext) && this->nativeLibraryEntry)
         {
             void* addressOfReturnAddress = this->currentFrame.GetAddressOfReturnAddress();
-            AssertMsg(addressOfReturnAddress <= this->nativeLibraryEntry->addr, "Missed matching native library entry?");
-            if (addressOfReturnAddress == this->nativeLibraryEntry->addr)
+            void* nativeLibraryEntryAddress = this->nativeLibraryEntry->addr;
+            AssertMsg(addressOfReturnAddress <= nativeLibraryEntryAddress, "Missed matching native library entry?");
+            if (AlignAndCheckAddressOfReturnAddressMatch(addressOfReturnAddress, nativeLibraryEntryAddress))
             {
                 this->isNativeLibraryFrame = true;
                 this->shouldDetectPartiallyInitializedInterpreterFrame = false;

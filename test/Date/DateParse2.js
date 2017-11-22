@@ -8,7 +8,8 @@
 myPrint("A --");
 testDate(new Date(-2012, 1, 2, 1, 2, 3));
 testParseDate(new Date(-2012, 1, 2, 1, 2, 3).toString());
-testParseDate(new Date(-2012, 1, 2, 1, 2, 3).toUTCString());
+// Disabled due to https://github.com/Microsoft/ChakraCore/issues/4300
+//testParseDate(new Date(-2012, 1, 2, 1, 2, 3).toUTCString());
 testParseDate(new Date(-2012, 1, 2, 1, 2, 3).toISOString());
 
 myPrint("B --");
@@ -26,7 +27,7 @@ testParseDate(new Date(99999, 1, 2, 1, 2, 3).toISOString());
 myPrint("D --");
 testDate(new Date(-99999, 1, 2, 1, 2, 3));
 testParseDate(new Date(-99999, 1, 2, 1, 2, 3).toString());
-testParseDate(new Date(-99999, 1, 2, 1, 2, 3).toUTCString());
+//testParseDate(new Date(-99999, 1, 2, 1, 2, 3).toUTCString());
 testParseDate(new Date(-99999, 1, 2, 1, 2, 3).toISOString());
 
 myPrint("E --");

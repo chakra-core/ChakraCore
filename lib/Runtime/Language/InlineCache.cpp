@@ -947,6 +947,13 @@ namespace Js
             return;
         }
 
+        if (this->functionBody->GetScriptContext() == nullptr)
+        {
+            // If caches were made during ScriptContext initialization, and initialization failed the ScriptContext
+            // and InlineCacheAllocator will be freed, so we don't need to do anything during finalization
+            return;
+        }
+
         uint unregisteredInlineCacheCount = 0;
 
         Assert(inlineCaches && size > 0);
@@ -1035,6 +1042,12 @@ namespace Js
         {
             // Already finalized
             Assert(!inlineCaches);
+            return;
+        }
+        if (this->javascriptLibrary->scriptContext == nullptr)
+        {
+            // If caches were made during ScriptContext initialization, and initialization failed the ScriptContext
+            // and InlineCacheAllocator will be freed, so we don't need to do anything during finalization
             return;
         }
 

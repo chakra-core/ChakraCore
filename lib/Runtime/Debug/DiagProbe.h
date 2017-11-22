@@ -14,7 +14,8 @@ namespace Js
         STOP_STEPCOMPLETE,
         STOP_EXCEPTIONTHROW,
         STOP_ASYNCBREAK,
-        STOP_MUTATIONBREAKPOINT
+        STOP_MUTATIONBREAKPOINT,
+        STOP_DOMMUTATIONBREAKPOINT
     };
 
     struct ReturnedValue

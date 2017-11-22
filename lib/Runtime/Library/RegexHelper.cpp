@@ -441,18 +441,19 @@ namespace Js
 
 #ifdef REGEX_TRIGRAMS
         UnifiedRegex::TrigramAlphabet* trigramAlphabet = scriptContext->GetTrigramAlphabet();
-        UnifiedRegex::TrigramInfo* trigramInfo= pattern->rep.unified.trigramInfo;
-        if (trigramAlphabet!=NULL && inputLength>=MinTrigramInputLength && trigramInfo!=NULL)
+        UnifiedRegex::TrigramInfo* trigramInfo = pattern->rep.unified.trigramInfo;
+        if (trigramAlphabet != NULL && inputLength >= MinTrigramInputLength && trigramInfo != NULL)
         {
-            if (trigramAlphabet->input==NULL)
-                trigramAlphabet->MegaMatch((char16*)inputStr,inputLength);
-
+            if (trigramAlphabet->input == NULL)
+            {
+                trigramAlphabet->MegaMatch((char16*)inputStr, inputLength);
+            }
             if (trigramInfo->isTrigramPattern)
             {
                 if (trigramInfo->resultCount > 0)
                 {
-                    lastSuccessfulMatch.offset=trigramInfo->offsets[trigramInfo->resultCount-1];
-                    lastSuccessfulMatch.length=UnifiedRegex::TrigramInfo::PatternLength;
+                    lastSuccessfulMatch.offset = trigramInfo->offsets[trigramInfo->resultCount - 1];
+                    lastSuccessfulMatch.length = UnifiedRegex::TrigramInfo::PatternLength;
                 }
                 // else: leave lastMatch undefined
 
@@ -480,7 +481,7 @@ namespace Js
                     }
                     else
                     {
-                        for (int k = 0;  k < trigramInfo->resultCount; k++)
+                        for (int k = 0; k < trigramInfo->resultCount; k++)
                         {
                             JavascriptString * str = SubString::New(input, trigramInfo->offsets[k], UnifiedRegex::TrigramInfo::PatternLength);
                             trigramInfo->cachedResult[k] = str;
@@ -535,7 +536,7 @@ namespace Js
                 if (arrayResult == 0)
                     arrayResult = CreateMatchResult(stackAllocationPointer, scriptContext, isGlobal, pattern->NumGroups(), input);
                 JavascriptString *const matchedString = SubString::New(input, lastActualMatch.offset, lastActualMatch.length);
-                if(isGlobal)
+                if (isGlobal)
                     arrayResult->DirectSetItemAt(globalIndex, matchedString);
                 else
                 {
@@ -549,7 +550,7 @@ namespace Js
             offset = lastActualMatch.offset + max(lastActualMatch.length, static_cast<CharCountOrFlag>(1));
         } while (isGlobal);
         PrimEndMatch(state, scriptContext, pattern);
-        if(updateHistory)
+        if (updateHistory)
         {
             PropagateLastMatch(scriptContext, isGlobal, isSticky, regularExpression, input, lastSuccessfulMatch, lastActualMatch, true, true);
         }
@@ -669,27 +670,27 @@ namespace Js
         const bool isSticky = pattern->IsSticky();
         const bool useCache = !isGlobal && !isSticky;
 
-        RegExpTestCache* cache = nullptr;
+        UnifiedRegex::RegExpTestCache* cache = nullptr;
         JavascriptString * cachedInput = nullptr;
         uint cacheIndex = 0;
         bool cacheHit = false;
         bool cachedResult = false;
         if (useCache)
         {
-            cache = regularExpression->EnsureTestCache();
-            cacheIndex = JavascriptRegExp::GetTestCacheIndex(input);
-            cachedInput = cache[cacheIndex].input != nullptr ? cache[cacheIndex].input->Get() : nullptr;
+            cache = pattern->EnsureTestCache();
+            cacheIndex = UnifiedRegex::RegexPattern::GetTestCacheIndex(input);
+            cachedInput = cache->inputArray[cacheIndex] != nullptr ? cache->inputArray[cacheIndex]->Get() : nullptr;
             cacheHit = cachedInput == input;
         }
 #if ENABLE_REGEX_CONFIG_OPTIONS
         RegexHelperTrace(scriptContext, UnifiedRegex::RegexStats::Test, regularExpression, input);
-        JavascriptRegExp::TraceTestCache(cacheHit, input, cachedInput, !useCache);
+        UnifiedRegex::RegexPattern::TraceTestCache(cacheHit, input, cachedInput, !useCache);
 #endif
 
         if (cacheHit)
         {
             Assert(useCache);
-            cachedResult = cache[cacheIndex].result;
+            cachedResult = (cache->resultBV.Test(cacheIndex) != 0);
             // for debug builds, let's still do the real test so we can validate values in the cache
 #if !DBG
             return JavascriptBoolean::ToVar(cachedResult, scriptContext);
@@ -705,8 +706,8 @@ namespace Js
                 Assert(offset == 0);
                 Assert(!cacheHit || cachedInput == input);
                 Assert(!cacheHit || cachedResult == false);
-                cache[cacheIndex].input = regularExpression->GetRecycler()->CreateWeakReferenceHandle(input);
-                cache[cacheIndex].result = false;
+                cache->inputArray[cacheIndex] = regularExpression->GetRecycler()->CreateWeakReferenceHandle(input);
+                cache->resultBV.Clear(cacheIndex);
             }
             return scriptContext->GetLibrary()->GetFalse();
         }
@@ -724,8 +725,15 @@ namespace Js
             Assert(offset == 0);
             Assert(!cacheHit || cachedInput == input);
             Assert(!cacheHit || cachedResult == wasFound);
-            cache[cacheIndex].input = regularExpression->GetRecycler()->CreateWeakReferenceHandle(input);
-            cache[cacheIndex].result = wasFound;
+            cache->inputArray[cacheIndex] = regularExpression->GetRecycler()->CreateWeakReferenceHandle(input);
+            if (wasFound)
+            {
+                cache->resultBV.Set(cacheIndex);
+            }
+            else
+            {
+                cache->resultBV.Clear(cacheIndex);
+            }
         }
         return JavascriptBoolean::ToVar(wasFound, scriptContext);
     }
@@ -1231,9 +1239,9 @@ namespace Js
     Var RegexHelper::RegexEs5ReplaceImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptFunction* replacefn)
     {
         UnifiedRegex::RegexPattern* pattern = regularExpression->GetPattern();
+        JavascriptString* newString = nullptr;
         const char16* inputStr = input->GetString();
         CharCount inputLength = input->GetLength();
-        JavascriptString* newString = nullptr;
         const int numGroups = pattern->NumGroups();
         Var nonMatchValue = NonMatchValue(scriptContext, false);
         UnifiedRegex::GroupInfo lastMatch; // initially undefined
@@ -1464,8 +1472,8 @@ namespace Js
             CharCount newLength = prefixLength + postfixLength + replace->GetLength();
             BufferStringBuilder bufferString(newLength, match->GetScriptContext());
             bufferString.SetContent(prefixStr, prefixLength,
-                                    replace->GetString(), replace->GetLength(),
-                                    postfixStr, postfixLength);
+                replace->GetString(), replace->GetLength(),
+                postfixStr, postfixLength);
             return bufferString.ToString();
         }
 

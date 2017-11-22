@@ -29,7 +29,7 @@ PeepsMD::ProcessImplicitRegs(IR::Instr *instr)
     {
         this->peeps->ClearReg(RegRDX);
     }
-    else if (instr->m_opcode == Js::OpCode::IDIV)
+    else if (instr->m_opcode == Js::OpCode::IDIV || instr->m_opcode == Js::OpCode::DIV)
     {
         if (instr->GetDst()->AsRegOpnd()->GetReg() == RegRDX)
         {

@@ -214,7 +214,7 @@ namespace Js
     class AutoIcuJsObject : public FinalizableObject
     {
     private:
-        T *instance;
+        FieldNoBarrier(T *) instance;
 
     public:
         DEFINE_VTABLE_CTOR_NOBASE(AutoIcuJsObject<T>);
@@ -746,21 +746,24 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        JavascriptString *argString = JavascriptString::FromVar(args.Values[1]);
-        PCWSTR passedLocale = argString->GetSz();
+        Var toReturn = nullptr;
+        JavascriptString *localeStrings = JavascriptString::FromVar(args.Values[1]);
+        PCWSTR passedLocale = localeStrings->GetSz();
 
 #if defined(INTL_ICU)
         char16 resolvedLocaleName[ULOC_FULLNAME_CAPACITY] = { 0 };
         if (ResolveLocaleBestFit(passedLocale, resolvedLocaleName))
         {
-            return JavascriptString::NewCopySz(resolvedLocaleName, scriptContext);
+            toReturn = JavascriptString::NewCopySz(resolvedLocaleName, scriptContext);
         }
-
+        else
+        {
 #ifdef INTL_ICU_DEBUG
-        Output::Print(_u("Intl::ResolveLocaleBestFit returned false: EntryIntl_ResolveLocaleBestFit returning null to fallback to JS\n"));
+            Output::Print(_u("Intl::ResolveLocaleBestFit returned false: EntryIntl_ResolveLocaleBestFit returning null to fallback to JS\n"));
 #endif
-        return scriptContext->GetLibrary()->GetNull();
-#else
+            toReturn = scriptContext->GetLibrary()->GetNull();
+        }
+#else // !INTL_ICU
         DelayLoadWindowsGlobalization* wgl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
         WindowsGlobalizationAdapter* wga = GetWindowsGlobalizationAdapter(scriptContext);
 
@@ -771,6 +774,7 @@ namespace Js
             HandleOOMSOEHR(hr);
             return scriptContext->GetLibrary()->GetUndefined();
         }
+
         AutoHSTRING locale;
         if (FAILED(hr = wga->GetResolvedLanguage(formatter, &locale)))
         {
@@ -778,8 +782,11 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        return JavascriptString::NewCopySz(wgl->WindowsGetStringRawBuffer(*locale, NULL), scriptContext);
+        toReturn = JavascriptString::NewCopySz(wgl->WindowsGetStringRawBuffer(*locale, NULL), scriptContext);
+
 #endif
+
+        return toReturn;
     }
 
     Var IntlEngineInterfaceExtensionObject::EntryIntl_GetDefaultLocale(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1267,12 +1274,14 @@ namespace Js
         }
 
         DWORD compareFlags = 0;
-        JavascriptString* str1 = JavascriptString::FromVar(args.Values[1]);
-        JavascriptString* str2 = JavascriptString::FromVar(args.Values[2]);
-
+        int compareResult = 0;
+        DWORD lastError = S_OK;
         WCHAR defaultLocale[LOCALE_NAME_MAX_LENGTH];
         const char16 *givenLocale = nullptr;
         defaultLocale[0] = '\0';
+
+        JavascriptString *str1 = JavascriptString::FromVar(args.Values[1]);
+        JavascriptString *str2 = JavascriptString::FromVar(args.Values[2]);
 
         if (!JavascriptOperators::IsUndefinedObject(args.Values[3]))
         {
@@ -1332,8 +1341,6 @@ namespace Js
             JavascriptError::MapAndThrowError(scriptContext, HRESULT_FROM_WIN32(GetLastError()));
         }
 
-        int compareResult = 0;
-        DWORD lastError = S_OK;
         BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, _u("localeCompare"))
         {
             using namespace PlatformAgnostic;

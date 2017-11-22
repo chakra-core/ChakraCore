@@ -25,7 +25,7 @@ WebAssemblyEnvironment::WebAssemblyEnvironment(WebAssemblyModule* module):
     this->table = this->start + module->GetTableEnvironmentOffset();
     this->globals = this->start + module->GetGlobalOffset();
 
-    uint32 globalsSize = WAsmJs::ConvertToJsVarOffset<byte>(module->GetGlobalsByteSize());
+    uint32 globalsSize = WAsmJs::ConvertOffset<byte, Js::Var>(module->GetGlobalsByteSize());
     // Assumes globals are last
     Assert(globals > table && globals > functions && globals > imports && globals > memory);
     if (globals < start ||

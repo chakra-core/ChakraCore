@@ -15,6 +15,7 @@ namespace Wasm
     class WasmDataSegment;
     class WasmElementSegment;
     class WasmGlobal;
+    class WasmCompilationException;
     struct WasmImport;
     struct WasmExport;
     struct CustomSection;
@@ -22,6 +23,17 @@ namespace Wasm
 
 namespace Js
 {
+
+struct AutoCleanStr
+{
+    char16* str = nullptr;
+    ~AutoCleanStr()
+    {
+        delete[] str;
+    }
+};
+
+
 class WebAssemblyModule : public DynamicObject
 {
 protected:
@@ -147,6 +159,8 @@ public:
     Wasm::CustomSection GetCustomSection(uint32 index) const;
 
     Wasm::WasmBinaryReader* GetReader() const { return m_reader; }
+
+    static char16* FormatExceptionMessage(Wasm::WasmCompilationException* ex, AutoCleanStr* autoClean, WebAssemblyModule* wasmModule = nullptr, FunctionBody* body = nullptr);
 
     virtual void Finalize(bool isShutdown) override;
     virtual void Dispose(bool isShutdown) override;

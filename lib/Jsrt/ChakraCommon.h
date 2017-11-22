@@ -443,7 +443,12 @@ typedef unsigned short uint16_t;
         ///     Calling <c>JsSetException</c> will also dispatch the exception to the script debugger
         ///     (if any) giving the debugger a chance to break on the exception.
         /// </summary>
-        JsRuntimeAttributeDispatchSetExceptionsToDebugger = 0x00000040
+        JsRuntimeAttributeDispatchSetExceptionsToDebugger = 0x00000040,
+        /// <summary>
+        ///     Disable Failfast fatal error on OOM
+        /// </summary>
+        JsRuntimeAttributeDisableFatalOnOOM = 0x00000080,
+
     } JsRuntimeAttributes;
 
     /// <summary>

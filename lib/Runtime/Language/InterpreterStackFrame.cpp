@@ -1051,6 +1051,7 @@ namespace Js
         if (this->function->GetHasInlineCaches() && Js::ScriptFunctionWithInlineCache::Is(this->function))
         {
             this->inlineCaches = (void**)Js::ScriptFunctionWithInlineCache::FromVar(this->function)->GetInlineCaches();
+            Assert(this->inlineCaches != nullptr);
         }
         else
         {
@@ -1156,6 +1157,10 @@ namespace Js
 #ifdef ENABLE_WASM
         newInstance->m_wasmMemory = nullptr;
 #endif
+        Var* outparamsEnd = newInstance->m_outParams + this->executeFunction->GetOutParamMaxDepth();
+#if DBG
+        newInstance->m_outParamsEnd = outparamsEnd;
+#endif
 
         bool doInterruptProbe = newInstance->scriptContext->GetThreadContext()->DoInterruptProbe(this->executeFunction);
 #if ENABLE_NATIVE_CODEGEN
@@ -1210,7 +1215,7 @@ namespace Js
         // the savedLoopImplicitCallFlags is allocated at the end of the out param array
         newInstance->savedLoopImplicitCallFlags = nullptr;
 #endif
-        char * nextAllocBytes = (char *)(newInstance->m_outParams + this->executeFunction->GetOutParamMaxDepth());
+        char * nextAllocBytes = (char *)(outparamsEnd);
 
         // If we bailed out, we will use the JIT frame's for..in enumerators
         if (bailedOut || this->executeFunction->GetForInLoopDepth() == 0)
@@ -1709,10 +1714,14 @@ namespace Js
     }
 #endif
 
+#if !defined(_M_ARM64)
     Var InterpreterStackFrame::StaticInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
         return InterpreterThunk((JavascriptCallStackLayout*)&function);
     }
+#else
+    // Language\arm64\arm64_Thunks.asm
+#endif
 #pragma optimize("", on)
 
     Var InterpreterStackFrame::InterpreterThunk(JavascriptCallStackLayout* layout)
@@ -1852,6 +1861,7 @@ namespace Js
             // when resuming a generator and so it only used here if a frame already exists on the
             // generator object.
             AssertOrFailFastMsg(args.Info.Count == 2 && ((args.Info.Flags & CallFlags_ExtraArg) == CallFlags_None), "Generator ScriptFunctions should only be invoked by generator APIs with the pair of arguments they pass in -- the generator object and a ResumeYieldData pointer");
+
             JavascriptGenerator* generator = JavascriptGenerator::FromVar(args[0]);
             newInstance = generator->GetFrame();
 
@@ -1964,7 +1974,7 @@ namespace Js
         TTD::TTDExceptionFramePopper exceptionFramePopper;
         if(SHOULD_DO_TTD_STACK_STMT_OP(functionScriptContext))
         {
-            bool isInFinally = ((newInstance->m_flags & Js::InterpreterStackFrameFlags_WithinFinallyBlock) == Js::InterpreterStackFrameFlags_WithinFinallyBlock);
+            bool isInFinally = newInstance->TestFlags(Js::InterpreterStackFrameFlags_WithinFinallyBlock);
 
             threadContext->TTDExecutionInfo->PushCallEvent(function, args.Info.Count, args.Values, isInFinally);
             exceptionFramePopper.PushInfo(threadContext->TTDExecutionInfo, function);
@@ -2314,7 +2324,8 @@ namespace Js
 
     inline void InterpreterStackFrame::PopOut(ArgSlot argCount)
     {
-        m_outSp -= (argCount+1);
+        ArgSlotMath::Inc(argCount);
+        m_outSp -= argCount;
         m_outParams = (Var*)*m_outSp;
 
         AssertMsg(m_localSlots + this->m_functionBody->GetLocalsCount() <= m_outSp &&
@@ -2880,7 +2891,6 @@ namespace Js
 #else
         InterpreterStackFrame * newInstance = newInstance = setup.InitializeAllocation(allocation, funcObj->GetFunctionBody()->GetHasImplicitArgIns(), doProfile, nullptr, stackAddr);
 #endif
-
         newInstance->m_reader.Create(funcObj->GetFunctionBody());
         // now that we have set up the new frame, let's interpret it!
         funcObj->GetFunctionBody()->BeginExecution();
@@ -3315,11 +3325,11 @@ namespace Js
         } autoRestore(this);
 #endif
 
-        if (this->ehBailoutData && !(m_flags & InterpreterStackFrameFlags_FromInlineeCodeInEHBailOut))
+        if (this->ehBailoutData && !this->TestFlags(InterpreterStackFrameFlags_FromBailOutInInlinee))
         {
-            if ((m_flags & Js::InterpreterStackFrameFlags_FromBailOut) && !(m_flags & InterpreterStackFrameFlags_ProcessingBailOutFromEHCode))
+            if (this->TestFlags(Js::InterpreterStackFrameFlags_FromBailOut) && !this->TestFlags(InterpreterStackFrameFlags_ProcessingBailOutFromEHCode))
             {
-                m_flags |= Js::InterpreterStackFrameFlags_ProcessingBailOutFromEHCode;
+                this->OrFlags(Js::InterpreterStackFrameFlags_ProcessingBailOutFromEHCode);
                 EHBailoutData * topLevelEHBailoutData = this->ehBailoutData;
                 while (topLevelEHBailoutData->parent->nestingDepth != -1)
                 {
@@ -3327,7 +3337,7 @@ namespace Js
                     topLevelEHBailoutData = topLevelEHBailoutData->parent;
                 }
                 ProcessTryHandlerBailout(topLevelEHBailoutData, this->ehBailoutData->nestingDepth);
-                m_flags &= ~Js::InterpreterStackFrameFlags_ProcessingBailOutFromEHCode;
+                this->ClearFlags(Js::InterpreterStackFrameFlags_ProcessingBailOutFromEHCode);
                 this->ehBailoutData = nullptr;
             }
         }
@@ -3394,7 +3404,7 @@ namespace Js
 #if ENABLE_PROFILE_INFO
         FunctionBody *const functionBody = GetFunctionBody();
         const ExecutionMode interpreterExecutionMode =
-            functionBody->GetInterpreterExecutionMode(!!(GetFlags() & InterpreterStackFrameFlags_FromBailOut));
+            functionBody->GetInterpreterExecutionMode(TestFlags(InterpreterStackFrameFlags_FromBailOut));
         if(interpreterExecutionMode == ExecutionMode::ProfilingInterpreter)
         {
 #if ENABLE_TTD
@@ -3759,7 +3769,9 @@ namespace Js
         byte _declspec(align(16)) reg[3 * 16];
         uint* argSizes = asmInfo->GetArgsSizesArray();
         Assert(asmInfo->GetArgSizeArrayLength() >= 2);
+        CompileAssert((FunctionBody::MinAsmJsOutParams() * sizeof(Var)) == (sizeof(Var) * 2 + sizeof(reg)));
         byte* curOutParams = (byte*)m_outParams + sizeof(Var);
+        Assert(curOutParams + argSizes[0] + argSizes[1] + 16 <= (byte*)this->m_outParamsEnd);
         js_memcpy_s(reg, 16, curOutParams, 16);
         js_memcpy_s(reg + 16, 16, curOutParams + argSizes[0], 16);
         js_memcpy_s(reg + 32, 16, curOutParams + argSizes[0] + argSizes[1], 16);
@@ -3879,7 +3891,7 @@ namespace Js
         if (playout->Return == Js::Constants::NoRegister)
         {
             flags |= CallFlags_NotUsed;
-            Arguments args(CallInfo((CallFlags)flags, playout->ArgCount), m_outParams);
+            Arguments args(CallInfo((CallFlags)flags, argCount), m_outParams);
             AssertMsg(static_cast<unsigned>(args.Info.Flags) == flags, "Flags don't fit into the CallInfo field?");
                 argCount = args.GetArgCountWithExtraArgs();
             if (spreadIndices != nullptr)
@@ -3894,7 +3906,7 @@ namespace Js
         else
         {
             flags |= CallFlags_Value;
-            Arguments args(CallInfo((CallFlags)flags, playout->ArgCount), m_outParams);
+            Arguments args(CallInfo((CallFlags)flags, argCount), m_outParams);
             AssertMsg(static_cast<unsigned>(args.Info.Flags) == flags, "Flags don't fit into the CallInfo field?");
             argCount = args.GetArgCountWithExtraArgs();
             if (spreadIndices != nullptr)
@@ -5053,9 +5065,9 @@ namespace Js
                 GetReg(playout->Element),
                 m_functionBody,
                 playout->profileId,
-                (m_flags & InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall) != 0));
+                this->TestFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall)));
 
-        m_flags &= ~InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall;
+        this->ClearFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall);
 
         threadContext->CheckAndResetImplicitCallAccessorFlag();
         threadContext->AddImplicitCallFlags(savedImplicitCallFlags);
@@ -5090,7 +5102,7 @@ namespace Js
             element = JavascriptOperators::OP_GetElementI(instance, GetReg(playout->Element), GetScriptContext());
         }
 
-        m_flags &= ~InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall;
+        this->ClearFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall);
 
         threadContext->CheckAndResetImplicitCallAccessorFlag();
         threadContext->AddImplicitCallFlags(savedImplicitCallFlags);
@@ -5130,7 +5142,7 @@ namespace Js
             JavascriptOperators::OP_SetElementI(instance, varIndex, value, GetScriptContext(), flags);
         }
 
-        m_flags &= ~InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall;
+        this->ClearFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall);
 
         threadContext->CheckAndResetImplicitCallAccessorFlag();
         threadContext->AddImplicitCallFlags(savedImplicitCallFlags);
@@ -5153,9 +5165,9 @@ namespace Js
             m_functionBody,
             playout->profileId,
             flags,
-            (m_flags & InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall) != 0);
+            this->TestFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall));
 
-        m_flags &= ~InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall;
+        this->ClearFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall);
 
         threadContext->CheckAndResetImplicitCallAccessorFlag();
         threadContext->AddImplicitCallFlags(savedImplicitCallFlags);
@@ -5617,6 +5629,22 @@ namespace Js
         return true;
     }
 
+    template <LayoutSize layoutSize, bool profiled>
+    const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
+    {
+        uint32 loopId = m_reader.GetLayout<OpLayoutT_Unsigned1<LayoutSizePolicy<layoutSize>>>(ip)->C1;
+        return OP_ProfiledLoopBodyStart<layoutSize, profiled>(loopId);
+    }
+
+#ifdef ASMJS_PLAT
+    template <LayoutSize layoutSize, bool profiled>
+    const byte * InterpreterStackFrame::OP_ProfiledWasmLoopBodyStart(const byte * ip)
+    {
+        uint32 loopId = m_reader.GetLayout<OpLayoutT_WasmLoopStart<LayoutSizePolicy<layoutSize>>>(ip)->loopId;
+        return OP_ProfiledLoopBodyStart<layoutSize, profiled>(loopId);
+    }
+#endif
+
 #if ENABLE_PROFILE_INFO
     void InterpreterStackFrame::OP_RecordImplicitCall(uint loopNumber)
     {
@@ -5721,21 +5749,19 @@ namespace Js
     }
 
     template <LayoutSize layoutSize, bool profiled>
-    const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
+    const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
     {
-        uint32 C1 = m_reader.GetLayout<OpLayoutT_Unsigned1<LayoutSizePolicy<layoutSize>>>(ip)->C1;
-
-        if(profiled || isAutoProfiling)
+        if (profiled || isAutoProfiling)
         {
             this->currentLoopCounter++;
         }
 
         if (profiled)
         {
-            OP_RecordImplicitCall(C1);
+            OP_RecordImplicitCall(loopId);
         }
 
-        (this->*(profiled ? opProfiledLoopBodyStart : opLoopBodyStart))(C1, layoutSize, false /* isFirstIteration */);
+        (this->*(profiled ? opProfiledLoopBodyStart : opLoopBodyStart))(loopId, layoutSize, false /* isFirstIteration */);
         return m_reader.GetIP();
     }
 
@@ -5797,17 +5823,12 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopEnd(const byte * ip)
 }
 
 template <LayoutSize layoutSize, bool profiled>
-const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
+const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
 {
-    uint32 C1 = m_reader.GetLayout<OpLayoutT_Unsigned1<LayoutSizePolicy<layoutSize>>>(ip)->C1;
-
     Assert(!profiled);
-
-    (this->*opLoopBodyStart)(C1, layoutSize, false /* isFirstIteration */);
+    (this->*opLoopBodyStart)(loopId, layoutSize, false /* isFirstIteration */);
     return m_reader.GetIP();
 }
-
-
 #endif
 
     template<bool InterruptProbe, bool JITLoopBody>
@@ -5893,7 +5914,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Assert(!this->IsInCatchOrFinallyBlock());
 
         Js::LoopHeader *loopHeader = fn->GetLoopHeader(loopNumber);
-        loopHeader->isInTry = (this->m_flags & Js::InterpreterStackFrameFlags_WithinTryBlock);
+        loopHeader->isInTry = this->TestFlags(Js::InterpreterStackFrameFlags_WithinTryBlock);
 
         Js::LoopEntryPointInfo * entryPointInfo = loopHeader->GetCurrentEntryPointInfo();
 
@@ -6486,7 +6507,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
     void InterpreterStackFrame::OP_ChkNewCallFlag()
     {
-        if (!(this->m_callFlags & CallFlags_New))
+        if (!(this->m_callFlags & CallFlags_New) && !this->TestFlags(InterpreterStackFrameFlags_FromBailOutInInlinee))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_ClassConstructorCannotBeCalledWithoutNew);
         }
@@ -6527,7 +6548,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         {
             this->nestedTryDepth++;
             // mark the stackFrame as 'in try block'
-            this->m_flags |= InterpreterStackFrameFlags_WithinTryBlock;
+            this->OrFlags(InterpreterStackFrameFlags_WithinTryBlock);
 
             Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
 
@@ -6566,7 +6587,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         if (--this->nestedTryDepth == -1)
         {
             // unmark the stackFrame as 'in try block'
-            this->m_flags &= ~InterpreterStackFrameFlags_WithinTryBlock;
+            this->ClearFlags(InterpreterStackFrameFlags_WithinTryBlock);
         }
 
         // Now that the stack is unwound, let's run the catch block.
@@ -6605,14 +6626,14 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
             this->nestedCatchDepth++;
             // mark the stackFrame as 'in catch block'
-            this->m_flags |= InterpreterStackFrameFlags_WithinCatchBlock;
+            this->OrFlags(InterpreterStackFrameFlags_WithinCatchBlock);
 
             this->ProcessCatch();
 
             if (--this->nestedCatchDepth == -1)
             {
                 // unmark the stackFrame as 'in catch block'
-                this->m_flags &= ~InterpreterStackFrameFlags_WithinCatchBlock;
+                this->ClearFlags(InterpreterStackFrameFlags_WithinCatchBlock);
             }
         }
     }
@@ -6669,7 +6690,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             {
                 this->nestedTryDepth++;
                 // mark the stackFrame as 'in try block'
-                this->m_flags |= InterpreterStackFrameFlags_WithinTryBlock;
+                this->OrFlags(InterpreterStackFrameFlags_WithinTryBlock);
 
                 if (tryNestingDepth != 0)
                 {
@@ -6717,7 +6738,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         {
             this->nestedCatchDepth++;
             // mark the stackFrame as 'in catch block'
-            this->m_flags |= InterpreterStackFrameFlags_WithinCatchBlock;
+            this->OrFlags(InterpreterStackFrameFlags_WithinCatchBlock);
 
             if (tryNestingDepth != 0)
             {
@@ -6728,7 +6749,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             if (--this->nestedCatchDepth == -1)
             {
                 // unmark the stackFrame as 'in catch block'
-                this->m_flags &= ~InterpreterStackFrameFlags_WithinCatchBlock;
+                this->ClearFlags(InterpreterStackFrameFlags_WithinCatchBlock);
             }
             return;
         }
@@ -6737,7 +6758,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             Assert(ehBailoutData->ht == HandlerType::HT_Finally);
             this->nestedFinallyDepth++;
             // mark the stackFrame as 'in finally block'
-            this->m_flags |= InterpreterStackFrameFlags_WithinFinallyBlock;
+            this->OrFlags(InterpreterStackFrameFlags_WithinFinallyBlock);
 
             if (tryNestingDepth != 0)
             {
@@ -6752,7 +6773,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             if (--this->nestedFinallyDepth == -1)
             {
                 // unmark the stackFrame as 'in finally block'
-                this->m_flags &= ~InterpreterStackFrameFlags_WithinFinallyBlock;
+                this->ClearFlags(InterpreterStackFrameFlags_WithinFinallyBlock);
             }
 
             // Finally exited with LeaveNull, We don't throw for early returns
@@ -6771,7 +6792,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         if (--this->nestedTryDepth == -1)
         {
             // unmark the stackFrame as 'in try block'
-            this->m_flags &= ~InterpreterStackFrameFlags_WithinTryBlock;
+            this->ClearFlags(InterpreterStackFrameFlags_WithinTryBlock);
         }
 
         // Now that the stack is unwound, let's run the catch block.
@@ -6811,14 +6832,14 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
                 this->nestedCatchDepth++;
                 // mark the stackFrame as 'in catch block'
-                this->m_flags |= InterpreterStackFrameFlags_WithinCatchBlock;
+                this->OrFlags(InterpreterStackFrameFlags_WithinCatchBlock);
 
                 this->ProcessCatch();
 
                 if (--this->nestedCatchDepth == -1)
                 {
                     // unmark the stackFrame as 'in catch block'
-                    this->m_flags &= ~InterpreterStackFrameFlags_WithinCatchBlock;
+                    this->ClearFlags(InterpreterStackFrameFlags_WithinCatchBlock);
                 }
             }
             else
@@ -6832,7 +6853,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
                 this->nestedFinallyDepth++;
                 // mark the stackFrame as 'in finally block'
-                this->m_flags |= InterpreterStackFrameFlags_WithinFinallyBlock;
+                this->OrFlags(InterpreterStackFrameFlags_WithinFinallyBlock);
 
                 LayoutSize layoutSize;
                 OpCode finallyOp = m_reader.ReadOp(layoutSize);
@@ -6852,7 +6873,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 if (--this->nestedFinallyDepth == -1)
                 {
                     // unmark the stackFrame as 'in finally block'
-                    this->m_flags &= ~InterpreterStackFrameFlags_WithinFinallyBlock;
+                    this->ClearFlags(InterpreterStackFrameFlags_WithinFinallyBlock);
                 }
                 if (finallyEndOffset == 0)
                 {
@@ -6872,7 +6893,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 this->nestedFinallyDepth++;
 
                 // mark the stackFrame as 'in finally block'
-                this->m_flags |= InterpreterStackFrameFlags_WithinFinallyBlock;
+                this->OrFlags(InterpreterStackFrameFlags_WithinFinallyBlock);
 
                 LayoutSize layoutSize;
                 OpCode finallyOp = m_reader.ReadOp(layoutSize);
@@ -6892,7 +6913,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 if (--this->nestedFinallyDepth == -1)
                 {
                     // unmark the stackFrame as 'in finally block'
-                    this->m_flags &= ~InterpreterStackFrameFlags_WithinFinallyBlock;
+                    this->ClearFlags(InterpreterStackFrameFlags_WithinFinallyBlock);
                 }
                 if (finallyEndOffset == 0)
                 {
@@ -6904,7 +6925,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
     void InterpreterStackFrame::TrySetRetOffset()
     {
-        Assert(this->m_flags & Js::InterpreterStackFrameFlags_WithinTryBlock);
+        Assert(this->TestFlags(Js::InterpreterStackFrameFlags_WithinTryBlock));
         // It may happen that a JITted loop body returned the offset of RET. If the loop body was
         // called from a try, the interpreter "Process()" should also just return.
         if (this->retOffset != 0)
@@ -6915,8 +6936,8 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
     bool InterpreterStackFrame::IsInCatchOrFinallyBlock()
     {
-        return (this->m_flags & Js::InterpreterStackFrameFlags_WithinCatchBlock) ||
-               (this->m_flags & Js::InterpreterStackFrameFlags_WithinFinallyBlock);
+        return this->TestFlags(Js::InterpreterStackFrameFlags_WithinCatchBlock) ||
+               this->TestFlags(Js::InterpreterStackFrameFlags_WithinFinallyBlock);
     }
 
     void InterpreterStackFrame::OP_BeginBodyScope()
@@ -6943,7 +6964,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
     void InterpreterStackFrame::OP_ResumeCatch()
     {
-        this->m_flags |= InterpreterStackFrameFlags_WithinCatchBlock;
+        this->OrFlags(InterpreterStackFrameFlags_WithinCatchBlock);
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
         if (this->IsInDebugMode())
@@ -6956,7 +6977,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             this->Process();
         }
 
-        this->m_flags &= ~InterpreterStackFrameFlags_WithinCatchBlock;
+        this->ClearFlags(InterpreterStackFrameFlags_WithinCatchBlock);
     }
 
     /// ---------------------------------------------------------------------------------------------------
@@ -6977,7 +6998,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
             this->nestedTryDepth++;
             // mark the stackFrame as 'in try block'
-            this->m_flags |= InterpreterStackFrameFlags_WithinTryBlock;
+            this->OrFlags(InterpreterStackFrameFlags_WithinTryBlock);
 
             if (shouldCacheSP)
             {
@@ -7020,7 +7041,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         if (--this->nestedTryDepth == -1)
         {
             // unmark the stackFrame as 'in try block'
-            this->m_flags &= ~InterpreterStackFrameFlags_WithinTryBlock;
+            this->ClearFlags(InterpreterStackFrameFlags_WithinTryBlock);
         }
 
         shouldCacheSP = !skipFinallyBlock;
@@ -7064,7 +7085,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
         RestoreSp();
         // mark the stackFrame as 'in finally block'
-        this->m_flags |= InterpreterStackFrameFlags_WithinFinallyBlock;
+        this->OrFlags(InterpreterStackFrameFlags_WithinFinallyBlock);
 
         LayoutSize layoutSize;
         OpCode finallyOp = m_reader.ReadOp(layoutSize);
@@ -7084,7 +7105,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         if (--this->nestedFinallyDepth == -1)
         {
             // unmark the stackFrame as 'in finally block'
-            this->m_flags &= ~InterpreterStackFrameFlags_WithinFinallyBlock;
+            this->ClearFlags(InterpreterStackFrameFlags_WithinFinallyBlock);
         }
 
         bool endOfFinallyBlock = newOffset == 0;
@@ -7119,7 +7140,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
     void InterpreterStackFrame::OP_ResumeFinally(const byte* ip, Js::JumpOffset jumpOffset, RegSlot exceptionRegSlot, RegSlot offsetRegSlot)
     {
-        this->m_flags |= InterpreterStackFrameFlags_WithinFinallyBlock;
+        this->OrFlags(InterpreterStackFrameFlags_WithinFinallyBlock);
 
         int newOffset = 0;
 #ifdef ENABLE_SCRIPT_DEBUGGING
@@ -7133,7 +7154,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             newOffset = ::Math::PointerCastToIntegral<int>(this->Process());
         }
 
-        this->m_flags &= ~InterpreterStackFrameFlags_WithinFinallyBlock;
+        this->ClearFlags(InterpreterStackFrameFlags_WithinFinallyBlock);
 
         bool endOfFinallyBlock = newOffset == 0;
         if (endOfFinallyBlock)
@@ -8857,7 +8878,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         if (!PHASE_OFF(ClosureRangeCheckPhase, this->m_functionBody))
         {
-            if (((FrameDisplay*)instance)->GetLength() < slotIndex - Js::FrameDisplay::GetOffsetOfScopes()/sizeof(Var))
+            if (((FrameDisplay*)instance)->GetLength() <= slotIndex - Js::FrameDisplay::GetOffsetOfScopes()/sizeof(Var))
             {
                 Js::Throw::FatalInternalError();
             }

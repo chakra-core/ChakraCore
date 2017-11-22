@@ -151,7 +151,8 @@ protected:
         ignoreOverflowBitCount(32),
         isCtorCall(false),
         isCallInstrProtectedByNoProfileBailout(false),
-        hasSideEffects(false)
+        hasSideEffects(false),
+        isNonFastPathFrameDisplay(false)
     {
     }
 public:
@@ -336,10 +337,10 @@ public:
     bool            IsCmCC_R8();
     bool            IsCmCC_I4();
     bool            IsNeq();
-    bool            BinaryCalculator(IntConstType src1Const, IntConstType src2Const, IntConstType *pResult);
+    bool            BinaryCalculator(IntConstType src1Const, IntConstType src2Const, IntConstType *pResult, IRType type);
     template <typename T>     
     bool            BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult, bool checkWouldTrap);
-    bool            UnaryCalculator(IntConstType src1Const, IntConstType *pResult);
+    bool            UnaryCalculator(IntConstType src1Const, IntConstType *pResult, IRType type);
     IR::Instr*      GetNextArg();
 
     // Iterates argument chain
@@ -679,7 +680,7 @@ private:
     union labelLocation
     {
         BYTE *                  pc;     // Used by encoder and is the real pc offset
-        uint32                  offset; // Used by preEncoder and is an estimation pc offset, not accurate
+        uintptr_t               offset; // Used by preEncoder and is an estimation pc offset, not accurate
     } m_pc;
 
     BasicBlock *            m_block;
@@ -689,9 +690,9 @@ public:
 
     inline void             SetPC(BYTE * pc);
     inline BYTE *           GetPC(void) const;
-    inline void             SetOffset(uint32 offset);
-    inline void             ResetOffset(uint32 offset);
-    inline uint32           GetOffset(void) const;
+    inline void             SetOffset(uintptr_t offset);
+    inline void             ResetOffset(uintptr_t offset);
+    inline uintptr_t        GetOffset(void) const;
     inline void             SetBasicBlock(BasicBlock * block);
     inline BasicBlock *     GetBasicBlock(void) const;
     inline void             SetLoop(Loop *loop);

@@ -15,21 +15,21 @@ namespace Js
 
     JavascriptExternalFunction::JavascriptExternalFunction(ExternalMethod entryPoint, DynamicType* type)
         : RuntimeFunction(type, &EntryInfo::ExternalFunctionThunk), nativeMethod(entryPoint), signature(nullptr), callbackState(nullptr), initMethod(nullptr),
-        oneBit(1), typeSlots(0), hasAccessors(0), prototypeTypeId(-1), flags(0)
+        oneBit(1), typeSlots(0), hasAccessors(0), flags(0), deferredLength(0)
     {
         DebugOnly(VerifyEntryPoint());
     }
 
     JavascriptExternalFunction::JavascriptExternalFunction(ExternalMethod entryPoint, DynamicType* type, InitializeMethod method, unsigned short deferredSlotCount, bool accessors)
         : RuntimeFunction(type, &EntryInfo::ExternalFunctionThunk), nativeMethod(entryPoint), signature(nullptr), callbackState(nullptr), initMethod(method),
-        oneBit(1), typeSlots(deferredSlotCount), hasAccessors(accessors),prototypeTypeId(-1), flags(0)
+        oneBit(1), typeSlots(deferredSlotCount), hasAccessors(accessors), flags(0), deferredLength(0)
     {
         DebugOnly(VerifyEntryPoint());
     }
 
     JavascriptExternalFunction::JavascriptExternalFunction(DynamicType* type, InitializeMethod method, unsigned short deferredSlotCount, bool accessors)
         : RuntimeFunction(type, &EntryInfo::DefaultExternalFunctionThunk), nativeMethod(nullptr), signature(nullptr), callbackState(nullptr), initMethod(method),
-        oneBit(1), typeSlots(deferredSlotCount), hasAccessors(accessors), prototypeTypeId(-1), flags(0)
+        oneBit(1), typeSlots(deferredSlotCount), hasAccessors(accessors), flags(0), deferredLength(0)
     {
         DebugOnly(VerifyEntryPoint());
     }
@@ -37,26 +37,38 @@ namespace Js
 
     JavascriptExternalFunction::JavascriptExternalFunction(JavascriptExternalFunction* entryPoint, DynamicType* type)
         : RuntimeFunction(type, &EntryInfo::WrappedFunctionThunk), wrappedMethod(entryPoint), callbackState(nullptr), initMethod(nullptr),
-        oneBit(1), typeSlots(0), hasAccessors(0), prototypeTypeId(-1), flags(0)
+        oneBit(1), typeSlots(0), hasAccessors(0), flags(0), deferredLength(0)
     {
         DebugOnly(VerifyEntryPoint());
     }
 
     JavascriptExternalFunction::JavascriptExternalFunction(StdCallJavascriptMethod entryPoint, DynamicType* type)
         : RuntimeFunction(type, &EntryInfo::StdCallExternalFunctionThunk), stdCallNativeMethod(entryPoint), signature(nullptr), callbackState(nullptr), initMethod(nullptr),
-        oneBit(1), typeSlots(0), hasAccessors(0), prototypeTypeId(-1), flags(0)
+        oneBit(1), typeSlots(0), hasAccessors(0), flags(0), deferredLength(0)
     {
         DebugOnly(VerifyEntryPoint());
     }
 
     JavascriptExternalFunction::JavascriptExternalFunction(DynamicType *type)
         : RuntimeFunction(type, &EntryInfo::ExternalFunctionThunk), nativeMethod(nullptr), signature(nullptr), callbackState(nullptr), initMethod(nullptr),
-        oneBit(1), typeSlots(0), hasAccessors(0), prototypeTypeId(-1), flags(0)
+        oneBit(1), typeSlots(0), hasAccessors(0), flags(0), deferredLength(0)
     {
         DebugOnly(VerifyEntryPoint());
     }
 
-    bool __cdecl JavascriptExternalFunction::DeferredInitializer(DynamicObject* instance, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode)
+    bool __cdecl JavascriptExternalFunction::DeferredLengthInitializer(DynamicObject * instance, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        Js::JavascriptLibrary::InitializeFunction<true>(instance, typeHandler, mode);
+
+        JavascriptExternalFunction* object = static_cast<JavascriptExternalFunction*>(instance);
+
+        object->UndeferLength(instance->GetScriptContext());
+
+        return true;
+    }
+
+    // Note: non-constructors will probably use JavascriptFunction::InitiailizeFunction for undeferral.
+    bool __cdecl JavascriptExternalFunction::DeferredConstructorInitializer(DynamicObject* instance, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode)
     {
         JavascriptExternalFunction* object = static_cast<JavascriptExternalFunction*>(instance);
         HRESULT hr = E_FAIL;
@@ -100,7 +112,6 @@ namespace Js
         {
             object->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
         }
-
         return true;
     }
 
@@ -336,6 +347,15 @@ namespace Js
     BOOL JavascriptExternalFunction::SetLengthProperty(Var length)
     {
         return DynamicObject::SetPropertyWithAttributes(PropertyIds::length, length, PropertyConfigurable, NULL, PropertyOperation_None, SideEffects_None);
+    }
+
+    void JavascriptExternalFunction::UndeferLength(ScriptContext *scriptContext)
+    {
+        if (deferredLength > 0)
+        {
+            SetLengthProperty(Js::JavascriptNumber::ToVar(deferredLength, scriptContext));
+            deferredLength = 0;
+        }
     }
 
 #if ENABLE_TTD

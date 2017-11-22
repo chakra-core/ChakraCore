@@ -124,6 +124,7 @@ namespace Js
         Assert(!(callInfo.Flags & CallFlags_New));
 
         JavascriptString* key;
+
         if (args.Info.Count > 1)
         {
             key = JavascriptConversion::ToString(args[1], scriptContext);

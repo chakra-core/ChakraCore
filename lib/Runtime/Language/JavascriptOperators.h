@@ -104,6 +104,7 @@ namespace Js
     public:
         static BOOL IsArray(_In_ RecyclableObject* instanceObj);
         static BOOL IsArray(_In_ Var instanceVar);
+        static BOOL IsArray(_In_ JavascriptProxy * proxy);
         static BOOL IsConstructor(Var instanceVar);
         static BOOL IsConcatSpreadable(Var instanceVar);
         static bool IsConstructorSuperCall(Arguments args);
@@ -214,7 +215,12 @@ namespace Js
         static TypeId GetTypeId(_In_ RecyclableObject* instance);
         static TypeId GetTypeIdNoCheck(Var instance);
         template <typename T>
-        __forceinline static T* TryFromVar(Var value)
+        __forceinline static T* TryFromVar(_In_ RecyclableObject* value)
+        {
+            return T::Is(value) ? T::UnsafeFromVar(value) : nullptr;
+        }
+        template <typename T>
+        __forceinline static T* TryFromVar(_In_ Var value)
         {
             return T::Is(value) ? T::UnsafeFromVar(value) : nullptr;
         }
@@ -684,6 +690,8 @@ namespace Js
 
         static BOOL ToPropertyDescriptorForProxyObjects(Var propertySpec, PropertyDescriptor* descriptor, ScriptContext* scriptContext);
         static BOOL ToPropertyDescriptorForGenericObjects(Var propertySpec, PropertyDescriptor* descriptor, ScriptContext* scriptContext);
+
+        static BOOL IsRemoteArray(RecyclableObject* instance);
     };
 
 } // namespace Js

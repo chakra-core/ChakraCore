@@ -70,7 +70,6 @@ public:
             IR::Instr *     ChangeToHelperCallMem(IR::Instr * instr, IR::JnHelperMethod helperMethod);
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr);
     static  IR::Instr *     ChangeToAssignNoBarrierCheck(IR::Instr * instr);
-    static  IR::Instr *     ChangeToAssign(IR::Instr * instr, IRType type);
     static  IR::Instr *     ChangeToLea(IR::Instr *const instr, bool postRegAlloc = false);
     static  IR::Instr *     ForceDstToReg(IR::Instr *instr);
     static  void            ImmedSrcToReg(IR::Instr * instr, IR::Opnd * newOpnd, int srcNum);
@@ -213,7 +212,7 @@ public:
             IR::Instr *         LowerTry(IR::Instr *instr, IR::JnHelperMethod helperMethod);
             IR::Instr *         LowerLeave(IR::Instr *instr, IR::LabelInstr * targetInstr, bool fromFinalLower, bool isOrphanedLeave = false);
             IR::Instr *         LowerLeaveNull(IR::Instr *instr);
-            IR::LabelInstr *    EnsureEpilogLabel();
+            IR::LabelInstr *    EnsureEHEpilogLabel();
             IR::Instr *         LowerEHRegionReturn(IR::Instr * insertBeforeInstr, IR::Opnd * targetOpnd);
             void                FinishArgLowering();
             IR::Opnd *          GetOpndForArgSlot(Js::ArgSlot argSlot, IR::Opnd * argOpnd = nullptr);
@@ -227,16 +226,18 @@ public:
 
             IR::Opnd*           IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr);
             void                GenerateFastInlineBuiltInMathAbs(IR::Instr *callInstr);
-            void                GenerateFastInlineBuiltInMathFloorCeilRound(IR::Instr *callInstr);
+            void                GenerateFastInlineBuiltInMathRound(IR::Instr *callInstr);
+            void                GenerateFastInlineBuiltInMathFloorCeil(IR::Instr *callInstr);
             void                GenerateFastInlineBuiltInMathMinMax(IR::Instr *callInstr);
+     static void                GenerateFastInlineMathFround(IR::Instr* instr);
             static RegNum       GetRegStackPointer() { return RegSP; }
             static RegNum       GetRegFramePointer() { return RegFP; }
+
             static RegNum       GetRegReturn(IRType type) { return IRType_IsFloat(type) ? RegNOREG : RegR0; }
             static RegNum       GetRegArgI4(int32 argNum) { return RegNOREG; }
             static RegNum       GetRegArgR8(int32 argNum) { return RegNOREG; }
             static Js::OpCode   GetLoadOp(IRType type) { return IRType_IsFloat(type) ? Js::OpCode::FLDR : Js::OpCode::LDR; }
             static Js::OpCode   GetStoreOp(IRType type) { return IRType_IsFloat(type) ? Js::OpCode::FSTR : Js::OpCode::STR; }
-            static Js::OpCode   GetMoveOp(IRType type) { return IRType_IsFloat(type) ? Js::OpCode::FMOV : Js::OpCode::MOV; }
 
             static BYTE         GetDefaultIndirScale()
             {
@@ -270,6 +271,7 @@ public:
 public:
     static IR::Instr * InsertCmovCC(const Js::OpCode opCode, IR::Opnd * dst, IR::Opnd* src1, IR::Instr* insertBeforeInstr, bool postRegAlloc);
 private:
+    static  IR::Instr *     ChangeToAssign(IR::Instr * instr, IRType destType);
     void GenerateFlagInlineCacheCheckForGetterSetter(
         IR::Instr * insertBeforeInstr,
         IR::RegOpnd * opndInlineCache,

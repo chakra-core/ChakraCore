@@ -208,7 +208,7 @@ void CALLBACK CreateExternalObject_TTDCallback(Js::ScriptContext* ctx, Js::Var* 
 {
     TTDAssert(object != nullptr, "This should always be a valid location");
 
-    *object = JsrtExternalObject::Create(nullptr, nullptr, ctx);
+    *object = JsrtExternalObject::Create(nullptr, nullptr, nullptr, ctx);
 }
 
 void CALLBACK TTDDummyPromiseContinuationCallback(JsValueRef task, void *callbackState)
@@ -271,7 +271,8 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes,
             JsRuntimeAttributeDisableEval |
             JsRuntimeAttributeDisableNativeCodeGeneration |
             JsRuntimeAttributeEnableExperimentalFeatures |
-            JsRuntimeAttributeDispatchSetExceptionsToDebugger
+            JsRuntimeAttributeDispatchSetExceptionsToDebugger |
+            JsRuntimeAttributeDisableFatalOnOOM
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
             | JsRuntimeAttributeSerializeLibraryByteCode
 #endif
@@ -321,6 +322,11 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes,
         if (attributes & JsRuntimeAttributeDisableNativeCodeGeneration)
         {
             threadContext->SetThreadContextFlag(ThreadContextFlagNoJIT);
+        }
+
+        if (attributes & JsRuntimeAttributeDisableFatalOnOOM)
+        {
+            threadContext->SetThreadContextFlag(ThreadContextFlagDisableFatalOnOOM);
         }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -1279,13 +1285,45 @@ CHAKRA_API JsCreateExternalObject(_In_opt_ void *data, _In_opt_ JsFinalizeCallba
 
         PARAM_NOT_NULL(object);
 
-        *object = JsrtExternalObject::Create(data, finalizeCallback, scriptContext);
+        *object = JsrtExternalObject::Create(data, finalizeCallback, nullptr, scriptContext);
 
         PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, object);
 
         return JsNoError;
     });
 }
+
+#ifndef NTBUILD
+CHAKRA_API JsCreateExternalObjectWithPrototype(_In_opt_ void *data,
+    _In_opt_ JsFinalizeCallback finalizeCallback,
+    _In_ JsValueRef prototype,
+    _Out_ JsValueRef *object)
+{
+    return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTAllocateExternalObject);
+
+        PARAM_NOT_NULL(object);
+
+        Js::RecyclableObject * prototypeObject = nullptr;
+        if (prototype != nullptr)
+        {
+            VALIDATE_INCOMING_OBJECT(prototype, scriptContext);
+            prototypeObject = Js::RecyclableObject::FromVar(prototype);
+        }
+
+        *object = JsrtExternalObject::Create(data, finalizeCallback, prototypeObject, scriptContext);
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, object);
+
+        if (prototypeObject != nullptr)
+        {
+            PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTSetPrototype, *object, prototypeObject);
+        }
+
+        return JsNoError;
+    });
+}
+#endif
 
 CHAKRA_API JsConvertValueToObject(_In_ JsValueRef value, _Out_ JsValueRef *result)
 {
@@ -1418,13 +1456,19 @@ static JsErrorCode InternalGetPropertyRecord(Js::ScriptContext * scriptContext,
     Assert(propertyRecord != nullptr);
     *propertyRecord = nullptr;
 
-    if (key->GetTypeId() != Js::TypeIds_String)
+    switch(key->GetTypeId())
     {
+    case Js::TypeIds_String:
+        scriptContext->GetOrAddPropertyRecord(Js::JavascriptString::FromVar(key),
+            (Js::PropertyRecord const **)propertyRecord);
+        break;
+    case Js::TypeIds_Symbol:
+        *propertyRecord = Js::JavascriptSymbol::FromVar(key)->GetValue();
+        break;
+    default:
         return JsErrorInvalidArgument;
-    }
+    };
 
-    scriptContext->GetOrAddPropertyRecord(Js::JavascriptString::FromVar(key),
-        (Js::PropertyRecord const **)propertyRecord);
     return JsNoError;
 }
 
@@ -4544,6 +4588,17 @@ CHAKRA_API JsCreateString(
 {
     PARAM_NOT_NULL(content);
     PARAM_NOT_NULL(value);
+    *value = JS_INVALID_REFERENCE;
+
+    if (length == static_cast<size_t>(-1))
+    {
+        length = strlen(content);
+    }
+
+    if (length > static_cast<CharCount>(-1))
+    {
+        return JsErrorOutOfMemory;
+    }
 
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
 
@@ -4567,6 +4622,17 @@ CHAKRA_API JsCreateStringUtf16(
 {
     PARAM_NOT_NULL(content);
     PARAM_NOT_NULL(value);
+    *value = JS_INVALID_REFERENCE;
+
+    if (length == static_cast<size_t>(-1))
+    {
+        length = wcslen((const char16 *)content);
+    }
+
+    if (length > static_cast<CharCount>(-1))
+    {
+        return JsErrorOutOfMemory;
+    }
 
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
 

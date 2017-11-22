@@ -44,7 +44,6 @@ namespace Js
         IMP_IWASM void WasmMemAccess(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint32 offset, ArrayBufferView::ViewType viewType);
 
         IMP_IWASM void MarkAsmJsLabel(ByteCodeLabel labelID);
-        IMP_IWASM uint EnterLoop(ByteCodeLabel loopEntrance);
         IMP_IWASM void ExitLoop(uint loopId);
         IMP_IWASM void AsmReg4(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3);
         IMP_IWASM void AsmReg5(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4);
@@ -59,6 +58,7 @@ namespace Js
         // We don't want to expose api not in IWasmByteCodeWriter, but it's easier to compile them anyway
     private:
 #endif
+        uint EnterLoop(ByteCodeLabel loopEntrance);
         void AsmReg6(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5);
         void AsmReg7(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6);
         void AsmReg10(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8, RegSlot R9);
@@ -119,6 +119,10 @@ namespace Js
         virtual void Reset() override;
         virtual ByteCodeLabel DefineLabel() override;
         virtual void SetCallSiteCount(Js::ProfileId callSiteCount) override;
+        virtual uint32 WasmLoopStart(ByteCodeLabel loopEntrance, __in_ecount(WAsmJs::LIMIT) RegSlot* curRegs) override;
+
+    private:
+        template <typename SizePolicy> bool TryWriteWasmLoopStart(OpCodeAsmJs op, uint looplabel, __in_ecount(WAsmJs::LIMIT) RegSlot* curRegs);
 #endif
     };
 }

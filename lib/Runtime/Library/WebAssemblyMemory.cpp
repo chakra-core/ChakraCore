@@ -190,30 +190,30 @@ void WebAssemblyMemory::TraceMemWrite(WebAssemblyMemory* mem, uint32 index, uint
     }
     if (offset)
     {
-        Output::Print(_u("WasmMemoryTrace:: buf[%u + %u (%llu)] = "), index, offset, bigIndex);
+        Output::Print(_u("WasmMemoryTrace:: buf[%u + %u (%llu)]"), index, offset, bigIndex);
     }
     else
     {
-        Output::Print(_u("WasmMemoryTrace:: buf[%u] = "), index);
+        Output::Print(_u("WasmMemoryTrace:: buf[%u]"), index);
     }
     BYTE* buffer = mem->m_buffer->GetBuffer();
     switch (viewType)
     {
     case ArrayBufferView::ViewType::TYPE_INT8_TO_INT64:
-    case ArrayBufferView::ViewType::TYPE_INT8: Output::Print(_u("%d\n"), *(int8*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_INT8: Output::Print(_u(".int8 = %d\n"), *(int8*)(buffer + bigIndex)); break;
     case ArrayBufferView::ViewType::TYPE_UINT8_TO_INT64:
-    case ArrayBufferView::ViewType::TYPE_UINT8: Output::Print(_u("%u\n"), *(uint8*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_UINT8: Output::Print(_u(".uint8 = %u\n"), *(uint8*)(buffer + bigIndex)); break;
     case ArrayBufferView::ViewType::TYPE_INT16_TO_INT64:
-    case ArrayBufferView::ViewType::TYPE_INT16: Output::Print(_u("%d\n"), *(int16*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_INT16: Output::Print(_u(".int16 = %d\n"), *(int16*)(buffer + bigIndex)); break;
     case ArrayBufferView::ViewType::TYPE_UINT16_TO_INT64:
-    case ArrayBufferView::ViewType::TYPE_UINT16: Output::Print(_u("%u\n"), *(uint16*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_UINT16: Output::Print(_u(".uint16 = %u\n"), *(uint16*)(buffer + bigIndex)); break;
     case ArrayBufferView::ViewType::TYPE_INT32_TO_INT64:
-    case ArrayBufferView::ViewType::TYPE_INT32: Output::Print(_u("%d\n"), *(int32*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_INT32: Output::Print(_u(".int32 = %d\n"), *(int32*)(buffer + bigIndex)); break;
     case ArrayBufferView::ViewType::TYPE_UINT32_TO_INT64:
-    case ArrayBufferView::ViewType::TYPE_UINT32: Output::Print(_u("%u\n"), *(uint32*)(buffer + bigIndex)); break;
-    case ArrayBufferView::ViewType::TYPE_FLOAT32: Output::Print(_u("%.4f\n"), *(float*)(buffer + bigIndex)); break;
-    case ArrayBufferView::ViewType::TYPE_FLOAT64: Output::Print(_u("%.8f\n"), *(double*)(buffer + bigIndex)); break;
-    case ArrayBufferView::ViewType::TYPE_INT64: Output::Print(_u("%lld\n"), *(int64*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_UINT32: Output::Print(_u(".uint32 = %u\n"), *(uint32*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_FLOAT32: Output::Print(_u(".f32 = %.4f\n"), *(float*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_FLOAT64: Output::Print(_u(".f64 = %.8f\n"), *(double*)(buffer + bigIndex)); break;
+    case ArrayBufferView::ViewType::TYPE_INT64: Output::Print(_u(".int64 = %lld\n"), *(int64*)(buffer + bigIndex)); break;
     default:
         CompileAssert(ArrayBufferView::ViewType::TYPE_COUNT == 15);
         Assert(UNREACHED);

@@ -107,22 +107,12 @@ Js::JavascriptMethod Js::WasmLibrary::WasmDeferredParseEntryPoint(Js::AsmJsScrip
         }
         catch (Wasm::WasmCompilationException& ex)
         {
-            char16* originalMessage = ex.ReleaseErrorMessage();
-            Wasm::BinaryLocation location = readerInfo->m_module->GetReader()->GetCurrentLocation();
+            AutoCleanStr autoCleanExceptionMessage;
+            char16* exceptionMessage = WebAssemblyModule::FormatExceptionMessage(&ex, &autoCleanExceptionMessage, readerInfo->m_module, body);
 
-            Wasm::WasmCompilationException newEx(
-                _u("function %s at offset %u/%u (0x%x/0x%x): %s"),
-                body->GetDisplayName(),
-                location.offset, location.size,
-                location.offset, location.size,
-                originalMessage
-            );
-            SysFreeString(originalMessage);
-            char16* msg = newEx.ReleaseErrorMessage();
             JavascriptLibrary *library = scriptContext->GetLibrary();
             JavascriptError *pError = library->CreateWebAssemblyCompileError();
-            JavascriptError::SetErrorMessage(pError, WASMERR_WasmCompileError, msg, scriptContext);
-            SysFreeString(msg);
+            JavascriptError::SetErrorMessage(pError, WASMERR_WasmCompileError, exceptionMessage, scriptContext);
 
             func->GetDynamicType()->SetEntryPoint(WasmLazyTrapCallback);
             entrypointInfo->jsMethod = WasmLazyTrapCallback;

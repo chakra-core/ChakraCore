@@ -120,6 +120,14 @@ var tests = [
         }
     },
     {
+        name: "Reflect.set",
+        body: function ()
+        {
+            assert.isTrue(Reflect.set([1950, 1960, 1970, 1980, 1990], "0", 1), "Should be able to set property on int array");
+            assert.isTrue(Reflect.set([1950, 1960.1, 1970, 1980, 1990], "0", 1), "Should be able to set property on float array");
+        }
+    },
+    {
         name: "Reflect.defineProperty",
         body: function ()
         {

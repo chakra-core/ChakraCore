@@ -92,4 +92,27 @@
       <tags>exclude_xplat</tags>
     </default>
   </test>
+  <!-- Disable until we have a fix for OS #14651409
+  <test>
+    <default>
+      <files>arraybuffer_transfer.js</files>
+      <compile-flags>-EnableFatalErrorOnOOM- -es6experimental -args 0x1000 -endargs</compile-flags>
+      <tags>exclude_amd64</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>arraybuffer_transfer.js</files>
+      <compile-flags>-EnableFatalErrorOnOOM- -es6experimental -args 0 -endargs</compile-flags>
+      <tags>exclude_amd64</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>arraybuffer_constructor.js</files>
+      <compile-flags>-EnableFatalErrorOnOOM-</compile-flags>
+      <tags>exclude_amd64</tags>
+    </default>
+  </test>
+  -->
 </regress-exe>

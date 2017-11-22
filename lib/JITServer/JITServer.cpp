@@ -449,6 +449,7 @@ ServerCleanupScriptContext(
         scriptContextInfo->Close();
         ServerContextManager::UnRegisterScriptContext(scriptContextInfo);
     }
+
     // This tells the run-time, when it is marshalling the out
     // parameters, that the context handle has been closed normally.
     *scriptContextInfoAddress = nullptr;
@@ -628,8 +629,7 @@ HRESULT
 ServerFreeAllocation(
     /* [in] */ handle_t binding,
     /* [in] */ __RPC__in PTHREADCONTEXT_HANDLE threadContextInfo,
-    /* [in] */ intptr_t codeAddress,
-    /* [in] */ intptr_t thunkAddress)
+    /* [in] */ intptr_t codeAddress)
 {
     ServerThreadContext * context = (ServerThreadContext*)DecodePointer(threadContextInfo);
 
@@ -641,17 +641,7 @@ ServerFreeAllocation(
 
     return ServerCallWrapper(context, [&]()->HRESULT
     {
-        if (CONFIG_FLAG(OOPCFGRegistration) && !thunkAddress)
-        {
-            context->SetValidCallTargetForCFG((PVOID)codeAddress, false);
-        }
         context->GetCodeGenAllocators()->emitBufferManager.FreeAllocation((void*)codeAddress);
-#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
-        if (thunkAddress)
-        {
-            context->GetJITThunkEmitter()->FreeThunk(thunkAddress);
-        }
-#endif
         return S_OK;
     });
 }

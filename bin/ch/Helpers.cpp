@@ -7,30 +7,41 @@
 #include <sys/stat.h>
 
 //TODO: x-plat definitions
-#ifdef _WIN32
 #define MAX_URI_LENGTH 512
+#ifdef _WIN32
+#define TTD_MAX_FILE_LENGTH MAX_PATH
 #define TTD_HOST_PATH_SEP "\\"
+#else
+#define TTD_MAX_FILE_LENGTH MAX_URI_LENGTH
+#define TTD_HOST_PATH_SEP "/"
+#endif
 
 void TTDHostBuildCurrentExeDirectory(char* path, size_t* pathLength, size_t bufferLength)
 {
-    wchar exePath[MAX_PATH];
-    GetModuleFileName(NULL, exePath, MAX_PATH);
+    char exePath[TTD_MAX_FILE_LENGTH];
+    PlatformAgnostic::SystemInfo::GetBinaryLocation(exePath, TTD_MAX_FILE_LENGTH);
 
-    size_t i = wcslen(exePath) - 1;
-    while(exePath[i] != _u('\\'))
+    size_t i = strlen(exePath) - 1;
+    while (exePath[i] != TTD_HOST_PATH_SEP[0] && i != 0)
     {
         --i;
     }
-
-    if(i * 3 > bufferLength)
+    if (i == 0)
     {
-        wprintf(_u("Don't overflow path buffer during conversion"));
+        fwprintf(stderr, _u("Can't get current exe directory"));
         exit(1);
     }
-    *pathLength = utf8::EncodeInto((LPUTF8)path, exePath, (charcount_t)(i + 1));
+    if (i + 2 > bufferLength)
+    {
+        fwprintf(stderr, _u("Don't overflow path buffer during copy"));
+        exit(1);
+    }
+    memcpy_s(path, bufferLength, exePath, i + 1);
+    *pathLength = i + 1;
     path[*pathLength] = '\0';
 }
 
+#ifdef _WIN32
 int TTDHostMKDir(const char* path, size_t pathLength)
 {
     char16 cpath[MAX_PATH];
@@ -67,42 +78,6 @@ JsTTDStreamHandle TTDHostOpen(size_t pathLength, const char* path, bool isWrite)
 #define TTDHostRead(buff, size, handle) fread_s(buff, size, 1, size, (FILE*)handle);
 #define TTDHostWrite(buff, size, handle) fwrite(buff, 1, size, (FILE*)handle)
 #else
-
-#ifdef __APPLE__
-#include <mach-o/dyld.h>
-#else
-#include <unistd.h>
-#endif
-#define MAX_URI_LENGTH 512
-#define TTD_HOST_PATH_SEP "/"
-
-void TTDHostBuildCurrentExeDirectory(char* path, size_t* pathLength, size_t bufferLength)
-{
-    char exePath[MAX_URI_LENGTH];
-    //TODO: xplattodo move this logic to PAL
-    #ifdef __APPLE__
-    uint32_t tmpPathSize = sizeof(exePath);
-    _NSGetExecutablePath(exePath, &tmpPathSize);
-    size_t i = strlen(exePath) - 1;
-    #else
-    size_t i = readlink("/proc/self/exe", exePath, MAX_URI_LENGTH) - 1;
-    #endif
-
-    while(exePath[i] != '/')
-    {
-        --i;
-    }
-    *pathLength = i + 1;
-
-    if(*pathLength > bufferLength)
-    {
-        wprintf(_u("Don't overflow path buffer during copy."));
-        exit(1);
-    }
-
-    memcpy_s(path, bufferLength, exePath, *pathLength);
-}
-
 int TTDHostMKDir(const char* path, size_t pathLength)
 {
     return mkdir(path, 0700);
