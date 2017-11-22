@@ -36,9 +36,10 @@ namespace Memory
 class DummyVTableObject : public FinalizableObject
 {
 public:
-    virtual void Finalize(bool isShutdown) {}
-    virtual void Dispose(bool isShutdown) {}
-    virtual void Mark(Recycler * recycler) {}
+    virtual void Finalize(bool isShutdown) final {}
+    virtual void Dispose(bool isShutdown) final {}
+    virtual void Mark(Recycler * recycler) final {}
+    virtual void Trace(IRecyclerHeapMarkingContext* markingContext) final {}
 };
 }
 
@@ -170,13 +171,6 @@ Recycler::AllocWithAttributesInlined(DECLSPEC_GUARD_OVERFLOW size_t size)
     this->FillCheckPad(memBlock, size, alignedSize);
 #endif
 
-
-#pragma prefast(suppress:6313, "attributes is a template parameter and can be 0")
-    if (attributes & (FinalizeBit | TrackBit))
-    {
-        // Make sure a valid vtable is installed in case of OOM before the real vtable is set
-        memBlock = (char *)new (memBlock) DummyVTableObject();
-    }
 
 #ifdef RECYCLER_WRITE_BARRIER
     SwbVerboseTrace(this->GetRecyclerFlagsTable(), _u("Allocated SWB memory: 0x%p\n"), memBlock);

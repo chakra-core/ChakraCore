@@ -129,6 +129,15 @@ SmallHeapBlockAllocator<TBlockType>::InlinedAllocImpl(Recycler * recycler, DECLS
 
         if (NeedSetAttributes(attributes))
         {
+            if ((attributes & (FinalizeBit | TrackBit)) != 0)
+            {
+                // Make sure a valid vtable is installed as once the attributes have been set this allocation may be traced by background marking
+                memBlock = (char *)new (memBlock) DummyVTableObject();
+#if defined(_M_ARM32_OR_ARM64)
+                // On ARM, make sure the v-table write is performed before setting the attributes
+                MemoryBarrier();
+#endif
+            }
             heapBlock->SetAttributes(memBlock, (attributes & StoredObjectInfoBitMask));
         }
 
@@ -138,6 +147,11 @@ SmallHeapBlockAllocator<TBlockType>::InlinedAllocImpl(Recycler * recycler, DECLS
     if (memBlock != nullptr && endAddress == nullptr)
     {
         // Free list allocation
+        freeObjectList = ((FreeObject *)memBlock)->GetNext();
+#ifdef RECYCLER_MEMORY_VERIFY
+        ((FreeObject *)memBlock)->DebugFillNext();
+#endif
+        
         Assert(!this->IsBumpAllocMode());
         if (NeedSetAttributes(attributes))
         {
@@ -149,13 +163,20 @@ SmallHeapBlockAllocator<TBlockType>::InlinedAllocImpl(Recycler * recycler, DECLS
                 Assert(allocationHeapBlock != nullptr);
                 Assert(!allocationHeapBlock->IsLargeHeapBlock());
             }
+
+            if ((attributes & (FinalizeBit | TrackBit)) != 0)
+            {
+                // Make sure a valid vtable is installed as once the attributes have been set this allocation may be traced by background marking
+                memBlock = (char *)new (memBlock) DummyVTableObject();
+#if defined(_M_ARM32_OR_ARM64)
+                // On ARM, make sure the v-table write is performed before setting the attributes
+                MemoryBarrier();
+#endif
+            }
             allocationHeapBlock->SetAttributes(memBlock, (attributes & StoredObjectInfoBitMask));
         }
-        freeObjectList = ((FreeObject *)memBlock)->GetNext();
 
 #ifdef RECYCLER_MEMORY_VERIFY
-        ((FreeObject *)memBlock)->DebugFillNext();
-
         if (this->IsExplicitFreeObjectListAllocMode())
         {
             HeapBlock* heapBlock = recycler->FindHeapBlock(memBlock);
