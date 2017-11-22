@@ -7314,6 +7314,21 @@ Recycler::FillCheckPad(void * address, size_t size, size_t alignedAllocSize, boo
             addressToVerify = ((char*) address + size);
             sizeToVerify = (alignedAllocSize - size);
         }
+        else
+        {
+            // It could be the case that an uninitialized object already has a dummy vtable installed
+            // at the beginning of the address. If that is the case, we can't verify the fill pattern
+            // on that memory, since it's already been initialized.
+            // Note that FillPadNoCheck will skip over the first sizeof(FreeObject) bytes, which
+            // prevents overwriting of the vtable.
+            static_assert(sizeof(DummyVTableObject) == sizeof(void*), "Incorrect size for a DummyVTableObject - it must contain a single v-table pointer");
+            DummyVTableObject dummy;
+            if ((*(void**)(&dummy)) == *((void**)address))
+            {
+                addressToVerify = (char*)address + sizeof(DummyVTableObject);
+                sizeToVerify = alignedAllocSize - sizeof(DummyVTableObject);
+            }
+        }
 
         // Actually this is filling the non-pad to zero
         VerifyCheckFill(addressToVerify, sizeToVerify - sizeof(size_t));
