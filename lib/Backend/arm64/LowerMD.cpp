@@ -8115,8 +8115,7 @@ LowererMD::GenerateCFGCheck(IR::Opnd * entryPointOpnd, IR::Instr * insertBeforeI
     //MOV  x15, entryPoint
     IR::RegOpnd * entryPointRegOpnd = IR::RegOpnd::New(nullptr, RegR15, TyMachReg, this->m_func);
     entryPointRegOpnd->m_isCallArg = true;
-    IR::Instr* movInstrEntryPointToRegister = IR::Instr::New(Js::OpCode::MOV, entryPointRegOpnd, entryPointOpnd, this->m_func);
-    insertBeforeInstr->InsertBefore(movInstrEntryPointToRegister);
+    IR::Instr *movInstrEntryPointToRegister = Lowerer::InsertMove(entryPointRegOpnd, entryPointOpnd, insertBeforeInstr);
 
     //Generate CheckCFG CALL here
     IR::HelperCallOpnd *cfgCallOpnd = IR::HelperCallOpnd::New(IR::HelperGuardCheckCall, this->m_func);
@@ -8125,8 +8124,7 @@ LowererMD::GenerateCFGCheck(IR::Opnd * entryPointOpnd, IR::Instr * insertBeforeI
 
     //mov x16, __guard_check_icall_fptr
     IR::RegOpnd *targetOpnd = IR::RegOpnd::New(nullptr, RegR16, TyMachPtr, this->m_func);
-    IR::Instr   *movInstr = IR::Instr::New(Js::OpCode::MOV, targetOpnd, cfgCallOpnd, this->m_func);
-    insertBeforeInstr->InsertBefore(movInstr);
+    IR::Instr   *movInstr = Lowerer::InsertMove(targetOpnd, cfgCallOpnd, insertBeforeInstr);
     Legalize(movInstr);
 
     //call x16

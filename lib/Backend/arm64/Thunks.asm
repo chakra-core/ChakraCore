@@ -40,7 +40,6 @@
     mov     x15, x0               ; move entry point to x15
 
 #if defined(_CONTROL_FLOW_GUARD)
-    mov     x15, x0               ; __guard_check_icall_fptr requires the call target in x15
     adrp    x17, __guard_check_icall_fptr
     ldr     x17, [x17, __guard_check_icall_fptr]
     blr     x17
