@@ -13,25 +13,21 @@ set(PL_SOURCE_FILES
   )
 
 if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
-set(PL_SOURCE_FILES ${PL_SOURCE_FILES}
-  Linux/SystemInfo.cpp
-  Linux/PerfTrace.cpp
-  )
+  set(PL_SOURCE_FILES ${PL_SOURCE_FILES}
+    Linux/SystemInfo.cpp
+    Linux/PerfTrace.cpp
+    )
 elseif(CC_TARGET_OS_OSX)
-set(PL_SOURCE_FILES ${PL_SOURCE_FILES}
-  Unix/AssemblyCommon.cpp
-  Unix/SystemInfo.cpp
-# Linux/PerfTrace.cpp # TODO : implement for OSX?
-  )
+  set(PL_SOURCE_FILES ${PL_SOURCE_FILES}
+    Unix/AssemblyCommon.cpp
+    Unix/SystemInfo.cpp
+    # Linux/PerfTrace.cpp # TODO : implement for OSX?
+    )
 endif()
 
-if(ICU_INTL_ENABLED)
-set(PL_SOURCE_FILES ${PL_SOURCE_FILES}
-  Common/Intl.cpp
-  )
-add_compile_options(
-  -frtti
-)
+if(NOT ICU_INTL_DISABLED)
+  set(PL_SOURCE_FILES ${PL_SOURCE_FILES} Common/Intl.cpp)
+  add_compile_options(-frtti)
 endif()
 
 if(NOT STATIC_LIBRARY)
