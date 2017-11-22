@@ -764,7 +764,9 @@ namespace Js
         void OP_SpreadArrayLiteral(const unaligned OpLayoutReg2Aux * playout);
         template <LayoutSize layoutSize,bool profiled> const byte * OP_ProfiledLoopStart(const byte *ip);
         template <LayoutSize layoutSize,bool profiled> const byte * OP_ProfiledLoopEnd(const byte *ip);
-        template <LayoutSize layoutSize,bool profiled> const byte * OP_ProfiledLoopBodyStart(const byte *ip);
+        template <LayoutSize layoutSize, bool profiled> const byte * OP_ProfiledLoopBodyStart(const byte *ip);
+        template <LayoutSize layoutSize, bool profiled> const byte * OP_ProfiledWasmLoopBodyStart(const byte *ip);
+        template <LayoutSize layoutSize, bool profiled> const byte * OP_ProfiledLoopBodyStart(uint loopId);
         template <typename T> void OP_ApplyArgs(const unaligned OpLayoutT_Reg5<T> * playout);
         template <class T> void OP_EmitTmpRegCount(const unaligned OpLayoutT_Unsigned1<T> * ip);
         Var OP_ImportCall(Var specifier, ScriptContext *scriptContext);

@@ -39,6 +39,40 @@ void WasmByteCodeWriter::SetCallSiteCount(Js::ProfileId callSiteCount)
 {
     ByteCodeWriter::SetCallSiteCount(callSiteCount);
 }
+
+uint32 WasmByteCodeWriter::WasmLoopStart(ByteCodeLabel loopEntrance, __in_ecount(WAsmJs::LIMIT) RegSlot* curRegs)
+{
+    uint loopId = m_functionWrite->IncrLoopCount();
+    Assert((uint)m_loopHeaders->Count() == loopId);
+
+    m_loopHeaders->Add(LoopHeaderData(m_byteCodeData.GetCurrentOffset(), 0, m_loopNest > 0));
+    m_loopNest++;
+    this->MarkAsmJsLabel(loopEntrance);
+    MULTISIZE_LAYOUT_WRITE(WasmLoopStart, Js::OpCodeAsmJs::WasmLoopBodyStart, loopId, curRegs);
+
+    return loopId;
+}
+
+template <typename SizePolicy>
+bool WasmByteCodeWriter::TryWriteWasmLoopStart(OpCodeAsmJs op, uint loopId, __in_ecount(WAsmJs::LIMIT) RegSlot* curRegs)
+{
+    OpLayoutT_WasmLoopStart<SizePolicy> layout;
+    if (SizePolicy::Assign(layout.loopId, loopId))
+    {
+        for (WAsmJs::Types type = WAsmJs::Types(0); type != WAsmJs::LIMIT; type = WAsmJs::Types(type + 1))
+        {
+            if (!SizePolicy::Assign(layout.curRegs[type], curRegs[type]))
+            {
+                return false;
+            }
+        }
+
+        m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+        return true;
+    }
+    return false;
+}
+
 }
 
 #endif
