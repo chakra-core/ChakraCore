@@ -882,7 +882,6 @@ LowererMD::GenerateStackProbe(IR::Instr *insertInstr, bool afterProlog)
     insertInstr->InsertBefore(instr);
 
     insertInstr->InsertBefore(doneLabelInstr);
-    Security::InsertRandomFunctionPad(doneLabelInstr);
 }
 
 //
