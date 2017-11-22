@@ -246,12 +246,18 @@ const tests = [
       assert.throws(() => new WebAssembly.Memory({initial: MaxMemoryInitialPages + 1, maximum: MaxMemoryMaximumPages + 1}));
       assert.throws(() => new WebAssembly.Memory({maximum: MaxMemoryMaximumPages + 1}));
 
-      assert.doesNotThrow(() => compile(`(module (memory ${MaxMemoryInitialPages}))`));
-      assert.doesNotThrow(() => compile(`(module (memory ${MaxMemoryInitialPages} ${MaxMemoryMaximumPages}))`));
-      assert.doesNotThrow(() => compile(`(module (memory 0 ${MaxMemoryMaximumPages}))`));
-      assert.throws(() => compile(`(module (memory ${MaxMemoryInitialPages + 1}))`), WebAssembly.CompileError, "Minimum memory size too big");
-      assert.throws(() => compile(`(module (memory ${MaxMemoryInitialPages + 1} ${MaxMemoryMaximumPages + 1}))`), WebAssembly.CompileError, "Minimum memory size too big");
-      assert.throws(() => compile(`(module (memory 0 ${MaxMemoryMaximumPages + 1}))`), WebAssembly.CompileError, "Maximum memory size too big");
+      const makeModule = (min, max) => {
+        const builder = new WasmModuleBuilder();
+        builder.addMemory(min, max);
+        return new WebAssembly.Module(builder.toBuffer());
+      };
+
+      assert.doesNotThrow(() => makeModule(MaxMemoryInitialPages));
+      assert.doesNotThrow(() => makeModule(MaxMemoryInitialPages, MaxMemoryMaximumPages));
+      assert.doesNotThrow(() => makeModule(0, MaxMemoryMaximumPages));
+      assert.throws(() => makeModule(MaxMemoryInitialPages + 1), WebAssembly.CompileError, "Minimum memory size too big");
+      assert.throws(() => makeModule(MaxMemoryInitialPages + 1, MaxMemoryMaximumPages + 1), WebAssembly.CompileError, "Minimum memory size too big");
+      assert.throws(() => makeModule(0, MaxMemoryMaximumPages + 1), WebAssembly.CompileError, "Maximum memory size too big");
     }
   },
   // Tests 24
