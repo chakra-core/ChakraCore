@@ -38,7 +38,7 @@ public:
         m_loopBodyRetIPSym = loopBodyRetIPSym;
     }
     // Use m_yieldRegs initialization to determine if m_loopCurRegs is initialized
-    bool IsLoopCurRegsInitialized() const { return m_yieldRegs; }
+    bool IsLoopCurRegsInitialized() const { return !!m_yieldRegs; }
     template<typename T> void InitLoopCurRegs(__in_ecount(WAsmJs::LIMIT) T* curRegs, BVFixed* yieldRegs)
     {
         Assert(yieldRegs && curRegs);
