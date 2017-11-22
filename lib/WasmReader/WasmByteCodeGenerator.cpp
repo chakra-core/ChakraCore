@@ -941,7 +941,7 @@ EmitInfo WasmBytecodeGenerator::EmitLoop()
     // Push possibly yielding loop label before capturing all the yielding registers
     BlockInfo implicitBlockInfo = PushLabel(loopTailLabel);
 
-    // Save all the possible blocks the loop could yield to
+    // Save the first tmp (per type) of this loop to discern a yield outside the loop in jitloopbody scenario
     Js::RegSlot curRegs[WAsmJs::LIMIT];
     for (WAsmJs::Types type = WAsmJs::Types(0); type != WAsmJs::LIMIT; type = WAsmJs::Types(type + 1))
     {

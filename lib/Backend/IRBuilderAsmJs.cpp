@@ -650,7 +650,7 @@ IRBuilderAsmJs::CheckJitLoopReturn(Js::RegSlot reg, IRType type)
 #endif
         {
             // In Asm.js there is no Yields outside of the loop, if we're here
-            // It means we are probably returning a value from the loop
+            // It means we are returning a value from the loop
             Assert(RegIsConstant(reg));
             EnsureLoopBodyAsmJsStoreSlot(reg, type);
         }
