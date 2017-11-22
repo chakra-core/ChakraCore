@@ -18672,7 +18672,7 @@ Lowerer::GenerateFastInlineRegExpExec(IR::Instr * instr)
         // We want the program's tag to be BOILiteral2Tag
         InsertCompareBranch(
             IR::IndirOpnd::New(opndProgram, (int32)UnifiedRegex::Program::GetOffsetOfTag(), TyUint8, m_func),
-            IR::IntConstOpnd::New(UnifiedRegex::Program::GetBOILiteral2Tag(), TyUint8, m_func),
+            IR::IntConstOpnd::New((IntConstType)UnifiedRegex::Program::GetBOILiteral2Tag(), TyUint8, m_func),
             Js::OpCode::BrNeq_A,
             labelFastHelper,
             instr);

@@ -54,7 +54,7 @@ namespace UnifiedRegex
     }
 
 #define EMIT(compiler, T, ...) (new (compiler.Emit(sizeof(T))) T(__VA_ARGS__))
-#define L2I(O, label) LabelToInstPointer<O##Inst>(Inst::O, label)
+#define L2I(O, label) LabelToInstPointer<O##Inst>(Inst::InstTag::O, label)
 
     // Remember: The machine address of an instruction is no longer valid after a subsequent emit,
     //           so all label fixups must be done using Compiler::GetFixup / Compiler::DoFixup
@@ -4567,7 +4567,7 @@ namespace UnifiedRegex
 #endif
         )
     {
-        program->tag = Program::InstructionsTag;
+        program->tag = Program::ProgramTag::InstructionsTag;
         CaptureNoLiterals(program);
         EmitAndCaptureSuccInst(pattern->GetScriptContext()->GetRecycler(), program);
     }
@@ -4647,7 +4647,7 @@ namespace UnifiedRegex
                 {
                     program->rep.insts.litbuf = nullptr;
                     oi.InitializeTrigramInfo(scriptContext, pattern);
-                    program->tag = Program::OctoquadTag;
+                    program->tag = Program::ProgramTag::OctoquadTag;
                     program->rep.octoquad.matcher = OctoquadMatcher::New(scriptContext->GetRecycler(), standardChars, program->GetCaseMappingSource(), &oi);
                     compiled = true;
                 }
@@ -4664,29 +4664,29 @@ namespace UnifiedRegex
                 if (root->IsSingleChar(compiler, c))
                 {
                     // SPECIAL CASE: c
-                    program->tag = Program::SingleCharTag;
+                    program->tag = Program::ProgramTag::SingleCharTag;
                     program->rep.singleChar.c = c;
                 }
                 else if (root->IsBoundedWord(compiler))
                 {
                     // SPECIAL CASE: \b\w+\b
-                    program->tag = Program::BoundedWordTag;
+                    program->tag = Program::ProgramTag::BoundedWordTag;
                 }
                 else if (root->IsLeadingTrailingSpaces(compiler,
                     program->rep.leadingTrailingSpaces.beginMinMatch,
                     program->rep.leadingTrailingSpaces.endMinMatch))
                 {
                     // SPECIAL CASE: ^\s*|\s*$
-                    program->tag = Program::LeadingTrailingSpacesTag;
+                    program->tag = Program::ProgramTag::LeadingTrailingSpacesTag;
                 }
                 else if (root->IsBOILiteral2(compiler))
                 {
-                    program->tag = Program::BOILiteral2Tag;
+                    program->tag = Program::ProgramTag::BOILiteral2Tag;
                     program->rep.boiLiteral2.literal = *(DWORD *)litbuf;
                 }
                 else
                 {
-                    program->tag = Program::InstructionsTag;
+                    program->tag = Program::ProgramTag::InstructionsTag;
                     compiler.CaptureLiterals(root, litbuf);
 
                     root->AnnotatePass0(compiler);
@@ -4764,7 +4764,7 @@ namespace UnifiedRegex
             }
             else
             {
-                program->tag = Program::InstructionsTag;
+                program->tag = Program::ProgramTag::InstructionsTag;
                 compiler.CaptureLiterals(root, litbuf);
                 CharCount skipped = 0;
                 root->Emit(compiler, skipped);
