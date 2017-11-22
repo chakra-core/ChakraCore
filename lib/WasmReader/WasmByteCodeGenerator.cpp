@@ -504,36 +504,43 @@ void WasmBytecodeGenerator::GenerateFunction()
     m_maxArgOutDepth = 0;
 
     m_writer->Begin(GetFunctionBody(), &m_alloc);
-    try
+    struct AutoCleanupGeneratorState
     {
-        Js::ByteCodeLabel exitLabel = m_writer->DefineLabel();
-        m_funcInfo->SetExitLabel(exitLabel);
-        EnregisterLocals();
-
-        EnterEvalStackScope();
-        // The function's yield type is the return type
-        GetReader()->m_currentNode.block.sig = m_funcInfo->GetResultType();
-        EmitInfo lastInfo = EmitBlock();
-        if (lastInfo.type != WasmTypes::Void || m_funcInfo->GetResultType() == WasmTypes::Void)
+        WasmBytecodeGenerator* gen;
+        AutoCleanupGeneratorState(WasmBytecodeGenerator* gen) : gen(gen) {}
+        ~AutoCleanupGeneratorState()
         {
-            EmitReturnExpr(&lastInfo);
+            if (gen)
+            {
+                TRACE_WASM(PHASE_TRACE(Js::WasmBytecodePhase, gen->GetFunctionBody()), _u("\nHad Compilation error!"));
+                gen->GetReader()->FunctionEnd();
+                gen->m_originalWriter->Reset();
+            }
         }
-        DebugPrintOpEnd();
-        ExitEvalStackScope();
-        SetUnreachableState(false);
-        m_writer->MarkAsmJsLabel(exitLabel);
-        m_writer->EmptyAsm(Js::OpCodeAsmJs::Ret);
-        m_writer->SetCallSiteCount(this->currentProfileId);
-        m_writer->End();
-        GetReader()->FunctionEnd();
-    }
-    catch (...)
+        void Complete() { gen = nullptr; }
+    };
+    AutoCleanupGeneratorState autoCleanupGeneratorState(this);
+    Js::ByteCodeLabel exitLabel = m_writer->DefineLabel();
+    m_funcInfo->SetExitLabel(exitLabel);
+    EnregisterLocals();
+
+    EnterEvalStackScope();
+    // The function's yield type is the return type
+    GetReader()->m_currentNode.block.sig = m_funcInfo->GetResultType();
+    EmitInfo lastInfo = EmitBlock();
+    if (lastInfo.type != WasmTypes::Void || m_funcInfo->GetResultType() == WasmTypes::Void)
     {
-        TRACE_WASM_BYTECODE(_u("\nHad Compilation error!"));
-        GetReader()->FunctionEnd();
-        m_originalWriter->Reset();
-        throw;
+        EmitReturnExpr(&lastInfo);
     }
+    DebugPrintOpEnd();
+    ExitEvalStackScope();
+    SetUnreachableState(false);
+    m_writer->MarkAsmJsLabel(exitLabel);
+    m_writer->EmptyAsm(Js::OpCodeAsmJs::Ret);
+    m_writer->SetCallSiteCount(this->currentProfileId);
+    m_writer->End();
+    GetReader()->FunctionEnd();
+    autoCleanupGeneratorState.Complete();
     // Make sure we don't have any unforeseen exceptions as we finalize the body
     AutoDisableInterrupt autoDisableInterrupt(m_scriptContext->GetThreadContext(), true);
 
