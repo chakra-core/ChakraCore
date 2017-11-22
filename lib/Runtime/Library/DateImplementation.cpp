@@ -402,14 +402,15 @@ namespace Js {
         bs->AppendChars(_u(' '));
 
         // Add the year.
-        if (pymd->year > 0)
+        if ((pymd->year) > 0)
         {
-            bs->AppendChars(pymd->year, 10, ConvertLongToString);
+            bs->AppendChars(pymd->year, 10, ConvertUInt32ToString_ZeroPad_4);
         }
         else
         {
-            bs->AppendChars(1 - pymd->year, 10, ConvertLongToString);
-            bs->AppendChars(_u(" B.C."));
+            int positiveYear = -(pymd->year); // pymd->year is negative
+            bs->AppendChars(_u('-'));
+            bs->AppendChars(positiveYear, 10, ConvertUInt32ToString_ZeroPad_4);
         }
 
         // Add the time.
