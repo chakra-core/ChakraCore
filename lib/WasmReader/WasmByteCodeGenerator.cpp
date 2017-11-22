@@ -938,10 +938,24 @@ EmitInfo WasmBytecodeGenerator::EmitLoop()
     Js::ByteCodeLabel loopHeadLabel = m_writer->DefineLabel();
     Js::ByteCodeLabel loopLandingPadLabel = m_writer->DefineLabel();
 
-    uint32 loopId = m_writer->EnterLoop(loopHeadLabel);
+    // Push possibly yielding loop label before capturing all the yielding registers
+    BlockInfo implicitBlockInfo = PushLabel(loopTailLabel);
+
+    // Save the first tmp (per type) of this loop to discern a yield outside the loop in jitloopbody scenario
+    Js::RegSlot curRegs[WAsmJs::LIMIT];
+    for (WAsmJs::Types type = WAsmJs::Types(0); type != WAsmJs::LIMIT; type = WAsmJs::Types(type + 1))
+    {
+        uint32 minYield = 0;
+        if (!mTypedRegisterAllocator.IsTypeExcluded(type))
+        {
+            CompileAssert(sizeof(minYield) == sizeof(Js::RegSlot));
+            minYield = static_cast<uint32>(mTypedRegisterAllocator.GetRegisterSpace(type)->PeekNextTmpRegister());
+        }
+        curRegs[type] = minYield;
+    }
+    uint32 loopId = m_writer->WasmLoopStart(loopHeadLabel, curRegs);
 
     // Internally we create a block for loop to exit, but semantically, they don't exist so pop it
-    BlockInfo implicitBlockInfo = PushLabel(loopTailLabel);
     m_blockInfos.Pop();
 
     // We don't want nested block to jump directly to the loop header
@@ -1599,7 +1613,7 @@ void WasmBytecodeGenerator::YieldToBlock(BlockInfo blockInfo, EmitInfo expr)
         if (!IsUnreachable())
         {
             blockInfo.yieldInfo->didYield = true;
-            m_writer->AsmReg2(GetLoadOp(expr.type), yieldInfo.location, expr.location);
+            m_writer->AsmReg2(GetReturnOp(expr.type), yieldInfo.location, expr.location);
         }
     }
 }

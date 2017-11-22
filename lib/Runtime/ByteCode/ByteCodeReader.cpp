@@ -255,6 +255,11 @@ namespace Js
     template const unaligned Js::OpLayoutT_Unsigned1<Js::LayoutSizePolicy<(Js::LayoutSize)0> >* Js::ByteCodeReader::GetLayout<Js::OpLayoutT_Unsigned1<Js::LayoutSizePolicy<(Js::LayoutSize)0> > >(const byte*&);
     template const unaligned Js::OpLayoutT_Unsigned1<Js::LayoutSizePolicy<(Js::LayoutSize)1> >* Js::ByteCodeReader::GetLayout<Js::OpLayoutT_Unsigned1<Js::LayoutSizePolicy<(Js::LayoutSize)1> > >(const byte*&);
     template const unaligned Js::OpLayoutT_Unsigned1<Js::LayoutSizePolicy<(Js::LayoutSize)2> >* Js::ByteCodeReader::GetLayout<Js::OpLayoutT_Unsigned1<Js::LayoutSizePolicy<(Js::LayoutSize)2> > >(const byte*&);
+#ifdef ASMJS_PLAT
+    template const unaligned Js::OpLayoutT_WasmLoopStart<Js::LayoutSizePolicy<(Js::LayoutSize)0> >* Js::ByteCodeReader::GetLayout<Js::OpLayoutT_WasmLoopStart<Js::LayoutSizePolicy<(Js::LayoutSize)0> > >(const byte*&);
+    template const unaligned Js::OpLayoutT_WasmLoopStart<Js::LayoutSizePolicy<(Js::LayoutSize)1> >* Js::ByteCodeReader::GetLayout<Js::OpLayoutT_WasmLoopStart<Js::LayoutSizePolicy<(Js::LayoutSize)1> > >(const byte*&);
+    template const unaligned Js::OpLayoutT_WasmLoopStart<Js::LayoutSizePolicy<(Js::LayoutSize)2> >* Js::ByteCodeReader::GetLayout<Js::OpLayoutT_WasmLoopStart<Js::LayoutSizePolicy<(Js::LayoutSize)2> > >(const byte*&);
+#endif
 
     const Js::PropertyIdArray * ByteCodeReader::ReadPropertyIdArray(uint offset, FunctionBody * functionBody)
     {

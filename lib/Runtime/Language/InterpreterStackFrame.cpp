@@ -5596,6 +5596,22 @@ namespace Js
         return true;
     }
 
+    template <LayoutSize layoutSize, bool profiled>
+    const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
+    {
+        uint32 loopId = m_reader.GetLayout<OpLayoutT_Unsigned1<LayoutSizePolicy<layoutSize>>>(ip)->C1;
+        return OP_ProfiledLoopBodyStart<layoutSize, profiled>(loopId);
+    }
+
+#ifdef ASMJS_PLAT
+    template <LayoutSize layoutSize, bool profiled>
+    const byte * InterpreterStackFrame::OP_ProfiledWasmLoopBodyStart(const byte * ip)
+    {
+        uint32 loopId = m_reader.GetLayout<OpLayoutT_WasmLoopStart<LayoutSizePolicy<layoutSize>>>(ip)->loopId;
+        return OP_ProfiledLoopBodyStart<layoutSize, profiled>(loopId);
+    }
+#endif
+
 #if ENABLE_PROFILE_INFO
     void InterpreterStackFrame::OP_RecordImplicitCall(uint loopNumber)
     {
@@ -5700,21 +5716,19 @@ namespace Js
     }
 
     template <LayoutSize layoutSize, bool profiled>
-    const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
+    const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
     {
-        uint32 C1 = m_reader.GetLayout<OpLayoutT_Unsigned1<LayoutSizePolicy<layoutSize>>>(ip)->C1;
-
-        if(profiled || isAutoProfiling)
+        if (profiled || isAutoProfiling)
         {
             this->currentLoopCounter++;
         }
 
         if (profiled)
         {
-            OP_RecordImplicitCall(C1);
+            OP_RecordImplicitCall(loopId);
         }
 
-        (this->*(profiled ? opProfiledLoopBodyStart : opLoopBodyStart))(C1, layoutSize, false /* isFirstIteration */);
+        (this->*(profiled ? opProfiledLoopBodyStart : opLoopBodyStart))(loopId, layoutSize, false /* isFirstIteration */);
         return m_reader.GetIP();
     }
 
@@ -5776,17 +5790,12 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopEnd(const byte * ip)
 }
 
 template <LayoutSize layoutSize, bool profiled>
-const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
+const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
 {
-    uint32 C1 = m_reader.GetLayout<OpLayoutT_Unsigned1<LayoutSizePolicy<layoutSize>>>(ip)->C1;
-
     Assert(!profiled);
-
-    (this->*opLoopBodyStart)(C1, layoutSize, false /* isFirstIteration */);
+    (this->*opLoopBodyStart)(loopId, layoutSize, false /* isFirstIteration */);
     return m_reader.GetIP();
 }
-
-
 #endif
 
     template<bool InterruptProbe, bool JITLoopBody>

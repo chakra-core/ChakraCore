@@ -32,7 +32,7 @@ namespace Js
         virtual void AsmBrReg1(OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1) override {}
         virtual void AsmBrReg1Const1(OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1, int C1) override {}
         virtual void WasmMemAccess(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint32 offset, ArrayBufferView::ViewType viewType) override {}
-        virtual uint32 EnterLoop(ByteCodeLabel loopEntrance) override {return 0;}
+        virtual uint32 WasmLoopStart(ByteCodeLabel loopEntrance, __in_ecount(WAsmJs::LIMIT) RegSlot* curRegs) { return 0; }
         virtual void ExitLoop(uint32 loopId) override {}
         virtual void AsmStartCall(OpCodeAsmJs op, ArgSlot ArgCount, bool isPatching = false) override {}
         virtual void AsmCall(OpCodeAsmJs op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, AsmJsRetType retType, Js::ProfileId profileId) override {}

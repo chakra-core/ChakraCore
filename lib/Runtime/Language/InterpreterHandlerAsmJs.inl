@@ -268,6 +268,7 @@ EXDEF2_WMS( D1toL1Ctx        , Conv_Check_DTL   , JavascriptConversion::F64TOI64
 EXDEF2_WMS( D1toL1Ctx        , Conv_Check_DTUL  , JavascriptConversion::F64TOU64                     )
 
   DEF2_WMS( IP_TARG_ASM      , AsmJsLoopBodyStart, OP_ProfiledLoopBodyStart                      )
+  DEF2_WMS( IP_TARG_ASM      , WasmLoopBodyStart , OP_ProfiledWasmLoopBodyStart                  )
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
 EXDEF3_WMS( CUSTOM_ASMJS, PrintFuncName  , OP_WasmPrintFunc , Int2)
