@@ -2289,6 +2289,8 @@ namespace Js
 
     Var RegexHelper::RegexSplitResultUsedAndMayBeTemp(void *const stackAllocationPointer, ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit)
     {
+        Assert(ThreadContext::IsOnStack(stackAllocationPointer));
+
         return RegexHelper::RegexSplit(scriptContext, regularExpression, input, limit, false, stackAllocationPointer);
     }
 
