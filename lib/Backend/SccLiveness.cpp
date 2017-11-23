@@ -705,7 +705,12 @@ SCCLiveness::ExtendLifetime(Lifetime *lifetime, IR::Instr *instr)
             }
             NEXT_SLISTBASE_ENTRY
         }
+#if _M_ARM64
+        // The case of equality is valid on Arm64 where some branch instructions have sources.
+        AssertMsg(lifetime->end >= instr->GetNumber(), "Lifetime end not set correctly");
+#else
         AssertMsg(lifetime->end > instr->GetNumber(), "Lifetime end not set correctly");
+#endif
     }
     this->extendedLifetimesLoopList->Clear(this->tempAlloc);
 }
