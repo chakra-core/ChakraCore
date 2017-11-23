@@ -126,17 +126,17 @@ function(clr_unknown_arch)
     message(FATAL_ERROR "Only AMD64, ARM and I386 are supported")
 endfunction()
 
-if(INTL_ICU_SH)
-    unset(INTL_ICU_SH CACHE)    # don't cache
-    add_definitions(-DINTL_ICU=1)
-    set(ICU_INTL_ENABLED 1)
+if(NOINTL_ICU_SH)
+    unset(NOINTL_ICU_SH CACHE)    # don't cache
+    set(ICU_INTL_DISABLED 1)
 endif()
 
 if(ICU_INCLUDE_PATH)
     add_definitions(-DHAS_REAL_ICU=1)
     set(ICU_CC_PATH "${ICU_INCLUDE_PATH}/../lib/")
     find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-    if(ICU_INTL_ENABLED)
+    if(NOT ICU_INTL_DISABLED)
+        add_definitions(-DINTL_ICU=1)
         find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
         # icu header files are either located under the same folder or i18n is under a relative path
         # TODO (unlikely): shall we add `--icu-intl` to build.sh ?
@@ -203,7 +203,8 @@ if(CC_TARGET_OS_LINUX OR CC_TARGET_OS_ANDROID)
         if(NOT NO_ICU_PATH_GIVEN)
             if(NOT CC_EMBED_ICU)
                 set(ICULIB "icuuc")
-                if(ICU_INTL_ENABLED)
+                if(NOT ICU_INTL_DISABLED)
+                    add_definitions(-DINTL_ICU=1)
                     set(ICULIB
                       "${ICULIB}"
                       "icui18n")
@@ -353,7 +354,7 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
     # Also disable RTTI when building a shared library
     # TODO: why does the shared library break with rtti disabled?
     if(CMAKE_BUILD_TYPE STREQUAL Release)
-        if(STATIC_LIBRARY OR NOT ICU_INTL_ENABLED)
+        if(STATIC_LIBRARY OR ICU_INTL_DISABLED)
             add_compile_options(-fno-rtti)
         endif()
     endif()
