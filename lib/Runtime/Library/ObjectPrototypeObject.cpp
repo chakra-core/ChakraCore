@@ -107,8 +107,7 @@ namespace Js
     {
         const BOOL result = __super::DeleteProperty(propertyNameString, flags);
 
-        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
-        if (result && BuiltInPropertyRecords::__proto__.Equals(propertyName))
+        if (result && BuiltInPropertyRecords::__proto__.Equals(propertyNameString))
         {
             this->__proto__Enabled = false;
         }

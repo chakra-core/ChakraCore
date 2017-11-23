@@ -3071,8 +3071,7 @@ LABEL1:
 
     BOOL JavascriptFunction::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
     {
-        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
-        if (BuiltInPropertyRecords::caller.Equals(propertyName) || BuiltInPropertyRecords::arguments.Equals(propertyName))
+        if (BuiltInPropertyRecords::caller.Equals(propertyNameString) || BuiltInPropertyRecords::arguments.Equals(propertyNameString))
         {
             if (this->HasRestrictedProperties())
             {
@@ -3080,7 +3079,7 @@ LABEL1:
                 return false;
             }
         }
-        else if (BuiltInPropertyRecords::length.Equals(propertyName))
+        else if (BuiltInPropertyRecords::length.Equals(propertyNameString))
         {
             if (this->IsScriptFunction())
             {
@@ -3091,7 +3090,7 @@ LABEL1:
 
         BOOL result = DynamicObject::DeleteProperty(propertyNameString, flags);
 
-        if (result && (BuiltInPropertyRecords::prototype.Equals(propertyName) || BuiltInPropertyRecords::_symbolHasInstance.Equals(propertyName)))
+        if (result && (BuiltInPropertyRecords::prototype.Equals(propertyNameString) || BuiltInPropertyRecords::_symbolHasInstance.Equals(propertyNameString)))
         {
             InvalidateConstructorCacheOnPrototypeChange();
             this->GetScriptContext()->GetThreadContext()->InvalidateIsInstInlineCachesForFunction(this);

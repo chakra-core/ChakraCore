@@ -391,27 +391,30 @@ namespace Js
 
     BOOL JavascriptRegExpConstructor::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
     {
-        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
-        if (BuiltInPropertyRecords::input.Equals(propertyName)
-            || BuiltInPropertyRecords::$_.Equals(propertyName)
-            || BuiltInPropertyRecords::lastMatch.Equals(propertyName)
-            || BuiltInPropertyRecords::$Ampersand.Equals(propertyName)
-            || BuiltInPropertyRecords::lastParen.Equals(propertyName)
-            || BuiltInPropertyRecords::$Plus.Equals(propertyName)
-            || BuiltInPropertyRecords::leftContext.Equals(propertyName)
-            || BuiltInPropertyRecords::$BackTick.Equals(propertyName)
-            || BuiltInPropertyRecords::rightContext.Equals(propertyName)
-            || BuiltInPropertyRecords::$Tick.Equals(propertyName)
-            || BuiltInPropertyRecords::$1.Equals(propertyName)
-            || BuiltInPropertyRecords::$2.Equals(propertyName)
-            || BuiltInPropertyRecords::$3.Equals(propertyName)
-            || BuiltInPropertyRecords::$4.Equals(propertyName)
-            || BuiltInPropertyRecords::$5.Equals(propertyName)
-            || BuiltInPropertyRecords::$6.Equals(propertyName)
-            || BuiltInPropertyRecords::$7.Equals(propertyName)
-            || BuiltInPropertyRecords::$8.Equals(propertyName)
-            || BuiltInPropertyRecords::$9.Equals(propertyName)
-            || BuiltInPropertyRecords::index.Equals(propertyName))
+        PropertyRecord const * propertyRecord = nullptr;
+        propertyNameString->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
+        PropertyId propertyId = propertyRecord->GetPropertyId();
+
+        if (BuiltInPropertyRecords::input.Equals(propertyId)
+            || BuiltInPropertyRecords::$_.Equals(propertyId)
+            || BuiltInPropertyRecords::lastMatch.Equals(propertyId)
+            || BuiltInPropertyRecords::$Ampersand.Equals(propertyId)
+            || BuiltInPropertyRecords::lastParen.Equals(propertyId)
+            || BuiltInPropertyRecords::$Plus.Equals(propertyId)
+            || BuiltInPropertyRecords::leftContext.Equals(propertyId)
+            || BuiltInPropertyRecords::$BackTick.Equals(propertyId)
+            || BuiltInPropertyRecords::rightContext.Equals(propertyId)
+            || BuiltInPropertyRecords::$Tick.Equals(propertyId)
+            || BuiltInPropertyRecords::$1.Equals(propertyId)
+            || BuiltInPropertyRecords::$2.Equals(propertyId)
+            || BuiltInPropertyRecords::$3.Equals(propertyId)
+            || BuiltInPropertyRecords::$4.Equals(propertyId)
+            || BuiltInPropertyRecords::$5.Equals(propertyId)
+            || BuiltInPropertyRecords::$6.Equals(propertyId)
+            || BuiltInPropertyRecords::$7.Equals(propertyId)
+            || BuiltInPropertyRecords::$8.Equals(propertyId)
+            || BuiltInPropertyRecords::$9.Equals(propertyId)
+            || BuiltInPropertyRecords::index.Equals(propertyId))
         {
             JavascriptError::ThrowCantDeleteIfStrictMode(flags, GetScriptContext(), propertyNameString->GetString());
             return false;

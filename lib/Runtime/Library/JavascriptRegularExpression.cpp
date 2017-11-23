@@ -1321,7 +1321,6 @@ namespace Js
     BOOL JavascriptRegExp::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
     {
         const ScriptConfiguration* scriptConfig = this->GetScriptContext()->GetConfig();
-        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
 
 #define DELETE_PROPERTY(ownProperty) \
         if (ownProperty) \
@@ -1331,23 +1330,23 @@ namespace Js
         } \
         return DynamicObject::DeleteProperty(propertyNameString, flags);
 
-        if (BuiltInPropertyRecords::lastIndex.Equals(propertyName))
+        if (BuiltInPropertyRecords::lastIndex.Equals(propertyNameString))
         {
             DELETE_PROPERTY(true);
         }
-        else if (BuiltInPropertyRecords::global.Equals(propertyName)
-            || BuiltInPropertyRecords::multiline.Equals(propertyName)
-            || BuiltInPropertyRecords::ignoreCase.Equals(propertyName)
-            || BuiltInPropertyRecords::source.Equals(propertyName)
-            || BuiltInPropertyRecords::options.Equals(propertyName))
+        else if (BuiltInPropertyRecords::global.Equals(propertyNameString)
+            || BuiltInPropertyRecords::multiline.Equals(propertyNameString)
+            || BuiltInPropertyRecords::ignoreCase.Equals(propertyNameString)
+            || BuiltInPropertyRecords::source.Equals(propertyNameString)
+            || BuiltInPropertyRecords::options.Equals(propertyNameString))
         {
             DELETE_PROPERTY(!scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         }
-        else if (BuiltInPropertyRecords::unicode.Equals(propertyName))
+        else if (BuiltInPropertyRecords::unicode.Equals(propertyNameString))
         {
             DELETE_PROPERTY(scriptConfig->IsES6UnicodeExtensionsEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         }
-        else if (BuiltInPropertyRecords::sticky.Equals(propertyName))
+        else if (BuiltInPropertyRecords::sticky.Equals(propertyNameString))
         {
             DELETE_PROPERTY(scriptConfig->IsES6RegExStickyEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         }
