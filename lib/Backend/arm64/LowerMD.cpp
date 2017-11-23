@@ -7108,12 +7108,25 @@ LowererMD::GenerateFastInlineBuiltInMathRound(IR::Instr* instr)
     IR::Opnd * pointFive = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoublePointFiveAddr(), IRType::TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
     this->m_lowerer->InsertAdd(false, floatOpnd, floatOpnd, pointFive, instr);
 
+    // MSR FPSR, xzr
+    IR::Instr* setFPSRInstr = IR::Instr::New(Js::OpCode::MSR_FPSR, instr->m_func);
+    setFPSRInstr->SetSrc1(IR::RegOpnd::New(nullptr, RegZR, TyUint32, instr->m_func));
+    instr->InsertBefore(setFPSRInstr);
+
     // FCVTM intOpnd, floatOpnd
     IR::Opnd * intOpnd = IR::RegOpnd::New(TyInt32, this->m_func);
     instr->InsertBefore(IR::Instr::New(Js::OpCode::FCVTM, intOpnd, floatOpnd, instr->m_func));
 
-    // CBNZ intOpnd, done
-    IR::BranchInstr * cbnzInstr = IR::BranchInstr::New(Js::OpCode::CBNZ, doneLabel, instr->m_func);
+    // FCVTM would set FPSR.IOC (0th bit in FPSR) if the source cannot be represented within the destination register
+
+    // MRS exceptReg, FPSR
+    IR::Opnd * exceptReg = IR::RegOpnd::New(TyUint32, this->m_func);
+    instr->InsertBefore(IR::Instr::New(Js::OpCode::MRS_FPSR, exceptReg, instr->m_func));
+
+    IR::LabelInstr* checkOverflowLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+
+    // CBNZ intOpnd, done/checkOverflow
+    IR::BranchInstr * cbnzInstr = cbnzInstr = IR::BranchInstr::New(Js::OpCode::CBNZ, checkOverflowLabel, instr->m_func);
     cbnzInstr->SetSrc1(intOpnd);
     instr->InsertBefore(cbnzInstr);
 
@@ -7124,7 +7137,18 @@ LowererMD::GenerateFastInlineBuiltInMathRound(IR::Instr* instr)
         tbzInstr->SetSrc1(negZeroReg);
         tbzInstr->SetSrc2(IR::IntConstOpnd::New(63, TyMachReg, instr->m_func));
         instr->InsertBefore(tbzInstr);
+
+        Lowerer::InsertBranch(LowererMD::MDUncondBranchOpcode, bailoutLabel, instr);
     }
+
+    
+    instr->InsertBefore(checkOverflowLabel);
+
+    // TBZ exceptReg, #0, done
+    IR::BranchInstr * tbzInstr = IR::BranchInstr::New(Js::OpCode::TBZ, doneLabel, instr->m_func);
+    tbzInstr->SetSrc1(exceptReg);
+    tbzInstr->SetSrc2(IR::IntConstOpnd::New(0, TyMachReg, instr->m_func));
+    instr->InsertBefore(tbzInstr);
 
     IR::Opnd * dst = instr->UnlinkDst();
     instr->InsertAfter(doneLabel);
@@ -7184,6 +7208,8 @@ LowererMD::GenerateFastInlineBuiltInMathFloorCeil(IR::Instr* instr)
     {
         instr->InsertBefore(IR::Instr::New(Js::OpCode::EOR, negZeroReg, negZeroReg, IR::IntConstOpnd::New(0x8000000000000000ULL, IRType::TyInt64, this->m_func), instr->m_func));
     }
+
+    // FCVTM would set FPSR.IOC (0th bit in FPSR) if the source cannot be represented within the destination register
 
     // MRS exceptReg, FPSR
     IR::Opnd * exceptReg = IR::RegOpnd::New(TyUint32, this->m_func);
