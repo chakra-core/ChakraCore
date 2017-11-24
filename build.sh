@@ -243,11 +243,6 @@ while [[ $# -gt 0 ]]; do
         NO_JIT="-DNO_JIT_SH=1"
         ;;
 
-    --with-intl)
-        # todo: remove me! this is temporary
-        # until new setting settles and we re-configure CI
-        ;;
-
     --without-intl)
         INTL_ICU="-DNOINTL_ICU_SH=1"
         ;;
