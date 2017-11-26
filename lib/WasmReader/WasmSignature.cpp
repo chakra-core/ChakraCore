@@ -115,10 +115,7 @@ Js::ArgSlot WasmSignature::GetParamSize(Js::ArgSlot index) const
         CompileAssert(sizeof(double) == sizeof(int64));
         return sizeof(int64);
         break;
-#define SIMD_CASE(TYPE, BASE) case WasmTypes::##TYPE:
-
-FOREACH_SIMD_TYPE(SIMD_CASE)
-#undef SIMD_CASE
+    case WasmTypes::M128:
         CompileAssert(sizeof(Simd::simdvec) == 16);
         return sizeof(Simd::simdvec);
         break;
@@ -148,14 +145,14 @@ void WasmSignature::FinalizeSignature()
 
     // 3 bits for result type, 2 for each arg
     // we don't need to reserve a sentinel bit because there is no result type with value of 7
-    uint32 sigSize = ((uint32)paramCount) * 2 + 3;
+    uint32 sigSize = ((uint32)paramCount) * 3 + 3;
     if (sigSize <= sizeof(m_shortSig) << 3)
     {
         m_shortSig = (m_shortSig << 3) | m_resultType;
         for (Js::ArgSlot i = 0; i < paramCount; ++i)
         {
             // we can use 2 bits per arg by dropping void
-            m_shortSig = (m_shortSig << 2) | (m_params[i] - 1);
+            m_shortSig = (m_shortSig << 3) | (m_params[i] - 1);
         }
     }
 #endif

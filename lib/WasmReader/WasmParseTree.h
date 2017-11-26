@@ -32,11 +32,7 @@ namespace Wasm
 
         extern const char16* const strIds[Limit];
 
-        const char16* GetStrId(WasmType type);
         bool IsLocalType(WasmTypes::WasmType type);
-        bool IsSIMDType(WasmTypes::WasmType type);
-
-
         uint32 GetTypeByteSize(WasmType type);
         const char16* GetTypeName(WasmType type);
     }

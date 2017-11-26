@@ -329,8 +329,7 @@
 <dir>
   <default>
     <files>wasm.simd</files>
-    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend,exclude_xplat</tags>
-    <tags>exclude_arm,exclude_arm64</tags>
+    <tags>require_wasm,exclude_serialized,exclude_arm,exclude_arm64,require_backend,exclude_xplat</tags>
   </default>
 </dir>
 </regress-exe>

@@ -17,31 +17,10 @@ namespace Wasm
 namespace WasmTypes
 {
 
-const char16* const strIds[Limit] = {
-    nullptr,       //Void = 0,
-    _u("int32"),   //I32 = 1,
-    _u("int64"),   //I64 = 2,
-    _u("float"),   //F32 = 3,
-    _u("double"),  //F64 = 4,
-    _u("simd128")
-};
-
-const char16* GetStrId(WasmType type)
-{
-    Assert(type < WasmType::Limit);
-    return strIds[type];
-}
-
 bool IsLocalType(WasmTypes::WasmType type)
 {
     // Check if type in range ]Void,Limit[
     return (uint32)(type - 1) < (WasmTypes::Limit - 1);
-}
-
-bool IsSIMDType(WasmTypes::WasmType type)
-{
-    uint utype = (uint)(type);
-    return utype > WasmTypes::F64 && utype < WasmTypes::Limit;
 }
 
 uint32 GetTypeByteSize(WasmType type)
@@ -53,9 +32,7 @@ uint32 GetTypeByteSize(WasmType type)
     case I64: return sizeof(int64);
     case F32: return sizeof(float);
     case F64: return sizeof(double);
-#define SIMD_CASE(TYPE, BASE) case TYPE: 
-FOREACH_SIMD_TYPE(SIMD_CASE)
-#undef SIMD_CASE
+    case M128:
         CompileAssert(sizeof(Simd::simdvec) == 16);
         return sizeof(Simd::simdvec);
     case Ptr: return sizeof(void*);
@@ -713,7 +690,7 @@ void WasmBinaryReader::ConstNode()
         {
             m_currentNode.cnst.v128[i] = ReadConst<uint>();
         }
-        m_funcState.count += sizeof(m_currentNode.cnst.v128);
+        m_funcState.count += Simd::VEC_WIDTH;
         break;
     }
 }

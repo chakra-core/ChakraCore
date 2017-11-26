@@ -2278,8 +2278,8 @@ namespace Js
     {
 #ifdef ENABLE_WASM
         CompileAssert(type < Wasm::WasmTypes::Limit);
-        const char16* fromType = toJs ? Wasm::WasmTypes::GetStrId(static_cast<Wasm::WasmTypes::WasmType>(type)) : _u("Javascript Variable");
-        const char16* toType = toJs ? _u("Javascript Variable") : Wasm::WasmTypes::GetStrId(static_cast<Wasm::WasmTypes::WasmType>(type));
+        const char16* fromType = toJs ? Wasm::WasmTypes::GetTypeName(static_cast<Wasm::WasmTypes::WasmType>(type)) : _u("Javascript Variable");
+        const char16* toType = toJs ? _u("Javascript Variable") : Wasm::WasmTypes::GetTypeName(static_cast<Wasm::WasmTypes::WasmType>(type));
         JavascriptError::ThrowTypeErrorVar(scriptContext, WASMERR_InvalidTypeConversion, fromType, toType);
 #else
         Assert(UNREACHED); //shouldn't get there

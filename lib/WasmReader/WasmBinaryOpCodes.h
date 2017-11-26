@@ -4,12 +4,12 @@
 //-------------------------------------------------------------------------------------------------------
 
 // define this to include all opcodes
-#ifndef WASM_SIGNATURE
-#define WASM_SIGNATURE(id,...)
-#endif
-
 #ifndef WASM_OPCODE
 #define WASM_OPCODE(opname, opcode, sig, nyi)
+#endif
+
+#ifndef WASM_SIGNATURE
+#define WASM_SIGNATURE(id,...)
 #endif
 
 #ifndef WASM_CTRL_OPCODE
@@ -84,8 +84,6 @@ WASM_SIGNATURE(F,       1,   WasmTypes::F32)
 WASM_SIGNATURE(D,       1,   WasmTypes::I64)
 WASM_SIGNATURE(V,       1,   WasmTypes::Void)
 WASM_SIGNATURE(Limit,   1,   WasmTypes::Void)
-
-#include "WasmBinaryOpcodesSimd.h"
 
 // Control flow operators
 WASM_CTRL_OPCODE(Unreachable, 0x00, Limit, false)
@@ -321,6 +319,11 @@ WASM_UNARY__OPCODE(PrintF64         , 0xff, D_D , PrintF64         , false)
 WASM_MISC_OPCODE(SimdStart, 0xfd, Limit, false)
 WASM_MISC_OPCODE(Extended, 0x06, Limit, false)
 WASM_MISC_OPCODE(Extended2, 0x07, Limit, false)
+
+//Simd
+#ifdef ENABLE_WASM_SIMD
+#include "WasmBinaryOpcodesSimd.h"
+#endif
 
 #undef WASM_OPCODE
 #undef WASM_SIGNATURE

@@ -3,19 +3,6 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-
-//temporary until 64x2 types are implemented
-#ifndef FOREACH_SIMD_TYPE
-#define FOREACH_SIMD_TYPE(V) \
-    V(M128, F)
-#endif
-
-#ifndef FOREACH_SIMD_TYPE_W_BASE
-#define FOREACH_SIMD_TYPE_W_BASE(V) \
-    V(M128, F)   \
-    V(M128, I)
-#endif
-
 #ifndef WASM_LANE_OPCODE
 #define WASM_LANE_OPCODE(opname, opcode, sig, nyi) WASM_OPCODE(opname, opcode, sig, nyi)
 #endif
@@ -41,24 +28,16 @@
 #endif
 
 //SIMD Signatures
-#define SIMD_EXTRACT(TYPE, BASE) WASM_SIGNATURE(BASE##_##TYPE, 2, WasmTypes::##BASE##32, WasmTypes::##TYPE)
-#define SIMD_BUILD(TYPE, BASE) WASM_SIGNATURE(TYPE##_##BASE, 2, WasmTypes::##TYPE, WasmTypes::##BASE##32)
-
-#define SIMD_ALL(TYPE, BASE) \
-    SIMD_EXTRACT(TYPE, BASE) \
-    SIMD_BUILD(TYPE, BASE)
-
-FOREACH_SIMD_TYPE_W_BASE(SIMD_ALL)
-#undef SIMD_ALL
-#undef SIMD_BUILD
-#undef SIMD_EXTRACT
-
+WASM_SIGNATURE(F_M128, 2, WasmTypes::F32, WasmTypes::M128)
+WASM_SIGNATURE(I_M128, 2, WasmTypes::I32, WasmTypes::M128)
+WASM_SIGNATURE(M128_I, 2, WasmTypes::M128, WasmTypes::I32)
+WASM_SIGNATURE(M128_F, 2, WasmTypes::M128, WasmTypes::F32)
+WASM_SIGNATURE(M128_L, 2, WasmTypes::M128, WasmTypes::I64)
+WASM_SIGNATURE(M128_D, 2, WasmTypes::M128, WasmTypes::F64)
 WASM_SIGNATURE(M128X3, 3, WasmTypes::M128, WasmTypes::M128, WasmTypes::M128)
 WASM_SIGNATURE(M128_M128_I, 3, WasmTypes::M128, WasmTypes::M128, WasmTypes::I32)
 WASM_SIGNATURE(M128_M128, 2, WasmTypes::M128, WasmTypes::M128)
-WASM_SIGNATURE(M128_L, 2, WasmTypes::M128, WasmTypes::I64)
 WASM_SIGNATURE(L_M128, 2, WasmTypes::I64, WasmTypes::M128)
-WASM_SIGNATURE(M128_D, 2, WasmTypes::M128, WasmTypes::F64)
 WASM_SIGNATURE(D_M128_I, 3, WasmTypes::F64, WasmTypes::M128, WasmTypes::I32)
 
 WASM_MISC_OPCODE(M128Const, 0x100, Limit, false)

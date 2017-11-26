@@ -219,7 +219,7 @@ namespace Wasm
         EmitInfo EmitV8X16Shuffle();
         EmitInfo EmitExtractLaneExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
         EmitInfo EmitReplaceLaneExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
-        void CheckLaneIndex(Js::OpCodeAsmJs op);
+        void CheckLaneIndex(Js::OpCodeAsmJs op, const uint index);
         EmitInfo EmitLaneIndex(Js::OpCodeAsmJs op);
 
         EmitInfo EmitConst(WasmTypes::WasmType type, WasmConstLitNode cnst);
