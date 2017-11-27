@@ -2858,12 +2858,12 @@ Instr::GetOrCreateContinueLabel(const bool isHelper)
     return label;
 }
 
-
-IR::RegOpnd * Instr::FindRegUseSrc(StackSym *sym, IR::Opnd* src)
+bool
+Instr::HasSymUseSrc(StackSym *sym, IR::Opnd* src)
 {
     if (!src)
     {
-        return nullptr;
+        return false;
     }
     if (src->IsRegOpnd())
     {
@@ -2871,43 +2871,70 @@ IR::RegOpnd * Instr::FindRegUseSrc(StackSym *sym, IR::Opnd* src)
 
         if (regOpnd->m_sym == sym)
         {
-            return regOpnd;
+            return true;
         }
     }
     else if (src->IsIndirOpnd())
     {
         IR::IndirOpnd *indirOpnd = src->AsIndirOpnd();
+        if (indirOpnd->GetStackSym() == sym)
+        {
+            return true;
+        }
         RegOpnd * baseOpnd = indirOpnd->GetBaseOpnd();
         if (baseOpnd != nullptr && baseOpnd->m_sym == sym)
         {
-            return baseOpnd;
+            return true;
         }
         else if (indirOpnd->GetIndexOpnd() && indirOpnd->GetIndexOpnd()->m_sym == sym)
         {
-            return indirOpnd->GetIndexOpnd();
+            return true;
         }
     }
     else if (src->IsListOpnd())
     {
         IR::ListOpnd* list = src->AsListOpnd();
-        for (int i = 0; i < list->Count(); ++i)
+        if (list->GetStackSym() == sym)
         {
-            IR::RegOpnd* reg = FindRegUseSrc(sym, list->Item(i));
-            if (reg)
+            for (int i = 0; i < list->Count(); ++i)
             {
-                return reg;
+                if (HasSymUseSrc(sym, list->Item(i)))
+                {
+                    return true;
+                }
             }
         }
     }
-    return nullptr;
+    else if (src->IsSymOpnd())
+    {
+        SymOpnd* symOpnd = src->AsSymOpnd();
+        if (symOpnd->GetSym() == sym)
+        {
+            return true;
+        }
+        if (symOpnd->IsPropertySymOpnd())
+        {
+            PropertySymOpnd* propertySymOpnd = symOpnd->AsPropertySymOpnd();
+            if (propertySymOpnd->GetPropertySym()->m_stackSym == sym)
+            {
+                return true;
+            }
+            if (propertySymOpnd->GetObjectSym() == sym)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 
-IR::RegOpnd * Instr::FindRegUseDst(StackSym *sym, IR::Opnd* dst)
+bool
+Instr::HasSymUseDst(StackSym *sym, IR::Opnd* dst)
 {
     if (!dst)
     {
-        return nullptr;
+        return false;
     }
     if (dst->IsIndirOpnd())
     {
@@ -2915,11 +2942,11 @@ IR::RegOpnd * Instr::FindRegUseDst(StackSym *sym, IR::Opnd* dst)
         RegOpnd * baseOpnd = indirOpnd->GetBaseOpnd();
         if (baseOpnd != nullptr && baseOpnd->m_sym == sym)
         {
-            return baseOpnd;
+            return true;
         }
         else if (indirOpnd->GetIndexOpnd() && indirOpnd->GetIndexOpnd()->m_sym == sym)
         {
-            return indirOpnd->GetIndexOpnd();
+            return true;
         }
     }
     else if (dst->IsListOpnd())
@@ -2927,60 +2954,59 @@ IR::RegOpnd * Instr::FindRegUseDst(StackSym *sym, IR::Opnd* dst)
         IR::ListOpnd* list = dst->AsListOpnd();
         for (int i = 0; i < list->Count(); ++i)
         {
-            IR::RegOpnd* reg = FindRegUseDst(sym, list->Item(i));
-            if (reg)
+            if (HasSymUseDst(sym, list->Item(i)))
             {
-                return reg;
+                return true;
             }
         }
     }
-    return nullptr;
+    else if (dst->IsSymOpnd() && dst->AsSymOpnd()->IsPropertySymOpnd())
+    {
+        PropertySymOpnd* propertySymOpnd = dst->AsSymOpnd()->AsPropertySymOpnd();
+        if (propertySymOpnd->GetPropertySym()->m_stackSym == sym)
+        {
+            return true;
+        }
+        if (propertySymOpnd->GetObjectSym() == sym)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
-///----------------------------------------------------------------------------
-///
-/// Instr::FindRegUse
-///
-///     Search a reg use of the given sym.  Return the RegOpnd that uses it.
-///
-///----------------------------------------------------------------------------
-
-IR::RegOpnd *
-Instr::FindRegUse(StackSym *sym)
+bool
+Instr::HasSymUse(StackSym *sym)
 {
-    IR::RegOpnd* reg = FindRegUseSrc(sym, this->GetSrc1());
-    if (reg)
+    if (HasSymUseSrc(sym, this->GetSrc1()))
     {
-        return reg;
+        return true;
     }
-    reg = FindRegUseSrc(sym, this->GetSrc2());
-    if (reg)
+    if (HasSymUseSrc(sym, this->GetSrc2()))
     {
-        return reg;
+        return true;
     }
-    reg = FindRegUseDst(sym, this->GetDst());
-    if (reg)
+    if (HasSymUseSrc(sym, this->GetDst()))
     {
-        return reg;
+        return true;
     }
-    return nullptr;
+    return false;
 }
 
-IR::RegOpnd *
-Instr::FindRegUseInRange(StackSym *sym, IR::Instr *instrBegin, IR::Instr *instrEnd)
+bool
+Instr::HasSymUseInRange(StackSym *sym, IR::Instr *instrBegin, IR::Instr *instrEnd)
 {
     FOREACH_INSTR_IN_RANGE(instr, instrBegin, instrEnd)
     {
         Assert(instr);
-        IR::RegOpnd *opnd = instr->FindRegUse(sym);
-        if (opnd)
+        if (instr->HasSymUse(sym))
         {
-            return opnd;
+            return true;
         }
     }
     NEXT_INSTR_IN_RANGE;
 
-    return nullptr;
+    return false;
 }
 
 ///----------------------------------------------------------------------------
