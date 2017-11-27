@@ -1098,6 +1098,17 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
 IR::Instr *
 LowererMDArch::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
 {
+    IR::IndirOpnd * indirOpnd = addrOpnd->AsIndirOpnd();
+    IR::RegOpnd * indexOpnd = indirOpnd->GetIndexOpnd();
+    if (indexOpnd && !indexOpnd->IsIntegral32())
+    {
+        // We don't expect the index to be anything other than an int32 or uint32
+        // Having an int32 index guaranties that int64 index add doesn't overflow
+        // If we're wrong, just throw index out of range
+        Assert(UNREACHED);
+        lowererMD->m_lowerer->GenerateThrow(IR::IntConstOpnd::New(WASMERR_ArrayIndexOutOfRange, TyInt32, m_func), instr);
+        return instr;
+    }
 #if ENABLE_FAST_ARRAYBUFFER
     if (CONFIG_FLAG(WasmFastArray))
     {
@@ -1111,8 +1122,6 @@ LowererMDArch::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
     IR::LabelInstr * doneLabel = Lowerer::InsertLabel(false, instr);
 
     // Find array buffer length
-    IR::IndirOpnd * indirOpnd = addrOpnd->AsIndirOpnd();
-    IR::RegOpnd * indexOpnd = indirOpnd->GetIndexOpnd();
     uint32 offset = indirOpnd->GetOffset();
     IR::Opnd *arrayLenOpnd = instr->GetSrc2();
     IR::Int64ConstOpnd * constOffsetOpnd = IR::Int64ConstOpnd::New((int64)addrOpnd->GetSize() + (int64)offset, TyInt64, m_func);
