@@ -8087,11 +8087,19 @@ namespace Js
                 // Set the recycler-allocated cache on the (heap-allocated) guard.
                 (*guard)->SetCache(cache);
 
-                for(uint i = 0; i < EQUIVALENT_TYPE_CACHE_SIZE; i++)
+                for (uint i = 0; i < EQUIVALENT_TYPE_CACHE_SIZE; i++)
                 {
                     if((*cache).types[i] != nullptr)
                     {
                         (*cache).types[i]->SetHasBeenCached();
+                    }
+                    else
+                    {
+#ifdef DEBUG
+                        for (uint __i = i; __i < EQUIVALENT_TYPE_CACHE_SIZE; __i++)
+                        { Assert((*cache).types[__i] == nullptr); }
+#endif
+                        break; // type array must be shrinked.
                     }
                 }
                 cache++;
@@ -8726,6 +8734,14 @@ namespace Js
                     isGuardValuePresent = this->guard->GetValue() == reinterpret_cast<intptr_t>(type) ? true : isGuardValuePresent;
 #endif
                 }
+            }
+            else
+            {
+#ifdef DEBUG
+                for (int __i = i; __i < EQUIVALENT_TYPE_CACHE_SIZE; __i++)
+                { Assert(this->types[__i] == nullptr); }
+#endif
+                break; // array must be shrinked already
             }
         }
 
