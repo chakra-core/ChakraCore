@@ -37,6 +37,15 @@ var tests = [
         Array.prototype.slice.call(arr);
     }
   },
+  {
+    name: "rest param under eval with arguments usage in the body should not fail assert",
+    body: function () {
+        f();
+        function f() {
+            eval("function bar(...x){arguments;}")
+        }
+    }
+  },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
