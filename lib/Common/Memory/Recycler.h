@@ -1417,6 +1417,7 @@ public:
 #endif
 #ifdef RECYCLER_ZERO_MEM_CHECK
     void VerifyZeroFill(void * address, size_t size);
+    void VerifyLargeAllocZeroFill(void * address, size_t size, ObjectInfoBits attributes);
 #endif
 #ifdef RECYCLER_DUMP_OBJECT_GRAPH
     bool DumpObjectGraph(RecyclerObjectGraphDumper::Param * param = nullptr);

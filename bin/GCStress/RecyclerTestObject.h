@@ -35,6 +35,7 @@ public:
         walkScannedByteCount = 0;
         walkBarrierByteCount = 0;
         walkTrackedByteCount = 0;
+        walkFinalizedByteCount = 0;
         walkRecyclerVisitedByteCount = 0;
         walkLeafByteCount = 0;
         maxWalkDepth = 0;
@@ -42,7 +43,7 @@ public:
         currentWalkDepth = 0;
 
         wprintf(_u("-------------------------------------------\n"));
-        wprintf(_u("Full heap walk starting\n"));
+        wprintf(_u("Full heap walk starting. Current generation: %12llu\n"), (unsigned long long) currentGeneration);
     }
 
     static void WalkReference(RecyclerTestObject * object)
@@ -79,9 +80,10 @@ public:
         wprintf(_u("Scanned Bytes:          %12llu\n"), (unsigned long long) walkScannedByteCount);
         wprintf(_u("Barrier Bytes:          %12llu\n"), (unsigned long long) walkBarrierByteCount);
         wprintf(_u("Tracked Bytes:          %12llu\n"), (unsigned long long) walkTrackedByteCount);
+        wprintf(_u("Finalized Bytes:        %12llu\n"), (unsigned long long) walkFinalizedByteCount);
         wprintf(_u("RecyclerVisited Bytes:  %12llu\n"), (unsigned long long) walkRecyclerVisitedByteCount);
         wprintf(_u("Leaf Bytes:             %12llu\n"), (unsigned long long) walkLeafByteCount);
-        wprintf(_u("Total Bytes:            %12llu\n"), (unsigned long long) (walkScannedByteCount + walkBarrierByteCount + walkTrackedByteCount + walkLeafByteCount + walkRecyclerVisitedByteCount));
+        wprintf(_u("Total Bytes:            %12llu\n"), (unsigned long long) (walkScannedByteCount + walkBarrierByteCount + walkTrackedByteCount + walkFinalizedByteCount + walkLeafByteCount + walkRecyclerVisitedByteCount));
         wprintf(_u("Max Depth:              %12llu\n"), (unsigned long long) maxWalkDepth);
     }
 
@@ -110,6 +112,7 @@ protected:
     static size_t walkLeafByteCount;
     static size_t walkBarrierByteCount;
     static size_t walkTrackedByteCount;
+    static size_t walkFinalizedByteCount;
     static size_t walkRecyclerVisitedByteCount;
     static size_t currentWalkDepth;
     static size_t maxWalkDepth;
@@ -303,6 +306,60 @@ protected:
         for (unsigned int i = 0; i < count; i++)
         {
             RecyclerTestObject::WalkReference(Location::Untag(references[i]));
+        }
+    }
+
+private:
+    Field(unsigned int) count;
+    FieldNoBarrier(RecyclerTestObject *) references[0];  // SWB-TODO: is this correct?
+};
+
+// A type of object that is finalizable, but not traced/tracked so that it can be used to test finalization
+// for LargeHeapBlock (which currently supports the FinalizeBit, but not TrackBit)
+template <unsigned int minCount, unsigned int maxCount>
+class FinalizedObject : public RecyclerTestObject, public FinalizableObject
+{
+private:
+    FinalizedObject(unsigned int count) :
+        count(count)
+    {
+        for (unsigned int i = 0; i < count; i++)
+        {
+            references[i] = nullptr;
+        }
+    }
+
+public:
+    static RecyclerTestObject * New()
+    {
+        unsigned int count = minCount + GetRandomInteger(maxCount - minCount + 1);
+
+        return RecyclerNewFinalizedPlus(recyclerInstance, sizeof(RecyclerTestObject *) * count, FinalizedObject, count);
+    }
+
+    virtual bool TryGetRandomLocation(Location * location) override
+    {
+        // Get a random slot and construct a Location for it
+        *location = Location::Scanned(&references[GetRandomInteger(count)]);
+
+        return true;
+    }
+
+    virtual void Mark(Recycler * recycler) override { VerifyCondition(false); };
+
+    // Finalize implementation.
+    virtual void Finalize(bool isShutdown) override { }
+    virtual void Dispose(bool isShutdown) override { }
+
+
+protected:
+    virtual void DoWalkObject() override
+    {
+        walkFinalizedByteCount += sizeof(FinalizedObject) + count * sizeof(RecyclerTestObject *);
+
+        for (unsigned int i = 0; i < count; i++)
+        {
+            RecyclerTestObject::WalkReference(references[i]);
         }
     }
 
