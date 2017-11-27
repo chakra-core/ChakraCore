@@ -20015,8 +20015,6 @@ Lowerer::GenerateFunctionTypeFromFixedFunctionObject(IR::Instr *insertInstrPt, I
 void
 Lowerer::FinalLower()
 {
-    this->m_lowererMD.FinalLower();
-
     // ensure that the StartLabel and EndLabel are inserted
     // before the prolog and after the epilog respectively
     IR::LabelInstr * startLabel = m_func->GetFuncStartLabel();
@@ -20030,6 +20028,8 @@ Lowerer::FinalLower()
     {
         m_func->m_tailInstr->GetPrevRealInstr()->InsertBefore(endLabel);
     }
+
+    this->m_lowererMD.FinalLower();
 }
 
 void
