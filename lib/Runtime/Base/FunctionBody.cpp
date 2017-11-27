@@ -8735,9 +8735,6 @@ namespace Js
         }
         else
         {
-#if DBG
-            isGuardValuePresent = true; // never went into loop. (noNullIndex == 0)
-#endif
             if (guard->IsInvalidatedDuringSweep())
             {
                 // just mark this as actual invalidated since there are no types
@@ -8747,7 +8744,8 @@ namespace Js
         }
 
         // verify if guard value is valid, it is present in one of the types
-        AssertMsg(!this->guard->IsValid() || isGuardValuePresent, "After ClearUnusedTypes, valid guard value should be one of the cached equivalent types.");
+        AssertMsg(!this->guard->IsValid() || isGuardValuePresent || nonNullIndex == 0,
+            "After ClearUnusedTypes, valid guard value should be one of the cached equivalent types.");
         return isAnyTypeLive;
     }
 
