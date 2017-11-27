@@ -486,11 +486,6 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
     Assert(fn->GetFunctionBody() == fn);
     Assert(!fn->IsDeferred());
 
-#if defined(_M_ARM64) && !defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-    // Disable JIT in ARM64 release build till it is stable. Enable in debug and test build for testing
-    return false;
-#endif
-
     if (fn->IsGeneratorAndJitIsDisabled())
     {
         // JITing generator functions is not complete nor stable yet so it is off by default.
