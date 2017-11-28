@@ -52,6 +52,12 @@ var tests = [
         assert.throws(()=> { eval('function foo ([ [] = () => { } = {a2:z2}]) { };'); });
     }
   },
+  {
+    name: "Token left after parsing lambda in ternary operator should not throw",
+    body: function () {
+        assert.doesNotThrow(()=> { eval('function foo () {  true ? e => {} : 1};'); });
+    }
+  },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
