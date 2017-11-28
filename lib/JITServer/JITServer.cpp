@@ -267,7 +267,7 @@ ServerInitializeThreadContext(
         {
             *prereservedRegionAddr = (intptr_t)contextInfo->GetPreReservedSectionAllocator()->EnsurePreReservedRegion();
         }
-#if _M_IX86 || _M_X64
+#if _M_IX86 || _M_X64_OR_ARM64
         *jitThunkAddr = (intptr_t)contextInfo->GetJITThunkEmitter()->EnsureInitialized();
 #endif
 #endif
