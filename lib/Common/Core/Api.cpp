@@ -7,6 +7,17 @@
 #include <wchar.h> // wmemcpy_s
 #endif
 
+int AssertCount = 0;
+int AssertsToConsole = false;
+
+#if _WIN32
+ // IsInAssert defined in header
+#elif !defined(__IOS__)
+ __declspec(thread) int IsInAssert = false;
+#else
+int IsInAssert = false;
+#endif
+
 void __stdcall js_memcpy_s(__bcount(sizeInBytes) void *dst, size_t sizeInBytes, __in_bcount(count) const void *src, size_t count)
 {
     Assert((count) <= (sizeInBytes));

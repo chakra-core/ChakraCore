@@ -11,20 +11,6 @@
 #undef MD_ENCODE_LG_CONSTS
 #define MD_ENCODE_LG_CONSTS false
 
-//
-// Machine dependent constants.
-//
-const int MachChar = 1;
-const int MachShort = 2;
-const int MachInt = 4;
-const int MachRegInt = 8;
-__declspec(selectany) const int MachPtr = 8;
-const int MachDouble = 8;
-const int MachRegDouble = 8;
-const int MachArgsSlotOffset = MachPtr;
-const int MachStackAlignment = 16; // On ARM64 SP needs to be 16 byte aligned for load/store
-const unsigned __int64 MachSignBit = 0x8000000000000000;
-
 const int PAGESIZE = 0x1000;
 
 const IRType TyMachReg = TyInt64;
