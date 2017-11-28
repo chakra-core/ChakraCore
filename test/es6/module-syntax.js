@@ -83,7 +83,6 @@ var tests = [
             testModuleScript('export default class _cl2 { } if (true) { }', 'Named class default expression export');
             testModuleScript('export default 1 if (true) { }', 'Primitive type default export');
             testModuleScript('var a; export default a = 10 if (true) { }', 'Variable in assignment expression default export');
-            testModuleScript('export default () => 3 if (true) { }', 'Simple default lambda expression export statement');
             testModuleScript('function _default() { }; export default _default if (true) { }', 'Named function statement default export');
             testModuleScript('function* g() { }; export default g if (true) { }', 'Named generator function statement default export');
             testModuleScript('class c { }; export default c if (true) { }', 'Named class statement default export');
