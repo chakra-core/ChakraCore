@@ -149,7 +149,8 @@
     <default>
       <files>toStringAndToUTCStringYearPadding.js</files>
       <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>exclude_jenkins</tags>
+      <!-- xplat tz info for negative years != Windows tz info.. -->
+      <tags>exclude_jenkins,exclude_xplat</tags>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>

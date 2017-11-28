@@ -125,7 +125,7 @@ def CreateXPlatBuildTask = { isPR, buildType, staticBuild, machine, platform, co
     def icuFlag = (platform == "osx" ? "--icu=/usr/local/opt/icu4c/include" : "")
     def compilerPaths = (platform == "osx") ? "" : "--cxx=/usr/bin/clang++-3.9 --cc=/usr/bin/clang-3.9"
     def buildScript = "bash ./build.sh ${staticFlag} -j=`${numConcurrentCommand}` ${buildFlag} " +
-                      "${swbCheckFlag} ${compilerPaths} ${icuFlag} ${customOption} ${extraBuildParams}"
+                      "${swbCheckFlag} ${compilerPaths} ${icuFlag} --with-intl ${customOption} ${extraBuildParams}"
     def testScript = "bash test/runtests.sh \"${testVariant}\""
 
     def newJob = job(jobName) {

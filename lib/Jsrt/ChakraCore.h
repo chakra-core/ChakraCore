@@ -793,13 +793,35 @@ CHAKRA_API
         _Out_ bool *result);
 
 /// <summary>
+///     Creates a new object (with prototype) that stores some external data.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="data">External data that the object will represent. May be null.</param>
+/// <param name="finalizeCallback">
+///     A callback for when the object is finalized. May be null.
+/// </param>
+/// <param name="prototype">Prototype object or nullptr.</param>
+/// <param name="object">The new object.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsCreateExternalObjectWithPrototype(
+        _In_opt_ void *data,
+        _In_opt_ JsFinalizeCallback finalizeCallback,
+        _In_ JsValueRef prototype,
+        _Out_ JsValueRef *object);
+
+/// <summary>
 ///     Gets an object's property.
 /// </summary>
 /// <remarks>
 ///     Requires an active script context.
 /// </remarks>
 /// <param name="object">The object that contains the property.</param>
-/// <param name="key">The key (JavascriptString) to the property.</param>
+/// <param name="key">The key (JavascriptString or JavascriptSymbol) to the property.</param>
 /// <param name="value">The value of the property.</param>
 /// <returns>
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
@@ -817,7 +839,7 @@ CHAKRA_API
 ///     Requires an active script context.
 /// </remarks>
 /// <param name="object">The object that contains the property.</param>
-/// <param name="key">The key (JavascriptString) to the property.</param>
+/// <param name="key">The key (JavascriptString or JavascriptSymbol) to the property.</param>
 /// <param name="value">The new value of the property.</param>
 /// <param name="useStrictRules">The property set should follow strict mode rules.</param>
 /// <returns>
@@ -837,7 +859,7 @@ CHAKRA_API
 ///     Requires an active script context.
 /// </remarks>
 /// <param name="object">The object that may contain the property.</param>
-/// <param name="key">The key (JavascriptString) to the property.</param>
+/// <param name="key">The key (JavascriptString or JavascriptSymbol) to the property.</param>
 /// <param name="hasProperty">Whether the object (or a prototype) has the property.</param>
 /// <returns>
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
@@ -855,7 +877,7 @@ CHAKRA_API
 ///     Requires an active script context.
 /// </remarks>
 /// <param name="object">The object that has the property.</param>
-/// <param name="key">The key (JavascriptString) to the property.</param>
+/// <param name="key">The key (JavascriptString or JavascriptSymbol) to the property.</param>
 /// <param name="propertyDescriptor">The property descriptor.</param>
 /// <param name="result">Whether the property was defined.</param>
 /// <returns>
@@ -875,7 +897,7 @@ CHAKRA_API
 ///     Requires an active script context.
 /// </remarks>
 /// <param name="object">The object that contains the property.</param>
-/// <param name="key">The key (JavascriptString) to the property.</param>
+/// <param name="key">The key (JavascriptString or JavascriptSymbol) to the property.</param>
 /// <param name="useStrictRules">The property set should follow strict mode rules.</param>
 /// <param name="result">Whether the property was deleted.</param>
 /// <returns>
@@ -895,7 +917,7 @@ CHAKRA_API
 ///     Requires an active script context.
 /// </remarks>
 /// <param name="object">The object that has the property.</param>
-/// <param name="key">The key (JavascriptString) to the property.</param>
+/// <param name="key">The key (JavascriptString or JavascriptSymbol) to the property.</param>
 /// <param name="propertyDescriptor">The property descriptor.</param>
 /// <returns>
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
@@ -913,7 +935,7 @@ CHAKRA_API
 ///     Requires an active script context.
 /// </remarks>
 /// <param name="object">The object that may contain the property.</param>
-/// <param name="key">The key (JavascriptString) to the property.</param>
+/// <param name="key">The key (JavascriptString or JavascriptSymbol) to the property.</param>
 /// <param name="hasOwnProperty">Whether the object has the non-inherited property.</param>
 /// <returns>
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.

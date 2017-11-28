@@ -6,6 +6,7 @@
 
 #include "ChakraPlatform.h"
 
+#if PERFMAP_TRACE_ENABLED
 
 using namespace Js;
 
@@ -13,7 +14,7 @@ namespace PlatformAgnostic
 {
 
 volatile sig_atomic_t PerfTrace::mapsRequested = 0;
-  
+
 void PerfTrace::Register()
 {
     // TODO: Implement this on Windows?
@@ -25,3 +26,5 @@ void  PerfTrace::WritePerfMap()
 }
 
 }
+
+#endif // PERFMAP_TRACE_ENABLED

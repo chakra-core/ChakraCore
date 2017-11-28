@@ -307,8 +307,8 @@
   </test>
   <test>
     <default>
-      <files>bug10191241.js</files>
-      <compile-flags>-forceundodefer</compile-flags>
+      <files>misc_bugs.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

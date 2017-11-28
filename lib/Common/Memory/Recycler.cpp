@@ -1583,14 +1583,21 @@ static void* GetStackBase()
     __asm { mov [eax+0x14], ebp} \
     __asm { mov [eax+0x18], esi} \
     __asm { mov [eax+0x1c], edi} \
-    __asm { pop eax }
+    __asm { pop eax } \
+    SAVE_THREAD_ASAN_FAKE_STACK()
 
 #elif _M_ARM
-#define SAVE_THREAD_CONTEXT() arm_SAVE_REGISTERS(this->savedThreadContext.GetRegisters());
+#define SAVE_THREAD_CONTEXT() \
+    arm_SAVE_REGISTERS(this->savedThreadContext.GetRegisters()); \
+    SAVE_THREAD_ASAN_FAKE_STACK()
 #elif _M_ARM64
-#define SAVE_THREAD_CONTEXT() arm64_SAVE_REGISTERS(this->savedThreadContext.GetRegisters());
+#define SAVE_THREAD_CONTEXT() \
+    arm64_SAVE_REGISTERS(this->savedThreadContext.GetRegisters()); \
+    SAVE_THREAD_ASAN_FAKE_STACK()
 #elif _M_AMD64
-#define SAVE_THREAD_CONTEXT() amd64_SAVE_REGISTERS(this->savedThreadContext.GetRegisters());
+#define SAVE_THREAD_CONTEXT() \
+    amd64_SAVE_REGISTERS(this->savedThreadContext.GetRegisters()); \
+    SAVE_THREAD_ASAN_FAKE_STACK()
 #else
 #error Unexpected architecture
 #endif
@@ -1728,22 +1735,28 @@ Recycler::ScanStack()
     BEGIN_DUMP_OBJECT(this, _u("Registers"));
     if (doSpecialMark)
     {
-        ScanMemoryInline<true>(this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave);
+        ScanMemoryInline<true>(
+            this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave
+            ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
     }
     else
     {
-        ScanMemoryInline<false>(this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave);
+        ScanMemoryInline<false>(
+            this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave
+            ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
     }
     END_DUMP_OBJECT(this);
 
     BEGIN_DUMP_OBJECT(this, _u("Stack"));
     if (doSpecialMark)
     {
-        ScanMemoryInline<true>((void**) stackTop, stackScanned);
+        ScanMemoryInline<true>((void**) stackTop, stackScanned
+            ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
     }
     else
     {
-        ScanMemoryInline<false>((void**) stackTop, stackScanned);
+        ScanMemoryInline<false>((void**) stackTop, stackScanned
+            ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
     }
     END_DUMP_OBJECT(this);
 
@@ -5247,7 +5260,8 @@ Recycler::BackgroundScanStack()
     if (stackTop != nullptr)
     {
         size_t size = (char *)stackBase - stackTop;
-        ScanMemoryInline<false>((void **)stackTop, size);
+        ScanMemoryInline<false>((void **)stackTop, size
+            ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
         return size;
     }
 

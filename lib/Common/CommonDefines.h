@@ -311,20 +311,13 @@
 #define DELAYLOAD_SET_CFG_TARGET 1
 #endif
 
-// Configure whether we configure a signal handler
-// to produce perf-<pid>.map files
-#ifndef PERFMAP_TRACE_ENABLED
-#define PERFMAP_TRACE_ENABLED 0
-#endif
 #ifndef PERFMAP_SIGNAL
 #define PERFMAP_SIGNAL SIGUSR2
 #endif
 
 #ifndef NTBUILD
 #define DELAYLOAD_SECTIONAPI 1
-#endif
-
-#ifdef NTBUILD
+#else
 #define ENABLE_PROJECTION
 #define ENABLE_FOUNDATION_OBJECT
 #define ENABLE_EXPERIMENTAL_FLAGS
@@ -677,15 +670,6 @@
 
 #if defined(ENABLE_JS_ETW) || defined(DUMP_FRAGMENTATION_STATS)
 #define ENABLE_MEM_STATS 1
-#endif
-
-#define NO_SANITIZE_ADDRESS
-#if defined(__has_feature)
-#if __has_feature(address_sanitizer)
-#undef NO_SANITIZE_ADDRESS
-#define NO_SANITIZE_ADDRESS __attribute__((no_sanitize("address")))
-#define NO_SANITIZE_ADDRESS_FIXVC
-#endif
 #endif
 
 //----------------------------------------------------------------------------------------------------

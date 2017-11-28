@@ -47,7 +47,7 @@ PRINT_USAGE() {
     echo "     --icu=PATH        Path to ICU include folder (see example below)"
     echo " -j[=N], --jobs[=N]    Multicore build, allow N jobs at once."
     echo " -n, --ninja           Build with ninja instead of make."
-    echo "     --no-icu          Compile without unicode/icu support."
+    echo "     --no-icu          Compile without unicode/icu/intl support."
     echo "     --no-jit          Disable JIT"
     echo "     --libs-only       Do not build CH and GCStress"
     echo "     --lto             Enables LLVM Full LTO"
@@ -60,7 +60,7 @@ PRINT_USAGE() {
     echo "     --target-path[=S] Output path for compiled binaries. Default: out/"
     echo "     --trace           Enables experimental built-in trace."
     echo "     --xcode           Generate XCode project."
-    echo "     --with-intl       Include the Intl object (requires ICU)."
+    echo "     --without-intl    --icu arg also enables Intl by default. Disable it."
     echo "     --without=FEATURE,FEATURE,..."
     echo "                       Disable FEATUREs from JSRT experimental features."
     echo "     --valgrind        Enable Valgrind support"
@@ -244,7 +244,12 @@ while [[ $# -gt 0 ]]; do
         ;;
 
     --with-intl)
-        INTL_ICU="-DINTL_ICU_SH=1"
+        # todo: remove me! this is temporary
+        # until new setting settles and we re-configure CI
+        ;;
+
+    --without-intl)
+        INTL_ICU="-DNOINTL_ICU_SH=1"
         ;;
 
     --xcode)
