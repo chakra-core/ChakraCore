@@ -7827,15 +7827,23 @@ LowererMD::FinalLower()
         switch (reloc->m_relocType)
         {
         case RelocTypeBranch19:
-            AssertMsg(relocAddress < reloc->m_relocInstr->AsBranchInstr()->GetTarget()->GetOffset(), "Only forward branches require fixup");
+            AssertMsg(relocAddress < reloc->m_relocInstr->AsBranchInstr()->GetTarget()->GetOffset(), "Only backward branches require fixup");
             LegalizeMD::LegalizeDirectBranch(reloc->m_relocInstr->AsBranchInstr(), relocAddress);
             break;
 
         case RelocTypeLabelAdr:
-            AssertMsg(relocAddress < reloc->m_relocInstr->GetSrc1()->AsLabelOpnd()->GetLabel()->GetOffset(), "Only forward branches require fixup");
+        {
+            IR::LabelInstr* label = reloc->m_relocInstr->GetSrc1()->AsLabelOpnd()->GetLabel();
+            if (label->GetOffset() == 0)
+            {
+                Assert(label->m_isDataLabel);
+                break;
+            }
+
+            AssertMsg(relocAddress < label->GetOffset(), "Only backward branches require fixup");
             LegalizeMD::LegalizeAdrOffset(reloc->m_relocInstr, relocAddress);
             break;
-
+        }
         default:
             Assert(false);
         }

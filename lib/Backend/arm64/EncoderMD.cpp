@@ -1532,6 +1532,14 @@ EncoderMD::ApplyRelocs(size_t codeBufferAddress, size_t codeSize, uint* bufferCR
             Assert(!reloc->m_relocInstr->isInlineeEntryInstr);
             immediate = ULONG_PTR(targetAddress) - ULONG_PTR(relocAddress);
             Assert(IS_CONST_INT21(immediate));
+            if (!IS_CONST_INT21(immediate))
+            {
+                // JumpTable addresses are current loaded as ADR address instructions, and the address of the jump table is not known until after encoding. In
+                // cases where it is too far to be loaded by an ADR instruction abort jitting.
+                // TODO(magardn): detect these cases before encoding and convert these cases to use LDIMM instead.
+                throw Js::OperationAbortedException();
+            }
+
             *relocAddress = (*relocAddress & ~(3 << 29)) | ULONG((immediate & 3) << 29);
             *relocAddress = (*relocAddress & ~(0x7ffff << 5)) | ULONG(((immediate >> 2) & 0x7ffff) << 5);
             break;

@@ -808,31 +808,31 @@ namespace
 {
     IR::LabelInstr* TryInsertBranchIsland(IR::Instr* instr, IR::LabelInstr* target, int limit, bool forward)
     {
-        int i = MachMaxInstrSize;
+        int instrCount = 1;
         IR::Instr* branchInstr = nullptr;
 
         if (forward)
         {
-            for (IR::Instr* next = instr->m_next; i < limit && next != nullptr; next = next->m_next)
+            for (IR::Instr* next = instr->m_next; instrCount < limit && next != nullptr; next = next->m_next)
             {
                 if (next->IsBranchInstr() && next->AsBranchInstr()->IsUnconditional())
                 {
                     branchInstr = next;
                     break;
                 }
-                i += MachMaxInstrSize;
+                ++instrCount;
             }
         }
         else
         {
-            for (IR::Instr* prev = instr->m_prev; i < limit && prev != nullptr; prev = prev->m_prev)
+            for (IR::Instr* prev = instr->m_prev; instrCount < limit && prev != nullptr; prev = prev->m_prev)
             {
                 if (prev->IsBranchInstr() && prev->AsBranchInstr()->IsUnconditional())
                 {
                     branchInstr = prev;
                     break;
                 }
-                i += MachMaxInstrSize;
+                ++instrCount;
             }
         }
 
@@ -858,9 +858,9 @@ bool LegalizeMD::LegalizeDirectBranch(IR::BranchInstr *branchInstr, uintptr_t br
     uintptr_t labelOffset = branchInstr->GetTarget()->GetOffset();
     Assert(labelOffset); //Label offset must be set.
 
-    intptr_t offset = labelOffset - branchOffset;
+    intptr_t wordOffset = intptr_t(labelOffset - branchOffset) / 4;
     //We should never run out of 26 bits which corresponds to +-64MB of code size.
-    AssertMsg(IS_CONST_INT26(offset >> 1), "Cannot encode more that 64 MB offset");
+    AssertMsg(IS_CONST_INT26(wordOffset), "Cannot encode more that 64 MB offset");
 
     Assert(!LowererMD::IsUnconditionalBranch(branchInstr));
 
@@ -868,7 +868,7 @@ bool LegalizeMD::LegalizeDirectBranch(IR::BranchInstr *branchInstr, uintptr_t br
     if (branchInstr->m_opcode == Js::OpCode::TBZ || branchInstr->m_opcode == Js::OpCode::TBNZ)
     {
         // TBZ and TBNZ are limited to 14 bit offsets.
-        if (IS_CONST_INT14(offset))
+        if (IS_CONST_INT14(wordOffset))
         {
             return false;
         }
@@ -877,7 +877,7 @@ bool LegalizeMD::LegalizeDirectBranch(IR::BranchInstr *branchInstr, uintptr_t br
     else
     {
         // Other conditional branches are limited to 19 bit offsets.
-        if (IS_CONST_INT19(offset))
+        if (IS_CONST_INT19(wordOffset))
         {
             return false;
         }
@@ -891,7 +891,7 @@ bool LegalizeMD::LegalizeDirectBranch(IR::BranchInstr *branchInstr, uintptr_t br
     //  $island:
     //  B $target
     
-    IR::LabelInstr* islandLabel = TryInsertBranchIsland(branchInstr, branchInstr->GetTarget(), limit, offset < 0);
+    IR::LabelInstr* islandLabel = TryInsertBranchIsland(branchInstr, branchInstr->GetTarget(), limit, wordOffset < 0);
     if (islandLabel != nullptr)
     {
         branchInstr->SetTarget(islandLabel);
@@ -937,21 +937,15 @@ bool LegalizeMD::LegalizeAdrOffset(IR::Instr *instr, uintptr_t instrOffset)
     uintptr_t labelOffset = label->GetOffset();
     Assert(labelOffset); //Label offset must be set.
 
-    intptr_t offset = labelOffset - instrOffset;
+    intptr_t wordOffset = intptr_t(labelOffset - instrOffset) / 4;
 
-    if (IS_CONST_INT21(offset))
+    if (IS_CONST_INT19(wordOffset))
     {
         return false;
     }
 
-    if (label == instr->m_func->GetFuncStartLabel() || label == instr->m_func->GetFuncEndLabel())
-    {
-        AssertMsg(false, "FuncStartLabel or FuncEndLabel out of ADR range");
-        throw Js::OperationAbortedException();
-    }
-    
     //We should never run out of 26 bits which corresponds to +-64MB of code size.
-    AssertMsg(IS_CONST_INT26(offset >> 1), "Cannot encode more that 64 MB offset");
+    AssertMsg(IS_CONST_INT26(wordOffset), "Cannot encode more that 64 MB offset");
 
     // Attempt to find an unconditional branch within the range and insert a branch island below it:
     //  ADR $island
@@ -960,8 +954,8 @@ bool LegalizeMD::LegalizeAdrOffset(IR::Instr *instr, uintptr_t instrOffset)
     //  $island:
     //  B $target
 
-    int limit = 0x000fffff;
-    IR::LabelInstr* islandLabel = TryInsertBranchIsland(instr, label, limit, offset < 0);
+    int limit = 0x0003ffff;
+    IR::LabelInstr* islandLabel = TryInsertBranchIsland(instr, label, limit, wordOffset < 0);
     if (islandLabel != nullptr)
     {
         labelOpnd->SetLabel(islandLabel);
@@ -974,7 +968,6 @@ bool LegalizeMD::LegalizeAdrOffset(IR::Instr *instr, uintptr_t instrOffset)
     //  $adrLabel:
     //  b label
     //  $continue:
-
 
     IR::LabelInstr* continueLabel = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func, false);
     instr->InsertAfter(continueLabel);
