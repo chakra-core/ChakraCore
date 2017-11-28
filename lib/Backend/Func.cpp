@@ -1157,7 +1157,7 @@ bool Func::CanAllocInPreReservedHeapPageSegment ()
         && GetInProcCodeGenAllocators()->canCreatePreReservedSegment
 #endif
         );
-#elif _M_X64
+#elif _M_X64_OR_ARM64
         && true);
 #else
         && false); //Not yet implemented for architectures other than x86 and amd64.
