@@ -243,11 +243,6 @@ while [[ $# -gt 0 ]]; do
         NO_JIT="-DNO_JIT_SH=1"
         ;;
 
-    --with-intl)
-        # todo: remove me! this is temporary
-        # until new setting settles and we re-configure CI
-        ;;
-
     --without-intl)
         INTL_ICU="-DNOINTL_ICU_SH=1"
         ;;
@@ -602,6 +597,7 @@ elif [[ $ARCH =~ "amd64" ]]; then
     ARCH="-DCC_TARGETS_AMD64_SH=1"
     echo "Compile Target : amd64"
 else
+    ARCH="-DCC_USES_SYSTEM_ARCH_SH=1"
     echo "Compile Target : System Default"
 fi
 
