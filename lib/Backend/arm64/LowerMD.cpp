@@ -7746,7 +7746,7 @@ LowererMD::FinalLower()
     NoRecoverMemoryArenaAllocator tempAlloc(_u("BE-ARMFinalLower"), m_func->m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
     EncodeReloc *pRelocList = nullptr;
 
-    uint32 instrOffset = 0;
+    uintptr_t instrOffset = 0;
     FOREACH_INSTR_BACKWARD_EDITING_IN_RANGE(instr, instrPrev, this->m_func->m_tailInstr, this->m_func->m_headInstr)
     {
         if (instr->IsLowered() == false)
@@ -7768,20 +7768,19 @@ LowererMD::FinalLower()
         }
         else
         {
-            //We are conservative here, assume each instruction take 4 bytes
             instrOffset = instrOffset + MachMaxInstrSize;
 
             if (instr->IsBranchInstr())
             {
                 IR::BranchInstr *branchInstr = instr->AsBranchInstr();
 
-                if (branchInstr->GetTarget() && !LowererMD::IsUnconditionalBranch(branchInstr)) //Ignore BX register based branches & B
+                if (!LowererMD::IsUnconditionalBranch(branchInstr)) //Ignore BX register based branches & B
                 {
-                    uint32 targetOffset = (uint32)branchInstr->GetTarget()->GetOffset();
+                    uintptr_t targetOffset = branchInstr->GetTarget()->GetOffset();
 
                     if (targetOffset != 0)
                     {
-                        // this is backward reference
+                        // this is forward reference
                         if (LegalizeMD::LegalizeDirectBranch(branchInstr, instrOffset))
                         {
                             //There might be an instruction inserted for legalizing conditional branch
@@ -7791,7 +7790,7 @@ LowererMD::FinalLower()
                     else
                     {
                         EncodeReloc::New(&pRelocList, RelocTypeBranch19, (BYTE*)instrOffset, branchInstr, &tempAlloc);
-                        //Assume this is a forward long branch, we shall fix up after complete pass, be conservative here
+                        //Assume this is a backward long branch, we shall fix up after complete pass, be conservative here
                         instrOffset = instrOffset + MachMaxInstrSize;
                     }
                 }
@@ -7817,19 +7816,57 @@ LowererMD::FinalLower()
                     instrOffset += (expandedInstrCount - 1) * MachMaxInstrSize;    // We already accounted for one MachMaxInstrSize.
                 }
             }
+
+            if (instr->m_opcode == Js::OpCode::ADR)
+            {
+                uintptr_t targetOffset = instr->GetSrc1()->AsLabelOpnd()->GetLabel()->GetOffset();
+                if (targetOffset != 0)
+                {
+                    // this is forward reference
+                    if (LegalizeMD::LegalizeAdrOffset(instr, instrOffset))
+                    {
+                        //Additional instructions were inserted.
+                        instrOffset = instrOffset + MachMaxInstrSize * 2;
+                    }
+                }
+                else
+                {
+                    EncodeReloc::New(&pRelocList, RelocTypeLabelAdr, (BYTE*)instrOffset, instr, &tempAlloc);
+                    //Assume this is a backward long branch, we shall fix up after complete pass, be conservative here
+                    instrOffset = instrOffset + MachMaxInstrSize * 2;
+                }
+            }
         }
     } NEXT_INSTR_BACKWARD_EDITING_IN_RANGE;
 
-    //Fixup all the forward branches
+    //Fixup all the backward branches
     for (EncodeReloc *reloc = pRelocList; reloc; reloc = reloc->m_next)
     {
-        // TODO (SaAgarwa) : enable warning
-#pragma warning(push)
-#pragma warning(disable:4311) // 'type cast': pointer truncation from 'BYTE *' to 'uint32'
-#pragma warning(disable:4302) // 'type cast': truncation from 'BYTE *' to 'uint32'
-        AssertMsg((uint32)reloc->m_consumerOffset < reloc->m_relocInstr->AsBranchInstr()->GetTarget()->GetOffset(), "Only forward branches require fixup");
-        LegalizeMD::LegalizeDirectBranch(reloc->m_relocInstr->AsBranchInstr(), (uint32)reloc->m_consumerOffset);
-#pragma warning(pop)
+        uintptr_t relocAddress = (uintptr_t)reloc->m_consumerOffset;
+
+        switch (reloc->m_relocType)
+        {
+        case RelocTypeBranch19:
+            AssertMsg(relocAddress < reloc->m_relocInstr->AsBranchInstr()->GetTarget()->GetOffset(), "Only backward branches require fixup");
+            LegalizeMD::LegalizeDirectBranch(reloc->m_relocInstr->AsBranchInstr(), relocAddress);
+            break;
+
+        case RelocTypeLabelAdr:
+        {
+            IR::LabelInstr* label = reloc->m_relocInstr->GetSrc1()->AsLabelOpnd()->GetLabel();
+            if (label->GetOffset() == 0)
+            {
+                Assert(label->m_isDataLabel);
+                break;
+            }
+
+            AssertMsg(relocAddress < label->GetOffset(), "Only backward branches require fixup");
+            LegalizeMD::LegalizeAdrOffset(reloc->m_relocInstr, relocAddress);
+            break;
+        }
+        default:
+            Assert(false);
+        }
     }
 
     return;
