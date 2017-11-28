@@ -4,7 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-extern const int MachPtr;
+extern int externMachPtr;
+#define MachPtr externMachPtr
 
 enum IRType : BYTE
 {

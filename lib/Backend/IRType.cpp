@@ -5,6 +5,9 @@
 
 #include "Backend.h"
 
+#undef MachPtr
+int externMachPtr = MachPtr;
+
 int const TySize[] = {
 #define IRTYPE(ucname, baseType, size, bitSize, enRegOk, dname) size,
 #include "IRTypeList.h"
