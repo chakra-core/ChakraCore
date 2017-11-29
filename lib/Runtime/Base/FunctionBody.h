@@ -3582,20 +3582,17 @@ namespace Js
         {
         }
 
-        bool IsFunctionScopeSlotArray()
-        {
-            return FunctionInfo::Is(slotArray[ScopeMetadataSlotIndex]);
-        }
+        bool IsDebuggerScopeSlotArray();
 
         FunctionInfo* GetFunctionInfo()
         {
-            Assert(IsFunctionScopeSlotArray());
+            Assert(!IsDebuggerScopeSlotArray());
             return (FunctionInfo*)PointerValue(slotArray[ScopeMetadataSlotIndex]);
         }
 
         DebuggerScope* GetDebuggerScope()
         {
-            Assert(!IsFunctionScopeSlotArray());
+            Assert(IsDebuggerScopeSlotArray());
             return (DebuggerScope*)PointerValue(slotArray[ScopeMetadataSlotIndex]);
         }
 
@@ -3921,6 +3918,9 @@ namespace Js
     // Used to track with, catch, and block scopes for the debugger to determine context.
     class DebuggerScope
     {
+    protected:
+        DEFINE_VTABLE_CTOR_NOBASE(DebuggerScope);
+
     public:
         typedef JsUtil::List<DebuggerScopeProperty> DebuggerScopePropertyList;
 
@@ -3936,6 +3936,9 @@ namespace Js
             this->range.end = -1;
         }
 
+        virtual ~DebuggerScope() {}
+
+        static bool Is(void* ptr);
         DebuggerScope * GetSiblingScope(RegSlot location, FunctionBody *functionBody);
         void AddProperty(RegSlot location, Js::PropertyId propertyId, DebuggerScopePropertyFlags flags);
         bool GetPropertyIndex(Js::PropertyId propertyId, int& i);
@@ -3997,10 +4000,10 @@ namespace Js
         void EnsurePropertyListIsAllocated();
 
     private:
+        FieldNoBarrier(Recycler*) recycler;
         Field(DebuggerScope*) parentScope;
         Field(regex::Interval) range; // The start and end byte code writer offsets used when comparing where the debugger is currently stopped at (breakpoint location).
         Field(RegSlot) scopeLocation;
-        FieldNoBarrier(Recycler*) recycler;
     };
 
     class ScopeObjectChain

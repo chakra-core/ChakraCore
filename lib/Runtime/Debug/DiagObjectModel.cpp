@@ -610,7 +610,7 @@ namespace Js
             ArenaAllocator *arena = pFrame->GetArena();
             ScopeSlots slotArray = GetSlotArray();
 
-            if (slotArray.IsFunctionScopeSlotArray())
+            if (!slotArray.IsDebuggerScopeSlotArray())
             {
                 DebuggerScope *formalScope = GetScopeWhenHaltAtFormals();
                 bool isInParamScope = IsInParamScope(formalScope, pFrame);
@@ -4083,15 +4083,15 @@ namespace Js
             // The scope is defined by a slot array object so grab the function body out to get the function name.
             ScopeSlots slotArray = ScopeSlots(reinterpret_cast<Var*>(instance));
 
-            if(slotArray.IsFunctionScopeSlotArray())
-            {
-                Js::FunctionBody *functionBody = slotArray.GetFunctionInfo()->GetFunctionBody();
-                return functionBody->GetDisplayName();
-            }
-            else
+            if(slotArray.IsDebuggerScopeSlotArray())
             {
                 // handling for block/catch scope
                 return _u("");
+            }
+            else
+            {
+                Js::FunctionBody *functionBody = slotArray.GetFunctionInfo()->GetFunctionBody();
+                return functionBody->GetDisplayName();
             }
         }
     }
