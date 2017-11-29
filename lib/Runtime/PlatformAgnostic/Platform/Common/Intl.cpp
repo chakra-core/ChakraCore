@@ -513,6 +513,13 @@ namespace Intl
         );
     }
 
+    void GetUserDefaultTimeZone(_Out_ char16* tz, _In_ int tzLen)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        int written = ucal_getDefaultTimeZone(reinterpret_cast<UChar *>(tz), tzLen, &status);
+        ICU_ASSERT(status, written > 0 && written < tzLen);
+    }
+
     // Determines the BCP47 collation value that a given language tag will actually use
     // returns the count of bytes written into collation (guaranteed to be less than cchCollation)
     size_t CollatorGetCollation(_In_z_ const char *langtag, _Out_ char *collation, _In_ size_t cchCollation)

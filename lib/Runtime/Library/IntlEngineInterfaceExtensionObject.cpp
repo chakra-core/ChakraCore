@@ -1719,11 +1719,10 @@ namespace Js
         PCWSTR strBuf = wsl->WindowsGetStringRawBuffer(*str, NULL);
         return Js::JavascriptString::NewCopySz(strBuf, scriptContext);
 #else
-        // TODO (doilij): implement INTL_ICU version
-#ifdef INTL_ICU_DEBUG
-        Output::Print(_u("EntryIntl_GetDefaultTimeZone > returning null, fallback to JS\n"));
-#endif
-        return scriptContext->GetLibrary()->GetNull();
+        const int tzLen = 50;
+        char16 tzID[tzLen];
+        GetDefaultTimeZone(tzID, tzLen);
+        return JavascriptString::NewCopySz(tzID, scriptContext);
 #endif
     }
 

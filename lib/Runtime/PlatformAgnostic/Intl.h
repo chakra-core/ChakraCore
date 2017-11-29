@@ -108,6 +108,7 @@ namespace Intl
     bool IsLocaleAvailable(_In_z_ const char *locale);
     bool ResolveLocaleBestFit(_In_z_ const char16 *locale, _Out_ char16 *resolved);
     size_t GetUserDefaultLocaleName(_Out_ char16* langtag, _In_ size_t cchLangtag);
+    void GetUserDefaultTimeZone(_Out_ char16* tz, _In_ int tzLen);
 
     size_t CollatorGetCollation(_In_z_ const char *langtag, _Out_ char *collation, _In_ size_t cchCollation);
     int CollatorCompare(_In_z_ const char *langtag, _In_z_ const char16 *left, _In_ charcount_t cchLeft, _In_z_ const char16 *right, _In_ charcount_t cchRight,
