@@ -5,7 +5,6 @@
 #pragma once
 
 #include "UnicodeText.h"
-#include "EventTrace.h"
 
 // Configure whether we configure a signal handler
 // to produce perf-<pid>.map files
