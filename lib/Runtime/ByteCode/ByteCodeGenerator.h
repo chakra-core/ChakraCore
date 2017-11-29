@@ -154,6 +154,7 @@ public:
         }
         return m_callSiteId;
     }
+    Js::ProfileId GetCurrentCallSiteId() { return m_callSiteId; }
 
     Js::RegSlot NextVarRegister();
     Js::RegSlot NextConstRegister();

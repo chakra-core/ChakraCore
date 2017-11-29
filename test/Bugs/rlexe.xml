@@ -407,4 +407,9 @@
       <baseline>bug13383062.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>profiledArgs.js</files>
+    </default>
+  </test>
 </regress-exe>

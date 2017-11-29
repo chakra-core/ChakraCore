@@ -634,8 +634,8 @@ namespace Js
         Reg1(OpCode::ArgIn0, reg);
     }
 
-    template void ByteCodeWriter::ArgOut<true>(ArgSlot arg, RegSlot reg, ProfileId callSiteId);
-    template void ByteCodeWriter::ArgOut<false>(ArgSlot arg, RegSlot reg, ProfileId callSiteId);
+    template void ByteCodeWriter::ArgOut<true>(ArgSlot arg, RegSlot reg, ProfileId callSiteId, bool emitProfiledArgout);
+    template void ByteCodeWriter::ArgOut<false>(ArgSlot arg, RegSlot reg, ProfileId callSiteId, bool emitProfiledArgout);
 
     template <typename SizePolicy>
     bool ByteCodeWriter::TryWriteArg(OpCode op, ArgSlot arg, RegSlot reg)
@@ -650,7 +650,7 @@ namespace Js
     }
 
     template <bool isVar>
-    void ByteCodeWriter::ArgOut(ArgSlot arg, RegSlot reg, ProfileId callSiteId)
+    void ByteCodeWriter::ArgOut(ArgSlot arg, RegSlot reg, ProfileId callSiteId, bool emitProfiledArgout)
     {
         CheckOpen();
         Assert(OpCodeAttr::HasMultiSizeLayout(OpCode::ArgOut_A) && OpCodeAttr::HasMultiSizeLayout(OpCode::ArgOut_ANonVar));
@@ -670,7 +670,8 @@ namespace Js
             return;
         }
 
-        if (DoDynamicProfileOpcode(InlinePhase)
+        if (emitProfiledArgout
+            && DoDynamicProfileOpcode(InlinePhase)
             && arg > 0 && arg < Js::Constants::MaximumArgumentCountForConstantArgumentInlining
             && (reg > FunctionBody::FirstRegSlot && reg < m_functionWrite->GetConstantCount())
             && callSiteId != Js::Constants::NoProfileId
@@ -1224,14 +1225,13 @@ namespace Js
                 if (unit.cacheId == Js::Constants::NoInlineCacheIndex)
                 {
                     op = Js::OpCodeUtil::ConvertCallOpToProfiled(op);
-                    isProfiled = true;
                 }
                 else
                 {
                     isCallWithICIndex = true;
                     op = Js::OpCodeUtil::ConvertCallOpToProfiled(op, true);
-                    isProfiled = true;
                 }
+                isProfiled = true;
             }
             else if ((DoDynamicProfileOpcode(AggressiveIntTypeSpecPhase) || DoDynamicProfileOpcode(FloatTypeSpecPhase)) &&
                 this->m_functionWrite->AllocProfiledReturnTypeId(&profileId))
@@ -1256,14 +1256,13 @@ namespace Js
             if (unit.cacheId == Js::Constants::NoInlineCacheIndex)
             {
                 OpCodeUtil::ConvertNonCallOpToProfiled(op);
-                isProfiled = true;
             }
             else
             {
                 isCallWithICIndex = true;
                 OpCodeUtil::ConvertNonCallOpToProfiledWithICIndex(op);
-                isProfiled = true;
             }
+            isProfiled = true;
         }
 
         if (isCallWithICIndex)
