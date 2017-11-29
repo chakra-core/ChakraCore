@@ -561,7 +561,7 @@ namespace UnifiedRegex
                     //  - not in a negative assertion
                     //  - backtracking could never advance the input pointer
                     //
-                    bool canHardFail = isAtLeastOnce && isNotNegated && isPrevWillNotRegress;
+                    bool canHardFail = isAtLeastOnce && isNotNegated && isPrevWillNotProgress;
                     if (canHardFail)
                     {
                         EMIT(compiler, EOITestInst<true>);
