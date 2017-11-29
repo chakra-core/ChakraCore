@@ -410,6 +410,7 @@
   <test>
     <default>
       <files>profiledArgs.js</files>
+      <compile-flags>-off:inlineConstructors</compile-flags>
     </default>
   </test>
 </regress-exe>

@@ -7013,7 +7013,7 @@ size_t EmitArgsWithArgOutsAtEnd(
     if (thisLocation != Js::Constants::NoRegister)
     {
         // Emit the "this" object.
-        byteCodeGenerator->Writer()->ArgOut<true>(0, thisLocation, callSiteId, emitProfiledArgouts);
+        byteCodeGenerator->Writer()->ArgOut<true>(0, thisLocation, callSiteId, false /*emitProfiledArgouts*/);
     }
 
     for (Js::ArgSlot index = 0; index < argIndex; index++)
