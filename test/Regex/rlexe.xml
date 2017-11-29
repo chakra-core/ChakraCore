@@ -200,4 +200,10 @@
       <baseline>Bug1153694.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>Bug14859460.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>
