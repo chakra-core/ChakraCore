@@ -1252,7 +1252,7 @@ AsmJsCompilationError:
         size = _vsnwprintf_s(buf, _countof(buf), _TRUNCATE, message, argptr);
         if (size == -1)
         {
-            size = 2048;
+            size = _countof(buf) - 1;  // characters written, excluding the terminating null
         }
 #ifdef ENABLE_SCRIPT_DEBUGGING
         scriptContext->RaiseMessageToDebugger(messageType, buf, scriptContext->GetUrl());
