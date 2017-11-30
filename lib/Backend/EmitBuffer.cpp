@@ -217,7 +217,7 @@ EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::FreeAllocation(void* a
                 this->scriptContext->GetThreadContext()->SubCodeSize(allocation->bytesCommitted);
             }
 
-#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64_OR_ARM64)
             if (allocation->allocation->thunkAddress)
             {
                 if (JITManager::GetJITManager()->IsJITServer())

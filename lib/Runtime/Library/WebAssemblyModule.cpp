@@ -217,6 +217,8 @@ WebAssemblyModule::CreateModule(
     WebAssemblyModule * webAssemblyModule = nullptr;
     Wasm::WasmReaderInfo * readerInfo = nullptr;
     Js::FunctionBody * currentBody = nullptr;
+    char16* exceptionMessage = nullptr;
+    AutoCleanStr autoCleanExceptionMessage;
     try
     {
         Wasm::WasmModuleGenerator bytecodeGen(scriptContext, src);
@@ -237,33 +239,14 @@ WebAssemblyModule::CreateModule(
     }
     catch (Wasm::WasmCompilationException& ex)
     {
-        // The reason that we use GetTempErrorMessageRef here, instead of just doing simply
-        // ReleaseErrorMessage and grabbing it away from the WasmCompilationException, is a
-        // slight niggle in the lifetime of the message buffer. The normal error throw..Var
-        // routines don't actually do anything to clean up their varargs - likely good, due
-        // to the variety of situations that we want to use them in. However, this fails to
-        // clean up strings if they're not cleaned up by some destructor. By handling these
-        // error strings not by grabbing them away from the WasmCompilationException, I can
-        // have the WasmCompilationException destructor clean up the strings when we throw,
-        // by which point SetErrorMessage will already have copied out what it needs.
-        BSTR originalMessage = ex.GetTempErrorMessageRef();
-        if (currentBody != nullptr)
-        {
-            Wasm::BinaryLocation location = readerInfo->m_module->GetReader()->GetCurrentLocation();
+        // The stackwalker doesn't need to see the current stack
+        // do not throw in the catch block to allow the stack to unwind before throwing.
+        exceptionMessage = FormatExceptionMessage(&ex, &autoCleanExceptionMessage, webAssemblyModule, currentBody);
+    }
 
-            originalMessage = ex.ReleaseErrorMessage();
-            ex = Wasm::WasmCompilationException(
-                _u("function %s at offset %u/%u (0x%x/0x%x): %s"),
-                currentBody->GetDisplayName(),
-                location.offset, location.size,
-                location.offset, location.size,
-                originalMessage
-            );
-            currentBody->GetAsmJsFunctionInfo()->SetWasmReaderInfo(nullptr);
-            SysFreeString(originalMessage);
-            originalMessage = ex.GetTempErrorMessageRef();
-        }
-        JavascriptError::ThrowWebAssemblyCompileErrorVar(scriptContext, WASMERR_WasmCompileError, originalMessage);
+    if (exceptionMessage)
+    {
+        JavascriptError::ThrowWebAssemblyCompileErrorVar(scriptContext, WASMERR_WasmCompileError, exceptionMessage);
     }
 
     return webAssemblyModule;
@@ -833,6 +816,44 @@ WebAssemblyModule::GetModuleEnvironmentSize() const
     size = UInt32Math::Add(size, GetImportedFunctionCount());
     size = UInt32Math::Add(size, WAsmJs::ConvertOffset<byte, Js::Var>(GetGlobalsByteSize()));
     return size;
+}
+
+char16* WebAssemblyModule::FormatExceptionMessage(Wasm::WasmCompilationException* ex, AutoCleanStr* autoClean, WebAssemblyModule* wasmModule, FunctionBody* body)
+{
+    char16* originalExceptionMessage = ex->GetTempErrorMessageRef();
+    if (!wasmModule || !body)
+    {
+        size_t len = wcslen(originalExceptionMessage) + 1;
+        autoClean->str = new char16[len];
+        js_memcpy_s(autoClean->str, len * sizeof(char16), originalExceptionMessage, len * sizeof(char16));
+        return autoClean->str;
+    }
+
+    Wasm::BinaryLocation location = wasmModule->GetReader()->GetCurrentLocation();
+
+    const char16* format = _u("function %s at offset %u/%u (0x%x/0x%x): %s");
+    const char16* funcName = body->GetDisplayName();
+
+    uint size = (uint)_scwprintf(format,
+        funcName,
+        location.offset, location.size,
+        location.offset, location.size,
+        originalExceptionMessage);
+
+    if (size > 2048)
+    {
+        // Do not allocate too much for the exception message, just truncate the message past 2048 characters
+        size = 2047;
+    }
+    ++size; // Null terminate character
+    autoClean->str = new char16[size];
+    int written = _snwprintf_s(autoClean->str, size, _TRUNCATE, format,
+        funcName,
+        location.offset, location.size,
+        location.offset, location.size,
+        originalExceptionMessage);
+    Assert((uint)written == size - 1);
+    return autoClean->str;
 }
 
 void

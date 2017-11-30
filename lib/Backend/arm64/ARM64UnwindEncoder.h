@@ -50,6 +50,7 @@ struct OpcodeMatcher
 struct OpcodeList
 {
     OpcodeMatcher   subSpSpImm;         // sub sp, sp, #imm / add sp, sp, #imm [epilog]
+    OpcodeMatcher   subSpSpReg;         // sub sp, sp, reg / add sp, sp, reg [epilog]
     OpcodeMatcher   addFpSpImm;         // add fp, sp, #imm
     OpcodeMatcher   stpRtRt2SpOffs;     // stp rt, rt2, [sp, #offs] / ldp rt, rt2, [sp, #offs]
     OpcodeMatcher   stpRtRt2SpOffsBang; // stp rt, rt2, [sp, #offs]! / ldp rt, rt2, [sp], #offs
@@ -105,9 +106,10 @@ public:
 
 private:
     // internal helpers
-    ULONG GenerateSingleOpcode(ULONG opcode, const OpcodeList &opcodeList);
+    ULONG GenerateSingleOpcode(PULONG pOpcode, PULONG pRegionStart, const OpcodeList &opcodeList);
     ULONG TrimNops(PULONG opcodeList, ULONG numOpcodes);
     void ReverseCodes(PULONG opcodeList, ULONG numOpcodes);
+    ULONG64 FindRegisterImmediate(int regNum, PULONG registerStart, PULONG regionEnd);
     ULONG EmitFinalCodes(PBYTE buffer, ULONG bufferSize, PULONG opcodes, ULONG count);
 
     // encode an opcode and parameters, up to 4 bytes depending on the opcode

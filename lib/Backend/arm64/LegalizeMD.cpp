@@ -366,6 +366,13 @@ void LegalizeMD::LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpn
             return;
         }
     }
+    if (forms & L_IndirU12Lsl12)
+    {
+        if (IS_CONST_UINT12(offset) || IS_CONST_UINT12LSL12(offset))
+        {
+            return;
+        }
+    }
 
     // scaled signed 9-bit offset
     if (forms & L_IndirSI7)
@@ -411,6 +418,15 @@ void LegalizeMD::LegalizeSymOffset(
             return;
         }
         if (IS_CONST_INT9(offset))
+        {
+            return;
+        }
+    }
+
+    // This is so far used for LEA, where the offset ends up needing to be a valid ADD immediate
+    if (forms & L_SymU12Lsl12)
+    {
+        if (IS_CONST_00000FFF(offset) || IS_CONST_00FFF000(offset))
         {
             return;
         }
@@ -788,37 +804,98 @@ void LegalizeMD::LegalizeLdLabel(IR::Instr * instr, IR::Opnd * opnd)
     }
 }
 
-bool LegalizeMD::LegalizeDirectBranch(IR::BranchInstr *branchInstr, uint32 branchOffset)
+namespace
+{
+    IR::LabelInstr* TryInsertBranchIsland(IR::Instr* instr, IR::LabelInstr* target, int limit, bool forward)
+    {
+        int instrCount = 1;
+        IR::Instr* branchInstr = nullptr;
+
+        if (forward)
+        {
+            for (IR::Instr* next = instr->m_next; instrCount < limit && next != nullptr; next = next->m_next)
+            {
+                if (next->IsBranchInstr() && next->AsBranchInstr()->IsUnconditional())
+                {
+                    branchInstr = next;
+                    break;
+                }
+                ++instrCount;
+            }
+        }
+        else
+        {
+            for (IR::Instr* prev = instr->m_prev; instrCount < limit && prev != nullptr; prev = prev->m_prev)
+            {
+                if (prev->IsBranchInstr() && prev->AsBranchInstr()->IsUnconditional())
+                {
+                    branchInstr = prev;
+                    break;
+                }
+                ++instrCount;
+            }
+        }
+
+        if (branchInstr == nullptr)
+        {
+            return nullptr;
+        }
+
+        IR::LabelInstr* islandLabel = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func, false);
+        branchInstr->InsertAfter(islandLabel);
+
+        IR::BranchInstr* targetBranch = IR::BranchInstr::New(Js::OpCode::B, target, branchInstr->m_func);
+        islandLabel->InsertAfter(targetBranch);
+
+        return islandLabel;
+    }
+}
+
+bool LegalizeMD::LegalizeDirectBranch(IR::BranchInstr *branchInstr, uintptr_t branchOffset)
 {
     Assert(branchInstr->IsBranchInstr());
 
-    uint32 labelOffset = (uint32)branchInstr->GetTarget()->GetOffset();
+    uintptr_t labelOffset = branchInstr->GetTarget()->GetOffset();
     Assert(labelOffset); //Label offset must be set.
 
-    int32 offset = labelOffset - branchOffset;
+    intptr_t wordOffset = intptr_t(labelOffset - branchOffset) / 4;
     //We should never run out of 26 bits which corresponds to +-64MB of code size.
-    AssertMsg(IS_CONST_INT26(offset >> 1), "Cannot encode more that 64 MB offset");
+    AssertMsg(IS_CONST_INT26(wordOffset), "Cannot encode more that 64 MB offset");
 
-    if (LowererMD::IsUnconditionalBranch(branchInstr))
-    {
-        return false;
-    }
+    Assert(!LowererMD::IsUnconditionalBranch(branchInstr));
 
+    int limit = 0;
     if (branchInstr->m_opcode == Js::OpCode::TBZ || branchInstr->m_opcode == Js::OpCode::TBNZ)
     {
         // TBZ and TBNZ are limited to 14 bit offsets.
-        if (IS_CONST_INT14(offset))
+        if (IS_CONST_INT14(wordOffset))
         {
             return false;
         }
+        limit = 0x00001fff;
     }
     else
     {
         // Other conditional branches are limited to 19 bit offsets.
-        if (IS_CONST_INT19(offset))
+        if (IS_CONST_INT19(wordOffset))
         {
             return false;
         }
+        limit = 0x0003ffff;
+    }
+
+    // Attempt to find an unconditional branch within the range and insert a branch island below it:
+    //  CB. $island
+    //  ...
+    //  B
+    //  $island:
+    //  B $target
+    
+    IR::LabelInstr* islandLabel = TryInsertBranchIsland(branchInstr, branchInstr->GetTarget(), limit, wordOffset < 0);
+    if (islandLabel != nullptr)
+    {
+        branchInstr->SetTarget(islandLabel);
+        return true;
     }
 
     // Convert a conditional branch which can only be +-256kb(+-8kb for TBZ/TBNZ) to unconditional branch which is +-64MB
@@ -847,6 +924,64 @@ bool LegalizeMD::LegalizeDirectBranch(IR::BranchInstr *branchInstr, uint32 branc
     branchInstr->InsertBefore(fallbackBranch);
     branchInstr->InsertAfter(fallbackLabel);
     branchInstr->m_opcode = Js::OpCode::B;
+    return true;
+}
+
+bool LegalizeMD::LegalizeAdrOffset(IR::Instr *instr, uintptr_t instrOffset)
+{
+    Assert(instr->m_opcode == Js::OpCode::ADR);
+
+    IR::LabelOpnd* labelOpnd = instr->GetSrc1()->AsLabelOpnd();
+    IR::LabelInstr* label = labelOpnd->GetLabel();
+
+    uintptr_t labelOffset = label->GetOffset();
+    Assert(labelOffset); //Label offset must be set.
+
+    intptr_t wordOffset = intptr_t(labelOffset - instrOffset) / 4;
+
+    if (IS_CONST_INT19(wordOffset))
+    {
+        return false;
+    }
+
+    //We should never run out of 26 bits which corresponds to +-64MB of code size.
+    AssertMsg(IS_CONST_INT26(wordOffset), "Cannot encode more that 64 MB offset");
+
+    // Attempt to find an unconditional branch within the range and insert a branch island below it:
+    //  ADR $island
+    //  ...
+    //  B
+    //  $island:
+    //  B $target
+
+    int limit = 0x0003ffff;
+    IR::LabelInstr* islandLabel = TryInsertBranchIsland(instr, label, limit, wordOffset < 0);
+    if (islandLabel != nullptr)
+    {
+        labelOpnd->SetLabel(islandLabel);
+        return true;
+    }
+
+    // Convert an Adr instruction which can only be +-1mb to branch which is +-64MB
+    //  Adr $adrLabel
+    //  b continue
+    //  $adrLabel:
+    //  b label
+    //  $continue:
+
+    IR::LabelInstr* continueLabel = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func, false);
+    instr->InsertAfter(continueLabel);
+
+    IR::BranchInstr* continueBranch = IR::BranchInstr::New(Js::OpCode::B, continueLabel, instr->m_func);
+    continueLabel->InsertBefore(continueBranch);
+
+    IR::LabelInstr* adrLabel = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func, false);
+    continueLabel->InsertBefore(adrLabel);
+
+    IR::BranchInstr* labelBranch = IR::BranchInstr::New(Js::OpCode::B, label, instr->m_func);
+    continueLabel->InsertBefore(labelBranch);
+
+    labelOpnd->SetLabel(adrLabel);
     return true;
 }
 

@@ -504,36 +504,43 @@ void WasmBytecodeGenerator::GenerateFunction()
     m_maxArgOutDepth = 0;
 
     m_writer->Begin(GetFunctionBody(), &m_alloc);
-    try
+    struct AutoCleanupGeneratorState
     {
-        Js::ByteCodeLabel exitLabel = m_writer->DefineLabel();
-        m_funcInfo->SetExitLabel(exitLabel);
-        EnregisterLocals();
-
-        EnterEvalStackScope();
-        // The function's yield type is the return type
-        GetReader()->m_currentNode.block.sig = m_funcInfo->GetResultType();
-        EmitInfo lastInfo = EmitBlock();
-        if (lastInfo.type != WasmTypes::Void || m_funcInfo->GetResultType() == WasmTypes::Void)
+        WasmBytecodeGenerator* gen;
+        AutoCleanupGeneratorState(WasmBytecodeGenerator* gen) : gen(gen) {}
+        ~AutoCleanupGeneratorState()
         {
-            EmitReturnExpr(&lastInfo);
+            if (gen)
+            {
+                TRACE_WASM(PHASE_TRACE(Js::WasmBytecodePhase, gen->GetFunctionBody()), _u("\nHad Compilation error!"));
+                gen->GetReader()->FunctionEnd();
+                gen->m_originalWriter->Reset();
+            }
         }
-        DebugPrintOpEnd();
-        ExitEvalStackScope();
-        SetUnreachableState(false);
-        m_writer->MarkAsmJsLabel(exitLabel);
-        m_writer->EmptyAsm(Js::OpCodeAsmJs::Ret);
-        m_writer->SetCallSiteCount(this->currentProfileId);
-        m_writer->End();
-        GetReader()->FunctionEnd();
-    }
-    catch (...)
+        void Complete() { gen = nullptr; }
+    };
+    AutoCleanupGeneratorState autoCleanupGeneratorState(this);
+    Js::ByteCodeLabel exitLabel = m_writer->DefineLabel();
+    m_funcInfo->SetExitLabel(exitLabel);
+    EnregisterLocals();
+
+    EnterEvalStackScope();
+    // The function's yield type is the return type
+    GetReader()->m_currentNode.block.sig = m_funcInfo->GetResultType();
+    EmitInfo lastInfo = EmitBlock();
+    if (lastInfo.type != WasmTypes::Void || m_funcInfo->GetResultType() == WasmTypes::Void)
     {
-        TRACE_WASM_BYTECODE(_u("\nHad Compilation error!"));
-        GetReader()->FunctionEnd();
-        m_originalWriter->Reset();
-        throw;
+        EmitReturnExpr(&lastInfo);
     }
+    DebugPrintOpEnd();
+    ExitEvalStackScope();
+    SetUnreachableState(false);
+    m_writer->MarkAsmJsLabel(exitLabel);
+    m_writer->EmptyAsm(Js::OpCodeAsmJs::Ret);
+    m_writer->SetCallSiteCount(this->currentProfileId);
+    m_writer->End();
+    GetReader()->FunctionEnd();
+    autoCleanupGeneratorState.Complete();
     // Make sure we don't have any unforeseen exceptions as we finalize the body
     AutoDisableInterrupt autoDisableInterrupt(m_scriptContext->GetThreadContext(), true);
 
@@ -938,10 +945,24 @@ EmitInfo WasmBytecodeGenerator::EmitLoop()
     Js::ByteCodeLabel loopHeadLabel = m_writer->DefineLabel();
     Js::ByteCodeLabel loopLandingPadLabel = m_writer->DefineLabel();
 
-    uint32 loopId = m_writer->EnterLoop(loopHeadLabel);
+    // Push possibly yielding loop label before capturing all the yielding registers
+    BlockInfo implicitBlockInfo = PushLabel(loopTailLabel);
+
+    // Save the first tmp (per type) of this loop to discern a yield outside the loop in jitloopbody scenario
+    Js::RegSlot curRegs[WAsmJs::LIMIT];
+    for (WAsmJs::Types type = WAsmJs::Types(0); type != WAsmJs::LIMIT; type = WAsmJs::Types(type + 1))
+    {
+        uint32 minYield = 0;
+        if (!mTypedRegisterAllocator.IsTypeExcluded(type))
+        {
+            CompileAssert(sizeof(minYield) == sizeof(Js::RegSlot));
+            minYield = static_cast<uint32>(mTypedRegisterAllocator.GetRegisterSpace(type)->PeekNextTmpRegister());
+        }
+        curRegs[type] = minYield;
+    }
+    uint32 loopId = m_writer->WasmLoopStart(loopHeadLabel, curRegs);
 
     // Internally we create a block for loop to exit, but semantically, they don't exist so pop it
-    BlockInfo implicitBlockInfo = PushLabel(loopTailLabel);
     m_blockInfos.Pop();
 
     // We don't want nested block to jump directly to the loop header
@@ -1599,7 +1620,7 @@ void WasmBytecodeGenerator::YieldToBlock(BlockInfo blockInfo, EmitInfo expr)
         if (!IsUnreachable())
         {
             blockInfo.yieldInfo->didYield = true;
-            m_writer->AsmReg2(GetLoadOp(expr.type), yieldInfo.location, expr.location);
+            m_writer->AsmReg2(GetReturnOp(expr.type), yieldInfo.location, expr.location);
         }
     }
 }

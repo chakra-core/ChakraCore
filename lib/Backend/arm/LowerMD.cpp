@@ -8142,7 +8142,7 @@ LowererMD::EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
     IR::RegOpnd *floatReg = IR::RegOpnd::New(TyFloat64, this->m_func);
 
     Assert(dst->IsRegOpnd() && dst->IsFloat64());
-    Assert(src->IsRegOpnd() && src->IsInt32());
+    Assert(src->IsRegOpnd() && (src->IsInt32() || src->IsUInt32()));
 
     instr = IR::Instr::New(Js::OpCode::VMOVARMVFP, floatReg, src, this->m_func);
     instrInsert->InsertBefore(instr);

@@ -23,12 +23,14 @@ enum LegalForms
     L_IndirSU12I9 = 0x1000,
     L_IndirSI7 =    0x2000,
     L_IndirU12 =    0x4000,
-    L_IndirMask =  (L_IndirSU12I9 | L_IndirSI7 | L_IndirU12),
+    L_IndirU12Lsl12=0x8000,
+    L_IndirMask =  (L_IndirSU12I9 | L_IndirSI7 | L_IndirU12 | L_IndirU12Lsl12),
 
     L_SymSU12I9 =  0x10000,
     L_SymSI7 =     0x20000,
     L_SymU12 =     0x40000,
-    L_SymMask =    (L_SymSU12I9 | L_SymSI7 | L_SymU12),
+    L_SymU12Lsl12 =0x80000,
+    L_SymMask =    (L_SymSU12I9 | L_SymSI7 | L_SymU12 | L_SymU12Lsl12),
 
     L_Lab20 =      0x100000,
     L_Label =      0x200000,
@@ -57,6 +59,7 @@ struct LegalInstrForms
 #define LEGAL_LABEL    { L_Reg,     { L_Label } }
 #define LEGAL_LDIMM    { L_Reg,     { L_Imm,     L_None } }
 #define LEGAL_LDIMM_S  { L_Reg,     { (LegalForms)(L_ImmU16 | L_Label),     L_ImmU6 } }
+#define LEGAL_LEA      { L_Reg,     { (LegalForms)(L_IndirU12Lsl12 | L_SymU12Lsl12), L_None } }
 #define LEGAL_LOAD     { L_Reg,     { (LegalForms)(L_IndirSU12I9 | L_SymSU12I9), L_None } }
 #define LEGAL_LOADP    { L_Reg,     { (LegalForms)(L_IndirSI7 | L_SymSI7), L_Reg } }
 #define LEGAL_PLD      { L_None,    { (LegalForms)(L_IndirSU12I9 | L_SymSU12I9), L_None } }
@@ -76,7 +79,8 @@ public:
     static void LegalizeDst(IR::Instr * instr, bool fPostRegAlloc);
     static void LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, bool fPostRegAlloc);
 
-    static bool LegalizeDirectBranch(IR::BranchInstr *instr, uint32 branchOffset); // DirectBranch has no src & dst operands.
+    static bool LegalizeDirectBranch(IR::BranchInstr *instr, uintptr_t branchOffset);
+    static bool LegalizeAdrOffset(IR::Instr *instr, uintptr_t instrOffset);
 
 private:
     static void LegalizeRegOpnd(IR::Instr* instr, IR::Opnd* opnd);

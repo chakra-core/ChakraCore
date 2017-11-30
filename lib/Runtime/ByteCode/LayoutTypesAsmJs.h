@@ -174,6 +174,7 @@ LAYOUT_TYPE_WMS       ( BrInt1        ) // Conditional branching with 1 int
 LAYOUT_TYPE_WMS       ( BrInt2        ) // Conditional branching with 2 int
 LAYOUT_TYPE_WMS       ( BrInt1Const1  ) // Conditional branching with 1 int and 1 const
 LAYOUT_TYPE_WMS       ( AsmUnsigned1  ) // 1 unsigned int register
+LAYOUT_TYPE_WMS       ( WasmLoopStart )
 
 // Int64
 LAYOUT_TYPE_WMS_REG2  ( Long1Reg1   , Long, Reg)

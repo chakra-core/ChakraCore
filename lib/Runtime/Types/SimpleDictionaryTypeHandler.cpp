@@ -191,12 +191,11 @@ namespace Js
         {
             return propertyId;
         }
-        JsUtil::CharacterBuffer<WCHAR> propertyStr(propertyKey->GetString(), propertyKey->GetLength());
-        if (BuiltInPropertyRecords::valueOf.Equals(propertyStr))
+        if (BuiltInPropertyRecords::valueOf.Equals(propertyKey))
         {
             return PropertyIds::valueOf;
         }
-        if (BuiltInPropertyRecords::toString.Equals(propertyStr))
+        if (BuiltInPropertyRecords::toString.Equals(propertyKey))
         {
            return PropertyIds::toString;
         }

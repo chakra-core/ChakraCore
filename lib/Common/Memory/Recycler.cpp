@@ -1383,7 +1383,7 @@ Recycler::TryLargeAlloc(HeapInfo * heap, size_t size, ObjectInfoBits attributes,
         if (memBlock != nullptr)
         {
 #ifdef RECYCLER_ZERO_MEM_CHECK
-            VerifyZeroFill(memBlock, sizeCat);
+            VerifyLargeAllocZeroFill(memBlock, sizeCat, attributes);
 #endif
             return memBlock;
         }
@@ -1406,7 +1406,7 @@ Recycler::TryLargeAlloc(HeapInfo * heap, size_t size, ObjectInfoBits attributes,
             if (memBlock != nullptr)
             {
 #ifdef RECYCLER_ZERO_MEM_CHECK
-                VerifyZeroFill(memBlock, size);
+                VerifyLargeAllocZeroFill(memBlock, size, attributes);
 #endif
                 return memBlock;
             }
@@ -1422,7 +1422,7 @@ Recycler::TryLargeAlloc(HeapInfo * heap, size_t size, ObjectInfoBits attributes,
     memBlock = heapBlock->Alloc(sizeCat, attributes);
     Assert(memBlock != nullptr);
 #ifdef RECYCLER_ZERO_MEM_CHECK
-    VerifyZeroFill(memBlock, sizeCat);
+    VerifyLargeAllocZeroFill(memBlock, sizeCat, attributes);
 #endif
     return memBlock;
 }
@@ -7298,6 +7298,25 @@ Recycler::VerifyZeroFill(void * address, size_t size)
 
     Assert(IsAll((byte *)address, size, expectedFill));
 }
+
+void
+Recycler::VerifyLargeAllocZeroFill(void * address, size_t size, ObjectInfoBits attributes)
+{
+    // Large allocs will have already written the dummy vtable at the beginning of the allocation
+    // if either FinalizeBit or TrackBit attributes were set. Skip the verify for that memory
+    // if that is the case.
+    if ((attributes & (FinalizeBit | TrackBit)) != 0)
+    {
+        // Verify that it really is the dummy v-table before skipping it.
+        DummyVTableObject dummy;
+        Assert((*(void**)(&dummy)) == *((void**)address));
+
+        address = ((char*)address) + sizeof(DummyVTableObject);
+        size -= sizeof(DummyVTableObject);
+    }
+    VerifyZeroFill(address, size);
+}
+
 #endif
 
 #ifdef RECYCLER_MEMORY_VERIFY
@@ -7313,6 +7332,21 @@ Recycler::FillCheckPad(void * address, size_t size, size_t alignedAllocSize, boo
         {
             addressToVerify = ((char*) address + size);
             sizeToVerify = (alignedAllocSize - size);
+        }
+        else
+        {
+            // It could be the case that an uninitialized object already has a dummy vtable installed
+            // at the beginning of the address. If that is the case, we can't verify the fill pattern
+            // on that memory, since it's already been initialized.
+            // Note that FillPadNoCheck will skip over the first sizeof(FreeObject) bytes, which
+            // prevents overwriting of the vtable.
+            static_assert(sizeof(DummyVTableObject) == sizeof(void*), "Incorrect size for a DummyVTableObject - it must contain a single v-table pointer");
+            DummyVTableObject dummy;
+            if ((*(void**)(&dummy)) == *((void**)address))
+            {
+                addressToVerify = (char*)address + sizeof(DummyVTableObject);
+                sizeToVerify = alignedAllocSize - sizeof(DummyVTableObject);
+            }
         }
 
         // Actually this is filling the non-pad to zero

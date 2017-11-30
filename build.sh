@@ -47,7 +47,7 @@ PRINT_USAGE() {
     echo "     --icu=PATH        Path to ICU include folder (see example below)"
     echo " -j[=N], --jobs[=N]    Multicore build, allow N jobs at once."
     echo " -n, --ninja           Build with ninja instead of make."
-    echo "     --no-icu          Compile without unicode/icu support."
+    echo "     --no-icu          Compile without unicode/icu/intl support."
     echo "     --no-jit          Disable JIT"
     echo "     --libs-only       Do not build CH and GCStress"
     echo "     --lto             Enables LLVM Full LTO"
@@ -60,7 +60,7 @@ PRINT_USAGE() {
     echo "     --target-path[=S] Output path for compiled binaries. Default: out/"
     echo "     --trace           Enables experimental built-in trace."
     echo "     --xcode           Generate XCode project."
-    echo "     --with-intl       Include the Intl object (requires ICU)."
+    echo "     --without-intl    --icu arg also enables Intl by default. Disable it."
     echo "     --without=FEATURE,FEATURE,..."
     echo "                       Disable FEATUREs from JSRT experimental features."
     echo "     --valgrind        Enable Valgrind support"
@@ -243,8 +243,8 @@ while [[ $# -gt 0 ]]; do
         NO_JIT="-DNO_JIT_SH=1"
         ;;
 
-    --with-intl)
-        INTL_ICU="-DINTL_ICU_SH=1"
+    --without-intl)
+        INTL_ICU="-DNOINTL_ICU_SH=1"
         ;;
 
     --xcode)
@@ -597,6 +597,7 @@ elif [[ $ARCH =~ "amd64" ]]; then
     ARCH="-DCC_TARGETS_AMD64_SH=1"
     echo "Compile Target : amd64"
 else
+    ARCH="-DCC_USES_SYSTEM_ARCH_SH=1"
     echo "Compile Target : System Default"
 fi
 

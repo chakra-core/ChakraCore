@@ -37,6 +37,27 @@ var tests = [
         Array.prototype.slice.call(arr);
     }
   },
+  {
+    name: "rest param under eval with arguments usage in the body should not fail assert",
+    body: function () {
+        f();
+        function f() {
+            eval("function bar(...x){arguments;}")
+        }
+    }
+  },
+  {
+    name: "Token left after parsing lambda result to the syntax error",
+    body: function () {
+        assert.throws(()=> { eval('function foo ([ [] = () => { } = {a2:z2}]) { };'); });
+    }
+  },
+  {
+    name: "Token left after parsing lambda in ternary operator should not throw",
+    body: function () {
+        assert.doesNotThrow(()=> { eval('function foo () {  true ? e => {} : 1};'); });
+    }
+  },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

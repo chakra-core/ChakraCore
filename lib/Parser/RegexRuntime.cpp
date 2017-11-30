@@ -34,7 +34,7 @@ namespace UnifiedRegex
 
 #define PUSH(contStack, T, ...) (new (contStack.Push<T>()) T(__VA_ARGS__))
 #define PUSHA(assertionStack, T, ...) (new (assertionStack.Push()) T(__VA_ARGS__))
-#define L2I(O, label) LabelToInstPointer<O##Inst>(Inst::O, label)
+#define L2I(O, label) LabelToInstPointer<O##Inst>(Inst::InstTag::O, label)
 
 #define FAIL_PARAMETERS input, inputOffset, instPointer, contStack, assertionStack, qcTicks
 #define HARDFAIL_PARAMETERS(mode) input, inputLength, matchStart, inputOffset, instPointer, contStack, assertionStack, qcTicks, mode
@@ -166,9 +166,9 @@ namespace UnifiedRegex
     {
         switch (mode)
         {
-        case BacktrackAndLater:
+        case HardFailMode::BacktrackAndLater:
             return Fail(FAIL_PARAMETERS);
-        case BacktrackOnly:
+        case HardFailMode::BacktrackOnly:
             if (Fail(FAIL_PARAMETERS))
             {
                 // No use trying any more start positions
@@ -179,7 +179,7 @@ namespace UnifiedRegex
             {
                 return false;
             }
-        case LaterOnly:
+        case HardFailMode::LaterOnly:
 #if ENABLE_REGEX_CONFIG_OPTIONS
             if (w != 0)
             {
@@ -189,7 +189,7 @@ namespace UnifiedRegex
             contStack.Clear();
             assertionStack.Clear();
             return true; // STOP EXECUTING
-        case ImmediateFail:
+        case HardFailMode::ImmediateFail:
             // No use trying any more start positions
             matchStart = inputLength;
             return true; // STOP EXECUTING
@@ -1252,9 +1252,9 @@ namespace UnifiedRegex
     // ----------------------------------------------------------------------
 
     template <>
-    BOITestInst<true>::BOITestInst() : Inst(BOIHardFailTest) {}
+    BOITestInst<true>::BOITestInst() : Inst(InstTag::BOIHardFailTest) {}
     template <>
-    BOITestInst<false>::BOITestInst() : Inst(BOITest) {}
+    BOITestInst<false>::BOITestInst() : Inst(InstTag::BOITest) {}
 
     template <bool canHardFail>
     inline bool BOITestInst<canHardFail>::Exec(REGEX_INST_EXEC_PARAMETERS) const
@@ -1264,7 +1264,7 @@ namespace UnifiedRegex
             if (canHardFail)
             {
                 // Clearly trying to start from later in the input won't help, and we know backtracking can't take us earlier in the input
-                return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+                return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
             }
             else
             {
@@ -1300,9 +1300,9 @@ namespace UnifiedRegex
     // ----------------------------------------------------------------------
 
     template <>
-    EOITestInst<true>::EOITestInst() : Inst(EOIHardFailTest) {}
+    EOITestInst<true>::EOITestInst() : Inst(InstTag::EOIHardFailTest) {}
     template <>
-    EOITestInst<false>::EOITestInst() : Inst(EOITest) {}
+    EOITestInst<false>::EOITestInst() : Inst(InstTag::EOITest) {}
 
     template <bool canHardFail>
     inline bool EOITestInst<canHardFail>::Exec(REGEX_INST_EXEC_PARAMETERS) const
@@ -1312,7 +1312,7 @@ namespace UnifiedRegex
             if (canHardFail)
             {
                 // We know backtracking can never take us later in the input, but starting from later in the input could help
-                return matcher.HardFail(HARDFAIL_PARAMETERS(LaterOnly));
+                return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::LaterOnly));
             }
             else
             {
@@ -1402,9 +1402,9 @@ namespace UnifiedRegex
     // ----------------------------------------------------------------------
 
     template <>
-    WordBoundaryTestInst<true>::WordBoundaryTestInst() : Inst(NegatedWordBoundaryTest) {}
+    WordBoundaryTestInst<true>::WordBoundaryTestInst() : Inst(InstTag::NegatedWordBoundaryTest) {}
     template <>
-    WordBoundaryTestInst<false>::WordBoundaryTestInst() : Inst(WordBoundaryTest) {}
+    WordBoundaryTestInst<false>::WordBoundaryTestInst() : Inst(InstTag::WordBoundaryTest) {}
 
     template <bool isNegation>
     inline bool WordBoundaryTestInst<isNegation>::Exec(REGEX_INST_EXEC_PARAMETERS) const
@@ -1931,7 +1931,7 @@ namespace UnifiedRegex
     {
         if (!this->Match(matcher, input, inputLength, inputOffset))
         {
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         matchStart = inputOffset;
@@ -2026,7 +2026,7 @@ namespace UnifiedRegex
 
         if (inputOffset >= inputLength)
         {
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         matchStart = inputOffset++;
@@ -2066,7 +2066,7 @@ namespace UnifiedRegex
 
         if (inputOffset >= inputLength)
         {
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         matchStart = inputOffset++;
@@ -2106,7 +2106,7 @@ namespace UnifiedRegex
 
         if (inputOffset >= inputLength)
         {
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         matchStart = inputOffset++;
@@ -2144,7 +2144,7 @@ namespace UnifiedRegex
     {
         if (!this->Match(matcher, input, inputLength, inputOffset))
         {
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         matchStart = inputOffset;
@@ -2229,7 +2229,7 @@ namespace UnifiedRegex
         if (backup.lower > inputLength - matchStart)
         {
             // Even match at very end doesn't allow for minimum backup
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         if (inputOffset < nextSyncInputOffset)
@@ -2257,7 +2257,7 @@ namespace UnifiedRegex
 
         if (inputOffset >= inputLength)
         {
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         nextSyncInputOffset = inputOffset + 1;
@@ -2299,7 +2299,7 @@ namespace UnifiedRegex
         if (backup.lower > inputLength - matchStart)
         {
             // Even match at very end doesn't allow for minimum backup
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         if (inputOffset < nextSyncInputOffset)
@@ -2327,7 +2327,7 @@ namespace UnifiedRegex
 
         if (inputOffset >= inputLength)
         {
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         nextSyncInputOffset = inputOffset + 1;
@@ -2378,7 +2378,7 @@ namespace UnifiedRegex
         if (backup.lower > inputLength - matchStart)
         {
             // Even match at very end doesn't allow for minimum backup
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         if(inputOffset < nextSyncInputOffset)
@@ -2397,7 +2397,7 @@ namespace UnifiedRegex
 
         if (!this->Match(matcher, input, inputLength, inputOffset))
         {
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         nextSyncInputOffset = inputOffset + 1;
@@ -2503,7 +2503,7 @@ namespace UnifiedRegex
         if (backup.lower > inputLength - matchStart)
         {
             // Even match at very end doesn't allow for minimum backup
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         if (inputOffset < nextSyncInputOffset)
@@ -2586,7 +2586,7 @@ namespace UnifiedRegex
         if (besti < 0)
         {
             // No literals matched
-            return matcher.HardFail(HARDFAIL_PARAMETERS(ImmediateFail));
+            return matcher.HardFail(HARDFAIL_PARAMETERS(HardFailMode::ImmediateFail));
         }
 
         nextSyncInputOffset = bestMatchOffset + 1;
@@ -3357,7 +3357,7 @@ namespace UnifiedRegex
                 // Since loop body is non-deterministic and does not define groups the rewind continuation must be on top of the stack.
                 Cont *top = contStack.Top();
                 Assert(top != 0);
-                Assert(top->tag == Cont::RewindLoopFixed);
+                Assert(top->tag == Cont::ContTag::RewindLoopFixed);
                 RewindLoopFixedCont* rewind = (RewindLoopFixedCont*)top;
                 rewind->tryingBody = false;
             }
@@ -3640,7 +3640,7 @@ namespace UnifiedRegex
                 // Since loop body is non-deterministic and does not define groups the rewind continuation must be on top of the stack.
                 Cont *top = contStack.Top();
                 Assert(top != 0);
-                Assert(top->tag == Cont::RewindLoopFixedGroupLastIteration);
+                Assert(top->tag == Cont::ContTag::RewindLoopFixedGroupLastIteration);
                 RewindLoopFixedGroupLastIterationCont* rewind = (RewindLoopFixedGroupLastIterationCont*)top;
                 rewind->tryingBody = false;
             }
@@ -3736,7 +3736,7 @@ namespace UnifiedRegex
             // Therefore we can simply update the Resume continuation still on the top of the stack with the current
             // input pointer.
             Cont* top = contStack.Top();
-            Assert(top != 0 && top->tag == Cont::Resume);
+            Assert(top != 0 && top->tag == Cont::ContTag::Resume);
             ResumeCont* resume = (ResumeCont*)top;
             resume->origInputOffset = inputOffset;
 
@@ -4508,7 +4508,7 @@ namespace UnifiedRegex
     // RestoreLoopCont
     // ----------------------------------------------------------------------
 
-    inline RestoreLoopCont::RestoreLoopCont(int loopId, LoopInfo& origLoopInfo, Matcher& matcher) : Cont(RestoreLoop), loopId(loopId)
+    inline RestoreLoopCont::RestoreLoopCont(int loopId, LoopInfo& origLoopInfo, Matcher& matcher) : Cont(ContTag::RestoreLoop), loopId(loopId)
     {
         this->origLoopInfo.number = origLoopInfo.number;
         this->origLoopInfo.startInputOffset = origLoopInfo.startInputOffset;
@@ -4959,14 +4959,14 @@ namespace UnifiedRegex
     }
 
 #if DBG
-    const uint32 contTags[] = {
-#define M(O) Cont::O,
+    const Cont::ContTag contTags[] = {
+#define M(O) Cont::ContTag::O,
 #include "RegexContcodes.h"
 #undef M
     };
 
-    const uint32 minContTag = contTags[0];
-    const uint32 maxContTag = contTags[(sizeof(contTags) / sizeof(uint32)) - 1];
+    const Cont::ContTag minContTag = contTags[0];
+    const Cont::ContTag maxContTag = contTags[(sizeof(contTags) / sizeof(Cont::ContTag)) - 1];
 #endif
 
     void Matcher::DoQueryContinue(const uint qcTicks)
@@ -5076,7 +5076,7 @@ namespace UnifiedRegex
             const Cont::ContTag tag = cont->tag;
             switch (tag)
             {
-#define M(O) case Cont::O: if (((O##Cont*)cont)->Exec(*this, input, inputOffset, instPointer, contStack, assertionStack, qcTicks)) return false; break;
+#define M(O) case Cont::ContTag::O: if (((O##Cont*)cont)->Exec(*this, input, inputOffset, instPointer, contStack, assertionStack, qcTicks)) return false; break;
 #include "RegexContcodes.h"
 #undef M
             default:
@@ -5088,16 +5088,16 @@ namespace UnifiedRegex
     }
 
 #if DBG
-    const uint32 instTags[] = {
-#define M(TagName) Inst::TagName,
+    const Inst::InstTag instTags[] = {
+#define M(TagName) Inst::InstTag::TagName,
 #define MTemplate(TagName, ...) M(TagName)
 #include "RegexOpCodes.h"
 #undef M
 #undef MTemplate
     };
 
-    const uint32 minInstTag = instTags[0];
-    const uint32 maxInstTag = instTags[(sizeof(instTags) / sizeof(uint32)) - 1];
+    const Inst::InstTag minInstTag = instTags[0];
+    const Inst::InstTag maxInstTag = instTags[(sizeof(instTags) / sizeof(Inst::InstTag)) - 1];
 #endif
 
     inline void Matcher::Run(const Char* const input, const CharCount inputLength, CharCount &matchStart, CharCount &nextSyncInputOffset, ContStack &contStack, AssertionStack &assertionStack, uint &qcTicks, bool firstIteration)
@@ -5123,7 +5123,7 @@ namespace UnifiedRegex
             switch (tag)
             {
 #define MBase(TagName, ClassName) \
-                case Inst::TagName: \
+                case Inst::InstTag::TagName: \
                     if (((const ClassName *)inst)->Exec(*this, input, inputLength, matchStart, inputOffset, nextSyncInputOffset, instPointer, contStack, assertionStack, qcTicks, firstIteration)) { return; } \
                     break;
 #define M(TagName) MBase(TagName, TagName##Inst)
@@ -5475,7 +5475,7 @@ namespace UnifiedRegex
         bool isStickyPresent = this->pattern->IsSticky();
         switch (prog->tag)
         {
-        case Program::BOIInstructionsTag:
+        case Program::ProgramTag::BOIInstructionsTag:
             if (offset != 0)
             {
                 groupInfos[0].Reset();
@@ -5485,14 +5485,14 @@ namespace UnifiedRegex
 
             // fall through
 
-        case Program::BOIInstructionsForStickyFlagTag:
-            AssertMsg(prog->tag == Program::BOIInstructionsTag || isStickyPresent, "prog->tag should be BOIInstructionsForStickyFlagTag if sticky = true.");
+        case Program::ProgramTag::BOIInstructionsForStickyFlagTag:
+            AssertMsg(prog->tag == Program::ProgramTag::BOIInstructionsTag || isStickyPresent, "prog->tag should be BOIInstructionsForStickyFlagTag if sticky = true.");
 
             loopMatchHere = false;
 
             // fall through
 
-        case Program::InstructionsTag:
+        case Program::ProgramTag::InstructionsTag:
             {
                 previousQcTime = 0;
                 uint qcTicks = 0;
@@ -5518,7 +5518,7 @@ namespace UnifiedRegex
                 break;
             }
 
-        case Program::SingleCharTag:
+        case Program::ProgramTag::SingleCharTag:
             if (this->pattern->IsIgnoreCase())
             {
                 res = MatchSingleCharCaseInsensitive(input, inputLength, offset, prog->rep.singleChar.c);
@@ -5530,19 +5530,19 @@ namespace UnifiedRegex
 
             break;
 
-        case Program::BoundedWordTag:
+        case Program::ProgramTag::BoundedWordTag:
             res = MatchBoundedWord(input, inputLength, offset);
             break;
 
-        case Program::LeadingTrailingSpacesTag:
+        case Program::ProgramTag::LeadingTrailingSpacesTag:
             res = MatchLeadingTrailingSpaces(input, inputLength, offset);
             break;
 
-        case Program::OctoquadTag:
+        case Program::ProgramTag::OctoquadTag:
             res = MatchOctoquad(input, inputLength, offset, prog->rep.octoquad.matcher);
             break;
 
-        case Program::BOILiteral2Tag:
+        case Program::ProgramTag::BOILiteral2Tag:
             res = MatchBOILiteral2(input, inputLength, offset, prog->rep.boiLiteral2.literal);
             break;
 
@@ -5592,7 +5592,7 @@ namespace UnifiedRegex
             }
             w->EOL();
         }
-        if (program->tag == Program::BOIInstructionsTag || program->tag == Program::InstructionsTag)
+        if (program->tag == Program::ProgramTag::BOIInstructionsTag || program->tag == Program::ProgramTag::InstructionsTag)
         {
             w->Print(_u("instPointer: "));
 
@@ -5600,7 +5600,7 @@ namespace UnifiedRegex
             switch (inst->tag)
             {
 #define MBase(TagName, ClassName) \
-            case Inst::TagName: \
+            case Inst::InstTag::TagName: \
             { \
                 const ClassName *actualInst = static_cast<const ClassName *>(inst); \
                 actualInst->Print(w, InstPointerToLabel(instPointer), program->rep.insts.litbuf); \
@@ -5661,7 +5661,7 @@ namespace UnifiedRegex
         , numGroups(0)
         , numLoops(0)
     {
-        tag = InstructionsTag;
+        tag = ProgramTag::InstructionsTag;
         rep.insts.insts = nullptr;
         rep.insts.instsLen = 0;
         rep.insts.litbuf = nullptr;
@@ -5676,7 +5676,7 @@ namespace UnifiedRegex
 
     Field(ScannerInfo *)*Program::CreateScannerArrayForSyncToLiterals(Recycler *const recycler)
     {
-        Assert(tag == InstructionsTag);
+        Assert(tag == ProgramTag::InstructionsTag);
         Assert(!rep.insts.scannersForSyncToLiterals);
         Assert(recycler);
 
@@ -5692,7 +5692,7 @@ namespace UnifiedRegex
         const CharCount length,
         const bool isEquivClass)
     {
-        Assert(tag == InstructionsTag);
+        Assert(tag == ProgramTag::InstructionsTag);
         Assert(rep.insts.scannersForSyncToLiterals);
         Assert(recycler);
         Assert(scannerIndex >= 0);
@@ -5706,7 +5706,7 @@ namespace UnifiedRegex
 
     void Program::FreeBody(ArenaAllocator* rtAllocator)
     {
-        if (tag != InstructionsTag || !rep.insts.insts)
+        if (tag != ProgramTag::InstructionsTag || !rep.insts.insts)
         {
             return;
         }
@@ -5719,7 +5719,7 @@ namespace UnifiedRegex
             switch(inst->tag)
             {
 #define MBase(TagName, ClassName) \
-                case Inst::TagName: \
+                case Inst::InstTag::TagName: \
                 { \
                     const auto actualInst = static_cast<ClassName *>(inst); \
                     actualInst->FreeBody(rtAllocator); \
@@ -5763,12 +5763,12 @@ namespace UnifiedRegex
         w->PrintEOL(_u("numLoops:     %d"), numLoops);
         switch (tag)
         {
-        case BOIInstructionsTag:
-        case InstructionsTag:
+        case ProgramTag::BOIInstructionsTag:
+        case ProgramTag::InstructionsTag:
             {
                 w->PrintEOL(_u("instructions: {"));
                 w->Indent();
-                if (tag == BOIInstructionsTag)
+                if (tag == ProgramTag::BOIInstructionsTag)
                 {
                     w->PrintEOL(_u("       BOITest(hardFail: true)"));
                 }
@@ -5781,7 +5781,7 @@ namespace UnifiedRegex
                     switch (inst->tag)
                     {
 #define MBase(TagName, ClassName) \
-                    case Inst::TagName: \
+                    case Inst::InstTag::TagName: \
                     { \
                         const ClassName *actualInst = static_cast<const ClassName *>(inst); \
                         curr += actualInst->Print(w, (Label)(isBaselineMode ? i++ : curr - rep.insts.insts), rep.insts.litbuf); \
@@ -5802,19 +5802,19 @@ namespace UnifiedRegex
                 w->PrintEOL(_u("}"));
             }
             break;
-        case SingleCharTag:
+        case ProgramTag::SingleCharTag:
             w->Print(_u("special form: <match single char "));
             w->PrintQuotedChar(rep.singleChar.c);
             w->PrintEOL(_u(">"));
             break;
-        case BoundedWordTag:
+        case ProgramTag::BoundedWordTag:
             w->PrintEOL(_u("special form: <match bounded word>"));
             break;
-        case LeadingTrailingSpacesTag:
+        case ProgramTag::LeadingTrailingSpacesTag:
             w->PrintEOL(_u("special form: <match leading/trailing spaces: minBegin=%d minEnd=%d>"),
                 rep.leadingTrailingSpaces.beginMinMatch, rep.leadingTrailingSpaces.endMinMatch);
             break;
-        case OctoquadTag:
+        case ProgramTag::OctoquadTag:
             w->Print(_u("special form: <octoquad "));
             rep.octoquad.matcher->Print(w);
             w->PrintEOL(_u(">"));

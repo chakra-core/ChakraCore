@@ -785,6 +785,8 @@ private:
     template<bool buildAST> ParseNodePtr ParseMemberList(LPCOLESTR pNameHint, uint32 *pHintLength, tokens declarationType = tkNone);
     template<bool buildAST> IdentPtr ParseSuper(bool fAllowCall);
 
+    bool IsTerminateToken();
+
     // Used to determine the type of JavaScript object member.
     // The values can be combined using bitwise OR.
     //       specifically, it is valid to have getter and setter at the same time.

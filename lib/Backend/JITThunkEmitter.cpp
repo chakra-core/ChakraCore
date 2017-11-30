@@ -5,7 +5,7 @@
 
 #include "Backend.h"
 
-#if defined(ENABLE_NATIVE_CODEGEN) && defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+#if defined(ENABLE_NATIVE_CODEGEN) && defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64_OR_ARM64)
 
 template class JITThunkEmitter<VirtualAllocWrapper>;
 
@@ -13,6 +13,7 @@ template class JITThunkEmitter<VirtualAllocWrapper>;
 template class JITThunkEmitter<SectionAllocWrapper>;
 #endif
 
+#if _M_IX86 || _M_X64
 template <typename TAlloc>
 const BYTE JITThunkEmitter<TAlloc>::DirectJmp[] = {
     0xE9, 0x00, 0x00, 0x00, 0x00, // JMP <relativeAddress>.32
@@ -20,6 +21,7 @@ const BYTE JITThunkEmitter<TAlloc>::DirectJmp[] = {
     0xCC, 0xCC, 0xCC, 0xCC,
     0xCC, 0xCC, 0xCC, 0xCC
 };
+#endif
 
 #if _M_X64
 template <typename TAlloc>
@@ -27,6 +29,21 @@ const BYTE JITThunkEmitter<TAlloc>::IndirectJmp[] = {
     0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // MOV RAX, <relativeAddress>.64
     0x48, 0xFF, 0xE0,                                           // JMP RAX
     0xCC, 0xCC, 0xCC
+};
+#endif
+
+#if _M_ARM64
+template <typename TAlloc>
+const DWORD JITThunkEmitter<TAlloc>::DirectB[] = {
+    0x14000000              // B <relativeAddress>.26
+};
+
+template <typename TAlloc>
+const DWORD JITThunkEmitter<TAlloc>::IndirectBR[] = {
+    0xd2800000 | IndirectBRTempReg,     // MOVZ x17, <absoluteAddress[16:0]>
+    0xf2a00000 | IndirectBRTempReg,     // MOVK x17, <absoluteAddress[31:16]>, LSL #16
+    0xf2c00000 | IndirectBRTempReg,     // MOVK x17, <absoluteAddress[47:32]>, LSL #32
+    0xd61f0000 | (IndirectBRTempReg<<5) // BR x17
 };
 #endif
 
@@ -194,6 +211,7 @@ void
 JITThunkEmitter<TAlloc>::EncodeJmp(char * localPageAddress, uintptr_t thunkAddress, uintptr_t targetAddress)
 {
     char * localAddress = localPageAddress + thunkAddress % AutoSystemInfo::PageSize;
+#if _M_IX86 || _M_X64
     ptrdiff_t relativeAddress = targetAddress - thunkAddress - DirectJmpIPAdjustment;
 #if _M_X64
     if (relativeAddress > INT_MAX || relativeAddress < INT_MIN)
@@ -209,6 +227,22 @@ JITThunkEmitter<TAlloc>::EncodeJmp(char * localPageAddress, uintptr_t thunkAddre
         uintptr_t * jmpTarget = (uintptr_t*)(localAddress + DirectJmpTargetOffset);
         *jmpTarget = relativeAddress;
     }
+#elif _M_ARM64
+    ptrdiff_t relativeAddress = (targetAddress - thunkAddress) / 4;
+    if (relativeAddress >= (1 << 25) || relativeAddress < -(1 << 25))
+    {
+        Assert(targetAddress == (targetAddress & 0xffffffffffffull));
+        memcpy_s(localAddress, ThunkSize, IndirectBR, ThunkSize);
+        ((DWORD *)localAddress)[IndirectBRLo16Offset]  |= ((targetAddress >> 0) & 0xffff) << 5;
+        ((DWORD *)localAddress)[IndirectBRMid16Offset] |= ((targetAddress >> 16) & 0xffff) << 5;
+        ((DWORD *)localAddress)[IndirectBRHi16Offset]  |= ((targetAddress >> 32) & 0xffff) << 5;
+    }
+    else
+    {
+        memcpy_s(localAddress, ThunkSize, DirectB, ThunkSize);
+        ((DWORD *)localAddress)[0] |= relativeAddress & 0x3ffffff;
+    }
+#endif
 }
 
 template <typename TAlloc> inline

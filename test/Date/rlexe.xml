@@ -35,6 +35,11 @@
   </test>
   <test>
     <default>
+      <files>DateParse3.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>toISO_3.js</files>
       <baseline>toISO_3.baseline</baseline>
     </default>
@@ -138,6 +143,15 @@
   <test>
     <default>
       <files>TwoDigitYears.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>toStringAndToUTCStringYearPadding.js</files>
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
+      <!-- xplat tz info for BC != Windows tz info for BC -->
+      <tags>exclude_jenkins,exclude_xplat</tags>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
 </regress-exe>

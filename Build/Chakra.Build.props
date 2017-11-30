@@ -52,6 +52,7 @@
         %(DisableSpecificWarnings);
         4458;     <!-- declaration of '' hides class member -->
         4312;     <!-- 'type cast': conversion from '' to '' of greater size -->
+        4800;     <!-- type' : forcing value to bool 'true' or 'false' (performance warning) [always off in 2017 by default, but warns in 2015 -->
       </DisableSpecificWarnings>
       <!-- Use the debug CRT in debug build -->
       <RuntimeLibrary Condition="'$(Configuration)'=='Debug' AND '$(RuntimeLib)'!='static_library'">MultiThreadedDebugDLL</RuntimeLibrary>

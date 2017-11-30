@@ -137,8 +137,13 @@ void CheckIsExecutable(Js::RecyclableObject * function, Js::JavascriptMethod ent
     Js::ScriptContext * scriptContext = function->GetScriptContext();
     // it's easy to call the default entry point from RecyclableObject.
     AssertMsg((Js::JavascriptFunction::Is(function) && Js::JavascriptFunction::FromVar(function)->IsExternalFunction())
-        || Js::CrossSite::IsThunk(entrypoint) || !scriptContext->IsActuallyClosed() ||
-        (scriptContext->GetThreadContext()->IsScriptActive() && !Js::JavascriptConversion::IsCallable(function)),
+        || Js::CrossSite::IsThunk(entrypoint)
+        // External object with entrypoint
+        || (!Js::JavascriptFunction::Is(function)
+            && function->IsExternal()
+            && Js::JavascriptConversion::IsCallable(function))
+        || !scriptContext->IsActuallyClosed()
+        || (scriptContext->GetThreadContext()->IsScriptActive() && !Js::JavascriptConversion::IsCallable(function)),
         "Can't call function when the script context is closed");
 
     if (scriptContext->GetThreadContext()->IsScriptActive())

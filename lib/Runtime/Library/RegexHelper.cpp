@@ -670,27 +670,27 @@ namespace Js
         const bool isSticky = pattern->IsSticky();
         const bool useCache = !isGlobal && !isSticky;
 
-        RegExpTestCache* cache = nullptr;
+        UnifiedRegex::RegExpTestCache* cache = nullptr;
         JavascriptString * cachedInput = nullptr;
         uint cacheIndex = 0;
         bool cacheHit = false;
         bool cachedResult = false;
         if (useCache)
         {
-            cache = regularExpression->EnsureTestCache();
-            cacheIndex = JavascriptRegExp::GetTestCacheIndex(input);
-            cachedInput = cache[cacheIndex].input != nullptr ? cache[cacheIndex].input->Get() : nullptr;
+            cache = pattern->EnsureTestCache();
+            cacheIndex = UnifiedRegex::RegexPattern::GetTestCacheIndex(input);
+            cachedInput = cache->inputArray[cacheIndex] != nullptr ? cache->inputArray[cacheIndex]->Get() : nullptr;
             cacheHit = cachedInput == input;
         }
 #if ENABLE_REGEX_CONFIG_OPTIONS
         RegexHelperTrace(scriptContext, UnifiedRegex::RegexStats::Test, regularExpression, input);
-        JavascriptRegExp::TraceTestCache(cacheHit, input, cachedInput, !useCache);
+        UnifiedRegex::RegexPattern::TraceTestCache(cacheHit, input, cachedInput, !useCache);
 #endif
 
         if (cacheHit)
         {
             Assert(useCache);
-            cachedResult = cache[cacheIndex].result;
+            cachedResult = (cache->resultBV.Test(cacheIndex) != 0);
             // for debug builds, let's still do the real test so we can validate values in the cache
 #if !DBG
             return JavascriptBoolean::ToVar(cachedResult, scriptContext);
@@ -706,8 +706,8 @@ namespace Js
                 Assert(offset == 0);
                 Assert(!cacheHit || cachedInput == input);
                 Assert(!cacheHit || cachedResult == false);
-                cache[cacheIndex].input = regularExpression->GetRecycler()->CreateWeakReferenceHandle(input);
-                cache[cacheIndex].result = false;
+                cache->inputArray[cacheIndex] = regularExpression->GetRecycler()->CreateWeakReferenceHandle(input);
+                cache->resultBV.Clear(cacheIndex);
             }
             return scriptContext->GetLibrary()->GetFalse();
         }
@@ -725,8 +725,15 @@ namespace Js
             Assert(offset == 0);
             Assert(!cacheHit || cachedInput == input);
             Assert(!cacheHit || cachedResult == wasFound);
-            cache[cacheIndex].input = regularExpression->GetRecycler()->CreateWeakReferenceHandle(input);
-            cache[cacheIndex].result = wasFound;
+            cache->inputArray[cacheIndex] = regularExpression->GetRecycler()->CreateWeakReferenceHandle(input);
+            if (wasFound)
+            {
+                cache->resultBV.Set(cacheIndex);
+            }
+            else
+            {
+                cache->resultBV.Clear(cacheIndex);
+            }
         }
         return JavascriptBoolean::ToVar(wasFound, scriptContext);
     }
@@ -2282,6 +2289,8 @@ namespace Js
 
     Var RegexHelper::RegexSplitResultUsedAndMayBeTemp(void *const stackAllocationPointer, ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit)
     {
+        Assert(ThreadContext::IsOnStack(stackAllocationPointer));
+
         return RegexHelper::RegexSplit(scriptContext, regularExpression, input, limit, false, stackAllocationPointer);
     }
 

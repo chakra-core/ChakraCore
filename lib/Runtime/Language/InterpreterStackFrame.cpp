@@ -1157,6 +1157,10 @@ namespace Js
 #ifdef ENABLE_WASM
         newInstance->m_wasmMemory = nullptr;
 #endif
+        Var* outparamsEnd = newInstance->m_outParams + this->executeFunction->GetOutParamMaxDepth();
+#if DBG
+        newInstance->m_outParamsEnd = outparamsEnd;
+#endif
 
         bool doInterruptProbe = newInstance->scriptContext->GetThreadContext()->DoInterruptProbe(this->executeFunction);
 #if ENABLE_NATIVE_CODEGEN
@@ -1211,7 +1215,7 @@ namespace Js
         // the savedLoopImplicitCallFlags is allocated at the end of the out param array
         newInstance->savedLoopImplicitCallFlags = nullptr;
 #endif
-        char * nextAllocBytes = (char *)(newInstance->m_outParams + this->executeFunction->GetOutParamMaxDepth());
+        char * nextAllocBytes = (char *)(outparamsEnd);
 
         // If we bailed out, we will use the JIT frame's for..in enumerators
         if (bailedOut || this->executeFunction->GetForInLoopDepth() == 0)
@@ -3734,7 +3738,9 @@ namespace Js
         byte _declspec(align(16)) reg[3 * 16];
         uint* argSizes = asmInfo->GetArgsSizesArray();
         Assert(asmInfo->GetArgSizeArrayLength() >= 2);
+        CompileAssert((FunctionBody::MinAsmJsOutParams() * sizeof(Var)) == (sizeof(Var) * 2 + sizeof(reg)));
         byte* curOutParams = (byte*)m_outParams + sizeof(Var);
+        Assert(curOutParams + argSizes[0] + argSizes[1] + 16 <= (byte*)this->m_outParamsEnd);
         js_memcpy_s(reg, 16, curOutParams, 16);
         js_memcpy_s(reg + 16, 16, curOutParams + argSizes[0], 16);
         js_memcpy_s(reg + 32, 16, curOutParams + argSizes[0] + argSizes[1], 16);
@@ -5590,6 +5596,22 @@ namespace Js
         return true;
     }
 
+    template <LayoutSize layoutSize, bool profiled>
+    const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
+    {
+        uint32 loopId = m_reader.GetLayout<OpLayoutT_Unsigned1<LayoutSizePolicy<layoutSize>>>(ip)->C1;
+        return OP_ProfiledLoopBodyStart<layoutSize, profiled>(loopId);
+    }
+
+#ifdef ASMJS_PLAT
+    template <LayoutSize layoutSize, bool profiled>
+    const byte * InterpreterStackFrame::OP_ProfiledWasmLoopBodyStart(const byte * ip)
+    {
+        uint32 loopId = m_reader.GetLayout<OpLayoutT_WasmLoopStart<LayoutSizePolicy<layoutSize>>>(ip)->loopId;
+        return OP_ProfiledLoopBodyStart<layoutSize, profiled>(loopId);
+    }
+#endif
+
 #if ENABLE_PROFILE_INFO
     void InterpreterStackFrame::OP_RecordImplicitCall(uint loopNumber)
     {
@@ -5694,21 +5716,19 @@ namespace Js
     }
 
     template <LayoutSize layoutSize, bool profiled>
-    const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
+    const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
     {
-        uint32 C1 = m_reader.GetLayout<OpLayoutT_Unsigned1<LayoutSizePolicy<layoutSize>>>(ip)->C1;
-
-        if(profiled || isAutoProfiling)
+        if (profiled || isAutoProfiling)
         {
             this->currentLoopCounter++;
         }
 
         if (profiled)
         {
-            OP_RecordImplicitCall(C1);
+            OP_RecordImplicitCall(loopId);
         }
 
-        (this->*(profiled ? opProfiledLoopBodyStart : opLoopBodyStart))(C1, layoutSize, false /* isFirstIteration */);
+        (this->*(profiled ? opProfiledLoopBodyStart : opLoopBodyStart))(loopId, layoutSize, false /* isFirstIteration */);
         return m_reader.GetIP();
     }
 
@@ -5770,17 +5790,12 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopEnd(const byte * ip)
 }
 
 template <LayoutSize layoutSize, bool profiled>
-const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
+const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
 {
-    uint32 C1 = m_reader.GetLayout<OpLayoutT_Unsigned1<LayoutSizePolicy<layoutSize>>>(ip)->C1;
-
     Assert(!profiled);
-
-    (this->*opLoopBodyStart)(C1, layoutSize, false /* isFirstIteration */);
+    (this->*opLoopBodyStart)(loopId, layoutSize, false /* isFirstIteration */);
     return m_reader.GetIP();
 }
-
-
 #endif
 
     template<bool InterruptProbe, bool JITLoopBody>

@@ -140,6 +140,13 @@ namespace WAsmJs
             return mNextLocation++;
         }
 
+        RegSlot PeekNextTmpRegister()
+        {
+            // Make sure this function is called correctly
+            Assert(mNextLocation <= mRegisterCount && mNextLocation >= mFirstTmpReg);
+            return mNextLocation;
+        }
+
         // Release a location for a temporary register, must be the last location acquired
         void ReleaseTmpRegister( RegSlot tmpReg )
         {

@@ -11,7 +11,7 @@
   <test>
     <default>
       <files>Collator.js</files>
-      <tags>Intl</tags>
+      <tags>Intl,require_winglob</tags>
     </default>
   </test>
   <test>

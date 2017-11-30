@@ -3140,7 +3140,7 @@ namespace Js
                     JS_REENTRANT_NO_MUTATE(jsReentLock, CopyNativeIntArrayElementsToVar(pDestArray, BigIndex(idxDest).GetSmallIndex(), pIntItemArray));
                     idxDest = idxDest + pIntItemArray->length;
                 }
-                else 
+                else
                 {
                     JavascriptNativeFloatArray *pFloatItemArray = JavascriptOperators::TryFromVar<JavascriptNativeFloatArray>(aItem);
                     if (pFloatItemArray)
@@ -3390,7 +3390,7 @@ namespace Js
 
                     idxDest = idxDest + pIntItemArray->length;
                 }
-                else 
+                else
                 {
                     JavascriptNativeFloatArray * pFloatItemArray = JavascriptOperators::TryFromVar<JavascriptNativeFloatArray>(aItem);
                     if (pFloatItemArray && !isFillFromPrototypes)
@@ -5380,7 +5380,7 @@ Case0:
             {
                 RecyclableObject* protoObj = prototype;
 
-                if (!(DynamicObject::IsAnyArray(protoObj) || JavascriptOperators::IsObject(protoObj)) 
+                if (!(DynamicObject::IsAnyArray(protoObj) || JavascriptOperators::IsObject(protoObj))
                     || JavascriptProxy::Is(protoObj)
                     || protoObj->IsExternal())
                 {
@@ -6095,7 +6095,7 @@ Case0:
             *isIntArray = true;
 #endif
         }
-        else 
+        else
         {
             JavascriptNativeFloatArray* nativeFloatArray = JavascriptOperators::TryFromVar<JavascriptNativeFloatArray>(this);
             if (nativeFloatArray)
@@ -12162,8 +12162,7 @@ Case0:
 
     BOOL JavascriptArray::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
     {
-        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
-        if (BuiltInPropertyRecords::length.Equals(propertyName))
+        if (BuiltInPropertyRecords::length.Equals(propertyNameString))
         {
             return false;
         }

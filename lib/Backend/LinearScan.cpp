@@ -165,12 +165,13 @@ LinearScan::RegAlloc()
 #endif // DBG
 
         this->currentInstr = instr;
-        if(instr->StartsBasicBlock() || endOfBasicBlock)
+        if (instr->StartsBasicBlock() || endOfBasicBlock)
         {
             endOfBasicBlock = false;
             ++currentBlockNumber;
         }
 
+        bool isLoopBackEdge = false;
         if (instr->IsLabelInstr())
         {
             this->lastLabel = instr->AsLabelInstr();
@@ -184,12 +185,12 @@ LinearScan::RegAlloc()
                 }
                 this->currentBlock = this->lastLabel->m_loweredBasicBlock;
             }
-            else if(currentBlock->HasData())
+            else if (currentBlock->HasData())
             {
                 // Check if the previous block has fall-through. If so, retain the block info. If not, create empty info.
                 IR::Instr *const prevInstr = instr->GetPrevRealInstrOrLabel();
                 Assert(prevInstr);
-                if(!prevInstr->HasFallThrough())
+                if (!prevInstr->HasFallThrough())
                 {
                     currentBlock = LoweredBasicBlock::New(&tempAlloc);
                 }
@@ -202,10 +203,9 @@ LinearScan::RegAlloc()
             {
                 this->ProcessEHRegionBoundary(instr);
             }
-            this->ProcessSecondChanceBoundary(instr->AsBranchInstr());
-        }
 
-        this->CheckIfInLoop(instr);
+            isLoopBackEdge = this->IsInLoop() && instr->GetNumber() >= this->curLoop->regAlloc.loopEnd;
+        }
 
         if (this->RemoveDeadStores(instr))
         {
@@ -233,7 +233,17 @@ LinearScan::RegAlloc()
         }
 
         this->SetSrcRegs(instr);
-        this->EndDeadLifetimes(instr);
+        this->EndDeadLifetimes(instr, isLoopBackEdge);
+
+        if (instr->IsBranchInstr())
+        {
+            this->ProcessSecondChanceBoundary(instr->AsBranchInstr());
+        }
+        this->CheckIfInLoop(instr);
+        if (isLoopBackEdge)
+        {
+            this->EndDeadLifetimes(instr, false);
+        }
 
         this->CheckOpHelper(instr);
 
@@ -2532,23 +2542,28 @@ LinearScan::SkipNumberedInstr(IR::Instr *instr)
 // LinearScan::EndDeadLifetimes
 // Look for lifetimes that are ending here, and retire them.
 void
-LinearScan::EndDeadLifetimes(IR::Instr *instr)
+LinearScan::EndDeadLifetimes(IR::Instr *instr, bool isLoopBackEdge)
 {
-    Lifetime * deadLifetime;
-
     if (this->SkipNumberedInstr(instr))
     {
         return;
     }
 
     // Retire all active lifetime ending at this instruction
-    while (!this->activeLiveranges->Empty() && this->activeLiveranges->Head()->end <= instr->GetNumber())
+    FOREACH_SLIST_ENTRY_EDITING(Lifetime *, deadLifetime, this->activeLiveranges, iter)
     {
-        deadLifetime = this->activeLiveranges->Head();
+        if (deadLifetime->end > instr->GetNumber())
+        {
+            break;
+        }
+
+        if (isLoopBackEdge && this->curLoop->regAlloc.liveOnBackEdgeSyms->Test(deadLifetime->sym->m_id))
+        {
+            continue;
+        }
         deadLifetime->defList.Clear();
         deadLifetime->useList.Clear();
 
-        this->activeLiveranges->RemoveHead();
         RegNum reg = deadLifetime->reg;
         this->activeRegs.Clear(reg);
         this->regContent[reg] = nullptr;
@@ -2562,24 +2577,35 @@ LinearScan::EndDeadLifetimes(IR::Instr *instr)
             Assert(RegTypes[reg] == TyFloat64);
             this->floatRegUsedCount--;
         }
-    }
+        iter.RemoveCurrent();
+
+    } NEXT_SLIST_ENTRY_EDITING;
 
     // Look for spilled lifetimes which end here such that we can make their stack slot
     // available for stack-packing.
-    while (!this->stackPackInUseLiveRanges->Empty() && this->stackPackInUseLiveRanges->Head()->end <= instr->GetNumber())
+    FOREACH_SLIST_ENTRY_EDITING(Lifetime *, deadStackPack, this->stackPackInUseLiveRanges, stackPackIter)
     {
-        deadLifetime = this->stackPackInUseLiveRanges->Head();
-        deadLifetime->defList.Clear();
-        deadLifetime->useList.Clear();
-
-        this->stackPackInUseLiveRanges->RemoveHead();
-        if (!deadLifetime->cantStackPack)
+        if (deadStackPack->end > instr->GetNumber())
         {
-            Assert(deadLifetime->spillStackSlot);
-            deadLifetime->spillStackSlot->lastUse = deadLifetime->end;
-            this->stackSlotsFreeList->Push(deadLifetime->spillStackSlot);
+            break;
         }
-    }
+
+        if (isLoopBackEdge && this->curLoop->regAlloc.liveOnBackEdgeSyms->Test(deadStackPack->sym->m_id))
+        {
+            continue;
+        }
+        deadStackPack->defList.Clear();
+        deadStackPack->useList.Clear();
+
+        if (!deadStackPack->cantStackPack)
+        {
+            Assert(deadStackPack->spillStackSlot);
+            deadStackPack->spillStackSlot->lastUse = deadStackPack->end;
+            this->stackSlotsFreeList->Push(deadStackPack->spillStackSlot);
+        }
+        stackPackIter.RemoveCurrent();
+    } NEXT_SLIST_ENTRY_EDITING;
+
 }
 
 void
@@ -3768,7 +3794,7 @@ LinearScan::RemoveDeadStores(IR::Instr *instr)
                 DebugOnly(this->func->allowRemoveBailOutArgInstr = true);
 
                 // We are removing this instruction, end dead life time now
-                this->EndDeadLifetimes(instr);
+                this->EndDeadLifetimes(instr, false);
                 instr->Remove();
 
                 DebugOnly(this->func->allowRemoveBailOutArgInstr = false);
