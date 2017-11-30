@@ -58,6 +58,32 @@ var tests = [
         assert.doesNotThrow(()=> { eval('function foo () {  true ? e => {} : 1};'); });
     }
   },
+  {
+    name: "ArrayBuffer.slice with proxy constructor should not fail fast",
+    body: function () {
+      let arr = new ArrayBuffer(10);
+      arr.constructor = new Proxy(ArrayBuffer, {});
+      
+      arr.slice(1,2);
+    }
+  },
+  {
+    name: "Large proxy chain should not cause IsConstructor to crash on stack overflow",
+    body: function () {
+      let p = new Proxy(Object, {});
+      for (let  i=0; i<20000; ++i)
+      {
+          p = new Proxy(p, {});
+      }
+      try
+      {
+          let a = new p();
+      }
+      catch(e)
+      {
+      }
+    }
+  }
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
