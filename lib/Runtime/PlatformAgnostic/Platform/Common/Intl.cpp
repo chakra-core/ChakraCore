@@ -534,36 +534,32 @@ namespace Intl
         ICU_ASSERT(error, true);
 
         char collatorCollation[ULOC_FULLNAME_CAPACITY] = { 0 };
-        int32_t collatorCollationLength = uloc_getKeywordValue(collatorLocaleID, "collation", collatorCollation, _countof(collatorCollation), &error);
+        int32_t collatorCollationLength = uloc_getKeywordValue(collatorLocaleID, "collation", collatorCollation, ULOC_FULLNAME_CAPACITY, &error);
         ICU_ASSERT(error, collatorCollationLength >= 0);
-        if (collatorCollationLength == 0)
+        if (collatorCollationLength != 0)
         {
-            // We were given a langtag without a -u-co value, which is completely valid. Simply don't write anything into *collation
-            goto LCloseCollator;
-        }
-
-        const char *bcpValue = uloc_toUnicodeLocaleType("collation", collatorCollation);
-        size_t cchBcpValue = strlen(bcpValue);
-        if (cchBcpValue != 0 && cchBcpValue < cchCollation)
-        {
-            errno_t err = memcpy_s(collation, cchCollation, bcpValue, cchBcpValue);
-            if (err == 0)
+            const char *bcpValue = uloc_toUnicodeLocaleType("collation", collatorCollation);
+            size_t cchBcpValue = strlen(bcpValue);
+            if (cchBcpValue != 0 && cchBcpValue < cchCollation)
             {
-                collation[cchBcpValue] = 0;
+                errno_t err = memcpy_s(collation, cchCollation, bcpValue, cchBcpValue);
+                if (err == 0)
+                {
+                    collation[cchBcpValue] = 0;
+                }
+                else
+                {
+                    AssertOrFailFastMsg(false, "Could not copy result of CollatorGetCollation to out param");
+                }
             }
             else
             {
-                AssertOrFailFastMsg(false, "Could not copy result of CollatorGetCollation to out param");
+                AssertOrFailFastMsg(false, "UCollator says it's using a collation value that has no equivalent unicode extension");
             }
-        }
-        else
-        {
-            AssertOrFailFastMsg(false, "UCollator says it's using a collation value that has no equivalent unicode extension");
+
+            ret = cchBcpValue;
         }
 
-        ret = cchBcpValue;
-
-LCloseCollator:
         ucol_close(collator);
         return ret;
     }
@@ -611,7 +607,7 @@ LCloseCollator:
         }
         else
         {
-            goto LCloseCollator;
+            AssertMsg(false, "sensitivity is not one of the CollatorSensitivity values");
         }
 
         if (ignorePunctuation)
