@@ -1719,6 +1719,7 @@ namespace Js
         PCWSTR strBuf = wsl->WindowsGetStringRawBuffer(*str, NULL);
         return Js::JavascriptString::NewCopySz(strBuf, scriptContext);
 #else
+        // TODO(jahorto): determine if its more safe or efficient to call(null) and recycler-allocate the correct number of bytes
         const int tzLen = 50;
         char16 tzID[tzLen];
         GetDefaultTimeZone(tzID, tzLen);

@@ -77,10 +77,12 @@ public:
 #define ICU_DEBUG_PRINT(fmt, msg)
 #endif
 
+#define ICU_FAILURE(e) (U_FAILURE(e))
+
 #define ICU_RETURN(e, expr, r)                                                \
     do                                                                        \
     {                                                                         \
-        if (U_FAILURE(e))                                                     \
+        if (ICU_FAILURE(e))                                                   \
         {                                                                     \
             ICU_DEBUG_PRINT(ICU_ERROR_FMT, u_errorName(e));                   \
             return r;                                                         \
@@ -95,7 +97,7 @@ public:
 #define ICU_ASSERT(e, expr)                                                   \
     do                                                                        \
     {                                                                         \
-        if (U_FAILURE(e))                                                     \
+        if (ICU_FAILURE(e))                                                   \
         {                                                                     \
             ICU_DEBUG_PRINT(ICU_ERROR_FMT, u_errorName(e));                   \
             AssertOrFailFastMsg(false, u_errorName(e));                       \
@@ -110,7 +112,7 @@ public:
 #define ICU_GOTO(e, expr, l)                                                  \
     do                                                                        \
     {                                                                         \
-        if (U_FAILURE(e))                                                     \
+        if (ICU_FAILURE(e))                                                   \
         {                                                                     \
             ICU_DEBUG_PRINT(ICU_ERROR_FMT, u_errorName(e));                   \
             goto l;                                                           \
@@ -513,11 +515,29 @@ namespace Intl
         );
     }
 
-    void GetUserDefaultTimeZone(_Out_ char16* tz, _In_ int tzLen)
+    // Gets the current system time zone as a Link or Zone name
+    // If tz == null, the number of characters required not including the null terminator is returned
+    // If tz != null, the result is copied into tz
+    int GetDefaultTimeZone(_Out_opt_ char16* tz, _In_ int tzLen)
     {
         UErrorCode status = U_ZERO_ERROR;
-        int written = ucal_getDefaultTimeZone(reinterpret_cast<UChar *>(tz), tzLen, &status);
-        ICU_ASSERT(status, written > 0 && written < tzLen);
+        UCalendar *cal = ucal_open(nullptr, -1, nullptr, UCAL_DEFAULT, &status);
+        ICU_ASSERT(status, cal != nullptr);
+
+        int required = -1;
+        if (tz == nullptr)
+        {
+            required = ucal_getTimeZoneID(cal, nullptr, -1, &status);
+            ICU_ASSERT(status, required > 0);
+        }
+        else
+        {
+            required = ucal_getTimeZoneID(cal, reinterpret_cast<UChar *>(tz), tzLen, &status);
+            ICU_ASSERT(status, required <= tzLen);
+        }
+
+        ucal_close(cal);
+        return required;
     }
 
     // Determines the BCP47 collation value that a given language tag will actually use
