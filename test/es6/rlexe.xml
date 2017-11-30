@@ -1542,9 +1542,4 @@
       <compile-flags>-off:deferparse -args summary -endargs -deferparse -forceundodefer</compile-flags>
     </default>
   </test>
-  <test>
-    <default>
-      <files>proxyconstructor.js</files>
-    </default>
-  </test>
 </regress-exe>

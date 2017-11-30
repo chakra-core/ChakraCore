@@ -625,6 +625,7 @@ namespace Js
             __out_bcount(length*elementSize) byte* contentBuffer,
             Js::ScriptContext* scriptContext);
 
+        // Returns a RecyclableObject* which is either a JavascriptFunction* or a JavascriptProxy* that targets a JavascriptFunction*
         static RecyclableObject* SpeciesConstructor(_In_ RecyclableObject* object, _In_ JavascriptFunction* defaultConstructor, _In_ ScriptContext* scriptContext);
         static Var GetSpecies(RecyclableObject* constructor, ScriptContext* scriptContext);
 
