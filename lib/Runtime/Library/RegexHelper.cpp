@@ -963,9 +963,11 @@ namespace Js
             args[numberOfCaptures + 2] = JavascriptNumber::ToVar(position, scriptContext);
             args[numberOfCaptures + 3] = input;
 
-            JavascriptString* replace = JavascriptConversion::ToString(
-                replaceFn->CallFunction(Arguments(CallInfo(argCount), args)),
-                scriptContext);
+            Js::Var replaceFnResult = scriptContext->GetThreadContext()->ExecuteImplicitCall(replaceFn, Js::ImplicitCall_Accessor, [=]()->Js::Var
+            {
+                return replaceFn->CallFunction(Arguments(CallInfo(argCount), args));
+            });
+            JavascriptString* replace = JavascriptConversion::ToString(replaceFnResult, scriptContext);
 
             resultBuilder.Append(replace);
         };
@@ -1574,10 +1576,12 @@ namespace Js
     {
         PCWSTR const varName = _u("RegExp.prototype[Symbol.split]");
 
+        Var defaultConstructor = scriptContext->GetLibrary()->GetRegExpConstructor();
         Var speciesConstructor = JavascriptOperators::SpeciesConstructor(
             thisObj,
-            scriptContext->GetLibrary()->GetRegExpConstructor(),
+            defaultConstructor,
             scriptContext);
+        AssertOrFailFast(JavascriptOperators::IsConstructor(speciesConstructor));
 
         JavascriptString* flags = JavascriptConversion::ToString(
             JavascriptOperators::GetProperty(thisObj, PropertyIds::flags, scriptContext),
@@ -1585,12 +1589,15 @@ namespace Js
         bool unicode = wcsstr(flags->GetString(), _u("u")) != nullptr;
         flags = AppendStickyToFlagsIfNeeded(flags, scriptContext);
 
-        Js::Var args[] = { speciesConstructor, thisObj, flags };
-        Js::CallInfo callInfo(Js::CallFlags_New, _countof(args));
-        Var regEx = JavascriptOperators::NewScObject(
-            speciesConstructor,
-            Js::Arguments(callInfo, args),
-            scriptContext);
+        Var regEx = JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(RecyclableObject::FromVar(speciesConstructor), defaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
+        {
+            Js::Var args[] = { speciesConstructor, thisObj, flags };
+            Js::CallInfo callInfo(Js::CallFlags_New, _countof(args));
+            return JavascriptOperators::NewScObject(
+                speciesConstructor,
+                Js::Arguments(callInfo, args),
+                scriptContext);
+        });
         RecyclableObject* splitter = RecyclableObject::UnsafeFromVar(regEx);
 
         JavascriptArray* arrayResult = scriptContext->GetLibrary()->CreateArray();
