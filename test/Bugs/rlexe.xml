@@ -319,6 +319,12 @@
   </test>
   <test>
     <default>
+      <files>cross_context_test.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>json_bugs.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
