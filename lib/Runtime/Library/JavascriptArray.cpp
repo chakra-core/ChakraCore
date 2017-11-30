@@ -6205,7 +6205,7 @@ Case0:
         if (isTypedArrayEntryPoint)
         {
             JS_REENTRANT(jsReentLock,
-                Var constructor = JavascriptOperators::SpeciesConstructor(typedArrayBase, TypedArrayBase::GetDefaultConstructor(args[0], scriptContext), scriptContext));
+                RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(typedArrayBase, TypedArrayBase::GetDefaultConstructor(args[0], scriptContext), scriptContext));
             isBuiltinArrayCtor = false;
 
             AssertAndFailFast(pArr == nullptr);
@@ -9405,7 +9405,7 @@ Case0:
         if (isTypedArrayEntryPoint)
         {
             JS_REENTRANT(jsReentLock,
-                Var constructor = JavascriptOperators::SpeciesConstructor(
+                RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(
                     typedArrayBase, TypedArrayBase::GetDefaultConstructor(args[0], scriptContext), scriptContext));
 
             isBuiltinArrayCtor = false;

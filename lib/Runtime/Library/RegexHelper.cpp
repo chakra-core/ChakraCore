@@ -1576,8 +1576,8 @@ namespace Js
     {
         PCWSTR const varName = _u("RegExp.prototype[Symbol.split]");
 
-        Var defaultConstructor = scriptContext->GetLibrary()->GetRegExpConstructor();
-        Var speciesConstructor = JavascriptOperators::SpeciesConstructor(
+        JavascriptFunction* defaultConstructor = scriptContext->GetLibrary()->GetRegExpConstructor();
+        RecyclableObject* speciesConstructor = JavascriptOperators::SpeciesConstructor(
             thisObj,
             defaultConstructor,
             scriptContext);
@@ -1589,7 +1589,7 @@ namespace Js
         bool unicode = wcsstr(flags->GetString(), _u("u")) != nullptr;
         flags = AppendStickyToFlagsIfNeeded(flags, scriptContext);
 
-        Var regEx = JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(RecyclableObject::FromVar(speciesConstructor), defaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
+        Var regEx = JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(speciesConstructor, defaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
         {
             Js::Var args[] = { speciesConstructor, thisObj, flags };
             Js::CallInfo callInfo(Js::CallFlags_New, _countof(args));

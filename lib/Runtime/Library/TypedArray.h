@@ -21,7 +21,7 @@ namespace Js
         DEFINE_VTABLE_CTOR_ABSTRACT(TypedArrayBase, ArrayBufferParent);
 
     public:
-        static Var GetDefaultConstructor(Var object, ScriptContext* scriptContext);
+        static JavascriptFunction* GetDefaultConstructor(Var object, ScriptContext* scriptContext);
 
         class EntryInfo
         {
