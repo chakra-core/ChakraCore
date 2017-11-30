@@ -1330,7 +1330,7 @@ CommonNumber:
             DynamicObject::IsAnyArrayTypeId(remoteTypeId));
     }
 
-    BOOL JavascriptOperators::IsArray(_In_ JavascriptProxy * instance)
+    bool JavascriptOperators::IsArray(_In_ JavascriptProxy * instance)
     {
         // If it is a proxy, follow to the end of the proxy chain before checking if it is an array again.
         JavascriptProxy * proxy = instance;
@@ -1345,7 +1345,7 @@ CommonNumber:
         }
     }
 
-    BOOL JavascriptOperators::IsArray(_In_ RecyclableObject* instance)
+    bool JavascriptOperators::IsArray(_In_ RecyclableObject* instance)
     {
         if (DynamicObject::IsAnyArray(instance))
         {
@@ -1361,34 +1361,44 @@ CommonNumber:
         return IsRemoteArray(instance);
     }
 
-    BOOL JavascriptOperators::IsArray(_In_ Var instanceVar)
+    bool JavascriptOperators::IsArray(_In_ Var instanceVar)
     {
-        if (!RecyclableObject::Is(instanceVar))
-        {
-            return FALSE;
-        }
-        return IsArray(RecyclableObject::FromVar(instanceVar));
+        RecyclableObject* instanceObj = TryFromVar<RecyclableObject>(instanceVar);
+        return instanceObj && IsArray(instanceObj);
     }
 
-    BOOL JavascriptOperators::IsConstructor(Var instanceVar)
+    bool JavascriptOperators::IsConstructor(_In_ JavascriptProxy * instance)
     {
-        if (!RecyclableObject::Is(instanceVar))
+        // If it is a proxy, follow to the end of the proxy chain before checking if it is a constructor again.
+        JavascriptProxy * proxy = instance;
+        while (true)
         {
-            return FALSE;
+            RecyclableObject* targetInstance = proxy->GetTarget();
+            proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(targetInstance);
+            if (proxy == nullptr)
+            {
+                JavascriptFunction* function = JavascriptOperators::TryFromVar<JavascriptFunction>(targetInstance);
+                return function && function->IsConstructor();
+            }
         }
+    }
 
-        JavascriptProxy* proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(instanceVar);
+    bool JavascriptOperators::IsConstructor(_In_ RecyclableObject* instanceObj)
+    {
+        JavascriptProxy* proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(instanceObj);
         if (proxy)
         {
-            return IsConstructor(proxy->GetTarget());
+            return IsConstructor(proxy);
         }
 
-        JavascriptFunction * function = JavascriptOperators::TryFromVar<JavascriptFunction>(instanceVar);
-        if (!function)
-        {
-            return FALSE;
-        }
-        return function->IsConstructor();
+        JavascriptFunction* function = JavascriptOperators::TryFromVar<JavascriptFunction>(instanceObj);
+        return function && function->IsConstructor();
+    }
+
+    bool JavascriptOperators::IsConstructor(_In_ Var instanceVar)
+    {
+        RecyclableObject* instanceObj = TryFromVar<RecyclableObject>(instanceVar);
+        return instanceObj && IsConstructor(instanceObj);
     }
 
     BOOL JavascriptOperators::IsConcatSpreadable(Var instanceVar)
@@ -9735,7 +9745,7 @@ CommonNumber:
     }
 
     // SpeciesConstructor abstract operation as described in ES6.0 Section 7.3.20
-    Var JavascriptOperators::SpeciesConstructor(RecyclableObject* object, Var defaultConstructor, ScriptContext* scriptContext)
+    RecyclableObject* JavascriptOperators::SpeciesConstructor(_In_ RecyclableObject* object, _In_ JavascriptFunction* defaultConstructor, _In_ ScriptContext* scriptContext)
     {
         //1.Assert: Type(O) is Object.
         Assert(JavascriptOperators::IsObject(object));
@@ -9769,9 +9779,10 @@ CommonNumber:
             constructor = species;
         }
         //9.If IsConstructor(S) is true, return S.
-        if (JavascriptOperators::IsConstructor(constructor))
+        RecyclableObject* constructorObj = JavascriptOperators::TryFromVar<RecyclableObject>(constructor);
+        if (constructorObj && JavascriptOperators::IsConstructor(constructorObj))
         {
-            return constructor;
+            return constructorObj;
         }
         //10.Throw a TypeError exception.
         JavascriptError::ThrowTypeError(scriptContext, JSERR_NotAConstructor, _u("constructor[Symbol.species]"));
