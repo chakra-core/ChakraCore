@@ -871,7 +871,11 @@ namespace Js
         if (JavascriptConversion::IsCallable(exec))
         {
             RecyclableObject* execFn = RecyclableObject::UnsafeFromVar(exec);
-            Var result = CALL_FUNCTION(scriptContext->GetThreadContext(), execFn, CallInfo(CallFlags_Value, 2), thisObj, string);
+            ThreadContext * threadContext = scriptContext->GetThreadContext();
+            Var result = threadContext->ExecuteImplicitCall(execFn, ImplicitCall_Accessor, [=]()->Js::Var
+            {
+                return CALL_FUNCTION(scriptContext->GetThreadContext(), execFn, CallInfo(CallFlags_Value, 2), thisObj, string);
+            });
 
             if (!JavascriptOperators::IsObjectOrNull(result))
             {
