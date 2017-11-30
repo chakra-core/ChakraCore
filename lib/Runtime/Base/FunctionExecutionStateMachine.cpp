@@ -630,6 +630,27 @@ namespace Js
         SetExecutionState(ExecutionState::FullJit);
     }
 
+    void FunctionExecutionStateMachine::ReprofileAndRejit()
+    {
+        Assert(GetExecutionMode() == ExecutionMode::FullJit);
+
+        CommitExecutedIterations();
+
+        // Skip these states
+        interpreterLimit = 0;
+        autoProfilingInterpreter0Limit = 0;
+        profilingInterpreter0Limit = 0;
+        autoProfilingInterpreter1Limit = 0;
+        simpleJitLimit = 0;
+
+        // Rerun profiled interpreter once to get updated profiling data
+        profilingInterpreter1Limit = 1;
+        fullJitThreshold = profilingInterpreter1Limit;
+
+        VerifyExecutionModeLimits();
+        SetExecutionState(ExecutionState::ProfilingInterpreter1);
+    }
+
     void FunctionExecutionStateMachine::SetIsSpeculativeJitCandidate()
     {
         // This function is a candidate for speculative JIT. Ensure that it is profiled immediately by transitioning out of the

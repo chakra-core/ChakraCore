@@ -715,6 +715,7 @@ public:
         void LogDataForFunctionBody(Js::FunctionBody *body, uint idx, bool isRejit);
 
         void LogRejit(Js::FunctionBody *body, RejitReason reason);
+        void LogReprofile(Js::FunctionBody *body, RejitReason reason);
         void LogBailout(Js::FunctionBody *body, uint kind);
 
         // Used to centrally collect stats for all function bodies.
@@ -725,6 +726,7 @@ public:
         BailoutStatsMap *bailoutReasonCountsCap;
         uint *rejitReasonCounts;
         uint *rejitReasonCountsCap;
+        uint *reprofileReasonCounts;
         void ClearBailoutReasonCountsMap();
         void ClearRejitReasonCountsArray();
 #endif

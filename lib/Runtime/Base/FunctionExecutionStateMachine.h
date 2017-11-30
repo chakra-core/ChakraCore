@@ -45,6 +45,7 @@ namespace Js
         bool TryTransitionToJitExecutionMode();
         void TransitionToSimpleJitExecutionMode();
         void TransitionToFullJitExecutionMode();
+        void ReprofileAndRejit();
         
         // Debug functions
         void PrintLimits() const;
