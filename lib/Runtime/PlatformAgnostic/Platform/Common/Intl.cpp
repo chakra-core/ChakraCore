@@ -515,31 +515,6 @@ namespace Intl
         );
     }
 
-    // Gets the current system time zone as a Link or Zone name
-    // If tz == null, the number of characters required not including the null terminator is returned
-    // If tz != null, the result is copied into tz
-    int GetDefaultTimeZone(_Out_opt_ char16* tz, _In_ int tzLen)
-    {
-        UErrorCode status = U_ZERO_ERROR;
-        UCalendar *cal = ucal_open(nullptr, -1, nullptr, UCAL_DEFAULT, &status);
-        ICU_ASSERT(status, cal != nullptr);
-
-        int required = -1;
-        if (tz == nullptr)
-        {
-            required = ucal_getTimeZoneID(cal, nullptr, -1, &status);
-            ICU_ASSERT(status, required > 0);
-        }
-        else
-        {
-            required = ucal_getTimeZoneID(cal, reinterpret_cast<UChar *>(tz), tzLen, &status);
-            ICU_ASSERT(status, required <= tzLen);
-        }
-
-        ucal_close(cal);
-        return required;
-    }
-
     // Determines the BCP47 collation value that a given language tag will actually use
     // returns the count of bytes written into collation (guaranteed to be less than cchCollation)
     size_t CollatorGetCollation(_In_z_ const char *langtag, _Out_ char *collation, _In_ size_t cchCollation)
@@ -684,6 +659,37 @@ namespace Intl
 LCloseCollator:
         ucol_close(collator);
         return ret;
+    }
+
+    // Gets the system time zone. If tz is non-null, it is written into tz
+    // Returns the number of characters written into tz (does not write a null terminator)
+    int GetDefaultTimeZone(_Out_opt_ char16* tz, _In_ int tzLen)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        UCalendar *cal = ucal_open(nullptr, -1, nullptr, UCAL_DEFAULT, &status);
+        ICU_ASSERT(status, cal != nullptr);
+
+        int required = ucal_getTimeZoneID(cal, reinterpret_cast<UChar *>(tz), tzLen, &status);
+        ICU_ASSERT(status, tz == nullptr ? required > 0 : required <= tzLen);
+
+        ucal_close(cal);
+        return required;
+    }
+
+    // Determines if a time zone is valid. If it is and tzOut is non-null, the canonicalized version is written into tzOut
+    // Returns the number of characters written into tzOut (does not write a null terminator), or 0 on invalid time zone
+    int ValidateAndCanonicalizeTimeZone(_In_ char16 *tzIn, _In_ int tzInLen, _Out_opt_ char16 *tzOut, _In_ tzOutLen)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        int required = ucal_getCanonicalTimeZoneID(tzIn, tzInLen, reinterpret_cast<UChar *>(tzOut), tzOutLen, nullptr, &status);
+        if (status = U_ILLEGAL_ARGUMENT_ERROR)
+        {
+            // illegal argument here means that tzIn is an invalid time zone
+            return 0;
+        }
+
+        ICU_ASSERT(status, tzOut == nullptr ? required > 0 : required <= tzOutLen);
+        return required;
     }
 } // namespace Intl
 } // namespace PlatformAgnostic

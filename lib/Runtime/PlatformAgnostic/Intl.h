@@ -84,35 +84,37 @@ namespace Intl
         // Note: Cleanup() is called by, e.g., AutoIcuJsObject
     };
 
+    // Generic spec operations
     bool IsWellFormedLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch);
     HRESULT NormalizeLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch,
         _Out_ char16 *normalized, _Out_ size_t *normalizedLength);
+    bool IsLocaleAvailable(_In_z_ const char *locale);
+    bool ResolveLocaleBestFit(_In_z_ const char16 *locale, _Out_ char16 *resolved);
+    size_t GetUserDefaultLocaleName(_Out_ char16* langtag, _In_ size_t cchLangtag);
 
+    // NumberFormat
     int32_t GetCurrencyFractionDigits(_In_z_ const char16 * currencyCode);
-
     template <typename Func>
     HRESULT CreateFormatter(Func function, _In_z_ const char16 *languageTag, _In_ const charcount_t cch, _Out_ IPlatformAgnosticResource **resource);
     HRESULT CreateNumberFormatter(_In_z_ const char16 *languageTag, _In_ const charcount_t cch, _Out_ IPlatformAgnosticResource **resource);
     HRESULT CreatePercentFormatter(_In_z_ const char16 *languageTag, _In_ const charcount_t cch, _Out_ IPlatformAgnosticResource **resource);
     HRESULT CreateCurrencyFormatter(_In_z_ const char16 *languageTag, _In_ const charcount_t cch,
         _In_z_ const char16 *currencyCode, _In_ const NumberFormatCurrencyDisplay currencyDisplay, _Out_ IPlatformAgnosticResource **resource);
-
     void SetNumberFormatSignificantDigits(IPlatformAgnosticResource *resource, const uint16 minSigDigits, const uint16 maxSigDigits);
     void SetNumberFormatIntFracDigits(IPlatformAgnosticResource *resource, const uint16 minFracDigits, const uint16 maxFracDigits, const uint16 minIntDigits);
     void SetNumberFormatGroupingUsed(_In_ IPlatformAgnosticResource *resource, _In_ const bool isGroupingUsed);
-
     template <typename T>
     const char16 *FormatNumber(IPlatformAgnosticResource *formatter, const T val, const NumberFormatStyle formatterToUse,
         const NumberFormatCurrencyDisplay currencyDisplay, const char16 *currencyCode);
 
-    bool IsLocaleAvailable(_In_z_ const char *locale);
-    bool ResolveLocaleBestFit(_In_z_ const char16 *locale, _Out_ char16 *resolved);
-    size_t GetUserDefaultLocaleName(_Out_ char16* langtag, _In_ size_t cchLangtag);
-    int GetDefaultTimeZone(_Out_opt_ char16* tz, _In_ int tzLen);
-
+    // Collator
     size_t CollatorGetCollation(_In_z_ const char *langtag, _Out_ char *collation, _In_ size_t cchCollation);
     int CollatorCompare(_In_z_ const char *langtag, _In_z_ const char16 *left, _In_ charcount_t cchLeft, _In_z_ const char16 *right, _In_ charcount_t cchRight,
         _In_ CollatorSensitivity sensitivity, _In_ bool ignorePunctuation, _In_ bool numeric, _In_ CollatorCaseFirst caseFirst, _Out_ HRESULT *hr);
+
+    // DateTimeFormat
+    int GetDefaultTimeZone(_Out_opt_ char16* tz, _In_ int tzLen);
+    int ValidateAndCanonicalizeTimeZone(_In_ char16 *tzIn, _In_ int tzInLen, _Out_opt_ char16 *tzOut, _In_ tzOutLen);
 #endif // INTL_ICU
 } // namespace Intl
 } // namespace PlatformAgnostic

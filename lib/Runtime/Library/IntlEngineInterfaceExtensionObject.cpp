@@ -1667,15 +1667,15 @@ namespace Js
         // Return false if timeZoneId is not string
         if (args.Info.Count < 2 || !JavascriptString::Is(args.Values[1]))
         {
-            AssertMsg(false, "Need valid timeZoneId");
+            AssertMsg(false, "ValidateAndCanonicalizeTimeZone passed bad arguments");
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-#ifdef INTL_WINGLOB
-        JavascriptString *argString = JavascriptString::FromVar(args.Values[1]);
+        JavascriptString *tz = JavascriptString::FromVar(args.Values[1]);
 
+#ifdef INTL_WINGLOB
         AutoHSTRING canonicalizedTimeZone;
-        boolean isValidTimeZone = GetWindowsGlobalizationAdapter(scriptContext)->ValidateAndCanonicalizeTimeZone(scriptContext, argString->GetSz(), &canonicalizedTimeZone);
+        boolean isValidTimeZone = GetWindowsGlobalizationAdapter(scriptContext)->ValidateAndCanonicalizeTimeZone(scriptContext, tz->GetSz(), &canonicalizedTimeZone);
         if (isValidTimeZone)
         {
             DelayLoadWindowsGlobalization* wsl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
@@ -1687,11 +1687,17 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 #else
-        // TODO (doilij): implement INTL_ICU version
-#ifdef INTL_ICU_DEBUG
-        Output::Print(_u("EntryIntl_ValidateAndCanonicalizeTimeZone > returning null, fallback to JS\n"));
-#endif
-        return scriptContext->GetLibrary()->GetNull();
+        int required = ValidateAndCanonicalizeTimeZone(tz->GetSz(), tz->GetLength(), nullptr, -1);
+        if (required > 0)
+        {
+            char16 *buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, required);
+            ValidateAndCanonicalizeTimeZone(tz->GetSz(), tz->GetLength(), buffer, required);
+            return JavascriptString::NewWithBuffer(buffer, required, scriptContext);
+        }
+        else
+        {
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
 #endif
     }
 
@@ -1722,8 +1728,8 @@ namespace Js
         // TODO(jahorto): determine if its more safe or efficient to call(null) and recycler-allocate the correct number of bytes
         const int tzLen = 50;
         char16 tzID[tzLen];
-        GetDefaultTimeZone(tzID, tzLen);
-        return JavascriptString::NewCopySz(tzID, scriptContext);
+        int actual = GetDefaultTimeZone(tzID, tzLen);
+        return JavascriptString::NewCopyBuffer(tzID, actual, scriptContext);
 #endif
     }
 
