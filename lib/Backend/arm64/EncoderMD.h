@@ -15,6 +15,7 @@ enum RelocType {
     RelocTypeBranch19,
     RelocTypeBranch26,
     RelocTypeLabelAdr,
+    RelocTypeLabelImmed,
     RelocTypeLabel
 };
 
