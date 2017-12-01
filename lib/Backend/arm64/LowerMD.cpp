@@ -7746,6 +7746,8 @@ LowererMD::FinalLower()
     NoRecoverMemoryArenaAllocator tempAlloc(_u("BE-ARMFinalLower"), m_func->m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
     EncodeReloc *pRelocList = nullptr;
 
+    size_t totalJmpTableSizeInBytes = 0;
+
     uintptr_t instrOffset = 0;
     FOREACH_INSTR_BACKWARD_EDITING_IN_RANGE(instr, instrPrev, this->m_func->m_tailInstr, this->m_func->m_headInstr)
     {
@@ -7774,7 +7776,23 @@ LowererMD::FinalLower()
             {
                 IR::BranchInstr *branchInstr = instr->AsBranchInstr();
 
-                if (!LowererMD::IsUnconditionalBranch(branchInstr)) //Ignore BX register based branches & B
+                if (branchInstr->IsMultiBranch())
+                {
+                    Assert(instr->GetSrc1() && instr->GetSrc1()->IsRegOpnd());
+                    IR::MultiBranchInstr * multiBranchInstr = instr->AsBranchInstr()->AsMultiBrInstr();
+
+                    if (multiBranchInstr->m_isSwitchBr &&
+                        (multiBranchInstr->m_kind == IR::MultiBranchInstr::IntJumpTable || multiBranchInstr->m_kind == IR::MultiBranchInstr::SingleCharStrJumpTable))
+                    {
+                        BranchJumpTableWrapper * branchJumpTableWrapper = multiBranchInstr->GetBranchJumpTable();
+                        totalJmpTableSizeInBytes += (branchJumpTableWrapper->tableSize * sizeof(void*));
+
+                        // instrOffset is relative to the end of the function. Jump tables come after the function and so would result in negative offsets. label offsets
+                        // are unsigned so instead give jump table lables offsets relative to the end of the jump table section.
+                        branchJumpTableWrapper->labelInstr->SetOffset(totalJmpTableSizeInBytes);
+                    }
+                }
+                else if (!LowererMD::IsUnconditionalBranch(branchInstr)) //Ignore other direct branches
                 {
                     uintptr_t targetOffset = branchInstr->GetTarget()->GetOffset();
 
@@ -7819,8 +7837,8 @@ LowererMD::FinalLower()
 
             if (instr->m_opcode == Js::OpCode::ADR)
             {
-                uintptr_t targetOffset = instr->GetSrc1()->AsLabelOpnd()->GetLabel()->GetOffset();
-                if (targetOffset != 0)
+                IR::LabelInstr* label = instr->GetSrc1()->AsLabelOpnd()->GetLabel();
+                if (label->GetOffset() != 0 && !label->m_isDataLabel)
                 {
                     // this is forward reference
                     if (LegalizeMD::LegalizeAdrOffset(instr, instrOffset))
@@ -7854,9 +7872,29 @@ LowererMD::FinalLower()
         case RelocTypeLabelAdr:
         {
             IR::LabelInstr* label = reloc->m_relocInstr->GetSrc1()->AsLabelOpnd()->GetLabel();
-            if (label->GetOffset() == 0)
+            if (label->m_isDataLabel)
             {
-                Assert(label->m_isDataLabel);
+                uintptr_t dataOffset;
+                if (label == m_func->GetFuncStartLabel())
+                {
+                    dataOffset = instrOffset - relocAddress;
+                }
+                else if (label == m_func->GetFuncEndLabel())
+                {
+                    dataOffset = relocAddress;
+                }
+                else
+                {
+                    Assert(label->GetOffset() != 0);
+
+                    // jump table label offsets are relative to the end of the jump table area.
+                    dataOffset = relocAddress + totalJmpTableSizeInBytes - label->GetOffset();
+
+                    // PC is a union with offset. Encoder expects this to be nullptr for jump table labels.
+                    label->SetPC(nullptr);
+                }
+
+                LegalizeMD::LegalizeDataAdr(reloc->m_relocInstr, dataOffset);
                 break;
             }
 
@@ -7868,8 +7906,6 @@ LowererMD::FinalLower()
             Assert(false);
         }
     }
-
-    return;
 }
 
 // Returns true, if and only if the assign may expand into multiple instrs.

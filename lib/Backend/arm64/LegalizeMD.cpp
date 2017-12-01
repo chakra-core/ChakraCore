@@ -985,6 +985,37 @@ bool LegalizeMD::LegalizeAdrOffset(IR::Instr *instr, uintptr_t instrOffset)
     return true;
 }
 
+bool LegalizeMD::LegalizeDataAdr(IR::Instr *instr, uintptr_t dataOffset)
+{
+    Assert(instr->m_opcode == Js::OpCode::ADR);
+
+    IR::LabelOpnd* labelOpnd = instr->GetSrc1()->AsLabelOpnd();
+    IR::LabelInstr* label = labelOpnd->GetLabel();
+
+    Assert(label->m_isDataLabel);
+
+
+    // dataOffset provides an upper bound on the distance between instr and the label.
+    if (IS_CONST_INT19(dataOffset >> 2))
+    {
+        return false;
+    }
+
+    // The distance is too large to encode as an ADR isntruction so it must be handled as a 3 instruction load immediate. 
+    // The label address won't be known until after encoding. Assign the label opnd as src1 to let the encoder know to handle them as relocs.
+
+    IR::Instr* bits0_15 = IR::Instr::New(Js::OpCode::MOVZ, instr->GetDst(), labelOpnd, IR::IntConstOpnd::New(0, IRType::TyUint8, instr->m_func, true), instr->m_func);
+    instr->InsertBefore(bits0_15);
+
+    IR::Instr* bits16_31 = IR::Instr::New(Js::OpCode::MOVK, instr->GetDst(), labelOpnd, IR::IntConstOpnd::New(16, IRType::TyUint8, instr->m_func, true), instr->m_func);
+    instr->InsertBefore(bits16_31);
+
+    instr->SetSrc2(IR::IntConstOpnd::New(32, IRType::TyUint8, instr->m_func, true));
+    instr->m_opcode = Js::OpCode::MOVK;
+
+    return true;
+}
+
 #ifdef DBG
 
 void LegalizeMD::IllegalInstr(IR::Instr * instr, const char16 * msg, ...)
