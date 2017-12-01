@@ -4972,7 +4972,11 @@ main(int argc, char *argv[])
       sprintf_s(fullCfg, "%s\\%s", pDir->fullPath, CFGfile);
       status = ProcessConfig(&TestList, fullCfg, Mode);
 
-      if (status != PCS_ERROR)
+      if (status == PCS_ERROR)
+      {
+          exit(1);
+      } 
+      else
       {
 
 #ifndef NODEBUG
