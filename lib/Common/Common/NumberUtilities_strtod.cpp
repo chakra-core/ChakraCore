@@ -1263,7 +1263,7 @@ template double Js::NumberUtilities::StrToDbl<utf8char_t>(const utf8char_t * psz
 Uses big integer arithmetic to get the sequence of digits.
 ***************************************************************************/
 _Success_(return)
-static BOOL FDblToRgbPrecise(double dbl, __out_ecount(kcbMaxRgb) byte *prgb, int *pwExp10, byte **ppbLim, int normalizeHBound = 1)
+static BOOL FDblToRgbPrecise(double dbl, __out_ecount(kcbMaxRgb) byte *prgb, int *pwExp10, byte **ppbLim, int nDigits = -1)
 {
     byte bT;
     BOOL fPow2;
@@ -1518,7 +1518,8 @@ static BOOL FDblToRgbPrecise(double dbl, __out_ecount(kcbMaxRgb) byte *prgb, int
                 Assert(ib < kcbMaxRgb);
                 // Do not always push to higherBound
                 // See Js::NumberUtilities::FDblToStr for the exception
-                prgb[ib++] = bT + (byte)normalizeHBound;
+                // i.e. we shouldn't push digits beyond interest to higherBound
+                prgb[ib++] = bT + (byte)(nDigits == -1 || ib < nDigits ? 1 : 0);
                 break;
             }
 LRoundUp9:
@@ -2314,7 +2315,7 @@ int Js::NumberUtilities::FDblToStr(double dbl, Js::NumberUtilities::FormatType f
 
         // in case we restrict the number of digits, do not push for a higher bound
         if (!FDblToRgbFast(dbl, rgb, &wExp10, &pbLim, nDigits) &&
-            !FDblToRgbPrecise(dbl, rgb, &wExp10, &pbLim, nDigits != -1 ? 0 : 1))
+            !FDblToRgbPrecise(dbl, rgb, &wExp10, &pbLim, nDigits))
         {
             AssertMsg(FALSE, "Failure in FDblToRgbPrecise");
             return FALSE;
