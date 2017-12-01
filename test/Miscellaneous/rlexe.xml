@@ -21,17 +21,6 @@
   </test>
   <test>
     <default>
-      <files>oom.js</files>
-      <baseline>oom.baseline</baseline>
-      <!-- TODO fix and re-enable (Microsoft/ChakraCore#3119) -->
-      <!-- Investigate: adding -bgjit makes this test pass -->
-      <!-- <compile-flags>-forcefragmentaddressspace:8000000 -bgjit</compile-flags> -->
-      <compile-flags>-forcefragmentaddressspace:8000000</compile-flags>
-      <tags>exclude_amd64,fail</tags>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>SetTimeout.js</files>
       <baseline>SetTimeout.baseline</baseline>
     </default>
