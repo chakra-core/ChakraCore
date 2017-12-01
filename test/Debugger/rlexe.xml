@@ -2,6 +2,12 @@
 <regress-exe>
   <test>
     <default>
+      <compile-flags>-dbgbaseline:empty.baseline</compile-flags>
+      <files>failfast.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <compile-flags>-dbgbaseline:JsDiagBreakpoints.js.dbg.baseline</compile-flags>
       <files>JsDiagBreakpoints.js</files>
     </default>
