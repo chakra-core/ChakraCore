@@ -172,10 +172,8 @@ namespace Js
             PropertyId propertyId;
             for (uint32 i = 0; i < len; i++)
             {
-                if (!JavascriptOperators::GetItem(trapResultArray, i, &element, scriptContext))
-                    continue;
-
-                if (!(JavascriptString::Is(element) || JavascriptSymbol::Is(element)))
+                if (!JavascriptOperators::GetItem(trapResultArray, i, &element, scriptContext) || // missing
+                    !(JavascriptString::Is(element) || JavascriptSymbol::Is(element)))  // neither String nor Symbol
                 {
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_InconsistentTrapResult, _u("ownKeys"));
                 }
