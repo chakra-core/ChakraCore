@@ -150,15 +150,10 @@ if(ICU_INCLUDE_PATH)
       if (NOT ICUDATA)
           set(ICUDATA "")
       endif()
-      find_library(ICUTOOLS icutools PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-      if (NOT ICUTOOLS)
-          set(ICUTOOLS "")
-      endif()
       set(ICULIB
         ${ICUUC}
         ${ICU18}
         ${ICUDATA}
-        ${ICUTOOLS}
         )
     endif()
 endif()
