@@ -12946,7 +12946,9 @@ GlobOpt::ProcessValueKills(IR::Instr *const instr)
         Assert(kills.KillsTypedArrayHeadSegmentLengths());
 
         // - Calls need to kill the value types of values in the following list. For instance, calls can transform a JS array
-        //   into an ES5 array, so any definitely-array value types need to be killed. Update the value types.
+        //   into an ES5 array, so any definitely-array value types need to be killed. Also, VirtualTypeArrays do not have
+        //   bounds checks; this can be problematic if the array is detached, so check to ensure that it is a virtual array.
+        //   Update the value types to likley to ensure a bailout that asserts Array type is generated.
         // - Calls also need to kill typed array head segment lengths. A typed array's array buffer may be transferred to a web
         //   worker, in which case the typed array's length is set to zero.
         for(auto it = valuesToKillOnCalls->GetIterator(); it.IsValid(); it.MoveNext())
@@ -12956,7 +12958,7 @@ GlobOpt::ProcessValueKills(IR::Instr *const instr)
             Assert(
                 valueInfo->IsArrayOrObjectWithArray() ||
                 valueInfo->IsOptimizedTypedArray() && valueInfo->AsArrayValueInfo()->HeadSegmentLengthSym());
-            if(valueInfo->IsArrayOrObjectWithArray())
+            if (valueInfo->IsArrayOrObjectWithArray() || valueInfo->IsOptimizedVirtualTypedArray())
             {
                 ChangeValueType(nullptr, value, valueInfo->Type().ToLikely(), false);
                 continue;
