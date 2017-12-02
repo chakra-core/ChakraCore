@@ -7072,6 +7072,18 @@ GlobOpt::OptConstFoldUnary(
             this->ToFloat64Dst(instr, dst->AsRegOpnd(), this->currentBlock);
         }
     }
+
+    // If this is an induction variable, then treat it the way the prepass would have if it had seen
+    // the assignment and the resulting change to the value number, and mark it as indeterminate.
+    for (Loop * loop = this->currentBlock->loop; loop; loop = loop->parent)
+    {
+        InductionVariable *iv = nullptr;
+        if (loop->inductionVariables && loop->inductionVariables->TryGetReference(dstSym->m_id, &iv))
+        {
+            iv->SetChangeIsIndeterminate();
+        }
+    }
+
     return true;
 }
 
@@ -12389,6 +12401,17 @@ GlobOpt::OptConstFoldBinary(
     {
         instr->m_opcode = Js::OpCode::Ld_I4;
         this->ToInt32Dst(instr, dst->AsRegOpnd(), this->currentBlock);
+    }
+
+    // If this is an induction variable, then treat it the way the prepass would have if it had seen
+    // the assignment and the resulting change to the value number, and mark it as indeterminate.
+    for (Loop * loop = this->currentBlock->loop; loop; loop = loop->parent)
+    {
+        InductionVariable *iv = nullptr;
+        if (loop->inductionVariables && loop->inductionVariables->TryGetReference(dstSym->m_id, &iv))
+        {
+            iv->SetChangeIsIndeterminate();
+        }
     }
 
     return true;
