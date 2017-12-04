@@ -2877,10 +2877,6 @@ Instr::HasSymUseSrc(StackSym *sym, IR::Opnd* src)
     else if (src->IsIndirOpnd())
     {
         IR::IndirOpnd *indirOpnd = src->AsIndirOpnd();
-        if (indirOpnd->GetStackSym() == sym)
-        {
-            return true;
-        }
         RegOpnd * baseOpnd = indirOpnd->GetBaseOpnd();
         if (baseOpnd != nullptr && baseOpnd->m_sym == sym)
         {
@@ -2894,14 +2890,11 @@ Instr::HasSymUseSrc(StackSym *sym, IR::Opnd* src)
     else if (src->IsListOpnd())
     {
         IR::ListOpnd* list = src->AsListOpnd();
-        if (list->GetStackSym() == sym)
+        for (int i = 0; i < list->Count(); ++i)
         {
-            for (int i = 0; i < list->Count(); ++i)
+            if (HasSymUseSrc(sym, list->Item(i)))
             {
-                if (HasSymUseSrc(sym, list->Item(i)))
-                {
-                    return true;
-                }
+                return true;
             }
         }
     }
@@ -2915,10 +2908,6 @@ Instr::HasSymUseSrc(StackSym *sym, IR::Opnd* src)
         if (symOpnd->IsPropertySymOpnd())
         {
             PropertySymOpnd* propertySymOpnd = symOpnd->AsPropertySymOpnd();
-            if (propertySymOpnd->GetPropertySym()->m_stackSym == sym)
-            {
-                return true;
-            }
             if (propertySymOpnd->GetObjectSym() == sym)
             {
                 return true;
@@ -2963,13 +2952,25 @@ Instr::HasSymUseDst(StackSym *sym, IR::Opnd* dst)
     else if (dst->IsSymOpnd() && dst->AsSymOpnd()->IsPropertySymOpnd())
     {
         PropertySymOpnd* propertySymOpnd = dst->AsSymOpnd()->AsPropertySymOpnd();
-        if (propertySymOpnd->GetPropertySym()->m_stackSym == sym)
-        {
-            return true;
-        }
         if (propertySymOpnd->GetObjectSym() == sym)
         {
             return true;
+        }
+    }
+    else if (dst->IsSymOpnd())
+    {
+        SymOpnd* symOpnd = dst->AsSymOpnd();
+        if (symOpnd->GetSym() == sym)
+        {
+            return true;
+        }
+        if (symOpnd->IsPropertySymOpnd())
+        {
+            PropertySymOpnd* propertySymOpnd = symOpnd->AsPropertySymOpnd();
+            if (propertySymOpnd->GetObjectSym() == sym)
+            {
+                return true;
+            }
         }
     }
     return false;
@@ -2986,7 +2987,7 @@ Instr::HasSymUse(StackSym *sym)
     {
         return true;
     }
-    if (HasSymUseSrc(sym, this->GetDst()))
+    if (HasSymUseDst(sym, this->GetDst()))
     {
         return true;
     }
