@@ -9152,44 +9152,63 @@ Case0:
             uint32 fromIndex = static_cast<uint32>(fromVal);
             uint32 toIndex = static_cast<uint32>(toVal);
 
-            while (count > 0)
+            if (typedArrayBase && length <= typedArrayBase->GetLength())
             {
-                JS_REENTRANT(jsReentLock, BOOL hasItem = obj->HasItem(fromIndex));
-                if (hasItem)
+                // Typed array can't suddenly transform into a different type like JavascriptArray can,
+                // and can't contain holes, so as long as `length` is no more than [[ArrayLength]], we can
+                // ignore [[HasProperty]] and DeletePropertyOrThrow steps.
+                while (count > 0)
                 {
-                    if (typedArrayBase)
-                    {
-                        Var val = typedArrayBase->DirectGetItem(fromIndex);
+                    Var val = typedArrayBase->DirectGetItem(fromIndex);
 
-                        JS_REENTRANT(jsReentLock, typedArrayBase->DirectSetItem(toIndex, val));
-                    }
-                    else if (pArr)
-                    {
-                        JS_REENTRANT(jsReentLock, Var val = pArr->DirectGetItem(fromIndex));
-                        pArr->SetItem(toIndex, val, Js::PropertyOperation_ThrowIfNotExtensible);
+                    JS_REENTRANT(jsReentLock, typedArrayBase->DirectSetItem(toIndex, val));
 
-                        if (!JavascriptArray::Is(obj))
+                    fromIndex += direction;
+                    toIndex += direction;
+                    count--;
+                }
+            }
+            else
+            {
+                while (count > 0)
+                {
+                    JS_REENTRANT(jsReentLock, BOOL hasItem = JavascriptOperators::HasItem(obj, fromIndex));
+                    if (hasItem)
+                    {
+                        if (typedArrayBase)
                         {
-                            AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
-                            pArr = nullptr;
+                            Var val = typedArrayBase->DirectGetItem(fromIndex);
+
+                            JS_REENTRANT(jsReentLock, typedArrayBase->DirectSetItem(toIndex, val));
+                        }
+                        else if (pArr)
+                        {
+                            JS_REENTRANT(jsReentLock, Var val = pArr->DirectGetItem(fromIndex));
+                            pArr->SetItem(toIndex, val, Js::PropertyOperation_ThrowIfNotExtensible);
+
+                            if (!JavascriptArray::Is(obj))
+                            {
+                                AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+                                pArr = nullptr;
+                            }
+                        }
+                        else
+                        {
+                            Var val = nullptr;
+                            JS_REENTRANT(jsReentLock,
+                                val = JavascriptOperators::OP_GetElementI_UInt32(obj, fromIndex, scriptContext),
+                                JavascriptOperators::OP_SetElementI_UInt32(obj, toIndex, val, scriptContext, PropertyOperation_ThrowIfNotExtensible));
                         }
                     }
                     else
                     {
-                        Var val = nullptr;
-                        JS_REENTRANT(jsReentLock,
-                            val = JavascriptOperators::OP_GetElementI_UInt32(obj, fromIndex, scriptContext),
-                            JavascriptOperators::OP_SetElementI_UInt32(obj, toIndex, val, scriptContext, PropertyOperation_ThrowIfNotExtensible));
+                        JS_REENTRANT(jsReentLock, obj->DeleteItem(toIndex, PropertyOperation_ThrowOnDeleteIfNotConfig));
                     }
-                }
-                else
-                {
-                    JS_REENTRANT(jsReentLock, obj->DeleteItem(toIndex, PropertyOperation_ThrowOnDeleteIfNotConfig));
-                }
 
-                fromIndex += direction;
-                toIndex += direction;
-                count--;
+                    fromIndex += direction;
+                    toIndex += direction;
+                    count--;
+                }
             }
         }
 
