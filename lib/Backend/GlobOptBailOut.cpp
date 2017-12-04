@@ -952,7 +952,6 @@ GlobOpt::FillBailOutInfo(BasicBlock *block, BailOutInfo * bailOutInfo)
         bailOutInfo->totalOutParamCount = totalOutParamCount;
         bailOutInfo->argOutSyms = JitAnewArrayZ(this->func->m_alloc, StackSym *, totalOutParamCount);
 
-        uint argRestoreAdjustCount = 0;
         FOREACH_SLISTBASE_ENTRY(IR::Opnd *, opnd, block->globOptData.callSequence)
         {
             if(opnd->GetStackSym()->HasArgSlotNum())
@@ -999,25 +998,6 @@ GlobOpt::FillBailOutInfo(BasicBlock *block, BailOutInfo * bailOutInfo)
 
                 bailOutInfo->startCallFunc[startCallNumber] = sym->m_instrDef->m_func;
 #ifdef _M_IX86
-                if (this->currentRegion && (this->currentRegion->GetType() == RegionTypeTry || this->currentRegion->GetType() == RegionTypeFinally))
-                {
-                    // For a bailout in argument evaluation from an EH region, the esp is offset by the TryCatch helper's frame. So, the argouts are not actually pushed at the
-                    // offsets stored in the bailout record, which are relative to ebp. Need to restore the argouts from the actual value of esp before calling the Bailout helper.
-                    // For nested calls, argouts for the outer call need to be restored from an offset of stack-adjustment-done-by-the-inner-call from esp.
-                    if (startCallNumber + 1 == bailOutInfo->startCallCount)
-                    {
-                        argRestoreAdjustCount = 0;
-                    }
-                    else
-                    {
-                        argRestoreAdjustCount = bailOutInfo->startCallInfo[startCallNumber + 1].argRestoreAdjustCount + bailOutInfo->startCallInfo[startCallNumber + 1].argCount;
-                        if ((Math::Align<int32>(bailOutInfo->startCallInfo[startCallNumber + 1].argCount * MachPtr, MachStackAlignment) - (bailOutInfo->startCallInfo[startCallNumber + 1].argCount * MachPtr)) != 0)
-                        {
-                            argRestoreAdjustCount++;
-                        }
-                    }
-                }
-
                 if (sym->m_isInlinedArgSlot)
                 {
                     bailOutInfo->inlinedStartCall->Set(startCallNumber);
@@ -1027,10 +1007,9 @@ GlobOpt::FillBailOutInfo(BasicBlock *block, BailOutInfo * bailOutInfo)
                 Assert(totalOutParamCount >= argOutCount);
                 Assert(argOutCount >= currentArgOutCount);
 
-                bailOutInfo->RecordStartCallInfo(startCallNumber, argRestoreAdjustCount, sym->m_instrDef);
+                bailOutInfo->RecordStartCallInfo(startCallNumber, sym->m_instrDef);
                 totalOutParamCount -= argOutCount;
                 currentArgOutCount = 0;
-
             }
         }
         NEXT_SLISTBASE_ENTRY;

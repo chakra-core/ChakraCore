@@ -83,7 +83,7 @@ BailOutInfo::NeedsStartCallAdjust(uint i, const IR::Instr * bailOutInstr) const
 }
 
 void
-BailOutInfo::RecordStartCallInfo(uint i, uint argRestoreAdjustCount, IR::Instr *instr)
+BailOutInfo::RecordStartCallInfo(uint i, IR::Instr *instr)
 {
     Assert(i < this->startCallCount);
     Assert(this->startCallInfo);
@@ -92,7 +92,8 @@ BailOutInfo::RecordStartCallInfo(uint i, uint argRestoreAdjustCount, IR::Instr *
 
     this->startCallInfo[i].instr = instr;
     this->startCallInfo[i].argCount = instr->GetArgOutCount(/*getInterpreterArgOutCount*/ true);
-    this->startCallInfo[i].argRestoreAdjustCount = argRestoreAdjustCount;
+    this->startCallInfo[i].argRestoreAdjustCount = 0;
+    this->startCallInfo[i].isOrphanedCall = false;
 }
 
 void
@@ -124,7 +125,7 @@ BailOutInfo::GetStartCallOutParamCount(uint i) const
 }
 
 void
-BailOutInfo::RecordStartCallInfo(uint i, uint argRestoreAdjust, IR::Instr *instr)
+BailOutInfo::RecordStartCallInfo(uint i, IR::Instr *instr)
 {
     Assert(i < this->startCallCount);
     Assert(this->startCallInfo);
@@ -1028,6 +1029,7 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
     bool fromLoopBody, Js::Var * registerSaves, Js::InterpreterStackFrame * newInstance, Js::Var* pArgumentsObject, void * argoutRestoreAddress) const
 {
     bool isLocal = offsets == nullptr;
+
     if (isLocal == true)
     {
         globalBailOutRecordTable->IterateGlobalBailOutRecordTableRows(m_bailOutRecordId, [=](GlobalBailOutRecordDataRow *row) {
@@ -1071,7 +1073,15 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
             this->IsOffsetNativeIntOrFloat(i, argOutSlotStart, &isFloat64, &isInt32,
                                            &isSimd128F4, &isSimd128I4, &isSimd128I8, &isSimd128I16,
                                            &isSimd128U4, &isSimd128U8, &isSimd128U16, &isSimd128B4, &isSimd128B8, &isSimd128B16);
-
+#ifdef _M_IX86
+            if (this->argOutOffsetInfo->isOrphanedArgSlot->Test(argOutSlotStart + i))
+            {
+                RestoreValue(bailOutKind, layout, values, scriptContext, fromLoopBody, registerSaves, newInstance, pArgumentsObject,
+                    nullptr, i, offset, /* isLocal */ true, isFloat64, isInt32, isSimd128F4, isSimd128I4, isSimd128I8,
+                    isSimd128I16, isSimd128U4, isSimd128U8, isSimd128U16, isSimd128B4, isSimd128B8, isSimd128B16);
+                continue;
+            }
+#endif
             RestoreValue(bailOutKind, layout, values, scriptContext, fromLoopBody, registerSaves, newInstance, pArgumentsObject,
                          argoutRestoreAddress, i, offset, false, isFloat64, isInt32, isSimd128F4, isSimd128I4, isSimd128I8,
                          isSimd128I16, isSimd128U4, isSimd128U8, isSimd128U16, isSimd128B4, isSimd128B8, isSimd128B16);
