@@ -1521,4 +1521,10 @@
     <files>function-expr-capture.js</files>
   </default>
 </test>
+<test>
+  <default>
+    <files>function-expr-capture2.js</files>
+    <compile-flags>-force:deferparse</compile-flags>
+  </default>
+</test>
 </regress-exe>
