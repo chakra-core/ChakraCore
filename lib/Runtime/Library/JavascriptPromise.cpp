@@ -1133,14 +1133,7 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
         }
-        CALL_FUNCTION(scriptContext->GetThreadContext(), RecyclableObject::FromVar(promiseThen), CallInfo(CallFlags_Value, 2), promise, successFunction);
-
-        Var promiseCatch = JavascriptOperators::GetProperty(promise, PropertyIds::catch_, scriptContext);
-        if (!JavascriptConversion::IsCallable(promiseCatch))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
-        }
-        CALL_FUNCTION(scriptContext->GetThreadContext(), RecyclableObject::FromVar(promiseCatch), CallInfo(CallFlags_Value, 2), promise, failFunction);
+        CALL_FUNCTION(scriptContext->GetThreadContext(), RecyclableObject::FromVar(promiseThen), CallInfo(CallFlags_Value, 3), promise, successFunction, failFunction);
     }
 
 #if ENABLE_TTD
