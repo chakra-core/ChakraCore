@@ -187,6 +187,7 @@
     <ClInclude Include="JsBuiltIn\JsBuiltIn.js.nojit.bc.64b.h" />
     <ClInclude Include="ExternalLibraryBase.h" />
     <ClInclude Include="IntlEngineInterfaceExtensionObject.h" />
+    <ClInclude Include="IntlExtensionObjectBuiltIns.h" />
     <ClInclude Include="JavascriptExceptionMetadata.h" />
     <ClInclude Include="JavascriptListIterator.h" />
     <ClInclude Include="JavascriptSimdObject.h" />
