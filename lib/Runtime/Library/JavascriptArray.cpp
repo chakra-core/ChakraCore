@@ -27,7 +27,7 @@ namespace Js
         { 5, 0, 0 },    // allocate space for 5 elements for array of length 4,5
         { 8, 0, 0 },    // allocate space for 8 elements for array of length 6,7,8
     };
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
     const Var JavascriptArray::MissingItem = (Var)0x8000000280000002;
     uint JavascriptNativeIntArray::allocationBuckets[][AllocationBucketsInfoSize] =
     {
@@ -6883,7 +6883,7 @@ Case0:
             // -    FloatArray for AMD64
             // We convert the entire array back and forth once here O(n), rather than doing the costly conversion down the call stack which is O(nlogn)
 
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
             if(compFn && JavascriptNativeFloatArray::Is(arr))
             {
                 arr = JavascriptNativeFloatArray::ConvertToVarArray((JavascriptNativeFloatArray*)arr);

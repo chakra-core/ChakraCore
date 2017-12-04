@@ -55,7 +55,7 @@ namespace Memory
 
 #endif
 
-#ifdef _M_X64_OR_ARM64
+#ifdef TARGET_64
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
 
 #define X64_WB_DIAG 1
@@ -169,7 +169,7 @@ public:
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     static bool IsCardTableCommited(_In_ uintptr_t index)
     {
-#ifdef _M_X64_OR_ARM64
+#ifdef TARGET_64
         return x64CardTableManager.IsCardTableCommited(index) != FALSE;
 #else
         return true;
@@ -177,7 +177,7 @@ public:
     }
     static bool IsCardTableCommitedAddress(_In_ void* address)
     {
-#ifdef _M_X64_OR_ARM64
+#ifdef TARGET_64
         return x64CardTableManager.IsCardTableCommited(address) != FALSE;
 #else
         return true;
@@ -188,7 +188,7 @@ public:
     // For JIT
     static uintptr_t GetCardTableIndex(void * address);
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
-#ifdef _M_X64_OR_ARM64
+#ifdef TARGET_64
     static BYTE * GetAddressOfCardTable() { return x64CardTableManager.GetAddressOfCardTable(); }
 #else
     static BYTE * GetAddressOfCardTable() { return cardTable; }
@@ -198,7 +198,7 @@ public:
 #endif
 
     // For GC
-#ifdef _M_X64_OR_ARM64
+#ifdef TARGET_64
     static bool OnThreadInit();
     static bool OnSegmentAlloc(_In_ char* segment, DECLSPEC_GUARD_OVERFLOW size_t pageCount);
     static bool OnSegmentFree(_In_ char* segment, size_t pageCount);
@@ -219,7 +219,7 @@ public:
 private:
 
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
-#ifdef _M_X64_OR_ARM64
+#ifdef TARGET_64
     // On AMD64, we use a different scheme
     // As of Windows 8.1, the process user-mode address space is 128TB
     // We still use a write barrier page size of 4KB

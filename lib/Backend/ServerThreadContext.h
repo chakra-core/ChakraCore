@@ -38,7 +38,7 @@ public:
     virtual ptrdiff_t GetCRTBaseAddressDifference() const override;
 
     OOPCodeGenAllocators * GetCodeGenAllocators();
-#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64_OR_ARM64)
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || TARGET_64)
     OOPJITThunkEmitter * GetJITThunkEmitter();
 #endif
     CustomHeap::OOPCodePageAllocators * GetThunkPageAllocators();
@@ -67,7 +67,7 @@ private:
     CustomHeap::OOPCodePageAllocators m_thunkPageAllocators;
     CustomHeap::OOPCodePageAllocators  m_codePageAllocators;
     OOPCodeGenAllocators m_codeGenAlloc;
-#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64_OR_ARM64)
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || TARGET_64)
     OOPJITThunkEmitter m_jitThunkEmitter;
 #endif
     // only allocate with this from foreground calls (never from CodeGen calls)

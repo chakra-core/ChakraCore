@@ -3640,7 +3640,7 @@ namespace Js
         defaultPropertyDescriptor.SetEnumerable(false);
         defaultPropertyDescriptor.SetConfigurable(false);
 
-#if !defined(_M_X64_OR_ARM64)
+#if !defined(TARGET_64)
 
         VirtualTableRecorder<Js::JavascriptNumber>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableJavascriptNumber);
 #else

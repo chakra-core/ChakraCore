@@ -228,7 +228,7 @@ namespace Js
     };
 
     // Make sure the padding doesn't add tot he size of ConcatStringWrapping
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
     CompileAssert(sizeof(ConcatStringWrapping<_u('"'), _u('"')>) == 64);
 #else
     CompileAssert(sizeof(ConcatStringWrapping<_u('"'), _u('"')>) == 32);

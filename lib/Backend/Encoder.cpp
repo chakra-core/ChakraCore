@@ -396,7 +396,7 @@ Encoder::Encode()
     }
 #endif
 
-#ifdef _M_X64_OR_ARM64
+#ifdef TARGET_64
 #ifdef _M_X64
     PrologEncoder &unwindInfo = m_func->m_prologEncoder;
     unwindInfo.FinalizeUnwindInfo((BYTE*)m_func->GetJITOutput()->GetCodeAddress(), (DWORD)codeSize);

@@ -51,7 +51,7 @@ void Amd64StackWalkerOutOfContexts_fatal_error(
 void FailedToBox_OOM_fatal_error(
     __in ULONG_PTR context);
 
-#if defined(RECYCLER_WRITE_BARRIER) && defined(_M_X64_OR_ARM64)
+#if defined(RECYCLER_WRITE_BARRIER) && defined(TARGET_64)
 void X64WriteBarrier_OOM_fatal_error();
 #endif
 

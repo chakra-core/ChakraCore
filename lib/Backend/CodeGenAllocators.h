@@ -13,7 +13,7 @@ private:
     NoRecoverMemoryArenaAllocator  allocator;
 public:
     EmitBufferManager<TAlloc, TPreReservedAlloc, CriticalSection> emitBufferManager;
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
+#if !TARGET_64 && _CONTROL_FLOW_GUARD
     bool canCreatePreReservedSegment;
 #endif
 

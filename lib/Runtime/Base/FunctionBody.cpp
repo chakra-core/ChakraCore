@@ -3433,7 +3433,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         JavascriptMethod originalEntryPoint = this->GetOriginalEntryPoint_Unchecked();
         return
-#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64_OR_ARM64)
+#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || TARGET_64)
             (
 #if ENABLE_OOP_NATIVE_CODEGEN
             JITManager::GetJITManager()->IsOOPJITEnabled()
@@ -8818,7 +8818,7 @@ namespace Js
         {
             // Unregister xdataInfo before OnCleanup() which may release xdataInfo->address
 #if ENABLE_NATIVE_CODEGEN
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
             if (this->xdataInfo != nullptr)
             {
                 XDataAllocator::Unregister(this->xdataInfo);
