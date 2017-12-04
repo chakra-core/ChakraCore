@@ -18,6 +18,7 @@ public:
         IR::Instr * instr;
         uint argCount;
         uint argRestoreAdjustCount;
+        bool isOrphanedCall;
     } StartCallInfo;
 #else
     typedef uint StartCallInfo;
@@ -55,7 +56,7 @@ public:
     void FinalizeOffsets(__in_ecount(count) int * offsets, uint count, Func *func, BVSparse<JitArenaAllocator> *bvInlinedArgSlot);
 #endif
 
-    void RecordStartCallInfo(uint i, uint argRestoreAdjustCount, IR::Instr *instr);
+    void RecordStartCallInfo(uint i, IR::Instr *instr);
     uint GetStartCallOutParamCount(uint i) const;
 #ifdef _M_IX86
     bool NeedsStartCallAdjust(uint i, const IR::Instr * instr) const;
@@ -288,6 +289,9 @@ protected:
     {
         BVFixed * argOutFloat64Syms;        // Used for float-type-specialized ArgOut symbols. Index = [0 .. BailOutInfo::totalOutParamCount].
         BVFixed * argOutLosslessInt32Syms;  // Used for int-type-specialized ArgOut symbols (which are native int and for bailout we need tagged ints).
+#ifdef _M_IX86
+        BVFixed * isOrphanedArgSlot;
+#endif
 #ifdef ENABLE_SIMDJS
         // SIMD_JS
         BVFixed * argOutSimd128F4Syms;
@@ -310,6 +314,9 @@ protected:
         {
             FixupNativeDataPointer(argOutFloat64Syms, chunkList);
             FixupNativeDataPointer(argOutLosslessInt32Syms, chunkList);
+#ifdef _M_IX86
+            FixupNativeDataPointer(isOrphanedArgSlot, chunkList);
+#endif
 #ifdef ENABLE_SIMDJS
             FixupNativeDataPointer(argOutSimd128F4Syms, chunkList);
             FixupNativeDataPointer(argOutSimd128I4Syms, chunkList);
