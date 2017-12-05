@@ -24762,21 +24762,31 @@ Lowerer::LowerDivI4(IR::Instr * instr)
     }
 #endif
 
+    Assert(instr->GetSrc2());
     if (m_func->GetJITFunctionBody()->IsWasmFunction())
     {
-        m_lowererMD.EmitInt4Instr(instr);
+        if (!m_lowererMD.GenerateFastDiv(instr))
+        {
+            m_lowererMD.EmitInt4Instr(instr);
+        }
         return;
     }
 
     if (m_func->GetJITFunctionBody()->IsAsmJsMode())
     {
-        LowerDivI4Common(instr);
+        if (!m_lowererMD.GenerateFastDiv(instr))
+        {
+            LowerDivI4Common(instr);
+        }
         return;
     }
 
     if(!instr->HasBailOutInfo())
     {
-        m_lowererMD.EmitInt4Instr(instr);
+        if (!m_lowererMD.GenerateFastDiv(instr))
+        {
+            m_lowererMD.EmitInt4Instr(instr);
+        }
         return;
     }
 
@@ -24805,9 +24815,9 @@ Lowerer::LowerDivI4(IR::Instr * instr)
         // before bailing out, but does not seem worth the extra code..)
         InsertCompareBranch(nominatorOpnd, IR::IntConstOpnd::New(INT32_MIN, TyInt32, this->m_func, true), Js::OpCode::BrEq_A, bailOutLabel, nonBailOutInstr);
     }
-
     if (denominatorOpnd->IsIntConstOpnd() && Math::IsPow2(denominatorOpnd->AsIntConstOpnd()->AsInt32()))
     {
+        //ToDo enable fast divs here with tests.
         Assert((bailOutKind & (IR::BailOutOnNegativeZero | IR::BailOutOnDivByZero)) == 0);
         int pow2 = denominatorOpnd->AsIntConstOpnd()->AsInt32();
         InsertTestBranch(nominatorOpnd, IR::IntConstOpnd::New(pow2 - 1, TyInt32, this->m_func, true),

@@ -115,6 +115,62 @@ namespace Js
             FormatPrecision
         };
 
+        // Calculates magic number (multiplier) and shift amounts (shiftAmt) to replace division by constants with multiplication and shifts
+        // Ref: Warren's Hacker's Delight, Chapter 10.
+        struct DivMagicNumber
+        {
+            DivMagicNumber(uint64 multiplier, uint shiftAmt) : multiplier(multiplier), shiftAmt(shiftAmt) {}
+            int64 multiplier;
+            uint shiftAmt;
+        };
+
+        DivMagicNumber static GenerateDivMagicNumber(const int divisor)
+        {
+            Assert((1 < divisor && divisor < INT32_MAX - 1) || (-1 > divisor && divisor > INT32_MIN));
+            int p;
+            unsigned ad, anc, delta, q1, r1, q2, r2, t;
+            const unsigned two31 = static_cast<unsigned>(1) << (sizeof(int) * 8 - 1); //2^31
+
+            ad = (divisor < 0) ? (0 - divisor) : divisor;
+            t = two31 + ((unsigned)divisor >> 31);
+
+            anc = t - 1 - t % ad;  //abs(nc)
+            p = 31;              //init p
+            q1 = two31 / anc;     //init q1 = 2^p/|nc|
+            r1 = two31 - q1 * anc;//init r1 = rem(2^p, |nc|)
+            q2 = two31 / ad;      //init q2 = 2^p / |d|
+            r2 = two31 - q2 * ad; //init r2 = rem(2^p, |d|)
+
+            do
+            {
+                p = p + 1;
+                q1 = 2 * q1;       //update q1 = 2 ^p / |nc|
+                r1 = 2 * r1;       //update r1 = rem(2^p, |nc|)
+
+                if (r1 >= anc)     //Must be an unsigned comparison here. 
+                {
+                    q1 = q1 + 1;
+                    r1 = r1 - anc;
+                }
+
+                q2 = 2 * q2;       //update q2 = 2^p / |d|
+                r2 = 2 * r2;       //update r2 = rem(2^p, |d|)
+
+                if (r2 >= ad)      //Must be an unsigned comparison here.
+                {
+                    q2 = q2 + 1;
+                    r2 = r2 - ad;
+                }
+                delta = ad - r2;
+            } while (q1 < delta || (q1 == delta && r1 == 0));
+            int magic_num = q2 + 1;
+            if (divisor < 0)
+            {
+                magic_num = -magic_num;
+            }
+            return DivMagicNumber(magic_num, p - 32); //(Magic number, shift amount)
+        }
+
         // Implemented in lib\parser\common.  Should move to lib\common
         template<typename EncodedChar>
         static double StrToDbl(const EncodedChar *psz, const EncodedChar **ppchLim, bool& likelyInt);

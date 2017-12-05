@@ -2888,6 +2888,97 @@ bool LowererMDArch::GenerateFastAnd(IR::Instr * instrAnd)
     return true;
 }
 
+bool LowererMDArch::GenerateFastDiv(IR::Instr * instrDiv)
+{
+    Assert(instrDiv);
+    auto * divisor = instrDiv->GetSrc2(); // denominator
+
+    if (PHASE_OFF(Js::BitopsFastPathPhase, this->m_func) || !divisor->IsIntConstOpnd() || instrDiv->m_opcode != Js::OpCode::Div_I4) //ToDo Optimize unsigned division
+    {
+        return false;
+    }
+
+    auto * divident = instrDiv->GetSrc1(); // nominator
+    auto * dst = instrDiv->GetDst();
+    auto constDivisor = divisor->AsIntConstOpnd()->AsInt32();
+    auto isNegDevisor = false;
+
+    if (constDivisor < 0)
+    {
+        isNegDevisor = true;
+        constDivisor = abs(constDivisor);
+    }
+
+    if (constDivisor < 2 || constDivisor > INT32_MAX - 1)
+    {
+        return false;
+    }
+
+    if (Math::IsPow2(constDivisor)) // Power of two
+    {
+        // Negative dividents needs the result incremented by 1
+        // Following sequence avoids branch
+        // For q = n/d and d = 2^k
+
+        //      sar q n k-1   //2^(k-1) if n < 0 else 0
+        //      shr q q 32-k
+        //      add q q n
+        //      sar q q k
+
+        auto k = Math::Log2(constDivisor);
+        // Signed
+        Lowerer::InsertShift(Js::OpCode::Shr_A, false, dst, divident, IR::IntConstOpnd::New(k - 1, TyInt32, this->m_func, true), instrDiv);
+        Lowerer::InsertShift(Js::OpCode::ShrU_A, false, dst, dst, IR::IntConstOpnd::New(32 - k, TyInt8, this->m_func), instrDiv);
+        Lowerer::InsertAdd(false, dst, dst, divident, instrDiv);
+        Lowerer::InsertShift(Js::OpCode::Shr_A, false, dst, dst, IR::IntConstOpnd::New(k, TyInt32, this->m_func, true), instrDiv);
+    }
+    else
+    {
+        // For q = n/d where d is a signed constant
+        // Calculate magic_number (multiplier) and shift amounts (shiftAmt) and replace  div with mul and shift
+        // Ref: Warren's Hacker's Delight, Chapter 10
+
+        auto magic_number(Js::NumberUtilities::GenerateDivMagicNumber(constDivisor));
+        auto multiplier = magic_number.multiplier;
+
+        // Compute mulhi
+        auto quotient = IR::RegOpnd::New(TyInt64, this->m_func);
+        auto tmpReg1  = IR::RegOpnd::New(TyInt64, this->m_func);
+        Lowerer::InsertMove(quotient, IR::IntConstOpnd::New(multiplier, TyInt64, m_func), instrDiv);
+        Lowerer::InsertMove(tmpReg1, divident, instrDiv);
+        auto imul = IR::Instr::New(LowererMD::MDImulOpcode, quotient, quotient, tmpReg1 , instrDiv->m_func);
+        instrDiv->InsertBefore(imul);
+        LowererMD::Legalize(imul);
+
+        Lowerer::InsertShift(Js::OpCode::Shr_A, false, quotient, quotient, IR::IntConstOpnd::New(32, TyInt8, this->m_func), instrDiv);
+        Lowerer::InsertMove(dst, quotient, instrDiv);
+
+        // Special handling when divisor is of type 5 and 7.
+        if (multiplier < 0)
+        {
+            Lowerer::InsertAdd(false, dst, dst, divident, instrDiv);
+        }
+        if (magic_number.shiftAmt > 0)
+        {
+            Lowerer::InsertShift(Js::OpCode::Shr_A, false, dst, dst, IR::IntConstOpnd::New(magic_number.shiftAmt, TyInt8, this->m_func), instrDiv);
+        }
+        auto tmpReg2 = IR::RegOpnd::New(TyInt32, this->m_func);
+        Lowerer::InsertMove(tmpReg2, divident, instrDiv);
+
+        // Add 1 if divisor is less than 0
+        Lowerer::InsertShift(Js::OpCode::ShrU_A, false, tmpReg2, tmpReg2, IR::IntConstOpnd::New(31, TyInt8, this->m_func), instrDiv); // 1 if divident < 0, 0 otherwise
+        Lowerer::InsertAdd(false, dst, dst, tmpReg2, instrDiv);
+    }
+
+    // Negate results if divident is less than zero
+    if (isNegDevisor)
+    {
+        Lowerer::InsertSub(false, dst, IR::IntConstOpnd::New(0, TyInt8, this->m_func), dst, instrDiv);
+    }
+    instrDiv->Remove();
+    return true;
+}
+
 bool LowererMDArch::GenerateFastXor(IR::Instr * instrXor)
 {
     return true;
