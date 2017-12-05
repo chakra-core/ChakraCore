@@ -284,7 +284,7 @@ private:
         return nullptr;
     }
 
-    uint HashKeyToBucket(char* strongReference, int size)
+    hash_t HashKeyToBucket(char* strongReference, int size)
     {
         hash_t hashCode = DefaultComparer<char*>::GetHashCode(strongReference);
         return SizePolicy::GetBucket(hashCode, size, modFunctionIndex);

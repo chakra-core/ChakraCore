@@ -71,12 +71,6 @@ namespace Js {
             const CallInfo callInfo = walker.GetCallInfo();
             int64 numberOfArguments = callInfo.Count;
             if (numberOfArguments > 0) numberOfArguments --; // Don't consider 'this'
-            if (callInfo.Flags & Js::CallFlags_ExtraArg)
-            {
-                Assert(numberOfArguments > 0 );
-                // skip the last FrameDisplay argument.
-                numberOfArguments--;
-            }
             for (int64 j = 0; j < numberOfArguments && j < MaxNumberOfDisplayedArgumentsInStack; j ++)
             {
                 types |= ObjectToTypeCode(walker.GetJavascriptArgs()[j]) << 3*j; // maximal code is 7, so we can use 3 bits to store it

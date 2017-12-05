@@ -29,37 +29,51 @@ namespace UnifiedRegex
         {
             uint w = h - l + 1;
             if (w == wordSize)
+            {
                 v = ones;
+            }
             else
+            {
                 v |= ((1U << w) - 1) << l;
+            }
         }
 
         inline static void clearrng(uint32 &v, uint l, uint h)
         {
             uint w = h - l + 1;
             if (w == wordSize)
+            {
                 v = 0;
+            }
             else
+            {
                 v &= ~(((1U << w) - 1) << l);
+            }
         }
 
     public:
         inline void CloneFrom(const CharBitvec& other)
         {
             for (int w = 0; w < vecSize; w++)
+            {
                 vec[w] = other.vec[w];
+            }
         }
 
         inline void Clear()
         {
             for (int w = 0; w < vecSize; w++)
+            {
                 vec[w] = 0;
+            }
         }
 
         inline void SetAll()
         {
             for (int w = 0; w < vecSize; w++)
+            {
                 vec[w] = ones;
+            }
         }
 
         inline void Set(uint k)
@@ -67,7 +81,9 @@ namespace UnifiedRegex
             Assert(k < Size);
             __assume(k < Size);
             if (k < Size)
+            {
                 vec[k / wordSize] |= 1U << (k % wordSize);
+            }
         }
 
         inline void SetRange(uint l, uint h)
@@ -76,10 +92,12 @@ namespace UnifiedRegex
             Assert(h < Size);
             __assume(l < Size);
             __assume(h < Size);
-            if  (l < Size && h < Size)
+            if (l < Size && h < Size)
             {
                 if (l == h)
+                {
                     vec[l / wordSize] |= 1U << (l % wordSize);
+                }
                 else if (l < h)
                 {
                     int lw = l / wordSize;
@@ -87,12 +105,16 @@ namespace UnifiedRegex
                     int lo = l % wordSize;
                     int hio = h % wordSize;
                     if (lw == hw)
+                    {
                         setrng(vec[lw], lo, hio);
+                    }
                     else
                     {
-                        setrng(vec[lw], lo, wordSize-1);
+                        setrng(vec[lw], lo, wordSize - 1);
                         for (int w = lw + 1; w < hw; w++)
+                        {
                             vec[w] = ones;
+                        }
                         setrng(vec[hw], 0, hio);
                     }
                 }
@@ -105,7 +127,7 @@ namespace UnifiedRegex
             Assert(h < Size);
             __assume(l < Size);
             __assume(h < Size);
-            if  (l < Size && h < Size)
+            if (l < Size && h < Size)
             {
                 if (l == h)
                 {
@@ -123,9 +145,11 @@ namespace UnifiedRegex
                     }
                     else
                     {
-                        clearrng(vec[lw], lo, wordSize-1);
+                        clearrng(vec[lw], lo, wordSize - 1);
                         for (int w = lw + 1; w < hw; w++)
+                        {
                             vec[w] = 0;
+                        }
                         clearrng(vec[hw], 0, hio);
                     }
                 }
@@ -136,7 +160,7 @@ namespace UnifiedRegex
         {
             for (int i = 0; i < vecSize; i++)
             {
-                if(vec[i] != 0)
+                if (vec[i] != 0)
                 {
                     return false;
                 }
@@ -147,7 +171,9 @@ namespace UnifiedRegex
         inline void UnionInPlace(const CharBitvec& other)
         {
             for (int w = 0; w < vecSize; w++)
+            {
                 vec[w] |= other.vec[w];
+            }
         }
 
         inline bool UnionInPlaceFullCheck(const CharBitvec& other)
@@ -157,7 +183,9 @@ namespace UnifiedRegex
             {
                 vec[w] |= other.vec[w];
                 if (vec[w] != ones)
+                {
                     isFull = false;
+                }
             }
             return isFull;
         }
@@ -174,7 +202,9 @@ namespace UnifiedRegex
             for (int w = 0; w < vecSize; w++)
             {
                 if (vec[w] != ones)
+                {
                     return false;
+                }
             }
             return true;
         }
@@ -185,7 +215,9 @@ namespace UnifiedRegex
             {
                 uint32 v = other.vec[w];
                 if (v != (vec[w] | v))
+                {
                     return false;
+                }
             }
             return true;
         }
@@ -195,7 +227,9 @@ namespace UnifiedRegex
             for (int w = 0; w < vecSize; w++)
             {
                 if (vec[w] != other.vec[w])
+                {
                     return false;
+                }
             }
             return true;
         }
@@ -229,7 +263,7 @@ namespace UnifiedRegex
         static const uint leafMask = branchingPerLeafLevel - 1;
 
         static const uint levels = 1 + (CharWidth - bitsPerLeafLevel) / bitsPerInnerLevel;
-        
+
         inline static uint innerIdx(uint level, uint v)
         {
             return (v >> ((level + 1) * bitsPerInnerLevel)) & innerMask;
@@ -285,7 +319,7 @@ namespace UnifiedRegex
         void ToEquivClass(ArenaAllocator* allocator, uint level, uint base, uint& tblidx, CharSet<C>& result, codepoint_t baseOffset = 0x0) const;
     public:
         static CharSetFull Instance;
-        static CharSetFull* const TheFullNode;
+        static CharSetFull * const TheFullNode;
 
         CharSetFull();
 
@@ -307,14 +341,13 @@ namespace UnifiedRegex
 #endif
     };
 
-
     struct CharSetInner sealed : CharSetNode
     {
     private:
         template <typename C>
         void ToEquivClass(ArenaAllocator* allocator, uint level, uint base, uint& tblidx, CharSet<C>& result) const;
     public:
-        CharSetNode* children[branchingPerInnerLevel];
+        CharSetNode * children[branchingPerInnerLevel];
 
         CharSetInner();
         void FreeSelf(ArenaAllocator* allocator) override;
@@ -323,7 +356,7 @@ namespace UnifiedRegex
         CharSetNode* ClearRange(ArenaAllocator* allocator, uint level, uint l, uint h) override;
         CharSetNode* UnionInPlace(ArenaAllocator* allocator, uint level, const CharSetNode* other) override;
         bool Get(uint level, uint k) const override;
-        void ToComplement(ArenaAllocator* allocator, uint level, uint base, CharSet<Char>& result) const override;\
+        void ToComplement(ArenaAllocator* allocator, uint level, uint base, CharSet<Char>& result) const override;
         void ToEquivClassW(ArenaAllocator* allocator, uint level, uint base, uint& tblidx, CharSet<char16>& result) const override;
         void ToEquivClassCP(ArenaAllocator* allocator, uint level, uint base, uint& tblidx, CharSet<codepoint_t>& result, codepoint_t baseOffset) const override;
         bool IsSubsetOf(uint level, const CharSetNode* other) const override;
@@ -335,7 +368,7 @@ namespace UnifiedRegex
 #endif
     };
 
-    struct CharSetLeaf sealed: CharSetNode
+    struct CharSetLeaf sealed : CharSetNode
     {
     private:
         template <typename C>
@@ -393,7 +426,6 @@ namespace UnifiedRegex
             struct FullRep full;
         } rep;
 
-
         static const int compactSize = sizeof(CompactRep);
         static const int fullSize = sizeof(FullRep);
 
@@ -425,18 +457,24 @@ namespace UnifiedRegex
             {
                 Assert(MaxCompact == 4);
                 return rep.compact.cs[0] == CTU(kc) ||
-                       rep.compact.cs[1] == CTU(kc) ||
-                       rep.compact.cs[2] == CTU(kc) ||
-                       rep.compact.cs[3] == CTU(kc);
+                    rep.compact.cs[1] == CTU(kc) ||
+                    rep.compact.cs[2] == CTU(kc) ||
+                    rep.compact.cs[3] == CTU(kc);
             }
             else
             {
                 if (CTU(kc) < CharSetNode::directSize)
+                {
                     return rep.full.direct.Get(CTU(kc));
+                }
                 else if (rep.full.root == 0)
+                {
                     return false;
+                }
                 else
+                {
                     return Get_helper(CTU(kc));
+                }
             }
         }
 
@@ -543,9 +581,13 @@ namespace UnifiedRegex
         inline uint Count() const
         {
             if (IsCompact())
+            {
                 return (uint)rep.compact.countPlusOne - 1;
+            }
             else if (rep.full.root == 0)
+            {
                 return rep.full.direct.Count();
+            }
             else
             {
                 //The bit vector
@@ -571,7 +613,7 @@ namespace UnifiedRegex
         // Character planes are composed of 65536 characters each.
         // First plane is the Basic Multilingual Plane (characters 0 - 65535)
         // Every subsequent plane also stores characters in the form [0 - 65535]; to get the actual value, add 'index * 0x10000' to it
-        CharSet<char16> characterPlanes [NumberOfPlanes];
+        CharSet<char16> characterPlanes[NumberOfPlanes];
 
         // Takes a character, and returns the index of the CharSet<char16> that holds it.
         inline int CharToIndex(Char c) const
@@ -593,7 +635,7 @@ namespace UnifiedRegex
             Assert(c <= Chars<char16>::MaxUChar);
             Assert(index >= 0);
             Assert(index < NumberOfPlanes);
-            return (Char)(c) + 0x10000 * index;
+            return ((Char)c) + 0x10000 * index;
         }
 
     public:
@@ -718,7 +760,7 @@ namespace UnifiedRegex
     {
     private:
         // Trie for remaining characters. Pointer value will be 0 or >> MaxCompact.
-        CharSetNode* root;
+        CharSetNode * root;
         // Entries for first 256 characters
         CharBitvec direct;
 
@@ -731,11 +773,17 @@ namespace UnifiedRegex
         inline bool Get(Char kc) const
         {
             if (CTU(kc) < CharSetNode::directSize)
+            {
                 return direct.Get(CTU(kc));
+            }
             else if (root == 0)
+            {
                 return false;
+            }
             else
+            {
                 return Get_helper(CTU(kc));
+            }
         }
 
 #if ENABLE_REGEX_CONFIG_OPTIONS

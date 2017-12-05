@@ -434,9 +434,9 @@ LblDone:
     }
 
     // fills the buffer from the end and returns the start index
-    static int UnsignedToString(unsigned long value, char16 *buffer, int bufferSize)
+    int TaggedInt::UnsignedToString(unsigned __int64 value, char16 *buffer, int bufferSize)
     {
-        static_assert(sizeof(unsigned long) <= 8, "This method may not support the target architecture");
+        static_assert(sizeof(value) <= 8, "This method may not support the target architecture");
         AssertMsg(bufferSize >= 22, "Error: bufferSize is too small. value may not be represented properly");
 
         buffer[bufferSize - 1] = char16(0);
@@ -469,10 +469,10 @@ LblDone:
         return pos + 1;
     }
 
-    static int SignedToString(long value, char16 *buffer, int bufferSize)
+    int TaggedInt::SignedToString(__int64 value, char16 *buffer, int bufferSize)
     {
         bool neg = value < 0;
-        unsigned long val = (unsigned long) (neg ? -1 * value : value);
+        unsigned __int64 val = (unsigned __int64) (neg ? -1 * value : value);
         int pos = UnsignedToString(val, buffer, bufferSize);
         if (neg) buffer[--pos] = _u('-');
         return pos;

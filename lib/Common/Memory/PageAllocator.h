@@ -65,7 +65,7 @@ typedef void* FunctionTableHandle;
 
 #endif
 
-#ifdef _M_X64
+#ifdef _M_X64_OR_ARM64
 #define XDATA_RESERVE_PAGE_COUNT   (2)       // Number of pages per page segment (32 pages) reserved for xdata.
 #else
 #define XDATA_RESERVE_PAGE_COUNT   (0)       // ARM uses the heap, so it's not required.
@@ -83,13 +83,13 @@ struct SecondaryAllocation
     }
 };
 
-#if defined(_M_X64)
+#if defined(_M_X64) || defined(_M_ARM64)
 struct XDataInfo
 {
     RUNTIME_FUNCTION pdata;
     FunctionTableHandle functionTable;
 };
-#elif defined(_M_ARM32_OR_ARM64)
+#elif defined(_M_ARM)
 struct XDataInfo
 {
     ushort pdataCount;

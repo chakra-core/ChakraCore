@@ -30,7 +30,7 @@ namespace Js
 
         propertyKey = args.Info.Count > 2 ? args[2] : undefinedValue;
         PropertyRecord const * propertyRecord;
-        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord);
+        JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord, nullptr);
 
         attributes = args.Info.Count > 3 ? args[3] : undefinedValue;
         PropertyDescriptor propertyDescriptor;
@@ -409,6 +409,7 @@ namespace Js
         }
 
         Var argArray = args.Info.Count > 2 ? args[2] : undefinedValue;
+        AnalysisAssert(argArray != nullptr);
         if (!(JavascriptOperators::IsObjectType(JavascriptOperators::GetTypeId(argArray))))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedArrayLike, _u("Reflect.construct"));

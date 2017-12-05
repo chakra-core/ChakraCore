@@ -208,7 +208,11 @@ public:
 
     bool DoInline() const
     {
+#ifdef _M_IX86
         return DoGlobOpt() && !GetTopFunc()->HasTry();
+#else
+        return DoGlobOpt();
+#endif
     }
 
     bool DoOptimizeTry() const
@@ -715,7 +719,6 @@ public:
     StackSym *          tempSymBool;
     uint32              loopCount;
     Js::ProfileId       callSiteIdInParentFunc;
-    bool                m_isLeaf: 1;  // This is set in the IRBuilder and might be inaccurate after inlining
     bool                m_hasCalls: 1; // This is more accurate compared to m_isLeaf
     bool                m_hasInlineArgsOpt : 1;
     bool                m_doFastPaths : 1;
@@ -767,13 +770,12 @@ public:
     ptrdiff_t           m_codeSize;
 #endif
     bool                GetHasCalls() const { return this->m_hasCalls; }
-    void                SetHasCalls() { this->m_hasCalls = true; }
     void                SetHasCallsOnSelfAndParents()
     {
                         Func *curFunc = this;
                         while (curFunc)
                         {
-                            curFunc->SetHasCalls();
+                            curFunc->m_hasCalls = true;
                             curFunc = curFunc->GetParentFunc();
                         }
     }

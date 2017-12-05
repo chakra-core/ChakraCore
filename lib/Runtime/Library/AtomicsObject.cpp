@@ -41,7 +41,7 @@ namespace Js
             }
         }
 
-        TypedArrayBase *typedArrayBase = TypedArrayBase::FromVar(typedArray);
+        TypedArrayBase *typedArrayBase = TypedArrayBase::UnsafeFromVar(typedArray);
         ArrayBufferBase* arrayBuffer = typedArrayBase->GetArrayBuffer();
         if (arrayBuffer == nullptr || !ArrayBufferBase::Is(arrayBuffer) || !arrayBuffer->IsSharedArrayBuffer())
         {

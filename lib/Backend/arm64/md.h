@@ -22,7 +22,8 @@ __declspec(selectany) const int MachPtr = 8;
 const int MachDouble = 8;
 const int MachRegDouble = 8;
 const int MachArgsSlotOffset = MachPtr;
-const int MachStackAlignment = 16;
+const int MachStackAlignment = 16; // On ARM64 SP needs to be 16 byte aligned for load/store
+const unsigned __int64 MachSignBit = 0x8000000000000000;
 
 const int PAGESIZE = 0x1000;
 
@@ -31,11 +32,13 @@ const IRType TyMachPtr = TyUint64;
 const IRType TyMachDouble = TyFloat64;
 
 const DWORD EMIT_BUFFER_ALIGNMENT = 16;
-const DWORD INSTR_ALIGNMENT = 4;
+const DWORD INSTR_ALIGNMENT = 2;
 
 #ifdef INSERT_NOPS
 const int CountNops = 10;
-const int MachMaxInstrSize = (CountNops + 1)*4;
+const int MachMaxInstrSize = (2 * CountNops + 1)*4;
 #else
 const int MachMaxInstrSize = 4;
 #endif
+
+#define SOFTWARE_FIXFOR_HARDWARE_BUGWIN8_502326

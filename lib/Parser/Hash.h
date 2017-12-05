@@ -292,7 +292,6 @@ public:
                 return newRef;
             }
 
-            Assert(ref->prev->id <= ref->id);
             prevRef = ref;
             ref = ref->prev;
         }

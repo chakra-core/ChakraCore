@@ -44,6 +44,7 @@ public:
     bool ForceJITLoopBody() const;
     bool HasSharedPropertyGuards() const;
     bool HasSharedPropertyGuard(Js::PropertyId id) const;
+    bool IsJsBuiltInForceInline() const;
 
     char16* GetDisplayName() const;
     char16* GetDebugNumberSet(wchar(&bufferToWriteTo)[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]) const;

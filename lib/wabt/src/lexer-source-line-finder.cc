@@ -84,8 +84,8 @@ Result LexerSourceLineFinder::GetLineOffsets(int find_line,
 
   assert(!line_ranges_.empty());
   Offset buffer_file_offset = 0;
-  CHECK_RESULT(source_->Tell(&buffer_file_offset));
   while (!IsLineCached(find_line) && !eof_) {
+    CHECK_RESULT(source_->Tell(&buffer_file_offset));
     size_t read_size = source_->Fill(buffer.data(), buffer.size());
     if (read_size < buffer.size())
       eof_ = true;

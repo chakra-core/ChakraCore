@@ -12,6 +12,7 @@
 
 using namespace Js;
 
+#if PERFMAP_TRACE_ENABLED
 //
 //  Handle the SIGUSR2 signal by setting a flag
 //  indicating that we should call WritePerfMap later on
@@ -25,13 +26,12 @@ namespace PlatformAgnostic
 {
 
 volatile sig_atomic_t PerfTrace::mapsRequested = 0;
-  
+
 //
-// Registers a signal handler for SIGUSR2 
+// Registers a signal handler for SIGUSR2
 //
 void PerfTrace::Register()
 {
-#if PERFMAP_TRACE_ENABLED
     struct sigaction newAction = {0};
     newAction.sa_flags = SA_RESTART;
     newAction.sa_handler = handle_signal;
@@ -43,7 +43,6 @@ void PerfTrace::Register()
     {
         AssertMsg(errno, "PerfTrace::Register: sigaction() call failed\n");
     }
-#endif
 }
 
 void  PerfTrace::WritePerfMap()
@@ -150,3 +149,4 @@ void  PerfTrace::WritePerfMap()
 
 }
 
+#endif // PERFMAP_TRACE_ENABLED

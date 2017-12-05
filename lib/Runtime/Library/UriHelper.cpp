@@ -176,6 +176,7 @@ namespace Js
         uint32 allocSize = UInt32Math::Add(outputLen, 1);
         char16* outURI = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, allocSize);
         char16* outCurrent = outURI;
+        const char16 *hexStream = _u("0123456789ABCDEF");
 
         for( uint32 k = 0; k < len; k++ )
         {
@@ -223,8 +224,10 @@ namespace Js
                 for( uint32 j = 0; j < utfLen; j++ )
                 {
 #pragma prefast(suppress: 26014, "buffer length was calculated earlier");
-                    swprintf_s(outCurrent, 4, _u("%%%02X"), (int)bUTF8[j] );
-                    outCurrent +=3;
+                    BYTE val = bUTF8[j];
+                    *outCurrent++ = _u('%');
+                    *outCurrent++ = hexStream[(val >> 4)];
+                    *outCurrent++ = hexStream[(val & 0xF)];
 #pragma prefast(default: 26014);
                 }
             }

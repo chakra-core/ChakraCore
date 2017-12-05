@@ -9,6 +9,7 @@
 //========================
 // Parser includes
 //========================
+#include "Parser.h"
 #include "ParserCommon.h"
 #include "ParseFlags.h"
 #include "rterror.h"
@@ -122,7 +123,6 @@ namespace Js
     struct JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper;
     class JavascriptGenerator;
     class LiteralString;
-    class ArenaLiteralString;
     class JavascriptStringObject;
     struct PropertyDescriptor;
     class Type;

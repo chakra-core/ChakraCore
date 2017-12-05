@@ -18,8 +18,15 @@ namespace Js
 
     JavascriptEnumerator* JavascriptEnumerator::FromVar(Var aValue)
     {
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptEnumerator'");
+
+        return static_cast<JavascriptEnumerator *>(aValue);
+    }
+
+    JavascriptEnumerator* JavascriptEnumerator::UnsafeFromVar(Var aValue)
+    {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptEnumerator'");
 
-        return static_cast<JavascriptEnumerator *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptEnumerator *>(aValue);
     }
 }

@@ -297,6 +297,12 @@ ServerScriptContext::GetDebugScriptIdWhenSetAddr() const
 }
 #endif
 
+intptr_t
+ServerScriptContext::GetChakraLibAddr() const
+{
+    return m_contextData.chakraLibAddr;
+}
+
 bool
 ServerScriptContext::IsClosed() const
 {

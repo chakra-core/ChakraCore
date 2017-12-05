@@ -34,7 +34,6 @@
         $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\..\JITClient;
         $(ChakraJITIDLIntDir);
-        $(IcuIncludeDir)\common; <!-- // TODO (doilij): At end of IntlICU development, remove this if it is not needed here. -->
         $(MSBuildThisFileDirectory)..\Math;
         $(ChakraManifestsIncludeDirectory);
         $(ManifestsInboxIncludeDirectory);
@@ -155,6 +154,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)UriHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ExternalLibraryBase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)IntlEngineInterfaceExtensionObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JsBuiltInEngineInterfaceExtensionObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmLibrary.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptListIterator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)AtomicsObject.cpp" />
@@ -169,13 +169,22 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)CustomExternalIterator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptExceptionMetadata.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)VerifyMarkFalseReference.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringBuilder.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringifier.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)LazyJSONString.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\DetachedStateBase.h" />
     <ClInclude Include="..\InternalPropertyList.h" />
     <ClInclude Include="..\RuntimeCommon.h" />
     <ClInclude Include="..\SerializableFunctionFields.h" />
     <ClInclude Include="AtomicsObject.h" />
     <ClInclude Include="CustomExternalIterator.h" />
+    <ClInclude Include="JsBuiltInEngineInterfaceExtensionObject.h" />
+    <ClInclude Include="JsBuiltIn\JsBuiltIn.js.bc.32b.h" />
+    <ClInclude Include="JsBuiltIn\JsBuiltIn.js.bc.64b.h" />
+    <ClInclude Include="JsBuiltIn\JsBuiltIn.js.nojit.bc.32b.h" />
+    <ClInclude Include="JsBuiltIn\JsBuiltIn.js.nojit.bc.64b.h" />
     <ClInclude Include="ExternalLibraryBase.h" />
     <ClInclude Include="IntlEngineInterfaceExtensionObject.h" />
     <ClInclude Include="JavascriptExceptionMetadata.h" />
@@ -193,6 +202,9 @@
     <ClInclude Include="JavascriptSimdBool32x4.h" />
     <ClInclude Include="JavascriptSimdBool16x8.h" />
     <ClInclude Include="JavascriptSimdBool8x16.h" />
+    <ClInclude Include="JSONStringBuilder.h" />
+    <ClInclude Include="JSONStringifier.h" />
+    <ClInclude Include="LazyJSONString.h" />
     <ClInclude Include="SharedArrayBuffer.h" />
     <ClInclude Include="SimdFloat32x4Lib.h" />
     <ClInclude Include="SimdFloat64x2Lib.h" />
@@ -333,6 +345,7 @@
     <None Include="amd64\JavascriptFunctionA.S">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </None>
+    <None Include="JsBuiltIn\JsBuiltIn.js" />
     <None Include="InJavascript\GenByteCode.cmd" />
     <None Include="InJavascript\Intl.js" />
     <None Include="ConcatString.inl" />

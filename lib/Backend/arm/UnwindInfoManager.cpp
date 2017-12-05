@@ -728,6 +728,11 @@ void UnwindInfoManager::SetSavedReg(BYTE reg)
     Assert(reg <= RegEncode[RegR12]);
     this->savedRegMask |= 1 << reg;
 }
+bool UnwindInfoManager::TestSavedReg(BYTE reg) const
+{
+    DWORD mask = 1 << reg;
+    return (this->savedRegMask & mask) == mask;
+}
 
 void UnwindInfoManager::SetDoubleSavedRegList(DWORD doubleRegMask)
 {

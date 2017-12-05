@@ -31,7 +31,7 @@ namespace Js
         void Initialize();
         ListForListIterator* GetSortedExportedNames() { return this->sortedExportedNames; }
         static bool Is(Var aValue) {  return JavascriptOperators::GetTypeId(aValue) == TypeIds_ModuleNamespace; }
-        static ModuleNamespace* FromVar(Var obj) { Assert(JavascriptOperators::GetTypeId(obj) == TypeIds_ModuleNamespace); return static_cast<ModuleNamespace*>(obj); }
+        static ModuleNamespace* FromVar(Var obj) { AssertOrFailFast(JavascriptOperators::GetTypeId(obj) == TypeIds_ModuleNamespace); return static_cast<ModuleNamespace*>(obj); }
 
         virtual PropertyId GetPropertyId(BigPropertyIndex index) override;
         virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId) override;

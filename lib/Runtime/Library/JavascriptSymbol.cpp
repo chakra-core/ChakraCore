@@ -13,9 +13,16 @@ namespace Js
 
     JavascriptSymbol* JavascriptSymbol::FromVar(Js::Var aValue)
     {
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptSymbol'");
+
+        return static_cast<JavascriptSymbol *>(aValue);
+    }
+
+    JavascriptSymbol* JavascriptSymbol::UnsafeFromVar(Js::Var aValue)
+    {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptSymbol'");
 
-        return static_cast<JavascriptSymbol *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptSymbol *>(aValue);
     }
 
     Var JavascriptSymbol::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
@@ -30,10 +37,7 @@ namespace Js
 
         // SkipDefaultNewObject function flag should have prevented the default object from
         // being created, except when call true a host dispatch.
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
-        Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr
-            || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
+        JavascriptOperators::GetAndAssertIsConstructorSuperCall(args);
 
         if (callInfo.Flags & CallFlags_New)
         {

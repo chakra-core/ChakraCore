@@ -213,7 +213,7 @@ CLOSE_TRACE_FILE ()
     {
         print_to_buffer(nullptr, 0); // force flush
         fclose(FTRACE);
-        printf("\nTrace output is available under ./TraceOutput.txt\n");
+        Output::Print(_u("\nTrace output is available under ./TraceOutput.txt\n"));
     }
 #endif
     IN_TRACE = 0;

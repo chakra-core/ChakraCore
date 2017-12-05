@@ -2063,6 +2063,7 @@ namespace JsRTApiTest
         JsRTApiTest::WithSetup(JsRuntimeAttributeEnableExperimentalFeatures, ReentrantParseModuleTest);
     }
 
+
     ModuleResponseData reentrantNoErrorParseData;
     static JsErrorCode CALLBACK reentrantNoErrorParse_FIMC(_In_ JsModuleRecord referencingModule, _In_ JsValueRef specifier, _Outptr_result_maybenull_ JsModuleRecord* dependentModuleRecord)
     {
@@ -2131,6 +2132,50 @@ namespace JsRTApiTest
         JsRTApiTest::WithSetup(JsRuntimeAttributeEnableExperimentalFeatures, ReentrantNoErrorParseModuleTest);
     }
 
+    static JsErrorCode CALLBACK FIMC1(_In_ JsModuleRecord referencingModule, _In_ JsValueRef specifier, _Outptr_result_maybenull_ JsModuleRecord* dependentModuleRecord)
+    {
+        JsModuleRecord moduleRecord = JS_INVALID_REFERENCE;
+        LPCWSTR specifierStr;
+        size_t length;
+        JsErrorCode errorCode = JsStringToPointer(specifier, &specifierStr, &length);
+        REQUIRE(errorCode == JsNoError);
+
+        if (wcscmp(specifierStr, _u("foo.js")) == 0)
+        {
+            errorCode = JsInitializeModuleRecord(referencingModule, specifier, &moduleRecord);
+            REQUIRE(errorCode == JsNoError);
+        }
+
+        *dependentModuleRecord = moduleRecord;
+        return JsNoError;
+    }
+
+    static JsErrorCode CALLBACK NMRC1(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef exceptionVar)
+    {
+        // NotifyModuleReadyCallback handling.
+
+        return JsNoError;
+    }
+
+    void SomebugTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
+    {
+        JsModuleRecord rec;
+        JsInitializeModuleRecord(nullptr, nullptr, &rec);
+        JsSetModuleHostInfo(rec, JsModuleHostInfo_FetchImportedModuleCallback, FIMC1);
+        JsSetModuleHostInfo(rec, JsModuleHostInfo_FetchImportedModuleFromScriptCallback, FIMC1);
+        JsSetModuleHostInfo(rec, JsModuleHostInfo_NotifyModuleReadyCallback, NMRC1);
+
+        JsValueRef F = JS_INVALID_REFERENCE;
+        JsErrorCode err = JsRunScript(_u("var j = import('foo.js').then(mod => { mod.bar(); })"), 0, _u(""), &F);
+
+        CHECK(err == JsNoError);
+    }
+
+    TEST_CASE("ApiTest_SomebugTest", "[ApiTest]")
+    {
+        JsRTApiTest::WithSetup(JsRuntimeAttributeEnableExperimentalFeatures, SomebugTest);
+
+    }
     void ObjectHasOwnPropertyMethodTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
     {
         JsValueRef proto = JS_INVALID_REFERENCE;
@@ -2196,4 +2241,84 @@ namespace JsRTApiTest
         JsRTApiTest::RunWithAttributes(JsRTApiTest::JsCopyStringOneByteMethodTest);
     }
 
+    void JsLessThanTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
+    {
+        // Create some values
+        JsValueRef number1 = JS_INVALID_REFERENCE;  // number1 = 1
+        REQUIRE(JsDoubleToNumber(1, &number1) == JsNoError);
+        JsValueRef number2 = JS_INVALID_REFERENCE;  // number2 = 2
+        REQUIRE(JsDoubleToNumber(2, &number2) == JsNoError);
+        JsValueRef stringa = JS_INVALID_REFERENCE;  // stringa = "1"
+        REQUIRE(JsPointerToString(_u("1"), wcslen(_u("1")), &stringa) == JsNoError);
+        JsValueRef undefined = GetUndefined();
+        JsValueRef nullValue = JS_INVALID_REFERENCE;
+        REQUIRE(JsGetNullValue(&nullValue) == JsNoError);
+        JsValueRef trueValue = JS_INVALID_REFERENCE;
+        REQUIRE(JsGetTrueValue(&trueValue) == JsNoError);
+        JsValueRef falseValue = JS_INVALID_REFERENCE;
+        REQUIRE(JsGetFalseValue(&falseValue) == JsNoError);
+
+        bool result;
+        REQUIRE(JsLessThan(number1, number2, &result) == JsNoError);
+        CHECK(result == true);
+        REQUIRE(JsLessThan(number1, stringa, &result) == JsNoError);
+        CHECK(result == false);
+        REQUIRE(JsLessThan(number1, undefined, &result) == JsNoError);
+        CHECK(result == false);
+        REQUIRE(JsLessThan(falseValue, trueValue, &result) == JsNoError);
+        CHECK(result == true);
+        REQUIRE(JsLessThan(undefined, undefined, &result) == JsNoError);
+        CHECK(result == false);
+        REQUIRE(JsLessThan(nullValue, undefined, &result) == JsNoError);
+        CHECK(result == false);
+
+        REQUIRE(JsLessThanOrEqual(number1, number2, &result) == JsNoError);
+        CHECK(result == true);
+        REQUIRE(JsLessThanOrEqual(number1, number1, &result) == JsNoError);
+        CHECK(result == true);
+        REQUIRE(JsLessThanOrEqual(number1, stringa, &result) == JsNoError);
+        CHECK(result == true);
+        REQUIRE(JsLessThanOrEqual(trueValue, trueValue, &result) == JsNoError);
+        CHECK(result == true);
+        REQUIRE(JsLessThanOrEqual(falseValue, nullValue, &result) == JsNoError);
+        CHECK(result == true);
+        REQUIRE(JsLessThanOrEqual(falseValue, undefined, &result) == JsNoError);
+        CHECK(result == false);
+        REQUIRE(JsLessThanOrEqual(undefined, undefined, &result) == JsNoError);
+        CHECK(result == false);
+        REQUIRE(JsLessThanOrEqual(nullValue, undefined, &result) == JsNoError);
+        CHECK(result == false);
+    }
+
+    TEST_CASE("ApiTest_JsLessThanTest", "[ApiTest]")
+    {
+        JsRTApiTest::RunWithAttributes(JsRTApiTest::JsLessThanTest);
+    }
+
+    void JsCreateStringTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
+    {
+        // Passing in invalid utf8 sequences should result in the unicode replacement character
+        const char invalidUtf8[] = { -127 /* 0x80 */, '\0' };
+        JsValueRef result;
+        REQUIRE(JsCreateString(invalidUtf8, 1, &result) == JsNoError);
+        uint16_t utf16Result[2];
+        size_t written;
+        REQUIRE(JsCopyStringUtf16(result, 0, 1, utf16Result, &written) == JsNoError);
+        CHECK(written == 1);
+        CHECK(utf16Result[0] == 0xFFFD);
+
+        // Creating a utf8 string and then copying it back out should give an identical string
+        // Specifying -1 as the length should result in using strlen as the length
+        const char validUtf8Input[] = {'T', 'e', 's', 't', ' ', -30 /* 0xe2 */, -104 /* 0x98 */, -125 /* 0x83 */, 0};
+        REQUIRE(JsCreateString(validUtf8Input, static_cast<size_t>(-1), &result) == JsNoError);
+        char utf8Result[10];
+        REQUIRE(JsCopyString(result,utf8Result, 10, &written) == JsNoError);
+        CHECK(written == strlen(validUtf8Input));
+        CHECK(memcmp(utf8Result, validUtf8Input, written) == 0);
+    }
+
+    TEST_CASE("ApiTest_JsCreateStringTest", "[ApiTest]")
+    {
+        JsRTApiTest::RunWithAttributes(JsRTApiTest::JsCreateStringTest);
+    }
 }

@@ -3,17 +3,15 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
+WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
-var a = new Object();
+var tests = [
+  {
+    name: "calling Symbol.toPrimitive on Date prototype should not AV",
+    body: function () {
+         Date.prototype[Symbol.toPrimitive].call({},'strin' + 'g');
+    }
+  }
+];
 
-function replacer(k, v)
-{
-    return v;
-}
-
-for (var i = 0; i < 1290; i++)
-{
-    a[i + 10] = 0;
-}
-
-WScript.Echo(JSON.stringify(a, replacer).substring(0,20));
+testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

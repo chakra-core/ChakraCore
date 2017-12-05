@@ -13,7 +13,7 @@
 # Finalize Build Script, which should be invoked at the very end of the build.
 
 param (
-    [ValidateSet("x86", "x64", "arm", "*")]
+    [ValidateSet("x86", "x64", "arm", "arm64", "*")]
     [string]$arch = "*",
 
     [ValidateSet("debug", "release", "test", "codecoverage", "*")]
@@ -59,7 +59,7 @@ $global:exitcode = 0
 
 if ($arch -eq "*") {
 
-    foreach ($arch in ("x86", "x64", "arm")) {
+    foreach ($arch in ("x86", "x64", "arm", "arm64")) {
         ExecuteCommand "$PSScriptRoot\post_build.ps1 -arch $arch -flavor $flavor -srcpath ""$srcpath"" -buildRoot ""$buildRoot"" -objpath ""$objpath"" -srcsrvcmdpath ""$srcsrvcmdpath"" -bvtcmdpath ""$bvtcmdpath"" -repo ""$repo""" -logFile ""$logFile""
     }
 

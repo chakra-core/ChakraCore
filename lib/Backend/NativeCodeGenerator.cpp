@@ -486,7 +486,10 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
     Assert(fn->GetFunctionBody() == fn);
     Assert(!fn->IsDeferred());
 
-#if !defined(_M_ARM64)
+#if defined(_M_ARM64) && !defined(ENABLE_DEBUG_CONFIG_OPTIONS)
+    // Disable JIT in ARM64 release build till it is stable. Enable in debug and test build for testing
+    return false;
+#endif
 
     if (fn->IsGeneratorAndJitIsDisabled())
     {
@@ -606,9 +609,6 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
     Processor()->PrioritizeJobAndWait(this, entryPointInfo, function);
     CheckCodeGenDone(fn, entryPointInfo, function);
     return true;
-#else
-    return false;
-#endif
 }
 
 void NativeCodeGenerator::GenerateLoopBody(Js::FunctionBody * fn, Js::LoopHeader * loopHeader, Js::EntryPointInfo* entryPoint, uint localCount, Js::Var localSlots[])
@@ -721,7 +721,7 @@ NativeCodeGenerator::IsValidVar(const Js::Var var, Recycler *const recycler)
     }
 #endif
 
-    RecyclableObject *const recyclableObject = RecyclableObject::FromVar(var);
+    RecyclableObject *const recyclableObject = RecyclableObject::UnsafeFromVar(var);
     if(!recycler->IsValidObject(recyclableObject, sizeof(*recyclableObject)))
     {
         return false;
@@ -1072,7 +1072,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         workItem->GetEntryPoint()->GetJitTransferData()->SetIsReady();
     }
 
-#if defined(_M_X64)
+#if defined(_M_X64_OR_ARM64)
     XDataAllocation * xdataInfo = HeapNewZ(XDataAllocation);
     xdataInfo->address = (byte*)jitWriteData.xdataAddr;
     XDataAllocator::Register(xdataInfo, jitWriteData.codeAddress, jitWriteData.codeSize);
@@ -1871,7 +1871,7 @@ NativeCodeGenerator::Prioritize(JsUtil::Job *const job, const bool forceAddJobTo
     if (functionBody->GetIsAsmjsMode())
     {
         jitMode = ExecutionMode::FullJit;
-        functionBody->SetExecutionMode(ExecutionMode::FullJit);
+        functionBody->SetAsmJsExecutionMode();
     }
     else
     {
@@ -3599,7 +3599,7 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
         bool isConstructorCall = false;
         bool isPolymorphicCall = false;
 
-        if (!inliningDecider.HasCallSiteInfo(inlineeFunctionBody, profiledCallSiteId))
+        if (!inlineeFunctionBody->IsJsBuiltInCode() && !inliningDecider.HasCallSiteInfo(inlineeFunctionBody, profiledCallSiteId))
         {
             //There is no callsite information. We should hit bailonnoprofile for these callsites. Ignore.
             continue;

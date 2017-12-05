@@ -28,7 +28,7 @@ void Scope::ForceAllSymbolNonLocalReference(ByteCodeGenerator *byteCodeGenerator
 {
     this->ForEachSymbol([this, byteCodeGenerator](Symbol *const sym)
     {
-        if (!sym->GetIsArguments())
+        if (!sym->IsArguments() && !sym->IsSpecialSymbol())
         {
             sym->SetHasNonLocalReference();
             byteCodeGenerator->ProcessCapturedSym(sym);
@@ -39,14 +39,7 @@ void Scope::ForceAllSymbolNonLocalReference(ByteCodeGenerator *byteCodeGenerator
 
 bool Scope::IsEmpty() const
 {
-    if (GetFunc()->bodyScope == this || (GetFunc()->IsGlobalFunction() && this->IsGlobalEvalBlockScope()))
-    {
-        return Count() == 0 && !GetFunc()->isThisLexicallyCaptured;
-    }
-    else
-    {
-        return Count() == 0;
-    }
+    return Count() == 0;
 }
 
 void Scope::SetIsObject()

@@ -59,6 +59,8 @@ public:
     virtual intptr_t GetDebugScriptIdWhenSetAddr() const = 0;
 #endif
 
+    virtual intptr_t GetChakraLibAddr() const = 0;
+
 #if ENABLE_NATIVE_CODEGEN
     virtual void AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper) = 0;
     virtual IR::JnHelperMethod GetDOMFastPathHelper(intptr_t funcInfoAddr) = 0;

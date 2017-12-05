@@ -7,6 +7,7 @@
 FuncInfo::FuncInfo(
     const char16 *name,
     ArenaAllocator *alloc,
+    ByteCodeGenerator *byteCodeGenerator,
     Scope *paramScope,
     Scope *bodyScope,
     ParseNode *pnode,
@@ -25,14 +26,11 @@ FuncInfo::FuncInfo(
     outArgsDepth(0),
 #endif
     name(name),
+    thisConstantRegister(Js::Constants::NoRegister),
     nullConstantRegister(Js::Constants::NoRegister),
     undefinedConstantRegister(Js::Constants::NoRegister),
     trueConstantRegister(Js::Constants::NoRegister),
     falseConstantRegister(Js::Constants::NoRegister),
-    thisPointerRegister(Js::Constants::NoRegister),
-    superRegister(Js::Constants::NoRegister),
-    superCtorRegister(Js::Constants::NoRegister),
-    newTargetRegister(Js::Constants::NoRegister),
     envRegister(Js::Constants::NoRegister),
     frameObjRegister(Js::Constants::NoRegister),
     frameSlotsRegister(Js::Constants::NoRegister),
@@ -71,14 +69,6 @@ FuncInfo::FuncInfo(
     inlineCacheMap(nullptr),
     slotProfileIdMap(alloc),
     argsPlaceHolderSlotCount(0),
-    thisScopeSlot(Js::Constants::NoProperty),
-    superScopeSlot(Js::Constants::NoProperty),
-    superCtorScopeSlot(Js::Constants::NoProperty),
-    newTargetScopeSlot(Js::Constants::NoProperty),
-    isThisLexicallyCaptured(false),
-    isSuperLexicallyCaptured(false),
-    isSuperCtorLexicallyCaptured(false),
-    isNewTargetLexicallyCaptured(false),
     inlineCacheCount(0),
     rootObjectLoadInlineCacheCount(0),
     rootObjectLoadMethodInlineCacheCount(0),
@@ -86,6 +76,10 @@ FuncInfo::FuncInfo(
     isInstInlineCacheCount(0),
     referencedPropertyIdCount(0),
     argumentsSymbol(nullptr),
+    thisSymbol(nullptr),
+    newTargetSymbol(nullptr),
+    superSymbol(nullptr),
+    superConstructorSymbol(nullptr),
     nonUserNonTempRegistersToInitialize(alloc),
     constantToRegister(alloc, 17),
     stringToRegister(alloc, 17),
@@ -93,7 +87,8 @@ FuncInfo::FuncInfo(
     stringTemplateCallsiteRegisterMap(alloc, 17),
     targetStatements(alloc),
     nextForInLoopLevel(0),
-    maxForInLoopLevel(0)
+    maxForInLoopLevel(0),
+    originalAttributes(Js::FunctionInfo::Attributes::None)
 {
     this->byteCodeFunction = byteCodeFunction;
     if (bodyScope != nullptr)
@@ -107,6 +102,15 @@ FuncInfo::FuncInfo(
     if (pnode && pnode->sxFnc.NestedFuncEscapes())
     {
         this->SetHasMaybeEscapedNestedFunc(DebugOnly(_u("Child")));
+    }
+
+    if (byteCodeFunction && !byteCodeFunction->IsDeferred() && byteCodeFunction->CanBeDeferred())
+    {
+        // Disable (re-)deferral of this function temporarily. Add it to the list of FuncInfo's to be processed when 
+        // byte code gen is done.
+        this->originalAttributes = byteCodeFunction->GetAttributes();
+        byteCodeGenerator->AddFuncInfoToFinalizationSet(this);
+        byteCodeFunction->SetAttributes((Js::FunctionInfo::Attributes)(this->originalAttributes & ~Js::FunctionInfo::Attributes::CanDefer));
     }
 }
 
@@ -132,67 +136,27 @@ BOOL FuncInfo::HasDirectSuper() const
 
 BOOL FuncInfo::IsClassMember() const
 {
-    return root->sxFnc.IsClassMember();
+    return this->byteCodeFunction->IsClassMethod();
 }
 
 BOOL FuncInfo::IsLambda() const
 {
-    return root->sxFnc.IsLambda();
+    return this->byteCodeFunction->IsLambda();
 }
 
 BOOL FuncInfo::IsClassConstructor() const
 {
-    return root->sxFnc.IsClassConstructor();
+    return this->byteCodeFunction->IsClassConstructor();
 }
 
 BOOL FuncInfo::IsBaseClassConstructor() const
 {
-    return root->sxFnc.IsBaseClassConstructor();
+    return this->byteCodeFunction->IsBaseClassConstructor();
 }
 
-void FuncInfo::EnsureThisScopeSlot()
+BOOL FuncInfo::IsDerivedClassConstructor() const
 {
-    if (this->thisScopeSlot == Js::Constants::NoProperty)
-    {
-        // In case of split scope param and body has separate closures. So we have to use different scope slots for them.
-        Scope* scope = this->IsBodyAndParamScopeMerged() ? this->bodyScope : this->paramScope;
-        Scope* currentScope = scope->IsGlobalEvalBlockScope() ? this->GetGlobalEvalBlockScope() : scope;
-
-        this->thisScopeSlot = currentScope->AddScopeSlot();
-    }
-}
-
-void FuncInfo::EnsureSuperScopeSlot()
-{
-    if (this->superScopeSlot == Js::Constants::NoProperty)
-    {
-        // In case of split scope param and body has separate closures. So we have to use different scope slots for them.
-        Scope* scope = this->IsBodyAndParamScopeMerged() ? this->bodyScope : this->paramScope;
-
-        this->superScopeSlot = scope->AddScopeSlot();
-    }
-}
-
-void FuncInfo::EnsureSuperCtorScopeSlot()
-{
-    if (this->superCtorScopeSlot == Js::Constants::NoProperty)
-    {
-        // In case of split scope param and body has separate closures. So we have to use different scope slots for them.
-        Scope* scope = this->IsBodyAndParamScopeMerged() ? this->bodyScope : this->paramScope;
-
-        this->superCtorScopeSlot = scope->AddScopeSlot();
-    }
-}
-
-void FuncInfo::EnsureNewTargetScopeSlot()
-{
-    if (this->newTargetScopeSlot == Js::Constants::NoProperty)
-    {
-        // In case of split scope param and body has separate closures. So we have to use different scope slots for them.
-        Scope* scope = this->IsBodyAndParamScopeMerged() ? this->bodyScope : this->paramScope;
-
-        this->newTargetScopeSlot = scope->AddScopeSlot();
-    }
+    return root->sxFnc.IsDerivedClassConstructor();
 }
 
 Scope *

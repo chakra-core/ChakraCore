@@ -19,9 +19,16 @@ namespace Js
 
     JavascriptWeakSet* JavascriptWeakSet::FromVar(Var aValue)
     {
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptWeakSet'");
+
+        return static_cast<JavascriptWeakSet *>(aValue);
+    }
+
+    JavascriptWeakSet* JavascriptWeakSet::UnsafeFromVar(Var aValue)
+    {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptWeakSet'");
 
-        return static_cast<JavascriptWeakSet *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptWeakSet *>(aValue);
     }
 
     Var JavascriptWeakSet::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
@@ -32,9 +39,8 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
-        Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr);
+        Var newTarget = args.GetNewTarget();
+        bool isCtorSuperCall = JavascriptOperators::GetAndAssertIsConstructorSuperCall(args);
         CHAKRATEL_LANGSTATS_INC_DATACOUNT(ES6_WeakSet);
 
         JavascriptWeakSet* weakSetObject = nullptr;

@@ -9,18 +9,34 @@ namespace Js
     class LiteralStringWithPropertyStringPtr : public LiteralString
     {
     private:
-        PropertyString * propertyString;
+        Field(PropertyString*) propertyString;
 
     public:
+        virtual Js::PropertyRecord const * GetPropertyRecord(bool dontLookupFromDictionary = false) override;
+
         PropertyString * GetPropertyString() const;
+        PropertyString * GetOrAddPropertyString(); // Get if it's there, otherwise bring it in.
         void SetPropertyString(PropertyString * propStr);
 
         template <typename StringType> static LiteralStringWithPropertyStringPtr * ConvertString(StringType * originalString);
 
         static uint GetOffsetOfPropertyString() { return offsetof(LiteralStringWithPropertyStringPtr, propertyString); }
+        static bool Is(Var var);
+        static bool Is(RecyclableObject* var);
+        template <typename T> static LiteralStringWithPropertyStringPtr* TryFromVar(T var);
+
+        static JavascriptString *
+        NewFromCString(const char * cString, const CharCount charCount, JavascriptLibrary *const library);
+
+        static JavascriptString *
+        NewFromWideString(const char16 * wString, const CharCount charCount, JavascriptLibrary *const library);
+
+        static JavascriptString * CreateEmptyString(JavascriptLibrary *const library);
 
     protected:
         LiteralStringWithPropertyStringPtr(StaticType* stringTypeStatic);
+        LiteralStringWithPropertyStringPtr(const char16 * wString, const CharCount stringLength, JavascriptLibrary *const library);
+
         DEFINE_VTABLE_CTOR(LiteralStringWithPropertyStringPtr, LiteralString);
 
     public:
@@ -29,6 +45,18 @@ namespace Js
             return VTableValue::VtableLiteralStringWithPropertyStringPtr;
         }
     };
+
+    // Templated so that the Is call dispatchs to different function depending
+    // on if argument is already a RecyclableObject* or only known to be a Var
+    //
+    // In case it is known to be a RecyclableObject*, the Is call skips that check
+    template <typename T>
+    inline LiteralStringWithPropertyStringPtr * LiteralStringWithPropertyStringPtr::TryFromVar(T var)
+    {
+        return LiteralStringWithPropertyStringPtr::Is(var)
+            ? reinterpret_cast<LiteralStringWithPropertyStringPtr*>(var)
+            : nullptr;
+    }
 
     // Base class for concat strings.
     // Concat string is a virtual string, or a non-leaf node in concat string tree.
@@ -236,6 +264,7 @@ namespace Js
         const char16 * GetSz() override sealed;
         static bool Is(Var var);
         static ConcatStringMulti * FromVar(Var value);
+        static ConcatStringMulti * UnsafeFromVar(Var value);
         static size_t GetAllocSize(uint slotCount);
         void SetItem(_In_range_(0, slotCount - 1) uint index, JavascriptString* value);
 

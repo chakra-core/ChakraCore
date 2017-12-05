@@ -518,7 +518,7 @@ void LegalizeMD::EmitRandomNopBefore(IR::Instr *insertInstr, UINT_PTR rand, RegN
         // We avoid target reg to avoid pipeline stalls.
         // Less likely target reg will be RegR12 as we insert nops only for user defined constants and
         // RegR12 is mostly used for temporary data such as legalizer post regalloc.
-        opnd1->SetReg(RegR12);
+        opnd1->SetReg(SCRATCH_REG);
     }
 
     switch ((rand >> 5) & 3)

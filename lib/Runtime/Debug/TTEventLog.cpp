@@ -551,6 +551,7 @@ namespace TTD
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(HasOwnPropertyActionTag, ContextAPIWrapper, JsRTSingleVarScalarArgumentAction, HasOwnPropertyAction_Execute);
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(InstanceOfActionTag, ContextAPIWrapper, JsRTDoubleVarArgumentAction, InstanceOfAction_Execute);
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(EqualsActionTag, ContextAPIWrapper, JsRTDoubleVarSingleScalarArgumentAction, EqualsAction_Execute);
+        TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(LessThanActionTag, ContextAPIWrapper, JsRTDoubleVarSingleScalarArgumentAction, LessThanAction_Execute);
 
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(GetPropertyIdFromSymbolTag, ContextAPINoScriptWrapper, JsRTSingleVarArgumentAction, GetPropertyIdFromSymbolAction_Execute);
 
@@ -821,8 +822,8 @@ namespace TTD
 
         if(tEvent->InfoString.Length != infoStrLength)
         {
-            wprintf(_u("New Telemetry Msg: %ls\n"), infoStr);
-            wprintf(_u("Original Telemetry Msg: %ls\n"), tEvent->InfoString.Contents);
+            Output::Print(_u("New Telemetry Msg: %ls\n"), infoStr);
+            Output::Print(_u("Original Telemetry Msg: %ls\n"), tEvent->InfoString.Contents);
             TTDAssert(false, "Telemetry messages differ??");
         }
         else
@@ -831,8 +832,8 @@ namespace TTD
             {
                 if(tEvent->InfoString.Contents[i] != infoStr[i])
                 {
-                    wprintf(_u("New Telemetry Msg: %ls\n"), infoStr);
-                    wprintf(_u("Original Telemetry Msg: %ls\n"), tEvent->InfoString.Contents);
+                    Output::Print(_u("New Telemetry Msg: %ls\n"), infoStr);
+                    Output::Print(_u("Original Telemetry Msg: %ls\n"), tEvent->InfoString.Contents);
                     TTDAssert(false, "Telemetry messages differ??");
 
                     break;
@@ -2196,6 +2197,17 @@ namespace TTD
         NSLogEvents::SetVarItem_0(gpAction, TTD_CONVERT_JSVAR_TO_TTDVAR(var1));
         NSLogEvents::SetVarItem_1(gpAction, TTD_CONVERT_JSVAR_TO_TTDVAR(var2));
         NSLogEvents::SetScalarItem_0(gpAction, doStrict);
+
+        actionPopper.InitializeWithEventAndEnter(evt);
+    }
+
+    void EventLog::RecordJsRTLessThan(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var1, Js::Var var2, bool allowsEqual)
+    {
+        NSLogEvents::JsRTDoubleVarSingleScalarArgumentAction* gpAction = nullptr;
+        NSLogEvents::EventLogEntry* evt = this->RecordGetInitializedEvent<NSLogEvents::JsRTDoubleVarSingleScalarArgumentAction, NSLogEvents::EventKind::LessThanActionTag>(&gpAction);
+        NSLogEvents::SetVarItem_0(gpAction, TTD_CONVERT_JSVAR_TO_TTDVAR(var1));
+        NSLogEvents::SetVarItem_1(gpAction, TTD_CONVERT_JSVAR_TO_TTDVAR(var2));
+        NSLogEvents::SetScalarItem_0(gpAction, allowsEqual);
 
         actionPopper.InitializeWithEventAndEnter(evt);
     }

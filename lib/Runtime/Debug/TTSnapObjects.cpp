@@ -328,7 +328,7 @@ namespace TTD
                         {
                             //get the value to see if it is alreay ok
                             Js::Var currentValue = nullptr;
-                            Js::JavascriptOperators::GetOwnProperty(obj, pid, &currentValue, obj->GetScriptContext());
+                            Js::JavascriptOperators::GetOwnProperty(obj, pid, &currentValue, obj->GetScriptContext(), nullptr);
 
                             if(currentValue == pVal)
                             {
@@ -403,8 +403,6 @@ namespace TTD
 
             if(snpObject->SnapType->HasNoEnumerableProperties != obj->GetDynamicType()->GetHasNoEnumerableProperties())
             {
-                TTDAssert(!obj->GetDynamicType()->GetIsShared(), "This is shared so we are mucking something up.");
-
                 obj->GetDynamicType()->SetHasNoEnumerableProperties(snpObject->SnapType->HasNoEnumerableProperties);
             }
         }

@@ -108,6 +108,7 @@ _NOINLINE void LargeHeapBlock_Metadata_Corrupted(
 };
 #endif
 
+// If you see this error, it is because of a DOM bug. Assign to daniec or jdweiner.
 _NOINLINE void FromDOM_NoScriptScope_fatal_error()
 {
     int scenario = 5;

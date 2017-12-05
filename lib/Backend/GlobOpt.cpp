@@ -3571,6 +3571,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                 ChangeValueType(this->currentBlock, CurrentBlockData()->FindValue(opnd->AsRegOpnd()->m_sym), valueType, false);
             }
         }
+
         opnd->SetValueType(valueType);
 
         if(!IsLoopPrePass() && opnd->IsSymOpnd() && valueType.IsDefinite())
@@ -3673,6 +3674,18 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
     }
 
     ValueInfo *valueInfo = val->GetValueInfo();
+
+
+    if (this->func->HasFinally())
+    {
+        // s0 = undefined was added on functions with early exit in try-finally functions, that can get copy-proped and case incorrect results
+        if (instr->m_opcode == Js::OpCode::ArgOut_A_Inline && valueInfo->GetSymStore() &&
+            valueInfo->GetSymStore()->m_id == 0)
+        {
+            // We don't want to copy-prop s0 (return symbol) into inlinee code
+            return opnd;
+        }
+    }
 
     // Constant prop?
     int32 intConstantValue;
@@ -17140,7 +17153,7 @@ GlobOpt::IsSwitchOptEnabled(Func const * func)
 {
     Assert(func->IsTopFunc());
     return !PHASE_OFF(Js::SwitchOptPhase, func) && !func->IsSwitchOptDisabled() && !IsTypeSpecPhaseOff(func)
-        && func->DoGlobOpt() && !func->HasTry();
+        && DoAggressiveIntTypeSpec(func) && func->DoGlobOpt();
 }
 
 bool
@@ -17662,7 +17675,8 @@ GlobOpt::ProcessExceptionHandlingEdges(IR::Instr* instr)
 void
 GlobOpt::InsertToVarAtDefInTryRegion(IR::Instr * instr, IR::Opnd * dstOpnd)
 {
-    if (this->currentRegion->GetType() == RegionTypeTry && dstOpnd->IsRegOpnd() && dstOpnd->AsRegOpnd()->m_sym->HasByteCodeRegSlot())
+    if ((this->currentRegion->GetType() == RegionTypeTry || this->currentRegion->GetType() == RegionTypeFinally) &&
+        dstOpnd->IsRegOpnd() && dstOpnd->AsRegOpnd()->m_sym->HasByteCodeRegSlot())
     {
         StackSym * sym = dstOpnd->AsRegOpnd()->m_sym;
         if (sym->IsVar())
@@ -17671,7 +17685,8 @@ GlobOpt::InsertToVarAtDefInTryRegion(IR::Instr * instr, IR::Opnd * dstOpnd)
         }
 
         StackSym * varSym = sym->GetVarEquivSym(nullptr);
-        if (this->currentRegion->writeThroughSymbolsSet->Test(varSym->m_id))
+        if ((this->currentRegion->GetType() == RegionTypeTry && this->currentRegion->writeThroughSymbolsSet->Test(varSym->m_id)) ||
+            ((this->currentRegion->GetType() == RegionTypeFinally && this->currentRegion->GetMatchingTryRegion()->writeThroughSymbolsSet->Test(varSym->m_id))))
         {
             IR::RegOpnd * regOpnd = IR::RegOpnd::New(varSym, IRType::TyVar, instr->m_func);
             this->ToVar(instr->m_next, regOpnd, this->currentBlock, NULL, false);

@@ -18,7 +18,6 @@ public:
     typedef typename Base::SmallHeapBlockBitVector SmallHeapBlockBitVector;
     typedef TBlockAttributes HeapBlockAttributes;
     static const ObjectInfoBits RequiredAttributes = NoBit;
-    static const bool IsLeafOnly = false;
 
     static SmallNormalHeapBlockT * New(HeapBucketT<SmallNormalHeapBlockT> * bucket);
     static void Delete(SmallNormalHeapBlockT * block);
@@ -67,7 +66,6 @@ class SmallNormalWithBarrierHeapBlockT : public SmallNormalHeapBlockT<TBlockAttr
 public:
     typedef TBlockAttributes HeapBlockAttributes;
     static const ObjectInfoBits RequiredAttributes = WithBarrierBit;
-    static const bool IsLeafOnly = false;
 
     static SmallNormalWithBarrierHeapBlockT * New(HeapBucketT<SmallNormalWithBarrierHeapBlockT> * bucket);
     static void Delete(SmallNormalWithBarrierHeapBlockT * heapBlock);

@@ -869,53 +869,53 @@ namespace Js
     void
     ConfigFlagsTable::PrintUsageString()
     {
-        printf("List of Phases:\n");
+        Output::Print(_u("List of Phases:\n"));
         for(int i = 0; i < PhaseCount; i++)
         {
             if (i % 4 == 0)
             {
-                printf("\n  ");
+                Output::Print(_u("\n  "));
             }
-            printf("%-40ls ", PhaseNames[i]);
+            Output::Print(_u("%-40ls "), PhaseNames[i]);
         }
 
-        printf("\n\nList of flags:\n\n");
+        Output::Print(_u("\n\nList of flags:\n\n"));
         for(int i = 0; i < FlagCount; i++)
         {
-            printf("%60ls ", FlagNames[i]);
+            Output::Print(_u("%60ls "), FlagNames[i]);
             switch(GetFlagType(Flag(i)))
             {
             case InvalidFlagType:
                 break;
             case FlagString:
-                printf("[:String]        ");
+                Output::Print(_u("[:String]        "));
                 break;
             case FlagPhases:
-                printf("[:Phase]         ");
+                Output::Print(_u("[:Phase]         "));
                 break;
             case FlagNumber:
-                printf("[:Number]        ");
+                Output::Print(_u("[:Number]        "));
                 break;
             case FlagBoolean:
-                printf("                 ");
+                Output::Print(_u("                 "));
                 break;
             case FlagNumberSet:
-                printf("[:NumberSet]     ");
+                Output::Print(_u("[:NumberSet]     "));
                 break;
             case FlagNumberPairSet:
-                printf("[:NumberPairSet] ");
+                Output::Print(_u("[:NumberPairSet] "));
                 break;
             case FlagNumberTrioSet:
-                printf("[:NumberTrioSet] ");
+                Output::Print(_u("[:NumberTrioSet] "));
                 break;
             case FlagNumberRange:
-                printf("[:NumberRange]   ");
+                Output::Print(_u("[:NumberRange]   "));
                 break;
             default:
                 Assert(false);
                 __assume(false);
             }
-            printf("%ls\n", FlagDescriptions[i]);
+            Output::Print(_u("%ls\n"), FlagDescriptions[i]);
         }
     }
 

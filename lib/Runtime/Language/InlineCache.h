@@ -268,14 +268,6 @@ namespace Js
             Type *const type,
             ScriptContext *const requestContext);
 
-        void CacheMissing(
-            DynamicObject *const missingPropertyHolder,
-            const PropertyId propertyId,
-            const PropertyIndex propertyIndex,
-            const bool isInlineSlot,
-            Type *const type,
-            ScriptContext *const requestContext);
-
         void CacheAccessor(
             const bool isGetter,
             const PropertyId propertyId,
@@ -372,6 +364,7 @@ namespace Js
 
     class PolymorphicInlineCache _ABSTRACT : public FinalizableObject
     {
+        DECLARE_RECYCLER_VERIFY_MARK_FRIEND()
 #ifdef INLINE_CACHE_STATS
         friend class Js::ScriptContext;
 #endif

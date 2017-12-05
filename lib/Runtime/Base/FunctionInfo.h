@@ -157,4 +157,28 @@ namespace Js
             : FunctionInfo(FORCE_NO_WRITE_BARRIER_TAG(entryPoint), Attributes::DoNotProfile)
         {}
     };
+
+    class AutoDisableRedeferral
+    {
+    public:
+        AutoDisableRedeferral(FunctionInfo * functionInfo) : functionInfo(functionInfo), canDefer(false) 
+        {
+            if (functionInfo)
+            {
+                canDefer = functionInfo->CanBeDeferred();
+                functionInfo->SetAttributes((FunctionInfo::Attributes)(functionInfo->GetAttributes() & ~FunctionInfo::Attributes::CanDefer));
+            }
+        }
+        ~AutoDisableRedeferral() 
+        {
+            if (functionInfo && canDefer)
+            {
+                functionInfo->SetAttributes((FunctionInfo::Attributes(functionInfo->GetAttributes() | FunctionInfo::Attributes::CanDefer)));
+            }
+        }
+    private:
+            FunctionInfo * functionInfo;
+            bool canDefer;
+    };
+
 };

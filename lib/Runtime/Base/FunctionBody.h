@@ -7,6 +7,9 @@
 #include "AuxPtrs.h"
 #include "CompactCounters.h"
 
+// Where should I include this file?
+#include "FunctionExecutionStateMachine.h"
+
 struct CodeGenWorkItem;
 class SourceContextInfo;
 struct DeferredFunctionStub;
@@ -1224,6 +1227,7 @@ namespace Js
         bool IsConstructor() const;
         bool IsGenerator() const;
         bool IsClassConstructor() const;
+        bool IsBaseClassConstructor() const;
         bool IsClassMethod() const;
         bool IsModule() const;
         bool IsWasmFunction() const;
@@ -1287,6 +1291,9 @@ namespace Js
         void SetIsPublicLibraryCode() { m_isPublicLibraryCode = true; }
         bool IsPublicLibraryCode() const { return m_isPublicLibraryCode; }
 
+        void SetIsJsBuiltInCode() { m_isJsBuiltInCode = true; }
+        bool IsJsBuiltInCode() const { return m_isJsBuiltInCode; }
+
 #if DBG
         bool HasValidEntryPoint() const;
 #if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
@@ -1346,6 +1353,7 @@ namespace Js
 
         FieldWithBarrier(bool) m_isTopLevel : 1; // Indicates that this function is top-level function, currently being used in script profiler and debugger
         FieldWithBarrier(bool) m_isPublicLibraryCode: 1; // Indicates this function is public boundary library code that should be visible in JS stack
+        FieldWithBarrier(bool) m_isJsBuiltInCode: 1; // Indicates this function comes from the JS Built In implementation
         FieldWithBarrier(bool) m_canBeDeferred : 1;
         FieldWithBarrier(bool) m_displayNameIsRecyclerAllocated : 1;
 
@@ -1528,6 +1536,13 @@ namespace Js
         Assert(GetFunctionInfo());
         Assert(GetFunctionInfo()->GetFunctionProxy() == this);
         return GetFunctionInfo()->IsClassConstructor();
+    }
+
+    inline bool FunctionProxy::IsBaseClassConstructor() const
+    {
+        Assert(GetFunctionInfo());
+        Assert(GetFunctionInfo()->GetFunctionProxy() == this);
+        return GetFunctionInfo()->GetBaseConstructorKind();
     }
 
     inline bool FunctionProxy::IsClassMethod() const
@@ -1828,6 +1843,8 @@ namespace Js
         LPCUTF8 GetStartOfDocument(const char16* reason = nullptr) const;
         bool IsReparsed() const { return m_reparsed; }
         void SetReparsed(bool set) { m_reparsed = set; }
+        bool IsMethod() const { return m_isMethod; }
+        void SetIsMethod(bool set) { m_isMethod = set; }
 #ifdef NTBUILD
         bool GetExternalDisplaySourceName(BSTR* sourceName);
 #endif
@@ -1964,12 +1981,11 @@ namespace Js
         FieldWithBarrier(bool) m_isEval : 1;              // Source code is in 'eval'
         FieldWithBarrier(bool) m_isDynamicFunction : 1;   // Source code is in 'Function'
         FieldWithBarrier(bool) m_hasImplicitArgIns : 1;
-        FieldWithBarrier(bool) m_dontInline : 1;            // Used by the JIT's inliner
-
-        // Indicates if the function has been reparsed for debug attach/detach scenario.
-        FieldWithBarrier(bool) m_reparsed : 1;
+        FieldWithBarrier(bool) m_dontInline : 1;          // Used by the JIT's inliner
+        FieldWithBarrier(bool) m_reparsed : 1;            // Indicates if the function has been reparsed for debug attach/detach scenario.
+        FieldWithBarrier(bool) m_isMethod : 1;            // Function is an object literal method
 #if DBG
-        FieldWithBarrier(bool) m_wasEverAsmjsMode : 1; // has m_isAsmjsMode ever been true
+        FieldWithBarrier(bool) m_wasEverAsmjsMode : 1;    // has m_isAsmjsMode ever been true
 #endif
 
         // This field is not required for deferred parsing but because our thunks can't handle offsets > 128 bytes
@@ -2336,6 +2352,8 @@ namespace Js
 
         FieldWithBarrier(bool) m_hasFirstTmpRegister : 1;
         FieldWithBarrier(bool) m_hasActiveReference : 1;
+
+        FieldWithBarrier(bool) m_isJsBuiltInForceInline : 1;
 #if DBG
         FieldWithBarrier(bool) m_isSerialized : 1;
 #endif
@@ -2345,10 +2363,6 @@ namespace Js
 #if DBG
         // Indicates that nested functions can be allocated on the stack (but may not be)
         FieldWithBarrier(bool) m_canDoStackNestedFunc : 1;
-#endif
-
-#if DBG
-        FieldWithBarrier(bool) initializedExecutionModeAndLimits : 1;
 #endif
 
 #ifdef IR_VIEWER
@@ -2362,21 +2376,11 @@ namespace Js
 
         FieldWithBarrier(byte) inlineDepth; // Used by inlining to avoid recursively inlining functions excessively
 
-        FieldWithBarrier(ExecutionMode) executionMode;
-        FieldWithBarrier(uint16) interpreterLimit;
-        FieldWithBarrier(uint16) autoProfilingInterpreter0Limit;
-        FieldWithBarrier(uint16) profilingInterpreter0Limit;
-        FieldWithBarrier(uint16) autoProfilingInterpreter1Limit;
-        FieldWithBarrier(uint16) simpleJitLimit;
-        FieldWithBarrier(uint16) profilingInterpreter1Limit;
-        FieldWithBarrier(uint16) fullJitThreshold;
-        FieldWithBarrier(uint16) fullJitRequeueThreshold;
-        FieldWithBarrier(uint16) committedProfiledIterations;
+        FieldWithBarrier(FunctionExecutionStateMachine) executionState;
 
-        FieldWithBarrier(uint) m_depth; // Indicates how many times the function has been entered (so increases by one on each recursive call, decreases by one when we're done)
+        // Indicates how many times the function has been entered (so increases by one on each recursive call, decreases by one when we're done)
+        FieldWithBarrier(uint) m_depth;
 
-        FieldWithBarrier(uint32) interpretedCount;
-        FieldWithBarrier(uint32) lastInterpretedCount;
         FieldWithBarrier(uint32) loopInterpreterLimit;
         FieldWithBarrier(uint32) debuggerScopeIndex;
         FieldWithBarrier(uint32) savedPolymorphicCacheState;
@@ -2533,9 +2537,8 @@ namespace Js
         bool HasCachedScopePropIds() const { return hasCachedScopePropIds; }
         void SetHasCachedScopePropIds(bool has) { hasCachedScopePropIds = has; }
 
-        uint32 GetInterpretedCount() const { return interpretedCount; }
-        uint32 SetInterpretedCount(uint32 val) { return interpretedCount = val; }
-        uint32 IncreaseInterpretedCount() { return interpretedCount++; }
+        uint32 GetInterpretedCount() const;
+        uint32 IncreaseInterpretedCount();
 
         uint32 GetLoopInterpreterLimit() const { return loopInterpreterLimit; }
         uint32 SetLoopInterpreterLimit(uint32 val) { return loopInterpreterLimit = val; }
@@ -2546,11 +2549,14 @@ namespace Js
 
         size_t GetLoopBodyName(uint loopNumber, _Out_writes_opt_z_(sizeInChars) WCHAR* displayName, _In_ size_t sizeInChars);
 
+        void SetJsBuiltInForceInline() { m_isJsBuiltInForceInline = true; }
+        bool IsJsBuiltInForceInline() const { return m_isJsBuiltInForceInline; }
+
         void AllocateLoopHeaders();
         void ReleaseLoopHeaders();
         Js::LoopHeader * GetLoopHeader(uint index) const;
         Js::LoopHeader * GetLoopHeaderWithLock(uint index) const;
-        Js::Var GetLoopHeaderArrayPtr() const
+        Js::LoopHeader * GetLoopHeaderArrayPtr() const
         {
             Assert(this->GetLoopHeaderArray() != nullptr);
             return this->GetLoopHeaderArray();
@@ -2611,13 +2617,10 @@ namespace Js
         FunctionEntryPointInfo *GetSimpleJitEntryPointInfo() const;
         void SetSimpleJitEntryPointInfo(FunctionEntryPointInfo *const entryPointInfo);
 
-    private:
-        void VerifyExecutionMode(const ExecutionMode executionMode) const;
-    public:
-        ExecutionMode GetDefaultInterpreterExecutionMode() const;
+        void SetAsmJsExecutionMode();
+        void SetDefaultInterpreterExecutionMode();
         ExecutionMode GetExecutionMode() const;
         ExecutionMode GetInterpreterExecutionMode(const bool isPostBailout);
-        void SetExecutionMode(const ExecutionMode executionMode);
     private:
         bool IsInterpreterExecutionMode() const;
 
@@ -2629,15 +2632,7 @@ namespace Js
         void TransitionToSimpleJitExecutionMode();
         void TransitionToFullJitExecutionMode();
 
-    private:
-        void VerifyExecutionModeLimits();
-        void InitializeExecutionModeAndLimits();
-    public:
         void ReinitializeExecutionModeAndLimits();
-    private:
-        void SetFullJitThreshold(const uint16 newFullJitThreshold, const bool skipSimpleJit = false);
-        void CommitExecutedIterations();
-        void CommitExecutedIterations(uint16 &limit, const uint executedIterations);
 
     private:
         uint16 GetSimpleJitExecutedIterations() const;
@@ -2662,8 +2657,6 @@ namespace Js
         bool DoSimpleJit() const;
         bool DoSimpleJitWithLock() const;
         bool DoSimpleJitDynamicProfile() const;
-
-    private:
         bool DoInterpreterProfile() const;
         bool DoInterpreterProfileWithLock() const;
         bool DoInterpreterAutoProfile() const;
@@ -3611,9 +3604,9 @@ namespace Js
             slotArray[ScopeMetadataSlotIndex] = scopeMetadataObj;
         }
 
-        uint GetCount() const
+        size_t GetCount() const
         {
-            return ::Math::PointerCastToIntegralTruncate<uint>(slotArray[EncodedSlotCountSlotIndex]);
+            return ::Math::PointerCastToIntegralTruncate<size_t>(slotArray[EncodedSlotCountSlotIndex]);
         }
 
         void SetCount(uint count)

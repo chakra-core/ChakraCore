@@ -272,7 +272,7 @@ namespace Js
 
         bool IsHostManagedSource() const;
 
-        static int StaticGetHashCode(__in const Utf8SourceInfo* const si)
+        static hash_t StaticGetHashCode(__in const Utf8SourceInfo* const si)
         {
             return si->GetSourceHolder()->GetHashCode();
         }

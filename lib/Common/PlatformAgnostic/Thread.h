@@ -2,9 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-
-#ifndef RUNTIME_PLATFORM_AGNOSTIC_COMMON_THREAD
-#define RUNTIME_PLATFORM_AGNOSTIC_COMMON_THREAD
+#pragma once
 
 namespace PlatformAgnostic
 {
@@ -26,5 +24,3 @@ class Thread
                                ThreadInitFlag init_flag);
 };
 } // namespace PlatformAgnostic
-
-#endif // RUNTIME_PLATFORM_AGNOSTIC_COMMON_THREAD

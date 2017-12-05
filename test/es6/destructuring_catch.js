@@ -59,6 +59,28 @@ var tests = [
         }
         assert.areEqual(x, undefined, "Assignment inside the catch block should assign the value to the catch param not the body var");
       })();
+
+      (function () {
+        let y = 1;
+        try {
+            throw { y : 10 };
+        } catch ({y}) {
+            assert.areEqual(y, 10, "Catch block refers to the destructured param");
+        }
+        assert.areEqual(y, 1, "Function body refers to the let variable");
+      })();
+    
+      (function () {
+        let x = 1;
+        try {
+            throw [{ x : 10 }];
+        } catch ([{
+            x
+        }]) {
+            assert.areEqual(x, 10, "Catch block with nested destructured param");
+        }
+        assert.areEqual(x, 1, "Let declaration in the function body is not affected by the destructured params");
+      })();
     }
   },
   {

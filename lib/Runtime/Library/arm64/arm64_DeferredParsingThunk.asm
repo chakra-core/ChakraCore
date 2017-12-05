@@ -37,7 +37,7 @@
 
     ; Pass the address of the function at the saved x0
     mov     x0, sp
-    add     x0, x0, #16
+    add     x0, x0, #16                 ; 16 is subtracted from the stack pointer when the a function is called, add it back here.
     bl      |?DeferredParse@JavascriptFunction@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVScriptFunction@2@@Z| ; retrieve entrypoint
     mov     x16, x0                     ; back up entryPoint in x16
 

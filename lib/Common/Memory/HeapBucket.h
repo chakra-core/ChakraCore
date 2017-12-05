@@ -65,6 +65,7 @@ class HeapBucket
 public:
     HeapBucket();
 
+    uint GetSizeCat() const;
     uint GetBucketIndex() const;
     uint GetMediumBucketIndex() const;
 
@@ -82,6 +83,7 @@ protected:
 #endif
 
 #ifdef RECYCLER_PAGE_HEAP
+protected:
     bool isPageHeapEnabled;
 public:
     inline bool IsPageHeapEnabled(ObjectInfoBits attributes) const
@@ -90,6 +92,27 @@ public:
         return isPageHeapEnabled && ((attributes & ClientTrackableObjectBits) == 0);
     }
 #endif
+
+#if ENABLE_MEM_STATS
+protected:
+    HeapBucketStats memStats;  // mem stats per bucket
+public:
+    const HeapBucketStats& GetMemStats() const { return memStats; }
+
+    template <typename TBlockType>
+    void PreAggregateBucketStats(TBlockType* heapBlock)
+    {
+        Assert(heapBlock->heapBucket == this);
+        memStats.PreAggregate();
+        heapBlock->AggregateBlockStats(memStats);
+    }
+
+    void AggregateBucketStats()
+    {
+        memStats.BeginAggregate();  // Begin aggregate, clear if needed
+    }
+#endif
+
     Recycler * GetRecycler() const;
 
     template <typename TBlockType>
@@ -100,6 +123,11 @@ public:
 
     template <typename TBlockAttributes>
     friend class SmallFinalizableHeapBlockT;
+
+#ifdef RECYCLER_VISITED_HOST
+    template <typename TBlockAttributes>
+    friend class SmallRecyclerVisitedHostHeapBlockT;
+#endif
 
     friend class LargeHeapBlock;
 #ifdef RECYCLER_WRITE_BARRIER
@@ -136,9 +164,10 @@ public:
     void ResetMarks(ResetMarkFlags flags);
     void ScanNewImplicitRoots(Recycler * recycler);
 
-#ifdef DUMP_FRAGMENTATION_STATS
-    void AggregateBucketStats(HeapBucketStats& stats);
+#if ENABLE_MEM_STATS
+    void AggregateBucketStats();
 #endif
+
     uint Rescan(Recycler * recycler, RescanFlags flags);
 #if ENABLE_CONCURRENT_GC
     void MergeNewHeapBlock(TBlockType * heapBlock);
@@ -164,7 +193,12 @@ public:
 
 protected:
     static bool const IsLeafBucket = TBlockType::RequiredAttributes == LeafBit;
-    static bool const IsFinalizableBucket = TBlockType::RequiredAttributes == FinalizeBit;
+    // Not all objects in the recycler visited host heap block are finalizable, but we still require finalizable semantics
+    static bool const IsFinalizableBucket = TBlockType::RequiredAttributes == FinalizeBit
+#ifdef RECYCLER_VISITED_HOST
+        || ((TBlockType::RequiredAttributes & RecyclerVisitedHostBit) == (RecyclerVisitedHostBit))
+#endif
+    ;
     static bool const IsNormalBucket = TBlockType::RequiredAttributes == NoBit;
 #ifdef RECYCLER_WRITE_BARRIER
     static bool const IsWriteBarrierBucket = TBlockType::RequiredAttributes == WithBarrierBit;

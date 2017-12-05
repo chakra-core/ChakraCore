@@ -136,7 +136,7 @@ namespace Js
             pOMDisplay = Anew(pRefArena->Arena(), RecyclableObjectDisplay, this);
         }
 
-        if (this->isConst || this->propId == Js::PropertyIds::_superReferenceSymbol || this->propId == Js::PropertyIds::_superCtorReferenceSymbol)
+        if (this->isConst || this->propId == Js::PropertyIds::_super || this->propId == Js::PropertyIds::_superConstructor)
         {
             pOMDisplay->SetDefaultTypeAttribute(DBGPROP_ATTRIB_VALUE_READONLY);
         }
@@ -270,8 +270,13 @@ namespace Js
             }
             else
             {
-                Js::JavascriptString *builtInName = ParseFunctionName(returnValue->calledFunction->GetDisplayName(), pResolvedObject->scriptContext);
-                swprintf_s(finalName, RETURN_VALUE_MAX_NAME, _u("[%s returned]"), builtInName->GetSz());
+                ENTER_PINNED_SCOPE(JavascriptString, displayName);
+                displayName = returnValue->calledFunction->GetDisplayName();
+
+                const char16 *builtInName = ParseFunctionName(displayName->GetString(), displayName->GetLength(), pResolvedObject->scriptContext);
+                swprintf_s(finalName, RETURN_VALUE_MAX_NAME, _u("[%s returned]"), builtInName);
+
+                LEAVE_PINNED_SCOPE();
             }
             pResolvedObject->obj = returnValue->returnedValue;
             defaultAttributes |= DBGPROP_ATTRIB_VALUE_READONLY;
@@ -289,24 +294,21 @@ namespace Js
     // The debugger uses the functionNameId field instead of the "name" property to get the name of the funtion. The functionNameId field is overloaded and may contain the display name if
     // toString() has been called on the function object. For built-in or external functions the display name can be something like "function Echo() { native code }". We will try to parse the
     // function name out of the display name so the user will see just the function name e.g. "Echo" instead of the full display name in debugger.
-    JavascriptString * VariableWalkerBase::ParseFunctionName(JavascriptString* displayName, ScriptContext* scriptContext)
+    const char16 * VariableWalkerBase::ParseFunctionName(const char16 * displayNameBuffer, const charcount_t displayNameBufferLength, ScriptContext* scriptContext)
     {
-        Assert(displayName);
-        const char16 * displayNameBuffer = displayName->GetString();
-        const charcount_t displayNameBufferLength = displayName->GetLength();
         const charcount_t funcStringLength = _countof(JS_DISPLAY_STRING_FUNCTION_HEADER) - 1; // discount the ending null character in string literal
         const charcount_t templateStringLength = funcStringLength + _countof(JS_DISPLAY_STRING_FUNCTION_BODY) - 1; // discount the ending null character in string literal
         // If the string doesn't meet our expected format; return the original string.
         if (displayNameBufferLength <= templateStringLength || (wmemcmp(displayNameBuffer, JS_DISPLAY_STRING_FUNCTION_HEADER, funcStringLength) != 0))
         {
-            return displayName;
+            return displayNameBuffer;
         }
 
         // Look for the left parenthesis, if we don't find one; return the original string.
         const char16* parenChar = wcschr(displayNameBuffer, '(');
         if (parenChar == nullptr)
         {
-            return displayName;
+            return displayNameBuffer;
         }
 
         charcount_t actualFunctionNameLength = displayNameBufferLength - templateStringLength;
@@ -314,17 +316,12 @@ namespace Js
         char16 * actualFunctionNameBuffer = AnewArray(GetArenaFromContext(scriptContext), char16, actualFunctionNameLength + 1); // The last character will be the null character.
         if (actualFunctionNameBuffer == nullptr)
         {
-            return displayName;
+            return displayNameBuffer;
         }
         js_memcpy_s(actualFunctionNameBuffer, byteLengthForCopy, displayNameBuffer + funcStringLength, byteLengthForCopy);
         actualFunctionNameBuffer[actualFunctionNameLength] = _u('\0');
 
-        JavascriptString * actualFunctionName = JavascriptString::NewWithArenaSz(actualFunctionNameBuffer, scriptContext);
-        if (actualFunctionName == nullptr)
-        {
-            return displayName;
-        }
-        return actualFunctionName;
+        return actualFunctionNameBuffer;
     }
 
     /*static*/
@@ -417,7 +414,7 @@ namespace Js
             Assert(pResolvedObject->propId != Js::Constants::NoProperty);
             Assert(!Js::IsInternalPropertyId(pResolvedObject->propId));
 
-            if (pResolvedObject->propId == Js::PropertyIds::_superReferenceSymbol || pResolvedObject->propId == Js::PropertyIds::_superCtorReferenceSymbol)
+            if (pResolvedObject->propId == Js::PropertyIds::_super || pResolvedObject->propId == Js::PropertyIds::_superConstructor)
             {
                 pResolvedObject->name         = _u("super");
             }
@@ -525,13 +522,12 @@ namespace Js
         // Default to writable (for the case of vars and internal properties).
         *isConst = false;
 
-
-        if (!allowLexicalThis && (propertyId == Js::PropertyIds::_lexicalThisSlotSymbol || propertyId == Js::PropertyIds::_lexicalNewTargetSymbol))
+        if (!allowLexicalThis && (propertyId == Js::PropertyIds::_this || propertyId == Js::PropertyIds::_newTarget))
         {
             return false;
         }
 
-        if (!allowSuperReference && (propertyId == Js::PropertyIds::_superReferenceSymbol || propertyId == Js::PropertyIds::_superCtorReferenceSymbol))
+        if (!allowSuperReference && (propertyId == Js::PropertyIds::_super || propertyId == Js::PropertyIds::_superConstructor))
         {
             return false;
         }
@@ -645,7 +641,7 @@ namespace Js
                 }
                 else if (pFBody->GetPropertyIdsForScopeSlotArray() != nullptr)
                 {
-                    uint slotArrayCount = slotArray.GetCount();
+                    uint slotArrayCount = static_cast<uint>(slotArray.GetCount());
                     pMembersList = JsUtil::List<DebuggerPropertyDisplayInfo *, ArenaAllocator>::New(arena, slotArrayCount);
 
                     for (uint32 i = 0; i < slotArrayCount; i++)
@@ -2475,19 +2471,9 @@ namespace Js
                                 {
                                     if (propertyId == Constants::NoProperty)
                                     {
-                                        if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(obj))
-                                        {
-                                            // If we have a property string, it is assumed that the propertyId is being
-                                            // kept alive with the object
-                                            PropertyString * propertyString = (PropertyString *)obj;
-                                            propertyId = propertyString->GetPropertyRecord()->GetPropertyId();
-                                        }
-                                        else
-                                        {
-                                            const PropertyRecord* propertyRecord;
-                                            objectContext->GetOrAddPropertyRecord(obj->GetSz(), obj->GetLength(), &propertyRecord);
-                                            propertyId = propertyRecord->GetPropertyId();
-                                        }
+                                        const PropertyRecord* propertyRecord;
+                                        objectContext->GetOrAddPropertyRecord(obj, &propertyRecord);
+                                        propertyId = propertyRecord->GetPropertyId();
                                     }
                                     // MoveAndGetNext shouldn't return an internal property id
                                     Assert(!Js::IsInternalPropertyId(propertyId));
@@ -2601,6 +2587,7 @@ namespace Js
                                 // We need to special-case RegExp constructor here because it has some special properties (above) and some
                                 // special enumerable properties which should all show up in the debugger.
                                 JavascriptRegExpConstructor* regExp = scriptContext->GetLibrary()->GetRegExpConstructor();
+                                Js::JavascriptFunction* jsFunction = Js::JavascriptFunction::FromVar(object);
 
                                 if (regExp == object)
                                 {
@@ -2616,7 +2603,7 @@ namespace Js
                                         InsertItem(originalObject, object, propertyId, isConst, isUnscoped, &pMethodsGroupWalker);
                                     }
                                 }
-                                else if (Js::JavascriptFunction::FromVar(object)->IsScriptFunction() || Js::JavascriptFunction::FromVar(object)->IsBoundFunction())
+                                else if ((jsFunction->IsScriptFunction() && !jsFunction->IsJsBuiltIn()) || jsFunction->IsBoundFunction())
                                 {
                                     // Adding special property length for the ScriptFunction, like it is done in JavascriptFunction::GetSpecialNonEnumerablePropertyName
                                     InsertItem(originalObject, object, PropertyIds::length, true/*not editable*/, false /*isUnscoped*/, &pMethodsGroupWalker);
@@ -3279,9 +3266,9 @@ namespace Js
 
     BOOL RecyclableTypedArrayAddress::Set(Var updateObject)
     {
-        if (Js::TypedArrayBase::Is(parentArray))
+        Js::TypedArrayBase* typedArrayObj = JavascriptOperators::TryFromVar<Js::TypedArrayBase>(parentArray);
+        if (typedArrayObj)
         {
-            Js::TypedArrayBase* typedArrayObj = Js::TypedArrayBase::FromVar(parentArray);
             return typedArrayObj->SetItem(index, updateObject, PropertyOperation_None);
         }
 
@@ -3299,9 +3286,9 @@ namespace Js
 
     BOOL RecyclableTypedArrayDisplay::HasChildren()
     {
-        if (Js::TypedArrayBase::Is(instance))
+        Js::TypedArrayBase* typedArrayObj = JavascriptOperators::TryFromVar<Js::TypedArrayBase>(instance);
+        if (typedArrayObj)
         {
-            Js::TypedArrayBase* typedArrayObj = Js::TypedArrayBase::FromVar(instance);
             if (typedArrayObj->GetLength() > 0)
             {
                 return TRUE;

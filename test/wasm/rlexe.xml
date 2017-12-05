@@ -2,6 +2,13 @@
 <regress-exe>
 <test>
   <default>
+    <files>regress.js</files>
+    <compile-flags>-wasm</compile-flags>
+    <tags>exclude_jshost,exclude_win7</tags>
+  </default>
+</test>
+<test>
+  <default>
     <files>rot.js</files>
     <baseline>rot.baseline</baseline>
     <compile-flags>-wasm</compile-flags>

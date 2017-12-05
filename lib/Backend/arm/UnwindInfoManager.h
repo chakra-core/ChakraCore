@@ -134,6 +134,7 @@ public:
     bool GetHasChkStk() const;
     DWORD GetPDataCount(DWORD length);
     void SetSavedReg(BYTE reg);
+    bool TestSavedReg(BYTE reg) const;
     DWORD ClearSavedReg(DWORD mask, BYTE reg) const;
 
     void SetDoubleSavedRegList(DWORD doubleRegMask);

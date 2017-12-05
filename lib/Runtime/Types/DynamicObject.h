@@ -69,6 +69,9 @@ namespace Js
         friend class JavascriptNativeArray; // for xplat offsetof field access
         friend class JavascriptOperators; // for ReplaceType
         friend class PathTypeHandlerBase; // for ReplaceType
+        friend class SimplePathTypeHandlerNoAttr;
+        friend class SimplePathTypeHandlerWithAttr;
+        friend class PathTypeHandlerNoAttr;
         friend class JavascriptLibrary;  // for ReplaceType
         friend class ScriptFunction; // for ReplaceType;
         friend class JSON::JSONParser; //for ReplaceType
@@ -121,7 +124,6 @@ namespace Js
         // For boxing stack instance
         DynamicObject(DynamicObject * instance);
 
-        DynamicTypeHandler * GetTypeHandler() const;
         uint16 GetOffsetOfInlineSlots() const;
 
         template <class T>
@@ -132,9 +134,12 @@ namespace Js
 
         static bool Is(Var aValue);
         static DynamicObject* FromVar(Var value);
+        static DynamicObject* UnsafeFromVar(Var value);
 
         void EnsureSlots(int oldCount, int newCount, ScriptContext * scriptContext, DynamicTypeHandler * newTypeHandler = nullptr);
         void EnsureSlots(int newCount, ScriptContext *scriptContext);
+
+        DynamicTypeHandler * GetTypeHandler() const;
 
         Var GetSlot(int index);
         Var GetInlineSlot(int index);

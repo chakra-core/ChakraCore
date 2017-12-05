@@ -108,7 +108,7 @@ namespace Js
             return RecyclerNewFinalized(scriptContext->GetRecycler(), JsrtSourceHolder, this->scriptLoadCallback, this->scriptUnloadCallback, this->sourceContext);
         }
 
-        virtual int GetHashCode() override
+        virtual hash_t GetHashCode() override
         {
             LPCUTF8 source = GetSource(_u("Hash Code Calculation"));
             size_t byteLength = GetByteLength(_u("Hash Code Calculation"));

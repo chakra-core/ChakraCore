@@ -20,8 +20,8 @@ public:
     friend class ::ScriptMemoryDumper;
 #endif
 
-#ifdef DUMP_FRAGMENTATION_STATS
-    void AggregateBucketStats(HeapBucketStats& stats);
+#if ENABLE_MEM_STATS
+    void AggregateBucketStats();
 #endif
 protected:
     template <class TBlockAttributes>

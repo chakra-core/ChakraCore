@@ -4,8 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-extern char const * const RegNames[];
-
 #define RA_DONTALLOCATE     0x1
 #define RA_CALLEESAVE       0x2
 

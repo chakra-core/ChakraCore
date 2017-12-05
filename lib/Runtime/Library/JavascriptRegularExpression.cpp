@@ -15,7 +15,8 @@ namespace Js
         pattern(pattern),
         splitPattern(nullptr),
         lastIndexVar(nullptr),
-        lastIndexOrFlag(0)
+        lastIndexOrFlag(0),
+        testCache(nullptr)
     {
         Assert(type->GetTypeId() == TypeIds_RegEx);
         Assert(!this->GetType()->AreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties());
@@ -41,7 +42,8 @@ namespace Js
         pattern(nullptr),
         splitPattern(nullptr),
         lastIndexVar(nullptr),
-        lastIndexOrFlag(0)
+        lastIndexOrFlag(0),
+        testCache(nullptr)
     {
         Assert(type->GetTypeId() == TypeIds_RegEx);
 
@@ -59,7 +61,8 @@ namespace Js
         pattern(instance->GetPattern()),
         splitPattern(instance->GetSplitPattern()),
         lastIndexVar(instance->lastIndexVar),
-        lastIndexOrFlag(instance->lastIndexOrFlag)
+        lastIndexOrFlag(instance->lastIndexOrFlag),
+        testCache(nullptr)
     {
         // For boxing stack instance
         Assert(ThreadContext::IsOnStack(instance));
@@ -95,9 +98,16 @@ namespace Js
 
     JavascriptRegExp* JavascriptRegExp::FromVar(Var aValue)
     {
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptRegExp'");
+
+        return static_cast<JavascriptRegExp *>(aValue);
+    }
+
+    JavascriptRegExp* JavascriptRegExp::UnsafeFromVar(Var aValue)
+    {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptRegExp'");
 
-        return static_cast<JavascriptRegExp *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptRegExp *>(aValue);
     }
 
     CharCount JavascriptRegExp::GetLastIndexProperty(RecyclableObject* instance, ScriptContext* scriptContext)
@@ -177,15 +187,16 @@ namespace Js
 
     JavascriptRegExp* JavascriptRegExp::ToRegExp(Var var, PCWSTR varName, ScriptContext* scriptContext)
     {
-        if (JavascriptRegExp::Is(var))
+        JavascriptRegExp * regExp = JavascriptOperators::TryFromVar<JavascriptRegExp>(var);
+        if (regExp)
         {
-            return JavascriptRegExp::FromVar(var);
+            return regExp;
         }
 
         if (JavascriptOperators::GetTypeId(var) == TypeIds_HostDispatch)
         {
             TypeId remoteTypeId = TypeIds_Limit;
-            RecyclableObject* reclObj = RecyclableObject::FromVar(var);
+            RecyclableObject* reclObj = RecyclableObject::UnsafeFromVar(var);
             if (reclObj->GetRemoteTypeId(&remoteTypeId) && remoteTypeId == TypeIds_RegEx)
             {
                 return static_cast<JavascriptRegExp *>(reclObj->GetRemoteObject());
@@ -212,13 +223,17 @@ namespace Js
         {
             return scriptContext->GetLibrary()->GetUndefinedDisplayString();
         }
-        else if (JavascriptString::Is(args[1]))
-        {
-            return JavascriptString::FromVar(args[1]);
-        }
         else
         {
-            return JavascriptConversion::ToString(args[1], scriptContext);
+            JavascriptString *jsString = JavascriptOperators::TryFromVar<JavascriptString>(args[1]);
+            if (jsString)
+            {
+                return jsString;
+            }
+            else
+            {
+                return JavascriptConversion::ToString(args[1], scriptContext);
+            }
         }
     }
 
@@ -240,10 +255,8 @@ namespace Js
 
         // SkipDefaultNewObject function flag should have prevented the default object from
         // being created, except when call true a host dispatch.
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : function;
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
-        Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr
-            || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
+        Var newTarget = args.HasNewTarget() ? args.Values[args.Info.Count] : function;
+        bool isCtorSuperCall = JavascriptOperators::GetAndAssertIsConstructorSuperCall(args);
 
         UnifiedRegex::RegexPattern* pattern = nullptr;
         UnifiedRegex::RegexPattern* splitPattern = nullptr;
@@ -259,7 +272,7 @@ namespace Js
             RecyclableObject* regexLikeObj = RecyclableObject::FromVar(args[1]);
 
             if (!(callInfo.Flags & CallFlags_New) &&
-                (callInfo.Count == 2 || JavascriptOperators::IsUndefinedObject(args[2], scriptContext)) &&
+                (callInfo.Count == 2 || JavascriptOperators::IsUndefinedObject(args[2])) &&
                 newTarget == JavascriptOperators::GetProperty(regexLikeObj, PropertyIds::constructor, scriptContext))
             {
                 // ES5 15.10.3.1 Called as a function: If pattern R is a regexp object and flags is undefined, then return R unchanged.
@@ -276,7 +289,7 @@ namespace Js
                 {
                     // As per ES 2015 21.2.3.1: If 1st argument is RegExp and 2nd argument is flag then return regexp with same pattern as 1st
                     // argument and flags supplied by the 2nd argument.
-                    if (!JavascriptOperators::IsUndefinedObject(args[2], scriptContext))
+                    if (!JavascriptOperators::IsUndefinedObject(args[2]))
                     {
                         InternalString str = source->GetSource();
                         pattern = CreatePattern(JavascriptString::NewCopyBuffer(str.GetBuffer(), str.GetLength(), scriptContext),
@@ -350,7 +363,7 @@ namespace Js
         const char16 *szOptions = nullptr;
 
         JavascriptString * strOptions = nullptr;
-        if (options != nullptr && !JavascriptOperators::IsUndefinedObject(options, scriptContext))
+        if (options != nullptr && !JavascriptOperators::IsUndefinedObject(options))
         {
             if (JavascriptString::Is(options))
             {
@@ -587,7 +600,7 @@ namespace Js
             const char16 *szOptions = nullptr;
 
             JavascriptString * strOptions = nullptr;
-            if (callInfo.Count > 2 && !JavascriptOperators::IsUndefinedObject(args[2], scriptContext))
+            if (callInfo.Count > 2 && !JavascriptOperators::IsUndefinedObject(args[2]))
             {
                 if (JavascriptString::Is(args[2]))
                 {
@@ -607,6 +620,7 @@ namespace Js
         thisRegularExpression->SetPattern(pattern);
         thisRegularExpression->SetSplitPattern(splitPattern);
         thisRegularExpression->SetLastIndex(0);
+        thisRegularExpression->ClearTestCache();
         return thisRegularExpression;
     }
 
@@ -842,7 +856,7 @@ namespace Js
         // However, there doesn't seem to be any reason why "limit" processing can't be pulled above the rest
         // in the spec. Therefore, we should see if such a spec update is OK. If not, this would have to be
         // moved to its correct place in the code.
-        uint32 limit = (args.Info.Count < 3 || JavascriptOperators::IsUndefinedObject(args[2], scriptContext))
+        uint32 limit = (args.Info.Count < 3 || JavascriptOperators::IsUndefinedObject(args[2]))
             ? UINT_MAX
             : JavascriptConversion::ToUInt32(args[2], scriptContext);
 
@@ -859,7 +873,7 @@ namespace Js
         Var exec = JavascriptOperators::GetProperty(thisObj, PropertyIds::exec, scriptContext);
         if (JavascriptConversion::IsCallable(exec))
         {
-            RecyclableObject* execFn = RecyclableObject::FromVar(exec);
+            RecyclableObject* execFn = RecyclableObject::UnsafeFromVar(exec);
             Var result = CALL_FUNCTION(scriptContext->GetThreadContext(), execFn, CallInfo(CallFlags_Value, 2), thisObj, string);
 
             if (!JavascriptOperators::IsObjectOrNull(result))
@@ -1551,6 +1565,58 @@ namespace Js
             ? specialPropertyIdsAll
             : specialPropertyIdsWithoutUnicode;
     }
+
+    Field(RegExpTestCache*) JavascriptRegExp::EnsureTestCache()
+    {
+        if (this->testCache != nullptr)
+        {
+            return this->testCache;
+        }
+
+        this->testCache = RecyclerNewArrayZ(GetRecycler(), RegExpTestCache, TestCacheSize);
+        return this->testCache;
+    }
+
+    /* static */
+    uint JavascriptRegExp::GetTestCacheIndex(JavascriptString* str)
+    {
+        return (uint)(((uintptr_t)str) >> PolymorphicInlineCacheShift) & (TestCacheSize - 1);
+    }
+
+    void JavascriptRegExp::ClearTestCache()
+    {
+        this->testCache = nullptr;
+    }
+
+#if ENABLE_REGEX_CONFIG_OPTIONS
+    /* static */
+    void JavascriptRegExp::TraceTestCache(bool cacheHit, JavascriptString* input, JavascriptString* cachedValue, bool disabled)
+    {
+        if (REGEX_CONFIG_FLAG(RegexTracing))
+        {
+            if (disabled)
+            {
+                Output::Print(_u("Regexp Test Cache Disabled.\n"));
+            }
+            else if (cacheHit)
+            {
+                Output::Print(_u("Regexp Test Cache Hit.\n"));
+            }
+            else
+            {
+                Output::Print(_u("Regexp Test Cache Miss. "));
+                if (cachedValue != nullptr)
+                {
+                    Output::Print(_u("Input: (%p); Cached String: (%p) '%s'\n"), input, cachedValue, cachedValue->GetString());
+                }
+                else
+                {
+                    Output::Print(_u("Cache was empty\n"));
+                }
+            }
+        }
+    }
+#endif
 
 #if ENABLE_TTD
     TTD::NSSnapObjects::SnapObjectType JavascriptRegExp::GetSnapTag_TTD() const

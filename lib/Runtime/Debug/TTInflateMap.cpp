@@ -322,34 +322,34 @@ namespace TTD
         case StepKind::Empty:
             break;
         case StepKind::Root:
-            wprintf(_u("root#%I64i"), this->m_step.IndexOrPID);
+            Output::Print(_u("root#%I64i"), this->m_step.IndexOrPID);
             break;
         case StepKind::PropertyData:
-            wprintf(_u("%ls%ls"), (isFirst ? _u("") : _u(".")), namebuff);
+            Output::Print(_u("%ls%ls"), (isFirst ? _u("") : _u(".")), namebuff);
             break;
         case StepKind::PropertyGetter:
-            wprintf(_u("%ls<%ls"), (isFirst ? _u("") : _u(".")), namebuff);
+            Output::Print(_u("%ls<%ls"), (isFirst ? _u("") : _u(".")), namebuff);
             break;
         case StepKind::PropertySetter:
-            wprintf(_u("%ls>%ls"), (isFirst ? _u("") : _u(".")), namebuff);
+            Output::Print(_u("%ls>%ls"), (isFirst ? _u("") : _u(".")), namebuff);
             break;
         case StepKind::Array:
-            wprintf(_u("[%I64i]"), this->m_step.IndexOrPID);
+            Output::Print(_u("[%I64i]"), this->m_step.IndexOrPID);
             break;
         case StepKind::Scope:
-            wprintf(_u("%ls_scope[%I64i]"), (isFirst ? _u("") : _u(".")), this->m_step.IndexOrPID);
+            Output::Print(_u("%ls_scope[%I64i]"), (isFirst ? _u("") : _u(".")), this->m_step.IndexOrPID);
             break;
         case StepKind::SlotArray:
-            wprintf(_u("%ls_slots[%I64i]"), (isFirst ? _u("") : _u(".")), this->m_step.IndexOrPID);
+            Output::Print(_u("%ls_slots[%I64i]"), (isFirst ? _u("") : _u(".")), this->m_step.IndexOrPID);
             break;
         case StepKind::FunctionBody:
-            wprintf(_u("%ls%ls"), (isFirst ? _u("") : _u(".")), this->m_step.OptName);
+            Output::Print(_u("%ls%ls"), (isFirst ? _u("") : _u(".")), this->m_step.OptName);
             break;
         case StepKind::Special:
-            wprintf(_u("%ls_%ls"), (isFirst ? _u("") : _u(".")), this->m_step.OptName);
+            Output::Print(_u("%ls_%ls"), (isFirst ? _u("") : _u(".")), this->m_step.OptName);
             break;
         case StepKind::SpecialArray:
-            wprintf(_u("%ls_%ls[%I64i]"), (isFirst ? _u("") : _u(".")), this->m_step.OptName, this->m_step.IndexOrPID);
+            Output::Print(_u("%ls_%ls[%I64i]"), (isFirst ? _u("") : _u(".")), this->m_step.OptName, this->m_step.IndexOrPID);
             break;
         default:
             TTDAssert(false, "Unknown tag in switch statement!!!");
@@ -358,7 +358,7 @@ namespace TTD
 
         if(printNewline)
         {
-            wprintf(_u("\n"));
+            Output::Print(_u("\n"));
         }
     }
 
@@ -423,8 +423,8 @@ namespace TTD
         {
             if(this->CurrentPath != nullptr)
             {
-                wprintf(_u("Snap1 ptrid: *0x%I64x\n"), this->CurrentH1Ptr);
-                wprintf(_u("Snap2 ptrid: *0x%I64x\n"), this->CurrentH2Ptr);
+                Output::Print(_u("Snap1 ptrid: *0x%I64x\n"), this->CurrentH1Ptr);
+                Output::Print(_u("Snap2 ptrid: *0x%I64x\n"), this->CurrentH2Ptr);
                 this->CurrentPath->WritePathToConsole(this->Context, true, this->PathBuffer, PATH_BUFFER_COUNT);
             }
         }

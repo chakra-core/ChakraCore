@@ -7,4 +7,10 @@
       <baseline>UnaryPos.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <compile-flags>-on:asmjs -forcedeferparse</compile-flags>
+      <files>deferReparseBug.js</files>
+    </default>
+  </test>
 </regress-exe>

@@ -62,7 +62,6 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     m_fg(nullptr),
     m_labelCount(0),
     m_argSlotsForFunctionsCalled(0),
-    m_isLeaf(false),
     m_hasCalls(false),
     m_hasInlineArgsOpt(false),
     m_canDoInlineArgsOpt(true),
@@ -990,7 +989,7 @@ void Func::Int64SplitExtendLoopLifetime(Loop* loop)
 }
 #endif
 
-#ifdef _M_ARM
+#if defined(_M_ARM32_OR_ARM64)
 
 RegNum
 Func::GetLocalsPointer() const

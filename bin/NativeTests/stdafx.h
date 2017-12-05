@@ -23,6 +23,8 @@
 
 #if defined(DBG)
 
+#define DebugOnly(x)          x
+
 #define AssertMsg(exp, comment)   \
 do { \
 if (!(exp)) \

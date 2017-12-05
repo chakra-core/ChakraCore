@@ -492,6 +492,7 @@ namespace TTD
         void HasOwnPropertyAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
         void InstanceOfAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
         void EqualsAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
+        void LessThanAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 
         void GetPropertyIdFromSymbolAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
 

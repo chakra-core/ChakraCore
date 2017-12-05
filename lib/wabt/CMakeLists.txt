@@ -87,6 +87,7 @@ set(WAST_LEXER_GEN_CC src/prebuilt/wast-lexer-gen.cc)
 add_custom_target(everything)
 
 add_library(libwabt OBJECT
+  src/token.cc
   src/opcode.cc
   src/error-handler.cc
   src/hash-util.cc

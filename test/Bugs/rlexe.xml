@@ -58,8 +58,6 @@
       <files>randombug.js</files>
       <baseline>randombug.baseline</baseline>
       <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
-      <!-- todo: enable this back (ccrobot) once #2780 is fixed -->
-      <tags>exclude_ccrobot</tags>
     </default>
   </test>
   <test>
@@ -217,7 +215,7 @@
   <test>
     <default>
       <files>fabs1.js</files>
-      <tags>exclude_dynapogo,require_backend</tags>
+      <tags>exclude_dynapogo,require_backend,exclude_arm,exclude_arm64</tags>
       <compile-flags>-off:backend -asmjs -testtrace:asmjs</compile-flags>
       <baseline>fabs1.baseline</baseline>
     </default>
@@ -304,6 +302,12 @@
   <test>
     <default>
       <files>deletenonconfig.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>misc_bugs.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>

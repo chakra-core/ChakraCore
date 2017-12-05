@@ -620,6 +620,11 @@
   </test>
   <test>
     <default>
+      <files>symBug.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>brbool.js</files>
     </default>
   </test>
@@ -999,6 +1004,11 @@
   <test>
     <default>
       <files>trackdeferredonreparse.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>regress_hascalls.js</files>
     </default>
   </test>
 </regress-exe>

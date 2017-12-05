@@ -139,6 +139,12 @@ public:
     bool IsDoingFastScan() const { return false; }
 #endif
 
+    bool GetIsInParsingArgList() const { return m_isInParsingArgList; }
+    void SetIsInParsingArgList(bool set) { m_isInParsingArgList = set; }
+
+    bool GetHasDestructuringPattern() const { return m_hasDestructuringPattern; }
+    void SetHasDestructuringPattern(bool set) { m_hasDestructuringPattern = set; }
+
     static IdentPtr PidFromNode(ParseNodePtr pnode);
 
     ParseNode* CopyPnode(ParseNode* pnode);
@@ -258,7 +264,9 @@ public:
         return pnode;
     }
 
-    static ParseNodePtr StaticCreateBinNode(OpCode nop, ParseNodePtr pnode1,ParseNodePtr pnode2,ArenaAllocator* alloc);
+    static ParseNodePtr StaticCreateBinNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2, ArenaAllocator* alloc, int allocSize, OpCode nopForSize);
+    static ParseNodePtr StaticCreateBinNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2, ArenaAllocator* alloc);
+    static ParseNodePtr StaticCreateSuperReferenceNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2, ArenaAllocator* alloc);
     static ParseNodePtr StaticCreateBlockNode(ArenaAllocator* alloc, charcount_t ichMin = 0, charcount_t ichLim = 0, int blockId = -1, PnodeBlockType blockType = PnodeBlockType::Regular);
     ParseNodePtr CreateNode(OpCode nop, charcount_t ichMin,charcount_t ichLim);
     ParseNodePtr CreateDummyFuncNode(bool fDeclaration);
@@ -282,6 +290,20 @@ public:
         pnode->sxPid.symRef=NULL;
         return pnode;
     }
+    ParseNodePtr CreateSpecialNameNode(IdentPtr pid)
+    {
+        ParseNodePtr pnode = CreateNode(knopSpecialName);
+
+        // knopSpecialName is unused in the code
+        pnode->nop = knopName;
+        pnode->sxPid.pid = pid;
+        pnode->sxPid.sym = NULL;
+        pnode->sxPid.symRef = NULL;
+        pnode->isSpecialName = true;
+        pnode->sxSpecialName.isThis = false;
+        pnode->sxSpecialName.isSuper = false;
+        return pnode;
+    }
     ParseNodePtr CreateBlockNode(PnodeBlockType blockType = PnodeBlockType::Regular)
     {
         ParseNodePtr pnode = CreateNode(knopBlock);
@@ -297,7 +319,9 @@ public:
 
     ParseNodePtr CreateUniNode(OpCode nop, ParseNodePtr pnodeOp);
     ParseNodePtr CreateBinNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2);
+    ParseNodePtr CreateSuperReferenceNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2);
     ParseNodePtr CreateCallNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2);
+    ParseNodePtr CreateSuperCallNode(ParseNodePtr pnode1, ParseNodePtr pnode2);
 
     // Create parse node with token limis
     template <OpCode nop>
@@ -379,7 +403,8 @@ private:
     bool m_inDeferredNestedFunc; // true if parsing a function in deferred mode, nested within the current node  
     bool m_reparsingLambdaParams;
     bool m_disallowImportExportStmt;
-
+    bool m_isInParsingArgList;
+    bool m_hasDestructuringPattern;
     // This bool is used for deferring the shorthand initializer error ( {x = 1}) - as it is allowed in the destructuring grammar.
     bool m_hasDeferredShorthandInitError;
     uint * m_pnestedCount; // count of functions nested at one level below the current node
@@ -402,6 +427,10 @@ private:
         IdentPtr _default;
         IdentPtr _star; // Special '*' identifier for modules
         IdentPtr _starDefaultStar; // Special '*default*' identifier for modules
+        IdentPtr _this; // Special 'this' identifier
+        IdentPtr _newTarget; // Special new.target identifier
+        IdentPtr _super; // Special super identifier
+        IdentPtr _superConstructor; // Special super constructor identifier
     };
 
     WellKnownPropertyPids wellKnownPropertyPids;
@@ -469,6 +498,7 @@ private:
             case knopLetDecl:
             case knopFncDecl:
             case knopName:
+            case knopParamPattern:
                 return true;
 
             default:
@@ -729,6 +759,10 @@ private:
     void FinishParseBlock(ParseNode *pnodeBlock, bool needScanRCurly = true);
     void FinishParseFncExprScope(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncExprScope);
 
+    void CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc, bool isGlobal);
+    ParseNodePtr ReferenceSpecialName(IdentPtr pid, charcount_t ichMin = 0, charcount_t ichLim = 0, bool createNode = false);
+    ParseNodePtr CreateSpecialVarDeclIfNeeded(ParseNodePtr pnodeFnc, IdentPtr pid, bool forceCreate = false);
+
     template<const bool backgroundPidRefs>
     void BindPidRefs(BlockInfoStack *blockInfo, uint maxBlockId = (uint)-1);
     void BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint maxBlockId = (uint)-1);
@@ -741,7 +775,7 @@ private:
     template<bool buildAST> ParseNodePtr ParseArgList(bool *pCallOfConstants, uint16 *pSpreadArgCount, uint16 * pCount);
     template<bool buildAST> ParseNodePtr ParseArrayList(bool *pArrayOfTaggedInts, bool *pArrayOfInts, bool *pArrayOfNumbers, bool *pHasMissingValues, uint *count, uint *spreadCount);
     template<bool buildAST> ParseNodePtr ParseMemberList(LPCOLESTR pNameHint, uint32 *pHintLength, tokens declarationType = tkNone);
-    template<bool buildAST> ParseNodePtr ParseSuper(ParseNodePtr pnode, bool fAllowCall);
+    template<bool buildAST> IdentPtr ParseSuper(bool fAllowCall);
 
     // Used to determine the type of JavaScript object member.
     // The values can be combined using bitwise OR.
@@ -769,11 +803,13 @@ private:
     template<bool buildAST> void ParseExpressionLambdaBody(ParseNodePtr pnodeFnc);
     template<bool buildAST> void UpdateCurrentNodeFunc(ParseNodePtr pnodeFnc, bool fLambda);
     bool FncDeclAllowedWithoutContext(ushort flags);
-    void FinishFncDecl(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ParseNodePtr *lastNodeRef, bool skipCurlyBraces = false);
-    void ParseTopLevelDeferredFunc(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, LPCOLESTR pNameHint);
+    void FinishFncDecl(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ParseNodePtr *lastNodeRef, bool fLambda, bool skipCurlyBraces = false);
+    void ParseTopLevelDeferredFunc(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, LPCOLESTR pNameHint, bool fLambda, bool *pNeedScanRCurly = nullptr);
     void ParseNestedDeferredFunc(ParseNodePtr pnodeFnc, bool fLambda, bool *pNeedScanRCurly, bool *pStrictModeTurnedOn);
     void CheckStrictFormalParameters();
     ParseNodePtr AddArgumentsNodeToVars(ParseNodePtr pnodeFnc);
+    ParseNodePtr InsertVarAtBeginning(ParseNodePtr pnodeFnc, IdentPtr pid);
+    ParseNodePtr CreateSpecialVarDeclNode(ParseNodePtr pnodeFnc, IdentPtr pid);
     void UpdateArgumentsNode(ParseNodePtr pnodeFnc, ParseNodePtr argNode);
     void UpdateOrCheckForDuplicateInFormals(IdentPtr pid, SList<IdentPtr> *formals);
 
@@ -849,7 +885,7 @@ private:
 
     void ThrowNewTargetSyntaxErrForGlobalScope();
 
-    template<bool buildAST> ParseNodePtr ParseMetaProperty(
+    template<bool buildAST> IdentPtr ParseMetaProperty(
         tokens metaParentKeyword,
         charcount_t ichMin,
         _Out_opt_ BOOL* pfCanAssign = nullptr);
@@ -869,6 +905,7 @@ private:
 
     BOOL NodeIsIdent(ParseNodePtr pnode, IdentPtr pid);
     BOOL NodeIsEvalName(ParseNodePtr pnode);
+    BOOL NodeIsSuperName(ParseNodePtr pnode);
     BOOL IsJSONValid(ParseNodePtr pnodeExpr)
     {
         OpCode jnop = (knopNeg == pnodeExpr->nop) ? pnodeExpr->sxUni.pnode1->nop : pnodeExpr->nop;
@@ -889,6 +926,7 @@ private:
     BOOL IsConstantInArrayLiteral(ParseNodePtr pnode);
 
     ParseNodePtr CreateParamPatternNode(ParseNodePtr pnode1);
+    ParseNodePtr CreateDummyParamPatternNode(charcount_t ichMin);
 
     ParseNodePtr ConvertMemberToMemberPattern(ParseNodePtr pnodeMember);
     ParseNodePtr ConvertObjectToObjectPattern(ParseNodePtr pnodeMemberList);
@@ -1030,17 +1068,19 @@ private:
 
     enum FncDeclFlag : ushort
     {
-        fFncNoFlgs      = 0,
-        fFncDeclaration = 1 << 0,
-        fFncNoArg       = 1 << 1,
-        fFncOneArg      = 1 << 2, //Force exactly one argument.
-        fFncNoName      = 1 << 3,
-        fFncLambda      = 1 << 4,
-        fFncMethod      = 1 << 5,
-        fFncClassMember = 1 << 6,
-        fFncGenerator   = 1 << 7,
-        fFncAsync       = 1 << 8,
-        fFncModule      = 1 << 9,
+        fFncNoFlgs                  = 0,
+        fFncDeclaration             = 1 << 0,
+        fFncNoArg                   = 1 << 1,
+        fFncOneArg                  = 1 << 2, //Force exactly one argument.
+        fFncNoName                  = 1 << 3,
+        fFncLambda                  = 1 << 4,
+        fFncMethod                  = 1 << 5,
+        fFncClassMember             = 1 << 6,
+        fFncGenerator               = 1 << 7,
+        fFncAsync                   = 1 << 8,
+        fFncModule                  = 1 << 9,
+        fFncClassConstructor        = 1 << 10,
+        fFncBaseClassConstructor    = 1 << 11,
     };
 
     //
@@ -1071,6 +1111,30 @@ private:
                 m_scanner->SetDeferredParseFlags(m_oldScannerDeferredParseFlags);
             }
         }
+    };
+
+    class AutoMarkInParsingArgs
+    {
+    public:
+        AutoMarkInParsingArgs(Parser * parser)
+            : m_parser(parser)
+        {
+            m_prevState = m_parser->GetIsInParsingArgList();
+            m_parser->SetHasDestructuringPattern(false);
+            m_parser->SetIsInParsingArgList(true);
+        }
+        ~AutoMarkInParsingArgs()
+        {
+            m_parser->SetIsInParsingArgList(m_prevState);
+            if (!m_prevState)
+            {
+                m_parser->SetHasDestructuringPattern(false);
+            }
+        }
+
+    private:
+        Parser *m_parser;
+        bool m_prevState;
     };
 
 public:

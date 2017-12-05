@@ -145,13 +145,6 @@ namespace Wasm
 
     typedef JsUtil::BaseDictionary<uint32, LPCUTF8, ArenaAllocator> WasmExportDictionary;
 
-    struct WasmReaderInfo
-    {
-        Field(WasmFunctionInfo*) m_funcInfo;
-        Field(Js::WebAssemblyModule*) m_module;
-        Field(Js::Var) m_bufferSrc;
-    };
-
     class WasmModuleGenerator
     {
     public:
@@ -237,6 +230,8 @@ namespace Wasm
         Js::OpCodeAsmJs GetReturnOp(WasmTypes::WasmType type);
         WasmRegisterSpace* GetRegisterSpace(WasmTypes::WasmType type);
 
+        EmitInfo PopValuePolymorphic() { return PopEvalStack(); }
+        EmitInfo PopStackPolymorphic(WasmTypes::WasmType expectedType = WasmTypes::Any, const char16* mismatchMessage = nullptr);
         EmitInfo PopEvalStack(WasmTypes::WasmType expectedType = WasmTypes::Any, const char16* mismatchMessage = nullptr);
         void PushEvalStack(EmitInfo);
         EmitInfo EnsureYield(BlockInfo);

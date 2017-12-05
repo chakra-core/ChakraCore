@@ -22,7 +22,7 @@ namespace Js
         virtual size_t GetByteLength(const char16* reasonString) = 0;
         virtual ISourceHolder* Clone(ScriptContext* scriptContext) = 0;
         virtual bool Equals(ISourceHolder* other) = 0;
-        virtual int GetHashCode() = 0;
+        virtual hash_t GetHashCode() = 0;
         virtual bool IsEmpty() = 0;
         virtual bool IsDeferrable() = 0;
     };
@@ -72,7 +72,7 @@ namespace Js
             return this->isEmpty;
         }
 
-        virtual int GetHashCode() override
+        virtual hash_t GetHashCode() override
         {
             Assert(byteLength < MAXUINT32);
             return JsUtil::CharacterBuffer<utf8char_t>::StaticGetHashCode(source, (charcount_t)byteLength);

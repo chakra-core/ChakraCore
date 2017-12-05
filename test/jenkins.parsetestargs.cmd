@@ -57,6 +57,21 @@ if not "%1"=="" (
         goto :ContinueArgParse
     )
 
+    if "%1"=="-dirs" (
+        set _ReducedTestRun=1
+        REM fallthrough to default (also add this to %_ExtraTestArgs%)
+    )
+
+    if "%1"=="-tags" (
+        set _ReducedTestRun=1
+        REM fallthrough to default (also add this to %_ExtraTestArgs%)
+    )
+
+    if "%1"=="-nottags" (
+        set _ReducedTestRun=1
+        REM fallthrough to default (also add this to %_ExtraTestArgs%)
+    )
+
     if "%1"=="-disablejit" (
         set _SpecialBuild=.NoJIT
         REM fallthrough to default (also add this to %_ExtraTestArgs%)

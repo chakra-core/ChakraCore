@@ -25,6 +25,7 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF3_WMS( CUSTOM_ASMJS     , I_Call       , OP_I_AsmCall                 , AsmCall             )
   DEF3_WMS( CUSTOM_ASMJS     , ProfiledI_Call, OP_ProfiledI_AsmCall        , ProfiledAsmCall     )
   DEF3_WMS( CUSTOM_ASMJS     , Call         , OP_AsmCall                   , AsmCall             )
+  DEF3    ( CUSTOM_ASMJS     , CheckHeap    , OP_EnsureHeapAttached        , Empty               )
   DEF2_WMS( D1toR1Out        , I_ArgOut_Db  , OP_I_SetOutAsmDb                                   ) // set double as internal outparam
   DEF2_WMS( D1toR1Out        , ArgOut_Db    , OP_SetOutAsmDb                                     ) // convert double to var and set it as outparam
   DEF2_WMS( I1toR1Out        , I_ArgOut_Int , OP_I_SetOutAsmInt                                  ) // set int as internal outparam

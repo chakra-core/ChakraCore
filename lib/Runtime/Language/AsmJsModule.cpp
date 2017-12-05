@@ -129,7 +129,7 @@ namespace Js
                 ParseNodePtr nameNode = GetModuleFunctionNode()->sxFnc.pnodeName;
                 GetByteCodeGenerator()->AssignPropertyId(nameNode->name());
                 // if module is a named function expression, we may need to restore this for debugger
-                AsmJsFunctionDeclaration* closure = Anew(&mAllocator, AsmJsFunctionDeclaration, nameNode->sxVar.pid, AsmJsSymbol::ClosureFunction, &mAllocator);
+                AsmJsClosureFunction* closure = Anew(&mAllocator, AsmJsClosureFunction, nameNode->sxVar.pid, AsmJsSymbol::ClosureFunction, &mAllocator);
                 DefineIdentifier(nameNode->sxVar.pid, closure);
             }
         }
@@ -209,7 +209,7 @@ namespace Js
                 switch (sym->GetSymbolType())
                 {
                 case AsmJsSymbol::Variable:{
-                    AsmJsVar* var = sym->Cast<AsmJsVar>();
+                    AsmJsVar* var = AsmJsVar::FromSymbol(sym);
                     auto& modVar = asmInfo->GetVar(iVar++);
                     modVar.location = var->GetLocation();
                     modVar.type = var->GetVarType().which();
@@ -244,7 +244,7 @@ namespace Js
                     break;
                 }
                 case AsmJsSymbol::ConstantImport:{
-                    AsmJsConstantImport* var = sym->Cast<AsmJsConstantImport>();
+                    AsmJsConstantImport* var = AsmJsConstantImport::FromSymbol(sym);
                     auto& modVar = asmInfo->GetVarImport(iVarImp++);
                     modVar.location = var->GetLocation();
                     modVar.field = var->GetField()->GetPropertyId();
@@ -255,7 +255,7 @@ namespace Js
                     break;
                 }
                 case AsmJsSymbol::ImportFunction:{
-                    AsmJsImportFunction* func = sym->Cast<AsmJsImportFunction>();
+                    AsmJsImportFunction* func = AsmJsImportFunction::FromSymbol(sym);
                     auto& modVar = asmInfo->GetFunctionImport(iFuncImp++);
                     modVar.location = func->GetFunctionIndex();
                     modVar.field = func->GetField()->GetPropertyId();
@@ -264,7 +264,7 @@ namespace Js
                     break;
                 }
                 case AsmJsSymbol::FuncPtrTable:{
-                    AsmJsFunctionTable* funcTable = sym->Cast<AsmJsFunctionTable>();
+                    AsmJsFunctionTable* funcTable = AsmJsFunctionTable::FromSymbol(sym);
                     const uint size = funcTable->GetSize();
                     const RegSlot index = funcTable->GetFunctionIndex();
                     asmInfo->SetFunctionTableSize(index, size);
@@ -279,7 +279,7 @@ namespace Js
                     break;
                 }
                 case AsmJsSymbol::ModuleFunction:{
-                    AsmJsFunc* func = sym->Cast<AsmJsFunc>();
+                    AsmJsFunc* func = AsmJsFunc::FromSymbol(sym);
                     auto& modVar = asmInfo->GetFunction(iFunc++);
                     modVar.location = func->GetFunctionIndex();
                     slot->location = modVar.location;
@@ -287,38 +287,38 @@ namespace Js
                 }
                 case AsmJsSymbol::ArrayView:
                 {
-                    AsmJsArrayView * var = sym->Cast<AsmJsArrayView>();
+                    AsmJsArrayView * var = AsmJsArrayView::FromSymbol(sym);
                     slot->viewType = var->GetViewType();
                     break;
                 }
                 case AsmJsSymbol::ModuleArgument:
                 {
-                    AsmJsModuleArg * arg = sym->Cast<AsmJsModuleArg>();
+                    AsmJsModuleArg * arg = AsmJsModuleArg::FromSymbol(sym);
                     slot->argType = arg->GetArgType();
                     break;
                 }
                 // used only for module validation
                 case AsmJsSymbol::MathConstant:
                 {
-                    AsmJsMathConst * constVar = sym->Cast<AsmJsMathConst>();
+                    AsmJsMathConst * constVar = AsmJsMathConst::FromSymbol(sym);
                     slot->mathConstVal = *constVar->GetVal();
                     break;
                 }
                 case AsmJsSymbol::MathBuiltinFunction:
                 {
-                    AsmJsMathFunction * mathFunc = sym->Cast<AsmJsMathFunction>();
+                    AsmJsMathFunction * mathFunc = AsmJsMathFunction::FromSymbol(sym);
                     slot->builtinMathFunc = mathFunc->GetMathBuiltInFunction();
                     break;
                 }
                 case AsmJsSymbol::TypedArrayBuiltinFunction:
                 {
-                    AsmJsTypedArrayFunction * mathFunc = sym->Cast<AsmJsTypedArrayFunction>();
+                    AsmJsTypedArrayFunction * mathFunc = AsmJsTypedArrayFunction::FromSymbol(sym);
                     slot->builtinArrayFunc = mathFunc->GetArrayBuiltInFunction();
                     break;
                 }
                 case AsmJsSymbol::SIMDBuiltinFunction:
                 {
-                    AsmJsSIMDFunction * mathFunc = sym->Cast<AsmJsSIMDFunction>();
+                    AsmJsSIMDFunction * mathFunc = AsmJsSIMDFunction::FromSymbol(sym);
                     slot->builtinSIMDFunc = mathFunc->GetSimdBuiltInFunction();
                     break;
                 }
@@ -375,15 +375,15 @@ namespace Js
             AsmJsSymbol * declSym = LookupIdentifier(pnode->name());
             if (declSym)
             {
-                if (declSym->GetSymbolType() == AsmJsSymbol::MathConstant)
+                if (AsmJsMathConst::Is(declSym))
                 {
-                    AsmJsMathConst * definition = declSym->Cast<AsmJsMathConst>();
+                    AsmJsMathConst * definition = AsmJsMathConst::FromSymbol(declSym);
                     Assert(definition->GetType().isDouble());
                     func->AddConst<double>(*definition->GetVal());
                 }
-                else if (declSym->GetSymbolType() == AsmJsSymbol::Variable && !declSym->isMutable())
+                else if (AsmJsVar::Is(declSym) && !declSym->isMutable())
                 {
-                    AsmJsVar * definition = declSym->Cast<AsmJsVar>();
+                    AsmJsVar * definition = AsmJsVar::FromSymbol(declSym);
                     switch (definition->GetVarType().which())
                     {
                     case AsmJsVarType::Double:
@@ -438,9 +438,9 @@ namespace Js
                     If any of the args is a literal (DoubleLit), we need to have a copy of it in the Float reg space.
                     Note that we may end up with redundant copies in the Double reg space, since we ASTPrepass the args (Fix later ?)
                     */
-                    if (funcDecl && funcDecl->GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction)
+                    if (AsmJsSIMDFunction::Is(funcDecl))
                     {
-                        AsmJsSIMDFunction* simdFunc = funcDecl->Cast<AsmJsSIMDFunction>();
+                        AsmJsSIMDFunction* simdFunc = AsmJsSIMDFunction::FromVar(funcDecl);
                         if (simdFunc->IsFloat32x4Func())
                         {
                             ParseNode *argNode, *arg;
@@ -764,7 +764,7 @@ namespace Js
                 if (!funcDecl)
                     return Fail(rhs, _u("Cannot resolve function for argument definition, or wrong function"));
 
-                if (funcDecl->GetSymbolType() == AsmJsSymbol::MathBuiltinFunction)
+                if (AsmJsMathFunction::Is(funcDecl))
                 {
                     if (!AsmJsMathFunction::IsFround(funcDecl))
                     {
@@ -774,9 +774,9 @@ namespace Js
                     var->SetLocation(func->AcquireRegister<float>());
                 }
 #ifdef ENABLE_SIMDJS
-                else if (IsSimdjsEnabled() && funcDecl->GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction)
+                else if (IsSimdjsEnabled() && AsmJsSIMDFunction::Is(funcDecl))
                 {
-                    AsmJsSIMDFunction* simdFunc = funcDecl->Cast<AsmJsSIMDFunction>();
+                    AsmJsSIMDFunction* simdFunc = AsmJsSIMDFunction::FromSymbol(funcDecl);
                     // x = f4check(x)
                     if (!simdFunc->IsTypeCheck())
                     {
@@ -870,7 +870,7 @@ namespace Js
                 if (pnodeInit->nop == knopName)
                 {
                     declSym = LookupIdentifier(pnodeInit->name(), func);
-                    if (!declSym || declSym->isMutable() || (declSym->GetSymbolType() != AsmJsSymbol::Variable && declSym->GetSymbolType() != AsmJsSymbol::MathConstant))
+                    if ((!AsmJsVar::Is(declSym) && !AsmJsMathConst::Is(declSym)) || declSym->isMutable())
                     {
                         return Fail(decl, _u("Var declaration with non-constant"));
                     }
@@ -886,7 +886,7 @@ namespace Js
                     if (!funcDecl)
                         return Fail(pnodeInit, _u("Cannot resolve function name"));
 
-                    if (funcDecl->GetSymbolType() == AsmJsSymbol::MathBuiltinFunction)
+                    if (AsmJsMathFunction::Is(funcDecl))
                     {
                         if (!AsmJsMathFunction::IsFround(funcDecl) || !ParserWrapper::IsFroundNumericLiteral(pnodeInit->sxCall.pnodeArgs))
                         {
@@ -895,10 +895,10 @@ namespace Js
                         isFroundInit = true;
                     }
 #ifdef ENABLE_SIMDJS
-                    else if (IsSimdjsEnabled() && funcDecl->GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction)
+                    else if (IsSimdjsEnabled() && AsmJsSIMDFunction::Is(funcDecl))
                     {
                         // var x = f4(1.0, 2.0, 3.0, 4.0);
-                        simdFunc = funcDecl->Cast<AsmJsSIMDFunction>();
+                        simdFunc = AsmJsSIMDFunction::FromSymbol(funcDecl);
                         if (!ValidateSimdConstructor(pnodeInit, simdFunc, simdValue))
                         {
                             return Fail(varNode, _u("Invalid SIMD local declaration"));
@@ -960,9 +960,9 @@ namespace Js
                 }
                 else if (pnodeInit->nop == knopName)
                 {
-                    if (declSym->GetSymbolType() == AsmJsSymbol::Variable)
+                    if (AsmJsVar::Is(declSym))
                     {
-                        AsmJsVar * definition = declSym->Cast<AsmJsVar>();
+                        AsmJsVar * definition = AsmJsVar::FromSymbol(declSym);
                         switch (definition->GetVarType().which())
                         {
                         case AsmJsVarType::Double:
@@ -989,10 +989,9 @@ namespace Js
                     }
                     else
                     {
-                        Assert(declSym->GetSymbolType() == AsmJsSymbol::MathConstant);
                         Assert(declSym->GetType() == AsmJsType::Double);
 
-                        AsmJsMathConst * definition = declSym->Cast<AsmJsMathConst>();
+                        AsmJsMathConst * definition = AsmJsMathConst::FromSymbol(declSym);
 
                         var->SetVarType(AsmJsVarType::Double);
                         var->SetLocation(func->AcquireRegister<double>());
@@ -1111,13 +1110,12 @@ namespace Js
         {
             return false;
         }
-        AsmJsSymbol* funcDecl = LookupIdentifier(callNode->sxCall.pnodeTarget->name());
-        if (!funcDecl || funcDecl->GetSymbolType() != AsmJsSymbol::TypedArrayBuiltinFunction)
+        AsmJsTypedArrayFunction* arrayFunc = LookupIdentifier<AsmJsTypedArrayFunction>(callNode->sxCall.pnodeTarget->name());
+        if (!arrayFunc)
         {
             return false;
         }
 
-        AsmJsTypedArrayFunction* arrayFunc = funcDecl->Cast<AsmJsTypedArrayFunction>();
         return callNode->sxCall.argCount == 1 &&
             !callNode->sxCall.isApplyCall &&
             !callNode->sxCall.isEvalCall &&
@@ -2240,25 +2238,7 @@ namespace Js
 
     AsmJsFunctionDeclaration* AsmJsModuleCompiler::LookupFunction( PropertyName name )
     {
-        if (name)
-        {
-            AsmJsSymbol* sym = LookupIdentifier(name);
-            if (sym)
-            {
-                switch (sym->GetSymbolType())
-                {
-                case AsmJsSymbol::SIMDBuiltinFunction:
-                case AsmJsSymbol::MathBuiltinFunction:
-                case AsmJsSymbol::ModuleFunction:
-                case AsmJsSymbol::ImportFunction:
-                case AsmJsSymbol::FuncPtrTable:
-                    return sym->Cast<AsmJsFunctionDeclaration>();
-                default:
-                    break;
-                }
-            }
-        }
-        return nullptr;
+        return LookupIdentifier<AsmJsFunctionDeclaration>(name);
     }
 
     bool AsmJsModuleCompiler::AreAllFuncTableDefined()
@@ -2814,13 +2794,8 @@ namespace Js
 
     AsmJsSIMDFunction* AsmJsModuleCompiler::LookupSimdConstructor(PropertyName name)
     {
-        AsmJsFunctionDeclaration *func = LookupFunction(name);
-        if (func == nullptr || func->GetSymbolType() != AsmJsSymbol::SIMDBuiltinFunction)
-        {
-            return nullptr;
-        }
-        AsmJsSIMDFunction *simdFunc = func->Cast<AsmJsSIMDFunction>();
-        if (simdFunc->IsConstructor())
+        AsmJsSIMDFunction* simdFunc = LookupIdentifier<AsmJsSIMDFunction>(name);
+        if (simdFunc && simdFunc->IsConstructor())
         {
             return simdFunc;
         }
@@ -2829,13 +2804,8 @@ namespace Js
 
     AsmJsSIMDFunction* AsmJsModuleCompiler::LookupSimdTypeCheck(PropertyName name)
     {
-        AsmJsFunctionDeclaration *func = LookupFunction(name);
-        if (func == nullptr || func->GetSymbolType() != AsmJsSymbol::SIMDBuiltinFunction)
-        {
-            return nullptr;
-        }
-        AsmJsSIMDFunction *simdFunc = func->Cast<AsmJsSIMDFunction>();
-        if (simdFunc->IsTypeCheck())
+        AsmJsSIMDFunction* simdFunc = LookupIdentifier<AsmJsSIMDFunction>(name);
+        if (simdFunc && simdFunc->IsTypeCheck())
         {
             return simdFunc;
         }
@@ -2844,13 +2814,9 @@ namespace Js
 
     AsmJsSIMDFunction* AsmJsModuleCompiler::LookupSimdOperation(PropertyName name)
     {
-        AsmJsFunctionDeclaration *func = LookupFunction(name);
-        if (func == nullptr || func->GetSymbolType() != AsmJsSymbol::SIMDBuiltinFunction)
-        {
-            return nullptr;
-        }
-        AsmJsSIMDFunction *simdFunc = func->Cast<AsmJsSIMDFunction>();
-        if (simdFunc->GetSimdBuiltInFunction() != AsmJsSIMDBuiltin_Int32x4 &&
+        AsmJsSIMDFunction* simdFunc = LookupIdentifier<AsmJsSIMDFunction>(name);
+        if (simdFunc &&
+            simdFunc->GetSimdBuiltInFunction() != AsmJsSIMDBuiltin_Int32x4 &&
             simdFunc->GetSimdBuiltInFunction() != AsmJsSIMDBuiltin_Int16x8 &&
             simdFunc->GetSimdBuiltInFunction() != AsmJsSIMDBuiltin_Int8x16 &&
             simdFunc->GetSimdBuiltInFunction() != AsmJsSIMDBuiltin_Float32x4 &&
@@ -2871,7 +2837,7 @@ namespace Js
 
     bool AsmJsModuleCompiler::AddSimdValueVar(PropertyName name, ParseNode* pnode, AsmJsSIMDFunction* simdFunc)
     {
-        AssertMsg(simdFunc->GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction, "Expecting SIMD builtin");
+        AssertMsg(AsmJsSIMDFunction::Is(simdFunc), "Expecting SIMD builtin");
         AssertMsg(simdFunc->IsConstructor(), "Expecting constructor function");
 
         AsmJsSIMDValue value;

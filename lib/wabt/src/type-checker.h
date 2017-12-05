@@ -51,6 +51,10 @@ class TypeChecker {
   Result GetLabel(Index depth, Label** out_label);
 
   Result BeginFunction(const TypeVector* sig);
+  Result OnAtomicLoad(Opcode);
+  Result OnAtomicStore(Opcode);
+  Result OnAtomicRmw(Opcode);
+  Result OnAtomicRmwCmpxchg(Opcode);
   Result OnBinary(Opcode);
   Result OnBlock(const TypeVector* sig);
   Result OnBr(Index depth);
@@ -113,9 +117,14 @@ class TypeChecker {
                          const char* desc);
   Result PopAndCheck1Type(Type expected, const char* desc);
   Result PopAndCheck2Types(Type expected1, Type expected2, const char* desc);
+  Result PopAndCheck3Types(Type expected1,
+                           Type expected2,
+                           Type expected3,
+                           const char* desc);
   Result PopAndCheck2TypesAreEqual(Type* out_type, const char* desc);
   Result CheckOpcode1(Opcode opcode);
   Result CheckOpcode2(Opcode opcode);
+  Result CheckOpcode3(Opcode opcode);
   Result OnEnd(Label* label, const char* sig_desc, const char* end_desc);
 
   ErrorCallback error_callback_;

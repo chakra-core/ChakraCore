@@ -1334,6 +1334,16 @@ namespace Js
         return indexPropertyMap->TryGetReference(index, ppDescriptor);
     }
 
+#if DBG_DUMP
+    // Explicitly override the superclass's Dump method to prevent misleading output.  Without this method, if
+    // someone calls Dump on an ES5ArrayTypeHandlerBase, the output would make it look like the type is actually
+    // a DictionaryTypeHandlerBase instance.
+    template <typename T> void ES5ArrayTypeHandlerBase<T>::Dump(unsigned indent) const
+    {
+        Output::Print(_u("%*sES5ArrayTypeHandlerBase (0x%p): Dump unimplemented\n"), indent, _u(""), this);
+    }
+#endif
+
     template class ES5ArrayTypeHandlerBase<PropertyIndex>;
     template class ES5ArrayTypeHandlerBase<BigPropertyIndex>;
 }

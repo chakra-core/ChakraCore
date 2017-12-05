@@ -82,6 +82,7 @@ namespace Js
 
         static bool Is(Var value);
         static ArrayBufferBase* FromVar(Var value);
+        static ArrayBufferBase* UnsafeFromVar(Var value);
         static int GetIsDetachedOffset() { return offsetof(ArrayBufferBase, isDetached); }
 
     protected:
@@ -102,9 +103,10 @@ namespace Js
         {
         public:
             FreeFN* freeFunction;
-
-            ArrayBufferDetachedState(BYTE* buffer, uint32 bufferLength, FreeFN* freeFunction, ArrayBufferAllocationType allocationType)
+            Recycler* recycler;
+            ArrayBufferDetachedState(BYTE* buffer, uint32 bufferLength, FreeFN* freeFunction, Recycler* recycler, ArrayBufferAllocationType allocationType)
                 : ArrayBufferDetachedStateBase(TypeIds_ArrayBuffer, buffer, bufferLength, allocationType),
+                recycler(recycler),
                 freeFunction(freeFunction)
             {}
 
@@ -113,15 +115,7 @@ namespace Js
                 HeapDelete(this);
             }
 
-            virtual void DiscardState() override
-            {
-                if (this->buffer != nullptr)
-                {
-                    freeFunction(this->buffer);
-                    this->buffer = nullptr;
-                }
-                this->bufferLength = 0;
-            }
+            virtual void DiscardState() override;
 
             virtual void Discard() override
             {
@@ -159,6 +153,7 @@ namespace Js
         static bool Is(Var aValue);
         static ArrayBuffer* NewFromDetachedState(DetachedStateBase* state, JavascriptLibrary *library);
         static ArrayBuffer* FromVar(Var aValue);
+        static ArrayBuffer* UnsafeFromVar(Var aValue);
 
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
@@ -306,7 +301,7 @@ namespace Js
         typedef void __stdcall FreeFn(LPVOID ptr);
         virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, DECLSPEC_GUARD_OVERFLOW uint32 bufferLength) override
         {
-            return HeapNew(ArrayBufferDetachedState<FreeFn>, buffer, bufferLength, CoTaskMemFree, ArrayBufferAllocationType::CoTask);
+            return HeapNew(ArrayBufferDetachedState<FreeFn>, buffer, bufferLength, CoTaskMemFree, GetScriptContext()->GetRecycler(), ArrayBufferAllocationType::CoTask);
         }
 
     public:

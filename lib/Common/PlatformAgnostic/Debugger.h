@@ -2,9 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-
-#ifndef RUNTIME_PLATFORM_AGNOSTIC_DEBUGGER
-#define RUNTIME_PLATFORM_AGNOSTIC_DEBUGGER
+#pragma once
 
 #ifndef _WIN32
 
@@ -131,5 +129,3 @@ public:
 #define IActiveScriptProfilerCallback3 IActiveScriptProfilerCallback
 
 #endif // !_WIN32
-
-#endif // RUNTIME_PLATFORM_AGNOSTIC_DEBUGGER

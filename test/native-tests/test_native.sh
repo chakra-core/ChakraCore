@@ -94,6 +94,9 @@ RUN "test-pal"
 # test-static-native
 RUN "test-static-native"
 
+# test-property
+RUN "test-property"
+
 # shared lib tests
 LIB_DIR="$(dirname ${CH_DIR})"
 if [[ `uname -a` =~ "Darwin" ]]; then

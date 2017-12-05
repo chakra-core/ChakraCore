@@ -150,4 +150,15 @@
       <files>singleCharStringCase.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>aggressiveintoff.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>aggressiveintoff.js</files>
+      <compile-flags>-off:aggressiveinttypespec</compile-flags>
+    </default>
+  </test>
 </regress-exe>

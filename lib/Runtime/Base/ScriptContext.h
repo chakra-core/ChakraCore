@@ -392,8 +392,8 @@ namespace Js
     {
     public:
         typedef JsUtil::BaseDictionary<void *, uint, HeapAllocator> RangeMap;
-        typedef JsUtil::BaseDictionary<void *, RangeMap*, HeapAllocator> JITPageAddrToFuncRangeMap;
-        typedef JsUtil::BaseDictionary<void *, uint, HeapAllocator> LargeJITFuncAddrToSizeMap;
+        typedef JsUtil::BaseDictionary<void *, RangeMap*, HeapAllocator, PrimeSizePolicy> JITPageAddrToFuncRangeMap;
+        typedef JsUtil::BaseDictionary<void *, uint, HeapAllocator, PrimeSizePolicy> LargeJITFuncAddrToSizeMap;
 
     private:
         JITPageAddrToFuncRangeMap * jitPageAddrToFuncRangeMap;
@@ -835,8 +835,10 @@ private:
         EventHandler disposeScriptByFaultInjectionEventHandler;
 #endif
 
-        JsUtil::BaseDictionary<uint, JavascriptString *, ArenaAllocator> integerStringMap;
-
+#ifndef CC_LOW_MEMORY_TARGET
+        uint integerStringMapCacheMissCount;
+        uint integerStringMapCacheUseCount;
+#endif
         double lastNumberToStringRadix10;
         double lastUtcTimeFromStr;
 
@@ -1033,6 +1035,7 @@ private:
 
         void InitializeGlobalObject();
         bool IsIntlEnabled();
+        bool IsJsBuiltInEnabled();
         JavascriptLibrary* GetLibrary() const { return javascriptLibrary; }
         Js::Cache* Cache() const{ return &this->javascriptLibrary->cache; }
         const JavascriptLibraryBase* GetLibraryBase() const { return javascriptLibrary->GetLibraryBase(); }
@@ -1213,13 +1216,14 @@ private:
         {
             GetOrAddPropertyRecord(propertyName, N - 1, propertyRecord);
         }
+        void GetOrAddPropertyRecord(_In_ Js::JavascriptString * propertyString, _Out_ PropertyRecord const** propertyRecord);
         PropertyId GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR> const& propName);
         template <size_t N> PropertyId GetOrAddPropertyIdTracked(const char16(&propertyName)[N])
         {
             return GetOrAddPropertyIdTracked(propertyName, N - 1);
         }
         PropertyId GetOrAddPropertyIdTracked(__in_ecount(propertyNameLength) LPCWSTR pszPropertyName, __in int propertyNameLength);
-        void GetOrAddPropertyRecord(__in_ecount(propertyNameLength) LPCWSTR pszPropertyName, __in int propertyNameLength, PropertyRecord const** propertyRecord);
+        void GetOrAddPropertyRecord(__in_ecount(propertyNameLength) LPCWSTR pszPropertyName, _In_ int propertyNameLength, _Out_ PropertyRecord const** propertyRecord);
         BOOL IsNumericPropertyId(PropertyId propertyId, uint32* value);
 
         void RegisterWeakReferenceDictionary(JsUtil::IWeakReferenceDictionary* weakReferenceDictionary);
@@ -1431,13 +1435,7 @@ private:
     public:
         Js::PropertyId GetEmptyStringPropertyId()
         {
-            if (emptyStringPropertyId == Js::PropertyIds::_none)
-            {
-                Js::PropertyRecord const * propertyRecord;
-                this->GetOrAddPropertyRecord(_u(""), 0, &propertyRecord);
-                emptyStringPropertyId = propertyRecord->GetPropertyId();
-            }
-            return emptyStringPropertyId;
+            return threadContext->GetEmptyStringPropertyId();
         }
 
         void FreeFunctionEntryPoint(Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress);
@@ -1752,6 +1750,8 @@ private:
         virtual intptr_t GetDebugFrameAddressAddr() const override;
         virtual intptr_t GetDebugScriptIdWhenSetAddr() const override;
 #endif
+
+        virtual intptr_t GetChakraLibAddr() const override;
 
 #if ENABLE_NATIVE_CODEGEN
         virtual void AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper) override;

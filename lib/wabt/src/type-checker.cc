@@ -220,6 +220,24 @@ Result TypeChecker::PopAndCheck2Types(Type expected1,
   return result;
 }
 
+Result TypeChecker::PopAndCheck3Types(Type expected1,
+                                      Type expected2,
+                                      Type expected3,
+                                      const char* desc) {
+  Result result = Result::Ok;
+  Type actual1 = Type::Any;
+  Type actual2 = Type::Any;
+  Type actual3 = Type::Any;
+  result |= CheckTypeStackLimit(3, desc);
+  result |= PopType(&actual3);
+  result |= PopType(&actual2);
+  result |= PopType(&actual1);
+  result |= CheckType(actual1, expected1, desc);
+  result |= CheckType(actual2, expected2, desc);
+  result |= CheckType(actual3, expected3, desc);
+  return result;
+}
+
 Result TypeChecker::PopAndCheck2TypesAreEqual(Type* out_type,
                                               const char* desc) {
   Result result = Result::Ok;
@@ -246,11 +264,35 @@ Result TypeChecker::CheckOpcode2(Opcode opcode) {
   return result;
 }
 
+Result TypeChecker::CheckOpcode3(Opcode opcode) {
+  Result result =
+      PopAndCheck3Types(opcode.GetParamType1(), opcode.GetParamType2(),
+                        opcode.GetParamType3(), opcode.GetName());
+  PushType(opcode.GetResultType());
+  return result;
+}
+
 Result TypeChecker::BeginFunction(const TypeVector* sig) {
   type_stack_.clear();
   label_stack_.clear();
   PushLabel(LabelType::Func, *sig);
   return Result::Ok;
+}
+
+Result TypeChecker::OnAtomicLoad(Opcode opcode) {
+  return CheckOpcode1(opcode);
+}
+
+Result TypeChecker::OnAtomicStore(Opcode opcode) {
+  return CheckOpcode2(opcode);
+}
+
+Result TypeChecker::OnAtomicRmw(Opcode opcode) {
+  return CheckOpcode2(opcode);
+}
+
+Result TypeChecker::OnAtomicRmwCmpxchg(Opcode opcode) {
+  return CheckOpcode3(opcode);
 }
 
 Result TypeChecker::OnBinary(Opcode opcode) {

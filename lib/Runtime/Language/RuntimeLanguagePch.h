@@ -5,9 +5,9 @@
 #pragma once
 
 #include "Parser.h"
-#include "WasmReader.h"
 
 #include "Runtime.h"
+#include "WasmReader.h"
 
 #include "Language/AsmJsUtils.h"
 #include "Language/AsmJsLink.h"

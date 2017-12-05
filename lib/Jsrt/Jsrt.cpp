@@ -1221,12 +1221,22 @@ CHAKRA_API JsStringToPointer(_In_ JsValueRef stringValue, _Outptr_result_buffer_
 
 CHAKRA_API JsConvertValueToString(_In_ JsValueRef value, _Out_ JsValueRef *result)
 {
+    PARAM_NOT_NULL(result);
+    *result = nullptr;
+
+    if (value != nullptr && Js::JavascriptString::Is(value))
+    {
+        return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+            VALIDATE_INCOMING_REFERENCE(value, scriptContext);
+
+            *result = value;
+            return JsNoError;
+        });
+    }
+
     return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
         PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTVarToStringConversion, (Js::Var)value);
-
         VALIDATE_INCOMING_REFERENCE(value, scriptContext);
-        PARAM_NOT_NULL(result);
-        *result = nullptr;
 
         *result = (JsValueRef) Js::JavascriptConversion::ToString((Js::Var)value, scriptContext);
 
@@ -1373,51 +1383,466 @@ CHAKRA_API JsPreventExtension(_In_ JsValueRef object)
     });
 }
 
+CHAKRA_API JsHasOwnPropertyCommon(Js::ScriptContext * scriptContext, _In_ JsValueRef object,
+    _In_ const Js::PropertyRecord * propertyRecord, _Out_ bool *hasOwnProperty,
+    TTDRecorder& _actionEntryPopper)
+{
+    PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTHasOwnProperty, propertyRecord, object);
+
+    *hasOwnProperty = Js::JavascriptOperators::OP_HasOwnProperty(object,
+        propertyRecord->GetPropertyId(), scriptContext) != 0;
+
+    return JsNoError;
+}
+
+CHAKRA_API JsHasOwnProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId,
+    _Out_ bool *hasOwnProperty)
+{
+    return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext,
+        TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+
+        VALIDATE_INCOMING_OBJECT(object, scriptContext);
+        VALIDATE_INCOMING_PROPERTYID(propertyId);
+        PARAM_NOT_NULL(hasOwnProperty);
+        *hasOwnProperty = false;
+
+        return JsHasOwnPropertyCommon(scriptContext, object,
+            (const Js::PropertyRecord *)propertyId, hasOwnProperty, _actionEntryPopper);
+    });
+}
+
+#ifdef _CHAKRACOREBUILD
+static JsErrorCode InternalGetPropertyRecord(Js::ScriptContext * scriptContext,
+    Js::RecyclableObject * key, _Out_ const Js::PropertyRecord ** propertyRecord)
+{
+    Assert(propertyRecord != nullptr);
+    *propertyRecord = nullptr;
+
+    if (key->GetTypeId() != Js::TypeIds_String)
+    {
+        return JsErrorInvalidArgument;
+    }
+
+    scriptContext->GetOrAddPropertyRecord(Js::JavascriptString::FromVar(key),
+        (Js::PropertyRecord const **)propertyRecord);
+    return JsNoError;
+}
+
+CHAKRA_API JsObjectHasOwnProperty(_In_ JsValueRef object, _In_ JsValueRef propertyId, _Out_ bool *hasOwnProperty)
+{
+    return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext,
+        TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+
+        VALIDATE_INCOMING_OBJECT(object, scriptContext);
+        VALIDATE_INCOMING_RECYCLABLE(propertyId, scriptContext);
+        PARAM_NOT_NULL(hasOwnProperty);
+        *hasOwnProperty = false;
+
+        const Js::PropertyRecord *propertyRecord = nullptr;
+        JsErrorCode errorValue = InternalGetPropertyRecord(scriptContext,
+            Js::RecyclableObject::FromVar(propertyId), &propertyRecord);
+
+        if (errorValue != JsNoError)
+        {
+            return errorValue;
+        }
+
+        return JsHasOwnPropertyCommon(scriptContext, object, propertyRecord, hasOwnProperty, _actionEntryPopper);
+    });
+}
+#endif
+
+static JsErrorCode JsGetPropertyCommon(Js::ScriptContext * scriptContext,
+    _In_ Js::RecyclableObject * object,
+    _In_ const Js::PropertyRecord * propertyRecord, _Out_ JsValueRef *value,
+    TTDRecorder& _actionEntryPopper)
+{
+    AssertMsg(scriptContext->GetThreadContext()->IsScriptActive(), "Caller is expected to be under ContextAPIWrapper!");
+    PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTGetProperty, propertyRecord, object);
+
+    *value = Js::JavascriptOperators::GetPropertyNoCache(object, propertyRecord->GetPropertyId(), scriptContext);
+    Assert(*value == nullptr || !Js::CrossSite::NeedMarshalVar(*value, scriptContext));
+
+    PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, value);
+
+    return JsNoError;
+}
+
 CHAKRA_API JsGetProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId, _Out_ JsValueRef *value)
 {
-    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTGetProperty, (Js::PropertyRecord *)propertyId, object);
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext,
+        TTDRecorder& _actionEntryPopper) -> JsErrorCode {
 
         VALIDATE_INCOMING_OBJECT(object, scriptContext);
         VALIDATE_INCOMING_PROPERTYID(propertyId);
         PARAM_NOT_NULL(value);
         *value = nullptr;
 
-        *value = Js::JavascriptOperators::OP_GetProperty((Js::Var)object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), scriptContext);
-        Assert(*value == nullptr || !Js::CrossSite::NeedMarshalVar(*value, scriptContext));
-
-        PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, value);
-
-        return JsNoError;
+        Js::RecyclableObject * instance = Js::RecyclableObject::FromVar(object);
+        return JsGetPropertyCommon(scriptContext, instance, (const Js::PropertyRecord *)propertyId,
+             value, _actionEntryPopper);
     });
+}
+
+#ifdef _CHAKRACOREBUILD
+CHAKRA_API JsObjectGetProperty(_In_ JsValueRef object, _In_ JsValueRef propertyId, _Out_ JsValueRef *value)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext,
+        TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+
+        VALIDATE_INCOMING_OBJECT(object, scriptContext);
+        VALIDATE_INCOMING_RECYCLABLE(propertyId, scriptContext);
+        PARAM_NOT_NULL(value);
+        *value = nullptr;
+
+        const Js::PropertyRecord *propertyRecord = nullptr;
+        JsErrorCode errorValue = InternalGetPropertyRecord(scriptContext,
+            Js::RecyclableObject::FromVar(propertyId), &propertyRecord);
+
+        if (errorValue != JsNoError)
+        {
+            return errorValue;
+        }
+
+        Assert(propertyRecord != nullptr);
+
+        Js::RecyclableObject * instance = Js::RecyclableObject::FromVar(object);
+        return JsGetPropertyCommon(scriptContext, instance, propertyRecord, value, _actionEntryPopper);
+    });
+}
+#endif
+
+static JsErrorCode JsGetOwnPropertyDescriptorCommon(Js::ScriptContext * scriptContext,
+    _In_ JsValueRef object, _In_ const Js::PropertyRecord * propertyRecord, _Out_ JsValueRef *propertyDescriptor,
+    TTDRecorder& _actionEntryPopper)
+{
+    AssertMsg(scriptContext->GetThreadContext()->IsScriptActive(), "Caller is expected to be under ContextAPIWrapper!");
+    PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTGetOwnPropertyInfo, propertyRecord, object);
+
+    Js::PropertyDescriptor propertyDescriptorValue;
+    if (Js::JavascriptOperators::GetOwnPropertyDescriptor(Js::RecyclableObject::FromVar(object),
+        propertyRecord->GetPropertyId(), scriptContext, &propertyDescriptorValue))
+    {
+        *propertyDescriptor = Js::JavascriptOperators::FromPropertyDescriptor(propertyDescriptorValue, scriptContext);
+    }
+    else
+    {
+        *propertyDescriptor = scriptContext->GetLibrary()->GetUndefined();
+    }
+    Assert(*propertyDescriptor == nullptr || !Js::CrossSite::NeedMarshalVar(*propertyDescriptor, scriptContext));
+
+    PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, propertyDescriptor);
+
+    return JsNoError;
 }
 
 CHAKRA_API JsGetOwnPropertyDescriptor(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId, _Out_ JsValueRef *propertyDescriptor)
 {
     return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTGetOwnPropertyInfo, (Js::PropertyRecord *)propertyId, object);
-
         VALIDATE_INCOMING_OBJECT(object, scriptContext);
         VALIDATE_INCOMING_PROPERTYID(propertyId);
         PARAM_NOT_NULL(propertyDescriptor);
         *propertyDescriptor = nullptr;
 
-        Js::PropertyDescriptor propertyDescriptorValue;
-        if (Js::JavascriptOperators::GetOwnPropertyDescriptor(Js::RecyclableObject::FromVar(object), ((Js::PropertyRecord *)propertyId)->GetPropertyId(), scriptContext, &propertyDescriptorValue))
-        {
-            *propertyDescriptor = Js::JavascriptOperators::FromPropertyDescriptor(propertyDescriptorValue, scriptContext);
-        }
-        else
-        {
-            *propertyDescriptor = scriptContext->GetLibrary()->GetUndefined();
-        }
-        Assert(*propertyDescriptor == nullptr || !Js::CrossSite::NeedMarshalVar(*propertyDescriptor, scriptContext));
-
-        PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, propertyDescriptor);
-
-        return JsNoError;
+        return JsGetOwnPropertyDescriptorCommon(scriptContext, object, (const Js::PropertyRecord *)propertyId,
+            propertyDescriptor, _actionEntryPopper);
     });
 }
+
+#ifdef _CHAKRACOREBUILD
+CHAKRA_API JsObjectGetOwnPropertyDescriptor(_In_ JsValueRef object, _In_ JsValueRef propertyId, _Out_ JsValueRef *propertyDescriptor)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext,
+        TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+
+        VALIDATE_INCOMING_OBJECT(object, scriptContext);
+        VALIDATE_INCOMING_RECYCLABLE(propertyId, scriptContext);
+        PARAM_NOT_NULL(propertyDescriptor);
+        *propertyDescriptor = nullptr;
+
+        const Js::PropertyRecord *propertyRecord = nullptr;
+        JsErrorCode errorValue = InternalGetPropertyRecord(scriptContext,
+            Js::RecyclableObject::FromVar(propertyId), &propertyRecord);
+
+        if (errorValue != JsNoError)
+        {
+            return errorValue;
+        }
+
+        Assert(propertyRecord != nullptr);
+
+        return JsGetOwnPropertyDescriptorCommon(scriptContext, object, propertyRecord, propertyDescriptor, _actionEntryPopper);
+    });
+}
+#endif
+
+static JsErrorCode JsSetPropertyCommon(Js::ScriptContext * scriptContext, _In_ JsValueRef object,
+    _In_ const Js::PropertyRecord * propertyRecord, _In_ JsValueRef value, _In_ bool useStrictRules,
+    TTDRecorder& _actionEntryPopper)
+{
+    AssertMsg(scriptContext->GetThreadContext()->IsScriptActive(), "Caller is expected to be under ContextAPIWrapper!");
+    PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTSetProperty, object,
+        propertyRecord, value, useStrictRules);
+
+    Js::JavascriptOperators::OP_SetProperty(object, propertyRecord->GetPropertyId(),
+        value, scriptContext, nullptr, useStrictRules ? Js::PropertyOperation_StrictMode : Js::PropertyOperation_None);
+
+    return JsNoError;
+}
+
+CHAKRA_API JsSetProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId, _In_ JsValueRef value, _In_ bool useStrictRules)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext,
+        TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+
+        VALIDATE_INCOMING_OBJECT(object, scriptContext);
+        VALIDATE_INCOMING_PROPERTYID(propertyId);
+        VALIDATE_INCOMING_REFERENCE(value, scriptContext);
+
+        return JsSetPropertyCommon(scriptContext, object, (const Js::PropertyRecord *)propertyId,
+            value, useStrictRules, _actionEntryPopper);
+    });
+}
+
+#ifdef _CHAKRACOREBUILD
+CHAKRA_API JsObjectSetProperty(_In_ JsValueRef object, _In_ JsValueRef propertyId, _In_ JsValueRef value, _In_ bool useStrictRules)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext,
+        TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+
+        VALIDATE_INCOMING_OBJECT(object, scriptContext);
+        VALIDATE_INCOMING_RECYCLABLE(propertyId, scriptContext);
+        VALIDATE_INCOMING_REFERENCE(value, scriptContext);
+
+        const Js::PropertyRecord *propertyRecord = nullptr;
+        JsErrorCode errorValue = InternalGetPropertyRecord(scriptContext,
+            Js::RecyclableObject::FromVar(propertyId), &propertyRecord);
+
+        if (errorValue != JsNoError)
+        {
+            return errorValue;
+        }
+
+        Assert(propertyRecord != nullptr);
+
+        return JsSetPropertyCommon(scriptContext, object, propertyRecord, value, useStrictRules, _actionEntryPopper);
+    });
+}
+#endif
+
+CHAKRA_API JsHasProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId, _Out_ bool *hasProperty)
+{
+    VALIDATE_JSREF(object);
+    if (!Js::JavascriptOperators::IsObject(object)) return JsErrorArgumentNotObject;
+
+    auto internalHasProperty = [&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTHasProperty, (Js::PropertyRecord *)propertyId, object);
+
+        VALIDATE_INCOMING_OBJECT(object, scriptContext);
+        VALIDATE_INCOMING_PROPERTYID(propertyId);
+        PARAM_NOT_NULL(hasProperty);
+        *hasProperty = false;
+
+        Js::RecyclableObject * instance = Js::RecyclableObject::FromVar(object);
+        *hasProperty = Js::JavascriptOperators::HasProperty(instance, ((Js::PropertyRecord *)propertyId)->GetPropertyId()) != 0;
+
+        return JsNoError;
+    };
+
+    Js::RecyclableObject* robject = Js::RecyclableObject::FromVar(object);
+    Js::TypeId typeId = Js::JavascriptOperators::GetTypeId(robject);
+    while (typeId != Js::TypeIds_Null && typeId != Js::TypeIds_Proxy)
+    {
+        robject = robject->GetPrototype();
+        typeId = Js::JavascriptOperators::GetTypeId(robject);
+    }
+
+    if (typeId == Js::TypeIds_Proxy)
+    {
+        return ContextAPIWrapper<JSRT_MAYBE_TRUE>(internalHasProperty);
+    }
+    else
+    {
+        return ContextAPINoScriptWrapper(internalHasProperty);
+    }
+}
+
+#ifdef _CHAKRACOREBUILD
+CHAKRA_API JsObjectHasProperty(_In_ JsValueRef object, _In_ JsValueRef propertyId, _Out_ bool *hasProperty)
+{
+    VALIDATE_JSREF(object);
+    if (!Js::JavascriptOperators::IsObject(object)) return JsErrorArgumentNotObject;
+
+    auto internalHasProperty = [&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        VALIDATE_INCOMING_OBJECT(object, scriptContext);
+        VALIDATE_INCOMING_RECYCLABLE(propertyId, scriptContext);
+        PARAM_NOT_NULL(hasProperty);
+        *hasProperty = false;
+
+        const Js::PropertyRecord *propertyRecord = nullptr;
+        JsErrorCode errorValue = InternalGetPropertyRecord(scriptContext,
+            Js::RecyclableObject::FromVar(propertyId), &propertyRecord);
+
+        if (errorValue != JsNoError)
+        {
+            return errorValue;
+        }
+
+        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTHasProperty, propertyRecord, object);
+
+        Js::RecyclableObject * instance = Js::RecyclableObject::FromVar(object);
+        *hasProperty = Js::JavascriptOperators::HasProperty(instance, propertyRecord->GetPropertyId()) != 0;
+
+        return JsNoError;
+    };
+
+    Js::RecyclableObject* robject = Js::RecyclableObject::FromVar(object);
+    Js::TypeId typeId = Js::JavascriptOperators::GetTypeId(robject);
+    while (typeId != Js::TypeIds_Null && typeId != Js::TypeIds_Proxy)
+    {
+        robject = robject->GetPrototype();
+        typeId = Js::JavascriptOperators::GetTypeId(robject);
+    }
+
+    if (typeId == Js::TypeIds_Proxy)
+    {
+        return ContextAPIWrapper<JSRT_MAYBE_TRUE>(internalHasProperty);
+    }
+    else
+    {
+        return ContextAPINoScriptWrapper(internalHasProperty);
+    }
+}
+#endif
+
+static JsErrorCode JsDeletePropertyCommon(Js::ScriptContext * scriptContext, _In_ JsValueRef object,
+    _In_ const Js::PropertyRecord * propertyRecord, _In_ bool useStrictRules, _Out_ JsValueRef *result,
+    TTDRecorder& _actionEntryPopper)
+{
+    AssertMsg(scriptContext->GetThreadContext()->IsScriptActive(), "Caller is expected to be under ContextAPIWrapper!");
+    PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTDeleteProperty, object,
+        propertyRecord, useStrictRules);
+
+    *result = Js::JavascriptOperators::OP_DeleteProperty((Js::Var)object,
+        propertyRecord->GetPropertyId(),
+        scriptContext, useStrictRules ? Js::PropertyOperation_StrictMode : Js::PropertyOperation_None);
+
+    Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
+
+    PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, result);
+
+    return JsNoError;
+}
+
+CHAKRA_API JsDeleteProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId,
+    _In_ bool useStrictRules, _Out_ JsValueRef *result)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext,
+        TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+
+        VALIDATE_INCOMING_OBJECT(object, scriptContext);
+        VALIDATE_INCOMING_PROPERTYID(propertyId);
+        PARAM_NOT_NULL(result);
+        *result = nullptr;
+
+        return JsDeletePropertyCommon(scriptContext, object, (const Js::PropertyRecord *)propertyId,
+            useStrictRules, result, _actionEntryPopper);
+    });
+}
+
+#ifdef _CHAKRACOREBUILD
+CHAKRA_API JsObjectDeleteProperty(_In_ JsValueRef object, _In_ JsValueRef propertyId,
+    _In_ bool useStrictRules, _Out_ JsValueRef *result)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext,
+        TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+
+        VALIDATE_INCOMING_OBJECT(object, scriptContext);
+        VALIDATE_INCOMING_RECYCLABLE(propertyId, scriptContext);
+        PARAM_NOT_NULL(result);
+        *result = nullptr;
+
+        const Js::PropertyRecord *propertyRecord = nullptr;
+        JsErrorCode errorValue = InternalGetPropertyRecord(scriptContext,
+            Js::RecyclableObject::FromVar(propertyId), &propertyRecord);
+
+        if (errorValue != JsNoError)
+        {
+            return errorValue;
+        }
+
+        Assert(propertyRecord != nullptr);
+
+        return JsDeletePropertyCommon(scriptContext, object, propertyRecord,
+            useStrictRules, result, _actionEntryPopper);
+    });
+}
+#endif
+
+static JsErrorCode JsDefinePropertyCommon(Js::ScriptContext * scriptContext, _In_ JsValueRef object,
+    _In_ const Js::PropertyRecord *propertyRecord, _In_ JsValueRef propertyDescriptor,
+    _Out_ bool *result, TTDRecorder& _actionEntryPopper)
+{
+    AssertMsg(scriptContext->GetThreadContext()->IsScriptActive(), "Caller is expected to be under ContextAPIWrapper!");
+    PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTDefineProperty, object,
+        propertyRecord, propertyDescriptor);
+
+    Js::PropertyDescriptor propertyDescriptorValue;
+    if (!Js::JavascriptOperators::ToPropertyDescriptor(propertyDescriptor, &propertyDescriptorValue, scriptContext))
+    {
+        return JsErrorInvalidArgument;
+    }
+
+    *result = Js::JavascriptOperators::DefineOwnPropertyDescriptor(
+        Js::RecyclableObject::FromVar(object), propertyRecord->GetPropertyId(),
+        propertyDescriptorValue, true, scriptContext) != 0;
+
+    return JsNoError;
+}
+
+CHAKRA_API JsDefineProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId,
+    _In_ JsValueRef propertyDescriptor, _Out_ bool *result)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext,
+        TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+
+        VALIDATE_INCOMING_OBJECT(object, scriptContext);
+        VALIDATE_INCOMING_PROPERTYID(propertyId);
+        VALIDATE_INCOMING_OBJECT(propertyDescriptor, scriptContext);
+        PARAM_NOT_NULL(result);
+        *result = false;
+
+        return JsDefinePropertyCommon(scriptContext, object, (const Js::PropertyRecord *)propertyId,
+            propertyDescriptor, result, _actionEntryPopper);
+    });
+}
+
+#ifdef _CHAKRACOREBUILD
+CHAKRA_API JsObjectDefineProperty(_In_ JsValueRef object, _In_ JsValueRef propertyId,
+    _In_ JsValueRef propertyDescriptor, _Out_ bool *result)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext,
+        TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+
+        VALIDATE_INCOMING_OBJECT(object, scriptContext);
+        VALIDATE_INCOMING_RECYCLABLE(propertyId, scriptContext);
+        VALIDATE_INCOMING_OBJECT(propertyDescriptor, scriptContext);
+        PARAM_NOT_NULL(result);
+        *result = false;
+
+        const Js::PropertyRecord *propertyRecord = nullptr;
+        JsErrorCode errorValue = InternalGetPropertyRecord(scriptContext,
+            Js::RecyclableObject::FromVar(propertyId), &propertyRecord);
+
+        if (errorValue != JsNoError)
+        {
+            return errorValue;
+        }
+
+        return JsDefinePropertyCommon(scriptContext, object, propertyRecord, propertyDescriptor, result, _actionEntryPopper);
+    });
+}
+#endif
 
 CHAKRA_API JsGetOwnPropertyNames(_In_ JsValueRef object, _Out_ JsValueRef *propertyNames)
 {
@@ -1449,103 +1874,6 @@ CHAKRA_API JsGetOwnPropertySymbols(_In_ JsValueRef object, _Out_ JsValueRef *pro
         Assert(*propertySymbols == nullptr || !Js::CrossSite::NeedMarshalVar(*propertySymbols, scriptContext));
 
         PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, propertySymbols);
-
-        return JsNoError;
-    });
-}
-
-CHAKRA_API JsSetProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId, _In_ JsValueRef value, _In_ bool useStrictRules)
-{
-    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTSetProperty, object, (Js::PropertyRecord *)propertyId, value, useStrictRules);
-
-        VALIDATE_INCOMING_OBJECT(object, scriptContext);
-        VALIDATE_INCOMING_PROPERTYID(propertyId);
-        VALIDATE_INCOMING_REFERENCE(value, scriptContext);
-
-        Js::JavascriptOperators::OP_SetProperty(object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), value, scriptContext,
-            nullptr, useStrictRules ? Js::PropertyOperation_StrictMode : Js::PropertyOperation_None);
-
-        return JsNoError;
-    });
-}
-
-CHAKRA_API JsHasProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId, _Out_ bool *hasProperty)
-{
-    VALIDATE_JSREF(object);
-    if (!Js::JavascriptOperators::IsObject(object)) return JsErrorArgumentNotObject;
-
-    auto internalHasProperty = [&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTHasProperty, (Js::PropertyRecord *)propertyId, object);
-
-        VALIDATE_INCOMING_OBJECT(object, scriptContext);
-        VALIDATE_INCOMING_PROPERTYID(propertyId);
-        PARAM_NOT_NULL(hasProperty);
-        *hasProperty = false;
-
-        *hasProperty = Js::JavascriptOperators::OP_HasProperty(object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), scriptContext) != 0;
-
-        return JsNoError;
-    };
-
-    Js::RecyclableObject* robject = Js::RecyclableObject::FromVar(object);
-    Js::TypeId typeId = Js::JavascriptOperators::GetTypeId(robject);
-    while (typeId != Js::TypeIds_Null && typeId != Js::TypeIds_Proxy)
-    {
-        robject = robject->GetPrototype();
-        typeId = Js::JavascriptOperators::GetTypeId(robject);
-    }
-
-    if (typeId == Js::TypeIds_Proxy)
-    {
-        return ContextAPIWrapper<JSRT_MAYBE_TRUE>(internalHasProperty);
-    }
-    else
-    {
-        return ContextAPINoScriptWrapper(internalHasProperty);
-    }
-}
-
-CHAKRA_API JsDeleteProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId, _In_ bool useStrictRules, _Out_ JsValueRef *result)
-{
-    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTDeleteProperty, object, (Js::PropertyRecord *)propertyId, useStrictRules);
-
-        VALIDATE_INCOMING_OBJECT(object, scriptContext);
-        VALIDATE_INCOMING_PROPERTYID(propertyId);
-        PARAM_NOT_NULL(result);
-        *result = nullptr;
-
-        *result = Js::JavascriptOperators::OP_DeleteProperty((Js::Var)object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(),
-            scriptContext, useStrictRules ? Js::PropertyOperation_StrictMode : Js::PropertyOperation_None);
-        Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
-
-        PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, result);
-
-        return JsNoError;
-    });
-}
-
-CHAKRA_API JsDefineProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId, _In_ JsValueRef propertyDescriptor, _Out_ bool *result)
-{
-    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTDefineProperty, object, (Js::PropertyRecord *)propertyId, propertyDescriptor);
-
-        VALIDATE_INCOMING_OBJECT(object, scriptContext);
-        VALIDATE_INCOMING_PROPERTYID(propertyId);
-        VALIDATE_INCOMING_OBJECT(propertyDescriptor, scriptContext);
-        PARAM_NOT_NULL(result);
-        *result = false;
-
-        Js::PropertyDescriptor propertyDescriptorValue;
-        if (!Js::JavascriptOperators::ToPropertyDescriptor(propertyDescriptor, &propertyDescriptorValue, scriptContext))
-        {
-            return JsErrorInvalidArgument;
-        }
-
-        *result = Js::JavascriptOperators::DefineOwnPropertyDescriptor(
-            Js::RecyclableObject::FromVar(object), ((Js::PropertyRecord *)propertyId)->GetPropertyId(), propertyDescriptorValue,
-            true, scriptContext) != 0;
 
         return JsNoError;
     });
@@ -2138,7 +2466,7 @@ CHAKRA_API JsHasIndexedPropertiesExternalData(_In_ JsValueRef object, _Out_ bool
 
         if (Js::DynamicType::Is(Js::JavascriptOperators::GetTypeId(object)))
         {
-            Js::DynamicObject* dynamicObject = Js::DynamicObject::FromVar(object);
+            Js::DynamicObject* dynamicObject = Js::DynamicObject::UnsafeFromVar(object);
             Js::ArrayObject* objectArray = dynamicObject->GetObjectArray();
             *value = (objectArray && !Js::DynamicObject::IsAnyArray(objectArray));
         }
@@ -2168,7 +2496,7 @@ CHAKRA_API JsGetIndexedPropertiesExternalData(
         *arrayType = JsTypedArrayType();
         *elementLength = 0;
 
-        Js::DynamicObject* dynamicObject = Js::DynamicObject::FromVar(object);
+        Js::DynamicObject* dynamicObject = Js::DynamicObject::UnsafeFromVar(object);
         Js::ArrayObject* objectArray = dynamicObject->GetObjectArray();
         if (!objectArray)
         {
@@ -2209,6 +2537,36 @@ CHAKRA_API JsGetIndexedPropertiesExternalData(
         }
     }
     END_JSRT_NO_EXCEPTION
+}
+
+CHAKRA_API JsLessThan(_In_ JsValueRef object1, _In_ JsValueRef object2, _Out_ bool *result)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTLessThan, object1, object2, false);
+
+        VALIDATE_INCOMING_REFERENCE(object1, scriptContext);
+        VALIDATE_INCOMING_REFERENCE(object2, scriptContext);
+        PARAM_NOT_NULL(result);
+
+        *result = Js::JavascriptOperators::Less((Js::Var)object1, (Js::Var)object2, scriptContext) != 0;
+
+        return JsNoError;
+    });
+}
+
+CHAKRA_API JsLessThanOrEqual(_In_ JsValueRef object1, _In_ JsValueRef object2, _Out_ bool *result)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTLessThan, object1, object2, true);
+
+        VALIDATE_INCOMING_REFERENCE(object1, scriptContext);
+        VALIDATE_INCOMING_REFERENCE(object2, scriptContext);
+        PARAM_NOT_NULL(result);
+
+        *result = Js::JavascriptOperators::LessEqual((Js::Var)object1, (Js::Var)object2, scriptContext) != 0;
+
+        return JsNoError;
+    });
 }
 
 CHAKRA_API JsEquals(_In_ JsValueRef object1, _In_ JsValueRef object2, _Out_ bool *result)
@@ -2817,14 +3175,12 @@ CHAKRA_API JsIsRuntimeExecutionDisabled(_In_ JsRuntimeHandle runtimeHandle, _Out
     return JsNoError;
 }
 
-CHAKRA_API JsGetPropertyIdFromName(_In_z_ const WCHAR *name, _Out_ JsPropertyIdRef *propertyId)
+inline JsErrorCode JsGetPropertyIdFromNameInternal(_In_z_ const WCHAR *name, size_t cPropertyNameLength, _Out_ JsPropertyIdRef *propertyId)
 {
     return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext * scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(name);
         PARAM_NOT_NULL(propertyId);
         *propertyId = nullptr;
-
-        size_t cPropertyNameLength = wcslen(name);
 
         if (cPropertyNameLength <= INT_MAX)
         {
@@ -2837,6 +3193,11 @@ CHAKRA_API JsGetPropertyIdFromName(_In_z_ const WCHAR *name, _Out_ JsPropertyIdR
             return JsErrorOutOfMemory;
         }
     });
+}
+
+CHAKRA_API JsGetPropertyIdFromName(_In_z_ const WCHAR *name, _Out_ JsPropertyIdRef *propertyId)
+{
+    return JsGetPropertyIdFromNameInternal(name, wcslen(name), propertyId);
 }
 
 CHAKRA_API JsGetPropertyIdFromSymbol(_In_ JsValueRef symbol, _Out_ JsPropertyIdRef *propertyId)
@@ -4182,14 +4543,32 @@ CHAKRA_API JsCreateString(
     _Out_ JsValueRef *value)
 {
     PARAM_NOT_NULL(content);
+    PARAM_NOT_NULL(value);
+    *value = JS_INVALID_REFERENCE;
 
-    utf8::NarrowToWide wstr(content, length);
-    if (!wstr)
+    if (length == static_cast<size_t>(-1))
+    {
+        length = strlen(content);
+    }
+
+    if (length > static_cast<CharCount>(-1))
     {
         return JsErrorOutOfMemory;
     }
 
-    return JsPointerToString(wstr, wstr.Length(), value);
+    return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+
+        Js::JavascriptString *stringValue = Js::LiteralStringWithPropertyStringPtr::
+            NewFromCString(content, (CharCount)length, scriptContext->GetLibrary());
+
+        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTCreateString, stringValue->GetSz(), stringValue->GetLength());
+
+        *value = stringValue;
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, value);
+
+        return JsNoError;
+    });
 }
 
 CHAKRA_API JsCreateStringUtf16(
@@ -4198,9 +4577,32 @@ CHAKRA_API JsCreateStringUtf16(
     _Out_ JsValueRef *value)
 {
     PARAM_NOT_NULL(content);
+    PARAM_NOT_NULL(value);
+    *value = JS_INVALID_REFERENCE;
 
-    return JsPointerToString(
-        reinterpret_cast<const char16*>(content), length, value);
+    if (length == static_cast<size_t>(-1))
+    {
+        length = wcslen((const char16 *)content);
+    }
+
+    if (length > static_cast<CharCount>(-1))
+    {
+        return JsErrorOutOfMemory;
+    }
+
+    return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+
+        Js::JavascriptString *stringValue = Js::LiteralStringWithPropertyStringPtr::
+            NewFromWideString((const char16 *)content, (CharCount)length, scriptContext->GetLibrary());
+
+        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTCreateString, stringValue->GetSz(), stringValue->GetLength());
+
+        *value = stringValue;
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, value);
+
+        return JsNoError;
+    });
 }
 
 
@@ -4401,7 +4803,7 @@ CHAKRA_API JsCreatePropertyId(
         return JsErrorOutOfMemory;
     }
 
-    return JsGetPropertyIdFromName(wname, propertyId);
+    return JsGetPropertyIdFromNameInternal(wname, wname.Length(), propertyId);
 }
 
 CHAKRA_API JsCopyPropertyId(
@@ -4618,6 +5020,11 @@ CHAKRA_API JsCreateWeakReference(
     PARAM_NOT_NULL(weakRef);
     *weakRef = nullptr;
 
+    if (Js::TaggedNumber::Is(value))
+    {
+        return JsNoWeakRefRequired;
+    }
+
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
         ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
         if (threadContext == nullptr)
@@ -4629,6 +5036,13 @@ CHAKRA_API JsCreateWeakReference(
         if (recycler->IsInObjectBeforeCollectCallback())
         {
             return JsErrorInObjectBeforeCollectCallback;
+        }
+
+        RecyclerHeapObjectInfo dummyObjectInfo;
+        if (!recycler->FindHeapObject(value, Memory::FindHeapObjectFlags::FindHeapObjectFlags_NoFlags, dummyObjectInfo))
+        {
+            // value is not recyler-allocated
+            return JsErrorInvalidArgument;
         }
 
         recycler->FindOrCreateWeakReferenceHandle<char>(
@@ -4738,22 +5152,6 @@ CHAKRA_API JsGetAndClearExceptionWithMetadata(_Out_ JsValueRef *metadata)
         }
 #endif
 
-
-        return JsNoError;
-    });
-}
-
-CHAKRA_API JsHasOwnProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId, _Out_ bool *hasOwnProperty)
-{
-    return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTHasOwnProperty, (Js::PropertyRecord *)propertyId, object);
-
-        VALIDATE_INCOMING_OBJECT(object, scriptContext);
-        VALIDATE_INCOMING_PROPERTYID(propertyId);
-        PARAM_NOT_NULL(hasOwnProperty);
-        *hasOwnProperty = false;
-
-        *hasOwnProperty = Js::JavascriptOperators::OP_HasOwnProperty(object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), scriptContext) != 0;
 
         return JsNoError;
     });

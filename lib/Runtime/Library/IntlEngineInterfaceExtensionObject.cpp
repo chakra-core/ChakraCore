@@ -17,6 +17,10 @@ using namespace Windows::Globalization;
 #endif
 #ifdef INTL_ICU
 #include <CommonPal.h>
+#include "PlatformAgnostic/IPlatformAgnosticResource.h"
+#include "PlatformAgnostic/Intl.h"
+using namespace PlatformAgnostic::Intl;
+using namespace PlatformAgnostic::Resource;
 #endif
 
 #pragma warning(push)
@@ -24,13 +28,13 @@ using namespace Windows::Globalization;
 #pragma warning(disable:4838) // conversion from 'int' to 'const char' requires a narrowing conversion
 
 #if DISABLE_JIT
-#if _M_AMD64
+#if TARGET_64
 #include "InJavascript/Intl.js.nojit.bc.64b.h"
 #else
 #include "InJavascript/Intl.js.nojit.bc.32b.h"
 #endif
 #else
-#if _M_AMD64
+#if TARGET_64
 #include "InJavascript/Intl.js.bc.64b.h"
 #else
 #include "InJavascript/Intl.js.bc.32b.h"
@@ -161,7 +165,10 @@ namespace Js
             }
         }
     };
+#endif
 
+// Defining Finalizable wrappers for Intl data
+#if defined(INTL_WINGLOB)
     class AutoCOMJSObject : public FinalizableObject
     {
         IInspectable *instance;
@@ -196,6 +203,55 @@ namespace Js
         }
 
         IInspectable *GetInstance()
+        {
+            return instance;
+        }
+    };
+
+#elif defined(INTL_ICU)
+
+    template<typename T>
+    class AutoIcuJsObject : public FinalizableObject
+    {
+    private:
+        T *instance;
+
+    public:
+        DEFINE_VTABLE_CTOR_NOBASE(AutoIcuJsObject<T>);
+
+        AutoIcuJsObject(T *object)
+            : instance(object)
+        { }
+
+        static AutoIcuJsObject<T> * New(Recycler *recycler, T *object)
+        {
+            return RecyclerNewFinalized(recycler, AutoIcuJsObject<T>, object);
+        }
+
+        void Finalize(bool isShutdown) override
+        {
+        }
+
+        void Dispose(bool isShutdown) override
+        {
+            if (!isShutdown)
+            {
+                // Here we use Cleanup() because we can't rely on delete (not dealing with virtual destructors).
+                // The template thus requires that the type implement the Cleanup function.
+                instance->Cleanup(); // e.g. deletes the object held in the IPlatformAgnosticResource
+
+                // REVIEW (doilij): Is cleanup in this way necessary or are the trivial destructors enough, assuming Cleanup() has been called?
+                // Note: delete here introduces a build break on Linux complaining of non-virtual dtor
+                // delete instance; // deletes the instance itself
+                // instance = nullptr;
+            }
+        }
+
+        void Mark(Recycler *recycler) override
+        {
+        }
+
+        T * GetInstance()
         {
             return instance;
         }
@@ -277,7 +333,7 @@ namespace Js
     void IntlEngineInterfaceExtensionObject::DumpByteCode()
     {
         Output::Print(_u("Dumping Intl Byte Code:"));
-        this->EnsureIntlByteCode(scriptContext);
+        Assert(this->intlByteCode);
         Js::ByteCodeDumper::DumpRecursively(intlByteCode);
     }
 #endif
@@ -310,6 +366,12 @@ namespace Js
         library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::registerBuiltInFunction, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_RegisterBuiltInFunction, 1);
         library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::getHiddenObject, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetHiddenObject, 1);
         library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::setHiddenObject, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_SetHiddenObject, 1);
+
+#if INTL_WINGLOB
+        library->AddMember(intlNativeInterfaces, Js::PropertyIds::winglob, library->GetTrue());
+#else
+        library->AddMember(intlNativeInterfaces, Js::PropertyIds::winglob, library->GetFalse());
+#endif
 
         intlNativeInterfaces->SetHasNoEnumerableProperties(true);
 
@@ -401,6 +463,8 @@ namespace Js
             HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, (LPCUTF8)nullptr, hsi, (byte*)Library_Bytecode_Intl, nullptr, &this->intlByteCode);
 
             IfFailAssertMsgAndThrowHr(hr, "Failed to deserialize Intl.js bytecode - very probably the bytecode needs to be rebuilt.");
+
+            this->SetHasBytecode();
         }
     }
 
@@ -488,6 +552,14 @@ namespace Js
                 deletePrototypePropertyHelper(scriptContext, intlObject, Js::PropertyIds::NumberFormat, Js::PropertyIds::format);
                 deletePrototypePropertyHelper(scriptContext, intlObject, Js::PropertyIds::DateTimeFormat, Js::PropertyIds::format);
             }
+
+#if DBG_DUMP
+            if (PHASE_DUMP(Js::ByteCodePhase, function->GetFunctionProxy()) && Js::Configuration::Global.flags.Verbose)
+            {
+                DumpByteCode();
+            }
+#endif
+
         }
         catch (const JavascriptException& err)
         {
@@ -579,7 +651,7 @@ namespace Js
         JavascriptString *argString = JavascriptString::FromVar(args.Values[1]);
 
 #if defined(INTL_ICU)
-        return TO_JSBOOL(scriptContext, IcuIntlAdapter::IsWellFormedLanguageTag(argString->GetSz(), argString->GetLength()));
+        return TO_JSBOOL(scriptContext, IsWellFormedLanguageTag(argString->GetSz(), argString->GetLength()));
 #else
         return TO_JSBOOL(scriptContext, GetWindowsGlobalizationAdapter(scriptContext)->IsWellFormedLanguageTag(scriptContext, argString->GetSz()));
 #endif
@@ -606,7 +678,7 @@ namespace Js
         // Therefore the max length of that char* (ULOC_FULLNAME_CAPACITY) is big enough to hold the result (including null terminator)
         char16 normalized[ULOC_FULLNAME_CAPACITY] = { 0 };
         size_t normalizedLength = 0;
-        hr = IcuIntlAdapter::NormalizeLanguageTag(argString->GetSz(), argString->GetLength(), normalized, &normalizedLength);
+        hr = NormalizeLanguageTag(argString->GetSz(), argString->GetLength(), normalized, &normalizedLength);
         retVal = Js::JavascriptString::NewCopyBuffer(normalized, static_cast<charcount_t>(normalizedLength), scriptContext);
 #else
         AutoHSTRING str;
@@ -640,13 +712,13 @@ namespace Js
 
 #if defined(INTL_ICU)
         char16 resolvedLocaleName[ULOC_FULLNAME_CAPACITY] = { 0 };
-        if (IcuIntlAdapter::ResolveLocaleLookup(scriptContext, passedLocale, resolvedLocaleName))
+        if (ResolveLocaleLookup(passedLocale, resolvedLocaleName))
         {
             return JavascriptString::NewCopySz(resolvedLocaleName, scriptContext);
         }
 
 #ifdef INTL_ICU_DEBUG
-        Output::Print(_u("IcuIntlAdapter::ResolveLocaleLookup returned false: EntryIntl_ResolveLocaleLookup returning null to fallback to JS\n"));
+        Output::Print(_u("Intl::ResolveLocaleLookup returned false: EntryIntl_ResolveLocaleLookup returning null to fallback to JS\n"));
 #endif
         return scriptContext->GetLibrary()->GetNull();
 #else
@@ -679,13 +751,13 @@ namespace Js
 
 #if defined(INTL_ICU)
         char16 resolvedLocaleName[ULOC_FULLNAME_CAPACITY] = { 0 };
-        if (IcuIntlAdapter::ResolveLocaleBestFit(scriptContext, passedLocale, resolvedLocaleName))
+        if (ResolveLocaleBestFit(passedLocale, resolvedLocaleName))
         {
             return JavascriptString::NewCopySz(resolvedLocaleName, scriptContext);
         }
 
 #ifdef INTL_ICU_DEBUG
-        Output::Print(_u("IcuIntlAdapter::ResolveLocaleBestFit returned false: EntryIntl_ResolveLocaleBestFit returning null to fallback to JS\n"));
+        Output::Print(_u("Intl::ResolveLocaleBestFit returned false: EntryIntl_ResolveLocaleBestFit returning null to fallback to JS\n"));
 #endif
         return scriptContext->GetLibrary()->GetNull();
 #else
@@ -722,18 +794,11 @@ namespace Js
             // XPLAT-TODO (doilij): Implement this in PlatformAgnostic
             GetUserDefaultLocaleName(defaultLocale, _countof(defaultLocale)) == 0
 #else
-            IcuIntlAdapter::GetUserDefaultLocaleName(defaultLocale, _countof(defaultLocale)) == 0
+            GetUserDefaultLanguageTag(defaultLocale, _countof(defaultLocale)) == 0
 #endif
             || defaultLocale[0] == '\0')
         {
-#if defined(INTL_WINGLOB)
             return scriptContext->GetLibrary()->GetUndefined();
-#else
-#ifdef INTL_ICU_DEBUG
-            Output::Print(_u("EntryIntl_GetDefaultLocale > IcuIntlAdapter::GetUserDefaultLocaleName returned 0: returning null to fallback to JS\n"));
-#endif
-            return scriptContext->GetLibrary()->GetNull();
-#endif
         }
 
         return JavascriptString::NewCopySz(defaultLocale, scriptContext);
@@ -814,18 +879,121 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-#ifdef INTL_WINGLOB
+        DynamicObject *options = DynamicObject::FromVar(args.Values[1]);
+
+        HRESULT hr = S_OK;
+        Var propertyValue = nullptr; // set by the GetTypedPropertyBuiltInFrom macro
+        JavascriptString *localeJSstr = nullptr;
+
+#if defined(INTL_ICU)
+        // Verify locale is present
+        // REVIEW (doilij): Fix comparison of the unsigned value <= 0
+        if (!GetTypedPropertyBuiltInFrom(options, __locale, JavascriptString) || (localeJSstr = JavascriptString::FromVar(propertyValue))->GetLength() <= 0)
+        {
+            // REVIEW (doilij): We return undefined from all paths here, so should we throw instead to indicate to Intl.js that something went wrong?
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        // First we have to determine which formatter(number, percent, or currency) we will be using.
+        // Note some options might not be present.
+        IPlatformAgnosticResource *numberFormatter = nullptr;
+        const char16 *locale = localeJSstr->GetSz();
+        const charcount_t cch = localeJSstr->GetLength();
+
+        NumberFormatStyle formatterToUseVal = NumberFormatStyle::DEFAULT;
+        if (GetTypedPropertyBuiltInFrom(options, __formatterToUse, TaggedInt)
+            && (formatterToUseVal = static_cast<NumberFormatStyle>(TaggedInt::ToUInt16(propertyValue))) == NumberFormatStyle::PERCENT)
+        {
+            IfFailThrowHr(CreatePercentFormatter(locale, cch, &numberFormatter));
+        }
+        else if (formatterToUseVal == NumberFormatStyle::CURRENCY)
+        {
+            if (!GetTypedPropertyBuiltInFrom(options, __currency, JavascriptString))
+            {
+                return scriptContext->GetLibrary()->GetUndefined();
+            }
+
+            JavascriptString *currencyCodeJsString = JavascriptString::FromVar(propertyValue);
+            const char16 *currencyCode = currencyCodeJsString->GetSz();
+
+            if (GetTypedPropertyBuiltInFrom(options, __currencyDisplayToUse, TaggedInt))
+            {
+                NumberFormatCurrencyDisplay currencyDisplay = static_cast<NumberFormatCurrencyDisplay>(TaggedInt::ToUInt16(propertyValue));
+                IfFailThrowHr(CreateCurrencyFormatter(locale, cch, currencyCode, currencyDisplay, &numberFormatter));
+            }
+        }
+        else
+        {
+            // Use the number formatter (0 or default)
+            IfFailThrowHr(CreateNumberFormatter(locale, cch, &numberFormatter));
+        }
+
+        Assert(numberFormatter);
+
+        if (GetTypedPropertyBuiltInFrom(options, __useGrouping, JavascriptBoolean))
+        {
+            bool useGrouping = JavascriptBoolean::FromVar(propertyValue)->GetValue();
+            SetNumberFormatGroupingUsed(numberFormatter, useGrouping);
+        }
+
+        // Numeral system is in the locale and is therefore already set on the icu::NumberFormat
+        // TODO (doilij): extract the numbering system from the locale name (JS-side) and use that to set the __numberingSystem with fallback
+        // TODO (doilij): determine the numbering system for the ICU locale (so that works even if it wasn't specified directly)
+
+        // REVIEW (doilij): assuming the resolved language has already been set in __locale
+        // TODO (doilij): find out whether numberFormat->getLocale() has relevant extension tags for things like numeral system (-nu-)
+
+        if (HasPropertyBuiltInOn(options, __minimumSignificantDigits) || HasPropertyBuiltInOn(options, __maximumSignificantDigits))
+        {
+            // Do significant digit rounding
+            uint16 minSignificantDigits = 1, maxSignificantDigits = 21;
+
+            if (GetTypedPropertyBuiltInFrom(options, __minimumSignificantDigits, TaggedInt))
+            {
+                minSignificantDigits = max<uint16>(min<uint16>(TaggedInt::ToUInt16(propertyValue), 21), 1);
+            }
+            if (GetTypedPropertyBuiltInFrom(options, __maximumSignificantDigits, TaggedInt))
+            {
+                maxSignificantDigits = max<uint16>(min<uint16>(TaggedInt::ToUInt16(propertyValue), 21), minSignificantDigits);
+            }
+
+            SetNumberFormatSignificantDigits(numberFormatter, minSignificantDigits, maxSignificantDigits);
+        }
+        else
+        {
+            // Do fraction/integer digit rounding
+            uint16 minFractionDigits = 0, maxFractionDigits = 3, minIntegerDigits = 1;
+
+            if (GetTypedPropertyBuiltInFrom(options, __minimumIntegerDigits, TaggedInt))
+            {
+                minIntegerDigits = max<uint16>(min<uint16>(TaggedInt::ToUInt16(propertyValue), 21), 1);
+            }
+            if (GetTypedPropertyBuiltInFrom(options, __minimumFractionDigits, TaggedInt))
+            {
+                minFractionDigits = min<uint16>(TaggedInt::ToUInt16(propertyValue), 20); // ToUInt16 will get rid of negatives by making them high
+            }
+            if (GetTypedPropertyBuiltInFrom(options, __maximumFractionDigits, TaggedInt))
+            {
+                maxFractionDigits = max(min<uint16>(TaggedInt::ToUInt16(propertyValue), 20), minFractionDigits); // ToUInt16 will get rid of negatives by making them high
+            }
+
+            SetNumberFormatIntFracDigits(numberFormatter, minFractionDigits, maxFractionDigits, minIntegerDigits);
+        }
+
+        // Set the object as a cache
+        auto *autoObject = AutoIcuJsObject<IPlatformAgnosticResource>::New(scriptContext->GetRecycler(), numberFormatter);
+        options->SetInternalProperty(Js::InternalPropertyIds::HiddenObject, autoObject, Js::PropertyOperationFlags::PropertyOperation_None, NULL);
+
+        return scriptContext->GetLibrary()->GetUndefined();
+#else
         DelayLoadWindowsGlobalization* wgl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
         WindowsGlobalizationAdapter* wga = GetWindowsGlobalizationAdapter(scriptContext);
 
-        HRESULT hr;
-        Var propertyValue = nullptr;
-        JavascriptString* localeJSstr;
-        DynamicObject* options = DynamicObject::FromVar(args.Values[1]);
-
-        //Verify locale is present
+        // Verify locale is present
+        // REVIEW (doilij): Fix comparison of the unsigned value <= 0
         if (!GetTypedPropertyBuiltInFrom(options, __locale, JavascriptString) || (localeJSstr = JavascriptString::FromVar(propertyValue))->GetLength() <= 0)
         {
+            // REVIEW (doilij): Should we throw? Or otherwise, from Intl.js, should detect something didn't work right here...
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
@@ -833,7 +1001,8 @@ namespace Js
         //Note some options might not be present.
         AutoCOMPtr<NumberFormatting::INumberFormatter> numberFormatter(nullptr);
         PCWSTR locale = localeJSstr->GetSz();
-        uint16 formatterToUseVal = 0; // number is default, 1 is percent, 2 is currency
+
+        uint16 formatterToUseVal = 0; // 0 (default) is number, 1 is percent, 2 is currency
         if (GetTypedPropertyBuiltInFrom(options, __formatterToUse, TaggedInt) && (formatterToUseVal = TaggedInt::ToUInt16(propertyValue)) == 1)
         {
             //Use the percent formatter
@@ -945,12 +1114,6 @@ namespace Js
         options->SetInternalProperty(Js::InternalPropertyIds::HiddenObject, AutoCOMJSObject::New(scriptContext->GetRecycler(), numberFormatter), Js::PropertyOperationFlags::PropertyOperation_None, NULL);
 
         return scriptContext->GetLibrary()->GetUndefined();
-#else
-        // TODO (doilij): implement INTL_ICU version
-#ifdef INTL_ICU_DEBUG
-        Output::Print(_u("EntryIntl_CacheNumberFormat > returning null, fallback to JS\n"));
-#endif
-        return scriptContext->GetLibrary()->GetNull();
 #endif
     }
 
@@ -1111,7 +1274,7 @@ namespace Js
         const char16 *givenLocale = nullptr;
         defaultLocale[0] = '\0';
 
-        if (!JavascriptOperators::IsUndefinedObject(args.Values[3], scriptContext))
+        if (!JavascriptOperators::IsUndefinedObject(args.Values[3]))
         {
             if (!JavascriptString::Is(args.Values[3]))
             {
@@ -1120,7 +1283,7 @@ namespace Js
             givenLocale = JavascriptString::FromVar(args.Values[3])->GetSz();
         }
 
-        if (!JavascriptOperators::IsUndefinedObject(args.Values[4], scriptContext))
+        if (!JavascriptOperators::IsUndefinedObject(args.Values[4]))
         {
             if (!JavascriptString::Is(args.Values[4]))
             {
@@ -1133,7 +1296,7 @@ namespace Js
             compareFlags |= NORM_LINGUISTIC_CASING;
         }
 
-        if (!JavascriptOperators::IsUndefinedObject(args.Values[5], scriptContext))
+        if (!JavascriptOperators::IsUndefinedObject(args.Values[5]))
         {
             if (!JavascriptBoolean::Is(args.Values[5]))
             {
@@ -1145,7 +1308,7 @@ namespace Js
             }
         }
 
-        if (!JavascriptOperators::IsUndefinedObject(args.Values[6], scriptContext))
+        if (!JavascriptOperators::IsUndefinedObject(args.Values[6]))
         {
             if (!JavascriptBoolean::Is(args.Values[6]))
             {
@@ -1162,7 +1325,7 @@ namespace Js
             // XPLAT-TODO (doilij): Implement this in PlatformAgnostic
             GetUserDefaultLocaleName(defaultLocale, _countof(defaultLocale)) == 0
 #else
-            IcuIntlAdapter::GetUserDefaultLocaleName(defaultLocale, _countof(defaultLocale)) == 0
+            GetUserDefaultLanguageTag(defaultLocale, _countof(defaultLocale)) == 0
 #endif
             )
         {
@@ -1235,23 +1398,22 @@ namespace Js
             return scriptContext->GetLibrary()->GetFalse();
         }
 
-#ifdef INTL_WINGLOB
-        HRESULT hr;
         JavascriptString *argString = JavascriptString::FromVar(args.Values[1]);
+        const char16 *currencyCode = argString->GetSz();
+
+#if defined(INTL_ICU)
+        int32_t digits = GetCurrencyFractionDigits(currencyCode);
+        return JavascriptNumber::ToVar(digits, scriptContext);
+#else
+        HRESULT hr;
         AutoCOMPtr<NumberFormatting::ICurrencyFormatter> currencyFormatter(nullptr);
-        IfFailThrowHr(GetWindowsGlobalizationAdapter(scriptContext)->CreateCurrencyFormatterCode(scriptContext, argString->GetSz(), &currencyFormatter));
+        IfFailThrowHr(GetWindowsGlobalizationAdapter(scriptContext)->CreateCurrencyFormatterCode(scriptContext, currencyCode, &currencyFormatter));
         AutoCOMPtr<NumberFormatting::INumberFormatterOptions> numberFormatterOptions;
         IfFailThrowHr(currencyFormatter->QueryInterface(__uuidof(NumberFormatting::INumberFormatterOptions), reinterpret_cast<void**>(&numberFormatterOptions)));
         Assert(numberFormatterOptions);
         INT32 fractionDigits;
         IfFailThrowHr(numberFormatterOptions->get_FractionDigits(&fractionDigits));
         return JavascriptNumber::ToVar(fractionDigits, scriptContext);
-#else
-        // TODO (doilij): implement INTL_ICU version
-#ifdef INTL_ICU_DEBUG
-        Output::Print(_u("EntryIntl_CurrencyDigits > returning null, fallback to JS\n"));
-#endif
-        return scriptContext->GetLibrary()->GetNull();
 #endif
     }
 
@@ -1322,16 +1484,55 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-#ifdef INTL_WINGLOB
-        DynamicObject *obj = DynamicObject::FromVar(args.Values[2]);
+        DynamicObject *options = DynamicObject::FromVar(args.Values[2]);
+        Var hiddenObject = nullptr;
+        AssertOrFailFastMsg(options->GetInternalProperty(options, Js::InternalPropertyIds::HiddenObject, &hiddenObject, NULL, scriptContext),
+            "EntryIntl_FormatNumber: Could not retrieve hiddenObject.");
 
+#if defined(INTL_ICU)
+        // REVIEW (doilij): Assumes the logic doesn't allow us to get to this point such that this cast is invalid (otherwise, we would throw earlier).
+        auto *numberFormatter = reinterpret_cast<AutoIcuJsObject<IPlatformAgnosticResource> *>(hiddenObject)->GetInstance();
+        const char16 *strBuf = nullptr;
+        Var propertyValue = nullptr;
+
+        NumberFormatStyle formatterToUse = NumberFormatStyle::DEFAULT;
+        NumberFormatCurrencyDisplay currencyDisplay = NumberFormatCurrencyDisplay::DEFAULT;
+        JavascriptString *currencyCodeJsString = nullptr;
+
+        // It is okay for currencyCode to be nullptr if we are NOT formatting a currency.
+        // If we are formatting a currency, the Intl.js logic will ensure __currency is set correctly or otherwise will throw so we don't reach here.
+        const char16 *currencyCode = nullptr;
+
+        if (GetTypedPropertyBuiltInFrom(options, __formatterToUse, TaggedInt))
+        {
+            formatterToUse = static_cast<NumberFormatStyle>(TaggedInt::ToUInt16(propertyValue));
+        }
+        if (GetTypedPropertyBuiltInFrom(options, __currencyDisplayToUse, TaggedInt))
+        {
+            currencyDisplay = static_cast<NumberFormatCurrencyDisplay>(TaggedInt::ToUInt16(propertyValue));
+        }
+        if (GetTypedPropertyBuiltInFrom(options, __currency, JavascriptString))
+        {
+            currencyCodeJsString = JavascriptString::FromVar(propertyValue);
+            currencyCode = currencyCodeJsString->GetSz();
+        }
+
+        if (TaggedInt::Is(args.Values[1]))
+        {
+            int32 val = TaggedInt::ToInt32(args.Values[1]);
+            strBuf = FormatNumber(numberFormatter, val, formatterToUse, currencyDisplay, currencyCode);
+        }
+        else
+        {
+            double val = JavascriptNumber::GetValue(args.Values[1]);
+            strBuf = FormatNumber(numberFormatter, val, formatterToUse, currencyDisplay, currencyCode);
+        }
+
+        StringBufferAutoPtr<char16> guard(strBuf); // ensure strBuf is deleted no matter what
+#else
         DelayLoadWindowsGlobalization* wsl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
 
         NumberFormatting::INumberFormatter *numberFormatter;
-        Var hiddenObject = nullptr;
-        AssertOrFailFastMsg(obj->GetInternalProperty(obj, Js::InternalPropertyIds::HiddenObject, &hiddenObject, NULL, scriptContext),
-            "EntryIntl_FormatNumber: Could not retrieve hiddenObject.");
-
         numberFormatter = static_cast<NumberFormatting::INumberFormatter *>(((AutoCOMJSObject *)hiddenObject)->GetInstance());
 
         AutoHSTRING result;
@@ -1344,16 +1545,19 @@ namespace Js
         {
             IfFailThrowHr(numberFormatter->FormatDouble(JavascriptNumber::GetValue(args.Values[1]), &result));
         }
+
         PCWSTR strBuf = wsl->WindowsGetStringRawBuffer(*result, NULL);
-        JavascriptStringObject *retVal = scriptContext->GetLibrary()->CreateStringObject(Js::JavascriptString::NewCopySz(strBuf, scriptContext));
-        return retVal;
-#else
-        // TODO (doilij): implement INTL_ICU version
-#ifdef INTL_ICU_DEBUG
-        Output::Print(_u("EntryIntl_FormatNumber > returning null, fallback to JS\n"));
 #endif
-        return scriptContext->GetLibrary()->GetNull();
-#endif
+
+        if (strBuf == nullptr)
+        {
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
+        else
+        {
+            JavascriptStringObject *retVal = scriptContext->GetLibrary()->CreateStringObject(Js::JavascriptString::NewCopySz(strBuf, scriptContext));
+            return retVal;
+        }
     }
 
     Var IntlEngineInterfaceExtensionObject::EntryIntl_FormatDateTime(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1509,41 +1713,53 @@ namespace Js
     */
     Var IntlEngineInterfaceExtensionObject::EntryIntl_RegisterBuiltInFunction(RecyclableObject* function, CallInfo callInfo, ...)
     {
+        // Don't put this in a header or add it to the namespace even in this file. Keep it to the minimum scope needed.
+        enum class IntlBuiltInFunctionID : int32 {
+            Min = 0,
+            DateToLocaleString = Min,
+            DateToLocaleDateString,
+            DateToLocaleTimeString,
+            NumberToLocaleString,
+            StringLocaleCompare,
+            Max
+        };
+
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        //This function will only be used during the construction of the Intl object, hence Asserts are in place.
+        // This function will only be used during the construction of the Intl object, hence Asserts are in place.
         Assert(args.Info.Count >= 3 && JavascriptFunction::Is(args.Values[1]) && TaggedInt::Is(args.Values[2]));
 
         JavascriptFunction *func = JavascriptFunction::FromVar(args.Values[1]);
         int32 id = TaggedInt::ToInt32(args.Values[2]);
+        Assert(id >= (int32)IntlBuiltInFunctionID::Min && id < (int32)IntlBuiltInFunctionID::Max);
 
-        Assert(id >= 0 && id < 5);
         EngineInterfaceObject* nativeEngineInterfaceObj = scriptContext->GetLibrary()->GetEngineInterfaceObject();
         IntlEngineInterfaceExtensionObject* extensionObject = static_cast<IntlEngineInterfaceExtensionObject*>(nativeEngineInterfaceObj->GetEngineExtension(EngineInterfaceExtensionKind_Intl));
 
-        switch (id)
+        IntlBuiltInFunctionID functionID = static_cast<IntlBuiltInFunctionID>(id);
+        switch (functionID)
         {
-        case 0:
+        case IntlBuiltInFunctionID::DateToLocaleString:
             extensionObject->dateToLocaleString = func;
             break;
-        case 1:
+        case IntlBuiltInFunctionID::DateToLocaleDateString:
             extensionObject->dateToLocaleDateString = func;
             break;
-        case 2:
+        case IntlBuiltInFunctionID::DateToLocaleTimeString:
             extensionObject->dateToLocaleTimeString = func;
             break;
-        case 3:
+        case IntlBuiltInFunctionID::NumberToLocaleString:
             extensionObject->numberToLocaleString = func;
             break;
-        case 4:
+        case IntlBuiltInFunctionID::StringLocaleCompare:
             extensionObject->stringLocaleCompare = func;
             break;
         default:
-            Assert(false);//Shouldn't hit here, the previous assert should catch this.
+            AssertMsg(false, "functionID was not one of the allowed values. The previous assert should catch this.");
             break;
         }
 
-        //Don't need to return anything
+        // Don't need to return anything
         return scriptContext->GetLibrary()->GetUndefined();
     }
 

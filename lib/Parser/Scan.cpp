@@ -99,6 +99,7 @@ Scanner<EncodingPolicy>::Scanner(Parser* parser, HashTbl *phtbl, Token *ptoken, 
     m_tempChBufSecondary.m_pscanner = this;
 
     m_iecpLimTokPrevious = (size_t)-1;
+    m_ichLimTokPrevious = (charcount_t)-1;
 
     this->charClassifier = scriptContext->GetCharClassifier();
 
@@ -651,10 +652,14 @@ LIdCheck:
     // https://tc39.github.io/ecma262/#sec-literals-numeric-literals
     // The SourceCharacter immediately following a NumericLiteral must not be an IdentifierStart or DecimalDigit.
     // For example : 3in is an error and not the two input elements 3 and in
-    codepoint_t outChar = 0;
     // If a base was speficied, use the first character denoting the constant. In this case, pchT is pointing to the base specifier.
     EncodedCharPtr startingLocation = baseSpecified ? pchT + 1 : pchT;
-    if (this->charClassifier->IsIdStart(*startingLocation))
+    codepoint_t outChar = *startingLocation;
+    if (this->IsMultiUnitChar((OLECHAR)outChar))
+    {
+        outChar = this->template ReadRest<true>((OLECHAR)outChar, startingLocation, last);
+    }
+    if (this->charClassifier->IsIdStart(outChar))
     {
         Error(ERRIdAfterLit);
     }
@@ -1548,6 +1553,7 @@ tokens Scanner<EncodingPolicy>::ScanCore(bool identifyKwds)
     // store the last token
     m_tkPrevious = m_ptoken->tk;
     m_iecpLimTokPrevious = IecpLimTok();    // Introduced for use by lambda parsing to find correct span of expression lambdas
+    m_ichLimTokPrevious = IchLimTok();
 
     if (p >= last)
     {

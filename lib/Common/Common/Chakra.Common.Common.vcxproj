@@ -85,9 +85,6 @@
     <ARMASM Include="$(MSBuildThisFileDirectory)arm\arm_GET_CURRENT_FRAME.asm">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM'">true</ExcludedFromBuild>
     </ARMASM>
-    <ARMASM Include="$(MSBuildThisFileDirectory)arm64\arm64_GET_CURRENT_FRAME.asm">
-      <ExcludedFromBuild Condition="'$(Platform)'!='ARM64'">true</ExcludedFromBuild>
-    </ARMASM>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\JITIDL\Chakra.JITIDL.vcxproj">

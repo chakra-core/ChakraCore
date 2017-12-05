@@ -6,6 +6,7 @@
 
 #ifdef _WIN32
 LPCSTR chakraDllName = "chakracore.dll";
+LPCWSTR chakraDllNameW = _u("chakracore.dll");
 #else
 #include <dlfcn.h>
 #ifdef __APPLE__
@@ -23,10 +24,12 @@ ChakraRTInterface::ArgInfo* ChakraRTInterface::m_argInfo = nullptr;
 TestHooks ChakraRTInterface::m_testHooks = { 0 };
 JsAPIHooks ChakraRTInterface::m_jsApiHooks = { 0 };
 
-LPCSTR GetChakraDllName()
+#ifdef _WIN32
+LPCWSTR GetChakraDllNameW()
 {
-    return chakraDllName;
+    return chakraDllNameW;
 }
+#endif
 
 // Wrapper functions to abstract out loading ChakraCore
 // and resolving its symbols

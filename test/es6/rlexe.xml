@@ -57,6 +57,12 @@
   </test>
   <test>
     <default>
+      <files>es6toLength.js</files>
+      <compile-flags>-es6toLength -JsBuiltIn- -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>toPrimitiveCrossScriptTestCase.js</files>
       <compile-flags></compile-flags>
     </default>
@@ -527,7 +533,7 @@
       <files>unicode_6_identifiers_utf8.js</files>
       <baseline>unicode_6_identifiers_utf8.baseline</baseline>
       <compile-flags> -ES6Unicode</compile-flags>
-      <tags>exclude_win7</tags>
+      <tags>exclude_win7,require_winglob</tags> <!-- Microsoft/ChakraCore#3777: Fix this test under ICU -->
     </default>
   </test>
   <test>
@@ -730,7 +736,7 @@
   </test>
   <test>
     <default>
-      <files>proxycall.js</files>
+      <files>ProxyCall.js</files>
     </default>
   </test>
   <test>
@@ -903,6 +909,12 @@
     <default>
       <files>destructuring_params.js</files>
       <compile-flags>-ES6Rest -ES6Classes -ES6Destructuring -ES6DefaultArgs -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>destructuring_params.js</files>
+      <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -1348,15 +1360,20 @@
   </test>
   <test>
     <default>
+      <files>moduleUrlInError.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>dynamic-module-functionality.js</files>
-      <compile-flags>-ES6Module -args summary -endargs</compile-flags>
+      <compile-flags>-ES6Module -ESDynamicImport -args summary -endargs</compile-flags>
       <tags>exclude_sanitize_address</tags>
     </default>
   </test>
   <test>
     <default>
       <files>dynamic-module-import-specifier.js</files>
-      <compile-flags>-MuteHostErrorMsg -ES6Module -args summary -endargs</compile-flags>
+      <compile-flags>-MuteHostErrorMsg -ESDynamicImport -ES6Module -args summary -endargs</compile-flags>
       <tags>exclude_sanitize_address</tags>
     </default>
   </test>
@@ -1374,6 +1391,7 @@
       <tags>exclude_sanitize_address</tags>
     </default>
   </test>
+  <!-- Test disabled until issue #3778 is resolved
   <test>
     <default>
       <files>module-namespace.js</files>
@@ -1381,6 +1399,7 @@
       <tags>exclude_sanitize_address</tags>
     </default>
   </test>
+  -->
   <test>
     <default>
       <files>module-bugfixes.js</files>
@@ -1391,7 +1410,7 @@
   <test>
     <default>
       <files>bug_OS12095746.js</files>
-      <compile-flags>-MuteHostErrorMsg -IgnoreScriptErrorCode -TraceHostCallback -ES6Module</compile-flags>
+      <compile-flags>-MuteHostErrorMsg -IgnoreScriptErrorCode -TraceHostCallback -ES6Module -ESDynamicImport</compile-flags>
       <tags>exclude_dynapogo,exclude_sanitize_address,bugfix,exclude_drt</tags>
       <baseline>bug_OS12095746.baseline</baseline>
     </default>
@@ -1440,7 +1459,7 @@
   <test>
     <default>
       <files>bug_issue_3076.js</files>
-      <compile-flags>-force:deferparse</compile-flags>
+      <compile-flags>-force:deferparse -ESDynamicImport </compile-flags>
       <tags>BugFix,exclude_sanitize_address</tags>
     </default>
   </test>
@@ -1451,6 +1470,7 @@
       <tags>BugFix,exclude_sanitize_address</tags>
     </default>
   </test>
+  <!-- OS#14303885, disabling failing test until issue is resolved
   <test>
     <default>
       <files>bug_issue_3257.js</files>
@@ -1458,6 +1478,7 @@
       <tags>BugFix,exclude_sanitize_address</tags>
     </default>
   </test>
+  -->
   <test>
     <default>
       <files>typedarray_bugs.js</files>
@@ -1482,6 +1503,42 @@
     <default>
       <files>bug_OS10898061.js</files>
       <tags>BugFix</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>DeferParseLambda.js</files>
+      <compile-flags>-off:deferparse -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>DeferParseLambda.js</files>
+      <compile-flags>-off:deferparse -args summary -endargs -deferparse</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>DeferParseLambda.js</files>
+      <compile-flags>-off:deferparse -args summary -endargs -deferparse -forceundodefer</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>DeferParseMethods.js</files>
+      <compile-flags>-off:deferparse -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>DeferParseMethods.js</files>
+      <compile-flags>-off:deferparse -args summary -endargs -deferparse</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>DeferParseMethods.js</files>
+      <compile-flags>-off:deferparse -args summary -endargs -deferparse -forceundodefer</compile-flags>
     </default>
   </test>
 </regress-exe>

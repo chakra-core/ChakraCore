@@ -24,22 +24,20 @@ namespace wabt {
 
 // static
 Opcode::Info Opcode::infos_[] = {
-#define WABT_OPCODE(rtype, type1, type2, mem_size, prefix, code, Name, text) \
-  {text,     Type::rtype, Type::type1, Type::type2,                          \
-   mem_size, prefix,      code,        PrefixCode(prefix, code)},
+#define WABT_OPCODE(rtype, type1, type2, type3, mem_size, prefix, code, Name, \
+                    text)                                                     \
+  {text,        Type::rtype, Type::type1,                                     \
+   Type::type2, Type::type3, mem_size,                                        \
+   prefix,      code,        PrefixCode(prefix, code)},
 #include "src/opcode.def"
 #undef WABT_OPCODE
 };
 
-#define WABT_OPCODE(rtype, type1, type2, mem_size, prefix, code, Name, text) \
+#define WABT_OPCODE(rtype, type1, type2, type3, mem_size, prefix, code, Name, \
+                    text)                                                     \
   /* static */ Opcode Opcode::Name##_Opcode(Opcode::Name);
 #include "src/opcode.def"
 #undef WABT_OPCODE
-
-// static
-Opcode::Info Opcode::invalid_info_ = {
-    "<invalid>", Type::Void, Type::Void, Type::Void, 0, 0, 0, 0,
-};
 
 // static
 Opcode Opcode::FromCode(uint32_t code) {
@@ -49,20 +47,33 @@ Opcode Opcode::FromCode(uint32_t code) {
 // static
 Opcode Opcode::FromCode(uint8_t prefix, uint32_t code) {
   uint32_t prefix_code = PrefixCode(prefix, code);
-  auto iter =
-      std::lower_bound(infos_, infos_ + WABT_ARRAY_SIZE(infos_), prefix_code,
-                       [](const Info& info, uint32_t prefix_code) {
-                         return info.prefix_code < prefix_code;
-                       });
-
-  if (iter->prefix_code != prefix_code)
-    return Opcode(Invalid);
+  auto begin = infos_;
+  auto end = infos_ + WABT_ARRAY_SIZE(infos_);
+  auto iter = std::lower_bound(begin, end, prefix_code,
+                               [](const Info& info, uint32_t prefix_code) {
+                                 return info.prefix_code < prefix_code;
+                               });
+  if (iter == end || iter->prefix_code != prefix_code) {
+    return Opcode(EncodeInvalidOpcode(prefix_code));
+  }
 
   return Opcode(static_cast<Enum>(iter - infos_));
 }
 
 Opcode::Info Opcode::GetInfo() const {
-  return enum_ < Invalid ? infos_[enum_] : invalid_info_;
+  if (enum_ < Invalid) {
+    return infos_[enum_];
+  }
+
+  uint8_t prefix;
+  uint32_t code;
+  DecodeInvalidOpcode(enum_, &prefix, &code);
+  const Info invalid_info = {
+      "<invalid>", Type::Void, Type::Void,
+      Type::Void,  Type::Void, 0,
+      prefix,      code,       PrefixCode(prefix, code),
+  };
+  return invalid_info;
 }
 
 bool Opcode::IsNaturallyAligned(Address alignment) const {
@@ -100,6 +111,69 @@ bool Opcode::IsEnabled(const Features& features) const {
     case Opcode::I64Extend8S:
     case Opcode::I64Extend16S:
     case Opcode::I64Extend32S:
+    case Opcode::I32AtomicLoad:
+    case Opcode::I64AtomicLoad:
+    case Opcode::I32AtomicLoad8U:
+    case Opcode::I32AtomicLoad16U:
+    case Opcode::I64AtomicLoad8U:
+    case Opcode::I64AtomicLoad16U:
+    case Opcode::I64AtomicLoad32U:
+    case Opcode::I32AtomicStore:
+    case Opcode::I64AtomicStore:
+    case Opcode::I32AtomicStore8:
+    case Opcode::I32AtomicStore16:
+    case Opcode::I64AtomicStore8:
+    case Opcode::I64AtomicStore16:
+    case Opcode::I64AtomicStore32:
+    case Opcode::I32AtomicRmwAdd:
+    case Opcode::I64AtomicRmwAdd:
+    case Opcode::I32AtomicRmw8UAdd:
+    case Opcode::I32AtomicRmw16UAdd:
+    case Opcode::I64AtomicRmw8UAdd:
+    case Opcode::I64AtomicRmw16UAdd:
+    case Opcode::I64AtomicRmw32UAdd:
+    case Opcode::I32AtomicRmwSub:
+    case Opcode::I64AtomicRmwSub:
+    case Opcode::I32AtomicRmw8USub:
+    case Opcode::I32AtomicRmw16USub:
+    case Opcode::I64AtomicRmw8USub:
+    case Opcode::I64AtomicRmw16USub:
+    case Opcode::I64AtomicRmw32USub:
+    case Opcode::I32AtomicRmwAnd:
+    case Opcode::I64AtomicRmwAnd:
+    case Opcode::I32AtomicRmw8UAnd:
+    case Opcode::I32AtomicRmw16UAnd:
+    case Opcode::I64AtomicRmw8UAnd:
+    case Opcode::I64AtomicRmw16UAnd:
+    case Opcode::I64AtomicRmw32UAnd:
+    case Opcode::I32AtomicRmwOr:
+    case Opcode::I64AtomicRmwOr:
+    case Opcode::I32AtomicRmw8UOr:
+    case Opcode::I32AtomicRmw16UOr:
+    case Opcode::I64AtomicRmw8UOr:
+    case Opcode::I64AtomicRmw16UOr:
+    case Opcode::I64AtomicRmw32UOr:
+    case Opcode::I32AtomicRmwXor:
+    case Opcode::I64AtomicRmwXor:
+    case Opcode::I32AtomicRmw8UXor:
+    case Opcode::I32AtomicRmw16UXor:
+    case Opcode::I64AtomicRmw8UXor:
+    case Opcode::I64AtomicRmw16UXor:
+    case Opcode::I64AtomicRmw32UXor:
+    case Opcode::I32AtomicRmwXchg:
+    case Opcode::I64AtomicRmwXchg:
+    case Opcode::I32AtomicRmw8UXchg:
+    case Opcode::I32AtomicRmw16UXchg:
+    case Opcode::I64AtomicRmw8UXchg:
+    case Opcode::I64AtomicRmw16UXchg:
+    case Opcode::I64AtomicRmw32UXchg:
+    case Opcode::I32AtomicRmwCmpxchg:
+    case Opcode::I64AtomicRmwCmpxchg:
+    case Opcode::I32AtomicRmw8UCmpxchg:
+    case Opcode::I32AtomicRmw16UCmpxchg:
+    case Opcode::I64AtomicRmw8UCmpxchg:
+    case Opcode::I64AtomicRmw16UCmpxchg:
+    case Opcode::I64AtomicRmw32UCmpxchg:
       return features.threads_enabled();
 
     // Interpreter opcodes are never "enabled".

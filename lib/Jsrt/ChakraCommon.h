@@ -223,6 +223,11 @@ typedef unsigned short uint16_t;
         /// </summary>
         JsErrorModuleParsed,
         /// <summary>
+        ///     Argument passed to JsCreateWeakReference is a primitive that is not managed by the GC.
+        ///     No weak reference is required, the value will never be collected.
+        /// </summary>
+        JsNoWeakRefRequired,
+        /// <summary>
         ///     Category of errors that relates to errors occurring within the engine itself.
         /// </summary>
         JsErrorCategoryEngine = 0x20000,

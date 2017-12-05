@@ -389,7 +389,7 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs)
                 // the function object for generator calls is a GeneratorVirtualScriptFunction object
                 // and we need to pass the real JavascriptGeneratorFunction object so grab it instead
                 IR::RegOpnd *tmpOpnd = IR::RegOpnd::New(TyMachReg, func);
-                LowererMD::CreateAssign(tmpOpnd, srcOpnd, instrArgs);
+                Lowerer::InsertMove(tmpOpnd, srcOpnd, instrArgs);
 
                 srcOpnd = IR::IndirOpnd::New(tmpOpnd, Js::GeneratorVirtualScriptFunction::GetRealFunctionOffset(), TyMachPtr, func);
             }
@@ -417,7 +417,7 @@ LowererMDArch::LoadNewScObjFirstArg(IR::Instr * instr, IR::Opnd * dst, ushort ex
 {
     // Spread moves down the argument slot by one.
     IR::Opnd *      argOpnd         = this->GetArgSlotOpnd(3 + extraArgs);
-    IR::Instr *     argInstr        = LowererMD::CreateAssign(argOpnd, dst, instr);
+    IR::Instr *     argInstr        = Lowerer::InsertMove(argOpnd, dst, instr);
 
     return argInstr;
 }
@@ -575,6 +575,28 @@ LowererMDArch::SetMaxArgSlots(Js::ArgSlot actualCount /*including this*/)
         this->m_func->m_argSlotsForFunctionsCalled = (uint32)(actualCount + offset);
     }
     return;
+}
+
+void
+LowererMDArch::GenerateMemInit(IR::RegOpnd * opnd, int32 offset, size_t value, IR::Instr * insertBeforeInstr, bool isZeroed)
+{
+    IRType type = TyVar;
+    if (isZeroed)
+    {
+        if (value == 0)
+        {
+            // Recycler memory are zero initialized
+            return;
+        }
+
+        type = value <= UINT_MAX ?
+            (value <= USHORT_MAX ?
+            (value <= UCHAR_MAX ? TyUint8 : TyUint16) :
+                TyUint32) :
+            type;
+    }
+    Func * func = this->m_func;
+    lowererMD->GetLowerer()->InsertMove(IR::IndirOpnd::New(opnd, offset, type, func), IR::IntConstOpnd::New(value, type, func), insertBeforeInstr);
 }
 
 IR::Instr *
@@ -1433,7 +1455,7 @@ LowererMDArch::GenerateStackAllocation(IR::Instr *instr, uint32 size)
             instr->InsertAfter(movHelperAddrInstr);
         }
 
-        LowererMD::CreateAssign(raxOpnd, stackSizeOpnd, instr->m_next);
+        Lowerer::InsertMove(raxOpnd, stackSizeOpnd, instr->m_next);
     }
 }
 
@@ -1838,10 +1860,10 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, IntConstType fr
         {
             intptr_t pLimit = m_func->GetThreadContextInfo()->GetThreadStackLimitAddr();
             IR::RegOpnd *baseOpnd = IR::RegOpnd::New(nullptr, RegRAX, TyMachReg, this->m_func);
-            this->lowererMD->CreateAssign(baseOpnd, IR::AddrOpnd::New(pLimit, IR::AddrOpndKindDynamicMisc, this->m_func), insertInstr);
+            Lowerer::InsertMove(baseOpnd, IR::AddrOpnd::New(pLimit, IR::AddrOpndKindDynamicMisc, this->m_func), insertInstr);
             IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(baseOpnd, 0, TyMachReg, this->m_func);
 
-            this->lowererMD->CreateAssign(stackLimitOpnd, indirOpnd, insertInstr);
+            Lowerer::InsertMove(stackLimitOpnd, indirOpnd, insertInstr);
         }
 
         instr = IR::Instr::New(Js::OpCode::ADD, stackLimitOpnd, stackLimitOpnd,
@@ -1859,7 +1881,7 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, IntConstType fr
     {
         // TODO: michhol, check this math
         size_t scriptStackLimit = m_func->GetThreadContextInfo()->GetScriptStackLimit();
-        this->lowererMD->CreateAssign(stackLimitOpnd, IR::IntConstOpnd::New((frameSize + scriptStackLimit), TyMachReg, this->m_func), insertInstr);
+        Lowerer::InsertMove(stackLimitOpnd, IR::IntConstOpnd::New((frameSize + scriptStackLimit), TyMachReg, this->m_func), insertInstr);
     }
 
     // CMP rsp, rax
@@ -1896,18 +1918,18 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, IntConstType fr
     IR::RegOpnd *target;
     {
         // MOV RegArg1, scriptContext
-        this->lowererMD->CreateAssign(
+        Lowerer::InsertMove(
             IR::RegOpnd::New(nullptr, RegArg1, TyMachReg, m_func),
             this->lowererMD->m_lowerer->LoadScriptContextOpnd(insertInstr), insertInstr);
 
         // MOV RegArg0, frameSize
-        this->lowererMD->CreateAssign(
+        Lowerer::InsertMove(
             IR::RegOpnd::New(nullptr, RegArg0, TyMachReg, this->m_func),
             IR::IntConstOpnd::New(frameSize, TyMachReg, this->m_func), insertInstr);
 
         // MOV rax, ThreadContext::ProbeCurrentStack
         target = IR::RegOpnd::New(nullptr, RegRAX, TyMachReg, m_func);
-        this->lowererMD->CreateAssign(target, IR::HelperCallOpnd::New(IR::HelperProbeCurrentStack, m_func), insertInstr);
+        Lowerer::InsertMove(target, IR::HelperCallOpnd::New(IR::HelperProbeCurrentStack, m_func), insertInstr);
     }
 
     // JMP rax
@@ -2089,13 +2111,6 @@ LowererMDArch::LowerExitInstrAsmJs(IR::ExitInstr * exitInstr)
     return LowerExitInstr(exitInstr);
 }
 
-IR::Instr *
-LowererMDArch::LowerInt64Assign(IR::Instr * instr)
-{
-    this->lowererMD->ChangeToAssign(instr);
-    return instr;
-}
-
 void
 LowererMDArch::EmitInt4Instr(IR::Instr *instr, bool signExtend /* = false */)
 {
@@ -2181,9 +2196,7 @@ idiv_common:
                 // we need to ensure that register allocator doesn't muck about with rdx
                 instr->HoistSrc2(Js::OpCode::MOV, RegRCX);
 
-                newInstr = IR::Instr::New(Js::OpCode::Ld_I4, regEDX, IR::IntConstOpnd::New(0, src1->GetType(), instr->m_func), instr->m_func);
-                instr->InsertBefore(newInstr);
-                LowererMD::ChangeToAssign(newInstr);
+                Lowerer::InsertMove(regEDX, IR::IntConstOpnd::New(0, src1->GetType(), instr->m_func), instr);
                 // NOP ensures that the EDX = Ld_I4 0 doesn't get deadstored, will be removed in peeps
                 instr->InsertBefore(IR::Instr::New(Js::OpCode::NOP, regEDX, regEDX, instr->m_func));
             }

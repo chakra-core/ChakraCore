@@ -50,6 +50,8 @@ namespace Js
         BOOL GetItemAt(charcount_t idxChar, Var* value);
         char16 GetItem(charcount_t index);
 
+        virtual Js::PropertyRecord const * GetPropertyRecord(bool dontLookupFromDictionary = false);
+
         _Ret_range_(m_charLength, m_charLength) charcount_t GetLength() const;
         virtual size_t GetAllocatedByteCount() const;
         virtual bool IsSubstring() const;
@@ -124,6 +126,7 @@ namespace Js
 
         static bool Is(Var aValue);
         static JavascriptString* FromVar(Var aValue);
+        static JavascriptString* UnsafeFromVar(Var aValue);
         static bool Equals(Var aLeft, Var aRight);
         static bool LessThan(Var aLeft, Var aRight);
         static bool IsNegZero(JavascriptString *string);
@@ -171,11 +174,6 @@ namespace Js
         static JavascriptString* NewWithBuffer(__in_ecount(charLength) const char16 * content, charcount_t charLength, ScriptContext * scriptContext);
         static JavascriptString* NewCopySz(__in_z const char16* content, ScriptContext* scriptContext);
         static JavascriptString* NewCopyBuffer(__in_ecount(charLength)  const char16* content, charcount_t charLength, ScriptContext* scriptContext);
-
-        static JavascriptString* NewWithArenaSz(__in_z const char16 * content, ScriptContext* scriptContext);
-        static JavascriptString* NewWithArenaBuffer(__in_ecount(charLength) const char16 * content, charcount_t charLength, ScriptContext * scriptContext);
-
-        static JavascriptString* NewCopySzFromArena(__in_z const char16* content, ScriptContext* scriptContext, ArenaAllocator *arena, charcount_t cchUseLength = 0);
 
         static __ecount(length+1) char16* AllocateLeafAndCopySz(__in Recycler* recycler, __in_ecount(length) const char16* content, charcount_t length);
         static __ecount(length+1) char16* AllocateAndCopySz(__in ArenaAllocator* arena, __in_ecount(length) const char16* content, charcount_t length);
@@ -371,7 +369,7 @@ namespace Js
                 JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1->GetString(), str2->GetBuffer(), str1->GetLength()));
         }
 
-        inline static uint GetHashCode(JavascriptString * str)
+        inline static hash_t GetHashCode(JavascriptString * str)
         {
             return JsUtil::CharacterBuffer<WCHAR>::StaticGetHashCode(str->GetString(), str->GetLength());
         }
@@ -399,7 +397,7 @@ struct DefaultComparer<Js::JavascriptString*>
         return Js::JavascriptString::Equals(x, y);
     }
 
-    inline static uint GetHashCode(Js::JavascriptString * pStr)
+    inline static hash_t GetHashCode(Js::JavascriptString * pStr)
     {
         return JsUtil::CharacterBuffer<char16>::StaticGetHashCode(pStr->GetString(), pStr->GetLength());
     }

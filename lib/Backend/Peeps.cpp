@@ -1049,6 +1049,7 @@ Peeps::PeepRedundant(IR::Instr *instr)
             // remove instruction
             retInstr = instr->m_next;
             instr->Remove();
+            return retInstr;
         }
     }
 #if _M_IX86

@@ -4,5 +4,5 @@
 //-------------------------------------------------------------------------------------------------------
 
 console.log("script0");
-import('../bug_issue_3257_mod1.js');
-import('../bug_issue_3257_mod2/mod2.js');
+import('bug_issue_3257_mod1.js');
+import('bug_issue_3257_mod2/mod2.js');

@@ -7,7 +7,6 @@
 #include "Types/PropertyIndexRanges.h"
 #include "Types/SimpleDictionaryPropertyDescriptor.h"
 #include "Types/SimpleDictionaryTypeHandler.h"
-#include "Types/NullTypeHandler.h"
 #include "ModuleNamespace.h"
 #include "ModuleNamespaceEnumerator.h"
 
@@ -282,7 +281,7 @@ namespace Js
     PropertyQueryFlags ModuleNamespace::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         const PropertyRecord* propertyRecord = nullptr;
-        GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+        GetScriptContext()->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         return JavascriptConversion::BooleanToPropertyQueryFlags(GetProperty(originalInstance, propertyRecord->GetPropertyId(), value, info, requestContext));
     }
 

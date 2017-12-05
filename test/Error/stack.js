@@ -103,7 +103,7 @@ function DoSomething()
 if (!isMac) {
     try
     {
-        var count = 20000;
+        var count = 100000;
 
         var a = {};
         var b = a;

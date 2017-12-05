@@ -21,6 +21,12 @@ HeapBucket::HeapBucket() :
 }
 
 uint
+HeapBucket::GetSizeCat() const
+{
+    return this->sizeCat;
+}
+
+uint
 HeapBucket::GetBucketIndex() const
 {
     return HeapInfo::GetBucketIndex(this->sizeCat);
@@ -1422,11 +1428,13 @@ HeapBucketT<TBlockType>::Check(bool checkCount)
 }
 #endif
 
-#ifdef DUMP_FRAGMENTATION_STATS
+#if ENABLE_MEM_STATS
 template <typename TBlockType>
 void
-HeapBucketT<TBlockType>::AggregateBucketStats(HeapBucketStats& stats)
+HeapBucketT<TBlockType>::AggregateBucketStats()
 {
+    HeapBucket::AggregateBucketStats();  // call super
+
     auto allocatorHead = &this->allocatorHead;
     auto allocatorCurr = allocatorHead;
 
@@ -1435,16 +1443,15 @@ HeapBucketT<TBlockType>::AggregateBucketStats(HeapBucketStats& stats)
         TBlockType* allocatorHeapBlock = allocatorCurr->GetHeapBlock();
         if (allocatorHeapBlock)
         {
-            allocatorHeapBlock->AggregateBlockStats(stats, true, allocatorCurr->freeObjectList, allocatorCurr->endAddress != 0);
+            allocatorHeapBlock->AggregateBlockStats(this->memStats, true, allocatorCurr->freeObjectList, allocatorCurr->endAddress != 0);
         }
         allocatorCurr = allocatorCurr->GetNext();
     } while (allocatorCurr != allocatorHead);
 
-    auto blockStatsAggregator = [&stats](TBlockType* heapBlock) {
-        heapBlock->AggregateBlockStats(stats);
+    auto blockStatsAggregator = [this](TBlockType* heapBlock) {
+        heapBlock->AggregateBlockStats(this->memStats);
     };
 
-    HeapBlockList::ForEach(emptyBlockList, blockStatsAggregator);
     HeapBlockList::ForEach(fullBlockList, blockStatsAggregator);
 #if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
@@ -1588,6 +1595,9 @@ HeapBucketGroup<TBlockAttributes>::Initialize(HeapInfo * heapInfo, uint sizeCat)
     smallFinalizableWithBarrierHeapBucket.Initialize(heapInfo, sizeCat);
 #endif
     finalizableHeapBucket.Initialize(heapInfo, sizeCat);
+#ifdef RECYCLER_VISITED_HOST
+    recyclerVisitedHostHeapBucket.Initialize(heapInfo, sizeCat);
+#endif
 }
 
 template <class TBlockAttributes>
@@ -1604,6 +1614,9 @@ HeapBucketGroup<TBlockAttributes>::ResetMarks(ResetMarkFlags flags)
     // Although we pass in premarkFreeObjects, the finalizable heap bucket ignores
     // this parameter and never pre-marks free objects
     finalizableHeapBucket.ResetMarks(flags);
+#ifdef RECYCLER_VISITED_HOST
+    recyclerVisitedHostHeapBucket.ResetMarks(flags);
+#endif
 }
 
 template <class TBlockAttributes>
@@ -1651,6 +1664,9 @@ void
 HeapBucketGroup<TBlockAttributes>::SweepFinalizableObjects(RecyclerSweep& recyclerSweep)
 {
     finalizableHeapBucket.Sweep(recyclerSweep);
+#ifdef RECYCLER_VISITED_HOST
+    recyclerVisitedHostHeapBucket.Sweep(recyclerSweep);
+#endif
 #ifdef RECYCLER_WRITE_BARRIER
     smallFinalizableWithBarrierHeapBucket.Sweep(recyclerSweep);
 #endif
@@ -1661,6 +1677,9 @@ void
 HeapBucketGroup<TBlockAttributes>::DisposeObjects()
 {
     finalizableHeapBucket.DisposeObjects();
+#ifdef RECYCLER_VISITED_HOST
+    recyclerVisitedHostHeapBucket.DisposeObjects();
+#endif
 #ifdef RECYCLER_WRITE_BARRIER
     smallFinalizableWithBarrierHeapBucket.DisposeObjects();
 #endif
@@ -1671,6 +1690,9 @@ void
 HeapBucketGroup<TBlockAttributes>::TransferDisposedObjects()
 {
     finalizableHeapBucket.TransferDisposedObjects();
+#ifdef RECYCLER_VISITED_HOST
+    recyclerVisitedHostHeapBucket.TransferDisposedObjects();
+#endif
 #ifdef RECYCLER_WRITE_BARRIER
     smallFinalizableWithBarrierHeapBucket.TransferDisposedObjects();
 #endif
@@ -1687,6 +1709,9 @@ HeapBucketGroup<TBlockAttributes>::EnumerateObjects(ObjectInfoBits infoBits, voi
     smallFinalizableWithBarrierHeapBucket.EnumerateObjects(infoBits, CallBackFunction);
 #endif
     finalizableHeapBucket.EnumerateObjects(infoBits, CallBackFunction);
+#ifdef RECYCLER_VISITED_HOST
+    recyclerVisitedHostHeapBucket.EnumerateObjects(infoBits, CallBackFunction);
+#endif
 }
 
 template <class TBlockAttributes>
@@ -1694,6 +1719,9 @@ void
 HeapBucketGroup<TBlockAttributes>::FinalizeAllObjects()
 {
     finalizableHeapBucket.FinalizeAllObjects();
+#ifdef RECYCLER_VISITED_HOST
+    recyclerVisitedHostHeapBucket.FinalizeAllObjects();
+#endif
 #ifdef RECYCLER_WRITE_BARRIER
     smallFinalizableWithBarrierHeapBucket.FinalizeAllObjects();
 #endif
@@ -1708,6 +1736,9 @@ HeapBucketGroup<TBlockAttributes>::Rescan(Recycler * recycler, RescanFlags flags
 #ifdef RECYCLER_WRITE_BARRIER
         smallNormalWithBarrierHeapBucket.Rescan(recycler, flags) +
         smallFinalizableWithBarrierHeapBucket.Rescan(recycler, flags) +
+#endif
+#ifdef RECYCLER_VISITED_HOST
+        recyclerVisitedHostHeapBucket.Rescan(recycler, flags) +
 #endif
         finalizableHeapBucket.Rescan(recycler, flags);
 }
@@ -1724,6 +1755,9 @@ HeapBucketGroup<TBlockAttributes>::PrepareSweep()
     smallFinalizableWithBarrierHeapBucket.PrepareSweep();
 #endif
     finalizableHeapBucket.PrepareSweep();
+#ifdef RECYCLER_VISITED_HOST
+    recyclerVisitedHostHeapBucket.PrepareSweep();
+#endif
 }
 
 template <class TBlockAttributes>
@@ -1752,6 +1786,9 @@ HeapBucketGroup<TBlockAttributes>::SweepPartialReusePages(RecyclerSweep& recycle
 #endif
 
     finalizableHeapBucket.SweepPartialReusePages(recyclerSweep);
+#ifdef RECYCLER_VISITED_HOST
+    recyclerVisitedHostHeapBucket.SweepPartialReusePages(recyclerSweep);
+#endif
 }
 
 template <class TBlockAttributes>
@@ -1764,6 +1801,9 @@ HeapBucketGroup<TBlockAttributes>::FinishPartialCollect(RecyclerSweep * recycler
     smallFinalizableWithBarrierHeapBucket.FinishPartialCollect(recyclerSweep);
 #endif
     finalizableHeapBucket.FinishPartialCollect(recyclerSweep);
+#ifdef RECYCLER_VISITED_HOST
+    recyclerVisitedHostHeapBucket.FinishPartialCollect(recyclerSweep);
+#endif
 
     // Leaf heap block always do a full sweep instead of partial sweep
     // (since touching the page doesn't affect rescan)
@@ -1790,6 +1830,9 @@ HeapBucketGroup<TBlockAttributes>::SweepPendingObjects(RecyclerSweep& recyclerSw
 #endif
 
     finalizableHeapBucket.SweepPendingObjects(recyclerSweep);
+#ifdef RECYCLER_VISITED_HOST
+    recyclerVisitedHostHeapBucket.SweepPendingObjects(recyclerSweep);
+#endif
 }
 
 template <class TBlockAttributes>
@@ -1803,6 +1846,9 @@ HeapBucketGroup<TBlockAttributes>::TransferPendingEmptyHeapBlocks(RecyclerSweep&
     recyclerSweep.TransferPendingEmptyHeapBlocks(&smallFinalizableWithBarrierHeapBucket);
 #endif
     recyclerSweep.TransferPendingEmptyHeapBlocks(&finalizableHeapBucket);
+#ifdef RECYCLER_VISITED_HOST
+    recyclerSweep.TransferPendingEmptyHeapBlocks(&recyclerVisitedHostHeapBucket);
+#endif
 }
 #endif
 
@@ -1813,6 +1859,9 @@ HeapBucketGroup<TBlockAttributes>::GetNonEmptyHeapBlockCount(bool checkCount) co
 {
     return heapBucket.GetNonEmptyHeapBlockCount(checkCount) +
         finalizableHeapBucket.GetNonEmptyHeapBlockCount(checkCount) +
+#ifdef RECYCLER_VISITED_HOST
+        recyclerVisitedHostHeapBucket.GetNonEmptyHeapBlockCount(checkCount) +
+#endif
 #ifdef RECYCLER_WRITE_BARRIER
         smallNormalWithBarrierHeapBucket.GetNonEmptyHeapBlockCount(checkCount) +
         smallFinalizableWithBarrierHeapBucket.GetNonEmptyHeapBlockCount(checkCount) +
@@ -1826,6 +1875,9 @@ HeapBucketGroup<TBlockAttributes>::GetEmptyHeapBlockCount() const
 {
     return heapBucket.GetEmptyHeapBlockCount() +
         finalizableHeapBucket.GetEmptyHeapBlockCount() +
+#ifdef RECYCLER_VISITED_HOST
+        recyclerVisitedHostHeapBucket.GetEmptyHeapBlockCount() +
+#endif
 #ifdef RECYCLER_WRITE_BARRIER
         smallNormalWithBarrierHeapBucket.GetEmptyHeapBlockCount() +
         smallFinalizableWithBarrierHeapBucket.GetEmptyHeapBlockCount() +
@@ -1840,6 +1892,9 @@ size_t
 HeapBucketGroup<TBlockAttributes>::Check()
 {
     return heapBucket.Check() + finalizableHeapBucket.Check() + leafHeapBucket.Check()
+#ifdef RECYCLER_VISITED_HOST
+        + recyclerVisitedHostHeapBucket.Check()
+#endif
 #ifdef RECYCLER_WRITE_BARRIER
         + smallNormalWithBarrierHeapBucket.Check() + smallFinalizableWithBarrierHeapBucket.Check()
 #endif
@@ -1853,6 +1908,9 @@ HeapBucketGroup<TBlockAttributes>::Verify()
 {
     heapBucket.Verify();
     finalizableHeapBucket.Verify();
+#ifdef RECYCLER_VISITED_HOST
+    recyclerVisitedHostHeapBucket.Verify();
+#endif
     leafHeapBucket.Verify();
 #ifdef RECYCLER_WRITE_BARRIER
     smallNormalWithBarrierHeapBucket.Verify();
@@ -1867,6 +1925,9 @@ HeapBucketGroup<TBlockAttributes>::VerifyMark()
 {
     heapBucket.VerifyMark();
     finalizableHeapBucket.VerifyMark();
+#ifdef RECYCLER_VISITED_HOST
+    recyclerVisitedHostHeapBucket.VerifyMark();
+#endif
     leafHeapBucket.VerifyMark();
 #ifdef RECYCLER_WRITE_BARRIER
     smallNormalWithBarrierHeapBucket.VerifyMark();
@@ -1918,6 +1979,9 @@ HeapBucketGroup<TBlockAttributes>::AllocatorsAreEmpty()
 {
     return heapBucket.AllocatorsAreEmpty()
         && finalizableHeapBucket.AllocatorsAreEmpty()
+#ifdef RECYCLER_VISITED_HOST
+        && recyclerVisitedHostHeapBucket.AllocatorsAreEmpty()
+#endif
         && leafHeapBucket.AllocatorsAreEmpty()
 #ifdef RECYCLER_WRITE_BARRIER
         && smallNormalWithBarrierHeapBucket.AllocatorsAreEmpty()

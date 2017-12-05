@@ -5,7 +5,7 @@
       <files>try_with_eval_perfhint.js</files>
       <baseline>try_with_eval_perfhint.baseline</baseline>
       <compile-flags>-oopjit- -trace:PerfHint -off:simplejit</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,exclude_nonative</tags>
     </default>
   </test>
   <test>
@@ -13,7 +13,7 @@
       <files>try_with_eval_perfhint.js</files>
       <baseline>try_with_eval_perfhint_l2.baseline</baseline>
       <compile-flags>-oopjit- -trace:PerfHint -off:simplejit -perfhintlevel:2</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,exclude_nonative</tags>
     </default>
   </test>
   <test>
@@ -21,7 +21,7 @@
       <files>arguments1.js</files>
       <baseline>arguments1.baseline</baseline>
       <compile-flags>-oopjit- -trace:PerfHint -off:simplejit</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,exclude_nonative</tags>
     </default>
   </test>
   <test>
@@ -29,7 +29,7 @@
       <files>polymorphictest.js</files>
       <baseline>polymorphictest.baseline</baseline>
       <compile-flags>-oopjit- -trace:PerfHint -off:simplejit</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,exclude_nonative</tags>
     </default>
   </test>
 </regress-exe>

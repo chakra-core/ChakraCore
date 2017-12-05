@@ -34,7 +34,7 @@ namespace Js
         Field(PropertyId) pid;
         //Made this mutable so that we can set it for Built-In js property records when we are adding it.
         //If we try to set it when initializing; we get extra code added for each built in; and thus increasing the size of chakracore
-        mutable Field(uint) hash;
+        mutable Field(hash_t) hash;
         Field(bool) isNumeric;
         Field(bool) isBound;
         Field(bool) isSymbol;

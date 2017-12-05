@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 
-// Conditionally-compiled on x64 and arm
+// Conditionally-compiled on x64 and arm/arm64
 #if PDATA_ENABLED
 
 #ifdef _WIN32

@@ -344,16 +344,15 @@ namespace Js
                     if (decl->sxVar.pnodeInit->nop == knopName)
                     {
                         AsmJsSymbol * initSym = mCompiler->LookupIdentifier(decl->sxVar.pnodeInit->name(), mFunction);
-                        if (initSym->GetSymbolType() == AsmJsSymbol::Variable)
+                        if (AsmJsVar::Is(initSym))
                         {
                             // in this case we are initializing with value of a constant var
-                            initSource = initSym->Cast<AsmJsVar>();
+                            initSource = AsmJsVar::FromSymbol(initSym);
                         }
                         else
                         {
-                            Assert(initSym->GetSymbolType() == AsmJsSymbol::MathConstant);
                             Assert(initSym->GetType() == AsmJsType::Double);
-                            AsmJsMathConst* initConst = initSym->Cast<AsmJsMathConst>();
+                            AsmJsMathConst* initConst = AsmJsMathConst::FromSymbol(initSym);
                             mWriter.AsmReg2(Js::OpCodeAsmJs::Ld_Db, var->GetLocation(), mFunction->GetConstRegister<double>(*initConst->GetVal()));
                         }
                     }
@@ -987,11 +986,11 @@ namespace Js
         }
         else
         {
-            if (sym->GetSymbolType() != AsmJsSymbol::FuncPtrTable)
+            if (!AsmJsFunctionTable::Is(sym))
             {
                 throw AsmJsCompilationException(_u("Identifier %s is not a function table"), funcName->Psz());
             }
-            AsmJsFunctionTable* funcTable = sym->Cast<AsmJsFunctionTable>();
+            AsmJsFunctionTable* funcTable = AsmJsFunctionTable::FromSymbol(sym);
             if (funcTable->GetSize() != tableSize)
             {
                 throw AsmJsCompilationException(_u("Trying to load from Function table %s of size [%d] with size [%d]"), funcName->Psz(), funcTable->GetSize(), tableSize);
@@ -1034,24 +1033,24 @@ namespace Js
             throw AsmJsCompilationException( _u("Undefined function %s"), funcName );
         }
 
-        if (sym->GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction)
+        if (AsmJsSIMDFunction::Is(sym))
         {
-            AsmJsSIMDFunction *simdFun = sym->Cast<AsmJsSIMDFunction>();
+            AsmJsSIMDFunction *simdFun = AsmJsSIMDFunction::FromSymbol(sym);
             if (simdFun->IsSimdLoadFunc() || simdFun->IsSimdStoreFunc())
             {
-                return EmitSimdLoadStoreBuiltin(pnode, sym->Cast<AsmJsSIMDFunction>(), expectedType);
+                return EmitSimdLoadStoreBuiltin(pnode, AsmJsSIMDFunction::FromSymbol(sym), expectedType);
             }
             else
             {
-                return EmitSimdBuiltin(pnode, sym->Cast<AsmJsSIMDFunction>(), expectedType);
+                return EmitSimdBuiltin(pnode, AsmJsSIMDFunction::FromSymbol(sym), expectedType);
             }
         }
 
-        const bool isFFI = sym->GetSymbolType() == AsmJsSymbol::ImportFunction;
-        const bool isMathBuiltin = sym->GetSymbolType() == AsmJsSymbol::MathBuiltinFunction;
+        const bool isFFI = AsmJsImportFunction::Is(sym);
+        const bool isMathBuiltin = AsmJsMathFunction::Is(sym);
         if(isMathBuiltin)
         {
-            return EmitMathBuiltin(pnode, sym->Cast<AsmJsMathFunction>());
+            return EmitMathBuiltin(pnode, AsmJsMathFunction::FromSymbol(sym));
         }
 
         // math builtins have different requirements for call-site coercion
@@ -1251,7 +1250,7 @@ namespace Js
             LoadModuleFunctionTable(funcReg, sym->GetFunctionIndex(), funcTableIndexRegister);
             break;
         default:
-            Assert( false );
+            throw AsmJsCompilationException(_u("Invalid function type"));
         }
 
         // use expected type because return type could be invalid if the function is a FFI
@@ -1284,6 +1283,13 @@ namespace Js
             info.location = mFunction->AcquireTmpRegisterGeneric(expectedType);
             mWriter.AsmCall(OpCodeAsmJs::I_Call, info.location, funcReg, runtimeArg, expectedType, profileId);
         }
+
+        // after foreign function call, we need to make sure that the heap hasn't been detached
+        if (isFFI && mCompiler->UsesHeapBuffer())
+        {
+            mWriter.EmptyAsm(OpCodeAsmJs::CheckHeap);
+            mCompiler->SetUsesHeapBuffer(true);
+        }
         EndStatement(pnode);
 
         return info;
@@ -1309,9 +1315,9 @@ namespace Js
                     arg = ParserWrapper::GetBinaryLeft(argNode);
                     argNode = ParserWrapper::GetBinaryRight(argNode);
                 }
-                if (func->GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction)
+                if (AsmJsSIMDFunction::Is(func))
                 {
-                    AsmJsSIMDFunction *simdFunc = func->Cast<AsmJsSIMDFunction>();
+                    AsmJsSIMDFunction *simdFunc = AsmJsSIMDFunction::FromSymbol(func);
 
                     if (arg->nop == knopCall)
                     {
@@ -1362,7 +1368,7 @@ namespace Js
                                 throw AsmJsCompilationException(_u("Invalid call as SIMD argument. Expecting fround."));
                             }
                         }
-                        else if (argCall->GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction  &&  argCall->Cast<AsmJsSIMDFunction>()->GetReturnType().toType() == simdFunc->GetArgType(i))
+                        else if (AsmJsSIMDFunction::Is(argCall) && AsmJsSIMDFunction::FromSymbol(argCall)->GetReturnType().toType() == simdFunc->GetArgType(i))
                         {
                             // any other simd operation. call arguments have to be SIMD operations of expected arg type.
                             argInfo = EmitCall(arg, simdFunc->GetArgType(i).toRetType());
@@ -1642,11 +1648,11 @@ namespace Js
         PropertyName name = arrayNameNode->name();
 
         AsmJsSymbol* sym = mCompiler->LookupIdentifier(name, mFunction);
-        if (!sym || sym->GetSymbolType() != AsmJsSymbol::ArrayView)
+        if (!AsmJsArrayView::Is(sym))
         {
             throw AsmJsCompilationException(_u("Invalid identifier %s"), name->Psz());
         }
-        AsmJsArrayView* arrayView = sym->Cast<AsmJsArrayView>();
+        AsmJsArrayView* arrayView = AsmJsArrayView::FromSymbol(sym);
         ArrayBufferView::ViewType viewType = arrayView->GetViewType();
 
         // Arg2 - index
@@ -2062,7 +2068,7 @@ namespace Js
         {
         case AsmJsSymbol::Variable:
         {
-            AsmJsVar * var = sym->Cast<AsmJsVar>();
+            AsmJsVar * var = AsmJsVar::FromSymbol(sym);
             if (!var->isMutable())
             {
                 // currently const is only allowed for variables at module scope
@@ -2092,7 +2098,7 @@ namespace Js
         case AsmJsSymbol::Argument:
         case AsmJsSymbol::ConstantImport:
         {
-            AsmJsVarBase* var = sym->Cast<AsmJsVarBase>();
+            AsmJsVarBase* var = AsmJsVarBase::FromSymbol(sym);
             if( source == AsmJsLookupSource::AsmJsFunction )
             {
                 return EmitExpressionInfo( var->GetLocation(), var->GetType() );
@@ -2131,7 +2137,7 @@ namespace Js
         }
         case AsmJsSymbol::MathConstant:
         {
-            AsmJsMathConst* mathConst = sym->Cast<AsmJsMathConst>();
+            AsmJsMathConst* mathConst = AsmJsMathConst::FromSymbol(sym);
             Assert(mathConst->GetType().isDouble());
             RegSlot loc = mFunction->AcquireTmpRegister<double>();
             mWriter.AsmReg2( OpCodeAsmJs::Ld_Db, loc, mFunction->GetConstRegister<double>(*mathConst->GetVal()) );
@@ -2163,9 +2169,9 @@ namespace Js
         if(indexNode->nop == knopName)
         {
             AsmJsSymbol * declSym = mCompiler->LookupIdentifier(indexNode->name(), mFunction);
-            if (declSym && !declSym->isMutable() && declSym->GetSymbolType() == AsmJsSymbol::Variable)
+            if (AsmJsVar::Is(declSym) && !declSym->isMutable())
             {
-                AsmJsVar * definition = declSym->Cast<AsmJsVar>();
+                AsmJsVar * definition = AsmJsVar::FromSymbol(declSym);
                 if(definition->GetVarType().isInt())
                 {
                     slot = (uint32)definition->GetIntInitialiser();
@@ -2287,9 +2293,9 @@ namespace Js
             if (index->nop == knopName)
             {
                 AsmJsSymbol * declSym = mCompiler->LookupIdentifier(index->name(), mFunction);
-                if (declSym && !declSym->isMutable() && declSym->GetSymbolType() == AsmJsSymbol::Variable)
+                if (AsmJsVar::Is(declSym) && !declSym->isMutable())
                 {
-                    AsmJsVar * definition = declSym->Cast<AsmJsVar>();
+                    AsmJsVar * definition = AsmJsVar::FromSymbol(declSym);
                     if (definition->GetVarType().isInt())
                     {
                         slot = (uint32)definition->GetIntInitialiser();
@@ -2335,11 +2341,11 @@ namespace Js
 
         PropertyName name = arrayNameNode->name();
         AsmJsSymbol* sym = mCompiler->LookupIdentifier(name, mFunction);
-        if( !sym || sym->GetSymbolType() != AsmJsSymbol::ArrayView )
+        if(!AsmJsArrayView::Is(sym))
         {
             throw AsmJsCompilationException( _u("Invalid identifier %s"), name->Psz() );
         }
-        AsmJsArrayView* arrayView = sym->Cast<AsmJsArrayView>();
+        AsmJsArrayView* arrayView = AsmJsArrayView::FromSymbol(sym);
         ArrayBufferView::ViewType viewType = arrayView->GetViewType();
 
         OpCodeAsmJs op;
@@ -2380,9 +2386,9 @@ namespace Js
             PropertyName name = lhs->name();
             AsmJsLookupSource::Source source;
             AsmJsSymbol* sym = mCompiler->LookupIdentifier( name, mFunction, &source );
-            if( !sym )
+            if(!AsmJsVarBase::Is(sym))
             {
-                throw AsmJsCompilationException( _u("Undefined identifier %s"), name->Psz() );
+                throw AsmJsCompilationException( _u("Identifier %s is not a variable"), name->Psz() );
             }
 
             if( !sym->isMutable() )
@@ -2390,10 +2396,10 @@ namespace Js
                 throw AsmJsCompilationException( _u("Cannot assign to identifier %s"), name->Psz() );
             }
 
-            AsmJsVarBase* var = sym->Cast<AsmJsVarBase>();
+            AsmJsVarBase* var = AsmJsVarBase::FromSymbol(sym);
             if( !var->GetType().isSuperType( rType ) )
             {
-                throw AsmJsCompilationException( _u("Cannot assign this type to identifier %s"), name->Psz() );
+                throw AsmJsCompilationException( _u("Cannot assign type %s to identifier %s"), rType.toChars(), name->Psz() );
             }
 
             switch( source )
@@ -2466,12 +2472,12 @@ namespace Js
 
             PropertyName name = arrayNameNode->name();
             AsmJsSymbol* sym = mCompiler->LookupIdentifier(name, mFunction);
-            if( !sym || sym->GetSymbolType() != AsmJsSymbol::ArrayView )
+            if (!AsmJsArrayView::Is(sym))
             {
                 throw AsmJsCompilationException( _u("Invalid identifier %s"), name->Psz() );
             }
             // must emit index expr first in case it has side effects
-            AsmJsArrayView* arrayView = sym->Cast<AsmJsArrayView>();
+            AsmJsArrayView* arrayView = AsmJsArrayView::FromSymbol(sym);
             ArrayBufferView::ViewType viewType = arrayView->GetViewType();
 
             OpCodeAsmJs op;

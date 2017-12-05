@@ -9,20 +9,6 @@
 
 namespace PlatformAgnostic
 {
-    SystemInfo::PlatformData SystemInfo::data;
-
-    SystemInfo::PlatformData::PlatformData()
-    {
-        // Get Total Ram
-        int totalRamHW [] = { CTL_HW, HW_MEMSIZE };
-
-        size_t length = sizeof(size_t);
-        if(sysctl(totalRamHW, 2, &totalRam, &length, NULL, 0) == -1)
-        {
-            totalRam = 0;
-        }
-    }
-
     bool SystemInfo::GetMaxVirtualMemory(size_t *totalAS)
     {
         struct rlimit limit;

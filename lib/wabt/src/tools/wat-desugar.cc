@@ -47,22 +47,22 @@ R"(  read a file in the wasm s-expression format and format it.
 
 examples:
   # write output to stdout
-  $ wast-desugar test.wast
+  $ wat-desugar test.wat
 
-  # write output to test2.wast
-  $ wast-desugar test.wast -o test2.wast
+  # write output to test2.wat
+  $ wat-desugar test.wat -o test2.wat
 
   # generate names for indexed variables
-  $ wast-desugar --generate-names test.wast
+  $ wat-desugar --generate-names test.wat
 )";
 
 static void ParseOptions(int argc, char** argv) {
-  OptionParser parser("wast-desugar", s_description);
+  OptionParser parser("wat-desugar", s_description);
 
   parser.AddHelpOption();
   parser.AddOption('o', "output", "FILE", "Output file for the formatted file",
                    [](const char* argument) { s_outfile = argument; });
-  parser.AddOption("debug-parser", "Turn on debugging the parser of wast files",
+  parser.AddOption("debug-parser", "Turn on debugging the parser of wat files",
                    []() { s_debug_parsing = true; });
   parser.AddOption('f', "fold-exprs", "Write folded expressions where possible",
                    []() { s_write_wat_options.fold_exprs = true; });

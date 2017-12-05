@@ -98,7 +98,8 @@ namespace TTD
             slotInfo->SlotId = TTD_CONVERT_VAR_TO_PTR_ID(scope);
             slotInfo->ScriptContextLogId = ctx->ScriptContextLogTag;
 
-            slotInfo->SlotCount = slots.GetCount();
+            slotInfo->SlotCount = static_cast<uint>(slots.GetCount());
+
             slotInfo->Slots = this->m_pendingSnap->GetSnapshotSlabAllocator().SlabAllocateArray<TTDVar>(slotInfo->SlotCount);
 
             for(uint32 j = 0; j < slotInfo->SlotCount; ++j)
@@ -322,8 +323,7 @@ namespace TTD
                     if(this->m_marks.MarkAndTestAddr<MarkTableTag::SlotArrayTag>(scope))
                     {
                         Js::ScopeSlots slotArray = (Js::Var*)scope;
-                        uint slotArrayCount = slotArray.GetCount();
-
+                        uint slotArrayCount = static_cast<uint>(slotArray.GetCount());
                         if(slotArray.IsFunctionScopeSlotArray())
                         {
                             this->MarkFunctionBody(slotArray.GetFunctionInfo()->GetFunctionBody());

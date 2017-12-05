@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_PROJECTION)
+#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_JS_BUILTINS) || defined(ENABLE_PROJECTION)
 
 namespace Js
 {
@@ -12,8 +12,9 @@ namespace Js
 
     enum EngineInterfaceExtensionKind
     {
-        EngineInterfaceExtensionKind_Intl = 0,
-        EngineInterfaceExtensionKind_WinRTPromise = 1,
+        EngineInterfaceExtensionKind_JsBuiltIn = 0,
+        EngineInterfaceExtensionKind_Intl = 1,
+        EngineInterfaceExtensionKind_WinRTPromise = 2,
         MaxEngineInterfaceExtensionKind = EngineInterfaceExtensionKind_WinRTPromise
     };
 
@@ -24,10 +25,13 @@ namespace Js
             extensionKind(kind),
             scriptContext(context)
         {
+            hasBytecode = false;
         }
 
         EngineInterfaceExtensionKind GetExtensionKind() const { return extensionKind; }
         ScriptContext* GetScriptContext() const { return scriptContext; }
+        bool GetHasByteCode() const { return hasBytecode; }
+        void SetHasBytecode() { hasBytecode = true; }
         virtual void Initialize() = 0;
 #if DBG
         virtual void DumpByteCode() = 0;
@@ -36,6 +40,7 @@ namespace Js
     protected:
         Field(EngineInterfaceExtensionKind) extensionKind;
         Field(ScriptContext*) scriptContext;
+        Field(bool) hasBytecode;
     };
 
 #define EngineInterfaceObject_CommonFunctionProlog(function, callInfo) \
@@ -57,7 +62,10 @@ namespace Js
         Field(EngineExtensionObjectBase*) engineExtensions[MaxEngineInterfaceExtensionKind + 1];
 
     public:
-        EngineInterfaceObject(DynamicType * type) : DynamicObject(type) {}
+        EngineInterfaceObject(DynamicType * type)
+            : DynamicObject(type), commonNativeInterfaces(nullptr), engineExtensions()
+        {}
+
         DynamicObject* GetCommonNativeInterfaces() const { return commonNativeInterfaces; }
         EngineExtensionObjectBase* GetEngineExtension(EngineInterfaceExtensionKind extensionKind) const;
         void SetEngineExtension(EngineInterfaceExtensionKind extensionKind, EngineExtensionObjectBase* extensionObject);
@@ -65,6 +73,7 @@ namespace Js
         static EngineInterfaceObject* New(Recycler * recycler, DynamicType * type);
         static bool Is(Var aValue);
         static EngineInterfaceObject* FromVar(Var aValue);
+        static EngineInterfaceObject* UnsafeFromVar(Var aValue);
 
 #if ENABLE_TTD
         virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
@@ -75,6 +84,7 @@ namespace Js
 #endif
 
         void Initialize();
+        bool IsInitialized() const { return commonNativeInterfaces != nullptr; }
 
         static bool __cdecl InitializeCommonNativeInterfaces(DynamicObject* engineInterface, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
@@ -88,12 +98,12 @@ namespace Js
 
 #ifndef GlobalBuiltIn
 #define GlobalBuiltIn(global, method) \
-            static NoProfileFunctionInfo Intl_BuiltIn_##global##_##method##; \
+            static NoProfileFunctionInfo BuiltIn_##global##_##method##; \
 
 #define GlobalBuiltInConstructor(global)
 
 #define BuiltInRaiseException(exceptionType, exceptionID) \
-     static NoProfileFunctionInfo Intl_BuiltIn_raise##exceptionID;
+     static NoProfileFunctionInfo BuiltIn_raise##exceptionID;
 
 #define BuiltInRaiseException1(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID)
 #define BuiltInRaiseException2(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID)
@@ -123,7 +133,7 @@ namespace Js
 #define GlobalBuiltInConstructor(global)
 
 #define BuiltInRaiseException(exceptionType, exceptionID) \
-        static Var EntryIntl_BuiltIn_raise##exceptionID(RecyclableObject *function, CallInfo callInfo, ...);
+        static Var Entry_BuiltIn_raise##exceptionID(RecyclableObject *function, CallInfo callInfo, ...);
 
 #define BuiltInRaiseException1(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID)
 #define BuiltInRaiseException2(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID)
@@ -142,4 +152,4 @@ namespace Js
     };
 }
 
-#endif // ENABLE_INTL_OBJECT || ENABLE_PROJECTION
+#endif // ENABLE_INTL_OBJECT || ENABLE_JS_BUILTINS || ENABLE_PROJECTION

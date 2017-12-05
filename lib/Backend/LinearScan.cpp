@@ -1117,6 +1117,16 @@ LinearScan::SetUses(IR::Instr *instr, IR::Opnd *opnd)
             }
         }
         break;
+
+    case IR::OpndKindList:
+    {
+        opnd->AsListOpnd()->Map([&](int i, IR::Opnd* opnd)
+        {
+            this->SetUses(instr, opnd);
+        });
+    }
+    break;
+
     case IR::OpndKindIntConst:
     case IR::OpndKindAddr:
         this->linearScanMD.LegalizeConstantUse(instr, opnd);
@@ -1412,6 +1422,14 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         // To indicate this is a subsequent bailout from an inlinee
         bailOutRecord->bailOutOpcode = Js::OpCode::InlineeEnd;
 #endif
+        if (this->func->HasTry())
+        {
+            RegionType currentRegionType = this->currentRegion->GetType();
+            if (currentRegionType == RegionTypeTry || currentRegionType == RegionTypeCatch || currentRegionType == RegionTypeFinally)
+            {
+                bailOutRecord->ehBailoutData = this->currentRegion->ehBailoutData;
+            }
+        }
         funcBailOutData[funcIndex].bailOutRecord->parent = bailOutRecord;
         funcIndex--;
         funcBailOutData[funcIndex].bailOutRecord = bailOutRecord;
@@ -2788,18 +2806,30 @@ LinearScan::FindReg(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool force)
                 regsBv = this->linearScanMD.FilterRegIntSizeConstraints(regsBv, regSizeBv);
             }
 
+            BitVector regsBvNoTemps = regsBv;
+
             if (!this->tempRegs.IsEmpty())
             {
-                // avoid the temp reg that we have loaded in this basic block
-                BitVector regsBvTemp = regsBv;
-                regsBvTemp.Minus(this->tempRegs);
-                regIndex = regsBvTemp.GetPrevBit();
+                // Avoid the temp reg that we have loaded in this basic block
+                regsBvNoTemps.Minus(this->tempRegs);
+            }
+            
+            BitVector regsBvNoTempsNoCallee = regsBvNoTemps;
+            // Try to find a non-callee saved reg so that we don't have to save it in prolog
+            regsBvNoTempsNoCallee.Minus(this->calleeSavedRegs);
+
+            // Allocate a non-callee saved reg from the other end of the bit vector so that it can keep live for longer
+            regIndex = regsBvNoTempsNoCallee.GetPrevBit();
+            
+            if (regIndex == BVInvalidIndex)
+            {
+                // If we don't have any non-callee saved reg then get the first available callee saved reg so that prolog can store adjacent registers
+                regIndex = regsBvNoTemps.GetNextBit();
             }
 
             if (regIndex == BVInvalidIndex)
             {
-                // allocate a temp reg from the other end of the bit vector so that it can
-                // keep live for longer.
+                // Everything is used, get the temp from other end
                 regIndex = regsBv.GetPrevBit();
             }
         }
@@ -3902,8 +3932,18 @@ LinearScan::ProcessSecondChanceBoundaryHelper(IR::BranchInstr *branchInstr, IR::
                     nextInstr->m_opcode != Js::OpCode::BailOutStackRestore &&
                     this->currentBlock->HasData())
                 {
-                    // Clone with shallow copy
-                    branchLabel->m_loweredBasicBlock = this->currentBlock;
+                    IR::Instr* branchNextInstr = branchInstr->GetNextRealInstrOrLabel();
+                    if (branchNextInstr->IsLabelInstr())
+                    {
+                        // Clone with shallow copy
+                        branchLabel->m_loweredBasicBlock = this->currentBlock;
+                    }
+                    else
+                    {
+                        // Dead code after the unconditional branch causes the currentBlock data to be freed later on...  
+                        // Deep copy in this case.
+                        branchLabel->m_loweredBasicBlock = this->currentBlock->Clone(this->tempAlloc);
+                    }
                 }
             }
         }

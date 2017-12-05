@@ -1185,6 +1185,15 @@ var tests = [
             assert_referrors("class x extends eval('fun(x)') {}");
         }
     },
+    {
+         name: "Semantically restricted keywords can be used as class method names",
+         body: function () {
+             // See https://tc39.github.io/ecma262/#sec-keywords and #3816
+             class a { let() {} };
+             class b { static() {} };
+             class c { static static() {} };
+         }
+    }
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

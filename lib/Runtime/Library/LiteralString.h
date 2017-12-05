@@ -17,16 +17,4 @@ namespace Js
         static LiteralString* New(StaticType* type, const char16* content, charcount_t charLength, Recycler* recycler);
         static LiteralString* CreateEmptyString(StaticType* type);
     };
-
-    class ArenaLiteralString sealed : public JavascriptString
-    {
-    protected:
-        ArenaLiteralString(StaticType* type, const char16* content, charcount_t charLength);
-        DEFINE_VTABLE_CTOR(ArenaLiteralString, JavascriptString);
-
-    public:
-        static ArenaLiteralString* New(StaticType* type, const char16* content, charcount_t charLength, Recycler* recycler);
-        static ArenaLiteralString* New(StaticType* type, const char16* content, charcount_t charLength, ArenaAllocator* arena);
-        virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
-    };
 }

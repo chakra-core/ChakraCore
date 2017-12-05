@@ -102,10 +102,8 @@ public:
     Js::RegSlot undefinedConstantRegister; // location, if any, of enregistered undefined constant
     Js::RegSlot trueConstantRegister; // location, if any, of enregistered true constant
     Js::RegSlot falseConstantRegister; // location, if any, of enregistered false constant
-    Js::RegSlot thisPointerRegister; // location, if any, of this pointer
-    Js::RegSlot superRegister; // location, if any, of the super reference
-    Js::RegSlot superCtorRegister; // location, if any, of the superCtor reference
-    Js::RegSlot newTargetRegister; // location, if any, of the new.target reference
+    Js::RegSlot thisConstantRegister; // location, if any, of enregistered 'this' constant
+
 private:
     Js::RegSlot envRegister; // location, if any, of the closure environment
 public:
@@ -122,6 +120,7 @@ public:
     Js::RegSlot firstThunkArgReg;
     short thunkArgCount;
     short staticFuncId;
+    Js::FunctionInfo::Attributes originalAttributes;
 
     uint callsEval : 1;
     uint childCallsEval : 1;
@@ -174,20 +173,17 @@ public:
     SListBase<uint> toStringStoreCacheIds;
     typedef JsUtil::BaseDictionary<SlotKey, Js::ProfileId, ArenaAllocator, PowerOf2SizePolicy, SlotKeyComparer> SlotProfileIdMap;
     SlotProfileIdMap slotProfileIdMap;
-    Js::PropertyId thisScopeSlot;
-    Js::PropertyId superScopeSlot;
-    Js::PropertyId superCtorScopeSlot;
-    Js::PropertyId newTargetScopeSlot;
-    bool isThisLexicallyCaptured;
-    bool isSuperLexicallyCaptured;
-    bool isSuperCtorLexicallyCaptured;
-    bool isNewTargetLexicallyCaptured;
     Symbol *argumentsSymbol;
+    Symbol *thisSymbol;
+    Symbol *newTargetSymbol;
+    Symbol *superSymbol;
+    Symbol *superConstructorSymbol;
     JsUtil::List<Js::RegSlot, ArenaAllocator> nonUserNonTempRegistersToInitialize;
 
     FuncInfo(
         const char16 *name,
         ArenaAllocator *alloc,
+        ByteCodeGenerator *byteCodeGenerator,
         Scope *paramScope,
         Scope *bodyScope,
         ParseNode *pnode,
@@ -304,6 +300,50 @@ public:
     {
         Assert(argumentsSymbol == nullptr || argumentsSymbol == sym);
         argumentsSymbol = sym;
+    }
+
+    void SetThisSymbol(Symbol *sym)
+    {
+        Assert(thisSymbol == nullptr || thisSymbol == sym);
+        thisSymbol = sym;
+    }
+
+    Symbol* GetThisSymbol() const
+    {
+        return thisSymbol;
+    }
+
+    void SetNewTargetSymbol(Symbol *sym)
+    {
+        Assert(newTargetSymbol == nullptr || newTargetSymbol == sym);
+        newTargetSymbol = sym;
+    }
+
+    Symbol* GetNewTargetSymbol() const
+    {
+        return newTargetSymbol;
+    }
+
+    void SetSuperSymbol(Symbol *sym)
+    {
+        Assert(superSymbol == nullptr || superSymbol == sym);
+        superSymbol = sym;
+    }
+
+    Symbol* GetSuperSymbol() const
+    {
+        return superSymbol;
+    }
+
+    void SetSuperConstructorSymbol(Symbol *sym)
+    {
+        Assert(superConstructorSymbol == nullptr || superConstructorSymbol == sym);
+        superConstructorSymbol = sym;
+    }
+
+    Symbol* GetSuperConstructorSymbol() const
+    {
+        return superConstructorSymbol;
     }
 
     bool GetCallsEval() const {
@@ -429,6 +469,7 @@ public:
     BOOL IsLambda() const;
     BOOL IsClassConstructor() const;
     BOOL IsBaseClassConstructor() const;
+    BOOL IsDerivedClassConstructor() const;
 
     void RemoveTargetStmt(ParseNode* pnodeStmt) {
         targetStatements.Remove(pnodeStmt);
@@ -468,40 +509,13 @@ public:
         return reg;
     }
 
-    Js::RegSlot AssignThisRegister()
+    Js::RegSlot AssignThisConstRegister()
     {
-        if (this->thisPointerRegister == Js::Constants::NoRegister)
+        if (this->thisConstantRegister == Js::Constants::NoRegister)
         {
-            this->thisPointerRegister = NextVarRegister();
+            this->thisConstantRegister = this->NextVarRegister();
         }
-        return this->thisPointerRegister;
-    }
-
-    Js::RegSlot AssignSuperRegister()
-    {
-        if (this->superRegister == Js::Constants::NoRegister)
-        {
-            this->superRegister = NextVarRegister();
-        }
-        return this->superRegister;
-    }
-
-    Js::RegSlot AssignSuperCtorRegister()
-    {
-        if (this->superCtorRegister == Js::Constants::NoRegister)
-        {
-            this->superCtorRegister = NextVarRegister();
-        }
-        return this->superCtorRegister;
-    }
-
-    Js::RegSlot AssignNewTargetRegister()
-    {
-        if (this->newTargetRegister == Js::Constants::NoRegister)
-        {
-            this->newTargetRegister = NextVarRegister();
-        }
-        return this->newTargetRegister;
+        return this->thisConstantRegister;
     }
 
     Js::RegSlot AssignNullConstRegister()
@@ -748,31 +762,6 @@ public:
         }
 
         return profileId;
-    }
-
-    void EnsureThisScopeSlot();
-    void EnsureSuperScopeSlot();
-    void EnsureSuperCtorScopeSlot();
-    void EnsureNewTargetScopeSlot();
-
-    void SetIsThisLexicallyCaptured()
-    {
-        this->isThisLexicallyCaptured = true;
-    }
-
-    void SetIsSuperLexicallyCaptured()
-    {
-        this->isSuperLexicallyCaptured = true;
-    }
-
-    void SetIsSuperCtorLexicallyCaptured()
-    {
-        this->isSuperCtorLexicallyCaptured = true;
-    }
-
-    void SetIsNewTargetLexicallyCaptured()
-    {
-        this->isNewTargetLexicallyCaptured = true;
     }
 
     Scope * GetGlobalBlockScope() const;

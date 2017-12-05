@@ -18,6 +18,9 @@ template SweepState SmallHeapBlockT<TBlockTypeAttributes>::Sweep(RecyclerSweep& 
 template SmallNormalHeapBlockT<TBlockTypeAttributes>* HeapBlock::AsNormalBlock<TBlockTypeAttributes>();
 template SmallLeafHeapBlockT<TBlockTypeAttributes>* HeapBlock::AsLeafBlock<TBlockTypeAttributes>();
 template SmallFinalizableHeapBlockT<TBlockTypeAttributes>* HeapBlock::AsFinalizableBlock<TBlockTypeAttributes>();
+#ifdef RECYCLER_VISITED_HOST
+template SmallRecyclerVisitedHostHeapBlockT<TBlockTypeAttributes>* HeapBlock::AsRecyclerVisitedHostBlock<TBlockTypeAttributes>();
+#endif
 #ifdef RECYCLER_WRITE_BARRIER
 template SmallNormalWithBarrierHeapBlockT<TBlockTypeAttributes>* HeapBlock::AsNormalWriteBarrierBlock<TBlockTypeAttributes>();
 template SmallFinalizableWithBarrierHeapBlockT<TBlockTypeAttributes>* HeapBlock::AsFinalizableWriteBarrierBlock<TBlockTypeAttributes>();
@@ -26,6 +29,9 @@ template SmallFinalizableWithBarrierHeapBlockT<TBlockTypeAttributes>* HeapBlock:
 template bool SmallHeapBlockT<TBlockTypeAttributes>::FindHeapObjectImpl<SmallLeafHeapBlockT<TBlockTypeAttributes>>(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject);
 template bool SmallHeapBlockT<TBlockTypeAttributes>::FindHeapObjectImpl<SmallNormalHeapBlockT<TBlockTypeAttributes>>(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject);
 template bool SmallHeapBlockT<TBlockTypeAttributes>::FindHeapObjectImpl<SmallFinalizableHeapBlockT<TBlockTypeAttributes>>(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject);
+#ifdef RECYCLER_VISITED_HOST
+template bool SmallHeapBlockT<TBlockTypeAttributes>::FindHeapObjectImpl<SmallRecyclerVisitedHostHeapBlockT<TBlockTypeAttributes>>(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject);
+#endif
 #ifdef RECYCLER_WRITE_BARRIER
 template bool SmallHeapBlockT<TBlockTypeAttributes>::FindHeapObjectImpl<SmallNormalWithBarrierHeapBlockT<TBlockTypeAttributes>>(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject);
 template bool SmallHeapBlockT<TBlockTypeAttributes>::FindHeapObjectImpl<SmallFinalizableWithBarrierHeapBlockT<TBlockTypeAttributes>>(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject);
@@ -35,6 +41,9 @@ template bool SmallHeapBlockT<TBlockTypeAttributes>::FindHeapObjectImpl<SmallFin
 template bool SmallHeapBlockT<TBlockTypeAttributes>::GetFreeObjectListOnAllocatorImpl<SmallNormalHeapBlockT<TBlockTypeAttributes>>(FreeObject ** freeObjectList);
 template bool SmallHeapBlockT<TBlockTypeAttributes>::GetFreeObjectListOnAllocatorImpl<SmallLeafHeapBlockT<TBlockTypeAttributes>>(FreeObject ** freeObjectList);
 template bool SmallHeapBlockT<TBlockTypeAttributes>::GetFreeObjectListOnAllocatorImpl<SmallFinalizableHeapBlockT<TBlockTypeAttributes>>(FreeObject ** freeObjectList);
+#ifdef RECYCLER_VISITED_HOST
+template bool SmallHeapBlockT<TBlockTypeAttributes>::GetFreeObjectListOnAllocatorImpl<SmallRecyclerVisitedHostHeapBlockT<TBlockTypeAttributes>>(FreeObject ** freeObjectList);
+#endif
 #ifdef RECYCLER_WRITE_BARRIER
 template bool SmallHeapBlockT<TBlockTypeAttributes>::GetFreeObjectListOnAllocatorImpl<SmallNormalWithBarrierHeapBlockT<TBlockTypeAttributes>>(FreeObject ** freeObjectList);
 template bool SmallHeapBlockT<TBlockTypeAttributes>::GetFreeObjectListOnAllocatorImpl<SmallFinalizableWithBarrierHeapBlockT<TBlockTypeAttributes>>(FreeObject ** freeObjectList);

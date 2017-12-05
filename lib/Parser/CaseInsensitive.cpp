@@ -207,7 +207,7 @@ END {
 
         // For case-folding entries, version 8.0.0 of CaseFolding.txt located at [1] was used.
         // [1] http://www.unicode.org/Public/8.0.0/ucd/CaseFolding.txt
-        static const Transform transforms[] =
+        static constexpr Transform transforms[] =
         {
             1, MappingSource::UnicodeData, 0x0041, 0x004a, 0, 32, 32, 32,
             1, MappingSource::CaseFolding, 0x004b, 0x004b, 0, 32, 8415, 8415,
@@ -579,9 +579,35 @@ END {
         static const int numTransforms = sizeof(transforms) / sizeof(Transform);
         static const Transform lastTransform = transforms[numTransforms - 1];
 
+        static constexpr bool isTransformEntryValid(int offset)
+        {
+            return
+                // If we've made it to the end of the table, return true. (base case)
+                offset >= numTransforms ||
+                // Otherwise, the transformation table is valid if
+                (
+                    // there is at least one delta that differs from delta0 in the transform entry that we're currently looking at
+                    (transforms[offset].delta0 != transforms[offset].delta1 || transforms[offset].delta0 != transforms[offset].delta2 || transforms[offset].delta0 != transforms[offset].delta3)
+                    // and the transformation range is ordered properly
+                    && (transforms[offset].lo <= transforms[offset].hi)
+                    // and the length of the range (inclusive of ends) is a multiple is the skipcount
+                    && ( ((1 + transforms[offset].hi - transforms[offset].lo) % transforms[offset].skipCountOfRange) == 0)
+                    // and the rest of the transformation table is valid. (compile-time recursive call)
+                    && isTransformEntryValid(offset + 1)
+                );
+        }
+
         template <typename Char, typename Fn>
         bool RangeToEquivClass(uint& tblidx, uint l, uint h, uint& acth, Char equivl[EquivClassSize], Fn acceptSource)
         {
+            // Note: There's a few places where we assume that there's no equivalence set
+            // with only one actual member. If you fail this check, double-check the data
+            // in the table above - one line likely has the same value for all deltas.
+            // 
+            // The 0 parameter here indicates that we're starting from the first entry in
+            // the transformation table. This function recursively checks (during compile
+            // time) the entry at the index passed as well as all after it.
+            static_assert(isTransformEntryValid(0), "Invalid Transform code - check for 4 identical deltas!");
             Assert(l <= h);
 
             if (lastTransform.hi >= l)

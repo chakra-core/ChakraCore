@@ -353,7 +353,7 @@ namespace Js
 
         if (pCodeAddr)
         {
-#if defined(_M_ARM32_OR_ARM64)
+#if defined(_M_ARM)
             // Note that DWORD_PTR is not actually a pointer type (!) but is simple unsigned long/__int64 (see BaseTsd.h).
             // Thus, decrement would be by 1 byte and not 4 bytes as in pointer arithmetic. That's exactly what we need.
             // For ARM the 'return address' is always odd and is 'next instr addr' + 1 byte, so to get to the BLX instr, we need to subtract 2 bytes from it.
@@ -616,7 +616,35 @@ namespace Js
         }
         return nullptr;
     }
-
+#if ENABLE_NATIVE_CODEGEN
+    void JavascriptStackWalker::WalkAndClearInlineeFrameCallInfoOnException()
+    {
+        // Walk the stack and when we find the first JavascriptFrame, we clear the inlinee's callinfo for this frame
+        // It is sufficient we stop at the first Javascript frame which had the enclosing try-catch
+        // TODO : Revisit when we start inlining functions with try-catch/try-finally
+        while (this->Walk(true))
+        {
+            if (this->IsJavascriptFrame())
+            {
+                if (!this->isNativeLibraryFrame)
+                {
+                    if (HasInlinedFramesOnStack())
+                    {
+                        for (int index = inlinedFrameWalker.GetFrameCount() - 1; index >= 0; index--)
+                        {
+                            auto inlinedFrame = inlinedFrameWalker.GetFrameAtIndex(index);
+                            inlinedFrame->callInfo.Clear();
+                        }
+                    }
+                    if (this->currentFrame.GetFrame() == this->scriptContext->GetThreadContext()->GetTryCatchFrameAddr())
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+#endif
     // Note: noinline is to make sure that when we unwind to the unwindToAddress, there is at least one frame to unwind.
     _NOINLINE
     JavascriptStackWalker::JavascriptStackWalker(ScriptContext * scriptContext, bool useEERContext, PVOID returnAddress, bool _forceFullWalk /*=false*/) :
@@ -1043,7 +1071,6 @@ namespace Js
         if (callInfo.Flags & Js::CallFlags_ExtraArg)
         {
             callInfo.Flags = (CallFlags)(callInfo.Flags & ~Js::CallFlags_ExtraArg);
-            callInfo.Count--;
         }
 
         return callInfo;

@@ -103,8 +103,9 @@ int ProgramMain(int argc, char** argv) {
   if (Succeeded(result)) {
     ErrorHandlerFile error_handler(Location::Type::Binary);
     Module module;
+    const bool kStopOnFirstError = true;
     ReadBinaryOptions options(s_features, s_log_stream.get(),
-                              s_read_debug_names);
+                              s_read_debug_names, kStopOnFirstError);
     result = ReadBinaryIr(s_infile.c_str(), DataOrNull(file_data),
                           file_data.size(), &options, &error_handler, &module);
     if (Succeeded(result)) {

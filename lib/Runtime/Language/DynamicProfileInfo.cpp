@@ -573,6 +573,11 @@ namespace Js
                         }
                         functionId = calleeFunctionProxy->GetLocalFunctionId();
                     }
+                    else if (calleeFunctionProxy->GetHostSourceContext() == Js::Constants::JsBuiltInSourceContext)
+                    {
+                        sourceId = JsBuiltInSourceId;
+                        functionId = calleeFunctionProxy->GetLocalFunctionId();
+                    }
                     else
                     {
                         // Pretend that we are cross context when call is crossing script file.
@@ -768,7 +773,7 @@ namespace Js
         Assert(functionBody);
         const auto callSiteCount = functionBody->GetProfiledCallSiteCount();
         Assert(callSiteId < callSiteCount);
-        Assert(HasCallSiteInfo(functionBody));
+        Assert(functionBody->IsJsBuiltInCode() || HasCallSiteInfo(functionBody));
         Assert(functionBodyArray);
         Assert(functionBodyArrayLength == DynamicProfileInfo::maxPolymorphicInliningSize);
 
@@ -859,7 +864,7 @@ namespace Js
         Assert(functionBody);
         const auto callSiteCount = functionBody->GetProfiledCallSiteCount();
         Assert(callSiteId < callSiteCount);
-        Assert(HasCallSiteInfo(functionBody));
+        Assert(functionBody->IsJsBuiltInCode() || HasCallSiteInfo(functionBody));
 
         *isConstructorCall = callSiteInfo[callSiteId].isConstructorCall;
         if (callSiteInfo[callSiteId].dontInline)
@@ -879,6 +884,31 @@ namespace Js
             {
                 FunctionProxy *inlineeProxy = functionBody->GetUtf8SourceInfo()->FindFunction(functionId);
                 return inlineeProxy ? inlineeProxy->GetFunctionInfo() : nullptr;
+            }
+
+            if (sourceId == JsBuiltInSourceId)
+            {
+                // For call across files find the function from the right source
+                JsUtil::List<RecyclerWeakReference<Utf8SourceInfo>*, Recycler, false, Js::FreeListedRemovePolicy> * sourceList = functionBody->GetScriptContext()->GetSourceList();
+                for (int i = 0; i < sourceList->Count(); i++)
+                {
+                    if (sourceList->IsItemValid(i))
+                    {
+                        Utf8SourceInfo *srcInfo = sourceList->Item(i)->Get();
+                        if (srcInfo && srcInfo->GetHostSourceContext() == Js::Constants::JsBuiltInSourceContext)
+                        {
+                            FunctionProxy *inlineeProxy = srcInfo->FindFunction(functionId);
+                            if (inlineeProxy)
+                            {
+                                return inlineeProxy->GetFunctionInfo();
+                            }
+                            else
+                            {
+                                return nullptr;
+                            }
+                        }
+                    }
+                }
             }
 
             if (sourceId != NoSourceId && sourceId != InvalidSourceId)
@@ -911,7 +941,7 @@ namespace Js
         Assert(functionBody);
         const auto callSiteCount = functionBody->GetProfiledCallSiteCount();
         Assert(callSiteId < callSiteCount);
-        Assert(HasCallSiteInfo(functionBody));
+        Assert(functionBody->IsJsBuiltInCode() || HasCallSiteInfo(functionBody));
 
         return callSiteInfo[callSiteId].ldFldInlineCacheId;
     }

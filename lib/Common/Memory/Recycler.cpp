@@ -3094,11 +3094,11 @@ void Recycler::DisplayMemStats()
 {
 #ifdef PERF_COUNTERS
 #if DBG_DUMP
-    printf("Recycler Live Object Count  %u\n", PerfCounter::RecyclerCounterSet::GetLiveObjectCounter().GetValue());
-    printf("Recycler Live Object Size   %u\n", PerfCounter::RecyclerCounterSet::GetLiveObjectSizeCounter().GetValue());
+    Output::Print(_u("Recycler Live Object Count  %u\n"), PerfCounter::RecyclerCounterSet::GetLiveObjectCounter().GetValue());
+    Output::Print(_u("Recycler Live Object Size   %u\n"), PerfCounter::RecyclerCounterSet::GetLiveObjectSizeCounter().GetValue());
 #endif
 
-    printf("Recycler Used Page Size %u\n", PerfCounter::PageAllocatorCounterSet::GetUsedSizeCounter(PageAllocatorType::PageAllocatorType_Recycler).GetValue());
+    Output::Print(_u("Recycler Used Page Size %u\n"), PerfCounter::PageAllocatorCounterSet::GetUsedSizeCounter(PageAllocatorType::PageAllocatorType_Recycler).GetValue());
 #endif
 }
 #endif
@@ -6161,11 +6161,8 @@ Recycler::FinishCollection()
     }
 #endif
 
-#ifdef DUMP_FRAGMENTATION_STATS
-    if (GetRecyclerFlagsTable().DumpFragmentationStats)
-    {
-        autoHeap.DumpFragmentationStats();
-    }
+#if ENABLE_MEM_STATS
+    autoHeap.ReportMemStats();
 #endif
 
     RECORD_TIMESTAMP(currentCollectionEndTime);
@@ -6786,7 +6783,9 @@ Recycler::PrintHeapBlockMemoryStats(char16 const * name, HeapBlock::HeapBlockTyp
         allocableFreeByteCount -= partialUnusedBytes;
     }
 #endif
-    size_t totalByteCount = (collectionStats.heapBlockCount[type] - collectionStats.heapBlockFreeCount[type]) * AutoSystemInfo::PageSize;
+    size_t blockPages = type < HeapBlock::HeapBlockType::SmallAllocBlockTypeCount ?
+        SmallAllocationBlockAttributes::PageCount : MediumAllocationBlockAttributes::PageCount;
+    size_t totalByteCount = (collectionStats.heapBlockCount[type] - collectionStats.heapBlockFreeCount[type]) * blockPages * AutoSystemInfo::PageSize;
     size_t liveByteCount = totalByteCount - collectionStats.heapBlockFreeByteCount[type];
     Output::Print(_u(" %6s: %10d %10d"), name, liveByteCount, allocableFreeByteCount);
 
@@ -8723,3 +8722,9 @@ RecyclerHeapObjectInfo::GetSize() const
 }
 
 template char* Recycler::AllocWithAttributesInlined<(Memory::ObjectInfoBits)32, false>(size_t);
+#ifdef RECYCLER_VISITED_HOST
+template char* Recycler::AllocZeroWithAttributesInlined<RecyclerVisitedHostTracedFinalizableBits, /* nothrow = */true>(size_t);
+template char* Recycler::AllocZeroWithAttributesInlined<RecyclerVisitedHostFinalizableBits, /* nothrow = */true>(size_t);
+template char* Recycler::AllocZeroWithAttributesInlined<RecyclerVisitedHostTracedBits, /* nothrow = */true>(size_t);
+template char* Recycler::AllocZeroWithAttributesInlined<LeafBit, /* nothrow = */true>(size_t);
+#endif

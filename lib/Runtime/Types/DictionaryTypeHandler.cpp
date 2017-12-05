@@ -544,7 +544,7 @@ namespace Js
             CacheOperators::CachePropertyReadForGetter(info, originalInstance, propertyT, requestContext);
             PropertyValueInfo::SetNoCache(info, instance); // we already cached getter, so we don't have to do it once more
 
-            RecyclableObject* func = RecyclableObject::FromVar(instance->GetSlot(descriptor->GetGetterPropertyIndex()));
+            RecyclableObject* func = RecyclableObject::UnsafeFromVar(instance->GetSlot(descriptor->GetGetterPropertyIndex()));
             *value = JavascriptOperators::CallGetter(func, originalInstance, requestContext);
             return true;
         }
@@ -874,7 +874,7 @@ namespace Js
         // or we have to add it to the dictionary, in which case we need to get or create a PropertyRecord.
         // Thus, just get or create one and call the PropertyId overload of SetProperty.
         PropertyRecord const * propertyRecord;
-        instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+        instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         return DictionaryTypeHandlerBase<T>::SetProperty(instance, propertyRecord->GetPropertyId(), value, flags, info);
     }
 
@@ -2017,7 +2017,7 @@ namespace Js
     template <typename T>
     Var DictionaryTypeHandlerBase<T>::CanonicalizeAccessor(Var accessor, /*const*/ JavascriptLibrary* library)
     {
-        if (accessor == nullptr || JavascriptOperators::IsUndefinedObject(accessor, library))
+        if (accessor == nullptr || JavascriptOperators::IsUndefinedObject(accessor))
         {
             accessor = library->GetDefaultAccessorFunction();
         }
@@ -2201,14 +2201,12 @@ namespace Js
             SetPropertyValueInfo(info, instance, index, attributes);
         }
 
-        if (!IsInternalPropertyId(propertyRecord->GetPropertyId()) && ((this->GetFlags() & IsPrototypeFlag)
-            || JavascriptOperators::HasProxyOrPrototypeInlineCacheProperty(instance, propertyRecord->GetPropertyId())))
-        {
-            // We don't evolve dictionary types when adding a field, so we need to invalidate prototype caches.
-            // We only have to do this though if the current type is used as a prototype, or the current property
-            // is found on the prototype chain.
-            scriptContext->InvalidateProtoCaches(propertyRecord->GetPropertyId());
-        }
+        // Always invalidate prototype caches when we add a property.  Previously, we only did this if the current
+        // type is used as a prototype, or if the new property is also found on the prototype chain (because
+        // adding a new field doesn't create a new dictionary type).  However, if the new property is already in
+        // the cache as a missing property, we have to invalidate the prototype caches.
+        scriptContext->InvalidateProtoCaches(propertyRecord->GetPropertyId());
+
         SetPropertyUpdateSideEffect(instance, propertyRecord->GetPropertyId(), value, possibleSideEffects);
         return true;
     }

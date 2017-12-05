@@ -33,7 +33,15 @@ namespace Js
             this->parent = parent;
             this->child = nullptr;
         }
-
+        EHBailoutData(EHBailoutData * other)
+        {
+            this->nestingDepth = other->nestingDepth;
+            this->catchOffset = other->catchOffset;
+            this->finallyOffset = other->finallyOffset;
+            this->ht = other->ht;
+            this->parent = other->parent;
+            this->child = nullptr;
+        }
 #if ENABLE_NATIVE_CODEGEN
         void Fixup(NativeCodeData::DataChunk* chunkList)
         {

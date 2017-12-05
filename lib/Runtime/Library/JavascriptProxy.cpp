@@ -7,7 +7,12 @@
 
 namespace Js
 {
-    BOOL JavascriptProxy::Is(Var obj)
+    BOOL JavascriptProxy::Is(_In_ RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_Proxy;
+    }
+
+    BOOL JavascriptProxy::Is(_In_ Var obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Proxy;
     }
@@ -55,11 +60,8 @@ namespace Js
         // SkipDefaultNewObject function flag should have prevented the default object from
         // being created, except when call true a host dispatch.
 
-        Var newTarget = args.Info.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-
-        bool isCtorSuperCall = (args.Info.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
-        Assert(isCtorSuperCall || !(args.Info.Flags & CallFlags_New) || args[0] == nullptr
-            || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
+        Var newTarget = args.GetNewTarget();
+        bool isCtorSuperCall = JavascriptOperators::IsConstructorSuperCall(args);
 
         RecyclableObject* target, *handler;
 
@@ -551,7 +553,7 @@ namespace Js
         };
         auto getPropertyId = [&]()->PropertyId{
             const PropertyRecord* propertyRecord;
-            requestContext->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+            requestContext->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
             return propertyRecord->GetPropertyId();
         };
         PropertyDescriptor result;
@@ -692,7 +694,7 @@ namespace Js
     BOOL JavascriptProxy::SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
         const PropertyRecord* propertyRecord;
-        GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+        GetScriptContext()->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         return SetProperty(propertyRecord->GetPropertyId(), value, flags, info);
     }
 
@@ -1017,7 +1019,8 @@ namespace Js
                                 // if (desc.enumerable) yield key;
                                 if (desc.IsEnumerable())
                                 {
-                                    return JavascriptString::FromVar(CrossSite::MarshalVar(scriptContext, propertyName));
+                                    return JavascriptString::FromVar(CrossSite::MarshalVar(
+                                      scriptContext, propertyName, propertyName->GetScriptContext()));
                                 }
                             }
                         }
@@ -1281,7 +1284,7 @@ namespace Js
         {
             itemVar = resultArray->DirectGetItem(i);
             AssertMsg(JavascriptSymbol::Is(itemVar) || JavascriptString::Is(itemVar), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
-            JavascriptConversion::ToPropertyKey(itemVar, scriptContext, &propertyRecord);
+            JavascriptConversion::ToPropertyKey(itemVar, scriptContext, &propertyRecord, nullptr);
             PropertyId propertyId = propertyRecord->GetPropertyId();
             if (JavascriptObject::GetOwnPropertyDescriptorHelper(obj, propertyId, scriptContext, propertyDescriptor))
             {
@@ -1334,7 +1337,7 @@ namespace Js
             {
                 itemVar = resultArray->DirectGetItem(i);
                 AssertMsg(JavascriptSymbol::Is(itemVar) || JavascriptString::Is(itemVar), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
-                JavascriptConversion::ToPropertyKey(itemVar, scriptContext, &propertyRecord);
+                JavascriptConversion::ToPropertyKey(itemVar, scriptContext, &propertyRecord, nullptr);
                 PropertyId propertyId = propertyRecord->GetPropertyId();
                 JavascriptObject::DefineOwnPropertyHelper(obj, propertyId, propertyDescriptor, scriptContext);
             }
@@ -1362,7 +1365,7 @@ namespace Js
             {
                 itemVar = resultArray->DirectGetItem(i);
                 AssertMsg(JavascriptSymbol::Is(itemVar) || JavascriptString::Is(itemVar), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
-                JavascriptConversion::ToPropertyKey(itemVar, scriptContext, &propertyRecord);
+                JavascriptConversion::ToPropertyKey(itemVar, scriptContext, &propertyRecord, nullptr);
                 PropertyId propertyId = propertyRecord->GetPropertyId();
                 PropertyDescriptor propertyDescriptor;
                 if (JavascriptObject::GetOwnPropertyDescriptorHelper(obj, propertyId, scriptContext, propertyDescriptor))
@@ -1777,7 +1780,7 @@ namespace Js
     BOOL JavascriptProxy::SetPropertyTrap(Var receiver, SetPropertyTrapKind setPropertyTrapKind, Js::JavascriptString * propertyNameString, Var newValue, ScriptContext* requestContext)
     {
         const PropertyRecord* propertyRecord;
-        requestContext->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
+        requestContext->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
         return SetPropertyTrap(receiver, setPropertyTrapKind, propertyRecord->GetPropertyId(), newValue, requestContext);
 
     }
@@ -1933,9 +1936,10 @@ namespace Js
             JavascriptError::ThrowTypeError(requestContext, JSERR_NeedFunction, requestContext->GetPropertyName(methodId)->GetBuffer());
         }
 
-        varMethod = CrossSite::MarshalVar(requestContext, varMethod);
+        JavascriptFunction* function = JavascriptFunction::FromVar(varMethod);
 
-        return JavascriptFunction::FromVar(varMethod);
+        return JavascriptFunction::FromVar(CrossSite::MarshalVar(requestContext,
+          function, function->GetScriptContext()));
     }
 
     Var JavascriptProxy::GetValueFromDescriptor(Var instance, PropertyDescriptor propertyDescriptor, ScriptContext* requestContext)
@@ -1954,11 +1958,10 @@ namespace Js
 
     void JavascriptProxy::PropertyIdFromInt(uint32 index, PropertyRecord const** propertyRecord)
     {
-        char16 buffer[20];
+        char16 buffer[22];
+        int pos = TaggedInt::ToBuffer(index, buffer, _countof(buffer));
 
-        ::_i64tow_s(index, buffer, sizeof(buffer) / sizeof(char16), 10);
-
-        GetScriptContext()->GetOrAddPropertyRecord((LPCWSTR)buffer, static_cast<int>(wcslen(buffer)), propertyRecord);
+        GetScriptContext()->GetOrAddPropertyRecord((LPCWSTR)buffer + pos, (_countof(buffer) - 1) - pos, propertyRecord);
     }
 
     Var JavascriptProxy::GetName(ScriptContext* requestContext, PropertyId propertyId)
@@ -2057,8 +2060,9 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        BOOL hasOverridingNewTarget = callInfo.Flags & CallFlags_NewTarget;
-        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && args[0] != nullptr && RecyclableObject::Is(args[0]);
+        BOOL hasOverridingNewTarget = args.HasNewTarget();
+        bool isCtorSuperCall = JavascriptOperators::GetAndAssertIsConstructorSuperCall(args);
+        bool isNewCall = args.IsNewCall() || hasOverridingNewTarget;
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         if (!JavascriptProxy::Is(function))
@@ -2125,7 +2129,16 @@ namespace Js
                 args.Values[0] = newThisObject;
             }
 
-            ushort newCount = (ushort)(args.Info.Count + 1);
+            ushort newCount = (ushort)args.Info.Count;
+            if (isNewCall)
+            {
+                newCount++;
+                if (!newCount)
+                {
+                    ::Math::DefaultOverflowPolicy();
+                }
+            }
+
             Var* newValues;
             const unsigned STACK_ARGS_ALLOCA_THRESHOLD = 8; // Number of stack args we allow before using _alloca
             Var stackArgs[STACK_ARGS_ALLOCA_THRESHOLD];
@@ -2138,14 +2151,21 @@ namespace Js
             {
                 newValues = stackArgs;
             }
-            CallInfo calleeInfo((CallFlags)(args.Info.Flags | CallFlags_ExtraArg | CallFlags_NewTarget), newCount);
+            CallInfo calleeInfo((CallFlags)(args.Info.Flags), args.Info.Count);
+            if (isNewCall)
+            {
+                calleeInfo.Flags = (CallFlags)(calleeInfo.Flags | CallFlags_ExtraArg | CallFlags_NewTarget);
+            }
 
             for (uint argCount = 0; argCount < args.Info.Count; argCount++)
             {
                 newValues[argCount] = args.Values[argCount];
             }
 #pragma prefast(suppress:6386)
-            newValues[args.Info.Count] = newTarget;
+            if (isNewCall)
+            {
+                newValues[args.Info.Count] = newTarget;
+            }
 
             Js::Arguments arguments(calleeInfo, newValues);
             Var aReturnValue = JavascriptFunction::CallFunction<true>(targetObj, targetObj->GetEntryPoint(), arguments);
@@ -2399,7 +2419,7 @@ namespace Js
             {
                 element = targetKeys->DirectGetItem(i);
                 AssertMsg(JavascriptSymbol::Is(element) || JavascriptString::Is(element), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
-                JavascriptConversion::ToPropertyKey(element, requestContext, &propertyRecord);
+                JavascriptConversion::ToPropertyKey(element, requestContext, &propertyRecord, nullptr);
                 propertyId = propertyRecord->GetPropertyId();
 
                 if (propertyId == Constants::NoProperty)

@@ -44,9 +44,16 @@ namespace Js
 
     JavascriptStringObject* JavascriptStringObject::FromVar(Var aValue)
     {
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptString'");
+
+        return static_cast<JavascriptStringObject *>(aValue);
+    }
+
+    JavascriptStringObject* JavascriptStringObject::UnsafeFromVar(Var aValue)
+    {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptString'");
 
-        return static_cast<JavascriptStringObject *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptStringObject *>(aValue);
     }
 
     void JavascriptStringObject::Initialize(JavascriptString* value)
@@ -246,7 +253,9 @@ namespace Js
         uint32 index;
         if (scriptContext->IsNumericPropertyId(propertyId, &index))
         {
-            JavascriptString* str = JavascriptString::FromVar(CrossSite::MarshalVar(requestContext, this->InternalUnwrap()));
+            JavascriptString* str = this->InternalUnwrap();
+            str = JavascriptString::FromVar(CrossSite::MarshalVar(requestContext, str, scriptContext));
+
             return JavascriptConversion::BooleanToPropertyQueryFlags(str->GetItemAt(index, value));
         }
 
@@ -354,7 +363,10 @@ namespace Js
 
     PropertyQueryFlags JavascriptStringObject::GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
     {
-        JavascriptString* str = JavascriptString::FromVar(CrossSite::MarshalVar(requestContext, this->InternalUnwrap()));
+        Var strObject = CrossSite::MarshalVar(requestContext,
+          this->InternalUnwrap(), this->GetScriptContext());
+
+        JavascriptString* str = JavascriptString::FromVar(strObject);
         if (str->GetItemAt(index, value))
         {
             return PropertyQueryFlags::Property_Found;

@@ -31,6 +31,14 @@ WebAssemblyTable::Is(Var value)
 WebAssemblyTable *
 WebAssemblyTable::FromVar(Var value)
 {
+    AssertOrFailFast(WebAssemblyTable::Is(value));
+    return static_cast<WebAssemblyTable*>(value);
+}
+
+/* static */
+WebAssemblyTable *
+WebAssemblyTable::UnsafeFromVar(Var value)
+{
     Assert(WebAssemblyTable::Is(value));
     return static_cast<WebAssemblyTable*>(value);
 }
@@ -43,11 +51,10 @@ WebAssemblyTable::NewInstance(RecyclableObject* function, CallInfo callInfo, ...
     ARGUMENTS(args, callInfo);
     ScriptContext* scriptContext = function->GetScriptContext();
 
-    AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+    AssertMsg(args.HasArg(), "Should always have implicit 'this'");
 
-    Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
-    bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
-    Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr);
+    Var newTarget = args.GetNewTarget();
+    JavascriptOperators::GetAndAssertIsConstructorSuperCall(args);
 
     if (!(callInfo.Flags & CallFlags_New) || (newTarget && JavascriptOperators::IsUndefinedObject(newTarget)))
     {

@@ -13,7 +13,7 @@ void * __RPC_USER midl_user_allocate(
 #endif
     size_t size)
 {
-    return (HeapAlloc(GetProcessHeap(), 0, size));
+    return (HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size));
 }
 
 void __RPC_USER midl_user_free(_Pre_maybenull_ _Post_invalid_ void * ptr)

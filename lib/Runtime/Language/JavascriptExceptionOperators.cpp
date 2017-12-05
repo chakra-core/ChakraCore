@@ -60,6 +60,18 @@ namespace Js
         m_threadContext->SetIsUserCode(m_previousCatchHandlerToUserCodeStatus);
     }
 
+    JavascriptExceptionOperators::TryCatchFrameAddrStack::TryCatchFrameAddrStack(ScriptContext* scriptContext, void *frameAddr)
+    {
+        m_threadContext = scriptContext->GetThreadContext();
+        m_prevTryCatchFrameAddr = m_threadContext->GetTryCatchFrameAddr();
+        scriptContext->GetThreadContext()->SetTryCatchFrameAddr(frameAddr);
+    }
+
+    JavascriptExceptionOperators::TryCatchFrameAddrStack::~TryCatchFrameAddrStack()
+    {
+        m_threadContext->SetTryCatchFrameAddr(m_prevTryCatchFrameAddr);
+    }
+
     bool JavascriptExceptionOperators::CrawlStackForWER(Js::ScriptContext& scriptContext)
     {
         return Js::Configuration::Global.flags.WERExceptionSupport && !scriptContext.GetThreadContext()->HasCatchHandler();
@@ -83,6 +95,7 @@ namespace Js
         JavascriptExceptionObject *exception = nullptr;
 
         PROBE_STACK(scriptContext, Constants::MinStackDefault + spillSize + argsSize);
+        Js::JavascriptExceptionOperators::TryCatchFrameAddrStack tryCatchFrameAddrStack(scriptContext, frame);
 
         try
         {
@@ -92,6 +105,22 @@ namespace Js
         catch (const Js::JavascriptException& err)
         {
             exception = err.GetAndClear();
+
+            // We need to clear callinfo on inlinee virtual frames on an exception.
+            // We now allow inlining of functions into callers that have try-catch/try-finally.
+            // When there is an exception inside the inlinee with caller having a try-catch, clear the inlinee callinfo by walking the stack.
+            // If not, we might have the try-catch inside a loop, and when we execute the loop next time in the interpreter on BailOnException,
+            // we will see inlined frames as being present even though they are not, because we depend on FrameInfo's callinfo to tell if an inlinee is on the stack,
+            // and we haven't cleared those bits due to the exception
+            // When we start inlining functions with try, we have to track the try addresses of the inlined functions as well.
+
+#if ENABLE_NATIVE_CODEGEN
+            Assert(scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr);
+            if (exception->GetExceptionContext() && exception->GetExceptionContext()->ThrowingFunction())
+            {
+                 WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */);
+            }
+#endif
         }
 
         if (exception)
@@ -211,6 +240,7 @@ namespace Js
         JavascriptExceptionObject *exception = nullptr;
 
         PROBE_STACK(scriptContext, Constants::MinStackDefault + argsSize);
+        Js::JavascriptExceptionOperators::TryCatchFrameAddrStack tryCatchFrameAddrStack(scriptContext, framePtr);
 
         try
         {
@@ -224,6 +254,14 @@ namespace Js
         catch (const Js::JavascriptException& err)
         {
             exception = err.GetAndClear();
+
+#if ENABLE_NATIVE_CODEGEN
+            Assert(scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr);
+            if (exception->GetExceptionContext() && exception->GetExceptionContext()->ThrowingFunction())
+            {
+                WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */);
+            }
+#endif
         }
 
         if (exception)
@@ -361,6 +399,7 @@ namespace Js
         Js::JavascriptExceptionObject* pExceptionObject = NULL;
 
         PROBE_STACK(scriptContext, Constants::MinStackDefault);
+        Js::JavascriptExceptionOperators::TryCatchFrameAddrStack tryCatchFrameAddrStack(scriptContext, framePtr);
 
         try
         {
@@ -425,6 +464,13 @@ namespace Js
         catch(const Js::JavascriptException& err)
         {
             pExceptionObject = err.GetAndClear();
+#if ENABLE_NATIVE_CODEGEN
+            Assert(scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr);
+            if (pExceptionObject->GetExceptionContext() && pExceptionObject->GetExceptionContext()->ThrowingFunction())
+            {
+                WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */);
+            }
+#endif
         }
 
         // Let's run user catch handler code only after the stack has been unwound.
@@ -875,7 +921,17 @@ namespace Js
 
         JavascriptExceptionOperators::ThrowExceptionObject(exceptionObject, scriptContext, /*considerPassingToDebugger=*/ true, /*returnAddress=*/ nullptr, resetStack);
     }
+#if ENABLE_NATIVE_CODEGEN
+    // TODO: Add code address of throwing function on exception context, and use that for returnAddress instead of passing nullptr which starts stackwalk from the top
+    void JavascriptExceptionOperators::WalkStackForCleaningUpInlineeInfo(ScriptContext *scriptContext, PVOID returnAddress)
+    {
+        JavascriptStackWalker walker(scriptContext, /*useEERContext*/ true, returnAddress);
 
+        // We have to walk the inlinee frames and clear callinfo count on them on an exception
+        // At this point inlinedFrameWalker is closed, so we should build it again by calling InlinedFrameWalker::FromPhysicalFrame
+        walker.WalkAndClearInlineeFrameCallInfoOnException();
+    }
+#endif
     void
         JavascriptExceptionOperators::WalkStackForExceptionContext(ScriptContext& scriptContext, JavascriptExceptionContext& exceptionContext, Var thrownObject, uint64 stackCrawlLimit, PVOID returnAddress, bool isThrownException, bool resetSatck)
     {
@@ -1454,7 +1510,7 @@ namespace Js
             }
 
             Var var = nullptr;
-            if (JavascriptOperators::GetProperty(error, PropertyIds::stackTraceLimit, &var, scriptContext))
+            if (JavascriptOperators::GetPropertyNoCache(error, PropertyIds::stackTraceLimit, &var, scriptContext))
             {
                 // Only accept the value if it is a "Number". Avoid potential valueOf() call.
                 switch (JavascriptOperators::GetTypeId(var))
@@ -1480,7 +1536,7 @@ namespace Js
 
     void JavascriptExceptionOperators::AppendExternalFrameToStackTrace(CompoundString* bs, LPCWSTR functionName, LPCWSTR fileName, ULONG lineNumber, LONG characterPosition)
     {
-        // format is equivalent to printf("\n   at %s (%s:%d:%d)", functionName, filename, lineNumber, characterPosition);
+        // format is equivalent to wprintf("\n   at %s (%s:%d:%d)", functionName, filename, lineNumber, characterPosition);
 
         const CharCount maxULongStringLength = 10; // excluding null terminator
         const auto ConvertULongToString = [](const ULONG value, char16 *const buffer, const CharCount charCapacity)
@@ -1527,7 +1583,7 @@ namespace Js
 
     void JavascriptExceptionOperators::AppendLibraryFrameToStackTrace(CompoundString* bs, LPCWSTR functionName)
     {
-        // format is equivalent to printf("\n   at %s (native code)", functionName);
+        // format is equivalent to wprintf("\n   at %s (native code)", functionName);
         bs->AppendChars(_u("\n   at "));
         bs->AppendCharsSz(functionName);
         bs->AppendChars(_u(" (native code)"));

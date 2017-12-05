@@ -36,7 +36,7 @@ namespace Js
     JavascriptSIMDFloat32x4* JavascriptSIMDFloat32x4::FromVar(Var aValue)
     {
         Assert(aValue);
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptSIMDFloat32x4'");
+        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptSIMDFloat32x4'");
 
         return reinterpret_cast<JavascriptSIMDFloat32x4 *>(aValue);
     }

@@ -28,7 +28,7 @@ namespace Js
 
         WCHAR* target = (WCHAR*)((PropertyRecord*)this + 1);
         isNumeric = (isSymbol || length > 10 || length <= 0) ? false : true;
-        hash = 0;
+        hash = CC_HASH_OFFSET_VALUE;
 
         for (int i = 0; i < length; i++)
         {

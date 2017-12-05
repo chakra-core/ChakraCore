@@ -57,6 +57,7 @@ typedef struct FREE_BLOCK {
 #endif  // MMAP_IGNORES_HINT
 
 // The first node in our list of allocated blocks.
+static PCMI pVirtualMemoryLastFound;
 static PCMI pVirtualMemory;
 
 #if MMAP_IGNORES_HINT
@@ -126,6 +127,7 @@ VIRTUALInitialize( void )
     InternalInitializeCriticalSection(&virtual_realloc);
 
     pVirtualMemory = NULL;
+    pVirtualMemoryLastFound = NULL;
 
     return TRUE;
 }
@@ -165,6 +167,7 @@ void VIRTUALCleanup()
         InternalFree(pTempEntry );
     }
     pVirtualMemory = NULL;
+    pVirtualMemoryLastFound = NULL;
 
 #if MMAP_IGNORES_HINT
     // Clean up the free list.
@@ -534,6 +537,19 @@ static PCMI VIRTUALFindRegionInformation( IN UINT_PTR address )
 
     pEntry = pVirtualMemory;
 
+    if (pVirtualMemoryLastFound && pVirtualMemoryLastFound->startBoundary <= address)
+    {
+        pEntry = pVirtualMemoryLastFound;
+        if (pEntry->startBoundary == address)
+        {
+            return pEntry;
+        }
+    }
+    else
+    {
+        pEntry = pVirtualMemory;
+    }
+
     while( pEntry )
     {
         if ( pEntry->startBoundary > address )
@@ -549,6 +565,8 @@ static PCMI VIRTUALFindRegionInformation( IN UINT_PTR address )
 
         pEntry = pEntry->pNext;
     }
+
+    if (pEntry) pVirtualMemoryLastFound = pEntry;
     return pEntry;
 }
 
@@ -611,6 +629,11 @@ static BOOL VIRTUALReleaseMemory( PCMI pMemoryToBeReleased )
         {
             pMemoryToBeReleased->pNext->pLast = pMemoryToBeReleased->pLast;
         }
+    }
+
+    if (pVirtualMemoryLastFound->startBoundary >= pMemoryToBeReleased->startBoundary)
+    {
+        pVirtualMemoryLastFound = NULL;
     }
 
 #if MMAP_IGNORES_HINT
@@ -2002,6 +2025,7 @@ VirtualProtect(
     MemSize = (((UINT_PTR)(dwSize) + ((UINT_PTR)(lpAddress) & VIRTUAL_PAGE_MASK)
                 + VIRTUAL_PAGE_MASK) & ~VIRTUAL_PAGE_MASK);
 
+#if DEBUG
     if ( VIRTUALContainsInvalidProtectionFlags( flNewProtect ) )
     {
         ASSERT( "flProtect can be one of PAGE_NOACCESS, PAGE_READONLY, "
@@ -2017,6 +2041,7 @@ VirtualProtect(
         SetLastError( ERROR_NOACCESS );
         goto ExitVirtualProtect;
     }
+#endif
 
     pEntry = VIRTUALFindRegionInformation( StartBoundary );
     if ( NULL != pEntry )

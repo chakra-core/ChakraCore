@@ -132,6 +132,8 @@ class WatWriter {
                   const char* start_text);
   void WriteConst(const Const& const_);
   void WriteExpr(const Expr* expr);
+  template <typename T>
+  void WriteLoadStoreExpr(const Expr* expr);
   void WriteExprList(const ExprList& exprs);
   void WriteInitExpr(const ExprList& expr);
   void WriteTypeBindings(const char* prefix,
@@ -458,9 +460,36 @@ void WatWriter::WriteConst(const Const& const_) {
   }
 }
 
+template <typename T>
+void WatWriter::WriteLoadStoreExpr(const Expr* expr) {
+  auto typed_expr = cast<T>(expr);
+  WritePutsSpace(typed_expr->opcode.GetName());
+  if (typed_expr->offset)
+    Writef("offset=%u", typed_expr->offset);
+  if (!typed_expr->opcode.IsNaturallyAligned(typed_expr->align))
+    Writef("align=%u", typed_expr->align);
+  WriteNewline(NO_FORCE_NEWLINE);
+}
+
 void WatWriter::WriteExpr(const Expr* expr) {
   WABT_TRACE_ARGS(WriteExpr, "%s", GetExprTypeName(*expr));
   switch (expr->type()) {
+    case ExprType::AtomicLoad:
+      WriteLoadStoreExpr<AtomicLoadExpr>(expr);
+      break;
+
+    case ExprType::AtomicStore:
+      WriteLoadStoreExpr<AtomicStoreExpr>(expr);
+      break;
+
+    case ExprType::AtomicRmw:
+      WriteLoadStoreExpr<AtomicRmwExpr>(expr);
+      break;
+
+    case ExprType::AtomicRmwCmpxchg:
+      WriteLoadStoreExpr<AtomicRmwCmpxchgExpr>(expr);
+      break;
+
     case ExprType::Binary:
       WritePutsNewline(cast<BinaryExpr>(expr)->opcode.GetName());
       break;
@@ -544,16 +573,9 @@ void WatWriter::WriteExpr(const Expr* expr) {
       break;
     }
 
-    case ExprType::Load: {
-      auto load_expr = cast<LoadExpr>(expr);
-      WritePutsSpace(load_expr->opcode.GetName());
-      if (load_expr->offset)
-        Writef("offset=%u", load_expr->offset);
-      if (!load_expr->opcode.IsNaturallyAligned(load_expr->align))
-        Writef("align=%u", load_expr->align);
-      WriteNewline(NO_FORCE_NEWLINE);
+    case ExprType::Load:
+      WriteLoadStoreExpr<LoadExpr>(expr);
       break;
-    }
 
     case ExprType::Loop:
       WriteBlock(LabelType::Loop, cast<LoopExpr>(expr)->block,
@@ -591,16 +613,9 @@ void WatWriter::WriteExpr(const Expr* expr) {
       WriteVar(cast<SetLocalExpr>(expr)->var, NextChar::Newline);
       break;
 
-    case ExprType::Store: {
-      auto store_expr = cast<StoreExpr>(expr);
-      WritePutsSpace(store_expr->opcode.GetName());
-      if (store_expr->offset)
-        Writef("offset=%u", store_expr->offset);
-      if (!store_expr->opcode.IsNaturallyAligned(store_expr->align))
-        Writef("align=%u", store_expr->align);
-      WriteNewline(NO_FORCE_NEWLINE);
+    case ExprType::Store:
+      WriteLoadStoreExpr<StoreExpr>(expr);
       break;
-    }
 
     case ExprType::TeeLocal:
       WritePutsSpace(Opcode::TeeLocal_Opcode.GetName());
@@ -697,10 +712,15 @@ Index WatWriter::GetFuncSigResultCount(const Var& var) {
 void WatWriter::WriteFoldedExpr(const Expr* expr) {
   WABT_TRACE_ARGS(WriteFoldedExpr, "%s", GetExprTypeName(*expr));
   switch (expr->type()) {
+    case ExprType::AtomicRmw:
     case ExprType::Binary:
     case ExprType::Compare:
-    case ExprType::Store:
       PushExpr(expr, 2, 1);
+      break;
+
+    case ExprType::AtomicStore:
+    case ExprType::Store:
+      PushExpr(expr, 2, 0);
       break;
 
     case ExprType::Block:
@@ -743,6 +763,7 @@ void WatWriter::WriteFoldedExpr(const Expr* expr) {
       PushExpr(expr, 0, 1);
       break;
 
+    case ExprType::AtomicLoad:
     case ExprType::Convert:
     case ExprType::GrowMemory:
     case ExprType::Load:
@@ -777,6 +798,7 @@ void WatWriter::WriteFoldedExpr(const Expr* expr) {
       PushExpr(expr, 0, 0);
       break;
 
+    case ExprType::AtomicRmwCmpxchg:
     case ExprType::Select:
       PushExpr(expr, 3, 1);
       break;
@@ -1024,9 +1046,15 @@ void WatWriter::WriteException(const Exception& except) {
 }
 
 void WatWriter::WriteLimits(const Limits& limits) {
+  if (limits.is_shared) {
+    WriteOpenSpace("shared");
+  }
   Writef("%" PRIu64, limits.initial);
   if (limits.has_max)
     Writef("%" PRIu64, limits.max);
+  if (limits.is_shared) {
+    WriteCloseSpace();
+  }
 }
 
 void WatWriter::WriteTable(const Table& table) {

@@ -5,7 +5,7 @@
 
 // Non-profiling interpreter
 //     - For instance, it is used for NoNative mode
-//     - Does not transition to other execution modes
+//     - Can only transition to FullJIT
 EXECUTION_MODE(Interpreter)
 
 // Auto-profiling interpreter

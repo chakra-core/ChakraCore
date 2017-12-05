@@ -214,16 +214,23 @@ void BuildObjectCreationTable()
     objectCreationTable.AddWeightedEntry(&ScannedObject<1, 50>::New, 10000);
     objectCreationTable.AddWeightedEntry(&BarrierObject<1, 50>::New, 2000);
     objectCreationTable.AddWeightedEntry(&TrackedObject<1, 50>::New, 2000);
+#ifdef RECYCLER_VISITED_HOST
+    objectCreationTable.AddWeightedEntry(&RecyclerVisitedObject<1, 50>::New, 2000);
+#endif
 
     objectCreationTable.AddWeightedEntry(&LeafObject<51, 1000>::New, 10);
     objectCreationTable.AddWeightedEntry(&ScannedObject<51, 1000>::New, 100);
     objectCreationTable.AddWeightedEntry(&BarrierObject<51, 1000>::New, 20);
     objectCreationTable.AddWeightedEntry(&TrackedObject<51, 1000>::New, 20);
+#ifdef RECYCLER_VISITED_HOST
+    objectCreationTable.AddWeightedEntry(&RecyclerVisitedObject<51, 1000>::New, 40);
+#endif
     
     objectCreationTable.AddWeightedEntry(&LeafObject<1001, 50000>::New, 1);
     objectCreationTable.AddWeightedEntry(&ScannedObject<1001, 50000>::New, 10);
     objectCreationTable.AddWeightedEntry(&BarrierObject<1001, 50000>::New, 2);
 //    objectCreationTable.AddWeightedEntry(&TrackedObject<1001, 50000>::New, 2);    // Large tracked objects are not supported
+//    objectCreationTable.AddWeightedEntry(&RecyclerVisitedObject<1001, 50000>::New, 2); // Large recycler visited objects are not supported
 }
 
 void BuildOperationTable()

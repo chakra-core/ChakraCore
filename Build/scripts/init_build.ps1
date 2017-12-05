@@ -12,7 +12,7 @@
 # before running the Pre-Build script.
 
 param (
-    [ValidateSet("x86", "x64", "arm", "")]
+    [ValidateSet("x86", "x64", "arm", "arm64", "")]
     [string]$arch = "",
     [ValidateSet("debug", "release", "test", "codecoverage", "")]
     [string]$flavor = "",

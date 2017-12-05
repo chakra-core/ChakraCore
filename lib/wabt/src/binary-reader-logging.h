@@ -133,6 +133,18 @@ class BinaryReaderLogging : public BinaryReaderDelegate {
   Result OnOpcodeF32(uint32_t value) override;
   Result OnOpcodeF64(uint64_t value) override;
   Result OnOpcodeBlockSig(Index num_types, Type* sig_types) override;
+  Result OnAtomicLoadExpr(Opcode opcode,
+                          uint32_t alignment_log2,
+                          Address offset) override;
+  Result OnAtomicStoreExpr(Opcode opcode,
+                           uint32_t alignment_log2,
+                           Address offset) override;
+  Result OnAtomicRmwExpr(Opcode opcode,
+                         uint32_t alignment_log2,
+                         Address offset) override;
+  Result OnAtomicRmwCmpxchgExpr(Opcode opcode,
+                                uint32_t alignment_log2,
+                                Address offset) override;
   Result OnBinaryExpr(Opcode opcode) override;
   Result OnBlockExpr(Index num_types, Type* sig_types) override;
   Result OnBrExpr(Index depth) override;

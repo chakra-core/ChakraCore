@@ -120,5 +120,7 @@ namespace Js
         static Var DefinePropertiesHelperForGenericObjects(RecyclableObject* object, RecyclableObject* properties, ScriptContext* scriptContext);
         static Var DefinePropertiesHelperForProxyObjects(RecyclableObject* object, RecyclableObject* properties, ScriptContext* scriptContext);
         static bool IsPrototypeOf(RecyclableObject* proto, RecyclableObject* obj, ScriptContext* scriptContext);
+
+        static Var GetToStringTagValue(RecyclableObject *thisArg, ScriptContext *scriptContext);
     };
 }

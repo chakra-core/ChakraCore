@@ -142,6 +142,7 @@ namespace TTD
             HasPropertyActionTag,
             InstanceOfActionTag,
             EqualsActionTag,
+            LessThanActionTag,
 
             GetPropertyIdFromSymbolTag,
 

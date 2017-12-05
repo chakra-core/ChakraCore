@@ -329,8 +329,14 @@ Encoder::Encode()
 #ifdef _M_X64
     pdataCount = 1;
     xdataSize = (ushort)m_func->m_prologEncoder.SizeOfUnwindInfo();
-#elif _M_ARM
+#elif defined(_M_ARM64)
+    pdataCount = 1;
+    xdataSize = XDATA_SIZE;
+#elif defined(_M_ARM)
+#pragma warning(push)
+#pragma warning(disable:4244) // warning C4244: 'argument': conversion from 'ptrdiff_t' to 'DWORD', possible loss of data
     pdataCount = (ushort)m_func->m_unwindInfo.GetPDataCount(codeSize);
+#pragma warning(pop)
     xdataSize = (UnwindInfoManager::MaxXdataBytes + 3) * pdataCount;
 #else
     xdataSize = 0;
@@ -390,9 +396,13 @@ Encoder::Encode()
     }
 #endif
 
+#ifdef _M_X64_OR_ARM64
 #ifdef _M_X64
-    m_func->m_prologEncoder.FinalizeUnwindInfo(
-        (BYTE*)m_func->GetJITOutput()->GetCodeAddress(), (DWORD)codeSize);
+    PrologEncoder &unwindInfo = m_func->m_prologEncoder;
+#else
+    UnwindInfoManager &unwindInfo = m_func->m_unwindInfo;
+#endif
+    unwindInfo.FinalizeUnwindInfo((BYTE*)m_func->GetJITOutput()->GetCodeAddress(), (DWORD)codeSize);
 
     char * localXdataAddr = nullptr;
 #if ENABLE_OOP_NATIVE_CODEGEN
@@ -411,8 +421,8 @@ Encoder::Encode()
         localXdataAddr = (char*)allocation->xdata.address;
     }
     m_func->GetJITOutput()->RecordUnwindInfo(
-        m_func->m_prologEncoder.GetUnwindInfo(),
-        m_func->m_prologEncoder.SizeOfUnwindInfo(),
+        unwindInfo.GetUnwindInfo(),
+        unwindInfo.SizeOfUnwindInfo(),
         allocation->xdata.address,
         (BYTE*)localXdataAddr);
 #elif _M_ARM
@@ -426,10 +436,9 @@ Encoder::Encode()
     }
     else
     {
-        XDataAllocator::Register(&allocation->xdata, m_func->GetJITOutput()->GetCodeAddress(), m_func->GetJITOutput()->GetCodeSize());
+        XDataAllocator::Register(&allocation->xdata, m_func->GetJITOutput()->GetCodeAddress(), (DWORD)m_func->GetJITOutput()->GetCodeSize());
         m_func->GetInProcJITEntryPointInfo()->SetXDataInfo(&allocation->xdata);
     }
-
     m_func->GetJITOutput()->SetCodeAddress(m_func->GetJITOutput()->GetCodeAddress() | 0x1); // Set thumb mode
 #endif
 

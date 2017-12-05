@@ -14,9 +14,9 @@ private:
 public:
     PeepsMD(Func *func) : func(func) {}
 
-    void        Init(Peeps *peeps) { __debugbreak(); }
-    void        ProcessImplicitRegs(IR::Instr *instr) { __debugbreak(); }
-    void        PeepAssign(IR::Instr *instr) { __debugbreak(); }
+    void        Init(Peeps *peeps);
+    void        ProcessImplicitRegs(IR::Instr *instr);
+    void        PeepAssign(IR::Instr *instr);
 };
 
 

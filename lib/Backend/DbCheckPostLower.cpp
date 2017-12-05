@@ -221,6 +221,10 @@ void DbCheckPostLower::Check(IR::Opnd *opnd)
         this->Check(opnd->AsIndirOpnd()->GetBaseOpnd());
         this->Check(opnd->AsIndirOpnd()->GetIndexOpnd());
     }
+    else if (opnd->IsListOpnd())
+    {
+        opnd->AsListOpnd()->Map([&](int i, IR::Opnd* opnd) { this->Check(opnd); });
+    }
     else if (opnd->IsSymOpnd() && opnd->AsSymOpnd()->m_sym->IsStackSym())
     {
         if (this->func->isPostRegAlloc)

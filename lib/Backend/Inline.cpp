@@ -1399,8 +1399,6 @@ bool
 Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, const FunctionJITTimeInfo * inlineeInfo, bool isPolymorphic, bool isBuiltIn, bool isCtor, bool isInlined, bool &safeThis,
                                             bool dontOptimizeJustCheck, uint i /*i-th inlinee at a polymorphic call site*/)
 {
-    Assert(!callInstr->m_func->GetJITFunctionBody()->HasTry());
-
     if (PHASE_OFF(Js::FixedMethodsPhase, callInstr->m_func))
     {
         return false;
@@ -4363,6 +4361,10 @@ bool Inline::InlConstFoldArg(IR::Instr *instr, __in_ecount_opt(callerArgOutCount
     Assert(instr->m_opcode == Js::OpCode::ArgOut_A);
 
     if (PHASE_OFF(Js::InlinerConstFoldPhase, instr->m_func->GetTopFunc()))
+    {
+        return false;
+    }
+    if (instr->m_func->GetJITFunctionBody()->HasTry())
     {
         return false;
     }

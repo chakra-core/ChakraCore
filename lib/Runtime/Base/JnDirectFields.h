@@ -27,10 +27,6 @@
 #if !defined(ENTRY2)
 #define ENTRY2(name, str)
 #endif
-ENTRY_INTERNAL_SYMBOL(_lexicalThisSlotSymbol)
-ENTRY_INTERNAL_SYMBOL(_superReferenceSymbol)
-ENTRY_INTERNAL_SYMBOL(_superCtorReferenceSymbol)
-ENTRY_INTERNAL_SYMBOL(_lexicalNewTargetSymbol)
 ENTRY_SYMBOL(_symbolHasInstance, _u("Symbol.hasInstance"))
 ENTRY_SYMBOL(_symbolIsConcatSpreadable, _u("Symbol.isConcatSpreadable"))
 ENTRY_SYMBOL(_symbolIterator, _u("Symbol.iterator"))
@@ -162,6 +158,7 @@ ENTRY(blink)
 ENTRY(bold)
 ENTRY2(boolean_, _u("boolean")) // "boolean" cannot be an identifier in C++ so using "boolean_" instead
 ENTRY(Boolean)
+ENTRY(JsBuiltIn)
 ENTRY(call)
 ENTRY(CanvasPixelArray)
 ENTRY(cast)
@@ -720,6 +717,19 @@ ENTRY(enqueueTask)
 ENTRY(Common)
 ENTRY(Promise)
 ENTRY(MissingProperty)
+ENTRY(winglob)
+//Built In
+ENTRY(__chakraLibrary)
+ENTRY(registerChakraLibraryFunction)
+ENTRY(registerFunction)
+ENTRY(className)
+ENTRY(methodName)
+ENTRY(argumentsCount)
+ENTRY(forceInline)
+ENTRY(alias)
+ENTRY(GetLength)
+ENTRY(GetIteratorPrototype)
+ENTRY(InitInternalProperties)
 
 // These are ES5/6/7+ builtins that are tracked for telemetry purposes, but currently not implemented by Chakra or are otherwise special.
 // IMPORTANT NOTE: See notes at top of this file regarding GenByteCode and test failures after changing this list.
@@ -770,6 +780,12 @@ ENTRY(wake)
 ENTRY(column)
 ENTRY(url)
 ENTRY(exception)
+
+ENTRY2(_this, _u("*this*"))
+ENTRY2(_super, _u("*super*"))
+ENTRY2(_superConstructor, _u("*superconstructor*"))
+ENTRY2(_newTarget, _u("*new.target*"))
+
 
 // Note: Do not add fields for conditionally-compiled PropertyIds into this file.
 //       The bytecode for internal javascript libraries is built on chk but re-used in fre builds.

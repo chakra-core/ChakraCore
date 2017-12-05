@@ -6,10 +6,10 @@
 # Use this script to run a build for the given BuildType (arch, flavor, subtype)
 
 param (
-    [ValidateSet("x86", "x64", "arm")]
+    [ValidateSet("x86", "x64", "arm", "arm64")]
     [Parameter(Mandatory=$True)]
     [string]$arch,
-    # We do not use ValidateSet here because this $flavor param is used to name the BuildConfuration
+    # We do not use ValidateSet here because this $flavor param is used to name the BuildConfiguration
     # from the solution file. MsBuild will determine whether it is valid.
     [Parameter(Mandatory=$True)]
     [string]$flavor,

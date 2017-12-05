@@ -104,6 +104,8 @@ var tests = [
 
       assert.doesNotThrow(function () { eval("function foo({x1:[y1 = 1] = [2]} = {x1:[3]}) {}"); },   "Object destructuring pattern has default and nesting array pattern which has initializer is valid syntax");
       assert.doesNotThrow(function () { eval("function foo([{y1:y1 = 1} = {y1:2}] = [{y1:3}]) {}"); },   "Array destructuring pattern has default and nesting object pattern which has initializer is valid syntax");
+
+      assert.doesNotThrow(function () { eval("function foo([a] = class c extends eval(''){}) {}"); }, "Top level function getting deferred causes deferal of param scope functions too");
     }
   },
   {

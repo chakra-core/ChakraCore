@@ -49,6 +49,7 @@ namespace JSON
     Js::Var JSONParser::Walk(Js::JavascriptString* name, Js::PropertyId id, Js::Var holder, uint32 index)
     {
         AssertMsg(reviver, "JSON post parse walk with null reviver");
+        PROBE_STACK(scriptContext, Js::Constants::MinStackDefault);
         Js::Var value;
         Js::Var values[3];
         Js::Arguments args(0, values);

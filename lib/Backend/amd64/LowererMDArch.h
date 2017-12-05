@@ -108,7 +108,6 @@ public:
     void                GeneratePrologueStackProbe(IR::Instr *entryInstr, IntConstType frameSize);
     IR::Instr *         LowerExitInstr(IR::ExitInstr * exitInstr);
     IR::Instr *         LowerExitInstrAsmJs(IR::ExitInstr * exitInstr);
-    IR::Instr *         LowerInt64Assign(IR::Instr * instr);
     static void         EmitInt4Instr(IR::Instr *instr, bool signExtend = false);
     void                EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32 = false, bool isHelper = false);
     void                EmitIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
@@ -156,6 +155,7 @@ private:
     IR::LabelInstr *    GetBailOutStackRestoreLabel(BailOutInfo * bailOutInfo, IR::LabelInstr * exitTargetInstr);
     void                GeneratePreCall(IR::Instr * callInstr, IR::Opnd  *functionObjOpnd, IR::Instr* insertBeforeInstrForCFGCheck = nullptr);
     void                SetMaxArgSlots(Js::ArgSlot actualCount /*including this*/);
+    void                GenerateMemInit(IR::RegOpnd * opnd, int32 offset, size_t value, IR::Instr * insertBeforeInstr, bool isZeroed = false);
 };
 
 #define REG_EH_TARGET      RegArg0

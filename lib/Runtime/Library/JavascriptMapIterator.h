@@ -29,6 +29,7 @@ namespace Js
 
         static bool Is(Var aValue);
         static JavascriptMapIterator* FromVar(Var aValue);
+        static JavascriptMapIterator* UnsafeFromVar(Var aValue);
 
         class EntryInfo
         {

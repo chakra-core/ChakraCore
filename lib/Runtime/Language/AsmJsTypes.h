@@ -358,17 +358,35 @@ namespace Js
         inline void SetName(PropertyName name) {mName = name;}
         // Returns the type of the symbol
         inline SymbolType GetSymbolType()const { return mType; }
-        // Casts the symbol to a derived class, additional test done to make sure is it the right type
-        template<typename T>
-        T* Cast();
 
         // AsmJsSymbol interface
     public:
         // retrieve the type of the symbol when it is use in an expression
         virtual AsmJsType GetType() const = 0;
         // if the symbol is mutable, it can be on the LHS of an assignment operation
-        virtual bool isMutable() const = 0;
+        virtual bool isMutable() const { return false; }
+#ifdef DBG
+        // Will have a compiler warning if forgot to add ASMJS_SYMBOL_LEAF_CAST to new types
+        virtual bool IsCastImplemented() const = 0;
+#endif
     };
+
+#ifdef DBG
+#define ASMJS_SYMBOL_CAST_IMPLEMENTED virtual bool IsCastImplemented() const override { return true; }
+#else
+#define ASMJS_SYMBOL_CAST_IMPLEMENTED
+#endif
+
+#define ASMJS_SYMBOL_LEAF_CAST(classname, symbol) \
+    ASMJS_SYMBOL_CAST_IMPLEMENTED \
+    static const AsmJsSymbol::SymbolType symbolType = AsmJsSymbol::symbol; \
+    static bool Is(const AsmJsSymbol* sym) { return sym && sym->GetSymbolType() == symbolType; } \
+    static bool Is(AsmJsSymbol* sym) { return sym && sym->GetSymbolType() == symbolType; } \
+    static classname* FromSymbol(AsmJsSymbol* sym) \
+    { \
+        AssertOrFailFast(classname::Is(sym)); \
+        return static_cast<classname*>(sym); \
+    }
 
     // Symbol representing a module argument
     class AsmJsModuleArg : public AsmJsSymbol
@@ -383,15 +401,15 @@ namespace Js
     private:
         ArgType mArgType;
     public:
+        ASMJS_SYMBOL_LEAF_CAST(AsmJsModuleArg, ModuleArgument)
         // Constructor
-        AsmJsModuleArg(PropertyName name, ArgType type) : AsmJsSymbol(name, AsmJsSymbol::ModuleArgument), mArgType(type) { }
+        AsmJsModuleArg(PropertyName name, ArgType type) : AsmJsSymbol(name, symbolType), mArgType(type) { }
         // Accessor
         inline const ArgType GetArgType()const { return mArgType; }
 
         // AsmJsSymbol interface
     public:
         virtual AsmJsType GetType() const override;
-        virtual bool isMutable() const override;
     };
 
     // Symbol representing a double constant from the standard library
@@ -400,15 +418,15 @@ namespace Js
         // address of the constant, lifetime of this address must be for the whole execution of the program (global var)
         const double* mVal;
     public:
+        ASMJS_SYMBOL_LEAF_CAST(AsmJsMathConst, MathConstant)
         // Constructor
-        AsmJsMathConst(PropertyName name, const double* val) : AsmJsSymbol(name, AsmJsSymbol::MathConstant), mVal(val) { }
+        AsmJsMathConst(PropertyName name, const double* val) : AsmJsSymbol(name, symbolType), mVal(val) { }
         // Accessor
         inline const double* GetVal()const { return mVal; }
 
         // AsmJsSymbol interface
     public:
         virtual AsmJsType GetType() const override;
-        virtual bool isMutable() const override;
     };
 
     // Base class defining Variables in asm.js, can be a variable of the module or a function argument
@@ -421,19 +439,20 @@ namespace Js
         bool         mIsMutable;
     public:
         // Constructor
-        AsmJsVarBase(PropertyName name, AsmJsSymbol::SymbolType type, bool isMutable = true) :
-            AsmJsSymbol(name, type)
-            , mType(AsmJsVarType::Double)
-            , mLocation(Js::Constants::NoRegister)
-            , mIsMutable(isMutable)
-        {
-        }
+        AsmJsVarBase(PropertyName name, AsmJsSymbol::SymbolType type, bool isMutable = true);
 
         // Accessors
         inline Js::RegSlot GetLocation() const            { return mLocation; }
         inline void SetLocation( Js::RegSlot val )        { mLocation = val; }
         inline AsmJsVarType GetVarType() const            { return mType; }
         inline void SetVarType( const AsmJsVarType& type ){ mType = type; }
+
+        static bool Is(AsmJsSymbol* sym);
+        static AsmJsVarBase* FromSymbol(AsmJsSymbol* sym)
+        {
+            AssertOrFailFast(AsmJsVarBase::Is(sym));
+            return static_cast<AsmJsVarBase*>(sym);
+        }
 
         // AsmJsSymbol interface
     public:
@@ -460,9 +479,11 @@ namespace Js
             AsmJsSIMDValue simdVal;
         }mConstInitialiser;
     public:
+        ASMJS_SYMBOL_LEAF_CAST(AsmJsVar, Variable)
+
         // Constructors
         AsmJsVar( PropertyName name, bool isMutable = true) :
-            AsmJsVarBase(name, AsmJsSymbol::Variable, isMutable)
+            AsmJsVarBase(name, symbolType, isMutable)
         {
             mConstInitialiser.doubleVal = 0;
         }
@@ -483,9 +504,10 @@ namespace Js
     class AsmJsArgument : public AsmJsVarBase
     {
     public:
+        ASMJS_SYMBOL_LEAF_CAST(AsmJsArgument, Argument)
         // Constructor
         AsmJsArgument( PropertyName name ) :
-            AsmJsVarBase( name, AsmJsSymbol::Argument )
+            AsmJsVarBase( name, symbolType )
         {
         }
     };
@@ -497,9 +519,10 @@ namespace Js
         PropertyName mField;
 
     public:
+        ASMJS_SYMBOL_LEAF_CAST(AsmJsConstantImport, ConstantImport)
         // Constructor
         AsmJsConstantImport( PropertyName name, PropertyName field ) :
-            AsmJsVarBase( name, AsmJsSymbol::ConstantImport ),
+            AsmJsVarBase( name, symbolType ),
             mField( field )
         {
         }
@@ -588,18 +611,18 @@ namespace Js
     protected:
         ArenaAllocator* mAllocator;
     public:
-        AsmJsFunctionDeclaration( PropertyName name, AsmJsSymbol::SymbolType type,  ArenaAllocator* allocator):
-            AsmJsSymbol( name, type )
-            , mAllocator(allocator)
-            , mReturnType( AsmJsRetType::Void )
-            , mArgCount(Constants::InvalidArgSlot)
-            , mLocation( 0 )
-            , mReturnTypeKnown( false )
-            , mArgumentsType(nullptr)
-        { }
+        AsmJsFunctionDeclaration( PropertyName name, AsmJsSymbol::SymbolType type,  ArenaAllocator* allocator);
+        static bool Is(AsmJsSymbol* sym);
+        static AsmJsFunctionDeclaration* FromSymbol(AsmJsSymbol* sym)
+        {
+            AssertOrFailFast(AsmJsFunctionDeclaration::Is(sym));
+            return static_cast<AsmJsFunctionDeclaration*>(sym);
+        }
+
         // returns false if the current return type is known and different
         virtual bool CheckAndSetReturnType( Js::AsmJsRetType val );
         inline Js::AsmJsRetType GetReturnType() const{return mReturnType;}
+
         bool EnsureArgCount(ArgSlot count);
         void SetArgCount(ArgSlot count );
 
@@ -636,9 +659,17 @@ namespace Js
 
         //AsmJsSymbol interface
         virtual AsmJsType GetType() const;
-        virtual bool isMutable() const;
     };
 
+    class AsmJsClosureFunction : public AsmJsFunctionDeclaration
+    {
+    public:
+        ASMJS_SYMBOL_LEAF_CAST(AsmJsClosureFunction, ClosureFunction)
+            AsmJsClosureFunction(PropertyName name, AsmJsSymbol::SymbolType type, ArenaAllocator* allocator) :
+            AsmJsFunctionDeclaration(name, type, allocator)
+        {
+        }
+    };
 
     class AsmJsMathFunction : public AsmJsFunctionDeclaration
     {
@@ -648,6 +679,7 @@ namespace Js
         AsmJsMathFunction* mOverload;
         OpCodeAsmJs mOpCode;
     public:
+        ASMJS_SYMBOL_LEAF_CAST(AsmJsMathFunction, MathBuiltinFunction)
         AsmJsMathFunction(PropertyName name, ArenaAllocator* allocator, ArgSlot argCount, AsmJSMathBuiltinFunction builtIn, OpCodeAsmJs op, AsmJsRetType retType, ...);
 
         void SetOverload( AsmJsMathFunction* val );
@@ -665,8 +697,9 @@ namespace Js
         AsmJSTypedArrayBuiltinFunction mBuiltIn;
         ArrayBufferView::ViewType mType;
     public:
+        ASMJS_SYMBOL_LEAF_CAST(AsmJsTypedArrayFunction, TypedArrayBuiltinFunction)
         AsmJsTypedArrayFunction(PropertyName name, ArenaAllocator* allocator, AsmJSTypedArrayBuiltinFunction builtIn, ArrayBufferView::ViewType type) :
-            AsmJsFunctionDeclaration(name, AsmJsSymbol::TypedArrayBuiltinFunction, allocator), mBuiltIn(builtIn), mType(type) { }
+            AsmJsFunctionDeclaration(name, symbolType, allocator), mBuiltIn(builtIn), mType(type) { }
 
         AsmJSTypedArrayBuiltinFunction GetArrayBuiltInFunction(){ return mBuiltIn; };
         ArrayBufferView::ViewType GetViewType(){ return mType; };
@@ -677,6 +710,7 @@ namespace Js
     {
         PropertyName mField;
     public:
+        ASMJS_SYMBOL_LEAF_CAST(AsmJsImportFunction, ImportFunction)
         AsmJsImportFunction( PropertyName name, PropertyName field, ArenaAllocator* allocator );
 
         inline Js::PropertyName GetField() const
@@ -697,8 +731,9 @@ namespace Js
         bool            mIsDefined : 1;
         bool            mAreArgumentsKnown : 1;
     public:
+        ASMJS_SYMBOL_LEAF_CAST(AsmJsFunctionTable, FuncPtrTable)
         AsmJsFunctionTable( PropertyName name, ArenaAllocator* allocator ) :
-            AsmJsFunctionDeclaration( name, AsmJsSymbol::FuncPtrTable, allocator )
+            AsmJsFunctionDeclaration( name, symbolType, allocator )
             , mTable(allocator)
             , mSize( 0 )
             , mIsDefined( false )
@@ -749,6 +784,7 @@ namespace Js
         bool            mDeferred;
         bool            mDefined : 1; // true when compiled completely without any errors
     public:
+        ASMJS_SYMBOL_LEAF_CAST(AsmJsFunc, ModuleFunction)
         AsmJsFunc( PropertyName name, ParseNode* pnodeFnc, ArenaAllocator* allocator, ScriptContext* scriptContext );
 
         unsigned GetCompileTime() const { return mCompileTime; }
@@ -845,15 +881,15 @@ namespace Js
         ArrayBufferView::ViewType mViewType;
 
     public:
+        ASMJS_SYMBOL_LEAF_CAST(AsmJsArrayView, ArrayView)
         AsmJsArrayView( PropertyName name, ArrayBufferView::ViewType viewType ) :
-            AsmJsSymbol( name, AsmJsSymbol::ArrayView )
+            AsmJsSymbol( name, symbolType )
             , mViewType( viewType )
         {
 
         }
 
         virtual AsmJsType GetType() const;
-        virtual bool isMutable() const;
         inline ArrayBufferView::ViewType GetViewType() const
         {
             return mViewType;
@@ -1001,6 +1037,7 @@ namespace Js
         AsmJsSIMDFunction* mOverload;
         OpCodeAsmJs mOpCode;
     public:
+        ASMJS_SYMBOL_LEAF_CAST(AsmJsSIMDFunction, SIMDBuiltinFunction)
         AsmJsSIMDFunction(PropertyName name, ArenaAllocator* allocator, ArgSlot argCount, AsmJsSIMDBuiltinFunction builtIn, OpCodeAsmJs op, AsmJsRetType retType, ...);
 
         PropertyId GetBuiltinPropertyId();

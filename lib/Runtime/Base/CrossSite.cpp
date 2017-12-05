@@ -28,14 +28,14 @@ namespace Js
         {
             return FALSE;
         }
-        RecyclableObject * object = RecyclableObject::FromVar(instance);
+        RecyclableObject * object = RecyclableObject::UnsafeFromVar(instance);
         if (object->GetScriptContext() == requestContext)
         {
             return FALSE;
         }
         if (DynamicType::Is(object->GetTypeId()))
         {
-            return !DynamicObject::FromVar(object)->IsCrossSiteObject() && !object->IsExternal();
+            return !DynamicObject::UnsafeFromVar(object)->IsCrossSiteObject() && !object->IsExternal();
         }
         return TRUE;
     }
@@ -122,7 +122,10 @@ namespace Js
             if (WithScopeObject::Is(value))
             {
                 // Here we are marshalling the wrappedObject and then ReWrapping th object in the new context.
-                value = JavascriptOperators::ToWithObject(CrossSite::MarshalVar(scriptContext, WithScopeObject::FromVar(value)->GetWrappedObject()), scriptContext);
+                RecyclableObject* wrappedObject = WithScopeObject::FromVar(value)->GetWrappedObject();
+                ScriptContext* wrappedObjectScriptContext = wrappedObject->GetScriptContext();
+                value = JavascriptOperators::ToWithObject(CrossSite::MarshalVar(scriptContext,
+                  wrappedObject, wrappedObjectScriptContext), scriptContext);
             }
             else
             {
@@ -135,6 +138,20 @@ namespace Js
     }
 
     // static
+    Var CrossSite::MarshalVar(ScriptContext* scriptContext, Var value, ScriptContext* objectScriptContext)
+    {
+        if (scriptContext != objectScriptContext)
+        {
+            if (value == nullptr || Js::TaggedNumber::Is(value))
+            {
+                return value;
+            }
+            return MarshalVarInner(scriptContext, RecyclableObject::FromVar(value), false);
+        }
+        return value;
+    }
+
+    // static
     Var CrossSite::MarshalVar(ScriptContext* scriptContext, Var value, bool fRequestWrapper)
     {
         // value might be null from disable implicit call
@@ -142,7 +159,7 @@ namespace Js
         {
             return value;
         }
-        Js::RecyclableObject* object =  RecyclableObject::FromVar(value);
+        Js::RecyclableObject* object =  RecyclableObject::UnsafeFromVar(value);
         if (fRequestWrapper || scriptContext != object->GetScriptContext())
         {
             return MarshalVarInner(scriptContext, object, fRequestWrapper);
@@ -421,6 +438,10 @@ namespace Js
     Var CrossSite::CommonThunk(RecyclableObject* recyclableObject, JavascriptMethod entryPoint, Arguments args)
     {
         DynamicObject* function = DynamicObject::FromVar(recyclableObject);
+
+        FunctionInfo * functionInfo = (JavascriptFunction::Is(function) ? JavascriptFunction::FromVar(function)->GetFunctionInfo() : nullptr);
+        AutoDisableRedeferral autoDisableRedeferral(functionInfo);
+
         ScriptContext* targetScriptContext = function->GetScriptContext();
         Assert(!targetScriptContext->IsClosed());
         Assert(function->IsExternal() || function->IsCrossSiteObject());
@@ -444,20 +465,20 @@ namespace Js
         if (args.Values[0] == nullptr)
         {
             i = 1;
-            Assert(args.Info.Flags & CallFlags_New);
+            Assert(args.IsNewCall());
             Assert(JavascriptProxy::Is(function) || (JavascriptFunction::Is(function) && JavascriptFunction::FromVar(function)->GetFunctionInfo()->GetAttributes() & FunctionInfo::SkipDefaultNewObject));
         }
         uint count = args.Info.Count;
-        if ((args.Info.Flags & CallFlags_ExtraArg) && ((args.Info.Flags & CallFlags_NewTarget) == 0))
-        {
-            // The final eval arg is a frame display that needs to be marshaled specially.
-            args.Values[count-1] = CrossSite::MarshalFrameDisplay(targetScriptContext, (FrameDisplay*)args.Values[count-1]);
-            count--;
-        }
         for (; i < count; i++)
         {
             args.Values[i] = CrossSite::MarshalVar(targetScriptContext, args.Values[i]);
         }
+        if (args.HasExtraArg())
+        {
+            // The final eval arg is a frame display that needs to be marshaled specially.
+            args.Values[count] = CrossSite::MarshalFrameDisplay(targetScriptContext, args.GetFrameDisplay());
+        }
+        
 
 #if ENABLE_NATIVE_CODEGEN
         CheckCodeGenFunction checkCodeGenFunction = GetCheckCodeGenFunction(entryPoint);
@@ -549,7 +570,7 @@ namespace Js
         }
         while (DynamicType::Is(object->GetTypeId()) && !JavascriptProxy::Is(object))
         {
-            DynamicObject* dynamicObject = DynamicObject::FromVar(object);
+            DynamicObject* dynamicObject = DynamicObject::UnsafeFromVar(object);
             if (!dynamicObject->IsCrossSiteObject() && !dynamicObject->IsExternal())
             {
                 // force to install cross-site thunk on prototype objects.

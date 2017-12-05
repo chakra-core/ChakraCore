@@ -49,8 +49,9 @@ namespace Js
     private:
         JSONString(JavascriptString* originalString, charcount_t start, charcount_t length);
         static const WCHAR escapeMap[128];
-        static const BYTE escapeMapCount[128];
     public:
+        static const BYTE escapeMapCount[128];
+
         template <EscapingOperation op>
         static Js::JavascriptString* Escape(Js::JavascriptString* value, uint start = 0, WritableStringBuffer* outputString = nullptr)
         {

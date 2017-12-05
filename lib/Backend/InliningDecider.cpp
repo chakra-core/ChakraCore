@@ -23,17 +23,18 @@ bool InliningDecider::InlineIntoTopFunc() const
     {
         return false;
     }
-
+#ifdef _M_IX86
     if (this->topFunc->GetHasTry())
     {
 #if defined(DBG_DUMP) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
         char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
         INLINE_TESTTRACE(_u("INLINING: Skip Inline: Has try\tCaller: %s (%s)\n"), this->topFunc->GetDisplayName(),
-            this->topFunc->GetDebugNumberSet(debugStringBuffer));
+        this->topFunc->GetDebugNumberSet(debugStringBuffer));
         // Glob opt doesn't run on function with try, so we can't generate bailout for it
         return false;
     }
+#endif
 
     return InlineIntoInliner(topFunc);
 }
@@ -68,7 +69,7 @@ bool InliningDecider::InlineIntoInliner(Js::FunctionBody *const inliner) const
         return false;
     }
 
-    if (!Js::DynamicProfileInfo::HasCallSiteInfo(inliner))
+    if (!inliner->GetAnyDynamicProfileInfo()->HasCallSiteInfo(inliner))
     {
         INLINE_TESTTRACE(_u("INLINING: Skip Inline: No call site info\tCaller: %s (#%d)\n"), inliner->GetDisplayName(),
             inliner->GetDebugNumberSet(debugStringBuffer));
@@ -218,13 +219,15 @@ Js::FunctionInfo *InliningDecider::Inline(Js::FunctionBody *const inliner, Js::F
             return nullptr;
         }
 
+#ifdef _M_IX86
         if (inlinee->GetHasTry())
         {
             INLINE_TESTTRACE(_u("INLINING: Skip Inline: Has try\tInlinee: %s (%s)\tCaller: %s (%s)\n"),
-                inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer), inliner->GetDisplayName(),
-                inliner->GetDebugNumberSet(debugStringBuffer2));
+            inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer), inliner->GetDisplayName(),
+            inliner->GetDebugNumberSet(debugStringBuffer2));
             return nullptr;
         }
+#endif
 
         // This is a hard limit as the argOuts array is statically sized.
         if (inlinee->GetInParamsCount() > Js::InlineeCallInfo::MaxInlineeArgoutCount)
@@ -675,8 +678,12 @@ bool InliningDecider::DeciderInlineIntoInliner(Js::FunctionBody * inlinee, Js::F
     {
         return false;
     }
-
-    if (PHASE_FORCE(Js::InlinePhase, this->topFunc) ||
+// Force inline all Js Builtins functions
+// The existing JsBuiltInForceInline flag can work only when we explictly create scriptFunction
+// We can also have methods that we define on the prototype like next of ArrayIterator for which we don't explictly create a script function
+// TODO (megupta) : use forceInline for methods defined on the prototype using ObjectDefineProperty
+    if (inlinee->GetSourceContextId() == Js::Constants::JsBuiltInSourceContextId ||
+        PHASE_FORCE(Js::InlinePhase, this->topFunc) ||
         PHASE_FORCE(Js::InlinePhase, inliner) ||
         PHASE_FORCE(Js::InlinePhase, inlinee))
     {
