@@ -51,7 +51,7 @@ namespace Js
             bool IsEnabled(const char16* name);
         };
 
-        static char16 *FaultTypeNames[];
+        static const char16 *FaultTypeNames[];
         void ParseFaultTypes(const char16* szFaultTypes);
 
     public:
