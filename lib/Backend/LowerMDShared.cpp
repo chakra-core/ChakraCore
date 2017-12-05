@@ -1183,7 +1183,7 @@ void LowererMD::ChangeToShift(IR::Instr *const instr, const bool needFlags)
             __assume(false);
     }
 
-    if(instr->GetSrc2()->IsIntConstOpnd())
+    if(instr->GetSrc2()->IsIntConstOpnd() && !instr->GetSrc1()->IsInt64())
     {
         // Only values between 0-31 mean anything
         IntConstType value = instr->GetSrc2()->AsIntConstOpnd()->GetValue();
@@ -7616,6 +7616,11 @@ LowererMD::GetImplicitParamSlotSym(Js::ArgSlot argSlot, Func * func)
 bool LowererMD::GenerateFastAnd(IR::Instr * instrAnd)
 {
     return this->lowererMDArch.GenerateFastAnd(instrAnd);
+}
+
+bool LowererMD::GenerateFastDiv(IR::Instr* instrDiv)
+{
+    return this->lowererMDArch.GenerateFastDiv(instrDiv);
 }
 
 bool LowererMD::GenerateFastXor(IR::Instr * instrXor)

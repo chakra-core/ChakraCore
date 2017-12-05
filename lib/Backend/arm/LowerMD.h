@@ -111,6 +111,7 @@ public:
             bool            GenerateFastOr(IR::Instr * instrOr);
             bool            GenerateFastNot(IR::Instr * instrNot);
             bool            GenerateFastNeg(IR::Instr * instrNeg);
+            bool            GenerateFastDiv(IR::Instr* instrDiv);
             bool            GenerateFastShiftLeft(IR::Instr * instrShift);
             bool            GenerateFastShiftRight(IR::Instr * instrShift);
             void            GenerateFastBrS(IR::BranchInstr *brInstr);

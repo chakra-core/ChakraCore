@@ -101,6 +101,7 @@ public:
             void            GeneratePopCnt(IR::Instr * instr) { Assert(UNREACHED); }
             void            GenerateTruncWithCheck(IR::Instr * instr) { Assert(UNREACHED); }
             void            GenerateFastDivByPow2(IR::Instr *instr);
+            bool            GenerateFastDiv(IR::Instr* instrDiv);
             bool            GenerateFastAdd(IR::Instr * instrAdd);
             bool            GenerateFastSub(IR::Instr * instrSub);
             bool            GenerateFastMul(IR::Instr * instrMul);
