@@ -50,6 +50,7 @@ public:
     static const uint16     GetFormalParamOffset();
 
     static const Js::OpCode MDUncondBranchOpcode;
+    static const Js::OpCode MDMultiBranchOpcode;
     static const Js::OpCode MDTestOpcode;
     static const Js::OpCode MDOrOpcode;
     static const Js::OpCode MDXorOpcode;
@@ -83,8 +84,6 @@ public:
             IR::Instr *     LoadInputParamCount(IR::Instr * instr, int adjust = 0, bool needFlags = false);
             IR::Instr *     LoadArgumentsFromFrame(IR::Instr * instr);
             IR::Instr *     LowerRet(IR::Instr * instr);
-    static  IR::Instr *     LowerUncondBranch(IR::Instr * instr);
-    static  IR::Instr *     LowerMultiBranch(IR::Instr * instr);
             IR::Instr *     LowerCondBranch(IR::Instr * instr);
             IR::Instr *     LoadFunctionObjectOpnd(IR::Instr *instr, IR::Opnd *&functionObjOpnd);
             IR::Instr *     LowerLdEnv(IR::Instr *instr);

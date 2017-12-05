@@ -894,10 +894,9 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     exitPrev = IR::LabelInstr::New(Js::OpCode::Label, m_func);
                     m_func->m_exitInstr->InsertBefore(exitPrev);
                 }
-                IR::BranchInstr *exitBr = IR::BranchInstr::New(Js::OpCode::Br,
+                IR::BranchInstr *exitBr = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode,
                     exitPrev->AsLabelInstr(), m_func);
                 instr->InsertAfter(exitBr);
-                m_lowererMD.LowerUncondBranch(exitBr);
             }
 
             m_lowererMD.LowerRet(instr);
@@ -2019,7 +2018,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::Br:
-            m_lowererMD.LowerUncondBranch(instr);
+            instr->m_opcode = LowererMD::MDUncondBranchOpcode;
             break;
 
         case Js::OpCode::BrFncEqApply:
@@ -4945,9 +4944,8 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
     }
 
     // JMP $callCtor
-    IR::BranchInstr *callCtorBranch = IR::BranchInstr::New(Js::OpCode::Br, callCtorLabel, m_func);
+    IR::BranchInstr *callCtorBranch = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, callCtorLabel, m_func);
     newObjInstr->InsertBefore(callCtorBranch);
-    this->m_lowererMD.LowerUncondBranch(callCtorBranch);
 
     return true;
 }
@@ -5052,8 +5050,7 @@ Lowerer::LowerGetNewScObjectCommon(
         {
             this->InsertMove(resultObjOpnd, constructorReturnOpnd, insertBeforeInstr);
         }
-        insertBeforeInstr->InsertBefore(
-            m_lowererMD.LowerUncondBranch(IR::BranchInstr::New(Js::OpCode::Br, doneLabel, m_func)));
+        insertBeforeInstr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, doneLabel, m_func));
 
         // Value returned by constructor is not an object (use newObjOpnd)
         insertBeforeInstr->InsertBefore(notObjectLabel);
@@ -9523,7 +9520,7 @@ IR::Instr* Lowerer::LowerMultiBr(IR::Instr * instr, IR::JnHelperMethod helperMet
     instrCall = m_lowererMD.LowerCall(instrCall, 0);
 
     instr->SetSrc1(instrCall->GetDst());
-    m_lowererMD.LowerMultiBranch(instr);
+    instr->m_opcode = LowererMD::MDMultiBranchOpcode;
 
     return instrPrev;
 }
@@ -9555,7 +9552,7 @@ Lowerer::LowerJumpTableMultiBranch(IR::MultiBranchInstr * multiBrInstr, IR::RegO
     multiBrInstr->SetSrc1(indirInstr->GetDst());
 
     //Jump to the address at the target location in the jump table
-    m_lowererMD.LowerMultiBranch(multiBrInstr);
+    multiBrInstr->m_opcode = LowererMD::MDMultiBranchOpcode;
 }
 
 ///----------------------------------------------------------------------------
@@ -10634,9 +10631,8 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
 
     labelNormal = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
     labelInit = labelNormal;
-    instrBranch = IR::BranchInstr::New(Js::OpCode::Br, labelNormal, this->m_func);
+    instrBranch = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelNormal, this->m_func);
     instrInsert->InsertBefore(instrBranch);
-    this->m_lowererMD.LowerUncondBranch(instrBranch);
 
     // Insert the labels
 
@@ -10751,9 +10747,8 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
     //     Br $done
 
     labelDone = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-    instrBranch = IR::BranchInstr::New(Js::OpCode::Br, labelDone, this->m_func);
+    instrBranch = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func);
     labelNormal->InsertBefore(instrBranch);
-    this->m_lowererMD.LowerUncondBranch(instrBranch);
 
     //     s2 = assign param2
     // $done:
@@ -19631,9 +19626,8 @@ Lowerer::GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsIn
     callInstr->InsertBefore(argout);
     this->m_lowererMD.LoadDynamicArgumentUsingLength(argout);
 
-    IR::BranchInstr *tailBranch = IR::BranchInstr::New(Js::OpCode::Br, startLoop, func);
+    IR::BranchInstr *tailBranch = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, startLoop, func);
     callInstr->InsertBefore(tailBranch);
-    this->m_lowererMD.LowerUncondBranch(tailBranch);
 
     callInstr->InsertBefore(endLoop);
 

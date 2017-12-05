@@ -53,6 +53,7 @@ public:
     static void             ChangeToIMul(IR::Instr *const instr, const bool hasOverflowCheck = false);
     static const uint16     GetFormalParamOffset();
     static const Js::OpCode MDUncondBranchOpcode;
+    static const Js::OpCode MDMultiBranchOpcode;
     static const Js::OpCode MDExtend32Opcode;
     static const Js::OpCode MDTestOpcode;
     static const Js::OpCode MDOrOpcode;
@@ -98,8 +99,6 @@ public:
             IR::Instr *     LoadHeapArguments(IR::Instr * instr);
             IR::Instr *     LoadHeapArgsCached(IR::Instr * instr);
             IR::Instr *     LowerRet(IR::Instr * instr);
-            IR::Instr *     LowerUncondBranch(IR::Instr * instr);
-            IR::Instr *     LowerMultiBranch(IR::Instr * instr);
             IR::Instr *     LowerCondBranch(IR::Instr * instr);
             IR::Instr *     LoadFunctionObjectOpnd(IR::Instr *instr, IR::Opnd *&functionObjOpnd);
             IR::Instr *     LowerLdSuper(IR::Instr *instr, IR::JnHelperMethod helperOpCode);

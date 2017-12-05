@@ -7,6 +7,7 @@
 #include "Language/JavascriptFunctionArgIndex.h"
 
 const Js::OpCode LowererMD::MDUncondBranchOpcode = Js::OpCode::JMP;
+const Js::OpCode LowererMD::MDMultiBranchOpcode = Js::OpCode::JMP;
 const Js::OpCode LowererMD::MDTestOpcode = Js::OpCode::TEST;
 const Js::OpCode LowererMD::MDOrOpcode = Js::OpCode::OR;
 const Js::OpCode LowererMD::MDXorOpcode = Js::OpCode::XOR;
@@ -904,32 +905,6 @@ LowererMD::LowerRet(IR::Instr * retInstr)
         retInstr->SetSrc1(retReg);
     }
     return retInstr;
-}
-
-///----------------------------------------------------------------------------
-///
-/// LowererMD::LowerUncondBranch
-///
-///----------------------------------------------------------------------------
-
-IR::Instr *
-LowererMD::LowerUncondBranch(IR::Instr * instr)
-{
-    instr->m_opcode = Js::OpCode::JMP;
-
-    return instr;
-}
-
-///----------------------------------------------------------------------------
-///
-/// LowererMD::LowerMultiBranch
-///
-///----------------------------------------------------------------------------
-
-IR::Instr *
-LowererMD::LowerMultiBranch(IR::Instr * instr)
-{
-    return LowerUncondBranch(instr);
 }
 
 ///----------------------------------------------------------------------------
