@@ -458,7 +458,7 @@ Opnd::GetImmediateValue(Func* func)
     }
 }
 
-#if TARGET_32 && !defined(_M_IX86)
+#if defined(_M_ARM)
 int32
 Opnd::GetImmediateValueAsInt32(Func * func)
 {

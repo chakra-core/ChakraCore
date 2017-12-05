@@ -83,7 +83,7 @@ struct SecondaryAllocation
     }
 };
 
-#if defined(_M_X64) || defined(_M_ARM64)
+#if defined(TARGET_64)
 struct XDataInfo
 {
     RUNTIME_FUNCTION pdata;

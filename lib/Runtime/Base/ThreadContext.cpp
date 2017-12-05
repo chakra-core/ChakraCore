@@ -172,7 +172,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     thunkPageAllocators(allocationPolicyManager, /* allocXData */ false, /* virtualAllocator */ nullptr, GetCurrentProcess()),
 #endif
     codePageAllocators(allocationPolicyManager, ALLOC_XDATA, GetPreReservedVirtualAllocator(), GetCurrentProcess()),
-#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || TARGET_64)
+#if defined(_CONTROL_FLOW_GUARD) && !defined(_M_ARM)
     jitThunkEmitter(this, &VirtualAllocWrapper::Instance , GetCurrentProcess()),
 #endif
 #endif
