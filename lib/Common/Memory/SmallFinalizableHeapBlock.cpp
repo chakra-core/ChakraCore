@@ -155,7 +155,7 @@ SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::SetAttributes(void * addre
 #ifdef RECYCLER_FINALIZE_CHECK
     if (attributes & FinalizeBit)
     {
-        finalizeCount++;
+        this->finalizeCount++;
         HeapInfo * heapInfo = this->heapBucket->heapInfo;
         heapInfo->liveFinalizableObjectCount++;
         heapInfo->newFinalizableObjectCount++;
