@@ -377,7 +377,7 @@ namespace Js
 
 #define FAULT_TYPE(x) _u(#x),\
 
-    char16 *FaultInjection::FaultTypeNames[] =
+    const char16 *FaultInjection::FaultTypeNames[] =
     {
 #include "FaultTypes.h"
     };
