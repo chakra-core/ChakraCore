@@ -107,7 +107,7 @@ function test5() {
     //WScript.Echo(Object.keys(p).length);
     traps.ownKeys = function (target, prop) {
         WScript.Echo("proxy key trap!");
-        return { 0: "a",  2: "3", length : 2 }
+        return { 0: "a",  2: "3", length : 1 }
     }
     WScript.Echo(Object.keys(p).length);
 }
@@ -278,12 +278,12 @@ function test14() {
 }
 
 
-var handler = 
+var handler =
 {
     get  : function(target, property) {
         print('get trap ' + property);
         var x = Reflect.get(target, property);
-        if(property == 'constructor') 
+        if(property == 'constructor')
         {
             x = new Proxy(x, handler);
         }
@@ -295,11 +295,11 @@ var handler =
     },
     apply : function(target, thisArg, argsList) {
         print('apply trap'  );
-        return Reflect.apply(target, thisArg, argsList) 
+        return Reflect.apply(target, thisArg, argsList)
     }
 };
-    
-function test15() 
+
+function test15()
 {
     var a = [1,2,3];
     var  p = new Proxy(Array, handler);
@@ -307,30 +307,30 @@ function test15()
     print(p.of(1,2));
 }
 
-function test16() 
+function test16()
 {
     var a = [1,2,3];
     var p = new Proxy(Array, handler);
     p.from = Array.from;
     print(p.from([1,2]));
-    
+
 }
 
-function test17() 
+function test17()
 {
     function foo() { this.x = 1};
     // proxy of foo
     var pFoo = new Proxy(foo, handler);
-    
+
     // proxy of proxy of foo
     var proxyOfpFoo = new Proxy(pFoo, handler);
-    
+
     // bind
     var x = proxyOfpFoo.bind(1);
-    
+
     // proxy of bound function
     var y = new Proxy(x, handler);
-    
+
     print((new y()).x == 1);
 }
 
@@ -344,7 +344,7 @@ function test18()
 }
 
 // Verify if targetFunction of bound function is a proxy to function
-function test19() 
+function test19()
 {
     function foo(a) {
        this.abc = a;
@@ -356,7 +356,7 @@ function test19()
 }
 
 // Verify if targetFunction passed to Reflect.construct is a proxy to function
-function test20() 
+function test20()
 {
     function foo(a) {this.abc = a;};
     var _ = new Proxy(foo, {});
@@ -366,7 +366,7 @@ function test20()
 }
 
 // Verify that constructor do return an object.
-function test21() 
+function test21()
 {
     function foo() {
         this.a = "b";
@@ -378,21 +378,21 @@ function test21()
 
 // some basic test262 test cases
 function test22(){
-    
+
     //1. Proxy.length is configurable
     var x = Object.getOwnPropertyDescriptor(Proxy, 'length');
     print('value : ' + x.value);
     print('configurable : ' + x.configurable);
     print('writable : ' + x.writable);
     print('enumerable : ' + x.enumerable);
-    
+
     var revocable = Proxy.revocable({}, {});
     var revokeFunction = revocable.revoke;
-	
+
     //2. Revoke function's properties
     print(Object.prototype.hasOwnProperty.call(revokeFunction, "prototype"));
     print(Object.prototype.hasOwnProperty.call(revokeFunction, "name"));
-	
+
      //3. Revoked proxy passed as target/handler
     revocable.revoke();
     try {
@@ -412,14 +412,14 @@ function test22(){
 
     //5. Reflect.defineProperty should not throw if target already has a property
     Reflect.defineProperty(Object.defineProperty({},"x", {value:1}), "x", {value : 2});
-	
-	
-    
+
+
+
     print('done test22');
 }
 
 // Verify that Object.setPrototype takes null as newPrototype value
-function test23() 
+function test23()
 {
    var proxy = new Proxy(function() {}, {});
    Object.setPrototypeOf(proxy, null);
@@ -439,17 +439,17 @@ function test24()
     var propNames = Object.getOwnPropertyNames(proxy);
     var propSyms = Object.getOwnPropertySymbols(proxy);
     var propKeys = Reflect.ownKeys(proxy);
-    
+
     print('*** ownPropertyNames');
     for (var p in propNames) {
         print(propNames[p].toString());
     }
-    
+
     print('*** ownPropertySymbols');
     for (var p in propSyms) {
         print(propSyms[p].toString());
     }
-    
+
     print('*** ownKeys');
     for (var p in propKeys) {
         print(propKeys[p].toString());
@@ -478,11 +478,11 @@ function test26(){
 }
 
 // has, deleteproperty, methodhelper
-function test27() 
-{   
+function test27()
+{
     var handler = {
         get: function(target, property){
-            print('getTrap, property : ' + property);       
+            print('getTrap, property : ' + property);
             if(property == 'foo123'){
                 return function() {print('foo called'); return 23;}
             }
@@ -498,9 +498,9 @@ function test27()
         }
 
     };
-    
+
     // try to have different properties for below test cases
-        
+
         var x = 'foo123';
         var y = 'bar123';
         var o = {};
@@ -529,7 +529,7 @@ function test29() {
     if (funcInstance.length != 9)
     {
         print('FAIL');
-    }  
+    }
 }
 
 function test30() {
@@ -540,7 +540,7 @@ function test30() {
     } catch(e) {
         print('expected :' + e.message);
     }
-    
+
     try {
         Array.prototype.join.call(o.proxy, o.proxy);
     } catch(e) {
@@ -566,7 +566,7 @@ test0();
 test1();
 test2();
 test3();
-test4(); 
+test4();
 test5();
 test6();
 test7();
