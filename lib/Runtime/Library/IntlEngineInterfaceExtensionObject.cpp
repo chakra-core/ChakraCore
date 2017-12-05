@@ -137,6 +137,8 @@ using namespace PlatformAgnostic::Intl;
 
 #endif
 
+#define INTL_ARGS(argcheck) AssertOrFailFastMsg(argcheck, __func__ " given bad arguments")
+
 namespace Js
 {
 #ifdef ENABLE_INTL_OBJECT
@@ -1655,11 +1657,7 @@ namespace Js
 #endif
     }
 
-    /*
-    *   This function validates the timeZone passed by user has defined in IsValidTimeZoneName() section
-    *   of ECMA-402 dated June 2015.
-    *   Returns true if timeZoneId is a valid zone or link name of the IANA time zone database
-    */
+    // given a timezone name as an argument, this will return a canonicalized version of that name, or undefined if the timezone is invalid
     Var IntlEngineInterfaceExtensionObject::EntryIntl_ValidateAndCanonicalizeTimeZone(RecyclableObject* function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
@@ -1701,10 +1699,7 @@ namespace Js
 #endif
     }
 
-    /*
-    *   This function returns defaultTimeZone for host's current environment as specified in
-    *   DefaultTimeZone () section of ECMA-402 dated June 2015.
-    */
+    // returns the current system time zone
     Var IntlEngineInterfaceExtensionObject::EntryIntl_GetDefaultTimeZone(RecyclableObject* function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
@@ -1725,11 +1720,35 @@ namespace Js
         PCWSTR strBuf = wsl->WindowsGetStringRawBuffer(*str, NULL);
         return Js::JavascriptString::NewCopySz(strBuf, scriptContext);
 #else
-        // TODO(jahorto): determine if its more safe or efficient to call(null) and recycler-allocate the correct number of bytes
-        const int tzLen = 50;
-        char16 tzID[tzLen];
-        int actual = GetDefaultTimeZone(tzID, tzLen);
-        return JavascriptString::NewCopyBuffer(tzID, actual, scriptContext);
+        int required = GetDefaultTimeZone(nullptr, -1);
+        AssertOrFailFastMsg(required > 0, "GetDefaultTimeZone returned an invalid buffer length");
+
+        char16 *buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, required);
+        GetDefaultTimeZone(buffer, required);
+        return JavascriptString::NewWithBuffer(buffer, required, scriptContext);
+#endif
+    }
+
+    // given a BCP-47 locale string and a skeleton string containing the desired fields of a DateTimeFormat
+    // returns a string containing the fields present in the skeleton formatted according to locale
+    Var IntlEngineInterfaceExtensionObject::EntryIntl_GetPatternForSkeleton(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+#ifdef INTL_ICU
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+        INTL_ARGS(args.Info.Count < 3 || !JavascriptString::Is(args.Values[1]) || !JavascriptString::Is(args.Values[2]));
+
+        JavascriptString *locale = JavascriptString::UnsafeFromVar(args.Values[1]);
+        JavascriptString *skeleton = JavascriptString::UnsafeFromVar(args.Values[2]);
+        utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
+
+        int required = GetPatternForSkeleton(locale8, skeleton->GetSz(), nullptr, -1);
+        AssertOrFailFastMsg(required > 0, "GetPatternForSkeleton returned invalid buffer length");
+
+        char16 *buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, required);
+        GetPatternForSkeleton(locale->GetSz(), skeleton->GetSz(), buffer, required);
+        return JavascriptString::NewWithBuffer(buffer, required, scriptContext);
+#else
+        AssertOrFailFastMsg(false, __func__ " should not be called in INTL_WINGLOB");
 #endif
     }
 

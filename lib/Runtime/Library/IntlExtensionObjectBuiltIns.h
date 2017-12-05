@@ -5,6 +5,14 @@
 
 // INTL_ENTRY is a macro that should be defined before this file is included
 // It is intended to be passed a Js::PropertyId as the first argument and the corresponding unique substring of a method name as the second argument
+#if !defined(INTL_ENTRY) || !defined(ENABLE_INTL_OBJECT)
+#error "INTL_ENTRY and ENABLE_INTL_OBJECT must be defiend before including " __FILE__
+#endif
+
+#ifdef CompareString
+#undef CompareString
+#endif
+
 INTL_ENTRY(raiseAssert, RaiseAssert)
 INTL_ENTRY(isWellFormedLanguageTag, IsWellFormedLanguageTag)
 INTL_ENTRY(normalizeLanguageTag, NormalizeLanguageTag)
@@ -22,6 +30,7 @@ INTL_ENTRY(currencyDigits, CurrencyDigits)
 INTL_ENTRY(formatDateTime, FormatDateTime)
 INTL_ENTRY(validateAndCanonicalizeTimeZone, ValidateAndCanonicalizeTimeZone)
 INTL_ENTRY(getDefaultTimeZone, GetDefaultTimeZone)
+INTL_ENTRY(getPatternForSkeleton, GetPatternForSkeleton)
 
 INTL_ENTRY(registerBuiltInFunction, RegisterBuiltInFunction)
 INTL_ENTRY(getHiddenObject, GetHiddenObject)

@@ -663,7 +663,7 @@ LCloseCollator:
 
     // Gets the system time zone. If tz is non-null, it is written into tz
     // Returns the number of characters written into tz (does not write a null terminator)
-    int GetDefaultTimeZone(_Out_opt_ char16* tz, _In_ int tzLen)
+    int GetDefaultTimeZone(_Out_writes_opt_(tzLen) char16 *tz, _In_ int tzLen)
     {
         UErrorCode status = U_ZERO_ERROR;
         UCalendar *cal = ucal_open(nullptr, -1, nullptr, UCAL_DEFAULT, &status);
@@ -678,10 +678,10 @@ LCloseCollator:
 
     // Determines if a time zone is valid. If it is and tzOut is non-null, the canonicalized version is written into tzOut
     // Returns the number of characters written into tzOut (does not write a null terminator), or 0 on invalid time zone
-    int ValidateAndCanonicalizeTimeZone(_In_ char16 *tzIn, _In_ int tzInLen, _Out_opt_ char16 *tzOut, _In_ tzOutLen)
+    int ValidateAndCanonicalizeTimeZone(_In_z_ char16 *tzIn, _Out_writes_opt_(tzOutLen) char16 *tzOut, _In_ tzOutLen)
     {
         UErrorCode status = U_ZERO_ERROR;
-        int required = ucal_getCanonicalTimeZoneID(tzIn, tzInLen, reinterpret_cast<UChar *>(tzOut), tzOutLen, nullptr, &status);
+        int required = ucal_getCanonicalTimeZoneID(tzIn, -1, reinterpret_cast<UChar *>(tzOut), tzOutLen, nullptr, &status);
         if (status = U_ILLEGAL_ARGUMENT_ERROR)
         {
             // illegal argument here means that tzIn is an invalid time zone
@@ -690,6 +690,26 @@ LCloseCollator:
 
         ICU_ASSERT(status, tzOut == nullptr ? required > 0 : required <= tzOutLen);
         return required;
+    }
+
+    // Generates an LDML pattern for the given LDML skeleton in the given locale. If pattern is non-null, the result is written into pattern
+    // Returns the number of characters written into pattern (does not write a null terminator) [should always be positive]
+    int GetPatternForSkeleton(_In_z_ char *langtag, _In_z_ char16 *skeleton, _Out_writes_opt_(patternLen) char16 *pattern, _In_ int patternLen)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        int length = 0;
+        uloc_forLanguageTag(langtag, localeID, ULOC_FULLNAME_CAPACITY, &length, &status);
+        ICU_ASSERT(status, length > 0);
+
+        UDateTimePatternGenerator *dtpg = udatpg_open(localeID, &status);
+        ICU_ASSERT(status, true);
+
+        int bestPatternLen = udatpg_getBestPatternWithOptions(dtpg, skeleton, -1, UDATPG_MATCH_ALL_FIELDS_LENGTH, pattern, patternLen, &status);
+        ICU_ASSERT(status, pattern == nullptr ? bestPatternLen > 0 : bestPatternLen <= patternLen);
+
+        udatpg_close(dtpg);
+        return bestPatternLen;
     }
 } // namespace Intl
 } // namespace PlatformAgnostic

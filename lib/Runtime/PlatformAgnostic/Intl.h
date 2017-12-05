@@ -113,8 +113,9 @@ namespace Intl
         _In_ CollatorSensitivity sensitivity, _In_ bool ignorePunctuation, _In_ bool numeric, _In_ CollatorCaseFirst caseFirst, _Out_ HRESULT *hr);
 
     // DateTimeFormat
-    int GetDefaultTimeZone(_Out_opt_ char16* tz, _In_ int tzLen);
-    int ValidateAndCanonicalizeTimeZone(_In_ char16 *tzIn, _In_ int tzInLen, _Out_opt_ char16 *tzOut, _In_ tzOutLen);
+    int GetDefaultTimeZone(_Out_writes_opt_(tzLen) char16 *tz, _In_ int tzLen);
+    int ValidateAndCanonicalizeTimeZone(_In_z_ char16 *tzIn, _Out_writes_opt_(tzOutLen) char16 *tzOut, _In_ tzOutLen);
+    int GetPatternForSkeleton(_In_z_ char *langtag, _In_z_ char16 *skeleton, _Out_writes_opt_(patternLen) char16 *pattern, _In_ int patternLen);
 #endif // INTL_ICU
 } // namespace Intl
 } // namespace PlatformAgnostic
