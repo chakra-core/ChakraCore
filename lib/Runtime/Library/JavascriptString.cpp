@@ -256,7 +256,7 @@ namespace Js
     {
         size_t cchActual = wcslen(content);
 
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
         if (!IsValidCharCount(cchActual))
         {
             // Limit javascript string to 31-bit length

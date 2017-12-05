@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#ifdef  _M_X64_OR_ARM64
+#ifdef  TARGET_64
 # define WIN64_STACK_FACTOR 3
 #else
 # define WIN64_STACK_FACTOR 1
@@ -113,10 +113,10 @@ namespace Js
         static const unsigned MinStackDefault = 1 * 0x0400 * WIN64_STACK_FACTOR;
         static const unsigned ExtraStack = 2 * 0x0400 * WIN64_STACK_FACTOR;
 
-#if _M_IX86_OR_ARM32
+#if TARGET_32
         static const unsigned MaxThreadJITCodeHeapSize = 28 * 1024 * 1024;
         static const unsigned MaxProcessJITCodeHeapSize = 55 * 1024 * 1024;
-#elif _M_X64_OR_ARM64
+#elif TARGET_64
         // larger address space means we can keep this higher on 64 bit architectures
         static const unsigned MaxThreadJITCodeHeapSize = 800 * 1024 * 1024;
         static const unsigned MaxProcessJITCodeHeapSize = 1024 * 1024 * 1024;

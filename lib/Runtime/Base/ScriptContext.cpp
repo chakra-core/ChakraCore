@@ -4837,7 +4837,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         }
 
         bool allowPrereserveAlloc = true;
-#if !_M_X64_OR_ARM64
+#if !TARGET_64
         if (this->webWorkerId != Js::Constants::NonWebWorkerContextId)
         {
             allowPrereserveAlloc = false;

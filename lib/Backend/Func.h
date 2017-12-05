@@ -344,9 +344,9 @@ public:
 static const uint32 c_debugFillPattern4 = 0xcececece;
 static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 
-#if defined(_M_IX86) || defined (_M_ARM)
+#if defined(TARGET_32)
     static const uint32 c_debugFillPattern = c_debugFillPattern4;
-#elif defined(_M_X64) || defined(_M_ARM64)
+#elif defined(TARGET_64)
     static const unsigned __int64 c_debugFillPattern = c_debugFillPattern8;
 #else
 #error unsupported platform

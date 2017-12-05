@@ -218,7 +218,7 @@ JITOutput::RecordInlineeFrameOffsetsInfo(unsigned int offsetsArrayOffset, unsign
     m_outputData->inlineeFrameOffsetArrayCount = offsetsArrayCount;
 }
 
-#if _M_X64_OR_ARM64
+#if TARGET_64
 void
 JITOutput::RecordUnwindInfo(BYTE *unwindInfo, size_t size, BYTE * xdataAddr, BYTE* localXdataAddr)
 {
@@ -255,13 +255,12 @@ JITOutput::FinalizeNativeCode()
     if (JITManager::GetJITManager()->IsJITServer())
     {
         m_func->GetOOPCodeGenAllocators()->emitBufferManager.CompletePreviousAllocation(m_oopAlloc);
-#if defined(_CONTROL_FLOW_GUARD)
-#if _M_IX86 || _M_X64_OR_ARM64
+
+#if defined(_CONTROL_FLOW_GUARD) && !defined(_M_ARM)
         if (!m_func->IsLoopBody() && CONFIG_FLAG(UseJITTrampoline))
         {
             allocation->thunkAddress = m_func->GetOOPThreadContext()->GetJITThunkEmitter()->CreateThunk(m_outputData->codeAddress);
         }
-#endif
 #endif
     }
     else
@@ -275,13 +274,11 @@ JITOutput::FinalizeNativeCode()
         m_func->GetInProcJITEntryPointInfo()->SetNumberChunks(numberChunks);
 #endif
 
-#if defined(_CONTROL_FLOW_GUARD)
-#if _M_IX86 || _M_X64_OR_ARM64
+#if defined(_CONTROL_FLOW_GUARD) && !defined(_M_ARM)
         if (!m_func->IsLoopBody() && CONFIG_FLAG(UseJITTrampoline))
         {
             allocation->thunkAddress = m_func->GetInProcThreadContext()->GetJITThunkEmitter()->CreateThunk(m_outputData->codeAddress);
         }
-#endif
 #endif
     }
     m_outputData->thunkAddress = allocation->thunkAddress;

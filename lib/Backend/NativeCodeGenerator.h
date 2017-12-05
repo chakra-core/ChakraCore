@@ -138,7 +138,7 @@ private:
         {
             this->foregroundAllocators = CreateAllocators(pageAllocator);
 
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
+#if !TARGET_64 && _CONTROL_FLOW_GUARD
             if (this->scriptContext->webWorkerId != Js::Constants::NonWebWorkerContextId)
             {
                 this->foregroundAllocators->canCreatePreReservedSegment = true;
@@ -164,7 +164,7 @@ private:
         if (!this->backgroundAllocators)
         {
             this->backgroundAllocators = CreateAllocators(pageAllocator);
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
+#if !TARGET_64 && _CONTROL_FLOW_GUARD
             this->backgroundAllocators->canCreatePreReservedSegment = true;
 #endif
         }

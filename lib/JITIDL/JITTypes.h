@@ -20,7 +20,7 @@ cpp_quote("#define USE_RPC_HANDLE_MARSHALLING 1")
 #define USE_RPC_HANDLE_MARSHALLING 1
 #endif
 
-#if defined(_M_IX86) || defined(_M_ARM)
+#if defined(TARGET_32)
 #ifdef __midl
 #define CHAKRA_WB_PTR int
 #else
@@ -28,7 +28,7 @@ cpp_quote("#define USE_RPC_HANDLE_MARSHALLING 1")
 #endif
 #define CHAKRA_PTR int
 #define BV_SHIFT 5
-#elif defined(_M_X64) || defined(_M_ARM64)
+#elif defined(TARGET_64)
 #ifdef __midl
 #define CHAKRA_WB_PTR __int64
 #else
@@ -48,13 +48,13 @@ cpp_quote("#define USE_RPC_HANDLE_MARSHALLING 1")
 #define IDL_PAD2(num) IDL_Field(short) struct_pad_##num;
 #define IDL_PAD4(num) IDL_Field(int) struct_pad_##num;
 
-#if defined(_M_X64) || defined(_M_ARM64)
+#if defined(TARGET_64)
 #define X64_PAD4(num) IDL_Field(int) struct_pad_##num;
 #else
 #define X64_PAD4(num)
 #endif
 
-#if defined(_M_IX86) || defined(_M_ARM)
+#if defined(TARGET_32)
 #define X86_PAD4(num) IDL_Field(int) struct_pad_##num;
 #else
 #define X86_PAD4(num)

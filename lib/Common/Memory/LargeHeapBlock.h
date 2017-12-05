@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
 #define UINT_PAD_64BIT(x) uint x
 #else
 #define UINT_PAD_64BIT(x)
@@ -56,7 +56,7 @@ public:
     void SetAttributes(uint cookie, unsigned char attributes);
     unsigned char GetAttributes(uint cookie);
 };
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
 static_assert(sizeof(LargeObjectHeader) == 0x20, "Incorrect LargeObjectHeader size");
 #else
 static_assert(sizeof(LargeObjectHeader) == 0x10, "Incorrect LargeObjectHeader size");

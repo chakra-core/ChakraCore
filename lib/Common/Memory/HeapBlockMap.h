@@ -21,7 +21,7 @@ public:
     static const uint PageMarkBitCount = PageSize / HeapConstants::ObjectGranularity;
     static const uint L2ChunkMarkBitCount = L2Count * PageMarkBitCount;
 
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
     static const size_t TotalSize = 0x100000000;        // 4GB
 #endif
 
@@ -33,7 +33,7 @@ public:
     // so set it to the MaxPageCount for PageSegments.
     static const uint MaxGetWriteWatchPages = PageSegment::MaxPageCount;
 
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
     HeapBlockMap32(__in char * startAddress);
 #else
     HeapBlockMap32();
@@ -206,7 +206,7 @@ private:
     L2MapChunk * map[L1Count];
     bool anyHeapBlockRescannedDuringOOM;
 
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
     // On 64 bit, this structure only maps one particular 32 bit space.
     // Store the startAddress of that 32 bit space so we know which it is.
     // This value should always be 4GB aligned.
@@ -228,7 +228,7 @@ private:
 };
 
 
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
 
 class HeapBlockMap64
 {

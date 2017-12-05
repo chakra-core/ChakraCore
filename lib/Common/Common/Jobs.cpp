@@ -1226,7 +1226,7 @@ namespace JsUtil
     {
         Assert(lpParam);
 
-#ifdef _M_X64_OR_ARM64
+#ifdef TARGET_64
 #ifdef RECYCLER_WRITE_BARRIER
         Memory::RecyclerWriteBarrierManager::OnThreadInit();
 #endif

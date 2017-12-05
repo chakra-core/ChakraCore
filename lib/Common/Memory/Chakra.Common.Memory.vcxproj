@@ -157,6 +157,7 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </None>
     <None Include="HeapBlock.inl" />
+    <None Include="HeapBlockMap.inl" />
     <None Include="HeapBucket.inl" />
     <None Include="LargeHeapBucket.inl" />
     <None Include="MarkContext.inl" />

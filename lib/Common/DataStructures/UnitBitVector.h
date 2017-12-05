@@ -30,7 +30,7 @@ GetFirstBitSet(DWORD *Index, UnitWord32 Mask)
 inline BOOLEAN
 GetFirstBitSet(DWORD *Index, UnitWord64 Mask)
 {
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
     return _BitScanForward64(Index, Mask);
 #else
     //_BitScanForward64 intrinsic is not available in x86 & ARM
@@ -56,7 +56,7 @@ GetLastBitSet(DWORD *Index, UnitWord32 Mask)
 inline BOOLEAN
 GetLastBitSet(DWORD *Index, UnitWord64 Mask)
 {
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
     return _BitScanReverse64(Index, Mask);
 #else
     //_BitScanReverse64 intrinsic is not available in x86 & ARM
@@ -499,7 +499,7 @@ public:
 typedef BVUnitT<UnitWord32> BVUnit32;
 typedef BVUnitT<UnitWord64> BVUnit64;
 
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
     typedef BVUnit64 BVUnit;
 #else
     typedef BVUnit32 BVUnit;

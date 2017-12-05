@@ -63,12 +63,10 @@
 #endif
 
 #if defined(_M_IX86) || defined(_M_ARM)
-#define _M_IX86_OR_ARM32 1
 #define TARGET_32 1
 #endif
 
 #if defined(_M_X64) || defined(_M_ARM64)
-#define _M_X64_OR_ARM64 1
 #define TARGET_64 1
 #endif
 
@@ -272,7 +270,7 @@
 #define ENABLE_BACKGROUND_JOB_PROCESSOR 1
 #define ENABLE_COPYONACCESS_ARRAY 1
 #ifndef DYNAMIC_INTERPRETER_THUNK
-#if defined(_M_IX86_OR_ARM32) || defined(_M_X64_OR_ARM64)
+#if defined(TARGET_32) || defined(TARGET_64)
 #define DYNAMIC_INTERPRETER_THUNK 1
 #else
 #define DYNAMIC_INTERPRETER_THUNK 0
@@ -682,7 +680,7 @@
 // Platform dependent flags
 //----------------------------------------------------------------------------------------------------
 #ifndef INT32VAR
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
 #define INT32VAR 1
 #else
 #define INT32VAR 0
@@ -690,7 +688,7 @@
 #endif
 
 #ifndef FLOATVAR
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
 #define FLOATVAR 1
 #else
 #define FLOATVAR 0
