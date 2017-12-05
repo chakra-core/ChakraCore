@@ -1795,7 +1795,7 @@ SECOND_PASS:
             sizeof(T) + sizeof(SparseArraySegment<typename T::TElement>) + InlinePropertySlots * sizeof(Var);
         size_t totalSize = UInt32Math::MulAdd<sizeof(typename T::TElement), objectSize>(inlineElementSlots);
 
-    #if defined(_M_X64_OR_ARM64)
+    #if defined(TARGET_64)
         // On x64, the total size won't be anywhere near AllocSizeMath::MaxMemory on x64, so no need to check
         totalSize = HeapInfo::GetAlignedSizeNoCheck(totalSize);
     #else

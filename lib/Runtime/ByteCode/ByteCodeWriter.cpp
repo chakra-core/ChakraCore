@@ -2515,7 +2515,7 @@ StoreCommon:
 
     ByteCodeLabel ByteCodeWriter::DefineLabel()
     {
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
         if (m_labelOffsets->Count() == INT_MAX)
         {
             // Reach our limit

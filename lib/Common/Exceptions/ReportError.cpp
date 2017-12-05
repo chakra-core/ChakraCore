@@ -73,7 +73,7 @@ _NOINLINE void FailedToBox_OOM_fatal_error(
     ReportFatalException(context, E_UNEXPECTED, Fatal_FailedToBox_OUTOFMEMORY, scenario);
 }
 
-#if defined(RECYCLER_WRITE_BARRIER) && defined(_M_X64_OR_ARM64)
+#if defined(RECYCLER_WRITE_BARRIER) && defined(TARGET_64)
 _NOINLINE void X64WriteBarrier_OOM_fatal_error()
 {
     int scenario = 3;

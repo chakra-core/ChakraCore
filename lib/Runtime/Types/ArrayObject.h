@@ -6,7 +6,7 @@
 
 namespace Js
 {
-#ifdef _M_X64_OR_ARM64
+#ifdef TARGET_64
 // This base class has a 4-byte length field. Change struct pack to 4 on 64bit to avoid 4 padding bytes here.
 #pragma pack(push, 4)
 #endif
@@ -51,7 +51,7 @@ namespace Js
         virtual JavascriptEnumerator * GetIndexEnumerator(EnumeratorFlags flags, ScriptContext* requestContext) = 0;
     };
 
-#ifdef _M_X64_OR_ARM64
+#ifdef TARGET_64
 #pragma pack(pop)
 #endif
 

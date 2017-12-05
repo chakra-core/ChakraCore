@@ -3703,7 +3703,7 @@ namespace Js
         Field(bool) strictMode;
         Field(uint16) length;
 
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
         Field(uint32) unused;
 #endif
         Field(void*) scopes[];

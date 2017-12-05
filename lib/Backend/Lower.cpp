@@ -81,7 +81,7 @@ Lowerer::Lower()
 
                 IRType opnd1Type;
 
-#if defined(_M_IX86) || defined (_M_ARM)
+#if defined(TARGET_32)
                 opnd1Type = TyInt32;
                 opnd2 = IR::IntConstOpnd::New(Func::c_debugFillPattern4, opnd1Type, m_func);
 #else

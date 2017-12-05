@@ -63,13 +63,13 @@ public:
     public:
         // This is the space between the end of the TypePath and the allocation granularity that can be used for assignments too.
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
 #define TYPE_PATH_ALLOC_GRANULARITY_GAP 0
 #else
 #define TYPE_PATH_ALLOC_GRANULARITY_GAP 2
 #endif
 #else
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
 #define TYPE_PATH_ALLOC_GRANULARITY_GAP 1
 #else
 #define TYPE_PATH_ALLOC_GRANULARITY_GAP 3

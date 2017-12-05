@@ -331,7 +331,7 @@ void DoFunctionRelocations(BYTE *function, DWORD functionOffset, DWORD functionS
                     }
                     break;
 
-#elif defined(_M_X64_OR_ARM64)
+#elif defined(TARGET_64)
                 case IMAGE_REL_BASED_DIR64:
                     {
                         ULONGLONG *patchAddr64 = (ULONGLONG *) (function + blockOffset + offset - functionOffset);
@@ -1067,7 +1067,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         workItem->GetEntryPoint()->GetJitTransferData()->SetIsReady();
     }
 
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
     XDataAllocation * xdataInfo = HeapNewZ(XDataAllocation);
     xdataInfo->address = (byte*)jitWriteData.xdataAddr;
     XDataAllocator::Register(xdataInfo, jitWriteData.codeAddress, jitWriteData.codeSize);

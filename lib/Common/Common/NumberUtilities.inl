@@ -136,7 +136,7 @@ namespace Js
 
     NUMBER_UTIL_INLINE bool NumberUtilities::IsNan(double value)
     {
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
         // NaN is a range of values; all bits on the exponent are 1's and some nonzero significant.
         // no distinction on signed NaN's
         uint64 nCompare = ToSpecial(value);
