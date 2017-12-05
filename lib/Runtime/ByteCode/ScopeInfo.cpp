@@ -71,7 +71,12 @@ namespace Js
         scopeInfo->mustInstantiate = scope->GetMustInstantiate();
         scopeInfo->isCached = (scope->GetFunc()->GetBodyScope() == scope) && scope->GetFunc()->GetHasCachedScope();
         scopeInfo->hasLocalInClosure = scope->GetHasOwnLocalInClosure();
-        
+
+        if (scope->GetScopeType() == ScopeType_FunctionBody)
+        {
+            scopeInfo->isGeneratorFunctionBody = scope->GetFunc()->byteCodeFunction->GetFunctionInfo()->IsGenerator();
+            scopeInfo->isAsyncFunctionBody = scope->GetFunc()->byteCodeFunction->GetFunctionInfo()->IsAsync();
+        }
 
         TRACE_BYTECODE(_u("\nSave ScopeInfo: %s #symbols: %d %s\n"),
             scope->GetFunc()->name, count,

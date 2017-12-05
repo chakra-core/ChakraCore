@@ -11705,6 +11705,10 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
             m_currentNodeFunc->sxFnc.SetStrictMode(!!this->m_fUseStrictMode);
 
             this->RestoreScopeInfo(scopeInfo);
+
+            m_currentNodeFunc->sxFnc.ClearFlags();
+            m_currentNodeFunc->sxFnc.SetIsGenerator(scopeInfo->IsGeneratorFunctionBody());
+            m_currentNodeFunc->sxFnc.SetIsAsync(scopeInfo->IsAsyncFunctionBody());
         }
     }
 
