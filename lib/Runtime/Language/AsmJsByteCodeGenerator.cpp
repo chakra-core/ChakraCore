@@ -630,8 +630,6 @@ namespace Js
             mWriter.AsmBr( pnode->sxJump.pnodeTarget->sxStmt.continueLabel );
             EndStatement(pnode);
             break;
-        case knopLabel:
-            break;
         case knopVarDecl:
             throw AsmJsCompilationException( _u("Variable declaration must happen at the top of the function") );
             break;
