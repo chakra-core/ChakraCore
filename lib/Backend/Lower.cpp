@@ -3880,7 +3880,7 @@ Lowerer::GenerateArrayAllocHelper(IR::Instr *instr, uint32 * psize, Js::ArrayCal
     if (leaHeadInstr != nullptr)
     {
         instr->InsertBefore(leaHeadInstr);
-        LowererMD::ChangeToLea(leaHeadInstr);
+        ChangeToLea(leaHeadInstr);
     }
 
     GenerateMemInit(dstOpnd, ArrayType::GetOffsetOfHead(), headOpnd, instr, isZeroed);
@@ -3982,7 +3982,7 @@ Lowerer::GenerateArrayAlloc(IR::Instr *instr, IR::Opnd * arrayLenOpnd, Js::Array
     if (leaHeadInstr != nullptr)
     {
         instr->InsertBefore(leaHeadInstr);
-        LowererMD::ChangeToLea(leaHeadInstr);
+        ChangeToLea(leaHeadInstr);
     }
 
     GenerateMemInit(dstOpnd, ArrayType::GetOffsetOfHead(), headOpnd, instr, true);
@@ -7962,7 +7962,7 @@ Lowerer::LoadStackArgPtr(IR::Instr *const instr)
         const auto firstRealArgStackSym = instr->m_func->GetInlineeArgvSlotOpnd()->m_sym->AsStackSym();
         this->m_func->SetArgOffset(firstRealArgStackSym, firstRealArgStackSym->m_offset + MachPtr);
         instr->SetSrc1(IR::SymOpnd::New(firstRealArgStackSym, TyMachPtr, instr->m_func));
-        LowererMD::ChangeToLea(instr);
+        ChangeToLea(instr);
     }
     else
     {
@@ -14788,7 +14788,22 @@ IR::Instr *Lowerer::InsertLea(IR::RegOpnd *const dst, IR::Opnd *const src, IR::I
     IR::Instr *const instr = IR::Instr::New(Js::OpCode::LEA, dst, src, func);
 
     insertBeforeInstr->InsertBefore(instr);
-    return LowererMD::ChangeToLea(instr, postRegAlloc);
+    return ChangeToLea(instr, postRegAlloc);
+}
+
+IR::Instr *
+Lowerer::ChangeToLea(IR::Instr * instr, bool postRegAlloc)
+{
+    Assert(instr);
+    Assert(instr->GetDst());
+    Assert(instr->GetDst()->IsRegOpnd());
+    Assert(instr->GetSrc1());
+    Assert(instr->GetSrc1()->IsIndirOpnd() || instr->GetSrc1()->IsSymOpnd());
+    Assert(!instr->GetSrc2());
+
+    instr->m_opcode = Js::OpCode::LEA;
+    LowererMD::Legalize(instr, postRegAlloc);
+    return instr;
 }
 
 #if _M_X64

@@ -760,28 +760,6 @@ LowererMD::ChangeToAssign(IR::Instr * instr, IRType type)
 
 ///----------------------------------------------------------------------------
 ///
-/// LowererMD::ChangeToLea
-///
-///     Change to an LEA.
-///
-///----------------------------------------------------------------------------
-
-IR::Instr *
-LowererMD::ChangeToLea(IR::Instr * instr, bool postRegAlloc)
-{
-    Assert(instr);
-    Assert(instr->GetDst());
-    Assert(instr->GetDst()->IsRegOpnd());
-    Assert(instr->GetSrc1());
-    Assert(instr->GetSrc1()->IsIndirOpnd() || instr->GetSrc1()->IsSymOpnd());
-    Assert(!instr->GetSrc2());
-
-    instr->m_opcode = Js::OpCode::LEA;
-    return instr;
-}
-
-///----------------------------------------------------------------------------
-///
 /// LowererMD::LowerRet
 ///
 ///     Lower Ret to "MOV EAX, src"

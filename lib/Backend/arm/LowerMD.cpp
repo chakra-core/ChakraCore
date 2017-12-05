@@ -2346,29 +2346,6 @@ LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func)
 
 ///----------------------------------------------------------------------------
 ///
-/// LowererMD::ChangeToLea
-///
-///     Change to a load-effective-address
-///
-///----------------------------------------------------------------------------
-
-IR::Instr *
-LowererMD::ChangeToLea(IR::Instr * instr, bool postRegAlloc)
-{
-    Assert(instr);
-    Assert(instr->GetDst());
-    Assert(instr->GetDst()->IsRegOpnd());
-    Assert(instr->GetSrc1());
-    Assert(instr->GetSrc1()->IsIndirOpnd() || instr->GetSrc1()->IsSymOpnd());
-    Assert(!instr->GetSrc2());
-
-    instr->m_opcode = Js::OpCode::LEA;
-    Legalize(instr, postRegAlloc);
-    return instr;
-}
-
-///----------------------------------------------------------------------------
-///
 /// LowererMD::LowerRet
 ///
 ///     Lower Ret to "MOV EAX, src"
