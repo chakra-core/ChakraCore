@@ -294,7 +294,7 @@ var tests = [
         body: function (index) {
             {
                 async function asyncMethod(x, y, z) {
-                    var lambdaExp = async(a, b, c) => a * b * c; 
+                    var lambdaExp = async(a, b, c) => a * b * c;
                     var lambdaResult = await lambdaExp(x, y, z);
                     return lambdaResult;
                 }
@@ -551,7 +551,7 @@ var tests = [
                 }
             }, err => {
                 print(`Test #${index} - Error err = ${err}`);
-            });  
+            });
         }
     },
     {
@@ -569,7 +569,7 @@ var tests = [
                 }
             }, err => {
                 print(`Test #${index} - Error err = ${err}`);
-            });  
+            });
         }
     },
     {
@@ -587,7 +587,7 @@ var tests = [
                 }
             }, err => {
                 print(`Test #${index} - Error err = ${err}`);
-            });  
+            });
         }
     },
     {
@@ -731,7 +731,7 @@ var tests = [
             }, err => {
                 echo(`Test #${index} - Error in multiple awaits with branching in a function err = ${err}`);
             });
-            
+
             af3().then(result => {
                 if (result === 2) {
                     echo(`Test #${index} - Success functions completes the second await call`);
@@ -794,14 +794,14 @@ var tests = [
                     print(`Test #${index} - Failed an unexpected exception was thrown = ${err}`);
                 }
             });
-        }  
+        }
     },
     {
         name: "Awaiting a function with multiple awaits",
         body: function (index) {
             async function af1(a, b) {
                 return await af2();
-                
+
                 async function af2() {
                     a = await a * a;
                     b = await b * b;
@@ -892,7 +892,7 @@ var tests = [
             var obj = {
                 async af() {
                     this.b = await this.a + 10;
-                    return this; 
+                    return this;
                 },
                 a : 1,
                 b : 0
@@ -976,7 +976,7 @@ var tests = [
     },
     {
         name: "Async and split scope",
-        body: function () {
+        body: function (index) {
             async function asyncMethod1(b) {
                 return b() + 100;
             }
@@ -1037,12 +1037,39 @@ var tests = [
                 }
             );
         }
+    },
+    {
+        name: "`then` is called with both onFulfilled and onRejected",
+        body: function (index) {
+            async function bar() {
+                throw new Error("Whoops");
+            }
+
+            async function foo() {
+                try {
+                    await bar();
+                } catch (e){
+                    echo(`Test #${index} - Success caught the expected exception`);
+                }
+            }
+
+            var oldThen = Promise.prototype.then;
+            Promise.prototype.then = function(thenx, catchx) {
+                echo(`Test #${index} - then: ${!!thenx}, catch: ${!!catchx}`)
+                return oldThen.apply(this, arguments);
+            }
+
+            foo();
+
+            Promise.prototype.then = oldThen;
+        }
     }
 ];
 
-var index = 1;
+function runTest(test, index) {
+    // make index be 1-based for pretty output
+    ++index;
 
-function runTest(test) {
     echo('Executing test #' + index + ' - ' + test.name);
 
     try {
@@ -1050,8 +1077,6 @@ function runTest(test) {
     } catch(e) {
         echo('Caught exception: ' + e);
     }
-
-    index++;
 }
 
 tests.forEach(runTest);
