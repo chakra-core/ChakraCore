@@ -11658,6 +11658,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
             m_currentNodeFunc->sxFnc.functionId = m_functionBody->GetLocalFunctionId();
             m_currentNodeFunc->sxFnc.nestedCount = m_functionBody->GetNestedCount();
             m_currentNodeFunc->sxFnc.SetStrictMode(!!this->m_fUseStrictMode);
+            m_currentNodeFunc->sxFnc.ClearFlags();
 
             this->RestoreScopeInfo(scopeInfo);
         }
