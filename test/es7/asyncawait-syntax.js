@@ -19,6 +19,11 @@ var tests = [
             assert.areEqual(2, async[0], "async[0] === 2");
             assert.areEqual(3, await, "await === 3");
             assert.areEqual(0, o.async, "o.async === 0");
+
+            var i = 0;
+            var obj = { async, await, i };
+            assert.areEqual(2, obj.async[0], "obj.async[0] === 2");
+            assert.areEqual(3, obj.await, "obj.await === 3");
         }
     },
     {
