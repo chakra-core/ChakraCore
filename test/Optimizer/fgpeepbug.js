@@ -8,8 +8,13 @@ function foo() {
     a = null !== a.b && 0 < a.b.a
     if (!a) return a
 }
-foo();
-foo();
-foo();
+let result = null;
+for (let i=0; i < 100; ++i)
+{
+    foo();
+}
 
-print("Pass")
+if(foo() === false)
+{
+    print("Pass")
+}

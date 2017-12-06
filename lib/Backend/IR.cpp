@@ -2949,14 +2949,6 @@ Instr::HasSymUseDst(StackSym *sym, IR::Opnd* dst)
             }
         }
     }
-    else if (dst->IsSymOpnd() && dst->AsSymOpnd()->IsPropertySymOpnd())
-    {
-        PropertySymOpnd* propertySymOpnd = dst->AsSymOpnd()->AsPropertySymOpnd();
-        if (propertySymOpnd->GetObjectSym() == sym)
-        {
-            return true;
-        }
-    }
     else if (dst->IsSymOpnd())
     {
         SymOpnd* symOpnd = dst->AsSymOpnd();
