@@ -22372,17 +22372,7 @@ Lowerer::TryGenerateFastBrOrCmTypeOf(IR::Instr *instr, IR::Instr **prev, bool is
         *pfNoLower = true;
         if (instr->IsBranchInstr())
         {
-            if (instrSrc1->IsEqual(instrSrc2))
-            {
-                if (!isNeqOp)
-                {
-                    InsertBranch(Js::OpCode::Br, instr->AsBranchInstr()->GetTarget(), instr);
-                }
-            }
-            else
-            {
-                InsertCompareBranch(instrSrc1, instrSrc2, isNeqOp ? Js::OpCode::BrNeq_A : Js::OpCode::BrEq_A, instr->AsBranchInstr()->GetTarget(), instr);
-            }
+            InsertCompareBranch(instrSrc1, instrSrc2, isNeqOp ? Js::OpCode::BrNeq_A : Js::OpCode::BrEq_A, instr->AsBranchInstr()->GetTarget(), instr);
             instr->Remove();
         }
         else

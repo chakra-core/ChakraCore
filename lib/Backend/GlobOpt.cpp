@@ -6593,6 +6593,13 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         src2Var = this->GetConstantVar(instr->GetSrc2(), src2Val);
     }
 
+    auto AreSourcesEqual = [&](Value * val1, Value * val2) -> bool
+    {
+        // NaN !== NaN, and objects can have valueOf/toString
+        return val1->IsEqualTo(val2) &&
+            val1->GetValueInfo()->IsPrimitive() && !val1->GetValueInfo()->IsFloat();
+    };
+
     // Make sure GetConstantVar only returns primitives.
     // TODO: OOP JIT, enabled these asserts
     //Assert(!src1Var || !Js::JavascriptOperators::IsObject(src1Var));
@@ -6608,6 +6615,10 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
             src2Val->GetValueInfo()->TryGetInt64ConstantValue(&right64, UNSIGNEDNESS)) \
         { \
             result = (TYPE)left64 CMP (TYPE)right64; \
+        } \
+        else if (AreSourcesEqual(src1Val, src2Val)) \
+        { \
+            result = 0 CMP 0; \
         } \
         else \
         { \
@@ -6631,7 +6642,11 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         {
             if (BoolAndIntStaticAndTypeMismatch(src1Val, src2Val, src1Var, src2Var))
             {
-                    result = false;
+                result = false;
+            }
+            else if (AreSourcesEqual(src1Val, src2Val))
+            {
+                result = true;
             }
             else
             {
@@ -6655,6 +6670,10 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
             if (BoolAndIntStaticAndTypeMismatch(src1Val, src2Val, src1Var, src2Var))
             {
                 result = true;
+            }
+            else if (AreSourcesEqual(src1Val, src2Val))
+            {
+                result = false;
             }
             else
             {
@@ -6693,6 +6712,10 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
             {
                 result = false;
             }
+            else if (AreSourcesEqual(src1Val, src2Val))
+            {
+                result = true;
+            }
             else
             {
                 return false;
@@ -6730,6 +6753,10 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
                )
             {
                 result = true;
+            }
+            else if (AreSourcesEqual(src1Val, src2Val))
+            {
+                result = false;
             }
             else
             {
