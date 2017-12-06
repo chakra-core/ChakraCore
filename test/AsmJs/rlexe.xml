@@ -1034,4 +1034,9 @@
       <files>regress_hascalls.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>argassignbug.js</files>
+    </default>
+  </test>
 </regress-exe>

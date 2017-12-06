@@ -825,6 +825,7 @@ namespace Js
         template<typename T> inline bool IsValidLocation      ( const EmitExpressionInfo* pnode ){return GetRegisterSpace<T>().IsValidLocation( pnode );}
         void ReleaseLocationGeneric( const EmitExpressionInfo* pnode );
         RegSlot AcquireTmpRegisterGeneric(AsmJsRetType retType);
+        bool IsVarLocationGeneric(const EmitExpressionInfo* pnode);
 
         // Search for a var in the varMap of the function, return nullptr if not found
         AsmJsVarBase* FindVar( const PropertyName name ) const;
