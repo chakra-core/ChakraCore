@@ -137,7 +137,7 @@ using namespace PlatformAgnostic::Intl;
 
 #endif
 
-#define INTL_CHECK_ARGS(argcheck) AssertOrFailFastMsg(argcheck, __func__ " given bad arguments")
+#define INTL_CHECK_ARGS(argcheck) AssertOrFailFastMsg((argcheck), "Intl platform function given bad arguments")
 
 namespace Js
 {

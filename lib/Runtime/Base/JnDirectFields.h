@@ -558,7 +558,7 @@ ENTRY(__proto__)
 #ifdef INTL_ENTRY
 #undef INTL_ENTRY
 #endif
-#define INTL_ENTRY(id, func) ENTRY(id);
+#define INTL_ENTRY(id, func) ENTRY(id)
 #include "../Library/IntlExtensionObjectBuiltIns.h"
 #undef INTL_ENTRY
 ENTRY(Common)
@@ -690,7 +690,6 @@ ENTRY(builtInMathPow)
 ENTRY(EngineInterface)
 ENTRY(getErrorMessage)
 ENTRY(logDebugMessage)
-ENTRY(raiseAssert)
 ENTRY(raiseInvalidCurrencyCode)
 ENTRY(raiseInvalidDate)
 ENTRY(raiseLocaleNotWellFormed)
@@ -721,7 +720,6 @@ ENTRY(msTraceAsyncCallbackStarting)
 ENTRY(msTraceAsyncOperationCompleted)
 ENTRY(msTraceAsyncOperationStarting)
 ENTRY(msUpdateAsyncCallbackRelation)
-ENTRY(setNonUserCodeExceptions)
 
 // These are ES5/6/7+ builtins that are tracked for telemetry purposes, but currently not implemented by Chakra or are otherwise special.
 // IMPORTANT NOTE: See notes at top of this file regarding GenByteCode and test failures after changing this list.

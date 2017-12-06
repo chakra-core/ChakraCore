@@ -5,8 +5,8 @@
 
 // INTL_ENTRY is a macro that should be defined before this file is included
 // It is intended to be passed a Js::PropertyId as the first argument and the corresponding unique substring of a method name as the second argument
-#if !defined(INTL_ENTRY) || !defined(ENABLE_INTL_OBJECT)
-#error "INTL_ENTRY and ENABLE_INTL_OBJECT must be defiend before including " __FILE__
+#ifndef INTL_ENTRY
+#error INTL_ENTRY must be defiend before including __FILE__
 #endif
 
 #ifdef CompareString
