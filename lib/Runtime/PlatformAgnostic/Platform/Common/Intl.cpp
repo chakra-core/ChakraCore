@@ -77,7 +77,7 @@ public:
 #define ICU_DEBUG_PRINT(fmt, msg)
 #endif
 
-#define ICU_FAILURE(e) (U_FAILURE(e))
+#define ICU_FAILURE(e) (U_FAILURE(e) || e == U_STRING_NOT_TERMINATED_WARNING)
 
 #define ICU_RETURN(e, expr, r)                                                \
     do                                                                        \
@@ -148,7 +148,7 @@ public:
 #define LANGTAG_TO_LOCALEID(langtag, localeID, status)                        \
     do                                                                        \
     {                                                                         \
-        char localeID##[ULOC_FULLNAME_CAPACITY] = { 0 };                       \
+        char localeID##[ULOC_FULLNAME_CAPACITY] = { 0 };                      \
         int length = 0;                                                       \
         uloc_forLanguageTag(langtag, localeID, ULOC_FULLNAME_CAPACITY, &length, &status); \
         ICU_ASSERT(status, length > 0);                                       \
@@ -671,7 +671,7 @@ LCloseCollator:
     }
 
     // Gets the system time zone. If tz is non-null, it is written into tz
-    // Returns the number of characters written into tz (does not include a null terminator)
+    // Returns the number of characters written into tz (including a null terminator)
     int GetDefaultTimeZone(_Out_writes_opt_(tzLen) char16 *tz, _In_ int tzLen)
     {
         UErrorCode status = U_ZERO_ERROR;
@@ -682,11 +682,11 @@ LCloseCollator:
         ICU_ASSERT(status, tz == nullptr ? required > 0 : required <= tzLen);
 
         ucal_close(cal);
-        return required;
+        return required + 1;
     }
 
     // Determines if a time zone is valid. If it is and tzOut is non-null, the canonicalized version is written into tzOut
-    // Returns the number of characters written into tzOut (does not include a null terminator), or 0 on invalid time zone
+    // Returns the number of characters written into tzOut (including a null terminator), or 0 on invalid time zone
     int ValidateAndCanonicalizeTimeZone(_In_z_ char16 *tzIn, _Out_writes_opt_(tzOutLen) char16 *tzOut, _In_ tzOutLen)
     {
         UErrorCode status = U_ZERO_ERROR;
@@ -698,11 +698,11 @@ LCloseCollator:
         }
 
         ICU_ASSERT(status, tzOut == nullptr ? required > 0 : required <= tzOutLen);
-        return required;
+        return required + 1;
     }
 
     // Generates an LDML pattern for the given LDML skeleton in the given locale. If pattern is non-null, the result is written into pattern
-    // Returns the number of characters written into pattern (does not include a null terminator) [should always be positive]
+    // Returns the number of characters written into pattern (including a null terminator) [should always be positive]
     int GetPatternForSkeleton(_In_z_ char *langtag, _In_z_ char16 *skeleton, _Out_writes_opt_(patternLen) char16 *pattern, _In_ int patternLen)
     {
         UErrorCode status = U_ZERO_ERROR;
@@ -718,7 +718,7 @@ LCloseCollator:
         ICU_ASSERT(status, pattern == nullptr ? bestPatternLen > 0 : bestPatternLen <= patternLen);
 
         udatpg_close(dtpg);
-        return bestPatternLen;
+        return bestPatternLen + 1;
     }
 
     // creates a UDateTimeFormat and wraps it in an IPlatformAgnosticResource
@@ -734,7 +734,7 @@ LCloseCollator:
     }
 
     // Formats `date` using the UDateTimeFormat wrapped by `resource`. If `formatted` is non-null, the result is written into `formatted`
-    // Returns the number of characters written into `formatted` (does not include a null terminator) [should always be positive]
+    // Returns the number of characters written into `formatted` (including a null terminator) [should always be positive]
     int FormatDateTime(_In_ IPlatformAgnosticResource *resource, _In_ double date, _Out_writes_opt_(formattedLen) char16 *formatted, _In_ int formattedLen)
     {
         UErrorCode status = U_ZERO_ERROR;
@@ -743,7 +743,7 @@ LCloseCollator:
         int required = udat_format(dtf, date, formatted, formattedLen, nullptr, &status);
         ICU_ASSERT(status, required > 0);
 
-        return required;
+        return required + 1;
     }
 
     // Formats `date` using the UDateTimeFormat wrapped by `resource`. If `formatted` is non-null, the result is written into `formatted`
@@ -768,7 +768,7 @@ LCloseCollator:
         int required = udat_formatForFields(dtf, date, formatted, formattedLen, fpi, &status);
         ICU_ASSERT(status, required > 0);
 
-        return required;
+        return required + 1;
     }
 
     // Given a stateful fieldIterator, sets partStart and partEnd to the start (inclusive) and end (exclusive) of the substring for the part
@@ -781,6 +781,8 @@ LCloseCollator:
         return *partKind > 0;
     }
 
+    // Given a partKind set by GetDateTimePartInfo, return the corresponding string for the "type" field of the formatToParts return object
+    // See ECMA-402: #sec-partitiondatetimepattern
     const char16 *GetDateTimePartKind(_In_ int partKind, _Out_writes_opt_(partKindStrLen) char16 *partKindStr = nullptr, _In_ int partKindStrLen = -1)
     {
         UDateFormatField field = (UDateFormatField) partKind;

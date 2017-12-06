@@ -1673,7 +1673,7 @@ namespace Js
         {
             JavascriptString *locale = nullptr;
             JavascriptString *timeZone = nullptr;
-            JavascriptString *pattern = nullptr;
+            JavascriptString *skeleton = nullptr;
             
             if (GetTypedPropertyBuiltInFrom(state, locale, JavascriptString))
             {
@@ -1685,16 +1685,20 @@ namespace Js
                 timeZone = JavascriptString::UnsafeFromVar(propertyValue);
             }
 
-            if (GetTypedPropertyBuiltInFrom(state, pattern, JavascriptString))
+            if (GetTypedPropertyBuiltInFrom(state, skeleton, JavascriptString))
             {
-                pattern = JavascriptString::UnsafeFromVar(propertyValue);
+                skeleton = JavascriptString::UnsafeFromVar(propertyValue);
             }
 
             AssertOrFailFastMsg(timeZone != nullptr && locale != nullptr && pattern != nullptr);
 
             utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
 
-            CreateDateTimeFormat(locale8, timeZone->GetSz(), pattern->GetSz(), &dtf);
+            int patternLen = GetPatternForSkeleton(locale8, skeleton->GetSz(), nullptr, -1);
+            char16 *pattern = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, patternLen);
+            GetPatternForSkeleton(locale->GetSz(), skeleton->GetSz(), pattern, patternLen);
+
+            CreateDateTimeFormat(locale8, timeZone->GetSz(), pattern, &dtf);
             options->SetInternalProperty(
                 InternalPropertyIds::HiddenObject,
                 AutoIcuJsObject<IPlatformAgnosticResource>::New(scriptContext->GetRecycler(), dtf),
@@ -1805,29 +1809,6 @@ namespace Js
         char16 *buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, required);
         GetDefaultTimeZone(buffer, required);
         return JavascriptString::NewWithBuffer(buffer, required, scriptContext);
-#endif
-    }
-
-    // given a BCP-47 locale string and a skeleton string containing the desired fields of a DateTimeFormat
-    // returns a string containing the fields present in the skeleton formatted according to locale
-    Var IntlEngineInterfaceExtensionObject::EntryIntl_GetPatternForSkeleton(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-#ifdef INTL_ICU
-        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-        INTL_CHECK_ARGS(args.Info.Count == 3 && JavascriptString::Is(args.Values[1]) && JavascriptString::Is(args.Values[2]));
-
-        JavascriptString *locale = JavascriptString::UnsafeFromVar(args.Values[1]);
-        JavascriptString *skeleton = JavascriptString::UnsafeFromVar(args.Values[2]);
-        utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
-
-        int required = GetPatternForSkeleton(locale8, skeleton->GetSz(), nullptr, -1);
-        AssertOrFailFastMsg(required > 0, "GetPatternForSkeleton returned invalid buffer length");
-
-        char16 *buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, required);
-        GetPatternForSkeleton(locale->GetSz(), skeleton->GetSz(), buffer, required);
-        return JavascriptString::NewWithBuffer(buffer, required, scriptContext);
-#else
-        AssertOrFailFastMsg(false, __func__ " should not be called in INTL_WINGLOB");
 #endif
     }
 
