@@ -379,6 +379,7 @@ static const char *ProgramName;
 static const char *LogName;
 static const char *FullLogName;
 static const char *ResultsLogName;
+static const char *TestTimeout; // Stores timeout in seconds for all tests
 
 // NOTE: this might be unused now
 static char TempPath[MAX_PATH] = ""; // Path for temporary files
@@ -2890,6 +2891,11 @@ ParseArg(
             break;
          }
 
+         if (!_stricmp(&arg[1], "timeout")) {
+             TestTimeout = ComplainIfNoArg(arg, s);
+             break;
+         }
+
 #ifndef NODEBUG
          if (!_stricmp(&arg[1], "debug")) {
             FDebug = FVerbose = TRUE;
@@ -3491,6 +3497,12 @@ GetTestInfoFromNode
                      "Invalid timeout specified. Cannot parse or too large.\n", NULL);
                   childNode->Dump();
                   return FALSE;
+               }
+
+               if (TestTimeout != NULL)
+               {
+                   // Overriding the timeout value with the command line value
+                   testInfo->data[i] = TestTimeout;
                }
             }
 
