@@ -84,6 +84,33 @@ namespace Intl
         // Note: Cleanup() is called by, e.g., AutoIcuJsObject
     };
 
+    template<typename TResource, typename TCleanupFunction>
+    class IcuCObject : public IPlatformAgnosticResource
+    {
+    private:
+        TResource *resource;
+        TCleanupFunction *cleanupFunc;
+
+    public:
+        IcuCObject(TResource *resource, TCleanupFunction *cleanupFunc) :
+            resource(resource),
+            cleanupFunc(cleanupFunc)
+        {
+
+        }
+
+        TResource *GetInstance()
+        {
+            return resource;
+        }
+
+        void Cleanup() override
+        {
+            cleanupFunc(resource);
+            resource = nullptr;
+        }
+    }
+
     // Generic spec operations
     bool IsWellFormedLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch);
     HRESULT NormalizeLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch,
@@ -116,6 +143,12 @@ namespace Intl
     int GetDefaultTimeZone(_Out_writes_opt_(tzLen) char16 *tz, _In_ int tzLen);
     int ValidateAndCanonicalizeTimeZone(_In_z_ char16 *tzIn, _Out_writes_opt_(tzOutLen) char16 *tzOut, _In_ tzOutLen);
     int GetPatternForSkeleton(_In_z_ char *langtag, _In_z_ char16 *skeleton, _Out_writes_opt_(patternLen) char16 *pattern, _In_ int patternLen);
+    void CreateDateTimeFormat(_In_z_ char *langtag, _In_z_ char16 *timeZone, _In_z_ char16 *pattern, _Out_ IPlatformAgnosticResource **resource);
+    int FormatDateTime(_In_ IPlatformAgnosticResource *resource, _In_ double date, _Out_writes_opt_(formattedLen) char16 *formatted, _In_ int formattedLen);
+    int FormatDateTimeToParts(_In_ IPlatformAgnosticResource *resource, _In_ double date, _Out_writes_opt_(formattedLen) char16 *formatted,
+        _In_ int formattedLen, _Out_opt_ IPlatformAgnosticResource **fieldIterator);
+    bool GetDateTimePartInfo(_In_ IPlatformAgnosticResource *fieldIterator, _Out_ int *partStart, _Out_ int *partEnd, _Out_ int *partKind);
+    const char16 *GetDateTimePartKind(_In_ int partKind, _Out_writes_opt_(partKindStrLen) char16 *partKindStr = nullptr, _In_ int partKindStrLen = -1);
 #endif // INTL_ICU
 } // namespace Intl
 } // namespace PlatformAgnostic

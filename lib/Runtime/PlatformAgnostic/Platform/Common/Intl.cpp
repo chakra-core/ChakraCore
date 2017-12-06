@@ -145,6 +145,15 @@ public:
 
 #define UNWRAP_RESOURCE(resource, innerType) reinterpret_cast<PlatformAgnosticIntlObject<innerType> *>(resource)->GetInstance();
 
+#define LANGTAG_TO_LOCALEID(langtag, localeID, status)                        \
+    do                                                                        \
+    {                                                                         \
+        char localeID##[ULOC_FULLNAME_CAPACITY] = { 0 };                       \
+        int length = 0;                                                       \
+        uloc_forLanguageTag(langtag, localeID, ULOC_FULLNAME_CAPACITY, &length, &status); \
+        ICU_ASSERT(status, length > 0);                                       \
+    } while (false)
+
 namespace PlatformAgnostic
 {
 namespace Intl
@@ -662,7 +671,7 @@ LCloseCollator:
     }
 
     // Gets the system time zone. If tz is non-null, it is written into tz
-    // Returns the number of characters written into tz (does not write a null terminator)
+    // Returns the number of characters written into tz (does not include a null terminator)
     int GetDefaultTimeZone(_Out_writes_opt_(tzLen) char16 *tz, _In_ int tzLen)
     {
         UErrorCode status = U_ZERO_ERROR;
@@ -677,7 +686,7 @@ LCloseCollator:
     }
 
     // Determines if a time zone is valid. If it is and tzOut is non-null, the canonicalized version is written into tzOut
-    // Returns the number of characters written into tzOut (does not write a null terminator), or 0 on invalid time zone
+    // Returns the number of characters written into tzOut (does not include a null terminator), or 0 on invalid time zone
     int ValidateAndCanonicalizeTimeZone(_In_z_ char16 *tzIn, _Out_writes_opt_(tzOutLen) char16 *tzOut, _In_ tzOutLen)
     {
         UErrorCode status = U_ZERO_ERROR;
@@ -693,7 +702,7 @@ LCloseCollator:
     }
 
     // Generates an LDML pattern for the given LDML skeleton in the given locale. If pattern is non-null, the result is written into pattern
-    // Returns the number of characters written into pattern (does not write a null terminator) [should always be positive]
+    // Returns the number of characters written into pattern (does not include a null terminator) [should always be positive]
     int GetPatternForSkeleton(_In_z_ char *langtag, _In_z_ char16 *skeleton, _Out_writes_opt_(patternLen) char16 *pattern, _In_ int patternLen)
     {
         UErrorCode status = U_ZERO_ERROR;
@@ -710,6 +719,97 @@ LCloseCollator:
 
         udatpg_close(dtpg);
         return bestPatternLen;
+    }
+
+    // creates a UDateTimeFormat and wraps it in an IPlatformAgnosticResource
+    void CreateDateTimeFormat(_In_z_ char *langtag, _In_z_ char16 *timeZone, _In_z_ char16 *pattern, _Out_ IPlatformAgnosticResource **resource)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        LANGTAG_TO_LOCALEID(langtag, localeID, status);
+
+        UDateTimeFormat *dtf = udat_open(UDAT_PATTERN, UDAT_PATTERN, localeID, (UChar *) timeZone, -1, (UChar *) pattern, -1, &status);
+        IPlatformAgnosticResource *formatterResource = new IcuCObject(dtf, &udat_close); // TODO(jahorto): fix leak
+        AssertOrFailFast(formatterResource);
+        *resource = formatterResource;
+    }
+
+    // Formats `date` using the UDateTimeFormat wrapped by `resource`. If `formatted` is non-null, the result is written into `formatted`
+    // Returns the number of characters written into `formatted` (does not include a null terminator) [should always be positive]
+    int FormatDateTime(_In_ IPlatformAgnosticResource *resource, _In_ double date, _Out_writes_opt_(formattedLen) char16 *formatted, _In_ int formattedLen)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        UDateTimeFormat *dtf = UNWRAP_RESOURCE(resource, UDateTimeFormat);
+
+        int required = udat_format(dtf, date, formatted, formattedLen, nullptr, &status);
+        ICU_ASSERT(status, required > 0);
+
+        return required;
+    }
+
+    // Formats `date` using the UDateTimeFormat wrapped by `resource`. If `formatted` is non-null, the result is written into `formatted`
+    // Returns the number of characters written into `formatted` (does not include a null terminator) [should always be positive]
+    int FormatDateTimeToParts(_In_ IPlatformAgnosticResource *resource, _In_ double date, _Out_writes_opt_(formattedLen) char16 *formatted,
+        _In_ int formattedLen, _Out_opt_ IPlatformAgnosticResource **fieldIterator)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        UDateTimeFormat *dtf = UNWRAP_RESOURCE(resource, UDateTimeFormat);
+
+        UFieldPositionIterator *fpi = nullptr;
+
+        if (fieldIterator)
+        {
+            fpi = ufieldpositer_open(&status);
+            ICU_ASSERT(status, true);
+            IPlatformAgnosticResource *fpiResource = new IcuCObject(fpi, &ufieldpositer_close); // TODO(jahorto): fix leak
+            AssertOrFailFastMsg(fpiResource, "Out of memory");
+            *fieldIterator = fpiResource;
+        }
+
+        int required = udat_formatForFields(dtf, date, formatted, formattedLen, fpi, &status);
+        ICU_ASSERT(status, required > 0);
+
+        return required;
+    }
+
+    // Given a stateful fieldIterator, sets partStart and partEnd to the start (inclusive) and end (exclusive) of the substring for the part
+    // and sets partKind to be the type of the part (really a UDateFormatField -- see GetDateTimePartKind)
+    bool GetDateTimePartInfo(_In_ IPlatformAgnosticResource *fieldIterator, _Out_ int *partStart, _Out_ int *partEnd, _Out_ int *partKind)
+    {
+        UFieldPositionIterator *fpi = UNWRAP_RESOURCE(resource, UFieldPositionIterator);
+
+        *partKind = ufieldpositer_next(fpi, partStart, partEnd);
+        return *partKind > 0;
+    }
+
+    const char16 *GetDateTimePartKind(_In_ int partKind, _Out_writes_opt_(partKindStrLen) char16 *partKindStr = nullptr, _In_ int partKindStrLen = -1)
+    {
+        UDateFormatField field = (UDateFormatField) partKind;
+        switch (field)
+        {
+        case UDAT_ERA_FIELD:
+            return _u("era");
+        case UDAT_YEAR_FIELD:
+            return _u("year");
+        case UDAT_MONTH_FIELD:
+            return _u("month");
+        case UDAT_DATE_FIELD:
+            return _u("date");
+        case UDAT_HOUR_OF_DAY1_FIELD:
+        case UDAT_HOUR_OF_DAY0_FIELD:
+        case UDAT_HOUR1_FIELD:
+        case UDAT_HOUR0_FIELD:
+            return _u("hour");
+        case UDAT_MINUTE_FIELD:
+            return _u("minute");
+        case UDAT_SECOND_FIELD:
+            return _u("second");
+        case UDAT_AM_PM_FIELD:
+            return _u("dayPeriod");
+        case UDAT_TIMEZONE_FIELD:
+            return _u("timeZone");
+        default:
+            return _u("literal");
+        }
     }
 } // namespace Intl
 } // namespace PlatformAgnostic
