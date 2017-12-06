@@ -84,15 +84,18 @@ namespace Intl
         // Note: Cleanup() is called by, e.g., AutoIcuJsObject
     };
 
-    template<typename TResource, typename TCleanupFunction>
+    template<typename TResource>
     class IcuCObject : public IPlatformAgnosticResource
     {
+    public:
+        typedef void (*CleanupFunc)(TResource *);
+
     private:
         TResource *resource;
-        TCleanupFunction *cleanupFunc;
+        CleanupFunc cleanupFunc;
 
     public:
-        IcuCObject(TResource *resource, TCleanupFunction *cleanupFunc) :
+        IcuCObject(TResource *resource, CleanupFunc cleanupFunc) :
             resource(resource),
             cleanupFunc(cleanupFunc)
         {
@@ -109,7 +112,7 @@ namespace Intl
             cleanupFunc(resource);
             resource = nullptr;
         }
-    }
+    };
 
     // Generic spec operations
     bool IsWellFormedLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch);
@@ -140,15 +143,15 @@ namespace Intl
         _In_ CollatorSensitivity sensitivity, _In_ bool ignorePunctuation, _In_ bool numeric, _In_ CollatorCaseFirst caseFirst, _Out_ HRESULT *hr);
 
     // DateTimeFormat
-    int GetDefaultTimeZone(_Out_writes_opt_(tzLen) char16 *tz, _In_ int tzLen);
-    int ValidateAndCanonicalizeTimeZone(_In_z_ char16 *tzIn, _Out_writes_opt_(tzOutLen) char16 *tzOut, _In_ tzOutLen);
-    int GetPatternForSkeleton(_In_z_ char *langtag, _In_z_ char16 *skeleton, _Out_writes_opt_(patternLen) char16 *pattern, _In_ int patternLen);
-    void CreateDateTimeFormat(_In_z_ char *langtag, _In_z_ char16 *timeZone, _In_z_ char16 *pattern, _Out_ IPlatformAgnosticResource **resource);
-    int FormatDateTime(_In_ IPlatformAgnosticResource *resource, _In_ double date, _Out_writes_opt_(formattedLen) char16 *formatted, _In_ int formattedLen);
-    int FormatDateTimeToParts(_In_ IPlatformAgnosticResource *resource, _In_ double date, _Out_writes_opt_(formattedLen) char16 *formatted,
-        _In_ int formattedLen, _Out_opt_ IPlatformAgnosticResource **fieldIterator);
+    int GetDefaultTimeZone(_Out_writes_opt_(tzLen) char16 *tz = nullptr, _In_ int tzLen = -1);
+    int ValidateAndCanonicalizeTimeZone(_In_z_ const char16 *tzIn, _Out_writes_opt_(tzOutLen) char16 *tzOut = nullptr, _In_ int tzOutLen = -1);
+    int GetPatternForSkeleton(_In_z_ const char *langtag, _In_z_ const char16 *skeleton, _Out_writes_opt_(patternLen) char16 *pattern = nullptr, _In_ int patternLen = -1);
+    void CreateDateTimeFormat(_In_z_ const char *langtag, _In_z_ const char16 *timeZone, _In_z_ const char16 *pattern, _Out_ IPlatformAgnosticResource **resource);
+    int FormatDateTime(_In_ IPlatformAgnosticResource *resource, _In_ double date, _Out_writes_opt_(formattedLen) char16 *formatted = nullptr, _In_ int formattedLen = -1);
+    int FormatDateTimeToParts(_In_ IPlatformAgnosticResource *resource, _In_ double date, _Out_writes_opt_(formattedLen) char16 *formatted = nullptr,
+        _In_ int formattedLen = -1, _Out_opt_ IPlatformAgnosticResource **fieldIterator = nullptr);
     bool GetDateTimePartInfo(_In_ IPlatformAgnosticResource *fieldIterator, _Out_ int *partStart, _Out_ int *partEnd, _Out_ int *partKind);
-    const char16 *GetDateTimePartKind(_In_ int partKind, _Out_writes_opt_(partKindStrLen) char16 *partKindStr = nullptr, _In_ int partKindStrLen = -1);
+    const char16 *GetDateTimePartKind(_In_ int partKind);
 #endif // INTL_ICU
 } // namespace Intl
 } // namespace PlatformAgnostic

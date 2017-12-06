@@ -53,6 +53,9 @@ typedef uint64_t uint64;
 #include <unicode/enumset.h>
 #include <unicode/decimfmt.h>
 #include <unicode/ucol.h>
+#include <unicode/ucal.h>
+#include <unicode/udat.h>
+#include <unicode/udatpg.h>
 #pragma warning(pop)
 
 #include "CommonDefines.h" // INTL_ICU_DEBUG
@@ -143,16 +146,8 @@ public:
         }                                                                     \
     } while (false)
 
-#define UNWRAP_RESOURCE(resource, innerType) reinterpret_cast<PlatformAgnosticIntlObject<innerType> *>(resource)->GetInstance();
-
-#define LANGTAG_TO_LOCALEID(langtag, localeID, status)                        \
-    do                                                                        \
-    {                                                                         \
-        char localeID##[ULOC_FULLNAME_CAPACITY] = { 0 };                      \
-        int length = 0;                                                       \
-        uloc_forLanguageTag(langtag, localeID, ULOC_FULLNAME_CAPACITY, &length, &status); \
-        ICU_ASSERT(status, length > 0);                                       \
-    } while (false)
+#define UNWRAP_PAIO(resource, innerType) reinterpret_cast<PlatformAgnosticIntlObject<innerType> *>(resource)->GetInstance();
+#define UNWRAP_COBJECT(resource, innerType) reinterpret_cast<IcuCObject<innerType> *>(resource)->GetInstance();
 
 namespace PlatformAgnostic
 {
@@ -368,7 +363,7 @@ namespace Intl
     void SetNumberFormatSignificantDigits(IPlatformAgnosticResource *resource, const uint16 minSigDigits, const uint16 maxSigDigits)
     {
         // We know what actual type we stored in the IPlatformAgnosticResource*, so cast to it.
-        icu::NumberFormat *nf = UNWRAP_RESOURCE(resource, icu::NumberFormat);
+        icu::NumberFormat *nf = UNWRAP_PAIO(resource, icu::NumberFormat);
 
         // TODO(jahorto): Determine if we could ever have a NumberFormat that isn't a DecimalFormat (and if so, what to do here)
         icu::DecimalFormat *df = dynamic_cast<icu::DecimalFormat *>(nf);
@@ -390,7 +385,7 @@ namespace Intl
     void SetNumberFormatIntFracDigits(IPlatformAgnosticResource *resource, const uint16 minFracDigits, const uint16 maxFracDigits, const uint16 minIntDigits)
     {
         // We know what actual type we stored in the IPlatformAgnosticResource*, so cast to it.
-        icu::NumberFormat *nf = UNWRAP_RESOURCE(resource, icu::NumberFormat);
+        icu::NumberFormat *nf = UNWRAP_PAIO(resource, icu::NumberFormat);
         nf->setMinimumIntegerDigits(minIntDigits);
         nf->setMinimumFractionDigits(minFracDigits);
         nf->setMaximumFractionDigits(maxFracDigits);
@@ -399,7 +394,7 @@ namespace Intl
     void SetNumberFormatGroupingUsed(IPlatformAgnosticResource *resource, const bool isGroupingUsed)
     {
         // We know what actual type we stored in the IPlatformAgnosticResource*, so cast to it.
-        icu::NumberFormat *nf = UNWRAP_RESOURCE(resource, icu::NumberFormat);
+        icu::NumberFormat *nf = UNWRAP_PAIO(resource, icu::NumberFormat);
         nf->setGroupingUsed(isGroupingUsed);
     }
 
@@ -665,7 +660,6 @@ namespace Intl
             ret = 0;
         }
 
-LCloseCollator:
         ucol_close(collator);
         return ret;
     }
@@ -687,11 +681,11 @@ LCloseCollator:
 
     // Determines if a time zone is valid. If it is and tzOut is non-null, the canonicalized version is written into tzOut
     // Returns the number of characters written into tzOut (including a null terminator), or 0 on invalid time zone
-    int ValidateAndCanonicalizeTimeZone(_In_z_ char16 *tzIn, _Out_writes_opt_(tzOutLen) char16 *tzOut, _In_ tzOutLen)
+    int ValidateAndCanonicalizeTimeZone(_In_z_ const char16 *tzIn, _Out_writes_opt_(tzOutLen) char16 *tzOut, _In_ int tzOutLen)
     {
         UErrorCode status = U_ZERO_ERROR;
-        int required = ucal_getCanonicalTimeZoneID(tzIn, -1, reinterpret_cast<UChar *>(tzOut), tzOutLen, nullptr, &status);
-        if (status = U_ILLEGAL_ARGUMENT_ERROR)
+        int required = ucal_getCanonicalTimeZoneID(reinterpret_cast<const UChar *>(tzIn), -1, reinterpret_cast<UChar *>(tzOut), tzOutLen, nullptr, &status);
+        if (status == U_ILLEGAL_ARGUMENT_ERROR)
         {
             // illegal argument here means that tzIn is an invalid time zone
             return 0;
@@ -703,7 +697,7 @@ LCloseCollator:
 
     // Generates an LDML pattern for the given LDML skeleton in the given locale. If pattern is non-null, the result is written into pattern
     // Returns the number of characters written into pattern (including a null terminator) [should always be positive]
-    int GetPatternForSkeleton(_In_z_ char *langtag, _In_z_ char16 *skeleton, _Out_writes_opt_(patternLen) char16 *pattern, _In_ int patternLen)
+    int GetPatternForSkeleton(_In_z_ const char *langtag, _In_z_ const char16 *skeleton, _Out_writes_opt_(patternLen) char16 *pattern, _In_ int patternLen)
     {
         UErrorCode status = U_ZERO_ERROR;
         char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
@@ -714,45 +708,65 @@ LCloseCollator:
         UDateTimePatternGenerator *dtpg = udatpg_open(localeID, &status);
         ICU_ASSERT(status, true);
 
-        int bestPatternLen = udatpg_getBestPatternWithOptions(dtpg, skeleton, -1, UDATPG_MATCH_ALL_FIELDS_LENGTH, pattern, patternLen, &status);
+        int bestPatternLen = udatpg_getBestPatternWithOptions(
+            dtpg,
+            reinterpret_cast<const UChar *>(skeleton),
+            -1,
+            UDATPG_MATCH_ALL_FIELDS_LENGTH,
+            reinterpret_cast<UChar *>(pattern),
+            patternLen,
+            &status
+        );
         ICU_ASSERT(status, pattern == nullptr ? bestPatternLen > 0 : bestPatternLen <= patternLen);
 
         udatpg_close(dtpg);
         return bestPatternLen + 1;
     }
 
-    // creates a UDateTimeFormat and wraps it in an IPlatformAgnosticResource
-    void CreateDateTimeFormat(_In_z_ char *langtag, _In_z_ char16 *timeZone, _In_z_ char16 *pattern, _Out_ IPlatformAgnosticResource **resource)
+    // creates a UDateFormat and wraps it in an IPlatformAgnosticResource
+    void CreateDateTimeFormat(_In_z_ const char *langtag, _In_z_ const char16 *timeZone, _In_z_ const char16 *pattern, _Out_ IPlatformAgnosticResource **resource)
     {
         UErrorCode status = U_ZERO_ERROR;
-        LANGTAG_TO_LOCALEID(langtag, localeID, status);
+        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        int length = 0;
+        uloc_forLanguageTag(langtag, localeID, ULOC_FULLNAME_CAPACITY, &length, &status);
+        ICU_ASSERT(status, length > 0);
 
-        UDateTimeFormat *dtf = udat_open(UDAT_PATTERN, UDAT_PATTERN, localeID, (UChar *) timeZone, -1, (UChar *) pattern, -1, &status);
-        IPlatformAgnosticResource *formatterResource = new IcuCObject(dtf, &udat_close); // TODO(jahorto): fix leak
+        UDateFormat *dtf = udat_open(
+            UDAT_PATTERN,
+            UDAT_PATTERN,
+            localeID,
+            reinterpret_cast<const UChar *>(timeZone),
+            -1,
+            reinterpret_cast<const UChar *>(pattern),
+            -1,
+            &status
+        );
+        IPlatformAgnosticResource *formatterResource = new IcuCObject<UDateFormat>(dtf, &udat_close); // TODO(jahorto): fix leak
         AssertOrFailFast(formatterResource);
         *resource = formatterResource;
     }
 
-    // Formats `date` using the UDateTimeFormat wrapped by `resource`. If `formatted` is non-null, the result is written into `formatted`
+    // Formats `date` using the UDateFormat wrapped by `resource`. If `formatted` is non-null, the result is written into `formatted`
     // Returns the number of characters written into `formatted` (including a null terminator) [should always be positive]
     int FormatDateTime(_In_ IPlatformAgnosticResource *resource, _In_ double date, _Out_writes_opt_(formattedLen) char16 *formatted, _In_ int formattedLen)
     {
         UErrorCode status = U_ZERO_ERROR;
-        UDateTimeFormat *dtf = UNWRAP_RESOURCE(resource, UDateTimeFormat);
+        UDateFormat *dtf = UNWRAP_COBJECT(resource, UDateFormat);
 
-        int required = udat_format(dtf, date, formatted, formattedLen, nullptr, &status);
+        int required = udat_format(dtf, date, reinterpret_cast<UChar *>(formatted), formattedLen, nullptr, &status);
         ICU_ASSERT(status, required > 0);
 
         return required + 1;
     }
 
-    // Formats `date` using the UDateTimeFormat wrapped by `resource`. If `formatted` is non-null, the result is written into `formatted`
+    // Formats `date` using the UDateFormat wrapped by `resource`. If `formatted` is non-null, the result is written into `formatted`
     // Returns the number of characters written into `formatted` (does not include a null terminator) [should always be positive]
     int FormatDateTimeToParts(_In_ IPlatformAgnosticResource *resource, _In_ double date, _Out_writes_opt_(formattedLen) char16 *formatted,
         _In_ int formattedLen, _Out_opt_ IPlatformAgnosticResource **fieldIterator)
     {
         UErrorCode status = U_ZERO_ERROR;
-        UDateTimeFormat *dtf = UNWRAP_RESOURCE(resource, UDateTimeFormat);
+        UDateFormat *dtf = UNWRAP_COBJECT(resource, UDateFormat);
 
         UFieldPositionIterator *fpi = nullptr;
 
@@ -760,12 +774,12 @@ LCloseCollator:
         {
             fpi = ufieldpositer_open(&status);
             ICU_ASSERT(status, true);
-            IPlatformAgnosticResource *fpiResource = new IcuCObject(fpi, &ufieldpositer_close); // TODO(jahorto): fix leak
+            IPlatformAgnosticResource *fpiResource = new IcuCObject<UFieldPositionIterator>(fpi, &ufieldpositer_close); // TODO(jahorto): fix leak
             AssertOrFailFastMsg(fpiResource, "Out of memory");
             *fieldIterator = fpiResource;
         }
 
-        int required = udat_formatForFields(dtf, date, formatted, formattedLen, fpi, &status);
+        int required = udat_formatForFields(dtf, date, reinterpret_cast<UChar *>(formatted), formattedLen, fpi, &status);
         ICU_ASSERT(status, required > 0);
 
         return required + 1;
@@ -775,7 +789,7 @@ LCloseCollator:
     // and sets partKind to be the type of the part (really a UDateFormatField -- see GetDateTimePartKind)
     bool GetDateTimePartInfo(_In_ IPlatformAgnosticResource *fieldIterator, _Out_ int *partStart, _Out_ int *partEnd, _Out_ int *partKind)
     {
-        UFieldPositionIterator *fpi = UNWRAP_RESOURCE(resource, UFieldPositionIterator);
+        UFieldPositionIterator *fpi = UNWRAP_COBJECT(fieldIterator, UFieldPositionIterator);
 
         *partKind = ufieldpositer_next(fpi, partStart, partEnd);
         return *partKind > 0;
@@ -783,7 +797,7 @@ LCloseCollator:
 
     // Given a partKind set by GetDateTimePartInfo, return the corresponding string for the "type" field of the formatToParts return object
     // See ECMA-402: #sec-partitiondatetimepattern
-    const char16 *GetDateTimePartKind(_In_ int partKind, _Out_writes_opt_(partKindStrLen) char16 *partKindStr = nullptr, _In_ int partKindStrLen = -1)
+    const char16 *GetDateTimePartKind(_In_ int partKind)
     {
         UDateFormatField field = (UDateFormatField) partKind;
         switch (field)

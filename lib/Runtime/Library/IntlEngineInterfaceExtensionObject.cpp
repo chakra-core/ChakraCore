@@ -1674,6 +1674,8 @@ namespace Js
             JavascriptString *locale = nullptr;
             JavascriptString *timeZone = nullptr;
             JavascriptString *skeleton = nullptr;
+
+            Var propertyValue = nullptr; // set by the GetTypedPropertyBuiltInFrom macro
             
             if (GetTypedPropertyBuiltInFrom(state, locale, JavascriptString))
             {
@@ -1690,16 +1692,16 @@ namespace Js
                 skeleton = JavascriptString::UnsafeFromVar(propertyValue);
             }
 
-            AssertOrFailFastMsg(timeZone != nullptr && locale != nullptr && pattern != nullptr);
+            AssertOrFailFast(timeZone != nullptr && locale != nullptr && skeleton != nullptr);
 
             utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
 
             int patternLen = GetPatternForSkeleton(locale8, skeleton->GetSz(), nullptr, -1);
             char16 *pattern = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, patternLen);
-            GetPatternForSkeleton(locale->GetSz(), skeleton->GetSz(), pattern, patternLen);
+            GetPatternForSkeleton(locale8, skeleton->GetSz(), pattern, patternLen);
 
             CreateDateTimeFormat(locale8, timeZone->GetSz(), pattern, &dtf);
-            options->SetInternalProperty(
+            state->SetInternalProperty(
                 InternalPropertyIds::HiddenObject,
                 AutoIcuJsObject<IPlatformAgnosticResource>::New(scriptContext->GetRecycler(), dtf),
                 PropertyOperationFlags::PropertyOperation_SpecialValue,
@@ -1719,21 +1721,20 @@ namespace Js
             int partStart = 0;
             int partEnd = 0;
             int partKind = 0;
+            int i = 0;
             while (GetDateTimePartInfo(fieldIterator, &partStart, &partEnd, &partKind))
             {
                 JavascriptString *partValue = JavascriptString::NewCopyBuffer(formatted + partStart, partEnd - partStart, scriptContext);
 
-                int partKindStrLen = GetDateTimePartKind(partKind);
-                char16 *partKindStr = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, partKindStrLen);
-                GetDateTimePartKind(partKind, partKindStr, partKindStrLen);
-
-                JavascriptString *partType = JavascriptString::NewWithBuffer(partKindStr, partKindStrLen, scriptContext);
+                const char16 *partKindStr = GetDateTimePartKind(partKind);
+                JavascriptString *partType = JavascriptString::NewCopySz(partKindStr, scriptContext);
 
                 DynamicObject* part = scriptContext->GetLibrary()->CreateObject();
-                JavascriptOperators::InitProperty(part, PropertyIds::type, JavascriptString::ToVar(partType));
-                JavascriptOperators::InitProperty(part, PropertyIds::value, JavascriptString::ToVar(partType));
+                JavascriptOperators::InitProperty(part, PropertyIds::type, partType);
+                JavascriptOperators::InitProperty(part, PropertyIds::value, partValue);
 
                 ret->SetItem(i, part, PropertyOperationFlags::PropertyOperation_None);
+                i += 1;
             }
 
             return ret;
@@ -1768,11 +1769,11 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 #else
-        int required = ValidateAndCanonicalizeTimeZone(tz->GetSz(), tz->GetLength(), nullptr, -1);
+        int required = ValidateAndCanonicalizeTimeZone(tz->GetSz(), nullptr, -1);
         if (required > 0)
         {
             char16 *buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, required);
-            ValidateAndCanonicalizeTimeZone(tz->GetSz(), tz->GetLength(), buffer, required);
+            ValidateAndCanonicalizeTimeZone(tz->GetSz(), buffer, required);
             return JavascriptString::NewWithBuffer(buffer, required, scriptContext);
         }
         else
