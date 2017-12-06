@@ -25347,6 +25347,20 @@ Lowerer::LowerLdEnv(IR::Instr * instr)
 }
 
 IR::Instr *
+Lowerer::LowerLdSuper(IR::Instr *instr, IR::JnHelperMethod helperOpCode)
+{
+    IR::Opnd * functionObjOpnd;
+    IR::Instr * instrPrev = m_lowererMD.LoadFunctionObjectOpnd(instr, functionObjOpnd);
+
+    LoadScriptContext(instr);
+    m_lowererMD.LoadHelperArgument(instr, functionObjOpnd);
+    m_lowererMD.ChangeToHelperCall(instr, helperOpCode);
+
+    return instrPrev;
+}
+
+
+IR::Instr *
 Lowerer::LowerFrameDisplayCheck(IR::Instr * instr)
 {
     IR::Instr *instrPrev = instr->m_prev;

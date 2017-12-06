@@ -85,8 +85,6 @@ public:
             IR::Instr *     LowerRet(IR::Instr * instr);
             IR::Instr *     LowerCondBranch(IR::Instr * instr);
             IR::Instr *     LoadFunctionObjectOpnd(IR::Instr *instr, IR::Opnd *&functionObjOpnd);
-            IR::Instr *     LowerLdEnv(IR::Instr *instr);
-            IR::Instr *     LowerLdSuper(IR::Instr * instr, IR::JnHelperMethod helperOpCode);
             IR::Instr *     GenerateSmIntPairTest(IR::Instr * instrInsert, IR::Opnd * opndSrc1, IR::Opnd * opndSrc2, IR::LabelInstr * labelFail);
 #if DBG
     static  void            GenerateDebugBreak(IR::Instr * insertInstr);
