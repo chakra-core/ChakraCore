@@ -1479,4 +1479,10 @@
       <tags>exclude_dynapogo,exclude_serialized,exclude_nonative</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>noedgebug.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -oopjit- -off:bailonnoprofile -loopinterpretcount:0 -OOPJITMissingOpts- </compile-flags>
+    </default>
+  </test>
 </regress-exe>
