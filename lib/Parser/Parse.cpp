@@ -8290,6 +8290,14 @@ LPCOLESTR Parser::ConstructNameHint(ParseNodePtr pNode, uint32* fullNameHintLeng
 {
     Assert(pNode != nullptr);
     Assert(pNode->nop == knopDot || pNode->nop == knopIndex);
+
+    // This method recursively visits nodes in the AST and could cause an SOE crash for long knopDot chains.
+    // Although this method could be made non-recursive, Emit (ByteCodeEmitter.cpp) hits a stack probe
+    // for shorter chains than which cause SOE here, so add a stack probe to throw SOE rather than crash on SOE.
+    // Because of that correspondence, use Js::Constants::MinStackByteCodeVisitor (which is used in Emit)
+    // for the stack probe here. See OS#14711878.
+    PROBE_STACK_NO_DISPOSE(this->m_scriptContext, Js::Constants::MinStackByteCodeVisitor);
+
     LPCOLESTR leftNode = nullptr;
     if (pNode->sxBin.pnode1->nop == knopDot || pNode->sxBin.pnode1->nop == knopIndex)
     {
