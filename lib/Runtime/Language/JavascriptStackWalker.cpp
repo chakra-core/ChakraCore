@@ -737,7 +737,7 @@ namespace Js
         }
 
         // If we're at the entry from a host frame, hop to the frame from which we left the script.
-        if (this->currentFrame.GetInstructionPointer() == this->entryExitRecord->returnAddrOfScriptEntryFunction)
+        if (this->currentFrame.GetAddressOfInstructionPointer() == this->entryExitRecord->addrOfReturnAddrOfScriptEntryFunction)
         {
             BOOL hasCaller = this->entryExitRecord->hasCaller || this->forceFullWalk;
 
