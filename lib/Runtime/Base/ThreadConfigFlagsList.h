@@ -52,11 +52,6 @@ FLAG(AreWinRTDelegatesInterfaces, WinRTDelegateInterfaces)
 FLAG_RELEASE(IsWinRTAdaptiveAppsEnabled, WinRTAdaptiveApps)
 #endif
 
-#ifdef ENABLE_SIMDJS
-//SIMD_JS
-FLAG_RELEASE(IsSimdjsEnabled, Simdjs)
-#endif
-
 #ifdef ENABLE_WASM_SIMD
 FLAG_RELEASE(IsWasmSimdEnabled, WasmSimd)
 #endif

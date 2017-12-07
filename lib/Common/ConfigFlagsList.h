@@ -897,7 +897,7 @@ FLAGNR(Boolean, WasmIgnoreResponse    , "Ignore the type of the Response object"
 FLAGNR(Number,  WasmMaxTableSize      , "Maximum size allowed to the WebAssembly.Table", DEFAULT_CONFIG_WasmMaxTableSize)
 FLAGNR(Boolean, WasmSignExtends       , "Use new WebAssembly sign extension operators", DEFAULT_CONFIG_WasmSignExtends)
 #ifdef ENABLE_WASM_SIMD
-FLAGR(Boolean, WasmSimd, "Enable SIMD in WebAssembly", DEFAULT_CONFIG_WasmSimd)
+FLAGNR(Boolean, WasmSimd, "Enable SIMD in WebAssembly", DEFAULT_CONFIG_WasmSimd)
 #endif
 
 #ifdef ENABLE_SIMDJS
