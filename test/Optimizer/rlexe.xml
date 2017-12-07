@@ -1434,4 +1434,9 @@
       <files>bug14661401.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>fgpeepbug.js</files>
+    </default>
+  </test>
 </regress-exe>
