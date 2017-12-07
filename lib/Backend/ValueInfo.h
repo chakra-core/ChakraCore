@@ -35,7 +35,7 @@ private:
 
 protected:
     ValueInfo(const ValueType type, const ValueStructureKind structureKind)
-        : ValueType(type), structureKind(structureKind)
+        : ValueType(type), structureKind(structureKind), symStore(nullptr)
     {
         // We can only prove that the representation is a tagged int on a ToVar. Currently, we cannot have more than one value
         // info per value number in a block, so a value info specifying tagged int representation cannot be created for a
@@ -43,13 +43,13 @@ protected:
         // representation. Currently, the tagged int representation info can only be carried on the dst opnd of ToVar, and can't
         // even be propagated forward.
         Assert(!type.IsTaggedInt());
-
-        SetSymStore(nullptr);
     }
 
 private:
     ValueInfo(const ValueInfo &other, const bool)
-        : ValueType(other), structureKind(ValueStructureKind::Generic) // uses generic structure kind, as opposed to copying the structure kind
+        : ValueType(other),
+        structureKind(ValueStructureKind::Generic), // uses generic structure kind, as opposed to copying the structure kind
+        symStore(nullptr) // Will be immediately overridden
     {
         SetSymStore(other.GetSymStore());
     }

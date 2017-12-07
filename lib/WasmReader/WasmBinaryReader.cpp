@@ -72,13 +72,18 @@ bool FunctionIndexTypes::CanBeExported(FunctionIndexTypes::Type funcType)
 }
 
 WasmBinaryReader::WasmBinaryReader(ArenaAllocator* alloc, Js::WebAssemblyModule* module, const byte* source, size_t length) :
-    m_module(module),
-    m_curFuncEnd(nullptr),
     m_alloc(alloc),
-    m_readerState(READER_STATE_UNKNOWN)
+    m_start(source),
+    m_end(source + length),
+    m_pc(source),
+    m_curFuncEnd(nullptr),
+    m_currentSection(),
+    m_readerState(READER_STATE_UNKNOWN),
+    m_module(module)
+#if DBG_DUMP
+    , m_ops(nullptr)
+#endif
 {
-    m_start = m_pc = source;
-    m_end = source + length;
     m_currentSection.code = bSectLimit;
 #if DBG_DUMP
     m_ops = Anew(m_alloc, OpSet, m_alloc);

@@ -2309,10 +2309,35 @@ public:
     bool const isLibraryCode;
 public:
     ByteCodeBufferReader(ScriptContext * scriptContext, byte * raw, bool isLibraryCode, int builtInPropertyCount)
-        : scriptContext(scriptContext), raw(raw), utf8SourceInfo(nullptr), isLibraryCode(isLibraryCode),
+        : scriptContext(scriptContext),
+        raw(raw),
+        magic(0),
+        totalSize(0),
+        fileVersionScheme(0),
+        V1(0),
+        V2(0),
+        V3(0),
+        V4(0),
+        architecture(0),
         expectedFunctionBodySize(sizeof(unaligned FunctionBody)),
         expectedBuildInPropertyCount(builtInPropertyCount),
-        expectedOpCodeCount((int)OpCode::Count)
+        expectedOpCodeCount((int)OpCode::Count),
+        firstFunctionId(0),
+        functionCount(0),
+        string16s(nullptr),
+        string16Count(0),
+        string16IndexTable(nullptr),
+        string16Table(nullptr),
+        lineInfoCacheCount(0),
+        lineInfoCaches(nullptr),
+        lineCharacterOffsetCacheBuffer(nullptr),
+        lineByteOffsetCacheBuffer(nullptr),
+        functions(nullptr),
+        sourceSize(0),
+        sourceCharLength(0),
+        utf8SourceInfo(nullptr),
+        sourceIndex(0),
+        isLibraryCode(isLibraryCode)
     {
         if (isLibraryCode)
         {
