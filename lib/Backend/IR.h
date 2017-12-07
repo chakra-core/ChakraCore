@@ -272,10 +272,10 @@ public:
     IR::Instr *     GetPrevRealInstrOrLabel() const;
     IR::Instr *     GetInsertBeforeByteCodeUsesInstr();
     IR::LabelInstr *GetOrCreateContinueLabel(const bool isHelper = false);
-    static RegOpnd *FindRegUseSrc(StackSym *sym, IR::Opnd*);
-    static RegOpnd *FindRegUseDst(StackSym *sym, IR::Opnd*);
-    RegOpnd *       FindRegUse(StackSym *sym);
-    static RegOpnd *FindRegUseInRange(StackSym *sym, Instr *instrBegin, Instr *instrEnd);
+    static bool     HasSymUseSrc(StackSym *sym, IR::Opnd*);
+    static bool     HasSymUseDst(StackSym *sym, IR::Opnd*);
+    bool            HasSymUse(StackSym *sym);
+    static bool     HasSymUseInRange(StackSym *sym, Instr *instrBegin, Instr *instrEnd);
     RegOpnd *       FindRegDef(StackSym *sym);
     static Instr*   FindSingleDefInstr(Js::OpCode opCode, Opnd* src);
 

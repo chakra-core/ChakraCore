@@ -2994,7 +2994,7 @@ FlowGraph::PeepCm(IR::Instr *instr)
     if (instrLd3->GetByteCodeOffset() > instrBr->GetByteCodeOffset())
     {
         StackSym *symLd3 = instrLd3->GetDst()->AsRegOpnd()->m_sym;
-        if (IR::Instr::FindRegUseInRange(symLd3, instrBr->m_next, instrLd3))
+        if (IR::Instr::HasSymUseInRange(symLd3, instrBr->m_next, instrLd3))
         {
             return nullptr;
         }

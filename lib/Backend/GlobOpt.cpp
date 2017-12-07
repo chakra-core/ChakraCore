@@ -2338,7 +2338,7 @@ MemOpCheckInductionVariable:
                     Loop::MemCopyCandidate* memcopyCandidate = prevCandidate->AsMemCopy();
                     if (memcopyCandidate->base == Js::Constants::InvalidSymID)
                     {
-                        if (chkInstr->FindRegUse(memcopyCandidate->transferSym))
+                        if (chkInstr->HasSymUse(memcopyCandidate->transferSym))
                         {
                             loop->doMemOp = false;
                             TRACE_MEMOP_PHASE_VERBOSE(MemCopy, loop, chkInstr, _u("Found illegal use of LdElemI value(s%d)"), GetVarSymID(memcopyCandidate->transferSym));
