@@ -4747,27 +4747,7 @@ IRBuilderAsmJs::BuildFloat64x2_2(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD
     Js::OpCode opcode;
 
     opcode = GetSimdOpcode(newOpcode);
-    /*
-    switch (newOpcode)
-    {
 
-    case Js::OpCodeAsmJs::Simd128_Return_D2:
-    if (m_func->IsLoopBody())
-    {
-    IR::Instr* slotInstr = GenerateStSlotForReturn(src1Opnd, IRType::TySimd128F4);
-    AddInstr(slotInstr, offset);
-    }
-    opcode = Js::OpCode::Ld_A;
-    break;
-    case Js::OpCodeAsmJs::Simd128_Ld_D2:
-    opcode = Js::OpCode::Ld_A; //to make the compiler happy
-    Assert(false); //should be unreachable
-    break;
-
-    default:
-    opcode = GetSimdOpcode(newOpcode);
-    }
-    */
     AssertMsg((uint32)opcode, "Invalid backend SIMD opcode");
 
     IR::Instr * instr = IR::Instr::New(opcode, dstOpnd, src1Opnd, m_func);
