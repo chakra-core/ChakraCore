@@ -669,18 +669,14 @@ namespace Intl
     int GetDefaultTimeZone(_Out_writes_opt_(tzLen) char16 *tz, _In_ int tzLen)
     {
         UErrorCode status = U_ZERO_ERROR;
-        UCalendar *cal = ucal_open(nullptr, -1, nullptr, UCAL_DEFAULT, &status);
-        ICU_ASSERT(status, cal != nullptr);
-
-        int required = ucal_getTimeZoneID(cal, reinterpret_cast<UChar *>(tz), tzLen, &status);
-        if (status == U_ILLEGAL_ARGUMENT_ERROR)
+        int required = ucal_getDefaultTimeZone(reinterpret_cast<UChar *>(tz), tzLen, &status);
+        if (tz == nullptr && tzLen == 0 && status == U_BUFFER_OVERFLOW_ERROR)
         {
-            // ucal_getTimeZoneID reports that null buffer/-1 buffer length is an illegal argument, but still returns the correct length
-            status = U_ZERO_ERROR;
+            // buffer overflow is expected when we are just trying to get the length returned
+            return required + 1;
         }
-        ICU_ASSERT(status, tz == nullptr ? required > 0 : required <= tzLen);
-
-        ucal_close(cal);
+        
+        ICU_ASSERT(status, required > 0 && required < tzLen);
         return required + 1;
     }
 
@@ -689,8 +685,25 @@ namespace Intl
     int ValidateAndCanonicalizeTimeZone(_In_z_ const char16 *tzIn, _Out_writes_opt_(tzOutLen) char16 *tzOut, _In_ int tzOutLen)
     {
         UErrorCode status = U_ZERO_ERROR;
+        
+        // ucal_getCanonicalTimeZoneID does not like being passed nullptr/0-length buffers, even if we just want to get the expected buffer length
+        char16 tempBuf;
+        const int tempBufLen = 1;
+        bool hasTempBuf = false;
+        if (tzOut == nullptr && tzOutLen == 0)
+        {
+            tzOut = &tempBuf;
+            tzOutLen = tempBufLen;
+            hasTempBuf = true;
+        }
+
         int required = ucal_getCanonicalTimeZoneID(reinterpret_cast<const UChar *>(tzIn), -1, reinterpret_cast<UChar *>(tzOut), tzOutLen, nullptr, &status);
-        if (status == U_ILLEGAL_ARGUMENT_ERROR)
+        if (hasTempBuf && status == U_BUFFER_OVERFLOW_ERROR)
+        {
+            // buffer overflow is expected when we are just trying to get the length returned
+            return required + 1;
+        }
+        else if (status == U_ILLEGAL_ARGUMENT_ERROR)
         {
             // illegal argument here means that tzIn is an invalid time zone
             return 0;
