@@ -3808,35 +3808,6 @@ LowererMD::GenerateSmIntPairTest(
 }
 #endif
 
-IR::BranchInstr *
-LowererMD::GenerateFlagInlineCacheCheck(
-    IR::Instr * instrLdSt,
-    IR::RegOpnd * opndType,
-    IR::RegOpnd * opndInlineCache,
-    IR::LabelInstr * labelNext)
-{
-    // Generate:
-    //
-    //      CMP s1, [&(inlineCache->u.accessor.type)]
-    //      JNE $next
-
-    IR::Instr * instr;
-    IR::Opnd* typeOpnd;
-    typeOpnd = IR::IndirOpnd::New(opndInlineCache, (int32)offsetof(Js::InlineCache, u.accessor.type), TyMachReg, instrLdSt->m_func);
-
-    // CMP s1, [&(inlineCache->u.flag.type)]
-    instr = IR::Instr::New(Js::OpCode::CMP, instrLdSt->m_func);
-    instr->SetSrc1(opndType);
-    instr->SetSrc2(typeOpnd);
-    instrLdSt->InsertBefore(instr);
-
-    // JNE $next
-    IR::BranchInstr * branchInstr = IR::BranchInstr::New(Js::OpCode::JNE, labelNext, instrLdSt->m_func);
-    instrLdSt->InsertBefore(branchInstr);
-
-    return branchInstr;
-}
-
 void
 LowererMD::GenerateLdFldFromLocalInlineCache(
     IR::Instr * instrLdFld,
@@ -4156,14 +4127,14 @@ LowererMD::GenerateFastLdMethodFromFlags(IR::Instr * instrLdFld)
     // We avoid repeated check for getter flag when the function object may be in either
     // inline slots or auxiliary slots
     this->m_lowerer->GenerateFlagInlineCacheCheckForGetterSetter(instrLdFld, opndInlineCache, bailOutLabel);
-    GenerateFlagInlineCacheCheck(instrLdFld, opndType, opndInlineCache, labelFlagAux);
+    this->m_lowerer->GenerateFlagInlineCacheCheck(instrLdFld, opndType, opndInlineCache, labelFlagAux);
     GenerateLdFldFromFlagInlineCache(instrLdFld, opndBase, opndDst, opndInlineCache, labelFallThru, true);
 
     // Check the flag cache with the tagged type
     instrLdFld->InsertBefore(labelFlagAux);
     IR::RegOpnd * opndTaggedType = IR::RegOpnd::New(TyMachReg, this->m_func);
     GenerateLoadTaggedType(instrLdFld, opndType, opndTaggedType);
-    GenerateFlagInlineCacheCheck(instrLdFld, opndTaggedType, opndInlineCache, bailOutLabel);
+    this->m_lowerer->GenerateFlagInlineCacheCheck(instrLdFld, opndTaggedType, opndInlineCache, bailOutLabel);
     GenerateLdFldFromFlagInlineCache(instrLdFld, opndBase, opndDst, opndInlineCache, labelFallThru, false);
 
     instrLdFld->InsertBefore(bailOutLabel);

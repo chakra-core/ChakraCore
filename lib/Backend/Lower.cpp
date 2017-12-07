@@ -24057,6 +24057,24 @@ Lowerer::GenerateProtoInlineCacheCheck(
     return InsertBranch(Js::OpCode::BrNeq_A, labelNext, instrLdSt);
 }
 
+IR::BranchInstr *
+Lowerer::GenerateFlagInlineCacheCheck(
+    IR::Instr * instrLdSt,
+    IR::RegOpnd * opndType,
+    IR::RegOpnd * opndInlineCache,
+    IR::LabelInstr * labelNext)
+{
+    // Generate:
+    //
+    //      CMP s1, [&(inlineCache->u.accessor.type)]
+    //      JNE $next
+
+    IR::Opnd* typeOpnd = IR::IndirOpnd::New(opndInlineCache, (int32)offsetof(Js::InlineCache, u.accessor.type), TyMachReg, instrLdSt->m_func);
+
+    InsertCompare(opndType, typeOpnd, instrLdSt);
+    return InsertBranch(Js::OpCode::BrNeq_A, labelNext, instrLdSt);
+}
+
 void
 Lowerer::LowerSpreadArrayLiteral(IR::Instr *instr)
 {
