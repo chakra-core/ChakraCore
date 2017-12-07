@@ -268,10 +268,6 @@ public:
     static IR::Instr * InsertCmovCC(const Js::OpCode opCode, IR::Opnd * dst, IR::Opnd* src1, IR::Instr* insertBeforeInstr, bool postRegAlloc);
 private:
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr, IRType destType);
-    void GenerateFlagInlineCacheCheckForGetterSetter(
-        IR::Instr * insertBeforeInstr,
-        IR::RegOpnd * opndInlineCache,
-        IR::LabelInstr * labelNext);
 
     void GenerateLdFldFromFlagInlineCache(
         IR::Instr * insertBeforeInstr,

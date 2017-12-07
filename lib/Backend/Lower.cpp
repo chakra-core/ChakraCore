@@ -23982,6 +23982,36 @@ Lowerer::CreateClearImplicitCallFlagsOpnd()
     return IR::IntConstOpnd::New(Js::ImplicitCall_None, GetImplicitCallFlagsType(), m_func);
 }
 
+void
+Lowerer::GenerateFlagInlineCacheCheckForGetterSetter(
+    IR::Instr * insertBeforeInstr,
+    IR::RegOpnd * opndInlineCache,
+    IR::LabelInstr * labelNext)
+{
+    uint accessorFlagMask;
+    if (PHASE_OFF(Js::InlineGettersPhase, insertBeforeInstr->m_func))
+    {
+        accessorFlagMask = Js::InlineCache::GetSetterFlagMask();
+    }
+    else if (PHASE_OFF(Js::InlineSettersPhase, insertBeforeInstr->m_func))
+    {
+        accessorFlagMask = Js::InlineCache::GetGetterFlagMask();
+    }
+    else
+    {
+        accessorFlagMask = Js::InlineCache::GetGetterSetterFlagMask();
+    }
+
+    // Generate:
+    //
+    //      TEST [&(inlineCache->u.accessor.flags)], Js::InlineCacheGetterFlag | Js::InlineCacheSetterFlag
+    //      JEQ $next
+
+    IR::Opnd * flagsOpnd = IR::IndirOpnd::New(opndInlineCache, (int32)offsetof(Js::InlineCache, u.accessor.rawUInt16), TyInt8, insertBeforeInstr->m_func);
+    IR::Opnd * accessorOpnd = IR::IntConstOpnd::New(accessorFlagMask, TyInt8, this->m_func);
+    InsertTestBranch(flagsOpnd, accessorOpnd, Js::OpCode::BrEq_A, labelNext, insertBeforeInstr);
+}
+
 IR::BranchInstr *
 Lowerer::GenerateLocalInlineCacheCheck(
     IR::Instr * instrLdSt,

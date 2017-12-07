@@ -600,6 +600,7 @@ private:
     IR::Opnd*       GetImplicitCallFlagsOpnd();
     IR::Opnd*       CreateClearImplicitCallFlagsOpnd();
 
+    void GenerateFlagInlineCacheCheckForGetterSetter(IR::Instr * insertBeforeInstr, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelNext);
     static IR::BranchInstr * GenerateLocalInlineCacheCheck(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelNext, bool checkTypeWithoutProperty = false);
 
     IR::Instr *         LoadScriptContext(IR::Instr *instr);
