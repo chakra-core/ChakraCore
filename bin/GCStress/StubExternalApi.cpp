@@ -21,7 +21,7 @@ void ConfigParserAPI::DisplayInitialOutput(__in LPWSTR moduleName)
     Output::Print(_u("INIT: DLL Path   : %s\n"), moduleName);
 }
 
-#ifdef ENABLE_JS_ETW
+#if defined(ENABLE_JS_ETW) && !defined(ENABLE_JS_LTTNG)
 void EtwCallbackApi::OnSessionChange(ULONG /* controlCode */, PVOID /* callbackContext */)
 {
     // Does nothing

@@ -14,6 +14,10 @@ if(CAN_BUILD_WABT)
     set(wabt_includes ${CHAKRACORE_SOURCE_DIR}/lib/wabt)
 endif()
 
+if (USE_LTTNG)
+    set(lttng_objects $<TARGET_OBJECTS:Chakra.LTTng>)
+endif()
+
 add_library (ChakraCoreStatic STATIC
   ChakraCoreStatic.cpp
   $<TARGET_OBJECTS:Chakra.Pal>
@@ -38,7 +42,15 @@ add_library (ChakraCoreStatic STATIC
   $<TARGET_OBJECTS:Chakra.Parser>
   ${wasm_objects}
   ${wabt_objects}
+  ${lttng_objects}
 )
+
+if(USE_LTTNG)
+    target_link_libraries(ChakraCoreStatic
+      -llttng-ust
+      -ldl
+    )
+endif()
 
 if(CC_TARGET_OS_OSX)
   target_link_libraries(ChakraCoreStatic

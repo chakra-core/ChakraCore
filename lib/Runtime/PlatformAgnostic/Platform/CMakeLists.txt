@@ -4,7 +4,6 @@ set(PL_SOURCE_FILES
   Common/UnicodeText.Common.cpp
   Common/HiResTimer.cpp
   Common/DateTime.cpp
-  Linux/EventTrace.cpp
   Linux/UnicodeText.ICU.cpp
   Linux/NumbersUtility.cpp
   Linux/Thread.cpp
