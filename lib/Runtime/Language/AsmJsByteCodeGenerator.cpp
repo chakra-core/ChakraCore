@@ -980,10 +980,10 @@ namespace Js
         }
         else
         {
-            AssertOrFailFast(UNREACHED);
+            // Vars must have concrete type, so any "-ish" or "maybe" type
+            // cannot be in a var location
             return false;
         }
-
     }
 
     RegSlot AsmJSByteCodeGenerator::EmitIndirectCallIndex(ParseNode* identifierNode, ParseNode* indexNode)
