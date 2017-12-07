@@ -264,14 +264,6 @@ public:
 private:
     IR::Opnd* IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr);
 
-    void GenerateLdFldFromFlagInlineCache(
-        IR::Instr * insertBeforeInstr,
-        IR::RegOpnd * opndBase,
-        IR::RegOpnd * opndInlineCache,
-        IR::Opnd * opndDst,
-        IR::LabelInstr * labelFallThru,
-        bool isInlineSlot);
-
     void GenerateAssignForBuiltinArg(
         RegNum dstReg,
         IR::Opnd* srcOpnd,

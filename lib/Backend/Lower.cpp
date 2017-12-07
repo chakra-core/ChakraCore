@@ -24124,6 +24124,61 @@ Lowerer::GenerateLdFldFromLocalInlineCache(
 }
 
 void
+Lowerer::GenerateLdFldFromFlagInlineCache(
+    IR::Instr * insertBeforeInstr,
+    IR::RegOpnd * opndBase,
+    IR::Opnd * opndDst,
+    IR::RegOpnd * opndInlineCache,
+    IR::LabelInstr * labelFallThru,
+    bool isInlineSlot)
+{
+    // Generate:
+    //
+    // s1 = MOV [&(inlineCache->u.accessor.object)] -- load the cached prototype object
+    // s1 = MOV [&s1->slots] -- load the slot array
+    // s2 = MOVZXW [&(inlineCache->u.accessor.slotIndex)] -- load the cached slot index
+    // dst = MOV [s1 + s2 * 4]
+    //      JMP $fallthru
+
+    IR::IndirOpnd * opndIndir = nullptr;
+    IR::RegOpnd * opndObjSlots = nullptr;
+
+    // s1 = MOV [&(inlineCache->u.accessor.object)] -- load the cached prototype object
+    IR::RegOpnd * opndObject = IR::RegOpnd::New(TyMachReg, this->m_func);
+    opndIndir = IR::IndirOpnd::New(opndInlineCache, (int32)offsetof(Js::InlineCache, u.accessor.object), TyMachReg, this->m_func);
+    InsertMove(opndObject, opndIndir, insertBeforeInstr);
+
+    if (!isInlineSlot)
+    {
+        // s1 = MOV [&s1->slots] -- load the slot array
+        opndObjSlots = IR::RegOpnd::New(TyMachReg, this->m_func);
+        opndIndir = IR::IndirOpnd::New(opndObject, Js::DynamicObject::GetOffsetOfAuxSlots(), TyMachReg, this->m_func);
+        InsertMove(opndObjSlots, opndIndir, insertBeforeInstr);
+    }
+
+    // s2 = MOVZXW [&(inlineCache->u.accessor.slotIndex)] -- load the cached slot index
+    IR::RegOpnd * opndSlotIndex = IR::RegOpnd::New(TyMachReg, this->m_func);
+    opndIndir = IR::IndirOpnd::New(opndInlineCache, (int32)offsetof(Js::InlineCache, u.accessor.slotIndex), TyUint16, this->m_func);
+    InsertMove(opndSlotIndex, opndIndir, insertBeforeInstr);
+
+    if (isInlineSlot)
+    {
+        // dst = MOV [s1 + s2 * 4]
+        opndIndir = IR::IndirOpnd::New(opndObject, opndSlotIndex, this->m_lowererMD.GetDefaultIndirScale(), TyMachReg, this->m_func);
+        InsertMove(opndDst, opndIndir, insertBeforeInstr);
+    }
+    else
+    {
+        // dst = MOV [s1 + s2 * 4]
+        opndIndir = IR::IndirOpnd::New(opndObjSlots, opndSlotIndex, this->m_lowererMD.GetDefaultIndirScale(), TyMachReg, this->m_func);
+        InsertMove(opndDst, opndIndir, insertBeforeInstr);
+    }
+
+    // JMP $fallthru
+    InsertBranch(Js::OpCode::Br, labelFallThru, insertBeforeInstr);
+}
+
+void
 Lowerer::LowerSpreadArrayLiteral(IR::Instr *instr)
 {
     LoadScriptContext(instr);

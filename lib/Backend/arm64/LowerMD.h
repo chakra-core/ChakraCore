@@ -264,14 +264,6 @@ public:
 private:
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr, IRType destType);
 
-    void GenerateLdFldFromFlagInlineCache(
-        IR::Instr * insertBeforeInstr,
-        IR::RegOpnd * opndBase,
-        IR::RegOpnd * opndInlineCache,
-        IR::Opnd * opndDst,
-        IR::LabelInstr * labelFallThru,
-        bool isInlineSlot);
-
     void GenerateAssignForBuiltinArg(
         RegNum dstReg,
         IR::Opnd* srcOpnd,
