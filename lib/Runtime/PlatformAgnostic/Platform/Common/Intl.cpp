@@ -709,7 +709,7 @@ namespace Intl
             return 0;
         }
 
-        ICU_ASSERT(status, tzOut == nullptr ? required > 0 : required <= tzOutLen);
+        ICU_ASSERT(status, required > 0 && required < tzOutLen);
         return required + 1;
     }
 
@@ -735,7 +735,7 @@ namespace Intl
             patternLen,
             &status
         );
-        ICU_ASSERT(status, pattern == nullptr ? bestPatternLen > 0 : bestPatternLen <= patternLen);
+        ICU_ASSERT(status, bestPatternLen > 0 && bestPatternLen < patternLen);
 
         udatpg_close(dtpg);
         return bestPatternLen + 1;
@@ -773,7 +773,7 @@ namespace Intl
         UDateFormat *dtf = UNWRAP_COBJECT(resource, UDateFormat);
 
         int required = udat_format(dtf, date, reinterpret_cast<UChar *>(formatted), formattedLen, nullptr, &status);
-        ICU_ASSERT(status, required > 0);
+        ICU_ASSERT(status, required > 0 && required < formattedLen);
 
         return required + 1;
     }
@@ -798,7 +798,7 @@ namespace Intl
         }
 
         int required = udat_formatForFields(dtf, date, reinterpret_cast<UChar *>(formatted), formattedLen, fpi, &status);
-        ICU_ASSERT(status, required > 0);
+        ICU_ASSERT(status, required > 0 && required < formattedLen);
 
         return required + 1;
     }
