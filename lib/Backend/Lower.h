@@ -275,6 +275,7 @@ private:
     IR::BranchInstr* GenerateFastBrConst(IR::BranchInstr *branchInstr, IR::Opnd * constOpnd, bool isEqual);
     bool            GenerateFastCondBranch(IR::BranchInstr * instrBranch, bool *pIsHelper);
     void            GenerateBooleanNegate(IR::Instr * instr, IR::Opnd * srcBool, IR::Opnd * dst);
+    bool            GenerateJSBooleanTest(IR::RegOpnd * regSrc, IR::Instr * insertInstr, IR::LabelInstr * labelTarget, bool fContinueLabel = false);
     bool            GenerateFastEqBoolInt(IR::Instr * instr, bool *pIsHelper, bool isInHelper);
     bool            GenerateFastBrEqLikely(IR::BranchInstr * instrBranch, bool *pNeedHelper, bool isInHelper);
     bool            GenerateFastBooleanAndObjectEqLikely(IR::Instr * instr, IR::Opnd *src1, IR::Opnd *src2, IR::LabelInstr * labelHelper, IR::LabelInstr * labelEqualLikely, bool *pNeedHelper, bool isInHelper);

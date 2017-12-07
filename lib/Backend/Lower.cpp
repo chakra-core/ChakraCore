@@ -20912,6 +20912,44 @@ void Lowerer::GenerateBooleanNegate(IR::Instr * instr, IR::Opnd * srcBool, IR::O
     InsertXor(dst, dst, xorval, instr);
 }
 
+bool Lowerer::GenerateJSBooleanTest(IR::RegOpnd * regSrc, IR::Instr * insertInstr, IR::LabelInstr * labelTarget, bool fContinueLabel)
+{
+    if (regSrc->GetValueType().IsBoolean())
+    {
+        if (fContinueLabel)
+        {
+            // JMP $labelTarget
+            InsertBranch(Js::OpCode::Br, labelTarget, insertInstr);
+#if DBG
+            if (labelTarget->isOpHelper)
+            {
+                labelTarget->m_noHelperAssert = true;
+            }
+#endif
+        }
+        return false;
+    }
+
+    IR::IndirOpnd * vtablePtrOpnd = IR::IndirOpnd::New(regSrc, 0, TyMachPtr, this->m_func);
+    IR::Opnd * jsBooleanVTable = LoadVTableValueOpnd(insertInstr, VTableValue::VtableJavascriptBoolean);
+    InsertCompare(vtablePtrOpnd, jsBooleanVTable, insertInstr);
+
+    if (fContinueLabel)
+    {
+        // JEQ $labelTarget
+        InsertBranch(Js::OpCode::BrEq_A, labelTarget, insertInstr);
+        
+        // $helper
+        InsertLabel(true, insertInstr);
+    }
+    else
+    {
+        // JNE $labelTarget
+        InsertBranch(Js::OpCode::BrNeq_A, labelTarget, insertInstr);
+    }
+    return true;
+}
+
 bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper, bool isInHelper)
 {
     Assert(instr);
@@ -21097,7 +21135,7 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper, bool i
             {
                 this->m_lowererMD.GenerateObjectTest(srcBool->AsRegOpnd(), instr, labelHelper, false);
             }
-            this->m_lowererMD.GenerateJSBooleanTest(srcBool->AsRegOpnd(), instr, labelHelper, false);
+            GenerateJSBooleanTest(srcBool->AsRegOpnd(), instr, labelHelper, false);
         }
     }
 
@@ -21385,7 +21423,7 @@ bool Lowerer::GenerateFastBooleanAndObjectEqLikely(IR::Instr * instr, IR::Opnd *
             if (!src1->GetValueType().IsBoolean() && !src2->GetValueType().IsBoolean())
             {
                 this->m_lowererMD.GenerateObjectTest(src2->AsRegOpnd(), instr, labelHelper, false);
-                if (this->m_lowererMD.GenerateJSBooleanTest(src2->AsRegOpnd(), instr, labelEqualLikely, true))
+                if (GenerateJSBooleanTest(src2->AsRegOpnd(), instr, labelEqualLikely, true))
                 {
                     instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelHelper, this->m_func));
                 }
@@ -21398,9 +21436,9 @@ bool Lowerer::GenerateFastBooleanAndObjectEqLikely(IR::Instr * instr, IR::Opnd *
         else
         {
             this->m_lowererMD.GenerateObjectTest(src1->AsRegOpnd(), instr, labelHelper, false);
-            this->m_lowererMD.GenerateJSBooleanTest(src1->AsRegOpnd(), instr, labelHelper, false);
+            GenerateJSBooleanTest(src1->AsRegOpnd(), instr, labelHelper, false);
             this->m_lowererMD.GenerateObjectTest(src2->AsRegOpnd(), instr, labelHelper, false);
-            if (this->m_lowererMD.GenerateJSBooleanTest(src2->AsRegOpnd(), instr, labelEqualLikely, true))
+            if (GenerateJSBooleanTest(src2->AsRegOpnd(), instr, labelEqualLikely, true))
             {
                 instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelHelper, this->m_func));
             }

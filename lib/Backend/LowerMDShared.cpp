@@ -6875,52 +6875,6 @@ bool LowererMD::GenerateObjectTest(IR::Opnd * opndSrc, IR::Instr * insertInstr, 
 
 #endif
 
-bool LowererMD::GenerateJSBooleanTest(IR::RegOpnd * regSrc, IR::Instr * insertInstr, IR::LabelInstr * labelTarget, bool fContinueLabel)
-{
-    IR::Instr* instr;
-    if (regSrc->GetValueType().IsBoolean())
-    {
-        if (fContinueLabel)
-        {
-            // JMP $labelTarget
-            instr = IR::BranchInstr::New(Js::OpCode::JMP, labelTarget, this->m_func);
-            insertInstr->InsertBefore(instr);
-#if DBG
-            if (labelTarget->isOpHelper)
-            {
-                labelTarget->m_noHelperAssert = true;
-            }
-#endif
-        }
-        return false;
-    }
-
-    // CMP src1, vtable<JavaScriptBoolean>
-    instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
-    IR::IndirOpnd *vtablePtrOpnd = IR::IndirOpnd::New(regSrc, 0, TyMachPtr, this->m_func);
-    instr->SetSrc1(vtablePtrOpnd);
-    IR::Opnd *jsBooleanVTable = m_lowerer->LoadVTableValueOpnd(insertInstr, VTableValue::VtableJavascriptBoolean);
-    instr->SetSrc2(jsBooleanVTable);
-    insertInstr->InsertBefore(instr);
-    Legalize(instr);
-
-    if (fContinueLabel)
-    {
-        // JEQ $labelTarget
-        instr = IR::BranchInstr::New(Js::OpCode::JEQ, labelTarget, this->m_func);
-        insertInstr->InsertBefore(instr);
-        IR::LabelInstr *labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-        insertInstr->InsertBefore(labelHelper);
-    }
-    else
-    {
-        // JNE $labelTarget
-        instr = IR::BranchInstr::New(Js::OpCode::JNE, labelTarget, this->m_func);
-        insertInstr->InsertBefore(instr);
-    }
-    return true;
-}
-
 #if FLOATVAR
 //
 // If any of the top 14 bits are not set, then the var is not a float value and hence, jump to $labelHelper.

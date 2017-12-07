@@ -4674,52 +4674,6 @@ IR::RegOpnd *LowererMD::LoadNonnegativeIndex(
     return indexOpnd;
 }
 
-bool LowererMD::GenerateJSBooleanTest(IR::RegOpnd * regSrc, IR::Instr * insertInstr, IR::LabelInstr * labelTarget, bool fContinueLabel)
-{
-    IR::Instr* instr;
-    if (regSrc->GetValueType().IsBoolean())
-    {
-        if (fContinueLabel)
-        {
-            // B $labelTarget
-            instr = IR::BranchInstr::New(Js::OpCode::B, labelTarget, this->m_func);
-            insertInstr->InsertBefore(instr);
-#if DBG
-            if (labelTarget->isOpHelper)
-            {
-                labelTarget->m_noHelperAssert = true;
-            }
-#endif
-        }
-        return false;
-    }
-
-    // CMP src1, vtable<JavaScriptBoolean>
-    instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
-    IR::IndirOpnd *vtablePtrOpnd = IR::IndirOpnd::New(regSrc, 0, TyMachPtr, this->m_func);
-    instr->SetSrc1(vtablePtrOpnd);
-    IR::Opnd *jsBooleanVTable = m_lowerer->LoadVTableValueOpnd(insertInstr, VTableValue::VtableJavascriptBoolean);
-    instr->SetSrc2(jsBooleanVTable);
-    insertInstr->InsertBefore(instr);
-    LegalizeMD::LegalizeInstr(instr, false);
-
-    if (fContinueLabel)
-    {
-        // BEQ $labelTarget
-        instr = IR::BranchInstr::New(Js::OpCode::BEQ, labelTarget, this->m_func);
-        insertInstr->InsertBefore(instr);
-        IR::LabelInstr *labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-        insertInstr->InsertBefore(labelHelper);
-    }
-    else
-    {
-        // BNE $labelTarget
-        instr = IR::BranchInstr::New(Js::OpCode::BNE, labelTarget, this->m_func);
-        insertInstr->InsertBefore(instr);
-    }
-    return true;
-}
-
 // Inlines fast-path for int Mul/Add or int Mul/Sub.  If not int, call MulAdd/MulSub helper
 bool LowererMD::TryGenerateFastMulAdd(IR::Instr * instrAdd, IR::Instr ** pInstrPrev)
 {
