@@ -1870,9 +1870,19 @@ NativeCodeGenerator::Prioritize(JsUtil::Job *const job, const bool forceAddJobTo
     }
     else
     {
-        if(!forceAddJobToProcessor && !functionBody->TryTransitionToJitExecutionMode())
+        if (!forceAddJobToProcessor)
         {
-            return;
+            if (!functionBody->TryTransitionToJitExecutionMode())
+            {
+                return;
+            }
+#if ENABLE_OOP_NATIVE_CODEGEN
+            // If for some reason OOP JIT isn't connected (e.g. it crashed), don't attempt to JIT
+            if (JITManager::GetJITManager()->IsOOPJITEnabled() && !JITManager::GetJITManager()->IsConnected())
+            {
+                return;
+            }
+#endif
         }
 
         jitMode = functionBody->GetExecutionMode();

@@ -96,14 +96,23 @@ template<> Types RegisterSpace::GetRegisterSpaceType<AsmJsSIMDValue>(){return WA
     bool ShouldJitFunction(Js::FunctionBody* body, uint interpretedCount)
     {
 #if ENABLE_NATIVE_CODEGEN
-        const bool noJit = PHASE_OFF(Js::BackEndPhase, body) ||
+        if (PHASE_OFF(Js::BackEndPhase, body) ||
             PHASE_OFF(Js::FullJitPhase, body) ||
             body->GetScriptContext()->GetConfig()->IsNoNative() ||
-            body->GetIsAsmJsFullJitScheduled();
+            body->GetIsAsmJsFullJitScheduled())
+        {
+            return false;
+        }
+#if ENABLE_OOP_NATIVE_CODEGEN
+        if (JITManager::GetJITManager()->IsOOPJITEnabled() && !JITManager::GetJITManager()->IsConnected())
+        {
+            return false;
+        }
+#endif
         const bool forceNative = CONFIG_ISENABLED(Js::ForceNativeFlag);
         const uint minAsmJsInterpretRunCount = (uint)CONFIG_FLAG(MinAsmJsInterpreterRunCount);
         const uint maxAsmJsInterpretRunCount = (uint)CONFIG_FLAG(MaxAsmJsInterpreterRunCount);
-        return !noJit && (forceNative || interpretedCount >= minAsmJsInterpretRunCount || interpretedCount >= maxAsmJsInterpretRunCount);
+        return forceNative || interpretedCount >= minAsmJsInterpretRunCount || interpretedCount >= maxAsmJsInterpretRunCount;
 #else
         return false;
 #endif
