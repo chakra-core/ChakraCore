@@ -760,7 +760,7 @@ namespace Intl
             -1,
             &status
         );
-        IPlatformAgnosticResource *formatterResource = new IcuCObject<UDateFormat>(dtf, &udat_close); // TODO(jahorto): fix leak
+        IPlatformAgnosticResource *formatterResource = new IcuCObject<UDateFormat>(dtf, &udat_close);
         AssertOrFailFast(formatterResource);
         *resource = formatterResource;
     }
@@ -779,7 +779,8 @@ namespace Intl
     }
 
     // Formats `date` using the UDateFormat wrapped by `resource`. If `formatted` is non-null, the result is written into `formatted`
-    // Returns the number of characters written into `formatted` (does not include a null terminator) [should always be positive]
+    // Takes an additional parameter, fieldIterator, which is set to a IPlatformAgnosticResource* that should later be given to GetDateTimePartInfo
+    // Returns the number of characters written into `formatted` (includes a null terminator) [should always be positive]
     int FormatDateTimeToParts(_In_ IPlatformAgnosticResource *resource, _In_ double date, _Out_writes_opt_(formattedLen) char16 *formatted,
         _In_ int formattedLen, _Out_opt_ IPlatformAgnosticResource **fieldIterator)
     {
@@ -792,7 +793,7 @@ namespace Intl
         {
             fpi = ufieldpositer_open(&status);
             ICU_ASSERT(status, true);
-            IPlatformAgnosticResource *fpiResource = new IcuCObject<UFieldPositionIterator>(fpi, &ufieldpositer_close); // TODO(jahorto): fix leak
+            IPlatformAgnosticResource *fpiResource = new IcuCObject<UFieldPositionIterator>(fpi, &ufieldpositer_close);
             AssertOrFailFastMsg(fpiResource, "Out of memory");
             *fieldIterator = fpiResource;
         }

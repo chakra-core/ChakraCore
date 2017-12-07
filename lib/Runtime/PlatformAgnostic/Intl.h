@@ -77,7 +77,7 @@ namespace Intl
         void Cleanup() override
         {
             delete intlObject;
-            intlObject = nullptr;
+            delete this;
         }
 
         // Explicitly not overriding the default destructor; ensure that Cleanup() is used instead.
@@ -110,7 +110,7 @@ namespace Intl
         void Cleanup() override
         {
             cleanupFunc(resource);
-            resource = nullptr;
+            delete this;
         }
     };
 
