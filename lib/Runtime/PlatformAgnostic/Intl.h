@@ -88,7 +88,7 @@ namespace Intl
     class IcuCObject : public IPlatformAgnosticResource
     {
     public:
-        typedef void (*CleanupFunc)(TResource *);
+        typedef void (__cdecl *CleanupFunc)(TResource *);
 
     private:
         TResource *resource;
