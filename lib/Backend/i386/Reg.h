@@ -22,6 +22,7 @@ enum RegNum : BYTE {
 #define FIRST_INT_REG RegEAX
 #define FIRST_FLOAT_REG RegXMM0
 #define FIRST_FLOAT_ARG_REG RegXMM0
+#define CATCH_OBJ_REG RegEAX
 
 #define XMM_REGCOUNT 8
 

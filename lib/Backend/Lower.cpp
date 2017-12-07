@@ -2553,7 +2553,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::Catch:
-            instrPrev = m_lowererMD.LowerCatch(instr);
+            instrPrev = this->LowerCatch(instr);
             break;
 
         case Js::OpCode::Finally:
@@ -2577,7 +2577,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 // Required in Register Allocator to mark region boundaries
                 break;
             }
-            instrPrev = m_lowererMD.LowerLeave(instr, instr->AsBranchInstr()->GetTarget(), false /*fromFinalLower*/, instr->AsBranchInstr()->m_isOrphanedLeave);
+            instrPrev = this->LowerLeave(instr, instr->AsBranchInstr()->GetTarget(), false /*fromFinalLower*/, instr->AsBranchInstr()->m_isOrphanedLeave);
             break;
 
         case Js::OpCode::BailOnException:
@@ -24884,6 +24884,45 @@ Lowerer::LowerTry(IR::Instr* instr, bool tryCatch)
 
     return m_lowererMD.LowerTry(instr, tryCatch ? IR::HelperOp_TryCatch : ((this->m_func->IsSimpleJit() && !this->m_func->hasBailout) || !this->m_func->DoOptimizeTry()) ?
         IR::HelperOp_TryFinallySimpleJit : IR::HelperOp_TryFinally);
+}
+
+IR::Instr *
+Lowerer::LowerCatch(IR::Instr * instr)
+{
+    // t1 = catch    =>    t2(eax) = catch
+    //               =>    t1 = t2(eax)
+
+    IR::Opnd *catchObj = instr->UnlinkDst();
+    IR::RegOpnd *catchParamReg = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    catchParamReg->SetReg(CATCH_OBJ_REG);
+
+    instr->SetDst(catchParamReg);
+
+    instr->InsertAfter(IR::Instr::New(Js::OpCode::MOV, catchObj, catchParamReg, this->m_func));
+
+    return instr->m_prev;
+}
+
+IR::Instr *
+Lowerer::LowerLeave(IR::Instr * leaveInstr, IR::LabelInstr * targetInstr, bool fromFinalLower, bool isOrphanedLeave)
+{
+    if (isOrphanedLeave)
+    {
+        Assert(this->m_func->IsLoopBodyInTry());
+        leaveInstr->m_opcode = LowererMD::MDUncondBranchOpcode;
+        return leaveInstr->m_prev;
+    }
+
+    IR::Instr * instrPrev = leaveInstr->m_prev;
+    IR::LabelOpnd *labelOpnd = IR::LabelOpnd::New(targetInstr, this->m_func);
+    m_lowererMD.LowerEHRegionReturn(leaveInstr, labelOpnd);
+
+    if (fromFinalLower)
+    {
+        instrPrev = leaveInstr->m_prev;
+    }
+    leaveInstr->Remove();
+    return instrPrev;
 }
 
 void

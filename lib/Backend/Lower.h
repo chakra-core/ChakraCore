@@ -654,6 +654,8 @@ private:
 #endif
 
     IR::Instr*      LowerTry(IR::Instr* instr, bool tryCatch);
+    IR::Instr *     LowerCatch(IR::Instr *instr);
+    IR::Instr *     LowerLeave(IR::Instr *instr, IR::LabelInstr * targetInstr, bool fromFinalLower, bool isOrphanedLeave = false);
     void            EnsureBailoutReturnValueSym();
     void            EnsureHasBailedOutSym();
     void            InsertReturnThunkForRegion(Region* region, IR::LabelInstr* restoreLabel);
