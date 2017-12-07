@@ -4185,40 +4185,6 @@ LowererMD::GenerateFlagInlineCacheCheck(
     return branchInstr;
 }
 
-IR::BranchInstr *
-LowererMD::GenerateProtoInlineCacheCheck(
-    IR::Instr * instrLdSt,
-    IR::RegOpnd * opndType,
-    IR::RegOpnd * opndInlineCache,
-    IR::LabelInstr * labelNext)
-{
-    // Generate:
-    //
-    // s3 = LDR inlineCache->u.proto.type
-    //      CMP type, s3
-    //      BNE $next
-
-    IR::Instr * instr;
-
-    // LDR s3, [inlineCache, offset(u.proto.type)]
-    IR::RegOpnd *s3 = IR::RegOpnd::New(TyMachReg, instrLdSt->m_func);
-    IR::IndirOpnd * opndIndir = IR::IndirOpnd::New(opndInlineCache, offsetof(Js::InlineCache, u.proto.type), TyMachPtr, instrLdSt->m_func);
-    instr = IR::Instr::New(Js::OpCode::LDR, s3, opndIndir, instrLdSt->m_func);
-    instrLdSt->InsertBefore(instr);
-
-    // CMP type, s3
-    instr = IR::Instr::New(Js::OpCode::CMP, instrLdSt->m_func);
-    instr->SetSrc1(opndType);
-    instr->SetSrc2(s3);
-    instrLdSt->InsertBefore(instr);
-
-    // BNE $next
-    IR::BranchInstr * branchInstr = IR::BranchInstr::New(Js::OpCode::BNE, labelNext, instrLdSt->m_func);
-    instrLdSt->InsertBefore(branchInstr);
-
-    return branchInstr;
-}
-
 void
 LowererMD::GenerateLdFldFromLocalInlineCache(
     IR::Instr * instrLdFld,

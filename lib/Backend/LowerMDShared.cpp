@@ -3809,34 +3809,6 @@ LowererMD::GenerateSmIntPairTest(
 #endif
 
 IR::BranchInstr *
-LowererMD::GenerateProtoInlineCacheCheck(
-    IR::Instr * instrLdSt,
-    IR::RegOpnd * opndType,
-    IR::RegOpnd * inlineCache,
-    IR::LabelInstr * labelNext)
-{
-    // Generate:
-    //
-    //      CMP s1, [&(inlineCache->u.proto.type)]
-    //      JNE $next
-
-    IR::Instr * instr;
-    IR::Opnd* typeOpnd = IR::IndirOpnd::New(inlineCache, (int32)offsetof(Js::InlineCache, u.proto.type), TyMachReg, instrLdSt->m_func);
-
-    // CMP s1, [&(inlineCache->u.proto.type)]
-    instr = IR::Instr::New(Js::OpCode::CMP, instrLdSt->m_func);
-    instr->SetSrc1(opndType);
-    instr->SetSrc2(typeOpnd);
-    instrLdSt->InsertBefore(instr);
-
-    // JNE $next
-    IR::BranchInstr * branchInstr = IR::BranchInstr::New(Js::OpCode::JNE, labelNext, instrLdSt->m_func);
-    instrLdSt->InsertBefore(branchInstr);
-
-    return branchInstr;
-}
-
-IR::BranchInstr *
 LowererMD::GenerateFlagInlineCacheCheck(
     IR::Instr * instrLdSt,
     IR::RegOpnd * opndType,

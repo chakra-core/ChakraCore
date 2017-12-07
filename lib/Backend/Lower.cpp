@@ -20296,7 +20296,7 @@ Lowerer::GenerateFastLdFld(IR::Instr * const instrLdFld, IR::JnHelperMethod help
         if (doInlineSlots)
         {
             labelNext = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, isHelper);
-            labelNextBranchToPatch = LowererMD::GenerateProtoInlineCacheCheck(instrLdFld, typeOpnd, opndInlineCache, labelNext);
+            labelNextBranchToPatch = GenerateProtoInlineCacheCheck(instrLdFld, typeOpnd, opndInlineCache, labelNext);
             LowererMD::GenerateLdFldFromProtoInlineCache(instrLdFld, opndBase, opndDst, opndInlineCache, labelFallThru, true);
             instrLdFld->InsertBefore(labelNext);
         }
@@ -20308,7 +20308,7 @@ Lowerer::GenerateFastLdFld(IR::Instr * const instrLdFld, IR::JnHelperMethod help
                 LowererMD::GenerateLoadTaggedType(instrLdFld, typeOpnd, opndTaggedType);
             }
             labelNext = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, isHelper);
-            labelNextBranchToPatch = LowererMD::GenerateProtoInlineCacheCheck(instrLdFld, opndTaggedType, opndInlineCache, labelNext);
+            labelNextBranchToPatch = GenerateProtoInlineCacheCheck(instrLdFld, opndTaggedType, opndInlineCache, labelNext);
             LowererMD::GenerateLdFldFromProtoInlineCache(instrLdFld, opndBase, opndDst, opndInlineCache, labelFallThru, false);
             instrLdFld->InsertBefore(labelNext);
         }
@@ -20340,7 +20340,7 @@ Lowerer::GenerateFastLdFld(IR::Instr * const instrLdFld, IR::JnHelperMethod help
         if (doInlineSlots)
         {
             labelNext = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, isHelper);
-            labelNextBranchToPatch = LowererMD::GenerateProtoInlineCacheCheck(instrLdFld, typeOpnd, opndInlineCache, labelNext);
+            labelNextBranchToPatch = GenerateProtoInlineCacheCheck(instrLdFld, typeOpnd, opndInlineCache, labelNext);
             LowererMD::GenerateLdFldFromProtoInlineCache(instrLdFld, opndBase, opndDst, opndInlineCache, labelFallThru, true);
             instrLdFld->InsertBefore(labelNext);
         }
@@ -20352,7 +20352,7 @@ Lowerer::GenerateFastLdFld(IR::Instr * const instrLdFld, IR::JnHelperMethod help
                 LowererMD::GenerateLoadTaggedType(instrLdFld, typeOpnd, opndTaggedType);
             }
             labelNext = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, isHelper);
-            labelNextBranchToPatch = LowererMD::GenerateProtoInlineCacheCheck(instrLdFld, opndTaggedType, opndInlineCache, labelNext);
+            labelNextBranchToPatch = GenerateProtoInlineCacheCheck(instrLdFld, opndTaggedType, opndInlineCache, labelNext);
             LowererMD::GenerateLdFldFromProtoInlineCache(instrLdFld, opndBase, opndDst, opndInlineCache, labelFallThru, false);
             instrLdFld->InsertBefore(labelNext);
         }
@@ -24034,6 +24034,24 @@ Lowerer::GenerateLocalInlineCacheCheck(
     {
         typeOpnd = IR::IndirOpnd::New(inlineCache, (int32)offsetof(Js::InlineCache, u.local.type), TyMachReg, instrLdSt->m_func);
     }
+
+    InsertCompare(opndType, typeOpnd, instrLdSt);
+    return InsertBranch(Js::OpCode::BrNeq_A, labelNext, instrLdSt);
+}
+
+IR::BranchInstr *
+Lowerer::GenerateProtoInlineCacheCheck(
+    IR::Instr * instrLdSt,
+    IR::RegOpnd * opndType,
+    IR::RegOpnd * inlineCache,
+    IR::LabelInstr * labelNext)
+{
+    // Generate:
+    //
+    //      CMP s1, [&(inlineCache->u.proto.type)]
+    //      JNE $next
+
+    IR::Opnd* typeOpnd = IR::IndirOpnd::New(inlineCache, (int32)offsetof(Js::InlineCache, u.proto.type), TyMachReg, instrLdSt->m_func);
 
     InsertCompare(opndType, typeOpnd, instrLdSt);
     return InsertBranch(Js::OpCode::BrNeq_A, labelNext, instrLdSt);
