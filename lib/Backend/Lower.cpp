@@ -20297,7 +20297,7 @@ Lowerer::GenerateFastLdFld(IR::Instr * const instrLdFld, IR::JnHelperMethod help
         {
             labelNext = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, isHelper);
             labelNextBranchToPatch = GenerateProtoInlineCacheCheck(instrLdFld, typeOpnd, opndInlineCache, labelNext);
-            LowererMD::GenerateLdFldFromProtoInlineCache(instrLdFld, opndBase, opndDst, opndInlineCache, labelFallThru, true);
+            GenerateLdFldFromProtoInlineCache(instrLdFld, opndBase, opndDst, opndInlineCache, labelFallThru, true);
             instrLdFld->InsertBefore(labelNext);
         }
         if (doAuxSlots)
@@ -20309,7 +20309,7 @@ Lowerer::GenerateFastLdFld(IR::Instr * const instrLdFld, IR::JnHelperMethod help
             }
             labelNext = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, isHelper);
             labelNextBranchToPatch = GenerateProtoInlineCacheCheck(instrLdFld, opndTaggedType, opndInlineCache, labelNext);
-            LowererMD::GenerateLdFldFromProtoInlineCache(instrLdFld, opndBase, opndDst, opndInlineCache, labelFallThru, false);
+            GenerateLdFldFromProtoInlineCache(instrLdFld, opndBase, opndDst, opndInlineCache, labelFallThru, false);
             instrLdFld->InsertBefore(labelNext);
         }
     }
@@ -20341,7 +20341,7 @@ Lowerer::GenerateFastLdFld(IR::Instr * const instrLdFld, IR::JnHelperMethod help
         {
             labelNext = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, isHelper);
             labelNextBranchToPatch = GenerateProtoInlineCacheCheck(instrLdFld, typeOpnd, opndInlineCache, labelNext);
-            LowererMD::GenerateLdFldFromProtoInlineCache(instrLdFld, opndBase, opndDst, opndInlineCache, labelFallThru, true);
+            GenerateLdFldFromProtoInlineCache(instrLdFld, opndBase, opndDst, opndInlineCache, labelFallThru, true);
             instrLdFld->InsertBefore(labelNext);
         }
         if (doAuxSlots)
@@ -20353,7 +20353,7 @@ Lowerer::GenerateFastLdFld(IR::Instr * const instrLdFld, IR::JnHelperMethod help
             }
             labelNext = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, isHelper);
             labelNextBranchToPatch = GenerateProtoInlineCacheCheck(instrLdFld, opndTaggedType, opndInlineCache, labelNext);
-            LowererMD::GenerateLdFldFromProtoInlineCache(instrLdFld, opndBase, opndDst, opndInlineCache, labelFallThru, false);
+            GenerateLdFldFromProtoInlineCache(instrLdFld, opndBase, opndDst, opndInlineCache, labelFallThru, false);
             instrLdFld->InsertBefore(labelNext);
         }
     }
@@ -24116,6 +24116,61 @@ Lowerer::GenerateLdFldFromLocalInlineCache(
     {
         // dst = MOV [s1 + s2 * Scale]  -- load the value directly from the slot
         opndIndir = IR::IndirOpnd::New(opndSlotArray, opndReg2, LowererMD::GetDefaultIndirScale(), TyMachReg, instrLdFld->m_func);
+        InsertMove(opndDst, opndIndir, instrLdFld);
+    }
+
+    // JMP $fallthru
+    InsertBranch(Js::OpCode::Br, labelFallThru, instrLdFld);
+}
+
+void
+Lowerer::GenerateLdFldFromProtoInlineCache(
+    IR::Instr * instrLdFld,
+    IR::RegOpnd * opndBase,
+    IR::Opnd * opndDst,
+    IR::RegOpnd * inlineCache,
+    IR::LabelInstr * labelFallThru,
+    bool isInlineSlot)
+{
+    // Generate:
+    //
+    // s1 = MOV [&(inlineCache->u.proto.prototypeObject)] -- load the cached prototype object
+    // s1 = MOV [&s1->slots] -- load the slot array
+    // s2 = MOVZXW [&(inlineCache->u.proto.slotIndex)] -- load the cached slot index
+    // dst = MOV [s1 + s2*4]
+    //      JMP $fallthru
+
+    IR::IndirOpnd * opndIndir = nullptr;
+    IR::RegOpnd * opndProtoSlots = nullptr;
+
+    // s1 = MOV [&(inlineCache->u.proto.prototypeObject)] -- load the cached prototype object
+    IR::RegOpnd * opndProto = IR::RegOpnd::New(TyMachReg, instrLdFld->m_func);
+    opndIndir = IR::IndirOpnd::New(inlineCache, (int32)offsetof(Js::InlineCache, u.proto.prototypeObject), TyMachReg, instrLdFld->m_func);
+    InsertMove(opndProto, opndIndir, instrLdFld);
+
+    if (!isInlineSlot)
+    {
+        // s1 = MOV [&s1->slots] -- load the slot array
+        opndProtoSlots = IR::RegOpnd::New(TyMachReg, instrLdFld->m_func);
+        opndIndir = IR::IndirOpnd::New(opndProto, Js::DynamicObject::GetOffsetOfAuxSlots(), TyMachReg, instrLdFld->m_func);
+        InsertMove(opndProtoSlots, opndIndir, instrLdFld);
+    }
+
+    // s2 = MOVZXW [&(inlineCache->u.proto.slotIndex)] -- load the cached slot index
+    IR::RegOpnd * opndSlotIndex = IR::RegOpnd::New(TyMachReg, instrLdFld->m_func);
+    opndIndir = IR::IndirOpnd::New(inlineCache, (int32)offsetof(Js::InlineCache, u.proto.slotIndex), TyUint16, instrLdFld->m_func);
+    InsertMove(opndSlotIndex, opndIndir, instrLdFld);
+
+    if (isInlineSlot)
+    {
+        // dst = MOV [s1 + s2*4]
+        opndIndir = IR::IndirOpnd::New(opndProto, opndSlotIndex, LowererMD::GetDefaultIndirScale(), TyMachReg, instrLdFld->m_func);
+        InsertMove(opndDst, opndIndir, instrLdFld);
+    }
+    else
+    {
+        // dst = MOV [s1 + s2*4]
+        opndIndir = IR::IndirOpnd::New(opndProtoSlots, opndSlotIndex, LowererMD::GetDefaultIndirScale(), TyMachReg, instrLdFld->m_func);
         InsertMove(opndDst, opndIndir, instrLdFld);
     }
 
