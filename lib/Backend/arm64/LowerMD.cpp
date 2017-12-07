@@ -4023,13 +4023,13 @@ LowererMD::GenerateFlagInlineCacheCheckForGetterSetter(
 
     // Generate:
     //
-    //      TST [&(inlineCache->u.flags.flags)], Js::InlineCacheGetterFlag | Js::InlineCacheSetterFlag
+    //      TST [&(inlineCache->u.accessor.flags)], Js::InlineCacheGetterFlag | Js::InlineCacheSetterFlag
     //      BEQ $next
     IR::Instr * instr;
     IR::Opnd* flagsOpnd;
 
-    flagsOpnd = IR::IndirOpnd::New(opndInlineCache, 0, TyInt8, this->m_func);
-    // AND [&(inlineCache->u.flags.flags)], InlineCacheGetterFlag | InlineCacheSetterFlag
+    flagsOpnd = IR::IndirOpnd::New(opndInlineCache, (int32)offsetof(Js::InlineCache, u.accessor.rawUInt16), TyInt8, this->m_func);
+    // AND [&(inlineCache->u.accessor.flags)], InlineCacheGetterFlag | InlineCacheSetterFlag
     instr = IR::Instr::New(Js::OpCode::TST,this->m_func);
     instr->SetSrc1(flagsOpnd);
     instr->SetSrc2(IR::IntConstOpnd::New(accessorFlagMask, TyInt8, this->m_func));
