@@ -311,6 +311,13 @@ bool ValueType::IsFloat() const
             ));
 }
 
+bool ValueType::IsNotFloat() const
+{
+    return
+        AnyOnExcept(Bits::Likely | Bits::Object | Bits::CanBeTaggedValue | Bits::Float | Bits::Number) ||
+        OneOnOneOff(Bits::Object, Bits::Likely);
+}
+
 bool ValueType::IsLikelyFloat() const
 {
     return
