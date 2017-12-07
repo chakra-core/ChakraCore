@@ -146,6 +146,21 @@ public:
         }                                                                     \
     } while (false)
 
+// Some ICU functions don't like being given null/0-length buffers.
+// We can work around this by making a local allocation of size 1 that will still
+// trigger a U_BUFFER_OVERFLOW_ERROR but will allow the function to return the required length.
+#define ICU_FIXBUF(type, bufArg, bufArgLen)                                   \
+    type __temp; \
+    const int __tempLen = 1; \
+    bool isTemporaryBuffer = false; \
+    if (bufArg == nullptr && bufArgLen == 0) \
+    { \
+        bufArg = &__temp; \
+        bufArgLen = __tempLen; \
+        isTemporaryBuffer = true; \
+    }
+
+
 #define UNWRAP_PAIO(resource, innerType) reinterpret_cast<PlatformAgnosticIntlObject<innerType> *>(resource)->GetInstance();
 #define UNWRAP_COBJECT(resource, innerType) reinterpret_cast<IcuCObject<innerType> *>(resource)->GetInstance();
 
@@ -669,8 +684,9 @@ namespace Intl
     int GetDefaultTimeZone(_Out_writes_opt_(tzLen) char16 *tz, _In_ int tzLen)
     {
         UErrorCode status = U_ZERO_ERROR;
+        ICU_FIXBUF(char16, tz, tzLen); // sets bool isTemporaryBuffer
         int required = ucal_getDefaultTimeZone(reinterpret_cast<UChar *>(tz), tzLen, &status);
-        if (tz == nullptr && tzLen == 0 && status == U_BUFFER_OVERFLOW_ERROR)
+        if (isTemporaryBuffer && status == U_BUFFER_OVERFLOW_ERROR)
         {
             // buffer overflow is expected when we are just trying to get the length returned
             return required + 1;
@@ -685,20 +701,10 @@ namespace Intl
     int ValidateAndCanonicalizeTimeZone(_In_z_ const char16 *tzIn, _Out_writes_opt_(tzOutLen) char16 *tzOut, _In_ int tzOutLen)
     {
         UErrorCode status = U_ZERO_ERROR;
-        
-        // ucal_getCanonicalTimeZoneID does not like being passed nullptr/0-length buffers, even if we just want to get the expected buffer length
-        char16 tempBuf;
-        const int tempBufLen = 1;
-        bool hasTempBuf = false;
-        if (tzOut == nullptr && tzOutLen == 0)
-        {
-            tzOut = &tempBuf;
-            tzOutLen = tempBufLen;
-            hasTempBuf = true;
-        }
+        ICU_FIXBUF(char16, tzOut, tzOutLen); // sets bool isTemporaryBuffer
 
         int required = ucal_getCanonicalTimeZoneID(reinterpret_cast<const UChar *>(tzIn), -1, reinterpret_cast<UChar *>(tzOut), tzOutLen, nullptr, &status);
-        if (hasTempBuf && status == U_BUFFER_OVERFLOW_ERROR)
+        if (isTemporaryBuffer && status == U_BUFFER_OVERFLOW_ERROR)
         {
             // buffer overflow is expected when we are just trying to get the length returned
             return required + 1;
@@ -735,7 +741,16 @@ namespace Intl
             patternLen,
             &status
         );
-        ICU_ASSERT(status, bestPatternLen > 0 && bestPatternLen < patternLen);
+
+        if (pattern == nullptr && patternLen == 0 && status == U_BUFFER_OVERFLOW_ERROR)
+        {
+            // when we are just counting bytes, we can ignore errors
+            AssertOrFailFast(bestPatternLen > 0);
+        }
+        else
+        {
+            ICU_ASSERT(status, bestPatternLen > 0 && bestPatternLen < patternLen);
+        }
 
         udatpg_close(dtpg);
         return bestPatternLen + 1;
@@ -773,7 +788,15 @@ namespace Intl
         UDateFormat *dtf = UNWRAP_COBJECT(resource, UDateFormat);
 
         int required = udat_format(dtf, date, reinterpret_cast<UChar *>(formatted), formattedLen, nullptr, &status);
-        ICU_ASSERT(status, required > 0 && required < formattedLen);
+        if (formatted == nullptr && formattedLen == 0 && status == U_BUFFER_OVERFLOW_ERROR)
+        {
+            // when we are just counting bytes, we can ignore errors
+            AssertOrFailFast(required > 0);
+        }
+        else
+        {
+            ICU_ASSERT(status, required > 0 && required < formattedLen);
+        }
 
         return required + 1;
     }
@@ -799,7 +822,15 @@ namespace Intl
         }
 
         int required = udat_formatForFields(dtf, date, reinterpret_cast<UChar *>(formatted), formattedLen, fpi, &status);
-        ICU_ASSERT(status, required > 0 && required < formattedLen);
+        if (formatted == nullptr && formattedLen == 0 && status == U_BUFFER_OVERFLOW_ERROR)
+        {
+            // when we are just counting bytes, we can ignore errors
+            AssertOrFailFast(required > 0);
+        }
+        else
+        {
+            ICU_ASSERT(status, required > 0 && required < formattedLen);
+        }
 
         return required + 1;
     }

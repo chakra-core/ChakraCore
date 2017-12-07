@@ -1696,7 +1696,7 @@ namespace Js
 
             utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
 
-            int patternLen = GetPatternForSkeleton(locale8, skeleton->GetSz(), nullptr, -1);
+            int patternLen = GetPatternForSkeleton(locale8, skeleton->GetSz());
             char16 *pattern = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, patternLen);
             GetPatternForSkeleton(locale8, skeleton->GetSz(), pattern, patternLen);
 
@@ -1742,7 +1742,7 @@ namespace Js
         else
         {
             FormatDateTime(dtf, x, formatted, required);
-            return JavascriptString::NewWithBuffer(formatted, required, scriptContext);
+            return JavascriptString::NewWithBuffer(formatted, required - 1, scriptContext);
         }
 #endif
     }
@@ -1769,12 +1769,12 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 #else
-        int required = ValidateAndCanonicalizeTimeZone(tz->GetSz(), nullptr, -1);
+        int required = ValidateAndCanonicalizeTimeZone(tz->GetSz());
         if (required > 0)
         {
             char16 *buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, required);
             ValidateAndCanonicalizeTimeZone(tz->GetSz(), buffer, required);
-            return JavascriptString::NewWithBuffer(buffer, required, scriptContext);
+            return JavascriptString::NewWithBuffer(buffer, required - 1, scriptContext);
         }
         else
         {
@@ -1804,12 +1804,12 @@ namespace Js
         PCWSTR strBuf = wsl->WindowsGetStringRawBuffer(*str, NULL);
         return Js::JavascriptString::NewCopySz(strBuf, scriptContext);
 #else
-        int required = GetDefaultTimeZone(nullptr, -1);
+        int required = GetDefaultTimeZone();
         AssertOrFailFastMsg(required > 0, "GetDefaultTimeZone returned an invalid buffer length");
 
         char16 *buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, required);
         GetDefaultTimeZone(buffer, required);
-        return JavascriptString::NewWithBuffer(buffer, required, scriptContext);
+        return JavascriptString::NewWithBuffer(buffer, required - 1, scriptContext);
 #endif
     }
 
