@@ -837,6 +837,8 @@ namespace Intl
             return _u("minute");
         case UDAT_SECOND_FIELD:
             return _u("second");
+        case UDAT_DAY_OF_WEEK_FIELD:
+            return _u("weekday");
         case UDAT_AM_PM_FIELD:
             return _u("dayPeriod");
         case UDAT_TIMEZONE_FIELD:

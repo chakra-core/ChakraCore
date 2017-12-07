@@ -1660,8 +1660,8 @@ namespace Js
         );
 
         DynamicObject *state = DynamicObject::UnsafeFromVar(args.Values[1]);
-        double x = TaggedInt::Is(args.Values[1]) ? TaggedInt::ToDouble(args.Values[1]) : JavascriptNumber::GetValue(args.Values[1]);
-        bool toParts = Js::JavascriptBoolean::UnsafeFromVar(args.Values[2])->GetValue() ? true : false;
+        double x = TaggedInt::Is(args.Values[2]) ? TaggedInt::ToDouble(args.Values[2]) : JavascriptNumber::GetValue(args.Values[2]);
+        bool toParts = Js::JavascriptBoolean::UnsafeFromVar(args.Values[3])->GetValue() ? true : false;
 
         Var hiddenObject = nullptr;
         IPlatformAgnosticResource *dtf = nullptr;
