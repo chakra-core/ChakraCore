@@ -153,7 +153,7 @@ LowererMDArch::LoadInputParamPtr(IR::Instr *instrInsert, IR::RegOpnd *optionalDs
         // Stack looks like (EBP chain)+0, (return addr)+4, (function object)+8, (arg count)+12, (this)+16, actual args
         StackSym *paramSym = StackSym::New(TyMachReg, this->m_func);
         this->m_func->SetArgOffset(paramSym, 5 * MachPtr);
-        IR::Instr *instr = this->lowererMD->LoadStackAddress(paramSym, optionalDstOpnd);
+        IR::Instr *instr = this->lowererMD->m_lowerer->LoadStackAddress(paramSym, optionalDstOpnd);
         instrInsert->InsertBefore(instr);
         return instr;
     }
@@ -220,7 +220,7 @@ LowererMDArch::LoadHeapArgsCached(IR::Instr *instrArgs)
             // s4 = address of first actual argument (after "this").
             StackSym *firstRealArgSlotSym = func->GetInlineeArgvSlotOpnd()->m_sym->AsStackSym();
             this->m_func->SetArgOffset(firstRealArgSlotSym, firstRealArgSlotSym->m_offset + MachPtr);
-            IR::Instr *instr = this->lowererMD->LoadStackAddress(firstRealArgSlotSym);
+            IR::Instr *instr = this->lowererMD->m_lowerer->LoadStackAddress(firstRealArgSlotSym);
             instrArgs->InsertBefore(instr);
             this->LoadHelperArgument(instrArgs, instr->GetDst());
 
@@ -343,7 +343,7 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs)
             // s3 = address of first actual argument (after "this").
             StackSym *firstRealArgSlotSym = func->GetInlineeArgvSlotOpnd()->m_sym->AsStackSym();
             this->m_func->SetArgOffset(firstRealArgSlotSym, firstRealArgSlotSym->m_offset + MachPtr);
-            IR::Instr *instr = this->lowererMD->LoadStackAddress(firstRealArgSlotSym);
+            IR::Instr *instr = this->lowererMD->m_lowerer->LoadStackAddress(firstRealArgSlotSym);
             instrArgs->InsertBefore(instr);
             this->LoadHelperArgument(instrArgs, instr->GetDst());
 

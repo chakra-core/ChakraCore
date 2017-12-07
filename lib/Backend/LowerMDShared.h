@@ -194,7 +194,6 @@ public:
             static IR::Instr *LoadFloatZero(IR::Opnd * opndDst, IR::Instr * instrInsert);
             template <typename T>
             static IR::Instr *LoadFloatValue(IR::Opnd * opndDst, T value, IR::Instr * instrInsert);
-            IR::Instr *     LoadStackAddress(StackSym *sym, IR::RegOpnd *optionalDstOpnd = nullptr);
             void            EmitInt64Instr(IR::Instr * instr);
      static void            EmitInt4Instr(IR::Instr *instr);
             void            EmitLoadVar(IR::Instr *instr, bool isFromUint32 = false, bool isHelper = false);

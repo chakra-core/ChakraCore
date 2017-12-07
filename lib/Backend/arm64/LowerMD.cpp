@@ -1613,7 +1613,7 @@ LowererMD::LoadInputParamPtr(IR::Instr * instrInsert, IR::RegOpnd * optionalDstO
     {
         StackSym * paramSym = GetImplicitParamSlotSym(3);
 
-        IR::Instr * instr = this->LoadStackAddress(paramSym);
+        IR::Instr * instr = this->m_lowerer->LoadStackAddress(paramSym);
         instrInsert->InsertBefore(instr);
         return instr;
     }
@@ -1809,7 +1809,7 @@ LowererMD::LoadHeapArguments(IR::Instr * instrArgs)
             // s3 = address of first actual argument (after "this").
             StackSym *firstRealArgSlotSym = func->GetInlineeArgvSlotOpnd()->m_sym->AsStackSym();
             this->m_func->SetArgOffset(firstRealArgSlotSym, firstRealArgSlotSym->m_offset + MachPtr);
-            IR::Instr *instr = this->LoadStackAddress(firstRealArgSlotSym);
+            IR::Instr *instr = this->m_lowerer->LoadStackAddress(firstRealArgSlotSym);
             instrArgs->InsertBefore(instr);
             this->LoadHelperArgument(instrArgs, instr->GetDst());
 
@@ -1905,7 +1905,7 @@ LowererMD::LoadHeapArgsCached(IR::Instr * instrArgs)
             StackSym *firstRealArgSlotSym = func->GetInlineeArgvSlotOpnd()->m_sym->AsStackSym();
             this->m_func->SetArgOffset(firstRealArgSlotSym, firstRealArgSlotSym->m_offset + MachPtr);
 
-            IR::Instr *instr = this->LoadStackAddress(firstRealArgSlotSym);
+            IR::Instr *instr = this->m_lowerer->LoadStackAddress(firstRealArgSlotSym);
             instrArgs->InsertBefore(instr);
             this->LoadHelperArgument(instrArgs, instr->GetDst());
 
@@ -2584,7 +2584,7 @@ LowererMD::GenerateFastDivByPow2(IR::Instr *instrDiv)
     //    Assert(dst->IsRegOpnd());
     //    StackSym * tempNumberSym = this->m_lowerer->GetTempNumberSym(dst, instr->dstIsTempNumberTransferred);
 
-    //    instr = this->LoadStackAddress(tempNumberSym);
+    //    instr = this->m_lowerer->LoadStackAddress(tempNumberSym);
     //    instrDiv->InsertBefore(instr);
     //    LegalizeMD::LegalizeInstr(instr, false);
 
@@ -5311,20 +5311,6 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
         insertInstr->InsertBefore(instr);
     }
     return true;
-}
-
-IR::Instr *
-LowererMD::LoadStackAddress(StackSym *sym, IR::RegOpnd* regDst)
-{
-    if (regDst == nullptr)
-    {
-        regDst = IR::RegOpnd::New(TyMachReg, this->m_func);
-    }
-
-    IR::SymOpnd * symSrc = IR::SymOpnd::New(sym, TyMachPtr, this->m_func);
-    IR::Instr * lea = IR::Instr::New(Js::OpCode::LEA, regDst, symSrc, this->m_func);
-
-    return lea;
 }
 
 void

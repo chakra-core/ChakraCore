@@ -6616,7 +6616,7 @@ Lowerer::LowerScopedLdInst(IR::Instr *instr, IR::JnHelperMethod helperMethod)
 
     // __out Var*. The StackSym is allocated in irbuilder, and here we need to insert a lea
     StackSym* dstSym = src->GetStackSym();
-    IR::Instr *load = m_lowererMD.LoadStackAddress(dstSym);
+    IR::Instr *load = LoadStackAddress(dstSym);
     instr->InsertBefore(load);
     IR::Opnd* tempOpnd = load->GetDst();
     m_lowererMD.LoadHelperArgument(instr, tempOpnd);
@@ -7915,7 +7915,7 @@ Lowerer::LoadHelperTemp(IR::Instr * instr, IR::Instr * instrInsert)
     Assert(dst->IsRegOpnd());
     StackSym * tempNumberSym = this->GetTempNumberSym(dst, instr->dstIsTempNumberTransferred);
 
-    IR::Instr *load = this->m_lowererMD.LoadStackAddress(tempNumberSym);
+    IR::Instr *load = LoadStackAddress(tempNumberSym);
     instrInsert->InsertBefore(load);
     tempOpnd = load->GetDst();
     m_lowererMD.LoadHelperArgument(instrInsert, tempOpnd);
@@ -7968,6 +7968,16 @@ Lowerer::LoadStackArgPtr(IR::Instr *const instr)
     {
         m_lowererMD.LoadStackArgPtr(instr);
     }
+}
+
+IR::Instr *
+Lowerer::LoadStackAddress(StackSym *sym, IR::RegOpnd *optionalDstOpnd /* = nullptr */)
+{
+    IR::RegOpnd * regDst = optionalDstOpnd != nullptr ? optionalDstOpnd : IR::RegOpnd::New(TyMachReg, this->m_func);
+    IR::SymOpnd * symSrc = IR::SymOpnd::New(sym, TyMachPtr, this->m_func);
+    IR::Instr * lea = IR::Instr::New(Js::OpCode::LEA, regDst, symSrc, this->m_func);
+
+    return lea;
 }
 
 void

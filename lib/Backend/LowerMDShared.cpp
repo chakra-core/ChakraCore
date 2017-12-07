@@ -2350,7 +2350,7 @@ LowererMD::GenerateFastDivByPow2(IR::Instr *instr)
             Assert(dst->IsRegOpnd());
             StackSym * tempNumberSym = this->m_lowerer->GetTempNumberSym(dst, instr->dstIsTempNumberTransferred);
 
-            IR::Instr *load = this->LoadStackAddress(tempNumberSym);
+            IR::Instr *load = this->m_lowerer->LoadStackAddress(tempNumberSym);
             instr->InsertBefore(load);
             tempOpnd = load->GetDst();
             this->lowererMDArch.LoadHelperArgument(instr, tempOpnd);
@@ -6984,16 +6984,6 @@ void LowererMD::GenerateDebugBreak( IR::Instr * insertInstr )
 }
 #endif
 
-IR::Instr *
-LowererMD::LoadStackAddress(StackSym *sym, IR::RegOpnd *optionalDstOpnd /* = nullptr */)
-{
-    IR::RegOpnd * regDst = optionalDstOpnd != nullptr ? optionalDstOpnd : IR::RegOpnd::New(TyMachReg, this->m_func);
-    IR::SymOpnd * symSrc = IR::SymOpnd::New(sym, TyMachPtr, this->m_func);
-    IR::Instr * lea = IR::Instr::New(Js::OpCode::LEA, regDst, symSrc, this->m_func);
-
-    return lea;
-}
-
 template <bool verify>
 void
 LowererMD::MakeDstEquSrc1(IR::Instr *const instr)
@@ -7543,7 +7533,7 @@ LowererMD::EmitLoadVarNoCheck(IR::RegOpnd * dst, IR::RegOpnd * src, IR::Instr *i
             // Use the original dst to get the temp number sym
             StackSym * tempNumberSym = this->m_lowerer->GetTempNumberSym(instrLoad->GetDst(), instrLoad->dstIsTempNumberTransferred);
 
-            IR::Instr *load = this->LoadStackAddress(tempNumberSym);
+            IR::Instr *load = this->m_lowerer->LoadStackAddress(tempNumberSym);
             instrLoad->InsertBefore(load);
             tempOpnd = load->GetDst();
             this->LoadHelperArgument(instrLoad, tempOpnd);

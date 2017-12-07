@@ -204,6 +204,7 @@ private:
     IR::Instr *     LowerLoadVar(IR::Instr *instr, IR::Opnd *opnd);
     void            LoadArgumentCount(IR::Instr *const instr);
     void            LoadStackArgPtr(IR::Instr *const instr);
+    IR::Instr *     LoadStackAddress(StackSym *sym, IR::RegOpnd *optionalDstOpnd = nullptr);
     void            LoadArgumentsFromFrame(IR::Instr *const instr);
     IR::Instr *     LowerUnaryHelper(IR::Instr *instr, IR::JnHelperMethod helperMethod, IR::Opnd* opndBailoutArg = nullptr);
     IR::Instr *     LowerUnaryHelperMem(IR::Instr *instr, IR::JnHelperMethod helperMethod, IR::Opnd* opndBailoutArg = nullptr);

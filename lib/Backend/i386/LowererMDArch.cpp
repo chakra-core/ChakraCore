@@ -147,7 +147,7 @@ LowererMDArch::LoadInputParamPtr(IR::Instr *instrInsert, IR::RegOpnd *optionalDs
         // Stack looks like (EBP chain)+0, (return addr)+4, (function object)+8, (arg count)+12, (this)+16, actual args
         StackSym *paramSym = StackSym::New(TyVar, this->m_func);
         this->m_func->SetArgOffset(paramSym, 5 * MachPtr);
-        IR::Instr *instr = this->lowererMD->LoadStackAddress(paramSym, optionalDstOpnd);
+        IR::Instr *instr = this->lowererMD->m_lowerer->LoadStackAddress(paramSym, optionalDstOpnd);
         instrInsert->InsertBefore(instr);
         return instr;
     }
@@ -295,7 +295,7 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs)
              */
             StackSym *firstRealArgSlotSym = func->GetInlineeArgvSlotOpnd()->m_sym->AsStackSym();
             this->m_func->SetArgOffset(firstRealArgSlotSym, firstRealArgSlotSym->m_offset + MachPtr);
-            IR::Instr *instr = this->lowererMD->LoadStackAddress(firstRealArgSlotSym);
+            IR::Instr *instr = this->lowererMD->m_lowerer->LoadStackAddress(firstRealArgSlotSym);
             instrArgs->InsertBefore(instr);
             this->LoadHelperArgument(instrArgs, instr->GetDst());
 
@@ -413,7 +413,7 @@ LowererMDArch::LoadHeapArgsCached(IR::Instr *instrArgs)
             // s4 = address of first actual argument (after "this")
             StackSym *firstRealArgSlotSym = func->GetInlineeArgvSlotOpnd()->m_sym->AsStackSym();
             this->m_func->SetArgOffset(firstRealArgSlotSym, firstRealArgSlotSym->m_offset + MachPtr);
-            IR::Instr *instr = this->lowererMD->LoadStackAddress(firstRealArgSlotSym);
+            IR::Instr *instr = this->lowererMD->m_lowerer->LoadStackAddress(firstRealArgSlotSym);
             instrArgs->InsertBefore(instr);
             this->LoadHelperArgument(instrArgs, instr->GetDst());
 
@@ -3000,7 +3000,7 @@ bool
         Assert(dst->IsRegOpnd());
         StackSym * tempNumberSym = lowererMD->GetLowerer()->GetTempNumberSym(dst, instrShift->dstIsTempNumberTransferred);
 
-        IR::Instr *load = lowererMD->LoadStackAddress(tempNumberSym);
+        IR::Instr *load = lowererMD->m_lowerer->LoadStackAddress(tempNumberSym);
         instrShift->InsertBefore(load);
         tempOpnd = load->GetDst();
         this->LoadHelperArgument(instrShift, tempOpnd);
