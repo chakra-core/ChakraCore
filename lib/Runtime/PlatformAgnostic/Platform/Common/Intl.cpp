@@ -673,6 +673,11 @@ namespace Intl
         ICU_ASSERT(status, cal != nullptr);
 
         int required = ucal_getTimeZoneID(cal, reinterpret_cast<UChar *>(tz), tzLen, &status);
+        if (status == U_ILLEGAL_ARGUMENT_ERROR)
+        {
+            // ucal_getTimeZoneID reports that null buffer/-1 buffer length is an illegal argument, but still returns the correct length
+            status = U_ZERO_ERROR;
+        }
         ICU_ASSERT(status, tz == nullptr ? required > 0 : required <= tzLen);
 
         ucal_close(cal);
