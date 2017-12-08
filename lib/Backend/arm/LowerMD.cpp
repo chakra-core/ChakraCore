@@ -6495,27 +6495,6 @@ LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed,
 }
 
 IR::Instr *
-LowererMD::LowerGetCachedFunc(IR::Instr *instr)
-{
-    // src1 is an ActivationObjectEx, and we want to get the function object identified by the index (src2)
-    // dst = MOV (src1)->GetFuncCacheEntry(src2)->func
-    //
-    // => [src1 + (offsetof(src1, cache) + (src2 * sizeof(FuncCacheEntry)) + offsetof(FuncCacheEntry, func))]
-
-    IR::IntConstOpnd *src2Opnd = instr->UnlinkSrc2()->AsIntConstOpnd();
-    IR::RegOpnd *src1Opnd = instr->UnlinkSrc1()->AsRegOpnd();
-    IR::Instr *instrPrev = instr->m_prev;
-
-    instr->SetSrc1(IR::IndirOpnd::New(src1Opnd, (src2Opnd->GetValue() * sizeof(Js::FuncCacheEntry)) + Js::ActivationObjectEx::GetOffsetOfCache() + offsetof(Js::FuncCacheEntry, func), TyVar, this->m_func));
-
-    this->ChangeToAssign(instr);
-
-    src2Opnd->Free(this->m_func);
-
-    return instrPrev;
-}
-
-IR::Instr *
 LowererMD::LowerCommitScope(IR::Instr *instrCommit)
 {
     IR::Instr *instrPrev = instrCommit->m_prev;

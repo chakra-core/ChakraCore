@@ -149,7 +149,6 @@ public:
 
             void LoadFloatValue(IR::RegOpnd * javascriptNumber, IR::RegOpnd * opndFloat, IR::LabelInstr * labelHelper, IR::Instr * instrInsert, const bool checkFornullptrInLoopBody = false);
 
-            IR::Instr *     LowerGetCachedFunc(IR::Instr *instr);
             IR::Instr *     LowerCommitScope(IR::Instr *instr);
 
             IR::Instr *     LowerCallHelper(IR::Instr *instrCall);

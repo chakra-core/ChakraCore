@@ -664,6 +664,7 @@ private:
     static void LegalizeVerifyRange(IR::Instr * instrStart, IR::Instr * instrLast);
 #endif
 
+    IR::Instr *     LowerGetCachedFunc(IR::Instr *instr);
     IR::Instr*      LowerTry(IR::Instr* instr, bool tryCatch);
     IR::Instr *     LowerCatch(IR::Instr *instr);
     IR::Instr *     LowerLeave(IR::Instr *instr, IR::LabelInstr * targetInstr, bool fromFinalLower, bool isOrphanedLeave = false);

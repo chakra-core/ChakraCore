@@ -367,7 +367,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::GetCachedFunc:
-            m_lowererMD.LowerGetCachedFunc(instr);
+            this->LowerGetCachedFunc(instr);
             break;
 
         case Js::OpCode::BrFncCachedScopeEq:
@@ -25166,6 +25166,27 @@ void Lowerer::GenerateSwitchStringLookup(IR::Instr * instr)
         // CONSIDER: Generate range filter
     }
     this->LowerMultiBr(instr, IR::HelperOp_SwitchStringLookUp);
+}
+
+IR::Instr *
+Lowerer::LowerGetCachedFunc(IR::Instr *instr)
+{
+    // src1 is an ActivationObjectEx, and we want to get the function object identified by the index (src2)
+    // dst = MOV (src1)->GetFuncCacheEntry(src2)->func
+    //
+    // => [src1 + (offsetof(src1, cache) + (src2 * sizeof(FuncCacheEntry)) + offsetof(FuncCacheEntry, func))]
+
+    IR::IntConstOpnd *src2Opnd = instr->UnlinkSrc2()->AsIntConstOpnd();
+    IR::RegOpnd *src1Opnd = instr->UnlinkSrc1()->AsRegOpnd();
+    IR::Instr *instrPrev = instr->m_prev;
+
+    instr->SetSrc1(IR::IndirOpnd::New(src1Opnd, int32((src2Opnd->GetValue() * sizeof(Js::FuncCacheEntry)) + Js::ActivationObjectEx::GetOffsetOfCache() + offsetof(Js::FuncCacheEntry, func)), TyVar, this->m_func));
+
+    this->m_lowererMD.ChangeToAssign(instr);
+
+    src2Opnd->Free(this->m_func);
+
+    return instrPrev;
 }
 
 IR::Instr *
