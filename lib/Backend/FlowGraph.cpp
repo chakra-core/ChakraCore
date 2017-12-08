@@ -1642,9 +1642,8 @@ FlowGraph::Destroy(void)
             }
         }
 
-        // We don't run the globopt with try/catch, don't need to remove branch to next for fall through blocks
         IR::Instr * lastInstr = block->GetLastInstr();
-        if (!fHasTry && lastInstr->IsBranchInstr())
+        if (lastInstr->IsBranchInstr())
         {
             IR::BranchInstr * branchInstr = lastInstr->AsBranchInstr();
             if (!branchInstr->IsConditional() && branchInstr->GetTarget() == branchInstr->m_next)
@@ -1772,7 +1771,7 @@ FlowGraph::Destroy(void)
             }
         }
         NEXT_BLOCK;
-        FOREACH_BLOCK_DEAD_OR_ALIVE(block, this)
+        FOREACH_BLOCK_ALL(block, this)
         {
             if (block->GetFirstInstr()->IsLabelInstr())
             {
@@ -1784,7 +1783,7 @@ FlowGraph::Destroy(void)
                     labelInstr->Remove();
                 }
             }
-        } NEXT_BLOCK_DEAD_OR_ALIVE;
+        } NEXT_BLOCK;
     }
 #endif
 
@@ -3348,6 +3347,7 @@ FlowGraph::RemoveBlock(BasicBlock *block, GlobOpt * globOpt, bool tailDuping)
         {
             Assert(instr->IsLabelInstr());
             instr->AsLabelInstr()->m_isLoopTop = false;
+            instr->AsLabelInstr()->m_hasNonBranchRef = false;
         }
         else
         {
