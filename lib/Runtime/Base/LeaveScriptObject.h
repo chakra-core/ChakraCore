@@ -21,7 +21,7 @@
             Js::ScriptEntryExitRecord __entryExitRecord = {0}; \
             SAVE_FS0(); \
             Js::EnterScriptObject __enterScriptObject = Js::EnterScriptObject(__localScriptContext, &__entryExitRecord, \
-                _ReturnAddress(), doCleanup, isCallRoot, hasCaller); \
+                _AddressOfReturnAddress(), doCleanup, isCallRoot, hasCaller); \
             __localScriptContext->OnScriptStart(isCallRoot, isScript); \
             __enterScriptObject.VerifyEnterScript();
 
@@ -137,7 +137,7 @@ namespace Js
         JavascriptLibrary* library;  // stack pin the library.
     public:
         EnterScriptObject(ScriptContext* scriptContext, ScriptEntryExitRecord* entryExitRecord,
-            void * returnAddress, bool doCleanup, bool isCallRoot, bool hasCaller);
+            void * addrOfReturnAddress, bool doCleanup, bool isCallRoot, bool hasCaller);
 
         void VerifyEnterScript();
 
