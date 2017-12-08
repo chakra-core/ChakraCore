@@ -1529,7 +1529,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::IsInst:
-            m_lowererMD.GenerateFastIsInst(instr);
+            this->GenerateFastIsInst(instr);
             instrPrev = this->LowerIsInst(instr, IR::HelperScrObj_OP_IsInst);
             break;
 
@@ -20971,6 +20971,140 @@ Lowerer::GenerateLdThisStrict(IR::Instr* instr)
     }
     // $fallthru:
     instr->InsertAfter(fallthru);
+
+    return true;
+}
+
+// given object instanceof function, functionReg is a register with function,
+// objectReg is a register with instance and inlineCache is an InstIsInlineCache.
+// We want to generate:
+//
+// fallback on helper (will patch the inline cache) if function does not match the cache
+// MOV dst, Js::false
+// CMP functionReg, [&(inlineCache->function)]
+// JNE helper
+//
+// fallback if object is a tagged int
+// TEST objectReg, Js::AtomTag
+// JNE done
+//
+
+// return false if object is a primitive
+// CMP [typeReg + offsetof(Type::typeid)], TypeIds_LastJavascriptPrimitiveType
+// JLE done
+
+// fallback if object's type is not the cached type
+// MOV typeReg, objectSrc + offsetof(RecyclableObject::type)
+// CMP typeReg, [&(inlineCache->type]
+// JNE checkPrimType
+
+// use the cached result and fallthrough
+// MOV dst, [&(inlineCache->result)]
+// JMP done
+
+//
+//
+// $helper
+// $done
+bool
+Lowerer::GenerateFastIsInst(IR::Instr * instr)
+{
+    IR::LabelInstr * helper = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
+    IR::LabelInstr * done = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+    IR::RegOpnd * typeReg = IR::RegOpnd::New(TyMachReg, this->m_func);
+    IR::Opnd * objectSrc;
+    IR::RegOpnd * objectReg;
+    IR::Opnd * functionSrc;
+    IR::RegOpnd * functionReg;
+    intptr_t inlineCache;
+    IR::Instr * instrArg;
+
+    // We are going to use the extra ArgOut_A instructions to lower the helper call later,
+    // so we leave them alone here and clean them up then.
+    inlineCache = instr->m_func->GetJITFunctionBody()->GetIsInstInlineCache(instr->GetSrc1()->AsIntConstOpnd()->AsUint32());
+    Assert(instr->GetSrc2()->AsRegOpnd()->m_sym->m_isSingleDef);
+    instrArg = instr->GetSrc2()->AsRegOpnd()->m_sym->m_instrDef;
+
+    objectSrc = instrArg->GetSrc1();
+    Assert(instrArg->GetSrc2()->AsRegOpnd()->m_sym->m_isSingleDef);
+    instrArg = instrArg->GetSrc2()->AsRegOpnd()->m_sym->m_instrDef;
+
+    functionSrc = instrArg->GetSrc1();
+    Assert(instrArg->GetSrc2() == nullptr);
+
+    // MOV dst, Js::false
+    InsertMove(instr->GetDst(), LoadLibraryValueOpnd(instr, LibraryValue::ValueFalse), instr);
+
+    if (functionSrc->IsRegOpnd())
+    {
+        functionReg = functionSrc->AsRegOpnd();
+    }
+    else
+    {
+        functionReg = IR::RegOpnd::New(TyMachReg, this->m_func);
+        // MOV functionReg, functionSrc
+        InsertMove(functionReg, functionSrc, instr);
+    }
+
+    // CMP functionReg, [&(inlineCache->function)]
+    {
+        IR::Opnd* cacheFunction = IR::MemRefOpnd::New(inlineCache + Js::IsInstInlineCache::OffsetOfFunction(), TyMachReg, m_func, IR::AddrOpndKindDynamicIsInstInlineCacheFunctionRef);
+        InsertCompare(functionReg, cacheFunction, instr);
+    }
+
+    // JNE helper
+    InsertBranch(Js::OpCode::BrNeq_A, helper, instr);
+
+    if (objectSrc->IsRegOpnd())
+    {
+        objectReg = objectSrc->AsRegOpnd();
+    }
+    else
+    {
+        objectReg = IR::RegOpnd::New(TyMachReg, this->m_func);
+        // MOV objectReg, objectSrc
+        InsertMove(objectReg, objectSrc, instr);
+    }
+
+    // TEST objectReg, Js::AtomTag
+    // JNE done
+    m_lowererMD.GenerateObjectTest(objectReg, instr, done);
+
+    // MOV typeReg, objectSrc + offsetof(RecyclableObject::type)
+    InsertMove(typeReg, IR::IndirOpnd::New(objectReg, Js::RecyclableObject::GetOffsetOfType(), TyMachReg, m_func), instr);
+
+    // CMP [typeReg + offsetof(Type::typeid)], TypeIds_LastJavascriptPrimitiveType
+    {
+        IR::IndirOpnd * typeId = IR::IndirOpnd::New(typeReg, Js::Type::GetOffsetOfTypeId(), TyInt32, m_func);
+        IR::IntConstOpnd * lastPrimitive = IR::IntConstOpnd::New(Js::TypeId::TypeIds_LastJavascriptPrimitiveType, TyInt32, m_func);
+        InsertCompare(typeId, lastPrimitive, instr);
+    }
+
+    // JLE done
+    InsertBranch(Js::OpCode::BrLe_A, done, instr);
+
+    // CMP typeReg, [&(inlineCache->type]
+    {
+        IR::Opnd * cacheType = IR::MemRefOpnd::New(inlineCache + Js::IsInstInlineCache::OffsetOfType(), TyMachReg, m_func, IR::AddrOpndKindDynamicIsInstInlineCacheTypeRef);
+        InsertCompare(typeReg, cacheType, instr);
+    }
+
+    // JNE helper
+    InsertBranch(Js::OpCode::BrNeq_A, helper, instr);
+
+    // MOV dst, [&(inlineCache->result)]
+    {
+        IR::Opnd * cacheResult = IR::MemRefOpnd::New(inlineCache + Js::IsInstInlineCache::OffsetOfResult(), TyMachReg, m_func, IR::AddrOpndKindDynamicIsInstInlineCacheResultRef);
+        InsertMove(instr->GetDst(), cacheResult, instr);
+    }
+
+    // JMP done
+    InsertBranch(Js::OpCode::Br, done, instr);
+
+    // LABEL helper
+    instr->InsertBefore(helper);
+
+    instr->InsertAfter(done);
 
     return true;
 }

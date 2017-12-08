@@ -234,7 +234,6 @@ public:
 
             Lowerer*        GetLowerer() { return m_lowerer; }
 
-            bool            GenerateFastIsInst(IR::Instr * instr);
             void            GenerateIsJsObjectTest(IR::RegOpnd* instanceReg, IR::Instr* insertInstr, IR::LabelInstr* labelHelper);
             void            LowerTypeof(IR::Instr * typeOfInstr);
 

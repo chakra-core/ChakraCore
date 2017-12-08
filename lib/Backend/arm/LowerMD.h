@@ -152,10 +152,8 @@ public:
             IR::LabelInstr *GetBailOutStackRestoreLabel(BailOutInfo * bailOutInfo, IR::LabelInstr * exitTargetInstr);
             StackSym *      GetImplicitParamSlotSym(Js::ArgSlot argSlot);
      static StackSym *      GetImplicitParamSlotSym(Js::ArgSlot argSlot, Func * func);
-            bool            GenerateFastIsInst(IR::Instr * instr, Js::ScriptContext * scriptContext);
 
             IR::Instr *     LowerDivI4AndBailOnReminder(IR::Instr * instr, IR::LabelInstr * bailOutLabel);
-            bool            GenerateFastIsInst(IR::Instr * instr);
 public:
             IR::Instr *         LowerCall(IR::Instr * callInstr, Js::ArgSlot argCount);
             IR::Instr *         LowerCallI(IR::Instr * callInstr, ushort callFlags, bool isHelper = false, IR::Instr* insertBeforeInstrForCFG = nullptr);

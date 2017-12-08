@@ -156,8 +156,7 @@ private:
     void            GenerateIsRecyclableObject(IR::RegOpnd *regOpnd, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, bool checkObjectAndDynamicObject = true);
     bool            GenerateLdThisCheck(IR::Instr * instr);
     bool            GenerateLdThisStrict(IR::Instr * instr);
-
-
+    bool            GenerateFastIsInst(IR::Instr * instr);
 
     void            EnsureStackFunctionListStackSym();
     void            EnsureZeroLastStackFunctionNext();
