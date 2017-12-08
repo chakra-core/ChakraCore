@@ -155,6 +155,7 @@ private:
     void            GenerateIsDynamicObject(IR::RegOpnd *regOpnd, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, bool fContinueLabel = false);
     void            GenerateIsRecyclableObject(IR::RegOpnd *regOpnd, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, bool checkObjectAndDynamicObject = true);
     bool            GenerateLdThisCheck(IR::Instr * instr);
+    bool            GenerateLdThisStrict(IR::Instr * instr);
 
 
 

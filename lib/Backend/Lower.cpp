@@ -1226,7 +1226,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
             else
             {
-                 m_lowererMD.GenerateLdThisStrict(instr);
+                 this->GenerateLdThisStrict(instr);
                  instr->Remove();
             }
             break;
@@ -1238,7 +1238,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::StrictCheckThis:
-            m_lowererMD.GenerateLdThisStrict(instr);
+            this->GenerateLdThisStrict(instr);
             instr->FreeSrc1();
             this->GenerateBailOut(instr);
             break;
@@ -20908,6 +20908,69 @@ Lowerer::GenerateLdThisCheck(IR::Instr * instr)
     // $fallthrough:
     instr->InsertBefore(helper);
     instr->InsertAfter(fallthrough);
+
+    return true;
+}
+
+//
+// TEST src, Js::AtomTag
+// JNE $done
+// MOV typeReg, objectSrc + offsetof(RecyclableObject::type)
+// CMP [typeReg + offsetof(Type::typeid)], TypeIds_ActivationObject
+// JEQ $helper
+// $done:
+// MOV dst, src
+// JMP $fallthru
+// helper:
+// MOV dst, undefined
+// $fallthru:
+bool
+Lowerer::GenerateLdThisStrict(IR::Instr* instr)
+{
+    IR::RegOpnd * src1 = instr->GetSrc1()->AsRegOpnd();
+    IR::RegOpnd * typeReg = IR::RegOpnd::New(TyMachReg, this->m_func);
+    IR::LabelInstr * done = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+    IR::LabelInstr * fallthru = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+    IR::LabelInstr * helper = IR::LabelInstr::New(Js::OpCode::Label, m_func, /*helper*/true);
+
+    bool assign = instr->GetDst() && !instr->GetDst()->IsEqual(src1);
+    if (!src1->IsNotTaggedValue())
+    {
+        // TEST src1, Js::AtomTag
+        // JNE $done
+        this->m_lowererMD.GenerateObjectTest(src1, instr, assign ? done : fallthru);
+    }
+
+    IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(src1, Js::RecyclableObject::GetOffsetOfType(), TyMachReg, this->m_func);
+    Lowerer::InsertMove(typeReg, indirOpnd, instr);
+
+    IR::IndirOpnd * typeID = IR::IndirOpnd::New(typeReg, Js::Type::GetOffsetOfTypeId(), TyInt32, this->m_func);
+    IR::Opnd * activationObject = IR::IntConstOpnd::New(Js::TypeIds_ActivationObject, TyMachReg, this->m_func);
+    Lowerer::InsertCompare(typeID, activationObject, instr);
+
+    // JEQ $helper
+    Lowerer::InsertBranch(Js::OpCode::BrEq_A, helper, instr);
+
+    if (assign)
+    {
+        // $done:
+        instr->InsertBefore(done);
+
+        // MOV dst, src
+        Lowerer::InsertMove(instr->GetDst(), src1, instr);
+    }
+
+    // JMP $fallthru
+    Lowerer::InsertBranch(Js::OpCode::Br, fallthru, instr);
+
+    instr->InsertBefore(helper);
+    if (instr->GetDst())
+    {
+        // MOV dst, undefined
+        Lowerer::InsertMove(instr->GetDst(), LoadLibraryValueOpnd(instr, LibraryValue::ValueUndefined), instr);
+    }
+    // $fallthru:
+    instr->InsertAfter(fallthru);
 
     return true;
 }
