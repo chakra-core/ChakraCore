@@ -6608,18 +6608,6 @@ LowererMD::GenerateFastInlineBuiltInMathMinMax(IR::Instr* instr)
     }
 }
 
-IR::Opnd* LowererMD::IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr)
-{
-    IR::Opnd * isNegZero = IR::RegOpnd::New(TyInt32, this->m_func);
-
-    LoadDoubleHelperArgument(instr, opnd);
-    IR::Instr * helperCallInstr = IR::Instr::New(Js::OpCode::Call, isNegZero, this->m_func);
-    instr->InsertBefore(helperCallInstr);
-    this->ChangeToHelperCall(helperCallInstr, IR::HelperIsNegZero);
-
-    return isNegZero;
-}
-
 IR::Instr *
 LowererMD::LowerToFloat(IR::Instr *instr)
 {

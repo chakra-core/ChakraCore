@@ -211,7 +211,6 @@ public:
             template <bool verify = false>
             static void         Legalize(IR::Instr *const instr, bool fPostRegAlloc = false);
 
-            IR::Opnd*           IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr);
             void                GenerateFastInlineBuiltInMathAbs(IR::Instr *callInstr);
             void                GenerateFastInlineBuiltInMathRound(IR::Instr *callInstr);
             void                GenerateFastInlineBuiltInMathFloorCeil(IR::Instr *callInstr);
