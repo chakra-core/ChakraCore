@@ -7569,47 +7569,6 @@ LowererMD::EmitLoadVarNoCheck(IR::RegOpnd * dst, IR::RegOpnd * src, IR::Instr *i
     this->SaveDoubleToVar(dst, floatReg, instrLoad, instrLoad, isHelper);
 }
 
-IR::Instr *
-LowererMD::LowerCommitScope(IR::Instr *instrCommit)
-{
-    IR::Instr *instrPrev = instrCommit->m_prev;
-    IR::RegOpnd *baseOpnd = instrCommit->UnlinkSrc1()->AsRegOpnd();
-    IR::Opnd *opnd;
-    IR::Instr * insertInstr = instrCommit->m_next;
-
-    // Write undef to all the local var slots.
-
-    opnd = IR::IndirOpnd::New(baseOpnd, Js::ActivationObjectEx::GetOffsetOfCommitFlag(), TyInt8, this->m_func);
-    instrCommit->SetDst(opnd);
-    instrCommit->SetSrc1(IR::IntConstOpnd::New(1, TyInt8, this->m_func));
-
-    LowererMD::ChangeToAssign(instrCommit);
-
-    const Js::PropertyIdArray *propIds = instrCommit->m_func->GetJITFunctionBody()->GetFormalsPropIdArray();
-
-    uint firstVarSlot = (uint)Js::ActivationObjectEx::GetFirstVarSlot(propIds);
-    if (firstVarSlot < propIds->count)
-    {
-        IR::RegOpnd *undefOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
-        Lowerer::InsertMove(undefOpnd, m_lowerer->LoadLibraryValueOpnd(insertInstr, LibraryValue::ValueUndefined), insertInstr);
-
-        IR::RegOpnd *slotBaseOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
-
-        // Load a pointer to the aux slots. We assume that all ActivationObject's have only aux slots.
-
-        opnd = IR::IndirOpnd::New(baseOpnd, Js::DynamicObject::GetOffsetOfAuxSlots(), TyMachReg, this->m_func);
-        Lowerer::InsertMove(slotBaseOpnd, opnd, insertInstr);
-
-        for (uint i = firstVarSlot; i < propIds->count; i++)
-        {
-            opnd = IR::IndirOpnd::New(slotBaseOpnd, i << this->GetDefaultIndirScale(), TyMachReg, this->m_func);
-            Lowerer::InsertMove(opnd, undefOpnd, insertInstr);
-        }
-    }
-
-    return instrPrev;
-}
-
 void
 LowererMD::ImmedSrcToReg(IR::Instr * instr, IR::Opnd * newOpnd, int srcNum)
 {

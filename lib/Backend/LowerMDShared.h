@@ -224,7 +224,6 @@ public:
             static bool     GenerateSimplifiedInt4Mul(IR::Instr *const mulInstr, const IR::BailOutKind bailOutKind = IR::BailOutInvalid, IR::LabelInstr *const bailOutLabel = nullptr);
             static bool     GenerateSimplifiedInt4Rem(IR::Instr *const remInstr, IR::LabelInstr *const skipBailOutLabel = nullptr);
 
-            IR::Instr *     LowerCommitScope(IR::Instr *instr);
             IR::Instr *     LowerTry(IR::Instr *instr, IR::JnHelperMethod helperMethod);
             IR::Instr *     LowerEHRegionReturn(IR::Instr * insertBeforeInstr, IR::Opnd * targetOpnd);
             IR::Instr *     LowerLeaveNull(IR::Instr *instr);
