@@ -6519,33 +6519,10 @@ LowererMD::ImmedSrcToReg(IR::Instr * instr, IR::Opnd * newOpnd, int srcNum)
     }
 }
 
-void
-LowererMD::MarkOneFltTmpSym(StackSym *sym, BVSparse<JitArenaAllocator> *bvTmps, bool fFltPrefOp)
-{
-    // Nothing to do here. It may be called when lowering a switch if fast paths are on.
-}
-
 IR::LabelInstr *
 LowererMD::GetBailOutStackRestoreLabel(BailOutInfo * bailOutInfo, IR::LabelInstr * exitTargetInstr)
 {
     return exitTargetInstr;
-}
-
-bool
-LowererMD::AnyFloatTmps()
-{
-    // no float preferencing for ARM yet
-    return false;
-}
-
-IR::LabelInstr*
-LowererMD::InsertBeforeRecoveryForFloatTemps(
-    IR::Instr * insertBefore,
-    IR::LabelInstr * labelRecover,
-    const bool isInHelperBlock)
-{
-    AssertMsg(0, "NYI");
-    return nullptr;
 }
 
 StackSym *
