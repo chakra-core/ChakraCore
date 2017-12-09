@@ -12,7 +12,7 @@ var tests = [
             const date = new Date(2000, 1, 1, 1, 1, 1);
             function equal(options, expected, message) {
                 const result = new Intl.DateTimeFormat("en-US", options).format(date);
-                result.replace("\u200e", ""); // replace bi-di markers
+                result.replace(/[^\x00-\x7F]/g, ""); // replace bi-di markers and other unicode characters from output
                 assert.areEqual(expected, result, message);
             }
 
