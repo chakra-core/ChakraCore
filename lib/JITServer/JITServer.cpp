@@ -757,6 +757,16 @@ ServerRemoteCodeGen(
         Assert(false);
         return RPC_S_INVALID_ARG;
     }
+#if DBG
+    size_t serializedRpcDataSize = 0;
+    const unsigned char* serializedRpcData = nullptr;
+    JITManager::SerializeRPCData(workItemData, &serializedRpcDataSize, &serializedRpcData);
+    struct AutoFreeArray
+    {
+        const byte* arr = nullptr;
+        ~AutoFreeArray() { delete[] arr; }
+    } autoFreeArray = { serializedRpcData };
+#endif
 
     return ServerCallWrapper(scriptContextInfo, [&]() ->HRESULT
     {

@@ -75,6 +75,12 @@ RejitIRViewerFunction(NativeCodeGenerator *nativeCodeGen, Js::FunctionBody *fn, 
     return nativeCodeGen->RejitIRViewerFunction(fn, scriptContext);
 }
 #endif
+#ifdef ALLOW_JIT_REPRO
+HRESULT JitFromEncodedWorkItem(NativeCodeGenerator *nativeCodeGen, _In_reads_(bufSize) const byte* buffer, _In_ uint bufferSize)
+{
+    return nativeCodeGen->JitFromEncodedWorkItem(buffer, bufferSize);
+}
+#endif
 
 void
 GenerateLoopBody(NativeCodeGenerator *nativeCodeGen, Js::FunctionBody *fn, Js::LoopHeader * loopHeader, Js::EntryPointInfo* info, uint localCount, Js::Var localSlots[])
