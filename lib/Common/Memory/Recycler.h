@@ -1258,7 +1258,7 @@ public:
 #define DEFINE_RECYCLER_NOTHROW_ALLOC(AllocFunc, attributes) DEFINE_RECYCLER_NOTHROW_ALLOC_BASE(AllocFunc, AllocWithAttributes, attributes)
 #define DEFINE_RECYCLER_NOTHROW_ALLOC_ZERO(AllocFunc, attributes) DEFINE_RECYCLER_NOTHROW_ALLOC_BASE(AllocFunc, AllocZeroWithAttributes, attributes)
 
-#if GLOBAL_ENABLE_WRITE_BARRIER && !defined(_WIN32)
+#if GLOBAL_ENABLE_WRITE_BARRIER
     DEFINE_RECYCLER_ALLOC(Alloc, WithBarrierBit);
     DEFINE_RECYCLER_ALLOC_ZERO(AllocZero, WithBarrierBit);
     DEFINE_RECYCLER_ALLOC(AllocFinalized, FinalizableWithBarrierObjectBits);
