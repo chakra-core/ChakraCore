@@ -9,13 +9,11 @@ namespace Js
     class ParseableFunctionInfo;
     class DeferDeserializeFunctionInfo;
 
-    class FunctionInfo: public FinalizableObject
+    class FunctionInfo
     {
         friend class RemoteFunctionBody;
-    protected:
-        DEFINE_VTABLE_CTOR_NOBASE(FunctionInfo);
-    public:
 
+    public:
         enum Attributes : uint32
         {
             None                           = 0x00000,
@@ -46,7 +44,6 @@ namespace Js
         FunctionInfo(JavascriptMethod entryPoint, _no_write_barrier_tag, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
         FunctionInfo(FunctionInfo& that); // Todo: (leish)(swb) find a way to prevent non-static initializer calling this ctor
 
-        static bool Is(void *ptr);
         static DWORD GetFunctionBodyImplOffset() { return offsetof(FunctionInfo, functionBodyImpl); }
         static BYTE GetOffsetOfFunctionProxy()
         {
@@ -115,16 +112,6 @@ namespace Js
 
         uint GetCompileCount() const { return compileCount; }
         void SetCompileCount(uint count) { compileCount = count; }
-
-        virtual void Finalize(bool isShutdown) override
-        {
-        }
-
-        virtual void Dispose(bool isShutdown) override
-        {
-        }
-
-        virtual void Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
 
         BOOL IsDeferredDeserializeFunction() const { return ((this->attributes & DeferredDeserialize) == DeferredDeserialize); }
         BOOL IsDeferredParseFunction() const { return ((this->attributes & DeferredParse) == DeferredParse); }

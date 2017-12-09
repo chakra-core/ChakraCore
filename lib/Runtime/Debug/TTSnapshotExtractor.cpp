@@ -107,7 +107,7 @@ namespace TTD
                 slotInfo->Slots[j] = slots.Get(j);
             }
 
-            if(slots.IsFunctionScopeSlotArray())
+            if(!slots.IsDebuggerScopeSlotArray())
             {
                 Js::FunctionBody* fb = slots.GetFunctionInfo()->GetFunctionBody();
 
@@ -324,7 +324,7 @@ namespace TTD
                     {
                         Js::ScopeSlots slotArray = (Js::Var*)scope;
                         uint slotArrayCount = static_cast<uint>(slotArray.GetCount());
-                        if(slotArray.IsFunctionScopeSlotArray())
+                        if(!slotArray.IsDebuggerScopeSlotArray())
                         {
                             this->MarkFunctionBody(slotArray.GetFunctionInfo()->GetFunctionBody());
                         }
