@@ -11,28 +11,28 @@
   <test>
     <default>
       <files>Collator.js</files>
-      <tags>Intl,require_winglob</tags>
+      <tags>Intl</tags>
     </default>
   </test>
   <test>
     <default>
       <files>CollatorOptions.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Intl,require_winglob</tags>
+      <tags>Intl</tags>
     </default>
   </test>
   <test>
     <default>
       <files>DateTimeFormatInvalidOptions.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Intl</tags>
+      <tags>Intl,require_winglob</tags>
     </default>
   </test>
   <test>
     <default>
-      <files>DateTimeFormatOptions.js</files>
+      <files>DateTimeFormat.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Intl,require_winglob</tags>
+      <tags>Intl,</tags>
     </default>
   </test>
   <test>
@@ -61,7 +61,7 @@
     <default>
       <files>SupportedLocalesOf.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Intl,require_winglob</tags>
+      <tags>Intl</tags>
     </default>
   </test>
   <test>
