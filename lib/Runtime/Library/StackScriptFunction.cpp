@@ -357,13 +357,17 @@ namespace Js
                     for (i = 0; i < frameDisplay->GetLength(); i++)
                     {
                         Var *slotArray = (Var*)frameDisplay->GetItem(i);
-                        ScopeSlots slots(slotArray);
-                        if (slots.IsFunctionScopeSlotArray())
+
+                        if (ScopeSlots::Is(slotArray))
                         {
-                            FunctionProxy *functionProxy = slots.GetFunctionInfo()->GetFunctionProxy();
-                            if (functionProxy->IsFunctionBody() && this->NeedBoxFrame(functionProxy->GetFunctionBody()))
+                            ScopeSlots slots(slotArray);
+                            if (!slots.IsDebuggerScopeSlotArray())
                             {
-                                break;
+                                FunctionProxy *functionProxy = slots.GetFunctionInfo()->GetFunctionProxy();
+                                if (functionProxy->IsFunctionBody() && this->NeedBoxFrame(functionProxy->GetFunctionBody()))
+                                {
+                                    break;
+                                }
                             }
                         }
                     }
