@@ -331,7 +331,7 @@ void DoFunctionRelocations(BYTE *function, DWORD functionOffset, DWORD functionS
                     }
                     break;
 
-#elif defined(_M_X64_OR_ARM64)
+#elif defined(TARGET_64)
                 case IMAGE_REL_BASED_DIR64:
                     {
                         ULONGLONG *patchAddr64 = (ULONGLONG *) (function + blockOffset + offset - functionOffset);
@@ -485,11 +485,6 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
     Assert(fn->GetScriptContext()->GetNativeCodeGenerator() == this);
     Assert(fn->GetFunctionBody() == fn);
     Assert(!fn->IsDeferred());
-
-#if defined(_M_ARM64) && !defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-    // Disable JIT in ARM64 release build till it is stable. Enable in debug and test build for testing
-    return false;
-#endif
 
     if (fn->IsGeneratorAndJitIsDisabled())
     {
@@ -1072,7 +1067,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         workItem->GetEntryPoint()->GetJitTransferData()->SetIsReady();
     }
 
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
     XDataAllocation * xdataInfo = HeapNewZ(XDataAllocation);
     xdataInfo->address = (byte*)jitWriteData.xdataAddr;
     XDataAllocator::Register(xdataInfo, jitWriteData.codeAddress, jitWriteData.codeSize);
@@ -1875,9 +1870,19 @@ NativeCodeGenerator::Prioritize(JsUtil::Job *const job, const bool forceAddJobTo
     }
     else
     {
-        if(!forceAddJobToProcessor && !functionBody->TryTransitionToJitExecutionMode())
+        if (!forceAddJobToProcessor)
         {
-            return;
+            if (!functionBody->TryTransitionToJitExecutionMode())
+            {
+                return;
+            }
+#if ENABLE_OOP_NATIVE_CODEGEN
+            // If for some reason OOP JIT isn't connected (e.g. it crashed), don't attempt to JIT
+            if (JITManager::GetJITManager()->IsOOPJITEnabled() && !JITManager::GetJITManager()->IsConnected())
+            {
+                return;
+            }
+#endif
         }
 
         jitMode = functionBody->GetExecutionMode();

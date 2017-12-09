@@ -87,7 +87,7 @@ BOOL VirtualAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType
 /*
 * class PreReservedVirtualAllocWrapper
 */
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
+#if !TARGET_64 && _CONTROL_FLOW_GUARD
 uint PreReservedVirtualAllocWrapper::numPreReservedSegment = 0;
 #endif
 
@@ -110,7 +110,7 @@ PreReservedVirtualAllocWrapper::~PreReservedVirtualAllocWrapper()
             // OOP JIT TODO: check if we need to cleanup the context related to this content process
         }
 
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
+#if !TARGET_64 && _CONTROL_FLOW_GUARD
         Assert(numPreReservedSegment > 0);
         InterlockedDecrement(&PreReservedVirtualAllocWrapper::numPreReservedSegment);
 #endif
@@ -220,7 +220,7 @@ LPVOID PreReservedVirtualAllocWrapper::EnsurePreReservedRegionInternal()
 
 #if defined(_CONTROL_FLOW_GUARD)
     bool supportPreReservedRegion = true;
-#if !_M_X64_OR_ARM64
+#if !TARGET_64
 #if _M_IX86
     // We want to restrict the number of prereserved segment for 32-bit process so that we don't use up the address space
 
@@ -244,7 +244,7 @@ LPVOID PreReservedVirtualAllocWrapper::EnsurePreReservedRegionInternal()
         PreReservedHeapTrace(_u("Reserving PreReservedSegment For the first time(CFG Enabled). Address: 0x%p\n"), preReservedStartAddress);
         preReservedStartAddress = startAddress;
 
-#if !_M_X64_OR_ARM64
+#if !TARGET_64
         if (startAddress)
         {
             InterlockedIncrement(&PreReservedVirtualAllocWrapper::numPreReservedSegment);

@@ -322,11 +322,44 @@ int EncoderMD::EmitOp3RegisterOrImmediate(Arm64CodeEmitter &Emitter, IR::Instr* 
 }
 
 template<typename _RegFunc32, typename _RegFunc64, typename _ImmFunc32, typename _ImmFunc64>
-int EncoderMD::EmitOp3RegisterOrImmediateExtendSP(Arm64CodeEmitter &Emitter, IR::Instr* instr, _RegFunc32 reg32, _RegFunc64 reg64, _ImmFunc32 imm32, _ImmFunc64 imm64)
+int EncoderMD::EmitOp3RegisterOrImmediateExtendSPReg(Arm64CodeEmitter &Emitter, IR::Instr* instr, _RegFunc32 reg32, _RegFunc64 reg64, _ImmFunc32 imm32, _ImmFunc64 imm64)
 {
-    if (instr->GetSrc1()->AsRegOpnd()->GetReg() == RegSP)
+    // if we have two regopnds as sources, then we need to be careful
+    if (instr->GetSrc1()->IsRegOpnd() && instr->GetSrc2()->IsRegOpnd())
     {
-        return this->EmitOp3RegisterShifted(Emitter, instr, EXTEND_UXTX, 0, reg32, reg64);
+        IR::RegOpnd* src1 = instr->GetSrc1()->AsRegOpnd();
+        IR::RegOpnd* src2 = instr->GetSrc2()->AsRegOpnd();
+        IR::RegOpnd* dst  = instr->GetDst()->AsRegOpnd();
+        AssertMsg(!(src1->GetReg() == RegSP && src2->GetReg() == RegSP), "Tried to encode an add or sub that used RegSP as both sources - tighten legalization restrictions!");
+
+        // We need to swap the parameters if
+        // 1. src2 is RegSP
+        // 2. src1 is RegZR and dst is RegSP
+        // This is because the valid instruction forms are
+        // add Rd, Rs, Rw_SFT
+        // add Rd|SP, Rs|SP, Rw_EXT
+        // and the encoding for SP is the same as the encoding for ZR
+        if (src2->GetReg() == RegSP || (src1->GetReg() == RegZR && dst->GetReg() == RegSP))
+        {
+            // We can only really do this for addition, so we failfast if it's a sub
+            AssertOrFailFastMsg(instr->m_opcode != Js::OpCode::SUB && instr->m_opcode != Js::OpCode::SUBS, "Tried to encode a SUB/SUBS with RegSP as the second operand or as the dest with RegZR in first operand - tighten legalization restrictions!");
+            // We need to swap the arguments
+            instr->UnlinkSrc1();
+            instr->UnlinkSrc2();
+            instr->SetSrc1(src2);
+            instr->SetSrc2(src1);
+            IR::RegOpnd* temp = src1;
+            src1 = src2;
+            src2 = temp;
+        }
+
+        // The extended form of the instruction takes RegSP for dst and src1 and RegZR for src2
+        if (src1->GetReg() == RegSP || instr->GetDst()->AsRegOpnd()->GetReg() == RegSP)
+        {
+            // EXTEND_UXTX effectively means LSL here, just that LSL is a shift, not an extend, operation
+            // Regardless, we do it by 0, so it should just be directly using the register
+            return this->EmitOp3RegisterShifted(Emitter, instr, EXTEND_UXTX, 0, reg32, reg64);
+        }
     }
 
     return EmitOp3RegisterOrImmediate(Emitter, instr, reg32, reg64, imm32, imm64);
@@ -518,11 +551,20 @@ int EncoderMD::EmitMovConstant(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emi
         Assert(src1->IsLabelOpnd());
         IR::LabelInstr* labelInstr = src1->AsLabelOpnd()->GetLabel();
 
-        // Here the LabelOpnd's offset is a post-lower immediate value; we need
-        // to mask in just the part indicated by our own shift amount, and send
-        // that along as our immediate load value.
-        uintptr_t fullvalue = labelInstr->GetOffset();
-        immediate = (fullvalue & (0xffff << shift)) >> shift;
+        if (labelInstr->m_isDataLabel)
+        {
+            // If the label is a data label, we don't know the label address yet so handle it as a reloc.
+            EncodeReloc::New(&m_relocList, RelocTypeLabelImmed, m_pc, labelInstr, m_encoder->m_tempAlloc);
+            immediate = 0;
+        }
+        else
+        {
+            // Here the LabelOpnd's offset is a post-lower immediate value; we need
+            // to mask in just the part indicated by our own shift amount, and send
+            // that along as our immediate load value.
+            uintptr_t fullvalue = labelInstr->GetOffset();
+            immediate = (fullvalue >> shift) & 0xffff;
+        }
     }
 
     Assert((immediate & 0xFFFF) == immediate);
@@ -741,11 +783,13 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
     switch (instr->m_opcode)
     {
     case Js::OpCode::ADD:
-        bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitAddRegister, EmitAddRegister64, EmitAddImmediate, EmitAddImmediate64);
+        bytes = this->EmitOp3RegisterOrImmediateExtendSPReg(Emitter, instr, EmitAddRegister, EmitAddRegister64, EmitAddImmediate, EmitAddImmediate64);
         break;
 
     case Js::OpCode::ADDS:
-        bytes = this->EmitOp3RegisterOrImmediateExtendSP(Emitter, instr, EmitAddsRegister, EmitAddsRegister64, EmitAddsImmediate, EmitAddsImmediate64);
+        // ADDS and SUBS have no valid encoding where dst == RegSP
+        Assert(instr->GetDst()->AsRegOpnd()->GetReg() != RegSP);
+        bytes = this->EmitOp3RegisterOrImmediateExtendSPReg(Emitter, instr, EmitAddsRegister, EmitAddsRegister64, EmitAddsImmediate, EmitAddsImmediate64);
         break;
 
     case Js::OpCode::ADR:
@@ -1087,11 +1131,13 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         break;
 
     case Js::OpCode::SUB:
-        bytes = this->EmitOp3RegisterOrImmediate(Emitter, instr, EmitSubRegister, EmitSubRegister64, EmitSubImmediate, EmitSubImmediate64);
+        bytes = this->EmitOp3RegisterOrImmediateExtendSPReg(Emitter, instr, EmitSubRegister, EmitSubRegister64, EmitSubImmediate, EmitSubImmediate64);
         break;
 
     case Js::OpCode::SUBS:
-        bytes = this->EmitOp3RegisterOrImmediateExtendSP(Emitter, instr, EmitSubsRegister, EmitSubsRegister64, EmitSubsImmediate, EmitSubsImmediate64);
+        // ADDS and SUBS have no valid encoding where dst == RegSP
+        Assert(instr->GetDst()->AsRegOpnd()->GetReg() != RegSP);
+        bytes = this->EmitOp3RegisterOrImmediateExtendSPReg(Emitter, instr, EmitSubsRegister, EmitSubsRegister64, EmitSubsImmediate, EmitSubsImmediate64);
         break;
 
     case Js::OpCode::SUB_LSL4:
@@ -1499,13 +1545,25 @@ EncoderMD::ApplyRelocs(size_t codeBufferAddress, size_t codeSize, uint* bufferCR
             *relocAddress = (*relocAddress & ~(0x7ffff << 5)) | ULONG(((immediate >> 2) & 0x7ffff) << 5);
             break;
 
+        case RelocTypeLabelImmed:
+        {
+            // read the shift from the encoded instruction.
+            uint32 shift = ((*relocAddress & (0x3 << 21)) >> 21) * 16;
+            uintptr_t fullvalue = ULONG_PTR(targetAddress) - ULONG_PTR(m_encoder->m_encodeBuffer) + ULONG_PTR(codeBufferAddress);
+            immediate = (fullvalue >> shift) & 0xffff;
+
+            // replace the immediate value in the encoded instruction.
+            *relocAddress = (*relocAddress & ~(0xffff << 5)) | ULONG((immediate & 0xffff) << 5);
+            break;
+        }
+
         case RelocTypeLabel:
             *(ULONG_PTR*)relocAddress = ULONG_PTR(targetAddress) - ULONG_PTR(m_encoder->m_encodeBuffer) + ULONG_PTR(codeBufferAddress);
             break;
 
         default:
             // unexpected/unimplemented type
-            Assert(false);
+            Assert(UNREACHED);
         }
     }
 }

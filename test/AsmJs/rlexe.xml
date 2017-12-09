@@ -1034,4 +1034,16 @@
       <files>regress_hascalls.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>argassignbug.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>maybecallbug.js</files>
+      <baseline>maybecallbug.baseline</baseline>
+      <compile-flags>-testtrace:asmjs</compile-flags>
+    </default>
+  </test>
 </regress-exe>

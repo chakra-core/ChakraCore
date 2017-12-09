@@ -251,7 +251,7 @@ namespace Js
         void Reg5(OpCode op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4);
         void ArgIn0(RegSlot arg);
         template <bool isVar>
-        void ArgOut(ArgSlot arg, RegSlot reg, ProfileId callSiteId);
+        void ArgOut(ArgSlot arg, RegSlot reg, ProfileId callSiteId, bool emitProfiledArgout);
         void ArgOutEnv(ArgSlot arg);
 #ifdef BYTECODE_BRANCH_ISLAND
         void BrLong(OpCode op, ByteCodeLabel labelID);

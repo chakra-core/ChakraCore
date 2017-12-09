@@ -1286,14 +1286,7 @@ FLAGNR(Boolean, CrashOnOOPJITFailure  , "Crash runtime process if JIT process cr
 FLAGNR(Boolean, OOPCFGRegistration    , "Do CFG registration OOP (under OOP JIT)", DEFAULT_CONFIG_OOPCFGRegistration)
 FLAGNR(Boolean, ForceJITCFGCheck      , "Have JIT code always do CFG check even if range check succeeded", DEFAULT_CONFIG_ForceJITCFGCheck)
 FLAGNR(Boolean, UseJITTrampoline      , "Use trampoline for JIT entry points and emit range checks for it", DEFAULT_CONFIG_UseJITTrampoline)
-
-#if defined(_M_ARM64) && !defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-// Disable JIT in ARM64 release build till it is stable. Enable in debug and test build for testing
-FLAGR (Boolean, NoNative              , "Disable native codegen", true)
-#else
 FLAGR (Boolean, NoNative              , "Disable native codegen", false)
-#endif
-
 FLAGNR(Number,  NopFrequency          , "Frequency of NOPs inserted by NOP insertion phase.  A NOP is guaranteed to be inserted within a range of (1<<n) instrs (default=8)", DEFAULT_CONFIG_NopFrequency)
 FLAGNR(Boolean, NoStrictMode          , "Disable strict mode checks on all functions", false)
 FLAGNR(Boolean, NormalizeStats        , "When dumping stats, do some normalization (used with -instrument:linearscan)", false)

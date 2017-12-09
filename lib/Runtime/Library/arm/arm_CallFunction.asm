@@ -3,10 +3,10 @@
 ; Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 ;-------------------------------------------------------------------------------------------------------
 
-;Var arm_CallFunction(JavascriptFunction* function, CallInfo info, Var* values, JavascriptMethod entryPoint)
+;Var arm_CallFunction(JavascriptFunction* function, CallInfo info, uint count, Var* values, JavascriptMethod entryPoint)
 ;
 ;   This method should be called as follows
-;       varResult = arm_CallFunction((JavascriptFunction*)function, args.Info, args.Values, entryPoint);
+;       varResult = arm_CallFunction((JavascriptFunction*)function, args.Info, argCount, args.Values, entryPoint);
 ;
 ;   and makes the following call
 ;           return entryPoint(function, info, values[0], values[1], ..., values[n-2], values[n-1]);
@@ -53,9 +53,7 @@
 
 
     ;All but two values go onto the stack ... calculate the number of values on the stack.
-    mov     r4,r1               ;r4 = callInfo.
-    bfc     r4,#24,#8           ;clear high order 8 bits of r6 -- clean callInfo.Flags which shares same word as callInfo.Count.
-    sub     r4,r4,#2            ;subtract 2 == number of values that we can pass via registers.
+    sub     r4,r2,#2            ;subtract 2 == number of values that we can pass via registers.
     mov     r5,r4,lsl #2        ;r5 = space needed on the stack for values.
 
     ; Adjust sp to meet ABI requirement: stack must be 8-bytes aligned at any function boundary.
@@ -70,20 +68,23 @@
     ;  - output: r4 = total number of BYTES probed/allocated.
     blx     __chkstk            ;now r4 = the space to allocate, r5 = actual space needed for values on stack, r4 >= r5.
 
+#if defined(_CONTROL_FLOW_GUARD)
+    ldr     r6,[sp, #32]        ; r6 = entryPoint
+#else
+    ldr     r6,[sp, #24]
+#endif
     ;offset stack by the amount of space we'll need.
     sub     sp,sp,r4
 
-    mov     r4,r3                               ;copy entryPoint to r4 so we can use r3 as a scratch variable
-
-    add     r2,r2,#8                            ;add 8 to r2 (so it is the address of the first value to be placed on the stack).
+    add     r3,r3,#8                            ;add 8 to r3 (so it is the address of the first value to be placed on the stack).
     mov     r12,#0                              ;offset for getting values/storing on stack.
 
 |argN|
     cmp     r5,r12
     beq     arg2                                ;if r5 == r12, no more values need to go onto the stack.
 
-        ldr     r3,[r2,r12]                     ;r3 = *(r2 + r12)
-        str     r3,[sp,r12]                     ;*(sp + r12) = r3
+        ldr     r4,[r3,r12]                     ;r3 = *(r2 + r12)
+        str     r4,[sp,r12]                     ;*(sp + r12) = r3
 
         add     r12,r12,#4                      ;offset increases by 4.
     b   argN                                    ;goto argN
@@ -91,27 +92,27 @@
 |arg2|
     ; Verify that the call target is valid, and process last two arguments
 #if defined(_CONTROL_FLOW_GUARD)
-    mov     r5, r0    ; save argument registers
-    mov     r6, r1
-    mov     r8, r2
+    mov     r4, r0    ; save argument registers
+    mov     r5, r1
+    mov     r8, r3
 
-    mov     r0, r4    ; the target address to check
+    mov     r0, r6    ; the target address to check
     mov32   r12, __guard_check_icall_fptr
     ldr     r12, [r12]
     blx     r12
 
-    mov     r0, r5    ; restore argument registers
-    mov     r1, r6
-    mov     r2, r8
+    mov     r0, r4    ; restore argument registers
+    mov     r1, r5
+    mov     r3, r8
 #endif
 
-    ;Push values[1] into r3
-    ldr     r3,[r2,#-4]                         ;r3 = *(r2-4) = values[1]
-
     ;Push values[0] into r2
-    ldr     r2,[r2,#-8]                         ;r2 = *(r2-8) = values[0]
+    ldr     r2,[r3,#-8]                         ;r2 = *(r2-8) = values[0]
 
-    blx     r4                                  ;call r4 (== entry point)
+    ;Push values[1] into r3
+    ldr     r3,[r3,#-4]                         ;r3 = *(r2-4) = values[1]
+
+    blx     r6                                  ;call r4 (== entry point)
 
     EPILOG_STACK_RESTORE r7
 #if defined(_CONTROL_FLOW_GUARD)

@@ -79,7 +79,9 @@ public:
     static void LegalizeDst(IR::Instr * instr, bool fPostRegAlloc);
     static void LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, bool fPostRegAlloc);
 
-    static bool LegalizeDirectBranch(IR::BranchInstr *instr, uint32 branchOffset); // DirectBranch has no src & dst operands.
+    static bool LegalizeDirectBranch(IR::BranchInstr *instr, uintptr_t branchOffset);
+    static bool LegalizeAdrOffset(IR::Instr *instr, uintptr_t instrOffset);
+    static bool LegalizeDataAdr(IR::Instr *instr, uintptr_t dataOffset);
 
 private:
     static void LegalizeRegOpnd(IR::Instr* instr, IR::Opnd* opnd);

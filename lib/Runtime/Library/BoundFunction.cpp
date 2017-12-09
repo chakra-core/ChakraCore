@@ -31,6 +31,8 @@ namespace Js
         ScriptContext *scriptContext = this->GetScriptContext();
         targetFunction = RecyclableObject::FromVar(args[0]);
 
+        Assert(!CrossSite::NeedMarshalVar(targetFunction, scriptContext));
+
         // Let proto be targetFunction.[[GetPrototypeOf]]().
         RecyclableObject* proto = JavascriptOperators::GetPrototype(targetFunction);
         if (proto != type->GetPrototype())
@@ -150,7 +152,6 @@ namespace Js
 
         if (boundFunction->count > 0)
         {
-            BOOL isCrossSiteObject = boundFunction->IsCrossSiteObject();
             // OACR thinks that this can change between here and the check in the for loop below
             const unsigned int argCount = args.Info.Count;
 
@@ -176,24 +177,9 @@ namespace Js
                 newValues[index++] = boundFunction->boundThis;
             }
 
-            // Copy the bound args
-            if (!isCrossSiteObject)
+            for (uint i = 0; i < boundFunction->count; i++)
             {
-                for (uint i = 0; i < boundFunction->count; i++)
-                {
-                    newValues[index++] = boundFunction->boundArgs[i];
-                }
-            }
-            else
-            {
-                // it is possible that the bound arguments are not marshalled yet.
-                for (uint i = 0; i < boundFunction->count; i++)
-                {
-                    //warning C6386: Buffer overrun while writing to 'newValues':  the writable size is 'boundFunction->count+argCount*8' bytes, but '40' bytes might be written.
-                    // there's throw with args.Info.Count == 0, so here won't hit buffer overrun, and __analyze_assume(argCount>0) does not work
-#pragma warning(suppress: 6386)
-                    newValues[index++] = CrossSite::MarshalVar(scriptContext, boundFunction->boundArgs[i]);
-                }
+                newValues[index++] = boundFunction->boundArgs[i];
             }
 
             // Copy the extra args
@@ -228,27 +214,6 @@ namespace Js
 
         return aReturnValue;
     }
-
-    void BoundFunction::MarshalToScriptContext(Js::ScriptContext * scriptContext)
-    {
-        Assert(this->GetScriptContext() != scriptContext);
-        AssertMsg(VirtualTableInfo<BoundFunction>::HasVirtualTable(this), "Derived class need to define marshal to script context");
-        VirtualTableInfo<Js::CrossSiteObject<BoundFunction>>::SetVirtualTable(this);
-        this->targetFunction = (RecyclableObject*)CrossSite::MarshalVar(scriptContext, this->targetFunction);
-        this->boundThis = (RecyclableObject*)CrossSite::MarshalVar(this->GetScriptContext(), this->boundThis);
-        for (uint i = 0; i < count; i++)
-        {
-            this->boundArgs[i] = CrossSite::MarshalVar(this->GetScriptContext(), this->boundArgs[i]);
-        }
-    }
-
-#if ENABLE_TTD
-    void BoundFunction::MarshalCrossSite_TTDInflate()
-    {
-        AssertMsg(VirtualTableInfo<BoundFunction>::HasVirtualTable(this), "Derived class need to define marshal");
-        VirtualTableInfo<Js::CrossSiteObject<BoundFunction>>::SetVirtualTable(this);
-    }
-#endif
 
     JavascriptFunction * BoundFunction::GetTargetFunction() const
     {
@@ -438,8 +403,7 @@ namespace Js
 
     BOOL BoundFunction::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
     {
-        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
-        if (BuiltInPropertyRecords::length.Equals(propertyName))
+        if (BuiltInPropertyRecords::length.Equals(propertyNameString))
         {
             return false;
         }

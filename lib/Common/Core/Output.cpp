@@ -268,11 +268,15 @@ Output::VPrint(const char16 *form, va_list argptr)
     size = _vsnwprintf_s(buf, _countof(buf), _TRUNCATE, form, argptr);
     if(size == -1)
     {
-        size = 2048;
+        size = _countof(buf) - 1;  // characters written, excluding the terminating null
     }
     return Output::PrintBuffer(buf, size);
 }
 
+//
+// buf: a null terminated string
+// size: characters in buf, excluding the terminating null ==> wcslen(buf)
+//
 size_t __cdecl
 Output::PrintBuffer(const char16 * buf, size_t size)
 {
@@ -349,8 +353,9 @@ Output::PrintBuffer(const char16 * buf, size_t size)
             {
                 Assert(Output::bufferFreeSize >= size + 1);
                 memcpy_s(Output::buffer + Output::bufferAllocSize - Output::bufferFreeSize, Output::bufferFreeSize * sizeof(char16),
-                    buf, (size + 1) * sizeof(char16));
+                    buf, size * sizeof(char16));
                 bufferFreeSize -= size;
+                Output::buffer[Output::bufferAllocSize - Output::bufferFreeSize] = _u('\0');  // null terminate explicitly
             }
         }
         else

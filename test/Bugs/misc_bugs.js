@@ -37,6 +37,53 @@ var tests = [
         Array.prototype.slice.call(arr);
     }
   },
+  {
+    name: "rest param under eval with arguments usage in the body should not fail assert",
+    body: function () {
+        f();
+        function f() {
+            eval("function bar(...x){arguments;}")
+        }
+    }
+  },
+  {
+    name: "Token left after parsing lambda result to the syntax error",
+    body: function () {
+        assert.throws(()=> { eval('function foo ([ [] = () => { } = {a2:z2}]) { };'); });
+    }
+  },
+  {
+    name: "Token left after parsing lambda in ternary operator should not throw",
+    body: function () {
+        assert.doesNotThrow(()=> { eval('function foo () {  true ? e => {} : 1};'); });
+    }
+  },
+  {
+    name: "ArrayBuffer.slice with proxy constructor should not fail fast",
+    body: function () {
+      let arr = new ArrayBuffer(10);
+      arr.constructor = new Proxy(ArrayBuffer, {});
+      
+      arr.slice(1,2);
+    }
+  },
+  {
+    name: "Large proxy chain should not cause IsConstructor to crash on stack overflow",
+    body: function () {
+      let p = new Proxy(Object, {});
+      for (let  i=0; i<20000; ++i)
+      {
+          p = new Proxy(p, {});
+      }
+      try
+      {
+          let a = new p();
+      }
+      catch(e)
+      {
+      }
+    }
+  }
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

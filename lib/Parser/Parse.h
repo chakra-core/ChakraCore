@@ -510,20 +510,14 @@ private:
     bool NextTokenIsPropertyNameStart() const { return m_token.tk == tkID || m_token.tk == tkStrCon || m_token.tk == tkIntCon || m_token.tk == tkFltCon || m_token.tk == tkLBrack || m_token.IsReservedWord(); }
 
     template<bool buildAST>
-    void PushStmt(StmtNest *pStmt, ParseNodePtr pnode, OpCode op, ParseNodePtr pnodeLab, LabelId* pLabelIdList)
+    void PushStmt(StmtNest *pStmt, ParseNodePtr pnode, OpCode op, LabelId* pLabelIdList)
     {
-        AssertMem(pStmt);
-
         if (buildAST)
         {
-            AssertNodeMem(pnode);
-            AssertNodeMemN(pnodeLab);
-
             pnode->sxStmt.grfnop = 0;
             pnode->sxStmt.pnodeOuter = (NULL == m_pstmtCur) ? NULL : m_pstmtCur->pnodeStmt;
 
             pStmt->pnodeStmt = pnode;
-            pStmt->pnodeLab = pnodeLab;
         }
         else
         {
@@ -531,8 +525,8 @@ private:
             pStmt->pnodeStmt = 0;
             pStmt->isDeferred = true;
             pStmt->op = op;
-            pStmt->pLabelId = pLabelIdList;
         }
+        pStmt->pLabelId = pLabelIdList;
         pStmt->pstmtOuter = m_pstmtCur;
         SetCurrentStatement(pStmt);
     }
@@ -543,8 +537,6 @@ private:
     void PopBlockInfo();
     void PushDynamicBlock();
     void PopDynamicBlock();
-
-    ParseNodePtr PnodeLabel(IdentPtr pid, ParseNodePtr pnodeLabels);
 
     void MarkEvalCaller()
     {
@@ -758,12 +750,12 @@ private:
     // TODO: We should really call this StartScope and separate out the notion of scopes and blocks;
     // blocks refer to actual curly braced syntax, whereas scopes contain symbols.  All blocks have
     // a scope, but some statements like for loops or the with statement introduce a block-less scope.
-    template<bool buildAST> ParseNodePtr StartParseBlock(PnodeBlockType blockType, ScopeType scopeType, ParseNodePtr pnodeLabel = NULL, LabelId* pLabelId = NULL);
+    template<bool buildAST> ParseNodePtr StartParseBlock(PnodeBlockType blockType, ScopeType scopeType, LabelId* pLabelId = nullptr);
     template<bool buildAST> ParseNodePtr StartParseBlockWithCapacity(PnodeBlockType blockType, ScopeType scopeType, int capacity);
-    template<bool buildAST> ParseNodePtr StartParseBlockHelper(PnodeBlockType blockType, Scope *scope, ParseNodePtr pnodeLabel, LabelId* pLabelId);
+    template<bool buildAST> ParseNodePtr StartParseBlockHelper(PnodeBlockType blockType, Scope *scope, LabelId* pLabelId);
     void PushFuncBlockScope(ParseNodePtr pnodeBlock, ParseNodePtr **ppnodeScopeSave, ParseNodePtr **ppnodeExprScopeSave);
     void PopFuncBlockScope(ParseNodePtr *ppnodeScopeSave, ParseNodePtr *ppnodeExprScopeSave);
-    template<bool buildAST> ParseNodePtr ParseBlock(ParseNodePtr pnodeLabel, LabelId* pLabelId);
+    template<bool buildAST> ParseNodePtr ParseBlock(LabelId* pLabelId);
     void FinishParseBlock(ParseNode *pnodeBlock, bool needScanRCurly = true);
     void FinishParseFncExprScope(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncExprScope);
 
@@ -784,6 +776,8 @@ private:
     template<bool buildAST> ParseNodePtr ParseArrayList(bool *pArrayOfTaggedInts, bool *pArrayOfInts, bool *pArrayOfNumbers, bool *pHasMissingValues, uint *count, uint *spreadCount);
     template<bool buildAST> ParseNodePtr ParseMemberList(LPCOLESTR pNameHint, uint32 *pHintLength, tokens declarationType = tkNone);
     template<bool buildAST> IdentPtr ParseSuper(bool fAllowCall);
+
+    bool IsTerminateToken();
 
     // Used to determine the type of JavaScript object member.
     // The values can be combined using bitwise OR.
@@ -1027,8 +1021,8 @@ private:
     void RestoreScopeInfo(Js::ScopeInfo * scopeInfo);
     void FinishScopeInfo(Js::ScopeInfo * scopeInfo);
 
-    BOOL PnodeLabelNoAST(IdentToken* pToken, LabelId* pLabelIdList);
-    LabelId* CreateLabelId(IdentToken* pToken);
+    bool LabelExists(IdentPtr pid, LabelId* pLabelIdList);
+    LabelId* CreateLabelId(IdentPtr pid);
 
     void AddToNodeList(ParseNode ** ppnodeList, ParseNode *** pppnodeLast, ParseNode * pnodeAdd);
     void AddToNodeListEscapedUse(ParseNode ** ppnodeList, ParseNode *** pppnodeLast, ParseNode * pnodeAdd);

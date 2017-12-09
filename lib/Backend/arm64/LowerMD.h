@@ -146,6 +146,9 @@ public:
             void            LowerInt4RemWithBailOut(IR::Instr *const instr, const IR::BailOutKind bailOutKind, IR::LabelInstr *const bailOutLabel, IR::LabelInstr *const skipBailOutLabel) const;
             void            MarkOneFltTmpSym(StackSym *sym, BVSparse<JitArenaAllocator> *bvTmps, bool fFltPrefOp);
             void            GenerateFastRecyclerAlloc(size_t allocSize, IR::RegOpnd* newObjDst, IR::Instr* insertionPointInstr, IR::LabelInstr* allocHelperLabel, IR::LabelInstr* allocDoneLabel);
+#ifdef _CONTROL_FLOW_GUARD
+            void            GenerateCFGCheck(IR::Opnd * entryPointOpnd, IR::Instr * insertBeforeInstr);
+#endif
             void            SaveDoubleToVar(IR::RegOpnd * dstOpnd, IR::RegOpnd *opndFloat, IR::Instr *instrOrig, IR::Instr *instrInsert, bool isHelper = false);
             void            EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, IR::Instr * instrBailOut = nullptr, IR::LabelInstr * labelBailOut = nullptr);
             IR::Instr *     LoadCheckedFloat(IR::RegOpnd *opndOrig, IR::RegOpnd *opndFloat, IR::LabelInstr *labelInline, IR::LabelInstr *labelHelper, IR::Instr *instrInsert, const bool checkForNullInLoopBody = false);
@@ -290,7 +293,7 @@ private:
         IR::Opnd* srcOpnd,
         IR::Instr* instr);
 
-    IR::Instr*  GeneratePreCall(IR::Instr * callInstr, IR::Opnd  *functionOpnd);
+    IR::Instr*  GeneratePreCall(IR::Instr * callInstr, IR::Opnd  *functionOpnd, IR::Instr * insertBeforeInstrForCFGCheck);
     void        SetMaxArgSlots(Js::ArgSlot actualCount /*including this*/);
 // Data
 protected:

@@ -4,7 +4,7 @@
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
-LLVM_VERSION="4.0.0"
+LLVM_VERSION="5.0.0"
 DEFAULT_COLOR='\033[0m'
 ERROR_COLOR='\033[0;31m'
 GREEN_COLOR='\033[0;32m'

@@ -7,7 +7,7 @@
 namespace Js
 {
     EnterScriptObject::EnterScriptObject(ScriptContext* scriptContext, ScriptEntryExitRecord* entryExitRecord,
-        void * returnAddress, bool doCleanup, bool isCallRoot, bool hasCaller)
+        void * addrOfReturnAddress, bool doCleanup, bool isCallRoot, bool hasCaller)
     {
         Assert(scriptContext);
 
@@ -35,7 +35,7 @@ namespace Js
             false;
 
         // Initialize the entry exit record
-        entryExitRecord->returnAddrOfScriptEntryFunction = returnAddress;
+        entryExitRecord->addrOfReturnAddrOfScriptEntryFunction = addrOfReturnAddress;
         entryExitRecord->hasCaller = hasCaller;
         entryExitRecord->scriptContext = scriptContext;
 #ifdef EXCEPTION_CHECK

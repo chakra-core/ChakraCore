@@ -1621,8 +1621,7 @@ LHexError:
             return function->GetScriptContext()->GetLibrary()->GetUndefined();
         }
 
-        Js::JavascriptString* jsString = Js::JavascriptConversion::ToString(args[1], function->GetScriptContext());
-        PlatformAgnostic::EventTrace::FireGenericEventTrace(jsString->GetSz());
+        JS_ETW(EventWriteJSCRIPT_INTERNAL_GENERIC_EVENT(Js::JavascriptConversion::ToString(args[1], function->GetScriptContext())->GetSz()));
         return function->GetScriptContext()->GetLibrary()->GetUndefined();
     }
 #endif

@@ -319,6 +319,12 @@
   </test>
   <test>
     <default>
+      <files>cross_context_test.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>json_bugs.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
@@ -405,6 +411,12 @@
       <files>bug13383062.js</files>
       <compile-flags>-maxinterpretcount:2 -off:simplejit -off:lossyinttypespec -bgjit-</compile-flags>
       <baseline>bug13383062.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>profiledArgs.js</files>
+      <compile-flags>-off:inlineConstructors</compile-flags>
     </default>
   </test>
 </regress-exe>

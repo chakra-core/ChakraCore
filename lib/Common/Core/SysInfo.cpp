@@ -384,7 +384,11 @@ AutoSystemInfo::IsWin8OrLater()
 bool
 AutoSystemInfo::IsWinThresholdOrLater()
 {
+#if defined(_M_ARM64)
+    return true;
+#else
     return IsWindowsThresholdOrGreater();
+#endif
 }
 #endif
 

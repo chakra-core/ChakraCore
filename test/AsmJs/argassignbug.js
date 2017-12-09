@@ -3,21 +3,23 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-var a = new Array(2000000);
-var i = 0;
-try
+function m()
 {
-   while (true)
-   {
-       a[a.length] = new Object();
-   }
-}
-catch (e)
-{
+    "use asm"
+    function a(x, y)
+    {
+        x = x|0
+        y = y|0
+        return (x + y)|0
+    }
+    function b()
+    {
+        var x = 1
+        var y = 2
+        return a(x, (x=y, y)|0)|0
+    }
+    return b
 }
 
-for (var i = 0; i < 10; i++)
-{
-    WScript.Echo(i);
-    CollectGarbage();
-}
+let result = m()()
+print((result == 3) ? "Pass" : "Fail")

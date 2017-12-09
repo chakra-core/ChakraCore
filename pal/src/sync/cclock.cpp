@@ -49,25 +49,21 @@ void CCLock::Enter()
 {
     pthread_mutex_t *mutex = (pthread_mutex_t*)this->mutexPtr;
     int err = pthread_mutex_lock(mutex);
-#ifdef __APPLE__ // xplat-todo: pal pthread-exit strategy needs a revisit for the last! thread.
-    AssertMsg(err == 0, "Mutex Enter has failed");
-#endif
+    AssertMsg(err == 0 || *((size_t*)mutexPtr) == 0, "Mutex Enter has failed");
 }
 
 void CCLock::Leave()
 {
     pthread_mutex_t *mutex = (pthread_mutex_t*)this->mutexPtr;
     int err = pthread_mutex_unlock(mutex);
-#ifdef __APPLE__ // xplat-todo: pal pthread-exit strategy needs a revisit for the last! thread.
-    AssertMsg(err == 0, "Mutex Leave has failed");
-#endif
+    AssertMsg(err == 0 || *((size_t*)mutexPtr) == 0, "Mutex Leave has failed");
 }
 
 bool CCLock::TryEnter()
 {
     pthread_mutex_t *mutex = (pthread_mutex_t*)this->mutexPtr;
     int err = pthread_mutex_trylock(mutex);
-    AssertMsg(err == 0 || err == EBUSY, "Mutex TryEnter has failed");
+    AssertMsg(err == 0 || err == EBUSY || *((size_t*)mutexPtr) == 0, "Mutex TryEnter has failed");
 
     if (err != EBUSY)
     {

@@ -6117,6 +6117,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
             }
 
 #if ENABLE_NATIVE_CODEGEN
+#if ENABLE_OOP_NATIVE_CODEGEN
+            // If for some reason OOP JIT isn't connected (e.g. it crashed), don't attempt to JIT a loop body
+            if (JITManager::GetJITManager()->IsOOPJITEnabled() && !JITManager::GetJITManager()->IsConnected())
+            {
+                return nullptr;
+            }
+#endif
             // If the job is not scheduled then we need to schedule it now.
             // It is possible a job was scheduled earlier and we find ourselves looking at the same entry point
             // again. For example, if the function with the loop was JITed and bailed out then as we finish

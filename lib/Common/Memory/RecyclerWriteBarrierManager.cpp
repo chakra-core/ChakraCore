@@ -27,7 +27,7 @@ namespace Memory
 }
 #endif
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
-#ifdef _M_X64_OR_ARM64
+#ifdef TARGET_64
 X64WriteBarrierCardTableManager RecyclerWriteBarrierManager::x64CardTableManager;
 X64WriteBarrierCardTableManager::CommittedSectionBitVector X64WriteBarrierCardTableManager::committedSections(&HeapAllocator::Instance);
 
@@ -46,7 +46,7 @@ DWORD RecyclerWriteBarrierManager::cardTable[1 * 1024 * 1024];
 #endif
 
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
-#ifdef _M_X64_OR_ARM64
+#ifdef TARGET_64
 
 bool
 X64WriteBarrierCardTableManager::OnThreadInit()

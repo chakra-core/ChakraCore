@@ -147,13 +147,13 @@ private:
 class PreReservedSectionAllocWrapper
 {
 public:
-#if _M_IX86_OR_ARM32
+#if TARGET_32
     static const uint PreReservedAllocationSegmentCount = 256; // (256 * 64K) == 16 MB, if 64k is the AllocationGranularity
-#else // _M_X64_OR_ARM64
+#else // TARGET_64
     static const uint PreReservedAllocationSegmentCount = 4096; //(4096 * 64K) == 256MB, if 64k is the AllocationGranularity
 #endif
 
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
+#if !TARGET_64 && _CONTROL_FLOW_GUARD
     static const unsigned MaxPreReserveSegment = 6;
 #endif
 
@@ -171,7 +171,7 @@ public:
 
     LPVOID      GetPreReservedEndAddress();
     static LPVOID GetPreReservedEndAddress(void * regionStart);
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
+#if !TARGET_64 && _CONTROL_FLOW_GUARD
     static int  NumPreReservedSegment() { return numPreReservedSegment; }
 #endif
 
@@ -189,7 +189,7 @@ private:
     BVStatic<PreReservedAllocationSegmentCount>     freeSegments;
     LPVOID                                          preReservedStartAddress;
     CriticalSection                                 cs;
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
+#if !TARGET_64 && _CONTROL_FLOW_GUARD
     static uint  numPreReservedSegment;
 #endif
 

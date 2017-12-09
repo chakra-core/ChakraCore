@@ -4837,7 +4837,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         }
 
         bool allowPrereserveAlloc = true;
-#if !_M_X64_OR_ARM64
+#if !TARGET_64
         if (this->webWorkerId != Js::Constants::NonWebWorkerContextId)
         {
             allowPrereserveAlloc = false;
@@ -6159,11 +6159,11 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
                 if (emitV2AsyncStackEvent)
                 {
-                    JS_ETW(EventWriteJSCRIPT_ASYNCCAUSALITY_STACKTRACE_V2(operationID, frameCount, nameBufferLength, sizeof(StackFrameInfo), &stackFrames.Item(0), nameBufferString));
+                    JS_ETW(EventWriteJSCRIPT_ASYNCCAUSALITY_STACKTRACE_V2(operationID, frameCount, nameBufferLength, nameBufferString, sizeof(StackFrameInfo), &stackFrames.Item(0)));
                 }
                 else
                 {
-                    JS_ETW(EventWriteJSCRIPT_STACKTRACE(operationID, frameCount, nameBufferLength, sizeof(StackFrameInfo), &stackFrames.Item(0), nameBufferString));
+                    JS_ETW(EventWriteJSCRIPT_STACKTRACE(operationID, frameCount, nameBufferLength, nameBufferString, sizeof(StackFrameInfo), &stackFrames.Item(0)));
                 }
             }
         }

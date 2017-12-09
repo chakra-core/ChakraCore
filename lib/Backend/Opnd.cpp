@@ -458,7 +458,7 @@ Opnd::GetImmediateValue(Func* func)
     }
 }
 
-#if TARGET_32 && !defined(_M_IX86)
+#if defined(_M_ARM)
 int32
 Opnd::GetImmediateValueAsInt32(Func * func)
 {
@@ -3026,7 +3026,7 @@ Opnd::DumpAddress(void *address, bool printToConsole, bool skipMaskedAddress)
     }
     else
     {
-#ifdef _M_X64_OR_ARM64
+#ifdef TARGET_64
         Output::Print(_u("0x%012I64X"), address);
 #else
         Output::Print(_u("0x%08X"), address);
@@ -3574,7 +3574,7 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
         {
         case IR::AddrOpndKindConstantAddress:
         {
-#ifdef _M_X64_OR_ARM64
+#ifdef TARGET_64
             char16 const * format = _u("0x%012I64X");
 #else
             char16 const * format = _u("0x%08X");
@@ -3585,7 +3585,7 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
         case IR::AddrOpndKindDynamicVar:
             if (Js::TaggedInt::Is(address))
             {
-#ifdef _M_X64_OR_ARM64
+#ifdef TARGET_64
                 char16 const * format = _u("0x%012I64X (value: %d)");
 #else
                 char16 const * format = _u("0x%08X  (value: %d)");
@@ -3645,7 +3645,7 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
             break;
         case IR::AddrOpndKindConstantVar:
         {
-#ifdef _M_X64_OR_ARM64
+#ifdef TARGET_64
             char16 const * format = _u("0x%012I64X%s");
 #else
             char16 const * format = _u("0x%08X%s");

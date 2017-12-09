@@ -414,10 +414,6 @@ void Visit(ParseNode *pnode, ByteCodeGenerator* byteCodeGenerator, PrefixFn pref
     case knopContinue:
         // TODO: some representation of target
         break;
-    // PTNODE(knopLabel      , "label"        ,None    ,Label,fnopNone)
-    case knopLabel:
-        // TODO: print labeled statement
-        break;
     // PTNODE(knopSwitch     , "switch"    ,None    ,Switch,fnopBreak)
     case knopSwitch:
         Visit(pnode->sxSwitch.pnodeVal, byteCodeGenerator, prefix, postfix);
@@ -2540,7 +2536,7 @@ FuncInfo* PreVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerato
     }
     PreVisitBlock(pnode->sxFnc.pnodeScopes, byteCodeGenerator);
     // If we have arguments, we are going to need locations if the function is in strict mode or we have a non-simple parameter list. This is because we will not create a scope object.
-    bool assignLocationForFormals = !(funcInfo->GetHasHeapArguments() && ByteCodeGenerator::NeedScopeObjectForArguments(funcInfo, funcInfo->root));
+    bool assignLocationForFormals = !ByteCodeGenerator::NeedScopeObjectForArguments(funcInfo, funcInfo->root);
     AddArgsToScope(pnode, byteCodeGenerator, assignLocationForFormals);
 
     return funcInfo;
@@ -2790,7 +2786,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
         {
             if (top->GetCallsEval() ||
                 top->GetChildCallsEval() ||
-                (top->GetHasArguments() && ByteCodeGenerator::NeedScopeObjectForArguments(top, pnode) && pnode->sxFnc.pnodeParams != nullptr) ||
+                (top->GetHasArguments() && ByteCodeGenerator::NeedScopeObjectForArguments(top, pnode)) ||
                 top->GetHasLocalInClosure() ||
                 (top->funcExprScope && top->funcExprScope->GetMustInstantiate()) ||
                 // When we have split scope normally either eval will be present or the GetHasLocalInClosure will be true as one of the formal is

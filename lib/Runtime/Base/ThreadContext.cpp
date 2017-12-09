@@ -172,7 +172,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     thunkPageAllocators(allocationPolicyManager, /* allocXData */ false, /* virtualAllocator */ nullptr, GetCurrentProcess()),
 #endif
     codePageAllocators(allocationPolicyManager, ALLOC_XDATA, GetPreReservedVirtualAllocator(), GetCurrentProcess()),
-#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+#if defined(_CONTROL_FLOW_GUARD) && !defined(_M_ARM)
     jitThunkEmitter(this, &VirtualAllocWrapper::Instance , GetCurrentProcess()),
 #endif
 #endif
@@ -793,7 +793,7 @@ Recycler* ThreadContext::EnsureRecycler()
         try
         {
 #ifdef RECYCLER_WRITE_BARRIER
-#ifdef _M_X64_OR_ARM64
+#ifdef TARGET_64
             if (!RecyclerWriteBarrierManager::OnThreadInit())
             {
                 Js::Throw::OutOfMemory();

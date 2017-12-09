@@ -13,6 +13,7 @@ const OpcodeMatcher Arm64UnwindCodeGenerator::SubSpSpX15Uxtx4Opcode = { 0xffffff
 const OpcodeList Arm64UnwindCodeGenerator::PrologOpcodes =
 {
     { 0xff8003ff, 0xd10003ff },         // sub sp, sp, #imm
+    { 0xffe0ffff, 0xcb4063ff },         // sub sp, sp, reg
     { 0xff8003ff, 0x910003fd },         // add fp, sp, #imm
     { 0xffc003e0, 0xa90003e0 },         // stp rt, rt2, [sp, #offs]
     { 0xffc003e0, 0xa98003e0 },         // stp rt, rt2, [sp, #offs]!
@@ -27,6 +28,7 @@ const OpcodeList Arm64UnwindCodeGenerator::PrologOpcodes =
 const OpcodeList Arm64UnwindCodeGenerator::EpilogOpcodes =
 {
     { 0xff8003ff, 0x910003ff },         // add sp, sp, #imm
+    { 0xffe0ffff, 0x8b2063ff },         // add sp, sp, reg
     { 0xff8003ff, 0xd10003bf },         // sub sp, fp, #imm
     { 0xffc003e0, 0xa94003e0 },         // ldp rt, rt2, [sp, #offs]
     { 0xffc003e0, 0xa8c003e0 },         // ldp rt, rt2, [sp], #offs
@@ -140,9 +142,7 @@ void Arm64XdataGenerator::Generate(PULONG prologStart, PULONG prologEnd, PULONG 
 
 Arm64UnwindCodeGenerator::Arm64UnwindCodeGenerator()
     : m_lastPair(0),
-      m_lastPairOffset(0),
-      m_pendingImmediate(0),
-      m_pendingImmediateReg(0)
+      m_lastPairOffset(0)
 {
 }
 
@@ -352,14 +352,25 @@ ULONG Arm64UnwindCodeGenerator::EncodeAddFp(int offset)
     return this->SafeEncode(op_add_fp, immed & 0xff);
 }
 
-ULONG Arm64UnwindCodeGenerator::GenerateSingleOpcode(ULONG opcode, const OpcodeList &opcodeList)
+ULONG Arm64UnwindCodeGenerator::GenerateSingleOpcode(PULONG opcodePtr, PULONG regionStart, const OpcodeList &opcodeList)
 {
+    ULONG opcode = *opcodePtr;
+
     // SUB SP, SP, #imm / ADD SP, SP, #imm
     if (opcodeList.subSpSpImm.Matches(opcode))
     {
         int shift = (opcode >> 22) & 1;
         ULONG bytes = ((opcode >> 10) & 0xfff) << (12 * shift);
         return this->EncodeAlloc(bytes);
+    }
+
+    // SUB SP, SP, reg / ADD SP, SP, reg
+    else if (opcodeList.subSpSpReg.Matches(opcode))
+    {
+        int regNum = (opcode >> 16) & 31;
+        ULONG64 immediate = this->FindRegisterImmediate(regNum, regionStart, opcodePtr);
+        Assert(immediate < 0xffffff);
+        return this->EncodeAlloc(ULONG(immediate));
     }
 
     // ADD FP, SP, #imm
@@ -454,53 +465,16 @@ ULONG Arm64UnwindCodeGenerator::GenerateSingleOpcode(ULONG opcode, const OpcodeL
         return this->EncodeStoreFpRegPredec(rt, offset);
     }
 
-    // MOVZ/MOVK/MOVN reg
-    else if (MovkOpcode.Matches(opcode))
-    {
-        // MOVN (opc == 0) sign-extends
-        int64 val = (opcode >> 5) & 0xffff;
-        int opc = (opcode >> 29) & 3;
-        if (opc == 0)
-        {
-            val = int16(val);
-        }
-
-        // apply shift
-        int shift = 16 * ((opcode >> 21) & 3);
-        val <<= shift;
-
-        // 32-bit operations clear the upper 32 bits
-        if ((opcode & 0x80000000) == 0)
-        {
-            val &= 0xffffffff;
-        }
-
-        // MOVK (opc == 3) inserts into existing register; MOVN/MOVZ replace the whole value
-        int rd = opcode & 31;
-        if (opc == 3)
-        {
-            Assert(this->m_pendingImmediateReg == rd);
-            this->m_pendingImmediate = (this->m_pendingImmediate & ~(0xffff << shift)) | val;
-        }
-        else
-        {
-            this->m_pendingImmediateReg = rd;
-            this->m_pendingImmediate = val;
-        }
-
-        // fall through to encode a NOP
-    }
-
     // SUB SP, SP, x15 UXTX #4
     else if (SubSpSpX15Uxtx4Opcode.Matches(opcode))
     {
-        Assert(this->m_pendingImmediateReg == 15);
-        Assert(this->m_pendingImmediate >= 0 && this->m_pendingImmediate < 0xffffff);
-        return this->EncodeAlloc(ULONG(this->m_pendingImmediate) * 16);
+        ULONG64 immediate = this->FindRegisterImmediate(15, regionStart, opcodePtr);
+        Assert(immediate < 0xffffff / 16);
+        return this->EncodeAlloc(ULONG(immediate) * 16);
     }
 
-    // BLR <chkstk> / RET
-    else if (BlrOpcode.Matches(opcode) || RetOpcode.Matches(opcode))
+    // BLR <chkstk> / RET / MOVK/MOVN/MOVZ
+    else if (BlrOpcode.Matches(opcode) || RetOpcode.Matches(opcode) || MovkOpcode.Matches(opcode))
     {
         // fall through to encode a NOP, but avoid the assert
     }
@@ -568,6 +542,69 @@ ULONG Arm64UnwindCodeGenerator::EmitFinalCodes(PBYTE buffer, ULONG bufferSize, P
     return outputIndex;
 }
 
+ULONG64 Arm64UnwindCodeGenerator::FindRegisterImmediate(int regNum, PULONG regionStart, PULONG regionEnd)
+{
+    // scan forward, looking for opcodes that assemble immediate values
+    ULONG64 pendingImmediate = 0;
+    int pendingImmediateReg = -1;
+    bool foundImmediate = false;
+    for (PULONG opcodePtr = regionStart; opcodePtr < regionEnd; opcodePtr++)
+    {
+        ULONG opcode = *opcodePtr;
+
+        // MOVZ/MOVK/MOVN reg
+        if (MovkOpcode.Matches(opcode))
+        {
+            // MOVK (opc == 3) should only ever modify a previously-written register
+            int opc = (opcode >> 29) & 3;
+            int rd = opcode & 31;
+            if (opc == 3)
+            {
+                Assert(pendingImmediateReg == rd);
+            }
+            pendingImmediateReg = rd;
+
+            // Skip the rest if this isn't our target register
+            if (rd != regNum)
+            {
+                continue;
+            }
+            foundImmediate = true;
+
+            // MOVN (opc == 0) sign-extends
+            int64 val = (opcode >> 5) & 0xffff;
+            if (opc == 0)
+            {
+                val = int16(val);
+            }
+
+            // apply shift
+            int shift = 16 * ((opcode >> 21) & 3);
+            val <<= shift;
+
+            // 32-bit operations clear the upper 32 bits
+            if ((opcode & 0x80000000) == 0)
+            {
+                val &= 0xffffffff;
+            }
+
+            // MOVK (opc == 3) inserts into existing register; MOVN/MOVZ replace the whole value
+            if (opc == 3)
+            {
+                pendingImmediate = (pendingImmediate & ~(0xffff << shift)) | val;
+            }
+            else
+            {
+                pendingImmediate = val;
+            }
+        }
+    }
+
+    // make sure we found something
+    Assert(foundImmediate);
+    return pendingImmediate;
+}
+
 ULONG Arm64UnwindCodeGenerator::GeneratePrologCodes(PBYTE buffer, ULONG bufferSize, PULONG &prologStart, PULONG &prologEnd)
 {
     Assert(prologStart != NULL);
@@ -587,7 +624,7 @@ ULONG Arm64UnwindCodeGenerator::GeneratePrologCodes(PBYTE buffer, ULONG bufferSi
     ULONG opcodeList[MAX_INSTRUCTIONS + 1];
     for (ULONG opIndex = 0; opIndex < numOpcodes; opIndex++)
     {
-        opcodeList[opIndex] = this->GenerateSingleOpcode(prologStart[opIndex], PrologOpcodes);
+        opcodeList[opIndex] = this->GenerateSingleOpcode(&prologStart[opIndex], prologStart, PrologOpcodes);
     }
 
     // trim out any trailing nops (they can be safely ignored)
@@ -620,11 +657,11 @@ ULONG Arm64UnwindCodeGenerator::GenerateEpilogCodes(PBYTE buffer, ULONG bufferSi
         numOpcodes = MAX_INSTRUCTIONS;
     }
 
-    // iterate over all prolog opcodes in reverse order to produce the list of unwind opcodes
+    // iterate over all epilog opcodes in reverse order to produce the list of unwind opcodes
     ULONG opcodeList[MAX_INSTRUCTIONS + 1];
     for (ULONG opIndex = 0; opIndex < numOpcodes; opIndex++)
     {
-        opcodeList[opIndex] = this->GenerateSingleOpcode(epilogStart[numOpcodes - 1 - opIndex], EpilogOpcodes);
+        opcodeList[opIndex] = this->GenerateSingleOpcode(&epilogStart[numOpcodes - 1 - opIndex], epilogStart, EpilogOpcodes);
     }
 
     // trim out any trailing nops (they can be safely ignored)

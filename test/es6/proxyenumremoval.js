@@ -78,7 +78,7 @@ passed &= keys==="";
 var keys=""
 var proxy = new Proxy({b:1,a:2}, {
   ownKeys: function() {
-    return {x:1,y:2, '0':'a', length:2};
+    return {x:1,y:2, '0':'a', length:1};
   }
 });
 for(var key in proxy){ keys += key;}
@@ -101,9 +101,9 @@ var proxy = new Proxy({}, {
     }
     return {
       configurable: true,
-      enumerable: enumerable, 
-      value: 42, 
-      writable: true 
+      enumerable: enumerable,
+      value: 42,
+      writable: true
     };
   },
   getPrototypeOf: function(){

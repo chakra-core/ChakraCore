@@ -4,17 +4,27 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#if defined(ENABLE_NATIVE_CODEGEN) && defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+#if defined(ENABLE_NATIVE_CODEGEN) && defined(_CONTROL_FLOW_GUARD) && !defined(_M_ARM)
 template <typename TAlloc>
 class JITThunkEmitter
 {
 private:
+#if _M_IX86 || _M_AMD64
     static const BYTE DirectJmp[];
     static const uint DirectJmpTargetOffset = 1;
     static const uint DirectJmpIPAdjustment = 5;
+#endif
 #if _M_AMD64
     static const BYTE IndirectJmp[];
     static const uint IndirectJmpTargetOffset = 2;
+#endif
+#if _M_ARM64
+    static const DWORD DirectB[];
+    static const DWORD IndirectBR[];
+    static const uint IndirectBRTempReg = 17;
+    static const uint IndirectBRLo16Offset = 0;
+    static const uint IndirectBRMid16Offset = 1;
+    static const uint IndirectBRHi16Offset = 2;
 #endif
     static const uint PageCount = 100;
     static const size_t ThunkSize = 16;

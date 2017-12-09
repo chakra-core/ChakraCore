@@ -630,8 +630,6 @@ namespace Js
             mWriter.AsmBr( pnode->sxJump.pnodeTarget->sxStmt.continueLabel );
             EndStatement(pnode);
             break;
-        case knopLabel:
-            break;
         case knopVarDecl:
             throw AsmJsCompilationException( _u("Variable declaration must happen at the top of the function") );
             break;
@@ -962,6 +960,31 @@ namespace Js
         }
     }
 
+    bool AsmJsFunc::IsVarLocationGeneric(const EmitExpressionInfo* pnode)
+    {
+        if (pnode->type.isInt())
+        {
+            return IsVarLocation<int>(pnode);
+        }
+        else if (pnode->type.isDouble())
+        {
+            return IsVarLocation<double>(pnode);
+        }
+        else if (pnode->type.isFloat())
+        {
+            return IsVarLocation<float>(pnode);
+        }
+        else if (pnode->type.isSIMDType())
+        {
+            return IsVarLocation<AsmJsSIMDValue>(pnode);
+        }
+        else
+        {
+            // Vars must have concrete type, so any "-ish" or "maybe" type
+            // cannot be in a var location
+            return false;
+        }
+    }
 
     RegSlot AsmJSByteCodeGenerator::EmitIndirectCallIndex(ParseNode* identifierNode, ParseNode* indexNode)
     {
@@ -1093,8 +1116,44 @@ namespace Js
                 }
 
                 // Emit argument
-                argArray[i] = Emit(arg);
-                types[i] = argArray[i].type;
+                EmitExpressionInfo argInfo = Emit(arg);
+
+                types[i] = argInfo.type;
+                argArray[i].type = argInfo.type;
+
+                if (!mFunction->IsVarLocationGeneric(&argInfo))
+                {
+                    argArray[i].location = argInfo.location;
+                }
+                else
+                {
+                    // If argument is a var, another argument might change its value, so move it to a temp register
+                    mFunction->ReleaseLocationGeneric(&argInfo);
+                    if (argInfo.type.isInt())
+                    {
+                        argArray[i].location = mFunction->AcquireTmpRegister<int>();
+                        mWriter.AsmReg2(OpCodeAsmJs::Ld_Int, argArray[i].location, argInfo.location);
+                    }
+                    else if (argInfo.type.isFloat())
+                    {
+                        argArray[i].location = mFunction->AcquireTmpRegister<float>();
+                        mWriter.AsmReg2(OpCodeAsmJs::Ld_Flt, argArray[i].location, argInfo.location);
+                    }
+                    else if (argInfo.type.isDouble())
+                    {
+                        argArray[i].location = mFunction->AcquireTmpRegister<double>();
+                        mWriter.AsmReg2(OpCodeAsmJs::Ld_Db, argArray[i].location, argInfo.location);
+                    }
+                    else if (argInfo.type.isSIMDType())
+                    {
+                        argArray[i].location = mFunction->AcquireTmpRegister<AsmJsSIMDValue>();
+                        LoadSimd(argArray[i].location, argInfo.location, AsmJsVarType::Which(argInfo.type.GetWhich()));
+                    }
+                    else
+                    {
+                        throw AsmJsCompilationException(_u("Function %s doesn't support argument of type %s"), funcName->Psz(), argInfo.type.toChars());
+                    }
+                }
             }
         }
 

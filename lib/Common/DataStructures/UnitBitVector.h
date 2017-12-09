@@ -30,7 +30,7 @@ GetFirstBitSet(DWORD *Index, UnitWord32 Mask)
 inline BOOLEAN
 GetFirstBitSet(DWORD *Index, UnitWord64 Mask)
 {
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
     return _BitScanForward64(Index, Mask);
 #else
     //_BitScanForward64 intrinsic is not available in x86 & ARM
@@ -56,7 +56,7 @@ GetLastBitSet(DWORD *Index, UnitWord32 Mask)
 inline BOOLEAN
 GetLastBitSet(DWORD *Index, UnitWord64 Mask)
 {
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
     return _BitScanReverse64(Index, Mask);
 #else
     //_BitScanReverse64 intrinsic is not available in x86 & ARM
@@ -67,6 +67,17 @@ GetLastBitSet(DWORD *Index, UnitWord64 Mask)
     }
     return _BitScanReverse(Index, (UnitWord32)Mask);
 #endif
+}
+
+namespace {
+
+//ShiftValue is essentially log(sizeof(T))
+template <typename T> constexpr LONG BVUnitT_GetShiftValue();
+
+template<> constexpr LONG BVUnitT_GetShiftValue<UnitWord32>() { return 5; }
+
+template<> constexpr LONG BVUnitT_GetShiftValue<UnitWord64>() { return 6; }
+
 }
 
 template <typename T>
@@ -222,9 +233,9 @@ public:
         AllOnesMask  = -1
     };
 
-    //ShiftValue is essentially log(sizeof(T))
-    //Initialization is through template specialization
-    static const LONG ShiftValue;
+    enum : LONG {
+        ShiftValue = BVUnitT_GetShiftValue<T>()
+    };
 
     static BVIndex Position(BVIndex index)
     {
@@ -488,10 +499,7 @@ public:
 typedef BVUnitT<UnitWord32> BVUnit32;
 typedef BVUnitT<UnitWord64> BVUnit64;
 
-template<> const __declspec(selectany) LONG BVUnitT<UnitWord32>::ShiftValue = 5;
-template<> const __declspec(selectany) LONG BVUnitT<UnitWord64>::ShiftValue = 6;
-
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
     typedef BVUnit64 BVUnit;
 #else
     typedef BVUnit32 BVUnit;

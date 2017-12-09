@@ -156,4 +156,20 @@ namespace Js
             return CheckPrototypesForAccessorOrNonWritablePropertyCore<PropertyKeyType, /*doFastProtoChainCheck*/false, false>(instance, propertyKey, setterValue, flags, nullptr, scriptContext);
         }
     }
+
+    template <typename Fn>
+    Var JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(RecyclableObject* constructor, Var defaultConstructor, ThreadContext * threadContext, Fn newObjectCreationFunction)
+    {
+        if (constructor != defaultConstructor)
+        {
+            return threadContext->ExecuteImplicitCall(constructor, Js::ImplicitCall_Accessor, [=]()->Js::Var
+            {
+                return newObjectCreationFunction();
+            });
+        }
+        else
+        {
+            return newObjectCreationFunction();
+        }
+    }
 }

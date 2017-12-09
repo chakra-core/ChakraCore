@@ -57,6 +57,22 @@ private:
 //
 class InterpreterThunkEmitter
 {
+public:
+    // InterpreterThunkSize must be public to be accessible to all code in InterpreterThunkEmitter.cpp.
+#ifdef _M_X64
+#ifdef _WIN32
+    static constexpr size_t InterpreterThunkSize = 96;
+#else  // Sys V AMD64
+    static constexpr size_t InterpreterThunkSize = 72;
+#endif
+#elif defined(_M_ARM)
+    static constexpr size_t InterpreterThunkSize = 72;
+#elif defined(_M_ARM64)
+    static constexpr size_t InterpreterThunkSize = 64;
+#else
+    static constexpr size_t InterpreterThunkSize = 56;
+#endif
+
 private:
     /* ------- instance methods --------*/
     InProcEmitBufferManager emitBufferManager;
@@ -68,46 +84,7 @@ private:
     Js::ScriptContext *  scriptContext;
     DWORD thunkCount;                      // Count of thunks available in the current thunk block
 
-    /* -------static constants ----------*/
-    // Interpreter thunk buffer includes function prolog, setting up of arguments, jumping to the appropriate calling point.
-    static const BYTE ThunkAddressOffset;
-    static const BYTE FunctionInfoOffset;
-    static const BYTE FunctionProxyOffset;
-    static const BYTE DynamicThunkAddressOffset;
-    static const BYTE CallBlockStartAddrOffset;
-    static const BYTE ThunkSizeOffset;
-    static const BYTE ErrorOffset;
-#if defined(_M_ARM)
-    static const BYTE CallBlockStartAddressInstrOffset;
-    static const BYTE CallThunkSizeInstrOffset;
-#endif
-#ifdef _M_X64
-#ifdef _WIN32
-#define INTERPRETER_THUNK_SIZE 96
-#else  // Sys V AMD64
-#define INTERPRETER_THUNK_SIZE 72
-#endif
-#elif defined(_M_ARM)
-#define INTERPRETER_THUNK_SIZE 72
-#elif defined(_M_ARM64)
-#define INTERPRETER_THUNK_SIZE 64
-#else
-#define INTERPRETER_THUNK_SIZE 56
-#endif
-    static const BYTE InterpreterThunk[INTERPRETER_THUNK_SIZE];
-
-    // Call buffer includes a call to the inner interpreter thunk and eventual jump to the epilog
-    static const BYTE JmpOffset;
-    static const BYTE Call[];
-
-    static const BYTE Epilog[];
-
-
-    static const BYTE PageCount = 1;
-#if defined(_M_X64)
-    static const BYTE PrologSize;
-    static const BYTE StackAllocSize;
-#endif
+    static constexpr BYTE PageCount = 1;
 
     /* ------private helpers -----------*/
     bool NewThunkBlock();
@@ -117,9 +94,8 @@ private:
 #endif
 
     static void EncodeInterpreterThunk(
-        __in_bcount(thunkSize) BYTE* thunkBuffer,
+        __in_bcount(InterpreterThunkSize) BYTE* thunkBuffer,
         __in const intptr_t thunkBufferStartAddress,
-        __in const DWORD thunkSize,
         __in const intptr_t epilogStart,
         __in const DWORD epilogSize,
         __in const intptr_t interpreterThunk);
@@ -139,11 +115,9 @@ private:
     };
 
     BYTE* AllocateFromFreeList(PVOID* ppDynamicInterpreterThunk);
-    static const BYTE _HeaderSize;
 public:
-    static const BYTE HeaderSize();
     static const BYTE ThunkSize;
-    static const uint BlockSize= AutoSystemInfo::PageSize * PageCount;
+    static constexpr uint BlockSize = AutoSystemInfo::PageSize * PageCount;
     static void* ConvertToEntryPoint(PVOID dynamicInterpreterThunk);
 
     InterpreterThunkEmitter(Js::ScriptContext * context, ArenaAllocator* allocator, CustomHeap::InProcCodePageAllocators * codePageAllocators, bool isAsmInterpreterThunk = false);

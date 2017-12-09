@@ -180,7 +180,6 @@ bool IsArguments(ParseNode *pnode)
         case knopBlock:
         case knopBreak:
         case knopContinue:
-        case knopLabel:
         case knopTypeof:
         case knopThrow:
         case knopWith:
@@ -6929,6 +6928,7 @@ void EmitOneArg(
     Js::ArgSlot &argIndex,
     Js::ArgSlot &spreadIndex,
     Js::RegSlot argTempLocation,
+    bool emitProfiledArgout,
     Js::AuxArray<uint32> *spreadIndices = nullptr
 )
 {
@@ -6953,7 +6953,7 @@ void EmitOneArg(
         }
         else
         {
-            byteCodeGenerator->Writer()->ArgOut<true>(argIndex + 1, regVal, callSiteId);
+            byteCodeGenerator->Writer()->ArgOut<true>(argIndex + 1, regVal, callSiteId, emitProfiledArgout);
         }
         funcInfo->ReleaseTmpRegister(regVal);
     }
@@ -6965,7 +6965,7 @@ void EmitOneArg(
         }
         else
         {
-            byteCodeGenerator->Writer()->ArgOut<true>(argIndex + 1, pnode->location, callSiteId);
+            byteCodeGenerator->Writer()->ArgOut<true>(argIndex + 1, pnode->location, callSiteId, emitProfiledArgout);
         }
     }
     argIndex++;
@@ -6984,6 +6984,7 @@ size_t EmitArgsWithArgOutsAtEnd(
     Js::ProfileId callSiteId,
     Js::RegSlot thisLocation,
     Js::ArgSlot argsCountForStartCall,
+    bool emitProfiledArgouts,
     Js::AuxArray<uint32> *spreadIndices = nullptr
 )
 {
@@ -6997,12 +6998,12 @@ size_t EmitArgsWithArgOutsAtEnd(
 
     while (pnode->nop == knopList)
     {
-        EmitOneArg(pnode->sxBin.pnode1, fAssignRegs, byteCodeGenerator, funcInfo, callSiteId, argIndex, spreadIndex, argTempLocation, spreadIndices);
+        EmitOneArg(pnode->sxBin.pnode1, fAssignRegs, byteCodeGenerator, funcInfo, callSiteId, argIndex, spreadIndex, argTempLocation, false /*emitProfiledArgout*/, spreadIndices);
         pnode = pnode->sxBin.pnode2;
         argTempLocation = funcInfo->AcquireTmpRegister();
     }
 
-    EmitOneArg(pnode, fAssignRegs, byteCodeGenerator, funcInfo, callSiteId, argIndex, spreadIndex, argTempLocation, spreadIndices);
+    EmitOneArg(pnode, fAssignRegs, byteCodeGenerator, funcInfo, callSiteId, argIndex, spreadIndex, argTempLocation, false /*emitProfiledArgout*/, spreadIndices);
 
     byteCodeGenerator->Writer()->StartCall(Js::OpCode::StartCall, argsCountForStartCall);
 
@@ -7011,12 +7012,12 @@ size_t EmitArgsWithArgOutsAtEnd(
     if (thisLocation != Js::Constants::NoRegister)
     {
         // Emit the "this" object.
-        byteCodeGenerator->Writer()->ArgOut<true>(0, thisLocation, callSiteId);
+        byteCodeGenerator->Writer()->ArgOut<true>(0, thisLocation, callSiteId, false /*emitProfiledArgouts*/);
     }
 
     for (Js::ArgSlot index = 0; index < argIndex; index++)
     {
-        byteCodeGenerator->Writer()->ArgOut<true>(index + 1, firstArgTempLocation + index, callSiteId);
+        byteCodeGenerator->Writer()->ArgOut<true>(index + 1, firstArgTempLocation + index, callSiteId, emitProfiledArgouts);
     }
 
     // Now release all those temps register
@@ -7034,6 +7035,7 @@ size_t EmitArgs(
     ByteCodeGenerator *byteCodeGenerator,
     FuncInfo *funcInfo,
     Js::ProfileId callSiteId,
+    bool emitProfiledArgouts,
     Js::AuxArray<uint32> *spreadIndices = nullptr
     )
 {
@@ -7044,11 +7046,11 @@ size_t EmitArgs(
     {
         while (pnode->nop == knopList)
         {
-            EmitOneArg(pnode->sxBin.pnode1, fAssignRegs, byteCodeGenerator, funcInfo, callSiteId, argIndex, spreadIndex, Js::Constants::NoRegister, spreadIndices);
+            EmitOneArg(pnode->sxBin.pnode1, fAssignRegs, byteCodeGenerator, funcInfo, callSiteId, argIndex, spreadIndex, Js::Constants::NoRegister, emitProfiledArgouts, spreadIndices);
             pnode = pnode->sxBin.pnode2;
         }
 
-        EmitOneArg(pnode, fAssignRegs, byteCodeGenerator, funcInfo, callSiteId, argIndex, spreadIndex, Js::Constants::NoRegister, spreadIndices);
+        EmitOneArg(pnode, fAssignRegs, byteCodeGenerator, funcInfo, callSiteId, argIndex, spreadIndex, Js::Constants::NoRegister, emitProfiledArgouts, spreadIndices);
     }
 
     return argIndex;
@@ -7065,7 +7067,7 @@ void EmitArgListStart(
     if (thisLocation != Js::Constants::NoRegister)
     {
         // Emit the "this" object.
-        byteCodeGenerator->Writer()->ArgOut<true>(0, thisLocation, callSiteId);
+        byteCodeGenerator->Writer()->ArgOut<true>(0, thisLocation, callSiteId, false /*emitProfiledArgout*/);
     }
 }
 
@@ -7123,7 +7125,7 @@ Js::ArgSlot EmitArgListEnd(
         }
         else
         {
-            byteCodeGenerator->Writer()->ArgOut<false>(evalIndex, evalEnv, callSiteId);
+            byteCodeGenerator->Writer()->ArgOut<false>(evalIndex, evalEnv, callSiteId, false /*emitProfiledArgout*/);
         }
     }
 
@@ -7131,7 +7133,7 @@ Js::ArgSlot EmitArgListEnd(
     {
         Assert(!fIsEval);
 
-        byteCodeGenerator->Writer()->ArgOut<true>(argSlotIndex + 1, newTargetLocation, callSiteId);
+        byteCodeGenerator->Writer()->ArgOut<true>(argSlotIndex + 1, newTargetLocation, callSiteId, false /*emitProfiledArgout*/);
     }
 
     Js::ArgSlot argIntCount = argSlotIndex + 1 + (Js::ArgSlot)fIsEval + (Js::ArgSlot)fEvalInModule + (Js::ArgSlot)fHasNewTarget;
@@ -7156,6 +7158,7 @@ Js::ArgSlot EmitArgList(
     Js::ProfileId callSiteId,
     Js::ArgSlot argsCountForStartCall,
     bool emitArgOutsAtEnd,
+    bool emitProfiledArgouts,
     uint16 spreadArgCount = 0,
     Js::AuxArray<uint32> **spreadIndices = nullptr)
 {
@@ -7188,11 +7191,11 @@ Js::ArgSlot EmitArgList(
     size_t argIndex = 0;
     if (emitArgOutsAtEnd)
     {
-        argIndex = EmitArgsWithArgOutsAtEnd(pnode, fAssignRegs, byteCodeGenerator, funcInfo, callSiteId, thisLocation, argsCountForStartCall, spreadIndices == nullptr ? nullptr : *spreadIndices);
+        argIndex = EmitArgsWithArgOutsAtEnd(pnode, fAssignRegs, byteCodeGenerator, funcInfo, callSiteId, thisLocation, argsCountForStartCall, emitProfiledArgouts, spreadIndices == nullptr ? nullptr : *spreadIndices);
     }
     else
     {
-        argIndex = EmitArgs(pnode, fAssignRegs, byteCodeGenerator, funcInfo, callSiteId, spreadIndices == nullptr ? nullptr : *spreadIndices);
+        argIndex = EmitArgs(pnode, fAssignRegs, byteCodeGenerator, funcInfo, callSiteId, emitProfiledArgouts, spreadIndices == nullptr ? nullptr : *spreadIndices);
     }
 
     Js::ArgSlot argumentsCount = EmitArgListEnd(pnode, thisLocation, evalLocation, newTargetLocation, byteCodeGenerator, funcInfo, argIndex, callSiteId);
@@ -7946,11 +7949,13 @@ void EmitNew(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* f
 
             Js::ProfileId callSiteId = byteCodeGenerator->GetNextCallSiteId(op);
 
+            // Only emit profiled argouts if we're going to profile this call.
+            bool emitProfiledArgouts = callSiteId != byteCodeGenerator->GetCurrentCallSiteId();
 
             Js::AuxArray<uint32> *spreadIndices = nullptr;
 
             actualArgCount = EmitArgList(pnode->sxCall.pnodeArgs, Js::Constants::NoRegister, Js::Constants::NoRegister,
-                false, true, byteCodeGenerator, funcInfo, callSiteId, argCount, pnode->sxCall.hasDestructuring, pnode->sxCall.spreadArgCount, &spreadIndices);
+                false, true, byteCodeGenerator, funcInfo, callSiteId, argCount, pnode->sxCall.hasDestructuring, emitProfiledArgouts, pnode->sxCall.spreadArgCount, &spreadIndices);
 
             funcInfo->ReleaseLoc(pnode->sxCall.pnodeTarget);
 
@@ -8080,8 +8085,10 @@ void EmitCall(
 
     Js::ProfileId callSiteId = byteCodeGenerator->GetNextCallSiteId(Js::OpCode::CallI);
 
+    // Only emit profiled argouts if we're going to allocate callSiteInfo (on the DynamicProfileInfo) for this call.
+    bool emitProfiledArgouts = callSiteId != byteCodeGenerator->GetCurrentCallSiteId();
     Js::AuxArray<uint32> *spreadIndices;
-    EmitArgList(pnodeArgs, thisLocation, newTargetLocation, fIsEval, fEvaluateComponents, byteCodeGenerator, funcInfo, callSiteId, (Js::ArgSlot)argCount, pnode->sxCall.hasDestructuring, spreadArgCount, &spreadIndices);
+    EmitArgList(pnodeArgs, thisLocation, newTargetLocation, fIsEval, fEvaluateComponents, byteCodeGenerator, funcInfo, callSiteId, (Js::ArgSlot)argCount, pnode->sxCall.hasDestructuring, emitProfiledArgouts, spreadArgCount, &spreadIndices);
 
     if (!fEvaluateComponents)
     {
@@ -8131,7 +8138,7 @@ void EmitInvoke(
 
     byteCodeGenerator->Writer()->StartCall(Js::OpCode::StartCall, 2);
     EmitArgListStart(callObjLocation, byteCodeGenerator, funcInfo, callSiteId);
-    byteCodeGenerator->Writer()->ArgOut<true>(1, arg1Location, callSiteId);
+    byteCodeGenerator->Writer()->ArgOut<true>(1, arg1Location, callSiteId, false /*emitProfiledArgout*/);
 
     byteCodeGenerator->Writer()->CallI(Js::OpCode::CallI, location, location, 2, callSiteId);
 }
@@ -11085,8 +11092,6 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
 
         byteCodeGenerator->Writer()->Br(funcInfo->singleExit);
         byteCodeGenerator->EndStatement(pnode);
-        break;
-    case knopLabel:
         break;
         // PTNODE(knopBlock      , "{}"        ,None    ,Block,fnopNone)
     case knopBlock:

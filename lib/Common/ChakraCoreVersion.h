@@ -16,8 +16,8 @@
 
 // ChakraCore version number definitions (used in ChakraCore binary metadata)
 #define CHAKRA_CORE_MAJOR_VERSION 1
-#define CHAKRA_CORE_MINOR_VERSION 8
-#define CHAKRA_CORE_PATCH_VERSION 2
+#define CHAKRA_CORE_MINOR_VERSION 9
+#define CHAKRA_CORE_PATCH_VERSION 0
 #define CHAKRA_CORE_VERSION_RELEASE_QFE 0 // Redundant with PATCH_VERSION. Keep this value set to 0.
 
 // -------------
@@ -54,10 +54,10 @@
 // * Does not add anything to the file description
 
 // ChakraCore RELEASE and PRERELEASE flags
-#define CHAKRA_CORE_VERSION_RELEASE 1
+#define CHAKRA_CORE_VERSION_RELEASE 0
 #define CHAKRA_CORE_VERSION_PRERELEASE 0
 
 // Chakra RELEASE flag
 // Mostly redundant with CHAKRA_CORE_VERSION_RELEASE,
 // but semantically refers to Chakra rather than ChakraCore.
-#define CHAKRA_VERSION_RELEASE 1
+#define CHAKRA_VERSION_RELEASE 0
