@@ -1775,8 +1775,12 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
             uint outParamCount = bailOutInfo->GetStartCallOutParamCount(i);
             startCallOutParamCounts[i] = outParamCount;
 #ifdef _M_IX86
-            uint orphanedArgCount = 0;
-            uint deadArgCount = 0;
+            if (bailOutInfo->startCallInfo[i].instr->m_opcode == Js::OpCode::StartCall)
+            {
+                // Deadcode might have eliminated the argouts and the call instruction due to a BailOnNoProfile after StartCall
+                // In such cases, StartCall opcode is not changed to LoweredStartCall, mark the StartCall instruction accordingly
+                bailOutInfo->startCallInfo[i].isOrphanedCall = true;
+            }
             // Only x86 has a progression of pushes of out args, with stack alignment.
             bool fDoStackAdjust = false;
             if (!bailOutInfo->inlinedStartCall->Test(i))
@@ -1871,11 +1875,6 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                 StackSym * sym = bailOutInfo->argOutSyms[argOutSlot];
                 if (sym == nullptr)
                 {
-#ifdef _M_IX86
-#if DBG
-                    deadArgCount++;
-#endif
-#endif
                     // This can happen when instr with bailout occurs before all ArgOuts for current call instr are processed.
                     continue;
                 }
@@ -2027,10 +2026,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 #endif
 #ifdef _M_IX86
                                     isOrphanedArgSlot->Set(outParamOffsetIndex);
-                                    bailOutInfo->startCallInfo[i].isOrphanedCall = true;
-#if DBG
-                                    orphanedArgCount++;
-#endif
+                                    Assert(bailOutInfo->startCallInfo[i].isOrphanedCall == true);
 #endif
                                 }
 #ifdef _M_IX86
@@ -2152,13 +2148,6 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 #endif
                 }
             }
-#ifdef _M_IX86
-            uint liveArgCount = bailOutInfo->startCallInfo[i /*startCallCount*/].argCount - orphanedArgCount - deadArgCount;
-            if (liveArgCount == 0)
-            {
-                bailOutInfo->startCallInfo[i].isOrphanedCall = true;
-            }
-#endif
         }
 
         for (int i = startCallCount - 1; i >= 0; i--)

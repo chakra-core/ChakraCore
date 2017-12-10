@@ -5440,7 +5440,21 @@ namespace Js
         return ScopeType_WithScope;
     }
 
+    // ScopeSlots
+    bool ScopeSlots::IsDebuggerScopeSlotArray() 
+    {
+        return DebuggerScope::Is(slotArray[ScopeMetadataSlotIndex]);
+    }
+
     // DebuggerScope
+    bool DebuggerScope::Is(void* ptr)
+    {
+        if (!ptr)
+        {
+            return false;
+        }
+        return VirtualTableInfo<DebuggerScope>::HasVirtualTable(ptr);
+    }
 
     // Get the sibling for the current debugger scope.
     DebuggerScope * DebuggerScope::GetSiblingScope(RegSlot location, FunctionBody *functionBody)
