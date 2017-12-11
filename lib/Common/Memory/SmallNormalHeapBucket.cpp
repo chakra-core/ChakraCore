@@ -335,14 +335,12 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(Recycler * recycler, 
             // If we exhausted the free list during this sweep, we will need to send this block to the FullBlockList.
             if (heapBlock->HasFreeObject())
             {
+                Assert(!heapBlock->isPendingConcurrentSweepPrep);
                 bool blockAddedToSList = HeapBucketT<TBlockType>::PushHeapBlockToSList(this->allocableHeapBlockListHead, heapBlock);
 
                 // If we encountered OOM while pushing the heapBlock to the SLIST we must add it to the heapBlockList so we don't lose track of it.
                 if (!blockAddedToSList)
                 {
-#ifdef RECYCLER_TRACE
-                    recycler->PrintBlockStatus(this, heapBlock, _u("[**23**] finished SweepPendingObjects, OOM while adding to the SLIST."));
-#endif
                     //TODO: akatti: We should handle this gracefully and try to recover from this state.
                     AssertOrFailFastMsg(false, "OOM while adding a heap block to the SLIST during concurrent sweep.");
                 }
@@ -457,14 +455,12 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
                 if (this->AllowAllocationsDuringConcurrentSweep())
                 {
                     Assert(!this->IsAnyFinalizableBucket());
+                    Assert(!heapBlock->isPendingConcurrentSweepPrep);
                     bool blockAddedToSList = HeapBucketT<TBlockType>::PushHeapBlockToSList(this->allocableHeapBlockListHead, heapBlock);
 
                     // If we encountered OOM while pushing the heapBlock to the SLIST we must add it to the heapBlockList so we don't lose track of it.
                     if (!blockAddedToSList)
                     {
-#ifdef RECYCLER_TRACE
-                        this->GetRecycler()->PrintBlockStatus(this, heapBlock, _u("[**10**] finished SweepPartialReusePages, heapblock REUSED but OOM while adding to the SLIST."));
-#endif
                         //TODO: akatti: We should handle this gracefully and try to recover from this state.
                         AssertOrFailFastMsg(false, "OOM while adding a heap block to the SLIST during concurrent sweep.");
                     }
@@ -539,14 +535,12 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
                     if (this->AllowAllocationsDuringConcurrentSweep())
                     {
                         Assert(!this->IsAnyFinalizableBucket());
+                        Assert(!heapBlock->isPendingConcurrentSweepPrep);
                         bool blockAddedToSList = HeapBucketT<TBlockType>::PushHeapBlockToSList(this->allocableHeapBlockListHead, heapBlock);
 
                         // If we encountered OOM while pushing the heapBlock to the SLIST we must add it to the heapBlockList so we don't lose track of it.
                         if (!blockAddedToSList)
                         {
-#ifdef RECYCLER_TRACE
-                            this->GetRecycler()->PrintBlockStatus(this, heapBlock, _u("[**13**] finished SweepPartialReusePages, heapblock REUSED but OOM while adding to the SLIST."));
-#endif
                             //TODO: akatti: We should handle this gracefully and try to recover from this state.
                             AssertOrFailFastMsg(false, "OOM while adding a heap block to the SLIST during concurrent sweep.");
                         }

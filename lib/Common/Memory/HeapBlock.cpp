@@ -1323,15 +1323,13 @@ SmallHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queu
         // This block has been allocated from since the last GC.
         // We need to update its free bit vector so we can use it below.
         DebugOnly(ushort currentFreeCount = (ushort)this->GetFreeBitVector()->Count());
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
-        Assert(freeCount - this->objectsAllocatedDuringConcurrentSweepCount == currentFreeCount);
-#else
         Assert(freeCount == currentFreeCount);
-#endif
 #if ENABLE_PARTIAL_GC
         Assert(this->lastFreeCount == 0 || this->oldFreeCount == this->lastFreeCount);
 #endif
+
         this->EnsureFreeBitVector();
+
         Assert(this->lastFreeCount >= this->freeCount);
 #if ENABLE_PARTIAL_GC
         Assert(this->oldFreeCount >= this->freeCount);
@@ -1377,7 +1375,7 @@ SmallHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queu
         // This heap block is ready to be swept concurrently.
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
         this->hasFinishedSweepObjects = false;
-        this->wasAllocatedFromDuringSweep = isPendingConcurrentSweepPrep;
+        this->wasAllocatedFromDuringSweep = this->isPendingConcurrentSweepPrep;
 #endif
         this->isPendingConcurrentSweepPrep = false;
     }
@@ -1700,13 +1698,13 @@ SmallHeapBlockT<TBlockAttributes>::SweepObjects(Recycler * recycler, bool onlyRe
         Assert(!this->IsAnyFinalizableBlock());
 
         // Adjust the mark and free bits to account for the objects we have allocated during the ongoing concurrent sweep.
-        this->markCount = (ushort)this->GetMarkCountForSweep();
-        this->EnsureFreeBitVector(true /*isCollecting*/);
-#if ENABLE_PARTIAL_GC
-        this->oldFreeCount = this->lastFreeCount = this->freeCount;
-#else
-        this->lastFreeCount = this->freeCount;
-#endif
+//        this->markCount = (ushort)this->GetMarkCountForSweep();
+//        this->EnsureFreeBitVector(true /*isCollecting*/);
+//#if ENABLE_PARTIAL_GC
+//        this->oldFreeCount = this->lastFreeCount = this->freeCount;
+//#else
+//        this->lastFreeCount = this->freeCount;
+//#endif
 
         // Reset the count of objects allocated during this concurrent sweep; so we will start afresh the next time around.
         Assert(this->objectsAllocatedDuringConcurrentSweepCount == this->objectsMarkedDuringSweep);

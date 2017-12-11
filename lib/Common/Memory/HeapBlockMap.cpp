@@ -355,7 +355,12 @@ HeapBlockMap32::VerifyMarkCountForPages(void * address, uint pageCount)
     for (uint i = id2; i < pageCount + id2; i++)
     {
         uint markCountForPage = l2map->GetPageMarkBitVector(i)->Count();
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+        DebugOnly(HeapBlock * heapBlock = this->GetHeapBlock(address));
+        Assert(markCountForPage == l2map->pageMarkCount[i] || heapBlock->WasAllocatedFromDuringSweep());
+#else
         Assert(markCountForPage == l2map->pageMarkCount[i]);
+#endif
     }
 }
 #endif

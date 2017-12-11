@@ -63,7 +63,12 @@ public:
     static const uint BackgroundSecondRepeatMarkThreshold = 128;
 
     // Number of blocks a heap bucket needs to have before allocations during concurrent sweep feature kicks-in.
-    static const uint AllocDuringConcurrentSweepHeapBlockThreshold = 5000;
+#if DBG
+    // We would want the feature to kick-in always in debug builds so we excercise the code.
+    static const uint AllocDuringConcurrentSweepHeapBlockThreshold = 0;
+#else
+    static const uint AllocDuringConcurrentSweepHeapBlockThreshold = 2000;
+#endif
 #endif
 private:
 

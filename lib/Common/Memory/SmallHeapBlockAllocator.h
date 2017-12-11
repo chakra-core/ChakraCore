@@ -221,7 +221,6 @@ SmallHeapBlockAllocator<TBlockType>::InlinedAllocImpl(Recycler * recycler, DECLS
                 Assert(heapBlock->IsValidBitIndex(bitIndex));
 
                 heapBlock->GetMarkedBitVector()->Set(bitIndex);
-                heapBlock->GetFreeBitVector()->Clear(bitIndex);
 #if DBG
                 heapBlock->GetDebugFreeBitVector()->Clear(bitIndex);
 #endif
@@ -230,7 +229,7 @@ SmallHeapBlockAllocator<TBlockType>::InlinedAllocImpl(Recycler * recycler, DECLS
                 // We need to keep track of the number of objects allocated during concurrent sweep, to be
                 // able to make the correct determination about whether a block is EMPTY or FULL when the actual
                 // sweep of this block happens.
-                heapBlock->objectsAllocatedDuringConcurrentSweepCount++;
+                DebugOnly(heapBlock->objectsAllocatedDuringConcurrentSweepCount++);
 #ifdef RECYCLER_TRACE
                 if (recycler->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase) && recycler->GetRecyclerFlagsTable().Trace.IsEnabled(Js::MemoryAllocationPhase))
                 {
