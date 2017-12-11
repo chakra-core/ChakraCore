@@ -81,9 +81,12 @@ protected:
 #endif
 
 #if defined(RECYCLER_SLOW_CHECK_ENABLED) || ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
-    size_t heapBlockCount;
-    size_t newHeapBlockCount;       // count of heap bock that is in the heap info and not in the heap bucket yet
-    size_t emptyHeapBlockCount;
+    uint32 heapBlockCount;
+    uint32 newHeapBlockCount;       // count of heap bock that is in the heap info and not in the heap bucket yet
+#endif
+
+#if defined(RECYCLER_SLOW_CHECK_ENABLED)
+    uint32 emptyHeapBlockCount;
 #endif
 
 #ifdef RECYCLER_PAGE_HEAP
@@ -317,11 +320,6 @@ protected:
     // This is the list of blocks that we allocated from during concurrent sweep. These blocks will eventually get processed during the next sweep and either go into
     // the fullBlockList.
     TBlockType * sweepableHeapBlockList;
-
-    // This is the list of blocks that we allocated from during concurrent sweep prior to adjusting prtial GC heuristics (AdjustPartialHeuristics). These blocks will need to 
-    // be swept before we start the actual sweep (SweepPartialReusePages and/or SweepPendingObjects) of any of the blocks in this buckets. This needs to happen so we work off of
-    // correct heuristics data.
-    TBlockType * pendingSweepPrepHeapBlockList;
 #endif
 #endif
 

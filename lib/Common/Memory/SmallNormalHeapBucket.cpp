@@ -41,16 +41,13 @@ SmallNormalHeapBucketBase<TBlockType>::ScanInitialImplicitRoots(Recycler * recyc
         heapBlock->ScanInitialImplicitRoots(recycler);
     });
 
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) && !this->IsAnyFinalizableBucket())
     {
         HeapBlockList::ForEach(this->sweepableHeapBlockList, [recycler](TBlockType * heapBlock)
         {
             heapBlock->ScanInitialImplicitRoots(recycler);
         });
-
-        // The pendingSweepPrepHeapBlockList should always be empty prior to a sweep as its only used during concurrent sweep.
-        Assert(this->pendingSweepPrepHeapBlockList == nullptr);
     }
 #endif
 
