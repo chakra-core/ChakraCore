@@ -355,7 +355,7 @@ private:
         entry->weakRefHeapBlock = weakRefHeapBlock;
 
 #ifdef RECYCLER_TRACE_WEAKREF
-        Output::Print(_u("Add 0x%08x to bucket %d\n"), entry, targetBucket);
+        Output::Print(_u("Add WeakRef 0x%08x for StrongRef %p to bucket %d\n"), entry, strongReference, targetBucket);
 #endif
         AddEntry(entry, &buckets[targetBucket]);
         count++;

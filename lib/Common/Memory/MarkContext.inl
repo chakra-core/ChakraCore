@@ -196,7 +196,11 @@ void MarkContext::MarkTrackedObject(FinalizableObject * trackedObject)
 {
 #if ENABLE_CONCURRENT_GC
     Assert(!recycler->queueTrackedObject);
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    Assert(!recycler->IsConcurrentExecutingState() && !recycler->IsConcurrentSweepState());
+#else
     Assert(!recycler->IsConcurrentExecutingState());
+#endif
 #endif
 #if ENABLE_PARTIAL_GC
     Assert(!recycler->inPartialCollectMode);

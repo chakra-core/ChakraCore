@@ -98,7 +98,11 @@ SmallHeapBlockT<TBlockTypeAttributes>::SweepObject<SweepMode_InThread>(Recycler 
         Assert(this->IsAnyFinalizableBlock());
 
 #if ENABLE_CONCURRENT_GC
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+        Assert(!recycler->IsConcurrentExecutingState() && !recycler->IsConcurrentSweepState());
+#else
         Assert(!recycler->IsConcurrentExecutingState());
+#endif
 #endif
 
         // Call prepare finalize to do clean up that needs to be done immediately

@@ -29,6 +29,30 @@ struct RecyclerMemoryData;
 
 namespace Memory
 {
+// NOTE: There is perf lab test infrastructure that takes a dependency on the events in this enumeration. Any modifications may cause
+// errors in ETL analysis or report incorrect numbers. Please verify that the GC events are analyzed correctly with your changes.
+    enum ETWEventGCActivationKind : unsigned
+    {
+        ETWEvent_GarbageCollect                         = 0,      // force in-thread GC
+        ETWEvent_ThreadCollect                          = 1,      // thread GC with wait
+        ETWEvent_ConcurrentCollect                      = 2,
+        ETWEvent_PartialCollect                         = 3,
+
+        ETWEvent_ConcurrentMark                         = 11,
+        ETWEvent_ConcurrentRescan                       = 12,
+        ETWEvent_ConcurrentSweep                        = 13,
+        ETWEvent_ConcurrentTransferSwept                = 14,
+        ETWEvent_ConcurrentFinishMark                   = 15,
+        ETWEvent_ConcurrentSweep_TwoPassSweepPreCheck   = 16,     // Check whether we should do a 2-pass concurrent sweep.
+
+        // The following events are only relevant to the 2-pass concurrent sweep and should not be seen otherwise.
+        ETWEvent_ConcurrentSweep_Pass1                  = 17,     // Concurrent sweep Pass1 of the blocks not getting allocated from during concurrent sweep.
+        ETWEvent_ConcurrentSweep_FinishSweepPrep        = 18,     // Stop allocations and remove all blocks from SLIST so we can finish Pass1 of the remaining blocks.
+        ETWEvent_ConcurrentSweep_FinishPass1            = 19,     // Concurrent sweep Pass1 of the blocks that were set aside for allocations during concurrent sweep.
+        ETWEvent_ConcurrentSweep_Pass2                  = 20,     // Concurrent sweep Pass1 of the blocks not getting allocated from during concurrent sweep.
+        ETWEvent_ConcurrentSweep_FinishTwoPassSweep     = 21,     // Drain the SLIST at the end of the 2-pass concurrent sweep and begin normal allocations.
+    };
+
 template <typename T> class RecyclerRootPtr;
 
 class AutoBooleanToggle
@@ -728,6 +752,9 @@ private:
 
     CollectionState collectionState;
     JsUtil::ThreadService *threadService;
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    bool allowAllocationsDuringConcurrentSweepForCollection;
+#endif
 
     HeapBlockMap heapBlockMap;
 
@@ -887,10 +914,8 @@ private:
 
     bool inDispose;
 
-#if DBG
-    uint collectionCount;
-#endif
 #if DBG || defined RECYCLER_TRACE
+    uint collectionCount;
     bool inResolveExternalWeakReferences;
 #endif
 
@@ -1068,6 +1093,7 @@ private:
 #endif
 #ifdef RECYCLER_TRACE
     CollectionParam collectionParam;
+    void PrintBlockStatus(HeapBucket * heapBucket, HeapBlock * heapBlock, char16 const * name);
 #endif
 #ifdef RECYCLER_MEMORY_VERIFY
     uint verifyPad;
@@ -1600,7 +1626,10 @@ private:
     void SweepHeap(bool concurrent, RecyclerSweep& recyclerSweep);
     void FinishSweep(RecyclerSweep& recyclerSweep);
 
-#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    void DoTwoPassConcurrentSweepPreCheck();
+    void FinishSweepPrep();
+    void FinishConcurrentSweepPass1();
     void FinishConcurrentSweep();
 #endif
 
@@ -1664,6 +1693,14 @@ private:
     {
         return ((collectionState & Collection_ConcurrentSweep) == Collection_ConcurrentSweep);
     }
+
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    bool AllowAllocationsDuringConcurrentSweep()
+    {
+        return this->allowAllocationsDuringConcurrentSweepForCollection;
+    }
+#endif
+
 #if DBG
     BOOL IsConcurrentFinishedState() const;
 #endif // DBG
@@ -2209,7 +2246,6 @@ public:
     virtual bool FindHeapObject(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject) override { Assert(false); return false; }
     virtual bool TestObjectMarkedBit(void* objectAddress) override { Assert(false); return false; }
     virtual void SetObjectMarkedBit(void* objectAddress) override { Assert(false); }
-
 #ifdef RECYCLER_VERIFY_MARK
     virtual bool VerifyMark(void * objectAddress, void * target) override { Assert(false); return false; }
 #endif
