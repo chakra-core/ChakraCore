@@ -37,16 +37,18 @@ Recycler::TrackerData Recycler::TrackerData::ExplicitFreeListObjectData(&typeid(
 
 enum ETWEventGCActivationKind : unsigned
 {
-    ETWEvent_GarbageCollect          = 0,      // force in-thread GC
-    ETWEvent_ThreadCollect           = 1,      // thread GC with wait
-    ETWEvent_ConcurrentCollect       = 2,
-    ETWEvent_PartialCollect          = 3,
+    ETWEvent_GarbageCollect                        = 0,      // force in-thread GC
+    ETWEvent_ThreadCollect                         = 1,      // thread GC with wait
+    ETWEvent_ConcurrentCollect                     = 2,
+    ETWEvent_PartialCollect                        = 3,
 
-    ETWEvent_ConcurrentMark          = 11,
-    ETWEvent_ConcurrentRescan        = 12,
-    ETWEvent_ConcurrentSweep         = 13,
-    ETWEvent_ConcurrentTransferSwept = 14,
-    ETWEvent_ConcurrentFinishMark    = 15,
+    ETWEvent_ConcurrentMark                        = 11,
+    ETWEvent_ConcurrentRescan                      = 12,
+    ETWEvent_ConcurrentSweep                       = 13,
+    ETWEvent_ConcurrentTransferSwept               = 14,
+    ETWEvent_ConcurrentFinishMark                  = 15,
+    ETWEvent_ConcurrentSweep_FinishSweepPrep       = 16,
+    ETWEvent_ConcurrentSweep_FinishConcurrentSweep = 17,
 };
 
 DefaultRecyclerCollectionWrapper DefaultRecyclerCollectionWrapper::Instance;
@@ -293,13 +295,13 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
 
 #if DBG
     this->heapBlockCount = 0;
-    this->collectionCount = 0;
     this->disableThreadAccessCheck = false;
 #if ENABLE_CONCURRENT_GC
     this->disableConcurrentThreadExitedCheck = false;
 #endif
 #endif
 #if DBG || defined RECYCLER_TRACE
+    this->collectionCount = 0;
     this->inResolveExternalWeakReferences = false;
 #endif
 #if DBG || defined(RECYCLER_STATS)
@@ -3389,7 +3391,7 @@ Recycler::FinishDisposeObjects()
     if (!this->inDispose && this->hasDisposableObject
         && GetRecyclerFlagsTable().Trace.IsEnabled(Js::RecyclerPhase))
     {
-        Output::Print(_u("%04X> RC(%p): %s\n"), this->mainThreadId, this, _u("Dispose object delayed"));
+        Output::Print(_u("%04X> RC(%p): %s %d\n"), this->mainThreadId, this, _u("Dispose object delayed"), this->collectionState);
     }
 #endif
     return false;
@@ -3778,8 +3780,13 @@ Recycler::DoCollectWrapped(CollectionFlags flags)
     this->allowDispose = (flags & CollectOverride_AllowDispose) == CollectOverride_AllowDispose;
     BOOL collected = collectionWrapper->ExecuteRecyclerCollectionFunction(this, &Recycler::DoCollect, flags);
 
+    //TODO:akatti: Remove this.
 #if ENABLE_CONCURRENT_GC
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    Assert(IsConcurrentExecutingState() || IsConcurrentFinishedState() /*|| IsConcurrentSweepState()*/ || !CollectionInProgress());
+#else
     Assert(IsConcurrentExecutingState() || IsConcurrentFinishedState() || !CollectionInProgress());
+#endif
 #else
     Assert(!CollectionInProgress());
 #endif
@@ -3883,7 +3890,7 @@ Recycler::DoCollect(CollectionFlags flags)
         Assert(this->backgroundFinishMarkCount == 0);
 #endif
 
-#if DBG
+#if DBG || defined RECYCLER_TRACE
         collectionCount++;
 #endif
         collectionState = Collection_PreCollection;
@@ -4392,7 +4399,11 @@ BOOL
 Recycler::RequestConcurrentWrapperCallback()
 {
 #if ENABLE_CONCURRENT_GC
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    Assert(!IsConcurrentExecutingState() && !IsConcurrentSweepState());
+#else
     Assert(!IsConcurrentExecutingState());
+#endif
 
     // Save the original collection state
     CollectionState oldState = this->collectionState;
@@ -4498,7 +4509,12 @@ Recycler::FinishConcurrent()
 
         const BOOL forceFinish = flags & CollectOverride_ForceFinish;
 
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+        // TODO:akatti: Should the concurrent wait states be considered executing states??
+        if (forceFinish || !(IsConcurrentExecutingState() /*|| IsConcurrentSweepState()*/))
+#else
         if (forceFinish || !IsConcurrentExecutingState())
+#endif
         {
 #if ENABLE_BACKGROUND_PAGE_FREEING
             if (CONFIG_FLAG(EnableBGFreeZero))
@@ -4556,7 +4572,12 @@ Recycler::TryFinishConcurrentCollect()
     Assert(!concurrent || !forceInThread);
     if (concurrent && concurrentThread != NULL)
     {
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+        // TODO:akatti: Should the concurrent wait states be considered executing states??
+        if (IsConcurrentExecutingState() /*|| IsConcurrentSweepState()*/)
+#else
         if (IsConcurrentExecutingState())
+#endif
         {
             if (!this->priorityBoost)
             {
@@ -4781,6 +4802,7 @@ bool Recycler::AbortConcurrent(bool restoreState)
             {
                 this->ResetMarkCollectionState();
             }
+            //TODO:akatti: Do we need to handle the Pass1Wait state and finish ConcurrentSweep here??
             else if (collectionState == CollectionStateTransferSweptWait)
             {
                 // Make sure we don't do another GC after finishing this one.
@@ -5726,32 +5748,53 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
     else if (collectionState == CollectionStateConcurrentSweepPass1Wait)
     {
         this->FinishSweepPrep();
+        this->collectionState = CollectionStateConcurrentSweepPass2;
 
         if (forceInThread)
         {
-            this->collectionState = CollectionStateConcurrentSweepPass2;
+#ifdef RECYCLER_TRACE
+            if (this->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase))
+            {
+                Output::Print(_u("[GC #%d] Finishing Sweep Pass2 in-thread. \n"), this->collectionCount);
+            }
+#endif
             this->recyclerSweep->FinishSweep();
             this->FinishConcurrentSweep();
-            this->collectionState = CollectionStateConcurrentSweepPass2Wait;
+            this->recyclerSweep->EndBackground();
+            //this->collectionState = CollectionStateConcurrentSweepPass2Wait;
 
-            if (this->recyclerSweep != nullptr)
-            {
-                this->recyclerSweep->EndBackground();
-            }
+            uint sweptBytes = 0;
+#ifdef RECYCLER_STATS
+            sweptBytes = (uint)collectionStats.objectSweptBytes;
+#endif
 
-            collectionState = CollectionStateTransferSweptWait;
+            GCETW(GC_BACKGROUNDSWEEP_STOP, (this, sweptBytes));
+            GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep));
+
+            this->collectionState = CollectionStateTransferSweptWait;
+            RECYCLER_PROFILE_EXEC_BACKGROUND_END(this, Js::ConcurrentSweepPhase);
+
             FinishTransferSwept(flags);
         }
         else
         {
-            // Signal the background thread to do SweepPendingObjects for all the buckets.
+            // Signal the background thread to finish concurrent sweep Pass2 for all the buckets.
             SetEvent(this->concurrentWorkReadyEvent);
             needConcurrentSweep = true;
         }
     }
+    //else if (collectionState == CollectionStateConcurrentSweepPass2Wait)
+    //{
+    //    // This needs to happen in-thread as we will return the swept blocks from the SLIST to the heapBlockList.
+    //    this->FinishConcurrentSweep();
+
+    //    collectionState = CollectionStateTransferSweptWait;
+    //    FinishTransferSwept(flags);
+    //}
 #endif
     else
     {
+        AssertMsg(this->collectionState == CollectionStateTransferSweptWait, "Do we need to handle this state?");
         FinishTransferSwept(flags);
     }
 
@@ -5953,7 +5996,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
         if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
         {
-            Assert(this->collectionState == CollectionStateConcurrentSweepPass1);
+            Assert(this->collectionState == CollectionStateConcurrentSweepPass1 || this->collectionState == CollectionStateConcurrentSweepPass2);
         }
         else
 #endif
@@ -6002,10 +6045,28 @@ Recycler::DoBackgroundWork(bool forceForeground)
         {
             if (this->collectionState == CollectionStateConcurrentSweepPass2)
             {
+#ifdef RECYCLER_TRACE
+                if (this->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase))
+                {
+                    Output::Print(_u("[GC #%d] Finishing Sweep Pass2 on background thread. \n"), this->collectionCount);
+                }
+#endif
+#if ENABLE_BACKGROUND_PAGE_ZEROING
+                if (CONFIG_FLAG(EnableBGFreeZero))
+                {
+                    // Drain the zero queue again as we might have free more during sweep
+                    // in the background
+                    GCETW(GC_BACKGROUNDZEROPAGE_START, (this));
+                    recyclerPageAllocator.BackgroundZeroQueuedPages();
+#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
+                    recyclerWithBarrierPageAllocator.BackgroundZeroQueuedPages();
+#endif
+                    recyclerLargeBlockPageAllocator.BackgroundZeroQueuedPages();
+                    GCETW(GC_BACKGROUNDZEROPAGE_STOP, (this));
+                }
+#endif
                 this->recyclerSweep->FinishSweep();
-
                 this->FinishConcurrentSweep();
-
                 this->recyclerSweep->EndBackground();
 
                 this->collectionState = CollectionStateConcurrentSweepPass2Wait;
@@ -6201,17 +6262,18 @@ Recycler::ThreadProc()
 void
 Recycler::FinishSweepPrep()
 {
+    GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep_FinishSweepPrep));
     this->autoHeap.FinishSweepPrep(this->recyclerSweepInstance);
-
-    // Begin the actual sweep i.e. SweepPendingObjects on the background thead.
-    collectionState = CollectionStateConcurrentSweepPass2;
+    GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep_FinishSweepPrep));
 }
 
 void
 Recycler::FinishConcurrentSweep()
 {
 #if SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+    GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep_FinishConcurrentSweep));
     this->autoHeap.FinishConcurrentSweep();
+    GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep_FinishConcurrentSweep));
 #endif
 }
 #endif
@@ -6888,6 +6950,17 @@ Recycler::PrintCollectTrace(Js::Phase phase, bool finish, bool noConcurrentWork)
         }
         Output::Print(_u("\n"));
         Output::Flush();
+    }
+}
+#endif
+
+#ifdef RECYCLER_TRACE
+void
+Recycler::PrintBlockStatus(HeapBucket * heapBucket, HeapBlock * heapBlock, char16 const * statusMessage)
+{
+    if (this->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase))
+    {
+        Output::Print(_u("[GC #%d] [HeapBucket 0x%p] HeapBlock 0x%p %s [CollectionState: %d] \n"), this->collectionCount, heapBucket, heapBlock, statusMessage, this->collectionState);
     }
 }
 #endif

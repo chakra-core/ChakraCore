@@ -107,7 +107,7 @@ enum ObjectInfoBits : unsigned short
     EnumClass_1_Bit             = 0x01,    // This can be extended to add more enumerable classes (if we still have bits left)
 
     // Mask for above bits
-    StoredObjectInfoBitMask     = 0xFF,
+    StoredObjectInfoBitMask = 0xFF,
 
     // Bits that implied by the block type, and thus don't need to be stored (for small blocks)
     // Note, LeafBit is used in finalizable blocks, thus is not always implied by the block type
@@ -115,7 +115,7 @@ enum ObjectInfoBits : unsigned short
     // We can move it the upper byte.
 
 #ifdef RECYCLER_WRITE_BARRIER
-    WithBarrierBit              = 0x0100,
+    WithBarrierBit = 0x0100,
 #endif
 
 #ifdef RECYCLER_VISITED_HOST
@@ -133,34 +133,34 @@ enum ObjectInfoBits : unsigned short
     // Additional definitions based on above
 
 #ifdef RECYCLER_STATS
-    NewFinalizeBit              = NewTrackBit,  // Use to detect if the background thread has counted the finalizable object in stats
+    NewFinalizeBit = NewTrackBit,  // Use to detect if the background thread has counted the finalizable object in stats
 #else
-    NewFinalizeBit              = 0x00,
+    NewFinalizeBit = 0x00,
 #endif
 
 #ifdef RECYCLER_WRITE_BARRIER
-    FinalizableWithBarrierBit   = WithBarrierBit | FinalizeBit,
+    FinalizableWithBarrierBit = WithBarrierBit | FinalizeBit,
 #endif
 
     // Allocation bits
-    FinalizableLeafBits         = NewFinalizeBit | FinalizeBit | LeafBit,
-    FinalizableObjectBits       = NewFinalizeBit | FinalizeBit ,
+    FinalizableLeafBits = NewFinalizeBit | FinalizeBit | LeafBit,
+    FinalizableObjectBits = NewFinalizeBit | FinalizeBit,
 #ifdef RECYCLER_WRITE_BARRIER
     FinalizableWithBarrierObjectBits = NewFinalizeBit | FinalizableWithBarrierBit,
 #endif
     ClientFinalizableObjectBits = NewFinalizeBit | ClientTrackedBit | FinalizeBit,
 
-    ClientTrackableLeafBits     = NewTrackBit | ClientTrackedBit | TrackBit | FinalizeBit | LeafBit,
-    ClientTrackableObjectBits   = NewTrackBit | ClientTrackedBit | TrackBit | FinalizeBit,
+    ClientTrackableLeafBits = NewTrackBit | ClientTrackedBit | TrackBit | FinalizeBit | LeafBit,
+    ClientTrackableObjectBits = NewTrackBit | ClientTrackedBit | TrackBit | FinalizeBit,
 
 #ifdef RECYCLER_WRITE_BARRIER
     ClientTrackableObjectWithBarrierBits = ClientTrackableObjectBits | WithBarrierBit,
     ClientFinalizableObjectWithBarrierBits = ClientFinalizableObjectBits | WithBarrierBit,
 #endif
 
-    WeakReferenceEntryBits      = LeafBit,
+    WeakReferenceEntryBits = LeafBit,
 
-    ImplicitRootLeafBits        = LeafBit | ImplicitRootBit,
+    ImplicitRootLeafBits = LeafBit | ImplicitRootBit,
 
     // Pending dispose objects should have LeafBit set and no others
     PendingDisposeObjectBits    = PendingDisposeBit | LeafBit,
@@ -384,6 +384,14 @@ protected:
     // This flag is to identify whether this block was made available for allocations during the concurrent sweep and 
     // still needs to be swept.
     bool isPendingConcurrentSweepPrep;
+#if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
+    // This flag ensures a block doesn't get swept more than once during a given sweep.
+    bool hasFinishedSweepObjects;
+
+    // When allocate from a block during concurrent sweep some checks need to be delayed until
+    // the free and mark bits are rebuilt. This flag helps skip those validations until then.
+    bool wasAllocatedFromDuringSweep;
+#endif
 #endif
 #endif
 
@@ -552,6 +560,14 @@ public:
     ushort freeCount;
     ushort lastFreeCount;
     ushort markCount;
+#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    ushort objectsAllocatedDuringConcurrentSweepCount;
+#if DBG
+    ushort objectsMarkedDuringSweep;
+    bool blockNotReusedInPartialHeapBlockList;
+    bool blockNotReusedInPendingList;
+#endif
+#endif
 
 #if ENABLE_PARTIAL_GC
     ushort oldFreeCount;
@@ -736,7 +752,7 @@ public:
     uint GetMarkCountForSweep();
     SweepState Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable, ushort finalizeCount = 0, bool hasPendingDispose = false);
     template <SweepMode mode>
-    void SweepObjects(Recycler * recycler);
+    void SweepObjects(Recycler * recycler, bool onlyRecalculateMarkCountAndFreeBits);
 
     uint GetAndClearLastFreeCount();
     void ClearAllAllocBytes();      // Reset all unaccounted alloc bytes and the new alloc count
@@ -794,10 +810,11 @@ public:
 protected:
     static size_t GetAllocPlusSize(uint objectCount);
     inline void SetAttributes(void * address, unsigned char attributes);
+    inline void UpdateAttributes(void * address, unsigned char attributes);
+    ushort GetAddressIndex(void * objectAddress);
 
     SmallHeapBlockT(HeapBucket * bucket, ushort objectSize, ushort objectCount, HeapBlockType heapBlockType);
 
-    ushort GetAddressIndex(void * objectAddress);
     ushort GetInteriorAddressIndex(void * interiorAddress);
     ushort GetObjectIndexFromBitIndex(ushort bitIndex);
 

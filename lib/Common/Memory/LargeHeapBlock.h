@@ -166,7 +166,7 @@ public:
     void ScanNewImplicitRoots(Recycler * recycler);
     SweepState Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep);
     template <SweepMode mode>
-    void SweepObjects(Recycler * recycler);
+    void SweepObjects(Recycler * recycler, bool onlyRecalculateMarkCountAndFreeBits);
     bool TransferSweptObjects();
     void DisposeObjects(Recycler * recycler);
     void FinalizeObjects(Recycler* recycler);

@@ -75,6 +75,7 @@ public:
 protected:
     HeapInfo * heapInfo;
     uint sizeCat;
+    bool allocationsStartedDuringConcurrentSweep;
 
 #ifdef RECYCLER_SLOW_CHECK_ENABLED
     size_t heapBlockCount;
@@ -114,6 +115,7 @@ public:
 #endif
 
     Recycler * GetRecycler() const;
+    bool AllocationsStartedDuringConcurrentSweep() const;
 
     template <typename TBlockType>
     friend class SmallHeapBlockAllocator;
@@ -248,7 +250,6 @@ protected:
     void ResumeNormalAllocationAfterConcurrentSweep(TBlockType * newNextAllocableBlockHead = nullptr);
 #endif
 
-    bool AllocationsStartedDuringConcurrentSweep() const;
     bool AllowAllocationsDuringConcurrentSweep();
     void StopAllocationBeforeSweep();
     void StartAllocationAfterSweep();
@@ -263,9 +264,11 @@ protected:
     // Partial/Concurrent GC
     void EnumerateObjects(ObjectInfoBits infoBits, void (*CallBackFunction)(void * address, size_t size));
 
+
 #if DBG
     bool AllocatorsAreEmpty() const;
     bool HasPendingDisposeHeapBlocks() const;
+    void AssertCheckHeapBlockNotInAnyList(TBlockType * heapBlock);
 
     static void VerifyBlockConsistencyInList(TBlockType * heapBlock, RecyclerVerifyListConsistencyData& recyclerSweep);
     static void VerifyBlockConsistencyInList(TBlockType * heapBlock, RecyclerVerifyListConsistencyData const& recyclerSweep, SweepState state);
@@ -303,7 +306,7 @@ protected:
     mutable CriticalSection debugSweepableHeapBlockListLock;
 #endif
     // This is the list of blocks that we allocated from during concurrent sweep. These blocks will eventually get processed during the next sweep and either go into
-    // the heapBlockList or fullBlockList.
+    // the fullBlockList.
     TBlockType * sweepableHeapBlockList;
 
     // This is the list of blocks that we allocated from during concurrent sweep prior to adjusting prtial GC heuristics (AdjustPartialHeuristics). These blocks will need to 
@@ -312,7 +315,6 @@ protected:
     TBlockType * pendingSweepPrepHeapBlockList;
 #endif
 #endif
-    bool allocationsStartedDuringConcurrentSweep;
 
     FreeObject* explicitFreeList; // List of objects that have been explicitly freed
     TBlockAllocatorType * lastExplicitFreeListAllocator;

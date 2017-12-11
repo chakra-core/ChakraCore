@@ -27,6 +27,10 @@ SmallHeapBlockAllocator<TBlockType>::Initialize()
 
     this->prev = this;
     this->next = this;
+
+#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 
+    DebugOnly(this->isAllocatingFromNewBlock = false);
+#endif
 }
 
 template <typename TBlockType>
@@ -134,7 +138,9 @@ SmallHeapBlockAllocator<TBlockType>::Clear()
 #endif
         this->freeObjectList = nullptr;
     }
-
+#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 
+    DebugOnly(this->isAllocatingFromNewBlock = false);
+#endif
 }
 
 template <typename TBlockType>
@@ -155,6 +161,10 @@ SmallHeapBlockAllocator<TBlockType>::SetNew(BlockType * heapBlock)
     this->heapBlock = heapBlock;
     this->freeObjectList = (FreeObject *)heapBlock->GetAddress();
     this->endAddress = heapBlock->GetEndAddress();
+
+#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 
+    DebugOnly(this->isAllocatingFromNewBlock = true);
+#endif
 }
 
 template <typename TBlockType>
@@ -175,6 +185,10 @@ SmallHeapBlockAllocator<TBlockType>::Set(BlockType * heapBlock)
     this->heapBlock = heapBlock;
     RECYCLER_SLOW_CHECK(this->heapBlock->CheckDebugFreeBitVector(true));
     this->freeObjectList = this->heapBlock->freeObjectList;
+
+#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 
+    DebugOnly(this->isAllocatingFromNewBlock = false);
+#endif
 }
 
 

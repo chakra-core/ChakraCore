@@ -69,9 +69,9 @@ enum CollectionState
 
     CollectionStateSetupConcurrentSweep   = Collection_Sweep | Collection_ConcurrentSweepSetup,               // setting up concurrent sweep
     CollectionStateConcurrentSweep        = Collection_ConcurrentSweep | Collection_ExecutingConcurrent,      // concurrent sweep
-#if  ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     CollectionStateConcurrentSweepPass1 = Collection_ConcurrentSweep | Collection_ConcurrentSweepPass1 | Collection_ExecutingConcurrent,          // concurrent sweep Pass 1
-    CollectionStateConcurrentSweepPass1Wait = Collection_ConcurrentSweep | Collection_ConcurrentSweepPass1Wait | Collection_ExecutingConcurrent,  // concurrent sweep wait state after Pass 1 has finished
+    CollectionStateConcurrentSweepPass1Wait = Collection_ConcurrentSweep | Collection_ConcurrentSweepPass1Wait /*| Collection_ExecutingConcurrent*/,  // concurrent sweep wait state after Pass 1 has finished
     CollectionStateConcurrentSweepPass2 = Collection_ConcurrentSweep | Collection_ConcurrentSweepPass2 | Collection_ExecutingConcurrent,          // concurrent sweep Pass 2
     CollectionStateConcurrentSweepPass2Wait = Collection_ConcurrentSweep | Collection_ConcurrentSweepPass2Wait | Collection_ExecutingConcurrent,  // concurrent sweep wait state after Pass 2 has finished
 #endif

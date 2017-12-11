@@ -1647,7 +1647,12 @@ HeapInfo::DisposeObjects()
 
     recycler->hasPendingTransferDisposedObjects = true;
 #if ENABLE_CONCURRENT_GC
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 
+    // As during concurrent sweep we start/stop allocations it is safer to prevent transferring disposed objects altogether.
+    if (!recycler->IsConcurrentExecutingState() /*&& !recycler->IsConcurrentSweepState()*/)
+#else
     if (!recycler->IsConcurrentExecutingState())
+#endif
 #endif
     {
         // Can't transfer disposed object when the background thread is walking the heap block list
@@ -1669,7 +1674,11 @@ HeapInfo::TransferDisposedObjects()
     Recycler * recycler = this->recycler;
     Assert(recycler->hasPendingTransferDisposedObjects);
 #if ENABLE_CONCURRENT_GC
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 
+    Assert(!recycler->IsConcurrentExecutingState() /*&& !recycler->IsConcurrentSweepState()*/);
+#else
     Assert(!recycler->IsConcurrentExecutingState());
+#endif
 #endif
     recycler->hasPendingTransferDisposedObjects = false;
 

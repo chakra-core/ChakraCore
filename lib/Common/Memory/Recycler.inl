@@ -549,7 +549,10 @@ Recycler::NotifyFree(T * heapBlock)
         this->isForceSweeping = true;
         heapBlock->isForceSweeping = true;
 #endif
-        heapBlock->template SweepObjects<SweepMode_InThread>(this);
+#ifdef RECYCLER_TRACE
+        this->PrintBlockStatus(nullptr, heapBlock, _u("[**34**] calling SweepObjects during NotifyFree."));
+#endif
+        heapBlock->template SweepObjects<SweepMode_InThread>(this, false /*onlyRecalculateMarkCountAndFreeBits*/);
 #if DBG || defined(RECYCLER_STATS)
         heapBlock->isForceSweeping = false;
         this->isForceSweeping = false;

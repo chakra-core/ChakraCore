@@ -587,7 +587,11 @@ LargeHeapBucket::Sweep(RecyclerSweep& recyclerSweep)
 {
 #if ENABLE_CONCURRENT_GC
     // CONCURRENT-TODO: large buckets are not swept in the background currently.
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    Assert(!recyclerSweep.GetRecycler()->IsConcurrentExecutingState() && !recyclerSweep.GetRecycler()->IsConcurrentSweepState());
+#else
     Assert(!recyclerSweep.GetRecycler()->IsConcurrentExecutingState());
+#endif
 #endif
 
     LargeHeapBlock * currentLargeObjectBlocks = largeBlockList;
@@ -821,7 +825,7 @@ LargeHeapBucket::SweepPendingObjects(RecyclerSweep& recyclerSweep)
             HeapBlockList::ForEach(this->pendingSweepLargeBlockList, [recycler](LargeHeapBlock * heapBlock)
             {
                 // Page heap blocks are never swept concurrently
-                heapBlock->SweepObjects<SweepMode_ConcurrentPartial>(recycler);
+                heapBlock->SweepObjects<SweepMode_ConcurrentPartial>(recycler, false /*onlyRecalculateMarkCountAndFreeBits*/);
             });
         }
         else
@@ -830,7 +834,7 @@ LargeHeapBucket::SweepPendingObjects(RecyclerSweep& recyclerSweep)
             HeapBlockList::ForEach(this->pendingSweepLargeBlockList, [recycler](LargeHeapBlock * heapBlock)
             {
                 // Page heap blocks are never swept concurrently
-                heapBlock->SweepObjects<SweepMode_Concurrent>(recycler);
+                heapBlock->SweepObjects<SweepMode_Concurrent>(recycler, false /*onlyRecalculateMarkCountAndFreeBits*/);
             });
         }
     }
@@ -979,9 +983,12 @@ LargeHeapBucket::TransferDisposedObjects()
 {
 #if ENABLE_CONCURRENT_GC
     Recycler * recycler = this->heapInfo->recycler;
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    Assert(!recycler->IsConcurrentExecutingState() && !recycler->IsConcurrentSweepState());
+#else
     Assert(!recycler->IsConcurrentExecutingState());
 #endif
-
+#endif
     HeapBlockList::ForEachEditing(this->pendingDisposeLargeBlockList, [this](LargeHeapBlock * heapBlock)
     {
         /* GC-TODO: large heap block doesn't support free list yet */

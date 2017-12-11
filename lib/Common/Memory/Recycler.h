@@ -783,8 +783,9 @@ private:
     DListBase<GuestArenaAllocator> guestArenaList;
     DListBase<ArenaData*> externalGuestArenaList;    // guest arenas are scanned for roots
 
-#ifdef RECYCLER_PAGE_HEAP
     bool isPageHeapEnabled;
+
+#ifdef RECYCLER_PAGE_HEAP
     bool capturePageHeapAllocStack;
     bool capturePageHeapFreeStack;
 
@@ -887,10 +888,8 @@ private:
 
     bool inDispose;
 
-#if DBG
-    uint collectionCount;
-#endif
 #if DBG || defined RECYCLER_TRACE
+    uint collectionCount;
     bool inResolveExternalWeakReferences;
 #endif
 
@@ -1068,6 +1067,7 @@ private:
 #endif
 #ifdef RECYCLER_TRACE
     CollectionParam collectionParam;
+    void PrintBlockStatus(HeapBucket * heapBucket, HeapBlock * heapBlock, char16 const * name);
 #endif
 #ifdef RECYCLER_MEMORY_VERIFY
     uint verifyPad;
@@ -2210,7 +2210,6 @@ public:
     virtual bool FindHeapObject(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject) override { Assert(false); return false; }
     virtual bool TestObjectMarkedBit(void* objectAddress) override { Assert(false); return false; }
     virtual void SetObjectMarkedBit(void* objectAddress) override { Assert(false); }
-
 #ifdef RECYCLER_VERIFY_MARK
     virtual bool VerifyMark(void * objectAddress, void * target) override { Assert(false); return false; }
 #endif

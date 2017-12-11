@@ -17,6 +17,17 @@ SmallHeapBlockT<TBlockAttributes>::SetAttributes(void * address, unsigned char a
     ObjectInfo(index) = attributes;
 }
 
+template <class TBlockAttributes>
+void
+SmallHeapBlockT<TBlockAttributes>::UpdateAttributes(void * address, unsigned char attributes)
+{
+    Assert(this->address != nullptr);
+    Assert(this->segment != nullptr);
+    ushort index = GetAddressIndex(address);
+    Assert(index != SmallHeapBlockT<TBlockAttributes>::InvalidAddressBit);
+    ObjectInfo(index) = attributes;
+}
+
 inline
 IdleDecommitPageAllocator*
 HeapBlock::GetPageAllocator(Recycler* recycler)

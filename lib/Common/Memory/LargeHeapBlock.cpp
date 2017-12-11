@@ -193,6 +193,9 @@ LargeHeapBlock::LargeHeapBlock(__in char * address, size_t pageCount, Segment * 
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     // This flag is to identify whether this block was made available for allocations during the concurrent sweep and still needs to be swept.
     this->isPendingConcurrentSweepPrep = false;
+#if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
+    this->wasAllocatedFromDuringSweep = false;
+#endif
 #endif
 #endif
     this->addressEnd = this->address + this->pageCount * AutoSystemInfo::PageSize;
@@ -1548,7 +1551,7 @@ LargeHeapBlock::Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep)
         Assert(!queuePendingSweep);
 #endif
 
-        SweepObjects<SweepMode_InThread>(recycler);
+        SweepObjects<SweepMode_InThread>(recycler, false /*onlyRecalculateMarkCountAndFreeBits*/);
         if (TransferSweptObjects())
         {
             return SweepStatePendingDispose;
@@ -1559,7 +1562,7 @@ LargeHeapBlock::Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep)
     {
         Assert(expectedSweepCount == 0);
         isForceSweeping = true;
-        SweepObjects<SweepMode_InThread>(recycler);
+        SweepObjects<SweepMode_InThread>(recycler, false /*onlyRecalculateMarkCountAndFreeBits*/);
         isForceSweeping = false;
     }
 #endif
@@ -1725,7 +1728,7 @@ LargeHeapBlock::FinalizeObject(Recycler* recycler, LargeObjectHeader* header)
 }
 
 // Explicitly instantiate all the sweep modes
-template void LargeHeapBlock::SweepObjects<SweepMode_InThread>(Recycler * recycler);
+template void LargeHeapBlock::SweepObjects<SweepMode_InThread>(Recycler * recycler, bool onlyRecalculateMarkCountAndFreeBits);
 #if ENABLE_CONCURRENT_GC
 template <>
 void
@@ -1738,7 +1741,7 @@ LargeHeapBlock::SweepObject<SweepMode_Concurrent>(Recycler * recycler, LargeObje
 }
 
 // Explicitly instantiate all the sweep modes
-template void LargeHeapBlock::SweepObjects<SweepMode_Concurrent>(Recycler * recycler);
+template void LargeHeapBlock::SweepObjects<SweepMode_Concurrent>(Recycler * recycler, bool onlyRecalculateMarkCountAndFreeBits);
 #if ENABLE_PARTIAL_GC
 template <>
 void
@@ -1751,7 +1754,7 @@ LargeHeapBlock::SweepObject<SweepMode_ConcurrentPartial>(Recycler * recycler, La
 }
 
 // Explicitly instantiate all the sweep modes
-template void LargeHeapBlock::SweepObjects<SweepMode_ConcurrentPartial>(Recycler * recycler);
+template void LargeHeapBlock::SweepObjects<SweepMode_ConcurrentPartial>(Recycler * recycler, bool onlyRecalculateMarkCountAndFreeBits);
 #endif
 #endif
 
@@ -1794,7 +1797,7 @@ void LargeHeapBlock::FinalizeObjects(Recycler* recycler)
 
 template <SweepMode mode>
 void
-LargeHeapBlock::SweepObjects(Recycler * recycler)
+LargeHeapBlock::SweepObjects(Recycler * recycler, bool onlyRecalculateMarkCountAndFreeBits)
 {
 #if ENABLE_CONCURRENT_GC
     Assert(mode == SweepMode_InThread || this->isPendingConcurrentSweep);

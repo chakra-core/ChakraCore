@@ -53,7 +53,7 @@ template bool SmallHeapBlockT<TBlockTypeAttributes>::GetFreeObjectListOnAllocato
 // template const SmallHeapBlockT<TBlockTypeAttributes>::SmallHeapBlockBitVector * HeapInfo::ValidPointersMap<TBlockTypeAttributes>::GetInvalidBitVector(uint index) const;
 
 // Explicit instantiate all the sweep mode
-template void SmallHeapBlockT<TBlockTypeAttributes>::SweepObjects<SweepMode_InThread>(Recycler * recycler);
+template void SmallHeapBlockT<TBlockTypeAttributes>::SweepObjects<SweepMode_InThread>(Recycler * recycler, bool onlyRecalculateMarkCountAndFreeBits);
 #if ENABLE_CONCURRENT_GC
 template <>
 template <>
@@ -64,7 +64,7 @@ SmallHeapBlockT<TBlockTypeAttributes>::SweepObject<SweepMode_Concurrent>(Recycle
     EnqueueProcessedObject(&freeObjectList, addr, i);
 }
 // Explicit instantiate all the sweep mode
-template void SmallHeapBlockT<TBlockTypeAttributes>::SweepObjects<SweepMode_Concurrent>(Recycler * recycler);
+template void SmallHeapBlockT<TBlockTypeAttributes>::SweepObjects<SweepMode_Concurrent>(Recycler * recycler, bool onlyRecalculateMarkCountAndFreeBits);
 #if ENABLE_PARTIAL_GC
 template <>
 template <>
@@ -84,7 +84,7 @@ SmallHeapBlockT<TBlockTypeAttributes>::SweepObject<SweepMode_ConcurrentPartial>(
 }
 
 // Explicit instantiate all the sweep mode
-template void SmallHeapBlockT<TBlockTypeAttributes>::SweepObjects<SweepMode_ConcurrentPartial>(Recycler * recycler);
+template void SmallHeapBlockT<TBlockTypeAttributes>::SweepObjects<SweepMode_ConcurrentPartial>(Recycler * recycler, bool onlyRecalculateMarkCountAndFreeBits);
 #endif
 #endif
 
@@ -98,7 +98,11 @@ SmallHeapBlockT<TBlockTypeAttributes>::SweepObject<SweepMode_InThread>(Recycler 
         Assert(this->IsAnyFinalizableBlock());
 
 #if ENABLE_CONCURRENT_GC
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+        Assert(!recycler->IsConcurrentExecutingState() && !recycler->IsConcurrentSweepState());
+#else
         Assert(!recycler->IsConcurrentExecutingState());
+#endif
 #endif
 
         // Call prepare finalize to do clean up that needs to be done immediately

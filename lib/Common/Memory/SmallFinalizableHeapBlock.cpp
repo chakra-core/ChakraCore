@@ -134,6 +134,13 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::SetAttributes(void * address, unsi
     __super::SetAttributes(address, attributes);
     finalizeCount++;
 
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
+    {
+        AssertMsg(!this->isPendingConcurrentSweepPrep, "Finalizable blocks don't support allocations during concurrent sweep.");
+    }
+#endif
+
 #ifdef RECYCLER_FINALIZE_CHECK
     HeapInfo * heapInfo = this->heapBucket->heapInfo;
     heapInfo->liveFinalizableObjectCount++;
