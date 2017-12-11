@@ -1605,6 +1605,7 @@ private:
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     void DoTwoPassConcurrentSweepPreCheck();
     void FinishSweepPrep();
+    void FinishConcurrentSweepPass1();
     void FinishConcurrentSweep();
 #endif
 

@@ -825,7 +825,7 @@ LargeHeapBucket::SweepPendingObjects(RecyclerSweep& recyclerSweep)
             HeapBlockList::ForEach(this->pendingSweepLargeBlockList, [recycler](LargeHeapBlock * heapBlock)
             {
                 // Page heap blocks are never swept concurrently
-                heapBlock->SweepObjects<SweepMode_ConcurrentPartial>(recycler, false /*onlyRecalculateMarkCountAndFreeBits*/);
+                heapBlock->SweepObjects<SweepMode_ConcurrentPartial>(recycler);
             });
         }
         else
@@ -834,7 +834,7 @@ LargeHeapBucket::SweepPendingObjects(RecyclerSweep& recyclerSweep)
             HeapBlockList::ForEach(this->pendingSweepLargeBlockList, [recycler](LargeHeapBlock * heapBlock)
             {
                 // Page heap blocks are never swept concurrently
-                heapBlock->SweepObjects<SweepMode_Concurrent>(recycler, false /*onlyRecalculateMarkCountAndFreeBits*/);
+                heapBlock->SweepObjects<SweepMode_Concurrent>(recycler);
             });
         }
     }

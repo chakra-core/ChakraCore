@@ -91,6 +91,7 @@ public:
     void StartAllocationsDuringConcurrentSweep();
     bool DoTwoPassConcurrentSweepPreCheck();
     void FinishSweepPrep(RecyclerSweep& recyclerSweep);
+    void FinishConcurrentSweepPass1(RecyclerSweep& recyclerSweep);
     void FinishConcurrentSweep();
 #endif
 

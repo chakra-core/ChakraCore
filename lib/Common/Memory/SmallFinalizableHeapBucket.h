@@ -418,6 +418,7 @@ public:
     void StartAllocationDuringConcurrentSweep();
     bool DoTwoPassConcurrentSweepPreCheck();
     void FinishSweepPrep(RecyclerSweep& recyclerSweep);
+    void FinishConcurrentSweepPass1(RecyclerSweep& recyclerSweep);
     void FinishConcurrentSweep();
 #endif
 #if DBG

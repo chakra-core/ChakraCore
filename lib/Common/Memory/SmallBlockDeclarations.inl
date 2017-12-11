@@ -53,7 +53,7 @@ template bool SmallHeapBlockT<TBlockTypeAttributes>::GetFreeObjectListOnAllocato
 // template const SmallHeapBlockT<TBlockTypeAttributes>::SmallHeapBlockBitVector * HeapInfo::ValidPointersMap<TBlockTypeAttributes>::GetInvalidBitVector(uint index) const;
 
 // Explicit instantiate all the sweep mode
-template void SmallHeapBlockT<TBlockTypeAttributes>::SweepObjects<SweepMode_InThread>(Recycler * recycler, bool onlyRecalculateMarkCountAndFreeBits);
+template void SmallHeapBlockT<TBlockTypeAttributes>::SweepObjects<SweepMode_InThread>(Recycler * recycler);
 #if ENABLE_CONCURRENT_GC
 template <>
 template <>
@@ -64,7 +64,7 @@ SmallHeapBlockT<TBlockTypeAttributes>::SweepObject<SweepMode_Concurrent>(Recycle
     EnqueueProcessedObject(&freeObjectList, addr, i);
 }
 // Explicit instantiate all the sweep mode
-template void SmallHeapBlockT<TBlockTypeAttributes>::SweepObjects<SweepMode_Concurrent>(Recycler * recycler, bool onlyRecalculateMarkCountAndFreeBits);
+template void SmallHeapBlockT<TBlockTypeAttributes>::SweepObjects<SweepMode_Concurrent>(Recycler * recycler);
 #if ENABLE_PARTIAL_GC
 template <>
 template <>
@@ -84,7 +84,7 @@ SmallHeapBlockT<TBlockTypeAttributes>::SweepObject<SweepMode_ConcurrentPartial>(
 }
 
 // Explicit instantiate all the sweep mode
-template void SmallHeapBlockT<TBlockTypeAttributes>::SweepObjects<SweepMode_ConcurrentPartial>(Recycler * recycler, bool onlyRecalculateMarkCountAndFreeBits);
+template void SmallHeapBlockT<TBlockTypeAttributes>::SweepObjects<SweepMode_ConcurrentPartial>(Recycler * recycler);
 #endif
 #endif
 

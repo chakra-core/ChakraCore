@@ -217,7 +217,9 @@ protected:
     void Initialize(HeapInfo * heapInfo, DECLSPEC_GUARD_OVERFLOW uint sizeCat);
     void AppendAllocableHeapBlockList(TBlockType * list);
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    void EnsureAllocableHeapBlockList();
     void FinishSweepPrep(RecyclerSweep& recyclerSweep);
+    void FinishConcurrentSweepPass1(RecyclerSweep& recyclerSweep);
     void FinishConcurrentSweep();
 #endif
     void DeleteHeapBlockList(TBlockType * list);
@@ -320,6 +322,7 @@ protected:
     // be swept before we start the actual sweep (SweepPartialReusePages and/or SweepPendingObjects) of any of the blocks in this buckets. This needs to happen so we work off of
     // correct heuristics data.
     TBlockType * pendingSweepPrepHeapBlockList;
+    TBlockType * rebuildFreeBitVectorHeapBlockList;
 #endif
 #endif
 

@@ -55,9 +55,10 @@ HeapBucketT<TBlockType>::HeapBucketT() :
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
 #if SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
     lastKnownNextAllocableBlockHead(nullptr),
-    allocableHeapBlockListHead((PSLIST_HEADER)_aligned_malloc(sizeof(SLIST_HEADER), MEMORY_ALLOCATION_ALIGNMENT)),
+    allocableHeapBlockListHead(nullptr),
     sweepableHeapBlockList(nullptr),
     pendingSweepPrepHeapBlockList(nullptr),
+    rebuildFreeBitVectorHeapBlockList(nullptr),
 #endif
 #endif
     explicitFreeList(nullptr),
@@ -89,8 +90,9 @@ HeapBucketT<TBlockType>::~HeapBucketT()
         _aligned_free(this->allocableHeapBlockListHead);
     }
 
-    DeleteHeapBlockList(sweepableHeapBlockList);
-    DeleteHeapBlockList(pendingSweepPrepHeapBlockList);
+    DeleteHeapBlockList(this->sweepableHeapBlockList);
+    DeleteHeapBlockList(this->pendingSweepPrepHeapBlockList);
+    DeleteHeapBlockList(this->rebuildFreeBitVectorHeapBlockList);
 #endif
 #endif
 
@@ -212,20 +214,6 @@ HeapBucketT<TBlockType>::Initialize(HeapInfo * heapInfo, uint sizeCat)
     allocatorHead.bucket = this;
 #endif
     this->lastExplicitFreeListAllocator = &allocatorHead;
-
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
-    if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
-    {
-        if (allocableHeapBlockListHead == nullptr)
-        {
-            heapInfo->recycler->OutOfMemory();
-        }
-        else
-        {
-            ::InitializeSListHead(allocableHeapBlockListHead);
-        }
-    }
-#endif
 }
 
 template <typename TBlockType>
@@ -420,6 +408,7 @@ HeapBucketT<TBlockType>::AssertCheckHeapBlockNotInAnyList(TBlockType * heapBlock
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     AssertMsg(!HeapBlockList::Contains(heapBlock, sweepableHeapBlockList), "The heap block already exists in the sweepableHeapBlockList.");
     AssertMsg(!HeapBlockList::Contains(heapBlock, pendingSweepPrepHeapBlockList), "The heap block already exists in the pendingSweepPrepHeapBlockList.");
+    AssertMsg(!HeapBlockList::Contains(heapBlock, rebuildFreeBitVectorHeapBlockList), "The heap block already exists in the rebuildFreeBitVectorHeapBlockList.");
 #endif
 }
 
@@ -441,9 +430,13 @@ HeapBucketT<TBlockType>::GetNonEmptyHeapBlockCount(bool checkCount) const
         // Items are added to it by the allocator when allocations are allowed during concurrent sweep. The list is drained during the next sweep while
         // allocation are stopped.
         debugSweepableHeapBlockListLock.Enter();
-        currentHeapBlockCount += QueryDepthInterlockedSList(allocableHeapBlockListHead);
+        if (allocableHeapBlockListHead != nullptr)
+        {
+            currentHeapBlockCount += QueryDepthInterlockedSList(allocableHeapBlockListHead);
+        }
         currentHeapBlockCount += HeapBlockList::Count(sweepableHeapBlockList);
         currentHeapBlockCount += HeapBlockList::Count(pendingSweepPrepHeapBlockList);
+        currentHeapBlockCount += HeapBlockList::Count(rebuildFreeBitVectorHeapBlockList);
         debugSweepableHeapBlockListLock.Leave();
     }
 #endif
@@ -488,7 +481,7 @@ HeapBucketT<TBlockType>::TryAlloc(Recycler * recycler, TBlockAllocatorType * all
     bool heapBlockFromAllocableHeapBlockList = false;
     DebugOnly(bool heapBlockInPendingSweepPrepList = false);
 
-    if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) && heapBlock == nullptr && recycler->AllowAllocationsDuringConcurrentSweep())
+    if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) && heapBlock == nullptr && this->AllocationsStartedDuringConcurrentSweep())
     {
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
         // This lock is needed only in the debug mode while we verify block counts. Not needed otherwise, as this list is never accessed concurrently.
@@ -847,7 +840,8 @@ HeapBucketT<TBlockType>::ResetMarks(ResetMarkFlags flags)
             });
 
             // The pendingSweepPrepHeapBlockList should always be empty prior to a sweep as its only used during concurrent sweep.
-            Assert(pendingSweepPrepHeapBlockList == nullptr);
+            Assert(this->pendingSweepPrepHeapBlockList == nullptr);
+            Assert(this->rebuildFreeBitVectorHeapBlockList == nullptr);
         }
 #endif
 
@@ -903,7 +897,8 @@ HeapBucketT<TBlockType>::ScanNewImplicitRoots(Recycler * recycler)
         });
 
         // The pendingSweepPrepHeapBlockList should always be empty prior to a sweep as its only used during concurrent sweep.
-        Assert(pendingSweepPrepHeapBlockList == nullptr);
+        Assert(this->pendingSweepPrepHeapBlockList == nullptr);
+        Assert(this->rebuildFreeBitVectorHeapBlockList == nullptr);
     }
 #endif
 
@@ -1283,6 +1278,7 @@ HeapBucketT<TBlockType>::SweepBucket(RecyclerSweep& recyclerSweep)
             AssertMsg(!HeapBlockList::Contains(heapBlock, fullBlockList), "The heap block already exists in the fullBlockList.");
             AssertMsg(!HeapBlockList::Contains(heapBlock, emptyBlockList), "The heap block already exists in the emptyBlockList.");
             AssertMsg(!HeapBlockList::Contains(heapBlock, pendingSweepPrepHeapBlockList), "The heap block already exists in the pendingSweepPrepHeapBlockList.");
+            AssertMsg(!HeapBlockList::Contains(heapBlock, rebuildFreeBitVectorHeapBlockList), "The heap block already exists in the rebuildFreeBitVectorHeapBlockList.");
 
             heapBlock->SetNextBlock(this->fullBlockList);
             this->fullBlockList = heapBlock;
@@ -1472,10 +1468,13 @@ HeapBucketT<TBlockType>::PrepareForAllocationsDuringConcurrentSweep(TBlockType *
 #if SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
     if (this->AllowAllocationsDuringConcurrentSweep())
     {
+        this->EnsureAllocableHeapBlockList();
+
         Assert(!this->IsAnyFinalizableBucket());
         Assert(HeapBucketT<TBlockType>::QueryDepthInterlockedSList(this->allocableHeapBlockListHead) == 0);
         Assert(HeapBlockList::Count(this->sweepableHeapBlockList) == 0);
         Assert(HeapBlockList::Count(this->pendingSweepPrepHeapBlockList) == 0);
+        Assert(HeapBlockList::Count(this->rebuildFreeBitVectorHeapBlockList) == 0);
 
         TBlockType* startingNextAllocableBlockHead = this->lastKnownNextAllocableBlockHead;
         bool allocationsStarted = false;
@@ -1607,6 +1606,92 @@ HeapBucketT<TBlockType>::SetupBackgroundSweep(RecyclerSweep& recyclerSweep)
 
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
 template <typename TBlockType>
+void 
+HeapBucketT<TBlockType>::FinishConcurrentSweepPass1(RecyclerSweep& recyclerSweep)
+{
+    if (this->AllowAllocationsDuringConcurrentSweep())
+    {
+        Assert(this->AllowAllocationsDuringConcurrentSweep());
+        Assert(!this->IsAnyFinalizableBucket());
+
+
+        TBlockType * currentRebuildFreeBitVectorHeapBlockList = this->rebuildFreeBitVectorHeapBlockList;
+        this->rebuildFreeBitVectorHeapBlockList = nullptr;
+
+        HeapBlockList::ForEachEditing(currentRebuildFreeBitVectorHeapBlockList, [this](TBlockType * heapBlock)
+        {
+            ushort previousFreeCount = heapBlock->freeCount;
+            heapBlock->BuildFreeBitVector();
+
+#if ENABLE_PARTIAL_GC
+            heapBlock->oldFreeCount = heapBlock->lastFreeCount = heapBlock->freeCount;
+#else
+            heapBlock->lastFreeCount = heapBlock->freeCount;
+#endif
+            ushort newAllocatedObjects = previousFreeCount - heapBlock->freeCount;
+            AssertMsg(newAllocatedObjects == heapBlock->objectsMarkedDuringSweep, "The counts of objects allocated during sweep should match the objects marked during sweep.");
+#if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
+            heapBlock->objectsAllocatedDuringConcurrentSweepCount = newAllocatedObjects;
+#endif
+
+            ushort currentMarkCount = (ushort)heapBlock->GetMarkCountForSweep();
+            heapBlock->markCount = currentMarkCount;
+#if DBG
+            this->GetRecycler()->heapBlockMap.SetPageMarkCount(heapBlock->GetAddress(), currentMarkCount);
+#endif
+            heapBlock->SetNextBlock(this->pendingSweepPrepHeapBlockList);
+            this->pendingSweepPrepHeapBlockList = heapBlock;
+        });
+
+#if DBG
+        if (TBlockType::HeapBlockAttributes::IsSmallBlock)
+        {
+            recyclerSweep.SetupVerifyListConsistencyDataForSmallBlock(nullptr, true, false);
+        }
+        else if (TBlockType::HeapBlockAttributes::IsMediumBlock)
+        {
+            recyclerSweep.SetupVerifyListConsistencyDataForMediumBlock(nullptr, true, false);
+        }
+        else
+        {
+            Assert(false);
+        }
+#endif
+
+        TBlockType * currentPendingSweepPrepHeapBlockList = this->pendingSweepPrepHeapBlockList;
+        this->pendingSweepPrepHeapBlockList = nullptr;
+
+        this->SweepHeapBlockList(recyclerSweep, currentPendingSweepPrepHeapBlockList, true /*allocable*/);
+
+        this->StartAllocationDuringConcurrentSweep();
+    }
+}
+
+template <typename TBlockType>
+void
+HeapBucketT<TBlockType>::EnsureAllocableHeapBlockList()
+{
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+    if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
+    {
+        if (allocableHeapBlockListHead == nullptr)
+        {
+            allocableHeapBlockListHead = ((PSLIST_HEADER)_aligned_malloc(sizeof(SLIST_HEADER), MEMORY_ALLOCATION_ALIGNMENT));
+
+            if (allocableHeapBlockListHead == nullptr)
+            {
+                this->heapInfo->recycler->OutOfMemory();
+            }
+            else
+            {
+                ::InitializeSListHead(allocableHeapBlockListHead);
+            }
+        }
+    }
+#endif
+}
+
+template <typename TBlockType>
 void
 HeapBucketT<TBlockType>::FinishSweepPrep(RecyclerSweep& recyclerSweep)
 {
@@ -1618,38 +1703,19 @@ HeapBucketT<TBlockType>::FinishSweepPrep(RecyclerSweep& recyclerSweep)
         this->StopAllocationBeforeSweep();
         this->ClearAllocators();
 
+        Assert(this->rebuildFreeBitVectorHeapBlockList == nullptr);
+        this->rebuildFreeBitVectorHeapBlockList = this->pendingSweepPrepHeapBlockList;
+        this->pendingSweepPrepHeapBlockList = nullptr;
+
+        // Move the list locally. We kept this temporary list to track blocks we may have allocated from during the ongoing concurrent sweep. Now these
+        // blocks will move to the appropriate list for finishing the sweep.
+        TBlockType * currentPendingSweepPrepHeapBlockList = nullptr;
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
         // This lock is needed only in the debug mode while we verify block counts. Not needed otherwise, as this list is never accessed concurrently.
         // Items are added to it by the allocator when allocations are allowed during concurrent sweep. The list is drained during the next sweep while
         // allocation are stopped.
         debugSweepableHeapBlockListLock.Enter();
 #endif
-
-        // Move the list locally. We kept this temporary list to track blocks we may have allocated from during the ongoing concurrent sweep. Now these
-        // blocks will move to the appropriate list for finishing the sweep.
-        TBlockType * currentPendingSweepPrepHeapBlockList = this->pendingSweepPrepHeapBlockList;
-        this->pendingSweepPrepHeapBlockList = nullptr;
-
-        HeapBlockList::ForEachEditing(currentPendingSweepPrepHeapBlockList, [this](TBlockType * heapBlock)
-        {
-            ushort previousFreeCount = heapBlock->freeCount;
-            heapBlock->BuildFreeBitVector();
-
-#if ENABLE_PARTIAL_GC
-            heapBlock->oldFreeCount = heapBlock->lastFreeCount = heapBlock->freeCount;
-#else
-            heapBlock->lastFreeCount = heapBlock->freeCount;
-#endif
-            ushort newAllocatedObjects = previousFreeCount - heapBlock->freeCount;
-            AssertMsg(newAllocatedObjects == heapBlock->objectsAllocatedDuringConcurrentSweepCount, "The counts of objects allocated during sweep should match.");
-            heapBlock->objectsAllocatedDuringConcurrentSweepCount = newAllocatedObjects;
-
-            ushort currentMarkCount = (ushort) heapBlock->GetMarkCountForSweep();
-            heapBlock->markCount = currentMarkCount;
-#if DBG
-            this->GetRecycler()->heapBlockMap.SetPageMarkCount(heapBlock->GetAddress(), currentMarkCount);
-#endif
-        });
 
         // Pull the blocks from the allocable SLIST that we didn't use. We need to finish the Pass-1 sweep of these blocks too.
         TBlockType * heapBlock = PopHeapBlockFromSList(this->allocableHeapBlockListHead);
@@ -1673,28 +1739,12 @@ HeapBucketT<TBlockType>::FinishSweepPrep(RecyclerSweep& recyclerSweep)
         }
         Assert(QueryDepthInterlockedSList(this->allocableHeapBlockListHead) == 0);
 
-#if DBG
-        if (TBlockType::HeapBlockAttributes::IsSmallBlock)
-        {
-            recyclerSweep.SetupVerifyListConsistencyDataForSmallBlock(nullptr, true, false);
-        }
-        else if (TBlockType::HeapBlockAttributes::IsMediumBlock)
-        {
-            recyclerSweep.SetupVerifyListConsistencyDataForMediumBlock(nullptr, true, false);
-        }
-        else
-        {
-            Assert(false);
-        }
-#endif
-
-        this->SweepHeapBlockList(recyclerSweep, currentPendingSweepPrepHeapBlockList, true /*allocable*/);
-
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
         debugSweepableHeapBlockListLock.Leave();
 #endif
 
-        this->StartAllocationDuringConcurrentSweep();
+        // Put the blocks back so we can finish concurrent sweep PAss1 on background thread.
+        this->pendingSweepPrepHeapBlockList = currentPendingSweepPrepHeapBlockList;
     }
 }
 
@@ -1702,39 +1752,42 @@ template <typename TBlockType>
 void
 HeapBucketT<TBlockType>::FinishConcurrentSweep()
 {
+    if (this->AllocationsStartedDuringConcurrentSweep())
+    {
 #if SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
-    Assert(!this->IsAnyFinalizableBucket());
-    Assert(this->allocableHeapBlockListHead != nullptr);
+        Assert(!this->IsAnyFinalizableBucket());
+        Assert(this->allocableHeapBlockListHead != nullptr);
 
 #ifdef RECYCLER_TRACE
-    if (this->GetRecycler()->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase))
-    {
-        Output::Print(_u("[GC #%d] [HeapBucket 0x%p] starting FinishConcurrentSweep [CollectionState: %d] \n"), this->GetRecycler()->collectionCount, this, this->GetRecycler()->collectionState);
-    }
+        if (this->GetRecycler()->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase))
+        {
+            Output::Print(_u("[GC #%d] [HeapBucket 0x%p] starting FinishConcurrentSweep [CollectionState: %d] \n"), this->GetRecycler()->collectionCount, this, this->GetRecycler()->collectionState);
+        }
 #endif
 
-    TBlockType * newNextAllocableBlockHead = nullptr;
-    // Put the blocks from the allocable SLIST into the heapBlockList.
-    TBlockType * heapBlock = PopHeapBlockFromSList(this->allocableHeapBlockListHead);
-    while (heapBlock != nullptr)
-    {
-        DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
-        AssertMsg(!heapBlock->isPendingConcurrentSweepPrep, "The blocks in the SLIST at this time should NOT have sweep prep i.e. sweep-Pass1 pending.");
-        newNextAllocableBlockHead = heapBlock;
-        heapBlock->SetNextBlock(this->heapBlockList);
-        this->heapBlockList = heapBlock;
+        TBlockType * newNextAllocableBlockHead = nullptr;
+        // Put the blocks from the allocable SLIST into the heapBlockList.
+        TBlockType * heapBlock = PopHeapBlockFromSList(this->allocableHeapBlockListHead);
+        while (heapBlock != nullptr)
+        {
+            DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
+            AssertMsg(!heapBlock->isPendingConcurrentSweepPrep, "The blocks in the SLIST at this time should NOT have sweep prep i.e. sweep-Pass1 pending.");
+            newNextAllocableBlockHead = heapBlock;
+            heapBlock->SetNextBlock(this->heapBlockList);
+            this->heapBlockList = heapBlock;
 #ifdef RECYCLER_TRACE
-        this->GetRecycler()->PrintBlockStatus(this, heapBlock, _u("[**40**] finished FinishConcurrentSweep, heapblock removed from SLIST and added to heapBlockList."));
+            this->GetRecycler()->PrintBlockStatus(this, heapBlock, _u("[**40**] finished FinishConcurrentSweep, heapblock removed from SLIST and added to heapBlockList."));
 #endif
-        heapBlock = PopHeapBlockFromSList(this->allocableHeapBlockListHead);
+            heapBlock = PopHeapBlockFromSList(this->allocableHeapBlockListHead);
+        }
+
+        Assert(QueryDepthInterlockedSList(this->allocableHeapBlockListHead) == 0);
+
+        this->ResumeNormalAllocationAfterConcurrentSweep(newNextAllocableBlockHead);
+#endif
+
+        Assert(!this->IsAllocationStopped());
     }
-
-    Assert(QueryDepthInterlockedSList(this->allocableHeapBlockListHead) == 0);
-
-    this->ResumeNormalAllocationAfterConcurrentSweep(newNextAllocableBlockHead);
-#endif
-
-    Assert(!this->IsAllocationStopped());
 }
 #endif
 
@@ -1783,6 +1836,7 @@ HeapBucketT<TBlockType>::EnumerateObjects(ObjectInfoBits infoBits, void (*CallBa
     {
         HeapBucket::EnumerateObjects(sweepableHeapBlockList, infoBits, CallBackFunction);
         HeapBucket::EnumerateObjects(pendingSweepPrepHeapBlockList, infoBits, CallBackFunction);
+        HeapBucket::EnumerateObjects(rebuildFreeBitVectorHeapBlockList, infoBits, CallBackFunction);
     }
 #endif
     HeapBucket::EnumerateObjects(heapBlockList, infoBits, CallBackFunction);
@@ -1819,6 +1873,7 @@ HeapBucketT<TBlockType>::Check(bool checkCount)
         debugSweepableHeapBlockListLock.Enter();
         smallHeapBlockCount += HeapInfo::Check(true, false, this->sweepableHeapBlockList);
         smallHeapBlockCount += HeapInfo::Check(true, false, this->pendingSweepPrepHeapBlockList);
+        smallHeapBlockCount += HeapInfo::Check(true, false, this->rebuildFreeBitVectorHeapBlockList);
         debugSweepableHeapBlockListLock.Leave();
     }
 #endif
@@ -1859,6 +1914,7 @@ HeapBucketT<TBlockType>::AggregateBucketStats()
     {
         HeapBlockList::ForEach(sweepableHeapBlockList, blockStatsAggregator);
         HeapBlockList::ForEach(pendingSweepPrepHeapBlockList, blockStatsAggregator);
+        HeapBlockList::ForEach(rebuildFreeBitVectorHeapBlockList, blockStatsAggregator);
     }
 #endif
     HeapBlockList::ForEach(heapBlockList, blockStatsAggregator);
@@ -1938,6 +1994,28 @@ HeapBucketT<TBlockType>::Verify()
             DebugOnly(VerifyBlockConsistencyInList(heapBlock, recyclerVerifyListConsistencyData));
             heapBlock->Verify();
         });
+
+
+#if DBG
+        if (TBlockType::HeapBlockAttributes::IsSmallBlock)
+        {
+            recyclerVerifyListConsistencyData.smallBlockVerifyListConsistencyData.SetupVerifyListConsistencyData((SmallHeapBlock*) nullptr, true, false);
+        }
+        else if (TBlockType::HeapBlockAttributes::IsMediumBlock)
+        {
+            recyclerVerifyListConsistencyData.mediumBlockVerifyListConsistencyData.SetupVerifyListConsistencyData((MediumHeapBlock*) nullptr, true, false);
+        }
+        else
+        {
+            Assert(false);
+        }
+#endif
+
+        HeapBlockList::ForEach(rebuildFreeBitVectorHeapBlockList, [DebugOnly(&recyclerVerifyListConsistencyData)](TBlockType * heapBlock)
+        {
+            DebugOnly(VerifyBlockConsistencyInList(heapBlock, recyclerVerifyListConsistencyData));
+            heapBlock->Verify();
+        });
     }
 #endif
 
@@ -1999,7 +2077,8 @@ HeapBucketT<TBlockType>::VerifyMark()
         });
 
         // The pendingSweepPrepHeapBlockList should always be empty prior to a sweep as its only used during concurrent sweep.
-        Assert(pendingSweepPrepHeapBlockList == nullptr);
+        Assert(this->pendingSweepPrepHeapBlockList == nullptr);
+        Assert(this->rebuildFreeBitVectorHeapBlockList == nullptr);
     }
 #endif
 
@@ -2394,6 +2473,18 @@ HeapBucketGroup<TBlockAttributes>::DoTwoPassConcurrentSweepPreCheck()
 
 #ifdef RECYCLER_WRITE_BARRIER
     || smallNormalWithBarrierHeapBucket.DoTwoPassConcurrentSweepPreCheck();
+#endif
+}
+
+template <class TBlockAttributes>
+void
+HeapBucketGroup<TBlockAttributes>::FinishConcurrentSweepPass1(RecyclerSweep& recyclerSweep)
+{
+    heapBucket.FinishConcurrentSweepPass1(recyclerSweep);
+    leafHeapBucket.FinishConcurrentSweepPass1(recyclerSweep);
+
+#ifdef RECYCLER_WRITE_BARRIER
+    smallNormalWithBarrierHeapBucket.FinishConcurrentSweepPass1(recyclerSweep);
 #endif
 }
 

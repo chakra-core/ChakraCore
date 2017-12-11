@@ -1539,6 +1539,22 @@ HeapInfo::DoTwoPassConcurrentSweepPreCheck()
 }
 
 void
+HeapInfo::FinishConcurrentSweepPass1(RecyclerSweep& recyclerSweep)
+{
+    for (uint i = 0; i < HeapConstants::BucketCount; i++)
+    {
+        heapBuckets[i].FinishConcurrentSweepPass1(recyclerSweep);
+    }
+
+#if defined(BUCKETIZE_MEDIUM_ALLOCATIONS) && SMALLBLOCK_MEDIUM_ALLOC
+    for (uint i = 0; i < HeapConstants::MediumBucketCount; i++)
+    {
+        mediumHeapBuckets[i].FinishConcurrentSweepPass1(recyclerSweep);
+    }
+#endif
+}
+
+void
 HeapInfo::FinishSweepPrep(RecyclerSweep& recyclerSweep)
 {
     for (uint i = 0; i < HeapConstants::BucketCount; i++)

@@ -62,12 +62,14 @@ public:
     // then trigger a second repeat mark pass.
     static const uint BackgroundSecondRepeatMarkThreshold = 128;
 
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     // Number of blocks a heap bucket needs to have before allocations during concurrent sweep feature kicks-in.
 #if DBG
-    // We would want the feature to kick-in always in debug builds so we excercise the code.
-    static const uint AllocDuringConcurrentSweepHeapBlockThreshold = 0;
+    // We would want the feature to kick-in more frequently in debug builds so we excercise the code.
+    static const uint AllocDuringConcurrentSweepHeapBlockThreshold = 10;
 #else
-    static const uint AllocDuringConcurrentSweepHeapBlockThreshold = 2000;
+    static const uint AllocDuringConcurrentSweepHeapBlockThreshold = 5000;
+#endif
 #endif
 #endif
 private:

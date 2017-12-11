@@ -50,7 +50,8 @@ SmallNormalHeapBucketBase<TBlockType>::ScanInitialImplicitRoots(Recycler * recyc
         });
 
         // The pendingSweepPrepHeapBlockList should always be empty prior to a sweep as its only used during concurrent sweep.
-        Assert(pendingSweepPrepHeapBlockList == nullptr);
+        Assert(this->pendingSweepPrepHeapBlockList == nullptr);
+        Assert(this->rebuildFreeBitVectorHeapBlockList == nullptr);
     }
 #endif
 
@@ -249,7 +250,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(RecyclerSweep& recycl
 #ifdef RECYCLER_TRACE
                 recycler->PrintBlockStatus(this, heapBlock, _u("[**17**] calling SweepObjects."));
 #endif
-                heapBlock->template SweepObjects<SweepMode_ConcurrentPartial>(recycler, false /*onlyRecalculateMarkCountAndFreeBits*/);
+                heapBlock->template SweepObjects<SweepMode_ConcurrentPartial>(recycler);
 
                 // page heap mode should never reach here, so don't check pageheap enabled or not
                 DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
@@ -324,7 +325,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(Recycler * recycler, 
 #ifdef RECYCLER_TRACE
         recycler->PrintBlockStatus(this, heapBlock, _u("[**18**] calling SweepObjects."));
 #endif
-        heapBlock->template SweepObjects<mode>(recycler, false /*onlyRecalculateMarkCountAndFreeBits*/);
+        heapBlock->template SweepObjects<mode>(recycler);
         tail = heapBlock;
 
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
@@ -488,17 +489,12 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
             this->GetRecycler()->PrintBlockStatus(this, heapBlock, _u("[**12**] finished SweepPartialReusePages, heapblock NOT REUSED, added to partialHeapBlockList."));
 #endif
 
-            // If we allocated from this block during concurrent sweep, the block may now have become
-            // full (or almost full) and hence not reusable. If we allocated from this block during 
-            // concurrent sweep, we must recalculate the mark count and rebuild free bits for this block.
-            if (heapBlock->objectsAllocatedDuringConcurrentSweepCount > 0)
+#if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
+            if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
             {
-                Assert(!this->IsAnyFinalizableBucket());
-#ifdef RECYCLER_TRACE
-                this->GetRecycler()->PrintBlockStatus(this, heapBlock, _u("[**19**] calling SweepObjects to recalculate mark and free bits ONLY."));
-#endif
-                heapBlock->template SweepObjects<SweepMode_InThread>(this->GetRecycler(), true /*onlyRecalculateMarkCountAndFreeBits*/);
+                heapBlock->ResetConcurrentSweepAllocationCounts();
             }
+#endif
         }
 #endif
     });
@@ -527,7 +523,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
 #ifdef RECYCLER_TRACE
                 recycler->PrintBlockStatus(this, heapBlock, _u("[**20**] calling SweepObjects."));
 #endif
-                heapBlock->template SweepObjects<SweepMode_InThread>(recycler, false /*onlyRecalculateMarkCountAndFreeBits*/);
+                heapBlock->template SweepObjects<SweepMode_InThread>(recycler);
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
                 DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
                 if (heapBlock->HasFreeObject())

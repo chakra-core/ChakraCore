@@ -413,11 +413,13 @@ public:
         return (heapBlockType);
     }
 
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
     bool WasAllocatedFromDuringSweep()
     {
         return this->wasAllocatedFromDuringSweep;
     }
+#endif
 #endif
 
     IdleDecommitPageAllocator* GetPageAllocator(Recycler* recycler);
@@ -568,8 +570,11 @@ public:
     ushort lastFreeCount;
     ushort markCount;
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+#if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
+    // We need to keep track of the number of objects allocated during concurrent sweep, to be
+    // able to make the correct determination about whether a block is EMPTY or FULL when the actual
+    // sweep of this block happens.
     ushort objectsAllocatedDuringConcurrentSweepCount;
-#if DBG
     ushort objectsMarkedDuringSweep;
     ushort lastObjectsAllocatedDuringConcurrentSweepCount;
     bool blockNotReusedInPartialHeapBlockList;
@@ -758,9 +763,14 @@ public:
     virtual size_t GetObjectSize(void* object) const override { return objectSize; }
 
     uint GetMarkCountForSweep();
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+#if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
+    void ResetConcurrentSweepAllocationCounts();
+#endif
+#endif
     SweepState Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable, ushort finalizeCount = 0, bool hasPendingDispose = false);
     template <SweepMode mode>
-    void SweepObjects(Recycler * recycler, bool onlyRecalculateMarkCountAndFreeBits);
+    void SweepObjects(Recycler * recycler);
 
     uint GetAndClearLastFreeCount();
     void ClearAllAllocBytes();      // Reset all unaccounted alloc bytes and the new alloc count
