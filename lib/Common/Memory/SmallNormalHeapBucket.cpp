@@ -328,7 +328,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(Recycler * recycler, 
         tail = heapBlock;
 
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
-        if (this->AllowAllocationsDuringConcurrentSweep())
+        if (this->AllocationsStartedDuringConcurrentSweep())
         {
             Assert(!this->IsAnyFinalizableBucket());
             DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
@@ -441,7 +441,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
     TBlockType * currentHeapBlockList = this->heapBlockList;
     this->heapBlockList = nullptr;
     SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(recyclerSweep, currentHeapBlockList, this->heapBlockList,
-        this->partialHeapBlockList, this->AllowAllocationsDuringConcurrentSweep(),
+        this->partialHeapBlockList, this->AllocationsStartedDuringConcurrentSweep(),
         [this](TBlockType * heapBlock, bool isReused) 
     {
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
@@ -452,7 +452,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
             DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
             if (heapBlock->HasFreeObject())
             {
-                if (this->AllowAllocationsDuringConcurrentSweep())
+                if (this->AllocationsStartedDuringConcurrentSweep())
                 {
                     Assert(!this->IsAnyFinalizableBucket());
                     Assert(!heapBlock->isPendingConcurrentSweepPrep);
@@ -507,7 +507,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
     pendingSweepList = nullptr;
     Recycler * recycler = recyclerSweep.GetRecycler();
     SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(recyclerSweep, currentHeapBlockList, this->heapBlockList,
-        pendingSweepList, this->AllowAllocationsDuringConcurrentSweep(),
+        pendingSweepList, this->AllocationsStartedDuringConcurrentSweep(),
         [this, recycler](TBlockType * heapBlock, bool isReused)
         {
             if (isReused)
@@ -527,7 +527,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
                 DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
                 if (heapBlock->HasFreeObject())
                 {
-                    if (this->AllowAllocationsDuringConcurrentSweep())
+                    if (this->AllocationsStartedDuringConcurrentSweep())
                     {
                         Assert(!this->IsAnyFinalizableBucket());
                         Assert(!heapBlock->isPendingConcurrentSweepPrep);
@@ -722,7 +722,7 @@ SmallNormalHeapBucketBase<TBlockType>::GetNonEmptyHeapBlockCount(bool checkCount
 #endif
 #endif
 #endif
-    RECYCLER_SLOW_CHECK(Assert(!checkCount || this->heapBlockCount == currentHeapBlockCount || (this->heapBlockCount >= 65535 && allocatingDuringConcurrentSweep)));
+    RECYCLER_SLOW_CHECK(Assert(!checkCount || this->heapBlockCount == currentHeapBlockCount /*|| (this->heapBlockCount >= 65535 && allocatingDuringConcurrentSweep)*/));
     return currentHeapBlockCount;
 }
 #endif

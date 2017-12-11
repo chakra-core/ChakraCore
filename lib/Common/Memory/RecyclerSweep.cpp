@@ -172,6 +172,13 @@ void
 RecyclerSweep::FinishSweep()
 {
 #if ENABLE_PARTIAL_GC
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    if (recycler->collectionState == CollectionStateConcurrentSweepPass2)
+    {
+        GCETW_INTERNAL(GC_START, (recycler, ETWEvent_ConcurrentSweep_Pass2));
+    }
+#endif
+
     Assert(this->partial == recycler->inPartialCollectMode);
     // Adjust heuristics
     if (recycler->inPartialCollectMode)
@@ -248,6 +255,12 @@ RecyclerSweep::FinishSweep()
 
 #if ENABLE_CONCURRENT_GC
     recycler->SweepPendingObjects(*this);
+#endif
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    if (recycler->collectionState == CollectionStateConcurrentSweepPass2)
+    {
+        GCETW_INTERNAL(GC_STOP, (recycler, ETWEvent_ConcurrentSweep_Pass2));
+    }
 #endif
 #endif
 }

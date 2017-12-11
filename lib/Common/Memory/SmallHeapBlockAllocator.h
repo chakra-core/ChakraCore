@@ -206,31 +206,28 @@ SmallHeapBlockAllocator<TBlockType>::InlinedAllocImpl(Recycler * recycler, DECLS
         }
 #endif
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
-        if (recycler->AllowAllocationsDuringConcurrentSweep())
+        // If we are allocating during concurrent sweep we must mark the object to prevent it from being swept
+        // in the ongoing sweep.
+        if (heapBlock != nullptr && heapBlock->isPendingConcurrentSweepPrep)
         {
-            // If we are allocating during concurrent sweep we must mark the object to prevent it from being swept
-            // in the ongoing sweep.
-            if (heapBlock != nullptr && heapBlock->isPendingConcurrentSweepPrep)
-            {
-                AssertMsg(!this->isAllocatingFromNewBlock, "We shouldn't be tracking allocation to a new block; i.e. bump allocation; during concurrent sweep.");
-                AssertMsg(!heapBlock->IsAnyFinalizableBlock(), "Allocations are not allowed to finalizable blocks during concurrent sweep.");
-                AssertMsg(heapBlock->heapBucket->AllocationsStartedDuringConcurrentSweep(), "We shouldn't be allocating from this block while allocations are disabled.");
+            AssertMsg(!this->isAllocatingFromNewBlock, "We shouldn't be tracking allocation to a new block; i.e. bump allocation; during concurrent sweep.");
+            AssertMsg(!heapBlock->IsAnyFinalizableBlock(), "Allocations are not allowed to finalizable blocks during concurrent sweep.");
+            AssertMsg(heapBlock->heapBucket->AllocationsStartedDuringConcurrentSweep(), "We shouldn't be allocating from this block while allocations are disabled.");
 
-                // Explcitly mark this object and also clear the free bit.
-                heapBlock->SetObjectMarkedBit(memBlock);
+            // Explcitly mark this object and also clear the free bit.
+            heapBlock->SetObjectMarkedBit(memBlock);
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
-                uint bitIndex = heapBlock->GetAddressBitIndex(memBlock);
-                heapBlock->GetDebugFreeBitVector()->Clear(bitIndex);
-                heapBlock->objectsMarkedDuringSweep++;
+            uint bitIndex = heapBlock->GetAddressBitIndex(memBlock);
+            heapBlock->GetDebugFreeBitVector()->Clear(bitIndex);
+            heapBlock->objectsMarkedDuringSweep++;
 #endif
 
 #ifdef RECYCLER_TRACE
-                if (recycler->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase) && recycler->GetRecyclerFlagsTable().Trace.IsEnabled(Js::MemoryAllocationPhase))
-                {
-                    Output::Print(_u("[**33**]FreeListAlloc: Object 0x%p from HeapBlock 0x%p used for allocation during ConcurrentSweep [CollectionState: %d] \n"), memBlock, heapBlock, recycler->collectionState);
-                }
-#endif
+            if (recycler->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase) && recycler->GetRecyclerFlagsTable().Trace.IsEnabled(Js::MemoryAllocationPhase))
+            {
+                Output::Print(_u("[**33**]FreeListAlloc: Object 0x%p from HeapBlock 0x%p used for allocation during ConcurrentSweep [CollectionState: %d] \n"), memBlock, heapBlock, recycler->collectionState);
             }
+#endif
         }
 #endif
         return memBlock;

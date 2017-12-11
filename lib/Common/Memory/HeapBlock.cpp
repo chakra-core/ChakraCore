@@ -1388,7 +1388,6 @@ SmallHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queu
         // This heap block is ready to be swept concurrently.
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
         this->hasFinishedSweepObjects = false;
-        this->wasAllocatedFromDuringSweep = this->isPendingConcurrentSweepPrep;
 #endif
         this->isPendingConcurrentSweepPrep = false;
     }
@@ -1436,7 +1435,7 @@ SmallHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queu
 
         // nothing has been freed
 #ifdef RECYCLER_TRACE
-        if (recycler->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase))
+        if (recycler->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase) && CONFIG_FLAG_RELEASE(Verbose))
         {
             SweepState stateReturned = (this->freeCount == 0) ? SweepStateFull : state;
             Output::Print(_u("[GC #%d] [HeapBucket 0x%p] HeapBlock 0x%p %s %d [CollectionState: %d] \n"), recycler->collectionCount, this->heapBucket, this, _u("[**37**] heapBlock swept. State returned:"), stateReturned, recycler->collectionState);
@@ -1501,7 +1500,7 @@ SmallHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queu
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) && !this->IsAnyFinalizableBlock())
     {
 #ifdef RECYCLER_TRACE
-        if (recycler->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase))
+        if (recycler->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase) && CONFIG_FLAG_RELEASE(Verbose))
         {
             SweepState stateReturned = (this->freeCount == 0) ? SweepStateFull : state;
             Output::Print(_u("[GC #%d] [HeapBucket 0x%p] HeapBlock 0x%p %s %d [CollectionState: %d] \n"), recycler->collectionCount, this->heapBucket, this, _u("[**38**] heapBlock swept. State returned:"), stateReturned, recycler->collectionState);

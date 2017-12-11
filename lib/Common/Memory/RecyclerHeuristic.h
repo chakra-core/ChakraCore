@@ -66,7 +66,7 @@ public:
     // Number of blocks a heap bucket needs to have before allocations during concurrent sweep feature kicks-in.
 #if DBG
     // We would want the feature to kick-in more frequently in debug builds so we excercise the code.
-    static const uint AllocDuringConcurrentSweepHeapBlockThreshold = 10;
+    static const uint AllocDuringConcurrentSweepHeapBlockThreshold = 100;
 #else
     static const uint AllocDuringConcurrentSweepHeapBlockThreshold = 5000;
 #endif

@@ -118,8 +118,8 @@ public:
 #endif
 
     Recycler * GetRecycler() const;
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     bool AllocationsStartedDuringConcurrentSweep() const;
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     bool ConcurrentSweepAllocationsThresholdExceeded() const;
     bool DoTwoPassConcurrentSweepPreCheck();
 #endif

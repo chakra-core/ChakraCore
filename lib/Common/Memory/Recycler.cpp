@@ -35,24 +35,6 @@ Recycler::TrackerData Recycler::TrackerData::EmptyData(&typeid(UnallocatedPortio
 Recycler::TrackerData Recycler::TrackerData::ExplicitFreeListObjectData(&typeid(ExplicitFreeListedObject), false);
 #endif
 
-enum ETWEventGCActivationKind : unsigned
-{
-    ETWEvent_GarbageCollect                        = 0,      // force in-thread GC
-    ETWEvent_ThreadCollect                         = 1,      // thread GC with wait
-    ETWEvent_ConcurrentCollect                     = 2,
-    ETWEvent_PartialCollect                        = 3,
-
-    ETWEvent_ConcurrentMark                        = 11,
-    ETWEvent_ConcurrentRescan                      = 12,
-    ETWEvent_ConcurrentSweep                       = 13,
-    ETWEvent_ConcurrentTransferSwept               = 14,
-    ETWEvent_ConcurrentFinishMark                  = 15,
-    ETWEvent_ConcurrentSweep_TwoPassConcurrentSweepPreCheck = 16,
-    ETWEvent_ConcurrentSweep_FinishSweepPrep       = 17,
-    ETWEvent_ConcurrentSweep_FinishConcurrentSweep = 18,
-    ETWEvent_ConcurrentSweep_FinishConcurrentSweepPass1 = 19,
-};
-
 DefaultRecyclerCollectionWrapper DefaultRecyclerCollectionWrapper::Instance;
 
 inline bool
@@ -4808,7 +4790,6 @@ bool Recycler::AbortConcurrent(bool restoreState)
 #endif
 
                 GCETW(GC_BACKGROUNDSWEEP_STOP, (this, sweptBytes));
-                GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep));
 
                 this->collectionState = CollectionStateTransferSweptWait;
                 RECYCLER_PROFILE_EXEC_BACKGROUND_END(this, Js::ConcurrentSweepPhase);
@@ -5755,11 +5736,22 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
 #endif
 
 #if ENABLE_PARTIAL_GC
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+        if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) && concurrent)
+        {
+            GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentRescan));
+        }
+#endif
         needConcurrentSweep = this->Sweep(rescanRootBytes, concurrent, true);
 #else
         needConcurrentSweep = this->Sweep(concurrent);
 #endif
-        GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentRescan));
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+        if (!CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) || !concurrent)
+#endif
+        {
+            GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentRescan));
+        }
     }
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     else if (collectionState == CollectionStateConcurrentSweepPass1Wait)
@@ -5771,7 +5763,7 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
             this->FinishConcurrentSweepPass1();
             this->collectionState = CollectionStateConcurrentSweepPass2;
 #ifdef RECYCLER_TRACE
-            if (this->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase))
+            if (this->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase) && CONFIG_FLAG_RELEASE(Verbose))
             {
                 Output::Print(_u("[GC #%d] Finishing Sweep Pass2 in-thread. \n"), this->collectionCount);
             }
@@ -5786,7 +5778,6 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
 #endif
 
             GCETW(GC_BACKGROUNDSWEEP_STOP, (this, sweptBytes));
-            GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep));
 
             this->collectionState = CollectionStateTransferSweptWait;
             RECYCLER_PROFILE_EXEC_BACKGROUND_END(this, Js::ConcurrentSweepPhase);
@@ -6019,7 +6010,18 @@ Recycler::DoBackgroundWork(bool forceForeground)
 #endif
         {
             RECYCLER_PROFILE_EXEC_BACKGROUND_BEGIN(this, Js::ConcurrentSweepPhase);
-            GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep));
+
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+            if (this->collectionState == CollectionStateConcurrentSweepPass1)
+            {
+                GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep_Pass1));
+            }
+            else
+#endif
+            {
+                GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep));
+            }
+
             GCETW(GC_BACKGROUNDZEROPAGE_START, (this));
 
 #if ENABLE_BACKGROUND_PAGE_ZEROING
@@ -6040,6 +6042,13 @@ Recycler::DoBackgroundWork(bool forceForeground)
             Assert(this->recyclerSweep != nullptr);
             this->recyclerSweep->BackgroundSweep();
 
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+            if (this->collectionState == CollectionStateConcurrentSweepPass1)
+            {
+                GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep_Pass1));
+            }
+#endif
+
             // If allocations were allowed during concurrent sweep then the allocableHeapBlock lists still needs to be swept so we
             // will remain in CollectionStateConcurrentSweepPass1Wait state.
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
@@ -6055,7 +6064,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
             if (this->collectionState == CollectionStateConcurrentSweepPass2)
             {
 #ifdef RECYCLER_TRACE
-                if (this->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase))
+                if (this->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase) && CONFIG_FLAG_RELEASE(Verbose))
                 {
                     Output::Print(_u("[GC #%d] Finishing Sweep Pass2 on background thread. \n"), this->collectionCount);
                 }
@@ -6110,7 +6119,6 @@ Recycler::DoBackgroundWork(bool forceForeground)
             }
 #endif
 
-            GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep));
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
             if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) && this->AllowAllocationsDuringConcurrentSweep())
             {
@@ -6120,6 +6128,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
 #endif
             {
                 Assert(this->collectionState == CollectionStateConcurrentSweep);
+                GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep));
             }
             this->collectionState = CollectionStateTransferSweptWait;
         }
@@ -6273,28 +6282,36 @@ Recycler::ThreadProc()
 void
 Recycler::DoTwoPassConcurrentSweepPreCheck()
 {
-    GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep_TwoPassConcurrentSweepPreCheck));
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
     {
         // We will do two pass sweep only when BOTH of the following conditions are met:
         //      1. GC was triggered while we are in script, as this is the only case when we will make use of the blocks in the 
         //         SLIST during concurrent sweep.
-        //      2. At-least one heap bucket exceeds the RecyclerHeuristic::AllocDuringConcurrentSweepHeapBlockThreshold.
-        this->allowAllocationsDuringConcurrentSweepForCollection = this->isInScript && this->autoHeap.DoTwoPassConcurrentSweepPreCheck();
+        //      2. We are not in a Partial GC.
+        //      3. At-least one heap bucket exceeds the RecyclerHeuristic::AllocDuringConcurrentSweepHeapBlockThreshold.
+        this->allowAllocationsDuringConcurrentSweepForCollection = this->isInScript && !this->recyclerSweep->InPartialCollect();
+
+        // Do the actual 2-pass check only if the first 2 checks pass.
+        if (this->allowAllocationsDuringConcurrentSweepForCollection)
+        {
+            // We fire the ETW event only when the actual 2-pass check is performed. This is to avoid messing up ETL processing of test runs when in partial collect.
+            GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep_TwoPassSweepPreCheck));
+            this->allowAllocationsDuringConcurrentSweepForCollection = this->autoHeap.DoTwoPassConcurrentSweepPreCheck();
+            GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep_TwoPassSweepPreCheck));
+        }
     }
-    GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep_TwoPassConcurrentSweepPreCheck));
 }
 
 void
 Recycler::FinishConcurrentSweepPass1()
 {
-    GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep_FinishConcurrentSweepPass1));
+    GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep_FinishPass1));
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
     {
         AssertMsg(this->allowAllocationsDuringConcurrentSweepForCollection, "Two pass concurrent sweep must be turned on.");
         this->autoHeap.FinishConcurrentSweepPass1(this->recyclerSweepInstance);
     }
-    GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep_FinishConcurrentSweepPass1));
+    GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep_FinishPass1));
 }
 
 void
@@ -6313,13 +6330,13 @@ void
 Recycler::FinishConcurrentSweep()
 {
 #if SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
-    GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep_FinishConcurrentSweep));
+    GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep_FinishTwoPassSweep));
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
     {
         AssertMsg(this->allowAllocationsDuringConcurrentSweepForCollection, "Two pass concurrent sweep must be turned on.");
         this->autoHeap.FinishConcurrentSweep();
     }
-    GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep_FinishConcurrentSweep));
+    GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep_FinishTwoPassSweep));
 #endif
 }
 #endif
@@ -7008,7 +7025,7 @@ Recycler::PrintCollectTrace(Js::Phase phase, bool finish, bool noConcurrentWork)
 void
 Recycler::PrintBlockStatus(HeapBucket * heapBucket, HeapBlock * heapBlock, char16 const * statusMessage)
 {
-    if (this->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase))
+    if (this->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase) && CONFIG_FLAG_RELEASE(Verbose))
     {
         Output::Print(_u("[GC #%d] [HeapBucket 0x%p] HeapBlock 0x%p %s [CollectionState: %d] \n"), this->collectionCount, heapBucket, heapBlock, statusMessage, this->collectionState);
     }
