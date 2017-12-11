@@ -4788,7 +4788,36 @@ bool Recycler::AbortConcurrent(bool restoreState)
             {
                 this->ResetMarkCollectionState();
             }
-            //TODO:akatti: Do we need to handle the CollectionStateConcurrentSweepPass1Wait state and finish ConcurrentSweep here??
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+            else if (collectionState == CollectionStateConcurrentSweepPass1Wait)
+            {
+                // Make sure we don't do another GC after finishing this one.
+                this->inExhaustiveCollection = false;
+
+                this->FinishSweepPrep();
+                this->collectionState = CollectionStateConcurrentSweepPass2;
+                this->recyclerSweep->FinishSweep();
+                this->FinishConcurrentSweep();
+                this->recyclerSweep->EndBackground();
+
+                uint sweptBytes = 0;
+#ifdef RECYCLER_STATS
+                sweptBytes = (uint)collectionStats.objectSweptBytes;
+#endif
+
+                GCETW(GC_BACKGROUNDSWEEP_STOP, (this, sweptBytes));
+                GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep));
+
+                this->collectionState = CollectionStateTransferSweptWait;
+                RECYCLER_PROFILE_EXEC_BACKGROUND_END(this, Js::ConcurrentSweepPhase);
+
+                // AbortConcurrent already consumed the event from the concurrent thread, just signal it so
+                // FinishConcurrentCollect can wait for it again.
+                SetEvent(this->concurrentWorkDoneEvent);
+
+                EnsureNotCollecting();
+            }
+#endif
             else if (collectionState == CollectionStateTransferSweptWait)
             {
                 // Make sure we don't do another GC after finishing this one.
