@@ -9,8 +9,8 @@ extern const IRType RegTypes[RegNumCount];
 
 LinearScanMD::LinearScanMD(Func *func)
     : helperSpillSlots(nullptr),
-      maxOpHelperSpilledLiveranges(0),
-      func(func)
+      func(func),
+      maxOpHelperSpilledLiveranges(0)
 {
 }
 

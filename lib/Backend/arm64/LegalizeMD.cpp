@@ -24,8 +24,8 @@ public:
     }
 
     Js::OpCode m_opcode;
-    IntConstType m_immed;
     int m_shift;
+    IntConstType m_immed;
 };
 
 
@@ -990,9 +990,8 @@ bool LegalizeMD::LegalizeDataAdr(IR::Instr *instr, uintptr_t dataOffset)
     Assert(instr->m_opcode == Js::OpCode::ADR);
 
     IR::LabelOpnd* labelOpnd = instr->GetSrc1()->AsLabelOpnd();
-    IR::LabelInstr* label = labelOpnd->GetLabel();
 
-    Assert(label->m_isDataLabel);
+    Assert(labelOpnd->GetLabel()->m_isDataLabel);
 
 
     // dataOffset provides an upper bound on the distance between instr and the label.

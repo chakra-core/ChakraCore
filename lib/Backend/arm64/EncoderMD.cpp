@@ -195,9 +195,7 @@ int EncoderMD::EmitOp1Register64(Arm64CodeEmitter &Emitter, IR::Instr* instr, _R
 {
     IR::Opnd* src1 = instr->GetSrc1();
     Assert(src1->IsRegOpnd());
-
-    int size = src1->GetSize();
-    Assert(size == 8);
+    Assert(src1->GetSize() == 8);
 
     return reg64(Emitter, this->GetRegEncode(src1->AsRegOpnd()));
 }
@@ -735,7 +733,7 @@ int EncoderMD::EmitConvertToInt(Arm64CodeEmitter &Emitter, IR::Instr* instr, _In
     Assert(src1->IsRegOpnd());
     Assert(src1->IsFloat());
 
-    int size = dst->GetSize();
+    DebugOnly(int size = dst->GetSize());
     Assert(size == 4 || size == 8);
     int srcSize = src1->GetSize();
     Assert(srcSize == 4 || srcSize == 8);
@@ -1571,7 +1569,7 @@ EncoderMD::ApplyRelocs(size_t codeBufferAddress, size_t codeSize, uint* bufferCR
 void
 EncoderMD::EncodeInlineeCallInfo(IR::Instr *instr, uint32 codeOffset)
 {
-     IR::LabelInstr* inlineeStart = instr->AsLabelInstr();
+     DebugOnly(IR::LabelInstr* inlineeStart = instr->AsLabelInstr());
      Assert((inlineeStart->GetOffset() & 0x0F) == inlineeStart->GetOffset());
      return;
 }
