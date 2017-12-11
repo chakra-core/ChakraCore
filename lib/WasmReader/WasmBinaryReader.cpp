@@ -239,6 +239,7 @@ void WasmBinaryReader::PrintOps()
     int i = 0;
     while (iter.IsValid())
     {
+        __analysis_assume(i < count);
         ops[i] = iter.CurrentKey();
         iter.MoveNext();
         ++i;
