@@ -134,7 +134,7 @@ namespace Js
             {
                 if (UseOneByte())
                 {
-                    if (bufferSize - this->offset<sizeof(serialization_alignment byte))
+                    if (bufferSize - this->offset < sizeof(serialization_alignment byte))
                     {
                         Throw::FatalInternalError();
                     }
@@ -143,7 +143,7 @@ namespace Js
                 }
                 else if (UseTwoBytes())
                 {
-                    if (bufferSize - this->offset<sizeof(serialization_alignment uint16))
+                    if (bufferSize - this->offset < sizeof(serialization_alignment uint16) + sizeof(serialization_alignment byte))
                     {
                         Throw::FatalInternalError();
                     }
@@ -153,7 +153,7 @@ namespace Js
                 }
                 else
                 {
-                    if (bufferSize - this->offset<sizeof(serialization_alignment T))
+                    if (bufferSize - this->offset < sizeof(serialization_alignment T) + sizeof(serialization_alignment byte))
                     {
                         Throw::FatalInternalError();
                     }
