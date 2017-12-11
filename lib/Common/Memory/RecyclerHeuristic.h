@@ -68,7 +68,7 @@ public:
     // We would want the feature to kick-in more frequently in debug builds so we excercise the code.
     static const uint AllocDuringConcurrentSweepHeapBlockThreshold = 100;
 #else
-    static const uint AllocDuringConcurrentSweepHeapBlockThreshold = 5000;
+    static const uint AllocDuringConcurrentSweepHeapBlockThreshold = 60000;
 #endif
 #endif
 #endif
