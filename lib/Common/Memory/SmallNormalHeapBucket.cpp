@@ -51,7 +51,6 @@ SmallNormalHeapBucketBase<TBlockType>::ScanInitialImplicitRoots(Recycler * recyc
 
         // The pendingSweepPrepHeapBlockList should always be empty prior to a sweep as its only used during concurrent sweep.
         Assert(this->pendingSweepPrepHeapBlockList == nullptr);
-        Assert(this->rebuildFreeBitVectorHeapBlockList == nullptr);
     }
 #endif
 
