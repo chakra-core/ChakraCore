@@ -225,7 +225,7 @@ protected:
     void DeleteHeapBlockList(TBlockType * list);
     static void DeleteEmptyHeapBlockList(TBlockType * list);
     static void DeleteHeapBlockList(TBlockType * list, Recycler * recycler);
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
     static bool PushHeapBlockToSList(PSLIST_HEADER list, TBlockType * heapBlock);
     static TBlockType * PopHeapBlockFromSList(PSLIST_HEADER list);
     static ushort QueryDepthInterlockedSList(PSLIST_HEADER list);
@@ -274,10 +274,10 @@ protected:
     void EnumerateObjects(ObjectInfoBits infoBits, void (*CallBackFunction)(void * address, size_t size));
 
 
+    void AssertCheckHeapBlockNotInAnyList(TBlockType * heapBlock);
 #if DBG
     bool AllocatorsAreEmpty() const;
     bool HasPendingDisposeHeapBlocks() const;
-    void AssertCheckHeapBlockNotInAnyList(TBlockType * heapBlock);
 
     static void VerifyBlockConsistencyInList(TBlockType * heapBlock, RecyclerVerifyListConsistencyData& recyclerSweep);
     static void VerifyBlockConsistencyInList(TBlockType * heapBlock, RecyclerVerifyListConsistencyData const& recyclerSweep, SweepState state);
@@ -305,7 +305,7 @@ protected:
     TBlockType * heapBlockList;      // list of blocks that has free objects
 
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
-#if SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if SUPPORT_WIN32_SLIST
     PSLIST_HEADER allocableHeapBlockListHead;
     TBlockType * lastKnownNextAllocableBlockHead;
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
@@ -373,7 +373,7 @@ HeapBucketT<TBlockType>::SweepBucket(RecyclerSweep& recyclerSweep, Fn sweepFn)
         // We should only queue up pending sweep if we are doing partial collect
         Assert(recyclerSweep.GetPendingSweepBlockList(this) == nullptr);
 
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
         if (!this->AllocationsStartedDuringConcurrentSweep())
 #endif
 #endif

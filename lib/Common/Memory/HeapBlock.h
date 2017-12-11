@@ -413,13 +413,11 @@ public:
         return (heapBlockType);
     }
 
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
-#if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
+#if (DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)) && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     bool WasAllocatedFromDuringSweep()
     {
         return this->wasAllocatedFromDuringSweep;
     }
-#endif
 #endif
 
     IdleDecommitPageAllocator* GetPageAllocator(Recycler* recycler);
@@ -472,7 +470,7 @@ public:
 #endif
 };
 
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
 template <typename TBlockType>
 struct HeapBlockSListItem {
     // SLIST_ENTRY needs to be the first element in the structure to avoid calculating offset with the SList API calls.

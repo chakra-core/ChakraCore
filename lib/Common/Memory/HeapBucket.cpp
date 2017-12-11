@@ -53,7 +53,7 @@ HeapBucketT<TBlockType>::HeapBucketT() :
     fullBlockList(nullptr),
     heapBlockList(nullptr),
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
-#if SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if SUPPORT_WIN32_SLIST
     lastKnownNextAllocableBlockHead(nullptr),
     allocableHeapBlockListHead(nullptr),
     sweepableHeapBlockList(nullptr),
@@ -78,7 +78,7 @@ HeapBucketT<TBlockType>::~HeapBucketT()
     DeleteHeapBlockList(this->fullBlockList);
 
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
-#if SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if SUPPORT_WIN32_SLIST
     if (allocableHeapBlockListHead != nullptr)
     {
         if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
@@ -131,7 +131,7 @@ HeapBucketT<TBlockType>::DeleteHeapBlockList(TBlockType * list)
     DeleteHeapBlockList(list, this->heapInfo->recycler);
 }
 
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
 template<typename TBlockType>
 bool
 HeapBucketT<TBlockType>::PushHeapBlockToSList(PSLIST_HEADER list, TBlockType * heapBlock)
@@ -395,11 +395,11 @@ HeapBucketT<TBlockType>::HasPendingDisposeHeapBlocks() const
 
 #endif
 
-#if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
 template <typename TBlockType>
 void
 HeapBucketT<TBlockType>::AssertCheckHeapBlockNotInAnyList(TBlockType * heapBlock)
 {
+#if DBG
     AssertMsg(!HeapBlockList::Contains(heapBlock, heapBlockList), "The heap block already exists in the heapBlockList.");
     AssertMsg(!HeapBlockList::Contains(heapBlock, fullBlockList), "The heap block already exists in the fullBlockList.");
     AssertMsg(!HeapBlockList::Contains(heapBlock, emptyBlockList), "The heap block already exists in the emptyBlockList.");
@@ -407,8 +407,10 @@ HeapBucketT<TBlockType>::AssertCheckHeapBlockNotInAnyList(TBlockType * heapBlock
     AssertMsg(!HeapBlockList::Contains(heapBlock, sweepableHeapBlockList), "The heap block already exists in the sweepableHeapBlockList.");
     AssertMsg(!HeapBlockList::Contains(heapBlock, pendingSweepPrepHeapBlockList), "The heap block already exists in the pendingSweepPrepHeapBlockList.");
 #endif
+#endif
 }
 
+#if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
 template <typename TBlockType>
 size_t
 HeapBucketT<TBlockType>::GetNonEmptyHeapBlockCount(bool checkCount) const
@@ -419,7 +421,7 @@ HeapBucketT<TBlockType>::GetNonEmptyHeapBlockCount(bool checkCount) const
 
 #if ENABLE_CONCURRENT_GC
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
-#if SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if SUPPORT_WIN32_SLIST
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) && !this->IsAnyFinalizableBucket())
     {
         allocatingDuringConcurrentSweep = true;
@@ -446,7 +448,7 @@ HeapBucketT<TBlockType>::GetNonEmptyHeapBlockCount(bool checkCount) const
 #endif
 
     // There is no way to determine the number of item in an SLIST if there are >= 65535 items in the list.
-    RECYCLER_SLOW_CHECK(Assert(!checkCount || heapBlockCount == currentHeapBlockCount /*|| (heapBlockCount >= 65535 && allocatingDuringConcurrentSweep)*/));
+    RECYCLER_SLOW_CHECK(Assert(!checkCount || heapBlockCount == currentHeapBlockCount || (heapBlockCount >= 65535 && allocatingDuringConcurrentSweep)));
 
     return currentHeapBlockCount;
 }
@@ -473,7 +475,7 @@ HeapBucketT<TBlockType>::TryAlloc(Recycler * recycler, TBlockAllocatorType * all
 
     TBlockType * heapBlock = this->nextAllocableBlockHead;
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 
-#if SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if SUPPORT_WIN32_SLIST
     bool heapBlockFromAllocableHeapBlockList = false;
     DebugOnly(bool heapBlockInPendingSweepPrepList = false);
 
@@ -489,7 +491,7 @@ HeapBucketT<TBlockType>::TryAlloc(Recycler * recycler, TBlockAllocatorType * all
         if (heapBlock != nullptr)
         {
             Assert(!this->IsAnyFinalizableBucket());
-            DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
+            DebugOnly(this->AssertCheckHeapBlockNotInAnyList(heapBlock));
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
             heapBlock->wasAllocatedFromDuringSweep = true;
 #endif
@@ -530,7 +532,7 @@ HeapBucketT<TBlockType>::TryAlloc(Recycler * recycler, TBlockAllocatorType * all
    {
         Assert(!this->IsAllocationStopped());
 
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
         // When allocations are allowed during concurrent sweep we set nextAllocableBlockHead to NULL as the allocator will pick heap blocks from the
         // interlocked SLIST. During that time, the heap block at the top of the SLIST is always the nextAllocableBlockHead.
         // If the heapBlock was just picked from the SLIST and nextAllocableBlockHead is not NULL then we just resumed normal allocations on the background thread
@@ -691,18 +693,6 @@ HeapBucketT<TBlockType>::SnailAlloc(Recycler * recycler, TBlockAllocatorType * a
         }
 #endif
 
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
-        // If we started allocations during concurrent sweep; we may have found blocks to allocate from; try again.
-        //if (this->allocationsStartedDuringConcurrentSweep)
-        //{
-        //    memBlock = this->TryAlloc(recycler, allocator, sizeCat, attributes);
-        //    if (memBlock != nullptr)
-        //    {
-        //        return memBlock;
-        //    }
-        //}
-#endif
-
         // We didn't collect, try to add a new heap block
         memBlock = TryAllocFromNewHeapBlock(recycler, allocator, sizeCat, size, attributes);
         if (memBlock != nullptr)
@@ -847,7 +837,7 @@ HeapBucketT<TBlockType>::ResetMarks(ResetMarkFlags flags)
             Assert(!heapBlock->HasFreeObject());
         });
 
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
         if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) && !this->IsAnyFinalizableBucket())
         {
             HeapBlockList::ForEach(sweepableHeapBlockList, [flags](TBlockType * heapBlock)
@@ -903,7 +893,7 @@ HeapBucketT<TBlockType>::ScanNewImplicitRoots(Recycler * recycler)
         heapBlock->ScanNewImplicitRoots(recycler);
     });
 
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) && !this->IsAnyFinalizableBucket())
     {
         HeapBlockList::ForEach(sweepableHeapBlockList, [recycler](TBlockType * heapBlock)
@@ -1109,7 +1099,7 @@ HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlock
             // blocks that have swept object. Queue up the block for concurrent sweep.
             Assert(queuePendingSweep);
             TBlockType *& pendingSweepList = recyclerSweep.GetPendingSweepBlockList(this);
-            DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
+            DebugOnly(this->AssertCheckHeapBlockNotInAnyList(heapBlock));
             AssertMsg(!HeapBlockList::Contains(heapBlock, pendingSweepList), "The heap block already exists in the pendingSweepList.");
 
             heapBlock->SetNextBlock(pendingSweepList);
@@ -1147,7 +1137,7 @@ HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlock
             // finalizable objects, so that we can go through and call the dispose, and then
             // transfer the finalizable object back to the free list.
             SmallFinalizableHeapBucketT<typename TBlockType::HeapBlockAttributes> * finalizableHeapBucket = (SmallFinalizableHeapBucketT<typename TBlockType::HeapBlockAttributes>*)this;
-            DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
+            DebugOnly(this->AssertCheckHeapBlockNotInAnyList(heapBlock));
             //AssertMsg(!HeapBlockList::Contains(heapBlock, finalizableHeapBucket->pendingDisposeList), "The heap block already exists in the pendingDisposeList.");
             heapBlock->template AsFinalizableBlock<typename TBlockType::HeapBlockAttributes>()->SetNextBlock(finalizableHeapBucket->pendingDisposeList);
             finalizableHeapBucket->pendingDisposeList = heapBlock->template AsFinalizableBlock<typename TBlockType::HeapBlockAttributes>();
@@ -1162,7 +1152,7 @@ HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlock
         {
             Assert(this->nextAllocableBlockHead == nullptr);
             Assert(heapBlock->HasFreeObject());
-            DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
+            DebugOnly(this->AssertCheckHeapBlockNotInAnyList(heapBlock));
 
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
             if (this->AllocationsStartedDuringConcurrentSweep())
@@ -1205,7 +1195,7 @@ HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlock
         case SweepStateFull:
         {
             Assert(!heapBlock->HasFreeObject());
-            DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
+            DebugOnly(this->AssertCheckHeapBlockNotInAnyList(heapBlock));
             heapBlock->SetNextBlock(this->fullBlockList);
             this->fullBlockList = heapBlock;
 #ifdef RECYCLER_TRACE
@@ -1229,7 +1219,7 @@ HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlock
 #if ENABLE_CONCURRENT_GC
             // CONCURRENT-TODO: Finalizable block never have background == true and always be processed
             // in thread, so it will not queue up the pages even if we are doing concurrent GC
-            DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
+            DebugOnly(this->AssertCheckHeapBlockNotInAnyList(heapBlock));
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
             if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
             {
@@ -1300,7 +1290,7 @@ HeapBucketT<TBlockType>::SweepBucket(RecyclerSweep& recyclerSweep)
     Assert(!recyclerSweep.IsBackground());
 #endif
 
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) && this->sweepableHeapBlockList != nullptr)
     {
         Assert(!this->IsAnyFinalizableBucket());
@@ -1415,7 +1405,7 @@ HeapBucketT<TBlockType>::StopAllocationBeforeSweep()
 {
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     this->allocationsStartedDuringConcurrentSweep = false;
-#if SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if SUPPORT_WIN32_SLIST
     this->lastKnownNextAllocableBlockHead = this->nextAllocableBlockHead;
 #endif
 #endif
@@ -1448,7 +1438,7 @@ HeapBucketT<TBlockType>::StartAllocationDuringConcurrentSweep()
     Assert(!this->allocationsStartedDuringConcurrentSweep);
     this->allocationsStartedDuringConcurrentSweep = true;
 
-#if SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if SUPPORT_WIN32_SLIST
     // When allocations are allowed during concurrent sweep we set nextAllocableBlockHead to NULL as the allocator will pick heap blocks from the
     // interlocked SLIST. During that time, the heap block at the top of the SLIST is always the nextAllocableBlockHead.
     this->nextAllocableBlockHead = nullptr;
@@ -1502,7 +1492,7 @@ template<typename TBlockType>
 void
 HeapBucketT<TBlockType>::PrepareForAllocationsDuringConcurrentSweep(TBlockType * &currentHeapBlockList)
 {
-#if SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if SUPPORT_WIN32_SLIST
     if (this->AllowAllocationsDuringConcurrentSweep())
     {
         this->EnsureAllocableHeapBlockList();
@@ -1533,7 +1523,7 @@ HeapBucketT<TBlockType>::PrepareForAllocationsDuringConcurrentSweep(TBlockType *
                 {
                     // This heap block is NOT ready to be swept concurrently as it hasn't yet been through sweep prep (i.e. Pass1 of sweep).
                     heapBlock->isPendingConcurrentSweepPrep = true;
-                    DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
+                    DebugOnly(this->AssertCheckHeapBlockNotInAnyList(heapBlock));
                     bool blockAddedToSList = HeapBucketT<TBlockType>::PushHeapBlockToSList(this->allocableHeapBlockListHead, heapBlock);
 
                     // If we encountered OOM while pushing the heapBlock to the SLIST we must add it to the heapBlockList so we don't lose track of it.
@@ -1694,8 +1684,7 @@ HeapBucketT<TBlockType>::FinishConcurrentSweepPass1(RecyclerSweep& recyclerSweep
         TBlockType * heapBlock = PopHeapBlockFromSList(this->allocableHeapBlockListHead);
         while (heapBlock != nullptr)
         {
-            DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
-            AssertMsg(!HeapBlockList::Contains(heapBlock, currentPendingSweepPrepHeapBlockList), "The heap block already exists in the currentPendingSweepPrepHeapBlockList.");
+            DebugOnly(this->AssertCheckHeapBlockNotInAnyList(heapBlock));
             if (heapBlock->isPendingConcurrentSweepPrep)
             {
 #ifdef RECYCLER_TRACE
@@ -1750,7 +1739,7 @@ template <typename TBlockType>
 void
 HeapBucketT<TBlockType>::EnsureAllocableHeapBlockList()
 {
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
     {
         if (allocableHeapBlockListHead == nullptr)
@@ -1790,7 +1779,7 @@ HeapBucketT<TBlockType>::FinishConcurrentSweep()
 {
     if (this->AllocationsStartedDuringConcurrentSweep())
     {
-#if SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if SUPPORT_WIN32_SLIST
         Assert(!this->IsAnyFinalizableBucket());
         Assert(this->allocableHeapBlockListHead != nullptr);
 
@@ -1806,7 +1795,7 @@ HeapBucketT<TBlockType>::FinishConcurrentSweep()
         TBlockType * heapBlock = PopHeapBlockFromSList(this->allocableHeapBlockListHead);
         while (heapBlock != nullptr)
         {
-            DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
+            DebugOnly(this->AssertCheckHeapBlockNotInAnyList(heapBlock));
             AssertMsg(!heapBlock->isPendingConcurrentSweepPrep, "The blocks in the SLIST at this time should NOT have sweep prep i.e. sweep-Pass1 pending.");
             newNextAllocableBlockHead = heapBlock;
             heapBlock->SetNextBlock(this->heapBlockList);
@@ -1867,7 +1856,7 @@ HeapBucketT<TBlockType>::EnumerateObjects(ObjectInfoBits infoBits, void (*CallBa
 {
     UpdateAllocators();
     HeapBucket::EnumerateObjects(fullBlockList, infoBits, CallBackFunction);
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) && !this->IsAnyFinalizableBucket())
     {
         HeapBucket::EnumerateObjects(sweepableHeapBlockList, infoBits, CallBackFunction);
@@ -1898,7 +1887,7 @@ HeapBucketT<TBlockType>::Check(bool checkCount)
     UpdateAllocators();
     size_t smallHeapBlockCount = HeapInfo::Check(true, false, this->fullBlockList);
     bool allocatingDuringConcurrentSweep = false;
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) && !this->IsAnyFinalizableBucket())
     {
         allocatingDuringConcurrentSweep = true;
@@ -1913,7 +1902,7 @@ HeapBucketT<TBlockType>::Check(bool checkCount)
 #endif
     smallHeapBlockCount += HeapInfo::Check(true, false, this->heapBlockList, this->nextAllocableBlockHead);
     smallHeapBlockCount += HeapInfo::Check(false, false, this->nextAllocableBlockHead);
-    Assert(!checkCount || this->heapBlockCount == smallHeapBlockCount /*|| (this->heapBlockCount >= 65535 && allocatingDuringConcurrentSweep)*/);
+    Assert(!checkCount || this->heapBlockCount == smallHeapBlockCount || (this->heapBlockCount >= 65535 && allocatingDuringConcurrentSweep));
     return smallHeapBlockCount;
 }
 #endif
@@ -1943,7 +1932,7 @@ HeapBucketT<TBlockType>::AggregateBucketStats()
     };
 
     HeapBlockList::ForEach(fullBlockList, blockStatsAggregator);
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) && !this->IsAnyFinalizableBucket())
     {
         HeapBlockList::ForEach(sweepableHeapBlockList, blockStatsAggregator);
@@ -1983,7 +1972,7 @@ HeapBucketT<TBlockType>::Verify()
         heapBlock->Verify();
     });
 
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) && !this->IsAnyFinalizableBucket())
     {
 #if DBG
@@ -2079,7 +2068,7 @@ HeapBucketT<TBlockType>::VerifyMark()
         heapBlock->VerifyMark();
     });
 
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) && !this->IsAnyFinalizableBucket())
     {
         HeapBlockList::ForEach(this->sweepableHeapBlockList, [](TBlockType * heapBlock)

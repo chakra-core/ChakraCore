@@ -3074,17 +3074,7 @@ Recycler::Sweep(bool concurrent)
 #if ENABLE_CONCURRENT_GC
     if (concurrent)
     {
-        bool needForceForground = false;
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
-        if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) && this->AllowAllocationsDuringConcurrentSweep())
-        {
-            needForceForground = !StartConcurrent(CollectionStateConcurrentSweepPass1);
-        }
-        else
-#endif
-        {
-            needForceForground = !StartConcurrent(CollectionStateConcurrentSweep);
-        }
+        bool needForceForground = !StartConcurrent(CollectionStateConcurrentSweep);
 
         if(needForceForground)
         {
@@ -3234,10 +3224,6 @@ Recycler::SweepHeap(bool concurrent, RecyclerSweep& recyclerSweep)
 #endif
 
         GCETW(GC_SETUPBACKGROUNDSWEEP_STOP, (this));
-
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
-        this->DoTwoPassConcurrentSweepPreCheck();
-#endif
     }
     else
     {
@@ -5736,22 +5722,11 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
 #endif
 
 #if ENABLE_PARTIAL_GC
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
-        if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) && concurrent)
-        {
-            GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentRescan));
-        }
-#endif
         needConcurrentSweep = this->Sweep(rescanRootBytes, concurrent, true);
 #else
         needConcurrentSweep = this->Sweep(concurrent);
 #endif
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
-        if (!CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) || !concurrent)
-#endif
-        {
-            GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentRescan));
-        }
+        GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentRescan));
     }
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     else if (collectionState == CollectionStateConcurrentSweepPass1Wait)
@@ -5994,9 +5969,19 @@ Recycler::DoBackgroundWork(bool forceForeground)
         Assert(this->enableConcurrentSweep);
 
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
-        if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) && this->AllowAllocationsDuringConcurrentSweep())
+        if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) && !forceForeground)
         {
-            Assert(this->collectionState == CollectionStateConcurrentSweepPass1 || this->collectionState == CollectionStateConcurrentSweepPass2);
+            if (this->collectionState == CollectionStateConcurrentSweep)
+            {
+                this->DoTwoPassConcurrentSweepPreCheck();
+
+                if (this->AllowAllocationsDuringConcurrentSweep())
+                {
+                    this->collectionState = CollectionStateConcurrentSweepPass1;
+                }
+            }
+
+            Assert((!this->AllowAllocationsDuringConcurrentSweep() && this->collectionState == CollectionStateConcurrentSweep) || this->collectionState == CollectionStateConcurrentSweepPass1 || this->collectionState == CollectionStateConcurrentSweepPass2);
         }
         else
 #endif
@@ -6294,11 +6279,10 @@ Recycler::DoTwoPassConcurrentSweepPreCheck()
         // Do the actual 2-pass check only if the first 2 checks pass.
         if (this->allowAllocationsDuringConcurrentSweepForCollection)
         {
-            // TODO: akatti: Reenable this ETW event if needed.
             // We fire the ETW event only when the actual 2-pass check is performed. This is to avoid messing up ETL processing of test runs when in partial collect.
-            //GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep_TwoPassSweepPreCheck));
+            GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep_TwoPassSweepPreCheck));
             this->allowAllocationsDuringConcurrentSweepForCollection = this->autoHeap.DoTwoPassConcurrentSweepPreCheck();
-            //GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep_TwoPassSweepPreCheck));
+            GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep_TwoPassSweepPreCheck));
         }
     }
 }
@@ -6330,7 +6314,7 @@ Recycler::FinishSweepPrep()
 void
 Recycler::FinishConcurrentSweep()
 {
-#if SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if SUPPORT_WIN32_SLIST
     GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep_FinishTwoPassSweep));
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
     {

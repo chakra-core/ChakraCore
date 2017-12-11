@@ -252,7 +252,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(RecyclerSweep& recycl
                 heapBlock->template SweepObjects<SweepMode_ConcurrentPartial>(recycler);
 
                 // page heap mode should never reach here, so don't check pageheap enabled or not
-                DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
+                DebugOnly(this->AssertCheckHeapBlockNotInAnyList(heapBlock));
                 if (heapBlock->HasFreeObject())
                 {
                     AssertMsg(!HeapBlockList::Contains(heapBlock, partialSweptHeapBlockList), "The heap block already exists in the partialSweptHeapBlockList.");
@@ -280,7 +280,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(RecyclerSweep& recycl
             // We decided not to do a partial sweep.
             // Blocks in the pendingSweepList need to have a regular sweep.
 
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
             if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
             {
                 if (this->AllowAllocationsDuringConcurrentSweep() && !this->AllocationsStartedDuringConcurrentSweep())
@@ -293,7 +293,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(RecyclerSweep& recycl
 
             TBlockType * tail = SweepPendingObjects<SweepMode_Concurrent>(recycler, list);
 
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
             // During concurrent sweep if allocations were allowed, the heap blocks directly go into the SLIST of
             // allocable heap blocks. They will be returned to the heapBlockList at the end of the sweep.
             if (!this->AllowAllocationsDuringConcurrentSweep())
@@ -327,11 +327,11 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(Recycler * recycler, 
         heapBlock->template SweepObjects<mode>(recycler);
         tail = heapBlock;
 
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
         if (this->AllocationsStartedDuringConcurrentSweep())
         {
             Assert(!this->IsAnyFinalizableBucket());
-            DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
+            DebugOnly(this->AssertCheckHeapBlockNotInAnyList(heapBlock));
             // If we exhausted the free list during this sweep, we will need to send this block to the FullBlockList.
             if (heapBlock->HasFreeObject())
             {
@@ -353,7 +353,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(Recycler * recycler, 
             }
             else
             {
-                DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
+                DebugOnly(this->AssertCheckHeapBlockNotInAnyList(heapBlock));
                 heapBlock->SetNextBlock(this->fullBlockList);
                 this->fullBlockList = heapBlock;
 #ifdef RECYCLER_TRACE
@@ -392,13 +392,13 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
             callback(heapBlock, true);
 
 
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
             // During concurrent sweep if allocations were allowed, the heap blocks directly go into the SLIST of
             // allocable heap blocks. They will be returned to the heapBlockList at the end of the sweep.
             if(!allocationsAllowedDuringConcurrentSweep)
 #endif
             {
-                DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
+                DebugOnly(this->AssertCheckHeapBlockNotInAnyList(heapBlock));
                 // Reuse the page
                 heapBlock->SetNextBlock(reuseBlocklist);
                 reuseBlocklist = heapBlock;
@@ -412,7 +412,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
             // Don't not reuse the page if it don't have much free memory.
             callback(heapBlock, false);
 
-            DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
+            DebugOnly(this->AssertCheckHeapBlockNotInAnyList(heapBlock));
             heapBlock->SetNextBlock(unusedBlockList);
             unusedBlockList = heapBlock;
 
@@ -430,7 +430,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
     RECYCLER_SLOW_CHECK(this->VerifyHeapBlockCount(recyclerSweep.IsBackground()));
     Assert(this->GetRecycler()->inPartialCollectMode);
 
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
     if (this->AllowAllocationsDuringConcurrentSweep() && !this->AllocationsStartedDuringConcurrentSweep())
     {
         Assert(!this->IsAnyFinalizableBucket());
@@ -444,12 +444,12 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
         this->partialHeapBlockList, this->AllocationsStartedDuringConcurrentSweep(),
         [this](TBlockType * heapBlock, bool isReused) 
     {
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
         if (isReused)
         {
             DebugOnly(heapBlock->blockNotReusedInPartialHeapBlockList = false);
 
-            DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
+            DebugOnly(this->AssertCheckHeapBlockNotInAnyList(heapBlock));
             if (heapBlock->HasFreeObject())
             {
                 if (this->AllocationsStartedDuringConcurrentSweep())
@@ -523,8 +523,8 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
                 recycler->PrintBlockStatus(this, heapBlock, _u("[**20**] calling SweepObjects."));
 #endif
                 heapBlock->template SweepObjects<SweepMode_InThread>(recycler);
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
-                DebugOnly(AssertCheckHeapBlockNotInAnyList(heapBlock));
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
+                DebugOnly(this->AssertCheckHeapBlockNotInAnyList(heapBlock));
                 if (heapBlock->HasFreeObject())
                 {
                     if (this->AllocationsStartedDuringConcurrentSweep())
@@ -576,7 +576,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
 
     RECYCLER_SLOW_CHECK(this->VerifyHeapBlockCount(recyclerSweep.IsBackground()));
 
-#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
     if (!this->AllocationsStartedDuringConcurrentSweep())
 #endif
     {
@@ -714,7 +714,7 @@ SmallNormalHeapBucketBase<TBlockType>::GetNonEmptyHeapBlockCount(bool checkCount
 
 #if ENABLE_CONCURRENT_GC
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
-#if SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if SUPPORT_WIN32_SLIST
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
     {
         allocatingDuringConcurrentSweep = true;
@@ -722,7 +722,7 @@ SmallNormalHeapBucketBase<TBlockType>::GetNonEmptyHeapBlockCount(bool checkCount
 #endif
 #endif
 #endif
-    RECYCLER_SLOW_CHECK(Assert(!checkCount || this->heapBlockCount == currentHeapBlockCount /*|| (this->heapBlockCount >= 65535 && allocatingDuringConcurrentSweep)*/));
+    RECYCLER_SLOW_CHECK(Assert(!checkCount || this->heapBlockCount == currentHeapBlockCount || (this->heapBlockCount >= 65535 && allocatingDuringConcurrentSweep)));
     return currentHeapBlockCount;
 }
 #endif
