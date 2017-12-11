@@ -1517,11 +1517,14 @@ void HeapInfo::StartAllocationsDuringConcurrentSweep()
 bool
 HeapInfo::DoTwoPassConcurrentSweepPreCheck()
 {
+    bool enableTwoPassSweep = false;
+    // We will continue to do the check for all the buckets so we can enable/disable the feature 
+    // per bucket.
     for (uint i = 0; i < HeapConstants::BucketCount; i++)
     {
         if (heapBuckets[i].DoTwoPassConcurrentSweepPreCheck())
         {
-            return true;
+            enableTwoPassSweep = true;
         }
     }
 
@@ -1530,12 +1533,12 @@ HeapInfo::DoTwoPassConcurrentSweepPreCheck()
     {
         if (mediumHeapBuckets[i].DoTwoPassConcurrentSweepPreCheck())
         {
-            return true;
+            enableTwoPassSweep = true;
         }
     }
 #endif
 
-    return false;
+    return enableTwoPassSweep;
 }
 
 void

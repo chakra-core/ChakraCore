@@ -6294,10 +6294,11 @@ Recycler::DoTwoPassConcurrentSweepPreCheck()
         // Do the actual 2-pass check only if the first 2 checks pass.
         if (this->allowAllocationsDuringConcurrentSweepForCollection)
         {
+            // TODO: akatti: Reenable this ETW event if needed.
             // We fire the ETW event only when the actual 2-pass check is performed. This is to avoid messing up ETL processing of test runs when in partial collect.
-            GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep_TwoPassSweepPreCheck));
+            //GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep_TwoPassSweepPreCheck));
             this->allowAllocationsDuringConcurrentSweepForCollection = this->autoHeap.DoTwoPassConcurrentSweepPreCheck();
-            GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep_TwoPassSweepPreCheck));
+            //GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep_TwoPassSweepPreCheck));
         }
     }
 }
