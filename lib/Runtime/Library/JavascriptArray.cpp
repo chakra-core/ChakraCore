@@ -9056,6 +9056,7 @@ Case0:
 
         Assert(args.Info.Count > 0);
 
+        bool isTypedArrayEntryPoint = typedArrayBase != nullptr;
         JavascriptLibrary* library = scriptContext->GetLibrary();
         int64 fromVal = 0;
         int64 toVal = 0;
@@ -9095,6 +9096,28 @@ Case0:
 
         // We shouldn't have made it here if the count was going to be zero
         Assert(count > 0);
+
+        // If we entered via TypedArray.prototype.copyWithin, then we can copy by bytes. Otherwise, if the user called
+        // Array.prototype.copyWithin on a typed array instance, then the typed array might be responsible for not
+        // writing torn values, which memmove does not guarantee.
+        if (isTypedArrayEntryPoint)
+        {
+            Assert(typedArrayBase);
+            Assert(length == typedArrayBase->GetLength());
+
+            uint32 bytesPerElement = typedArrayBase->GetBytesPerElement();
+            byte *buffer = typedArrayBase->GetByteBuffer();
+            size_t fromByteIndex = static_cast<size_t>(fromVal) * bytesPerElement;
+            size_t toByteIndex = static_cast<size_t>(toVal) * bytesPerElement;
+            size_t byteCount = static_cast<size_t>(count) * bytesPerElement;
+
+            Assert(fromByteIndex + byteCount <= typedArrayBase->GetByteLength());
+            Assert(toByteIndex + byteCount <= typedArrayBase->GetByteLength());
+
+            memmove(&buffer[toByteIndex], &buffer[fromByteIndex], byteCount);
+
+            return obj;
+        }
 
         int direction;
 
@@ -9152,63 +9175,44 @@ Case0:
             uint32 fromIndex = static_cast<uint32>(fromVal);
             uint32 toIndex = static_cast<uint32>(toVal);
 
-            if (typedArrayBase && length <= typedArrayBase->GetLength())
+            while (count > 0)
             {
-                // Typed array can't suddenly transform into a different type like JavascriptArray can,
-                // and can't contain holes, so as long as `length` is no more than [[ArrayLength]], we can
-                // ignore [[HasProperty]] and DeletePropertyOrThrow steps.
-                while (count > 0)
+                JS_REENTRANT(jsReentLock, BOOL hasItem = JavascriptOperators::HasItem(obj, fromIndex));
+                if (hasItem)
                 {
-                    Var val = typedArrayBase->DirectGetItem(fromIndex);
-
-                    JS_REENTRANT(jsReentLock, typedArrayBase->DirectSetItem(toIndex, val));
-
-                    fromIndex += direction;
-                    toIndex += direction;
-                    count--;
-                }
-            }
-            else
-            {
-                while (count > 0)
-                {
-                    JS_REENTRANT(jsReentLock, BOOL hasItem = JavascriptOperators::HasItem(obj, fromIndex));
-                    if (hasItem)
+                    if (typedArrayBase)
                     {
-                        if (typedArrayBase)
-                        {
-                            Var val = typedArrayBase->DirectGetItem(fromIndex);
+                        Var val = typedArrayBase->DirectGetItem(fromIndex);
 
-                            JS_REENTRANT(jsReentLock, typedArrayBase->DirectSetItem(toIndex, val));
-                        }
-                        else if (pArr)
-                        {
-                            JS_REENTRANT(jsReentLock, Var val = pArr->DirectGetItem(fromIndex));
-                            pArr->SetItem(toIndex, val, Js::PropertyOperation_ThrowIfNotExtensible);
+                        JS_REENTRANT(jsReentLock, typedArrayBase->DirectSetItem(toIndex, val));
+                    }
+                    else if (pArr)
+                    {
+                        JS_REENTRANT(jsReentLock, Var val = pArr->DirectGetItem(fromIndex));
+                        pArr->SetItem(toIndex, val, Js::PropertyOperation_ThrowIfNotExtensible);
 
-                            if (!JavascriptArray::Is(obj))
-                            {
-                                AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
-                                pArr = nullptr;
-                            }
-                        }
-                        else
+                        if (!JavascriptArray::Is(obj))
                         {
-                            Var val = nullptr;
-                            JS_REENTRANT(jsReentLock,
-                                val = JavascriptOperators::OP_GetElementI_UInt32(obj, fromIndex, scriptContext),
-                                JavascriptOperators::OP_SetElementI_UInt32(obj, toIndex, val, scriptContext, PropertyOperation_ThrowIfNotExtensible));
+                            AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+                            pArr = nullptr;
                         }
                     }
                     else
                     {
-                        JS_REENTRANT(jsReentLock, obj->DeleteItem(toIndex, PropertyOperation_ThrowOnDeleteIfNotConfig));
+                        Var val = nullptr;
+                        JS_REENTRANT(jsReentLock,
+                            val = JavascriptOperators::OP_GetElementI_UInt32(obj, fromIndex, scriptContext),
+                            JavascriptOperators::OP_SetElementI_UInt32(obj, toIndex, val, scriptContext, PropertyOperation_ThrowIfNotExtensible));
                     }
-
-                    fromIndex += direction;
-                    toIndex += direction;
-                    count--;
                 }
+                else
+                {
+                    JS_REENTRANT(jsReentLock, obj->DeleteItem(toIndex, PropertyOperation_ThrowOnDeleteIfNotConfig));
+                }
+
+                fromIndex += direction;
+                toIndex += direction;
+                count--;
             }
         }
 
