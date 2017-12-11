@@ -30,17 +30,18 @@ JITTimePolymorphicInlineCacheInfo::InitializeEntryPointPolymorphicInlineCacheInf
     
     if (!inlineeList->Empty())
     {
-        inlineeInfoIDL = RecyclerNewArray(recycler, PolymorphicInlineCacheInfoIDL, inlineeList->Count());
+        const uint inlineeCount = inlineeList->Count();
+        inlineeInfoIDL = RecyclerNewArray(recycler, PolymorphicInlineCacheInfoIDL, inlineeCount);
         SListCounted<Js::PolymorphicInlineCacheInfo*, Recycler>::Iterator iter(inlineeList);
         uint i = 0;
         while (iter.Next())
         {
             Js::PolymorphicInlineCacheInfo * inlineeInfo = iter.Data();
-            __analysis_assume(i < inlineeList->Count());
+            __analysis_assume(i < inlineeCount);
             JITTimePolymorphicInlineCacheInfo::InitializePolymorphicInlineCacheInfo(recycler, inlineeInfo, &inlineeInfoIDL[i]);
             ++i;
         }
-        Assert(i == inlineeList->Count());
+        Assert(i == inlineeCount);
     }
     jitInfo->inlineeInfoCount = inlineeList->Count();
     jitInfo->selfInfo = selfInfoIDL;
