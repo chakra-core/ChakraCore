@@ -39,6 +39,12 @@ enum CollectionState
     Collection_PostSweepRedeferralCallback = 0x00040000,
     Collection_WrapperCallback             = 0x00080000,
 
+#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    Collection_ConcurrentSweepPass1 = 0x00100000,
+    Collection_ConcurrentSweepPass1Wait = 0x00200000,
+    Collection_ConcurrentSweepPass2 = 0x00400000,
+    Collection_ConcurrentSweepPass2Wait = 0x00800000,
+#endif
 
     // Actual states
     CollectionStateNotCollecting          = 0,                                                                // not collecting
@@ -63,6 +69,12 @@ enum CollectionState
 
     CollectionStateSetupConcurrentSweep   = Collection_Sweep | Collection_ConcurrentSweepSetup,               // setting up concurrent sweep
     CollectionStateConcurrentSweep        = Collection_ConcurrentSweep | Collection_ExecutingConcurrent,      // concurrent sweep
+#if  ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    CollectionStateConcurrentSweepPass1 = Collection_ConcurrentSweep | Collection_ConcurrentSweepPass1 | Collection_ExecutingConcurrent,          // concurrent sweep Pass 1
+    CollectionStateConcurrentSweepPass1Wait = Collection_ConcurrentSweep | Collection_ConcurrentSweepPass1Wait | Collection_ExecutingConcurrent,  // concurrent sweep wait state after Pass 1 has finished
+    CollectionStateConcurrentSweepPass2 = Collection_ConcurrentSweep | Collection_ConcurrentSweepPass2 | Collection_ExecutingConcurrent,          // concurrent sweep Pass 2
+    CollectionStateConcurrentSweepPass2Wait = Collection_ConcurrentSweep | Collection_ConcurrentSweepPass2Wait | Collection_ExecutingConcurrent,  // concurrent sweep wait state after Pass 2 has finished
+#endif
     CollectionStateTransferSweptWait      = Collection_ConcurrentSweep | Collection_FinishConcurrent,         // transfer swept objects (after concurrent sweep)
 #endif
     CollectionStateParallelMark           = Collection_Mark | Collection_Parallel,

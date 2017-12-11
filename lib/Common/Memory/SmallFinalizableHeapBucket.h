@@ -416,6 +416,7 @@ public:
 #endif
 #if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     void StartAllocationDuringConcurrentSweep();
+    void FinishSweepPrep(RecyclerSweep& recyclerSweep);
     void FinishConcurrentSweep();
 #endif
 #if DBG

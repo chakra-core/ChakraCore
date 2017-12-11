@@ -368,6 +368,10 @@ SmallHeapBlockT<TBlockAttributes>::Init(ushort objectSize, ushort objectCount)
 #endif
 #if ENABLE_CONCURRENT_GC
     this->isPendingConcurrentSweep = false;
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    // This flag is to identify whether this block was made available for allocations during the concurrent sweep and still needs to be swept.
+    this->isPendingConcurrentSweepPrep = false;
+#endif
 #endif
 
     Assert(!this->isInAllocator);
@@ -1318,6 +1322,11 @@ SmallHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queu
 
     bool noRealObjectsMarked = (localMarkCount == 0);
 
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    // This heap block is ready to be swept concurrently.
+    this->isPendingConcurrentSweepPrep = false;
+#endif
+
     const bool isAllFreed = (finalizeCount == 0 && noRealObjectsMarked && !hasPendingDispose);
     if (isAllFreed)
     {
@@ -1605,16 +1614,19 @@ SmallHeapBlockT<TBlockAttributes>::Check(bool expectFull, bool expectPending)
     Assert(expectPending == HasAnyDisposeObjects());
 
     // As the blocks are added to the SLIST and used from there during concurrent sweep, the exepectFull assertion doesn't hold anymore.
-#if !(ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP)
-    if (this->isInAllocator || this->isClearedFromAllocator)
-    {
-        Assert(expectFull && !expectPending);
-    }
-    else
-    {
-        Assert(expectFull == (!this->HasFreeObject() && !HasAnyDisposeObjects()));
-    }
+#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    if (!CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
 #endif
+    {
+        if (this->isInAllocator || this->isClearedFromAllocator)
+        {
+            Assert(expectFull && !expectPending);
+        }
+        else
+        {
+            Assert(expectFull == (!this->HasFreeObject() && !HasAnyDisposeObjects()));
+        }
+    }
 }
 
 

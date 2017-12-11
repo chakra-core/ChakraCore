@@ -1514,6 +1514,22 @@ void HeapInfo::StartAllocationsDuringConcurrentSweep()
 #endif
 }
 
+void 
+HeapInfo::FinishSweepPrep(RecyclerSweep& recyclerSweep)
+{
+    for (uint i = 0; i < HeapConstants::BucketCount; i++)
+    {
+        heapBuckets[i].FinishSweepPrep(recyclerSweep);
+    }
+
+#if defined(BUCKETIZE_MEDIUM_ALLOCATIONS) && SMALLBLOCK_MEDIUM_ALLOC
+    for (uint i = 0; i < HeapConstants::MediumBucketCount; i++)
+    {
+        mediumHeapBuckets[i].FinishSweepPrep(recyclerSweep);
+    }
+#endif
+}
+
 void
 HeapInfo::FinishConcurrentSweep()
 {

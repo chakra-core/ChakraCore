@@ -190,6 +190,10 @@ LargeHeapBlock::LargeHeapBlock(__in char * address, size_t pageCount, Segment * 
     this->segment = segment;
 #if ENABLE_CONCURRENT_GC
     this->isPendingConcurrentSweep = false;
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    // This flag is to identify whether this block was made available for allocations during the concurrent sweep and still needs to be swept.
+    this->isPendingConcurrentSweepPrep = false;
+#endif
 #endif
     this->addressEnd = this->address + this->pageCount * AutoSystemInfo::PageSize;
 
@@ -1804,7 +1808,7 @@ LargeHeapBlock::SweepObjects(Recycler * recycler)
 
     // mark count included newly allocated objects
 #if ENABLE_CONCURRENT_GC
-    Assert(expectedSweepCount == allocCount - markCount || recycler->collectionState == CollectionStateConcurrentSweep);
+    Assert(expectedSweepCount == allocCount - markCount || recycler->IsConcurrentSweepState());
 #else
     Assert(expectedSweepCount == allocCount - markCount);
 #endif

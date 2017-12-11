@@ -48,6 +48,9 @@ SmallNormalHeapBucketBase<TBlockType>::ScanInitialImplicitRoots(Recycler * recyc
         {
             heapBlock->ScanInitialImplicitRoots(recycler);
         });
+
+        // The pendingSweepPrepHeapBlockList should always be empty prior to a sweep as its only used during concurrent sweep.
+        Assert(pendingSweepPrepHeapBlockList == nullptr);
     }
 #endif
 
@@ -267,9 +270,12 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(RecyclerSweep& recycl
             // Blocks in the pendingSweepList need to have a regular sweep.
 
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
-            if (this->AllowAllocationsDuringConcurrentSweep() && !this->AllocationsStartedDuringConcurrentSweep())
+            if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
             {
-                this->StartAllocationDuringConcurrentSweep();
+                if (this->AllowAllocationsDuringConcurrentSweep() && !this->AllocationsStartedDuringConcurrentSweep())
+                {
+                    this->StartAllocationDuringConcurrentSweep();
+                }
             }
 #endif
 
@@ -477,7 +483,7 @@ SmallNormalHeapBucketBase<TBlockType>::FinishPartialCollect(RecyclerSweep * recy
     RECYCLER_SLOW_CHECK(this->VerifyHeapBlockCount(recyclerSweep != nullptr && recyclerSweep->IsBackground()));
 
     Assert(this->GetRecycler()->inPartialCollectMode);
-    Assert(recyclerSweep == nullptr || this->IsAllocationStopped());
+    Assert(recyclerSweep == nullptr || this->IsAllocationStopped() || this->AllocationsStartedDuringConcurrentSweep());
 
 #if ENABLE_CONCURRENT_GC
     // Process the partial Swept block and move it to the partial heap block list
@@ -525,7 +531,7 @@ SmallNormalHeapBucketBase<TBlockType>::FinishPartialCollect(RecyclerSweep * recy
             }
         }
 #if ENABLE_CONCURRENT_GC
-        if (recyclerSweep->GetPendingSweepBlockList(this) == nullptr)
+        if (recyclerSweep->GetPendingSweepBlockList(this) == nullptr && !this->AllocationsStartedDuringConcurrentSweep())
 #endif
         {
             // nothing else to sweep now,  we can start allocating now.

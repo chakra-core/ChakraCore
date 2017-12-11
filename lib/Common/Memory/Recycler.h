@@ -1601,6 +1601,7 @@ private:
     void FinishSweep(RecyclerSweep& recyclerSweep);
 
 #if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    void FinishSweepPrep();
     void FinishConcurrentSweep();
 #endif
 

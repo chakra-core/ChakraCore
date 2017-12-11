@@ -208,6 +208,7 @@ protected:
     void Initialize(HeapInfo * heapInfo, DECLSPEC_GUARD_OVERFLOW uint sizeCat);
     void AppendAllocableHeapBlockList(TBlockType * list);
 #if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    void FinishSweepPrep(RecyclerSweep& recyclerSweep);
     void FinishConcurrentSweep();
 #endif
     void DeleteHeapBlockList(TBlockType * list);
@@ -242,11 +243,12 @@ protected:
     void SweepBucket(RecyclerSweep& recyclerSweep, Fn sweepFn);
 
 #if ENABLE_CONCURRENT_GC  && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    void PrepareForAllocationsDuringConcurrentSweep(TBlockType * &currentHeapBlockList);
     void StartAllocationDuringConcurrentSweep();
-    bool AllocationsStartedDuringConcurrentSweep() const;
     void ResumeNormalAllocationAfterConcurrentSweep(TBlockType * newNextAllocableBlockHead = nullptr);
 #endif
 
+    bool AllocationsStartedDuringConcurrentSweep() const;
     bool AllowAllocationsDuringConcurrentSweep();
     void StopAllocationBeforeSweep();
     void StartAllocationAfterSweep();
@@ -293,6 +295,7 @@ protected:
 #if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
 #if SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
     PSLIST_HEADER allocableHeapBlockListHead;
+    TBlockType * lastKnownNextAllocableBlockHead;
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
     // This lock is needed only in the debug mode while we verify block counts. Not needed otherwise, as this list is never accessed concurrently.
     // Items are added to it by the allocator when allocations are allowed during concurrent sweep. The list is drained during the next sweep while
@@ -302,9 +305,14 @@ protected:
     // This is the list of blocks that we allocated from during concurrent sweep. These blocks will eventually get processed during the next sweep and either go into
     // the heapBlockList or fullBlockList.
     TBlockType * sweepableHeapBlockList;
+
+    // This is the list of blocks that we allocated from during concurrent sweep prior to adjusting prtial GC heuristics (AdjustPartialHeuristics). These blocks will need to 
+    // be swept before we start the actual sweep (SweepPartialReusePages and/or SweepPendingObjects) of any of the blocks in this buckets. This needs to happen so we work off of
+    // correct heuristics data.
+    TBlockType * pendingSweepPrepHeapBlockList;
+#endif
 #endif
     bool allocationsStartedDuringConcurrentSweep;
-#endif
 
     FreeObject* explicitFreeList; // List of objects that have been explicitly freed
     TBlockAllocatorType * lastExplicitFreeListAllocator;
@@ -353,10 +361,16 @@ HeapBucketT<TBlockType>::SweepBucket(RecyclerSweep& recyclerSweep, Fn sweepFn)
 #if ENABLE_CONCURRENT_GC
         // We should only queue up pending sweep if we are doing partial collect
         Assert(recyclerSweep.GetPendingSweepBlockList(this) == nullptr);
+
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+        if (!this->AllocationsStartedDuringConcurrentSweep())
 #endif
-        // Every thing is swept immediately in non partial collect, so we can allocate
-        // from the heap block list now
-        StartAllocationAfterSweep();
+#endif
+        {
+            // Every thing is swept immediately in non partial collect, so we can allocate
+            // from the heap block list now
+            StartAllocationAfterSweep();
+        }
     }
 
     RECYCLER_SLOW_CHECK(this->VerifyHeapBlockCount(recyclerSweep.IsBackground()));

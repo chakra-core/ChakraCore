@@ -89,6 +89,7 @@ public:
     void PrepareSweep();
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     void StartAllocationsDuringConcurrentSweep();
+    void FinishSweepPrep(RecyclerSweep& recyclerSweep);
     void FinishConcurrentSweep();
 #endif
 

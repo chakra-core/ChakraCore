@@ -3085,15 +3085,36 @@ Recycler::Sweep(bool concurrent)
 #if ENABLE_CONCURRENT_GC
     if (concurrent)
     {
-        if (!StartConcurrent(CollectionStateConcurrentSweep))
+        bool needForceForground = false;
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+        if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
         {
-           // Failed to spawn the concurrent sweep.
-           // Instead, force the concurrent sweep to happen right here in thread.
-           this->collectionState = CollectionStateConcurrentSweep;
+            needForceForground = !StartConcurrent(CollectionStateConcurrentSweepPass1);
+        }
+        else
+#endif
+        {
+            needForceForground = !StartConcurrent(CollectionStateConcurrentSweep);
+        }
 
-           DoBackgroundWork(true);
-           // Continue as if the concurrent sweep were executing
-           // Next time we check for completion, we will finish the sweep just as if it had happened out of thread.
+        if(needForceForground)
+        {
+            // Failed to spawn the concurrent sweep.
+            // Instead, force the concurrent sweep to happen right here in thread.
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+            if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
+            {
+                this->collectionState = CollectionStateConcurrentSweepPass1;
+            }
+            else
+#endif
+            {
+                this->collectionState = CollectionStateConcurrentSweep;
+            }
+
+            DoBackgroundWork(true);
+            // Continue as if the concurrent sweep were executing
+            // Next time we check for completion, we will finish the sweep just as if it had happened out of thread.
         }
         return true;
     }
@@ -4482,7 +4503,7 @@ Recycler::FinishConcurrent()
 #if ENABLE_BACKGROUND_PAGE_FREEING
             if (CONFIG_FLAG(EnableBGFreeZero))
             {
-                if (this->collectionState == CollectionStateConcurrentSweep)
+                if (this->IsConcurrentSweepState())
                 {
                     // Help with the background thread to zero and flush zero pages
                     // if we are going to wait anyways.
@@ -4642,7 +4663,19 @@ Recycler::IsConcurrentSweepSetupState() const
 BOOL
 Recycler::IsConcurrentSweepState() const
 {
-    return this->collectionState == CollectionStateConcurrentSweep;
+#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
+    {
+        return this->collectionState == CollectionStateConcurrentSweepPass1 ||
+            this->collectionState == CollectionStateConcurrentSweepPass1Wait ||
+            this->collectionState == CollectionStateConcurrentSweepPass2 ||
+            this->collectionState == CollectionStateConcurrentSweepPass2Wait;
+    }
+    else
+#endif
+    {
+        return this->collectionState == CollectionStateConcurrentSweep;
+    }
 }
 
 BOOL
@@ -5689,6 +5722,34 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
 #endif
         GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentRescan));
     }
+#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    else if (collectionState == CollectionStateConcurrentSweepPass1Wait)
+    {
+        this->FinishSweepPrep();
+
+        if (forceInThread)
+        {
+            this->collectionState = CollectionStateConcurrentSweepPass2;
+            this->recyclerSweep->FinishSweep();
+            this->FinishConcurrentSweep();
+            this->collectionState = CollectionStateConcurrentSweepPass2Wait;
+
+            if (this->recyclerSweep != nullptr)
+            {
+                this->recyclerSweep->EndBackground();
+            }
+
+            collectionState = CollectionStateTransferSweptWait;
+            FinishTransferSwept(flags);
+        }
+        else
+        {
+            // Signal the background thread to do SweepPendingObjects for all the buckets.
+            SetEvent(this->concurrentWorkReadyEvent);
+            needConcurrentSweep = true;
+        }
+    }
+#endif
     else
     {
         FinishTransferSwept(flags);
@@ -5888,54 +5949,109 @@ Recycler::DoBackgroundWork(bool forceForeground)
     else
     {
         Assert(this->enableConcurrentSweep);
-        Assert(this->collectionState == CollectionStateConcurrentSweep);
 
-        RECYCLER_PROFILE_EXEC_BACKGROUND_BEGIN(this, Js::ConcurrentSweepPhase);
-        GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep));
-        GCETW(GC_BACKGROUNDZEROPAGE_START, (this));
-
-#if ENABLE_BACKGROUND_PAGE_ZEROING
-        if (CONFIG_FLAG(EnableBGFreeZero))
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+        if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
         {
-            // Zero the queued pages first so they are available to be allocated
-            recyclerPageAllocator.BackgroundZeroQueuedPages();
-            recyclerLargeBlockPageAllocator.BackgroundZeroQueuedPages();
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-            recyclerWithBarrierPageAllocator.BackgroundZeroQueuedPages();
-#endif
+            Assert(this->collectionState == CollectionStateConcurrentSweepPass1);
         }
+        else
 #endif
-
-        GCETW(GC_BACKGROUNDZEROPAGE_STOP, (this));
-        GCETW(GC_BACKGROUNDSWEEP_START, (this));
-
-        Assert(this->recyclerSweep != nullptr);
-        this->recyclerSweep->BackgroundSweep();
-
-        uint sweptBytes = 0;
-#ifdef RECYCLER_STATS
-        sweptBytes = (uint)collectionStats.objectSweptBytes;
-#endif
-
-        GCETW(GC_BACKGROUNDSWEEP_STOP, (this, sweptBytes));
-
-#if ENABLE_BACKGROUND_PAGE_ZEROING
-        if (CONFIG_FLAG(EnableBGFreeZero))
         {
-            // Drain the zero queue again as we might have free more during sweep
-            // in the background
+            Assert(this->collectionState == CollectionStateConcurrentSweep);
+        }
+
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+        if (this->collectionState == CollectionStateConcurrentSweepPass1 ||
+            (!CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) && this->collectionState == CollectionStateConcurrentSweep))
+#endif
+        {
+            RECYCLER_PROFILE_EXEC_BACKGROUND_BEGIN(this, Js::ConcurrentSweepPhase);
+            GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep));
             GCETW(GC_BACKGROUNDZEROPAGE_START, (this));
-            recyclerPageAllocator.BackgroundZeroQueuedPages();
+
+#if ENABLE_BACKGROUND_PAGE_ZEROING
+            if (CONFIG_FLAG(EnableBGFreeZero))
+            {
+                // Zero the queued pages first so they are available to be allocated
+                recyclerPageAllocator.BackgroundZeroQueuedPages();
+                recyclerLargeBlockPageAllocator.BackgroundZeroQueuedPages();
 #ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-            recyclerWithBarrierPageAllocator.BackgroundZeroQueuedPages();
+                recyclerWithBarrierPageAllocator.BackgroundZeroQueuedPages();
 #endif
-            recyclerLargeBlockPageAllocator.BackgroundZeroQueuedPages();
+            }
+#endif
+
             GCETW(GC_BACKGROUNDZEROPAGE_STOP, (this));
+            GCETW(GC_BACKGROUNDSWEEP_START, (this));
+
+            Assert(this->recyclerSweep != nullptr);
+            this->recyclerSweep->BackgroundSweep();
+
+            // If allocations were allowed during concurrent sweep then the allocableHeapBlock lists still needs to be swept so we
+            // will remain in CollectionStateConcurrentSweepPass1Wait state.
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+            if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
+            {
+                this->collectionState = CollectionStateConcurrentSweepPass1Wait;
+            }
+#endif
+        }
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+        if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
+        {
+            if (this->collectionState == CollectionStateConcurrentSweepPass2)
+            {
+                this->recyclerSweep->FinishSweep();
+
+                this->FinishConcurrentSweep();
+
+                this->recyclerSweep->EndBackground();
+
+                this->collectionState = CollectionStateConcurrentSweepPass2Wait;
+            }
         }
 #endif
-        GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep));
-        Assert(this->collectionState == CollectionStateConcurrentSweep);
-        this->collectionState = CollectionStateTransferSweptWait;
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+        if (this->collectionState == CollectionStateConcurrentSweepPass2Wait ||
+            (!CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc)))
+#endif
+        {
+            uint sweptBytes = 0;
+#ifdef RECYCLER_STATS
+            sweptBytes = (uint)collectionStats.objectSweptBytes;
+#endif
+
+            GCETW(GC_BACKGROUNDSWEEP_STOP, (this, sweptBytes));
+
+#if ENABLE_BACKGROUND_PAGE_ZEROING
+            if (CONFIG_FLAG(EnableBGFreeZero))
+            {
+                // Drain the zero queue again as we might have free more during sweep
+                // in the background
+                GCETW(GC_BACKGROUNDZEROPAGE_START, (this));
+                recyclerPageAllocator.BackgroundZeroQueuedPages();
+#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
+                recyclerWithBarrierPageAllocator.BackgroundZeroQueuedPages();
+#endif
+                recyclerLargeBlockPageAllocator.BackgroundZeroQueuedPages();
+                GCETW(GC_BACKGROUNDZEROPAGE_STOP, (this));
+            }
+#endif
+
+            GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep));
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+            if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
+            {
+                Assert(this->collectionState == CollectionStateConcurrentSweepPass2Wait);
+            }
+            else
+#endif
+            {
+                Assert(this->collectionState == CollectionStateConcurrentSweep);
+            }
+            this->collectionState = CollectionStateTransferSweptWait;
+        }
 
         RECYCLER_PROFILE_EXEC_BACKGROUND_END(this, Js::ConcurrentSweepPhase);
     }
@@ -6082,6 +6198,15 @@ Recycler::ThreadProc()
 #endif //ENABLE_CONCURRENT_GC
 
 #if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+void
+Recycler::FinishSweepPrep()
+{
+    this->autoHeap.FinishSweepPrep(this->recyclerSweepInstance);
+
+    // Begin the actual sweep i.e. SweepPendingObjects on the background thead.
+    collectionState = CollectionStateConcurrentSweepPass2;
+}
+
 void
 Recycler::FinishConcurrentSweep()
 {

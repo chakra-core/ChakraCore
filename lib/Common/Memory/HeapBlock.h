@@ -380,6 +380,11 @@ protected:
     bool needOOMRescan;                             // Set if we OOMed while marking a particular object
 #if ENABLE_CONCURRENT_GC
     bool isPendingConcurrentSweep;
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    // This flag is to identify whether this block was made available for allocations during the concurrent sweep and 
+    // still needs to be swept.
+    bool isPendingConcurrentSweepPrep;
+#endif
 #endif
 
 public:
@@ -941,6 +946,32 @@ public:
             tail = heapBlock;
         });
         return tail;
+    }
+
+    template <typename TBlockType>
+    static TBlockType * FindPreviousBlock(TBlockType * list, TBlockType * heapBlockToFind)
+    {
+        if (list == nullptr || heapBlockToFind == nullptr)
+        {
+            return nullptr;
+        }
+
+        TBlockType * previousBlock = nullptr;
+        TBlockType * heapBlock = list;
+        bool found = false;
+        while (heapBlock != nullptr)
+        {
+            if (heapBlock == heapBlockToFind)
+            {
+                found = true;
+                break;
+            }
+
+            previousBlock = heapBlock;
+            heapBlock = heapBlock->GetNextBlock();
+        }
+
+        return found ? previousBlock : nullptr;
     }
 
 #if DBG
