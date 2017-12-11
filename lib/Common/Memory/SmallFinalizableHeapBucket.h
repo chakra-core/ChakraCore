@@ -414,8 +414,9 @@ public:
 #ifdef RECYCLER_VERIFY_MARK
     void VerifyMark();
 #endif
-#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     void StartAllocationDuringConcurrentSweep();
+    bool DoTwoPassConcurrentSweepPreCheck();
     void FinishSweepPrep(RecyclerSweep& recyclerSweep);
     void FinishConcurrentSweep();
 #endif

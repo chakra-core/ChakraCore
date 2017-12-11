@@ -327,7 +327,12 @@ HeapBlockMap32::SetPageMarkCount(void * address, ushort markCount)
     // Callers should already have updated the mark bits by the time they call this,
     // so check that the new count is correct for the current mark bits.
     // Not true right now, will be true...
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    DebugOnly(HeapBlock * heapBlock = this->GetHeapBlock(address));
+    Assert(l2map->GetPageMarkBitVector(id2)->Count() == markCount || heapBlock->WasAllocatedFromDuringSweep());
+#else
     Assert(l2map->GetPageMarkBitVector(id2)->Count() == markCount);
+#endif
 
     l2map->pageMarkCount[id2] = markCount;
 }

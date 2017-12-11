@@ -1498,7 +1498,7 @@ HeapInfo::SweepPendingObjects(RecyclerSweep& recyclerSweep)
 }
 #endif
 
-#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
 void HeapInfo::StartAllocationsDuringConcurrentSweep()
 {
     for (uint i = 0; i < HeapConstants::BucketCount; i++)
@@ -1514,7 +1514,31 @@ void HeapInfo::StartAllocationsDuringConcurrentSweep()
 #endif
 }
 
-void 
+bool
+HeapInfo::DoTwoPassConcurrentSweepPreCheck()
+{
+    for (uint i = 0; i < HeapConstants::BucketCount; i++)
+    {
+        if (heapBuckets[i].DoTwoPassConcurrentSweepPreCheck())
+        {
+            return true;
+        }
+    }
+
+#if defined(BUCKETIZE_MEDIUM_ALLOCATIONS) && SMALLBLOCK_MEDIUM_ALLOC
+    for (uint i = 0; i < HeapConstants::MediumBucketCount; i++)
+    {
+        if (mediumHeapBuckets[i].DoTwoPassConcurrentSweepPreCheck())
+        {
+            return true;
+        }
+    }
+#endif
+
+    return false;
+}
+
+void
 HeapInfo::FinishSweepPrep(RecyclerSweep& recyclerSweep)
 {
     for (uint i = 0; i < HeapConstants::BucketCount; i++)
@@ -1649,7 +1673,7 @@ HeapInfo::DisposeObjects()
 #if ENABLE_CONCURRENT_GC
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 
     // As during concurrent sweep we start/stop allocations it is safer to prevent transferring disposed objects altogether.
-    if (!recycler->IsConcurrentExecutingState() /*&& !recycler->IsConcurrentSweepState()*/)
+    if (!recycler->IsConcurrentExecutingState() && !recycler->IsConcurrentSweepState())
 #else
     if (!recycler->IsConcurrentExecutingState())
 #endif
@@ -1675,7 +1699,7 @@ HeapInfo::TransferDisposedObjects()
     Assert(recycler->hasPendingTransferDisposedObjects);
 #if ENABLE_CONCURRENT_GC
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 
-    Assert(!recycler->IsConcurrentExecutingState() /*&& !recycler->IsConcurrentSweepState()*/);
+    Assert(!recycler->IsConcurrentExecutingState() && !recycler->IsConcurrentSweepState());
 #else
     Assert(!recycler->IsConcurrentExecutingState());
 #endif

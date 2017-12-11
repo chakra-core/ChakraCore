@@ -66,6 +66,12 @@ public:
     {
         return !IsBumpAllocMode() && !IsExplicitFreeObjectListAllocMode();
     }
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    bool IsAllocatingDuringConcurrentSweepMode(Recycler * recycler) const
+    {
+        return IsFreeListAllocMode() && recycler->IsConcurrentSweepState();
+    }
+#endif
 private:
     static bool NeedSetAttributes(ObjectInfoBits attributes)
     {
@@ -75,7 +81,7 @@ private:
     char * endAddress;
     FreeObject * freeObjectList;
     TBlockType * heapBlock;
-#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 
 #if DBG
     bool isAllocatingFromNewBlock;
 #endif
@@ -199,14 +205,14 @@ SmallHeapBlockAllocator<TBlockType>::InlinedAllocImpl(Recycler * recycler, DECLS
             Assert(isSet);
         }
 #endif
-#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
-        if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+        if (recycler->AllowAllocationsDuringConcurrentSweep())
         {
             // If we are allocating during concurrent sweep we must mark the object to prevent it from being swept
             // in the ongoing sweep.
             if (heapBlock != nullptr && heapBlock->isPendingConcurrentSweepPrep)
             {
-                AssertMsg(!this->isAllocatingFromNewBlock, "We shouldn't be tracking allocation to a new block; i.e. bump allcoation; during concurrent sweep.");
+                AssertMsg(!this->isAllocatingFromNewBlock, "We shouldn't be tracking allocation to a new block; i.e. bump allocation; during concurrent sweep.");
                 AssertMsg(!heapBlock->IsAnyFinalizableBlock(), "Allocations are not allowed to finalizable blocks during concurrent sweep.");
                 AssertMsg(heapBlock->heapBucket->AllocationsStartedDuringConcurrentSweep(), "We shouldn't be allocating from this block while allocations are disabled.");
 

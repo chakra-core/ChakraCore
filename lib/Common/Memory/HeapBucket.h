@@ -75,9 +75,12 @@ public:
 protected:
     HeapInfo * heapInfo;
     uint sizeCat;
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     bool allocationsStartedDuringConcurrentSweep;
+    bool concurrentSweepAllocationsThresholdExceeded;
+#endif
 
-#ifdef RECYCLER_SLOW_CHECK_ENABLED
+#if defined(RECYCLER_SLOW_CHECK_ENABLED) || ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     size_t heapBlockCount;
     size_t newHeapBlockCount;       // count of heap bock that is in the heap info and not in the heap bucket yet
     size_t emptyHeapBlockCount;
@@ -115,7 +118,11 @@ public:
 #endif
 
     Recycler * GetRecycler() const;
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     bool AllocationsStartedDuringConcurrentSweep() const;
+    bool ConcurrentSweepAllocationsThresholdExceeded() const;
+    bool DoTwoPassConcurrentSweepPreCheck();
+#endif
 
     template <typename TBlockType>
     friend class SmallHeapBlockAllocator;
@@ -209,14 +216,14 @@ protected:
 
     void Initialize(HeapInfo * heapInfo, DECLSPEC_GUARD_OVERFLOW uint sizeCat);
     void AppendAllocableHeapBlockList(TBlockType * list);
-#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     void FinishSweepPrep(RecyclerSweep& recyclerSweep);
     void FinishConcurrentSweep();
 #endif
     void DeleteHeapBlockList(TBlockType * list);
     static void DeleteEmptyHeapBlockList(TBlockType * list);
     static void DeleteHeapBlockList(TBlockType * list, Recycler * recycler);
-#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
     static bool PushHeapBlockToSList(PSLIST_HEADER list, TBlockType * heapBlock);
     static TBlockType * PopHeapBlockFromSList(PSLIST_HEADER list);
     static ushort QueryDepthInterlockedSList(PSLIST_HEADER list);
@@ -295,7 +302,7 @@ protected:
     TBlockType * fullBlockList;      // list of blocks that are fully allocated
     TBlockType * heapBlockList;      // list of blocks that has free objects
 
-#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
 #if SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
     PSLIST_HEADER allocableHeapBlockListHead;
     TBlockType * lastKnownNextAllocableBlockHead;

@@ -728,6 +728,9 @@ private:
 
     CollectionState collectionState;
     JsUtil::ThreadService *threadService;
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    bool allowAllocationsDuringConcurrentSweepForCollection;
+#endif
 
     HeapBlockMap heapBlockMap;
 
@@ -783,9 +786,8 @@ private:
     DListBase<GuestArenaAllocator> guestArenaList;
     DListBase<ArenaData*> externalGuestArenaList;    // guest arenas are scanned for roots
 
-    bool isPageHeapEnabled;
-
 #ifdef RECYCLER_PAGE_HEAP
+    bool isPageHeapEnabled;
     bool capturePageHeapAllocStack;
     bool capturePageHeapFreeStack;
 
@@ -1600,7 +1602,8 @@ private:
     void SweepHeap(bool concurrent, RecyclerSweep& recyclerSweep);
     void FinishSweep(RecyclerSweep& recyclerSweep);
 
-#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    void DoTwoPassConcurrentSweepPreCheck();
     void FinishSweepPrep();
     void FinishConcurrentSweep();
 #endif
@@ -1665,6 +1668,14 @@ private:
     {
         return ((collectionState & Collection_ConcurrentSweep) == Collection_ConcurrentSweep);
     }
+
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    bool AllowAllocationsDuringConcurrentSweep()
+    {
+        return this->allowAllocationsDuringConcurrentSweepForCollection;
+    }
+#endif
+
 #if DBG
     BOOL IsConcurrentFinishedState() const;
 #endif // DBG

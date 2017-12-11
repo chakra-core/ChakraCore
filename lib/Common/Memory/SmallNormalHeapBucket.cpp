@@ -41,7 +41,7 @@ SmallNormalHeapBucketBase<TBlockType>::ScanInitialImplicitRoots(Recycler * recyc
         heapBlock->ScanInitialImplicitRoots(recycler);
     });
 
-#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc) && !this->IsAnyFinalizableBucket())
     {
         HeapBlockList::ForEach(this->sweepableHeapBlockList, [recycler](TBlockType * heapBlock)
@@ -327,7 +327,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(Recycler * recycler, 
         heapBlock->template SweepObjects<mode>(recycler, false /*onlyRecalculateMarkCountAndFreeBits*/);
         tail = heapBlock;
 
-#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
         if (this->AllowAllocationsDuringConcurrentSweep())
         {
             Assert(!this->IsAnyFinalizableBucket());
@@ -343,7 +343,8 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(Recycler * recycler, 
 #ifdef RECYCLER_TRACE
                     recycler->PrintBlockStatus(this, heapBlock, _u("[**23**] finished SweepPendingObjects, OOM while adding to the SLIST."));
 #endif
-                    recycler->OutOfMemory();
+                    //TODO: akatti: We should handle this gracefully and try to recover from this state.
+                    AssertOrFailFastMsg(false, "OOM while adding a heap block to the SLIST during concurrent sweep.");
                 }
 #ifdef RECYCLER_TRACE
                 else
@@ -393,7 +394,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
             callback(heapBlock, true);
 
 
-#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
             // During concurrent sweep if allocations were allowed, the heap blocks directly go into the SLIST of
             // allocable heap blocks. They will be returned to the heapBlockList at the end of the sweep.
             if(!allocationsAllowedDuringConcurrentSweep)
@@ -464,7 +465,8 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
 #ifdef RECYCLER_TRACE
                         this->GetRecycler()->PrintBlockStatus(this, heapBlock, _u("[**10**] finished SweepPartialReusePages, heapblock REUSED but OOM while adding to the SLIST."));
 #endif
-                        this->GetRecycler()->OutOfMemory();
+                        //TODO: akatti: We should handle this gracefully and try to recover from this state.
+                        AssertOrFailFastMsg(false, "OOM while adding a heap block to the SLIST during concurrent sweep.");
                     }
 #ifdef RECYCLER_TRACE
                     else
@@ -490,8 +492,6 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
             this->GetRecycler()->PrintBlockStatus(this, heapBlock, _u("[**12**] finished SweepPartialReusePages, heapblock NOT REUSED, added to partialHeapBlockList."));
 #endif
 
-            //TODO:akatti:PERF Do we need to do this for non-debug builds? We might be able to skip
-            // this if this is only needed for passing debug asserts.
             // If we allocated from this block during concurrent sweep, the block may now have become
             // full (or almost full) and hence not reusable. If we allocated from this block during 
             // concurrent sweep, we must recalculate the mark count and rebuild free bits for this block.
@@ -547,7 +547,8 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
 #ifdef RECYCLER_TRACE
                             this->GetRecycler()->PrintBlockStatus(this, heapBlock, _u("[**13**] finished SweepPartialReusePages, heapblock REUSED but OOM while adding to the SLIST."));
 #endif
-                            this->GetRecycler()->OutOfMemory();
+                            //TODO: akatti: We should handle this gracefully and try to recover from this state.
+                            AssertOrFailFastMsg(false, "OOM while adding a heap block to the SLIST during concurrent sweep.");
                         }
 #ifdef RECYCLER_TRACE
                         else
@@ -604,7 +605,12 @@ SmallNormalHeapBucketBase<TBlockType>::FinishPartialCollect(RecyclerSweep * recy
     RECYCLER_SLOW_CHECK(this->VerifyHeapBlockCount(recyclerSweep != nullptr && recyclerSweep->IsBackground()));
 
     Assert(this->GetRecycler()->inPartialCollectMode);
+
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     Assert(recyclerSweep == nullptr || this->IsAllocationStopped() || this->AllocationsStartedDuringConcurrentSweep());
+#else
+    Assert(recyclerSweep == nullptr || this->IsAllocationStopped());
+#endif
 
 #if ENABLE_CONCURRENT_GC
     // Process the partial Swept block and move it to the partial heap block list
@@ -652,7 +658,11 @@ SmallNormalHeapBucketBase<TBlockType>::FinishPartialCollect(RecyclerSweep * recy
             }
         }
 #if ENABLE_CONCURRENT_GC
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
         if (recyclerSweep->GetPendingSweepBlockList(this) == nullptr && !this->AllocationsStartedDuringConcurrentSweep())
+#else
+        if (recyclerSweep->GetPendingSweepBlockList(this) == nullptr)
+#endif
 #endif
         {
             // nothing else to sweep now,  we can start allocating now.
@@ -741,7 +751,6 @@ SmallNormalHeapBucketBase<TBlockType>::Check(bool checkCount)
     smallHeapBlockCount += HeapInfo::Check(false, false, this->partialSweptHeapBlockList);
 #endif
 
-    //TODO:akatti:Can this assert fail because blocks are in the SLIST and are > 65535 blocks?
     Assert(!checkCount || this->heapBlockCount == smallHeapBlockCount);
     return smallHeapBlockCount;
 }

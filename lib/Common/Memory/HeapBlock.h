@@ -107,7 +107,7 @@ enum ObjectInfoBits : unsigned short
     EnumClass_1_Bit             = 0x01,    // This can be extended to add more enumerable classes (if we still have bits left)
 
     // Mask for above bits
-    StoredObjectInfoBitMask = 0xFF,
+    StoredObjectInfoBitMask     = 0xFF,
 
     // Bits that implied by the block type, and thus don't need to be stored (for small blocks)
     // Note, LeafBit is used in finalizable blocks, thus is not always implied by the block type
@@ -115,7 +115,7 @@ enum ObjectInfoBits : unsigned short
     // We can move it the upper byte.
 
 #ifdef RECYCLER_WRITE_BARRIER
-    WithBarrierBit = 0x0100,
+    WithBarrierBit              = 0x0100,
 #endif
 
 #ifdef RECYCLER_VISITED_HOST
@@ -133,34 +133,34 @@ enum ObjectInfoBits : unsigned short
     // Additional definitions based on above
 
 #ifdef RECYCLER_STATS
-    NewFinalizeBit = NewTrackBit,  // Use to detect if the background thread has counted the finalizable object in stats
+    NewFinalizeBit              = NewTrackBit,  // Use to detect if the background thread has counted the finalizable object in stats
 #else
-    NewFinalizeBit = 0x00,
+    NewFinalizeBit              = 0x00,
 #endif
 
 #ifdef RECYCLER_WRITE_BARRIER
-    FinalizableWithBarrierBit = WithBarrierBit | FinalizeBit,
+    FinalizableWithBarrierBit   = WithBarrierBit | FinalizeBit,
 #endif
 
     // Allocation bits
-    FinalizableLeafBits = NewFinalizeBit | FinalizeBit | LeafBit,
-    FinalizableObjectBits = NewFinalizeBit | FinalizeBit,
+    FinalizableLeafBits         = NewFinalizeBit | FinalizeBit | LeafBit,
+    FinalizableObjectBits       = NewFinalizeBit | FinalizeBit,
 #ifdef RECYCLER_WRITE_BARRIER
     FinalizableWithBarrierObjectBits = NewFinalizeBit | FinalizableWithBarrierBit,
 #endif
     ClientFinalizableObjectBits = NewFinalizeBit | ClientTrackedBit | FinalizeBit,
 
-    ClientTrackableLeafBits = NewTrackBit | ClientTrackedBit | TrackBit | FinalizeBit | LeafBit,
-    ClientTrackableObjectBits = NewTrackBit | ClientTrackedBit | TrackBit | FinalizeBit,
+    ClientTrackableLeafBits     = NewTrackBit | ClientTrackedBit | TrackBit | FinalizeBit | LeafBit,
+    ClientTrackableObjectBits   = NewTrackBit | ClientTrackedBit | TrackBit | FinalizeBit,
 
 #ifdef RECYCLER_WRITE_BARRIER
     ClientTrackableObjectWithBarrierBits = ClientTrackableObjectBits | WithBarrierBit,
     ClientFinalizableObjectWithBarrierBits = ClientFinalizableObjectBits | WithBarrierBit,
 #endif
 
-    WeakReferenceEntryBits = LeafBit,
+    WeakReferenceEntryBits      = LeafBit,
 
-    ImplicitRootLeafBits = LeafBit | ImplicitRootBit,
+    ImplicitRootLeafBits        = LeafBit | ImplicitRootBit,
 
     // Pending dispose objects should have LeafBit set and no others
     PendingDisposeObjectBits    = PendingDisposeBit | LeafBit,
@@ -413,6 +413,13 @@ public:
         return (heapBlockType);
     }
 
+#if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
+    bool WasAllocatedFromDuringSweep()
+    {
+        return this->wasAllocatedFromDuringSweep;
+    }
+#endif
+
     IdleDecommitPageAllocator* GetPageAllocator(Recycler* recycler);
 
     bool GetAndClearNeedOOMRescan()
@@ -463,7 +470,7 @@ public:
 #endif
 };
 
-#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
 template <typename TBlockType>
 struct HeapBlockSListItem {
     // SLIST_ENTRY needs to be the first element in the structure to avoid calculating offset with the SList API calls.
@@ -560,10 +567,11 @@ public:
     ushort freeCount;
     ushort lastFreeCount;
     ushort markCount;
-#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     ushort objectsAllocatedDuringConcurrentSweepCount;
 #if DBG
     ushort objectsMarkedDuringSweep;
+    ushort lastObjectsAllocatedDuringConcurrentSweepCount;
     bool blockNotReusedInPartialHeapBlockList;
     bool blockNotReusedInPendingList;
 #endif
@@ -810,7 +818,6 @@ public:
 protected:
     static size_t GetAllocPlusSize(uint objectCount);
     inline void SetAttributes(void * address, unsigned char attributes);
-    inline void UpdateAttributes(void * address, unsigned char attributes);
     ushort GetAddressIndex(void * objectAddress);
 
     SmallHeapBlockT(HeapBucket * bucket, ushort objectSize, ushort objectCount, HeapBlockType heapBlockType);
@@ -963,32 +970,6 @@ public:
             tail = heapBlock;
         });
         return tail;
-    }
-
-    template <typename TBlockType>
-    static TBlockType * FindPreviousBlock(TBlockType * list, TBlockType * heapBlockToFind)
-    {
-        if (list == nullptr || heapBlockToFind == nullptr)
-        {
-            return nullptr;
-        }
-
-        TBlockType * previousBlock = nullptr;
-        TBlockType * heapBlock = list;
-        bool found = false;
-        while (heapBlock != nullptr)
-        {
-            if (heapBlock == heapBlockToFind)
-            {
-                found = true;
-                break;
-            }
-
-            previousBlock = heapBlock;
-            heapBlock = heapBlock->GetNextBlock();
-        }
-
-        return found ? previousBlock : nullptr;
     }
 
 #if DBG

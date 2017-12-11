@@ -61,6 +61,9 @@ public:
     // If we rescan at least 128 pages in the first background repeat mark,
     // then trigger a second repeat mark pass.
     static const uint BackgroundSecondRepeatMarkThreshold = 128;
+
+    // Number of blocks a heap bucket needs to have before allocations during concurrent sweep feature kicks-in.
+    static const uint AllocDuringConcurrentSweepHeapBlockThreshold = 5000;
 #endif
 private:
 
