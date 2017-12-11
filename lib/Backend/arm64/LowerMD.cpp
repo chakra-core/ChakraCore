@@ -4375,7 +4375,7 @@ LowererMD::GenerateLoadPolymorphicInlineCacheSlot(IR::Instr * instrLdSt, IR::Reg
     Assert(rightShiftAmount > leftShiftAmount);
     instr = IR::Instr::New(Js::OpCode::LSR, opndOffset, opndOffset, IR::IntConstOpnd::New(rightShiftAmount - leftShiftAmount, TyUint8, instrLdSt->m_func, true), instrLdSt->m_func);
     instrLdSt->InsertBefore(instr);
-    Lowerer::InsertAnd(opndOffset, opndOffset, IR::IntConstOpnd::New((polymorphicInlineCacheSize - 1) << leftShiftAmount, TyMachPtr, instrLdSt->m_func, true), instrLdSt);
+    Lowerer::InsertAnd(opndOffset, opndOffset, IR::IntConstOpnd::New(((IntConstType)(polymorphicInlineCacheSize - 1)) << leftShiftAmount, TyMachPtr, instrLdSt->m_func, true), instrLdSt);
 
     // ADD inlineCache, inlineCache, r1
     Lowerer::InsertAdd(false, opndInlineCache, opndInlineCache, opndOffset, instrLdSt);
@@ -5351,6 +5351,7 @@ LowererMD::EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, I
 
     if (BailOutInfo::IsBailOutOnImplicitCalls(bailOutKind))
     {
+        _Analysis_assume_(instrBailOut != nullptr);
         instr = instr->ConvertToBailOutInstr(instrBailOut->GetBailOutInfo(), bailOutKind);
         if (instrBailOut->GetBailOutInfo()->bailOutInstr == instrBailOut)
         {
@@ -6226,11 +6227,10 @@ LowererMD::LowerInt4RemWithBailOut(
 
     IR::Opnd *dst = instr->GetDst();
     IR::Opnd *src1 = instr->GetSrc1();
-    IR::Opnd *src2 = instr->GetSrc2();
 
     Assert(dst->IsInt32());
     Assert(src1->IsInt32());
-    Assert(src2->IsInt32());
+    Assert(instr->GetSrc2()->IsInt32());
 
     //Lower the instruction
     EmitInt4Instr(instr);
@@ -7566,6 +7566,7 @@ LowererMD::EmitFloatToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert, 
 
     if (BailOutInfo::IsBailOutOnImplicitCalls(bailOutKind))
     {
+        _Analysis_assume_(instrBailOut != nullptr);
         instr = instr->ConvertToBailOutInstr(instrBailOut->GetBailOutInfo(), bailOutKind);
         if (instrBailOut->GetBailOutInfo()->bailOutInstr == instrBailOut)
         {
