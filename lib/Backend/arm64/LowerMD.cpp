@@ -2181,11 +2181,13 @@ LowererMD::ChangeToLea(IR::Instr * instr, bool postRegAlloc)
 IR::Instr *
 LowererMD::LowerRet(IR::Instr * retInstr)
 {
-    IR::RegOpnd *retReg = IR::RegOpnd::New(nullptr, RETURN_REG, TyMachReg, m_func);
+    IR::RegOpnd *retReg = IR::RegOpnd::New(TyMachReg, m_func);
+    retReg->SetReg(RETURN_REG);
+    Lowerer::InsertMove(retReg, retInstr->UnlinkSrc1(), retInstr);
 
-    retInstr->SetDst(retReg);
+    retInstr->SetSrc1(retReg);
 
-    return this->ChangeToAssign(retInstr);
+    return retInstr;
 }
 
 
@@ -5886,10 +5888,14 @@ LowererMD::EmitInt4Instr(IR::Instr *instr)
         instr->m_opcode = Js::OpCode::MUL;
         break;
 
+    case Js::OpCode::DivU_I4:
+        AssertMsg(UNREACHED, "Unsigned div NYI");
     case Js::OpCode::Div_I4:
         instr->m_opcode = Js::OpCode::SDIV;
         break;
 
+    case Js::OpCode::RemU_I4:
+        AssertMsg(UNREACHED, "Unsigned rem NYI");
     case Js::OpCode::Rem_I4:
         instr->m_opcode = Js::OpCode::REM;
         break;
@@ -7663,7 +7669,7 @@ LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrIns
 #if DBG
             NativeCodeData::GetDataDescription(pValue, instrInsert->m_func->m_alloc),
 #endif
-            instrInsert->m_func);
+            instrInsert->m_func, true);
     }
     else
     {
@@ -7763,6 +7769,9 @@ LowererMD::FinalLower()
 
             switch (instr->m_opcode)
             {
+            case Js::OpCode::Ret:
+                instr->Remove();
+                break;
             case Js::OpCode::Leave:
                 Assert(this->m_func->DoOptimizeTry() && !this->m_func->IsLoopBodyInTry());
                 instrPrev = this->LowerLeave(instr, instr->AsBranchInstr()->GetTarget(), true /*fromFinalLower*/);
