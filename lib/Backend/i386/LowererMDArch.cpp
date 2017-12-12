@@ -147,9 +147,7 @@ LowererMDArch::LoadInputParamPtr(IR::Instr *instrInsert, IR::RegOpnd *optionalDs
         // Stack looks like (EBP chain)+0, (return addr)+4, (function object)+8, (arg count)+12, (this)+16, actual args
         StackSym *paramSym = StackSym::New(TyVar, this->m_func);
         this->m_func->SetArgOffset(paramSym, 5 * MachPtr);
-        IR::Instr *instr = this->lowererMD->LoadStackAddress(paramSym, optionalDstOpnd);
-        instrInsert->InsertBefore(instr);
-        return instr;
+        return this->lowererMD->m_lowerer->InsertLoadStackAddress(paramSym, instrInsert, optionalDstOpnd);
     }
 }
 
@@ -295,8 +293,7 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs)
              */
             StackSym *firstRealArgSlotSym = func->GetInlineeArgvSlotOpnd()->m_sym->AsStackSym();
             this->m_func->SetArgOffset(firstRealArgSlotSym, firstRealArgSlotSym->m_offset + MachPtr);
-            IR::Instr *instr = this->lowererMD->LoadStackAddress(firstRealArgSlotSym);
-            instrArgs->InsertBefore(instr);
+            IR::Instr *instr = this->lowererMD->m_lowerer->InsertLoadStackAddress(firstRealArgSlotSym, instrArgs);
             this->LoadHelperArgument(instrArgs, instr->GetDst());
 
             // s2 = actual argument count (without counting "this").
@@ -413,8 +410,7 @@ LowererMDArch::LoadHeapArgsCached(IR::Instr *instrArgs)
             // s4 = address of first actual argument (after "this")
             StackSym *firstRealArgSlotSym = func->GetInlineeArgvSlotOpnd()->m_sym->AsStackSym();
             this->m_func->SetArgOffset(firstRealArgSlotSym, firstRealArgSlotSym->m_offset + MachPtr);
-            IR::Instr *instr = this->lowererMD->LoadStackAddress(firstRealArgSlotSym);
-            instrArgs->InsertBefore(instr);
+            IR::Instr *instr = this->lowererMD->m_lowerer->InsertLoadStackAddress(firstRealArgSlotSym, instrArgs);
             this->LoadHelperArgument(instrArgs, instr->GetDst());
 
             // s3 = formal argument count (without counting "this")
@@ -3000,8 +2996,7 @@ bool
         Assert(dst->IsRegOpnd());
         StackSym * tempNumberSym = lowererMD->GetLowerer()->GetTempNumberSym(dst, instrShift->dstIsTempNumberTransferred);
 
-        IR::Instr *load = lowererMD->LoadStackAddress(tempNumberSym);
-        instrShift->InsertBefore(load);
+        IR::Instr *load = lowererMD->m_lowerer->InsertLoadStackAddress(tempNumberSym, instrShift);
         tempOpnd = load->GetDst();
         this->LoadHelperArgument(instrShift, tempOpnd);
     }
@@ -3896,7 +3891,7 @@ LowererMDArch::FinalLower()
             break;
         case Js::OpCode::Leave:
             Assert(this->m_func->DoOptimizeTry() && !this->m_func->IsLoopBodyInTry());
-            this->lowererMD->LowerLeave(instr, instr->AsBranchInstr()->GetTarget(), true /*fromFinalLower*/);
+            this->lowererMD->m_lowerer->LowerLeave(instr, instr->AsBranchInstr()->GetTarget(), true /*fromFinalLower*/);
             break;
 
         case Js::OpCode::BailOutStackRestore:
