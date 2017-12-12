@@ -674,16 +674,26 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::PolymorphicInlin
             // when we add a property.  We also don't invalidate proto inline caches (and guards) unless the property being added exists on the proto chain.
             // Missing properties by definition do not exist on the proto chain, so in the end we could have an EquivalentObjTypeSpec cache hit on a
             // property that once was missing, but has since been added. (See OS Bugs 280582).
-            else if (inlineCache.IsProto() && !inlineCache.u.proto.isMissing)
+            else if (inlineCache.IsProto())
             {
-                isProto = true;
-                typeId = TypeWithoutAuxSlotTag(inlineCache.u.proto.type)->GetTypeId();
-                usesAuxSlot = TypeHasAuxSlotTag(inlineCache.u.proto.type);
-                slotIndex = inlineCache.u.proto.slotIndex;
-                prototypeObject = inlineCache.u.proto.prototypeObject;
+                if(!inlineCache.u.proto.isMissing)
+                {
+                    isProto = true;
+                    typeId = TypeWithoutAuxSlotTag(inlineCache.u.proto.type)->GetTypeId();
+                    usesAuxSlot = TypeHasAuxSlotTag(inlineCache.u.proto.type);
+                    slotIndex = inlineCache.u.proto.slotIndex;
+                    prototypeObject = inlineCache.u.proto.prototypeObject;
+                }
+                else
+                {
+                    areEquivalent = false;
+                    areStressEquivalent = false;
+                    gatherDataForInlining = false;
+                }
             }
             else
             {
+                AssertOrFailFast(inlineCache.IsAccessor());
                 if (!PHASE_OFF(Js::FixAccessorPropsPhase, functionBody))
                 {
                     isAccessor = true;

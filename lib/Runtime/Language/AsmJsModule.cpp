@@ -839,6 +839,7 @@ namespace Js
         AsmJsSIMDValue simdValue;
         simdValue.Zero();
         // define all variables
+        BVSparse<ArenaAllocator> initializerBV(&mAllocator);
         while (pnode->nop == knopList)
         {
             ParseNode * varNode = ParserWrapper::GetBinaryLeft(pnode);
@@ -932,6 +933,12 @@ namespace Js
                 {
                     return Fail(decl, _u("Failed to define var"));
                 }
+                // If we are declaring a var that we previously used in an initializer, that value will be undefined
+                // so we need to throw an error.
+                if (initializerBV.Test(var->GetName()->GetPropertyId()))
+                {
+                    return Fail(decl, _u("Cannot declare a var after using it in an initializer"));
+                }
                 RegSlot loc = Constants::NoRegister;
                 if (pnodeInit->nop == knopInt)
                 {
@@ -970,6 +977,7 @@ namespace Js
                     if (declSym->GetSymbolType() == AsmJsSymbol::Variable)
                     {
                         AsmJsVar * definition = declSym->Cast<AsmJsVar>();
+                        initializerBV.Set(definition->GetName()->GetPropertyId());
                         switch (definition->GetVarType().which())
                         {
                         case AsmJsVarType::Double:

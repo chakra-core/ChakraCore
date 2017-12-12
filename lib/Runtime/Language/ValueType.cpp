@@ -650,6 +650,11 @@ bool ValueType::IsOptimizedTypedArray() const
     return IsObject() && ((GetObjectType() >= ObjectType::Int8Array  && GetObjectType() <= ObjectType::Float64MixedArray));
 }
 
+bool ValueType::IsOptimizedVirtualTypedArray() const
+{
+    return IsObject() && (GetObjectType() >= ObjectType::Int8VirtualArray && GetObjectType() <= ObjectType::Float64VirtualArray);
+}
+
 bool ValueType::IsLikelyOptimizedTypedArray() const
 {
     return IsLikelyObject() && ((GetObjectType() >= ObjectType::Int8Array  &&  GetObjectType() <= ObjectType::Float64MixedArray));

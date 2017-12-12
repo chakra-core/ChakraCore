@@ -2961,6 +2961,8 @@ namespace UnifiedRegex
         this->scriptContext->ProfileEnd(Js::RegexCompilePhase);
 #endif
 
+        AssertOrFailFast(0 < pattern->NumGroups() && pattern->NumGroups() <= MAX_NUM_GROUPS);
+
         return pattern;
     }
 
@@ -2992,6 +2994,8 @@ namespace UnifiedRegex
         program->sourceLen = bodyChars;
 
         program->numGroups = nextGroupId;
+
+        AssertOrFailFast(0 < program->numGroups && program->numGroups <= MAX_NUM_GROUPS);
 
         // Remaining to set during compilation: litbuf, litbufLen, numLoops, insts, instsLen, entryPointLabel
     }
