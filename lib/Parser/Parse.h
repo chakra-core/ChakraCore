@@ -1122,6 +1122,7 @@ private:
             : m_parser(parser)
         {
             m_prevState = m_parser->GetIsInParsingArgList();
+            m_prevDestructuringState = m_parser->GetHasDestructuringPattern();
             m_parser->SetHasDestructuringPattern(false);
             m_parser->SetIsInParsingArgList(true);
         }
@@ -1132,11 +1133,20 @@ private:
             {
                 m_parser->SetHasDestructuringPattern(false);
             }
+            else
+            {
+                // Reset back to previous state only when the current call node does not have usage of destructuring expression.
+                if (!m_parser->GetHasDestructuringPattern())
+                {
+                    m_parser->SetHasDestructuringPattern(m_prevDestructuringState);
+                }
+            }
         }
 
     private:
         Parser *m_parser;
         bool m_prevState;
+        bool m_prevDestructuringState;
     };
 
 public:

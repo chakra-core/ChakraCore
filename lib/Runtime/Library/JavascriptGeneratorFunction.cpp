@@ -321,7 +321,7 @@ namespace Js
             // to get the length from our private ScriptFunction instead of ourself.
             int len = 0;
             Var varLength;
-            if (scriptFunction->GetProperty(scriptFunction, PropertyIds::length, &varLength, NULL, requestContext))
+            if (scriptFunction->GetProperty(this, PropertyIds::length, &varLength, NULL, requestContext))
             {
                 len = JavascriptConversion::ToInt32(varLength, requestContext);
             }

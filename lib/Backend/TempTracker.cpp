@@ -1026,7 +1026,7 @@ ObjectTemp::IsTempUseOpCodeSym(IR::Instr * instr, Js::OpCode opcode, Sym * sym)
         return instr->GetSrc1()->AsIndirOpnd()->GetBaseOpnd()->m_sym == sym;
     case Js::OpCode::StElemI_A:
     case Js::OpCode::StElemI_A_Strict:
-        return instr->GetDst()->AsIndirOpnd()->GetBaseOpnd()->m_sym == sym;
+        return instr->GetDst()->AsIndirOpnd()->GetBaseOpnd()->m_sym == sym && instr->GetSrc1()->GetStackSym() != sym;
     case Js::OpCode::Memset:
         return instr->GetDst()->AsIndirOpnd()->GetBaseOpnd()->m_sym == sym || (instr->GetSrc1()->IsRegOpnd() && instr->GetSrc1()->AsRegOpnd()->m_sym == sym);
     case Js::OpCode::Memcopy:
