@@ -60,6 +60,7 @@ public:
     static const Js::OpCode MDConvertFloat64ToFloat32Opcode;
     static const Js::OpCode MDCallOpcode;
     static const Js::OpCode MDImulOpcode;
+    static const Js::OpCode MDLea;
 
 public:
             void            Init(Lowerer *lowerer);

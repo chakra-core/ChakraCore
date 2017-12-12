@@ -20,6 +20,7 @@ const Js::OpCode LowererMD::MDConvertFloat32ToFloat64Opcode = Js::OpCode::CVTSS2
 const Js::OpCode LowererMD::MDConvertFloat64ToFloat32Opcode = Js::OpCode::CVTSD2SS;
 const Js::OpCode LowererMD::MDCallOpcode = Js::OpCode::CALL;
 const Js::OpCode LowererMD::MDImulOpcode = Js::OpCode::IMUL2;
+const Js::OpCode LowererMD::MDLea = Js::OpCode::LEA;
 
 static const int TWO_31_FLOAT = 0x4f000000;
 static const int FLOAT_INT_MIN = 0xcf000000;
@@ -2350,8 +2351,7 @@ LowererMD::GenerateFastDivByPow2(IR::Instr *instr)
             Assert(dst->IsRegOpnd());
             StackSym * tempNumberSym = this->m_lowerer->GetTempNumberSym(dst, instr->dstIsTempNumberTransferred);
 
-            IR::Instr *load = this->m_lowerer->LoadStackAddress(tempNumberSym);
-            instr->InsertBefore(load);
+            IR::Instr *load = this->m_lowerer->InsertLoadStackAddress(tempNumberSym, instr);
             tempOpnd = load->GetDst();
             this->lowererMDArch.LoadHelperArgument(instr, tempOpnd);
         }
@@ -7533,8 +7533,7 @@ LowererMD::EmitLoadVarNoCheck(IR::RegOpnd * dst, IR::RegOpnd * src, IR::Instr *i
             // Use the original dst to get the temp number sym
             StackSym * tempNumberSym = this->m_lowerer->GetTempNumberSym(instrLoad->GetDst(), instrLoad->dstIsTempNumberTransferred);
 
-            IR::Instr *load = this->m_lowerer->LoadStackAddress(tempNumberSym);
-            instrLoad->InsertBefore(load);
+            IR::Instr *load = this->m_lowerer->InsertLoadStackAddress(tempNumberSym, instrLoad);
             tempOpnd = load->GetDst();
             this->LoadHelperArgument(instrLoad, tempOpnd);
         }

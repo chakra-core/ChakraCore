@@ -6616,8 +6616,7 @@ Lowerer::LowerScopedLdInst(IR::Instr *instr, IR::JnHelperMethod helperMethod)
 
     // __out Var*. The StackSym is allocated in irbuilder, and here we need to insert a lea
     StackSym* dstSym = src->GetStackSym();
-    IR::Instr *load = LoadStackAddress(dstSym);
-    instr->InsertBefore(load);
+    IR::Instr *load = InsertLoadStackAddress(dstSym, instr);
     IR::Opnd* tempOpnd = load->GetDst();
     m_lowererMD.LoadHelperArgument(instr, tempOpnd);
 
@@ -7915,8 +7914,7 @@ Lowerer::LoadHelperTemp(IR::Instr * instr, IR::Instr * instrInsert)
     Assert(dst->IsRegOpnd());
     StackSym * tempNumberSym = this->GetTempNumberSym(dst, instr->dstIsTempNumberTransferred);
 
-    IR::Instr *load = LoadStackAddress(tempNumberSym);
-    instrInsert->InsertBefore(load);
+    IR::Instr *load = InsertLoadStackAddress(tempNumberSym, instrInsert);
     tempOpnd = load->GetDst();
     m_lowererMD.LoadHelperArgument(instrInsert, tempOpnd);
     return load;
@@ -7971,13 +7969,11 @@ Lowerer::LoadStackArgPtr(IR::Instr *const instr)
 }
 
 IR::Instr *
-Lowerer::LoadStackAddress(StackSym *sym, IR::RegOpnd *optionalDstOpnd /* = nullptr */)
+Lowerer::InsertLoadStackAddress(StackSym *sym, IR::Instr * instrInsert, IR::RegOpnd *optionalDstOpnd /* = nullptr */)
 {
     IR::RegOpnd * regDst = optionalDstOpnd != nullptr ? optionalDstOpnd : IR::RegOpnd::New(TyMachReg, this->m_func);
     IR::SymOpnd * symSrc = IR::SymOpnd::New(sym, TyMachPtr, this->m_func);
-    IR::Instr * lea = IR::Instr::New(Js::OpCode::LEA, regDst, symSrc, this->m_func);
-
-    return lea;
+    return InsertLea(regDst, symSrc, instrInsert);
 }
 
 void
@@ -14795,7 +14791,7 @@ IR::Instr *Lowerer::InsertLea(IR::RegOpnd *const dst, IR::Opnd *const src, IR::I
 
     Func *const func = insertBeforeInstr->m_func;
 
-    IR::Instr *const instr = IR::Instr::New(Js::OpCode::LEA, dst, src, func);
+    IR::Instr *const instr = IR::Instr::New(LowererMD::MDLea, dst, src, func);
 
     insertBeforeInstr->InsertBefore(instr);
     return ChangeToLea(instr, postRegAlloc);
@@ -14811,7 +14807,7 @@ Lowerer::ChangeToLea(IR::Instr * instr, bool postRegAlloc)
     Assert(instr->GetSrc1()->IsIndirOpnd() || instr->GetSrc1()->IsSymOpnd());
     Assert(!instr->GetSrc2());
 
-    instr->m_opcode = Js::OpCode::LEA;
+    instr->m_opcode = LowererMD::MDLea;
     LowererMD::Legalize(instr, postRegAlloc);
     return instr;
 }
@@ -25406,8 +25402,7 @@ Lowerer::LowerCommitScope(IR::Instr *instrCommit)
     uint firstVarSlot = (uint)Js::ActivationObjectEx::GetFirstVarSlot(propIds);
     if (firstVarSlot < propIds->count)
     {
-        // On ARM, instead of re-using the address of "undefined" for each store, put the address in a register
-        // and re-use that. (Would that be good for x86/amd64 as well?)
+        // Instead of re-using the address of "undefined" for each store, put the address in a register and re-use that.
         IR::RegOpnd *undefOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
         InsertMove(undefOpnd, LoadLibraryValueOpnd(insertInstr, LibraryValue::ValueUndefined), insertInstr);
 
@@ -25448,8 +25443,8 @@ Lowerer::LowerTry(IR::Instr* instr, bool tryCatch)
 IR::Instr *
 Lowerer::LowerCatch(IR::Instr * instr)
 {
-    // t1 = catch    =>    t2(eax) = catch
-    //               =>    t1 = t2(eax)
+    // t1 = catch    =>    t2 = catch
+    //               =>    t1 = t2
 
     IR::Opnd *catchObj = instr->UnlinkDst();
     IR::RegOpnd *catchParamReg = IR::RegOpnd::New(TyMachPtr, this->m_func);
@@ -25457,7 +25452,9 @@ Lowerer::LowerCatch(IR::Instr * instr)
 
     instr->SetDst(catchParamReg);
 
-    instr->InsertAfter(IR::Instr::New(Js::OpCode::MOV, catchObj, catchParamReg, this->m_func));
+    IR::Instr * mov = IR::Instr::New(Js::OpCode::Ld_A, catchObj, catchParamReg, this->m_func);
+    this->m_lowererMD.ChangeToAssign(mov);
+    instr->InsertAfter(mov);
 
     return instr->m_prev;
 }

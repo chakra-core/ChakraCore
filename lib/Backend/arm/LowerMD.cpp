@@ -17,6 +17,7 @@ const Js::OpCode LowererMD::MDConvertFloat32ToFloat64Opcode = Js::OpCode::VCVTF6
 const Js::OpCode LowererMD::MDConvertFloat64ToFloat32Opcode = Js::OpCode::VCVTF32F64;
 const Js::OpCode LowererMD::MDCallOpcode = Js::OpCode::Call;
 const Js::OpCode LowererMD::MDImulOpcode = Js::OpCode::MUL;
+const Js::OpCode LowererMD::MDLea = Js::OpCode::LEA;
 
 template<typename T>
 inline void Swap(T& x, T& y)
@@ -1818,10 +1819,7 @@ LowererMD::LoadInputParamPtr(IR::Instr * instrInsert, IR::RegOpnd * optionalDstO
     else
     {
         StackSym * paramSym = GetImplicitParamSlotSym(3);
-
-        IR::Instr * instr = this->m_lowerer->LoadStackAddress(paramSym);
-        instrInsert->InsertBefore(instr);
-        return instr;
+        return this->m_lowerer->InsertLoadStackAddress(paramSym, instrInsert);
     }
 }
 
@@ -2026,8 +2024,7 @@ LowererMD::LoadHeapArguments(IR::Instr * instrArgs)
             // s3 = address of first actual argument (after "this").
             StackSym *firstRealArgSlotSym = func->GetInlineeArgvSlotOpnd()->m_sym->AsStackSym();
             this->m_func->SetArgOffset(firstRealArgSlotSym, firstRealArgSlotSym->m_offset + MachPtr);
-            IR::Instr *instr = this->m_lowerer->LoadStackAddress(firstRealArgSlotSym);
-            instrArgs->InsertBefore(instr);
+            IR::Instr *instr = this->m_lowerer->InsertLoadStackAddress(firstRealArgSlotSym, instrArgs);
             this->LoadHelperArgument(instrArgs, instr->GetDst());
 
             // s2 = actual argument count (without counting "this").
@@ -2124,8 +2121,7 @@ LowererMD::LoadHeapArgsCached(IR::Instr * instrArgs)
             StackSym *firstRealArgSlotSym = func->GetInlineeArgvSlotOpnd()->m_sym->AsStackSym();
             this->m_func->SetArgOffset(firstRealArgSlotSym, firstRealArgSlotSym->m_offset + MachPtr);
 
-            IR::Instr *instr = this->m_lowerer->LoadStackAddress(firstRealArgSlotSym);
-            instrArgs->InsertBefore(instr);
+            IR::Instr *instr = this->m_lowerer->InsertLoadStackAddress(firstRealArgSlotSym, instrArgs);
             this->LoadHelperArgument(instrArgs, instr->GetDst());
 
             // s3 = formal argument count (without counting "this").
@@ -2785,8 +2781,7 @@ LowererMD::GenerateFastDivByPow2(IR::Instr *instrDiv)
     //    Assert(dst->IsRegOpnd());
     //    StackSym * tempNumberSym = this->m_lowerer->GetTempNumberSym(dst, instr->dstIsTempNumberTransferred);
 
-    //    instr = this->m_lowerer->LoadStackAddress(tempNumberSym);
-    //    instrDiv->InsertBefore(instr);
+    //    instr = this->m_lowerer->InsertLoadStackAddress(tempNumberSym, instrDiv);
     //    LegalizeMD::LegalizeInstr(instr, false);
 
     //    this->LoadHelperArgument(instrDiv, instr->GetDst());
