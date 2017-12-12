@@ -16,3 +16,4 @@
 #include "Language/SimdBool32x4Operation.h"
 #include "Language/SimdBool16x8Operation.h"
 #include "Language/SimdBool8x16Operation.h"
+#include "Language/SimdInt64x2Operation.h"

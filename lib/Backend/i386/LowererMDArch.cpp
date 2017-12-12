@@ -109,6 +109,7 @@ LowererMDArch::GetAssignOp(IRType type)
     case TySimd128B8:
     case TySimd128B16:
     case TySimd128D2:
+    case TySimd128I2:
         return Js::OpCode::MOVUPS;
     default:
         return Js::OpCode::MOV;
@@ -960,7 +961,22 @@ LowererMDArch::LowerAsmJsLdElemHelper(IR::Instr * instr, bool isSimdLoad /*= fal
     }
     else
     {
-        lowererMD->m_lowerer->InsertCompareBranch(cmpOpnd, instr->UnlinkSrc2(), Js::OpCode::BrGe_A, true, helperLabel, helperLabel);
+#ifdef ENABLE_WASM_SIMD
+        if (m_func->GetJITFunctionBody()->IsWasmFunction() && src1->AsIndirOpnd()->GetOffset()) //WASM.SIMD
+        {
+            IR::RegOpnd *tmp = IR::RegOpnd::New(cmpOpnd->GetType(), m_func);
+            Lowerer::InsertMove(tmp, cmpOpnd, helperLabel);
+            // ADD tmp, offset
+            Lowerer::InsertAdd(true, tmp, tmp, IR::IntConstOpnd::New((uint32)src1->AsIndirOpnd()->GetOffset(), tmp->GetType(), m_func), helperLabel);
+            // JB helper
+            Lowerer::InsertBranch(Js::OpCode::JB, helperLabel, helperLabel);
+            lowererMD->m_lowerer->InsertCompareBranch(tmp, instr->UnlinkSrc2(), Js::OpCode::BrGe_A, true, helperLabel, helperLabel);
+        }
+        else
+#endif
+        {
+            lowererMD->m_lowerer->InsertCompareBranch(cmpOpnd, instr->UnlinkSrc2(), Js::OpCode::BrGe_A, true, helperLabel, helperLabel);
+        }
     }
 
     Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);
@@ -1022,7 +1038,22 @@ LowererMDArch::LowerAsmJsStElemHelper(IR::Instr * instr, bool isSimdStore /*= fa
     }
     else
     {
-        lowererMD->m_lowerer->InsertCompareBranch(cmpOpnd, instr->UnlinkSrc2(), Js::OpCode::BrGe_A, true, helperLabel, helperLabel);
+#ifdef ENABLE_WASM_SIMD
+        if (m_func->GetJITFunctionBody()->IsWasmFunction() && dst->AsIndirOpnd()->GetOffset()) //WASM.SIMD
+        {
+            IR::RegOpnd *tmp = IR::RegOpnd::New(cmpOpnd->GetType(), m_func);
+            Lowerer::InsertMove(tmp, cmpOpnd, helperLabel);
+            // ADD tmp, offset
+            Lowerer::InsertAdd(true, tmp, tmp, IR::IntConstOpnd::New((uint32)dst->AsIndirOpnd()->GetOffset(), tmp->GetType(), m_func), helperLabel);
+            // JB helper
+            Lowerer::InsertBranch(Js::OpCode::JB, helperLabel, helperLabel);
+            lowererMD->m_lowerer->InsertCompareBranch(tmp, instr->UnlinkSrc2(), Js::OpCode::BrGe_A, true, helperLabel, helperLabel);
+        }
+        else
+#endif
+        {
+            lowererMD->m_lowerer->InsertCompareBranch(cmpOpnd, instr->UnlinkSrc2(), Js::OpCode::BrGe_A, true, helperLabel, helperLabel);
+        }
     }
 
     if (isSimdStore)
@@ -1800,6 +1831,7 @@ LowererMDArch::ChangeToAssignInt64(IR::Instr * instr)
     }
     return instr;
 }
+
 
 
 void

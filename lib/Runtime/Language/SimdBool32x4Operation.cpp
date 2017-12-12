@@ -28,14 +28,26 @@ namespace Js
     }
 
     // Unary Ops
-    bool SIMDBool32x4Operation::OpAnyTrue(const SIMDValue& simd)
+    template <typename T>
+    bool SIMDBool32x4Operation::OpAnyTrue(const SIMDValue& val)
     {
+        SIMDValue simd = SIMDUtils::CanonicalizeToBools<T>(val); //copy-by-value since we need to modify the copy
         return simd.i32[SIMD_X] || simd.i32[SIMD_Y] || simd.i32[SIMD_Z] || simd.i32[SIMD_W];
     }
 
-    bool SIMDBool32x4Operation::OpAllTrue(const SIMDValue& simd)
+    template <typename T>
+    bool SIMDBool32x4Operation::OpAllTrue(const SIMDValue& val)
     {
+        SIMDValue simd = SIMDUtils::CanonicalizeToBools<T>(val); //copy-by-value since we need to modify the copy
         return simd.i32[SIMD_X] && simd.i32[SIMD_Y] && simd.i32[SIMD_Z] && simd.i32[SIMD_W];
     }
+
+    template bool SIMDBool32x4Operation::OpAllTrue<int32>(const SIMDValue& val);
+    template bool SIMDBool32x4Operation::OpAllTrue<int16>(const SIMDValue& val);
+    template bool SIMDBool32x4Operation::OpAllTrue<int8>(const SIMDValue& val);
+    //
+    template bool SIMDBool32x4Operation::OpAnyTrue<int32>(const SIMDValue& val);
+    template bool SIMDBool32x4Operation::OpAnyTrue<int16>(const SIMDValue& val);
+    template bool SIMDBool32x4Operation::OpAnyTrue<int8>(const SIMDValue& val);
 }
 #endif

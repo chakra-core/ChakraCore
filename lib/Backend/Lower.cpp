@@ -3018,7 +3018,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 #endif //ENABLE_WASM
 
         default:
-#ifdef ENABLE_SIMDJS
+#if defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)
 #if defined(_M_IX86) || defined(_M_X64)
             if (IsSimd128Opcode(instr->m_opcode))
             {

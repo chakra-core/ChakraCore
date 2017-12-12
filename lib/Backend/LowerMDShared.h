@@ -250,6 +250,7 @@ public:
             IR::Instr *         LowerCallI(IR::Instr * callInstr, ushort callFlags, bool isHelper = false, IR::Instr * insertBeforeInstrForCFG = nullptr);
             IR::Instr *         LoadInt64HelperArgument(IR::Instr * instr, IR::Opnd* opnd);
             IR::Instr *         LoadHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
+            IR::MemRefOpnd *    LoadSimdHelperArgument(IR::Instr * instr, uint8 index);
             IR::Instr *         LoadDoubleHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
             IR::Instr *         LoadFloatHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
             IR::Instr *         LowerEntryInstr(IR::EntryInstr * entryInstr);
@@ -299,24 +300,36 @@ public:
     static IR::Instr * InsertCmovCC(const Js::OpCode opCode, IR::Opnd * dst, IR::Opnd* src1, IR::Instr* insertBeforeInstr, bool postRegAlloc = false);
 
 #ifdef ENABLE_SIMDJS
-    void                Simd128InitOpcodeMap();
-    IR::Instr*          Simd128Instruction(IR::Instr* instr);
-    IR::Instr*          Simd128LoadConst(IR::Instr* instr);
-    bool                Simd128TryLowerMappedInstruction(IR::Instr *instr);
-    IR::Instr*          Simd128LowerUnMappedInstruction(IR::Instr *instr);
     IR::Instr*          Simd128LowerConstructor_2(IR::Instr *instr);
     IR::Instr*          Simd128LowerConstructor_4(IR::Instr *instr);
     IR::Instr*          Simd128LowerConstructor_8(IR::Instr *instr);
     IR::Instr*          Simd128LowerConstructor_16(IR::Instr *instr);
+    IR::Instr*          Simd128LowerRcp(IR::Instr *instr, bool removeInstr = true);
+    IR::Instr*          Simd128LowerRcpSqrt(IR::Instr *instr);
+    IR::Instr*          Simd128LowerRcpSqrt(IR::Instr *instr);
+    void                GenerateCheckedSimdLoad(IR::Instr * instr);
+    void                GenerateSimdStore(IR::Instr * instr);
+    IR::Instr*          Simd128LowerSelect(IR::Instr *instr);
+#endif
+
+#if defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)
+    void                Simd128InitOpcodeMap();
+    IR::Instr*          Simd128Instruction(IR::Instr* instr);
+    IR::Instr*          Simd128LoadConst(IR::Instr* instr);
+    IR::Instr*          LowerSimd128BitSelect(IR::Instr* instr);
+    bool                Simd128TryLowerMappedInstruction(IR::Instr *instr);
+    IR::Instr*          Simd128LowerUnMappedInstruction(IR::Instr *instr);
     IR::Instr*          Simd128LowerLdLane(IR::Instr *instr);
+    IR::Instr*          SIMD128LowerReplaceLane_2(IR::Instr *instr);
+    void                EmitExtractInt64(IR::Opnd* dst, IR::Opnd* src, uint index, IR::Instr *instr);
+    void                EmitInsertInt64(IR::Opnd* dst, uint index, IR::Instr *instr);
+    void                EmitShiftByScalarI2(IR::Instr *instr, IR::JnHelperMethod helper);
+    IR::Instr*          EmitSimdConversion(IR::Instr *instr, IR::JnHelperMethod helper);
     IR::Instr*          SIMD128LowerReplaceLane_4(IR::Instr *instr);
     IR::Instr*          SIMD128LowerReplaceLane_8(IR::Instr *instr);
     IR::Instr*          SIMD128LowerReplaceLane_16(IR::Instr *instr);
     IR::Instr*          Simd128LowerSplat(IR::Instr *instr);
-    IR::Instr*          Simd128LowerRcp(IR::Instr *instr, bool removeInstr = true);
     IR::Instr*          Simd128LowerSqrt(IR::Instr *instr);
-    IR::Instr*          Simd128LowerRcpSqrt(IR::Instr *instr);
-    IR::Instr*          Simd128LowerSelect(IR::Instr *instr);
     IR::Instr*          Simd128LowerNeg(IR::Instr *instr);
     IR::Instr*          Simd128LowerMulI4(IR::Instr *instr);
     IR::Instr*          Simd128LowerShift(IR::Instr *instr);
@@ -340,15 +353,16 @@ public:
     IR::Instr*          Simd128LowerLessThanOrEqual(IR::Instr* instr);
     IR::Instr*          Simd128LowerGreaterThanOrEqual(IR::Instr* instr);
     IR::Instr*          Simd128LowerMinMax_F4(IR::Instr* instr);
-    IR::Instr*          Simd128LowerMinMaxNum(IR::Instr* instr);
     IR::Instr*          Simd128LowerAnyTrue(IR::Instr* instr);
     IR::Instr*          Simd128LowerAllTrue(IR::Instr* instr);
+#ifdef ENABLE_WASM_SIMD
+    IR::Opnd*           Simd128CanonicalizeToBoolsBeforeReduction(IR::Instr* instr);
+#endif
     BYTE                Simd128GetTypedArrBytesPerElem(ValueType arrType);
     IR::Instr*          Simd128CanonicalizeToBools(IR::Instr* instr, const Js::OpCode& cmpOpcode, IR::Opnd& dstOpnd);
     IR::Opnd*           EnregisterIntConst(IR::Instr* instr, IR::Opnd *constOpnd, IRType type = TyInt32);
+    IR::Opnd*           EnregisterBoolConst(IR::Instr* instr, IR::Opnd *opnd, IRType type);
     SList<IR::Opnd*>  * Simd128GetExtendedArgs(IR::Instr *instr);
-    void                GenerateCheckedSimdLoad(IR::Instr * instr);
-    void                GenerateSimdStore(IR::Instr * instr);
     void                CheckShuffleLanes_4(uint8 lanes[], uint8 lanesSrc[], uint *fromSrc1, uint *fromSrc2);
     void                InsertShufps(uint8 lanes[], IR::Opnd *dst, IR::Opnd *src1, IR::Opnd *src2, IR::Instr *insertBeforeInstr);
 #endif

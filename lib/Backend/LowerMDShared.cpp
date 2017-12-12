@@ -482,7 +482,7 @@ LowererMD::Init(Lowerer *lowerer)
 {
     m_lowerer = lowerer;
     this->lowererMDArch.Init(this);
-#ifdef ENABLE_SIMDJS
+#if defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)
     Simd128InitOpcodeMap();
 #endif
 }
@@ -813,6 +813,9 @@ LowererMD::LowerRet(IR::Instr * retInstr)
             break;
         case Js::AsmJsRetType::Float64x2:
             regType = TySimd128D2;
+            break;
+        case Js::AsmJsRetType::Int64x2:
+            regType = TySimd128I2;
             break;
         case Js::AsmJsRetType::Int16x8:
             regType = TySimd128I8;
@@ -1635,6 +1638,7 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
         case Js::OpCode::PADDB:
         case Js::OpCode::PADDSB:
         case Js::OpCode::PADDD:
+        case Js::OpCode::PADDQ:
         case Js::OpCode::PADDW:
         case Js::OpCode::PADDSW:
         case Js::OpCode::PADDUSB:
@@ -1657,6 +1661,7 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
         case Js::OpCode::PSUBB:
         case Js::OpCode::PSUBSB:
         case Js::OpCode::PSUBD:
+        case Js::OpCode::PSUBQ:
         case Js::OpCode::PSUBW:
         case Js::OpCode::PSUBSW:
         case Js::OpCode::PSUBUSB:
@@ -1747,10 +1752,12 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
         case Js::OpCode::PSLLDQ:
         case Js::OpCode::PSRLW:
         case Js::OpCode::PSRLD:
+        case Js::OpCode::PSRLQ:
         case Js::OpCode::PSRAW:
         case Js::OpCode::PSRAD:
         case Js::OpCode::PSLLW:
         case Js::OpCode::PSLLD:
+        case Js::OpCode::PSLLQ:
 
             Assert(AutoSystemInfo::Data.SSE2Available());
             MakeDstEquSrc1<verify>(instr);

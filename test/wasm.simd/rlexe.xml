@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<regress-exe>
+<test>
+  <default>
+    <files>loadTests.js</files>
+    <compile-flags> -wasm -wasmsimd</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>storeTests.js</files>
+    <compile-flags> -wasm -wasmsimd</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>constTests.js</files>
+    <compile-flags> -wasm -wasmsimd</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>splatNegTests.js</files>
+    <compile-flags> -wasm -wasmsimd</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>replaceLaneTests.js</files>
+    <compile-flags> -wasm -wasmsimd</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>truncConvTests.js</files>
+    <compile-flags> -wasm -wasmsimd</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>logicalTests.js</files>
+    <compile-flags> -wasm -wasmsimd</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>comparisonTests.js</files>
+    <compile-flags> -wasm -wasmsimd</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>mathTests.js</files>
+    <compile-flags> -wasm -wasmsimd</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>int64x2Tests.js</files>
+    <compile-flags> -wasm -wasmsimd</compile-flags>
+  </default>
+</test>
+</regress-exe>

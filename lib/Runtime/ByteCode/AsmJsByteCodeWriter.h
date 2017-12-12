@@ -45,31 +45,34 @@ namespace Js
 
         IMP_IWASM void MarkAsmJsLabel(ByteCodeLabel labelID);
         IMP_IWASM void ExitLoop(uint loopId);
+        IMP_IWASM void AsmReg4(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3);
+        IMP_IWASM void AsmReg5(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4);
+        IMP_IWASM void AsmReg9(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8);
+        IMP_IWASM void AsmReg17(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8,
+            RegSlot R9, RegSlot R10, RegSlot R11, RegSlot R12, RegSlot R13, RegSlot R14, RegSlot R15, RegSlot R16);
+        IMP_IWASM void AsmShuffle(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, uint8 indices[]);
+        IMP_IWASM void AsmSimdTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint8 dataWidth, ArrayBufferView::ViewType viewType, uint32 offset = 0);
+        IMP_IWASM void WasmSimdConst(OpCodeAsmJs op, RegSlot R0, int C0, int C1, int C2, int C3);
 
 #ifdef WASM_BYTECODE_WRITER
         // We don't want to expose api not in IWasmByteCodeWriter, but it's easier to compile them anyway
     private:
 #endif
         uint EnterLoop(ByteCodeLabel loopEntrance);
-        void AsmReg4(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3);
-        void AsmReg5(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4);
         void AsmReg6(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5);
         void AsmReg7(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6);
-        void AsmReg9(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8);
         void AsmReg10(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8, RegSlot R9);
         void AsmReg11(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8, RegSlot R9, RegSlot R10);
-        void AsmReg17(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8,
-                      RegSlot R9, RegSlot R10, RegSlot R11, RegSlot R12, RegSlot R13, RegSlot R14, RegSlot R15, RegSlot R16);
         void AsmReg18(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8,
                       RegSlot R9, RegSlot R10, RegSlot R11, RegSlot R12, RegSlot R13, RegSlot R14, RegSlot R15, RegSlot R16, RegSlot R17);
         void AsmReg19(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8,
-                      RegSlot R9, RegSlot R10, RegSlot R11, RegSlot R12, RegSlot R13, RegSlot R14, RegSlot R15, RegSlot R16, RegSlot R17, RegSlot R18);
+            RegSlot R9, RegSlot R10, RegSlot R11, RegSlot R12, RegSlot R13, RegSlot R14, RegSlot R15, RegSlot R16, RegSlot R17, RegSlot R18);
         void AsmBrReg2(OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1, RegSlot R2);
         void AsmTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, ArrayBufferView::ViewType viewType);
-        void AsmSimdTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint8 dataWidth, ArrayBufferView::ViewType viewType);
     private:
         void AsmJsUnsigned1(OpCodeAsmJs op, uint C1);
         template <typename SizePolicy> bool TryWriteAsmReg1(OpCodeAsmJs op, RegSlot R0);
+        template <typename SizePolicy> bool TryWriteFloat32x4_IntConst4(OpCodeAsmJs op, RegSlot R0, int C1, int C2, int C3, int C4);
         template <typename SizePolicy> bool TryWriteAsmReg2(OpCodeAsmJs op, RegSlot R0, RegSlot R1);
         template <typename SizePolicy> bool TryWriteAsmReg3(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2);
         template <typename SizePolicy> bool TryWriteAsmReg4(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3);
@@ -87,6 +90,8 @@ namespace Js
         template <typename SizePolicy> bool TryWriteAsmReg19(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8,
                                                              RegSlot R9, RegSlot R10, RegSlot R11, RegSlot R12, RegSlot R13, RegSlot R14, RegSlot R15, RegSlot R16, RegSlot R17, RegSlot R18);
 
+        template <typename SizePolicy> bool TryWriteAsmShuffle(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, uint8 indices[]);
+
         template <typename SizePolicy> bool TryWriteInt1Const1(OpCodeAsmJs op, RegSlot R0, int C1);
         template <typename SizePolicy> bool TryWriteReg1IntConst1(OpCodeAsmJs op, RegSlot R0, int C1);
         template <typename SizePolicy> bool TryWriteLong1Const1(OpCodeAsmJs op, RegSlot R0, int64 C1);
@@ -99,7 +104,7 @@ namespace Js
         template <typename SizePolicy> bool TryWriteAsmSlot(OpCodeAsmJs op, RegSlot value, RegSlot instance, uint32 slotId);
         template <typename SizePolicy> bool TryWriteWasmMemAccess(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint32 offset, ArrayBufferView::ViewType viewType);
         template <typename SizePolicy> bool TryWriteAsmTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, ArrayBufferView::ViewType viewType);
-        template <typename SizePolicy> bool TryWriteAsmSimdTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint8 dataWidth, ArrayBufferView::ViewType viewType);
+        template <typename SizePolicy> bool TryWriteAsmSimdTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint8 dataWidth, ArrayBufferView::ViewType viewType, uint32 offset);
         template <typename SizePolicy> bool TryWriteAsmJsUnsigned1(OpCodeAsmJs op, uint C1);
 
         void AddJumpOffset(Js::OpCodeAsmJs op, ByteCodeLabel labelId, uint fieldByteOffset);

@@ -61,6 +61,9 @@ namespace Js
                 case AsmJsType::Float64x2:
                     Output::Print(_u("D2(In%hu)"), i);
                     break;
+                case AsmJsType::Int64x2:
+                    Output::Print(_u("I2(In%hu)"), i);
+                    break;
                 }
             }
             else
@@ -367,6 +370,12 @@ namespace Js
     void AsmJsByteCodeDumper::DumpFloat64x2Reg(RegSlot reg)
     {
         Output::Print(_u(" D2_%d "), (int)reg);
+    }
+
+    // Int64x2
+    void AsmJsByteCodeDumper::DumpInt64x2Reg(RegSlot reg)
+    {
+        Output::Print(_u(" I2_%d "), (int)reg);
     }
 
     template <class T>
@@ -980,6 +989,19 @@ namespace Js
     }
 
     template <class T>
+    void AsmJsByteCodeDumper::DumpAsmShuffle(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpFloat32x4Reg(data->R0);
+        DumpFloat32x4Reg(data->R1);
+        DumpFloat32x4Reg(data->R2);
+        const uint NUM_LANES = 16;
+        for (uint i = 0; i < NUM_LANES; i++)
+        {
+            DumpU4(data->INDICES[i]);
+        }
+    }
+
+    template <class T>
     void AsmJsByteCodeDumper::DumpAsmSimdTypedArr(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
         const char16* heapTag = nullptr;
@@ -1024,6 +1046,7 @@ namespace Js
 #define SIMD_DUMP_ARR_U16 DumpUint8x16Reg
 #define SIMD_DUMP_ARR_F4 DumpFloat32x4Reg
 #define SIMD_DUMP_ARR_D2 DumpFloat64x2Reg
+#define SIMD_DUMP_ARR_I2 DumpInt64x2Reg
 #define SIMD_DUMP_REG(type) SIMD_DUMP_ARR_##type(data->Value)
 #define SIMD_DUMP_ARR_VALUE(type) \
         case OpCodeAsmJs::Simd128_LdArr_##type:\

@@ -402,6 +402,7 @@ SCCLiveness::ProcessSrc(IR::Opnd *src, IR::Instr *instr)
                 lifetime = this->InsertLifetime(stackSym, reg, this->func->m_headInstr->m_next);
                 lifetime->region = this->curRegion;
                 lifetime->isFloat = symOpnd->IsFloat() || symOpnd->IsSimd128();
+
             }
 
             IR::RegOpnd * newRegOpnd = IR::RegOpnd::New(stackSym, reg, symOpnd->GetType(), this->func);
