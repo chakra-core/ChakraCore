@@ -18411,22 +18411,28 @@ Lowerer::GenerateFastReplace(IR::Opnd* strOpnd, IR::Opnd* src1, IR::Opnd* src2, 
         this->GenerateStringTest(src2->AsRegOpnd(), insertInstr, labelHelper);
     }
 
-    //scriptContext, pRegEx, pThis, pReplace (to be pushed in reverse order)
-
-    // pReplace, pThis, pRegEx
-    this->m_lowererMD.LoadHelperArgument(insertInstr, src2);
-    this->m_lowererMD.LoadHelperArgument(insertInstr, strOpnd);
-    this->m_lowererMD.LoadHelperArgument(insertInstr, src1);
-
-    // script context
-    LoadScriptContext(insertInstr);
-
     IR::Instr * helperCallInstr = IR::Instr::New(LowererMD::MDCallOpcode, insertInstr->m_func);
-    if(callDst)
+    if (callDst)
     {
         helperCallInstr->SetDst(callDst);
     }
     insertInstr->InsertBefore(helperCallInstr);
+
+    if (insertInstr->HasBailOutInfo() && BailOutInfo::IsBailOutOnImplicitCalls(insertInstr->GetBailOutKind()))
+    {
+        helperCallInstr = AddBailoutToHelperCallInstr(helperCallInstr, insertInstr->GetBailOutInfo(), insertInstr->GetBailOutKind(), insertInstr);
+    }
+
+    //scriptContext, pRegEx, pThis, pReplace (to be pushed in reverse order)
+
+    // pReplace, pThis, pRegEx
+    this->m_lowererMD.LoadHelperArgument(helperCallInstr, src2);
+    this->m_lowererMD.LoadHelperArgument(helperCallInstr, strOpnd);
+    this->m_lowererMD.LoadHelperArgument(helperCallInstr, src1);
+
+    // script context
+    LoadScriptContext(helperCallInstr); 
+
     if(callDst)
     {
         m_lowererMD.ChangeToHelperCall(helperCallInstr, IR::JnHelperMethod::HelperRegExp_ReplaceStringResultUsed);
@@ -18506,6 +18512,17 @@ Lowerer::GenerateFastInlineStringSplitMatch(IR::Instr * instr)
         labelHelper,
         instr);
 
+    IR::Instr * helperCallInstr = IR::Instr::New(LowererMD::MDCallOpcode, instr->m_func);
+    if (callDst)
+    {
+        helperCallInstr->SetDst(callDst);
+    }
+    instr->InsertBefore(helperCallInstr);
+    if (instr->HasBailOutInfo() && BailOutInfo::IsBailOutOnImplicitCalls(instr->GetBailOutKind()))
+    {
+        helperCallInstr = AddBailoutToHelperCallInstr(helperCallInstr, instr->GetBailOutInfo(), instr->GetBailOutKind(), instr);
+    }
+
     // [stackAllocationPointer, ]scriptcontext, regexp, input[, limit] (to be pushed in reverse order)
 
     if(src1->AsHelperCallOpnd()->m_fnHelper == IR::JnHelperMethod::HelperString_Split)
@@ -18513,15 +18530,15 @@ Lowerer::GenerateFastInlineStringSplitMatch(IR::Instr * instr)
         //limit
         //As we are optimizing only for two operands, make limit UINT_MAX
         IR::Opnd* limit = IR::IntConstOpnd::New(UINT_MAX, TyUint32, instr->m_func);
-        this->m_lowererMD.LoadHelperArgument(instr, limit);
+        this->m_lowererMD.LoadHelperArgument(helperCallInstr, limit);
     }
 
     //input, regexp
-    this->m_lowererMD.LoadHelperArgument(instr, argsOpnd[0]);
-    this->m_lowererMD.LoadHelperArgument(instr, argsOpnd[1]);
+    this->m_lowererMD.LoadHelperArgument(helperCallInstr, argsOpnd[0]);
+    this->m_lowererMD.LoadHelperArgument(helperCallInstr, argsOpnd[1]);
 
     // script context
-    LoadScriptContext(instr);
+    LoadScriptContext(helperCallInstr);
 
     IR::JnHelperMethod helperMethod = IR::JnHelperMethod::HelperInvalid;
     IR::AutoReuseOpnd autoReuseStackAllocationOpnd;
@@ -18546,8 +18563,8 @@ Lowerer::GenerateFastInlineStringSplitMatch(IR::Instr * instr)
         IR::RegOpnd *const stackAllocationOpnd = IR::RegOpnd::New(TyVar, m_func);
         autoReuseStackAllocationOpnd.Initialize(stackAllocationOpnd, m_func);
         stackAllocationOpnd->SetValueType(callDst->GetValueType());
-        GenerateMarkTempAlloc(stackAllocationOpnd, Js::JavascriptArray::StackAllocationSize, instr);
-        m_lowererMD.LoadHelperArgument(instr, stackAllocationOpnd);
+        GenerateMarkTempAlloc(stackAllocationOpnd, Js::JavascriptArray::StackAllocationSize, helperCallInstr);
+        m_lowererMD.LoadHelperArgument(helperCallInstr, stackAllocationOpnd);
     }
     else
     {
@@ -18572,13 +18589,6 @@ Lowerer::GenerateFastInlineStringSplitMatch(IR::Instr * instr)
                 __assume(false);
         }
     }
-
-    IR::Instr * helperCallInstr = IR::Instr::New(LowererMD::MDCallOpcode, instr->m_func);
-    if(callDst)
-    {
-        helperCallInstr->SetDst(callDst);
-    }
-    instr->InsertBefore(helperCallInstr);
 
     m_lowererMD.ChangeToHelperCall(helperCallInstr, helperMethod);
 
@@ -18754,20 +18764,30 @@ Lowerer::GenerateFastInlineRegExpExec(IR::Instr * instr)
         instr->InsertBefore(labelFastHelper);
     }
 
+    IR::Instr * helperCallInstr = IR::Instr::New(LowererMD::MDCallOpcode, instr->m_func);
+    if (callDst)
+    {
+        helperCallInstr->SetDst(callDst);
+    }
+    instr->InsertBefore(helperCallInstr);
+    if (instr->HasBailOutInfo() && BailOutInfo::IsBailOutOnImplicitCalls(instr->GetBailOutKind()))
+    {
+        helperCallInstr = AddBailoutToHelperCallInstr(helperCallInstr, instr->GetBailOutInfo(), instr->GetBailOutKind(), instr);
+    }
     // [stackAllocationPointer, ]scriptcontext, regexp, string (to be pushed in reverse order)
 
     //string, regexp
-    this->m_lowererMD.LoadHelperArgument(instr, opndString);
-    this->m_lowererMD.LoadHelperArgument(instr, opndRegex);
+    this->m_lowererMD.LoadHelperArgument(helperCallInstr, opndString);
+    this->m_lowererMD.LoadHelperArgument(helperCallInstr, opndRegex);
 
     // script context
-    LoadScriptContext(instr);
+    LoadScriptContext(helperCallInstr);
 
     IR::JnHelperMethod helperMethod;
     IR::AutoReuseOpnd autoReuseStackAllocationOpnd;
-    if(callDst)
+    if (callDst)
     {
-        if(instr->dstIsTempObject)
+        if (instr->dstIsTempObject)
         {
             helperMethod = IR::JnHelperMethod::HelperRegExp_ExecResultUsedAndMayBeTemp;
 
@@ -18775,8 +18795,8 @@ Lowerer::GenerateFastInlineRegExpExec(IR::Instr * instr)
             IR::RegOpnd *const stackAllocationOpnd = IR::RegOpnd::New(TyVar, m_func);
             autoReuseStackAllocationOpnd.Initialize(stackAllocationOpnd, m_func);
             stackAllocationOpnd->SetValueType(callDst->GetValueType());
-            GenerateMarkTempAlloc(stackAllocationOpnd, Js::JavascriptArray::StackAllocationSize, instr);
-            m_lowererMD.LoadHelperArgument(instr, stackAllocationOpnd);
+            GenerateMarkTempAlloc(stackAllocationOpnd, Js::JavascriptArray::StackAllocationSize, helperCallInstr);
+            m_lowererMD.LoadHelperArgument(helperCallInstr, stackAllocationOpnd);
         }
         else
         {
@@ -18788,12 +18808,6 @@ Lowerer::GenerateFastInlineRegExpExec(IR::Instr * instr)
         helperMethod = IR::JnHelperMethod::HelperRegExp_ExecResultNotUsed;
     }
 
-    IR::Instr * helperCallInstr = IR::Instr::New(LowererMD::MDCallOpcode, instr->m_func);
-    if(callDst)
-    {
-        helperCallInstr->SetDst(callDst);
-    }
-    instr->InsertBefore(helperCallInstr);
     m_lowererMD.ChangeToHelperCall(helperCallInstr, helperMethod);
 
     instr->InsertAfter(doneLabel);

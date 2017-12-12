@@ -7861,6 +7861,14 @@ BackwardPass::RemoveEmptyLoopAfterMemOp(Loop *loop)
 
     outerBlock->RemovePred(head, this->func->m_fg);
     landingPad->RemoveSucc(head, this->func->m_fg);
+    Assert(landingPad->GetSuccList()->Count() == 0);
+
+    IR::Instr* firstOuterInstr = outerBlock->GetFirstInstr();
+    AssertOrFailFast(firstOuterInstr->IsLabelInstr() && !landingPad->GetLastInstr()->EndsBasicBlock());
+    IR::LabelInstr* label = firstOuterInstr->AsLabelInstr();
+    // Add br to Outer block to keep coherence between branches and flow graph
+    IR::BranchInstr *outerBr = IR::BranchInstr::New(Js::OpCode::Br, label, this->func);
+    landingPad->InsertAfter(outerBr);
     this->func->m_fg->AddEdge(landingPad, outerBlock);
 
     this->func->m_fg->RemoveBlock(head, nullptr);

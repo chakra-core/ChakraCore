@@ -539,8 +539,7 @@ void ByteCodeGenerator::LoadUncachedHeapArguments(FuncInfo *funcInfo)
     {
         // Pass the frame object and ID array to the runtime, and put the resulting Arguments object
         // at the expected location.
-
-        Js::PropertyIdArray *propIds = funcInfo->GetParsedFunctionBody()->AllocatePropertyIdArrayForFormals(count * sizeof(Js::PropertyId), count, 0);
+        Js::PropertyIdArray *propIds = funcInfo->GetParsedFunctionBody()->AllocatePropertyIdArrayForFormals(UInt32Math::Mul(count, sizeof(Js::PropertyId)), count, 0);
         GetFormalArgsArray(this, funcInfo, propIds);
     }
 
@@ -1558,7 +1557,9 @@ void ByteCodeGenerator::EmitScopeObjectInit(FuncInfo *funcInfo)
     uint cachedFuncCount = 0;
     Js::PropertyId firstFuncSlot = Js::Constants::NoProperty;
     Js::PropertyId firstVarSlot = Js::Constants::NoProperty;
-    uint extraAlloc = (slotCount + Js::ActivationObjectEx::ExtraSlotCount()) * sizeof(Js::PropertyId);
+
+    uint extraAlloc = UInt32Math::Add(slotCount, Js::ActivationObjectEx::ExtraSlotCount());
+    extraAlloc = UInt32Math::Mul(extraAlloc, sizeof(Js::PropertyId));
 
     // Create and fill the array of local property ID's.
     // They all have slots assigned to them already (if they need them): see StartEmitFunction.
@@ -1998,7 +1999,7 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
         uint count = funcInfo->inArgsCount + (funcInfo->root->sxFnc.pnodeRest != nullptr ? 1 : 0) - 1;
         if (count != 0)
         {
-            Js::PropertyIdArray *propIds = RecyclerNewPlus(scriptContext->GetRecycler(), count * sizeof(Js::PropertyId), Js::PropertyIdArray, count, 0);
+            Js::PropertyIdArray *propIds = RecyclerNewPlus(scriptContext->GetRecycler(), UInt32Math::Mul(count, sizeof(Js::PropertyId)), Js::PropertyIdArray, count, 0);
 
             GetFormalArgsArray(this, funcInfo, propIds);
             byteCodeFunction->SetPropertyIdsOfFormals(propIds);
@@ -7184,7 +7185,7 @@ Js::ArgSlot EmitArgList(
 
     if (spreadArgCount > 0)
     {
-        const size_t extraAlloc = spreadArgCount * sizeof(uint32);
+        const size_t extraAlloc = UInt32Math::Mul(spreadArgCount, sizeof(uint32));
         Assert(spreadIndices != nullptr);
         *spreadIndices = AnewPlus(byteCodeGenerator->GetAllocator(), extraAlloc, Js::AuxArray<uint32>, spreadArgCount);
     }
@@ -7333,7 +7334,7 @@ Js::ArgSlot EmitNewObjectOfConstants(
     EmitArgListStart(Js::Constants::NoRegister, byteCodeGenerator, funcInfo, Js::Constants::NoProfileId);
 
     // Create the vars array
-    Js::VarArrayVarCount *vars = AnewPlus(byteCodeGenerator->GetAllocator(), (argCount - 1) * sizeof(Js::Var), Js::VarArrayVarCount, Js::TaggedInt::ToVarUnchecked(argCount - 1));
+    Js::VarArrayVarCount *vars = AnewPlus(byteCodeGenerator->GetAllocator(), UInt32Math::Mul((argCount - 1), sizeof(Js::Var)), Js::VarArrayVarCount, Js::TaggedInt::ToVarUnchecked(argCount - 1));
 
     // Emit all constants to the vars array
     EmitConstantArgsToVarArray(byteCodeGenerator, vars->elements, pnode->sxCall.pnodeArgs, argCount - 1);
@@ -7357,10 +7358,11 @@ Js::ArgSlot EmitNewObjectOfConstants(
         Js::OpCode::NewScObject_A,
         funcInfo->AcquireLoc(pnode),
         vars,
-        sizeof(Js::VarArray) + (argCount - 1) * sizeof(Js::Var),
+        UInt32Math::MulAdd<sizeof(Js::Var), sizeof(Js::VarArray)>((argCount-1)),
         pnode->sxCall.pnodeTarget->location);
 
-    AdeletePlus(byteCodeGenerator->GetAllocator(), (argCount - 1) * sizeof(Js::VarArrayVarCount), vars);
+
+        AdeletePlus(byteCodeGenerator->GetAllocator(), UInt32Math::Mul((argCount-1), sizeof(Js::VarArrayVarCount)), vars);
 
     return actualArgCount;
 }
@@ -7774,8 +7776,8 @@ void EmitCallI(
         if (pnode->sxCall.spreadArgCount > 0)
         {
             Assert(spreadIndices != nullptr);
-            spreadExtraAlloc = spreadIndices->count * sizeof(uint32);
-            spreadIndicesSize = sizeof(*spreadIndices) + spreadExtraAlloc;
+            spreadExtraAlloc = UInt32Math::Mul(spreadIndices->count, sizeof(uint32));
+            spreadIndicesSize = UInt32Math::Add(sizeof(*spreadIndices), spreadExtraAlloc);
             options = Js::CallIExtended_SpreadArgs;
         }
 
@@ -7963,8 +7965,8 @@ void EmitNew(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* f
             if (pnode->sxCall.spreadArgCount > 0)
             {
                 Assert(spreadIndices != nullptr);
-                uint spreadExtraAlloc = spreadIndices->count * sizeof(uint32);
-                uint spreadIndicesSize = sizeof(*spreadIndices) + spreadExtraAlloc;
+                uint spreadExtraAlloc = UInt32Math::Mul(spreadIndices->count, sizeof(uint32));
+                uint spreadIndicesSize = UInt32Math::Add(sizeof(*spreadIndices), spreadExtraAlloc);
                 byteCodeGenerator->Writer()->CallIExtended(op, funcInfo->AcquireLoc(pnode), pnode->sxCall.pnodeTarget->location,
                     (uint16)actualArgCount, Js::CallIExtended_SpreadArgs,
                     spreadIndices, spreadIndicesSize, callSiteId);
@@ -8367,7 +8369,8 @@ void EmitObjectInitializers(ParseNode *memberList, Js::RegSlot objectLocation, B
     }
     else
     {
-        Js::PropertyIdArray *propIds = AnewPlus(byteCodeGenerator->GetAllocator(), argCount * sizeof(Js::PropertyId), Js::PropertyIdArray, argCount, 0);
+        uint32 allocSize = UInt32Math::Mul(argCount, sizeof(Js::PropertyId));
+        Js::PropertyIdArray *propIds = AnewPlus(byteCodeGenerator->GetAllocator(), allocSize, Js::PropertyIdArray, argCount, 0);
 
         if (propertyIds->ContainsKey(Js::PropertyIds::__proto__))
         {
@@ -8405,11 +8408,11 @@ void EmitObjectInitializers(ParseNode *memberList, Js::RegSlot objectLocation, B
         uint32 literalObjectId = funcInfo->GetParsedFunctionBody()->NewObjectLiteral();
 
         // Generate the opcode with propIds and cacheId
-        byteCodeGenerator->Writer()->Auxiliary(Js::OpCode::NewScObjectLiteral, objectLocation, propIds, sizeof(Js::PropertyIdArray) + argCount * sizeof(Js::PropertyId), literalObjectId);
+        byteCodeGenerator->Writer()->Auxiliary(Js::OpCode::NewScObjectLiteral, objectLocation, propIds, UInt32Math::Add(sizeof(Js::PropertyIdArray), allocSize), literalObjectId);
 
         Adelete(byteCodeGenerator->GetAllocator(), propertyIds);
 
-        AdeletePlus(byteCodeGenerator->GetAllocator(), argCount * sizeof(Js::PropertyId), propIds);
+        AdeletePlus(byteCodeGenerator->GetAllocator(), allocSize, propIds);
     }
 
     memberList = pmemberList;
@@ -8548,7 +8551,12 @@ void SetNewArrayElements(ParseNode *pnode, Js::RegSlot arrayLocation, ByteCodeGe
     bool arrayIntOpt = nativeArrays && pnode->sxArrLit.arrayOfInts;
     if (arrayIntOpt)
     {
-        int extraAlloc = argCount * sizeof(int32);
+        int extraAlloc = 0, auxSize = 0;
+        if (Int32Math::Mul(argCount, sizeof(int32), &extraAlloc)
+            || Int32Math::Add(sizeof(Js::AuxArray<int>), extraAlloc, &auxSize))
+        {
+            ::Math::DefaultOverflowPolicy();
+        }
         Js::AuxArray<int> *ints = AnewPlus(byteCodeGenerator->GetAllocator(), extraAlloc, Js::AuxArray<int32>, argCount);
         EmitConstantArgsToIntArray(byteCodeGenerator, ints->elements, args, argCount);
         Assert(!pnode->sxArrLit.hasMissingValues);
@@ -8556,7 +8564,7 @@ void SetNewArrayElements(ParseNode *pnode, Js::RegSlot arrayLocation, ByteCodeGe
             Js::OpCode::NewScIntArray,
             pnode->location,
             ints,
-            sizeof(Js::AuxArray<int>) + extraAlloc,
+            auxSize,
             argCount);
         AdeletePlus(byteCodeGenerator->GetAllocator(), extraAlloc, ints);
         return;
@@ -8565,7 +8573,12 @@ void SetNewArrayElements(ParseNode *pnode, Js::RegSlot arrayLocation, ByteCodeGe
     bool arrayNumOpt = nativeArrays && pnode->sxArrLit.arrayOfNumbers;
     if (arrayNumOpt)
     {
-        int extraAlloc = argCount * sizeof(double);
+        int extraAlloc = 0, auxSize = 0;
+        if (Int32Math::Mul(argCount, sizeof(double), &extraAlloc)
+            || Int32Math::Add(sizeof(Js::AuxArray<double>), extraAlloc, &auxSize))
+        {
+            ::Math::DefaultOverflowPolicy();
+        }
         Js::AuxArray<double> *doubles = AnewPlus(byteCodeGenerator->GetAllocator(), extraAlloc, Js::AuxArray<double>, argCount);
         EmitConstantArgsToFltArray(byteCodeGenerator, doubles->elements, args, argCount);
         Assert(!pnode->sxArrLit.hasMissingValues);
@@ -8573,7 +8586,7 @@ void SetNewArrayElements(ParseNode *pnode, Js::RegSlot arrayLocation, ByteCodeGe
             Js::OpCode::NewScFltArray,
             pnode->location,
             doubles,
-            sizeof(Js::AuxArray<double>) + extraAlloc,
+            auxSize,
             argCount);
         AdeletePlus(byteCodeGenerator->GetAllocator(), extraAlloc, doubles);
         return;
@@ -8584,7 +8597,7 @@ void SetNewArrayElements(ParseNode *pnode, Js::RegSlot arrayLocation, ByteCodeGe
 
     Js::RegSlot spreadArrLoc = arrayLocation;
     Js::AuxArray<uint32> *spreadIndices = nullptr;
-    const uint extraAlloc = spreadCount * sizeof(uint32);
+    const uint extraAlloc = UInt32Math::Mul(spreadCount, sizeof(uint32));
     if (pnode->sxArrLit.spreadCount > 0)
     {
         arrayLocation = funcInfo->AcquireTmpRegister();
@@ -8632,14 +8645,15 @@ void SetNewArrayElements(ParseNode *pnode, Js::RegSlot arrayLocation, ByteCodeGe
 
         if (arrayLitOpt)
         {
-            Js::VarArray *vars = AnewPlus(byteCodeGenerator->GetAllocator(), argCount * sizeof(Js::Var), Js::VarArray, argCount);
+            uint32 allocSize = UInt32Math::Mul(argCount, sizeof(Js::Var));
+            Js::VarArray *vars = AnewPlus(byteCodeGenerator->GetAllocator(), allocSize, Js::VarArray, argCount);
 
             EmitConstantArgsToVarArray(byteCodeGenerator, vars->elements, args, argCount);
 
             // Generate the opcode with vars
-            byteCodeGenerator->Writer()->Auxiliary(Js::OpCode::StArrSegItem_A, arrLoc, vars, sizeof(Js::VarArray) + argCount * sizeof(Js::Var), argCount);
+            byteCodeGenerator->Writer()->Auxiliary(Js::OpCode::StArrSegItem_A, arrLoc, vars, UInt32Math::Add(sizeof(Js::VarArray), allocSize), argCount);
 
-            AdeletePlus(byteCodeGenerator->GetAllocator(), argCount * sizeof(Js::Var), vars);
+            AdeletePlus(byteCodeGenerator->GetAllocator(), allocSize, vars);
         }
         else
         {
@@ -8709,7 +8723,7 @@ void SetNewArrayElements(ParseNode *pnode, Js::RegSlot arrayLocation, ByteCodeGe
 
     if (pnode->sxArrLit.spreadCount > 0)
     {
-        byteCodeGenerator->Writer()->Reg2Aux(Js::OpCode::SpreadArrayLiteral, spreadArrLoc, arrayLocation, spreadIndices, sizeof(Js::AuxArray<uint32>) + extraAlloc, extraAlloc);
+        byteCodeGenerator->Writer()->Reg2Aux(Js::OpCode::SpreadArrayLiteral, spreadArrLoc, arrayLocation, spreadIndices, UInt32Math::Add(sizeof(Js::AuxArray<uint32>), extraAlloc), extraAlloc);
         AdeletePlus(byteCodeGenerator->GetAllocator(), extraAlloc, spreadIndices);
         funcInfo->ReleaseTmpRegister(arrayLocation);
     }

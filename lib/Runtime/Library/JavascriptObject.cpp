@@ -1900,7 +1900,7 @@ namespace Js
             size_t totalChars;
             if (SizeTAdd(propertyLength, ConstructNameGetSetLength, &totalChars) == S_OK)
             {
-                finalName = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, totalChars);
+                finalName = RecyclerNewArrayLeafZ(scriptContext->GetRecycler(), char16, totalChars);
                 Assert(finalName != nullptr);
                 const char16* propertyName = propertyRecord->GetBuffer();
                 Assert(propertyName != nullptr);

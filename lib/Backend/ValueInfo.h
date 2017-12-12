@@ -153,6 +153,7 @@ public:
     using ValueType::IsLikelyTypedArray;
 
     using ValueType::IsOptimizedTypedArray;
+    using ValueType::IsOptimizedVirtualTypedArray;
     using ValueType::IsLikelyOptimizedTypedArray;
     using ValueType::IsLikelyOptimizedVirtualTypedArray;
 

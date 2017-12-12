@@ -1201,7 +1201,17 @@ namespace UnifiedRegex
     {
         if ((compiler.program->flags & IgnoreCaseRegexFlag) != 0)
         {
-            Char equivs[CaseInsensitive::EquivClassSize];
+            // To ensure initialization, we first default-initialize the
+            // whole array with a constant, and then individually set it
+            // to be just the first character (known to exist). This can
+            // hopefully be optimized to just initialize to cs[0] by the
+            // compiler.
+            Char equivs[CaseInsensitive::EquivClassSize] = { (Char)-1 };
+            for (int i = 0; i < CaseInsensitive::EquivClassSize; i++)
+            {
+                equivs[i] = cs[0];
+
+            }
             bool isNonTrivial = compiler.standardChars->ToEquivs(compiler.program->GetCaseMappingSource(), cs[0], equivs);
             if (isNonTrivial)
             {
@@ -1307,11 +1317,24 @@ namespace UnifiedRegex
     {
         if (isEquivClass)
         {
-            Char uniqueEquivs[CaseInsensitive::EquivClassSize];
+            // To ensure initialization, we first default-initialize the
+            // whole array with a constant, and then individually set it
+            // to be just the first character (known to exist). This can
+            // hopefully be optimized to just initialize to cs[0] by the
+            // compiler.
+            Char uniqueEquivs[CaseInsensitive::EquivClassSize] = { (Char)-1 };
+            for (int i = 0; i < CaseInsensitive::EquivClassSize; i++)
+            {
+                uniqueEquivs[i] = cs[0];
+            }
             CharCount uniqueEquivCount = FindUniqueEquivs(cs, uniqueEquivs);
             AssertOrFailFastMsg(uniqueEquivCount >= 2, "Equivalence classes should have at least two entries!");
             switch (uniqueEquivCount)
             {
+            case 1:
+                EMIT(compiler, MatchCharInst, uniqueEquivs[0]);
+                break;
+
             case 2:
                 EMIT(compiler, MatchChar2Inst, uniqueEquivs[0], uniqueEquivs[1]);
                 break;
