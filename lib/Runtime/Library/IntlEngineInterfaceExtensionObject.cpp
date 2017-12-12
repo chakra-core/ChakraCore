@@ -679,21 +679,28 @@ namespace Js
         char16 normalized[ULOC_FULLNAME_CAPACITY] = { 0 };
         size_t normalizedLength = 0;
         hr = NormalizeLanguageTag(argString->GetSz(), argString->GetLength(), normalized, &normalizedLength);
-        retVal = Js::JavascriptString::NewCopyBuffer(normalized, static_cast<charcount_t>(normalizedLength), scriptContext);
-#else
-        AutoHSTRING str;
-        hr = GetWindowsGlobalizationAdapter(scriptContext)->NormalizeLanguageTag(scriptContext, argString->GetSz(), &str);
-        DelayLoadWindowsGlobalization *wsl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
-        PCWSTR strBuf = wsl->WindowsGetStringRawBuffer(*str, NULL);
-        retVal = Js::JavascriptString::NewCopySz(strBuf, scriptContext);
-#endif
-
         if (FAILED(hr))
         {
             HandleOOMSOEHR(hr);
             //If we can't normalize the tag; return undefined.
             return scriptContext->GetLibrary()->GetUndefined();
         }
+
+        retVal = Js::JavascriptString::NewCopyBuffer(normalized, static_cast<charcount_t>(normalizedLength), scriptContext);
+#else
+        AutoHSTRING str;
+        hr = GetWindowsGlobalizationAdapter(scriptContext)->NormalizeLanguageTag(scriptContext, argString->GetSz(), &str);
+        if (FAILED(hr))
+        {
+            HandleOOMSOEHR(hr);
+            //If we can't normalize the tag; return undefined.
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        DelayLoadWindowsGlobalization *wsl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
+        PCWSTR strBuf = wsl->WindowsGetStringRawBuffer(*str, NULL);
+        retVal = Js::JavascriptString::NewCopySz(strBuf, scriptContext);
+#endif
 
         return retVal;
     }
