@@ -329,7 +329,10 @@ GetTickCount64Fallback()
 {
     ULONGLONG retval = 0;
 
-#if HAVE_CLOCK_MONOTONIC_COARSE || HAVE_CLOCK_MONOTONIC
+    // The `__APPLE__` below is unlikely. However, if osx future version
+    // supports one of the clock types below, we may miss that and
+    // break backward compatibility.
+#if !defined(__APPLE__) && (HAVE_CLOCK_MONOTONIC_COARSE || HAVE_CLOCK_MONOTONIC)
     {
         clockid_t clockType =
 #if HAVE_CLOCK_MONOTONIC_COARSE
