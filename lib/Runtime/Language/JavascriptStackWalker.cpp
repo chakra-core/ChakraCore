@@ -737,7 +737,7 @@ namespace Js
         }
 
         // If we're at the entry from a host frame, hop to the frame from which we left the script.
-        if (this->currentFrame.GetAddressOfInstructionPointer() == this->entryExitRecord->addrOfReturnAddrOfScriptEntryFunction)
+        if (AlignAndCheckAddressOfReturnAddressMatch(this->currentFrame.GetAddressOfInstructionPointer(), this->entryExitRecord->addrOfReturnAddrOfScriptEntryFunction))
         {
             BOOL hasCaller = this->entryExitRecord->hasCaller || this->forceFullWalk;
 
@@ -874,7 +874,7 @@ namespace Js
         return false;
     }
 
-    bool AlignAndCheckAddressOfReturnAddressMatch(void* addressOfReturnAddress, void* nativeLibraryEntryAddress)
+    bool JavascriptStackWalker::AlignAndCheckAddressOfReturnAddressMatch(void* addressOfReturnAddress, void* nativeLibraryEntryAddress)
     {
         return addressOfReturnAddress == nativeLibraryEntryAddress
 #if defined(_M_IX86)
@@ -883,7 +883,7 @@ namespace Js
             // return address offset by 4, 8, or 12.
             || (((uint)nativeLibraryEntryAddress - (uint)addressOfReturnAddress < 0x10) &&
                 *(void**)addressOfReturnAddress == *(void**)nativeLibraryEntryAddress
-               )
+                )
 #endif
             ;
     }
