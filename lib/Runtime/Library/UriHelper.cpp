@@ -225,7 +225,7 @@ namespace Js
                 uint32 utfLen = ToUTF8(uVal, bUTF8);
                 for( uint32 j = 0; j < utfLen; j++ )
                 {
-#pragma prefast(suppress: 26014, "buffer length was calculated earlier");
+#pragma prefast(disable: 26014, "buffer length was calculated earlier");
                     BYTE val = bUTF8[j];
                     *outCurrent++ = _u('%');
                     *outCurrent++ = hexStream[(val >> 4)];
