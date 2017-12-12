@@ -126,6 +126,7 @@ public:
 
     bool HasBeenFloat() const;
     bool IsFloat() const;
+    bool IsNotFloat() const;
     bool IsLikelyFloat() const;
 
     bool HasBeenNumber() const;

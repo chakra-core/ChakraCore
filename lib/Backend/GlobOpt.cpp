@@ -6597,7 +6597,7 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
     {
         // NaN !== NaN, and objects can have valueOf/toString
         return val1->IsEqualTo(val2) &&
-            val1->GetValueInfo()->IsPrimitive() && !val1->GetValueInfo()->IsFloat();
+            val1->GetValueInfo()->IsPrimitive() && val1->GetValueInfo()->IsNotFloat();
     };
 
     // Make sure GetConstantVar only returns primitives.

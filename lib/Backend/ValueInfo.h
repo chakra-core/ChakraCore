@@ -89,6 +89,7 @@ public:
 
     using ValueType::HasBeenFloat;
     using ValueType::IsFloat;
+    using ValueType::IsNotFloat;
     using ValueType::IsLikelyFloat;
 
     using ValueType::HasBeenNumber;
