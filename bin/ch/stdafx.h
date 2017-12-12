@@ -75,6 +75,7 @@ if (!(exp)) \
 #endif //defined(DBG)
 
 #define Assert(exp)             AssertMsg(exp, #exp)
+#define AnalysisAssert(exp)     Assert(exp)
 #define _JSRT_
 #include "ChakraCore.h"
 #include "Core/CommonTypedefs.h"
