@@ -45,7 +45,7 @@
 <test>
   <default>
     <files>comparisonTests.js</files>
-    <compile-flags> -wasm -wasmsimd</compile-flags>
+    <compile-flags> -wasm -wasmsimd -off:jitloopbody</compile-flags>
   </default>
 </test>
 <test>
