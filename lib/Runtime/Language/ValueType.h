@@ -168,6 +168,10 @@ public:
     bool IsPrimitive() const;
     bool IsLikelyPrimitive() const;
 
+#if DBG
+    bool IsSimilar(ValueType v) const;
+#endif
+
 #if ENABLE_NATIVE_CODEGEN
 // SIMD_JS
     bool IsSimd128() const;
