@@ -7,6 +7,11 @@
   </test>
   <test>
     <default>
+      <files>bug41530.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bug70.js</files>
     </default>
   </test>
