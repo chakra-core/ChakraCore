@@ -1364,6 +1364,7 @@
   <test>
     <default>
       <files>moduleUrlInError.js</files>
+      <tags>exclude_sanitize_address</tags>
     </default>
   </test>
   <test>
