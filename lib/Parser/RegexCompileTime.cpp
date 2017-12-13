@@ -1328,7 +1328,6 @@ namespace UnifiedRegex
                 uniqueEquivs[i] = cs[0];
             }
             CharCount uniqueEquivCount = FindUniqueEquivs(cs, uniqueEquivs);
-            AssertOrFailFastMsg(uniqueEquivCount >= 2, "Equivalence classes should have at least two entries!");
             switch (uniqueEquivCount)
             {
             case 1:
