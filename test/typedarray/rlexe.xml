@@ -2,6 +2,13 @@
 <regress-exe>
   <test>
     <default>
+      <files>likely.js</files>
+      <compile-flags>-bgjit- -lic:1</compile-flags>
+      <tags>typedarray</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>arraybuffer.js</files>
       <baseline>arrayBuffer.baseline</baseline>
       <tags>typedarray</tags>

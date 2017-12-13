@@ -510,6 +510,13 @@ bool ValueType::IsLikelyPrimitive() const
     return result;
 }
 
+bool ValueType::IsSimilar(ValueType v) const
+{
+    // Remove bits we don't care for comparison
+    ValueType left = Verify(bits & ~(Bits::NoMissingValues | Bits::CanBeTaggedValue | Bits::Likely));
+    ValueType right = Verify(v.bits & ~(Bits::NoMissingValues | Bits::CanBeTaggedValue | Bits::Likely));
+    return left == right;
+}
 
 bool ValueType::HasBeenObject() const
 {
