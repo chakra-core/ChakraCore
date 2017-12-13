@@ -69,6 +69,7 @@
 <dir>
   <default>
     <files>Intl</files>
+    <tags>exclude_sanitize_address</tags>
   </default>
 </dir>
 <dir>
@@ -312,13 +313,13 @@
 <dir>
   <default>
     <files>TTExecuteBasic</files>
-    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized,require_debugger</tags>
+    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized,require_debugger,exclude_sanitize_address</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>TTBasic</files>
-    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized,require_debugger</tags>
+    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized,require_debugger,exclude_sanitize_address</tags>
   </default>
 </dir>
 <dir>
