@@ -2885,6 +2885,7 @@ LABEL1:
         // and foo.arguments[n] will be maintained after this object is returned.
 
         JavascriptStackWalker walker(scriptContext);
+        walker.SetDeepCopyForArguments();
 
         if (walker.WalkToTarget(this))
         {

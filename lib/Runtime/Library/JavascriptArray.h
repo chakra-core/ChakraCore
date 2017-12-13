@@ -425,7 +425,7 @@ namespace Js
         JavascriptArray(uint32 length, DynamicType * type);
 
         // For BoxStackInstance
-        JavascriptArray(JavascriptArray * instance, bool boxHead);
+        JavascriptArray(JavascriptArray * instance, bool boxHead, bool deepCopy);
 
         template<typename T> inline void LinkSegments(SparseArraySegment<T>* prev, SparseArraySegment<T>* current);
         template<typename T> inline SparseArraySegment<T>* ReallocNonLeafSegment(SparseArraySegment<T>* seg, SparseArraySegmentBase* nextSeg, bool forceNonLeaf = false);
@@ -897,11 +897,11 @@ namespace Js
         static Var SpreadArrayArgs(Var arrayToSpread, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext);
         static uint32 GetSpreadArgLen(Var spreadArg, ScriptContext *scriptContext);
 
-        static JavascriptArray * BoxStackInstance(JavascriptArray * instance);
+        static JavascriptArray * BoxStackInstance(JavascriptArray * instance, bool deepCopy);
     protected:
-        template <typename T> void InitBoxedInlineHeadSegment(SparseArraySegment<T> * dst, SparseArraySegment<T> * src);
+        template <typename T> void InitBoxedInlineSegments(SparseArraySegment<T> * dst, SparseArraySegment<T> * src, bool deepCopy);
 
-        template <typename T> static T * BoxStackInstance(T * instance);
+        template <typename T> static T * BoxStackInstance(T * instance, bool deepCopy);
 
     public:
         template<class T, uint InlinePropertySlots> static size_t DetermineAllocationSize(const uint inlineElementSlots, size_t *const allocationPlusSizeRef = nullptr, uint *const alignedInlineElementSlotsRef = nullptr);
@@ -1019,7 +1019,7 @@ namespace Js
             JavascriptNativeArray(length, type) {}
 
         // For BoxStackInstance
-        JavascriptNativeIntArray(JavascriptNativeIntArray * instance, bool boxHead);
+        JavascriptNativeIntArray(JavascriptNativeIntArray * instance, bool boxHead, bool deepCopy);
     public:
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewInstance(RecyclableObject* function, Arguments args);
@@ -1077,7 +1077,7 @@ namespace Js
             return LibraryValue::ValueNativeIntArrayType;
         }
         static DynamicType * GetInitialType(ScriptContext * scriptContext);
-        static JavascriptNativeIntArray * BoxStackInstance(JavascriptNativeIntArray * instance);
+        static JavascriptNativeIntArray * BoxStackInstance(JavascriptNativeIntArray * instance, bool deepCopy);
     private:
         virtual int32 HeadSegmentIndexOfHelper(Var search, uint32 &fromIndex, uint32 toIndex, bool includesAlgorithm, ScriptContext * scriptContext) override;
 
@@ -1182,7 +1182,7 @@ namespace Js
             JavascriptNativeArray(length, type) {}
 
         // For BoxStackInstance
-        JavascriptNativeFloatArray(JavascriptNativeFloatArray * instance, bool boxHead);
+        JavascriptNativeFloatArray(JavascriptNativeFloatArray * instance, bool boxHead, bool deepCopy);
 
     public:
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
@@ -1244,7 +1244,7 @@ namespace Js
         static DynamicType * GetInitialType(ScriptContext * scriptContext);
 
         static Var Push(ScriptContext * scriptContext, Var * nativeFloatArray, double value);
-        static JavascriptNativeFloatArray * BoxStackInstance(JavascriptNativeFloatArray * instance);
+        static JavascriptNativeFloatArray * BoxStackInstance(JavascriptNativeFloatArray * instance, bool deepCopy);
         static double Pop(ScriptContext * scriptContext, Var nativeFloatArray);
     private:
         virtual int32 HeadSegmentIndexOfHelper(Var search, uint32 &fromIndex, uint32 toIndex, bool includesAlgorithm, ScriptContext * scriptContext) override;

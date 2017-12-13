@@ -9790,7 +9790,7 @@ CommonNumber:
     }
 
     Js::Var
-    JavascriptOperators::BoxStackInstance(Js::Var instance, ScriptContext * scriptContext, bool allowStackFunction)
+    JavascriptOperators::BoxStackInstance(Js::Var instance, ScriptContext * scriptContext, bool allowStackFunction, bool deepCopy)
     {
         if (!ThreadContext::IsOnStack(instance) || (allowStackFunction && !TaggedNumber::Is(instance) && (*(int*)instance & 1)))
         {
@@ -9812,11 +9812,11 @@ CommonNumber:
         case Js::TypeIds_Object:
             return DynamicObject::BoxStackInstance(DynamicObject::FromVar(instance));
         case Js::TypeIds_Array:
-            return JavascriptArray::BoxStackInstance(JavascriptArray::FromVar(instance));
+            return JavascriptArray::BoxStackInstance(JavascriptArray::FromVar(instance), deepCopy);
         case Js::TypeIds_NativeIntArray:
-            return JavascriptNativeIntArray::BoxStackInstance(JavascriptNativeIntArray::FromVar(instance));
+            return JavascriptNativeIntArray::BoxStackInstance(JavascriptNativeIntArray::FromVar(instance), deepCopy);
         case Js::TypeIds_NativeFloatArray:
-            return JavascriptNativeFloatArray::BoxStackInstance(JavascriptNativeFloatArray::FromVar(instance));
+            return JavascriptNativeFloatArray::BoxStackInstance(JavascriptNativeFloatArray::FromVar(instance), deepCopy);
         case Js::TypeIds_Function:
             Assert(allowStackFunction);
             // Stack functions are deal with not mar mark them, but by nested function escape analysis
