@@ -3499,15 +3499,13 @@ GetTestInfoFromNode
                   return FALSE;
                }
 
-               if (TestTimeout != NULL)
-               {
-                   // Overriding the timeout value with the command line value
-                   testInfo->data[i] = TestTimeout;
-               }
             }
-
-            
          }
+      }
+      if (i == TIK_TIMEOUT && TestTimeout != NULL)
+      {
+          // Overriding the timeout value with the command line value
+          testInfo->data[i] = TestTimeout;
       }
    }
 
