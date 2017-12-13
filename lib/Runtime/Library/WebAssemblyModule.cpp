@@ -175,8 +175,14 @@ Var WebAssemblyModule::EntryCustomSections(RecyclableObject* function, CallInfo 
 
     WebAssemblyModule * module = WebAssemblyModule::FromVar(args[1]);
     Var customSections = nullptr;
+    // C++ compiler optimizations can optimize away the sectionName variable while still keeping a reference to the underlying
+    // character buffer sectionNameBuf. The character buffer itself is managed by the recycler; however; we may move past the
+    // start of the character buffer while doing the comparison in memcmp. If a GC happens during CreateArrayBuffer, the character
+    // buffer can get collected as we don't have a reference to the start of the buffer on the stack anymore. To avoid this we need 
+    // to pin sectionName.
     ENTER_PINNED_SCOPE(JavascriptString, sectionName);
     sectionName = JavascriptConversion::ToString(sectionNameVar, scriptContext);
+
     const char16* sectionNameBuf = sectionName->GetString();
     charcount_t sectionNameLength = sectionName->GetLength();
 
