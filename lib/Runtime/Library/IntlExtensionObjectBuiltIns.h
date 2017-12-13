@@ -30,6 +30,7 @@ INTL_ENTRY(currencyDigits, CurrencyDigits)
 INTL_ENTRY(formatDateTime, FormatDateTime)
 INTL_ENTRY(validateAndCanonicalizeTimeZone, ValidateAndCanonicalizeTimeZone)
 INTL_ENTRY(getDefaultTimeZone, GetDefaultTimeZone)
+INTL_ENTRY(getPatternForSkeleton, GetPatternForSkeleton)
 
 INTL_ENTRY(registerBuiltInFunction, RegisterBuiltInFunction)
 INTL_ENTRY(getHiddenObject, GetHiddenObject)

@@ -1673,7 +1673,7 @@ namespace Js
         {
             JavascriptString *locale = nullptr;
             JavascriptString *timeZone = nullptr;
-            JavascriptString *skeleton = nullptr;
+            JavascriptString *pattern = nullptr;
 
             Var propertyValue = nullptr; // set by the GetTypedPropertyBuiltInFrom macro
             
@@ -1687,20 +1687,16 @@ namespace Js
                 timeZone = JavascriptString::UnsafeFromVar(propertyValue);
             }
 
-            if (GetTypedPropertyBuiltInFrom(state, skeleton, JavascriptString))
+            if (GetTypedPropertyBuiltInFrom(state, pattern, JavascriptString))
             {
-                skeleton = JavascriptString::UnsafeFromVar(propertyValue);
+                pattern = JavascriptString::UnsafeFromVar(propertyValue);
             }
 
-            AssertOrFailFast(timeZone != nullptr && locale != nullptr && skeleton != nullptr);
+            AssertOrFailFast(timeZone != nullptr && locale != nullptr && pattern != nullptr);
 
             utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
 
-            int patternLen = GetPatternForSkeleton(locale8, skeleton->GetSz());
-            char16 *pattern = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, patternLen);
-            GetPatternForSkeleton(locale8, skeleton->GetSz(), pattern, patternLen);
-
-            CreateDateTimeFormat(locale8, timeZone->GetSz(), pattern, &dtf);
+            CreateDateTimeFormat(locale8, timeZone->GetSz(), pattern->GetSz(), &dtf);
             state->SetInternalProperty(
                 InternalPropertyIds::HiddenObject,
                 AutoIcuJsObject<IPlatformAgnosticResource>::New(scriptContext->GetRecycler(), dtf),
@@ -1724,7 +1720,11 @@ namespace Js
             int i = 0;
             while (GetDateTimePartInfo(fieldIterator, &partStart, &partEnd, &partKind))
             {
-                JavascriptString *partValue = JavascriptString::NewCopyBuffer(formatted + partStart, partEnd - partStart, scriptContext);
+                JavascriptString *partValue = JavascriptString::NewCopyBuffer(
+                    formatted + partStart,
+                    partEnd - partStart,
+                    scriptContext
+                );
 
                 const char16 *partKindStr = GetDateTimePartKind(partKind);
                 JavascriptString *partType = JavascriptString::NewCopySz(partKindStr, scriptContext);
@@ -1744,6 +1744,27 @@ namespace Js
             FormatDateTime(dtf, x, formatted, required);
             return JavascriptString::NewWithBuffer(formatted, required - 1, scriptContext);
         }
+#endif
+    }
+
+    Var IntlEngineInterfaceExtensionObject::EntryIntl_GetPatternForSkeleton(RecyclableObject *function, CallInfo callInfo, ...)
+    {
+#ifdef INTL_ICU
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+        INTL_CHECK_ARGS(args.Info.Count == 3 && JavascriptString::Is(args.Values[1]) && JavascriptString::Is(args.Values[2]));
+
+        JavascriptString *locale = JavascriptString::UnsafeFromVar(args.Values[1]);
+        JavascriptString *skeleton = JavascriptString::UnsafeFromVar(args.Values[2]);
+        utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
+
+        int patternLen = GetPatternForSkeleton(locale8, skeleton->GetSz());
+        char16 *pattern = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, patternLen);
+        GetPatternForSkeleton(locale8, skeleton->GetSz(), pattern, patternLen);
+
+        return JavascriptString::NewWithBuffer(pattern, patternLen - 1, scriptContext);
+#else
+        AssertOrFailFastMsg(false, "GetPatternForSkeleton is not implemented outside of ICU");
+        return nullptr;
 #endif
     }
 

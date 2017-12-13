@@ -5,7 +5,6 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
-// NOTE: \u200e is the U+200E LEFT-TO-RIGHT MARK
 var tests = [
     {
         name: "Test Invalid Options",
