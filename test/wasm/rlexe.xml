@@ -170,7 +170,7 @@
     <files>params.js</files>
     <baseline>baselines/params.baseline</baseline>
     <compile-flags>-wasm -EnableFatalErrorOnOOM- -args 14000 -endargs</compile-flags>
-    <tags>exclude_jshost,exclude_drt,exclude_win7,exclude_dynapogo</tags>
+    <tags>exclude_jshost,exclude_drt,exclude_win7,exclude_dynapogo,exclude_sanitize_address</tags>
   </default>
 </test>
 <test>
