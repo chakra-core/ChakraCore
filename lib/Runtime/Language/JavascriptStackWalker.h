@@ -231,6 +231,7 @@ namespace Js
         bool GetSourcePosition(const WCHAR** sourceFileName, ULONG* line, LONG* column);
 
         static bool TryIsTopJavaScriptFrameNative(ScriptContext* scriptContext, bool* istopFrameNative, bool ignoreLibraryCode = false);
+        static bool AlignAndCheckAddressOfReturnAddressMatch(void* addressOfReturnAddress, void* nativeLibraryEntryAddress);
 
 #if ENABLE_NATIVE_CODEGEN
         void ClearCachedInternalFrameInfo();
