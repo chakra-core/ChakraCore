@@ -1516,4 +1516,9 @@
     <compile-flags>-off:deferparse -args summary -endargs -deferparse -forceundodefer</compile-flags>
   </default>
 </test>
+<test>
+  <default>
+    <files>function-expr-capture.js</files>
+  </default>
+</test>
 </regress-exe>

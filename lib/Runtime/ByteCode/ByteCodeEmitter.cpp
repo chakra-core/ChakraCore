@@ -3535,6 +3535,10 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                 funcInfo->paramScope->AddSymbol(sym);
             }
             sym->EnsureScopeSlot(funcInfo);
+            if (sym->GetHasNonLocalReference())
+            {
+                sym->GetScope()->SetHasOwnLocalInClosure(true);
+            }
         }
     }
 
