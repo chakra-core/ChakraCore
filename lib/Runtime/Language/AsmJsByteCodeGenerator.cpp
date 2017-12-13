@@ -1024,7 +1024,7 @@ namespace Js
         AsmJsFunctionDeclaration* sym = mCompiler->LookupFunction(funcName);
         if( !sym )
         {
-            throw AsmJsCompilationException( _u("Undefined function %s"), funcName );
+            throw AsmJsCompilationException( _u("Undefined function %s"), funcName->Psz() );
         }
 
 
@@ -1266,8 +1266,13 @@ namespace Js
             LoadModuleFFI( AsmJsFunctionMemory::FunctionRegister, sym->GetFunctionIndex() );
             break;
         case AsmJsSymbol::FuncPtrTable:
-            LoadModuleFunctionTable( AsmJsFunctionMemory::FunctionRegister, sym->GetFunctionIndex(), funcTableIndexRegister );
+            // Make sure the user is not trying to call the function table directly
+            if (funcTableIndexRegister == Constants::NoRegister)
+            {
+                throw AsmJsCompilationException(_u("Direct call to function table '%s' is not allowed"), funcName->Psz());
+            }
             mFunction->ReleaseTmpRegister<int>( funcTableIndexRegister );
+            LoadModuleFunctionTable( AsmJsFunctionMemory::FunctionRegister, sym->GetFunctionIndex(), funcTableIndexRegister );
             break;
         default:
             Assert( false );
