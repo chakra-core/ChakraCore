@@ -9,16 +9,43 @@ class Lifetime
 {
 public:
 
-    Lifetime(JitArenaAllocator * alloc, StackSym *sym, RegNum reg, uint32 start, uint32 end, Func *func)
-        : sym(sym), reg(reg), start(start), end(end), previousDefBlockNumber(0), defList(alloc),
-        useList(alloc), lastUseLabel(NULL), region(NULL), isSpilled(false), useCount(0), useCountAdjust(0), allDefsCost(0), isLiveAcrossCalls(false),
-        isLiveAcrossUserCalls(false), isDeadStore(true), isOpHelperSpilled(false), cantOpHelperSpill(false), isOpHelperSpillAsArg(false),
-        isFloat(0), cantSpill(false), dontAllocate(false), isSecondChanceAllocated(false), isCheapSpill(false), spillStackSlot(NULL),
-          totalOpHelperLengthByEnd(0), needsStoreCompensation(false), alloc(alloc), regionUseCount(NULL), regionUseCountAdjust(NULL),
-          cantStackPack(false)
+    Lifetime(JitArenaAllocator * alloc, StackSym *sym, RegNum reg, uint32 start, uint32 end)
+        :
+        sym(sym),
+        regionUseCount(nullptr),
+        regionUseCountAdjust(nullptr),
+        defList(alloc),
+        useList(alloc),
+        lastUseLabel(nullptr),
+        region(nullptr),
+        spillStackSlot(nullptr),
+        alloc(alloc),
+        intUsageBv(0),
+        regPreference(0),
+        start(start),
+        end(end),
+        previousDefBlockNumber(0),
+        useCount(0),
+        useCountAdjust(0),
+        allDefsCost(0),
+        lastAllocationStart(0),
+        reg(reg),
+        totalOpHelperLengthByEnd(0),
+        isSpilled(false),
+        isLiveAcrossCalls(false),
+        isLiveAcrossUserCalls(false),
+        isDeadStore(true),
+        isOpHelperSpilled(false),
+        isOpHelperSpillAsArg(false),
+        cantOpHelperSpill(false),
+        cantSpill(false),
+        dontAllocate(false),
+        isSecondChanceAllocated(false),
+        isCheapSpill(false),
+        needsStoreCompensation(false),
+        cantStackPack(false),
+        isFloat(false)
     {
-        intUsageBv.ClearAll();
-        regPreference.ClearAll();
     }
 
 public:

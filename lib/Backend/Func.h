@@ -28,7 +28,8 @@ struct Cloner
         lowerer(lowerer),
         instrFirst(nullptr),
         instrLast(nullptr),
-        fRetargetClonedBranch(FALSE)
+        fRetargetClonedBranch(FALSE),
+        clonedInstrGetOrigArgSlotSym(false)
     {
     }
 
@@ -48,13 +49,13 @@ struct Cloner
     void Finish();
     void RetargetClonedBranches();
 
+    JitArenaAllocator *alloc;
     HashTable<StackSym*> *symMap;
     HashTable<IR::LabelInstr*> *labelMap;
     Lowerer * lowerer;
     IR::Instr * instrFirst;
     IR::Instr * instrLast;
     BOOL fRetargetClonedBranch;
-    JitArenaAllocator *alloc;
     bool clonedInstrGetOrigArgSlotSym;
 };
 
