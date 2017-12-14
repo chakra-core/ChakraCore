@@ -20,7 +20,7 @@ void EnsureSimdIsEnabled()
 {
     if (!Wasm::Simd::IsEnabled())
     {
-        throw WasmCompilationException(_u("Wasm.Simd is not supported"));
+        throw WasmCompilationException(_u("Wasm.Simd support is not enabled"));
     }
 }
 }

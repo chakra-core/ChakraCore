@@ -13,7 +13,7 @@ namespace Wasm
         typedef uint32 simdvec [VEC_WIDTH]; //TODO: maybe we should pull in SIMDValue?
         const size_t MAX_LANES = 16;
         void EnsureSimdIsEnabled();
-        constexpr bool IsEnabled() {
+        bool IsEnabled() {
 #ifdef ENABLE_WASM_SIMD
             return CONFIG_FLAG(WasmSimd);
 #else
