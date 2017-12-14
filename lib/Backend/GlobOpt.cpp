@@ -15399,6 +15399,24 @@ GlobOpt::CheckJsArrayKills(IR::Instr *const instr)
             }
             break;
         }
+
+        case Js::OpCode::InitProto:
+        {
+            // Find the 'this' parameter and check if it's possible for it to be an array
+            IR::Opnd *const arrayOpnd = instr->GetSrc1();
+            Assert(arrayOpnd);
+            const ValueType arrayValueType(arrayOpnd->GetValueType());
+            if(!arrayOpnd->IsRegOpnd() || (useValueTypes && arrayValueType.IsNotArrayOrObjectWithArray()))
+            {
+                break;
+            }
+
+            if(doNativeArrayTypeSpec && !(useValueTypes && arrayValueType.IsNotNativeArray()))
+            {
+                kills.SetKillsNativeArrays();
+            }
+            break;
+        }            
     }
 
     return kills;
