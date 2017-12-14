@@ -270,8 +270,15 @@ ServerInitializeThreadContext(
     }
     catch (Js::OutOfMemoryException)
     {
-        if (!contextInfo)
+        if (contextInfo)
         {
+            // If we OOM while registering the ThreadContext, we need to free it
+            HeapDelete(contextInfo);
+        }
+        else
+        {
+            // If we OOM while creating the ThreadContext, then we haven't transfered ownership
+            // of the ProcessContext reference, so we must release it here
             processContext->Release();
         }
         return E_OUTOFMEMORY;
@@ -870,7 +877,7 @@ ProcessContextManager::RegisterNewProcess(DWORD pid, HANDLE processHandle, intpt
     {
         ProcessContext* context = iter.CurrentValue();
         // We can delete a ProcessContext if no ThreadContexts refer to it and the process is terminated
-        if (!context->HasRef() && WaitForSingleObject(context->processHandle, 0) != WAIT_TIMEOUT)
+        if (!context->HasRef() && WaitForSingleObject(context->processHandle, 0) == WAIT_OBJECT_0)
         {
             iter.RemoveCurrent();
             HeapDelete(context);
@@ -882,15 +889,21 @@ ProcessContextManager::RegisterNewProcess(DWORD pid, HANDLE processHandle, intpt
         return E_ACCESSDENIED;
     }
 
+    ProcessContext* context = nullptr;
     try
     {
         AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory));
 
-        ProcessContext* context = HeapNew(ProcessContext, processHandle, chakraBaseAddress, crtBaseAddress);
+        context = HeapNew(ProcessContext, processHandle, chakraBaseAddress, crtBaseAddress);
         ProcessContexts.Add(pid, context);
     }
     catch (Js::OutOfMemoryException)
     {
+        if (context != nullptr)
+        {
+            // If we OOM while registering the ProcessContext, we should free it
+            HeapDelete(context);
+        }
         return E_OUTOFMEMORY;
     }
 
