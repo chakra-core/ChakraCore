@@ -869,6 +869,8 @@ namespace Js
         // JavascriptOperators::NewScObject should have thrown if 'v' is not a constructor
         RecyclableObject* functionObj = RecyclableObject::FromVar(v);
 
+        const unsigned STACK_ARGS_ALLOCA_THRESHOLD = 8; // Number of stack args we allow before using _alloca
+        Var stackArgs[STACK_ARGS_ALLOCA_THRESHOLD];
         Var* newValues = args.Values;
         CallFlags newFlags = args.Info.Flags;
 
@@ -886,8 +888,6 @@ namespace Js
             {
                 newCount++;
                 newFlags = (CallFlags)(newFlags | CallFlags_NewTarget | CallFlags_ExtraArg);
-                const unsigned STACK_ARGS_ALLOCA_THRESHOLD = 8; // Number of stack args we allow before using _alloca
-                Var stackArgs[STACK_ARGS_ALLOCA_THRESHOLD];
                 if (newCount > STACK_ARGS_ALLOCA_THRESHOLD)
                 {
                     PROBE_STACK(scriptContext, newCount * sizeof(Var) + Js::Constants::MinStackDefault); // args + function call
