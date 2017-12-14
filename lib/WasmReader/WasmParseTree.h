@@ -12,6 +12,8 @@ namespace Wasm
         const size_t VEC_WIDTH = 4;
         typedef uint32 simdvec [VEC_WIDTH]; //TODO: maybe we should pull in SIMDValue?
         const size_t MAX_LANES = 16;
+        void EnsureSimdIsEnabled();
+        bool IsEnabled();
     }
 
     namespace WasmTypes
@@ -24,7 +26,9 @@ namespace Wasm
             I64 = 2,
             F32 = 3,
             F64 = 4,
+#ifdef ENABLE_WASM_SIMD
             M128 = 5,
+#endif
             Limit,
             Ptr,
             Any

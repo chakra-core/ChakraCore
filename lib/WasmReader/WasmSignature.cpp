@@ -115,10 +115,13 @@ Js::ArgSlot WasmSignature::GetParamSize(Js::ArgSlot index) const
         CompileAssert(sizeof(double) == sizeof(int64));
         return sizeof(int64);
         break;
+#ifdef ENABLE_WASM_SIMD
     case WasmTypes::M128:
+        Wasm::Simd::EnsureSimdIsEnabled();
         CompileAssert(sizeof(Simd::simdvec) == 16);
         return sizeof(Simd::simdvec);
         break;
+#endif
     default:
         throw WasmCompilationException(_u("Invalid param type"));
     }
