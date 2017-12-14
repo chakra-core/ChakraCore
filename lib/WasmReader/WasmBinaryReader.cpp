@@ -20,8 +20,16 @@ void EnsureSimdIsEnabled()
 {
     if (!Wasm::Simd::IsEnabled())
     {
-        throw WasmCompilationException(_u("Wasm.Simd is not supported"));
+        throw WasmCompilationException(_u("Wasm.Simd support is not enabled"));
     }
+}
+bool IsEnabled()
+{
+#ifdef ENABLE_WASM_SIMD
+    return CONFIG_FLAG(WasmSimd);
+#else
+    return false;
+#endif
 }
 }
 
