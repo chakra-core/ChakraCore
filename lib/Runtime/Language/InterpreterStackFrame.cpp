@@ -2081,7 +2081,7 @@ namespace Js
 #if defined(ENABLE_WASM_SIMD) || defined(ENABLE_SIMDJS)
 
 #ifdef ENABLE_WASM_SIMD
-            if (CONFIG_FLAG(WasmSimd))
+            if (Wasm::Simd::IsEnabled())
 #elif ENABLE_SIMDJS
             if (function->GetScriptContext()->GetConfig()->IsSimdjsEnabled())
 #endif
@@ -3126,7 +3126,7 @@ namespace Js
 #endif
 
 #ifdef ENABLE_WASM_SIMD
-                if (CONFIG_FLAG(WasmSimd) && i == 2) // last argument ?
+                if (Wasm::Simd::IsEnabled() && i == 2) // last argument ?
 #endif
 
 #if defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)
@@ -3198,7 +3198,7 @@ namespace Js
 #endif
 
 #ifdef ENABLE_WASM_SIMD
-            else if (CONFIG_FLAG(WasmSimd) && info->GetArgType(i).isSIMD())
+            else if (Wasm::Simd::IsEnabled() && info->GetArgType(i).isSIMD())
 #endif
 
 #if defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)

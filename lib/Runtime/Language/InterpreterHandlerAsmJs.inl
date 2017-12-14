@@ -282,6 +282,8 @@ EXDEF2_WMS( D1toD1Mem, PrintF64, WAsmJs::Tracing::PrintF64 )
 #endif
   //unary ops
 
+#if defined(ENABLE_SIMD_JS) || defined(ENABLE_WASM_SIMD)
+
 EXDEF2_WMS( SIMD_F4_1toF4_1  , Simd128_Ld_F4        , (AsmJsSIMDValue)                                   )
   DEF2_WMS( SIMD_I4_1toI4_1  , Simd128_Ld_I4        , (AsmJsSIMDValue)                                   )
 EXDEF2_WMS( SIMD_B4_1toB4_1  , Simd128_Ld_B4        , (AsmJsSIMDValue)                                   )
@@ -752,5 +754,6 @@ EXDEF3_WMS(CUSTOM_ASMJS, Simd128_LdArr_D2, OP_SimdLdArrGeneric, AsmSimdTypedArr)
 EXDEF3_WMS(CUSTOM_ASMJS, Simd128_LdArrConst_D2, OP_SimdLdArrConstIndex, AsmSimdTypedArr)
 EXDEF3_WMS(CUSTOM_ASMJS, Simd128_StArrConst_D2, OP_SimdStArrConstIndex, AsmSimdTypedArr)
 #endif // 0
+#endif
 
 #endif

@@ -5,13 +5,7 @@
 
 #include "Backend.h"
 
-static IR::Instr* removeInstr(IR::Instr* instr)
-{
-    IR::Instr* prevInstr;
-    prevInstr = instr->m_prev;
-    instr->Remove();
-    return prevInstr;
-}
+static IR::Instr* removeInstr(IR::Instr* instr);
 
 #ifdef ENABLE_SIMDJS
 // FromVar
@@ -447,6 +441,14 @@ IR::Instr* LowererMD::Simd128LowerSelect(IR::Instr *instr)
 #endif
 
 #if defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)
+
+static IR::Instr* removeInstr(IR::Instr* instr)
+{
+    IR::Instr* prevInstr;
+    prevInstr = instr->m_prev;
+    instr->Remove();
+    return prevInstr;
+}
 
 #define GET_SIMDOPCODE(irOpcode) m_simd128OpCodesMap[(uint32)(irOpcode - Js::OpCode::Simd128_Start)]
 
