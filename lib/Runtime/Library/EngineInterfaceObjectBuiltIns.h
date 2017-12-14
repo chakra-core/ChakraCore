@@ -34,6 +34,7 @@ GlobalBuiltIn(JavascriptArray, EntrySlice)
 GlobalBuiltIn(JavascriptArray, EntryConcat)
 
 GlobalBuiltIn(JavascriptFunction, EntryBind)
+GlobalBuiltIn(JavascriptFunction, EntryApply)
 
 GlobalBuiltIn(JavascriptDate, EntryGetDate)
 GlobalBuiltIn(JavascriptDate, EntryNow)

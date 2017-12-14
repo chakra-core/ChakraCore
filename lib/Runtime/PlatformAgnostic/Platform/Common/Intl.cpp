@@ -160,9 +160,12 @@ public:
         isTemporaryBuffer = true; \
     }
 
-
+// UNWRAP_* macros are convenience macros to turn an IPlatformAgnosticResource into the desired innerType
+// UNWRAP_PAIO (PlatformAgnosticIntlObject) should only be called on IPlatformAgnosticResources that were originally
+// created as PlatformAgnosticIntlObjects
+// UNWRAP_C_OBJECT should only be called on IPlatformAgnosticResources that were originally created as IcuCObjects
 #define UNWRAP_PAIO(resource, innerType) reinterpret_cast<PlatformAgnosticIntlObject<innerType> *>(resource)->GetInstance();
-#define UNWRAP_COBJECT(resource, innerType) reinterpret_cast<IcuCObject<innerType> *>(resource)->GetInstance();
+#define UNWRAP_C_OBJECT(resource, innerType) reinterpret_cast<IcuCObject<innerType> *>(resource)->GetInstance();
 
 namespace PlatformAgnostic
 {
@@ -786,7 +789,7 @@ namespace Intl
     int FormatDateTime(_In_ IPlatformAgnosticResource *resource, _In_ double date, _Out_writes_opt_(formattedLen) char16 *formatted, _In_ int formattedLen)
     {
         UErrorCode status = U_ZERO_ERROR;
-        UDateFormat *dtf = UNWRAP_COBJECT(resource, UDateFormat);
+        UDateFormat *dtf = UNWRAP_C_OBJECT(resource, UDateFormat);
 
         int required = udat_format(dtf, date, reinterpret_cast<UChar *>(formatted), formattedLen, nullptr, &status);
         if (formatted == nullptr && formattedLen == 0 && status == U_BUFFER_OVERFLOW_ERROR)
@@ -809,7 +812,7 @@ namespace Intl
         _In_ int formattedLen, _Out_opt_ IPlatformAgnosticResource **fieldIterator)
     {
         UErrorCode status = U_ZERO_ERROR;
-        UDateFormat *dtf = UNWRAP_COBJECT(resource, UDateFormat);
+        UDateFormat *dtf = UNWRAP_C_OBJECT(resource, UDateFormat);
 
         UFieldPositionIterator *fpi = nullptr;
 
@@ -825,7 +828,7 @@ namespace Intl
         int required = udat_formatForFields(dtf, date, reinterpret_cast<UChar *>(formatted), formattedLen, fpi, &status);
         if (formatted == nullptr && formattedLen == 0 && status == U_BUFFER_OVERFLOW_ERROR)
         {
-            // when we are just counting bytes, we can ignore errors
+            // when we are just counting bytes, we can ignore ICU errors
             AssertOrFailFast(required > 0);
         }
         else
@@ -840,7 +843,7 @@ namespace Intl
     // and sets partKind to be the type of the part (really a UDateFormatField -- see GetDateTimePartKind)
     bool GetDateTimePartInfo(_In_ IPlatformAgnosticResource *fieldIterator, _Out_ int *partStart, _Out_ int *partEnd, _Out_ int *partKind)
     {
-        UFieldPositionIterator *fpi = UNWRAP_COBJECT(fieldIterator, UFieldPositionIterator);
+        UFieldPositionIterator *fpi = UNWRAP_C_OBJECT(fieldIterator, UFieldPositionIterator);
 
         *partKind = ufieldpositer_next(fpi, partStart, partEnd);
         return *partKind > 0;

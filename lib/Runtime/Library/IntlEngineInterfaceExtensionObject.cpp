@@ -1588,8 +1588,8 @@ namespace Js
         }
     }
 
-    // for Windows Globalization, this function takes a number (date) and a state object and returns a string
-    // for ICU, this function takes a state object, number, and boolean for whether or not to format to parts.
+    // For Windows Globalization, this function takes a number (date) and a state object and returns a string
+    // For ICU, this function takes a state object, number, and boolean for whether or not to format to parts.
     //   if args.Values[3] ~= true, an array of objects is returned; else, a string is returned
     Var IntlEngineInterfaceExtensionObject::EntryIntl_FormatDateTime(RecyclableObject* function, CallInfo callInfo, ...)
     {
