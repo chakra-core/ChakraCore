@@ -9056,6 +9056,7 @@ Case0:
 
         Assert(args.Info.Count > 0);
 
+        bool isTypedArrayEntryPoint = typedArrayBase != nullptr;
         JavascriptLibrary* library = scriptContext->GetLibrary();
         int64 fromVal = 0;
         int64 toVal = 0;
@@ -9095,6 +9096,28 @@ Case0:
 
         // We shouldn't have made it here if the count was going to be zero
         Assert(count > 0);
+
+        // If we entered via TypedArray.prototype.copyWithin, then we can copy by bytes. Otherwise, if the user called
+        // Array.prototype.copyWithin on a typed array instance, then the typed array might be responsible for not
+        // writing torn values, which memmove does not guarantee.
+        if (isTypedArrayEntryPoint)
+        {
+            Assert(typedArrayBase);
+            Assert(length == typedArrayBase->GetLength());
+
+            uint32 bytesPerElement = typedArrayBase->GetBytesPerElement();
+            byte *buffer = typedArrayBase->GetByteBuffer();
+            size_t fromByteIndex = static_cast<size_t>(fromVal) * bytesPerElement;
+            size_t toByteIndex = static_cast<size_t>(toVal) * bytesPerElement;
+            size_t byteCount = static_cast<size_t>(count) * bytesPerElement;
+
+            Assert(fromByteIndex + byteCount <= typedArrayBase->GetByteLength());
+            Assert(toByteIndex + byteCount <= typedArrayBase->GetByteLength());
+
+            memmove(&buffer[toByteIndex], &buffer[fromByteIndex], byteCount);
+
+            return obj;
+        }
 
         int direction;
 
@@ -9154,7 +9177,7 @@ Case0:
 
             while (count > 0)
             {
-                JS_REENTRANT(jsReentLock, BOOL hasItem = obj->HasItem(fromIndex));
+                JS_REENTRANT(jsReentLock, BOOL hasItem = JavascriptOperators::HasItem(obj, fromIndex));
                 if (hasItem)
                 {
                     if (typedArrayBase)
