@@ -249,6 +249,9 @@ JITManager::ConnectRpcServer(__in HANDLE jitProcessHandle, __in_opt void* server
 
     m_jitConnectionId = connectionUuid;
 
+    hr = ConnectProcess();
+    HandleServerCallResult(hr, RemoteCallType::StateUpdate);
+
     return hr;
 
 FailureCleanup:
@@ -286,11 +289,45 @@ JITManager::Shutdown()
 }
 
 HRESULT
+JITManager::ConnectProcess()
+{
+    Assert(IsOOPJITEnabled());
+
+#ifdef USE_RPC_HANDLE_MARSHALLING
+    HANDLE processHandle;
+    if (!DuplicateHandle(GetCurrentProcess(), GetCurrentProcess(), GetCurrentProcess(), &processHandle, 0, false, DUPLICATE_SAME_ACCESS))
+    {
+        return false;
+    }
+#endif
+
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientConnectProcess(
+            m_rpcBindingHandle,
+#ifdef USE_RPC_HANDLE_MARSHALLING
+            processHandle,
+#endif
+            (intptr_t)AutoSystemInfo::Data.GetChakraBaseAddr(),
+            (intptr_t)AutoSystemInfo::Data.GetCRTHandle());
+    }
+        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+#ifdef USE_RPC_HANDLE_MARSHALLING
+    CloseHandle(processHandle);
+#endif
+
+    return hr;
+}
+
+HRESULT
 JITManager::InitializeThreadContext(
     __in ThreadContextDataIDL * data,
-#ifdef USE_RPC_HANDLE_MARSHALLING
-    __in HANDLE processHandle,
-#endif
     __out PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
     __out intptr_t * prereservedRegionAddr,
     __out intptr_t * jitThunkAddr)
@@ -303,9 +340,6 @@ JITManager::InitializeThreadContext(
         hr = ClientInitializeThreadContext(
             m_rpcBindingHandle,
             data,
-#ifdef USE_RPC_HANDLE_MARSHALLING
-            processHandle,
-#endif
             threadContextInfoAddress,
             prereservedRegionAddr,
             jitThunkAddr);

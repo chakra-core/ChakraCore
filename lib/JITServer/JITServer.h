@@ -3,10 +3,23 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
+class ProcessContextManager
+{
+private:
+
+    static BaseDictionary<DWORD, ProcessContext*, HeapAllocator> ProcessContexts;
+    static CriticalSection cs;
+
+public:
+    static HRESULT RegisterNewProcess(DWORD pid, HANDLE processHandle, intptr_t chakraBaseAddress, intptr_t crtBaseAddress);
+    static ProcessContext* GetProcessContext(DWORD pid);
+};
+
 class ServerContextManager
 {
 public:
     static void RegisterThreadContext(ServerThreadContext* threadContext);
+
     static void UnRegisterThreadContext(ServerThreadContext* threadContext);
 
     static void RegisterScriptContext(ServerScriptContext* scriptContext);

@@ -1986,18 +1986,7 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
         return true;
     }
 
-#ifdef USE_RPC_HANDLE_MARSHALLING
-    HANDLE processHandle;
-    if (!DuplicateHandle(GetCurrentProcess(), GetCurrentProcess(), GetCurrentProcess(), &processHandle, 0, false, DUPLICATE_SAME_ACCESS))
-    {
-        return false;
-    }
-    AutoCloseHandle autoClose(processHandle);
-#endif
-
     ThreadContextDataIDL contextData;
-    contextData.chakraBaseAddress = (intptr_t)AutoSystemInfo::Data.GetChakraBaseAddr();
-    contextData.crtBaseAddress = (intptr_t)AutoSystemInfo::Data.GetCRTHandle();
     contextData.threadStackLimitAddr = reinterpret_cast<intptr_t>(GetAddressOfStackLimitForCurrentThread());
     contextData.bailOutRegisterSaveSpaceAddr = (intptr_t)bailOutRegisterSaveSpace;
     contextData.disableImplicitFlagsAddr = (intptr_t)GetAddressOfDisableImplicitFlags();
@@ -2022,9 +2011,6 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
 
     HRESULT hr = JITManager::GetJITManager()->InitializeThreadContext(
         &contextData,
-#ifdef USE_RPC_HANDLE_MARSHALLING
-        processHandle,
-#endif
         &m_remoteThreadContextInfo,
         &m_prereservedRegionAddr,
         &m_jitThunkStartAddr);
