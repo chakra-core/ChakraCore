@@ -42,7 +42,7 @@ class BranchJumpTableWrapper
 {
 public:
 
-    BranchJumpTableWrapper(uint tableSize) : defaultTarget(nullptr), labelInstr(nullptr), tableSize(tableSize)
+    BranchJumpTableWrapper(uint tableSize) : jmpTable(nullptr), defaultTarget(nullptr), labelInstr(nullptr), tableSize(tableSize)
     {
     }
 
@@ -832,7 +832,10 @@ public:
     IntConstType m_lastCaseValue;
 
     MultiBranchInstr() :
-        m_branchTargets(nullptr)
+        m_branchTargets(nullptr),
+        m_kind(IntJumpTable),
+        m_baseCaseValue(0),
+        m_lastCaseValue(0)
     {
 #if DBG
         m_isMultiBranch = true;

@@ -960,7 +960,11 @@ namespace Js
     // DiagScopeVariablesWalker
 
     DiagScopeVariablesWalker::DiagScopeVariablesWalker(DiagStackFrame* _pFrame, Var _instance, IDiagObjectModelWalkerBase* innerWalker)
-        : VariableWalkerBase(_pFrame, _instance, UIGroupType_InnerScope, /* allowLexicalThis */ false)
+        : VariableWalkerBase(_pFrame, _instance, UIGroupType_InnerScope, /* allowLexicalThis */ false),
+        pDiagScopeObjects(nullptr),
+        diagScopeVarCount(0),
+        scopeIsInitialized(false), // false until end of method
+        enumWithScopeAlso(false)
     {
         ScriptContext * scriptContext = _pFrame->GetScriptContext();
         ArenaAllocator *arena = GetArenaFromContext(scriptContext);

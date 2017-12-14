@@ -24,10 +24,14 @@ public:
     PropertyEquivBvMap *m_propertyEquivBvMap;
 
 public:
-    SymTable() : m_currentID(0), m_func(nullptr), m_IDAdjustment(0)
+    SymTable() :
+        m_table{ nullptr },
+        m_implicitParams{ nullptr },
+        m_propertyMap(nullptr),
+        m_func(nullptr),
+        m_currentID(0),
+        m_IDAdjustment(0)
     {
-        memset(m_table, 0, sizeof(m_table));
-        memset(m_implicitParams, 0, sizeof(m_implicitParams));
     }
 
 

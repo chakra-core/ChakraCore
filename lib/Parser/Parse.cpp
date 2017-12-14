@@ -77,63 +77,85 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
 Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator *alloc, bool isBackground)
 #endif
     : m_nodeAllocator(_u("Parser"), alloc ? alloc : scriptContext->GetThreadContext()->GetPageAllocator(), Parser::OutOfMemory),
+    m_cactIdentToNodeLookup(0),
+    m_grfscr(fscrNil),
+    m_length(0),
+    m_originalLength(0),
+    m_nextFunctionId(nullptr),
+    m_sourceContextInfo(nullptr),
+#if ENABLE_BACKGROUND_PARSING
+    m_isInBackground(isBackground),
+    m_hasParallelJob(false),
+    m_doingFastScan(false),
+#endif
+    m_nextBlockId(0),
     // use the GuestArena directly for keeping the RegexPattern* alive during byte code generation
-    m_registeredRegexPatterns(scriptContext->GetGuestArena())
+    m_registeredRegexPatterns(scriptContext->GetGuestArena()),
+
+    m_scriptContext(scriptContext),
+    m_phtbl(nullptr),
+
+    m_token(), // should initialize to 0/nullptrs
+    m_pscan(nullptr),
+
+    m_currentNodeNonLambdaFunc(nullptr),
+    m_currentNodeNonLambdaDeferredFunc(nullptr),
+    m_currentNodeFunc(nullptr),
+    m_currentNodeDeferredFunc(nullptr),
+    m_currentNodeProg(nullptr),
+    m_currDeferredStub(nullptr),
+    m_prevSiblingDeferredStub(nullptr),
+    m_pCurrentAstSize(nullptr),
+    m_ppnodeScope(nullptr),
+    m_ppnodeExprScope(nullptr),
+    m_ppnodeVar(nullptr),
+    m_inDeferredNestedFunc(false),
+    m_reparsingLambdaParams(false),
+    m_disallowImportExportStmt(false),
+    m_isInParsingArgList(false),
+    m_hasDestructuringPattern(false),
+    m_hasDeferredShorthandInitError(false),
+    m_pnestedCount(nullptr),
+
+    wellKnownPropertyPids(), // should initialize to nullptrs
+    m_sourceLim(0),
+    m_functionBody(nullptr),
+    m_parseType(ParseType_Upfront),
+
+    m_arrayDepth(0),
+    m_funcInArrayDepth(0),
+    m_funcInArray(0),
+    m_scopeCountNoAst(0),
+
+    m_parsingSuperRestrictionState(ParsingSuperRestrictionState_SuperDisallowed),
+
+    m_funcParenExprDepth(0),
+    m_deferEllipsisError(false),
+    m_deferEllipsisErrorLoc(), // calls default initializer
+
+    m_tryCatchOrFinallyDepth(0),
+
+    m_pstmtCur(nullptr),
+    m_currentBlockInfo(nullptr),
+    m_currentScope(nullptr),
+
+    currBackgroundParseItem(nullptr),
+    backgroundParseItems(nullptr),
+    fastScannedRegExpNodes(nullptr),
+
+    m_currentDynamicBlock(nullptr),
+
+    m_UsesArgumentsAtGlobal(false),
+
+    m_fUseStrictMode(strictMode),
+    m_InAsmMode(false),
+    m_deferAsmJs(true),
+    m_fExpectExternalSource(FALSE),
+    m_deferringAST(FALSE),
+    m_stoppedDeferredParse(FALSE)
 {
     AssertMsg(size == sizeof(Parser), "verify conditionals affecting the size of Parser agree");
     Assert(scriptContext != nullptr);
-    m_phtbl = nullptr;
-    m_pscan = nullptr;
-    m_deferringAST = FALSE;
-    m_stoppedDeferredParse = FALSE;
-#if ENABLE_BACKGROUND_PARSING
-    m_isInBackground = isBackground;
-    m_hasParallelJob = false;
-    m_doingFastScan = false;
-#endif
-    m_isInParsingArgList = false;
-    m_hasDestructuringPattern = false;
-    m_scriptContext = scriptContext;
-    m_pCurrentAstSize = nullptr;
-    m_arrayDepth = 0;
-    m_funcInArrayDepth = 0;
-    m_funcParenExprDepth = 0;
-    m_funcInArray = 0;
-    m_tryCatchOrFinallyDepth = 0;
-    m_UsesArgumentsAtGlobal = false;
-    m_currentNodeFunc = nullptr;
-    m_currentNodeDeferredFunc = nullptr;
-    m_currentNodeNonLambdaFunc = nullptr;
-    m_currentNodeNonLambdaDeferredFunc = nullptr;
-    m_currentNodeProg = nullptr;
-    m_currDeferredStub = nullptr;
-    m_prevSiblingDeferredStub = nullptr;
-    m_pstmtCur = nullptr;
-    m_currentBlockInfo = nullptr;
-    m_currentScope = nullptr;
-    m_currentDynamicBlock = nullptr;
-    m_grfscr = fscrNil;
-    m_length = 0;
-    m_originalLength = 0;
-    m_nextFunctionId = nullptr;
-    m_reparsingLambdaParams = false;
-    currBackgroundParseItem = nullptr;
-    backgroundParseItems = nullptr;
-    fastScannedRegExpNodes = nullptr;
-
-    m_fUseStrictMode = strictMode;
-    m_InAsmMode = false;
-    m_deferAsmJs = true;
-    m_scopeCountNoAst = 0;
-    m_fExpectExternalSource = 0;
-
-    m_parseType = ParseType_Upfront;
-
-    m_deferEllipsisError = false;
-    m_hasDeferredShorthandInitError = false;
-    m_parsingSuperRestrictionState = ParsingSuperRestrictionState_SuperDisallowed;
-
-    m_disallowImportExportStmt = false;
 }
 
 Parser::~Parser(void)

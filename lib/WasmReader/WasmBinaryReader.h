@@ -121,7 +121,6 @@ namespace Wasm
         Wasm::WasmTypes::WasmType ReadWasmType(uint32& length);
 
         ArenaAllocator* m_alloc;
-        uint32 m_funcNumber;
         const byte* m_start, *m_end, *m_pc, *m_curFuncEnd;
         SectionHeader m_currentSection;
         ReaderState m_funcState;   // func AST level

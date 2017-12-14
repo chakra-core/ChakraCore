@@ -723,7 +723,7 @@ Lifetime *
 SCCLiveness::InsertLifetime(StackSym *stackSym, RegNum reg, IR::Instr *const currentInstr)
 {
     const uint start = currentInstr->GetNumber(), end = start;
-    Lifetime * newLlifetime = JitAnew(tempAlloc, Lifetime, tempAlloc, stackSym, reg, start, end, this->func);
+    Lifetime * newLlifetime = JitAnew(tempAlloc, Lifetime, tempAlloc, stackSym, reg, start, end);
     newLlifetime->totalOpHelperLengthByEnd = this->totalOpHelperFullVisitedLength + CurrentOpHelperVisitedLength(currentInstr);
 
     // Find insertion point

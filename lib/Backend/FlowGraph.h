@@ -140,7 +140,9 @@ public:
         loopList(nullptr),
         catchLabelStack(nullptr),
         finallyLabelStack(nullptr),
+        leaveNullLabelStack(nullptr),
         regToFinallyEndMap(nullptr),
+        leaveNullLabelToFinallyLabelMap(nullptr),
         hasBackwardPassInfo(false),
         hasLoop(false),
         implicitCallFlags(Js::ImplicitCall_HasNoInfo)

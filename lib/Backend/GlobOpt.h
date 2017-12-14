@@ -169,7 +169,7 @@ private:
 
 public:
     PathDependentInfo(const PathDependentRelationship relationship, Value *const leftValue, Value *const rightValue)
-        : relationship(relationship), leftValue(leftValue), rightValue(rightValue)
+        : leftValue(leftValue), rightValue(rightValue), rightConstantValue(0), relationship(relationship)
     {
         Assert(leftValue);
         Assert(rightValue);
@@ -180,7 +180,7 @@ public:
         Value *const leftValue,
         Value *const rightValue,
         const int32 rightConstantValue)
-        : relationship(relationship), leftValue(leftValue), rightValue(rightValue), rightConstantValue(rightConstantValue)
+        : leftValue(leftValue), rightValue(rightValue), rightConstantValue(rightConstantValue), relationship(relationship)
     {
         Assert(leftValue);
     }
