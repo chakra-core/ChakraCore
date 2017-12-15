@@ -1588,6 +1588,25 @@ namespace Js
         }
     }
 
+#ifdef INTL_ICU
+    static void AddPartToPartsArray(ScriptContext *scriptContext, JavascriptArray *arr, int arrIndex, const char16 *src, int start, int end, const char16 *kind)
+    {
+        JavascriptString *partValue = JavascriptString::NewCopyBuffer(
+            src + start,
+            end - start,
+            scriptContext
+        );
+
+        JavascriptString *partType = JavascriptString::NewCopySz(kind, scriptContext);
+
+        DynamicObject* part = scriptContext->GetLibrary()->CreateObject();
+        JavascriptOperators::InitProperty(part, PropertyIds::type, partType);
+        JavascriptOperators::InitProperty(part, PropertyIds::value, partValue);
+
+        arr->SetItem(arrIndex, part, PropertyOperationFlags::PropertyOperation_None);
+    }
+#endif
+
     // For Windows Globalization, this function takes a number (date) and a state object and returns a string
     // For ICU, this function takes a state object, number, and boolean for whether or not to format to parts.
     //   if args.Values[3] ~= true, an array of objects is returned; else, a string is returned
@@ -1716,25 +1735,22 @@ namespace Js
             JavascriptArray* ret = scriptContext->GetLibrary()->CreateArray(0);
             int partStart = 0;
             int partEnd = 0;
+            int lastPartEnd = 0;
             int partKind = 0;
             int i = 0;
             while (GetDateTimePartInfo(fieldIterator, &partStart, &partEnd, &partKind))
             {
-                JavascriptString *partValue = JavascriptString::NewCopyBuffer(
-                    formatted + partStart,
-                    partEnd - partStart,
-                    scriptContext
-                );
+                if (partStart > lastPartEnd)
+                {
+                    AddPartToPartsArray(scriptContext, ret, i, formatted, lastPartEnd, partStart, _u("literal"));
 
-                const char16 *partKindStr = GetDateTimePartKind(partKind);
-                JavascriptString *partType = JavascriptString::NewCopySz(partKindStr, scriptContext);
+                    i += 1;
+                }
 
-                DynamicObject* part = scriptContext->GetLibrary()->CreateObject();
-                JavascriptOperators::InitProperty(part, PropertyIds::type, partType);
-                JavascriptOperators::InitProperty(part, PropertyIds::value, partValue);
-
-                ret->SetItem(i, part, PropertyOperationFlags::PropertyOperation_None);
+                AddPartToPartsArray(scriptContext, ret, i, formatted, partStart, partEnd, GetDateTimePartKind(partKind));
+                
                 i += 1;
+                lastPartEnd = partEnd;
             }
 
             return ret;
@@ -2013,6 +2029,8 @@ namespace Js
         }
 
         RecyclableObject *func = RecyclableObject::FromVar(args.Values[1]);
+
+        AssertOrFailFastMsg(func != scriptContext->GetLibrary()->GetUndefined(), "Trying to callInstanceFunction(undefined, ...)");
 
         //Shift the arguments by 2 so argument at index 2 becomes the 'this' argument at index 0
         Var newVars[3];

@@ -850,6 +850,7 @@ namespace Intl
     }
 
     // Given a partKind set by GetDateTimePartInfo, return the corresponding string for the "type" field of the formatToParts return object
+    // NOTE - keep this up to date with the map in Intl.js#getPatternForSkeleton and the UDateFormatField enum
     // See ECMA-402: #sec-partitiondatetimepattern
     const char16 *GetDateTimePartKind(_In_ int partKind)
     {
@@ -859,11 +860,14 @@ namespace Intl
         case UDAT_ERA_FIELD:
             return _u("era");
         case UDAT_YEAR_FIELD:
+        case UDAT_EXTENDED_YEAR_FIELD:
+        case UDAT_YEAR_NAME_FIELD:
             return _u("year");
         case UDAT_MONTH_FIELD:
+        case UDAT_STANDALONE_MONTH_FIELD:
             return _u("month");
         case UDAT_DATE_FIELD:
-            return _u("date");
+            return _u("day");
         case UDAT_HOUR_OF_DAY1_FIELD:
         case UDAT_HOUR_OF_DAY0_FIELD:
         case UDAT_HOUR1_FIELD:
@@ -874,13 +878,20 @@ namespace Intl
         case UDAT_SECOND_FIELD:
             return _u("second");
         case UDAT_DAY_OF_WEEK_FIELD:
+        case UDAT_STANDALONE_DAY_FIELD:
+        case UDAT_DOW_LOCAL_FIELD:
             return _u("weekday");
         case UDAT_AM_PM_FIELD:
             return _u("dayPeriod");
         case UDAT_TIMEZONE_FIELD:
+        case UDAT_TIMEZONE_RFC_FIELD:
+        case UDAT_TIMEZONE_GENERIC_FIELD:
+        case UDAT_TIMEZONE_SPECIAL_FIELD:
+        case UDAT_TIMEZONE_LOCALIZED_GMT_OFFSET_FIELD:
+        case UDAT_TIMEZONE_ISO_FIELD:
             return _u("timeZone");
         default:
-            return _u("literal");
+            return _u("unknown");
         }
     }
 } // namespace Intl

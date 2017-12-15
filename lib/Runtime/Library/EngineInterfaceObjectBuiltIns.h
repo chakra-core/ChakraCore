@@ -45,6 +45,7 @@ GlobalBuiltIn(JavascriptString, EntryToUpperCase)
 GlobalBuiltIn(JavascriptString, EntrySplit)
 GlobalBuiltIn(JavascriptString, EntrySubstring)
 GlobalBuiltIn(JavascriptString, EntryRepeat)
+GlobalBuiltIn(JavascriptString, EntryIndexOf)
 
 GlobalBuiltIn(GlobalObject, EntryIsFinite)
 GlobalBuiltIn(GlobalObject, EntryIsNaN)

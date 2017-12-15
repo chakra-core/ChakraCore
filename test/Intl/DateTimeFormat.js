@@ -78,6 +78,15 @@ const tests = [
             test("en-US", { hour: "numeric" }, { hour: "numeric", minute: null, month: null }, "Requesting hour should not fill in other date or time options");
             test("en-US", { hour12: false },   { hour12: null }, "Requesting hour12 without hour shouldn't do anything")
         }
+    },
+    {
+        name: "Compatability with Date.prototype.toLocale*String",
+        body: function () {
+            const 
+            function test() {
+
+            }
+        }
     }
 ];
 
