@@ -3530,7 +3530,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
         ValueType valueType(val->GetValueInfo()->Type());
 
         // This block uses local profiling data to optimize the case of a native array being passed to a function that fills it with other types. When the function is inlined
-        // into different call paths which use different types this can cause a perf hit by performing unnecessary array conversions, so only perform this optimization when 
+        // into different call paths which use different types this can cause a perf hit by performing unnecessary array conversions, so only perform this optimization when
         // the function is not inlined.
         if (valueType.IsLikelyNativeArray() && !valueType.IsObject() && instr->IsProfiledInstr() && !instr->m_func->IsInlined())
         {
@@ -5452,7 +5452,7 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
     case ObjectType::Float64MixedArray:
     Float64Array:
         Assert(dst->IsRegOpnd());
-        
+
         // If float type spec is disabled, don't load float64 values
         if (!this->DoFloatTypeSpec())
         {
@@ -7550,7 +7550,7 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
             {
                 // Compute resulting range info
                 int32 min1 = INT32_MIN;
-                int32 max1 = INT32_MAX; 
+                int32 max1 = INT32_MAX;
                 int32 min2 = INT32_MIN;
                 int32 max2 = INT32_MAX;
                 int32 newMin, newMax;
@@ -12273,7 +12273,7 @@ static void SetIsConstFlag(StackSym* dstSym, int value)
     dstSym->SetIsIntConst(value);
 }
 
-static IR::Opnd* CreateIntConstOpnd(IR::Instr* instr, int64 value) 
+static IR::Opnd* CreateIntConstOpnd(IR::Instr* instr, int64 value)
 {
     return (IR::Opnd*)IR::Int64ConstOpnd::New(value, instr->GetDst()->GetType(), instr->m_func);
 }
@@ -12331,7 +12331,7 @@ bool GlobOpt::OptConstFoldBinaryWasm(
     }
 
     T src1IntConstantValue, src2IntConstantValue;
-    if (!src1 || !src1->GetValueInfo()->TryGetIntConstantValue(&src1IntConstantValue, false) || //a bit sketchy: false for int32 means likelyInt = false 
+    if (!src1 || !src1->GetValueInfo()->TryGetIntConstantValue(&src1IntConstantValue, false) || //a bit sketchy: false for int32 means likelyInt = false
         !src2 || !src2->GetValueInfo()->TryGetIntConstantValue(&src2IntConstantValue, false)    //and unsigned = false for int64
         )
     {
@@ -13792,19 +13792,18 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                 //       array type during a prepass.
                 //     - StElems in the loop can kill the no-missing-values info.
                 //     - The native array type may be made more conservative based on profile data by an instruction in the loop.
-                Assert(
-                    baseValueInLoopLandingPad->GetValueInfo()->CanMergeToSpecificObjectType() ||
-                    baseValueInLoopLandingPad->GetValueInfo()->Type().SetCanBeTaggedValue(false) ==
-                        baseValueType.SetCanBeTaggedValue(false) ||
-                    baseValueInLoopLandingPad->GetValueInfo()->Type().SetHasNoMissingValues(false).SetCanBeTaggedValue(false) ==
-                        baseValueType.SetHasNoMissingValues(false).SetCanBeTaggedValue(false) ||
-                    baseValueInLoopLandingPad->GetValueInfo()->Type().SetHasNoMissingValues(false).ToLikely().SetCanBeTaggedValue(false) ==
-                        baseValueType.SetHasNoMissingValues(false).SetCanBeTaggedValue(false) ||
-                    (
-                        baseValueInLoopLandingPad->GetValueInfo()->Type().IsLikelyNativeArray() &&
-                        baseValueInLoopLandingPad->GetValueInfo()->Type().Merge(baseValueType).SetHasNoMissingValues(false).SetCanBeTaggedValue(false) ==
-                            baseValueType.SetHasNoMissingValues(false).SetCanBeTaggedValue(false)
-                    ));
+#if DBG
+                if (!baseValueInLoopLandingPad->GetValueInfo()->CanMergeToSpecificObjectType())
+                {
+                    ValueType landingPadValueType = baseValueInLoopLandingPad->GetValueInfo()->Type();
+                    Assert(landingPadValueType.IsSimilar(baseValueType) ||
+                        (
+                            landingPadValueType.IsLikelyNativeArray() &&
+                            landingPadValueType.Merge(baseValueType).IsSimilar(baseValueType)
+                        )
+                    );
+                }
+#endif
 
                 if(doArrayChecks)
                 {
@@ -18029,7 +18028,7 @@ GlobOpt::DumpSymVal(int index)
 }
 
 void
-GlobOpt::Trace(BasicBlock * block, bool before) const 
+GlobOpt::Trace(BasicBlock * block, bool before) const
 {
     bool globOptTrace = Js::Configuration::Global.flags.Trace.IsEnabled(Js::GlobOptPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId());
     bool typeSpecTrace = Js::Configuration::Global.flags.Trace.IsEnabled(Js::TypeSpecPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId());

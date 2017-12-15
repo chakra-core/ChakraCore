@@ -510,6 +510,15 @@ bool ValueType::IsLikelyPrimitive() const
     return result;
 }
 
+#if DBG
+bool ValueType::IsSimilar(ValueType v) const
+{
+    // Remove bits we don't care for comparison
+    ValueType left = Verify(bits & ~(Bits::NoMissingValues | Bits::CanBeTaggedValue | Bits::Likely));
+    ValueType right = Verify(v.bits & ~(Bits::NoMissingValues | Bits::CanBeTaggedValue | Bits::Likely));
+    return left == right;
+}
+#endif
 
 bool ValueType::HasBeenObject() const
 {
