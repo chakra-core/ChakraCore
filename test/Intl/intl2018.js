@@ -48,13 +48,25 @@ const tests = [
         body: function () {
             const midnight = new Date(2000, 0, 1, 0, 0, 0);
             const noon = new Date(2000, 0, 1, 12, 0, 0);
-            function test(locale, useHourField, options, expectedHC, expectedHour12, expectedMidnight, expectedNoon) {
+            function test(locale, useHourField, options, expectedHC, expectedHour12) {
                 options = useHourField === false ? options : Object.assign({}, { hour: "2-digit" }, options);
                 const fmt = new Intl.DateTimeFormat(locale, options);
                 const message = `locale: "${locale}", options: ${JSON.stringify(options)}`;
                 assert.areEqual(expectedHC, fmt.resolvedOptions().hourCycle, `${message} - hourCycle is not correct`);
                 assert.areEqual(expectedHour12, fmt.resolvedOptions().hour12, `${message} - hour12 is not correct`);
                 if (useHourField === true) {
+                    const expectedNoon = {
+                        h11: "00",
+                        h12: "12",
+                        h23: "12",
+                        h24: "12",
+                    }[expectedHC];
+                    const expectedMidnight = {
+                        h11: "00",
+                        h12: "12",
+                        h23: "00",
+                        h24: "24",
+                    }[expectedHC];
                     assert.areEqual(expectedMidnight, fmt.formatToParts(midnight).find((p) => p.type === "hour").value, `${message} - midnight value was incorrect`);
                     assert.areEqual(expectedNoon, fmt.formatToParts(noon).find((p) => p.type === "hour").value, `${message} - noon value was incorrect`);
                 } else {
@@ -62,14 +74,51 @@ const tests = [
                 }
             }
 
-            test("en-US", false, undefined, undefined, undefined, undefined);
-            test("en-US", true, undefined, "h12", true, "12", "12");
-            test("en-US", true, { hour12: false }, "h23", false, "00", "12");
-            test("en-US", true, { hourCycle: "h24" }, "h24", false, "24", "12");
-            test("en-US", true, { hourCycle: "h24", hour12: true }, "h12", true, "12", "12");
-            test("en-US", true, { hourCycle: "h11", hour12: false }, "h23", false, "00", "12");
-            test("en-US-u-hc-h24", false, undefined, undefined, undefined, undefined);
-            test("en-US-u-hc-h24", true, undefined, "h24", false, "24", "12");
+            function withoutHour(locale, options) {
+                test(locale, false, options, undefined, undefined);
+            }
+
+            function withHour(locale, options, expectedHC, expectedHour12) {
+                test(locale, true, options, expectedHC, expectedHour12);
+            }
+
+            // ensure hourCycle and hour properties are not there when we don't ask for them
+            withoutHour("en-US", undefined);
+            withoutHour("en-US", { hourCycle: "h11" });
+            withoutHour("en-US", { hour12: true });
+            withoutHour("en-US", { hourCycle: "h11", hour12: false });
+            withoutHour("en-US-u-hc-h24", undefined);
+            withoutHour("en-US-u-hc-h24", { hourCycle: "h11" });
+            withoutHour("en-US-u-hc-h24", { hour12: true });
+            withoutHour("en-US-u-hc-h24", { hourCycle: "h11", hour12: false });
+
+            // ensure hourCycle and hour12 properties along with hour values are correct when we do ask for hour
+            withHour("en-US", undefined, "h12", true);
+            withHour("en-US", { hour12: false }, "h23", false);
+            withHour("en-US", { hourCycle: "h24" }, "h24", false);
+            withHour("en-US", { hourCycle: "h24", hour12: true }, "h12", true);
+            withHour("en-US", { hourCycle: "h11", hour12: false }, "h23", false);
+            withHour("en-US-u-hc-h24", undefined, "h24", false);
+            withHour("en-US-u-hc-h24", { hourCycle: "h23" }, "h23", false);
+            withHour("en-US-u-hc-h24", { hourCycle: "h11" }, "h11", true);
+            withHour("en-US-u-hc-h24", { hour12: false }, "h23", false);
+            withHour("en-US-u-hc-h24", { hour12: true }, "h12", true);
+
+            if (Intl.DateTimeFormat.supportedLocalesOf("en-GB").includes("en-GB")) {
+                withoutHour("en-GB", undefined);
+
+                withHour("en-GB", undefined, "h23", false);
+                withHour("en-GB", { hour12: true }, "h12", true);
+                withHour("en-GB-u-hc-h24", undefined, "h24", false);
+            }
+
+            if (Intl.DateTimeFormat.supportedLocalesOf("ja-JP").includes("ja-JP")) {
+                withoutHour("ja-JP", undefined);
+
+                withHour("ja-JP", undefined, "h23", false);
+                withHour("ja-JP", { hour12: true }, "h11", true);
+                withHour("ja-JP-u-hc-h12", undefined, "h12", true);
+            }
         }
     }
 ];

@@ -118,7 +118,7 @@ namespace Intl
     bool IsWellFormedLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch);
     HRESULT NormalizeLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch,
         _Out_ char16 *normalized, _Out_ size_t *normalizedLength);
-    bool IsLocaleAvailable(_In_z_ const char *locale);
+    bool IsLocaleAvailable(_In_z_ const char *langtag);
     bool ResolveLocaleBestFit(_In_z_ const char16 *locale, _Out_ char16 *resolved);
     size_t GetUserDefaultLocaleName(_Out_ char16* langtag, _In_ size_t cchLangtag);
 

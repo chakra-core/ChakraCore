@@ -25,7 +25,8 @@ const tests = [
         body: function () {
             const date = new Date(2000, 1, 1, 1, 1, 1);
             function test(options, expected, message) {
-                check(expected, ascii(new Intl.DateTimeFormat("en-US", options).format(date)), message);
+                check(expected, ascii(new Intl.DateTimeFormat("en-US", options).format(date)), `${message} - new Intl.DateTimeFormat().format(date)`);
+                check(expected, ascii(date.toLocaleString("en-US", options)), `${message} - date.toLocaleString()`);
             }
 
             test({ year: "numeric" }, "2000", "Formatting year as numeric");
@@ -79,15 +80,6 @@ const tests = [
             test("en-US", { hour12: false },   { hour12: null }, "Requesting hour12 without hour shouldn't do anything")
         }
     },
-    {
-        name: "Compatability with Date.prototype.toLocale*String",
-        body: function () {
-            const 
-            function test() {
-
-            }
-        }
-    }
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

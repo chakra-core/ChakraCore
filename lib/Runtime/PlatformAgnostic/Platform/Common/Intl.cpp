@@ -491,14 +491,20 @@ namespace Intl
         return ret;
     }
 
-    bool IsLocaleAvailable(_In_z_ const char *locale)
+    bool IsLocaleAvailable(_In_z_ const char *langtag)
     {
         int32_t countAvailable = uloc_countAvailable();
         Assert(countAvailable > 0);
+
+        UErrorCode status = U_ZERO_ERROR;
+        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        int32_t length = 0;
+        uloc_forLanguageTag(langtag, localeID, ULOC_FULLNAME_CAPACITY, &length, &status);
+        ICU_ASSERT(status, length > 0);
         for (int i = 0; i < countAvailable; i++)
         {
             const char *candidate = uloc_getAvailable(i);
-            if (strcmp(locale, candidate) == 0)
+            if (strcmp(localeID, candidate) == 0)
             {
                 return true;
             }

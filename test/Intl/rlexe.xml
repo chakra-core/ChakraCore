@@ -66,6 +66,13 @@
   </test>
   <test>
     <default>
+      <files>intl2018.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+      <tags>Intl,require_icu</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>IntlHiddenInternals.js</files>
       <tags>Intl</tags>
     </default>
