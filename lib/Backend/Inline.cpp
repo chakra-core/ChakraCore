@@ -2575,7 +2575,6 @@ IR::Instr * Inline::InlineApplyBuiltInTargetWithArray(IR::Instr * callInstr, con
     {
         return callInstr;
     }
-    AnalysisAssert(applyTargetLdInstr != nullptr);
     // Fixed function/function object checks for target built-in
     callInstr->ReplaceSrc1(applyTargetLdInstr->GetDst());
     EmitFixedMethodOrFunctionObjectChecksForBuiltIns(callInstr, callInstr, builtInInfo, false /*isPolymorphic*/, true /*isBuiltIn*/, false /*isCtor*/, true /*isInlined*/);
@@ -2718,7 +2717,8 @@ void Inline::GetArgInstrsForCallAndApply(IR::Instr* callInstr, IR::Instr** impli
     linkOpnd->AsRegOpnd()->m_sym->m_isInlinedArgSlot = true;
 }
 
-bool Inline::TryGetApplyAndTargetLdInstrs(IR::Instr * callInstr, _Outptr_result_maybenull_ IR::Instr ** applyLdInstr, _Outptr_result_maybenull_ IR::Instr ** applyTargetLdInstr)
+_Success_(return != false)
+bool Inline::TryGetApplyAndTargetLdInstrs(IR::Instr * callInstr, _Outptr_result_nullonfailure_ IR::Instr ** applyLdInstr, _Outptr_result_nullonfailure_ IR::Instr ** applyTargetLdInstr)
 {
     IR::Opnd* applyOpnd = callInstr->GetSrc1();
     Assert(applyOpnd->IsRegOpnd());
@@ -2761,7 +2761,6 @@ bool Inline::InlineApplyScriptTarget(IR::Instr *callInstr, const FunctionJITTime
     {
         return false;
     }
-    AnalysisAssert(applyTargetLdInstr != nullptr);
     
     if(applyTargetLdInstr->m_opcode != Js::OpCode::LdFldForCallApplyTarget ||
         ((applyTargetLdInstr->AsProfiledInstr()->u.FldInfo().flags & Js::FldInfo_FromAccessor) != 0))
