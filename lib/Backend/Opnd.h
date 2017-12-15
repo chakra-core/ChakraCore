@@ -274,6 +274,7 @@ public:
 
     bool                IsValueTypeFixed() const { return m_isValueTypeFixed; }
     void                SetValueTypeFixed() { m_isValueTypeFixed = true; }
+    void                UnsetValueTypeFixed() { m_isValueTypeFixed = false; }
     IR::RegOpnd *       FindRegUse(IR::RegOpnd *regOpnd);
     bool                IsArgumentsObject();
 
