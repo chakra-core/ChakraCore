@@ -33,9 +33,6 @@ public:
 
     HRESULT InitializeThreadContext(
         __in ThreadContextDataIDL * data,
-#ifdef USE_RPC_HANDLE_MARSHALLING
-        __in HANDLE processHandle,
-#endif
         __out PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
         __out intptr_t * prereservedRegionAddr,
         __out intptr_t * jitThunkAddr);
@@ -122,6 +119,8 @@ private:
         __in UUID* connectionUuid,
         __out RPC_BINDING_HANDLE* bindingHandle);
 
+    HRESULT ConnectProcess();
+
     RPC_BINDING_HANDLE m_rpcBindingHandle;
     UUID m_jitConnectionId;
     bool m_oopJitEnabled;
@@ -148,9 +147,6 @@ public:
 
     HRESULT InitializeThreadContext(
         __in ThreadContextDataIDL * data,
-#ifdef USE_RPC_HANDLE_MARSHALLING
-        __in HANDLE processHandle,
-#endif
         __out PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
         __out intptr_t *prereservedRegionAddr,
         __out intptr_t * jitThunkAddr)

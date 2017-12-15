@@ -5,13 +5,31 @@
 
 #pragma once
 
+#if ENABLE_OOP_NATIVE_CODEGEN
+class ProcessContext
+{
+private:
+    uint refCount;
+
+public:
+    HANDLE processHandle;
+    intptr_t chakraBaseAddress;
+    intptr_t crtBaseAddress;
+
+    ProcessContext(HANDLE processHandle, intptr_t chakraBaseAddress, intptr_t crtBaseAddress);
+    ~ProcessContext();
+    void AddRef();
+    void Release();
+    bool HasRef();
+
+};
+
 class ServerThreadContext : public ThreadContextInfo
 {
-#if ENABLE_OOP_NATIVE_CODEGEN
 public:
     typedef BVSparseNode<JitArenaAllocator> BVSparseNode;
 
-    ServerThreadContext(ThreadContextDataIDL * data, HANDLE processHandle);
+    ServerThreadContext(ThreadContextDataIDL * data, ProcessContext* processContext);
     ~ServerThreadContext();
 
     virtual HANDLE GetProcessHandle() const override;
@@ -58,7 +76,7 @@ public:
     static intptr_t GetJITCRTBaseAddress();
 
 private:
-    AutoCloseHandle m_autoProcessHandle;
+    ProcessContext* processContext;
 
     BVSparse<HeapAllocator> * m_numericPropertyBV;
 
@@ -72,12 +90,11 @@ private:
 #endif
     // only allocate with this from foreground calls (never from CodeGen calls)
     PageAllocator m_pageAlloc;
-    HANDLE m_processHandle;
     ThreadContextDataIDL m_threadContextData;
 
     DWORD m_pid; //save client process id for easier diagnose
 
     CriticalSection m_cs;
     uint m_refCount;
-#endif
 };
+#endif

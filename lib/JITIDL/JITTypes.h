@@ -314,8 +314,6 @@ typedef struct ThreadContextDataIDL
 
     IDL_PAD2(0)
     X64_PAD4(1)
-    CHAKRA_PTR chakraBaseAddress;
-    CHAKRA_PTR crtBaseAddress;
     CHAKRA_PTR threadStackLimitAddr;
     CHAKRA_PTR scriptStackLimit;
     CHAKRA_PTR bailOutRegisterSaveSpaceAddr;
