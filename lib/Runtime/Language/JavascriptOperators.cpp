@@ -2947,6 +2947,11 @@ CommonNumber:
                 {
                     if (setterValueOrProxy)
                     {
+                        if (WithScopeObject::Is(object))
+                        {
+                            object = (RecyclableObject::FromVar(object))->GetThisObjectOrUnWrap();
+                        }
+
                         JavascriptFunction* func = (JavascriptFunction*)setterValueOrProxy;
                         Assert(info.GetFlags() == InlineCacheSetterFlag || info.GetPropertyIndex() == Constants::NoSlot);
                         CacheOperators::CachePropertyWrite(object, false, type, propertyId, &info, scriptContext);
