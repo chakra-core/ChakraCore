@@ -1484,7 +1484,9 @@ Error:
             continue;
         }
 
-        if (lwNil == lwYear || lwNil == lwMonth || lwNil == lwDate)
+        if (lwNil == lwYear ||
+            lwNil == lwMonth || lwMonth > 11 ||
+            lwNil == lwDate || lwDate > 31)
         {
             goto LError;
         }
