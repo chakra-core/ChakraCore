@@ -42,10 +42,16 @@ namespace DateTime
         void Update(const double time);
     };
 
-    struct DaylightTimeHelperPlatformData // DaylightHelper.cpp
+    class DaylightTimeHelperPlatformData // DaylightHelper.cpp
     {
+    public:
         TimeZoneInfo cache1, cache2;
         bool useFirstCache;
+
+        DaylightTimeHelperPlatformData() :
+            useFirstCache(true)
+        {
+        }
     };
 
     class UtilityPlatformData
@@ -71,9 +77,16 @@ namespace DateTime
         bool fInit;
         bool fHiResAvailable;
 
-        HiresTimerPlatformData(): fInit(false), dBaseTime(0),
-        baseMsCount(0),  fHiResAvailable(true),
-        dLastTime(0), dAdjustFactor(1), fReset(true) {}
+        HiresTimerPlatformData() :
+            fInit(false),
+            dBaseTime(0),
+            baseMsCount(0),
+            fHiResAvailable(true),
+            dLastTime(0),
+            dAdjustFactor(1),
+            fReset(true)
+        {
+        }
 
         void Reset() { fReset = true; }
     };
