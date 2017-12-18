@@ -1175,7 +1175,7 @@ namespace Js
         }
 
         JavascriptString * propertyName = nullptr;
-        PropertyId propertyId;
+        PropertyId propertyId = Js::Constants::NoProperty;
         uint32 propertyIndex = 0;
         uint32 symbolIndex = 0;
         const PropertyRecord* propertyRecord;
