@@ -159,7 +159,7 @@ if sys.platform != 'win32':
 if sys.platform == 'win32':
     if os.environ.get('IntlICU') == 'true':
         not_tags.add('require_winglob')
-    else
+    else:
         not_tags.add('require_icu')
 
 if args.sanitize != None:
