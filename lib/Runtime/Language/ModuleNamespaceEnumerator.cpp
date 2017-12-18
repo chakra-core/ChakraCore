@@ -58,6 +58,7 @@ namespace Js
     // enumeration order: 9.4.6.10 (sorted) exports first, followed by symbols
     JavascriptString * ModuleNamespaceEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
+        propertyId = Js::Constants::NoProperty;
         if (attributes != nullptr)
         {
             // all the attribute should have the same setting here in namespace object.
