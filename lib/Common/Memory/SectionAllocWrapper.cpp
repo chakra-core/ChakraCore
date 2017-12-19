@@ -113,7 +113,7 @@ PVOID MapView(HANDLE process, HANDLE sectionHandle, size_t size, size_t offset, 
     return address;
 }
 
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
 SectionMap32::SectionMap32(__in char * startAddress) :
     startAddress(startAddress),
 #else
@@ -123,7 +123,7 @@ SectionMap32::SectionMap32() :
 {
     memset(map, 0, sizeof(map));
 
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
     Assert(((size_t)startAddress) % TotalSize == 0);
 #endif
 }
@@ -668,7 +668,7 @@ BOOL SectionAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType
 /*
 * class PreReservedVirtualAllocWrapper
 */
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
+#if !TARGET_64 && _CONTROL_FLOW_GUARD
 // TODO: this should be on runtime process
 uint PreReservedSectionAllocWrapper::numPreReservedSegment = 0;
 #endif
@@ -691,7 +691,7 @@ PreReservedSectionAllocWrapper::~PreReservedSectionAllocWrapper()
         CloseSectionHandle(this->section);
         PreReservedHeapTrace(_u("MEM_RELEASE the PreReservedSegment. Start Address: 0x%p, Size: 0x%x * 0x%x bytes"), this->preReservedStartAddress, PreReservedAllocationSegmentCount,
             AutoSystemInfo::Data.GetAllocationGranularityPageSize());
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
+#if !TARGET_64 && _CONTROL_FLOW_GUARD
         Assert(numPreReservedSegment > 0);
         InterlockedDecrement(&PreReservedSectionAllocWrapper::numPreReservedSegment);
 #endif

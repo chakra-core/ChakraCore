@@ -482,6 +482,12 @@ var tests = [
         static get igwgep() { }
         static igwgep() { }
       };
+      
+      class staticTest2 extends null {
+        static constructor() { }
+        static get igwgep() { }
+        static igwgep() { }
+      };
     }
   },
   {

@@ -610,7 +610,7 @@ namespace Js
             ArenaAllocator *arena = pFrame->GetArena();
             ScopeSlots slotArray = GetSlotArray();
 
-            if (slotArray.IsFunctionScopeSlotArray())
+            if (!slotArray.IsDebuggerScopeSlotArray())
             {
                 DebuggerScope *formalScope = GetScopeWhenHaltAtFormals();
                 bool isInParamScope = IsInParamScope(formalScope, pFrame);
@@ -642,6 +642,7 @@ namespace Js
                 else if (pFBody->GetPropertyIdsForScopeSlotArray() != nullptr)
                 {
                     uint slotArrayCount = static_cast<uint>(slotArray.GetCount());
+
                     pMembersList = JsUtil::List<DebuggerPropertyDisplayInfo *, ArenaAllocator>::New(arena, slotArrayCount);
 
                     for (uint32 i = 0; i < slotArrayCount; i++)
@@ -959,7 +960,11 @@ namespace Js
     // DiagScopeVariablesWalker
 
     DiagScopeVariablesWalker::DiagScopeVariablesWalker(DiagStackFrame* _pFrame, Var _instance, IDiagObjectModelWalkerBase* innerWalker)
-        : VariableWalkerBase(_pFrame, _instance, UIGroupType_InnerScope, /* allowLexicalThis */ false)
+        : VariableWalkerBase(_pFrame, _instance, UIGroupType_InnerScope, /* allowLexicalThis */ false),
+        pDiagScopeObjects(nullptr),
+        diagScopeVarCount(0),
+        scopeIsInitialized(false), // false until end of method
+        enumWithScopeAlso(false)
     {
         ScriptContext * scriptContext = _pFrame->GetScriptContext();
         ArenaAllocator *arena = GetArenaFromContext(scriptContext);
@@ -4082,15 +4087,15 @@ namespace Js
             // The scope is defined by a slot array object so grab the function body out to get the function name.
             ScopeSlots slotArray = ScopeSlots(reinterpret_cast<Var*>(instance));
 
-            if(slotArray.IsFunctionScopeSlotArray())
-            {
-                Js::FunctionBody *functionBody = slotArray.GetFunctionInfo()->GetFunctionBody();
-                return functionBody->GetDisplayName();
-            }
-            else
+            if(slotArray.IsDebuggerScopeSlotArray())
             {
                 // handling for block/catch scope
                 return _u("");
+            }
+            else
+            {
+                Js::FunctionBody *functionBody = slotArray.GetFunctionInfo()->GetFunctionBody();
+                return functionBody->GetDisplayName();
             }
         }
     }

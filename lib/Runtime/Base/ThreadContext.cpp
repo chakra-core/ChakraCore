@@ -172,7 +172,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     thunkPageAllocators(allocationPolicyManager, /* allocXData */ false, /* virtualAllocator */ nullptr, GetCurrentProcess()),
 #endif
     codePageAllocators(allocationPolicyManager, ALLOC_XDATA, GetPreReservedVirtualAllocator(), GetCurrentProcess()),
-#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+#if defined(_CONTROL_FLOW_GUARD) && !defined(_M_ARM)
     jitThunkEmitter(this, &VirtualAllocWrapper::Instance , GetCurrentProcess()),
 #endif
 #endif
@@ -275,6 +275,11 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
 #endif
 #endif
 
+#if DBG
+    arrayMutationSeed = (Js::Configuration::Global.flags.ArrayMutationTestSeed != 0) ? (uint)Js::Configuration::Global.flags.ArrayMutationTestSeed : (uint)time(NULL);
+    srand(arrayMutationSeed);
+#endif
+
     this->InitAvailableCommit();
 }
 
@@ -331,7 +336,7 @@ ThreadContext::GetThreadStackLimitAddr() const
     return (intptr_t)GetAddressOfStackLimitForCurrentThread();
 }
 
-#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SIMDJS) && (defined(_M_IX86) || defined(_M_X64))
+#if ENABLE_NATIVE_CODEGEN && (defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)) && (defined(_M_IX86) || defined(_M_X64))
 intptr_t
 ThreadContext::GetSimdTempAreaAddr(uint8 tempIndex) const
 {
@@ -788,7 +793,7 @@ Recycler* ThreadContext::EnsureRecycler()
         try
         {
 #ifdef RECYCLER_WRITE_BARRIER
-#ifdef _M_X64_OR_ARM64
+#ifdef TARGET_64
             if (!RecyclerWriteBarrierManager::OnThreadInit())
             {
                 Js::Throw::OutOfMemory();
@@ -1588,9 +1593,14 @@ ThreadContext::SetForceOneIdleCollection()
 
 }
 
-BOOLEAN
+bool
 ThreadContext::IsOnStack(void const *ptr)
 {
+    if (IS_ASAN_FAKE_STACK_ADDR(ptr))
+    {
+        return true;
+    }
+
 #if defined(_M_IX86) && defined(_MSC_VER)
     return ptr < (void*)__readfsdword(0x4) && ptr >= (void*)__readfsdword(0xE0C);
 #elif defined(_M_AMD64) && defined(_MSC_VER)
@@ -1855,7 +1865,8 @@ void ThreadContext::DisposeOnLeaveScript()
 {
     PHASE_PRINT_TRACE1(Js::DisposePhase, _u("[Dispose] NeedDispose in LeaveScriptStart: %d\n"), this->recycler->NeedDispose());
 
-    if (this->callDispose && this->recycler->NeedDispose())
+    if (this->callDispose && this->recycler->NeedDispose()
+        && !recycler->IsCollectionDisabled())
     {
         this->recycler->FinishDisposeObjectsNow<FinishDispose>();
     }
@@ -1980,18 +1991,7 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
         return true;
     }
 
-#ifdef USE_RPC_HANDLE_MARSHALLING
-    HANDLE processHandle;
-    if (!DuplicateHandle(GetCurrentProcess(), GetCurrentProcess(), GetCurrentProcess(), &processHandle, 0, false, DUPLICATE_SAME_ACCESS))
-    {
-        return false;
-    }
-    AutoCloseHandle autoClose(processHandle);
-#endif
-
     ThreadContextDataIDL contextData;
-    contextData.chakraBaseAddress = (intptr_t)AutoSystemInfo::Data.GetChakraBaseAddr();
-    contextData.crtBaseAddress = (intptr_t)AutoSystemInfo::Data.GetCRTHandle();
     contextData.threadStackLimitAddr = reinterpret_cast<intptr_t>(GetAddressOfStackLimitForCurrentThread());
     contextData.bailOutRegisterSaveSpaceAddr = (intptr_t)bailOutRegisterSaveSpace;
     contextData.disableImplicitFlagsAddr = (intptr_t)GetAddressOfDisableImplicitFlags();
@@ -1999,7 +1999,7 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
     contextData.scriptStackLimit = GetScriptStackLimit();
     contextData.isThreadBound = IsThreadBound();
     contextData.allowPrereserveAlloc = allowPrereserveAlloc;
-#if defined(ENABLE_SIMDJS) && (_M_IX86 || _M_AMD64)
+#if (defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)) && (_M_IX86 || _M_AMD64)
     contextData.simdTempAreaBaseAddr = (intptr_t)GetSimdTempArea();
 #endif
 
@@ -2016,9 +2016,6 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
 
     HRESULT hr = JITManager::GetJITManager()->InitializeThreadContext(
         &contextData,
-#ifdef USE_RPC_HANDLE_MARSHALLING
-        processHandle,
-#endif
         &m_remoteThreadContextInfo,
         &m_prereservedRegionAddr,
         &m_jitThunkStartAddr);
@@ -2212,9 +2209,11 @@ ThreadContext::PushEntryExitRecord(Js::ScriptEntryExitRecord * record)
         // then the list somehow got messed up
         if (
 #if defined(JSRT_VERIFY_RUNTIME_STATE) || defined(DEBUG)
-        !IsOnStack(lastRecord) ||
+            !IsOnStack(lastRecord) ||
 #endif
-        (uintptr_t)record >= (uintptr_t)lastRecord)
+            ((uintptr_t)record >= (uintptr_t)lastRecord
+                && !IS_ASAN_FAKE_STACK_ADDR(record)
+                && !IS_ASAN_FAKE_STACK_ADDR(lastRecord)))
         {
             EntryExitRecord_Corrupted_fatal_error();
         }
@@ -2234,7 +2233,9 @@ void ThreadContext::PopEntryExitRecord(Js::ScriptEntryExitRecord * record)
 #if defined(JSRT_VERIFY_RUNTIME_STATE) || defined(DEBUG)
         !IsOnStack(next) ||
 #endif
-    (uintptr_t)this->entryExitRecord >= (uintptr_t)next))
+        ((uintptr_t)this->entryExitRecord >= (uintptr_t)next
+            && !IS_ASAN_FAKE_STACK_ADDR(this->entryExitRecord)
+            && !IS_ASAN_FAKE_STACK_ADDR(next))))
     {
         EntryExitRecord_Corrupted_fatal_error();
     }
@@ -2526,10 +2527,8 @@ ThreadContext::UnregisterScriptContext(Js::ScriptContext *scriptContext)
     {
         scriptContext->next->prev = scriptContext->prev;
     }
-
     scriptContext->prev = nullptr;
     scriptContext->next = nullptr;
-
 #if DBG || defined(RUNTIME_DATA_COLLECTION)
     scriptContextCount--;
 #endif
@@ -4796,3 +4795,61 @@ AutoTagNativeLibraryEntry::~AutoTagNativeLibraryEntry()
     Assert(threadContext->PeekNativeLibraryEntry() == &entry);
     threadContext->PopNativeLibraryEntry();
 }
+
+#if ENABLE_JS_REENTRANCY_CHECK
+#if DBG
+
+void JsReentLock::setObjectForMutation(Js::Var object)
+{
+    m_arrayObject = nullptr;
+
+    if (object != nullptr && Js::DynamicObject::IsAnyArray(object))
+    {
+        m_arrayObject = object;
+    }
+
+    // Don't care about any other objects for now
+}
+
+void JsReentLock::setSecondObjectForMutation(Js::Var object)
+{
+    m_arrayObject2 = nullptr;
+
+    if (object != nullptr && Js::DynamicObject::IsAnyArray(object))
+    {
+        m_arrayObject2 = object;
+    }
+
+    // Don't care about any other objects for now
+}
+
+void JsReentLock::MutateArrayObject(Js::Var arrayObject)
+{
+    if (arrayObject)
+    {
+        Js::JavascriptArray *arr = Js::JavascriptArray::FromAnyArray(arrayObject);
+        uint32 random = static_cast<unsigned int>(rand());
+
+        if (random % 20 == 0)
+        {
+            arr->DoTypeMutation();
+        }
+        else if (random % 20 == 1)
+        {
+            // TODO : modify the length of the current array
+            //       Or other opportunities
+        }
+    }
+}
+
+void JsReentLock::MutateArrayObject()
+{
+    if (CONFIG_FLAG(EnableArrayTypeMutation))
+    {
+        JsReentLock::MutateArrayObject(m_arrayObject);
+        JsReentLock::MutateArrayObject(m_arrayObject2);
+    }
+}
+
+#endif
+#endif

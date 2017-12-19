@@ -20,7 +20,7 @@ ForcedMemoryConstraint::Apply()
 void ForcedMemoryConstraint::FragmentAddressSpace(size_t usableSize)
 {
     // AMD64 address space is too big
-#if !defined(_M_X64_OR_ARM64)
+#if !defined(TARGET_64)
     uint const allocationGranularity = 64 * 1024;     // 64 KB
     Assert(allocationGranularity == AutoSystemInfo::Data.dwAllocationGranularity);
     uint64 const addressEnd = ((uint64)4) * 1024 * 1024 * 1024;

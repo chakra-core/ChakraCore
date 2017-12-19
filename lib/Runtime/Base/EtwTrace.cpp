@@ -10,6 +10,7 @@
 
 using namespace Js;
 
+#ifndef ENABLE_JS_LTTNG
 //
 // This C style callback is invoked by ETW when a trace session is started/stopped
 // by an ETW controller for the Jscript and MSHTML providers.
@@ -47,6 +48,7 @@ void EtwCallbackApi::OnSessionChange(ULONG controlCode, PVOID callbackContext)
         }
     }
 }
+#endif
 
 //
 // Registers the ETW provider - this is usually done on Jscript DLL load
@@ -54,7 +56,9 @@ void EtwCallbackApi::OnSessionChange(ULONG controlCode, PVOID callbackContext)
 //
 void EtwTrace::Register()
 {
+#ifndef ENABLE_JS_LTTNG
     EtwTraceCore::Register();
+#endif
 
 #ifdef TEST_ETW_EVENTS
     TestEtwEventSink::Load();
@@ -66,8 +70,10 @@ void EtwTrace::Register()
 //
 void EtwTrace::UnRegister()
 {
+#ifndef ENABLE_JS_LTTNG
     EtwTraceCore::UnRegister();
-
+#endif
+    
 #ifdef TEST_ETW_EVENTS
     TestEtwEventSink::Unload();
 #endif

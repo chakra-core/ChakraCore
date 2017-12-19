@@ -2047,8 +2047,8 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr)
 bool
 BackwardPass::IsImplicitCallBailOutCurrentlyNeeded(IR::Instr * instr, bool mayNeedImplicitCallBailOut, bool hasLiveFields)
 {
-    return this->globOpt->IsImplicitCallBailOutCurrentlyNeeded(
-        instr, nullptr, nullptr, this->currentBlock, hasLiveFields, mayNeedImplicitCallBailOut, false);
+    return this->globOpt->IsImplicitCallBailOutCurrentlyNeeded(instr, nullptr, nullptr, this->currentBlock, hasLiveFields, mayNeedImplicitCallBailOut, false) ||
+        this->NeedBailOutOnImplicitCallsForTypedArrayStore(instr);
 }
 
 void
@@ -2233,6 +2233,30 @@ BackwardPass::DeadStoreImplicitCallBailOut(IR::Instr * instr, bool hasLiveFields
         }
 #endif
     }
+}
+
+bool
+BackwardPass::NeedBailOutOnImplicitCallsForTypedArrayStore(IR::Instr* instr)
+{
+    if ((instr->m_opcode == Js::OpCode::StElemI_A || instr->m_opcode == Js::OpCode::StElemI_A_Strict) &&
+        instr->GetDst()->IsIndirOpnd() &&
+        instr->GetDst()->AsIndirOpnd()->GetBaseOpnd()->GetValueType().IsLikelyTypedArray())
+    {
+        IR::Opnd * opnd = instr->GetSrc1();
+        if (opnd->IsRegOpnd())
+        {
+            return !opnd->AsRegOpnd()->GetValueType().IsPrimitive() &&
+                !opnd->AsRegOpnd()->m_sym->IsInt32() &&
+                !opnd->AsRegOpnd()->m_sym->IsFloat64() &&
+                !opnd->AsRegOpnd()->m_sym->IsFloatConst() &&
+                !opnd->AsRegOpnd()->m_sym->IsIntConst();
+        }
+        else
+        {
+            Assert(opnd->IsIntConstOpnd() || opnd->IsInt64ConstOpnd() || opnd->IsFloat32ConstOpnd() || opnd->IsFloatConstOpnd() || opnd->IsAddrOpnd());
+        }
+    }
+    return false;
 }
 
 void
@@ -7837,6 +7861,14 @@ BackwardPass::RemoveEmptyLoopAfterMemOp(Loop *loop)
 
     outerBlock->RemovePred(head, this->func->m_fg);
     landingPad->RemoveSucc(head, this->func->m_fg);
+    Assert(landingPad->GetSuccList()->Count() == 0);
+
+    IR::Instr* firstOuterInstr = outerBlock->GetFirstInstr();
+    AssertOrFailFast(firstOuterInstr->IsLabelInstr() && !landingPad->GetLastInstr()->EndsBasicBlock());
+    IR::LabelInstr* label = firstOuterInstr->AsLabelInstr();
+    // Add br to Outer block to keep coherence between branches and flow graph
+    IR::BranchInstr *outerBr = IR::BranchInstr::New(Js::OpCode::Br, label, this->func);
+    landingPad->InsertAfter(outerBr);
     this->func->m_fg->AddEdge(landingPad, outerBlock);
 
     this->func->m_fg->RemoveBlock(head, nullptr);

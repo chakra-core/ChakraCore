@@ -14,9 +14,8 @@ enum RelocType {
     RelocTypeBranch14,
     RelocTypeBranch19,
     RelocTypeBranch26,
-    RelocTypeDataLabelLow,
-    RelocTypeLabelLow,
-    RelocTypeLabelHigh,
+    RelocTypeLabelAdr,
+    RelocTypeLabelImmed,
     RelocTypeLabel
 };
 
@@ -34,13 +33,16 @@ enum InstructionType {
 
 #define FIRST_CALLEE_SAVED_GP_REG   RegR19
 #define LAST_CALLEE_SAVED_GP_REG    RegR28
+#define CALLEE_SAVED_GP_REG_COUNT\
+    ((LAST_CALLEE_SAVED_GP_REG - FIRST_CALLEE_SAVED_GP_REG) + 1)
 
-#define UNUSED_REG_FOR_STACK_ALIGN  RegR11
-#define SCRATCH_REG                 RegR17
-#define ALT_LOCALS_PTR              RegR13
-#define EH_STACK_SAVE_REG           RegR14
-#define SP_ALLOC_SCRATCH_REG        RegR15
+// Note that CATCH_OBJ_REG and ALT_LOCALS_PTR are implicitly referenced in
+// arm64_CallEhFrame.asm and must be updated there as well if these are changed.
 #define CATCH_OBJ_REG               RegR1
+#define UNUSED_REG_FOR_STACK_ALIGN  RegR11
+#define SP_ALLOC_SCRATCH_REG        RegR15
+#define SCRATCH_REG                 RegR17
+#define ALT_LOCALS_PTR              RegR28
 
 #define RETURN_DBL_REG              RegD0
 #define FIRST_CALLEE_SAVED_DBL_REG  RegD8
@@ -225,8 +227,10 @@ private:
     // General 3-operand instructions (ADD, AND, SUB, etc) follow a very standard pattern
     template<typename _RegFunc32, typename _RegFunc64> int EmitOp3Register(Arm64CodeEmitter &Emitter, IR::Instr* instr, _RegFunc32 reg32, _RegFunc64 reg64);
     template<typename _RegFunc32, typename _RegFunc64> int EmitOp3RegisterShifted(Arm64CodeEmitter &Emitter, IR::Instr* instr, SHIFT_EXTEND_TYPE shiftType, int shiftAmount, _RegFunc32 reg32, _RegFunc64 reg64);
-        template<typename _ImmFunc32, typename _ImmFunc64> int EmitOp3Immediate(Arm64CodeEmitter &Emitter, IR::Instr* instr, _ImmFunc32 imm32, _ImmFunc64 imm64);
+    template<typename _ImmFunc32, typename _ImmFunc64> int EmitOp3Immediate(Arm64CodeEmitter &Emitter, IR::Instr* instr, _ImmFunc32 imm32, _ImmFunc64 imm64);
     template<typename _RegFunc32, typename _RegFunc64, typename _ImmFunc32, typename _ImmFunc64> int EmitOp3RegisterOrImmediate(Arm64CodeEmitter &Emitter, IR::Instr* instr, _RegFunc32 reg32, _RegFunc64 reg64, _ImmFunc32 imm32, _ImmFunc64 imm64);
+    template<typename _RegFunc32, typename _RegFunc64, typename _ImmFunc32, typename _ImmFunc64> int EmitOp3RegisterOrImmediateExtendSPReg(Arm64CodeEmitter &Emitter, IR::Instr* instr, _RegFunc32 reg32, _RegFunc64 reg64, _ImmFunc32 imm32, _ImmFunc64 imm64);
+    template<typename _RegFunc32, typename _RegFunc64, typename _ImmFunc32, typename _ImmFunc64> int EmitOp3RegisterOrImmediateExtendSP(Arm64CodeEmitter &Emitter, IR::Instr* instr, _RegFunc32 reg32, _RegFunc64 reg64, _ImmFunc32 imm32, _ImmFunc64 imm64);
 
     // Load/store operations
     int EmitPrefetch(Arm64CodeEmitter &Emitter, IR::Instr* instr, IR::Opnd* memOpnd);

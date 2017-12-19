@@ -184,6 +184,13 @@ LEAF_ENTRY _ZN2Js18JavascriptFunction17CallAsmJsFunctionIdEET_PNS_16RecyclableOb
     jmp C_FUNC(_ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEPS5_jPh)
 LEAF_END _ZN2Js18JavascriptFunction17CallAsmJsFunctionIdEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEPS5_jPh, _TEXT
 
+// AsmJsSIMDValue CallAsmJsFunction<AsmJsSIMDValue>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
+.balign 16
+LEAF_ENTRY _ZN2Js18JavascriptFunction17CallAsmJsFunctionIDv4_fEET_PNS_16RecyclableObjectEPFPvS5_NS_8CallInfoEzEjPS6_, _TEXT
+    int 3  //TODO: Verify this code path when enabling WASM.SIMD for xplat
+    jmp C_FUNC(_ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEPS5_jPh)
+LEAF_END _ZN2Js18JavascriptFunction17CallAsmJsFunctionIDv4_fEET_PNS_16RecyclableObjectEPFPvS5_NS_8CallInfoEzEjPS6_, _TEXT
+
 #endif // _ENABLE_DYNAMIC_THUNKS
 //------------------------------------------------------------------------------
 .balign 16

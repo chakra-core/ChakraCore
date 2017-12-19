@@ -27,7 +27,8 @@ enum ErrorReason
     Fatal_JsReentrancy_Error = 19,
     Fatal_TTDAbort = 20,
     Fatal_Failed_API_Result = 21,
-    Fatal_RecyclerVisitedHost_LargeHeapBlock = 22,
+    Fatal_OutOfMemory = 22,
+    Fatal_RecyclerVisitedHost_LargeHeapBlock = 23,
 };
 
 extern "C" void ReportFatalException(
@@ -50,7 +51,7 @@ void Amd64StackWalkerOutOfContexts_fatal_error(
 void FailedToBox_OOM_fatal_error(
     __in ULONG_PTR context);
 
-#if defined(RECYCLER_WRITE_BARRIER) && defined(_M_X64_OR_ARM64)
+#if defined(RECYCLER_WRITE_BARRIER) && defined(TARGET_64)
 void X64WriteBarrier_OOM_fatal_error();
 #endif
 
@@ -71,6 +72,7 @@ void LargeHeapBlock_Metadata_Corrupted(
 void FromDOM_NoScriptScope_fatal_error();
 void Debugger_AttachDetach_fatal_error(HRESULT hr);
 void RpcFailure_fatal_error(HRESULT hr);
+void OutOfMemory_fatal_error();
 
 #ifndef DISABLE_SEH
 // RtlReportException is available on Vista and up, but we cannot use it for OOB release.

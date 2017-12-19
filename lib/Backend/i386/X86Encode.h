@@ -218,6 +218,7 @@ enum Forms : BYTE
 
 #define OPBYTE_MOVHLPS  {0x12}                  // modrm
 #define OPBYTE_MOVHPD   {0x16}                  // special
+#define OPBYTE_MOVLPD   {0x12}                  // special
 #define OPBYTE_MOVLHPS  {0x16}                  // modrm
 #define OPBYTE_MOVMSKPD {0x50}                  // modrm
 #define OPBYTE_MOVMSKPS {0x50}                  // modrm
@@ -245,6 +246,7 @@ enum Forms : BYTE
 #define OPBYTE_ORPS     {0x56}                  // modrm
 #define OPBYTE_PADDB    {0xfc}                  // modrm
 #define OPBYTE_PADDD    {0xfe}                  // modrm
+#define OPBYTE_PADDQ    {0xd4}                  // modrm
 #define OPBYTE_PADDW    {0xfd}                  // modrm
 #define OPBYTE_PADDSB   {0xec}                  // modrm
 #define OPBYTE_PADDSW   {0xed}                  // modrm
@@ -273,19 +275,24 @@ enum Forms : BYTE
 #define OPBYTE_POPCNT   {0xB8}                  // modrm
 #define OPBYTE_PSHUFD   {0x70}                  // special
 #define OPBYTE_PEXTRW   {0xc5}                  // special
+#define OPBYTE_PEXTRD   {0x16}                  // special
 #define OPBYTE_PINSRW   {0xc4}                  // special
+#define OPBYTE_PINSRD   {0x22}                  // special
 #define OPBYTE_PSLLDQ   {0x73}                  // mmxshift
 #define OPBYTE_PSRLDQ   {0x73}                  // mmxshift
 
 #define OPBYTE_PSLLW    {0x71}                  // mmx lane shift
 #define OPBYTE_PSLLD    {0x72}                  // mmx lane shift
+#define OPBYTE_PSLLQ    {0xf3}                  // mmx lane shift
 #define OPBYTE_PSRAW    {0x71}                  // mmx lane shift
 #define OPBYTE_PSRAD    {0x72}                  // mmx lane shift
 #define OPBYTE_PSRLW    {0x71}                  // mmx lane shift
 #define OPBYTE_PSRLD    {0x72}                  // mmx lane shift
+#define OPBYTE_PSRLQ    {0xd3}                  // mmx lane shift
 
 #define OPBYTE_PSUBB    {0xf8}                  // modrm
 #define OPBYTE_PSUBD    {0xfa}                  // modrm
+#define OPBYTE_PSUBQ    {0xfb}                  // modrm
 #define OPBYTE_PSUBW    {0xf9}                  // modrm
 #define OPBYTE_PSUBSB   {0xe8}                  // modrm
 #define OPBYTE_PSUBSW   {0xe9}                  // modrm

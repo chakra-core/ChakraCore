@@ -28,7 +28,8 @@ struct Cloner
         lowerer(lowerer),
         instrFirst(nullptr),
         instrLast(nullptr),
-        fRetargetClonedBranch(FALSE)
+        fRetargetClonedBranch(FALSE),
+        clonedInstrGetOrigArgSlotSym(false)
     {
     }
 
@@ -48,13 +49,13 @@ struct Cloner
     void Finish();
     void RetargetClonedBranches();
 
+    JitArenaAllocator *alloc;
     HashTable<StackSym*> *symMap;
     HashTable<IR::LabelInstr*> *labelMap;
     Lowerer * lowerer;
     IR::Instr * instrFirst;
     IR::Instr * instrLast;
     BOOL fRetargetClonedBranch;
-    JitArenaAllocator *alloc;
     bool clonedInstrGetOrigArgSlotSym;
 };
 
@@ -344,9 +345,9 @@ public:
 static const uint32 c_debugFillPattern4 = 0xcececece;
 static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 
-#if defined(_M_IX86) || defined (_M_ARM)
+#if defined(TARGET_32)
     static const uint32 c_debugFillPattern = c_debugFillPattern4;
-#elif defined(_M_X64) || defined(_M_ARM64)
+#elif defined(TARGET_64)
     static const unsigned __int64 c_debugFillPattern = c_debugFillPattern8;
 #else
 #error unsupported platform
@@ -729,7 +730,7 @@ public:
     bool                hasThrow : 1;
     bool                hasUnoptimizedArgumentsAccess : 1; // True if there are any arguments access beyond the simple case of this.apply pattern
     bool                m_canDoInlineArgsOpt : 1;
-    bool                applyTargetInliningRemovedArgumentsAccess :1;
+    bool                applyTargetInliningRemovedArgumentsAccess : 1;
     bool                isGetterSetter : 1;
     const bool          isInlinedConstructor: 1;
     bool                hasImplicitCalls: 1;

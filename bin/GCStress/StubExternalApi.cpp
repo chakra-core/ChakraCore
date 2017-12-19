@@ -21,7 +21,7 @@ void ConfigParserAPI::DisplayInitialOutput(__in LPWSTR moduleName)
     Output::Print(_u("INIT: DLL Path   : %s\n"), moduleName);
 }
 
-#ifdef ENABLE_JS_ETW
+#if defined(ENABLE_JS_ETW) && !defined(ENABLE_JS_LTTNG)
 void EtwCallbackApi::OnSessionChange(ULONG /* controlCode */, PVOID /* callbackContext */)
 {
     // Does nothing
@@ -112,10 +112,4 @@ HRESULT MemProtectHeapSynchronizeWithCollector(void * heapHandle) { return E_NOT
 void MemProtectHeapSetDisableConcurrentThreadExitedCheck(void * heapHandle) {};
 #endif
 
-#if DBG && defined(RECYCLER_VERIFY_MARK)
-bool IsLikelyRuntimeFalseReference(char* objectStartAddress, size_t offset,
-    const char* typeName)
-{
-    return false;
-}
-#endif
+IMPLEMENT_STUB_IsLikelyRuntimeFalseReference()

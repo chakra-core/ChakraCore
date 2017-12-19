@@ -1323,7 +1323,29 @@ CommonNumber:
         return type->GetPrototype();
     }
 
-    BOOL JavascriptOperators::IsArray(_In_ RecyclableObject* instance)
+    BOOL JavascriptOperators::IsRemoteArray(RecyclableObject* instance)
+    {
+        TypeId remoteTypeId = TypeIds_Limit;
+        return (JavascriptOperators::GetRemoteTypeId(instance, &remoteTypeId) &&
+            DynamicObject::IsAnyArrayTypeId(remoteTypeId));
+    }
+
+    bool JavascriptOperators::IsArray(_In_ JavascriptProxy * instance)
+    {
+        // If it is a proxy, follow to the end of the proxy chain before checking if it is an array again.
+        JavascriptProxy * proxy = instance;
+        while (true)
+        {
+            RecyclableObject * targetInstance = proxy->GetTarget();
+            proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(targetInstance);
+            if (proxy == nullptr)
+            {
+                return DynamicObject::IsAnyArray(targetInstance) || IsRemoteArray(targetInstance);
+            }
+        }
+    }
+
+    bool JavascriptOperators::IsArray(_In_ RecyclableObject* instance)
     {
         if (DynamicObject::IsAnyArray(instance))
         {
@@ -1333,45 +1355,50 @@ CommonNumber:
         JavascriptProxy* proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(instance);
         if (proxy)
         {
-            return IsArray(proxy->GetTarget());
+            return IsArray(proxy);
         }
-        TypeId remoteTypeId = TypeIds_Limit;
-        if (JavascriptOperators::GetRemoteTypeId(instance, &remoteTypeId) &&
-            DynamicObject::IsAnyArrayTypeId(remoteTypeId))
-        {
-            return TRUE;
-        }
-        return FALSE;
+
+        return IsRemoteArray(instance);
     }
 
-    BOOL JavascriptOperators::IsArray(_In_ Var instanceVar)
+    bool JavascriptOperators::IsArray(_In_ Var instanceVar)
     {
-        if (!RecyclableObject::Is(instanceVar))
-        {
-            return FALSE;
-        }
-        return IsArray(RecyclableObject::FromVar(instanceVar));
+        RecyclableObject* instanceObj = TryFromVar<RecyclableObject>(instanceVar);
+        return instanceObj && IsArray(instanceObj);
     }
 
-    BOOL JavascriptOperators::IsConstructor(Var instanceVar)
+    bool JavascriptOperators::IsConstructor(_In_ JavascriptProxy * instance)
     {
-        if (!RecyclableObject::Is(instanceVar))
+        // If it is a proxy, follow to the end of the proxy chain before checking if it is a constructor again.
+        JavascriptProxy * proxy = instance;
+        while (true)
         {
-            return FALSE;
+            RecyclableObject* targetInstance = proxy->GetTarget();
+            proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(targetInstance);
+            if (proxy == nullptr)
+            {
+                JavascriptFunction* function = JavascriptOperators::TryFromVar<JavascriptFunction>(targetInstance);
+                return function && function->IsConstructor();
+            }
         }
+    }
 
-        JavascriptProxy* proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(instanceVar);
+    bool JavascriptOperators::IsConstructor(_In_ RecyclableObject* instanceObj)
+    {
+        JavascriptProxy* proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(instanceObj);
         if (proxy)
         {
-            return IsConstructor(proxy->GetTarget());
+            return IsConstructor(proxy);
         }
 
-        JavascriptFunction * function = JavascriptOperators::TryFromVar<JavascriptFunction>(instanceVar);
-        if (!function)
-        {
-            return FALSE;
-        }
-        return function->IsConstructor();
+        JavascriptFunction* function = JavascriptOperators::TryFromVar<JavascriptFunction>(instanceObj);
+        return function && function->IsConstructor();
+    }
+
+    bool JavascriptOperators::IsConstructor(_In_ Var instanceVar)
+    {
+        RecyclableObject* instanceObj = TryFromVar<RecyclableObject>(instanceVar);
+        return instanceObj && IsConstructor(instanceObj);
     }
 
     BOOL JavascriptOperators::IsConcatSpreadable(Var instanceVar)
@@ -1426,16 +1453,16 @@ CommonNumber:
         return JavascriptOperators::IsArray(instance);
     }
 
-    BOOL JavascriptOperators::IsConstructorSuperCall(Arguments args)
+    bool JavascriptOperators::IsConstructorSuperCall(Arguments args)
     {
         Var newTarget = args.GetNewTarget();
         return args.IsNewCall() && newTarget != nullptr
                 && !JavascriptOperators::IsUndefined(newTarget);
     }
 
-    BOOL JavascriptOperators::GetAndAssertIsConstructorSuperCall(Arguments args)
+    bool JavascriptOperators::GetAndAssertIsConstructorSuperCall(Arguments args)
     {
-        BOOL isCtorSuperCall = JavascriptOperators::IsConstructorSuperCall(args);
+        bool isCtorSuperCall = JavascriptOperators::IsConstructorSuperCall(args);
         Assert(isCtorSuperCall || !args.IsNewCall()
                 || args[0] == nullptr || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
         return isCtorSuperCall;
@@ -4391,16 +4418,29 @@ CommonNumber:
             LiteralStringWithPropertyStringPtr * strWithPtr = LiteralStringWithPropertyStringPtr::TryFromVar(index);
             if (strWithPtr != nullptr)
             {
-                propertyString = strWithPtr->GetOrAddPropertyString();
-                propertyRecord = propertyString->GetPropertyRecord();
+                propertyString = strWithPtr->GetPropertyString(); // do not force create the PropertyString,
+                                                                  // if it wasn't there, it won't be efficient for now.
+                propertyRecord = strWithPtr->GetPropertyRecord(true /* dontLookupFromDictionary */);
+                if (propertyRecord == nullptr)
+                {
+                    propertyRecord = strWithPtr->GetPropertyRecord(); // lookup-cache propertyRecord
+                                                                      // later this call, there will be a lookup anyways!
+                }
+                else if (propertyString == nullptr)
+                {
+                    propertyString = strWithPtr->GetOrAddPropertyString(); // this is the second time this property is here
+                                                                           // we already had created the propertyRecord..
+                                                                           // now create the propertyString!
+                }
             }
         }
-
-        if (propertyString != nullptr)
+        else
         {
-            Assert(propertyString->GetScriptContext() == scriptContext);
             propertyRecord = propertyString->GetPropertyRecord();
+        }
 
+        if (propertyRecord != nullptr)
+        {
             if (propertyRecord->IsNumeric())
             {
                 indexType = IndexType_Number;
@@ -4408,8 +4448,9 @@ CommonNumber:
             }
             else
             {
-                if (receiver == object)
+                if (propertyString != nullptr && receiver == object)
                 {
+                    Assert(propertyString->GetScriptContext() == scriptContext);
                     if (propertyString->TrySetPropertyFromCache(object, value, scriptContext, flags, &propertyValueInfo))
                     {
                         return true;
@@ -4435,45 +4476,39 @@ CommonNumber:
 
         if (indexType == IndexType_Number)
         {
+SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             return JavascriptOperators::SetItem(receiver, object, indexVal, value, scriptContext, flags);
         }
         else if (indexType == IndexType_JavascriptString)
         {
             Assert(propertyNameString);
-            JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
 
-            if (BuiltInPropertyRecords::NaN.Equals(propertyName))
+            // At this point, we know that the propertyNameString is neither PropertyString
+            // or LiteralStringWithPropertyStringPtr.. Get PropertyRecord!
+            // we will get it anyways otherwise. (Also, 1:1 string comparison for Builtin types will be expensive.)
+
+            if (propertyRecord == nullptr)
             {
-                // Follow SetProperty convention for NaN
-                return JavascriptOperators::SetProperty(receiver, object, PropertyIds::NaN, value, scriptContext, flags);
+                scriptContext->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
+                if (propertyRecord->IsNumeric())
+                {
+                    indexVal = propertyRecord->GetNumericValue();
+                    goto SetElementIHelper_INDEX_TYPE_IS_NUMBER;
+                }
             }
-            else if (BuiltInPropertyRecords::Infinity.Equals(propertyName))
-            {
-                // Follow SetProperty convention for Infinity
-                return JavascriptOperators::SetProperty(receiver, object, PropertyIds::Infinity, value, scriptContext, flags);
-            }
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-            if (PHASE_TRACE1(PropertyStringCachePhase))
-            {
-                Output::Print(_u("PropertyCache: SetElem No property string for '%s'\n"), propertyNameString->GetString());
-            }
-#endif
-            return SetPropertyWPCache(receiver, object, propertyNameString, value, scriptContext, flags, &propertyValueInfo);
         }
-        else
+
+        Assert(indexType == IndexType_PropertyId || indexType == IndexType_JavascriptString);
+        Assert(propertyRecord);
+        PropertyId propId = propertyRecord->GetPropertyId();
+        if (propId == PropertyIds::NaN || propId == PropertyIds::Infinity)
         {
-            Assert(indexType == IndexType_PropertyId);
-            Assert(propertyRecord);
-            PropertyId propId = propertyRecord->GetPropertyId();
-            if (propId == PropertyIds::NaN || propId == PropertyIds::Infinity)
-            {
-                // As we no longer convert o[x] into o.x for NaN and Infinity, we need to follow SetProperty convention for these,
-                // which would check for read-only properties, strict mode, etc.
-                // Note that "-Infinity" does not qualify as property name, so we don't have to take care of it.
-                return JavascriptOperators::SetProperty(receiver, object, propId, value, scriptContext, flags);
-            }
-            return SetPropertyWPCache(receiver, object, propId, value, scriptContext, flags, &propertyValueInfo);
+            // As we no longer convert o[x] into o.x for NaN and Infinity, we need to follow SetProperty convention for these,
+            // which would check for read-only properties, strict mode, etc.
+            // Note that "-Infinity" does not qualify as property name, so we don't have to take care of it.
+            return JavascriptOperators::SetProperty(receiver, object, propId, value, scriptContext, flags);
         }
+        return SetPropertyWPCache(receiver, object, propId, value, scriptContext, flags, &propertyValueInfo);
     }
 
     BOOL JavascriptOperators::OP_SetNativeIntElementI(
@@ -4694,64 +4729,45 @@ CommonNumber:
         return returnValue;
     }
 
+    template<typename T, T(*func)(Var, ScriptContext*)> bool MemsetConversion(Var value, ScriptContext* scriptContext, T* result)
+    {
+        ImplicitCallFlags flags = scriptContext->GetThreadContext()->TryWithDisabledImplicitCall([&]
+        {
+            *result = func(value, scriptContext);
+        });
+        return (flags & (~ImplicitCall_None)) == 0;
+    }
+
     BOOL JavascriptOperators::OP_Memset(Var instance, int32 start, Var value, int32 length, ScriptContext* scriptContext)
     {
         if (length <= 0)
         {
             return false;
         }
+
         TypeId instanceType = JavascriptOperators::GetTypeId(instance);
         BOOL  returnValue = false;
 
         // The typed array will deal with all possible values for the index
-#define MEMSET_TYPED_ARRAY(type, conversion) type ## ::FromVar(instance)->DirectSetItemAtRange(start, length, value, JavascriptConversion:: ## conversion)
+#define MEMSET_TYPED_ARRAY_CASE(type, conversion) \
+        case TypeIds_##type: \
+        { \
+            type## ::TypedArrayType typedValue = 0; \
+            if (!MemsetConversion<type## ::TypedArrayType, JavascriptConversion:: ##conversion>(value, scriptContext, &typedValue)) return false; \
+            returnValue = type## ::FromVar(instance)->DirectSetItemAtRange(start, length, typedValue); \
+            break; \
+        }
         switch (instanceType)
         {
-        case TypeIds_Int8Array:
-        {
-            returnValue = MEMSET_TYPED_ARRAY(Int8Array, ToInt8);
-            break;
-        }
-        case TypeIds_Uint8Array:
-        {
-            returnValue = MEMSET_TYPED_ARRAY(Uint8Array, ToUInt8);
-            break;
-        }
-        case TypeIds_Uint8ClampedArray:
-        {
-            returnValue = MEMSET_TYPED_ARRAY(Uint8ClampedArray, ToUInt8Clamped);
-            break;
-        }
-        case TypeIds_Int16Array:
-        {
-            returnValue = MEMSET_TYPED_ARRAY(Int16Array, ToInt16);
-            break;
-        }
-        case TypeIds_Uint16Array:
-        {
-            returnValue = MEMSET_TYPED_ARRAY(Uint16Array, ToUInt16);
-            break;
-        }
-        case TypeIds_Int32Array:
-        {
-            returnValue = MEMSET_TYPED_ARRAY(Int32Array, ToInt32);
-            break;
-        }
-        case TypeIds_Uint32Array:
-        {
-            returnValue = MEMSET_TYPED_ARRAY(Uint32Array, ToUInt32);
-            break;
-        }
-        case TypeIds_Float32Array:
-        {
-            returnValue = MEMSET_TYPED_ARRAY(Float32Array, ToFloat);
-            break;
-        }
-        case TypeIds_Float64Array:
-        {
-            returnValue = MEMSET_TYPED_ARRAY(Float64Array, ToNumber);
-            break;
-        }
+        MEMSET_TYPED_ARRAY_CASE(Int8Array, ToInt8)
+        MEMSET_TYPED_ARRAY_CASE(Uint8Array, ToUInt8)
+        MEMSET_TYPED_ARRAY_CASE(Uint8ClampedArray, ToUInt8Clamped)
+        MEMSET_TYPED_ARRAY_CASE(Int16Array, ToInt16)
+        MEMSET_TYPED_ARRAY_CASE(Uint16Array, ToUInt16)
+        MEMSET_TYPED_ARRAY_CASE(Int32Array, ToInt32)
+        MEMSET_TYPED_ARRAY_CASE(Uint32Array, ToUInt32)
+        MEMSET_TYPED_ARRAY_CASE(Float32Array, ToFloat)
+        MEMSET_TYPED_ARRAY_CASE(Float64Array, ToNumber)
         case TypeIds_NativeFloatArray:
         case TypeIds_NativeIntArray:
         case TypeIds_Array:
@@ -4780,7 +4796,11 @@ CommonNumber:
                     {
                         return false;
                     }
-                    int32 intValue = JavascriptConversion::ToInt32(value, scriptContext);
+                    int32 intValue = 0;
+                    if (!MemsetConversion<int32, JavascriptConversion::ToInt32>(value, scriptContext, &intValue))
+                    {
+                        return false;
+                    }
                     returnValue = JavascriptArray::UnsafeFromVar(instance)->DirectSetItemAtRange<int32>(start, length, intValue);
                 }
                 else
@@ -4791,7 +4811,11 @@ CommonNumber:
                         return false;
                     }
 
-                    double doubleValue = JavascriptConversion::ToNumber(value, scriptContext);
+                    double doubleValue = 0;
+                    if (!MemsetConversion<double, JavascriptConversion::ToNumber>(value, scriptContext, &doubleValue))
+                    {
+                        return false;
+                    }
                     // Special case for missing item
                     if (SparseArraySegment<double>::IsMissingItem(&doubleValue))
                     {
@@ -9566,7 +9590,7 @@ CommonNumber:
         Js::ScriptContext* scriptContext)
     {
         Var element;
-        uint64 allocSize = length * elementSize;
+        uint64 allocSize = UInt32Math::Mul(length, elementSize);
 
         // TODO:further fast path the call for things like IntArray convert to int, floatarray convert to float etc.
         // such that we don't need boxing.
@@ -9715,7 +9739,7 @@ CommonNumber:
     }
 
     // SpeciesConstructor abstract operation as described in ES6.0 Section 7.3.20
-    Var JavascriptOperators::SpeciesConstructor(RecyclableObject* object, Var defaultConstructor, ScriptContext* scriptContext)
+    RecyclableObject* JavascriptOperators::SpeciesConstructor(_In_ RecyclableObject* object, _In_ JavascriptFunction* defaultConstructor, _In_ ScriptContext* scriptContext)
     {
         //1.Assert: Type(O) is Object.
         Assert(JavascriptOperators::IsObject(object));
@@ -9749,9 +9773,10 @@ CommonNumber:
             constructor = species;
         }
         //9.If IsConstructor(S) is true, return S.
-        if (JavascriptOperators::IsConstructor(constructor))
+        RecyclableObject* constructorObj = JavascriptOperators::TryFromVar<RecyclableObject>(constructor);
+        if (constructorObj && JavascriptOperators::IsConstructor(constructorObj))
         {
-            return constructor;
+            return constructorObj;
         }
         //10.Throw a TypeError exception.
         JavascriptError::ThrowTypeError(scriptContext, JSERR_NotAConstructor, _u("constructor[Symbol.species]"));

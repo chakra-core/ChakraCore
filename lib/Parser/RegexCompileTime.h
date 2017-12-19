@@ -376,10 +376,8 @@ namespace UnifiedRegex
             , isEquivClass(false)
         {
             cs[0] = c;
-#if DBG
             for (int i = 1; i < CaseInsensitive::EquivClassSize; i++)
-                cs[i] = (Char)-1;
-#endif
+                cs[i] = c;
         }
 
         NODE_DECL
@@ -666,20 +664,20 @@ namespace UnifiedRegex
 
         void SetBOIInstructionsProgramTag()
         {
-            Assert(this->program->tag == Program::InstructionsTag
-                || this->program->tag == Program::BOIInstructionsTag);
+            Assert(this->program->tag == Program::ProgramTag::InstructionsTag
+                || this->program->tag == Program::ProgramTag::BOIInstructionsTag);
             Assert(this->CurrentLabel() == 0);
-            this->program->tag = Program::BOIInstructionsTag;
+            this->program->tag = Program::ProgramTag::BOIInstructionsTag;
         }
 
         void SetBOIInstructionsProgramForStickyFlagTag()
         {
-            Assert(this->program->tag == Program::InstructionsTag
-                || this->program->tag == Program::BOIInstructionsForStickyFlagTag);
+            Assert(this->program->tag == Program::ProgramTag::InstructionsTag
+                || this->program->tag == Program::ProgramTag::BOIInstructionsForStickyFlagTag);
             Assert(this->CurrentLabel() == 0);
             AssertMsg((this->program->flags & StickyRegexFlag) != 0, "Shouldn't set BOIInstructionsForStickyFlagTag, if sticky is false.");
 
-            this->program->tag = Program::BOIInstructionsForStickyFlagTag;
+            this->program->tag = Program::ProgramTag::BOIInstructionsForStickyFlagTag;
         }
 
         static void CaptureNoLiterals(Program* program);

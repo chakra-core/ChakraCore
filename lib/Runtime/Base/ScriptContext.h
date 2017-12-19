@@ -370,7 +370,7 @@ namespace Js
 #endif
         Js::ImplicitCallFlags savedImplicitCallFlags;
 
-        void * returnAddrOfScriptEntryFunction;
+        void * addrOfReturnAddrOfScriptEntryFunction;
         void * frameIdOfScriptExitFunction; // the frameAddres in x86, the return address in amd64/arm_soc
         ScriptContext * scriptContext;
         struct ScriptEntryExitRecord * next;
@@ -1962,3 +1962,4 @@ private:
 #define RELEASE_TEMP_GUEST_ALLOCATOR(allocator, scriptContext) \
     if (tempGuest##allocator) \
     scriptContext->ReleaseTemporaryGuestAllocator(tempGuest##allocator);
+

@@ -89,6 +89,9 @@ namespace Js
             static FunctionInfo SymbolHasInstance;
 
             static FunctionInfo NewAsyncFunctionInstance;
+#ifdef ALLOW_JIT_REPRO
+            static FunctionInfo InvokeJit;
+#endif
         };
 
         static const int numberLinesPrependedToAnonymousFunction = 1;
@@ -106,6 +109,9 @@ namespace Js
 
         static Var NewAsyncFunctionInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewAsyncFunctionInstanceRestrictedMode(RecyclableObject* function, CallInfo callInfo, ...);
+#ifdef ALLOW_JIT_REPRO
+        static Var EntryInvokeJit(RecyclableObject* function, CallInfo callInfo, ...);
+#endif
 
         static bool Is(Var aValue);
         static JavascriptFunction* FromVar(Var aValue);
@@ -131,11 +137,11 @@ namespace Js
         static void CheckValidDebugThunk(ScriptContext* scriptContext, RecyclableObject *function);
 #endif
         template <bool doStackProbe>
-        static Var CallFunction(RecyclableObject* obj, JavascriptMethod entryPoint, Arguments args);
+        static Var CallFunction(RecyclableObject* obj, JavascriptMethod entryPoint, Arguments args, bool useLargeArgCount = false);
         static Var CallRootFunction(RecyclableObject* obj, Arguments args, ScriptContext * scriptContext, bool inScript);
         static Var CallRootFunctionInternal(RecyclableObject* obj, Arguments args, ScriptContext * scriptContext, bool inScript);
         static Var CallSpreadFunction(RecyclableObject* obj, Arguments args, const Js::AuxArray<uint32> *spreadIndices);
-        static ArgSlot GetSpreadSize(const Arguments args, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext);
+        static uint GetSpreadSize(const Arguments args, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext);
         static void SpreadArgs(const Arguments args, Arguments& destArgs, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext);
         static Var EntrySpreadCall(const Js::AuxArray<uint32> *spreadIndices, RecyclableObject* function, CallInfo callInfo, ...);
         static void CheckAlignment();

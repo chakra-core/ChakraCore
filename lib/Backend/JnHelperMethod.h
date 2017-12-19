@@ -7,7 +7,7 @@
 extern "C"
 {
 #ifdef _M_IX86
-    void __cdecl _chkstk(int);
+    DECLSPEC_CHPE_GUEST void __cdecl _chkstk(int);
 #else
     void __cdecl __chkstk(int);
 #endif

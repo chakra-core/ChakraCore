@@ -480,18 +480,22 @@ public:
     // have if the entire file was converted to Unicode (UTF16-LE).
     charcount_t IchMinTok(void) const
     {
+
         Assert(m_pchMinTok - m_pchBase >= 0);
         Assert(m_pchMinTok - m_pchBase <= LONG_MAX);
-        return static_cast< charcount_t >(m_pchMinTok - m_pchBase - m_cMinTokMultiUnits);
+        Assert(static_cast<charcount_t>(m_pchMinTok - m_pchBase) >= m_cMinTokMultiUnits);
+        return static_cast<charcount_t>(m_pchMinTok - m_pchBase - m_cMinTokMultiUnits);
     }
 
     // Returns the character offset of the character immediately following the token. The character offset is the offset the first
     // character of the token would have if the entire file was converted to Unicode (UTF16-LE).
     charcount_t IchLimTok(void) const
     {
+
         Assert(m_currentCharacter - m_pchBase >= 0);
         Assert(m_currentCharacter - m_pchBase <= LONG_MAX);
-        return static_cast< charcount_t >(m_currentCharacter - m_pchBase - this->m_cMultiUnits);
+        Assert(static_cast<charcount_t>(m_currentCharacter - m_pchBase) >= this->m_cMultiUnits);
+        return static_cast<charcount_t>(m_currentCharacter - m_pchBase - this->m_cMultiUnits);
     }
 
     void SetErrorPosition(charcount_t ichMinError, charcount_t ichLimError)
@@ -542,8 +546,10 @@ public:
     // Returns the character offset within the stream of the first character on the current line.
     charcount_t IchMinLine(void) const
     {
+
         Assert(m_pchMinLine - m_pchBase >= 0);
         Assert(m_pchMinLine - m_pchBase <= LONG_MAX);
+        Assert(static_cast<charcount_t>(m_pchMinLine - m_pchBase) >= m_cMinLineMultiUnits);
         return static_cast<charcount_t>(m_pchMinLine - m_pchBase - m_cMinLineMultiUnits);
     }
 

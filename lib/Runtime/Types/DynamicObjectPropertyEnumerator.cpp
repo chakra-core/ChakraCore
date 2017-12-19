@@ -270,6 +270,7 @@ namespace Js
 
     JavascriptString * DynamicObjectPropertyEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes * attributes)
     {
+        propertyId = Js::Constants::NoProperty;
         if (this->cachedData && this->initialType == this->object->GetDynamicType())
         {
             return MoveAndGetNextWithCache(propertyId, attributes);

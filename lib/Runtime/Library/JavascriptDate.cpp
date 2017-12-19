@@ -260,8 +260,9 @@ namespace Js
             if (JavascriptString::Is(args[1]))
             {
                 JavascriptString* StringObject = JavascriptString::FromVar(args[1]);
+                const char16 * str = StringObject->GetString();
 
-                if (wcscmp(StringObject->UnsafeGetBuffer(), _u("default")) == 0 || wcscmp(StringObject->UnsafeGetBuffer(), _u("string")) == 0)
+                if (wcscmp(str, _u("default")) == 0 || wcscmp(str, _u("string")) == 0)
                 {
                     // Date objects, are unique among built-in ECMAScript object in that they treat "default" as being equivalent to "string"
                     // If hint is the string value "string" or the string value "default", then
@@ -270,7 +271,7 @@ namespace Js
                 }
                 // Else if hint is the string value "number", then
                 // Let tryFirst be "number".
-                else if(wcscmp(StringObject->UnsafeGetBuffer(), _u("number")) == 0)
+                else if(wcscmp(str, _u("number")) == 0)
                 {
                     return JavascriptConversion::OrdinaryToPrimitive(args[0], JavascriptHint::HintNumber/*tryFirst*/, scriptContext);
                 }

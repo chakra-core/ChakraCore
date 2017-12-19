@@ -546,7 +546,7 @@ var tests = [
             var a3 = [1, 2, 3, 4, 5];
             var b3 = a3.splice(p3);
             assert.areEqual([30,2,3,4,5], b3, "ToPrimitive: splice() method returned incorrect result as array type changed to ES5 array.");
- 
+
             var a3_proto = {};
             Object.defineProperty(a3_proto, "0", {
                   get: function(){
@@ -569,7 +569,7 @@ var tests = [
             var a3_species = [1, 2, 3, 4, 5];
             a3_species['constructor'] = a3_constructor;
             var c3_species = a3_species.splice(0);
-            assert.areEqual(30, c3_species["0"], "The splice() method returned incorrect result as array was converted to an ES5Array.");            
+            assert.areEqual(30, c3_species["0"], "The splice() method returned incorrect result as array was converted to an ES5Array.");
             assert.areEqual("30,2,3,4,5", [].join.call(c3_species, ","), "The splice() method returned incorrect result as array was converted to an ES5Array.");
        }
    },
@@ -599,7 +599,7 @@ var tests = [
             a4_prototest.__proto__ = a4_proto;
             var c4_prototest = [].slice.call(a4_prototest, 0);
             assert.areEqual([1,30,3,4,5], c4_prototest, "ToPrimitive: The slice() method returned incorrect result as array type changed to ES5 array in the property getter of the prototype.");
- 
+
             function a4_constructor(x) { };
             a4_constructor[Symbol.species] = function () {
                 Object.defineProperty(a4_species, "0", { configurable: true, get: function () { return 30; } });
@@ -609,7 +609,7 @@ var tests = [
             var a4_species = [1, 2, 3, 4, 5];
             a4_species['constructor'] = a4_constructor;
             var c4_species = a4_species.slice(0);
-            assert.areEqual(30, c4_species["0"], "The slice() method returned incorrect result as array was converted to an ES5Array.");            
+            assert.areEqual(30, c4_species["0"], "The slice() method returned incorrect result as array was converted to an ES5Array.");
             assert.areEqual("30,2,3,4,5", [].join.call(c4_species, ","), "The slice() method returned incorrect result as array was converted to an ES5Array.");
        }
    },
@@ -1042,20 +1042,18 @@ var tests = [
             var c21 = a21.copyWithin(p21);
             assert.areEqual([30,2,3,30,2], c21, "ToPrimitive: The copyWithin() method returned incorrect result as array type changed to ES5 array.");
 
-            //This test is failing due to following bug.
-            // 10747539: The CopyWithin array method implementation needs to do prototype lookup for property lookup (HasItem).
-            // var a21_proto = {};
-            // Object.defineProperty(a21_proto, "0", {
-            //       get: function(){
-            //             Object.defineProperty(a21_prototest, "1", {configurable : true, get: function(){ return 2;}});
-            //             return 30;
-            //       }
-            // });
+            var a21_proto = {};
+            Object.defineProperty(a21_proto, "0", {
+                  get: function(){
+                        Object.defineProperty(a21_prototest, "1", {configurable : true, get: function(){ return 2;}});
+                        return 30;
+                  }
+            });
 
-            // var a21_prototest = [,,3,4,5];
-            // a21_prototest.__proto__ = a21_proto;
-            // var c21_prototest = [].copyWithin.call(a21_prototest, -2);
-            // assert.areEqual("30,2,3,30,2", [].join.call(c21_prototest, ","), "ToPrimitive: The copyWithin() method returned incorrect result as array type changed to ES5Array in the property getter of the prototype.");
+            var a21_prototest = [,,3,4,5];
+            a21_prototest.__proto__ = a21_proto;
+            var c21_prototest = [].copyWithin.call(a21_prototest, -2);
+            assert.areEqual("30,2,3,30,2", [].join.call(c21_prototest, ","), "ToPrimitive: The copyWithin() method returned incorrect result as array type changed to ES5Array in the property getter of the prototype.");
 
             var p21_typedarray = {
                 [Symbol.toPrimitive] (hint) {

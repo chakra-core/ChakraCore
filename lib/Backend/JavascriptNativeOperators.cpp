@@ -143,21 +143,30 @@ namespace Js
             return false;
         }
 
-        if (type == equivTypes[0] || type == equivTypes[1] || type == equivTypes[2] || type == equivTypes[3] ||
-            type == equivTypes[4] || type == equivTypes[5] || type == equivTypes[6] || type == equivTypes[7])
+        int emptySlotIndex = -1;
+        for (int i = 0; i < EQUIVALENT_TYPE_CACHE_SIZE; i++)
         {
-#if DBG
-            if (PHASE_TRACE1(Js::EquivObjTypeSpecPhase))
+            if (equivTypes[i] == type)
             {
-                if (guard->WasReincarnated())
+#if DBG
+                if (PHASE_TRACE1(Js::EquivObjTypeSpecPhase))
                 {
-                    Output::Print(_u("EquivObjTypeSpec: Guard 0x%p was reincarnated and working now \n"), guard);
-                    Output::Flush();
+                    if (guard->WasReincarnated())
+                    {
+                        Output::Print(_u("EquivObjTypeSpec: Guard 0x%p was reincarnated and working now \n"), guard);
+                        Output::Flush();
+                    }
                 }
-            }
 #endif
-            guard->SetTypeAddr((intptr_t)type);
-            return true;
+                guard->SetTypeAddr((intptr_t)type);
+                return true;
+            }
+
+            if (equivTypes[i] == nullptr)
+            {
+                emptySlotIndex = i;
+                break;
+            }
         }
 
         // If we didn't find the type in the cache, let's check if it's equivalent the slow way, by comparing
@@ -203,27 +212,24 @@ namespace Js
 
         // Before checking for equivalence, track existing cached non-shared types
         DynamicType * dynamicType = (type && DynamicType::Is(type)) ? static_cast<DynamicType*>(type) : nullptr;
-        bool isEquivTypesCacheFull = equivTypes[EQUIVALENT_TYPE_CACHE_SIZE - 1] != nullptr;
-        int emptySlotIndex = -1;
+        bool isEquivTypesCacheFull = emptySlotIndex == -1;
         int nonSharedTypeSlotIndex = -1;
-        for (int i = 0; i < EQUIVALENT_TYPE_CACHE_SIZE; i++)
+        if (isEquivTypesCacheFull && dynamicType != nullptr)
         {
-            // Track presence of cached non-shared type if cache is full
-            if (isEquivTypesCacheFull)
+            for (int i = 0; i < EQUIVALENT_TYPE_CACHE_SIZE; i++)
             {
+                // Track presence of cached non-shared type if cache is full
                 if (DynamicType::Is(equivTypes[i]) &&
-                    nonSharedTypeSlotIndex == -1 &&
                     !(static_cast<DynamicType*>(equivTypes[i]))->GetIsShared())
                 {
                     nonSharedTypeSlotIndex = i;
+                    break;
                 }
             }
-            // Otherwise get the next available empty index
-            else if (equivTypes[i] == nullptr)
-            {
-                emptySlotIndex = i;
-                break;
-            };
+
+            // If cache is full, then this is definitely a sharedType, so evict non-shared type.
+            // Else evict next empty slot (only applicable for DynamicTypes)
+            emptySlotIndex = nonSharedTypeSlotIndex;
         }
 
         // If we get non-shared type while cache is full and we don't have any non-shared type to evict
@@ -264,10 +270,6 @@ namespace Js
         }
 
         AssertMsg(!isEquivTypesCacheFull || !dynamicType || dynamicType->GetIsShared() || nonSharedTypeSlotIndex > -1, "If equiv cache is full, then this should be sharedType or we will evict non-shared type.");
-
-        // If cache is full, then this is definitely a sharedType, so evict non-shared type.
-        // Else evict next empty slot (only applicable for DynamicTypes)
-        emptySlotIndex = (isEquivTypesCacheFull && dynamicType) ? nonSharedTypeSlotIndex : emptySlotIndex;
 
         // We have some empty slots, let us use those first
         if (emptySlotIndex != -1)

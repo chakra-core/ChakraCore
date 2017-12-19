@@ -60,7 +60,7 @@ runTest("+300000-01-01T01:01:01.001Z");
 writeStats();
 
 echo("////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////");
-echo("// Potential cross-browser compatilibity issues");
+echo("// Potential cross-browser compatibility issues");
 echo("");
 
 echo("// Leading and trailing whitespace, nulls, or non-whitespace non-nulls");

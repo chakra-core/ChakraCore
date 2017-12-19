@@ -111,10 +111,12 @@ namespace Js
             return nullptr;
         }
 
-#if DBG && ENABLE_NATIVE_CODEGEN
+#if DBG && ENABLE_NATIVE_CODEGEN && defined(_WIN32)
         // the lock for work item queue should not be locked while accessing AuxPtrs in background thread
         auto jobProcessor = this->GetScriptContext()->GetThreadContext()->GetJobProcessor();
         auto jobProcessorCS = jobProcessor->GetCriticalSection();
+
+        // ->IsLocked is not supported on xplat
         Assert(!jobProcessorCS || !jobProcessor->ProcessesInBackground() || !jobProcessorCS->IsLocked());
 #endif
 
@@ -929,6 +931,7 @@ namespace Js
         this->RedeferFunctionObjectTypes();
 
         this->Cleanup(false);
+
         if (GetIsFuncRegistered())
         {
             this->GetUtf8SourceInfo()->RemoveFunctionBody(this);
@@ -946,7 +949,7 @@ namespace Js
         this->MapFunctionObjectTypes([&](ScriptFunctionType* functionType)
         {
             Assert(functionType->GetTypeId() == TypeIds_Function);
-            
+
             if (!CrossSite::IsThunk(functionType->GetEntryPoint()))
             {
                 functionType->SetEntryPoint(GetScriptContext()->DeferredParsingThunk);
@@ -1131,6 +1134,13 @@ namespace Js
     void
     FunctionBody::SetOutParamMaxDepth(RegSlot cOutParamsDepth)
     {
+#if _M_X64
+        const RegSlot minAsmJsOutParams = MinAsmJsOutParams();
+        if (GetIsAsmJsFunction() && cOutParamsDepth < minAsmJsOutParams)
+        {
+            cOutParamsDepth = minAsmJsOutParams;
+        }
+#endif
         SetCountField(CounterFields::OutParamMaxDepth, cOutParamsDepth);
     }
 
@@ -2187,7 +2197,7 @@ namespace Js
 
         {
             AutoRestoreFunctionInfo autoRestoreFunctionInfo(this, DefaultEntryThunk);
-            
+
 
             // If m_hasBeenParsed = true, one of the following things happened things happened:
             // - We had multiple function objects which were all defer-parsed, but with the same function body and one of them
@@ -3425,7 +3435,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         JavascriptMethod originalEntryPoint = this->GetOriginalEntryPoint_Unchecked();
         return
-#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+#if defined(_CONTROL_FLOW_GUARD) && !defined(_M_ARM)
             (
 #if ENABLE_OOP_NATIVE_CODEGEN
             JITManager::GetJITManager()->IsOOPJITEnabled()
@@ -5430,7 +5440,21 @@ namespace Js
         return ScopeType_WithScope;
     }
 
+    // ScopeSlots
+    bool ScopeSlots::IsDebuggerScopeSlotArray() 
+    {
+        return DebuggerScope::Is(slotArray[ScopeMetadataSlotIndex]);
+    }
+
     // DebuggerScope
+    bool DebuggerScope::Is(void* ptr)
+    {
+        if (!ptr)
+        {
+            return false;
+        }
+        return VirtualTableInfo<DebuggerScope>::HasVirtualTable(ptr);
+    }
 
     // Get the sibling for the current debugger scope.
     DebuggerScope * DebuggerScope::GetSiblingScope(RegSlot location, FunctionBody *functionBody)
@@ -6375,7 +6399,7 @@ namespace Js
         this->SetConstTable(nullptr);
         this->byteCodeBlock = nullptr;
 
-        // Also, remove the function body from the source info to prevent any further processing 
+        // Also, remove the function body from the source info to prevent any further processing
         // of the function such as attempts to set breakpoints.
         if (GetIsFuncRegistered())
         {
@@ -6630,7 +6654,7 @@ namespace Js
     }
 
     uint32 FunctionBody::IncreaseInterpretedCount()
-    { 
+    {
         return executionState.IncreaseInterpretedCount();
     }
 
@@ -6691,7 +6715,7 @@ namespace Js
 
     void FunctionBody::ReinitializeExecutionModeAndLimits()
     {
-        // Do not remove wasCalledFromLoop 
+        // Do not remove wasCalledFromLoop
         wasCalledFromLoop = false;
         executionState.ReinitializeExecutionModeAndLimits(this);
     }
@@ -7358,7 +7382,7 @@ namespace Js
         this->SetScopeSlotArraySizes(0, 0);
 
         // Manually clear these values to break any circular references
-        // that might prevent the script context from being disposed        
+        // that might prevent the script context from being disposed
         this->auxPtrs = nullptr;
         this->byteCodeBlock = nullptr;
         this->entryPoints = nullptr;
@@ -8077,11 +8101,19 @@ namespace Js
                 // Set the recycler-allocated cache on the (heap-allocated) guard.
                 (*guard)->SetCache(cache);
 
-                for(uint i = 0; i < EQUIVALENT_TYPE_CACHE_SIZE; i++)
+                for (uint i = 0; i < EQUIVALENT_TYPE_CACHE_SIZE; i++)
                 {
                     if((*cache).types[i] != nullptr)
                     {
                         (*cache).types[i]->SetHasBeenCached();
+                    }
+                    else
+                    {
+#ifdef DEBUG
+                        for (uint __i = i; __i < EQUIVALENT_TYPE_CACHE_SIZE; __i++)
+                        { Assert((*cache).types[__i] == nullptr); }
+#endif
+                        break; // type array must be shrinked.
                     }
                 }
                 cache++;
@@ -8717,6 +8749,14 @@ namespace Js
 #endif
                 }
             }
+            else
+            {
+#ifdef DEBUG
+                for (int __i = i; __i < EQUIVALENT_TYPE_CACHE_SIZE; __i++)
+                { Assert(this->types[__i] == nullptr); }
+#endif
+                break; // array must be shrinked already
+            }
         }
 
         if (nonNullIndex > 0)
@@ -8725,9 +8765,6 @@ namespace Js
         }
         else
         {
-#if DBG
-            isGuardValuePresent = true; // never went into loop. (noNullIndex == 0)
-#endif
             if (guard->IsInvalidatedDuringSweep())
             {
                 // just mark this as actual invalidated since there are no types
@@ -8737,7 +8774,8 @@ namespace Js
         }
 
         // verify if guard value is valid, it is present in one of the types
-        AssertMsg(!this->guard->IsValid() || isGuardValuePresent, "After ClearUnusedTypes, valid guard value should be one of the cached equivalent types.");
+        AssertMsg(!this->guard->IsValid() || isGuardValuePresent || nonNullIndex == 0,
+            "After ClearUnusedTypes, valid guard value should be one of the cached equivalent types.");
         return isAnyTypeLive;
     }
 
@@ -8810,7 +8848,7 @@ namespace Js
         {
             // Unregister xdataInfo before OnCleanup() which may release xdataInfo->address
 #if ENABLE_NATIVE_CODEGEN
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
             if (this->xdataInfo != nullptr)
             {
                 XDataAllocator::Unregister(this->xdataInfo);
@@ -9217,7 +9255,7 @@ namespace Js
         this->functionProxy->MapFunctionObjectTypes([&](ScriptFunctionType* functionType)
         {
             Assert(functionType->GetTypeId() == TypeIds_Function);
-            
+
             if (functionType->GetEntryPointInfo() == this)
             {
                 functionType->SetEntryPointInfo(entryPoint);
@@ -9285,7 +9323,14 @@ namespace Js
                 else
                 {
                     newEntryPoint = functionBody->CreateNewDefaultEntryPoint();
-                    functionBody->SetDefaultInterpreterExecutionMode();
+                    functionBody->ReinitializeExecutionModeAndLimits();
+#if ENABLE_NATIVE_CODEGEN
+                    // In order for the function to ever get JIT again, we need to call GenerateFunction now
+                    if (!PHASE_OFF(Js::BackEndPhase, functionBody) && !functionBody->GetScriptContext()->GetConfig()->IsNoNative())
+                    {
+                        GenerateFunction(functionBody->GetScriptContext()->GetNativeCodeGenerator(), functionBody);
+                    }
+#endif
                 }
                 functionBody->TraceExecutionMode("JitCodeExpired");
             }
@@ -9385,7 +9430,7 @@ namespace Js
         if (this->IsCodeGenDone())
 #endif
         {
-            JS_ETW(EtwTrace::LogLoopBodyUnloadEvent(this->loopHeader->functionBody, this, 
+            JS_ETW(EtwTrace::LogLoopBodyUnloadEvent(this->loopHeader->functionBody, this,
                 this->loopHeader->functionBody->GetLoopNumber(this->loopHeader)));
 
 #if ENABLE_NATIVE_CODEGEN

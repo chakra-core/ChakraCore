@@ -37,7 +37,6 @@ struct InlinedFrameLayout;
 
 typedef intptr_t IntConstType;
 typedef uintptr_t  UIntConstType;
-typedef IntMath<IntConstType>::Type IntConstMath;
 typedef double  FloatConstType;
 
 #include "EmitBuffer.h"
@@ -72,6 +71,9 @@ void GenerateAllFunctions(NativeCodeGenerator * nativeCodeGen, Js::FunctionBody 
 #endif
 #ifdef IR_VIEWER
 Js::Var RejitIRViewerFunction(NativeCodeGenerator *nativeCodeGen, Js::FunctionBody *fn, Js::ScriptContext *scriptContext);
+#endif
+#ifdef ALLOW_JIT_REPRO
+HRESULT JitFromEncodedWorkItem(NativeCodeGenerator *nativeCodeGen, _In_reads_(bufSize) const byte* buffer, _In_ uint bufferSize);
 #endif
 
 BOOL IsIntermediateCodeGenThunk(Js::JavascriptMethod codeAddress);

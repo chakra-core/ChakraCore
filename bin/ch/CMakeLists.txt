@@ -63,9 +63,9 @@ if(STATIC_LIBRARY)
     -Wl,-undefined,error
     ${LINKER_START_GROUP}
     ChakraCoreStatic
+    ${ICULIB}
     ${LINKER_END_GROUP}
     dl
-    ${ICULIB}
     )
 
   if(CC_TARGET_OS_OSX)

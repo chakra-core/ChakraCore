@@ -989,7 +989,6 @@ void Func::Int64SplitExtendLoopLifetime(Loop* loop)
 }
 #endif
 
-// ToDo (SaAgarwa) Enabled GetLocalsPointer for AMR64 as well. Validate is the implementation correct for ARM64
 #if defined(_M_ARM32_OR_ARM64)
 
 RegNum
@@ -1158,7 +1157,7 @@ bool Func::CanAllocInPreReservedHeapPageSegment ()
         && GetInProcCodeGenAllocators()->canCreatePreReservedSegment
 #endif
         );
-#elif _M_X64
+#elif TARGET_64
         && true);
 #else
         && false); //Not yet implemented for architectures other than x86 and amd64.
@@ -1698,6 +1697,7 @@ Func::EnsureFuncStartLabel()
     if(m_funcStartLabel == nullptr)
     {
         m_funcStartLabel = IR::LabelInstr::New( Js::OpCode::Label, this );
+        m_funcStartLabel->m_isDataLabel = true;
     }
     return m_funcStartLabel;
 }
@@ -1714,6 +1714,7 @@ Func::EnsureFuncEndLabel()
     if(m_funcEndLabel == nullptr)
     {
         m_funcEndLabel = IR::LabelInstr::New( Js::OpCode::Label, this );
+        m_funcEndLabel->m_isDataLabel = true;
     }
     return m_funcEndLabel;
 }

@@ -35,7 +35,7 @@ private:
 
 protected:
     ValueInfo(const ValueType type, const ValueStructureKind structureKind)
-        : ValueType(type), structureKind(structureKind)
+        : ValueType(type), structureKind(structureKind), symStore(nullptr)
     {
         // We can only prove that the representation is a tagged int on a ToVar. Currently, we cannot have more than one value
         // info per value number in a block, so a value info specifying tagged int representation cannot be created for a
@@ -43,13 +43,13 @@ protected:
         // representation. Currently, the tagged int representation info can only be carried on the dst opnd of ToVar, and can't
         // even be propagated forward.
         Assert(!type.IsTaggedInt());
-
-        SetSymStore(nullptr);
     }
 
 private:
     ValueInfo(const ValueInfo &other, const bool)
-        : ValueType(other), structureKind(ValueStructureKind::Generic) // uses generic structure kind, as opposed to copying the structure kind
+        : ValueType(other),
+        structureKind(ValueStructureKind::Generic), // uses generic structure kind, as opposed to copying the structure kind
+        symStore(nullptr) // Will be immediately overridden
     {
         SetSymStore(other.GetSymStore());
     }
@@ -89,6 +89,7 @@ public:
 
     using ValueType::HasBeenFloat;
     using ValueType::IsFloat;
+    using ValueType::IsNotFloat;
     using ValueType::IsLikelyFloat;
 
     using ValueType::HasBeenNumber;
@@ -153,6 +154,7 @@ public:
     using ValueType::IsLikelyTypedArray;
 
     using ValueType::IsOptimizedTypedArray;
+    using ValueType::IsOptimizedVirtualTypedArray;
     using ValueType::IsLikelyOptimizedTypedArray;
     using ValueType::IsLikelyOptimizedVirtualTypedArray;
 
@@ -315,7 +317,7 @@ public:
     void        SetValueInfo(ValueInfo * newValueInfo) { Assert(newValueInfo); this->valueInfo = newValueInfo; }
 
     Value *     Copy(JitArenaAllocator * allocator, ValueNumber newValueNumber) const { return Value::New(allocator, newValueNumber, this->ShareValueInfo()); }
-
+    bool        IsEqualTo(Value * other) { return this->valueNumber == other->valueNumber; }
 #if DBG_DUMP
     _NOINLINE void Dump() const { Output::Print(_u("0x%X  ValueNumber: %3d,  -> "), this, this->valueNumber);  this->valueInfo->Dump(); }
 #endif

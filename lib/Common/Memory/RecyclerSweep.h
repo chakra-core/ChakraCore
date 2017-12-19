@@ -243,8 +243,8 @@ RecyclerSweep::TransferPendingEmptyHeapBlocks(HeapBucketT<TBlockType> * heapBuck
     if (list)
     {
         TBlockType * tail = bucketData.pendingEmptyBlockListTail;
-#if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
-        size_t count = 0;
+#if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED) || ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+        uint32 count = 0;
         HeapBlockList::ForEach(list, [tail, &count](TBlockType * heapBlock)
         {
             Assert(heapBlock->GetAddress() == nullptr);
@@ -252,8 +252,12 @@ RecyclerSweep::TransferPendingEmptyHeapBlocks(HeapBucketT<TBlockType> * heapBuck
             Assert(heapBlock->GetNextBlock() != nullptr || heapBlock == tail);
             count++;
         });
-        RECYCLER_SLOW_CHECK(heapBucket->emptyHeapBlockCount += count);
-        RECYCLER_SLOW_CHECK(heapBucket->heapBlockCount -= count);
+#if defined(RECYCLER_SLOW_CHECK_ENABLED)
+        heapBucket->emptyHeapBlockCount += count;
+#endif
+#if defined(RECYCLER_SLOW_CHECK_ENABLED) || ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+        heapBucket->heapBlockCount -= count;
+#endif
 #endif
 
 

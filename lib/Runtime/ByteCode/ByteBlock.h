@@ -11,10 +11,10 @@ namespace Js
         DECLARE_OBJECT(ByteBlock)
 
     private:
-        Field(uint) m_contentSize;     // Length of block, in bytes
+        Field(uint) m_contentSize = 0;     // Length of block, in bytes
 
         __declspec(align(4))    // Align the buffer to sizeof(uint32) to improve GetHashCode() perf.
-            Field(byte*) m_content;    // The block's content
+            Field(byte*) m_content = nullptr;    // The block's content
 
         static ByteBlock* New(Recycler* alloc, const byte * initialContent, int initialContentSize, ScriptContext * requestContext);
 
@@ -22,14 +22,14 @@ namespace Js
         ByteBlock(uint size, byte * content)
             : m_contentSize(size), m_content(content)
         { }
-        ByteBlock(uint size, Recycler *alloc) : m_contentSize(size)
+        ByteBlock(uint size, Recycler *alloc) : m_contentSize(size), m_content(nullptr)
         {
             // The New function below will copy over a buffer into this so
             // we don't need to zero it out
             m_content = RecyclerNewArrayLeaf(alloc, byte, size);
         }
 
-        ByteBlock(uint size, ArenaAllocator* alloc) : m_contentSize(size)
+        ByteBlock(uint size, ArenaAllocator* alloc) : m_contentSize(size), m_content(nullptr)
         {
             m_content = AnewArray(alloc, byte, size);
         }

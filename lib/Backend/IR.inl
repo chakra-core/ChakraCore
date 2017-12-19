@@ -637,7 +637,7 @@ LabelInstr::GetPC(void) const
 ///----------------------------------------------------------------------------
 
 inline void
-LabelInstr::ResetOffset(uint32 offset)
+LabelInstr::ResetOffset(uintptr_t offset)
 {
     AssertMsg(this->isInlineeEntryInstr, "As of now only InlineeEntryInstr overwrites the offset at encoder stage");
     this->m_pc.offset = offset;
@@ -650,7 +650,7 @@ LabelInstr::ResetOffset(uint32 offset)
 ///----------------------------------------------------------------------------
 
 inline void
-LabelInstr::SetOffset(uint32 offset)
+LabelInstr::SetOffset(uintptr_t offset)
 {
     AssertMsg(this->m_pc.offset == 0, "Overwriting existing byte offset");
     this->m_pc.offset = offset;
@@ -662,7 +662,7 @@ LabelInstr::SetOffset(uint32 offset)
 ///
 ///----------------------------------------------------------------------------
 
-inline uint32
+inline uintptr_t
 LabelInstr::GetOffset(void) const
 {
 

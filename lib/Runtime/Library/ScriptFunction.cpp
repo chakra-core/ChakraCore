@@ -244,17 +244,17 @@ namespace Js
             entryPointInfo->jsMethod = entryPoint;
         }
 
-            ProxyEntryPointInfo* oldEntryPointInfo = this->GetScriptFunctionType()->GetEntryPointInfo();
-            if (oldEntryPointInfo
-                && oldEntryPointInfo != entryPointInfo
-                && oldEntryPointInfo->SupportsExpiration())
-            {
-                // The old entry point could be executing so we need root it to make sure
-                // it isn't prematurely collected. The rooting is done by queuing it up on the threadContext
-                ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
+        ProxyEntryPointInfo* oldEntryPointInfo = this->GetScriptFunctionType()->GetEntryPointInfo();
+        if (oldEntryPointInfo
+            && oldEntryPointInfo != entryPointInfo
+            && oldEntryPointInfo->SupportsExpiration())
+        {
+            // The old entry point could be executing so we need root it to make sure
+            // it isn't prematurely collected. The rooting is done by queuing it up on the threadContext
+            ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
 
-                threadContext->QueueFreeOldEntryPointInfoIfInScript((FunctionEntryPointInfo*)oldEntryPointInfo);
-            }
+            threadContext->QueueFreeOldEntryPointInfoIfInScript((FunctionEntryPointInfo*)oldEntryPointInfo);
+        }
 
         this->GetScriptFunctionType()->SetEntryPointInfo(entryPointInfo);
     }
@@ -342,6 +342,10 @@ namespace Js
     {
         FunctionProxy* proxy = this->GetFunctionProxy();
         ParseableFunctionInfo * pFuncBody = proxy->EnsureDeserialized();
+        Var returnStr = nullptr;
+
+        EnterPinnedScope((volatile void**)& inputString);
+
         const char16 * inputStr = inputString->GetString();
         const char16 * paramStr = wcschr(inputStr, _u('('));
 
@@ -359,7 +363,6 @@ namespace Js
         uint prefixStringLength = 0;
         const char16* name = _u("");
         charcount_t nameLength = 0;
-        Var returnStr = nullptr;
 
         if (!isClassMethod)
         {
@@ -393,7 +396,6 @@ namespace Js
         }
         else
         {
-
             if (this->GetFunctionInfo()->IsClassConstructor())
             {
                 name = _u("constructor");
@@ -440,7 +442,8 @@ namespace Js
 
         returnStr = LiteralString::NewCopyBuffer(funcBodyStr, (charcount_t)totalLength, scriptContext);
 
-        LEAVE_PINNED_SCOPE();
+        LEAVE_PINNED_SCOPE();   //  computedName
+        LeavePinnedScope();     //  inputString
 
         return returnStr;
     }
@@ -575,13 +578,13 @@ namespace Js
                 uint slotArrayCount = static_cast<uint>(slotArray.GetCount());
 
                 //get the function body associated with the scope
-                if(slotArray.IsFunctionScopeSlotArray())
+                if (slotArray.IsDebuggerScopeSlotArray())
                 {
-                    rctxInfo->EnqueueNewFunctionBodyObject(this, slotArray.GetFunctionInfo()->GetFunctionBody(), scopePathString.GetStrValue());
+                    rctxInfo->AddWellKnownDebuggerScopePath(this, slotArray.GetDebuggerScope(), i);
                 }
                 else
                 {
-                    rctxInfo->AddWellKnownDebuggerScopePath(this, slotArray.GetDebuggerScope(), i);
+                    rctxInfo->EnqueueNewFunctionBodyObject(this, slotArray.GetFunctionInfo()->GetFunctionBody(), scopePathString.GetStrValue());
                 }
 
                 for(uint j = 0; j < slotArrayCount; j++)
@@ -771,7 +774,7 @@ namespace Js
     InlineCache * ScriptFunctionWithInlineCache::GetInlineCache(uint index)
     {
         void** inlineCaches = this->GetInlineCaches();
-        Assert(inlineCaches != nullptr);
+        AssertOrFailFast(inlineCaches != nullptr);
         AssertOrFailFast(index < this->GetInlineCacheCount());
 #if DBG
         Assert(this->m_inlineCacheTypes[index] == InlineCacheTypeNone ||
@@ -784,12 +787,22 @@ namespace Js
     Field(void**) ScriptFunctionWithInlineCache::GetInlineCaches()
     {
         // If script function have inline caches pointing to function body and function body got reparsed we need to reset cache
-        if (this->GetHasInlineCaches() &&
-            !this->GetHasOwnInlineCaches() &&
-            this->m_inlineCaches != this->GetFunctionBody()->GetInlineCaches())
+        if (this->GetHasInlineCaches() && !this->GetHasOwnInlineCaches())
         {
-            Assert(this->GetFunctionBody()->GetCompileCount() > 1);
-            this->SetInlineCachesFromFunctionBody();
+            // Script function have inline caches pointing to function body
+            if (!this->HasFunctionBody())
+            {
+                // Function body got re-deferred and have not been re-parsed yet. Reset cache to null
+                this->m_inlineCaches = nullptr;
+                this->inlineCacheCount = 0;
+                this->SetHasInlineCaches(false);
+            }
+            else if (this->m_inlineCaches != this->GetFunctionBody()->GetInlineCaches())
+            {
+                // Function body got reparsed we need to reset cache
+                Assert(this->GetFunctionBody()->GetCompileCount() > 1);
+                this->SetInlineCachesFromFunctionBody();
+            }
         }
 
         return this->m_inlineCaches;

@@ -46,44 +46,6 @@ SCCLiveness::Build()
         IR::Opnd *dst, *src1, *src2;
         uint32 instrNum = instr->GetNumber();
 
-        // End of loop?
-        if (this->curLoop && instrNum >= this->curLoop->regAlloc.loopEnd)
-        {
-            AssertMsg(this->loopNest > 0, "Loop nest is messed up");
-            AssertMsg(instr->IsBranchInstr(), "Loop tail should be a branchInstr");
-            AssertMsg(instr->AsBranchInstr()->IsLoopTail(this->func), "Loop tail not marked correctly");
-
-            Loop *loop = this->curLoop;
-            while (loop && loop->regAlloc.loopEnd == this->curLoop->regAlloc.loopEnd)
-            {
-                FOREACH_SLIST_ENTRY(Lifetime *, lifetime, loop->regAlloc.extendedLifetime)
-                {
-                    if (loop->regAlloc.hasNonOpHelperCall)
-                    {
-                        lifetime->isLiveAcrossUserCalls = true;
-                    }
-                    if (loop->regAlloc.hasCall)
-                    {
-                        lifetime->isLiveAcrossCalls = true;
-                    }
-                    if (lifetime->end == loop->regAlloc.loopEnd)
-                    {
-                        lifetime->totalOpHelperLengthByEnd = this->totalOpHelperFullVisitedLength + CurrentOpHelperVisitedLength(instr);
-                    }
-                }
-                NEXT_SLIST_ENTRY;
-
-                loop->regAlloc.helperLength = this->totalOpHelperFullVisitedLength + CurrentOpHelperVisitedLength(instr);
-                Assert(!loop->parent || loop->parent && loop->parent->regAlloc.loopEnd >= loop->regAlloc.loopEnd);
-                loop = loop->parent;
-            }
-            while (this->curLoop && instrNum >= this->curLoop->regAlloc.loopEnd)
-            {
-                this->curLoop = this->curLoop->parent;
-                this->loopNest--;
-            }
-        }
-
         if (instr->HasBailOutInfo())
         {
             // At this point, the bailout should be lowered to a CALL to BailOut
@@ -122,6 +84,44 @@ SCCLiveness::Build()
             if (src2)
             {
                 this->ProcessSrc(src2, instr);
+            }
+        }
+
+        // End of loop?
+        if (this->curLoop && instrNum >= this->curLoop->regAlloc.loopEnd)
+        {
+            AssertMsg(this->loopNest > 0, "Loop nest is messed up");
+            AssertMsg(instr->IsBranchInstr(), "Loop tail should be a branchInstr");
+            AssertMsg(instr->AsBranchInstr()->IsLoopTail(this->func), "Loop tail not marked correctly");
+
+            Loop *loop = this->curLoop;
+            while (loop && loop->regAlloc.loopEnd == this->curLoop->regAlloc.loopEnd)
+            {
+                FOREACH_SLIST_ENTRY(Lifetime *, lifetime, loop->regAlloc.extendedLifetime)
+                {
+                    if (loop->regAlloc.hasNonOpHelperCall)
+                    {
+                        lifetime->isLiveAcrossUserCalls = true;
+                    }
+                    if (loop->regAlloc.hasCall)
+                    {
+                        lifetime->isLiveAcrossCalls = true;
+                    }
+                    if (lifetime->end == loop->regAlloc.loopEnd)
+                    {
+                        lifetime->totalOpHelperLengthByEnd = this->totalOpHelperFullVisitedLength + CurrentOpHelperVisitedLength(instr);
+                    }
+                }
+                NEXT_SLIST_ENTRY;
+
+                loop->regAlloc.helperLength = this->totalOpHelperFullVisitedLength + CurrentOpHelperVisitedLength(instr);
+                Assert(!loop->parent || loop->parent && loop->parent->regAlloc.loopEnd >= loop->regAlloc.loopEnd);
+                loop = loop->parent;
+            }
+            while (this->curLoop && instrNum >= this->curLoop->regAlloc.loopEnd)
+            {
+                this->curLoop = this->curLoop->parent;
+                this->loopNest--;
             }
         }
 
@@ -402,6 +402,7 @@ SCCLiveness::ProcessSrc(IR::Opnd *src, IR::Instr *instr)
                 lifetime = this->InsertLifetime(stackSym, reg, this->func->m_headInstr->m_next);
                 lifetime->region = this->curRegion;
                 lifetime->isFloat = symOpnd->IsFloat() || symOpnd->IsSimd128();
+
             }
 
             IR::RegOpnd * newRegOpnd = IR::RegOpnd::New(stackSym, reg, symOpnd->GetType(), this->func);
@@ -705,7 +706,12 @@ SCCLiveness::ExtendLifetime(Lifetime *lifetime, IR::Instr *instr)
             }
             NEXT_SLISTBASE_ENTRY
         }
+#if _M_ARM64
+        // The case of equality is valid on Arm64 where some branch instructions have sources.
+        AssertMsg(lifetime->end >= instr->GetNumber(), "Lifetime end not set correctly");
+#else
         AssertMsg(lifetime->end > instr->GetNumber(), "Lifetime end not set correctly");
+#endif
     }
     this->extendedLifetimesLoopList->Clear(this->tempAlloc);
 }
@@ -717,7 +723,7 @@ Lifetime *
 SCCLiveness::InsertLifetime(StackSym *stackSym, RegNum reg, IR::Instr *const currentInstr)
 {
     const uint start = currentInstr->GetNumber(), end = start;
-    Lifetime * newLlifetime = JitAnew(tempAlloc, Lifetime, tempAlloc, stackSym, reg, start, end, this->func);
+    Lifetime * newLlifetime = JitAnew(tempAlloc, Lifetime, tempAlloc, stackSym, reg, start, end);
     newLlifetime->totalOpHelperLengthByEnd = this->totalOpHelperFullVisitedLength + CurrentOpHelperVisitedLength(currentInstr);
 
     // Find insertion point
@@ -748,8 +754,8 @@ SCCLiveness::InsertLifetime(StackSym *stackSym, RegNum reg, IR::Instr *const cur
 bool
 SCCLiveness::FoldIndir(IR::Instr *instr, IR::Opnd *opnd)
 {
-#ifdef _M_ARM
-    // Can't be folded on ARM
+#ifdef _M_ARM32_OR_ARM64
+    // Can't be folded on ARM or ARM64
     return false;
 #else
     IR::IndirOpnd *indir = opnd->AsIndirOpnd();

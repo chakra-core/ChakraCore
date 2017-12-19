@@ -56,6 +56,20 @@ bool IsLikelyRuntimeFalseReference(char* objectStartAddress, size_t offset,
         }
     }
 
+    // On x86 some int32/uint32 fields may look like GC pointers
+#if TARGET_32
+    if (strstr(typeName, "Js::TypedArray<") && offset == Js::Int8Array::GetOffsetOfLength())
+    {
+        return true;
+    }
+
+    if (strstr(typeName, "Js::ScriptContextPolymorphicInlineCache")
+        && offset == offsetof(Js::ScriptContextPolymorphicInlineCache, inlineCachesFillInfo))
+    {
+        return true;
+    }
+#endif
+
     return false;
 }
 

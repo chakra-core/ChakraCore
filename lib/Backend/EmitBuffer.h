@@ -34,7 +34,7 @@ class EmitBufferManager
 {
     typedef EmitBufferAllocation<TAlloc, TPreReservedAlloc> TEmitBufferAllocation;
 public:
-    EmitBufferManager(ArenaAllocator * allocator, CustomHeap::CodePageAllocators<TAlloc, TPreReservedAlloc> * codePageAllocators, Js::ScriptContext * scriptContext, LPCWSTR name, HANDLE processHandle);
+    EmitBufferManager(ArenaAllocator * allocator, CustomHeap::CodePageAllocators<TAlloc, TPreReservedAlloc> * codePageAllocators, Js::ScriptContext * scriptContext, ThreadContextInfo * threadContext, LPCWSTR name, HANDLE processHandle);
     ~EmitBufferManager();
 
     // All the following methods are guarded with the SyncObject
@@ -75,6 +75,7 @@ private:
 #endif
     ArenaAllocator * allocator;
     Js::ScriptContext * scriptContext;
+    ThreadContextInfo * threadContext;
 
     TEmitBufferAllocation * NewAllocation(DECLSPEC_GUARD_OVERFLOW size_t bytes, ushort pdataCount, ushort xdataSize, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode);
     TEmitBufferAllocation* GetBuffer(TEmitBufferAllocation *allocation, DECLSPEC_GUARD_OVERFLOW __in size_t bytes, __deref_bcount(bytes) BYTE** ppBuffer);

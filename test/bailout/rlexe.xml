@@ -119,7 +119,8 @@
       <files>bailout-argobj.js</files>
       <compile-flags>-bailout:3 -bailout:11 -forcejitloopbody</compile-flags>
       <baseline>bailout-argobj.baseline</baseline>
-      <tags>exclude_drt</tags>
+      <!-- OS:12885336 this test fails without dynamicprofile cache/input args -->
+      <tags>exclude_forceserialized</tags>
     </default>
   </test>
   <test>

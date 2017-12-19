@@ -586,12 +586,18 @@ namespace Js
         scriptContext->TransitionToDebugModeIfFirstSource(/* utf8SourceInfo = */ nullptr);
 #endif
 
-        JavascriptString *argString = JavascriptString::FromVar(evalArg);
         ScriptFunction *pfuncScript = nullptr;
+        JavascriptString *argString = JavascriptString::FromVar(evalArg);
         char16 const * sourceString = argString->GetSz();
         charcount_t sourceLen = argString->GetLength();
         FastEvalMapString key(sourceString, sourceLen, moduleID, strictMode, isLibraryCode);
-        bool found = scriptContext->IsInEvalMap(key, isIndirect, &pfuncScript);
+
+
+
+        // PropertyString's buffer references to PropertyRecord's inline buffer, if both PropertyString and PropertyRecord are collected
+        // we'll leave the PropertyRecord's interior buffer pointer in the EvalMap. So do not use evalmap if we are evaluating PropertyString
+        bool useEvalMap = !VirtualTableInfo<PropertyString>::HasVirtualTable(argString);
+        bool found = useEvalMap && scriptContext->IsInEvalMap(key, isIndirect, &pfuncScript);
         if (!found || (!isIndirect && pfuncScript->GetEnvironment() != &NullFrameDisplay))
         {
             uint32 grfscr = additionalGrfscr | fscrReturnExpression | fscrEval | fscrEvalCode | fscrGlobalCode;
@@ -604,12 +610,11 @@ namespace Js
             pfuncScript = library->GetGlobalObject()->EvalHelper(scriptContext, argString->GetSz(), argString->GetLength(), moduleID,
                 grfscr, Constants::EvalCode, doRegisterDocument, isIndirect, strictMode);
 
-            if (!found)
+            if (useEvalMap && !found)
             {
                 scriptContext->AddToEvalMap(key, isIndirect, pfuncScript);
             }
         }
-
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         else
         {
@@ -1228,7 +1233,8 @@ namespace Js
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
-        JavascriptString *str;
+        double result = 0;
+        ENTER_PINNED_SCOPE(JavascriptString, str);
 
         if(args.Info.Count < 2)
         {
@@ -1266,7 +1272,8 @@ namespace Js
         const char16 *pch = scriptContext->GetCharClassifier()->SkipWhiteSpace(str->GetSz());
 
         // perform the string -> float conversion
-        double result = NumberUtilities::StrToDbl(pch, &pch, scriptContext);
+        result = NumberUtilities::StrToDbl(pch, &pch, scriptContext);
+        LEAVE_PINNED_SCOPE();   // str
 
         return JavascriptNumber::ToVarNoCheck(result, scriptContext);
     }
@@ -1402,9 +1409,11 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefinedDisplayString();
         }
 
-        JavascriptString *src = JavascriptConversion::ToString(args[1], scriptContext);
+        CompoundString * bs = nullptr;
+        ENTER_PINNED_SCOPE(JavascriptString, src);
+        src = JavascriptConversion::ToString(args[1], scriptContext);
+        bs = CompoundString::NewWithCharCapacity(src->GetLength(), scriptContext->GetLibrary());
 
-        CompoundString *const bs = CompoundString::NewWithCharCapacity(src->GetLength(), scriptContext->GetLibrary());
         char16 chw;
         char16 * pchSrc;
         char16 * pchLim;
@@ -1437,6 +1446,7 @@ namespace Js
                 bs->AppendChars(chw);
             }
         }
+        LEAVE_PINNED_SCOPE();   // src
 
         return bs;
     }
@@ -1464,10 +1474,10 @@ namespace Js
         char16 * pchLim;
         char16 * pchMin;
 
-        JavascriptString *src = JavascriptConversion::ToString(args[1], scriptContext);
-
-        CompoundString *const bs = CompoundString::NewWithCharCapacity(src->GetLength(), scriptContext->GetLibrary());
-
+        CompoundString * bs = nullptr;
+        ENTER_PINNED_SCOPE(JavascriptString, src);
+        src = JavascriptConversion::ToString(args[1], scriptContext);
+        bs = CompoundString::NewWithCharCapacity(src->GetLength(), scriptContext->GetLibrary());
         pchSrc = const_cast<char16 *>(src->GetString());
         pchLim = pchSrc + src->GetLength();
         while (pchSrc < pchLim)
@@ -1520,6 +1530,8 @@ LHexError:
 
             bs->AppendChars(chw);
         }
+
+        LEAVE_PINNED_SCOPE();   // src
 
         return bs;
     }
@@ -1609,8 +1621,7 @@ LHexError:
             return function->GetScriptContext()->GetLibrary()->GetUndefined();
         }
 
-        Js::JavascriptString* jsString = Js::JavascriptConversion::ToString(args[1], function->GetScriptContext());
-        PlatformAgnostic::EventTrace::FireGenericEventTrace(jsString->GetSz());
+        JS_ETW(EventWriteJSCRIPT_INTERNAL_GENERIC_EVENT(Js::JavascriptConversion::ToString(args[1], function->GetScriptContext())->GetSz()));
         return function->GetScriptContext()->GetLibrary()->GetUndefined();
     }
 #endif

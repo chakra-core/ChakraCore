@@ -42,7 +42,7 @@ class BranchJumpTableWrapper
 {
 public:
 
-    BranchJumpTableWrapper(uint tableSize) : defaultTarget(nullptr), labelInstr(nullptr), tableSize(tableSize)
+    BranchJumpTableWrapper(uint tableSize) : jmpTable(nullptr), defaultTarget(nullptr), labelInstr(nullptr), tableSize(tableSize)
     {
     }
 
@@ -151,7 +151,8 @@ protected:
         ignoreOverflowBitCount(32),
         isCtorCall(false),
         isCallInstrProtectedByNoProfileBailout(false),
-        hasSideEffects(false)
+        hasSideEffects(false),
+        isNonFastPathFrameDisplay(false)
     {
     }
 public:
@@ -271,10 +272,10 @@ public:
     IR::Instr *     GetPrevRealInstrOrLabel() const;
     IR::Instr *     GetInsertBeforeByteCodeUsesInstr();
     IR::LabelInstr *GetOrCreateContinueLabel(const bool isHelper = false);
-    static RegOpnd *FindRegUseSrc(StackSym *sym, IR::Opnd*);
-    static RegOpnd *FindRegUseDst(StackSym *sym, IR::Opnd*);
-    RegOpnd *       FindRegUse(StackSym *sym);
-    static RegOpnd *FindRegUseInRange(StackSym *sym, Instr *instrBegin, Instr *instrEnd);
+    static bool     HasSymUseSrc(StackSym *sym, IR::Opnd*);
+    static bool     HasSymUseDst(StackSym *sym, IR::Opnd*);
+    bool            HasSymUse(StackSym *sym);
+    static bool     HasSymUseInRange(StackSym *sym, Instr *instrBegin, Instr *instrEnd);
     RegOpnd *       FindRegDef(StackSym *sym);
     static Instr*   FindSingleDefInstr(Js::OpCode opCode, Opnd* src);
 
@@ -336,10 +337,10 @@ public:
     bool            IsCmCC_R8();
     bool            IsCmCC_I4();
     bool            IsNeq();
-    bool            BinaryCalculator(IntConstType src1Const, IntConstType src2Const, IntConstType *pResult);
+    bool            BinaryCalculator(IntConstType src1Const, IntConstType src2Const, IntConstType *pResult, IRType type);
     template <typename T>     
     bool            BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult, bool checkWouldTrap);
-    bool            UnaryCalculator(IntConstType src1Const, IntConstType *pResult);
+    bool            UnaryCalculator(IntConstType src1Const, IntConstType *pResult, IRType type);
     IR::Instr*      GetNextArg();
 
     // Iterates argument chain
@@ -679,7 +680,7 @@ private:
     union labelLocation
     {
         BYTE *                  pc;     // Used by encoder and is the real pc offset
-        uint32                  offset; // Used by preEncoder and is an estimation pc offset, not accurate
+        uintptr_t               offset; // Used by preEncoder and is an estimation pc offset, not accurate
     } m_pc;
 
     BasicBlock *            m_block;
@@ -689,9 +690,9 @@ public:
 
     inline void             SetPC(BYTE * pc);
     inline BYTE *           GetPC(void) const;
-    inline void             SetOffset(uint32 offset);
-    inline void             ResetOffset(uint32 offset);
-    inline uint32           GetOffset(void) const;
+    inline void             SetOffset(uintptr_t offset);
+    inline void             ResetOffset(uintptr_t offset);
+    inline uintptr_t        GetOffset(void) const;
     inline void             SetBasicBlock(BasicBlock * block);
     inline BasicBlock *     GetBasicBlock(void) const;
     inline void             SetLoop(Loop *loop);
@@ -831,7 +832,10 @@ public:
     IntConstType m_lastCaseValue;
 
     MultiBranchInstr() :
-        m_branchTargets(nullptr)
+        m_branchTargets(nullptr),
+        m_kind(IntJumpTable),
+        m_baseCaseValue(0),
+        m_lastCaseValue(0)
     {
 #if DBG
         m_isMultiBranch = true;

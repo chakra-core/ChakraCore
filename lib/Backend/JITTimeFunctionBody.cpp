@@ -21,17 +21,18 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     Assert(functionBody != nullptr);
 
     // const table
-    jitBody->constCount = functionBody->GetConstantCount();
-    if (functionBody->GetConstantCount() > 0)
+    const Js::RegSlot numConstants = functionBody->GetConstantCount();
+    jitBody->constCount = numConstants;
+    if (numConstants > 0)
     {
         jitBody->constTable = (intptr_t *)PointerValue(functionBody->GetConstTable());
         if (!functionBody->GetIsAsmJsFunction())
         {
             jitBody->constTableContent = AnewStructZ(arena, ConstTableContentIDL);
-            jitBody->constTableContent->count = functionBody->GetConstantCount();
-            jitBody->constTableContent->content = AnewArrayZ(arena, RecyclableObjectIDL*, functionBody->GetConstantCount());
+            jitBody->constTableContent->count = numConstants;
+            jitBody->constTableContent->content = AnewArrayZ(arena, RecyclableObjectIDL*, numConstants);
 
-            for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < functionBody->GetConstantCount(); ++reg)
+            for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < numConstants; ++reg)
             {
                 Js::Var varConst = functionBody->GetConstantVar(reg);
                 Assert(varConst != nullptr);

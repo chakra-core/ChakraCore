@@ -2338,7 +2338,7 @@ MemOpCheckInductionVariable:
                     Loop::MemCopyCandidate* memcopyCandidate = prevCandidate->AsMemCopy();
                     if (memcopyCandidate->base == Js::Constants::InvalidSymID)
                     {
-                        if (chkInstr->FindRegUse(memcopyCandidate->transferSym))
+                        if (chkInstr->HasSymUse(memcopyCandidate->transferSym))
                         {
                             loop->doMemOp = false;
                             TRACE_MEMOP_PHASE_VERBOSE(MemCopy, loop, chkInstr, _u("Found illegal use of LdElemI value(s%d)"), GetVarSymID(memcopyCandidate->transferSym));
@@ -3530,7 +3530,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
         ValueType valueType(val->GetValueInfo()->Type());
 
         // This block uses local profiling data to optimize the case of a native array being passed to a function that fills it with other types. When the function is inlined
-        // into different call paths which use different types this can cause a perf hit by performing unnecessary array conversions, so only perform this optimization when 
+        // into different call paths which use different types this can cause a perf hit by performing unnecessary array conversions, so only perform this optimization when
         // the function is not inlined.
         if (valueType.IsLikelyNativeArray() && !valueType.IsObject() && instr->IsProfiledInstr() && !instr->m_func->IsInlined())
         {
@@ -5452,7 +5452,7 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
     case ObjectType::Float64MixedArray:
     Float64Array:
         Assert(dst->IsRegOpnd());
-        
+
         // If float type spec is disabled, don't load float64 values
         if (!this->DoFloatTypeSpec())
         {
@@ -6593,6 +6593,13 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         src2Var = this->GetConstantVar(instr->GetSrc2(), src2Val);
     }
 
+    auto AreSourcesEqual = [&](Value * val1, Value * val2) -> bool
+    {
+        // NaN !== NaN, and objects can have valueOf/toString
+        return val1->IsEqualTo(val2) &&
+            val1->GetValueInfo()->IsPrimitive() && val1->GetValueInfo()->IsNotFloat();
+    };
+
     // Make sure GetConstantVar only returns primitives.
     // TODO: OOP JIT, enabled these asserts
     //Assert(!src1Var || !Js::JavascriptOperators::IsObject(src1Var));
@@ -6608,6 +6615,10 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
             src2Val->GetValueInfo()->TryGetInt64ConstantValue(&right64, UNSIGNEDNESS)) \
         { \
             result = (TYPE)left64 CMP (TYPE)right64; \
+        } \
+        else if (AreSourcesEqual(src1Val, src2Val)) \
+        { \
+            result = 0 CMP 0; \
         } \
         else \
         { \
@@ -6631,7 +6642,11 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         {
             if (BoolAndIntStaticAndTypeMismatch(src1Val, src2Val, src1Var, src2Var))
             {
-                    result = false;
+                result = false;
+            }
+            else if (AreSourcesEqual(src1Val, src2Val))
+            {
+                result = true;
             }
             else
             {
@@ -6655,6 +6670,10 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
             if (BoolAndIntStaticAndTypeMismatch(src1Val, src2Val, src1Var, src2Var))
             {
                 result = true;
+            }
+            else if (AreSourcesEqual(src1Val, src2Val))
+            {
+                result = false;
             }
             else
             {
@@ -6693,6 +6712,10 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
             {
                 result = false;
             }
+            else if (AreSourcesEqual(src1Val, src2Val))
+            {
+                result = true;
+            }
             else
             {
                 return false;
@@ -6730,6 +6753,10 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
                )
             {
                 result = true;
+            }
+            else if (AreSourcesEqual(src1Val, src2Val))
+            {
+                result = false;
             }
             else
             {
@@ -7465,7 +7492,7 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
 
         case Js::OpCode::InlineMathPow:
         {
-#ifndef _M_ARM
+#ifndef _M_ARM32_OR_ARM64
             if (src2Val->GetValueInfo()->IsLikelyInt())
             {
                 bool lossy = false;
@@ -7498,7 +7525,7 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
             {
 #endif
                 this->TypeSpecializeFloatBinary(instr, src1Val, src2Val, pDstVal);
-#ifndef _M_ARM
+#ifndef _M_ARM32_OR_ARM64
             }
 #endif
             break;
@@ -7523,7 +7550,7 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
             {
                 // Compute resulting range info
                 int32 min1 = INT32_MIN;
-                int32 max1 = INT32_MAX; 
+                int32 max1 = INT32_MAX;
                 int32 min2 = INT32_MIN;
                 int32 max2 = INT32_MAX;
                 int32 newMin, newMax;
@@ -12246,7 +12273,7 @@ static void SetIsConstFlag(StackSym* dstSym, int value)
     dstSym->SetIsIntConst(value);
 }
 
-static IR::Opnd* CreateIntConstOpnd(IR::Instr* instr, int64 value) 
+static IR::Opnd* CreateIntConstOpnd(IR::Instr* instr, int64 value)
 {
     return (IR::Opnd*)IR::Int64ConstOpnd::New(value, instr->GetDst()->GetType(), instr->m_func);
 }
@@ -12304,7 +12331,7 @@ bool GlobOpt::OptConstFoldBinaryWasm(
     }
 
     T src1IntConstantValue, src2IntConstantValue;
-    if (!src1 || !src1->GetValueInfo()->TryGetIntConstantValue(&src1IntConstantValue, false) || //a bit sketchy: false for int32 means likelyInt = false 
+    if (!src1 || !src1->GetValueInfo()->TryGetIntConstantValue(&src1IntConstantValue, false) || //a bit sketchy: false for int32 means likelyInt = false
         !src2 || !src2->GetValueInfo()->TryGetIntConstantValue(&src2IntConstantValue, false)    //and unsigned = false for int64
         )
     {
@@ -12370,7 +12397,7 @@ GlobOpt::OptConstFoldBinary(
     }
 
     IntConstType tmpValueOut;
-    if (!instr->BinaryCalculator(src1IntConstantValue, src2IntConstantValue, &tmpValueOut)
+    if (!instr->BinaryCalculator(src1IntConstantValue, src2IntConstantValue, &tmpValueOut, TyInt32)
         || !Math::FitsInDWord(tmpValueOut))
     {
         return false;
@@ -12965,7 +12992,9 @@ GlobOpt::ProcessValueKills(IR::Instr *const instr)
         Assert(kills.KillsTypedArrayHeadSegmentLengths());
 
         // - Calls need to kill the value types of values in the following list. For instance, calls can transform a JS array
-        //   into an ES5 array, so any definitely-array value types need to be killed. Update the value types.
+        //   into an ES5 array, so any definitely-array value types need to be killed. Also, VirtualTypeArrays do not have
+        //   bounds checks; this can be problematic if the array is detached, so check to ensure that it is a virtual array.
+        //   Update the value types to likley to ensure a bailout that asserts Array type is generated.
         // - Calls also need to kill typed array head segment lengths. A typed array's array buffer may be transferred to a web
         //   worker, in which case the typed array's length is set to zero.
         for(auto it = valuesToKillOnCalls->GetIterator(); it.IsValid(); it.MoveNext())
@@ -12975,7 +13004,7 @@ GlobOpt::ProcessValueKills(IR::Instr *const instr)
             Assert(
                 valueInfo->IsArrayOrObjectWithArray() ||
                 valueInfo->IsOptimizedTypedArray() && valueInfo->AsArrayValueInfo()->HeadSegmentLengthSym());
-            if(valueInfo->IsArrayOrObjectWithArray())
+            if (valueInfo->IsArrayOrObjectWithArray() || valueInfo->IsOptimizedVirtualTypedArray())
             {
                 ChangeValueType(nullptr, value, valueInfo->Type().ToLikely(), false);
                 continue;
@@ -13763,19 +13792,18 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                 //       array type during a prepass.
                 //     - StElems in the loop can kill the no-missing-values info.
                 //     - The native array type may be made more conservative based on profile data by an instruction in the loop.
-                Assert(
-                    baseValueInLoopLandingPad->GetValueInfo()->CanMergeToSpecificObjectType() ||
-                    baseValueInLoopLandingPad->GetValueInfo()->Type().SetCanBeTaggedValue(false) ==
-                        baseValueType.SetCanBeTaggedValue(false) ||
-                    baseValueInLoopLandingPad->GetValueInfo()->Type().SetHasNoMissingValues(false).SetCanBeTaggedValue(false) ==
-                        baseValueType.SetHasNoMissingValues(false).SetCanBeTaggedValue(false) ||
-                    baseValueInLoopLandingPad->GetValueInfo()->Type().SetHasNoMissingValues(false).ToLikely().SetCanBeTaggedValue(false) ==
-                        baseValueType.SetHasNoMissingValues(false).SetCanBeTaggedValue(false) ||
-                    (
-                        baseValueInLoopLandingPad->GetValueInfo()->Type().IsLikelyNativeArray() &&
-                        baseValueInLoopLandingPad->GetValueInfo()->Type().Merge(baseValueType).SetHasNoMissingValues(false).SetCanBeTaggedValue(false) ==
-                            baseValueType.SetHasNoMissingValues(false).SetCanBeTaggedValue(false)
-                    ));
+#if DBG
+                if (!baseValueInLoopLandingPad->GetValueInfo()->CanMergeToSpecificObjectType())
+                {
+                    ValueType landingPadValueType = baseValueInLoopLandingPad->GetValueInfo()->Type();
+                    Assert(landingPadValueType.IsSimilar(baseValueType) ||
+                        (
+                            landingPadValueType.IsLikelyNativeArray() &&
+                            landingPadValueType.Merge(baseValueType).IsSimilar(baseValueType)
+                        )
+                    );
+                }
+#endif
 
                 if(doArrayChecks)
                 {
@@ -14721,6 +14749,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                     IR::Opnd* lowerBound = baseOwnerIndir->GetIndexOpnd()
                         ? static_cast<IR::Opnd *>(baseOwnerIndir->GetIndexOpnd())
                         : IR::IntConstOpnd::New(baseOwnerIndir->GetOffset(), TyInt32, instr->m_func);
+
                     lowerBound->SetIsJITOptimizedReg(true);
                     IR::Opnd* upperBound = IR::RegOpnd::New(headSegmentLengthSym, headSegmentLengthSym->GetType(), instr->m_func);
                     upperBound->SetIsJITOptimizedReg(true);
@@ -17999,7 +18028,7 @@ GlobOpt::DumpSymVal(int index)
 }
 
 void
-GlobOpt::Trace(BasicBlock * block, bool before) const 
+GlobOpt::Trace(BasicBlock * block, bool before) const
 {
     bool globOptTrace = Js::Configuration::Global.flags.Trace.IsEnabled(Js::GlobOptPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId());
     bool typeSpecTrace = Js::Configuration::Global.flags.Trace.IsEnabled(Js::TypeSpecPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId());
@@ -18197,8 +18226,8 @@ GlobOpt::TrackTempObjectSyms(IR::Instr * instr, IR::RegOpnd * opnd)
             (instr->GetSrc1()->IsRegOpnd() && globOptData.canStoreTempObjectSyms->Test(instr->GetSrc1()->AsRegOpnd()->m_sym->m_id))
             && (!instr->GetSrc2() || (instr->GetSrc2()->IsRegOpnd() && globOptData.canStoreTempObjectSyms->Test(instr->GetSrc2()->AsRegOpnd()->m_sym->m_id))));
 
-        Assert(!canStoreTemp || instr->dstIsTempObject);
-        Assert(!maybeTemp || instr->dstIsTempObject);
+        AssertOrFailFast(!canStoreTemp || instr->dstIsTempObject);
+        AssertOrFailFast(!maybeTemp || instr->dstIsTempObject);
     }
 
     // Need to get the var equiv sym as assignment of type specialized sym kill the var sym value anyway.

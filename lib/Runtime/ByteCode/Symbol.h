@@ -62,28 +62,31 @@ private:
 public:
     Symbol(SymbolName const& name, ParseNode *decl, SymbolType symbolType) :
         name(name),
+        pid(nullptr),
         decl(decl),
-        next(nullptr),
+        scope(nullptr),
+        position(Js::Constants::NoProperty),
         location(Js::Constants::NoRegister),
+        scopeSlot(Js::Constants::NoProperty),
+        moduleIndex(Js::Constants::NoProperty),
+        next(nullptr),
+        symbolType(symbolType), // will get set to the same value in SetSymbolType
+        defCount(0),
         needDeclaration(false),
         isBlockVar(false),
         isConst(false),
         isGlobal(false),
+        isEval(false), // will get properly set in constructor body
         hasNonLocalReference(false),
         isFuncExpr(false),
         isCatch(false),
         hasInit(false),
         isUsed(false),
-        defCount(0),
-        position(Js::Constants::NoProperty),
-        scopeSlot(Js::Constants::NoProperty),
         isGlobalCatch(false),
         isCommittedToSlot(false),
         hasNonCommittedReference(false),
         hasVisitedCapturingFunc(false),
         isTrackedForDebugger(false),
-        isNonSimpleParameter(false),
-        assignmentState(NotAssigned),
         isModuleExportStorage(false),
         isModuleImport(false),
         isUsedInLdElem(false),
@@ -92,7 +95,10 @@ public:
         isSuper(false),
         isSuperConstructor(false),
         needsScopeObject(false),
-        moduleIndex(Js::Constants::NoProperty)
+        hasFuncAssignment(false), // will get reset by SetSymbolType
+        hasMaybeEscapedUse(false), // will get reset by SetSymbolType
+        isNonSimpleParameter(false),
+        assignmentState(NotAssigned)
     {
         SetSymbolType(symbolType);
 

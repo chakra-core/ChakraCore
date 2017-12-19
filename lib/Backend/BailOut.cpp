@@ -83,7 +83,7 @@ BailOutInfo::NeedsStartCallAdjust(uint i, const IR::Instr * bailOutInstr) const
 }
 
 void
-BailOutInfo::RecordStartCallInfo(uint i, uint argRestoreAdjustCount, IR::Instr *instr)
+BailOutInfo::RecordStartCallInfo(uint i, IR::Instr *instr)
 {
     Assert(i < this->startCallCount);
     Assert(this->startCallInfo);
@@ -92,7 +92,8 @@ BailOutInfo::RecordStartCallInfo(uint i, uint argRestoreAdjustCount, IR::Instr *
 
     this->startCallInfo[i].instr = instr;
     this->startCallInfo[i].argCount = instr->GetArgOutCount(/*getInterpreterArgOutCount*/ true);
-    this->startCallInfo[i].argRestoreAdjustCount = argRestoreAdjustCount;
+    this->startCallInfo[i].argRestoreAdjustCount = 0;
+    this->startCallInfo[i].isOrphanedCall = false;
 }
 
 void
@@ -124,7 +125,7 @@ BailOutInfo::GetStartCallOutParamCount(uint i) const
 }
 
 void
-BailOutInfo::RecordStartCallInfo(uint i, uint argRestoreAdjust, IR::Instr *instr)
+BailOutInfo::RecordStartCallInfo(uint i, IR::Instr *instr)
 {
     Assert(i < this->startCallCount);
     Assert(this->startCallInfo);
@@ -1028,6 +1029,7 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
     bool fromLoopBody, Js::Var * registerSaves, Js::InterpreterStackFrame * newInstance, Js::Var* pArgumentsObject, void * argoutRestoreAddress) const
 {
     bool isLocal = offsets == nullptr;
+
     if (isLocal == true)
     {
         globalBailOutRecordTable->IterateGlobalBailOutRecordTableRows(m_bailOutRecordId, [=](GlobalBailOutRecordDataRow *row) {
@@ -1071,7 +1073,15 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
             this->IsOffsetNativeIntOrFloat(i, argOutSlotStart, &isFloat64, &isInt32,
                                            &isSimd128F4, &isSimd128I4, &isSimd128I8, &isSimd128I16,
                                            &isSimd128U4, &isSimd128U8, &isSimd128U16, &isSimd128B4, &isSimd128B8, &isSimd128B16);
-
+#ifdef _M_IX86
+            if (this->argOutOffsetInfo->isOrphanedArgSlot->Test(argOutSlotStart + i))
+            {
+                RestoreValue(bailOutKind, layout, values, scriptContext, fromLoopBody, registerSaves, newInstance, pArgumentsObject,
+                    nullptr, i, offset, /* isLocal */ true, isFloat64, isInt32, isSimd128F4, isSimd128I4, isSimd128I8,
+                    isSimd128I16, isSimd128U4, isSimd128U8, isSimd128U16, isSimd128B4, isSimd128B8, isSimd128B16);
+                continue;
+            }
+#endif
             RestoreValue(bailOutKind, layout, values, scriptContext, fromLoopBody, registerSaves, newInstance, pArgumentsObject,
                          argoutRestoreAddress, i, offset, false, isFloat64, isInt32, isSimd128F4, isSimd128I4, isSimd128I8,
                          isSimd128I16, isSimd128U4, isSimd128U8, isSimd128U16, isSimd128B4, isSimd128B8, isSimd128B16);
@@ -1230,6 +1240,10 @@ BailOutRecord::BailOutFromLoopBodyInlinedCommon(Js::JavascriptCallStackLayout * 
     uint32 bailOutOffset, void * returnAddress, IR::BailOutKind bailOutKind, Js::Var branchValue)
 {
     Assert(bailOutRecord->parent != nullptr);
+    // This isn't strictly necessary if there's no allocations on this path, but because such an
+    // issue would be hard to notice and introduce some significant issues, we can do this copy.
+    // The problem from not doing this and then doing an allocation before RestoreValues is that
+    // the GC doesn't check the BailOutRegisterSaveSpace.
     Js::Var registerSaves[BailOutRegisterSaveSlotCount];
     js_memcpy_s(registerSaves, sizeof(registerSaves), (Js::Var *)layout->functionObject->GetScriptContext()->GetThreadContext()->GetBailOutRegisterSaveSpace(),
         sizeof(registerSaves));
@@ -1610,7 +1624,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
     }
     if (isInlinee)
     {
-        newInstance->OrFlags(Js::InterpreterStackFrameFlags_FromInlineeCodeInEHBailOut);
+        newInstance->OrFlags(Js::InterpreterStackFrameFlags_FromBailOutInInlinee);
     }
 
     ThreadContext *threadContext = newInstance->GetScriptContext()->GetThreadContext();
@@ -2970,7 +2984,6 @@ void  GlobalBailOutRecordDataTable::AddOrUpdateRow(JitArenaAllocator *allocator,
         if(rowToUpdate->offset == offset &&
             rowToUpdate->isInt == (unsigned)isInt &&
             rowToUpdate->isFloat == (unsigned)isFloat &&
-
 #ifdef ENABLE_SIMDJS
             // SIMD_JS
             rowToUpdate->isSimd128F4    == (unsigned) isSimd128F4 &&

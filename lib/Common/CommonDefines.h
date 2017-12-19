@@ -63,13 +63,19 @@
 #endif
 
 #if defined(_M_IX86) || defined(_M_ARM)
-#define _M_IX86_OR_ARM32 1
 #define TARGET_32 1
 #endif
 
 #if defined(_M_X64) || defined(_M_ARM64)
-#define _M_X64_OR_ARM64 1
 #define TARGET_64 1
+#endif
+
+#ifndef DECLSPEC_CHPE_GUEST
+// For CHPE build aka Arm64.x86
+// https://osgwiki.com/wiki/ARM64_CHPE
+// On ChakraCore alone we do not support this
+// so we define to nothing to avoid build breaks
+#define DECLSPEC_CHPE_GUEST
 #endif
 
 // Memory Protections
@@ -165,26 +171,27 @@
 #endif
 
 
+#ifndef ENABLE_VALGRIND
+#define ENABLE_CONCURRENT_GC 1
+#ifdef _WIN32
+#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 1 // Needs ENABLE_CONCURRENT_GC to be enabled for this to be enabled.
+#else
+#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 0 // Needs ENABLE_CONCURRENT_GC to be enabled for this to be enabled.
+#endif
+#else
+#define ENABLE_CONCURRENT_GC 0
+#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 0 // Needs ENABLE_CONCURRENT_GC to be enabled for this to be enabled.
+#endif
+
 #ifdef _WIN32
 #define SYSINFO_IMAGE_BASE_AVAILABLE 1
-#define ENABLE_CONCURRENT_GC 1
-#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 1 // Only takes effect when ENABLE_CONCURRENT_GC is enabled.
-#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST 1 // Use Interlocked SLIST for allocableHeapBlockList
 #define SUPPORT_WIN32_SLIST 1
 #ifndef CHAKRACORE_LITE
 #define ENABLE_JS_ETW                               // ETW support
 #endif
 #else
 #define SYSINFO_IMAGE_BASE_AVAILABLE 0
-#ifndef ENABLE_VALGRIND
-#define ENABLE_CONCURRENT_GC 1
-#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 1 // Only takes effect when ENABLE_CONCURRENT_GC is enabled.
-#else
-#define ENABLE_CONCURRENT_GC 0
-#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 0 // Only takes effect when ENABLE_CONCURRENT_GC is enabled.
-#endif
 #define SUPPORT_WIN32_SLIST 0
-#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST 0 // Use Interlocked SLIST for allocableHeapBlockList
 #endif
 
 #ifdef CHAKRACORE_LITE
@@ -240,7 +247,7 @@
 #error "Background page zeroing can't be turned on if freeing pages in the background is disabled"
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32) && !GLOBAL_ENABLE_WRITE_BARRIER
 #define RECYCLER_VISITED_HOST
 #endif
 
@@ -264,7 +271,7 @@
 #define ENABLE_BACKGROUND_JOB_PROCESSOR 1
 #define ENABLE_COPYONACCESS_ARRAY 1
 #ifndef DYNAMIC_INTERPRETER_THUNK
-#if defined(_M_IX86_OR_ARM32) || defined(_M_X64_OR_ARM64)
+#if defined(TARGET_32) || defined(TARGET_64)
 #define DYNAMIC_INTERPRETER_THUNK 1
 #else
 #define DYNAMIC_INTERPRETER_THUNK 0
@@ -276,6 +283,10 @@
 #define ENABLE_BACKGROUND_PARSING 1
 #endif
 
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+#define ALLOW_JIT_REPRO
+#endif
+
 #endif
 
 #if ENABLE_NATIVE_CODEGEN
@@ -283,7 +294,8 @@
 #define ENABLE_OOP_NATIVE_CODEGEN 1     // Out of process JIT
 #endif
 
-#if _WIN64
+// ToDo (SaAgarwa): Disable VirtualTypedArray on ARM64 till we make sure it works correctly
+#if _WIN64 && !defined(_M_ARM64)
 #define ENABLE_FAST_ARRAYBUFFER 1
 #endif
 #endif
@@ -302,20 +314,13 @@
 #define DELAYLOAD_SET_CFG_TARGET 1
 #endif
 
-// Configure whether we configure a signal handler
-// to produce perf-<pid>.map files
-#ifndef PERFMAP_TRACE_ENABLED
-#define PERFMAP_TRACE_ENABLED 0
-#endif
 #ifndef PERFMAP_SIGNAL
 #define PERFMAP_SIGNAL SIGUSR2
 #endif
 
 #ifndef NTBUILD
 #define DELAYLOAD_SECTIONAPI 1
-#endif
-
-#ifdef NTBUILD
+#else
 #define ENABLE_PROJECTION
 #define ENABLE_FOUNDATION_OBJECT
 #define ENABLE_EXPERIMENTAL_FLAGS
@@ -367,6 +372,7 @@
         //#define TELEMETRY_ESB_GetConstructorPropertyPolyfillDetection // Whether telemetry will inspect the `.constructor` property of every Object instance to determine if it's a polyfill of a known ES built-in.
     #endif
 
+    #define REJIT_STATS
 #else
 
     #define TELEMETRY_OPCODE_OFFSET_ENABLED false
@@ -669,15 +675,6 @@
 #define ENABLE_MEM_STATS 1
 #endif
 
-#define NO_SANITIZE_ADDRESS
-#if defined(__has_feature)
-#if __has_feature(address_sanitizer)
-#undef NO_SANITIZE_ADDRESS
-#define NO_SANITIZE_ADDRESS __attribute__((no_sanitize("address")))
-#define NO_SANITIZE_ADDRESS_FIXVC
-#endif
-#endif
-
 //----------------------------------------------------------------------------------------------------
 // Disabled features
 //----------------------------------------------------------------------------------------------------
@@ -688,7 +685,7 @@
 // Platform dependent flags
 //----------------------------------------------------------------------------------------------------
 #ifndef INT32VAR
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
 #define INT32VAR 1
 #else
 #define INT32VAR 0
@@ -696,7 +693,7 @@
 #endif
 
 #ifndef FLOATVAR
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
 #define FLOATVAR 1
 #else
 #define FLOATVAR 0
@@ -718,6 +715,7 @@
 // xplat-todo: once all the wasm tests are passing on xplat, enable it for release builds
 #if defined(_WIN32) || (defined(__clang__) && defined(ENABLE_DEBUG_CONFIG_OPTIONS))
 #define ENABLE_WASM
+#define ENABLE_WASM_SIMD
 
 #ifdef CAN_BUILD_WABT
 #define ENABLE_WABT

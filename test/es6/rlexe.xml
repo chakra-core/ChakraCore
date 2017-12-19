@@ -114,6 +114,7 @@
     <default>
       <files>function.name.js</files>
       <compile-flags>-ES6Generators -ES6Classes -es6functionnamefull -force:deferparse -args summary -endargs</compile-flags>
+      <timeout>120</timeout> <!-- ARM64 take more than 60 -->
     </default>
   </test>
   <test>
@@ -136,14 +137,13 @@
       <baseline>proto_basic.baseline</baseline>
     </default>
   </test>
-  <!-- Microsoft/ChakraCore#2667 - Fix and Re-enable flaky test proto_disable.js
+  <!-- Microsoft/ChakraCore#2667 - Fix and Re-enable flaky tests proto_disable.js and proto_initializer.js
   <test>
     <default>
       <files>proto_disable.js</files>
       <baseline>proto_disable.baseline</baseline>
     </default>
   </test>
-  -->
   <test>
     <default>
       <files>proto_initializer.js</files>
@@ -158,6 +158,7 @@
       <tags>exclude_serialized</tags>
     </default>
   </test>
+  -->
   <test>
     <default>
       <files>proto_addprop.js</files>
@@ -333,14 +334,14 @@
     <default>
       <files>classes_bugfixes.js</files>
       <compile-flags>-Off:Deferparse -args summary -endargs</compile-flags>
-      <tags>BugFix</tags>
+      <tags>BugFix,exclude_noicu</tags>
     </default>
   </test>
   <test>
     <default>
       <files>classes_bugfixes.js</files>
       <compile-flags>-Force:Deferparse -args summary -endargs</compile-flags>
-      <tags>BugFix</tags>
+      <tags>BugFix,exclude_noicu</tags>
     </default>
   </test>
   <test>
@@ -512,6 +513,7 @@
     <default>
       <files>normalize.js</files>
       <baseline>normalize.baseline</baseline>
+      <tags>exclude_noicu</tags>
       <compile-flags> -ES6Unicode</compile-flags>
     </default>
   </test>
@@ -533,7 +535,7 @@
       <files>unicode_6_identifiers_utf8.js</files>
       <baseline>unicode_6_identifiers_utf8.baseline</baseline>
       <compile-flags> -ES6Unicode</compile-flags>
-      <tags>exclude_win7,require_winglob</tags> <!-- Microsoft/ChakraCore#3777: Fix this test under ICU -->
+      <tags>exclude_win7,require_winglob,exclude_noicu</tags> <!-- Microsoft/ChakraCore#3777: Fix this test under ICU -->
     </default>
   </test>
   <test>
@@ -620,6 +622,7 @@
     <default>
       <files>unicode_idDeferParseFunctions_utf8.js</files>
       <compile-flags>-ES6Unicode</compile-flags>
+      <tags>exclude_noicu</tags>
     </default>
   </test>
   <test>
@@ -1361,19 +1364,20 @@
   <test>
     <default>
       <files>moduleUrlInError.js</files>
+      <tags>exclude_sanitize_address</tags>
     </default>
   </test>
   <test>
     <default>
       <files>dynamic-module-functionality.js</files>
-      <compile-flags>-ES6Module -args summary -endargs</compile-flags>
+      <compile-flags>-ES6Module -ESDynamicImport -args summary -endargs</compile-flags>
       <tags>exclude_sanitize_address</tags>
     </default>
   </test>
   <test>
     <default>
       <files>dynamic-module-import-specifier.js</files>
-      <compile-flags>-MuteHostErrorMsg -ES6Module -args summary -endargs</compile-flags>
+      <compile-flags>-MuteHostErrorMsg -ESDynamicImport -ES6Module -args summary -endargs</compile-flags>
       <tags>exclude_sanitize_address</tags>
     </default>
   </test>
@@ -1396,7 +1400,7 @@
     <default>
       <files>module-namespace.js</files>
       <compile-flags>-ES6Module -Es6ToStringTag -args summary -endargs</compile-flags>
-      <tags>exclude_sanitize_address</tags>
+      <tags>exclude_dynapogo,exclude_drt,exclude_sanitize_address</tags>
     </default>
   </test>
   -->
@@ -1410,7 +1414,7 @@
   <test>
     <default>
       <files>bug_OS12095746.js</files>
-      <compile-flags>-MuteHostErrorMsg -IgnoreScriptErrorCode -TraceHostCallback -ES6Module</compile-flags>
+      <compile-flags>-MuteHostErrorMsg -IgnoreScriptErrorCode -TraceHostCallback -ES6Module -ESDynamicImport</compile-flags>
       <tags>exclude_dynapogo,exclude_sanitize_address,bugfix,exclude_drt</tags>
       <baseline>bug_OS12095746.baseline</baseline>
     </default>
@@ -1459,7 +1463,7 @@
   <test>
     <default>
       <files>bug_issue_3076.js</files>
-      <compile-flags>-force:deferparse</compile-flags>
+      <compile-flags>-force:deferparse -ESDynamicImport </compile-flags>
       <tags>BugFix,exclude_sanitize_address</tags>
     </default>
   </test>

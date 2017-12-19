@@ -50,7 +50,9 @@ struct JSONProperty
     }
     JSONProperty(const JSONProperty& other)
     {
-        memcpy_s(this, sizeof(JSONProperty), &other, sizeof(JSONProperty));
+        // Copy the full struct and use "Field(Var)" to identify write barrier
+        // policy as the struct contains Vars
+        CopyArray<JSONProperty, Field(Var)>(this, 1, &other, 1);
     }
 };
 

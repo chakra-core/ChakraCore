@@ -141,7 +141,7 @@ void
     else {
         int fd = _fileno(fp);
         struct _stat64 fileStats;
-        if(fd != -1 && _fstat64(fd, &fileStats) != -1)
+        if (fd != -1 && _fstat64(fd, &fileStats) != -1)
         {
             char creationTime[256];
             char accessTime[256];
@@ -151,7 +151,7 @@ void
             _ctime64_s(creationTime, &fileStats.st_ctime);
             _ctime64_s(accessTime, &fileStats.st_atime);
             auto stripNewline = [](char *buf) {
-                if(char *ptr = strchr(buf, '\n'))
+                if (char *ptr = strchr(buf, '\n'))
                     *ptr = '\0';
             };
             stripNewline(creationTime);
@@ -160,17 +160,35 @@ void
 
             LogOut("ERROR: name of output file: %s; size: %I64d; creation: %s, last access: %s, now: %s", path, fileStats.st_size, creationTime, accessTime, currTime);
         }
-        LogOut("ERROR: bad output file follows ============");
-        while (fgets(buf, BUFFER_SIZE, fp) != NULL) {
-            // Strip the newline, since LogOut adds one
-            p = strchr(buf, '\n');
-            if (p != NULL) {
-                *p = '\0';
+        if (!FNoProgramOutput)
+        {
+            bool printlines = !FOnlyAssertOutput;
+            if (printlines)
+            {
+                LogOut("ERROR: bad output file follows ============");
             }
-            LogOut("%s", buf);
+            while (fgets(buf, BUFFER_SIZE, fp) != NULL) {
+                // Strip the newline, since LogOut adds one
+                p = strchr(buf, '\n');
+                if (p != NULL) {
+                    *p = '\0';
+                }
+                if (!printlines && strlen(buf) > 8 && buf[0] == 'A' && buf[1] == 'S' && buf[2] == 'S' && buf[3] == 'E' && buf[4] == 'R' && buf[5] == 'T')
+                {
+                    printlines = true;
+                    LogOut("ERROR: bad output file follows ============");
+                }
+                if (printlines)
+                {
+                    LogOut("%s", buf);
+                }
+            }
+            if (printlines)
+            {
+                LogOut("ERROR: end of bad output file  ============");
+            }
         }
         fclose(fp);
-        LogOut("ERROR: end of bad output file  ============");
     }
 }
 

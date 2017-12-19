@@ -75,6 +75,12 @@ RejitIRViewerFunction(NativeCodeGenerator *nativeCodeGen, Js::FunctionBody *fn, 
     return nativeCodeGen->RejitIRViewerFunction(fn, scriptContext);
 }
 #endif
+#ifdef ALLOW_JIT_REPRO
+HRESULT JitFromEncodedWorkItem(NativeCodeGenerator *nativeCodeGen, _In_reads_(bufSize) const byte* buffer, _In_ uint bufferSize)
+{
+    return nativeCodeGen->JitFromEncodedWorkItem(buffer, bufferSize);
+}
+#endif
 
 void
 GenerateLoopBody(NativeCodeGenerator *nativeCodeGen, Js::FunctionBody *fn, Js::LoopHeader * loopHeader, Js::EntryPointInfo* info, uint localCount, Js::Var localSlots[])
@@ -137,8 +143,13 @@ void CheckIsExecutable(Js::RecyclableObject * function, Js::JavascriptMethod ent
     Js::ScriptContext * scriptContext = function->GetScriptContext();
     // it's easy to call the default entry point from RecyclableObject.
     AssertMsg((Js::JavascriptFunction::Is(function) && Js::JavascriptFunction::FromVar(function)->IsExternalFunction())
-        || Js::CrossSite::IsThunk(entrypoint) || !scriptContext->IsActuallyClosed() ||
-        (scriptContext->GetThreadContext()->IsScriptActive() && !Js::JavascriptConversion::IsCallable(function)),
+        || Js::CrossSite::IsThunk(entrypoint)
+        // External object with entrypoint
+        || (!Js::JavascriptFunction::Is(function)
+            && function->IsExternal()
+            && Js::JavascriptConversion::IsCallable(function))
+        || !scriptContext->IsActuallyClosed()
+        || (scriptContext->GetThreadContext()->IsScriptActive() && !Js::JavascriptConversion::IsCallable(function)),
         "Can't call function when the script context is closed");
 
     if (scriptContext->GetThreadContext()->IsScriptActive())

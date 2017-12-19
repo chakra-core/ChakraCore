@@ -3,3 +3,9 @@
 test/**/*.js -crlf
 test/es6/HTMLComments.js binary diff=cpp
 *.wasm binary
+*.cpp text eol=lf diff=cpp
+*.h text eol=lf diff=cpp
+*.inl text eol=lf diff=cpp
+*.vcproj text eol=crlf diff=xml
+*.vcxproj text eol=crlf diff=xml
+*.sln text eol=crlf diff=xml

@@ -27,7 +27,7 @@ namespace Memory
 }
 #endif
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
-#ifdef _M_X64_OR_ARM64
+#ifdef TARGET_64
 X64WriteBarrierCardTableManager RecyclerWriteBarrierManager::x64CardTableManager;
 X64WriteBarrierCardTableManager::CommittedSectionBitVector X64WriteBarrierCardTableManager::committedSections(&HeapAllocator::Instance);
 
@@ -46,7 +46,7 @@ DWORD RecyclerWriteBarrierManager::cardTable[1 * 1024 * 1024];
 #endif
 
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
-#ifdef _M_X64_OR_ARM64
+#ifdef TARGET_64
 
 bool
 X64WriteBarrierCardTableManager::OnThreadInit()
@@ -56,7 +56,7 @@ X64WriteBarrierCardTableManager::OnThreadInit()
 
     // ToDo (SaAgarwa) __readgsqword is not on ARM64?
     // xplat-todo: Replace this on Windows too with GetCurrentThreadStackBounds
-#if defined(_WIN32) && !defined(_M_ARM64)
+#if defined(_WIN32) && defined(_M_X64) && !defined(_M_ARM64)
     // check StackProber.cpp for the stack pages layout information
     NT_TIB* teb = (NT_TIB*) ::NtCurrentTeb();
     char* stackBase = (char*) teb->StackBase;
@@ -318,6 +318,11 @@ RecyclerWriteBarrierManager::OnSegmentFree(_In_ char* segmentAddress, size_t num
 void
 RecyclerWriteBarrierManager::WriteBarrier(void * address)
 {
+    if (IS_ASAN_FAKE_STACK_ADDR(address))
+    {
+        return;
+    }
+
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     VerifyIsBarrierAddress(address);
@@ -342,6 +347,11 @@ RecyclerWriteBarrierManager::WriteBarrier(void * address)
 void
 RecyclerWriteBarrierManager::WriteBarrier(void * address, size_t bytes)
 {
+    if (IS_ASAN_FAKE_STACK_ADDR(address))
+    {
+        return;
+    }
+
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     VerifyIsBarrierAddress(address, bytes);
 #endif

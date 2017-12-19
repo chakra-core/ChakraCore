@@ -126,17 +126,17 @@ function(clr_unknown_arch)
     message(FATAL_ERROR "Only AMD64, ARM and I386 are supported")
 endfunction()
 
-if(INTL_ICU_SH)
-    unset(INTL_ICU_SH CACHE)    # don't cache
-    add_definitions(-DINTL_ICU=1)
-    set(ICU_INTL_ENABLED 1)
+if(NOINTL_ICU_SH)
+    unset(NOINTL_ICU_SH CACHE)    # don't cache
+    set(ICU_INTL_DISABLED 1)
 endif()
 
 if(ICU_INCLUDE_PATH)
     add_definitions(-DHAS_REAL_ICU=1)
     set(ICU_CC_PATH "${ICU_INCLUDE_PATH}/../lib/")
     find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-    if(ICU_INTL_ENABLED)
+    if(NOT ICU_INTL_DISABLED)
+        add_definitions(-DINTL_ICU=1)
         find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
         # icu header files are either located under the same folder or i18n is under a relative path
         # TODO (unlikely): shall we add `--icu-intl` to build.sh ?
@@ -150,22 +150,17 @@ if(ICU_INCLUDE_PATH)
       if (NOT ICUDATA)
           set(ICUDATA "")
       endif()
-      find_library(ICUTOOLS icutools PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-      if (NOT ICUTOOLS)
-          set(ICUTOOLS "")
-      endif()
       set(ICULIB
         ${ICUUC}
         ${ICU18}
         ${ICUDATA}
-        ${ICUTOOLS}
         )
     endif()
 endif()
 
 set(CLR_CMAKE_PLATFORM_XPLAT 1)
 if(CC_TARGETS_AMD64)
-    add_definitions(-D_M_X64_OR_ARM64)
+    add_definitions(-DTARGET_64)
     add_compile_options(-msse4.2)
 
     if(NOT CMAKE_BUILD_TYPE STREQUAL Release)
@@ -173,7 +168,7 @@ if(CC_TARGETS_AMD64)
     endif()
 elseif(CC_TARGETS_X86)
     add_definitions(-D__i686__)
-    add_definitions(-D_M_IX86_OR_ARM32)
+    add_definitions(-DTARGET_32)
     add_compile_options(-arch i386)
     add_compile_options(-msse3)
 
@@ -182,7 +177,7 @@ elseif(CC_TARGETS_X86)
     )
 elseif(CC_TARGETS_ARM)
     add_definitions(-D__arm__)
-    add_definitions(-D_M_IX86_OR_ARM32)
+    add_definitions(-DTARGET_32)
     add_definitions(-D_M_ARM32_OR_ARM64)
     if(CC_TARGET_OS_OSX)
         add_compile_options(-arch arm)
@@ -203,7 +198,8 @@ if(CC_TARGET_OS_LINUX OR CC_TARGET_OS_ANDROID)
         if(NOT NO_ICU_PATH_GIVEN)
             if(NOT CC_EMBED_ICU)
                 set(ICULIB "icuuc")
-                if(ICU_INTL_ENABLED)
+                if(NOT ICU_INTL_DISABLED)
+                    add_definitions(-DINTL_ICU=1)
                     set(ICULIB
                       "${ICULIB}"
                       "icui18n")
@@ -350,8 +346,12 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
     )
 
     # Only disable RTTI in release builds so that TrackAlloc works for debug and test builds
+    # Also disable RTTI when building a shared library
+    # TODO: why does the shared library break with rtti disabled?
     if(CMAKE_BUILD_TYPE STREQUAL Release)
-        add_compile_options(-fno-rtti)
+        if(STATIC_LIBRARY OR ICU_INTL_DISABLED)
+            add_compile_options(-fno-rtti)
+        endif()
     endif()
 
     # Clang -fsanitize.
@@ -491,5 +491,21 @@ add_definitions(
     -DNO_PAL_MINMAX
     -DPAL_STDCPP_COMPAT
     )
+
+if (ENABLE_JS_LTTNG_SH)
+    unset(ENABLE_JS_LTTNG_SH CACHE)
+    include_directories (
+      ${CMAKE_CURRENT_SOURCE_DIR}/out/lttng
+    )
+    add_subdirectory ($ENV{TARGET_PATH}/lttng ${CMAKE_CURRENT_BINARY_DIR}/lttng)
+
+    add_definitions(
+      -DENABLE_JS_ETW
+      -DENABLE_JS_LTTNG
+    )
+    set(USE_LTTNG "1")
+endif()
+
 add_subdirectory (lib)
+
 add_subdirectory (bin)

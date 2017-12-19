@@ -92,6 +92,12 @@ namespace Js
         {
             Assert(engineExtensions[extensionKind] == nullptr);
             engineExtensions[extensionKind] = extensionObject;
+
+            // Init the extensionObject if this was already initialized
+            if (this->IsInitialized())
+            {
+                extensionObject->Initialize();
+            }
         }
     }
 

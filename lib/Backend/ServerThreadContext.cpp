@@ -8,28 +8,28 @@
 #if ENABLE_OOP_NATIVE_CODEGEN
 #include "JITServer/JITServer.h"
 
-ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data, HANDLE processHandle) :
-    m_autoProcessHandle(processHandle),
+ServerThreadContext::ServerThreadContext(ThreadContextDataIDL* data, ProcessContext* processContext) :
     m_threadContextData(*data),
     m_refCount(0),
     m_numericPropertyBV(nullptr),
-    m_preReservedSectionAllocator(processHandle),
-    m_sectionAllocator(processHandle),
-    m_thunkPageAllocators(nullptr, /* allocXData */ false, &m_sectionAllocator, nullptr, processHandle),
-    m_codePageAllocators(nullptr, ALLOC_XDATA, &m_sectionAllocator, &m_preReservedSectionAllocator, processHandle),
-    m_codeGenAlloc(nullptr, nullptr, &m_codePageAllocators, processHandle),
-#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
-    m_jitThunkEmitter(this, &m_sectionAllocator, processHandle),
+    m_preReservedSectionAllocator(processContext->processHandle),
+    m_sectionAllocator(processContext->processHandle),
+    m_thunkPageAllocators(nullptr, /* allocXData */ false, &m_sectionAllocator, nullptr, processContext->processHandle),
+    m_codePageAllocators(nullptr, ALLOC_XDATA, &m_sectionAllocator, &m_preReservedSectionAllocator, processContext->processHandle),
+#if defined(_CONTROL_FLOW_GUARD) && !defined(_M_ARM)
+    m_jitThunkEmitter(this, &m_sectionAllocator, processContext->processHandle),
 #endif
+    m_codeGenAlloc(nullptr, nullptr, this, &m_codePageAllocators, processContext->processHandle),
     m_pageAlloc(nullptr, Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
         AutoSystemInfo::Data.IsLowMemoryProcess() ?
         PageAllocator::DefaultLowMaxFreePageCount :
         PageAllocator::DefaultMaxFreePageCount
-    )
+    ),
+    processContext(processContext)
 {
-    m_pid = GetProcessId(processHandle);
+    m_pid = GetProcessId(processContext->processHandle);
 
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
+#if !TARGET_64 && _CONTROL_FLOW_GUARD
     m_codeGenAlloc.canCreatePreReservedSegment = data->allowPrereserveAlloc != FALSE;
 #endif
     m_numericPropertyBV = HeapNew(BVSparse<HeapAllocator>, &HeapAllocator::Instance);
@@ -37,6 +37,7 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data, HANDLE pro
 
 ServerThreadContext::~ServerThreadContext()
 {
+    processContext->Release();
     if (this->m_numericPropertyBV != nullptr)
     {
         HeapDelete(m_numericPropertyBV);
@@ -81,7 +82,7 @@ ServerThreadContext::GetImplicitCallFlagsAddr() const
     return static_cast<intptr_t>(m_threadContextData.implicitCallFlagsAddr);
 }
 
-#if defined(ENABLE_SIMDJS) && (defined(_M_IX86) || defined(_M_X64))
+#if (defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)) && (defined(_M_IX86) || defined(_M_X64))
 intptr_t
 ServerThreadContext::GetSimdTempAreaAddr(uint8 tempIndex) const
 {
@@ -111,7 +112,7 @@ ServerThreadContext::IsThreadBound() const
 HANDLE
 ServerThreadContext::GetProcessHandle() const
 {
-    return m_autoProcessHandle.GetHandle();
+    return this->processContext->processHandle;
 }
 
 CustomHeap::OOPCodePageAllocators *
@@ -138,7 +139,7 @@ ServerThreadContext::GetCodeGenAllocators()
     return &m_codeGenAlloc;
 }
 
-#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64)
+#if defined(_CONTROL_FLOW_GUARD) && !defined(_M_ARM)
 OOPJITThunkEmitter *
 ServerThreadContext::GetJITThunkEmitter()
 {
@@ -149,13 +150,13 @@ ServerThreadContext::GetJITThunkEmitter()
 intptr_t
 ServerThreadContext::GetRuntimeChakraBaseAddress() const
 {
-    return static_cast<intptr_t>(m_threadContextData.chakraBaseAddress);
+    return this->processContext->chakraBaseAddress;
 }
 
 intptr_t
 ServerThreadContext::GetRuntimeCRTBaseAddress() const
 {
-    return static_cast<intptr_t>(m_threadContextData.crtBaseAddress);
+    return this->processContext->crtBaseAddress;
 }
 
 /* static */
@@ -214,4 +215,31 @@ void ServerThreadContext::Close()
     ServerContextManager::RecordCloseContext(this);
 #endif
 }
+
+ProcessContext::ProcessContext(HANDLE processHandle, intptr_t chakraBaseAddress, intptr_t crtBaseAddress) :
+    processHandle(processHandle),
+    chakraBaseAddress(chakraBaseAddress),
+    crtBaseAddress(crtBaseAddress),
+    refCount(0)
+{
+}
+ProcessContext::~ProcessContext()
+{
+    CloseHandle(processHandle);
+}
+
+void ProcessContext::AddRef()
+{
+    InterlockedExchangeAdd(&this->refCount, 1);
+}
+void ProcessContext::Release()
+{
+    InterlockedExchangeSubtract(&this->refCount, 1);
+}
+
+bool ProcessContext::HasRef()
+{
+    return this->refCount != 0;
+}
+
 #endif

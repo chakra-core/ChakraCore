@@ -41,6 +41,7 @@ set(CRL_SOURCE_FILES ${CRL_SOURCE_FILES}
     SimdBool8x16OperationX86X64.cpp
     SimdFloat32x4Operation.cpp
     SimdFloat32x4OperationX86X64.cpp
+    SimdInt64x2Operation.cpp
     SimdFloat64x2Operation.cpp
     SimdFloat64x2OperationX86X64.cpp
     SimdInt16x8Operation.cpp

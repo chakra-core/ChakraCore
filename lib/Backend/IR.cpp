@@ -2858,12 +2858,12 @@ Instr::GetOrCreateContinueLabel(const bool isHelper)
     return label;
 }
 
-
-IR::RegOpnd * Instr::FindRegUseSrc(StackSym *sym, IR::Opnd* src)
+bool
+Instr::HasSymUseSrc(StackSym *sym, IR::Opnd* src)
 {
     if (!src)
     {
-        return nullptr;
+        return false;
     }
     if (src->IsRegOpnd())
     {
@@ -2871,7 +2871,7 @@ IR::RegOpnd * Instr::FindRegUseSrc(StackSym *sym, IR::Opnd* src)
 
         if (regOpnd->m_sym == sym)
         {
-            return regOpnd;
+            return true;
         }
     }
     else if (src->IsIndirOpnd())
@@ -2880,11 +2880,11 @@ IR::RegOpnd * Instr::FindRegUseSrc(StackSym *sym, IR::Opnd* src)
         RegOpnd * baseOpnd = indirOpnd->GetBaseOpnd();
         if (baseOpnd != nullptr && baseOpnd->m_sym == sym)
         {
-            return baseOpnd;
+            return true;
         }
         else if (indirOpnd->GetIndexOpnd() && indirOpnd->GetIndexOpnd()->m_sym == sym)
         {
-            return indirOpnd->GetIndexOpnd();
+            return true;
         }
     }
     else if (src->IsListOpnd())
@@ -2892,22 +2892,38 @@ IR::RegOpnd * Instr::FindRegUseSrc(StackSym *sym, IR::Opnd* src)
         IR::ListOpnd* list = src->AsListOpnd();
         for (int i = 0; i < list->Count(); ++i)
         {
-            IR::RegOpnd* reg = FindRegUseSrc(sym, list->Item(i));
-            if (reg)
+            if (HasSymUseSrc(sym, list->Item(i)))
             {
-                return reg;
+                return true;
             }
         }
     }
-    return nullptr;
+    else if (src->IsSymOpnd())
+    {
+        SymOpnd* symOpnd = src->AsSymOpnd();
+        if (symOpnd->GetSym() == sym)
+        {
+            return true;
+        }
+        if (symOpnd->IsPropertySymOpnd())
+        {
+            PropertySymOpnd* propertySymOpnd = symOpnd->AsPropertySymOpnd();
+            if (propertySymOpnd->GetObjectSym() == sym)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 
-IR::RegOpnd * Instr::FindRegUseDst(StackSym *sym, IR::Opnd* dst)
+bool
+Instr::HasSymUseDst(StackSym *sym, IR::Opnd* dst)
 {
     if (!dst)
     {
-        return nullptr;
+        return false;
     }
     if (dst->IsIndirOpnd())
     {
@@ -2915,11 +2931,11 @@ IR::RegOpnd * Instr::FindRegUseDst(StackSym *sym, IR::Opnd* dst)
         RegOpnd * baseOpnd = indirOpnd->GetBaseOpnd();
         if (baseOpnd != nullptr && baseOpnd->m_sym == sym)
         {
-            return baseOpnd;
+            return true;
         }
         else if (indirOpnd->GetIndexOpnd() && indirOpnd->GetIndexOpnd()->m_sym == sym)
         {
-            return indirOpnd->GetIndexOpnd();
+            return true;
         }
     }
     else if (dst->IsListOpnd())
@@ -2927,60 +2943,63 @@ IR::RegOpnd * Instr::FindRegUseDst(StackSym *sym, IR::Opnd* dst)
         IR::ListOpnd* list = dst->AsListOpnd();
         for (int i = 0; i < list->Count(); ++i)
         {
-            IR::RegOpnd* reg = FindRegUseDst(sym, list->Item(i));
-            if (reg)
+            if (HasSymUseDst(sym, list->Item(i)))
             {
-                return reg;
+                return true;
             }
         }
     }
-    return nullptr;
+    else if (dst->IsSymOpnd())
+    {
+        SymOpnd* symOpnd = dst->AsSymOpnd();
+        if (symOpnd->GetSym() == sym)
+        {
+            return true;
+        }
+        if (symOpnd->IsPropertySymOpnd())
+        {
+            PropertySymOpnd* propertySymOpnd = symOpnd->AsPropertySymOpnd();
+            if (propertySymOpnd->GetObjectSym() == sym)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
-///----------------------------------------------------------------------------
-///
-/// Instr::FindRegUse
-///
-///     Search a reg use of the given sym.  Return the RegOpnd that uses it.
-///
-///----------------------------------------------------------------------------
-
-IR::RegOpnd *
-Instr::FindRegUse(StackSym *sym)
+bool
+Instr::HasSymUse(StackSym *sym)
 {
-    IR::RegOpnd* reg = FindRegUseSrc(sym, this->GetSrc1());
-    if (reg)
+    if (HasSymUseSrc(sym, this->GetSrc1()))
     {
-        return reg;
+        return true;
     }
-    reg = FindRegUseSrc(sym, this->GetSrc2());
-    if (reg)
+    if (HasSymUseSrc(sym, this->GetSrc2()))
     {
-        return reg;
+        return true;
     }
-    reg = FindRegUseDst(sym, this->GetDst());
-    if (reg)
+    if (HasSymUseDst(sym, this->GetDst()))
     {
-        return reg;
+        return true;
     }
-    return nullptr;
+    return false;
 }
 
-IR::RegOpnd *
-Instr::FindRegUseInRange(StackSym *sym, IR::Instr *instrBegin, IR::Instr *instrEnd)
+bool
+Instr::HasSymUseInRange(StackSym *sym, IR::Instr *instrBegin, IR::Instr *instrEnd)
 {
     FOREACH_INSTR_IN_RANGE(instr, instrBegin, instrEnd)
     {
         Assert(instr);
-        IR::RegOpnd *opnd = instr->FindRegUse(sym);
-        if (opnd)
+        if (instr->HasSymUse(sym))
         {
-            return opnd;
+            return true;
         }
     }
     NEXT_INSTR_IN_RANGE;
 
-    return nullptr;
+    return false;
 }
 
 ///----------------------------------------------------------------------------
@@ -3864,28 +3883,28 @@ bool Instr::BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult, bool che
 template bool Instr::BinaryCalculatorT<int>(int src1Const64, int src2Const64, int64 *pResult, bool checkWouldTrap);
 template bool Instr::BinaryCalculatorT<int64>(int64 src1Const64, int64 src2Const64, int64 *pResult, bool checkWouldTrap);
 
-bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, IntConstType *pResult)
+bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, IntConstType *pResult, IRType type)
 {
     IntConstType value = 0;
 
     switch (this->m_opcode)
     {
     case Js::OpCode::Add_A:
-        if (IntConstMath::Add(src1Const, src2Const, &value))
+        if (IntConstMath::Add(src1Const, src2Const, type, &value))
         {
             return false;
         }
         break;
 
     case Js::OpCode::Sub_A:
-        if (IntConstMath::Sub(src1Const, src2Const, &value))
+        if (IntConstMath::Sub(src1Const, src2Const, type, &value))
         {
             return false;
         }
         break;
 
     case Js::OpCode::Mul_A:
-        if (IntConstMath::Mul(src1Const, src2Const, &value))
+        if (IntConstMath::Mul(src1Const, src2Const, type, &value))
         {
             return false;
         }
@@ -3909,7 +3928,7 @@ bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, Int
             // folds to -0. Bail for now...
             return false;
         }
-        if (IntConstMath::Div(src1Const, src2Const, &value))
+        if (IntConstMath::Div(src1Const, src2Const, type, &value))
         {
             return false;
         }
@@ -3927,7 +3946,7 @@ bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, Int
             // Bail for now...
             return false;
         }
-        if (IntConstMath::Mod(src1Const, src2Const, &value))
+        if (IntConstMath::Mod(src1Const, src2Const, type, &value))
         {
             return false;
         }
@@ -3941,17 +3960,15 @@ bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, Int
 
     case Js::OpCode::Shl_A:
         // We don't care about overflow here
-        IntConstMath::Shl(src1Const, src2Const & 0x1F, &value);
+        value = src1Const << (src2Const & 0x1F);
         break;
 
     case Js::OpCode::Shr_A:
-        // We don't care about overflow here, and there shouldn't be any
-        IntConstMath::Shr(src1Const, src2Const & 0x1F, &value);
+        value = src1Const >> (src2Const & 0x1F);
         break;
 
     case Js::OpCode::ShrU_A:
-        // We don't care about overflow here, and there shouldn't be any
-        IntConstMath::ShrU(src1Const, src2Const & 0x1F, &value);
+        value = ((UIntConstType)src1Const) >> (src2Const & 0x1F);
         if (value < 0)
         {
             // ShrU produces a UInt32.  If it doesn't fit in an Int32, bail as we don't
@@ -3961,18 +3978,15 @@ bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, Int
         break;
 
     case Js::OpCode::And_A:
-        // We don't care about overflow here, and there shouldn't be any
-        IntConstMath::And(src1Const, src2Const, &value);
+        value = src1Const & src2Const;
         break;
 
     case Js::OpCode::Or_A:
-        // We don't care about overflow here, and there shouldn't be any
-        IntConstMath::Or(src1Const, src2Const, &value);
+        value = src1Const | src2Const;
         break;
 
     case Js::OpCode::Xor_A:
-        // We don't care about overflow here, and there shouldn't be any
-        IntConstMath::Xor(src1Const, src2Const, &value);
+        value = src1Const ^ src2Const;
         break;
 
     case Js::OpCode::InlineMathMin:
@@ -3992,7 +4006,7 @@ bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, Int
     return true;
 }
 
-bool Instr::UnaryCalculator(IntConstType src1Const, IntConstType *pResult)
+bool Instr::UnaryCalculator(IntConstType src1Const, IntConstType *pResult, IRType type)
 {
     IntConstType value = 0;
 
@@ -4005,14 +4019,14 @@ bool Instr::UnaryCalculator(IntConstType src1Const, IntConstType *pResult)
             return false;
         }
 
-        if (IntConstMath::Neg(src1Const, &value))
+        if (IntConstMath::Neg(src1Const, type, &value))
         {
             return false;
         }
         break;
 
     case Js::OpCode::Not_A:
-        IntConstMath::Not(src1Const, &value);
+        value = ~src1Const;
         break;
 
     case Js::OpCode::Ld_A:
@@ -4030,14 +4044,14 @@ bool Instr::UnaryCalculator(IntConstType src1Const, IntConstType *pResult)
         break;
 
     case Js::OpCode::Incr_A:
-        if (IntConstMath::Inc(src1Const, &value))
+        if (IntConstMath::Inc(src1Const, type, &value))
         {
             return false;
         }
         break;
 
     case Js::OpCode::Decr_A:
-        if (IntConstMath::Dec(src1Const, &value))
+        if (IntConstMath::Dec(src1Const, type, &value))
         {
             return false;
         }
@@ -4696,4 +4710,3 @@ Instr::DumpRange(Instr *instrEnd)
 #endif
 
 } // namespace IR
-

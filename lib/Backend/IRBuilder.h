@@ -87,9 +87,10 @@ public:
     {
         auto loopCount = func->GetJITFunctionBody()->GetLoopCount();
         if (loopCount > 0) {
-            m_saveLoopImplicitCallFlags = (IR::Opnd**)func->m_alloc->Alloc(sizeof(IR::Opnd*) * loopCount);
 #if DBG
-            memset(m_saveLoopImplicitCallFlags, 0, sizeof(IR::Opnd*) * loopCount);
+            m_saveLoopImplicitCallFlags = AnewArrayZ(func->m_alloc, IR::Opnd*, loopCount);
+#else
+            m_saveLoopImplicitCallFlags = AnewArray(func->m_alloc, IR::Opnd*, loopCount);
 #endif
         }
 
@@ -97,10 +98,12 @@ public:
         func->m_workItem->InitializeReader(&m_jnReader, &m_statementReader, func->m_alloc);
     };
 
-    ~IRBuilder() {
+    ~IRBuilder()
+    {
         Assert(m_func->GetJITFunctionBody()->GetLoopCount() == 0 || m_saveLoopImplicitCallFlags);
-        if (m_saveLoopImplicitCallFlags) {
-            m_func->m_alloc->Free(m_saveLoopImplicitCallFlags, sizeof(IR::Opnd*) * m_func->GetJITFunctionBody()->GetLoopCount());
+        if (m_saveLoopImplicitCallFlags)
+        {
+            AdeleteArray(m_func->m_alloc, m_func->GetJITFunctionBody()->GetLoopCount(), m_saveLoopImplicitCallFlags);
         }
     }
 

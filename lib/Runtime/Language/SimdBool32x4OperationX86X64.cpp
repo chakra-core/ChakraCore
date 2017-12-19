@@ -24,19 +24,33 @@ namespace Js
     }
 
     // Unary Ops
+    template <typename T>
     bool SIMDBool32x4Operation::OpAnyTrue(const SIMDValue& simd)
     {
-        X86SIMDValue x86Simd = X86SIMDValue::ToX86SIMDValue(simd);
+        SIMDValue canonSimd = SIMDUtils::CanonicalizeToBools<T>(simd); //copy-by-value since we need to modify the copy
+        X86SIMDValue x86Simd = X86SIMDValue::ToX86SIMDValue(canonSimd);
         int mask_8 = _mm_movemask_epi8(x86Simd.m128i_value); //latency 3, throughput 1
         return mask_8 != 0;
     }
 
+    template <typename T>
     bool SIMDBool32x4Operation::OpAllTrue(const SIMDValue& simd)
     {
-        X86SIMDValue x86Simd = X86SIMDValue::ToX86SIMDValue(simd);
+        SIMDValue canonSimd = SIMDUtils::CanonicalizeToBools<T>(simd); //copy-by-value since we need to modify the copy
+        X86SIMDValue x86Simd = X86SIMDValue::ToX86SIMDValue(canonSimd);
         int mask_8 = _mm_movemask_epi8(x86Simd.m128i_value); //latency 3, throughput 1
         return mask_8 == 0xFFFF;
     }
+
+    template bool SIMDBool32x4Operation::OpAllTrue<int64>(const SIMDValue& simd);
+    template bool SIMDBool32x4Operation::OpAllTrue<int32>(const SIMDValue& simd);
+    template bool SIMDBool32x4Operation::OpAllTrue<int16>(const SIMDValue& simd);
+    template bool SIMDBool32x4Operation::OpAllTrue<int8>(const SIMDValue& simd);
+    //
+    template bool SIMDBool32x4Operation::OpAnyTrue<int64>(const SIMDValue& simd);
+    template bool SIMDBool32x4Operation::OpAnyTrue<int32>(const SIMDValue& simd);
+    template bool SIMDBool32x4Operation::OpAnyTrue<int16>(const SIMDValue& simd);
+    template bool SIMDBool32x4Operation::OpAnyTrue<int8>(const SIMDValue& simd);
 }
 
 

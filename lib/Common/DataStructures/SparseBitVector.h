@@ -205,7 +205,7 @@ BVSparseNode<TAllocator>::BVSparseNode(BVIndex beginIndex, BVSparseNode<TAllocat
 {
     // Performance assert, BVSparseNode is heavily used in the backend, do perf
     // measurement before changing this.
-#if defined(_M_ARM64) || defined(_M_X64)
+#if defined(TARGET_64)
     CompileAssert(sizeof(BVSparseNode) == 24);
 #else
     CompileAssert(sizeof(BVSparseNode) == 16);

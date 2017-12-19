@@ -393,7 +393,12 @@ PHASE(All)
 #endif
 #endif // #ifdef ENABLE_SIMDJS
 
+#ifdef _WIN32
 #define DEFAULT_CONFIG_Wasm               (true)
+#else
+// Do not enable wasm by default on xplat builds
+#define DEFAULT_CONFIG_Wasm               (false)
+#endif
 #define DEFAULT_CONFIG_WasmI64            (false)
 #if ENABLE_FAST_ARRAYBUFFER
     #define DEFAULT_CONFIG_WasmFastArray    (true)
@@ -406,6 +411,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_WasmMathExFilter     (false)
 #define DEFAULT_CONFIG_WasmIgnoreResponse   (false)
 #define DEFAULT_CONFIG_WasmMaxTableSize     (10000000)
+#define DEFAULT_CONFIG_WasmSimd             (false)
 #define DEFAULT_CONFIG_WasmSignExtends      (false)
 #define DEFAULT_CONFIG_BgJitDelayFgBuffer   (0)
 #define DEFAULT_CONFIG_BgJitPendingFuncCap  (31)
@@ -439,6 +445,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ExtendedErrorStackForTestHost (false)
 #define DEFAULT_CONFIG_ForceSplitScope      (false)
 #define DEFAULT_CONFIG_DelayFullJITSmallFunc (0)
+#define DEFAULT_CONFIG_EnableFatalErrorOnOOM (true)
 #define DEFAULT_CONFIG_RedeferralCap         (3)
 
 //Following determines inline thresholds
@@ -515,6 +522,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_GoptCleanupThreshold  (25)
 #define DEFAULT_CONFIG_AsmGoptCleanupThreshold  (500)
 #define DEFAULT_CONFIG_OptimizeForManyInstances (false)
+#define DEFAULT_CONFIG_EnableArrayTypeMutation (false)
 
 #define DEFAULT_CONFIG_DeferParseThreshold             (4 * 1024) // Unit is number of characters
 #define DEFAULT_CONFIG_ProfileBasedDeferParseThreshold (100)      // Unit is number of characters
@@ -532,7 +540,7 @@ PHASE(All)
 #else
     #define DEFAULT_CONFIG_JsBuiltIn             (false)
 #endif
-
+#define DEFAULT_CONFIG_JitRepro                (false)
 #define DEFAULT_CONFIG_LdChakraLib             (false)
 
 // ES6 DEFAULT BEHAVIOR
@@ -604,6 +612,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES7TrailingComma        (true)
 #define DEFAULT_CONFIG_ES7ValuesEntries        (true)
 #define DEFAULT_CONFIG_ESObjectGetOwnPropertyDescriptors (true)
+#define DEFAULT_CONFIG_ESDynamicImport         (false)
 
 #define DEFAULT_CONFIG_ESSharedArrayBuffer     (true)
 
@@ -689,6 +698,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_PerfHintLevel (1)
 #define DEFAULT_CONFIG_OOPJITMissingOpts (true)
 #define DEFAULT_CONFIG_OOPCFGRegistration (true)
+#define DEFAULT_CONFIG_CrashOnOOPJITFailure (false)
 #define DEFAULT_CONFIG_ForceJITCFGCheck (false)
 #define DEFAULT_CONFIG_UseJITTrampoline (true)
 
@@ -886,6 +896,9 @@ FLAGNR(Boolean, WasmFold              , "Enable i32/i64 const folding", DEFAULT_
 FLAGNR(Boolean, WasmIgnoreResponse    , "Ignore the type of the Response object", DEFAULT_CONFIG_WasmIgnoreResponse)
 FLAGNR(Number,  WasmMaxTableSize      , "Maximum size allowed to the WebAssembly.Table", DEFAULT_CONFIG_WasmMaxTableSize)
 FLAGNR(Boolean, WasmSignExtends       , "Use new WebAssembly sign extension operators", DEFAULT_CONFIG_WasmSignExtends)
+#ifdef ENABLE_WASM_SIMD
+FLAGNR(Boolean, WasmSimd              , "Enable SIMD in WebAssembly", DEFAULT_CONFIG_WasmSimd)
+#endif
 
 #ifdef ENABLE_SIMDJS
 #ifndef COMPILE_DISABLE_Simdjs
@@ -1000,6 +1013,7 @@ FLAGR (Boolean, Intl                  , "Intl object support", DEFAULT_CONFIG_In
 FLAGNR(Boolean, IntlBuiltIns          , "Intl built-in function support", DEFAULT_CONFIG_IntlBuiltIns)
 
 FLAGNR(Boolean, JsBuiltIn             , "JS Built-in function support", DEFAULT_CONFIG_JsBuiltIn)
+FLAGNR(Boolean, JitRepro              , "Add Function.invokeJit to execute codegen on an encoded rpc buffer", DEFAULT_CONFIG_JitRepro)
 
 FLAGNR(Boolean, LdChakraLib           , "Access to the Chakra internal library with the __chakraLibrary keyword", DEFAULT_CONFIG_LdChakraLib)
 // ES6 (BLUE+1) features/flags
@@ -1036,6 +1050,11 @@ FLAGPR           (Boolean, ES6, ES7ValuesEntries       , "Enable ES7 Object.valu
 FLAGPR           (Boolean, ES6, ES7TrailingComma       , "Enable ES7 trailing comma in function"                    , DEFAULT_CONFIG_ES7TrailingComma)
 FLAGPR           (Boolean, ES6, ES6IsConcatSpreadable  , "Enable ES6 isConcatSpreadable Symbol"                     , DEFAULT_CONFIG_ES6IsConcatSpreadable)
 FLAGPR           (Boolean, ES6, ES6Math                , "Enable ES6 Math extensions"                               , DEFAULT_CONFIG_ES6Math)
+
+#ifndef COMPILE_DISABLE_ESDynamicImport
+    #define COMPILE_DISABLE_ESDynamicImport 0
+#endif
+FLAGPR_REGOVR_EXP(Boolean, ES6, ESDynamicImport        , "Enable dynamic import"                                    , DEFAULT_CONFIG_ESDynamicImport)
 
 FLAGPR           (Boolean, ES6, ES6Module              , "Enable ES6 Modules"                                       , DEFAULT_CONFIG_ES6Module)
 FLAGPR           (Boolean, ES6, ES6Object              , "Enable ES6 Object extensions"                             , DEFAULT_CONFIG_ES6Object)
@@ -1130,6 +1149,7 @@ FLAGNR(Boolean, ForceJITLoopBody      , "Force jit loop body only", DEFAULT_CONF
 FLAGNR(Boolean, ForceStaticInterpreterThunk, "Force using static interpreter thunk", DEFAULT_CONFIG_ForceStaticInterpreterThunk)
 FLAGNR(Boolean, DumpCommentsFromReferencedFiles, "Allow printing comments of comment-table of the referenced file as well (use with -trace:CommentTable)", DEFAULT_CONFIG_DumpCommentsFromReferencedFiles)
 FLAGNR(Number,  DelayFullJITSmallFunc , "Scale Full JIT threshold for small functions which are going to be inlined soon. To provide fraction scale, the final scale is scale following this option divided by 10", DEFAULT_CONFIG_DelayFullJITSmallFunc)
+FLAGNR(Boolean, EnableFatalErrorOnOOM, "Enabling failfast fatal error on OOM", DEFAULT_CONFIG_EnableFatalErrorOnOOM)
 
 #if defined(_M_ARM32_OR_ARM64)
 FLAGNR(Boolean, ForceLocalsPtr        , "Force use of alternative locals pointer (JIT only)", false)
@@ -1256,24 +1276,18 @@ FLAGR(Number,   MinDeferredFuncTokenCount, "Minimum length in tokens of defer-pa
 #if DBG
 FLAGNR(Number,  SkipFuncCountForBailOnNoProfile,  "Initial Number of functions in a func body to be skipped from forcibly inserting BailOnNoProfile.", DEFAULT_CONFIG_SkipFuncCountForBailOnNoProfile)
 #endif
-FLAGNR(Number, MaxJITFunctionBytecodeByteLength, "The biggest function we'll JIT (bytecode bytelength)", DEFAULT_CONFIG_MaxJITFunctionBytecodeByteLength)
-FLAGNR(Number, MaxJITFunctionBytecodeCount, "The biggest function we'll JIT (bytecode count)", DEFAULT_CONFIG_MaxJITFunctionBytecodeCount)
+FLAGNR(Number,  MaxJITFunctionBytecodeByteLength, "The biggest function we'll JIT (bytecode bytelength)", DEFAULT_CONFIG_MaxJITFunctionBytecodeByteLength)
+FLAGNR(Number,  MaxJITFunctionBytecodeCount, "The biggest function we'll JIT (bytecode count)", DEFAULT_CONFIG_MaxJITFunctionBytecodeCount)
 FLAGNR(Number,  MaxLoopsPerFunction   , "Maximum number of loops in any function in the script", DEFAULT_CONFIG_MaxLoopsPerFunction)
 FLAGNR(Number,  FuncObjectInlineCacheThreshold  , "Maximum number of inline caches a function body may have to allow for inline caches to be allocated on the function object", DEFAULT_CONFIG_FuncObjectInlineCacheThreshold)
 FLAGNR(Boolean, NoDeferParse          , "Disable deferred parsing", false)
 FLAGNR(Boolean, NoLogo                , "No logo, which we don't display anyways", false)
 FLAGNR(Boolean, OOPJITMissingOpts     , "Use optimizations that are missing from OOP JIT", DEFAULT_CONFIG_OOPJITMissingOpts)
+FLAGNR(Boolean, CrashOnOOPJITFailure  , "Crash runtime process if JIT process crashes", DEFAULT_CONFIG_CrashOnOOPJITFailure)
 FLAGNR(Boolean, OOPCFGRegistration    , "Do CFG registration OOP (under OOP JIT)", DEFAULT_CONFIG_OOPCFGRegistration)
 FLAGNR(Boolean, ForceJITCFGCheck      , "Have JIT code always do CFG check even if range check succeeded", DEFAULT_CONFIG_ForceJITCFGCheck)
 FLAGNR(Boolean, UseJITTrampoline      , "Use trampoline for JIT entry points and emit range checks for it", DEFAULT_CONFIG_UseJITTrampoline)
-
-#if defined(_M_ARM64) && !defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-// Disable JIT in ARM64 release build till it is stable. Enable in debug and test build for testing
-FLAGR (Boolean, NoNative              , "Disable native codegen", true)
-#else
 FLAGR (Boolean, NoNative              , "Disable native codegen", false)
-#endif
-
 FLAGNR(Number,  NopFrequency          , "Frequency of NOPs inserted by NOP insertion phase.  A NOP is guaranteed to be inserted within a range of (1<<n) instrs (default=8)", DEFAULT_CONFIG_NopFrequency)
 FLAGNR(Boolean, NoStrictMode          , "Disable strict mode checks on all functions", false)
 FLAGNR(Boolean, NormalizeStats        , "When dumping stats, do some normalization (used with -instrument:linearscan)", false)
@@ -1453,6 +1467,8 @@ FLAGR (Number,  DynamicRegexMruListSize, "Size of the MRU list for dynamic regex
 #endif
 
 FLAGR (Boolean, OptimizeForManyInstances, "Optimize script engine for many instances (low memory footprint per engine, assume low spare CPU cycles) (default: false)", DEFAULT_CONFIG_OptimizeForManyInstances)
+FLAGNR(Boolean, EnableArrayTypeMutation, "Enable force array type mutation on re-entrant region", DEFAULT_CONFIG_EnableArrayTypeMutation)
+FLAGNR(Number,  ArrayMutationTestSeed, "Seed used for the array mutation", 0)
 FLAGNR(Phases,  TestTrace             , "Test trace for the given phase", )
 FLAGNR(Boolean, EnableEvalMapCleanup, "Enable cleaning up the eval map", true)
 #ifdef PROFILE_MEM

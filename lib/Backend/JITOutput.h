@@ -42,7 +42,7 @@ public:
     void RecordNativeCode(const BYTE* sourceBuffer, BYTE* localCodeAddress);
     void RecordInlineeFrameOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount);
 
-#if _M_X64_OR_ARM64
+#if TARGET_64
     void RecordUnwindInfo(BYTE *unwindInfo, size_t size, BYTE * xdataAddr, BYTE* localXdataAddr);
 #elif _M_ARM
     size_t RecordUnwindInfo(size_t offset, const BYTE *unwindInfo, size_t size, BYTE * xdataAddr);
@@ -54,6 +54,7 @@ public:
 private:
     template <typename TEmitBufferAllocation, typename TCodeGenAllocators>
     void RecordNativeCode(const BYTE* sourceBuffer, BYTE* localCodeAddress, TEmitBufferAllocation allocation, TCodeGenAllocators codeGenAllocators);
+    CustomHeap::Allocation * GetAllocation() const;
     union
     {
         EmitBufferAllocation<VirtualAllocWrapper, PreReservedVirtualAllocWrapper> * m_inProcAlloc;

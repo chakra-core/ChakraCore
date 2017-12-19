@@ -36,7 +36,7 @@ SegmentBase<T>::SegmentBase(PageAllocatorBase<T> * allocator, size_t pageCount, 
     leadingGuardPageCount(0),
     secondaryAllocPageCount(allocator->secondaryAllocPageCount),
     secondaryAllocator(nullptr)
-#if defined(_M_X64_OR_ARM64) && defined(RECYCLER_WRITE_BARRIER)
+#if defined(TARGET_64) && defined(RECYCLER_WRITE_BARRIER)
     , isWriteBarrierAllowed(false)
     , isWriteBarrierEnabled(enableWriteBarrier)
 #endif
@@ -62,7 +62,7 @@ SegmentBase<T>::~SegmentBase()
         char* originalAddress = this->address - (leadingGuardPageCount * AutoSystemInfo::PageSize);
         GetAllocator()->GetVirtualAllocator()->Free(originalAddress, GetPageCount() * AutoSystemInfo::PageSize, MEM_RELEASE);
         GetAllocator()->ReportFree(this->segmentPageCount * AutoSystemInfo::PageSize); //Note: We reported the guard pages free when we decommitted them during segment initialization
-#if defined(_M_X64_OR_ARM64) && defined(RECYCLER_WRITE_BARRIER_BYTE)
+#if defined(TARGET_64) && defined(RECYCLER_WRITE_BARRIER_BYTE)
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (CONFIG_FLAG(StrictWriteBarrierCheck) && this->isWriteBarrierEnabled)
         {
@@ -84,7 +84,7 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
     if (!excludeGuardPages)
     {
         addGuardPages = (this->segmentPageCount * AutoSystemInfo::PageSize) > VirtualAllocThreshold;
-#if _M_IX86_OR_ARM32
+#if TARGET_32
         unsigned int randomNumber2 = static_cast<unsigned int>(Math::Rand());
         addGuardPages = addGuardPages && (randomNumber2 % 4 == 1);
 #endif
@@ -160,7 +160,7 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
     }
 
 #ifdef RECYCLER_WRITE_BARRIER
-#if defined(_M_X64_OR_ARM64) && defined(RECYCLER_WRITE_BARRIER_BYTE)
+#if defined(TARGET_64) && defined(RECYCLER_WRITE_BARRIER_BYTE)
     bool registerBarrierResult = true;
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     if (CONFIG_FLAG(StrictWriteBarrierCheck))
@@ -2187,7 +2187,7 @@ void
 PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::AddUsedBytes(size_t bytes)
 {
     usedBytes += bytes;
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
     size_t lastTotalUsedBytes = ::InterlockedExchangeAdd64((volatile LONG64 *)&totalUsedBytes, bytes);
 #else
     DWORD lastTotalUsedBytes = ::InterlockedExchangeAdd(&totalUsedBytes, bytes);
@@ -2221,7 +2221,7 @@ PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::SubUsedBytes(size_t by
 
     usedBytes -= bytes;
 
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
     size_t lastTotalUsedBytes = ::InterlockedExchangeAdd64((volatile LONG64 *)&totalUsedBytes, -(LONG64)bytes);
 #else
     DWORD lastTotalUsedBytes = ::InterlockedExchangeSubtract(&totalUsedBytes, bytes);

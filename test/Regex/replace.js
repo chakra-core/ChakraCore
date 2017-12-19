@@ -229,6 +229,13 @@ replace(/b/, "abc", "$`$&$'");
 replace(/b/, "abc", "1234567$");
 replace(/b/, "abc", "$12345678");
 
+// Ensure that we only accept 2 digits after a $ in the replacement
+// string, as per standards (sec-getsubstitution); this avoids an
+// integer overflow in implementation of 'replace'.  Correct behavior
+// is 10th char of input ('a') followed by '0'; incorrect behavior is
+// 100th char of input ('b').
+replace(new RegExp('([ab])'.repeat(101)), ("a".repeat(50) + "b".repeat(51)), "$100");
+
 echo("");
 
 replace(/b/, "abc", function () { return ""; });

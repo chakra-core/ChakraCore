@@ -73,7 +73,7 @@ _NOINLINE void FailedToBox_OOM_fatal_error(
     ReportFatalException(context, E_UNEXPECTED, Fatal_FailedToBox_OUTOFMEMORY, scenario);
 }
 
-#if defined(RECYCLER_WRITE_BARRIER) && defined(_M_X64_OR_ARM64)
+#if defined(RECYCLER_WRITE_BARRIER) && defined(TARGET_64)
 _NOINLINE void X64WriteBarrier_OOM_fatal_error()
 {
     int scenario = 3;
@@ -137,6 +137,12 @@ _NOINLINE void RpcFailure_fatal_error(HRESULT hr)
 {
     int scenario = 8;
     ReportFatalException(NULL, hr, Fatal_RpcFailure, scenario);
+}
+
+_NOINLINE void OutOfMemory_fatal_error()
+{
+    int scenario = 9;
+    ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
 }
 
 #pragma optimize("",on)

@@ -460,7 +460,7 @@ ReleaseHeapMemory()
 
 template _ALWAYSINLINE char *ArenaAllocatorBase<InPlaceFreeListPolicy, 0, 0, 0>::AllocInternal(size_t requestedBytes);
 
-#if !(defined(__clang__) && defined(_M_IX86_OR_ARM32))
+#if !(defined(__clang__) && defined(TARGET_32))
 // otherwise duplicate instantination of AllocInternal Error
 template _ALWAYSINLINE char *ArenaAllocatorBase<InPlaceFreeListPolicy, 3, 0, 0>::AllocInternal(size_t requestedBytes);
 #endif
@@ -588,9 +588,10 @@ Free(void * buffer, size_t byteSize)
 
         void **policy = &this->freeList;
 #if DBG
+        void *delayFreeList;
         if (needsDelayFreeList)
         {
-            void *delayFreeList = reinterpret_cast<FreeObject **>(this->freeList) + (MaxSmallObjectSize >> ObjectAlignmentBitShift);
+            delayFreeList = reinterpret_cast<FreeObject **>(this->freeList) + (MaxSmallObjectSize >> ObjectAlignmentBitShift);
             policy = &delayFreeList;
         }
 #endif

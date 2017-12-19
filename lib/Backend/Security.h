@@ -8,12 +8,13 @@ class Security
 {
 private:
     Func *func;
+    uint currentConstSize;
     IR::RegOpnd * basePlusCookieOpnd;
     IR::IntConstOpnd * cookieOpnd;
     IR::RegOpnd * baseOpnd;
 
 public:
-    Security(Func * func) : func(func), basePlusCookieOpnd(nullptr), cookieOpnd(nullptr), baseOpnd(nullptr) { }
+    Security(Func * func) : func(func), currentConstSize(0), basePlusCookieOpnd(nullptr), cookieOpnd(nullptr), baseOpnd(nullptr) { }
 
     void            EncodeLargeConstants();
     void            InsertNOPs();

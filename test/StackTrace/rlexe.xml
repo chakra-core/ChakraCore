@@ -135,4 +135,10 @@
       <compile-flags>-ExtendedErrorStackForTestHost -loopinterpretcount:1</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>dotChainNameHint.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>

@@ -151,6 +151,7 @@ public:
     bool            IsSimd128B8()  const { return this->GetType() == TySimd128B8;  }
     bool            IsSimd128B16() const { return this->GetType() == TySimd128B16; }
     bool            IsSimd128D2()  const { return this->GetType() == TySimd128D2;  }
+    bool            IsSimd128I2()  const { return this->GetType() == TySimd128I2; }
 
     StackSym *      GetFloat64EquivSym(Func *func);
     bool            IsFloat64() const { return this->GetType() == TyFloat64; }
@@ -231,7 +232,7 @@ public:
     uint8           m_isArgCaptured: 1;       // True if there is a ByteCodeArgOutCapture for this symbol
     uint8           m_nonEscapingArgObjAlias : 1;
     uint8           m_isCatchObjectSym : 1;   // a catch object sym (used while jitting loop bodies)
-    uint            m_isClosureSym : 1;
+    uint8           m_isClosureSym : 1;
     IRType          m_type;
     Js::BuiltinFunction m_builtInIndex;
 

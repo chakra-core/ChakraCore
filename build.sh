@@ -47,11 +47,12 @@ PRINT_USAGE() {
     echo "     --icu=PATH        Path to ICU include folder (see example below)"
     echo " -j[=N], --jobs[=N]    Multicore build, allow N jobs at once."
     echo " -n, --ninja           Build with ninja instead of make."
-    echo "     --no-icu          Compile without unicode/icu support."
+    echo "     --no-icu          Compile without unicode/icu/intl support."
     echo "     --no-jit          Disable JIT"
     echo "     --libs-only       Do not build CH and GCStress"
     echo "     --lto             Enables LLVM Full LTO"
     echo "     --lto-thin        Enables LLVM Thin LTO - xcode 8+ or clang 3.9+"
+    echo "     --lttng           Enables LTTng support for ETW events"
     echo "     --static          Build as static library. Default: shared library"
     echo "     --sanitize=CHECKS Build with clang -fsanitize checks,"
     echo "                       e.g. undefined,signed-integer-overflow."
@@ -60,7 +61,7 @@ PRINT_USAGE() {
     echo "     --target-path[=S] Output path for compiled binaries. Default: out/"
     echo "     --trace           Enables experimental built-in trace."
     echo "     --xcode           Generate XCode project."
-    echo "     --with-intl       Include the Intl object (requires ICU)."
+    echo "     --without-intl    --icu arg also enables Intl by default. Disable it."
     echo "     --without=FEATURE,FEATURE,..."
     echo "                       Disable FEATUREs from JSRT experimental features."
     echo "     --valgrind        Enable Valgrind support"
@@ -104,6 +105,7 @@ OS_LINUX=0
 OS_APT_GET=0
 OS_UNIX=0
 LTO=""
+LTTNG=""
 TARGET_OS=""
 ENABLE_CC_XPLAT_TRACE=""
 WB_CHECK=
@@ -230,6 +232,11 @@ while [[ $# -gt 0 ]]; do
         HAS_LTO=1
         ;;
 
+    --lttng)
+        LTTNG="-DENABLE_JS_LTTNG_SH=1"
+        HAS_LTTNG=1
+        ;;
+    
     -n | --ninja)
         CMAKE_GEN="-G Ninja"
         MAKE=ninja
@@ -243,8 +250,8 @@ while [[ $# -gt 0 ]]; do
         NO_JIT="-DNO_JIT_SH=1"
         ;;
 
-    --with-intl)
-        INTL_ICU="-DINTL_ICU_SH=1"
+    --without-intl)
+        INTL_ICU="-DNOINTL_ICU_SH=1"
         ;;
 
     --xcode)
@@ -516,6 +523,15 @@ else
         exit 1
     fi
 fi
+export TARGET_PATH
+
+if [[ $HAS_LTTNG == 1 ]]; then
+    CHAKRACORE_ROOT=`dirname $0`
+    python $CHAKRACORE_ROOT/tools/lttng.py --man $CHAKRACORE_ROOT/manifests/Microsoft-Scripting-Chakra-Instrumentation.man --intermediate $TARGET_PATH/intermediate
+    mkdir -p $TARGET_PATH/lttng
+    (diff -q $TARGET_PATH/intermediate/lttng/jscriptEtw.h $TARGET_PATH/lttng/jscriptEtw.h && echo "jscriptEtw.h up to date; skipping") || cp $TARGET_PATH/intermediate/lttng/* $TARGET_PATH/lttng/
+fi
+
 
 BUILD_DIRECTORY="${TARGET_PATH}/${BUILD_TYPE:0}"
 echo "Build path: ${BUILD_DIRECTORY}"
@@ -597,12 +613,13 @@ elif [[ $ARCH =~ "amd64" ]]; then
     ARCH="-DCC_TARGETS_AMD64_SH=1"
     echo "Compile Target : amd64"
 else
+    ARCH="-DCC_USES_SYSTEM_ARCH_SH=1"
     echo "Compile Target : System Default"
 fi
 
 echo Generating $BUILD_TYPE makefiles
 echo $EXTRA_DEFINES
-cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $LTO $STATIC_LIBRARY $ARCH $TARGET_OS \
+cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $LTO $LTTNG $STATIC_LIBRARY $ARCH $TARGET_OS \
     $ENABLE_CC_XPLAT_TRACE $EXTRA_DEFINES -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT $INTL_ICU \
     $WITHOUT_FEATURES $WB_FLAG $WB_ARGS $CMAKE_EXPORT_COMPILE_COMMANDS $LIBS_ONLY_BUILD\
     $VALGRIND $BUILD_RELATIVE_DIRECTORY

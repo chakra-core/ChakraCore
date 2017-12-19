@@ -3123,6 +3123,11 @@ namespace Js
         RegSlot GetOutParamMaxDepth();
         void SetOutParamMaxDepth(RegSlot cOutParamsDepth);
         void CheckAndSetOutParamMaxDepth(RegSlot cOutParamsDepth);
+#if _M_X64
+        // 1 Var to push current m_outparam, 1 Var for "this"
+        // 6 Vars for register optimization in InterpreterStackFrame::OP_CallAsmInternalCommon
+        static constexpr RegSlot MinAsmJsOutParams() { return 1 + 1 + 6; }
+#endif
 
         RegSlot GetYieldRegister();
 
@@ -3259,7 +3264,7 @@ namespace Js
         UnifiedRegex::RegexPattern *GetLiteralRegex(const uint index);
         UnifiedRegex::RegexPattern *GetLiteralRegexWithLock(const uint index);
 #ifdef ASMJS_PLAT
-        AsmJsFunctionInfo* GetAsmJsFunctionInfo()const { return static_cast<AsmJsFunctionInfo*>(this->GetAuxPtr(AuxPointerType::AsmJsFunctionInfo)); }
+        AsmJsFunctionInfo* GetAsmJsFunctionInfo() const { return static_cast<AsmJsFunctionInfo*>(this->GetAuxPtr(AuxPointerType::AsmJsFunctionInfo)); }
         AsmJsFunctionInfo* GetAsmJsFunctionInfoWithLock()const { return static_cast<AsmJsFunctionInfo*>(this->GetAuxPtrWithLock(AuxPointerType::AsmJsFunctionInfo)); }
         AsmJsFunctionInfo* AllocateAsmJsFunctionInfo();
         AsmJsModuleInfo* GetAsmJsModuleInfo()const { return static_cast<AsmJsModuleInfo*>(this->GetAuxPtr(AuxPointerType::AsmJsModuleInfo)); }
@@ -3269,7 +3274,7 @@ namespace Js
             SetAuxPtr(AuxPointerType::AsmJsFunctionInfo, nullptr);
             SetAuxPtr(AuxPointerType::AsmJsModuleInfo, nullptr);
         }
-        bool IsAsmJSModule()const{ return this->GetAsmJsFunctionInfo() != nullptr; }
+        bool IsAsmJSModule() const { return m_isAsmjsMode && !m_isAsmJsFunction; }
         AsmJsModuleInfo* AllocateAsmJsModuleInfo();
 #endif
         void SetLiteralRegex(const uint index, UnifiedRegex::RegexPattern *const pattern);
@@ -3577,20 +3582,17 @@ namespace Js
         {
         }
 
-        bool IsFunctionScopeSlotArray()
-        {
-            return FunctionInfo::Is(slotArray[ScopeMetadataSlotIndex]);
-        }
+        bool IsDebuggerScopeSlotArray();
 
         FunctionInfo* GetFunctionInfo()
         {
-            Assert(IsFunctionScopeSlotArray());
+            Assert(!IsDebuggerScopeSlotArray());
             return (FunctionInfo*)PointerValue(slotArray[ScopeMetadataSlotIndex]);
         }
 
         DebuggerScope* GetDebuggerScope()
         {
-            Assert(!IsFunctionScopeSlotArray());
+            Assert(IsDebuggerScopeSlotArray());
             return (DebuggerScope*)PointerValue(slotArray[ScopeMetadataSlotIndex]);
         }
 
@@ -3698,7 +3700,7 @@ namespace Js
         Field(bool) strictMode;
         Field(uint16) length;
 
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
         Field(uint32) unused;
 #endif
         Field(void*) scopes[];
@@ -3916,6 +3918,9 @@ namespace Js
     // Used to track with, catch, and block scopes for the debugger to determine context.
     class DebuggerScope
     {
+    protected:
+        DEFINE_VTABLE_CTOR_NOBASE(DebuggerScope);
+
     public:
         typedef JsUtil::List<DebuggerScopeProperty> DebuggerScopePropertyList;
 
@@ -3931,6 +3936,9 @@ namespace Js
             this->range.end = -1;
         }
 
+        virtual ~DebuggerScope() {}
+
+        static bool Is(void* ptr);
         DebuggerScope * GetSiblingScope(RegSlot location, FunctionBody *functionBody);
         void AddProperty(RegSlot location, Js::PropertyId propertyId, DebuggerScopePropertyFlags flags);
         bool GetPropertyIndex(Js::PropertyId propertyId, int& i);
@@ -3992,10 +4000,10 @@ namespace Js
         void EnsurePropertyListIsAllocated();
 
     private:
+        FieldNoBarrier(Recycler*) recycler;
         Field(DebuggerScope*) parentScope;
         Field(regex::Interval) range; // The start and end byte code writer offsets used when comparing where the debugger is currently stopped at (breakpoint location).
         Field(RegSlot) scopeLocation;
-        FieldNoBarrier(Recycler*) recycler;
     };
 
     class ScopeObjectChain

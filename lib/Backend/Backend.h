@@ -140,6 +140,7 @@ enum IRDumpFlags
 #include "SymTable.h"
 #include "IR.h"
 #include "Opnd.h"
+#include "IntConstMath.h"
 #include "IntOverflowDoesNotMatterRange.h"
 #include "IntConstantBounds.h"
 #include "ValueRelativeOffset.h"

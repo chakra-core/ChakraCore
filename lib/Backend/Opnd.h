@@ -244,6 +244,7 @@ public:
     bool                IsSimd128B8()  const { return this->m_type == TySimd128B8;  }
     bool                IsSimd128B16() const { return this->m_type == TySimd128B16; }
     bool                IsSimd128D2()  const { return this->m_type == TySimd128D2;  }
+    bool                IsSimd128I2()  const { return this->m_type == TySimd128I2; }
     bool                IsVar() const { return this->m_type == TyVar; }
     bool                IsTaggedInt() const;
     bool                IsTaggedValue() const;
@@ -254,7 +255,7 @@ public:
     void                SetIsDead(const bool isDead = true)   { this->m_isDead = isDead; }
     bool                GetIsDead()   { return this->m_isDead; }
     int64               GetImmediateValue(Func * func);
-#if TARGET_32 && !defined(_M_IX86)
+#if defined(_M_ARM)
     // Helper for 32bits systems without int64 const operand support
     int32               GetImmediateValueAsInt32(Func * func);
 #endif

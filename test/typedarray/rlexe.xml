@@ -2,6 +2,13 @@
 <regress-exe>
   <test>
     <default>
+      <files>likely.js</files>
+      <compile-flags>-bgjit- -lic:1</compile-flags>
+      <tags>typedarray</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>arraybuffer.js</files>
       <baseline>arrayBuffer.baseline</baseline>
       <tags>typedarray</tags>
@@ -113,6 +120,12 @@
     </default>
     <condition order="1" type="include">
       <target>amd64</target>
+      <override>
+        <baseline>nan.x64.baseline</baseline>
+      </override>
+    </condition>
+    <condition order="2" type="include">
+      <target>arm64</target>
       <override>
         <baseline>nan.x64.baseline</baseline>
       </override>
@@ -336,7 +349,8 @@ Below test fails with difference in space. Investigate the cause and re-enable t
   <test>
     <default>
       <files>reentry1.js</files>
-      <timeout>300</timeout>
+      <timeout>480</timeout> <!-- ARM64 takes ~8 min -->
+      <tags>xplatslow,Slow</tags>
     </default>
   </test>
   <test>

@@ -6,6 +6,7 @@
 #include "Core/EtwTraceCore.h"
 
 #ifdef ENABLE_JS_ETW
+#ifndef ENABLE_JS_LTTNG
 extern "C" {
     ETW_INLINE
         VOID EtwCallback(
@@ -64,4 +65,5 @@ void EtwTraceCore::UnRegister()
     }
 }
 
-#endif
+#endif // !ENABLE_JS_LTTNG
+#endif // ENABLE_JS_ETW

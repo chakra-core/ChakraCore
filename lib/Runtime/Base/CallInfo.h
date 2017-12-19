@@ -36,6 +36,18 @@ namespace Js
             , unused(0)
 #endif
         {
+            // Keeping this version to avoid the assert
+        }
+
+        // The bool is used to avoid the signature confusion between the ArgSlot and uint version of the constructor
+        explicit CallInfo(uint count, bool unusedBool)
+            : Flags(CallFlags_None)
+            , Count(count)
+#ifdef TARGET_64
+            , unused(0)
+#endif
+        {
+            AssertOrFailFastMsg(count < CallInfo::kMaxCountArgs, "Argument list too large");
         }
 
         CallInfo(CallFlags flags, ArgSlot count)
@@ -45,6 +57,18 @@ namespace Js
             , unused(0)
 #endif
         {
+            // Keeping this version to avoid the assert
+        }
+
+        // The bool is used to avoid the signature confusion between the ArgSlot and uint version of the constructor
+        CallInfo(CallFlags flags, uint count, bool unusedBool)
+            : Flags(flags)
+            , Count(count)
+#ifdef TARGET_64
+            , unused(0)
+#endif
+        {
+            AssertOrFailFastMsg(count < CallInfo::kMaxCountArgs, "Argument list too large");
         }
 
         CallInfo(VirtualTableInfoCtorEnum v)
@@ -54,6 +78,11 @@ namespace Js
         ArgSlot GetArgCountWithExtraArgs() const
         {
             return CallInfo::GetArgCountWithExtraArgs(this->Flags, this->Count);
+        }
+
+        uint GetLargeArgCountWithExtraArgs() const
+        {
+            return CallInfo::GetLargeArgCountWithExtraArgs(this->Flags, this->Count);
         }
 
         bool HasExtraArg() const
@@ -66,35 +95,15 @@ namespace Js
             return CallInfo::HasNewTarget(this->Flags);
         }
 
+        static ArgSlot GetArgCountWithExtraArgs(CallFlags flags, uint count);
 
-        // For Eval calls the FrameDisplay is passed in as an extra argument.
-        // This is not counted in Info.Count. Use this API to get the updated count.
-        static ArgSlot GetArgCountWithExtraArgs(CallFlags flags, ArgSlot count)
-        {
-            if (flags & CallFlags_ExtraArg)
-            {
-                ArgSlotMath::Inc(count);
-            }
-            return count;
-        }
+        static uint GetLargeArgCountWithExtraArgs(CallFlags flags, uint count);
 
-        static ArgSlot GetArgCountWithoutExtraArgs(CallFlags flags, ArgSlot count)
-        {
-            ArgSlot newCount = count;
-            if (flags & Js::CallFlags_ExtraArg)
-            {
-                if (count == 0)
-                {
-                    ::Math::DefaultOverflowPolicy();
-                }
-                newCount = count - 1;
-            }
-            return newCount;
-        }
+        static ArgSlot GetArgCountWithoutExtraArgs(CallFlags flags, ArgSlot count);
 
         static bool HasNewTarget(CallFlags flags)
         {
-            return flags & CallFlags_NewTarget;
+            return (flags & CallFlags_NewTarget) == CallFlags_NewTarget;
         }
 
         // New target value is passed as an extra argument which is nto included in the Count

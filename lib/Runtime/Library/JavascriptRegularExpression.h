@@ -6,11 +6,6 @@
 
 namespace Js
 {
-    struct RegExpTestCache
-    {
-        Field(bool) result;
-        Field(RecyclerWeakReference<JavascriptString> *) input;
-    };
     class JavascriptRegExp : public DynamicObject
     {
         friend class JavascriptRegularExpressionType;
@@ -31,14 +26,12 @@ namespace Js
         // RegExp object.
         Field(UnifiedRegex::RegexPattern*) splitPattern;
         Field(Var) lastIndexVar;  // null => must build lastIndexVar from current lastIndex
-        Field(RegExpTestCache*) testCache;
 
     public:
         // Three states for lastIndex value:
         //  1. lastIndexVar has been updated, we must calculate lastIndex from it when we next need it
         static const CharCount NotCachedValue = (CharCount)-2;
 
-        static const uint TestCacheSize = 8;
     private:
         //  2. ToNumber(lastIndexVar) yields +inf or -inf or an integer not in range [0, MaxCharCount]
         static const CharCount InvalidValue = CharCountFlag;
@@ -140,14 +133,6 @@ namespace Js
         static Var OP_NewRegEx(Var aCompiledRegex, ScriptContext* scriptContext);
 
         JavascriptString *ToString(bool sourceOnly = false);
-
-        Field(RegExpTestCache*) EnsureTestCache();
-        void ClearTestCache();
-        static uint GetTestCacheIndex(JavascriptString* str);
-
-#if ENABLE_REGEX_CONFIG_OPTIONS
-        static void TraceTestCache(bool cacheHit, JavascriptString* input, JavascriptString* cachedValue, bool disabled);
-#endif
 
         class EntryInfo
         {

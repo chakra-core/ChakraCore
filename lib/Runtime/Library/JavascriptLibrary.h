@@ -191,7 +191,9 @@ namespace Js
         friend class ExternalLibraryBase;
         friend class ActiveScriptExternalLibrary;
         friend class IntlEngineInterfaceExtensionObject;
+#ifdef ENABLE_JS_BUILTINS
         friend class JsBuiltInEngineInterfaceExtensionObject;
+#endif
         friend class ChakraHostScriptContext;
 #ifdef ENABLE_PROJECTION
         friend class ProjectionExternalLibrary;
@@ -305,6 +307,7 @@ namespace Js
         Field(DynamicTypeHandler *) functionTypeHandler;
         Field(DynamicTypeHandler *) functionWithPrototypeTypeHandler;
         Field(DynamicType *) externalFunctionWithDeferredPrototypeType;
+        Field(DynamicType *) externalFunctionWithLengthAndDeferredPrototypeType;
         Field(DynamicType *) wrappedFunctionWithDeferredPrototypeType;
         Field(DynamicType *) stdCallFunctionWithDeferredPrototypeType;
         Field(DynamicType *) idMappedFunctionWithPrototypeType;
@@ -403,6 +406,7 @@ namespace Js
 #endif
 
         Field(JavascriptFunction*) evalFunctionObject;
+        Field(JavascriptFunction*) arrayPrototypeValuesFunction;
         Field(JavascriptFunction*) parseIntFunctionObject;
         Field(JavascriptFunction*) parseFloatFunctionObject;
         Field(JavascriptFunction*) arrayPrototypeToStringFunction;
@@ -416,7 +420,6 @@ namespace Js
         Field(JavascriptFunction*) objectToStringFunction;
 
 #ifdef ENABLE_JS_BUILTINS
-        Field(JavascriptFunction*) arrayPrototypeDefaultValuesFunction;
         Field(JavascriptFunction*) isArrayFunction;
 #endif
 
@@ -1036,6 +1039,7 @@ namespace Js
         DynamicType * CreateDeferredPrototypeAsyncFunctionType(JavascriptMethod entrypoint, bool isAnonymousFunction, bool isShared = false);
 
         static DynamicTypeHandler * GetDeferredPrototypeFunctionTypeHandler(ScriptContext* scriptContext);
+        static DynamicTypeHandler * GetDeferredPrototypeFunctionWithLengthTypeHandler(ScriptContext* scriptContext);
         static DynamicTypeHandler * GetDeferredAnonymousPrototypeFunctionTypeHandler();
         static DynamicTypeHandler * GetDeferredAnonymousPrototypeGeneratorFunctionTypeHandler();
         static DynamicTypeHandler * GetDeferredAnonymousPrototypeAsyncFunctionTypeHandler();
@@ -1043,7 +1047,7 @@ namespace Js
         DynamicTypeHandler * GetDeferredFunctionTypeHandler();
         DynamicTypeHandler * ScriptFunctionTypeHandler(bool noPrototypeProperty, bool isAnonymousFunction);
         DynamicTypeHandler * GetDeferredAnonymousFunctionTypeHandler();
-        template<bool isNameAvailable, bool isPrototypeAvailable = true>
+        template<bool isNameAvailable, bool isPrototypeAvailable = true, bool isLengthAvailable = false>
         static DynamicTypeHandler * GetDeferredFunctionTypeHandlerBase();
         template<bool isNameAvailable, bool isPrototypeAvailable = true>
         static DynamicTypeHandler * GetDeferredGeneratorFunctionTypeHandlerBase();
@@ -1051,7 +1055,7 @@ namespace Js
         static DynamicTypeHandler * GetDeferredAsyncFunctionTypeHandlerBase();
 
         DynamicType * CreateDeferredPrototypeFunctionType(JavascriptMethod entrypoint);
-        DynamicType * CreateDeferredPrototypeFunctionTypeNoProfileThunk(JavascriptMethod entrypoint, bool isShared = false);
+        DynamicType * CreateDeferredPrototypeFunctionTypeNoProfileThunk(JavascriptMethod entrypoint, bool isShared = false, bool isLengthAvailable = false);
         DynamicType * CreateFunctionType(JavascriptMethod entrypoint, RecyclableObject* prototype = nullptr);
         DynamicType * CreateFunctionWithLengthType(FunctionInfo * functionInfo);
         DynamicType * CreateFunctionWithLengthAndNameType(FunctionInfo * functionInfo);
@@ -1074,8 +1078,8 @@ namespace Js
         JavascriptNumber* CreateNumber(double value, RecyclerJavascriptNumberAllocator * numberAllocator);
         JavascriptGeneratorFunction* CreateGeneratorFunction(JavascriptMethod entryPoint, GeneratorVirtualScriptFunction* scriptFunction);
         JavascriptAsyncFunction* CreateAsyncFunction(JavascriptMethod entryPoint, GeneratorVirtualScriptFunction* scriptFunction);
-        JavascriptExternalFunction* CreateExternalFunction(ExternalMethod entryPointer, PropertyId nameId, Var signature, JavascriptTypeId prototypeTypeId, UINT64 flags);
-        JavascriptExternalFunction* CreateExternalFunction(ExternalMethod entryPointer, Var nameId, Var signature, JavascriptTypeId prototypeTypeId, UINT64 flags);
+        JavascriptExternalFunction* CreateExternalFunction(ExternalMethod entryPointer, PropertyId nameId, Var signature, UINT64 flags, bool isLengthAvailable = false);
+        JavascriptExternalFunction* CreateExternalFunction(ExternalMethod entryPointer, Var nameId, Var signature, UINT64 flags, bool isLengthAvailable = false);
         JavascriptExternalFunction* CreateStdCallExternalFunction(StdCallJavascriptMethod entryPointer, PropertyId nameId, void *callbackState);
         JavascriptExternalFunction* CreateStdCallExternalFunction(StdCallJavascriptMethod entryPointer, Var name, void *callbackState);
         JavascriptPromiseAsyncSpawnExecutorFunction* CreatePromiseAsyncSpawnExecutorFunction(JavascriptMethod entryPoint, JavascriptGenerator* generator, Var target);
@@ -1362,7 +1366,7 @@ namespace Js
         static bool __cdecl InitializeAsyncFunction(DynamicObject *function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
         RuntimeFunction* CreateBuiltinConstructor(FunctionInfo * functionInfo, DynamicTypeHandler * typeHandler, DynamicObject* prototype = nullptr);
-        void JavascriptLibrary::DefaultCreateFunction(ParseableFunctionInfo * functionInfo, int length, DynamicObject * prototype, PropertyId nameId);
+        void DefaultCreateFunction(ParseableFunctionInfo * functionInfo, int length, DynamicObject * prototype, PropertyId nameId);
         RuntimeFunction* DefaultCreateFunction(FunctionInfo * functionInfo, int length, DynamicObject * prototype, DynamicType * functionType, PropertyId nameId);
         RuntimeFunction* DefaultCreateFunction(FunctionInfo * functionInfo, int length, DynamicObject * prototype, DynamicType * functionType, Var nameId);
         JavascriptFunction* AddFunction(DynamicObject* object, PropertyId propertyId, RuntimeFunction* function);
@@ -1372,8 +1376,6 @@ namespace Js
 
 
         static bool __cdecl InitializeGeneratorFunction(DynamicObject* function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        template<bool addPrototype>
-        static bool __cdecl InitializeFunction(DynamicObject* function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
         static size_t const LibraryFunctionArgC[BuiltinFunction::Count + 1];
         static int const LibraryFunctionFlags[BuiltinFunction::Count + 1];   // returns enum BuiltInFlags.
@@ -1382,6 +1384,8 @@ namespace Js
 #endif
 
     public:
+        template<bool addPrototype>
+        static bool __cdecl InitializeFunction(DynamicObject* function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         virtual void Finalize(bool isShutdown) override;
 
 #if DBG

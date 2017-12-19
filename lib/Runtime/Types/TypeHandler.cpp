@@ -572,15 +572,15 @@ namespace Js
         if (possibleSideEffects)
         {
             ScriptContext* scriptContext = instance->GetScriptContext();
-            if (BuiltInPropertyRecords::valueOf.Equals(propertyName))
+            if (BuiltInPropertyRecords::valueOf.Equals(propertyName.GetBuffer(), propertyName.GetLength()))
             {
                 scriptContext->optimizationOverrides.SetSideEffects((SideEffects)(SideEffects_ValueOf & possibleSideEffects));
             }
-            else if (BuiltInPropertyRecords::toString.Equals(propertyName))
+            else if (BuiltInPropertyRecords::toString.Equals(propertyName.GetBuffer(), propertyName.GetLength()))
             {
                 scriptContext->optimizationOverrides.SetSideEffects((SideEffects)(SideEffects_ToString & possibleSideEffects));
             }
-            else if (BuiltInPropertyRecords::Math.Equals(propertyName))
+            else if (BuiltInPropertyRecords::Math.Equals(propertyName.GetBuffer(), propertyName.GetLength()))
             {
                 if (instance == scriptContext->GetLibrary()->GetGlobalObject())
                 {

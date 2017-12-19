@@ -177,11 +177,16 @@ goto :main
   if /i "%1" == "-binaryRoot"       set _binaryRoot=%~f2&                                       goto :ArgOkShift2
   if /i "%1" == "-variants"         set _Variants=%~2&                                          goto :ArgOkShift2
   if /i "%1" == "-cleanupall"       set _CleanUpAll=1&                                          goto :ArgOk
+  if /i "%1" == "-noprogramoutput"  set _NoProgramOutput=-noprogramoutput&                      goto :ArgOk
+  if /i "%1" == "-onlyassertoutput"  set _OnlyAssertOutput=-onlyassertoutput&                   goto :ArgOk
 
   ::Extra ch.exe command line flags
   if /i "%1" == "-ExtraHostFlags"   set _ExtraHostFlags=%~2&                                    goto :ArgOkShift2
   if /i "%1" == "-DumpOnCrash"      set _DumpOnCrash=1&                                         goto :ArgOk
   if /i "%1" == "-CrashOnException" set _CrashOnException=1&                                    goto :ArgOk
+
+  ::Timeout flag
+  if /i "%1" == "-timeout"          set _TestTimeout=%~2&                                       goto : ArgOkShift2
 
   if /i "%1" == "-extraVariants" (
     :: Extra variants are specified by the user but not run by default.
@@ -272,6 +277,8 @@ goto :main
   set _ExtraHostFlags=
   set _DumpOnCrash=
   set _CrashOnException=
+  set _NoProgramOutput=
+  set _OnlyAssertOutput=
 
   goto :eof
 
@@ -449,6 +456,9 @@ goto :main
     set EXTRA_RL_FLAGS=-nottags:exclude_bytecodelayout -nottags:exclude_forceserialized
     set _exclude_serialized=-nottags:exclude_serialized
   )
+  if not "%_TestTimeout%" == "" (
+    set EXTRA_RL_FLAGS=%EXTRA_RL_FLAGS% -timeout:%_TestTimeout%
+  )
 
   echo.
   echo ############# Starting %_TESTCONFIG% variant #############
@@ -476,6 +486,8 @@ goto :main
   set _rlArgs=%_rlArgs% %_exclude_nodeferparse%
   set _rlArgs=%_rlArgs% %_exclude_forceundodefer%
   set _rlArgs=%_rlArgs% %_ExcludeApolloTests%
+  set _rlArgs=%_rlArgs% %_NoProgramOutput%
+  set _rlArgs=%_rlArgs% %_OnlyAssertOutput%
   set _rlArgs=%_rlArgs% %_quiet%
   set _rlArgs=%_rlArgs% -exe
   set _rlArgs=%_rlArgs% %EXTRA_RL_FLAGS%

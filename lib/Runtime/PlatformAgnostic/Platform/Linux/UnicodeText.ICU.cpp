@@ -26,10 +26,6 @@ namespace PlatformAgnostic
 {
     namespace UnicodeText
     {
-#if DBG
-        static UErrorCode g_lastErrorCode = U_ZERO_ERROR;
-#endif
-
         static_assert(sizeof(char16) == sizeof(UChar),
             "This implementation depends on ICU char size matching char16's size");
 
@@ -119,10 +115,6 @@ namespace PlatformAgnostic
 
         static ApiError TranslateUErrorCode(UErrorCode icuError)
         {
-#if DBG
-            g_lastErrorCode = icuError;
-#endif
-
             switch (icuError)
             {
                 case U_BUFFER_OVERFLOW_ERROR:
@@ -263,8 +255,7 @@ namespace PlatformAgnostic
             // Return insufficient buffer in that case
             return resultStringLength;
         }
-#else
-
+#else // HAS_REAL_ICU
         bool IsWhitespace(codepoint_t ch)
         {
             if (ch > 127)
@@ -283,25 +274,41 @@ namespace PlatformAgnostic
             return true;
         }
 
-#define EMPTY_COPY \
-    const int len = (destLength <= sourceLength) ? destLength - 1 : sourceLength; \
-    memcpy(destString, sourceString, len * sizeof(char16)); \
-    destString[len] = char16(0); \
-    *pErrorOut = NoError; \
-    return len;
+#define minm(a,b) ((a < b) ? a : b)
 
         int32 NormalizeString(NormalizationForm normalizationForm, const char16* sourceString, uint32 sourceLength, char16* destString, int32 destLength, ApiError* pErrorOut)
         {
-            // TODO: implement this
-            EMPTY_COPY
+            *pErrorOut = ApiError::NoError;
+            if (destString == nullptr)
+            {
+                return sourceLength;
+            }
+
+            int32 len = (int32) minm(minm(destLength, sourceLength), INT_MAX);
+            memcpy(destString, sourceString, len * sizeof(char16));
+
+            return len;
         }
 
+typedef WCHAR (*ToUPorLOW)(WCHAR);
         int32 ChangeStringLinguisticCase(CaseFlags caseFlags, const char16* sourceString, uint32 sourceLength, char16* destString, uint32 destLength, ApiError* pErrorOut)
         {
-            // TODO: implement this
-            EMPTY_COPY
+            *pErrorOut = ApiError::NoError;
+            if (destString == nullptr)
+            {
+                return sourceLength;
+            }
+
+            int32 len = (int32) minm(minm(destLength, sourceLength), INT_MAX);
+            ToUPorLOW fnc = caseFlags == CaseFlagsLower ? PAL_towlower : PAL_towupper;
+            for (int32 i = 0; i < len; i++)
+            {
+                destString[i] = fnc(sourceString[i]);
+            }
+
+            return len;
         }
-#endif
+#endif // HAS_REAL_ICU
 
         bool IsIdStart(codepoint_t ch)
         {
@@ -378,7 +385,7 @@ namespace PlatformAgnostic
                 }
             }
             return bufferLength;
-#else
+#else // HAS_REAL_ICU
             // Assert pointers
             Assert(stringToChange != nullptr);
             ApiError error = NoError;
@@ -394,7 +401,7 @@ namespace PlatformAgnostic
             Assert(error == ApiError::NoError);
             Assert(ret > 0);
             return (uint32) ret;
-#endif
+#endif // HAS_REAL_ICU
         }
 
         int LogicalStringCompare(const char16* string1, const char16* string2)
@@ -439,8 +446,34 @@ namespace PlatformAgnostic
             {
                 return UnicodeGeneralCategoryClass::CategoryClassSpaceSeparator;
             }
-            // todo-xplat: implement the others ?
-#else
+
+            if (ispunct((int)ch))
+            {
+                return UnicodeGeneralCategoryClass::CategoryClassConnectorPunctuation;
+            }
+
+            // for the rest of the ``combining chars``, return CategoryClassSpaceSeparator
+            // consider this approach as a fallback mechnanism.
+            // since, this function returns CategoryClassLetter for everything else.
+            if ((ch >= 836 && ch <= 846) || ch == 810) // U+32A || U+346 <= ch <= U+34E
+            {
+                return UnicodeGeneralCategoryClass::CategoryClassSpaceSeparator;
+            }
+
+            if (ch >= 768 && ch <= 879) // U+300 <= ch <= U+36F (version 1.0)
+            {
+                return UnicodeGeneralCategoryClass::CategoryClassSpaceSeparator;
+            }
+
+            if (ch >= 6832 && ch <= 6911) // U+1AB0 <= ch <= U+1AFF (version 7.0)
+            {
+                return UnicodeGeneralCategoryClass::CategoryClassSpaceSeparator;
+            }
+
+            // default to letter since we don't identify unicode letters
+            // xplat-todo: can we do this better?
+            return UnicodeGeneralCategoryClass::CategoryClassLetter;
+#else // HAS_REAL_ICU
             int8_t charType = u_charType(ch);
 
             if (charType == U_LOWERCASE_LETTER ||
@@ -487,8 +520,9 @@ namespace PlatformAgnostic
             {
                 return UnicodeGeneralCategoryClass::CategoryClassConnectorPunctuation;
             }
-#endif
+
             return UnicodeGeneralCategoryClass::CategoryClassOther;
+#endif // HAS_REAL_ICU
         }
 
         // We actually don't care about the legacy behavior on Linux since no one

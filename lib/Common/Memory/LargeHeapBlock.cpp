@@ -190,6 +190,13 @@ LargeHeapBlock::LargeHeapBlock(__in char * address, size_t pageCount, Segment * 
     this->segment = segment;
 #if ENABLE_CONCURRENT_GC
     this->isPendingConcurrentSweep = false;
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    // This flag is to identify whether this block was made available for allocations during the concurrent sweep and still needs to be swept.
+    this->isPendingConcurrentSweepPrep = false;
+#if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
+    this->wasAllocatedFromDuringSweep = false;
+#endif
+#endif
 #endif
     this->addressEnd = this->address + this->pageCount * AutoSystemInfo::PageSize;
 
@@ -553,6 +560,16 @@ LargeHeapBlock::AllocFreeListEntry(DECLSPEC_GUARD_OVERFLOW size_t size, ObjectIn
 #ifdef RECYCLER_WRITE_BARRIER
     header->hasWriteBarrier = (attributes & WithBarrierBit) == WithBarrierBit;
 #endif
+
+    if ((attributes & (FinalizeBit | TrackBit)) != 0)
+    {
+        // Make sure a valid vtable is installed as once the attributes have been set this allocation may be traced by background marking
+        allocObject = (char *)new (allocObject) DummyVTableObject();
+#if defined(_M_ARM32_OR_ARM64)
+        // On ARM, make sure the v-table write is performed before setting the attributes
+        MemoryBarrier();
+#endif
+    }
     header->SetAttributes(this->heapInfo->recycler->Cookie, (attributes & StoredObjectInfoBitMask));
     header->markOnOOMRescan = false;
     header->SetNext(this->heapInfo->recycler->Cookie, nullptr);
@@ -618,6 +635,15 @@ LargeHeapBlock::Alloc(DECLSPEC_GUARD_OVERFLOW size_t size, ObjectInfoBits attrib
 #ifdef RECYCLER_WRITE_BARRIER
     header->hasWriteBarrier = (attributes&WithBarrierBit) == WithBarrierBit;
 #endif
+    if ((attributes & (FinalizeBit | TrackBit)) != 0)
+    {
+        // Make sure a valid vtable is installed as once the attributes have been set this allocation may be traced by background marking
+        allocObject = (char *)new (allocObject) DummyVTableObject();
+#if defined(_M_ARM32_OR_ARM64)
+        // On ARM, make sure the v-table write is performed before setting the attributes
+        MemoryBarrier();
+#endif
+    }
     header->SetAttributes(recycler->Cookie, (attributes & StoredObjectInfoBitMask));
     HeaderList()[allocCount++] = header;
     finalizeCount += ((attributes & FinalizeBit) != 0);
@@ -1785,7 +1811,7 @@ LargeHeapBlock::SweepObjects(Recycler * recycler)
 
     // mark count included newly allocated objects
 #if ENABLE_CONCURRENT_GC
-    Assert(expectedSweepCount == allocCount - markCount || recycler->collectionState == CollectionStateConcurrentSweep);
+    Assert(expectedSweepCount == allocCount - markCount || recycler->IsConcurrentSweepState());
 #else
     Assert(expectedSweepCount == allocCount - markCount);
 #endif
