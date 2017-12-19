@@ -119,8 +119,6 @@ private:
         return pnode;
     }
 
-    Js::ScriptContext* GetScriptContext() const { return m_scriptContext; }
-
 public:
 #if DEBUG
     Parser(Js::ScriptContext* scriptContext, BOOL strictMode = FALSE, PageAllocator *alloc = nullptr, bool isBackground = false, size_t size = sizeof(Parser));
@@ -128,6 +126,8 @@ public:
     Parser(Js::ScriptContext* scriptContext, BOOL strictMode = FALSE, PageAllocator *alloc = nullptr, bool isBackground = false);
 #endif
     ~Parser(void);
+
+    Js::ScriptContext* GetScriptContext() const { return m_scriptContext; }
 
 #if ENABLE_BACKGROUND_PARSING
     bool IsBackgroundParser() const { return m_isInBackground; }
