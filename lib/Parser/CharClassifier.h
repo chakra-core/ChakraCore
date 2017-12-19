@@ -145,9 +145,6 @@ namespace Js
         const OLECHAR* (*skipIdentifierFunc)(LPCOLESTR pcz, const CharClassifier* instance);
         const LPCUTF8 (*skipIdentifierStartEndFunc)(LPCUTF8 psz, LPCUTF8 end, const CharClassifier* instance);
 
-        void initClassifier(ScriptContext* scriptContext, CharClassifierModes identifierSupport,
-            CharClassifierModes whiteSpaceSupport, CharClassifierModes generalCharClassificationSupport, bool codePointSupport, bool isES6UnicodeVerboseEnabled, CharClassifierModes fallbackMode = CharClassifierModes::ES5);
-
     public:
 
         CharTypes GetCharType(codepoint_t ch) const;
@@ -262,7 +259,7 @@ namespace Js
             return SkipIdentifier(psz);
         }
 
-        CharClassifier(Js::ScriptContext* scriptContext);
+        CharClassifier(void);
     };
 
 };

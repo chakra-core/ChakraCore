@@ -321,7 +321,7 @@ namespace Js
 
     void ScriptContext::InitializeAllocations()
     {
-        this->charClassifier = Anew(GeneralAllocator(), CharClassifier, this);
+        this->charClassifier = Anew(GeneralAllocator(), CharClassifier);
 
         this->valueOfInlineCache = AllocatorNewZ(InlineCacheAllocator, GetInlineCacheAllocator(), InlineCache);
         this->toStringInlineCache = AllocatorNewZ(InlineCacheAllocator, GetInlineCacheAllocator(), InlineCache);
