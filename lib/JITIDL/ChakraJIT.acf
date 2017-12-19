@@ -11,4 +11,5 @@ typedef [context_handle_noserialize] PSCRIPTCONTEXT_HANDLE;
 ]
 interface IChakraJIT
 {
+    typedef [encode, decode] pCodeGenWorkItemIDL;
 }

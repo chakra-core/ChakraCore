@@ -23,6 +23,7 @@ cpp_quote("#endif //__JITTypes_h__")
 ]
 interface IChakraJIT
 {
+    typedef CodeGenWorkItemIDL* pCodeGenWorkItemIDL;
     HRESULT Shutdown([in] handle_t binding);
 
     HRESULT ConnectProcess(
