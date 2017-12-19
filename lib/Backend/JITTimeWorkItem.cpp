@@ -114,7 +114,10 @@ JITTimeWorkItem::InitializeReader(
 #endif
     bool hasSpanSequenceMap = m_jitBody.InitializeStatementMap(&m_statementMap, alloc);
     Js::SmallSpanSequence * spanSeq = hasSpanSequenceMap ? &m_statementMap : nullptr;
-    statementReader->Create(m_jitBody.GetByteCodeBuffer(), startOffset, spanSeq, m_fullStatementList);
+    if (statementReader)
+    {
+        statementReader->Create(m_jitBody.GetByteCodeBuffer(), startOffset, spanSeq, m_fullStatementList);
+    }
 }
 
 JITTimeFunctionBody *

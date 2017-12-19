@@ -10,14 +10,14 @@ namespace Js
     class StatementReader
     {
     private:
-        const byte* m_startLocation;
-        SmallSpanSequence* m_statementMap;
+        const byte* m_startLocation = nullptr;
+        SmallSpanSequence* m_statementMap = nullptr;
         SmallSpanSequenceIter m_statementMapIter;
 
-        TStatementMapList * m_fullstatementMap;
-        const byte* m_nextStatementBoundary;
-        int m_statementIndex;
-        bool m_startOfStatement;
+        TStatementMapList * m_fullstatementMap = nullptr;
+        const byte* m_nextStatementBoundary = nullptr;
+        int m_statementIndex = 0;
+        bool m_startOfStatement = true;
 
     public:
         void Create(FunctionBody* functionRead, uint startOffset = 0);
