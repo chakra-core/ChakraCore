@@ -2759,6 +2759,13 @@ namespace Js
         }
         functionConstructor->SetHasNoEnumerableProperties(true);
 
+#ifdef ALLOW_JIT_REPRO
+        if (CONFIG_FLAG(JitRepro))
+        {
+            library->AddFunctionToLibraryObject(functionConstructor, PropertyIds::invokeJit, &JavascriptFunction::EntryInfo::InvokeJit, 1);
+        }
+#endif
+
         return true;
     }
 

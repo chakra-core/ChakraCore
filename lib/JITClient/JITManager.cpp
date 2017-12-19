@@ -676,3 +676,126 @@ JITManager::IsInterpreterThunkAddr(
     return hr;
 }
 #endif
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+HRESULT
+JITManager::DeserializeRPCData(
+    _In_reads_(bufferSize) const byte* buffer,
+    _In_ uint bufferSize,
+    _Out_ CodeGenWorkItemIDL **workItemData
+)
+{
+    RPC_STATUS status = RPC_S_OK;
+    handle_t marshalHandle = nullptr;
+    *workItemData = nullptr;
+    __try
+    {
+        RpcTryExcept
+        {
+            status = MesDecodeBufferHandleCreate((char*)buffer, bufferSize, &marshalHandle);
+            if (status != RPC_S_OK)
+            {
+                return status;
+            }
+
+            pCodeGenWorkItemIDL_Decode(
+                marshalHandle,
+                workItemData);
+        }
+        RpcExcept(I_RpcExceptionFilter(RpcExceptionCode()))
+        {
+            status = RpcExceptionCode();
+        }
+        RpcEndExcept;
+    }
+    __finally
+    {
+        MesHandleFree(marshalHandle);
+    }
+    return status;
+}
+
+HRESULT
+JITManager::SerializeRPCData(_In_ CodeGenWorkItemIDL *workItemData, _Out_ size_t* bufferSize, _Outptr_result_buffer_(*bufferSize) const byte** outBuffer)
+{
+    handle_t marshalHandle = nullptr;
+    *bufferSize = 0;
+    *outBuffer = nullptr;
+    RPC_STATUS status = RPC_S_OK;
+    __try
+    {
+        RpcTryExcept
+        {
+            char* data = nullptr;
+            unsigned long encodedSize;
+            status = MesEncodeDynBufferHandleCreate(
+                &data,
+                &encodedSize,
+                &marshalHandle);
+            if (status != RPC_S_OK)
+            {
+                return status;
+            }
+
+            MIDL_ES_CODE encodeType = MES_ENCODE;
+#if TARGET_64
+            encodeType = MES_ENCODE_NDR64;
+            // We only support encode syntax NDR64, however MesEncodeDynBufferHandleCreate doesn't allow to specify it
+            status = MesBufferHandleReset(
+                marshalHandle,
+                MES_DYNAMIC_BUFFER_HANDLE,
+                encodeType,
+                &data,
+                0,
+                &encodedSize
+            );
+            if (status != RPC_S_OK)
+            {
+                return status;
+            }
+#endif
+
+            // Calculate how big we need to create the buffer
+            size_t tmpBufSize = pCodeGenWorkItemIDL_AlignSize(marshalHandle, &workItemData);
+            size_t alignedBufSize = Math::Align<size_t>(tmpBufSize, 16);
+            data = HeapNewNoThrowArray(char, alignedBufSize);
+            if (!data)
+            {
+                // Ran out of memory
+                return E_OUTOFMEMORY;
+            }
+
+            // Reset the buffer handle to a fixed buffer
+            status = MesBufferHandleReset(
+                marshalHandle,
+                MES_FIXED_BUFFER_HANDLE,
+                encodeType,
+                &data,
+                (unsigned long)alignedBufSize,
+                &encodedSize
+            );
+            if (status != RPC_S_OK)
+            {
+                return status;
+            }
+
+            pCodeGenWorkItemIDL_Encode(
+                marshalHandle,
+                &workItemData);
+            *bufferSize = alignedBufSize;
+            *outBuffer = (byte*)data;
+        }
+        RpcExcept(I_RpcExceptionFilter(RpcExceptionCode()))
+        {
+            status = RpcExceptionCode();
+        }
+        RpcEndExcept;
+    }
+    __finally
+    {
+        MesHandleFree(marshalHandle);
+    }
+
+    return status;
+}
+#endif

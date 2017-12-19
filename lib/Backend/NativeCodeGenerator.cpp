@@ -469,6 +469,21 @@ NativeCodeGenerator::RejitIRViewerFunction(Js::FunctionBody *fn, Js::ScriptConte
 }
 #endif /* IR_VIEWER */
 
+#ifdef ALLOW_JIT_REPRO
+HRESULT NativeCodeGenerator::JitFromEncodedWorkItem(_In_reads_(bufSize) const byte* buffer, _In_ uint bufferSize)
+{
+    CodeGenWorkItemIDL* workItemData = nullptr;
+    HRESULT hr = JITManager::DeserializeRPCData(buffer, bufferSize, &workItemData);
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+    JITOutputIDL jitOutput = { 0 };
+    CodeGen(scriptContext->GetThreadContext()->GetPageAllocator(), workItemData, jitOutput, true);
+    return S_OK;
+}
+#endif
+
 ///----------------------------------------------------------------------------
 ///
 /// NativeCodeGenerator::GenerateFunction
@@ -791,6 +806,74 @@ NativeCodeGenerator::IsValidVar(const Js::Var var, Recycler *const recycler)
 volatile UINT_PTR NativeCodeGenerator::CodegenFailureSeed = 0;
 #endif
 
+void NativeCodeGenerator::CodeGen(PageAllocator* pageAllocator, CodeGenWorkItemIDL* workItemData, _Out_ JITOutputIDL& jitWriteData, const bool foreground, Js::EntryPointInfo* epInfo /*= nullptr*/)
+{
+    if (JITManager::GetJITManager()->IsOOPJITEnabled())
+    {
+        PSCRIPTCONTEXT_HANDLE remoteScriptContext = this->scriptContext->GetRemoteScriptAddr();
+        if (!JITManager::GetJITManager()->IsConnected())
+        {
+            throw Js::OperationAbortedException();
+        }
+        HRESULT hr = JITManager::GetJITManager()->RemoteCodeGenCall(
+            workItemData,
+            remoteScriptContext,
+            &jitWriteData);
+        if (hr == E_ACCESSDENIED && scriptContext->IsClosed())
+        {
+            // script context may close after codegen call starts, consider this as aborted codegen
+            hr = E_ABORT;
+        }
+        JITManager::HandleServerCallResult(hr, RemoteCallType::CodeGen);
+
+        if (!PreReservedVirtualAllocWrapper::IsInRange((void*)this->scriptContext->GetThreadContext()->GetPreReservedRegionAddr(), (void*)jitWriteData.codeAddress))
+        {
+            this->scriptContext->GetJitFuncRangeCache()->AddFuncRange((void*)jitWriteData.codeAddress, jitWriteData.codeSize);
+        }
+        Assert(jitWriteData.codeAddress);
+        Assert(jitWriteData.codeSize);
+    }
+    else
+    {
+        InProcCodeGenAllocators *const allocators =
+            foreground ? EnsureForegroundAllocators(pageAllocator) : GetBackgroundAllocator(pageAllocator); // okay to do outside lock since the respective function is called only from one thread
+        NoRecoverMemoryJitArenaAllocator jitArena(_u("JITArena"), pageAllocator, Js::Throw::OutOfMemory);
+#if DBG
+        jitArena.SetNeedsDelayFreeList();
+#endif
+        JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItemData);
+
+#if !FLOATVAR
+        CodeGenNumberAllocator* pNumberAllocator = nullptr;
+
+        // the number allocator needs to be on the stack so that if we are doing foreground JIT
+        // the chunk allocated from the recycler will be stacked pinned
+        CodeGenNumberAllocator numberAllocator(
+            foreground ? nullptr : scriptContext->GetThreadContext()->GetCodeGenNumberThreadAllocator(),
+            scriptContext->GetRecycler());
+        pNumberAllocator = &numberAllocator;
+#endif
+        Js::ScriptContextProfiler *const codeGenProfiler =
+#ifdef PROFILE_EXEC
+            foreground ? EnsureForegroundCodeGenProfiler() : GetBackgroundCodeGenProfiler(pageAllocator); // okay to do outside lock since the respective function is called only from one thread
+#else
+            nullptr;
+#endif
+
+        Func::Codegen(&jitArena, jitWorkItem, scriptContext->GetThreadContext(),
+            scriptContext, &jitWriteData, epInfo, nullptr, jitWorkItem->GetPolymorphicInlineCacheInfo(), allocators,
+#if !FLOATVAR
+            pNumberAllocator,
+#endif
+            codeGenProfiler, !foreground);
+
+        if (!this->scriptContext->GetThreadContext()->GetPreReservedVirtualAllocator()->IsInRange((void*)jitWriteData.codeAddress))
+        {
+            this->scriptContext->GetJitFuncRangeCache()->AddFuncRange((void*)jitWriteData.codeAddress, jitWriteData.codeSize);
+        }
+    }
+}
+
 void
 NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* workItem, const bool foreground)
 {
@@ -889,70 +972,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     LARGE_INTEGER start_time = { 0 };
     NativeCodeGenerator::LogCodeGenStart(workItem, &start_time);
     workItem->GetJITData()->startTime = (int64)start_time.QuadPart;
-    if (JITManager::GetJITManager()->IsOOPJITEnabled())
-    {
-        PSCRIPTCONTEXT_HANDLE remoteScriptContext = this->scriptContext->GetRemoteScriptAddr();
-        if (!JITManager::GetJITManager()->IsConnected())
-        {
-            throw Js::OperationAbortedException();
-        }
-        HRESULT hr = JITManager::GetJITManager()->RemoteCodeGenCall(
-            workItem->GetJITData(),
-            remoteScriptContext,
-            &jitWriteData);
-        if (hr == E_ACCESSDENIED && body->GetScriptContext()->IsClosed())
-        {
-            // script context may close after codegen call starts, consider this as aborted codegen
-            hr = E_ABORT;
-        }
-        JITManager::HandleServerCallResult(hr, RemoteCallType::CodeGen);
-
-        if (!PreReservedVirtualAllocWrapper::IsInRange((void*)this->scriptContext->GetThreadContext()->GetPreReservedRegionAddr(), (void*)jitWriteData.codeAddress))
-        {
-            this->scriptContext->GetJitFuncRangeCache()->AddFuncRange((void*)jitWriteData.codeAddress, jitWriteData.codeSize);
-        }
-        Assert(jitWriteData.codeAddress);
-        Assert(jitWriteData.codeSize);
-    }
-    else
-    {
-        InProcCodeGenAllocators *const allocators =
-            foreground ? EnsureForegroundAllocators(pageAllocator) : GetBackgroundAllocator(pageAllocator); // okay to do outside lock since the respective function is called only from one thread
-        NoRecoverMemoryJitArenaAllocator jitArena(_u("JITArena"), pageAllocator, Js::Throw::OutOfMemory);
-#if DBG
-        jitArena.SetNeedsDelayFreeList();
-#endif
-        JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItem->GetJITData());
-
-#if !FLOATVAR
-        CodeGenNumberAllocator* pNumberAllocator = nullptr;
-
-        // the number allocator needs to be on the stack so that if we are doing foreground JIT
-        // the chunk allocated from the recycler will be stacked pinned
-        CodeGenNumberAllocator numberAllocator(
-            foreground ? nullptr : scriptContext->GetThreadContext()->GetCodeGenNumberThreadAllocator(),
-            scriptContext->GetRecycler());
-        pNumberAllocator = &numberAllocator;
-#endif
-        Js::ScriptContextProfiler *const codeGenProfiler =
-#ifdef PROFILE_EXEC
-            foreground ? EnsureForegroundCodeGenProfiler() : GetBackgroundCodeGenProfiler(pageAllocator); // okay to do outside lock since the respective function is called only from one thread
-#else
-            nullptr;
-#endif
-
-        Func::Codegen(&jitArena, jitWorkItem, scriptContext->GetThreadContext(),
-            scriptContext, &jitWriteData, epInfo, nullptr, jitWorkItem->GetPolymorphicInlineCacheInfo(), allocators,
-#if !FLOATVAR
-            pNumberAllocator,
-#endif
-            codeGenProfiler, !foreground);
-
-        if (!this->scriptContext->GetThreadContext()->GetPreReservedVirtualAllocator()->IsInRange((void*)jitWriteData.codeAddress))
-        {
-            this->scriptContext->GetJitFuncRangeCache()->AddFuncRange((void*)jitWriteData.codeAddress, jitWriteData.codeSize);
-        }
-    }
+    CodeGen(pageAllocator, workItem->GetJITData(), jitWriteData, foreground, epInfo);
 
     if (JITManager::GetJITManager()->IsOOPJITEnabled() && PHASE_VERBOSE_TRACE(Js::BackEndPhase, workItem->GetFunctionBody()))
     {
@@ -1193,6 +1213,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     }
 #endif
 }
+
 
 /* static */
 void NativeCodeGenerator::LogCodeGenStart(CodeGenWorkItem * workItem, LARGE_INTEGER * start_time)
