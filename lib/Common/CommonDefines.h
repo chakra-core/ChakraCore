@@ -686,7 +686,7 @@
 #if __has_feature(address_sanitizer)
 #undef NO_SANITIZE_ADDRESS
 #define NO_SANITIZE_ADDRESS __attribute__((no_sanitize("address")))
-#define NO_SANITIZE_ADDRESS_FIXVC
+#define NO_SANITIZE_ADDRESS_CHECK
 #endif
 #endif
 

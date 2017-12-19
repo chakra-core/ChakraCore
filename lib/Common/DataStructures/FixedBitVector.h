@@ -226,8 +226,9 @@ Container BVFixed::GetRange(BVIndex start, BVIndex len) const
     return Container(range);
 }
 
+// the NO_SANITIZE_ADDRESS_CHECK ifdef is to work around a bug in some VC versions
 template<typename Container>
-#ifdef NO_SANITIZE_ADDRESS_FIXVC
+#ifdef NO_SANITIZE_ADDRESS_CHECK
 NO_SANITIZE_ADDRESS
 #endif
 void BVFixed::SetRange(Container* value, BVIndex start, BVIndex len)
