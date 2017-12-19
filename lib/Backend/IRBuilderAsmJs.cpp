@@ -17,7 +17,7 @@ IRBuilderAsmJs::Build()
     m_tempAlloc = &localAlloc;
 
     uint32 offset;
-    uint32 statementIndex = m_statementReader.GetStatementIndex();
+    uint32 statementIndex = m_statementReader ? m_statementReader->GetStatementIndex() : Js::Constants::NoStatementIndex;
 
     m_argStack = JitAnew(m_tempAlloc, SListCounted<IR::Instr *>, m_tempAlloc);
     m_tempList = JitAnew(m_tempAlloc, SList<IR::Instr *>, m_tempAlloc);
@@ -125,7 +125,7 @@ IRBuilderAsmJs::Build()
         BuildImplicitArgIns();
     }
 
-    if (m_statementReader.AtStatementBoundary(&m_jnReader))
+    if (m_statementReader && m_statementReader->AtStatementBoundary(&m_jnReader))
     {
         statementIndex = AddStatementBoundary(statementIndex, offset);
     }
@@ -165,14 +165,14 @@ IRBuilderAsmJs::Build()
         }
         offset = m_jnReader.GetCurrentOffset();
 
-        if (m_statementReader.AtStatementBoundary(&m_jnReader))
+        if (m_statementReader && m_statementReader->AtStatementBoundary(&m_jnReader))
         {
             statementIndex = AddStatementBoundary(statementIndex, offset);
         }
 
     }
 
-    if (Js::Constants::NoStatementIndex != statementIndex)
+    if (m_statementReader && Js::Constants::NoStatementIndex != statementIndex)
     {
         statementIndex = AddStatementBoundary(statementIndex, Js::Constants::NoByteCodeOffset);
     }
@@ -423,14 +423,11 @@ IRBuilderAsmJs::BuildFieldSym(Js::RegSlot reg, Js::PropertyId propertyId, Proper
 uint
 IRBuilderAsmJs::AddStatementBoundary(uint statementIndex, uint offset)
 {
-    if (m_func->GetJITFunctionBody()->IsWasmFunction())
-    {
-        return 0;
-    }
+    AssertOrFailFast(m_statementReader);
     IR::PragmaInstr* pragmaInstr = IR::PragmaInstr::New(Js::OpCode::StatementBoundary, statementIndex, m_func);
     this->AddInstr(pragmaInstr, offset);
 
-    return m_statementReader.MoveNextStatementBoundary();
+    return m_statementReader->MoveNextStatementBoundary();
 }
 
 uint32 IRBuilderAsmJs::GetTypedRegFromRegSlot(Js::RegSlot reg, WAsmJs::Types type)

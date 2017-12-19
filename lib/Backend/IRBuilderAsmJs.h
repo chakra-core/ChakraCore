@@ -81,7 +81,11 @@ public:
         , m_switchAdapter(this)
         , m_switchBuilder(&m_switchAdapter)
     {
-        func->m_workItem->InitializeReader(&m_jnReader, &m_statementReader, func->m_alloc);
+        if (!m_func->GetJITFunctionBody()->IsWasmFunction())
+        {
+            m_statementReader = Anew(func->m_alloc, Js::StatementReader<Js::FunctionBody::ArenaStatementMapList>);
+        }
+        func->m_workItem->InitializeReader(&m_jnReader, m_statementReader, func->m_alloc);
         m_asmFuncInfo = m_func->GetJITFunctionBody()->GetAsmJsInfo();
 #if 0
         // templatized JIT loop body
@@ -217,7 +221,7 @@ private:
     IR::Instr *             m_lastInstr;
     IR::Instr **            m_offsetToInstruction;
     Js::ByteCodeReader      m_jnReader;
-    Js::StatementReader<Js::FunctionBody::ArenaStatementMapList> m_statementReader;
+    Js::StatementReader<Js::FunctionBody::ArenaStatementMapList>* m_statementReader = nullptr;
     SListCounted<IR::Instr *> *m_argStack;
     SList<IR::Instr *> *    m_tempList;
     SList<int32> *          m_argOffsetStack;
