@@ -174,3 +174,19 @@ WScript.Echo(Date.parse("2011/11-08 19:48:43"));
 
 // Multiple 'T's aren't allowed
 WScript.Echo(Date.parse("2011-11-08TT19:48:43"));
+
+// Parse dates with out of range month values
+
+datestring = "13/01/2000";
+WScript.Echo(Date.parse(datestring));
+
+datestring = "2000-13-01";
+WScript.Echo(Date.parse(datestring));
+
+// Parse dates with out of range date values
+
+datestring = "01/40/2000";
+WScript.Echo(Date.parse(datestring));
+
+datestring = "2000-01-40";
+WScript.Echo(Date.parse(datestring));
