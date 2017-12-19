@@ -764,8 +764,11 @@ ServerRemoteCodeGen(
     struct AutoFreeArray
     {
         const byte* arr = nullptr;
-        ~AutoFreeArray() { delete[] arr; }
-    } autoFreeArray = { serializedRpcData };
+        size_t bufferSize = 0;
+        ~AutoFreeArray() { HeapDeleteArray(bufferSize, arr); }
+    } autoFreeArray;
+    autoFreeArray.arr = serializedRpcData;
+    autoFreeArray.bufferSize = serializedRpcDataSize;
 #endif
 
     return ServerCallWrapper(scriptContextInfo, [&]() ->HRESULT

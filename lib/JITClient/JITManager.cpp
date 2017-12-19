@@ -758,7 +758,12 @@ JITManager::SerializeRPCData(_In_ CodeGenWorkItemIDL *workItemData, _Out_ size_t
             // Calculate how big we need to create the buffer
             size_t tmpBufSize = pCodeGenWorkItemIDL_AlignSize(marshalHandle, &workItemData);
             size_t alignedBufSize = Math::Align<size_t>(tmpBufSize, 16);
-            data = new char[alignedBufSize];
+            data = HeapNewNoThrowArray(char, alignedBufSize);
+            if (!data)
+            {
+                // Ran out of memory
+                return E_OUTOFMEMORY;
+            }
 
             // Reset the buffer handle to a fixed buffer
             status = MesBufferHandleReset(
