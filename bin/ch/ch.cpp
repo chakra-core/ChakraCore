@@ -313,7 +313,7 @@ static bool CHAKRA_CALLBACK DummyJsSerializedScriptLoadUtf8Source(
     return true;
 }
 
-HRESULT RunScript(const char* fileName, LPCSTR fileContents, JsFinalizeCallback fileContentsFinalizeCallback, JsValueRef bufferValue, char *fullPath)
+HRESULT RunScript(const char* fileName, LPCSTR fileContents, size_t fileLength, JsFinalizeCallback fileContentsFinalizeCallback, JsValueRef bufferValue, char *fullPath)
 {
     HRESULT hr = S_OK;
     MessageQueue * messageQueue = new MessageQueue();
@@ -438,7 +438,7 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, JsFinalizeCallback 
         {
             JsValueRef scriptSource;
             IfJsErrorFailLog(ChakraRTInterface::JsCreateExternalArrayBuffer((void*)fileContents,
-                (unsigned int)strlen(fileContents),
+                (unsigned int)fileLength,
                 fileContentsFinalizeCallback, (void*)fileContents, &scriptSource));
 #if ENABLE_TTD
             if(doTTRecord)
@@ -581,7 +581,7 @@ Error:
     return hr;
 }
 
-HRESULT CreateAndRunSerializedScript(const char* fileName, LPCSTR fileContents, JsFinalizeCallback fileContentsFinalizeCallback, char *fullPath)
+HRESULT CreateAndRunSerializedScript(const char* fileName, LPCSTR fileContents, size_t fileLength, JsFinalizeCallback fileContentsFinalizeCallback, char *fullPath)
 {
     HRESULT hr = S_OK;
     JsRuntimeHandle runtime = JS_INVALID_RUNTIME_HANDLE;
@@ -607,7 +607,7 @@ HRESULT CreateAndRunSerializedScript(const char* fileName, LPCSTR fileContents, 
     }
 
     // This is our last call to use fileContents, so pass in the finalizeCallback
-    IfFailGo(RunScript(fileName, fileContents, fileContentsFinalizeCallback, bufferVal, fullPath));
+    IfFailGo(RunScript(fileName, fileContents, fileLength, fileContentsFinalizeCallback, bufferVal, fullPath));
 
     if(false)
     {
@@ -659,7 +659,7 @@ HRESULT ExecuteTest(const char* fileName)
         IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, true, &context));
         IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
 
-        IfFailGo(RunScript(fileName, fileContents, WScriptJsrt::FinalizeFree, nullptr, nullptr));
+        IfFailGo(RunScript(fileName, fileContents, lengthBytes, WScriptJsrt::FinalizeFree, nullptr, nullptr));
 
         unsigned int rcount = 0;
         IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(nullptr));
@@ -773,11 +773,11 @@ HRESULT ExecuteTest(const char* fileName)
         }
         else if (HostConfigFlags::flags.SerializedIsEnabled)
         {
-            CreateAndRunSerializedScript(fileName, fileContents, WScriptJsrt::FinalizeFree, fullPath);
+            CreateAndRunSerializedScript(fileName, fileContents, lengthBytes, WScriptJsrt::FinalizeFree, fullPath);
         }
         else
         {
-            IfFailGo(RunScript(fileName, fileContents, WScriptJsrt::FinalizeFree, nullptr, fullPath));
+            IfFailGo(RunScript(fileName, fileContents, lengthBytes, WScriptJsrt::FinalizeFree, nullptr, fullPath));
         }
     }
 Error:
