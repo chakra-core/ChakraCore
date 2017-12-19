@@ -119,6 +119,7 @@ private:
         return pnode;
     }
 
+    Js::ScriptContext* GetScriptContext() const { return m_scriptContext; }
 
 public:
 #if DEBUG
@@ -127,9 +128,6 @@ public:
     Parser(Js::ScriptContext* scriptContext, BOOL strictMode = FALSE, PageAllocator *alloc = nullptr, bool isBackground = false);
 #endif
     ~Parser(void);
-
-    Js::ScriptContext* GetScriptContext() const { return m_scriptContext; }
-    void ClearScriptContext() { m_scriptContext = nullptr; }
 
 #if ENABLE_BACKGROUND_PARSING
     bool IsBackgroundParser() const { return m_isInBackground; }
@@ -226,9 +224,6 @@ private:
     __declspec(noreturn) void Error(HRESULT hr, ParseNodePtr pnode);
     __declspec(noreturn) void Error(HRESULT hr, charcount_t ichMin, charcount_t ichLim);
     __declspec(noreturn) static void OutOfMemory();
-
-    void GenerateCode(ParseNodePtr pnode, void *pvUser, int32 cbUser,
-        LPCOLESTR pszSrc, int32 cchSrc, LPCOLESTR pszTitle);
 
     void EnsureStackAvailable();
 
