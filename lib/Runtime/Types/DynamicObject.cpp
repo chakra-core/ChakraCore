@@ -524,8 +524,12 @@ namespace Js
 
     void DynamicObject::ChangeType()
     {
+        AutoDisableInterrupt autoDisableInterrupt(this->GetScriptContext()->GetThreadContext());
+        
         Assert(!GetDynamicType()->GetIsShared() || GetTypeHandler()->GetIsShared());
         this->type = this->DuplicateType();
+        
+        autoDisableInterrupt.Completed();
     }
 
     void DynamicObject::ChangeTypeIf(const Type* oldType)
