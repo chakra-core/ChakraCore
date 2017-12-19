@@ -5,6 +5,11 @@
 #pragma once
 #include "Utf8Codex.h"
 
+#ifndef _WIN32
+// xplat doesn't run SAL analysis
+#define AnalysisAssert(condition)
+#endif
+
 namespace utf8
 {
     ///
@@ -72,6 +77,7 @@ namespace utf8
         }
         else
         {
+            AnalysisAssert(sourceCount * 3 + 1 <= destCount);
             cbEncoded = utf8::EncodeTrueUtf8IntoBoundsChecked((utf8char_t*)destString, sourceString, (charcount_t)cchSourceString, &destString[destCount]);
             Assert(cbEncoded <= destCount);
         }
