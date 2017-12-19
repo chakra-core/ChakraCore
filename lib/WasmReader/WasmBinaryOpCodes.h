@@ -150,7 +150,6 @@ WASM_MISC_OPCODE(I64Const,     0x42, Limit, false)
 WASM_MISC_OPCODE(F32Const,     0x43, Limit, false)
 WASM_MISC_OPCODE(F64Const,     0x44, Limit, false)
 
-////////////////////////////////////////////////////////////
 // Comparison operators
 WASM_UNARY__OPCODE(I32Eqz,            0x45, I_I , Eqz_Int        , false)
 WASM_BINARY_OPCODE(I32Eq,             0x46, I_II, CmEq_Int       , false)
@@ -311,9 +310,19 @@ WASM_EMPTY__OPCODE(PrintBeginCall   , 0xf2,       PrintBeginCall   , false)
 WASM_EMPTY__OPCODE(PrintNewLine     , 0xf3,       PrintNewLine     , false)
 WASM_UNARY__OPCODE(PrintEndCall     , 0xf4, V_I , PrintEndCall     , false)
 WASM_UNARY__OPCODE(PrintI32         , 0xfc, I_I , PrintI32         , false)
-WASM_UNARY__OPCODE(PrintI64         , 0xfd, L_L , PrintI64         , false)
+WASM_UNARY__OPCODE(PrintI64         , 0xef, L_L , PrintI64         , false)
 WASM_UNARY__OPCODE(PrintF32         , 0xfe, F_F , PrintF32         , false)
 WASM_UNARY__OPCODE(PrintF64         , 0xff, D_D , PrintF64         , false)
+#endif
+
+//Extended
+WASM_MISC_OPCODE(SimdStart, 0xfd, Limit, false)
+WASM_MISC_OPCODE(Extended, 0x06, Limit, false)
+WASM_MISC_OPCODE(Extended2, 0x07, Limit, false)
+
+//Simd
+#ifdef ENABLE_WASM_SIMD
+#include "WasmBinaryOpcodesSimd.h"
 #endif
 
 #undef WASM_OPCODE

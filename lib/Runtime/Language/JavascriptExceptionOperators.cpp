@@ -70,6 +70,7 @@ namespace Js
     JavascriptExceptionOperators::TryCatchFrameAddrStack::~TryCatchFrameAddrStack()
     {
         m_threadContext->SetTryCatchFrameAddr(m_prevTryCatchFrameAddr);
+        m_threadContext->SetCurrentTryCatchWalkedAndCleared(false);
     }
 
     bool JavascriptExceptionOperators::CrawlStackForWER(Js::ScriptContext& scriptContext)
@@ -95,32 +96,37 @@ namespace Js
         JavascriptExceptionObject *exception = nullptr;
 
         PROBE_STACK(scriptContext, Constants::MinStackDefault + spillSize + argsSize);
-        Js::JavascriptExceptionOperators::TryCatchFrameAddrStack tryCatchFrameAddrStack(scriptContext, frame);
-
-        try
         {
-            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
-            continuation = amd64_CallWithFakeFrame(tryAddr, frame, spillSize, argsSize);
-        }
-        catch (const Js::JavascriptException& err)
-        {
-            exception = err.GetAndClear();
+            Js::JavascriptExceptionOperators::TryCatchFrameAddrStack tryCatchFrameAddrStack(scriptContext, frame);
 
-            // We need to clear callinfo on inlinee virtual frames on an exception.
-            // We now allow inlining of functions into callers that have try-catch/try-finally.
-            // When there is an exception inside the inlinee with caller having a try-catch, clear the inlinee callinfo by walking the stack.
-            // If not, we might have the try-catch inside a loop, and when we execute the loop next time in the interpreter on BailOnException,
-            // we will see inlined frames as being present even though they are not, because we depend on FrameInfo's callinfo to tell if an inlinee is on the stack,
-            // and we haven't cleared those bits due to the exception
-            // When we start inlining functions with try, we have to track the try addresses of the inlined functions as well.
+            try
+            {
+                Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
+                continuation = amd64_CallWithFakeFrame(tryAddr, frame, spillSize, argsSize);
+            }
+            catch (const Js::JavascriptException& err)
+            {
+                exception = err.GetAndClear();
+
+                // We need to clear callinfo on inlinee virtual frames on an exception.
+                // We now allow inlining of functions into callers that have try-catch/try-finally.
+                // When there is an exception inside the inlinee with caller having a try-catch, clear the inlinee callinfo by walking the stack.
+                // If not, we might have the try-catch inside a loop, and when we execute the loop next time in the interpreter on BailOnException,
+                // we will see inlined frames as being present even though they are not, because we depend on FrameInfo's callinfo to tell if an inlinee is on the stack,
+                // and we haven't cleared those bits due to the exception
+                // When we start inlining functions with try, we have to track the try addresses of the inlined functions as well.
 
 #if ENABLE_NATIVE_CODEGEN
-            Assert(scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr);
-            if (exception->GetExceptionContext() && exception->GetExceptionContext()->ThrowingFunction())
-            {
-                 WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */);
-            }
+                Assert(scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr);
+                if (!scriptContext->GetThreadContext()->GetCurrentTryCatchWalkedAndCleared())
+                {
+                    if (exception->GetExceptionContext() && exception->GetExceptionContext()->ThrowingFunction())
+                    {
+                        WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */);
+                    }
+                }
 #endif
+            }
         }
 
         if (exception)
@@ -180,7 +186,16 @@ namespace Js
                 // Re-throw!
                 JavascriptExceptionOperators::DoThrow(exception, scriptContext);
             }
-            // MGTODO : We need to set the exception object, so that we can access in the interpreter, better way out ?
+#if ENABLE_NATIVE_CODEGEN
+            if (scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr)
+            {
+                if (exception->GetExceptionContext() && exception->GetExceptionContext()->ThrowingFunction())
+                {
+                    WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */);
+                    scriptContext->GetThreadContext()->SetCurrentTryCatchWalkedAndCleared(true);
+                }
+            }
+#endif
             scriptContext->GetThreadContext()->SetPendingFinallyException(exception);
             void *continuation = amd64_CallWithFakeFrame(finallyAddr, frame, spillSize, argsSize, exception);
             return continuation;
@@ -240,30 +255,34 @@ namespace Js
         JavascriptExceptionObject *exception = nullptr;
 
         PROBE_STACK(scriptContext, Constants::MinStackDefault + argsSize);
-        Js::JavascriptExceptionOperators::TryCatchFrameAddrStack tryCatchFrameAddrStack(scriptContext, framePtr);
+        {
+            Js::JavascriptExceptionOperators::TryCatchFrameAddrStack tryCatchFrameAddrStack(scriptContext, framePtr);
 
-        try
-        {
-            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
+            try
+            {
+                Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
 #if defined(_M_ARM)
-            continuation = arm_CallEhFrame(tryAddr, framePtr, localsPtr, argsSize);
+                continuation = arm_CallEhFrame(tryAddr, framePtr, localsPtr, argsSize);
 #elif defined(_M_ARM64)
-            continuation = arm64_CallEhFrame(tryAddr, framePtr, localsPtr, argsSize);
+                continuation = arm64_CallEhFrame(tryAddr, framePtr, localsPtr, argsSize);
 #endif
-        }
-        catch (const Js::JavascriptException& err)
-        {
-            exception = err.GetAndClear();
+            }
+            catch (const Js::JavascriptException& err)
+            {
+                exception = err.GetAndClear();
 
 #if ENABLE_NATIVE_CODEGEN
-            Assert(scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr);
-            if (exception->GetExceptionContext() && exception->GetExceptionContext()->ThrowingFunction())
-            {
-                WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */);
-            }
+                Assert(scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr);
+                if (!scriptContext->GetThreadContext()->GetCurrentTryCatchWalkedAndCleared())
+                {
+                    if (exception->GetExceptionContext() && exception->GetExceptionContext()->ThrowingFunction())
+                    {
+                        WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */);
+                    }
+                }
 #endif
+            }
         }
-
         if (exception)
         {
             exception = exception->CloneIfStaticExceptionObject(scriptContext);
@@ -326,6 +345,16 @@ namespace Js
                 // Re-throw!
                 JavascriptExceptionOperators::DoThrow(exception, scriptContext);
             }
+#if ENABLE_NATIVE_CODEGEN
+            if (scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr)
+            {
+                if (exception->GetExceptionContext() && exception->GetExceptionContext()->ThrowingFunction())
+                {
+                    WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */);
+                    scriptContext->GetThreadContext()->SetCurrentTryCatchWalkedAndCleared(true);
+                }
+            }
+#endif
             scriptContext->GetThreadContext()->SetPendingFinallyException(exception);
 #if defined(_M_ARM)
             void * finallyContinuation = arm_CallEhFrame(finallyAddr, framePtr, localsPtr, argsSize);
@@ -399,80 +428,84 @@ namespace Js
         Js::JavascriptExceptionObject* pExceptionObject = NULL;
 
         PROBE_STACK(scriptContext, Constants::MinStackDefault);
-        Js::JavascriptExceptionOperators::TryCatchFrameAddrStack tryCatchFrameAddrStack(scriptContext, framePtr);
-
-        try
         {
-            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
+            Js::JavascriptExceptionOperators::TryCatchFrameAddrStack tryCatchFrameAddrStack(scriptContext, framePtr);
 
-            // Adjust the frame pointer and call into the try.
-            // If the try completes without raising an exception, it will pass back the continuation address.
-
-            // Bug in compiler optimizer: try-catch can be optimized away if the try block contains __asm calls into function
-            // that may throw. The current workaround is to add the following dummy throw to prevent this optimization.
-            if (!tryAddr)
+            try
             {
-                Js::Throw::InternalError();
-            }
+                Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
+
+                // Adjust the frame pointer and call into the try.
+                // If the try completes without raising an exception, it will pass back the continuation address.
+
+                // Bug in compiler optimizer: try-catch can be optimized away if the try block contains __asm calls into function
+                // that may throw. The current workaround is to add the following dummy throw to prevent this optimization.
+                if (!tryAddr)
+                {
+                    Js::Throw::InternalError();
+                }
 #ifdef _M_IX86
-            void *savedEsp;
-            __asm
-            {
-                // Save and restore the callee-saved registers around the call.
-                // TODO: track register kills by region and generate per-region prologs and epilogs
-                push esi
-                push edi
-                push ebx
+                void *savedEsp;
+                __asm
+                {
+                    // Save and restore the callee-saved registers around the call.
+                    // TODO: track register kills by region and generate per-region prologs and epilogs
+                    push esi
+                    push edi
+                    push ebx
 
-                // 8-byte align frame to improve floating point perf of our JIT'd code.
-                // Save ESP
-                mov ecx, esp
-                mov savedEsp, ecx
-                and esp, -8
+                    // 8-byte align frame to improve floating point perf of our JIT'd code.
+                    // Save ESP
+                    mov ecx, esp
+                    mov savedEsp, ecx
+                    and esp, -8
 
-                // Set up the call target, save the current frame ptr, and adjust the frame to access
-                // locals in native code.
-                mov eax, tryAddr
+                    // Set up the call target, save the current frame ptr, and adjust the frame to access
+                    // locals in native code.
+                    mov eax, tryAddr
 #if 0 && defined(_CONTROL_FLOW_GUARD)
-                // verify that the call target is valid
-                mov  ebx, eax     ; save call target
-                mov  ecx, eax
-                call [__guard_check_icall_fptr]
-                mov  eax, ebx     ; restore call target
+                    // verify that the call target is valid
+                    mov  ebx, eax; save call target
+                    mov  ecx, eax
+                    call[__guard_check_icall_fptr]
+                    mov  eax, ebx; restore call target
 #endif
-                push ebp
-                mov ebp, framePtr
-                call eax
-                pop ebp
+                    push ebp
+                    mov ebp, framePtr
+                    call eax
+                    pop ebp
 
-                // The native code gives us the address where execution should continue on exit
-                // from the region.
-                mov continuationAddr, eax
+                    // The native code gives us the address where execution should continue on exit
+                    // from the region.
+                    mov continuationAddr, eax
 
-                // Restore ESP
-                mov ecx, savedEsp
-                mov esp, ecx
+                    // Restore ESP
+                    mov ecx, savedEsp
+                    mov esp, ecx
 
-                pop ebx
-                pop edi
-                pop esi
-            }
+                    pop ebx
+                    pop edi
+                    pop esi
+                }
 #else
-            AssertMsg(FALSE, "Unsupported native try-catch handler");
+                AssertMsg(FALSE, "Unsupported native try-catch handler");
 #endif
-        }
-        catch(const Js::JavascriptException& err)
-        {
-            pExceptionObject = err.GetAndClear();
-#if ENABLE_NATIVE_CODEGEN
-            Assert(scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr);
-            if (pExceptionObject->GetExceptionContext() && pExceptionObject->GetExceptionContext()->ThrowingFunction())
-            {
-                WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */);
             }
+            catch (const Js::JavascriptException& err)
+            {
+                pExceptionObject = err.GetAndClear();
+#if ENABLE_NATIVE_CODEGEN
+                Assert(scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr);
+                if (!scriptContext->GetThreadContext()->GetCurrentTryCatchWalkedAndCleared())
+                {
+                    if (pExceptionObject->GetExceptionContext() && pExceptionObject->GetExceptionContext()->ThrowingFunction())
+                    {
+                        WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */);
+                    }
+                }
 #endif
+            }
         }
-
         // Let's run user catch handler code only after the stack has been unwound.
         if(pExceptionObject)
         {
@@ -626,6 +659,16 @@ namespace Js
                 // Re-throw!
                 JavascriptExceptionOperators::DoThrow(pExceptionObject, scriptContext);
             }
+#if ENABLE_NATIVE_CODEGEN
+            if (scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr)
+            {
+                if (pExceptionObject->GetExceptionContext() && pExceptionObject->GetExceptionContext()->ThrowingFunction())
+                {
+                    WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */);
+                    scriptContext->GetThreadContext()->SetCurrentTryCatchWalkedAndCleared(true);
+                }
+            }
+#endif
             scriptContext->GetThreadContext()->SetPendingFinallyException(pExceptionObject);
 
             void* newContinuationAddr = NULL;

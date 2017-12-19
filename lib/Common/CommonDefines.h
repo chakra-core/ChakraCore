@@ -171,26 +171,27 @@
 #endif
 
 
+#ifndef ENABLE_VALGRIND
+#define ENABLE_CONCURRENT_GC 1
+#ifdef _WIN32
+#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 1 // Needs ENABLE_CONCURRENT_GC to be enabled for this to be enabled.
+#else
+#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 0 // Needs ENABLE_CONCURRENT_GC to be enabled for this to be enabled.
+#endif
+#else
+#define ENABLE_CONCURRENT_GC 0
+#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 0 // Needs ENABLE_CONCURRENT_GC to be enabled for this to be enabled.
+#endif
+
 #ifdef _WIN32
 #define SYSINFO_IMAGE_BASE_AVAILABLE 1
-#define ENABLE_CONCURRENT_GC 1
-#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 1 // Only takes effect when ENABLE_CONCURRENT_GC is enabled.
-#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST 1 // Use Interlocked SLIST for allocableHeapBlockList
 #define SUPPORT_WIN32_SLIST 1
 #ifndef CHAKRACORE_LITE
 #define ENABLE_JS_ETW                               // ETW support
 #endif
 #else
 #define SYSINFO_IMAGE_BASE_AVAILABLE 0
-#ifndef ENABLE_VALGRIND
-#define ENABLE_CONCURRENT_GC 1
-#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 1 // Only takes effect when ENABLE_CONCURRENT_GC is enabled.
-#else
-#define ENABLE_CONCURRENT_GC 0
-#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 0 // Only takes effect when ENABLE_CONCURRENT_GC is enabled.
-#endif
 #define SUPPORT_WIN32_SLIST 0
-#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST 0 // Use Interlocked SLIST for allocableHeapBlockList
 #endif
 
 #ifdef CHAKRACORE_LITE
@@ -313,20 +314,13 @@
 #define DELAYLOAD_SET_CFG_TARGET 1
 #endif
 
-// Configure whether we configure a signal handler
-// to produce perf-<pid>.map files
-#ifndef PERFMAP_TRACE_ENABLED
-#define PERFMAP_TRACE_ENABLED 0
-#endif
 #ifndef PERFMAP_SIGNAL
 #define PERFMAP_SIGNAL SIGUSR2
 #endif
 
 #ifndef NTBUILD
 #define DELAYLOAD_SECTIONAPI 1
-#endif
-
-#ifdef NTBUILD
+#else
 #define ENABLE_PROJECTION
 #define ENABLE_FOUNDATION_OBJECT
 #define ENABLE_EXPERIMENTAL_FLAGS
@@ -681,15 +675,6 @@
 #define ENABLE_MEM_STATS 1
 #endif
 
-#define NO_SANITIZE_ADDRESS
-#if defined(__has_feature)
-#if __has_feature(address_sanitizer)
-#undef NO_SANITIZE_ADDRESS
-#define NO_SANITIZE_ADDRESS __attribute__((no_sanitize("address")))
-#define NO_SANITIZE_ADDRESS_FIXVC
-#endif
-#endif
-
 //----------------------------------------------------------------------------------------------------
 // Disabled features
 //----------------------------------------------------------------------------------------------------
@@ -730,6 +715,7 @@
 // xplat-todo: once all the wasm tests are passing on xplat, enable it for release builds
 #if defined(_WIN32) || (defined(__clang__) && defined(ENABLE_DEBUG_CONFIG_OPTIONS))
 #define ENABLE_WASM
+#define ENABLE_WASM_SIMD
 
 #ifdef CAN_BUILD_WABT
 #define ENABLE_WABT

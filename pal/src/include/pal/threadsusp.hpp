@@ -100,7 +100,7 @@ namespace CorUnix
             Volatile<LONG> m_lNumThreadsSuspendedByThisThread; // number of threads that this thread has suspended; used for suspension diagnostics
 #endif
 #if DEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX
-            CCSpinLock<false> m_nSpinlock; // thread's suspension spinlock, which is used to synchronize suspension and resumption attempts
+            CCLock m_nSpinlock; // thread's suspension spinlock, which is used to synchronize suspension and resumption attempts
 #else // DEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX
             pthread_mutex_t m_ptmSuspmutex; // thread's suspension mutex, which is used to synchronize suspension and resumption attempts
             BOOL m_fSuspmutexInitialized;
@@ -206,7 +206,7 @@ namespace CorUnix
 #endif // USE_POSIX_SEMAPHORES
 
 #if DEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX
-            CCSpinLock<false>*
+            CCLock*
             GetSuspensionSpinlock(
                 void
                 )

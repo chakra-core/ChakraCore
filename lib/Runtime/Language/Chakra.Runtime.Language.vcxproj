@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
@@ -94,6 +94,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptExceptionOperators.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptMathOperators.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ProfilingHelpers.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdInt64x2Operation.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SimdFloat32x4Operation.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM' AND '$(Platform)'!='Arm64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -239,6 +240,7 @@
     <ClInclude Include="JavascriptStackWalker.h" />
     <ClInclude Include="SimdFloat32x4Operation.h" />
     <ClInclude Include="SimdFloat64x2Operation.h" />
+    <ClInclude Include="SimdInt64x2Operation.h" />
     <ClInclude Include="SimdInt32x4Operation.h" />
     <ClInclude Include="SimdInt16x8Operation.h" />
     <ClInclude Include="SimdInt8x16Operation.h" />

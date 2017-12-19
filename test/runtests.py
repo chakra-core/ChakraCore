@@ -153,7 +153,7 @@ if args.verbose:
 # xplat: temp hard coded to exclude unsupported tests
 if sys.platform != 'win32':
     not_tags.add('exclude_xplat')
-    not_tags.add('Intl')
+    not_tags.add('require_winglob')
     not_tags.add('require_simd')
 
 if args.sanitize != None:

@@ -318,6 +318,11 @@ RecyclerWriteBarrierManager::OnSegmentFree(_In_ char* segmentAddress, size_t num
 void
 RecyclerWriteBarrierManager::WriteBarrier(void * address)
 {
+    if (IS_ASAN_FAKE_STACK_ADDR(address))
+    {
+        return;
+    }
+
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     VerifyIsBarrierAddress(address);
@@ -342,6 +347,11 @@ RecyclerWriteBarrierManager::WriteBarrier(void * address)
 void
 RecyclerWriteBarrierManager::WriteBarrier(void * address, size_t bytes)
 {
+    if (IS_ASAN_FAKE_STACK_ADDR(address))
+    {
+        return;
+    }
+
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     VerifyIsBarrierAddress(address, bytes);
 #endif

@@ -7,7 +7,7 @@
 namespace Js
 {
     class ScriptContext;
-    struct InlineCache;    
+    struct InlineCache;
     class CodeGenRecyclableData;
 #ifdef ENABLE_SCRIPT_DEBUGGING
     class DebugManager;
@@ -412,7 +412,9 @@ public:
     void AddSimdFuncInfo(Js::OpCode op, Js::FunctionInfo *funcInfo);
     Js::OpCode GetSimdOpcodeFromFuncInfo(Js::FunctionInfo * funcInfo);
     void GetSimdFuncSignatureFromOpcode(Js::OpCode op, SimdFuncSignature &funcSignature);
+#endif
 
+#if defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)
 #if _M_IX86 || _M_AMD64
     // auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle.
     _x86_SIMDValue X86_TEMP_SIMD[SIMD_TEMP_SIZE];
@@ -679,6 +681,7 @@ private:
     ThreadServiceWrapper* threadServiceWrapper;
     uint functionCount;
     uint sourceInfoCount;
+    bool isInlineeCleared;
     void * tryCatchFrameAddr;
     enum RedeferralState
     {
@@ -1257,6 +1260,8 @@ public:
 
     void * GetTryCatchFrameAddr() { return this->tryCatchFrameAddr; }
     void SetTryCatchFrameAddr(void * frameAddr) { this->tryCatchFrameAddr = frameAddr; }
+    bool GetCurrentTryCatchWalkedAndCleared() { return this->isInlineeCleared; }
+    void SetCurrentTryCatchWalkedAndCleared(bool isCleared) { this->isInlineeCleared = isCleared; }
 
     template <bool leaveForHost>
     void LeaveScriptStart(void *);
@@ -1324,7 +1329,7 @@ public:
 
     virtual intptr_t GetThreadStackLimitAddr() const override;
 
-#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SIMDJS) && (defined(_M_IX86) || defined(_M_X64))
+#if ENABLE_NATIVE_CODEGEN && (defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)) && (defined(_M_IX86) || defined(_M_X64))
     virtual intptr_t GetSimdTempAreaAddr(uint8 tempIndex) const override;
 #endif
 
@@ -1457,7 +1462,7 @@ public:
         }
     }
 
-    static BOOLEAN IsOnStack(void const *ptr);
+    static bool IsOnStack(void const *ptr);
     _NOINLINE bool IsStackAvailable(size_t size);
     _NOINLINE bool IsStackAvailableNoThrow(size_t size = Js::Constants::MinStackDefault);
     static bool IsCurrentStackAvailable(size_t size);

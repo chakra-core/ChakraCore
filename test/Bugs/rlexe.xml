@@ -165,6 +165,7 @@
     <default>
       <files>bug934443.js</files>
       <compile-flags>-force:fieldcopyprop -off:dynamicprofile</compile-flags>
+      <tags>exclude_sanitize_address</tags>
     </default>
   </test>
   <test>
@@ -307,8 +308,8 @@
   </test>
   <test>
     <default>
-      <files>bug10191241.js</files>
-      <compile-flags>-forceundodefer</compile-flags>
+      <files>misc_bugs.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

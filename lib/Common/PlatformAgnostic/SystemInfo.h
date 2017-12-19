@@ -17,7 +17,7 @@ namespace PlatformAgnostic
     path[str_len] = char(0)
 
 #ifdef _WIN32
-        static void GetBinaryLocation(char *path, const unsigned size)
+        static bool GetBinaryLocation(char *path, const unsigned size)
         {
             // TODO: make AssertMsg available under PlatformAgnostic
             //AssertMsg(path != nullptr, "Path can not be nullptr");
@@ -27,14 +27,14 @@ namespace PlatformAgnostic
             if (!wpath)
             {
                 SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: GetModuleFileName has failed. OutOfMemory!");
-                return;
+                return false;
             }
             str_len = GetModuleFileNameW(NULL, wpath, size - 1);
             if (str_len <= 0)
             {
                 SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: GetModuleFileName has failed.");
                 free(wpath);
-                return;
+                return false;
             }
 
             str_len = WideCharToMultiByte(CP_UTF8, 0, wpath, str_len, path, size, NULL, NULL);
@@ -43,7 +43,7 @@ namespace PlatformAgnostic
             if (str_len <= 0)
             {
                 SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: GetModuleFileName (WideCharToMultiByte) has failed.");
-                return;
+                return false;
             }
 
             if ((unsigned)str_len > size - 1)
@@ -51,9 +51,27 @@ namespace PlatformAgnostic
                 str_len = (int)size - 1;
             }
             path[str_len] = char(0);
+            return true;
+        }
+
+        // Overloaded GetBinaryLocation: receive the location of current binary in char16.
+        // size: the second parameter is the size of the path buffer in count of wide characters.
+        static bool GetBinaryLocation(char16 *path, const unsigned size)
+        {
+            // TODO: make AssertMsg available under PlatformAgnostic
+            //AssertMsg(path != nullptr, "Path can not be nullptr");
+            //AssertMsg(size < INT_MAX, "Isn't it too big for a path buffer?");
+            int str_len = GetModuleFileNameW(NULL, path, size);
+            if (str_len <= 0)
+            {
+                wcscpy_s(path, size, _u("GetBinaryLocation: GetModuleFileName has failed."));
+                return false;
+            }
+            return true;
         }
 #else
-        static void GetBinaryLocation(char *path, const unsigned size);
+        static bool GetBinaryLocation(char *path, const unsigned size);
+        static bool GetBinaryLocation(char16 *path, const unsigned size);
 #endif
     };
 } // namespace PlatformAgnostic

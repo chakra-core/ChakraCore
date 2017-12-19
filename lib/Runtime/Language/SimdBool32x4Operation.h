@@ -14,7 +14,9 @@ namespace Js {
 
         // Unary Ops
         static SIMDValue OpNot(const SIMDValue& v);
+        template <typename T = int>
         static bool OpAnyTrue(const SIMDValue& v);
+        template <typename T = int>
         static bool OpAllTrue(const SIMDValue& v);
 
         // Binary Ops

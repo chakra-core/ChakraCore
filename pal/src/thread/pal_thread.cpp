@@ -88,7 +88,7 @@ static Volatile<CPalThread*> free_threads_list PAL_GLOBAL = NULL;
 
 /* lock to access list of free THREAD structures */
 /* NOTE: can't use a CRITICAL_SECTION here (see comment in FreeTHREAD) */
-static CCSpinLock<false> free_threads_spinlock;
+static CCLock free_threads_spinlock;
 
 /* lock to access iEndingThreads counter, condition variable to signal shutdown
 thread when any remaining threads have died, and count of exiting threads that

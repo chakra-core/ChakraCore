@@ -37,7 +37,7 @@ WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byt
     m_customSections(nullptr)
 {
     m_alloc = HeapNew(ArenaAllocator, _u("WebAssemblyModule"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory);
-    //the first elm is the number of Vars in front of I32; makes for a nicer offset computation
+    // the first elem is the number of Vars in front of I32; makes for a nicer offset computation
     memset(m_globalCounts, 0, sizeof(uint) * Wasm::WasmTypes::Limit);
     m_functionsInfo = RecyclerNew(scriptContext->GetRecycler(), WasmFunctionInfosList, scriptContext->GetRecycler());
     m_imports = Anew(m_alloc, WasmImportsList, m_alloc);
@@ -881,7 +881,7 @@ uint
 WebAssemblyModule::GetOffsetForGlobal(Wasm::WasmGlobal* global) const
 {
     Wasm::WasmTypes::WasmType type = global->GetType();
-    if (type >= Wasm::WasmTypes::Limit)
+    if (!Wasm::WasmTypes::IsLocalType(type))
     {
         throw Wasm::WasmCompilationException(_u("Invalid Global type"));
     }
@@ -934,6 +934,10 @@ WebAssemblyModule::GetGlobalsByteSize() const
     uint32 size = 0;
     for (Wasm::WasmTypes::WasmType type = (Wasm::WasmTypes::WasmType)(Wasm::WasmTypes::Void + 1); type < Wasm::WasmTypes::Limit; type = (Wasm::WasmTypes::WasmType)(type + 1))
     {
+        if (!Wasm::WasmTypes::IsLocalType(type))
+        {
+            continue;
+        }
         size = AddGlobalByteSizeToOffset(type, size);
     }
     return size;

@@ -411,6 +411,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_WasmMathExFilter     (false)
 #define DEFAULT_CONFIG_WasmIgnoreResponse   (false)
 #define DEFAULT_CONFIG_WasmMaxTableSize     (10000000)
+#define DEFAULT_CONFIG_WasmSimd             (false)
 #define DEFAULT_CONFIG_WasmSignExtends      (false)
 #define DEFAULT_CONFIG_BgJitDelayFgBuffer   (0)
 #define DEFAULT_CONFIG_BgJitPendingFuncCap  (31)
@@ -611,6 +612,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES7TrailingComma        (true)
 #define DEFAULT_CONFIG_ES7ValuesEntries        (true)
 #define DEFAULT_CONFIG_ESObjectGetOwnPropertyDescriptors (true)
+#define DEFAULT_CONFIG_ESDynamicImport         (false)
 
 #define DEFAULT_CONFIG_ESSharedArrayBuffer     (true)
 
@@ -894,6 +896,9 @@ FLAGNR(Boolean, WasmFold              , "Enable i32/i64 const folding", DEFAULT_
 FLAGNR(Boolean, WasmIgnoreResponse    , "Ignore the type of the Response object", DEFAULT_CONFIG_WasmIgnoreResponse)
 FLAGNR(Number,  WasmMaxTableSize      , "Maximum size allowed to the WebAssembly.Table", DEFAULT_CONFIG_WasmMaxTableSize)
 FLAGNR(Boolean, WasmSignExtends       , "Use new WebAssembly sign extension operators", DEFAULT_CONFIG_WasmSignExtends)
+#ifdef ENABLE_WASM_SIMD
+FLAGNR(Boolean, WasmSimd              , "Enable SIMD in WebAssembly", DEFAULT_CONFIG_WasmSimd)
+#endif
 
 #ifdef ENABLE_SIMDJS
 #ifndef COMPILE_DISABLE_Simdjs
@@ -1045,6 +1050,11 @@ FLAGPR           (Boolean, ES6, ES7ValuesEntries       , "Enable ES7 Object.valu
 FLAGPR           (Boolean, ES6, ES7TrailingComma       , "Enable ES7 trailing comma in function"                    , DEFAULT_CONFIG_ES7TrailingComma)
 FLAGPR           (Boolean, ES6, ES6IsConcatSpreadable  , "Enable ES6 isConcatSpreadable Symbol"                     , DEFAULT_CONFIG_ES6IsConcatSpreadable)
 FLAGPR           (Boolean, ES6, ES6Math                , "Enable ES6 Math extensions"                               , DEFAULT_CONFIG_ES6Math)
+
+#ifndef COMPILE_DISABLE_ESDynamicImport
+    #define COMPILE_DISABLE_ESDynamicImport 0
+#endif
+FLAGPR_REGOVR_EXP(Boolean, ES6, ESDynamicImport        , "Enable dynamic import"                                    , DEFAULT_CONFIG_ESDynamicImport)
 
 FLAGPR           (Boolean, ES6, ES6Module              , "Enable ES6 Modules"                                       , DEFAULT_CONFIG_ES6Module)
 FLAGPR           (Boolean, ES6, ES6Object              , "Enable ES6 Object extensions"                             , DEFAULT_CONFIG_ES6Object)

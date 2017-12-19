@@ -143,7 +143,7 @@ void JsrtCallbackState::ObjectBeforeCallectCallbackWrapper(JsObjectBeforeCollect
             ConfigParser::ParseOnModuleLoad(parser, mod);
         }
 
-    #ifdef ENABLE_JS_ETW
+    #if defined(ENABLE_JS_ETW) && !defined(ENABLE_JS_LTTNG)
         EtwTrace::Register();
     #endif
     #ifdef VTUNE_PROFILING

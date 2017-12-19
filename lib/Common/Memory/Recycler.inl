@@ -496,17 +496,26 @@ Recycler::ScanObjectInlineInterior(void ** obj, size_t byteCount)
 template <bool doSpecialMark>
 NO_SANITIZE_ADDRESS
 inline void
-Recycler::ScanMemoryInline(void ** obj, size_t byteCount)
+Recycler::ScanMemoryInline(void ** obj, size_t byteCount
+            ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType scanMemoryType))
 {
     // This is never called during parallel marking
     Assert(this->collectionState != CollectionStateParallelMark);
+
+#if __has_feature(address_sanitizer)
+    void *asanFakeStack =
+        scanMemoryType == RecyclerScanMemoryType::Stack ? this->savedAsanFakeStack : nullptr;
+#endif
+
     if (this->enableScanInteriorPointers)
     {
-        markContext.ScanMemory<false, true, doSpecialMark>(obj, byteCount);
+        markContext.ScanMemory<false, true, doSpecialMark>(
+                obj, byteCount ADDRESS_SANITIZER_APPEND(asanFakeStack));
     }
     else
     {
-        markContext.ScanMemory<false, false, doSpecialMark>(obj, byteCount);
+        markContext.ScanMemory<false, false, doSpecialMark>(
+                obj, byteCount ADDRESS_SANITIZER_APPEND(asanFakeStack));
     }
 }
 
@@ -539,6 +548,9 @@ Recycler::NotifyFree(T * heapBlock)
 #if DBG || defined(RECYCLER_STATS)
         this->isForceSweeping = true;
         heapBlock->isForceSweeping = true;
+#endif
+#ifdef RECYCLER_TRACE
+        this->PrintBlockStatus(nullptr, heapBlock, _u("[**34**] calling SweepObjects during NotifyFree."));
 #endif
         heapBlock->template SweepObjects<SweepMode_InThread>(this);
 #if DBG || defined(RECYCLER_STATS)

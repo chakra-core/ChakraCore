@@ -140,7 +140,6 @@ PTNODE(knopStrTemplate, "``"               , Nop      , StrTemplate , fnopNone  
 PTNODE(knopWith       , "with"             , Nop      , With        , fnopNotExprStmt        , "WithStmt"                      )
 PTNODE(knopBreak      , "break"            , Nop      , Jump        , fnopNotExprStmt        , "BreakStmt"                     )
 PTNODE(knopContinue   , "continue"         , Nop      , Jump        , fnopNotExprStmt        , "ContinueStmt"                  )
-PTNODE(knopLabel      , "label"            , Nop      , Label       , fnopNotExprStmt        , "LabelDecl"                     )
 PTNODE(knopSwitch     , "switch"           , Nop      , Switch      , fnopNotExprStmt|fnopBreak, "SwitchStmt"                  )
 PTNODE(knopCase       , "case"             , Nop      , Case        , fnopNotExprStmt        , "CaseStmt"                      )
 PTNODE(knopTryCatch   , "try-catch"        , Nop      , TryCatch    , fnopNotExprStmt        , "TryCatchStmt"                  )

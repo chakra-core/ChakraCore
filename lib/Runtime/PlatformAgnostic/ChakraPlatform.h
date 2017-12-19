@@ -5,8 +5,16 @@
 #pragma once
 
 #include "UnicodeText.h"
-#include "EventTrace.h"
+
+// Configure whether we configure a signal handler
+// to produce perf-<pid>.map files
+#ifndef PERFMAP_TRACE_ENABLED
+#define PERFMAP_TRACE_ENABLED 0
+#endif
+
+#if PERFMAP_TRACE_ENABLED
 #include "PerfTrace.h"
+#endif
 
 #include "PlatformAgnostic/DateTime.h"
 #include "PlatformAgnostic/AssemblyCommon.h"

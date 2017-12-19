@@ -144,7 +144,7 @@ enum ObjectInfoBits : unsigned short
 
     // Allocation bits
     FinalizableLeafBits         = NewFinalizeBit | FinalizeBit | LeafBit,
-    FinalizableObjectBits       = NewFinalizeBit | FinalizeBit ,
+    FinalizableObjectBits       = NewFinalizeBit | FinalizeBit,
 #ifdef RECYCLER_WRITE_BARRIER
     FinalizableWithBarrierObjectBits = NewFinalizeBit | FinalizableWithBarrierBit,
 #endif
@@ -380,6 +380,19 @@ protected:
     bool needOOMRescan;                             // Set if we OOMed while marking a particular object
 #if ENABLE_CONCURRENT_GC
     bool isPendingConcurrentSweep;
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    // This flag is to identify whether this block was made available for allocations during the concurrent sweep and 
+    // still needs to be swept.
+    bool isPendingConcurrentSweepPrep;
+#if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
+    // This flag ensures a block doesn't get swept more than once during a given sweep.
+    bool hasFinishedSweepObjects;
+
+    // When allocate from a block during concurrent sweep some checks need to be delayed until
+    // the free and mark bits are rebuilt. This flag helps skip those validations until then.
+    bool wasAllocatedFromDuringSweep;
+#endif
+#endif
 #endif
 
 public:
@@ -399,6 +412,13 @@ public:
     {
         return (heapBlockType);
     }
+
+#if (DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)) && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    bool WasAllocatedFromDuringSweep()
+    {
+        return this->wasAllocatedFromDuringSweep;
+    }
+#endif
 
     IdleDecommitPageAllocator* GetPageAllocator(Recycler* recycler);
 
@@ -450,7 +470,7 @@ public:
 #endif
 };
 
-#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP && SUPPORT_WIN32_SLIST
 template <typename TBlockType>
 struct HeapBlockSListItem {
     // SLIST_ENTRY needs to be the first element in the structure to avoid calculating offset with the SList API calls.
@@ -547,6 +567,18 @@ public:
     ushort freeCount;
     ushort lastFreeCount;
     ushort markCount;
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+#if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
+    // We need to keep track of the number of objects allocated during concurrent sweep, to be
+    // able to make the correct determination about whether a block is EMPTY or FULL when the actual
+    // sweep of this block happens.
+    ushort objectsAllocatedDuringConcurrentSweepCount;
+    ushort objectsMarkedDuringSweep;
+    ushort lastObjectsAllocatedDuringConcurrentSweepCount;
+    bool blockNotReusedInPartialHeapBlockList;
+    bool blockNotReusedInPendingList;
+#endif
+#endif
 
 #if ENABLE_PARTIAL_GC
     ushort oldFreeCount;
@@ -729,6 +761,11 @@ public:
     virtual size_t GetObjectSize(void* object) const override { return objectSize; }
 
     uint GetMarkCountForSweep();
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+#if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
+    void ResetConcurrentSweepAllocationCounts();
+#endif
+#endif
     SweepState Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep, bool allocable, ushort finalizeCount = 0, bool hasPendingDispose = false);
     template <SweepMode mode>
     void SweepObjects(Recycler * recycler);
@@ -789,10 +826,10 @@ public:
 protected:
     static size_t GetAllocPlusSize(uint objectCount);
     inline void SetAttributes(void * address, unsigned char attributes);
+    ushort GetAddressIndex(void * objectAddress);
 
     SmallHeapBlockT(HeapBucket * bucket, ushort objectSize, ushort objectCount, HeapBlockType heapBlockType);
 
-    ushort GetAddressIndex(void * objectAddress);
     ushort GetInteriorAddressIndex(void * interiorAddress);
     ushort GetObjectIndexFromBitIndex(ushort bitIndex);
 

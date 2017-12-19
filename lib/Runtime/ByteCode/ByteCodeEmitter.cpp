@@ -180,7 +180,6 @@ bool IsArguments(ParseNode *pnode)
         case knopBlock:
         case knopBreak:
         case knopContinue:
-        case knopLabel:
         case knopTypeof:
         case knopThrow:
         case knopWith:
@@ -11107,8 +11106,6 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
 
         byteCodeGenerator->Writer()->Br(funcInfo->singleExit);
         byteCodeGenerator->EndStatement(pnode);
-        break;
-    case knopLabel:
         break;
         // PTNODE(knopBlock      , "{}"        ,None    ,Block,fnopNone)
     case knopBlock:

@@ -58,6 +58,13 @@ public:
 
     void AddPendingDisposeObject()
     {
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+        if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
+        {
+            AssertMsg(!this->isPendingConcurrentSweepPrep, "Finalizable blocks don't support allocations during concurrent sweep.");
+        }
+#endif
+
         this->pendingDisposeCount++;
         Assert(this->pendingDisposeCount <= this->objectCount);
     }

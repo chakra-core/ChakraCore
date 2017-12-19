@@ -36,9 +36,8 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2_WMS( R1toD1Mem        , Conv_VTD     , JavascriptConversion::ToNumber                     ) // convert var to double
   DEF2_WMS( R1toF1Mem        , Conv_VTF     , JavascriptConversion::ToNumber                     ) // convert var to float
   DEF2_WMS( R1toI1Mem        , Conv_VTI     , JavascriptMath::ToInt32                            ) // convert var to int
-  DEF3_WMS( CUSTOM_ASMJS     , Conv_VTL     , OP_InvalidWasmTypeConversion<false> , Long1Reg1    ) // convert var to int64
-  DEF3_WMS( CUSTOM_ASMJS     , ArgOut_Long  , OP_InvalidWasmTypeConversion<true>  , Reg1Long1    ) // convert int64 to Var
-
+  DEF3_WMS( CUSTOM_ASMJS     , Conv_VTL     , (OP_InvalidWasmTypeConversion<Wasm::WasmTypes::I64,false>) , Long1Reg1    ) // convert var to int64
+  DEF3_WMS( CUSTOM_ASMJS     , ArgOut_Long  , (OP_InvalidWasmTypeConversion<Wasm::WasmTypes::I64,true>)  , Reg1Long1    ) // convert int64 to Var
   DEF3_WMS( CUSTOM_ASMJS     , LdArr_Func   , OP_LdArrFunc                 , ElementSlot         )
   DEF3_WMS( CUSTOM_ASMJS     , LdArr_WasmFunc,OP_LdArrWasmFunc             , ElementSlot         )
   DEF3_WMS( CUSTOM_ASMJS     , CheckSignature,OP_CheckSignature            , Reg1IntConst1       )
@@ -283,6 +282,8 @@ EXDEF2_WMS( D1toD1Mem, PrintF64, WAsmJs::Tracing::PrintF64 )
 #endif
   //unary ops
 
+#if defined(ENABLE_SIMD_JS) || defined(ENABLE_WASM_SIMD)
+
 EXDEF2_WMS( SIMD_F4_1toF4_1  , Simd128_Ld_F4        , (AsmJsSIMDValue)                                   )
   DEF2_WMS( SIMD_I4_1toI4_1  , Simd128_Ld_I4        , (AsmJsSIMDValue)                                   )
 EXDEF2_WMS( SIMD_B4_1toB4_1  , Simd128_Ld_B4        , (AsmJsSIMDValue)                                   )
@@ -301,7 +302,9 @@ EXDEF4_WMS(TEMPLATE_ASMJS    , Simd128_StSlot_F4    , OP_StSlotPrimitive        
 EXDEF2_WMS( SIMD_F4_1toF4_1  , Simd128_Return_F4    , (AsmJsSIMDValue)                                   )
   DEF2_WMS( SIMD_I4_1toI4_1  , Simd128_Return_I4    , (AsmJsSIMDValue)                                   )
 
+EXDEF2_WMS(SIMD_D1toD2_1     , Simd128_Splat_D2   , Js::SIMDFloat64x2Operation::OpSplat                  )
 EXDEF2_WMS( SIMD_F1toF4_1    , Simd128_Splat_F4     ,Js::SIMDFloat32x4Operation::OpSplat                 )
+EXDEF2_WMS( SIMD_L1toI2_1    , Simd128_Splat_I2     ,Js::SIMDInt64x2Operation::OpSplat                   )
   DEF2_WMS( SIMD_I1toI4_1    , Simd128_Splat_I4     ,Js::SIMDInt32x4Operation::OpSplat                   )
 
 //EXDEF2_WMS( SIMD_D2_1toF4_1  , Simd128_FromFloat64x2_F4    ,SIMDFloat32x4Operation::OpFromFloat64x2      )
@@ -316,6 +319,7 @@ EXDEF2_WMS( SIMD_I4_1toF4_1  , Simd128_FromInt32x4Bits_F4  ,Js::SIMDUtils::FromS
 
 EXDEF2_WMS( SIMD_F4_1toF4_1  , Simd128_Abs_F4              ,SIMDFloat32x4Operation::OpAbs                )
 
+EXDEF2_WMS( SIMD_I2_1toI2_1  , Simd128_Neg_I2              ,SIMDInt64x2Operation::OpNeg                  )
 EXDEF2_WMS( SIMD_F4_1toF4_1  , Simd128_Neg_F4              ,SIMDFloat32x4Operation::OpNeg                )
   DEF2_WMS( SIMD_I4_1toI4_1  , Simd128_Neg_I4              ,SIMDInt32x4Operation::OpNeg                  )
 
@@ -328,21 +332,30 @@ EXDEF2_WMS( SIMD_B4_1toB4_1  , Simd128_Not_B4              , Js::SIMDInt32x4Oper
 EXDEF2_WMS( SIMD_B8_1toB8_1  , Simd128_Not_B8              , Js::SIMDInt32x4Operation::OpNot             )
 EXDEF2_WMS( SIMD_B16_1toB16_1, Simd128_Not_B16             , Js::SIMDInt32x4Operation::OpNot             )
 
-EXDEF2_WMS( SIMD_B4_1toI1, Simd128_AllTrue_B4            , Js::SIMDBool32x4Operation::OpAllTrue        )
-EXDEF2_WMS( SIMD_B8_1toI1, Simd128_AllTrue_B8            , Js::SIMDBool32x4Operation::OpAllTrue        )
-EXDEF2_WMS( SIMD_B16_1toI1, Simd128_AllTrue_B16          , Js::SIMDBool32x4Operation::OpAllTrue        )
+EXDEF2_WMS( SIMD_B2_1toI1, Simd128_AllTrue_B2            , Js::SIMDBool32x4Operation::OpAllTrue<int64>        )
+EXDEF2_WMS( SIMD_B4_1toI1, Simd128_AllTrue_B4            , Js::SIMDBool32x4Operation::OpAllTrue<int32>        )
+EXDEF2_WMS( SIMD_B8_1toI1, Simd128_AllTrue_B8            , Js::SIMDBool32x4Operation::OpAllTrue<int16>        )
+EXDEF2_WMS( SIMD_B16_1toI1, Simd128_AllTrue_B16          , Js::SIMDBool32x4Operation::OpAllTrue<int8>         )
 
-EXDEF2_WMS( SIMD_B4_1toI1, Simd128_AnyTrue_B4            , Js::SIMDBool32x4Operation::OpAnyTrue        )
-EXDEF2_WMS( SIMD_B8_1toI1, Simd128_AnyTrue_B8            , Js::SIMDBool32x4Operation::OpAnyTrue        )
-EXDEF2_WMS( SIMD_B16_1toI1, Simd128_AnyTrue_B16          , Js::SIMDBool32x4Operation::OpAnyTrue        )
+EXDEF2_WMS( SIMD_B2_1toI1, Simd128_AnyTrue_B2            , Js::SIMDBool32x4Operation::OpAnyTrue<int64>        )
+EXDEF2_WMS( SIMD_B4_1toI1, Simd128_AnyTrue_B4            , Js::SIMDBool32x4Operation::OpAnyTrue<int32>        )
+EXDEF2_WMS( SIMD_B8_1toI1, Simd128_AnyTrue_B8            , Js::SIMDBool32x4Operation::OpAnyTrue<int16>        )
+EXDEF2_WMS( SIMD_B16_1toI1, Simd128_AnyTrue_B16          , Js::SIMDBool32x4Operation::OpAnyTrue<int8>         )
 
   DEF2_WMS(SIMD_I4_1I1toI4_1 , Simd128_ShLtByScalar_I4     , Js::SIMDInt32x4Operation::OpShiftLeftByScalar)
+EXDEF2_WMS(SIMD_I2_1I1toI2_1 , Simd128_ShLtByScalar_I2     , Js::SIMDInt64x2Operation::OpShiftLeftByScalar)
   DEF2_WMS(SIMD_I4_1I1toI4_1 , Simd128_ShRtByScalar_I4     , Js::SIMDInt32x4Operation::OpShiftRightByScalar)
+EXDEF2_WMS(SIMD_I2_1I1toI2_1 , Simd128_ShRtByScalar_I2     , Js::SIMDInt64x2Operation::OpShiftRightByScalar)
+
+// ternary ops
+EXDEF2_WMS( SIMD_I4_3toI4_1  , Simd128_BitSelect_I4          , SIMDUtils::SIMD128BitSelect)
 
   // binary ops
+EXDEF2_WMS( SIMD_I2_2toI2_1  , Simd128_Add_I2              , Js::SIMDInt64x2Operation::OpAdd             )
 EXDEF2_WMS( SIMD_F4_2toF4_1  , Simd128_Add_F4              , Js::SIMDFloat32x4Operation::OpAdd           )
   DEF2_WMS( SIMD_I4_2toI4_1  , Simd128_Add_I4              , Js::SIMDInt32x4Operation::OpAdd             )
 
+EXDEF2_WMS( SIMD_I2_2toI2_1  , Simd128_Sub_I2              , Js::SIMDInt64x2Operation::OpSub             )
 EXDEF2_WMS( SIMD_F4_2toF4_1  , Simd128_Sub_F4              , Js::SIMDFloat32x4Operation::OpSub           )
   DEF2_WMS( SIMD_I4_2toI4_1  , Simd128_Sub_I4              , Js::SIMDInt32x4Operation::OpSub             )
 
@@ -395,6 +408,7 @@ EXDEF2_WMS( SIMD_B8_1U8_2toU8_1     , Simd128_Select_U8   , Js::SIMDInt32x4Opera
 EXDEF2_WMS( SIMD_B16_1U16_2toU16_1   , Simd128_Select_U16  , Js::SIMDInt32x4Operation::OpSelect         )
 
   // args out, copy value to outParams
+EXDEF3_WMS   ( CUSTOM_ASMJS      , Simd128_ArgOut_F4       , (OP_InvalidWasmTypeConversion<Wasm::WasmTypes::M128,true>)  , Reg1Float32x4_1)
 EXDEF2_WMS   ( SIMD_F4_1toR1Mem  , Simd128_I_ArgOut_F4     , OP_I_SetOutAsmSimd                          )
   DEF2_WMS   ( SIMD_I4_1toR1Mem  , Simd128_I_ArgOut_I4     , OP_I_SetOutAsmSimd                          )
 
@@ -459,15 +473,19 @@ EXDEF2_WMS ( SIMD_I16_1toR1Mem  , Simd128_I_ArgOut_I16     , OP_I_SetOutAsmSimd 
 EXDEF2_WMS   ( SIMD_I16_1I1toI1    , Simd128_ExtractLane_I16 , SIMDUtils::SIMD128InnerExtractLaneI16       )
 EXDEF2_WMS   ( SIMD_I16_1I2toI16_1 , Simd128_ReplaceLane_I16 , SIMDUtils::SIMD128InnerReplaceLaneI16       )
 EXDEF2_WMS   ( SIMD_I4_1I1toI1   , Simd128_ExtractLane_I4  , SIMDUtils::SIMD128InnerExtractLaneI4        )
+EXDEF2_WMS   ( SIMD_I2_1I1toL1   , Simd128_ExtractLane_I2  , SIMDUtils::SIMD128InnerExtractLaneI2        )
+EXDEF2_WMS   ( SIMD_D2_1I1toD1   , Simd128_ExtractLane_D2  , SIMDUtils::SIMD128InnerExtractLaneD2        )
+EXDEF2_WMS   ( SIMD_D2_1I1D1toD2_1 , Simd128_ReplaceLane_D2 , SIMDUtils::SIMD128InnerReplaceLaneD2       )
 EXDEF2_WMS   ( SIMD_F4_1I1toF1   , Simd128_ExtractLane_F4  , SIMDUtils::SIMD128InnerExtractLaneF4        )
 EXDEF2_WMS   ( SIMD_I8_1I1toI1   , Simd128_ExtractLane_I8  , SIMDUtils::SIMD128InnerExtractLaneI8        )
 EXDEF2_WMS   ( SIMD_U4_1I1toI1   , Simd128_ExtractLane_U4  , SIMDUtils::SIMD128InnerExtractLaneI4        )
 EXDEF2_WMS   ( SIMD_U8_1I1toI1   , Simd128_ExtractLane_U8  , SIMDUtils::SIMD128InnerExtractLaneI8        )
 EXDEF2_WMS   ( SIMD_U16_1I1toI1  , Simd128_ExtractLane_U16 , SIMDUtils::SIMD128InnerExtractLaneI16       )
-EXDEF2_WMS   ( SIMD_B4_1I1toI1   , Simd128_ExtractLane_B4  , SIMDUtils::SIMD128InnerExtractLaneI4        )
-EXDEF2_WMS   ( SIMD_B8_1I1toI1   , Simd128_ExtractLane_B8  , SIMDUtils::SIMD128InnerExtractLaneI8        )
-EXDEF2_WMS   ( SIMD_B16_1I1toI1  , Simd128_ExtractLane_B16 , SIMDUtils::SIMD128InnerExtractLaneI16       )
+EXDEF2_WMS   ( SIMD_B4_1I1toI1   , Simd128_ExtractLane_B4  , SIMDUtils::SIMD128InnerExtractLaneB4        )
+EXDEF2_WMS   ( SIMD_B8_1I1toI1   , Simd128_ExtractLane_B8  , SIMDUtils::SIMD128InnerExtractLaneB8        )
+EXDEF2_WMS   ( SIMD_B16_1I1toI1  , Simd128_ExtractLane_B16 , SIMDUtils::SIMD128InnerExtractLaneB16       )
 
+EXDEF2_WMS   ( SIMD_I2_1I1L1toI2_1 , Simd128_ReplaceLane_I2 , SIMDUtils::SIMD128InnerReplaceLaneI2       )
 EXDEF2_WMS   ( SIMD_I4_1I2toI4_1   , Simd128_ReplaceLane_I4 , SIMDUtils::SIMD128InnerReplaceLaneI4       )
 EXDEF2_WMS   ( SIMD_F4_1I1F1toF4_1 , Simd128_ReplaceLane_F4 , SIMDUtils::SIMD128InnerReplaceLaneF4       )
 EXDEF2_WMS   ( SIMD_I8_1I2toI8_1   , Simd128_ReplaceLane_I8 , SIMDUtils::SIMD128InnerReplaceLaneI8       )
@@ -583,6 +601,7 @@ EXDEF2_WMS(SIMD_I16_1I1toI16_1 , Simd128_ShRtByScalar_I16    , Js::SIMDInt8x16Op
 
 EXDEF2_WMS(SIMD_U4_1I1toU4_1   , Simd128_ShLtByScalar_U4     , Js::SIMDInt32x4Operation::OpShiftLeftByScalar  )
 EXDEF2_WMS(SIMD_U4_1I1toU4_1   , Simd128_ShRtByScalar_U4     , Js::SIMDUint32x4Operation::OpShiftRightByScalar )
+EXDEF2_WMS(SIMD_I2_1I1toI2_1   , Simd128_ShRtByScalar_U2     , Js::SIMDInt64x2Operation::OpShiftRightByScalarU)
 
 EXDEF2_WMS(SIMD_U8_1I1toU8_1   , Simd128_ShLtByScalar_U8     , Js::SIMDInt16x8Operation::OpShiftLeftByScalar  )
 EXDEF2_WMS(SIMD_U8_1I1toU8_1   , Simd128_ShRtByScalar_U8     , Js::SIMDUint16x8Operation::OpShiftRightByScalar )
@@ -629,6 +648,7 @@ EXDEF2_WMS( SIMD_U8_1toI16_1 , Simd128_FromUint16x8Bits_I16   , Js::SIMDUtils::F
 EXDEF2_WMS( SIMD_U16_1toI16_1, Simd128_FromUint8x16Bits_I16   , Js::SIMDUtils::FromSimdBits                   )
 
 EXDEF3_WMS( CUSTOM_ASMJS     , Simd128_FromFloat32x4_U4       , OP_SimdUint32x4FromFloat32x4 , Uint32x4_1Float32x4_1)
+EXDEF3_WMS( CUSTOM_ASMJS     , Simd128_LdC                    , OP_WasmSimdConst             , Float32x4_IntConst4)
 EXDEF2_WMS( SIMD_F4_1toU4_1  , Simd128_FromFloat32x4Bits_U4   , Js::SIMDUtils::FromSimdBits                   )
 EXDEF2_WMS( SIMD_I4_1toU4_1  , Simd128_FromInt32x4Bits_U4     , Js::SIMDUtils::FromSimdBits                   )
 EXDEF2_WMS( SIMD_I8_1toU4_1  , Simd128_FromInt16x8Bits_U4     , Js::SIMDUtils::FromSimdBits                   )
@@ -689,22 +709,10 @@ EXDEF2_WMS( SIMD_U16_2toB16_1 , Simd128_Gt_U16              , Js::SIMDUint8x16Op
 EXDEF2_WMS( SIMD_U4_1toU4_1     , Simd128_Neg_U4              , SIMDInt32x4Operation::OpNeg                     )
 EXDEF2_WMS( SIMD_U8_1toU8_1     , Simd128_Neg_U8              , SIMDInt16x8Operation::OpNeg                     )
 EXDEF2_WMS( SIMD_U16_1toU16_1   , Simd128_Neg_U16             , SIMDInt8x16Operation::OpNeg                     )
+EXDEF3_WMS( CUSTOM_ASMJS        , Simd128_Shuffle_V8X16       , OP_SimdShuffleV8X16           ,       AsmShuffle)
 
-#if 0
-EXDEF2_WMS(SIMD_D2toD2_1, Simd128_DoublesToD2, SIMDFloat64x2Operation::OpFloat64x2)
-EXDEF4_WMS(TEMPLATE_ASMJS, Simd128_LdSlot_D2, OP_LdSlotPrimitive, ElementSlot, AsmJsSIMDValue)
-EXDEF4_WMS(TEMPLATE_ASMJS, Simd128_StSlot_D2, OP_StSlotPrimitive, ElementSlot, AsmJsSIMDValue)
-EXDEF2_WMS(SIMD_D2_1toD2_1, Simd128_Return_D2, (AsmJsSIMDValue))
-EXDEF2_WMS(SIMD_D1toD2_1, Simd128_Splat_D2, Js::SIMDFloat64x2Operation::OpSplat)
-EXDEF2_WMS(SIMD_F4_1toD2_1, Simd128_FromFloat32x4_D2, SIMDFloat64x2Operation::OpFromFloat32x4)
-EXDEF2_WMS(SIMD_F4_1toD2_1, Simd128_FromFloat32x4Bits_D2, Js::FromSimdBits)
-EXDEF2_WMS(SIMD_I4_1toD2_1, Simd128_FromInt32x4_D2, SIMDFloat64x2Operation::OpFromInt32x4)
-EXDEF2_WMS(SIMD_I4_1toD2_1, Simd128_FromInt32x4Bits_D2, Js::FromSimdBits)
 EXDEF2_WMS(SIMD_D2_1toD2_1, Simd128_Abs_D2, SIMDFloat64x2Operation::OpAbs)
 EXDEF2_WMS(SIMD_D2_1toD2_1, Simd128_Neg_D2, SIMDFloat64x2Operation::OpNeg)
-EXDEF2_WMS(SIMD_D2_1toD2_1, Simd128_Rcp_D2, SIMDFloat64x2Operation::OpReciprocal)
-EXDEF2_WMS(SIMD_D2_1toD2_1, Simd128_RcpSqrt_D2, SIMDFloat64x2Operation::OpReciprocalSqrt)
-EXDEF2_WMS(SIMD_D2_1toD2_1, Simd128_Sqrt_D2, SIMDFloat64x2Operation::OpSqrt)
 EXDEF2_WMS(SIMD_D2_2toD2_1, Simd128_Add_D2, Js::SIMDFloat64x2Operation::OpAdd)
 EXDEF2_WMS(SIMD_D2_2toD2_1, Simd128_Sub_D2, Js::SIMDFloat64x2Operation::OpSub)
 EXDEF2_WMS(SIMD_D2_2toD2_1, Simd128_Mul_D2, Js::SIMDFloat64x2Operation::OpMul)
@@ -717,6 +725,23 @@ EXDEF2_WMS(SIMD_D2_2toD2_1, Simd128_Eq_D2, Js::SIMDFloat64x2Operation::OpEqual)
 EXDEF2_WMS(SIMD_D2_2toD2_1, Simd128_Neq_D2, Js::SIMDFloat64x2Operation::OpNotEqual)
 EXDEF2_WMS(SIMD_D2_2toD2_1, Simd128_GtEq_D2, Js::SIMDFloat64x2Operation::OpGreaterThanOrEqual)
 EXDEF2_WMS(SIMD_D2_2toD2_1, Simd128_Gt_D2, Js::SIMDFloat64x2Operation::OpGreaterThan)
+EXDEF2_WMS(SIMD_D2_1toD2_1, Simd128_Sqrt_D2, SIMDFloat64x2Operation::OpSqrt)
+EXDEF2_WMS(SIMD_I2_1toI2_P, Simd128_FromInt64x2_D2, SIMDFloat64x2Operation::OpConv<int64>)
+EXDEF2_WMS(SIMD_I2_1toI2_P, Simd128_FromUint64x2_D2, SIMDFloat64x2Operation::OpConv<uint64>)
+EXDEF2_WMS(SIMD_I2_1toI2_P, Simd128_FromFloat64x2_I2, SIMDInt64x2Operation::OpTrunc<int64>)
+EXDEF2_WMS(SIMD_I2_1toI2_P, Simd128_FromFloat64x2_U2, SIMDInt64x2Operation::OpTrunc<uint64>)
+
+#if 0
+EXDEF2_WMS(SIMD_D2toD2_1, Simd128_DoublesToD2, SIMDFloat64x2Operation::OpFloat64x2)
+EXDEF4_WMS(TEMPLATE_ASMJS, Simd128_LdSlot_D2, OP_LdSlotPrimitive, ElementSlot, AsmJsSIMDValue)
+EXDEF4_WMS(TEMPLATE_ASMJS, Simd128_StSlot_D2, OP_StSlotPrimitive, ElementSlot, AsmJsSIMDValue)
+EXDEF2_WMS(SIMD_D2_1toD2_1, Simd128_Return_D2, (AsmJsSIMDValue))
+EXDEF2_WMS(SIMD_F4_1toD2_1, Simd128_FromFloat32x4_D2, SIMDFloat64x2Operation::OpFromFloat32x4)
+EXDEF2_WMS(SIMD_F4_1toD2_1, Simd128_FromFloat32x4Bits_D2, Js::FromSimdBits)
+EXDEF2_WMS(SIMD_I4_1toD2_1, Simd128_FromInt32x4_D2, SIMDFloat64x2Operation::OpFromInt32x4)
+EXDEF2_WMS(SIMD_I4_1toD2_1, Simd128_FromInt32x4Bits_D2, Js::FromSimdBits)
+EXDEF2_WMS(SIMD_D2_1toD2_1, Simd128_Rcp_D2, SIMDFloat64x2Operation::OpReciprocal)
+EXDEF2_WMS(SIMD_D2_1toD2_1, Simd128_RcpSqrt_D2, SIMDFloat64x2Operation::OpReciprocalSqrt)
 EXDEF2_WMS(SIMD_I4_1D2_2toD2_1, Simd128_Select_D2, Js::SIMDFloat64x2Operation::OpSelect)
 EXDEF2_WMS(SIMD_D2_3toD2_1, Simd128_Clamp_D2, Js::SIMDFloat64x2Operation::OpClamp)
 EXDEF2_WMS(SIMD_D2_1toI1, Simd128_LdSignMask_D2, Js::SIMDFloat64x2Operation::OpGetSignMask)
@@ -729,5 +754,6 @@ EXDEF3_WMS(CUSTOM_ASMJS, Simd128_LdArr_D2, OP_SimdLdArrGeneric, AsmSimdTypedArr)
 EXDEF3_WMS(CUSTOM_ASMJS, Simd128_LdArrConst_D2, OP_SimdLdArrConstIndex, AsmSimdTypedArr)
 EXDEF3_WMS(CUSTOM_ASMJS, Simd128_StArrConst_D2, OP_SimdStArrConstIndex, AsmSimdTypedArr)
 #endif // 0
+#endif
 
 #endif

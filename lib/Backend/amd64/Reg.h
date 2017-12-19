@@ -44,6 +44,7 @@ enum _XmmArgRegs {
 #define FIRST_FLOAT_REG RegXMM0
 #define FIRST_FLOAT_ARG_REG RegXMM0
 #define XMM_REGCOUNT 16
+#define CATCH_OBJ_REG RegRAX
 
 #define FOREACH_REG(reg) \
         for (RegNum reg = (RegNum)(RegNOREG+1); reg != RegNumCount; reg = (RegNum)(reg+1))

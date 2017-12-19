@@ -89,6 +89,9 @@ public:
     void PrepareSweep();
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     void StartAllocationsDuringConcurrentSweep();
+    bool DoTwoPassConcurrentSweepPreCheck();
+    void FinishSweepPrep(RecyclerSweep& recyclerSweep);
+    void FinishConcurrentSweepPass1(RecyclerSweep& recyclerSweep);
     void FinishConcurrentSweep();
 #endif
 
@@ -462,7 +465,7 @@ private:
     LargeHeapBucket largeObjectBucket;
 
     static const size_t ObjectAlignmentMask = HeapConstants::ObjectGranularity - 1;         // 0xF
-#ifdef RECYCLER_SLOW_CHECK_ENABLED
+#if defined(RECYCLER_SLOW_CHECK_ENABLED)
     size_t heapBlockCount[HeapBlock::BlockTypeCount];
 #endif
 #ifdef RECYCLER_FINALIZE_CHECK

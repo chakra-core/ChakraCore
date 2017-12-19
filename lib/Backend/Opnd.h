@@ -244,6 +244,7 @@ public:
     bool                IsSimd128B8()  const { return this->m_type == TySimd128B8;  }
     bool                IsSimd128B16() const { return this->m_type == TySimd128B16; }
     bool                IsSimd128D2()  const { return this->m_type == TySimd128D2;  }
+    bool                IsSimd128I2()  const { return this->m_type == TySimd128I2; }
     bool                IsVar() const { return this->m_type == TyVar; }
     bool                IsTaggedInt() const;
     bool                IsTaggedValue() const;

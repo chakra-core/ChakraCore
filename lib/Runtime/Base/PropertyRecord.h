@@ -121,8 +121,46 @@ namespace Js
 
         bool Equals(JsUtil::CharacterBuffer<WCHAR> const & str) const
         {
-            return (LEN - 1 == str.GetLength() &&
-                JsUtil::CharacterBuffer<WCHAR>::StaticEquals(buffer, str.GetBuffer(), LEN - 1));
+#ifndef _NTBUILD
+            AssertMsg(false, "Do you really have to use this interface?");
+#endif
+            return Equals(str.GetBuffer(), str.GetLength());
+        }
+
+        bool Equals(JavascriptString * str) const
+        {
+            PropertyString * propString = PropertyString::TryFromVar(str);
+            const PropertyRecord * propRecord = nullptr;
+            if (propString == nullptr)
+            {
+                LiteralStringWithPropertyStringPtr * lstr = LiteralStringWithPropertyStringPtr::TryFromVar(str);
+                propRecord = lstr->GetPropertyRecord();
+            }
+            else
+            {
+                propRecord = propString->GetPropertyRecord();
+            }
+
+
+            if (propRecord == nullptr)
+            {
+                return Equals(str->GetString(), str->GetLength());
+            }
+            else
+            {
+                return Equals(propRecord->GetPropertyId());
+            }
+        }
+
+        bool Equals(const PropertyId & propertyId) const
+        {
+            return propertyId == propertyRecord.GetPropertyId();
+        }
+
+        bool Equals(const WCHAR * str, const charcount_t length) const
+        {
+            return (LEN - 1 == length &&
+                JsUtil::CharacterBuffer<WCHAR>::StaticEquals(buffer, str, LEN - 1));
         }
     };
 
@@ -169,8 +207,7 @@ namespace Js
     {
         inline static bool Equals(PropertyRecord const * str1, PropertyRecord const * str2)
         {
-            return (str1->GetLength() == str2->GetLength() &&
-                JsUtil::CharacterBuffer<WCHAR>::StaticEquals(str1->GetBuffer(), str2->GetBuffer(), str1->GetLength()));
+            return str1->GetPropertyId() == str2->GetPropertyId();
         }
 
         inline static bool Equals(PropertyRecord const * str1, JsUtil::CharacterBuffer<WCHAR> const * str2)
