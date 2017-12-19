@@ -27,6 +27,8 @@ struct CapturedValues
     SListBase<CopyPropSyms> copyPropSyms;                      // Captured copy prop values during glob opt
     BVSparse<JitArenaAllocator> * argObjSyms;                  // Captured arg object symbols during glob opt
 
+
+    CapturedValues() : argObjSyms(nullptr) {}
     ~CapturedValues()
     {
         // Reset SListBase to be exception safe. Captured values are from GlobOpt->func->alloc
