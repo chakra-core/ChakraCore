@@ -38,7 +38,8 @@
 MessageQueue* WScriptJsrt::messageQueue = nullptr;
 std::map<std::string, JsModuleRecord>  WScriptJsrt::moduleRecordMap;
 std::map<JsModuleRecord, std::string>  WScriptJsrt::moduleDirMap;
-std::map<DWORD_PTR, std::string> WScriptJsrt::scriptDirMap;
+std::map<std::string, std::string>     WScriptJsrt::moduleSourceMap;
+std::map<DWORD_PTR, std::string>       WScriptJsrt::scriptDirMap;
 DWORD_PTR WScriptJsrt::sourceContext = 0;
 
 #define ERROR_MESSAGE_TO_STRING(errorCode, errorMessage, errorMessageString)        \
@@ -186,7 +187,7 @@ JsValueRef WScriptJsrt::LoadScriptFileHelper(JsValueRef callee, JsValueRef *argu
     }
     else
     {
-        LPCSTR fileContent;
+        LPCSTR fileContent = nullptr;
         AutoString fileName(arguments[1]);
         IfJsrtErrorSetGo(fileName.GetError());
 
@@ -198,7 +199,21 @@ JsValueRef WScriptJsrt::LoadScriptFileHelper(JsValueRef callee, JsValueRef *argu
 
         if (errorCode == JsNoError)
         {
-            hr = Helpers::LoadScriptFromFile(*fileName, fileContent);
+            if (isSourceModule || (*scriptInjectType != nullptr && strcmp(*scriptInjectType, "module") == 0))
+            {
+                auto moduleSourceEntry = moduleSourceMap.find(std::string(fileName.GetString()));
+                if (moduleSourceEntry != moduleSourceMap.end())
+                {
+                    fileContent = moduleSourceEntry->second.c_str();
+                    hr = S_OK;
+                }
+            }
+
+            if (fileContent == nullptr)
+            {
+                hr = Helpers::LoadScriptFromFile(*fileName, fileContent);
+            }
+
             if (FAILED(hr))
             {
                 fwprintf(stderr, _u("Couldn't load file.\n"));
@@ -237,6 +252,60 @@ JsValueRef __stdcall WScriptJsrt::LoadScriptCallback(JsValueRef callee, bool isC
 JsValueRef __stdcall WScriptJsrt::LoadModuleCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
     return LoadScriptHelper(callee, isConstructCall, arguments, argumentCount, callbackState, true);
+}
+
+JsValueRef __stdcall WScriptJsrt::RegisterModuleSourceCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    AutoString fileNameString;
+    AutoString fileContentString;
+
+    HRESULT hr = E_FAIL;
+    JsErrorCode errorCode = JsNoError;
+    LPCWSTR errorMessage = _u("");
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+
+    if (argumentCount < 3 || argumentCount > 3)
+    {
+        errorCode = JsErrorInvalidArgument;
+        errorMessage = _u("Need more or fewer arguments for WScript.LoadScript");
+    }
+    else
+    {
+        IfJsrtErrorSetGo(fileNameString.Initialize(arguments[1]));
+        IfJsrtErrorSetGo(fileContentString.Initialize(arguments[2]));
+
+        LPCSTR fileName = fileNameString.GetString();
+        LPCSTR fileContent = fileContentString.GetString();
+
+        auto moduleSourceEntry = moduleSourceMap.find(std::string(fileName));
+        if (moduleSourceEntry != moduleSourceMap.end())
+        {
+            fprintf(stderr, "Source for module identifier \"%s\" already registered.\n", fileName);
+            errorCode = JsErrorInvalidArgument;
+        }
+        else
+        {
+            moduleSourceMap[std::string(fileName)] = fileContent;
+        }
+    }
+
+Error:
+    if (errorCode != JsNoError)
+    {
+        JsValueRef errorObject;
+        JsValueRef errorMessageString;
+
+        if (wcscmp(errorMessage, _u("")) == 0) {
+            errorMessage = ConvertErrorCodeToMessage(errorCode);
+        }
+
+        ERROR_MESSAGE_TO_STRING(errCode, errorMessage, errorMessageString);
+
+        ChakraRTInterface::JsCreateError(errorMessageString, &errorObject);
+        ChakraRTInterface::JsSetException(errorObject);
+    }
+
+    return returnValue;
 }
 
 JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState, bool isSourceModule)
@@ -848,6 +917,7 @@ bool WScriptJsrt::Initialize()
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadScriptFile", LoadScriptFileCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadScript", LoadScriptCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadModule", LoadModuleCallback));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "RegisterModuleSource", RegisterModuleSourceCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "SetTimeout", SetTimeoutCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "ClearTimeout", ClearTimeoutCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Attach", AttachCallback));
@@ -1563,7 +1633,16 @@ HRESULT WScriptJsrt::ModuleMessage::Call(LPCSTR fileName)
                 return JsErrorInvalidArgument;
             }
 
-            hr = Helpers::LoadScriptFromFile(fullPath, fileContent);
+            auto moduleSourceEntry = moduleSourceMap.find(std::string(specifierStr.GetString()));
+            if (moduleSourceEntry != moduleSourceMap.end())
+            {
+                fileContent = moduleSourceEntry->second.c_str();
+                hr = S_OK;
+            }
+            else
+            {
+                hr = Helpers::LoadScriptFromFile(fullPath, fileContent);
+            }
 
             if (FAILED(hr))
             {

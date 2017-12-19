@@ -1,0 +1,18 @@
+thrown at auto_import_1:
+^
+SyntaxError: Module import fakebinding cannot be resolved
+thrown at auto_import_2:
+^
+SyntaxError: Module import fakebinding2 cannot be resolved
+thrown at auto_import_3:
+^
+SyntaxError: Module import default cannot be resolved
+SyntaxError: Module import or export statement unexpected here
+	at Anonymous function() (:1:1)
+	at module (:1:1)
+SyntaxError: Syntax error
+	at Anonymous function() (:1:1)
+	at module (:1:1)
+thrown at auto_import_6:
+^
+SyntaxError: Module import default cannot be resolved
