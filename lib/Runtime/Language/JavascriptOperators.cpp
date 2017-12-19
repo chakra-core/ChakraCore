@@ -3773,8 +3773,18 @@ CommonNumber:
                 }
                 else if (VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(temp))
                 {
-                    LiteralStringWithPropertyStringPtr * propStr = (LiteralStringWithPropertyStringPtr *)temp;
-                    propertyString = propStr->GetOrAddPropertyString();
+                    LiteralStringWithPropertyStringPtr * strWithPtr = (LiteralStringWithPropertyStringPtr *)temp;
+                    if (!strWithPtr->HasPropertyRecord())
+                    {
+                        strWithPtr->GetPropertyRecord(); // lookup-cache propertyRecord
+                    }
+                    else
+                    {
+                        propertyString = strWithPtr->GetOrAddPropertyString();
+                        // this is the second time this property string is used
+                        // we already had created the propertyRecord..
+                        // now create the propertyString!
+                    }
                 }
 
                 if (propertyString != nullptr)
