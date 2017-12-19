@@ -2859,7 +2859,7 @@ GlobOpt::OptTagChecks(IR::Instr *instr)
 
             if (valueType.CanBeTaggedValue() &&
                 !valueType.HasBeenNumber() &&
-                (this->IsLoopPrePass() || !this->currentBlock->loop))
+                !this->IsLoopPrePass())
             {
                 ValueType newValueType = valueType.SetCanBeTaggedValue(false);
 
@@ -2883,7 +2883,16 @@ GlobOpt::OptTagChecks(IR::Instr *instr)
                 bailOutInstr->SetSrc1(srcOpnd);
                 bailOutInstr->GetSrc1()->SetValueType(valueType);
                 instr->InsertBefore(bailOutInstr);
-
+                if (this->currentBlock->loop)
+                {
+                    // Try hoisting the BailOnNotObject instr.
+                    // But since this isn't the current instr being optimized, we need to play tricks with
+                    // the byteCodeUse fields...
+                    TrackByteCodeUsesForInstrAddedInOptInstr(bailOutInstr, [&]()
+                    {
+                        TryHoistInvariant(bailOutInstr, this->currentBlock, nullptr, value, nullptr, true, false, false, IR::BailOutOnTaggedValue);
+                    });
+                }
                 if (symOpnd)
                 {
                     symOpnd->SetPropertyOwnerValueType(newValueType);
@@ -3968,25 +3977,10 @@ GlobOpt::CopyPropReplaceOpnd(IR::Instr * instr, IR::Opnd * opnd, StackSym * copy
                     // Try hoisting this checkObjType.
                     // But since this isn't the current instr being optimized, we need to play tricks with
                     // the byteCodeUse fields...
-                    BVSparse<JitArenaAllocator> *currentBytecodeUses = this->byteCodeUses;
-                    PropertySym * currentPropertySymUse = this->propertySymUse;
-                    PropertySym * tempPropertySymUse = NULL;
-                    this->byteCodeUses = NULL;
-                    BVSparse<JitArenaAllocator> *tempByteCodeUse = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
-#if DBG
-                    BVSparse<JitArenaAllocator> *currentBytecodeUsesBeforeOpt = this->byteCodeUsesBeforeOpt;
-                    this->byteCodeUsesBeforeOpt = tempByteCodeUse;
-#endif
-                    this->propertySymUse = NULL;
-                    GlobOpt::TrackByteCodeSymUsed(checkObjTypeInstr, tempByteCodeUse, &tempPropertySymUse);
-
-                    TryHoistInvariant(checkObjTypeInstr, this->currentBlock, NULL, CurrentBlockData()->FindValue(copySym), NULL, true);
-
-                    this->byteCodeUses = currentBytecodeUses;
-                    this->propertySymUse = currentPropertySymUse;
-#if DBG
-                    this->byteCodeUsesBeforeOpt = currentBytecodeUsesBeforeOpt;
-#endif
+                    TrackByteCodeUsesForInstrAddedInOptInstr(checkObjTypeInstr, [&]()
+                    {
+                        TryHoistInvariant(checkObjTypeInstr, this->currentBlock, NULL, CurrentBlockData()->FindValue(copySym), NULL, true);
+                    });
                 }
             }
         }
