@@ -133,7 +133,7 @@ class SectionAllocWrapper
 public:
     SectionAllocWrapper(HANDLE process);
 
-    LPVOID  Alloc(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation);
+    LPVOID  AllocPages(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t pageCount, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation);
     BOOL    Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType);
     LPVOID  AllocLocal(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize);
     BOOL    FreeLocal(LPVOID lpAddress);
@@ -160,7 +160,7 @@ public:
     PreReservedSectionAllocWrapper(HANDLE process);
     ~PreReservedSectionAllocWrapper();
 
-    LPVOID  Alloc(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation);
+    LPVOID  AllocPages(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t pageCount, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation);
     BOOL    Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType);
     LPVOID  AllocLocal(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize);
     BOOL    FreeLocal(LPVOID lpAddress);

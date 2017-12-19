@@ -116,7 +116,7 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
         return false;
     }
 
-    this->address = (char *)GetAllocator()->GetVirtualAllocator()->Alloc(NULL, totalPages * AutoSystemInfo::PageSize, MEM_RESERVE | allocFlags, PAGE_READWRITE, this->IsInCustomHeapAllocator());
+    this->address = (char *)GetAllocator()->GetVirtualAllocator()->AllocPages(NULL, totalPages, MEM_RESERVE | allocFlags, PAGE_READWRITE, this->IsInCustomHeapAllocator());
 
     if (this->address == nullptr)
     {
@@ -432,7 +432,7 @@ PageSegmentBase<TVirtualAlloc>::AllocDecommitPages(uint pageCount, T freePages, 
                 }
             }
 
-            void * ret = this->GetAllocator()->GetVirtualAllocator()->Alloc(pages, pageCount * AutoSystemInfo::PageSize, MEM_COMMIT, PAGE_READWRITE, this->IsInCustomHeapAllocator());
+            void * ret = this->GetAllocator()->GetVirtualAllocator()->AllocPages(pages, pageCount, MEM_COMMIT, PAGE_READWRITE, this->IsInCustomHeapAllocator());
             if (ret != nullptr)
             {
                 Assert(ret == pages);
@@ -2807,8 +2807,7 @@ bool HeapPageAllocator<T>::CreateSecondaryAllocator(SegmentBase<T>* segment, boo
     }
 
     if (!committed && segment->GetSecondaryAllocSize() != 0 &&
-        !this->GetVirtualAllocator()->Alloc(segment->GetSecondaryAllocStartAddress(), segment->GetSecondaryAllocSize(),
-        MEM_COMMIT, PAGE_READWRITE, true))
+        !this->GetVirtualAllocator()->AllocPages(segment->GetSecondaryAllocStartAddress(), segment->GetSecondaryAllocPageCount(), MEM_COMMIT, PAGE_READWRITE, true))
     {
         *allocator = nullptr;
         return false;
