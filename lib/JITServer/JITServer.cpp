@@ -872,8 +872,7 @@ HRESULT
 ProcessContextManager::RegisterNewProcess(DWORD pid, HANDLE processHandle, intptr_t chakraBaseAddress, intptr_t crtBaseAddress)
 {
     AutoCriticalSection autoCS(&cs);
-    auto iter = ProcessContexts.GetIteratorWithRemovalSupport();
-    while (iter.IsValid())
+    for (auto iter = ProcessContexts.GetIteratorWithRemovalSupport(); iter.IsValid(); iter.MoveNext())
     {
         ProcessContext* context = iter.CurrentValue();
         // We can delete a ProcessContext if no ThreadContexts refer to it and the process is terminated
