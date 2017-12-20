@@ -2917,7 +2917,7 @@ GlobOpt::TypeSpecializeBailoutExpectedInteger(IR::Instr* instr, Value* src1Val, 
     {
         if (!src1Val || !src1Val->GetValueInfo()->IsLikelyInt() || instr->GetSrc1()->AsRegOpnd()->m_sym->m_isNotInt)
         {
-            Assert(IsSwitchOptEnabled());
+            Assert(IsSwitchOptEnabledForIntTypeSpec());
             throw Js::RejitException(RejitReason::DisableSwitchOptExpectingInteger);
         }
 
@@ -11365,7 +11365,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                         // restarted with aggressive int type specialization disabled.
                         if(bailOutKind == IR::BailOutExpectingInteger)
                         {
-                            Assert(IsSwitchOptEnabled());
+                            Assert(IsSwitchOptEnabledForIntTypeSpec());
                             throw Js::RejitException(RejitReason::DisableSwitchOptExpectingInteger);
                         }
                         else
@@ -11709,7 +11709,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                     // need to bail out.
                     if (bailOutKind == IR::BailOutExpectingInteger)
                     {
-                        Assert(IsSwitchOptEnabled());
+                        Assert(IsSwitchOptEnabledForIntTypeSpec());
                     }
                     else
                     {
@@ -17193,8 +17193,13 @@ bool
 GlobOpt::IsSwitchOptEnabled(Func const * func)
 {
     Assert(func->IsTopFunc());
-    return !PHASE_OFF(Js::SwitchOptPhase, func) && !func->IsSwitchOptDisabled() && !IsTypeSpecPhaseOff(func)
-        && DoAggressiveIntTypeSpec(func) && func->DoGlobOpt();
+    return !PHASE_OFF(Js::SwitchOptPhase, func) && !func->IsSwitchOptDisabled() && func->DoGlobOpt();
+}
+
+bool
+GlobOpt::IsSwitchOptEnabledForIntTypeSpec(Func const * func)
+{
+    return IsSwitchOptEnabled(func) && !IsTypeSpecPhaseOff(func) && DoAggressiveIntTypeSpec(func);
 }
 
 bool

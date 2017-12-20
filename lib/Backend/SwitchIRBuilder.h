@@ -60,7 +60,9 @@ public:
 #endif
 
 /**
- * Handles construction of switch statements, with appropriate optimizations
+ * Handles construction of switch statements, with appropriate optimizations. Note that some of these
+ * optimizations occur during IR building (rather than GlobOpt) because the abstraction of a switch/case
+ * block is not maintained with the resulting IR. Thus, some optimizations must occur during this phase.
  */
 class SwitchIRBuilder {
 private:
