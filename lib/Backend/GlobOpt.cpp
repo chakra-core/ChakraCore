@@ -6655,6 +6655,7 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         }
         else
         {
+#pragma prefast(suppress: __WARNING_LOGICALORNONZERO, "silence unnecessary error in release build, where CONFIG_FLAG(OOPJITMissingOpts) is #defined to be 0")
             if (func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts))
             {
                 // TODO: OOP JIT, const folding
@@ -6682,6 +6683,7 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         }
         else
         {
+#pragma prefast(suppress: __WARNING_LOGICALORNONZERO, "silence unnecessary error in release build, where CONFIG_FLAG(OOPJITMissingOpts) is #defined to be 0")
             if (func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts))
             {
                 // TODO: OOP JIT, const folding
@@ -6723,6 +6725,7 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         }
         else
         {
+#pragma prefast(suppress: __WARNING_LOGICALORNONZERO, "silence unnecessary error in release build, where CONFIG_FLAG(OOPJITMissingOpts) is #defined to be 0")
             if (func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts))
             {
                 // TODO: OOP JIT, const folding
@@ -6765,6 +6768,7 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         }
         else
         {
+#pragma prefast(suppress: __WARNING_LOGICALORNONZERO, "silence unnecessary error in release build, where CONFIG_FLAG(OOPJITMissingOpts) is #defined to be 0")
             if (func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts))
             {
                 // TODO: OOP JIT, const folding
@@ -6790,6 +6794,7 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
             break;
         }
 
+#pragma prefast(suppress: __WARNING_LOGICALORNONZERO, "silence unnecessary error in release build, where CONFIG_FLAG(OOPJITMissingOpts) is #defined to be 0")
         if (func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts))
         {
             // TODO: OOP JIT, const folding
