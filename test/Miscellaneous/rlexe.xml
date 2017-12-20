@@ -25,4 +25,22 @@
       <baseline>SetTimeout.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>nullByte-comment.js</files>
+      <baseline>nullByte-comment.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>nullByte-regex.js</files>
+      <baseline>nullByte-regex.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>nullByte-string.js</files>
+      <baseline>nullByte-string.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>

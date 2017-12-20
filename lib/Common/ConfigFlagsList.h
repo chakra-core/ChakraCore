@@ -540,7 +540,7 @@ PHASE(All)
 #else
     #define DEFAULT_CONFIG_JsBuiltIn             (false)
 #endif
-
+#define DEFAULT_CONFIG_JitRepro                (false)
 #define DEFAULT_CONFIG_LdChakraLib             (false)
 
 // ES6 DEFAULT BEHAVIOR
@@ -1013,6 +1013,7 @@ FLAGR (Boolean, Intl                  , "Intl object support", DEFAULT_CONFIG_In
 FLAGNR(Boolean, IntlBuiltIns          , "Intl built-in function support", DEFAULT_CONFIG_IntlBuiltIns)
 
 FLAGNR(Boolean, JsBuiltIn             , "JS Built-in function support", DEFAULT_CONFIG_JsBuiltIn)
+FLAGNR(Boolean, JitRepro              , "Add Function.invokeJit to execute codegen on an encoded rpc buffer", DEFAULT_CONFIG_JitRepro)
 
 FLAGNR(Boolean, LdChakraLib           , "Access to the Chakra internal library with the __chakraLibrary keyword", DEFAULT_CONFIG_LdChakraLib)
 // ES6 (BLUE+1) features/flags

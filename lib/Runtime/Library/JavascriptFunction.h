@@ -89,6 +89,9 @@ namespace Js
             static FunctionInfo SymbolHasInstance;
 
             static FunctionInfo NewAsyncFunctionInstance;
+#ifdef ALLOW_JIT_REPRO
+            static FunctionInfo InvokeJit;
+#endif
         };
 
         static const int numberLinesPrependedToAnonymousFunction = 1;
@@ -106,6 +109,9 @@ namespace Js
 
         static Var NewAsyncFunctionInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewAsyncFunctionInstanceRestrictedMode(RecyclableObject* function, CallInfo callInfo, ...);
+#ifdef ALLOW_JIT_REPRO
+        static Var EntryInvokeJit(RecyclableObject* function, CallInfo callInfo, ...);
+#endif
 
         static bool Is(Var aValue);
         static JavascriptFunction* FromVar(Var aValue);

@@ -3440,4 +3440,39 @@ LABEL1:
 
         return result;
     }
+
+#ifdef ALLOW_JIT_REPRO
+    Var JavascriptFunction::EntryInvokeJit(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        // todo:: make it work with inproc jit
+        if (!JITManager::GetJITManager()->IsOOPJITEnabled())
+        {
+            Output::Print(_u("Out of proc jit is necessary to repro using an encoded buffer"));
+            Js::Throw::FatalInternalError();
+        }
+
+        if (args.Info.Count < 2 || !ArrayBufferBase::Is(args[1]))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedArrayBufferObject);
+        }
+
+        ArrayBufferBase* arrayBuffer = ArrayBufferBase::FromVar(args[1]);
+        const byte* buffer = arrayBuffer->GetBuffer();
+        uint32 size = arrayBuffer->GetByteLength();
+        HRESULT hr = JitFromEncodedWorkItem(scriptContext->GetNativeCodeGenerator(), buffer, size);
+        if (FAILED(hr))
+        {
+            return JavascriptNumber::New(hr, scriptContext);
+        }
+        return scriptContext->GetLibrary()->GetUndefined();
+    }
+#endif
+
 }

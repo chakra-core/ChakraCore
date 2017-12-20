@@ -104,6 +104,20 @@ public:
         __out boolean * result);
 #endif
 
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    static HRESULT DeserializeRPCData(
+        _In_reads_(bufferSize) const byte* buffer,
+        _In_ uint bufferSize,
+        _Out_ CodeGenWorkItemIDL **workItemData
+    );
+
+    static HRESULT SerializeRPCData(
+        _In_ CodeGenWorkItemIDL *workItemData,
+        _Out_ size_t* bufferSize,
+        _Outptr_result_buffer_(*bufferSize) const byte** outBuffer
+    );
+#endif
+
     HRESULT Shutdown();
 
 
@@ -226,6 +240,20 @@ public:
         __in boolean asmjsThunk,
         __out boolean * result)
         { Assert(false); return E_FAIL; }
+#endif
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    static HRESULT DeserializeRPCData(
+        _In_reads_(bufferSize) const byte* buffer,
+        _In_ uint bufferSize,
+        _Out_ CodeGenWorkItemIDL **workItemData
+    ) { *workItemData = nullptr; return E_NOTIMPL; }
+
+    static HRESULT SerializeRPCData(
+        _In_ CodeGenWorkItemIDL *workItemData,
+        _Out_ size_t* bufferSize,
+        _Outptr_result_buffer_(*bufferSize) const byte** outBuffer
+    ) { *bufferSize = 0; *outBuffer = nullptr; return E_NOTIMPL; }
 #endif
 
     HRESULT Shutdown()

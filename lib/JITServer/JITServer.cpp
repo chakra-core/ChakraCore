@@ -757,6 +757,19 @@ ServerRemoteCodeGen(
         Assert(false);
         return RPC_S_INVALID_ARG;
     }
+#if DBG
+    size_t serializedRpcDataSize = 0;
+    const unsigned char* serializedRpcData = nullptr;
+    JITManager::SerializeRPCData(workItemData, &serializedRpcDataSize, &serializedRpcData);
+    struct AutoFreeArray
+    {
+        const byte* arr = nullptr;
+        size_t bufferSize = 0;
+        ~AutoFreeArray() { HeapDeleteArray(bufferSize, arr); }
+    } autoFreeArray;
+    autoFreeArray.arr = serializedRpcData;
+    autoFreeArray.bufferSize = serializedRpcDataSize;
+#endif
 
     return ServerCallWrapper(scriptContextInfo, [&]() ->HRESULT
     {
@@ -872,8 +885,7 @@ HRESULT
 ProcessContextManager::RegisterNewProcess(DWORD pid, HANDLE processHandle, intptr_t chakraBaseAddress, intptr_t crtBaseAddress)
 {
     AutoCriticalSection autoCS(&cs);
-    auto iter = ProcessContexts.GetIteratorWithRemovalSupport();
-    while (iter.IsValid())
+    for (auto iter = ProcessContexts.GetIteratorWithRemovalSupport(); iter.IsValid(); iter.MoveNext())
     {
         ProcessContext* context = iter.CurrentValue();
         // We can delete a ProcessContext if no ThreadContexts refer to it and the process is terminated

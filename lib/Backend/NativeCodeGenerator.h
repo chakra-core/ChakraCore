@@ -45,6 +45,9 @@ public:
 #ifdef IR_VIEWER
     Js::Var RejitIRViewerFunction(Js::FunctionBody *fn, Js::ScriptContext *scriptContext);
 #endif
+#ifdef ALLOW_JIT_REPRO
+    HRESULT JitFromEncodedWorkItem(_In_reads_(bufSize) const byte* buf, _In_ uint bufSize);
+#endif
 void SetProfileMode(BOOL fSet);
 public:
     static Js::Var CheckCodeGenThunk(Js::RecyclableObject* function, Js::CallInfo callInfo, ...);
@@ -126,6 +129,7 @@ public:
 private:
 
     void CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* workItem, const bool foreground);
+    void CodeGen(PageAllocator* pageAllocator, CodeGenWorkItemIDL* workItemData, _Out_ JITOutputIDL& jitWriteData, const bool foreground, Js::EntryPointInfo* epInfo = nullptr);
 
     InProcCodeGenAllocators *CreateAllocators(PageAllocator *const pageAllocator)
     {
