@@ -9653,8 +9653,14 @@ CommonNumber:
 
         if (FAILED(hr))
         {
+            // We cannot just use the buffer in the specifier string - need to make a copy here.
+            size_t length = wcslen(moduleName);
+            char16* allocatedString = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, length + 1);
+            wmemcpy_s(allocatedString, length + 1, moduleName, length);
+            allocatedString[length] = _u('\0');
+
             Js::JavascriptError *error = scriptContext->GetLibrary()->CreateURIError();
-            JavascriptError::SetErrorMessageProperties(error, hr, moduleName, scriptContext);
+            JavascriptError::SetErrorMessageProperties(error, hr, allocatedString, scriptContext);
             return SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, error, scriptContext);
         }
 
