@@ -762,7 +762,7 @@ namespace Js
     bool JavascriptArrayBuffer::IsValidVirtualBufferLength(uint length) const
     {
 #if ENABLE_FAST_ARRAYBUFFER
-        return !PHASE_OFF1(Js::TypedArrayVirtualPhase) && IsValidAsmJsBufferLengthAlgo(length, true);
+        return PHASE_FORCE1(Js::TypedArrayVirtualPhase) || (!PHASE_OFF1(Js::TypedArrayVirtualPhase) && IsValidAsmJsBufferLengthAlgo(length, true));
 #else
         return false;
 #endif

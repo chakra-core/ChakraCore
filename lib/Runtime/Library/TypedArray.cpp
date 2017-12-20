@@ -1147,11 +1147,13 @@ namespace Js
         // types of the same size are compatible, with the following exceptions:
         // - we cannot memmove between float and int arrays, due to different bit pattern
         // - we cannot memmove to a uint8 clamped array from an int8 array, due to negatives rounding to 0
-        if (GetTypeId() == source->GetTypeId()
-            || (GetBytesPerElement() == source->GetBytesPerElement()
-            && !(Uint8ClampedArray::Is(this) && Int8Array::Is(source))
-            && !Float32Array::Is(this) && !Float32Array::Is(source)
-            && !Float64Array::Is(this) && !Float64Array::Is(source)))
+        if (GetTypeId() == source->GetTypeId() ||
+            (GetBytesPerElement() == source->GetBytesPerElement()
+             && !((Uint8ClampedArray::Is(this) || Uint8ClampedVirtualArray::Is(this)) && (Int8Array::Is(source) || Int8VirtualArray::Is(source)))
+             && !Float32Array::Is(this) && !Float32Array::Is(source) 
+             && !Float32VirtualArray::Is(this) && !Float32VirtualArray::Is(source)
+             && !Float64Array::Is(this) && !Float64Array::Is(source)
+             && !Float64VirtualArray::Is(this) && !Float64VirtualArray::Is(source)))
         {
             const size_t offsetInBytes = offset * BYTES_PER_ELEMENT;
             memmove_s(buffer + offsetInBytes,
