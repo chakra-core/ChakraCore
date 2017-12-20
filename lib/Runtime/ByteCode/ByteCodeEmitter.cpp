@@ -2073,7 +2073,7 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
                     this->m_writer.Property(Js::OpCode::StFuncExpr, sym->GetLocation(), scopeLocation,
                         funcInfo->FindOrAddReferencedPropertyId(sym->GetPosition()));
                 }
-                else if ((funcInfo->paramScope->GetIsObject() || (funcInfo->paramScope->GetCanMerge() && funcInfo->bodyScope->GetIsObject())))
+                else if (funcInfo->paramScope->GetIsObject() || (funcInfo->paramScope->GetCanMerge() && funcInfo->bodyScope->GetIsObject()))
                 {
                     this->m_writer.ElementU(Js::OpCode::StLocalFuncExpr, sym->GetLocation(),
                         funcInfo->FindOrAddReferencedPropertyId(sym->GetPosition()));
@@ -3066,40 +3066,37 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
                                                                 // is expected to stay inside the function expression scope
                     && (varSym && varSym->GetSymbolType() == STVariable && (varSym->IsInSlot(funcInfo) || varSym->GetLocation() != Js::Constants::NoRegister)))
                 {
-                    if (varSym->GetSymbolType() == STVariable && (varSym->IsInSlot(funcInfo) || varSym->GetLocation() != Js::Constants::NoRegister))
+                    if (!varSym->GetNeedDeclaration())
                     {
-                        if (!varSym->GetNeedDeclaration())
+                        if (param->IsInSlot(funcInfo))
                         {
-                            if (param->IsInSlot(funcInfo))
-                            {
-                                // Simulating EmitPropLoad here. We can't directly call the method as we have to use the param scope specifically.
-                                // Walking the scope chain is not possible at this time.
-                                Js::RegSlot tempReg = funcInfo->AcquireTmpRegister();
-                                Js::PropertyId slot = param->EnsureScopeSlot(funcInfo);
-                                Js::ProfileId profileId = funcInfo->FindOrAddSlotProfileId(paramScope, slot);
-                                Js::OpCode op = paramScope->GetIsObject() ? Js::OpCode::LdParamObjSlot : Js::OpCode::LdParamSlot;
-                                slot = slot + (paramScope->GetIsObject() ? 0 : Js::ScopeSlots::FirstSlotIndex);
+                            // Simulating EmitPropLoad here. We can't directly call the method as we have to use the param scope specifically.
+                            // Walking the scope chain is not possible at this time.
+                            Js::RegSlot tempReg = funcInfo->AcquireTmpRegister();
+                            Js::PropertyId slot = param->EnsureScopeSlot(funcInfo);
+                            Js::ProfileId profileId = funcInfo->FindOrAddSlotProfileId(paramScope, slot);
+                            Js::OpCode op = paramScope->GetIsObject() ? Js::OpCode::LdParamObjSlot : Js::OpCode::LdParamSlot;
+                            slot = slot + (paramScope->GetIsObject() ? 0 : Js::ScopeSlots::FirstSlotIndex);
 
-                                this->m_writer.SlotI1(op, tempReg, slot, profileId);
+                            this->m_writer.SlotI1(op, tempReg, slot, profileId);
 
-                                this->EmitPropStore(tempReg, varSym, varSym->GetPid(), funcInfo);
-                                funcInfo->ReleaseTmpRegister(tempReg);
-                            }
-                            else if (param->GetLocation() != Js::Constants::NoRegister)
-                            {
-                                this->EmitPropStore(param->GetLocation(), varSym, varSym->GetPid(), funcInfo);
-                            }
-                            else
-                            {
-                                Assert(param->IsArguments() && !funcInfo->GetHasArguments());
-                            }
+                            this->EmitPropStore(tempReg, varSym, varSym->GetPid(), funcInfo);
+                            funcInfo->ReleaseTmpRegister(tempReg);
+                        }
+                        else if (param->GetLocation() != Js::Constants::NoRegister)
+                        {
+                            this->EmitPropStore(param->GetLocation(), varSym, varSym->GetPid(), funcInfo);
                         }
                         else
                         {
-                            // There is a let redeclaration of arguments symbol. Any other var will cause a
-                            // re-declaration error.
-                            Assert(param->IsArguments());
+                            Assert(param->IsArguments() && !funcInfo->GetHasArguments());
                         }
+                    }
+                    else
+                    {
+                        // There is a let redeclaration of arguments symbol. Any other var will cause a
+                        // re-declaration error.
+                        Assert(param->IsArguments());
                     }
                 }
 
