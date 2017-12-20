@@ -114,6 +114,14 @@
   </test>
   <test>
     <default>
+      <files>objectproperty.js</files>
+      <baseline>objectproperty_es6.baseline</baseline>
+      <compile-flags>-force:typedarrayvirtual</compile-flags>
+      <tags>typedarray</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>nan.js</files>
       <baseline>nan.baseline</baseline>
       <tags>typedarray,exclude_nonrazzle</tags>
@@ -142,6 +150,14 @@
     <default>
       <files>set.js</files>
       <baseline>set.baseline</baseline>
+      <tags>typedarray</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>set.js</files>
+      <baseline>set.baseline</baseline>
+      <compile-flags>-force:typedarrayvirtual</compile-flags>
       <tags>typedarray</tags>
     </default>
   </test>
@@ -287,6 +303,14 @@ Below test fails with difference in space. Investigate the cause and re-enable t
     <default>
       <files>setDifferentTypes.js</files>
       <baseline>setDifferentTypes.baseline</baseline>
+      <tags>typedarray</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>setDifferentTypes.js</files>
+      <baseline>setDifferentTypes.baseline</baseline>
+      <compile-flags>-force:typedarrayvirtual</compile-flags>
       <tags>typedarray</tags>
     </default>
   </test>
