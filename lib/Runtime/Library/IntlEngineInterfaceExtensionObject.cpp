@@ -22,7 +22,42 @@ using namespace Windows::Globalization;
 #include <CommonPal.h>
 #include "PlatformAgnostic/IPlatformAgnosticResource.h"
 using namespace PlatformAgnostic::Resource;
+#define U_STATIC_IMPLEMENTATION
+#define U_SHOW_CPLUSPLUS_API 0
+#pragma warning(push)
+#pragma warning(disable:4995) // deprecation warning
+#include <unicode/ucol.h>
+#include <unicode/udat.h>
+#include <unicode/unum.h>
+#pragma warning(pop)
+
+#define ICU_ERROR_FMT _u("INTL: %S failed with error code %S\n")
+#define ICU_EXPR_FMT _u("INTL: %S failed expression check %S\n")
+
+#ifdef INTL_ICU_DEBUG
+#define ICU_DEBUG_PRINT(fmt, msg) Output::Print(fmt, __func__, (msg))
+#else
+#define ICU_DEBUG_PRINT(fmt, msg)
 #endif
+
+#define ICU_FAILURE(e) (U_FAILURE(e) || e == U_STRING_NOT_TERMINATED_WARNING)
+
+#define ICU_ASSERT(e, expr)                                                   \
+    do                                                                        \
+    {                                                                         \
+        if (ICU_FAILURE(e))                                                   \
+        {                                                                     \
+            ICU_DEBUG_PRINT(ICU_ERROR_FMT, u_errorName(e));                   \
+            AssertOrFailFastMsg(false, u_errorName(e));                       \
+        }                                                                     \
+        else if (!(expr))                                                     \
+        {                                                                     \
+            ICU_DEBUG_PRINT(ICU_EXPR_FMT, u_errorName(e));                    \
+            AssertOrFailFast(expr);                                           \
+        }                                                                     \
+    } while (false)
+
+#endif // INTL_ICU
 
 #include "PlatformAgnostic/Intl.h"
 using namespace PlatformAgnostic::Intl;
@@ -675,22 +710,72 @@ namespace Js
         return retVal;
     }
 
-    Var IntlEngineInterfaceExtensionObject::EntryIntl_IsLocaleAvailable(RecyclableObject* function, CallInfo callInfo, ...)
+#ifdef INTL_ICU
+    typedef const char * (*GetAvailableLocaleFunc)(int);
+    typedef int (*CountAvailableLocaleFunc)(void);
+    static bool findLocale(const char *langtag, CountAvailableLocaleFunc countAvailable, GetAvailableLocaleFunc getAvailable)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        int32_t length = 0;
+        uloc_forLanguageTag(langtag, localeID, ULOC_FULLNAME_CAPACITY, &length, &status);
+        ICU_ASSERT(status, length > 0);
+        for (int i = 0; i < countAvailable(); i++)
+        {
+            if (strcmp(localeID, getAvailable(i)) == 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+#endif
+
+    Var IntlEngineInterfaceExtensionObject::EntryIntl_IsDTFLocaleAvailable(RecyclableObject* function, CallInfo callInfo, ...)
     {
 #ifdef INTL_ICU
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+        INTL_CHECK_ARGS(args.Info.Count == 2 && JavascriptString::Is(args.Values[1]));
 
-        if (args.Info.Count < 2 || !JavascriptString::Is(args.Values[1]))
-        {
-            return scriptContext->GetLibrary()->GetUndefined();
-        }
-
-        JavascriptString *locale = JavascriptString::FromVar(args.Values[1]);
+        JavascriptString *locale = JavascriptString::UnsafeFromVar(args.Values[1]);
         utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
 
-        return TO_JSBOOL(scriptContext, IsLocaleAvailable(locale8));
+        return TO_JSBOOL(scriptContext, findLocale(locale8, udat_countAvailable, udat_getAvailable));
 #else
-        AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call CollatorGetCollation");
+        AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call IsDTFLocaleAvailable");
+        return nullptr;
+#endif
+    }
+
+    Var IntlEngineInterfaceExtensionObject::EntryIntl_IsCollatorLocaleAvailable(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+#ifdef INTL_ICU
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+        INTL_CHECK_ARGS(args.Info.Count == 2 && JavascriptString::Is(args.Values[1]));
+
+        JavascriptString *locale = JavascriptString::UnsafeFromVar(args.Values[1]);
+        utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
+
+        return TO_JSBOOL(scriptContext, findLocale(locale8, ucol_countAvailable, ucol_getAvailable));
+#else
+        AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call IsCollatorLocaleAvailable");
+        return nullptr;
+#endif
+    }
+
+    Var IntlEngineInterfaceExtensionObject::EntryIntl_IsNFLocaleAvailable(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+#ifdef INTL_ICU
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+        INTL_CHECK_ARGS(args.Info.Count == 2 && JavascriptString::Is(args.Values[1]));
+
+        JavascriptString *locale = JavascriptString::UnsafeFromVar(args.Values[1]);
+        utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
+
+        return TO_JSBOOL(scriptContext, findLocale(locale8, unum_countAvailable, unum_getAvailable));
+#else
+        AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call IsNFLocaleAvailable");
         return nullptr;
 #endif
     }
