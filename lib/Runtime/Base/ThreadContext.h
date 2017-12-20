@@ -1635,11 +1635,27 @@ public:
         }
 
         // Save and restore implicit flags around the implicit call
+        struct RestoreFlags
+        {
+            ThreadContext * const ctx;
+            const Js::ImplicitCallFlags flags;
+            const Js::ImplicitCallFlags savedFlags;
 
-        Js::ImplicitCallFlags saveImplicitCallFlags = this->GetImplicitCallFlags();
-        Js::Var result = implicitCall();
-        this->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags | flags));
-        return result;
+            RestoreFlags(ThreadContext *ctx, Js::ImplicitCallFlags flags) :
+                ctx(ctx),
+                flags(flags),
+                savedFlags(ctx->GetImplicitCallFlags())
+            {
+            }
+
+            ~RestoreFlags()
+            {
+                ctx->SetImplicitCallFlags(static_cast<Js::ImplicitCallFlags>(savedFlags | flags));
+            }
+        };
+
+        RestoreFlags restoreFlags(this, flags);
+        return implicitCall();
     }
     bool HasNoSideEffect(Js::RecyclableObject * function) const;
     bool HasNoSideEffect(Js::RecyclableObject * function, Js::FunctionInfo::Attributes attr) const;
