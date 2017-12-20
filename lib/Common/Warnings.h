@@ -38,6 +38,14 @@
 #pragma warning(disable:28112)      // A variable (processNativeCodeSize) which is accessed via an Interlocked function must always be accessed via an Interlocked function. See line 1024:  It is not always safe to access a variable which is accessed via the Interlocked* family of functions in any other way.
 #pragma warning(disable:28159)      // Consider using 'GetTickCount64' instead of 'GetTickCount'. Reason: GetTickCount overflows roughly every 49 days.  Code that does not take that into account can loop indefinitely.  GetTickCount64 operates on 64 bit values and does not have that problem
 
+#pragma warning(disable:6236)       // Logical-OR with non-zero constant, e.g., <expr> || 1.  We end up with a lot of these in release builds because certain macros (notably CONFIG_FLAG) expand to compile-time constants in release builds and not in debug builds.
+#pragma warning(disable:25037)      // True constant expr in AND, e.g., <expr> && 1.
+#pragma warning(disable:25038)      // False constant expr in AND, e.g., <expr> && 0.
+#pragma warning(disable:25039)      // True Constant Expr in OR.  Seems to be a duplicate of 6236.
+#pragma warning(disable:25040)      // False Constant Expr in OR, e.g., <expr> || 0.
+#pragma warning(disable:25041)      // 'if' condition is always true
+#pragma warning(disable:25042)      // 'if' condition is always false
+
 #ifndef NTBUILD
 // Would be nice to clean these up.
 #pragma warning(disable:6054)       // String 'dumpName' might not be zero-terminated.
