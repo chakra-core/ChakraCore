@@ -3517,7 +3517,7 @@ Lowerer::LowerNewScObjectLiteral(IR::Instr *newObjInstr)
 
     //#if 0 TODO: OOP JIT, obj literal types
     // should pass in isShared bit through RPC, enable for in-proc jit to see perf impact
-#pragma prefast(suppress: __WARNING_LOGICALORNONZERO, "false positive in release build, when CONFIG_FLAG(OOPJITMissingOpts) is #defined to be 0")
+#pragma prefast(suppress: __WARNING_LOGICALORNONZERO, "silence unnecessary error in release build, where CONFIG_FLAG(OOPJITMissingOpts) is #defined to be 0")
     Js::DynamicType * literalType = func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts) ? nullptr : *(Js::DynamicType **)literalTypeRef;
 
     if (literalType == nullptr || !literalType->GetIsShared())
