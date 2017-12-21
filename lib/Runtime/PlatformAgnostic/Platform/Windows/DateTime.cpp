@@ -75,17 +75,25 @@ namespace DateTime
     // class TimeZoneInfo ******
 
     // Cache should be invalid at the moment of creation
-    // if january1 > nextJanuary1 cache is always invalid, so we don't care about other fields, because cache will be updated.
-    TimeZoneInfo::TimeZoneInfo()
+    // if january1 > nextJanuary1, the cache will be considered invalid
+    TimeZoneInfo::TimeZoneInfo() :
+        daylightDate(0.0),
+        standardDate(0.0),
+        january1(1.0),
+        nextJanuary1(0.0),
+        daylightBias(0),
+        standardBias(0),
+        bias(0),
+        lastUpdateTickCount(0),
+        isDaylightTimeApplicable(false),
+        isJanuary1Critical(false)
     {
-        january1 = 1;
-        nextJanuary1 = 0;
     }
 
     // Cache is valid for given time if this time is within a year for which cache was created, and cache was updated within 1 second of current moment
     bool TimeZoneInfo::IsValid(const double time)
     {
-        return GetTickCount() - lastUpdateTickCount < updatePeriod && time >= january1 && time < nextJanuary1;
+        return time >= january1 && time < nextJanuary1 && GetTickCount() - lastUpdateTickCount < updatePeriod;
     }
 
     void TimeZoneInfo::Update(const double inputTime)
