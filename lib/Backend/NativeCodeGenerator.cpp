@@ -478,6 +478,7 @@ HRESULT NativeCodeGenerator::JitFromEncodedWorkItem(_In_reads_(bufSize) const by
     {
         return hr;
     }
+    AssertOrFailFast(workItemData);
     JITOutputIDL jitOutput = { 0 };
     CodeGen(scriptContext->GetThreadContext()->GetPageAllocator(), workItemData, jitOutput, true);
     return S_OK;
@@ -835,6 +836,20 @@ void NativeCodeGenerator::CodeGen(PageAllocator* pageAllocator, CodeGenWorkItemI
     }
     else
     {
+#if DBG
+        size_t serializedRpcDataSize = 0;
+        const unsigned char* serializedRpcData = nullptr;
+        JITManager::SerializeRPCData(workItemData, &serializedRpcDataSize, &serializedRpcData);
+        struct AutoFreeArray
+        {
+            const byte* arr = nullptr;
+            size_t bufferSize = 0;
+            ~AutoFreeArray() { HeapDeleteArray(bufferSize, arr); }
+        } autoFreeArray;
+        autoFreeArray.arr = serializedRpcData;
+        autoFreeArray.bufferSize = serializedRpcDataSize;
+#endif
+
         InProcCodeGenAllocators *const allocators =
             foreground ? EnsureForegroundAllocators(pageAllocator) : GetBackgroundAllocator(pageAllocator); // okay to do outside lock since the respective function is called only from one thread
         NoRecoverMemoryJitArenaAllocator jitArena(_u("JITArena"), pageAllocator, Js::Throw::OutOfMemory);
