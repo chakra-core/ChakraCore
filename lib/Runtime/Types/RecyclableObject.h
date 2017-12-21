@@ -318,7 +318,6 @@ namespace Js {
         virtual BOOL IsProtoImmutable() const { return false; }
         virtual BOOL PreventExtensions() { return false; };     // Sets [[Extensible]] flag of instance to false
         virtual void ThrowIfCannotDefineProperty(PropertyId propId, const PropertyDescriptor& descriptor);
-        virtual void ThrowIfCannotGetOwnPropertyDescriptor(PropertyId propId) {}
         virtual BOOL GetDefaultPropertyDescriptor(PropertyDescriptor& descriptor);
         virtual BOOL Seal() { return false; }                   // Seals the instance, no additional property can be added or deleted
         virtual BOOL Freeze() { return false; }                 // Freezes the instance, no additional property can be added or deleted or written
