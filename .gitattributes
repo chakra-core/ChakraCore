@@ -1,11 +1,27 @@
-*.baseline -crlf
-*.cmd -crlf
-test/**/*.js -crlf
+# Enable normalization of all files (including new) by default
+* eol=lf whitespace=trailing-space,tab-in-indent
+
+# Unittest exclusions
+*.baseline   eol=crlf
+test/**/*.js eol=crlf
+
+# These tests cannot have line ending conversions, so we treat them as binary
 test/es6/HTMLComments.js binary diff=cpp
-*.wasm binary
+
+# Source files must be LF
 *.cpp text eol=lf diff=cpp
-*.h text eol=lf diff=cpp
+*.h   text eol=lf diff=cpp
 *.inl text eol=lf diff=cpp
-*.vcproj text eol=crlf diff=xml
-*.vcxproj text eol=crlf diff=xml
-*.sln text eol=crlf diff=xml
+
+# VC Project files should be CRLF
+*.props   eol=crlf diff=xml
+*.vcproj  eol=crlf diff=xml
+*.vcxproj eol=crlf diff=xml
+*.sln     eol=crlf diff=xml
+
+# Other exceptions
+*.cmd  eol=crlf
+*.sh   eol=lf
+*.wasm binary
+
+#TODO : merge rules for bytecode cache <merge=binary>
