@@ -1089,26 +1089,34 @@ namespace Js
         ThreadContext *threadContext = scriptContext ?
             scriptContext->GetThreadContext() :
             ThreadContext::GetContextForCurrentThread();
-        threadContext->ClearDisableImplicitFlags();
-#if DBG
-        if (scriptContext)
+
+        if (CONFIG_FLAG(EnableFatalErrorOnOOM) && !threadContext->TestThreadContextFlag(ThreadContextFlagDisableFatalOnOOM))
         {
-            ++scriptContext->oomExceptionCount;
+            OutOfMemory_fatal_error();
         }
         else
         {
-            ScriptContext* ctx = threadContext->GetScriptContextList();
-            while (ctx)
+             threadContext->ClearDisableImplicitFlags();
+#if DBG
+            if (scriptContext)
             {
-                ++ctx->oomExceptionCount;
-                ctx = ctx->next;
+                ++scriptContext->oomExceptionCount;
             }
-        }
+            else
+            {
+                ScriptContext* ctx = threadContext->GetScriptContextList();
+                while (ctx)
+                {
+                    ++ctx->oomExceptionCount;
+                    ctx = ctx->next;
+                }
+            }
 #endif
 
-        JavascriptExceptionObject *oom = JavascriptExceptionOperators::GetOutOfMemoryExceptionObject(scriptContext);
+            JavascriptExceptionObject *oom = JavascriptExceptionOperators::GetOutOfMemoryExceptionObject(scriptContext);
 
-        JavascriptExceptionOperators::ThrowExceptionObject(oom, scriptContext);
+            JavascriptExceptionOperators::ThrowExceptionObject(oom, scriptContext);
+        }
     }
 
     void JavascriptExceptionOperators::ThrowStackOverflow(ScriptContext *scriptContext, PVOID returnAddress)
