@@ -355,8 +355,9 @@ Output::PrintBuffer(const char16 * buf, size_t size)
                     buf, (size + 1) * sizeof(char16));
                 bufferFreeSize -= size;
             }
-#endif
+#else
             DirectPrint(buf);
+#endif
         }
         else
         {
