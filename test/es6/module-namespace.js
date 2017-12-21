@@ -34,7 +34,7 @@ var tests = [
     {
         name: "Issue3249: Namespace object's property attributes",
         body: function () {
-			testModuleScript(`
+            testModuleScript(`
             function verifyPropertyDesc(obj, prop, desc, propName) {
                 var actualDesc = Object.getOwnPropertyDescriptor(obj, prop);
                 if (typeof propName === "undefined") { propName = prop; }
@@ -43,7 +43,7 @@ var tests = [
                 assert.areEqual(desc.writable, actualDesc.writable, propName+"'s attribute: writable");
             }
 
-			import * as foo from "ValidExportStatements.js";
+            import * as foo from "ValidExportStatements.js";
             assert.areEqual("Module", foo[Symbol.toStringTag], "@@toStringTag is the String value'Module'");
             verifyPropertyDesc(foo, Symbol.toStringTag, {configurable:false, enumerable: false, writable: false}, "Symbol.toStringTag");
             verifyPropertyDesc(foo, "default", {configurable:false, enumerable: true, writable: true});
@@ -96,96 +96,96 @@ var tests = [
             verifyPropertyDesc(foo2, "localfoo", {configurable:false, enumerable: true, writable: true});
             verifyPropertyDesc(foo2, "baz", {configurable:false, enumerable: true, writable: true});
             verifyPropertyDesc(foo2, "foo", {configurable:false, enumerable: true, writable: true});
-		    `, '', false);
+            `, '', false);
         }
     },
     {
         name: "Basic import namespace",
         body: function () {
-			testModuleScript(`
-			import * as foo from "ValidExportStatements.js";
-			assert.areEqual("default", foo.default, "default");
-			assert.areEqual(undefined, foo.var7, "var7");
-			assert.areEqual(undefined, foo.var6, "var6");
-			assert.areEqual(undefined, foo.var5, "var5");
-			assert.areEqual(undefined, foo.var4, "var4");
-			assert.areEqual(5, foo.var3, "var3");
-			assert.areEqual(undefined, foo.var2, "var2");
-			assert.areEqual("string", foo.var1, "var1");
-			assert.areEqual("function foo() { }", foo.foo4.toString(), "foo4");
-			assert.areEqual("class bar { }", foo.bar2.toString(), "bar2");
-			assert.areEqual("function foobar() { }", foo.foobar.toString(), "foobar");
-			assert.areEqual("function foo() { }", foo.foo3.toString(), "foo3");
-			assert.areEqual("function* baz() { }", foo.baz2.toString(), "baz2");
-			assert.areEqual("function foo() { }", foo.foo2.toString(), "foo2");
-			assert.areEqual("function* baz() { }", foo.baz.toString(), "baz");
-			assert.areEqual("class bar { }", foo.bar.toString(), "bar");
-			assert.areEqual("function foo() { }", foo.foo.toString(), "foo");
-			assert.areEqual([], foo.const6, "const6");
-			assert.areEqual({}, foo.const5, "const5");
-			assert.areEqual(4, foo.const4, "const4");
-			assert.areEqual(3, foo.const3, "const3");
-			assert.areEqual("str", foo.const2, "const2");
-			assert.areEqual([], foo.let7, "let7");
-			assert.areEqual({}, foo.let6, "let6");
-			assert.areEqual(undefined, foo.let5, "let5");
-			assert.areEqual(undefined, foo.let4, "let4");
-			assert.areEqual(undefined, foo.let3, "let3");
-			assert.areEqual(2, foo.let2, "let2");
-			assert.areEqual(undefined, foo.let1, "let1");
-			assert.areEqual("class cl2 { }", foo.cl2.toString(), "cl2");
-			assert.areEqual("class cl1 { }", foo.cl1.toString(), "cl1");
-			assert.areEqual("function* gn2() { }", foo.gn2.toString(), "gn2");
-			assert.areEqual("function* gn1() { }", foo.gn1.toString(), "gn1");
-			assert.areEqual("function fn2() { }", foo.fn2.toString(), "fn2");
-			assert.areEqual("function fn1() { }", foo.fn1.toString(), "fn1");
-		    `, '', false);
+            testModuleScript(`
+            import * as foo from "ValidExportStatements.js";
+            assert.areEqual("default", foo.default, "default");
+            assert.areEqual(undefined, foo.var7, "var7");
+            assert.areEqual(undefined, foo.var6, "var6");
+            assert.areEqual(undefined, foo.var5, "var5");
+            assert.areEqual(undefined, foo.var4, "var4");
+            assert.areEqual(5, foo.var3, "var3");
+            assert.areEqual(undefined, foo.var2, "var2");
+            assert.areEqual("string", foo.var1, "var1");
+            assert.areEqual("function foo() { }", foo.foo4.toString(), "foo4");
+            assert.areEqual("class bar { }", foo.bar2.toString(), "bar2");
+            assert.areEqual("function foobar() { }", foo.foobar.toString(), "foobar");
+            assert.areEqual("function foo() { }", foo.foo3.toString(), "foo3");
+            assert.areEqual("function* baz() { }", foo.baz2.toString(), "baz2");
+            assert.areEqual("function foo() { }", foo.foo2.toString(), "foo2");
+            assert.areEqual("function* baz() { }", foo.baz.toString(), "baz");
+            assert.areEqual("class bar { }", foo.bar.toString(), "bar");
+            assert.areEqual("function foo() { }", foo.foo.toString(), "foo");
+            assert.areEqual([], foo.const6, "const6");
+            assert.areEqual({}, foo.const5, "const5");
+            assert.areEqual(4, foo.const4, "const4");
+            assert.areEqual(3, foo.const3, "const3");
+            assert.areEqual("str", foo.const2, "const2");
+            assert.areEqual([], foo.let7, "let7");
+            assert.areEqual({}, foo.let6, "let6");
+            assert.areEqual(undefined, foo.let5, "let5");
+            assert.areEqual(undefined, foo.let4, "let4");
+            assert.areEqual(undefined, foo.let3, "let3");
+            assert.areEqual(2, foo.let2, "let2");
+            assert.areEqual(undefined, foo.let1, "let1");
+            assert.areEqual("class cl2 { }", foo.cl2.toString(), "cl2");
+            assert.areEqual("class cl1 { }", foo.cl1.toString(), "cl1");
+            assert.areEqual("function* gn2() { }", foo.gn2.toString(), "gn2");
+            assert.areEqual("function* gn1() { }", foo.gn1.toString(), "gn1");
+            assert.areEqual("function fn2() { }", foo.fn2.toString(), "fn2");
+            assert.areEqual("function fn1() { }", foo.fn1.toString(), "fn1");
+            `, '', false);
         }
     },
     {
         name: "import namespace with verification",
         body: function () {
-			testModuleScript(`
-			import * as foo from "moduleExport1.js";
-			assert.areEqual("default", foo.default, "default");
-			assert.areEqual(undefined, foo.var7, "var7");
-			assert.areEqual(undefined, foo.var6, "var6");
-			assert.areEqual(undefined, foo.var5, "var5");
-			assert.areEqual(undefined, foo.var4, "var4");
-			assert.areEqual(5, foo.var3, "var3");
-			assert.areEqual(undefined, foo.var2, "var2");
-			assert.areEqual("string", foo.var1, "var1");
-			assert.areEqual("function foo() { }", foo.foo4.toString(), "foo4");
-			assert.areEqual("class bar { }", foo.bar2.toString(), "bar2");
-			assert.areEqual("function foobar() { }", foo.foobar.toString(), "foobar");
-			assert.areEqual("function foo() { }", foo.foo3.toString(), "foo3");
-			assert.areEqual("function* baz() { }", foo.baz2.toString(), "baz2");
-			assert.areEqual("function foo() { }", foo.foo2.toString(), "foo2");
-			assert.areEqual("function* baz() { }", foo.baz.toString(), "baz");
-			assert.areEqual("class bar { }", foo.bar.toString(), "bar");
-			assert.areEqual("function foo() { }", foo.foo.toString(), "foo");
-			assert.areEqual([], foo.const6, "const6");
-			assert.areEqual({}, foo.const5, "const5");
-			assert.areEqual(4, foo.const4, "const4");
-			assert.areEqual(3, foo.const3, "const3");
-			assert.areEqual("str", foo.const2, "const2");
-			assert.areEqual([], foo.let7, "let7");
-			assert.areEqual({}, foo.let6, "let6");
-			assert.areEqual(undefined, foo.let5, "let5");
-			assert.areEqual(undefined, foo.let4, "let4");
-			assert.areEqual(undefined, foo.let3, "let3");
-			assert.areEqual(2, foo.let2, "let2");
-			assert.areEqual(undefined, foo.let1, "let1");
-			assert.areEqual("class cl2 { }", foo.cl2.toString(), "cl2");
-			assert.areEqual("class cl1 { }", foo.cl1.toString(), "cl1");
-			assert.areEqual("function* gn2() { }", foo.gn2.toString(), "gn2");
-			assert.areEqual("function* gn1() { }", foo.gn1.toString(), "gn1");
-			assert.areEqual("function fn2() { }", foo.fn2.toString(), "fn2");
-			assert.areEqual("function fn1() { }", foo.fn1.toString(), "fn1");
-			foo.verifyNamespace(foo);
-			foo.changeContext();
-			foo.verifyNamespace(foo);
-			`, '', false);
+            testModuleScript(`
+            import * as foo from "moduleExport1.js";
+            assert.areEqual("default", foo.default, "default");
+            assert.areEqual(undefined, foo.var7, "var7");
+            assert.areEqual(undefined, foo.var6, "var6");
+            assert.areEqual(undefined, foo.var5, "var5");
+            assert.areEqual(undefined, foo.var4, "var4");
+            assert.areEqual(5, foo.var3, "var3");
+            assert.areEqual(undefined, foo.var2, "var2");
+            assert.areEqual("string", foo.var1, "var1");
+            assert.areEqual("function foo() { }", foo.foo4.toString(), "foo4");
+            assert.areEqual("class bar { }", foo.bar2.toString(), "bar2");
+            assert.areEqual("function foobar() { }", foo.foobar.toString(), "foobar");
+            assert.areEqual("function foo() { }", foo.foo3.toString(), "foo3");
+            assert.areEqual("function* baz() { }", foo.baz2.toString(), "baz2");
+            assert.areEqual("function foo() { }", foo.foo2.toString(), "foo2");
+            assert.areEqual("function* baz() { }", foo.baz.toString(), "baz");
+            assert.areEqual("class bar { }", foo.bar.toString(), "bar");
+            assert.areEqual("function foo() { }", foo.foo.toString(), "foo");
+            assert.areEqual([], foo.const6, "const6");
+            assert.areEqual({}, foo.const5, "const5");
+            assert.areEqual(4, foo.const4, "const4");
+            assert.areEqual(3, foo.const3, "const3");
+            assert.areEqual("str", foo.const2, "const2");
+            assert.areEqual([], foo.let7, "let7");
+            assert.areEqual({}, foo.let6, "let6");
+            assert.areEqual(undefined, foo.let5, "let5");
+            assert.areEqual(undefined, foo.let4, "let4");
+            assert.areEqual(undefined, foo.let3, "let3");
+            assert.areEqual(2, foo.let2, "let2");
+            assert.areEqual(undefined, foo.let1, "let1");
+            assert.areEqual("class cl2 { }", foo.cl2.toString(), "cl2");
+            assert.areEqual("class cl1 { }", foo.cl1.toString(), "cl1");
+            assert.areEqual("function* gn2() { }", foo.gn2.toString(), "gn2");
+            assert.areEqual("function* gn1() { }", foo.gn1.toString(), "gn1");
+            assert.areEqual("function fn2() { }", foo.fn2.toString(), "fn2");
+            assert.areEqual("function fn1() { }", foo.fn1.toString(), "fn1");
+            foo.verifyNamespace(foo);
+            foo.changeContext();
+            foo.verifyNamespace(foo);
+            `, '', false);
         }
     },
     {
@@ -193,71 +193,71 @@ var tests = [
         body: function () {
             testModuleScript(`
             import * as foo from "ValidReExportStatements.js";
-			assert.areEqual("function foo() { }", foo.foo.toString(), "foo");
-			assert.areEqual("class bar { }", foo.bar.toString(), "bar");
-			assert.areEqual("function* baz() { }", foo.baz.toString(), "baz");
-			assert.areEqual("function foo() { }", foo.foo2.toString(), "foo2");
-			assert.areEqual("class bar { }", foo.bar2.toString(), "bar2");
-			assert.areEqual("function foo() { }", foo.foo3.toString(), "foo3");
-			`, '', false);
+            assert.areEqual("function foo() { }", foo.foo.toString(), "foo");
+            assert.areEqual("class bar { }", foo.bar.toString(), "bar");
+            assert.areEqual("function* baz() { }", foo.baz.toString(), "baz");
+            assert.areEqual("function foo() { }", foo.foo2.toString(), "foo2");
+            assert.areEqual("class bar { }", foo.bar2.toString(), "bar2");
+            assert.areEqual("function foo() { }", foo.foo3.toString(), "foo3");
+            `, '', false);
         }
     },
     {
         name: "complex reexport",
         body: function () {
             testModuleScript(`import * as fooComplex from "ModuleComplexReexports.js";
-			assert.areEqual("function bar() { return 'bar'; }", fooComplex.ModuleComplexReexports_foo.toString(), "ModuleComplexReexports_foo");
-			assert.areEqual(undefined, fooComplex.switch, "switch");
-			assert.areEqual("function foo() { return 'foo'; }", fooComplex.bar2.toString(), "bar2");
-			assert.areEqual("function foo() { return 'foo'; }", fooComplex.localfoo2.toString(), "localfoo2");
-			assert.areEqual("function foo() { return 'foo'; }", fooComplex.bar.toString(), "bar");
-			assert.areEqual("function foo() { return 'foo'; }", fooComplex.localfoo.toString(), "localfoo");
-			assert.areEqual("function foo() { return 'foo'; }", fooComplex.baz.toString(), "baz");
-			assert.areEqual("function foo() { return 'foo'; }", fooComplex.foo.toString(), "foo");
-		    `, '', false);
+            assert.areEqual("function bar() { return 'bar'; }", fooComplex.ModuleComplexReexports_foo.toString(), "ModuleComplexReexports_foo");
+            assert.areEqual(undefined, fooComplex.switch, "switch");
+            assert.areEqual("function foo() { return 'foo'; }", fooComplex.bar2.toString(), "bar2");
+            assert.areEqual("function foo() { return 'foo'; }", fooComplex.localfoo2.toString(), "localfoo2");
+            assert.areEqual("function foo() { return 'foo'; }", fooComplex.bar.toString(), "bar");
+            assert.areEqual("function foo() { return 'foo'; }", fooComplex.localfoo.toString(), "localfoo");
+            assert.areEqual("function foo() { return 'foo'; }", fooComplex.baz.toString(), "baz");
+            assert.areEqual("function foo() { return 'foo'; }", fooComplex.foo.toString(), "foo");
+            `, '', false);
         }
     },
     {
         name: "namespace as prototype",
         body: function () {
             testModuleScript(`import * as foo from "ValidExportStatements.js";
-			var childObj = Object.create(foo);
-			assert.areEqual("default", childObj.default, "default");
-			assert.areEqual(undefined, childObj.var7, "var7");
-			assert.areEqual(undefined, childObj.var6, "var6");
-			assert.areEqual(undefined, childObj.var5, "var5");
-			assert.areEqual(undefined, childObj.var4, "var4");
-			assert.areEqual(5, childObj.var3, "var3");
-			assert.areEqual(undefined, childObj.var2, "var2");
-			assert.areEqual("string", childObj.var1, "var1");
-			assert.areEqual("function foo() { }", childObj.foo4.toString(), "foo4");
-			assert.areEqual("class bar { }", childObj.bar2.toString(), "bar2");
-			assert.areEqual("function foobar() { }", childObj.foobar.toString(), "foobar");
-			assert.areEqual("function foo() { }", childObj.foo3.toString(), "foo3");
-			assert.areEqual("function* baz() { }", childObj.baz2.toString(), "baz2");
-			assert.areEqual("function foo() { }", childObj.foo2.toString(), "foo2");
-			assert.areEqual("function* baz() { }", childObj.baz.toString(), "baz");
-			assert.areEqual("class bar { }", childObj.bar.toString(), "bar");
-			assert.areEqual("function foo() { }", childObj.foo.toString(), "foo");
-			assert.areEqual([], childObj.const6, "const6");
-			assert.areEqual({}, childObj.const5, "const5");
-			assert.areEqual(4, childObj.const4, "const4");
-			assert.areEqual(3, childObj.const3, "const3");
-			assert.areEqual("str", childObj.const2, "const2");
-			assert.areEqual([], childObj.let7, "let7");
-			assert.areEqual({}, childObj.let6, "let6");
-			assert.areEqual(undefined, childObj.let5, "let5");
-			assert.areEqual(undefined, childObj.let4, "let4");
-			assert.areEqual(undefined, childObj.let3, "let3");
-			assert.areEqual(2, childObj.let2, "let2");
-			assert.areEqual(undefined, childObj.let1, "let1");
-			assert.areEqual("class cl2 { }", childObj.cl2.toString(), "cl2");
-			assert.areEqual("class cl1 { }", childObj.cl1.toString(), "cl1");
-			assert.areEqual("function* gn2() { }", childObj.gn2.toString(), "gn2");
-			assert.areEqual("function* gn1() { }", childObj.gn1.toString(), "gn1");
-			assert.areEqual("function fn2() { }", childObj.fn2.toString(), "fn2");
-			assert.areEqual("function fn1() { }", childObj.fn1.toString(), "fn1");
-			`, '', false);
+            var childObj = Object.create(foo);
+            assert.areEqual("default", childObj.default, "default");
+            assert.areEqual(undefined, childObj.var7, "var7");
+            assert.areEqual(undefined, childObj.var6, "var6");
+            assert.areEqual(undefined, childObj.var5, "var5");
+            assert.areEqual(undefined, childObj.var4, "var4");
+            assert.areEqual(5, childObj.var3, "var3");
+            assert.areEqual(undefined, childObj.var2, "var2");
+            assert.areEqual("string", childObj.var1, "var1");
+            assert.areEqual("function foo() { }", childObj.foo4.toString(), "foo4");
+            assert.areEqual("class bar { }", childObj.bar2.toString(), "bar2");
+            assert.areEqual("function foobar() { }", childObj.foobar.toString(), "foobar");
+            assert.areEqual("function foo() { }", childObj.foo3.toString(), "foo3");
+            assert.areEqual("function* baz() { }", childObj.baz2.toString(), "baz2");
+            assert.areEqual("function foo() { }", childObj.foo2.toString(), "foo2");
+            assert.areEqual("function* baz() { }", childObj.baz.toString(), "baz");
+            assert.areEqual("class bar { }", childObj.bar.toString(), "bar");
+            assert.areEqual("function foo() { }", childObj.foo.toString(), "foo");
+            assert.areEqual([], childObj.const6, "const6");
+            assert.areEqual({}, childObj.const5, "const5");
+            assert.areEqual(4, childObj.const4, "const4");
+            assert.areEqual(3, childObj.const3, "const3");
+            assert.areEqual("str", childObj.const2, "const2");
+            assert.areEqual([], childObj.let7, "let7");
+            assert.areEqual({}, childObj.let6, "let6");
+            assert.areEqual(undefined, childObj.let5, "let5");
+            assert.areEqual(undefined, childObj.let4, "let4");
+            assert.areEqual(undefined, childObj.let3, "let3");
+            assert.areEqual(2, childObj.let2, "let2");
+            assert.areEqual(undefined, childObj.let1, "let1");
+            assert.areEqual("class cl2 { }", childObj.cl2.toString(), "cl2");
+            assert.areEqual("class cl1 { }", childObj.cl1.toString(), "cl1");
+            assert.areEqual("function* gn2() { }", childObj.gn2.toString(), "gn2");
+            assert.areEqual("function* gn1() { }", childObj.gn1.toString(), "gn1");
+            assert.areEqual("function fn2() { }", childObj.fn2.toString(), "fn2");
+            assert.areEqual("function fn1() { }", childObj.fn1.toString(), "fn1");
+            `, '', false);
        }
     },
     {
