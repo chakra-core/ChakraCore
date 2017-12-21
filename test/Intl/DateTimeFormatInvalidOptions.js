@@ -5,7 +5,6 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
-// NOTE: \u200e is the U+200E LEFT-TO-RIGHT MARK
 var tests = [
     {
         name: "Test Invalid Options",
@@ -23,7 +22,7 @@ var tests = [
                 }
                 catch (e) {
                     if (!(e instanceof RangeError)) {
-                        assert.fail("Incorrect exception was thrown.");
+                        assert.fail(`Incorrect exception was thrown: ${e.message}`);
                     }
                     assert.isTrue(e.message.indexOf(validValues) !== -1,
                         "Checking exception message for correct values string. Looking for: " + validValues +

@@ -34,6 +34,8 @@ GlobalBuiltIn(JavascriptArray, EntrySlice)
 GlobalBuiltIn(JavascriptArray, EntryConcat)
 
 GlobalBuiltIn(JavascriptFunction, EntryBind)
+GlobalBuiltIn(JavascriptFunction, EntryApply)
+
 GlobalBuiltIn(JavascriptDate, EntryGetDate)
 GlobalBuiltIn(JavascriptDate, EntryNow)
 
@@ -42,6 +44,8 @@ GlobalBuiltIn(JavascriptString, EntryToLowerCase)
 GlobalBuiltIn(JavascriptString, EntryToUpperCase)
 GlobalBuiltIn(JavascriptString, EntrySplit)
 GlobalBuiltIn(JavascriptString, EntrySubstring)
+GlobalBuiltIn(JavascriptString, EntryRepeat)
+GlobalBuiltIn(JavascriptString, EntryIndexOf)
 
 GlobalBuiltIn(GlobalObject, EntryIsFinite)
 GlobalBuiltIn(GlobalObject, EntryIsNaN)

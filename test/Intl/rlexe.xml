@@ -11,14 +11,14 @@
   <test>
     <default>
       <files>Collator.js</files>
-      <tags>Intl,require_winglob</tags>
+      <tags>Intl</tags>
     </default>
   </test>
   <test>
     <default>
       <files>CollatorOptions.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Intl,require_winglob</tags>
+      <tags>Intl</tags>
     </default>
   </test>
   <test>
@@ -30,9 +30,9 @@
   </test>
   <test>
     <default>
-      <files>DateTimeFormatOptions.js</files>
+      <files>DateTimeFormat.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Intl,require_winglob</tags>
+      <tags>Intl</tags>
     </default>
   </test>
   <test>
@@ -61,7 +61,14 @@
     <default>
       <files>SupportedLocalesOf.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Intl,require_winglob</tags>
+      <tags>Intl</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>intl2018.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+      <tags>Intl,require_icu</tags>
     </default>
   </test>
   <test>
@@ -92,7 +99,6 @@
       <tags>Intl,exclude_winglob</tags>
     </default>
   </test>
-
   <test>
     <default>
       <files>IntlBuiltIns.js</files>
@@ -110,10 +116,9 @@
     <default>
       <compile-flags> -Intl -debugLaunch -dbgbaseline:IntlReturnedValueTests.js.dbg.baseline</compile-flags>
       <files>IntlReturnedValueTests.js</files>
-      <tags>Intl,require_winglob</tags>
+      <tags>Intl,require_winglob</tags> <!-- require_winglob because the baseline contains embedded bi-di markers -->
     </default>
   </test>
-
   <test>
     <default>
       <!-- TODO investigate why -ExtendedErrorStackForTestHost inserts tabs at the beginning of some frames (Microsoft/ChakraCore#3130) -->

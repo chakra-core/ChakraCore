@@ -53,6 +53,9 @@ typedef uint64_t uint64;
 #include <unicode/enumset.h>
 #include <unicode/decimfmt.h>
 #include <unicode/ucol.h>
+#include <unicode/ucal.h>
+#include <unicode/udat.h>
+#include <unicode/udatpg.h>
 #pragma warning(pop)
 
 #include "CommonDefines.h" // INTL_ICU_DEBUG
@@ -77,10 +80,12 @@ public:
 #define ICU_DEBUG_PRINT(fmt, msg)
 #endif
 
+#define ICU_FAILURE(e) (U_FAILURE(e) || e == U_STRING_NOT_TERMINATED_WARNING)
+
 #define ICU_RETURN(e, expr, r)                                                \
     do                                                                        \
     {                                                                         \
-        if (U_FAILURE(e))                                                     \
+        if (ICU_FAILURE(e))                                                   \
         {                                                                     \
             ICU_DEBUG_PRINT(ICU_ERROR_FMT, u_errorName(e));                   \
             return r;                                                         \
@@ -95,7 +100,7 @@ public:
 #define ICU_ASSERT(e, expr)                                                   \
     do                                                                        \
     {                                                                         \
-        if (U_FAILURE(e))                                                     \
+        if (ICU_FAILURE(e))                                                   \
         {                                                                     \
             ICU_DEBUG_PRINT(ICU_ERROR_FMT, u_errorName(e));                   \
             AssertOrFailFastMsg(false, u_errorName(e));                       \
@@ -110,7 +115,7 @@ public:
 #define ICU_GOTO(e, expr, l)                                                  \
     do                                                                        \
     {                                                                         \
-        if (U_FAILURE(e))                                                     \
+        if (ICU_FAILURE(e))                                                   \
         {                                                                     \
             ICU_DEBUG_PRINT(ICU_ERROR_FMT, u_errorName(e));                   \
             goto l;                                                           \
@@ -141,7 +146,26 @@ public:
         }                                                                     \
     } while (false)
 
-#define UNWRAP_RESOURCE(resource, innerType) reinterpret_cast<PlatformAgnosticIntlObject<innerType> *>(resource)->GetInstance();
+// Some ICU functions don't like being given null/0-length buffers.
+// We can work around this by making a local allocation of size 1 that will still
+// trigger a U_BUFFER_OVERFLOW_ERROR but will allow the function to return the required length.
+#define ICU_FIXBUF(type, bufArg, bufArgLen)                                   \
+    type __temp; \
+    const int __tempLen = 1; \
+    bool isTemporaryBuffer = false; \
+    if (bufArg == nullptr && bufArgLen == 0) \
+    { \
+        bufArg = &__temp; \
+        bufArgLen = __tempLen; \
+        isTemporaryBuffer = true; \
+    }
+
+// UNWRAP_* macros are convenience macros to turn an IPlatformAgnosticResource into the desired innerType
+// UNWRAP_PAIO (PlatformAgnosticIntlObject) should only be called on IPlatformAgnosticResources that were originally
+// created as PlatformAgnosticIntlObjects
+// UNWRAP_C_OBJECT should only be called on IPlatformAgnosticResources that were originally created as IcuCObjects
+#define UNWRAP_PAIO(resource, innerType) reinterpret_cast<PlatformAgnosticIntlObject<innerType> *>(resource)->GetInstance();
+#define UNWRAP_C_OBJECT(resource, innerType) reinterpret_cast<IcuCObject<innerType> *>(resource)->GetInstance();
 
 namespace PlatformAgnostic
 {
@@ -357,7 +381,7 @@ namespace Intl
     void SetNumberFormatSignificantDigits(IPlatformAgnosticResource *resource, const uint16 minSigDigits, const uint16 maxSigDigits)
     {
         // We know what actual type we stored in the IPlatformAgnosticResource*, so cast to it.
-        icu::NumberFormat *nf = UNWRAP_RESOURCE(resource, icu::NumberFormat);
+        icu::NumberFormat *nf = UNWRAP_PAIO(resource, icu::NumberFormat);
 
         // TODO(jahorto): Determine if we could ever have a NumberFormat that isn't a DecimalFormat (and if so, what to do here)
         icu::DecimalFormat *df = dynamic_cast<icu::DecimalFormat *>(nf);
@@ -379,7 +403,7 @@ namespace Intl
     void SetNumberFormatIntFracDigits(IPlatformAgnosticResource *resource, const uint16 minFracDigits, const uint16 maxFracDigits, const uint16 minIntDigits)
     {
         // We know what actual type we stored in the IPlatformAgnosticResource*, so cast to it.
-        icu::NumberFormat *nf = UNWRAP_RESOURCE(resource, icu::NumberFormat);
+        icu::NumberFormat *nf = UNWRAP_PAIO(resource, icu::NumberFormat);
         nf->setMinimumIntegerDigits(minIntDigits);
         nf->setMinimumFractionDigits(minFracDigits);
         nf->setMaximumFractionDigits(maxFracDigits);
@@ -388,7 +412,7 @@ namespace Intl
     void SetNumberFormatGroupingUsed(IPlatformAgnosticResource *resource, const bool isGroupingUsed)
     {
         // We know what actual type we stored in the IPlatformAgnosticResource*, so cast to it.
-        icu::NumberFormat *nf = UNWRAP_RESOURCE(resource, icu::NumberFormat);
+        icu::NumberFormat *nf = UNWRAP_PAIO(resource, icu::NumberFormat);
         nf->setGroupingUsed(isGroupingUsed);
     }
 
@@ -467,14 +491,20 @@ namespace Intl
         return ret;
     }
 
-    bool IsLocaleAvailable(_In_z_ const char *locale)
+    bool IsLocaleAvailable(_In_z_ const char *langtag)
     {
         int32_t countAvailable = uloc_countAvailable();
         Assert(countAvailable > 0);
+
+        UErrorCode status = U_ZERO_ERROR;
+        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        int32_t length = 0;
+        uloc_forLanguageTag(langtag, localeID, ULOC_FULLNAME_CAPACITY, &length, &status);
+        ICU_ASSERT(status, length > 0);
         for (int i = 0; i < countAvailable; i++)
         {
             const char *candidate = uloc_getAvailable(i);
-            if (strcmp(locale, candidate) == 0)
+            if (strcmp(localeID, candidate) == 0)
             {
                 return true;
             }
@@ -654,9 +684,221 @@ namespace Intl
             ret = 0;
         }
 
-LCloseCollator:
         ucol_close(collator);
         return ret;
+    }
+
+    // Gets the system time zone. If tz is non-null, it is written into tz
+    // Returns the number of characters written into tz (including a null terminator)
+    int GetDefaultTimeZone(_Out_writes_opt_(tzLen) char16 *tz, _In_ int tzLen)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        ICU_FIXBUF(char16, tz, tzLen); // sets bool isTemporaryBuffer
+        int required = ucal_getDefaultTimeZone(reinterpret_cast<UChar *>(tz), tzLen, &status);
+        if (isTemporaryBuffer && status == U_BUFFER_OVERFLOW_ERROR)
+        {
+            // buffer overflow is expected when we are just trying to get the length returned
+            return required + 1;
+        }
+        
+        ICU_ASSERT(status, required > 0 && required < tzLen);
+        return required + 1;
+    }
+
+    // Determines if a time zone is valid. If it is and tzOut is non-null, the canonicalized version is written into tzOut
+    // Returns the number of characters written into tzOut (including a null terminator), or 0 on invalid time zone
+    int ValidateAndCanonicalizeTimeZone(_In_z_ const char16 *tzIn, _Out_writes_opt_(tzOutLen) char16 *tzOut, _In_ int tzOutLen)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        ICU_FIXBUF(char16, tzOut, tzOutLen); // sets bool isTemporaryBuffer
+
+        int required = ucal_getCanonicalTimeZoneID(reinterpret_cast<const UChar *>(tzIn), -1, reinterpret_cast<UChar *>(tzOut), tzOutLen, nullptr, &status);
+        if (isTemporaryBuffer && status == U_BUFFER_OVERFLOW_ERROR)
+        {
+            // buffer overflow is expected when we are just trying to get the length returned
+            return required + 1;
+        }
+        else if (status == U_ILLEGAL_ARGUMENT_ERROR)
+        {
+            // illegal argument here means that tzIn is an invalid time zone
+            return 0;
+        }
+
+        ICU_ASSERT(status, required > 0 && required < tzOutLen);
+        return required + 1;
+    }
+
+    // Generates an LDML pattern for the given LDML skeleton in the given locale. If pattern is non-null, the result is written into pattern
+    // LDML here means the Unicode Locale Data Markup Language: http://www.unicode.org/reports/tr35/tr35-dates.html#Date_Field_Symbol_Table
+    // Returns the number of characters written into pattern (including a null terminator) [should always be positive]
+    int GetPatternForSkeleton(_In_z_ const char *langtag, _In_z_ const char16 *skeleton, _Out_writes_opt_(patternLen) char16 *pattern, _In_ int patternLen)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        int length = 0;
+        uloc_forLanguageTag(langtag, localeID, ULOC_FULLNAME_CAPACITY, &length, &status);
+        ICU_ASSERT(status, length > 0);
+
+        UDateTimePatternGenerator *dtpg = udatpg_open(localeID, &status);
+        ICU_ASSERT(status, true);
+
+        int bestPatternLen = udatpg_getBestPatternWithOptions(
+            dtpg,
+            reinterpret_cast<const UChar *>(skeleton),
+            -1,
+            UDATPG_MATCH_ALL_FIELDS_LENGTH,
+            reinterpret_cast<UChar *>(pattern),
+            patternLen,
+            &status
+        );
+
+        if (pattern == nullptr && patternLen == 0 && status == U_BUFFER_OVERFLOW_ERROR)
+        {
+            // when we are just counting bytes, we can ignore errors
+            AssertOrFailFast(bestPatternLen > 0);
+        }
+        else
+        {
+            ICU_ASSERT(status, bestPatternLen > 0 && bestPatternLen < patternLen);
+        }
+
+        udatpg_close(dtpg);
+        return bestPatternLen + 1;
+    }
+
+    // creates a UDateFormat and wraps it in an IPlatformAgnosticResource
+    void CreateDateTimeFormat(_In_z_ const char *langtag, _In_z_ const char16 *timeZone, _In_z_ const char16 *pattern, _Out_ IPlatformAgnosticResource **resource)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        int length = 0;
+        uloc_forLanguageTag(langtag, localeID, ULOC_FULLNAME_CAPACITY, &length, &status);
+        ICU_ASSERT(status, length > 0);
+
+        UDateFormat *dtf = udat_open(
+            UDAT_PATTERN,
+            UDAT_PATTERN,
+            localeID,
+            reinterpret_cast<const UChar *>(timeZone),
+            -1,
+            reinterpret_cast<const UChar *>(pattern),
+            -1,
+            &status
+        );
+        IPlatformAgnosticResource *formatterResource = new IcuCObject<UDateFormat>(dtf, &udat_close);
+        AssertOrFailFast(formatterResource);
+        *resource = formatterResource;
+    }
+
+    // Formats `date` using the UDateFormat wrapped by `resource`. If `formatted` is non-null, the result is written into `formatted`
+    // Returns the number of characters written into `formatted` (including a null terminator) [should always be positive]
+    int FormatDateTime(_In_ IPlatformAgnosticResource *resource, _In_ double date, _Out_writes_opt_(formattedLen) char16 *formatted, _In_ int formattedLen)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        UDateFormat *dtf = UNWRAP_C_OBJECT(resource, UDateFormat);
+
+        int required = udat_format(dtf, date, reinterpret_cast<UChar *>(formatted), formattedLen, nullptr, &status);
+        if (formatted == nullptr && formattedLen == 0 && status == U_BUFFER_OVERFLOW_ERROR)
+        {
+            // when we are just counting bytes, we can ignore errors
+            AssertOrFailFast(required > 0);
+        }
+        else
+        {
+            ICU_ASSERT(status, required > 0 && required < formattedLen);
+        }
+
+        return required + 1;
+    }
+
+    // Formats `date` using the UDateFormat wrapped by `resource`. If `formatted` is non-null, the result is written into `formatted`
+    // Takes an additional parameter, fieldIterator, which is set to a IPlatformAgnosticResource* that should later be given to GetDateTimePartInfo
+    // Returns the number of characters written into `formatted` (includes a null terminator) [should always be positive]
+    int FormatDateTimeToParts(_In_ IPlatformAgnosticResource *resource, _In_ double date, _Out_writes_opt_(formattedLen) char16 *formatted,
+        _In_ int formattedLen, _Out_opt_ IPlatformAgnosticResource **fieldIterator)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        UDateFormat *dtf = UNWRAP_C_OBJECT(resource, UDateFormat);
+
+        UFieldPositionIterator *fpi = nullptr;
+
+        if (fieldIterator)
+        {
+            fpi = ufieldpositer_open(&status);
+            ICU_ASSERT(status, true);
+            IPlatformAgnosticResource *fpiResource = new IcuCObject<UFieldPositionIterator>(fpi, &ufieldpositer_close);
+            AssertOrFailFastMsg(fpiResource, "Out of memory");
+            *fieldIterator = fpiResource;
+        }
+
+        int required = udat_formatForFields(dtf, date, reinterpret_cast<UChar *>(formatted), formattedLen, fpi, &status);
+        if (formatted == nullptr && formattedLen == 0 && status == U_BUFFER_OVERFLOW_ERROR)
+        {
+            // when we are just counting bytes, we can ignore ICU errors
+            AssertOrFailFast(required > 0);
+        }
+        else
+        {
+            ICU_ASSERT(status, required > 0 && required < formattedLen);
+        }
+
+        return required + 1;
+    }
+
+    // Given a stateful fieldIterator, sets partStart and partEnd to the start (inclusive) and end (exclusive) of the substring for the part
+    // and sets partKind to be the type of the part (really a UDateFormatField -- see GetDateTimePartKind)
+    bool GetDateTimePartInfo(_In_ IPlatformAgnosticResource *fieldIterator, _Out_ int *partStart, _Out_ int *partEnd, _Out_ int *partKind)
+    {
+        UFieldPositionIterator *fpi = UNWRAP_C_OBJECT(fieldIterator, UFieldPositionIterator);
+
+        *partKind = ufieldpositer_next(fpi, partStart, partEnd);
+        return *partKind > 0;
+    }
+
+    // Given a partKind set by GetDateTimePartInfo, return the corresponding string for the "type" field of the formatToParts return object
+    // NOTE - keep this up to date with the map in Intl.js#getPatternForSkeleton and the UDateFormatField enum
+    // See ECMA-402: #sec-partitiondatetimepattern
+    const char16 *GetDateTimePartKind(_In_ int partKind)
+    {
+        UDateFormatField field = (UDateFormatField) partKind;
+        switch (field)
+        {
+        case UDAT_ERA_FIELD:
+            return _u("era");
+        case UDAT_YEAR_FIELD:
+        case UDAT_EXTENDED_YEAR_FIELD:
+        case UDAT_YEAR_NAME_FIELD:
+            return _u("year");
+        case UDAT_MONTH_FIELD:
+        case UDAT_STANDALONE_MONTH_FIELD:
+            return _u("month");
+        case UDAT_DATE_FIELD:
+            return _u("day");
+        case UDAT_HOUR_OF_DAY1_FIELD:
+        case UDAT_HOUR_OF_DAY0_FIELD:
+        case UDAT_HOUR1_FIELD:
+        case UDAT_HOUR0_FIELD:
+            return _u("hour");
+        case UDAT_MINUTE_FIELD:
+            return _u("minute");
+        case UDAT_SECOND_FIELD:
+            return _u("second");
+        case UDAT_DAY_OF_WEEK_FIELD:
+        case UDAT_STANDALONE_DAY_FIELD:
+        case UDAT_DOW_LOCAL_FIELD:
+            return _u("weekday");
+        case UDAT_AM_PM_FIELD:
+            return _u("dayPeriod");
+        case UDAT_TIMEZONE_FIELD:
+        case UDAT_TIMEZONE_RFC_FIELD:
+        case UDAT_TIMEZONE_GENERIC_FIELD:
+        case UDAT_TIMEZONE_SPECIAL_FIELD:
+        case UDAT_TIMEZONE_LOCALIZED_GMT_OFFSET_FIELD:
+        case UDAT_TIMEZONE_ISO_FIELD:
+            return _u("timeZone");
+        default:
+            return _u("unknown");
+        }
     }
 } // namespace Intl
 } // namespace PlatformAgnostic

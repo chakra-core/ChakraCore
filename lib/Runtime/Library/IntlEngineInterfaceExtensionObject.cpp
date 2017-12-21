@@ -137,6 +137,8 @@ using namespace PlatformAgnostic::Intl;
 
 #endif
 
+#define INTL_CHECK_ARGS(argcheck) AssertOrFailFastMsg((argcheck), "Intl platform function given bad arguments")
+
 namespace Js
 {
 #ifdef ENABLE_INTL_OBJECT
@@ -1586,16 +1588,38 @@ namespace Js
         }
     }
 
+#ifdef INTL_ICU
+    static void AddPartToPartsArray(ScriptContext *scriptContext, JavascriptArray *arr, int arrIndex, const char16 *src, int start, int end, const char16 *kind)
+    {
+        JavascriptString *partValue = JavascriptString::NewCopyBuffer(
+            src + start,
+            end - start,
+            scriptContext
+        );
+
+        JavascriptString *partType = JavascriptString::NewCopySz(kind, scriptContext);
+
+        DynamicObject* part = scriptContext->GetLibrary()->CreateObject();
+        JavascriptOperators::InitProperty(part, PropertyIds::type, partType);
+        JavascriptOperators::InitProperty(part, PropertyIds::value, partValue);
+
+        arr->SetItem(arrIndex, part, PropertyOperationFlags::PropertyOperation_None);
+    }
+#endif
+
+    // For Windows Globalization, this function takes a number (date) and a state object and returns a string
+    // For ICU, this function takes a state object, number, and boolean for whether or not to format to parts.
+    //   if args.Values[3] ~= true, an array of objects is returned; else, a string is returned
     Var IntlEngineInterfaceExtensionObject::EntryIntl_FormatDateTime(RecyclableObject* function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
+#ifdef INTL_WINGLOB
         if (args.Info.Count < 3 || !(TaggedInt::Is(args.Values[1]) || JavascriptNumber::Is(args.Values[1])) || !DynamicObject::Is(args.Values[2]))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-#ifdef INTL_WINGLOB
         Windows::Foundation::DateTime winDate;
         HRESULT hr;
         if (TaggedInt::Is(args.Values[1]))
@@ -1647,35 +1671,130 @@ namespace Js
 
         return Js::JavascriptString::NewCopySz(strBuf, scriptContext);
 #else
-        // TODO (doilij): implement INTL_ICU version
-#ifdef INTL_ICU_DEBUG
-        Output::Print(_u("EntryIntl_FormatDateTime > returning null, fallback to JS\n"));
-#endif
-        return scriptContext->GetLibrary()->GetNull();
+        INTL_CHECK_ARGS(
+            args.Info.Count == 4 &&
+            DynamicObject::Is(args.Values[1]) &&
+            (TaggedInt::Is(args.Values[2]) || JavascriptNumber::Is(args.Values[2])) &&
+            JavascriptBoolean::Is(args.Values[3])
+        );
+
+        DynamicObject *state = DynamicObject::UnsafeFromVar(args.Values[1]);
+        double x = TaggedInt::Is(args.Values[2]) ? TaggedInt::ToDouble(args.Values[2]) : JavascriptNumber::GetValue(args.Values[2]);
+        bool toParts = Js::JavascriptBoolean::UnsafeFromVar(args.Values[3])->GetValue() ? true : false;
+
+        Var hiddenObject = nullptr;
+        IPlatformAgnosticResource *dtf = nullptr;
+        if (state->GetInternalProperty(state, Js::InternalPropertyIds::HiddenObject, &hiddenObject, nullptr, scriptContext))
+        {
+            dtf = reinterpret_cast<AutoIcuJsObject<IPlatformAgnosticResource> *>(hiddenObject)->GetInstance();
+        }
+        else
+        {
+            JavascriptString *locale = nullptr;
+            JavascriptString *timeZone = nullptr;
+            JavascriptString *pattern = nullptr;
+
+            Var propertyValue = nullptr; // set by the GetTypedPropertyBuiltInFrom macro
+            
+            if (GetTypedPropertyBuiltInFrom(state, locale, JavascriptString))
+            {
+                locale = JavascriptString::UnsafeFromVar(propertyValue);
+            }
+
+            if (GetTypedPropertyBuiltInFrom(state, timeZone, JavascriptString))
+            {
+                timeZone = JavascriptString::UnsafeFromVar(propertyValue);
+            }
+
+            if (GetTypedPropertyBuiltInFrom(state, pattern, JavascriptString))
+            {
+                pattern = JavascriptString::UnsafeFromVar(propertyValue);
+            }
+
+            AssertOrFailFast(timeZone != nullptr && locale != nullptr && pattern != nullptr);
+
+            utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
+
+            CreateDateTimeFormat(locale8, timeZone->GetSz(), pattern->GetSz(), &dtf);
+            state->SetInternalProperty(
+                InternalPropertyIds::HiddenObject,
+                AutoIcuJsObject<IPlatformAgnosticResource>::New(scriptContext->GetRecycler(), dtf),
+                PropertyOperationFlags::PropertyOperation_SpecialValue,
+                nullptr
+            );
+        }
+
+        // both format and formatToParts need the original string, so we can do the length calculation for both
+        int required = FormatDateTime(dtf, x);
+        char16 *formatted = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, required);
+
+        if (toParts)
+        {
+            IPlatformAgnosticResource *fieldIterator = nullptr;
+            FormatDateTimeToParts(dtf, x, formatted, required, &fieldIterator);
+            JavascriptArray* ret = scriptContext->GetLibrary()->CreateArray(0);
+            int partStart = 0;
+            int partEnd = 0;
+            int lastPartEnd = 0;
+            int partKind = 0;
+            int i = 0;
+            while (GetDateTimePartInfo(fieldIterator, &partStart, &partEnd, &partKind))
+            {
+                if (partStart > lastPartEnd)
+                {
+                    AddPartToPartsArray(scriptContext, ret, i, formatted, lastPartEnd, partStart, _u("literal"));
+
+                    i += 1;
+                }
+
+                AddPartToPartsArray(scriptContext, ret, i, formatted, partStart, partEnd, GetDateTimePartKind(partKind));
+                
+                i += 1;
+                lastPartEnd = partEnd;
+            }
+
+            return ret;
+        }
+        else
+        {
+            FormatDateTime(dtf, x, formatted, required);
+            return JavascriptString::NewWithBuffer(formatted, required - 1, scriptContext);
+        }
 #endif
     }
 
-    /*
-    *   This function validates the timeZone passed by user has defined in IsValidTimeZoneName() section
-    *   of ECMA-402 dated June 2015.
-    *   Returns true if timeZoneId is a valid zone or link name of the IANA time zone database
-    */
+    Var IntlEngineInterfaceExtensionObject::EntryIntl_GetPatternForSkeleton(RecyclableObject *function, CallInfo callInfo, ...)
+    {
+#ifdef INTL_ICU
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+        INTL_CHECK_ARGS(args.Info.Count == 3 && JavascriptString::Is(args.Values[1]) && JavascriptString::Is(args.Values[2]));
+
+        JavascriptString *locale = JavascriptString::UnsafeFromVar(args.Values[1]);
+        JavascriptString *skeleton = JavascriptString::UnsafeFromVar(args.Values[2]);
+        utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
+
+        int patternLen = GetPatternForSkeleton(locale8, skeleton->GetSz());
+        char16 *pattern = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, patternLen);
+        GetPatternForSkeleton(locale8, skeleton->GetSz(), pattern, patternLen);
+
+        return JavascriptString::NewWithBuffer(pattern, patternLen - 1, scriptContext);
+#else
+        AssertOrFailFastMsg(false, "GetPatternForSkeleton is not implemented outside of ICU");
+        return nullptr;
+#endif
+    }
+
+    // given a timezone name as an argument, this will return a canonicalized version of that name, or undefined if the timezone is invalid
     Var IntlEngineInterfaceExtensionObject::EntryIntl_ValidateAndCanonicalizeTimeZone(RecyclableObject* function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+        INTL_CHECK_ARGS(args.Info.Count == 2 && JavascriptString::Is(args.Values[1]));
 
-        // Return false if timeZoneId is not string
-        if (args.Info.Count < 2 || !JavascriptString::Is(args.Values[1]))
-        {
-            AssertMsg(false, "Need valid timeZoneId");
-            return scriptContext->GetLibrary()->GetUndefined();
-        }
+        JavascriptString *tz = JavascriptString::FromVar(args.Values[1]);
 
 #ifdef INTL_WINGLOB
-        JavascriptString *argString = JavascriptString::FromVar(args.Values[1]);
-
         AutoHSTRING canonicalizedTimeZone;
-        boolean isValidTimeZone = GetWindowsGlobalizationAdapter(scriptContext)->ValidateAndCanonicalizeTimeZone(scriptContext, argString->GetSz(), &canonicalizedTimeZone);
+        boolean isValidTimeZone = GetWindowsGlobalizationAdapter(scriptContext)->ValidateAndCanonicalizeTimeZone(scriptContext, tz->GetSz(), &canonicalizedTimeZone);
         if (isValidTimeZone)
         {
             DelayLoadWindowsGlobalization* wsl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
@@ -1687,18 +1806,21 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 #else
-        // TODO (doilij): implement INTL_ICU version
-#ifdef INTL_ICU_DEBUG
-        Output::Print(_u("EntryIntl_ValidateAndCanonicalizeTimeZone > returning null, fallback to JS\n"));
-#endif
-        return scriptContext->GetLibrary()->GetNull();
+        int required = ValidateAndCanonicalizeTimeZone(tz->GetSz());
+        if (required > 0)
+        {
+            char16 *buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, required);
+            ValidateAndCanonicalizeTimeZone(tz->GetSz(), buffer, required);
+            return JavascriptString::NewWithBuffer(buffer, required - 1, scriptContext);
+        }
+        else
+        {
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
 #endif
     }
 
-    /*
-    *   This function returns defaultTimeZone for host's current environment as specified in
-    *   DefaultTimeZone () section of ECMA-402 dated June 2015.
-    */
+    // returns the current system time zone
     Var IntlEngineInterfaceExtensionObject::EntryIntl_GetDefaultTimeZone(RecyclableObject* function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
@@ -1719,11 +1841,12 @@ namespace Js
         PCWSTR strBuf = wsl->WindowsGetStringRawBuffer(*str, NULL);
         return Js::JavascriptString::NewCopySz(strBuf, scriptContext);
 #else
-        // TODO (doilij): implement INTL_ICU version
-#ifdef INTL_ICU_DEBUG
-        Output::Print(_u("EntryIntl_GetDefaultTimeZone > returning null, fallback to JS\n"));
-#endif
-        return scriptContext->GetLibrary()->GetNull();
+        int required = GetDefaultTimeZone();
+        AssertOrFailFastMsg(required > 0, "GetDefaultTimeZone returned an invalid buffer length");
+
+        char16 *buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, required);
+        GetDefaultTimeZone(buffer, required);
+        return JavascriptString::NewWithBuffer(buffer, required - 1, scriptContext);
 #endif
     }
 
@@ -1906,6 +2029,8 @@ namespace Js
         }
 
         RecyclableObject *func = RecyclableObject::FromVar(args.Values[1]);
+
+        AssertOrFailFastMsg(func != scriptContext->GetLibrary()->GetUndefined(), "Trying to callInstanceFunction(undefined, ...)");
 
         //Shift the arguments by 2 so argument at index 2 becomes the 'this' argument at index 0
         Var newVars[3];
