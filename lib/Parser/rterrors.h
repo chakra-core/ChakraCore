@@ -369,6 +369,7 @@ RT_ERROR_MSG(JSERR_FatalMemoryExhaustion, 5669, "", "Encountered a non-recoverab
 RT_ERROR_MSG(JSERR_OutOfBoundString, 5670, "", "String length is out of bound", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_InvalidIterableObject, 5671, "%s : Invalid iterable object", "Invalid iterable object", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_InvalidIteratorObject, 5672, "%s : Invalid iterator object", "Invalid iterator object", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_NoAccessors, 5673, "Invalid property descriptor: accessors not supported on this object", "", kjstTypeError, 0)
 
 //Host errors
 RT_ERROR_MSG(JSERR_HostMaybeMissingPromiseContinuationCallback, 5700, "", "Host may not have set any promise continuation callback. Promises may not be executed.", kjstTypeError, 0)

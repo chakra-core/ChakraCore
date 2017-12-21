@@ -621,8 +621,6 @@ namespace Js
         JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord, nullptr);
         PropertyId propertyId = propertyRecord->GetPropertyId();
 
-        obj->ThrowIfCannotGetOwnPropertyDescriptor(propertyId);
-
         PropertyDescriptor propertyDescriptor;
         BOOL isPropertyDescriptorDefined;
         isPropertyDescriptorDefined = JavascriptObject::GetOwnPropertyDescriptorHelper(obj, propertyId, scriptContext, propertyDescriptor);
