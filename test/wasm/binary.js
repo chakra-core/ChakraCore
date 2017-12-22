@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 /* global assert,testRunner */ // eslint rule
-WScript.LoadScriptFile("../UnitTestFrameWork/UnitTestFrameWork.js");
+WScript.LoadScriptFile("../UnitTestFramework/UnitTestFramework.js");
 WScript.LoadScriptFile("../wasmspec/testsuite/harness/wasm-constants.js");
 WScript.LoadScriptFile("../wasmspec/testsuite/harness/wasm-module-builder.js");
 WScript.Flag("-off:wasmdeferred");
@@ -34,7 +34,7 @@ const tests = [
   makeReservedTest("call_indirect reserved", [kExprCallIndirect, 1], "call_indirect reserved value must be 0"),
 ];
 
-WScript.LoadScriptFile("../UnitTestFrameWork/yargs.js");
+WScript.LoadScriptFile("../UnitTestFramework/yargs.js");
 const argv = yargsParse(WScript.Arguments, {
   boolean: ["verbose"],
   number: ["start", "end"],
