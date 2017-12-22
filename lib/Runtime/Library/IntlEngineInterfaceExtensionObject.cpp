@@ -24,13 +24,10 @@ using namespace Windows::Globalization;
 using namespace PlatformAgnostic::Resource;
 #define U_STATIC_IMPLEMENTATION
 #define U_SHOW_CPLUSPLUS_API 0
-#pragma warning(push)
-#pragma warning(disable:4995) // deprecation warning
 #include <unicode/ucol.h>
 #include <unicode/udat.h>
 #include <unicode/unum.h>
 #include <unicode/unumsys.h>
-#pragma warning(pop)
 
 #define ICU_ERROR_FMT _u("INTL: %S failed with error code %S\n")
 #define ICU_EXPR_FMT _u("INTL: %S failed expression check %S\n")

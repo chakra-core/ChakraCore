@@ -46,8 +46,6 @@ typedef uint64_t uint64;
 
 #define U_STATIC_IMPLEMENTATION
 #define U_SHOW_CPLUSPLUS_API 1
-#pragma warning(push)
-#pragma warning(disable:4995) // deprecation warning
 #include <unicode/uloc.h>
 #include <unicode/numfmt.h>
 #include <unicode/enumset.h>
@@ -56,7 +54,6 @@ typedef uint64_t uint64;
 #include <unicode/ucal.h>
 #include <unicode/udat.h>
 #include <unicode/udatpg.h>
-#pragma warning(pop)
 
 #include "CommonDefines.h" // INTL_ICU_DEBUG
 
