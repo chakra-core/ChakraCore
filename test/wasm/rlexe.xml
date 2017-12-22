@@ -3,8 +3,15 @@
 <test>
   <default>
     <files>regress.js</files>
-    <compile-flags>-wasm</compile-flags>
+    <compile-flags>-wasm -args --no-verbose -endargs</compile-flags>
     <tags>exclude_jshost,exclude_win7</tags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>regress.js</files>
+    <!-- Variant running without tests using wabt for jshost -->
+    <compile-flags>-wasm -args --no-verbose --no-wabt -endargs</compile-flags>
   </default>
 </test>
 <test>
@@ -393,11 +400,6 @@
     <files>loopyieldregress.js</files>
     <compile-flags>-lic:0 -bgjit-</compile-flags>
     <tags>exclude_win7,exclude_xplat</tags>
-  </default>
-</test>
-<test>
-  <default>
-    <files>tracing_regress.js</files>
   </default>
 </test>
 </regress-exe>
