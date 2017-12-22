@@ -1520,12 +1520,12 @@ namespace Js
 
                 if (key.GetAttributes() != ObjectSlotAttr_Default || oldAttributes != nullptr)
                 {
-                    newAttributes = this->UpdateAttributes(recycler, oldAttributes, oldPathSize, newTypePath);
+                    newAttributes = this->UpdateAttributes(recycler, oldAttributes, oldPathSize, newTypePath->GetPathSize());
                 }
 
                 if ((key.GetAttributes() & ObjectSlotAttr_Accessor) || oldSetters != nullptr)
                 {
-                    newSetters = this->UpdateSetterSlots(recycler, oldSetters, oldPathSize, newTypePath);
+                    newSetters = this->UpdateSetterSlots(recycler, oldSetters, oldPathSize, newTypePath->GetPathSize());
                 }
             }
             else if (growing)
@@ -1536,12 +1536,12 @@ namespace Js
 
                 if (key.GetAttributes() != ObjectSlotAttr_Default || oldAttributes != nullptr)
                 {
-                    newAttributes = this->UpdateAttributes(recycler, oldAttributes, oldPathSize, newTypePath);
+                    newAttributes = this->UpdateAttributes(recycler, oldAttributes, oldPathSize, newTypePath->GetPathSize());
                 }
 
                 if ((key.GetAttributes() & ObjectSlotAttr_Accessor) || oldSetters != nullptr)
                 {
-                    newSetters = this->UpdateSetterSlots(recycler, oldSetters, oldPathSize, newTypePath);
+                    newSetters = this->UpdateSetterSlots(recycler, oldSetters, oldPathSize, newTypePath->GetPathSize());
                 }
 
                 // Update all the predecessor types that use this TypePath to the new TypePath.
@@ -1580,12 +1580,12 @@ namespace Js
             {
                 if (key.GetAttributes() != ObjectSlotAttr_Default && oldAttributes == nullptr)
                 {
-                    newAttributes = this->UpdateAttributes(recycler, nullptr, oldPathSize, newTypePath);
+                    newAttributes = this->UpdateAttributes(recycler, nullptr, oldPathSize, newTypePath->GetPathSize());
                 }
             
                 if ((key.GetAttributes() & ObjectSlotAttr_Accessor) && oldSetters == nullptr)
                 {
-                    newSetters = this->UpdateSetterSlots(recycler, nullptr, oldPathSize, newTypePath);
+                    newSetters = this->UpdateSetterSlots(recycler, nullptr, oldPathSize, newTypePath->GetPathSize());
                 }
             }
 
@@ -1714,9 +1714,9 @@ namespace Js
         return nextType;
     }
 
-    ObjectSlotAttributes * PathTypeHandlerBase::UpdateAttributes(Recycler * recycler, ObjectSlotAttributes * oldAttributes, uint8 oldPathSize, TypePath * newTypePath)
+    ObjectSlotAttributes * PathTypeHandlerBase::UpdateAttributes(Recycler * recycler, ObjectSlotAttributes * oldAttributes, uint8 oldPathSize, uint8 newTypePathSize)
     {
-        ObjectSlotAttributes * newAttributes = RecyclerNewArrayLeaf(recycler, ObjectSlotAttributes, newTypePath->GetPathSize());
+        ObjectSlotAttributes * newAttributes = RecyclerNewArrayLeaf(recycler, ObjectSlotAttributes, newTypePathSize);
         uint8 initStart;
         if (oldAttributes == nullptr)
         {
@@ -1725,10 +1725,10 @@ namespace Js
         else
         {
             // In branching cases, the new type path may be shorter than the old.
-            initStart = min(newTypePath->GetPathSize(), oldPathSize);
+            initStart = min(newTypePathSize, oldPathSize);
             memcpy(newAttributes, oldAttributes, sizeof(ObjectSlotAttributes) * initStart);
         }
-        for (uint8 i = initStart; i < newTypePath->GetPathSize(); i++)
+        for (uint8 i = initStart; i < newTypePathSize; i++)
         {
             newAttributes[i] = ObjectSlotAttr_Default;
         }
@@ -1736,9 +1736,9 @@ namespace Js
         return newAttributes;
     }
 
-    PathTypeHandlerSetterSlotIndex * PathTypeHandlerBase::UpdateSetterSlots(Recycler * recycler, PathTypeHandlerSetterSlotIndex * oldSetters, uint8 oldPathSize, TypePath * newTypePath)
+    PathTypeHandlerSetterSlotIndex * PathTypeHandlerBase::UpdateSetterSlots(Recycler * recycler, PathTypeHandlerSetterSlotIndex * oldSetters, uint8 oldPathSize, uint8 newTypePathSize)
     {
-        PathTypeHandlerSetterSlotIndex * newSetters = RecyclerNewArrayLeaf(recycler, PathTypeHandlerSetterSlotIndex, newTypePath->GetPathSize());
+        PathTypeHandlerSetterSlotIndex * newSetters = RecyclerNewArrayLeaf(recycler, PathTypeHandlerSetterSlotIndex, newTypePathSize);
         uint8 initStart;
         if (oldSetters == nullptr)
         {
@@ -1747,10 +1747,10 @@ namespace Js
         else
         {
             // In branching cases, the new type path may be shorter than the old.
-            initStart = min(newTypePath->GetPathSize(), oldPathSize);
+            initStart = min(newTypePathSize, oldPathSize);
             memcpy(newSetters, oldSetters, sizeof(PathTypeHandlerSetterSlotIndex) * initStart);
         }
-        for (uint8 i = initStart; i < newTypePath->GetPathSize(); i++)
+        for (uint8 i = initStart; i < newTypePathSize; i++)
         {
             newSetters[i] = NoSetterSlot;
         }
