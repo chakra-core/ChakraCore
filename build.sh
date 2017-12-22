@@ -117,14 +117,14 @@ LIBS_ONLY_BUILD=
 SHOULD_EMBED_ICU=0
 ALWAYS_YES=0
 
-if [ -f "/proc/version" ]; then
+UNAME_S=`uname -s`
+if [[ $UNAME_S =~ 'Linux' ]]; then
     OS_LINUX=1
-    PROC_INFO=$(cat /proc/version)
-    if [[ $PROC_INFO =~ 'Ubuntu' || $PROC_INFO =~ 'Debian'
-       || $PROC_INFO =~ 'Linaro' ]]; then
+    PROC_INFO=$(which apt-get)
+    if [[ ${#PROC_INFO} > 0 && -f "$PROC_INFO" ]]; then
         OS_APT_GET=1
     fi
-elif [[ $(uname -s) =~ "Darwin" ]]; then
+elif [[ $UNAME_S =~ "Darwin" ]]; then
     OS_UNIX=1
 else
     echo -e "Warning: Installation script couldn't detect host OS..\n" # exit ?
