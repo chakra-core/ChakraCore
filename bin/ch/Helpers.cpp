@@ -8,11 +8,11 @@
 #define MAX_URI_LENGTH 512
 
 //TODO: x-plat definitions
-#define MAX_URI_LENGTH 512
-#define TTD_MAX_FILE_LENGTH MAX_URI_LENGTH
 #ifdef _WIN32
+#define TTD_MAX_FILE_LENGTH MAX_PATH
 #define TTD_HOST_PATH_SEP "\\"
 #else
+#define TTD_MAX_FILE_LENGTH MAX_URI_LENGTH
 #define TTD_HOST_PATH_SEP "/"
 #endif
 
@@ -78,44 +78,6 @@ JsTTDStreamHandle TTDHostOpen(size_t pathLength, const char* path, bool isWrite)
 #define TTDHostRead(buff, size, handle) fread_s(buff, size, 1, size, (FILE*)handle);
 #define TTDHostWrite(buff, size, handle) fwrite(buff, 1, size, (FILE*)handle)
 #else
-<<<<<<< HEAD
-=======
-
-#ifdef __APPLE__
-#include <mach-o/dyld.h>
-#else
-#include <unistd.h>
-#endif
-#define TTD_HOST_PATH_SEP "/"
-
-void TTDHostBuildCurrentExeDirectory(char* path, size_t* pathLength, size_t bufferLength)
-{
-    char exePath[MAX_URI_LENGTH];
-    //TODO: xplattodo move this logic to PAL
-    #ifdef __APPLE__
-    uint32_t tmpPathSize = sizeof(exePath);
-    _NSGetExecutablePath(exePath, &tmpPathSize);
-    size_t i = strlen(exePath) - 1;
-    #else
-    size_t i = readlink("/proc/self/exe", exePath, MAX_URI_LENGTH) - 1;
-    #endif
-
-    while(exePath[i] != '/')
-    {
-        --i;
-    }
-    *pathLength = i + 1;
-
-    if(*pathLength > bufferLength)
-    {
-        wprintf(_u("Don't overflow path buffer during copy."));
-        exit(1);
-    }
-
-    memcpy_s(path, bufferLength, exePath, *pathLength);
-}
-
->>>>>>> ee4caa05fe2e3e5e366642b499adf21cfae34cf6
 int TTDHostMKDir(const char* path, size_t pathLength)
 {
     return mkdir(path, 0700);
