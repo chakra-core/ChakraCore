@@ -3470,7 +3470,7 @@ LABEL1:
         HRESULT hr = JitFromEncodedWorkItem(scriptContext->GetNativeCodeGenerator(), buffer, size);
         if (FAILED(hr))
         {
-            return JavascriptNumber::New(hr, scriptContext);
+            JavascriptExceptionOperators::OP_Throw(JavascriptNumber::New(hr, scriptContext), scriptContext);
         }
         return scriptContext->GetLibrary()->GetUndefined();
     }
