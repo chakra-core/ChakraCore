@@ -806,7 +806,7 @@ enum class LocaleDataKind
         LocaleDataKind kind = (LocaleDataKind) (TaggedInt::Is(args.Values[1])
             ? TaggedInt::ToInt32(args.Values[1])
             : (int) JavascriptNumber::GetValue(args.Values[1]));
-        
+
         JavascriptArray *ret = nullptr;
 
         if (kind == LocaleDataKind::HourCycle)
@@ -1975,9 +1975,12 @@ enum class LocaleDataKind
         );
 
         DynamicObject *state = DynamicObject::UnsafeFromVar(args.Values[1]);
-        double x = TaggedInt::Is(args.Values[2]) ? TaggedInt::ToDouble(args.Values[2]) : JavascriptNumber::GetValue(args.Values[2]);
+        double date = TaggedInt::Is(args.Values[2]) ? TaggedInt::ToDouble(args.Values[2]) : JavascriptNumber::GetValue(args.Values[2]);
         bool toParts = Js::JavascriptBoolean::UnsafeFromVar(args.Values[3])->GetValue() ? true : false;
 
+        // Below, we lazy-initialize the backing UDateFormat on the first call to format{ToParts}
+        // On subsequent calls, the UDateFormat will be cached in state.hiddenObject
+        // TODO(jahorto): Make these property IDs sane, so that hiddenObject doesn't have different meanings in different contexts
         Var hiddenObject = nullptr;
         IPlatformAgnosticResource *dtf = nullptr;
         if (state->GetInternalProperty(state, Js::InternalPropertyIds::HiddenObject, &hiddenObject, nullptr, scriptContext))
@@ -1991,7 +1994,7 @@ enum class LocaleDataKind
             JavascriptString *pattern = nullptr;
 
             Var propertyValue = nullptr; // set by the GetTypedPropertyBuiltInFrom macro
-            
+
             if (GetTypedPropertyBuiltInFrom(state, locale, JavascriptString))
             {
                 locale = JavascriptString::UnsafeFromVar(propertyValue);
@@ -2015,19 +2018,19 @@ enum class LocaleDataKind
             state->SetInternalProperty(
                 InternalPropertyIds::HiddenObject,
                 AutoIcuJsObject<IPlatformAgnosticResource>::New(scriptContext->GetRecycler(), dtf),
-                PropertyOperationFlags::PropertyOperation_SpecialValue,
+                PropertyOperationFlags::PropertyOperation_None,
                 nullptr
             );
         }
 
         // both format and formatToParts need the original string, so we can do the length calculation for both
-        int required = FormatDateTime(dtf, x);
+        int required = FormatDateTime(dtf, date);
         char16 *formatted = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, required);
 
         if (toParts)
         {
             IPlatformAgnosticResource *fieldIterator = nullptr;
-            FormatDateTimeToParts(dtf, x, formatted, required, &fieldIterator);
+            FormatDateTimeToParts(dtf, date, formatted, required, &fieldIterator);
             JavascriptArray* ret = scriptContext->GetLibrary()->CreateArray(0);
             int partStart = 0;
             int partEnd = 0;
@@ -2044,7 +2047,7 @@ enum class LocaleDataKind
                 }
 
                 AddPartToPartsArray(scriptContext, ret, i, formatted, partStart, partEnd, GetDateTimePartKind(partKind));
-                
+
                 i += 1;
                 lastPartEnd = partEnd;
             }
@@ -2053,7 +2056,7 @@ enum class LocaleDataKind
         }
         else
         {
-            FormatDateTime(dtf, x, formatted, required);
+            FormatDateTime(dtf, date, formatted, required);
             return JavascriptString::NewWithBuffer(formatted, required - 1, scriptContext);
         }
 #endif

@@ -700,9 +700,9 @@ namespace Intl
             // buffer overflow is expected when we are just trying to get the length returned
             return required + 1;
         }
-        
+
         ICU_ASSERT(status, required > 0 && required < tzLen);
-        return required + 1;
+        return required + 1; // return enough space for null character
     }
 
     // Determines if a time zone is valid. If it is and tzOut is non-null, the canonicalized version is written into tzOut
@@ -725,7 +725,7 @@ namespace Intl
         }
 
         ICU_ASSERT(status, required > 0 && required < tzOutLen);
-        return required + 1;
+        return required + 1; // return enough space for null character
     }
 
     // Generates an LDML pattern for the given LDML skeleton in the given locale. If pattern is non-null, the result is written into pattern
@@ -754,7 +754,7 @@ namespace Intl
 
         if (pattern == nullptr && patternLen == 0 && status == U_BUFFER_OVERFLOW_ERROR)
         {
-            // when we are just counting bytes, we can ignore errors
+            // just counting bytes, U_BUFFER_OVERFLOW_ERROR is expected
             AssertOrFailFast(bestPatternLen > 0);
         }
         else
@@ -763,7 +763,7 @@ namespace Intl
         }
 
         udatpg_close(dtpg);
-        return bestPatternLen + 1;
+        return bestPatternLen + 1; // return enough space for null character
     }
 
     // creates a UDateFormat and wraps it in an IPlatformAgnosticResource
@@ -797,7 +797,7 @@ namespace Intl
         UErrorCode status = U_ZERO_ERROR;
         UDateFormat *dtf = UNWRAP_C_OBJECT(resource, UDateFormat);
 
-        int required = udat_format(dtf, date, reinterpret_cast<UChar *>(formatted), formattedLen, nullptr, &status);
+        int required = udat_format(dtf, date, reinterpret_cast<UChar *>(formatted), formattedLen, /* UFieldPosition */ nullptr, &status);
         if (formatted == nullptr && formattedLen == 0 && status == U_BUFFER_OVERFLOW_ERROR)
         {
             // when we are just counting bytes, we can ignore errors
@@ -808,7 +808,7 @@ namespace Intl
             ICU_ASSERT(status, required > 0 && required < formattedLen);
         }
 
-        return required + 1;
+        return required + 1; // return enough space for null character
     }
 
     // Formats `date` using the UDateFormat wrapped by `resource`. If `formatted` is non-null, the result is written into `formatted`
@@ -842,7 +842,7 @@ namespace Intl
             ICU_ASSERT(status, required > 0 && required < formattedLen);
         }
 
-        return required + 1;
+        return required + 1; // return enough space for null character
     }
 
     // Given a stateful fieldIterator, sets partStart and partEnd to the start (inclusive) and end (exclusive) of the substring for the part
