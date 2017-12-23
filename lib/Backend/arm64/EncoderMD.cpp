@@ -1375,8 +1375,12 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
         {
             if (instr->isInlineeEntryInstr)
             {
+                size_t inlineeOffset = m_pc - m_encoder->m_encodeBuffer;
+                size_t argCount = instr->AsLabelInstr()->GetOffset();
+                Assert(inlineeOffset == (inlineeOffset & 0x0FFFFFFF));
+
                 intptr_t inlineeCallInfo = 0;
-                const bool encodeResult = Js::InlineeCallInfo::Encode(inlineeCallInfo, instr->AsLabelInstr()->GetOffset(), m_pc - m_encoder->m_encodeBuffer);
+                const bool encodeResult = Js::InlineeCallInfo::Encode(inlineeCallInfo, argCount, inlineeOffset);
                 Assert(encodeResult);
                 //We are re-using offset to save the inlineeCallInfo which will be patched in ApplyRelocs
                 //This is a cleaner way to patch MOVW\MOVT pair with the right inlineeCallInfo
