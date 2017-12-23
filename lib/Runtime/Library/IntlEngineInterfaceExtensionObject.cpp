@@ -295,6 +295,53 @@ namespace Js
             return instance;
         }
     };
+
+    template<typename TResource>
+    class FinalizableICUObject : public FinalizableObject
+    {
+    public:
+        typedef void (__cdecl *CleanupFunc)(TResource *);
+
+    private:
+        FieldNoBarrier(TResource) *resource;
+        FieldNoBarrier(CleanupFunc) cleanupFunc;
+
+    public:
+        FinalizableICUObject(TResource *resource, CleanupFunc cleanupFunc) :
+            resource(resource),
+            cleanupFunc(cleanupFunc)
+        {
+
+        }
+
+        static FinalizableICUObject<TResource> *New(Recycler *recycler, TResource *resource, CleanupFunc cleanupFunc)
+        {
+            return RecyclerNewFinalized(recycler, FinalizableICUObject<TResource>, resource, cleanupFunc);
+        }
+
+        TResource *GetInstance()
+        {
+            return resource;
+        }
+
+        void Finalize(bool isShutdown) override
+        {
+
+        }
+
+        void Dispose(bool isShutdown) override
+        {
+            if (isShutdown)
+            {
+                cleanupFunc(resource);
+            }
+        }
+
+        void Mark(Recycler *recycler) override
+        {
+
+        }
+    };
 #endif
 
     IntlEngineInterfaceExtensionObject::IntlEngineInterfaceExtensionObject(Js::ScriptContext* scriptContext) :
@@ -1169,11 +1216,8 @@ enum class LocaleDataKind
 
         return toReturn;
 #else
-        // TODO (doilij): implement INTL_ICU version
-#ifdef INTL_ICU_DEBUG
-        Output::Print(_u("EntryIntl_GetExtensions > returning null: fallback to JS function getExtensionSubtags\n"));
-#endif
-        return scriptContext->GetLibrary()->GetNull(); // fallback to Intl.js
+        AssertOrFailFastMsg(false, "ICU should not be calling platform.getExtensions");
+        return nullptr;
 #endif
     }
 
@@ -1188,113 +1232,110 @@ enum class LocaleDataKind
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        DynamicObject *options = DynamicObject::FromVar(args.Values[1]);
-
-        HRESULT hr = S_OK;
         Var propertyValue = nullptr; // set by the GetTypedPropertyBuiltInFrom macro
         JavascriptString *localeJSstr = nullptr;
 
 #if defined(INTL_ICU)
-        // Verify locale is present
-        // REVIEW (doilij): Fix comparison of the unsigned value <= 0
-        if (!GetTypedPropertyBuiltInFrom(options, __locale, JavascriptString) || (localeJSstr = JavascriptString::FromVar(propertyValue))->GetLength() <= 0)
-        {
-            // REVIEW (doilij): We return undefined from all paths here, so should we throw instead to indicate to Intl.js that something went wrong?
-            return scriptContext->GetLibrary()->GetUndefined();
-        }
+        DynamicObject *state = DynamicObject::FromVar(args.Values[1]);
 
-        // First we have to determine which formatter(number, percent, or currency) we will be using.
-        // Note some options might not be present.
-        IPlatformAgnosticResource *numberFormatter = nullptr;
-        const char16 *locale = localeJSstr->GetSz();
-        const charcount_t cch = localeJSstr->GetLength();
+        // always AssertOrFailFast that the properties we need are there, because if they aren't, Intl.js isn't functioning correctly
+        AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, locale, JavascriptString));
+        localeJSstr = JavascriptString::UnsafeFromVar(propertyValue);
 
-        NumberFormatStyle formatterToUseVal = NumberFormatStyle::Default;
-        if (GetTypedPropertyBuiltInFrom(options, __formatterToUse, TaggedInt)
-            && (formatterToUseVal = static_cast<NumberFormatStyle>(TaggedInt::ToUInt16(propertyValue))) == NumberFormatStyle::Percent)
+        AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, formatterToUse, TaggedInt));
+        NumberFormatStyle style = NumberFormatStyle::Default;
+        int formatterToUse = TaggedInt::ToInt32(propertyValue);
+        AssertOrFailFast(formatterToUse >= 0 || formatterToUse < (int) NumberFormatStyle::Max);
+        style = static_cast<NumberFormatStyle>(formatterToUse);
+
+        UNumberFormatStyle unumStyle = UNUM_IGNORE;
+        utf8::WideToNarrow locale8(localeJSstr->GetSz(), localeJSstr->GetLength());
+        UErrorCode status = U_ZERO_ERROR;
+        const char16 *currency = nullptr;
+
+        if (style == NumberFormatStyle::Decimal)
         {
-            IfFailThrowHr(CreatePercentFormatter(locale, cch, &numberFormatter));
+            unumStyle = UNUM_DECIMAL;
         }
-        else if (formatterToUseVal == NumberFormatStyle::Currency)
+        else if (style == NumberFormatStyle::Percent)
         {
-            if (!GetTypedPropertyBuiltInFrom(options, __currency, JavascriptString))
+            unumStyle = UNUM_PERCENT;
+        }
+        else if (style == NumberFormatStyle::Currency)
+        {
+            AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, currencyDisplayToUse, TaggedInt));
+            NumberFormatCurrencyDisplay nfcd = NumberFormatCurrencyDisplay::Default;
+            int currencyDisplayToUse = TaggedInt::ToInt32(propertyValue);
+            AssertOrFailFast(currencyDisplayToUse >= 0 || currencyDisplayToUse < (int) NumberFormatCurrencyDisplay::Max);
+            nfcd = static_cast<NumberFormatCurrencyDisplay>(currencyDisplayToUse);
+            if (nfcd == NumberFormatCurrencyDisplay::Symbol)
             {
-                return scriptContext->GetLibrary()->GetUndefined();
+                unumStyle = UNUM_CURRENCY;
+            }
+            else if (nfcd == NumberFormatCurrencyDisplay::Code)
+            {
+                unumStyle = UNUM_CURRENCY_ISO;
+            }
+            else if (nfcd == NumberFormatCurrencyDisplay::Name)
+            {
+                unumStyle = UNUM_CURRENCY_PLURAL;
             }
 
-            JavascriptString *currencyCodeJsString = JavascriptString::FromVar(propertyValue);
-            const char16 *currencyCode = currencyCodeJsString->GetSz();
-
-            if (GetTypedPropertyBuiltInFrom(options, __currencyDisplayToUse, TaggedInt))
+            if (GetTypedPropertyBuiltInFrom(state, currency, JavascriptString))
             {
-                NumberFormatCurrencyDisplay currencyDisplay = static_cast<NumberFormatCurrencyDisplay>(TaggedInt::ToUInt16(propertyValue));
-                IfFailThrowHr(CreateCurrencyFormatter(locale, cch, currencyCode, currencyDisplay, &numberFormatter));
+                currency = JavascriptString::UnsafeFromVar(propertyValue)->GetSz();
             }
         }
-        else
+
+        AssertOrFailFast(unumStyle != UNUM_IGNORE);
+
+        UNumberFormat *fmt = unum_open(unumStyle, nullptr, 0, locale8, nullptr, &status);
+        ICU_ASSERT(status, true);
+
+        AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, useGrouping, JavascriptBoolean));
+        unum_setAttribute(fmt, UNUM_GROUPING_USED, JavascriptBoolean::UnsafeFromVar(propertyValue)->GetValue());
+
+        unum_setAttribute(fmt, UNUM_ROUNDING_MODE, UNUM_ROUND_HALFUP);
+
+        if (HasPropertyBuiltInOn(state, minimumSignificantDigits))
         {
-            // Use the number formatter (0 or default)
-            IfFailThrowHr(CreateNumberFormatter(locale, cch, &numberFormatter));
-        }
+            unum_setAttribute(fmt, UNUM_SIGNIFICANT_DIGITS_USED, true);
 
-        Assert(numberFormatter);
+            AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, minimumSignificantDigits, TaggedInt));
+            unum_setAttribute(fmt, UNUM_MIN_SIGNIFICANT_DIGITS, TaggedInt::ToInt32(propertyValue));
 
-        if (GetTypedPropertyBuiltInFrom(options, __useGrouping, JavascriptBoolean))
-        {
-            bool useGrouping = JavascriptBoolean::FromVar(propertyValue)->GetValue();
-            SetNumberFormatGroupingUsed(numberFormatter, useGrouping);
-        }
-
-        // Numeral system is in the locale and is therefore already set on the icu::NumberFormat
-        // TODO (doilij): extract the numbering system from the locale name (JS-side) and use that to set the __numberingSystem with fallback
-        // TODO (doilij): determine the numbering system for the ICU locale (so that works even if it wasn't specified directly)
-
-        // REVIEW (doilij): assuming the resolved language has already been set in __locale
-        // TODO (doilij): find out whether numberFormat->getLocale() has relevant extension tags for things like numeral system (-nu-)
-
-        if (HasPropertyBuiltInOn(options, __minimumSignificantDigits) || HasPropertyBuiltInOn(options, __maximumSignificantDigits))
-        {
-            // Do significant digit rounding
-            uint16 minSignificantDigits = 1, maxSignificantDigits = 21;
-
-            if (GetTypedPropertyBuiltInFrom(options, __minimumSignificantDigits, TaggedInt))
-            {
-                minSignificantDigits = max<uint16>(min<uint16>(TaggedInt::ToUInt16(propertyValue), 21), 1);
-            }
-            if (GetTypedPropertyBuiltInFrom(options, __maximumSignificantDigits, TaggedInt))
-            {
-                maxSignificantDigits = max<uint16>(min<uint16>(TaggedInt::ToUInt16(propertyValue), 21), minSignificantDigits);
-            }
-
-            SetNumberFormatSignificantDigits(numberFormatter, minSignificantDigits, maxSignificantDigits);
+            AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, maximumSignificantDigits, TaggedInt));
+            unum_setAttribute(fmt, UNUM_MAX_SIGNIFICANT_DIGITS, TaggedInt::ToInt32(propertyValue));
         }
         else
         {
-            // Do fraction/integer digit rounding
-            uint16 minFractionDigits = 0, maxFractionDigits = 3, minIntegerDigits = 1;
+            AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, minimumIntegerDigits, TaggedInt));
+            unum_setAttribute(fmt, UNUM_MIN_INTEGER_DIGITS, TaggedInt::ToInt32(propertyValue));
 
-            if (GetTypedPropertyBuiltInFrom(options, __minimumIntegerDigits, TaggedInt))
-            {
-                minIntegerDigits = max<uint16>(min<uint16>(TaggedInt::ToUInt16(propertyValue), 21), 1);
-            }
-            if (GetTypedPropertyBuiltInFrom(options, __minimumFractionDigits, TaggedInt))
-            {
-                minFractionDigits = min<uint16>(TaggedInt::ToUInt16(propertyValue), 20); // ToUInt16 will get rid of negatives by making them high
-            }
-            if (GetTypedPropertyBuiltInFrom(options, __maximumFractionDigits, TaggedInt))
-            {
-                maxFractionDigits = max(min<uint16>(TaggedInt::ToUInt16(propertyValue), 20), minFractionDigits); // ToUInt16 will get rid of negatives by making them high
-            }
+            AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, minimumFractionDigits, TaggedInt));
+            unum_setAttribute(fmt, UNUM_MIN_FRACTION_DIGITS, TaggedInt::ToInt32(propertyValue));
 
-            SetNumberFormatIntFracDigits(numberFormatter, minFractionDigits, maxFractionDigits, minIntegerDigits);
+            AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, maximumFractionDigits, TaggedInt));
+            unum_setAttribute(fmt, UNUM_MAX_FRACTION_DIGITS, TaggedInt::ToInt32(propertyValue));
         }
 
-        // Set the object as a cache
-        auto *autoObject = AutoIcuJsObject<IPlatformAgnosticResource>::New(scriptContext->GetRecycler(), numberFormatter);
-        options->SetInternalProperty(Js::InternalPropertyIds::HiddenObject, autoObject, Js::PropertyOperationFlags::PropertyOperation_None, NULL);
+        if (currency != nullptr)
+        {
+            unum_setTextAttribute(fmt, UNUM_CURRENCY_CODE, reinterpret_cast<const UChar *>(currency), -1, &status);
+            ICU_ASSERT(status, true);
+        }
+
+        state->SetInternalProperty(
+            InternalPropertyIds::HiddenObject,
+            FinalizableICUObject<UNumberFormat>::New(scriptContext->GetRecycler(), fmt, unum_close),
+            PropertyOperationFlags::PropertyOperation_None,
+            nullptr
+        );
 
         return scriptContext->GetLibrary()->GetUndefined();
 #else
+        HRESULT hr = S_OK;
+        DynamicObject *options = DynamicObject::FromVar(args.Values[1]);
         DelayLoadWindowsGlobalization* wgl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
         WindowsGlobalizationAdapter* wga = GetWindowsGlobalizationAdapter(scriptContext);
 
@@ -1713,18 +1754,21 @@ enum class LocaleDataKind
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        if (args.Info.Count < 2 || !JavascriptString::Is(args.Values[1]))
-        {
-            // Call with undefined or non-string is undefined
-            return scriptContext->GetLibrary()->GetFalse();
-        }
+        INTL_CHECK_ARGS(
+            args.Info.Count == 2 &&
+            JavascriptString::Is(args.Values[1])
+        );
 
-        JavascriptString *argString = JavascriptString::FromVar(args.Values[1]);
-        const char16 *currencyCode = argString->GetSz();
+        const char16 *currencyCode = JavascriptString::UnsafeFromVar(args.Values[1])->GetSz();
 
 #if defined(INTL_ICU)
-        int32_t digits = GetCurrencyFractionDigits(currencyCode);
-        return JavascriptNumber::ToVar(digits, scriptContext);
+        UErrorCode status = U_ZERO_ERROR;
+        UNumberFormat *fmt = unum_open(UNUM_CURRENCY, nullptr, 0, nullptr, nullptr, &status);
+        unum_setTextAttribute(fmt, UNUM_CURRENCY_CODE, reinterpret_cast<const UChar *>(currencyCode), -1, &status);
+        ICU_ASSERT(status, true);
+
+        int currencyDigits = unum_getAttribute(fmt, UNUM_FRACTION_DIGITS);
+        return JavascriptNumber::ToVar(currencyDigits, scriptContext);
 #else
         HRESULT hr;
         AutoCOMPtr<NumberFormatting::ICurrencyFormatter> currencyFormatter(nullptr);
@@ -1798,59 +1842,55 @@ enum class LocaleDataKind
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        //First argument is required and must be either a tagged integer or a number; second is also required and is the internal state object
-        if (args.Info.Count < 3 || !(TaggedInt::Is(args.Values[1]) || JavascriptNumber::Is(args.Values[1])) || !DynamicObject::Is(args.Values[2]))
+        INTL_CHECK_ARGS(
+            args.Info.Count == 3 &&
+            (TaggedInt::Is(args.Values[1]) || JavascriptNumber::Is(args.Values[1])) &&
+            DynamicObject::Is(args.Values[2])
+        );
+
+#if defined(INTL_ICU)
+        DynamicObject *state = DynamicObject::FromVar(args.Values[2]);
+        Var cachedFormatter = nullptr;
+        AssertOrFailFast(state->GetInternalProperty(state, Js::InternalPropertyIds::HiddenObject, &cachedFormatter, NULL, scriptContext));
+
+        UNumberFormat *fmt = static_cast<FinalizableICUObject<UNumberFormat> *>(cachedFormatter)->GetInstance();
+        UErrorCode status = U_ZERO_ERROR;
+        JavascriptString *ret = nullptr;
+
+        if (TaggedInt::Is(args.Values[1]))
         {
-            // Call with undefined or non-number is undefined
-            return scriptContext->GetLibrary()->GetUndefined();
+            int num = TaggedInt::ToInt32(args.Values[1]);
+            int required = unum_format(fmt, num, nullptr, 0, nullptr, &status);
+            AssertOrFailFast(status == U_BUFFER_OVERFLOW_ERROR && required > 0);
+
+            // allocate space for null character
+            UChar *buf = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), UChar, required + 1);
+            unum_format(fmt, num, buf, required + 1, nullptr, &status);
+            ICU_ASSERT(status, true);
+
+            ret = JavascriptString::NewWithBuffer(reinterpret_cast<char16 *>(buf), required, scriptContext);
+        }
+        else
+        {
+            double num = JavascriptNumber::GetValue(args.Values[1]);
+            int required = unum_formatDouble(fmt, num, nullptr, 0, nullptr, &status);
+            AssertOrFailFast(status == U_BUFFER_OVERFLOW_ERROR && required > 0);
+
+            // allocate space for null character
+            UChar *buf = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), UChar, required + 1);
+            unum_formatDouble(fmt, num, buf, required + 1, nullptr, &status);
+            ICU_ASSERT(status, true);
+
+            ret = JavascriptString::NewWithBuffer(reinterpret_cast<char16 *>(buf), required, scriptContext);
         }
 
+        AssertOrFailFast(ret != nullptr);
+        return ret;
+#else
         DynamicObject *options = DynamicObject::FromVar(args.Values[2]);
         Var hiddenObject = nullptr;
         AssertOrFailFastMsg(options->GetInternalProperty(options, Js::InternalPropertyIds::HiddenObject, &hiddenObject, NULL, scriptContext),
             "EntryIntl_FormatNumber: Could not retrieve hiddenObject.");
-
-#if defined(INTL_ICU)
-        // REVIEW (doilij): Assumes the logic doesn't allow us to get to this point such that this cast is invalid (otherwise, we would throw earlier).
-        auto *numberFormatter = reinterpret_cast<AutoIcuJsObject<IPlatformAgnosticResource> *>(hiddenObject)->GetInstance();
-        const char16 *strBuf = nullptr;
-        Var propertyValue = nullptr;
-
-        NumberFormatStyle formatterToUse = NumberFormatStyle::Default;
-        NumberFormatCurrencyDisplay currencyDisplay = NumberFormatCurrencyDisplay::Default;
-        JavascriptString *currencyCodeJsString = nullptr;
-
-        // It is okay for currencyCode to be nullptr if we are NOT formatting a currency.
-        // If we are formatting a currency, the Intl.js logic will ensure __currency is set correctly or otherwise will throw so we don't reach here.
-        const char16 *currencyCode = nullptr;
-
-        if (GetTypedPropertyBuiltInFrom(options, __formatterToUse, TaggedInt))
-        {
-            formatterToUse = static_cast<NumberFormatStyle>(TaggedInt::ToUInt16(propertyValue));
-        }
-        if (GetTypedPropertyBuiltInFrom(options, __currencyDisplayToUse, TaggedInt))
-        {
-            currencyDisplay = static_cast<NumberFormatCurrencyDisplay>(TaggedInt::ToUInt16(propertyValue));
-        }
-        if (GetTypedPropertyBuiltInFrom(options, __currency, JavascriptString))
-        {
-            currencyCodeJsString = JavascriptString::FromVar(propertyValue);
-            currencyCode = currencyCodeJsString->GetSz();
-        }
-
-        if (TaggedInt::Is(args.Values[1]))
-        {
-            int32 val = TaggedInt::ToInt32(args.Values[1]);
-            strBuf = FormatNumber(numberFormatter, val, formatterToUse, currencyDisplay, currencyCode);
-        }
-        else
-        {
-            double val = JavascriptNumber::GetValue(args.Values[1]);
-            strBuf = FormatNumber(numberFormatter, val, formatterToUse, currencyDisplay, currencyCode);
-        }
-
-        StringBufferAutoPtr<char16> guard(strBuf); // ensure strBuf is deleted no matter what
-#else
         DelayLoadWindowsGlobalization* wsl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
 
         NumberFormatting::INumberFormatter *numberFormatter;
@@ -1868,7 +1908,6 @@ enum class LocaleDataKind
         }
 
         PCWSTR strBuf = wsl->WindowsGetStringRawBuffer(*result, NULL);
-#endif
 
         if (strBuf == nullptr)
         {
@@ -1879,6 +1918,7 @@ enum class LocaleDataKind
             JavascriptStringObject *retVal = scriptContext->GetLibrary()->CreateStringObject(Js::JavascriptString::NewCopySz(strBuf, scriptContext));
             return retVal;
         }
+#endif
     }
 
 #ifdef INTL_ICU
