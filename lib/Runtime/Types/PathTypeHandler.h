@@ -246,8 +246,8 @@ namespace Js
 
         template <bool isObjectLiteral>
         DynamicType* PromoteType(DynamicType* type, const PathTypeSuccessorKey key, bool shareType, ScriptContext* scriptContext, DynamicObject* object = nullptr, PropertyIndex* propertyIndex = nullptr);
-        ObjectSlotAttributes * UpdateAttributes(Recycler * recycler, ObjectSlotAttributes * oldAttributes, uint8 oldPathSize, TypePath * newTypePath);
-        PathTypeHandlerSetterSlotIndex * UpdateSetterSlots(Recycler * recycler, PathTypeHandlerSetterSlotIndex * oldSetters, uint8 oldPathSize, TypePath * newTypePath);
+        ObjectSlotAttributes * UpdateAttributes(Recycler * recycler, ObjectSlotAttributes * oldAttributes, uint8 oldPathSize, uint8 newTypePathSize);
+        PathTypeHandlerSetterSlotIndex * UpdateSetterSlots(Recycler * recycler, PathTypeHandlerSetterSlotIndex * oldSetters, uint8 oldPathSize, uint8 newTypePathSize);
 
         PropertyIndex GetPropertyIndex(PropertyId propertyId);
 

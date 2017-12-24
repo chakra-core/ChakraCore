@@ -1662,27 +1662,10 @@ HRESULT WScriptJsrt::ModuleMessage::Call(LPCSTR fileName)
     {
         LPCSTR fileContent = nullptr;
         AutoString specifierStr(specifier);
-        char fullPath[_MAX_PATH];
         errorCode = specifierStr.GetError();
         if (errorCode == JsNoError)
         {
-            std::string specifierFullPath;
-            if (this->moduleRecord)
-            {
-                auto moduleDirEntry = moduleDirMap.find(this->moduleRecord);
-                if (moduleDirEntry != moduleDirMap.end())
-                {
-                    specifierFullPath = moduleDirEntry->second;
-                }
-            }
-            
-            specifierFullPath += *specifierStr;
-            if (_fullpath(fullPath, specifierFullPath.c_str(), _MAX_PATH) == nullptr)
-            {
-                return JsErrorInvalidArgument;
-            }
-
-            hr = Helpers::LoadScriptFromFile(fullPath, fileContent);
+            hr = Helpers::LoadScriptFromFile(*specifierStr, fileContent);
 
             if (FAILED(hr))
             {
@@ -1691,11 +1674,11 @@ HRESULT WScriptJsrt::ModuleMessage::Call(LPCSTR fileName)
                     fprintf(stderr, "Couldn't load file.\n");
                 }
 
-                LoadScript(nullptr, fullPath, nullptr, "module", true, WScriptJsrt::FinalizeFree, false);
+                LoadScript(nullptr, *specifierStr, nullptr, "module", true, WScriptJsrt::FinalizeFree, false);
             }
             else
             {
-                LoadScript(nullptr, fullPath, fileContent, "module", true, WScriptJsrt::FinalizeFree, true);
+                LoadScript(nullptr, *specifierStr, fileContent, "module", true, WScriptJsrt::FinalizeFree, true);
             }
         }
     }

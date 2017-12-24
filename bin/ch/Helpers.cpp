@@ -3,11 +3,11 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
-
 #include <sys/stat.h>
 
-//TODO: x-plat definitions
 #define MAX_URI_LENGTH 512
+
+//TODO: x-plat definitions
 #ifdef _WIN32
 #define TTD_MAX_FILE_LENGTH MAX_PATH
 #define TTD_HOST_PATH_SEP "\\"
@@ -92,13 +92,109 @@ JsTTDStreamHandle TTDHostOpen(size_t pathLength, const char* path, bool isWrite)
 #define TTDHostWrite(buff, size, handle) fwrite(buff, 1, size, (FILE*)handle)
 #endif
 
-HRESULT Helpers::LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, UINT* lengthBytesOut /*= nullptr*/)
+int GetPathNameLocation(LPCSTR filename)
 {
+    int filenameLength = (int) strlen(filename);
+    int pos;
+
+    if (filenameLength <= 0)
+    {
+        return -1;
+    }
+
+    for (pos = filenameLength - 1; pos >= 0; pos--)
+    {
+        char ch = filename[pos];
+        if (ch == '/' || ch == '\\') break;
+    }
+
+    return pos;
+}
+
+inline void pathcpy(char * target, LPCSTR src, uint length)
+{
+#ifndef _WIN32
+    for (int i = 0; i < length; i++)
+    {
+        if (src[i] == '\\')
+        {
+            target[i] = '/';
+        }
+        else
+        {
+            target[i] = src[i];
+        }
+    }
+#else
+    memcpy(target, src, length);
+#endif
+}
+
+uint ConcatPath(LPCSTR filenameLeft, uint posPathSep, LPCSTR filenameRight, char* buffer, uint bufferLength)
+{
+    int filenameRightLength = (int) strlen(filenameRight);
+
+    // [ path[/] ] + [filename] + /0
+    uint totalLength = posPathSep + filenameRightLength + 1;
+    if (buffer == nullptr)
+    {
+        return totalLength;
+    }
+
+    if (bufferLength < totalLength)
+    {
+        fprintf(stderr, "bufferLength < totalLength ConcatPath");
+        abort();
+    }
+
+    pathcpy(buffer, filenameLeft, posPathSep);
+    buffer += posPathSep;
+    pathcpy(buffer, filenameRight, filenameRightLength);
+    buffer += filenameRightLength;
+    buffer[0] = char(0);
+    return totalLength;
+}
+
+HRESULT Helpers::LoadScriptFromFile(LPCSTR filenameToLoad, LPCSTR& contents, UINT* lengthBytesOut /*= nullptr*/)
+{
+    static char sHostApplicationPathBuffer[MAX_URI_LENGTH];
+    static uint sHostApplicationPathBufferLength = (uint) -1;
+    char combinedPathBuffer[MAX_URI_LENGTH];
+
     HRESULT hr = S_OK;
     BYTE * pRawBytes = nullptr;
     UINT lengthBytes = 0;
     contents = nullptr;
     FILE * file = NULL;
+
+    LPCSTR filename = filenameToLoad;
+    if (sHostApplicationPathBufferLength == (uint)-1)
+    {
+        // consider incoming filename as the host app and base its' path for others
+        sHostApplicationPathBufferLength = GetPathNameLocation(filename);
+        if (sHostApplicationPathBufferLength == -1)
+        {
+            // host app has no path info. (it must be located on current folder!)
+            sHostApplicationPathBufferLength = 0;
+        }
+        else
+        {
+            sHostApplicationPathBufferLength += 1;
+            Assert(sHostApplicationPathBufferLength < MAX_URI_LENGTH);
+            // save host app's path and fix the path separator for platform
+            pathcpy(sHostApplicationPathBuffer, filename, sHostApplicationPathBufferLength);
+        }
+        sHostApplicationPathBuffer[sHostApplicationPathBufferLength] = char(0);
+    }
+    else if (filename[0] != '/' && filename[0] != '\\') // make sure it's not a full path
+    {
+        // concat host path and filename
+        uint len = ConcatPath(sHostApplicationPathBuffer, sHostApplicationPathBufferLength,
+                   filename, combinedPathBuffer, MAX_URI_LENGTH);
+
+        Assert(len > 0);
+        filename = combinedPathBuffer;
+    }
 
     //
     // Open the file as a binary file to prevent CRT from handling encoding, line-break conversions,
@@ -110,7 +206,7 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, UINT* len
         {
 #ifdef _WIN32
             DWORD lastError = GetLastError();
-            char16 wszBuff[512];
+            char16 wszBuff[MAX_URI_LENGTH];
             fprintf(stderr, "Error in opening file '%s' ", filename);
             wszBuff[0] = 0;
             if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
@@ -315,7 +411,7 @@ HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthB
             fprintf(stderr, "Error in opening file '%s' ", filename);
 #ifdef _WIN32
             DWORD lastError = GetLastError();
-            char16 wszBuff[512];
+            char16 wszBuff[MAX_URI_LENGTH];
             wszBuff[0] = 0;
             if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
                 nullptr,
@@ -330,7 +426,7 @@ HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthB
 #endif
             fprintf(stderr, "\n");
         }
-        return E_FAIL;        
+        return E_FAIL;
     }
     // file will not be nullptr if _wfopen_s succeeds
     __analysis_assume(file != nullptr);

@@ -695,7 +695,7 @@ JITManager::DeserializeRPCData(
             status = MesDecodeBufferHandleCreate((char*)buffer, bufferSize, &marshalHandle);
             if (status != RPC_S_OK)
             {
-                return status;
+                return HRESULT_FROM_WIN32(status);
             }
 
             pCodeGenWorkItemIDL_Decode(
@@ -712,7 +712,7 @@ JITManager::DeserializeRPCData(
     {
         MesHandleFree(marshalHandle);
     }
-    return status;
+    return HRESULT_FROM_WIN32(status);
 }
 
 HRESULT
@@ -734,7 +734,7 @@ JITManager::SerializeRPCData(_In_ CodeGenWorkItemIDL *workItemData, _Out_ size_t
                 &marshalHandle);
             if (status != RPC_S_OK)
             {
-                return status;
+                return HRESULT_FROM_WIN32(status);
             }
 
             MIDL_ES_CODE encodeType = MES_ENCODE;
@@ -751,7 +751,7 @@ JITManager::SerializeRPCData(_In_ CodeGenWorkItemIDL *workItemData, _Out_ size_t
             );
             if (status != RPC_S_OK)
             {
-                return status;
+                return HRESULT_FROM_WIN32(status);
             }
 #endif
 
@@ -776,7 +776,7 @@ JITManager::SerializeRPCData(_In_ CodeGenWorkItemIDL *workItemData, _Out_ size_t
             );
             if (status != RPC_S_OK)
             {
-                return status;
+                return HRESULT_FROM_WIN32(status);
             }
 
             pCodeGenWorkItemIDL_Encode(
@@ -796,6 +796,6 @@ JITManager::SerializeRPCData(_In_ CodeGenWorkItemIDL *workItemData, _Out_ size_t
         MesHandleFree(marshalHandle);
     }
 
-    return status;
+    return HRESULT_FROM_WIN32(status);
 }
 #endif

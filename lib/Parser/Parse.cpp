@@ -3727,7 +3727,6 @@ ParseNodePtr Parser::ParsePostfixOperators(
                 }
                 else
                 {
-                    bool fCallIsEval = false;
                     if (!fAllowCall)
                     {
                         return pnode;
@@ -3749,6 +3748,8 @@ ParseNodePtr Parser::ParsePostfixOperators(
                     // We now detect this case up front in ParseFncDecl, which is cheaper and simpler.
                     if (buildAST)
                     {
+                        bool fCallIsEval = false;
+
                         // Detect super()
                         if (this->NodeIsSuperName(pnode))
                         {

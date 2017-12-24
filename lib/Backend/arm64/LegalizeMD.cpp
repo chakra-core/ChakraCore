@@ -669,11 +669,12 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
         // This is done by having the load be from a label operand, which is later
         // changed such that its offset is the correct value to ldimm
 
+        // InlineeCallInfo is encoded as ((offset into function) << 4) | (argCount & 0xF).
+        // This will fit into 32 bits as long as the function has less than 2^26 instructions, which should be always.
+
         // The assembly generated becomes something like
         // Label (offset:fake)
         // MOVZ DST, Label
-        // MOVK DST, Label
-        // MOVK DST, Label
         // MOVK DST, Label <- was the LDIMM
 
         Assert(Security::DontEncode(instr->GetSrc1()));
@@ -689,15 +690,11 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
 
         // We'll handle splitting this up to properly load the immediates now
         // Typically (and worst case) we'll need to load 64 bits.
-        IR::Instr* bits48_63 = IR::Instr::New(Js::OpCode::MOVZ, instr->GetDst(), target, IR::IntConstOpnd::New(48, IRType::TyUint8, instr->m_func, true), instr->m_func);
-        instr->InsertBefore(bits48_63);
-        IR::Instr* bits32_47 = IR::Instr::New(Js::OpCode::MOVK, instr->GetDst(), target, IR::IntConstOpnd::New(32, IRType::TyUint8, instr->m_func, true), instr->m_func);
-        instr->InsertBefore(bits32_47);
-        IR::Instr* bits16_31 = IR::Instr::New(Js::OpCode::MOVK, instr->GetDst(), target, IR::IntConstOpnd::New(16, IRType::TyUint8, instr->m_func, true), instr->m_func);
-        instr->InsertBefore(bits16_31);
+        IR::Instr* bits0_15 = IR::Instr::New(Js::OpCode::MOVZ, instr->GetDst(), target, IR::IntConstOpnd::New(0, IRType::TyUint8, instr->m_func, true), instr->m_func);
+        instr->InsertBefore(bits0_15);
 
         instr->ReplaceSrc1(target);
-        instr->SetSrc2(IR::IntConstOpnd::New(0, IRType::TyUint8, instr->m_func, true));
+        instr->SetSrc2(IR::IntConstOpnd::New(16, IRType::TyUint8, instr->m_func, true));
         instr->m_opcode = Js::OpCode::MOVK;
 
         instr->isInlineeEntryInstr = false;

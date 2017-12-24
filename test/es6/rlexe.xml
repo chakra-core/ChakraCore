@@ -1395,7 +1395,6 @@
       <tags>exclude_sanitize_address</tags>
     </default>
   </test>
-  <!-- Test disabled until issue #3778 is resolved
   <test>
     <default>
       <files>module-namespace.js</files>
@@ -1403,7 +1402,6 @@
       <tags>exclude_dynapogo,exclude_drt,exclude_sanitize_address</tags>
     </default>
   </test>
-  -->
   <test>
     <default>
       <files>module-bugfixes.js</files>
