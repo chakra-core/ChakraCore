@@ -55,6 +55,15 @@ using namespace PlatformAgnostic::Resource;
         }                                                                     \
     } while (false)
 
+#define BCP47_TO_ICU(langtag, langtagLen, localeID, localeIDLen)              \
+    do {                                                                      \
+        UErrorCode __status = U_ZERO_ERROR;                                   \
+        utf8::WideToNarrow __lt((langtag), (langtagLen));                     \
+        int32_t __len = 0;                                                    \
+        uloc_forLanguageTag(__lt, localeID, localeIDLen, &__len, &__status);  \
+        ICU_ASSERT(__status, __len > 0 && __len < localeIDLen);               \
+    } while (false)
+
 #endif // INTL_ICU
 
 #include "PlatformAgnostic/Intl.h"
@@ -758,13 +767,12 @@ namespace Js
 #ifdef INTL_ICU
     typedef const char * (*GetAvailableLocaleFunc)(int);
     typedef int (*CountAvailableLocaleFunc)(void);
-    static bool findLocale(const char *langtag, CountAvailableLocaleFunc countAvailable, GetAvailableLocaleFunc getAvailable)
+    static bool findLocale(JavascriptString *langtag, CountAvailableLocaleFunc countAvailable, GetAvailableLocaleFunc getAvailable)
     {
-        UErrorCode status = U_ZERO_ERROR;
         char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
-        int32_t length = 0;
-        uloc_forLanguageTag(langtag, localeID, ULOC_FULLNAME_CAPACITY, &length, &status);
-        ICU_ASSERT(status, length > 0);
+        BCP47_TO_ICU(langtag->GetSz(), langtag->GetLength(), localeID, ULOC_FULLNAME_CAPACITY);
+
+        // TODO(jahorto): can we binary search this instead?
         for (int i = 0; i < countAvailable(); i++)
         {
             if (strcmp(localeID, getAvailable(i)) == 0)
@@ -783,10 +791,7 @@ namespace Js
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
         INTL_CHECK_ARGS(args.Info.Count == 2 && JavascriptString::Is(args.Values[1]));
 
-        JavascriptString *locale = JavascriptString::UnsafeFromVar(args.Values[1]);
-        utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
-
-        return TO_JSBOOL(scriptContext, findLocale(locale8, udat_countAvailable, udat_getAvailable));
+        return TO_JSBOOL(scriptContext, findLocale(JavascriptString::UnsafeFromVar(args.Values[1]), udat_countAvailable, udat_getAvailable));
 #else
         AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call IsDTFLocaleAvailable");
         return nullptr;
@@ -799,10 +804,7 @@ namespace Js
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
         INTL_CHECK_ARGS(args.Info.Count == 2 && JavascriptString::Is(args.Values[1]));
 
-        JavascriptString *locale = JavascriptString::UnsafeFromVar(args.Values[1]);
-        utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
-
-        return TO_JSBOOL(scriptContext, findLocale(locale8, ucol_countAvailable, ucol_getAvailable));
+        return TO_JSBOOL(scriptContext, findLocale(JavascriptString::UnsafeFromVar(args.Values[1]), ucol_countAvailable, ucol_getAvailable));
 #else
         AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call IsCollatorLocaleAvailable");
         return nullptr;
@@ -815,10 +817,7 @@ namespace Js
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
         INTL_CHECK_ARGS(args.Info.Count == 2 && JavascriptString::Is(args.Values[1]));
 
-        JavascriptString *locale = JavascriptString::UnsafeFromVar(args.Values[1]);
-        utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
-
-        return TO_JSBOOL(scriptContext, findLocale(locale8, unum_countAvailable, unum_getAvailable));
+        return TO_JSBOOL(scriptContext, findLocale(JavascriptString::UnsafeFromVar(args.Values[1]), unum_countAvailable, unum_getAvailable));
 #else
         AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call IsNFLocaleAvailable");
         return nullptr;
@@ -826,15 +825,15 @@ namespace Js
     }
 
 #ifdef INTL_ICU
-enum class LocaleDataKind
-{
-    Collation,
-    CaseFirst,
-    Numeric,
-    Calendar,
-    NumberingSystem,
-    HourCycle
-};
+    enum class LocaleDataKind
+    {
+        Collation,
+        CaseFirst,
+        Numeric,
+        Calendar,
+        NumberingSystem,
+        HourCycle
+    };
 #endif
 
     Var IntlEngineInterfaceExtensionObject::EntryIntl_GetLocaleData(RecyclableObject* function, CallInfo callInfo, ...)
@@ -865,14 +864,14 @@ enum class LocaleDataKind
             return ret;
         }
 
-        JavascriptString *locale = JavascriptString::UnsafeFromVar(args.Values[2]);
-        utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
-
         UErrorCode status = U_ZERO_ERROR;
+        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        JavascriptString *langtag = JavascriptString::UnsafeFromVar(args.Values[2]);
+        BCP47_TO_ICU(langtag->GetSz(), langtag->GetLength(), localeID, ULOC_FULLNAME_CAPACITY);
 
         if (kind == LocaleDataKind::Collation)
         {
-            UEnumeration *collations = ucol_getKeywordValuesForLocale("collation", locale8, false, &status);
+            UEnumeration *collations = ucol_getKeywordValuesForLocale("collation", localeID, false, &status);
             ICU_ASSERT(status, true);
 
             // the return array can't include "standard" and "search", but must have its first element be null (count - 2 + 1) [#sec-intl-collator-internal-slots]
@@ -921,7 +920,7 @@ enum class LocaleDataKind
         }
         else if (kind == LocaleDataKind::CaseFirst)
         {
-            UCollator *collator = ucol_open(locale8, &status);
+            UCollator *collator = ucol_open(localeID, &status);
             UColAttributeValue kf = ucol_getAttribute(collator, UCOL_CASE_FIRST, &status);
             ICU_ASSERT(status, true);
             ret = scriptContext->GetLibrary()->CreateArray(3);
@@ -949,7 +948,7 @@ enum class LocaleDataKind
         }
         else if (kind == LocaleDataKind::Numeric)
         {
-            UCollator *collator = ucol_open(locale8, &status);
+            UCollator *collator = ucol_open(localeID, &status);
             UColAttributeValue kn = ucol_getAttribute(collator, UCOL_NUMERIC_COLLATION, &status);
             ICU_ASSERT(status, true);
             ret = scriptContext->GetLibrary()->CreateArray(2);
@@ -969,7 +968,7 @@ enum class LocaleDataKind
         }
         else if (kind == LocaleDataKind::Calendar)
         {
-            UEnumeration *calendars = ucal_getKeywordValuesForLocale("calendar", locale8, false, &status);
+            UEnumeration *calendars = ucal_getKeywordValuesForLocale("calendar", localeID, false, &status);
             ret = scriptContext->GetLibrary()->CreateArray(uenum_count(calendars, &status));
             ICU_ASSERT(status, true);
 
@@ -1037,7 +1036,7 @@ enum class LocaleDataKind
                     _u("tibt")
             };
 
-            UNumberingSystem *numsys = unumsys_open(locale8, &status);
+            UNumberingSystem *numsys = unumsys_open(localeID, &status);
             ICU_ASSERT(status, true);
             utf8::NarrowToWide numsysName(unumsys_getName(numsys));
 
@@ -1233,15 +1232,11 @@ enum class LocaleDataKind
         }
 
         Var propertyValue = nullptr; // set by the GetTypedPropertyBuiltInFrom macro
-        JavascriptString *localeJSstr = nullptr;
 
 #if defined(INTL_ICU)
         DynamicObject *state = DynamicObject::FromVar(args.Values[1]);
 
         // always AssertOrFailFast that the properties we need are there, because if they aren't, Intl.js isn't functioning correctly
-        AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, locale, JavascriptString));
-        localeJSstr = JavascriptString::UnsafeFromVar(propertyValue);
-
         AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, formatterToUse, TaggedInt));
         NumberFormatStyle style = NumberFormatStyle::Default;
         int formatterToUse = TaggedInt::ToInt32(propertyValue);
@@ -1249,9 +1244,13 @@ enum class LocaleDataKind
         style = static_cast<NumberFormatStyle>(formatterToUse);
 
         UNumberFormatStyle unumStyle = UNUM_IGNORE;
-        utf8::WideToNarrow locale8(localeJSstr->GetSz(), localeJSstr->GetLength());
         UErrorCode status = U_ZERO_ERROR;
         const char16 *currency = nullptr;
+
+        AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, locale, JavascriptString));
+        JavascriptString *langtag = JavascriptString::UnsafeFromVar(propertyValue);
+        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        BCP47_TO_ICU(langtag->GetSz(), langtag->GetLength(), localeID, ULOC_FULLNAME_CAPACITY);
 
         if (style == NumberFormatStyle::Decimal)
         {
@@ -1289,7 +1288,7 @@ enum class LocaleDataKind
 
         AssertOrFailFast(unumStyle != UNUM_IGNORE);
 
-        UNumberFormat *fmt = unum_open(unumStyle, nullptr, 0, locale8, nullptr, &status);
+        UNumberFormat *fmt = unum_open(unumStyle, nullptr, 0, localeID, nullptr, &status);
         ICU_ASSERT(status, true);
 
         AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, useGrouping, JavascriptBoolean));
@@ -1335,6 +1334,7 @@ enum class LocaleDataKind
         return scriptContext->GetLibrary()->GetUndefined();
 #else
         HRESULT hr = S_OK;
+        JavascriptString *localeJSstr = nullptr;
         DynamicObject *options = DynamicObject::FromVar(args.Values[1]);
         DelayLoadWindowsGlobalization* wgl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
         WindowsGlobalizationAdapter* wga = GetWindowsGlobalizationAdapter(scriptContext);
@@ -1862,10 +1862,11 @@ enum class LocaleDataKind
             int num = TaggedInt::ToInt32(args.Values[1]);
             int required = unum_format(fmt, num, nullptr, 0, nullptr, &status);
             AssertOrFailFast(status == U_BUFFER_OVERFLOW_ERROR && required > 0);
+            status = U_ZERO_ERROR;
 
             // allocate space for null character
             UChar *buf = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), UChar, required + 1);
-            unum_format(fmt, num, buf, required + 1, nullptr, &status);
+            required = unum_format(fmt, num, buf, required + 1, nullptr, &status);
             ICU_ASSERT(status, true);
 
             ret = JavascriptString::NewWithBuffer(reinterpret_cast<char16 *>(buf), required, scriptContext);
@@ -1875,10 +1876,11 @@ enum class LocaleDataKind
             double num = JavascriptNumber::GetValue(args.Values[1]);
             int required = unum_formatDouble(fmt, num, nullptr, 0, nullptr, &status);
             AssertOrFailFast(status == U_BUFFER_OVERFLOW_ERROR && required > 0);
+            status = U_ZERO_ERROR;
 
             // allocate space for null character
             UChar *buf = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), UChar, required + 1);
-            unum_formatDouble(fmt, num, buf, required + 1, nullptr, &status);
+            required = unum_formatDouble(fmt, num, buf, required + 1, nullptr, &status);
             ICU_ASSERT(status, true);
 
             ret = JavascriptString::NewWithBuffer(reinterpret_cast<char16 *>(buf), required, scriptContext);
