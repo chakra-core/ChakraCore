@@ -1740,36 +1740,36 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
             StackSym * typeSpecSym = nullptr;
             auto findTypeSpecSym = [&]()
             {
-            if (bailOutInfo->liveLosslessInt32Syms->Test(symId))
-            {
-                // Var version of the sym is not live, use the int32 version
-                int32StackSym = stackSym->GetInt32EquivSym(nullptr);
+                if (bailOutInfo->liveLosslessInt32Syms->Test(symId))
+                {
+                    // Var version of the sym is not live, use the int32 version
+                    int32StackSym = stackSym->GetInt32EquivSym(nullptr);
                     typeSpecSym = int32StackSym;
-                Assert(int32StackSym);
-            }
-            else if(bailOutInfo->liveFloat64Syms->Test(symId))
-            {
-                // Var/int32 version of the sym is not live, use the float64 version
-                float64StackSym = stackSym->GetFloat64EquivSym(nullptr);
+                    Assert(int32StackSym);
+                }
+                else if(bailOutInfo->liveFloat64Syms->Test(symId))
+                {
+                    // Var/int32 version of the sym is not live, use the float64 version
+                    float64StackSym = stackSym->GetFloat64EquivSym(nullptr);
                     typeSpecSym = float64StackSym;
-                Assert(float64StackSym);
-            }
+                    Assert(float64StackSym);
+                }
 #ifdef ENABLE_SIMDJS
-            // SIMD_JS
-            else if (bailOutInfo->liveSimd128F4Syms->Test(symId))
-            {
-                simd128StackSym = stackSym->GetSimd128F4EquivSym(nullptr);
+                // SIMD_JS
+                else if (bailOutInfo->liveSimd128F4Syms->Test(symId))
+                {
+                    simd128StackSym = stackSym->GetSimd128F4EquivSym(nullptr);
                     typeSpecSym = simd128StackSym;
-            }
-            else if (bailOutInfo->liveSimd128I4Syms->Test(symId))
-            {
-                simd128StackSym = stackSym->GetSimd128I4EquivSym(nullptr);
+                }
+                else if (bailOutInfo->liveSimd128I4Syms->Test(symId))
+                {
+                    simd128StackSym = stackSym->GetSimd128I4EquivSym(nullptr);
                     typeSpecSym = simd128StackSym;
-            }
+                }
 #endif
-            else
-            {
-                Assert(bailOutInfo->liveVarSyms->Test(symId));
+                else
+                {
+                    Assert(bailOutInfo->liveVarSyms->Test(symId));
                     typeSpecSym = stackSym;
                 }
             };
