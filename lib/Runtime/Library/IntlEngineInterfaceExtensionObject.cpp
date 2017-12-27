@@ -22,7 +22,43 @@ using namespace Windows::Globalization;
 #include <CommonPal.h>
 #include "PlatformAgnostic/IPlatformAgnosticResource.h"
 using namespace PlatformAgnostic::Resource;
+#define U_STATIC_IMPLEMENTATION
+#define U_SHOW_CPLUSPLUS_API 0
+#pragma warning(push)
+#pragma warning(disable:4995) // deprecation warning
+#include <unicode/ucol.h>
+#include <unicode/udat.h>
+#include <unicode/unum.h>
+#include <unicode/unumsys.h>
+#pragma warning(pop)
+
+#define ICU_ERROR_FMT _u("INTL: %S failed with error code %S\n")
+#define ICU_EXPR_FMT _u("INTL: %S failed expression check %S\n")
+
+#ifdef INTL_ICU_DEBUG
+#define ICU_DEBUG_PRINT(fmt, msg) Output::Print(fmt, __func__, (msg))
+#else
+#define ICU_DEBUG_PRINT(fmt, msg)
 #endif
+
+#define ICU_FAILURE(e) (U_FAILURE(e) || e == U_STRING_NOT_TERMINATED_WARNING)
+
+#define ICU_ASSERT(e, expr)                                                   \
+    do                                                                        \
+    {                                                                         \
+        if (ICU_FAILURE(e))                                                   \
+        {                                                                     \
+            ICU_DEBUG_PRINT(ICU_ERROR_FMT, u_errorName(e));                   \
+            AssertOrFailFastMsg(false, u_errorName(e));                       \
+        }                                                                     \
+        else if (!(expr))                                                     \
+        {                                                                     \
+            ICU_DEBUG_PRINT(ICU_EXPR_FMT, u_errorName(e));                    \
+            AssertOrFailFast(expr);                                           \
+        }                                                                     \
+    } while (false)
+
+#endif // INTL_ICU
 
 #include "PlatformAgnostic/Intl.h"
 using namespace PlatformAgnostic::Intl;
@@ -675,22 +711,307 @@ namespace Js
         return retVal;
     }
 
-    Var IntlEngineInterfaceExtensionObject::EntryIntl_IsLocaleAvailable(RecyclableObject* function, CallInfo callInfo, ...)
+#ifdef INTL_ICU
+    typedef const char * (*GetAvailableLocaleFunc)(int);
+    typedef int (*CountAvailableLocaleFunc)(void);
+    static bool findLocale(const char *langtag, CountAvailableLocaleFunc countAvailable, GetAvailableLocaleFunc getAvailable)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        int32_t length = 0;
+        uloc_forLanguageTag(langtag, localeID, ULOC_FULLNAME_CAPACITY, &length, &status);
+        ICU_ASSERT(status, length > 0);
+        for (int i = 0; i < countAvailable(); i++)
+        {
+            if (strcmp(localeID, getAvailable(i)) == 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+#endif
+
+    Var IntlEngineInterfaceExtensionObject::EntryIntl_IsDTFLocaleAvailable(RecyclableObject* function, CallInfo callInfo, ...)
     {
 #ifdef INTL_ICU
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+        INTL_CHECK_ARGS(args.Info.Count == 2 && JavascriptString::Is(args.Values[1]));
 
-        if (args.Info.Count < 2 || !JavascriptString::Is(args.Values[1]))
-        {
-            return scriptContext->GetLibrary()->GetUndefined();
-        }
-
-        JavascriptString *locale = JavascriptString::FromVar(args.Values[1]);
+        JavascriptString *locale = JavascriptString::UnsafeFromVar(args.Values[1]);
         utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
 
-        return TO_JSBOOL(scriptContext, IsLocaleAvailable(locale8));
+        return TO_JSBOOL(scriptContext, findLocale(locale8, udat_countAvailable, udat_getAvailable));
 #else
-        AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call CollatorGetCollation");
+        AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call IsDTFLocaleAvailable");
+        return nullptr;
+#endif
+    }
+
+    Var IntlEngineInterfaceExtensionObject::EntryIntl_IsCollatorLocaleAvailable(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+#ifdef INTL_ICU
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+        INTL_CHECK_ARGS(args.Info.Count == 2 && JavascriptString::Is(args.Values[1]));
+
+        JavascriptString *locale = JavascriptString::UnsafeFromVar(args.Values[1]);
+        utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
+
+        return TO_JSBOOL(scriptContext, findLocale(locale8, ucol_countAvailable, ucol_getAvailable));
+#else
+        AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call IsCollatorLocaleAvailable");
+        return nullptr;
+#endif
+    }
+
+    Var IntlEngineInterfaceExtensionObject::EntryIntl_IsNFLocaleAvailable(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+#ifdef INTL_ICU
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+        INTL_CHECK_ARGS(args.Info.Count == 2 && JavascriptString::Is(args.Values[1]));
+
+        JavascriptString *locale = JavascriptString::UnsafeFromVar(args.Values[1]);
+        utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
+
+        return TO_JSBOOL(scriptContext, findLocale(locale8, unum_countAvailable, unum_getAvailable));
+#else
+        AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call IsNFLocaleAvailable");
+        return nullptr;
+#endif
+    }
+
+#ifdef INTL_ICU
+enum class LocaleDataKind
+{
+    Collation,
+    CaseFirst,
+    Numeric,
+    Calendar,
+    NumberingSystem,
+    HourCycle
+};
+#endif
+
+    Var IntlEngineInterfaceExtensionObject::EntryIntl_GetLocaleData(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+#ifdef INTL_ICU
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+        INTL_CHECK_ARGS(
+            args.Info.Count == 3 &&
+            (JavascriptNumber::Is(args.Values[1]) || TaggedInt::Is(args.Values[1])) &&
+            JavascriptString::Is(args.Values[2])
+        );
+
+        LocaleDataKind kind = (LocaleDataKind) (TaggedInt::Is(args.Values[1])
+            ? TaggedInt::ToInt32(args.Values[1])
+            : (int) JavascriptNumber::GetValue(args.Values[1]));
+
+        JavascriptArray *ret = nullptr;
+
+        if (kind == LocaleDataKind::HourCycle)
+        {
+            // #sec-intl.datetimeformat-internal-slots: "[[LocaleData]][locale].hc must be < null, h11, h12, h23, h24 > for all locale values"
+            ret = scriptContext->GetLibrary()->CreateArray(5);
+            ret->SetItem(0, scriptContext->GetLibrary()->GetNull(), PropertyOperationFlags::PropertyOperation_None);
+            ret->SetItem(1, JavascriptString::NewCopySz(_u("h11"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+            ret->SetItem(2, JavascriptString::NewCopySz(_u("h12"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+            ret->SetItem(3, JavascriptString::NewCopySz(_u("h23"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+            ret->SetItem(4, JavascriptString::NewCopySz(_u("h24"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+            return ret;
+        }
+
+        JavascriptString *locale = JavascriptString::UnsafeFromVar(args.Values[2]);
+        utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
+
+        UErrorCode status = U_ZERO_ERROR;
+
+        if (kind == LocaleDataKind::Collation)
+        {
+            UEnumeration *collations = ucol_getKeywordValuesForLocale("collation", locale8, false, &status);
+            ICU_ASSERT(status, true);
+
+            // the return array can't include "standard" and "search", but must have its first element be null (count - 2 + 1) [#sec-intl-collator-internal-slots]
+            ret = scriptContext->GetLibrary()->CreateArray(uenum_count(collations, &status) - 1);
+            ICU_ASSERT(status, true);
+            ret->SetItem(0, scriptContext->GetLibrary()->GetNull(), PropertyOperationFlags::PropertyOperation_None);
+
+            int collationLen = 0;
+            const char *collation = nullptr;
+            int i = 0;
+            for (collation = uenum_next(collations, &collationLen, &status); collation != nullptr; collation = uenum_next(collations, &collationLen, &status))
+            {
+                if (strcmp(collation, "standard") == 0 || strcmp(collation, "search") == 0)
+                {
+                    // continue does not create holes in ret because i is set outside the loop
+                    continue;
+                }
+
+                const char *unicodeCollation = uloc_toUnicodeLocaleType("collation", collation);
+                const size_t unicodeCollationLen = strlen(unicodeCollation);
+
+                // we only need strlen(unicodeCollation) + 1 char16s because unicodeCollation will always be ASCII (funnily enough)
+                char16 *unicodeCollation16 = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, strlen(unicodeCollation) + 1);
+                size_t unicodeCollation16Len = 0;
+                HRESULT hr = utf8::NarrowStringToWideNoAlloc(
+                    unicodeCollation,
+                    unicodeCollationLen,
+                    unicodeCollation16,
+                    unicodeCollationLen + 1,
+                    &unicodeCollation16Len
+                );
+                AssertOrFailFastMsg(
+                    hr == S_OK && unicodeCollation16Len == unicodeCollationLen && unicodeCollation16Len < MaxCharCount,
+                    "Unicode collation char16 conversion was unsuccessful"
+                );
+                // i + 1 to not ovewrite leading null element
+                ret->SetItem(i + 1, JavascriptString::NewWithBuffer(
+                    unicodeCollation16,
+                    static_cast<charcount_t>(unicodeCollation16Len),
+                    scriptContext
+                ), PropertyOperationFlags::PropertyOperation_None);
+                i++;
+            }
+
+            uenum_close(collations);
+        }
+        else if (kind == LocaleDataKind::CaseFirst)
+        {
+            UCollator *collator = ucol_open(locale8, &status);
+            UColAttributeValue kf = ucol_getAttribute(collator, UCOL_CASE_FIRST, &status);
+            ICU_ASSERT(status, true);
+            ret = scriptContext->GetLibrary()->CreateArray(3);
+
+            if (kf == UCOL_OFF)
+            {
+                ret->SetItem(0, JavascriptString::NewCopySz(_u("false"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+                ret->SetItem(1, JavascriptString::NewCopySz(_u("upper"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+                ret->SetItem(2, JavascriptString::NewCopySz(_u("lower"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+            }
+            else if (kf == UCOL_UPPER_FIRST)
+            {
+                ret->SetItem(0, JavascriptString::NewCopySz(_u("upper"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+                ret->SetItem(1, JavascriptString::NewCopySz(_u("lower"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+                ret->SetItem(2, JavascriptString::NewCopySz(_u("false"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+            }
+            else if (kf == UCOL_LOWER_FIRST)
+            {
+                ret->SetItem(0, JavascriptString::NewCopySz(_u("lower"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+                ret->SetItem(1, JavascriptString::NewCopySz(_u("upper"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+                ret->SetItem(2, JavascriptString::NewCopySz(_u("false"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+            }
+
+            ucol_close(collator);
+        }
+        else if (kind == LocaleDataKind::Numeric)
+        {
+            UCollator *collator = ucol_open(locale8, &status);
+            UColAttributeValue kn = ucol_getAttribute(collator, UCOL_NUMERIC_COLLATION, &status);
+            ICU_ASSERT(status, true);
+            ret = scriptContext->GetLibrary()->CreateArray(2);
+
+            if (kn == UCOL_OFF)
+            {
+                ret->SetItem(0, JavascriptString::NewCopySz(_u("false"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+                ret->SetItem(1, JavascriptString::NewCopySz(_u("true"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+            }
+            else if (kn == UCOL_ON)
+            {
+                ret->SetItem(0, JavascriptString::NewCopySz(_u("true"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+                ret->SetItem(1, JavascriptString::NewCopySz(_u("false"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+            }
+
+            ucol_close(collator);
+        }
+        else if (kind == LocaleDataKind::Calendar)
+        {
+            UEnumeration *calendars = ucal_getKeywordValuesForLocale("calendar", locale8, false, &status);
+            ret = scriptContext->GetLibrary()->CreateArray(uenum_count(calendars, &status));
+            ICU_ASSERT(status, true);
+
+            int calendarLen = 0;
+            const char *calendar = nullptr;
+            int i = 0;
+            for (calendar = uenum_next(calendars, &calendarLen, &status); calendar != nullptr; calendar = uenum_next(calendars, &calendarLen, &status))
+            {
+                const char *unicodeCalendar = uloc_toUnicodeLocaleType("calendar", calendar);
+                const size_t unicodeCalendarLen = strlen(unicodeCalendar);
+
+                // we only need strlen(unicodeCalendar) + 1 char16s because unicodeCalendar will always be ASCII (funnily enough)
+                char16 *unicodeCalendar16 = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, strlen(unicodeCalendar) + 1);
+                size_t unicodeCalendar16Len = 0;
+                HRESULT hr = utf8::NarrowStringToWideNoAlloc(
+                    unicodeCalendar,
+                    unicodeCalendarLen,
+                    unicodeCalendar16,
+                    unicodeCalendarLen + 1,
+                    &unicodeCalendar16Len
+                );
+                AssertOrFailFastMsg(
+                    hr == S_OK && unicodeCalendar16Len == unicodeCalendarLen && unicodeCalendar16Len < MaxCharCount,
+                    "Unicode calendar char16 conversion was unsuccessful"
+                );
+                ret->SetItem(i, JavascriptString::NewWithBuffer(
+                    unicodeCalendar16,
+                    static_cast<charcount_t>(unicodeCalendar16Len),
+                    scriptContext
+                ), PropertyOperationFlags::PropertyOperation_None);
+                i++;
+            }
+
+            uenum_close(calendars);
+        }
+        else if (kind == LocaleDataKind::NumberingSystem)
+        {
+            // unumsys_openAvailableNames has multiple bugs (http://bugs.icu-project.org/trac/ticket/11908) and also
+            // does not provide a locale-specific set of numbering systems
+            // the Intl spec provides a list of required numbering systems to support in #table-numbering-system-digits
+            // For now, assume that all of those numbering systems are supported, and just get the default using unumsys_open
+            // unumsys_open will also ensure that "native", "traditio", and "finance" are not returned, as per #sec-intl.datetimeformat-internal-slots
+            static const char16 *available[] = {
+                    _u("arab"),
+                    _u("arabext"),
+                    _u("bali"),
+                    _u("beng"),
+                    _u("deva"),
+                    _u("fullwide"),
+                    _u("gujr"),
+                    _u("guru"),
+                    _u("hanidec"),
+                    _u("khmr"),
+                    _u("knda"),
+                    _u("laoo"),
+                    _u("latn"),
+                    _u("limb"),
+                    _u("mlym"),
+                    _u("mong"),
+                    _u("mymr"),
+                    _u("orya"),
+                    _u("tamldec"),
+                    _u("telu"),
+                    _u("thai"),
+                    _u("tibt")
+            };
+
+            UNumberingSystem *numsys = unumsys_open(locale8, &status);
+            ICU_ASSERT(status, true);
+            utf8::NarrowToWide numsysName(unumsys_getName(numsys));
+
+            ret = scriptContext->GetLibrary()->CreateArray(_countof(available) + 1);
+            ret->SetItem(0, JavascriptString::NewCopySz(numsysName, scriptContext), PropertyOperationFlags::PropertyOperation_None);
+            for (int i = 0; i < _countof(available); i++)
+            {
+                ret->SetItem(i + 1, JavascriptString::NewCopySz(available[i], scriptContext), PropertyOperationFlags::PropertyOperation_None);
+            }
+        }
+        else
+        {
+            AssertOrFailFastMsg(false, "GetLocaleData called with unknown kind parameter");
+        }
+
+        return ret;
+#else
+        AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call GetLocaleData");
         return nullptr;
 #endif
     }
@@ -1251,31 +1572,6 @@ namespace Js
     }
 #endif
 
-    Var IntlEngineInterfaceExtensionObject::EntryIntl_CollatorGetCollation(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-#if defined(INTL_ICU)
-        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-
-        if (args.Info.Count < 2 || !JavascriptString::Is(args.Values[1]))
-        {
-            return scriptContext->GetLibrary()->GetUndefined();
-        }
-
-        JavascriptString *locale = JavascriptString::FromVar(args.Values[1]);
-        utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
-
-        char collation8[LOCALE_NAME_MAX_LENGTH] = { 0 };
-        CollatorGetCollation(locale8, collation8, _countof(collation8));
-
-        utf8::NarrowToWide collation(collation8);
-
-        return JavascriptString::NewCopySz(collation, scriptContext);
-#else
-        AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call CollatorGetCollation");
-        return nullptr;
-#endif
-    }
-
     Var IntlEngineInterfaceExtensionObject::EntryIntl_CompareString(RecyclableObject* function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
@@ -1679,9 +1975,12 @@ namespace Js
         );
 
         DynamicObject *state = DynamicObject::UnsafeFromVar(args.Values[1]);
-        double x = TaggedInt::Is(args.Values[2]) ? TaggedInt::ToDouble(args.Values[2]) : JavascriptNumber::GetValue(args.Values[2]);
+        double date = TaggedInt::Is(args.Values[2]) ? TaggedInt::ToDouble(args.Values[2]) : JavascriptNumber::GetValue(args.Values[2]);
         bool toParts = Js::JavascriptBoolean::UnsafeFromVar(args.Values[3])->GetValue() ? true : false;
 
+        // Below, we lazy-initialize the backing UDateFormat on the first call to format{ToParts}
+        // On subsequent calls, the UDateFormat will be cached in state.hiddenObject
+        // TODO(jahorto): Make these property IDs sane, so that hiddenObject doesn't have different meanings in different contexts
         Var hiddenObject = nullptr;
         IPlatformAgnosticResource *dtf = nullptr;
         if (state->GetInternalProperty(state, Js::InternalPropertyIds::HiddenObject, &hiddenObject, nullptr, scriptContext))
@@ -1695,7 +1994,7 @@ namespace Js
             JavascriptString *pattern = nullptr;
 
             Var propertyValue = nullptr; // set by the GetTypedPropertyBuiltInFrom macro
-            
+
             if (GetTypedPropertyBuiltInFrom(state, locale, JavascriptString))
             {
                 locale = JavascriptString::UnsafeFromVar(propertyValue);
@@ -1719,19 +2018,19 @@ namespace Js
             state->SetInternalProperty(
                 InternalPropertyIds::HiddenObject,
                 AutoIcuJsObject<IPlatformAgnosticResource>::New(scriptContext->GetRecycler(), dtf),
-                PropertyOperationFlags::PropertyOperation_SpecialValue,
+                PropertyOperationFlags::PropertyOperation_None,
                 nullptr
             );
         }
 
         // both format and formatToParts need the original string, so we can do the length calculation for both
-        int required = FormatDateTime(dtf, x);
+        int required = FormatDateTime(dtf, date);
         char16 *formatted = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, required);
 
         if (toParts)
         {
             IPlatformAgnosticResource *fieldIterator = nullptr;
-            FormatDateTimeToParts(dtf, x, formatted, required, &fieldIterator);
+            FormatDateTimeToParts(dtf, date, formatted, required, &fieldIterator);
             JavascriptArray* ret = scriptContext->GetLibrary()->CreateArray(0);
             int partStart = 0;
             int partEnd = 0;
@@ -1748,7 +2047,7 @@ namespace Js
                 }
 
                 AddPartToPartsArray(scriptContext, ret, i, formatted, partStart, partEnd, GetDateTimePartKind(partKind));
-                
+
                 i += 1;
                 lastPartEnd = partEnd;
             }
@@ -1757,7 +2056,7 @@ namespace Js
         }
         else
         {
-            FormatDateTime(dtf, x, formatted, required);
+            FormatDateTime(dtf, date, formatted, required);
             return JavascriptString::NewWithBuffer(formatted, required - 1, scriptContext);
         }
 #endif

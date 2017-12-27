@@ -104,7 +104,7 @@ const tests = [
             withHour("en-US-u-hc-h24", { hour12: false }, "h23", false);
             withHour("en-US-u-hc-h24", { hour12: true }, "h12", true);
 
-            if (Intl.DateTimeFormat.supportedLocalesOf("en-GB").includes("en-GB")) {
+            if (new Intl.DateTimeFormat("en-GB").resolvedOptions().locale === "en-GB") {
                 withoutHour("en-GB", undefined);
 
                 withHour("en-GB", undefined, "h23", false);
@@ -112,7 +112,7 @@ const tests = [
                 withHour("en-GB-u-hc-h24", undefined, "h24", false);
             }
 
-            if (Intl.DateTimeFormat.supportedLocalesOf("ja-JP").includes("ja-JP")) {
+            if (new Intl.DateTimeFormat("ja-JP").resolvedOptions().locale === "ja-JP") {
                 withoutHour("ja-JP", undefined);
 
                 withHour("ja-JP", undefined, "h23", false);
