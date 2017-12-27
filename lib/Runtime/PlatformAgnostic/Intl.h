@@ -118,24 +118,7 @@ namespace Intl
     bool IsWellFormedLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch);
     HRESULT NormalizeLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch,
         _Out_ char16 *normalized, _Out_ size_t *normalizedLength);
-    bool IsLocaleAvailable(_In_z_ const char *langtag);
-    bool ResolveLocaleBestFit(_In_z_ const char16 *locale, _Out_ char16 *resolved);
     size_t GetUserDefaultLocaleName(_Out_ char16* langtag, _In_ size_t cchLangtag);
-
-    // NumberFormat
-    int32_t GetCurrencyFractionDigits(_In_z_ const char16 * currencyCode);
-    template <typename Func>
-    HRESULT CreateFormatter(Func function, _In_z_ const char16 *languageTag, _In_ const charcount_t cch, _Out_ IPlatformAgnosticResource **resource);
-    HRESULT CreateNumberFormatter(_In_z_ const char16 *languageTag, _In_ const charcount_t cch, _Out_ IPlatformAgnosticResource **resource);
-    HRESULT CreatePercentFormatter(_In_z_ const char16 *languageTag, _In_ const charcount_t cch, _Out_ IPlatformAgnosticResource **resource);
-    HRESULT CreateCurrencyFormatter(_In_z_ const char16 *languageTag, _In_ const charcount_t cch,
-        _In_z_ const char16 *currencyCode, _In_ const NumberFormatCurrencyDisplay currencyDisplay, _Out_ IPlatformAgnosticResource **resource);
-    void SetNumberFormatSignificantDigits(IPlatformAgnosticResource *resource, const uint16 minSigDigits, const uint16 maxSigDigits);
-    void SetNumberFormatIntFracDigits(IPlatformAgnosticResource *resource, const uint16 minFracDigits, const uint16 maxFracDigits, const uint16 minIntDigits);
-    void SetNumberFormatGroupingUsed(_In_ IPlatformAgnosticResource *resource, _In_ const bool isGroupingUsed);
-    template <typename T>
-    const char16 *FormatNumber(IPlatformAgnosticResource *formatter, const T val, const NumberFormatStyle formatterToUse,
-        const NumberFormatCurrencyDisplay currencyDisplay, const char16 *currencyCode);
 
     // Collator
     size_t CollatorGetCollation(_In_z_ const char *langtag, _Out_ char *collation, _In_ size_t cchCollation);
