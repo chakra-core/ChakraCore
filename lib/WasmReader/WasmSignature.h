@@ -26,6 +26,7 @@ public:
     uint32 GetSignatureId() const;
     size_t GetShortSig() const;
 
+    template<bool useShortSig = true>
     bool IsEquivalent(const WasmSignature* sig) const;
     static WasmSignature* FromIDL(WasmSignatureIDL* sig);
 
