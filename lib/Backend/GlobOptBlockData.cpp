@@ -143,7 +143,7 @@ GlobOptBlockData::ReuseBlockData(GlobOptBlockData *fromData)
     this->stackLiteralInitFldDataMap = fromData->stackLiteralInitFldDataMap;
 
     this->changedSyms = fromData->changedSyms;
-    this->changedSyms->ClearAll();
+    this->capturedValues = fromData->capturedValues;
 
     this->OnDataReused(fromData);
 }
@@ -184,6 +184,7 @@ GlobOptBlockData::CopyBlockData(GlobOptBlockData *fromData)
     this->hasCSECandidates = fromData->hasCSECandidates;
 
     this->changedSyms = fromData->changedSyms;
+    this->capturedValues = fromData->capturedValues;
 
     this->stackLiteralInitFldDataMap = fromData->stackLiteralInitFldDataMap;
     this->OnDataReused(fromData);
@@ -365,7 +366,8 @@ void GlobOptBlockData::CloneBlockData(BasicBlock *const toBlockContext, BasicBlo
 
     this->changedSyms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
     this->changedSyms->Copy(fromData->changedSyms);
-
+    this->capturedValues = fromData->capturedValues;
+    
     Assert(fromData->HasData());
     this->OnDataInitialized(alloc);
 }
@@ -476,10 +478,11 @@ GlobOptBlockData::MergeBlockData(
     this->isTempSrc->And(fromData->isTempSrc);
     this->hasCSECandidates &= fromData->hasCSECandidates;
 
+    this->changedSyms->Or(fromData->changedSyms);
     if (this->capturedValues == nullptr)
     {
         this->capturedValues = fromData->capturedValues;
-        this->changedSyms->Or(fromData->changedSyms);
+        
     }
     else
     {
@@ -488,6 +491,7 @@ GlobOptBlockData::MergeBlockData(
             fromData->capturedValues == nullptr ? nullptr : &fromData->capturedValues->constantValues,
             [&](ConstantStackSymValue * symValueFrom, ConstantStackSymValue * symValueTo)
             {
+                Assert(symValueFrom->Key()->m_id == symValueTo->Key()->m_id);
                 return symValueFrom->Value().IsEqual(symValueTo->Value());
             });
 
@@ -496,12 +500,12 @@ GlobOptBlockData::MergeBlockData(
             fromData->capturedValues == nullptr ? nullptr : &fromData->capturedValues->copyPropSyms,
             [&](CopyPropSyms * copyPropSymFrom, CopyPropSyms * copyPropSymTo)
             {
+                Assert(copyPropSymFrom->Key()->m_id == copyPropSymTo->Key()->m_id);
                 if (copyPropSymFrom->Value()->m_id == copyPropSymTo->Value()->m_id)
                 {
-                    Value * val = fromData->FindValue(copyPropSymFrom->Key());
-                    Value * copyVal = fromData->FindValue(copyPropSymTo->Key());
-                    return (val != nullptr && copyVal != nullptr &&
-                        val->GetValueNumber() == copyVal->GetValueNumber());
+                    Value * fromVal = fromData->FindValue(copyPropSymFrom->Key());
+                    Value * toVal = this->FindValue(copyPropSymFrom->Key());
+                    return fromVal && toVal && fromVal->IsEqualTo(toVal);
                 }
                 return false;
             });

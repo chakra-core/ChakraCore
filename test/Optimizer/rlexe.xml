@@ -1439,4 +1439,9 @@
       <files>fgpeepbug.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>capturedValuesBugs.js</files>
+    </default>
+  </test>
 </regress-exe>

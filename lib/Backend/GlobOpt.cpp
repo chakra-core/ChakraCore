@@ -2761,7 +2761,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         }
     }
 
-    if (instr->HasBailOutInfo() && !this->IsLoopPrePass())
+    if (!isHoisted && instr->HasBailOutInfo() && !this->IsLoopPrePass())
     {
         GlobOptBlockData * globOptData = CurrentBlockData();
         globOptData->changedSyms->ClearAll();
@@ -16733,12 +16733,7 @@ GlobOpt::OptHoistInvariant(
         EnsureBailTarget(loop);
 
         // Copy bailout info of loop top.
-        if (instr->ReplaceBailOutInfo(loop->bailOutInfo))
-        {
-            // if the old bailout is deleted, reset capturedvalues cached in block
-            block->globOptData.capturedValues = nullptr;
-            block->globOptData.capturedValuesCandidate = nullptr;
-        }
+        instr->ReplaceBailOutInfo(loop->bailOutInfo);
     }
 
     if(!dst)
