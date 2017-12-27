@@ -27,6 +27,7 @@
 #include "Common/Jobs.inl"
 #include "Core/CommonMinMax.h"
 #include "Memory/RecyclerWriteBarrierManager.h"
+#include "Memory/XDataAllocator.h"
 
 namespace JsUtil
 {
@@ -681,6 +682,9 @@ namespace JsUtil
             if (threadData->CanDecommit())
             {
                 // If its 1sec time out decommit and wait for INFINITE
+                // flush the function tables in background while idle
+                DelayDeletingFunctionTable::Clear();
+
                 threadData->backgroundPageAllocator.DecommitNow();
                 this->ForEachManager([&](JobManager *manager){
                     manager->OnDecommit(threadData);
@@ -1102,6 +1106,9 @@ namespace JsUtil
                     LastJobProcessed(manager); // the manager may be deleted during this and should not be used afterwards
             }
             criticalSection.Leave();
+
+            // flush the function tables in background thread after closed and before shutting down thread
+            DelayDeletingFunctionTable::Clear();
 
             EDGE_ETW_INTERNAL(EventWriteJSCRIPT_NATIVECODEGEN_STOP(this, 0));
         }

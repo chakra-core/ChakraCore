@@ -104,10 +104,10 @@ public:
     void UpdateQueueForDebugMode();
     bool IsBackgroundJIT() const;
     void EnterScriptStart();
-    void FreeNativeCodeGenAllocation(void* codeAddress);
+    void FreeNativeCodeGenAllocation(void* codeAddress, void** functionTable);
     bool TryReleaseNonHiPriWorkItem(CodeGenWorkItem* workItem);
 
-    void QueueFreeNativeCodeGenAllocation(void* codeAddress, void* thunkAddress);
+    void QueueFreeNativeCodeGenAllocation(void* codeAddress, void* thunkAddress, void** functionTable);
 
     bool IsClosed() { return isClosed; }
     void AddWorkItem(CodeGenWorkItem* workItem);
@@ -201,10 +201,11 @@ private:
     class FreeLoopBodyJob: public JsUtil::Job
     {
     public:
-        FreeLoopBodyJob(JsUtil::JobManager *const manager, void* codeAddress, void* thunkAddress, bool isHeapAllocated = true):
+        FreeLoopBodyJob(JsUtil::JobManager *const manager, void* codeAddress, void* thunkAddress, void* functionTable, bool isHeapAllocated = true):
           JsUtil::Job(manager),
           codeAddress(codeAddress),
           thunkAddress(thunkAddress),
+          functionTable(functionTable),
           heapAllocated(isHeapAllocated)
         {
         }
@@ -212,6 +213,7 @@ private:
         bool heapAllocated;
         void* codeAddress;
         void* thunkAddress;
+        void* functionTable;
     };
 
     class FreeLoopBodyJobManager sealed: public WaitableJobManager
@@ -279,8 +281,9 @@ private:
         {
             FreeLoopBodyJob* freeLoopBodyJob = static_cast<FreeLoopBodyJob*>(job);
 
+            void* functionTable = freeLoopBodyJob->functionTable;
             // Free Loop Body
-            nativeCodeGen->FreeNativeCodeGenAllocation(freeLoopBodyJob->codeAddress);
+            nativeCodeGen->FreeNativeCodeGenAllocation(freeLoopBodyJob->codeAddress, &functionTable);
 
             return true;
         }
@@ -303,7 +306,7 @@ private:
             }
         }
 
-        void QueueFreeLoopBodyJob(void* codeAddress, void* thunkAddress);
+        void QueueFreeLoopBodyJob(void* codeAddress, void* thunkAddress, void** functionTable);
 
     private:
         NativeCodeGenerator* nativeCodeGen;
