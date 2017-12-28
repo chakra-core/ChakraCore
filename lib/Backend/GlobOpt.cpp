@@ -16733,7 +16733,7 @@ GlobOpt::OptHoistInvariant(
         EnsureBailTarget(loop);
 
         // Copy bailout info of loop top.
-        instr->ReplaceBailOutInfo(loop->bailOutInfo);
+        instr->ReplaceBailOutInfo(loop->bailOutInfo, this->currentBlock);
     }
 
     if(!dst)
