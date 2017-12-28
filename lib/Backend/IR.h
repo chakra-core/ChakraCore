@@ -36,19 +36,6 @@ struct CapturedValues
         constantValues.Reset();
         copyPropSyms.Reset();
     }
-
-    CapturedValues * Clone(JitArenaAllocator * alloc)
-    {
-        CapturedValues * clonedCV = JitAnew(alloc, CapturedValues);
-        this->constantValues.CopyTo(alloc, clonedCV->constantValues);
-        this->copyPropSyms.CopyTo(alloc, clonedCV->copyPropSyms);
-        if (this->argObjSyms)
-        {
-            clonedCV->argObjSyms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
-            clonedCV->argObjSyms->Copy(this->argObjSyms);
-        }
-        return clonedCV;
-    }
 };
 
 class LoweredBasicBlock;

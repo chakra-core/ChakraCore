@@ -1940,12 +1940,6 @@ GlobOptBlockData::KillStateForGeneratorYield()
     this->hasCSECandidates = false;
 }
 
-JitArenaAllocator *
-GlobOptBlockData::GetGlobOptAllocator()
-{
-    return this->globOpt->alloc;
-}
-
 #if DBG_DUMP
 void
 GlobOptBlockData::DumpSymToValueMap() const
