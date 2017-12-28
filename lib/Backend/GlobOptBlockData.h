@@ -349,6 +349,7 @@ private:
     // Other
 public:
     void                    KillStateForGeneratorYield();
+    JitArenaAllocator *     GetGlobOptAllocator();
 
     // Debug
 public:

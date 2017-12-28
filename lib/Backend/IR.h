@@ -36,6 +36,19 @@ struct CapturedValues
         constantValues.Reset();
         copyPropSyms.Reset();
     }
+
+    CapturedValues * Clone(JitArenaAllocator * alloc)
+    {
+        CapturedValues * clonedCV = JitAnew(alloc, CapturedValues);
+        this->constantValues.CopyTo(alloc, clonedCV->constantValues);
+        this->copyPropSyms.CopyTo(alloc, clonedCV->copyPropSyms);
+        if (this->argObjSyms)
+        {
+            clonedCV->argObjSyms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
+            clonedCV->argObjSyms->Copy(this->argObjSyms);
+        }
+        return clonedCV;
+    }
 };
 
 class LoweredBasicBlock;
@@ -317,7 +330,7 @@ public:
 
     BailOutInfo *   GetBailOutInfo() const;
     BailOutInfo *   UnlinkBailOutInfo();
-    bool            ReplaceBailOutInfo(BailOutInfo *newBailOutInfo);
+    void            ReplaceBailOutInfo(BailOutInfo *newBailOutInfo, BasicBlock * block);
     IR::Instr *     ShareBailOut();
     BailOutKind     GetBailOutKind() const;
     BailOutKind     GetBailOutKindNoBits() const;

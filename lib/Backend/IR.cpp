@@ -1153,11 +1153,10 @@ Instr::UnlinkBailOutInfo()
     return bailOutInfo;
 }
 
-bool
-Instr::ReplaceBailOutInfo(BailOutInfo *newBailOutInfo)
+void
+Instr::ReplaceBailOutInfo(BailOutInfo *newBailOutInfo, BasicBlock * block)
 {
     BailOutInfo *oldBailOutInfo = nullptr;
-    bool deleteOld = false;
 
 #if DBG
     newBailOutInfo->wasCopied = true;
@@ -1187,12 +1186,17 @@ Instr::ReplaceBailOutInfo(BailOutInfo *newBailOutInfo)
     if (oldBailOutInfo->bailOutInstr == this)
     {
         JitArenaAllocator * alloc = this->m_func->m_alloc;
+        // If the oldBailOutInfo's captured values were cached on the globopt-block-data,
+        // make a deep copy of the lists in the captured values on the block data.
+        if (block && block->globOptData.capturedValuesCandidate == &oldBailOutInfo->capturedValues)
+        {
+            block->globOptData.capturedValuesCandidate = oldBailOutInfo->capturedValues.Clone(block->globOptData.GetGlobOptAllocator());
+        }
         oldBailOutInfo->Clear(alloc);
         JitAdelete(alloc, oldBailOutInfo);
-        deleteOld = true;
     }
 
-    return deleteOld;
+    return;
 }
 
 IR::Instr *Instr::ShareBailOut()
@@ -3145,7 +3149,7 @@ Instr::ConvertToBailOutInstr(BailOutInfo * bailOutInfo, IR::BailOutKind kind, bo
         this->SetBailOutKind_NoAssert(kind);
 
         // Clear old (aux) info and set to the new bailOutInfo.
-        this->ReplaceBailOutInfo(bailOutInfo);
+        this->ReplaceBailOutInfo(bailOutInfo, nullptr);
         bailOutInfo->bailOutInstr = this;
         this->hasBailOutInfo = true;
 
