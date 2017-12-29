@@ -304,8 +304,9 @@ Security::DontEncode(IR::Opnd *opnd)
     }
     case IR::OpndKindList:
     {
-        // We should only have RegOpnd in the ListOpnd therefor, we don't need to encode anything
+        // We should only have RegOpnd in the ListOpnd therefore, we don't need to encode anything
         Assert(opnd->AsListOpnd()->All([](IR::ListOpndType* opnd) { return DontEncode(opnd); }));
+        return true;
     }
     case IR::OpndKindInt64Const:
         return false;
