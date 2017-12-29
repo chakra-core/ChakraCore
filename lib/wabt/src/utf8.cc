@@ -55,8 +55,9 @@ bool IsValidUtf8(const char* s, size_t s_length) {
   while (p < end) {
     uint8_t cu0 = *p;
     int length = s_utf8_length[cu0];
-    if (p + length > end)
+    if (p + length > end) {
       return false;
+    }
 
     switch (length) {
       case 0:
@@ -68,8 +69,9 @@ bool IsValidUtf8(const char* s, size_t s_length) {
 
       case 2:
         p++;
-        if (!IsCont(*p++))
+        if (!IsCont(*p++)) {
           return false;
+        }
         break;
 
       case 3: {

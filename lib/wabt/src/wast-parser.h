@@ -149,7 +149,9 @@ class WastParser {
   Result ParseInlineImport(Import*);
   Result ParseTypeUseOpt(FuncDeclaration*);
   Result ParseFuncSignature(FuncSignature*, BindingHash* param_bindings);
+  Result ParseUnboundFuncSignature(FuncSignature*);
   Result ParseBoundValueTypeList(TokenType, TypeVector*, BindingHash*);
+  Result ParseUnboundValueTypeList(TokenType, TypeVector*);
   Result ParseResultList(TypeVector*);
   Result ParseInstrList(ExprList*);
   Result ParseTerminatingInstrList(ExprList*);
@@ -197,6 +199,8 @@ class WastParser {
   Result ParseAssertActionTextCommand(TokenType, CommandPtr*);
   template <typename T>
   Result ParseAssertScriptModuleCommand(TokenType, CommandPtr*);
+
+  Result ParseSimdConst(Const*, Type, int32_t);
 
   void CheckImportOrdering(Module*);
 

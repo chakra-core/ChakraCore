@@ -27,16 +27,16 @@
     )
 
     (func (export "binopI32") (param i32 i32 i32) (result i32)
-        (call_indirect $binopI32 (get_local 0) (get_local 1) (get_local 2))
+        (call_indirect (type $binopI32) (get_local 0) (get_local 1) (get_local 2))
     )
     (func (export "binopI64") (param i64 i64 i32) (result i64)
-        (call_indirect $binopI64 (get_local 0) (get_local 1) (get_local 2))
+        (call_indirect (type $binopI64) (get_local 0) (get_local 1) (get_local 2))
     )
     (func (export "binopF32") (param f32 f32 i32) (result f32)
-        (call_indirect $binopF32 (get_local 0) (get_local 1) (get_local 2))
+        (call_indirect (type $binopF32) (get_local 0) (get_local 1) (get_local 2))
     )
     (func (export "binopF64") (param f64 f64 i32) (result f64)
-        (call_indirect $binopF64 (get_local 0) (get_local 1) (get_local 2))
+        (call_indirect (type $binopF64) (get_local 0) (get_local 1) (get_local 2))
     )
 
     (table anyfunc (elem

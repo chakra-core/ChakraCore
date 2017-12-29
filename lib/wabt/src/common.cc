@@ -45,12 +45,12 @@ const char* g_reloc_type_name[] = {
 };
 WABT_STATIC_ASSERT(WABT_ARRAY_SIZE(g_reloc_type_name) == kRelocTypeCount);
 
-Result ReadFile(const char* filename, std::vector<uint8_t>* out_data) {
-  FILE* infile = fopen(filename, "rb");
+Result ReadFile(string_view filename, std::vector<uint8_t>* out_data) {
+  FILE* infile = fopen(filename.to_string().c_str(), "rb");
   if (!infile) {
     const char format[] = "unable to read file %s";
     char msg[PATH_MAX + sizeof(format)];
-    wabt_snprintf(msg, sizeof(msg), format, filename);
+    wabt_snprintf(msg, sizeof(msg), format, filename.to_string().c_str());
     perror(msg);
     return Result::Error;
   }
@@ -88,11 +88,13 @@ Result ReadFile(const char* filename, std::vector<uint8_t>* out_data) {
 void InitStdio() {
 #if COMPILER_IS_MSVC
   int result = _setmode(_fileno(stdout), _O_BINARY);
-  if (result == -1)
+  if (result == -1) {
     perror("Cannot set mode binary to stdout");
+  }
   result = _setmode(_fileno(stderr), _O_BINARY);
-  if (result == -1)
+  if (result == -1) {
     perror("Cannot set mode binary to stderr");
+  }
 #endif
 }
 

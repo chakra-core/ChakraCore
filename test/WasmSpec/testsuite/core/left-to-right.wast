@@ -88,7 +88,7 @@
   (func (export "i32_store8") (result i32) (call $reset) (i32.store8 (call $i32_left) (call $i32_right)) (call $get))
   (func (export "i32_store16") (result i32) (call $reset) (i32.store16 (call $i32_left) (call $i32_right)) (call $get))
   (func (export "i32_call") (result i32) (call $reset) (call $i32_dummy (call $i32_left) (call $i32_right)) (call $get))
-  (func (export "i32_call_indirect") (result i32) (call $reset) (drop (call_indirect $i32_T (call $i32_left) (call $i32_right) (call $i32_callee))) (call $get))
+  (func (export "i32_call_indirect") (result i32) (call $reset) (drop (call_indirect (type $i32_T) (call $i32_left) (call $i32_right) (call $i32_callee))) (call $get))
   (func (export "i32_select") (result i32) (call $reset) (drop (select (call $i32_left) (call $i32_right) (call $i32_bool))) (call $get))
 
   (func (export "i64_add") (result i32) (call $reset) (drop (i64.add (call $i64_left) (call $i64_right))) (call $get))
@@ -119,7 +119,7 @@
   (func (export "i64_store16") (result i32) (call $reset) (i64.store16 (call $i32_left) (call $i64_right)) (call $get))
   (func (export "i64_store32") (result i32) (call $reset) (i64.store32 (call $i32_left) (call $i64_right)) (call $get))
   (func (export "i64_call") (result i32) (call $reset) (call $i64_dummy (call $i64_left) (call $i64_right)) (call $get))
-  (func (export "i64_call_indirect") (result i32) (call $reset) (drop (call_indirect $i64_T (call $i64_left) (call $i64_right) (call $i64_callee))) (call $get))
+  (func (export "i64_call_indirect") (result i32) (call $reset) (drop (call_indirect (type $i64_T) (call $i64_left) (call $i64_right) (call $i64_callee))) (call $get))
   (func (export "i64_select") (result i32) (call $reset) (drop (select (call $i64_left) (call $i64_right) (call $i64_bool))) (call $get))
 
   (func (export "f32_add") (result i32) (call $reset) (drop (f32.add (call $f32_left) (call $f32_right))) (call $get))
@@ -137,7 +137,7 @@
   (func (export "f32_max") (result i32) (call $reset) (drop (f32.max (call $f32_left) (call $f32_right))) (call $get))
   (func (export "f32_store") (result i32) (call $reset) (f32.store (call $i32_left) (call $f32_right)) (call $get))
   (func (export "f32_call") (result i32) (call $reset) (call $f32_dummy (call $f32_left) (call $f32_right)) (call $get))
-  (func (export "f32_call_indirect") (result i32) (call $reset) (drop (call_indirect $f32_T (call $f32_left) (call $f32_right) (call $f32_callee))) (call $get))
+  (func (export "f32_call_indirect") (result i32) (call $reset) (drop (call_indirect (type $f32_T) (call $f32_left) (call $f32_right) (call $f32_callee))) (call $get))
   (func (export "f32_select") (result i32) (call $reset) (drop (select (call $f32_left) (call $f32_right) (call $f32_bool))) (call $get))
 
   (func (export "f64_add") (result i32) (call $reset) (drop (f64.add (call $f64_left) (call $f64_right))) (call $get))
@@ -155,7 +155,7 @@
   (func (export "f64_max") (result i32) (call $reset) (drop (f64.max (call $f64_left) (call $f64_right))) (call $get))
   (func (export "f64_store") (result i32) (call $reset) (f64.store (call $i32_left) (call $f64_right)) (call $get))
   (func (export "f64_call") (result i32) (call $reset) (call $f64_dummy (call $f64_left) (call $f64_right)) (call $get))
-  (func (export "f64_call_indirect") (result i32) (call $reset) (drop (call_indirect $f64_T (call $f64_left) (call $f64_right) (call $f64_callee))) (call $get))
+  (func (export "f64_call_indirect") (result i32) (call $reset) (drop (call_indirect (type $f64_T) (call $f64_left) (call $f64_right) (call $f64_callee))) (call $get))
   (func (export "f64_select") (result i32) (call $reset) (drop (select (call $f64_left) (call $f64_right) (call $f64_bool))) (call $get))
 
   (func (export "br_if") (result i32)

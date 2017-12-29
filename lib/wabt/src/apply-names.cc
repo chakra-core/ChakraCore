@@ -97,13 +97,15 @@ string_view NameApplier::FindLabelByVar(Var* var) {
   if (var->is_name()) {
     for (int i = labels_.size() - 1; i >= 0; --i) {
       const std::string& label = labels_[i];
-      if (label == var->name())
+      if (label == var->name()) {
         return label;
+      }
     }
     return string_view();
   } else {
-    if (var->index() >= labels_.size())
+    if (var->index() >= labels_.size()) {
       return string_view();
+    }
     return labels_[labels_.size() - 1 - var->index()];
   }
 }
@@ -114,62 +116,70 @@ void NameApplier::UseNameForVar(string_view name, Var* var) {
     return;
   }
 
-  if (!name.empty())
+  if (!name.empty()) {
     var->set_name(name);
+  }
 }
 
 Result NameApplier::UseNameForFuncTypeVar(Var* var) {
   FuncType* func_type = module_->GetFuncType(*var);
-  if (!func_type)
+  if (!func_type) {
     return Result::Error;
+  }
   UseNameForVar(func_type->name, var);
   return Result::Ok;
 }
 
 Result NameApplier::UseNameForFuncVar(Var* var) {
   Func* func = module_->GetFunc(*var);
-  if (!func)
+  if (!func) {
     return Result::Error;
+  }
   UseNameForVar(func->name, var);
   return Result::Ok;
 }
 
 Result NameApplier::UseNameForGlobalVar(Var* var) {
   Global* global = module_->GetGlobal(*var);
-  if (!global)
+  if (!global) {
     return Result::Error;
+  }
   UseNameForVar(global->name, var);
   return Result::Ok;
 }
 
 Result NameApplier::UseNameForTableVar(Var* var) {
   Table* table = module_->GetTable(*var);
-  if (!table)
+  if (!table) {
     return Result::Error;
+  }
   UseNameForVar(table->name, var);
   return Result::Ok;
 }
 
 Result NameApplier::UseNameForMemoryVar(Var* var) {
   Memory* memory = module_->GetMemory(*var);
-  if (!memory)
+  if (!memory) {
     return Result::Error;
+  }
   UseNameForVar(memory->name, var);
   return Result::Ok;
 }
 
 Result NameApplier::UseNameForExceptVar(Var* var) {
   Exception* except = module_->GetExcept(*var);
-  if (!except)
+  if (!except) {
     return Result::Error;
+  }
   UseNameForVar(except->name, var);
   return Result::Ok;
 }
 
 Result NameApplier::UseNameForParamAndLocalVar(Func* func, Var* var) {
   Index local_index = func->GetLocalIndex(*var);
-  if (local_index >= func->GetNumParamsAndLocals())
+  if (local_index >= func->GetNumParamsAndLocals()) {
     return Result::Error;
+  }
 
   Index num_params = func->GetNumParams();
   std::string* name;
@@ -272,7 +282,9 @@ Result NameApplier::OnCallExpr(CallExpr* expr) {
 }
 
 Result NameApplier::OnCallIndirectExpr(CallIndirectExpr* expr) {
-  CHECK_RESULT(UseNameForFuncTypeVar(&expr->var));
+  if (expr->decl.has_func_type) {
+    CHECK_RESULT(UseNameForFuncTypeVar(&expr->decl.type_var));
+  }
   return Result::Ok;
 }
 

@@ -15,7 +15,7 @@
         (if (i32.ge_s (i32.const 26) (i32.const 25))
             (set_local 0 (i32.add (get_local 0) (i32.const 4)))
         )
-        (set_local 0 (i32.add (get_local 0) (call_indirect $t1 (i32.const 0))))
+        (set_local 0 (i32.add (get_local 0) (call_indirect (type $t1) (i32.const 0))))
         (if_else (i32.ge_s (i32.const 22) (i32.const 25))
             (set_local 0 (i32.add (get_local 0) (i32.const 4)))
             (set_local 0 (i32.sub (get_local 0) (i32.const 5)))

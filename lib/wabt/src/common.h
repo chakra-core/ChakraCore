@@ -90,6 +90,10 @@
 #define PRIaddress "u"
 #define PRIoffset PRIzx
 
+struct v128 {
+  uint32_t v[4];
+};
+
 namespace wabt {
 
 typedef uint32_t Index;    // An index into one of the many index spaces.
@@ -101,7 +105,7 @@ static const Index kInvalidIndex = ~0;
 static const Offset kInvalidOffset = ~0;
 
 template <typename Dst, typename Src>
-Dst Bitcast(Src value) {
+Dst Bitcast(Src&& value) {
   static_assert(sizeof(Src) == sizeof(Dst), "Bitcast sizes must match.");
   Dst result;
   memcpy(&result, &value, sizeof(result));
@@ -124,15 +128,6 @@ void Construct(T& placement, Args&&... args) {
 template <typename T>
 void Destruct(T& placement) {
   placement.~T();
-}
-
-// Calls data() on vector, string, etc. but will return nullptr if the
-// container is empty.
-// TODO(binji): this should probably be removed when there is a more direct way
-// to represent a memory slice (e.g. something similar to GSL's span)
-template <typename T>
-typename T::value_type* DataOrNull(T& container) {
-  return container.empty() ? nullptr : container.data();
 }
 
 inline std::string WABT_PRINTF_FORMAT(1, 2)
@@ -170,14 +165,14 @@ struct Location {
   };
 
   Location() : line(0), first_column(0), last_column(0) {}
-  Location(const char* filename, int line, int first_column, int last_column)
+  Location(string_view filename, int line, int first_column, int last_column)
       : filename(filename),
         line(line),
         first_column(first_column),
         last_column(last_column) {}
   explicit Location(size_t offset) : offset(offset) {}
 
-  const char* filename = nullptr;
+  string_view filename;
   union {
     // For text files.
     struct {
@@ -198,6 +193,7 @@ enum class Type {
   I64 = -0x02,
   F32 = -0x03,
   F64 = -0x04,
+  V128 = -0x05,
   Anyfunc = -0x10,
   Func = -0x20,
   Void = -0x40,
@@ -235,6 +231,7 @@ enum class LinkingEntryType {
   SymbolInfo = 2,
   DataSize = 3,
   DataAlignment = 4,
+  SegmentInfo = 5,
 };
 
 enum class SymbolBinding {
@@ -271,7 +268,7 @@ enum class NameSectionSubsection {
   Local = 2,
 };
 
-Result ReadFile(const char* filename, std::vector<uint8_t>* out_data);
+Result ReadFile(string_view filename, std::vector<uint8_t>* out_data);
 
 void InitStdio();
 
@@ -305,6 +302,8 @@ static WABT_INLINE const char* GetTypeName(Type type) {
       return "f32";
     case Type::F64:
       return "f64";
+    case Type::V128:
+      return "v128";
     case Type::Anyfunc:
       return "anyfunc";
     case Type::Func:

@@ -24,6 +24,12 @@
 namespace {
 
 const char* ExprTypeName[] = {
+  "AtomicLoad",
+  "AtomicRmw",
+  "AtomicRmwCmpxchg",
+  "AtomicStore",
+  "AtomicWait",
+  "AtomicWake",
   "Binary",
   "Block",
   "Br",
@@ -53,7 +59,7 @@ const char* ExprTypeName[] = {
   "Throw",
   "TryBlock",
   "Unary",
-  "Unreachable"
+  "Unreachable",
 };
 
 }  // end of anonymous namespace
@@ -76,8 +82,9 @@ bool FuncSignature::operator==(const FuncSignature& rhs) const {
 
 const Export* Module::GetExport(string_view name) const {
   Index index = export_bindings.FindIndex(name);
-  if (index >= exports.size())
+  if (index >= exports.size()) {
     return nullptr;
+  }
   return exports[index];
 }
 
@@ -105,17 +112,42 @@ Index Module::GetExceptIndex(const Var& var) const {
   return except_bindings.FindIndex(var);
 }
 
+bool Module::IsImport(ExternalKind kind, const Var& var) const {
+  switch (kind) {
+    case ExternalKind::Func:
+      return GetFuncIndex(var) < num_func_imports;
+
+    case ExternalKind::Global:
+      return GetGlobalIndex(var) < num_global_imports;
+
+    case ExternalKind::Memory:
+      return GetMemoryIndex(var) < num_memory_imports;
+
+    case ExternalKind::Table:
+      return GetTableIndex(var) < num_table_imports;
+
+    case ExternalKind::Except:
+      return GetExceptIndex(var) < num_except_imports;
+
+    default:
+      return false;
+  }
+}
+
 Index Func::GetLocalIndex(const Var& var) const {
-  if (var.is_index())
+  if (var.is_index()) {
     return var.index();
+  }
 
   Index result = param_bindings.FindIndex(var);
-  if (result != kInvalidIndex)
+  if (result != kInvalidIndex) {
     return result;
+  }
 
   result = local_bindings.FindIndex(var);
-  if (result == kInvalidIndex)
+  if (result == kInvalidIndex) {
     return result;
+  }
 
   // The locals start after all the params.
   return decl.GetNumParams() + result;
@@ -127,8 +159,9 @@ const Func* Module::GetFunc(const Var& var) const {
 
 Func* Module::GetFunc(const Var& var) {
   Index index = func_bindings.FindIndex(var);
-  if (index >= funcs.size())
+  if (index >= funcs.size()) {
     return nullptr;
+  }
   return funcs[index];
 }
 
@@ -138,29 +171,33 @@ const Global* Module::GetGlobal(const Var& var) const {
 
 Global* Module::GetGlobal(const Var& var) {
   Index index = global_bindings.FindIndex(var);
-  if (index >= globals.size())
+  if (index >= globals.size()) {
     return nullptr;
+  }
   return globals[index];
 }
 
 Table* Module::GetTable(const Var& var) {
   Index index = table_bindings.FindIndex(var);
-  if (index >= tables.size())
+  if (index >= tables.size()) {
     return nullptr;
+  }
   return tables[index];
 }
 
 Memory* Module::GetMemory(const Var& var) {
   Index index = memory_bindings.FindIndex(var);
-  if (index >= memories.size())
+  if (index >= memories.size()) {
     return nullptr;
+  }
   return memories[index];
 }
 
 Exception* Module::GetExcept(const Var& var) const {
   Index index = GetExceptIndex(var);
-  if (index >= excepts.size())
+  if (index >= excepts.size()) {
     return nullptr;
+  }
   return excepts[index];
 }
 
@@ -170,16 +207,19 @@ const FuncType* Module::GetFuncType(const Var& var) const {
 
 FuncType* Module::GetFuncType(const Var& var) {
   Index index = func_type_bindings.FindIndex(var);
-  if (index >= func_types.size())
+  if (index >= func_types.size()) {
     return nullptr;
+  }
   return func_types[index];
 }
 
 
 Index Module::GetFuncTypeIndex(const FuncSignature& sig) const {
-  for (size_t i = 0; i < func_types.size(); ++i)
-    if (func_types[i]->sig == sig)
+  for (size_t i = 0; i < func_types.size(); ++i) {
+    if (func_types[i]->sig == sig) {
       return i;
+    }
+  }
   return kInvalidIndex;
 }
 
@@ -203,8 +243,9 @@ void Module::AppendField(std::unique_ptr<ElemSegmentModuleField> field) {
 
 void Module::AppendField(std::unique_ptr<ExceptionModuleField> field) {
   Exception& except = field->except;
-  if (!except.name.empty())
+  if (!except.name.empty()) {
     except_bindings.emplace(except.name, Binding(field->loc, excepts.size()));
+  }
   excepts.push_back(&except);
   fields.push_back(std::move(field));
 }
@@ -219,8 +260,9 @@ void Module::AppendField(std::unique_ptr<ExportModuleField> field) {
 
 void Module::AppendField(std::unique_ptr<FuncModuleField> field) {
   Func& func = field->func;
-  if (!func.name.empty())
+  if (!func.name.empty()) {
     func_bindings.emplace(func.name, Binding(field->loc, funcs.size()));
+  }
   funcs.push_back(&func);
   fields.push_back(std::move(field));
 }
@@ -237,8 +279,9 @@ void Module::AppendField(std::unique_ptr<FuncTypeModuleField> field) {
 
 void Module::AppendField(std::unique_ptr<GlobalModuleField> field) {
   Global& global = field->global;
-  if (!global.name.empty())
+  if (!global.name.empty()) {
     global_bindings.emplace(global.name, Binding(field->loc, globals.size()));
+  }
   globals.push_back(&global);
   fields.push_back(std::move(field));
 }
@@ -302,29 +345,32 @@ void Module::AppendField(std::unique_ptr<ImportModuleField> field) {
   }
 
   assert(name && bindings && index != kInvalidIndex);
-  if (!name->empty())
+  if (!name->empty()) {
     bindings->emplace(*name, Binding(field->loc, index));
+  }
   imports.push_back(import);
   fields.push_back(std::move(field));
 }
 
 void Module::AppendField(std::unique_ptr<MemoryModuleField> field) {
   Memory& memory = field->memory;
-  if (!memory.name.empty())
+  if (!memory.name.empty()) {
     memory_bindings.emplace(memory.name, Binding(field->loc, memories.size()));
+  }
   memories.push_back(&memory);
   fields.push_back(std::move(field));
 }
 
 void Module::AppendField(std::unique_ptr<StartModuleField> field) {
-  start = &field->start;
+  starts.push_back(&field->start);
   fields.push_back(std::move(field));
 }
 
 void Module::AppendField(std::unique_ptr<TableModuleField> field) {
   Table& table = field->table;
-  if (!table.name.empty())
+  if (!table.name.empty()) {
     table_bindings.emplace(table.name, Binding(field->loc, tables.size()));
+  }
   tables.push_back(&table);
   fields.push_back(std::move(field));
 }
@@ -388,16 +434,18 @@ const Module* Script::GetFirstModule() const {
 
 Module* Script::GetFirstModule() {
   for (const std::unique_ptr<Command>& command : commands) {
-    if (auto* module_command = dyn_cast<ModuleCommand>(command.get()))
+    if (auto* module_command = dyn_cast<ModuleCommand>(command.get())) {
       return &module_command->module;
+    }
   }
   return nullptr;
 }
 
 const Module* Script::GetModule(const Var& var) const {
   Index index = module_bindings.FindIndex(var);
-  if (index >= commands.size())
+  if (index >= commands.size()) {
     return nullptr;
+  }
   auto* command = cast<ModuleCommand>(commands[index].get());
   return &command->module;
 }
@@ -470,8 +518,9 @@ void Var::set_name(string_view name) {
 }
 
 void Var::Destroy() {
-  if (is_name())
+  if (is_name()) {
     Destruct(name_);
+  }
 }
 
 Const::Const(I32Tag, uint32_t value, const Location& loc_)
@@ -488,6 +537,10 @@ Const::Const(F32Tag, uint32_t value, const Location& loc_)
 
 Const::Const(F64Tag, uint64_t value, const Location& loc_)
     : loc(loc_), type(Type::F64), f64_bits(value) {
+}
+
+Const::Const(V128Tag, v128 value, const Location& loc_)
+    : loc(loc_), type(Type::V128), v128_bits(value) {
 }
 
 }  // namespace wabt

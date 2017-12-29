@@ -95,8 +95,9 @@ int ProgramMain(int argc, char** argv) {
   ParseOptions(argc, argv);
 
   std::unique_ptr<WastLexer> lexer = WastLexer::CreateFileLexer(s_infile);
-  if (!lexer)
+  if (!lexer) {
     WABT_FATAL("unable to read file: %s\n", s_infile);
+  }
 
   ErrorHandlerFile error_handler(Location::Type::Text);
   std::unique_ptr<Script> script;
@@ -107,8 +108,11 @@ int ProgramMain(int argc, char** argv) {
   if (Succeeded(result)) {
     result = ResolveNamesScript(lexer.get(), script.get(), &error_handler);
 
-    if (Succeeded(result) && s_validate)
-      result = ValidateScript(lexer.get(), script.get(), &error_handler);
+    if (Succeeded(result) && s_validate) {
+      ValidateOptions options(s_features);
+      result =
+          ValidateScript(lexer.get(), script.get(), &error_handler, &options);
+    }
 
     if (Succeeded(result)) {
       WriteBinarySpecOptions write_binary_spec_options;

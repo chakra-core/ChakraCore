@@ -26,11 +26,11 @@
 (register "reexport_f")
 (assert_unlinkable
   (module (import "reexport_f" "print" (func (param i64))))
-  "type mismatch"
+  "incompatible import type"
 )
 (assert_unlinkable
   (module (import "reexport_f" "print" (func (param i32) (result i32))))
-  "type mismatch"
+  "incompatible import type"
 )
 
 
@@ -71,7 +71,7 @@
   (func (export "h") (result i32) (i32.const -4))
 
   (func (export "call") (param i32) (result i32)
-    (call_indirect 0 (get_local 0))
+    (call_indirect (type 0) (get_local 0))
   )
 )
 (register "Mt" $Mt)
@@ -91,7 +91,7 @@
     (call $f (get_local 0))
   )
   (func (export "call") (param i32) (result i32)
-    (call_indirect 1 (get_local 0))
+    (call_indirect (type 1) (get_local 0))
   )
 )
 
@@ -127,7 +127,7 @@
   (func $i (result i32) (i32.const 6))
 
   (func (export "call") (param i32) (result i32)
-    (call_indirect 0 (get_local 0))
+    (call_indirect (type 0) (get_local 0))
   )
 )
 
@@ -161,6 +161,14 @@
   (elem (i32.const 9) $f)
   (func $f)
 )
+
+(module $G1 (global (export "g") i32 (i32.const 5)))
+(register "G1" $G1)
+(module $G2
+  (global (import "G1" "g") i32)
+  (global (export "g") i32 (get_global 0))
+)
+(assert_return (get $G2 "g") (i32.const 5))
 
 (assert_unlinkable
   (module

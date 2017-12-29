@@ -41,8 +41,9 @@ void Stream::WriteDataAt(size_t at,
                          size_t size,
                          const char* desc,
                          PrintChars print_chars) {
-  if (Failed(result_))
+  if (Failed(result_)) {
     return;
+  }
   if (log_stream_) {
     log_stream_->WriteMemoryDump(src, size, at, print_chars, nullptr, desc);
   }
@@ -58,8 +59,9 @@ void Stream::WriteData(const void* src,
 }
 
 void Stream::MoveData(size_t dst_offset, size_t src_offset, size_t size) {
-  if (Failed(result_))
+  if (Failed(result_)) {
     return;
+  }
   if (log_stream_) {
     log_stream_->Writef(
         "; move data: [%" PRIzx ", %" PRIzx ") -> [%" PRIzx ", %" PRIzx ")\n",
@@ -84,8 +86,9 @@ void Stream::WriteMemoryDump(const void* start,
   while (p < end) {
     const uint8_t* line = p;
     const uint8_t* line_end = p + DUMP_OCTETS_PER_LINE;
-    if (prefix)
+    if (prefix) {
       Writef("%s", prefix);
+    }
     Writef("%07" PRIzx ": ", reinterpret_cast<intptr_t>(p) -
                                  reinterpret_cast<intptr_t>(start) + offset);
     while (p < line_end) {
@@ -108,8 +111,9 @@ void Stream::WriteMemoryDump(const void* start,
     }
 
     /* if there are multiple lines, only print the desc on the last one */
-    if (p >= end && desc)
+    if (p >= end && desc) {
       Writef("  ; %s", desc);
+    }
     WriteChar('\n');
   }
 }
@@ -153,8 +157,9 @@ std::unique_ptr<OutputBuffer> MemoryStream::ReleaseOutputBuffer() {
 Result MemoryStream::WriteDataImpl(size_t dst_offset,
                                    const void* src,
                                    size_t size) {
-  if (size == 0)
+  if (size == 0) {
     return Result::Ok;
+  }
   size_t end = dst_offset + size;
   if (end > buf_->data.size()) {
     buf_->data.resize(end);
@@ -167,8 +172,9 @@ Result MemoryStream::WriteDataImpl(size_t dst_offset,
 Result MemoryStream::MoveDataImpl(size_t dst_offset,
                                   size_t src_offset,
                                   size_t size) {
-  if (size == 0)
+  if (size == 0) {
     return Result::Ok;
+  }
   size_t src_end = src_offset + size;
   size_t dst_end = dst_offset + size;
   size_t end = src_end > dst_end ? src_end : dst_end;
@@ -220,10 +226,12 @@ FileStream::~FileStream() {
 }
 
 Result FileStream::WriteDataImpl(size_t at, const void* data, size_t size) {
-  if (!file_)
+  if (!file_) {
     return Result::Error;
-  if (size == 0)
+  }
+  if (size == 0) {
     return Result::Ok;
+  }
   if (at != offset_) {
     if (fseek(file_, at, SEEK_SET) != 0) {
       ERROR("fseek offset=%" PRIzd " failed, errno=%d\n", size, errno);
@@ -242,10 +250,12 @@ Result FileStream::WriteDataImpl(size_t at, const void* data, size_t size) {
 Result FileStream::MoveDataImpl(size_t dst_offset,
                                 size_t src_offset,
                                 size_t size) {
-  if (!file_)
+  if (!file_) {
     return Result::Error;
-  if (size == 0)
+  }
+  if (size == 0) {
     return Result::Ok;
+  }
   // TODO(binji): implement if needed.
   ERROR0("FileWriter::MoveData not implemented!\n");
   return Result::Error;

@@ -105,8 +105,9 @@ Result BinaryReaderLinker::OnRelocCount(Index count,
   }
 
   for (const std::unique_ptr<Section>& section : binary_->sections) {
-    if (section->section_code != section_code)
+    if (section->section_code != section_code) {
       continue;
+    }
     reloc_section_ = section.get();
     return Result::Ok;
   }
@@ -189,8 +190,9 @@ Result BinaryReaderLinker::BeginSection(BinarySection section_code,
     // Must point to one-past-the-end, but we can't dereference end().
     const uint8_t* end = &binary_->data.back() + 1;
     size_t bytes_read = ReadU32Leb128(start, end, &sec->count);
-    if (bytes_read == 0)
+    if (bytes_read == 0) {
       WABT_FATAL("error reading section element count\n");
+    }
     sec->payload_offset = sec->offset + bytes_read;
     sec->payload_size = sec->size - bytes_read;
   }
@@ -200,8 +202,9 @@ Result BinaryReaderLinker::BeginSection(BinarySection section_code,
 Result BinaryReaderLinker::OnTable(Index index,
                                    Type elem_type,
                                    const Limits* elem_limits) {
-  if (elem_limits->has_max && (elem_limits->max != elem_limits->initial))
+  if (elem_limits->has_max && (elem_limits->max != elem_limits->initial)) {
     WABT_FATAL("Tables with max != initial not supported by wabt-link\n");
+  }
 
   binary_->table_elem_count = elem_limits->initial;
   return Result::Ok;
@@ -238,8 +241,9 @@ Result BinaryReaderLinker::BeginDataSegment(Index index, Index memory_index) {
 
 Result BinaryReaderLinker::OnInitExprI32ConstExpr(Index index, uint32_t value) {
   Section* sec = current_section_;
-  if (sec->section_code != BinarySection::Data)
+  if (sec->section_code != BinarySection::Data) {
     return Result::Ok;
+  }
   DataSegment& segment = sec->data.data_segments->back();
   segment.offset = value;
   return Result::Ok;
@@ -289,7 +293,7 @@ Result ReadBinaryLinker(LinkerInputBinary* input_info, LinkOptions* options) {
   ReadBinaryOptions read_options;
   read_options.read_debug_names = true;
   read_options.log_stream = options->log_stream;
-  return ReadBinary(DataOrNull(input_info->data), input_info->data.size(),
+  return ReadBinary(input_info->data.data(), input_info->data.size(),
                     &reader, &read_options);
 }
 

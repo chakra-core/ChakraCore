@@ -25,6 +25,6 @@
   (func $g8 (result i32) (i32.const 85))
 
   (func (export "call") (param i32) (result i32)
-    (call_indirect 1 (get_local 0))
+    (call_indirect (type 1) (get_local 0))
   )
 )
