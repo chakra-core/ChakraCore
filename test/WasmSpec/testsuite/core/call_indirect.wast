@@ -52,12 +52,48 @@
     )
   )
 
+  ;; Syntax
+
+  (func
+    (call_indirect (i32.const 0))
+    (call_indirect (param i64) (i64.const 0) (i32.const 0))
+    (call_indirect (param i64) (param) (param f64 i32 i64)
+      (i64.const 0) (f64.const 0) (i32.const 0) (i64.const 0) (i32.const 0)
+    )
+    (call_indirect (result) (i32.const 0))
+    (drop (i32.eqz (call_indirect (result i32) (i32.const 0))))
+    (drop (i32.eqz (call_indirect (result i32) (result) (i32.const 0))))
+    (drop (i32.eqz
+      (call_indirect (param i64) (result i32) (i64.const 0) (i32.const 0))
+    ))
+    (drop (i32.eqz
+      (call_indirect
+        (param) (param i64) (param) (param f64 i32 i64) (param) (param)
+        (result) (result i32) (result) (result)
+        (i64.const 0) (f64.const 0) (i32.const 0) (i64.const 0) (i32.const 0)
+      )
+    ))
+    (drop (i64.eqz
+      (call_indirect (type $over-i64) (param i64) (result i64)
+        (i64.const 0) (i32.const 0)
+      )
+    ))
+  )
+
   ;; Typing
 
-  (func (export "type-i32") (result i32) (call_indirect (type $out-i32) (i32.const 0)))
-  (func (export "type-i64") (result i64) (call_indirect (type $out-i64) (i32.const 1)))
-  (func (export "type-f32") (result f32) (call_indirect (type $out-f32) (i32.const 2)))
-  (func (export "type-f64") (result f64) (call_indirect (type $out-f64) (i32.const 3)))
+  (func (export "type-i32") (result i32)
+    (call_indirect (type $out-i32) (i32.const 0))
+  )
+  (func (export "type-i64") (result i64)
+    (call_indirect (type $out-i64) (i32.const 1))
+  )
+  (func (export "type-f32") (result f32)
+    (call_indirect (type $out-f32) (i32.const 2))
+  )
+  (func (export "type-f64") (result f64)
+    (call_indirect (type $out-f64) (i32.const 3))
+  )
 
   (func (export "type-index") (result i64)
     (call_indirect (type $over-i64) (i64.const 100) (i32.const 5))
@@ -230,6 +266,128 @@
 (assert_exhaustion (invoke "runaway") "call stack exhausted")
 (assert_exhaustion (invoke "mutual-runaway") "call stack exhausted")
 
+
+;; Invalid syntax
+
+(assert_malformed
+  (module quote
+    "(type $sig (func (param i32) (result i32)))"
+    "(table 0 anyfunc)"
+    "(func (result i32)"
+    "  (call_indirect (type $sig) (result i32) (param i32)"
+    "    (i32.const 0) (i32.const 0)"
+    "  )"
+    ")"
+  )
+  "unexpected token"
+)
+(assert_malformed
+  (module quote
+    "(type $sig (func (param i32) (result i32)))"
+    "(table 0 anyfunc)"
+    "(func (result i32)"
+    "  (call_indirect (param i32) (type $sig) (result i32)"
+    "    (i32.const 0) (i32.const 0)"
+    "  )"
+    ")"
+  )
+  "unexpected token"
+)
+(assert_malformed
+  (module quote
+    "(type $sig (func (param i32) (result i32)))"
+    "(table 0 anyfunc)"
+    "(func (result i32)"
+    "  (call_indirect (param i32) (result i32) (type $sig)"
+    "    (i32.const 0) (i32.const 0)"
+    "  )"
+    ")"
+  )
+  "unexpected token"
+)
+(assert_malformed
+  (module quote
+    "(type $sig (func (param i32) (result i32)))"
+    "(table 0 anyfunc)"
+    "(func (result i32)"
+    "  (call_indirect (result i32) (type $sig) (param i32)"
+    "    (i32.const 0) (i32.const 0)"
+    "  )"
+    ")"
+  )
+  "unexpected token"
+)
+(assert_malformed
+  (module quote
+    "(type $sig (func (param i32) (result i32)))"
+    "(table 0 anyfunc)"
+    "(func (result i32)"
+    "  (call_indirect (result i32) (param i32) (type $sig)"
+    "    (i32.const 0) (i32.const 0)"
+    "  )"
+    ")"
+  )
+  "unexpected token"
+)
+(assert_malformed
+  (module quote
+    "(table 0 anyfunc)"
+    "(func (result i32)"
+    "  (call_indirect (result i32) (param i32) (i32.const 0) (i32.const 0))"
+    ")"
+  )
+  "unexpected token"
+)
+
+(assert_malformed
+  (module quote
+    "(table 0 anyfunc)"
+    "(func (call_indirect (param $x i32) (i32.const 0) (i32.const 0)))"
+  )
+  "unexpected token"
+)
+(assert_malformed
+  (module quote
+    "(type $sig (func))"
+    "(table 0 anyfunc)"
+    "(func (result i32)"
+    "  (call_indirect (type $sig) (result i32) (i32.const 0))"
+    ")"
+  )
+  "inline function type"
+)
+(assert_malformed
+  (module quote
+    "(type $sig (func (param i32) (result i32)))"
+    "(table 0 anyfunc)"
+    "(func (result i32)"
+    "  (call_indirect (type $sig) (result i32) (i32.const 0))"
+    ")"
+  )
+  "inline function type"
+)
+(assert_malformed
+  (module quote
+    "(type $sig (func (param i32) (result i32)))"
+    "(table 0 anyfunc)"
+    "(func"
+    "  (call_indirect (type $sig) (param i32) (i32.const 0) (i32.const 0))"
+    ")"
+  )
+  "inline function type"
+)
+(assert_malformed
+  (module quote
+    "(type $sig (func (param i32 i32) (result i32)))"
+    "(table 0 anyfunc)"
+    "(func (result i32)"
+    "  (call_indirect (type $sig) (param i32) (result i32)"
+    "    (i32.const 0) (i32.const 0)"
+    "  )"
+    ")"
+  )
+  "inline function type"
+)
 
 ;; Invalid typing
 

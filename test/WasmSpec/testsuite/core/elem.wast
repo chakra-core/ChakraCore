@@ -164,7 +164,7 @@
 
 ;; Test element sections across multiple modules change the same table
 
-(module $module-1
+(module $module1
   (type $out-i32 (func (result i32)))
   (table (export "shared-table") 10 anyfunc)
   (elem (i32.const 8) $const-i32-a)
@@ -182,34 +182,34 @@
   )
 )
 
-(register "module-1" $module-1)
+(register "module1" $module1)
 
-(assert_trap (invoke $module-1 "call-7") "uninitialized element 7")
-(assert_return (invoke $module-1 "call-8") (i32.const 65))
-(assert_return (invoke $module-1 "call-9") (i32.const 66))
+(assert_trap (invoke $module1 "call-7") "uninitialized element 7")
+(assert_return (invoke $module1 "call-8") (i32.const 65))
+(assert_return (invoke $module1 "call-9") (i32.const 66))
 
-(module $module-2
+(module $module2
   (type $out-i32 (func (result i32)))
-  (import "module-1" "shared-table" (table 10 anyfunc))
+  (import "module1" "shared-table" (table 10 anyfunc))
   (elem (i32.const 7) $const-i32-c)
   (elem (i32.const 8) $const-i32-d)
   (func $const-i32-c (type $out-i32) (i32.const 67))
   (func $const-i32-d (type $out-i32) (i32.const 68))
 )
 
-(assert_return (invoke $module-1 "call-7") (i32.const 67))
-(assert_return (invoke $module-1 "call-8") (i32.const 68))
-(assert_return (invoke $module-1 "call-9") (i32.const 66))
+(assert_return (invoke $module1 "call-7") (i32.const 67))
+(assert_return (invoke $module1 "call-8") (i32.const 68))
+(assert_return (invoke $module1 "call-9") (i32.const 66))
 
-(module $module-3
+(module $module3
   (type $out-i32 (func (result i32)))
-  (import "module-1" "shared-table" (table 10 anyfunc))
+  (import "module1" "shared-table" (table 10 anyfunc))
   (elem (i32.const 8) $const-i32-e)
   (elem (i32.const 9) $const-i32-f)
   (func $const-i32-e (type $out-i32) (i32.const 69))
   (func $const-i32-f (type $out-i32) (i32.const 70))
 )
 
-(assert_return (invoke $module-1 "call-7") (i32.const 67))
-(assert_return (invoke $module-1 "call-8") (i32.const 69))
-(assert_return (invoke $module-1 "call-9") (i32.const 70))
+(assert_return (invoke $module1 "call-7") (i32.const 67))
+(assert_return (invoke $module1 "call-8") (i32.const 69))
+(assert_return (invoke $module1 "call-9") (i32.const 70))
