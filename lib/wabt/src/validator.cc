@@ -449,7 +449,7 @@ void Validator::CheckBlockSig(const Location* loc,
 template <typename T>
 void Validator::CheckAtomicExpr(const T* expr,
                                 Result (TypeChecker::*func)(Opcode)) {
-  CheckHasSharedMemory(&expr->loc, expr->opcode);
+  CheckHasMemory(&expr->loc, expr->opcode);
   CheckAtomicAlign(&expr->loc, expr->align,
                    get_opcode_natural_alignment(expr->opcode));
   (typechecker_.*func)(expr->opcode);
