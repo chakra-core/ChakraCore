@@ -61,6 +61,16 @@ namespace ChakraWabt
     };
 }
 
+Features GetWabtFeatures(const ChakraContext& ctx)
+{
+    Features features;
+    if (ctx.features.sign_extends || ctx.features.threads)
+    {
+        features.enable_threads();
+    }
+    return features;
+}
+
 uint TruncSizeT(size_t value)
 {
     if (value > 0xffffffff)
@@ -265,7 +275,8 @@ Js::Var create_module(Context* ctx, const Module* module, bool validate = true)
     }
     if (validate)
     {
-        ValidateModule(ctx->lexer, module, ctx->errorHandler);
+        ValidateOptions options(GetWabtFeatures(*ctx->chakra));
+        ValidateModule(ctx->lexer, module, ctx->errorHandler, &options);
     }
     MemoryStream stream;
     WriteBinaryOptions s_write_binary_options;
@@ -462,16 +473,6 @@ void CheckResult(Result result, const char* errorMessage)
     {
         throw Error(errorMessage);
     }
-}
-
-Features GetWabtFeatures(ChakraContext& ctx)
-{
-    Features features;
-    if (ctx.features.sign_extends || ctx.features.threads)
-    {
-        features.enable_threads();
-    }
-    return features;
 }
 
 Js::Var ChakraWabt::ConvertWast2Wasm(ChakraContext& chakraCtx, char* buffer, uint bufferSize, bool isSpecText)

@@ -989,7 +989,7 @@
   (table anyfunc (elem $f))
   (func (export "as-call_indirect-first") (result i32)
     (block (result i32)
-      (call_indirect $sig
+      (call_indirect (type $sig)
         (br_table 0 (i32.const 20) (i32.const 1)) (i32.const 1) (i32.const 2)
         (i32.const 3)
       )
@@ -997,7 +997,7 @@
   )
   (func (export "as-call_indirect-mid") (result i32)
     (block (result i32)
-      (call_indirect $sig
+      (call_indirect (type $sig)
         (i32.const 0) (br_table 0 (i32.const 21) (i32.const 1)) (i32.const 2)
         (i32.const 3)
       )
@@ -1005,7 +1005,7 @@
   )
   (func (export "as-call_indirect-last") (result i32)
     (block (result i32)
-      (call_indirect $sig
+      (call_indirect (type $sig)
         (i32.const 0) (i32.const 1) (br_table 0 (i32.const 22) (i32.const 1))
         (i32.const 3)
       )
@@ -1013,7 +1013,7 @@
   )
   (func (export "as-call_indirect-func") (result i32)
     (block (result i32)
-      (call_indirect $sig
+      (call_indirect (type $sig)
         (i32.const 0) (i32.const 1) (i32.const 2)
         (br_table 0 (i32.const 23) (i32.const 1))
       )

@@ -64,7 +64,7 @@
     (call $print_i32 (get_local $i))
     (call $print_i32-2 (get_local $i))
     (call $print_f32 (get_local $x))
-    (call_indirect $func_i32 (get_local $i) (i32.const 0))
+    (call_indirect (type $func_i32) (get_local $i) (i32.const 0))
   )
 
   (func (export "print64") (param $i i64)
@@ -80,7 +80,7 @@
     ;; (call $print_i64 (get_local $i))
     (call $print_f64 (get_local $x))
     (call $print_f64-2 (get_local $x))
-    (call_indirect $func_f64 (get_local $x) (i32.const 1))
+    (call_indirect (type $func_f64) (get_local $x) (i32.const 1))
   )
 )
 
@@ -265,7 +265,7 @@
   (import "spectest" "table" (table 10 20 anyfunc))
   (elem 0 (i32.const 1) $f $g)
 
-  (func (export "call") (param i32) (result i32) (call_indirect 0 (get_local 0)))
+  (func (export "call") (param i32) (result i32) (call_indirect (type 0) (get_local 0)))
   (func $f (result i32) (i32.const 11))
   (func $g (result i32) (i32.const 22))
 )
@@ -282,7 +282,7 @@
   (table (import "spectest" "table") 10 20 anyfunc)
   (elem 0 (i32.const 1) $f $g)
 
-  (func (export "call") (param i32) (result i32) (call_indirect 0 (get_local 0)))
+  (func (export "call") (param i32) (result i32) (call_indirect (type 0) (get_local 0)))
   (func $f (result i32) (i32.const 11))
   (func $g (result i32) (i32.const 22))
 )

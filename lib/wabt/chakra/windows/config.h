@@ -1,18 +1,18 @@
 /*
- * Copyright 2016 WebAssembly Community Group participants
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+* Copyright 2016 WebAssembly Community Group participants
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 
 #ifndef WABT_CONFIG_H_
 #define WABT_CONFIG_H_
@@ -40,16 +40,13 @@
 /* Whether ENABLE_VIRTUAL_TERMINAL_PROCESSING is defined by windows.h */
 #define HAVE_WIN32_VT100 1
 
-#define COMPILER_IS_CLANG 1
+#define COMPILER_IS_CLANG 0
 #define COMPILER_IS_GNU 0
-#define COMPILER_IS_MSVC 0
+#define COMPILER_IS_MSVC 1
 
 #define WITH_EXCEPTIONS 0
 
 #define SIZEOF_SIZE_T 4
-#define SIZEOF_INT 4
-#define SIZEOF_LONG 4
-#define SIZEOF_LONG_LONG 8
 
 #if HAVE_ALLOCA_H
 #include <alloca.h>
@@ -96,30 +93,6 @@
 #define WABT_STATIC_ASSERT(x) _Static_assert((x), #x)
 #endif
 
-#if SIZEOF_INT == 4
-#define wabt_clz_u32(x) __builtin_clz(x)
-#define wabt_ctz_u32(x) __builtin_ctz(x)
-#define wabt_popcount_u32(x) __builtin_popcount(x)
-#elif SIZEOF_LONG == 4
-#define wabt_clz_u32(x) __builtin_clzl(x)
-#define wabt_ctz_u32(x) __builtin_ctzl(x)
-#define wabt_popcount_u32(x) __builtin_popcountl(x)
-#else
-#error "don't know how to define 32-bit builtins"
-#endif
-
-#if SIZEOF_LONG == 8
-#define wabt_clz_u64(x) __builtin_clzl(x)
-#define wabt_ctz_u64(x) __builtin_ctzl(x)
-#define wabt_popcount_u64(x) __builtin_popcountl(x)
-#elif SIZEOF_LONG_LONG == 8
-#define wabt_clz_u64(x) __builtin_clzll(x)
-#define wabt_ctz_u64(x) __builtin_ctzll(x)
-#define wabt_popcount_u64(x) __builtin_popcountll(x)
-#else
-#error "don't know how to define 64-bit builtins"
-#endif
-
 #define WABT_UNREACHABLE __builtin_unreachable()
 
 #elif COMPILER_IS_MSVC
@@ -137,77 +110,6 @@
 
 #define WABT_UNREACHABLE __assume(0)
 
-__inline unsigned long wabt_clz_u32(unsigned long mask) {
-  unsigned long index;
-  _BitScanReverse(&index, mask);
-  return sizeof(unsigned long) * 8 - (index + 1);
-}
-
-__inline unsigned long wabt_clz_u64(unsigned __int64 mask) {
-#if _M_X64
-  unsigned long index;
-  _BitScanReverse64(&index, mask);
-  return sizeof(unsigned __int64) * 8 - (index + 1);
-#elif _M_IX86
-  unsigned long index;
-  unsigned long high_mask;
-  memcpy(&high_mask, (unsigned char*)&mask + sizeof(unsigned long),
-         sizeof(unsigned long));
-  if (_BitScanReverse(&index, high_mask)) {
-    return sizeof(unsigned long) * 8 - (index + 1);
-  }
-
-  unsigned long low_mask;
-  memcpy(&low_mask, &mask, sizeof(unsigned long));
-  _BitScanReverse(&index, low_mask);
-  return sizeof(unsigned __int64) * 8 - (index + 1);
-#else
-#error unexpected architecture
-#endif
-}
-
-__inline unsigned long wabt_ctz_u32(unsigned long mask) {
-    unsigned long index;
-    _BitScanForward(&index, mask);
-    return index;
-}
-
-__inline unsigned long wabt_ctz_u64(unsigned __int64 mask) {
-#if _M_X64
-    unsigned long index;
-    _BitScanForward64(&index, mask);
-    return index;
-#elif _M_IX86
-    unsigned long low_mask = (unsigned long)mask;
-    if (low_mask) {
-        return wabt_ctz_u32(low_mask);
-    }
-    unsigned long high_mask;
-    memcpy(&high_mask, (unsigned char*)&mask + sizeof(unsigned long),
-           sizeof(unsigned long));
-    return sizeof(unsigned long) * 8 + wabt_ctz_u32(high_mask);
-#else
-#error unexpected architecture
-#endif
-}
-
-
-#define wabt_popcount_u32 __popcnt
-#if _M_X64
-#elif _M_IX86
-__inline unsigned __int64 __popcnt64(unsigned __int64 value) {
-    unsigned long high_value;
-    unsigned long low_value;
-    memcpy(&high_value, (unsigned char*)&value + sizeof(unsigned long),
-           sizeof(unsigned long));
-    memcpy(&low_value, &value, sizeof(unsigned long));
-    return wabt_popcount_u32(high_value) + wabt_popcount_u32(low_value);
-}
-#else
-#error unexpected architecture
-#endif
-#define wabt_popcount_u64 __popcnt64
-
 #else
 
 #error unknown compiler
@@ -215,9 +117,142 @@ __inline unsigned __int64 __popcnt64(unsigned __int64 value) {
 #endif
 
 
+namespace wabt
+{
+
+#if COMPILER_IS_CLANG || COMPILER_IS_GNU
+
+inline int Clz(unsigned x) { return x ? __builtin_clz(x) : sizeof(x) * 8; }
+inline int Clz(unsigned long x) { return x ? __builtin_clzl(x) : sizeof(x) * 8; }
+inline int Clz(unsigned long long x) { return x ? __builtin_clzll(x) : sizeof(x) * 8; }
+
+inline int Ctz(unsigned x) { return x ? __builtin_ctz(x) : sizeof(x) * 8; }
+inline int Ctz(unsigned long x) { return x ? __builtin_ctzl(x) : sizeof(x) * 8; }
+inline int Ctz(unsigned long long x) { return x ? __builtin_ctzll(x) : sizeof(x) * 8; }
+
+inline int Popcount(unsigned x) { return __builtin_popcount(x); }
+inline int Popcount(unsigned long x) { return __builtin_popcountl(x); }
+inline int Popcount(unsigned long long x) { return __builtin_popcountll(x); }
+
+#elif COMPILER_IS_MSVC
+
+#if _M_IX86
+inline unsigned long LowDword(unsigned __int64 value)
+{
+    return (unsigned long)value;
+}
+
+inline unsigned long HighDword(unsigned __int64 value)
+{
+    unsigned long high;
+    memcpy(&high, (unsigned char*)&value + sizeof(high), sizeof(high));
+    return high;
+}
+#endif
+
+inline int Clz(unsigned long mask)
+{
+    if (mask == 0)
+        return 32;
+
+    unsigned long index;
+    _BitScanReverse(&index, mask);
+    return sizeof(unsigned long) * 8 - (index + 1);
+}
+
+inline int Clz(unsigned int mask)
+{
+    return Clz((unsigned long)mask);
+}
+
+inline int Clz(unsigned __int64 mask)
+{
+#if _M_X64
+    if (mask == 0)
+        return 64;
+
+    unsigned long index;
+    _BitScanReverse64(&index, mask);
+    return sizeof(unsigned __int64) * 8 - (index + 1);
+#elif _M_IX86
+    int result = Clz(HighDword(mask));
+    if (result == 32)
+        result += Clz(LowDword(mask));
+
+    return result;
+#else
+#error unexpected architecture
+#endif
+}
+
+inline int Ctz(unsigned long mask)
+{
+    if (mask == 0)
+        return 32;
+
+    unsigned long index;
+    _BitScanForward(&index, mask);
+    return index;
+}
+
+inline int Ctz(unsigned int mask)
+{
+    return Ctz((unsigned long)mask);
+}
+
+inline int Ctz(unsigned __int64 mask)
+{
+#if _M_X64
+    if (mask == 0)
+        return 64;
+
+    unsigned long index;
+    _BitScanForward64(&index, mask);
+    return index;
+#elif _M_IX86
+    int result = Ctz(LowDword(mask));
+    if (result == 32)
+        result += Ctz(HighDword(mask));
+
+    return result;
+#else
+#error unexpected architecture
+#endif
+}
+
+inline int Popcount(unsigned long value)
+{
+    return __popcnt(value);
+}
+
+inline int Popcount(unsigned int value)
+{
+    return Popcount((unsigned long)value);
+}
+
+inline int Popcount(unsigned __int64 value)
+{
+#if _M_X64
+    return __popcnt64(value);
+#elif _M_IX86
+    return Popcount(HighDword(value)) + Popcount(LowDword(value));
+#else
+#error unexpected architecture
+#endif
+}
+
+#else
+
+#error unknown compiler
+
+#endif
+
+} // namespace wabt
+
+
 #if COMPILER_IS_MSVC
 
-/* print format specifier for size_t */
+  /* print format specifier for size_t */
 #if SIZEOF_SIZE_T == 4
 #define PRIzd "d"
 #define PRIzx "x"
@@ -230,7 +265,7 @@ __inline unsigned __int64 __popcnt64(unsigned __int64 value) {
 
 #elif COMPILER_IS_CLANG || COMPILER_IS_GNU
 
-/* print format specifier for size_t */
+  /* print format specifier for size_t */
 #define PRIzd "zd"
 #define PRIzx "zx"
 
@@ -244,7 +279,7 @@ __inline unsigned __int64 __popcnt64(unsigned __int64 value) {
 #if HAVE_SNPRINTF
 #define wabt_snprintf snprintf
 #elif COMPILER_IS_MSVC
-/* can't just use _snprintf because it doesn't always null terminate */
+  /* can't just use _snprintf because it doesn't always null terminate */
 #include <cstdarg>
 int wabt_snprintf(char* str, size_t size, const char* format, ...);
 #else
@@ -252,7 +287,7 @@ int wabt_snprintf(char* str, size_t size, const char* format, ...);
 #endif
 
 #if COMPILER_IS_MSVC
-/* can't just use vsnprintf because it doesn't always null terminate */
+  /* can't just use vsnprintf because it doesn't always null terminate */
 int wabt_vsnprintf(char* str, size_t size, const char* format, va_list ap);
 #else
 #define wabt_vsnprintf vsnprintf
@@ -274,26 +309,34 @@ typedef int ssize_t;
 // MSVC on x64 generates uint64 -> float conversions but doesn't do
 // round-to-nearest-ties-to-even, which is required by WebAssembly.
 #include <emmintrin.h>
-__inline double wabt_convert_uint64_to_double(unsigned __int64 x) {
-  __m128d result = _mm_setzero_pd();
-  if (x & 0x8000000000000000ULL) {
-    result = _mm_cvtsi64_sd(result, (x >> 1) | (x & 1));
-    result = _mm_add_sd(result, result);
-  } else {
-    result = _mm_cvtsi64_sd(result, x);
-  }
-  return _mm_cvtsd_f64(result);
+__inline double wabt_convert_uint64_to_double(unsigned __int64 x)
+{
+    __m128d result = _mm_setzero_pd();
+    if (x & 0x8000000000000000ULL)
+    {
+        result = _mm_cvtsi64_sd(result, (x >> 1) | (x & 1));
+        result = _mm_add_sd(result, result);
+    }
+    else
+    {
+        result = _mm_cvtsi64_sd(result, x);
+    }
+    return _mm_cvtsd_f64(result);
 }
 
-__inline float wabt_convert_uint64_to_float(unsigned __int64 x) {
-  __m128 result = _mm_setzero_ps();
-  if (x & 0x8000000000000000ULL) {
-    result = _mm_cvtsi64_ss(result, (x >> 1) | (x & 1));
-    result = _mm_add_ss(result, result);
-  } else {
-    result = _mm_cvtsi64_ss(result, x);
-  }
-  return _mm_cvtss_f32(result);
+__inline float wabt_convert_uint64_to_float(unsigned __int64 x)
+{
+    __m128 result = _mm_setzero_ps();
+    if (x & 0x8000000000000000ULL)
+    {
+        result = _mm_cvtsi64_ss(result, (x >> 1) | (x & 1));
+        result = _mm_add_ss(result, result);
+    }
+    else
+    {
+        result = _mm_cvtsi64_ss(result, x);
+    }
+    return _mm_cvtss_f32(result);
 }
 
 #else
