@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 WebAssembly Community Group participants
+ * Copyright 2017 WebAssembly Community Group participants
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,71 +19,42 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include "src/apply-names.h"
 #include "src/binary-reader.h"
 #include "src/binary-reader-ir.h"
 #include "src/error-handler.h"
-#include "src/feature.h"
-#include "src/generate-names.h"
 #include "src/ir.h"
 #include "src/option-parser.h"
 #include "src/stream.h"
 #include "src/validator.h"
 #include "src/wast-lexer.h"
-#include "src/wat-writer.h"
 
 using namespace wabt;
 
 static int s_verbose;
 static std::string s_infile;
-static std::string s_outfile;
 static Features s_features;
-static WriteWatOptions s_write_wat_options;
-static bool s_generate_names;
 static bool s_read_debug_names = true;
 static std::unique_ptr<FileStream> s_log_stream;
-static bool s_validate = true;
 
 static const char s_description[] =
-R"(  Read a file in the WebAssembly binary format, and convert it to
-  the WebAssembly text format.
+R"(  Read a file in the WebAssembly binary format, and validate it.
 
 examples:
-  # parse binary file test.wasm and write text file test.wast
-  $ wasm2wat test.wasm -o test.wat
-
-  # parse test.wasm, write test.wat, but ignore the debug names, if any
-  $ wasm2wat test.wasm --no-debug-names -o test.wat
+  # validate binary file test.wasm
+  $ wasm-validate test.wasm
 )";
 
 static void ParseOptions(int argc, char** argv) {
-  OptionParser parser("wasm2wat", s_description);
+  OptionParser parser("wasm-validate", s_description);
 
   parser.AddOption('v', "verbose", "Use multiple times for more info", []() {
     s_verbose++;
     s_log_stream = FileStream::CreateStdout();
   });
   parser.AddHelpOption();
-  parser.AddOption(
-      'o', "output", "FILENAME",
-      "Output file for the generated wast file, by default use stdout",
-      [](const char* argument) {
-        s_outfile = argument;
-        ConvertBackslashToSlash(&s_outfile);
-      });
-  parser.AddOption('f', "fold-exprs", "Write folded expressions where possible",
-                   []() { s_write_wat_options.fold_exprs = true; });
   s_features.AddOptions(&parser);
-  parser.AddOption("inline-exports", "Write all exports inline",
-                   []() { s_write_wat_options.inline_export = true; });
   parser.AddOption("no-debug-names", "Ignore debug names in the binary file",
                    []() { s_read_debug_names = false; });
-  parser.AddOption(
-      "generate-names",
-      "Give auto-generated names to non-named functions, types, etc.",
-      []() { s_generate_names = true; });
-  parser.AddOption("no-check", "Don't check for invalid modules",
-                   []() { s_validate = false; });
   parser.AddArgument("filename", OptionParser::ArgumentCount::One,
                      [](const char* argument) {
                        s_infile = argument;
@@ -109,28 +80,9 @@ int ProgramMain(int argc, char** argv) {
     result = ReadBinaryIr(s_infile.c_str(), file_data.data(),
                           file_data.size(), &options, &error_handler, &module);
     if (Succeeded(result)) {
-      if (Succeeded(result) && s_validate) {
-        WastLexer* lexer = nullptr;
-        ValidateOptions options(s_features);
-        result = ValidateModule(lexer, &module, &error_handler, &options);
-      }
-
-      if (s_generate_names) {
-        result = GenerateNames(&module);
-      }
-
-      if (Succeeded(result)) {
-        /* TODO(binji): This shouldn't fail; if a name can't be applied
-         * (because the index is invalid, say) it should just be skipped. */
-        Result dummy_result = ApplyNames(&module);
-        WABT_USE(dummy_result);
-      }
-
-      if (Succeeded(result)) {
-        FileStream stream(!s_outfile.empty() ? FileStream(s_outfile)
-                                             : FileStream(stdout));
-        result = WriteWat(&stream, &module, &s_write_wat_options);
-      }
+      WastLexer* lexer = nullptr;
+      ValidateOptions options(s_features);
+      result = ValidateModule(lexer, &module, &error_handler, &options);
     }
   }
   return result != Result::Ok;

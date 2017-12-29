@@ -14,30 +14,30 @@
  * limitations under the License.
  */
 
-#ifndef WABT_BINARY_READER_INTERPRETER_H_
-#define WABT_BINARY_READER_INTERPRETER_H_
+#ifndef WABT_BINARY_READER_INTERP_H_
+#define WABT_BINARY_READER_INTERP_H_
 
 #include "src/common.h"
 
 namespace wabt {
 
-namespace interpreter {
+namespace interp {
 
 struct DefinedModule;
 class Environment;
 
-} // namespace interpreter
+}  // namespace interp
 
 class ErrorHandler;
 struct ReadBinaryOptions;
 
-Result ReadBinaryInterpreter(interpreter::Environment* env,
-                             const void* data,
-                             size_t size,
-                             const ReadBinaryOptions* options,
-                             ErrorHandler*,
-                             interpreter::DefinedModule** out_module);
+Result ReadBinaryInterp(interp::Environment* env,
+                        const void* data,
+                        size_t size,
+                        const ReadBinaryOptions* options,
+                        ErrorHandler*,
+                        interp::DefinedModule** out_module);
 
 }  // namespace wabt
 
-#endif /* WABT_BINARY_READER_INTERPRETER_H_ */
+#endif /* WABT_BINARY_READER_INTERP_H_ */

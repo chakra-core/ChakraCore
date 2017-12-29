@@ -26,14 +26,6 @@ namespace wabt {
 
 namespace {
 
-int Clz(uint32_t value) {
-  return value == 0 ? 32 : wabt_clz_u32(value);
-}
-
-int Clz(uint64_t value) {
-  return value == 0 ? 64 : wabt_clz_u64(value);
-}
-
 template <typename T>
 struct FloatTraitsBase {};
 
@@ -124,8 +116,9 @@ bool FloatParser<T>::StringStartsWith(const char* start,
                                       const char* end,
                                       const char* prefix) {
   while (start < end && *prefix) {
-    if (*start != *prefix)
+    if (*start != *prefix) {
       return false;
+    }
     start++;
     prefix++;
   }
@@ -196,8 +189,9 @@ typename FloatParser<T>::Uint FloatParser<T>::ShiftAndRoundToNearest(
     int shift) {
   assert(shift > 0);
   // Round ties to even.
-  if (significand & (Uint(1) << shift))
+  if (significand & (Uint(1) << shift)) {
     significand += Uint(1) << (shift - 1);
+  }
   significand >>= shift;
   return significand;
 }
@@ -228,13 +222,15 @@ Result FloatParser<T>::ParseNan(const char* s,
       CHECK_RESULT(ParseHexdigit(*s, &digit));
       tag = tag * 16 + digit;
       // Check for overflow.
-      if (tag > Traits::kSigMask)
+      if (tag > Traits::kSigMask) {
         return Result::Error;
+      }
     }
 
     // NaN cannot have a zero tag, that is reserved for infinity.
-    if (tag == 0)
+    if (tag == 0) {
       return Result::Error;
+    }
   } else {
     tag = Traits::kQuietNanTag;
   }
@@ -277,8 +273,9 @@ Result FloatParser<T>::ParseHex(const char* s,
     } else if (Succeeded(ParseHexdigit(*s, &digit))) {
       if (Traits::kBits - Clz(significand) <= Traits::kSigPlusOneBits) {
         significand = (significand << 4) + digit;
-        if (seen_dot)
+        if (seen_dot) {
           significand_exponent -= 4;
+        }
       } else if (!seen_dot) {
         significand_exponent += 4;
       }
@@ -312,19 +309,22 @@ Result FloatParser<T>::ParseHex(const char* s,
     }
 
     for (; s < end; ++s) {
-      if (*s == '_')
+      if (*s == '_') {
         continue;
+      }
 
       uint32_t digit = (*s - '0');
       assert(digit <= 9);
       exponent = exponent * 10 + digit;
-      if (exponent + significand_exponent_add >= Traits::kMaxExp)
+      if (exponent + significand_exponent_add >= Traits::kMaxExp) {
         break;
+      }
     }
   }
 
-  if (exponent_is_neg)
+  if (exponent_is_neg) {
     exponent = -exponent;
+  }
 
   int significand_bits = Traits::kBits - Clz(significand);
   // -1 for the implicit 1 bit of the significand.
@@ -360,8 +360,9 @@ Result FloatParser<T>::ParseHex(const char* s,
     if (significand_bits > Traits::kSigPlusOneBits) {
       significand = ShiftAndRoundToNearest(
           significand, significand_bits - Traits::kSigPlusOneBits);
-      if (significand > Traits::kSigPlusOneMask)
+      if (significand > Traits::kSigPlusOneMask) {
         exponent++;
+      }
     } else if (significand_bits < Traits::kSigPlusOneBits) {
       significand <<= (Traits::kSigPlusOneBits - significand_bits);
     }
@@ -439,8 +440,9 @@ void FloatWriter<T>::WriteHex(char* out, size_t size, Uint bits) {
   int exp = ((bits >> Traits::kSigBits) & Traits::kExpMask) - Traits::kExpBias;
   Uint sig = bits & Traits::kSigMask;
 
-  if (is_neg)
+  if (is_neg) {
     *p++ = '-';
+  }
   if (exp == Traits::kMaxExp) {
     // Infinity or nan.
     if (sig == 0) {
@@ -479,10 +481,11 @@ void FloatWriter<T>::WriteHex(char* out, size_t size, Uint bits) {
       if (exp == Traits::kMinExp) {
         // Subnormal; shift the significand up, and shift out the implicit 1.
         Uint leading_zeroes = Clz(sig);
-        if (leading_zeroes < Traits::kSignShift)
+        if (leading_zeroes < Traits::kSignShift) {
           sig <<= leading_zeroes + 1;
-        else
+        } else {
           sig = 0;
+        }
         exp -= leading_zeroes;
       }
 
@@ -504,19 +507,23 @@ void FloatWriter<T>::WriteHex(char* out, size_t size, Uint bits) {
       } else {
         *p++ = '+';
       }
-      if (exp >= 1000)
+      if (exp >= 1000) {
         *p++ = '1';
-      if (exp >= 100)
+      }
+      if (exp >= 100) {
         *p++ = '0' + (exp / 100) % 10;
-      if (exp >= 10)
+      }
+      if (exp >= 10) {
         *p++ = '0' + (exp / 10) % 10;
+      }
       *p++ = '0' + exp % 10;
     }
   }
 
   size_t len = p - buffer;
-  if (len >= size)
+  if (len >= size) {
     len = size - 1;
+  }
   memcpy(out, buffer, len);
   out[len] = '\0';
 }
@@ -538,40 +545,48 @@ Result ParseHexdigit(char c, uint32_t* out) {
 }
 
 Result ParseUint64(const char* s, const char* end, uint64_t* out) {
-  if (s == end)
+  if (s == end) {
     return Result::Error;
+  }
   uint64_t value = 0;
   if (*s == '0' && s + 1 < end && s[1] == 'x') {
     s += 2;
-    if (s == end)
+    if (s == end) {
       return Result::Error;
+    }
     for (; s < end; ++s) {
       uint32_t digit;
-      if (*s == '_')
+      if (*s == '_') {
         continue;
+      }
       CHECK_RESULT(ParseHexdigit(*s, &digit));
       uint64_t old_value = value;
       value = value * 16 + digit;
       // Check for overflow.
-      if (old_value > value)
+      if (old_value > value) {
         return Result::Error;
+      }
     }
   } else {
     for (; s < end; ++s) {
-      if (*s == '_')
+      if (*s == '_') {
         continue;
+      }
       uint32_t digit = (*s - '0');
-      if (digit > 9)
+      if (digit > 9) {
         return Result::Error;
+      }
       uint64_t old_value = value;
       value = value * 10 + digit;
       // Check for overflow.
-      if (old_value > value)
+      if (old_value > value) {
         return Result::Error;
+      }
     }
   }
-  if (s != end)
+  if (s != end) {
     return Result::Error;
+  }
   *out = value;
   return Result::Ok;
 }
@@ -582,18 +597,21 @@ Result ParseInt64(const char* s,
                   ParseIntType parse_type) {
   bool has_sign = false;
   if (*s == '-' || *s == '+') {
-    if (parse_type == ParseIntType::UnsignedOnly)
+    if (parse_type == ParseIntType::UnsignedOnly) {
       return Result::Error;
-    if (*s == '-')
+    }
+    if (*s == '-') {
       has_sign = true;
+    }
     s++;
   }
   uint64_t value = 0;
   Result result = ParseUint64(s, end, &value);
   if (has_sign) {
     // abs(INT64_MIN) == INT64_MAX + 1.
-    if (value > static_cast<uint64_t>(INT64_MAX) + 1)
+    if (value > static_cast<uint64_t>(INT64_MAX) + 1) {
       return Result::Error;
+    }
     value = UINT64_MAX - value + 1;
   }
   *out = value;
@@ -607,22 +625,26 @@ Result ParseInt32(const char* s,
   uint64_t value;
   bool has_sign = false;
   if (*s == '-' || *s == '+') {
-    if (parse_type == ParseIntType::UnsignedOnly)
+    if (parse_type == ParseIntType::UnsignedOnly) {
       return Result::Error;
-    if (*s == '-')
+    }
+    if (*s == '-') {
       has_sign = true;
+    }
     s++;
   }
   CHECK_RESULT(ParseUint64(s, end, &value));
 
   if (has_sign) {
     // abs(INT32_MIN) == INT32_MAX + 1.
-    if (value > static_cast<uint64_t>(INT32_MAX) + 1)
+    if (value > static_cast<uint64_t>(INT32_MAX) + 1) {
       return Result::Error;
+    }
     value = UINT32_MAX - value + 1;
   } else {
-    if (value > static_cast<uint64_t>(UINT32_MAX))
+    if (value > static_cast<uint64_t>(UINT32_MAX)) {
       return Result::Error;
+    }
   }
   *out = static_cast<uint32_t>(value);
   return Result::Ok;

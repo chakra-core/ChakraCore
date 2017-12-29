@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "src/binary-reader-interpreter.h"
+#include "src/binary-reader-interp.h"
 
 #include <cassert>
 #include <cinttypes>
@@ -25,13 +25,13 @@
 #include "src/binary-reader-nop.h"
 #include "src/cast.h"
 #include "src/error-handler.h"
-#include "src/interpreter.h"
+#include "src/interp.h"
 #include "src/stream.h"
 #include "src/type-checker.h"
 
 namespace wabt {
 
-using namespace interpreter;
+using namespace interp;
 
 namespace {
 
@@ -66,12 +66,12 @@ struct DataSegmentInfo {
   IstreamOffset size;
 };
 
-class BinaryReaderInterpreter : public BinaryReaderNop {
+class BinaryReaderInterp : public BinaryReaderNop {
  public:
-  BinaryReaderInterpreter(Environment* env,
-                          DefinedModule* module,
-                          std::unique_ptr<OutputBuffer> istream,
-                          ErrorHandler* error_handler);
+  BinaryReaderInterp(Environment* env,
+                     DefinedModule* module,
+                     std::unique_ptr<OutputBuffer> istream,
+                     ErrorHandler* error_handler);
 
   wabt::Result ReadBinary(DefinedModule* out_module);
 
@@ -148,6 +148,12 @@ class BinaryReaderInterpreter : public BinaryReaderNop {
   wabt::Result OnAtomicRmwCmpxchgExpr(Opcode opcode,
                                       uint32_t alignment_log2,
                                       Address offset) override;
+  wabt::Result OnAtomicWaitExpr(Opcode opcode,
+                                uint32_t alignment_log2,
+                                Address offset) override;
+  wabt::Result OnAtomicWakeExpr(Opcode opcode,
+                                uint32_t alignment_log2,
+                                Address offset) override;
   wabt::Result OnBinaryExpr(wabt::Opcode opcode) override;
   wabt::Result OnBlockExpr(Index num_types, Type* sig_types) override;
   wabt::Result OnBrExpr(Index depth) override;
@@ -165,6 +171,7 @@ class BinaryReaderInterpreter : public BinaryReaderNop {
   wabt::Result OnEndExpr() override;
   wabt::Result OnF32ConstExpr(uint32_t value_bits) override;
   wabt::Result OnF64ConstExpr(uint64_t value_bits) override;
+  wabt::Result OnV128ConstExpr(v128 value_bits) override;
   wabt::Result OnGetGlobalExpr(Index global_index) override;
   wabt::Result OnGetLocalExpr(Index local_index) override;
   wabt::Result OnGrowMemoryExpr() override;
@@ -198,6 +205,7 @@ class BinaryReaderInterpreter : public BinaryReaderNop {
 
   wabt::Result OnInitExprF32ConstExpr(Index index, uint32_t value) override;
   wabt::Result OnInitExprF64ConstExpr(Index index, uint64_t value) override;
+  wabt::Result OnInitExprV128ConstExpr(Index index, v128 value) override;
   wabt::Result OnInitExprGetGlobalExpr(Index index,
                                        Index global_index) override;
   wabt::Result OnInitExprI32ConstExpr(Index index, uint32_t value) override;
@@ -233,6 +241,7 @@ class BinaryReaderInterpreter : public BinaryReaderNop {
   wabt::Result EmitI8(uint8_t value);
   wabt::Result EmitI32(uint32_t value);
   wabt::Result EmitI64(uint64_t value);
+  wabt::Result EmitV128(v128 value);
   wabt::Result EmitI32At(IstreamOffset offset, uint32_t value);
   wabt::Result EmitDropKeep(uint32_t drop, uint8_t keep);
   wabt::Result AppendFixup(IstreamOffsetVectorVector* fixups_vector,
@@ -300,11 +309,10 @@ class BinaryReaderInterpreter : public BinaryReaderNop {
   IstreamOffset table_offset_ = 0;
 };
 
-BinaryReaderInterpreter::BinaryReaderInterpreter(
-    Environment* env,
-    DefinedModule* module,
-    std::unique_ptr<OutputBuffer> istream,
-    ErrorHandler* error_handler)
+BinaryReaderInterp::BinaryReaderInterp(Environment* env,
+                                       DefinedModule* module,
+                                       std::unique_ptr<OutputBuffer> istream,
+                                       ErrorHandler* error_handler)
     : error_handler_(error_handler),
       env_(env),
       module_(module),
@@ -314,91 +322,88 @@ BinaryReaderInterpreter::BinaryReaderInterpreter(
       [this](const char* msg) { PrintError("%s", msg); });
 }
 
-std::unique_ptr<OutputBuffer> BinaryReaderInterpreter::ReleaseOutputBuffer() {
+std::unique_ptr<OutputBuffer> BinaryReaderInterp::ReleaseOutputBuffer() {
   return istream_.ReleaseOutputBuffer();
 }
 
-Label* BinaryReaderInterpreter::GetLabel(Index depth) {
+Label* BinaryReaderInterp::GetLabel(Index depth) {
   assert(depth < label_stack_.size());
   return &label_stack_[label_stack_.size() - depth - 1];
 }
 
-Label* BinaryReaderInterpreter::TopLabel() {
+Label* BinaryReaderInterp::TopLabel() {
   return GetLabel(0);
 }
 
-bool BinaryReaderInterpreter::HandleError(Offset offset, const char* message) {
+bool BinaryReaderInterp::HandleError(Offset offset, const char* message) {
   return error_handler_->OnError(offset, message);
 }
 
-void WABT_PRINTF_FORMAT(2, 3)
-    BinaryReaderInterpreter::PrintError(const char* format, ...) {
+void WABT_PRINTF_FORMAT(2, 3) BinaryReaderInterp::PrintError(const char* format,
+                                                             ...) {
   WABT_SNPRINTF_ALLOCA(buffer, length, format);
   HandleError(kInvalidOffset, buffer);
 }
 
-Index BinaryReaderInterpreter::TranslateSigIndexToEnv(Index sig_index) {
+Index BinaryReaderInterp::TranslateSigIndexToEnv(Index sig_index) {
   assert(sig_index < sig_index_mapping_.size());
   return sig_index_mapping_[sig_index];
 }
 
-FuncSignature* BinaryReaderInterpreter::GetSignatureByModuleIndex(
-    Index sig_index) {
+FuncSignature* BinaryReaderInterp::GetSignatureByModuleIndex(Index sig_index) {
   return env_->GetFuncSignature(TranslateSigIndexToEnv(sig_index));
 }
 
-Index BinaryReaderInterpreter::TranslateFuncIndexToEnv(Index func_index) {
+Index BinaryReaderInterp::TranslateFuncIndexToEnv(Index func_index) {
   assert(func_index < func_index_mapping_.size());
   return func_index_mapping_[func_index];
 }
 
-Index BinaryReaderInterpreter::TranslateModuleFuncIndexToDefined(
-    Index func_index) {
+Index BinaryReaderInterp::TranslateModuleFuncIndexToDefined(Index func_index) {
   assert(func_index >= num_func_imports_);
   return func_index - num_func_imports_;
 }
 
-Func* BinaryReaderInterpreter::GetFuncByModuleIndex(Index func_index) {
+Func* BinaryReaderInterp::GetFuncByModuleIndex(Index func_index) {
   return env_->GetFunc(TranslateFuncIndexToEnv(func_index));
 }
 
-Index BinaryReaderInterpreter::TranslateGlobalIndexToEnv(Index global_index) {
+Index BinaryReaderInterp::TranslateGlobalIndexToEnv(Index global_index) {
   return global_index_mapping_[global_index];
 }
 
-Global* BinaryReaderInterpreter::GetGlobalByModuleIndex(Index global_index) {
+Global* BinaryReaderInterp::GetGlobalByModuleIndex(Index global_index) {
   return env_->GetGlobal(TranslateGlobalIndexToEnv(global_index));
 }
 
-Type BinaryReaderInterpreter::GetGlobalTypeByModuleIndex(Index global_index) {
+Type BinaryReaderInterp::GetGlobalTypeByModuleIndex(Index global_index) {
   return GetGlobalByModuleIndex(global_index)->typed_value.type;
 }
 
-Type BinaryReaderInterpreter::GetLocalTypeByIndex(Func* func,
-                                                  Index local_index) {
+Type BinaryReaderInterp::GetLocalTypeByIndex(Func* func, Index local_index) {
   assert(!func->is_host);
   return cast<DefinedFunc>(func)->param_and_local_types[local_index];
 }
 
-IstreamOffset BinaryReaderInterpreter::GetIstreamOffset() {
+IstreamOffset BinaryReaderInterp::GetIstreamOffset() {
   return istream_offset_;
 }
 
-wabt::Result BinaryReaderInterpreter::EmitDataAt(IstreamOffset offset,
-                                                 const void* data,
-                                                 IstreamOffset size) {
+wabt::Result BinaryReaderInterp::EmitDataAt(IstreamOffset offset,
+                                            const void* data,
+                                            IstreamOffset size) {
   istream_.WriteDataAt(offset, data, size);
   return istream_.result();
 }
 
-wabt::Result BinaryReaderInterpreter::EmitData(const void* data,
-                                               IstreamOffset size) {
+wabt::Result BinaryReaderInterp::EmitData(const void* data,
+                                          IstreamOffset size) {
   CHECK_RESULT(EmitDataAt(istream_offset_, data, size));
   istream_offset_ += size;
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::EmitOpcode(Opcode opcode) {
+wabt::Result BinaryReaderInterp::EmitOpcode(Opcode opcode) {
   if (opcode.HasPrefix()) {
     CHECK_RESULT(EmitI8(opcode.GetPrefix()));
   }
@@ -409,32 +414,35 @@ wabt::Result BinaryReaderInterpreter::EmitOpcode(Opcode opcode) {
   return EmitI8(code);
 }
 
-wabt::Result BinaryReaderInterpreter::EmitI8(uint8_t value) {
+wabt::Result BinaryReaderInterp::EmitI8(uint8_t value) {
   return EmitData(&value, sizeof(value));
 }
 
-wabt::Result BinaryReaderInterpreter::EmitI32(uint32_t value) {
+wabt::Result BinaryReaderInterp::EmitI32(uint32_t value) {
   return EmitData(&value, sizeof(value));
 }
 
-wabt::Result BinaryReaderInterpreter::EmitI64(uint64_t value) {
+wabt::Result BinaryReaderInterp::EmitI64(uint64_t value) {
   return EmitData(&value, sizeof(value));
 }
 
-wabt::Result BinaryReaderInterpreter::EmitI32At(IstreamOffset offset,
-                                                uint32_t value) {
+wabt::Result BinaryReaderInterp::EmitV128(v128 value) {
+  return EmitData(&value, sizeof(value));
+}
+
+wabt::Result BinaryReaderInterp::EmitI32At(IstreamOffset offset,
+                                           uint32_t value) {
   return EmitDataAt(offset, &value, sizeof(value));
 }
 
-wabt::Result BinaryReaderInterpreter::EmitDropKeep(uint32_t drop,
-                                                   uint8_t keep) {
+wabt::Result BinaryReaderInterp::EmitDropKeep(uint32_t drop, uint8_t keep) {
   assert(drop != UINT32_MAX);
   assert(keep <= 1);
   if (drop > 0) {
     if (drop == 1 && keep == 0) {
       CHECK_RESULT(EmitOpcode(Opcode::Drop));
     } else {
-      CHECK_RESULT(EmitOpcode(Opcode::InterpreterDropKeep));
+      CHECK_RESULT(EmitOpcode(Opcode::InterpDropKeep));
       CHECK_RESULT(EmitI32(drop));
       CHECK_RESULT(EmitI8(keep));
     }
@@ -442,17 +450,18 @@ wabt::Result BinaryReaderInterpreter::EmitDropKeep(uint32_t drop,
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::AppendFixup(
+wabt::Result BinaryReaderInterp::AppendFixup(
     IstreamOffsetVectorVector* fixups_vector,
     Index index) {
-  if (index >= fixups_vector->size())
+  if (index >= fixups_vector->size()) {
     fixups_vector->resize(index + 1);
+  }
   (*fixups_vector)[index].push_back(GetIstreamOffset());
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::EmitBrOffset(Index depth,
-                                                   IstreamOffset offset) {
+wabt::Result BinaryReaderInterp::EmitBrOffset(Index depth,
+                                              IstreamOffset offset) {
   if (offset == kInvalidIstreamOffset) {
     /* depth_fixups_ stores the depth counting up from zero, where zero is the
      * top-level function scope. */
@@ -463,10 +472,9 @@ wabt::Result BinaryReaderInterpreter::EmitBrOffset(Index depth,
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::GetBrDropKeepCount(
-    Index depth,
-    Index* out_drop_count,
-    Index* out_keep_count) {
+wabt::Result BinaryReaderInterp::GetBrDropKeepCount(Index depth,
+                                                    Index* out_drop_count,
+                                                    Index* out_keep_count) {
   TypeChecker::Label* label;
   CHECK_RESULT(typechecker_.GetLabel(depth, &label));
   *out_keep_count =
@@ -481,25 +489,24 @@ wabt::Result BinaryReaderInterpreter::GetBrDropKeepCount(
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::GetReturnDropKeepCount(
-    Index* out_drop_count,
-    Index* out_keep_count) {
+wabt::Result BinaryReaderInterp::GetReturnDropKeepCount(Index* out_drop_count,
+                                                        Index* out_keep_count) {
   CHECK_RESULT(GetBrDropKeepCount(label_stack_.size() - 1, out_drop_count,
                                   out_keep_count));
   *out_drop_count += current_func_->param_and_local_types.size();
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::EmitBr(Index depth,
-                                             Index drop_count,
-                                             Index keep_count) {
+wabt::Result BinaryReaderInterp::EmitBr(Index depth,
+                                        Index drop_count,
+                                        Index keep_count) {
   CHECK_RESULT(EmitDropKeep(drop_count, keep_count));
   CHECK_RESULT(EmitOpcode(Opcode::Br));
   CHECK_RESULT(EmitBrOffset(depth, GetLabel(depth)->offset));
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::EmitBrTableOffset(Index depth) {
+wabt::Result BinaryReaderInterp::EmitBrTableOffset(Index depth) {
   Index drop_count, keep_count;
   CHECK_RESULT(GetBrDropKeepCount(depth, &drop_count, &keep_count));
   CHECK_RESULT(EmitBrOffset(depth, GetLabel(depth)->offset));
@@ -508,7 +515,7 @@ wabt::Result BinaryReaderInterpreter::EmitBrTableOffset(Index depth) {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::FixupTopLabel() {
+wabt::Result BinaryReaderInterp::FixupTopLabel() {
   IstreamOffset offset = GetIstreamOffset();
   Index top = label_stack_.size() - 1;
   if (top >= depth_fixups_.size()) {
@@ -523,8 +530,8 @@ wabt::Result BinaryReaderInterpreter::FixupTopLabel() {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::EmitFuncOffset(DefinedFunc* func,
-                                                     Index func_index) {
+wabt::Result BinaryReaderInterp::EmitFuncOffset(DefinedFunc* func,
+                                                Index func_index) {
   if (func->offset == kInvalidIstreamOffset) {
     Index defined_index = TranslateModuleFuncIndexToDefined(func_index);
     CHECK_RESULT(AppendFixup(&func_fixups_, defined_index));
@@ -533,11 +540,11 @@ wabt::Result BinaryReaderInterpreter::EmitFuncOffset(DefinedFunc* func,
   return wabt::Result::Ok;
 }
 
-bool BinaryReaderInterpreter::OnError(const char* message) {
+bool BinaryReaderInterp::OnError(const char* message) {
   return HandleError(state->offset, message);
 }
 
-wabt::Result BinaryReaderInterpreter::OnTypeCount(Index count) {
+wabt::Result BinaryReaderInterp::OnTypeCount(Index count) {
   Index sig_count = env_->GetFuncSignatureCount();
   sig_index_mapping_.resize(count);
   for (Index i = 0; i < count; ++i)
@@ -545,18 +552,18 @@ wabt::Result BinaryReaderInterpreter::OnTypeCount(Index count) {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnType(Index index,
-                                             Index param_count,
-                                             Type* param_types,
-                                             Index result_count,
-                                             Type* result_types) {
+wabt::Result BinaryReaderInterp::OnType(Index index,
+                                        Index param_count,
+                                        Type* param_types,
+                                        Index result_count,
+                                        Type* result_types) {
   assert(TranslateSigIndexToEnv(index) == env_->GetFuncSignatureCount());
   env_->EmplaceBackFuncSignature(param_count, param_types, result_count,
                                  result_types);
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::CheckLocal(Index local_index) {
+wabt::Result BinaryReaderInterp::CheckLocal(Index local_index) {
   Index max_local_index = current_func_->param_and_local_types.size();
   if (local_index >= max_local_index) {
     PrintError("invalid local_index: %" PRIindex " (max %" PRIindex ")",
@@ -566,7 +573,7 @@ wabt::Result BinaryReaderInterpreter::CheckLocal(Index local_index) {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::CheckGlobal(Index global_index) {
+wabt::Result BinaryReaderInterp::CheckGlobal(Index global_index) {
   Index max_global_index = global_index_mapping_.size();
   if (global_index >= max_global_index) {
     PrintError("invalid global_index: %" PRIindex " (max %" PRIindex ")",
@@ -576,9 +583,8 @@ wabt::Result BinaryReaderInterpreter::CheckGlobal(Index global_index) {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::CheckImportKind(
-    Import* import,
-    ExternalKind actual_kind) {
+wabt::Result BinaryReaderInterp::CheckImportKind(Import* import,
+                                                 ExternalKind actual_kind) {
   if (import->kind != actual_kind) {
     PrintError("expected import \"" PRIstringview "." PRIstringview
                "\" to have kind %s, not %s",
@@ -590,7 +596,7 @@ wabt::Result BinaryReaderInterpreter::CheckImportKind(
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::CheckImportLimits(
+wabt::Result BinaryReaderInterp::CheckImportLimits(
     const Limits* declared_limits,
     const Limits* actual_limits) {
   if (actual_limits->initial < declared_limits->initial) {
@@ -614,10 +620,10 @@ wabt::Result BinaryReaderInterpreter::CheckImportLimits(
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::AppendExport(Module* module,
-                                                   ExternalKind kind,
-                                                   Index item_index,
-                                                   string_view name) {
+wabt::Result BinaryReaderInterp::AppendExport(Module* module,
+                                              ExternalKind kind,
+                                              Index item_index,
+                                              string_view name) {
   if (module->export_bindings.FindIndex(name) != kInvalidIndex) {
     PrintError("duplicate export \"" PRIstringview "\"",
                WABT_PRINTF_STRING_VIEW_ARG(name));
@@ -632,9 +638,8 @@ wabt::Result BinaryReaderInterpreter::AppendExport(Module* module,
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::FindRegisteredModule(
-    string_view module_name,
-    Module** out_module) {
+wabt::Result BinaryReaderInterp::FindRegisteredModule(string_view module_name,
+                                                      Module** out_module) {
   Module* module = env_->FindRegisteredModule(module_name);
   if (!module) {
     PrintError("unknown import module \"" PRIstringview "\"",
@@ -646,9 +651,9 @@ wabt::Result BinaryReaderInterpreter::FindRegisteredModule(
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::GetModuleExport(Module* module,
-                                                      string_view field_name,
-                                                      Export** out_export) {
+wabt::Result BinaryReaderInterp::GetModuleExport(Module* module,
+                                                 string_view field_name,
+                                                 Export** out_export) {
   Export* export_ = module->GetExport(field_name);
   if (!export_) {
     PrintError("unknown module field \"" PRIstringview "\"",
@@ -660,16 +665,15 @@ wabt::Result BinaryReaderInterpreter::GetModuleExport(Module* module,
   return wabt::Result::Ok;
 }
 
-HostImportDelegate::ErrorCallback
-BinaryReaderInterpreter::MakePrintErrorCallback() {
+HostImportDelegate::ErrorCallback BinaryReaderInterp::MakePrintErrorCallback() {
   return [this](const char* msg) { PrintError("%s", msg); };
 }
 
-wabt::Result BinaryReaderInterpreter::OnImportFunc(Index import_index,
-                                                   string_view module_name,
-                                                   string_view field_name,
-                                                   Index func_index,
-                                                   Index sig_index) {
+wabt::Result BinaryReaderInterp::OnImportFunc(Index import_index,
+                                              string_view module_name,
+                                              string_view field_name,
+                                              Index func_index,
+                                              Index sig_index) {
   module_->func_imports.emplace_back(module_name, field_name);
   FuncImport* import = &module_->func_imports.back();
   import->sig_index = TranslateSigIndexToEnv(sig_index);
@@ -709,12 +713,12 @@ wabt::Result BinaryReaderInterpreter::OnImportFunc(Index import_index,
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnImportTable(Index import_index,
-                                                    string_view module_name,
-                                                    string_view field_name,
-                                                    Index table_index,
-                                                    Type elem_type,
-                                                    const Limits* elem_limits) {
+wabt::Result BinaryReaderInterp::OnImportTable(Index import_index,
+                                               string_view module_name,
+                                               string_view field_name,
+                                               Index table_index,
+                                               Type elem_type,
+                                               const Limits* elem_limits) {
   if (module_->table_index != kInvalidIndex) {
     PrintError("only one table allowed");
     return wabt::Result::Error;
@@ -751,12 +755,11 @@ wabt::Result BinaryReaderInterpreter::OnImportTable(Index import_index,
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnImportMemory(
-    Index import_index,
-    string_view module_name,
-    string_view field_name,
-    Index memory_index,
-    const Limits* page_limits) {
+wabt::Result BinaryReaderInterp::OnImportMemory(Index import_index,
+                                                string_view module_name,
+                                                string_view field_name,
+                                                Index memory_index,
+                                                const Limits* page_limits) {
   if (module_->memory_index != kInvalidIndex) {
     PrintError("only one memory allowed");
     return wabt::Result::Error;
@@ -793,12 +796,12 @@ wabt::Result BinaryReaderInterpreter::OnImportMemory(
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnImportGlobal(Index import_index,
-                                                     string_view module_name,
-                                                     string_view field_name,
-                                                     Index global_index,
-                                                     Type type,
-                                                     bool mutable_) {
+wabt::Result BinaryReaderInterp::OnImportGlobal(Index import_index,
+                                                string_view module_name,
+                                                string_view field_name,
+                                                Index global_index,
+                                                Type type,
+                                                bool mutable_) {
   module_->global_imports.emplace_back(module_name, field_name);
   GlobalImport* import = &module_->global_imports.back();
 
@@ -830,21 +833,21 @@ wabt::Result BinaryReaderInterpreter::OnImportGlobal(Index import_index,
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnFunctionCount(Index count) {
+wabt::Result BinaryReaderInterp::OnFunctionCount(Index count) {
   for (Index i = 0; i < count; ++i)
     func_index_mapping_.push_back(env_->GetFuncCount() + i);
   func_fixups_.resize(count);
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnFunction(Index index, Index sig_index) {
+wabt::Result BinaryReaderInterp::OnFunction(Index index, Index sig_index) {
   env_->EmplaceBackFunc(new DefinedFunc(TranslateSigIndexToEnv(sig_index)));
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnTable(Index index,
-                                              Type elem_type,
-                                              const Limits* elem_limits) {
+wabt::Result BinaryReaderInterp::OnTable(Index index,
+                                         Type elem_type,
+                                         const Limits* elem_limits) {
   if (module_->table_index != kInvalidIndex) {
     PrintError("only one table allowed");
     return wabt::Result::Error;
@@ -854,8 +857,8 @@ wabt::Result BinaryReaderInterpreter::OnTable(Index index,
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnMemory(Index index,
-                                               const Limits* page_limits) {
+wabt::Result BinaryReaderInterp::OnMemory(Index index,
+                                          const Limits* page_limits) {
   if (module_->memory_index != kInvalidIndex) {
     PrintError("only one memory allowed");
     return wabt::Result::Error;
@@ -865,22 +868,22 @@ wabt::Result BinaryReaderInterpreter::OnMemory(Index index,
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnGlobalCount(Index count) {
+wabt::Result BinaryReaderInterp::OnGlobalCount(Index count) {
   for (Index i = 0; i < count; ++i)
     global_index_mapping_.push_back(env_->GetGlobalCount() + i);
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::BeginGlobal(Index index,
-                                                  Type type,
-                                                  bool mutable_) {
+wabt::Result BinaryReaderInterp::BeginGlobal(Index index,
+                                             Type type,
+                                             bool mutable_) {
   assert(TranslateGlobalIndexToEnv(index) == env_->GetGlobalCount());
   env_->EmplaceBackGlobal(TypedValue(type), mutable_);
   init_expr_value_.type = Type::Void;
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::EndGlobalInitExpr(Index index) {
+wabt::Result BinaryReaderInterp::EndGlobalInitExpr(Index index) {
   Global* global = GetGlobalByModuleIndex(index);
   if (init_expr_value_.type != global->typed_value.type) {
     PrintError("type mismatch in global, expected %s but got %s.",
@@ -892,25 +895,29 @@ wabt::Result BinaryReaderInterpreter::EndGlobalInitExpr(Index index) {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnInitExprF32ConstExpr(
-    Index index,
-    uint32_t value_bits) {
+wabt::Result BinaryReaderInterp::OnInitExprF32ConstExpr(Index index,
+                                                        uint32_t value_bits) {
   init_expr_value_.type = Type::F32;
   init_expr_value_.value.f32_bits = value_bits;
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnInitExprF64ConstExpr(
-    Index index,
-    uint64_t value_bits) {
+wabt::Result BinaryReaderInterp::OnInitExprF64ConstExpr(Index index,
+                                                        uint64_t value_bits) {
   init_expr_value_.type = Type::F64;
   init_expr_value_.value.f64_bits = value_bits;
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnInitExprGetGlobalExpr(
-    Index index,
-    Index global_index) {
+wabt::Result BinaryReaderInterp::OnInitExprV128ConstExpr(Index index,
+                                                         v128 value_bits) {
+  init_expr_value_.type = Type::V128;
+  init_expr_value_.value.v128_bits = value_bits;
+  return wabt::Result::Ok;
+}
+
+wabt::Result BinaryReaderInterp::OnInitExprGetGlobalExpr(Index index,
+                                                         Index global_index) {
   if (global_index >= num_global_imports_) {
     PrintError("initializer expression can only reference an imported global");
     return wabt::Result::Error;
@@ -924,24 +931,24 @@ wabt::Result BinaryReaderInterpreter::OnInitExprGetGlobalExpr(
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnInitExprI32ConstExpr(Index index,
-                                                             uint32_t value) {
+wabt::Result BinaryReaderInterp::OnInitExprI32ConstExpr(Index index,
+                                                        uint32_t value) {
   init_expr_value_.type = Type::I32;
   init_expr_value_.value.i32 = value;
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnInitExprI64ConstExpr(Index index,
-                                                             uint64_t value) {
+wabt::Result BinaryReaderInterp::OnInitExprI64ConstExpr(Index index,
+                                                        uint64_t value) {
   init_expr_value_.type = Type::I64;
   init_expr_value_.value.i64 = value;
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnExport(Index index,
-                                               ExternalKind kind,
-                                               Index item_index,
-                                               string_view name) {
+wabt::Result BinaryReaderInterp::OnExport(Index index,
+                                          ExternalKind kind,
+                                          Index item_index,
+                                          string_view name) {
   switch (kind) {
     case ExternalKind::Func:
       item_index = TranslateFuncIndexToEnv(item_index);
@@ -967,13 +974,13 @@ wabt::Result BinaryReaderInterpreter::OnExport(Index index,
 
     case ExternalKind::Except:
       // TODO(karlschimpf) Define
-      WABT_FATAL("BinaryReaderInterpreter::OnExport(except) not implemented");
+      WABT_FATAL("BinaryReaderInterp::OnExport(except) not implemented");
       break;
   }
   return AppendExport(module_, kind, item_index, name);
 }
 
-wabt::Result BinaryReaderInterpreter::OnStartFunction(Index func_index) {
+wabt::Result BinaryReaderInterp::OnStartFunction(Index func_index) {
   Index start_func_index = TranslateFuncIndexToEnv(func_index);
   Func* start_func = env_->GetFunc(start_func_index);
   FuncSignature* sig = env_->GetFuncSignature(start_func->sig_index);
@@ -989,15 +996,14 @@ wabt::Result BinaryReaderInterpreter::OnStartFunction(Index func_index) {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::EndElemSegmentInitExpr(Index index) {
+wabt::Result BinaryReaderInterp::EndElemSegmentInitExpr(Index index) {
   assert(init_expr_value_.type == Type::I32);
   table_offset_ = init_expr_value_.value.i32;
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnElemSegmentFunctionIndex(
-    Index index,
-    Index func_index) {
+wabt::Result BinaryReaderInterp::OnElemSegmentFunctionIndex(Index index,
+                                                            Index func_index) {
   assert(module_->table_index != kInvalidIndex);
   Table* table = env_->GetTable(module_->table_index);
   if (table_offset_ >= table->func_indexes.size()) {
@@ -1018,9 +1024,9 @@ wabt::Result BinaryReaderInterpreter::OnElemSegmentFunctionIndex(
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnDataSegmentData(Index index,
-                                                        const void* src_data,
-                                                        Address size) {
+wabt::Result BinaryReaderInterp::OnDataSegmentData(Index index,
+                                                   const void* src_data,
+                                                   Address size) {
   assert(module_->memory_index != kInvalidIndex);
   Memory* memory = env_->GetMemory(module_->memory_index);
   assert(init_expr_value_.type == Type::I32);
@@ -1034,18 +1040,19 @@ wabt::Result BinaryReaderInterpreter::OnDataSegmentData(Index index,
     return wabt::Result::Error;
   }
 
-  if (size > 0)
+  if (size > 0) {
     data_segment_infos_.emplace_back(&memory->data[address], src_data, size);
+  }
 
   return wabt::Result::Ok;
 }
 
-void BinaryReaderInterpreter::PushLabel(IstreamOffset offset,
-                                        IstreamOffset fixup_offset) {
+void BinaryReaderInterp::PushLabel(IstreamOffset offset,
+                                   IstreamOffset fixup_offset) {
   label_stack_.emplace_back(offset, fixup_offset);
 }
 
-void BinaryReaderInterpreter::PopLabel() {
+void BinaryReaderInterp::PopLabel() {
   label_stack_.pop_back();
   /* reduce the depth_fixups_ stack as well, but it may be smaller than
    * label_stack_ so only do it conditionally. */
@@ -1055,7 +1062,7 @@ void BinaryReaderInterpreter::PopLabel() {
   }
 }
 
-wabt::Result BinaryReaderInterpreter::BeginFunctionBody(Index index) {
+wabt::Result BinaryReaderInterp::BeginFunctionBody(Index index) {
   auto* func = cast<DefinedFunc>(GetFuncByModuleIndex(index));
   FuncSignature* sig = env_->GetFuncSignature(func->sig_index);
 
@@ -1084,7 +1091,7 @@ wabt::Result BinaryReaderInterpreter::BeginFunctionBody(Index index) {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::EndFunctionBody(Index index) {
+wabt::Result BinaryReaderInterp::EndFunctionBody(Index index) {
   FixupTopLabel();
   Index drop_count, keep_count;
   CHECK_RESULT(GetReturnDropKeepCount(&drop_count, &keep_count));
@@ -1096,14 +1103,14 @@ wabt::Result BinaryReaderInterpreter::EndFunctionBody(Index index) {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnLocalDeclCount(Index count) {
+wabt::Result BinaryReaderInterp::OnLocalDeclCount(Index count) {
   current_func_->local_decl_count = count;
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnLocalDecl(Index decl_index,
-                                                  Index count,
-                                                  Type type) {
+wabt::Result BinaryReaderInterp::OnLocalDecl(Index decl_index,
+                                             Index count,
+                                             Type type) {
   current_func_->local_count += count;
 
   for (Index i = 0; i < count; ++i)
@@ -1111,13 +1118,13 @@ wabt::Result BinaryReaderInterpreter::OnLocalDecl(Index decl_index,
 
   if (decl_index == current_func_->local_decl_count - 1) {
     /* last local declaration, allocate space for all locals. */
-    CHECK_RESULT(EmitOpcode(Opcode::InterpreterAlloca));
+    CHECK_RESULT(EmitOpcode(Opcode::InterpAlloca));
     CHECK_RESULT(EmitI32(current_func_->local_count));
   }
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::CheckHasMemory(wabt::Opcode opcode) {
+wabt::Result BinaryReaderInterp::CheckHasMemory(wabt::Opcode opcode) {
   if (module_->memory_index == kInvalidIndex) {
     PrintError("%s requires an imported or defined memory.", opcode.GetName());
     return wabt::Result::Error;
@@ -1125,8 +1132,8 @@ wabt::Result BinaryReaderInterpreter::CheckHasMemory(wabt::Opcode opcode) {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::CheckAlign(uint32_t alignment_log2,
-                                                 Address natural_alignment) {
+wabt::Result BinaryReaderInterp::CheckAlign(uint32_t alignment_log2,
+                                            Address natural_alignment) {
   if (alignment_log2 >= 32 || (1U << alignment_log2) > natural_alignment) {
     PrintError("alignment must not be larger than natural alignment (%u)",
                natural_alignment);
@@ -1135,9 +1142,8 @@ wabt::Result BinaryReaderInterpreter::CheckAlign(uint32_t alignment_log2,
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::CheckAtomicAlign(
-    uint32_t alignment_log2,
-    Address natural_alignment) {
+wabt::Result BinaryReaderInterp::CheckAtomicAlign(uint32_t alignment_log2,
+                                                  Address natural_alignment) {
   if (alignment_log2 >= 32 || (1U << alignment_log2) != natural_alignment) {
     PrintError("alignment must be equal to natural alignment (%u)",
                natural_alignment);
@@ -1146,15 +1152,15 @@ wabt::Result BinaryReaderInterpreter::CheckAtomicAlign(
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnUnaryExpr(wabt::Opcode opcode) {
+wabt::Result BinaryReaderInterp::OnUnaryExpr(wabt::Opcode opcode) {
   CHECK_RESULT(typechecker_.OnUnary(opcode));
   CHECK_RESULT(EmitOpcode(opcode));
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnAtomicLoadExpr(Opcode opcode,
-                                                       uint32_t alignment_log2,
-                                                       Address offset) {
+wabt::Result BinaryReaderInterp::OnAtomicLoadExpr(Opcode opcode,
+                                                  uint32_t alignment_log2,
+                                                  Address offset) {
   CHECK_RESULT(CheckHasMemory(opcode));
   CHECK_RESULT(CheckAtomicAlign(alignment_log2, opcode.GetMemorySize()));
   CHECK_RESULT(typechecker_.OnAtomicLoad(opcode));
@@ -1164,9 +1170,9 @@ wabt::Result BinaryReaderInterpreter::OnAtomicLoadExpr(Opcode opcode,
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnAtomicStoreExpr(Opcode opcode,
-                                                        uint32_t alignment_log2,
-                                                        Address offset) {
+wabt::Result BinaryReaderInterp::OnAtomicStoreExpr(Opcode opcode,
+                                                   uint32_t alignment_log2,
+                                                   Address offset) {
   CHECK_RESULT(CheckHasMemory(opcode));
   CHECK_RESULT(CheckAtomicAlign(alignment_log2, opcode.GetMemorySize()));
   CHECK_RESULT(typechecker_.OnAtomicStore(opcode));
@@ -1176,9 +1182,9 @@ wabt::Result BinaryReaderInterpreter::OnAtomicStoreExpr(Opcode opcode,
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnAtomicRmwExpr(Opcode opcode,
-                                                      uint32_t alignment_log2,
-                                                      Address offset) {
+wabt::Result BinaryReaderInterp::OnAtomicRmwExpr(Opcode opcode,
+                                                 uint32_t alignment_log2,
+                                                 Address offset) {
   CHECK_RESULT(CheckHasMemory(opcode));
   CHECK_RESULT(CheckAtomicAlign(alignment_log2, opcode.GetMemorySize()));
   CHECK_RESULT(typechecker_.OnAtomicRmw(opcode));
@@ -1188,10 +1194,9 @@ wabt::Result BinaryReaderInterpreter::OnAtomicRmwExpr(Opcode opcode,
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnAtomicRmwCmpxchgExpr(
-    Opcode opcode,
-    uint32_t alignment_log2,
-    Address offset) {
+wabt::Result BinaryReaderInterp::OnAtomicRmwCmpxchgExpr(Opcode opcode,
+                                                        uint32_t alignment_log2,
+                                                        Address offset) {
   CHECK_RESULT(CheckHasMemory(opcode));
   CHECK_RESULT(CheckAtomicAlign(alignment_log2, opcode.GetMemorySize()));
   CHECK_RESULT(typechecker_.OnAtomicRmwCmpxchg(opcode));
@@ -1201,40 +1206,37 @@ wabt::Result BinaryReaderInterpreter::OnAtomicRmwCmpxchgExpr(
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnBinaryExpr(wabt::Opcode opcode) {
+wabt::Result BinaryReaderInterp::OnBinaryExpr(wabt::Opcode opcode) {
   CHECK_RESULT(typechecker_.OnBinary(opcode));
   CHECK_RESULT(EmitOpcode(opcode));
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnBlockExpr(Index num_types,
-                                                  Type* sig_types) {
+wabt::Result BinaryReaderInterp::OnBlockExpr(Index num_types, Type* sig_types) {
   TypeVector sig(sig_types, sig_types + num_types);
   CHECK_RESULT(typechecker_.OnBlock(&sig));
   PushLabel(kInvalidIstreamOffset, kInvalidIstreamOffset);
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnLoopExpr(Index num_types,
-                                                 Type* sig_types) {
+wabt::Result BinaryReaderInterp::OnLoopExpr(Index num_types, Type* sig_types) {
   TypeVector sig(sig_types, sig_types + num_types);
   CHECK_RESULT(typechecker_.OnLoop(&sig));
   PushLabel(GetIstreamOffset(), kInvalidIstreamOffset);
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnIfExpr(Index num_types,
-                                               Type* sig_types) {
+wabt::Result BinaryReaderInterp::OnIfExpr(Index num_types, Type* sig_types) {
   TypeVector sig(sig_types, sig_types + num_types);
   CHECK_RESULT(typechecker_.OnIf(&sig));
-  CHECK_RESULT(EmitOpcode(Opcode::InterpreterBrUnless));
+  CHECK_RESULT(EmitOpcode(Opcode::InterpBrUnless));
   IstreamOffset fixup_offset = GetIstreamOffset();
   CHECK_RESULT(EmitI32(kInvalidIstreamOffset));
   PushLabel(kInvalidIstreamOffset, fixup_offset);
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnElseExpr() {
+wabt::Result BinaryReaderInterp::OnElseExpr() {
   CHECK_RESULT(typechecker_.OnElse());
   Label* label = TopLabel();
   IstreamOffset fixup_cond_offset = label->fixup_offset;
@@ -1245,7 +1247,7 @@ wabt::Result BinaryReaderInterpreter::OnElseExpr() {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnEndExpr() {
+wabt::Result BinaryReaderInterp::OnEndExpr() {
   TypeChecker::Label* label;
   CHECK_RESULT(typechecker_.GetLabel(0, &label));
   LabelType label_type = label->label_type;
@@ -1258,7 +1260,7 @@ wabt::Result BinaryReaderInterpreter::OnEndExpr() {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnBrExpr(Index depth) {
+wabt::Result BinaryReaderInterp::OnBrExpr(Index depth) {
   Index drop_count, keep_count;
   CHECK_RESULT(GetBrDropKeepCount(depth, &drop_count, &keep_count));
   CHECK_RESULT(typechecker_.OnBr(depth));
@@ -1266,12 +1268,12 @@ wabt::Result BinaryReaderInterpreter::OnBrExpr(Index depth) {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnBrIfExpr(Index depth) {
+wabt::Result BinaryReaderInterp::OnBrIfExpr(Index depth) {
   Index drop_count, keep_count;
   CHECK_RESULT(typechecker_.OnBrIf(depth));
   CHECK_RESULT(GetBrDropKeepCount(depth, &drop_count, &keep_count));
   /* flip the br_if so if <cond> is true it can drop values from the stack */
-  CHECK_RESULT(EmitOpcode(Opcode::InterpreterBrUnless));
+  CHECK_RESULT(EmitOpcode(Opcode::InterpBrUnless));
   IstreamOffset fixup_br_offset = GetIstreamOffset();
   CHECK_RESULT(EmitI32(kInvalidIstreamOffset));
   CHECK_RESULT(EmitBr(depth, drop_count, keep_count));
@@ -1279,18 +1281,17 @@ wabt::Result BinaryReaderInterpreter::OnBrIfExpr(Index depth) {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnBrTableExpr(
-    Index num_targets,
-    Index* target_depths,
-    Index default_target_depth) {
+wabt::Result BinaryReaderInterp::OnBrTableExpr(Index num_targets,
+                                               Index* target_depths,
+                                               Index default_target_depth) {
   CHECK_RESULT(typechecker_.BeginBrTable());
   CHECK_RESULT(EmitOpcode(Opcode::BrTable));
   CHECK_RESULT(EmitI32(num_targets));
   IstreamOffset fixup_table_offset = GetIstreamOffset();
   CHECK_RESULT(EmitI32(kInvalidIstreamOffset));
-  /* not necessary for the interpreter, but it makes it easier to disassemble.
+  /* not necessary for the interp, but it makes it easier to disassemble.
    * This opcode specifies how many bytes of data follow. */
-  CHECK_RESULT(EmitOpcode(Opcode::InterpreterData));
+  CHECK_RESULT(EmitOpcode(Opcode::InterpData));
   CHECK_RESULT(EmitI32((num_targets + 1) * WABT_TABLE_ENTRY_SIZE));
   CHECK_RESULT(EmitI32At(fixup_table_offset, GetIstreamOffset()));
 
@@ -1304,13 +1305,13 @@ wabt::Result BinaryReaderInterpreter::OnBrTableExpr(
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnCallExpr(Index func_index) {
+wabt::Result BinaryReaderInterp::OnCallExpr(Index func_index) {
   Func* func = GetFuncByModuleIndex(func_index);
   FuncSignature* sig = env_->GetFuncSignature(func->sig_index);
   CHECK_RESULT(typechecker_.OnCall(&sig->param_types, &sig->result_types));
 
   if (func->is_host) {
-    CHECK_RESULT(EmitOpcode(Opcode::InterpreterCallHost));
+    CHECK_RESULT(EmitOpcode(Opcode::InterpCallHost));
     CHECK_RESULT(EmitI32(TranslateFuncIndexToEnv(func_index)));
   } else {
     CHECK_RESULT(EmitOpcode(Opcode::Call));
@@ -1320,7 +1321,7 @@ wabt::Result BinaryReaderInterpreter::OnCallExpr(Index func_index) {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnCallIndirectExpr(Index sig_index) {
+wabt::Result BinaryReaderInterp::OnCallIndirectExpr(Index sig_index) {
   if (module_->table_index == kInvalidIndex) {
     PrintError("found call_indirect operator, but no table");
     return wabt::Result::Error;
@@ -1335,49 +1336,56 @@ wabt::Result BinaryReaderInterpreter::OnCallIndirectExpr(Index sig_index) {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnCompareExpr(wabt::Opcode opcode) {
+wabt::Result BinaryReaderInterp::OnCompareExpr(wabt::Opcode opcode) {
   return OnBinaryExpr(opcode);
 }
 
-wabt::Result BinaryReaderInterpreter::OnConvertExpr(wabt::Opcode opcode) {
+wabt::Result BinaryReaderInterp::OnConvertExpr(wabt::Opcode opcode) {
   return OnUnaryExpr(opcode);
 }
 
-wabt::Result BinaryReaderInterpreter::OnDropExpr() {
+wabt::Result BinaryReaderInterp::OnDropExpr() {
   CHECK_RESULT(typechecker_.OnDrop());
   CHECK_RESULT(EmitOpcode(Opcode::Drop));
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnI32ConstExpr(uint32_t value) {
+wabt::Result BinaryReaderInterp::OnI32ConstExpr(uint32_t value) {
   CHECK_RESULT(typechecker_.OnConst(Type::I32));
   CHECK_RESULT(EmitOpcode(Opcode::I32Const));
   CHECK_RESULT(EmitI32(value));
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnI64ConstExpr(uint64_t value) {
+wabt::Result BinaryReaderInterp::OnI64ConstExpr(uint64_t value) {
   CHECK_RESULT(typechecker_.OnConst(Type::I64));
   CHECK_RESULT(EmitOpcode(Opcode::I64Const));
   CHECK_RESULT(EmitI64(value));
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnF32ConstExpr(uint32_t value_bits) {
+wabt::Result BinaryReaderInterp::OnF32ConstExpr(uint32_t value_bits) {
   CHECK_RESULT(typechecker_.OnConst(Type::F32));
   CHECK_RESULT(EmitOpcode(Opcode::F32Const));
   CHECK_RESULT(EmitI32(value_bits));
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnF64ConstExpr(uint64_t value_bits) {
+wabt::Result BinaryReaderInterp::OnF64ConstExpr(uint64_t value_bits) {
   CHECK_RESULT(typechecker_.OnConst(Type::F64));
   CHECK_RESULT(EmitOpcode(Opcode::F64Const));
   CHECK_RESULT(EmitI64(value_bits));
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnGetGlobalExpr(Index global_index) {
+wabt::Result BinaryReaderInterp::OnV128ConstExpr(v128 value_bits) {
+  CHECK_RESULT(typechecker_.OnConst(Type::V128));
+  CHECK_RESULT(EmitOpcode(Opcode::V128Const));
+  CHECK_RESULT(EmitV128(value_bits));
+  return wabt::Result::Ok;
+}
+
+wabt::Result BinaryReaderInterp::OnGetGlobalExpr(Index global_index) {
   CHECK_RESULT(CheckGlobal(global_index));
   Type type = GetGlobalTypeByModuleIndex(global_index);
   CHECK_RESULT(typechecker_.OnGetGlobal(type));
@@ -1386,7 +1394,7 @@ wabt::Result BinaryReaderInterpreter::OnGetGlobalExpr(Index global_index) {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnSetGlobalExpr(Index global_index) {
+wabt::Result BinaryReaderInterp::OnSetGlobalExpr(Index global_index) {
   CHECK_RESULT(CheckGlobal(global_index));
   Global* global = GetGlobalByModuleIndex(global_index);
   if (!global->mutable_) {
@@ -1400,12 +1408,12 @@ wabt::Result BinaryReaderInterpreter::OnSetGlobalExpr(Index global_index) {
   return wabt::Result::Ok;
 }
 
-Index BinaryReaderInterpreter::TranslateLocalIndex(Index local_index) {
+Index BinaryReaderInterp::TranslateLocalIndex(Index local_index) {
   return typechecker_.type_stack_size() +
          current_func_->param_and_local_types.size() - local_index;
 }
 
-wabt::Result BinaryReaderInterpreter::OnGetLocalExpr(Index local_index) {
+wabt::Result BinaryReaderInterp::OnGetLocalExpr(Index local_index) {
   CHECK_RESULT(CheckLocal(local_index));
   Type type = GetLocalTypeByIndex(current_func_, local_index);
   // Get the translated index before calling typechecker_.OnGetLocal because it
@@ -1418,7 +1426,7 @@ wabt::Result BinaryReaderInterpreter::OnGetLocalExpr(Index local_index) {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnSetLocalExpr(Index local_index) {
+wabt::Result BinaryReaderInterp::OnSetLocalExpr(Index local_index) {
   CHECK_RESULT(CheckLocal(local_index));
   Type type = GetLocalTypeByIndex(current_func_, local_index);
   CHECK_RESULT(typechecker_.OnSetLocal(type));
@@ -1427,7 +1435,7 @@ wabt::Result BinaryReaderInterpreter::OnSetLocalExpr(Index local_index) {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnTeeLocalExpr(Index local_index) {
+wabt::Result BinaryReaderInterp::OnTeeLocalExpr(Index local_index) {
   CHECK_RESULT(CheckLocal(local_index));
   Type type = GetLocalTypeByIndex(current_func_, local_index);
   CHECK_RESULT(typechecker_.OnTeeLocal(type));
@@ -1436,7 +1444,7 @@ wabt::Result BinaryReaderInterpreter::OnTeeLocalExpr(Index local_index) {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnGrowMemoryExpr() {
+wabt::Result BinaryReaderInterp::OnGrowMemoryExpr() {
   CHECK_RESULT(CheckHasMemory(wabt::Opcode::GrowMemory));
   CHECK_RESULT(typechecker_.OnGrowMemory());
   CHECK_RESULT(EmitOpcode(Opcode::GrowMemory));
@@ -1444,9 +1452,9 @@ wabt::Result BinaryReaderInterpreter::OnGrowMemoryExpr() {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnLoadExpr(wabt::Opcode opcode,
-                                                 uint32_t alignment_log2,
-                                                 Address offset) {
+wabt::Result BinaryReaderInterp::OnLoadExpr(wabt::Opcode opcode,
+                                            uint32_t alignment_log2,
+                                            Address offset) {
   CHECK_RESULT(CheckHasMemory(opcode));
   CHECK_RESULT(CheckAlign(alignment_log2, opcode.GetMemorySize()));
   CHECK_RESULT(typechecker_.OnLoad(opcode));
@@ -1456,9 +1464,9 @@ wabt::Result BinaryReaderInterpreter::OnLoadExpr(wabt::Opcode opcode,
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnStoreExpr(wabt::Opcode opcode,
-                                                  uint32_t alignment_log2,
-                                                  Address offset) {
+wabt::Result BinaryReaderInterp::OnStoreExpr(wabt::Opcode opcode,
+                                             uint32_t alignment_log2,
+                                             Address offset) {
   CHECK_RESULT(CheckHasMemory(opcode));
   CHECK_RESULT(CheckAlign(alignment_log2, opcode.GetMemorySize()));
   CHECK_RESULT(typechecker_.OnStore(opcode));
@@ -1468,7 +1476,7 @@ wabt::Result BinaryReaderInterpreter::OnStoreExpr(wabt::Opcode opcode,
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnCurrentMemoryExpr() {
+wabt::Result BinaryReaderInterp::OnCurrentMemoryExpr() {
   CHECK_RESULT(CheckHasMemory(wabt::Opcode::CurrentMemory));
   CHECK_RESULT(typechecker_.OnCurrentMemory());
   CHECK_RESULT(EmitOpcode(Opcode::CurrentMemory));
@@ -1476,11 +1484,11 @@ wabt::Result BinaryReaderInterpreter::OnCurrentMemoryExpr() {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnNopExpr() {
+wabt::Result BinaryReaderInterp::OnNopExpr() {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnReturnExpr() {
+wabt::Result BinaryReaderInterp::OnReturnExpr() {
   Index drop_count, keep_count;
   CHECK_RESULT(GetReturnDropKeepCount(&drop_count, &keep_count));
   CHECK_RESULT(typechecker_.OnReturn());
@@ -1489,19 +1497,43 @@ wabt::Result BinaryReaderInterpreter::OnReturnExpr() {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnSelectExpr() {
+wabt::Result BinaryReaderInterp::OnSelectExpr() {
   CHECK_RESULT(typechecker_.OnSelect());
   CHECK_RESULT(EmitOpcode(Opcode::Select));
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::OnUnreachableExpr() {
+wabt::Result BinaryReaderInterp::OnUnreachableExpr() {
   CHECK_RESULT(typechecker_.OnUnreachable());
   CHECK_RESULT(EmitOpcode(Opcode::Unreachable));
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterpreter::EndModule() {
+wabt::Result BinaryReaderInterp::OnAtomicWaitExpr(Opcode opcode,
+                                                  uint32_t alignment_log2,
+                                                  Address offset) {
+  CHECK_RESULT(CheckHasMemory(opcode));
+  CHECK_RESULT(CheckAtomicAlign(alignment_log2, opcode.GetMemorySize()));
+  CHECK_RESULT(typechecker_.OnAtomicWait(opcode));
+  CHECK_RESULT(EmitOpcode(opcode));
+  CHECK_RESULT(EmitI32(module_->memory_index));
+  CHECK_RESULT(EmitI32(offset));
+  return wabt::Result::Ok;
+}
+
+wabt::Result BinaryReaderInterp::OnAtomicWakeExpr(Opcode opcode,
+                                                  uint32_t alignment_log2,
+                                                  Address offset) {
+  CHECK_RESULT(CheckHasMemory(opcode));
+  CHECK_RESULT(CheckAtomicAlign(alignment_log2, opcode.GetMemorySize()));
+  CHECK_RESULT(typechecker_.OnAtomicWake(opcode));
+  CHECK_RESULT(EmitOpcode(opcode));
+  CHECK_RESULT(EmitI32(module_->memory_index));
+  CHECK_RESULT(EmitI32(offset));
+  return wabt::Result::Ok;
+}
+
+wabt::Result BinaryReaderInterp::EndModule() {
   for (ElemSegmentInfo& info : elem_segment_infos_) {
     *info.dst = info.func_index;
   }
@@ -1513,12 +1545,12 @@ wabt::Result BinaryReaderInterpreter::EndModule() {
 
 }  // end anonymous namespace
 
-wabt::Result ReadBinaryInterpreter(Environment* env,
-                                   const void* data,
-                                   size_t size,
-                                   const ReadBinaryOptions* options,
-                                   ErrorHandler* error_handler,
-                                   DefinedModule** out_module) {
+wabt::Result ReadBinaryInterp(Environment* env,
+                              const void* data,
+                              size_t size,
+                              const ReadBinaryOptions* options,
+                              ErrorHandler* error_handler,
+                              DefinedModule** out_module) {
   // Need to mark before taking ownership of env->istream.
   Environment::MarkPoint mark = env->Mark();
 
@@ -1526,8 +1558,7 @@ wabt::Result ReadBinaryInterpreter(Environment* env,
   IstreamOffset istream_offset = istream->size();
   DefinedModule* module = new DefinedModule();
 
-  BinaryReaderInterpreter reader(env, module, std::move(istream),
-                                 error_handler);
+  BinaryReaderInterp reader(env, module, std::move(istream), error_handler);
   env->EmplaceBackModule(module);
 
   wabt::Result result = ReadBinary(data, size, &reader, options);

@@ -26,7 +26,7 @@
 #define HAVE_UNISTD_H 0
 
 /* Whether snprintf is defined by stdio.h */
-#define HAVE_SNPRINTF 0
+#define HAVE_SNPRINTF 1
 
 /* Whether sysconf is defined by unistd.h */
 #define HAVE_SYSCONF 0
@@ -37,9 +37,14 @@
 /* Whether strcasecmp is defined by strings.h */
 #define HAVE_STRCASECMP 0
 
-#define COMPILER_IS_CLANG 0
+/* Whether ENABLE_VIRTUAL_TERMINAL_PROCESSING is defined by windows.h */
+#define HAVE_WIN32_VT100 1
+
+#define COMPILER_IS_CLANG 1
 #define COMPILER_IS_GNU 0
-#define COMPILER_IS_MSVC 1
+#define COMPILER_IS_MSVC 0
+
+#define WITH_EXCEPTIONS 0
 
 #define SIZEOF_SIZE_T 4
 #define SIZEOF_INT 4
@@ -66,8 +71,17 @@
 #define WABT_INLINE inline
 #define WABT_UNLIKELY(x) __builtin_expect(!!(x), 0)
 #define WABT_LIKELY(x) __builtin_expect(!!(x), 1)
+
+#if __MINGW32__
+// mingw defaults to printf format specifier being ms_printf (which doesn't
+// understand 'llu', etc.) We always want gnu_printf, and force mingw to always
+// use mingw_printf, mingw_vprintf, etc.
+#define WABT_PRINTF_FORMAT(format_arg, first_arg) \
+  __attribute__((format(gnu_printf, (format_arg), (first_arg))))
+#else
 #define WABT_PRINTF_FORMAT(format_arg, first_arg) \
   __attribute__((format(printf, (format_arg), (first_arg))))
+#endif
 
 #ifdef __cplusplus
 #if __cplusplus >= 201103L
@@ -110,8 +124,8 @@
 
 #elif COMPILER_IS_MSVC
 
+#include <cstring>
 #include <intrin.h>
-#include <string.h>
 
 #define WABT_UNUSED
 #define WABT_WARN_UNUSED _Check_return_
@@ -193,6 +207,7 @@ __inline unsigned __int64 __popcnt64(unsigned __int64 value) {
 #error unexpected architecture
 #endif
 #define wabt_popcount_u64 __popcnt64
+
 #else
 
 #error unknown compiler
@@ -200,8 +215,7 @@ __inline unsigned __int64 __popcnt64(unsigned __int64 value) {
 #endif
 
 
-/* Check For MINGW first, because it is also a GNU compiler */
-#if COMPILER_IS_MSVC || __MINGW32__
+#if COMPILER_IS_MSVC
 
 /* print format specifier for size_t */
 #if SIZEOF_SIZE_T == 4
@@ -231,7 +245,7 @@ __inline unsigned __int64 __popcnt64(unsigned __int64 value) {
 #define wabt_snprintf snprintf
 #elif COMPILER_IS_MSVC
 /* can't just use _snprintf because it doesn't always null terminate */
-#include <stdarg.h>
+#include <cstdarg>
 int wabt_snprintf(char* str, size_t size, const char* format, ...);
 #else
 #error no snprintf
@@ -254,6 +268,37 @@ typedef int ssize_t;
 #else
 #error no strcasecmp
 #endif
+#endif
+
+#if COMPILER_IS_MSVC && defined(_M_X64)
+// MSVC on x64 generates uint64 -> float conversions but doesn't do
+// round-to-nearest-ties-to-even, which is required by WebAssembly.
+#include <emmintrin.h>
+__inline double wabt_convert_uint64_to_double(unsigned __int64 x) {
+  __m128d result = _mm_setzero_pd();
+  if (x & 0x8000000000000000ULL) {
+    result = _mm_cvtsi64_sd(result, (x >> 1) | (x & 1));
+    result = _mm_add_sd(result, result);
+  } else {
+    result = _mm_cvtsi64_sd(result, x);
+  }
+  return _mm_cvtsd_f64(result);
+}
+
+__inline float wabt_convert_uint64_to_float(unsigned __int64 x) {
+  __m128 result = _mm_setzero_ps();
+  if (x & 0x8000000000000000ULL) {
+    result = _mm_cvtsi64_ss(result, (x >> 1) | (x & 1));
+    result = _mm_add_ss(result, result);
+  } else {
+    result = _mm_cvtsi64_ss(result, x);
+  }
+  return _mm_cvtss_f32(result);
+}
+
+#else
+#define wabt_convert_uint64_to_double(x) static_cast<double>(x)
+#define wabt_convert_uint64_to_float(x) static_cast<float>(x)
 #endif
 
 #endif /* WABT_CONFIG_H_ */

@@ -50,8 +50,9 @@ struct TestObject : intrusive_list_base<TestObject> {
   TestObject& operator=(const TestObject&) = delete;
 
   ~TestObject() {
-    if (!moved)
+    if (!moved) {
       creation_count--;
+    }
   }
 
   int data;

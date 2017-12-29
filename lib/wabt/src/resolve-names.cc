@@ -188,8 +188,9 @@ void NameResolver::ResolveExceptionVar(Var* var) {
 
 void NameResolver::ResolveLocalVar(Var* var) {
   if (var->is_name()) {
-    if (!current_func_)
+    if (!current_func_) {
       return;
+    }
 
     Index index = current_func_->GetLocalIndex(*var);
     if (index == kInvalidIndex) {
@@ -245,7 +246,9 @@ Result NameResolver::OnCallExpr(CallExpr* expr) {
 }
 
 Result NameResolver::OnCallIndirectExpr(CallIndirectExpr* expr) {
-  ResolveFuncTypeVar(&expr->var);
+  if (expr->decl.has_func_type) {
+    ResolveFuncTypeVar(&expr->decl.type_var);
+  }
   return Result::Ok;
 }
 
@@ -295,8 +298,9 @@ Result NameResolver::EndTryExpr(TryExpr*) {
 }
 
 Result NameResolver::OnCatchExpr(TryExpr* expr, Catch* catch_) {
-  if (!catch_->IsCatchAll())
+  if (!catch_->IsCatchAll()) {
     ResolveExceptionVar(&catch_->var);
+  }
   return Result::Ok;
 }
 
@@ -314,8 +318,9 @@ Result NameResolver::OnRethrowExpr(RethrowExpr* expr) {
 
 void NameResolver::VisitFunc(Func* func) {
   current_func_ = func;
-  if (func->decl.has_func_type)
+  if (func->decl.has_func_type) {
     ResolveFuncTypeVar(&func->decl.type_var);
+  }
 
   CheckDuplicateBindings(&func->param_bindings, "parameter");
   CheckDuplicateBindings(&func->local_bindings, "local");
@@ -383,15 +388,16 @@ Result NameResolver::VisitModule(Module* module) {
     VisitElemSegment(elem_segment);
   for (DataSegment* data_segment : module->data_segments)
     VisitDataSegment(data_segment);
-  if (module->start)
-    ResolveFuncVar(module->start);
+  for (Var* start : module->starts)
+    ResolveFuncVar(start);
   current_module_ = nullptr;
   return result_;
 }
 
 void NameResolver::VisitScriptModule(ScriptModule* script_module) {
-  if (auto* tsm = dyn_cast<TextScriptModule>(script_module))
+  if (auto* tsm = dyn_cast<TextScriptModule>(script_module)) {
     VisitModule(&tsm->module);
+  }
 }
 
 void NameResolver::VisitCommand(Command* command) {

@@ -172,6 +172,7 @@ class BinaryReaderNop : public BinaryReaderDelegate {
   Result OnOpcodeUint64(uint64_t value) override { return Result::Ok; }
   Result OnOpcodeF32(uint32_t value) override { return Result::Ok; }
   Result OnOpcodeF64(uint64_t value) override { return Result::Ok; }
+  Result OnOpcodeV128(v128 value) override { return Result::Ok; }
   Result OnOpcodeBlockSig(Index num_types, Type* sig_types) override {
     return Result::Ok;
   }
@@ -193,6 +194,12 @@ class BinaryReaderNop : public BinaryReaderDelegate {
   Result OnAtomicRmwCmpxchgExpr(Opcode opcode,
                                 uint32_t alignment_log2,
                                 Address offset) override {
+    return Result::Ok;
+  }
+  Result OnAtomicWaitExpr(Opcode, uint32_t, Address) override {
+    return Result::Ok;
+  }
+  Result OnAtomicWakeExpr(Opcode, uint32_t, Address) override {
     return Result::Ok;
   }
   Result OnBinaryExpr(Opcode opcode) override { return Result::Ok; }
@@ -219,6 +226,7 @@ class BinaryReaderNop : public BinaryReaderDelegate {
   Result OnEndFunc() override { return Result::Ok; }
   Result OnF32ConstExpr(uint32_t value_bits) override { return Result::Ok; }
   Result OnF64ConstExpr(uint64_t value_bits) override { return Result::Ok; }
+  Result OnV128ConstExpr(v128 value_bits) override { return Result::Ok; }
   Result OnGetGlobalExpr(Index global_index) override { return Result::Ok; }
   Result OnGetLocalExpr(Index local_index) override { return Result::Ok; }
   Result OnGrowMemoryExpr() override { return Result::Ok; }
@@ -356,6 +364,13 @@ class BinaryReaderNop : public BinaryReaderDelegate {
   Result OnDataAlignment(uint32_t data_alignment) override {
     return Result::Ok;
   }
+  Result OnSegmentInfoCount(Index count) override { return Result::Ok; }
+  Result OnSegmentInfo(Index index,
+                       string_view name,
+                       uint32_t alignment,
+                       uint32_t flags) override {
+    return Result::Ok;
+  }
   Result EndLinkingSection() override { return Result::Ok; }
 
   /* InitExpr - used by elem, data and global sections; these functions are
@@ -364,6 +379,9 @@ class BinaryReaderNop : public BinaryReaderDelegate {
     return Result::Ok;
   }
   Result OnInitExprF64ConstExpr(Index index, uint64_t value) override {
+    return Result::Ok;
+  }
+  Result OnInitExprV128ConstExpr(Index index, v128 value) override {
     return Result::Ok;
   }
   Result OnInitExprGetGlobalExpr(Index index, Index global_index) override {

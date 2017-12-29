@@ -47,9 +47,6 @@
 #cmakedefine01 WITH_EXCEPTIONS
 
 #define SIZEOF_SIZE_T @SIZEOF_SIZE_T@
-#define SIZEOF_INT @SIZEOF_INT@
-#define SIZEOF_LONG @SIZEOF_LONG@
-#define SIZEOF_LONG_LONG @SIZEOF_LONG_LONG@
 
 #if HAVE_ALLOCA_H
 #include <alloca.h>
@@ -96,30 +93,6 @@
 #define WABT_STATIC_ASSERT(x) _Static_assert((x), #x)
 #endif
 
-#if SIZEOF_INT == 4
-#define wabt_clz_u32(x) __builtin_clz(x)
-#define wabt_ctz_u32(x) __builtin_ctz(x)
-#define wabt_popcount_u32(x) __builtin_popcount(x)
-#elif SIZEOF_LONG == 4
-#define wabt_clz_u32(x) __builtin_clzl(x)
-#define wabt_ctz_u32(x) __builtin_ctzl(x)
-#define wabt_popcount_u32(x) __builtin_popcountl(x)
-#else
-#error "don't know how to define 32-bit builtins"
-#endif
-
-#if SIZEOF_LONG == 8
-#define wabt_clz_u64(x) __builtin_clzl(x)
-#define wabt_ctz_u64(x) __builtin_ctzl(x)
-#define wabt_popcount_u64(x) __builtin_popcountl(x)
-#elif SIZEOF_LONG_LONG == 8
-#define wabt_clz_u64(x) __builtin_clzll(x)
-#define wabt_ctz_u64(x) __builtin_ctzll(x)
-#define wabt_popcount_u64(x) __builtin_popcountll(x)
-#else
-#error "don't know how to define 64-bit builtins"
-#endif
-
 #define WABT_UNREACHABLE __builtin_unreachable()
 
 #elif COMPILER_IS_MSVC
@@ -137,82 +110,132 @@
 
 #define WABT_UNREACHABLE __assume(0)
 
-__inline unsigned long wabt_clz_u32(unsigned long mask) {
+#else
+
+#error unknown compiler
+
+#endif
+
+
+namespace wabt {
+
+#if COMPILER_IS_CLANG || COMPILER_IS_GNU
+
+inline int Clz(unsigned x) { return x ? __builtin_clz(x) : sizeof(x) * 8; }
+inline int Clz(unsigned long x) { return x ? __builtin_clzl(x) : sizeof(x) * 8; }
+inline int Clz(unsigned long long x) { return x ? __builtin_clzll(x) : sizeof(x) * 8; }
+
+inline int Ctz(unsigned x) { return x ? __builtin_ctz(x) : sizeof(x) * 8; }
+inline int Ctz(unsigned long x) { return x ? __builtin_ctzl(x) : sizeof(x) * 8; }
+inline int Ctz(unsigned long long x) { return x ? __builtin_ctzll(x) : sizeof(x) * 8; }
+
+inline int Popcount(unsigned x) { return __builtin_popcount(x); }
+inline int Popcount(unsigned long x) { return __builtin_popcountl(x); }
+inline int Popcount(unsigned long long x) { return __builtin_popcountll(x); }
+
+#elif COMPILER_IS_MSVC
+
+#if _M_IX86
+inline unsigned long LowDword(unsigned __int64 value) {
+  return (unsigned long)value;
+}
+
+inline unsigned long HighDword(unsigned __int64 value) {
+  unsigned long high;
+  memcpy(&high, (unsigned char*)&value + sizeof(high), sizeof(high));
+  return high;
+}
+#endif
+
+inline int Clz(unsigned long mask) {
+  if (mask == 0)
+    return 32;
+
   unsigned long index;
   _BitScanReverse(&index, mask);
   return sizeof(unsigned long) * 8 - (index + 1);
 }
 
-__inline unsigned long wabt_clz_u64(unsigned __int64 mask) {
+inline int Clz(unsigned int mask) {
+  return Clz((unsigned long)mask);
+}
+
+inline int Clz(unsigned __int64 mask) {
 #if _M_X64
+  if (mask == 0)
+    return 64;
+
   unsigned long index;
   _BitScanReverse64(&index, mask);
   return sizeof(unsigned __int64) * 8 - (index + 1);
 #elif _M_IX86
+  int result = Clz(HighDword(mask));
+  if (result == 32)
+    result += Clz(LowDword(mask));
+
+  return result;
+#else
+#error unexpected architecture
+#endif
+}
+
+inline int Ctz(unsigned long mask) {
+  if (mask == 0)
+    return 32;
+
   unsigned long index;
-  unsigned long high_mask;
-  memcpy(&high_mask, (unsigned char*)&mask + sizeof(unsigned long),
-         sizeof(unsigned long));
-  if (_BitScanReverse(&index, high_mask)) {
-    return sizeof(unsigned long) * 8 - (index + 1);
-  }
-
-  unsigned long low_mask;
-  memcpy(&low_mask, &mask, sizeof(unsigned long));
-  _BitScanReverse(&index, low_mask);
-  return sizeof(unsigned __int64) * 8 - (index + 1);
-#else
-#error unexpected architecture
-#endif
+  _BitScanForward(&index, mask);
+  return index;
 }
 
-__inline unsigned long wabt_ctz_u32(unsigned long mask) {
-    unsigned long index;
-    _BitScanForward(&index, mask);
-    return index;
+inline int Ctz(unsigned int mask) {
+  return Ctz((unsigned long)mask);
 }
 
-__inline unsigned long wabt_ctz_u64(unsigned __int64 mask) {
+inline int Ctz(unsigned __int64 mask) {
 #if _M_X64
-    unsigned long index;
-    _BitScanForward64(&index, mask);
-    return index;
+  if (mask == 0)
+    return 64;
+
+  unsigned long index;
+  _BitScanForward64(&index, mask);
+  return index;
 #elif _M_IX86
-    unsigned long low_mask = (unsigned long)mask;
-    if (low_mask) {
-        return wabt_ctz_u32(low_mask);
-    }
-    unsigned long high_mask;
-    memcpy(&high_mask, (unsigned char*)&mask + sizeof(unsigned long),
-           sizeof(unsigned long));
-    return sizeof(unsigned long) * 8 + wabt_ctz_u32(high_mask);
+  int result = Ctz(LowDword(mask));
+  if (result == 32)
+    result += Ctz(HighDword(mask));
+
+  return result;
 #else
 #error unexpected architecture
 #endif
 }
 
+inline int Popcount(unsigned long value) {
+  return __popcnt(value);
+}
 
-#define wabt_popcount_u32 __popcnt
+inline int Popcount(unsigned int value) {
+  return Popcount((unsigned long)value);
+}
+
+inline int Popcount(unsigned __int64 value) {
 #if _M_X64
+  return __popcnt64(value);
 #elif _M_IX86
-__inline unsigned __int64 __popcnt64(unsigned __int64 value) {
-    unsigned long high_value;
-    unsigned long low_value;
-    memcpy(&high_value, (unsigned char*)&value + sizeof(unsigned long),
-           sizeof(unsigned long));
-    memcpy(&low_value, &value, sizeof(unsigned long));
-    return wabt_popcount_u32(high_value) + wabt_popcount_u32(low_value);
-}
+  return Popcount(HighDword(value)) + Popcount(LowDword(value));
 #else
 #error unexpected architecture
 #endif
-#define wabt_popcount_u64 __popcnt64
+}
 
 #else
 
 #error unknown compiler
 
 #endif
+
+} // namespace wabt
 
 
 #if COMPILER_IS_MSVC
