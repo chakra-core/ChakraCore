@@ -141,7 +141,35 @@ namespace Wasm
 
     struct WasmBlock
     {
-        WasmTypes::WasmType sig;
+    private:
+        bool isSingleResult;
+        union
+        {
+            WasmTypes::WasmType singleResult;
+            uint32 signatureId;
+        };
+    public:
+        bool IsSingleResult() const { return isSingleResult; }
+        void SetSignatureId(uint32 id)
+        {
+            isSingleResult = false;
+            signatureId = id;
+        }
+        uint32 GetSignatureId() const 
+        {
+            Assert(!isSingleResult);
+            return signatureId;
+        }
+        void SetSingleResult(WasmTypes::WasmType type)
+        {
+            isSingleResult = true;
+            singleResult = type;
+        }
+        WasmTypes::WasmType GetSingleResult() const
+        {
+            Assert(isSingleResult);
+            return singleResult;
+        }
     };
 
     struct WasmNode

@@ -408,13 +408,14 @@ typedef struct StatementMapIDL
 
 typedef struct WasmSignatureIDL
 {
-    int resultType;
     unsigned int id;
+    unsigned int resultsCount;
     unsigned short paramSize;
     unsigned short paramsCount;
     X64_PAD4(0)
     CHAKRA_PTR shortSig;
     IDL_DEF([size_is(paramsCount)]) int * params;
+    IDL_DEF([size_is(resultsCount)]) int * results;
 } WasmSignatureIDL;
 
 typedef struct TypedSlotInfo

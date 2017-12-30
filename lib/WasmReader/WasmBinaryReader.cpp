@@ -90,8 +90,12 @@ const char16 * GetTypeName(WasmType type)
 
 } // namespace WasmTypes
 
-WasmTypes::WasmType LanguageTypes::ToWasmType(int8 binType)
+WasmTypes::WasmType LanguageTypes::ToWasmType(int8 binType, bool* isValid)
 {
+    if (isValid)
+    {
+        *isValid = true;
+    }
     switch (binType)
     {
     case LanguageTypes::i32: return WasmTypes::I32;
@@ -104,6 +108,11 @@ WasmTypes::WasmType LanguageTypes::ToWasmType(int8 binType)
         return WasmTypes::M128;
 #endif
     default:
+        if (isValid)
+        {
+            *isValid = false;
+            return WasmTypes::Limit;
+        }
         throw WasmCompilationException(_u("Invalid binary type %d"), binType);
     }
 }
@@ -641,9 +650,44 @@ void WasmBinaryReader::CallIndirectNode()
 
 void WasmBinaryReader::BlockNode()
 {
-    int8 blockType = ReadConst<int8>();
-    m_funcState.count++;
-    m_currentNode.block.sig = blockType == LanguageTypes::emptyBlock ? WasmTypes::Void : LanguageTypes::ToWasmType(blockType);
+    uint32 len = 0;
+    uint32 blockId = LEB128(len);
+    m_funcState.count += len;
+
+    if (len == 1)
+    {
+        int8 blockSig = (int8)blockId;
+        if (blockSig == LanguageTypes::emptyBlock)
+        {
+            m_currentNode.block.SetSingleResult(WasmTypes::Void);
+            return;
+        }
+    
+        bool isValid = false;
+        WasmTypes::WasmType type = LanguageTypes::ToWasmType(blockSig, &isValid);
+        if (isValid)
+        {
+            m_currentNode.block.SetSingleResult(type);
+            return;
+        }
+    }
+
+    // Fallback, check if it's a signature
+    if (!m_module->IsSignatureIndexValid(blockId))
+    {
+        ThrowDecodingError(_u("Block signature %u is invalid"), blockId);
+    }
+    if (!CONFIG_FLAG(WasmMultiValue))
+    {
+        WasmSignature* sig = m_module->GetSignature(blockId);
+        if (sig->GetResultCount() > 1 || sig->GetParamCount() > 0)
+        {
+            char16 buf[512];
+            sig->WriteSignatureToString(buf, 512);
+            ThrowDecodingError(_u("Block signatures can only have at most 1 return value and no parameters. %s is invalid"), buf);
+        }
+    }
+    m_currentNode.block.SetSignatureId(blockId);
 }
 
 // control flow
@@ -821,14 +865,15 @@ void WasmBinaryReader::ReadSignatureTypeSection()
         }
 
         uint32 resultCount = LEB128(len);
-        if (resultCount > 1)
+        if (resultCount > Limits::GetMaxFunctionReturns())
         {
-            ThrowDecodingError(_u("Too many returns in signature: %u. Maximum allowed: 1"), resultCount);
+            ThrowDecodingError(_u("Too many returns in signature: %u. Maximum allowed: %u"), resultCount, Limits::GetMaxFunctionReturns());
         }
-        if (resultCount == 1)
+        sig->AllocateResults(resultCount, m_module->GetRecycler());
+        for (uint32 iResult = 0; iResult < resultCount; ++iResult)
         {
             WasmTypes::WasmType type = ReadWasmType(len);
-            sig->SetResultType(type);
+            sig->SetResult(type, iResult);
         }
         sig->FinalizeSignature();
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -1264,7 +1309,7 @@ void WasmBinaryReader::ReadStartFunction()
         ThrowDecodingError(_u("Invalid function index for start function %u"), id);
     }
     WasmSignature* sig = m_module->GetWasmFunctionInfo(id)->GetSignature();
-    if (sig->GetParamCount() > 0 || sig->GetResultType() != WasmTypes::Void)
+    if (sig->GetParamCount() > 0 || sig->GetResultCount())
     {
         ThrowDecodingError(_u("Start function must be void and nullary"));
     }

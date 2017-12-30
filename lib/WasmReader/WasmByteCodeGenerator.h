@@ -23,6 +23,30 @@ namespace Wasm
 
         WasmTypes::WasmType type;
     };
+
+    struct PolymorphicEmitInfo
+    {
+    private:
+        uint32 count = 0;
+        union
+        {
+            EmitInfo singleInfo;
+            EmitInfo* infos;
+        };
+    public:
+        PolymorphicEmitInfo(): count(0), infos(nullptr) {}
+        PolymorphicEmitInfo(EmitInfo info)
+        {
+            Init(info);
+        }
+        uint32 Count() const { return count; }
+        void Init(EmitInfo info);
+        void Init(uint32 count, ArenaAllocator* alloc);
+        void SetInfo(EmitInfo info, uint32 index);
+        EmitInfo GetInfo(uint32 index) const;
+        bool IsUnreachable() const;
+        bool IsEquivalent(PolymorphicEmitInfo other) const;
+    };
     typedef WAsmJs::RegisterSpace WasmRegisterSpace;
 
     struct WasmLocal
@@ -121,24 +145,26 @@ namespace Wasm
 
     struct BlockInfo
     {
-        struct YieldInfo
-        {
-            EmitInfo info;
-            bool didYield = false;
-        } *yieldInfo = nullptr;
+        PolymorphicEmitInfo paramInfo;
+        PolymorphicEmitInfo yieldInfo;
+        bool didYield = false;
         Js::ByteCodeLabel label;
-        bool DidYield() const { return HasYield() && yieldInfo->didYield; }
-        bool HasYield() const { return yieldInfo != nullptr; }
-        bool IsEquivalent(const BlockInfo& other) const
+        bool DidYield() const { return didYield; }
+        bool HasYield() const
         {
-            if (HasYield() != other.HasYield())
+            return yieldInfo.Count() > 0;
+        }
+        bool IsEquivalent(const BlockInfo* other) const
+        {
+            if (HasYield() != other->HasYield())
             {
                 return false;
             }
-            if (HasYield() && yieldInfo->info.type != other.yieldInfo->info.type)
+            if (HasYield())
             {
-                return false;
+                return yieldInfo.IsEquivalent(other->yieldInfo);
             }
+
             return true;
         }
     };
@@ -182,13 +208,13 @@ namespace Wasm
         template <size_t lanes> 
         EmitInfo EmitSimdBuildExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
         void EmitExpr(WasmOp op);
-        EmitInfo EmitBlock();
+        PolymorphicEmitInfo EmitBlock();
         void EmitBlockCommon(BlockInfo* blockInfo, bool* endOnElse = nullptr);
-        EmitInfo EmitLoop();
+        PolymorphicEmitInfo EmitLoop();
 
         template<WasmOp wasmOp>
-        EmitInfo EmitCall();
-        EmitInfo EmitIfElseExpr();
+        PolymorphicEmitInfo EmitCall();
+        PolymorphicEmitInfo EmitIfElseExpr();
         void EmitBrTable();
         EmitInfo EmitDrop();
         EmitInfo EmitGrowMemory();
@@ -196,7 +222,7 @@ namespace Wasm
         EmitInfo EmitGetGlobal();
         EmitInfo EmitSetGlobal();
         EmitInfo EmitSetLocal(bool tee);
-        void EmitReturnExpr(EmitInfo* explicitRetInfo = nullptr);
+        void EmitReturnExpr(PolymorphicEmitInfo* explicitRetInfo = nullptr);
         EmitInfo EmitSelect();
         template<typename WriteFn>
         void WriteTypeStack(WriteFn fn) const;
@@ -209,7 +235,7 @@ namespace Wasm
         void PrintOpEnd();
 #endif
         void EmitBr();
-        EmitInfo EmitBrIf();
+        PolymorphicEmitInfo EmitBrIf();
 
         EmitInfo EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* signature, Js::ArrayBufferView::ViewType viewType, bool isStore);
         EmitInfo EmitSimdMemAccess(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature, Js::ArrayBufferView::ViewType viewType, uint8 dataWidth, bool isStore);
@@ -229,24 +255,26 @@ namespace Wasm
 
         void EnregisterLocals();
         void ReleaseLocation(EmitInfo* info);
+        void ReleaseLocation(PolymorphicEmitInfo* info);
 
-        EmitInfo PopLabel(Js::ByteCodeLabel labelValidation);
-        BlockInfo PushLabel(Js::ByteCodeLabel label, bool addBlockYieldInfo = true);
-        void YieldToBlock(BlockInfo blockInfo, EmitInfo expr);
-        BlockInfo GetBlockInfo(uint32 relativeDepth) const;
+        PolymorphicEmitInfo PopLabel(Js::ByteCodeLabel labelValidation);
+        BlockInfo* PushLabel(WasmBlock blockData, Js::ByteCodeLabel label, bool addBlockYieldInfo = true, bool checkInParams = true);
+        void YieldToBlock(BlockInfo* blockInfo, PolymorphicEmitInfo expr);
+        BlockInfo* GetBlockInfo(uint32 relativeDepth) const;
 
         Js::OpCodeAsmJs GetLoadOp(WasmTypes::WasmType type);
         Js::OpCodeAsmJs GetReturnOp(WasmTypes::WasmType type);
         WasmRegisterSpace* GetRegisterSpace(WasmTypes::WasmType type);
 
         EmitInfo PopValuePolymorphic() { return PopEvalStack(); }
-        EmitInfo PopStackPolymorphic(WasmTypes::WasmType expectedType = WasmTypes::Any, const char16* mismatchMessage = nullptr);
+        PolymorphicEmitInfo PopStackPolymorphic(PolymorphicEmitInfo expectedTypes, const char16* mismatchMessage = nullptr);
+        PolymorphicEmitInfo PopStackPolymorphic(const BlockInfo* blockInfo, const char16* mismatchMessage = nullptr);
         EmitInfo PopEvalStack(WasmTypes::WasmType expectedType = WasmTypes::Any, const char16* mismatchMessage = nullptr);
-        void PushEvalStack(EmitInfo);
-        EmitInfo EnsureYield(BlockInfo);
-        void EnterEvalStackScope();
+        void PushEvalStack(PolymorphicEmitInfo);
+        PolymorphicEmitInfo EnsureYield(BlockInfo*);
+        void EnterEvalStackScope(const BlockInfo*);
         // The caller needs to release the location of the returned EmitInfo
-        void ExitEvalStackScope();
+        void ExitEvalStackScope(const BlockInfo*);
         void SetUnreachableState(bool isUnreachable);
         bool IsUnreachable() const { return this->isUnreachable; }
         void SetUsesMemory(uint32 memoryIndex);
@@ -263,6 +291,7 @@ namespace Wasm
         WasmLocal* m_locals;
 
         WasmFunctionInfo* m_funcInfo;
+        BlockInfo* m_funcBlock;
         Js::WebAssemblyModule* m_module;
 
         uint32 m_maxArgOutDepth;
@@ -275,7 +304,7 @@ namespace Wasm
         WAsmJs::TypedRegisterAllocator mTypedRegisterAllocator;
 
         Js::ProfileId currentProfileId;
-        JsUtil::Stack<BlockInfo> m_blockInfos;
+        JsUtil::Stack<BlockInfo*> m_blockInfos;
         JsUtil::Stack<EmitInfo> m_evalStack;
     };
 }

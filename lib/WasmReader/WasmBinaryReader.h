@@ -18,7 +18,7 @@ namespace Wasm
         const int8 anyfunc = 0x80 - 0x10;
         const int8 func = 0x80 - 0x20;
         const int8 emptyBlock = 0x80 - 0x40;
-        WasmTypes::WasmType ToWasmType(int8);
+        WasmTypes::WasmType ToWasmType(int8, bool* isValid = nullptr);
     }
 
     struct SectionHeader

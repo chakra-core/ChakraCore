@@ -27,7 +27,8 @@ namespace Wasm
 
         void AddLocal(WasmTypes::WasmType type, uint32 count = 1);
         Local GetLocal(uint32 index) const;
-        WasmTypes::WasmType GetResultType() const;
+        uint32 GetResultCount() const;
+        Local GetResult(uint32 index) const;
 
         uint32 GetLocalCount() const;
         Js::ArgSlot GetParamCount() const;

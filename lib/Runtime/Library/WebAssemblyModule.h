@@ -77,6 +77,7 @@ public:
     uint32 GetMemoryMaxSize() const { return m_memoryMaxSize; }
 
     Wasm::WasmSignature * GetSignatures() const;
+    bool IsSignatureIndexValid(uint32 index) const;
     Wasm::WasmSignature* GetSignature(uint32 index) const;
     void SetSignatureCount(uint32 count);
     uint32 GetSignatureCount() const;
