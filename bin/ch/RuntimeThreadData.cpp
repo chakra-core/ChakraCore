@@ -4,22 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 
-#ifndef _WIN32
-HANDLE CreateSemaphoreW(LPSECURITY_ATTRIBUTES lpSemaphoreAttributes, LONG lInitialCount, LONG lMaximumCount, LPCWSTR lpName)
-{
-    // xplat-todo: implement this in PAL
-    Assert(false);
-    return INVALID_HANDLE_VALUE;
-}
-BOOL ReleaseSemaphore(HANDLE hSemaphore, LONG lReleaseCount, LPLONG lpPreviousCount)
-{
-    // xplat-todo: implement this in PAL
-    Assert(false);
-    return FALSE;
-}
-
-#endif
-
 void RuntimeThreadLocalData::Initialize(RuntimeThreadData* threadData)
 {
     this->threadData = threadData;
@@ -28,7 +12,6 @@ void RuntimeThreadLocalData::Initialize(RuntimeThreadData* threadData)
 void RuntimeThreadLocalData::Uninitialize()
 {
 }
-
 
 THREAD_LOCAL RuntimeThreadLocalData threadLocalData;
 
