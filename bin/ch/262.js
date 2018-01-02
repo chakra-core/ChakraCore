@@ -3,8 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-LR"====(
-
+R"====(
 var $262 = {
   createRealm: function () {
     return WScript.LoadScript('', 'samethread').$262;
@@ -12,7 +11,7 @@ var $262 = {
   global: this,
   agent: {
     start: function (src) {
-      WScript.LoadScript(        
+      WScript.LoadScript(
         `
         $262 = {
           agent:{
@@ -28,6 +27,5 @@ var $262 = {
     sleep: function (timeout) { WScript.Sleep(timeout); },
     getReport: function () { return WScript.GetReport(); },
   },
-}
-
+};
 )===="

@@ -14,6 +14,6 @@ FLAG(bool, EnsureCloseJITServer,            "JIT process will be force closed wh
 FLAG(bool, IgnoreScriptErrorCode,           "Don't return error code on script error", false)
 FLAG(bool, MuteHostErrorMsg,                "Mute host error output, e.g. module load failures", false)
 FLAG(bool, TraceHostCallback,               "Output traces for host callbacks", false)
-FLAG(bool, $262,                            "load $262 harness", false)
+FLAG(bool, Test262,                         "load Test262 harness", false)
 #undef FLAG
 #endif

@@ -960,7 +960,10 @@ bool WScriptJsrt::Initialize()
 
     IfJsrtErrorFail(InitializeModuleCallbacks(), false);
 
-    if (HostConfigFlags::flags.$262)
+    // When the command-line argument `-Test262` is set,
+    // WScript will have the extra support API below and $262 will be
+    // added to global scope
+    if (HostConfigFlags::flags.Test262)
     {
         IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Broadcast", BroadcastCallback));
         IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "ReceiveBroadcast", ReceiveBroadcastCallback));
@@ -969,19 +972,17 @@ bool WScriptJsrt::Initialize()
         IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Leaving", LeavingCallback));
         IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Sleep", SleepCallback));
 
-
-        // OSX does build does not support $262 as filename
-        const wchar_t $262[] =
+        // $262
+        const char Test262[] =
             #include "262.js"
-            ;
+        ;
 
-        JsValueRef $262ScriptRef;
-        IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateStringUtf16((uint16_t*)$262, _countof($262) - 1, &$262ScriptRef));
+        JsValueRef Test262ScriptRef;
+        IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateString(Test262, strlen(Test262), &Test262ScriptRef));
 
         JsValueRef fname;
-        IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateString("$262", strlen("$262"), &fname));
-        IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsRun($262ScriptRef, WScriptJsrt::GetNextSourceContext(), fname, JsParseScriptAttributeNone, nullptr));
-
+        IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateString("262", strlen("262"), &fname));
+        IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsRun(Test262ScriptRef, WScriptJsrt::GetNextSourceContext(), fname, JsParseScriptAttributeNone, nullptr));
     }
 
 Error:
