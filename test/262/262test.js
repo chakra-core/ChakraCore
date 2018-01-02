@@ -1,3 +1,8 @@
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+
 "use strict";
 var $ = {  global: this,  createRealm(options) {    options = options || {};    options.globals = options.globals || {};    var realm = WScript.LoadScript(this.source, 'samethread');    realm.$.source = this.source;    realm.$.destroy = function () {      if (options.destroy) {        options.destroy();      }    };    for(var glob in options.globals) {      realm.$.global[glob] = options.globals[glob];    }    return realm.$;  },  evalScript(code) {    try {      WScript.LoadScript(code);      return { type: 'normal', value: undefined };    } catch (e) {      return { type: 'throw', value: e };    }  },  getGlobal(name) {    return this.global[name];  },  setGlobal(name, value) {    this.global[name] = value;  },  destroy() { /* noop */ },  source: "var $ = {  global: this,  createRealm(options) {    options = options || {};    options.globals = options.globals || {};    var realm = WScript.LoadScript(this.source, 'samethread');    realm.$.source = this.source;    realm.$.destroy = function () {      if (options.destroy) {        options.destroy();      }    };    for(var glob in options.globals) {      realm.$.global[glob] = options.globals[glob];    }    return realm.$;  },  evalScript(code) {    try {      WScript.LoadScript(code);      return { type: 'normal', value: undefined };    } catch (e) {      return { type: 'throw', value: e };    }  },  getGlobal(name) {    return this.global[name];  },  setGlobal(name, value) {    this.global[name] = value;  },  destroy() { /* noop */ },  source: \"\"};"};function Test262Error(message) {
     if (message) this.message = message;
@@ -21,14 +26,13 @@ function $DONE(err) {
   if (err) {
     $ERROR(err);
   }
-  print('pass');
+  print('PASS');
   $.destroy();
 }
 
 function $LOG(str) {
   print(str);
 }
-
 
 function assert(mustBeTrue, message) {
   if (mustBeTrue === true) {
@@ -124,31 +128,35 @@ assert.throws.early = function(err, code) {
 // them go into a wait, thus controlling the waiting order.  Then we wake them
 // one by one and observe the wakeup order.
 
-for ( var i=0 ; i < 3 ; i++ ) {
+for (var i = 0; i < 3; i++) {
 $262.agent.start(
 `
 $262.agent.receiveBroadcast(function (sab) {
   var ia = new Int32Array(sab);
-  while (Atomics.load(ia, ${i+1}) == 0);
-  $262.agent.report(${i} + Atomics.wait(ia, 0, 0));
+
+  while (Atomics.load(ia, ${i}) == 0);
+
+  // the one below should produce 'not-equal'.
+  // because ia[i] is no longer 0! (see the loop above)
+  // otherwise it would wait until timeout
+  $262.agent.report(${i} + Atomics.wait(ia, ${i}, 0));
   $262.agent.leaving();
 })
 `);
 }
 
-var ia = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT*4));
+var ia = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 3));
 $262.agent.broadcast(ia.buffer);
 
-// Make them sleep in order 0 1 2 on ia[0]
-for ( var i=0 ; i < 3 ; i++ ) {
-  Atomics.store(ia, i+1, 1);
+// the `while` loop above waits until we store a value below
+for (var i = 0; i < 3; i++) {
+  Atomics.store(ia, i, 1);
   $262.agent.sleep(500);
 }
 
-// Wake them up one at a time and check the order is 0 1 2
-for ( var i=0 ; i < 3 ; i++ ) {
-  assert.sameValue(Atomics.wake(ia, 0, 1), 1);
-  assert.sameValue(getReport(), i + "ok");
+for (var i = 0; i < 3; i++) {
+  assert.sameValue(Atomics.load(ia, i), 1);
+  assert.sameValue(getReport(), i + "not-equal");
 }
 
 function getReport() {
@@ -157,8 +165,6 @@ function getReport() {
         $262.agent.sleep(100);
     return r;
 }
-
-
 
 ;$DONE();
 ;$.destroy();
