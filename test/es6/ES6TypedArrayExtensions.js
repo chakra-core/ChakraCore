@@ -905,6 +905,18 @@ var tests = [
             assert.throws(function() { copyWithinFn.call('string'); }, TypeError, "Calling %TypedArrayPrototype%.copyWithin with non-object this throws TypeError", "'this' is not a typed array object");
             assert.throws(function() { copyWithinFn.call(getRegularArray()); }, TypeError, "Calling %TypedArrayPrototype%.copyWithin with non-TypedArray object this throws TypeError", "'this' is not a typed array object");
             assert.throws(function() { copyWithinFn.call(getObjectArray()); }, TypeError, "Calling %TypedArrayPrototype%.copyWithin with non-TypedArray object this throws TypeError", "'this' is not a typed array object");
+
+            {
+                let buffer = new ArrayBuffer(0x1000);
+                let u32 = new Uint32Array(buffer);
+                let t = {
+                    valueOf: function() {
+                        ArrayBuffer.detach(buffer);
+                        return 3;
+                    }
+                };
+                assert.throws(function() { u32.copyWithin(3,0,t); }, TypeError, "Detaching the typed array buffer during reentrant code causes copyWithin to throw", "[TypedArray].prototype.copyWithin: The ArrayBuffer is detached.");
+            }
         }
     },
     {
@@ -1073,7 +1085,7 @@ var tests = [
                 counter++;
                 return elem;
             };
-            
+
             // Validating how many times the map function is called.
             [[-1, 0], [2, 2], [100, 8], [2**31, 8]].forEach(function ([len, expectedCounter]) {
                 var v = new Int8Array(8);
@@ -1092,7 +1104,7 @@ var tests = [
                 counter++;
                 return elem;
             };
-            
+
             // Validating how many times the find function is called.
             [[-1, 0], [2, 2], [100, 100]].forEach(function ([len, expectedCounter]) {
                 var v = new Int8Array(8);

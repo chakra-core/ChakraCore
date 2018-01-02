@@ -9103,6 +9103,13 @@ Case0:
         if (isTypedArrayEntryPoint)
         {
             Assert(typedArrayBase);
+
+            // Re-validate the typed array, which could have become detached due to reentrant script.
+            if (typedArrayBase->IsDetachedBuffer())
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.copyWithin"));
+            }
+
             Assert(length == typedArrayBase->GetLength());
 
             uint32 bytesPerElement = typedArrayBase->GetBytesPerElement();
