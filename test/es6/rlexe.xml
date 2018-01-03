@@ -1509,13 +1509,14 @@
     <default>
       <files>bug_OS14880030.js</files>
       <tags>BugFix</tags>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>bug_OS14880030.js</files>
       <tags>BugFix</tags>
-      <compile-flags>-force:deferparse</compile-flags>
+      <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
