@@ -5191,7 +5191,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         if (!PHASE_OFF(Js::OptTagChecksPhase, this->func) &&
             (src1ValueInfo == nullptr || src1ValueInfo->IsUninitialized()))
         {
-            return this->NewGenericValue(ValueType::GetObject(ObjectType::Object), dst);
+            return this->NewGenericValue(ValueType::GetObject(ObjectType::Object).ToLikely().SetCanBeTaggedValue(false), dst);
         }
         break;
 
