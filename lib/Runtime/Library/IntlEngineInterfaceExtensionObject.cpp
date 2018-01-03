@@ -340,7 +340,7 @@ namespace Js
 
         void Dispose(bool isShutdown) override
         {
-            if (isShutdown)
+            if (!isShutdown)
             {
                 cleanupFunc(resource);
             }
@@ -852,18 +852,6 @@ namespace Js
 
         JavascriptArray *ret = nullptr;
 
-        if (kind == LocaleDataKind::HourCycle)
-        {
-            // #sec-intl.datetimeformat-internal-slots: "[[LocaleData]][locale].hc must be < null, h11, h12, h23, h24 > for all locale values"
-            ret = scriptContext->GetLibrary()->CreateArray(5);
-            ret->SetItem(0, scriptContext->GetLibrary()->GetNull(), PropertyOperationFlags::PropertyOperation_None);
-            ret->SetItem(1, JavascriptString::NewCopySz(_u("h11"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
-            ret->SetItem(2, JavascriptString::NewCopySz(_u("h12"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
-            ret->SetItem(3, JavascriptString::NewCopySz(_u("h23"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
-            ret->SetItem(4, JavascriptString::NewCopySz(_u("h24"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
-            return ret;
-        }
-
         UErrorCode status = U_ZERO_ERROR;
         char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
         JavascriptString *langtag = JavascriptString::UnsafeFromVar(args.Values[2]);
@@ -923,6 +911,7 @@ namespace Js
             UCollator *collator = ucol_open(localeID, &status);
             UColAttributeValue kf = ucol_getAttribute(collator, UCOL_CASE_FIRST, &status);
             ICU_ASSERT(status, true);
+            ucol_close(collator);
             ret = scriptContext->GetLibrary()->CreateArray(3);
 
             if (kf == UCOL_OFF)
@@ -943,14 +932,13 @@ namespace Js
                 ret->SetItem(1, JavascriptString::NewCopySz(_u("upper"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
                 ret->SetItem(2, JavascriptString::NewCopySz(_u("false"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
             }
-
-            ucol_close(collator);
         }
         else if (kind == LocaleDataKind::Numeric)
         {
             UCollator *collator = ucol_open(localeID, &status);
             UColAttributeValue kn = ucol_getAttribute(collator, UCOL_NUMERIC_COLLATION, &status);
             ICU_ASSERT(status, true);
+            ucol_close(collator);
             ret = scriptContext->GetLibrary()->CreateArray(2);
 
             if (kn == UCOL_OFF)
@@ -963,8 +951,6 @@ namespace Js
                 ret->SetItem(0, JavascriptString::NewCopySz(_u("true"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
                 ret->SetItem(1, JavascriptString::NewCopySz(_u("false"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
             }
-
-            ucol_close(collator);
         }
         else if (kind == LocaleDataKind::Calendar)
         {
@@ -1012,33 +998,34 @@ namespace Js
             // For now, assume that all of those numbering systems are supported, and just get the default using unumsys_open
             // unumsys_open will also ensure that "native", "traditio", and "finance" are not returned, as per #sec-intl.datetimeformat-internal-slots
             static const char16 *available[] = {
-                    _u("arab"),
-                    _u("arabext"),
-                    _u("bali"),
-                    _u("beng"),
-                    _u("deva"),
-                    _u("fullwide"),
-                    _u("gujr"),
-                    _u("guru"),
-                    _u("hanidec"),
-                    _u("khmr"),
-                    _u("knda"),
-                    _u("laoo"),
-                    _u("latn"),
-                    _u("limb"),
-                    _u("mlym"),
-                    _u("mong"),
-                    _u("mymr"),
-                    _u("orya"),
-                    _u("tamldec"),
-                    _u("telu"),
-                    _u("thai"),
-                    _u("tibt")
+                _u("arab"),
+                _u("arabext"),
+                _u("bali"),
+                _u("beng"),
+                _u("deva"),
+                _u("fullwide"),
+                _u("gujr"),
+                _u("guru"),
+                _u("hanidec"),
+                _u("khmr"),
+                _u("knda"),
+                _u("laoo"),
+                _u("latn"),
+                _u("limb"),
+                _u("mlym"),
+                _u("mong"),
+                _u("mymr"),
+                _u("orya"),
+                _u("tamldec"),
+                _u("telu"),
+                _u("thai"),
+                _u("tibt")
             };
 
             UNumberingSystem *numsys = unumsys_open(localeID, &status);
             ICU_ASSERT(status, true);
             utf8::NarrowToWide numsysName(unumsys_getName(numsys));
+            unumsys_close(numsys);
 
             ret = scriptContext->GetLibrary()->CreateArray(_countof(available) + 1);
             ret->SetItem(0, JavascriptString::NewCopySz(numsysName, scriptContext), PropertyOperationFlags::PropertyOperation_None);
@@ -1046,6 +1033,16 @@ namespace Js
             {
                 ret->SetItem(i + 1, JavascriptString::NewCopySz(available[i], scriptContext), PropertyOperationFlags::PropertyOperation_None);
             }
+        }
+        else if (kind == LocaleDataKind::HourCycle)
+        {
+            // #sec-intl.datetimeformat-internal-slots: "[[LocaleData]][locale].hc must be < null, h11, h12, h23, h24 > for all locale values"
+            ret = scriptContext->GetLibrary()->CreateArray(5);
+            ret->SetItem(0, scriptContext->GetLibrary()->GetNull(), PropertyOperationFlags::PropertyOperation_None);
+            ret->SetItem(1, JavascriptString::NewCopySz(_u("h11"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+            ret->SetItem(2, JavascriptString::NewCopySz(_u("h12"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+            ret->SetItem(3, JavascriptString::NewCopySz(_u("h23"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+            ret->SetItem(4, JavascriptString::NewCopySz(_u("h24"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
         }
         else
         {
@@ -1209,18 +1206,12 @@ namespace Js
     Var IntlEngineInterfaceExtensionObject::EntryIntl_CacheNumberFormat(RecyclableObject * function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-
-        // The passed object is the hidden state object
-        if (args.Info.Count < 2 || !DynamicObject::Is(args.Values[1]))
-        {
-            // Call with undefined or non-number is undefined
-            return scriptContext->GetLibrary()->GetUndefined();
-        }
+        INTL_CHECK_ARGS(args.Info.Count == 2 && DynamicObject::Is(args.Values[1]));
 
         Var propertyValue = nullptr; // set by the GetTypedPropertyBuiltInFrom macro
 
 #if defined(INTL_ICU)
-        DynamicObject *state = DynamicObject::FromVar(args.Values[1]);
+        DynamicObject *state = DynamicObject::UnsafeFromVar(args.Values[1]);
 
         // always AssertOrFailFast that the properties we need are there, because if they aren't, Intl.js isn't functioning correctly
         AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, formatterToUse, TaggedInt));
@@ -1754,6 +1745,7 @@ namespace Js
         ICU_ASSERT(status, true);
 
         int currencyDigits = unum_getAttribute(fmt, UNUM_FRACTION_DIGITS);
+        unum_close(fmt);
         return JavascriptNumber::ToVar(currencyDigits, scriptContext);
 #else
         HRESULT hr;
@@ -1835,8 +1827,8 @@ namespace Js
         );
 
 #if defined(INTL_ICU)
-        DynamicObject *state = DynamicObject::FromVar(args.Values[2]);
-        Var cachedFormatter = nullptr;
+        DynamicObject *state = DynamicObject::UnsafeFromVar(args.Values[2]);
+        Var cachedFormatter = nullptr; // cached by EntryIntl_CacheNumberFormat
         AssertOrFailFast(state->GetInternalProperty(state, Js::InternalPropertyIds::HiddenObject, &cachedFormatter, NULL, scriptContext));
 
         UNumberFormat *fmt = static_cast<FinalizableICUObject<UNumberFormat> *>(cachedFormatter)->GetInstance();
