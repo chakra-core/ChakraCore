@@ -8845,7 +8845,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             {
                 if (IsStrictMode())
                 {
-                    if ((buildAST && pnode->sxUni.pnode1->nop == knopName && !pnode->sxUni.pnode1->IsSpecialName()) ||
+                    if ((buildAST && pnode->sxUni.pnode1->IsUserIdentifier()) ||
                         (!buildAST && operandToken.tk == tkID && !this->IsSpecialName(operandToken.pid)))
                     {
                         Error(ERRInvalidDelete);
