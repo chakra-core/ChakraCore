@@ -36,9 +36,11 @@ unsigned int Output::s_traceEntryId = 0;
 #endif
 
 THREAD_ST FILE*    Output::s_file = nullptr;
+#ifdef _WIN32
 THREAD_ST char16* Output::buffer = nullptr;
 THREAD_ST size_t   Output::bufferAllocSize = 0;
 THREAD_ST size_t   Output::bufferFreeSize = 0;
+#endif
 THREAD_ST size_t   Output::s_Column  = 0;
 THREAD_ST WORD     Output::s_color = 0;
 THREAD_ST bool     Output::s_hasColor = false;
@@ -309,6 +311,7 @@ Output::PrintBuffer(const char16 * buf, size_t size)
     {
         if (s_file == nullptr || Output::s_capture)
         {
+#ifdef _WIN32
             bool addToBuffer = true;
             if (Output::bufferFreeSize < size + 1)
             {
@@ -357,6 +360,9 @@ Output::PrintBuffer(const char16 * buf, size_t size)
                 bufferFreeSize -= size;
                 Output::buffer[Output::bufferAllocSize - Output::bufferFreeSize] = _u('\0');  // null terminate explicitly
             }
+#else
+            DirectPrint(buf);
+#endif
         }
         else
         {
@@ -380,11 +386,13 @@ void Output::Flush()
     {
         return;
     }
+#ifdef _WIN32
     if (bufferFreeSize != bufferAllocSize)
     {
         DirectPrint(Output::buffer);
         bufferFreeSize = bufferAllocSize;
     }
+#endif
     if(s_outputFile != nullptr)
     {
         fflush(s_outputFile);
@@ -545,9 +553,14 @@ Output::CaptureEnd()
 {
     Assert(s_capture);
     s_capture = false;
+#ifdef _WIN32
     bufferFreeSize = 0;
     bufferAllocSize = 0;
     char16 * returnBuffer = buffer;
     buffer = nullptr;
+#else
+    char16 * returnBuffer = nullptr;
+#endif
+
     return returnBuffer;
 }
