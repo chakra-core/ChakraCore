@@ -6,16 +6,54 @@
 "use strict";
 var r = delete this;
 
-function foo() {
+function test1() {
     "use strict";
     return delete this;
 }
-r = r && foo();
 
-function bar() {
+function test2() {
     "use strict";
     return delete new.target;
 }
-r = r && bar();
+
+function test3() {
+    "use strict";
+    try {
+        eval('delete arguments;');
+    } catch(e) {
+        return true;
+    }
+    return false;
+}
+
+function test4() {
+    "use strict";
+    let a = 'a';
+    try {
+        eval('delete a;');
+    } catch(e) {
+        return true;
+    }
+    return false;
+}
+
+function test5() {
+    "use strict";
+    try {
+        eval(`
+            function test5_eval() {
+                "use strict";
+                let a = 'a';
+                delete a;
+            }
+            test5_eval();
+        `);
+    } catch(e) {
+        return true;
+    }
+    return false;
+}
+
+r = r && test1() && test2() && test3() && test4() && test5();
 
 console.log(r ? 'PASS' : 'FAIL');
