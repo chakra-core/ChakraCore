@@ -9103,7 +9103,14 @@ Case0:
         if (isTypedArrayEntryPoint)
         {
             Assert(typedArrayBase);
-            Assert(length == typedArrayBase->GetLength());
+
+            // Re-validate the typed array, which could have become detached due to reentrant script.
+            if (typedArrayBase->IsDetachedBuffer())
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.copyWithin"));
+            }
+
+            AssertOrFailFast(length == typedArrayBase->GetLength());
 
             uint32 bytesPerElement = typedArrayBase->GetBytesPerElement();
             byte *buffer = typedArrayBase->GetByteBuffer();
@@ -9111,8 +9118,9 @@ Case0:
             size_t toByteIndex = static_cast<size_t>(toVal) * bytesPerElement;
             size_t byteCount = static_cast<size_t>(count) * bytesPerElement;
 
-            Assert(fromByteIndex + byteCount <= typedArrayBase->GetByteLength());
-            Assert(toByteIndex + byteCount <= typedArrayBase->GetByteLength());
+            Assert(typedArrayBase->GetByteLength() >= byteCount);
+            Assert(fromByteIndex <= typedArrayBase->GetByteLength() - byteCount);
+            Assert(toByteIndex <= typedArrayBase->GetByteLength() - byteCount);
 
             memmove(&buffer[toByteIndex], &buffer[fromByteIndex], byteCount);
 
