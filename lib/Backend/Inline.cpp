@@ -1026,6 +1026,11 @@ Inline::InlinePolymorphicFunction(IR::Instr *callInstr, const FunctionJITTimeInf
     callInstr->InsertBefore(dispatchStartLabel);
     for (uint i = 0; i < inlineeCount; i++)
     {
+        if (i > 0)
+        {
+            InsertStatementBoundary(callInstr);
+        }
+
         IR::LabelInstr* inlineeStartLabel = IR::LabelInstr::New(Js::OpCode::Label, callInstr->m_func);
         callInstr->InsertBefore(inlineeStartLabel);
         InsertOneInlinee(callInstr, returnValueOpnd, callInstr->GetSrc1(), inlineesDataArray[i], inlineesDataArray[i]->GetRuntimeInfo(), doneLabel, symCallerThis, /*fixedFunctionSafeThis*/ false, recursiveInlineDepth);

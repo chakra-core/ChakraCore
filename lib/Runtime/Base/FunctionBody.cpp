@@ -3379,6 +3379,15 @@ namespace Js
         SmallSpanSequence *spanSequence = entryPoint ? entryPoint->GetNativeThrowSpanSequence() : nullptr;
         int statementIndex = GetStatementIndexFromNativeOffset(spanSequence, offset);
 
+        // the offset passed in here is the offset of the Inlinee Start instruction. In some cases, the first statement of the inlinee may be mapped at that offset and would be matched 
+        // instead of matching the statement that made the call to the inlinee. In that case, to find the statement associated with the call to the inlinee we need to look earlier.
+        // We cannot alawys use the lower offset because for inlinees of inlinees the call statement and the inlinee start statement may occur at the same offset, in which case the 
+        // call statement is the one that gets matched and looking earlier would result in matching a statement from the enclosing function.
+        if (statementIndex == 0)
+        {
+            statementIndex = GetStatementIndexFromNativeOffset(spanSequence, offset - 1);
+        }
+
         return GetMatchingStatementMap(data, statementIndex, inlinee);
     }
 #endif
