@@ -105,7 +105,10 @@ namespace Js
         catch (const Js::JavascriptException& err)
         {
             exception = err.GetAndClear();
+        }
 
+        if (exception)
+        {
             // We need to clear callinfo on inlinee virtual frames on an exception.
             // We now allow inlining of functions into callers that have try-catch/try-finally.
             // When there is an exception inside the inlinee with caller having a try-catch, clear the inlinee callinfo by walking the stack.
@@ -118,13 +121,10 @@ namespace Js
             Assert(scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr);
             if (exception->GetExceptionContext() && exception->GetExceptionContext()->ThrowingFunction())
             {
-                 WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */);
+                WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */);
             }
 #endif
-        }
 
-        if (exception)
-        {
             exception = exception->CloneIfStaticExceptionObject(scriptContext);
             bool hasBailedOut = *(bool*)((char*)frame + hasBailedOutOffset); // stack offsets are negative
             if (hasBailedOut)
@@ -254,6 +254,17 @@ namespace Js
         catch (const Js::JavascriptException& err)
         {
             exception = err.GetAndClear();
+        }
+
+        if (exception)
+        {
+            // We need to clear callinfo on inlinee virtual frames on an exception.
+            // We now allow inlining of functions into callers that have try-catch/try-finally.
+            // When there is an exception inside the inlinee with caller having a try-catch, clear the inlinee callinfo by walking the stack.
+            // If not, we might have the try-catch inside a loop, and when we execute the loop next time in the interpreter on BailOnException,
+            // we will see inlined frames as being present even though they are not, because we depend on FrameInfo's callinfo to tell if an inlinee is on the stack,
+            // and we haven't cleared those bits due to the exception
+            // When we start inlining functions with try, we have to track the try addresses of the inlined functions as well.
 
 #if ENABLE_NATIVE_CODEGEN
             Assert(scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr);
@@ -262,10 +273,6 @@ namespace Js
                 WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */);
             }
 #endif
-        }
-
-        if (exception)
-        {
             exception = exception->CloneIfStaticExceptionObject(scriptContext);
             bool hasBailedOut = *(bool*)((char*)localsPtr + hasBailedOutOffset); // stack offsets are sp relative
             if (hasBailedOut)
@@ -464,6 +471,19 @@ namespace Js
         catch(const Js::JavascriptException& err)
         {
             pExceptionObject = err.GetAndClear();
+        }
+
+        // Let's run user catch handler code only after the stack has been unwound.
+        if(pExceptionObject)
+        {
+            // We need to clear callinfo on inlinee virtual frames on an exception.
+            // We now allow inlining of functions into callers that have try-catch/try-finally.
+            // When there is an exception inside the inlinee with caller having a try-catch, clear the inlinee callinfo by walking the stack.
+            // If not, we might have the try-catch inside a loop, and when we execute the loop next time in the interpreter on BailOnException,
+            // we will see inlined frames as being present even though they are not, because we depend on FrameInfo's callinfo to tell if an inlinee is on the stack,
+            // and we haven't cleared those bits due to the exception
+            // When we start inlining functions with try, we have to track the try addresses of the inlined functions as well.
+
 #if ENABLE_NATIVE_CODEGEN
             Assert(scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr);
             if (pExceptionObject->GetExceptionContext() && pExceptionObject->GetExceptionContext()->ThrowingFunction())
@@ -471,11 +491,6 @@ namespace Js
                 WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */);
             }
 #endif
-        }
-
-        // Let's run user catch handler code only after the stack has been unwound.
-        if(pExceptionObject)
-        {
             pExceptionObject = pExceptionObject->CloneIfStaticExceptionObject(scriptContext);
             bool hasBailedOut = *(bool*)((char*)framePtr + hasBailedOutOffset); // stack offsets are negative
             if (hasBailedOut)
