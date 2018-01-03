@@ -15417,6 +15417,29 @@ GlobOpt::CheckJsArrayKills(IR::Instr *const instr)
             }
             break;
         }            
+
+        case Js::OpCode::InitClass:
+            Assert(instr->GetSrc1());
+            if (instr->GetSrc2() == nullptr)
+            {
+                // No extends operand, so the InitClass will not make something into a prototype
+                break;
+            }
+
+            if(doNativeArrayTypeSpec)
+            {
+                // Class/object construction can make something a prototype
+                kills.SetKillsNativeArrays();
+            }
+            break;
+
+        case Js::OpCode::NewScObjectNoCtor:
+            if(doNativeArrayTypeSpec)
+            {
+                // Class/object construction can make something a prototype
+                kills.SetKillsNativeArrays();
+            }
+            break;
     }
 
     return kills;
