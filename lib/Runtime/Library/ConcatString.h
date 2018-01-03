@@ -14,6 +14,7 @@ namespace Js
 
     public:
         virtual Js::PropertyRecord const * GetPropertyRecord(bool dontLookupFromDictionary = false) override;
+        bool HasPropertyRecord() const { return propertyRecord != nullptr; }
 
         PropertyString * GetPropertyString() const;
         PropertyString * GetOrAddPropertyString(); // Get if it's there, otherwise bring it in.
