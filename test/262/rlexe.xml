@@ -2,7 +2,7 @@
 <regress-exe>
   <test>
     <default>
-      <compile-flags>-Test262</compile-flags>
+      <compile-flags>-ESSharedArrayBuffer -Test262</compile-flags>
       <files>262test.js</files>
     </default>
   </test>
