@@ -5,11 +5,11 @@
 
 /* global assert,testRunner,yargsParse,i64ToString */ // eslint rule
 WScript.Flag("-wasmI64");
-WScript.LoadScriptFile("../UnitTestFrameWork/UnitTestFrameWork.js");
+WScript.LoadScriptFile("../UnitTestFramework/UnitTestFramework.js");
 WScript.LoadScriptFile("wasmutils.js");
-WScript.LoadScriptFile("../wasmspec/testsuite/harness/wasm-constants.js");
-WScript.LoadScriptFile("../wasmspec/testsuite/harness/wasm-module-builder.js");
-WScript.LoadScriptFile("../UnitTestFrameWork/yargs.js");
+WScript.LoadScriptFile("../WasmSpec/testsuite/harness/wasm-constants.js");
+WScript.LoadScriptFile("../WasmSpec/testsuite/harness/wasm-module-builder.js");
+WScript.LoadScriptFile("../UnitTestFramework/yargs.js");
 const argv = yargsParse(WScript.Arguments, {
   number: ["start", "end", "verbose"],
   default: {

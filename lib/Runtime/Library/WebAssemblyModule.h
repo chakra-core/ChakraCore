@@ -23,16 +23,7 @@ namespace Wasm
 
 namespace Js
 {
-
-struct AutoCleanStr
-{
-    char16* str = nullptr;
-    ~AutoCleanStr()
-    {
-        delete[] str;
-    }
-};
-
+typedef HeapAllocator::AutoFreeArray<char16> AutoFreeExceptionMessage;
 
 class WebAssemblyModule : public DynamicObject
 {
@@ -160,7 +151,7 @@ public:
 
     Wasm::WasmBinaryReader* GetReader() const { return m_reader; }
 
-    static char16* FormatExceptionMessage(Wasm::WasmCompilationException* ex, AutoCleanStr* autoClean, WebAssemblyModule* wasmModule = nullptr, FunctionBody* body = nullptr);
+    static char16* FormatExceptionMessage(Wasm::WasmCompilationException* ex, AutoFreeExceptionMessage* autoClean, WebAssemblyModule* wasmModule = nullptr, FunctionBody* body = nullptr);
 
     virtual void Finalize(bool isShutdown) override;
     virtual void Dispose(bool isShutdown) override;

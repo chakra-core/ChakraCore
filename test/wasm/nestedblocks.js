@@ -4,8 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 
 WScript.Flag("-off:wasmdeferred");
-WScript.LoadScriptFile("../wasmspec/testsuite/harness/wasm-constants.js");
-WScript.LoadScriptFile("../wasmspec/testsuite/harness/wasm-module-builder.js");
+WScript.LoadScriptFile("../WasmSpec/testsuite/harness/wasm-constants.js");
+WScript.LoadScriptFile("../WasmSpec/testsuite/harness/wasm-module-builder.js");
 
 function test(nNestedBlocks) {
   const builder = new WasmModuleBuilder();
