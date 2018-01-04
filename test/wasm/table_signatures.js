@@ -78,7 +78,7 @@ const moduleText = `
   ${signatures.map(sig => `
   (func (export "call${sig.id}") (type $callt${sig.id})
     ${sig.params.map((_, iParam) => `(get_local ${iParam + 1})`).join(" ")}
-    (call_indirect $t${sig.id} (get_local 0))
+    (call_indirect (type $t${sig.id}) (get_local 0))
   )`
   ).join("")}
 )`;
