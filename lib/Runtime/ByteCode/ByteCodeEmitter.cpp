@@ -10284,9 +10284,13 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         }
         case knopName:
         {
-            funcInfo->AcquireLoc(pnode);
-            byteCodeGenerator->EmitPropTypeof(pnode->location, pnodeOpnd->sxPid.sym, pnodeOpnd->sxPid.pid, funcInfo);
-            break;
+            if (pnodeOpnd->IsUserIdentifier())
+            {
+                funcInfo->AcquireLoc(pnode);
+                byteCodeGenerator->EmitPropTypeof(pnode->location, pnodeOpnd->sxPid.sym, pnodeOpnd->sxPid.pid, funcInfo);
+                break;
+            }
+            // Special names should fallthrough to default case
         }
 
         default:

@@ -419,4 +419,11 @@
       <compile-flags>-off:inlineConstructors</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug14323330.js</files>
+      <tags>BugFix</tags>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>
