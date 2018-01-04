@@ -1662,6 +1662,14 @@ ParseNodePtr Parser::ParseBlock(LabelId* pLabelId)
     return pnodeBlock;
 }
 
+bool Parser::IsSpecialName(IdentPtr pid)
+{
+    return pid == wellKnownPropertyPids._this ||
+        pid == wellKnownPropertyPids._super ||
+        pid == wellKnownPropertyPids._superConstructor ||
+        pid == wellKnownPropertyPids._newTarget;
+}
+
 ParseNodePtr Parser::ReferenceSpecialName(IdentPtr pid, charcount_t ichMin, charcount_t ichLim, bool createNode)
 {
     PidRefStack* ref = this->PushPidRef(pid);
@@ -8798,8 +8806,8 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             {
                 if (IsStrictMode())
                 {
-                    if ((buildAST && pnode->sxUni.pnode1->nop == knopName) ||
-                        (!buildAST && operandToken.tk == tkID))
+                    if ((buildAST && pnode->sxUni.pnode1->IsUserIdentifier()) ||
+                        (!buildAST && operandToken.tk == tkID && !this->IsSpecialName(operandToken.pid)))
                     {
                         Error(ERRInvalidDelete);
                     }
