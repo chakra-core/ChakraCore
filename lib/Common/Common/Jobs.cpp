@@ -682,14 +682,19 @@ namespace JsUtil
             if (threadData->CanDecommit())
             {
                 // If its 1sec time out decommit and wait for INFINITE
-                // flush the function tables in background while idle
-                DelayDeletingFunctionTable::Clear();
-
                 threadData->backgroundPageAllocator.DecommitNow();
                 this->ForEachManager([&](JobManager *manager){
                     manager->OnDecommit(threadData);
                 });
-                result = WaitForMultipleObjectsEx(_countof(handles), handles, false, INFINITE, false);
+
+                do
+                {
+                    // flush the function tables in background while idle
+                    // instead of wait INFINITE, use a loop here to make sure even there's no background job, 
+                    // the side channel which deleting the function table will still be triggered
+                    DelayDeletingFunctionTable::Clear();
+                    result = WaitForMultipleObjectsEx(_countof(handles), handles, false, 1000, false);
+                } while (result == WAIT_TIMEOUT);
             }
             else
             {
