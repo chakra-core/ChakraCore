@@ -636,6 +636,7 @@ private:
     StackProber * stackProber;
     bool isThreadBound;
     bool hasThrownPendingException;
+    bool * hasBailedOutBitPtr;
     bool callDispose;
 #if ENABLE_JS_REENTRANCY_CHECK
     bool noJsReentrancy;
@@ -1527,6 +1528,16 @@ public:
     {
         Assert(this->IsInScript());
         this->hasThrownPendingException = true;
+    }
+
+    bool * GetHasBailedOutBitPtr()
+    {
+        return this->hasBailedOutBitPtr;
+    }
+
+    void SetHasBailedOutBitPtr(bool *setValue)
+    {
+        this->hasBailedOutBitPtr = setValue;
     }
 
     void SetRecordedException(Js::JavascriptExceptionObject* exceptionObject, bool propagateToDebugger = false)
