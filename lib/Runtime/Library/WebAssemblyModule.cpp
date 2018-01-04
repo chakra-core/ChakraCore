@@ -825,7 +825,7 @@ char16* WebAssemblyModule::FormatExceptionMessage(Wasm::WasmCompilationException
     {
         size_t len = wcslen(originalExceptionMessage) + 1;
         char16* buf = HeapNewArray(char16, len);
-        autoFree->Replace(buf, len);
+        autoFree->Set(buf, len);
         js_memcpy_s(buf, len * sizeof(char16), originalExceptionMessage, len * sizeof(char16));
         return buf;
     }
@@ -835,7 +835,7 @@ char16* WebAssemblyModule::FormatExceptionMessage(Wasm::WasmCompilationException
     const char16* format = _u("function %s at offset %u/%u (0x%x/0x%x): %s");
     const char16* funcName = body->GetDisplayName();
     char16* buf = HeapNewArray(char16, 2048);
-    autoFree->Replace(buf, 2048);
+    autoFree->Set(buf, 2048);
 
     _snwprintf_s(buf, 2048, _TRUNCATE, format,
         funcName,

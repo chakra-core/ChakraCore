@@ -103,8 +103,9 @@ struct HeapAllocator
         {
             HeapDelete(obj);
         }
-        void Replace(T* obj)
+        void Set(T* obj)
         {
+            Assert(this->obj == nullptr);
             this->obj = obj;
         }
         void Release()
@@ -128,8 +129,9 @@ struct HeapAllocator
         {
             HeapDeleteArray(count, obj);
         }
-        void Replace(__ecount(count) T* obj, size_t count)
+        void Set(__ecount(count) T* obj, size_t count)
         {
+            Assert(this->obj == nullptr);
             this->obj = obj;
             this->count = count;
         }
