@@ -767,6 +767,11 @@ struct ParseNode
     bool IsSpecialName() { return isSpecialName; }
     void SetIsSpecialName() { isSpecialName = true; }
 
+    bool IsUserIdentifier() const
+    {
+        return this->nop == knopName && !this->isSpecialName;
+    }
+
     bool IsVarLetOrConst() const
     {
         return this->nop == knopVarDecl || this->nop == knopLetDecl || this->nop == knopConstDecl;
