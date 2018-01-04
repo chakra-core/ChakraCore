@@ -110,6 +110,38 @@ var tests = [
             `);
         }
     },
+    {
+        name: "Global functions using 'yield' as identifier",
+        body: function () {
+            WScript.LoadScript(`
+                var a = async (yield) => { yield };
+                assert.isTrue(a() instanceof Promise, "Async lambda with yield as a formal parameter name");
+
+                function b(yield) {
+                    return yield;
+                }
+                assert.areEqual('b', b('b'), "Function with yield as a formal parameter name");
+
+                var c = async (yield) => yield;
+                assert.isTrue(c() instanceof Promise, "Async lambda with yield as a formal parameter name and compact body");
+            `);
+        }
+    },
+    {
+        name: "Nested functions using 'yield' as identifier",
+        body: function () {
+            var a = async (yield) => { yield };
+            assert.isTrue(a() instanceof Promise, "Async lambda with yield as a formal parameter name");
+
+            function b(yield) {
+                return yield;
+            }
+            assert.areEqual('b', b('b'), "Function with yield as a formal parameter name");
+
+            var c = async (yield) => yield;
+            assert.isTrue(c() instanceof Promise, "Async lambda with yield as a formal parameter name and compact body");
+        }
+    },
 ]
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
