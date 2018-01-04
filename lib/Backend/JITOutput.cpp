@@ -198,7 +198,7 @@ void
 JITOutput::RecordNativeCode(const BYTE* sourceBuffer, BYTE* localCodeAddress, TEmitBufferAllocation allocation, TCodeGenAllocators codeGenAllocators)
 {
     Assert(m_outputData->codeAddress == (intptr_t)allocation->allocation->address);
-    if (!codeGenAllocators->emitBufferManager.CommitBuffer(allocation, localCodeAddress, m_outputData->codeSize, sourceBuffer))
+    if (!codeGenAllocators->emitBufferManager.CommitBuffer(allocation, allocation->bytesCommitted, localCodeAddress, m_outputData->codeSize, sourceBuffer))
     {
         Js::Throw::OutOfMemory();
     }
