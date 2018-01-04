@@ -123,6 +123,13 @@
 </test>
 <test>
   <default>
+    <files>table_signatures.js</files>
+    <tags>exclude_jshost,exclude_drt,exclude_win7,exclude_mac</tags>
+    <compile-flags>-wasm -args --no-verbose -endargs</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
     <files>call.js</files>
     <baseline>baselines/call.baseline</baseline>
     <compile-flags>-wasm</compile-flags>
