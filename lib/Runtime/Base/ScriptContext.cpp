@@ -654,6 +654,22 @@ namespace Js
 
                 if (hasFunctions)
                 {
+                    struct AutoReset
+                    {
+                        AutoReset(ThreadContext* threadContext)
+                            :threadContext(threadContext)
+                        {
+                            // indicate background thread that we need help to delete the xData
+                            threadContext->IndicateExtraWork();
+                        }
+                        ~AutoReset()
+                        {
+                            threadContext->IndicateNoMoreExtraWork();
+                        }
+
+                        ThreadContext* threadContext;
+                    } autoReset(this->GetThreadContext());
+
                     // We still need to walk through all the function bodies and call cleanup
                     // because otherwise ETW events might not get fired if a GC doesn't happen
                     // and the thread context isn't shut down cleanly (process detach case)

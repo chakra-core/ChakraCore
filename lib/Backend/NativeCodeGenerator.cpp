@@ -89,6 +89,8 @@ NativeCodeGenerator::~NativeCodeGenerator()
 {
     Assert(this->IsClosed());
 
+    DelayDeletingFunctionTable::Clear();
+
 #ifdef PROFILE_EXEC
     if (this->foregroundCodeGenProfiler != nullptr)
     {

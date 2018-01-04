@@ -360,6 +360,9 @@ namespace JsUtil
     public:
         // Closes the job processor and closes the handle of background threads.
         virtual void Close();
+
+        virtual void IndicateExtraWork() { };
+        virtual void IndicateNoMoreExtraWork() { };
     };
 
     // -------------------------------------------------------------------------------------------------------------------------
@@ -457,6 +460,8 @@ namespace JsUtil
         unsigned int maxThreadCount;
         ParallelThreadData **parallelThreadData;
 
+        bool hasExtraWork;
+
 #if DBG_DUMP
         static  char16 const * const  DebugThreadNames[16];
 #endif
@@ -465,6 +470,8 @@ namespace JsUtil
         BackgroundJobProcessor(AllocationPolicyManager* policyManager, ThreadService *threadService, bool disableParallelThreads);
         ~BackgroundJobProcessor();
 
+        virtual void IndicateExtraWork() override;
+        virtual void IndicateNoMoreExtraWork() override;
 
     private:
         bool WaitWithThread(ParallelThreadData *parallelThreadData, const Event &e, const unsigned int milliseconds = INFINITE);
@@ -481,6 +488,8 @@ namespace JsUtil
         void InitializeThreadCount();
         void InitializeParallelThreadData(AllocationPolicyManager* policyManager, bool disableParallelThreads);
         void InitializeParallelThreadDataForThreadServiceCallBack(AllocationPolicyManager* policyManager);
+
+        void DoExtraWork();
 
     public:
         virtual void AddManager(JobManager *const manager) override;

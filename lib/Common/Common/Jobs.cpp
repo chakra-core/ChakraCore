@@ -615,7 +615,8 @@ namespace JsUtil
         threadId(GetCurrentThreadContextId()),
         threadService(threadService),
         threadCount(0),
-        maxThreadCount(0)
+        maxThreadCount(0),
+        hasExtraWork(false)
     {
         if (!threadService->HasCallback())
         {
@@ -677,6 +678,8 @@ namespace JsUtil
         //Wait for 1 sec on jobReady and shutdownBackgroundThread events.
         unsigned int result = WaitForMultipleObjectsEx(_countof(handles), handles, false, 1000, false);
 
+        DoExtraWork();
+
         while (result == WAIT_TIMEOUT)
         {
             if (threadData->CanDecommit())
@@ -687,14 +690,7 @@ namespace JsUtil
                     manager->OnDecommit(threadData);
                 });
 
-                do
-                {
-                    // flush the function tables in background while idle
-                    // instead of wait INFINITE, use a loop here to make sure even there's no background job, 
-                    // the side channel which deleting the function table will still be triggered
-                    DelayDeletingFunctionTable::Clear();
-                    result = WaitForMultipleObjectsEx(_countof(handles), handles, false, 1000, false);
-                } while (result == WAIT_TIMEOUT);
+                result = WaitForMultipleObjectsEx(_countof(handles), handles, false, INFINITE, false);
             }
             else
             {
@@ -708,6 +704,15 @@ namespace JsUtil
         }
 
         return result == WAIT_OBJECT_0;
+    }
+
+    void BackgroundJobProcessor::DoExtraWork()
+    {
+        while (hasExtraWork)
+        {
+            DelayDeletingFunctionTable::Clear();
+            Sleep(50);
+        }        
     }
 
     bool BackgroundJobProcessor::WaitWithThreadForThreadStartedOrClosingEvent(ParallelThreadData *parallelThreadData, const unsigned int milliseconds)
@@ -1413,6 +1418,18 @@ namespace JsUtil
         Assert(GetCurrentThreadContextId() == this->threadId);
         pageAllocator->ClearConcurrentThreadId();
 #endif
+    }
+
+    void BackgroundJobProcessor::IndicateExtraWork()
+    {
+        hasExtraWork = true;
+
+        // Signal the background thread to wake up and process the extra work.
+        jobReady.Set();
+    }
+    void BackgroundJobProcessor::IndicateNoMoreExtraWork()
+    {
+        hasExtraWork = false;
     }
 
 #if DBG_DUMP
