@@ -131,7 +131,8 @@ inline int _count_args(const T1&, const T2&, const T3&, const T4&, Js::CallInfo 
 #define JS_REENTRANCY_LOCK(reentrancyLock, threadContext) \
     JsReentLock reentrancyLock(threadContext);
 #else
-
+#define JS_REENTRANCY_CHECK(threadContext, ...) \
+    __VA_ARGS__;
 #define CALL_ENTRYPOINT(threadContext, entryPoint, function, callInfo, ...) \
     CALL_ENTRYPOINT_NOASSERT(entryPoint, function, callInfo, ##__VA_ARGS__);
 #define JS_REENTRANT(reentrancyLock, ...) \
