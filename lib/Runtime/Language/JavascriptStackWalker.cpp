@@ -617,29 +617,26 @@ namespace Js
         return nullptr;
     }
 #if ENABLE_NATIVE_CODEGEN
-    void JavascriptStackWalker::WalkAndClearInlineeFrameCallInfoOnException()
+    void JavascriptStackWalker::WalkAndClearInlineeFrameCallInfoOnException(void *tryCatchFrameAddr)
     {
-        // Walk the stack and when we find the first JavascriptFrame, we clear the inlinee's callinfo for this frame
-        // It is sufficient we stop at the first Javascript frame which had the enclosing try-catch
+        // Walk the stack and when we find the first native frame, we clear the inlinee's callinfo for this frame
+        // It is sufficient we stop at the first native frame which had the enclosing try-catch
         // TODO : Revisit when we start inlining functions with try-catch/try-finally
         while (this->Walk(true))
         {
-            if (this->IsJavascriptFrame())
+            if (JavascriptFunction::IsNativeAddress(this->scriptContext, this->currentFrame.GetInstructionPointer()))
             {
-                if (!this->isNativeLibraryFrame)
+                if (HasInlinedFramesOnStack())
                 {
-                    if (HasInlinedFramesOnStack())
+                    for (int index = inlinedFrameWalker.GetFrameCount() - 1; index >= 0; index--)
                     {
-                        for (int index = inlinedFrameWalker.GetFrameCount() - 1; index >= 0; index--)
-                        {
-                            auto inlinedFrame = inlinedFrameWalker.GetFrameAtIndex(index);
-                            inlinedFrame->callInfo.Clear();
-                        }
+                        auto inlinedFrame = inlinedFrameWalker.GetFrameAtIndex(index);
+                        inlinedFrame->callInfo.Clear();
                     }
-                    if (this->currentFrame.GetFrame() == this->scriptContext->GetThreadContext()->GetTryCatchFrameAddr())
-                    {
-                        break;
-                    }
+                }
+                if (this->currentFrame.GetFrame() == tryCatchFrameAddr)
+                {
+                    break;
                 }
             }
         }
