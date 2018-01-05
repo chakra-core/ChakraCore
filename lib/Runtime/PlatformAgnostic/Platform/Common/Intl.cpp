@@ -534,6 +534,7 @@ namespace Intl
             -1,
             &status
         );
+        ICU_ASSERT(status, true);
 
         // DateTimeFormat is expected to use the "proleptic Gregorian calendar", which means that the Julian calendar should never be used.
         // To accomplish this, we can set the switchover date between julian/gregorian
@@ -543,7 +544,7 @@ namespace Intl
 
         // status can be U_UNSUPPORTED_ERROR if the calendar isn't gregorian, which
         // there does not seem to be a way to check for ahead of time in the C API
-        AssertOrFailFast(status == U_ZERO_ERROR || status == U_UNSUPPORTED_ERROR);
+        AssertOrFailFastMsg(U_SUCCESS(status) || status == U_UNSUPPORTED_ERROR, u_errorName(status));
 
         IPlatformAgnosticResource *formatterResource = new IcuCObject<UDateFormat>(dtf, &udat_close);
         AssertOrFailFast(formatterResource);
