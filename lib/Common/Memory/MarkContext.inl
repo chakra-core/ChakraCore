@@ -143,7 +143,7 @@ void MarkContext::Mark(void * candidate, void * parentReference)
 
     if (interior)
     {
-        recycler->heapBlockMap.MarkInterior<parallel>(candidate, this);
+        recycler->heapBlockMap.MarkInterior<parallel, doSpecialMark>(candidate, this);
         return;
     }
 

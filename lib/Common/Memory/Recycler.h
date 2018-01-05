@@ -1571,7 +1571,7 @@ private:
 
     inline void ScanObjectInline(void ** obj, size_t byteCount);
     inline void ScanObjectInlineInterior(void ** obj, size_t byteCount);
-    template <bool doSpecialMark>
+    template <bool doSpecialMark, bool forceInterior = false>
     inline void ScanMemoryInline(void ** obj, size_t byteCount);
     template <bool doSpecialMark>
     void ScanMemory(void ** obj, size_t byteCount) { if (byteCount != 0) { ScanMemoryInline<doSpecialMark>(obj, byteCount); } }
