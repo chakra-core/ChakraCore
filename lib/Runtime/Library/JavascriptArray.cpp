@@ -11811,10 +11811,10 @@ Case0:
                 if (src->next != nullptr)
                 {
                     // Allocate a new segment in the destination and copy from src
-                    src = static_cast<SparseArraySegment<T>*>(src->next);
+                    src = SparseArraySegment<T>::From(src->next);
 
                     dst->next = dst->AllocateSegment(GetRecycler(), src->left, src->length, src->size, src->next);
-                    dst = static_cast<SparseArraySegment<T>*>(dst->next);
+                    dst = SparseArraySegment<T>::From(dst->next);
 
                     CopyArray(dst->elements, dst->size, src->elements, src->size);
                 }
