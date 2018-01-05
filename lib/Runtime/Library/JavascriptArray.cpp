@@ -6878,38 +6878,8 @@ Case0:
                 Js::Throw::FatalInternalError();
             }
 
-            // Maintain nativity of the array only for the following cases (To favor inplace conversions - keeps the conversion cost less):
-            // -    int cases for X86 and
-            // -    FloatArray for AMD64
-            // We convert the entire array back and forth once here O(n), rather than doing the costly conversion down the call stack which is O(nlogn)
-
-#if defined(TARGET_64)
-            if(compFn && JavascriptNativeFloatArray::Is(arr))
-            {
-                arr = JavascriptNativeFloatArray::ConvertToVarArray((JavascriptNativeFloatArray*)arr);
-                JS_REENTRANT(jsReentLock, arr->Sort(compFn));
-                arr = arr->ConvertToNativeArrayInPlace<JavascriptNativeFloatArray, double>(arr);
-            }
-            else
-            {
-                EnsureNonNativeArray(arr);
-                JS_REENTRANT(jsReentLock, arr->Sort(compFn));
-            }
-#else
-            if(compFn && JavascriptNativeIntArray::Is(arr))
-            {
-                //EnsureNonNativeArray(arr);
-                arr = JavascriptNativeIntArray::ConvertToVarArray((JavascriptNativeIntArray*)arr);
-                JS_REENTRANT(jsReentLock, arr->Sort(compFn));
-                arr = arr->ConvertToNativeArrayInPlace<JavascriptNativeIntArray, int32>(arr);
-            }
-            else
-            {
-                EnsureNonNativeArray(arr);
-                JS_REENTRANT(jsReentLock, arr->Sort(compFn));
-            }
-#endif
-
+            EnsureNonNativeArray(arr);
+            JS_REENTRANT(jsReentLock, arr->Sort(compFn));
         }
         else
         {
