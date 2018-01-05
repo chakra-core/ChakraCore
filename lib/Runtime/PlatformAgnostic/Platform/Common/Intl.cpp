@@ -534,6 +534,17 @@ namespace Intl
             -1,
             &status
         );
+
+        // DateTimeFormat is expected to use the "proleptic Gregorian calendar", which means that the Julian calendar should never be used.
+        // To accomplish this, we can set the switchover date between julian/gregorian
+        // to the ECMAScript beginning of time, which is -8.64e15 according to ecma262 #sec-time-values-and-time-range
+        UCalendar *cal = const_cast<UCalendar *>(udat_getCalendar(dtf));
+        ucal_setGregorianChange(cal, -8.64e15, &status);
+
+        // status can be U_UNSUPPORTED_ERROR if the calendar isn't gregorian, which
+        // there does not seem to be a way to check for ahead of time in the C API
+        AssertOrFailFast(status == U_ZERO_ERROR || status == U_UNSUPPORTED_ERROR);
+
         IPlatformAgnosticResource *formatterResource = new IcuCObject<UDateFormat>(dtf, &udat_close);
         AssertOrFailFast(formatterResource);
         *resource = formatterResource;

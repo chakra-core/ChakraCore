@@ -769,13 +769,35 @@ namespace Js
     typedef int (*CountAvailableLocaleFunc)(void);
     static bool findLocale(JavascriptString *langtag, CountAvailableLocaleFunc countAvailable, GetAvailableLocaleFunc getAvailable)
     {
-        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        char localeID[ULOC_FULLNAME_CAPACITY];
         BCP47_TO_ICU(langtag->GetSz(), langtag->GetLength(), localeID, ULOC_FULLNAME_CAPACITY);
+
+        // ICU's "available locales" do not include (all? most?) aliases.
+        // For example, searching for "zh_TW" will return false, even though
+        // zh_TW is equivalent to zh_Hant_TW, which would return true.
+        // We can work around this by searching for both the locale as requested and
+        // the locale in addition to all of its "likely subtags."
+        // This works in practice because, for instance, unum_open("zh_TW") will actually
+        // use "zh_Hant_TW" (confirmed with unum_getLocaleByType(..., ULOC_VALID_LOCALE))
+        // The code below performs the following mappings:
+        // zh_TW -> zh_Hant_TW
+        // zh_CN -> zh_Hans_CN
+        // sr_RS -> sr_Cyrl_RS
+        // pa_PK -> pa_Arab_PK
+        // TODO(jahorto): Determine if there is any scenario where a language tag + likely subtags is
+        // not exactly functionally equivalent to the language tag on its own -- basically, where
+        // constructor_open(language_tag) behaves differently to constructor_open(language_tag_and_likely_subtags)
+        // for all supported constructors.
+        UErrorCode status = U_ZERO_ERROR;
+        char localeIDWithLikelySubtags[ULOC_FULLNAME_CAPACITY];
+        uloc_addLikelySubtags(localeID, localeIDWithLikelySubtags, ULOC_FULLNAME_CAPACITY, &status);
+        ICU_ASSERT(status, true);
 
         // TODO(jahorto): can we binary search this instead?
         for (int i = 0; i < countAvailable(); i++)
         {
-            if (strcmp(localeID, getAvailable(i)) == 0)
+            const char *cur = getAvailable(i);
+            if (strcmp(localeID, cur) == 0 || strcmp(localeIDWithLikelySubtags, cur) == 0)
             {
                 return true;
             }
