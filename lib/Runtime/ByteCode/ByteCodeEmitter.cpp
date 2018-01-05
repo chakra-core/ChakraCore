@@ -3952,11 +3952,16 @@ void ByteCodeGenerator::EndEmitFunction(ParseNode *pnodeFnc)
         PopScope(); // Pop the param scope
     }
 
-    Scope *scope = funcInfo->funcExprScope;
-    if (scope && scope->GetMustInstantiate())
+    if (funcInfo->byteCodeFunction->IsFunctionParsed() && funcInfo->root->sxFnc.pnodeBody != nullptr)
     {
-        Assert(currentScope == scope);
-        PopScope();
+        // StartEmitFunction omits the matching PushScope for already-parsed functions.
+        // TODO: Refactor Start and EndEmitFunction for clarity.
+        Scope *scope = funcInfo->funcExprScope;
+        if (scope && scope->GetMustInstantiate())
+        {
+            Assert(currentScope == scope);
+            PopScope();
+        }
     }
 
     if (CONFIG_FLAG(DeferNested))
