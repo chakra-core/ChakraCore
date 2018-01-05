@@ -8330,7 +8330,7 @@ Lowerer::LowerAddLeftDeadForString(IR::Instr *instr)
     InsertCompareBranch(
         regLeftCharLengthOpnd,
         IR::IntConstOpnd::New(Js::JavascriptString::MaxCharLength, TyUint32, m_func),
-        Js::OpCode::BrGt_A,
+        Js::OpCode::BrGe_A,
         labelHelper,
         insertBeforeInstr);
 
@@ -14700,6 +14700,29 @@ IR::BranchInstr *Lowerer::InsertTestBranch(
 {
     InsertTest(testSrc1, testSrc2, insertBeforeInstr);
     return InsertBranch(branchOpCode, isUnsigned, target, insertBeforeInstr);
+}
+
+/* Inserts add with an overflow check, if we overflow throw OOM
+ * add dst, src
+ * jno $continueLabel
+ * overflow code
+ * $continueLabel : fall through
+*/
+void Lowerer::InsertAddWithOverflowCheck(
+    const bool needFlags,
+    IR::Opnd *const dst,
+    IR::Opnd *src1,
+    IR::Opnd *src2,
+    IR::Instr *const insertBeforeInstr,
+    IR::Instr **const onOverflowInsertBeforeInstrRef)
+{
+    Func * func = insertBeforeInstr->m_func;
+    InsertAdd(needFlags, dst, src1, src2, insertBeforeInstr);
+
+    IR::LabelInstr *const continueLabel = IR::LabelInstr::New(Js::OpCode::Label, func, false);
+    InsertBranch(LowererMD::MDNotOverflowBranchOpcode, continueLabel, insertBeforeInstr);
+
+    *onOverflowInsertBeforeInstrRef = continueLabel;
 }
 
 IR::Instr *Lowerer::InsertAdd(
@@ -23210,7 +23233,15 @@ Lowerer::LowerSetConcatStrMultiItem(IR::Instr * instr)
         srcLength = IR::RegOpnd::New(TyUint32, func);
         InsertMove(srcLength, IR::IndirOpnd::New(srcOpnd, Js::ConcatStringMulti::GetOffsetOfcharLength(), TyUint32, func), instr);
     }
-    InsertAdd(false, dstLength, dstLength, srcLength, instr);
+
+    IR::Instr *onOverflowInsertBeforeInstr;
+    InsertAddWithOverflowCheck(false, dstLength, dstLength, srcLength, instr, &onOverflowInsertBeforeInstr);
+    IR::Instr* callInstr = IR::Instr::New(Js::OpCode::Call, func);
+    callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::HelperOp_OutOfMemoryError, func));
+
+    instr->InsertBefore(onOverflowInsertBeforeInstr);
+    onOverflowInsertBeforeInstr->InsertBefore(callInstr);
+    this->m_lowererMD.LowerCall(callInstr, 0);
 
     dstOpnd->SetOffset(dstOpnd->GetOffset() * sizeof(Js::JavascriptString *) + Js::ConcatStringMulti::GetOffsetOfSlots());
 

@@ -1006,7 +1006,7 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
         if (boxStackInstance)
         {
             Js::Var oldValue = value;
-            value = Js::JavascriptOperators::BoxStackInstance(oldValue, scriptContext, /* allowStackFunction */ true);
+            value = Js::JavascriptOperators::BoxStackInstance(oldValue, scriptContext, /* allowStackFunction */ true, /* deepCopy */ false);
 
             if (oldValue != value)
             {
@@ -1275,7 +1275,7 @@ BailOutRecord::BailOutInlinedHelper(Js::JavascriptCallStackLayout * layout, Bail
         if (inlineeFrameRecord)
         {
             InlinedFrameLayout* outerMostFrame = (InlinedFrameLayout *)(((uint8 *)Js::JavascriptCallStackLayout::ToFramePointer(layout)) - entryPointInfo->frameHeight);
-            inlineeFrameRecord->RestoreFrames(functionBody, outerMostFrame, layout);
+            inlineeFrameRecord->RestoreFrames(functionBody, outerMostFrame, layout, false /* deepCopy */);
         }
     }
 
@@ -1480,7 +1480,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
         {
             const Js::Var arg = args.Values[i];
             BAILOUT_VERBOSE_TRACE(executeFunction, bailOutKind, _u("BailOut:   Argument #%3u: value: 0x%p"), i, arg);
-            const Js::Var boxedArg = Js::JavascriptOperators::BoxStackInstance(arg, functionScriptContext, true);
+            const Js::Var boxedArg = Js::JavascriptOperators::BoxStackInstance(arg, functionScriptContext, /* allowStackFunction */ true, /* deepCopy */ false);
             if(boxedArg != arg)
             {
                 args.Values[i] = boxedArg;
@@ -1775,7 +1775,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
         aReturn = Js::JavascriptFunction::FinishConstructor(aReturn, args.Values[0], function);
 
         Js::Var oldValue = aReturn;
-        aReturn = Js::JavascriptOperators::BoxStackInstance(oldValue, functionScriptContext, /* allowStackFunction */ true);
+        aReturn = Js::JavascriptOperators::BoxStackInstance(oldValue, functionScriptContext, /* allowStackFunction */ true, /* deepCopy */ false);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (oldValue != aReturn)
         {

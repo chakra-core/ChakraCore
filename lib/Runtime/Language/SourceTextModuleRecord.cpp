@@ -113,8 +113,16 @@ namespace Js
             Assert(sourceLength == 0);
             OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("Failed to load: %s\n"), this->GetSpecifierSz());
             hr = E_FAIL;
+
+            // We cannot just use the buffer in the specifier string - need to make a copy here.
+            const char16* moduleName = this->GetSpecifierSz();
+            size_t length = wcslen(moduleName);
+            char16* allocatedString = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, length + 1);
+            wmemcpy_s(allocatedString, length + 1, moduleName, length);
+            allocatedString[length] = _u('\0');
+
             JavascriptError *pError = scriptContext->GetLibrary()->CreateURIError();
-            JavascriptError::SetErrorMessageProperties(pError, hr, this->GetSpecifierSz(), scriptContext);
+            JavascriptError::SetErrorMessageProperties(pError, hr, allocatedString, scriptContext);
             *exceptionVar = pError;
         }
         else
@@ -288,8 +296,15 @@ namespace Js
 
             if (FAILED(hr))
             {
+                // We cannot just use the buffer in the specifier string - need to make a copy here.
+                const char16* moduleName = this->GetSpecifierSz();
+                size_t length = wcslen(moduleName);
+                char16* allocatedString = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, length + 1);
+                wmemcpy_s(allocatedString, length + 1, moduleName, length);
+                allocatedString[length] = _u('\0');
+
                 Js::JavascriptError * error = scriptContext->GetLibrary()->CreateURIError();
-                JavascriptError::SetErrorMessageProperties(error, hr, this->GetSpecifierSz(), scriptContext);
+                JavascriptError::SetErrorMessageProperties(error, hr, allocatedString, scriptContext);
                 return SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, error, scriptContext, this);
             }
         }

@@ -64,6 +64,8 @@ public:
 #endif
     static DWORD const PageSize = 4096;
 
+    static size_t const MaxPageCount = SIZE_MAX / PageSize;
+
 #ifdef STACK_ALIGN
     static DWORD const StackAlign = STACK_ALIGN;
 #else

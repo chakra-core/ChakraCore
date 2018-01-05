@@ -450,7 +450,7 @@ namespace Js
             // are inlined frames on the stack the InlineeCallInfo of the first inlined frame
             // has the native offset of the current physical frame.
             Assert(!*inlinee);
-            InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, ScriptFunction::FromVar(parentFunction), PreviousInterpreterFrameIsFromBailout(), loopNum, this, useInternalFrameInfo);
+            InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, ScriptFunction::FromVar(parentFunction), PreviousInterpreterFrameIsFromBailout(), loopNum, this, useInternalFrameInfo, false /*noAlloc*/, false /*deepCopy*/);
             inlineeOffset = tmpFrameWalker.GetBottomMostInlineeOffset();
             tmpFrameWalker.Close();
         }
@@ -555,7 +555,8 @@ namespace Js
                         }
 
                         bool hasInlinedFramesOnStack = InlinedFrameWalker::FromPhysicalFrame(inlinedFrameWalker, currentFrame,
-                            ScriptFunction::FromVar(function), true /*fromBailout*/, loopNum, this, false /*useInternalFrameInfo*/);
+                            ScriptFunction::FromVar(function), true /*fromBailout*/, loopNum, this, false /*useInternalFrameInfo*/, false /*noAlloc*/, this->deepCopyForArgs);
+
                         if (hasInlinedFramesOnStack)
                         {
                             // We're now back in the state where currentFrame == physical frame of the inliner, but
@@ -602,7 +603,18 @@ namespace Js
                     // Check whether there are inlined frames nested in this native frame. The corresponding check for
                     // a jitted loop body frame should have been done in CheckJavascriptFrame
                     Assert(lastInternalFrameInfo.codeAddress == nullptr);
-                    if (InlinedFrameWalker::FromPhysicalFrame(inlinedFrameWalker, currentFrame, ScriptFunction::FromVar(function)))
+                    bool inlinedFramesFound = InlinedFrameWalker::FromPhysicalFrame(
+                        inlinedFrameWalker,
+                        currentFrame,
+                        ScriptFunction::FromVar(function),
+                        false,  // fromBailout
+                        -1,     // loopNum
+                        nullptr,// walker
+                        false,  // useInternalFrameInfo
+                        false,  // noAlloc
+                        this->deepCopyForArgs
+                    );
+                    if (inlinedFramesFound)
                     {
                         this->inlinedFramesBeingWalked = inlinedFrameWalker.Next(inlinedFrameCallInfo);
                         this->hasInlinedFramesOnStack = true;
@@ -621,7 +633,8 @@ namespace Js
     _NOINLINE
     JavascriptStackWalker::JavascriptStackWalker(ScriptContext * scriptContext, bool useEERContext, PVOID returnAddress, bool _forceFullWalk /*=false*/) :
         inlinedFrameCallInfo(CallFlags_None, 0), shouldDetectPartiallyInitializedInterpreterFrame(true), forceFullWalk(_forceFullWalk),
-        previousInterpreterFrameIsFromBailout(false), previousInterpreterFrameIsForLoopBody(false), hasInlinedFramesOnStack(false)
+        previousInterpreterFrameIsFromBailout(false), previousInterpreterFrameIsForLoopBody(false), hasInlinedFramesOnStack(false),
+        deepCopyForArgs(false)
     {
         if (scriptContext == NULL)
         {
@@ -917,7 +930,7 @@ namespace Js
                 Assert((this->interpreterFrame->GetFlags() & Js::InterpreterStackFrameFlags_FromBailOut) != 0);
                 InlinedFrameWalker tmpFrameWalker;
                 Assert(InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, Js::ScriptFunction::FromVar(argv[JavascriptFunctionArgIndex_Function]),
-                    true /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this, false /*useInternalFrameInfo*/, true /*noAlloc*/));
+                    true /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this, false /*useInternalFrameInfo*/, true /*noAlloc*/, false /*deepCopy*/));
                 tmpFrameWalker.Close();
             }
 #endif //DBG
@@ -964,9 +977,10 @@ namespace Js
             {
                 if (includeInlineFrames &&
                     InlinedFrameWalker::FromPhysicalFrame(inlinedFrameWalker, currentFrame, Js::ScriptFunction::FromVar(argv[JavascriptFunctionArgIndex_Function]),
-                        false /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this, false /*useInternalFrameInfo*/))
+                        false /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this, false /*useInternalFrameInfo*/, false /*noAlloc*/, this->deepCopyForArgs))
                 {
                     // Found inlined frames in a jitted loop body. We dont want to skip the inlined frames; walk all of them before setting codeAddress on lastInternalFrameInfo.
+                    // DeepCopy here because, if there is an inlinee in a loop body, FromPhysicalFrame won't be called from UpdateFrame
                     this->inlinedFramesBeingWalked = inlinedFrameWalker.Next(inlinedFrameCallInfo);
                     this->hasInlinedFramesOnStack = true;
                     Assert(inlinedFramesBeingWalked);
@@ -1208,7 +1222,7 @@ namespace Js
 
 #if ENABLE_NATIVE_CODEGEN
     bool InlinedFrameWalker::FromPhysicalFrame(InlinedFrameWalker& self, StackFrame& physicalFrame, Js::ScriptFunction *parent, bool fromBailout,
-        int loopNum, const JavascriptStackWalker * const stackWalker, bool useInternalFrameInfo, bool noAlloc)
+        int loopNum, const JavascriptStackWalker * const stackWalker, bool useInternalFrameInfo, bool noAlloc, bool deepCopy)
     {
         bool inlinedFramesFound = false;
         FunctionBody* parentFunctionBody = parent->GetFunctionBody();
@@ -1261,7 +1275,7 @@ namespace Js
 
                 if (record)
                 {
-                    record->RestoreFrames(parent->GetFunctionBody(), outerMostFrame, JavascriptCallStackLayout::FromFramePointer(framePointer));
+                    record->RestoreFrames(parent->GetFunctionBody(), outerMostFrame, JavascriptCallStackLayout::FromFramePointer(framePointer), deepCopy);
                 }
             }
 
@@ -1347,7 +1361,7 @@ namespace Js
 
         for (size_t i = 0; i < argCount; i++)
         {
-            args[i] = Js::JavascriptOperators::BoxStackInstance(args[i], scriptContext);
+            args[i] = Js::JavascriptOperators::BoxStackInstance(args[i], scriptContext, false /*allowStackFunction*/, false /*deepCopy*/);
         }
     }
 

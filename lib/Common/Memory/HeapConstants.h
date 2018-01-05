@@ -19,6 +19,8 @@ public:
     static const uint MaxMediumObjectSize = 9216;
 #endif
 
+    static const uint MaxLargeObjectSize = 1u << 31; // Maximum recycler object is 2GB
+
 #if defined(_M_IX86_OR_ARM32)
     // Only if a pointer points to first 8k region of a large object, it will set the mark bit in the chunk->MarkBits
     // If the pointer points outside of that region, no mark bit will be set

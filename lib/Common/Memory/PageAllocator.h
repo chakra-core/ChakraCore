@@ -148,6 +148,7 @@ public:
 
     char* GetSecondaryAllocStartAddress() const { return (this->address + GetAvailablePageCount() * AutoSystemInfo::PageSize); }
     uint GetSecondaryAllocSize() const { return this->secondaryAllocPageCount * AutoSystemInfo::PageSize; }
+    uint GetSecondaryAllocPageCount() const { return this->secondaryAllocPageCount; }
 
     char* GetAddress() const { return address; }
     char* GetEndAddress() const { return GetSecondaryAllocStartAddress(); }

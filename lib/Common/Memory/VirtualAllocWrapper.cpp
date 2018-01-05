@@ -10,8 +10,14 @@
 
 VirtualAllocWrapper VirtualAllocWrapper::Instance;  // single instance
 
-LPVOID VirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation)
+LPVOID VirtualAllocWrapper::AllocPages(LPVOID lpAddress, size_t pageCount, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation)
 {
+    if (pageCount > AutoSystemInfo::MaxPageCount)
+    {
+        return nullptr;
+    }
+    size_t dwSize = pageCount * AutoSystemInfo::PageSize;
+    
     LPVOID address = nullptr;
 
 #if defined(ENABLE_JIT_CLAMP)
@@ -264,8 +270,14 @@ LPVOID PreReservedVirtualAllocWrapper::EnsurePreReservedRegionInternal()
 *   -   Tracks the committed pages
 */
 
-LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation)
+LPVOID PreReservedVirtualAllocWrapper::AllocPages(LPVOID lpAddress, size_t pageCount,  DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation)
 {
+    if (pageCount > AutoSystemInfo::MaxPageCount)
+    {
+        return nullptr;
+    }
+    size_t dwSize = pageCount * AutoSystemInfo::PageSize;
+    
     AssertMsg(isCustomHeapAllocation, "PreReservation used for allocations other than CustomHeap?");
     AssertMsg(AutoSystemInfo::Data.IsCFGEnabled() || PHASE_FORCE1(Js::PreReservedHeapAllocPhase), "PreReservation without CFG ?");
     Assert(dwSize != 0);
