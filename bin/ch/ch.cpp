@@ -8,6 +8,8 @@
 #include <winver.h>
 #include <process.h>
 #include <fcntl.h>
+#else
+#include <pthread.h>
 #endif
 
 #ifdef __linux__
@@ -1153,6 +1155,12 @@ return_cleanup:
     }
     delete[] argv;
     argv = nullptr;
-#endif
+#ifdef NO_SANITIZE_ADDRESS_CHECK
+    pthread_exit(&retval);
+#else
     return retval;
+#endif
+#else
+    return retval;
+#endif
 }
