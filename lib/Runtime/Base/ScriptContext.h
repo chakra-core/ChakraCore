@@ -1438,7 +1438,7 @@ private:
             return threadContext->GetEmptyStringPropertyId();
         }
 
-        void FreeFunctionEntryPoint(Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress);
+        void FreeFunctionEntryPoint(Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress, void** functionTable);
 
     private:
         uint CloneSource(Utf8SourceInfo* info);

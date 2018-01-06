@@ -19,6 +19,9 @@ namespace Memory
     struct XDataAllocation : public SecondaryAllocation
     {
         XDataAllocation()
+#ifdef _WIN32
+            :functionTable(nullptr)
+#endif
         {}
 
         bool IsFreed() const

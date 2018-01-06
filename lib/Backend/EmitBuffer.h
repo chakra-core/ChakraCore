@@ -46,7 +46,7 @@ public:
     bool ProtectBufferWithExecuteReadWriteForInterpreter(TEmitBufferAllocation* allocation);
     bool CommitBufferForInterpreter(TEmitBufferAllocation* allocation, _In_reads_bytes_(bufferSize) BYTE* pBuffer, _In_ size_t bufferSize);
     void CompletePreviousAllocation(TEmitBufferAllocation* allocation);
-    bool FreeAllocation(void* address);
+    bool FreeAllocation(void* address, void** functionTable);
     //Ends here
 
     bool IsInHeap(void* address);

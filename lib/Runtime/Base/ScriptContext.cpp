@@ -654,6 +654,24 @@ namespace Js
 
                 if (hasFunctions)
                 {
+#if ENABLE_NATIVE_CODEGEN
+                    struct AutoReset
+                    {
+                        AutoReset(ThreadContext* threadContext)
+                            :threadContext(threadContext)
+                        {
+                            // indicate background thread that we need help to delete the xData
+                            threadContext->GetJobProcessor()->StartExtraWork();
+                        }
+                        ~AutoReset()
+                        {
+                            threadContext->GetJobProcessor()->EndExtraWork();
+                        }
+
+                        ThreadContext* threadContext;
+                    } autoReset(this->GetThreadContext());
+#endif
+
                     // We still need to walk through all the function bodies and call cleanup
                     // because otherwise ETW events might not get fired if a GC doesn't happen
                     // and the thread context isn't shut down cleanly (process detach case)
@@ -4390,10 +4408,10 @@ namespace Js
     }
 #endif
 
-    void ScriptContext::FreeFunctionEntryPoint(Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress)
+    void ScriptContext::FreeFunctionEntryPoint(Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress, void** functionTable)
     {
 #if ENABLE_NATIVE_CODEGEN
-        FreeNativeCodeGenAllocation(this, codeAddress, thunkAddress);
+        FreeNativeCodeGenAllocation(this, codeAddress, thunkAddress, functionTable);
 #endif
     }
 

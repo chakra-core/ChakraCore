@@ -191,7 +191,7 @@ EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::NewAllocation(size_t b
 
 template <typename TAlloc, typename TPreReservedAlloc, class SyncObject>
 bool
-EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::FreeAllocation(void* address)
+EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::FreeAllocation(void* address, void** functionTable)
 {
     AutoRealOrFakeCriticalSection<SyncObject> autoCs(&this->criticalSection);
 #if _M_ARM
@@ -238,6 +238,14 @@ EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::FreeAllocation(void* a
                 }
             }
             VerboseHeapTrace(_u("Freeing 0x%p, allocation: 0x%p\n"), address, allocation->allocation->address);
+
+#if PDATA_ENABLED && defined(_WIN32)
+            if (functionTable && *functionTable)
+            {
+                NtdllLibrary::Instance->DeleteGrowableFunctionTable(*functionTable);
+                *functionTable = nullptr;
+            }
+#endif
 
             this->allocationHeap.Free(allocation->allocation);
             this->allocator->Free(allocation, sizeof(TEmitBufferAllocation));

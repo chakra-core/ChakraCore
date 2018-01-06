@@ -8830,31 +8830,38 @@ namespace Js
     {
         if (this->GetState() != CleanedUp)
         {
-            // Unregister xdataInfo before OnCleanup() which may release xdataInfo->address
 #if ENABLE_NATIVE_CODEGEN
-#if defined(TARGET_64)
+            void* functionTable = nullptr;
+#if PDATA_ENABLED
             if (this->xdataInfo != nullptr)
             {
+#ifdef _WIN32
+                functionTable = this->xdataInfo->functionTable;
+#endif
                 XDataAllocator::Unregister(this->xdataInfo);
-                HeapDelete(this->xdataInfo);
-                this->xdataInfo = nullptr;
-            }
-#elif defined(_M_ARM)
-            if (this->xdataInfo != nullptr)
-            {
-                XDataAllocator::Unregister(this->xdataInfo);
+#if defined(_M_ARM32_OR_ARM64)
                 if (JITManager::GetJITManager()->IsOOPJITEnabled())
+#endif
                 {
                     HeapDelete(this->xdataInfo);
                 }
                 this->xdataInfo = nullptr;
             }
 #endif
+
+            this->OnCleanup(isShutdown, &functionTable);
+
+#if PDATA_ENABLED && defined(_WIN32)
+            // functionTable is not transferred somehow, delete in-thread
+            if (functionTable)
+            {
+                if (!DelayDeletingFunctionTable::AddEntry(functionTable))
+                {
+                    NtdllLibrary::Instance->DeleteGrowableFunctionTable(functionTable);
+                }
+            }
 #endif
 
-            this->OnCleanup(isShutdown);
-
-#if ENABLE_NATIVE_CODEGEN
             FreeJitTransferData();
 
             if (this->bailoutRecordMap != nullptr)
@@ -8976,7 +8983,15 @@ namespace Js
         // Reset the entry point upon a lazy bailout.
         this->Reset(true);
         Assert(this->nativeAddress != nullptr);
-        FreeNativeCodeGenAllocation(GetScriptContext(), this->nativeAddress, this->thunkAddress);
+
+        void* functionTable = nullptr;
+#if PDATA_ENABLED && defined(_WIN32)
+        if (this->xdataInfo)
+        {
+            functionTable = this->xdataInfo->functionTable;
+        }
+#endif
+        FreeNativeCodeGenAllocation(GetScriptContext(), this->nativeAddress, this->thunkAddress, &functionTable);
         this->nativeAddress = nullptr;
         this->jsMethod = nullptr;
     }
@@ -9072,7 +9087,7 @@ namespace Js
         return functionProxy->GetFunctionBody();
     }
 
-    void FunctionEntryPointInfo::OnCleanup(bool isShutdown)
+    void FunctionEntryPointInfo::OnCleanup(bool isShutdown, void** functionTable)
     {
         if (this->IsCodeGenDone())
         {
@@ -9083,19 +9098,7 @@ namespace Js
                 HeapDelete(this->inlineeFrameMap);
                 this->inlineeFrameMap = nullptr;
             }
-#if PDATA_ENABLED
-            if (this->xdataInfo != nullptr)
-            {
-                XDataAllocator::Unregister(this->xdataInfo);
-#if defined(_M_ARM32_OR_ARM64)
-                if (JITManager::GetJITManager()->IsOOPJITEnabled())
-#endif
-                {
-                    HeapDelete(this->xdataInfo);
-                }
-                this->xdataInfo = nullptr;
-            }
-#endif
+
 #endif
 
             if(nativeEntryPointProcessed)
@@ -9146,7 +9149,8 @@ namespace Js
 
                 if (validationCookie == currentCookie)
                 {
-                    scriptContext->FreeFunctionEntryPoint((Js::JavascriptMethod)this->GetNativeAddress(), this->GetThunkAddress());
+                    scriptContext->FreeFunctionEntryPoint((Js::JavascriptMethod)this->GetNativeAddress(), this->GetThunkAddress(), functionTable);
+                    *functionTable = nullptr;
                 }
             }
 
@@ -9406,7 +9410,7 @@ namespace Js
 
     //End AsmJs Support
 
-    void LoopEntryPointInfo::OnCleanup(bool isShutdown)
+    void LoopEntryPointInfo::OnCleanup(bool isShutdown, void** functionTable)
     {
 #ifdef ASMJS_PLAT
         if (this->IsCodeGenDone() && !this->GetIsTJMode())
@@ -9423,19 +9427,6 @@ namespace Js
                 HeapDelete(this->inlineeFrameMap);
                 this->inlineeFrameMap = nullptr;
             }
-#if PDATA_ENABLED
-            if (this->xdataInfo != nullptr)
-            {
-                XDataAllocator::Unregister(this->xdataInfo);
-#if defined(_M_ARM32_OR_ARM64)
-                if (JITManager::GetJITManager()->IsOOPJITEnabled())
-#endif
-                {
-                    HeapDelete(this->xdataInfo);
-                }
-                this->xdataInfo = nullptr;
-            }
-#endif
 #endif
 
             if (!isShutdown)
@@ -9467,7 +9458,8 @@ namespace Js
 
                 if (validationCookie == currentCookie)
                 {
-                    scriptContext->FreeFunctionEntryPoint(reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()), this->GetThunkAddress());
+                    scriptContext->FreeFunctionEntryPoint(reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()), this->GetThunkAddress(), functionTable);
+                    *functionTable = nullptr;
                 }
             }
 

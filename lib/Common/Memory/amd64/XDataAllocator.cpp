@@ -162,12 +162,7 @@ void XDataAllocator::Register(XDataAllocation * xdataInfo, ULONG_PTR functionSta
 void XDataAllocator::Unregister(XDataAllocation * xdataInfo)
 {
 #ifdef _WIN32
-    // Delete the table
-    if (AutoSystemInfo::Data.IsWin8OrLater())
-    {
-        NtdllLibrary::Instance->DeleteGrowableFunctionTable(xdataInfo->functionTable);
-    }
-    else
+    if (!AutoSystemInfo::Data.IsWin8OrLater())
     {
         BOOLEAN success = RtlDeleteFunctionTable(&xdataInfo->pdata);
         Assert(success);
