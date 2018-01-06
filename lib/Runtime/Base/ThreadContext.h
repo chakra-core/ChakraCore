@@ -1059,9 +1059,6 @@ public:
     ~ThreadContext();
     void CloseForJSRT();
 
-    void IndicateExtraWork();
-    void IndicateNoMoreExtraWork();
-
     //Call back is called for one or more handles
     //It does multiple callbacks (For example: separate call back for GC thread handle & JIT thread handles)
 //    template<class Fn>

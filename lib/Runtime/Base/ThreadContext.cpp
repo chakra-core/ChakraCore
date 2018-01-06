@@ -628,20 +628,6 @@ void ThreadContext::CloseForJSRT()
     ShutdownThreads();
 }
 
-void ThreadContext::IndicateExtraWork()
-{
-#if ENABLE_NATIVE_CODEGEN
-    GetJobProcessor()->IndicateExtraWork();
-#endif
-}
-void ThreadContext::IndicateNoMoreExtraWork()
-{
-#if ENABLE_NATIVE_CODEGEN
-    GetJobProcessor()->IndicateNoMoreExtraWork();
-#endif
-}
-
-
 ThreadContext* ThreadContext::GetContextForCurrentThread()
 {
     ThreadContextTLSEntry * tlsEntry = ThreadContextTLSEntry::GetEntryForCurrentThread();

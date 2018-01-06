@@ -654,21 +654,23 @@ namespace Js
 
                 if (hasFunctions)
                 {
+#if ENABLE_NATIVE_CODEGEN
                     struct AutoReset
                     {
                         AutoReset(ThreadContext* threadContext)
                             :threadContext(threadContext)
                         {
                             // indicate background thread that we need help to delete the xData
-                            threadContext->IndicateExtraWork();
+                            threadContext->GetJobProcessor()->StartExtraWork();
                         }
                         ~AutoReset()
                         {
-                            threadContext->IndicateNoMoreExtraWork();
+                            threadContext->GetJobProcessor()->EndExtraWork();
                         }
 
                         ThreadContext* threadContext;
                     } autoReset(this->GetThreadContext());
+#endif
 
                     // We still need to walk through all the function bodies and call cleanup
                     // because otherwise ETW events might not get fired if a GC doesn't happen

@@ -1420,14 +1420,14 @@ namespace JsUtil
 #endif
     }
 
-    void BackgroundJobProcessor::IndicateExtraWork()
+    void BackgroundJobProcessor::StartExtraWork()
     {
         hasExtraWork = true;
 
         // Signal the background thread to wake up and process the extra work.
         jobReady.Set();
     }
-    void BackgroundJobProcessor::IndicateNoMoreExtraWork()
+    void BackgroundJobProcessor::EndExtraWork()
     {
         hasExtraWork = false;
     }
