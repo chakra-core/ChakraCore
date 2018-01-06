@@ -1296,7 +1296,13 @@ BailOutRecord::BailOutInlinedHelper(Js::JavascriptCallStackLayout * layout, Bail
         InlinedFrameLayout *inlinedFrame = (InlinedFrameLayout *)(((char *)layout) + currentBailOutRecord->globalBailOutRecordTable->firstActualStackOffset);
         Js::InlineeCallInfo inlineeCallInfo = inlinedFrame->callInfo;
         Assert((Js::ArgSlot)inlineeCallInfo.Count == currentBailOutRecord->actualCount);
-        Js::CallInfo callInfo(Js::CallFlags_Value, (Js::ArgSlot)inlineeCallInfo.Count);
+
+        Js::CallFlags callFlags = Js::CallFlags_Value;
+        if (currentBailOutRecord->globalBailOutRecordTable->isInlinedConstructor)
+        {
+            callFlags |= Js::CallFlags_New;
+        }
+        Js::CallInfo callInfo(callFlags, (Js::ArgSlot)inlineeCallInfo.Count);
 
         Js::ScriptFunction ** functionRef = (Js::ScriptFunction **)&(inlinedFrame->function);
         AnalysisAssert(*functionRef);

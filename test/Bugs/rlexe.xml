@@ -426,4 +426,10 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug13830477.js</files>
+      <baseline>bug13830477.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>
