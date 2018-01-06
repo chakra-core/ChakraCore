@@ -33,6 +33,11 @@ var tests = [
 
             assert.areEqual(new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: true }).format(new Date(2000, 1, 1, 1, 1, 1)), "\u200e1\u200e \u200eAM", "Formatting hour as numeric with hour12=true.");
             assert.areEqual(new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false }).format(new Date(2000, 1, 1, 1, 1, 1)), "\u200e1\u200e:\u200e00", "Formatting hour as numeric with hour12=false.");
+            
+            var epochYear = parseInt(new Intl.DateTimeFormat("en-US", { year: "numeric" }).format(0).replace("\u200e", ""), 10);
+            assert.isTrue(epochYear === 1970 || epochYear === 1969, "Allow falsy argument to format() to mean the epoch");
+
+            assert.areEqual(new Intl.DateTimeFormat().format(), new Intl.DateTimeFormat().format(Date.now()), "The default argument for DateTimeFormat.format should be Date.now()");
         }
     }
 ];
