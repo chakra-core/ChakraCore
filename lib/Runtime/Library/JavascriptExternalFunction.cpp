@@ -273,7 +273,13 @@ namespace Js
 
         ScriptContext * scriptContext = externalFunction->type->GetScriptContext();
         AnalysisAssert(scriptContext);
-        Var result = NULL;
+        Var result = nullptr;
+
+        StdCallJavascriptMethodInfo info = {
+            callInfo.Count > 0 ? args[0] : scriptContext->GetLibrary()->GetNull(),
+            args.HasNewTarget() ? args.GetNewTarget() : args.IsNewCall() ? function : scriptContext->GetLibrary()->GetNull(),
+            args.IsNewCall()
+        };
 
 #if ENABLE_TTD
         if(scriptContext->ShouldPerformRecordOrReplayAction())
@@ -284,14 +290,14 @@ namespace Js
         {
             BEGIN_LEAVE_SCRIPT(scriptContext)
             {
-                result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
+                result = externalFunction->stdCallNativeMethod(function, args.Values, args.Info.Count, &info, externalFunction->callbackState);
             }
             END_LEAVE_SCRIPT(scriptContext);
         }
 #else
         BEGIN_LEAVE_SCRIPT(scriptContext)
         {
-            result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
+            result = externalFunction->stdCallNativeMethod(function, args.Values, args.Info.Count, &info, externalFunction->callbackState);
         }
         END_LEAVE_SCRIPT(scriptContext);
 #endif
@@ -424,9 +430,15 @@ namespace Js
             TTD::TTDNestingDepthAutoAdjuster logPopper(scriptContext->GetThreadContext());
             TTD::NSLogEvents::EventLogEntry* callEvent = elog->RecordExternalCallEvent(externalFunction, scriptContext->GetThreadContext()->TTDRootNestingCount, args.Info.Count, args.Values, true);
 
+            StdCallJavascriptMethodInfo info = {
+                callInfo.Count > 0 ? args[0] : scriptContext->GetLibrary()->GetNull(),
+                args.HasNewTarget() ? args.GetNewTarget() : args.IsNewCall() ? function : scriptContext->GetLibrary()->GetNull(),
+                args.IsNewCall()
+            };
+
             BEGIN_LEAVE_SCRIPT(scriptContext)
             {
-                result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
+                result = externalFunction->stdCallNativeMethod(function, args.Values, args.Info.Count, &info, externalFunction->callbackState);
             }
             END_LEAVE_SCRIPT(scriptContext);
 
@@ -436,7 +448,7 @@ namespace Js
         return result;
     }
 
-    Var __stdcall JavascriptExternalFunction::TTDReplayDummyExternalMethod(Js::Var callee, bool isConstructCall, Var *args, USHORT cargs, void *callbackState)
+    Var __stdcall JavascriptExternalFunction::TTDReplayDummyExternalMethod(Var callee, Var *args, USHORT cargs, StdCallJavascriptMethodInfo *info, void *callbackState)
     {
         JavascriptExternalFunction* externalFunction = static_cast<JavascriptExternalFunction*>(callee);
 

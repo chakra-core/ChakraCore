@@ -6685,7 +6685,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     BOOL JavascriptOperators::IsClassConstructor(Var instance)
     {
         JavascriptFunction * function = JavascriptOperators::TryFromVar<JavascriptFunction>(instance);
-        return function && (function->GetFunctionInfo()->IsClassConstructor() || !function->IsScriptFunction());
+        return function && (function->GetFunctionInfo()->IsClassConstructor() || (!function->IsScriptFunction() && !function->IsExternalFunction()));
     }
 
     BOOL JavascriptOperators::IsClassMethod(Var instance)
