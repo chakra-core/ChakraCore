@@ -296,7 +296,7 @@ BOOL Heap<TAlloc, TPreReservedAlloc>::ProtectAllocationWithExecuteReadWrite(Allo
 }
 
 template<typename TAlloc, typename TPreReservedAlloc>
-BOOL Heap<TAlloc, TPreReservedAlloc>::ProtectAllocationWithExecuteReadOnly(Allocation *allocation, __in_opt char* addressInPage)
+BOOL Heap<TAlloc, TPreReservedAlloc>::ProtectAllocationWithExecuteReadOnly(__in Allocation *allocation, __in_opt char* addressInPage)
 {
     DWORD protectFlags = 0;
     if (AutoSystemInfo::Data.IsCFGEnabled())
