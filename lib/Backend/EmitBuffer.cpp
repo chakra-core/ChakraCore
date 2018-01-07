@@ -421,11 +421,10 @@ EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::CommitBuffer(TEmitBuff
     Assert(allocation != nullptr);
 
     // The size of destBuffer is actually given by allocation->bytesCommitted, but due to a bug in some versions of PREFast, we can't refer to allocation->bytesCommitted in the
-    // SAL annotation on destBuffer above.  We've informed the PREFast maintainers, but we don't have an ETA, so we'll use destBufferBytes as a workaround until they have a
-    // chance to look at things.
+    // SAL annotation on destBuffer above.  We've informed the PREFast maintainers, but we'll have to use destBufferBytes as a workaround until their fix makes it to Jenkins.
     Assert(destBufferBytes == allocation->bytesCommitted);
     
-    // Must have at least enough room in destBuffer for the initial skipped bytes plus the bytes we're going to write
+    // Must have at least enough room in destBuffer for the initial skipped bytes plus the bytes we're going to write.
     AnalysisAssert(allocation->bytesUsed + bytes + alignPad <= destBufferBytes);
 
     BYTE *currentDestBuffer = destBuffer + allocation->GetBytesUsed();
@@ -483,7 +482,9 @@ EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::CommitBuffer(TEmitBuff
         {
             AssertMsg(alignPad == 0, "If we are copying right now - we should be done with setting alignment.");
 
-            memcpy_s(currentDestBuffer, allocation->BytesFree(), sourceBuffer, bytesToChange);
+            const DWORD bufferBytesFree(allocation->BytesFree());
+            AnalysisAssert(currentDestBuffer + bufferBytesFree < destBuffer + destBufferBytes);
+            memcpy_s(currentDestBuffer, bufferBytesFree, sourceBuffer, bytesToChange);
 
             currentDestBuffer += bytesToChange;
             sourceBuffer += bytesToChange;
