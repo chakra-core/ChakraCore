@@ -70,6 +70,7 @@ DWORD NtdllLibrary::AddGrowableFunctionTable( _Out_ PVOID * DynamicTable,
     _In_ ULONG_PTR RangeBase,
     _In_ ULONG_PTR RangeEnd )
 {
+    Assert(AutoSystemInfo::Data.IsWin8OrLater());
     if(m_hModule)
     {
         if(addGrowableFunctionTable == NULL)
@@ -93,6 +94,7 @@ DWORD NtdllLibrary::AddGrowableFunctionTable( _Out_ PVOID * DynamicTable,
 
 VOID NtdllLibrary::DeleteGrowableFunctionTable( _In_ PVOID DynamicTable )
 {
+    Assert(AutoSystemInfo::Data.IsWin8OrLater());
     if(m_hModule)
     {
         if(deleteGrowableFunctionTable == NULL)

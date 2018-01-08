@@ -628,7 +628,6 @@ void ThreadContext::CloseForJSRT()
     ShutdownThreads();
 }
 
-
 ThreadContext* ThreadContext::GetContextForCurrentThread()
 {
     ThreadContextTLSEntry * tlsEntry = ThreadContextTLSEntry::GetEntryForCurrentThread();

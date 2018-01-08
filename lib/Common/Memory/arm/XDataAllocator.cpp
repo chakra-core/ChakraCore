@@ -99,9 +99,7 @@ void XDataAllocator::Register(XDataAllocation * xdataInfo, DWORD functionStart, 
 /* static */
 void XDataAllocator::Unregister(XDataAllocation * xdataInfo)
 {
-#ifdef _WIN32
-    NtdllLibrary::Instance->DeleteGrowableFunctionTable(xdataInfo->functionTable);
-#else  // !_WIN32
+#ifndef _WIN32
     Assert(ReadHead(xdataInfo->address));  // should be non-empty .eh_frame
     __DEREGISTER_FRAME(xdataInfo->address);
 #endif

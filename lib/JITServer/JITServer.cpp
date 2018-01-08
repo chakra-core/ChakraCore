@@ -672,7 +672,7 @@ ServerFreeAllocation(
 
     return ServerCallWrapper(context, [&]()->HRESULT
     {
-        context->GetCodeGenAllocators()->emitBufferManager.FreeAllocation((void*)codeAddress);
+        context->GetCodeGenAllocators()->emitBufferManager.FreeAllocation((void*)codeAddress, nullptr);
         return S_OK;
     });
 }

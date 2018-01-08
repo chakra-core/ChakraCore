@@ -485,7 +485,7 @@ namespace Js
 
         virtual void ReleasePendingWorkItem() {};
 
-        virtual void OnCleanup(bool isShutdown) = 0;
+        virtual void OnCleanup(bool isShutdown, void** functionTable) = 0;
 
 #ifdef PERF_COUNTERS
         virtual void OnRecorded() = 0;
@@ -907,7 +907,7 @@ namespace Js
         }
 #endif
 
-        virtual void OnCleanup(bool isShutdown) override;
+        virtual void OnCleanup(bool isShutdown, void** functionTable) override;
 
         virtual void ReleasePendingWorkItem() override;
 
@@ -936,7 +936,7 @@ namespace Js
 
         virtual FunctionBody *GetFunctionBody() const override;
 
-        virtual void OnCleanup(bool isShutdown) override;
+        virtual void OnCleanup(bool isShutdown, void** functionTable) override;
 
 #if ENABLE_NATIVE_CODEGEN
         virtual void ResetOnNativeCodeInstallFailure() override;
