@@ -689,10 +689,14 @@ def main():
         TestVariant('interpreted', [
                 '-maxInterpretCount:1', '-maxSimpleJitRunCount:1', '-bgjit-',
                 '-dynamicprofilecache:profile.dpl.${id}'
+            ], [
+                'require_disable_jit'
             ]),
         TestVariant('dynapogo', [
                 '-forceNative', '-off:simpleJit', '-bgJitDelay:0',
                 '-dynamicprofileinput:profile.dpl.${id}'
+            ], [
+                'require_disable_jit'
             ]),
         TestVariant('disable_jit', [
                 '-nonative'

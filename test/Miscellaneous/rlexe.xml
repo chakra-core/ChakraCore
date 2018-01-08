@@ -1,5 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
+<!-- ByteCode Header verification tests begin -->
+  <test>
+    <default>
+      <files>../../lib/Runtime/Library/InJavascript/Intl.js</files>
+      <baseline>../../lib/Runtime/Library/InJavascript/Intl.js.bc.32b.h</baseline>
+      <compile-flags>-GenerateLibraryByteCodeHeader -Intl</compile-flags>
+      <tags>exclude_jshost,exclude_dynapogo,exclude_amd64,exclude_disable_jit</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>../../lib/Runtime/Library/InJavascript/Intl.js</files>
+      <baseline>../../lib/Runtime/Library/InJavascript/Intl.js.bc.64b.h</baseline>
+      <compile-flags>-GenerateLibraryByteCodeHeader -Intl</compile-flags>
+      <tags>exclude_jshost,exclude_dynapogo,exclude_x86,exclude_disable_jit</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>../../lib/Runtime/Library/InJavascript/Intl.js</files>
+      <baseline>../../lib/Runtime/Library/InJavascript/Intl.js.nojit.bc.32b.h</baseline>
+      <compile-flags>-GenerateLibraryByteCodeHeader -Intl</compile-flags>
+      <tags>exclude_jshost,exclude_amd64,require_disable_jit</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>../../lib/Runtime/Library/InJavascript/Intl.js</files>
+      <baseline>../../lib/Runtime/Library/InJavascript/Intl.js.nojit.bc.64b.h</baseline>
+      <compile-flags>-GenerateLibraryByteCodeHeader -Intl</compile-flags>
+      <tags>exclude_jshost,exclude_x86,require_disable_jit</tags>
+    </default>
+  </test>
+<!-- ByteCode Header verification tests end -->
   <test>
     <default>
       <files>HasOnlyWritableDataPropertiesCache.js</files>

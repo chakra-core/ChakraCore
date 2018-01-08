@@ -400,6 +400,8 @@ goto :main
   if "%_TESTCONFIG%"=="disable_jit" (
     set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -nonative
     set EXTRA_RL_FLAGS=-nottags:exclude_interpreted -nottags:fails_interpreted -nottags:require_backend
+  ) else (
+    set EXTRA_RL_FLAGS=%EXTRA_RL_FLAGS% -nottags:require_disable_jit
   )
   if "%_TESTCONFIG%"=="dynapogo"    (
     set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -forceNative -off:simpleJit -bgJitDelay:0 %_dynamicprofileinput%
