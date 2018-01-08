@@ -411,7 +411,12 @@ bool InterpreterThunkEmitter::NewOOPJITThunkBlock()
 
     if (!CONFIG_FLAG(OOPCFGRegistration))
     {
-        this->scriptContext->GetThreadContext()->SetValidCallTargetForCFG(buffer);
+        BYTE* callTarget = buffer;
+#ifdef _M_ARM
+        // Need to register the thumb-tagged call target for CFG
+        callTarget = (BYTE*)((uintptr_t)callTarget | 0x1);
+#endif
+        this->scriptContext->GetThreadContext()->SetValidCallTargetForCFG(callTarget);
     }
 
     // Update object state only at the end when everything has succeeded - and no exceptions can be thrown.
