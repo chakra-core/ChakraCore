@@ -1225,6 +1225,8 @@ void __cdecl _alloca_probe_16()
             PROBE_STACK_CALL(scriptContext, function, argsSize);
         }
 
+        JS_REENTRANCY_CHECK(scriptContext->GetThreadContext());
+
         void *data;
         void *savedEsp;
         __asm {
