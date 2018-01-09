@@ -234,7 +234,11 @@ EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::FreeAllocation(void* a
             {
                 if (!JITManager::GetJITManager()->IsJITServer() || CONFIG_FLAG(OOPCFGRegistration))
                 {
-                    threadContext->SetValidCallTargetForCFG(address, false);
+                    void* callTarget = address;
+#if _M_ARM
+                    callTarget = (void*)((uintptr_t)callTarget | 0x1); // add the thumb bit back, so we CFG-unregister the actual call target
+#endif
+                    threadContext->SetValidCallTargetForCFG(callTarget, false);
                 }
             }
             VerboseHeapTrace(_u("Freeing 0x%p, allocation: 0x%p\n"), address, allocation->allocation->address);
