@@ -4,6 +4,8 @@
     <default>
       <files>argTest.js</files>
       <compile-flags>-maic:0 -maxInterpretCount:0</compile-flags>
+      <!-- This test is disabled on xplat until GH #4090 is fixed -->
+      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
