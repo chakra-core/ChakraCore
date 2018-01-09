@@ -2676,6 +2676,11 @@ ParseNodePtr Parser::ParseImport()
     // import()
     if (m_token.tk == tkLParen)
     {
+        if (!m_scriptContext->GetConfig()->IsESDynamicImportEnabled())
+        {
+            Error(ERRsyntax);
+        }
+
         ParseNodePtr pnode = ParseImportCall<buildAST>();
         BOOL fCanAssign;
         IdentToken token;
@@ -3556,7 +3561,7 @@ LFunction :
         break;
 
     case tkIMPORT:
-        if (m_scriptContext->GetConfig()->IsES6ModuleEnabled())
+        if (m_scriptContext->GetConfig()->IsES6ModuleEnabled() && m_scriptContext->GetConfig()->IsESDynamicImportEnabled())
         {
             m_pscan->Scan();
             ChkCurTokNoScan(tkLParen, ERRnoLparen);

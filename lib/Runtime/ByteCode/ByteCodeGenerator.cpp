@@ -1423,6 +1423,11 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
         sym->SetPosition(parseableFunctionInfo->GetOrAddPropertyIdTracked(sym->GetName()));
 
         pnode->sxFnc.SetFuncSymbol(sym);
+
+        if (funcExprScope->GetIsObject())
+        {
+            funcExprScope->SetMustInstantiate(true);
+        }
     }
 
     Scope *paramScope = pnode->sxFnc.pnodeScopes ? pnode->sxFnc.pnodeScopes->sxBlock.scope : nullptr;

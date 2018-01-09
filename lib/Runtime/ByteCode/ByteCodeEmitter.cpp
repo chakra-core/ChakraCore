@@ -3534,6 +3534,10 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                     funcInfo->paramScope->AddSymbol(sym);
                 }
                 sym->EnsureScopeSlot(funcInfo);
+                if (sym->GetHasNonLocalReference())
+                {
+                    sym->GetScope()->SetHasOwnLocalInClosure(true);
+                }
             }
         }
 
@@ -11407,6 +11411,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             }
         };
 
+        ByteCodeGenerator::TryScopeRecord tryRecForCatch(Js::OpCode::ResumeCatch, catchLabel);
         if (isPattern)
         {
             Parser::MapBindIdentifier(pnodeObj->sxParamPattern.pnode1, [&](ParseNodePtr item)
@@ -11427,7 +11432,6 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             ParseNodePtr pnode1 = pnodeObj->sxParamPattern.pnode1;
             Assert(pnode1->IsPattern());
 
-            ByteCodeGenerator::TryScopeRecord tryRecForCatch(Js::OpCode::ResumeCatch, catchLabel);
             if (funcInfo->byteCodeFunction->IsCoroutine())
             {
                 byteCodeGenerator->tryScopeRecordsList.LinkToEnd(&tryRecForCatch);
@@ -11450,7 +11454,6 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             byteCodeGenerator->Writer()->Empty(Js::OpCode::Nop);
             byteCodeGenerator->EndStatement(pnodeCatch);
 
-            ByteCodeGenerator::TryScopeRecord tryRecForCatch(Js::OpCode::ResumeCatch, catchLabel);
             if (funcInfo->byteCodeFunction->IsCoroutine())
             {
                 byteCodeGenerator->tryScopeRecordsList.LinkToEnd(&tryRecForCatch);

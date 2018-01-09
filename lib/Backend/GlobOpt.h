@@ -798,6 +798,29 @@ private:
     bool                    DoPowIntIntTypeSpec() const;
     bool                    DoTagChecks() const;
 
+    template <class Fn>
+    void TrackByteCodeUsesForInstrAddedInOptInstr(IR::Instr * trackByteCodeUseOnInstr, Fn fn)
+    {
+        BVSparse<JitArenaAllocator> *currentBytecodeUses = this->byteCodeUses;
+        PropertySym * currentPropertySymUse = this->propertySymUse;
+        PropertySym * tempPropertySymUse = NULL;
+        this->byteCodeUses = NULL;
+        BVSparse<JitArenaAllocator> *tempByteCodeUse = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
+#if DBG
+        BVSparse<JitArenaAllocator> *currentBytecodeUsesBeforeOpt = this->byteCodeUsesBeforeOpt;
+        this->byteCodeUsesBeforeOpt = tempByteCodeUse;
+#endif
+        this->propertySymUse = NULL;
+        GlobOpt::TrackByteCodeSymUsed(trackByteCodeUseOnInstr, tempByteCodeUse, &tempPropertySymUse);
+
+        fn();
+
+        this->byteCodeUses = currentBytecodeUses;
+        this->propertySymUse = currentPropertySymUse;
+#if DBG
+        this->byteCodeUsesBeforeOpt = currentBytecodeUsesBeforeOpt;
+#endif
+    }
 private:
     // GlobOptBailout.cpp
     bool                    MayNeedBailOut(Loop * loop) const;

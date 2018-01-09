@@ -1216,7 +1216,7 @@ HeapBlockMap64::EnsureHeapBlock(void * address, size_t pageCount)
         {
             return true;
         }
-        address = (void *)((size_t)address + (nodePages * AutoSystemInfo::PageSize));
+        address = (void *)((size_t)address + ((size_t)nodePages * AutoSystemInfo::PageSize));
         nodePages = HeapBlockMap64::PagesPer4GB;
         if (pageCountLeft < HeapBlockMap64::PagesPer4GB)
         {

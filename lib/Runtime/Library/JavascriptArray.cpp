@@ -11853,28 +11853,59 @@ Case0:
 #endif
 
     template <typename T>
-    void JavascriptArray::InitBoxedInlineHeadSegment(SparseArraySegment<T> * dst, SparseArraySegment<T> * src)
+    void JavascriptArray::InitBoxedInlineSegments(SparseArraySegment<T> * dst, SparseArraySegment<T> * src, bool deepCopy)
     {
         // Don't copy the segment map, we will build it again
         SetFlags(GetFlags() & ~DynamicObjectFlags::HasSegmentMap);
 
         SetHeadAndLastUsedSegment(dst);
 
+        // Copy head segment data
         dst->left = src->left;
         dst->length = src->length;
         dst->size = src->size;
         dst->CheckLengthvsSize();
-        dst->next = src->next;
-
         CopyArray(dst->elements, dst->size, src->elements, src->size);
+
+        if (!deepCopy)
+        {
+            // Without a deep copy, point to the existing next segment
+            dst->next = src->next;
+        }
+        else
+        {
+            // When deepCopy is true, make a separate copy of each segment. While this involves data
+            // duplication, it allows the new object to have a separate lifetime without sharing data.
+            AutoDisableInterrupt failFastError(GetScriptContext()->GetThreadContext());
+            do
+            {
+                if (src->next != nullptr)
+                {
+                    // Allocate a new segment in the destination and copy from src
+                    src = SparseArraySegment<T>::From(src->next);
+
+                    dst->next = dst->AllocateSegment(GetRecycler(), src->left, src->length, src->size, src->next);
+                    dst = SparseArraySegment<T>::From(dst->next);
+
+                    CopyArray(dst->elements, dst->size, src->elements, src->size);
+                }
+                else
+                {
+                    // Terminate the loop
+                    dst->next = nullptr;
+                    dst = nullptr;
+                }
+            } while (dst != nullptr);
+            failFastError.Completed();
+        }
     }
 
-    JavascriptArray::JavascriptArray(JavascriptArray * instance, bool boxHead)
+    JavascriptArray::JavascriptArray(JavascriptArray * instance, bool boxHead, bool deepCopy)
         : ArrayObject(instance)
     {
         if (boxHead)
         {
-            InitBoxedInlineHeadSegment(DetermineInlineHeadSegmentPointer<JavascriptArray, 0, true>(this), SparseArraySegment<Var>::From(instance->head));
+            InitBoxedInlineSegments(DetermineInlineHeadSegmentPointer<JavascriptArray, 0, true>(this), SparseArraySegment<Var>::From(instance->head), false);
         }
         else
         {
@@ -11886,7 +11917,7 @@ Case0:
     }
 
     template <typename T>
-    T * JavascriptArray::BoxStackInstance(T * instance)
+    T * JavascriptArray::BoxStackInstance(T * instance, bool deepCopy)
     {
         Assert(ThreadContext::IsOnStack(instance));
         // On the stack, the we reserved a pointer before the object as to store the boxed value
@@ -11902,15 +11933,15 @@ Case0:
         {
             boxedInstance = RecyclerNewPlusZ(instance->GetRecycler(),
                 inlineSlotsSize + sizeof(Js::SparseArraySegmentBase) + instance->head->size * sizeof(typename T::TElement),
-                T, instance, true);
+                T, instance, true, deepCopy);
         }
         else if(inlineSlotsSize)
         {
-            boxedInstance = RecyclerNewPlusZ(instance->GetRecycler(), inlineSlotsSize, T, instance, false);
+            boxedInstance = RecyclerNewPlusZ(instance->GetRecycler(), inlineSlotsSize, T, instance, false, false);
         }
         else
         {
-            boxedInstance = RecyclerNew(instance->GetRecycler(), T, instance, false);
+            boxedInstance = RecyclerNew(instance->GetRecycler(), T, instance, false, false);
         }
 
         *boxedInstanceRef = boxedInstance;
@@ -11918,9 +11949,9 @@ Case0:
     }
 
     JavascriptArray *
-    JavascriptArray::BoxStackInstance(JavascriptArray * instance)
+    JavascriptArray::BoxStackInstance(JavascriptArray * instance, bool deepCopy)
     {
-        return BoxStackInstance<JavascriptArray>(instance);
+        return BoxStackInstance<JavascriptArray>(instance, deepCopy);
     }
 
 #if ENABLE_TTD
@@ -11988,17 +12019,17 @@ Case0:
 #endif
 
     JavascriptNativeArray::JavascriptNativeArray(JavascriptNativeArray * instance) :
-        JavascriptArray(instance, false),
+        JavascriptArray(instance, false, false),
         weakRefToFuncBody(instance->weakRefToFuncBody)
     {
     }
 
-    JavascriptNativeIntArray::JavascriptNativeIntArray(JavascriptNativeIntArray * instance, bool boxHead) :
+    JavascriptNativeIntArray::JavascriptNativeIntArray(JavascriptNativeIntArray * instance, bool boxHead, bool deepCopy) :
         JavascriptNativeArray(instance)
     {
         if (boxHead)
         {
-            InitBoxedInlineHeadSegment(DetermineInlineHeadSegmentPointer<JavascriptNativeIntArray, 0, true>(this), SparseArraySegment<int>::From(instance->head));
+            InitBoxedInlineSegments(DetermineInlineHeadSegmentPointer<JavascriptNativeIntArray, 0, true>(this), SparseArraySegment<int>::From(instance->head), deepCopy);
         }
         else
         {
@@ -12009,9 +12040,9 @@ Case0:
     }
 
     JavascriptNativeIntArray *
-    JavascriptNativeIntArray::BoxStackInstance(JavascriptNativeIntArray * instance)
+    JavascriptNativeIntArray::BoxStackInstance(JavascriptNativeIntArray * instance, bool deepCopy)
     {
-        return JavascriptArray::BoxStackInstance<JavascriptNativeIntArray>(instance);
+        return JavascriptArray::BoxStackInstance<JavascriptNativeIntArray>(instance, deepCopy);
     }
 
 #if ENABLE_TTD
@@ -12039,12 +12070,12 @@ Case0:
 #endif
 #endif
 
-    JavascriptNativeFloatArray::JavascriptNativeFloatArray(JavascriptNativeFloatArray * instance, bool boxHead) :
+    JavascriptNativeFloatArray::JavascriptNativeFloatArray(JavascriptNativeFloatArray * instance, bool boxHead, bool deepCopy) :
         JavascriptNativeArray(instance)
     {
         if (boxHead)
         {
-            InitBoxedInlineHeadSegment(DetermineInlineHeadSegmentPointer<JavascriptNativeFloatArray, 0, true>(this), SparseArraySegment<double>::From(instance->head));
+            InitBoxedInlineSegments(DetermineInlineHeadSegmentPointer<JavascriptNativeFloatArray, 0, true>(this), SparseArraySegment<double>::From(instance->head), deepCopy);
         }
         else
         {
@@ -12055,9 +12086,9 @@ Case0:
     }
 
     JavascriptNativeFloatArray *
-    JavascriptNativeFloatArray::BoxStackInstance(JavascriptNativeFloatArray * instance)
+    JavascriptNativeFloatArray::BoxStackInstance(JavascriptNativeFloatArray * instance, bool deepCopy)
     {
-        return JavascriptArray::BoxStackInstance<JavascriptNativeFloatArray>(instance);
+        return JavascriptArray::BoxStackInstance<JavascriptNativeFloatArray>(instance, deepCopy);
     }
 
 #if ENABLE_TTD
