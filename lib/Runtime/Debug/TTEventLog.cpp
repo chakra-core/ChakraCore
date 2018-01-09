@@ -1199,7 +1199,8 @@ namespace TTD
 
     bool EventLog::IsTimeForSnapshot() const
     {
-        return (this->m_elapsedExecutionTimeSinceSnapshot > this->m_threadContext->TTDContext->SnapInterval);
+        return this->m_threadContext->TTDContext->SnapInterval == 0   // if SnapInterval is 0, we'll always snapshot irrespective of when last one was taken
+            || (this->m_elapsedExecutionTimeSinceSnapshot > this->m_threadContext->TTDContext->SnapInterval);
     }
 
     void EventLog::PruneLogLength()

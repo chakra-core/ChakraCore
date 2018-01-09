@@ -832,8 +832,6 @@
       <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
-  <!--
-  // mkaufman TODO
   <test>
     <default>
       <files>ttdSentinal.js</files>
@@ -842,7 +840,6 @@
       <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
-  -->
   <test>
     <default>
       <files>generatorIntParam.js</files>
@@ -976,6 +973,54 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=generatorWriteLogDuringGeneratorExecutionTest -TTDStartEvent=6</compile-flags>
       <baseline>generatorWriteLogDuringGeneratorExecutionReplay_6.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+    <test>
+    <default>
+      <files>asyncAwaitBasic.js</files>
+      <compile-flags>-TTRecord=asyncAwaitBasicTest -TTSnapInterval=0</compile-flags>
+      <baseline>asyncAwaitBasicRecord.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=asyncAwaitBasicTest -TTDStartEvent=1</compile-flags>
+      <baseline>asyncAwaitBasicReplay_1.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+    <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=asyncAwaitBasicTest -TTDStartEvent=2</compile-flags>
+      <baseline>asyncAwaitBasicReplay_2.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+    <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=asyncAwaitBasicTest -TTDStartEvent=3</compile-flags>
+      <baseline>asyncAwaitBasicReplay_3.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+    <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=asyncAwaitBasicTest -TTDStartEvent=4</compile-flags>
+      <baseline>asyncAwaitBasicReplay_4.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+    <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=asyncAwaitBasicTest -TTDStartEvent=5</compile-flags>
+      <baseline>asyncAwaitBasicReplay_5.baseline</baseline>
       <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
     </default>
   </test>

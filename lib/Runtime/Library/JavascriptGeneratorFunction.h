@@ -87,8 +87,10 @@ namespace Js
         static Var NewInstanceRestrictedMode(RecyclableObject* function, CallInfo callInfo, ...);
 
 #if ENABLE_TTD
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+        void CreateSnapObjectInfo(TTD::SlabAllocator& alloc, _Out_ TTD::NSSnapObjects::SnapGeneratorFunctionInfo** info, _Out_ TTD_PTR_ID** depArray, _Out_ uint32* depCount);
 #endif
 
     public:

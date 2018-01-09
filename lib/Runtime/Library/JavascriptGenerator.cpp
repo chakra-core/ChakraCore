@@ -19,8 +19,11 @@ namespace Js
         {
             JavascriptGenerator* obj = RecyclerNewFinalized(
                 recycler, JavascriptGenerator, generatorType, args, scriptFunction);
-            recycler->RegisterPendingWriteBarrierBlock(obj->args.Values, obj->args.Info.Count * sizeof(Var));
-            recycler->RegisterPendingWriteBarrierBlock(&obj->args.Values, sizeof(Var*));
+            if (obj->args.Values != nullptr)
+            {
+                recycler->RegisterPendingWriteBarrierBlock(obj->args.Values, obj->args.Info.Count * sizeof(Var));
+                recycler->RegisterPendingWriteBarrierBlock(&obj->args.Values, sizeof(Var*));
+            }
             return obj;
         }
         else
@@ -72,7 +75,8 @@ namespace Js
     void JavascriptGenerator::SetFrameSlots(Js::RegSlot slotCount, Field(Var)* frameSlotArray)
     {
         AssertMsg(this->frame->GetFunctionBody()->GetLocalsCount() == slotCount, "Unexpected mismatch in frame slot count for generated.");
-        for (Js::RegSlot i = 0; i < slotCount; i++) {
+        for (Js::RegSlot i = 0; i < slotCount; i++)
+        {
             this->GetFrame()->m_localSlots[i] = frameSlotArray[i];
         }
     }
@@ -368,7 +372,7 @@ namespace Js
         }
         else if (gi->arguments_count > 0)
         {
-            alloc.SlabAbortArraySpace<TTD::NSSnapObjects::SnapES5ArrayGetterSetterEntry>(gi->arguments_count);
+            alloc.SlabAbortArraySpace<TTD_PTR_ID>(gi->arguments_count);
         }
 
         if (this->frame != nullptr)
@@ -381,7 +385,11 @@ namespace Js
         }
 
         // Copy the CallInfo data into the struct
-        memcpy(&gi->arguments_callInfo, &this->args.Info, sizeof(Js::CallInfo));
+        gi->arguments_callInfo_count = this->args.Info.Count;
+        gi->arguments_callInfo_flags = this->args.Info.Flags;
+
+        // TODO:  understand why there's a mis-match between args.Info.Count and GetArgCountWithExtraArgs
+        // TTDAssert(this->args.Info.Count == gi->arguments_count, "mismatched count between args.Info and GetArgCountWithExtraArgs");
 
         if (depCount == 0)
         {

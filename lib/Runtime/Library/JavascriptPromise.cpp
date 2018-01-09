@@ -1446,18 +1446,28 @@ namespace Js
 #if ENABLE_TTD
     void JavascriptPromiseAsyncSpawnExecutorFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
     {
-        TTDAssert(false, "Not Implemented Yet");
+        if (this->generator != nullptr)
+        {
+            extractor->MarkVisitVar(this->generator);
+        }
+
+        if (this->target != nullptr)
+        {
+            extractor->MarkVisitVar(this->target);
+        }
     }
 
     TTD::NSSnapObjects::SnapObjectType JavascriptPromiseAsyncSpawnExecutorFunction::GetSnapTag_TTD() const
     {
-        TTDAssert(false, "Not Implemented Yet");
-        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+        return TTD::NSSnapObjects::SnapObjectType::JavascriptPromiseAsyncSpawnExecutorFunction;
     }
 
     void JavascriptPromiseAsyncSpawnExecutorFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        TTDAssert(false, "Not Implemented Yet");
+        TTD::NSSnapObjects::SnapJavascriptPromiseAsyncSpawnExecutorFunctionInfo* info = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapJavascriptPromiseAsyncSpawnExecutorFunctionInfo>();
+        info->generator= TTD_CONVERT_VAR_TO_PTR_ID(this->generator);
+        info->target = TTD_CONVERT_JSVAR_TO_TTDVAR(this->target);
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapJavascriptPromiseAsyncSpawnExecutorFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::JavascriptPromiseAsyncSpawnExecutorFunction>(objData, info);
     }
 #endif
 
@@ -1520,18 +1530,105 @@ namespace Js
 #if ENABLE_TTD
     void JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
     {
-        TTDAssert(false, "Not Implemented Yet");
+        if (this->generator != nullptr)
+        {
+            extractor->MarkVisitVar(this->generator);
+        }
+
+        if (this->reject != nullptr)
+        {
+            extractor->MarkVisitVar(this->reject);
+        }
+
+        if (this->resolve != nullptr)
+        {
+            extractor->MarkVisitVar(this->resolve);
+        }
+
+        if (this->argument != nullptr)
+        {
+            extractor->MarkVisitVar(this->argument);
+        }
     }
 
     TTD::NSSnapObjects::SnapObjectType JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::GetSnapTag_TTD() const
     {
-        TTDAssert(false, "Not Implemented Yet");
-        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+        return TTD::NSSnapObjects::SnapObjectType::JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction;
     }
 
     void JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        TTDAssert(false, "Not Implemented Yet");
+        TTD::NSSnapObjects::SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo* info = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo>();
+        info->generator = TTD_CONVERT_VAR_TO_PTR_ID(this->generator);
+        info->reject = this->reject;
+        info->resolve = this->resolve;
+        info->argument = this->argument;
+        info->isReject = this->isReject;
+
+        info->entryPoint = 0;
+        JavascriptMethod entryPoint = this->GetFunctionInfo()->GetOriginalEntryPoint();
+        if (entryPoint == JavascriptPromise::EntryJavascriptPromiseAsyncSpawnStepNextExecutorFunction)
+        {
+            info->entryPoint = 1;
+        }
+        else if (entryPoint == JavascriptPromise::EntryJavascriptPromiseAsyncSpawnStepThrowExecutorFunction)
+        {
+            info->entryPoint = 2;
+        }
+        else if (entryPoint == JavascriptPromise::EntryJavascriptPromiseAsyncSpawnCallStepExecutorFunction)
+        {
+            info->entryPoint = 3;
+        }
+        else
+        {
+            TTDAssert(false, "Unexpected entrypoint found JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction");
+        }
+
+        const uint32 maxDeps = 4;
+        uint32 depCount = 0;
+        TTD_PTR_ID* depArray = alloc.SlabReserveArraySpace<TTD_PTR_ID>(maxDeps);
+        if (this->reject != nullptr &&  TTD::JsSupport::IsVarComplexKind(this->reject))
+        {
+            depArray[depCount] = TTD_CONVERT_VAR_TO_PTR_ID(this->reject);
+            depCount++;
+        }
+
+        if (this->resolve != nullptr &&  TTD::JsSupport::IsVarComplexKind(this->resolve))
+        {
+            depArray[depCount] = TTD_CONVERT_VAR_TO_PTR_ID(this->resolve);
+            depCount++;
+        }
+
+        if (this->argument != nullptr &&  TTD::JsSupport::IsVarComplexKind(this->argument))
+        {
+            depArray[depCount] = TTD_CONVERT_VAR_TO_PTR_ID(this->argument);
+            depCount++;
+        }
+
+        if (this->generator != nullptr)
+        {
+            depArray[depCount] = TTD_CONVERT_VAR_TO_PTR_ID(this->generator);
+            depCount++;
+        }
+
+        if (depCount > 0)
+        {
+            alloc.SlabCommitArraySpace<TTD_PTR_ID>(depCount, maxDeps);
+        }
+        else 
+        {
+            alloc.SlabAbortArraySpace<TTD_PTR_ID>(maxDeps);
+        }
+
+        if (depCount == 0)
+        {
+            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>(objData, info);
+        }
+        else
+        {
+            TTDAssert(depArray != nullptr, "depArray should be non-null if depCount is > 0");
+            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>(objData, info, alloc, depCount, depArray);
+        }
     }
 #endif
 
