@@ -8679,38 +8679,7 @@ Case0:
         // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
         CallFlags flags = CallFlags_Value;
 
-        if (pArr)
-        {
-            Assert(length <= UINT_MAX);
-            for (uint32 k = 0; k < (uint32)length; k++)
-            {
-                JS_REENTRANT(jsReentLock, BOOL gotItem = pArr->DirectGetItemAtFull(k, &element));
-                if (!gotItem)
-                {
-                    continue;
-                }
-
-                JS_REENTRANT(jsReentLock,
-                    testResult = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 4), thisArg,
-                        element,
-                        JavascriptNumber::ToVar(k, scriptContext),
-                        pArr));
-
-                if (!JavascriptConversion::ToBoolean(testResult, scriptContext))
-                {
-                    return scriptContext->GetLibrary()->GetFalse();
-                }
-
-                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
-                // we will process the rest of the array elements like an ES5Array.
-                if (!JavascriptArray::Is(obj))
-                {
-                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
-                    JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::EveryObjectHelper<T>(obj, length, k + 1, callBackFn, thisArg, scriptContext));
-                }
-            }
-        }
-        else if (typedArrayBase)
+        if (typedArrayBase)
         {
             AssertAndFailFast(TypedArrayBase::Is(typedArrayBase));
             uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
@@ -8852,38 +8821,7 @@ Case0:
         Var element = nullptr;
         Var testResult = nullptr;
 
-        if (pArr)
-        {
-            Assert(length <= UINT_MAX);
-            for (uint32 k = 0; k < (uint32)length; k++)
-            {
-                JS_REENTRANT(jsReentLock, BOOL gotItem = pArr->DirectGetItemAtFull(k, &element));
-                if (!gotItem)
-                {
-                    continue;
-                }
-
-                JS_REENTRANT_UNLOCK(jsReentLock,
-                    testResult = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 4), thisArg,
-                        element,
-                        JavascriptNumber::ToVar(k, scriptContext),
-                        pArr));
-
-                if (JavascriptConversion::ToBoolean(testResult, scriptContext))
-                {
-                    return scriptContext->GetLibrary()->GetTrue();
-                }
-
-                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
-                // we will process the rest of the array elements like an ES5Array.
-                if (!JavascriptArray::Is(obj))
-                {
-                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
-                    JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::SomeObjectHelper<T>(obj, length, k + 1, callBackFn, thisArg, scriptContext));
-                }
-            }
-        }
-        else if (typedArrayBase)
+        if (typedArrayBase)
         {
             AssertAndFailFast(TypedArrayBase::Is(typedArrayBase));
             uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
@@ -9706,75 +9644,7 @@ Case0:
             }
         }
 
-        // The ArraySpeciesCreate call above could have converted the source array into an ES5Array. If this happens
-        // we will process the array elements like an ES5Array.
-        if (pArr && !JavascriptArray::Is(obj))
-        {
-            AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
-            pArr = nullptr;
-        }
-
-        Var element = nullptr;
-        Var selected = nullptr;
-
-        if (pArr)
-        {
-            Assert(length <= MaxArrayLength);
-            uint32 i = 0;
-
-            Assert(length <= UINT_MAX);
-            for (uint32 k = 0; k < (uint32)length; k++)
-            {
-                JS_REENTRANT(jsReentLock, BOOL gotItem = pArr->DirectGetItemAtFull(k, &element));
-                if (!gotItem)
-                {
-                    continue;
-                }
-
-                JS_REENTRANT(jsReentLock,
-                    selected = CALL_ENTRYPOINT(scriptContext->GetThreadContext(),
-                        callBackFn->GetEntryPoint(), callBackFn, CallInfo(CallFlags_Value, 4),
-                        thisArg,
-                        element,
-                        JavascriptNumber::ToVar(k, scriptContext),
-                        pArr));
-
-                if (JavascriptConversion::ToBoolean(selected, scriptContext))
-                {
-                    // Try to fast path if the return object is an array
-                    if (newArr && isBuiltinArrayCtor)
-                    {
-                        newArr->DirectSetItemAt(i, element);
-                    }
-                    else
-                    {
-                        JS_REENTRANT(jsReentLock, ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i));
-                    }
-                    ++i;
-                }
-
-                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
-                // we will process the rest of the array elements like an ES5Array.
-                if (!JavascriptArray::Is(obj))
-                {
-                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
-                    JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::FilterObjectHelper<T>(obj, length, k + 1, newArr, newObj, i, callBackFn, thisArg, scriptContext));
-                }
-            }
-        }
-        else
-        {
-            JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::FilterObjectHelper<T>(obj, length, 0u, newArr, newObj, 0u, callBackFn, thisArg, scriptContext));
-        }
-
-#ifdef VALIDATE_ARRAY
-        if (newArr)
-        {
-            newArr->ValidateArray();
-        }
-#endif
-
-        return newObj;
+        JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::FilterObjectHelper<T>(obj, length, 0u, newArr, newObj, 0u, callBackFn, thisArg, scriptContext));
     }
 
     template <typename T>
@@ -9903,29 +9773,7 @@ Case0:
 
             bool bPresent = false;
 
-            if (pArr)
-            {
-                for (; k < length && bPresent == false; k++)
-                {
-                    JS_REENTRANT(jsReentLock, BOOL gotItem = pArr->DirectGetItemAtFull((uint32)k, &element));
-                    if (!gotItem)
-                    {
-                        continue;
-                    }
-
-                    bPresent = true;
-                    accumulator = element;
-                }
-
-                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
-                // we will process the array elements like an ES5Array.
-                if (!JavascriptArray::Is(obj))
-                {
-                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
-                    pArr = nullptr;
-                }
-            }
-            else if (typedArrayBase)
+            if (typedArrayBase)
             {
                 AssertAndFailFast(TypedArrayBase::Is(typedArrayBase));
                 uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
@@ -9965,35 +9813,7 @@ Case0:
         // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
         CallFlags flags = CallFlags_Value;
 
-        if (pArr)
-        {
-            for (; k < length; k++)
-            {
-                JS_REENTRANT(jsReentLock, BOOL gotItem = pArr->DirectGetItemAtFull((uint32)k, &element));
-                if (!gotItem)
-                {
-                    continue;
-                }
-
-                JS_REENTRANT(jsReentLock,
-                    accumulator = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 5),
-                        undefinedValue,
-                        accumulator,
-                        element,
-                        JavascriptNumber::ToVar(k, scriptContext),
-                        pArr
-                ));
-
-                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
-                // we will process the rest of the array elements like an ES5Array.
-                if (!JavascriptArray::Is(obj))
-                {
-                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
-                    JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::ReduceObjectHelper<T>(obj, length, k + 1, callBackFn, accumulator, scriptContext));
-                }
-            }
-        }
-        else if (typedArrayBase)
+        if (typedArrayBase)
         {
             AssertAndFailFast(TypedArrayBase::Is(typedArrayBase));
             uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
@@ -10123,29 +9943,7 @@ Case0:
             }
 
             bool bPresent = false;
-            if (pArr)
-            {
-                for (; k < length && bPresent == false; k++)
-                {
-                    index = length - k - 1;
-                    JS_REENTRANT(jsReentLock, BOOL gotItem = pArr->DirectGetItemAtFull((uint32)index, &element));
-                    if (!gotItem)
-                    {
-                        continue;
-                    }
-                    bPresent = true;
-                    accumulator = element;
-                }
-
-                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
-                // we will process the array elements like an ES5Array.
-                if (!JavascriptArray::Is(obj))
-                {
-                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
-                    pArr = nullptr;
-                }
-            }
-            else if (typedArrayBase)
+            if (typedArrayBase)
             {
                 AssertAndFailFast(TypedArrayBase::Is(typedArrayBase));
                 uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
@@ -10183,34 +9981,7 @@ Case0:
         CallFlags flags = CallFlags_Value;
         Var undefinedValue = scriptContext->GetLibrary()->GetUndefined();
 
-        if (pArr)
-        {
-            for (; k < length; k++)
-            {
-                index = length - k - 1;
-                JS_REENTRANT(jsReentLock, BOOL gotItem = pArr->DirectGetItemAtFull((uint32)index, &element));
-                if (!gotItem)
-                {
-                    continue;
-                }
-
-                JS_REENTRANT(jsReentLock,
-                    accumulator = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 5), undefinedValue,
-                        accumulator,
-                        element,
-                        JavascriptNumber::ToVar(index, scriptContext),
-                        pArr));
-
-                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
-                // we will process the rest of the array elements like an ES5Array.
-                if (!JavascriptArray::Is(obj))
-                {
-                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
-                    JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::ReduceRightObjectHelper<T>(obj, length, k + 1, callBackFn, accumulator, scriptContext));
-                }
-            }
-        }
-        else if (typedArrayBase)
+        if (typedArrayBase)
         {
             AssertAndFailFast(TypedArrayBase::Is(typedArrayBase));
             uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
