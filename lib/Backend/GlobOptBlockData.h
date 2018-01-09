@@ -344,6 +344,7 @@ public:
     // Changed Symbol Tracking
 public:
     void                    SetChangedSym(SymID symId);
+    void                    SetChangedSym(Sym* sym);
 private:
 
     // Other

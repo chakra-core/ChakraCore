@@ -2761,7 +2761,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         }
     }
 
-    if (!isHoisted && instr->HasBailOutInfo() && !this->IsLoopPrePass())
+    if (CurrentBlockData()->capturedValuesCandidate && !this->IsLoopPrePass())
     {
         this->CommitCapturedValuesCandidate();
     }
@@ -4570,11 +4570,7 @@ void
 GlobOpt::SetSymStoreDirect(ValueInfo * valueInfo, Sym * sym)
 {
     Sym * prevSymStore = valueInfo->GetSymStore();
-    if (prevSymStore && prevSymStore->IsStackSym() &&
-        prevSymStore->AsStackSym()->HasByteCodeRegSlot())
-    {
-        CurrentBlockData()->SetChangedSym(prevSymStore->m_id);
-    }
+    CurrentBlockData()->SetChangedSym(prevSymStore);
     valueInfo->SetSymStore(sym);
 }
 

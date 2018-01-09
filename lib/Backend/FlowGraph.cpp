@@ -4193,6 +4193,7 @@ BasicBlock::CleanUpValueMaps()
                     this->globOptData.liveInt32Syms->Clear(sym->m_id);
                     this->globOptData.liveLossyInt32Syms->Clear(sym->m_id);
                     this->globOptData.liveFloat64Syms->Clear(sym->m_id);
+                    this->globOptData.SetChangedSym(sym);
                 }
             }
             else
@@ -4291,6 +4292,8 @@ BasicBlock::CleanUpValueMaps()
     FOREACH_BITSET_IN_SPARSEBV(dead_id, &deadSymsBv)
     {
         thisTable->Clear(dead_id);
+        Sym* sym = this->func->m_symTable->Find(dead_id);
+        this->globOptData.SetChangedSym(sym);
     }
     NEXT_BITSET_IN_SPARSEBV;
 

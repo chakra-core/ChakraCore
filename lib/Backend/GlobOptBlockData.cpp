@@ -1672,6 +1672,15 @@ GlobOptBlockData::SetChangedSym(SymID symId)
 }
 
 void
+GlobOptBlockData::SetChangedSym(Sym* sym)
+{
+    if (sym && sym->IsStackSym() && sym->AsStackSym()->HasByteCodeRegSlot())
+    {
+        SetChangedSym(sym->m_id);
+    }
+}
+
+void
 GlobOptBlockData::SetValue(Value *val, Sym * sym)
 {
     ValueInfo *valueInfo = val->GetValueInfo();
@@ -1688,10 +1697,7 @@ GlobOptBlockData::SetValue(Value *val, Sym * sym)
     else
     {
         this->SetValueToHashTable(this->symToValueMap, val, sym);
-        if (isStackSym && sym->AsStackSym()->HasByteCodeRegSlot())
-        {
-            this->SetChangedSym(sym->m_id);
-        }
+        this->SetChangedSym(sym);
     }
 }
 
