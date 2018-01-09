@@ -260,7 +260,7 @@ EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::FreeAllocation(void* a
 
 //----------------------------------------------------------------------------
 // EmitBufferManager::FinalizeAllocation
-//      Fill the rest of the page with debugger breakpoint.
+//      Fill the rest of the buffer (length given by allocation->BytesFree()) with debugger breakpoints.
 //----------------------------------------------------------------------------
 template <typename TAlloc, typename TPreReservedAlloc, class SyncObject>
 bool EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::FinalizeAllocation(TEmitBufferAllocation *allocation, BYTE * dstBuffer)
@@ -272,7 +272,7 @@ bool EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::FinalizeAllocatio
     {
         BYTE* buffer = nullptr;
         this->GetBuffer(allocation, bytes, &buffer);
-        if (!this->CommitBuffer(allocation, dstBuffer, 0, /*sourceBuffer=*/ nullptr, /*alignPad=*/ bytes))
+        if (!this->CommitBuffer(allocation, allocation->bytesCommitted, dstBuffer, 0, /*sourceBuffer=*/ nullptr, /*alignPad=*/ bytes))
         {
             return false;
         }
@@ -415,15 +415,25 @@ bool EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::CommitBufferForIn
 //      Copies contents of source buffer to the destination buffer - at max of one page at a time.
 //      This ensures that only 1 page is writable at any point of time.
 //      Commit a buffer from the last AllocateBuffer call that is filled.
+//
+// Skips over the initial allocation->GetBytesUsed() bytes of destBuffer.  Then, fills in `alignPad` bytes with debug breakpoint instructions,
+// copies `bytes` bytes from sourceBuffer, and finally fills in the rest of destBuffer with debug breakpoint instructions.
 //----------------------------------------------------------------------------
 template <typename TAlloc, typename TPreReservedAlloc, class SyncObject>
 bool
-EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::CommitBuffer(TEmitBufferAllocation* allocation, __out_bcount(bytes) BYTE* destBuffer, __in size_t bytes, __in_bcount(bytes) const BYTE* sourceBuffer, __in DWORD alignPad)
+EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::CommitBuffer(TEmitBufferAllocation* allocation, __in const size_t destBufferBytes, __out_bcount(destBufferBytes) BYTE* destBuffer, __in size_t bytes, __in_bcount(bytes) const BYTE* sourceBuffer, __in DWORD alignPad)
 {
     AutoRealOrFakeCriticalSection<SyncObject> autoCs(&this->criticalSection);
 
     Assert(destBuffer != nullptr);
     Assert(allocation != nullptr);
+
+    // The size of destBuffer is actually given by allocation->bytesCommitted, but due to a bug in some versions of PREFast, we can't refer to allocation->bytesCommitted in the
+    // SAL annotation on destBuffer above.  We've informed the PREFast maintainers, but we'll have to use destBufferBytes as a workaround until their fix makes it to Jenkins.
+    Assert(destBufferBytes == allocation->bytesCommitted);
+    
+    // Must have at least enough room in destBuffer for the initial skipped bytes plus the bytes we're going to write.
+    AnalysisAssert(allocation->bytesUsed + bytes + alignPad <= destBufferBytes);
 
     BYTE *currentDestBuffer = destBuffer + allocation->GetBytesUsed();
     char *bufferToFlush = allocation->allocation->address + allocation->GetBytesUsed();
@@ -435,6 +445,10 @@ EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::CommitBuffer(TEmitBuff
     // Copy the contents and set the alignment pad
     while(bytesLeft != 0)
     {
+        // currentDestBuffer must still point to somewhere in the interior of destBuffer.
+        AnalysisAssert(destBuffer <= currentDestBuffer);
+        AnalysisAssert(currentDestBuffer < destBuffer + destBufferBytes);
+
         DWORD spaceInCurrentPage = AutoSystemInfo::PageSize - ((size_t)currentDestBuffer & (AutoSystemInfo::PageSize - 1));
         size_t bytesToChange = bytesLeft > spaceInCurrentPage ? spaceInCurrentPage : bytesLeft;
 
@@ -454,6 +468,7 @@ EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::CommitBuffer(TEmitBuff
             return false;
         }
 
+        // Pad with debug-breakpoint instructions up to alignBytes or the end of the current page, whichever is less.
         if (alignPad != 0)
         {
             DWORD alignBytes = alignPad < spaceInCurrentPage ? alignPad : spaceInCurrentPage;
@@ -470,12 +485,16 @@ EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::CommitBuffer(TEmitBuff
 #endif
         }
 
-        // If there are bytes still left to be copied then we should do the copy.
+        // If there are bytes still left to be copied then we should do the copy, but only through the end of the current page.
         if(bytesToChange > 0)
         {
             AssertMsg(alignPad == 0, "If we are copying right now - we should be done with setting alignment.");
 
-            memcpy_s(currentDestBuffer, allocation->BytesFree(), sourceBuffer, bytesToChange);
+            const DWORD bufferBytesFree(allocation->BytesFree());
+            // Use <= here instead of < to allow this memcopy to fill up the rest of destBuffer.  If we do, then FinalizeAllocation,
+            // called below, determines that no additional padding is necessary based on the values in `allocation'.
+            AnalysisAssert(currentDestBuffer + bufferBytesFree <= destBuffer + destBufferBytes);
+            memcpy_s(currentDestBuffer, bufferBytesFree, sourceBuffer, bytesToChange);
 
             currentDestBuffer += bytesToChange;
             sourceBuffer += bytesToChange;
@@ -496,7 +515,7 @@ EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::CommitBuffer(TEmitBuff
     this->totalBytesCode += bytes;
 #endif
 
-    //Finish the current EmitBufferAllocation
+    //Finish the current EmitBufferAllocation by filling out the rest of destBuffer with debug breakpoint instructions.
     return FinalizeAllocation(allocation, destBuffer);
 }
 

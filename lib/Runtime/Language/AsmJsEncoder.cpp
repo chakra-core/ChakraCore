@@ -216,7 +216,7 @@ namespace Js
                 Js::Throw::OutOfMemory();
             }
 
-            if (!GetCodeGenAllocator()->emitBufferManager.CommitBuffer(allocation, buffer, codeSize, mEncodeBuffer))
+            if (!GetCodeGenAllocator()->emitBufferManager.CommitBuffer(allocation, allocation->bytesCommitted, buffer, codeSize, mEncodeBuffer))
             {
                 Js::Throw::OutOfMemory();
             }
