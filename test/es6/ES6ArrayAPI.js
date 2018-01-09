@@ -6,8 +6,27 @@
 // ES6 Array extension tests -- verifies the API shape and basic functionality
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
+var getCount = 0;
+var hasCount = 0;
+
+var proxyHandler = {
+    get: function (oTarget, sKey) {
+        if (sKey == "constructor") {
+            return Reflect.get(oTarget, sKey);
+        } else if (Number(sKey.toString()) != NaN) {
+            getCount++;
+            return 2222;
+        }
+        return Reflect.get(oTarget, sKey);
+    },
+    has: function (oTarget, sKey) {
+        hasCount++;
+        return Reflect.has(oTarget, sKey);
+    },
+};
 
 var tests = [
+
     {
         name: "Array constructor has correct functions",
         body: function() {
@@ -662,6 +681,216 @@ var tests = [
         }
     },
     {
+        name: "Array.prototype.filter calls has trap when proxy in the prototype",
+        body: function () {
+            getCount = 0;
+            hasCount = 0;
+            
+            var arr1 = [11, 22, 33, 44, 55, 66];
+            var arr2 = [11, 22, 33, 44, 55, 66];
+        
+            var p = new Proxy(arr1, proxyHandler);
+            arr2.__proto__ = p;
+            arr2.length = 10;
+        
+            var ret = [].filter.call(arr2, function(item){
+                return item > 200;
+            });
+
+            assert.areEqual(0, ret.length);
+            assert.areEqual(4, hasCount, "Validate that has trap is called 4 times");
+            assert.areEqual(0, getCount, "Validate that get trap is not called");
+        }
+    },
+    {
+        name: "Array.prototype.filter calls has trap when proxy as a prototype added during the call",
+        body: function () {
+            getCount = 0;
+            hasCount = 0;
+            
+            var arr1 = [11, 22, 33, 44, 55, 66];
+            var arr2 = [11, 22, 33, 44, 55, 66];
+
+            arr2.length = 10;
+        
+            var first = true;
+            var ret = [].filter.call(arr2, function(item){
+                if (first) {
+                    first = false;
+                    var p = new Proxy(arr1, proxyHandler);
+                    arr2.__proto__ = p;
+                }
+                return item > 200;
+            });
+        
+            assert.areEqual(0, ret.length);
+            assert.areEqual(4, hasCount, "Validate that has trap is called 4 times");
+            assert.areEqual(0, getCount, "Validate that get trap is not called");
+        }
+    },
+    {
+        name: "Array.prototype.every calls has trap when proxy in the prototype",
+        body: function () {
+            getCount = 0;
+            hasCount = 0;
+            
+            var arr1 = [11, 22, 33, 44, 55, 66];
+            var arr2 = [11, 22, 33, 44, 55, 66];
+        
+            var p = new Proxy(arr1, proxyHandler);
+            arr2.__proto__ = p;
+            arr2.length = 10;
+        
+            [].every.call(arr2, function(item){
+                return true;
+            });
+
+            assert.areEqual(4, hasCount, "Validate that has trap is called 4 times");
+            assert.areEqual(0, getCount, "Validate that get trap is not called");
+        }
+    },
+    {
+        name: "Array.prototype.every calls has trap when proxy as a prototype added during the call",
+        body: function () {
+            getCount = 0;
+            hasCount = 0;
+            
+            var arr1 = [11, 22, 33, 44, 55, 66];
+            var arr2 = [11, 22, 33, 44, 55, 66];
+
+            arr2.length = 10;
+        
+            var first = true;
+            [].every.call(arr2, function(item){
+                if (first) {
+                    first = false;
+                    var p = new Proxy(arr1, proxyHandler);
+                    arr2.__proto__ = p;
+                }
+                return true;
+            });
+        
+            assert.areEqual(4, hasCount, "Validate that has trap is called 4 times");
+            assert.areEqual(0, getCount, "Validate that get trap is not called");
+        }
+    },
+    {
+        name: "Array.prototype.some calls has trap when proxy in the prototype",
+        body: function () {
+            getCount = 0;
+            hasCount = 0;
+            
+            var arr1 = [11, 22, 33, 44, 55, 66];
+            var arr2 = [11, 22, 33, 44, 55, 66];
+        
+            var p = new Proxy(arr1, proxyHandler);
+            arr2.__proto__ = p;
+            arr2.length = 10;
+        
+            [].some.call(arr2, function(item){
+                return false;
+            });
+
+            assert.areEqual(4, hasCount, "Validate that has trap is called 4 times");
+            assert.areEqual(0, getCount, "Validate that get trap is not called");
+        }
+    },
+    {
+        name: "Array.prototype.some calls has trap when proxy as a prototype added during the call",
+        body: function () {
+            getCount = 0;
+            hasCount = 0;
+            
+            var arr1 = [11, 22, 33, 44, 55, 66];
+            var arr2 = [11, 22, 33, 44, 55, 66];
+
+            arr2.length = 10;
+        
+            var first = true;
+            [].some.call(arr2, function(item){
+                if (first) {
+                    first = false;
+                    var p = new Proxy(arr1, proxyHandler);
+                    arr2.__proto__ = p;
+                }
+                return false;
+            });
+        
+            assert.areEqual(4, hasCount, "Validate that has trap is called 4 times");
+            assert.areEqual(0, getCount, "Validate that get trap is not called");
+        }
+    },
+    {
+        name: "Array.prototype.reduce calls has trap when proxy in the prototype",
+        body: function () {
+            getCount = 0;
+            hasCount = 0;
+            
+            var arr1 = [11, 22, 33, 44, 55, 66];
+            var arr2 = [11, 22, 33, 44, 55, 66];
+        
+            var p = new Proxy(arr1, proxyHandler);
+            arr2.__proto__ = p;
+            arr2.length = 10;
+        
+            var ret = [].reduce.call(arr2, function(a, c){
+                return a + c;
+            });
+
+            assert.areEqual(4, hasCount, "Validate that has trap is called 4 times");
+            assert.areEqual(0, getCount, "Validate that get trap is not called");
+            assert.areEqual(231, ret);
+        }
+    },
+    {
+        name: "Array.prototype.reduce calls has trap when proxy as a prototype added during the call",
+        body: function () {
+            getCount = 0;
+            hasCount = 0;
+            
+            var arr1 = [11, 22, 33, 44, 55, 66];
+            var arr2 = [11, 22, 33, 44, 55, 66];
+
+            arr2.length = 10;
+        
+            var first = true;
+            var ret = [].reduce.call(arr2, function(a, c){
+                if (first) {
+                    first = false;
+                    var p = new Proxy(arr1, proxyHandler);
+                    arr2.__proto__ = p;
+                }
+                return a + c;
+            });
+        
+            assert.areEqual(4, hasCount, "Validate that has trap is called 4 times");
+            assert.areEqual(0, getCount, "Validate that get trap is not called");
+            assert.areEqual(231, ret);
+        }
+    },
+    {
+        name: "Array.prototype.reduceRight calls has trap when proxy in the prototype",
+        body: function () {
+            getCount = 0;
+            hasCount = 0;
+            
+            var arr1 = [11, 22, 33, 44, 55, 66];
+            var arr2 = [11, 22, 33, 44, 55, 66];
+        
+            var p = new Proxy(arr1, proxyHandler);
+            arr2.__proto__ = p;
+            arr2.length = 10;
+        
+            var ret = [].reduceRight.call(arr2, function(a, c){
+                return a + c;
+            });
+
+            assert.areEqual(4, hasCount, "Validate that has trap is called 4 times");
+            assert.areEqual(0, getCount, "Validate that get trap is not called");
+            assert.areEqual(231, ret);
+        }
+    },
+    {
         name: "Array methods trying to create a data property on non-configurable slot and fail",
         body: function () {
             var returnedArr = {};
@@ -698,7 +927,8 @@ var tests = [
             assert.throws(function () { Array.of.call(Arr, "a"); }, TypeError, "of constructs an array with non-config property", "Cannot redefine property '0'");
             assert.throws(function () { Array.from.call(Arr, "a"); }, TypeError, "of constructs an array with non-config property", "Cannot redefine property '0'");
         }
-    }
+    },
+
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
