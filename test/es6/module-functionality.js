@@ -331,6 +331,25 @@ var tests = [
             testRunner.LoadModule(functionBody, 'samethread');
         }
     },
+    {
+        name: "OS13924587 - should export only top level vars",
+        body: function() {
+            let functionBody =
+                `
+                export {a as baz};
+                function foo(a) {
+                    function bar() {
+                        a;
+                    }
+                }
+                var a = 1;
+                foo(30);
+                assert.areEqual(1, a);
+                `;
+
+            testRunner.LoadModule(functionBody, 'samethread');
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
