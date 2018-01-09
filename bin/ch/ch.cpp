@@ -5,7 +5,6 @@
 #include "stdafx.h"
 #include "Core/AtomLockGuids.h"
 #include <CommonPal.h>
-#include <regex>
 #ifdef _WIN32
 #include <winver.h>
 #include <process.h>
@@ -173,7 +172,7 @@ Error:
     return hr;
 }
 
-HRESULT CreateLibraryByteCodeHeader(LPCSTR contentRaw, JsFinalizeCallback contentsRawFinalizeCallback, DWORD lengthBytes, LPCWSTR bcFullPath, LPCSTR libraryNameNarrow)
+HRESULT CreateLibraryByteCodeHeader(LPCSTR contentsRaw, JsFinalizeCallback contentsRawFinalizeCallback, DWORD lengthBytes, LPCWSTR bcFullPath, LPCSTR libraryNameNarrow)
 {
     HANDLE bcFileHandle = nullptr;
     JsValueRef bufferVal;
@@ -188,12 +187,18 @@ HRESULT CreateLibraryByteCodeHeader(LPCSTR contentRaw, JsFinalizeCallback conten
         "//-------------------------------------------------------------------------------------------------------\n"
         "#if 0\n";
 
-    std::regex r("\r");
-    auto normalizedContentStr = std::regex_replace(contentRaw, r, "");
+    std::string normalizedContentStr;
+    char* nextToken = nullptr;
+    char* token = strtok_s((char*)contentsRaw, "\r", &nextToken);
+    while (token)
+    {
+        normalizedContentStr.append(token);
+        token = strtok_s(nullptr, "\r", &nextToken);
+    }
     // We no longer need contentsRaw, so call the finalizer for it if one was provided
     if (contentsRawFinalizeCallback != nullptr)
     {
-        contentsRawFinalizeCallback((void*)contentRaw);
+        contentsRawFinalizeCallback((void*)contentsRaw);
     }
 
     const char* normalizedContent = normalizedContentStr.c_str();

@@ -338,7 +338,7 @@ RegrFile(
         return -1;
     }
 
-    x = DoCompare(fullasmbuf, fullmasterasmbuf);
+    x = DoCompare(fullasmbuf, fullmasterasmbuf, pTestVariant->testInfo.hasData[TIK_EOL_NORMALIZATION]);
     if (x < 0)
         return -1;
 
@@ -378,7 +378,7 @@ RegrFile(
 
                 // Compare again.
 
-                x = DoCompare(tmp_file1, tmp_file2);
+                x = DoCompare(tmp_file1, tmp_file2, pTestVariant->testInfo.hasData[TIK_EOL_NORMALIZATION]);
                 if (x < 0) {
                     rc = -1;
                 }

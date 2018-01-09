@@ -7,6 +7,7 @@
       <baseline>../../lib/Runtime/Library/InJavascript/Intl.js.bc.32b.h</baseline>
       <compile-flags>-GenerateLibraryByteCodeHeader -Intl</compile-flags>
       <tags>exclude_jshost,exclude_dynapogo,exclude_amd64,exclude_disable_jit</tags>
+      <eol-normalization />
     </default>
   </test>
   <test>
@@ -15,6 +16,7 @@
       <baseline>../../lib/Runtime/Library/InJavascript/Intl.js.bc.64b.h</baseline>
       <compile-flags>-GenerateLibraryByteCodeHeader -Intl</compile-flags>
       <tags>exclude_jshost,exclude_dynapogo,exclude_x86,exclude_disable_jit</tags>
+      <eol-normalization />
     </default>
   </test>
   <test>
@@ -23,6 +25,7 @@
       <baseline>../../lib/Runtime/Library/InJavascript/Intl.js.nojit.bc.32b.h</baseline>
       <compile-flags>-GenerateLibraryByteCodeHeader -Intl</compile-flags>
       <tags>exclude_jshost,exclude_amd64,require_disable_jit</tags>
+      <eol-normalization />
     </default>
   </test>
   <test>
@@ -31,6 +34,7 @@
       <baseline>../../lib/Runtime/Library/InJavascript/Intl.js.nojit.bc.64b.h</baseline>
       <compile-flags>-GenerateLibraryByteCodeHeader -Intl</compile-flags>
       <tags>exclude_jshost,exclude_x86,require_disable_jit</tags>
+      <eol-normalization />
     </default>
   </test>
 <!-- ByteCode Header verification tests end -->
