@@ -1872,7 +1872,7 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
     Js::LocalFunctionId funcId = GetCurrentFunctionNode()->sxFnc.functionId;
     Assert(sym);
 
-    if (pid->GetIsModuleExport())
+    if (pid->GetIsModuleExport() && IsTopLevelModuleFunc())
     {
         sym->SetIsModuleExportStorage(true);
     }
