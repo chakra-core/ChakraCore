@@ -21,18 +21,22 @@
       <tags>Intl</tags>
     </default>
   </test>
+  <!--
+  DateTimeFormat.js is duplicated so we can have all DateTimeFormat tests
+  in a single file while allowing extra asserts to run depending on the platform
+  -->
   <test>
     <default>
-      <files>DateTimeFormatInvalidOptions.js</files>
-      <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Intl</tags>
+      <files>DateTimeFormat.js</files>
+      <compile-flags>-args summary winglob -endargs</compile-flags>
+      <tags>Intl,require_winglob</tags>
     </default>
   </test>
   <test>
     <default>
       <files>DateTimeFormat.js</files>
-      <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Intl</tags>
+      <compile-flags>-args summary icu -endargs</compile-flags>
+      <tags>Intl,require_icu</tags>
     </default>
   </test>
   <test>
@@ -62,13 +66,6 @@
       <files>SupportedLocalesOf.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
       <tags>Intl</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>intl2018.js</files>
-      <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Intl,require_icu</tags>
     </default>
   </test>
   <test>
