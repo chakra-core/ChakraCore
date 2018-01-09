@@ -221,7 +221,11 @@ namespace Js
                 Js::Throw::OutOfMemory();
             }
 
-            functionBody->GetScriptContext()->GetThreadContext()->SetValidCallTargetForCFG(buffer);
+            BYTE* callTarget = buffer;
+#ifdef _M_ARM
+            callTarget = (BYTE*)((uintptr_t)buffer | 0x1); // We have to add the thumb bit on arm
+#endif
+            functionBody->GetScriptContext()->GetThreadContext()->SetValidCallTargetForCFG(callTarget);
 
             // TODO: improve this once EntryPoint cleanup work is complete!
 #if 0
