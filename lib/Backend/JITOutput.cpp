@@ -284,7 +284,11 @@ JITOutput::FinalizeNativeCode()
     m_outputData->thunkAddress = allocation->thunkAddress;
     if (!allocation->thunkAddress && CONFIG_FLAG(OOPCFGRegistration))
     {
-        m_func->GetThreadContextInfo()->SetValidCallTargetForCFG((PVOID)m_outputData->codeAddress);
+        PVOID callTarget = (PVOID)m_outputData->codeAddress;
+#ifdef _M_ARM
+        callTarget = (PVOID)((uintptr_t)callTarget | 0x1);
+#endif
+        m_func->GetThreadContextInfo()->SetValidCallTargetForCFG(callTarget);
     }
 }
 
