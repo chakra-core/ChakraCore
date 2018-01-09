@@ -144,6 +144,10 @@ GlobOptBlockData::ReuseBlockData(GlobOptBlockData *fromData)
 
     this->changedSyms = fromData->changedSyms;
     this->capturedValues = fromData->capturedValues;
+    if (this->capturedValues)
+    {
+        this->capturedValues->IncrementRefCount();
+    }
 
     this->OnDataReused(fromData);
 }
@@ -254,6 +258,11 @@ GlobOptBlockData::DeleteBlockData()
     JitAdelete(alloc, this->changedSyms);
     this->changedSyms = nullptr;
 
+    if (this->capturedValues && this->capturedValues->DecrementRefCount() == 0)
+    {
+        JitAdelete(this->curFunc->m_alloc, this->capturedValues);
+        this->capturedValues = nullptr;
+    }
     this->OnDataDeleted();
 }
 
@@ -367,7 +376,11 @@ void GlobOptBlockData::CloneBlockData(BasicBlock *const toBlockContext, BasicBlo
     this->changedSyms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
     this->changedSyms->Copy(fromData->changedSyms);
     this->capturedValues = fromData->capturedValues;
-    
+    if (this->capturedValues)
+    {
+        this->capturedValues->IncrementRefCount();
+    }
+
     Assert(fromData->HasData());
     this->OnDataInitialized(alloc);
 }
@@ -482,7 +495,10 @@ GlobOptBlockData::MergeBlockData(
     if (this->capturedValues == nullptr)
     {
         this->capturedValues = fromData->capturedValues;
-        
+        if (this->capturedValues)
+        {
+            this->capturedValues->IncrementRefCount();
+        }
     }
     else
     {

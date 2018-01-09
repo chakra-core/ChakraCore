@@ -2763,29 +2763,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
 
     if (!isHoisted && instr->HasBailOutInfo() && !this->IsLoopPrePass())
     {
-        GlobOptBlockData * globOptData = CurrentBlockData();
-        globOptData->changedSyms->ClearAll();
-
-        if (!this->changedSymsAfterIncBailoutCandidate->IsEmpty())
-        {
-            //
-            // some symbols are changed after the values for current bailout have been
-            // captured (GlobOpt::CapturedValues), need to restore such symbols as changed
-            // for following incremental bailout construction, or we will miss capturing
-            // values for later bailout
-            //
-
-            // swap changedSyms and changedSymsAfterIncBailoutCandidate
-            // because both are from this->alloc
-            BVSparse<JitArenaAllocator> * tempBvSwap = globOptData->changedSyms;
-            globOptData->changedSyms = this->changedSymsAfterIncBailoutCandidate;
-            this->changedSymsAfterIncBailoutCandidate = tempBvSwap;
-        }
-
-        globOptData->capturedValues = globOptData->capturedValuesCandidate;
-
-        // null out capturedValuesCandicate to stop tracking symbols change for it
-        globOptData->capturedValuesCandidate = nullptr;
+        this->CommitCapturedValuesCandidate();
     }
 
     return instrNext;
@@ -15438,6 +15416,37 @@ GlobOptBlockData * GlobOpt::CurrentBlockData()
     return &this->currentBlock->globOptData;
 }
 
+void GlobOpt::CommitCapturedValuesCandidate()
+{
+    GlobOptBlockData * globOptData = CurrentBlockData();
+    globOptData->changedSyms->ClearAll();
+
+    if (!this->changedSymsAfterIncBailoutCandidate->IsEmpty())
+    {
+        //
+        // some symbols are changed after the values for current bailout have been
+        // captured (GlobOpt::CapturedValues), need to restore such symbols as changed
+        // for following incremental bailout construction, or we will miss capturing
+        // values for later bailout
+        //
+
+        // swap changedSyms and changedSymsAfterIncBailoutCandidate
+        // because both are from this->alloc
+        BVSparse<JitArenaAllocator> * tempBvSwap = globOptData->changedSyms;
+        globOptData->changedSyms = this->changedSymsAfterIncBailoutCandidate;
+        this->changedSymsAfterIncBailoutCandidate = tempBvSwap;
+    }
+
+    if (globOptData->capturedValues)
+    {
+        globOptData->capturedValues->DecrementRefCount();
+    }
+    globOptData->capturedValues = globOptData->capturedValuesCandidate;
+
+    // null out capturedValuesCandidate to stop tracking symbols change for it
+    globOptData->capturedValuesCandidate = nullptr;
+}
+
 bool
 GlobOpt::IsOperationThatLikelyKillsJsArraysWithNoMissingValues(IR::Instr *const instr)
 {
@@ -16750,7 +16759,7 @@ GlobOpt::OptHoistInvariant(
         EnsureBailTarget(loop);
 
         // Copy bailout info of loop top.
-        instr->ReplaceBailOutInfo(loop->bailOutInfo, this->currentBlock);
+        instr->ReplaceBailOutInfo(loop->bailOutInfo);
     }
 
     if(!dst)
