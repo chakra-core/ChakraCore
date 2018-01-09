@@ -1476,6 +1476,7 @@
   <test>
     <default>
       <files>bug_issue_3257.js</files>
+      <compile-flags>-ESDynamicImport</compile-flags>
       <baseline>bug_issue_3257.baseline</baseline>
       <tags>BugFix,exclude_sanitize_address</tags>
     </default>
@@ -1557,4 +1558,15 @@
       <compile-flags>-off:deferparse -args summary -endargs -deferparse -forceundodefer</compile-flags>
     </default>
   </test>
+<test>
+  <default>
+    <files>function-expr-capture.js</files>
+  </default>
+</test>
+<test>
+  <default>
+    <files>function-expr-capture2.js</files>
+    <compile-flags>-force:deferparse</compile-flags>
+  </default>
+</test>
 </regress-exe>

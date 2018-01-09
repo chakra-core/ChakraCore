@@ -199,13 +199,14 @@ void InlineeFrameRecord::Finalize(Func* inlinee, uint32 currentOffset)
     Assert(this->inlineDepth != 0);
 }
 
-void InlineeFrameRecord::Restore(Js::FunctionBody* functionBody, InlinedFrameLayout *inlinedFrame, Js::JavascriptCallStackLayout * layout) const
+void InlineeFrameRecord::Restore(Js::FunctionBody* functionBody, InlinedFrameLayout *inlinedFrame, Js::JavascriptCallStackLayout * layout, bool deepCopy) const
 {
     Assert(this->inlineDepth != 0);
     Assert(inlineeStartOffset != 0);
 
     BAILOUT_VERBOSE_TRACE(functionBody, _u("Restore function object: "));
-    Js::Var varFunction =  this->Restore(this->functionOffset, /*isFloat64*/ false, /*isInt32*/ false, layout, functionBody);
+    // No deepCopy needed for just the function
+    Js::Var varFunction = this->Restore(this->functionOffset, /*isFloat64*/ false, /*isInt32*/ false, layout, functionBody, /*deepCopy*/ false);
     Assert(Js::ScriptFunction::Is(varFunction));
 
     Js::ScriptFunction* function = Js::ScriptFunction::FromVar(varFunction);
@@ -219,7 +220,9 @@ void InlineeFrameRecord::Restore(Js::FunctionBody* functionBody, InlinedFrameLay
         bool isInt32 = losslessInt32Args.Test(i) != 0;
         BAILOUT_VERBOSE_TRACE(functionBody, _u("Restore argument %d: "), i);
 
-        Js::Var var = this->Restore(this->argOffsets[i], isFloat64, isInt32, layout, functionBody);
+        // Forward deepCopy flag for the arguments in case their data must be guaranteed
+        // to have its own lifetime
+        Js::Var var = this->Restore(this->argOffsets[i], isFloat64, isInt32, layout, functionBody, deepCopy);
 #if DBG
         if (!Js::TaggedNumber::Is(var))
         {
@@ -233,7 +236,7 @@ void InlineeFrameRecord::Restore(Js::FunctionBody* functionBody, InlinedFrameLay
     BAILOUT_FLUSH(functionBody);
 }
 
-void InlineeFrameRecord::RestoreFrames(Js::FunctionBody* functionBody, InlinedFrameLayout* outerMostFrame, Js::JavascriptCallStackLayout* callstack)
+void InlineeFrameRecord::RestoreFrames(Js::FunctionBody* functionBody, InlinedFrameLayout* outerMostFrame, Js::JavascriptCallStackLayout* callstack, bool deepCopy)
 {
     InlineeFrameRecord* innerMostRecord = this;
     class AutoReverse
@@ -271,7 +274,7 @@ void InlineeFrameRecord::RestoreFrames(Js::FunctionBody* functionBody, InlinedFr
 
     while (currentRecord)
     {
-        currentRecord->Restore(functionBody, currentFrame, callstack);
+        currentRecord->Restore(functionBody, currentFrame, callstack, deepCopy);
         currentRecord = currentRecord->parent;
         currentFrame = currentFrame->Next();
     }
@@ -280,7 +283,7 @@ void InlineeFrameRecord::RestoreFrames(Js::FunctionBody* functionBody, InlinedFr
     currentFrame->callInfo.Count = 0;
 }
 
-Js::Var InlineeFrameRecord::Restore(int offset, bool isFloat64, bool isInt32, Js::JavascriptCallStackLayout * layout, Js::FunctionBody* functionBody) const
+Js::Var InlineeFrameRecord::Restore(int offset, bool isFloat64, bool isInt32, Js::JavascriptCallStackLayout * layout, Js::FunctionBody* functionBody, bool deepCopy) const
 {
     Js::Var value;
     bool boxStackInstance = true;
@@ -322,7 +325,7 @@ Js::Var InlineeFrameRecord::Restore(int offset, bool isFloat64, bool isInt32, Js
         if (boxStackInstance)
         {
             Js::Var oldValue = value;
-            value = Js::JavascriptOperators::BoxStackInstance(oldValue, functionBody->GetScriptContext(), /* allowStackFunction */ true);
+            value = Js::JavascriptOperators::BoxStackInstance(oldValue, functionBody->GetScriptContext(), /* allowStackFunction */ true, deepCopy);
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
             if (oldValue != value)

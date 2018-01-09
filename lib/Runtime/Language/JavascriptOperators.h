@@ -614,7 +614,7 @@ namespace Js
 #endif
         static RecyclableObject *GetCallableObjectOrThrow(const Var callee, ScriptContext *const scriptContext);
 
-        static Js::Var BoxStackInstance(Js::Var value, ScriptContext * scriptContext, bool allowStackFunction = false);
+        static Js::Var BoxStackInstance(Js::Var value, ScriptContext * scriptContext, bool allowStackFunction, bool deepCopy);
         static BOOL PropertyReferenceWalkUnscopable(Var instance, RecyclableObject** propertyObject, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext);
         static BOOL PropertyReferenceWalk(Var instance, RecyclableObject** propertyObject, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext);
 
