@@ -1746,6 +1746,50 @@ namespace Js
 #pragma optimize("", on)
 #endif
 
+    const bool InterpreterStackFrame::ShouldDoProfile(FunctionBody* executeFunction)
+    {
+#if ENABLE_PROFILE_INFO
+        const bool doProfile = executeFunction->GetInterpreterExecutionMode(false) == ExecutionMode::ProfilingInterpreter ||
+            (executeFunction->IsInDebugMode() && DynamicProfileInfo::IsEnabled(executeFunction));
+        return doProfile;
+#else
+        return false;
+#endif
+    }
+
+    InterpreterStackFrame* InterpreterStackFrame::CreateInterpreterStackFrameForGenerator(ScriptFunction* function, FunctionBody* executeFunction, JavascriptGenerator* generator, bool doProfile)
+    {
+        //
+        // Allocate a new InterpreterStackFrame instance on the recycler heap.
+        // It will live with the JavascriptGenerator object.
+        //
+        ScriptContext* functionScriptContext = function->GetScriptContext();
+        Arguments generatorArgs = generator->GetArguments();
+        InterpreterStackFrame::Setup setup(function, generatorArgs);
+        size_t varAllocCount = setup.GetAllocationVarCount();
+        size_t varSizeInBytes = varAllocCount * sizeof(Var);
+        DWORD_PTR stackAddr = reinterpret_cast<DWORD_PTR>(&generator); // use any stack address from this frame to ensure correct debugging functionality
+        LoopHeader* loopHeaderArray = executeFunction->GetHasAllocatedLoopHeaders() ? executeFunction->GetLoopHeaderArrayPtr() : nullptr;
+
+        Var* allocation = RecyclerNewPlus(functionScriptContext->GetRecycler(), varSizeInBytes, Var);
+        AnalysisAssert(allocation);
+        InterpreterStackFrame* newInstance;
+#if DBG
+        // Allocate invalidVar on GC instead of stack since this InterpreterStackFrame will out live the current real frame
+        Js::RecyclableObject* invalidVar = (Js::RecyclableObject*)RecyclerNewPlusLeaf(functionScriptContext->GetRecycler(), sizeof(Js::RecyclableObject), Var);
+        AnalysisAssert(invalidVar);
+        memset(reinterpret_cast<void*>(invalidVar), 0xFE, sizeof(Js::RecyclableObject));
+        newInstance = setup.InitializeAllocation(allocation, executeFunction->GetHasImplicitArgIns(), doProfile, loopHeaderArray, stackAddr, invalidVar);
+#else
+        newInstance = setup.InitializeAllocation(allocation, executeFunction->GetHasImplicitArgIns(), doProfile, loopHeaderArray, stackAddr);
+#endif
+
+        newInstance->m_reader.Create(executeFunction);
+
+        generator->SetFrame(newInstance, varSizeInBytes);
+        return newInstance;
+    }
+
     Var InterpreterStackFrame::InterpreterHelper(ScriptFunction* function, ArgumentReader args, void* returnAddress, void* addressOfReturnAddress, AsmJsReturnStruct* asmJsReturn)
     {
         const bool isAsmJs = asmJsReturn != nullptr;
@@ -1823,8 +1867,7 @@ namespace Js
 
 #if ENABLE_PROFILE_INFO
         DynamicProfileInfo * dynamicProfileInfo = nullptr;
-        const bool doProfile = executeFunction->GetInterpreterExecutionMode(false) == ExecutionMode::ProfilingInterpreter ||
-                               (executeFunction->IsInDebugMode() && DynamicProfileInfo::IsEnabled(executeFunction));
+        const bool doProfile = ShouldDoProfile(executeFunction);
         if (doProfile)
         {
 #if !DYNAMIC_INTERPRETER_THUNK
@@ -1850,7 +1893,6 @@ namespace Js
 
         bool fReleaseAlloc = false;
         InterpreterStackFrame* newInstance = nullptr;
-        Var* allocation = nullptr;
 
         if (!isAsmJs && executeFunction->IsCoroutine())
         {
@@ -1876,32 +1918,7 @@ namespace Js
             }
             else
             {
-                //
-                // Allocate a new InterpreterStackFrame instance on the recycler heap.
-                // It will live with the JavascriptGenerator object.
-                //
-                Arguments generatorArgs = generator->GetArguments();
-                InterpreterStackFrame::Setup setup(function, generatorArgs);
-                size_t varAllocCount = setup.GetAllocationVarCount();
-                size_t varSizeInBytes = varAllocCount * sizeof(Var);
-                DWORD_PTR stackAddr = reinterpret_cast<DWORD_PTR>(&generator); // as mentioned above, use any stack address from this frame to ensure correct debugging functionality
-                LoopHeader* loopHeaderArray = executeFunction->GetHasAllocatedLoopHeaders() ? executeFunction->GetLoopHeaderArrayPtr() : nullptr;
-
-                allocation = RecyclerNewPlus(functionScriptContext->GetRecycler(), varSizeInBytes, Var);
-                AnalysisAssert(allocation);
-#if DBG
-                // Allocate invalidVar on GC instead of stack since this InterpreterStackFrame will out live the current real frame
-                Js::RecyclableObject* invalidVar = (Js::RecyclableObject*)RecyclerNewPlusLeaf(functionScriptContext->GetRecycler(), sizeof(Js::RecyclableObject), Var);
-                AnalysisAssert(invalidVar);
-                memset(reinterpret_cast<void*>(invalidVar), 0xFE, sizeof(Js::RecyclableObject));
-                newInstance = setup.InitializeAllocation(allocation, executeFunction->GetHasImplicitArgIns(), doProfile, loopHeaderArray, stackAddr, invalidVar);
-#else
-                newInstance = setup.InitializeAllocation(allocation, executeFunction->GetHasImplicitArgIns(), doProfile, loopHeaderArray, stackAddr);
-#endif
-
-                newInstance->m_reader.Create(executeFunction);
-
-                generator->SetFrame(newInstance, varSizeInBytes);
+                newInstance = CreateInterpreterStackFrameForGenerator(function, executeFunction, generator, doProfile);
             }
         }
         else
@@ -1914,6 +1931,8 @@ namespace Js
             // Allocate a new InterpreterStackFrame instance on the interpreter's virtual stack.
             //
             DWORD_PTR stackAddr;
+
+            Var* allocation;
 
             // If the locals area exceeds a certain limit, allocate it from a private arena rather than
             // this frame. The current limit is based on an old assert on the number of locals we would allow here.

@@ -2506,17 +2506,25 @@ namespace Js
         ScriptContext* scriptContext = library->GetScriptContext();
 
         library->AddMember(generatorPrototype, PropertyIds::constructor, library->generatorFunctionPrototype, PropertyConfigurable);
-        if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
-        {
+        if (scriptContext->GetConfig()->IsES6ToStringTagEnabled()) {
             library->AddMember(generatorPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Generator")), PropertyConfigurable);
         }
-        library->AddFunctionToLibraryObject(generatorPrototype, PropertyIds::return_, &JavascriptGenerator::EntryInfo::Return, 1);
+        library->AddMember(generatorPrototype, PropertyIds::return_, library->EnsureGeneratorReturnFunction(), PropertyBuiltInMethodDefaults);
         library->AddMember(generatorPrototype, PropertyIds::next, library->EnsureGeneratorNextFunction(), PropertyBuiltInMethodDefaults);
         library->AddMember(generatorPrototype, PropertyIds::throw_, library->EnsureGeneratorThrowFunction(), PropertyBuiltInMethodDefaults);
 
         generatorPrototype->SetHasNoEnumerableProperties(true);
 
         return true;
+    }
+
+    JavascriptFunction* JavascriptLibrary::EnsureGeneratorReturnFunction() 
+    {
+        if (generatorReturnFunction == nullptr) 
+        {
+            generatorReturnFunction = DefaultCreateFunction(&JavascriptGenerator::EntryInfo::Return, 1, nullptr, nullptr, PropertyIds::return_);
+        }
+        return generatorReturnFunction;
     }
 
     JavascriptFunction* JavascriptLibrary::EnsureGeneratorNextFunction()
@@ -5841,7 +5849,17 @@ namespace Js
 
         return res;
     }
-#endif
+
+    Js::RecyclableObject* JavascriptLibrary::CreateJavascriptGenerator_TTD(Js::ScriptContext *ctx,
+        Js::RecyclableObject *prototype, Js::Arguments &arguments,
+        Js::JavascriptGenerator::GeneratorState generatorState)
+    {
+        Js::DynamicType* generatorType = CreateGeneratorType(prototype);
+        Js::JavascriptGenerator* generator = Js::JavascriptGenerator::New(ctx->GetRecycler(), generatorType, arguments, generatorState);
+        return generator;
+    }
+
+#endif // ENABLE_TTD
 
     void JavascriptLibrary::SetCrossSiteForSharedFunctionType(JavascriptFunction * function)
     {
@@ -6798,6 +6816,15 @@ namespace Js
         DynamicType* type = CreateDeferredPrototypeGeneratorFunctionType(entryPoint, scriptFunction->IsAnonymousFunction());
 
         return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptGeneratorFunction, type, scriptFunction);
+    }
+
+    JavascriptGeneratorFunction* JavascriptLibrary::CreateGeneratorFunction(JavascriptMethod entryPoint, bool isAnonymousFunction)
+    {
+        Assert(scriptContext->GetConfig()->IsES6GeneratorsEnabled());
+
+        DynamicType* type = CreateDeferredPrototypeGeneratorFunctionType(entryPoint, isAnonymousFunction);
+
+        return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptGeneratorFunction, type, nullptr);
     }
 
     JavascriptAsyncFunction* JavascriptLibrary::CreateAsyncFunction(JavascriptMethod entryPoint, GeneratorVirtualScriptFunction* scriptFunction)

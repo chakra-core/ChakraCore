@@ -187,8 +187,11 @@ namespace TTD
 
         Js::RecyclableObject* DoObjectInflation_SnapScriptFunctionInfo(const SnapObject* snpObject, InflateMap* inflator);
         void DoAddtlValueInstantiation_SnapScriptFunctionInfo(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator);
+        void DoAddtlValueInstantiation_SnapScriptFunctionInfoEx(const SnapScriptFunctionInfo* snapFuncInfo, Js::ScriptFunction* fobj, InflateMap* inflator);
         void EmitAddtlInfo_SnapScriptFunctionInfo(const SnapObject* snpObject, FileWriter* writer);
         void ParseAddtlInfo_SnapScriptFunctionInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc);
+        void EmitAddtlInfo_SnapScriptFunctionInfoEx(const SnapScriptFunctionInfo* snapFuncInfo, FileWriter* writer);
+        void ParseAddtlInfo_SnapScriptFunctionInfoEx(SnapScriptFunctionInfo* snapFuncInfo, FileReader* reader, SlabAllocator& alloc);
 
 #if ENABLE_SNAPSHOT_COMPARE 
         void AssertSnapEquiv_SnapScriptFunctionInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap);
@@ -1031,6 +1034,8 @@ namespace TTD
         void AssertSnapEquiv_SnapSetInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap);
 #endif
 
+        //////////////////
+
         //A struct that represents a map (or weakmap) object
         struct SnapMapInfo
         {
@@ -1075,6 +1080,74 @@ namespace TTD
 #if ENABLE_SNAPSHOT_COMPARE
         void AssertSnapEquiv_SnapProxyInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap);
 #endif
+
+
+        //////////////////
+
+        struct SnapGeneratorFunctionInfo
+        {
+            TTD_PTR_ID scriptFunction; // pointer to GeneratorVirtualScriptFunction
+            bool isAnonymousFunction;
+        };
+
+        struct SnapGeneratorVirtualScriptFunctionInfo : SnapScriptFunctionInfo
+        {
+            TTD_PTR_ID realFunction; //pointer to JavascriptGeneratorFunction
+
+        };
+
+        struct SnapAsyncFunctionInfo
+        {
+
+        };
+
+        struct SnapGeneratorInfo
+        {
+            int generatorPrototype; // 0 == unknown, 1 == nullType, 2 == generatorPrototype
+            Js::RegSlot frame_slotCount;
+            TTDVar* frame_slotArray;
+            uint32 state; // enum value of JavascriptGenerator.GeneratorState
+            TTD_PTR_ID scriptFunction;
+            byte arguments_callInfo[sizeof(Js::CallInfo)];
+            uint arguments_count;
+            TTDVar* arguments_values;
+            uint byteCodeReader_offset;
+        };
+
+        Js::RecyclableObject* DoObjectInflation_SnapGeneratorInfo(const SnapObject* snpObject, InflateMap* inflator);
+        void DoAddtlValueInstantiation_SnapGeneratorInfo(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator);
+        void EmitAddtlInfo_SnapGeneratorInfo(const SnapObject* snpObject, FileWriter* writer);
+        void ParseAddtlInfo_SnapGeneratorInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc);
+#if ENABLE_SNAPSHOT_COMPARE
+        void AssertSnapEquiv_SnapGeneratorInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap);
+#endif
+
+
+        Js::RecyclableObject *DoObjectInflation_SnapGeneratorFunctionInfo(const SnapObject *snpObject, InflateMap *inflator);
+        void DoAddtlValueInstantiation_SnapGeneratorFunctionInfo(const SnapObject *snpObject, Js::RecyclableObject *obj, InflateMap *inflator);
+        void EmitAddtlInfo_SnapGeneratorFunctionInfo(const SnapObject *snpObject, FileWriter *writer);
+        void ParseAddtlInfo_SnapGeneratorFunctionInfo(SnapObject *snpObject, FileReader *reader, SlabAllocator &alloc);
+#if ENABLE_SNAPSHOT_COMPARE
+        void AssertSnapEquiv_SnapGeneratorFunctionInfo(const SnapObject *sobj1, const SnapObject *sobj2, TTDCompareMap &compareMap);
+#endif
+
+
+        Js::RecyclableObject* DoObjectInflation_SnapGeneratorVirtualScriptFunctionInfo(const SnapObject *snpObject, InflateMap *inflator);
+        void DoAddtlValueInstantiation_SnapGeneratorVirtualScriptFunctionInfo(const SnapObject *snpObject, Js::RecyclableObject *obj, InflateMap *inflator);
+        void EmitAddtlInfo_SnapGeneratorVirtualScriptFunctionInfo(const SnapObject *snpObject, FileWriter *writer);
+        void ParseAddtlInfo_SnapGeneratorVirtualScriptFunctionInfo(SnapObject *snpObject, FileReader *reader, SlabAllocator &alloc);
+#if ENABLE_SNAPSHOT_COMPARE
+        void AssertSnapEquiv_SnapGeneratorVirtualScriptFunctionInfo(const SnapObject *sobj1, const SnapObject *sobj2, TTDCompareMap &compareMap);
+#endif
+
+        Js::RecyclableObject *DoObjectInflation_SnapAsyncFunction(const SnapObject *snpObject, InflateMap *inflator);
+        void DoAddtlValueInstantiation_SnapAsyncFunction(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator);
+        void EmitAddtlInfo_SnapAsyncFunction(const SnapObject* snpObject, FileWriter* writer);
+        void ParseAddtlInfo_SnapAsyncFunction(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc);
+#if ENABLE_SNAPSHOT_COMPARE
+        void AssertSnapEquiv_SnapAsyncFunction(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap);
+#endif
+
     }
 }
 
