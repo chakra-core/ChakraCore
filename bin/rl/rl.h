@@ -204,6 +204,7 @@ enum TestInfoKind
    TIK_COMMAND,
    TIK_TIMEOUT,
    TIK_SOURCE_PATH,
+   TIK_EOL_NORMALIZATION,
    _TIK_COUNT
 };
 
@@ -920,7 +921,7 @@ extern void __cdecl LogOut(const char *fmt, ...);
 extern void __cdecl LogError(const char *fmt, ...);
 extern void FlushOutput(void);
 extern char *mytmpnam(const char* directory, const char *prefix, char *filename);
-extern int DoCompare(char *file1, char *file2);
+extern int DoCompare(char *file1, char *file2, BOOL normalizeLineEndings = false);
 extern void UpdateTitleStatus();
 extern int mystrcmp(const char *a, const char *b);
 extern char * mystrtok(char *s, const char *delim, const char *term);
