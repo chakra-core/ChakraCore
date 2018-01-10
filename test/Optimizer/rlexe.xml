@@ -1454,4 +1454,16 @@
       <files>capturedValuesBugs.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>test146.js</files>
+      <compile-flags>-off:bailonnoprofile</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>test147.js</files>
+      <compile-flags>-off:aggressiveinttypespec</compile-flags>
+    </default>
+  </test>
 </regress-exe>

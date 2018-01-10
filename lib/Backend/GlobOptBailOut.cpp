@@ -262,7 +262,7 @@ GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo)
     bailOutInfo->capturedValues->copyPropSyms = capturedValues.copyPropSyms;
     
     // In pre-pass only bailout info created should be for the loop header, and that doesn't take into account the back edge.
-    // Don't use the captured values on that bailout for inremental capturing of values.
+    // Don't use the captured values on that bailout for incremental capturing of values.
     if (!PHASE_OFF(Js::IncrementalBailoutPhase, func) && !this->IsLoopPrePass())
     {
         // cache the pointer of current bailout as potential baseline for later bailout in this block

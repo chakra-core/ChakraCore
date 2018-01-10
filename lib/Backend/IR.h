@@ -36,7 +36,7 @@ struct CapturedValues
         constantValues.Reset();
         copyPropSyms.Reset();
         argObjSyms = nullptr;
-        refCount = 0;
+        Assert(refCount == 0);
     }
 
     uint DecrementRefCount()
