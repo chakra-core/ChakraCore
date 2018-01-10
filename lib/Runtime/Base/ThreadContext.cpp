@@ -24,9 +24,6 @@
 #include "Language/JavascriptStackWalker.h"
 #include "Base/ScriptMemoryDumper.h"
 
-// SIMD_JS
-#include "Library/SimdLib.h"
-
 #if DBG
 #include "Memory/StressTest.h"
 #endif
@@ -228,19 +225,6 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     this->bailOutRegisterSaveSpace = AnewArrayZ(this->GetThreadAlloc(), Js::Var, GetBailOutRegisterSaveSlotCount());
 #endif
 
-#if defined(ENABLE_SIMDJS) && ENABLE_NATIVE_CODEGEN
-    simdFuncInfoToOpcodeMap = Anew(this->GetThreadAlloc(), FuncInfoToOpcodeMap, this->GetThreadAlloc());
-    simdOpcodeToSignatureMap = AnewArrayZ(this->GetThreadAlloc(), SimdFuncSignature, Js::Simd128OpcodeCount());
-    {
-#define MACRO_SIMD_WMS(op, LayoutAsmJs, OpCodeAttrAsmJs, OpCodeAttr, ...) \
-    AddSimdFuncToMaps(Js::OpCode::##op, __VA_ARGS__);
-
-#define MACRO_SIMD_EXTEND_WMS(op, LayoutAsmJs, OpCodeAttrAsmJs, OpCodeAttr, ...) MACRO_SIMD_WMS(op, LayoutAsmJs, OpCodeAttrAsmJs, OpCodeAttr, __VA_ARGS__)
-
-#include "ByteCode/OpCodesSimd.h"
-    }
-#endif // defined(ENABLE_SIMDJS) && ENABLE_NATIVE_CODEGEN
-
 #if DBG_DUMP
     scriptSiteCount = 0;
     pageAllocator.debugName = _u("Thread");
@@ -336,7 +320,7 @@ ThreadContext::GetThreadStackLimitAddr() const
     return (intptr_t)GetAddressOfStackLimitForCurrentThread();
 }
 
-#if ENABLE_NATIVE_CODEGEN && (defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)) && (defined(_M_IX86) || defined(_M_X64))
+#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_WASM_SIMD)
 intptr_t
 ThreadContext::GetSimdTempAreaAddr(uint8 tempIndex) const
 {
@@ -659,88 +643,6 @@ void ThreadContext::ValidateThreadContext()
 
 #endif
 }
-
-#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SIMDJS)
-void ThreadContext::AddSimdFuncToMaps(Js::OpCode op, ...)
-{
-    Assert(simdFuncInfoToOpcodeMap != nullptr);
-    Assert(simdOpcodeToSignatureMap != nullptr);
-
-    va_list arguments;
-    va_start(arguments, op);
-
-    int argumentsCount = va_arg(arguments, int);
-    AssertMsg(argumentsCount >= 0 && argumentsCount <= 20, "Invalid arguments count for SIMD opcode");
-    if (argumentsCount == 0)
-    {
-        // no info to add
-        return;
-    }
-    Js::FunctionInfo *funcInfo = va_arg(arguments, Js::FunctionInfo*);
-    AddSimdFuncInfo(op, funcInfo);
-
-    SimdFuncSignature simdFuncSignature;
-    simdFuncSignature.valid = true;
-    simdFuncSignature.argCount = argumentsCount - 2; // arg count to Simd func = argumentsCount - FuncInfo and return Type fields.
-    simdFuncSignature.returnType = va_arg(arguments, ValueType);
-    simdFuncSignature.args = AnewArrayZ(this->GetThreadAlloc(), ValueType, simdFuncSignature.argCount);
-    for (uint iArg = 0; iArg < simdFuncSignature.argCount; iArg++)
-    {
-        simdFuncSignature.args[iArg] = va_arg(arguments, ValueType);
-    }
-
-    simdOpcodeToSignatureMap[Js::SIMDUtils::SimdOpcodeAsIndex(op)] = simdFuncSignature;
-
-    va_end(arguments);
-}
-
-void ThreadContext::AddSimdFuncInfo(Js::OpCode op, Js::FunctionInfo *funcInfo)
-{
-    // primary funcInfo
-    simdFuncInfoToOpcodeMap->AddNew(funcInfo, op);
-    // Entry points of SIMD loads/stores of non-full width all map to the same opcode. This is not captured in the opcode table, so add additional entry points here.
-    switch (op)
-    {
-    case Js::OpCode::Simd128_LdArr_F4:
-        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDFloat32x4Lib::EntryInfo::Load1, op);
-        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDFloat32x4Lib::EntryInfo::Load2, op);
-        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDFloat32x4Lib::EntryInfo::Load3, op);
-        break;
-    case Js::OpCode::Simd128_StArr_F4:
-        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDFloat32x4Lib::EntryInfo::Store1, op);
-        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDFloat32x4Lib::EntryInfo::Store2, op);
-        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDFloat32x4Lib::EntryInfo::Store3, op);
-        break;
-    case Js::OpCode::Simd128_LdArr_I4:
-        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDInt32x4Lib::EntryInfo::Load1, op);
-        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDInt32x4Lib::EntryInfo::Load2, op);
-        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDInt32x4Lib::EntryInfo::Load3, op);
-        break;
-    case Js::OpCode::Simd128_StArr_I4:
-        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDInt32x4Lib::EntryInfo::Store1, op);
-        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDInt32x4Lib::EntryInfo::Store2, op);
-        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDInt32x4Lib::EntryInfo::Store3, op);
-        break;
-    }
-}
-
-Js::OpCode ThreadContext::GetSimdOpcodeFromFuncInfo(Js::FunctionInfo * funcInfo)
-{
-    Assert(simdFuncInfoToOpcodeMap != nullptr);
-    if (simdFuncInfoToOpcodeMap->ContainsKey(funcInfo))
-    {
-        return simdFuncInfoToOpcodeMap->Item(funcInfo);
-
-    }
-    return (Js::OpCode) 0;
-}
-
-void ThreadContext::GetSimdFuncSignatureFromOpcode(Js::OpCode op, SimdFuncSignature &funcSignature)
-{
-    Assert(simdOpcodeToSignatureMap != nullptr);
-    funcSignature = simdOpcodeToSignatureMap[Js::SIMDUtils::SimdOpcodeAsIndex(op)];
-}
-#endif
 
 class AutoRecyclerPtr : public AutoPtr<Recycler>
 {
@@ -1998,7 +1900,7 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
     contextData.scriptStackLimit = GetScriptStackLimit();
     contextData.isThreadBound = IsThreadBound();
     contextData.allowPrereserveAlloc = allowPrereserveAlloc;
-#if (defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)) && (_M_IX86 || _M_AMD64)
+#if defined(ENABLE_WASM_SIMD) && (_M_IX86 || _M_AMD64)
     contextData.simdTempAreaBaseAddr = (intptr_t)GetSimdTempArea();
 #endif
 

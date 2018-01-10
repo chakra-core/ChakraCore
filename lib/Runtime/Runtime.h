@@ -153,35 +153,6 @@ namespace Js
 
     struct RestrictedErrorStrings;
     class JavascriptError;
-
-#ifdef ENABLE_SIMDJS
-//SIMD_JS
-    // SIMD
-    class JavascriptSIMDObject;
-    class SIMDFloat32x4Lib;
-    class JavascriptSIMDFloat32x4;
-    class SIMDFloat64x2Lib;
-    class JavascriptSIMDFloat64x2;
-    class SIMDInt32x4Lib;
-    class JavascriptSIMDInt32x4;
-    class SIMDInt16x8Lib;
-    class JavascriptSIMDInt16x8;
-    class SIMDInt8x16Lib;
-    class JavascriptSIMDInt8x16;
-    class SIMDUint16x8Lib;
-    class JavascriptSIMDUint16x8;
-    class SIMDUint8x16Lib;
-    class JavascriptSIMDUint8x16;
-    class SIMDUint32x4Lib;
-    class JavascriptSIMDUint32x4;
-    class SIMDBool32x4Lib;
-    class JavascriptSIMDBool32x4;
-    class SIMDBool8x16Lib;
-    class JavascriptSIMDBool8x16;
-    class SIMDBool16x8Lib;
-    class JavascriptSIMDBool16x8;
-#endif // #ifdef ENABLE_SIMDJS
-
     class RecyclableObject;
     class JavascriptRegExp;
     class JavascriptRegularExpressionResult;

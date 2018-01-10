@@ -791,55 +791,6 @@ BailoutConstantValue StackSym::GetConstValueForBailout() const
     return src1->GetConstValue();
 }
 
-
-// SIMD_JS
-StackSym *
-StackSym::GetSimd128EquivSym(IRType type, Func *func)
-{
-    switch (type)
-    {
-    case TySimd128F4:
-        return this->GetSimd128F4EquivSym(func);
-        break;
-    case TySimd128I4:
-        return this->GetSimd128I4EquivSym(func);
-        break;
-    case TySimd128I16:
-        return this->GetSimd128I16EquivSym(func);
-        break;
-    case TySimd128D2:
-        return this->GetSimd128D2EquivSym(func);
-        break;
-    default:
-        Assert(UNREACHED);
-        return nullptr;
-    }
-}
-
-StackSym *
-StackSym::GetSimd128F4EquivSym(Func *func)
-{
-    return this->GetTypeEquivSym(TySimd128F4, func);
-}
-
-StackSym *
-StackSym::GetSimd128I4EquivSym(Func *func)
-{
-    return this->GetTypeEquivSym(TySimd128I4, func);
-}
-
-StackSym *
-StackSym::GetSimd128I16EquivSym(Func *func)
-{
-    return this->GetTypeEquivSym(TySimd128I16, func);
-}
-
-StackSym *
-StackSym::GetSimd128D2EquivSym(Func *func)
-{
-    return this->GetTypeEquivSym(TySimd128D2, func);
-}
-
 StackSym *
 StackSym::GetFloat64EquivSym(Func *func)
 {

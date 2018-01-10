@@ -63,9 +63,8 @@ namespace Js{
 
         BVStatic<ASMMATH_BUILTIN_SIZE> mathBuiltinUsed = info->GetAsmMathBuiltinUsed();
         BVStatic<ASMARRAY_BUILTIN_SIZE> arrayBuiltinUsed = info->GetAsmArrayBuiltinUsed();
-        BVStatic<ASMSIMD_BUILTIN_SIZE> simdBuiltinUsed = info->GetAsmSimdBuiltinUsed();
 
-        if (mathBuiltinUsed.IsAllClear() && arrayBuiltinUsed.IsAllClear() && simdBuiltinUsed.IsAllClear())
+        if (mathBuiltinUsed.IsAllClear() && arrayBuiltinUsed.IsAllClear())
         {
             return true;
         }
@@ -134,26 +133,6 @@ namespace Js{
             }
         }
 
-#ifdef ENABLE_SIMDJS
-        if (!simdBuiltinUsed.IsAllClear())
-        {
-            Var asmSimdObject = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::SIMD, scriptContext);
-            for (int i = 0; i < AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_COUNT; i++)
-            {
-                if (!simdBuiltinUsed.Test(i))
-                {
-                    continue;
-                }
-                AsmJsSIMDBuiltinFunction simdBuiltinFunc = (AsmJsSIMDBuiltinFunction)i;
-                if (!CheckSimdLibraryMethod(scriptContext, asmSimdObject, simdBuiltinFunc))
-                {
-                    AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : SIMD builtin function is invalid"));
-                    return false;
-                }
-            }
-        }
-#endif
-
         return true;
     }
 
@@ -208,48 +187,6 @@ namespace Js{
         }
         return false;
     }
-
-#ifdef ENABLE_SIMDJS
-    bool ASMLink::CheckSimdLibraryMethod(ScriptContext* scriptContext, const Var asmSimdObject, const AsmJsSIMDBuiltinFunction simdLibMethod)
-    {
-        Var simdConstructorObj, simdFuncObj;
-
-        switch (simdLibMethod)
-        {
-#define ASMJS_SIMD_C_NAMES(builtInId, propertyId, libName, entryPoint) \
-        case  AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_##builtInId: \
-            simdFuncObj = JavascriptOperators::OP_GetProperty(asmSimdObject, PropertyIds::##libName, scriptContext); \
-            if (JavascriptFunction::Is(simdFuncObj)) \
-            { \
-                JavascriptFunction* simdLibFunc = (JavascriptFunction*)simdFuncObj; \
-                if (simdLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&SIMD##libName##Lib::EntryInfo::##entryPoint)->GetOriginalEntryPoint()) \
-                { \
-                    return true; \
-                }\
-            } \
-            break;
-
-#define ASMJS_SIMD_O_NAMES(builtInId, propertyId, libName, entryPoint) \
-        case  AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_##builtInId: \
-            simdConstructorObj = JavascriptOperators::OP_GetProperty(asmSimdObject, PropertyIds::##libName, scriptContext); \
-            simdFuncObj = JavascriptOperators::OP_GetProperty(simdConstructorObj, PropertyIds::##propertyId, scriptContext); \
-            if (JavascriptFunction::Is(simdFuncObj)) \
-            { \
-                JavascriptFunction* simdLibFunc = (JavascriptFunction*)simdFuncObj; \
-                if (simdLibFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&SIMD##libName##Lib::EntryInfo::##entryPoint)->GetOriginalEntryPoint()) \
-                { \
-                    return true; \
-                }\
-            } \
-            break;
-#include "AsmJsBuiltinNames.h"
-
-        default:
-            Assume(UNREACHED);
-        }
-        return false;
-    }
-#endif
 
     bool ASMLink::CheckIsBuiltinFunction(ScriptContext* scriptContext, const Var object, PropertyId propertyId, const FunctionInfo& funcInfo)
     {

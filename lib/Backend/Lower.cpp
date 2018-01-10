@@ -1822,20 +1822,20 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
             else if (instr->GetDst()->IsInt64())
             {
+                Assert(m_func->GetJITFunctionBody()->IsWasmFunction());
                 GenerateRuntimeError(instr, WASMERR_InvalidTypeConversion);
                 instr->ReplaceSrc1(IR::Int64ConstOpnd::New(0, TyInt64, m_func));
                 LowererMD::ChangeToAssign(instr);
             }
-#ifdef ENABLE_SIMDJS
-            // Support on IA only
-#if defined(_M_IX86) || defined(_M_X64)
+#ifdef ENABLE_WASM_SIMD
             else if (instr->GetDst()->IsSimd128())
             {
-                // SIMD_JS
-                m_lowererMD.GenerateCheckedSimdLoad(instr);
+                Assert(m_func->GetJITFunctionBody()->IsWasmFunction());
+                GenerateRuntimeError(instr, WASMERR_InvalidTypeConversion);
+                instr->ReplaceSrc1(IR::Simd128ConstOpnd::New({0,0,0,0}, instr->GetDst()->GetType(), m_func));
+                LowererMD::ChangeToAssign(instr);
             }
 #endif
-#endif // ENABLE_SIMDJS
             else
             {
                 Assert(UNREACHED);
@@ -1889,20 +1889,13 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     float64Opnd, instr, instr);
                 instr->Remove();
             }
-            else if (instr->GetSrc1()->IsInt64())
+            else if (instr->GetSrc1()->IsInt64() || instr->GetSrc1()->IsSimd128())
             {
+                Assert(m_func->GetJITFunctionBody()->IsWasmFunction());
                 GenerateRuntimeError(instr, WASMERR_InvalidTypeConversion);
                 instr->ReplaceSrc1(IR::IntConstOpnd::New(0, TyMachReg, m_func));
-                m_lowererMD.ChangeToAssign(instr);
+                LowererMD::ChangeToAssign(instr);
             }
-#ifdef ENABLE_SIMDJS
-#if defined(_M_IX86) || defined(_M_X64)
-            else if (IRType_IsSimd128(instr->GetSrc1()->GetType()))
-            {
-                m_lowererMD.GenerateSimdStore(instr);
-            }
-#endif
-#endif
             else
             {
                 Assert(UNREACHED);
@@ -3018,14 +3011,12 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 #endif //ENABLE_WASM
 
         default:
-#if defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)
-#if defined(_M_IX86) || defined(_M_X64)
+#ifdef ENABLE_WASM_SIMD
             if (IsSimd128Opcode(instr->m_opcode))
             {
                 instrPrev = m_lowererMD.Simd128Instruction(instr);
                 break;
             }
-#endif
 #endif
             AssertMsg(instr->IsLowered(), "Unknown opcode");
             if(!instr->IsLowered())

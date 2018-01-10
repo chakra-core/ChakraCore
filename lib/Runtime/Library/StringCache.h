@@ -29,19 +29,6 @@ class StringCache
     Field(StaticType*) stringTypeStatic;
 public:
     StringCache():
-#ifdef ENABLE_SIMDJS
-      SCACHE_INIT_DEFAULT(GetSIMDFloat32x4DisplayString),
-      SCACHE_INIT_DEFAULT(GetSIMDFloat64x2DisplayString),
-      SCACHE_INIT_DEFAULT(GetSIMDInt32x4DisplayString),
-      SCACHE_INIT_DEFAULT(GetSIMDInt16x8DisplayString),
-      SCACHE_INIT_DEFAULT(GetSIMDInt8x16DisplayString),
-      SCACHE_INIT_DEFAULT(GetSIMDBool32x4DisplayString),
-      SCACHE_INIT_DEFAULT(GetSIMDBool16x8DisplayString),
-      SCACHE_INIT_DEFAULT(GetSIMDBool8x16DisplayString),
-      SCACHE_INIT_DEFAULT(GetSIMDUint32x4DisplayString),
-      SCACHE_INIT_DEFAULT(GetSIMDUint16x8DisplayString),
-      SCACHE_INIT_DEFAULT(GetSIMDUint8x16DisplayString),
-#endif
       SCACHE_INIT_DEFAULT(GetEmptyObjectString),
       SCACHE_INIT_DEFAULT(GetQuotesString),
       SCACHE_INIT_DEFAULT(GetWhackString),
@@ -132,21 +119,6 @@ public:
     DEFINE_CACHED_STRING(GetFunctionDisplayString, JS_DISPLAY_STRING_FUNCTION_ANONYMOUS)
     DEFINE_CACHED_STRING(GetXDomainFunctionDisplayString, _u("function anonymous() {\n    [x-domain code]\n}"))
     DEFINE_CACHED_STRING(GetInvalidDateString, _u("Invalid Date"))
-
-#ifdef ENABLE_SIMDJS
-    DEFINE_CACHED_STRING(GetSIMDFloat32x4DisplayString, _u("float32x4"))
-    DEFINE_CACHED_STRING(GetSIMDFloat64x2DisplayString, _u("float64x2"))
-    DEFINE_CACHED_STRING(GetSIMDInt32x4DisplayString, _u("int32x4"))
-    DEFINE_CACHED_STRING(GetSIMDInt16x8DisplayString, _u("int16x8"))
-    DEFINE_CACHED_STRING(GetSIMDInt8x16DisplayString, _u("int8x16"))
-    DEFINE_CACHED_STRING(GetSIMDBool32x4DisplayString, _u("bool32x4"))
-    DEFINE_CACHED_STRING(GetSIMDBool16x8DisplayString, _u("bool16x8"))
-    DEFINE_CACHED_STRING(GetSIMDBool8x16DisplayString, _u("bool8x16"))
-    DEFINE_CACHED_STRING(GetSIMDUint32x4DisplayString, _u("uint32x4"))
-    DEFINE_CACHED_STRING(GetSIMDUint16x8DisplayString, _u("uint16x8"))
-    DEFINE_CACHED_STRING(GetSIMDUint8x16DisplayString, _u("uint8x16"))
-#endif
-
     DEFINE_CACHED_STRING(GetObjectDisplayString, _u("[object Object]"))
     DEFINE_CACHED_STRING(GetObjectArgumentsDisplayString, _u("[object Arguments]"))
     DEFINE_CACHED_STRING(GetObjectArrayDisplayString, _u("[object Array]"))

@@ -32,9 +32,10 @@ VALUE_TYPE_BIT(Boolean,                 static_cast<ValueType::TSize>(1 << 10   
 VALUE_TYPE_BIT(String,                  static_cast<ValueType::TSize>(1 << 11   ))
 VALUE_TYPE_BIT(Symbol,                  static_cast<ValueType::TSize>(1 << 12   ))
 VALUE_TYPE_BIT(PrimitiveOrObject,       static_cast<ValueType::TSize>(1 << 13   ))
+VALUE_TYPE_BIT(Simd,                    static_cast<ValueType::TSize>(1 << 14   ))
 
 #if !defined(VALUE_TYPE_NONOBJECT_BIT_COUNT)
-#define VALUE_TYPE_NONOBJECT_BIT_COUNT static_cast<ValueType::TSize>(9)
+#define VALUE_TYPE_NONOBJECT_BIT_COUNT static_cast<ValueType::TSize>(10)
 #endif
 
 // The following bits only apply when the Object bit is set
@@ -108,23 +109,6 @@ OBJECT_TYPE(Int64Array)
 OBJECT_TYPE(Uint64Array)
 OBJECT_TYPE(BoolArray)
 OBJECT_TYPE(CharArray)
-
-// SIMD_JS
-// Only Simd128 sub-types. Currently no need to track top Simd128 type
-OBJECT_TYPE(Simd128Float32x4    )
-OBJECT_TYPE(Simd128Int32x4      )
-OBJECT_TYPE(Simd128Int16x8      )
-OBJECT_TYPE(Simd128Int8x16      )
-OBJECT_TYPE(Simd128Uint32x4     )
-OBJECT_TYPE(Simd128Uint16x8     )
-OBJECT_TYPE(Simd128Uint8x16     )
-OBJECT_TYPE(Simd128Bool32x4     )
-OBJECT_TYPE(Simd128Bool16x8     )
-OBJECT_TYPE(Simd128Bool8x16     )
-OBJECT_TYPE(Simd128Int64x2      )
-OBJECT_TYPE(Simd128Float64x2    ) // !! This is a marker for last SIMD type. Insert new SIMD types above.
-
-
 OBJECT_TYPE(Count)
 
 #endif
@@ -145,5 +129,6 @@ BASE_VALUE_TYPE(String,                 Bits::String                )
 BASE_VALUE_TYPE(Symbol,                 Bits::Symbol                )
 BASE_VALUE_TYPE(UninitializedObject,    Bits::Object                )
 BASE_VALUE_TYPE(PrimitiveOrObject,      Bits::PrimitiveOrObject     )
+BASE_VALUE_TYPE(Simd,                   Bits::Simd                  )
 
 #endif

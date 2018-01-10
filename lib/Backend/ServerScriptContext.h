@@ -47,9 +47,6 @@ public:
     virtual intptr_t GetNumberAllocatorAddr() const override;
     virtual intptr_t GetRecyclerAddr() const override;
     virtual bool GetRecyclerAllowNativeCodeBumpAllocation() const override;
-#ifdef ENABLE_SIMDJS
-    virtual bool IsSIMDEnabled() const override;
-#endif
     virtual bool IsPRNGSeeded() const override;
     virtual bool IsClosed() const override;
     virtual intptr_t GetBuiltinFunctionsBaseAddr() const override;

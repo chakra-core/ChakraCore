@@ -30,8 +30,7 @@
 
 #include "Library/StackScriptFunction.h"
 
-// SIMD_JS
-#include "Library/SimdLib.h"
+// SIMD
 #include "Language/SimdOps.h"
 
 // =================

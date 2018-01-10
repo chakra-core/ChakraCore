@@ -384,15 +384,6 @@ PHASE(All)
 #define DEFAULT_CONFIG_AsmJsEdge            (false)
 #define DEFAULT_CONFIG_AsmJsStopOnError     (false)
 
-#ifdef ENABLE_SIMDJS
-#ifdef COMPILE_DISABLE_Simdjs
-    // If Simdjs needs to be disabled by compile flag, DEFAULT_CONFIG_SIMDJS should be false
-    #define DEFAULT_CONFIG_SIMDJS               (false)
-#else
-    #define DEFAULT_CONFIG_SIMDJS               (false)
-#endif
-#endif // #ifdef ENABLE_SIMDJS
-
 #ifdef _WIN32
 #define DEFAULT_CONFIG_Wasm               (true)
 #else
@@ -900,14 +891,6 @@ FLAGNR(Boolean, WasmSignExtends       , "Use new WebAssembly sign extension oper
 #ifdef ENABLE_WASM_SIMD
 FLAGNR(Boolean, WasmSimd              , "Enable SIMD in WebAssembly", DEFAULT_CONFIG_WasmSimd)
 #endif
-
-#ifdef ENABLE_SIMDJS
-#ifndef COMPILE_DISABLE_Simdjs
-    #define COMPILE_DISABLE_Simdjs 0
-#endif
-FLAGPR_REGOVR_EXP(Boolean, ES6, Simdjs, "Enable Simdjs", DEFAULT_CONFIG_SIMDJS)
-FLAGR(Boolean, Simd128TypeSpec, "Enable type-specialization of Simd128 symbols", false)
-#endif // #ifdef ENABLE_SIMDJS
 
 FLAGNR(Boolean, AssertBreak           , "Debug break on assert", false)
 FLAGNR(Boolean, AssertPopUp           , "Pop up asserts (default: false)", false)

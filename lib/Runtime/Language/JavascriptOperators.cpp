@@ -276,39 +276,6 @@ namespace Js
 
     Var JavascriptOperators::Typeof(Var var, ScriptContext* scriptContext)
     {
-#ifdef ENABLE_SIMDJS
-        if (SIMDUtils::IsSimdType(var) && scriptContext->GetConfig()->IsSimdjsEnabled())
-        {
-            switch ((JavascriptOperators::GetTypeId(var)))
-            {
-            case TypeIds_SIMDFloat32x4:
-                return scriptContext->GetLibrary()->GetSIMDFloat32x4DisplayString();
-            //case TypeIds_SIMDFloat64x2:  //Type under review by the spec.
-            //    return scriptContext->GetLibrary()->GetSIMDFloat64x2DisplayString();
-            case TypeIds_SIMDInt32x4:
-                return scriptContext->GetLibrary()->GetSIMDInt32x4DisplayString();
-            case TypeIds_SIMDInt16x8:
-                return scriptContext->GetLibrary()->GetSIMDInt16x8DisplayString();
-            case TypeIds_SIMDInt8x16:
-                return scriptContext->GetLibrary()->GetSIMDInt8x16DisplayString();
-            case TypeIds_SIMDUint32x4:
-                return scriptContext->GetLibrary()->GetSIMDUint32x4DisplayString();
-            case TypeIds_SIMDUint16x8:
-                return scriptContext->GetLibrary()->GetSIMDUint16x8DisplayString();
-            case TypeIds_SIMDUint8x16:
-                return scriptContext->GetLibrary()->GetSIMDUint8x16DisplayString();
-            case TypeIds_SIMDBool32x4:
-                return scriptContext->GetLibrary()->GetSIMDBool32x4DisplayString();
-            case TypeIds_SIMDBool16x8:
-                return scriptContext->GetLibrary()->GetSIMDBool16x8DisplayString();
-            case TypeIds_SIMDBool8x16:
-                return scriptContext->GetLibrary()->GetSIMDBool8x16DisplayString();
-            default:
-                Assert(UNREACHED);
-            }
-        }
-#endif
-        //All remaining types.
         switch (JavascriptOperators::GetTypeId(var))
         {
         case TypeIds_Undefined:
@@ -578,12 +545,6 @@ namespace Js
                 return result;
             }
         }
-#ifdef ENABLE_SIMDJS
-        else if (SIMDUtils::IsSimdType(aLeft) && SIMDUtils::IsSimdType(aRight))
-        {
-            return StrictEqualSIMD(aLeft, aRight, requestContext);
-        }
-#endif
 
         if (RecyclableObject::UnsafeFromVar(aLeft)->Equals(aRight, &result, requestContext))
         {
@@ -630,13 +591,6 @@ namespace Js
         }
 
         double dblLeft, dblRight;
-
-#ifdef ENABLE_SIMDJS
-        if (SIMDUtils::IsSimdType(aLeft) || SIMDUtils::IsSimdType(aRight))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_SIMDConversion, _u("SIMD type"));
-        }
-#endif
         TypeId leftType = JavascriptOperators::GetTypeId(aLeft);
         TypeId rightType = JavascriptOperators::GetTypeId(aRight);
 
@@ -789,76 +743,6 @@ namespace Js
 
         return dblLeft < dblRight;
     }
-
-#ifdef ENABLE_SIMDJS
-    BOOL JavascriptOperators::StrictEqualSIMD(Var aLeft, Var aRight, ScriptContext* scriptContext)
-    {
-        TypeId leftTid  = JavascriptOperators::GetTypeId(aLeft);
-        TypeId rightTid = JavascriptOperators::GetTypeId(aRight);
-        bool result = false;
-
-
-        if (leftTid != rightTid)
-        {
-            return result;
-        }
-        SIMDValue leftSimd;
-        SIMDValue rightSimd;
-        switch (leftTid)
-        {
-        case TypeIds_SIMDBool8x16:
-            leftSimd = JavascriptSIMDBool8x16::FromVar(aLeft)->GetValue();
-            rightSimd = JavascriptSIMDBool8x16::FromVar(aRight)->GetValue();
-            return (leftSimd == rightSimd);
-        case TypeIds_SIMDBool16x8:
-            leftSimd = JavascriptSIMDBool16x8::FromVar(aLeft)->GetValue();
-            rightSimd = JavascriptSIMDBool16x8::FromVar(aRight)->GetValue();
-            return (leftSimd == rightSimd);
-        case TypeIds_SIMDBool32x4:
-            leftSimd = JavascriptSIMDBool32x4::FromVar(aLeft)->GetValue();
-            rightSimd = JavascriptSIMDBool32x4::FromVar(aRight)->GetValue();
-            return (leftSimd == rightSimd);
-        case TypeIds_SIMDInt8x16:
-            leftSimd = JavascriptSIMDInt8x16::FromVar(aLeft)->GetValue();
-            rightSimd = JavascriptSIMDInt8x16::FromVar(aRight)->GetValue();
-            return (leftSimd == rightSimd);
-        case TypeIds_SIMDInt16x8:
-            leftSimd = JavascriptSIMDInt16x8::FromVar(aLeft)->GetValue();
-            rightSimd = JavascriptSIMDInt16x8::FromVar(aRight)->GetValue();
-            return (leftSimd == rightSimd);
-        case TypeIds_SIMDInt32x4:
-            leftSimd = JavascriptSIMDInt32x4::FromVar(aLeft)->GetValue();
-            rightSimd = JavascriptSIMDInt32x4::FromVar(aRight)->GetValue();
-            return (leftSimd == rightSimd);
-        case TypeIds_SIMDUint8x16:
-            leftSimd = JavascriptSIMDUint8x16::FromVar(aLeft)->GetValue();
-            rightSimd = JavascriptSIMDUint8x16::FromVar(aRight)->GetValue();
-            return (leftSimd == rightSimd);
-        case TypeIds_SIMDUint16x8:
-            leftSimd = JavascriptSIMDUint16x8::FromVar(aLeft)->GetValue();
-            rightSimd = JavascriptSIMDUint16x8::FromVar(aRight)->GetValue();
-            return (leftSimd == rightSimd);
-        case TypeIds_SIMDUint32x4:
-            leftSimd = JavascriptSIMDUint32x4::FromVar(aLeft)->GetValue();
-            rightSimd = JavascriptSIMDUint32x4::FromVar(aRight)->GetValue();
-            return (leftSimd == rightSimd);
-        case TypeIds_SIMDFloat32x4:
-            leftSimd = JavascriptSIMDFloat32x4::FromVar(aLeft)->GetValue();
-            rightSimd = JavascriptSIMDFloat32x4::FromVar(aRight)->GetValue();
-            result = true;
-            for (int i = 0; i < 4; ++i)
-            {
-                Var laneVarLeft  = JavascriptNumber::ToVarWithCheck(leftSimd.f32[i], scriptContext);
-                Var laneVarRight = JavascriptNumber::ToVarWithCheck(rightSimd.f32[i], scriptContext);
-                result = result && JavascriptOperators::Equal(laneVarLeft, laneVarRight, scriptContext);
-            }
-            return result;
-        default:
-            Assert(UNREACHED);
-        }
-        return result;
-    }
-#endif
 
     BOOL JavascriptOperators::StrictEqualString(Var aLeft, Var aRight)
     {
@@ -1025,22 +909,6 @@ CommonNumber:
                 }
             }
             break;
-
-#ifdef ENABLE_SIMDJS
-        case TypeIds_SIMDBool8x16:
-        case TypeIds_SIMDInt8x16:
-        case TypeIds_SIMDUint8x16:
-        case TypeIds_SIMDBool16x8:
-        case TypeIds_SIMDInt16x8:
-        case TypeIds_SIMDUint16x8:
-        case TypeIds_SIMDBool32x4:
-        case TypeIds_SIMDInt32x4:
-        case TypeIds_SIMDUint32x4:
-        case TypeIds_SIMDFloat32x4:
-        case TypeIds_SIMDFloat64x2:
-            return StrictEqualSIMD(aLeft, aRight, requestContext);
-            break;
-#endif
         }
 
         if (RecyclableObject::FromVar(aLeft)->CanHaveInterceptors())
@@ -5089,9 +4957,6 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             case TypeIds_Error:
             case TypeIds_BooleanObject:
             case TypeIds_NumberObject:
-#ifdef ENABLE_SIMDJS
-            case TypeIds_SIMDObject:
-#endif
             case TypeIds_StringObject:
             case TypeIds_Symbol:
             case TypeIds_SymbolObject:

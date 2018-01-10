@@ -1011,19 +1011,6 @@ LowererMDArch::GetArgSlotOpnd(uint16 index, StackSym * argSym, bool isHelper /*=
     Assert(index != 0);
 
     uint16 argPosition = index;
-
-#ifdef ENABLE_SIMDJS
-    // Without SIMD the index is the Var offset and is also the argument index. Since each arg = 1 Var.
-    // With SIMD, args are of variable length and we need to the argument position in the args list.
-    if (m_func->IsSIMDEnabled() &&
-        m_func->GetJITFunctionBody()->IsAsmJsMode() &&
-        argSym != nullptr &&
-        argSym->m_argPosition != 0)
-    {
-        argPosition = (uint16)argSym->m_argPosition;
-    }
-#endif
-
     IR::Opnd *argSlotOpnd = nullptr;
 
     if (argSym != nullptr)

@@ -4571,77 +4571,6 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
                 }
             }
         } NEXT_BITSET_IN_SPARSEBV;
-
-#ifdef ENABLE_SIMDJS
-        // SIMD_JS
-        // Simd128 type-spec syms
-        BVSparse<JitArenaAllocator> tempBv2(globOpt->tempAlloc);
-
-        // For syms we made alive in loop header because of hoisting, use-before-def, or def in Loop body, set their valueInfo to definite.
-        // Make live on header AND in one of forceSimd128* or likelySimd128* vectors.
-        tempBv->Or(loop->likelySimd128F4SymsUsedBeforeDefined, loop->symsDefInLoop);
-        tempBv->Or(loop->likelySimd128I4SymsUsedBeforeDefined);
-        tempBv->Or(loop->forceSimd128F4SymsOnEntry);
-        tempBv->Or(loop->forceSimd128I4SymsOnEntry);
-        tempBv2.Or(blockData.liveSimd128F4Syms, blockData.liveSimd128I4Syms);
-        tempBv->And(&tempBv2);
-
-        FOREACH_BITSET_IN_SPARSEBV(id, tempBv)
-        {
-            StackSym * typeSpecSym = nullptr;
-            StackSym *const varSym = symTable->FindStackSym(id);
-            Assert(varSym);
-
-            if (blockData.liveSimd128F4Syms->Test(id))
-            {
-                typeSpecSym = varSym->GetSimd128F4EquivSym(nullptr);
-
-
-                if (!typeSpecSym || !landingPadBlockData.IsSimd128F4TypeSpecialized(varSym))
-                {
-                    Value *const value = blockData.FindValue(varSym);
-                    if (value)
-                    {
-                        ValueInfo *const valueInfo = value->GetValueInfo();
-                        if (!valueInfo->IsSimd128Float32x4())
-                        {
-                            globOpt->ChangeValueInfo(this, value, valueInfo->SpecializeToSimd128F4(alloc));
-                        }
-                    }
-                    else
-                    {
-                        this->globOptData.SetValue(globOpt->NewGenericValue(ValueType::GetSimd128(ObjectType::Simd128Float32x4), varSym), varSym);
-                    }
-                }
-            }
-            else if (blockData.liveSimd128I4Syms->Test(id))
-            {
-
-                typeSpecSym = varSym->GetSimd128I4EquivSym(nullptr);
-                if (!typeSpecSym || !landingPadBlockData.IsSimd128I4TypeSpecialized(varSym))
-                {
-                    Value *const value = blockData.FindValue(varSym);
-                    if (value)
-                    {
-                        ValueInfo *const valueInfo = value->GetValueInfo();
-                        if (!valueInfo->IsSimd128Int32x4())
-                        {
-                            globOpt->ChangeValueInfo(this, value, valueInfo->SpecializeToSimd128I4(alloc));
-                        }
-                    }
-                    else
-                    {
-                        this->globOptData.SetValue(globOpt->NewGenericValue(ValueType::GetSimd128(ObjectType::Simd128Int32x4), varSym), varSym);
-                    }
-                }
-            }
-            else
-            {
-                Assert(UNREACHED);
-            }
-        } NEXT_BITSET_IN_SPARSEBV;
-#endif
-
         tempBv->ClearAll();
     }
 
@@ -4657,12 +4586,6 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
     BVSparse<JitArenaAllocator> tempBv2(globOpt->tempAlloc);
     BVSparse<JitArenaAllocator> tempBv3(globOpt->tempAlloc);
     BVSparse<JitArenaAllocator> tempBv4(globOpt->tempAlloc);
-
-#ifdef ENABLE_SIMDJS
-    // SIMD_JS
-    BVSparse<JitArenaAllocator> simd128F4SymsToUnbox(globOpt->tempAlloc);
-    BVSparse<JitArenaAllocator> simd128I4SymsToUnbox(globOpt->tempAlloc);
-#endif
 
     FOREACH_PREDECESSOR_EDGE_EDITING(edge, this, iter)
     {
@@ -4696,20 +4619,10 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
 
         bool symIVNeedsSpecializing = (symIV && !pred->globOptData.liveInt32Syms->Test(symIV->m_id) && !tempBv3.Test(symIV->m_id));
 
-#ifdef ENABLE_SIMDJS
-        // SIMD_JS
-        simd128F4SymsToUnbox.Minus(blockData.liveSimd128F4Syms, pred->globOptData.liveSimd128F4Syms);
-        simd128I4SymsToUnbox.Minus(blockData.liveSimd128I4Syms, pred->globOptData.liveSimd128I4Syms);
-#endif
-
         if (!globOpt->tempBv->IsEmpty() ||
             !tempBv2.IsEmpty() ||
             !tempBv3.IsEmpty() ||
             !tempBv4.IsEmpty() ||
-#ifdef ENABLE_SIMDJS
-            !simd128F4SymsToUnbox.IsEmpty() ||
-            !simd128I4SymsToUnbox.IsEmpty() ||
-#endif
             symIVNeedsSpecializing ||
             symsRequiringCompensationToMergedValueInfoMap.Count() != 0)
         {
@@ -4774,19 +4687,6 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
             {
                 globOpt->InsertValueCompensation(pred, symsRequiringCompensationToMergedValueInfoMap);
             }
-
-#ifdef ENABLE_SIMDJS
-            // SIMD_JS
-            if (!simd128F4SymsToUnbox.IsEmpty())
-            {
-                globOpt->ToTypeSpec(&simd128F4SymsToUnbox, pred, TySimd128F4, IR::BailOutSimd128F4Only);
-            }
-
-            if (!simd128I4SymsToUnbox.IsEmpty())
-            {
-                globOpt->ToTypeSpec(&simd128I4SymsToUnbox, pred, TySimd128I4, IR::BailOutSimd128I4Only);
-            }
-#endif
         }
     } NEXT_PREDECESSOR_EDGE_EDITING;
 
@@ -4840,15 +4740,6 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
 
         loop->float64SymsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
         loop->float64SymsOnEntry->Copy(this->globOptData.liveFloat64Syms);
-
-#ifdef ENABLE_SIMDJS
-        // SIMD_JS
-        loop->simd128F4SymsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
-        loop->simd128F4SymsOnEntry->Copy(this->globOptData.liveSimd128F4Syms);
-
-        loop->simd128I4SymsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
-        loop->simd128I4SymsOnEntry->Copy(this->globOptData.liveSimd128I4Syms);
-#endif
 
         loop->liveFieldsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
         loop->liveFieldsOnEntry->Copy(this->globOptData.liveFields);

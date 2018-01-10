@@ -289,6 +289,9 @@ template<> Types RegisterSpace::GetRegisterSpaceType<AsmJsSIMDValue>(){return WA
             }
         }
 
+        // The offset currently carries the total size of the funcInfo after handling the last type
+        funcInfo->SetTotalSizeinBytes(offset);
+
         // These bytes offset already calculated the alignment, used them to determine how many Js::Var we need to do the allocation
         uint32 stackByteSize = offset;
         uint32 bytesUsedForConst = constSourcesInfo.bytesUsed;

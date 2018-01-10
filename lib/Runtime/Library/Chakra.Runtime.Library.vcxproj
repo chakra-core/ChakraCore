@@ -46,30 +46,6 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdObject.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdType.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdFloat32x4.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdFloat32x4Lib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdFloat64x2.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdFloat64x2Lib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdInt32x4.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdInt32x4Lib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdInt16x8.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdInt16x8Lib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdInt8x16.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdInt8x16Lib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdUint32x4.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdUint32x4Lib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdUint16x8.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdUint16x8Lib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdUint8x16.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdUint8x16Lib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdBool32x4.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool32x4Lib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdBool16x8.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool16x8Lib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdBool8x16.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool8x16Lib.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ArrayBuffer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BoundFunction.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BufferStringBuilder.cpp" />
@@ -176,6 +152,7 @@
   <ItemGroup>
     <ClInclude Include="..\DetachedStateBase.h" />
     <ClInclude Include="..\InternalPropertyList.h" />
+    <ClInclude Include="..\LibraryFunction.h" />
     <ClInclude Include="..\RuntimeCommon.h" />
     <ClInclude Include="..\SerializableFunctionFields.h" />
     <ClInclude Include="AtomicsObject.h" />
@@ -189,34 +166,10 @@
     <ClInclude Include="IntlEngineInterfaceExtensionObject.h" />
     <ClInclude Include="JavascriptExceptionMetadata.h" />
     <ClInclude Include="JavascriptListIterator.h" />
-    <ClInclude Include="JavascriptSimdObject.h" />
-    <ClInclude Include="JavascriptSimdType.h" />
-    <ClInclude Include="JavascriptSimdFloat32x4.h" />
-    <ClInclude Include="JavascriptSimdFloat64x2.h" />
-    <ClInclude Include="JavascriptSimdInt32x4.h" />
-    <ClInclude Include="JavascriptSimdInt16x8.h" />
-    <ClInclude Include="JavascriptSimdInt8x16.h" />
-    <ClInclude Include="JavascriptSimdUint32x4.h" />
-    <ClInclude Include="JavascriptSimdUint16x8.h" />
-    <ClInclude Include="JavascriptSimdUint8x16.h" />
-    <ClInclude Include="JavascriptSimdBool32x4.h" />
-    <ClInclude Include="JavascriptSimdBool16x8.h" />
-    <ClInclude Include="JavascriptSimdBool8x16.h" />
     <ClInclude Include="JSONStringBuilder.h" />
     <ClInclude Include="JSONStringifier.h" />
     <ClInclude Include="LazyJSONString.h" />
     <ClInclude Include="SharedArrayBuffer.h" />
-    <ClInclude Include="SimdFloat32x4Lib.h" />
-    <ClInclude Include="SimdFloat64x2Lib.h" />
-    <ClInclude Include="SimdInt32x4Lib.h" />
-    <ClInclude Include="SimdInt16x8Lib.h" />
-    <ClInclude Include="SimdInt8x16Lib.h" />
-    <ClInclude Include="SimdUint32x4Lib.h" />
-    <ClInclude Include="SimdUint16x8Lib.h" />
-    <ClInclude Include="SimdUint8x16Lib.h" />
-    <ClInclude Include="SimdBool32x4Lib.h" />
-    <ClInclude Include="SimdBool16x8Lib.h" />
-    <ClInclude Include="SimdBool8x16Lib.h" />
     <ClInclude Include="ArrayBuffer.h" />
     <ClInclude Include="BoundFunction.h" />
     <ClInclude Include="BufferStringBuilder.h" />

@@ -328,12 +328,7 @@ typedef struct ScriptContextDataIDL
 {
     boolean isRecyclerVerifyEnabled;
     boolean recyclerAllowNativeCodeBumpAllocation;
-#ifdef ENABLE_SIMDJS
-    boolean isSIMDEnabled;
-#else
-    IDL_PAD1(0)
-#endif
-    IDL_PAD1(1)
+    IDL_PAD2(1)
     unsigned int recyclerVerifyPad;
     CHAKRA_PTR vtableAddresses[VTABLE_COUNT];
 
