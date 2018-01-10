@@ -566,7 +566,7 @@ int
 
         sprintf_s(baseline_file, "%s\\%s", pDir->GetFullPathFromSourceOrDirectory(),
             pTestVariant->testInfo.data[TIK_BASELINE]);
-        if (DoCompare(baseline_file, full)) {
+        if (DoCompare(baseline_file, full, pTestVariant->testInfo.hasData[TIK_EOL_NORMALIZATION])) {
             reason = "diffs from baseline";
             sprintf_s(optReportBuf, "%s", baseline_file);
             fFailed = TRUE;
@@ -1062,7 +1062,7 @@ BOOL
         else {
             sprintf_s(full, "%s\\%s", pDir->GetFullPathFromSourceOrDirectory(),
                 pTestVariant->testInfo.data[TIK_BASELINE]);
-            if (DoCompare(tmp_file1, full)) {
+            if (DoCompare(tmp_file1, full, pTestVariant->testInfo.hasData[TIK_EOL_NORMALIZATION])) {
 
                 // Output differs, run spiff to see if it's just minor
                 // floating point anomalies.
