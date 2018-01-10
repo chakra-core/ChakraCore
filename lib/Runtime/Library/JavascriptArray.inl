@@ -1160,23 +1160,15 @@ SECOND_PASS:
         }
         else if (startIndex == 0 && length > this->length && (head == EmptySegment || length > head->size))
         {
-
             Recycler *recycler = GetRecycler();
-            this->length = length;
-            this->EnsureHead<T>();
-            SparseArraySegmentBase* current = nullptr;
-
-            Assert(head->size < length);
-
-            current = SparseArraySegment<T>::AllocateSegment(recycler, 0, length, (SparseArraySegment<T> *)nullptr);
+            SparseArraySegmentBase* current = SparseArraySegment<T>::AllocateSegment(recycler, 0, length, (SparseArraySegment<T> *)nullptr);
             this->SetHeadAndLastUsedSegment(current);
+            this->length = length;
 
             Assert(!HasSegmentMap());
 
             SetHasNoMissingValues(true);
-
             CopyValueToSegmentBuferNoCheck(((Js::SparseArraySegment<T>*)current)->elements, length, newValue);
-            this->SetLastUsedSegment(current);
         }
         else
         {
