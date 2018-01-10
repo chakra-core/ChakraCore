@@ -764,6 +764,7 @@ public:
     static bool             DoTypedArrayTypeSpec(Func const * func);
     static bool             DoNativeArrayTypeSpec(Func const * func);
     static bool             IsSwitchOptEnabled(Func const * func);
+    static bool             IsSwitchOptEnabledForIntTypeSpec(Func const * func);
     static bool             DoInlineArgsOpt(Func const * func);
     static bool             IsPREInstrCandidateLoad(Js::OpCode opcode);
     static bool             IsPREInstrCandidateStore(Js::OpCode opcode);
@@ -790,6 +791,7 @@ private:
     bool                    DoNativeArrayTypeSpec() const { return GlobOpt::DoNativeArrayTypeSpec(this->func); }
     bool                    DoLdLenIntSpec(IR::Instr * const instr, const ValueType baseValueType);
     bool                    IsSwitchOptEnabled() const { return GlobOpt::IsSwitchOptEnabled(this->func); }
+    bool                    IsSwitchOptEnabledForIntTypeSpec() const { return GlobOpt::IsSwitchOptEnabledForIntTypeSpec(this->func); }
     bool                    DoPathDependentValues() const;
     bool                    DoTrackRelativeIntBounds() const;
     bool                    DoBoundCheckElimination() const;

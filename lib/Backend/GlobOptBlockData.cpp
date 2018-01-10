@@ -1790,7 +1790,7 @@ GlobOptBlockData::IsTypeSpecialized(Sym const * sym) const
 bool
 GlobOptBlockData::IsSwitchInt32TypeSpecialized(IR::Instr const * instr) const
 {
-    return GlobOpt::IsSwitchOptEnabled(instr->m_func->GetTopFunc())
+    return GlobOpt::IsSwitchOptEnabledForIntTypeSpec(instr->m_func->GetTopFunc())
         && instr->GetSrc1()->IsRegOpnd()
         && this->IsInt32TypeSpecialized(instr->GetSrc1()->AsRegOpnd()->m_sym);
 }
