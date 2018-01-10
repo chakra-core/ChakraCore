@@ -500,7 +500,7 @@ class TestVariant(object):
             baseline = test.get('baseline')
             if baseline:
                 # perform baseline comparison
-                baseline = self._check_file(working_path, baseline)
+                baseline = self._check_file(folder, baseline)
                 with open(baseline, 'rb') as bs_file:
                     baseline_output = bs_file.read()
 

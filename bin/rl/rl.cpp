@@ -874,6 +874,55 @@ HANDLE OpenFileToCompare(char *file)
     return h;
 }
 
+struct MyFileWithoutCarriageReturn
+{
+    CHandle* handle;
+    char* buf = nullptr;
+    size_t i = 0;
+    DWORD count = 0;
+    MyFileWithoutCarriageReturn(CHandle* handle, char* buf) : handle(handle), buf(buf) { Read(); }
+    bool readingError;
+    void Read()
+    {
+        i = 0;
+        readingError = !ReadFile(*handle, buf, CMPBUF_SIZE, &count, NULL);
+    }
+    bool HasNextChar()
+    {
+        if (count == 0)
+        {
+            return false;
+        }
+        if (i == count)
+        {
+            Read();
+            if (readingError)
+            {
+                return false;
+            }
+            return HasNextChar();
+        }
+        while (buf[i] == '\r')
+        {
+            ++i;
+            if (i == count)
+            {
+                Read();
+                if (readingError)
+                {
+                    return false;
+                }
+                return HasNextChar();
+            }
+        }
+        return true;
+    }
+    char GetNextChar()
+    {
+        return buf[i++];
+    }
+};
+
 // Do a quick file equality comparison using pure Win32 functions. (Avoid
 // using CRT functions; the MT CRT seems to have locking/flushing problems on
 // MP boxes.)
@@ -911,56 +960,8 @@ DoCompare(
 
    if (normalizeLineEndings)
    {
-       struct MyFile
-       {
-           CHandle& handle;
-           char* buf = nullptr;
-           size_t i = 0;
-           DWORD count = 0;
-           MyFile(CHandle& handle, char* buf) : handle(handle), buf(buf) { Read(); }
-           bool readingError;
-           void Read()
-           {
-               i = 0;
-               readingError = !ReadFile(handle, buf, CMPBUF_SIZE, &count, NULL);
-           }
-           bool HasNextChar()
-           {
-               if (count == 0)
-               {
-                   return false;
-               }
-               if (i == count)
-               {
-                   Read();
-                   if (readingError)
-                   {
-                       return false;
-                   }
-                   return HasNextChar();
-               }
-               while (buf[i] == '\r')
-               {
-                   ++i;
-                   if (i == count)
-                   {
-                       Read();
-                       if (readingError)
-                       {
-                           return false;
-                       }
-                       return HasNextChar();
-                   }
-               }
-               return true;
-           }
-           char GetNextChar()
-           {
-               return buf[i++];
-           }
-       };
-       MyFile f1(h1, cmpbuf1);
-       MyFile f2(h2, cmpbuf2);
+       MyFileWithoutCarriageReturn f1(&h1, cmpbuf1);
+       MyFileWithoutCarriageReturn f2(&h2, cmpbuf2);
        if (f1.readingError || f2.readingError)
        {
            LogError("ReadFile failed doing compare of %s and %s", file1, file2);
@@ -968,6 +969,12 @@ DoCompare(
        }
        while (f1.HasNextChar() && f2.HasNextChar())
        {
+           if (f1.readingError || f2.readingError)
+           {
+               LogError("ReadFile failed doing compare of %s and %s", file1, file2);
+               return -1;
+           }
+
            if (f1.GetNextChar() != f2.GetNextChar())
            {
 #ifndef NODEBUG
