@@ -1522,8 +1522,6 @@ public:
                     case WAsmJs::INT32:   PrependConstantInt32(builder, _u("Integer Constant Value"), *(int*)byteTable); break;
                     case WAsmJs::FLOAT32: PrependFloat(builder, _u("Float Constant Value"), *(float*)byteTable); break;
                     case WAsmJs::FLOAT64: PrependDouble(builder, _u("Double Constant Value"), *(double*)byteTable); break;
-                    case WAsmJs::SIMD:    PrependSIMDValue(builder, _u("SIMD Constant Value"), *(AsmJsSIMDValue*)byteTable); break;
-                    CompileAssert(WAsmJs::LastType == WAsmJs::SIMD);
                     default:
                         Assert(UNREACHED);
                         Js::Throw::FatalInternalError();
@@ -1899,7 +1897,6 @@ public:
         size += PrependInt32(builder, _u("ArgInCount"), moduleInfo->GetArgInCount());
         size += PrependInt32(builder, _u("ExportsCount"), moduleInfo->GetExportsCount());
         size += PrependInt32(builder, _u("SlotsCount"), moduleInfo->GetSlotsCount());
-        size += PrependInt32(builder, _u("SIMDRegCount"), moduleInfo->GetSimdRegCount());
 
         if (moduleInfo->GetExportsCount() > 0)
         {
@@ -1971,7 +1968,6 @@ public:
         }
         size += PrependStruct(builder, _u("MathBuiltinBV"), &moduleInfo->GetAsmMathBuiltinUsed());
         size += PrependStruct(builder, _u("ArrayBuiltinBV"), &moduleInfo->GetAsmArrayBuiltinUsed());
-        size += PrependStruct(builder, _u("SIMDBuiltinBV"), &moduleInfo->GetAsmSimdBuiltinUsed());
 
         size += PrependInt32(builder, _u("MaxHeapAccess"), moduleInfo->GetMaxHeapAccess());
 
@@ -2941,8 +2937,6 @@ public:
                     case WAsmJs::INT32:   ReadConstantSizedInt32(current, remainingBytes, (int*)byteTable); break;
                     case WAsmJs::FLOAT32: ReadFloat(current, remainingBytes, (float*)byteTable); break;
                     case WAsmJs::FLOAT64: ReadDouble(current, remainingBytes, (double*)byteTable); break;
-                    case WAsmJs::SIMD:    ReadSIMDValue(current, remainingBytes, (AsmJsSIMDValue*)byteTable); break;
-                        CompileAssert(WAsmJs::LastType == WAsmJs::SIMD);
                     default:
                         Assert(UNREACHED);
                         Js::Throw::FatalInternalError();
@@ -3495,9 +3489,6 @@ public:
         current = ReadInt32(current, &count);
         moduleInfo->InitializeSlotMap(count);
 
-        current = ReadInt32(current, &count);
-        moduleInfo->SetSimdRegCount(count);
-
         int id;
         if (exportsCount > 0)
         {
@@ -3630,9 +3621,6 @@ public:
         current = current + sizeof(serialization_alignment BVStatic<ASMARRAY_BUILTIN_SIZE>);
         moduleInfo->SetAsmArrayBuiltinUsed(*arrayBV);
 
-        serialization_alignment BVStatic<ASMSIMD_BUILTIN_SIZE> * simdBV = (serialization_alignment BVStatic<ASMSIMD_BUILTIN_SIZE>*)current;
-        current = current + sizeof(serialization_alignment BVStatic<ASMSIMD_BUILTIN_SIZE>);
-        moduleInfo->SetAsmSimdBuiltinUsed(*simdBV);
         uint maxAccess;
         current = ReadUInt32(current, &maxAccess);
         moduleInfo->SetMaxHeapAccess(maxAccess);

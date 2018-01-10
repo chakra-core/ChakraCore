@@ -144,7 +144,6 @@ namespace Js
         case knopCall: {
             ParseNode* target;
             AsmJsFunctionDeclaration* sym;
-            AsmJsSIMDFunction* simdSym;
 
             target = coercionNode->sxCall.pnodeTarget;
 
@@ -152,65 +151,6 @@ namespace Js
             {
                 return m.Fail(coercionNode, _u("Call must be of the form id(...)"));
             }
-
-            simdSym = m.LookupSimdTypeCheck(target->name());
-            // var x = f4.check(ffi.field)
-            if (simdSym)
-            {
-                if (coercionNode->sxCall.argCount == simdSym->GetArgCount())
-                {
-                    switch (simdSym->GetSimdBuiltInFunction())
-                    {
-                    case AsmJsSIMDBuiltin_int32x4_check:
-                        *coercion = AsmJS_Int32x4;
-                        break;
-                    case AsmJsSIMDBuiltin_bool32x4_check:
-                        *coercion = AsmJS_Bool32x4;
-                        break;
-                    case AsmJsSIMDBuiltin_bool16x8_check:
-                        *coercion = AsmJS_Bool16x8;
-                        break;
-                    case AsmJsSIMDBuiltin_bool8x16_check:
-                        *coercion = AsmJS_Bool8x16;
-                        break;
-                    case AsmJsSIMDBuiltin_float32x4_check:
-                        *coercion = AsmJS_Float32x4;
-                        break;
-                    case AsmJsSIMDBuiltin_float64x2_check:
-                        *coercion = AsmJS_Float64x2;
-                        break;
-                    case AsmJsSIMDBuiltin_int16x8_check:
-                        *coercion = AsmJS_Int16x8;
-                        break;
-                    case AsmJsSIMDBuiltin_int8x16_check:
-                        *coercion = AsmJS_Int8x16;
-                        break;
-                    case AsmJsSIMDBuiltin_uint32x4_check:
-                        *coercion = AsmJS_Uint32x4;
-                        break;
-                    case AsmJsSIMDBuiltin_uint16x8_check:
-                        *coercion = AsmJS_Uint16x8;
-                        break;
-                    case AsmJsSIMDBuiltin_uint8x16_check:
-                        *coercion = AsmJS_Uint8x16;
-                        break;
-                    default:
-                        Assert(UNREACHED);
-                    }
-                    if (coercedExpr)
-                    {
-                        *coercedExpr = coercionNode->sxCall.pnodeArgs;
-                    }
-
-                    return true;
-                }
-                else
-                {
-                    return m.Fail(coercionNode, _u("Invalid SIMD coercion"));
-                }
-
-            }
-            // not a SIMD coercion, fall through
 
             *coercion = AsmJS_FRound;
             sym = m.LookupFunction(target->name());
@@ -526,53 +466,14 @@ namespace Js
         {
             lib = ParserWrapper::DotMember(base);
             base = ParserWrapper::DotBase(base);
-#ifdef ENABLE_SIMDJS
-            if (m.GetScriptContext()->GetConfig()->IsSimdjsEnabled())
+            if (!lib || lib->GetPropertyId() != PropertyIds::Math)
             {
-                if (!lib || (lib->GetPropertyId() != PropertyIds::Math && lib->GetPropertyId() != PropertyIds::SIMD))
-                {
-                    return m.FailName(initNode, _u("'%s' should be Math or SIMD, as in global.Math.xxxx"), field);
-                }
-            }
-            else
-#endif
-            {
-                if (!lib || lib->GetPropertyId() != PropertyIds::Math)
-                {
-                    return m.FailName(initNode, _u("'%s' should be Math, as in global.Math.xxxx"), field);
-                }
+                return m.FailName(initNode, _u("'%s' should be Math, as in global.Math.xxxx"), field);
             }
         }
 
         if( ParserWrapper::IsNameDeclaration(base) && base->name() == m.GetStdLibArgName() )
         {
-#ifdef ENABLE_SIMDJS
-            if (m.GetScriptContext()->GetConfig()->IsSimdjsEnabled())
-            {
-                if (lib && lib->GetPropertyId() == PropertyIds::SIMD)
-                {
-                    // global.SIMD.xxx
-                    AsmJsSIMDFunction *simdFunc = nullptr;
-
-                    if (!m.LookupStdLibSIMDName(field->GetPropertyId(), field, &simdFunc))
-                    {
-                        return m.FailName(initNode, _u("'%s' is not standard SIMD builtin"), varName);
-                    }
-
-                    if (simdFunc->GetName() != nullptr)
-                    {
-                        OutputMessage(m.GetScriptContext(), DEIT_ASMJS_FAILED, _u("Warning: SIMD Builtin already defined for var %s"), simdFunc->GetName()->Psz());
-                    }
-                    simdFunc->SetName(varName);
-                    if (!m.DefineIdentifier(varName, simdFunc))
-                    {
-                        return m.FailName(initNode, _u("Failed to define SIMD builtin function to var %s"), varName);
-                    }
-                    m.AddSimdBuiltinUse(simdFunc->GetSimdBuiltInFunction());
-                    return true;
-                }
-            }
-#endif
             // global.Math.xxx
             MathBuiltin mathBuiltin;
             if (m.LookupStandardLibraryMathName(field, &mathBuiltin))
@@ -629,33 +530,6 @@ namespace Js
             // foreign import
             return m.AddModuleFunctionImport( varName, field );
         }
-        else if (ParserWrapper::IsNameDeclaration(base))
-        {
-            // Check if SIMD function import
-            // e.g. var x = f4.add
-            AsmJsSIMDFunction *simdFunc, *operation;
-
-            simdFunc = m.LookupSimdConstructor(base->name());
-            if (simdFunc == nullptr || !m.LookupStdLibSIMDName(simdFunc->GetSimdBuiltInFunction(), field, &operation))
-            {
-                return m.FailName(initNode, _u("Invalid dot expression import. %s is not a standard SIMD operation"), varName);
-            }
-
-            if (operation->GetName() != nullptr)
-            {
-                OutputMessage(m.GetScriptContext(), DEIT_ASMJS_FAILED, _u("Warning: SIMD Builtin already defined for var %s"), operation->GetName()->Psz());
-            }
-
-            // bind operation to var
-            operation->SetName(varName);
-            if (!m.DefineIdentifier(varName, operation))
-            {
-                return m.FailName(initNode, _u("Failed to define SIMD builtin function to var %s"), varName);
-            }
-
-            m.AddSimdBuiltinUse(operation->GetSimdBuiltInFunction());
-            return true;
-        }
 
         return m.Fail(initNode, _u("expecting c.y where c is either the global or foreign parameter"));
     }
@@ -699,25 +573,8 @@ namespace Js
             }
         }
 
-
         if (initNode->nop == knopOr || initNode->nop == knopPos || initNode->nop == knopCall)
         {
-            // SIMD_JS
-            // e.g. var x = f4(1.0, 2.0, 3.0, 4.0)
-            if (initNode->nop == knopCall)
-            {
-                AsmJsSIMDFunction* simdSym;
-                // also checks if simd constructor
-                simdSym = m.LookupSimdConstructor(initNode->sxCall.pnodeTarget->name());
-                // call to simd constructor
-                if (simdSym)
-                {
-                    // validate args and define a SIMD symbol
-                    return m.AddSimdValueVar(name, initNode, simdSym);
-                }
-                // else it is FFI import: var x = f4check(FFI.field), handled in CheckGlobalVariableInitImport
-            }
-
            return CheckGlobalVariableInitImport(m, name, initNode, isMutable );
         }
 

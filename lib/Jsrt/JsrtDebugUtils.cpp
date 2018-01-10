@@ -215,25 +215,6 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
             addDisplay = true;
             break;
 
-#ifdef ENABLE_SIMDJS
-        case Js::TypeIds_SIMDFloat32x4:
-            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetSIMDFloat32x4DisplayString(), scriptContext);
-            addDisplay = true;
-            break;
-        case Js::TypeIds_SIMDFloat64x2:
-            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetSIMDFloat64x2DisplayString(), scriptContext);
-            addDisplay = true;
-            break;
-        case Js::TypeIds_SIMDInt32x4:
-            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetSIMDInt32x4DisplayString(), scriptContext);
-            addDisplay = true;
-            break;
-        case Js::TypeIds_SIMDInt8x16:
-            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetSIMDInt8x16DisplayString(), scriptContext);
-            addDisplay = true;
-            break;
-#endif // #ifdef ENABLE_SIMDJS
-
         case Js::TypeIds_Enumerator:
         case Js::TypeIds_HostDispatch:
         case Js::TypeIds_WithScopeObject:

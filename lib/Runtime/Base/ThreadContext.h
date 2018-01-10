@@ -392,29 +392,8 @@ public:
         this->langTel.Reset();
     }
 #endif
-
-#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SIMDJS)
-    // used by inliner. Maps Simd FuncInfo (library func) to equivalent opcode.
-    typedef JsUtil::BaseDictionary<Js::FunctionInfo *, Js::OpCode, ArenaAllocator> FuncInfoToOpcodeMap;
-    FuncInfoToOpcodeMap * simdFuncInfoToOpcodeMap;
-
-    struct SimdFuncSignature
-    {
-        bool valid;
-        uint argCount;          // actual arguments count (excluding this)
-        ValueType returnType;
-        ValueType *args;        // argument types
-    };
-
-    SimdFuncSignature *simdOpcodeToSignatureMap;
-
-    void AddSimdFuncToMaps(Js::OpCode op, ...);
-    void AddSimdFuncInfo(Js::OpCode op, Js::FunctionInfo *funcInfo);
-    Js::OpCode GetSimdOpcodeFromFuncInfo(Js::FunctionInfo * funcInfo);
-    void GetSimdFuncSignatureFromOpcode(Js::OpCode op, SimdFuncSignature &funcSignature);
-#endif
-
-#if defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)
+    
+#ifdef ENABLE_WASM_SIMD
 #if _M_IX86 || _M_AMD64
     // auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle.
     _x86_SIMDValue X86_TEMP_SIMD[SIMD_TEMP_SIZE];
@@ -1327,7 +1306,7 @@ public:
 
     virtual intptr_t GetThreadStackLimitAddr() const override;
 
-#if ENABLE_NATIVE_CODEGEN && (defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)) && (defined(_M_IX86) || defined(_M_X64))
+#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_WASM_SIMD)
     virtual intptr_t GetSimdTempAreaAddr(uint8 tempIndex) const override;
 #endif
 

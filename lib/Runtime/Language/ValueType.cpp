@@ -73,12 +73,6 @@ ValueType ValueType::GetObject(const ObjectType objectType)
     return Verify(valueType);
 }
 
-ValueType ValueType::GetSimd128(const ObjectType objectType)
-{
-    Assert(objectType >= ObjectType::Simd128Float32x4 && objectType <= ObjectType::Simd128Float64x2);
-    return GetObject(objectType);
-}
-
 inline ValueType ValueType::GetArray(const ObjectType objectType)
 {
     // Should typically use GetObject instead. This function should only be used for performance, when the array info is
@@ -468,7 +462,6 @@ bool ValueType::HasBeenPrimitive() const
         OneOn(Bits::Object)
             ?
                 AnyOn(Bits::Undefined | Bits::Null)
-              || GetObjectType() >= ObjectType::Simd128Float32x4
             :
                 AnyOn(
                     Bits::Undefined |
@@ -479,20 +472,16 @@ bool ValueType::HasBeenPrimitive() const
                     Bits::Boolean |
                     Bits::String |
                     Bits::Symbol |
-                    Bits::PrimitiveOrObject);
+                    Bits::PrimitiveOrObject |
+                    Bits::Simd);
 }
 
 bool ValueType::IsPrimitive() const
 {
     bool result =
         AnyOnOthersOff(
-            Bits::Undefined | Bits::Null | Bits::Int | Bits::Float | Bits::Number | Bits::Boolean | Bits::String | Bits::Symbol,
+            Bits::Undefined | Bits::Null | Bits::Int | Bits::Float | Bits::Number | Bits::Boolean | Bits::String | Bits::Symbol | Bits::Simd,
             Bits::IntCanBeUntagged | Bits::IntIsLikelyUntagged | Bits::CanBeTaggedValue);
-
-#if ENABLE_NATIVE_CODEGEN
-    result =  result || IsSimd128();
-#endif
-
     return result;
 }
 
@@ -500,13 +489,8 @@ bool ValueType::IsLikelyPrimitive() const
 {
     bool result =
         AnyOnOthersOff(
-            Bits::Undefined | Bits::Null | Bits::Int | Bits::Float | Bits::Number | Bits::Boolean | Bits::String | Bits::Symbol,
+            Bits::Undefined | Bits::Null | Bits::Int | Bits::Float | Bits::Number | Bits::Boolean | Bits::String | Bits::Symbol | Bits::Simd,
             Bits::Likely | Bits::IntCanBeUntagged | Bits::IntIsLikelyUntagged | Bits::CanBeTaggedValue);
-
-#if ENABLE_NATIVE_CODEGEN
-    result = result || IsLikelySimd128();
-#endif
-
     return result;
 }
 
@@ -748,133 +732,10 @@ bool ValueType::IsLikelyAnyUnOptimizedArray() const
     return IsLikelyObject() && GetObjectType() >= ObjectType::Int64Array && GetObjectType() <= ObjectType::CharArray;
 }
 
-#if ENABLE_NATIVE_CODEGEN
-// Simd128 values
-// Note that SIMD types are primitives
 bool ValueType::IsSimd128() const
 {
-    return IsObject() && (GetObjectType() >= ObjectType::Simd128Float32x4 && GetObjectType() <= ObjectType::Simd128Float64x2);
+    return OneOnOthersOff(Bits::Simd);
 }
-
-bool ValueType::IsSimd128(IRType type) const
-{
-    switch (type)
-    {
-    case TySimd128F4:
-        return IsSimd128Float32x4();
-    case TySimd128I4:
-        return IsSimd128Int32x4();
-    case TySimd128I8:
-        return IsSimd128Int16x8();
-    case TySimd128I16:
-        return IsSimd128Int8x16();
-    case TySimd128U4:
-        return IsSimd128Uint32x4();
-    case TySimd128U8:
-        return IsSimd128Uint16x8();
-    case TySimd128U16:
-        return IsSimd128Uint8x16();
-    case TySimd128D2:
-        return IsSimd128Float64x2();
-    case TySimd128I2:
-        return IsSimd128Int64x2();
-    default:
-        Assert(UNREACHED);
-        return false;
-    }
-}
-
-bool ValueType::IsSimd128Float32x4() const
-{
-    return IsObject() && GetObjectType() == ObjectType::Simd128Float32x4;
-}
-
-bool ValueType::IsSimd128Int32x4() const
-{
-    return IsObject() && GetObjectType() == ObjectType::Simd128Int32x4;
-}
-
-bool ValueType::IsSimd128Int16x8() const
-{
-    return IsObject() && GetObjectType() == ObjectType::Simd128Int16x8;
-}
-
-bool ValueType::IsSimd128Int8x16() const
-{
-    return IsObject() && GetObjectType() == ObjectType::Simd128Int8x16;
-}
-
-bool ValueType::IsSimd128Uint32x4() const
-{
-    return IsObject() && GetObjectType() == ObjectType::Simd128Uint32x4;
-}
-
-bool ValueType::IsSimd128Uint16x8() const
-{
-    return IsObject() && GetObjectType() == ObjectType::Simd128Uint16x8;
-}
-
-bool ValueType::IsSimd128Uint8x16() const
-{
-    return IsObject() && GetObjectType() == ObjectType::Simd128Uint8x16;
-}
-
-bool ValueType::IsSimd128Float64x2() const
-{
-    return IsObject() && GetObjectType() == ObjectType::Simd128Float64x2;
-}
-
-bool ValueType::IsSimd128Int64x2() const
-{
-    return IsObject() && GetObjectType() == ObjectType::Simd128Int64x2;
-}
-
-
-bool ValueType::IsLikelySimd128() const
-{
-    return IsLikelyObject() && (GetObjectType() >= ObjectType::Simd128Float32x4 && GetObjectType() <= ObjectType::Simd128Float64x2);
-}
-
-bool ValueType::IsLikelySimd128Float32x4() const
-{
-    return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Float32x4;
-}
-
-bool ValueType::IsLikelySimd128Int32x4() const
-{
-    return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Int32x4;
-}
-
-bool ValueType::IsLikelySimd128Int16x8() const
-{
-    return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Int16x8;
-}
-
-bool ValueType::IsLikelySimd128Int8x16() const
-{
-    return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Int8x16;
-}
-
-bool ValueType::IsLikelySimd128Uint16x8() const
-{
-    return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Uint16x8;
-}
-
-bool ValueType::IsLikelySimd128Uint8x16() const
-{
-    return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Uint8x16;
-}
-
-bool ValueType::IsLikelySimd128Float64x2() const
-{
-    return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Float64x2;
-}
-
-bool ValueType::IsLikelySimd128Int64x2() const
-{
-    return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Int64x2;
-}
-#endif
 
 ObjectType ValueType::GetObjectType() const
 {
@@ -1296,13 +1157,13 @@ void ValueType::InitializeTypeIdToBitsMap()
     TypeIdToBits[TypeIds_CharArray         ] = GetObject(ObjectType::CharArray).bits;
     TypeIdToBits[TypeIds_BoolArray         ] = GetObject(ObjectType::BoolArray).bits;
 
-    TypeIdToBits[TypeIds_SIMDFloat32x4     ] = GetObject(ObjectType::Simd128Float32x4).bits;
-    TypeIdToBits[TypeIds_SIMDInt32x4       ] = GetObject(ObjectType::Simd128Int32x4).bits;
-    TypeIdToBits[TypeIds_SIMDInt16x8       ] = GetObject(ObjectType::Simd128Int16x8).bits;
-    TypeIdToBits[TypeIds_SIMDInt8x16       ] = GetObject(ObjectType::Simd128Uint8x16).bits;
-    TypeIdToBits[TypeIds_SIMDUint16x8      ] = GetObject(ObjectType::Simd128Uint16x8).bits;
-    TypeIdToBits[TypeIds_SIMDUint8x16      ] = GetObject(ObjectType::Simd128Int8x16).bits;
-    TypeIdToBits[TypeIds_SIMDFloat64x2     ] = GetObject(ObjectType::Simd128Float64x2).bits;
+    TypeIdToBits[TypeIds_SIMDFloat32x4     ] = ValueType::Simd.bits;
+    TypeIdToBits[TypeIds_SIMDInt32x4       ] = ValueType::Simd.bits;
+    TypeIdToBits[TypeIds_SIMDInt16x8       ] = ValueType::Simd.bits;
+    TypeIdToBits[TypeIds_SIMDInt8x16       ] = ValueType::Simd.bits;
+    TypeIdToBits[TypeIds_SIMDUint16x8      ] = ValueType::Simd.bits;
+    TypeIdToBits[TypeIds_SIMDUint8x16      ] = ValueType::Simd.bits;
+    TypeIdToBits[TypeIds_SIMDFloat64x2     ] = ValueType::Simd.bits;
 
     TypeIdToBits[TypeIds_HostDispatch      ] = ValueType::UninitializedObject.bits;
 

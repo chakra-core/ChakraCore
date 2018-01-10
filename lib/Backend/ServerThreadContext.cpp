@@ -82,7 +82,7 @@ ServerThreadContext::GetImplicitCallFlagsAddr() const
     return static_cast<intptr_t>(m_threadContextData.implicitCallFlagsAddr);
 }
 
-#if (defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)) && (defined(_M_IX86) || defined(_M_X64))
+#ifdef ENABLE_WASM_SIMD
 intptr_t
 ServerThreadContext::GetSimdTempAreaAddr(uint8 tempIndex) const
 {

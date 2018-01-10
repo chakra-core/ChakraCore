@@ -232,14 +232,6 @@ ServerScriptContext::GetRecyclerAllowNativeCodeBumpAllocation() const
     return m_contextData.recyclerAllowNativeCodeBumpAllocation != 0;
 }
 
-#ifdef ENABLE_SIMDJS
-bool
-ServerScriptContext::IsSIMDEnabled() const
-{
-    return m_contextData.isSIMDEnabled != 0;
-}
-#endif
-
 intptr_t
 ServerScriptContext::GetBuiltinFunctionsBaseAddr() const
 {

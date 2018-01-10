@@ -83,8 +83,7 @@
 
 #include "Library/ModuleRoot.h"
 #include "Library/ArgumentsObject.h"
-// SIMD_JS
-#include "Library/SimdLib.h"
+// SIMD
 #include "Language/SimdOps.h"
 
 #include "Library/WebAssemblyInstance.h"
