@@ -500,7 +500,7 @@ class TestVariant(object):
             baseline = test.get('baseline')
             if baseline:
                 # perform baseline comparison
-                baseline = self._check_file(working_path, baseline)
+                baseline = self._check_file(folder, baseline)
                 with open(baseline, 'rb') as bs_file:
                     baseline_output = bs_file.read()
 
@@ -689,10 +689,14 @@ def main():
         TestVariant('interpreted', [
                 '-maxInterpretCount:1', '-maxSimpleJitRunCount:1', '-bgjit-',
                 '-dynamicprofilecache:profile.dpl.${id}'
+            ], [
+                'require_disable_jit'
             ]),
         TestVariant('dynapogo', [
                 '-forceNative', '-off:simpleJit', '-bgJitDelay:0',
                 '-dynamicprofileinput:profile.dpl.${id}'
+            ], [
+                'require_disable_jit'
             ]),
         TestVariant('disable_jit', [
                 '-nonative'
