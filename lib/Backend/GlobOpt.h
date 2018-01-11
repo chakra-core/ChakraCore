@@ -701,6 +701,7 @@ public:
 
     GlobOptBlockData const * CurrentBlockData() const;
     GlobOptBlockData * CurrentBlockData();
+    void                    CommitCapturedValuesCandidate();
 
 private:
     bool                    IsOperationThatLikelyKillsJsArraysWithNoMissingValues(IR::Instr *const instr);

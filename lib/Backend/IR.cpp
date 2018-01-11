@@ -1154,7 +1154,7 @@ Instr::UnlinkBailOutInfo()
 }
 
 void
-Instr::ReplaceBailOutInfo(BailOutInfo *newBailOutInfo, BasicBlock * block)
+Instr::ReplaceBailOutInfo(BailOutInfo *newBailOutInfo)
 {
     BailOutInfo *oldBailOutInfo = nullptr;
 
@@ -1186,13 +1186,8 @@ Instr::ReplaceBailOutInfo(BailOutInfo *newBailOutInfo, BasicBlock * block)
     if (oldBailOutInfo->bailOutInstr == this)
     {
         JitArenaAllocator * alloc = this->m_func->m_alloc;
-        // If the oldBailOutInfo's captured values were cached on the globopt-block-data, don't
-        // delete the old bailout info. It will eventually be freed when we're done jitting this function.
-        if (!(block && block->globOptData.capturedValuesCandidate == &oldBailOutInfo->capturedValues))
-        {
-            oldBailOutInfo->Clear(alloc);
-            JitAdelete(alloc, oldBailOutInfo);
-        }
+        oldBailOutInfo->Clear(alloc);
+        JitAdelete(alloc, oldBailOutInfo);
     }
 
     return;
@@ -3148,7 +3143,7 @@ Instr::ConvertToBailOutInstr(BailOutInfo * bailOutInfo, IR::BailOutKind kind, bo
         this->SetBailOutKind_NoAssert(kind);
 
         // Clear old (aux) info and set to the new bailOutInfo.
-        this->ReplaceBailOutInfo(bailOutInfo, nullptr);
+        this->ReplaceBailOutInfo(bailOutInfo);
         bailOutInfo->bailOutInstr = this;
         this->hasBailOutInfo = true;
 
