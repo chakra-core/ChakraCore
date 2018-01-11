@@ -68,4 +68,33 @@ assert.areEqual(test2(), -25677, "test2 should return -25677");
 assert.areEqual(test2(), -25677, "test2 should return -25677");
 assert.areEqual(test2(), -25677, "test2 should return -25677");
 
+function test3() {
+    var loopInvariant = 9;
+    function leaf() {
+    }
+    var obj0 = {};
+    var obj1 = {};
+    var func0 = function (argMath2) {
+      for (; argMath2; ) {
+        if (loopInvariant == 0) {
+          break;
+        }
+        loopInvariant -= 3;
+        var __loopSecondaryVar3_0 = loopInvariant;
+        while (ary.shift()) {
+          __loopSecondaryVar3_0 = 3;
+        }
+        leaf.call();
+      }
+    };
+    var func1 = function () {
+      var uniqobj4 = { prop1: func0(typeof Object.prototype.prop1) };
+    };
+    obj0.method0 = func1;
+    obj1.method1 = obj0.method0;
+    var ary = Array();
+    func0(obj1.method1());
+    func0(obj1.method1());
+}
+test3();
 print("passed");

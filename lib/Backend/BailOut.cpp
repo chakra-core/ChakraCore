@@ -18,8 +18,12 @@ BailOutInfo::Clear(JitArenaAllocator * allocator)
 {
     // Currently, we don't have a case where we delete bailout info after we allocated the bailout record
     Assert(!bailOutRecord);
-    this->capturedValues.constantValues.Clear(allocator);
-    this->capturedValues.copyPropSyms.Clear(allocator);
+    if (this->capturedValues && this->capturedValues->DecrementRefCount() == 0)
+    {
+        this->capturedValues->constantValues.Clear(allocator);
+        this->capturedValues->copyPropSyms.Clear(allocator);
+        JitAdelete(allocator, this->capturedValues);
+    }
     this->usedCapturedValues.constantValues.Clear(allocator);
     this->usedCapturedValues.copyPropSyms.Clear(allocator);
     if (byteCodeUpwardExposedUsed)

@@ -253,18 +253,25 @@ GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo)
 
     // attach capturedValues to bailOutInfo
 
-    bailOutInfo->capturedValues.constantValues.Clear(this->func->m_alloc);
-    bailOutConstValuesIter.SetNext(&bailOutInfo->capturedValues.constantValues);
-    bailOutInfo->capturedValues.constantValues = capturedValues.constantValues;
+    bailOutInfo->capturedValues->constantValues.Clear(this->func->m_alloc);
+    bailOutConstValuesIter.SetNext(&bailOutInfo->capturedValues->constantValues);
+    bailOutInfo->capturedValues->constantValues = capturedValues.constantValues;
 
-    bailOutInfo->capturedValues.copyPropSyms.Clear(this->func->m_alloc);
-    bailOutCopySymsIter.SetNext(&bailOutInfo->capturedValues.copyPropSyms);
-    bailOutInfo->capturedValues.copyPropSyms = capturedValues.copyPropSyms;
+    bailOutInfo->capturedValues->copyPropSyms.Clear(this->func->m_alloc);
+    bailOutCopySymsIter.SetNext(&bailOutInfo->capturedValues->copyPropSyms);
+    bailOutInfo->capturedValues->copyPropSyms = capturedValues.copyPropSyms;
     
-    if (!PHASE_OFF(Js::IncrementalBailoutPhase, func))
+    // In pre-pass only bailout info created should be for the loop header, and that doesn't take into account the back edge.
+    // Don't use the captured values on that bailout for incremental capturing of values.
+    if (!PHASE_OFF(Js::IncrementalBailoutPhase, func) && !this->IsLoopPrePass())
     {
         // cache the pointer of current bailout as potential baseline for later bailout in this block
-        block->globOptData.capturedValuesCandidate = &bailOutInfo->capturedValues;
+        if (block->globOptData.capturedValuesCandidate)
+        {
+            block->globOptData.capturedValuesCandidate->DecrementRefCount();
+        }
+        block->globOptData.capturedValuesCandidate = bailOutInfo->capturedValues;
+        block->globOptData.capturedValuesCandidate->IncrementRefCount();
 
         // reset changed syms to track symbols change after the above captured values candidate
         this->changedSymsAfterIncBailoutCandidate->ClearAll();
@@ -283,12 +290,12 @@ GlobOpt::CaptureArguments(BasicBlock *block, BailOutInfo * bailOutInfo, JitArena
             continue;
         }
 
-        if (!bailOutInfo->capturedValues.argObjSyms)
+        if (!bailOutInfo->capturedValues->argObjSyms)
         {
-            bailOutInfo->capturedValues.argObjSyms = JitAnew(allocator, BVSparse<JitArenaAllocator>, allocator);
+            bailOutInfo->capturedValues->argObjSyms = JitAnew(allocator, BVSparse<JitArenaAllocator>, allocator);
         }
 
-        bailOutInfo->capturedValues.argObjSyms->Set(id);
+        bailOutInfo->capturedValues->argObjSyms->Set(id);
         // Add to BailOutInfo
     }
     NEXT_BITSET_IN_SPARSEBV

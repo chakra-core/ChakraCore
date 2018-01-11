@@ -250,8 +250,8 @@ LinearScanMD::GenerateBailInForGeneratorYield(IR::Instr * resumeLabelInstr, Bail
     IR::Instr * instrInsertStackSym = instrAfter;
     IR::Instr * instrInsertRegSym = instrAfter;
 
-    Assert(bailOutInfo->capturedValues.constantValues.Empty());
-    Assert(bailOutInfo->capturedValues.copyPropSyms.Empty());
+    Assert(bailOutInfo->capturedValues->constantValues.Empty());
+    Assert(bailOutInfo->capturedValues->copyPropSyms.Empty());
 
     auto restoreSymFn = [this, &eaxRegOpnd, &ecxRegOpnd, &eaxRestoreInstr, &instrInsertStackSym, &instrInsertRegSym](SymID symId)
     {
@@ -327,9 +327,9 @@ LinearScanMD::GenerateBailInForGeneratorYield(IR::Instr * resumeLabelInstr, Bail
     }
     NEXT_BITSET_IN_SPARSEBV;
 
-    if (bailOutInfo->capturedValues.argObjSyms)
+    if (bailOutInfo->capturedValues->argObjSyms)
     {
-        FOREACH_BITSET_IN_SPARSEBV(symId, bailOutInfo->capturedValues.argObjSyms)
+        FOREACH_BITSET_IN_SPARSEBV(symId, bailOutInfo->capturedValues->argObjSyms)
         {
             restoreSymFn(symId);
         }

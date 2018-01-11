@@ -46,7 +46,8 @@ public:
 #if DBG
         wasCopied = false;
 #endif
-        this->capturedValues.argObjSyms = nullptr;
+        this->capturedValues = JitAnew(bailOutFunc->m_alloc, CapturedValues);
+        this->capturedValues->refCount = 1;
         this->usedCapturedValues.argObjSyms = nullptr;
     }
     void Clear(JitArenaAllocator * allocator);
@@ -82,7 +83,7 @@ public:
 #endif
     uint32 bailOutOffset;
     BailOutRecord * bailOutRecord;
-    CapturedValues capturedValues;                                      // Values we know about after forward pass
+    CapturedValues* capturedValues;                                      // Values we know about after forward pass
     CapturedValues usedCapturedValues;                                  // Values that need to be restored in the bail out
     BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed;            // Non-constant stack syms that needs to be restored in the bail out
     uint polymorphicCacheIndex;

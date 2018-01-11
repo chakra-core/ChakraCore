@@ -1609,9 +1609,9 @@ BackwardPass::ProcessBailOutArgObj(BailOutInfo * bailOutInfo, BVSparse<JitArenaA
 {
     Assert(this->tag != Js::BackwardPhase);
 
-    if (this->globOpt->TrackArgumentsObject() && bailOutInfo->capturedValues.argObjSyms)
+    if (this->globOpt->TrackArgumentsObject() && bailOutInfo->capturedValues->argObjSyms)
     {
-        FOREACH_BITSET_IN_SPARSEBV(symId, bailOutInfo->capturedValues.argObjSyms)
+        FOREACH_BITSET_IN_SPARSEBV(symId, bailOutInfo->capturedValues->argObjSyms)
         {
             if (byteCodeUpwardExposedUsed->TestAndClear(symId))
             {
@@ -1646,7 +1646,7 @@ BackwardPass::ProcessBailOutConstants(BailOutInfo * bailOutInfo, BVSparse<JitAre
     NEXT_SLISTBASE_ENTRY;
 
     // Find other constants that we need to restore
-    FOREACH_SLISTBASE_ENTRY_EDITING(ConstantStackSymValue, value, &bailOutInfo->capturedValues.constantValues, iter)
+    FOREACH_SLISTBASE_ENTRY_EDITING(ConstantStackSymValue, value, &bailOutInfo->capturedValues->constantValues, iter)
     {
         if (byteCodeUpwardExposedUsed->TestAndClear(value.Key()->m_id) || bailoutReferencedArgSymsBv->TestAndClear(value.Key()->m_id))
         {
@@ -1682,7 +1682,7 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
     BVSparse<JitArenaAllocator> * upwardExposedUses = block->upwardExposedUses;
 
     // Find other copy prop that we need to restore
-    FOREACH_SLISTBASE_ENTRY_EDITING(CopyPropSyms, copyPropSyms, &bailOutInfo->capturedValues.copyPropSyms, iter)
+    FOREACH_SLISTBASE_ENTRY_EDITING(CopyPropSyms, copyPropSyms, &bailOutInfo->capturedValues->copyPropSyms, iter)
     {
         // Copy prop syms should be vars
         Assert(!copyPropSyms.Key()->IsTypeSpec());

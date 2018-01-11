@@ -40,6 +40,10 @@ GlobOptBlockData::NullOutBlockData(GlobOpt* globOpt, Func* func)
 
     this->stackLiteralInitFldDataMap = nullptr;
 
+    if (this->capturedValues)
+    {
+        this->capturedValues->DecrementRefCount();
+    }
     this->capturedValues = nullptr;
     this->changedSyms = nullptr;
 
@@ -144,6 +148,10 @@ GlobOptBlockData::ReuseBlockData(GlobOptBlockData *fromData)
 
     this->changedSyms = fromData->changedSyms;
     this->capturedValues = fromData->capturedValues;
+    if (this->capturedValues)
+    {
+        this->capturedValues->IncrementRefCount();
+    }
 
     this->OnDataReused(fromData);
 }
@@ -254,6 +262,11 @@ GlobOptBlockData::DeleteBlockData()
     JitAdelete(alloc, this->changedSyms);
     this->changedSyms = nullptr;
 
+    if (this->capturedValues && this->capturedValues->DecrementRefCount() == 0)
+    {
+        JitAdelete(this->curFunc->m_alloc, this->capturedValues);
+        this->capturedValues = nullptr;
+    }
     this->OnDataDeleted();
 }
 
@@ -367,7 +380,11 @@ void GlobOptBlockData::CloneBlockData(BasicBlock *const toBlockContext, BasicBlo
     this->changedSyms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
     this->changedSyms->Copy(fromData->changedSyms);
     this->capturedValues = fromData->capturedValues;
-    
+    if (this->capturedValues)
+    {
+        this->capturedValues->IncrementRefCount();
+    }
+
     Assert(fromData->HasData());
     this->OnDataInitialized(alloc);
 }
@@ -482,7 +499,10 @@ GlobOptBlockData::MergeBlockData(
     if (this->capturedValues == nullptr)
     {
         this->capturedValues = fromData->capturedValues;
-        
+        if (this->capturedValues)
+        {
+            this->capturedValues->IncrementRefCount();
+        }
     }
     else
     {
@@ -1656,6 +1676,15 @@ GlobOptBlockData::SetChangedSym(SymID symId)
 }
 
 void
+GlobOptBlockData::SetChangedSym(Sym* sym)
+{
+    if (sym && sym->IsStackSym() && sym->AsStackSym()->HasByteCodeRegSlot())
+    {
+        SetChangedSym(sym->m_id);
+    }
+}
+
+void
 GlobOptBlockData::SetValue(Value *val, Sym * sym)
 {
     ValueInfo *valueInfo = val->GetValueInfo();
@@ -1672,10 +1701,7 @@ GlobOptBlockData::SetValue(Value *val, Sym * sym)
     else
     {
         this->SetValueToHashTable(this->symToValueMap, val, sym);
-        if (isStackSym && sym->AsStackSym()->HasByteCodeRegSlot())
-        {
-            this->SetChangedSym(sym->m_id);
-        }
+        this->SetChangedSym(sym);
     }
 }
 
