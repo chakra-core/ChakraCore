@@ -71,10 +71,11 @@ public:
     static ObjectSymInfo * New(Func * func);
     static ObjectSymInfo * New(StackSym * typeSym, Func * func);
 
-    ObjectSymInfo(): m_typeSym(nullptr), m_propertySymList(nullptr) {};
+    ObjectSymInfo(): m_typeSym(nullptr), m_auxSlotPtrSym(nullptr), m_propertySymList(nullptr) {};
 
 public:
     StackSym *      m_typeSym;
+    StackSym *      m_auxSlotPtrSym;
     PropertySym *   m_propertySymList;
 };
 
@@ -185,6 +186,9 @@ public:
     StackSym *      GetObjectTypeSym() const { Assert(HasObjectTypeSym()); return GetObjectInfo()->m_typeSym; }
     int             GetSymSize(){ return TySize[m_type]; }
     void            FixupStackOffset(Func * currentFunc);
+
+    StackSym *      EnsureAuxSlotPtrSym(Func * func);
+    StackSym *      GetAuxSlotPtrSym() const { return HasObjectInfo() ? GetObjectInfo()->m_auxSlotPtrSym : nullptr; }
 
 private:
     StackSym *      GetTypeEquivSym(IRType type, Func *func);
@@ -310,6 +314,8 @@ public:
     bool HasObjectTypeSym() const { return this->m_stackSym->HasObjectTypeSym(); }
     bool HasWriteGuardSym() const { return this->m_writeGuardSym != nullptr; }
     StackSym * GetObjectTypeSym() const { return this->m_stackSym->GetObjectTypeSym(); }
+    StackSym * GetAuxSlotPtrSym() const { return this->m_stackSym->GetAuxSlotPtrSym(); }
+    StackSym * EnsureAuxSlotPtrSym(Func * func) { return this->m_stackSym->EnsureAuxSlotPtrSym(func); }
 
 public:
     PropertyKind    m_fieldKind;

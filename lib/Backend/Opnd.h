@@ -660,6 +660,16 @@ public:
     StackSym * GetObjectTypeSym() const { return this->m_sym->AsPropertySym()->GetObjectTypeSym(); };
     PropertySym* GetPropertySym() const { return this->m_sym->AsPropertySym(); }
 
+    StackSym *EnsureAuxSlotPtrSym(Func * func)
+    {
+        return this->GetPropertySym()->EnsureAuxSlotPtrSym(func);
+    }
+
+    StackSym *GetAuxSlotPtrSym() const
+    {
+        return this->GetPropertySym()->GetAuxSlotPtrSym();
+    }
+
     void TryDisableRuntimePolymorphicCache()
     {
         if (this->m_runtimePolymorphicInlineCache && (this->m_polyCacheUtil < PolymorphicInlineCacheUtilizationThreshold))
@@ -1142,6 +1152,9 @@ public:
     {
         this->finalType = JITTypeHolder(nullptr);
     }
+
+    bool NeedsAuxSlotPtrSymLoad() const;
+    void GenerateAuxSlotPtrSymLoad(IR::Instr * instrInsert);
 
     BVSparse<JitArenaAllocator>* GetGuardedPropOps()
     {

@@ -6135,8 +6135,9 @@ Lowerer::GenerateLdFldWithCachedType(IR::Instr * instrLdFld, bool* continueAsHel
     bool emitPrimaryTypeCheck = propertySymOpnd->NeedsPrimaryTypeCheck();
     bool emitLocalTypeCheck = propertySymOpnd->NeedsLocalTypeCheck();
     bool emitLoadFromProtoTypeCheck = propertySymOpnd->NeedsLoadFromProtoTypeCheck();
+    bool emitTypeCheck = emitPrimaryTypeCheck || emitLocalTypeCheck || emitLoadFromProtoTypeCheck;
 
-    if (emitPrimaryTypeCheck || emitLocalTypeCheck || emitLoadFromProtoTypeCheck)
+    if (emitTypeCheck)
     {
         if (emitLoadFromProtoTypeCheck)
         {
@@ -6155,7 +6156,7 @@ Lowerer::GenerateLdFldWithCachedType(IR::Instr * instrLdFld, bool* continueAsHel
     }
     else
     {
-        opndSlotArray = this->LoadSlotArrayWithCachedLocalType(instrLdFld, propertySymOpnd);
+        opndSlotArray = this->LoadSlotArrayWithCachedLocalType(instrLdFld, propertySymOpnd, propertySymOpnd->IsTypeChecked() || emitTypeCheck);
     }
 
     // Load the value from the slot, getting the slot ID from the cache.
@@ -6426,7 +6427,6 @@ Lowerer::GenerateCheckObjType(IR::Instr * instrChkObjType)
     IR::LabelInstr* labelBailOut = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
 
     this->GenerateCachedTypeCheck(instrChkObjType, propertySymOpnd, labelBailOut, labelBailOut);
-
     IR::LabelInstr* labelDone = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
     IR::Instr* instr = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func);
     instrChkObjType->InsertBefore(instr);
@@ -6457,8 +6457,21 @@ Lowerer::LowerAdjustObjType(IR::Instr * instrAdjustObjType)
     IR::AddrOpnd *initialTypeOpnd = instrAdjustObjType->UnlinkSrc2()->AsAddrOpnd();
     IR::RegOpnd  *baseOpnd = instrAdjustObjType->UnlinkSrc1()->AsRegOpnd();
 
-    this->GenerateAdjustBaseSlots(
+    bool adjusted = this->GenerateAdjustBaseSlots(
         instrAdjustObjType, baseOpnd, JITTypeHolder((JITType*)initialTypeOpnd->m_metadata), JITTypeHolder((JITType*)finalTypeOpnd->m_metadata));
+
+    if (adjusted)
+    {
+        // We reallocated the aux slots, so reload them if necessary.
+        StackSym * auxSlotPtrSym = baseOpnd->m_sym->GetAuxSlotPtrSym();
+        if (auxSlotPtrSym)
+        {
+            IR::Opnd *opndIndir = IR::IndirOpnd::New(baseOpnd, Js::DynamicObject::GetOffsetOfAuxSlots(), TyMachReg, this->m_func);
+            IR::RegOpnd *regOpnd = IR::RegOpnd::New(auxSlotPtrSym, TyMachReg, this->m_func);
+            regOpnd->SetIsJITOptimizedReg(true);
+            Lowerer::InsertMove(regOpnd, opndIndir, instrAdjustObjType);
+        }
+    }
 
     this->m_func->PinTypeRef((JITType*)finalTypeOpnd->m_metadata);
 
@@ -7099,7 +7112,7 @@ Lowerer::GenerateDirectFieldStore(IR::Instr* instrStFld, IR::PropertySymOpnd* pr
 {
     Func* func = instrStFld->m_func;
 
-    IR::Opnd *opndSlotArray = this->LoadSlotArrayWithCachedLocalType(instrStFld, propertySymOpnd);
+    IR::Opnd *opndSlotArray = this->LoadSlotArrayWithCachedLocalType(instrStFld, propertySymOpnd, propertySymOpnd->IsTypeChecked() || instrStFld->HasTypeCheckBailOut());
 
     // Store the value to the slot, getting the slot index from the cache.
     uint16 index = propertySymOpnd->GetSlotIndex();
@@ -7467,6 +7480,11 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
     {
         IR::BranchInstr* branchInstr = InsertCompareBranch(typeOpnd, expectedTypeOpnd, Js::OpCode::BrNeq_A, labelSecondChance != nullptr ? labelSecondChance : labelTypeCheckFailed, instrChk);
         InsertObjectPoison(regOpnd, branchInstr, instrChk);
+    }
+
+    if (propertySymOpnd->NeedsAuxSlotPtrSymLoad())
+    {
+        propertySymOpnd->GenerateAuxSlotPtrSymLoad(instrChk);
     }
 
     // Don't pin the type for polymorphic operations. The code can successfully execute even if this type is no longer referenced by any objects,
@@ -7965,14 +7983,16 @@ Lowerer::GenerateAdjustBaseSlots(IR::Instr *instrInsert, IR::RegOpnd *baseOpnd, 
     // Possibly allocate new slot capacity to accommodate a type transition.
     AssertMsg(JITTypeHandler::IsTypeHandlerCompatibleForObjectHeaderInlining(initialType->GetTypeHandler(), finalType->GetTypeHandler()),
         "Incompatible typeHandler transition?");
-    int oldCount = initialType->GetTypeHandler()->GetSlotCapacity();
-    int newCount = finalType->GetTypeHandler()->GetSlotCapacity();
-    Js::PropertyIndex inlineSlotCapacity = initialType->GetTypeHandler()->GetInlineSlotCapacity();
-    Js::PropertyIndex newInlineSlotCapacity = finalType->GetTypeHandler()->GetInlineSlotCapacity();
 
-    if (oldCount >= newCount || newCount <= inlineSlotCapacity)
+    int oldCount = 0;
+    int newCount = 0;
+    Js::PropertyIndex inlineSlotCapacity = 0;
+    Js::PropertyIndex newInlineSlotCapacity = 0;
+    bool needSlotAdjustment = 
+        JITTypeHandler::NeedSlotAdjustment(initialType->GetTypeHandler(), finalType->GetTypeHandler(), &oldCount, &newCount, &inlineSlotCapacity, &newInlineSlotCapacity);
+
+    if (!needSlotAdjustment)
     {
-        // Already have enough slot capacity. Do nothing.
         return false;
     }
 
@@ -8007,6 +8027,11 @@ Lowerer::GenerateFieldStoreWithTypeChange(IR::Instr * instrStFld, IR::PropertySy
 {
     // Adjust instance slots, if necessary.
     this->GenerateAdjustSlots(instrStFld, propertySymOpnd, initialType, finalType);
+
+    if (propertySymOpnd->NeedsAuxSlotPtrSymLoad())
+    {
+        propertySymOpnd->GenerateAuxSlotPtrSymLoad(instrStFld);
+    }
 
     // We should never add properties to objects of static types.
     Assert(Js::DynamicType::Is(finalType->GetTypeId()));
@@ -26770,13 +26795,23 @@ Lowerer::LowerConvNum(IR::Instr *instrLoad, bool noMathFastPath)
 }
 
 IR::Opnd *
-Lowerer::LoadSlotArrayWithCachedLocalType(IR::Instr * instrInsert, IR::PropertySymOpnd *propertySymOpnd)
+Lowerer::LoadSlotArrayWithCachedLocalType(IR::Instr * instrInsert, IR::PropertySymOpnd *propertySymOpnd, bool canReuseAuxSlotPtr)
 {
     IR::RegOpnd *opndBase = propertySymOpnd->CreatePropertyOwnerOpnd(m_func);
     if (propertySymOpnd->UsesAuxSlot())
     {
         // If we use the auxiliary slot array, load it and return it
-        IR::RegOpnd *opndSlotArray = IR::RegOpnd::New(TyMachReg, this->m_func);
+        if (canReuseAuxSlotPtr)
+        {
+            StackSym * auxSlotPtrSym = propertySymOpnd->GetAuxSlotPtrSym();
+            if (auxSlotPtrSym != nullptr)
+            {
+                IR::RegOpnd * opndAuxSlotPtr = IR::RegOpnd::New(auxSlotPtrSym, TyMachReg, this->m_func);
+                opndAuxSlotPtr->SetIsJITOptimizedReg(true);
+                return opndAuxSlotPtr;
+            }
+        }
+        IR::RegOpnd * opndSlotArray = IR::RegOpnd::New(TyMachReg, this->m_func);
         IR::Opnd *opndIndir = IR::IndirOpnd::New(opndBase, Js::DynamicObject::GetOffsetOfAuxSlots(), TyMachReg, this->m_func);
         Lowerer::InsertMove(opndSlotArray, opndIndir, instrInsert);
 
