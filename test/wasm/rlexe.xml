@@ -249,7 +249,6 @@
   <default>
     <files>i64.js</files>
     <compile-flags>-wasm -args --no-verbose -endargs</compile-flags>
-    <tags>exclude_xplat</tags>
   </default>
 </test>
 <test>
@@ -314,14 +313,12 @@
   <default>
     <files>binary.js</files>
     <compile-flags>-wasm -args --no-verbose -endargs</compile-flags>
-    <tags>exclude_xplat</tags>
   </default>
 </test>
 <test>
   <default>
     <files>binary.js</files>
     <compile-flags>-wasm -args --no-verbose -endargs</compile-flags>
-    <tags>exclude_xplat</tags>
   </default>
 </test>
 <test>
