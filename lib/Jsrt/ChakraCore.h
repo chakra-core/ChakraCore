@@ -107,12 +107,12 @@ typedef JsErrorCode(CHAKRA_CALLBACK * NotifyModuleReadyCallback)(_In_opt_ JsModu
 /// <summary>
 ///     A structure containing information about a native function callback.
 /// </summary>
-struct JsNativeFunctionInfo
+typedef struct JsNativeFunctionInfo
 {
     JsValueRef thisArg;
     JsValueRef newTargetArg;
     bool isConstructCall;
-};
+}JsNativeFunctionInfo;
 
 /// <summary>
 ///     A function callback.
@@ -136,7 +136,7 @@ typedef _Ret_maybenull_ JsValueRef(CHAKRA_CALLBACK * JsEnhancedNativeFunction)(_
 ///     Requires an active script context.
 /// </remarks>
 /// <param name="nativeFunction">The method to call when the function is invoked.</param>
-/// <param name="metadata">If this is a string, it is used as the name of the function.</param>
+/// <param name="metadata">If this is not <c>JS_INVALID_REFERENCE</c>, it is converted to a string and used as the name of the function.</param>
 /// <param name="callbackState">
 ///     User provided state that will be passed back to the callback.
 /// </param>

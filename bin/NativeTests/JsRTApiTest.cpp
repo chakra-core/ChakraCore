@@ -660,7 +660,7 @@ namespace JsRTApiTest
         JsRTApiTest::RunWithAttributes(JsRTApiTest::ExternalFunctionTest);
     }
 
-    JsValueRef CALLBACK ExternaEnhancedFunctionTestCallback(JsValueRef callee, JsValueRef *arguments, unsigned short argumentCount, JsNativeFunctionInfo *info, void *callbackData)
+    JsValueRef CALLBACK ExternalEnhancedFunctionTestCallback(JsValueRef callee, JsValueRef *arguments, unsigned short argumentCount, JsNativeFunctionInfo *info, void *callbackData)
     {
         REQUIRE(callbackData != nullptr);
         REQUIRE(*static_cast<int*>(callbackData) == 123);
@@ -671,8 +671,7 @@ namespace JsRTApiTest
         REQUIRE(JsGetTrueValue(&_true) == JsNoError);
         JsValueRef _false;
         REQUIRE(JsGetFalseValue(&_false) == JsNoError);
-        JsValueRef _null;
-        REQUIRE(JsGetNullValue(&_null) == JsNoError);
+        
 
         REQUIRE(JsStrictEquals(_true, arguments[0], &success) == JsNoError);
         REQUIRE(success);
@@ -682,13 +681,17 @@ namespace JsRTApiTest
         REQUIRE(!info->isConstructCall);
         REQUIRE(info->thisArg == arguments[0]);
 
-        REQUIRE(JsStrictEquals(_null, info->newTargetArg, &success) == JsNoError);
+        JsValueRef undefined;
+        REQUIRE(JsGetUndefinedValue(&undefined) == JsNoError);
+        REQUIRE(JsStrictEquals(undefined, info->newTargetArg, &success) == JsNoError);
         REQUIRE(success);
 
+        JsValueRef _null;
+        REQUIRE(JsGetNullValue(&_null) == JsNoError);
         return _null;
     }
 
-    JsValueRef CALLBACK ExternaEnhancedConstructorFunctionTestCallback(JsValueRef callee, JsValueRef *arguments, unsigned short argumentCount, JsNativeFunctionInfo *info, void *callbackData)
+    JsValueRef CALLBACK ExternalEnhancedConstructorFunctionTestCallback(JsValueRef callee, JsValueRef *arguments, unsigned short argumentCount, JsNativeFunctionInfo *info, void *callbackData)
     {
         REQUIRE(callbackData != nullptr);
         REQUIRE(*static_cast<int*>(callbackData) == 456);
@@ -719,11 +722,11 @@ namespace JsRTApiTest
         return info->thisArg;
     }
 
-    void ExternaEnhancedFunctionTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
+    void ExternalEnhancedFunctionTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
     {
         int sentinel = 123;
         JsValueRef function = JS_INVALID_REFERENCE;
-        REQUIRE(JsCreateEnhancedFunction(ExternaEnhancedFunctionTestCallback, nullptr, &sentinel, &function) == JsNoError);
+        REQUIRE(JsCreateEnhancedFunction(ExternalEnhancedFunctionTestCallback, nullptr, &sentinel, &function) == JsNoError);
         JsValueRef _true;
         REQUIRE(JsGetTrueValue(&_true) == JsNoError);
         JsValueRef _false;
@@ -739,7 +742,7 @@ namespace JsRTApiTest
 
         sentinel = 456;
         function = JS_INVALID_REFERENCE;
-        REQUIRE(JsCreateEnhancedFunction(ExternaEnhancedConstructorFunctionTestCallback, nullptr, &sentinel, &function) == JsNoError);
+        REQUIRE(JsCreateEnhancedFunction(ExternalEnhancedConstructorFunctionTestCallback, nullptr, &sentinel, &function) == JsNoError);
         JsValueRef ctorArgs[3] = { _null, _true, _false };
         REQUIRE(JsConstructObject(function, ctorArgs, 3, &result) == JsNoError);
         JsValueType t;
@@ -747,22 +750,22 @@ namespace JsRTApiTest
         REQUIRE(t == JsObject);
     }
 
-    TEST_CASE("ApiTest_ExternaEnhancedFunctionTest", "[ApiTest]")
+    TEST_CASE("ApiTest_ExternalEnhancedFunctionTest", "[ApiTest]")
     {
-        JsRTApiTest::RunWithAttributes(JsRTApiTest::ExternaEnhancedFunctionTest);
+        JsRTApiTest::RunWithAttributes(JsRTApiTest::ExternalEnhancedFunctionTest);
     }
 
-    struct ExternaEnhancedBaseClassFunctionTestInfo
+    struct ExternalEnhancedBaseClassFunctionTestInfo
     {
         JsValueRef derived;
         JsValueRef base;
     };
 
-    JsValueRef CALLBACK ExternaEnhancedBaseClassFunctionTestCallback(JsValueRef callee, JsValueRef *arguments, unsigned short argumentCount, JsNativeFunctionInfo *info, void *callbackData)
+    JsValueRef CALLBACK ExternalEnhancedBaseClassFunctionTestCallback(JsValueRef callee, JsValueRef *arguments, unsigned short argumentCount, JsNativeFunctionInfo *info, void *callbackData)
     {
         REQUIRE(callbackData != nullptr);
 
-        ExternaEnhancedBaseClassFunctionTestInfo* testinfo = (ExternaEnhancedBaseClassFunctionTestInfo*)callbackData;
+        ExternalEnhancedBaseClassFunctionTestInfo* testinfo = (ExternalEnhancedBaseClassFunctionTestInfo*)callbackData;
         JsValueType t;
         REQUIRE(JsGetValueType(testinfo->derived, &t) == JsNoError);
         REQUIRE(t == JsFunction);
@@ -812,12 +815,11 @@ namespace JsRTApiTest
 
     void ExternalEnhancedBaseClassFunctionTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
     {
-        ExternaEnhancedBaseClassFunctionTestInfo info;
-
-        JsValueRef name;
+        ExternalEnhancedBaseClassFunctionTestInfo info = { nullptr, nullptr };
+        JsValueRef name = JS_INVALID_REFERENCE;
         REQUIRE(JsCreateString("BaseClass", 10, &name) == JsNoError);
         JsValueRef base = JS_INVALID_REFERENCE;
-        REQUIRE(JsCreateEnhancedFunction(ExternaEnhancedBaseClassFunctionTestCallback, name, &info, &base) == JsNoError);
+        REQUIRE(JsCreateEnhancedFunction(ExternalEnhancedBaseClassFunctionTestCallback, name, &info, &base) == JsNoError);
         info.base = base;
 
         JsValueRef global = JS_INVALID_REFERENCE;

@@ -2792,21 +2792,21 @@ CHAKRA_API JsConstructObject(_In_ JsValueRef function, _In_reads_(cargs) JsValue
 }
 
 #ifndef _CHAKRACOREBUILD
-struct JsNativeFunctionInfo
+typedef struct JsNativeFunctionInfo
 {
     JsValueRef thisArg;
     JsValueRef newTargetArg;
     bool isConstructCall;
-};
+}JsNativeFunctionInfo;
 
 typedef _Ret_maybenull_ JsValueRef(CHAKRA_CALLBACK * JsEnhancedNativeFunction)(_In_ JsValueRef callee, _In_ JsValueRef *arguments, _In_ unsigned short argumentCount, _In_ JsNativeFunctionInfo *info, _In_opt_ void *callbackState);
 #endif
 
-struct JsNativeFunctionWrapperHolder
+typedef struct JsNativeFunctionWrapperHolder
 {
-    void *callbackState;
-    JsNativeFunction nativeFunction;
-};
+    FieldNoBarrier(void *) callbackState;
+    FieldNoBarrier(JsNativeFunction) nativeFunction;
+}JsNativeFunctionWrapperHolder;
 
 JsValueRef CALLBACK JsNativeFunctionWrapper(JsValueRef callee, JsValueRef *arguments, unsigned short argumentCount, JsNativeFunctionInfo *info, void *wrapperData)
 {
@@ -2819,7 +2819,7 @@ template <bool wrapNativeFunction, class T>
 JsErrorCode JsCreateEnhancedFunctionHelper(_In_ T nativeFunction, _In_opt_ JsValueRef metadata, _In_opt_ void *callbackState, _Out_ JsValueRef *function)
 {
     return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTAllocateFunction, false, nullptr);
+        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTAllocateFunction, true, metadata);
         PARAM_NOT_NULL(nativeFunction);
         PARAM_NOT_NULL(function);
         *function = nullptr;
@@ -2865,7 +2865,7 @@ CHAKRA_API JsCreateEnhancedFunction(_In_ JsEnhancedNativeFunction nativeFunction
 
 CHAKRA_API JsCreateFunction(_In_ JsNativeFunction nativeFunction, _In_opt_ void *callbackState, _Out_ JsValueRef *function)
 {
-    return JsCreateNamedFunction(JS_INVALID_REFERENCE, nativeFunction, callbackState, function);
+    return JsCreateEnhancedFunctionHelper<true>(nativeFunction, JS_INVALID_REFERENCE, callbackState, function);
 }
 
 CHAKRA_API JsCreateNamedFunction(_In_ JsValueRef name, _In_ JsNativeFunction nativeFunction, _In_opt_ void *callbackState, _Out_ JsValueRef *function)

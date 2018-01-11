@@ -274,10 +274,11 @@ namespace Js
         ScriptContext * scriptContext = externalFunction->type->GetScriptContext();
         AnalysisAssert(scriptContext);
         Var result = nullptr;
+        Assert(callInfo.Count > 0);
 
         StdCallJavascriptMethodInfo info = {
-            callInfo.Count > 0 ? args[0] : scriptContext->GetLibrary()->GetNull(),
-            args.HasNewTarget() ? args.GetNewTarget() : args.IsNewCall() ? function : scriptContext->GetLibrary()->GetNull(),
+            args[0],
+            args.HasNewTarget() ? args.GetNewTarget() : args.IsNewCall() ? function : scriptContext->GetLibrary()->GetUndefined(),
             args.IsNewCall()
         };
 
@@ -431,8 +432,8 @@ namespace Js
             TTD::NSLogEvents::EventLogEntry* callEvent = elog->RecordExternalCallEvent(externalFunction, scriptContext->GetThreadContext()->TTDRootNestingCount, args.Info.Count, args.Values, true);
 
             StdCallJavascriptMethodInfo info = {
-                callInfo.Count > 0 ? args[0] : scriptContext->GetLibrary()->GetNull(),
-                args.HasNewTarget() ? args.GetNewTarget() : args.IsNewCall() ? function : scriptContext->GetLibrary()->GetNull(),
+                args[0],
+                args.HasNewTarget() ? args.GetNewTarget() : args.IsNewCall() ? function : scriptContext->GetLibrary()->GetUndefined(),
                 args.IsNewCall()
             };
 
