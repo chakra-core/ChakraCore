@@ -29,6 +29,7 @@ public:
     virtual intptr_t GetNegativeZeroAddr() const override;
     virtual intptr_t GetNumberTypeStaticAddr() const override;
     virtual intptr_t GetStringTypeStaticAddr() const override;
+    virtual intptr_t GetSymbolTypeStaticAddr() const override;
     virtual intptr_t GetObjectTypeAddr() const override;
     virtual intptr_t GetObjectHeaderInlinedTypeAddr() const override;
     virtual intptr_t GetRegexTypeAddr() const override;

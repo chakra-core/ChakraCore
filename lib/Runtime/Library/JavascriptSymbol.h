@@ -9,17 +9,24 @@ namespace Js
     class JavascriptSymbol sealed : public RecyclableObject
     {
     private:
-        Field(const PropertyRecord*) value;
+        Field(PropertyRecordUsageCache) propertyRecordUsageCache;
 
         DEFINE_VTABLE_CTOR(JavascriptSymbol, RecyclableObject);
+
     public:
-        JavascriptSymbol(const PropertyRecord* val, StaticType* type) : RecyclableObject(type), value(val)
+        JavascriptSymbol(const PropertyRecord* val, StaticType* type) :
+            RecyclableObject(type),
+            propertyRecordUsageCache(type, val)
         {
             Assert(type->GetTypeId() == TypeIds_Symbol);
         }
 
-        const PropertyRecord* GetValue() { return value; }
+        const PropertyRecord* GetValue() { return propertyRecordUsageCache.GetPropertyRecord(); }
+        PropertyRecordUsageCache * GetPropertyRecordUsageCache();
 
+        static uint32 GetOffsetOfLdElemInlineCache() { return offsetof(JavascriptSymbol, propertyRecordUsageCache) + PropertyRecordUsageCache::GetOffsetOfLdElemInlineCache(); }
+        static uint32 GetOffsetOfStElemInlineCache() { return offsetof(JavascriptSymbol, propertyRecordUsageCache) + PropertyRecordUsageCache::GetOffsetOfStElemInlineCache(); }
+        static uint32 GetOffsetOfHitRate() { return offsetof(JavascriptSymbol, propertyRecordUsageCache) + PropertyRecordUsageCache::GetOffsetOfHitRate(); }
         static bool Is(Var aValue);
         static JavascriptSymbol* FromVar(Var aValue);
         static JavascriptSymbol* UnsafeFromVar(Var aValue);

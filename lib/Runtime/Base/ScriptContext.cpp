@@ -1672,78 +1672,114 @@ namespace Js
         return NULL;
     }
 
-    PropertyString* ScriptContext::TryGetPropertyString(PropertyId propertyId)
+    template <typename TProperty>
+    TProperty* ScriptContext::TryGetProperty(PropertyId propertyId)
     {
-        PropertyStringCacheMap* propertyStringMap = this->GetLibrary()->EnsurePropertyStringMap();
+        WeakPropertyIdMap<TProperty>* propertyMap = this->GetLibrary()->GetPropertyMap<TProperty>();
 
-        RecyclerWeakReference<PropertyString>* stringReference = nullptr;
-        if (propertyStringMap->TryGetValue(propertyId, &stringReference))
+        if (propertyMap != nullptr)
         {
-            PropertyString *string = stringReference->Get();
-            if (string != nullptr)
+            RecyclerWeakReference<TProperty>* propReference = nullptr;
+            if (propertyMap->TryGetValue(propertyId, &propReference))
             {
-                return string;
+                return propReference->Get();
             }
         }
 
         return nullptr;
     }
 
-    PropertyString* ScriptContext::GetPropertyString(PropertyId propertyId)
+    template <typename TProperty>
+    TProperty* ScriptContext::GetProperty(PropertyId propertyId, const PropertyRecord* propertyRecord)
     {
-        PropertyString *string = TryGetPropertyString(propertyId);
-        if (string != nullptr)
+        TProperty *prop = TryGetProperty<TProperty>(propertyId);
+        if (prop != nullptr)
         {
-            return string;
+            return prop;
         }
 
-        PropertyStringCacheMap* propertyStringMap = this->GetLibrary()->EnsurePropertyStringMap();
-
-        const Js::PropertyRecord* propertyName = this->GetPropertyName(propertyId);
-        string = this->GetLibrary()->CreatePropertyString(propertyName);
-        propertyStringMap->Item(propertyId, recycler->CreateWeakReferenceHandle(string));
-
-        return string;
+        propertyRecord = propertyRecord ? propertyRecord : this->GetPropertyName(propertyId);
+        return CreateAndCacheSymbolOrPropertyString<TProperty>(propertyRecord);
     }
 
-    void ScriptContext::InvalidatePropertyStringCache(PropertyId propertyId, Type* type)
+    template <>
+    PropertyString* ScriptContext::CreateAndCacheSymbolOrPropertyString<PropertyString>(const PropertyRecord* propertyRecord)
+    {
+        // Library doesn't cache PropertyString instances because we might hold them in the 2-letter cache instead.
+        PropertyStringCacheMap* propertyMap = this->GetLibrary()->EnsurePropertyStringMap();
+        PropertyString* prop = this->GetLibrary()->CreatePropertyString(propertyRecord);
+        propertyMap->Item(propertyRecord->GetPropertyId(), recycler->CreateWeakReferenceHandle(prop));
+        return prop;
+    }
+
+    template <>
+    JavascriptSymbol* ScriptContext::CreateAndCacheSymbolOrPropertyString<JavascriptSymbol>(const PropertyRecord* propertyRecord)
+    {
+        // Library caches symbols upon creation, so no additional work here
+        return this->GetLibrary()->CreateSymbol(propertyRecord);
+    }
+
+    PropertyString* ScriptContext::GetPropertyString(PropertyId propertyId)
+    {
+        return this->GetProperty<PropertyString>(propertyId, nullptr);
+    }
+
+    PropertyString* ScriptContext::GetPropertyString(const PropertyRecord* propertyRecord)
+    {
+        return this->GetProperty<PropertyString>(propertyRecord->GetPropertyId(), propertyRecord);
+    }
+
+    JavascriptSymbol* ScriptContext::GetSymbol(PropertyId propertyId)
+    {
+        return this->GetProperty<JavascriptSymbol>(propertyId, nullptr);
+    }
+
+    JavascriptSymbol* ScriptContext::GetSymbol(const PropertyRecord* propertyRecord)
+    {
+        return this->GetProperty<JavascriptSymbol>(propertyRecord->GetPropertyId(), propertyRecord);
+    }
+
+    void ScriptContext::InvalidatePropertyStringAndSymbolCaches(PropertyId propertyId, Type* type)
+    {
+        this->InvalidatePropertyCache<PropertyString>(propertyId, type);
+        this->InvalidatePropertyCache<JavascriptSymbol>(propertyId, type);
+    }
+
+    template <typename TProperty>
+    void ScriptContext::InvalidatePropertyCache(PropertyId propertyId, Type* type)
     {
         Assert(!isFinalized);
-        PropertyStringCacheMap* propertyStringMap = this->javascriptLibrary->GetPropertyStringMap();
-        if (propertyStringMap != nullptr)
+        TProperty *prop = TryGetProperty<TProperty>(propertyId);
+        if (prop)
         {
-            PropertyString *string = nullptr;
-            RecyclerWeakReference<PropertyString>* stringReference = nullptr;
-            if (propertyStringMap->TryGetValue(propertyId, &stringReference))
-            {
-                string = stringReference->Get();
-            }
-            if (string)
-            {
-                PolymorphicInlineCache * cache = string->GetLdElemInlineCache();
-                PropertyCacheOperationInfo info;
-                if (cache->PretendTryGetProperty(type, &info))
-                {
+            this->InvalidatePropertyRecordUsageCache(prop->GetPropertyRecordUsageCache(), type);
+        }
+    }
+
+    void ScriptContext::InvalidatePropertyRecordUsageCache(PropertyRecordUsageCache* propertyRecordUsageCache, Type *type)
+    {
+        PolymorphicInlineCache * cache = propertyRecordUsageCache->GetLdElemInlineCache();
+        PropertyCacheOperationInfo info;
+        if (cache->PretendTryGetProperty(type, &info))
+        {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-                    if (PHASE_TRACE1(PropertyStringCachePhase))
-                    {
-                        Output::Print(_u("PropertyString '%s' : Invalidating LdElem cache for type %p\n"), string->GetString(), type);
-                    }
-#endif
-                    cache->GetInlineCaches()[cache->GetInlineCacheIndexForType(type)].RemoveFromInvalidationListAndClear(this->GetThreadContext());
-                }
-                cache = string->GetStElemInlineCache();
-                if (cache->PretendTrySetProperty(type, type, &info))
-                {
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-                    if (PHASE_TRACE1(PropertyStringCachePhase))
-                    {
-                        Output::Print(_u("PropertyString '%s' : Invalidating StElem cache for type %p\n"), string->GetString(), type);
-                    }
-#endif
-                    cache->GetInlineCaches()[cache->GetInlineCacheIndexForType(type)].RemoveFromInvalidationListAndClear(this->GetThreadContext());
-                }
+            if (PHASE_TRACE1(PropertyCachePhase))
+            {
+                Output::Print(_u("PropertyRecord '%s' : Invalidating LdElem cache for type %p\n"), propertyRecordUsageCache->GetString(), type);
             }
+#endif
+            cache->GetInlineCaches()[cache->GetInlineCacheIndexForType(type)].RemoveFromInvalidationListAndClear(this->GetThreadContext());
+        }
+        cache = propertyRecordUsageCache->GetStElemInlineCache();
+        if (cache->PretendTrySetProperty(type, type, &info))
+        {
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+            if (PHASE_TRACE1(PropertyCachePhase))
+            {
+                Output::Print(_u("PropertyRecord '%s' : Invalidating StElem cache for type %p\n"), propertyRecordUsageCache->GetString(), type);
+            }
+#endif
+            cache->GetInlineCaches()[cache->GetInlineCacheIndexForType(type)].RemoveFromInvalidationListAndClear(this->GetThreadContext());
         }
     }
 
@@ -4820,6 +4856,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         contextData.negativeZeroAddr = (intptr_t)GetLibrary()->GetNegativeZero();
         contextData.numberTypeStaticAddr = (intptr_t)GetLibrary()->GetNumberTypeStatic();
         contextData.stringTypeStaticAddr = (intptr_t)GetLibrary()->GetStringTypeStatic();
+        contextData.symbolTypeStaticAddr = (intptr_t)GetLibrary()->GetSymbolTypeStatic();
         contextData.objectTypeAddr = (intptr_t)GetLibrary()->GetObjectType();
         contextData.objectHeaderInlinedTypeAddr = (intptr_t)GetLibrary()->GetObjectHeaderInlinedType();
         contextData.regexTypeAddr = (intptr_t)GetLibrary()->GetRegexType();
@@ -4927,6 +4964,11 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     intptr_t ScriptContext::GetStringTypeStaticAddr() const
     {
         return (intptr_t)GetLibrary()->GetStringTypeStatic();
+    }
+
+    intptr_t ScriptContext::GetSymbolTypeStaticAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetSymbolTypeStatic();
     }
 
     intptr_t ScriptContext::GetObjectTypeAddr() const

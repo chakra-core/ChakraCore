@@ -499,8 +499,8 @@ namespace Js
 
 #ifdef INLINE_CACHE_STATS
         virtual void PrintStats(InlineCacheData *data) const = 0;
-        virtual ScriptContext* GetScriptContext() const = 0;
 #endif
+        virtual ScriptContext* GetScriptContext() const = 0;
 
         static uint32 GetOffsetOfSize() { return offsetof(Js::PolymorphicInlineCache, size); }
         static uint32 GetOffsetOfInlineCaches() { return offsetof(Js::PolymorphicInlineCache, inlineCaches); }
@@ -565,8 +565,8 @@ namespace Js
 
 #ifdef INLINE_CACHE_STATS
         virtual void PrintStats(InlineCacheData *data) const override;
-        virtual ScriptContext* GetScriptContext() const override;
 #endif
+        virtual ScriptContext* GetScriptContext() const override;
 
         virtual void Finalize(bool isShutdown) override;
     };
@@ -588,8 +588,8 @@ namespace Js
 
 #ifdef INLINE_CACHE_STATS
         virtual void PrintStats(InlineCacheData *data) const override;
-        virtual ScriptContext* GetScriptContext() const override;
 #endif
+        virtual ScriptContext* GetScriptContext() const override;
 
         virtual void Finalize(bool isShutdown) override;
     };

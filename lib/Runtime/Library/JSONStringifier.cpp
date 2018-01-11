@@ -271,7 +271,7 @@ JSONStringifier::ToJSON(_In_ JavascriptString* key, _In_ RecyclableObject* value
     Var toJSON = nullptr;
     PolymorphicInlineCache* cache = this->scriptContext->Cache()->toJSONCache;
     PropertyValueInfo info;
-    PropertyValueInfo::SetCacheInfo(&info, nullptr, cache, false);
+    PropertyValueInfo::SetCacheInfo(&info, cache, false);
     if (!CacheOperators::TryGetProperty<
         true,   // CheckLocal
         true,   // CheckProto

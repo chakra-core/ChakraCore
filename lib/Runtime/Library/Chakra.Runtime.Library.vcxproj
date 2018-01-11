@@ -172,6 +172,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringBuilder.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringifier.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)LazyJSONString.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)PropertyRecordUsageCache.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\DetachedStateBase.h" />
@@ -179,6 +180,7 @@
     <ClInclude Include="..\RuntimeCommon.h" />
     <ClInclude Include="..\SerializableFunctionFields.h" />
     <ClInclude Include="AtomicsObject.h" />
+    <ClInclude Include="PropertyRecordUsageCache.h" />
     <ClInclude Include="CustomExternalIterator.h" />
     <ClInclude Include="JsBuiltInEngineInterfaceExtensionObject.h" />
     <ClInclude Include="JsBuiltIn\JsBuiltIn.js.bc.32b.h" />

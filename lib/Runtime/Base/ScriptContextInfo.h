@@ -17,6 +17,7 @@ public:
     virtual intptr_t GetNegativeZeroAddr() const = 0;
     virtual intptr_t GetNumberTypeStaticAddr() const = 0;
     virtual intptr_t GetStringTypeStaticAddr() const = 0;
+    virtual intptr_t GetSymbolTypeStaticAddr() const = 0;
     virtual intptr_t GetObjectTypeAddr() const = 0;
     virtual intptr_t GetObjectHeaderInlinedTypeAddr() const = 0;
     virtual intptr_t GetRegexTypeAddr() const = 0;

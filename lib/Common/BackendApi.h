@@ -213,6 +213,7 @@ enum LibraryValue {
     ValueNegativeZero,
     ValueNumberTypeStatic,
     ValueStringTypeStatic,
+    ValueSymbolTypeStatic,
     ValueObjectType,
     ValueObjectHeaderInlinedType,
     ValueRegexType,
