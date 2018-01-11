@@ -4913,6 +4913,7 @@ namespace Js
 
         this->SetAuxiliaryData(nullptr);
         this->SetAuxiliaryContextData(nullptr);
+        AssertMsg(!this->byteCodeBlock || !this->IsWasmFunction(), "We should never reset the bytecode block for Wasm");
         this->byteCodeBlock = nullptr;
         this->SetLoopHeaderArray(nullptr);
         this->SetConstTable(nullptr);
@@ -6397,6 +6398,7 @@ namespace Js
         hasCachedScopePropIds = false;
         this->SetConstantCount(0);
         this->SetConstTable(nullptr);
+        AssertMsg(!this->byteCodeBlock || !this->IsWasmFunction(), "We should never reset the bytecode block for Wasm");
         this->byteCodeBlock = nullptr;
 
         // Also, remove the function body from the source info to prevent any further processing
@@ -7384,6 +7386,7 @@ namespace Js
         // Manually clear these values to break any circular references
         // that might prevent the script context from being disposed
         this->auxPtrs = nullptr;
+        AssertMsg(isScriptContextClosing || !m_hasActiveReference || !this->byteCodeBlock || !this->IsWasmFunction(), "We should never reset the bytecode block for Wasm when still referenced");
         this->byteCodeBlock = nullptr;
         this->entryPoints = nullptr;
         this->inlineCaches = nullptr;
