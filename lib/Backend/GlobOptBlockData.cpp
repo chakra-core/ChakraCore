@@ -40,6 +40,10 @@ GlobOptBlockData::NullOutBlockData(GlobOpt* globOpt, Func* func)
 
     this->stackLiteralInitFldDataMap = nullptr;
 
+    if (this->capturedValues)
+    {
+        this->capturedValues->DecrementRefCount();
+    }
     this->capturedValues = nullptr;
     this->changedSyms = nullptr;
 
