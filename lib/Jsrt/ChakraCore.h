@@ -105,6 +105,53 @@ typedef JsErrorCode(CHAKRA_CALLBACK * FetchImportedModuleFromScriptCallBack)(_In
 typedef JsErrorCode(CHAKRA_CALLBACK * NotifyModuleReadyCallback)(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef exceptionVar);
 
 /// <summary>
+///     A structure containing information about a native function callback.
+/// </summary>
+typedef struct JsNativeFunctionInfo
+{
+    JsValueRef thisArg;
+    JsValueRef newTargetArg;
+    bool isConstructCall;
+}JsNativeFunctionInfo;
+
+/// <summary>
+///     A function callback.
+/// </summary>
+/// <param name="callee">
+///     A function object that represents the function being invoked.
+/// </param>
+/// <param name="arguments">The arguments to the call.</param>
+/// <param name="argumentCount">The number of arguments.</param>
+/// <param name="info">Additional information about this function call.</param>
+/// <param name="callbackState">
+///     The state passed to <c>JsCreateFunction</c>.
+/// </param>
+/// <returns>The result of the call, if any.</returns>
+typedef _Ret_maybenull_ JsValueRef(CHAKRA_CALLBACK * JsEnhancedNativeFunction)(_In_ JsValueRef callee, _In_ JsValueRef *arguments, _In_ unsigned short argumentCount, _In_ JsNativeFunctionInfo *info, _In_opt_ void *callbackState);
+
+/// <summary>
+///     Creates a new enhanced JavaScript function.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="nativeFunction">The method to call when the function is invoked.</param>
+/// <param name="metadata">If this is not <c>JS_INVALID_REFERENCE</c>, it is converted to a string and used as the name of the function.</param>
+/// <param name="callbackState">
+///     User provided state that will be passed back to the callback.
+/// </param>
+/// <param name="function">The new function object.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCreateEnhancedFunction(
+    _In_ JsEnhancedNativeFunction nativeFunction,
+    _In_opt_ JsValueRef metadata,
+    _In_opt_ void *callbackState,
+    _Out_ JsValueRef *function);
+
+/// <summary>
 ///     Initialize a ModuleRecord from host
 /// </summary>
 /// <remarks>

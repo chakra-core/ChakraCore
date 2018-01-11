@@ -58,3 +58,5 @@ JsReleaseSharedArrayBufferContentHandle
 
 JsLessThan
 JsLessThanOrEqual
+
+JsCreateEnhancedFunction
