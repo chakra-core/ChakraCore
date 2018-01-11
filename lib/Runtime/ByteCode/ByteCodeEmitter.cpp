@@ -6902,9 +6902,21 @@ void EmitLoad(
 
         // f(x) +=
     case knopCall:
-        funcInfo->AcquireLoc(lhs);
-        EmitReference(lhs, byteCodeGenerator, funcInfo);
-        EmitCall(lhs, byteCodeGenerator, funcInfo, /*fReturnValue=*/ false, /*fEvaluateComponents=*/ false);
+        if (lhs->sxCall.pnodeTarget->nop == knopImport)
+        {
+            ParseNodePtr args = lhs->sxCall.pnodeArgs;
+            Assert(CountArguments(args) == 2); // import() takes one argument
+            Emit(args, byteCodeGenerator, funcInfo, false);
+            funcInfo->ReleaseLoc(args);
+            funcInfo->AcquireLoc(lhs);
+            byteCodeGenerator->Writer()->Reg2(Js::OpCode::ImportCall, lhs->location, args->location);
+        }
+        else
+        {
+            funcInfo->AcquireLoc(lhs);
+            EmitReference(lhs, byteCodeGenerator, funcInfo);
+            EmitCall(lhs, byteCodeGenerator, funcInfo, /*fReturnValue=*/ false, /*fEvaluateComponents=*/ false);
+        }
         break;
 
     default:
