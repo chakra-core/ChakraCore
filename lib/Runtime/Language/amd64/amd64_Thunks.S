@@ -62,21 +62,7 @@ NESTED_ENTRY _ZN2Js21InterpreterStackFrame33AsmJsDelayDynamicInterpreterThunkEPN
         push r8
         push r9
 
-        sub rsp, 40h
-
-        // spill potential floating point arguments to stack
-        movaps xmmword ptr [rsp + 00h], xmm0
-        movaps xmmword ptr [rsp + 10h], xmm1
-        movaps xmmword ptr [rsp + 20h], xmm2
-        movaps xmmword ptr [rsp + 30h], xmm3
         call C_FUNC(_ZN2Js21InterpreterStackFrame29EnsureDynamicInterpreterThunkEPNS_14ScriptFunctionE)
-        // restore potential floating point arguments from stack
-        movaps xmm0, xmmword ptr [rsp + 00h]
-        movaps xmm1, xmmword ptr [rsp + 10h]
-        movaps xmm2, xmmword ptr [rsp + 20h]
-        movaps xmm3, xmmword ptr [rsp + 30h]
-
-        add rsp, 40h
 
         pop r9
         pop r8
@@ -190,13 +176,6 @@ NESTED_ENTRY _ZN2Js21InterpreterStackFrame19InterpreterAsmThunkEPNS_20AsmJsCallS
 
         set_cfa_register rbp, (2*8)     // Set to compute CFA as: rbp + 16 (sizeof: [rbp] [ReturnAddress])
 
-        sub rsp, 40h
-
-        // spill potential floating point arguments to stack
-        movaps xmmword ptr [rsp + 00h], xmm0
-        movaps xmmword ptr [rsp + 10h], xmm1
-        movaps xmmword ptr [rsp + 20h], xmm2
-        movaps xmmword ptr [rsp + 30h], xmm3
 
         // save argument registers used by custom calling convention
         push rdi
@@ -210,7 +189,6 @@ NESTED_ENTRY _ZN2Js21InterpreterStackFrame19InterpreterAsmThunkEPNS_20AsmJsCallS
 
         call rax // call appropriate template
 
-        add rsp, 40h
         pop_nonvol_reg rbp
         ret
 NESTED_END _ZN2Js21InterpreterStackFrame19InterpreterAsmThunkEPNS_20AsmJsCallStackLayoutE, _TEXT
@@ -260,64 +238,8 @@ NESTED_ENTRY _ZN2Js23AsmJsExternalEntryPointEPNS_16RecyclableObjectENS_8CallInfo
         call C_FUNC(_ZN2Js19UnboxAsmJsArgumentsEPNS_14ScriptFunctionEPPvPcNS_8CallInfoE)
         // rax = target function address
 
-        // move first 4 arguments into registers.
-        // don't know types other than arg0 (which is ScriptFunction *), so put in both xmm and general purpose registers
         mov rdi, r12 // arg0: func
 
-        // int GetArgsSizesArray(ScriptFunction* func)
-        // get args sizes of target asmjs function
-        // rdi has ScriptFunction*
-        push r13
-        push rax
-        push rdi
-        sub rsp, 8h
-        call C_FUNC(_ZN2Js17GetArgsSizesArrayEPNS_14ScriptFunctionE)
-        mov r13, rax                    // r13: arg size
-        add rsp, 8h
-        pop rdi
-        pop rax
-
-        // NOTE: Below xmm usage is non-standard.
-
-        // Move 3 args to regs per convention. rdi already has first arg: ScriptFunction*
-        push r12
-        // r12->unboxed args
-        lea r12, [rsp + 18h] // rsp + size of(r12 + r13 + ScriptFunction*)
-
-        // r13 is arg size
-        cmp dword ptr [r13], 10h
-        je SIMDArg2
-        mov rsi, [r12]                  // arg1
-        movq xmm1, qword ptr [r12]      // arg1
-        add r12, 8h
-        jmp Arg3
-    SIMDArg2:
-        movups xmm1, xmmword ptr[r12]
-        add r12, 10h
-    Arg3:
-        cmp dword ptr [r13 + 4h], 10h
-        je SIMDArg3
-        mov rdx, [r12]                  // arg2
-        movq xmm2, qword ptr [r12]      // arg2
-        add r12, 8h
-        jmp Arg4
-    SIMDArg3:
-        movups xmm2, xmmword ptr[r12]
-        add r12, 10h
-    Arg4:
-        cmp dword ptr [r13 + 8h], 10h
-        je SIMDArg4
-        mov rcx, [r12]                  // arg3
-        movq xmm3, qword ptr [r12]      // arg3
-        jmp ArgsDone
-   SIMDArg4:
-        movups xmm3, xmmword ptr [r12]
-
-   ArgsDone:
-        pop r12         // r12: func
-        pop r13         // r13: orig stack pointer
-
-        // "home" arg0. other args were read from stack and already homed.
         mov [rsp + 00h], rdi
 
         // call entry point

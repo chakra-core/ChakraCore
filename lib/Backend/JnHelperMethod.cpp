@@ -194,10 +194,10 @@ DECLSPEC_GUARDIGNORE  _NOINLINE intptr_t GetNonTableMethodAddress(ThreadContextI
         return ShiftAddr(context, (void*(*)(void *, void const*, size_t))memcpy);
 
     case HelperDirectMath_FloorFlt:
-        return ShiftAddr(context, (float(*)(float))floor);
+        return ShiftAddr(context, (float(*)(float))floorf);
 
     case HelperDirectMath_CeilFlt:
-        return ShiftAddr(context, (float(*)(float))ceil);
+        return ShiftAddr(context, (float(*)(float))ceilf);
 
 #if defined(_M_X64)
     case HelperDirectMath_Acos:
