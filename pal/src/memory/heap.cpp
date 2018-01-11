@@ -169,12 +169,10 @@ GetProcessHeap(
 	       VOID)
 {
     HANDLE ret;
+#ifdef DEBUG
     static bool was_pal_initialized = PAL_Initialize_Check_Once();
-
-    if (!was_pal_initialized) // do not assert. leave it as is.
-    {
-        abort();
-    }
+    _ASSERTE(was_pal_initialized);
+#endif
 
     PERF_ENTRY(GetProcessHeap);
     ENTRY("GetProcessHeap()\n");

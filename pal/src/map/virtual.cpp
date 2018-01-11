@@ -1612,12 +1612,11 @@ VirtualAlloc_(
          IN DWORD flAllocationType, /* Type of allocation */
          IN DWORD flProtect)        /* Type of access protection */
 {
+#ifdef DEBUG
     static bool was_pal_initialized = PAL_Initialize_Check_Once();
+    _ASSERTE(was_pal_initialized);
+#endif
 
-    if (!was_pal_initialized) // do not assert. leave it as is.
-    {
-        abort();
-    }
     LPVOID  pRetVal       = NULL;
     CPalThread *pthrCurrent;
 

@@ -310,12 +310,7 @@
     <default>
       <files>misc_bugs.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>misc_bugs.js</files>
-      <compile-flags>-args summary -endargs</compile-flags>
+      <tags>Slow</tags>
     </default>
   </test>
   <test>
