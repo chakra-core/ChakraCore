@@ -115,13 +115,9 @@ namespace Intl
     };
 
     // Generic spec operations
-    bool IsWellFormedLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch);
-    HRESULT NormalizeLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch,
-        _Out_ char16 *normalized, _Out_ size_t *normalizedLength);
     size_t GetUserDefaultLocaleName(_Out_ char16* langtag, _In_ size_t cchLangtag);
 
     // Collator
-    size_t CollatorGetCollation(_In_z_ const char *langtag, _Out_ char *collation, _In_ size_t cchCollation);
     int CollatorCompare(_In_z_ const char *langtag, _In_z_ const char16 *left, _In_ charcount_t cchLeft, _In_z_ const char16 *right, _In_ charcount_t cchRight,
         _In_ CollatorSensitivity sensitivity, _In_ bool ignorePunctuation, _In_ bool numeric, _In_ CollatorCaseFirst caseFirst, _Out_ HRESULT *hr);
 

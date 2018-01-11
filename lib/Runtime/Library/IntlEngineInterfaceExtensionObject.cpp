@@ -706,6 +706,10 @@ namespace Js
 
     Var IntlEngineInterfaceExtensionObject::EntryIntl_IsWellFormedLanguageTag(RecyclableObject* function, CallInfo callInfo, ...)
     {
+#if defined(INTL_ICU)
+        AssertOrFailFastMsg(false, "IsWellFormedLanguageTag is not implemented using ICU");
+        return nullptr;
+#else
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
         if (args.Info.Count < 2 || !JavascriptString::Is(args.Values[1]))
@@ -716,9 +720,6 @@ namespace Js
 
         JavascriptString *argString = JavascriptString::FromVar(args.Values[1]);
 
-#if defined(INTL_ICU)
-        return TO_JSBOOL(scriptContext, IsWellFormedLanguageTag(argString->GetSz(), argString->GetLength()));
-#else
         return TO_JSBOOL(scriptContext, GetWindowsGlobalizationAdapter(scriptContext)->IsWellFormedLanguageTag(scriptContext, argString->GetSz()));
 #endif
     }
@@ -727,6 +728,54 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
+#if defined(INTL_ICU)
+        INTL_CHECK_ARGS(args.Info.Count == 2 && JavascriptString::Is(args[1]));
+
+        UErrorCode status = U_ZERO_ERROR;
+        JavascriptString *langtag = JavascriptString::UnsafeFromVar(args[1]);
+        utf8::WideToNarrow langtag8(langtag->GetSz(), langtag->GetLength());
+
+        // ICU doesn't have a full-fledged canonicalization implementation that correctly replaces all preferred values
+        // and grandfathered tags, as required by #sec-canonicalizelanguagetag.
+        // However, passing the locale through uloc_forLanguageTag -> uloc_toLanguageTag gets us most of the way there
+        // by replacing some(?) values, correctly capitalizing the tag, and re-ordering extensions
+        int parsedLength = 0;
+        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        int forLangTagResultLength = uloc_forLanguageTag(langtag8, localeID, ULOC_FULLNAME_CAPACITY, &parsedLength, &status);
+        if (status == U_ILLEGAL_ARGUMENT_ERROR)
+        {
+            // The string passed in to NormalizeLanguageTag has already passed IsStructurallyValidLanguageTag.
+            // However, duplicate unicode extension keys, such as "de-u-co-phonebk-co-phonebk", are structurally
+            // valid according to RFC5646 yet still trigger U_ILLEGAL_ARGUMENT_ERROR
+            // V8 ~6.2 says that the above language tag is invalid, while SpiderMonkey ~58 handles it.
+            // Until we have a more spec-compliant implementation of CanonicalizeLanguageTag, err on the side
+            // of caution and say it is invalid.
+            // NOTE: make sure we check for `undefined` at the platform.normalizeLanguageTag callsite.
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        // forLangTagResultLength can be 0 if langtag is "und".
+        // uloc_toLanguageTag("") returns "und", so this works out (forLanguageTag can return >= 0 but toLanguageTag must return > 0)
+        ICU_ASSERT(status, forLangTagResultLength >= 0 && ((charcount_t) parsedLength) == langtag->GetLength());
+
+        char canonicalized[ULOC_FULLNAME_CAPACITY] = { 0 };
+        int toLangTagResultLength = uloc_toLanguageTag(localeID, canonicalized, ULOC_FULLNAME_CAPACITY, true, &status);
+        ICU_ASSERT(status, toLangTagResultLength > 0);
+
+        // allocate toLangTagResultLength + 1 to leave room for null terminator
+        char16 *canonicalized16 = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, toLangTagResultLength + 1);
+        size_t canonicalized16Len = 0;
+        HRESULT hr = utf8::NarrowStringToWideNoAlloc(
+            canonicalized,
+            toLangTagResultLength,
+            canonicalized16,
+            toLangTagResultLength + 1,
+            &canonicalized16Len
+        );
+        AssertOrFailFast(hr == S_OK && ((int) canonicalized16Len) == toLangTagResultLength);
+
+        return JavascriptString::NewWithBuffer(canonicalized16, toLangTagResultLength, scriptContext);
+#else
         if (args.Info.Count < 2 || !JavascriptString::Is(args.Values[1]))
         {
             // NormalizeLanguageTag of undefined or non-string is undefined
@@ -734,26 +783,13 @@ namespace Js
         }
 
         JavascriptString *argString = JavascriptString::FromVar(args.Values[1]);
-
-        HRESULT hr;
         JavascriptString *retVal;
-
-#if defined(INTL_ICU)
-        // `normalized` will be filled by converting a char* (of utf8 bytes) to char16*
-        // Since `len(utf8bytes) >= len(to_char16s(utf8bytes))`,
-        // Therefore the max length of that char* (ULOC_FULLNAME_CAPACITY) is big enough to hold the result (including null terminator)
-        char16 normalized[ULOC_FULLNAME_CAPACITY] = { 0 };
-        size_t normalizedLength = 0;
-        hr = NormalizeLanguageTag(argString->GetSz(), argString->GetLength(), normalized, &normalizedLength);
-        retVal = Js::JavascriptString::NewCopyBuffer(normalized, static_cast<charcount_t>(normalizedLength), scriptContext);
-#else
+        HRESULT hr;
         AutoHSTRING str;
         hr = GetWindowsGlobalizationAdapter(scriptContext)->NormalizeLanguageTag(scriptContext, argString->GetSz(), &str);
         DelayLoadWindowsGlobalization *wsl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
         PCWSTR strBuf = wsl->WindowsGetStringRawBuffer(*str, NULL);
         retVal = Js::JavascriptString::NewCopySz(strBuf, scriptContext);
-#endif
-
         if (FAILED(hr))
         {
             HandleOOMSOEHR(hr);
@@ -762,6 +798,7 @@ namespace Js
         }
 
         return retVal;
+#endif
     }
 
 #ifdef INTL_ICU

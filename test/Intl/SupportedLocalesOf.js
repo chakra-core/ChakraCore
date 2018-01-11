@@ -40,6 +40,20 @@ const tests = [
                 assertEachIsOneOf(["en", "en-US"], ctor.supportedLocalesOf(["en"]));
                 assertEachIsOneOf(["en", "en-US"], ctor.supportedLocalesOf(["en"], { localeMatcher: "lookup" }));
                 assertEachIsOneOf(["en", "en-US"], ctor.supportedLocalesOf(["en"], { localeMatcher: "best fit" }));
+
+                assertEachIsOneOf(['de', 'de-DE'], ctor.supportedLocalesOf(['de-de']));
+                assertEachIsOneOf(['ja', 'ja-JP'], ctor.supportedLocalesOf(['ja-JP']));
+                assertEachIsOneOf(['zh', 'zh-CN', 'zh-Hans-CN'], ctor.supportedLocalesOf(['zh-cn']));
+
+                assertEachIsOneOf(
+                    [
+                        'en', 'en-US',
+                        'de', 'de-DE',
+                        'ja', 'ja-JP',
+                        'zh', 'zh-CN', 'zh-Hans-CN',
+                    ],
+                    ctor.supportedLocalesOf(['en-us', 'de-de', 'ja-JP', 'zh-cn'])
+                );
             }
 
             ctors.forEach(test);
