@@ -102,6 +102,16 @@ public:
         }
     }
 
+    template <typename PredicateFn>
+    void RemoveAll(PredicateFn fn)
+    {
+        while (head != nullptr)
+        {
+            fn(head->data);
+            Remove(head);
+        }
+    }
+
     bool IsEmpty()
     {
         return head == nullptr;
@@ -229,10 +239,9 @@ public:
 
     void RemoveAll()
     {
-        m_queue.Remove([](const ListEntry& entry) { 
+        m_queue.RemoveAll([](const ListEntry& entry) { 
             MessageBase* msg = entry.message;
             delete msg;
-            return true;
         });
     }
 
