@@ -5,6 +5,7 @@
 #include "RuntimeDebugPch.h"
 #include "Library/JavascriptGenerator.h"
 #include "Language/InterpreterStackFrame.h"
+#include "Library/JavascriptPromise.h"
 
 #if ENABLE_TTD
 
@@ -2160,8 +2161,7 @@ namespace TTD
                 }
             }
 
-            Js::CallInfo callInfo;
-            memcpy(&callInfo, generatorInfo->arguments_callInfo, sizeof(Js::CallInfo));
+            Js::CallInfo callInfo(static_cast<Js::CallFlags>(generatorInfo->arguments_callInfo_flags), generatorInfo->arguments_callInfo_count, false /*unusedBool*/);
 
             Js::Arguments arguments(callInfo, (Js::Var*)argVals);
 
@@ -2254,15 +2254,8 @@ namespace TTD
             writer->WriteUInt32(NSTokens::Key::u32Val, sgi->state, NSTokens::Separator::CommaSeparator);
             writer->WriteAddr(NSTokens::Key::objectId, sgi->scriptFunction, NSTokens::Separator::CommaSeparator);
 
-            // byte array
-            writer->WriteLengthValue(sizeof(Js::CallInfo), NSTokens::Separator::CommaSeparator);
-            writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
-            for(uint32 i = 0; i < sizeof(Js::CallInfo); ++i)
-            {
-                writer->WriteNakedByte(sgi->arguments_callInfo[i], i != 0 ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator);
-            }
-            writer->WriteSequenceEnd();
-
+            writer->WriteUInt32(NSTokens::Key::u32Val, sgi->arguments_callInfo_count, NSTokens::Separator::CommaSeparator);
+            writer->WriteUInt32(NSTokens::Key::u32Val, sgi->arguments_callInfo_flags, NSTokens::Separator::CommaSeparator);
             writer->WriteUInt32(NSTokens::Key::u32Val, sgi->arguments_count, NSTokens::Separator::CommaSeparator);
 
             // arguments_values array
@@ -2304,16 +2297,8 @@ namespace TTD
 
             sgi->state = reader->ReadUInt32(NSTokens::Key::u32Val, true);
             sgi->scriptFunction = reader->ReadAddr(NSTokens::Key::objectId, true);
-
-            uint32 callInfoLength = reader->ReadLengthValue(true);
-            reader->ReadSequenceStart_WDefaultKey(true);
-            TTDAssert(callInfoLength == sizeof(Js::CallInfo), "unexpected mismatch in length between sizeof(CallInfo) and value serialized to log");
-            for(uint32 i = 0; i < callInfoLength; i++)
-            {
-                sgi->arguments_callInfo[i] = reader->ReadNakedByte(i != 0);
-            }
-            reader->ReadSequenceEnd();
-
+            sgi->arguments_callInfo_count = reader->ReadUInt32(NSTokens::Key::u32Val, true);
+            sgi->arguments_callInfo_flags = static_cast<uint8>(reader->ReadUInt32(NSTokens::Key::u32Val, true));
             sgi->arguments_count = reader->ReadUInt32(NSTokens::Key::u32Val, true);
 
             if(sgi->arguments_count == 0)
@@ -2386,6 +2371,47 @@ namespace TTD
             // TODO
         }
 #endif
+        ////////////////////
+
+        Js::RecyclableObject* DoObjectInflation_SnapAsyncFunction(const SnapObject *snpObject, InflateMap *inflator)
+        {
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
+            SnapGeneratorFunctionInfo* info = SnapObjectGetAddtlInfoAs<SnapGeneratorFunctionInfo *, SnapObjectType::SnapAsyncFunction>(snpObject);
+            Js::JavascriptAsyncFunction* func = ctx->GetLibrary()->CreateAsyncFunction(Js::JavascriptAsyncFunction::EntryAsyncFunctionImplementation, info->isAnonymousFunction);
+            return func;
+        }
+
+        void DoAddtlValueInstantiation_SnapAsyncFunction(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator)
+        {
+            Js::JavascriptAsyncFunction* func = Js::JavascriptAsyncFunction::FromVar(obj);
+            SnapGeneratorFunctionInfo* info = SnapObjectGetAddtlInfoAs<SnapGeneratorFunctionInfo *, SnapObjectType::SnapAsyncFunction>(snpObject);
+
+            if (info->scriptFunction != TTD_INVALID_PTR_ID)
+            {
+                Js::GeneratorVirtualScriptFunction* gvsf = reinterpret_cast<Js::GeneratorVirtualScriptFunction*>(inflator->LookupObject(info->scriptFunction));
+                func->SetScriptFunction(gvsf);
+            }
+        }
+
+        void EmitAddtlInfo_SnapAsyncFunction(const SnapObject* snpObject, FileWriter* writer)
+        {
+            SnapGeneratorFunctionInfo* info = SnapObjectGetAddtlInfoAs<SnapGeneratorFunctionInfo*, SnapObjectType::SnapAsyncFunction>(snpObject);
+            writer->WriteAddr(NSTokens::Key::objectId, info->scriptFunction, NSTokens::Separator::CommaSeparator);
+            writer->WriteBool(NSTokens::Key::boolVal, info->isAnonymousFunction, NSTokens::Separator::CommaSeparator);
+        }
+
+        void ParseAddtlInfo_SnapAsyncFunction(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
+        {
+            SnapGeneratorFunctionInfo* info = alloc.SlabAllocateStruct<SnapGeneratorFunctionInfo>();
+            info->scriptFunction = reader->ReadAddr(NSTokens::Key::objectId, true);
+            info->isAnonymousFunction = reader->ReadBool(NSTokens::Key::boolVal, true);
+            SnapObjectSetAddtlInfoAs<SnapGeneratorFunctionInfo*, SnapObjectType::SnapAsyncFunction>(snpObject, info);
+        }
+#if ENABLE_SNAPSHOT_COMPARE
+        void AssertSnapEquiv_SnapAsyncFunction(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+        }
+#endif
 
         ////////////////////
 
@@ -2432,20 +2458,127 @@ namespace TTD
         }
 #endif
 
-        Js::RecyclableObject *DoObjectInflation_SnapAsyncFunction(const SnapObject *snpObject, InflateMap *inflator)
+        ////////////////////
+
+        Js::RecyclableObject* DoObjectInflation_SnapJavascriptPromiseAsyncSpawnExecutorFunction(const SnapObject *snpObject, InflateMap *inflator)
         {
-            // TODO
-            return nullptr;
+            Js::ScriptContext *ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
+            SnapJavascriptPromiseAsyncSpawnExecutorFunctionInfo* info = SnapObjectGetAddtlInfoAs<SnapJavascriptPromiseAsyncSpawnExecutorFunctionInfo *, SnapObjectType::JavascriptPromiseAsyncSpawnExecutorFunction>(snpObject);
+            Js::Var target = (info->target!= nullptr) ? inflator->InflateTTDVar(info->target) : nullptr;
+
+            Js::JavascriptGenerator* generator = nullptr;
+            if (info->generator != TTD_INVALID_PTR_ID)
+            {
+                generator = reinterpret_cast<Js::JavascriptGenerator*>(inflator->LookupObject(info->generator));
+            }
+
+            // TODO; why do we need to cast here??
+            Js::RecyclableObject* res = reinterpret_cast<Js::RecyclableObject*>(ctx->GetLibrary()->CreatePromiseAsyncSpawnExecutorFunction(generator, target));
+            return res;
         }
 
-        void DoAddtlValueInstantiation_SnapAsyncFunction(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator) {}
-        void EmitAddtlInfo_SnapAsyncFunction(const SnapObject* snpObject, FileWriter* writer) {}
-        void ParseAddtlInfo_SnapAsyncFunction(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc) {}
+        void DoAddtlValueInstantiation_SnapJavascriptPromiseAsyncSpawnExecutorFunction(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator)
+        {
+        }
+
+        void EmitAddtlInfo_SnapJavascriptPromiseAsyncSpawnExecutorFunction(const SnapObject* snpObject, FileWriter* writer)
+        {
+            SnapJavascriptPromiseAsyncSpawnExecutorFunctionInfo* info = SnapObjectGetAddtlInfoAs<SnapJavascriptPromiseAsyncSpawnExecutorFunctionInfo*, SnapObjectType::JavascriptPromiseAsyncSpawnExecutorFunction>(snpObject);
+            writer->WriteAddr(NSTokens::Key::objectId, info->generator, NSTokens::Separator::CommaSeparator);
+            writer->WriteKey(NSTokens::Key::target, NSTokens::Separator::CommaSeparator);
+            NSSnapValues::EmitTTDVar(info->target, writer, NSTokens::Separator::NoSeparator);
+        }
+
+        void ParseAddtlInfo_SnapJavascriptPromiseAsyncSpawnExecutorFunction(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
+        {
+            SnapJavascriptPromiseAsyncSpawnExecutorFunctionInfo* info = alloc.SlabAllocateStruct<SnapJavascriptPromiseAsyncSpawnExecutorFunctionInfo>();
+            info->generator = reader->ReadAddr(NSTokens::Key::objectId, true);
+            reader->ReadKey(NSTokens::Key::target, true);
+            info->target= NSSnapValues::ParseTTDVar(false, reader);
+            SnapObjectSetAddtlInfoAs<SnapJavascriptPromiseAsyncSpawnExecutorFunctionInfo*, SnapObjectType::JavascriptPromiseAsyncSpawnExecutorFunction>(snpObject, info);
+        }
 #if ENABLE_SNAPSHOT_COMPARE
-        void AssertSnapEquiv_SnapAsyncFunction(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        void AssertSnapEquiv_SnapJavascriptPromiseAsyncSpawnExecutorFunction(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
         {
         }
 #endif
+
+        ////////////////////
+
+        Js::RecyclableObject *DoObjectInflation_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo(const SnapObject *snpObject, InflateMap *inflator)
+        {
+            Js::ScriptContext *ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
+            SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo* info = SnapObjectGetAddtlInfoAs<SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo *, SnapObjectType::JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>(snpObject);
+            Js::Var reject = (info->reject != nullptr) ? inflator->InflateTTDVar(info->reject) : nullptr;
+            Js::Var resolve = (info->resolve != nullptr) ? inflator->InflateTTDVar(info->resolve) : nullptr;
+            Js::Var argument = (info->argument != nullptr) ? inflator->InflateTTDVar(info->argument) : nullptr;
+            bool isReject = info->isReject;
+
+            Js::JavascriptGenerator* generator = nullptr;
+            if (info->generator != TTD_INVALID_PTR_ID)
+            {
+                generator = reinterpret_cast<Js::JavascriptGenerator*>(inflator->LookupObject(info->generator));
+            }
+
+            Js::JavascriptMethod entryPoint = nullptr;
+            switch (info->entryPoint)
+            {
+            case 1:
+                entryPoint = Js::JavascriptPromise::EntryJavascriptPromiseAsyncSpawnStepNextExecutorFunction;
+                break;
+            case 2:
+                entryPoint = Js::JavascriptPromise::EntryJavascriptPromiseAsyncSpawnStepThrowExecutorFunction;
+                break;
+            case 3:
+                entryPoint = Js::JavascriptPromise::EntryJavascriptPromiseAsyncSpawnCallStepExecutorFunction;
+                break;
+            default:
+                TTDAssert(false, "Unexpected value for entryPoint when inflating JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction");
+                break;
+            }
+
+            return ctx->GetLibrary()->CreatePromiseAsyncSpawnStepArgumentExecutorFunction(entryPoint, generator, argument, resolve, reject, isReject);
+        }
+
+        void DoAddtlValueInstantiation_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator)
+        { }
+        
+        void EmitAddtlInfo_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo(const SnapObject* snpObject, FileWriter* writer)
+        {
+            SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo* info = SnapObjectGetAddtlInfoAs<SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo*, SnapObjectType::JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>(snpObject);
+            writer->WriteAddr(NSTokens::Key::objectId, info->generator, NSTokens::Separator::CommaSeparator);
+            writer->WriteKey(NSTokens::Key::reject, NSTokens::Separator::CommaSeparator);
+            NSSnapValues::EmitTTDVar(info->reject, writer, NSTokens::Separator::NoSeparator);
+            writer->WriteKey(NSTokens::Key::resolve, NSTokens::Separator::CommaSeparator);
+            NSSnapValues::EmitTTDVar(info->resolve, writer, NSTokens::Separator::NoSeparator);
+            writer->WriteKey(NSTokens::Key::argument, NSTokens::Separator::CommaSeparator);
+            NSSnapValues::EmitTTDVar(info->argument, writer, NSTokens::Separator::NoSeparator);
+            writer->WriteUInt32(NSTokens::Key::u32Val, info->entryPoint, NSTokens::Separator::CommaSeparator);
+            writer->WriteBool(NSTokens::Key::boolVal, info->isReject, NSTokens::Separator::CommaSeparator);
+        }
+
+        void ParseAddtlInfo_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
+        {
+            SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo* info = alloc.SlabAllocateStruct<SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo>();
+            info->generator = reader->ReadAddr(NSTokens::Key::objectId, true);
+            reader->ReadKey(NSTokens::Key::reject, true);
+            info->reject = NSSnapValues::ParseTTDVar(false, reader);
+            reader->ReadKey(NSTokens::Key::resolve, true);
+            info->resolve = NSSnapValues::ParseTTDVar(false, reader);
+            reader->ReadKey(NSTokens::Key::argument, true);
+            info->argument = NSSnapValues::ParseTTDVar(false, reader);
+            info->entryPoint = reader->ReadUInt32(NSTokens::Key::u32Val, true);
+            info->isReject = reader->ReadBool(NSTokens::Key::boolVal, true);
+            SnapObjectSetAddtlInfoAs<SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo*, SnapObjectType::JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>(snpObject, info);
+        }
+
+#if ENABLE_SNAPSHOT_COMPARE
+        void AssertSnapEquiv_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        { }
+#endif
+        //////////
+
+
 
     }
 }
