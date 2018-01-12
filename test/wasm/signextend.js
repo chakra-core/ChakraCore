@@ -6,7 +6,7 @@
 /* global assert,testRunner */ // eslint rule
 WScript.Flag("-WasmSignExtends");
 WScript.Flag("-WasmI64");
-WScript.LoadScriptFile("../UnitTestFrameWork/UnitTestFrameWork.js");
+WScript.LoadScriptFile("../UnitTestFramework/UnitTestFramework.js");
 
 function makeCSETest(type, op1, op2, tests) {
   return {
@@ -60,7 +60,7 @@ const tests = [
   makeCSETest("i64", "extend32_s", "extend16_s", [0xFF4F, 0xFFF4FFFF, {low: 0x4FFFFFFF, high: 1}]),
 ];
 
-WScript.LoadScriptFile("../UnitTestFrameWork/yargs.js");
+WScript.LoadScriptFile("../UnitTestFramework/yargs.js");
 const argv = yargsParse(WScript.Arguments, {
   boolean: ["verbose"],
   number: ["start", "end"],

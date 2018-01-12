@@ -3032,7 +3032,7 @@ namespace Js
         // Move the arguments to the right location
         ArgSlot argCount = info->GetArgCount();
 
-#if _M_X64
+#if _M_X64 && _WIN32
         uint homingAreaSize = 0;
 #endif
 
@@ -3051,7 +3051,7 @@ namespace Js
         uintptr_t argAddress = (uintptr_t)m_inParams;
         for (ArgSlot i = 0; i < argCount; i++)
         {
-#if _M_X64
+#if _M_X64 && _WIN32
             // 3rd Argument should be at the end of the homing area.
             Assert(i != 3 || argAddress == (uintptr_t)m_inParams + homingAreaSize);
             if (i < 3)
@@ -3072,12 +3072,7 @@ namespace Js
                 // IAT xmm2 spill
                 // IAT xmm1 spill <- floatSpillAddress for arg1
 
-#ifdef _WIN32
 #define FLOAT_SPILL_ADDRESS_OFFSET_WORDS 15
-#else
-// On Sys V x64 we have 4 words less (4 reg shadow)
-#define FLOAT_SPILL_ADDRESS_OFFSET_WORDS 11
-#endif
                 // floats are spilled as xmmwords
                 uintptr_t floatSpillAddress = (uintptr_t)m_inParams - MachPtr * (FLOAT_SPILL_ADDRESS_OFFSET_WORDS - 2*i);
 
@@ -3780,17 +3775,17 @@ namespace Js
         AsmJsScriptFunction* scriptFunc = AsmJsScriptFunction::FromVar(function);
         AsmJsFunctionInfo* asmInfo = scriptFunc->GetFunctionBody()->GetAsmJsFunctionInfo();
         uint alignedArgsSize = ::Math::Align<uint32>(asmInfo->GetArgByteSize(), 16);
-#if _M_X64
+#if _M_X64 && _WIN32
         // convention is to always allocate spill space for rcx,rdx,r8,r9
         if (alignedArgsSize < 0x20) alignedArgsSize = 0x20;
+        uint* argSizes = asmInfo->GetArgsSizesArray();
+        Assert(asmInfo->GetArgSizeArrayLength() >= 2);
+        byte* curOutParams = (byte*)m_outParams + sizeof(Var);
+        Assert(curOutParams + argSizes[0] + argSizes[1] + 16 <= (byte*)this->m_outParamsEnd);
 
         // Prepare in advance the possible arguments that will need to be put in register
         byte _declspec(align(16)) reg[3 * 16];
-        uint* argSizes = asmInfo->GetArgsSizesArray();
-        Assert(asmInfo->GetArgSizeArrayLength() >= 2);
         CompileAssert((FunctionBody::MinAsmJsOutParams() * sizeof(Var)) == (sizeof(Var) * 2 + sizeof(reg)));
-        byte* curOutParams = (byte*)m_outParams + sizeof(Var);
-        Assert(curOutParams + argSizes[0] + argSizes[1] + 16 <= (byte*)this->m_outParamsEnd);
         js_memcpy_s(reg, 16, curOutParams, 16);
         js_memcpy_s(reg + 16, 16, curOutParams + argSizes[0], 16);
         js_memcpy_s(reg + 32, 16, curOutParams + argSizes[0] + argSizes[1], 16);
