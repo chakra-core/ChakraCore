@@ -960,7 +960,6 @@ namespace Js
         {
             return E_INVALIDARG;
         }
-        AssertMsg(!WasParsed(), "shouldn't be called after a module is parsed");
         if (WasParsed())
         {
             return E_INVALIDARG;
