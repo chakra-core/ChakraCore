@@ -123,19 +123,21 @@ namespace Js
             else
             {
                 JavascriptString* indexStr = JavascriptConversion::ToString(indexVar, scriptContext);
-                *propertyRecord = indexStr->GetPropertyRecord();
+                char16 const * propertyName = indexStr->GetString();
+                charcount_t const propertyLength = indexStr->GetLength();
 
-                if ((*propertyRecord)->IsNumeric())
+                if (!createIfNotFound && preferJavascriptStringOverPropertyRecord)
                 {
-                    *index = (*propertyRecord)->GetNumericValue();
-                    return IndexType_Number;
-                }
+                    if (JavascriptOperators::TryConvertToUInt32(propertyName, propertyLength, index) &&
+                        (*index != JavascriptArray::InvalidIndex))
+                    {
+                        return IndexType_Number;
+                    }
 
-                if (preferJavascriptStringOverPropertyRecord)
-                {
                     *propertyNameString = indexStr;
+                    return IndexType_JavascriptString;
                 }
-                return IndexType_PropertyId;
+                return GetIndexTypeFromString(propertyName, propertyLength, scriptContext, index, propertyRecord, createIfNotFound);
             }
         }
     }
