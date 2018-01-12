@@ -1842,7 +1842,7 @@ bool ByteCodeGenerator::CanStackNestedFunc(FuncInfo * funcInfo, bool trace)
         return false;
     }
 
-    if (funcInfo->GetBodyScope()->GetIsObject() || funcInfo->GetParamScope()->GetIsObject())
+    if (funcInfo->GetBodyScope()->GetIsObject() || funcInfo->GetParamScope()->GetIsObject() || (funcInfo->GetFuncExprScope() && funcInfo->GetFuncExprScope()->GetIsObject()))
     {
         if (trace)
         {
