@@ -292,6 +292,14 @@ var tests = [
         }
     },
     {
+        name:"Inter-related circular dependencies",
+        body: function () {
+            let functionBody =
+                `import './module-4482-bug.js';`;
+            testModuleScript(functionBody);
+        }
+    },
+    {
         name: "Implicitly re-exporting an import binding (import { foo } from ''; export { foo };)",
         body: function () {
             let functionBody =
