@@ -1144,6 +1144,11 @@ namespace Js
 
     uint SourceTextModuleRecord::GetLocalExportSlotIndexByExportName(PropertyId exportNameId)
     {
+        if(!this->WasDeclarationInitialized())//allow for circular imports that reference each other's functions
+        {
+            ModuleDeclarationInstantiation();
+        }
+        
         Assert(localSlotCount != 0);
         Assert(localExportSlots != nullptr);
         uint slotIndex = InvalidSlotIndex;
@@ -1160,6 +1165,11 @@ namespace Js
 
     uint SourceTextModuleRecord::GetLocalExportSlotIndexByLocalName(PropertyId localNameId)
     {
+        if(!this->WasDeclarationInitialized())//allow for circular imports that reference each other's functions
+        {
+            ModuleDeclarationInstantiation();
+        }
+        
         Assert(localSlotCount != 0 || localNameId == PropertyIds::star_);
         Assert(localExportSlots != nullptr);
         uint slotIndex = InvalidSlotIndex;
