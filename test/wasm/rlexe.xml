@@ -219,7 +219,8 @@
     <default>
       <files>wasmcctx.js</files>
       <compile-flags>-wasm -dbgbaseline:wasmcctx.js.dbg.baseline -InspectMaxStringLength:50</compile-flags>
-      <tags>exclude_jshost,exclude_win7,exclude_drt,exclude_snap,require_debugger</tags>
+      <!-- todo-xplat: Fix this! The test is flaky on XPLAT -->
+      <tags>exclude_jshost,exclude_win7,exclude_drt,exclude_snap,require_debugger,exclude_xplat</tags>
     </default>
   </test>
 <test>
