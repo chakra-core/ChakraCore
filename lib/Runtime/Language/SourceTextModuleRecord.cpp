@@ -277,7 +277,10 @@ namespace Js
             HRESULT hr = NOERROR;
             if (!WasDeclarationInitialized())
             {
-                ModuleDeclarationInstantiation();
+                if (ModuleDeclarationInstantiation())
+                {
+                    GenerateRootFunction();
+                }
 
                 if (this->errorObject != nullptr)
                 {
@@ -336,7 +339,10 @@ namespace Js
                 bool isScriptActive = scriptContext->GetThreadContext()->IsScriptActive();
                 Assert(!isScriptActive || this->promise != nullptr);
 
-                ModuleDeclarationInstantiation();
+                if (ModuleDeclarationInstantiation())
+                {
+                    GenerateRootFunction();
+                }
                 if (!hadNotifyHostReady && !WasEvaluated())
                 {
                     OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyHostAboutModuleReady %s (PrepareForModuleDeclarationInitialization)\n"), this->GetSpecifierSz());
@@ -800,14 +806,14 @@ namespace Js
         // helper information for now.
     }
 
-    void SourceTextModuleRecord::ModuleDeclarationInstantiation()
+    bool SourceTextModuleRecord::ModuleDeclarationInstantiation()
     {
         OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("ModuleDeclarationInstantiation(%s)\n"), this->GetSpecifierSz());
         ScriptContext* scriptContext = GetScriptContext();
 
         if (this->WasDeclarationInitialized())
         {
-            return;
+            return false;
         }
 
         try
@@ -825,7 +831,17 @@ namespace Js
                 childrenModuleSet->Map([](LPCOLESTR specifier, SourceTextModuleRecord* moduleRecord)
                 {
                     Assert(moduleRecord->WasParsed());
-                    moduleRecord->ModuleDeclarationInstantiation();
+                    moduleRecord->shouldGenerateRootFunction =
+                            moduleRecord->ModuleDeclarationInstantiation();
+                });
+
+                childrenModuleSet->Map([](LPCOLESTR specifier, SourceTextModuleRecord* moduleRecord)
+                {
+                    if (moduleRecord->shouldGenerateRootFunction)
+                    {
+                        moduleRecord->shouldGenerateRootFunction = false;
+                        moduleRecord->GenerateRootFunction();
+                    }
                 });
             }
 
@@ -843,9 +859,15 @@ namespace Js
         {
             OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentsAsNeeded (errorObject)\n"));
             NotifyParentsAsNeeded();
-            return;
+            return false;
         }
 
+        return true;
+    }
+
+    void SourceTextModuleRecord::GenerateRootFunction()
+    {
+        ScriptContext* scriptContext = GetScriptContext();
         Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
         Assert(this == scriptContext->GetLibrary()->GetModuleRecord(this->pSourceInfo->GetSrcInfo()->moduleID));
         CompileScriptException se;
