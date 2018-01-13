@@ -154,4 +154,18 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>parseToStringResults.js</files>
+      <!-- xplat tz info for BC != Windows tz info for BC -->
+      <tags>exclude_xplat</tags>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>parseToUTCStringAndToISOStringResults.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>

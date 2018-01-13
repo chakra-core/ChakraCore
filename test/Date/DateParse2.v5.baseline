@@ -20,6 +20,16 @@ Date string:		Tue Feb 02 -2012 01:02:03 GMT-0800 (Pacific Standard Time)
 			-2012/1/2
 			1:2:3.0
 
+Date string:		Tue, 02 Feb -2012 09:02:03 GMT
+	 raw:		-125657017077000
+	 toString:	Tue Feb 02 -2012 01:02:03 GMT-0800 (Pacific Standard Time)
+	 toUTCString:	Tue, 02 Feb -2012 09:02:03 GMT
+	 toGMTString:	Tue, 02 Feb -2012 09:02:03 GMT
+	 toISOString:	-002012-02-02T09:02:03.000Z
+			2 -125657017077000 480
+			-2012/1/2
+			1:2:3.0
+
 Date string:		-002012-02-02T09:02:03.000Z
 	 raw:		-125657017077000
 	 toString:	Tue Feb 02 -2012 01:02:03 GMT-0800 (Pacific Standard Time)
@@ -133,6 +143,16 @@ Date string:		Fri Feb 02 -99999 01:02:03 GMT-0800 (Pacific Standard Time)
 			-99999/1/5
 			1:2:3.0
 
+Date string:		Fri, 02 Feb -99999 09:02:03 GMT
+	 raw:		-3217827999477000
+	 toString:	Fri Feb 02 -99999 01:02:03 GMT-0800 (Pacific Standard Time)
+	 toUTCString:	Fri, 02 Feb -99999 09:02:03 GMT
+	 toGMTString:	Fri, 02 Feb -99999 09:02:03 GMT
+	 toISOString:	-099999-02-02T09:02:03.000Z
+			2 -3217827999477000 480
+			-99999/1/5
+			1:2:3.0
+
 Date string:		-099999-02-02T09:02:03.000Z
 	 raw:		-3217827999477000
 	 toString:	Fri Feb 02 -99999 01:02:03 GMT-0800 (Pacific Standard Time)
@@ -165,10 +185,14 @@ Date string:		Tue Feb 02 -0012 01:02:03 GMT-0800 (Pacific Standard Time)
 			1:2:3.0
 
 Date string:		Tue, 02 Feb -0012 09:02:03 GMT
-	 raw:		NaN
-	 toString:	Invalid Date
-	 toUTCString:	Invalid Date
-	 toGMTString:	Invalid Date
+	 raw:		-62543113077000
+	 toString:	Tue Feb 02 -0012 01:02:03 GMT-0800 (Pacific Standard Time)
+	 toUTCString:	Tue, 02 Feb -0012 09:02:03 GMT
+	 toGMTString:	Tue, 02 Feb -0012 09:02:03 GMT
+	 toISOString:	-000012-02-02T09:02:03.000Z
+			2 -62543113077000 480
+			-12/1/2
+			1:2:3.0
 
 Date string:		-000012-02-02T09:02:03.000Z
 	 raw:		-62543113077000
@@ -291,4 +315,28 @@ Date string:		Thu Feb 2 01:02:03 PST 2012
 			2 1328173323000 480
 			2012/1/4
 			1:2:3.0
+
+Date string:		Thu, 23 Sep -
+	 raw:		NaN
+	 toString:	Invalid Date
+	 toUTCString:	Invalid Date
+	 toGMTString:	Invalid Date
+
+Date string:		Thu, 23 Sep-
+	 raw:		NaN
+	 toString:	Invalid Date
+	 toUTCString:	Invalid Date
+	 toGMTString:	Invalid Date
+
+Date string:		Tue Feb 02 -
+	 raw:		NaN
+	 toString:	Invalid Date
+	 toUTCString:	Invalid Date
+	 toGMTString:	Invalid Date
+
+Date string:		Tue Feb 02-
+	 raw:		NaN
+	 toString:	Invalid Date
+	 toUTCString:	Invalid Date
+	 toGMTString:	Invalid Date
 
