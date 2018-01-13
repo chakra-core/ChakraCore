@@ -1666,7 +1666,10 @@ JsErrorCode WScriptJsrt::NotifyModuleReadyCallback(_In_opt_ JsModuleRecord refer
             wprintf(_u("NotifyModuleReadyCallback(exception) %S\n"), fileName.GetString());
         }
 
-        PrintException(*fileName, JsErrorScriptException);
+        // No need to print - just consume the exception
+        JsValueRef exception;
+        ChakraRTInterface::JsGetAndClearException(&exception);
+        exception; // unused
     }
     else
     {

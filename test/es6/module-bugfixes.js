@@ -42,6 +42,18 @@ var tests = [
             testRunner.LoadModule(functionBody, 'samethread');
         }
     },
+    {
+        name: "Memory leak test on syntax error",
+        body: function() {
+            try {
+                WScript.LoadModule('');
+                WScript.LoadModule('1');
+                WScript.LoadModule('const a = () -> {};');
+            } catch(e) {
+                // no-op
+            }
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
