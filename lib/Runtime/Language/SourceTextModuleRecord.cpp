@@ -869,8 +869,11 @@ namespace Js
     {
         ScriptContext* scriptContext = GetScriptContext();
         Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
-        Assert(this == scriptContext->GetLibrary()->GetModuleRecord(this->pSourceInfo->GetSrcInfo()->moduleID));
         CompileScriptException se;
+
+        Assert(this->WasDeclarationInitialized());
+        Assert(this == scriptContext->GetLibrary()->GetModuleRecord(this->pSourceInfo->GetSrcInfo()->moduleID));
+
         this->rootFunction = scriptContext->GenerateRootFunction(parseTree, sourceIndex, this->parser, this->pSourceInfo->GetParseFlags(), &se, _u("module"));
         if (rootFunction == nullptr)
         {
