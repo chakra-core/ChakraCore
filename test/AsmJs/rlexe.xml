@@ -1057,4 +1057,11 @@
       <compile-flags>-testtrace:asmjs -maic:1</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>divByConstants_Unsigned.js</files>
+      <baseline>divByConstants.baseline</baseline>
+      <compile-flags>-testtrace:asmjs -maic:1</compile-flags>
+    </default>
+  </test>
 </regress-exe>

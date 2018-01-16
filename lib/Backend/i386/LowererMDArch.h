@@ -107,7 +107,7 @@ public:
             bool                GenerateFastNot(IR::Instr * instrNot);
             bool                GenerateFastShiftLeft(IR::Instr * instrShift);
             bool                GenerateFastShiftRight(IR::Instr * instrShift);
-            bool                GenerateFastDiv(IR::Instr* instrDiv);
+            bool                GenerateFastDivAndRem(IR::Instr* instrDiv, IR::LabelInstr* bailOutLabel = false);
 
             IR::LabelInstr *    GetBailOutStackRestoreLabel(BailOutInfo * bailOutInfo, IR::LabelInstr * exitTargetInstr);
             IR::Opnd*           GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsInstr);

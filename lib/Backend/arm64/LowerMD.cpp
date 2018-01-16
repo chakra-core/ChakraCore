@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -2475,7 +2475,7 @@ LowererMD::LoadFunctionObjectOpnd(IR::Instr *instr, IR::Opnd *&functionObjOpnd)
     return instrPrev;
 }
 bool
-LowererMD::GenerateFastDiv(IR::Instr *instrDiv)
+LowererMD::GenerateFastDivAndRem(IR::Instr *instrDiv, IR::LabelInstr* bailOutLabel)
 {
     return false;
 }

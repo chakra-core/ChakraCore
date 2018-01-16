@@ -7618,9 +7618,9 @@ bool LowererMD::GenerateFastAnd(IR::Instr * instrAnd)
     return this->lowererMDArch.GenerateFastAnd(instrAnd);
 }
 
-bool LowererMD::GenerateFastDiv(IR::Instr* instrDiv)
+bool LowererMD::GenerateFastDivAndRem(IR::Instr* instrDiv, IR::LabelInstr* bailoutLabel)
 {
-    return this->lowererMDArch.GenerateFastDiv(instrDiv);
+    return this->lowererMDArch.GenerateFastDivAndRem(instrDiv, bailoutLabel);
 }
 
 bool LowererMD::GenerateFastXor(IR::Instr * instrXor)

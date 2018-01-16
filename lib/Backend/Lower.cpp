@@ -24723,7 +24723,7 @@ Lowerer::LowerRemI4(IR::Instr * instr)
     Assert(instr);
     Assert(instr->m_opcode == Js::OpCode::Rem_I4 || instr->m_opcode == Js::OpCode::RemU_I4);
     //Generate fast path for const divisors
-    if (m_lowererMD.GenerateFastDiv(instr))
+    if (m_lowererMD.GenerateFastDivAndRem(instr))
     {
         return;
     }
@@ -24846,7 +24846,7 @@ Lowerer::LowerDivI4(IR::Instr * instr)
     Assert(instr->GetSrc2());
     if (m_func->GetJITFunctionBody()->IsWasmFunction())
     {
-        if (!m_lowererMD.GenerateFastDiv(instr))
+        if (!m_lowererMD.GenerateFastDivAndRem(instr))
         {
             m_lowererMD.EmitInt4Instr(instr);
         }
@@ -24855,7 +24855,7 @@ Lowerer::LowerDivI4(IR::Instr * instr)
 
     if (m_func->GetJITFunctionBody()->IsAsmJsMode())
     {
-        if (!m_lowererMD.GenerateFastDiv(instr))
+        if (!m_lowererMD.GenerateFastDivAndRem(instr))
         {
             LowerDivI4Common(instr);
         }
@@ -24864,7 +24864,7 @@ Lowerer::LowerDivI4(IR::Instr * instr)
 
     if(!instr->HasBailOutInfo())
     {
-        if (!m_lowererMD.GenerateFastDiv(instr))
+        if (!m_lowererMD.GenerateFastDivAndRem(instr))
         {
             m_lowererMD.EmitInt4Instr(instr);
         }
@@ -24889,7 +24889,7 @@ Lowerer::LowerDivI4(IR::Instr * instr)
 
     IR::Opnd * denominatorOpnd = nonBailOutInstr->GetSrc2();
     IR::Opnd * nominatorOpnd = nonBailOutInstr->GetSrc1();
-
+    bool isFastDiv = false;
     if (bailOutKind & IR::BailOutOnDivOfMinInt)
     {
         // Bailout if numerator is MIN_INT  (could also check for denominator being -1
@@ -24898,17 +24898,25 @@ Lowerer::LowerDivI4(IR::Instr * instr)
     }
     if (denominatorOpnd->IsIntConstOpnd() && Math::IsPow2(denominatorOpnd->AsIntConstOpnd()->AsInt32()))
     {
-        //ToDo enable fast divs here with tests.
         Assert((bailOutKind & (IR::BailOutOnNegativeZero | IR::BailOutOnDivByZero)) == 0);
-        int pow2 = denominatorOpnd->AsIntConstOpnd()->AsInt32();
-        InsertTestBranch(nominatorOpnd, IR::IntConstOpnd::New(pow2 - 1, TyInt32, this->m_func, true),
-            Js::OpCode::BrNeq_A, bailOutLabel, nonBailOutInstr);
-        nonBailOutInstr->m_opcode = Js::OpCode::Shr_A;
-        nonBailOutInstr->ReplaceSrc2(IR::IntConstOpnd::New(Math::Log2(pow2), TyInt32, this->m_func, true));
-        LowererMD::ChangeToShift(nonBailOutInstr, false);
-        LowererMD::Legalize(nonBailOutInstr);
+        if (Math::IsPow2(denominatorOpnd->AsIntConstOpnd()->AsInt32()))
+        {
+            int pow2 = denominatorOpnd->AsIntConstOpnd()->AsInt32();
+            InsertTestBranch(nominatorOpnd, IR::IntConstOpnd::New(pow2 - 1, TyInt32, this->m_func),
+                Js::OpCode::BrNeq_A, bailOutLabel, nonBailOutInstr);
+            nonBailOutInstr->m_opcode = Js::OpCode::Shr_A;
+            nonBailOutInstr->ReplaceSrc2(IR::IntConstOpnd::New(Math::Log2(pow2), TyInt32, this->m_func));
+            LowererMD::ChangeToShift(nonBailOutInstr, false);
+            LowererMD::Legalize(nonBailOutInstr);
+            isFastDiv = true;
+        }
+        else
+        {
+            isFastDiv = m_lowererMD.GenerateFastDivAndRem(nonBailOutInstr, bailOutLabel);
+        }
+
     }
-    else
+    if (!isFastDiv)
     {
         if (bailOutKind & IR::BailOutOnDivByZero)
         {

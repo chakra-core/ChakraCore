@@ -3457,7 +3457,7 @@ bool
 }
 
 bool
-    LowererMDArch::GenerateFastDiv(IR::Instr* instrDiv)
+    LowererMDArch::GenerateFastDivAndRem(IR::Instr* instrDiv, IR::LabelInstr* bailOutLabel)
 {
     return false;
 }
