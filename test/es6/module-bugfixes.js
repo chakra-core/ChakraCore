@@ -54,6 +54,13 @@ var tests = [
             }
         }
     },
+    {
+        name: "Issue 4482: Indirect circular module dependencies",
+        body: function() {
+            let functionBody = "import 'module_4482_dep1.js';"
+            testRunner.LoadModule(functionBody);
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

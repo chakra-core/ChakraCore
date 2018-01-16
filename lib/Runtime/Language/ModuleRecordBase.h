@@ -15,8 +15,8 @@ namespace Js
         ModuleNameRecord(const ModuleNameRecord& other)
             :module(other.module), bindingName(other.bindingName)
         {}
-        ModuleNameRecord(ModuleRecordBase* module, PropertyId bindingName) 
-            :module(module), bindingName(bindingName) 
+        ModuleNameRecord(ModuleRecordBase* module, PropertyId bindingName)
+            :module(module), bindingName(bindingName)
         {}
         ModuleNameRecord() {}
         Field(ModuleRecordBase*) module;
@@ -42,7 +42,8 @@ namespace Js
         // return false when "ambiguous".
         // otherwise nullptr means "null" where we have circular reference/cannot resolve.
         virtual bool ResolveExport(PropertyId exportName, ResolveSet* resolveSet, ModuleNameRecord** exportRecord) = 0;
-        virtual void ModuleDeclarationInstantiation() = 0;
+        virtual bool ModuleDeclarationInstantiation() = 0;
+        virtual void GenerateRootFunction() = 0;
         virtual Var ModuleEvaluation() = 0;
         virtual bool IsSourceTextModuleRecord() { return false; }
 
