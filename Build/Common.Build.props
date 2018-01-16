@@ -78,6 +78,9 @@
       <!-- Separate global variable for linker -->
       <AdditionalOptions>%(AdditionalOptions) /Gw</AdditionalOptions>
 
+      <!-- Enable warnings not included in W4 by default -->
+      <AdditionalOptions>%(AdditionalOptions) /w44242 /w44254</AdditionalOptions>
+
       <ProgramDataBaseFileName Condition="'$(ConfigurationType)'=='StaticLibrary'">$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
       <ProgramDataBaseFileName Condition="'$(ConfigurationType)'!='StaticLibrary'">$(IntDir)</ProgramDataBaseFileName>
 

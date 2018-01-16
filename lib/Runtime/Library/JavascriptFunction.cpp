@@ -878,7 +878,7 @@ namespace Js
         if (overridingNewTarget != nullptr)
         {
             ScriptFunction * scriptFunctionObj = JavascriptOperators::TryFromVar<ScriptFunction>(functionObj);
-            ushort newCount = args.Info.Count;
+            uint newCount = args.Info.Count;
             if (scriptFunctionObj && scriptFunctionObj->GetFunctionInfo()->IsClassConstructor())
             {
                 thisAlreadySpecified = true;
@@ -1097,7 +1097,7 @@ namespace Js
         uint32 actualLength = CallInfo::GetLargeArgCountWithExtraArgs(args.Info.Flags, spreadSize);
 
         // Allocate (if needed) space for the expanded arguments.
-        Arguments outArgs(CallInfo(args.Info.Flags, spreadSize, /* unUsedBool */ false), nullptr);
+        Arguments outArgs(CallInfo(args.Info.Flags, spreadSize), nullptr);
         Var stackArgs[STACK_ARGS_ALLOCA_THRESHOLD];
         size_t outArgsSize = 0;
         if (actualLength > STACK_ARGS_ALLOCA_THRESHOLD)

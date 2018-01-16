@@ -50,7 +50,7 @@ namespace Js
             AssertOrFailFastMsg(count < CallInfo::kMaxCountArgs, "Argument list too large");
         }
 
-        CallInfo(CallFlags flags, ArgSlot count)
+        CallInfo(CallFlags flags, uint count)
             : Flags(flags)
             , Count(count)
 #ifdef TARGET_64
@@ -60,16 +60,6 @@ namespace Js
             // Keeping this version to avoid the assert
         }
 
-        // The bool is used to avoid the signature confusion between the ArgSlot and uint version of the constructor
-        CallInfo(CallFlags flags, uint count, bool unusedBool)
-            : Flags(flags)
-            , Count(count)
-#ifdef TARGET_64
-            , unused(0)
-#endif
-        {
-            AssertOrFailFastMsg(count < CallInfo::kMaxCountArgs, "Argument list too large");
-        }
 
         CallInfo(VirtualTableInfoCtorEnum v)
         {
@@ -107,7 +97,7 @@ namespace Js
         }
 
         // New target value is passed as an extra argument which is nto included in the Count
-        static Var GetNewTarget(CallFlags flag, Var* values, ArgSlot count)
+        static Var GetNewTarget(CallFlags flag, Var* values, uint count)
         {
             if (HasNewTarget(flag))
             {
