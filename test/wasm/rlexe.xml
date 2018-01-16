@@ -91,6 +91,12 @@
 </test>
 <test>
   <default>
+    <files>divByConstants.js</files>
+    <compile-flags>-wasm  </compile-flags>
+  </default>
+</test>
+<test>
+  <default>
     <files>global.js</files>
     <baseline>baselines/global.baseline</baseline>
     <compile-flags>-wasm -wasmi64</compile-flags>
