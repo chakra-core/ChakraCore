@@ -848,8 +848,16 @@ void NativeCodeGenerator::CodeGen(PageAllocator* pageAllocator, CodeGenWorkItemI
             size_t bufferSize = 0;
             ~AutoFreeArray() { HeapDeleteArray(bufferSize, arr); }
         } autoFreeArray;
-        autoFreeArray.arr = serializedRpcData;
-        autoFreeArray.bufferSize = serializedRpcDataSize;
+
+        if (CONFIG_FLAG(EntryPointInfoRpcData) && epInfo != nullptr)
+        {
+            epInfo->SetSerializedRpcData(serializedRpcData, serializedRpcDataSize);
+        }
+        else
+        {
+            autoFreeArray.arr = serializedRpcData;
+            autoFreeArray.bufferSize = serializedRpcDataSize;
+        }
 #endif
 
         InProcCodeGenAllocators *const allocators =
