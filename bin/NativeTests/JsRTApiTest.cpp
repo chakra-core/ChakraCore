@@ -2192,6 +2192,47 @@ namespace JsRTApiTest
 
     }
 
+    void SetModuleHostInfoTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
+    {
+        JsModuleRecord requestModule = JS_INVALID_REFERENCE;
+        JsValueRef specifier = nullptr;
+
+        REQUIRE(JsPointerToString(_u("mod1.js"), wcslen(_u("mod1.js")), &specifier) == JsNoError);
+        REQUIRE(JsInitializeModuleRecord(nullptr, specifier, &requestModule) == JsNoError);
+        JsValueRef error = nullptr, errorMsg = nullptr;
+        REQUIRE(JsPointerToString(_u("test error"), wcslen(_u("test error")), &errorMsg) == JsNoError);
+        REQUIRE(JsCreateError(errorMsg, &error) == JsNoError);
+
+        REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_Exception, error) == JsNoError);
+
+        JsValueRef errorOut = nullptr;
+        JsGetModuleHostInfo(requestModule, JsModuleHostInfo_Exception, &errorOut);
+        REQUIRE(errorOut == error);
+
+        //REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_Exception, nullptr) == JsNoError);
+
+        REQUIRE(JsPointerToString(_u("mod2.js"), wcslen(_u("mod2.js")), &specifier) == JsNoError);
+        REQUIRE(JsInitializeModuleRecord(nullptr, specifier, &requestModule) == JsNoError);
+
+        successTest.mainModule = requestModule;
+        REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_NotifyModuleReadyCallback, Succes_NMRC) == JsNoError);
+
+        // Parsing
+        JsValueRef errorObject1 = JS_INVALID_REFERENCE;
+        const char* fileContent = "var x = 10";
+        REQUIRE(JsParseModuleSource(requestModule, 0, (LPBYTE)fileContent,
+            (unsigned int)strlen(fileContent), JsParseModuleSourceFlags_DataIsUTF8, &errorObject1) == JsNoError);
+
+        // This should not pass
+        REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_Exception, error) != JsNoError);
+    }
+
+    TEST_CASE("ApiTest_SetModuleHostInfoTest", "[ApiTest]")
+    {
+        JsRTApiTest::WithSetup(JsRuntimeAttributeEnableExperimentalFeatures, SetModuleHostInfoTest);
+
+    }
+
     ModuleResponseData reentrantParseData;
     static JsErrorCode CALLBACK ReentrantParse_FIMC(_In_ JsModuleRecord referencingModule, _In_ JsValueRef specifier, _Outptr_result_maybenull_ JsModuleRecord* dependentModuleRecord)
     {

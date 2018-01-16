@@ -158,8 +158,10 @@ JsSetModuleHostInfo(
         switch (moduleHostInfo)
         {
         case JsModuleHostInfo_Exception:
-            moduleRecord->OnHostException(hostInfo);
-            break;
+            {
+            HRESULT hr = moduleRecord->OnHostException(hostInfo);
+            return (hr == NOERROR) ? JsNoError : JsErrorInvalidArgument;
+            }
         case JsModuleHostInfo_HostDefined:
             moduleRecord->SetHostDefined(hostInfo);
             break;
