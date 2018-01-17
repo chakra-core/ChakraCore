@@ -723,7 +723,6 @@ namespace Js
                     this->parentModuleList = RecyclerNew(recycler, ModuleRecordList, recycler);
                 }
                 bool contains = this->parentModuleList->Contains(parentRecord);
-                Assert(!contains);
                 if (!contains)
                 {
                     this->parentModuleList->Add(parentRecord);
