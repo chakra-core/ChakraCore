@@ -17,6 +17,7 @@ namespace Js
         typedef Var (__stdcall *HostWrapperCreateFuncType)(Var var, ScriptContext * sourceScriptContext, ScriptContext * destScriptContext);
 
         JavascriptExceptionObject(Var object, ScriptContext * scriptContext, JavascriptExceptionContext* exceptionContextIn, bool isPendingExceptionObject = false) :
+            thrownObject(object),
             isPendingExceptionObject(isPendingExceptionObject),
             scriptContext(scriptContext), tag(true), 
 #ifdef ENABLE_SCRIPT_DEBUGGING
@@ -26,12 +27,6 @@ namespace Js
             hostWrapperCreateFunc(nullptr), isGeneratorReturnException(false),
             next(nullptr)
         {
-            if (object && RecyclableObject::Is(object) && CrossSite::NeedMarshalVar(object, scriptContext))
-            {
-                object = CrossSite::MarshalVar(scriptContext, object);
-            }
-            thrownObject = object;
-
             if (exceptionContextIn)
             {
                 exceptionContext = *exceptionContextIn;
