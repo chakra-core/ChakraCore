@@ -94,10 +94,11 @@ namespace Js
         void *continuation = nullptr;
         JavascriptExceptionObject *exception = nullptr;
         void *tryCatchFrameAddr = nullptr;
+        scriptContext->GetThreadContext()->SetHasBailedOutBitPtr((bool*)((char*)frame + hasBailedOutOffset));
+
         PROBE_STACK(scriptContext, Constants::MinStackDefault + spillSize + argsSize);
         {
             Js::JavascriptExceptionOperators::TryCatchFrameAddrStack tryCatchFrameAddrStack(scriptContext, frame);
-
             try
             {
                 Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
@@ -129,18 +130,22 @@ namespace Js
 
             exception = exception->CloneIfStaticExceptionObject(scriptContext);
             bool hasBailedOut = *(bool*)((char*)frame + hasBailedOutOffset); // stack offsets are negative
+            // If an inlinee bailed out due to some reason, the execution of the current function enclosing the try catch will also continue in the interpreter
+            // During execution in the interpreter, if we throw outside the region enclosed in try/catch, this catch ends up catching that exception because its present on the call stack
             if (hasBailedOut)
             {
                 // If we have bailed out, this exception is coming from the interpreter. It should not have been caught;
                 // it so happens that this catch was on the stack and caught the exception.
                 // Re-throw!
+                scriptContext->GetThreadContext()->SetHasBailedOutBitPtr(nullptr);
                 JavascriptExceptionOperators::DoThrow(exception, scriptContext);
-            }
+            }  
+
             Var exceptionObject = exception->GetThrownObject(scriptContext);
             AssertMsg(exceptionObject, "Caught object is null.");
             continuation = amd64_CallWithFakeFrame(catchAddr, frame, spillSize, argsSize, exceptionObject);
         }
-
+        scriptContext->GetThreadContext()->SetHasBailedOutBitPtr(nullptr);
         return continuation;
     }
 
@@ -154,6 +159,7 @@ namespace Js
     {
         void                      *tryContinuation     = nullptr;
         JavascriptExceptionObject *exception           = nullptr;
+        scriptContext->GetThreadContext()->SetHasBailedOutBitPtr((bool*)((char*)frame + hasBailedOutOffset));
 
         PROBE_STACK(scriptContext, Constants::MinStackDefault + spillSize + argsSize);
 
@@ -189,6 +195,7 @@ namespace Js
                 // If we have bailed out, this exception is coming from the interpreter. It should not have been caught;
                 // it so happens that this catch was on the stack and caught the exception.
                 // Re-throw!
+                scriptContext->GetThreadContext()->SetHasBailedOutBitPtr(nullptr);
                 JavascriptExceptionOperators::DoThrow(exception, scriptContext);
             }
 
@@ -197,6 +204,7 @@ namespace Js
             return continuation;
         }
 
+        scriptContext->GetThreadContext()->SetHasBailedOutBitPtr(nullptr);
         return tryContinuation;
     }
 
@@ -250,6 +258,7 @@ namespace Js
         void *continuation = nullptr;
         JavascriptExceptionObject *exception = nullptr;
         void * tryCatchFrameAddr = nullptr;
+        scriptContext->GetThreadContext()->SetHasBailedOutBitPtr((bool*)((char*)localsPtr + hasBailedOutOffset));
 
         PROBE_STACK(scriptContext, Constants::MinStackDefault + argsSize);
         {
@@ -295,8 +304,10 @@ namespace Js
                 // If we have bailed out, this exception is coming from the interpreter. It should not have been caught;
                 // it so happens that this catch was on the stack and caught the exception.
                 // Re-throw!
+                scriptContext->GetThreadContext()->SetHasBailedOutBitPtr(nullptr);
                 JavascriptExceptionOperators::DoThrow(exception, scriptContext);
             }
+
             Var exceptionObject = exception->GetThrownObject(scriptContext);
             AssertMsg(exceptionObject, "Caught object is null.");
 #if defined(_M_ARM)
@@ -306,6 +317,7 @@ namespace Js
 #endif
         }
 
+        scriptContext->GetThreadContext()->SetHasBailedOutBitPtr(nullptr);
         return continuation;
     }
 
@@ -320,9 +332,9 @@ namespace Js
     {
         void                      *tryContinuation     = nullptr;
         JavascriptExceptionObject *exception           = nullptr;
+        scriptContext->GetThreadContext()->SetHasBailedOutBitPtr((bool*)((char*)localsPtr + hasBailedOutOffset));
 
         PROBE_STACK(scriptContext, Constants::MinStackDefault + argsSize);
-
         try
         {
 #if defined(_M_ARM)
@@ -355,8 +367,10 @@ namespace Js
                 // If we have bailed out, this exception is coming from the interpreter. It should not have been caught;
                 // it so happens that this catch was on the stack and caught the exception.
                 // Re-throw!
+                scriptContext->GetThreadContext()->SetHasBailedOutBitPtr(nullptr);
                 JavascriptExceptionOperators::DoThrow(exception, scriptContext);
             }
+
             scriptContext->GetThreadContext()->SetPendingFinallyException(exception);
 #if defined(_M_ARM)
             void * finallyContinuation = arm_CallEhFrame(finallyAddr, framePtr, localsPtr, argsSize);
@@ -366,6 +380,7 @@ namespace Js
             return finallyContinuation;
         }
 
+        scriptContext->GetThreadContext()->SetHasBailedOutBitPtr(nullptr);
         return tryContinuation;
     }
 
@@ -429,6 +444,7 @@ namespace Js
         void* continuationAddr = NULL;
         Js::JavascriptExceptionObject* pExceptionObject = NULL;
         void *tryCatchFrameAddr = nullptr;
+        scriptContext->GetThreadContext()->SetHasBailedOutBitPtr((bool*)((char*)framePtr + hasBailedOutOffset));
 
         PROBE_STACK(scriptContext, Constants::MinStackDefault);
         {
@@ -526,8 +542,10 @@ namespace Js
                 // If we have bailed out, this exception is coming from the interpreter. It should not have been caught;
                 // it so happens that this catch was on the stack and caught the exception.
                 // Re-throw!
+                scriptContext->GetThreadContext()->SetHasBailedOutBitPtr(nullptr);
                 JavascriptExceptionOperators::DoThrow(pExceptionObject, scriptContext);
             }
+
             Var catchObject = pExceptionObject->GetThrownObject(scriptContext);
             AssertMsg(catchObject, "Caught object is NULL");
 #ifdef _M_IX86
@@ -581,6 +599,7 @@ namespace Js
 #endif
         }
 
+        scriptContext->GetThreadContext()->SetHasBailedOutBitPtr(nullptr);
         return continuationAddr;
     }
 
@@ -588,7 +607,7 @@ namespace Js
     {
         Js::JavascriptExceptionObject* pExceptionObject = NULL;
         void* continuationAddr = NULL;
-
+        scriptContext->GetThreadContext()->SetHasBailedOutBitPtr((bool*)((char*)framePtr + hasBailedOutOffset));
         PROBE_STACK(scriptContext, Constants::MinStackDefault);
 
         try
@@ -676,8 +695,10 @@ namespace Js
                 // If we have bailed out, this exception is coming from the interpreter. It should not have been caught;
                 // it so happens that this catch was on the stack and caught the exception.
                 // Re-throw!
+                scriptContext->GetThreadContext()->SetHasBailedOutBitPtr(nullptr);
                 JavascriptExceptionOperators::DoThrow(pExceptionObject, scriptContext);
             }
+
             scriptContext->GetThreadContext()->SetPendingFinallyException(pExceptionObject);
 
             void* newContinuationAddr = NULL;
@@ -733,6 +754,8 @@ namespace Js
 #endif
             return newContinuationAddr;
         }
+
+        scriptContext->GetThreadContext()->SetHasBailedOutBitPtr(nullptr);
         return continuationAddr;
     }
 
