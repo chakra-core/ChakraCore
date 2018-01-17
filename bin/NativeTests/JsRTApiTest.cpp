@@ -2233,6 +2233,54 @@ namespace JsRTApiTest
 
     }
 
+    static JsErrorCode CALLBACK Success_FIMC1(_In_ JsModuleRecord referencingModule, _In_ JsValueRef specifier, _Outptr_result_maybenull_ JsModuleRecord* dependentModuleRecord)
+    {
+        JsModuleRecord moduleRecord = JS_INVALID_REFERENCE;
+        LPCWSTR specifierStr;
+        size_t length;
+
+        JsErrorCode errorCode = JsStringToPointer(specifier, &specifierStr, &length);
+        REQUIRE(errorCode == JsNoError);
+        REQUIRE(!wcscmp(specifierStr, _u("foo.js")));
+
+        JsValueRef specifier1 = nullptr;
+        REQUIRE(JsPointerToString(_u("./foo.js"), wcslen(_u("./foo.js")), &specifier1) == JsNoError);
+
+        errorCode = JsInitializeModuleRecord(referencingModule, specifier1, &moduleRecord);
+        REQUIRE(errorCode == JsNoError);
+        *dependentModuleRecord = moduleRecord;
+        successTest.childModule = moduleRecord;
+        return JsNoError;
+    }
+
+    void PassingDifferentModuleSpecifierTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
+    {
+        JsModuleRecord requestModule = JS_INVALID_REFERENCE;
+        JsValueRef specifier;
+
+        REQUIRE(JsPointerToString(_u(""), 1, &specifier) == JsNoError);
+        REQUIRE(JsInitializeModuleRecord(nullptr, specifier, &requestModule) == JsNoError);
+        successTest.mainModule = requestModule;
+        REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_FetchImportedModuleCallback, Success_FIMC1) == JsNoError);
+        REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_FetchImportedModuleFromScriptCallback, Success_FIMC1) == JsNoError);
+        REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_NotifyModuleReadyCallback, Succes_NMRC) == JsNoError);
+
+        JsValueRef errorObject = JS_INVALID_REFERENCE;
+        const char* fileContent = "import {x} from 'foo.js'";
+        JsErrorCode errorCode = JsParseModuleSource(requestModule, 0, (LPBYTE)fileContent,
+            (unsigned int)strlen(fileContent), JsParseModuleSourceFlags_DataIsUTF8, &errorObject);
+
+        CHECK(errorCode == JsNoError);
+        CHECK(errorObject == JS_INVALID_REFERENCE);
+        REQUIRE(successTest.childModule != JS_INVALID_REFERENCE);
+    }
+
+    TEST_CASE("ApiTest_PassingDifferentModuleSpecifierTest", "[ApiTest]")
+    {
+        JsRTApiTest::WithSetup(JsRuntimeAttributeEnableExperimentalFeatures, PassingDifferentModuleSpecifierTest);
+
+    }
+
     ModuleResponseData reentrantParseData;
     static JsErrorCode CALLBACK ReentrantParse_FIMC(_In_ JsModuleRecord referencingModule, _In_ JsValueRef specifier, _Outptr_result_maybenull_ JsModuleRecord* dependentModuleRecord)
     {
