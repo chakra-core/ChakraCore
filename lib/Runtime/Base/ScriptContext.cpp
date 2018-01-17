@@ -4408,10 +4408,10 @@ namespace Js
     }
 #endif
 
-    void ScriptContext::FreeFunctionEntryPoint(Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress, void** functionTable)
+    void ScriptContext::FreeFunctionEntryPoint(Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress)
     {
 #if ENABLE_NATIVE_CODEGEN
-        FreeNativeCodeGenAllocation(this, codeAddress, thunkAddress, functionTable);
+        FreeNativeCodeGenAllocation(this, codeAddress, thunkAddress);
 #endif
     }
 

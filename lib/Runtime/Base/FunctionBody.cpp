@@ -8834,12 +8834,18 @@ namespace Js
         if (this->GetState() != CleanedUp)
         {
 #if ENABLE_NATIVE_CODEGEN
-            void* functionTable = nullptr;
 #if PDATA_ENABLED
             if (this->xdataInfo != nullptr)
             {
 #ifdef _WIN32
-                functionTable = this->xdataInfo->functionTable;
+                if (this->xdataInfo->functionTable)
+                {
+                    if (!DelayDeletingFunctionTable::AddEntry(this->xdataInfo->functionTable))
+                    {
+                        PHASE_PRINT_TESTTRACE1(Js::XDataPhase, _u("EntryPointInfo::Cleanup: Failed to add to slist, table: %llx, address: %%llx\n"), this->xdataInfo->functionTable, this->GetNativeAddress());
+                        DelayDeletingFunctionTable::DeleteFunctionTable(this->xdataInfo->functionTable);
+                    }
+                }
 #endif
                 XDataAllocator::Unregister(this->xdataInfo);
 #if defined(_M_ARM32_OR_ARM64)
@@ -8851,19 +8857,7 @@ namespace Js
                 this->xdataInfo = nullptr;
             }
 #endif
-
-            this->OnCleanup(isShutdown, &functionTable);
-
-#if PDATA_ENABLED && defined(_WIN32)
-            // functionTable is not transferred somehow, delete in-thread
-            if (functionTable)
-            {
-                if (!DelayDeletingFunctionTable::AddEntry(functionTable))
-                {
-                    NtdllLibrary::Instance->DeleteGrowableFunctionTable(functionTable);
-                }
-            }
-#endif
+            this->OnCleanup(isShutdown);
 
             FreeJitTransferData();
 
@@ -8987,14 +8981,21 @@ namespace Js
         this->Reset(true);
         Assert(this->nativeAddress != nullptr);
 
-        void* functionTable = nullptr;
 #if PDATA_ENABLED && defined(_WIN32)
         if (this->xdataInfo)
         {
-            functionTable = this->xdataInfo->functionTable;
+            if (this->xdataInfo->functionTable)
+            {
+                if (!DelayDeletingFunctionTable::AddEntry(this->xdataInfo->functionTable))
+                {
+                    PHASE_PRINT_TESTTRACE1(Js::XDataPhase, _u("EntryPointInfo::ResetOnLazyBailoutFailure: Failed to add to slist, table: %llx, address: %llx\n"), this->xdataInfo->functionTable, this->nativeAddress);
+                    DelayDeletingFunctionTable::DeleteFunctionTable(this->xdataInfo->functionTable);
+                }
+            }
         }
 #endif
-        FreeNativeCodeGenAllocation(GetScriptContext(), this->nativeAddress, this->thunkAddress, &functionTable);
+        FreeNativeCodeGenAllocation(GetScriptContext(), this->nativeAddress, this->thunkAddress);
+
         this->nativeAddress = nullptr;
         this->jsMethod = nullptr;
     }
@@ -9090,7 +9091,7 @@ namespace Js
         return functionProxy->GetFunctionBody();
     }
 
-    void FunctionEntryPointInfo::OnCleanup(bool isShutdown, void** functionTable)
+    void FunctionEntryPointInfo::OnCleanup(bool isShutdown)
     {
         if (this->IsCodeGenDone())
         {
@@ -9152,8 +9153,7 @@ namespace Js
 
                 if (validationCookie == currentCookie)
                 {
-                    scriptContext->FreeFunctionEntryPoint((Js::JavascriptMethod)this->GetNativeAddress(), this->GetThunkAddress(), functionTable);
-                    *functionTable = nullptr;
+                    scriptContext->FreeFunctionEntryPoint((Js::JavascriptMethod)this->GetNativeAddress(), this->GetThunkAddress());
                 }
             }
 
@@ -9413,7 +9413,7 @@ namespace Js
 
     //End AsmJs Support
 
-    void LoopEntryPointInfo::OnCleanup(bool isShutdown, void** functionTable)
+    void LoopEntryPointInfo::OnCleanup(bool isShutdown)
     {
 #ifdef ASMJS_PLAT
         if (this->IsCodeGenDone() && !this->GetIsTJMode())
@@ -9461,8 +9461,7 @@ namespace Js
 
                 if (validationCookie == currentCookie)
                 {
-                    scriptContext->FreeFunctionEntryPoint(reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()), this->GetThunkAddress(), functionTable);
-                    *functionTable = nullptr;
+                    scriptContext->FreeFunctionEntryPoint(reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()), this->GetThunkAddress());
                 }
             }
 

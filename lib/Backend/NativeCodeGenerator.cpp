@@ -1109,6 +1109,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     }
 
 #if defined(TARGET_64)
+    DelayDeletingFunctionTable::Clear();
     XDataAllocation * xdataInfo = HeapNewZ(XDataAllocation);
     xdataInfo->address = (byte*)jitWriteData.xdataAddr;
     XDataAllocator::Register(xdataInfo, jitWriteData.codeAddress, jitWriteData.codeSize);
@@ -3206,14 +3207,14 @@ NativeCodeGenerator::EnterScriptStart()
 }
 
 void
-FreeNativeCodeGenAllocation(Js::ScriptContext *scriptContext, Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress, void** functionTable)
+FreeNativeCodeGenAllocation(Js::ScriptContext *scriptContext, Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress)
 {
     if (!scriptContext->GetNativeCodeGenerator())
     { 
         return;
     }
 
-    scriptContext->GetNativeCodeGenerator()->QueueFreeNativeCodeGenAllocation((void*)codeAddress, (void*)thunkAddress, functionTable);
+    scriptContext->GetNativeCodeGenerator()->QueueFreeNativeCodeGenAllocation((void*)codeAddress, (void*)thunkAddress);
 }
 
 bool TryReleaseNonHiPriWorkItem(Js::ScriptContext* scriptContext, CodeGenWorkItem* workItem)
@@ -3244,30 +3245,22 @@ bool NativeCodeGenerator::TryReleaseNonHiPriWorkItem(CodeGenWorkItem* workItem)
 }
 
 void
-NativeCodeGenerator::FreeNativeCodeGenAllocation(void* codeAddress, void** functionTable)
+NativeCodeGenerator::FreeNativeCodeGenAllocation(void* codeAddress)
 {
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
-        // function table delete in content process
-#if PDATA_ENABLED && defined(_WIN32)
-        if (functionTable && *functionTable)
-        {
-            NtdllLibrary::Instance->DeleteGrowableFunctionTable(*functionTable);
-            *functionTable = nullptr;
-        }
-#endif
         ThreadContext * context = this->scriptContext->GetThreadContext();
         HRESULT hr = JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)codeAddress);
         JITManager::HandleServerCallResult(hr, RemoteCallType::MemFree);
     }
     else if(this->backgroundAllocators)
     {
-        this->backgroundAllocators->emitBufferManager.FreeAllocation(codeAddress, functionTable);
+        this->backgroundAllocators->emitBufferManager.FreeAllocation(codeAddress);
     }
 }
 
 void
-NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* codeAddress, void * thunkAddress, void** functionTable)
+NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* codeAddress, void * thunkAddress)
 {
     ASSERT_THREAD();
 
@@ -3297,24 +3290,24 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* codeAddress, void * 
     // OOP JIT will always queue a job
 
     // The foreground allocators may have been used
-    if (this->foregroundAllocators && this->foregroundAllocators->emitBufferManager.FreeAllocation(codeAddress, functionTable))
+    if (this->foregroundAllocators && this->foregroundAllocators->emitBufferManager.FreeAllocation(codeAddress))
     {
         return;
     }
 
     // The background allocators were used. Queue a job to free the allocation from the background thread.
-    this->freeLoopBodyManager.QueueFreeLoopBodyJob(codeAddress, thunkAddress, functionTable);
+    this->freeLoopBodyManager.QueueFreeLoopBodyJob(codeAddress, thunkAddress);
 }
 
-void NativeCodeGenerator::FreeLoopBodyJobManager::QueueFreeLoopBodyJob(void* codeAddress, void * thunkAddress, void** functionTable)
+void NativeCodeGenerator::FreeLoopBodyJobManager::QueueFreeLoopBodyJob(void* codeAddress, void * thunkAddress)
 {
     Assert(!this->isClosed);
 
-    FreeLoopBodyJob* job = HeapNewNoThrow(FreeLoopBodyJob, this, codeAddress, thunkAddress, *functionTable);
+    FreeLoopBodyJob* job = HeapNewNoThrow(FreeLoopBodyJob, this, codeAddress, thunkAddress);
 
     if (job == nullptr)
     {
-        FreeLoopBodyJob stackJob(this, codeAddress, thunkAddress, *functionTable, false /* heapAllocated */);
+        FreeLoopBodyJob stackJob(this, codeAddress, thunkAddress, false /* heapAllocated */);
 
         {
             AutoOptionalCriticalSection lock(Processor()->GetCriticalSection());
@@ -3338,9 +3331,6 @@ void NativeCodeGenerator::FreeLoopBodyJobManager::QueueFreeLoopBodyJob(void* cod
             HeapDelete(job);
         }
     }
-
-    // function table successfully transferred to background job
-    *functionTable = nullptr;
 }
 
 #ifdef PROFILE_EXEC

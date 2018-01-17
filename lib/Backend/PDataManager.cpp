@@ -46,7 +46,7 @@ void PDataManager::UnregisterPdata(RUNTIME_FUNCTION* pdata)
     if (AutoSystemInfo::Data.IsWin8OrLater())
     {
         // TODO: need to move to background?
-        NtdllLibrary::Instance->DeleteGrowableFunctionTable(pdata);
+        DelayDeletingFunctionTable::DeleteFunctionTable(pdata);
     }
     else
     {
