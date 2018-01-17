@@ -174,6 +174,15 @@ namespace Js
 
         if (exception)
         {
+#if ENABLE_NATIVE_CODEGEN
+            if (scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr)
+            {
+                if (exception->GetExceptionContext() && exception->GetExceptionContext()->ThrowingFunction())
+                {
+                    WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, scriptContext->GetThreadContext()->GetTryCatchFrameAddr());
+                }
+            }
+#endif
             bool hasBailedOut = *(bool*)((char*)frame + hasBailedOutOffset); // stack offsets are negative
             if (hasBailedOut)
             {
@@ -182,6 +191,7 @@ namespace Js
                 // Re-throw!
                 JavascriptExceptionOperators::DoThrow(exception, scriptContext);
             }
+
             scriptContext->GetThreadContext()->SetPendingFinallyException(exception);
             void *continuation = amd64_CallWithFakeFrame(finallyAddr, frame, spillSize, argsSize, exception);
             return continuation;
@@ -328,6 +338,15 @@ namespace Js
 
         if (exception)
         {
+#if ENABLE_NATIVE_CODEGEN
+            if (scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr)
+            {
+                if (exception->GetExceptionContext() && exception->GetExceptionContext()->ThrowingFunction())
+                {
+                    WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, scriptContext->GetThreadContext()->GetTryCatchFrameAddr());
+                }
+            }
+#endif
             // Clone static exception object early in case finally block overwrites it
             exception = exception->CloneIfStaticExceptionObject(scriptContext);
             bool hasBailedOut = *(bool*)((char*)localsPtr + hasBailedOutOffset); // stack offsets are sp relative
@@ -640,6 +659,15 @@ namespace Js
 
         if (pExceptionObject)
         {
+#if ENABLE_NATIVE_CODEGEN
+            if (scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr)
+            {
+                if (pExceptionObject->GetExceptionContext() && pExceptionObject->GetExceptionContext()->ThrowingFunction())
+                {
+                    WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, scriptContext->GetThreadContext()->GetTryCatchFrameAddr());
+                }
+            }
+#endif
             // Clone static exception object early in case finally block overwrites it
             pExceptionObject = pExceptionObject->CloneIfStaticExceptionObject(scriptContext);
             bool hasBailedOut = *(bool*)((char*)framePtr + hasBailedOutOffset); // stack offsets are negative

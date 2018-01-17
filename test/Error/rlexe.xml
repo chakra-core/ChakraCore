@@ -32,6 +32,8 @@
     <default>
       <files>stack.js</files>
       <compile-flags>-JsBuiltIn- -off:inline </compile-flags>
+      <tags>Slow</tags>
+      <timeout>600</timeout>
     </default>
   </test>
   <test>
