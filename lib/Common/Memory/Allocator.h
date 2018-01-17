@@ -174,7 +174,7 @@ inline T* PostAllocationCallback(const type_info& objType, T *obj)
 
 // Free routine where we don't care about following C++ semantics (e.g. calling the destructor)
 #define AllocatorFree(alloc, freeFunc, obj, size) \
-        (alloc->*freeFunc)((void*)obj, size)
+        (alloc->*freeFunc)(obj, size)
 
 // default type allocator implementation
 template <typename TAllocator, typename T>

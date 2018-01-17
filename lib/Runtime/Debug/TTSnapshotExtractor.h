@@ -39,7 +39,7 @@ namespace TTD
         void ExtractTypeIfNeeded(Js::Type* jstype, ThreadContext* threadContext);
 
         //Ensure that a slot/scope has been extracted
-        void ExtractSlotArrayIfNeeded(Js::ScriptContext* ctx, Js::Var* scope);
+        void ExtractSlotArrayIfNeeded(Js::ScriptContext* ctx, Field(Js::Var)* scope);
         void ExtractScopeIfNeeded(Js::ScriptContext* ctx, Js::FrameDisplay* environment);
         void ExtractScriptFunctionEnvironmentIfNeeded(Js::ScriptFunction* function);
 

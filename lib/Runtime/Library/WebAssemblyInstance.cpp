@@ -183,7 +183,7 @@ void WebAssemblyInstance::CreateWasmFunctions(WebAssemblyModule * wasmModule, Sc
         Wasm::WasmFunctionInfo* wasmFuncInfo = wasmModule->GetWasmFunctionInfo(i);
         FunctionBody* body = wasmFuncInfo->GetBody();
         WasmScriptFunction* funcObj = ctx->GetLibrary()->CreateWasmScriptFunction(body);
-        funcObj->SetModuleEnvironment((Field(Var)*)env->GetStartPtr());
+        funcObj->SetModuleEnvironment(env->GetStartPtr());
         funcObj->SetSignature(body->GetAsmJsFunctionInfo()->GetWasmSignature());
         funcObj->SetEnvironment(frameDisplay);
 
@@ -440,7 +440,7 @@ void WebAssemblyInstance::InitialGlobals(WebAssemblyModule * wasmModule, ScriptC
             {
                 JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidGlobalRef);
             }
-            
+
             if (sourceGlobal->GetType() != global->GetType())
             {
                 JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidTypeConversion);

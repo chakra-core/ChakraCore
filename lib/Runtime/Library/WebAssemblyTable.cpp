@@ -11,9 +11,10 @@
 namespace Js
 {
 
-WebAssemblyTable::WebAssemblyTable(Var * values, uint32 currentLength, uint32 initialLength, uint32 maxLength, DynamicType * type) :
+WebAssemblyTable::WebAssemblyTable(
+        Field(Var) * values, uint32 currentLength, uint32 initialLength, uint32 maxLength, DynamicType * type) :
     DynamicObject(type),
-    m_values((Field(Var)*)values),
+    m_values(values),
     m_currentLength(currentLength),
     m_initialLength(initialLength),
     m_maxLength(maxLength)
@@ -229,7 +230,7 @@ WebAssemblyTable::Create(uint32 initial, uint32 maximum, ScriptContext * scriptC
     {
         values = RecyclerNewArrayZ(scriptContext->GetRecycler(), Field(Var), initial);
     }
-    return RecyclerNew(scriptContext->GetRecycler(), WebAssemblyTable, (Var*)values, initial, initial, maximum, scriptContext->GetLibrary()->GetWebAssemblyTableType());
+    return RecyclerNew(scriptContext->GetRecycler(), WebAssemblyTable, values, initial, initial, maximum, scriptContext->GetLibrary()->GetWebAssemblyTableType());
 }
 
 void

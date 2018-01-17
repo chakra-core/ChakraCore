@@ -7016,7 +7016,8 @@ Case0:
     }
 
     template<typename T>
-    void JavascriptArray::ArraySegmentSpliceHelper(JavascriptArray *pnewArr, SparseArraySegment<T> *seg, SparseArraySegment<T> **prev,
+    void JavascriptArray::ArraySegmentSpliceHelper(
+        JavascriptArray *pnewArr, SparseArraySegment<T> *seg, Field(SparseArraySegment<T>*) *prev,
                                                     uint32 start, uint32 deleteLen, Var* insertArgs, uint32 insertLen, Recycler *recycler)
     {
         // book keeping variables
@@ -7138,7 +7139,9 @@ Case0:
                 // All splice happens in one segment.
                 SparseArraySegmentBase *nextSeg = startSeg->next;
                 // Splice the segment first, which might OOM throw but the array would be intact.
-                JavascriptArray::ArraySegmentSpliceHelper(pnewArr, (SparseArraySegment<T>*)startSeg, (SparseArraySegment<T>**)prevSeg, start, deleteLen, insertArgs, insertLen, recycler);
+                JavascriptArray::ArraySegmentSpliceHelper(
+                    pnewArr, startSeg, SparseArraySegment<T>::AddressFrom(prevSeg),
+                    start, deleteLen, insertArgs, insertLen, recycler);
                 while (nextSeg)
                 {
                     // adjust next segments left
@@ -7476,15 +7479,24 @@ Case0:
                 bool isInlineSegment = JavascriptArray::IsInlineSegment(oldHead, pArr);
                 if (isIntArray)
                 {
-                    ArraySegmentSpliceHelper<int32>(newArr, SparseArraySegment<int32>::From(pArr->head), (SparseArraySegment<int32>**)&pArr->head, start, deleteLen, insertArgs, insertLen, recycler);
+                    ArraySegmentSpliceHelper<int32>(newArr,
+                        SparseArraySegment<int32>::From(pArr->head),
+                        SparseArraySegment<int32>::AddressFrom(&pArr->head),
+                        start, deleteLen, insertArgs, insertLen, recycler);
                 }
                 else if (isFloatArray)
                 {
-                    ArraySegmentSpliceHelper<double>(newArr, SparseArraySegment<double>::From(pArr->head), (SparseArraySegment<double>**)&pArr->head, start, deleteLen, insertArgs, insertLen, recycler);
+                    ArraySegmentSpliceHelper<double>(newArr,
+                        SparseArraySegment<double>::From(pArr->head),
+                        SparseArraySegment<double>::AddressFrom(&pArr->head),
+                        start, deleteLen, insertArgs, insertLen, recycler);
                 }
                 else
                 {
-                    ArraySegmentSpliceHelper<Var>(newArr, SparseArraySegment<Var>::From(pArr->head), (SparseArraySegment<Var>**)&pArr->head, start, deleteLen, insertArgs, insertLen, recycler);
+                    ArraySegmentSpliceHelper<Var>(newArr,
+                        SparseArraySegment<Var>::From(pArr->head),
+                        SparseArraySegment<Var>::AddressFrom(&pArr->head),
+                        start, deleteLen, insertArgs, insertLen, recycler);
                 }
 
                 if (isInlineSegment && oldHead != pArr->head)

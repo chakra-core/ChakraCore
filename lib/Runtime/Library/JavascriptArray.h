@@ -595,8 +595,9 @@ namespace Js
         static void ArraySpliceHelper(JavascriptArray* pNewArr, JavascriptArray* pArr, uint32 start, uint32 deleteLen,
                                                     Var* insertArgs, uint32 insertLen, ScriptContext *scriptContext);
         template<typename T>
-        static void ArraySegmentSpliceHelper(JavascriptArray *pnewArr, SparseArraySegment<T> *seg, SparseArraySegment<T> **prev, uint32 start, uint32 deleteLen,
-                                                    Var* insertArgs, uint32 insertLen, Recycler *recycler);
+        static void ArraySegmentSpliceHelper(
+            JavascriptArray *pnewArr, SparseArraySegment<T> *seg, Field(SparseArraySegment<T>*) *prev,
+            uint32 start, uint32 deleteLen, Var* insertArgs, uint32 insertLen, Recycler *recycler);
         template<typename T>
         static RecyclableObject* ObjectSpliceHelper(RecyclableObject* pObj, T len, T start, T deleteLen,
                                                     Var* insertArgs, uint32 insertLen, ScriptContext *scriptContext, RecyclableObject* pNewObj = nullptr);

@@ -733,7 +733,8 @@ namespace Js
         static void AddWeakMapElementInflate_TTD(Js::JavascriptWeakMap* map, Var key, Var value);
 
         Js::RecyclableObject* CreateExternalFunction_TTD(Js::Var fname);
-        Js::RecyclableObject* CreateBoundFunction_TTD(RecyclableObject* function, Var bThis, uint32 ct, Var* args);
+        Js::RecyclableObject* CreateBoundFunction_TTD(
+                RecyclableObject* function, Var bThis, uint32 ct, Field(Var)* args);
 
         Js::RecyclableObject* CreateProxy_TTD(RecyclableObject* handler, RecyclableObject* target);
         Js::RecyclableObject* CreateRevokeFunction_TTD(RecyclableObject* proxy);

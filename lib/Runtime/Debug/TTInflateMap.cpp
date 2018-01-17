@@ -191,7 +191,7 @@ namespace TTD
         return this->m_environmentMap.LookupKnownItem(envid);
     }
 
-    Js::Var* InflateMap::LookupSlotArray(TTD_PTR_ID slotid) const
+    Field(Js::Var)* InflateMap::LookupSlotArray(TTD_PTR_ID slotid) const
     {
         return this->m_slotArrayMap.LookupKnownItem(slotid);
     }
@@ -238,7 +238,7 @@ namespace TTD
         this->m_environmentPinSet->AddNew(value);
     }
 
-    void InflateMap::AddSlotArray(TTD_PTR_ID slotId, Js::Var* value)
+    void InflateMap::AddSlotArray(TTD_PTR_ID slotId, Field(Js::Var)* value)
     {
         this->m_slotArrayMap.AddItem(slotId, value);
         this->m_slotArrayPinSet->AddNew(value);

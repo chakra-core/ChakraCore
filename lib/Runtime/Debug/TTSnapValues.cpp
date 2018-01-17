@@ -556,12 +556,12 @@ namespace TTD
 
         //////////////////
 
-        Js::Var* InflateSlotArrayInfo(const SlotArrayInfo* slotInfo, InflateMap* inflator)
+        Field(Js::Var)* InflateSlotArrayInfo(const SlotArrayInfo* slotInfo, InflateMap* inflator)
         {
             Js::ScriptContext* ctx = inflator->LookupScriptContext(slotInfo->ScriptContextLogId);
             Field(Js::Var)* slotArray = RecyclerNewArray(ctx->GetRecycler(), Field(Js::Var), slotInfo->SlotCount + Js::ScopeSlots::FirstSlotIndex);
 
-            Js::ScopeSlots scopeSlots((Js::Var*)slotArray);
+            Js::ScopeSlots scopeSlots(slotArray);
             scopeSlots.SetCount(slotInfo->SlotCount);
 
             Js::Var undef = ctx->GetLibrary()->GetUndefined();
@@ -625,7 +625,7 @@ namespace TTD
                 }
             }
 
-            return (Js::Var*)slotArray;
+            return slotArray;
         }
 
         void EmitSlotArrayInfo(const SlotArrayInfo* slotInfo, FileWriter* writer, NSTokens::Separator separator)
@@ -782,7 +782,7 @@ namespace TTD
                 }
                 case Js::ScopeType::ScopeType_SlotArray:
                 {
-                    Js::Var* saval = inflator->LookupSlotArray(scp.IDValue);
+                    Field(Js::Var)* saval = inflator->LookupSlotArray(scp.IDValue);
                     environment->SetItem(i, saval);
                     break;
                 }

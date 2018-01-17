@@ -104,6 +104,11 @@ namespace Js
             return static_cast<SparseArraySegment*>(seg);
         }
 
+        static inline Field(SparseArraySegment*)* AddressFrom(Field(SparseArraySegmentBase*) *addr)
+        {
+            return reinterpret_cast<Field(SparseArraySegment*)*>(addr);
+        }
+
     private:
         template<bool isLeaf>
         static SparseArraySegment<T>* Allocate(Recycler* recycler, uint32 left, uint32 length, uint32 size, uint32 fillStart = 0);

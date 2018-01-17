@@ -4086,7 +4086,7 @@ namespace Js
         else
         {
             // The scope is defined by a slot array object so grab the function body out to get the function name.
-            ScopeSlots slotArray = ScopeSlots(reinterpret_cast<Var*>(instance));
+            ScopeSlots slotArray = ScopeSlots(reinterpret_cast<Field(Var)*>(instance));
 
             if(slotArray.IsDebuggerScopeSlotArray())
             {
