@@ -130,7 +130,7 @@ namespace Js
 
         static Var EntryEvalHelper(ScriptContext* scriptContext, RecyclableObject* function, Arguments& args);
         static Var VEval(JavascriptLibrary* library, FrameDisplay* environment, ModuleID moduleID, bool isStrictMode, bool isIndirect,
-            Arguments& args, bool isLibraryCode, bool registerDocument, uint32 additionalGrfscr);
+            Arguments& args, bool isLibraryCode, bool registerDocument, uint32 additionalGrfscr, ScriptContext* debugEvalScriptContext = nullptr);
 
         virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId) override;
         virtual BOOL HasOwnProperty(PropertyId propertyId) override;
