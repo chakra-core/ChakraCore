@@ -1914,7 +1914,7 @@ CommonNumber:
             {
                 if (value && !WithScopeObject::Is(object) && info->GetPropertyString())
                 {
-                    PropertyId propertyId = info->GetPropertyString()->GetPropertyRecord()->GetPropertyId();
+                    PropertyId propertyId = info->GetPropertyString()->GetPropertyId();
                     CacheOperators::CachePropertyRead(instance, object, false, propertyId, false, info, requestContext);
                 }
                 return JavascriptConversion::PropertyQueryFlagsToBoolean(result);
@@ -1928,7 +1928,7 @@ CommonNumber:
         if (!PHASE_OFF1(MissingPropertyCachePhase) && info->GetPropertyString() && DynamicObject::Is(instance) && ((DynamicObject*)instance)->GetDynamicType()->GetTypeHandler()->IsPathTypeHandler())
         {
             PropertyValueInfo::Set(info, requestContext->GetLibrary()->GetMissingPropertyHolder(), 0);
-            CacheOperators::CachePropertyRead(instance, requestContext->GetLibrary()->GetMissingPropertyHolder(), false, info->GetPropertyString()->GetPropertyRecord()->GetPropertyId(), true, info, requestContext);
+            CacheOperators::CachePropertyRead(instance, requestContext->GetLibrary()->GetMissingPropertyHolder(), false, info->GetPropertyString()->GetPropertyId(), true, info, requestContext);
         }
 
         *value = requestContext->GetMissingPropertyResult();
@@ -2302,7 +2302,7 @@ CommonNumber:
                     {
                         if (!WithScopeObject::Is(receiver) && info->GetPropertyString())
                         {
-                            CacheOperators::CachePropertyWrite(RecyclableObject::FromVar(receiver), false, object->GetType(), info->GetPropertyString()->GetPropertyRecord()->GetPropertyId(), info, requestContext);
+                            CacheOperators::CachePropertyWrite(RecyclableObject::FromVar(receiver), false, object->GetType(), info->GetPropertyString()->GetPropertyId(), info, requestContext);
                         }
                         receiver = (RecyclableObject::FromVar(receiver))->GetThisObjectOrUnWrap();
                         RecyclableObject* func = RecyclableObject::FromVar(setterValueOrProxy);
@@ -2358,12 +2358,12 @@ CommonNumber:
             {
                 if (!JavascriptProxy::Is(receiver) && info->GetPropertyString() && info->GetFlags() != InlineCacheSetterFlag && !object->CanHaveInterceptors())
                 {
-                    CacheOperators::CachePropertyWrite(RecyclableObject::FromVar(receiver), false, typeWithoutProperty, info->GetPropertyString()->GetPropertyRecord()->GetPropertyId(), info, requestContext);
+                    CacheOperators::CachePropertyWrite(RecyclableObject::FromVar(receiver), false, typeWithoutProperty, info->GetPropertyString()->GetPropertyId(), info, requestContext);
 
                     if (info->GetInstance() == receiverObject)
                     {
                         PropertyValueInfo::SetCacheInfo(info, info->GetPropertyString(), info->GetPropertyString()->GetLdElemInlineCache(), info->AllowResizingPolymorphicInlineCache());
-                        CacheOperators::CachePropertyRead(object, receiverObject, false, info->GetPropertyString()->GetPropertyRecord()->GetPropertyId(), false, info, requestContext);
+                        CacheOperators::CachePropertyRead(object, receiverObject, false, info->GetPropertyString()->GetPropertyId(), false, info, requestContext);
                     }
                 }
                 return TRUE;
@@ -3778,7 +3778,8 @@ CommonNumber:
                     LiteralStringWithPropertyStringPtr * strWithPtr = (LiteralStringWithPropertyStringPtr *)temp;
                     if (!strWithPtr->HasPropertyRecord())
                     {
-                        strWithPtr->GetPropertyRecord(); // lookup-cache propertyRecord
+                        PropertyRecord const * propertyRecord;
+                        strWithPtr->GetPropertyRecord(&propertyRecord); // lookup-cache propertyRecord
                     }
                     else
                     {
@@ -3798,7 +3799,8 @@ CommonNumber:
                             JavascriptString::FromVar(index)->GetSz());
                     }
 
-                    PropertyRecord const * propertyRecord = propertyString->GetPropertyRecord();
+                    PropertyRecord const * propertyRecord;
+                    propertyString->GetPropertyRecord(&propertyRecord);
                     Var value;
 
                     if (propertyRecord->IsNumeric())
@@ -4430,13 +4432,13 @@ CommonNumber:
             LiteralStringWithPropertyStringPtr * strWithPtr = LiteralStringWithPropertyStringPtr::TryFromVar(index);
             if (strWithPtr != nullptr)
             {
-                propertyString = strWithPtr->GetPropertyString(); // do not force create the PropertyString,
-                                                                  // if it wasn't there, it won't be efficient for now.
-                propertyRecord = strWithPtr->GetPropertyRecord(true /* dontLookupFromDictionary */);
+                propertyString = strWithPtr->GetPropertyString();   // do not force create the PropertyString,
+                                                                    // if it wasn't there, it won't be efficient for now.
+                strWithPtr->GetPropertyRecord(&propertyRecord, true /* dontLookupFromDictionary */);
                 if (propertyRecord == nullptr)
                 {
-                    propertyRecord = strWithPtr->GetPropertyRecord(); // lookup-cache propertyRecord
-                                                                      // later this call, there will be a lookup anyways!
+                    strWithPtr->GetPropertyRecord(&propertyRecord); // lookup-cache propertyRecord
+                                                                    // later this call, there will be a lookup anyways!
                 }
                 else if (propertyString == nullptr)
                 {
@@ -4448,7 +4450,7 @@ CommonNumber:
         }
         else
         {
-            propertyRecord = propertyString->GetPropertyRecord();
+            propertyString->GetPropertyRecord(&propertyRecord);
         }
 
         if (propertyRecord != nullptr)
@@ -10535,7 +10537,9 @@ CommonNumber:
 
     BOOL JavascriptOperators::CheckPrototypesForAccessorOrNonWritableProperty(RecyclableObject* instance, JavascriptString* propertyNameString, Var* setterValue, DescriptorFlags* flags, PropertyValueInfo* info, ScriptContext* scriptContext)
     {
-        PropertyId propertyId = propertyNameString->GetPropertyRecord()->GetPropertyId();
+        Js::PropertyRecord const * localPropertyRecord;
+        propertyNameString->GetPropertyRecord(&localPropertyRecord);
+        PropertyId propertyId = localPropertyRecord->GetPropertyId();
         return CheckPrototypesForAccessorOrNonWritableProperty(instance, propertyId, setterValue, flags, info, scriptContext);
     }
 
