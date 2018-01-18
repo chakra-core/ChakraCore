@@ -674,6 +674,18 @@ namespace Js
         static BOOL PropertyReferenceWalk_Impl(Var instance, RecyclableObject** propertyObject, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext);
         static Var TypeofFld_Internal(Var instance, const bool isRoot, PropertyId propertyId, ScriptContext* scriptContext);
 
+        static bool SetAccessorOrNonWritableProperty(
+            Var receiver,
+            RecyclableObject* object,
+            PropertyId propertyId,
+            Var newValue,
+            PropertyValueInfo * info,
+            ScriptContext* requestContext,
+            PropertyOperationFlags propertyOperationFlags,
+            bool isRoot,
+            bool allowUndecInConsoleScope,
+            BOOL *result);
+
         template <bool unscopables>
         static BOOL SetProperty_Internal(Var instance, RecyclableObject* object, const bool isRoot, PropertyId propertyId, Var newValue, PropertyValueInfo * info, ScriptContext* requestContext, PropertyOperationFlags flags);
 
