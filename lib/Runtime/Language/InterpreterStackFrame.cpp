@@ -2097,14 +2097,10 @@ namespace Js
         case AsmJsRetType::Uint32x4:
         case AsmJsRetType::Uint16x8:
         case AsmJsRetType::Uint8x16:
-            if (Wasm::Simd::IsEnabled())
-            {
-                *(AsmJsSIMDValue*)retDst = asmJsReturn.simd;
-                break;
-            }
+            Assert(Wasm::Simd::IsEnabled());
+            *(AsmJsSIMDValue*)retDst = asmJsReturn.simd;
+            break;
 #endif
-
-            Assert(UNREACHED);
         // double return
         case AsmJsRetType::Double:
             *(double*)retDst = asmJsReturn.d;
@@ -2159,6 +2155,7 @@ namespace Js
             entryPoint = (void*)(AsmJsInterpreterInt64EP)Js::InterpreterStackFrame::AsmJsInterpreter < int64 > ;
             break;
         }
+#ifdef ENABLE_WASM_SIMD
         case Js::AsmJsRetType::Int32x4:
         case Js::AsmJsRetType::Bool32x4:
         case Js::AsmJsRetType::Bool16x8:
@@ -2174,6 +2171,7 @@ namespace Js
             entryPoint = (void*)Js::InterpreterStackFrame::AsmJsInterpreterSimdJs;
             break;
         }
+#endif
         default:
             Assume(UNREACHED);
         }
@@ -3113,12 +3111,14 @@ namespace Js
                 ++doubleArg;
                 argAddress += sizeof(double);
             }
+#ifdef ENABLE_WASM_SIMD
             else if (Wasm::Simd::IsEnabled() && info->GetArgType(i).isSIMD())
             {
                 *simdArg = *(AsmJsSIMDValue*)argAddress;
                 ++simdArg;
                 argAddress += sizeof(AsmJsSIMDValue);
             }
+#endif
             else
             {
                 AssertMsg(UNREACHED, "Invalid function arg type.");

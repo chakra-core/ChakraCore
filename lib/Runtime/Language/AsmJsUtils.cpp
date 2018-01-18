@@ -390,6 +390,7 @@ namespace Js
             returnValue = JavascriptNumber::NewWithCheck(floatRetVal, scriptContext);
             break;
         }
+#ifdef ENABLE_WASM_SIMD
         case AsmJsRetType::Bool32x4:
         case AsmJsRetType::Bool16x8:
         case AsmJsRetType::Bool8x16:
@@ -404,6 +405,7 @@ namespace Js
         case AsmJsRetType::Uint8x16:
             // Todo:: support test return object (like int64) for wasm.simd
             JavascriptError::ThrowTypeError(scriptContext, WASMERR_InvalidTypeConversion);
+#endif
         default:
             Assume(UNREACHED);
             JavascriptError::ThrowTypeError(scriptContext, WASMERR_InvalidTypeConversion);
@@ -515,6 +517,7 @@ namespace Js
             returnValue = JavascriptNumber::NewWithCheck((double)fval, func->GetScriptContext());
             break;
         }
+#ifdef ENABLE_WASM_SIMD
         case AsmJsRetType::Bool32x4:
         case AsmJsRetType::Bool16x8:
         case AsmJsRetType::Bool8x16:
@@ -542,6 +545,7 @@ namespace Js
             // Todo:: support test return object (like int64) for wasm.simd
             JavascriptError::ThrowTypeError(func->GetScriptContext(), WASMERR_InvalidTypeConversion);
             break;
+#endif
         default:
             Assume(UNREACHED);
             JavascriptError::ThrowTypeError(func->GetScriptContext(), WASMERR_InvalidTypeConversion);

@@ -302,7 +302,8 @@ namespace Js
         case AsmJS_ToInt32: which_   = Signed; break;
         case AsmJS_ToNumber: which_  = Double; break;
         case AsmJS_FRound: which_    = Float; break;
-        case AsmJS_Int32x4: which_   = Int32x4; break;
+#ifdef ENABLE_WASM_SIMD
+        case AsmJS_Int32x4: which_ = Int32x4; break;
         case AsmJS_Bool32x4: which_ = Bool32x4; break;
         case AsmJS_Bool16x8: which_ = Bool16x8; break;
         case AsmJS_Bool8x16: which_ = Bool8x16; break;
@@ -313,6 +314,7 @@ namespace Js
         case AsmJS_Uint32x4: which_ = Uint32x4; break;
         case AsmJS_Uint16x8: which_ = Uint16x8; break;
         case AsmJS_Uint8x16: which_ = Uint8x16; break;
+#endif
         }
     }
 

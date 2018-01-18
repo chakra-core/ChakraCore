@@ -5,6 +5,23 @@
 
 #include "WasmReaderPch.h"
 
+
+namespace Wasm
+{
+namespace Simd
+{
+bool IsEnabled()
+{
+#ifdef ENABLE_WASM_SIMD
+    return CONFIG_FLAG(WasmSimd);
+#else
+    return false;
+#endif
+}
+
+}
+}
+
 #ifdef ENABLE_WASM
 #include "WasmLimits.h"
 #if ENABLE_DEBUG_CONFIG_OPTIONS
@@ -13,7 +30,6 @@
 
 namespace Wasm
 {
-
 namespace Simd
 {
 void EnsureSimdIsEnabled()
@@ -22,14 +38,6 @@ void EnsureSimdIsEnabled()
     {
         throw WasmCompilationException(_u("Wasm.Simd support is not enabled"));
     }
-}
-bool IsEnabled()
-{
-#ifdef ENABLE_WASM_SIMD
-    return CONFIG_FLAG(WasmSimd);
-#else
-    return false;
-#endif
 }
 }
 
@@ -1450,5 +1458,4 @@ void WasmBinaryReader::CheckBytesLeft(uint32 bytesNeeded)
 }
 
 } // namespace Wasm
-
 #endif // ENABLE_WASM

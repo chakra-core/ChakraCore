@@ -195,6 +195,7 @@ EXDEF3    ( CUSTOM     , InvalidOpCode     , OP_Empty                , Empty    
   DEF3_WMS( CUSTOM     , Fround_Int        , OP_SetFroundInt         , Float1Int1    )
   DEF3_WMS( CUSTOM     , AsmJsLoopBodyStart,OP_AsmJsLoopBody                 , AsmUnsigned1  )
 
+#ifdef ENABLE_WASM_SIMD
   DEF3_WMS( CUSTOM                              , Simd128_Ld_F4                 , OP_Simd128_LdF4                   , Float32x4_2            )
   DEF3_WMS( CUSTOM                              , Simd128_Ld_I4                 , OP_Simd128_LdI4                   , Int32x4_2              )
   //DEF3_WMS( CUSTOM                              , Simd128_Ld_D2                 , OP_Simd128_LdD2                   , Float64x2_2            )
@@ -314,6 +315,7 @@ EXDEF3    ( CUSTOM     , InvalidOpCode     , OP_Empty                , Empty    
 
   DEF3_WMS( CUSTOM                              , Simd128_ReplaceLane_I4        , OP_Simd128_ReplaceLaneI4          , Int32x4_2Int2)
   DEF3_WMS( CUSTOM                              , Simd128_ReplaceLane_F4        , OP_Simd128_ReplaceLaneF4          , Float32x4_2Int1Float1)
+#endif
 
 // help the caller to undefine all the macros
 #undef DEF2

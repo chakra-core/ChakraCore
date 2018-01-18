@@ -1549,7 +1549,7 @@ IRBuilderAsmJs::BuildWasmMemAccess(Js::OpCodeAsmJs newOpcode, uint32 offset, uin
     }
     AddInstr(instr, offset);
 
-#if DBG
+#if DBG && defined(ENABLE_WASM)
     if (newOpcode == Js::OpCodeAsmJs::StArrWasm && PHASE_TRACE(Js::WasmMemWritesPhase, m_func))
     {
         IR::Opnd* prevArg = nullptr;
@@ -1727,6 +1727,7 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
         case Js::AsmJsRetType::Which::Void:
             break;
 
+#ifdef ENABLE_WASM_SIMD
         case Js::AsmJsRetType::Which::Float32x4:
             dstRegSlot = GetRegSlotFromSimd128Reg(ret);
             dstOpnd = BuildDstOpnd(dstRegSlot, TySimd128F4);
@@ -1771,6 +1772,7 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
             dstRegSlot = GetRegSlotFromSimd128Reg(ret);
             dstOpnd = BuildDstOpnd(dstRegSlot, TySimd128U16);
             break;
+#endif
         default:
             Assume(UNREACHED);
         }

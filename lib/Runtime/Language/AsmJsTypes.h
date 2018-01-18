@@ -295,7 +295,6 @@ namespace Js
         inline bool isInt64()const {return which_ == Int64; }
         inline bool isDouble()const {return which_ == Double; }
         inline bool isFloat()const {return which_ == Float; }
-#ifdef ENABLE_WASM_SIMD
         inline bool isInt32x4()const    { return which_ == Int32x4; }
         inline bool isBool32x4()const   { return which_ == Bool32x4; }
         inline bool isBool16x8()const   { return which_ == Bool16x8; }
@@ -311,7 +310,6 @@ namespace Js
                                                  isUint32x4() || isUint16x8() || isUint8x16() ||
                                                  isBool32x4() || isBool16x8() || isBool8x16() ||
                                                  isFloat32x4() || isFloat64x2() ; }
-#endif
         bool operator==( AsmJsVarType rhs ) const;
         bool operator!=( AsmJsVarType rhs ) const;
     };

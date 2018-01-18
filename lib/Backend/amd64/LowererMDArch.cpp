@@ -2075,6 +2075,7 @@ LowererMDArch::LowerExitInstr(IR::ExitInstr * exitInstr)
         case Js::AsmJsRetType::Float:
             retReg = IR::RegOpnd::New(nullptr, this->GetRegReturnAsmJs(TyMachDouble), TyMachDouble, this->m_func);
             break;
+#ifdef ENABLE_WASM_SIMD
         case Js::AsmJsRetType::Int32x4:
             retReg = IR::RegOpnd::New(nullptr, this->GetRegReturnAsmJs(TySimd128I4), TySimd128I4, this->m_func);
             break;
@@ -2111,6 +2112,7 @@ LowererMDArch::LowerExitInstr(IR::ExitInstr * exitInstr)
         case Js::AsmJsRetType::Int64x2:
             retReg = IR::RegOpnd::New(nullptr, this->GetRegReturnAsmJs(TySimd128I2), TySimd128I2, this->m_func);
             break;
+#endif
         case Js::AsmJsRetType::Int64:
         case Js::AsmJsRetType::Signed:
             retReg = IR::RegOpnd::New(nullptr, this->GetRegReturn(TyMachReg), TyMachReg, this->m_func);
