@@ -21001,10 +21001,6 @@ undefined
 10
 [object DataView]
 Start same thread different engine test on file dataview.js
-property of global: print
-
-property of global: read
-property of global: readbuffer
 property of global: getFuncs
 sub object 0 in getFuncs is getInt8
 sub object 1 in getFuncs is getUint8
@@ -22077,10 +22073,6 @@ undefined
 30
 undefined
 Start same thread different engine test on file int8array.js
-property of global: print
-undefined
-property of global: read
-property of global: readbuffer
 property of global: test1
 sub object 0 in test1 is 0
 sub object 1 in test1 is 1
@@ -23179,10 +23171,6 @@ undefined
 30
 undefined
 Start same thread different engine test on file uint8array.js
-property of global: print
-undefined
-property of global: read
-property of global: readbuffer
 property of global: test1
 sub object 0 in test1 is 0
 sub object 1 in test1 is 128
@@ -24173,10 +24161,6 @@ undefined
 30
 undefined
 Start same thread different engine test on file int16array.js
-property of global: print
-undefined
-property of global: read
-property of global: readbuffer
 property of global: test1
 sub object 0 in test1 is 0
 sub object 1 in test1 is -32768
@@ -25139,10 +25123,6 @@ undefined
 30
 undefined
 Start same thread different engine test on file uint16array.js
-property of global: print
-undefined
-property of global: read
-property of global: readbuffer
 property of global: test1
 sub object 0 in test1 is 0
 sub object 1 in test1 is 32768
@@ -26091,10 +26071,6 @@ foo == bar
 byteLength = 28
 
 Start same thread different engine test on file int32array.js
-property of global: print
-undefined
-property of global: read
-property of global: readbuffer
 property of global: test1
 sub object 0 in test1 is 0
 sub object 1 in test1 is -2147483648
@@ -26996,10 +26972,6 @@ undefined
 30
 undefined
 Start same thread different engine test on file uint32array.js
-property of global: print
-undefined
-property of global: read
-property of global: readbuffer
 property of global: test1
 sub object 0 in test1 is 0
 sub object 1 in test1 is 2147483648
@@ -27897,10 +27869,6 @@ undefined
 30
 undefined
 Start same thread different engine test on file float32array.js
-property of global: print
-undefined
-property of global: read
-property of global: readbuffer
 property of global: test1
 sub object 0 in test1 is 0
 sub object 1 in test1 is 0.5400000214576721
@@ -28766,10 +28734,6 @@ undefined
 30
 undefined
 Start same thread different engine test on file float64array.js
-property of global: print
-undefined
-property of global: read
-property of global: readbuffer
 property of global: test1
 sub object 0 in test1 is 0
 sub object 1 in test1 is -0.65
