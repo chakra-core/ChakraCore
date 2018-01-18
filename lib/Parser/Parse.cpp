@@ -3787,6 +3787,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                             ReferenceSpecialName(wellKnownPropertyPids._newTarget);
                             ReferenceSpecialName(wellKnownPropertyPids._super);
                             ReferenceSpecialName(wellKnownPropertyPids._superConstructor);
+                            ReferenceSpecialName(wellKnownPropertyPids.arguments);
                         }
 
                         pnode->sxCall.callOfConstants = callOfConstants;
@@ -3809,6 +3810,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                             ReferenceSpecialName(wellKnownPropertyPids._newTarget);
                             ReferenceSpecialName(wellKnownPropertyPids._super);
                             ReferenceSpecialName(wellKnownPropertyPids._superConstructor);
+                            ReferenceSpecialName(wellKnownPropertyPids.arguments);
                         }
                         pToken->tk = tkNone; // This is no longer an identifier
                     }
@@ -5116,7 +5118,7 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     // binding of "arguments.  To ensure the arguments object of the enclosing
     // non-lambda function is loaded propagate the UsesArguments flag up to
     // the parent function
-    if (fLambda && pnodeFnc->sxFnc.UsesArguments())
+    if (fLambda && (pnodeFnc->sxFnc.UsesArguments() || pnodeFnc->sxFnc.CallsEval()))
     {
         ParseNodePtr pnodeFncParent = GetCurrentFunctionNode();
 
