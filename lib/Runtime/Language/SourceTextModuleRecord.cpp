@@ -751,10 +751,17 @@ namespace Js
         if (requestedModuleList != nullptr)
         {
             EnsureChildModuleSet(scriptContext);
+            ArenaAllocator* allocator = scriptContext->GeneralAllocator();
+            SList<LPCOLESTR> * moduleRecords = Anew(allocator, SList<LPCOLESTR>, allocator);
+
             requestedModuleList->MapUntil([&](IdentPtr specifier) {
+                LPCOLESTR moduleName = specifier->Psz();
+                return !moduleRecords->Prepend(moduleName);
+            });
+
+            moduleRecords->MapUntil([&](LPCOLESTR moduleName) {
                 ModuleRecordBase* moduleRecordBase = nullptr;
                 SourceTextModuleRecord* moduleRecord = nullptr;
-                LPCOLESTR moduleName = specifier->Psz();
                 bool itemFound = childrenModuleSet->TryGetValue(moduleName, &moduleRecord);
                 if (!itemFound)
                 {
@@ -779,6 +786,8 @@ namespace Js
                 }
                 return false;
             });
+            moduleRecords->Clear();
+
             if (FAILED(hr))
             {
                 if (this->errorObject == nullptr)
