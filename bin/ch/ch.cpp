@@ -146,7 +146,7 @@ void __stdcall PrintChakraCoreVersion()
                 // Doesn't matter if you are on 32 bit or 64 bit,
                 // DWORD is always 32 bits, so first two revision numbers
                 // come from dwFileVersionMS, last two come from dwFileVersionLS
-                wprintf(_u("%s version %d.%d.%d.%d\n"),
+                wprintf(_u("%s version %u.%u.%u.%u\n"),
                     chakraDllName,
                     (verInfo->dwFileVersionMS >> 16) & 0xffff,
                     (verInfo->dwFileVersionMS >> 0) & 0xffff,
