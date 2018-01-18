@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "readline": "function <large string>",
       "Run": "function <large string>"
     },
     "locals": {
@@ -13,6 +14,7 @@
       "a": "number 1"
     },
     "globals": {
+      "readline": "function <large string>",
       "Run": "function <large string>"
     }
   },

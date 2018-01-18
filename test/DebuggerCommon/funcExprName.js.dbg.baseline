@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "outer": "function <large string>"
     },
@@ -23,12 +24,14 @@
       }
     },
     "globals": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "outer": "function <large string>"
     }
   },
   {
     "this": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "outer": "function <large string>"
     },
@@ -59,12 +62,14 @@
       }
     },
     "globals": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "outer": "function <large string>"
     }
   },
   {
     "this": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "outer": "function <large string>"
     },
@@ -79,12 +84,14 @@
       "a": "boolean false"
     },
     "globals": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "outer": "function <large string>"
     }
   },
   {
     "this": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "outer": "function <large string>"
     },
@@ -107,12 +114,14 @@
       }
     },
     "globals": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "outer": "function <large string>"
     }
   },
   {
     "this": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "outer": "function <large string>"
     },
@@ -135,6 +144,7 @@
       }
     },
     "globals": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "outer": "function <large string>"
     }

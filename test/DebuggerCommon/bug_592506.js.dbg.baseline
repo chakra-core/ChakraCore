@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "readline": "function <large string>",
       "test": "function <large string>",
       "bar": "function <large string>"
     },
@@ -14,6 +15,7 @@
       "k": "undefined undefined"
     },
     "globals": {
+      "readline": "function <large string>",
       "test": "function <large string>",
       "bar": "function <large string>"
     }
@@ -25,6 +27,7 @@
   },
   {
     "this": {
+      "readline": "function <large string>",
       "test": "function <large string>",
       "bar": "function <large string>",
       "ttt1": "number 31"
@@ -39,6 +42,7 @@
       "k": "undefined undefined"
     },
     "globals": {
+      "readline": "function <large string>",
       "test": "function <large string>",
       "bar": "function <large string>",
       "ttt1": "number 31"

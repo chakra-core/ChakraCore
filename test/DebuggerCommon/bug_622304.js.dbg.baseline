@@ -6,6 +6,7 @@
   },
   {
     "this": {
+      "readline": "function <large string>",
       "foo": "function <large string>"
     },
     "arguments": {
@@ -19,6 +20,7 @@
       "x": "number 10"
     },
     "globals": {
+      "readline": "function <large string>",
       "foo": "function <large string>"
     }
   }

@@ -28,6 +28,7 @@
       "nothrow": "undefined undefined"
     },
     "globals": {
+      "readline": "function <large string>",
       "test": "function <large string>"
     }
   },
@@ -65,6 +66,7 @@
       }
     },
     "globals": {
+      "readline": "function <large string>",
       "test": "function <large string>"
     }
   }

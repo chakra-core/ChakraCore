@@ -2,6 +2,7 @@ WScript
 print
 read
 readbuffer
+readline
 console
 10
 20
@@ -10,5 +11,6 @@ WScript
 print
 read
 readbuffer
+readline
 console
 a

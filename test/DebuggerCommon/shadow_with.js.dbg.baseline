@@ -1,9 +1,17 @@
 [
   {
     "this": {
+      "readline": "function <large string>",
       "a": "number 1"
     },
     "locals": {
+      "readline": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "a": "number 1"
     },
     "globals": {}

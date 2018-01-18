@@ -36,6 +36,14 @@
         }
       }
     },
-    "globals": {}
+    "globals": {
+      "readline": {
+        "#__proto__": "function function() {\n    [native code]\n}",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      }
+    }
   }
 ]

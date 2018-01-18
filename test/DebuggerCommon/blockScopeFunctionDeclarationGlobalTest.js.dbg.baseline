@@ -2,18 +2,21 @@
   {
     "this": "Object {...}",
     "locals": {
+      "readline": "function function readline() { [native code] }",
       "f": "undefined undefined"
     }
   },
   {
     "this": "Object {...}",
     "locals": {
-      "f": "function function f() { }"
+      "f": "function function f() { }",
+      "readline": "function function readline() { [native code] }"
     }
   },
   {
     "this": "Object {...}",
     "locals": {
+      "readline": "function function readline() { [native code] }",
       "f": "function function f() { }"
     }
   }

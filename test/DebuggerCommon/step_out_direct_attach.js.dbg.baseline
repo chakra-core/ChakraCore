@@ -17,6 +17,7 @@
   },
   {
     "this": {
+      "readline": "function <large string>",
       "Run": "function <large string>",
       "bar": "function <large string>"
     },
@@ -37,6 +38,7 @@
       }
     },
     "globals": {
+      "readline": "function <large string>",
       "Run": "function <large string>",
       "bar": "function <large string>"
     }
@@ -53,6 +55,7 @@
   },
   {
     "this": {
+      "readline": "function <large string>",
       "Run": "function <large string>",
       "bar": "function <large string>"
     },
@@ -80,6 +83,7 @@
       }
     },
     "globals": {
+      "readline": "function <large string>",
       "Run": "function <large string>",
       "bar": "function <large string>"
     }
@@ -102,6 +106,7 @@
   },
   {
     "this": {
+      "readline": "function <large string>",
       "Run": "function <large string>",
       "bar": "function <large string>"
     },
@@ -122,6 +127,7 @@
       }
     },
     "globals": {
+      "readline": "function <large string>",
       "Run": "function <large string>",
       "bar": "function <large string>"
     }
@@ -138,6 +144,7 @@
   },
   {
     "this": {
+      "readline": "function <large string>",
       "Run": "function <large string>",
       "bar": "function <large string>"
     },
@@ -165,6 +172,7 @@
       }
     },
     "globals": {
+      "readline": "function <large string>",
       "Run": "function <large string>",
       "bar": "function <large string>"
     }

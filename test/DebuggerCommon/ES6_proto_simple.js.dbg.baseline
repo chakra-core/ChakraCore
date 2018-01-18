@@ -1,6 +1,13 @@
 [
   {
     "this": {
+      "readline": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "a": {
         "#__proto__": "Object {...}",
         "x": "number 2"
@@ -11,6 +18,28 @@
       }
     },
     "locals": {
+      "readline": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "length": "number 0",
+          "name": "string ",
+          "apply": "function <large string>",
+          "bind": "function <large string>",
+          "call": "function <large string>",
+          "toString": "function <large string>",
+          "Symbol.hasInstance": "function <large string>",
+          "caller": "object null",
+          "arguments": "object null"
+        },
+        "prototype": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>"
+        },
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "a": {
         "#__proto__": {
           "constructor": "function <large string>",

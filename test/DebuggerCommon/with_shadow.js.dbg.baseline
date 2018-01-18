@@ -78,6 +78,7 @@
       "foo": "function <large string>"
     },
     "globals": {
+      "readline": "function function readline() { [native code] }",
       "f1": "function <large string>"
     }
   }

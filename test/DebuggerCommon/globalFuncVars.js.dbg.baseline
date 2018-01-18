@@ -1,10 +1,11 @@
 [
   {
     "this": {
-      "foo": "function <large string>",
-      "bar": "function <large string>",
+      "readline": "function <large string>",
       "obj": "undefined undefined",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "foo": "function <large string>",
+      "bar": "function <large string>"
     },
     "scopes0": {
       "arguments": "Object {...}",
@@ -15,10 +16,11 @@
       "c1": "undefined undefined"
     },
     "globals": {
-      "foo": "function <large string>",
-      "bar": "function <large string>",
+      "readline": "function <large string>",
       "obj": "undefined undefined",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "foo": "function <large string>",
+      "bar": "function <large string>"
     }
   },
   {
@@ -50,10 +52,11 @@
   },
   {
     "this": {
-      "foo": "function <large string>",
-      "bar": "function <large string>",
+      "readline": "function <large string>",
       "obj": "undefined undefined",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "foo": "function <large string>",
+      "bar": "function <large string>"
     },
     "locals": {
       "ex1": {
@@ -73,10 +76,11 @@
       "c1": "Array [1]"
     },
     "globals": {
-      "foo": "function <large string>",
-      "bar": "function <large string>",
+      "readline": "function <large string>",
       "obj": "undefined undefined",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "foo": "function <large string>",
+      "bar": "function <large string>"
     }
   },
   {
@@ -91,12 +95,22 @@
   },
   {
     "this": {
-      "foo": "function <large string>",
-      "bar": "function <large string>",
+      "readline": "function <large string>",
       "obj": "undefined undefined",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "foo": "function <large string>",
+      "bar": "function <large string>"
     },
     "locals": {
+      "readline": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "obj": "undefined undefined",
+      "c": "undefined undefined",
       "foo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -112,18 +126,17 @@
         "caller": "object null",
         "arguments": "object null",
         "length": "number 0"
-      },
-      "obj": "undefined undefined",
-      "c": "undefined undefined"
+      }
     },
     "globals": {}
   },
   {
     "this": {
-      "foo": "function <large string>",
-      "bar": "function <large string>",
+      "readline": "function <large string>",
       "obj": "undefined undefined",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "foo": "function <large string>",
+      "bar": "function <large string>"
     },
     "locals": {
       "ex2": {
@@ -133,6 +146,15 @@
         "number": "number -2146823279",
         "stack": "string <large string>"
       },
+      "readline": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "obj": "undefined undefined",
+      "c": "undefined undefined",
       "foo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -148,42 +170,48 @@
         "caller": "object null",
         "arguments": "object null",
         "length": "number 0"
-      },
-      "obj": "undefined undefined",
-      "c": "undefined undefined"
+      }
     },
     "globals": {}
   },
   {
     "this": {
-      "foo": "function <large string>",
-      "bar": "function <large string>",
+      "readline": "function <large string>",
       "obj": "Object {...}",
-      "c": "number 10"
+      "c": "number 10",
+      "foo": "function <large string>",
+      "bar": "function <large string>"
     },
     "locals": {
-      "foo": {
+      "readline": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
-        "name": "string foo",
+        "name": "string readline",
         "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
-      },
-      "bar": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string bar",
-        "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
+        "arguments": "object null"
       },
       "obj": {
         "#__proto__": "Object {...}",
         "x": "number 10",
         "y": "Array [11,22]"
       },
-      "c": "number 10"
+      "c": "number 10",
+      "foo": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "bar": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string bar",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      }
     },
     "globals": {}
   },

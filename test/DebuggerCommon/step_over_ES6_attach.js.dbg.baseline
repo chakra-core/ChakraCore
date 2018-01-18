@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "baz": "function <large string>",
@@ -16,6 +17,7 @@
       "x": "number 2"
     },
     "globals": {
+      "readline": "function <large string>",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "baz": "function <large string>",

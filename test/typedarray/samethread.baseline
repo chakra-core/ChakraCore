@@ -21005,6 +21005,7 @@ property of global: print
 
 property of global: read
 property of global: readbuffer
+property of global: readline
 property of global: getFuncs
 sub object 0 in getFuncs is getInt8
 sub object 1 in getFuncs is getUint8

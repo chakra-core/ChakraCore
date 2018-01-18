@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "readline": "function <large string>",
       "detachBasicTest": "function <large string>"
     },
     "arguments": {
@@ -13,6 +14,7 @@
       "a": "number 0"
     },
     "globals": {
+      "readline": "function <large string>",
       "detachBasicTest": "function <large string>"
     }
   }

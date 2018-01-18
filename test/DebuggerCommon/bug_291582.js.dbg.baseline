@@ -2,6 +2,7 @@
   {
     "this": "Object {...}",
     "locals": {
+      "readline": "function <large string>",
       "a": "number 1",
       "x": "undefined undefined"
     }

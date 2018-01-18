@@ -23,6 +23,13 @@
   },
   {
     "this": {
+      "readline": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "foo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -234,6 +241,13 @@
       }
     },
     "globals": {
+      "readline": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      },
       "foo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",

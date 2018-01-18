@@ -1,6 +1,9 @@
 [
   {
     "this": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "undefined undefined",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -11,9 +14,7 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "undefined undefined"
+      "foo7": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -35,6 +36,9 @@
       "e": "Error <large string>"
     },
     "globals": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "undefined undefined",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -45,13 +49,14 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "undefined undefined"
+      "foo7": "function <large string>"
     }
   },
   {
     "this": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "undefined undefined",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -62,9 +67,7 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "undefined undefined"
+      "foo7": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -86,6 +89,9 @@
       "e": "Error <large string>"
     },
     "globals": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "undefined undefined",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -96,13 +102,14 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "undefined undefined"
+      "foo7": "function <large string>"
     }
   },
   {
     "this": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -113,9 +120,7 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -141,6 +146,9 @@
       }
     },
     "globals": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -151,13 +159,14 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     }
   },
   {
     "this": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -168,9 +177,7 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -182,6 +189,9 @@
       "e": "Error <large string>"
     },
     "globals": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -192,13 +202,14 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     }
   },
   {
     "this": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -209,9 +220,7 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -232,6 +241,9 @@
       "k": "number 10"
     },
     "globals": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -242,13 +254,14 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     }
   },
   {
     "this": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -259,9 +272,7 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -283,6 +294,9 @@
       "k": "number 10"
     },
     "globals": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -293,13 +307,14 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     }
   },
   {
     "this": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -310,9 +325,7 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -334,6 +347,9 @@
       "k": "number 10"
     },
     "globals": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -344,13 +360,14 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     }
   },
   {
     "this": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -361,9 +378,7 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -381,6 +396,9 @@
       }
     },
     "globals": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -391,13 +409,14 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     }
   },
   {
     "this": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -408,9 +427,7 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -428,6 +445,9 @@
       }
     },
     "globals": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -438,13 +458,14 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     }
   },
   {
     "this": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -455,9 +476,7 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -475,6 +494,9 @@
       }
     },
     "globals": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -485,13 +507,14 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     }
   },
   {
     "this": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -502,9 +525,7 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -523,6 +544,9 @@
       "m1": "number 10"
     },
     "globals": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -533,13 +557,14 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     }
   },
   {
     "this": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -550,9 +575,7 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     },
     "locals": {
       "ex": {
@@ -561,6 +584,25 @@
         "description": "string <large string>",
         "number": "number -2146823279",
         "stack": "string <large string>"
+      },
+      "readline": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string readline",
+        "caller": "object null",
+        "arguments": "object null"
+      },
+      "top": {
+        "#__proto__": "Object {...}",
+        "f1": "function <large string>"
+      },
+      "startTest": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string ",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
       },
       "bar": {
         "#__proto__": "function <large string>",
@@ -649,18 +691,6 @@
         "caller": "object null",
         "arguments": "object null",
         "length": "number 0"
-      },
-      "top": {
-        "#__proto__": "Object {...}",
-        "f1": "function <large string>"
-      },
-      "startTest": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string ",
-        "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
       }
     },
     "globals": {}
@@ -730,6 +760,9 @@
   },
   {
     "this": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -740,9 +773,7 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -760,6 +791,9 @@
       "fa": "number 123"
     },
     "globals": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -770,9 +804,7 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     }
   },
   {
@@ -799,6 +831,9 @@
   },
   {
     "this": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -809,9 +844,7 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -823,6 +856,9 @@
       "e1": "number -1"
     },
     "globals": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -833,9 +869,7 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     }
   },
   {
@@ -868,6 +902,9 @@
   },
   {
     "this": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -878,9 +915,7 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -895,6 +930,9 @@
       "foo0": "number 12"
     },
     "globals": {
+      "readline": "function <large string>",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
       "bar": "function <large string>",
       "bar2": "function <large string>",
       "foo": "function <large string>",
@@ -905,9 +943,7 @@
       "foo3": "function <large string>",
       "foo5": "function <large string>",
       "foo6": "function <large string>",
-      "foo7": "function <large string>",
-      "top": "Object {...}",
-      "startTest": "function <large string>"
+      "foo7": "function <large string>"
     }
   }
 ]
