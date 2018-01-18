@@ -19,7 +19,8 @@ namespace Js
     class JavascriptGenerator : public DynamicObject
     {
     public:
-        enum class GeneratorState {
+        enum class GeneratorState
+        {
             Suspended,
             Executing,
             Completed
@@ -28,6 +29,16 @@ namespace Js
         static uint32 GetFrameOffset() { return offsetof(JavascriptGenerator, frame); }
         static uint32 GetCallInfoOffset() { return offsetof(JavascriptGenerator, args) + Arguments::GetCallInfoOffset(); }
         static uint32 GetArgsPtrOffset() { return offsetof(JavascriptGenerator, args) + Arguments::GetValuesOffset(); }
+
+        void SetState(GeneratorState state) {
+            this->state = state;
+            if(state == GeneratorState::Completed)
+            {
+                frame = nullptr;
+                args.Values = nullptr;
+                scriptFunction = nullptr;
+            }
+        }
 
     private:
         Field(InterpreterStackFrame*) frame;
@@ -38,30 +49,27 @@ namespace Js
         DEFINE_VTABLE_CTOR_MEMBER_INIT(JavascriptGenerator, DynamicObject, args);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptGenerator);
 
-        void SetState(GeneratorState state)
-        {
-            this->state = state;
-            if (state == GeneratorState::Completed)
-            {
-                frame = nullptr;
-                args.Values = nullptr;
-                scriptFunction = nullptr;
-            }
-        }
-
         Var CallGenerator(ResumeYieldData* yieldData, const char16* apiNameForErrorMessage);
         JavascriptGenerator(DynamicType* type, Arguments& args, ScriptFunction* scriptFunction);
 
     public:
         static JavascriptGenerator* New(Recycler* recycler, DynamicType* generatorType, Arguments& args, ScriptFunction* scriptFunction);
 
+        static JavascriptGenerator *New(Recycler *recycler, DynamicType *generatorType, Arguments &args, Js::JavascriptGenerator::GeneratorState generatorState);
+
         bool IsExecuting() const { return state == GeneratorState::Executing; }
         bool IsSuspended() const { return state == GeneratorState::Suspended; }
         bool IsCompleted() const { return state == GeneratorState::Completed; }
         bool IsSuspendedStart() const { return state == GeneratorState::Suspended && this->frame == nullptr; }
 
+        void SetScriptFunction(ScriptFunction* sf)
+        {
+            this->scriptFunction = sf;
+        }
+
         void SetFrame(InterpreterStackFrame* frame, size_t bytes);
         InterpreterStackFrame* GetFrame() const { return frame; }
+        void SetFrameSlots(uint slotCount, Field(Var)* frameSlotArray);
 
 #if GLOBAL_ENABLE_WRITE_BARRIER
         virtual void Finalize(bool isShutdown) override;
@@ -85,8 +93,10 @@ namespace Js
         static Var EntryThrow(RecyclableObject* function, CallInfo callInfo, ...);
 
 #if ENABLE_TTD
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+        //virtual void ProcessCorePaths() override;
 #endif
     };
 }

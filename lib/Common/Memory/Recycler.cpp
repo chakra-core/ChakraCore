@@ -1422,6 +1422,18 @@ Recycler::LargeAlloc(HeapInfo* heap, size_t size, ObjectInfoBits attributes)
 {
     Assert((attributes & InternalObjectInfoBitMask) == attributes);
 
+    if (size >= HeapConstants::MaxLargeObjectSize)
+    {
+        if (nothrow == false)
+        {
+            this->OutOfMemory();
+        }
+        else
+        {
+            return nullptr;
+        }
+    }
+
     char * addr = TryLargeAlloc(heap, size, attributes, nothrow);
     if (addr == nullptr)
     {

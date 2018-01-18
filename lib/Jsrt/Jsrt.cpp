@@ -2791,16 +2791,65 @@ CHAKRA_API JsConstructObject(_In_ JsValueRef function, _In_reads_(cargs) JsValue
     });
 }
 
-CHAKRA_API JsCreateFunction(_In_ JsNativeFunction nativeFunction, _In_opt_ void *callbackState, _Out_ JsValueRef *function)
+#ifndef _CHAKRACOREBUILD
+typedef struct JsNativeFunctionInfo
 {
-    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTAllocateFunction, false, nullptr);
+    JsValueRef thisArg;
+    JsValueRef newTargetArg;
+    bool isConstructCall;
+}JsNativeFunctionInfo;
 
+typedef _Ret_maybenull_ JsValueRef(CHAKRA_CALLBACK * JsEnhancedNativeFunction)(_In_ JsValueRef callee, _In_ JsValueRef *arguments, _In_ unsigned short argumentCount, _In_ JsNativeFunctionInfo *info, _In_opt_ void *callbackState);
+#endif
+
+typedef struct JsNativeFunctionWrapperHolder
+{
+    FieldNoBarrier(void *) callbackState;
+    FieldNoBarrier(JsNativeFunction) nativeFunction;
+}JsNativeFunctionWrapperHolder;
+
+JsValueRef CALLBACK JsNativeFunctionWrapper(JsValueRef callee, JsValueRef *arguments, unsigned short argumentCount, JsNativeFunctionInfo *info, void *wrapperData)
+{
+    JsNativeFunctionWrapperHolder *wrapperHolder = static_cast<JsNativeFunctionWrapperHolder*>(wrapperData);
+    JsValueRef result = wrapperHolder->nativeFunction(callee, info->isConstructCall, arguments, argumentCount, wrapperHolder->callbackState);
+    return result;
+}
+
+template <bool wrapNativeFunction, class T>
+JsErrorCode JsCreateEnhancedFunctionHelper(_In_ T nativeFunction, _In_opt_ JsValueRef metadata, _In_opt_ void *callbackState, _Out_ JsValueRef *function)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTAllocateFunction, true, metadata);
         PARAM_NOT_NULL(nativeFunction);
         PARAM_NOT_NULL(function);
         *function = nullptr;
 
-        Js::JavascriptExternalFunction *externalFunction = scriptContext->GetLibrary()->CreateStdCallExternalFunction((Js::StdCallJavascriptMethod)nativeFunction, 0, callbackState);
+        Js::StdCallJavascriptMethod method;
+
+        if (wrapNativeFunction)
+        {
+            JsNativeFunctionWrapperHolder *wrapperHolder = RecyclerNewStruct(scriptContext->GetRecycler(), JsNativeFunctionWrapperHolder);
+            wrapperHolder->callbackState = callbackState;
+            wrapperHolder->nativeFunction = (JsNativeFunction)nativeFunction;
+            callbackState = wrapperHolder;
+            method = (Js::StdCallJavascriptMethod)JsNativeFunctionWrapper;
+        }
+        else
+        {
+            method = (Js::StdCallJavascriptMethod)nativeFunction;
+        }
+
+        if (metadata != JS_INVALID_REFERENCE)
+        {
+            VALIDATE_INCOMING_REFERENCE(metadata, scriptContext);
+            metadata = Js::JavascriptConversion::ToString(metadata, scriptContext);
+        }
+        else
+        {
+            metadata = scriptContext->GetLibrary()->GetEmptyString();
+        }
+
+        Js::JavascriptExternalFunction *externalFunction = scriptContext->GetLibrary()->CreateStdCallExternalFunction(method, metadata, callbackState);
         *function = (JsValueRef)externalFunction;
 
         PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, function);
@@ -2809,32 +2858,19 @@ CHAKRA_API JsCreateFunction(_In_ JsNativeFunction nativeFunction, _In_opt_ void 
     });
 }
 
+CHAKRA_API JsCreateEnhancedFunction(_In_ JsEnhancedNativeFunction nativeFunction, _In_opt_ JsValueRef metadata, _In_opt_ void *callbackState, _Out_ JsValueRef *function)
+{
+    return JsCreateEnhancedFunctionHelper<false>(nativeFunction, metadata, callbackState, function);
+}
+
+CHAKRA_API JsCreateFunction(_In_ JsNativeFunction nativeFunction, _In_opt_ void *callbackState, _Out_ JsValueRef *function)
+{
+    return JsCreateEnhancedFunctionHelper<true>(nativeFunction, JS_INVALID_REFERENCE, callbackState, function);
+}
+
 CHAKRA_API JsCreateNamedFunction(_In_ JsValueRef name, _In_ JsNativeFunction nativeFunction, _In_opt_ void *callbackState, _Out_ JsValueRef *function)
 {
-    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTAllocateFunction, true, name);
-
-        VALIDATE_INCOMING_REFERENCE(name, scriptContext);
-        PARAM_NOT_NULL(nativeFunction);
-        PARAM_NOT_NULL(function);
-        *function = nullptr;
-
-        if (name != JS_INVALID_REFERENCE)
-        {
-            name = Js::JavascriptConversion::ToString(name, scriptContext);
-        }
-        else
-        {
-            name = scriptContext->GetLibrary()->GetEmptyString();
-        }
-
-        Js::JavascriptExternalFunction *externalFunction = scriptContext->GetLibrary()->CreateStdCallExternalFunction((Js::StdCallJavascriptMethod)nativeFunction, Js::JavascriptString::FromVar(name), callbackState);
-        *function = (JsValueRef)externalFunction;
-
-        PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, function);
-
-        return JsNoError;
-    });
+    return JsCreateEnhancedFunctionHelper<true>(nativeFunction, name, callbackState, function);
 }
 
 void SetErrorMessage(Js::ScriptContext *scriptContext, JsValueRef newError, JsValueRef message)

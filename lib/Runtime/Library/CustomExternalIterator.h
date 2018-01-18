@@ -51,6 +51,15 @@ namespace Js
         Field(Var) m_prototypeForIterator;
 
         friend class JavascriptLibrary;
+#if ENABLE_TTD
+    public:
+        //virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override {
+            return TTD::NSSnapObjects::SnapObjectType::Invalid;
+        }
+        //virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
     class JavascriptExternalIteratorNextFunction : public RuntimeFunction
@@ -70,6 +79,15 @@ namespace Js
         static JavascriptExternalIteratorNextFunction* CreateFunction(JavascriptLibrary *library, JavascriptTypeId typeId, JavascriptMethod entryPoint);
 
         friend class JavascriptLibrary;
+#if ENABLE_TTD
+    public:
+        //virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override {
+            return TTD::NSSnapObjects::SnapObjectType::Invalid;
+        }
+        //virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
     class CustomExternalIterator : public DynamicObject

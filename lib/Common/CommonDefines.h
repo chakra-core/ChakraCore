@@ -675,6 +675,15 @@
 #define ENABLE_MEM_STATS 1
 #endif
 
+#define NO_SANITIZE_ADDRESS
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#undef NO_SANITIZE_ADDRESS
+#define NO_SANITIZE_ADDRESS __attribute__((no_sanitize("address")))
+#define NO_SANITIZE_ADDRESS_CHECK
+#endif
+#endif
+
 //----------------------------------------------------------------------------------------------------
 // Disabled features
 //----------------------------------------------------------------------------------------------------
@@ -712,8 +721,6 @@
 #endif
 
 #if defined(ASMJS_PLAT)
-// xplat-todo: once all the wasm tests are passing on xplat, enable it for release builds
-#if defined(_WIN32) || (defined(__clang__) && defined(ENABLE_DEBUG_CONFIG_OPTIONS))
 #define ENABLE_WASM
 #define ENABLE_WASM_SIMD
 
@@ -721,7 +728,6 @@
 #define ENABLE_WABT
 #endif
 
-#endif
 #endif
 
 #if _M_IX86

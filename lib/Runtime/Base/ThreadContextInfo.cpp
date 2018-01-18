@@ -418,7 +418,12 @@ ThreadContextInfo::SetValidCallTargetForCFG(PVOID callTargetAddress, bool isSetV
 #ifdef _CONTROL_FLOW_GUARD
     if (IsCFGEnabled())
     {
+#ifdef _M_ARM
+        AssertMsg(((uintptr_t)callTargetAddress & 0x1) != 0, "on ARM we expect the thumb bit to be set on anything we use as a call target");
+        AssertMsg(IS_16BYTE_ALIGNED((uintptr_t)callTargetAddress & ~0x1), "callTargetAddress is not 16-byte page aligned?");
+#else
         AssertMsg(IS_16BYTE_ALIGNED(callTargetAddress), "callTargetAddress is not 16-byte page aligned?");
+#endif
 
         // If SetProcessValidCallTargets is not allowed by global policy (e.g.
         // OOP JIT is in use in the client), then generate a fast fail

@@ -654,6 +654,24 @@ namespace Js
 
                 if (hasFunctions)
                 {
+#if ENABLE_NATIVE_CODEGEN
+                    struct AutoReset
+                    {
+                        AutoReset(ThreadContext* threadContext)
+                            :threadContext(threadContext)
+                        {
+                            // indicate background thread that we need help to delete the xData
+                            threadContext->GetJobProcessor()->StartExtraWork();
+                        }
+                        ~AutoReset()
+                        {
+                            threadContext->GetJobProcessor()->EndExtraWork();
+                        }
+
+                        ThreadContext* threadContext;
+                    } autoReset(this->GetThreadContext());
+#endif
+
                     // We still need to walk through all the function bodies and call cleanup
                     // because otherwise ETW events might not get fired if a GC doesn't happen
                     // and the thread context isn't shut down cleanly (process detach case)
@@ -3020,7 +3038,7 @@ namespace Js
     // items that are pending in the JIT job queue.
     // Alloc first and then free so that the native code generator is at a different address
 #if ENABLE_NATIVE_CODEGEN
-    HRESULT ScriptContext::RecreateNativeCodeGenerator()
+    HRESULT ScriptContext::RecreateNativeCodeGenerator(NativeCodeGenerator ** previousCodeGen)
     {
         NativeCodeGenerator* oldCodeGen = this->nativeCodeGen;
 
@@ -3033,13 +3051,45 @@ namespace Js
         // Delete the native code generator and recreate so that all jobs get cleared properly
         // and re-jitted.
         CloseNativeCodeGenerator(oldCodeGen);
-        DeleteNativeCodeGenerator(oldCodeGen);
+        if (previousCodeGen == nullptr)
+        {
+            DeleteNativeCodeGenerator(oldCodeGen);
+        }
+        else
+        {
+            *previousCodeGen = oldCodeGen;
+        }
 
         return hr;
+    }
+
+    void ScriptContext::DeletePreviousNativeCodeGenerator(NativeCodeGenerator * codeGen)
+    {
+        Assert(codeGen != nullptr);
+        DeleteNativeCodeGenerator(codeGen);
     }
 #endif
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
+#if ENABLE_NATIVE_CODEGEN
+    // xplat XDataAllocator Reg/UnReg are lazy ops.
+    // Using the lazy delete class below, we let XData address unreg before old codegen is deleted
+    // This logic is also used for Windows since it works there too.
+    class OldCodeGenAutoDelete
+    {
+    public:
+        NativeCodeGenerator * oldCodegen;
+        ScriptContext * sc;
+        OldCodeGenAutoDelete(ScriptContext * s):oldCodegen(nullptr), sc(s) { }
+        ~OldCodeGenAutoDelete()
+        {
+            if (oldCodegen != nullptr)
+            {
+                sc->DeletePreviousNativeCodeGenerator(oldCodegen);
+            }
+        }
+    };
+#endif // ENABLE_NATIVE_CODEGEN
     HRESULT ScriptContext::OnDebuggerAttached()
     {
         OUTPUT_TRACE(Js::DebuggerPhase, _u("ScriptContext::OnDebuggerAttached: start 0x%p\n"), this);
@@ -3065,7 +3115,12 @@ namespace Js
 
         // Rundown on all existing functions and change their thunks so that they will go to debug mode once they are called.
 
+#if ENABLE_NATIVE_CODEGEN
+        OldCodeGenAutoDelete autoDelete(this);
+        HRESULT hr = OnDebuggerAttachedDetached(/*attach*/ true, &(autoDelete.oldCodegen));
+#else // ENABLE_NATIVE_CODEGEN
         HRESULT hr = OnDebuggerAttachedDetached(/*attach*/ true);
+#endif
 
         // Debugger attach/detach failure is catastrophic, take down the process
         DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
@@ -3159,7 +3214,12 @@ namespace Js
         // and notify the script context that the debugger has detached to allow it to revert the runtime to the proper
         // state (JIT enabled).
 
+#if ENABLE_NATIVE_CODEGEN
+        OldCodeGenAutoDelete autoDelete(this);
+        HRESULT hr = OnDebuggerAttachedDetached(/*attach*/ false, &(autoDelete.oldCodegen));
+#else // ENABLE_NATIVE_CODEGEN
         HRESULT hr = OnDebuggerAttachedDetached(/*attach*/ false);
+#endif
 
         // Debugger attach/detach failure is catastrophic, take down the process
         DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
@@ -3189,7 +3249,11 @@ namespace Js
         return hr;
     }
 
+#if ENABLE_NATIVE_CODEGEN
+    HRESULT ScriptContext::OnDebuggerAttachedDetached(bool attach, NativeCodeGenerator ** previousCodeGenHolder)
+#else
     HRESULT ScriptContext::OnDebuggerAttachedDetached(bool attach)
+#endif
     {
 
         // notify threadContext that debugger is attaching so do not do expire
@@ -3210,13 +3274,7 @@ namespace Js
 
         } autoRestore(this->GetThreadContext());
 
-        // xplat-todo: (obastemur) Enable JIT on Debug mode
-        // CodeGen entrypoint can be deleted before we are able to unregister
-        // due to how we handle xdata on xplat, resetting the entrypoints below might affect CodeGen process.
-        // it is safer (on xplat) to turn JIT off during Debug for now.
-#ifdef _WIN32
         if (!Js::Configuration::Global.EnableJitInDebugMode())
-#endif
         {
             if (attach)
             {
@@ -3246,39 +3304,12 @@ namespace Js
 
         HRESULT hr = S_OK;
 
-#ifndef _WIN32
-        BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
-        {
-            // xplat eh_frame handling is a bit different than Windows
-            // RecreateNativeCodeGenerator call below will be cleaning up
-            // XDataAllocation and we won't be able to __DEREGISTER_FRAME
-
-            // xplat-todo: make eh_frame handling better
-            this->sourceList->Map([=](uint i, RecyclerWeakReference<Js::Utf8SourceInfo>* sourceInfoWeakRef) {
-                Js::Utf8SourceInfo* sourceInfo = sourceInfoWeakRef->Get();
-
-                if (sourceInfo != nullptr)
-                {
-                    sourceInfo->MapFunction([](Js::FunctionBody* functionBody) {
-                        functionBody->ResetEntryPoint();
-                    });
-                }
-            });
-        }
-        END_TRANSLATE_OOM_TO_HRESULT(hr);
-
-        if (FAILED(hr))
-        {
-            return hr;
-        }
-#endif
-
         if (!CONFIG_FLAG(ForceDiagnosticsMode))
         {
 #if ENABLE_NATIVE_CODEGEN
             // Recreate the native code generator so that all pending
             // JIT work items will be cleared.
-            hr = RecreateNativeCodeGenerator();
+            hr = RecreateNativeCodeGenerator(previousCodeGenHolder);
             if (FAILED(hr))
             {
                 return hr;
@@ -3315,14 +3346,12 @@ namespace Js
                             functionBody->SetEntryToDeferParseForDebugger();
                         });
                     }
-#ifdef _WIN32
                     else
                     {
                         sourceInfo->MapFunction([](Js::FunctionBody* functionBody) {
                             functionBody->ResetEntryPoint();
                         });
                     }
-#endif
                 }
             });
         }
@@ -4390,10 +4419,10 @@ namespace Js
     }
 #endif
 
-    void ScriptContext::FreeFunctionEntryPoint(Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress)
+    void ScriptContext::FreeFunctionEntryPoint(Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress, void** functionTable)
     {
 #if ENABLE_NATIVE_CODEGEN
-        FreeNativeCodeGenAllocation(this, codeAddress, thunkAddress);
+        FreeNativeCodeGenAllocation(this, codeAddress, thunkAddress, functionTable);
 #endif
     }
 

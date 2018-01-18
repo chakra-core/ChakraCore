@@ -1153,11 +1153,10 @@ Instr::UnlinkBailOutInfo()
     return bailOutInfo;
 }
 
-bool
+void
 Instr::ReplaceBailOutInfo(BailOutInfo *newBailOutInfo)
 {
     BailOutInfo *oldBailOutInfo = nullptr;
-    bool deleteOld = false;
 
 #if DBG
     newBailOutInfo->wasCopied = true;
@@ -1189,10 +1188,9 @@ Instr::ReplaceBailOutInfo(BailOutInfo *newBailOutInfo)
         JitArenaAllocator * alloc = this->m_func->m_alloc;
         oldBailOutInfo->Clear(alloc);
         JitAdelete(alloc, oldBailOutInfo);
-        deleteOld = true;
     }
 
-    return deleteOld;
+    return;
 }
 
 IR::Instr *Instr::ShareBailOut()

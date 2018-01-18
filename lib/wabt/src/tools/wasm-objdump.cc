@@ -72,7 +72,7 @@ Result dump_file(const char* filename) {
   std::vector<uint8_t> file_data;
   CHECK_RESULT(ReadFile(filename, &file_data));
 
-  uint8_t* data = DataOrNull(file_data);
+  uint8_t* data = file_data.data();
   size_t size = file_data.size();
 
   // Perform serveral passed over the binary in order to print out different

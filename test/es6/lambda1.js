@@ -557,6 +557,96 @@ var tests = [
             var l = () => await (5)
             assert.areEqual('() => await (5)', '' + l, "Regular lambda should also work, though this await looks like a function call");
         }
+    },
+    {
+        name: "Accessing arguments symbol in eval inside lambda",
+        body: function () {
+            function f1(a) {
+                b = () => eval("arguments[0]");
+                assert.areEqual(b(), 1, "Eval should be able to access the arguments symbol");
+            }
+            f1(1);
+
+            function f2(a) {
+                b = (x = eval("arguments[0]")) => x;
+                assert.areEqual(b(), 2, "Eval in param scope should be able to access the arguments symbol")
+            }
+            f2(2);
+
+            function f3(arguments = [3]) {
+                b = () => eval("arguments[0]");
+                assert.areEqual(b(), 3, "Eval should be able to access the arguments param symbol");
+            }
+            f3();
+
+            function f4() {
+                var arguments = [4];
+                b = () => eval("arguments[0]");
+                assert.areEqual(b(), 4, "Eval should be able to access the arguments from the body");
+            }
+            f4(100);
+
+            function f5() {
+                b = () => {
+                    return eval("arguments()");
+                }
+                assert.areEqual(b()[0], 5, "Eval should be able to access the arguments function definition from the body");
+                function arguments() {
+                    return [5];
+                }
+            }
+            f5();
+
+            function f6() {
+                b = () => {
+                    return eval("arguments");
+                }
+                assert.areEqual(b()[0], 6, "Eval should be able to access the arguments function definition in block");
+
+                {
+                    function arguments() {
+                        return [100];
+                    }
+                }
+            }
+            f6(6);
+
+            function f7() {
+                b = () => eval("arguments[0]");
+                assert.areEqual(b(), 7, "Eval should be able to access the built-in arguments from the body");
+                var arguments = [100];
+            }
+            f7(7);
+
+            function f8() {
+                b = (arguments = [8]) => eval("arguments");
+                assert.areEqual(b()[0], 8, "Eval should be able to access the arguments lambda param");
+            }
+            f8(100);
+
+            function f9() {
+                b = (arguments = [9], c = eval("arguments")) => c;
+                assert.areEqual(b()[0], 9, "Eval should be able to access the arguments lambda param in the param scope");
+            }
+            f9();
+
+            function f10() {
+                b = () => {
+                    assert.areEqual(eval("arguments"), undefined, "Eval should access arguments from the lambda body itself");
+                    var arguments = 100;
+                }
+            }
+            f10(100);
+
+            function f11() {
+                arguments;
+                b = () => {
+                    assert.areEqual(eval("arguments"), undefined, "Eval should access arguments from the lambda body itself when the parent function uses arguments");
+                    var arguments = 100;
+                }
+            }
+            f11(100);
+        }
     }
 ];
 

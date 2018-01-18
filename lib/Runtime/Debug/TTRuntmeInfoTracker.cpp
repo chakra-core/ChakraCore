@@ -801,6 +801,12 @@ namespace TTD
         this->EnqueueRootPathObject(_u("_setIteratorPrototype"), ctx->GetLibrary()->GetSetIteratorPrototype());
         this->EnqueueRootPathObject(_u("_stringIteratorPrototype"), ctx->GetLibrary()->GetStringIteratorPrototype());
 
+        this->EnqueueRootPathObject(_u("_generatorNextFunction"), ctx->GetLibrary()->EnsureGeneratorNextFunction());
+        this->EnqueueRootPathObject(_u("_generatorReturnFunction"), ctx->GetLibrary()->EnsureGeneratorReturnFunction());
+        this->EnqueueRootPathObject(_u("_generatorThrowFunction"), ctx->GetLibrary()->EnsureGeneratorThrowFunction());
+        this->EnqueueRootPathObject(_u("_generatorFunctionConstructor"), ctx->GetLibrary()->GetGeneratorFunctionConstructor());
+        this->EnqueueRootPathObject(_u("_asyncFunctionConstructor"), ctx->GetLibrary()->GetAsyncFunctionConstructor());
+
         uint32 counter = 0;
         while(!this->m_worklist.Empty())
         {

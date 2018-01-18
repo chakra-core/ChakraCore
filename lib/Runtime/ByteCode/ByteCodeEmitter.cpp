@@ -3533,6 +3533,10 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                     funcInfo->paramScope->AddSymbol(sym);
                 }
                 sym->EnsureScopeSlot(funcInfo);
+                if (sym->GetHasNonLocalReference())
+                {
+                    sym->GetScope()->SetHasOwnLocalInClosure(true);
+                }
             }
         }
 
@@ -3951,11 +3955,16 @@ void ByteCodeGenerator::EndEmitFunction(ParseNode *pnodeFnc)
         PopScope(); // Pop the param scope
     }
 
-    Scope *scope = funcInfo->funcExprScope;
-    if (scope && scope->GetMustInstantiate())
+    if (funcInfo->byteCodeFunction->IsFunctionParsed() && funcInfo->root->sxFnc.pnodeBody != nullptr)
     {
-        Assert(currentScope == scope);
-        PopScope();
+        // StartEmitFunction omits the matching PushScope for already-parsed functions.
+        // TODO: Refactor Start and EndEmitFunction for clarity.
+        Scope *scope = funcInfo->funcExprScope;
+        if (scope && scope->GetMustInstantiate())
+        {
+            Assert(currentScope == scope);
+            PopScope();
+        }
     }
 
     if (CONFIG_FLAG(DeferNested))
@@ -6892,9 +6901,21 @@ void EmitLoad(
 
         // f(x) +=
     case knopCall:
-        funcInfo->AcquireLoc(lhs);
-        EmitReference(lhs, byteCodeGenerator, funcInfo);
-        EmitCall(lhs, byteCodeGenerator, funcInfo, /*fReturnValue=*/ false, /*fEvaluateComponents=*/ false);
+        if (lhs->sxCall.pnodeTarget->nop == knopImport)
+        {
+            ParseNodePtr args = lhs->sxCall.pnodeArgs;
+            Assert(CountArguments(args) == 2); // import() takes one argument
+            Emit(args, byteCodeGenerator, funcInfo, false);
+            funcInfo->ReleaseLoc(args);
+            funcInfo->AcquireLoc(lhs);
+            byteCodeGenerator->Writer()->Reg2(Js::OpCode::ImportCall, lhs->location, args->location);
+        }
+        else
+        {
+            funcInfo->AcquireLoc(lhs);
+            EmitReference(lhs, byteCodeGenerator, funcInfo);
+            EmitCall(lhs, byteCodeGenerator, funcInfo, /*fReturnValue=*/ false, /*fEvaluateComponents=*/ false);
+        }
         break;
 
     default:
@@ -10283,9 +10304,13 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         }
         case knopName:
         {
-            funcInfo->AcquireLoc(pnode);
-            byteCodeGenerator->EmitPropTypeof(pnode->location, pnodeOpnd->sxPid.sym, pnodeOpnd->sxPid.pid, funcInfo);
-            break;
+            if (pnodeOpnd->IsUserIdentifier())
+            {
+                funcInfo->AcquireLoc(pnode);
+                byteCodeGenerator->EmitPropTypeof(pnode->location, pnodeOpnd->sxPid.sym, pnodeOpnd->sxPid.pid, funcInfo);
+                break;
+            }
+            // Special names should fallthrough to default case
         }
 
         default:
@@ -11395,6 +11420,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             }
         };
 
+        ByteCodeGenerator::TryScopeRecord tryRecForCatch(Js::OpCode::ResumeCatch, catchLabel);
         if (isPattern)
         {
             Parser::MapBindIdentifier(pnodeObj->sxParamPattern.pnode1, [&](ParseNodePtr item)
@@ -11415,7 +11441,6 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             ParseNodePtr pnode1 = pnodeObj->sxParamPattern.pnode1;
             Assert(pnode1->IsPattern());
 
-            ByteCodeGenerator::TryScopeRecord tryRecForCatch(Js::OpCode::ResumeCatch, catchLabel);
             if (funcInfo->byteCodeFunction->IsCoroutine())
             {
                 byteCodeGenerator->tryScopeRecordsList.LinkToEnd(&tryRecForCatch);
@@ -11438,7 +11463,6 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             byteCodeGenerator->Writer()->Empty(Js::OpCode::Nop);
             byteCodeGenerator->EndStatement(pnodeCatch);
 
-            ByteCodeGenerator::TryScopeRecord tryRecForCatch(Js::OpCode::ResumeCatch, catchLabel);
             if (funcInfo->byteCodeFunction->IsCoroutine())
             {
                 byteCodeGenerator->tryScopeRecordsList.LinkToEnd(&tryRecForCatch);

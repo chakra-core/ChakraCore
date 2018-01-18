@@ -82,7 +82,7 @@ echo -e "\n***** Third Party Notices [ for PreBuilt Binaries ] *****\n" >> out/C
 cat tools/XPlatInstall/BINARY-DIST-ONLY-NOTICES.txt >> out/ChakraCoreFiles/LICENSE
 # sample
 cp "tools/XPlatInstall/sample/README.md"  out/ChakraCoreFiles/sample/README.md
-cp "tools/XPlatInstall/sample/Makefile"   out/ChakraCoreFiles/sample/Makefile
+cp "tools/XPlatInstall/sample/Makefile.sample" out/ChakraCoreFiles/sample/Makefile
 cp "tools/XPlatInstall/sample/sample.cpp.txt" out/ChakraCoreFiles/sample/sample.cpp
 
 ## Test

@@ -21,11 +21,11 @@ namespace Js
         DEFINE_VTABLE_CTOR(JavascriptGeneratorFunction, ScriptFunctionBase);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptGeneratorFunction);
 
-        JavascriptGeneratorFunction(DynamicType* type);
         JavascriptGeneratorFunction(DynamicType* type, FunctionInfo* functionInfo, GeneratorVirtualScriptFunction* scriptFunction);
 
     public:
         JavascriptGeneratorFunction(DynamicType* type, GeneratorVirtualScriptFunction* scriptFunction);
+        JavascriptGeneratorFunction(DynamicType* type);
 
         virtual JavascriptString* GetDisplayNameImpl() const override;
         GeneratorVirtualScriptFunction* GetGeneratorVirtualScriptFunction() { return scriptFunction; }
@@ -36,13 +36,17 @@ namespace Js
         inline static bool Test(JavascriptFunction *obj)
         {
             return VirtualTableInfo<JavascriptGeneratorFunction>::HasVirtualTable(obj)
-              || VirtualTableInfo<CrossSiteObject<JavascriptGeneratorFunction>>::HasVirtualTable(obj);
+                || VirtualTableInfo<CrossSiteObject<JavascriptGeneratorFunction>>::HasVirtualTable(obj);
         }
 
         static JavascriptGeneratorFunction* OP_NewScGenFunc(FrameDisplay* environment, FunctionInfoPtrPtr infoRef);
         static Var EntryGeneratorFunctionImplementation(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryAsyncFunctionImplementation(RecyclableObject* function, CallInfo callInfo, ...);
         static DWORD GetOffsetOfScriptFunction() { return offsetof(JavascriptGeneratorFunction, scriptFunction); }
+
+        void SetScriptFunction(GeneratorVirtualScriptFunction* scriptFunction) {
+            this->scriptFunction = scriptFunction;
+        }
 
         virtual Var GetHomeObj() const override;
         virtual void SetHomeObj(Var homeObj) override;
@@ -83,8 +87,10 @@ namespace Js
         static Var NewInstanceRestrictedMode(RecyclableObject* function, CallInfo callInfo, ...);
 
 #if ENABLE_TTD
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+        void CreateSnapObjectInfo(TTD::SlabAllocator& alloc, _Out_ TTD::NSSnapObjects::SnapGeneratorFunctionInfo** info, _Out_ TTD_PTR_ID** depArray, _Out_ uint32* depCount);
 #endif
 
     public:
@@ -117,7 +123,7 @@ namespace Js
         inline static bool Test(JavascriptFunction *obj)
         {
             return VirtualTableInfo<JavascriptAsyncFunction>::HasVirtualTable(obj)
-              || VirtualTableInfo<CrossSiteObject<JavascriptAsyncFunction>>::HasVirtualTable(obj);
+                || VirtualTableInfo<CrossSiteObject<JavascriptAsyncFunction>>::HasVirtualTable(obj);
         }
 
 #if ENABLE_TTD
@@ -140,14 +146,13 @@ namespace Js
 
         Field(JavascriptGeneratorFunction*) realFunction;
 
-        void SetRealGeneratorFunction(JavascriptGeneratorFunction* realFunction) { this->realFunction = realFunction; }
-
     public:
         GeneratorVirtualScriptFunction(FunctionProxy* proxy, ScriptFunctionType* deferredPrototypeType) : ScriptFunction(proxy, deferredPrototypeType) { }
 
         static uint32 GetRealFunctionOffset() { return offsetof(GeneratorVirtualScriptFunction, realFunction); }
 
         virtual JavascriptFunction* GetRealFunctionObject() override { return realFunction; }
+        void SetRealGeneratorFunction(JavascriptGeneratorFunction* realFunction) { this->realFunction = realFunction; }
 
 #if ENABLE_TTD
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;

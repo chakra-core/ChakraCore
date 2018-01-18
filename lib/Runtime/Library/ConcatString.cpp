@@ -173,8 +173,11 @@ namespace Js
 
         if (this->propertyRecord == nullptr && !dontLookupFromDictionary)
         {
-            scriptContext->GetOrAddPropertyRecord(this->GetSz(), static_cast<int>(this->GetLength()),
-                (Js::PropertyRecord const **)&(this->propertyRecord));
+            Js::PropertyRecord const * localPropertyRecord;
+            scriptContext->GetOrAddPropertyRecord(this->GetSz(),
+                static_cast<int>(this->GetLength()),
+                &localPropertyRecord);
+            this->propertyRecord = localPropertyRecord;
         }
 
         return this->propertyRecord;

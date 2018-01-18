@@ -27,6 +27,7 @@
 #include "src/common.h"
 #include "src/error-handler.h"
 #include "src/feature.h"
+#include "src/filenames.h"
 #include "src/ir.h"
 #include "src/option-parser.h"
 #include "src/resolve-names.h"
@@ -37,7 +38,7 @@
 using namespace wabt;
 
 static const char* s_infile;
-static const char* s_outfile;
+static std::string s_outfile;
 static bool s_dump_module;
 static int s_verbose;
 static WriteBinaryOptions s_write_binary_options;
@@ -98,19 +99,26 @@ static void ParseOptions(int argc, char* argv[]) {
   parser.Parse(argc, argv);
 }
 
-static void WriteBufferToFile(const char* filename,
+static void WriteBufferToFile(string_view filename,
                               const OutputBuffer& buffer) {
   if (s_dump_module) {
-    if (s_verbose)
+    if (s_verbose) {
       s_log_stream->Writef(";; dump\n");
+    }
     if (!buffer.data.empty()) {
       s_log_stream->WriteMemoryDump(buffer.data.data(), buffer.data.size());
     }
   }
 
-  if (filename) {
-    buffer.WriteToFile(filename);
-  }
+  buffer.WriteToFile(filename);
+}
+
+static std::string DefaultOuputName(string_view input_name) {
+  // Strip existing extension and add .wasm
+  std::string result(StripExtension(GetBasename(input_name)));
+  result += kWasmExtension;
+
+  return result;
 }
 
 int ProgramMain(int argc, char** argv) {
@@ -119,8 +127,9 @@ int ProgramMain(int argc, char** argv) {
   ParseOptions(argc, argv);
 
   std::unique_ptr<WastLexer> lexer = WastLexer::CreateFileLexer(s_infile);
-  if (!lexer)
+  if (!lexer) {
     WABT_FATAL("unable to read file: %s\n", s_infile);
+  }
 
   ErrorHandlerFile error_handler(Location::Type::Text);
   std::unique_ptr<Module> module;
@@ -131,16 +140,23 @@ int ProgramMain(int argc, char** argv) {
   if (Succeeded(result)) {
     result = ResolveNamesModule(lexer.get(), module.get(), &error_handler);
 
-    if (Succeeded(result) && s_validate)
-      result = ValidateModule(lexer.get(), module.get(), &error_handler);
+    if (Succeeded(result) && s_validate) {
+      ValidateOptions options(s_features);
+      result =
+          ValidateModule(lexer.get(), module.get(), &error_handler, &options);
+    }
 
     if (Succeeded(result)) {
       MemoryStream stream(s_log_stream.get());
       result =
           WriteBinaryModule(&stream, module.get(), &s_write_binary_options);
 
-      if (Succeeded(result))
-        WriteBufferToFile(s_outfile, stream.output_buffer());
+      if (Succeeded(result)) {
+        if (s_outfile.empty()) {
+          s_outfile = DefaultOuputName(s_infile);
+        }
+        WriteBufferToFile(s_outfile.c_str(), stream.output_buffer());
+      }
     }
   }
 

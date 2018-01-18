@@ -7614,7 +7614,7 @@ Rejected: 11
 Failed: 0
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Potential cross-browser compatilibity issues
+// Potential cross-browser compatibility issues
 
 // Leading and trailing whitespace, nulls, or non-whitespace non-nulls
 
@@ -7803,8 +7803,8 @@ Invalid Date
 Invalid Date
 
 0001-01-01Z
-1901-01-01T00:00:00.000Z
--2177452800000 === -2177452800000
+2001-01-01T00:00:00.000Z
+978307200000 === 978307200000
 
 // Optionality of minutes
 
@@ -7812,7 +7812,8 @@ Invalid Date
 Invalid Date
 
 0001-01-01T01:01:01.001+01
-Invalid Date
+2001-01-01T00:01:01.001Z
+978307261001 === 978307261001
 
 // Time-only forms
 
@@ -7892,7 +7893,7 @@ Wed Jul 22 16:04:54 2016
 1469228694000 === 1469228694000
 
 Total: 76
-Accepted: 29
-Rejected: 47
+Accepted: 30
+Rejected: 46
 Failed: 0
 

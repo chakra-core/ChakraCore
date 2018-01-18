@@ -33,8 +33,9 @@ void Indent() {
 }
 
 void Dedent() {
-  if (indent)
+  if (indent) {
     --indent;
+  }
   Fill();
 }
 

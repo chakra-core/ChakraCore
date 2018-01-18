@@ -82,7 +82,7 @@
 
 namespace wabt {
 
-WastLexer::WastLexer(std::unique_ptr<LexerSource> source, const char* filename)
+WastLexer::WastLexer(std::unique_ptr<LexerSource> source, string_view filename)
     : source_(std::move(source)),
       line_finder_(source_->Clone()),
       filename_(filename),
@@ -103,13 +103,13 @@ WastLexer::~WastLexer() {
 }
 
 // static
-std::unique_ptr<WastLexer> WastLexer::CreateFileLexer(const char* filename) {
+std::unique_ptr<WastLexer> WastLexer::CreateFileLexer(string_view filename) {
   std::unique_ptr<LexerSource> source(new LexerSourceFile(filename));
   return std::unique_ptr<WastLexer>(new WastLexer(std::move(source), filename));
 }
 
 // static
-std::unique_ptr<WastLexer> WastLexer::CreateBufferLexer(const char* filename,
+std::unique_ptr<WastLexer> WastLexer::CreateBufferLexer(string_view filename,
                                                         const void* data,
                                                         size_t size) {
   std::unique_ptr<LexerSource> source(new LexerSourceBuffer(data, size));
@@ -129,8 +129,9 @@ std::string WastLexer::GetText(size_t offset) {
 }
 
 Result WastLexer::Fill(size_t need) {
-  if (eof_)
+  if (eof_) {
     return Result::Error;
+  }
   size_t free = next_pos_ - buffer_;
   assert(static_cast<size_t>(cursor_ - buffer_) >= free);
   // Our buffer is too small, need to realloc.
@@ -146,8 +147,9 @@ Result WastLexer::Fill(size_t need) {
       new_buffer_size *= 2;
 
     char* new_buffer = new char[new_buffer_size];
-    if (limit_ > next_pos_)
+    if (limit_ > next_pos_) {
       memmove(new_buffer, next_pos_, limit_ - next_pos_);
+    }
     buffer_ = new_buffer;
     buffer_size_ = new_buffer_size;
     next_pos_ = new_buffer + (next_pos_ - old_buffer) - free;
@@ -159,8 +161,9 @@ Result WastLexer::Fill(size_t need) {
     delete[] old_buffer;
   } else {
     // Shift everything down to make more room in the buffer.
-    if (limit_ > next_pos_)
+    if (limit_ > next_pos_) {
       memmove(buffer_, next_pos_, limit_ - next_pos_);
+    }
     next_pos_ -= free;
     marker_ -= free;
     cursor_ -= free;
@@ -252,6 +255,7 @@ Token WastLexer::GetToken(WastParser* parser) {
       <i> "i64"                 { RETURN_TYPE(ValueType, I64); }
       <i> "f32"                 { RETURN_TYPE(ValueType, F32); }
       <i> "f64"                 { RETURN_TYPE(ValueType, F64); }
+      <i> "v128"                { RETURN_TYPE(ValueType, V128); }
       <i> "anyfunc"             { RETURN(Anyfunc); }
       <i> "mut"                 { RETURN(Mut); }
       <i> "nop"                 { RETURN_OPCODE0(Nop); }
@@ -443,6 +447,9 @@ Token WastLexer::GetToken(WastParser* parser) {
       <i> "current_memory"      { RETURN_OPCODE0(CurrentMemory); }
       <i> "grow_memory"         { RETURN_OPCODE0(GrowMemory); }
 
+      <i> "i32.atomic.wait"     { RETURN_OPCODE(AtomicWait, I32AtomicWait); }
+      <i> "i64.atomic.wait"     { RETURN_OPCODE(AtomicWait, I64AtomicWait); }
+      <i> "atomic.wake"         { RETURN_OPCODE0(AtomicWake); }
       <i> "i32.atomic.load"     { RETURN_OPCODE(AtomicLoad, I32AtomicLoad); }
       <i> "i64.atomic.load"     { RETURN_OPCODE(AtomicLoad, I64AtomicLoad); }
       <i> "i32.atomic.load8_u"  { RETURN_OPCODE(AtomicLoad, I32AtomicLoad8U); }
@@ -506,6 +513,13 @@ Token WastLexer::GetToken(WastParser* parser) {
       <i> "i64.atomic.rmw8_u.cmpxchg"  { RETURN_OPCODE(AtomicRmwCmpxchg, I64AtomicRmw8UCmpxchg); }
       <i> "i64.atomic.rmw16_u.cmpxchg" { RETURN_OPCODE(AtomicRmwCmpxchg, I64AtomicRmw16UCmpxchg); }
       <i> "i64.atomic.rmw32_u.cmpxchg" { RETURN_OPCODE(AtomicRmwCmpxchg, I64AtomicRmw32UCmpxchg); }
+      <i> "v128.const"           { RETURN_OPCODE(Const, V128Const); }
+      <i> "i8x16.splat"          { RETURN_OPCODE(Unary, I8X16Splat); }
+      <i> "i16x8.splat"          { RETURN_OPCODE(Unary, I16X8Splat); }
+      <i> "i32x4.splat"          { RETURN_OPCODE(Unary, I32X4Splat); }
+      <i> "i64x2.splat"          { RETURN_OPCODE(Unary, I64X2Splat); }
+      <i> "f32x4.splat"          { RETURN_OPCODE(Unary, F32X4Splat); }
+      <i> "f64x2.splat"          { RETURN_OPCODE(Unary, F64X2Splat); }
 
       <i> "type"                { RETURN(Type); }
       <i> "func"                { RETURN(Func); }
@@ -549,8 +563,9 @@ Token WastLexer::GetToken(WastParser* parser) {
       <LINE_COMMENT> [^\n]+     { continue; }
       <i> "(;" => BLOCK_COMMENT { COMMENT_NESTING = 1; continue; }
       <BLOCK_COMMENT> "(;"      { COMMENT_NESTING++; continue; }
-      <BLOCK_COMMENT> ";)"      { if (--COMMENT_NESTING == 0)
+      <BLOCK_COMMENT> ";)"      { if (--COMMENT_NESTING == 0) {
                                     BEGIN(YYCOND_i);
+                                  }
                                   continue; }
       <BLOCK_COMMENT> "\n"      { NEWLINE; continue; }
       <BLOCK_COMMENT> [^]       { continue; }

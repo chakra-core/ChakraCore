@@ -134,8 +134,9 @@ public:
             void            GenerateFastCmXxR8(IR::Instr *instr);
             void            GenerateFastCmXx(IR::Instr *instr);
             IR::Instr *     GenerateConvBool(IR::Instr *instr);
-            void            GenerateFastDivByPow2(IR::Instr *instr);
+            void            GenerateFastDivByPow2(IR::Instr *instrDiv);
             bool            GenerateFastAdd(IR::Instr * instrAdd);
+            bool            GenerateFastDiv(IR::Instr* instr);
 #if DBG
             static void     GenerateDebugBreak( IR::Instr * insertInstr );
 #endif

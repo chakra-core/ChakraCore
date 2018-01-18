@@ -5,14 +5,14 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_extends_i32.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_extends_i32.wast -endargs -wasmSignExtends</compile-flags>
+      <compile-flags>-wasm -args chakra/chakra_extends_i32.wast -endargs -WasmSignExtends</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_extends_i32.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_extends_i32.wast -endargs -nonative -wasmSignExtends</compile-flags>
+      <compile-flags>-wasm -args chakra/chakra_extends_i32.wast -endargs -nonative -WasmSignExtends</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -20,14 +20,14 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_extends_i64.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_extends_i64.wast -endargs -wasmSignExtends</compile-flags>
+      <compile-flags>-wasm -args chakra/chakra_extends_i64.wast -endargs -WasmSignExtends</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_extends_i64.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_extends_i64.wast -endargs -nonative -wasmSignExtends</compile-flags>
+      <compile-flags>-wasm -args chakra/chakra_extends_i64.wast -endargs -nonative -WasmSignExtends</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -1158,6 +1158,21 @@
   </test>
   <test>
     <default>
+      <files>spec.js</files>
+      <baseline>baselines/utf8-invalid-encoding.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/utf8-invalid-encoding.wast -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/utf8-invalid-encoding.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/utf8-invalid-encoding.wast -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>jsapi.js</files>
       <baseline>baselines/jsapi.baseline</baseline>
       <compile-flags>-wasm -args testsuite/js-api/jsapi.js -endargs</compile-flags>
@@ -1175,14 +1190,14 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/extends_i32.baseline</baseline>
-      <compile-flags>-wasm -args features/extends/extends_i32.wast -endargs -wasmSignExtends</compile-flags>
+      <compile-flags>-wasm -args features/extends/extends_i32.wast -endargs -WasmSignExtends</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/extends_i32.baseline</baseline>
-      <compile-flags>-wasm -args features/extends/extends_i32.wast -endargs -nonative -wasmSignExtends</compile-flags>
+      <compile-flags>-wasm -args features/extends/extends_i32.wast -endargs -nonative -WasmSignExtends</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -1190,14 +1205,14 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/extends_i64.baseline</baseline>
-      <compile-flags>-wasm -args features/extends/extends_i64.wast -endargs -wasmSignExtends</compile-flags>
+      <compile-flags>-wasm -args features/extends/extends_i64.wast -endargs -WasmSignExtends</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/extends_i64.baseline</baseline>
-      <compile-flags>-wasm -args features/extends/extends_i64.wast -endargs -nonative -wasmSignExtends</compile-flags>
+      <compile-flags>-wasm -args features/extends/extends_i64.wast -endargs -nonative -WasmSignExtends</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>

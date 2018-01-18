@@ -42,11 +42,11 @@ public:
     void Clear();
 
     TEmitBufferAllocation* AllocateBuffer(DECLSPEC_GUARD_OVERFLOW __in size_t bytes, __deref_bcount(bytes) BYTE** ppBuffer, ushort pdataCount = 0, ushort xdataSize = 0, bool canAllocInPreReservedHeapPageSegment = false, bool isAnyJittedCode = false);
-    bool CommitBuffer(TEmitBufferAllocation* allocation, __out_bcount(bytes) BYTE* destBuffer, __in size_t bytes, __in_bcount(bytes) const BYTE* sourceBuffer, __in DWORD alignPad = 0);
+    bool CommitBuffer(TEmitBufferAllocation* allocation, __in const size_t destBufferBytes, __out_bcount(destBufferBytes) BYTE* destBuffer, __in size_t bytes, __in_bcount(bytes) const BYTE* sourceBuffer, __in DWORD alignPad = 0);
     bool ProtectBufferWithExecuteReadWriteForInterpreter(TEmitBufferAllocation* allocation);
     bool CommitBufferForInterpreter(TEmitBufferAllocation* allocation, _In_reads_bytes_(bufferSize) BYTE* pBuffer, _In_ size_t bufferSize);
     void CompletePreviousAllocation(TEmitBufferAllocation* allocation);
-    bool FreeAllocation(void* address);
+    bool FreeAllocation(void* address, void** functionTable);
     //Ends here
 
     bool IsInHeap(void* address);

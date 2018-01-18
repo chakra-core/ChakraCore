@@ -2761,31 +2761,9 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         }
     }
 
-    if (instr->HasBailOutInfo() && !this->IsLoopPrePass())
+    if (CurrentBlockData()->capturedValuesCandidate && !this->IsLoopPrePass())
     {
-        GlobOptBlockData * globOptData = CurrentBlockData();
-        globOptData->changedSyms->ClearAll();
-
-        if (!this->changedSymsAfterIncBailoutCandidate->IsEmpty())
-        {
-            //
-            // some symbols are changed after the values for current bailout have been
-            // captured (GlobOpt::CapturedValues), need to restore such symbols as changed
-            // for following incremental bailout construction, or we will miss capturing
-            // values for later bailout
-            //
-
-            // swap changedSyms and changedSymsAfterIncBailoutCandidate
-            // because both are from this->alloc
-            BVSparse<JitArenaAllocator> * tempBvSwap = globOptData->changedSyms;
-            globOptData->changedSyms = this->changedSymsAfterIncBailoutCandidate;
-            this->changedSymsAfterIncBailoutCandidate = tempBvSwap;
-        }
-
-        globOptData->capturedValues = globOptData->capturedValuesCandidate;
-
-        // null out capturedValuesCandicate to stop tracking symbols change for it
-        globOptData->capturedValuesCandidate = nullptr;
+        this->CommitCapturedValuesCandidate();
     }
 
     return instrNext;
@@ -2858,7 +2836,7 @@ GlobOpt::OptTagChecks(IR::Instr *instr)
 
             if (valueType.CanBeTaggedValue() &&
                 !valueType.HasBeenNumber() &&
-                (this->IsLoopPrePass() || !this->currentBlock->loop))
+                !this->IsLoopPrePass())
             {
                 ValueType newValueType = valueType.SetCanBeTaggedValue(false);
 
@@ -2882,7 +2860,16 @@ GlobOpt::OptTagChecks(IR::Instr *instr)
                 bailOutInstr->SetSrc1(srcOpnd);
                 bailOutInstr->GetSrc1()->SetValueType(valueType);
                 instr->InsertBefore(bailOutInstr);
-
+                if (this->currentBlock->loop)
+                {
+                    // Try hoisting the BailOnNotObject instr.
+                    // But since this isn't the current instr being optimized, we need to play tricks with
+                    // the byteCodeUse fields...
+                    TrackByteCodeUsesForInstrAddedInOptInstr(bailOutInstr, [&]()
+                    {
+                        TryHoistInvariant(bailOutInstr, this->currentBlock, nullptr, value, nullptr, true, false, false, IR::BailOutOnTaggedValue);
+                    });
+                }
                 if (symOpnd)
                 {
                     symOpnd->SetPropertyOwnerValueType(newValueType);
@@ -2908,7 +2895,7 @@ GlobOpt::TypeSpecializeBailoutExpectedInteger(IR::Instr* instr, Value* src1Val, 
     {
         if (!src1Val || !src1Val->GetValueInfo()->IsLikelyInt() || instr->GetSrc1()->AsRegOpnd()->m_sym->m_isNotInt)
         {
-            Assert(IsSwitchOptEnabled());
+            Assert(IsSwitchOptEnabledForIntTypeSpec());
             throw Js::RejitException(RejitReason::DisableSwitchOptExpectingInteger);
         }
 
@@ -3987,25 +3974,10 @@ GlobOpt::CopyPropReplaceOpnd(IR::Instr * instr, IR::Opnd * opnd, StackSym * copy
                     // Try hoisting this checkObjType.
                     // But since this isn't the current instr being optimized, we need to play tricks with
                     // the byteCodeUse fields...
-                    BVSparse<JitArenaAllocator> *currentBytecodeUses = this->byteCodeUses;
-                    PropertySym * currentPropertySymUse = this->propertySymUse;
-                    PropertySym * tempPropertySymUse = NULL;
-                    this->byteCodeUses = NULL;
-                    BVSparse<JitArenaAllocator> *tempByteCodeUse = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
-#if DBG
-                    BVSparse<JitArenaAllocator> *currentBytecodeUsesBeforeOpt = this->byteCodeUsesBeforeOpt;
-                    this->byteCodeUsesBeforeOpt = tempByteCodeUse;
-#endif
-                    this->propertySymUse = NULL;
-                    GlobOpt::TrackByteCodeSymUsed(checkObjTypeInstr, tempByteCodeUse, &tempPropertySymUse);
-
-                    TryHoistInvariant(checkObjTypeInstr, this->currentBlock, NULL, CurrentBlockData()->FindValue(copySym), NULL, true);
-
-                    this->byteCodeUses = currentBytecodeUses;
-                    this->propertySymUse = currentPropertySymUse;
-#if DBG
-                    this->byteCodeUsesBeforeOpt = currentBytecodeUsesBeforeOpt;
-#endif
+                    TrackByteCodeUsesForInstrAddedInOptInstr(checkObjTypeInstr, [&]()
+                    {
+                        TryHoistInvariant(checkObjTypeInstr, this->currentBlock, NULL, CurrentBlockData()->FindValue(copySym), NULL, true);
+                    });
                 }
             }
         }
@@ -4598,11 +4570,7 @@ void
 GlobOpt::SetSymStoreDirect(ValueInfo * valueInfo, Sym * sym)
 {
     Sym * prevSymStore = valueInfo->GetSymStore();
-    if (prevSymStore && prevSymStore->IsStackSym() &&
-        prevSymStore->AsStackSym()->HasByteCodeRegSlot())
-    {
-        CurrentBlockData()->SetChangedSym(prevSymStore->m_id);
-    }
+    CurrentBlockData()->SetChangedSym(prevSymStore);
     valueInfo->SetSymStore(sym);
 }
 
@@ -7114,6 +7082,18 @@ GlobOpt::OptConstFoldUnary(
             this->ToFloat64Dst(instr, dst->AsRegOpnd(), this->currentBlock);
         }
     }
+
+    // If this is an induction variable, then treat it the way the prepass would have if it had seen
+    // the assignment and the resulting change to the value number, and mark it as indeterminate.
+    for (Loop * loop = this->currentBlock->loop; loop; loop = loop->parent)
+    {
+        InductionVariable *iv = nullptr;
+        if (loop->inductionVariables && loop->inductionVariables->TryGetReference(dstSym->m_id, &iv))
+        {
+            iv->SetChangeIsIndeterminate();
+        }
+    }
+
     return true;
 }
 
@@ -11359,7 +11339,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                         // restarted with aggressive int type specialization disabled.
                         if(bailOutKind == IR::BailOutExpectingInteger)
                         {
-                            Assert(IsSwitchOptEnabled());
+                            Assert(IsSwitchOptEnabledForIntTypeSpec());
                             throw Js::RejitException(RejitReason::DisableSwitchOptExpectingInteger);
                         }
                         else
@@ -11703,7 +11683,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                     // need to bail out.
                     if (bailOutKind == IR::BailOutExpectingInteger)
                     {
-                        Assert(IsSwitchOptEnabled());
+                        Assert(IsSwitchOptEnabledForIntTypeSpec());
                     }
                     else
                     {
@@ -12435,6 +12415,17 @@ GlobOpt::OptConstFoldBinary(
     {
         instr->m_opcode = Js::OpCode::Ld_I4;
         this->ToInt32Dst(instr, dst->AsRegOpnd(), this->currentBlock);
+    }
+
+    // If this is an induction variable, then treat it the way the prepass would have if it had seen
+    // the assignment and the resulting change to the value number, and mark it as indeterminate.
+    for (Loop * loop = this->currentBlock->loop; loop; loop = loop->parent)
+    {
+        InductionVariable *iv = nullptr;
+        if (loop->inductionVariables && loop->inductionVariables->TryGetReference(dstSym->m_id, &iv))
+        {
+            iv->SetChangeIsIndeterminate();
+        }
     }
 
     return true;
@@ -15421,6 +15412,37 @@ GlobOptBlockData * GlobOpt::CurrentBlockData()
     return &this->currentBlock->globOptData;
 }
 
+void GlobOpt::CommitCapturedValuesCandidate()
+{
+    GlobOptBlockData * globOptData = CurrentBlockData();
+    globOptData->changedSyms->ClearAll();
+
+    if (!this->changedSymsAfterIncBailoutCandidate->IsEmpty())
+    {
+        //
+        // some symbols are changed after the values for current bailout have been
+        // captured (GlobOpt::CapturedValues), need to restore such symbols as changed
+        // for following incremental bailout construction, or we will miss capturing
+        // values for later bailout
+        //
+
+        // swap changedSyms and changedSymsAfterIncBailoutCandidate
+        // because both are from this->alloc
+        BVSparse<JitArenaAllocator> * tempBvSwap = globOptData->changedSyms;
+        globOptData->changedSyms = this->changedSymsAfterIncBailoutCandidate;
+        this->changedSymsAfterIncBailoutCandidate = tempBvSwap;
+    }
+
+    if (globOptData->capturedValues)
+    {
+        globOptData->capturedValues->DecrementRefCount();
+    }
+    globOptData->capturedValues = globOptData->capturedValuesCandidate;
+
+    // null out capturedValuesCandidate to stop tracking symbols change for it
+    globOptData->capturedValuesCandidate = nullptr;
+}
+
 bool
 GlobOpt::IsOperationThatLikelyKillsJsArraysWithNoMissingValues(IR::Instr *const instr)
 {
@@ -16733,12 +16755,7 @@ GlobOpt::OptHoistInvariant(
         EnsureBailTarget(loop);
 
         // Copy bailout info of loop top.
-        if (instr->ReplaceBailOutInfo(loop->bailOutInfo))
-        {
-            // if the old bailout is deleted, reset capturedvalues cached in block
-            block->globOptData.capturedValues = nullptr;
-            block->globOptData.capturedValuesCandidate = nullptr;
-        }
+        instr->ReplaceBailOutInfo(loop->bailOutInfo);
     }
 
     if(!dst)
@@ -17160,7 +17177,7 @@ GlobOpt::HoistInvariantValueInfo(
         newValueInfo = invariantValueInfoToHoist->Copy(alloc);
         this->SetSymStoreDirect(newValueInfo, symStore);
     }
-    ChangeValueInfo(targetBlock, valueToUpdate, newValueInfo);
+    ChangeValueInfo(targetBlock, valueToUpdate, newValueInfo, true);
 }
 
 // static
@@ -17181,8 +17198,13 @@ bool
 GlobOpt::IsSwitchOptEnabled(Func const * func)
 {
     Assert(func->IsTopFunc());
-    return !PHASE_OFF(Js::SwitchOptPhase, func) && !func->IsSwitchOptDisabled() && !IsTypeSpecPhaseOff(func)
-        && DoAggressiveIntTypeSpec(func) && func->DoGlobOpt();
+    return !PHASE_OFF(Js::SwitchOptPhase, func) && !func->IsSwitchOptDisabled() && func->DoGlobOpt();
+}
+
+bool
+GlobOpt::IsSwitchOptEnabledForIntTypeSpec(Func const * func)
+{
+    return IsSwitchOptEnabled(func) && !IsTypeSpecPhaseOff(func) && DoAggressiveIntTypeSpec(func);
 }
 
 bool

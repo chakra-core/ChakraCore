@@ -25,10 +25,12 @@
 #if COMPILER_IS_MSVC
 int wabt_vsnprintf(char* str, size_t size, const char* format, va_list ap) {
   int result = -1;
-  if (size != 0)
+  if (size != 0) {
     result = _vsnprintf_s(str, size, _TRUNCATE, format, ap);
-  if (result == -1)
+  }
+  if (result == -1) {
     result = _vscprintf(format, ap);
+  }
   return result;
 }
 

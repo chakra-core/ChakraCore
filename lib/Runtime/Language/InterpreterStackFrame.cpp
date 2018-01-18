@@ -1746,6 +1746,50 @@ namespace Js
 #pragma optimize("", on)
 #endif
 
+    const bool InterpreterStackFrame::ShouldDoProfile(FunctionBody* executeFunction)
+    {
+#if ENABLE_PROFILE_INFO
+        const bool doProfile = executeFunction->GetInterpreterExecutionMode(false) == ExecutionMode::ProfilingInterpreter ||
+            (executeFunction->IsInDebugMode() && DynamicProfileInfo::IsEnabled(executeFunction));
+        return doProfile;
+#else
+        return false;
+#endif
+    }
+
+    InterpreterStackFrame* InterpreterStackFrame::CreateInterpreterStackFrameForGenerator(ScriptFunction* function, FunctionBody* executeFunction, JavascriptGenerator* generator, bool doProfile)
+    {
+        //
+        // Allocate a new InterpreterStackFrame instance on the recycler heap.
+        // It will live with the JavascriptGenerator object.
+        //
+        ScriptContext* functionScriptContext = function->GetScriptContext();
+        Arguments generatorArgs = generator->GetArguments();
+        InterpreterStackFrame::Setup setup(function, generatorArgs);
+        size_t varAllocCount = setup.GetAllocationVarCount();
+        size_t varSizeInBytes = varAllocCount * sizeof(Var);
+        DWORD_PTR stackAddr = reinterpret_cast<DWORD_PTR>(&generator); // use any stack address from this frame to ensure correct debugging functionality
+        LoopHeader* loopHeaderArray = executeFunction->GetHasAllocatedLoopHeaders() ? executeFunction->GetLoopHeaderArrayPtr() : nullptr;
+
+        Var* allocation = RecyclerNewPlus(functionScriptContext->GetRecycler(), varSizeInBytes, Var);
+        AnalysisAssert(allocation);
+        InterpreterStackFrame* newInstance;
+#if DBG
+        // Allocate invalidVar on GC instead of stack since this InterpreterStackFrame will out live the current real frame
+        Js::RecyclableObject* invalidVar = (Js::RecyclableObject*)RecyclerNewPlusLeaf(functionScriptContext->GetRecycler(), sizeof(Js::RecyclableObject), Var);
+        AnalysisAssert(invalidVar);
+        memset(reinterpret_cast<void*>(invalidVar), 0xFE, sizeof(Js::RecyclableObject));
+        newInstance = setup.InitializeAllocation(allocation, executeFunction->GetHasImplicitArgIns(), doProfile, loopHeaderArray, stackAddr, invalidVar);
+#else
+        newInstance = setup.InitializeAllocation(allocation, executeFunction->GetHasImplicitArgIns(), doProfile, loopHeaderArray, stackAddr);
+#endif
+
+        newInstance->m_reader.Create(executeFunction);
+
+        generator->SetFrame(newInstance, varSizeInBytes);
+        return newInstance;
+    }
+
     Var InterpreterStackFrame::InterpreterHelper(ScriptFunction* function, ArgumentReader args, void* returnAddress, void* addressOfReturnAddress, AsmJsReturnStruct* asmJsReturn)
     {
         const bool isAsmJs = asmJsReturn != nullptr;
@@ -1823,8 +1867,7 @@ namespace Js
 
 #if ENABLE_PROFILE_INFO
         DynamicProfileInfo * dynamicProfileInfo = nullptr;
-        const bool doProfile = executeFunction->GetInterpreterExecutionMode(false) == ExecutionMode::ProfilingInterpreter ||
-                               (executeFunction->IsInDebugMode() && DynamicProfileInfo::IsEnabled(executeFunction));
+        const bool doProfile = ShouldDoProfile(executeFunction);
         if (doProfile)
         {
 #if !DYNAMIC_INTERPRETER_THUNK
@@ -1850,7 +1893,6 @@ namespace Js
 
         bool fReleaseAlloc = false;
         InterpreterStackFrame* newInstance = nullptr;
-        Var* allocation = nullptr;
 
         if (!isAsmJs && executeFunction->IsCoroutine())
         {
@@ -1876,32 +1918,7 @@ namespace Js
             }
             else
             {
-                //
-                // Allocate a new InterpreterStackFrame instance on the recycler heap.
-                // It will live with the JavascriptGenerator object.
-                //
-                Arguments generatorArgs = generator->GetArguments();
-                InterpreterStackFrame::Setup setup(function, generatorArgs);
-                size_t varAllocCount = setup.GetAllocationVarCount();
-                size_t varSizeInBytes = varAllocCount * sizeof(Var);
-                DWORD_PTR stackAddr = reinterpret_cast<DWORD_PTR>(&generator); // as mentioned above, use any stack address from this frame to ensure correct debugging functionality
-                LoopHeader* loopHeaderArray = executeFunction->GetHasAllocatedLoopHeaders() ? executeFunction->GetLoopHeaderArrayPtr() : nullptr;
-
-                allocation = RecyclerNewPlus(functionScriptContext->GetRecycler(), varSizeInBytes, Var);
-                AnalysisAssert(allocation);
-#if DBG
-                // Allocate invalidVar on GC instead of stack since this InterpreterStackFrame will out live the current real frame
-                Js::RecyclableObject* invalidVar = (Js::RecyclableObject*)RecyclerNewPlusLeaf(functionScriptContext->GetRecycler(), sizeof(Js::RecyclableObject), Var);
-                AnalysisAssert(invalidVar);
-                memset(reinterpret_cast<void*>(invalidVar), 0xFE, sizeof(Js::RecyclableObject));
-                newInstance = setup.InitializeAllocation(allocation, executeFunction->GetHasImplicitArgIns(), doProfile, loopHeaderArray, stackAddr, invalidVar);
-#else
-                newInstance = setup.InitializeAllocation(allocation, executeFunction->GetHasImplicitArgIns(), doProfile, loopHeaderArray, stackAddr);
-#endif
-
-                newInstance->m_reader.Create(executeFunction);
-
-                generator->SetFrame(newInstance, varSizeInBytes);
+                newInstance = CreateInterpreterStackFrameForGenerator(function, executeFunction, generator, doProfile);
             }
         }
         else
@@ -1914,6 +1931,8 @@ namespace Js
             // Allocate a new InterpreterStackFrame instance on the interpreter's virtual stack.
             //
             DWORD_PTR stackAddr;
+
+            Var* allocation;
 
             // If the locals area exceeds a certain limit, allocate it from a private arena rather than
             // this frame. The current limit is based on an old assert on the number of locals we would allow here.
@@ -3013,7 +3032,7 @@ namespace Js
         // Move the arguments to the right location
         ArgSlot argCount = info->GetArgCount();
 
-#if _M_X64
+#if _M_X64 && _WIN32
         uint homingAreaSize = 0;
 #endif
 
@@ -3032,7 +3051,7 @@ namespace Js
         uintptr_t argAddress = (uintptr_t)m_inParams;
         for (ArgSlot i = 0; i < argCount; i++)
         {
-#if _M_X64
+#if _M_X64 && _WIN32
             // 3rd Argument should be at the end of the homing area.
             Assert(i != 3 || argAddress == (uintptr_t)m_inParams + homingAreaSize);
             if (i < 3)
@@ -3053,12 +3072,7 @@ namespace Js
                 // IAT xmm2 spill
                 // IAT xmm1 spill <- floatSpillAddress for arg1
 
-#ifdef _WIN32
 #define FLOAT_SPILL_ADDRESS_OFFSET_WORDS 15
-#else
-// On Sys V x64 we have 4 words less (4 reg shadow)
-#define FLOAT_SPILL_ADDRESS_OFFSET_WORDS 11
-#endif
                 // floats are spilled as xmmwords
                 uintptr_t floatSpillAddress = (uintptr_t)m_inParams - MachPtr * (FLOAT_SPILL_ADDRESS_OFFSET_WORDS - 2*i);
 
@@ -3761,17 +3775,17 @@ namespace Js
         AsmJsScriptFunction* scriptFunc = AsmJsScriptFunction::FromVar(function);
         AsmJsFunctionInfo* asmInfo = scriptFunc->GetFunctionBody()->GetAsmJsFunctionInfo();
         uint alignedArgsSize = ::Math::Align<uint32>(asmInfo->GetArgByteSize(), 16);
-#if _M_X64
+#if _M_X64 && _WIN32
         // convention is to always allocate spill space for rcx,rdx,r8,r9
         if (alignedArgsSize < 0x20) alignedArgsSize = 0x20;
+        uint* argSizes = asmInfo->GetArgsSizesArray();
+        Assert(asmInfo->GetArgSizeArrayLength() >= 2);
+        byte* curOutParams = (byte*)m_outParams + sizeof(Var);
+        Assert(curOutParams + argSizes[0] + argSizes[1] + 16 <= (byte*)this->m_outParamsEnd);
 
         // Prepare in advance the possible arguments that will need to be put in register
         byte _declspec(align(16)) reg[3 * 16];
-        uint* argSizes = asmInfo->GetArgsSizesArray();
-        Assert(asmInfo->GetArgSizeArrayLength() >= 2);
         CompileAssert((FunctionBody::MinAsmJsOutParams() * sizeof(Var)) == (sizeof(Var) * 2 + sizeof(reg)));
-        byte* curOutParams = (byte*)m_outParams + sizeof(Var);
-        Assert(curOutParams + argSizes[0] + argSizes[1] + 16 <= (byte*)this->m_outParamsEnd);
         js_memcpy_s(reg, 16, curOutParams, 16);
         js_memcpy_s(reg + 16, 16, curOutParams + argSizes[0], 16);
         js_memcpy_s(reg + 32, 16, curOutParams + argSizes[0] + argSizes[1], 16);

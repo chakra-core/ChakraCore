@@ -22,10 +22,10 @@ WPT_URL_PREFIX = '/resources'
 
 # Helpers.
 def run(*cmd):
-    return subprocess.run(cmd,
-                          stdout=subprocess.PIPE,
-                          stderr=subprocess.STDOUT,
-                          universal_newlines=True)
+    return subprocess.call(cmd,
+                           stdout=subprocess.PIPE,
+                           stderr=subprocess.STDOUT,
+                           universal_newlines=True)
 
 # Preconditions.
 def ensure_remove_dir(path):
@@ -38,8 +38,8 @@ def ensure_empty_dir(path):
 
 def compile_wasm_interpreter():
     print("Recompiling the wasm interpreter...")
-    result = run('make', '-C', INTERPRETER_DIR)
-    if result.returncode != 0:
+    result = run('make', '-C', INTERPRETER_DIR, 'clean', 'default')
+    if result != 0:
         print("Couldn't recompile wasm spec interpreter")
         sys.exit(1)
     print("Done!")
@@ -49,7 +49,7 @@ def ensure_wasm_executable(path_to_wasm):
     Ensure we have built the wasm spec interpreter.
     """
     result = run(path_to_wasm, '-v', '-e', '')
-    if result.returncode != 0:
+    if result != 0:
         print('Unable to run the wasm executable')
         sys.exit(1)
 
@@ -75,7 +75,7 @@ def convert_wast_to_js(out_js_dir):
 
     pool = mp.Pool(processes=8)
     for result in pool.imap_unordered(convert_one_wast_file, inputs):
-        if result.returncode != 0:
+        if result != 0:
             print('Error when compiling {} to JS: {}', wast_file, result.stdout)
 
 def build_js(out_js_dir, include_harness=False):

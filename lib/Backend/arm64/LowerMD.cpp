@@ -2474,7 +2474,11 @@ LowererMD::LoadFunctionObjectOpnd(IR::Instr *instr, IR::Opnd *&functionObjOpnd)
 
     return instrPrev;
 }
-
+bool
+LowererMD::GenerateFastDiv(IR::Instr *instrDiv)
+{
+    return false;
+}
 void
 LowererMD::GenerateFastDivByPow2(IR::Instr *instrDiv)
 {

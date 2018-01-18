@@ -1,0 +1,7 @@
+function (argMath6) {
+      var func6 = () => {
+        strvar7 = (strvar2 + (this.prop0 %= 2131692238)).replace('-%X)P#*%T:+$+%!', '-%X)P#*%T:+$+%!').concat(typeof this.prop1 == 'undefined');
+        return (argMath8 <= arguments[(argMath8 >= 0 ? argMath8 : 0) & 15]);
+      };
+      strvar5 = new.target;
+    }

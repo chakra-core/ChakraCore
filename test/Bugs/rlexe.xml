@@ -310,12 +310,7 @@
     <default>
       <files>misc_bugs.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>misc_bugs.js</files>
-      <compile-flags>-args summary -endargs</compile-flags>
+      <tags>Slow</tags>
     </default>
   </test>
   <test>
@@ -418,6 +413,19 @@
     <default>
       <files>profiledArgs.js</files>
       <compile-flags>-off:inlineConstructors</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug14323330.js</files>
+      <tags>BugFix</tags>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug13830477.js</files>
+      <baseline>bug13830477.baseline</baseline>
     </default>
   </test>
 </regress-exe>

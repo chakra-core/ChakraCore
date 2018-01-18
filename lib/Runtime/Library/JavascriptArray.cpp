@@ -8679,38 +8679,7 @@ Case0:
         // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
         CallFlags flags = CallFlags_Value;
 
-        if (pArr)
-        {
-            Assert(length <= UINT_MAX);
-            for (uint32 k = 0; k < (uint32)length; k++)
-            {
-                JS_REENTRANT(jsReentLock, BOOL gotItem = pArr->DirectGetItemAtFull(k, &element));
-                if (!gotItem)
-                {
-                    continue;
-                }
-
-                JS_REENTRANT(jsReentLock,
-                    testResult = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 4), thisArg,
-                        element,
-                        JavascriptNumber::ToVar(k, scriptContext),
-                        pArr));
-
-                if (!JavascriptConversion::ToBoolean(testResult, scriptContext))
-                {
-                    return scriptContext->GetLibrary()->GetFalse();
-                }
-
-                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
-                // we will process the rest of the array elements like an ES5Array.
-                if (!JavascriptArray::Is(obj))
-                {
-                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
-                    JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::EveryObjectHelper<T>(obj, length, k + 1, callBackFn, thisArg, scriptContext));
-                }
-            }
-        }
-        else if (typedArrayBase)
+        if (typedArrayBase)
         {
             AssertAndFailFast(TypedArrayBase::Is(typedArrayBase));
             uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
@@ -8852,38 +8821,7 @@ Case0:
         Var element = nullptr;
         Var testResult = nullptr;
 
-        if (pArr)
-        {
-            Assert(length <= UINT_MAX);
-            for (uint32 k = 0; k < (uint32)length; k++)
-            {
-                JS_REENTRANT(jsReentLock, BOOL gotItem = pArr->DirectGetItemAtFull(k, &element));
-                if (!gotItem)
-                {
-                    continue;
-                }
-
-                JS_REENTRANT_UNLOCK(jsReentLock,
-                    testResult = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 4), thisArg,
-                        element,
-                        JavascriptNumber::ToVar(k, scriptContext),
-                        pArr));
-
-                if (JavascriptConversion::ToBoolean(testResult, scriptContext))
-                {
-                    return scriptContext->GetLibrary()->GetTrue();
-                }
-
-                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
-                // we will process the rest of the array elements like an ES5Array.
-                if (!JavascriptArray::Is(obj))
-                {
-                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
-                    JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::SomeObjectHelper<T>(obj, length, k + 1, callBackFn, thisArg, scriptContext));
-                }
-            }
-        }
-        else if (typedArrayBase)
+        if (typedArrayBase)
         {
             AssertAndFailFast(TypedArrayBase::Is(typedArrayBase));
             uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
@@ -9103,7 +9041,14 @@ Case0:
         if (isTypedArrayEntryPoint)
         {
             Assert(typedArrayBase);
-            Assert(length == typedArrayBase->GetLength());
+
+            // Re-validate the typed array, which could have become detached due to reentrant script.
+            if (typedArrayBase->IsDetachedBuffer())
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.copyWithin"));
+            }
+
+            AssertOrFailFast(length == typedArrayBase->GetLength());
 
             uint32 bytesPerElement = typedArrayBase->GetBytesPerElement();
             byte *buffer = typedArrayBase->GetByteBuffer();
@@ -9111,8 +9056,9 @@ Case0:
             size_t toByteIndex = static_cast<size_t>(toVal) * bytesPerElement;
             size_t byteCount = static_cast<size_t>(count) * bytesPerElement;
 
-            Assert(fromByteIndex + byteCount <= typedArrayBase->GetByteLength());
-            Assert(toByteIndex + byteCount <= typedArrayBase->GetByteLength());
+            Assert(typedArrayBase->GetByteLength() >= byteCount);
+            Assert(fromByteIndex <= typedArrayBase->GetByteLength() - byteCount);
+            Assert(toByteIndex <= typedArrayBase->GetByteLength() - byteCount);
 
             memmove(&buffer[toByteIndex], &buffer[fromByteIndex], byteCount);
 
@@ -9698,75 +9644,7 @@ Case0:
             }
         }
 
-        // The ArraySpeciesCreate call above could have converted the source array into an ES5Array. If this happens
-        // we will process the array elements like an ES5Array.
-        if (pArr && !JavascriptArray::Is(obj))
-        {
-            AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
-            pArr = nullptr;
-        }
-
-        Var element = nullptr;
-        Var selected = nullptr;
-
-        if (pArr)
-        {
-            Assert(length <= MaxArrayLength);
-            uint32 i = 0;
-
-            Assert(length <= UINT_MAX);
-            for (uint32 k = 0; k < (uint32)length; k++)
-            {
-                JS_REENTRANT(jsReentLock, BOOL gotItem = pArr->DirectGetItemAtFull(k, &element));
-                if (!gotItem)
-                {
-                    continue;
-                }
-
-                JS_REENTRANT(jsReentLock,
-                    selected = CALL_ENTRYPOINT(scriptContext->GetThreadContext(),
-                        callBackFn->GetEntryPoint(), callBackFn, CallInfo(CallFlags_Value, 4),
-                        thisArg,
-                        element,
-                        JavascriptNumber::ToVar(k, scriptContext),
-                        pArr));
-
-                if (JavascriptConversion::ToBoolean(selected, scriptContext))
-                {
-                    // Try to fast path if the return object is an array
-                    if (newArr && isBuiltinArrayCtor)
-                    {
-                        newArr->DirectSetItemAt(i, element);
-                    }
-                    else
-                    {
-                        JS_REENTRANT(jsReentLock, ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i));
-                    }
-                    ++i;
-                }
-
-                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
-                // we will process the rest of the array elements like an ES5Array.
-                if (!JavascriptArray::Is(obj))
-                {
-                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
-                    JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::FilterObjectHelper<T>(obj, length, k + 1, newArr, newObj, i, callBackFn, thisArg, scriptContext));
-                }
-            }
-        }
-        else
-        {
-            JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::FilterObjectHelper<T>(obj, length, 0u, newArr, newObj, 0u, callBackFn, thisArg, scriptContext));
-        }
-
-#ifdef VALIDATE_ARRAY
-        if (newArr)
-        {
-            newArr->ValidateArray();
-        }
-#endif
-
-        return newObj;
+        JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::FilterObjectHelper<T>(obj, length, 0u, newArr, newObj, 0u, callBackFn, thisArg, scriptContext));
     }
 
     template <typename T>
@@ -9895,29 +9773,7 @@ Case0:
 
             bool bPresent = false;
 
-            if (pArr)
-            {
-                for (; k < length && bPresent == false; k++)
-                {
-                    JS_REENTRANT(jsReentLock, BOOL gotItem = pArr->DirectGetItemAtFull((uint32)k, &element));
-                    if (!gotItem)
-                    {
-                        continue;
-                    }
-
-                    bPresent = true;
-                    accumulator = element;
-                }
-
-                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
-                // we will process the array elements like an ES5Array.
-                if (!JavascriptArray::Is(obj))
-                {
-                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
-                    pArr = nullptr;
-                }
-            }
-            else if (typedArrayBase)
+            if (typedArrayBase)
             {
                 AssertAndFailFast(TypedArrayBase::Is(typedArrayBase));
                 uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
@@ -9957,35 +9813,7 @@ Case0:
         // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
         CallFlags flags = CallFlags_Value;
 
-        if (pArr)
-        {
-            for (; k < length; k++)
-            {
-                JS_REENTRANT(jsReentLock, BOOL gotItem = pArr->DirectGetItemAtFull((uint32)k, &element));
-                if (!gotItem)
-                {
-                    continue;
-                }
-
-                JS_REENTRANT(jsReentLock,
-                    accumulator = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 5),
-                        undefinedValue,
-                        accumulator,
-                        element,
-                        JavascriptNumber::ToVar(k, scriptContext),
-                        pArr
-                ));
-
-                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
-                // we will process the rest of the array elements like an ES5Array.
-                if (!JavascriptArray::Is(obj))
-                {
-                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
-                    JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::ReduceObjectHelper<T>(obj, length, k + 1, callBackFn, accumulator, scriptContext));
-                }
-            }
-        }
-        else if (typedArrayBase)
+        if (typedArrayBase)
         {
             AssertAndFailFast(TypedArrayBase::Is(typedArrayBase));
             uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
@@ -10115,29 +9943,7 @@ Case0:
             }
 
             bool bPresent = false;
-            if (pArr)
-            {
-                for (; k < length && bPresent == false; k++)
-                {
-                    index = length - k - 1;
-                    JS_REENTRANT(jsReentLock, BOOL gotItem = pArr->DirectGetItemAtFull((uint32)index, &element));
-                    if (!gotItem)
-                    {
-                        continue;
-                    }
-                    bPresent = true;
-                    accumulator = element;
-                }
-
-                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
-                // we will process the array elements like an ES5Array.
-                if (!JavascriptArray::Is(obj))
-                {
-                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
-                    pArr = nullptr;
-                }
-            }
-            else if (typedArrayBase)
+            if (typedArrayBase)
             {
                 AssertAndFailFast(TypedArrayBase::Is(typedArrayBase));
                 uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
@@ -10175,34 +9981,7 @@ Case0:
         CallFlags flags = CallFlags_Value;
         Var undefinedValue = scriptContext->GetLibrary()->GetUndefined();
 
-        if (pArr)
-        {
-            for (; k < length; k++)
-            {
-                index = length - k - 1;
-                JS_REENTRANT(jsReentLock, BOOL gotItem = pArr->DirectGetItemAtFull((uint32)index, &element));
-                if (!gotItem)
-                {
-                    continue;
-                }
-
-                JS_REENTRANT(jsReentLock,
-                    accumulator = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 5), undefinedValue,
-                        accumulator,
-                        element,
-                        JavascriptNumber::ToVar(index, scriptContext),
-                        pArr));
-
-                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
-                // we will process the rest of the array elements like an ES5Array.
-                if (!JavascriptArray::Is(obj))
-                {
-                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
-                    JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::ReduceRightObjectHelper<T>(obj, length, k + 1, callBackFn, accumulator, scriptContext));
-                }
-            }
-        }
-        else if (typedArrayBase)
+        if (typedArrayBase)
         {
             AssertAndFailFast(TypedArrayBase::Is(typedArrayBase));
             uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
@@ -11845,28 +11624,59 @@ Case0:
 #endif
 
     template <typename T>
-    void JavascriptArray::InitBoxedInlineHeadSegment(SparseArraySegment<T> * dst, SparseArraySegment<T> * src)
+    void JavascriptArray::InitBoxedInlineSegments(SparseArraySegment<T> * dst, SparseArraySegment<T> * src, bool deepCopy)
     {
         // Don't copy the segment map, we will build it again
         SetFlags(GetFlags() & ~DynamicObjectFlags::HasSegmentMap);
 
         SetHeadAndLastUsedSegment(dst);
 
+        // Copy head segment data
         dst->left = src->left;
         dst->length = src->length;
         dst->size = src->size;
         dst->CheckLengthvsSize();
-        dst->next = src->next;
-
         CopyArray(dst->elements, dst->size, src->elements, src->size);
+
+        if (!deepCopy)
+        {
+            // Without a deep copy, point to the existing next segment
+            dst->next = src->next;
+        }
+        else
+        {
+            // When deepCopy is true, make a separate copy of each segment. While this involves data
+            // duplication, it allows the new object to have a separate lifetime without sharing data.
+            AutoDisableInterrupt failFastError(GetScriptContext()->GetThreadContext());
+            do
+            {
+                if (src->next != nullptr)
+                {
+                    // Allocate a new segment in the destination and copy from src
+                    src = SparseArraySegment<T>::From(src->next);
+
+                    dst->next = dst->AllocateSegment(GetRecycler(), src->left, src->length, src->size, src->next);
+                    dst = SparseArraySegment<T>::From(dst->next);
+
+                    CopyArray(dst->elements, dst->size, src->elements, src->size);
+                }
+                else
+                {
+                    // Terminate the loop
+                    dst->next = nullptr;
+                    dst = nullptr;
+                }
+            } while (dst != nullptr);
+            failFastError.Completed();
+        }
     }
 
-    JavascriptArray::JavascriptArray(JavascriptArray * instance, bool boxHead)
+    JavascriptArray::JavascriptArray(JavascriptArray * instance, bool boxHead, bool deepCopy)
         : ArrayObject(instance)
     {
         if (boxHead)
         {
-            InitBoxedInlineHeadSegment(DetermineInlineHeadSegmentPointer<JavascriptArray, 0, true>(this), SparseArraySegment<Var>::From(instance->head));
+            InitBoxedInlineSegments(DetermineInlineHeadSegmentPointer<JavascriptArray, 0, true>(this), SparseArraySegment<Var>::From(instance->head), false);
         }
         else
         {
@@ -11878,7 +11688,7 @@ Case0:
     }
 
     template <typename T>
-    T * JavascriptArray::BoxStackInstance(T * instance)
+    T * JavascriptArray::BoxStackInstance(T * instance, bool deepCopy)
     {
         Assert(ThreadContext::IsOnStack(instance));
         // On the stack, the we reserved a pointer before the object as to store the boxed value
@@ -11894,15 +11704,15 @@ Case0:
         {
             boxedInstance = RecyclerNewPlusZ(instance->GetRecycler(),
                 inlineSlotsSize + sizeof(Js::SparseArraySegmentBase) + instance->head->size * sizeof(typename T::TElement),
-                T, instance, true);
+                T, instance, true, deepCopy);
         }
         else if(inlineSlotsSize)
         {
-            boxedInstance = RecyclerNewPlusZ(instance->GetRecycler(), inlineSlotsSize, T, instance, false);
+            boxedInstance = RecyclerNewPlusZ(instance->GetRecycler(), inlineSlotsSize, T, instance, false, false);
         }
         else
         {
-            boxedInstance = RecyclerNew(instance->GetRecycler(), T, instance, false);
+            boxedInstance = RecyclerNew(instance->GetRecycler(), T, instance, false, false);
         }
 
         *boxedInstanceRef = boxedInstance;
@@ -11910,9 +11720,9 @@ Case0:
     }
 
     JavascriptArray *
-    JavascriptArray::BoxStackInstance(JavascriptArray * instance)
+    JavascriptArray::BoxStackInstance(JavascriptArray * instance, bool deepCopy)
     {
-        return BoxStackInstance<JavascriptArray>(instance);
+        return BoxStackInstance<JavascriptArray>(instance, deepCopy);
     }
 
 #if ENABLE_TTD
@@ -11980,17 +11790,17 @@ Case0:
 #endif
 
     JavascriptNativeArray::JavascriptNativeArray(JavascriptNativeArray * instance) :
-        JavascriptArray(instance, false),
+        JavascriptArray(instance, false, false),
         weakRefToFuncBody(instance->weakRefToFuncBody)
     {
     }
 
-    JavascriptNativeIntArray::JavascriptNativeIntArray(JavascriptNativeIntArray * instance, bool boxHead) :
+    JavascriptNativeIntArray::JavascriptNativeIntArray(JavascriptNativeIntArray * instance, bool boxHead, bool deepCopy) :
         JavascriptNativeArray(instance)
     {
         if (boxHead)
         {
-            InitBoxedInlineHeadSegment(DetermineInlineHeadSegmentPointer<JavascriptNativeIntArray, 0, true>(this), SparseArraySegment<int>::From(instance->head));
+            InitBoxedInlineSegments(DetermineInlineHeadSegmentPointer<JavascriptNativeIntArray, 0, true>(this), SparseArraySegment<int>::From(instance->head), deepCopy);
         }
         else
         {
@@ -12001,9 +11811,9 @@ Case0:
     }
 
     JavascriptNativeIntArray *
-    JavascriptNativeIntArray::BoxStackInstance(JavascriptNativeIntArray * instance)
+    JavascriptNativeIntArray::BoxStackInstance(JavascriptNativeIntArray * instance, bool deepCopy)
     {
-        return JavascriptArray::BoxStackInstance<JavascriptNativeIntArray>(instance);
+        return JavascriptArray::BoxStackInstance<JavascriptNativeIntArray>(instance, deepCopy);
     }
 
 #if ENABLE_TTD
@@ -12031,12 +11841,12 @@ Case0:
 #endif
 #endif
 
-    JavascriptNativeFloatArray::JavascriptNativeFloatArray(JavascriptNativeFloatArray * instance, bool boxHead) :
+    JavascriptNativeFloatArray::JavascriptNativeFloatArray(JavascriptNativeFloatArray * instance, bool boxHead, bool deepCopy) :
         JavascriptNativeArray(instance)
     {
         if (boxHead)
         {
-            InitBoxedInlineHeadSegment(DetermineInlineHeadSegmentPointer<JavascriptNativeFloatArray, 0, true>(this), SparseArraySegment<double>::From(instance->head));
+            InitBoxedInlineSegments(DetermineInlineHeadSegmentPointer<JavascriptNativeFloatArray, 0, true>(this), SparseArraySegment<double>::From(instance->head), deepCopy);
         }
         else
         {
@@ -12047,9 +11857,9 @@ Case0:
     }
 
     JavascriptNativeFloatArray *
-    JavascriptNativeFloatArray::BoxStackInstance(JavascriptNativeFloatArray * instance)
+    JavascriptNativeFloatArray::BoxStackInstance(JavascriptNativeFloatArray * instance, bool deepCopy)
     {
-        return JavascriptArray::BoxStackInstance<JavascriptNativeFloatArray>(instance);
+        return JavascriptArray::BoxStackInstance<JavascriptNativeFloatArray>(instance, deepCopy);
     }
 
 #if ENABLE_TTD

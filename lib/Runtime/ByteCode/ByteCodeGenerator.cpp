@@ -1419,6 +1419,11 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
         sym->SetPosition(parseableFunctionInfo->GetOrAddPropertyIdTracked(sym->GetName()));
 
         pnode->sxFnc.SetFuncSymbol(sym);
+
+        if (funcExprScope->GetIsObject())
+        {
+            funcExprScope->SetMustInstantiate(true);
+        }
     }
 
     Scope *paramScope = pnode->sxFnc.pnodeScopes ? pnode->sxFnc.pnodeScopes->sxBlock.scope : nullptr;
@@ -1833,7 +1838,7 @@ bool ByteCodeGenerator::CanStackNestedFunc(FuncInfo * funcInfo, bool trace)
         return false;
     }
 
-    if (funcInfo->GetBodyScope()->GetIsObject() || funcInfo->GetParamScope()->GetIsObject())
+    if (funcInfo->GetBodyScope()->GetIsObject() || funcInfo->GetParamScope()->GetIsObject() || (funcInfo->GetFuncExprScope() && funcInfo->GetFuncExprScope()->GetIsObject()))
     {
         if (trace)
         {

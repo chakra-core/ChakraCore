@@ -106,16 +106,18 @@ int ProgramMain(int argc, char** argv) {
     const bool kStopOnFirstError = true;
     ReadBinaryOptions options(s_features, s_log_stream.get(),
                               s_read_debug_names, kStopOnFirstError);
-    result = ReadBinaryIr(s_infile.c_str(), DataOrNull(file_data),
+    result = ReadBinaryIr(s_infile.c_str(), file_data.data(),
                           file_data.size(), &options, &error_handler, &module);
     if (Succeeded(result)) {
       if (Succeeded(result) && s_validate) {
         WastLexer* lexer = nullptr;
-        result = ValidateModule(lexer, &module, &error_handler);
+        ValidateOptions options(s_features);
+        result = ValidateModule(lexer, &module, &error_handler, &options);
       }
 
-      if (s_generate_names)
+      if (s_generate_names) {
         result = GenerateNames(&module);
+      }
 
       if (Succeeded(result)) {
         /* TODO(binji): This shouldn't fail; if a name can't be applied
@@ -125,7 +127,7 @@ int ProgramMain(int argc, char** argv) {
       }
 
       if (Succeeded(result)) {
-        FileStream stream(!s_outfile.empty() ? FileStream(s_outfile.c_str())
+        FileStream stream(!s_outfile.empty() ? FileStream(s_outfile)
                                              : FileStream(stdout));
         result = WriteWat(&stream, &module, &s_write_wat_options);
       }

@@ -1438,7 +1438,7 @@ private:
             return threadContext->GetEmptyStringPropertyId();
         }
 
-        void FreeFunctionEntryPoint(Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress);
+        void FreeFunctionEntryPoint(Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress, void** functionTable);
 
     private:
         uint CloneSource(Utf8SourceInfo* info);
@@ -1564,14 +1564,17 @@ private:
 #endif
 
 #if ENABLE_NATIVE_CODEGEN
-        HRESULT RecreateNativeCodeGenerator();
+        HRESULT RecreateNativeCodeGenerator(NativeCodeGenerator ** previousCodeGen = nullptr);
+        void DeletePreviousNativeCodeGenerator(NativeCodeGenerator * codeGen);
+        HRESULT OnDebuggerAttachedDetached(bool attach, NativeCodeGenerator ** previousCodeGenHolder = nullptr);
+#else
+        HRESULT OnDebuggerAttachedDetached(bool attach);
 #endif
         bool IsForceNoNative();
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
         HRESULT OnDebuggerAttached();
         HRESULT OnDebuggerDetached();
-        HRESULT OnDebuggerAttachedDetached(bool attach);
         void InitializeDebugging();
         bool IsEnumeratingRecyclerObjects() const { return isEnumeratingRecyclerObjects; }
     private:
@@ -1594,7 +1597,7 @@ private:
         private:
             ScriptContext* m_scriptContext;
         };
-#endif        
+#endif
 
 #ifdef EDIT_AND_CONTINUE
     private:
@@ -1678,7 +1681,7 @@ private:
         HRESULT OnDispatchFunctionExit(const WCHAR *pwszFunctionName);
 
 #endif // ENABLE_SCRIPT_PROFILING
-       
+
         void OnStartupComplete();
         void SaveStartupProfileAndRelease(bool isSaveOnClose = false);
 

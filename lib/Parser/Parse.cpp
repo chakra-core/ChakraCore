@@ -1662,6 +1662,14 @@ ParseNodePtr Parser::ParseBlock(LabelId* pLabelId)
     return pnodeBlock;
 }
 
+bool Parser::IsSpecialName(IdentPtr pid)
+{
+    return pid == wellKnownPropertyPids._this ||
+        pid == wellKnownPropertyPids._super ||
+        pid == wellKnownPropertyPids._superConstructor ||
+        pid == wellKnownPropertyPids._newTarget;
+}
+
 ParseNodePtr Parser::ReferenceSpecialName(IdentPtr pid, charcount_t ichMin, charcount_t ichLim, bool createNode)
 {
     PidRefStack* ref = this->PushPidRef(pid);
@@ -1864,7 +1872,7 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
     Js::LocalFunctionId funcId = GetCurrentFunctionNode()->sxFnc.functionId;
     Assert(sym);
 
-    if (pid->GetIsModuleExport())
+    if (pid->GetIsModuleExport() && IsTopLevelModuleFunc())
     {
         sym->SetIsModuleExportStorage(true);
     }
@@ -3779,6 +3787,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                             ReferenceSpecialName(wellKnownPropertyPids._newTarget);
                             ReferenceSpecialName(wellKnownPropertyPids._super);
                             ReferenceSpecialName(wellKnownPropertyPids._superConstructor);
+                            ReferenceSpecialName(wellKnownPropertyPids.arguments);
                         }
 
                         pnode->sxCall.callOfConstants = callOfConstants;
@@ -3801,6 +3810,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                             ReferenceSpecialName(wellKnownPropertyPids._newTarget);
                             ReferenceSpecialName(wellKnownPropertyPids._super);
                             ReferenceSpecialName(wellKnownPropertyPids._superConstructor);
+                            ReferenceSpecialName(wellKnownPropertyPids.arguments);
                         }
                         pToken->tk = tkNone; // This is no longer an identifier
                     }
@@ -5108,7 +5118,7 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     // binding of "arguments.  To ensure the arguments object of the enclosing
     // non-lambda function is loaded propagate the UsesArguments flag up to
     // the parent function
-    if (fLambda && pnodeFnc->sxFnc.UsesArguments())
+    if (fLambda && (pnodeFnc->sxFnc.UsesArguments() || pnodeFnc->sxFnc.CallsEval()))
     {
         ParseNodePtr pnodeFncParent = GetCurrentFunctionNode();
 
@@ -8798,8 +8808,8 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             {
                 if (IsStrictMode())
                 {
-                    if ((buildAST && pnode->sxUni.pnode1->nop == knopName) ||
-                        (!buildAST && operandToken.tk == tkID))
+                    if ((buildAST && pnode->sxUni.pnode1->IsUserIdentifier()) ||
+                        (!buildAST && operandToken.tk == tkID && !this->IsSpecialName(operandToken.pid)))
                     {
                         Error(ERRInvalidDelete);
                     }

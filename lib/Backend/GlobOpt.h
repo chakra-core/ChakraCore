@@ -701,6 +701,7 @@ public:
 
     GlobOptBlockData const * CurrentBlockData() const;
     GlobOptBlockData * CurrentBlockData();
+    void                    CommitCapturedValuesCandidate();
 
 private:
     bool                    IsOperationThatLikelyKillsJsArraysWithNoMissingValues(IR::Instr *const instr);
@@ -764,6 +765,7 @@ public:
     static bool             DoTypedArrayTypeSpec(Func const * func);
     static bool             DoNativeArrayTypeSpec(Func const * func);
     static bool             IsSwitchOptEnabled(Func const * func);
+    static bool             IsSwitchOptEnabledForIntTypeSpec(Func const * func);
     static bool             DoInlineArgsOpt(Func const * func);
     static bool             IsPREInstrCandidateLoad(Js::OpCode opcode);
     static bool             IsPREInstrCandidateStore(Js::OpCode opcode);
@@ -790,6 +792,7 @@ private:
     bool                    DoNativeArrayTypeSpec() const { return GlobOpt::DoNativeArrayTypeSpec(this->func); }
     bool                    DoLdLenIntSpec(IR::Instr * const instr, const ValueType baseValueType);
     bool                    IsSwitchOptEnabled() const { return GlobOpt::IsSwitchOptEnabled(this->func); }
+    bool                    IsSwitchOptEnabledForIntTypeSpec() const { return GlobOpt::IsSwitchOptEnabledForIntTypeSpec(this->func); }
     bool                    DoPathDependentValues() const;
     bool                    DoTrackRelativeIntBounds() const;
     bool                    DoBoundCheckElimination() const;
@@ -798,6 +801,29 @@ private:
     bool                    DoPowIntIntTypeSpec() const;
     bool                    DoTagChecks() const;
 
+    template <class Fn>
+    void TrackByteCodeUsesForInstrAddedInOptInstr(IR::Instr * trackByteCodeUseOnInstr, Fn fn)
+    {
+        BVSparse<JitArenaAllocator> *currentBytecodeUses = this->byteCodeUses;
+        PropertySym * currentPropertySymUse = this->propertySymUse;
+        PropertySym * tempPropertySymUse = NULL;
+        this->byteCodeUses = NULL;
+        BVSparse<JitArenaAllocator> *tempByteCodeUse = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
+#if DBG
+        BVSparse<JitArenaAllocator> *currentBytecodeUsesBeforeOpt = this->byteCodeUsesBeforeOpt;
+        this->byteCodeUsesBeforeOpt = tempByteCodeUse;
+#endif
+        this->propertySymUse = NULL;
+        GlobOpt::TrackByteCodeSymUsed(trackByteCodeUseOnInstr, tempByteCodeUse, &tempPropertySymUse);
+
+        fn();
+
+        this->byteCodeUses = currentBytecodeUses;
+        this->propertySymUse = currentPropertySymUse;
+#if DBG
+        this->byteCodeUsesBeforeOpt = currentBytecodeUsesBeforeOpt;
+#endif
+    }
 private:
     // GlobOptBailout.cpp
     bool                    MayNeedBailOut(Loop * loop) const;

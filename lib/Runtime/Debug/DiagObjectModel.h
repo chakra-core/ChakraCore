@@ -370,7 +370,7 @@ namespace Js
                             {
                                 activeScopeObject->SetPropertyWithAttributes(
                                     resolveObject.propId,
-                                    JavascriptOperators::BoxStackInstance(resolveObject.obj, scriptContext), //The value escapes, box if necessary.
+                                    JavascriptOperators::BoxStackInstance(resolveObject.obj, scriptContext, /* allowStackFunction */ false, /* deepCopy */ false), //The value escapes, box if necessary.
                                     resolveObject.isConst ? PropertyConstDefaults : PropertyDynamicTypeDefaults,
                                     nullptr);
                             }

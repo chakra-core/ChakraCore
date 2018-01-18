@@ -831,6 +831,7 @@ namespace Js
         if (cse->ei.bstrDescription)
         {
             value = JavascriptString::NewCopySz(cse->ei.bstrDescription, scriptContext);
+            JavascriptOperators::OP_SetProperty(error, PropertyIds::description, value, scriptContext);
             JavascriptOperators::OP_SetProperty(error, PropertyIds::message, value, scriptContext);
         }
 

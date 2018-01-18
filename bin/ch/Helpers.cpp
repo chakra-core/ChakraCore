@@ -143,8 +143,8 @@ uint ConcatPath(LPCSTR filenameLeft, uint posPathSep, LPCSTR filenameRight, char
 
     if (bufferLength < totalLength)
     {
-        fprintf(stderr, "bufferLength < totalLength ConcatPath");
-        abort();
+        fprintf(stderr, "Error: file path is too long.\n");
+        return (uint)-1;
     }
 
     pathcpy(buffer, filenameLeft, posPathSep);
@@ -192,7 +192,11 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filenameToLoad, LPCSTR& contents, UIN
         uint len = ConcatPath(sHostApplicationPathBuffer, sHostApplicationPathBufferLength,
                    filename, combinedPathBuffer, MAX_URI_LENGTH);
 
-        Assert(len > 0);
+        if (len == (uint)-1)
+        {
+            hr = E_FAIL;
+            goto Error;
+        }
         filename = combinedPathBuffer;
     }
 

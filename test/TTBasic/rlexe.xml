@@ -752,4 +752,276 @@
       <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>generatorBasic.js</files>
+      <compile-flags>-TTRecord=generatorBasicTest -TTSnapInterval=0</compile-flags>
+      <baseline>generatorBasicRecord.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=generatorBasicTest -TTDStartEvent=1</compile-flags>
+      <baseline>generatorBasicReplay_1.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=generatorBasicTest -TTDStartEvent=2</compile-flags>
+      <baseline>generatorBasicReplay_2.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=generatorBasicTest -TTDStartEvent=3</compile-flags>
+      <baseline>generatorBasicReplay_3.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=generatorBasicTest -TTDStartEvent=4</compile-flags>
+      <baseline>generatorBasicReplay_4.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=generatorBasicTest -TTDStartEvent=5</compile-flags>
+      <baseline>generatorBasicReplay_5.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>generatorReturnYieldResult.js</files>
+      <compile-flags>-TTRecord=generatorReturnYieldResult -TTSnapInterval=0</compile-flags>
+      <baseline>generatorReturnYieldResultRecord.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=generatorReturnYieldResult -TTDStartEvent=1</compile-flags>
+      <baseline>generatorReturnYieldResultReplay_1.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=generatorReturnYieldResult -TTDStartEvent=2</compile-flags>
+      <baseline>generatorReturnYieldResultReplay_2.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=generatorReturnYieldResult -TTDStartEvent=3</compile-flags>
+      <baseline>generatorReturnYieldResultReplay_3.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=generatorReturnYieldResult -TTDStartEvent=4</compile-flags>
+      <baseline>generatorReturnYieldResultReplay_4.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>generatorIntParam.js</files>
+      <compile-flags>-TTRecord=generatorIntParamTest -TTSnapInterval=0</compile-flags>
+      <baseline>generatorIntParamRecord.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=generatorIntParamTest -TTDStartEvent=4</compile-flags>
+      <baseline>generatorIntParamReplay.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>generatorObjectParam.js</files>
+      <compile-flags>-TTRecord=generatorObjectParamTest -TTSnapInterval=0</compile-flags>
+      <baseline>generatorObjectParamRecord.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=generatorObjectParamTest -TTDStartEvent=4</compile-flags>
+      <baseline>generatorObjectParamReplay.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>generatorClassMethod.js</files>
+      <compile-flags>-TTRecord=generatorClassMethodTest -TTSnapInterval=0</compile-flags>
+      <baseline>generatorClassMethodRecord.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=generatorClassMethodTest -TTDStartEvent=4</compile-flags>
+      <baseline>generatorClassMethodReplay.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>generatorNested.js</files>
+      <compile-flags>-TTRecord=generatorNestedTest -TTSnapInterval=0</compile-flags>
+      <baseline>generatorNestedRecord.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=generatorNestedTest -TTDStartEvent=4</compile-flags>
+      <baseline>generatorNestedReplay.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>generatorRestoreCompletedGenerator.js</files>
+      <compile-flags>-TTRecord=generatorRestoreCompletedGeneratorTest -TTSnapInterval=0</compile-flags>
+      <baseline>generatorRestoreCompletedGeneratorRecord.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=generatorRestoreCompletedGeneratorTest -TTDStartEvent=6</compile-flags>
+      <baseline>generatorRestoreCompletedGeneratorReplay.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>generatorWriteLogDuringGeneratorExecution.js</files>
+      <compile-flags>-TTRecord=generatorWriteLogDuringGeneratorExecutionTest -TTSnapInterval=0</compile-flags>
+      <baseline>generatorWriteLogDuringGeneratorExecutionRecord.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=generatorWriteLogDuringGeneratorExecutionTest -TTDStartEvent=1</compile-flags>
+      <baseline>generatorWriteLogDuringGeneratorExecutionReplay_1.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=generatorWriteLogDuringGeneratorExecutionTest -TTDStartEvent=2</compile-flags>
+      <baseline>generatorWriteLogDuringGeneratorExecutionReplay_2.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=generatorWriteLogDuringGeneratorExecutionTest -TTDStartEvent=3</compile-flags>
+      <baseline>generatorWriteLogDuringGeneratorExecutionReplay_3.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=generatorWriteLogDuringGeneratorExecutionTest -TTDStartEvent=4</compile-flags>
+      <baseline>generatorWriteLogDuringGeneratorExecutionReplay_4.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=generatorWriteLogDuringGeneratorExecutionTest -TTDStartEvent=5</compile-flags>
+      <baseline>generatorWriteLogDuringGeneratorExecutionReplay_5.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=generatorWriteLogDuringGeneratorExecutionTest -TTDStartEvent=6</compile-flags>
+      <baseline>generatorWriteLogDuringGeneratorExecutionReplay_6.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+    <test>
+    <default>
+      <files>asyncAwaitBasic.js</files>
+      <compile-flags>-TTRecord=asyncAwaitBasicTest -TTSnapInterval=0</compile-flags>
+      <baseline>asyncAwaitBasicRecord.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=asyncAwaitBasicTest -TTDStartEvent=1</compile-flags>
+      <baseline>asyncAwaitBasicReplay_1.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+    <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=asyncAwaitBasicTest -TTDStartEvent=2</compile-flags>
+      <baseline>asyncAwaitBasicReplay_2.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+    <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=asyncAwaitBasicTest -TTDStartEvent=3</compile-flags>
+      <baseline>asyncAwaitBasicReplay_3.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+    <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=asyncAwaitBasicTest -TTDStartEvent=4</compile-flags>
+      <baseline>asyncAwaitBasicReplay_4.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+    <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=asyncAwaitBasicTest -TTDStartEvent=5</compile-flags>
+      <baseline>asyncAwaitBasicReplay_5.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
 </regress-exe>

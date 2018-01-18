@@ -82,8 +82,9 @@ int ProgramMain(int argc, char** argv) {
   ParseOptions(argc, argv);
 
   std::unique_ptr<WastLexer> lexer(WastLexer::CreateFileLexer(s_infile));
-  if (!lexer)
+  if (!lexer) {
     WABT_FATAL("unable to read %s\n", s_infile);
+  }
 
   ErrorHandlerFile error_handler(Location::Type::Text);
   std::unique_ptr<Script> script;
@@ -93,14 +94,17 @@ int ProgramMain(int argc, char** argv) {
 
   if (Succeeded(result)) {
     Module* module = script->GetFirstModule();
-    if (!module)
+    if (!module) {
       WABT_FATAL("no module in file.\n");
+    }
 
-    if (s_generate_names)
+    if (s_generate_names) {
       result = GenerateNames(module);
+    }
 
-    if (Succeeded(result))
+    if (Succeeded(result)) {
       result = ApplyNames(module);
+    }
 
     if (Succeeded(result)) {
       FileStream stream(s_outfile ? FileStream(s_outfile) : FileStream(stdout));

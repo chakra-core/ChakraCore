@@ -541,8 +541,14 @@ SectionAllocWrapper::SectionAllocWrapper(HANDLE process) :
 }
 
 LPVOID
-SectionAllocWrapper::Alloc(LPVOID requestAddress, size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation)
+SectionAllocWrapper::AllocPages(LPVOID requestAddress, size_t pageCount, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation)
 {
+    if (pageCount > AutoSystemInfo::MaxPageCount)
+    {
+        return nullptr;
+    }
+    size_t dwSize = pageCount * AutoSystemInfo::PageSize;
+
     Assert(isCustomHeapAllocation);
 
     LPVOID address = nullptr;
@@ -853,8 +859,14 @@ LPVOID PreReservedSectionAllocWrapper::EnsurePreReservedRegionInternal()
     return startAddress;
 }
 
-LPVOID PreReservedSectionAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation)
+LPVOID PreReservedSectionAllocWrapper::AllocPages(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t pageCount, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation)
 {
+    if (pageCount > AutoSystemInfo::MaxPageCount)
+    {
+        return nullptr;
+    }
+    size_t dwSize = pageCount * AutoSystemInfo::PageSize;
+    
     AssertMsg(isCustomHeapAllocation, "PreReservation used for allocations other than CustomHeap?");
     AssertMsg(AutoSystemInfo::Data.IsCFGEnabled() || PHASE_FORCE1(Js::PreReservedHeapAllocPhase), "PreReservation without CFG ?");
     Assert(dwSize != 0);

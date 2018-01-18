@@ -3456,6 +3456,11 @@ bool
     return false;
 }
 
+bool
+    LowererMDArch::GenerateFastDiv(IR::Instr* instrDiv)
+{
+    return false;
+}
 
 ///----------------------------------------------------------------------------
 ///

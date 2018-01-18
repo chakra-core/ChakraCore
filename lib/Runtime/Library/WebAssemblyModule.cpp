@@ -181,11 +181,19 @@ Var WebAssemblyModule::EntryCustomSections(RecyclableObject* function, CallInfo 
     Var sectionNameVar = args.Info.Count > 2 ? args[2] : scriptContext->GetLibrary()->GetUndefined();
 
     WebAssemblyModule * module = WebAssemblyModule::FromVar(args[1]);
-    JavascriptString * sectionName = JavascriptConversion::ToString(sectionNameVar, scriptContext);
+    Var customSections = nullptr;
+    // C++ compiler optimizations can optimize away the sectionName variable while still keeping a reference to the underlying
+    // character buffer sectionNameBuf. The character buffer itself is managed by the recycler; however; we may move past the
+    // start of the character buffer while doing the comparison in memcmp. If a GC happens during CreateArrayBuffer, the character
+    // buffer can get collected as we don't have a reference to the start of the buffer on the stack anymore. To avoid this we need 
+    // to pin sectionName.
+    ENTER_PINNED_SCOPE(JavascriptString, sectionName);
+    sectionName = JavascriptConversion::ToString(sectionNameVar, scriptContext);
+
     const char16* sectionNameBuf = sectionName->GetString();
     charcount_t sectionNameLength = sectionName->GetLength();
 
-    Var customSections = JavascriptOperators::NewJavascriptArrayNoArg(scriptContext);
+    customSections = JavascriptOperators::NewJavascriptArrayNoArg(scriptContext);
     for (uint32 i = 0; i < module->GetCustomSectionCount(); ++i)
     {
         Wasm::CustomSection customSection = module->GetCustomSection(i);
@@ -202,6 +210,7 @@ Var WebAssemblyModule::EntryCustomSections(RecyclableObject* function, CallInfo 
             JavascriptArray::Push(scriptContext, customSections, arrayBuffer);
         }
     }
+    LEAVE_PINNED_SCOPE();   // sectionName
 
     return customSections;
 }
@@ -218,7 +227,7 @@ WebAssemblyModule::CreateModule(
     Wasm::WasmReaderInfo * readerInfo = nullptr;
     Js::FunctionBody * currentBody = nullptr;
     char16* exceptionMessage = nullptr;
-    AutoCleanStr autoCleanExceptionMessage;
+    AutoFreeExceptionMessage autoCleanExceptionMessage;
     try
     {
         Wasm::WasmModuleGenerator bytecodeGen(scriptContext, src);
@@ -818,42 +827,31 @@ WebAssemblyModule::GetModuleEnvironmentSize() const
     return size;
 }
 
-char16* WebAssemblyModule::FormatExceptionMessage(Wasm::WasmCompilationException* ex, AutoCleanStr* autoClean, WebAssemblyModule* wasmModule, FunctionBody* body)
+char16* WebAssemblyModule::FormatExceptionMessage(Wasm::WasmCompilationException* ex, AutoFreeExceptionMessage* autoFree, WebAssemblyModule* wasmModule, FunctionBody* body)
 {
     char16* originalExceptionMessage = ex->GetTempErrorMessageRef();
     if (!wasmModule || !body)
     {
         size_t len = wcslen(originalExceptionMessage) + 1;
-        autoClean->str = new char16[len];
-        js_memcpy_s(autoClean->str, len * sizeof(char16), originalExceptionMessage, len * sizeof(char16));
-        return autoClean->str;
+        char16* buf = HeapNewArray(char16, len);
+        autoFree->Set(buf, len);
+        js_memcpy_s(buf, len * sizeof(char16), originalExceptionMessage, len * sizeof(char16));
+        return buf;
     }
 
     Wasm::BinaryLocation location = wasmModule->GetReader()->GetCurrentLocation();
 
     const char16* format = _u("function %s at offset %u/%u (0x%x/0x%x): %s");
     const char16* funcName = body->GetDisplayName();
+    char16* buf = HeapNewArray(char16, 2048);
+    autoFree->Set(buf, 2048);
 
-    uint size = (uint)_scwprintf(format,
+    _snwprintf_s(buf, 2048, _TRUNCATE, format,
         funcName,
         location.offset, location.size,
         location.offset, location.size,
         originalExceptionMessage);
-
-    if (size > 2048)
-    {
-        // Do not allocate too much for the exception message, just truncate the message past 2048 characters
-        size = 2047;
-    }
-    ++size; // Null terminate character
-    autoClean->str = new char16[size];
-    int written = _snwprintf_s(autoClean->str, size, _TRUNCATE, format,
-        funcName,
-        location.offset, location.size,
-        location.offset, location.size,
-        originalExceptionMessage);
-    Assert((uint)written == size - 1);
-    return autoClean->str;
+    return buf;
 }
 
 void

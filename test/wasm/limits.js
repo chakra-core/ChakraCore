@@ -24,9 +24,9 @@ const MaxModuleSize = 1024 * 1024 * 1024;
 const MaxFunctionSize = 7654321;
 
 /* global assert,testRunner */ // eslint rule
-WScript.LoadScriptFile("../UnitTestFrameWork/UnitTestFrameWork.js");
-WScript.LoadScriptFile("../wasmspec/testsuite/harness/wasm-constants.js");
-WScript.LoadScriptFile("../wasmspec/testsuite/harness/wasm-module-builder.js");
+WScript.LoadScriptFile("../UnitTestFramework/UnitTestFramework.js");
+WScript.LoadScriptFile("../WasmSpec/testsuite/harness/wasm-constants.js");
+WScript.LoadScriptFile("../WasmSpec/testsuite/harness/wasm-module-builder.js");
 WScript.Flag("-off:wasmdeferred");
 
 function compile(moduleStr) {

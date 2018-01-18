@@ -90,6 +90,7 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)SectionAllocWrapper.cpp" />
+    <ClCompile Include="DelayDeletingFunctionTable.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AllocationPolicyManager.h" />

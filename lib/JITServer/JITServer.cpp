@@ -613,7 +613,11 @@ ServerNewInterpreterThunkBlock(
         // Call to set VALID flag for CFG check
         if (CONFIG_FLAG(OOPCFGRegistration))
         {
-            threadContext->SetValidCallTargetForCFG(runtimeAddress);
+            BYTE* callTarget = runtimeAddress;
+#ifdef _M_ARM
+            callTarget = (BYTE*)((uintptr_t)callTarget | 0x1); // Thumb-tag buffer to get actual callable value
+#endif
+            threadContext->SetValidCallTargetForCFG(callTarget);
         }
 
         thunkOutput->thunkCount = thunkCount;
@@ -672,7 +676,7 @@ ServerFreeAllocation(
 
     return ServerCallWrapper(context, [&]()->HRESULT
     {
-        context->GetCodeGenAllocators()->emitBufferManager.FreeAllocation((void*)codeAddress);
+        context->GetCodeGenAllocators()->emitBufferManager.FreeAllocation((void*)codeAddress, nullptr);
         return S_OK;
     });
 }

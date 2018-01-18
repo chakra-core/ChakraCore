@@ -323,6 +323,10 @@ void* InterpreterThunkEmitter::ConvertToEntryPoint(PVOID dynamicInterpreterThunk
 
 bool InterpreterThunkEmitter::NewThunkBlock()
 {
+    // flush the function tables before allocating any new  code
+    // to prevent old function table is referring to new code address
+    DelayDeletingFunctionTable::Clear();
+
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
     if (CONFIG_FLAG(ForceStaticInterpreterThunk))
     {
@@ -373,7 +377,12 @@ bool InterpreterThunkEmitter::NewThunkBlock()
     }
 
     // Call to set VALID flag for CFG check
-    ThreadContext::GetContextForCurrentThread()->SetValidCallTargetForCFG(buffer);
+    BYTE* callTarget = buffer;
+#ifdef _M_ARM
+    // We want to allow the actual callable value, so thumb-tag the address
+    callTarget = (BYTE*)((uintptr_t)buffer | 0x1);
+#endif
+    ThreadContext::GetContextForCurrentThread()->SetValidCallTargetForCFG(callTarget);
 
     // Update object state only at the end when everything has succeeded - and no exceptions can be thrown.
     auto block = this->thunkBlocks.PrependNode(allocator, buffer, count);
@@ -392,6 +401,10 @@ bool InterpreterThunkEmitter::NewThunkBlock()
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
 bool InterpreterThunkEmitter::NewOOPJITThunkBlock()
 {
+    // flush the function tables before allocating any new  code
+    // to prevent old function table is referring to new code address
+    DelayDeletingFunctionTable::Clear();
+
     PSCRIPTCONTEXT_HANDLE remoteScriptContext = this->scriptContext->GetRemoteScriptAddr();
     if (!JITManager::GetJITManager()->IsConnected())
     {
@@ -411,7 +424,12 @@ bool InterpreterThunkEmitter::NewOOPJITThunkBlock()
 
     if (!CONFIG_FLAG(OOPCFGRegistration))
     {
-        this->scriptContext->GetThreadContext()->SetValidCallTargetForCFG(buffer);
+        BYTE* callTarget = buffer;
+#ifdef _M_ARM
+        // Need to register the thumb-tagged call target for CFG
+        callTarget = (BYTE*)((uintptr_t)callTarget | 0x1);
+#endif
+        this->scriptContext->GetThreadContext()->SetValidCallTargetForCFG(callTarget);
     }
 
     // Update object state only at the end when everything has succeeded - and no exceptions can be thrown.

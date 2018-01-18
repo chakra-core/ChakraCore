@@ -196,6 +196,18 @@
   "type mismatch"
 )
 (assert_invalid
+  (module (func $type-unary-num-vs-void-in-loop-after-unreachable
+    (unreachable) (loop (drop (i32.eqz (nop))))
+  ))
+  "type mismatch"
+)
+(assert_invalid
+  (module (func $type-unary-num-vs-void-in-i32-loop-after-unreachable
+    (unreachable) (loop (result i32) (i32.eqz (nop)))
+  ))
+  "type mismatch"
+)
+(assert_invalid
   (module (func $type-unary-num-vs-num-after-unreachable
     (unreachable) (drop (i32.eqz (f32.const 1)))
   ))
@@ -246,6 +258,24 @@
 (assert_invalid
   (module (func $type-func-value-num-vs-num-after-unreachable (result i32)
     (unreachable) (f32.const 0)
+  ))
+  "type mismatch"
+)
+(assert_invalid
+  (module (func $type-unary-num-vs-void-in-if-after-unreachable
+    (unreachable) (if (i32.const 0) (then (drop (i32.eqz (nop)))))
+  ))
+  "type mismatch"
+)
+(assert_invalid
+  (module (func $type-unary-num-vs-void-in-else-after-unreachable
+    (unreachable) (if (i32.const 0) (then (nop)) (else (drop (i32.eqz (nop)))))
+  ))
+  "type mismatch"
+)
+(assert_invalid
+  (module (func $type-unary-num-vs-void-in-else-after-unreachable-if
+    (if (i32.const 0) (then (unreachable)) (else (drop (i32.eqz (nop)))))
   ))
   "type mismatch"
 )
@@ -453,6 +483,31 @@
 (assert_invalid
   (module (func $type-br_if-cond-num-vs-num-after-unreachable
     (block (br_if 0 (unreachable) (f32.const 0)))
+  ))
+  "type mismatch"
+)
+(assert_invalid
+  (module (func $type-br_if-num-vs-void-after-unreachable (result i32)
+    (block (result i32)
+      (block (unreachable) (br_if 1 (i32.const 0) (i32.const 0)))
+    )
+  ))
+  "type mismatch"
+)
+(assert_invalid
+  (module (func $type-br_if-num-vs-num-after-unreachable (result i32)
+    (block (result i32)
+      (block (result f32) (unreachable) (br_if 1 (i32.const 0) (i32.const 0)))
+      (drop) (i32.const 0)
+    )
+  ))
+  "type mismatch"
+)
+(assert_invalid
+  (module (func $type-br_if-num2-vs-num-after-unreachable (result i32)
+    (block (result i32)
+      (unreachable) (br_if 0 (i32.const 0) (i32.const 0)) (i32.const 0)
+    )
   ))
   "type mismatch"
 )

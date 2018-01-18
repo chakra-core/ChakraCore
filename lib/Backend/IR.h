@@ -26,13 +26,29 @@ struct CapturedValues
     SListBase<ConstantStackSymValue> constantValues;           // Captured constant values during glob opt
     SListBase<CopyPropSyms> copyPropSyms;                      // Captured copy prop values during glob opt
     BVSparse<JitArenaAllocator> * argObjSyms;                  // Captured arg object symbols during glob opt
+    uint refCount;
 
+    CapturedValues() : argObjSyms(nullptr), refCount(0) {}
     ~CapturedValues()
     {
         // Reset SListBase to be exception safe. Captured values are from GlobOpt->func->alloc
         // in normal case the 2 SListBase are empty so no Clear needed, also no need to Clear in exception case
         constantValues.Reset();
         copyPropSyms.Reset();
+        argObjSyms = nullptr;
+        Assert(refCount == 0);
+    }
+
+    uint DecrementRefCount()
+    {
+        Assert(refCount != 0);
+        return --refCount;
+    }
+
+    void IncrementRefCount()
+    {
+        Assert(refCount > 0);
+        refCount++;
     }
 };
 
@@ -315,7 +331,7 @@ public:
 
     BailOutInfo *   GetBailOutInfo() const;
     BailOutInfo *   UnlinkBailOutInfo();
-    bool            ReplaceBailOutInfo(BailOutInfo *newBailOutInfo);
+    void            ReplaceBailOutInfo(BailOutInfo *newBailOutInfo);
     IR::Instr *     ShareBailOut();
     BailOutKind     GetBailOutKind() const;
     BailOutKind     GetBailOutKindNoBits() const;

@@ -8,6 +8,8 @@
 #include <winver.h>
 #include <process.h>
 #include <fcntl.h>
+#else
+#include <pthread.h>
 #endif
 
 #ifdef __linux__
@@ -190,51 +192,59 @@ HRESULT CreateLibraryByteCodeHeader(LPCSTR contentsRaw, JsFinalizeCallback conte
     DWORD written;
     // For validating the header file against the library file
     auto outputStr =
-        "//-------------------------------------------------------------------------------------------------------\r\n"
-        "// Copyright (C) Microsoft. All rights reserved.\r\n"
-        "// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.\r\n"
-        "//-------------------------------------------------------------------------------------------------------\r\n"
-        "#if 0\r\n";
+        "//-------------------------------------------------------------------------------------------------------\n"
+        "// Copyright (C) Microsoft. All rights reserved.\n"
+        "// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.\n"
+        "//-------------------------------------------------------------------------------------------------------\n"
+        "#if 0\n";
 
+    std::string normalizedContentStr;
+    char* nextToken = nullptr;
+    char* token = strtok_s((char*)contentsRaw, "\r", &nextToken);
+    while (token)
+    {
+        normalizedContentStr.append(token);
+        token = strtok_s(nullptr, "\r", &nextToken);
+    }
+    // We no longer need contentsRaw, so call the finalizer for it if one was provided
+    if (contentsRawFinalizeCallback != nullptr)
+    {
+        contentsRawFinalizeCallback((void*)contentsRaw);
+    }
 
+    const char* normalizedContent = normalizedContentStr.c_str();
     // We still need contentsRaw after this, so pass a null finalizeCallback into it
-    HRESULT hr = GetSerializedBuffer(contentsRaw, nullptr, &bufferVal);
+    HRESULT hr = GetSerializedBuffer(normalizedContent, nullptr, &bufferVal);
 
     IfFailedGoLabel((hr), ErrorRunFinalize);
 
     IfJsrtErrorHRLabel(ChakraRTInterface::JsGetArrayBufferStorage(bufferVal, &bcBuffer, &bcBufferSize), ErrorRunFinalize);
 
-    bcFileHandle = CreateFile(bcFullPath, GENERIC_WRITE, FILE_SHARE_DELETE,
-        nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (bcFullPath)
+    {
+        bcFileHandle = CreateFile(bcFullPath, GENERIC_WRITE, FILE_SHARE_DELETE,
+            nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    }
+    else
+    {
+        bcFileHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+    }
     if (bcFileHandle == INVALID_HANDLE_VALUE)
     {
         IfFailedGoLabel(E_FAIL, ErrorRunFinalize);
     }
 
     IfFalseGoLabel(WriteFile(bcFileHandle, outputStr, (DWORD)strlen(outputStr), &written, nullptr), ErrorRunFinalize);
-    IfFalseGoLabel(WriteFile(bcFileHandle, contentsRaw, lengthBytes, &written, nullptr), ErrorRunFinalize);
-    if (lengthBytes < 2 || contentsRaw[lengthBytes - 2] != '\r' || contentsRaw[lengthBytes - 1] != '\n')
-    {
-        outputStr = "\r\n#endif\r\n";
-    }
-    else
-    {
-        outputStr = "#endif\r\n";
-    }
-    
-    // We no longer need contentsRaw, so call the finalizer for it if one was provided
-    if(contentsRawFinalizeCallback != nullptr)
-    {
-        contentsRawFinalizeCallback((void*)contentsRaw);
-    }
+    IfFalseGoLabel(WriteFile(bcFileHandle, normalizedContent, (DWORD)normalizedContentStr.size(), &written, nullptr), ErrorRunFinalize);
+    outputStr = "\n#endif\n";
 
     IfFalseGo(WriteFile(bcFileHandle, outputStr, (DWORD)strlen(outputStr), &written, nullptr));
 
     // Write out the bytecode
-    outputStr = "namespace Js\r\n{\r\n    const char Library_Bytecode_";
+    outputStr = "namespace Js\n{\n    const char Library_Bytecode_";
     IfFalseGo(WriteFile(bcFileHandle, outputStr, (DWORD)strlen(outputStr), &written, nullptr));
     IfFalseGo(WriteFile(bcFileHandle, libraryNameNarrow, (DWORD)strlen(libraryNameNarrow), &written, nullptr));
-    outputStr = "[] = {\r\n/* 00000000 */";
+    outputStr = "[] = {\n/* 00000000 */";
     IfFalseGo(WriteFile(bcFileHandle, outputStr, (DWORD)strlen(outputStr), &written, nullptr));
 
     for (unsigned int i = 0; i < bcBufferSize; i++)
@@ -258,24 +268,17 @@ HRESULT CreateLibraryByteCodeHeader(LPCSTR contentsRaw, JsFinalizeCallback conte
         if (i % 16 == 15 && i < bcBufferSize - 1)
         {
             char offset[17];
-            _snprintf_s(offset, sizeof(offset), _countof(offset), "\r\n/* %08X */", i + 1);  // close quote, new line, offset and open quote
-            IfFalseGo(WriteFile(bcFileHandle, offset, (DWORD)strlen(offset), &written, nullptr));
+            int actualLen = _snprintf_s(offset, sizeof(offset), _countof(offset), "\n/* %08X */", i + 1);  // close quote, new line, offset and open quote
+            IfFalseGo(WriteFile(bcFileHandle, offset, actualLen, &written, nullptr));
         }
     }
-    outputStr = "};\r\n\r\n";
+    outputStr = "};\n\n";
     IfFalseGo(WriteFile(bcFileHandle, outputStr, (DWORD)strlen(outputStr), &written, nullptr));
 
-    outputStr = "}\r\n";
+    outputStr = "}\n";
     IfFalseGo(WriteFile(bcFileHandle, outputStr, (DWORD)strlen(outputStr), &written, nullptr));
 
-    if(false)
-    {
 ErrorRunFinalize:
-        if(contentsRawFinalizeCallback != nullptr)
-        {
-            contentsRawFinalizeCallback((void*)contentsRaw);
-        }
-    }
 Error:
     if (bcFileHandle != nullptr)
     {
@@ -757,19 +760,19 @@ HRESULT ExecuteTest(const char* fileName)
         len = strlen(fullPath);
         if (HostConfigFlags::flags.GenerateLibraryByteCodeHeaderIsEnabled)
         {
-            if (HostConfigFlags::flags.GenerateLibraryByteCodeHeader != nullptr && *HostConfigFlags::flags.GenerateLibraryByteCodeHeader != _u('\0'))
-            {
-                CHAR libraryName[_MAX_PATH];
-                CHAR ext[_MAX_EXT];
-                _splitpath_s(fullPath, NULL, 0, NULL, 0, libraryName, _countof(libraryName), ext, _countof(ext));
 
-                IfFailGo(CreateLibraryByteCodeHeader(fileContents, WScriptJsrt::FinalizeFree, lengthBytes, HostConfigFlags::flags.GenerateLibraryByteCodeHeader, libraryName));
-            }
-            else
+            if (HostConfigFlags::flags.GenerateLibraryByteCodeHeader != nullptr)
             {
-                fwprintf(stderr, _u("FATAL ERROR: -GenerateLibraryByteCodeHeader must provide the file name, i.e., -GenerateLibraryByteCodeHeader:<bytecode file name>, exiting\n"));
-                IfFailGo(E_FAIL);
+                if (wcslen(HostConfigFlags::flags.GenerateLibraryByteCodeHeader) == 0)
+                {
+                    HostConfigFlags::flags.GenerateLibraryByteCodeHeader = nullptr;
+                }
             }
+            CHAR libraryName[_MAX_PATH];
+            CHAR ext[_MAX_EXT];
+            _splitpath_s(fullPath, NULL, 0, NULL, 0, libraryName, _countof(libraryName), ext, _countof(ext));
+
+            IfFailGo(CreateLibraryByteCodeHeader(fileContents, WScriptJsrt::FinalizeFree, lengthBytes, HostConfigFlags::flags.GenerateLibraryByteCodeHeader, libraryName));
         }
         else if (HostConfigFlags::flags.SerializedIsEnabled)
         {
@@ -1153,6 +1156,12 @@ return_cleanup:
     }
     delete[] argv;
     argv = nullptr;
-#endif
+#ifdef NO_SANITIZE_ADDRESS_CHECK
+    pthread_exit(&retval);
+#else
     return retval;
+#endif
+#else
+    return retval;
+#endif
 }

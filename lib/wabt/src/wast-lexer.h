@@ -37,12 +37,12 @@ class WastLexer {
  public:
   WABT_DISALLOW_COPY_AND_ASSIGN(WastLexer);
 
-  WastLexer(std::unique_ptr<LexerSource> source, const char* filename);
+  WastLexer(std::unique_ptr<LexerSource> source, string_view filename);
   ~WastLexer();
 
   // Convenience functions.
-  static std::unique_ptr<WastLexer> CreateFileLexer(const char* filename);
-  static std::unique_ptr<WastLexer> CreateBufferLexer(const char* filename,
+  static std::unique_ptr<WastLexer> CreateFileLexer(string_view filename);
+  static std::unique_ptr<WastLexer> CreateBufferLexer(string_view filename,
                                                       const void* data,
                                                       size_t size);
 
@@ -59,7 +59,7 @@ class WastLexer {
 
   std::unique_ptr<LexerSource> source_;
   LexerSourceLineFinder line_finder_;
-  const char* filename_;
+  std::string filename_;
   int line_;
   int comment_nesting_;
   size_t buffer_file_offset_; // File offset of the start of the buffer.

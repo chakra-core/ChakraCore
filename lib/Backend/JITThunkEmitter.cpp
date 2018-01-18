@@ -94,7 +94,7 @@ JITThunkEmitter<TAlloc>::CreateThunk(uintptr_t entryPoint)
 
     if (IsThunkPageEmpty(pageStartAddress))
     {
-        if (this->codeAllocator->Alloc((PVOID)pageStartAddress, AutoSystemInfo::PageSize, MEM_COMMIT, PAGE_EXECUTE_READ, true) == nullptr)
+        if (this->codeAllocator->AllocPages((PVOID)pageStartAddress, 1, MEM_COMMIT, PAGE_EXECUTE_READ, true) == nullptr)
         {
             this->codeAllocator->FreeLocal(localPageAddress);
             return NULL;
@@ -182,7 +182,7 @@ JITThunkEmitter<TAlloc>::EnsureInitialized()
         // check again because we did the first one outside of lock
         if (this->baseAddress == NULL)
         {
-            this->baseAddress = (uintptr_t)this->codeAllocator->Alloc(nullptr, TotalThunkSize, MEM_RESERVE, PAGE_EXECUTE_READ, true);
+            this->baseAddress = (uintptr_t)this->codeAllocator->AllocPages(nullptr, PageCount, MEM_RESERVE, PAGE_EXECUTE_READ, true);
         }
     }
     return this->baseAddress;

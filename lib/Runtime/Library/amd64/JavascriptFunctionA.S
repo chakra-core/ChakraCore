@@ -141,19 +141,7 @@ NESTED_ENTRY _ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16Recyclable
         mov rdi, rsp // rdi = arguments destination
         rep movsq
 
-        // Load 4 first arguments
-        // First Argument
         mov rdi, qword ptr [rsp]
-        // Review:: Is this really our calling convention on xplat ?
-        // Second Argument
-        mov rsi, qword ptr [r8]
-        movaps xmm1, xmmword ptr [r8]
-        // Third Argument
-        mov rdx, qword ptr [r8 + 10h]
-        movaps xmm2, xmmword ptr [r8 + 10h]
-        // Fourth Argument
-        mov rcx, qword ptr [r8 + 20h]
-        movaps xmm3, xmmword ptr [r8 + 20h]
 
         xor rax, rax // Zero out rax in case r11 expects varags
         call r11

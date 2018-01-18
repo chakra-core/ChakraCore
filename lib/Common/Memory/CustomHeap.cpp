@@ -3,15 +3,16 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
-#ifdef _M_X64
-#include "Memory/amd64/XDataAllocator.h"
-#elif defined(_M_ARM)
-#include "Memory/arm/XDataAllocator.h"
+#include "Memory/XDataAllocator.h"
+#if defined(_M_ARM)
 #include <wchar.h>
-#elif defined(_M_ARM64)
-#include "Memory/arm64/XDataAllocator.h"
 #endif
 #include "CustomHeap.h"
+
+#if PDATA_ENABLED && defined(_WIN32)
+#include "Core/DelayLoadLibrary.h"
+#include <malloc.h>
+#endif
 
 namespace Memory
 {
@@ -296,7 +297,7 @@ BOOL Heap<TAlloc, TPreReservedAlloc>::ProtectAllocationWithExecuteReadWrite(Allo
 }
 
 template<typename TAlloc, typename TPreReservedAlloc>
-BOOL Heap<TAlloc, TPreReservedAlloc>::ProtectAllocationWithExecuteReadOnly(Allocation *allocation, __in_opt char* addressInPage)
+BOOL Heap<TAlloc, TPreReservedAlloc>::ProtectAllocationWithExecuteReadOnly(__in Allocation *allocation, __in_opt char* addressInPage)
 {
     DWORD protectFlags = 0;
     if (AutoSystemInfo::Data.IsCFGEnabled())

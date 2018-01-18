@@ -129,18 +129,7 @@ namespace Js
 
         bool Equals(JavascriptString * str) const
         {
-            PropertyString * propString = PropertyString::TryFromVar(str);
-            const PropertyRecord * propRecord = nullptr;
-            if (propString == nullptr)
-            {
-                LiteralStringWithPropertyStringPtr * lstr = LiteralStringWithPropertyStringPtr::TryFromVar(str);
-                propRecord = lstr->GetPropertyRecord();
-            }
-            else
-            {
-                propRecord = propString->GetPropertyRecord();
-            }
-
+            const PropertyRecord * propRecord = str->GetPropertyRecord();
 
             if (propRecord == nullptr)
             {

@@ -1,5 +1,12 @@
 # Work around libstdc++ bug: https://llvm.org/bugs/show_bug.cgi?id=18156
 # Also see: http://lists.llvm.org/pipermail/cfe-dev/2015-January/040945.html
 src:*/ios_base.h
-# Work around another libstdc++ bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=60734
+
+# Work around another libstdc++ bug:
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=60734
 src:*/stl_tree.h
+
+# Work around for libstdc++ 4.8 bug:
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=59829
+src:*/stl_vector.h
+src:*/stl_iterator.h

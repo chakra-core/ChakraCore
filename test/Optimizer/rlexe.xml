@@ -7,6 +7,16 @@
   </test>
   <test>
     <default>
+      <files>bug41530.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug42111.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bug70.js</files>
     </default>
   </test>
@@ -1437,6 +1447,23 @@
   <test>
     <default>
       <files>fgpeepbug.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>capturedValuesBugs.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>test146.js</files>
+      <compile-flags>-off:bailonnoprofile</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>test147.js</files>
+      <compile-flags>-off:aggressiveinttypespec</compile-flags>
     </default>
   </test>
 </regress-exe>

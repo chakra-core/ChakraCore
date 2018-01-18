@@ -235,15 +235,16 @@ SwitchIRBuilder::OnCase(IR::RegOpnd * src1Opnd, IR::Opnd * src2Opnd, uint32 offs
     const bool isIntConst = src2Opnd->IsIntConstOpnd() || (sym && sym->IsIntConst());
     const bool isStrConst = !isIntConst && sym && sym->m_isStrConst;
 
-    if (GlobOpt::IsSwitchOptEnabled(m_func->GetTopFunc()) && 
-        isIntConst && 
-        m_intConstSwitchCases->TestAndSet(sym ? sym->GetIntConstValue() : src2Opnd->AsIntConstOpnd()->AsInt32()))
+    if (isIntConst
+        && GlobOpt::IsSwitchOptEnabledForIntTypeSpec(m_func->GetTopFunc())
+        && m_intConstSwitchCases->TestAndSet(sym ? sym->GetIntConstValue() : src2Opnd->AsIntConstOpnd()->AsInt32()))
     {
         // We've already seen a case statement with the same int const value. No need to emit anything for this.
         return;
     }
 
-    if (GlobOpt::IsSwitchOptEnabled(m_func->GetTopFunc()) && isStrConst
+    if (isStrConst
+        && GlobOpt::IsSwitchOptEnabled(m_func->GetTopFunc())
         && TestAndAddStringCaseConst(JITJavascriptString::FromVar(sym->GetConstAddress(true))))
     {
         // We've already seen a case statement with the same string const value. No need to emit anything for this.
@@ -253,36 +254,27 @@ SwitchIRBuilder::OnCase(IR::RegOpnd * src1Opnd, IR::Opnd * src2Opnd, uint32 offs
     branchInstr = IR::BranchInstr::New(m_eqOp, nullptr, src1Opnd, src2Opnd, m_func);
     branchInstr->m_isSwitchBr = true;
 
-    /*
     //  Switch optimization
     //  For Integers - Binary Search or jump table optimization technique is used
     //  For Strings - Dictionary look up technique is used.
     //
     //  For optimizing, the Load instruction corresponding to the switch instruction is profiled in the interpreter.
     //  Based on the dynamic profile data, optimization technique is decided.
-    */
-
-    bool deferred = false;
-
-    if (GlobOpt::IsSwitchOptEnabled(m_func->GetTopFunc()))
+    if (m_switchIntDynProfile && isIntConst && GlobOpt::IsSwitchOptEnabledForIntTypeSpec(m_func->GetTopFunc()))
     {
-        if (m_switchIntDynProfile && isIntConst)
-        {
-            CaseNode* caseNode = JitAnew(m_tempAlloc, CaseNode, branchInstr, offset, targetOffset, src2Opnd);
-            m_caseNodes->Add(caseNode);
-            deferred = true;
-        }
-        else if (m_switchStrDynProfile && isStrConst)
-        {
-            CaseNode* caseNode = JitAnew(m_tempAlloc, CaseNode, branchInstr, offset, targetOffset, src2Opnd);
-            m_caseNodes->Add(caseNode);
-            m_seenOnlySingleCharStrCaseNodes = m_seenOnlySingleCharStrCaseNodes && caseNode->GetUpperBoundStringConstLocal()->GetLength() == 1;
-            deferred = true;
-        }
+        CaseNode* caseNode = JitAnew(m_tempAlloc, CaseNode, branchInstr, offset, targetOffset, src2Opnd);
+        m_caseNodes->Add(caseNode);
     }
-
-    if (!deferred)
+    else if (m_switchStrDynProfile && isStrConst && GlobOpt::IsSwitchOptEnabled(m_func->GetTopFunc()))
     {
+        CaseNode* caseNode = JitAnew(m_tempAlloc, CaseNode, branchInstr, offset, targetOffset, src2Opnd);
+        m_caseNodes->Add(caseNode);
+        m_seenOnlySingleCharStrCaseNodes = m_seenOnlySingleCharStrCaseNodes && caseNode->GetUpperBoundStringConstLocal()->GetLength() == 1;
+    }
+    else
+    {
+        // Otherwise, there are no optimizations to defer, so add the branch for
+        // this case instruction now
         FlushCases(offset);
         m_adapter->AddBranchInstr(branchInstr, offset, targetOffset);
     }

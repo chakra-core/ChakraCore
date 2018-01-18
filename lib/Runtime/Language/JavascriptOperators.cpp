@@ -123,19 +123,21 @@ namespace Js
             else
             {
                 JavascriptString* indexStr = JavascriptConversion::ToString(indexVar, scriptContext);
-                *propertyRecord = indexStr->GetPropertyRecord();
+                char16 const * propertyName = indexStr->GetString();
+                charcount_t const propertyLength = indexStr->GetLength();
 
-                if ((*propertyRecord)->IsNumeric())
+                if (!createIfNotFound && preferJavascriptStringOverPropertyRecord)
                 {
-                    *index = (*propertyRecord)->GetNumericValue();
-                    return IndexType_Number;
-                }
+                    if (JavascriptOperators::TryConvertToUInt32(propertyName, propertyLength, index) &&
+                        (*index != JavascriptArray::InvalidIndex))
+                    {
+                        return IndexType_Number;
+                    }
 
-                if (preferJavascriptStringOverPropertyRecord)
-                {
                     *propertyNameString = indexStr;
+                    return IndexType_JavascriptString;
                 }
-                return IndexType_PropertyId;
+                return GetIndexTypeFromString(propertyName, propertyLength, scriptContext, index, propertyRecord, createIfNotFound);
             }
         }
     }
@@ -3773,8 +3775,18 @@ CommonNumber:
                 }
                 else if (VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(temp))
                 {
-                    LiteralStringWithPropertyStringPtr * propStr = (LiteralStringWithPropertyStringPtr *)temp;
-                    propertyString = propStr->GetOrAddPropertyString();
+                    LiteralStringWithPropertyStringPtr * strWithPtr = (LiteralStringWithPropertyStringPtr *)temp;
+                    if (!strWithPtr->HasPropertyRecord())
+                    {
+                        strWithPtr->GetPropertyRecord(); // lookup-cache propertyRecord
+                    }
+                    else
+                    {
+                        propertyString = strWithPtr->GetOrAddPropertyString();
+                        // this is the second time this property string is used
+                        // we already had created the propertyRecord..
+                        // now create the propertyString!
+                    }
                 }
 
                 if (propertyString != nullptr)
@@ -6675,7 +6687,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     BOOL JavascriptOperators::IsClassConstructor(Var instance)
     {
         JavascriptFunction * function = JavascriptOperators::TryFromVar<JavascriptFunction>(instance);
-        return function && (function->GetFunctionInfo()->IsClassConstructor() || !function->IsScriptFunction());
+        return function && (function->GetFunctionInfo()->IsClassConstructor() || (!function->IsScriptFunction() && !function->IsExternalFunction()));
     }
 
     BOOL JavascriptOperators::IsClassMethod(Var instance)
@@ -9331,8 +9343,14 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
         if (FAILED(hr))
         {
+            // We cannot just use the buffer in the specifier string - need to make a copy here.
+            size_t length = wcslen(moduleName);
+            char16* allocatedString = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, length + 1);
+            wmemcpy_s(allocatedString, length + 1, moduleName, length);
+            allocatedString[length] = _u('\0');
+
             Js::JavascriptError *error = scriptContext->GetLibrary()->CreateURIError();
-            JavascriptError::SetErrorMessageProperties(error, hr, moduleName, scriptContext);
+            JavascriptError::SetErrorMessageProperties(error, hr, allocatedString, scriptContext);
             return SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, error, scriptContext);
         }
 
@@ -9468,7 +9486,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     }
 
     Js::Var
-    JavascriptOperators::BoxStackInstance(Js::Var instance, ScriptContext * scriptContext, bool allowStackFunction)
+    JavascriptOperators::BoxStackInstance(Js::Var instance, ScriptContext * scriptContext, bool allowStackFunction, bool deepCopy)
     {
         if (!ThreadContext::IsOnStack(instance) || (allowStackFunction && !TaggedNumber::Is(instance) && (*(int*)instance & 1)))
         {
@@ -9490,11 +9508,11 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         case Js::TypeIds_Object:
             return DynamicObject::BoxStackInstance(DynamicObject::FromVar(instance));
         case Js::TypeIds_Array:
-            return JavascriptArray::BoxStackInstance(JavascriptArray::UnsafeFromVar(instance));
+            return JavascriptArray::BoxStackInstance(JavascriptArray::UnsafeFromVar(instance), deepCopy);
         case Js::TypeIds_NativeIntArray:
-            return JavascriptNativeIntArray::BoxStackInstance(JavascriptNativeIntArray::UnsafeFromVar(instance));
+            return JavascriptNativeIntArray::BoxStackInstance(JavascriptNativeIntArray::UnsafeFromVar(instance), deepCopy);
         case Js::TypeIds_NativeFloatArray:
-            return JavascriptNativeFloatArray::BoxStackInstance(JavascriptNativeFloatArray::UnsafeFromVar(instance));
+            return JavascriptNativeFloatArray::BoxStackInstance(JavascriptNativeFloatArray::UnsafeFromVar(instance), deepCopy);
         case Js::TypeIds_Function:
             Assert(allowStackFunction);
             // Stack functions are deal with not mar mark them, but by nested function escape analysis
