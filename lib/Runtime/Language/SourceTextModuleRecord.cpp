@@ -754,6 +754,7 @@ namespace Js
             ArenaAllocator* allocator = scriptContext->GeneralAllocator();
             SList<LPCOLESTR> * moduleRecords = Anew(allocator, SList<LPCOLESTR>, allocator);
 
+            // Reverse the order for the host. So, host can read the files top-down
             requestedModuleList->MapUntil([&](IdentPtr specifier) {
                 LPCOLESTR moduleName = specifier->Psz();
                 return !moduleRecords->Prepend(moduleName);
@@ -870,6 +871,8 @@ namespace Js
 
     void SourceTextModuleRecord::GenerateRootFunction()
     {
+        // On cyclic dependency, we may endup generating the root function twice
+        // so make sure we don't
         if (this->rootFunction != nullptr)
         {
             return;
