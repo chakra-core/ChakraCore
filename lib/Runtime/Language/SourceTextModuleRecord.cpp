@@ -722,8 +722,8 @@ namespace Js
                     Recycler* recycler = GetScriptContext()->GetRecycler();
                     this->parentModuleList = RecyclerNew(recycler, ModuleRecordList, recycler);
                 }
-                bool contains = this->parentModuleList->Contains(parentRecord);
-                if (!contains)
+
+                if (!this->parentModuleList->Contains(parentRecord))
                 {
                     this->parentModuleList->Add(parentRecord);
                     parentRecord->numPendingChildrenModule++;
@@ -827,20 +827,15 @@ namespace Js
             SetWasDeclarationInitialized();
             if (childrenModuleSet != nullptr)
             {
-                childrenModuleSet->Map([](LPCOLESTR specifier, SourceTextModuleRecord* moduleRecord)
+                childrenModuleSet->EachValue([=](SourceTextModuleRecord* childModuleRecord)
                 {
-                    Assert(moduleRecord->WasParsed());
-                    moduleRecord->shouldGenerateRootFunction =
-                            moduleRecord->ModuleDeclarationInstantiation();
+                    Assert(childModuleRecord->WasParsed());
+                    childModuleRecord->ModuleDeclarationInstantiation();
                 });
 
-                childrenModuleSet->Map([](LPCOLESTR specifier, SourceTextModuleRecord* moduleRecord)
+                childrenModuleSet->EachValue([=](SourceTextModuleRecord* childModuleRecord)
                 {
-                    if (moduleRecord->shouldGenerateRootFunction)
-                    {
-                        moduleRecord->shouldGenerateRootFunction = false;
-                        moduleRecord->GenerateRootFunction();
-                    }
+                    childModuleRecord->GenerateRootFunction();
                 });
             }
 
@@ -866,6 +861,11 @@ namespace Js
 
     void SourceTextModuleRecord::GenerateRootFunction()
     {
+        if (this->rootFunction != nullptr)
+        {
+            return;
+        }
+
         ScriptContext* scriptContext = GetScriptContext();
         Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
         CompileScriptException se;
