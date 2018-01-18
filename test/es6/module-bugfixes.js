@@ -61,6 +61,13 @@ var tests = [
             testRunner.LoadModule(functionBody);
         }
     },
+    {
+        name: "Issue 4570: Module that appears multiple times in dependency tree",
+        body: function() {
+            let functionBody = "import 'module_4570_dep1.js';"
+            testRunner.LoadModule(functionBody);
+        }
+    }
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
