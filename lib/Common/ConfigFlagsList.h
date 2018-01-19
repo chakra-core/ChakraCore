@@ -537,6 +537,7 @@ PHASE(All)
 #endif
 #define DEFAULT_CONFIG_JitRepro                (false)
 #define DEFAULT_CONFIG_LdChakraLib             (false)
+#define DEFAULT_CONFIG_EntryPointInfoRpcData   (false)
 
 // ES6 DEFAULT BEHAVIOR
 #define DEFAULT_CONFIG_ES6                     (true)  // master flag to gate all P0-spec-test compliant ES6 features
@@ -1010,6 +1011,7 @@ FLAGNR(Boolean, IntlBuiltIns          , "Intl built-in function support", DEFAUL
 
 FLAGNR(Boolean, JsBuiltIn             , "JS Built-in function support", DEFAULT_CONFIG_JsBuiltIn)
 FLAGNR(Boolean, JitRepro              , "Add Function.invokeJit to execute codegen on an encoded rpc buffer", DEFAULT_CONFIG_JitRepro)
+FLAGNR(Boolean, EntryPointInfoRpcData , "Keep encoded rpc buffer for jitted function on EntryPointInfo until cleanup", DEFAULT_CONFIG_EntryPointInfoRpcData)
 
 FLAGNR(Boolean, LdChakraLib           , "Access to the Chakra internal library with the __chakraLibrary keyword", DEFAULT_CONFIG_LdChakraLib)
 // ES6 (BLUE+1) features/flags
