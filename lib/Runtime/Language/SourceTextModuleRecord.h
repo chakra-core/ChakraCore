@@ -117,7 +117,6 @@ namespace Js
         // TODO: move non-GC fields out to avoid false reference?
         // This is the parsed tree resulted from compilation.
         Field(bool) wasParsed;
-        Field(bool) shouldGenerateRootFunction;
         Field(bool) wasDeclarationInitialized;
         Field(bool) parentsNotified;
         Field(bool) isRootModule;
