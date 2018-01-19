@@ -430,6 +430,19 @@ namespace Js
         Field(FieldAccessStatsPtr) fieldAccessStats;
 #endif
 
+#if DEBUG
+    private:
+        Field(const unsigned char*) serializedRpcData = nullptr;
+        Field(size_t) serializedRpcDataSize = 0;
+    public:
+        void SetSerializedRpcData(const unsigned char* data, size_t size)
+        {
+            Assert(serializedRpcData == nullptr);
+            serializedRpcData = data;
+            serializedRpcDataSize = size;
+        }
+#endif
+
     public:
         virtual void Finalize(bool isShutdown) override;
         virtual bool IsFunctionEntryPointInfo() const override { return true; }

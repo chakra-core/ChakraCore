@@ -8958,6 +8958,12 @@ namespace Js
 #if DBG_DUMP | defined(VTUNE_PROFILING)
             this->nativeOffsetMaps.Reset();
 #endif
+#if DEBUG
+            const unsigned char* rpcData = serializedRpcData;
+            HeapDeleteArray(serializedRpcDataSize, rpcData);
+            serializedRpcDataSize = 0;
+            serializedRpcData = nullptr;
+#endif
         }
     }
 
