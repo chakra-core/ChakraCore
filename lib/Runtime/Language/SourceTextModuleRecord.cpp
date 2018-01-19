@@ -722,8 +722,8 @@ namespace Js
                     Recycler* recycler = GetScriptContext()->GetRecycler();
                     this->parentModuleList = RecyclerNew(recycler, ModuleRecordList, recycler);
                 }
-                bool contains = this->parentModuleList->Contains(parentRecord);
-                if (!contains)
+
+                if (!this->parentModuleList->Contains(parentRecord))
                 {
                     this->parentModuleList->Add(parentRecord);
                     parentRecord->numPendingChildrenModule++;
@@ -751,10 +751,18 @@ namespace Js
         if (requestedModuleList != nullptr)
         {
             EnsureChildModuleSet(scriptContext);
+            ArenaAllocator* allocator = scriptContext->GeneralAllocator();
+            SList<LPCOLESTR> * moduleRecords = Anew(allocator, SList<LPCOLESTR>, allocator);
+
+            // Reverse the order for the host. So, host can read the files top-down
             requestedModuleList->MapUntil([&](IdentPtr specifier) {
+                LPCOLESTR moduleName = specifier->Psz();
+                return !moduleRecords->Prepend(moduleName);
+            });
+
+            moduleRecords->MapUntil([&](LPCOLESTR moduleName) {
                 ModuleRecordBase* moduleRecordBase = nullptr;
                 SourceTextModuleRecord* moduleRecord = nullptr;
-                LPCOLESTR moduleName = specifier->Psz();
                 bool itemFound = childrenModuleSet->TryGetValue(moduleName, &moduleRecord);
                 if (!itemFound)
                 {
@@ -779,6 +787,8 @@ namespace Js
                 }
                 return false;
             });
+            moduleRecords->Clear();
+
             if (FAILED(hr))
             {
                 if (this->errorObject == nullptr)
@@ -827,20 +837,15 @@ namespace Js
             SetWasDeclarationInitialized();
             if (childrenModuleSet != nullptr)
             {
-                childrenModuleSet->Map([](LPCOLESTR specifier, SourceTextModuleRecord* moduleRecord)
+                childrenModuleSet->EachValue([=](SourceTextModuleRecord* childModuleRecord)
                 {
-                    Assert(moduleRecord->WasParsed());
-                    moduleRecord->shouldGenerateRootFunction =
-                            moduleRecord->ModuleDeclarationInstantiation();
+                    Assert(childModuleRecord->WasParsed());
+                    childModuleRecord->ModuleDeclarationInstantiation();
                 });
 
-                childrenModuleSet->Map([](LPCOLESTR specifier, SourceTextModuleRecord* moduleRecord)
+                childrenModuleSet->EachValue([=](SourceTextModuleRecord* childModuleRecord)
                 {
-                    if (moduleRecord->shouldGenerateRootFunction)
-                    {
-                        moduleRecord->shouldGenerateRootFunction = false;
-                        moduleRecord->GenerateRootFunction();
-                    }
+                    childModuleRecord->GenerateRootFunction();
                 });
             }
 
@@ -866,6 +871,13 @@ namespace Js
 
     void SourceTextModuleRecord::GenerateRootFunction()
     {
+        // On cyclic dependency, we may endup generating the root function twice
+        // so make sure we don't
+        if (this->rootFunction != nullptr)
+        {
+            return;
+        }
+
         ScriptContext* scriptContext = GetScriptContext();
         Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
         CompileScriptException se;
