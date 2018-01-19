@@ -306,6 +306,7 @@ class SourceMap
 public:
     static void Add(AutoString &path, AutoString &data)
     {
+        // SourceMap lifetime == process lifetime
         FileNode * node = new FileNode(path, data);
         if (root != nullptr)
         {

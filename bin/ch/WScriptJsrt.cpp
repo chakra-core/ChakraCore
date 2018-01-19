@@ -207,7 +207,7 @@ JsValueRef WScriptJsrt::LoadScriptFileHelper(JsValueRef callee, JsValueRef *argu
                 {
                     fprintf(stderr, "Couldn't load file '%s'\n", fileName.GetString());
                     IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
-                    return;
+                    return returnValue;
                 }
 
                 fileContent = data->GetString();
@@ -1060,7 +1060,6 @@ JsValueRef __stdcall WScriptJsrt::RegisterModuleSourceCallback(JsValueRef callee
     HRESULT hr = E_FAIL;
     JsValueRef returnValue = JS_INVALID_REFERENCE;
     JsErrorCode errorCode = JsNoError;
-    const char* fileContent = nullptr;
 
     if (argumentCount < 3)
     {
@@ -1110,7 +1109,7 @@ JsValueRef __stdcall WScriptJsrt::LoadTextFileCallback(JsValueRef callee, bool i
                 {
                     fprintf(stderr, "Couldn't load file '%s'\n", fileName.GetString());
                     IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
-                    return;
+                    return returnValue;
                 }
 
                 fileContent = data->GetString();
