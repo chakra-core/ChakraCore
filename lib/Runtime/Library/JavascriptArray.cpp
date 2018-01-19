@@ -5489,7 +5489,6 @@ Case0:
 
             SparseArraySegmentBase *prevSeg = nullptr;
             SparseArraySegmentBase *nextSeg = nullptr;
-            SparseArraySegmentBase *pinPrevSeg = nullptr;
 
             bool isIntArray = false;
             bool isFloatArray = false;
@@ -5518,16 +5517,16 @@ Case0:
                     CopyHeadIfInlinedHeadSegment<int32>(pArr, recycler);
                     if (pArr->head->next)
                     {
-                    ReallocateNonLeafLastSegmentIfLeaf<int32>(pArr, recycler);
-                }
+                        ReallocateNonLeafLastSegmentIfLeaf<int32>(pArr, recycler);
+                    }
                 }
                 else if (isFloatArray)
                 {
                     CopyHeadIfInlinedHeadSegment<double>(pArr, recycler);
                     if (pArr->head->next)
                     {
-                    ReallocateNonLeafLastSegmentIfLeaf<double>(pArr, recycler);
-                }
+                        ReallocateNonLeafLastSegmentIfLeaf<double>(pArr, recycler);
+                    }
                 }
                 else
                 {
@@ -5570,9 +5569,6 @@ Case0:
                     // An easy fix is to just truncate the size...
                     seg->EnsureSizeInBound();
 
-                    // If the last segment is a leaf, then we may be losing our last scanned pointer to its previous
-                    // segment. Hold onto it with pinPrevSeg until we reallocate below.
-                    pinPrevSeg = prevSeg;
                     prevSeg = seg;
                 }
 
