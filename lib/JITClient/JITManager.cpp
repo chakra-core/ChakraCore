@@ -151,7 +151,7 @@ JITManager::CreateBinding(
             FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                            NULL, errorNumber, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR)&messageBuffer, 0, NULL);
             Output::Print(_u("Last error was 0x%x (%s)"), errorNumber, messageBuffer);
-            free(messageBuffer);
+            LocalFree(messageBuffer);
 #endif
             // wait operation failed for an unknown reason.
             Assert(false);
