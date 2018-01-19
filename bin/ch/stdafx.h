@@ -181,6 +181,13 @@ public:
         data_wide(nullptr), errorCode(JsNoError), dontFree(false)
     { }
 
+    AutoString(AutoString &autoString):length(autoString.length),
+        data(autoString.data), data_wide(autoString.data_wide),
+        errorCode(JsNoError), dontFree(false)
+    {
+        autoString.dontFree = true; // take over the ownership
+    }
+
     AutoString(JsValueRef value):length(0), data(nullptr),
         data_wide(nullptr), errorCode(JsNoError), dontFree(false)
     {
@@ -279,7 +286,48 @@ public:
     }
 
     char* operator*() { return data; }
-    char** operator&()  { return &data; }
+};
+
+struct FileNode
+{
+    AutoString data;
+    AutoString path;
+    FileNode * next;
+    FileNode(AutoString &path_, AutoString &data_):
+        path(path_), data(data_), next(nullptr) {
+        path_.MakePersistent();
+        data_.MakePersistent();
+    }
+};
+
+class SourceMap
+{
+    static FileNode * root;
+public:
+    static void Add(AutoString &path, AutoString &data)
+    {
+        FileNode * node = new FileNode(path, data);
+        if (root != nullptr)
+        {
+            node->next = root;
+        }
+        root = node;
+    }
+
+    static bool Find(AutoString &path, AutoString ** out)
+    {
+        FileNode * node = root;
+        while(node != nullptr)
+        {
+            if (strncmp(node->path.GetString(), path.GetString(), path.GetLength()) == 0)
+            {
+                *out = &(node->data);
+                return true;
+            }
+            node = node->next;
+        }
+        return false;
+    }
 };
 
 inline JsErrorCode CreatePropertyIdFromString(const char* str, JsPropertyIdRef *Id)
