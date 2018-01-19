@@ -59,7 +59,7 @@ typedef enum JsModuleHostInfoKind
 } JsModuleHostInfoKind;
 
 /// <summary>
-///     User implemented callback to fetch additional imported modules.
+///     User implemented callback to fetch additional imported modules in ES modules.
 /// </summary>
 /// <remarks>
 /// Notify the host to fetch the dependent module. This is the "import" part before HostResolveImportedModule in ES6 spec.
@@ -75,15 +75,16 @@ typedef enum JsModuleHostInfoKind
 typedef JsErrorCode(CHAKRA_CALLBACK * FetchImportedModuleCallBack)(_In_ JsModuleRecord referencingModule, _In_ JsValueRef specifier, _Outptr_result_maybenull_ JsModuleRecord* dependentModuleRecord);
 
 /// <summary>
-///     User implemented callback to get notification when the module is ready.
+///     User implemented callback to fetch imported modules dynamically in scripts.
 /// </summary>
 /// <remarks>
-/// Notify the host after ModuleDeclarationInstantiation step (15.2.1.1.6.4) is finished. If there was error in the process, exceptionVar
-/// holds the exception. Otherwise the referencingModule is ready and the host should schedule execution afterwards.
+/// Notify the host to fetch the dependent module. This is used for the dynamic import() syntax.
+/// This notifies the host that the referencing module has the specified module dependency, and the host need to retrieve the module back.
 /// </remarks>
-/// <param name="referencingModule">The referencing module that have finished running ModuleDeclarationInstantiation step.</param>
-/// <param name="exceptionVar">If nullptr, the module is successfully initialized and host should queue the execution job
-///                           otherwise it's the exception object.</param>
+/// <param name="dwReferencingSourceContext">The referencing script that calls import() </param>
+/// <param name="specifier">The specifier coming from the module source code.</param>
+/// <param name="dependentModuleRecord">The ModuleRecord of the dependent module. If the module was requested before from other source, return the
+///                           existing ModuleRecord, otherwise return a newly created ModuleRecord.</param>
 /// <returns>
 ///     true if the operation succeeded, false otherwise.
 /// </returns>
@@ -96,7 +97,7 @@ typedef JsErrorCode(CHAKRA_CALLBACK * FetchImportedModuleFromScriptCallBack)(_In
 /// Notify the host after ModuleDeclarationInstantiation step (15.2.1.1.6.4) is finished. If there was error in the process, exceptionVar
 /// holds the exception. Otherwise the referencingModule is ready and the host should schedule execution afterwards.
 /// </remarks>
-/// <param name="dwReferencingSourceContext">The referencing script that calls import()</param>
+/// <param name="referencingModule">The referencing module that have finished running ModuleDeclarationInstantiation step.</param>
 /// <param name="exceptionVar">If nullptr, the module is successfully initialized and host should queue the execution job
 ///                           otherwise it's the exception object.</param>
 /// <returns>
