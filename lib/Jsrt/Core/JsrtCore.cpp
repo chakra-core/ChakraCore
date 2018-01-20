@@ -27,10 +27,6 @@ JsInitializeModuleRecord(
         if (normalizedSpecifier != JS_INVALID_REFERENCE)
         {
             childModuleRecord->SetSpecifier(normalizedSpecifier);
-            if (Js::SourceTextModuleRecord::Is(referencingModule) && Js::JavascriptString::Is(normalizedSpecifier))
-            {
-                childModuleRecord->SetParent(Js::SourceTextModuleRecord::FromHost(referencingModule), Js::JavascriptString::FromVar(normalizedSpecifier)->GetSz());
-            }
         }
         return JsNoError;
     });
