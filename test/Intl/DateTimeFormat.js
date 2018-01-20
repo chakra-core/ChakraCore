@@ -55,7 +55,6 @@ const tests = [
             test({ day: "2-digit" }, "01");
             test({ day: "numeric" }, "1");
 
-            // ICU 2-digit hour skeleton (jj) doesn't transform into hh/HH correctly in en-US
             test({ hour: "2-digit" }, "01 AM");
             test({ hour: "numeric" }, "1 AM");
 

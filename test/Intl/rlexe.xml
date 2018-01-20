@@ -1,13 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
-  <test>
-    <default>
-      <files>Basics.js</files>
-      <tags>Intl</tags>
-      <compile-flags>-args summary -endargs</compile-flags>
-    </default>
-  </test>
-
+  <!--
+  Some entries are duplicated so we can have all relevant tests
+  in a single file while allowing extra asserts to run depending on ICU/WinGlob
+  -->
   <test>
     <default>
       <files>Collator.js</files>
@@ -21,10 +17,6 @@
       <tags>Intl</tags>
     </default>
   </test>
-  <!--
-  DateTimeFormat.js is duplicated so we can have all DateTimeFormat tests
-  in a single file while allowing extra asserts to run depending on the platform
-  -->
   <test>
     <default>
       <files>DateTimeFormat.js</files>
@@ -53,12 +45,18 @@
       <tags>Intl</tags>
     </default>
   </test>
-
   <test>
     <default>
       <files>GetCanonicalLocales.js</files>
-      <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Intl</tags>
+      <compile-flags>-args summary winglob -endargs</compile-flags>
+      <tags>Intl,require_winglob</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>GetCanonicalLocales.js</files>
+      <compile-flags>-args summary icu -endargs</compile-flags>
+      <tags>Intl,require_icu</tags>
     </default>
   </test>
   <test>

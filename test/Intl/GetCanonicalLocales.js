@@ -11,11 +11,28 @@ function testRangeError(tag) {
         `Locale '${tag}' is not well-formed`);
 }
 
-function assertEachIsOneOf(actualList, expectedList, msg) {
-    for (a of actualList) {
-        assert.isTrue(expectedList.includes(a), msg);
+/**
+ * Allows different values to be asserted depending on the Intl implementation
+ * 
+ * @param {String|String[]} expectedWinGlob
+ * @param {String|String[]} expectedICU
+ * @param {String|String[]} actual
+ * @param {String} message
+ */
+const equal = (function () {
+    if (WScript.Arguments.includes("icu")) {
+        return function (_, expectedICU, actual, message) {
+            assert.areEqual(expectedICU, actual, message);
+        }
+    } else {
+        assert.isTrue(WScript.Arguments.includes("winglob"));
+        return function (expectedWinGlob, _, actual, message) {
+            assert.areEqual(expectedWinGlob, actual, message);
+        }
     }
-}
+})();
+
+const gcl = Intl.getCanonicalLocales;
 
 var tests = [
     {
@@ -68,36 +85,25 @@ var tests = [
             assert.areEqual(Intl.getCanonicalLocales(chineseIn), chineseOut, "Chinese language-extlang and other forms map to preferred ISO 639-3 codes");
 
             // canonicalization of -u- extension keys
-            const DE_U_INCORRECT = 'de-de-u-kn-true-co-phonebk';
-            const DE_U_CORRECT = 'de-DE-u-co-phonebk-kn-true';
-            assert.areEqual(Intl.getCanonicalLocales(DE_U_INCORRECT), [DE_U_CORRECT], "Casing and reordering keys (input string)");
-            assert.areEqual(Intl.getCanonicalLocales([DE_U_INCORRECT]), [DE_U_CORRECT], "Casing and reordering keys (input singleton)");
-            assert.areEqual(Intl.getCanonicalLocales(['en-us', DE_U_INCORRECT]), ['en-US', DE_U_CORRECT], "Casing and reordering keys (input multiple)");
+            // V8 and CC-ICU convert boolean keys (kn) to boolean string values (including giving them default values),
+            // which is incorrect. SpiderMonkey and CC-WinGlob correctly avoid this.
+            // V8 and CC-ICU also give the default value of "yes" to non-boolean keys (co), which also is incorrect.
+            // Everyone (should) correctly re-order extension keys alphabetically
+            // Microsoft/ChakraCore#4490 tracks the incorrect defaulting, Microsoft/ChakraCore#2964 tracks the overall investigation
+            equal("de-DE-u-co-kn", "de-DE-u-co-yes-kn-true", gcl("de-de-u-kn-co")[0]);
+            equal("de-DE-u-co-phonebk-kn", "de-DE-u-co-phonebk-kn-true", gcl("de-de-u-kn-co-phonebk")[0]);
+            equal("de-DE-u-co-phonebk-kn-yes", "de-DE-u-co-phonebk-kn-true", gcl("de-DE-u-kn-yes-co-phonebk")[0]);
 
-            // TODO (doilij): Investigate what is correct/allowable here (Microsoft/ChakraCore#2964)
-            const DE_U_CORRECT_VARIANT = 'de-DE-u-co-phonebk-kn-yes';
-            assertEachIsOneOf(Intl.getCanonicalLocales(DE_U_CORRECT_VARIANT), [
-                DE_U_CORRECT_VARIANT, // ch; Firefox/SM
-                DE_U_CORRECT, // Chrome/v8/node
-            ]);
-
-            // canonicalization of -u- extension keys with no explicit values
-            // TODO (doilij): Investigate what is correct/allowable here (Microsoft/ChakraCore#2964)
-            assertEachIsOneOf(Intl.getCanonicalLocales('de-de-u-kn-co'), [
-                'de-DE-u-co-kn', // ch (WinGlob)
-                'de-DE-u-co-yes-kn-yes', // ch (ICU)
-                'de-DE-u-co-yes-kn-true', // Chrome/v8/node
-                'de-DE-u-kn-co', // Firefox/SM
-            ]);
-
-            // no duplicates
+            // De-dupe after locales are canonicalized
             assert.areEqual(Intl.getCanonicalLocales(['en-us', 'en-us']), ['en-US'], "No duplicates, same input casing (casing was incorrect)");
             assert.areEqual(Intl.getCanonicalLocales(['en-US', 'en-US']), ['en-US'], "No duplicates, same input casing (casing was correct)");
             assert.areEqual(Intl.getCanonicalLocales(['en-us', 'en-US']), ['en-US'], "No duplicates, different input casing");
 
-            // locale includes all options, don't de-dupe locales with and without options, but do de-dupe same options after canonicalization
-            assert.areEqual(Intl.getCanonicalLocales(['de-de', DE_U_CORRECT, DE_U_INCORRECT]), ['de-DE', DE_U_CORRECT],
-                "de-dupe canonicalized locales, but not locales with and without options");
+            assert.areEqual(
+                Intl.getCanonicalLocales(["de-de", "de-DE-u-co-phonebk-kn-true", "de-DE-u-kn-true-co-phonebk"]),
+                ["de-DE", "de-DE-u-co-phonebk-kn-true"],
+                "No duplicates after re-ordering options"
+            );
         }
     },
     {
@@ -114,26 +120,22 @@ var tests = [
                 "xx-Abcd-ZZ: [unsupported language xx] using [unsupported script Abcd] as used in [unsupported locale ZZ]");
 
             // TODO (doilij): Investigate what is correct/allowable here (Microsoft/ChakraCore#2964)
-            assertEachIsOneOf(Intl.getCanonicalLocales('xx-zzz'), [
-                'xx-zzz', // ch (WinGlob), Firefox/SM
-                'zzz' // ch (ICU), Chrome/v8/node
-            ]);
+            equal("xx-zzz", "zzz", gcl("xx-zzz")[0]);
 
-            // TODO (doilij): Investigate what is correct/allowable here (Microsoft/ChakraCore#2964)
-            assertEachIsOneOf(Intl.getCanonicalLocales('xx-zz-u-zz-yy'), [
-                'xx-ZZ-u-yy-yes-zz-yes', // Chrome/v8/node (reordering; defaulting)
-                'xx-ZZ-u-yy-zz', // ch (ICU) (reordering; no defaulting)
-                'xx-ZZ-u-zz-yy', // Firefox/SM (no reordering; no defaulting)
-            ]);
+            // See discussion of defaulting above (V8/CC-ICU and CC-WinGlob/SM distinction remains true here)
+            equal("xx-ZZ-u-yy-zz", "xx-ZZ-u-yy-yes-zz-yes", gcl("xx-zz-u-zz-yy")[0]);
         }
     },
     {
         name: "Rejection of duplicate tags",
         body: function () {
-            // TODO: Enable this test when Microsoft/ChakraCore#2961 is fixed.
-            // const duplicateTags = ['de-gregory-gregory'];
             const duplicateSingletons = ['cmn-hans-cn-u-u', 'cmn-hans-cn-t-u-ca-u'];
             const duplicateUnicodeExtensionKeys = ['de-de-u-kn-true-co-phonebk-co-phonebk'];
+
+            if (WScript.Arguments.includes("icu")) {
+                const duplicateTags = ['de-gregory-gregory'];
+                duplicateTags.forEach(testRangeError);
+            }
 
             // duplicateTags.forEach(testRangeError);
             duplicateSingletons.forEach(testRangeError);
@@ -148,6 +150,7 @@ var tests = [
         body: function () {
             const empty = [''];
             const invalidSubtags = ['en-A1'];
+            const invalidVariants = ['en-us-latn', 'en-us-latnlatnlatn'];
             const invalidChars = ['en-a@'];
             const nonAsciiChars = ['中文', 'de-ßß'];
             const boundaryHyphen = ['-en', '-en-us', 'en-', 'en-us-'];
@@ -156,6 +159,7 @@ var tests = [
 
             empty.forEach(testRangeError);
             invalidSubtags.forEach(testRangeError);
+            invalidVariants.forEach(testRangeError);
             invalidChars.forEach(testRangeError);
             nonAsciiChars.forEach(testRangeError)
             boundaryHyphen.forEach(testRangeError);

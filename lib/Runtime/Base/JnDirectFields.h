@@ -685,7 +685,7 @@ ENTRY(builtInJavascriptObjectEntryIsExtensible)
 ENTRY(builtInJavascriptObjectEntryKeys)
 ENTRY(builtInJavascriptObjectGetOwnPropertyDescriptor)
 ENTRY(builtInJavascriptObjectPreventExtensions)
-ENTRY(builtInJavascriptRegExpEntryTest)
+ENTRY(builtInJavascriptRegExpEntryTest) // TODO(jahorto): is this needed?
 ENTRY(builtInJavascriptStringEntryIndexOf)
 ENTRY(builtInJavascriptStringEntryMatch)
 ENTRY(builtInJavascriptStringEntryRepeat)
