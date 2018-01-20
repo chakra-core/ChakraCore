@@ -842,11 +842,6 @@ namespace Js
                     Assert(childModuleRecord->WasParsed());
                     childModuleRecord->ModuleDeclarationInstantiation();
                 });
-
-                childrenModuleSet->EachValue([=](SourceTextModuleRecord* childModuleRecord)
-                {
-                    childModuleRecord->GenerateRootFunction();
-                });
             }
 
             ENTER_SCRIPT_IF(scriptContext, true, false, false, !scriptContext->GetThreadContext()->IsScriptActive(),
@@ -903,6 +898,13 @@ namespace Js
             scriptContext->GetDebugContext()->RegisterFunction(this->rootFunction->GetFunctionBody(), nullptr);
         }
 #endif
+        if (childrenModuleSet != nullptr)
+        {
+            childrenModuleSet->EachValue([=](SourceTextModuleRecord* childModuleRecord)
+            {
+                childModuleRecord->GenerateRootFunction();
+            });
+        }
     }
 
     Var SourceTextModuleRecord::ModuleEvaluation()
