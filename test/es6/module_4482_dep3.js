@@ -4,7 +4,10 @@
 //-------------------------------------------------------------------------------------------------------
 
 
-import { Thing1 } from './module_4482_dep1.js';
+import { Thing1 } from 'module_4482_dep1.js';
 
 export default
-function Thing2(){}
+function main()
+{
+	Thing1();
+}
