@@ -4,10 +4,10 @@
 //-------------------------------------------------------------------------------------------------------
 
 //thing1.js
-import { Thing2 } from './module_4482_dep1.js';
+import { Thing2 } from 'module_4482_dep1.js';
 
 export default
-function Thing1()
+function main()
 {
     Thing2();
 }
