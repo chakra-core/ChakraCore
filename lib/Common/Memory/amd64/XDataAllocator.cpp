@@ -134,10 +134,7 @@ void XDataAllocator::Register(XDataAllocation * xdataInfo, ULONG_PTR functionSta
             /*RangeBase*/ functionStart,
             /*RangeEnd*/ functionStart + functionSize);
         success = NT_SUCCESS(status);
-        if (success)
-        {
-            Assert(xdataInfo->functionTable != nullptr);
-        }
+        Assert(success && xdataInfo->functionTable != nullptr);
     }
     else
     {
