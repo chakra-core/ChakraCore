@@ -64,7 +64,7 @@ void DelayDeletingFunctionTable::Clear()
         while (entry)
         {
             FunctionTableNode* list = (FunctionTableNode*)entry;
-            NtdllLibrary::Instance->DeleteGrowableFunctionTable(list->functionTable);
+            DeleteFunctionTable(list->functionTable);
             _aligned_free(entry);
             entry = InterlockedPopEntrySList(Head);
         }
@@ -78,5 +78,12 @@ bool DelayDeletingFunctionTable::IsEmpty()
     return QueryDepthSList(Head) == 0;
 #else
     return true;
+#endif
+}
+
+void DelayDeletingFunctionTable::DeleteFunctionTable(void* functionTable)
+{
+#if PDATA_ENABLED && defined(_WIN32)
+    NtdllLibrary::Instance->DeleteGrowableFunctionTable(functionTable);
 #endif
 }

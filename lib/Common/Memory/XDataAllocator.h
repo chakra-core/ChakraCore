@@ -32,4 +32,5 @@ struct DelayDeletingFunctionTable
     static bool AddEntry(FunctionTableHandle ft);
     static void Clear();
     static bool IsEmpty();
+    static void DeleteFunctionTable(void* functionTable);
 };

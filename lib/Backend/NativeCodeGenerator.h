@@ -104,10 +104,10 @@ public:
     void UpdateQueueForDebugMode();
     bool IsBackgroundJIT() const;
     void EnterScriptStart();
-    void FreeNativeCodeGenAllocation(void* codeAddress, void** functionTable);
+    void FreeNativeCodeGenAllocation(void* codeAddress);
     bool TryReleaseNonHiPriWorkItem(CodeGenWorkItem* workItem);
 
-    void QueueFreeNativeCodeGenAllocation(void* codeAddress, void* thunkAddress, void** functionTable);
+    void QueueFreeNativeCodeGenAllocation(void* codeAddress, void* thunkAddress);
 
     bool IsClosed() { return isClosed; }
     void AddWorkItem(CodeGenWorkItem* workItem);
@@ -201,11 +201,10 @@ private:
     class FreeLoopBodyJob: public JsUtil::Job
     {
     public:
-        FreeLoopBodyJob(JsUtil::JobManager *const manager, void* codeAddress, void* thunkAddress, void* functionTable, bool isHeapAllocated = true):
+        FreeLoopBodyJob(JsUtil::JobManager *const manager, void* codeAddress, void* thunkAddress, bool isHeapAllocated = true):
           JsUtil::Job(manager),
           codeAddress(codeAddress),
           thunkAddress(thunkAddress),
-          functionTable(functionTable),
           heapAllocated(isHeapAllocated)
         {
         }
@@ -213,7 +212,6 @@ private:
         bool heapAllocated;
         void* codeAddress;
         void* thunkAddress;
-        void* functionTable;
     };
 
     class FreeLoopBodyJobManager sealed: public WaitableJobManager
@@ -281,9 +279,8 @@ private:
         {
             FreeLoopBodyJob* freeLoopBodyJob = static_cast<FreeLoopBodyJob*>(job);
 
-            void* functionTable = freeLoopBodyJob->functionTable;
             // Free Loop Body
-            nativeCodeGen->FreeNativeCodeGenAllocation(freeLoopBodyJob->codeAddress, &functionTable);
+            nativeCodeGen->FreeNativeCodeGenAllocation(freeLoopBodyJob->codeAddress);
 
             return true;
         }
@@ -306,7 +303,7 @@ private:
             }
         }
 
-        void QueueFreeLoopBodyJob(void* codeAddress, void* thunkAddress, void** functionTable);
+        void QueueFreeLoopBodyJob(void* codeAddress, void* thunkAddress);
 
     private:
         NativeCodeGenerator* nativeCodeGen;
