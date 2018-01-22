@@ -205,7 +205,22 @@ void CodeGenWorkItem::OnWorkItemProcessFail(NativeCodeGenerator* codeGen)
 #if DBG
         this->allocation->allocation->isNotExecutableBecauseOOM = true;
 #endif
-        codeGen->FreeNativeCodeGenAllocation(this->allocation->allocation->address, nullptr);
+
+#if PDATA_ENABLED & defined(_WIN32)
+        if (this->entryPointInfo && this->entryPointInfo->GetXDataInfo()) 
+        {
+            void* functionTable = this->entryPointInfo->GetXDataInfo()->functionTable;
+            if (functionTable)
+            {
+                if (!DelayDeletingFunctionTable::AddEntry(functionTable))
+                {
+                    PHASE_PRINT_TESTTRACE1(Js::XDataPhase, _u("OnWorkItemProcessFail: Failed to add to slist, table: %llx\n"), functionTable);
+                    DelayDeletingFunctionTable::DeleteFunctionTable(functionTable);
+                }
+            }
+        }
+#endif
+        codeGen->FreeNativeCodeGenAllocation(this->allocation->allocation->address);
     }
 }
 
