@@ -248,6 +248,11 @@
 </dir>
 <dir>
   <default>
+    <files>es6module</files>
+  </default>
+</dir>
+<dir>
+  <default>
     <files>es7</files>
   </default>
 </dir>
