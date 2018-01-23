@@ -89,6 +89,7 @@ class BVSparse
 // Data
 public:
     Field(BVSparseNode*, TAllocator)    head;
+    Field(BVSparseNode*, TAllocator)    lastFoundIndex;
 
 private:
     FieldNoBarrier(TAllocator*)         alloc;
@@ -322,7 +323,8 @@ const SparseBVUnit BVSparse<TAllocator>::s_EmptyUnit(0);
 template <class TAllocator>
 BVSparse<TAllocator>::BVSparse(TAllocator* allocator) :
    alloc(allocator),
-   head(nullptr)
+   head(nullptr),
+   lastFoundIndex(nullptr)
 {
     this->lastUsedNodePrevNextField = &this->head;
 }
@@ -414,13 +416,31 @@ BVSparse<TAllocator>::NodeFromIndex(BVIndex i, Field(BVSparseNode*, TAllocator) 
     const BVIndex searchIndex = SparseBVUnit::Floor(i);
 
     Field(BVSparseNode*, TAllocator) const* prevNextField = &this->head;
-    const BVSparseNode * curNode = *prevNextField;
+    Field(BVSparseNode*, TAllocator) const* prevLastField = &this->lastFoundIndex;
+
+    const BVSparseNode * curNode  = *prevNextField,
+                       * lastNode = *prevLastField;
     if (curNode != nullptr)
     {
         if (curNode->startIndex == searchIndex)
         {
             *prevNextFieldOut = prevNextField;
             return curNode;
+        }
+
+        if (lastNode && lastNode->startIndex != curNode->startIndex)
+        {
+            if (lastNode->startIndex == searchIndex)
+            {
+                *prevNextFieldOut = prevLastField;
+                return lastNode;
+            }
+
+            if (lastNode->startIndex < searchIndex)
+            {
+                prevNextField = &this->lastFoundIndex;
+                curNode = this->lastFoundIndex;
+            }
         }
 
         if (curNode->startIndex > searchIndex)
@@ -439,6 +459,8 @@ BVSparse<TAllocator>::NodeFromIndex(BVIndex i, Field(BVSparseNode*, TAllocator) 
     {
         prevNextField = &curNode->next;
     }
+
+    const_cast<BVSparse<TAllocator>*>(this)->lastFoundIndex = *prevNextField;
 
     if (curNode && searchIndex == curNode->startIndex)
     {
@@ -486,6 +508,7 @@ template <class TAllocator>
 BVSparseNode<TAllocator> *
 BVSparse<TAllocator>::DeleteNode(BVSparseNode *node, bool bResetLastUsed)
 {
+    this->lastFoundIndex = nullptr;
     BVSparseNode *next = node->next;
     QueueInFreeList(node);
 
@@ -563,6 +586,7 @@ BVSparse<TAllocator>::ClearAll()
         QueueInFreeList(node);
     }
     this->head = nullptr;
+    this->lastFoundIndex = nullptr;
     this->lastUsedNodePrevNextField = &this->head;
 }
 
@@ -902,6 +926,7 @@ BVSparse<TAllocator>::CopyFromNode(const ::BVSparseNode<TSrcAllocator> * node2)
 {
     BVSparseNode * node1 = this->head;
     Field(BVSparseNode*, TAllocator)* prevNextField = &this->head;
+    this->lastFoundIndex = nullptr;
 
     while (node1 != nullptr && node2 != nullptr)
     {
