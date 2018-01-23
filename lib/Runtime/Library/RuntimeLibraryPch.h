@@ -39,7 +39,6 @@
 
 #include "Library/JavascriptVariantDate.h"
 #include "Library/JavascriptPromise.h"
-#include "Library/JavascriptSymbol.h"
 #include "Library/JavascriptSymbolObject.h"
 #include "Library/JavascriptProxy.h"
 #include "Library/JavascriptReflect.h"

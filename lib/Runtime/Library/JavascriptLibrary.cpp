@@ -2518,9 +2518,9 @@ namespace Js
         return true;
     }
 
-    JavascriptFunction* JavascriptLibrary::EnsureGeneratorReturnFunction() 
+    JavascriptFunction* JavascriptLibrary::EnsureGeneratorReturnFunction()
     {
-        if (generatorReturnFunction == nullptr) 
+        if (generatorReturnFunction == nullptr)
         {
             generatorReturnFunction = DefaultCreateFunction(&JavascriptGenerator::EntryInfo::Return, 1, nullptr, nullptr, PropertyIds::return_);
         }
@@ -5595,7 +5595,7 @@ namespace Js
 
     Js::RecyclableObject* JavascriptLibrary::CreatePrimitveSymbol_TTD(Js::PropertyId pid)
     {
-        return this->CreateSymbol(this->scriptContext->GetPropertyName(pid));
+        return this->scriptContext->GetSymbol(pid);
     }
 
     Js::RecyclableObject* JavascriptLibrary::CreatePrimitveSymbol_TTD(Js::JavascriptString* str)
@@ -6673,7 +6673,10 @@ namespace Js
     JavascriptSymbol* JavascriptLibrary::CreateSymbol(const PropertyRecord* propertyRecord)
     {
         AssertMsg(symbolTypeStatic, "Where's symbolTypeStatic?");
-        return RecyclerNew(this->GetRecycler(), JavascriptSymbol, propertyRecord, symbolTypeStatic);
+        SymbolCacheMap* symbolMap = this->EnsureSymbolMap();
+        JavascriptSymbol* symbol = RecyclerNew(this->GetRecycler(), JavascriptSymbol, propertyRecord, symbolTypeStatic);
+        symbolMap->Item(propertyRecord->GetPropertyId(), recycler->CreateWeakReferenceHandle(symbol));
+        return symbol;
     }
 
     JavascriptError* JavascriptLibrary::CreateExternalError(ErrorTypeEnum errorTypeEnum)
@@ -7156,6 +7159,16 @@ namespace Js
             this->scriptContext->RegisterWeakReferenceDictionary((JsUtil::IWeakReferenceDictionary*) this->propertyStringMap);
         }
         return this->propertyStringMap;
+    }
+
+    SymbolCacheMap* JavascriptLibrary::EnsureSymbolMap()
+    {
+        if (this->symbolMap == nullptr)
+        {
+            this->symbolMap = RecyclerNew(this->recycler, SymbolCacheMap, this->GetRecycler(), 71);
+            this->scriptContext->RegisterWeakReferenceDictionary((JsUtil::IWeakReferenceDictionary*) this->symbolMap);
+        }
+        return this->symbolMap;
     }
 
     DynamicObject* JavascriptLibrary::CreateActivationObject()

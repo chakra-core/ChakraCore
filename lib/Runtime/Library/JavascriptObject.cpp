@@ -362,7 +362,7 @@ namespace Js
         PropertyValueInfo info;
         // We don't allow cache resizing, at least for the moment: it's more work, and since there's only one
         // cache per script context, we can afford to create each cache with the maximum size.
-        PropertyValueInfo::SetCacheInfo(&info, nullptr, cache, false);
+        PropertyValueInfo::SetCacheInfo(&info, cache, false);
         Var value;
         if (CacheOperators::TryGetProperty<
             true,                                       // CheckLocal
@@ -1189,7 +1189,7 @@ namespace Js
 
                     if (propertyRecord->IsSymbol())
                     {
-                        symbol = scriptContext->GetLibrary()->CreateSymbol(propertyRecord);
+                        symbol = scriptContext->GetSymbol(propertyRecord);
                         // no need to marshal symbol because it is created from scriptContext
                         newArrForSymbols->DirectSetItemAt(symbolIndex++, symbol);
                         continue;
@@ -1997,7 +1997,7 @@ namespace Js
                 // Also, if the object's type has not changed, we need to ensure that
                 // the cached property string for this property, if any, does not
                 // specify this object's type.
-                scriptContext->InvalidatePropertyStringCache(propId, obj->GetType());
+                scriptContext->InvalidatePropertyStringAndSymbolCaches(propId, obj->GetType());
             }
         }
 

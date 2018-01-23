@@ -1912,9 +1912,9 @@ CommonNumber:
             PropertyQueryFlags result = object->GetPropertyQuery(instance, propertyKey, value, info, requestContext);
             if (result != PropertyQueryFlags::Property_NotFound)
             {
-                if (value && !WithScopeObject::Is(object) && info->GetPropertyString())
+                if (value && !WithScopeObject::Is(object) && info->GetPropertyRecordUsageCache())
                 {
-                    PropertyId propertyId = info->GetPropertyString()->GetPropertyRecord()->GetPropertyId();
+                    PropertyId propertyId = info->GetPropertyRecordUsageCache()->GetPropertyRecord()->GetPropertyId();
                     CacheOperators::CachePropertyRead(instance, object, false, propertyId, false, info, requestContext);
                 }
                 return JavascriptConversion::PropertyQueryFlagsToBoolean(result);
@@ -1925,10 +1925,10 @@ CommonNumber:
             }
             object = JavascriptOperators::GetPrototypeNoTrap(object);
         }
-        if (!PHASE_OFF1(MissingPropertyCachePhase) && info->GetPropertyString() && DynamicObject::Is(instance) && ((DynamicObject*)instance)->GetDynamicType()->GetTypeHandler()->IsPathTypeHandler())
+        if (!PHASE_OFF1(MissingPropertyCachePhase) && info->GetPropertyRecordUsageCache() && DynamicObject::Is(instance) && ((DynamicObject*)instance)->GetDynamicType()->GetTypeHandler()->IsPathTypeHandler())
         {
             PropertyValueInfo::Set(info, requestContext->GetLibrary()->GetMissingPropertyHolder(), 0);
-            CacheOperators::CachePropertyRead(instance, requestContext->GetLibrary()->GetMissingPropertyHolder(), false, info->GetPropertyString()->GetPropertyRecord()->GetPropertyId(), true, info, requestContext);
+            CacheOperators::CachePropertyRead(instance, requestContext->GetLibrary()->GetMissingPropertyHolder(), false, info->GetPropertyRecordUsageCache()->GetPropertyRecord()->GetPropertyId(), true, info, requestContext);
         }
 
         *value = requestContext->GetMissingPropertyResult();
@@ -2300,9 +2300,9 @@ CommonNumber:
                     }
                     if (setterValueOrProxy)
                     {
-                        if (!WithScopeObject::Is(receiver) && info->GetPropertyString())
+                        if (!WithScopeObject::Is(receiver) && info->GetPropertyRecordUsageCache())
                         {
-                            CacheOperators::CachePropertyWrite(RecyclableObject::FromVar(receiver), false, object->GetType(), info->GetPropertyString()->GetPropertyRecord()->GetPropertyId(), info, requestContext);
+                            CacheOperators::CachePropertyWrite(RecyclableObject::FromVar(receiver), false, object->GetType(), info->GetPropertyRecordUsageCache()->GetPropertyRecord()->GetPropertyId(), info, requestContext);
                         }
                         receiver = (RecyclableObject::FromVar(receiver))->GetThisObjectOrUnWrap();
                         RecyclableObject* func = RecyclableObject::FromVar(setterValueOrProxy);
@@ -2318,7 +2318,7 @@ CommonNumber:
                     auto fn = [&](RecyclableObject* target) -> BOOL {
                         return JavascriptOperators::SetPropertyWPCache(receiver, target, propertyKey, newValue, requestContext, propertyOperationFlags, info);
                     };
-                    if (info->GetPropertyString())
+                    if (info->GetPropertyRecordUsageCache())
                     {
                         PropertyValueInfo::SetNoCache(info, proxy);
                         PropertyValueInfo::DisablePrototypeCache(info, proxy);
@@ -2356,14 +2356,14 @@ CommonNumber:
             // in 9.1.9, step 5, we should return false if receiver is not object, and that will happen in default RecyclableObject operation anyhow.
             if (receiverObject->SetProperty(propertyKey, newValue, propertyOperationFlags, info))
             {
-                if (!JavascriptProxy::Is(receiver) && info->GetPropertyString() && info->GetFlags() != InlineCacheSetterFlag && !object->CanHaveInterceptors())
+                if (!JavascriptProxy::Is(receiver) && info->GetPropertyRecordUsageCache() && info->GetFlags() != InlineCacheSetterFlag && !object->CanHaveInterceptors())
                 {
-                    CacheOperators::CachePropertyWrite(RecyclableObject::FromVar(receiver), false, typeWithoutProperty, info->GetPropertyString()->GetPropertyRecord()->GetPropertyId(), info, requestContext);
+                    CacheOperators::CachePropertyWrite(RecyclableObject::FromVar(receiver), false, typeWithoutProperty, info->GetPropertyRecordUsageCache()->GetPropertyRecord()->GetPropertyId(), info, requestContext);
 
                     if (info->GetInstance() == receiverObject)
                     {
-                        PropertyValueInfo::SetCacheInfo(info, info->GetPropertyString(), info->GetPropertyString()->GetLdElemInlineCache(), info->AllowResizingPolymorphicInlineCache());
-                        CacheOperators::CachePropertyRead(object, receiverObject, false, info->GetPropertyString()->GetPropertyRecord()->GetPropertyId(), false, info, requestContext);
+                        PropertyValueInfo::SetCacheInfo(info, info->GetPropertyRecordUsageCache()->GetLdElemInlineCache(), info->AllowResizingPolymorphicInlineCache());
+                        CacheOperators::CachePropertyRead(object, receiverObject, false, info->GetPropertyRecordUsageCache()->GetPropertyRecord()->GetPropertyId(), false, info, requestContext);
                     }
                 }
                 return TRUE;
@@ -3791,39 +3791,10 @@ CommonNumber:
 
                 if (propertyString != nullptr)
                 {
-                    RecyclableObject* object = nullptr;
-                    if (FALSE == JavascriptOperators::GetPropertyObject(instance, scriptContext, &object))
-                    {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_CannotGet_NullOrUndefined,
-                            JavascriptString::FromVar(index)->GetSz());
-                    }
-
-                    PropertyRecord const * propertyRecord = propertyString->GetPropertyRecord();
-                    Var value;
-
-                    if (propertyRecord->IsNumeric())
-                    {
-                        if (JavascriptOperators::GetItem(instance, object, propertyRecord->GetNumericValue(), &value, scriptContext))
-                        {
-                            return value;
-                        }
-                    }
-                    else
-                    {
-                        PropertyValueInfo info;
-                        if (propertyString->TryGetPropertyFromCache<false /* OwnPropertyOnly */>(instance, object, &value, scriptContext, &info))
-                        {
-                            return value;
-                        }
-                        if (JavascriptOperators::GetPropertyWPCache(instance, object, propertyRecord->GetPropertyId(), &value, scriptContext, &info))
-                        {
-                            return value;
-                        }
-                    }
-                    return scriptContext->GetLibrary()->GetUndefined();
+                    return GetElementIWithCache(instance, propertyString, propertyString->GetPropertyRecordUsageCache(), scriptContext);
                 }
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-                if (PHASE_TRACE1(PropertyStringCachePhase))
+                if (PHASE_TRACE1(PropertyCachePhase))
                 {
                     Output::Print(_u("PropertyCache: GetElem No property string for '%s'\n"), temp->GetString());
                 }
@@ -3832,9 +3803,49 @@ CommonNumber:
                 scriptContext->forinNoCache++;
 #endif
             }
+
+            JavascriptSymbol* symbol = JavascriptOperators::TryFromVar<JavascriptSymbol>(index);
+            if (symbol && RecyclableObject::Is(instance)) // fastpath for JavascriptSymbols
+            {
+                return GetElementIWithCache(instance, symbol, symbol->GetPropertyRecordUsageCache(), scriptContext);
+            }
         }
 
         return JavascriptOperators::GetElementIHelper(instance, index, instance, scriptContext);
+    }
+
+    Var JavascriptOperators::GetElementIWithCache(Var instance, RecyclableObject* index, PropertyRecordUsageCache* propertyRecordUsageCache, ScriptContext* scriptContext)
+    {
+        RecyclableObject* object = nullptr;
+        if (FALSE == JavascriptOperators::GetPropertyObject(instance, scriptContext, &object))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_CannotGet_NullOrUndefined,
+                JavascriptString::FromVar(index)->GetSz());
+        }
+
+        PropertyRecord const * propertyRecord = propertyRecordUsageCache->GetPropertyRecord();
+        Var value;
+
+        if (propertyRecord->IsNumeric())
+        {
+            if (JavascriptOperators::GetItem(instance, object, propertyRecord->GetNumericValue(), &value, scriptContext))
+            {
+                return value;
+            }
+        }
+        else
+        {
+            PropertyValueInfo info;
+            if (propertyRecordUsageCache->TryGetPropertyFromCache<false /* OwnPropertyOnly */>(instance, object, &value, scriptContext, &info, index))
+            {
+                return value;
+            }
+            if (JavascriptOperators::GetPropertyWPCache(instance, object, propertyRecord->GetPropertyId(), &value, scriptContext, &info))
+            {
+                return value;
+            }
+        }
+        return scriptContext->GetLibrary()->GetUndefined();
     }
 
     Var JavascriptOperators::GetElementIHelper(Var instance, Var index, Var receiver, ScriptContext* scriptContext)
@@ -4451,6 +4462,13 @@ CommonNumber:
             propertyRecord = propertyString->GetPropertyRecord();
         }
 
+        // fastpath for Symbols only if receiver == object
+        JavascriptSymbol* symbol = JavascriptOperators::TryFromVar<JavascriptSymbol>(index);
+        if (symbol)
+        {
+            propertyRecord = symbol->GetValue();
+        }
+
         if (propertyRecord != nullptr)
         {
             if (propertyRecord->IsNumeric())
@@ -4464,6 +4482,14 @@ CommonNumber:
                 {
                     Assert(propertyString->GetScriptContext() == scriptContext);
                     if (propertyString->TrySetPropertyFromCache(object, value, scriptContext, flags, &propertyValueInfo))
+                    {
+                        return true;
+                    }
+                }
+                else if (symbol != nullptr && receiver == object)
+                {
+                    Assert(symbol->GetScriptContext() == scriptContext);
+                    if (symbol->GetPropertyRecordUsageCache()->TrySetPropertyFromCache(object, value, scriptContext, flags, &propertyValueInfo, symbol))
                     {
                         return true;
                     }

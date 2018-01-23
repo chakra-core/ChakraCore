@@ -13,7 +13,6 @@
 #include "Common/ByteSwap.h"
 #include "Library/DataView.h"
 #include "Library/JavascriptExceptionMetadata.h"
-#include "Library/JavascriptSymbol.h"
 #include "Library/JavascriptPromise.h"
 #include "Base/ThreadContextTlsEntry.h"
 #include "Codex/Utf8Helper.h"
@@ -3315,7 +3314,7 @@ CHAKRA_API JsGetSymbolFromPropertyId(_In_ JsPropertyIdRef propertyId, _Out_ JsVa
             return JsErrorPropertyNotSymbol;
         }
 
-        *symbol = scriptContext->GetLibrary()->CreateSymbol(propertyRecord);
+        *symbol = scriptContext->GetSymbol(propertyRecord);
         return JsNoError;
     });
 }

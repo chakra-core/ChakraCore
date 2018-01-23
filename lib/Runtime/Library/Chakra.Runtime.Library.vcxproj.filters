@@ -124,6 +124,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JsBuiltInEngineInterfaceExtensionObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)LazyJSONString.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringifier.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringBuilder.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)PropertyRecordUsageCache.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
@@ -270,6 +272,7 @@
     <ClInclude Include="JsBuiltIn\JsBuiltIn.js.bc.64b.h" />
     <ClInclude Include="JsBuiltIn\JsBuiltIn.js.nojit.bc.32b.h" />
     <ClInclude Include="JsBuiltIn\JsBuiltIn.js.nojit.bc.64b.h" />
+    <ClInclude Include="PropertyRecordUsageCache.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ConcatString.inl" />

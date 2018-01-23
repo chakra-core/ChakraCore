@@ -397,6 +397,7 @@ namespace Js
         Field(DynamicObject*) missingPropertyHolder;
         Field(StaticType*) throwErrorObjectType;
         Field(PropertyStringCacheMap*) propertyStringMap;
+        Field(SymbolCacheMap*) symbolMap;
         Field(ConstructorCache*) builtInConstructorCache;
 
         Field(DynamicObject*) chakraLibraryObject;
@@ -579,6 +580,7 @@ namespace Js
             inProfileMode(false),
             inDispatchProfileMode(false),
             propertyStringMap(nullptr),
+            symbolMap(nullptr),
             parseIntFunctionObject(nullptr),
             evalFunctionObject(nullptr),
             parseFloatFunctionObject(nullptr),
@@ -1231,7 +1233,11 @@ namespace Js
 #endif
 
         PropertyStringCacheMap* EnsurePropertyStringMap();
-        PropertyStringCacheMap* GetPropertyStringMap() { return this->propertyStringMap; }
+        SymbolCacheMap* EnsureSymbolMap();
+
+        template <typename TProperty> WeakPropertyIdMap<TProperty>* GetPropertyMap();
+        template <> PropertyStringCacheMap* GetPropertyMap<PropertyString>() { return this->propertyStringMap; }
+        template <> SymbolCacheMap* GetPropertyMap<JavascriptSymbol>() { return this->symbolMap; }
 
         void TypeAndPrototypesAreEnsuredToHaveOnlyWritableDataProperties(Type *const type);
         void NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();

@@ -929,6 +929,12 @@ private:
 
         void InternalClose();
 
+        template <typename TProperty> void InvalidatePropertyCache(PropertyId propertyId, Type* type);
+        void InvalidatePropertyRecordUsageCache(PropertyRecordUsageCache* propertyRecordUsageCache, Type *type);
+        template <typename TProperty> TProperty* TryGetProperty(PropertyId propertyId);
+        template <typename TProperty> TProperty* GetProperty(PropertyId propertyId, const PropertyRecord* propertyRecord);
+        template <typename TProperty> TProperty* CreateAndCacheSymbolOrPropertyString(const PropertyRecord* propertyRecord);
+
     public:
 
 #ifdef LEAK_REPORT
@@ -1322,9 +1328,11 @@ private:
         void SetDisposeDisposeByFaultInjectionEventHandler(EventHandler eventHandler);
 #endif
         EnumeratedObjectCache* GetEnumeratedObjectCache() { return &(this->Cache()->enumObjCache); }
-        PropertyString* TryGetPropertyString(PropertyId propertyId);
         PropertyString* GetPropertyString(PropertyId propertyId);
-        void InvalidatePropertyStringCache(PropertyId propertyId, Type* type);
+        PropertyString* GetPropertyString(const PropertyRecord* propertyRecord);
+        JavascriptSymbol* GetSymbol(PropertyId propertyId);
+        JavascriptSymbol* GetSymbol(const PropertyRecord* propertyRecord);
+        void InvalidatePropertyStringAndSymbolCaches(PropertyId propertyId, Type* type);
         JavascriptString* GetIntegerString(Var aValue);
         JavascriptString* GetIntegerString(int value);
         JavascriptString* GetIntegerString(uint value);
@@ -1723,6 +1731,7 @@ private:
         virtual intptr_t GetNegativeZeroAddr() const override;
         virtual intptr_t GetNumberTypeStaticAddr() const override;
         virtual intptr_t GetStringTypeStaticAddr() const override;
+        virtual intptr_t GetSymbolTypeStaticAddr() const override;
         virtual intptr_t GetObjectTypeAddr() const override;
         virtual intptr_t GetObjectHeaderInlinedTypeAddr() const override;
         virtual intptr_t GetRegexTypeAddr() const override;

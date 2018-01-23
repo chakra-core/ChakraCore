@@ -6,6 +6,11 @@
 
 namespace Js
 {
+    PropertyRecordUsageCache * JavascriptSymbol::GetPropertyRecordUsageCache()
+    {
+        return &this->propertyRecordUsageCache;
+    }
+
     bool JavascriptSymbol::Is(Var aValue)
     {
         return JavascriptOperators::GetTypeId(aValue) == TypeIds_Symbol;
@@ -74,7 +79,8 @@ namespace Js
         }
         else if (JavascriptSymbolObject::Is(args[0]))
         {
-            return scriptContext->GetLibrary()->CreateSymbol(JavascriptSymbolObject::FromVar(args[0])->GetValue());
+            JavascriptSymbolObject* obj = JavascriptSymbolObject::FromVar(args[0]);
+            return CrossSite::MarshalVar(scriptContext, obj->Unwrap(), obj->GetScriptContext());
         }
         else
         {
@@ -149,7 +155,7 @@ namespace Js
 
         Assert(propertyRecord != nullptr);
 
-        return library->CreateSymbol(propertyRecord);
+        return scriptContext->GetSymbol(propertyRecord);
     }
 
     // Symbol.keyFor as described in ES 2015
@@ -206,7 +212,8 @@ namespace Js
         }
         else if (JavascriptSymbolObject::Is(args[0]))
         {
-            return scriptContext->GetLibrary()->CreateSymbol(JavascriptSymbolObject::FromVar(args[0])->GetValue());
+            JavascriptSymbolObject* obj = JavascriptSymbolObject::FromVar(args[0]);
+            return CrossSite::MarshalVar(scriptContext, obj->Unwrap(), obj->GetScriptContext());
         }
         else
         {
@@ -218,7 +225,7 @@ namespace Js
     {
         // PropertyRecords are per-ThreadContext so we can just create a new primitive wrapper
         // around the PropertyRecord stored in this symbol via the other context library.
-        return requestContext->GetLibrary()->CreateSymbol(this->GetValue());
+        return requestContext->GetSymbol(this->GetValue());
     }
 
     Var JavascriptSymbol::TryInvokeRemotelyOrThrow(JavascriptMethod entryPoint, ScriptContext * scriptContext, Arguments & args, int32 errorCode, PCWSTR varName)

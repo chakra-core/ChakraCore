@@ -381,7 +381,7 @@ CommonNumber:
             {
                 JavascriptSymbolObject* symbolObject = JavascriptSymbolObject::UnsafeFromVar(aValue);
 
-                return requestContext->GetLibrary()->CreateSymbol(symbolObject->GetValue());
+                return CrossSite::MarshalVar(requestContext, symbolObject->Unwrap(), symbolObject->GetScriptContext());
             }
 
         case TypeIds_Date:

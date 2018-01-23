@@ -3115,6 +3115,8 @@ Lowerer::LoadLibraryValueOpnd(IR::Instr * instr, LibraryValue valueType)
         return IR::AddrOpnd::New(scriptContextInfo->GetNumberTypeStaticAddr(), IR::AddrOpndKindDynamicType, instr->m_func, true);
     case LibraryValue::ValueStringTypeStatic:
         return IR::AddrOpnd::New(scriptContextInfo->GetStringTypeStaticAddr(), IR::AddrOpndKindDynamicType, instr->m_func, true);
+    case LibraryValue::ValueSymbolTypeStatic:
+        return IR::AddrOpnd::New(scriptContextInfo->GetSymbolTypeStaticAddr(), IR::AddrOpndKindDynamicType, instr->m_func, true);
     case LibraryValue::ValueObjectType:
         return IR::AddrOpnd::New(scriptContextInfo->GetObjectTypeAddr(), IR::AddrOpndKindDynamicType, instr->m_func);
     case LibraryValue::ValueObjectHeaderInlinedType:
@@ -15167,6 +15169,19 @@ Lowerer::GenerateFastElemICommon(
                 return nullptr;
             }
         }
+        else if (indexOpnd->GetValueType().IsLikelySymbol())
+        {
+            if (!baseOpnd->GetValueType().IsLikelyOptimizedTypedArray())
+            {
+                // If profile data says that it's a typed array - do not generate the symbol fast path as the src. could be a temp and that would cause a bug.
+                return GenerateFastElemISymbolIndexCommon(instr, isStore, indirOpnd, labelHelper);
+            }
+            else
+            {
+                // There's no point in generating the int index fast path if we know the index has a symbol value.
+                return nullptr;
+            }
+        }
     }
     return
         GenerateFastElemIIntIndexCommon(
@@ -15226,20 +15241,7 @@ Lowerer::GenerateFastElemIStringIndexCommon(IR::Instr * instrInsert, bool isStor
     //      StringTest(indexOpnd, $helper)                ; verify index is string type
     //      CMP indexOpnd, PropertyString::`vtable'       ; verify index is property string
     //      JNE $helper
-    //      MOV inlineCacheOpnd, index->inlineCache
-    //      GenerateObjectTest(baseOpnd, $helper)         ; verify base is an object
-    //      MOV objectTypeOpnd, baseOpnd->type
-    //      GenerateDynamicLoadPolymorphicInlineCacheSlot(inlineCacheOpnd, objectTypeOpnd) ; loads inline cache for given type
-    //      LocalInlineCacheCheck(objectTypeOpnd, inlineCacheOpnd, $notInlineSlots)        ; check for type in local inline slots, jump to $notInlineSlotsLabel on failure
-    //      MOV opndSlotArray, baseOpnd
-    //      JMP slotArrayLoadedLabel
-    // $notInlineSlotsLabel
-    //      opndTaggedType = GenerateLoadTaggedType(objectTypeOpnd)         ; load objectTypeOpnd with InlineCacheAuxSlotTypeTag into opndTaggedType
-    //      LocalInlineCacheCheck(opndTaggedType, inlineCacheOpnd, $helper) ; check for type in local aux slots, jump to $helper on failure
-    //      MOV opndSlotArray, baseOpnd->auxSlots                           ; load the aux slot array
-    // $slotArrayLoadedLabel
-    //      MOV opndSlotIndex, inlineCacheOpnd->u.local.slotIndex           ; load the cached slot offset or index
-    //      INC indexOpnd->hitRate
+    //      FastElemISymbolOrStringIndexCommon(indexOpnd, baseOpnd, $helper) ; shared code with JavascriptSymbol
 
     GenerateStringTest(indexOpnd, instrInsert, labelHelper);
 
@@ -15266,12 +15268,55 @@ Lowerer::GenerateFastElemIStringIndexCommon(IR::Instr * instrInsert, bool isStor
 
     instrInsert->InsertBefore(propStrLoadedLabel);
 
+    const uint32 inlineCacheOffset = isStore ? Js::PropertyString::GetOffsetOfStElemInlineCache() : Js::PropertyString::GetOffsetOfLdElemInlineCache();
+    const uint32 hitRateOffset = Js::PropertyString::GetOffsetOfHitRate();
+
+    return GenerateFastElemISymbolOrStringIndexCommon(instrInsert, indexOpnd, baseOpnd, inlineCacheOffset, hitRateOffset, labelHelper);
+}
+
+IR::IndirOpnd *
+Lowerer::GenerateFastElemISymbolIndexCommon(IR::Instr * instrInsert, bool isStore, IR::IndirOpnd * indirOpnd, IR::LabelInstr * labelHelper)
+{
+    IR::RegOpnd *indexOpnd = indirOpnd->GetIndexOpnd();
+    IR::RegOpnd *baseOpnd = indirOpnd->GetBaseOpnd();
+    Assert(baseOpnd != nullptr);
+    Assert(indexOpnd->GetValueType().IsLikelySymbol());
+
+    // Generates:
+    //      SymbolTest(indexOpnd, $helper)                ; verify index is symbol type
+    //      FastElemISymbolOrStringIndexCommon(indexOpnd, baseOpnd, $helper) ; shared code with PropertyString
+
+    GenerateSymbolTest(indexOpnd, instrInsert, labelHelper);
+
+    const uint32 inlineCacheOffset = isStore ? Js::JavascriptSymbol::GetOffsetOfStElemInlineCache() : Js::JavascriptSymbol::GetOffsetOfLdElemInlineCache();
+    const uint32 hitRateOffset = Js::JavascriptSymbol::GetOffsetOfHitRate();
+
+    return GenerateFastElemISymbolOrStringIndexCommon(instrInsert, indexOpnd, baseOpnd, inlineCacheOffset, hitRateOffset, labelHelper);
+}
+
+IR::IndirOpnd *
+Lowerer::GenerateFastElemISymbolOrStringIndexCommon(IR::Instr * instrInsert, IR::RegOpnd *indexOpnd, IR::RegOpnd *baseOpnd, const uint32 inlineCacheOffset, const uint32 hitRateOffset, IR::LabelInstr * labelHelper)
+{
+    // Generates:
+    //      MOV inlineCacheOpnd, index->inlineCache
+    //      GenerateObjectTest(baseOpnd, $helper)         ; verify base is an object
+    //      MOV objectTypeOpnd, baseOpnd->type
+    //      GenerateDynamicLoadPolymorphicInlineCacheSlot(inlineCacheOpnd, objectTypeOpnd) ; loads inline cache for given type
+    //      LocalInlineCacheCheck(objectTypeOpnd, inlineCacheOpnd, $notInlineSlots)        ; check for type in local inline slots, jump to $notInlineSlotsLabel on failure
+    //      MOV opndSlotArray, baseOpnd
+    //      JMP slotArrayLoadedLabel
+    // $notInlineSlotsLabel
+    //      opndTaggedType = GenerateLoadTaggedType(objectTypeOpnd)         ; load objectTypeOpnd with InlineCacheAuxSlotTypeTag into opndTaggedType
+    //      LocalInlineCacheCheck(opndTaggedType, inlineCacheOpnd, $helper) ; check for type in local aux slots, jump to $helper on failure
+    //      MOV opndSlotArray, baseOpnd->auxSlots                           ; load the aux slot array
+    // $slotArrayLoadedLabel
+    //      MOV opndSlotIndex, inlineCacheOpnd->u.local.slotIndex           ; load the cached slot offset or index
+    //      INC indexOpnd->hitRate
+
     m_lowererMD.GenerateObjectTest(baseOpnd, instrInsert, labelHelper);
 
     IR::RegOpnd * objectTypeOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
     InsertMove(objectTypeOpnd, IR::IndirOpnd::New(baseOpnd, Js::RecyclableObject::GetOffsetOfType(), TyMachPtr, m_func), instrInsert);
-
-    const uint32 inlineCacheOffset = isStore ? Js::PropertyString::GetOffsetOfStElemInlineCache() : Js::PropertyString::GetOffsetOfLdElemInlineCache();
 
     IR::RegOpnd * inlineCacheOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
     InsertMove(inlineCacheOpnd, IR::IndirOpnd::New(indexOpnd, inlineCacheOffset, TyMachPtr, m_func), instrInsert);
@@ -15300,7 +15345,7 @@ Lowerer::GenerateFastElemIStringIndexCommon(IR::Instr * instrInsert, bool isStor
     IR::RegOpnd * opndSlotIndex = IR::RegOpnd::New(TyMachReg, instrInsert->m_func);
     InsertMove(opndSlotIndex, IR::IndirOpnd::New(inlineCacheOpnd, (int32)offsetof(Js::InlineCache, u.local.slotIndex), TyUint16, instrInsert->m_func), instrInsert);
 
-    IR::IndirOpnd * hitRateOpnd = IR::IndirOpnd::New(indexOpnd, Js::PropertyString::GetOffsetOfHitRate(), TyInt32, m_func);
+    IR::IndirOpnd * hitRateOpnd = IR::IndirOpnd::New(indexOpnd, hitRateOffset, TyInt32, m_func);
     IR::IntConstOpnd * incOpnd = IR::IntConstOpnd::New(1, TyInt32, instrInsert->m_func);
     InsertAdd(false, hitRateOpnd, hitRateOpnd, incOpnd, instrInsert);
 
@@ -25793,6 +25838,35 @@ Lowerer::GenerateStringTest(IR::RegOpnd *srcReg, IR::Instr *insertInstr, IR::Lab
         // BrEq/BrNeq labelHelper.
         IR::IndirOpnd * src1 = IR::IndirOpnd::New(srcReg, Js::RecyclableObject::GetOffsetOfType(), TyMachReg, m_func);
         IR::Opnd * src2 = this->LoadLibraryValueOpnd(insertInstr, LibraryValue::ValueStringTypeStatic);
+        if (continueLabel)
+        {
+            InsertCompareBranch(src1, src2, Js::OpCode::BrEq_A, continueLabel, insertInstr);
+        }
+        else
+        {
+            InsertCompareBranch(src1, src2, Js::OpCode::BrNeq_A, labelHelper, insertInstr);
+        }
+    }
+}
+
+//
+// Generates an object test and then a symbol test with the static symbol type
+//
+void
+Lowerer::GenerateSymbolTest(IR::RegOpnd *srcReg, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, IR::LabelInstr * continueLabel, bool generateObjectCheck)
+{
+    Assert(srcReg);
+    if (!srcReg->GetValueType().IsSymbol())
+    {
+        if (generateObjectCheck && !srcReg->IsNotTaggedValue())
+        {
+            this->m_lowererMD.GenerateObjectTest(srcReg, insertInstr, labelHelper);
+        }
+
+        // CMP [regSrcStr + offset(type)] , static symbol type   -- check base symbol type
+        // BrEq/BrNeq labelHelper.
+        IR::IndirOpnd * src1 = IR::IndirOpnd::New(srcReg, Js::RecyclableObject::GetOffsetOfType(), TyMachReg, m_func);
+        IR::Opnd * src2 = this->LoadLibraryValueOpnd(insertInstr, LibraryValue::ValueSymbolTypeStatic);
         if (continueLabel)
         {
             InsertCompareBranch(src1, src2, Js::OpCode::BrEq_A, continueLabel, insertInstr);

@@ -1116,10 +1116,6 @@ namespace Js
             GetSize()
         );
     }
-    ScriptContext* FunctionBodyPolymorphicInlineCache::GetScriptContext() const
-    {
-        return this->functionBody->GetScriptContext();
-    }
 
     void ScriptContextPolymorphicInlineCache::PrintStats(InlineCacheData *data) const
     {
@@ -1135,12 +1131,17 @@ namespace Js
             GetSize()
         );
     }
+#endif
+
+    ScriptContext* FunctionBodyPolymorphicInlineCache::GetScriptContext() const
+    {
+        return this->functionBody->GetScriptContext();
+    }
 
     ScriptContext* ScriptContextPolymorphicInlineCache::GetScriptContext() const
     {
         return this->javascriptLibrary->scriptContext;
     }
-#endif
 
     void IsInstInlineCache::Set(Type * instanceType, JavascriptFunction * function, JavascriptBoolean * result)
     {

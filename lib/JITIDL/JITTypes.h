@@ -347,6 +347,7 @@ typedef struct ScriptContextDataIDL
     CHAKRA_PTR negativeZeroAddr;
     CHAKRA_PTR numberTypeStaticAddr;
     CHAKRA_PTR stringTypeStaticAddr;
+    CHAKRA_PTR symbolTypeStaticAddr;
     CHAKRA_PTR objectTypeAddr;
     CHAKRA_PTR objectHeaderInlinedTypeAddr;
     CHAKRA_PTR regexTypeAddr;
