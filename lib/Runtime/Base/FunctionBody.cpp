@@ -76,8 +76,12 @@ namespace Js
         m_functionNumber(functionNumber),
         m_defaultEntryPointInfo(nullptr),
         m_displayNameIsRecyclerAllocated(false),
-        m_tag11(true)
+        m_tag11(true),
+        m_isJsBuiltInCode(false)
     {
+#if DBG
+        m_isJsBuiltInInitCode = false;
+#endif
         PERF_COUNTER_INC(Code, TotalFunction);
     }
 

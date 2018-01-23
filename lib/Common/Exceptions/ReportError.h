@@ -29,6 +29,7 @@ enum ErrorReason
     Fatal_Failed_API_Result = 21,
     Fatal_OutOfMemory = 22,
     Fatal_RecyclerVisitedHost_LargeHeapBlock = 23,
+    Fatal_JsBuiltIn_Error = 24,
 };
 
 extern "C" void ReportFatalException(
