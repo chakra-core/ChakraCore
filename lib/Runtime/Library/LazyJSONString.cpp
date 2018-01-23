@@ -57,8 +57,10 @@ LazyJSONString::ReconstructObject(_In_ JSONObject* valueList) const
         PropertyValueInfo info;
         if (!propertyString || !propertyString->TrySetPropertyFromCache(obj, propertyValue, this->GetScriptContext(), PropertyOperation_None, &info))
         {
-            const PropertyRecord* propertyRecord = propertyName->GetPropertyRecord();
-            JavascriptOperators::SetProperty(obj, obj, propertyRecord->GetPropertyId(), propertyValue, &info, this->GetScriptContext());
+            Js::PropertyRecord const * localPropertyRecord;
+            propertyName->GetPropertyRecord(&localPropertyRecord);
+            JavascriptOperators::SetProperty(obj, obj, localPropertyRecord->GetPropertyId(),
+                propertyValue, &info, this->GetScriptContext());
         }
     }
     NEXT_SLISTCOUNTED_ENTRY;

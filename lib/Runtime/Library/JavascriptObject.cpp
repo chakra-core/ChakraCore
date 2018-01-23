@@ -1733,7 +1733,7 @@ namespace Js
             }
             else
             {
-                propertyRecord = ((PropertyString*)propertyName)->GetPropertyRecord();
+                propertyName->GetPropertyRecord(&propertyRecord);
             }
 
             if (descCount == descSize)

@@ -235,7 +235,7 @@ JSONStringifier::ReadValue(_In_ JavascriptString* key, _In_opt_ const PropertyRe
 
     if (propertyRecord == nullptr)
     {
-        propertyRecord = key->GetPropertyRecord();
+        key->GetPropertyRecord(&propertyRecord);
     }
     JavascriptOperators::GetProperty(holder, propertyRecord->GetPropertyId(), &value, this->scriptContext, &info);
     return value;

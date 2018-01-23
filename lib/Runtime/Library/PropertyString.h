@@ -18,9 +18,14 @@ protected:
 
     PropertyString(StaticType* type, const Js::PropertyRecord* propertyRecord);
 public:
-    virtual Js::PropertyRecord const * GetPropertyRecord(bool dontLookupFromDictionary = false) override
+    virtual void GetPropertyRecord(_Out_ PropertyRecord const** propertyRecord, bool dontLookupFromDictionary = false) override
     {
-        return this->propertyRecord;
+        *propertyRecord = this->propertyRecord;
+    }
+
+    Js::PropertyId GetPropertyId()
+    {
+        return this->propertyRecord->GetPropertyId();
     }
 
     PolymorphicInlineCache * GetLdElemInlineCache() const;

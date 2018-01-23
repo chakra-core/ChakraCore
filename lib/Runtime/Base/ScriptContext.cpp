@@ -877,7 +877,7 @@ namespace Js
 
     void ScriptContext::GetOrAddPropertyRecord(_In_ Js::JavascriptString * propertyString, _Out_ PropertyRecord const** propertyRecord)
     {
-        *propertyRecord = propertyString->GetPropertyRecord();
+        propertyString->GetPropertyRecord(propertyRecord);
     }
 
     void ScriptContext::GetOrAddPropertyRecord(JsUtil::CharacterBuffer<WCHAR> const& propertyName, PropertyRecord const ** propertyRecord)

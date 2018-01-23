@@ -224,17 +224,15 @@ namespace Js
         return JavascriptOperators::GetTypeId(aValue) == TypeIds_String;
     }
 
-    Js::PropertyRecord const * JavascriptString::GetPropertyRecord(bool dontLookupFromDictionary)
+    void JavascriptString::GetPropertyRecord(_Out_ Js::PropertyRecord const ** propertyRecord, bool dontLookupFromDictionary)
     {
+        *propertyRecord = nullptr;
         if (dontLookupFromDictionary)
         {
-            return nullptr;
+            return;
         }
 
-        Js::PropertyRecord const * propertyRecord;
-        GetScriptContext()->GetOrAddPropertyRecord(GetString(), GetLength(), &propertyRecord);
-
-        return propertyRecord;
+        GetScriptContext()->GetOrAddPropertyRecord(GetString(), GetLength(), propertyRecord);
     }
 
     JavascriptString* JavascriptString::FromVar(Var aValue)

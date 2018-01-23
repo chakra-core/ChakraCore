@@ -184,10 +184,10 @@ namespace Js
                 // Property Id does not exist.
                 if (propertyId == Constants::NoProperty)
                 {
-                    propRecord = currentIndex->GetPropertyRecord(true);
+                    currentIndex->GetPropertyRecord(&propRecord, true);
                     if (propRecord == nullptr)
                     {
-                        propRecord = currentIndex->GetPropertyRecord(false); // will create
+                        currentIndex->GetPropertyRecord(&propRecord, false); // will create
                         // We keep the track of what is enumerated using a bit vector of propertyID.
                         // so the propertyId can't be collected until the end of the for in enumerator
                         // Keep a list of the property string.
