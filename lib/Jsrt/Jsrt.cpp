@@ -1232,10 +1232,14 @@ CHAKRA_API JsConvertValueToString(_In_ JsValueRef value, _Out_ JsValueRef *resul
 
     if (value != nullptr && Js::JavascriptString::Is(value))
     {
-        return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+            PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTVarToStringConversion, (Js::Var)value);
             VALIDATE_INCOMING_REFERENCE(value, scriptContext);
 
             *result = value;
+
+            PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, result);
+
             return JsNoError;
         });
     }
