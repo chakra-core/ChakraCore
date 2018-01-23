@@ -15,7 +15,7 @@ namespace DateTime
     // This method is expected to return UTC time (See MSDN GetSystemTime)
     inline static double GetSystemTimeREAL()
     {
-#ifndef __APPLE__
+#ifdef HAVE_WORKING_CLOCK_GETTIME
         struct timespec fast_time;
         // method below returns UTC time. So, nothing else is needed
         // we use clock_gettime first due to expectation of better accuracy
