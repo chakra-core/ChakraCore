@@ -547,7 +547,7 @@ namespace TTD
         void RecordJsRTAllocateBasicArray(TTDJsRTActionResultAutoRecorder& actionPopper, uint32 length);
         void RecordJsRTAllocateArrayBuffer(TTDJsRTActionResultAutoRecorder& actionPopper, uint32 size);
         void RecordJsRTAllocateExternalArrayBuffer(TTDJsRTActionResultAutoRecorder& actionPopper, byte* buff, uint32 size);
-        void RecordJsRTAllocateFunction(TTDJsRTActionResultAutoRecorder& actionPopper, bool isNamed, Js::Var optName);
+        void RecordJsRTAllocateFunction(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var optMetadata);
 
         //Record GetAndClearException
         void RecordJsRTHostExitProcess(TTDJsRTActionResultAutoRecorder& actionPopper, int32 exitCode);

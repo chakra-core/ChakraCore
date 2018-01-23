@@ -2822,7 +2822,7 @@ template <bool wrapNativeFunction, class T>
 JsErrorCode JsCreateEnhancedFunctionHelper(_In_ T nativeFunction, _In_opt_ JsValueRef metadata, _In_opt_ void *callbackState, _Out_ JsValueRef *function)
 {
     return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTAllocateFunction, true, metadata);
+        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTAllocateFunction, metadata);
         PARAM_NOT_NULL(nativeFunction);
         PARAM_NOT_NULL(function);
         *function = nullptr;

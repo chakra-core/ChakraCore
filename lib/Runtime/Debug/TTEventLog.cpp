@@ -540,7 +540,7 @@ namespace TTD
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(AllocateArrayActionTag, ContextAPINoScriptWrapper, JsRTIntegralArgumentAction, AllocateArrayAction_Execute);
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(AllocateArrayBufferActionTag, ContextAPIWrapper, JsRTIntegralArgumentAction, AllocateArrayBufferAction_Execute);
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY(AllocateExternalArrayBufferActionTag, ContextAPINoScriptWrapper, JsRTByteBufferAction, NSLogEvents::AllocateExternalArrayBufferAction_Execute, NSLogEvents::JsRTByteBufferAction_UnloadEventMemory<NSLogEvents::EventKind::AllocateExternalArrayBufferActionTag>, NSLogEvents::JsRTByteBufferAction_Emit<NSLogEvents::EventKind::AllocateExternalArrayBufferActionTag>, NSLogEvents::JsRTByteBufferAction_Parse<NSLogEvents::EventKind::AllocateExternalArrayBufferActionTag>);
-        TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(AllocateFunctionActionTag, ContextAPIWrapper, JsRTSingleVarScalarArgumentAction, AllocateFunctionAction_Execute);
+        TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(AllocateFunctionActionTag, ContextAPIWrapper, JsRTSingleVarArgumentAction, AllocateFunctionAction_Execute);
 
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(HostExitProcessTag, ContextAPIWrapper, JsRTIntegralArgumentAction, HostProcessExitAction_Execute);
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(GetAndClearExceptionWithMetadataActionTag, None, JsRTResultOnlyAction, GetAndClearExceptionWithMetadataAction_Execute);
@@ -2104,12 +2104,11 @@ namespace TTD
         actionPopper.InitializeWithEventAndEnterWResult(evt, &(cAction->Result));
     }
 
-    void EventLog::RecordJsRTAllocateFunction(TTDJsRTActionResultAutoRecorder& actionPopper, bool isNamed, Js::Var optName)
+    void EventLog::RecordJsRTAllocateFunction(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var optMetadata)
     {
-        NSLogEvents::JsRTSingleVarScalarArgumentAction* cAction = nullptr;
-        NSLogEvents::EventLogEntry* evt = this->RecordGetInitializedEvent<NSLogEvents::JsRTSingleVarScalarArgumentAction, NSLogEvents::EventKind::AllocateFunctionActionTag>(&cAction);
-        NSLogEvents::SetVarItem_0(cAction, TTD_CONVERT_JSVAR_TO_TTDVAR(optName));
-        NSLogEvents::SetScalarItem_0(cAction, isNamed);
+        NSLogEvents::JsRTSingleVarArgumentAction* cAction = nullptr;
+        NSLogEvents::EventLogEntry* evt = this->RecordGetInitializedEvent<NSLogEvents::JsRTSingleVarArgumentAction, NSLogEvents::EventKind::AllocateFunctionActionTag>(&cAction);
+        NSLogEvents::SetVarItem_0(cAction, TTD_CONVERT_JSVAR_TO_TTDVAR(optMetadata));
 
         actionPopper.InitializeWithEventAndEnterWResult(evt, &(cAction->Result));
     }
