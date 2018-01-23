@@ -10,6 +10,7 @@ GlobalBuiltInConstructor(String)
 GlobalBuiltInConstructor(Date)
 GlobalBuiltInConstructor(Error) /*This was added back in to allow assert errors*/
 GlobalBuiltInConstructor(Map)
+GlobalBuiltInConstructor(Symbol)
 
 GlobalBuiltIn(Math,Abs)
 GlobalBuiltIn(Math,Floor)

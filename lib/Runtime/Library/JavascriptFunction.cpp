@@ -33,12 +33,14 @@ namespace Js
         : DynamicObject(type), functionInfo(nullptr), constructorCache(&ConstructorCache::DefaultInstance)
     {
         Assert(this->constructorCache != nullptr);
+#if DBG
+        isJsBuiltInInitCode = false;
+#endif
     }
 
 
     JavascriptFunction::JavascriptFunction(DynamicType * type, FunctionInfo * functionInfo)
         : DynamicObject(type), functionInfo(functionInfo), constructorCache(&ConstructorCache::DefaultInstance)
-
     {
         Assert(this->constructorCache != nullptr);
         this->GetTypeHandler()->ClearHasOnlyWritableDataProperties(); // length is non-writable
@@ -50,11 +52,13 @@ namespace Js
             // GetScriptContext()->InvalidateStoreFieldCaches(PropertyIds::length);
             GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
         }
+#if DBG
+        isJsBuiltInInitCode = false;
+#endif
     }
 
     JavascriptFunction::JavascriptFunction(DynamicType * type, FunctionInfo * functionInfo, ConstructorCache* cache)
         : DynamicObject(type), functionInfo(functionInfo), constructorCache(cache)
-
     {
         Assert(this->constructorCache != nullptr);
         this->GetTypeHandler()->ClearHasOnlyWritableDataProperties(); // length is non-writable
@@ -66,6 +70,9 @@ namespace Js
             // GetScriptContext()->InvalidateStoreFieldCaches(PropertyIds::length);
             GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
         }
+#if DBG
+        isJsBuiltInInitCode = false;
+#endif
     }
 
     FunctionProxy *JavascriptFunction::GetFunctionProxy() const
