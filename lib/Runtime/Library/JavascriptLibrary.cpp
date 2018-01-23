@@ -6845,12 +6845,6 @@ namespace Js
         return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptAsyncFunction, type, nullptr);
     }
 
-    JavascriptExternalFunction* JavascriptLibrary::CreateStdCallExternalFunction(StdCallJavascriptMethod entryPoint, PropertyId nameId, void *callbackState)
-    {
-        Assert(nameId == 0 || scriptContext->IsTrackedPropertyId(nameId));
-        return CreateStdCallExternalFunction(entryPoint, TaggedInt::ToVarUnchecked(nameId), callbackState);
-    }
-
     JavascriptExternalFunction* JavascriptLibrary::CreateStdCallExternalFunction(StdCallJavascriptMethod entryPoint, Var name, void *callbackState)
     {
         Var functionNameOrId = name;
