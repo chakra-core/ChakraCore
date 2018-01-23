@@ -25,7 +25,9 @@ namespace Js {
 #if ENABLE_JS_REENTRANCY_CHECK
         static void __declspec(noreturn) FatalJsReentrancyError();
 #endif
-
+#ifdef ENABLE_JS_BUILTINS
+        static void __declspec(noreturn) FatalJsBuiltInError();
+#endif
         static void CheckAndThrowOutOfMemory(BOOLEAN status);
 
         static bool ReportAssert(__in LPCSTR fileName, uint lineNumber, __in LPCSTR error, __in LPCSTR message);
