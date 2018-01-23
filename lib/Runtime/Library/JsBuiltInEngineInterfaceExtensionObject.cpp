@@ -92,6 +92,7 @@ namespace Js
 
     void JsBuiltInEngineInterfaceExtensionObject::InjectJsBuiltInLibraryCode(ScriptContext * scriptContext)
     {
+        JavascriptExceptionObject *pExceptionObject = nullptr;
         if (jsBuiltInByteCode != nullptr)
         {
             return;
@@ -109,6 +110,9 @@ namespace Js
             // so marshalling will inadvertantly transition the entrypoint of the prototype to a crosssite entrypoint
             // So we set the prototype to null here
             functionGlobal->SetPrototype(scriptContext->GetLibrary()->nullValue);
+#if DBG
+            functionGlobal->GetFunctionProxy()->SetIsJsBuiltInInitCode();
+#endif
 
 #ifdef ENABLE_SCRIPT_PROFILING
             // If we are profiling, we need to register the script to the profiler callback, so the script compiled event will be sent.
@@ -135,6 +139,9 @@ namespace Js
 
             Js::ScriptFunction *functionBuiltins = scriptContext->GetLibrary()->CreateScriptFunction(jsBuiltInByteCode->GetNestedFunctionForExecution(0));
             functionBuiltins->SetPrototype(scriptContext->GetLibrary()->nullValue);
+#if DBG
+            functionBuiltins->GetFunctionProxy()->SetIsJsBuiltInInitCode();
+#endif
 
             // Clear disable implicit call bit as initialization code doesn't have any side effect
             saveImplicitCallFlags = scriptContext->GetThreadContext()->GetImplicitCallFlags();
@@ -152,9 +159,17 @@ namespace Js
         }
         catch (const JavascriptException& err)
         {
-            Js::JavascriptExceptionObject* ex = err.GetAndClear();
-            ex->GetScriptContext();
-            JavascriptError::ThrowTypeError(ex->GetScriptContext(), JSERR_BuiltInNotAvailable);
+            pExceptionObject = err.GetAndClear();
+        }
+
+        if (pExceptionObject)
+        {
+            jsBuiltInByteCode = nullptr;
+            if (pExceptionObject == ThreadContext::GetContextForCurrentThread()->GetPendingSOErrorObject())
+            {
+                JavascriptExceptionOperators::DoThrowCheckClone(pExceptionObject, scriptContext);
+            }
+            Js::Throw::FatalJsBuiltInError();
         }
     }
 

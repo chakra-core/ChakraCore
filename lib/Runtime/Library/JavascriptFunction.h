@@ -43,7 +43,9 @@ namespace Js
         Field(ConstructorCache*) constructorCache;
 
         Field(bool) isJsBuiltInCode;
-
+#if DBG
+        Field(bool) isJsBuiltInInitCode;
+#endif
     protected:
 
         Field(FunctionInfo *) functionInfo;  // Underlying function
