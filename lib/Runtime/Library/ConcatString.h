@@ -13,7 +13,8 @@ namespace Js
         Field(const Js::PropertyRecord*) propertyRecord;
 
     public:
-        virtual Js::PropertyRecord const * GetPropertyRecord(bool dontLookupFromDictionary = false) override;
+        virtual void GetPropertyRecord(_Out_ PropertyRecord const** propRecord, bool dontLookupFromDictionary = false) override;
+
         bool HasPropertyRecord() const { return propertyRecord != nullptr; }
 
         PropertyString * GetPropertyString() const;
