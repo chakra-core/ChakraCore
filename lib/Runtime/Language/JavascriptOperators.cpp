@@ -4463,6 +4463,14 @@ CommonNumber:
             propertyString->GetPropertyRecord(&propertyRecord);
         }
 
+        // fastpath for Symbols only if receiver == object
+        JavascriptSymbol * symbol = JavascriptOperators::TryFromVar<JavascriptSymbol>(index);
+
+        if (symbol != nullptr)
+        {
+            propertyRecord = symbol->GetValue();
+        }
+
         if (propertyRecord != nullptr)
         {
             if (propertyRecord->IsNumeric())
