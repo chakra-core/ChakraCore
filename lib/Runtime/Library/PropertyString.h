@@ -22,7 +22,7 @@ public:
 
     Js::PropertyId GetPropertyId()
     {
-        return this->propertyRecord->GetPropertyId();
+        return this->propertyRecordUsageCache.GetPropertyRecord()->GetPropertyId();
     }
 
     PolymorphicInlineCache * GetLdElemInlineCache() const;
