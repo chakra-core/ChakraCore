@@ -129,7 +129,8 @@ namespace Js
 
         bool Equals(JavascriptString * str) const
         {
-            const PropertyRecord * propRecord = str->GetPropertyRecord();
+            const PropertyRecord * propRecord = nullptr;
+            str->GetPropertyRecord(&propRecord);
 
             if (propRecord == nullptr)
             {
