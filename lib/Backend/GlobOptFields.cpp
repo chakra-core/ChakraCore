@@ -3318,7 +3318,6 @@ GlobOpt::UpdateObjPtrValueType(IR::Opnd * opnd, IR::Instr * instr)
 
     if (!AreValueInfosCompatible(objVal->GetValueInfo(), newValueInfo))
     {
-        Assert(instr->m_func != this->func);
         return;
     }
     if (newValueType != ValueType::Uninitialized)
