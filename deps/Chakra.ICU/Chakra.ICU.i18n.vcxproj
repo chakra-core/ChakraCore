@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
+  <Import Project="$(MSBuildThisFileDirectory)Chakra.ICU.props" />
+  <PropertyGroup Label="Globals">
+    <TargetName>Chakra.ICU.i18n</TargetName>
+    <ProjectGuid>{0494C753-5BB9-45AA-874E-E61B9922E88F}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectName>Chakra.ICU.i18n</ProjectName>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType Condition="'$(ChakraICU)'!='shared'">StaticLibrary</ConfigurationType>
+    <ConfigurationType Condition="'$(ChakraICU)'=='shared'">DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.props" />
+  <Import Project="$(MSBuildThisFileDirectory)Chakra.ICU.Build.props" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PreprocessorDefinitions>
+        %(PreprocessorDefinitions);
+        U_I18N_IMPLEMENTATION=1
+      </PreprocessorDefinitions>
+
+      <AdditionalIncludeDirectories>
+        %(AdditionalIncludeDirectories);
+        $(IcuSourceDirectory)\common
+      </AdditionalIncludeDirectories>
+
+      <!-- Some ICU files use embedded UTF-8 -->
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup Condition="'$(ChakraICU)'!='false'">
+    <ClCompile Include="$(IcuI18nSources)" />
+    <ClInclude Include="$(IcuI18nHeaders)" />
+  </ItemGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

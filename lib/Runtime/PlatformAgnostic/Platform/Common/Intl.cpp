@@ -42,18 +42,8 @@ typedef uint64_t uint64;
 #include "Core/AllocSizeMath.h"
 
 #include "Intl.h"
+#include "ICU.h"
 #include "IPlatformAgnosticResource.h"
-
-#define U_STATIC_IMPLEMENTATION
-#define U_SHOW_CPLUSPLUS_API 1
-#include <unicode/uloc.h>
-#include <unicode/numfmt.h>
-#include <unicode/enumset.h>
-#include <unicode/decimfmt.h>
-#include <unicode/ucol.h>
-#include <unicode/ucal.h>
-#include <unicode/udat.h>
-#include <unicode/udatpg.h>
 
 #include "CommonDefines.h" // INTL_ICU_DEBUG
 
@@ -169,13 +159,6 @@ namespace PlatformAgnostic
 namespace Intl
 {
     using namespace PlatformAgnostic::Resource;
-
-    // This file uses dynamic_cast and RTTI
-    // While most of ChakraCore has left this feature disabled for a number of reasons, ICU uses it heavily internally
-    // For instance, in creating NumberFormats, the documentation recommends the use of the NumberFormat::create* factory methods
-    // However, to use attributes and significant digits, you must be working with a DecimalFormat
-    // NumberFormat offers no indicator fields or convenience methods to convert to a DecimalFormat, as ICU expects RTTI to be enabled
-    // As such, RTTI is enabled only in the PlatformAgnostic project and only if IntlICU=true
 
     // lots of logic below requires utf8char_t ~= char and UChar ~= char16
     static_assert(sizeof(utf8char_t) == sizeof(char), "ICU-based Intl logic assumes that utf8char_t is compatible with char");

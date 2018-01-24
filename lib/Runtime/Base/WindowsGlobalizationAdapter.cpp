@@ -459,12 +459,6 @@ if (this->object) \
         }
     }
 
-    void WindowsGlobalizationAdapter::ResetTimeZoneFactoryObjects()
-    {
-        DetachAndReleaseFactoryObjects(timeZoneCalendar);
-        DetachAndReleaseFactoryObjects(defaultTimeZoneCalendar);
-    }
-
     void WindowsGlobalizationAdapter::ResetDateTimeFormatFactoryObjects()
     {
         // Reset only if its not initialized completely.

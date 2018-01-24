@@ -22,15 +22,17 @@ using namespace Windows::Globalization;
 #include <CommonPal.h>
 #include "PlatformAgnostic/IPlatformAgnosticResource.h"
 using namespace PlatformAgnostic::Resource;
-#define U_STATIC_IMPLEMENTATION
-#define U_SHOW_CPLUSPLUS_API 0
-#include <unicode/ucol.h>
-#include <unicode/udat.h>
-#include <unicode/unum.h>
-#include <unicode/unumsys.h>
+#include "PlatformAgnostic/ICU.h"
 
 #define ICU_ERROR_FMT _u("INTL: %S failed with error code %S\n")
 #define ICU_EXPR_FMT _u("INTL: %S failed expression check %S\n")
+
+// Different assertion code is used in ChakraFull that enforces that messages are char literals
+#ifdef _CHAKRACOREBUILD
+#define ICU_ERRORMESSAGE(e) u_errorName(e)
+#else
+#define ICU_ERRORMESSAGE(e) "Bad status returned from ICU"
+#endif
 
 #ifdef INTL_ICU_DEBUG
 #define ICU_DEBUG_PRINT(fmt, msg) Output::Print(fmt, __func__, (msg))
@@ -45,12 +47,12 @@ using namespace PlatformAgnostic::Resource;
     {                                                                         \
         if (ICU_FAILURE(e))                                                   \
         {                                                                     \
-            ICU_DEBUG_PRINT(ICU_ERROR_FMT, u_errorName(e));                   \
-            AssertOrFailFastMsg(false, u_errorName(e));                       \
+            ICU_DEBUG_PRINT(ICU_ERROR_FMT, ICU_ERRORMESSAGE(e));              \
+            AssertOrFailFastMsg(false, ICU_ERRORMESSAGE(e));                  \
         }                                                                     \
         else if (!(expr))                                                     \
         {                                                                     \
-            ICU_DEBUG_PRINT(ICU_EXPR_FMT, u_errorName(e));                    \
+            ICU_DEBUG_PRINT(ICU_EXPR_FMT, ICU_ERRORMESSAGE(e));               \
             AssertOrFailFast(expr);                                           \
         }                                                                     \
     } while (false)

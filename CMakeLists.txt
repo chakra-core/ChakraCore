@@ -62,11 +62,9 @@ endif()
 
 if(ICU_SETTINGS_RESET)
     unset(ICU_SETTINGS_RESET CACHE)
-    unset(ICU_INCLUDE_PATH CACHE)
     unset(ICU_INCLUDE_PATH_SH CACHE)
-    unset(NO_ICU_PATH_GIVEN_SH CACHE)
-    unset(NO_ICU_PATH_GIVEN CACHE)
-    unset(CC_EMBED_ICU_SH CACHE)
+    unset(NO_ICU_SH CACHE)
+    unset(LOCAL_ICU_SH CACHE)
 endif()
 
 if(CC_TARGET_OS_ANDROID_SH)
@@ -102,58 +100,55 @@ if (ENABLE_CC_XPLAT_TRACE_SH)
     endif()
 endif()
 
-if(CC_EMBED_ICU_SH)
-    unset(CC_EMBED_ICU_SH CACHE)
-    set(CC_EMBED_ICU 1)
-    set(ICU_INCLUDE_PATH "deps/icu/source/output/include/")
-endif()
-
 if(ICU_INCLUDE_PATH_SH)
     set(ICU_INCLUDE_PATH ${ICU_INCLUDE_PATH_SH})
-    unset(NO_ICU_PATH_GIVEN_SH CACHE)
-    unset(NO_ICU_PATH_GIVEN CACHE)
     unset(ICU_INCLUDE_PATH_SH CACHE)
 endif()
 
-if(NO_ICU_PATH_GIVEN_SH)
-    set(NO_ICU_PATH_GIVEN ${NO_ICU_PATH_GIVEN_SH})
-    unset(NO_ICU_PATH_GIVEN_SH CACHE)
-    unset(ICU_INCLUDE_PATH_SH CACHE)
-    unset(ICU_INCLUDE_PATH CACHE)
+if(NO_ICU_SH)
+    set(NO_ICU 1)
+    unset(NO_ICU_SH CACHE)
 endif()
 
 function(clr_unknown_arch)
     message(FATAL_ERROR "Only AMD64, ARM and I386 are supported")
 endfunction()
 
-if(NOINTL_ICU_SH)
-    unset(NOINTL_ICU_SH CACHE)    # don't cache
-    set(ICU_INTL_DISABLED 1)
+if(INTL_ICU_SH)
+    unset(INTL_ICU_SH CACHE)
+    set(INTL_ICU 1)
+else()
+    unset(INTL_ICU_SH CACHE)
+    set(INTL_ICU 0)
 endif()
 
 if(ICU_INCLUDE_PATH)
     add_definitions(-DHAS_REAL_ICU=1)
-    set(ICU_CC_PATH "${ICU_INCLUDE_PATH}/../lib/")
-    find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-    if(NOT ICU_INTL_DISABLED)
+    set(ICU_LIBRARY_PATH "${ICU_INCLUDE_PATH}/../lib/")
+    find_library(ICUUC icuuc PATHS ${ICU_LIBRARY_PATH} NO_DEFAULT_PATH)
+
+    if(INTL_ICU)
         add_definitions(-DINTL_ICU=1)
-        find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-        # icu header files are either located under the same folder or i18n is under a relative path
-        # TODO (unlikely): shall we add `--icu-intl` to build.sh ?
+        find_library(ICUIN icui18n PATHS ${ICU_LIBRARY_PATH} NO_DEFAULT_PATH)
+        # In a default install, ICU header files are all in ICU_ROOT/include
+        # However, for Node, the include/ folder is never generated, so we have to look
+        # in NODE/deps/icu/source/{common|i18n} for headers
         set(ICU_INCLUDE_PATH
-          "${ICU_INCLUDE_PATH}"
-          "${ICU_INCLUDE_PATH}/../i18n/")
+            "${ICU_INCLUDE_PATH}"
+            "${ICU_INCLUDE_PATH}/../i18n/"
+        )
     endif()
+
     if(ICUUC)
-      message("-- found ICU libs: ${ICU_CC_PATH}")
-      find_library(ICUDATA icudata PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-      if (NOT ICUDATA)
-          set(ICUDATA "")
-      endif()
-      set(ICULIB
-        ${ICUUC}
-        ${ICU18}
-        ${ICUDATA}
+        message("-- found ICU libs: ${ICU_LIBRARY_PATH}")
+        find_library(ICUDATA icudata PATHS ${ICU_LIBRARY_PATH} NO_DEFAULT_PATH)
+        if (NOT ICUDATA)
+            set(ICUDATA "")
+        endif()
+        set(ICU_LIBRARIES
+            ${ICUUC}
+            ${ICUIN}
+            ${ICUDATA}
         )
     endif()
 endif()
@@ -194,19 +189,16 @@ if(CAN_BUILD_WABT)
 endif()
 
 if(CC_TARGET_OS_LINUX OR CC_TARGET_OS_ANDROID)
-    if(NOT ICULIB)
-        if(NOT NO_ICU_PATH_GIVEN)
-            if(NOT CC_EMBED_ICU)
-                set(ICULIB "icuuc")
-                if(NOT ICU_INTL_DISABLED)
-                    add_definitions(-DINTL_ICU=1)
-                    set(ICULIB
-                      "${ICULIB}"
-                      "icui18n")
-                endif()
-            endif()
-            add_definitions(-DHAS_REAL_ICU=1)
+    if(SYSTEM_ICU_SH)
+        set(ICU_LIBRARIES "icuuc")
+        if(INTL_ICU)
+            add_definitions(-DINTL_ICU=1)
+            set(ICU_LIBRARIES
+                ${ICU_LIBRARIES}
+                icui18n
+            )
         endif()
+        add_definitions(-DHAS_REAL_ICU=1)
     endif()
 
     set(CLR_CMAKE_PLATFORM_LINUX 1)
@@ -227,8 +219,8 @@ elseif(CC_TARGET_OS_OSX)
     # in case ICU path was given but it doesn't exist, build script will fail.
     # so, fallback only if ICU path wasn't given
     if(NOT ICU_INCLUDE_PATH)
-      set(NO_ICU_PATH_GIVEN 1)
-      message("-- Couldn't find ICU. Falling back to --no-icu build")
+        set(NO_ICU 1)
+        message("-- Couldn't find ICU. Falling back to --no-icu build")
     endif()
 
     if(NOT CC_XCODE_PROJECT)
@@ -360,7 +352,7 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
     # Also disable RTTI when building a shared library
     # TODO: why does the shared library break with rtti disabled?
     if(CMAKE_BUILD_TYPE STREQUAL Release)
-        if(STATIC_LIBRARY OR ICU_INTL_DISABLED)
+        if(STATIC_LIBRARY)
             add_compile_options(-fno-rtti)
         endif()
     endif()
@@ -484,7 +476,7 @@ include_directories(
 
 if(ICU_INCLUDE_PATH)
     if(NOT HAVE_LIBICU_UCHAR_H)
-        set(HAVE_LIBICU_UCHAR_H "1")
+        set(HAVE_LIBICU_UCHAR_H 1)
     endif()
 endif()
 

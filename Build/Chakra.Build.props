@@ -17,6 +17,18 @@
   <PropertyGroup Condition="'$(RunCodeAnalysis)'=='' AND '$(Configuration)'=='Release'">
     <RunCodeAnalysis>$(BuildWithCodeAnalysis)</RunCodeAnalysis>
   </PropertyGroup>
+  <PropertyGroup>
+    <EnableIntl Condition="'$(EnableIntl)'==''">true</EnableIntl>
+    <EnableIntl Condition="'$(BuildLite)'=='true'">false</EnableIntl>
+
+    <ChakraICU Condition="'$(ChakraICU)'==''">false</ChakraICU>
+    <!-- ARM does not support ICU until we figure out how to link icudtXXl.dat without genccode.exe -->
+    <ChakraICU Condition="'$(Platform)'=='ARM'">false</ChakraICU>
+
+    <UseICU Condition="'$(UseICU)'==''">false</UseICU>
+    <UseICU Condition="'$(BuildLite)'=='true'">false</UseICU>
+    <UseICU Condition="'$(ChakraICU)'!='false'">true</UseICU>
+  </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <PreprocessorDefinitions>
@@ -38,7 +50,7 @@
         %(PreprocessorDefinitions);
         CHAKRACORE_LITE
       </PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(IntlICU)'=='true'">
+      <PreprocessorDefinitions Condition="'$(EnableIntl)'=='true' AND '$(UseICU)'=='true'">
         %(PreprocessorDefinitions);
         INTL_ICU=1
       </PreprocessorDefinitions>
@@ -60,11 +72,6 @@
       <AdditionalIncludeDirectories>
         $(ChakraCoreRootDirectory)\lib\common\placeholder;
         $(IntDir)..\CoreManifests;
-        %(AdditionalIncludeDirectories)
-      </AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(IntlICU)'=='true'">
-        $(IcuIncludeDir)\common;
-        $(IcuIncludeDir)\i18n;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
     </ClCompile>
