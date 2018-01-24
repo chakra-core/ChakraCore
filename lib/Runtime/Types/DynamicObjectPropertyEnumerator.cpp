@@ -180,7 +180,7 @@ namespace Js
         {
             PropertyString * propertyString = cachedData->strings[enumeratedCount];
             propertyStringName = propertyString;
-            propertyId = propertyString->GetPropertyRecord()->GetPropertyId();
+            propertyId = propertyString->GetPropertyId();
 
 #if DBG
             PropertyId tempPropertyId;

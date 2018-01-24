@@ -888,10 +888,9 @@ ThreadContext::GetPropertyNameImpl(Js::PropertyId propertyId)
 void
 ThreadContext::FindPropertyRecord(Js::JavascriptString *pstName, Js::PropertyRecord const ** propertyRecord)
 {
-    const Js::PropertyRecord * propRecord = pstName->GetPropertyRecord(true);
-    if (propRecord != nullptr)
+    pstName->GetPropertyRecord(propertyRecord, true);
+    if (*propertyRecord != nullptr)
     {
-        *propertyRecord = propRecord;
         return;
     }
 

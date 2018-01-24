@@ -91,7 +91,7 @@ namespace Js
         PropertyString * propertyString = PropertyString::TryFromVar(key);
         if (propertyString != nullptr)
         {
-            propertyRecord = propertyString->GetPropertyRecord();
+            propertyString->GetPropertyRecord(&propertyRecord);
         }
         else
         {
@@ -104,7 +104,8 @@ namespace Js
     bool TPropertyKey_IsInternalPropertyId(JavascriptString* key)
     {
         // WARNING: This will return false for PropertyStrings that are actually InternalPropertyIds
-        Assert(!PropertyString::Is(key) || !IsInternalPropertyId(((PropertyString*)key)->GetPropertyRecord()->GetPropertyId()));
+        Assert(!PropertyString::Is(key) || !IsInternalPropertyId(((PropertyString*)key)->GetPropertyId()));
+
         return false;
     }
 
