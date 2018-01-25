@@ -4102,7 +4102,7 @@ ParseNodePtr Parser::ParseArgList( bool *pCallOfConstants, uint16 *pSpreadArgCou
     {
         if (count >= Js::Constants::MaxAllowedArgs)
         {
-            Error(ERRnoMemory);
+            Error(ERRTooManyArgs);
         }
         // Allow spread in argument lists.
         IdentToken token;
@@ -8121,7 +8121,7 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
         // so use that as a logical limit on the number of string constant pieces.
         if (stringConstantCount >= Js::Constants::MaxAllowedArgs)
         {
-            Error(ERRnoMemory);
+            Error(ERRTooManyArgs);
         }
 
         // Keep track of the string literal count (must be the same for raw strings)
