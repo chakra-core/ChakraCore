@@ -294,7 +294,7 @@
 #endif
 
 // ToDo (SaAgarwa): Disable VirtualTypedArray on ARM64 till we make sure it works correctly
-#if _WIN64 && !defined(_M_ARM64)
+#if defined(_WIN32) && defined(TARGET_64) && !defined(_M_ARM64)
 #define ENABLE_FAST_ARRAYBUFFER 1
 #endif
 #endif

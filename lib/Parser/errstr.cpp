@@ -94,7 +94,7 @@ static BOOL FGetStringFromLibrary(HMODULE hlib, int istring, __out_ecount(cchMax
 
 LError:
 
-#if !_WIN32 && !_WIN64
+#if !defined(_WIN32)
 
     //
     // Unlock/FreeResource non-essential on win32/64.
@@ -106,7 +106,7 @@ LError:
         FreeResource(hgl);
     }
 
-#endif
+#endif // !defined(_WIN32)
 #endif // ENABLE_GLOBALIZATION
     return fRet;
 }
