@@ -2247,9 +2247,10 @@ void Parser::ReduceDeferredScriptLength(size_t chars)
 
 void Parser::EnsureStackAvailable()
 {
-    if (!m_scriptContext->GetThreadContext()->IsStackAvailable(Js::Constants::MinStackCompile))
+    bool isInterrupt = false;
+    if (!m_scriptContext->GetThreadContext()->IsStackAvailable(Js::Constants::MinStackCompile, &isInterrupt))
     {
-        Error(ERRnoMemory);
+        Error(isInterrupt ? E_ABORT : VBSERR_OutOfStack);
     }
 }
 
@@ -4101,7 +4102,7 @@ ParseNodePtr Parser::ParseArgList( bool *pCallOfConstants, uint16 *pSpreadArgCou
     {
         if (count >= Js::Constants::MaxAllowedArgs)
         {
-            Error(ERRnoMemory);
+            Error(ERRTooManyArgs);
         }
         // Allow spread in argument lists.
         IdentToken token;
@@ -8120,7 +8121,7 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
         // so use that as a logical limit on the number of string constant pieces.
         if (stringConstantCount >= Js::Constants::MaxAllowedArgs)
         {
-            Error(ERRnoMemory);
+            Error(ERRTooManyArgs);
         }
 
         // Keep track of the string literal count (must be the same for raw strings)
@@ -9748,11 +9749,11 @@ ParseNodePtr Parser::ParseCatch()
             int nameLength = pidCatch->Cch();
             SymbolName const symName(name, nameLength);
             Symbol *sym = Anew(&m_nodeAllocator, Symbol, symName, pnodeParam, STVariable);
-            sym->SetPid(pidCatch);
             if (sym == nullptr)
             {
                 Error(ERRnoMemory);
             }
+            sym->SetPid(pidCatch);
             Assert(ref->GetSym() == nullptr);
             ref->SetSym(sym);
 

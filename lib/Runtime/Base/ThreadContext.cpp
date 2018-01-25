@@ -1641,7 +1641,7 @@ ThreadContext::SetStackLimitForCurrentThread(size_t limit)
 
 _NOINLINE //Win8 947081: might use wrong _AddressOfReturnAddress() if this and caller are inlined
 bool
-ThreadContext::IsStackAvailable(size_t size)
+ThreadContext::IsStackAvailable(size_t size, bool* isInterrupt)
 {
     size_t sp = (size_t)_AddressOfReturnAddress();
     size_t stackLimit = this->GetStackLimitForCurrentThread();
@@ -1668,6 +1668,11 @@ ThreadContext::IsStackAvailable(size_t size)
             {
                 // Take down the process if we cant recover from the stack overflow
                 Js::Throw::FatalInternalError();
+            }
+
+            if (isInterrupt)
+            {
+                *isInterrupt = true;  // when stack not available, indicate if due to script interrupt
             }
         }
     }

@@ -2135,7 +2135,7 @@ namespace Js
     //      E_OUTOFMEMORY
     //      E_UNEXPECTED
     //      SCRIPT_E_RECORDED,
-    //          with ei.scode: ERRnoMemory, VBSERR_OutOfStack, E_OUTOFMEMORY, E_FAIL
+    //          with ei.scode: ERRnoMemory, VBSERR_OutOfStack, E_OUTOFMEMORY, E_FAIL, E_ABORT
     //          Any other ei.scode shouldn't appear in deferred re-parse.
     //
     // Map errors like OOM/SOE, return it and clean hrParse. Any other error remaining in hrParse is an internal error.
@@ -2166,8 +2166,11 @@ namespace Js
             case JSERR_AsmJsCompileError:
                 hrMapped = JSERR_AsmJsCompileError;
                 break;
-            }
 
+            case E_ABORT:
+                hrMapped = E_ABORT;
+                break;
+            }
         }
 
         if (FAILED(hrMapped))
