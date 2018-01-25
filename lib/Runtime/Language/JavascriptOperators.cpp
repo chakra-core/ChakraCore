@@ -4464,11 +4464,15 @@ CommonNumber:
         }
 
         // fastpath for Symbols only if receiver == object
-        JavascriptSymbol * symbol = JavascriptOperators::TryFromVar<JavascriptSymbol>(index);
+        JavascriptSymbol * symbol = nullptr;
 
-        if (symbol != nullptr)
+        if (propertyString == nullptr)
         {
-            propertyRecord = symbol->GetValue();
+            symbol = JavascriptOperators::TryFromVar<JavascriptSymbol>(index);
+            if (symbol != nullptr && propertyRecord == nullptr)
+            {
+                propertyRecord = symbol->GetValue();
+            }
         }
 
         if (propertyRecord != nullptr)
