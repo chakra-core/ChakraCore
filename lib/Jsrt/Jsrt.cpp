@@ -869,9 +869,13 @@ CHAKRA_API JsSetContextData(_In_ JsContextRef context, _In_ void *data)
 void HandleScriptCompileError(Js::ScriptContext * scriptContext, CompileScriptException * se, const WCHAR * sourceUrl)
 {
     HRESULT hr = se->ei.scode;
-    if (hr == E_OUTOFMEMORY || hr == VBSERR_OutOfMemory || hr == VBSERR_OutOfStack || hr == ERRnoMemory)
+    if (hr == E_OUTOFMEMORY || hr == VBSERR_OutOfMemory || hr == ERRnoMemory)
     {
         Js::Throw::OutOfMemory();
+    }
+    else if (hr == E_ABORT)
+    {
+        Js::JavascriptOperators::ScriptAbort();
     }
 
     Js::JavascriptError* error = Js::JavascriptError::CreateFromCompileScriptException(scriptContext, se, sourceUrl);

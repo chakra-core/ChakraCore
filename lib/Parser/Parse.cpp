@@ -2247,9 +2247,10 @@ void Parser::ReduceDeferredScriptLength(size_t chars)
 
 void Parser::EnsureStackAvailable()
 {
-    if (!m_scriptContext->GetThreadContext()->IsStackAvailable(Js::Constants::MinStackCompile))
+    bool isInterrupt = false;
+    if (!m_scriptContext->GetThreadContext()->IsStackAvailable(Js::Constants::MinStackCompile, &isInterrupt))
     {
-        Error(ERRnoMemory);
+        Error(isInterrupt ? E_ABORT : VBSERR_OutOfStack);
     }
 }
 
@@ -9748,11 +9749,11 @@ ParseNodePtr Parser::ParseCatch()
             int nameLength = pidCatch->Cch();
             SymbolName const symName(name, nameLength);
             Symbol *sym = Anew(&m_nodeAllocator, Symbol, symName, pnodeParam, STVariable);
-            sym->SetPid(pidCatch);
             if (sym == nullptr)
             {
                 Error(ERRnoMemory);
             }
+            sym->SetPid(pidCatch);
             Assert(ref->GetSym() == nullptr);
             ref->SetSym(sym);
 
