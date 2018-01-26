@@ -67,12 +67,12 @@ X64WriteBarrierCardTableManager::OnThreadInit()
     VirtualQuery((LPCVOID)teb->StackLimit, &memInfo, sizeof(memInfo));
     Assert((char*)memInfo.AllocationBase == stackEnd);
     Assert(memInfo.AllocationProtect == PAGE_READWRITE);
-#endif
-#else
+#endif // DBG
+#else // defined(_WIN32) && defined(_M_X64) && !defined(_M_ARM64)
     ULONG_PTR stackBase = 0;
     ULONG_PTR stackEnd = 0;
     ::GetCurrentThreadStackLimits(&stackEnd, &stackBase);
-#endif
+#endif // defined(_WIN32) && defined(_M_X64) && !defined(_M_ARM64)
 
 #ifdef X64_WB_DIAG
     this->_stackbase = (char*)stackBase;
