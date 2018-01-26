@@ -353,13 +353,6 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
             add_compile_options(-fno-rtti)
         endif()
     endif()
-
-    # Clang -fsanitize.
-    if (CLANG_SANITIZE_SH)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=${CLANG_SANITIZE_SH}")
-        set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -fsanitize=${CLANG_SANITIZE_SH}")
-        unset(CLANG_SANITIZE_SH CACHE)      # don't cache
-    endif()
 endif(CLR_CMAKE_PLATFORM_XPLAT)
 
 if (ENABLE_FULL_LTO_SH OR ENABLE_THIN_LTO_SH)
@@ -482,6 +475,18 @@ if(ICU_INCLUDE_PATH)
     if(NOT HAVE_LIBICU_UCHAR_H)
         set(HAVE_LIBICU_UCHAR_H "1")
     endif()
+endif()
+
+# detect features
+include_directories(SYSTEM /usr/local/include)
+include(pal/src/configure.cmake)
+
+# this should be after `detect feature` to not to affect feature detection
+# Clang -fsanitize.
+if (CLANG_SANITIZE_SH)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=${CLANG_SANITIZE_SH}")
+    set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -fsanitize=${CLANG_SANITIZE_SH}")
+    unset(CLANG_SANITIZE_SH CACHE)      # don't cache
 endif()
 
 add_subdirectory (pal)
