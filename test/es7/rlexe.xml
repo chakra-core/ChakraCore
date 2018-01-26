@@ -91,4 +91,12 @@
       <compile-flags>-ESSharedArrayBuffer -args summary -endargs</compile-flags>
     </default>
   </test>
+    <test>
+    <default>
+      <files>PromiseRejectionTracking.js</files>
+      <compile-flags>-TrackRejectedPromises -args summary -endargs -nodeferparse</compile-flags>
+      <baseline>PromiseRejectionTracking.baseline</baseline>
+      <tags>exclude_jshost</tags>
+    </default>
+  </test>
 </regress-exe>

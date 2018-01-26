@@ -1871,3 +1871,32 @@ void WScriptJsrt::PromiseContinuationCallback(JsValueRef task, void *callbackSta
     WScriptJsrt::CallbackMessage *msg = new WScriptJsrt::CallbackMessage(0, task);
     messageQueue->InsertSorted(msg);
 }
+
+void WScriptJsrt::PromiseRejectionTrackerCallback(JsValueRef promise, JsValueRef reason, bool handled, void *callbackState)
+{
+    Assert(promise != JS_INVALID_REFERENCE);
+    Assert(reason != JS_INVALID_REFERENCE);
+    JsValueRef strValue;
+    JsErrorCode error = ChakraRTInterface::JsConvertValueToString(reason, &strValue);
+
+    if (!handled)
+    {
+        wprintf(_u("Uncaught promise rejection\n"));
+    }
+    else
+    {
+        wprintf(_u("Promise rejection handled\n"));
+    }
+
+    if (error == JsNoError)
+    {
+        AutoString str(strValue);
+        if (str.GetError() == JsNoError)
+        {
+            wprintf(_u("%ls\n"), str.GetWideString());
+        }
+    }
+
+    fflush(stdout);
+}
+

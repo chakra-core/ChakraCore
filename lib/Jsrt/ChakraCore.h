@@ -131,6 +131,27 @@ typedef struct JsNativeFunctionInfo
 typedef _Ret_maybenull_ JsValueRef(CHAKRA_CALLBACK * JsEnhancedNativeFunction)(_In_ JsValueRef callee, _In_ JsValueRef *arguments, _In_ unsigned short argumentCount, _In_ JsNativeFunctionInfo *info, _In_opt_ void *callbackState);
 
 /// <summary>
+///     A Promise Rejection Tracker callback.
+/// </summary>
+/// <remarks>
+///     The host can specify a promise rejection tracker callback in <c>JsSetHostPromiseRejectionTracker</c>.
+///     If a promise is rejected with no reactions or a reaction is added to a promise that was rejected
+///     before it had reactions by default nothing is done.
+///     A Promise Rejection Tracker callback may be set - which will then be called when this occurs.
+///     Note - per draft ECMASpec 2018 25.4.1.9 this function should not set or return an exception
+///     Note also the promise and reason parameters may be garbage collected after this function is called
+///     if you wish to make further use of them you will need to use JsAddRef to preserve them
+///     However if you use JsAddRef you must also call JsRelease and not hold unto them after 
+///     a handled notification (both per spec and to avoid memory leaks)
+/// </remarks>
+/// <param name="promise">The promise object, represented as a JsValueRef.</param>
+/// <param name="reason">The value/cause of the rejection, represented as a JsValueRef.</param>
+/// <param name="handled">Boolean - false for promiseRejected: i.e. if the promise has just been rejected with no handler, 
+///                         true for promiseHandled: i.e. if it was rejected before without a handler and is now being handled.</param>
+/// <param name="callbackState">The state passed to <c>JsSetHostPromiseRejectionTracker</c>.</param>
+typedef void (CHAKRA_CALLBACK *JsHostPromiseRejectionTrackerCallback)(_In_ JsValueRef promise, _In_ JsValueRef reason, _In_ bool handled, _In_opt_ void *callbackState);
+
+/// <summary>
 ///     Creates a new enhanced JavaScript function.
 /// </summary>
 /// <remarks>
@@ -993,5 +1014,27 @@ CHAKRA_API
         _In_ JsValueRef object,
         _In_ JsValueRef key,
         _Out_ bool *hasOwnProperty);
+
+/// <summary>
+///     Sets whether any action should be taken when a promise is rejected with no reactions
+///     or a reaction is added to a promise that was rejected before it had reactions.
+///     By default in either of these cases nothing occurs.
+///     This function allows you to specify if something should occur and provide a callback
+///     to implement whatever should occur.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="promiseRejectionTrackerCallback">The callback function being set.</param>
+/// <param name="callbackState">
+///     User provided state that will be passed back to the callback.
+/// </param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsSetHostPromiseRejectionTracker(
+        _In_ JsHostPromiseRejectionTrackerCallback promiseRejectionTrackerCallback, 
+        _In_opt_ void *callbackState);
 #endif // _CHAKRACOREBUILD
 #endif // _CHAKRACORE_H_
