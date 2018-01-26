@@ -265,6 +265,10 @@ namespace Js
         static BOOL Is(Var aValue);
         static TypedArray<TypeName, clamped, virtualAllocated>* FromVar(Var aValue);
         static TypedArray<TypeName, clamped, virtualAllocated>* UnsafeFromVar(Var aValue);
+        static BOOL HasVirtualTableInfo(Var aValue)
+        {
+            return VirtualTableInfo<TypedArray<TypeName, clamped, virtualAllocated>>::HasVirtualTable(aValue) || VirtualTableInfo<CrossSiteObject<TypedArray<TypeName, clamped, virtualAllocated>>>::HasVirtualTable(aValue);
+        }
 
         inline Var BaseTypedDirectGetItem(__in uint32 index)
         {
