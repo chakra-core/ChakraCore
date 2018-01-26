@@ -166,7 +166,7 @@ namespace Js
         static int GetBufferOffset() { return offsetof(ArrayBuffer, buffer); }
 
         virtual void AddParent(ArrayBufferParent* parent) override;
-#if _WIN64
+#if defined(TARGET_64)
         //maximum 2G -1  for amd64
         static const uint32 MaxArrayBufferLength = 0x7FFFFFFF;
 #else
