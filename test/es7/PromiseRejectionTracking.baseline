@@ -1,0 +1,43 @@
+Executing test #1 - Reject promise with no reactions.
+Uncaught promise rejection
+Rejection from test 1
+Executing test #2 - Reject promise with a catch reaction only.
+Executing test #3 - Reject promise with catch and then reactions.
+Executing test #4 - Reject promise then add  a catch afterwards.
+Uncaught promise rejection
+Rejection from test 4
+Promise rejection handled
+Rejection from test 4
+Executing test #5 - Reject promise then add two catches afterwards.
+Uncaught promise rejection
+Rejection from test 5
+Promise rejection handled
+Rejection from test 5
+Executing test #6 - Async function that throws.
+Uncaught promise rejection
+Rejection from test 6
+Executing test #7 - Async function that throws but is caught.
+Uncaught promise rejection
+Rejection from test 7
+Promise rejection handled
+Rejection from test 7
+Executing test #8 - Async function that awaits a function that throws.
+Uncaught promise rejection
+Rejection from test 8
+Promise rejection handled
+Rejection from test 8
+Executing test #9 - Reject a handled promise then handle one of the handles but not the other.
+Executing test #10 - Reject a handled promise and don't handle either path.
+Begin async results:
+Uncaught promise rejection
+Rejection from test 8
+Uncaught promise rejection
+Rejection from test 9
+Uncaught promise rejection
+Rejection from test 10
+Uncaught promise rejection
+Rejection from test 10
+Promise rejection handled
+Rejection from test 9
+Uncaught promise rejection
+Rejection from test 9
