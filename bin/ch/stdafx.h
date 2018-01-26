@@ -317,10 +317,15 @@ public:
 
     static bool Find(AutoString &path, AutoString ** out)
     {
+        return Find(path.GetString(), path.GetLength(), out);
+    }
+
+    static bool Find(LPCSTR path, size_t pathLength, AutoString ** out)
+    {
         FileNode * node = root;
         while(node != nullptr)
         {
-            if (strncmp(node->path.GetString(), path.GetString(), path.GetLength()) == 0)
+            if (strncmp(node->path.GetString(), path, pathLength) == 0)
             {
                 *out = &(node->data);
                 return true;
