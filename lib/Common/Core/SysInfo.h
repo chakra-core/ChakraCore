@@ -69,7 +69,7 @@ public:
 #ifdef STACK_ALIGN
     static DWORD const StackAlign = STACK_ALIGN;
 #else
-# if defined(_WIN64)
+# if defined(TARGET_64)
     static DWORD const StackAlign = 16;
 # elif defined(_M_ARM)
     static DWORD const StackAlign = 8;
@@ -84,7 +84,7 @@ public:
     UINT_PTR dllLoadAddress;
     UINT_PTR dllHighAddress;
 #endif
-    
+
 private:
     AutoSystemInfo() : majorVersion(0), minorVersion(0), buildDateHash(0), buildTimeHash(0), crtSize(0) { Initialize(); }
     void Initialize();

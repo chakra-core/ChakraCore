@@ -332,11 +332,11 @@ typedef struct _SINGLE_LIST_ENTRY {
   struct _SINGLE_LIST_ENTRY *Next;
 } SINGLE_LIST_ENTRY, *PSINGLE_LIST_ENTRY;
 
-#if defined(_WIN64)
+#if defined(TARGET_64)
 
 //
 // The type SINGLE_LIST_ENTRY is not suitable for use with SLISTs.  For
-// WIN64, an entry on an SLIST is required to be 16-byte aligned, while a
+// TARGET_64, an entry on an SLIST is required to be 16-byte aligned, while a
 // SINGLE_LIST_ENTRY structure has only 8 byte alignment.
 //
 // Therefore, all SLIST code should use the SLIST_ENTRY type instead of the
@@ -352,11 +352,11 @@ typedef struct DECLSPEC_ALIGN(16) _SLIST_ENTRY {
 
 #pragma warning(pop)
 
-#else
+#else // defined(TARGET_64)
 
 typedef struct _SINGLE_LIST_ENTRY SLIST_ENTRY, *PSLIST_ENTRY;
 
-#endif // _WIN64
+#endif // defined(TARGET_64)
 
 #if defined(_AMD64_)
 
