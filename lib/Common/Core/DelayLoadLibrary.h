@@ -27,6 +27,35 @@ private:
 
 #if _WIN32
 
+// This needs to be delay loaded because SetThreadDescription is available only
+// on Win10 1607+
+class Kernel32Library : protected DelayLoadLibrary
+{
+private:
+    typedef HRESULT (WINAPI *PFnSetThreadDescription)(
+      _In_ HANDLE hThread,
+      _In_ PCWSTR lpThreadDescription
+    );
+
+    PFnSetThreadDescription setThreadDescription;
+
+  public:
+    static Kernel32Library* Instance;
+
+    Kernel32Library() : DelayLoadLibrary(),
+      setThreadDescription(NULL)
+    {
+        this->EnsureFromSystemDirOnly();
+    }
+
+    LPCTSTR GetLibraryName() const;
+
+    HRESULT WINAPI SetThreadDescription(
+        _In_ HANDLE hThread,
+        _In_ PCWSTR lpThreadDescription
+        );
+};
+
 // This needs to be delay loaded because it is available on
 // Win8 only
 class NtdllLibrary : protected DelayLoadLibrary

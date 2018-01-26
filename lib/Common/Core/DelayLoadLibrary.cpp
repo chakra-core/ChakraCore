@@ -52,6 +52,35 @@ bool DelayLoadLibrary::IsAvailable()
 
 #if _WIN32
 
+static Kernel32Library Kernel32LibraryObject;
+Kernel32Library* Kernel32Library::Instance = &Kernel32LibraryObject;
+
+LPCTSTR Kernel32Library::GetLibraryName() const
+{
+    return _u("kernel32.dll");
+}
+
+HRESULT Kernel32Library::SetThreadDescription(
+    _In_ HANDLE hThread,
+    _In_ PCWSTR lpThreadDescription
+)
+{
+    if (m_hModule)
+    {
+        if (setThreadDescription == nullptr)
+        {
+            setThreadDescription = (PFnSetThreadDescription)GetFunction("SetThreadDescription");
+            if (setThreadDescription == nullptr)
+            {
+                return S_FALSE;
+            }
+        }
+        return setThreadDescription(hThread, lpThreadDescription);
+    }
+
+  return S_FALSE;
+}
+
 static NtdllLibrary NtdllLibraryObject;
 NtdllLibrary* NtdllLibrary::Instance = &NtdllLibraryObject;
 

@@ -13,7 +13,8 @@ namespace PlatformAgnostic
     Thread::ThreadHandle Thread::Create(unsigned stack_size,
                                         unsigned ( *start_address )( void * ),
                                         void* arg_list,
-                                        ThreadInitFlag init_flag)
+                                        ThreadInitFlag init_flag,
+                                        const char16* /*name*/)
     {
         unsigned int flag = 0;
 

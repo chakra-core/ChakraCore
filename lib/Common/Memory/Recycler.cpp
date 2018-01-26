@@ -5059,20 +5059,25 @@ Recycler::EnableConcurrent(JsUtil::ThreadService *threadService, bool startAllTh
 
         if (startConcurrentThread)
         {
-            HANDLE concurrentThread = (HANDLE)PlatformAgnostic::Thread::Create(Recycler::ConcurrentThreadStackSize, &Recycler::StaticThreadProc, this, PlatformAgnostic::Thread::ThreadInitStackSizeParamIsAReservation);
-            if (concurrentThread != nullptr)
+            auto concurrentThread = PlatformAgnostic::Thread::Create(Recycler::ConcurrentThreadStackSize, 
+                &Recycler::StaticThreadProc, this, 
+                PlatformAgnostic::Thread::ThreadInitStackSizeParamIsAReservation,
+                _u("Chakra Background Recycler"));
+
+            if (concurrentThread != PlatformAgnostic::Thread::InvalidHandle)
             {
+                HANDLE concurrentThreadWin32Handle = reinterpret_cast<HANDLE>(concurrentThread);
                 // Wait for recycler thread to initialize
-                HANDLE handle[2] = { this->concurrentWorkDoneEvent, concurrentThread };
+                HANDLE handle[2] = { this->concurrentWorkDoneEvent, concurrentThreadWin32Handle };
                 DWORD ret = WaitForMultipleObjectsEx(2, handle, FALSE, INFINITE, FALSE);
                 if (ret == WAIT_OBJECT_0)
                 {
                     this->threadService = threadService;
-                    this->concurrentThread = concurrentThread;
+                    this->concurrentThread = concurrentThreadWin32Handle;
                     return true;
                 }
 
-                CloseHandle(concurrentThread);
+                CloseHandle(concurrentThreadWin32Handle);
             }
         }
 
@@ -6702,7 +6707,14 @@ RecyclerParallelThread::EnableConcurrent(bool waitForThread)
         return false;
     }
 
-    this->concurrentThread = (HANDLE)PlatformAgnostic::Thread::Create(Recycler::ConcurrentThreadStackSize, &RecyclerParallelThread::StaticThreadProc, this, PlatformAgnostic::Thread::ThreadInitStackSizeParamIsAReservation);
+    auto threadHandle = PlatformAgnostic::Thread::Create(Recycler::ConcurrentThreadStackSize, 
+      &RecyclerParallelThread::StaticThreadProc, this,
+      PlatformAgnostic::Thread::ThreadInitStackSizeParamIsAReservation, _u("Chakra Recycler Parallel Thread"));
+
+    if (threadHandle != PlatformAgnostic::Thread::InvalidHandle)
+    {
+        this->concurrentThread = reinterpret_cast<HANDLE>(threadHandle);
+    }
 
     if (this->concurrentThread != nullptr && waitForThread)
     {

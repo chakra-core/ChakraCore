@@ -18,9 +18,12 @@ class Thread
 
     typedef uintptr_t ThreadHandle;
 
+    static const uintptr_t InvalidHandle = (uintptr_t)-1;
+
     static ThreadHandle Create(unsigned int stack_size,
                                unsigned int ( *start_address )( void * ),
                                void* arg_list,
-                               ThreadInitFlag init_flag);
+                               ThreadInitFlag init_flag,
+                               const char16* description);
 };
 } // namespace PlatformAgnostic
