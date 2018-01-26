@@ -200,117 +200,129 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filenameToLoad, LPCSTR& contents, UIN
         filename = combinedPathBuffer;
     }
 
-    //
-    // Open the file as a binary file to prevent CRT from handling encoding, line-break conversions,
-    // etc.
-    //
-    if (fopen_s(&file, filename, "rb") != 0)
+    // check if have it registered
+    AutoString *data;
+    if (SourceMap::Find(filenameToLoad, strlen(filenameToLoad), &data) ||
+        SourceMap::Find(filename, strlen(filename), &data))
     {
-        if (!HostConfigFlags::flags.MuteHostErrorMsgIsEnabled)
+        contents = data->GetString();
+        if (lengthBytesOut != nullptr)
         {
-#ifdef _WIN32
-            DWORD lastError = GetLastError();
-            char16 wszBuff[MAX_URI_LENGTH];
-            fprintf(stderr, "Error in opening file '%s' ", filename);
-            wszBuff[0] = 0;
-            if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
-                nullptr,
-                lastError,
-                0,
-                wszBuff,
-                _countof(wszBuff),
-                nullptr))
-            {
-                fwprintf(stderr, _u(": %s"), wszBuff);
-            }
-            fwprintf(stderr, _u("\n"));
-#elif defined(_POSIX_VERSION)
-            fprintf(stderr, "Error in opening file: ");
-            perror(filename);
-#endif
+            *lengthBytesOut = (UINT) data->GetLength();
         }
-
-        IfFailGo(E_FAIL);
     }
-
-    if (file != NULL)
+    else
     {
-        // Determine the file length, in bytes.
-        fseek(file, 0, SEEK_END);
-        lengthBytes = ftell(file);
-        fseek(file, 0, SEEK_SET);
-        const size_t bufferLength = lengthBytes + sizeof(BYTE);
-        pRawBytes = (LPBYTE)malloc(bufferLength);
-        if (nullptr == pRawBytes)
+        // Open the file as a binary file to prevent CRT from handling encoding, line-break conversions,
+        // etc.
+        if (fopen_s(&file, filename, "rb") != 0)
         {
-            fwprintf(stderr, _u("out of memory"));
-            IfFailGo(E_OUTOFMEMORY);
-        }
+            if (!HostConfigFlags::flags.MuteHostErrorMsgIsEnabled)
+            {
+    #ifdef _WIN32
+                DWORD lastError = GetLastError();
+                char16 wszBuff[MAX_URI_LENGTH];
+                fprintf(stderr, "Error in opening file '%s' ", filename);
+                wszBuff[0] = 0;
+                if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
+                    nullptr,
+                    lastError,
+                    0,
+                    wszBuff,
+                    _countof(wszBuff),
+                    nullptr))
+                {
+                    fwprintf(stderr, _u(": %s"), wszBuff);
+                }
+                fwprintf(stderr, _u("\n"));
+    #elif defined(_POSIX_VERSION)
+                fprintf(stderr, "Error in opening file: ");
+                perror(filename);
+    #endif
+            }
 
-        //
-        // Read the entire content as a binary block.
-        //
-        size_t readBytes = fread(pRawBytes, sizeof(BYTE), lengthBytes, file);
-        if (readBytes < lengthBytes * sizeof(BYTE))
-        {
             IfFailGo(E_FAIL);
         }
 
-        pRawBytes[lengthBytes] = 0; // Null terminate it. Could be UTF16
-
-        //
-        // Read encoding to make sure it's supported
-        //
-        // Warning: The UNICODE buffer for parsing is supposed to be provided by the host.
-        // This is not a complete read of the encoding. Some encodings like UTF7, UTF1, EBCDIC, SCSU, BOCU could be
-        // wrongly classified as ANSI
-        //
+        if (file != NULL)
         {
-#pragma warning(push)
-// suppressing prefast warning that "readable size is bufferLength bytes but 2 may be read" as bufferLength is clearly > 2 in the code that follows
-#pragma warning(disable:6385)
-            C_ASSERT(sizeof(WCHAR) == 2);
-            if (bufferLength > 2)
+            // Determine the file length, in bytes.
+            fseek(file, 0, SEEK_END);
+            lengthBytes = ftell(file);
+            fseek(file, 0, SEEK_SET);
+            const size_t bufferLength = lengthBytes + sizeof(BYTE);
+            pRawBytes = (LPBYTE)malloc(bufferLength);
+            if (nullptr == pRawBytes)
             {
-                __analysis_assume(bufferLength > 2);
-#pragma prefast(push)
-#pragma prefast(disable:6385, "PREfast incorrectly reports this as an out-of-bound access.");
-                if ((pRawBytes[0] == 0xFE && pRawBytes[1] == 0xFF) ||
-                    (pRawBytes[0] == 0xFF && pRawBytes[1] == 0xFE) ||
-                    (bufferLength > 4 && pRawBytes[0] == 0x00 && pRawBytes[1] == 0x00 &&
-                        ((pRawBytes[2] == 0xFE && pRawBytes[3] == 0xFF) ||
-                         (pRawBytes[2] == 0xFF && pRawBytes[3] == 0xFE))))
+                fwprintf(stderr, _u("out of memory"));
+                IfFailGo(E_OUTOFMEMORY);
+            }
 
+            //
+            // Read the entire content as a binary block.
+            //
+            size_t readBytes = fread(pRawBytes, sizeof(BYTE), lengthBytes, file);
+            if (readBytes < lengthBytes * sizeof(BYTE))
+            {
+                IfFailGo(E_FAIL);
+            }
+
+            pRawBytes[lengthBytes] = 0; // Null terminate it. Could be UTF16
+
+            //
+            // Read encoding to make sure it's supported
+            //
+            // Warning: The UNICODE buffer for parsing is supposed to be provided by the host.
+            // This is not a complete read of the encoding. Some encodings like UTF7, UTF1, EBCDIC, SCSU, BOCU could be
+            // wrongly classified as ANSI
+            //
+            {
+    #pragma warning(push)
+    // suppressing prefast warning that "readable size is bufferLength bytes but 2 may be read" as bufferLength is clearly > 2 in the code that follows
+    #pragma warning(disable:6385)
+                C_ASSERT(sizeof(WCHAR) == 2);
+                if (bufferLength > 2)
                 {
-                    // unicode unsupported
-                    fwprintf(stderr, _u("unsupported file encoding. Only ANSI and UTF8 supported"));
-                    IfFailGo(E_UNEXPECTED);
+                    __analysis_assume(bufferLength > 2);
+    #pragma prefast(push)
+    #pragma prefast(disable:6385, "PREfast incorrectly reports this as an out-of-bound access.");
+                    if ((pRawBytes[0] == 0xFE && pRawBytes[1] == 0xFF) ||
+                        (pRawBytes[0] == 0xFF && pRawBytes[1] == 0xFE) ||
+                        (bufferLength > 4 && pRawBytes[0] == 0x00 && pRawBytes[1] == 0x00 &&
+                            ((pRawBytes[2] == 0xFE && pRawBytes[3] == 0xFF) ||
+                            (pRawBytes[2] == 0xFF && pRawBytes[3] == 0xFE))))
+
+                    {
+                        // unicode unsupported
+                        fwprintf(stderr, _u("unsupported file encoding. Only ANSI and UTF8 supported"));
+                        IfFailGo(E_UNEXPECTED);
+                    }
+    #pragma prefast(pop)
                 }
-#pragma prefast(pop)
+            }
+    #pragma warning(pop)
+        }
+
+        contents = reinterpret_cast<LPCSTR>(pRawBytes);
+
+    Error:
+        if (SUCCEEDED(hr))
+        {
+            if (lengthBytesOut)
+            {
+                *lengthBytesOut = lengthBytes;
             }
         }
-#pragma warning(pop)
-    }
 
-    contents = reinterpret_cast<LPCSTR>(pRawBytes);
-
-Error:
-    if (SUCCEEDED(hr))
-    {
-        if (lengthBytesOut)
+        if (file != NULL)
         {
-            *lengthBytesOut = lengthBytes;
+            fclose(file);
         }
-    }
 
-    if (file != NULL)
-    {
-        fclose(file);
-    }
-
-    if (pRawBytes && reinterpret_cast<LPCSTR>(pRawBytes) != contents)
-    {
-        free(pRawBytes);
+        if (pRawBytes && reinterpret_cast<LPCSTR>(pRawBytes) != contents)
+        {
+            free(pRawBytes);
+        }
     }
 
     return hr;
