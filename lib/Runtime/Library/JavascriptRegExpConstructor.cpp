@@ -76,7 +76,7 @@ namespace Js
         {
             ScriptContext* scriptContext = this->GetScriptContext();
             const CharCount lastInputLen = lastInput->GetLength();
-            const wchar_t* lastInputStr = lastInput->GetString();
+            const char16* lastInputStr = lastInput->GetString();
             UnifiedRegex::RegexPattern* pattern = lastPattern;
 
             // When we perform a regex test operation it's possible the result of the operation will be loaded from a cache and the match will not be computed and updated in the ctor.
