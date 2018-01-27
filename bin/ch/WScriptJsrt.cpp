@@ -131,7 +131,20 @@ JsValueRef __stdcall WScriptJsrt::EchoCallback(JsValueRef callee, bool isConstru
                 {
                     wprintf(_u(" "));
                 }
-                wprintf(_u("%ls"), str.GetWideString());
+                size_t len;
+                LPWSTR ws = str.GetWideString(&len);
+                LPWSTR wsNoNull = new WCHAR[len + 1];
+                size_t newIndex = 0;
+                for (size_t j = 0; j < len; j++)
+                {
+                    if (ws[j] != _u('\0'))
+                    {
+                        wsNoNull[newIndex++] = ws[j];
+                    }
+                }
+                wsNoNull[newIndex] = _u('\0');
+                wprintf(_u("%s"), wsNoNull);
+                delete[] wsNoNull;
             }
         }
 
