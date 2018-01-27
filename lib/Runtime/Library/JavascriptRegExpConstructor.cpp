@@ -17,6 +17,7 @@ namespace Js
     JavascriptRegExpConstructor::JavascriptRegExpConstructor(DynamicType * type) :
         RuntimeFunction(type, &JavascriptRegExp::EntryInfo::NewInstance),
         reset(false),
+        invalidatedLastMatch(false),
         lastPattern(nullptr),
         lastMatch() // undefined
     {
@@ -53,17 +54,44 @@ namespace Js
         this->lastInput = lastInput;
         this->lastMatch = lastMatch;
         this->reset = true;
+        this->invalidatedLastMatch = false;
+    }
+
+    void JavascriptRegExpConstructor::InvalidateLastMatch(UnifiedRegex::RegexPattern* lastPattern, JavascriptString* lastInput)
+    {
+        AssertMsg(lastPattern != nullptr, "lastPattern should not be null");
+        AssertMsg(lastInput != nullptr, "lastInput should not be null");
+        AssertMsg(JavascriptOperators::GetTypeId(lastInput) != TypeIds_Null, "lastInput should not be JavaScript null");
+
+        this->lastPattern = lastPattern;
+        this->lastInput = lastInput;
+        this->lastMatch.Reset();
+        this->reset = true;
+        this->invalidatedLastMatch = true;
     }
 
     void JavascriptRegExpConstructor::EnsureValues()
     {
         if (reset)
         {
-            Assert(!lastMatch.IsUndefined());
             ScriptContext* scriptContext = this->GetScriptContext();
-            UnifiedRegex::RegexPattern* pattern = lastPattern;
-            JavascriptString* emptyString = scriptContext->GetLibrary()->GetEmptyString();
             const CharCount lastInputLen = lastInput->GetLength();
+            const wchar_t* lastInputStr = lastInput->GetString();
+            UnifiedRegex::RegexPattern* pattern = lastPattern;
+
+            // When we perform a regex test operation it's possible the result of the operation will be loaded from a cache and the match will not be computed and updated in the ctor.
+            // In that case we invalidate the last match stored in the ctor and will need to compute it before it will be accessible via $1 etc.
+            // Since we only do this for the case of RegExp.prototype.test cache hit, we know several things:
+            //  - The regex is not global or sticky
+            //  - There was a match (test returned true)
+            if (invalidatedLastMatch)
+            {
+                this->lastMatch = RegexHelper::SimpleMatch(scriptContext, pattern, lastInputStr, lastInputLen, 0);
+                invalidatedLastMatch = false;
+            }
+
+            Assert(!lastMatch.IsUndefined());
+            JavascriptString* emptyString = scriptContext->GetLibrary()->GetEmptyString();
             // IE8 quirk: match of length 0 is regarded as length 1
             CharCount lastIndexVal = lastMatch.EndOffset();
             this->index = JavascriptNumber::ToVar(lastMatch.offset, scriptContext);
@@ -82,7 +110,7 @@ namespace Js
                 // every match is prohibitively slow. Instead, run the match again using the known last input string.
                 if (!pattern->WasLastMatchSuccessful())
                 {
-                    RegexHelper::SimpleMatch(scriptContext, pattern, lastInput->GetString(), lastInputLen, lastMatch.offset);
+                    RegexHelper::SimpleMatch(scriptContext, pattern, lastInputStr, lastInputLen, lastMatch.offset);
                 }
                 Assert(pattern->WasLastMatchSuccessful());
                 for (int groupId = 1; groupId < min(numGroups, NumCtorCaptures); groupId++)

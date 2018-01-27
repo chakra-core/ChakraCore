@@ -58,6 +58,8 @@ namespace Js
             , UnifiedRegex::GroupInfo lastSuccessfulMatch
             , bool useSplitPattern );
 
+        static void InvalidateLastMatchOnCtor(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* lastInput, bool useSplitPattern = false);
+
         static bool GetInitialOffset(bool isGlobal, bool isSticky, JavascriptRegExp* regularExpression, CharCount inputLength, CharCount& offset);
         static JavascriptArray* CreateMatchResult(void *const stackAllocationPointer, ScriptContext* scriptContext, bool isGlobal, int numGroups, JavascriptString* input);
         static void FinalizeMatchResult(ScriptContext* scriptContext, bool isGlobal, JavascriptArray* arr, UnifiedRegex::GroupInfo match);
