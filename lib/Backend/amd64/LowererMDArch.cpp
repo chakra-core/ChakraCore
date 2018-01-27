@@ -2888,34 +2888,38 @@ bool LowererMDArch::GenerateFastAnd(IR::Instr * instrAnd)
     return true;
 }
 
-bool LowererMDArch::GenerateFastDiv(IR::Instr * instrDiv)
+bool LowererMDArch::GenerateFastDivAndRem_Signed(IR::Instr* instrDiv)
 {
-    Assert(instrDiv);
-    IR::Opnd * divisor = instrDiv->GetSrc2(); // denominator
+    Assert(instrDiv->m_opcode == Js::OpCode::Div_I4 || instrDiv->m_opcode == Js::OpCode::Rem_I4);
 
-    if (PHASE_OFF(Js::BitopsFastPathPhase, this->m_func) || !divisor->IsIntConstOpnd() ||
-        !(instrDiv->m_opcode == Js::OpCode::Div_I4 || instrDiv->m_opcode == Js::OpCode::Rem_I4)) //ToDo Optimize unsigned division
-    {
-        return false;
-    }
+    IR::Opnd* divident  = instrDiv->GetSrc1(); // nominator
+    IR::Opnd* divisor   = instrDiv->GetSrc2(); // denominator
+    IR::Opnd* dst       = instrDiv->GetDst();
+    int constDivisor    = divisor->AsIntConstOpnd()->AsInt32();
+    bool isNegDevisor   = false;
 
-    IR::Opnd* divident = instrDiv->GetSrc1(); // nominator
-    IR::Opnd* dst      = instrDiv->GetDst();
-    int constDivisor   = divisor->AsIntConstOpnd()->AsInt32();
-    bool isNegDevisor  = false;
+    Assert(divisor->GetType() == TyInt32); // constopnd->AsInt32() currently does silent casts between int32 and uint32
 
     if (constDivisor < 0)
     {
         isNegDevisor = true;
-        constDivisor = abs(constDivisor);
+        constDivisor *= -1;
     }
 
-    if (constDivisor < 2 || constDivisor > INT32_MAX - 1)
+    if (constDivisor <= 0 || constDivisor > INT32_MAX - 1)
     {
         return false;
     }
-
-    if (Math::IsPow2(constDivisor)) // Power of two
+    if (constDivisor == 1)
+    {
+        // Wasm expects x/-1 not to be folded to -x.
+        if (m_func->GetJITFunctionBody()->IsWasmFunction() && isNegDevisor == true)
+        {
+            return false;
+        }
+        Lowerer::InsertMove(dst, divident, instrDiv);
+    }
+    else if (Math::IsPow2(constDivisor)) // Power of two
     {
         // Negative dividents needs the result incremented by 1
         // Following sequence avoids branch
@@ -2934,16 +2938,17 @@ bool LowererMDArch::GenerateFastDiv(IR::Instr * instrDiv)
     }
     else
     {
+        // Ref: Warren's Hacker's Delight, Chapter 10
+        //
         // For q = n/d where d is a signed constant
         // Calculate magic_number (multiplier) and shift amounts (shiftAmt) and replace  div with mul and shift
-        // Ref: Warren's Hacker's Delight, Chapter 10
 
         Js::NumberUtilities::DivMagicNumber magic_number(Js::NumberUtilities::GenerateDivMagicNumber(constDivisor));
         int32 multiplier = magic_number.multiplier;
 
         // Compute mulhs divident, multiplier
-        IR::Opnd* quotient       = IR::RegOpnd::New(TyInt64, this->m_func);
-        IR::Opnd* divident64Reg  = IR::RegOpnd::New(TyInt64, this->m_func);
+        IR::Opnd* quotient      = IR::RegOpnd::New(TyInt64, this->m_func);
+        IR::Opnd* divident64Reg = IR::RegOpnd::New(TyInt64, this->m_func);
 
         Lowerer::InsertMove(divident64Reg, divident, instrDiv);
         IR::Instr* imul = IR::Instr::New(LowererMD::MDImulOpcode, quotient, IR::IntConstOpnd::New(multiplier, TyInt32, this->m_func), divident64Reg, this->m_func);
@@ -2975,17 +2980,123 @@ bool LowererMDArch::GenerateFastDiv(IR::Instr * instrDiv)
     {
         Lowerer::InsertSub(false, dst, IR::IntConstOpnd::New(0, TyInt8, this->m_func), dst, instrDiv);
     }
-    //For Reminder ops
-    if (instrDiv->m_opcode == Js::OpCode::Rem_I4)
+    return true;
+}
+
+bool LowererMDArch::GenerateFastDivAndRem_Unsigned(IR::Instr* instrDiv)
+{
+    Assert(instrDiv->m_opcode == Js::OpCode::DivU_I4 || instrDiv->m_opcode == Js::OpCode::RemU_I4);
+
+    IR::Opnd* divident  = instrDiv->GetSrc1(); // nominator
+    IR::Opnd* divisor   = instrDiv->GetSrc2(); // denominator
+    IR::Opnd* dst       = instrDiv->GetDst();
+    uint constDivisor   = divisor->AsIntConstOpnd()->AsUint32();
+
+    Assert(divisor->GetType() == TyUint32); // IR::Opnd->AsInt32() and IR::Opnd->AsUint32() allows silent casts.
+
+    if (constDivisor <= 0 || constDivisor > UINT32_MAX - 1)
     {
-        // for q = n/d
-        // mul dst, dst, divident
-        // sub dst, divident, dst
-        IR::Instr* imul = IR::Instr::New(LowererMD::MDImulOpcode, dst, dst, divisor, instrDiv->m_func);
+        return false;
+    }
+
+    if (constDivisor == 1)
+    {
+        Lowerer::InsertMove(dst, divident, instrDiv);
+    }
+    else if (Math::IsPow2(constDivisor)) // Power of two
+    {
+        int k = Math::Log2(constDivisor);
+        Lowerer::InsertShift(Js::OpCode::ShrU_A, false, dst, divident, IR::IntConstOpnd::New(k, TyInt8, this->m_func), instrDiv);
+    }
+    else
+    {
+        // Ref: Warren's Hacker's Delight, Chapter 10
+        //
+        // For q = n/d where d is an unsigned constant
+        // Calculate magic_number (multiplier) and shift amounts (shiftAmt) and replace  div with mul and shift
+
+        Js::NumberUtilities::DivMagicNumber magic_number(Js::NumberUtilities::GenerateDivMagicNumber(constDivisor));
+        uint multiplier   = magic_number.multiplier;
+        int addIndicator  = magic_number.addIndicator;
+
+        IR::Opnd* quotient      = IR::RegOpnd::New(TyUint64, this->m_func);
+        IR::Opnd* multiplierReg = IR::RegOpnd::New(TyUint64, this->m_func);
+        Lowerer::InsertMove(multiplierReg, IR::IntConstOpnd::New(multiplier, TyInt64, this->m_func), instrDiv);
+
+        IR::Instr* imul = IR::Instr::New(LowererMD::MDImulOpcode, quotient, divident, multiplierReg, this->m_func);
         instrDiv->InsertBefore(imul);
         LowererMD::Legalize(imul);
-        Lowerer::InsertSub(false, dst, divident, dst, instrDiv);
+        if (!addIndicator) // Simple case type 3, 5..
+        {
+            Lowerer::InsertShift(Js::OpCode::ShrU_A, false, quotient, quotient, IR::IntConstOpnd::New(32 + magic_number.shiftAmt, TyInt8, this->m_func), instrDiv);
+            Lowerer::InsertMove(dst, quotient, instrDiv);
+        }
+        else // Special case type 7..
+        {
+            IR::Opnd* tmpReg = IR::RegOpnd::New(TyUint32, this->m_func);
+            Lowerer::InsertMove(dst, divident, instrDiv);
+
+            Lowerer::InsertShift(Js::OpCode::ShrU_A, false, quotient, quotient, IR::IntConstOpnd::New(32, TyInt8, this->m_func), instrDiv);
+            Lowerer::InsertMove(tmpReg, quotient, instrDiv);
+
+            Lowerer::InsertSub(false, dst, dst, tmpReg, instrDiv);
+            Lowerer::InsertShift(Js::OpCode::ShrU_A, false, dst, dst, IR::IntConstOpnd::New(1, TyInt8, this->m_func), instrDiv);
+            Lowerer::InsertAdd(false, dst, dst, tmpReg, instrDiv);
+            Lowerer::InsertShift(Js::OpCode::ShrU_A, false, dst, dst, IR::IntConstOpnd::New(magic_number.shiftAmt-1, TyInt8, this->m_func), instrDiv);
+        }
     }
+    return true;
+}
+
+bool LowererMDArch::GenerateFastDivAndRem(IR::Instr* instrDiv, IR::LabelInstr* bailOutLabel)
+{
+    Assert(instrDiv);
+    IR::Opnd* divident  = instrDiv->GetSrc1(); // nominator
+    IR::Opnd* divisor   = instrDiv->GetSrc2(); // denominator
+    IR::Opnd* dst       = instrDiv->GetDst();
+
+    if (PHASE_OFF(Js::BitopsFastPathPhase, this->m_func) || !divisor->IsIntConstOpnd())
+    {
+        return false;
+    }
+
+    bool success = false;
+    if (instrDiv->m_opcode == Js::OpCode::DivU_I4 || instrDiv->m_opcode == Js::OpCode::RemU_I4)
+    {
+        success = GenerateFastDivAndRem_Unsigned(instrDiv);
+    }
+    else if (instrDiv->m_opcode == Js::OpCode::Div_I4 || instrDiv->m_opcode == Js::OpCode::Rem_I4)
+    {
+        success = GenerateFastDivAndRem_Signed(instrDiv);
+    }
+
+    if (!success)
+    {
+        return false;
+    }
+    // For reminder/mod ops
+    if (instrDiv->m_opcode == Js::OpCode::Rem_I4 || instrDiv->m_opcode == Js::OpCode::RemU_I4 || bailOutLabel)
+    {
+        // For q = n/d
+        // mul dst, dst, divident
+        // sub dst, divident, dst
+        IR::Opnd* reminderOpnd = dst;;
+        if (bailOutLabel)
+        {
+            reminderOpnd = IR::RegOpnd::New(TyInt32, instrDiv->m_func);
+        }
+
+        IR::Instr* imul = IR::Instr::New(LowererMD::MDImulOpcode, reminderOpnd, dst, divisor, instrDiv->m_func);
+        instrDiv->InsertBefore(imul);
+        LowererMD::Legalize(imul);
+        Lowerer::InsertSub(false, reminderOpnd, divident, reminderOpnd, instrDiv);
+        if (bailOutLabel)
+        {
+            Lowerer::InsertTestBranch(reminderOpnd, reminderOpnd, Js::OpCode::BrNeq_A, bailOutLabel, instrDiv);
+        }
+    }
+
+    // DIV/REM has been optimized and can be removed now.
     instrDiv->Remove();
     return true;
 }

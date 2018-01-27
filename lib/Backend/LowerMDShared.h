@@ -136,7 +136,7 @@ public:
             IR::Instr *     GenerateConvBool(IR::Instr *instr);
             void            GenerateFastDivByPow2(IR::Instr *instrDiv);
             bool            GenerateFastAdd(IR::Instr * instrAdd);
-            bool            GenerateFastDiv(IR::Instr* instr);
+            bool            GenerateFastDivAndRem(IR::Instr* instr, IR::LabelInstr* bailoutLabel = nullptr);
 #if DBG
             static void     GenerateDebugBreak( IR::Instr * insertInstr );
 #endif

@@ -5801,7 +5801,7 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
     return true;
 }
 
-bool LowererMD::GenerateFastDiv(IR::Instr* instrDiv)
+bool LowererMD::GenerateFastDivAndRem(IR::Instr* instrDiv, IR::LabelInstr* bailOutLabel)
 {
     return false;
 }
