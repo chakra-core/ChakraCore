@@ -271,6 +271,7 @@
     <ClInclude Include="JsBuiltIn\JsBuiltIn.js.nojit.bc.32b.h" />
     <ClInclude Include="JsBuiltIn\JsBuiltIn.js.nojit.bc.64b.h" />
     <ClInclude Include="PropertyRecordUsageCache.h" />
+    <ClInclude Include="Utf8String.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ConcatString.inl" />
