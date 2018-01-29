@@ -12,13 +12,34 @@ var tests = [
         const r1 = /(abc)/;
         const r2 = /(def)/;
         const s1 = "abc";
-        const s2 = "def";
+        const s2 = " def";
          
         r1.test(s1);
+        
+        assert.areEqual("abc", RegExp.input, "RegExp.input property caclculated correctly");
+        assert.areEqual("abc", RegExp['$_'], "RegExp.$_ property caclculated correctly");
+        assert.areEqual("abc", RegExp.lastMatch, "RegExp.lastMatch property caclculated correctly");
+        assert.areEqual("abc", RegExp['$&'], "RegExp.$& property caclculated correctly");
+        assert.areEqual("abc", RegExp.$1, "RegExp.$1 property caclculated correctly");
+        assert.areEqual(0, RegExp.index, "RegExp.index property caclculated correctly");
+        
         r2.test(s2);
+        
+        assert.areEqual(" def", RegExp.input, "RegExp.input property caclculated correctly");
+        assert.areEqual(" def", RegExp['$_'], "RegExp.$_ property caclculated correctly");
+        assert.areEqual("def", RegExp.lastMatch, "RegExp.lastMatch property caclculated correctly");
+        assert.areEqual("def", RegExp['$&'], "RegExp.$& property caclculated correctly");
+        assert.areEqual("def", RegExp.$1, "RegExp.$1 property caclculated correctly");
+        assert.areEqual(1, RegExp.index, "RegExp.index property caclculated correctly");
+        
         r1.test(s1);
 
-        assert.areEqual("abc", RegExp.$1, "Stale last match should be invalidated by second r1.test(s1)");
+        assert.areEqual("abc", RegExp.input, "Stale RegExp.input property should be invalidated by second r1.test(s1)");
+        assert.areEqual("abc", RegExp['$_'], "Stale RegExp.$_ property should be invalidated by second r1.test(s1)");
+        assert.areEqual("abc", RegExp.lastMatch, "Stale RegExp.lastMatch should be invalidated by second r1.test(s1)");
+        assert.areEqual("abc", RegExp['$&'], "Stale RegExp.$& property should be invalidated by second r1.test(s1)");
+        assert.areEqual("abc", RegExp.$1, "Stale RegExp.$1 should be invalidated by second r1.test(s1)");
+        assert.areEqual(0, RegExp.index, "Stale RegExp.index property should be invalidated by second r1.test(s1)");
     }
   },
 ];

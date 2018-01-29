@@ -59,8 +59,8 @@ namespace Js
 
         Field(UnifiedRegex::RegexPattern*) lastPattern;
         Field(JavascriptString*) lastInput;
-        Field(bool) invalidatedLastMatch; // true if last match must be recalculated before use
         Field(UnifiedRegex::GroupInfo) lastMatch;
+        Field(bool) invalidatedLastMatch; // true if last match must be recalculated before use
         Field(bool) reset; // true if following fields must be recalculated from above before first use
         Field(Var) lastParen;
         Field(Var) lastIndex;
