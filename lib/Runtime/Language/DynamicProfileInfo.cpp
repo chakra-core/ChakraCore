@@ -773,7 +773,7 @@ namespace Js
         Assert(functionBody);
         const auto callSiteCount = functionBody->GetProfiledCallSiteCount();
         Assert(callSiteId < callSiteCount);
-        Assert(functionBody->IsJsBuiltInCode() || HasCallSiteInfo(functionBody));
+        Assert(functionBody->IsJsBuiltInCode() || functionBody->IsPublicLibraryCode() || HasCallSiteInfo(functionBody));
         Assert(functionBodyArray);
         Assert(functionBodyArrayLength == DynamicProfileInfo::maxPolymorphicInliningSize);
 
@@ -864,7 +864,7 @@ namespace Js
         Assert(functionBody);
         const auto callSiteCount = functionBody->GetProfiledCallSiteCount();
         Assert(callSiteId < callSiteCount);
-        Assert(functionBody->IsJsBuiltInCode() || HasCallSiteInfo(functionBody));
+        Assert(functionBody->IsJsBuiltInCode() || functionBody->IsPublicLibraryCode() || HasCallSiteInfo(functionBody));
 
         *isConstructorCall = callSiteInfo[callSiteId].isConstructorCall;
         if (callSiteInfo[callSiteId].dontInline)
@@ -941,7 +941,7 @@ namespace Js
         Assert(functionBody);
         const auto callSiteCount = functionBody->GetProfiledCallSiteCount();
         Assert(callSiteId < callSiteCount);
-        Assert(functionBody->IsJsBuiltInCode() || HasCallSiteInfo(functionBody));
+        Assert(functionBody->IsJsBuiltInCode() || functionBody->IsPublicLibraryCode() || HasCallSiteInfo(functionBody));
 
         return callSiteInfo[callSiteId].ldFldInlineCacheId;
     }
