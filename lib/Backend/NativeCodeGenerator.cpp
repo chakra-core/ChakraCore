@@ -89,7 +89,9 @@ NativeCodeGenerator::~NativeCodeGenerator()
 {
     Assert(this->IsClosed());
 
+#if PDATA_ENABLED && defined(_WIN32)
     DelayDeletingFunctionTable::Clear();
+#endif
 
 #ifdef PROFILE_EXEC
     if (this->foregroundCodeGenProfiler != nullptr)
@@ -902,10 +904,6 @@ void NativeCodeGenerator::CodeGen(PageAllocator* pageAllocator, CodeGenWorkItemI
 void
 NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* workItem, const bool foreground)
 {
-    // flush the function tables before allocating any new  code
-    // to prevent old function table is referring to new code address
-    DelayDeletingFunctionTable::Clear();
-
     if(foreground)
     {
         // Func::Codegen has a lot of things on the stack, so probe the stack here instead
@@ -1117,7 +1115,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     }
 
 #if defined(TARGET_64)
-    DelayDeletingFunctionTable::Clear();
     XDataAllocation * xdataInfo = HeapNewZ(XDataAllocation);
     xdataInfo->address = (byte*)jitWriteData.xdataAddr;
     XDataAllocator::Register(xdataInfo, jitWriteData.codeAddress, jitWriteData.codeSize);
@@ -3257,6 +3254,9 @@ NativeCodeGenerator::FreeNativeCodeGenAllocation(void* codeAddress)
 {
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
+#if PDATA_ENABLED && defined(_WIN32)
+        DelayDeletingFunctionTable::Clear();
+#endif
         ThreadContext * context = this->scriptContext->GetThreadContext();
         HRESULT hr = JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)codeAddress);
         JITManager::HandleServerCallResult(hr, RemoteCallType::MemFree);
