@@ -77,7 +77,7 @@ struct JSONArray
     Field(JSONProperty) arr[];
 };
 
-class LazyJSONString : JavascriptString
+class LazyJSONString : public JavascriptString
 {
 private:
     Field(charcount_t) gapLength;
@@ -87,6 +87,11 @@ private:
     DynamicObject* ReconstructObject(_In_ JSONObject* valueList) const;
     JavascriptArray* ReconstructArray(_In_ JSONArray* valueArray) const;
     Var ReconstructVar(_In_ JSONProperty* content) const;
+
+
+    static const WCHAR escapeMap[128];
+public:
+    static const BYTE escapeMapCount[128];
 
 protected:
     DEFINE_VTABLE_CTOR(LazyJSONString, JavascriptString);
@@ -108,6 +113,7 @@ public:
     {
         return VTableValue::VtableLazyJSONString;
     }
+
 }; // class LazyJSONString
 
 } // namespace Js
