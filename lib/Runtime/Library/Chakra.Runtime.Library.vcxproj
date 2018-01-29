@@ -266,6 +266,7 @@
     <ClInclude Include="SparseArraySegment.h" />
     <ClInclude Include="SubString.h" />
     <ClInclude Include="UriHelper.h" />
+    <ClInclude Include="Utf8String.h" />
     <ClInclude Include="WabtInterface.h" />
     <ClInclude Include="WasmLibrary.h" />
     <ClInclude Include="WebAssembly.h" />

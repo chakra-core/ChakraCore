@@ -497,6 +497,8 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Library/PropertyRecordUsageCache.h"
 #include "Library/PropertyString.h"
 #include "Library/SingleCharString.h"
+#include "Library/Utf8String.h"
+#include "Library/LazyJSONString.h"
 
 #include "Library/JavascriptTypedNumber.h"
 #include "Library/SparseArraySegment.h"

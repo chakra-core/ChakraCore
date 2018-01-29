@@ -27,6 +27,7 @@
 #include "Library/SingleCharString.h"
 #include "Library/SubString.h"
 #include "Library/BufferStringBuilder.h"
+#include "Library/Utf8String.h"
 
 #include "Library/BoundFunction.h"
 #include "Library/JavascriptGeneratorFunction.h"
