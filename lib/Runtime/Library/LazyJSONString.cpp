@@ -8,6 +8,51 @@
 namespace Js
 {
 
+  /* Generated using the following js program:
+    function createEscapeMap(count)
+    {
+    var escapeMap = new Array(128);
+
+    for(var i=0; i <  escapeMap.length; i++)
+    {
+    escapeMap[i] = count ? 0 : "L\'\\0\'";
+    }
+    for(var i=0; i <  ' '.charCodeAt(0); i++)
+    {
+    escapeMap[i] = count ? 5 : "L\'u\'";
+    }
+    escapeMap['\n'.charCodeAt(0)] = count ? 1 : "L\'n\'";
+    escapeMap['\b'.charCodeAt(0)] = count ? 1 : "L\'b\'";
+    escapeMap['\t'.charCodeAt(0)] = count ? 1 : "L\'t\'";
+    escapeMap['\f'.charCodeAt(0)] = count ? 1 : "L\'f\'";
+    escapeMap['\r'.charCodeAt(0)] = count ? 1 : "L\'r\'";
+    escapeMap['\\'.charCodeAt(0)] = count ? 1 : "L\'\\\\\'";
+    escapeMap['"'.charCodeAt(0)]  = count ? 1 : "L\'\"\'";
+    WScript.Echo("{ " + escapeMap.join(", ") + " }");
+    }
+    createEscapeMap(false);
+    createEscapeMap(true);
+    */
+    const WCHAR LazyJSONString::escapeMap[] = {
+        _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('b'), _u('t'), _u('n'), _u('u'), _u('f'),
+        _u('r'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'),
+        _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('u'), _u('\0'), _u('\0'), _u('"'), _u('\0'), _u('\0'), _u('\0'),
+        _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'),
+        _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'),
+        _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'),
+        _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'),
+        _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\\'),
+        _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'),
+        _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'),
+        _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'), _u('\0'),
+        _u('\0'), _u('\0') };
+
+    const BYTE LazyJSONString::escapeMapCount[] =
+    { 5, 5, 5, 5, 5, 5, 5, 5, 1, 1, 1, 5, 1, 1, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 0, 0, 1, 0, 0, 0, 0, 0
+    , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    , 0, 0, 0, 0, 0, 0, 0, 0 };
+
 LazyJSONString::LazyJSONString(_In_ JSONProperty* jsonContent, charcount_t length, _In_opt_ const char16* gap, charcount_t gapLength, _In_ StaticType* type) :
     JavascriptString(type),
     jsonContent(jsonContent),

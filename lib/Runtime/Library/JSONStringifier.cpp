@@ -677,9 +677,9 @@ JSONStringifier::CalculateStringElementLength(_In_ JavascriptString* str)
 
         // Some characters may require an escape sequence. We can use the escapeMapCount table
         // to determine how many extra characters are needed
-        if (currentCharacter < _countof(JSONString::escapeMapCount))
+        if (currentCharacter < _countof(LazyJSONString::escapeMapCount))
         {
-            escapedStrLength += JSONString::escapeMapCount[currentCharacter];
+            escapedStrLength += LazyJSONString::escapeMapCount[currentCharacter];
         }
     }
     if (escapedStrLength > UINT32_MAX)
