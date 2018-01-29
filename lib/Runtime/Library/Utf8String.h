@@ -12,7 +12,7 @@ namespace Js
     {
     private:
         typedef struct {
-            size_t length;
+            FieldNoBarrier(size_t) length;
             Field(char*) buffer;
         } PrefixedUtf8String;
         Field(PrefixedUtf8String*) utf8String;
