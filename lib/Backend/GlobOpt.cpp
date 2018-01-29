@@ -5195,6 +5195,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         break;
 
     case Js::OpCode::Typeof:
+    case Js::OpCode::TypeofElem:
         return this->NewGenericValue(ValueType::String, dst);
     case Js::OpCode::InitLocalClosure:
         Assert(instr->GetDst());
