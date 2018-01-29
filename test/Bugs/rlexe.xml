@@ -428,4 +428,9 @@
       <baseline>bug13830477.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug15490382.js</files>
+    </default>
+  </test>
 </regress-exe>
