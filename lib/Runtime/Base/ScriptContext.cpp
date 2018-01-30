@@ -654,6 +654,7 @@ namespace Js
 
                 if (hasFunctions)
                 {
+#if ENABLE_NATIVE_CODEGEN
 #if PDATA_ENABLED && defined(_WIN32)
                     struct AutoReset
                     {
@@ -670,6 +671,7 @@ namespace Js
 
                         ThreadContext* threadContext;
                     } autoReset(this->GetThreadContext());
+#endif
 #endif
 
                     // We still need to walk through all the function bodies and call cleanup
