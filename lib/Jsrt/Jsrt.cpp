@@ -177,17 +177,27 @@ JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ TTDRecord
 
     if(jsrtDebugManager != nullptr)
     {
+        // JsDiagStartDebugging was called
+        threadContext->GetDebugManager()->SetLocalsDisplayFlags(Js::DebugManager::LocalsDisplayFlags::LocalsDisplayFlags_NoGroupMethods);
+
         Js::ScriptContext* scriptContext = context->GetScriptContext();
-        scriptContext->InitializeDebugging();
 
         Js::DebugContext* debugContext = scriptContext->GetDebugContext();
         debugContext->SetHostDebugContext(jsrtDebugManager);
 
-        Js::ProbeContainer* probeContainer = debugContext->GetProbeContainer();
-        probeContainer->InitializeInlineBreakEngine(jsrtDebugManager);
-        probeContainer->InitializeDebuggerScriptOptionCallback(jsrtDebugManager);
-
-        threadContext->GetDebugManager()->SetLocalsDisplayFlags(Js::DebugManager::LocalsDisplayFlags::LocalsDisplayFlags_NoGroupMethods);
+        if (!jsrtDebugManager->IsDebugEventCallbackSet())
+        {
+            // JsDiagStopDebugging was called so we need to be in SourceRunDownMode
+            debugContext->SetDebuggerMode(Js::DebuggerMode::SourceRundown);
+        }
+        else
+        {
+            // Set Debugging mode
+            scriptContext->InitializeDebugging();
+            Js::ProbeContainer* probeContainer = debugContext->GetProbeContainer();
+            probeContainer->InitializeInlineBreakEngine(jsrtDebugManager);
+            probeContainer->InitializeDebuggerScriptOptionCallback(jsrtDebugManager);
+        }
     }
 #endif
 
