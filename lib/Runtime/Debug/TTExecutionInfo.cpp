@@ -238,6 +238,24 @@ namespace TTD
         this->m_column = (uint32)column;
     }
 
+    void TTDebuggerSourceLocation::SetLocationFullRaw(TTD_LOG_PTR_ID sourceScriptLogId, int64 etime, int64 ftime, int64 ltime, uint32 topLevelBodyId, uint32 functionLine, uint32 functionColumn, ULONG line, LONG column)
+    {
+        this->m_sourceScriptLogId = sourceScriptLogId;
+        this->m_bpId = -1;
+
+        this->m_etime = etime;
+        this->m_ftime = ftime;
+        this->m_ltime = ltime;
+
+        this->m_topLevelBodyId = topLevelBodyId;
+
+        this->m_functionLine = functionLine;
+        this->m_functionColumn = functionColumn;
+
+        this->m_line = (uint32)line;
+        this->m_column = (uint32)column;
+    }
+
     void TTDebuggerSourceLocation::SetLocationWithBP(int64 bpId, Js::FunctionBody* body, ULONG line, LONG column)
     {
         this->m_sourceScriptLogId = body->GetScriptContext()->ScriptContextLogTag;
@@ -302,6 +320,16 @@ namespace TTD
     uint32 TTDebuggerSourceLocation::GetTopLevelBodyId() const
     {
         return this->m_topLevelBodyId;
+    }
+
+    uint32 TTDebuggerSourceLocation::GetFunctionSourceLine() const
+    {
+        return this->m_functionLine;
+    }
+
+    uint32 TTDebuggerSourceLocation::GetFunctionSourceColumn() const
+    {
+        return this->m_functionColumn;
     }
 
     uint32 TTDebuggerSourceLocation::GetSourceLine() const
@@ -401,6 +429,43 @@ namespace TTD
         }
     }
 
+    TTInnerLoopLastStatementInfo::TTInnerLoopLastStatementInfo() 
+        : m_etime(-1), m_ftime(0), m_ltime(0), m_line(0), m_column(0) 
+    {
+        ;
+    }
+
+    TTInnerLoopLastStatementInfo::TTInnerLoopLastStatementInfo(const TTInnerLoopLastStatementInfo& lsi)
+        : m_etime(lsi.m_etime), m_ftime(lsi.m_ftime), m_ltime(lsi.m_ltime), m_line(lsi.m_line), m_column(lsi.m_column)
+    {
+        ;
+    }
+
+    bool TTInnerLoopLastStatementInfo::IsEnabled() const
+    {
+        return this->m_etime != -1;
+    }
+
+    void TTInnerLoopLastStatementInfo::SetLastLine(int64 etime, int64 ftime, int64 ltime, uint32 line, uint32 column)
+    {
+        this->m_etime = etime;
+        this->m_ftime = ftime;
+        this->m_ltime = ltime;
+
+        this->m_line = line;
+        this->m_column = column;
+    }
+
+    bool TTInnerLoopLastStatementInfo::CheckLastTimeMatch(int64 etime, int64 ftime, int64 ltime) const
+    {
+        return (this->m_etime == etime) & (this->m_ftime == ftime) & (this->m_ltime == ltime);
+    }
+
+    bool TTInnerLoopLastStatementInfo::CheckLineColumnMatch(uint32 line, uint32 column) const
+    {
+        return (this->m_line == line) & (this->m_column == column);
+    }
+
     //////////////////
 
     bool ExecutionInfoManager::ShouldSuppressBreakpointsForTimeTravelMove(TTDMode mode)
@@ -414,14 +479,15 @@ namespace TTD
     }
 
 
-    ExecutionInfoManager::ExecutionInfoManager()
+    ExecutionInfoManager::ExecutionInfoManager(const TTInnerLoopLastStatementInfo& lsi)
         : m_topLevelCallbackEventTime(-1), m_runningFunctionTimeCtr(0), m_callStack(&HeapAllocator::Instance),
         m_debuggerNotifiedTopLevelBodies(&HeapAllocator::Instance),
         m_lastReturnLocation(), m_lastExceptionPropagating(false), m_lastExceptionLocation(),
         m_breakOnFirstUserCode(false),
         m_pendingTTDBP(), m_pendingTTDMoveMode(-1), m_activeBPId(-1), m_shouldRemoveWhenDone(false), m_activeTTDBP(),
         m_hitContinueSearchBP(false), m_continueBreakPoint(),
-        m_unRestoredBreakpoints(&HeapAllocator::Instance)
+        m_unRestoredBreakpoints(&HeapAllocator::Instance),
+        m_innerloopLastLocation(lsi)
     {
         ;
     }
@@ -563,6 +629,20 @@ namespace TTD
         this->m_breakOnFirstUserCode = true;
     }
 
+    void ExecutionInfoManager::SetPendingTTDResetToCurrentPosition()
+    {
+        this->GetTimeAndPositionForDebugger(this->m_pendingTTDBP);
+
+        this->m_pendingTTDMoveMode = 0;
+    }
+
+    void ExecutionInfoManager::SetPendingTTDToTarget(const TTDebuggerSourceLocation& dsl)
+    {
+        this->m_pendingTTDBP.SetLocationCopy(dsl);
+
+        this->m_pendingTTDMoveMode = 0;
+    }
+
     void ExecutionInfoManager::SetPendingTTDStepBackMove()
     {
         this->GetPreviousTimeAndPositionForDebugger(this->m_pendingTTDBP);
@@ -596,7 +676,7 @@ namespace TTD
     bool ExecutionInfoManager::ProcessBPInfoPreBreak(Js::FunctionBody* fb, const EventLog* elog)
     {
         //if we aren't in debug mode then we always trigger BP's
-        if(!fb->GetScriptContext()->ShouldPerformDebuggerAction())
+        if(!fb->GetScriptContext()->ShouldPerformReplayDebuggerAction())
         {
             return true;
         }
@@ -642,7 +722,7 @@ namespace TTD
 
     void ExecutionInfoManager::ProcessBPInfoPostBreak(Js::FunctionBody* fb)
     {
-        if(!fb->GetScriptContext()->ShouldPerformDebuggerAction())
+        if(!fb->GetScriptContext()->ShouldPerformReplayDebuggerAction())
         {
             return;
         }
@@ -835,6 +915,43 @@ namespace TTD
 #endif
             }
         }
+    }
+
+    void ExecutionInfoManager::ManageLastSourceInfoChecks(Js::FunctionBody* fb, bool bpDisable)
+    {
+        if(this->IsLastSourceLineEnabled() && this->IsFinalSourceLine())
+        {
+            this->SetPendingTTDResetToCurrentPosition();
+
+            if(bpDisable)
+            {
+                //Reset any step controller logic
+                fb->GetScriptContext()->GetThreadContext()->GetDebugManager()->stepController.Deactivate();
+            }
+
+            throw TTD::TTDebuggerAbortException::CreateTopLevelAbortRequest(this->m_pendingTTDBP.GetRootEventTime(), this->m_pendingTTDMoveMode, _u("Last source info hit -- reset to requested."));
+        }
+    }
+
+    bool ExecutionInfoManager::IsLastSourceLineEnabled() const
+    {
+        return this->m_innerloopLastLocation.IsEnabled();
+    }
+
+    bool ExecutionInfoManager::IsFinalSourceLine() const
+    {
+        const SingleCallCounter& cfinfo = this->GetTopCallCounter();
+
+        if(!this->m_innerloopLastLocation.CheckLastTimeMatch(this->m_topLevelCallbackEventTime, cfinfo.FunctionTime, cfinfo.LoopTime))
+        {
+            return false;
+        }
+
+        ULONG srcLine = 0;
+        LONG srcColumn = -1;
+        uint32 startOffset = cfinfo.Function->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
+        cfinfo.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
+        return this->m_innerloopLastLocation.CheckLineColumnMatch((uint32) srcLine, (uint32)srcColumn);
     }
 
     void ExecutionInfoManager::GetTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const

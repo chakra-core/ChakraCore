@@ -1904,9 +1904,8 @@ namespace Js
             Var objValue = nullptr;
 
 #if ENABLE_TTD
-            bool suppressGetterForTTDebug = requestContext->GetThreadContext()->IsRuntimeInTTDMode() && requestContext->GetThreadContext()->TTDLog->ShouldDoGetterInvocationSupression();
             TTD::TTModeStackAutoPopper suppressModeAutoPopper(requestContext->GetThreadContext()->TTDLog);
-            if(suppressGetterForTTDebug)
+            if(requestContext->GetThreadContext()->IsRuntimeInTTDMode())
             {
                 suppressModeAutoPopper.PushModeAndSetToAutoPop(TTD::TTDMode::DebuggerSuppressGetter);
             }
@@ -2258,9 +2257,8 @@ namespace Js
         BOOL retValue = FALSE;
 
 #if ENABLE_TTD
-        bool suppressGetterForTTDebug = scriptContext->GetThreadContext()->IsRuntimeInTTDMode() && scriptContext->GetThreadContext()->TTDLog->ShouldDoGetterInvocationSupression();
         TTD::TTModeStackAutoPopper suppressModeAutoPopper(scriptContext->GetThreadContext()->TTDLog);
-        if(suppressGetterForTTDebug)
+        if(scriptContext->GetThreadContext()->IsRuntimeInTTDMode())
         {
             suppressModeAutoPopper.PushModeAndSetToAutoPop(TTD::TTDMode::DebuggerSuppressGetter);
         }
