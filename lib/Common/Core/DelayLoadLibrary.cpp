@@ -63,7 +63,7 @@ LPCTSTR NtdllLibrary::GetLibraryName() const
 #if PDATA_ENABLED
 
 _Success_(return == 0)
-DWORD NtdllLibrary::AddGrowableFunctionTable( _Out_ PVOID * DynamicTable,
+NtdllLibrary::NTSTATUS NtdllLibrary::AddGrowableFunctionTable( _Out_ PVOID * DynamicTable,
     _In_reads_(MaximumEntryCount) PRUNTIME_FUNCTION FunctionTable,
     _In_ DWORD EntryCount,
     _In_ DWORD MaximumEntryCount,
@@ -82,7 +82,7 @@ DWORD NtdllLibrary::AddGrowableFunctionTable( _Out_ PVOID * DynamicTable,
                 return 1;
             }
         }
-        DWORD status = addGrowableFunctionTable(DynamicTable,
+        NTSTATUS status = addGrowableFunctionTable(DynamicTable,
             FunctionTable,
             EntryCount,
             MaximumEntryCount,

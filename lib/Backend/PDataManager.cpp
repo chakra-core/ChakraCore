@@ -21,7 +21,7 @@ void PDataManager::RegisterPdata(RUNTIME_FUNCTION* pdataStart, _In_ const ULONG_
 
         // Since we do not expect many thunk functions to be created, we are using 1 table/function
         // for now. This can be optimized further if needed.
-        DWORD status = NtdllLibrary::Instance->AddGrowableFunctionTable(pdataTable,
+        NTSTATUS status = NtdllLibrary::Instance->AddGrowableFunctionTable(pdataTable,
             pdataStart,
             entryCount,
             maxEntryCount,

@@ -126,7 +126,7 @@ public:
 
 #if PDATA_ENABLED
     _Success_(return == 0)
-    DWORD AddGrowableFunctionTable(_Out_ PVOID * DynamicTable,
+    NTSTATUS AddGrowableFunctionTable(_Out_ PVOID * DynamicTable,
         _In_reads_(MaximumEntryCount) PRUNTIME_FUNCTION FunctionTable,
         _In_ DWORD EntryCount,
         _In_ DWORD MaximumEntryCount,
