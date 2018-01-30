@@ -92,7 +92,6 @@ namespace Js
 
             Assert(!lastMatch.IsUndefined());
             JavascriptString* emptyString = scriptContext->GetLibrary()->GetEmptyString();
-            // IE8 quirk: match of length 0 is regarded as length 1
             CharCount lastIndexVal = lastMatch.EndOffset();
             this->index = JavascriptNumber::ToVar(lastMatch.offset, scriptContext);
             this->lastIndex = JavascriptNumber::ToVar(lastIndexVal, scriptContext);
