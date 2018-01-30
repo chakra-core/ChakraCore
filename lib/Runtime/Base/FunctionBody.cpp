@@ -8858,13 +8858,12 @@ namespace Js
             if (this->xdataInfo != nullptr)
             {
 #ifdef _WIN32
-                if (this->xdataInfo->functionTable)
+                PHASE_PRINT_TESTTRACE1(Js::XDataPhase, _u("EntryPointInfo::Cleanup: Freeing: function table: %llx, codeAddress: %%llx\n"), this->xdataInfo->functionTable, this->GetNativeEntrypoint());
+                if (this->xdataInfo->functionTable
+                    && !DelayDeletingFunctionTable::AddEntry(this->xdataInfo->functionTable))
                 {
-                    if (!DelayDeletingFunctionTable::AddEntry(this->xdataInfo->functionTable))
-                    {
-                        PHASE_PRINT_TESTTRACE1(Js::XDataPhase, _u("EntryPointInfo::Cleanup: Failed to add to slist, table: %llx, address: %%llx\n"), this->xdataInfo->functionTable, this->GetNativeAddress());
-                        DelayDeletingFunctionTable::DeleteFunctionTable(this->xdataInfo->functionTable);
-                    }
+                    PHASE_PRINT_TESTTRACE1(Js::XDataPhase, _u("EntryPointInfo::Cleanup: Failed to add to slist, table: %llx, address: %%llx\n"), this->xdataInfo->functionTable, this->GetNativeEntrypoint());
+                    DelayDeletingFunctionTable::DeleteFunctionTable(this->xdataInfo->functionTable);
                 }
 #endif
                 XDataAllocator::Unregister(this->xdataInfo);
@@ -8876,7 +8875,8 @@ namespace Js
                 }
                 this->xdataInfo = nullptr;
             }
-#endif
+#endif //PDATA_ENABLED
+
             this->OnCleanup(isShutdown);
 
             FreeJitTransferData();
@@ -9010,13 +9010,11 @@ namespace Js
 #if PDATA_ENABLED && defined(_WIN32)
         if (this->xdataInfo)
         {
-            if (this->xdataInfo->functionTable)
+            if (this->xdataInfo->functionTable
+                && !DelayDeletingFunctionTable::AddEntry(this->xdataInfo->functionTable))
             {
-                if (!DelayDeletingFunctionTable::AddEntry(this->xdataInfo->functionTable))
-                {
-                    PHASE_PRINT_TESTTRACE1(Js::XDataPhase, _u("EntryPointInfo::ResetOnLazyBailoutFailure: Failed to add to slist, table: %llx, address: %llx\n"), this->xdataInfo->functionTable, this->nativeAddress);
-                    DelayDeletingFunctionTable::DeleteFunctionTable(this->xdataInfo->functionTable);
-                }
+                PHASE_PRINT_TESTTRACE1(Js::XDataPhase, _u("EntryPointInfo::ResetOnLazyBailoutFailure: Failed to add to slist, table: %llx, address: %llx\n"), this->xdataInfo->functionTable, this->nativeAddress);
+                DelayDeletingFunctionTable::DeleteFunctionTable(this->xdataInfo->functionTable);
             }
         }
 #endif
@@ -9181,6 +9179,14 @@ namespace Js
                 {
                     scriptContext->FreeFunctionEntryPoint((Js::JavascriptMethod)this->GetNativeAddress(), this->GetThunkAddress());
                 }
+#if PDATA_ENABLED && defined(_WIN32)
+                else
+                {
+                    // in case of debugger attaching, we have a new code generator and when deleting old code generator,
+                    // the xData is not put in the delay list yet. clear the list now so the code addresses are ready to reuse
+                    DelayDeletingFunctionTable::Clear();
+                }
+#endif
             }
 
 #ifdef PERF_COUNTERS

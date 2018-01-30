@@ -655,6 +655,7 @@ namespace Js
                 if (hasFunctions)
                 {
 #if ENABLE_NATIVE_CODEGEN
+#if PDATA_ENABLED && defined(_WIN32)
                     struct AutoReset
                     {
                         AutoReset(ThreadContext* threadContext)
@@ -670,6 +671,7 @@ namespace Js
 
                         ThreadContext* threadContext;
                     } autoReset(this->GetThreadContext());
+#endif
 #endif
 
                     // We still need to walk through all the function bodies and call cleanup
@@ -3044,7 +3046,7 @@ namespace Js
 
         HRESULT hr = S_OK;
         BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
-            this->nativeCodeGen = NewNativeCodeGenerator(this);
+        this->nativeCodeGen = NewNativeCodeGenerator(this);
         SetProfileModeNativeCodeGen(this->GetNativeCodeGenerator(), this->IsProfiling());
         END_TRANSLATE_OOM_TO_HRESULT(hr);
 

@@ -127,6 +127,13 @@ void XDataAllocator::Register(XDataAllocation * xdataInfo, ULONG_PTR functionSta
     BOOLEAN success = FALSE;
     if (AutoSystemInfo::Data.IsWin8OrLater())
     {
+#if DBG
+        // Validate the PDATA was not registered or unregistered
+        ULONG64            imageBase = 0;
+        RUNTIME_FUNCTION  *runtimeFunction = RtlLookupFunctionEntry((DWORD64)functionStart, &imageBase, nullptr);
+        Assert(runtimeFunction == NULL);
+#endif
+
         DWORD status = NtdllLibrary::Instance->AddGrowableFunctionTable(&xdataInfo->functionTable,
             &xdataInfo->pdata,
             /*MaxEntryCount*/ 1,
@@ -134,7 +141,6 @@ void XDataAllocator::Register(XDataAllocation * xdataInfo, ULONG_PTR functionSta
             /*RangeBase*/ functionStart,
             /*RangeEnd*/ functionStart + functionSize);
         success = NT_SUCCESS(status);
-        Assert(success && xdataInfo->functionTable != nullptr);
     }
     else
     {

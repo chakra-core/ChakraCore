@@ -615,8 +615,10 @@ namespace JsUtil
         threadId(GetCurrentThreadContextId()),
         threadService(threadService),
         threadCount(0),
-        maxThreadCount(0),
-        hasExtraWork(false)
+        maxThreadCount(0)
+#if PDATA_ENABLED && defined(_WIN32)
+        ,hasExtraWork(false)
+#endif
     {
         if (!threadService->HasCallback())
         {
@@ -678,7 +680,9 @@ namespace JsUtil
         //Wait for 1 sec on jobReady and shutdownBackgroundThread events.
         unsigned int result = WaitForMultipleObjectsEx(_countof(handles), handles, false, 1000, false);
 
+#if PDATA_ENABLED && defined(_WIN32)
         DoExtraWork();
+#endif
 
         while (result == WAIT_TIMEOUT)
         {
@@ -706,6 +710,7 @@ namespace JsUtil
         return result == WAIT_OBJECT_0;
     }
 
+#if PDATA_ENABLED && defined(_WIN32)
     void BackgroundJobProcessor::DoExtraWork()
     {
         while (hasExtraWork)
@@ -714,6 +719,7 @@ namespace JsUtil
             Sleep(50);
         }        
     }
+#endif
 
     bool BackgroundJobProcessor::WaitWithThreadForThreadStartedOrClosingEvent(ParallelThreadData *parallelThreadData, const unsigned int milliseconds)
     {
@@ -1117,8 +1123,10 @@ namespace JsUtil
             }
             criticalSection.Leave();
 
+#if PDATA_ENABLED && defined(_WIN32)
             // flush the function tables in background thread after closed and before shutting down thread
             DelayDeletingFunctionTable::Clear();
+#endif
 
             EDGE_ETW_INTERNAL(EventWriteJSCRIPT_NATIVECODEGEN_STOP(this, 0));
         }
@@ -1420,6 +1428,7 @@ namespace JsUtil
 #endif
     }
 
+#if PDATA_ENABLED && defined(_WIN32)
     void BackgroundJobProcessor::StartExtraWork()
     {
         hasExtraWork = true;
@@ -1431,6 +1440,7 @@ namespace JsUtil
     {
         hasExtraWork = false;
     }
+#endif
 
 #if DBG_DUMP
     //Just for debugging purpose
