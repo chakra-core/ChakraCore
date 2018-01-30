@@ -2567,13 +2567,13 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::LeaveNull:
-            if (this->m_func->IsSimpleJit() || !this->m_func->DoOptimizeTry())
+            if (this->m_func->DoOptimizeTry() || (this->m_func->IsSimpleJit() && this->m_func->hasBailout))
             {
-                instrPrev = m_lowererMD.LowerLeaveNull(instr);
+                instr->Remove();
             }
             else
             {
-                instr->Remove();
+                instrPrev = m_lowererMD.LowerLeaveNull(instr);
             }
             break;
 
@@ -26380,8 +26380,7 @@ Lowerer::LowerTry(IR::Instr* instr, bool tryCatch)
     instr->InsertBefore(setInstr);
     LowererMD::Legalize(setInstr);
 
-    return m_lowererMD.LowerTry(instr, tryCatch ? IR::HelperOp_TryCatch : ((this->m_func->IsSimpleJit() && !this->m_func->hasBailout) || !this->m_func->DoOptimizeTry()) ?
-        IR::HelperOp_TryFinallySimpleJit : IR::HelperOp_TryFinally);
+    return m_lowererMD.LowerTry(instr, tryCatch ? IR::HelperOp_TryCatch : ((this->m_func->DoOptimizeTry() || (this->m_func->IsSimpleJit() && this->m_func->hasBailout))? IR::HelperOp_TryFinally : IR::HelperOp_TryFinallySimpleJit));
 }
 
 IR::Instr *

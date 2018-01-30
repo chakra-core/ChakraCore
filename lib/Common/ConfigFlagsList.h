@@ -328,6 +328,7 @@ PHASE(All)
 #endif
         PHASE(JITLoopBody)
         PHASE(JITLoopBodyInTryCatch)
+        PHASE(JITLoopBodyInTryFinally)
         PHASE(ReJIT)
         PHASE(ExecutionMode)
         PHASE(SimpleJitDynamicProfile)
