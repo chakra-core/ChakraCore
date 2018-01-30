@@ -12,13 +12,11 @@
 #include "Memory/arm64/XDataAllocator.h"
 #endif
 
+#if PDATA_ENABLED && defined(_WIN32)
 struct FunctionTableNode
 {
-#ifdef _WIN32
     SLIST_ENTRY itemEntry;
     FunctionTableHandle functionTable;
-
-#endif
 };
 
 struct DelayDeletingFunctionTable
@@ -34,3 +32,4 @@ struct DelayDeletingFunctionTable
     static bool IsEmpty();
     static void DeleteFunctionTable(void* functionTable);
 };
+#endif

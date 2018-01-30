@@ -323,10 +323,6 @@ void* InterpreterThunkEmitter::ConvertToEntryPoint(PVOID dynamicInterpreterThunk
 
 bool InterpreterThunkEmitter::NewThunkBlock()
 {
-    // flush the function tables before allocating any new  code
-    // to prevent old function table is referring to new code address
-    DelayDeletingFunctionTable::Clear();
-
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
     if (CONFIG_FLAG(ForceStaticInterpreterThunk))
     {
@@ -401,10 +397,6 @@ bool InterpreterThunkEmitter::NewThunkBlock()
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
 bool InterpreterThunkEmitter::NewOOPJITThunkBlock()
 {
-    // flush the function tables before allocating any new  code
-    // to prevent old function table is referring to new code address
-    DelayDeletingFunctionTable::Clear();
-
     PSCRIPTCONTEXT_HANDLE remoteScriptContext = this->scriptContext->GetRemoteScriptAddr();
     if (!JITManager::GetJITManager()->IsConnected())
     {

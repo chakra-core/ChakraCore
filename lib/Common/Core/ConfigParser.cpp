@@ -600,8 +600,7 @@ HRESULT ConfigParser::SetOutputFile(const WCHAR* outputFile, const WCHAR* openMo
         _wcsicmp(fileName, _u("ByteCodeGenerator")) == 0 ||
         _wcsicmp(fileName, _u("spartan")) == 0 ||
         _wcsicmp(fileName, _u("spartan_edge")) == 0 ||
-        _wcsicmp(fileName, _u("MicrosoftEdge")) == 0 ||
-        _wcsicmp(fileName, _u("MicrosoftEdgeCP")) == 0)
+        _wcsnicmp(fileName, _u("MicrosoftEdge"), wcslen(_u("MicrosoftEdge"))) == 0)
     {
 
         // we need to output to %temp% directory in wwa. we don't have permission otherwise.
