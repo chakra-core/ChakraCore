@@ -4917,13 +4917,13 @@ void ByteCodeGenerator::EmitPropLoadThis(Js::RegSlot lhsLocation, ParseNode *pno
     }
     else
     {
-    this->EmitPropLoad(lhsLocation, pnode->sxPid.sym, pnode->sxPid.pid, funcInfo, true);
+        this->EmitPropLoad(lhsLocation, pnode->sxPid.sym, pnode->sxPid.pid, funcInfo, true);
 
-    if ((!sym || sym->GetNeedDeclaration()) && chkUndecl)
-    {
-        this->Writer()->Reg1(Js::OpCode::ChkUndecl, lhsLocation);
+        if ((!sym || sym->GetNeedDeclaration()) && chkUndecl)
+        {
+            this->Writer()->Reg1(Js::OpCode::ChkUndecl, lhsLocation);
+        }
     }
-}
 }
 
 void ByteCodeGenerator::EmitPropStoreForSpecialSymbol(Js::RegSlot rhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo, bool init)
