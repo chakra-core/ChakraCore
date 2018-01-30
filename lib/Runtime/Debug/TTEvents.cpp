@@ -548,6 +548,40 @@ namespace TTD
         {
             ; //We don't track any extra data with this
         }
+
+        void TTDInnerLoopLogWriteEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
+        {
+            const TTDInnerLoopLogWriteEventLogEntry* ilevt = GetInlineEventDataAs<TTDInnerLoopLogWriteEventLogEntry, EventKind::TTDInnerLoopLogWriteTag>(evt);
+
+            writer->WriteLogTag(NSTokens::Key::sourceContextId, ilevt->SourceScriptLogId, NSTokens::Separator::CommaSeparator);
+            writer->WriteInt64(NSTokens::Key::eventTime, ilevt->EventTime, NSTokens::Separator::CommaSeparator);
+            writer->WriteInt64(NSTokens::Key::functionTime, ilevt->FunctionTime, NSTokens::Separator::CommaSeparator);
+            writer->WriteInt64(NSTokens::Key::loopTime, ilevt->LoopTime, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteUInt32(NSTokens::Key::functionBodyId, ilevt->TopLevelBodyId, NSTokens::Separator::CommaSeparator);
+            writer->WriteUInt32(NSTokens::Key::functionColumn, ilevt->FunctionLine, NSTokens::Separator::CommaSeparator);
+            writer->WriteUInt32(NSTokens::Key::functionLine, ilevt->FunctionColumn, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteUInt32(NSTokens::Key::line, ilevt->Line, NSTokens::Separator::CommaSeparator);
+            writer->WriteUInt32(NSTokens::Key::column, ilevt->Column, NSTokens::Separator::CommaSeparator);
+        }
+
+        void TTDInnerLoopLogWriteEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
+        {
+            TTDInnerLoopLogWriteEventLogEntry* ilevt = GetInlineEventDataAs<TTDInnerLoopLogWriteEventLogEntry, EventKind::TTDInnerLoopLogWriteTag>(evt);
+
+            ilevt->SourceScriptLogId = reader->ReadLogTag(NSTokens::Key::sourceContextId, true);
+            ilevt->EventTime = reader->ReadInt64(NSTokens::Key::eventTime, true);
+            ilevt->FunctionTime = reader->ReadInt64(NSTokens::Key::functionTime, true);
+            ilevt->LoopTime = reader->ReadInt64(NSTokens::Key::loopTime, true);
+
+            ilevt->TopLevelBodyId = reader->ReadUInt32(NSTokens::Key::functionBodyId, true);
+            ilevt->FunctionLine = reader->ReadUInt32(NSTokens::Key::functionColumn, true);
+            ilevt->FunctionColumn = reader->ReadUInt32(NSTokens::Key::functionLine, true);
+
+            ilevt->Line = reader->ReadUInt32(NSTokens::Key::line, true);
+            ilevt->Column = reader->ReadUInt32(NSTokens::Key::column, true);
+        }
     }
 }
 

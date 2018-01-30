@@ -163,7 +163,9 @@ namespace Js
         , TTDShouldPerformRecordOrReplayAction(false)
         , TTDShouldPerformRecordAction(false)
         , TTDShouldPerformReplayAction(false)
-        , TTDShouldPerformDebuggerAction(false)
+        , TTDShouldPerformRecordOrReplayDebuggerAction(false)
+        , TTDShouldPerformRecordDebuggerAction(false)
+        , TTDShouldPerformReplayDebuggerAction(false)
         , TTDShouldSuppressGetterInvocationForDebuggerEvaluation(false)
 #endif
 #ifdef REJIT_STATS

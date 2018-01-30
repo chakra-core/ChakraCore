@@ -2049,7 +2049,7 @@ void ThreadContext::InitHostFunctionsAndTTData(bool record, bool replay, bool de
     {
         TTDAssert(optTTUri == nullptr, "No URI is needed in record mode (the host explicitly provides it when writing.");
 
-        this->TTDLog->InitForTTDRecord();
+        this->TTDLog->InitForTTDRecord(debug);
     }
     else
     {
@@ -2064,7 +2064,15 @@ void ThreadContext::InitHostFunctionsAndTTData(bool record, bool replay, bool de
     {
 #endif
 
-        this->TTDExecutionInfo = HeapNew(TTD::ExecutionInfoManager);
+        TTD::TTInnerLoopLastStatementInfo lsi;
+        TTD::TTDebuggerSourceLocation dsl;
+        this->TTDLog->LoadLastSourceLineInfo(lsi, dsl);
+
+        this->TTDExecutionInfo = HeapNew(TTD::ExecutionInfoManager, lsi);
+        if(dsl.HasValue())
+        {
+            this->TTDExecutionInfo->SetPendingTTDToTarget(dsl);
+        }
 
 #if !ENABLE_TTD_DIAGNOSTICS_TRACING
     }

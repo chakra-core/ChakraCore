@@ -45,6 +45,8 @@ JsTTDPreExecuteSnapShotInterval
 JsTTDMoveToTopLevelEvent
 JsTTDReplayExecution
 
+JsTTDDiagWriteLog
+
 JsInitializeModuleRecord
 JsParseModuleSource
 JsModuleEvaluation

@@ -172,8 +172,10 @@ namespace TTD
         CurrentlyEnabled = 0x1,  //The TTD system is enabled and actively performing record/replay/debug
         RecordMode = 0x2,     //The system is being run in Record mode
         ReplayMode = 0x4,  //The system is being run in Replay mode
-        DebuggerMode = (ReplayMode | 0x8),  //The system is being run in with Debugger actions enabled
-        AnyMode = (RecordMode | ReplayMode | DebuggerMode),
+        DebuggerAttachedMode = 0x8, //The system is running with a debugger attached
+        RecordDebuggerMode = (RecordMode | DebuggerAttachedMode),
+        ReplayDebuggerMode = (ReplayMode | DebuggerAttachedMode),
+        AnyMode = (RecordMode | ReplayMode | RecordDebuggerMode | ReplayDebuggerMode),
 
         ExcludedExecutionTTAction = 0x20,  //Set when the system is executing code on behalf of the TTD system (so we don't want to record/replay things for it)
         ExcludedExecutionDebuggerAction = 0x40,  //Set when the system is executing code on behalf of the Debugger system (so we don't want to record/replay things for it)
