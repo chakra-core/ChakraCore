@@ -2893,9 +2893,28 @@ CHAKRA_API JsCreateNamedFunction(_In_ JsValueRef name, _In_ JsNativeFunction nat
     return JsCreateEnhancedFunctionHelper<true>(nativeFunction, name, callbackState, function);
 }
 
-void SetErrorMessage(Js::ScriptContext *scriptContext, JsValueRef newError, JsValueRef message)
+void SetErrorMessage(Js::ScriptContext *scriptContext, Js::JavascriptError *newError, JsValueRef message)
 {
-    Js::JavascriptOperators::OP_SetProperty(newError, Js::PropertyIds::message, message, scriptContext);
+    // ECMA262 #sec-error-message
+    if (!Js::JavascriptOperators::IsUndefined(message))
+    {
+        Js::JavascriptString *messageStr = nullptr;
+        if (Js::JavascriptString::Is(message))
+        {
+            messageStr = Js::JavascriptString::FromVar(message);
+        }
+        else
+        {
+            messageStr = Js::JavascriptConversion::ToString(message, scriptContext);
+        }
+
+        Js::PropertyDescriptor desc;
+        desc.SetValue(messageStr);
+        desc.SetWritable(true);
+        desc.SetEnumerable(false);
+        desc.SetConfigurable(true);
+        Js::JavascriptOperators::SetPropertyDescriptor(newError, Js::PropertyIds::message, desc);
+    }
 }
 
 CHAKRA_API JsCreateError(_In_ JsValueRef message, _Out_ JsValueRef *error)
@@ -2907,7 +2926,7 @@ CHAKRA_API JsCreateError(_In_ JsValueRef message, _Out_ JsValueRef *error)
         PARAM_NOT_NULL(error);
         *error = nullptr;
 
-        JsValueRef newError = scriptContext->GetLibrary()->CreateError();
+        Js::JavascriptError *newError = scriptContext->GetLibrary()->CreateError();
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
 
@@ -2926,7 +2945,7 @@ CHAKRA_API JsCreateRangeError(_In_ JsValueRef message, _Out_ JsValueRef *error)
         PARAM_NOT_NULL(error);
         *error = nullptr;
 
-        JsValueRef newError = scriptContext->GetLibrary()->CreateRangeError();
+        Js::JavascriptError *newError = scriptContext->GetLibrary()->CreateRangeError();
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
 
@@ -2945,7 +2964,7 @@ CHAKRA_API JsCreateReferenceError(_In_ JsValueRef message, _Out_ JsValueRef *err
         PARAM_NOT_NULL(error);
         *error = nullptr;
 
-        JsValueRef newError = scriptContext->GetLibrary()->CreateReferenceError();
+        Js::JavascriptError *newError = scriptContext->GetLibrary()->CreateReferenceError();
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
 
@@ -2964,7 +2983,7 @@ CHAKRA_API JsCreateSyntaxError(_In_ JsValueRef message, _Out_ JsValueRef *error)
         PARAM_NOT_NULL(error);
         *error = nullptr;
 
-        JsValueRef newError = scriptContext->GetLibrary()->CreateSyntaxError();
+        Js::JavascriptError *newError = scriptContext->GetLibrary()->CreateSyntaxError();
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
 
@@ -2983,7 +3002,7 @@ CHAKRA_API JsCreateTypeError(_In_ JsValueRef message, _Out_ JsValueRef *error)
         PARAM_NOT_NULL(error);
         *error = nullptr;
 
-        JsValueRef newError = scriptContext->GetLibrary()->CreateTypeError();
+        Js::JavascriptError *newError = scriptContext->GetLibrary()->CreateTypeError();
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
 
@@ -3002,7 +3021,7 @@ CHAKRA_API JsCreateURIError(_In_ JsValueRef message, _Out_ JsValueRef *error)
         PARAM_NOT_NULL(error);
         *error = nullptr;
 
-        JsValueRef newError = scriptContext->GetLibrary()->CreateURIError();
+        Js::JavascriptError *newError = scriptContext->GetLibrary()->CreateURIError();
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
 
