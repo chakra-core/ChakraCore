@@ -41,6 +41,13 @@ assert(isNaN(Date.UTC(2017, undefined)), "expected: Date.UTC(2017, undefined) is
 assert(Date.UTC(2017) === Date.UTC(2017, 0), "expected: Date.UTC(2017) === Date.UTC(2017, 0)");
 assert(Date.UTC(2017, 0) === Date.UTC(2017, 0, 1), "expected: Date.UTC(2017, 0) === Date.UTC(2017, 0, 1)");
 
+// Date.UTC should return NaN if the time value is larger than 8.64*10^15:
+assert(isNaN(Date.UTC(2001, 1, 5e+9)), "expected: Date.UTC(2001, 1, 5e+9) is NaN");
+assert(isNaN(Date.UTC(2001, 1e+7, 5)), "expected: Date.UTC(2001, 1e+7, 5) is NaN");
+assert(isNaN(Date.UTC(2001000, 1, 5)), "expected: Date.UTC(2001000, 1, 5) is NaN");
+assert(isNaN(Date.UTC(2001, 1, Number.MAX_VALUE)), "expected: Date.UTC(2001, 1, Number.MAX_VALUE) is NaN");
+assert(isNaN(Date.UTC(2001, 1, Number.MAX_VALUE / 2e+9)), "expected: Date.UTC(2001, 1, Number.MAX_VALUE/2e+9) is NaN");
+
 try {
     Date.UTC({ valueOf: function() { throw "hey!" } });
     console.log("FAIL: expected: throws");
