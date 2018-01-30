@@ -16,21 +16,21 @@ var tests = [
          
         r1.test(s1);
         
-        assert.areEqual("abc", RegExp.input, "RegExp.input property caclculated correctly");
-        assert.areEqual("abc", RegExp['$_'], "RegExp.$_ property caclculated correctly");
-        assert.areEqual("abc", RegExp.lastMatch, "RegExp.lastMatch property caclculated correctly");
-        assert.areEqual("abc", RegExp['$&'], "RegExp.$& property caclculated correctly");
-        assert.areEqual("abc", RegExp.$1, "RegExp.$1 property caclculated correctly");
-        assert.areEqual(0, RegExp.index, "RegExp.index property caclculated correctly");
+        assert.areEqual("abc", RegExp.input, "RegExp.input property calculated correctly");
+        assert.areEqual("abc", RegExp['$_'], "RegExp.$_ property calculated correctly");
+        assert.areEqual("abc", RegExp.lastMatch, "RegExp.lastMatch property calculated correctly");
+        assert.areEqual("abc", RegExp['$&'], "RegExp.$& property calculated correctly");
+        assert.areEqual("abc", RegExp.$1, "RegExp.$1 property calculated correctly");
+        assert.areEqual(0, RegExp.index, "RegExp.index property calculated correctly");
         
         r2.test(s2);
         
-        assert.areEqual(" def", RegExp.input, "RegExp.input property caclculated correctly");
-        assert.areEqual(" def", RegExp['$_'], "RegExp.$_ property caclculated correctly");
-        assert.areEqual("def", RegExp.lastMatch, "RegExp.lastMatch property caclculated correctly");
-        assert.areEqual("def", RegExp['$&'], "RegExp.$& property caclculated correctly");
-        assert.areEqual("def", RegExp.$1, "RegExp.$1 property caclculated correctly");
-        assert.areEqual(1, RegExp.index, "RegExp.index property caclculated correctly");
+        assert.areEqual(" def", RegExp.input, "RegExp.input property calculated correctly");
+        assert.areEqual(" def", RegExp['$_'], "RegExp.$_ property calculated correctly");
+        assert.areEqual("def", RegExp.lastMatch, "RegExp.lastMatch property calculated correctly");
+        assert.areEqual("def", RegExp['$&'], "RegExp.$& property calculated correctly");
+        assert.areEqual("def", RegExp.$1, "RegExp.$1 property calculated correctly");
+        assert.areEqual(1, RegExp.index, "RegExp.index property calculated correctly");
         
         r1.test(s1);
 

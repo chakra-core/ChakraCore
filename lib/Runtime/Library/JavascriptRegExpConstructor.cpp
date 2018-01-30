@@ -128,6 +128,11 @@ namespace Js
                 captures[groupId] = emptyString;
             reset = false;
         }
+        else
+        {
+            // If we are not resetting the values, the last match cannot be invalidated.
+            Assert(!invalidatedLastMatch);
+        }
     }
 
     /*static*/
