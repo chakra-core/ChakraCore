@@ -55,7 +55,10 @@ template <typename TAlloc, typename TPreReservedAlloc, class SyncObject>
 void
 EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::FreeAllocations(bool release)
 {
+#if PDATA_ENABLED && defined(_WIN32)
     DelayDeletingFunctionTable::Clear();
+#endif
+
     AutoRealOrFakeCriticalSection<SyncObject> autoCs(&this->criticalSection);
 
 #if DBG_DUMP
@@ -194,6 +197,10 @@ template <typename TAlloc, typename TPreReservedAlloc, class SyncObject>
 bool
 EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::FreeAllocation(void* address)
 {
+#if PDATA_ENABLED && defined(_WIN32)
+    DelayDeletingFunctionTable::Clear();
+#endif
+
     AutoRealOrFakeCriticalSection<SyncObject> autoCs(&this->criticalSection);
 
 #if _M_ARM
