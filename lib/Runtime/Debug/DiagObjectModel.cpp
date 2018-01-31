@@ -2141,7 +2141,7 @@ namespace Js
                     auto funcPtr = [&]()
                     {
                         IGNORE_STACKWALK_EXCEPTION(scriptContext);
-                        if (object->CanHaveInterceptors())
+                        if (object->IsExternal())
                         {
                             Js::ForInObjectEnumerator enumerator(object, object->GetScriptContext(), /* enumSymbols */ true);
                             Js::PropertyId propertyId;
@@ -2461,7 +2461,7 @@ namespace Js
 
                 if (JavascriptOperators::IsObject(object))
                 {
-                    if (object->CanHaveInterceptors() || JavascriptOperators::GetTypeId(object) == TypeIds_Proxy)
+                    if (object->IsExternal() || JavascriptOperators::GetTypeId(object) == TypeIds_Proxy)
                     {
                         try
                         {

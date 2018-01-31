@@ -15,7 +15,7 @@ namespace TTD
     {
         void ExtractCompoundObject(NSSnapObjects::SnapObject* sobj, Js::RecyclableObject* obj, bool isWellKnown, const TTDIdentifierDictionary<TTD_PTR_ID, NSSnapType::SnapType*>& idToTypeMap, SlabAllocator& alloc)
         {
-            TTDAssert(!obj->CanHaveInterceptors(), "We are not prepared for custom external objects yet");
+            TTDAssert(!obj->IsExternal(), "We are not prepared for custom external objects yet");
 
             sobj->ObjectPtrId = TTD_CONVERT_VAR_TO_PTR_ID(obj);
             sobj->SnapObjectTag = obj->GetSnapTag_TTD();

@@ -1045,7 +1045,7 @@ CommonNumber:
 #endif
         }
 
-        if (RecyclableObject::FromVar(aLeft)->CanHaveInterceptors())
+        if (RecyclableObject::FromVar(aLeft)->IsExternal())
         {
             BOOL result;
             if (RecyclableObject::FromVar(aLeft)->StrictEquals(aRight, &result, requestContext))
@@ -1057,7 +1057,7 @@ CommonNumber:
             }
         }
 
-        if (!TaggedNumber::Is(aRight) && RecyclableObject::FromVar(aRight)->CanHaveInterceptors())
+        if (!TaggedNumber::Is(aRight) && RecyclableObject::FromVar(aRight)->IsExternal())
         {
             BOOL result;
             if (RecyclableObject::FromVar(aRight)->StrictEquals(aLeft, &result, requestContext))
@@ -2356,7 +2356,7 @@ CommonNumber:
             // in 9.1.9, step 5, we should return false if receiver is not object, and that will happen in default RecyclableObject operation anyhow.
             if (receiverObject->SetProperty(propertyKey, newValue, propertyOperationFlags, info))
             {
-                if (!JavascriptProxy::Is(receiver) && info->GetPropertyString() && info->GetFlags() != InlineCacheSetterFlag && !object->CanHaveInterceptors())
+                if (!JavascriptProxy::Is(receiver) && info->GetPropertyString() && info->GetFlags() != InlineCacheSetterFlag && !object->IsExternal())
                 {
                     CacheOperators::CachePropertyWrite(RecyclableObject::FromVar(receiver), false, typeWithoutProperty, info->GetPropertyString()->GetPropertyId(), info, requestContext);
 
@@ -8276,7 +8276,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                         // It is valid for some objects to not-support getters and setters, specifically, for projection of an ABI method
                         // (CustomExternalObject => MapWithStringKey) which SetAccessors returns VBSErr_ActionNotSupported.
                         // But for non-external objects SetAccessors should succeed.
-                        Assert(isSetAccessorsSuccess || obj->CanHaveInterceptors());
+                        Assert(isSetAccessorsSuccess || obj->IsExternal());
 
                         // If SetAccessors failed, the property wasn't created, so no need to change the attributes.
                         if (isSetAccessorsSuccess)
@@ -8354,7 +8354,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                         // It is valid for some objects to not-support getters and setters, specifically, for projection of an ABI method
                         // (CustomExternalObject => MapWithStringKey) which SetAccessors returns VBSErr_ActionNotSupported.
                         // But for non-external objects SetAccessors should succeed.
-                        Assert(isSetAccessorsSuccess || obj->CanHaveInterceptors());
+                        Assert(isSetAccessorsSuccess || obj->IsExternal());
 
                         if (isSetAccessorsSuccess)
                         {
