@@ -125,7 +125,7 @@ void XDataAllocator::Register(XDataAllocation * xdataInfo, ULONG_PTR functionSta
     xdataInfo->pdata.BeginAddress = (DWORD)(functionStart - baseAddress);
     xdataInfo->pdata.UnwindData = (DWORD)((intptr_t)xdataInfo->address - baseAddress);
 
-    DWORD status = NtdllLibrary::Instance->AddGrowableFunctionTable(&xdataInfo->functionTable,
+    NTSTATUS status = NtdllLibrary::Instance->AddGrowableFunctionTable(&xdataInfo->functionTable,
         &xdataInfo->pdata,
         /*MaxEntryCount*/ 1,
         /*Valid entry count*/ 1,
