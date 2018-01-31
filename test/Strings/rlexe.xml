@@ -106,7 +106,6 @@
     <default>
       <files>compare.js</files>
       <baseline>compare.baseline</baseline>
-      <compile-flags>-Intl-</compile-flags>
     </default>
   </test>
   <test>
