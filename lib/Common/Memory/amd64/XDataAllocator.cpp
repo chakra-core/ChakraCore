@@ -134,7 +134,7 @@ void XDataAllocator::Register(XDataAllocation * xdataInfo, ULONG_PTR functionSta
         Assert(runtimeFunction == NULL);
 #endif
 
-        DWORD status = NtdllLibrary::Instance->AddGrowableFunctionTable(&xdataInfo->functionTable,
+        NTSTATUS status = NtdllLibrary::Instance->AddGrowableFunctionTable(&xdataInfo->functionTable,
             &xdataInfo->pdata,
             /*MaxEntryCount*/ 1,
             /*Valid entry count*/ 1,

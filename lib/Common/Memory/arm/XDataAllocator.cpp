@@ -81,7 +81,7 @@ void XDataAllocator::Register(XDataAllocation * xdataInfo, DWORD functionStart, 
 
     // Since we do not expect many thunk functions to be created, we are using 1 table/function
     // for now. This can be optimized further if needed.
-    DWORD status = NtdllLibrary::Instance->AddGrowableFunctionTable(&xdataInfo->functionTable,
+    NTSTATUS status = NtdllLibrary::Instance->AddGrowableFunctionTable(&xdataInfo->functionTable,
         pdataArray,
         /*MaxEntryCount*/ xdataInfo->pdataCount,
         /*Valid entry count*/ xdataInfo->pdataCount,
