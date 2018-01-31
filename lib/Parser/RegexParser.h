@@ -81,14 +81,11 @@ namespace UnifiedRegex
         // considered a capturing group.  Using INT16_MAX allows us to pass one value for each
         // group, plus a few additional values, to a JavaScript function without overflowing the
         // number of arguments.  This is important, for example, in the implementation of
-        // String.prototype.replace, where the second argument is a function.
-        //
-        // This should really be an unsigned, but we compare it against numGroups, so make it
-        // an int for now to avoid a bunch of compiler warnings until we can go back and clean this up.
-        static const int MAX_NUM_GROUPS = INT16_MAX;
+        // String.prototype.replace where the second argument is a function.
+        static const uint16 MAX_NUM_GROUPS = INT16_MAX;
 
-        int numGroups; // determined in first parse
-        int nextGroupId;
+        uint16 numGroups; // determined in first parse
+        uint16 nextGroupId;
         // Buffer accumulating all literals.
         // In compile-time allocator, must be transferred to runtime allocator when build program
         Char* litbuf;

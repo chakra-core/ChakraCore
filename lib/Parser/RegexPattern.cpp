@@ -72,7 +72,7 @@ namespace UnifiedRegex
         return rep.unified.program->flags;
     }
 
-    int RegexPattern::NumGroups() const
+    uint16 RegexPattern::NumGroups() const
     {
         return rep.unified.program->numGroups;
     }
