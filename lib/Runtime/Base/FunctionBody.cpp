@@ -8867,7 +8867,7 @@ namespace Js
                 }
 #endif
                 XDataAllocator::Unregister(this->xdataInfo);
-#if defined(_M_ARM32_OR_ARM64)
+#if defined(_M_ARM)
                 if (JITManager::GetJITManager()->IsOOPJITEnabled())
 #endif
                 {
