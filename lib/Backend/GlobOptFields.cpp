@@ -468,6 +468,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     {
     case Js::OpCode::StElemI_A:
     case Js::OpCode::StElemI_A_Strict:
+    case Js::OpCode::InitComputedProperty:
         Assert(dstOpnd != nullptr);
         KillLiveFields(this->lengthEquivBv, bv);
         KillLiveElems(dstOpnd->AsIndirOpnd(), bv, inGlobOpt, instr->m_func);
@@ -504,7 +505,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
             this->KillAllObjectTypes(bv);
         }
         break;
-
+    case Js::OpCode::InitFld:
     case Js::OpCode::StFld:
     case Js::OpCode::StRootFld:
     case Js::OpCode::StFldStrict:
