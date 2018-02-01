@@ -105,7 +105,6 @@
   <test>
     <default>
       <files>compare.js</files>
-      <baseline>compare.baseline</baseline>
     </default>
   </test>
   <test>
