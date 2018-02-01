@@ -2481,8 +2481,11 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         CurrentBlockData()->KillStateForGeneratorYield();
     }
 
-    // Change LdFld on arrays, strings, and 'arguments' to LdLen when we're accessing the .length field
-    this->TryReplaceLdLen(instr);
+    if (!IsLoopPrePass())
+    {
+        // Change LdFld on arrays, strings, and 'arguments' to LdLen when we're accessing the .length field
+        this->TryReplaceLdLen(instr);
+    }
 
     // Consider: Do we ever get post-op bailout here, and if so is the FillBailOutInfo call in the right place?
     if (instr->HasBailOutInfo() && !this->IsLoopPrePass())
