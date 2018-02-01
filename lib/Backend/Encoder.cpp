@@ -77,6 +77,7 @@ Encoder::Encode()
     m_inlineeFrameMap = Anew(m_tempAlloc, InlineeFrameMap, m_tempAlloc);
     m_bailoutRecordMap = Anew(m_tempAlloc, BailoutRecordMap, m_tempAlloc);
 
+    IR::PragmaInstr* prevPragmaInstr = nullptr;
     IR::PragmaInstr* pragmaInstr = nullptr;
     uint32 pragmaOffsetInBuffer = 0;
 
@@ -126,6 +127,12 @@ Encoder::Encode()
 #endif
                 case Js::OpCode::StatementBoundary:
                     pragmaOffsetInBuffer = GetCurrentOffset();
+
+                    if (pragmaInstr != nullptr && pragmaInstr->m_offsetInBuffer != pragmaOffsetInBuffer)
+                    {
+                        prevPragmaInstr = pragmaInstr;
+                    }
+
                     pragmaInstr = instr->AsPragmaInstr();
                     pragmaInstr->m_offsetInBuffer = pragmaOffsetInBuffer;
 
@@ -179,6 +186,11 @@ Encoder::Encode()
                 if (pragmaInstr && (instr->isInlineeEntryInstr || isCallInstr))
                 {
                     // will record throw map after BR shortening with adjusted offsets
+                    if (prevPragmaInstr != nullptr)
+                    {
+                        m_pragmaInstrToRecordMap->Add(prevPragmaInstr);
+                        prevPragmaInstr = nullptr;
+                    }
                     m_pragmaInstrToRecordMap->Add(pragmaInstr);
                     pragmaInstr = nullptr; // Only once per pragma instr -- do we need to make this record?
                 }
@@ -201,6 +213,11 @@ Encoder::Encode()
                     Assert(!instr->isInlineeEntryInstr);
                     if (pragmaInstr)
                     {
+                        if (prevPragmaInstr != nullptr)
+                        {
+                            m_pragmaInstrToRecordMap->Add(prevPragmaInstr);
+                            prevPragmaInstr = nullptr;
+                        }
                         m_pragmaInstrToRecordMap->Add(pragmaInstr);
                         pragmaInstr = nullptr;
                     }

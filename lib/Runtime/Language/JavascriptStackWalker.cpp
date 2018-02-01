@@ -456,7 +456,7 @@ namespace Js
         }
 
         if (inlineeOffset != 0 &&
-            parentFunction->GetFunctionBody()->GetMatchingStatementMapFromNativeOffset(pCodeAddr, inlineeOffset, data, loopNum, *inlinee))
+            parentFunction->GetFunctionBody()->GetMatchingStatementMapFromNativeOffset(pCodeAddr, inlineeOffset - 1, data, loopNum, *inlinee))
         {
             offset = data.bytecodeBegin;
             return true;
