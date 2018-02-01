@@ -11,7 +11,7 @@
         },
         "someOtherProp": "string before",
         "[Promise]": {
-          "[status]": "string resolved",
+          "[status]": "string pending",
           "[value]": "string undefined"
         }
       }
