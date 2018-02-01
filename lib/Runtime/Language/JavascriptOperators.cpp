@@ -7087,11 +7087,6 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                     ctorProtoObj->EnsureProperty(Js::PropertyIds::constructor);
                     ctorProtoObj->SetEnumerable(Js::PropertyIds::constructor, FALSE);
 
-                    if (ScriptFunctionBase::Is(constructor))
-                    {
-                        ScriptFunctionBase::FromVar(constructor)->GetFunctionInfo()->SetBaseConstructorKind();
-                    }
-
                     break;
                 }
 
