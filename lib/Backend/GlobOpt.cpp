@@ -3662,7 +3662,6 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
 
     ValueInfo *valueInfo = val->GetValueInfo();
 
-
     if (this->func->HasFinally())
     {
         // s0 = undefined was added on functions with early exit in try-finally functions, that can get copy-proped and case incorrect results
@@ -4847,6 +4846,8 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
     case Js::OpCode::StRootFld:
     case Js::OpCode::StFldStrict:
     case Js::OpCode::StRootFldStrict:
+    case Js::OpCode::InitFld:
+    case Js::OpCode::InitComputedProperty:
         if (DoFieldCopyProp())
         {
             if (src1Val == nullptr)
