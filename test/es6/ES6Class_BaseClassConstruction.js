@@ -108,16 +108,13 @@ var tests = [
         }
     },
     {
-        name: "Class that extends null binds this in constructor",
+        name: "Class that extends null doesn't bind 'this' implicitly",
         body: function () {
-            var thisVal;
             class B extends null {
-                constructor() {  thisVal = this;  }
+                constructor() { }
             }
 
-            var b = new B();
-            assert.areEqual(true, b instanceof B);
-            assert.areEqual(thisVal, b);
+            assert.throws(() => new B(), ReferenceError, "implicit return of 'this' throws", "Use before declaration");
         }
     },
     {
@@ -140,18 +137,6 @@ var tests = [
         }
     },
     {
-        name: "Class that extends null with implicit return in constructor",
-        body: function () {
-            class A extends null {
-                constructor() {}
-            }
-
-            var a;
-            assert.doesNotThrow(()=>{a = new A()});
-            assert.areEqual(A.prototype, Object.getPrototypeOf(a));
-        }
-    },
-    {
         name: "Class that extends null with explicit return in constructor",
         body: function () {
             class A extends null {
@@ -161,6 +146,31 @@ var tests = [
             var a;
             assert.doesNotThrow(()=>{a = new A()});
             assert.areEqual(Object.prototype, Object.getPrototypeOf(a));
+        }
+    },
+    {
+        name: "Class that extends null with super references",
+        body: function () {
+            class A extends null {
+                constructor() { super['prop'] = 'something'; return {}; }
+            }
+            assert.throws(() => new A(), ReferenceError, "super reference loads 'this' and throws if it's undecl ", "Use before declaration");
+            
+            var prop = 'prop';
+            class B extends null {
+                constructor() { super[prop] = 'something'; return {}; }
+            }
+            assert.throws(() => new B(), ReferenceError, "super reference loads 'this' and throws if it's undecl ", "Use before declaration");
+            
+            class C extends null {
+                constructor() { super['prop']; return {}; }
+            }
+            assert.throws(() => new C(), ReferenceError, "super reference loads 'this' and throws if it's undecl ", "Use before declaration");
+            
+            class D extends null {
+                constructor() { super[prop]; return {}; }
+            }
+            assert.throws(() => new D(), ReferenceError, "super reference loads 'this' and throws if it's undecl ", "Use before declaration");
         }
     },
 ];

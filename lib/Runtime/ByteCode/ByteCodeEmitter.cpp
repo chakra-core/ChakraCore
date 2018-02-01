@@ -2134,31 +2134,20 @@ void ByteCodeGenerator::LoadThisObject(FuncInfo *funcInfo, bool thisLoadedFromPa
 
     if (this->scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled() && funcInfo->IsClassConstructor())
     {
-        // Derived class constructors initialize 'this' to be Undecl except "extends null" cases
+        // Derived class constructors initialize 'this' to be Undecl
         //   - we'll check this value during a super call and during 'this' access
         //
-        // Base class constructors or "extends null" cases initialize 'this' to a new object using new.target
+        // Base class constructors initialize 'this' to a new object using new.target
         if (funcInfo->IsBaseClassConstructor())
         {
-            EmitBaseClassConstructorThisObject(funcInfo);
+            Symbol* newTargetSym = funcInfo->GetNewTargetSymbol();
+            Assert(newTargetSym);
+
+            this->Writer()->Reg2(Js::OpCode::NewScObjectNoCtorFull, thisSym->GetLocation(), newTargetSym->GetLocation());
         }
         else
         {
-            Js::ByteCodeLabel thisLabel = this->Writer()->DefineLabel();
-            Js::ByteCodeLabel skipLabel = this->Writer()->DefineLabel();
-
-            Js::RegSlot tmpReg = funcInfo->AcquireTmpRegister();
-            this->Writer()->Reg1(Js::OpCode::LdFuncObj, tmpReg);
-            this->Writer()->BrReg1(Js::OpCode::BrOnBaseConstructorKind, thisLabel, tmpReg);  // branch when [[ConstructorKind]]=="base"
-            funcInfo->ReleaseTmpRegister(tmpReg);
-
-            this->m_writer.Reg1(Js::OpCode::InitUndecl, thisSym->GetLocation());  // not "extends null" case
-            this->Writer()->Br(Js::OpCode::Br, skipLabel);
-
-            this->Writer()->MarkLabel(thisLabel);
-            EmitBaseClassConstructorThisObject(funcInfo);  // "extends null" case
-
-            this->Writer()->MarkLabel(skipLabel);
+            this->m_writer.Reg1(Js::OpCode::InitUndecl, thisSym->GetLocation());
         }
     }
     else if (!funcInfo->IsGlobalFunction())
@@ -2207,11 +2196,11 @@ void ByteCodeGenerator::LoadSuperConstructorObject(FuncInfo *funcInfo)
 {
     Symbol* superConstructorSym = funcInfo->GetSuperConstructorSymbol();
     Assert(superConstructorSym);
-        Assert(!funcInfo->IsLambda());
+    Assert(!funcInfo->IsLambda());
     Assert(funcInfo->IsDerivedClassConstructor());
 
-        m_writer.Reg1(Js::OpCode::LdFuncObj, superConstructorSym->GetLocation());
-    }
+    m_writer.Reg1(Js::OpCode::LdFuncObj, superConstructorSym->GetLocation());
+}
 
 void ByteCodeGenerator::LoadSuperObject(FuncInfo *funcInfo)
 {
@@ -2336,11 +2325,6 @@ void ByteCodeGenerator::EmitClassConstructorEndCode(FuncInfo *funcInfo)
         EmitPropLoad(ByteCodeGenerator::ReturnRegister, thisSym, thisSym->GetPid(), funcInfo, true);
         this->m_writer.Reg1(Js::OpCode::ChkUndecl, ByteCodeGenerator::ReturnRegister);
     }
-}
-
-void ByteCodeGenerator::EmitBaseClassConstructorThisObject(FuncInfo *funcInfo)
-{
-    this->Writer()->Reg2(Js::OpCode::NewScObjectNoCtorFull, funcInfo->GetThisSymbol()->GetLocation(), funcInfo->GetNewTargetSymbol()->GetLocation());
 }
 
 void ByteCodeGenerator::EmitThis(FuncInfo *funcInfo, Js::RegSlot lhsLocation, Js::RegSlot fromRegister)
@@ -4916,13 +4900,13 @@ void ByteCodeGenerator::EmitPropLoadThis(Js::RegSlot lhsLocation, ParseNode *pno
     }
     else
     {
-    this->EmitPropLoad(lhsLocation, pnode->sxPid.sym, pnode->sxPid.pid, funcInfo, true);
+        this->EmitPropLoad(lhsLocation, pnode->sxPid.sym, pnode->sxPid.pid, funcInfo, true);
 
-    if ((!sym || sym->GetNeedDeclaration()) && chkUndecl)
-    {
-        this->Writer()->Reg1(Js::OpCode::ChkUndecl, lhsLocation);
+        if ((!sym || sym->GetNeedDeclaration()) && chkUndecl)
+        {
+            this->Writer()->Reg1(Js::OpCode::ChkUndecl, lhsLocation);
+        }
     }
-}
 }
 
 void ByteCodeGenerator::EmitPropStoreForSpecialSymbol(Js::RegSlot rhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo, bool init)
@@ -6804,6 +6788,11 @@ void EmitAssignment(
 
         if (ByteCodeGenerator::IsSuper(lhs->sxBin.pnode1))
         {
+            // We need to emit the 'this' node for the super reference even if we aren't planning to use the 'this' value.
+            // This is because we might be in a derived class constructor where we haven't yet called super() to bind the 'this' value.
+            // See ecma262 abstract operation 'MakeSuperPropertyReference'
+            Emit(lhs->sxSuperReference.pnodeThis, byteCodeGenerator, funcInfo, false);
+            funcInfo->ReleaseLoc(lhs->sxSuperReference.pnodeThis);
             targetLocation = byteCodeGenerator->EmitLdObjProto(Js::OpCode::LdHomeObjProto, targetLocation, funcInfo);
         }
 
