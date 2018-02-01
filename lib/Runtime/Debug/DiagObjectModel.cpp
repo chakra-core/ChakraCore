@@ -3896,6 +3896,7 @@ namespace Js
                 break;
             case JavascriptPromise::PromiseStatusCode_Unresolved:
                 pResolvedObject->obj = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("pending"));
+                break;
             case JavascriptPromise::PromiseStatusCode_HasResolution:
                 pResolvedObject->obj = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("resolved"));
                 break;
