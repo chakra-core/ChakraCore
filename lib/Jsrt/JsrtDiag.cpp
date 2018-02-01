@@ -473,7 +473,7 @@ CHAKRA_API JsDiagSetStepType(
         }
         else if (stepType == JsDiagStepTypeStepOut)
         {
-            jsrtDebugManager->SetResumeType(BREAKRESUMEACTION_STEP_OUT);
+           jsrtDebugManager->SetResumeType(BREAKRESUMEACTION_STEP_OUT);
         }
         else if (stepType == JsDiagStepTypeStepOver)
         {
@@ -530,6 +530,28 @@ CHAKRA_API JsDiagSetStepType(
     });
 #endif
 }
+
+
+#if ENABLE_TTD
+CHAKRA_API JsTTDDiagWriteTTDLog(_In_reads_(uriLength) const char* uri, _In_ size_t uriLength)
+{
+    return ContextAPIWrapper_NoRecord<true>([&](Js::ScriptContext * scriptContext) -> JsErrorCode {
+
+        JsrtContext *currentContext = JsrtContext::GetCurrent();
+        JsrtRuntime* runtime = currentContext->GetRuntime();
+
+        VALIDATE_RUNTIME_IS_AT_BREAK(runtime);
+
+        JsrtDebugManager* jsrtDebugManager = runtime->GetJsrtDebugManager();
+
+        TTD::TTDebuggerSourceLocation cloc;
+        jsrtDebugManager->GetThreadContext()->TTDExecutionInfo->GetTimeAndPositionForDebugger(cloc);
+        jsrtDebugManager->GetThreadContext()->TTDLog->InnerLoopEmitLog(cloc, uri, uriLength);
+
+        return JsNoError;
+    });
+}
+#endif
 
 CHAKRA_API JsDiagGetFunctionPosition(
     _In_ JsValueRef function,

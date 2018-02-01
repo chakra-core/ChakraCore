@@ -710,6 +710,7 @@ typedef unsigned __int32 uint32_t;
     ///     Creates a new runtime in Record Mode.
     /// </summary>
     /// <param name="attributes">The attributes of the runtime to be created.</param>
+    /// <param name="enableDebugging">A flag to enable debugging during record.</param>
     /// <param name="snapInterval">The interval to wait between snapshots (measured in millis).</param>
     /// <param name="snapHistoryLength">The amount of history to maintain before discarding -- measured in number of snapshots and controls how far back in time a trace can be reversed.</param>
     /// <param name="openResourceStream">The <c>TTDOpenResourceStreamCallback</c> function for generating a JsTTDStreamHandle to read/write serialized data.</param>
@@ -726,6 +727,7 @@ typedef unsigned __int32 uint32_t;
     CHAKRA_API
         JsTTDCreateRecordRuntime(
             _In_ JsRuntimeAttributes attributes,
+            _In_ bool enableDebugging,
             _In_ size_t snapInterval,
             _In_ size_t snapHistoryLength,
             _In_ TTDOpenResourceStreamCallback openResourceStream,
@@ -1011,5 +1013,17 @@ typedef unsigned __int32 uint32_t;
         JsTTDReplayExecution(
             _Inout_ JsTTDMoveMode* moveMode,
             _Out_ int64_t* rootEventTime);
+
+    /// <summary>
+    ///     TTD API -- may change in future versions:
+    ///     A way for the debugger to programatically write a trace when it is at a breakpoint.
+    /// </summary>
+    /// <param name="msg">The message to print if we should be catching this as a TTD operation.</param>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
+    CHAKRA_API
+        JsTTDDiagWriteTTDLog(
+            _In_reads_(uriLength) const char* uri,
+            _In_ size_t uriLength
+        );
 
 #endif // _CHAKRADEBUG_H_
