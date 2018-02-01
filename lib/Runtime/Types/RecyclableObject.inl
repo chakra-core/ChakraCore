@@ -56,6 +56,12 @@ namespace Js
         return this->GetLibrary()->GetScriptContext();
     }
 
+    inline BOOL RecyclableObject::IsExternal() const
+    {
+        Assert(this->IsExternalVirtual() == this->GetType()->IsExternal());
+        return this->GetType()->IsExternal();
+    }
+
     inline BOOL RecyclableObject::HasItem(uint32 index)
     {
         return JavascriptConversion::PropertyQueryFlagsToBoolean(HasItemQuery(index));

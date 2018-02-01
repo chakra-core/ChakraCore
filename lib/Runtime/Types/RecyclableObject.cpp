@@ -228,12 +228,6 @@ namespace Js
         return NULL;
     }
 
-    BOOL RecyclableObject::IsExternal() const
-    {
-        Assert(this->IsExternalVirtual() == this->GetType()->IsExternal());
-        return this->GetType()->IsExternal();
-    }
-
     BOOL RecyclableObject::SkipsPrototype() const
     {
         Assert(this->DbgSkipsPrototype() == this->GetType()->SkipsPrototype());
