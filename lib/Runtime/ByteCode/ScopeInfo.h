@@ -45,6 +45,8 @@ namespace Js {
         Field(BYTE) isCached : 1;              // indicates that local vars and functions are cached across invocations
         Field(BYTE) areNamesCached : 1;
         Field(BYTE) hasLocalInClosure : 1;
+        Field(BYTE) isGeneratorFunctionBody : 1;
+        Field(BYTE) isAsyncFunctionBody : 1;
 
         FieldNoBarrier(Scope *) scope;
         Field(::ScopeType) scopeType;
@@ -54,7 +56,7 @@ namespace Js {
 
     private:
         ScopeInfo(FunctionInfo * function, int symbolCount)
-            : functionInfo(function), /*funcExprScopeInfo(nullptr), paramScopeInfo(nullptr),*/ symbolCount(symbolCount), parent(nullptr), scope(nullptr), areNamesCached(false), hasLocalInClosure(false)/*, parentOnly(false)*/
+            : functionInfo(function), /*funcExprScopeInfo(nullptr), paramScopeInfo(nullptr),*/ symbolCount(symbolCount), parent(nullptr), scope(nullptr), areNamesCached(false), hasLocalInClosure(false), isGeneratorFunctionBody(false), isAsyncFunctionBody(false)/*, parentOnly(false)*/
         {
         }
 
@@ -257,6 +259,16 @@ namespace Js {
         bool GetHasOwnLocalInClosure() const
         {
             return hasLocalInClosure;
+        }
+
+        bool IsGeneratorFunctionBody() const
+        {
+            return this->isGeneratorFunctionBody;
+        }
+
+        bool IsAsyncFunctionBody() const
+        {
+            return this->isAsyncFunctionBody;
         }
 
         static void SaveEnclosingScopeInfo(ByteCodeGenerator* byteCodeGenerator, /*FuncInfo* parentFunc,*/ FuncInfo* func);
