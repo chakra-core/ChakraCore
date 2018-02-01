@@ -56,14 +56,6 @@ namespace Js
         return this->GetLibrary()->GetScriptContext();
     }
 
-    inline BOOL RecyclableObject::CanHaveInterceptors() const
-    {
-#if !defined(USED_IN_STATIC_LIB)
-        Assert(this->DbgCanHaveInterceptors() == this->GetType()->CanHaveInterceptors());
-#endif
-        return this->GetType()->CanHaveInterceptors();
-    }
-
     inline BOOL RecyclableObject::HasItem(uint32 index)
     {
         return JavascriptConversion::PropertyQueryFlagsToBoolean(HasItemQuery(index));

@@ -11,10 +11,7 @@ namespace Js
         AssertMsg(obj != nullptr, "GetTypeId aValue is null");
 
         auto typeId = obj->GetTypeId();
-#if DBG
-        auto isExternal = obj->CanHaveInterceptors();
-        AssertMsg(typeId < TypeIds_Limit || isExternal, "GetTypeId aValue has invalid TypeId");
-#endif
+        AssertMsg(typeId < TypeIds_Limit || obj->IsExternal(), "GetTypeId aValue has invalid TypeId");
         return typeId;
     }
 

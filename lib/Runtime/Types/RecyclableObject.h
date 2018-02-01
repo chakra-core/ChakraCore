@@ -356,7 +356,6 @@ namespace Js {
         virtual BOOL HasInstance(Var instance, ScriptContext* scriptContext, IsInstInlineCache* inlineCache = NULL);
 
         BOOL SkipsPrototype() const;
-        BOOL CanHaveInterceptors() const;
         BOOL IsExternal() const;
         // Used only in JsVarToExtension where it may be during dispose and the type is not available
         virtual BOOL IsExternalVirtual() const { return FALSE; }
@@ -422,7 +421,6 @@ namespace Js {
         // Used to Assert that the object may safely be cast to a DynamicObject
         virtual bool DbgIsDynamicObject() const { return false; }
         virtual BOOL DbgSkipsPrototype() const { return FALSE; }
-        virtual BOOL DbgCanHaveInterceptors() const { return false; }
 #endif
 #if defined(PROFILE_RECYCLER_ALLOC) && defined(RECYCLER_DUMP_OBJECT_GRAPH)
     public:
