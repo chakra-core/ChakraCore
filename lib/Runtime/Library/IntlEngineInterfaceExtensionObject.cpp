@@ -1380,10 +1380,6 @@ namespace Js
 #ifdef _WIN32
             // xplat-todo: Need to replace this with platform-agnostic API
             compareResult = CompareStringEx(givenLocale != nullptr ? givenLocale : defaultLocale, compareFlags, aLeft, size1, aRight, size2, NULL, NULL, 0);
-#else
-            // FIXME (doilij): when CompareStringEx is implemented in PlatformAgnostic, call that function here
-            compareResult = 2; // 2 means strings are equal (reasonable default)
-#endif
 
             // Get the last error code so that it won't be affected by END_TEMP_ALLOCATOR.
             if (compareResult == 0)
@@ -1400,6 +1396,16 @@ namespace Js
         }
 
         JavascriptError::MapAndThrowError(scriptContext, HRESULT_FROM_WIN32(lastError));
+#else // _WIN32 (once ICU interface supports this, keep the implementation below for non-icu!)
+            compareResult = wcsncmp(aLeft, aRight, min(size1, size2));
+            if (compareResult == 0 && size1 != size2)
+            {
+                compareResult = size1 > size2 ? 1 : -1;
+            }
+            return JavascriptNumber::ToVar(compareResult, scriptContext);
+        }
+        END_TEMP_ALLOCATOR(tempAllocator, scriptContext);
+#endif
     }
 
     Var IntlEngineInterfaceExtensionObject::EntryIntl_CurrencyDigits(RecyclableObject* function, CallInfo callInfo, ...)
