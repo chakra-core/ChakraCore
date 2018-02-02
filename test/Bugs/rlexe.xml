@@ -433,4 +433,11 @@
       <files>bug15490382.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_OS14326981.js</files>
+      <tags>BugFix</tags>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>

@@ -5505,7 +5505,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
         if (firstFuncSlot != Constants::NoProperty)
         {
-            if (firstVarSlot == Constants::NoProperty)
+            if (firstVarSlot == Constants::NoProperty || firstVarSlot < firstFuncSlot)
             {
                 lastFuncSlot = propIds->count - 1;
             }
