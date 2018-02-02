@@ -322,13 +322,24 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
         -Wno-return-type\
         -Wno-switch\
         -Wno-implicit-function-declaration\
-        -Wno-int-to-pointer-cast"
+        -Wno-int-to-pointer-cast\
+        -Wno-tautological-constant-compare\
+        -Wno-enum-compare-switch\
+        -Wno-unknown-warning-option"
     )
         # notes..
         # -Wno-address-of-temporary  # vtinfo.h, VirtualTableInfo<T>::RegisterVirtualTable
         # -Wno-null-conversion # Check shmemory.cpp and cs.cpp here...
         # -Wno-return-type # switch unreachable code
         # -Wno-switch # switch values not handled
+        # -W-enum-compare-switch # throws warning on enum1 == enum2 where both
+        # enums represent same value but do not share the type. ie. we use both AsmJsType
+        # and AsmJsRetType interchangably and filter things out by `default:` case.
+        # -W-tautological-constant-compare throws warning for checks known at compile time.
+        # Some of those checks are optimized out during compile / lto time, and others
+        # are platform / compiler dependent.
+        # -Wno-unknown-warning-option ... well, some of the new switches are not
+        # recognized by older compilers and they fail. So, put this one and not fail
 
     include(Build/CMakeFeatureDetect.cmake)
 
