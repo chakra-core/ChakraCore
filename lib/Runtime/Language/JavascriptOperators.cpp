@@ -5481,7 +5481,7 @@ CommonNumber:
 
         if (firstFuncSlot != Constants::NoProperty)
         {
-            if (firstVarSlot == Constants::NoProperty)
+            if (firstVarSlot == Constants::NoProperty || firstVarSlot < firstFuncSlot)
             {
                 lastFuncSlot = propIds->count - 1;
             }
