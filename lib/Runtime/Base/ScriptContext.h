@@ -1144,7 +1144,10 @@ private:
         bool TTDShouldPerformRecordAction;
         bool TTDShouldPerformReplayAction;
 
-        bool TTDShouldPerformDebuggerAction;
+        bool TTDShouldPerformRecordOrReplayDebuggerAction;
+        bool TTDShouldPerformRecordDebuggerAction;
+        bool TTDShouldPerformReplayDebuggerAction;
+
         bool TTDShouldSuppressGetterInvocationForDebuggerEvaluation;
 
         //Check if the TTD system has been activated (and record/replay may or may not be enabled)
@@ -1166,7 +1169,13 @@ private:
         bool ShouldPerformReplayAction() const { return this->TTDShouldPerformReplayAction; }
 
         //Use this to check specifically if we are in debugging mode AND this code is being run on behalf of the user application
-        bool ShouldPerformDebuggerAction() const { return this->TTDShouldPerformDebuggerAction; }
+        bool ShouldPerformRecordOrReplayDebuggerAction() const { return this->TTDShouldPerformRecordOrReplayDebuggerAction; }
+
+        //Use this to check specifically if we are in debugging record mode AND this code is being run on behalf of the user application
+        bool ShouldPerformRecordDebuggerAction() const { return this->TTDShouldPerformRecordDebuggerAction; }
+
+        //Use this to check specifically if we are in debugging replay mode AND this code is being run on behalf of the user application
+        bool ShouldPerformReplayDebuggerAction() const { return this->TTDShouldPerformReplayDebuggerAction; }
 
         //A special check to see if we are debugging and want to suppress the execution of getters (which may be triggered by displaying values in the debugger)
         bool ShouldSuppressGetterInvocationForDebuggerEvaluation() const { return this->TTDShouldSuppressGetterInvocationForDebuggerEvaluation; }

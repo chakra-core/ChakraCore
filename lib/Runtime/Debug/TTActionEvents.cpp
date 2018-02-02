@@ -982,7 +982,7 @@ namespace TTD
             }
             END_JS_RUNTIME_CALL(ctx);
 
-            if(ctx->ShouldPerformDebuggerAction())
+            if(ctx->ShouldPerformReplayDebuggerAction())
             {
                 ctx->GetThreadContext()->TTDExecutionInfo->ProcessScriptLoad(ctx, cpAction->BodyCtrId, fb, utf8SourceInfo, &se);
             }
@@ -1160,7 +1160,7 @@ namespace TTD
                 {
                     TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Why did we get a different exception");
 
-                    if(executeContext->GetActiveScriptContext()->ShouldPerformDebuggerAction())
+                    if(executeContext->GetActiveScriptContext()->ShouldPerformReplayDebuggerAction())
                     {
                         //convert to uncaught debugger exception for host
                         TTDebuggerSourceLocation lastLocation;
@@ -1184,7 +1184,7 @@ namespace TTD
                 {
                     TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Why did we get a different exception");
 
-                    if(executeContext->GetActiveScriptContext()->ShouldPerformDebuggerAction())
+                    if(executeContext->GetActiveScriptContext()->ShouldPerformReplayDebuggerAction())
                     {
                         //convert to uncaught debugger exception for host
                         TTDebuggerSourceLocation lastLocation;
@@ -1200,7 +1200,7 @@ namespace TTD
                 }
                 catch(...)
                 {
-                    if(executeContext->GetActiveScriptContext()->ShouldPerformDebuggerAction())
+                    if(executeContext->GetActiveScriptContext()->ShouldPerformReplayDebuggerAction())
                     {
                         TTDebuggerSourceLocation lastLocation;
                         threadContext->TTDExecutionInfo->GetLastExecutedTimeAndPositionForDebugger(lastLocation);

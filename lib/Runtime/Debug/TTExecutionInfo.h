@@ -116,6 +116,7 @@ namespace TTD
         void SetLocationFromFrame(int64 topLevelETime, const SingleCallCounter& callFrame);
         void SetLocationFromFunctionEntryAnyTime(int64 topLevelETime, Js::FunctionBody* body);
         void SetLocationFull(int64 etime, int64 ftime, int64 ltime, Js::FunctionBody* body, ULONG line, LONG column);
+        void SetLocationFullRaw(TTD_LOG_PTR_ID sourceScriptLogId, int64 etime, int64 ftime, int64 ltime, uint32 topLevelBodyId, uint32 functionLine, uint32 functionColumn, ULONG line, LONG column);
         void SetLocationWithBP(int64 bpId, Js::FunctionBody* body, ULONG line, LONG column);
 
         int64 GetRootEventTime() const;
@@ -127,6 +128,8 @@ namespace TTD
 
         int64 GetBPId() const;
         uint32 GetTopLevelBodyId() const;
+        uint32 GetFunctionSourceLine() const;
+        uint32 GetFunctionSourceColumn() const;
 
         uint32 GetSourceLine() const;
         uint32 GetSourceColumn() const;
@@ -157,6 +160,30 @@ namespace TTD
         void Clear();
         void ClearReturnOnly();
         void ClearExceptionOnly();
+    };
+
+    //A by value class that we use to track the last statement to hit (and abort at) in the inner loop replay
+    class TTInnerLoopLastStatementInfo
+    {
+    private:
+        //The time aware parts of this location -- same meaning as in TTDebuggerSourceLocation
+        int64 m_eventTime;  //-1 indicates an INVALID location
+        int64 m_functionTime;
+        int64 m_loopTime;
+
+        //The location in the function
+        uint32 m_line;
+        uint32 m_column;
+
+    public:
+        TTInnerLoopLastStatementInfo();
+        TTInnerLoopLastStatementInfo(const TTInnerLoopLastStatementInfo& lsi);
+
+        void SetLastLine(int64 etime, int64 ftime, int64 ltime, uint32 line, uint32 column);
+
+        bool IsEnabled() const;
+        bool CheckLastTimeMatch(int64 etime, int64 ftime, int64 ltime) const;
+        bool CheckLineColumnMatch(uint32 line, uint32 column) const;
     };
 
     //////////////////
@@ -208,6 +235,9 @@ namespace TTD
         //Used to preserve breakpoints accross inflate operations
         JsUtil::List<TTDebuggerSourceLocation*, HeapAllocator> m_unRestoredBreakpoints;
 
+        //Info for innerloop last line in replay mode
+        TTInnerLoopLastStatementInfo m_innerloopLastLocation;
+
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
         TraceLogger m_diagnosticLogger;
 #endif
@@ -219,7 +249,7 @@ namespace TTD
         static bool ShouldRecordBreakpointsDuringTimeTravelScan(TTDMode mode);
 
     public:
-        ExecutionInfoManager();
+        ExecutionInfoManager(const TTInnerLoopLastStatementInfo& lsi);
         ~ExecutionInfoManager();
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
@@ -247,6 +277,8 @@ namespace TTD
         void SetBreakOnFirstUserCode();
 
         //Set the requested breakpoint and move mode in debugger stepping
+        void SetPendingTTDResetToCurrentPosition();
+        void SetPendingTTDToTarget(const TTDebuggerSourceLocation& dsl);
         void SetPendingTTDStepBackMove();
         void SetPendingTTDStepBackIntoMove();
         void SetPendingTTDReverseContinueMove(uint64 moveflag);
@@ -285,6 +317,11 @@ namespace TTD
         //
         //For debugging we currently brute force track the current/last source statements executed
         void UpdateCurrentStatementInfo(uint bytecodeOffset);
+
+        //Support for replay and checking the last source line info
+        void ManageLastSourceInfoChecks(Js::FunctionBody* fb, bool bpDisable);
+        bool IsLastSourceLineEnabled() const;
+        bool IsFinalSourceLine() const;
 
         //Get the current time/position info for the debugger -- all out arguments are optional (nullptr if you don't care)
         void GetTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const;
