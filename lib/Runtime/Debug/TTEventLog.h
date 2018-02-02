@@ -335,8 +335,11 @@ namespace TTD
         void UnloadAllLogData();
 
         //Initialize the log so that it is ready to perform TTD (record or replay) and set into the correct global mode
-        void InitForTTDRecord();
+        void InitForTTDRecord(bool debug);
         void InitForTTDReplay(TTDataIOInfo& iofp, const char* parseUri, size_t parseUriLength, bool debug);
+
+        //If the last statement of this log is an inner loop emit event put the data in lsi otherwise leave it as the default value
+        void LoadLastSourceLineInfo(TTInnerLoopLastStatementInfo& lsi, TTD::TTDebuggerSourceLocation& dsl) const;
 
         //reset the bottom (global) mode with the specific value
         void SetGlobalMode(TTDMode m);
@@ -361,9 +364,6 @@ namespace TTD
 
         //Just check if the debug mode flag has been set (don't check any active or suppressed properties)
         bool IsDebugModeFlagSet() const;
-
-        //A special check for to see if we want to push the supression flag for getter exection
-        bool ShouldDoGetterInvocationSupression() const;
 
         //Add a property record to our pin set
         void AddPropertyRecord(const Js::PropertyRecord* record);
@@ -601,6 +601,8 @@ namespace TTD
 
         ////////////////////////////////
         //Emit code and support
+
+        void InnerLoopEmitLog(const TTDebuggerSourceLocation& writeLocation, const char* emitUri, size_t emitUriLength);
 
         void EmitLog(const char* emitUri, size_t emitUriLength);
         void ParseLogInto(TTDataIOInfo& iofp, const char* parseUri, size_t parseUriLength);

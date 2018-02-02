@@ -923,7 +923,7 @@
 #if ENABLE_TTD_DIAGNOSTICS_TRACING
 #define SHOULD_DO_TTD_STACK_STMT_OP(CTX) ((CTX)->ShouldPerformRecordOrReplayAction())
 #else
-#define SHOULD_DO_TTD_STACK_STMT_OP(CTX) ((CTX)->ShouldPerformDebuggerAction())
+#define SHOULD_DO_TTD_STACK_STMT_OP(CTX) ((CTX)->ShouldPerformRecordOrReplayDebuggerAction())
 #endif
 #endif
 
@@ -2495,7 +2495,8 @@ namespace Js
 
         if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
         {
-            this->scriptContext->GetThreadContext()->TTDExecutionInfo->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
+            TTD::ExecutionInfoManager* executionMgr = this->scriptContext->GetThreadContext()->TTDExecutionInfo;
+            executionMgr->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
         }
 
         OpCodeType op = (OpCodeType)ReadOpFunc(ip);
