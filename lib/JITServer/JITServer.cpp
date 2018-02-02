@@ -126,23 +126,28 @@ HRESULT CheckModuleAddress(HANDLE process, LPCVOID remoteImageBase, LPCVOID loca
     SIZE_T resultBytes = VirtualQueryEx(process, (LPCVOID)remoteImageBase, &remoteImageInfo, sizeof(remoteImageInfo));
     if (resultBytes != sizeof(remoteImageInfo))
     {
+        Assert(UNREACHED);
         return E_ACCESSDENIED;
     }
     if (remoteImageInfo.BaseAddress != (PVOID)remoteImageBase)
     {
+        Assert(UNREACHED);
         return E_ACCESSDENIED;
     }
     if (remoteImageInfo.Type != MEM_IMAGE)
     {
+        Assert(UNREACHED);
         return E_ACCESSDENIED;
     }
     if (remoteImageInfo.State != MEM_COMMIT)
     {
+        Assert(UNREACHED);
         return E_ACCESSDENIED;
     }
 
     if (remoteImageInfo.RegionSize < sizeof(remoteImageHeader))
     {
+        Assert(UNREACHED);
         return E_ACCESSDENIED;
     }
 
@@ -152,6 +157,7 @@ HRESULT CheckModuleAddress(HANDLE process, LPCVOID remoteImageBase, LPCVOID loca
     }
     if (resultBytes < sizeof(remoteImageHeader))
     {
+        Assert(UNREACHED);
         return E_ACCESSDENIED;
     }
     PIMAGE_DOS_HEADER localDosHeader = (PIMAGE_DOS_HEADER)localImageBase;
@@ -164,23 +170,28 @@ HRESULT CheckModuleAddress(HANDLE process, LPCVOID remoteImageBase, LPCVOID loca
     uintptr_t remoteMaxRead = (uintptr_t)remoteNtHeader + sizeof(IMAGE_NT_HEADERS);
     if (remoteMaxRead >= remoteHeaderMax || remoteMaxRead < (uintptr_t)remoteImageHeader)
     {
+        Assert(UNREACHED);
         return E_ACCESSDENIED;
     }
 
     if (localNtHeader->FileHeader.NumberOfSections != remoteNtHeader->FileHeader.NumberOfSections)
     {
+        Assert(UNREACHED);
         return E_ACCESSDENIED;
     }
     if (localNtHeader->FileHeader.NumberOfSymbols != remoteNtHeader->FileHeader.NumberOfSymbols)
     {
+        Assert(UNREACHED);
         return E_ACCESSDENIED;
     }
     if (localNtHeader->OptionalHeader.CheckSum != remoteNtHeader->OptionalHeader.CheckSum)
     {
+        Assert(UNREACHED);
         return E_ACCESSDENIED;
     }
     if (localNtHeader->OptionalHeader.SizeOfImage != remoteNtHeader->OptionalHeader.SizeOfImage)
     {
+        Assert(UNREACHED);
         return E_ACCESSDENIED;
     }
 
@@ -207,12 +218,14 @@ ServerConnectProcess(
     HANDLE targetHandle;
     if (!DuplicateHandle(GetCurrentProcess(), processHandle, GetCurrentProcess(), &targetHandle, 0, false, DUPLICATE_SAME_ACCESS))
     {
+        Assert(UNREACHED);
         return E_ACCESSDENIED;
     }
 #else
     HANDLE targetHandle = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_LIMITED_INFORMATION, false, clientPid);
     if (!targetHandle)
     {
+        Assert(UNREACHED);
         return E_ACCESSDENIED;
     }
 #endif
@@ -902,6 +915,7 @@ ProcessContextManager::RegisterNewProcess(DWORD pid, HANDLE processHandle, intpt
     // We cannot register multiple ProcessContexts for a single process
     if (ProcessContexts.ContainsKey(pid))
     {
+        Assert(UNREACHED);
         return E_ACCESSDENIED;
     }
 
