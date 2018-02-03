@@ -4561,6 +4561,21 @@ namespace Js
         threadContext->InvalidateAllProtoTypePropertyCaches();
     }
 
+    void ScriptContext::InvalidateMissingPropertyCaches(const PropertyId propertyId)
+    {
+        threadContext->InvalidateMissingPropertyInlineCaches(propertyId);
+        // We believe that this cache will not contain any entries for
+        // the supplied property, because it isn't already in the type.  (Mayyybe?)
+        // threadContext->InvalidateStoreFieldInlineCaches(propertyId);
+#if ENABLE_NATIVE_CODEGEN
+        // Can we get away with only invalidating a subset of the property guards?
+        // Ask Paul.
+        threadContext->InvalidateAllPropertyGuards();
+#endif
+        // XXX need to implement this!
+        // threadContext->InvalidateAllMissingPropertyProtoTypePropertyCaches();
+    }
+
     void ScriptContext::RegisterStoreFieldInlineCache(InlineCache *pCache, PropertyId propId)
     {
         hasProtoOrStoreFieldInlineCache = true;

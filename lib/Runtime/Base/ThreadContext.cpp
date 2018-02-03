@@ -3231,6 +3231,51 @@ ThreadContext::InvalidateProtoInlineCaches(Js::PropertyId propertyId)
 }
 
 void
+ThreadContext::InvalidateMissingPropertyInlineCaches(Js::PropertyId propertyId) {
+    InlineCacheList *inlineCacheList;
+    if (protoInlineCacheByPropId.TryGetValue(propertyId, &inlineCacheList))
+    {
+        if (PHASE_TRACE1(Js::TraceInlineCacheInvalidationPhase))
+        {
+            Output::Print(_u("InlineCacheInvalidation: invalidating missing-property proto caches for property %s(%u)\n"),
+                GetPropertyName(propertyId)->GetBuffer(), propertyId);
+            Output::Flush();
+        }
+
+        uint cacheCount = 0;
+        uint nullCacheCount = 0;
+        FOREACH_SLISTBASE_ENTRY_EDITING(Js::InlineCache*, inlineCache, inlineCacheList, editingIterator)
+        {
+            ++cacheCount;
+            if (inlineCache != nullptr)
+            {
+                if (inlineCache->u.proto.isProto && inlineCache->u.proto.isMissing) {
+                    if (PHASE_VERBOSE_TRACE1(Js::TraceInlineCacheInvalidationPhase))
+                    {
+                        Output::Print(_u("InlineCacheInvalidation: invalidating cache 0x%p\n"), inlineCache);
+                        Output::Flush();
+                    }
+                    editingIterator.RemoveCurrent();
+                    memset(inlineCache, 0, sizeof(Js::InlineCache));
+                }
+            }
+            else
+            {
+                ++nullCacheCount;
+            }
+        }
+        NEXT_SLISTBASE_ENTRY_EDITING;
+
+        if (inlineCacheList->Empty()) {
+            protoInlineCacheByPropId.Remove(propertyId);
+            Adelete(&this->inlineCacheThreadInfoAllocator, inlineCacheList);
+        }
+        this->registeredInlineCacheCount = max(0u, this->registeredInlineCacheCount - cacheCount);
+        this->unregisteredInlineCacheCount = max(0u, this->unregisteredInlineCacheCount - nullCacheCount);
+    }
+}
+
+void
 ThreadContext::InvalidateStoreFieldInlineCaches(Js::PropertyId propertyId)
 {
     InlineCacheList* inlineCacheList;

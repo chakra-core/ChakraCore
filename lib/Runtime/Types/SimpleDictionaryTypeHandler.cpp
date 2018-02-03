@@ -2772,9 +2772,21 @@ namespace Js
         PropertyId propertyId = TPropertyKey_GetOptionalPropertyId(scriptContext, propertyKey);
         if (propertyId != Constants::NoProperty)
         {
-            // Always invalidate prototype caches when adding a property to this type, in case the new property is
-            // in a missing-property cache on this type.
-            scriptContext->InvalidateProtoCaches(propertyId);
+            if ((typeHandler->GetFlags() & IsPrototypeFlag)
+                || (!IsInternalPropertyId(propertyId)
+                && JavascriptOperators::HasProxyOrPrototypeInlineCacheProperty(instance, propertyId)))
+            {
+                // We don't evolve dictionary types when adding a field, so we need to invalidate prototype caches.
+                // We only have to do this though if the current type is used as a prototype, or the current property
+                // is found on the prototype chain.
+
+                scriptContext->InvalidateProtoCaches(propertyId);
+            }
+            else
+            {
+                // If not a prototype, invalidate all of the missing-property caches for the property.
+                scriptContext->InvalidateMissingPropertyCaches(propertyId);
+            }
             SetPropertyUpdateSideEffect(instance, propertyId, value, possibleSideEffects);
         }
         return true;

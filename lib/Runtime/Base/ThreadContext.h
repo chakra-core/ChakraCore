@@ -1357,6 +1357,10 @@ public:
     };
 
     void InvalidateProtoInlineCaches(Js::PropertyId propertyId);
+
+    // Invalidates all prototype cache entries for propertyId where the property is missing.
+    void InvalidateMissingPropertyInlineCaches(Js::PropertyId propertyId);
+    
     void InvalidateStoreFieldInlineCaches(Js::PropertyId propertyId);
     void InvalidateAllProtoInlineCaches();
 #if DBG
