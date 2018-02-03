@@ -7102,7 +7102,13 @@ void Parser::ParseExpressionLambdaBody(ParseNodePtr pnodeLambda)
 
     IdentToken token;
     charcount_t lastRParen = 0;
+
+    // We need to disable deferred parse mode in the scanner because the lambda body doesn't end with a right paren.
+    // The scanner needs to create a pid in the case of a string constant token immediately following the lambda body expression.
+    // Otherwise, we'll save null for the string constant pid which will AV during ByteCode generation.
+    BYTE fScanDeferredFlagsSave = m_pscan->SetDeferredParse(FALSE);
     ParseNodePtr result = ParseExpr<buildAST>(koplAsg, nullptr, TRUE, FALSE, nullptr, nullptr, nullptr, &token, false, nullptr, &lastRParen);
+    m_pscan->SetDeferredParseFlags(fScanDeferredFlagsSave);
 
     this->MarkEscapingRef(result, &token);
 
