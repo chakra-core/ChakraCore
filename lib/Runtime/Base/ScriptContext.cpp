@@ -4572,8 +4572,9 @@ namespace Js
         // Ask Paul.
         threadContext->InvalidateAllPropertyGuards();
 #endif
-        // XXX need to implement this!
-        // threadContext->InvalidateAllMissingPropertyProtoTypePropertyCaches();
+        threadContext->InvalidateProtoTypePropertyCaches(propertyId);
+        // XXX do we need to implement this, instead of invalidating all caches on the previous line?
+        // threadContext->InvalidateMissingPropertyProtoTypePropertyCaches(propertyId);
     }
 
     void ScriptContext::RegisterStoreFieldInlineCache(InlineCache *pCache, PropertyId propId)
