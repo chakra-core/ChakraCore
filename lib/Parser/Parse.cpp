@@ -1711,19 +1711,17 @@ ParseNodePtr Parser::CreateSpecialVarDeclIfNeeded(ParseNodePtr pnodeFnc, IdentPt
     return nullptr;
 }
 
-void Parser::CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc, bool isGlobal)
+void Parser::CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc)
 {
     // Lambda function cannot have any special bindings.
     if (pnodeFnc->sxFnc.IsLambda())
     {
         return;
     }
-    Assert(!(isGlobal && (this->m_grfscr & fscrEval)));
-    Assert(!isGlobal || (this->m_grfscr & fscrEvalCode));
 
     bool isTopLevelEventHandler = (this->m_grfscr & fscrImplicitThis || this->m_grfscr & fscrImplicitParents) && !pnodeFnc->sxFnc.IsNested();
 
-    // Create a 'this' symbol for indirect eval, non-lambda functions with references to 'this', and all class constructors and top level event hanlders.
+    // Create a 'this' symbol for non-lambda functions with references to 'this', and all class constructors and top level event hanlders.
     ParseNodePtr varDeclNode = CreateSpecialVarDeclIfNeeded(pnodeFnc, wellKnownPropertyPids._this, pnodeFnc->sxFnc.IsClassConstructor() || isTopLevelEventHandler);
     if (varDeclNode)
     {
@@ -1733,12 +1731,6 @@ void Parser::CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc, bool isGloba
         {
             varDeclNode->sxPid.sym->SetNeedDeclaration(true);
         }
-    }
-
-    // Global code cannot have 'new.target' or 'super' bindings.
-    if (isGlobal)
-    {
-        return;
     }
 
     // Create a 'new.target' symbol for any ordinary function with a reference and all class constructors.
@@ -5760,7 +5752,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
             UpdateArgumentsNode(pnodeFnc, argNode);
         }
 
-        CreateSpecialSymbolDeclarations(pnodeFnc, false);
+        CreateSpecialSymbolDeclarations(pnodeFnc);
 
         // Restore the lists of scopes that contain function expressions.
 
@@ -7082,7 +7074,7 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
 
     FinishParseBlock(pnodeInnerBlock);
 
-    CreateSpecialSymbolDeclarations(pnodeFnc, false);
+    CreateSpecialSymbolDeclarations(pnodeFnc);
 
     FinishParseBlock(pnodeBlock);
 
@@ -11352,7 +11344,7 @@ void Parser::FinishDeferredFunction(ParseNodePtr pnodeScopeList)
                 UpdateArgumentsNode(pnodeFnc, argNode);
             }
 
-            CreateSpecialSymbolDeclarations(pnodeFnc, false);
+            CreateSpecialSymbolDeclarations(pnodeFnc);
 
             this->FinishParseBlock(pnodeBlock);
             if (pnodeFncExprBlock)
@@ -11761,12 +11753,6 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
 
     if (tkEOF != m_token.tk)
         Error(ERRsyntax);
-
-    // We only need to create special symbol bindings for 'this' for indirect eval
-    if ((this->m_grfscr & fscrEvalCode) && !(this->m_grfscr & fscrEval))
-    {
-        CreateSpecialSymbolDeclarations(pnodeProg, true);
-    }
 
     // Append an EndCode node.
     AddToNodeList(&pnodeProg->sxFnc.pnodeBody, &lastNodeRef,

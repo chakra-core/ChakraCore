@@ -755,7 +755,7 @@ private:
     void FinishParseFncExprScope(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncExprScope);
 
     bool IsSpecialName(IdentPtr pid);
-    void CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc, bool isGlobal);
+    void CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc);
     ParseNodePtr ReferenceSpecialName(IdentPtr pid, charcount_t ichMin = 0, charcount_t ichLim = 0, bool createNode = false);
     ParseNodePtr CreateSpecialVarDeclIfNeeded(ParseNodePtr pnodeFnc, IdentPtr pid, bool forceCreate = false);
 

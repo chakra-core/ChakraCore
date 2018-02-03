@@ -961,6 +961,19 @@ var tests = [
             assert.throws(() => WScript.LoadScript(`(class classExpr {}())`), TypeError, "Class expression called at global scope", "Class constructor cannot be called without the new keyword");
             assert.throws(() => WScript.LoadScript(`(() => (class classExpr {}()))()`), TypeError, "Class expression called in global lambda", "Class constructor cannot be called without the new keyword");
         }
+    },
+    {
+        name: "Indirect eval should not create a 'this' binding",
+        body: function() {
+            WScript.LoadScript(`
+                this.eval("(() => assert.areEqual('global', this.o, 'Lambda in indirect eval called off of this capturing this'))()");
+                this['eval']("(() => assert.areEqual('global', this.o, 'Lambda in indirect eval called from a property index capturing this'))()");
+                var _eval = 'eval';
+                this[_eval]("(() => assert.areEqual('global', this.o, 'Lambda in indirect eval called from a property index capturing this'))()");
+                _eval = eval;
+                _eval("(() => assert.areEqual('global', this.o, 'Lambda in indirect eval capturing this'))()");
+            `);
+        }
     }
 ]
 
