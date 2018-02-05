@@ -51,15 +51,17 @@ let builtins = {
     "Int32Array.prototype": getFunctions(Int32Array.prototype),
     "RegExp.prototype": getFunctions(RegExp.prototype),
     "Function.prototype": getFunctions(Function.prototype),
-
-    "Intl": getFunctions(Intl),
-    "Intl.Collator": getFunctions(Intl.Collator),
-    "Intl.Collator.prototype": getFunctions(Intl.Collator.prototype),
-    "Intl.DateTimeFormat": getFunctions(Intl.DateTimeFormat),
-    "Intl.DateTimeFormat.prototype": getFunctions(Intl.DateTimeFormat.prototype),
-    "Intl.NumberFormat": getFunctions(Intl.NumberFormat),
-    "Intl.NumberFormat.prototype": getFunctions(Intl.NumberFormat.prototype),
 };
+
+if (typeof Intl !== "undefined") {
+    builtins["Intl"] = getFunctions(Intl);
+    builtins["Intl.Collator"] = getFunctions(Intl.Collator);
+    builtins["Intl.Collator.prototype"] = getFunctions(Intl.Collator.prototype);
+    builtins["Intl.DateTimeFormat"] = getFunctions(Intl.DateTimeFormat);
+    builtins["Intl.DateTimeFormat.prototype"] = getFunctions(Intl.DateTimeFormat.prototype);
+    builtins["Intl.NumberFormat"] = getFunctions(Intl.NumberFormat);
+    builtins["Intl.NumberFormat.prototype"] = getFunctions(Intl.NumberFormat.prototype);
+}
 
 var tests = [
     {
