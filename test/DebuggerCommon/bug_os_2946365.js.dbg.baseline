@@ -1,14 +1,6 @@
 [
   {
     "this": {
-      "foo": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string foo",
-        "caller": "object null",
-        "arguments": "Object {...}",
-        "length": "number 0"
-      },
       "a": {
         "#__proto__": "Array []",
         "length": "number 10",
@@ -22,6 +14,14 @@
         "[7]": "string 8",
         "[8]": "string 9",
         "[9]": "string 10"
+      },
+      "foo": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
       }
     },
     "arguments": {
@@ -50,24 +50,14 @@
       },
       "Symbol.iterator": {
         "#__proto__": "function <large string>",
-        "length": "number 0",
         "name": "string values",
-        "caller": "object null",
-        "arguments": "object null"
+        "length": "number 0"
       }
     },
     "locals": {
       "x": "undefined undefined"
     },
     "globals": {
-      "foo": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string foo",
-        "caller": "object null",
-        "arguments": "Object {...}",
-        "length": "number 0"
-      },
       "a": {
         "#__proto__": "Array []",
         "length": "number 10",
@@ -81,6 +71,14 @@
         "[7]": "string 8",
         "[8]": "string 9",
         "[9]": "string 10"
+      },
+      "foo": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string foo",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
       }
     }
   }
