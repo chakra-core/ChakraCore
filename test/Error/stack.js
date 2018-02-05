@@ -10,6 +10,7 @@ function printError(e) {
 }
 
 var isMac = (WScript.Platform && WScript.Platform.OS == 'darwin');
+var isWin = (WScript.Platform && WScript.Platform.OS == 'win32');
 
 var expects = [
     '#1', // 0
@@ -20,16 +21,21 @@ var expects = [
     'Error: Out of stack space',
     '#3', // 6
     'In finally',
-    'Error: Out of stack space', // 8
-    'testing stack overflow handling with catch block',
-    'Error: Out of stack space', // 10
-    'testing stack overflow handling with finally block',
-    'Error: Out of stack space' ]; // 12
+    'Error: Out of stack space' // 8
+    ];
+
+if (isWin) {
+    expects.push('testing stack overflow handling with catch block'); // 9
+    expects.push('Error: Out of stack space'); // 10
+}
+
+expects.push('testing stack overflow handling with finally block'); // 11
+expects.push('Error: Out of stack space'); // 12
 
 if (!isMac) // last test (sometimes) we hit timeout before we hit stackoverflow.
-    expects.push('Error: Out of stack space')
+    expects.push('Error: Out of stack space'); // 13
 
-expects.push('END');
+expects.push('END'); // 14
 
 var index = 0;
 function printLog(str) {
@@ -56,23 +62,23 @@ for (var i = 1; i < 4; i++) {
     }
 }
 
-printLog("testing stack overflow handling with catch block");
-try {
-    function stackOverFlowCatch() {
-        try {
-            stackOverFlowCatch();
-            while (true) {
+if (isWin) { // xplat CI timeouts (it doesn't st. overflows as soon as Windows does)
+    printLog("testing stack overflow handling with catch block");
+    try {
+        function stackOverFlowCatch() {
+            try {
+                stackOverFlowCatch();
+                while (true) { }
             }
-
+            catch (e) {
+                throw e;
+            }
         }
-        catch (e) {
-            throw e;
-        }
+        stackOverFlowCatch();
     }
-    stackOverFlowCatch();
-}
-catch (e) {
-    printLog(e);
+    catch (e) {
+        printLog(e);
+    }
 }
 
 printLog("testing stack overflow handling with finally block");
