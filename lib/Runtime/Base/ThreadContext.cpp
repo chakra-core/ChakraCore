@@ -3242,26 +3242,22 @@ ThreadContext::InvalidateMissingPropertyInlineCaches(Js::PropertyId propertyId) 
             Output::Flush();
         }
 
-        uint cacheCount = 0;
-        uint nullCacheCount = 0;
+        uint numCachesInvalidated = 0;
         FOREACH_SLISTBASE_ENTRY_EDITING(Js::InlineCache*, inlineCache, inlineCacheList, editingIterator)
         {
-            ++cacheCount;
-            if (inlineCache != nullptr)
-            {
-                if (inlineCache->u.proto.isProto && inlineCache->u.proto.isMissing) {
-                    if (PHASE_VERBOSE_TRACE1(Js::TraceInlineCacheInvalidationPhase))
-                    {
-                        Output::Print(_u("InlineCacheInvalidation: invalidating cache 0x%p\n"), inlineCache);
-                        Output::Flush();
-                    }
-                    editingIterator.RemoveCurrent();
-                    memset(inlineCache, 0, sizeof(Js::InlineCache));
+            // ThreadContext::InvalidateAndDeleteInlineCacheList, on which this method is based, just deletes the entire list, so
+            // (among other things) it must update this->unregisteredInlineCacheCount to reflect the number of
+            // NULL entries in the list that are being deleted.  For simplicity, I skip those here and leave the count intact.
+            // Should we remove them?
+            if (inlineCache != nullptr && inlineCache->u.proto.isProto && inlineCache->u.proto.isMissing) {
+                if (PHASE_VERBOSE_TRACE1(Js::TraceInlineCacheInvalidationPhase))
+                {
+                    Output::Print(_u("InlineCacheInvalidation: invalidating cache 0x%p\n"), inlineCache);
+                    Output::Flush();
                 }
-            }
-            else
-            {
-                ++nullCacheCount;
+                ++numCachesInvalidated;
+                memset(inlineCache, 0, sizeof(Js::InlineCache));
+                editingIterator.RemoveCurrent();
             }
         }
         NEXT_SLISTBASE_ENTRY_EDITING;
@@ -3270,8 +3266,8 @@ ThreadContext::InvalidateMissingPropertyInlineCaches(Js::PropertyId propertyId) 
             protoInlineCacheByPropId.Remove(propertyId);
             Adelete(&this->inlineCacheThreadInfoAllocator, inlineCacheList);
         }
-        this->registeredInlineCacheCount = max(0u, this->registeredInlineCacheCount - cacheCount);
-        this->unregisteredInlineCacheCount = max(0u, this->unregisteredInlineCacheCount - nullCacheCount);
+        this->registeredInlineCacheCount =
+            this->registeredInlineCacheCount > numCachesInvalidated ? this->registeredInlineCacheCount - numCachesInvalidated : 0;
     }
 }
 
