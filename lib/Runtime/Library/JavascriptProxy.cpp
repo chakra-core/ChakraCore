@@ -1969,11 +1969,11 @@ namespace Js
         Var name;
         if (propertyRecord->IsSymbol())
         {
-            name = requestContext->GetLibrary()->CreateSymbol(propertyRecord);
+            name = requestContext->GetSymbol(propertyRecord);
         }
         else
         {
-            name = requestContext->GetLibrary()->CreatePropertyString(propertyRecord);
+            name = requestContext->GetPropertyString(propertyRecord);
         }
         return name;
     }

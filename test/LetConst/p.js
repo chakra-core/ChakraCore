@@ -3,8 +3,10 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
+WScript.LoadScriptFile("../UnitTestFramework/known_globals.js");
+
 for (a in this) {
-    if (a === "SCA" || a === "ImageData")
+    if (isKnownGlobal(a))
         continue;
     WScript.Echo(a);
 }
@@ -21,7 +23,7 @@ WScript.Echo(x);
 
 
 for (a in this) {
-    if (a === "SCA" || a === "ImageData")
+    if (isKnownGlobal(a))
         continue;
     WScript.Echo(a);
 }

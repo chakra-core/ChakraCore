@@ -86,6 +86,8 @@ enum class TokenType {
   AtomicRmw,
   AtomicRmwCmpxchg,
   AtomicStore,
+  AtomicWait,
+  AtomicWake,
   Binary,
   Block,
   Br,

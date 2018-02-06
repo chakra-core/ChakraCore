@@ -27,10 +27,6 @@ JsInitializeModuleRecord(
         if (normalizedSpecifier != JS_INVALID_REFERENCE)
         {
             childModuleRecord->SetSpecifier(normalizedSpecifier);
-            if (Js::SourceTextModuleRecord::Is(referencingModule) && Js::JavascriptString::Is(normalizedSpecifier))
-            {
-                childModuleRecord->SetParent(Js::SourceTextModuleRecord::FromHost(referencingModule), Js::JavascriptString::FromVar(normalizedSpecifier)->GetSz());
-            }
         }
         return JsNoError;
     });
@@ -158,8 +154,10 @@ JsSetModuleHostInfo(
         switch (moduleHostInfo)
         {
         case JsModuleHostInfo_Exception:
-            moduleRecord->OnHostException(hostInfo);
-            break;
+            {
+            HRESULT hr = moduleRecord->OnHostException(hostInfo);
+            return (hr == NOERROR) ? JsNoError : JsErrorInvalidArgument;
+            }
         case JsModuleHostInfo_HostDefined:
             moduleRecord->SetHostDefined(hostInfo);
             break;

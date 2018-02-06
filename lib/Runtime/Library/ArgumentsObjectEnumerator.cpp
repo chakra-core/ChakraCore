@@ -18,13 +18,13 @@ namespace Js
 
     JavascriptString * ArgumentsObjectPrefixEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
+        propertyId = Constants::NoProperty;
         if (!doneFormalArgs)
         {
             formalArgIndex = argumentsObject->GetNextFormalArgIndex(formalArgIndex, !!(flags & EnumeratorFlags::EnumNonEnumerable), attributes);
             if (formalArgIndex != JavascriptArray::InvalidIndex
                 && formalArgIndex < argumentsObject->GetNumberOfArguments())
             {
-                propertyId = Constants::NoProperty;
                 return this->GetScriptContext()->GetIntegerString(formalArgIndex);
             }
 

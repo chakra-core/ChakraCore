@@ -29,6 +29,8 @@ namespace Js
             return value->GetValue();
         }
 
+        Var Unwrap() const;
+
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
 

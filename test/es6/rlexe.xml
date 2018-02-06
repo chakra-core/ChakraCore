@@ -334,14 +334,14 @@
     <default>
       <files>classes_bugfixes.js</files>
       <compile-flags>-Off:Deferparse -args summary -endargs</compile-flags>
-      <tags>BugFix</tags>
+      <tags>BugFix,exclude_noicu</tags>
     </default>
   </test>
   <test>
     <default>
       <files>classes_bugfixes.js</files>
       <compile-flags>-Force:Deferparse -args summary -endargs</compile-flags>
-      <tags>BugFix</tags>
+      <tags>BugFix,exclude_noicu</tags>
     </default>
   </test>
   <test>
@@ -513,6 +513,7 @@
     <default>
       <files>normalize.js</files>
       <baseline>normalize.baseline</baseline>
+      <tags>exclude_noicu</tags>
       <compile-flags> -ES6Unicode</compile-flags>
     </default>
   </test>
@@ -534,7 +535,7 @@
       <files>unicode_6_identifiers_utf8.js</files>
       <baseline>unicode_6_identifiers_utf8.baseline</baseline>
       <compile-flags> -ES6Unicode</compile-flags>
-      <tags>exclude_win7,require_winglob</tags> <!-- Microsoft/ChakraCore#3777: Fix this test under ICU -->
+      <tags>exclude_win7,require_winglob,exclude_noicu</tags> <!-- Microsoft/ChakraCore#3777: Fix this test under ICU -->
     </default>
   </test>
   <test>
@@ -621,6 +622,7 @@
     <default>
       <files>unicode_idDeferParseFunctions_utf8.js</files>
       <compile-flags>-ES6Unicode</compile-flags>
+      <tags>exclude_noicu</tags>
     </default>
   </test>
   <test>
@@ -826,6 +828,13 @@
     <default>
       <files>generators-syntax.js</files>
       <compile-flags>-ES6Generators -ES6Classes -ES6DefaultArgs -args summary -endargs</compile-flags>
+      <tags>exclude_arm</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>generators-syntax.js</files>
+      <compile-flags>-ES6Generators -ES6Classes -ES6DefaultArgs -force:deferparse -args summary -endargs</compile-flags>
       <tags>exclude_arm</tags>
     </default>
   </test>
@@ -1326,105 +1335,6 @@
   </test>
   <test>
     <default>
-      <files>moduletest1.js</files>
-      <compile-flags>-ES6Module</compile-flags>
-      <tags>exclude_dynapogo,exclude_sanitize_address</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>moduletest2.js</files>
-      <compile-flags>-ES6Module</compile-flags>
-      <tags>exclude_dynapogo,exclude_sanitize_address</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>module-syntax.js</files>
-      <compile-flags>-MuteHostErrorMsg -ES6Module -args summary -endargs</compile-flags>
-      <tags>exclude_dynapogo,exclude_sanitize_address</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>module-syntax1.js</files>
-      <compile-flags>-ES6Module -args summary -endargs</compile-flags>
-      <tags>exclude_sanitize_address</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>module-functionality.js</files>
-      <compile-flags>-MuteHostErrorMsg -ES6Module -args summary -endargs</compile-flags>
-      <tags>exclude_dynapogo,exclude_sanitize_address</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>moduleUrlInError.js</files>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>dynamic-module-functionality.js</files>
-      <compile-flags>-ES6Module -ESDynamicImport -args summary -endargs</compile-flags>
-      <tags>exclude_sanitize_address</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>dynamic-module-import-specifier.js</files>
-      <compile-flags>-MuteHostErrorMsg -ESDynamicImport -ES6Module -args summary -endargs</compile-flags>
-      <tags>exclude_sanitize_address</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>module-syntax.js</files>
-      <compile-flags>-MuteHostErrorMsg -ES6Module -force:deferparse -args summary -endargs</compile-flags>
-      <tags>exclude_sanitize_address</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>module-syntax1.js</files>
-      <compile-flags>-ES6Module -force:deferparse -args summary -endargs</compile-flags>
-      <tags>exclude_sanitize_address</tags>
-    </default>
-  </test>
-  <!-- Test disabled until issue #3778 is resolved
-  <test>
-    <default>
-      <files>module-namespace.js</files>
-      <compile-flags>-ES6Module -Es6ToStringTag -args summary -endargs</compile-flags>
-      <tags>exclude_dynapogo,exclude_drt,exclude_sanitize_address</tags>
-    </default>
-  </test>
-  -->
-  <test>
-    <default>
-      <files>module-bugfixes.js</files>
-      <compile-flags>-ES6Module -args summary -endargs</compile-flags>
-      <tags>exclude_dynapogo,exclude_sanitize_address,bugfix</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>bug_OS12095746.js</files>
-      <compile-flags>-MuteHostErrorMsg -IgnoreScriptErrorCode -TraceHostCallback -ES6Module -ESDynamicImport</compile-flags>
-      <tags>exclude_dynapogo,exclude_sanitize_address,bugfix,exclude_drt</tags>
-      <baseline>bug_OS12095746.baseline</baseline>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>test_bug_2645.js</files>
-      <compile-flags>-ES6Module</compile-flags>
-      <tags>exclude_sanitize_address</tags>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>OS_5500719.js</files>
       <compile-flags>-forceserialized</compile-flags>
       <tags>exclude_dynapogo</tags>
@@ -1459,27 +1369,11 @@
   </test>
   <test>
     <default>
-      <files>bug_issue_3076.js</files>
-      <compile-flags>-force:deferparse -ESDynamicImport </compile-flags>
-      <tags>BugFix,exclude_sanitize_address</tags>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>bug_issue_3247.js</files>
       <baseline>bug_issue_3247.baseline</baseline>
       <tags>BugFix,exclude_sanitize_address</tags>
     </default>
   </test>
-  <!-- OS#14303885, disabling failing test until issue is resolved
-  <test>
-    <default>
-      <files>bug_issue_3257.js</files>
-      <baseline>bug_issue_3257.baseline</baseline>
-      <tags>BugFix,exclude_sanitize_address</tags>
-    </default>
-  </test>
-  -->
   <test>
     <default>
       <files>typedarray_bugs.js</files>
@@ -1508,6 +1402,27 @@
   </test>
   <test>
     <default>
+      <files>bug_OS14880030.js</files>
+      <tags>BugFix</tags>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_OS14880030.js</files>
+      <tags>BugFix</tags>
+      <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_OS13976524.js</files>
+      <tags>BugFix</tags>
+      <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>DeferParseLambda.js</files>
       <compile-flags>-off:deferparse -args summary -endargs</compile-flags>
     </default>
@@ -1542,4 +1457,15 @@
       <compile-flags>-off:deferparse -args summary -endargs -deferparse -forceundodefer</compile-flags>
     </default>
   </test>
+<test>
+  <default>
+    <files>function-expr-capture.js</files>
+  </default>
+</test>
+<test>
+  <default>
+    <files>function-expr-capture2.js</files>
+    <compile-flags>-force:deferparse</compile-flags>
+  </default>
+</test>
 </regress-exe>

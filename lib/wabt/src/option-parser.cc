@@ -105,19 +105,23 @@ int OptionParser::Match(const char* s,
     if (full[i] == '\0') {
       // Perfect match. Return +1, so it will be preferred over a longer option
       // with the same prefix.
-      if (s[i] == '\0')
+      if (s[i] == '\0') {
         return i + 1;
+      }
 
       // We want to fail if s is longer than full, e.g. --foobar vs. --foo.
       // However, if s ends with an '=', it's OK.
-      if (!(has_argument && s[i] == '='))
+      if (!(has_argument && s[i] == '=')) {
         return -1;
+      }
       break;
     }
-    if (s[i] == '\0')
+    if (s[i] == '\0') {
       break;
-    if (s[i] != full[i])
+    }
+    if (s[i] != full[i]) {
       return -1;
+    }
   }
   return i;
 }
@@ -286,19 +290,22 @@ void OptionParser::PrintHelp() {
       continue;
     }
 
-    if (length > longest_name_length)
+    if (length > longest_name_length) {
       longest_name_length = length;
+    }
   }
 
   for (const Option& option: options_) {
-    if (!option.short_name && option.long_name.empty())
+    if (!option.short_name && option.long_name.empty()) {
       continue;
+    }
 
     std::string line;
-    if (option.short_name)
+    if (option.short_name) {
       line += std::string("  -") + option.short_name + ", ";
-    else
+    } else {
       line += "      ";
+    }
 
     std::string flag;
     if (!option.long_name.empty()) {
@@ -314,8 +321,9 @@ void OptionParser::PrintHelp() {
     size_t remaining = longest_name_length + kExtraSpace + 2 - flag.size();
     line += flag + std::string(remaining, ' ');
 
-    if (!option.help.empty())
+    if (!option.help.empty()) {
       line += option.help;
+    }
     printf("%s\n", line.c_str());
   }
 }

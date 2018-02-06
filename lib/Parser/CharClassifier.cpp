@@ -406,7 +406,7 @@ bool Js::CharClassifier::IsIdContinueFast(codepoint_t ch) const
     return isBigChar ? this->bigCharIsIdContinueFunc(ch, this) : (charFlags[ch] & CharacterTypeFlags::IdChar) != 0;
 }
 
-Js::CharClassifier::CharClassifier(ScriptContext * scriptContext)
+Js::CharClassifier::CharClassifier(void)
 {
     bool isES6UnicodeModeEnabled = CONFIG_FLAG(ES6Unicode);
     bool isFullUnicodeSupportAvailable = PlatformAgnostic::UnicodeText::IsExternalUnicodeLibraryAvailable();

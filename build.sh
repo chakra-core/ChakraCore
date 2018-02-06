@@ -52,6 +52,7 @@ PRINT_USAGE() {
     echo "     --libs-only       Do not build CH and GCStress"
     echo "     --lto             Enables LLVM Full LTO"
     echo "     --lto-thin        Enables LLVM Thin LTO - xcode 8+ or clang 3.9+"
+    echo "     --lttng           Enables LTTng support for ETW events"
     echo "     --static          Build as static library. Default: shared library"
     echo "     --sanitize=CHECKS Build with clang -fsanitize checks,"
     echo "                       e.g. undefined,signed-integer-overflow."
@@ -104,6 +105,7 @@ OS_LINUX=0
 OS_APT_GET=0
 OS_UNIX=0
 LTO=""
+LTTNG=""
 TARGET_OS=""
 ENABLE_CC_XPLAT_TRACE=""
 WB_CHECK=
@@ -117,14 +119,14 @@ LIBS_ONLY_BUILD=
 SHOULD_EMBED_ICU=0
 ALWAYS_YES=0
 
-if [ -f "/proc/version" ]; then
+UNAME_S=`uname -s`
+if [[ $UNAME_S =~ 'Linux' ]]; then
     OS_LINUX=1
-    PROC_INFO=$(cat /proc/version)
-    if [[ $PROC_INFO =~ 'Ubuntu' || $PROC_INFO =~ 'Debian'
-       || $PROC_INFO =~ 'Linaro' ]]; then
+    PROC_INFO=$(which apt-get)
+    if [[ ${#PROC_INFO} > 0 && -f "$PROC_INFO" ]]; then
         OS_APT_GET=1
     fi
-elif [[ $(uname -s) =~ "Darwin" ]]; then
+elif [[ $UNAME_S =~ "Darwin" ]]; then
     OS_UNIX=1
 else
     echo -e "Warning: Installation script couldn't detect host OS..\n" # exit ?
@@ -230,6 +232,11 @@ while [[ $# -gt 0 ]]; do
         HAS_LTO=1
         ;;
 
+    --lttng)
+        LTTNG="-DENABLE_JS_LTTNG_SH=1"
+        HAS_LTTNG=1
+        ;;
+    
     -n | --ninja)
         CMAKE_GEN="-G Ninja"
         MAKE=ninja
@@ -516,6 +523,15 @@ else
         exit 1
     fi
 fi
+export TARGET_PATH
+
+if [[ $HAS_LTTNG == 1 ]]; then
+    CHAKRACORE_ROOT=`dirname $0`
+    python $CHAKRACORE_ROOT/tools/lttng.py --man $CHAKRACORE_ROOT/manifests/Microsoft-Scripting-Chakra-Instrumentation.man --intermediate $TARGET_PATH/intermediate
+    mkdir -p $TARGET_PATH/lttng
+    (diff -q $TARGET_PATH/intermediate/lttng/jscriptEtw.h $TARGET_PATH/lttng/jscriptEtw.h && echo "jscriptEtw.h up to date; skipping") || cp $TARGET_PATH/intermediate/lttng/* $TARGET_PATH/lttng/
+fi
+
 
 BUILD_DIRECTORY="${TARGET_PATH}/${BUILD_TYPE:0}"
 echo "Build path: ${BUILD_DIRECTORY}"
@@ -603,7 +619,7 @@ fi
 
 echo Generating $BUILD_TYPE makefiles
 echo $EXTRA_DEFINES
-cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $LTO $STATIC_LIBRARY $ARCH $TARGET_OS \
+cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $LTO $LTTNG $STATIC_LIBRARY $ARCH $TARGET_OS \
     $ENABLE_CC_XPLAT_TRACE $EXTRA_DEFINES -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT $INTL_ICU \
     $WITHOUT_FEATURES $WB_FLAG $WB_ARGS $CMAKE_EXPORT_COMPILE_COMMANDS $LIBS_ONLY_BUILD\
     $VALGRIND $BUILD_RELATIVE_DIRECTORY

@@ -107,7 +107,7 @@ Js::JavascriptMethod Js::WasmLibrary::WasmDeferredParseEntryPoint(Js::AsmJsScrip
         }
         catch (Wasm::WasmCompilationException& ex)
         {
-            AutoCleanStr autoCleanExceptionMessage;
+            AutoFreeExceptionMessage autoCleanExceptionMessage;
             char16* exceptionMessage = WebAssemblyModule::FormatExceptionMessage(&ex, &autoCleanExceptionMessage, readerInfo->m_module, body);
 
             JavascriptLibrary *library = scriptContext->GetLibrary();

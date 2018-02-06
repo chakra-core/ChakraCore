@@ -362,7 +362,7 @@ namespace Js
         PropertyValueInfo info;
         // We don't allow cache resizing, at least for the moment: it's more work, and since there's only one
         // cache per script context, we can afford to create each cache with the maximum size.
-        PropertyValueInfo::SetCacheInfo(&info, nullptr, cache, false);
+        PropertyValueInfo::SetCacheInfo(&info, cache, false);
         Var value;
         if (CacheOperators::TryGetProperty<
             true,                                       // CheckLocal
@@ -621,8 +621,6 @@ namespace Js
         JavascriptConversion::ToPropertyKey(propertyKey, scriptContext, &propertyRecord, nullptr);
         PropertyId propertyId = propertyRecord->GetPropertyId();
 
-        obj->ThrowIfCannotGetOwnPropertyDescriptor(propertyId);
-
         PropertyDescriptor propertyDescriptor;
         BOOL isPropertyDescriptorDefined;
         isPropertyDescriptorDefined = JavascriptObject::GetOwnPropertyDescriptorHelper(obj, propertyId, scriptContext, propertyDescriptor);
@@ -637,7 +635,7 @@ namespace Js
     BOOL JavascriptObject::GetOwnPropertyDescriptorHelper(RecyclableObject* obj, PropertyId propertyId, ScriptContext* scriptContext, PropertyDescriptor& propertyDescriptor)
     {
         BOOL isPropertyDescriptorDefined;
-        if (obj->CanHaveInterceptors())
+        if (obj->IsExternal())
         {
             isPropertyDescriptorDefined = obj->HasOwnProperty(propertyId) ?
                 JavascriptOperators::GetOwnPropertyDescriptor(obj, propertyId, scriptContext, &propertyDescriptor) : obj->GetDefaultPropertyDescriptor(propertyDescriptor);
@@ -1191,7 +1189,7 @@ namespace Js
 
                     if (propertyRecord->IsSymbol())
                     {
-                        symbol = scriptContext->GetLibrary()->CreateSymbol(propertyRecord);
+                        symbol = scriptContext->GetSymbol(propertyRecord);
                         // no need to marshal symbol because it is created from scriptContext
                         newArrForSymbols->DirectSetItemAt(symbolIndex++, symbol);
                         continue;
@@ -1735,7 +1733,7 @@ namespace Js
             }
             else
             {
-                propertyRecord = ((PropertyString*)propertyName)->GetPropertyRecord();
+                propertyName->GetPropertyRecord(&propertyRecord);
             }
 
             if (descCount == descSize)
@@ -1900,7 +1898,7 @@ namespace Js
             size_t totalChars;
             if (SizeTAdd(propertyLength, ConstructNameGetSetLength, &totalChars) == S_OK)
             {
-                finalName = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, totalChars);
+                finalName = RecyclerNewArrayLeafZ(scriptContext->GetRecycler(), char16, totalChars);
                 Assert(finalName != nullptr);
                 const char16* propertyName = propertyRecord->GetBuffer();
                 Assert(propertyName != nullptr);
@@ -1999,7 +1997,7 @@ namespace Js
                 // Also, if the object's type has not changed, we need to ensure that
                 // the cached property string for this property, if any, does not
                 // specify this object's type.
-                scriptContext->InvalidatePropertyStringCache(propId, obj->GetType());
+                scriptContext->InvalidatePropertyStringAndSymbolCaches(propId, obj->GetType());
             }
         }
 

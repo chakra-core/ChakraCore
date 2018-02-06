@@ -39,7 +39,6 @@
 
 #include "Library/JavascriptVariantDate.h"
 #include "Library/JavascriptPromise.h"
-#include "Library/JavascriptSymbol.h"
 #include "Library/JavascriptSymbolObject.h"
 #include "Library/JavascriptProxy.h"
 #include "Library/JavascriptReflect.h"
@@ -52,6 +51,7 @@
 #include "Library/JavascriptWeakMap.h"
 #include "Library/JavascriptWeakSet.h"
 
+#include "Types/WithScopeObject.h"
 #include "Types/PropertyIndexRanges.h"
 #include "Types/DictionaryPropertyDescriptor.h"
 #include "Types/DictionaryTypeHandler.h"

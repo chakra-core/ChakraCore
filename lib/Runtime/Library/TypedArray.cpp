@@ -1147,11 +1147,13 @@ namespace Js
         // types of the same size are compatible, with the following exceptions:
         // - we cannot memmove between float and int arrays, due to different bit pattern
         // - we cannot memmove to a uint8 clamped array from an int8 array, due to negatives rounding to 0
-        if (GetTypeId() == source->GetTypeId()
-            || (GetBytesPerElement() == source->GetBytesPerElement()
-            && !(Uint8ClampedArray::Is(this) && Int8Array::Is(source))
-            && !Float32Array::Is(this) && !Float32Array::Is(source)
-            && !Float64Array::Is(this) && !Float64Array::Is(source)))
+        if (GetTypeId() == source->GetTypeId() ||
+            (GetBytesPerElement() == source->GetBytesPerElement()
+             && !((Uint8ClampedArray::Is(this) || Uint8ClampedVirtualArray::Is(this)) && (Int8Array::Is(source) || Int8VirtualArray::Is(source)))
+             && !Float32Array::Is(this) && !Float32Array::Is(source) 
+             && !Float32VirtualArray::Is(this) && !Float32VirtualArray::Is(source)
+             && !Float64Array::Is(this) && !Float64Array::Is(source)
+             && !Float64VirtualArray::Is(this) && !Float64VirtualArray::Is(source)))
         {
             const size_t offsetInBytes = offset * BYTES_PER_ELEMENT;
             memmove_s(buffer + offsetInBytes,
@@ -1626,8 +1628,7 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
         {
-            JavascriptFunction* constructor =
-                JavascriptFunction::FromVar(JavascriptOperators::SpeciesConstructor(this, TypedArrayBase::GetDefaultConstructor(this, scriptContext), scriptContext));
+            RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(this, TypedArrayBase::GetDefaultConstructor(this, scriptContext), scriptContext);
 
             Js::Var constructorArgs[] = { constructor, buffer, JavascriptNumber::ToVar(beginByteOffset, scriptContext), JavascriptNumber::ToVar(newLength, scriptContext) };
             Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
@@ -1998,7 +1999,7 @@ namespace Js
 
             uint32 captured = tempList->Count();
 
-            Var constructor = JavascriptOperators::SpeciesConstructor(
+            RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(
                 typedArrayBase, TypedArrayBase::GetDefaultConstructor(args[0], scriptContext), scriptContext);
 
             Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(captured, scriptContext) };
@@ -2680,43 +2681,32 @@ namespace Js
     }
 
     // static
-    Var TypedArrayBase::GetDefaultConstructor(Var object, ScriptContext* scriptContext)
+    JavascriptFunction* TypedArrayBase::GetDefaultConstructor(Var object, ScriptContext* scriptContext)
     {
-        TypeId typeId = JavascriptOperators::GetTypeId(object);
-        Var defaultConstructor = nullptr;
-        switch (typeId)
+        switch (JavascriptOperators::GetTypeId(object))
         {
         case TypeId::TypeIds_Int8Array:
-            defaultConstructor = scriptContext->GetLibrary()->GetInt8ArrayConstructor();
-            break;
+            return scriptContext->GetLibrary()->GetInt8ArrayConstructor();
         case TypeId::TypeIds_Uint8Array:
-            defaultConstructor = scriptContext->GetLibrary()->GetUint8ArrayConstructor();
-            break;
+            return scriptContext->GetLibrary()->GetUint8ArrayConstructor();
         case TypeId::TypeIds_Uint8ClampedArray:
-            defaultConstructor = scriptContext->GetLibrary()->GetUint8ClampedArrayConstructor();
-            break;
+            return scriptContext->GetLibrary()->GetUint8ClampedArrayConstructor();
         case TypeId::TypeIds_Int16Array:
-            defaultConstructor = scriptContext->GetLibrary()->GetInt16ArrayConstructor();
-            break;
+            return scriptContext->GetLibrary()->GetInt16ArrayConstructor();
         case TypeId::TypeIds_Uint16Array:
-            defaultConstructor = scriptContext->GetLibrary()->GetUint16ArrayConstructor();
-            break;
+            return scriptContext->GetLibrary()->GetUint16ArrayConstructor();
         case TypeId::TypeIds_Int32Array:
-            defaultConstructor = scriptContext->GetLibrary()->GetInt32ArrayConstructor();
-            break;
+            return scriptContext->GetLibrary()->GetInt32ArrayConstructor();
         case TypeId::TypeIds_Uint32Array:
-            defaultConstructor = scriptContext->GetLibrary()->GetUint32ArrayConstructor();
-            break;
+            return scriptContext->GetLibrary()->GetUint32ArrayConstructor();
         case TypeId::TypeIds_Float32Array:
-            defaultConstructor = scriptContext->GetLibrary()->GetFloat32ArrayConstructor();
-            break;
+            return scriptContext->GetLibrary()->GetFloat32ArrayConstructor();
         case TypeId::TypeIds_Float64Array:
-            defaultConstructor = scriptContext->GetLibrary()->GetFloat64ArrayConstructor();
-            break;
+            return scriptContext->GetLibrary()->GetFloat64ArrayConstructor();
         default:
-            Assert(false);
+            Assert(UNREACHED);
+            return nullptr;
         }
-        return defaultConstructor;
     }
 
     Var TypedArrayBase::FindMinOrMax(Js::ScriptContext * scriptContext, TypeId typeId, bool findMax)

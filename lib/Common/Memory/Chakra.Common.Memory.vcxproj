@@ -90,6 +90,7 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)SectionAllocWrapper.cpp" />
+    <ClCompile Include="DelayDeletingFunctionTable.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AllocationPolicyManager.h" />
@@ -157,6 +158,7 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </None>
     <None Include="HeapBlock.inl" />
+    <None Include="HeapBlockMap.inl" />
     <None Include="HeapBucket.inl" />
     <None Include="LargeHeapBucket.inl" />
     <None Include="MarkContext.inl" />

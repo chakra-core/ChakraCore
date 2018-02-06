@@ -1,0 +1,6 @@
+
+maybecallbug.js(10, 3)
+	Asm.js Compilation Error function : None::foo
+	Function bar doesn't support arguments
+
+Asm.js compilation failed.

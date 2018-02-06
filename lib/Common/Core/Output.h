@@ -136,9 +136,11 @@ private:
 
     THREAD_ST static bool s_capture;
     THREAD_ST static FILE * s_file;
+#ifdef _WIN32
     THREAD_ST static char16 * buffer;
     THREAD_ST static size_t bufferFreeSize;
     THREAD_ST static size_t bufferAllocSize;
+#endif
     THREAD_ST static size_t s_Column;
     THREAD_ST static WORD s_color;
     THREAD_ST static bool s_hasColor;

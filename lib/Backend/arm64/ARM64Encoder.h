@@ -279,8 +279,8 @@ public:
         ULONG BufferSizeInBytes
         ) 
         : m_BasePtr(BasePtr),
-          m_MaxOffset(BufferSizeInBytes / 4),
-          m_Offset(0)
+          m_Offset(0),
+          m_MaxOffset(BufferSizeInBytes / 4)
         {
         }
     

@@ -105,8 +105,6 @@
   <test>
     <default>
       <files>compare.js</files>
-      <baseline>compare.baseline</baseline>
-      <compile-flags>-Intl-</compile-flags>
     </default>
   </test>
   <test>
@@ -245,10 +243,10 @@
     <default>
       <files>unicode_toUpperCase_toLowerCase.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>exclude_win7</tags>
+      <tags>exclude_win7,exclude_noicu</tags>
     </default>
   </test>
-  <!--  This test is disabled as this is going to throw out of memory. Since this test takes time to reach the memory boundary, 
+  <!--  This test is disabled as this is going to throw out of memory. Since this test takes time to reach the memory boundary,
         it does not seem to be a good test to keep it enabled with -EnableFatalErrorOnOOM-
   <test>
     <default>

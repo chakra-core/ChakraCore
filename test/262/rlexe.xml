@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<regress-exe>
+  <test>
+    <default>
+      <compile-flags>-ESSharedArrayBuffer -Test262</compile-flags>
+      <files>262test.js</files>
+    </default>
+  </test>
+</regress-exe>

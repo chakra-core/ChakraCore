@@ -3,11 +3,11 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
-
 #include <sys/stat.h>
 
-//TODO: x-plat definitions
 #define MAX_URI_LENGTH 512
+
+//TODO: x-plat definitions
 #ifdef _WIN32
 #define TTD_MAX_FILE_LENGTH MAX_PATH
 #define TTD_HOST_PATH_SEP "\\"
@@ -92,125 +92,237 @@ JsTTDStreamHandle TTDHostOpen(size_t pathLength, const char* path, bool isWrite)
 #define TTDHostWrite(buff, size, handle) fwrite(buff, 1, size, (FILE*)handle)
 #endif
 
-HRESULT Helpers::LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, UINT* lengthBytesOut /*= nullptr*/)
+int GetPathNameLocation(LPCSTR filename)
 {
+    int filenameLength = (int) strlen(filename);
+    int pos;
+
+    if (filenameLength <= 0)
+    {
+        return -1;
+    }
+
+    for (pos = filenameLength - 1; pos >= 0; pos--)
+    {
+        char ch = filename[pos];
+        if (ch == '/' || ch == '\\') break;
+    }
+
+    return pos;
+}
+
+inline void pathcpy(char * target, LPCSTR src, uint length)
+{
+#ifndef _WIN32
+    for (int i = 0; i < length; i++)
+    {
+        if (src[i] == '\\')
+        {
+            target[i] = '/';
+        }
+        else
+        {
+            target[i] = src[i];
+        }
+    }
+#else
+    memcpy(target, src, length);
+#endif
+}
+
+uint ConcatPath(LPCSTR filenameLeft, uint posPathSep, LPCSTR filenameRight, char* buffer, uint bufferLength)
+{
+    int filenameRightLength = (int) strlen(filenameRight);
+
+    // [ path[/] ] + [filename] + /0
+    uint totalLength = posPathSep + filenameRightLength + 1;
+    if (buffer == nullptr)
+    {
+        return totalLength;
+    }
+
+    if (bufferLength < totalLength)
+    {
+        fprintf(stderr, "Error: file path is too long.\n");
+        return (uint)-1;
+    }
+
+    pathcpy(buffer, filenameLeft, posPathSep);
+    buffer += posPathSep;
+    pathcpy(buffer, filenameRight, filenameRightLength);
+    buffer += filenameRightLength;
+    buffer[0] = char(0);
+    return totalLength;
+}
+
+HRESULT Helpers::LoadScriptFromFile(LPCSTR filenameToLoad, LPCSTR& contents, UINT* lengthBytesOut /*= nullptr*/)
+{
+    static char sHostApplicationPathBuffer[MAX_URI_LENGTH];
+    static uint sHostApplicationPathBufferLength = (uint) -1;
+    char combinedPathBuffer[MAX_URI_LENGTH];
+
     HRESULT hr = S_OK;
     BYTE * pRawBytes = nullptr;
     UINT lengthBytes = 0;
     contents = nullptr;
     FILE * file = NULL;
 
-    //
-    // Open the file as a binary file to prevent CRT from handling encoding, line-break conversions,
-    // etc.
-    //
-    if (fopen_s(&file, filename, "rb") != 0)
+    LPCSTR filename = filenameToLoad;
+    if (sHostApplicationPathBufferLength == (uint)-1)
     {
-        if (!HostConfigFlags::flags.MuteHostErrorMsgIsEnabled)
+        // consider incoming filename as the host app and base its' path for others
+        sHostApplicationPathBufferLength = GetPathNameLocation(filename);
+        if (sHostApplicationPathBufferLength == -1)
         {
-#ifdef _WIN32
-            DWORD lastError = GetLastError();
-            char16 wszBuff[512];
-            fprintf(stderr, "Error in opening file '%s' ", filename);
-            wszBuff[0] = 0;
-            if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
-                nullptr,
-                lastError,
-                0,
-                wszBuff,
-                _countof(wszBuff),
-                nullptr))
-            {
-                fwprintf(stderr, _u(": %s"), wszBuff);
-            }
-            fwprintf(stderr, _u("\n"));
-#elif defined(_POSIX_VERSION)
-            fprintf(stderr, "Error in opening file: ");
-            perror(filename);
-#endif
+            // host app has no path info. (it must be located on current folder!)
+            sHostApplicationPathBufferLength = 0;
         }
+        else
+        {
+            sHostApplicationPathBufferLength += 1;
+            Assert(sHostApplicationPathBufferLength < MAX_URI_LENGTH);
+            // save host app's path and fix the path separator for platform
+            pathcpy(sHostApplicationPathBuffer, filename, sHostApplicationPathBufferLength);
+        }
+        sHostApplicationPathBuffer[sHostApplicationPathBufferLength] = char(0);
+    }
+    else if (filename[0] != '/' && filename[0] != '\\') // make sure it's not a full path
+    {
+        // concat host path and filename
+        uint len = ConcatPath(sHostApplicationPathBuffer, sHostApplicationPathBufferLength,
+                   filename, combinedPathBuffer, MAX_URI_LENGTH);
 
-        IfFailGo(E_FAIL);
+        if (len == (uint)-1)
+        {
+            hr = E_FAIL;
+            goto Error;
+        }
+        filename = combinedPathBuffer;
     }
 
-    if (file != NULL)
+    // check if have it registered
+    AutoString *data;
+    if (SourceMap::Find(filenameToLoad, strlen(filenameToLoad), &data) ||
+        SourceMap::Find(filename, strlen(filename), &data))
     {
-        // Determine the file length, in bytes.
-        fseek(file, 0, SEEK_END);
-        lengthBytes = ftell(file);
-        fseek(file, 0, SEEK_SET);
-        const size_t bufferLength = lengthBytes + sizeof(BYTE);
-        pRawBytes = (LPBYTE)malloc(bufferLength);
-        if (nullptr == pRawBytes)
+        contents = data->GetString();
+        if (lengthBytesOut != nullptr)
         {
-            fwprintf(stderr, _u("out of memory"));
-            IfFailGo(E_OUTOFMEMORY);
+            *lengthBytesOut = (UINT) data->GetLength();
         }
-
-        //
-        // Read the entire content as a binary block.
-        //
-        size_t readBytes = fread(pRawBytes, sizeof(BYTE), lengthBytes, file);
-        if (readBytes < lengthBytes * sizeof(BYTE))
+    }
+    else
+    {
+        // Open the file as a binary file to prevent CRT from handling encoding, line-break conversions,
+        // etc.
+        if (fopen_s(&file, filename, "rb") != 0)
         {
+            if (!HostConfigFlags::flags.MuteHostErrorMsgIsEnabled)
+            {
+#ifdef _WIN32
+                DWORD lastError = GetLastError();
+                char16 wszBuff[MAX_URI_LENGTH];
+                fprintf(stderr, "Error in opening file '%s' ", filename);
+                wszBuff[0] = 0;
+                if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                    nullptr,
+                    lastError,
+                    0,
+                    wszBuff,
+                    _countof(wszBuff),
+                    nullptr))
+                {
+                    fwprintf(stderr, _u(": %s"), wszBuff);
+                }
+                fwprintf(stderr, _u("\n"));
+#elif defined(_POSIX_VERSION)
+                fprintf(stderr, "Error in opening file: ");
+                perror(filename);
+#endif
+            }
+
             IfFailGo(E_FAIL);
         }
 
-        pRawBytes[lengthBytes] = 0; // Null terminate it. Could be UTF16
-
-        //
-        // Read encoding to make sure it's supported
-        //
-        // Warning: The UNICODE buffer for parsing is supposed to be provided by the host.
-        // This is not a complete read of the encoding. Some encodings like UTF7, UTF1, EBCDIC, SCSU, BOCU could be
-        // wrongly classified as ANSI
-        //
+        if (file != NULL)
         {
-#pragma warning(push)
-// suppressing prefast warning that "readable size is bufferLength bytes but 2 may be read" as bufferLength is clearly > 2 in the code that follows
-#pragma warning(disable:6385)
-            C_ASSERT(sizeof(WCHAR) == 2);
-            if (bufferLength > 2)
+            // Determine the file length, in bytes.
+            fseek(file, 0, SEEK_END);
+            lengthBytes = ftell(file);
+            fseek(file, 0, SEEK_SET);
+            const size_t bufferLength = lengthBytes + sizeof(BYTE);
+            pRawBytes = (LPBYTE)malloc(bufferLength);
+            if (nullptr == pRawBytes)
             {
-                __analysis_assume(bufferLength > 2);
-#pragma prefast(push)
-#pragma prefast(disable:6385, "PREfast incorrectly reports this as an out-of-bound access.");
-                if ((pRawBytes[0] == 0xFE && pRawBytes[1] == 0xFF) ||
-                    (pRawBytes[0] == 0xFF && pRawBytes[1] == 0xFE) ||
-                    (bufferLength > 4 && pRawBytes[0] == 0x00 && pRawBytes[1] == 0x00 &&
-                        ((pRawBytes[2] == 0xFE && pRawBytes[3] == 0xFF) ||
-                         (pRawBytes[2] == 0xFF && pRawBytes[3] == 0xFE))))
+                fwprintf(stderr, _u("out of memory"));
+                IfFailGo(E_OUTOFMEMORY);
+            }
 
+            //
+            // Read the entire content as a binary block.
+            //
+            size_t readBytes = fread(pRawBytes, sizeof(BYTE), lengthBytes, file);
+            if (readBytes < lengthBytes * sizeof(BYTE))
+            {
+                IfFailGo(E_FAIL);
+            }
+
+            pRawBytes[lengthBytes] = 0; // Null terminate it. Could be UTF16
+
+            //
+            // Read encoding to make sure it's supported
+            //
+            // Warning: The UNICODE buffer for parsing is supposed to be provided by the host.
+            // This is not a complete read of the encoding. Some encodings like UTF7, UTF1, EBCDIC, SCSU, BOCU could be
+            // wrongly classified as ANSI
+            //
+            {
+    #pragma warning(push)
+    // suppressing prefast warning that "readable size is bufferLength bytes but 2 may be read" as bufferLength is clearly > 2 in the code that follows
+    #pragma warning(disable:6385)
+                C_ASSERT(sizeof(WCHAR) == 2);
+                if (bufferLength > 2)
                 {
-                    // unicode unsupported
-                    fwprintf(stderr, _u("unsupported file encoding. Only ANSI and UTF8 supported"));
-                    IfFailGo(E_UNEXPECTED);
+                    __analysis_assume(bufferLength > 2);
+    #pragma prefast(push)
+    #pragma prefast(disable:6385, "PREfast incorrectly reports this as an out-of-bound access.");
+                    if ((pRawBytes[0] == 0xFE && pRawBytes[1] == 0xFF) ||
+                        (pRawBytes[0] == 0xFF && pRawBytes[1] == 0xFE) ||
+                        (bufferLength > 4 && pRawBytes[0] == 0x00 && pRawBytes[1] == 0x00 &&
+                            ((pRawBytes[2] == 0xFE && pRawBytes[3] == 0xFF) ||
+                            (pRawBytes[2] == 0xFF && pRawBytes[3] == 0xFE))))
+
+                    {
+                        // unicode unsupported
+                        fwprintf(stderr, _u("unsupported file encoding. Only ANSI and UTF8 supported"));
+                        IfFailGo(E_UNEXPECTED);
+                    }
+    #pragma prefast(pop)
                 }
-#pragma prefast(pop)
+            }
+    #pragma warning(pop)
+        }
+
+        contents = reinterpret_cast<LPCSTR>(pRawBytes);
+
+    Error:
+        if (SUCCEEDED(hr))
+        {
+            if (lengthBytesOut)
+            {
+                *lengthBytesOut = lengthBytes;
             }
         }
-#pragma warning(pop)
-    }
 
-    contents = reinterpret_cast<LPCSTR>(pRawBytes);
-
-Error:
-    if (SUCCEEDED(hr))
-    {
-        if (lengthBytesOut)
+        if (file != NULL)
         {
-            *lengthBytesOut = lengthBytes;
+            fclose(file);
         }
-    }
 
-    if (file != NULL)
-    {
-        fclose(file);
-    }
-
-    if (pRawBytes && reinterpret_cast<LPCSTR>(pRawBytes) != contents)
-    {
-        free(pRawBytes);
+        if (pRawBytes && reinterpret_cast<LPCSTR>(pRawBytes) != contents)
+        {
+            free(pRawBytes);
+        }
     }
 
     return hr;
@@ -315,9 +427,9 @@ HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthB
             fprintf(stderr, "Error in opening file '%s' ", filename);
 #ifdef _WIN32
             DWORD lastError = GetLastError();
-            char16 wszBuff[512];
+            char16 wszBuff[MAX_URI_LENGTH];
             wszBuff[0] = 0;
-            if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
+            if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                 nullptr,
                 lastError,
                 0,
@@ -330,7 +442,7 @@ HRESULT Helpers::LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthB
 #endif
             fprintf(stderr, "\n");
         }
-        return E_FAIL;        
+        return E_FAIL;
     }
     // file will not be nullptr if _wfopen_s succeeds
     __analysis_assume(file != nullptr);
@@ -375,8 +487,9 @@ void Helpers::TTReportLastIOErrorAsNeeded(BOOL ok, const char* msg)
 #ifdef _WIN32
         DWORD lastError = GetLastError();
         LPTSTR pTemp = NULL;
-        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, lastError, 0, (LPTSTR)&pTemp, 0, NULL);
+        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, lastError, 0, (LPTSTR)&pTemp, 0, NULL);
         fwprintf(stderr, _u("Error is: %s\n"), pTemp);
+        LocalFree(pTemp);
 #else
         fprintf(stderr, "Error is: %i %s\n", errno, strerror(errno));
 #endif
@@ -415,7 +528,7 @@ void Helpers::CreateTTDDirectoryAsNeeded(size_t* uriLength, char* uri, const cha
     if(success != 0)
     {
         //we may fail because someone else created the directory -- that is ok
-        Helpers::TTReportLastIOErrorAsNeeded(errno != ENOENT, "Failed to create directory");
+        Helpers::TTReportLastIOErrorAsNeeded(errno == EEXIST, "Failed to create directory");
     }
 
     char realAsciiDir2[MAX_TTD_ASCII_PATH_EXT_LENGTH];
@@ -443,7 +556,7 @@ void Helpers::CreateTTDDirectoryAsNeeded(size_t* uriLength, char* uri, const cha
     if(success != 0)
     {
         //we may fail because someone else created the directory -- that is ok
-        Helpers::TTReportLastIOErrorAsNeeded(errno != ENOENT, "Failed to create directory");
+        Helpers::TTReportLastIOErrorAsNeeded(errno == EEXIST, "Failed to create directory");
     }
 }
 

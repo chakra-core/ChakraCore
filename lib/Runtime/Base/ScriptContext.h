@@ -370,7 +370,7 @@ namespace Js
 #endif
         Js::ImplicitCallFlags savedImplicitCallFlags;
 
-        void * returnAddrOfScriptEntryFunction;
+        void * addrOfReturnAddrOfScriptEntryFunction;
         void * frameIdOfScriptExitFunction; // the frameAddres in x86, the return address in amd64/arm_soc
         ScriptContext * scriptContext;
         struct ScriptEntryExitRecord * next;
@@ -929,6 +929,12 @@ private:
 
         void InternalClose();
 
+        template <typename TProperty> void InvalidatePropertyCache(PropertyId propertyId, Type* type);
+        void InvalidatePropertyRecordUsageCache(PropertyRecordUsageCache* propertyRecordUsageCache, Type *type);
+        template <typename TProperty> TProperty* TryGetProperty(PropertyId propertyId);
+        template <typename TProperty> TProperty* GetProperty(PropertyId propertyId, const PropertyRecord* propertyRecord);
+        template <typename TProperty> TProperty* CreateAndCacheSymbolOrPropertyString(const PropertyRecord* propertyRecord);
+
     public:
 
 #ifdef LEAK_REPORT
@@ -1144,7 +1150,10 @@ private:
         bool TTDShouldPerformRecordAction;
         bool TTDShouldPerformReplayAction;
 
-        bool TTDShouldPerformDebuggerAction;
+        bool TTDShouldPerformRecordOrReplayDebuggerAction;
+        bool TTDShouldPerformRecordDebuggerAction;
+        bool TTDShouldPerformReplayDebuggerAction;
+
         bool TTDShouldSuppressGetterInvocationForDebuggerEvaluation;
 
         //Check if the TTD system has been activated (and record/replay may or may not be enabled)
@@ -1166,7 +1175,13 @@ private:
         bool ShouldPerformReplayAction() const { return this->TTDShouldPerformReplayAction; }
 
         //Use this to check specifically if we are in debugging mode AND this code is being run on behalf of the user application
-        bool ShouldPerformDebuggerAction() const { return this->TTDShouldPerformDebuggerAction; }
+        bool ShouldPerformRecordOrReplayDebuggerAction() const { return this->TTDShouldPerformRecordOrReplayDebuggerAction; }
+
+        //Use this to check specifically if we are in debugging record mode AND this code is being run on behalf of the user application
+        bool ShouldPerformRecordDebuggerAction() const { return this->TTDShouldPerformRecordDebuggerAction; }
+
+        //Use this to check specifically if we are in debugging replay mode AND this code is being run on behalf of the user application
+        bool ShouldPerformReplayDebuggerAction() const { return this->TTDShouldPerformReplayDebuggerAction; }
 
         //A special check to see if we are debugging and want to suppress the execution of getters (which may be triggered by displaying values in the debugger)
         bool ShouldSuppressGetterInvocationForDebuggerEvaluation() const { return this->TTDShouldSuppressGetterInvocationForDebuggerEvaluation; }
@@ -1322,9 +1337,11 @@ private:
         void SetDisposeDisposeByFaultInjectionEventHandler(EventHandler eventHandler);
 #endif
         EnumeratedObjectCache* GetEnumeratedObjectCache() { return &(this->Cache()->enumObjCache); }
-        PropertyString* TryGetPropertyString(PropertyId propertyId);
         PropertyString* GetPropertyString(PropertyId propertyId);
-        void InvalidatePropertyStringCache(PropertyId propertyId, Type* type);
+        PropertyString* GetPropertyString(const PropertyRecord* propertyRecord);
+        JavascriptSymbol* GetSymbol(PropertyId propertyId);
+        JavascriptSymbol* GetSymbol(const PropertyRecord* propertyRecord);
+        void InvalidatePropertyStringAndSymbolCaches(PropertyId propertyId, Type* type);
         JavascriptString* GetIntegerString(Var aValue);
         JavascriptString* GetIntegerString(int value);
         JavascriptString* GetIntegerString(uint value);
@@ -1564,14 +1581,17 @@ private:
 #endif
 
 #if ENABLE_NATIVE_CODEGEN
-        HRESULT RecreateNativeCodeGenerator();
+        HRESULT RecreateNativeCodeGenerator(NativeCodeGenerator ** previousCodeGen = nullptr);
+        void DeletePreviousNativeCodeGenerator(NativeCodeGenerator * codeGen);
+        HRESULT OnDebuggerAttachedDetached(bool attach, NativeCodeGenerator ** previousCodeGenHolder = nullptr);
+#else
+        HRESULT OnDebuggerAttachedDetached(bool attach);
 #endif
         bool IsForceNoNative();
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
         HRESULT OnDebuggerAttached();
         HRESULT OnDebuggerDetached();
-        HRESULT OnDebuggerAttachedDetached(bool attach);
         void InitializeDebugging();
         bool IsEnumeratingRecyclerObjects() const { return isEnumeratingRecyclerObjects; }
     private:
@@ -1594,7 +1614,7 @@ private:
         private:
             ScriptContext* m_scriptContext;
         };
-#endif        
+#endif
 
 #ifdef EDIT_AND_CONTINUE
     private:
@@ -1678,7 +1698,7 @@ private:
         HRESULT OnDispatchFunctionExit(const WCHAR *pwszFunctionName);
 
 #endif // ENABLE_SCRIPT_PROFILING
-       
+
         void OnStartupComplete();
         void SaveStartupProfileAndRelease(bool isSaveOnClose = false);
 
@@ -1720,6 +1740,7 @@ private:
         virtual intptr_t GetNegativeZeroAddr() const override;
         virtual intptr_t GetNumberTypeStaticAddr() const override;
         virtual intptr_t GetStringTypeStaticAddr() const override;
+        virtual intptr_t GetSymbolTypeStaticAddr() const override;
         virtual intptr_t GetObjectTypeAddr() const override;
         virtual intptr_t GetObjectHeaderInlinedTypeAddr() const override;
         virtual intptr_t GetRegexTypeAddr() const override;

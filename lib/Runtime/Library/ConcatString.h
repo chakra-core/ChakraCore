@@ -13,7 +13,9 @@ namespace Js
         Field(const Js::PropertyRecord*) propertyRecord;
 
     public:
-        virtual Js::PropertyRecord const * GetPropertyRecord(bool dontLookupFromDictionary = false) override;
+        virtual void GetPropertyRecord(_Out_ PropertyRecord const** propRecord, bool dontLookupFromDictionary = false) override;
+
+        bool HasPropertyRecord() const { return propertyRecord != nullptr; }
 
         PropertyString * GetPropertyString() const;
         PropertyString * GetOrAddPropertyString(); // Get if it's there, otherwise bring it in.
@@ -111,6 +113,7 @@ namespace Js
 
         virtual void CopyVirtual(_Out_writes_(m_charLength) char16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos, const byte recursionDepth) override
         {
+#pragma prefast(suppress: __WARNING_POTENTIAL_BUFFER_OVERFLOW_HIGH_PRIORITY, "WDGVSO:14980704 The CopyImpl method uses GetLength() to ensure we only access m_charLength elements of buffer.")
             __super::CopyImpl(buffer, N, AddressOf(m_slots[0]), nestedStringTreeCopyInfos, recursionDepth);
         }
         virtual int GetRandomAccessItemsFromConcatString(Js::JavascriptString * const *& items) const
@@ -202,6 +205,7 @@ namespace Js
         virtual void CopyVirtual(_Out_writes_(m_charLength) char16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos, const byte recursionDepth) override sealed
         {
             const_cast<ConcatStringWrapping *>(this)->EnsureAllSlots();
+#pragma prefast(suppress: __WARNING_POTENTIAL_BUFFER_OVERFLOW_HIGH_PRIORITY, "WDGVSO:14980704 The CopyImpl method uses GetLength() to ensure we only access m_charLength elements of buffer.")
             __super::CopyImpl(buffer, _countof(m_slots), AddressOf(m_slots[0]), nestedStringTreeCopyInfos, recursionDepth);
         }
         virtual int GetRandomAccessItemsFromConcatString(Js::JavascriptString * const *& items) const override sealed
@@ -228,7 +232,7 @@ namespace Js
     };
 
     // Make sure the padding doesn't add tot he size of ConcatStringWrapping
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
     CompileAssert(sizeof(ConcatStringWrapping<_u('"'), _u('"')>) == 64);
 #else
     CompileAssert(sizeof(ConcatStringWrapping<_u('"'), _u('"')>) == 32);
@@ -251,6 +255,7 @@ namespace Js
         virtual void CopyVirtual(_Out_writes_(m_charLength) char16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos, const byte recursionDepth) override
         {
             Assert(IsFilled());
+#pragma prefast(suppress: __WARNING_POTENTIAL_BUFFER_OVERFLOW_HIGH_PRIORITY, "WDGVSO:14980704 The CopyImpl method uses GetLength() to ensure we only access m_charLength elements of buffer.")
             __super::CopyImpl(buffer, slotCount, AddressOf(m_slots[0]), nestedStringTreeCopyInfos, recursionDepth);
         }
         virtual int GetRandomAccessItemsFromConcatString(Js::JavascriptString * const *& items) const

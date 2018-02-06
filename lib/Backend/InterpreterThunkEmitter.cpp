@@ -373,7 +373,12 @@ bool InterpreterThunkEmitter::NewThunkBlock()
     }
 
     // Call to set VALID flag for CFG check
-    ThreadContext::GetContextForCurrentThread()->SetValidCallTargetForCFG(buffer);
+    BYTE* callTarget = buffer;
+#ifdef _M_ARM
+    // We want to allow the actual callable value, so thumb-tag the address
+    callTarget = (BYTE*)((uintptr_t)buffer | 0x1);
+#endif
+    ThreadContext::GetContextForCurrentThread()->SetValidCallTargetForCFG(callTarget);
 
     // Update object state only at the end when everything has succeeded - and no exceptions can be thrown.
     auto block = this->thunkBlocks.PrependNode(allocator, buffer, count);
@@ -411,7 +416,12 @@ bool InterpreterThunkEmitter::NewOOPJITThunkBlock()
 
     if (!CONFIG_FLAG(OOPCFGRegistration))
     {
-        this->scriptContext->GetThreadContext()->SetValidCallTargetForCFG(buffer);
+        BYTE* callTarget = buffer;
+#ifdef _M_ARM
+        // Need to register the thumb-tagged call target for CFG
+        callTarget = (BYTE*)((uintptr_t)callTarget | 0x1);
+#endif
+        this->scriptContext->GetThreadContext()->SetValidCallTargetForCFG(callTarget);
     }
 
     // Update object state only at the end when everything has succeeded - and no exceptions can be thrown.

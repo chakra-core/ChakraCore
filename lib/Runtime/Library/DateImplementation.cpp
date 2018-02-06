@@ -1043,7 +1043,6 @@ Error:
 
         char16 *pchBase;
         char16 *pch;
-        char16 *pchEndOfDigits = nullptr;
         char16 ch;
         char16 *pszSrc = nullptr;
 
@@ -1067,6 +1066,7 @@ Error:
         int tAmPm = 0;
         int tBcAd = 0;
 
+        size_t numOfDigits = 0;
         double tv = JavascriptNumber::NaN; // Initialized for error handling.
 
         //Create a copy to analyze
@@ -1080,6 +1080,7 @@ Error:
         _wcslwr_s(pszSrc,ulength+1);
         bool isDateNegativeVersion5 = false;
         bool isNextFieldDateNegativeVersion5 = false;
+        bool isZeroPaddedYear = false;
         const Js::CharClassifier *classifier = scriptContext->GetCharClassifier();
         #pragma prefast(suppress: __WARNING_INCORRECT_VALIDATION, "pch is guaranteed to be null terminated by __in_z on psz and js_memcpy_s copying the null byte")
         for (pch = pszSrc; 0 != (ch = classifier->SkipBiDirectionalChars(pch));)
@@ -1235,6 +1236,12 @@ Error:
                             goto LError;
                         }
                         lwMonth = pszs->lwVal;
+                        if ('-' == *pch)
+                        {
+                            // handle the case date is negative for "Thu, 23 Sep -0007 00:00:00 GMT"
+                            isDateNegativeVersion5 = true;
+                            pch++;
+                        }
                         break;
                     }
                     case ParseStringTokenType::Zone:
@@ -1269,7 +1276,7 @@ Error:
                 lwT = lwT * 10 + *pch - '0';
             }
 
-            pchEndOfDigits = pch;
+            numOfDigits = pch - pchBase;
             // skip to the next real character
             while (0 != (ch = *pch) && (ch <= ' ' || classifier->IsBiDirectionalChar(ch)))
             {
@@ -1317,7 +1324,6 @@ Error:
                 {
                     AssertMsg(isNextFieldDateNegativeVersion5 == false, "isNextFieldDateNegativeVersion5 == false");
 
-                    size_t numOfDigits = static_cast<size_t>(pchEndOfDigits - pchBase);
                     if (numOfDigits <= 1)
                     {
                         // 1 digit only, treat it as hundreds
@@ -1395,6 +1401,10 @@ Error:
                     AssertMsg(isDateNegativeVersion5 == false, "lwYear should be positive as pre-version:5 parsing");
                     lwYear = lwT;
                     ss = ssNil;
+                    if (lwT < 1000 && numOfDigits >= 4)
+                    {
+                        isZeroPaddedYear = true;
+                    }
                     break;
                 }
                 default:
@@ -1402,7 +1412,8 @@ Error:
                     // assumptions for getting a YEAR:
                     //    - an absolute value greater or equal than 70 (thus not hour!)
                     //    - wasn't preceded by negative sign for -version:5 year format
-                    if (lwT >= 70 || isNextFieldDateNegativeVersion5)
+                    //    - lwT has at least 4 digits (e.g. 0017 is year 17 AD)
+                    if (lwT >= 70 || isNextFieldDateNegativeVersion5 || numOfDigits >= 4)
                     {
                         // assume it's a year - this is used particularly as version:5 year parsing
                         if (lwNil != lwYear)
@@ -1411,6 +1422,11 @@ Error:
                         // handle the case date is negative for "Tue Feb 02 -2012 01:02:03 GMT-0800"
                         lwYear = isDateNegativeVersion5 ? -lwT : lwT;
                         isNextFieldDateNegativeVersion5 = false;
+
+                        if (lwT < 1000 && numOfDigits >= 4)
+                        {
+                            isZeroPaddedYear = true;
+                        }
 
                         if (FDateDelimiter(ch))
                         {
@@ -1484,7 +1500,9 @@ Error:
             continue;
         }
 
-        if (lwNil == lwYear || lwNil == lwMonth || lwNil == lwDate)
+        if (lwNil == lwYear ||
+            lwNil == lwMonth || lwMonth > 11 ||
+            lwNil == lwDate || lwDate > 31)
         {
             goto LError;
         }
@@ -1497,11 +1515,11 @@ Error:
                 lwYear = -lwYear + 1;
             }
         }
-        else if (lwYear < 50 && isDateNegativeVersion5 == false)
+        else if (lwYear < 50 && isDateNegativeVersion5 == false && isZeroPaddedYear == false)
         {
             lwYear += 2000;
         }
-        else if (lwYear < 100 && isDateNegativeVersion5 == false)
+        else if (lwYear < 100 && isDateNegativeVersion5 == false && isZeroPaddedYear == false)
         {
             lwYear += 1900;
         }

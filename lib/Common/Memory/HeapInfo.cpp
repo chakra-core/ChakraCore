@@ -4,9 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
 #include "Memory/PageHeapBlockTypeFilter.h"
-#if defined(_M_IX86_OR_ARM32)
+#if defined(TARGET_32)
 #include "ValidPointersMap/vpm.32b.h"
-#elif defined(_M_X64_OR_ARM64)
+#elif defined(TARGET_64)
 #include "ValidPointersMap/vpm.64b.h"
 #else
 #error "Platform is not handled"
@@ -246,9 +246,9 @@ HRESULT HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>::GenerateVali
         for (unsigned j = 0; j < (*invalid)[i].wordCount; ++j)
         {
             const char16 *format = (j < (*invalid)[i].wordCount - 1) ?
-#if defined(_M_IX86_OR_ARM32)
+#if defined(TARGET_32)
                 _u("0x%08X, ") : _u("0x%08X")
-#elif defined(_M_X64_OR_ARM64)
+#elif defined(TARGET_64)
                 _u("0x%016I64X, ") : _u("0x%016I64X")
 #else
 #error "Platform is not handled"
@@ -345,9 +345,9 @@ HRESULT HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes>::GenerateVal
         for (unsigned j = 0; j < (*invalid)[i].wordCount; ++j)
         {
             const char16 *format = (j < (*invalid)[i].wordCount - 1) ?
-#if defined(_M_IX86_OR_ARM32)
+#if defined(TARGET_32)
                 _u("0x%08X, ") : _u("0x%08X")
-#elif defined(_M_X64_OR_ARM64)
+#elif defined(TARGET_64)
                 _u("0x%016I64X, ") : _u("0x%016I64X")
 #else
 #error "Platform is not handled"
@@ -409,9 +409,9 @@ HRESULT HeapInfo::ValidPointersMap<TBlockAttributes>::GenerateValidPointersMapHe
             _u("// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.\n")
             _u("//-------------------------------------------------------------------------------------------------------\n")
             _u("// Generated via jshost -GenerateValidPointersMapHeader\n")
-#if defined(_M_IX86_OR_ARM32)
+#if defined(TARGET_32)
             _u("// Target platforms: 32bit - x86 & arm\n")
-#elif defined(_M_X64_OR_ARM64)
+#elif defined(TARGET_64)
             _u("// Target platform: 64bit - amd64 & arm64\n")
 #else
 #error "Platform is not handled"
@@ -1498,7 +1498,7 @@ HeapInfo::SweepPendingObjects(RecyclerSweep& recyclerSweep)
 }
 #endif
 
-#if ENABLE_CONCURRENT_GC && ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
 void HeapInfo::StartAllocationsDuringConcurrentSweep()
 {
     for (uint i = 0; i < HeapConstants::BucketCount; i++)
@@ -1510,6 +1510,65 @@ void HeapInfo::StartAllocationsDuringConcurrentSweep()
     for (uint i = 0; i < HeapConstants::MediumBucketCount; i++)
     {
         mediumHeapBuckets[i].StartAllocationDuringConcurrentSweep();
+    }
+#endif
+}
+
+bool
+HeapInfo::DoTwoPassConcurrentSweepPreCheck()
+{
+    bool enableTwoPassSweep = false;
+    // We will continue to do the check for all the buckets so we can enable/disable the feature 
+    // per bucket.
+    for (uint i = 0; i < HeapConstants::BucketCount; i++)
+    {
+        if (heapBuckets[i].DoTwoPassConcurrentSweepPreCheck())
+        {
+            enableTwoPassSweep = true;
+        }
+    }
+
+#if defined(BUCKETIZE_MEDIUM_ALLOCATIONS) && SMALLBLOCK_MEDIUM_ALLOC
+    for (uint i = 0; i < HeapConstants::MediumBucketCount; i++)
+    {
+        if (mediumHeapBuckets[i].DoTwoPassConcurrentSweepPreCheck())
+        {
+            enableTwoPassSweep = true;
+        }
+    }
+#endif
+
+    return enableTwoPassSweep;
+}
+
+void
+HeapInfo::FinishConcurrentSweepPass1(RecyclerSweep& recyclerSweep)
+{
+    for (uint i = 0; i < HeapConstants::BucketCount; i++)
+    {
+        heapBuckets[i].FinishConcurrentSweepPass1(recyclerSweep);
+    }
+
+#if defined(BUCKETIZE_MEDIUM_ALLOCATIONS) && SMALLBLOCK_MEDIUM_ALLOC
+    for (uint i = 0; i < HeapConstants::MediumBucketCount; i++)
+    {
+        mediumHeapBuckets[i].FinishConcurrentSweepPass1(recyclerSweep);
+    }
+#endif
+}
+
+void
+HeapInfo::FinishSweepPrep(RecyclerSweep& recyclerSweep)
+{
+    for (uint i = 0; i < HeapConstants::BucketCount; i++)
+    {
+        heapBuckets[i].FinishSweepPrep(recyclerSweep);
+    }
+
+#if defined(BUCKETIZE_MEDIUM_ALLOCATIONS) && SMALLBLOCK_MEDIUM_ALLOC
+    for (uint i = 0; i < HeapConstants::MediumBucketCount; i++)
+    {
+        mediumHeapBuckets[i].FinishSweepPrep(recyclerSweep);
     }
 #endif
 }
@@ -1631,7 +1690,12 @@ HeapInfo::DisposeObjects()
 
     recycler->hasPendingTransferDisposedObjects = true;
 #if ENABLE_CONCURRENT_GC
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 
+    // As during concurrent sweep we start/stop allocations it is safer to prevent transferring disposed objects altogether.
+    if (!recycler->IsConcurrentExecutingState() && !recycler->IsConcurrentSweepState())
+#else
     if (!recycler->IsConcurrentExecutingState())
+#endif
 #endif
     {
         // Can't transfer disposed object when the background thread is walking the heap block list
@@ -1653,7 +1717,11 @@ HeapInfo::TransferDisposedObjects()
     Recycler * recycler = this->recycler;
     Assert(recycler->hasPendingTransferDisposedObjects);
 #if ENABLE_CONCURRENT_GC
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 
+    Assert(!recycler->IsConcurrentExecutingState() && !recycler->IsConcurrentSweepState());
+#else
     Assert(!recycler->IsConcurrentExecutingState());
+#endif
 #endif
     recycler->hasPendingTransferDisposedObjects = false;
 

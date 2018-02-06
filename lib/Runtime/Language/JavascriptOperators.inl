@@ -11,10 +11,7 @@ namespace Js
         AssertMsg(obj != nullptr, "GetTypeId aValue is null");
 
         auto typeId = obj->GetTypeId();
-#if DBG
-        auto isExternal = obj->CanHaveInterceptors();
-        AssertMsg(typeId < TypeIds_Limit || isExternal, "GetTypeId aValue has invalid TypeId");
-#endif
+        AssertMsg(typeId < TypeIds_Limit || obj->IsExternal(), "GetTypeId aValue has invalid TypeId");
         return typeId;
     }
 
@@ -154,6 +151,22 @@ namespace Js
         else
         {
             return CheckPrototypesForAccessorOrNonWritablePropertyCore<PropertyKeyType, /*doFastProtoChainCheck*/false, false>(instance, propertyKey, setterValue, flags, nullptr, scriptContext);
+        }
+    }
+
+    template <typename Fn>
+    Var JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(RecyclableObject* constructor, Var defaultConstructor, ThreadContext * threadContext, Fn newObjectCreationFunction)
+    {
+        if (constructor != defaultConstructor)
+        {
+            return threadContext->ExecuteImplicitCall(constructor, Js::ImplicitCall_Accessor, [=]()->Js::Var
+            {
+                return newObjectCreationFunction();
+            });
+        }
+        else
+        {
+            return newObjectCreationFunction();
         }
     }
 }

@@ -1614,6 +1614,11 @@
                     inType="win:UInt16"
                     name="NameBufferCount"
                     />
+                <data
+                    inType="win:UnicodeString"
+                    length="NameBufferCount"
+                    name="NameBuffer"
+                    />
                 <struct
                     count="FrameCount"
                     name="Frames"
@@ -1635,11 +1640,6 @@
                         name="NameIndex"
                         />
                 </struct>
-                <data
-                    inType="win:UnicodeString"
-                    length="NameBufferCount"
-                    name="NameBuffer"
-                    />
                 </template>
                 <template tid="Element_Zero">
                 <data
@@ -1836,7 +1836,12 @@
                     inType="win:UInt32"
                     name="FrameNameBufferCount"
                     />
-                <struct
+                <data
+                    inType="win:UnicodeString"
+                    length="FrameNameBufferCount"
+                    name="FrameNameBuffer"
+                    />
+                  <struct
                     count="FrameCount"
                     name="Frames"
                     >
@@ -1862,11 +1867,6 @@
                         name="IsFrameNameIndex"
                         />
                 </struct>
-                <data
-                    inType="win:UnicodeString"
-                    length="FrameNameBufferCount"
-                    name="FrameNameBuffer"
-                    />
                 </template>
                 <template tid="JscriptHostNativeModuleLoad">
                 <data
@@ -1913,12 +1913,7 @@
                 </template>
                 <template tid="JScriptSourceMappingInfo">
                 <data
-                    inType="win:UInt32"
-                    name="ReasonBufferCount"
-                    />
-                <data
                     inType="win:UnicodeString"
-                    length="ReasonBufferCount"
                     name="ReasonBuffer"
                     />
                 <data

@@ -185,6 +185,9 @@ goto :main
   if /i "%1" == "-DumpOnCrash"      set _DumpOnCrash=1&                                         goto :ArgOk
   if /i "%1" == "-CrashOnException" set _CrashOnException=1&                                    goto :ArgOk
 
+  ::Timeout flag
+  if /i "%1" == "-timeout"          set _TestTimeout=%~2&                                       goto : ArgOkShift2
+
   if /i "%1" == "-extraVariants" (
     :: Extra variants are specified by the user but not run by default.
     if "%_ExtraVariants%" == "" (
@@ -418,6 +421,8 @@ goto :main
   if "%_TESTCONFIG%"=="disable_jit" (
     set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -nonative
     set EXTRA_RL_FLAGS=-nottags:exclude_interpreted -nottags:fails_interpreted -nottags:require_backend
+  ) else (
+    set EXTRA_RL_FLAGS=%EXTRA_RL_FLAGS% -nottags:require_disable_jit
   )
   if "%_TESTCONFIG%"=="lite" (
     set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -nonative
@@ -458,6 +463,9 @@ goto :main
     set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -LargeByteCodeLayout -forceserialized
     set EXTRA_RL_FLAGS=-nottags:exclude_bytecodelayout -nottags:exclude_forceserialized
     set _exclude_serialized=-nottags:exclude_serialized
+  )
+  if not "%_TestTimeout%" == "" (
+    set EXTRA_RL_FLAGS=%EXTRA_RL_FLAGS% -timeout:%_TestTimeout%
   )
 
   echo.

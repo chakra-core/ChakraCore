@@ -50,6 +50,7 @@ public:
     static const uint16     GetFormalParamOffset();
 
     static const Js::OpCode MDUncondBranchOpcode;
+    static const Js::OpCode MDMultiBranchOpcode;
     static const Js::OpCode MDTestOpcode;
     static const Js::OpCode MDOrOpcode;
     static const Js::OpCode MDXorOpcode;
@@ -59,6 +60,7 @@ public:
     static const Js::OpCode MDConvertFloat64ToFloat32Opcode;
     static const Js::OpCode MDCallOpcode;
     static const Js::OpCode MDImulOpcode;
+    static const Js::OpCode MDLea;
 
 public:
             void            Init(Lowerer *lowerer);
@@ -71,7 +73,6 @@ public:
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr);
     static  IR::Instr *     ChangeToAssignNoBarrierCheck(IR::Instr * instr);
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr, IRType type);
-    static  IR::Instr *     ChangeToLea(IR::Instr *const instr, bool postRegAlloc = false);
     static  IR::Instr *     ForceDstToReg(IR::Instr *instr);
     static  void            ImmedSrcToReg(IR::Instr * instr, IR::Opnd * newOpnd, int srcNum);
 
@@ -83,12 +84,8 @@ public:
             IR::Instr *     LoadInputParamCount(IR::Instr * instr, int adjust = 0, bool needFlags = false);
             IR::Instr *     LoadArgumentsFromFrame(IR::Instr * instr);
             IR::Instr *     LowerRet(IR::Instr * instr);
-    static  IR::Instr *     LowerUncondBranch(IR::Instr * instr);
-    static  IR::Instr *     LowerMultiBranch(IR::Instr * instr);
             IR::Instr *     LowerCondBranch(IR::Instr * instr);
             IR::Instr *     LoadFunctionObjectOpnd(IR::Instr *instr, IR::Opnd *&functionObjOpnd);
-            IR::Instr *     LowerLdEnv(IR::Instr *instr);
-            IR::Instr *     LowerLdSuper(IR::Instr * instr, IR::JnHelperMethod helperOpCode);
             IR::Instr *     GenerateSmIntPairTest(IR::Instr * instrInsert, IR::Opnd * opndSrc1, IR::Opnd * opndSrc2, IR::LabelInstr * labelFail);
 #if DBG
     static  void            GenerateDebugBreak(IR::Instr * insertInstr);
@@ -114,6 +111,7 @@ public:
             bool            GenerateFastOr(IR::Instr * instrOr);
             bool            GenerateFastNot(IR::Instr * instrNot);
             bool            GenerateFastNeg(IR::Instr * instrNeg);
+            bool            GenerateFastDivAndRem(IR::Instr* instrDiv, IR::LabelInstr* bailOutLabel = false);
             bool            GenerateFastShiftLeft(IR::Instr * instrShift);
             bool            GenerateFastShiftRight(IR::Instr * instrShift);
             void            GenerateFastBrS(IR::BranchInstr *brInstr);
@@ -128,12 +126,10 @@ public:
             IR::Instr *     GenerateFastScopedFld(IR::Instr * instrScopedFld, bool isLoad);
             IR::Instr *     GenerateFastScopedLdFld(IR::Instr * instrLdFld);
             IR::Instr *     GenerateFastScopedStFld(IR::Instr * instrStFld);
-            bool            GenerateJSBooleanTest(IR::RegOpnd * regSrc, IR::Instr * insertInstr, IR::LabelInstr * labelTarget, bool fContinueLabel = false);
             void            GenerateFastAbs(IR::Opnd *dst, IR::Opnd *src, IR::Instr *callInstr, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, IR::LabelInstr *doneLabel);
             bool            GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR::Opnd *srcStr, IR::Opnd *srcIndex, IR::Instr *callInstr, IR::Instr *insertInstr,
                 IR::LabelInstr *labelHelper, IR::LabelInstr *doneLabel);
             bool            TryGenerateFastMulAdd(IR::Instr * instrAdd, IR::Instr ** pInstrPrev);
-            bool            GenerateLdThisStrict(IR::Instr* instr);
             void            GenerateFloatTest(IR::RegOpnd * opndSrc, IR::Instr * insertInstr, IR::LabelInstr* labelHelper, const bool checkForNullInLoopBody = false);
 
      static void            EmitInt4Instr(IR::Instr *instr);
@@ -145,7 +141,6 @@ public:
      static void            LowerInt4SubWithBailOut(IR::Instr *const instr, const IR::BailOutKind bailOutKind, IR::LabelInstr *const bailOutLabel, IR::LabelInstr *const skipBailOutLabel);
      static void            LowerInt4MulWithBailOut(IR::Instr *const instr, const IR::BailOutKind bailOutKind, IR::LabelInstr *const bailOutLabel, IR::LabelInstr *const skipBailOutLabel);
             void            LowerInt4RemWithBailOut(IR::Instr *const instr, const IR::BailOutKind bailOutKind, IR::LabelInstr *const bailOutLabel, IR::LabelInstr *const skipBailOutLabel) const;
-            void            MarkOneFltTmpSym(StackSym *sym, BVSparse<JitArenaAllocator> *bvTmps, bool fFltPrefOp);
             void            GenerateNumberAllocation(IR::RegOpnd * opndDst, IR::Instr * instrInsert, bool isHelper);
             void            GenerateFastRecyclerAlloc(size_t allocSize, IR::RegOpnd* newObjDst, IR::Instr* insertionPointInstr, IR::LabelInstr* allocHelperLabel, IR::LabelInstr* allocDoneLabel);
             void            SaveDoubleToVar(IR::RegOpnd * dstOpnd, IR::RegOpnd *opndFloat, IR::Instr *instrOrig, IR::Instr *instrInsert, bool isHelper = false);
@@ -154,23 +149,13 @@ public:
 
             void LoadFloatValue(IR::RegOpnd * javascriptNumber, IR::RegOpnd * opndFloat, IR::LabelInstr * labelHelper, IR::Instr * instrInsert, const bool checkFornullptrInLoopBody = false);
 
-            IR::Instr *     LoadStackAddress(StackSym *sym, IR::RegOpnd *regDst = nullptr);
-            IR::Instr *     LowerCatch(IR::Instr *instr);
-
-            IR::Instr *     LowerGetCachedFunc(IR::Instr *instr);
-            IR::Instr *     LowerCommitScope(IR::Instr *instr);
-
             IR::Instr *     LowerCallHelper(IR::Instr *instrCall);
 
             IR::LabelInstr *GetBailOutStackRestoreLabel(BailOutInfo * bailOutInfo, IR::LabelInstr * exitTargetInstr);
-            bool            AnyFloatTmps(void);
-            IR::LabelInstr* InsertBeforeRecoveryForFloatTemps(IR::Instr * insertBefore, IR::LabelInstr * labelRecover, const bool isInHelperBlock = true);
             StackSym *      GetImplicitParamSlotSym(Js::ArgSlot argSlot);
      static StackSym *      GetImplicitParamSlotSym(Js::ArgSlot argSlot, Func * func);
-            bool            GenerateFastIsInst(IR::Instr * instr, Js::ScriptContext * scriptContext);
 
             IR::Instr *     LowerDivI4AndBailOnReminder(IR::Instr * instr, IR::LabelInstr * bailOutLabel);
-            bool            GenerateFastIsInst(IR::Instr * instr);
 public:
             IR::Instr *         LowerCall(IR::Instr * callInstr, Js::ArgSlot argCount);
             IR::Instr *         LowerCallI(IR::Instr * callInstr, ushort callFlags, bool isHelper = false, IR::Instr* insertBeforeInstrForCFG = nullptr);
@@ -214,7 +199,6 @@ public:
             IR::Instr *         LowerExitInstrAsmJs(IR::ExitInstr * exitInstr) { Assert(UNREACHED); return nullptr; }
             IR::Instr *         LoadNewScObjFirstArg(IR::Instr * instr, IR::Opnd * dst, ushort extraArgs = 0);
             IR::Instr *         LowerTry(IR::Instr *instr, IR::JnHelperMethod helperMethod);
-            IR::Instr *         LowerLeave(IR::Instr *instr, IR::LabelInstr * targetInstr, bool fromFinalLower, bool isOrphanedLeave = false);
             IR::Instr *         LowerLeaveNull(IR::Instr *instr);
             IR::LabelInstr *    EnsureEpilogLabel();
             IR::Instr *         LowerEHRegionReturn(IR::Instr * insertBeforeInstr, IR::Opnd * targetOpnd);
@@ -252,13 +236,6 @@ public:
 
             static void GenerateLoadTaggedType(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndTaggedType);
             static void GenerateLoadPolymorphicInlineCacheSlot(IR::Instr * instrLdSt, IR::RegOpnd * opndInlineCache, IR::RegOpnd * opndType, uint polymorphicInlineCacheSize);
-            static IR::BranchInstr * GenerateLocalInlineCacheCheck(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelNext, bool checkTypeWithoutProperty = false);
-            static IR::BranchInstr * GenerateProtoInlineCacheCheck(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelNext);
-            static IR::BranchInstr * GenerateFlagInlineCacheCheck(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelNext);
-            static IR::BranchInstr * GenerateFlagInlineCacheCheckForLocal(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelNext);
-            static void GenerateLdFldFromLocalInlineCache(IR::Instr * instrLdFld, IR::RegOpnd * opndBase, IR::Opnd * opndDst, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelFallThru, bool isInlineSlot);
-            static void GenerateLdFldFromProtoInlineCache(IR::Instr * instrLdFld, IR::RegOpnd * opndBase, IR::Opnd * opndDst, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelFallThru, bool isInlineSlot);
-            static void GenerateLdLocalFldFromFlagInlineCache(IR::Instr * instrLdFld, IR::RegOpnd * opndBase, IR::Opnd * opndDst, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelFallThru, bool isInlineSlot);
             static void GenerateStFldFromLocalInlineCache(IR::Instr * instrStFld, IR::RegOpnd * opndBase, IR::Opnd * opndSrc, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelFallThru, bool isInlineSlot);
             void        GenerateFunctionObjectTest(IR::Instr * callInstr, IR::RegOpnd  *functionOpnd, bool isHelper, IR::LabelInstr* continueAfterExLabel = nullptr);
 
@@ -275,18 +252,6 @@ public:
     static IR::Instr * InsertCmovCC(const Js::OpCode opCode, IR::Opnd * dst, IR::Opnd* src1, IR::Instr* insertBeforeInstr, bool postRegAlloc);
 private:
     IR::Opnd* IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr);
-    void GenerateFlagInlineCacheCheckForGetterSetter(
-        IR::Instr * insertBeforeInstr,
-        IR::RegOpnd * opndInlineCache,
-        IR::LabelInstr * labelNext);
-
-    void GenerateLdFldFromFlagInlineCache(
-        IR::Instr * insertBeforeInstr,
-        IR::RegOpnd * opndBase,
-        IR::RegOpnd * opndInlineCache,
-        IR::Opnd * opndDst,
-        IR::LabelInstr * labelFallThru,
-        bool isInlineSlot);
 
     void GenerateAssignForBuiltinArg(
         RegNum dstReg,

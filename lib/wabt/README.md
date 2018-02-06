@@ -24,9 +24,9 @@ target; instead they aim for full fidelity and compliance with the spec (e.g.
 
 Wabt has been compiled to JavaScript via emscripten. Some of the functionality is available in the following demos:
 
-- [index](https://cdn.rawgit.com/WebAssembly/wabt/7e56ca56/demo/index.html)
-- [wat2wasm](https://cdn.rawgit.com/WebAssembly/wabt/7e56ca56/demo/wast2wasm/)
-- [wasm2wat](https://cdn.rawgit.com/WebAssembly/wabt/7e56ca56/demo/wasm2wast/)
+- [index](https://cdn.rawgit.com/WebAssembly/wabt/aae5a4b7/demo/index.html)
+- [wat2wasm](https://cdn.rawgit.com/WebAssembly/wabt/aae5a4b7/demo/wat2wasm/)
+- [wasm2wat](https://cdn.rawgit.com/WebAssembly/wabt/aae5a4b7/demo/wasm2wat/)
 
 ## Cloning
 
@@ -155,7 +155,7 @@ You can use `-h` to get additional help:
 $ out/wat2wasm -h
 ```
 
-Or try the [online demo](https://cdn.rawgit.com/WebAssembly/wabt/013802ca01035365e2459c70f0508481393ac075/demo/wast2wasm/).
+Or try the [online demo](https://cdn.rawgit.com/WebAssembly/wabt/aae5a4b7/demo/wat2wasm/).
 
 ## Running wasm2wat
 
@@ -175,7 +175,7 @@ You can use `-h` to get additional help:
 $ out/wasm2wat -h
 ```
 
-Or try the [online demo](https://cdn.rawgit.com/WebAssembly/wabt/013802ca01035365e2459c70f0508481393ac075/demo/wasm2wast/).
+Or try the [online demo](https://cdn.rawgit.com/WebAssembly/wabt/aae5a4b7/demo/wasm2wat/).
 
 ## Running wasm-interp
 

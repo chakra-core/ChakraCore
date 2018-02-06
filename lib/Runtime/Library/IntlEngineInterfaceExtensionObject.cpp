@@ -1751,6 +1751,8 @@ namespace Js
         {
             right = str2->GetNormalizedString(UnicodeText::NormalizationForm::C, tempAllocator, rightLen);
         }
+		
+		END_TEMP_ALLOCATOR(tempAllocator, scriptContext);
 
         // CompareStringEx on Windows returns 0 for error, 1 if less, 2 if equal, 3 if greater
         // Default to the strings being equal, because sorting with == causes no change in the order but converges, whereas < would cause an infinite loop.
@@ -1774,9 +1776,16 @@ namespace Js
             caseFirst,
             &error
         );
+#elif !_WIN32
+		compareResult = wcsncmp(aLeft, aRight, min(size1, size2));
+        if (compareResult == 0 && size1 != size2)
+        {
+            compareResult = size1 > size2 ? 1 : -1;
+        }
+		
+		// return early because wcsncmp has a different return value format that CompareStringEx/CollatorCompare
+		return JavascriptNumber::ToVar(compareResult, scriptContext);
 #endif
-
-        END_TEMP_ALLOCATOR(tempAllocator, scriptContext);
 
         if (compareResult == 0)
         {

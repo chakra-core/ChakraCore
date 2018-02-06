@@ -1,0 +1,4 @@
+gen.next() = {value: 2, done: true}
+gen.next() = {value: undefined, done: true}
+
+Reached end of Execution -- Exiting.

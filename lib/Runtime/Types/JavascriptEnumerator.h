@@ -28,7 +28,8 @@ namespace Js {
         //
         // Moves to the next element and gets the current value.
         // PropertyId: Sets the propertyId of the current value.
-        // In some cases, i.e. arrays, propertyId is not returned successfully.
+        //     In some cases, i.e. arrays, propertyId is not returned successfully.
+        //     Must be initialized to at least NoProperty on all paths.
         // Returns: NULL if there are no more elements.
         //
         // Note: in the future we  might want to enumerate specialPropertyIds

@@ -350,7 +350,7 @@ namespace Js
         {
             activeScopeObject->SetPropertyWithAttributes(
                 Js::PropertyIds::_this,
-                JavascriptOperators::BoxStackInstance(varThis, scriptContext), //The value escapes, box if necessary.
+                JavascriptOperators::BoxStackInstance(varThis, scriptContext, /* allowStackFunction */ false, /* deepCopy */ false), //The value escapes, box if necessary.
                 PropertyConstDefaults,
                 nullptr);
 #if DBG

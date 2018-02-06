@@ -72,6 +72,9 @@ void GenerateAllFunctions(NativeCodeGenerator * nativeCodeGen, Js::FunctionBody 
 #ifdef IR_VIEWER
 Js::Var RejitIRViewerFunction(NativeCodeGenerator *nativeCodeGen, Js::FunctionBody *fn, Js::ScriptContext *scriptContext);
 #endif
+#ifdef ALLOW_JIT_REPRO
+HRESULT JitFromEncodedWorkItem(NativeCodeGenerator *nativeCodeGen, _In_reads_(bufSize) const byte* buffer, _In_ uint bufferSize);
+#endif
 
 BOOL IsIntermediateCodeGenThunk(Js::JavascriptMethod codeAddress);
 BOOL IsAsmJsCodeGenThunk(Js::JavascriptMethod codeAddress);
@@ -210,6 +213,7 @@ enum LibraryValue {
     ValueNegativeZero,
     ValueNumberTypeStatic,
     ValueStringTypeStatic,
+    ValueSymbolTypeStatic,
     ValueObjectType,
     ValueObjectHeaderInlinedType,
     ValueRegexType,

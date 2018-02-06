@@ -361,32 +361,24 @@ namespace TTD
         void AllocateFunctionAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)
         {
             TTD_REPLAY_ACTIVE_CONTEXT(executeContext);
-            const JsRTSingleVarScalarArgumentAction* action = GetInlineEventDataAs<JsRTSingleVarScalarArgumentAction, EventKind::AllocateFunctionActionTag>(evt);
+            const JsRTSingleVarArgumentAction* action = GetInlineEventDataAs<JsRTSingleVarArgumentAction, EventKind::AllocateFunctionActionTag>(evt);
 
-            Js::Var res = nullptr;
-            if(!GetScalarItem_0(action))
+            Js::Var metadata = InflateVarInReplay(executeContext, GetVarItem_0(action));
+
+            Js::JavascriptString* name = nullptr;
+            if(metadata != nullptr)
             {
-                res = ctx->GetLibrary()->CreateStdCallExternalFunction(&Js::JavascriptExternalFunction::TTDReplayDummyExternalMethod, 0, nullptr);
+                TTD_REPLAY_VALIDATE_INCOMING_REFERENCE(metadata, ctx);
+                name = Js::JavascriptConversion::ToString(metadata, ctx);
             }
             else
             {
-                Js::Var nameVar = InflateVarInReplay(executeContext, GetVarItem_0(action));
-                TTD_REPLAY_VALIDATE_INCOMING_REFERENCE(nameVar, ctx);
-
-                Js::JavascriptString* name = nullptr;
-                if(nameVar != nullptr)
-                {
-                    name = Js::JavascriptConversion::ToString(nameVar, ctx);
-                }
-                else
-                {
-                    name = ctx->GetLibrary()->GetEmptyString();
-                }
-
-                res = ctx->GetLibrary()->CreateStdCallExternalFunction(&Js::JavascriptExternalFunction::TTDReplayDummyExternalMethod, name, nullptr);
+                name = ctx->GetLibrary()->GetEmptyString();
             }
 
-            JsRTActionHandleResultForReplay<JsRTSingleVarScalarArgumentAction, EventKind::AllocateFunctionActionTag>(executeContext, evt, res);
+            Js::Var res = ctx->GetLibrary()->CreateStdCallExternalFunction(&Js::JavascriptExternalFunction::TTDReplayDummyExternalMethod, name, nullptr);
+
+            JsRTActionHandleResultForReplay<JsRTSingleVarArgumentAction, EventKind::AllocateFunctionActionTag>(executeContext, evt, res);
         }
 
         void HostProcessExitAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)
@@ -990,7 +982,7 @@ namespace TTD
             }
             END_JS_RUNTIME_CALL(ctx);
 
-            if(ctx->ShouldPerformDebuggerAction())
+            if(ctx->ShouldPerformReplayDebuggerAction())
             {
                 ctx->GetThreadContext()->TTDExecutionInfo->ProcessScriptLoad(ctx, cpAction->BodyCtrId, fb, utf8SourceInfo, &se);
             }
@@ -1168,7 +1160,7 @@ namespace TTD
                 {
                     TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Why did we get a different exception");
 
-                    if(executeContext->GetActiveScriptContext()->ShouldPerformDebuggerAction())
+                    if(executeContext->GetActiveScriptContext()->ShouldPerformReplayDebuggerAction())
                     {
                         //convert to uncaught debugger exception for host
                         TTDebuggerSourceLocation lastLocation;
@@ -1192,7 +1184,7 @@ namespace TTD
                 {
                     TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Why did we get a different exception");
 
-                    if(executeContext->GetActiveScriptContext()->ShouldPerformDebuggerAction())
+                    if(executeContext->GetActiveScriptContext()->ShouldPerformReplayDebuggerAction())
                     {
                         //convert to uncaught debugger exception for host
                         TTDebuggerSourceLocation lastLocation;
@@ -1208,7 +1200,7 @@ namespace TTD
                 }
                 catch(...)
                 {
-                    if(executeContext->GetActiveScriptContext()->ShouldPerformDebuggerAction())
+                    if(executeContext->GetActiveScriptContext()->ShouldPerformReplayDebuggerAction())
                     {
                         TTDebuggerSourceLocation lastLocation;
                         threadContext->TTDExecutionInfo->GetLastExecutedTimeAndPositionForDebugger(lastLocation);

@@ -691,12 +691,19 @@ namespace Js
         {
             Assert(useCache);
             cachedResult = (cache->resultBV.Test(cacheIndex) != 0);
+
+            // If our cache says this test should produce a match (which we aren't going to compute),
+            // notify the Ctor to invalidate the last match so it must be recomputed before access.
+            if (cachedResult)
+            {
+                InvalidateLastMatchOnCtor(scriptContext, regularExpression, input);
+            }
+
             // for debug builds, let's still do the real test so we can validate values in the cache
 #if !DBG
             return JavascriptBoolean::ToVar(cachedResult, scriptContext);
 #endif
         }
-
 
         CharCount offset;
         if (!GetInitialOffset(isGlobal, isSticky, regularExpression, inputLength, offset))
@@ -764,7 +771,14 @@ namespace Js
             char16 currentChar = replaceStr[substitutionOffset + 1];
             if (currentChar >= _u('0') && currentChar <= _u('9'))
             {
+                // We've found a substitution ref, like $32.  In accordance with the standard (sec-getsubstitution),
+                // we recognize at most two decimal digits after the dollar sign.
+
+                // This should be unsigned, but this would cause lots of compiler warnings unless we also make
+                // numGroups unsigned, because of a comparison below.
                 int captureIndex = (int)(currentChar - _u('0'));
+                Assert(0 <= captureIndex && captureIndex <= 9); // numeric value of single decimal digit
+
                 offset = substitutionOffset + 2;
 
                 if (offset < replaceLength)
@@ -772,7 +786,9 @@ namespace Js
                     currentChar = replaceStr[substitutionOffset + 2];
                     if (currentChar >= _u('0') && currentChar <= _u('9'))
                     {
+                        // Should also be unsigned; see captureIndex above.
                         int tempCaptureIndex = (10 * captureIndex) + (int)(currentChar - _u('0'));
+                        Assert(0 <= tempCaptureIndex && tempCaptureIndex < 100); // numeric value of 2-digit positive decimal number
                         if (tempCaptureIndex < numGroups)
                         {
                             captureIndex = tempCaptureIndex;
@@ -781,6 +797,7 @@ namespace Js
                     }
                 }
 
+                Assert(0 <= captureIndex && captureIndex < 100); // as above, value of 2-digit positive decimal number
                 if (captureIndex < numGroups && (captureIndex != 0))
                 {
                     Var group = getGroup(captureIndex, nonMatchValue);
@@ -963,9 +980,11 @@ namespace Js
             args[numberOfCaptures + 2] = JavascriptNumber::ToVar(position, scriptContext);
             args[numberOfCaptures + 3] = input;
 
-            JavascriptString* replace = JavascriptConversion::ToString(
-                replaceFn->CallFunction(Arguments(CallInfo(argCount), args)),
-                scriptContext);
+            Js::Var replaceFnResult = scriptContext->GetThreadContext()->ExecuteImplicitCall(replaceFn, Js::ImplicitCall_Accessor, [=]()->Js::Var
+            {
+                return replaceFn->CallFunction(Arguments(CallInfo(argCount), args));
+            });
+            JavascriptString* replace = JavascriptConversion::ToString(replaceFnResult, scriptContext);
 
             resultBuilder.Append(replace);
         };
@@ -1242,9 +1261,12 @@ namespace Js
         JavascriptString* newString = nullptr;
         const char16* inputStr = input->GetString();
         CharCount inputLength = input->GetLength();
-        const int numGroups = pattern->NumGroups();
+        const int rawNumGroups = pattern->NumGroups();
         Var nonMatchValue = NonMatchValue(scriptContext, false);
         UnifiedRegex::GroupInfo lastMatch; // initially undefined
+
+        AssertOrFailFast(0 < rawNumGroups && rawNumGroups <= INT16_MAX);
+        const uint16 numGroups = uint16(rawNumGroups);
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
         RegexHelperTrace(scriptContext, UnifiedRegex::RegexStats::Replace, regularExpression, input, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("<replace function>")));
@@ -1303,7 +1325,6 @@ namespace Js
             lastSuccessfulMatch = lastActualMatch;
             for (int groupId = 0;  groupId < numGroups; groupId++)
                 replaceArgs[groupId + 1] = GetGroup(scriptContext, pattern, input, nonMatchValue, groupId);
-#pragma prefast(suppress:6386, "The write index numGroups + 1 is in the bound")
             replaceArgs[numGroups + 1] = JavascriptNumber::ToVar(lastActualMatch.offset, scriptContext);
 
             // The called function must see the global state updated by the current match
@@ -1316,7 +1337,7 @@ namespace Js
             ThreadContext* threadContext = scriptContext->GetThreadContext();
             Var replaceVar = threadContext->ExecuteImplicitCall(replacefn, ImplicitCall_Accessor, [=]()->Js::Var
             {
-                return replacefn->CallFunction(Arguments(CallInfo((ushort)(numGroups + 3)), replaceArgs));
+                return replacefn->CallFunction(Arguments(CallInfo(UInt16Math::Add(numGroups, 3)), replaceArgs));
             });
             JavascriptString* replace = JavascriptConversion::ToString(replaceVar, scriptContext);
             concatenated.Append(input, offset, lastActualMatch.offset - offset);
@@ -1574,10 +1595,12 @@ namespace Js
     {
         PCWSTR const varName = _u("RegExp.prototype[Symbol.split]");
 
-        Var speciesConstructor = JavascriptOperators::SpeciesConstructor(
+        JavascriptFunction* defaultConstructor = scriptContext->GetLibrary()->GetRegExpConstructor();
+        RecyclableObject* speciesConstructor = JavascriptOperators::SpeciesConstructor(
             thisObj,
-            scriptContext->GetLibrary()->GetRegExpConstructor(),
+            defaultConstructor,
             scriptContext);
+        AssertOrFailFast(JavascriptOperators::IsConstructor(speciesConstructor));
 
         JavascriptString* flags = JavascriptConversion::ToString(
             JavascriptOperators::GetProperty(thisObj, PropertyIds::flags, scriptContext),
@@ -1585,12 +1608,15 @@ namespace Js
         bool unicode = wcsstr(flags->GetString(), _u("u")) != nullptr;
         flags = AppendStickyToFlagsIfNeeded(flags, scriptContext);
 
-        Js::Var args[] = { speciesConstructor, thisObj, flags };
-        Js::CallInfo callInfo(Js::CallFlags_New, _countof(args));
-        Var regEx = JavascriptOperators::NewScObject(
-            speciesConstructor,
-            Js::Arguments(callInfo, args),
-            scriptContext);
+        Var regEx = JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(speciesConstructor, defaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
+        {
+            Js::Var args[] = { speciesConstructor, thisObj, flags };
+            Js::CallInfo callInfo(Js::CallFlags_New, _countof(args));
+            return JavascriptOperators::NewScObject(
+                speciesConstructor,
+                Js::Arguments(callInfo, args),
+                scriptContext);
+        });
         RecyclableObject* splitter = RecyclableObject::UnsafeFromVar(regEx);
 
         JavascriptArray* arrayResult = scriptContext->GetLibrary()->CreateArray();
@@ -2066,6 +2092,16 @@ namespace Js
                 : regularExpression->GetPattern();
             scriptContext->GetLibrary()->GetRegExpConstructor()->SetLastMatch(pattern, lastInput, lastSuccessfulMatch);
         }
+    }
+
+    void RegexHelper::InvalidateLastMatchOnCtor(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* lastInput, bool useSplitPattern)
+    {
+        Assert(lastInput);
+
+        UnifiedRegex::RegexPattern* pattern = useSplitPattern
+            ? regularExpression->GetSplitPattern()
+            : regularExpression->GetPattern();
+        scriptContext->GetLibrary()->GetRegExpConstructor()->InvalidateLastMatch(pattern, lastInput);
     }
 
     bool RegexHelper::GetInitialOffset(bool isGlobal, bool isSticky, JavascriptRegExp* regularExpression, CharCount inputLength, CharCount& offset)

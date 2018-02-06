@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -79,11 +79,14 @@ size_t WasmSignature::GetShortSig() const
     return m_shortSig;
 }
 
+template<bool useShortSig>
 bool WasmSignature::IsEquivalent(const WasmSignature* sig) const
 {
-    if (m_shortSig != Js::Constants::InvalidSignature)
+    if (useShortSig && m_shortSig != Js::Constants::InvalidSignature)
     {
-        return sig->GetShortSig() == m_shortSig;
+        bool isEquivalent = sig->GetShortSig() == m_shortSig;
+        Assert(this->IsEquivalent<false>(sig) == isEquivalent);
+        return isEquivalent;
     }
     if (GetResultType() == sig->GetResultType() &&
         GetParamCount() == sig->GetParamCount() &&
@@ -93,6 +96,8 @@ bool WasmSignature::IsEquivalent(const WasmSignature* sig) const
     }
     return false;
 }
+template bool WasmSignature::IsEquivalent<true>(const WasmSignature*) const;
+template bool WasmSignature::IsEquivalent<false>(const WasmSignature*) const;
 
 Js::ArgSlot WasmSignature::GetParamSize(Js::ArgSlot index) const
 {
@@ -115,6 +120,13 @@ Js::ArgSlot WasmSignature::GetParamSize(Js::ArgSlot index) const
         CompileAssert(sizeof(double) == sizeof(int64));
         return sizeof(int64);
         break;
+#ifdef ENABLE_WASM_SIMD
+    case WasmTypes::M128:
+        Wasm::Simd::EnsureSimdIsEnabled();
+        CompileAssert(sizeof(Simd::simdvec) == 16);
+        return sizeof(Simd::simdvec);
+        break;
+#endif
     default:
         throw WasmCompilationException(_u("Invalid param type"));
     }
@@ -134,19 +146,38 @@ void WasmSignature::FinalizeSignature()
         }
     }
 
-    CompileAssert(Local::Limit - 1 <= 4);
+    // 3 bits for result type, 3 for each arg
+    const uint32 nBitsForResult = 3;
+#ifdef ENABLE_WASM_SIMD
+    const uint32 nBitsForArgs = 3;
+#else
+    // We can drop 1 bit by excluding void
+    const uint32 nBitsForArgs = 2;
+#endif
     CompileAssert(Local::Void == 0);
+    // Make sure we can encode all types (including void) with the number of bits reserved
+    CompileAssert(Local::Limit <= (1 << nBitsForResult));
+    // Make sure we can encode all types (excluding void) with the number of bits reserved
+    CompileAssert(Local::Limit - 1 <= (1 << nBitsForArgs));
 
-    // 3 bits for result type, 2 for each arg
-    // we don't need to reserve a sentinel bit because there is no result type with value of 7
-    uint32 sigSize = ((uint32)paramCount) * 2 + 3;
-    if (sigSize <= sizeof(m_shortSig) << 3)
+    ::Math::RecordOverflowPolicy sigOverflow;
+    const uint32 bitsRequiredForSig = UInt32Math::MulAdd<nBitsForArgs, nBitsForResult>((uint32)paramCount, sigOverflow);
+    if (sigOverflow.HasOverflowed())
     {
-        m_shortSig = (m_shortSig << 3) | m_resultType;
+        return;
+    }
+
+    // we don't need to reserve a sentinel bit because there is no result type with value of 7
+    CompileAssert(Local::Limit <= 0b111);
+    const uint32 nAvailableBits = sizeof(m_shortSig) * 8;
+    if (bitsRequiredForSig <= nAvailableBits)
+    {
+        // Append the result type to the signature
+        m_shortSig = (m_shortSig << nBitsForResult) | m_resultType;
         for (Js::ArgSlot i = 0; i < paramCount; ++i)
         {
-            // we can use 2 bits per arg by dropping void
-            m_shortSig = (m_shortSig << 2) | (m_params[i] - 1);
+            // Append the param type to the signature, -1 to exclude Void
+            m_shortSig = (m_shortSig << nBitsForArgs) | (m_params[i] - 1);
         }
     }
 }

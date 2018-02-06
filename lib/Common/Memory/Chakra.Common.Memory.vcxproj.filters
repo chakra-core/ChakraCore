@@ -54,7 +54,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)arm64\XDataAllocator.cpp">
       <Filter>arm64</Filter>
     </ClCompile>
-    <ClCompile Include="SectionAllocWrapper.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SectionAllocWrapper.cpp" />
+    <ClCompile Include="DelayDeletingFunctionTable.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Allocator.h" />
@@ -119,6 +120,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="HeapBlock.inl" />
+    <None Include="HeapBlockMap.inl" />
     <None Include="HeapBucket.inl" />
     <None Include="LargeHeapBucket.inl" />
     <None Include="MarkContext.inl" />

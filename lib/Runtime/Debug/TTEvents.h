@@ -97,6 +97,7 @@ namespace TTD
             ExternalCbRegisterCall,
             ExternalCallTag,
             ExplicitLogWriteTag,
+            TTDInnerLoopLogWriteTag,
             //JsRTActionTag is a marker for where the JsRT actions begin
             JsRTActionTag,
 
@@ -474,6 +475,26 @@ namespace TTD
 
         void ExplicitLogWriteEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void ExplicitLogWriteEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+
+        //A struct for when we explicitly write a log entry with innerloop ttd end-breakpoint
+        struct TTDInnerLoopLogWriteEventLogEntry
+        {
+            //copies the data for a TTDebuggerSourceLocation that we can set when we start the replay session (and track the end of the execution)
+            TTD_LOG_PTR_ID SourceScriptLogId;
+            int64 EventTime;  //-1 indicates an INVALID location
+            int64 FunctionTime;  //-1 indicates any ftime is OK
+            int64 LoopTime;  //-1 indicates any ltime is OK
+
+            uint32 TopLevelBodyId;
+            uint32 FunctionLine; //line containing function starts at
+            uint32 FunctionColumn; //column containing function starts at
+
+            uint32 Line; //line in source
+            uint32 Column; //column in source
+        };
+
+        void TTDInnerLoopLogWriteEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
+        void TTDInnerLoopLogWriteEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
     }
 }
 

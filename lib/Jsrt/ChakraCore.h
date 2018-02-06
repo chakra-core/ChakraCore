@@ -59,7 +59,7 @@ typedef enum JsModuleHostInfoKind
 } JsModuleHostInfoKind;
 
 /// <summary>
-///     User implemented callback to fetch additional imported modules.
+///     User implemented callback to fetch additional imported modules in ES modules.
 /// </summary>
 /// <remarks>
 /// Notify the host to fetch the dependent module. This is the "import" part before HostResolveImportedModule in ES6 spec.
@@ -75,15 +75,16 @@ typedef enum JsModuleHostInfoKind
 typedef JsErrorCode(CHAKRA_CALLBACK * FetchImportedModuleCallBack)(_In_ JsModuleRecord referencingModule, _In_ JsValueRef specifier, _Outptr_result_maybenull_ JsModuleRecord* dependentModuleRecord);
 
 /// <summary>
-///     User implemented callback to get notification when the module is ready.
+///     User implemented callback to fetch imported modules dynamically in scripts.
 /// </summary>
 /// <remarks>
-/// Notify the host after ModuleDeclarationInstantiation step (15.2.1.1.6.4) is finished. If there was error in the process, exceptionVar
-/// holds the exception. Otherwise the referencingModule is ready and the host should schedule execution afterwards.
+/// Notify the host to fetch the dependent module. This is used for the dynamic import() syntax.
+/// This notifies the host that the referencing module has the specified module dependency, and the host need to retrieve the module back.
 /// </remarks>
-/// <param name="referencingModule">The referencing module that have finished running ModuleDeclarationInstantiation step.</param>
-/// <param name="exceptionVar">If nullptr, the module is successfully initialized and host should queue the execution job
-///                           otherwise it's the exception object.</param>
+/// <param name="dwReferencingSourceContext">The referencing script that calls import() </param>
+/// <param name="specifier">The specifier coming from the module source code.</param>
+/// <param name="dependentModuleRecord">The ModuleRecord of the dependent module. If the module was requested before from other source, return the
+///                           existing ModuleRecord, otherwise return a newly created ModuleRecord.</param>
 /// <returns>
 ///     true if the operation succeeded, false otherwise.
 /// </returns>
@@ -96,13 +97,60 @@ typedef JsErrorCode(CHAKRA_CALLBACK * FetchImportedModuleFromScriptCallBack)(_In
 /// Notify the host after ModuleDeclarationInstantiation step (15.2.1.1.6.4) is finished. If there was error in the process, exceptionVar
 /// holds the exception. Otherwise the referencingModule is ready and the host should schedule execution afterwards.
 /// </remarks>
-/// <param name="dwReferencingSourceContext">The referencing script that calls import()</param>
+/// <param name="referencingModule">The referencing module that have finished running ModuleDeclarationInstantiation step.</param>
 /// <param name="exceptionVar">If nullptr, the module is successfully initialized and host should queue the execution job
 ///                           otherwise it's the exception object.</param>
 /// <returns>
 ///     true if the operation succeeded, false otherwise.
 /// </returns>
 typedef JsErrorCode(CHAKRA_CALLBACK * NotifyModuleReadyCallback)(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef exceptionVar);
+
+/// <summary>
+///     A structure containing information about a native function callback.
+/// </summary>
+typedef struct JsNativeFunctionInfo
+{
+    JsValueRef thisArg;
+    JsValueRef newTargetArg;
+    bool isConstructCall;
+}JsNativeFunctionInfo;
+
+/// <summary>
+///     A function callback.
+/// </summary>
+/// <param name="callee">
+///     A function object that represents the function being invoked.
+/// </param>
+/// <param name="arguments">The arguments to the call.</param>
+/// <param name="argumentCount">The number of arguments.</param>
+/// <param name="info">Additional information about this function call.</param>
+/// <param name="callbackState">
+///     The state passed to <c>JsCreateFunction</c>.
+/// </param>
+/// <returns>The result of the call, if any.</returns>
+typedef _Ret_maybenull_ JsValueRef(CHAKRA_CALLBACK * JsEnhancedNativeFunction)(_In_ JsValueRef callee, _In_ JsValueRef *arguments, _In_ unsigned short argumentCount, _In_ JsNativeFunctionInfo *info, _In_opt_ void *callbackState);
+
+/// <summary>
+///     Creates a new enhanced JavaScript function.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="nativeFunction">The method to call when the function is invoked.</param>
+/// <param name="metadata">If this is not <c>JS_INVALID_REFERENCE</c>, it is converted to a string and used as the name of the function.</param>
+/// <param name="callbackState">
+///     User provided state that will be passed back to the callback.
+/// </param>
+/// <param name="function">The new function object.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCreateEnhancedFunction(
+    _In_ JsEnhancedNativeFunction nativeFunction,
+    _In_opt_ JsValueRef metadata,
+    _In_opt_ void *callbackState,
+    _Out_ JsValueRef *function);
 
 /// <summary>
 ///     Initialize a ModuleRecord from host

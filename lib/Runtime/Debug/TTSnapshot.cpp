@@ -217,8 +217,12 @@ namespace TTD
         {
             //lookup the inflator function for this object and call it
             NSSnapObjects::fPtr_DoObjectInflation inflateFPtr = this->m_snapObjectVTableArray[(uint32)snpObject->SnapObjectTag].InflationFunc;
-            TTDAssert(inflateFPtr != nullptr, "We probably forgot to update the vtable with a tag we added.");
-
+            if(inflateFPtr == nullptr)
+            {
+                char buff[1024];
+                sprintf_s(buff, "We probably forgot to update the vtable with a tag we added.  Tag is [%i].  SnapRuntimeFunctionObject is [%i]", (uint32)snpObject->SnapObjectTag, TTD::NSSnapObjects::SnapObjectType::SnapRuntimeFunctionObject);
+                TTDAssert(inflateFPtr != nullptr, buff);
+            }
             res = inflateFPtr(snpObject, inflator);
         }
 
@@ -338,6 +342,42 @@ namespace TTD
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapPromiseReactionTaskFunctionObject] = { &NSSnapObjects::DoObjectInflation_SnapPromiseReactionTaskFunctionInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapPromiseReactionTaskFunctionInfo, &NSSnapObjects::ParseAddtlInfo_SnapPromiseReactionTaskFunctionInfo };
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapPromiseAllResolveElementFunctionObject] = { &NSSnapObjects::DoObjectInflation_SnapPromiseAllResolveElementFunctionInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapPromiseAllResolveElementFunctionInfo, &NSSnapObjects::ParseAddtlInfo_SnapPromiseAllResolveElementFunctionInfo };
 
+        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapGeneratorFunction] = {
+            &NSSnapObjects::DoObjectInflation_SnapGeneratorFunctionInfo,
+            &NSSnapObjects::DoAddtlValueInstantiation_SnapGeneratorFunctionInfo,
+            &NSSnapObjects::EmitAddtlInfo_SnapGeneratorFunctionInfo,
+            &NSSnapObjects::ParseAddtlInfo_SnapGeneratorFunctionInfo };
+        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapGeneratorVirtualScriptFunction] = {
+            &NSSnapObjects::DoObjectInflation_SnapGeneratorVirtualScriptFunctionInfo,
+            &NSSnapObjects::DoAddtlValueInstantiation_SnapGeneratorVirtualScriptFunctionInfo,
+            &NSSnapObjects::EmitAddtlInfo_SnapGeneratorVirtualScriptFunctionInfo,
+            &NSSnapObjects::ParseAddtlInfo_SnapGeneratorVirtualScriptFunctionInfo };
+        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapAsyncFunction] = {
+            &NSSnapObjects::DoObjectInflation_SnapAsyncFunction,
+            &NSSnapObjects::DoAddtlValueInstantiation_SnapAsyncFunction,
+            &NSSnapObjects::EmitAddtlInfo_SnapAsyncFunction,
+            &NSSnapObjects::ParseAddtlInfo_SnapAsyncFunction
+        };
+        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapGenerator] = {
+            &NSSnapObjects::DoObjectInflation_SnapGeneratorInfo,
+            &NSSnapObjects::DoAddtlValueInstantiation_SnapGeneratorInfo,
+            &NSSnapObjects::EmitAddtlInfo_SnapGeneratorInfo,
+            &NSSnapObjects::ParseAddtlInfo_SnapGeneratorInfo };
+        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::JavascriptPromiseAsyncSpawnExecutorFunction] = {
+            &NSSnapObjects::DoObjectInflation_SnapJavascriptPromiseAsyncSpawnExecutorFunction,
+            &NSSnapObjects::DoAddtlValueInstantiation_SnapJavascriptPromiseAsyncSpawnExecutorFunction,
+            &NSSnapObjects::EmitAddtlInfo_SnapJavascriptPromiseAsyncSpawnExecutorFunction,
+            &NSSnapObjects::ParseAddtlInfo_SnapJavascriptPromiseAsyncSpawnExecutorFunction
+        };
+        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction] = {
+            &NSSnapObjects::DoObjectInflation_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo,
+            &NSSnapObjects::DoAddtlValueInstantiation_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo,
+            &NSSnapObjects::EmitAddtlInfo_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo,
+            &NSSnapObjects::ParseAddtlInfo_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo
+        };
+
+
+
         ////
         //For the objects that are always well known
 
@@ -346,7 +386,7 @@ namespace TTD
 
     SnapShot::~SnapShot()
     {
-       ;
+        ;
     }
 
     uint32 SnapShot::ContextCount() const
@@ -392,7 +432,7 @@ namespace TTD
     uint32 SnapShot::GetDbgScopeCountNonTopLevel() const
     {
         uint32 dbgScopeCount = 0;
-        for(auto iter = this->m_functionBodyList.GetIterator(); iter.IsValid(); iter.MoveNext()) 
+        for(auto iter = this->m_functionBodyList.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
             dbgScopeCount += iter.Current()->ScopeChainInfo.ScopeCount;
         }

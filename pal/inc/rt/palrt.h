@@ -912,7 +912,7 @@ inline int __cdecl _scwprintf_unsafe(const WCHAR *_Format, ...)
 
 inline int __cdecl _vsnwprintf_unsafe(WCHAR *_Dst, size_t _SizeInWords, size_t _Count, const WCHAR *_Format, va_list _ArgList)
 {
-    if (_Count == _TRUNCATE) _Count = _SizeInWords - 1;
+    if (_Count == _TRUNCATE) _Count = _SizeInWords;
     int ret = _vsnwprintf(_Dst, _Count, _Format, _ArgList);
     _Dst[_SizeInWords - 1] = L'\0';
     if (ret < 0 && errno == 0)
@@ -934,7 +934,7 @@ inline int __cdecl _snwprintf_unsafe(WCHAR *_Dst, size_t _SizeInWords, size_t _C
 
 inline int __cdecl _vsnprintf_unsafe(char *_Dst, size_t _SizeInWords, size_t _Count, const char *_Format, va_list _ArgList)
 {
-    if (_Count == _TRUNCATE) _Count = _SizeInWords - 1;
+    if (_Count == _TRUNCATE) _Count = _SizeInWords;
     int ret = _vsnprintf(_Dst, _Count, _Format, _ArgList);
     _Dst[_SizeInWords - 1] = L'\0';
     if (ret < 0 && errno == 0)

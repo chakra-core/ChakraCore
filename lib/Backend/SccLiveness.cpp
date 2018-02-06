@@ -402,6 +402,7 @@ SCCLiveness::ProcessSrc(IR::Opnd *src, IR::Instr *instr)
                 lifetime = this->InsertLifetime(stackSym, reg, this->func->m_headInstr->m_next);
                 lifetime->region = this->curRegion;
                 lifetime->isFloat = symOpnd->IsFloat() || symOpnd->IsSimd128();
+
             }
 
             IR::RegOpnd * newRegOpnd = IR::RegOpnd::New(stackSym, reg, symOpnd->GetType(), this->func);
@@ -722,7 +723,7 @@ Lifetime *
 SCCLiveness::InsertLifetime(StackSym *stackSym, RegNum reg, IR::Instr *const currentInstr)
 {
     const uint start = currentInstr->GetNumber(), end = start;
-    Lifetime * newLlifetime = JitAnew(tempAlloc, Lifetime, tempAlloc, stackSym, reg, start, end, this->func);
+    Lifetime * newLlifetime = JitAnew(tempAlloc, Lifetime, tempAlloc, stackSym, reg, start, end);
     newLlifetime->totalOpHelperLengthByEnd = this->totalOpHelperFullVisitedLength + CurrentOpHelperVisitedLength(currentInstr);
 
     // Find insertion point

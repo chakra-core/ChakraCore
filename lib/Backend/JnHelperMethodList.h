@@ -347,6 +347,18 @@ HELPERCALL(AllocUninitializedNumber, Js::JavascriptOperators::AllocUninitialized
 // SIMD_JS
 HELPERCALL(AllocUninitializedSimdF4, Js::JavascriptSIMDFloat32x4::AllocUninitialized, 0)
 HELPERCALL(AllocUninitializedSimdI4, Js::JavascriptSIMDInt32x4::AllocUninitialized, 0)
+
+#endif
+
+#ifdef ENABLE_WASM_SIMD
+HELPERCALL(Simd128ShRtByScalarU2, Js::SIMDInt64x2Operation::OpShiftRightByScalarU, 0)
+HELPERCALL(Simd128ShRtByScalarI2, Js::SIMDInt64x2Operation::OpShiftRightByScalar, 0)
+HELPERCALL(Simd128ShLtByScalarI2, Js::SIMDInt64x2Operation::OpShiftLeftByScalar, 0)
+HELPERCALL(Simd128ReplaceLaneI2, Js::SIMDInt64x2Operation::OpReplaceLane, 0)
+HELPERCALL(Simd128TruncateI2, (void(*)(SIMDValue*, SIMDValue*))&Js::SIMDInt64x2Operation::OpTrunc<int64>, AttrCanThrow)
+HELPERCALL(Simd128TruncateU2, (void(*)(SIMDValue*, SIMDValue*))&Js::SIMDInt64x2Operation::OpTrunc<uint64>, AttrCanThrow)
+HELPERCALL(Simd128ConvertSD2, (void(*)(SIMDValue*, SIMDValue*))&Js::SIMDFloat64x2Operation::OpConv<int64>, 0)
+HELPERCALL(Simd128ConvertUD2, (void(*)(SIMDValue*, SIMDValue*))&Js::SIMDFloat64x2Operation::OpConv<uint64>, 0)
 #endif
 
 HELPERCALL(Op_TryCatch, nullptr, 0)

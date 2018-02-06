@@ -201,12 +201,19 @@ JsValueRef WScriptJsrt::LoadScriptFileHelper(JsValueRef callee, JsValueRef *argu
             hr = Helpers::LoadScriptFromFile(*fileName, fileContent);
             if (FAILED(hr))
             {
-                fwprintf(stderr, _u("Couldn't load file.\n"));
+                // check if have it registered
+                AutoString *data;
+                if (!SourceMap::Find(fileName, &data))
+                {
+                    fprintf(stderr, "Couldn't load file '%s'\n", fileName.GetString());
+                    IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
+                    return returnValue;
+                }
+
+                fileContent = data->GetString();
             }
-            else
-            {
-                returnValue = LoadScript(callee, *fileName, fileContent, *scriptInjectType ? *scriptInjectType : "self", isSourceModule, WScriptJsrt::FinalizeFree, true);
-            }
+
+            returnValue = LoadScript(callee, *fileName, fileContent, *scriptInjectType ? *scriptInjectType : "self", isSourceModule, WScriptJsrt::FinalizeFree, true);
         }
     }
 
@@ -857,6 +864,7 @@ bool WScriptJsrt::Initialize()
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadBinaryFile", LoadBinaryFileCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadTextFile", LoadTextFileCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Flag", FlagCallback));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "RegisterModuleSource", RegisterModuleSourceCallback));
 
     // ToDo Remove
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Edit", EmptyCallback));
@@ -949,6 +957,7 @@ bool WScriptJsrt::Initialize()
 
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(global, "read", LoadTextFileCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(global, "readbuffer", LoadBinaryFileCallback));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(global, "readline", ReadLineStdinCallback));
 
     JsValueRef console;
     IfJsrtErrorFail(ChakraRTInterface::JsCreateObject(&console), false);
@@ -960,7 +969,10 @@ bool WScriptJsrt::Initialize()
 
     IfJsrtErrorFail(InitializeModuleCallbacks(), false);
 
-    if (HostConfigFlags::flags.$262)
+    // When the command-line argument `-Test262` is set,
+    // WScript will have the extra support API below and $262 will be
+    // added to global scope
+    if (HostConfigFlags::flags.Test262)
     {
         IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Broadcast", BroadcastCallback));
         IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "ReceiveBroadcast", ReceiveBroadcastCallback));
@@ -969,19 +981,17 @@ bool WScriptJsrt::Initialize()
         IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Leaving", LeavingCallback));
         IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Sleep", SleepCallback));
 
-
-        // OSX does build does not support $262 as filename
-        const wchar_t $262[] =
+        // $262
+        const char Test262[] =
             #include "262.js"
-            ;
+        ;
 
-        JsValueRef $262ScriptRef;
-        IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateStringUtf16((uint16_t*)$262, _countof($262) - 1, &$262ScriptRef));
+        JsValueRef Test262ScriptRef;
+        IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateString(Test262, strlen(Test262), &Test262ScriptRef));
 
         JsValueRef fname;
-        IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateString("$262", strlen("$262"), &fname));
-        IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsRun($262ScriptRef, WScriptJsrt::GetNextSourceContext(), fname, JsParseScriptAttributeNone, nullptr));
-
+        IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateString("262", strlen("262"), &fname));
+        IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsRun(Test262ScriptRef, WScriptJsrt::GetNextSourceContext(), fname, JsParseScriptAttributeNone, nullptr));
     }
 
 Error:
@@ -1044,6 +1054,32 @@ void CALLBACK WScriptJsrt::JsContextBeforeCollectCallback(JsRef contextRef, void
 }
 #endif
 
+FileNode * SourceMap::root = nullptr;
+JsValueRef __stdcall WScriptJsrt::RegisterModuleSourceCallback(JsValueRef callee, bool isConstructCall,
+    JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    HRESULT hr = E_FAIL;
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsErrorCode errorCode = JsNoError;
+
+    if (argumentCount < 3)
+    {
+        IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
+    }
+    else
+    {
+        AutoString fileName;
+        AutoString data;
+        IfJsrtErrorSetGo(fileName.Initialize(arguments[1]));
+        IfJsrtErrorSetGo(data.Initialize(arguments[2]));
+
+        SourceMap::Add(fileName, data);
+    }
+
+Error:
+    return returnValue;
+}
+
 JsValueRef __stdcall WScriptJsrt::LoadTextFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
     HRESULT hr = E_FAIL;
@@ -1068,14 +1104,21 @@ JsValueRef __stdcall WScriptJsrt::LoadTextFileCallback(JsValueRef callee, bool i
 
             if (FAILED(hr))
             {
-                fwprintf(stderr, _u("Couldn't load file.\n"));
-                IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
+                // check if have it registered
+                AutoString *data;
+                if (!SourceMap::Find(fileName, &data))
+                {
+                    fprintf(stderr, "Couldn't load file '%s'\n", fileName.GetString());
+                    IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
+                    return returnValue;
+                }
+
+                fileContent = data->GetString();
+                lengthBytes = (UINT) data->GetLength();
             }
-            else
-            {
-                IfJsrtErrorSetGo(ChakraRTInterface::JsCreateString(
-                    fileContent, lengthBytes, &returnValue));
-            }
+
+            IfJsrtErrorSetGo(ChakraRTInterface::JsCreateString(
+                fileContent, lengthBytes, &returnValue));
         }
     }
 
@@ -1087,12 +1130,131 @@ Error:
     return returnValue;
 }
 
+int JsFgets(char* buf, int size, FILE* file)
+{
+    int n = size - 1;
+    if (n < 0)
+        return -1;
+
+    bool crflag = false;
+    int c, i = 0;
+
+    for (i = 0; i < n && (c = getc(file)) != EOF; i++) {
+        buf[i] = (char)c;
+        if (c == '\n') {        // any \n ends a line
+            i++;                // keep the \n; we know there is room for \0
+            break;
+        }
+        if (crflag) {           // \r not followed by \n ends line at the \r
+            ungetc(c, file);
+            break;              // and overwrite c in buf with \0
+        }
+        crflag = (c == '\r');
+    }
+
+    buf[i] = '\0';
+    return i;
+}
+
+JsValueRef __stdcall WScriptJsrt::ReadLineStdinCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    HRESULT hr = E_FAIL;
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsErrorCode errorCode = JsNoError;
+
+    const int BUFSIZE = 256;
+    FILE* from = stdin;
+    int buflength = 0;
+    int bufsize = BUFSIZE;
+    char* buf = static_cast<char*>(malloc(bufsize));
+    char* tmp;
+    int gotlength = 0;
+
+    if (!buf)
+    {
+        goto Error;
+    }
+
+    while ((gotlength = JsFgets(buf + buflength, bufsize - buflength, from)) > 0) 
+    {
+        buflength += gotlength;
+
+        // are we done?
+        if (buf[buflength - 2] == '\r' && buf[buflength - 1] == '\n') 
+        {
+            buf[buflength - 1] = '\0';
+            buf[buflength - 2] = '\0';
+            buflength -= 2;
+            break;
+        }
+        else if (buf[buflength - 1] == '\n') 
+        {
+            buf[buflength - 1] = '\0';
+            buflength -= 1;
+            break;
+        }
+        else if (buflength < bufsize - 1) 
+        {
+            break;
+        }
+
+        // Else, grow our buffer for another pass.
+        bufsize *= 2;
+        if (bufsize > buflength) 
+        {
+            tmp = static_cast<char*>(realloc(buf, bufsize));
+        }
+        else 
+        {
+            goto Error;
+        }
+
+        if (!tmp) 
+        {
+            goto Error;
+        }
+
+        buf = tmp;
+    }
+
+    //Treat the empty string specially.
+    if (buflength == 0) 
+    {
+        if (feof(from)) 
+        {
+            goto Error;
+        }
+        else 
+        {
+            JsValueRef emptyStringObject;
+            IfJsrtErrorSetGo(ChakraRTInterface::JsCreateString(buf, buflength, &emptyStringObject));
+            free(buf);
+            return emptyStringObject;
+        }
+    }
+
+   
+    // Turn buf into a JSString. Note that buflength includes the trailing null character.
+    JsValueRef stringObject;
+    IfJsrtErrorSetGo(ChakraRTInterface::JsCreateString(buf, buflength, &stringObject));
+    free(buf);
+    return stringObject;
+
+Error:
+    if (buf)
+    {
+        free(buf);
+    }
+    return returnValue;
+}
+
 JsValueRef __stdcall WScriptJsrt::LoadBinaryFileCallback(JsValueRef callee,
     bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
     HRESULT hr = E_FAIL;
     JsValueRef returnValue = JS_INVALID_REFERENCE;
     JsErrorCode errorCode = JsNoError;
+    bool isHeapAlloc = true;
 
     if (argumentCount < 2)
     {
@@ -1110,29 +1272,42 @@ JsValueRef __stdcall WScriptJsrt::LoadBinaryFileCallback(JsValueRef callee,
             UINT lengthBytes = 0;
 
             hr = Helpers::LoadBinaryFile(*fileName, fileContent, lengthBytes);
+
             if (FAILED(hr))
             {
-                fwprintf(stderr, _u("Couldn't load file.\n"));
+                // check if have it registered
+                AutoString *data;
+                if (!SourceMap::Find(fileName, &data))
+                {
+                    fprintf(stderr, "Couldn't load file '%s'\n", fileName.GetString());
+                    IfJsrtErrorSetGoLabel(ChakraRTInterface::JsGetUndefinedValue(&returnValue), Error);
+                    return returnValue;
+                }
+
+                isHeapAlloc = false;
+                fileContent = data->GetString();
+                lengthBytes = (UINT) data->GetLength();
+            }
+
+            JsValueRef arrayBuffer;
+            IfJsrtErrorSetGoLabel(ChakraRTInterface::JsCreateArrayBuffer(lengthBytes, &arrayBuffer), ErrorStillFree);
+            BYTE* buffer;
+            unsigned int bufferLength;
+            IfJsrtErrorSetGoLabel(ChakraRTInterface::JsGetArrayBufferStorage(arrayBuffer, &buffer, &bufferLength), ErrorStillFree);
+            if (bufferLength < lengthBytes)
+            {
+                fwprintf(stderr, _u("Array buffer size is insufficient to store the binary file.\n"));
             }
             else
             {
-                JsValueRef arrayBuffer;
-                IfJsrtErrorSetGoLabel(ChakraRTInterface::JsCreateArrayBuffer(lengthBytes, &arrayBuffer), ErrorStillFree);
-                BYTE* buffer;
-                unsigned int bufferLength;
-                IfJsrtErrorSetGoLabel(ChakraRTInterface::JsGetArrayBufferStorage(arrayBuffer, &buffer, &bufferLength), ErrorStillFree);
-                if (bufferLength < lengthBytes)
+                if (memcpy_s(buffer, bufferLength, (BYTE*)fileContent, lengthBytes) == 0)
                 {
-                    fwprintf(stderr, _u("Array buffer size is insufficient to store the binary file.\n"));
+                    returnValue = arrayBuffer;
                 }
-                else
-                {
-                    if (memcpy_s(buffer, bufferLength, (BYTE*)fileContent, lengthBytes) == 0)
-                    {
-                        returnValue = arrayBuffer;
-                    }
-                }
+            }
 ErrorStillFree:
+            if (isHeapAlloc)
+            {
                 HeapFree(GetProcessHeap(), 0, (void*)fileContent);
             }
         }
@@ -1543,43 +1718,30 @@ HRESULT WScriptJsrt::ModuleMessage::Call(LPCSTR fileName)
     {
         LPCSTR fileContent = nullptr;
         AutoString specifierStr(specifier);
-        char fullPath[_MAX_PATH];
         errorCode = specifierStr.GetError();
         if (errorCode == JsNoError)
         {
-            std::string specifierFullPath;
-            if (this->moduleRecord)
-            {
-                auto moduleDirEntry = moduleDirMap.find(this->moduleRecord);
-                if (moduleDirEntry != moduleDirMap.end())
-                {
-                    specifierFullPath = moduleDirEntry->second;
-                }
-            }
-            
-            specifierFullPath += *specifierStr;
-            if (_fullpath(fullPath, specifierFullPath.c_str(), _MAX_PATH) == nullptr)
-            {
-                return JsErrorInvalidArgument;
-            }
-
-            hr = Helpers::LoadScriptFromFile(fullPath, fileContent);
+            hr = Helpers::LoadScriptFromFile(*specifierStr, fileContent);
 
             if (FAILED(hr))
             {
-                if (!HostConfigFlags::flags.MuteHostErrorMsgIsEnabled)
+                // check if have it registered
+                AutoString *data;
+                if (!SourceMap::Find(specifierStr, &data))
                 {
-                    fprintf(stderr, "Couldn't load file.\n");
+                    if (!HostConfigFlags::flags.MuteHostErrorMsgIsEnabled)
+                    {
+                        fprintf(stderr, "Couldn't load file '%s'\n", specifierStr.GetString());
+                    }
+                    LoadScript(nullptr, *specifierStr, nullptr, "module", true, WScriptJsrt::FinalizeFree, false);
+                    goto Error;
                 }
-
-                LoadScript(nullptr, fullPath, nullptr, "module", true, WScriptJsrt::FinalizeFree, false);
+                fileContent = data->GetString();
             }
-            else
-            {
-                LoadScript(nullptr, fullPath, fileContent, "module", true, WScriptJsrt::FinalizeFree, true);
-            }
+            LoadScript(nullptr, *specifierStr, fileContent, "module", true, WScriptJsrt::FinalizeFree, true);
         }
     }
+Error:
     return errorCode;
 }
 
@@ -1682,7 +1844,10 @@ JsErrorCode WScriptJsrt::NotifyModuleReadyCallback(_In_opt_ JsModuleRecord refer
             wprintf(_u("NotifyModuleReadyCallback(exception) %S\n"), fileName.GetString());
         }
 
-        PrintException(*fileName, JsErrorScriptException);
+        // No need to print - just consume the exception
+        JsValueRef exception;
+        ChakraRTInterface::JsGetAndClearException(&exception);
+        exception; // unused
     }
     else
     {

@@ -626,6 +626,30 @@ var tests = [
             assert.isTrue(p.configurable, "Object.getOwnPropertyDescriptor(Array.prototype, Symbol.unscopables).configurable === true");
         }
     },
+    {
+        name: "__proto__ on a WithScopeObject",
+        body: function () {
+            var originalProto = Object.__proto__;
+            var o = {};
+
+            with (Object) {
+                assert.areEqual(Object.__proto__, __proto__, "With scoped load of Object.__proto__ matches explicit Object.__proto__");
+                __proto__ = o;
+                assert.areEqual(o, __proto__,        "Object.__proto__ change in scoped 'with' matches new __proto object");
+            }
+            Object.__proto__ = originalProto;
+
+            with (Object) {
+                assert.areEqual(Object.__proto__, __proto__,         "With scoped load of Object.__proto__ matches explicit Object.__proto__");
+                assert.areEqual(Object.__proto__, eval('__proto__'), "Eval with scoped load of Object.__proto__ matches explicit Object.__proto__");
+                eval('__proto__ = o');
+                assert.areEqual(o, __proto__,         "With scoped load of Object.__proto__ has changed after eval Object.__proto__ override");
+                assert.areEqual(o, eval('__proto__'), "Eval with scoped load of Object.__proto__ has changed after eval Object.__proto__ override");
+            }
+
+            Object.__proto__ = originalProto;
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

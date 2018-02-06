@@ -516,31 +516,6 @@ var tests = [
                 }
             }
             assert.throws(() => new DerivedSuper(), TypeError, "Class derived from null can't make a super call", "Function is not a constructor");
-            
-            class DerivedEmpty extends null {
-                constructor() { }
-            }
-            assert.areEqual(DerivedEmpty, new DerivedEmpty().constructor, "Default instance for 'extends null' case is a real instance of the derived class");
-            
-            var called = false;
-            class DerivedVerifyNewTarget extends null {
-                constructor() {
-                    assert.areEqual(DerivedVerifyNewTarget, new.target, "Derived class called as new expression gets new.target");
-                    called = true;
-                }
-            }
-            assert.areEqual(DerivedVerifyNewTarget, new DerivedVerifyNewTarget().constructor, "Default instance for 'extends null' case is a real instance of the derived class");
-            assert.isTrue(called, "Constructor was actually called");
-            
-            called = false;
-            class DerivedVerifyThis extends null {
-                constructor() {
-                    assert.areEqual(DerivedVerifyThis, this.constructor, "Derived from null class called as new expression gets this instance of the derived class");
-                    called = true;
-                }
-            }
-            assert.areEqual(DerivedVerifyThis, new DerivedVerifyThis().constructor, "Default instance for 'extends null' case is a real instance of the derived class");
-            assert.isTrue(called, "Constructor was actually called");
         }
     },
     {
@@ -985,6 +960,19 @@ var tests = [
         body: function() {
             assert.throws(() => WScript.LoadScript(`(class classExpr {}())`), TypeError, "Class expression called at global scope", "Class constructor cannot be called without the new keyword");
             assert.throws(() => WScript.LoadScript(`(() => (class classExpr {}()))()`), TypeError, "Class expression called in global lambda", "Class constructor cannot be called without the new keyword");
+        }
+    },
+    {
+        name: "Indirect eval should not create a 'this' binding",
+        body: function() {
+            WScript.LoadScript(`
+                this.eval("(() => assert.areEqual('global', this.o, 'Lambda in indirect eval called off of this capturing this'))()");
+                this['eval']("(() => assert.areEqual('global', this.o, 'Lambda in indirect eval called from a property index capturing this'))()");
+                var _eval = 'eval';
+                this[_eval]("(() => assert.areEqual('global', this.o, 'Lambda in indirect eval called from a property index capturing this'))()");
+                _eval = eval;
+                _eval("(() => assert.areEqual('global', this.o, 'Lambda in indirect eval capturing this'))()");
+            `);
         }
     }
 ]

@@ -98,7 +98,7 @@ public:
     }
 
 private:
-    int MemoryProfiler::CreateArenaUsageSummary(ArenaAllocator * alloc, bool liveOnly,
+    int CreateArenaUsageSummary(ArenaAllocator * alloc, bool liveOnly,
         _Outptr_result_buffer_(return) LPWSTR ** name_ptr, _Outptr_result_buffer_(return) ArenaMemoryDataSummary *** summaries_ptr);
 
     template<typename THandler>

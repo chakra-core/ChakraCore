@@ -170,7 +170,6 @@ namespace Js
         JavascriptPromiseResolveOrRejectFunction* reject;
         JavascriptPromiseAsyncSpawnExecutorFunction* executor =
             library->CreatePromiseAsyncSpawnExecutorFunction(
-                JavascriptPromise::EntryJavascriptPromiseAsyncSpawnExecutorFunction,
                 scriptContext->GetLibrary()->CreateGenerator(heapArgs, JavascriptAsyncFunction::FromVar(function)->GetGeneratorVirtualScriptFunction(), prototype),
                 stackArgs[0]);
 
@@ -321,7 +320,7 @@ namespace Js
             // to get the length from our private ScriptFunction instead of ourself.
             int len = 0;
             Var varLength;
-            if (scriptFunction->GetProperty(scriptFunction, PropertyIds::length, &varLength, NULL, requestContext))
+            if (scriptFunction->GetProperty(this, PropertyIds::length, &varLength, NULL, requestContext))
             {
                 len = JavascriptConversion::ToInt32(varLength, requestContext);
             }
@@ -447,10 +446,10 @@ namespace Js
             }
 
             if ((propertyRecord->GetPropertyId() == PropertyIds::caller || propertyRecord->GetPropertyId() == PropertyIds::arguments))
-        {
-            // JavascriptFunction has special case for caller and arguments; call DynamicObject:: virtual directly to skip that.
-            return DynamicObject::GetSetter(propertyNameString, setterValue, info, requestContext);
-        }
+            {
+                // JavascriptFunction has special case for caller and arguments; call DynamicObject:: virtual directly to skip that.
+                return DynamicObject::GetSetter(propertyNameString, setterValue, info, requestContext);
+            }
         }
 
         return JavascriptFunction::GetSetter(propertyNameString, setterValue, info, requestContext);
@@ -526,37 +525,91 @@ namespace Js
     }
 
 #if ENABLE_TTD
+
+    void JavascriptGeneratorFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        if (this->scriptFunction != nullptr)
+        {
+            extractor->MarkVisitVar(this->scriptFunction);
+        }
+    }
+
     TTD::NSSnapObjects::SnapObjectType JavascriptGeneratorFunction::GetSnapTag_TTD() const
     {
-        //we override this with invalid to make sure it isn't unexpectedly handled by the parent class
-        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+        return TTD::NSSnapObjects::SnapObjectType::SnapGeneratorFunction;
     }
 
     void JavascriptGeneratorFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        TTDAssert(false, "Invalid -- JavascriptGeneratorFunction");
+        TTD::NSSnapObjects::SnapGeneratorFunctionInfo* fi = nullptr;
+        uint32 depCount = 0;
+        TTD_PTR_ID* depArray = nullptr;
+
+        this->CreateSnapObjectInfo(alloc, &fi, &depArray, &depCount);
+
+        if (depCount == 0)
+        {
+            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapGeneratorFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapGeneratorFunction>(objData, fi);
+        }
+        else
+        {
+            TTDAssert(depArray != nullptr, "depArray should be non-null if depCount is > 0");
+            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapGeneratorFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapGeneratorFunction>(objData, fi, alloc, depCount, depArray);
+        }
+    }
+
+    void JavascriptGeneratorFunction::CreateSnapObjectInfo(TTD::SlabAllocator& alloc, _Out_ TTD::NSSnapObjects::SnapGeneratorFunctionInfo** info, _Out_ TTD_PTR_ID** depArray, _Out_ uint32* depCount)
+    {
+        *info = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapGeneratorFunctionInfo>();
+        (*info)->scriptFunction = TTD_CONVERT_VAR_TO_PTR_ID(this->scriptFunction);
+        (*info)->isAnonymousFunction = this->scriptFunction->IsAnonymousFunction();
+
+        *depCount = 0;
+        *depArray = nullptr;
+        if (this->scriptFunction != nullptr &&  TTD::JsSupport::IsVarComplexKind(this->scriptFunction))
+        {
+            *depArray = alloc.SlabReserveArraySpace<TTD_PTR_ID>(1);
+            (*depArray)[*depCount] = TTD_CONVERT_VAR_TO_PTR_ID(this->scriptFunction);
+            *depCount = 1;
+            alloc.SlabCommitArraySpace<TTD_PTR_ID>(*depCount, 1);
+        }
     }
 
     TTD::NSSnapObjects::SnapObjectType JavascriptAsyncFunction::GetSnapTag_TTD() const
     {
-        //we override this with invalid to make sure it isn't unexpectedly handled by the parent class
-        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+        return TTD::NSSnapObjects::SnapObjectType::SnapAsyncFunction;
     }
 
     void JavascriptAsyncFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        TTDAssert(false, "Invalid -- JavascriptAsyncFunction");
+        TTD::NSSnapObjects::SnapGeneratorFunctionInfo* fi = nullptr;
+        uint32 depCount = 0;
+        TTD_PTR_ID* depArray = nullptr;
+
+        this->CreateSnapObjectInfo(alloc, &fi, &depArray, &depCount);
+
+        if (depCount == 0)
+        {
+            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapGeneratorFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapAsyncFunction>(objData, fi);
+        }
+        else
+        {
+            TTDAssert(depArray != nullptr, "depArray should be non-null if depCount is > 0");
+            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapGeneratorFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapAsyncFunction>(objData, fi, alloc, depCount, depArray);
+        }
     }
 
     TTD::NSSnapObjects::SnapObjectType GeneratorVirtualScriptFunction::GetSnapTag_TTD() const
     {
-        //we override this with invalid to make sure it isn't unexpectedly handled by the parent class
-        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+        return TTD::NSSnapObjects::SnapObjectType::SnapGeneratorVirtualScriptFunction;
     }
 
     void GeneratorVirtualScriptFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        TTDAssert(false, "Invalid -- GeneratorVirtualScriptFunction");
+        TTD::NSSnapObjects::SnapGeneratorVirtualScriptFunctionInfo* fi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapGeneratorVirtualScriptFunctionInfo>();
+        ScriptFunction::ExtractSnapObjectDataIntoSnapScriptFunctionInfo(fi, alloc);
+        fi->realFunction = TTD_CONVERT_VAR_TO_PTR_ID(this->realFunction);
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapGeneratorVirtualScriptFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapGeneratorVirtualScriptFunction>(objData, fi);
     }
 #endif
 }

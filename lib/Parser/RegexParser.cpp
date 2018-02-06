@@ -1751,6 +1751,11 @@ namespace UnifiedRegex
                 // Take to be identity escape if ill-formed as per Annex B
                 break;
             default:
+                if (this->unicodeFlagPresent)
+                {
+                    // As per #sec-forbidden-extensions, if unicode flag is present, we must disallow any other escape.
+                    Js::JavascriptError::ThrowSyntaxError(scriptContext, JSERR_RegExpInvalidEscape);
+                }
                 // As per Annex B, allow anything other than newlines and above. Embedded 0 is ok
                 break;
             }
@@ -2961,6 +2966,8 @@ namespace UnifiedRegex
         this->scriptContext->ProfileEnd(Js::RegexCompilePhase);
 #endif
 
+        AssertOrFailFast(0 < pattern->NumGroups() && pattern->NumGroups() <= MAX_NUM_GROUPS);
+
         return pattern;
     }
 
@@ -2992,6 +2999,8 @@ namespace UnifiedRegex
         program->sourceLen = bodyChars;
 
         program->numGroups = nextGroupId;
+
+        AssertOrFailFast(0 < program->numGroups && program->numGroups <= MAX_NUM_GROUPS);
 
         // Remaining to set during compilation: litbuf, litbufLen, numLoops, insts, instsLen, entryPointLabel
     }

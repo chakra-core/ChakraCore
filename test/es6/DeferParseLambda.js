@@ -110,6 +110,54 @@ var tests = [
             `);
         }
     },
+    {
+        name: "Global functions using 'yield' as identifier",
+        body: function () {
+            WScript.LoadScript(`
+                var a = async (yield) => { yield };
+                assert.isTrue(a() instanceof Promise, "Async lambda with yield as a formal parameter name");
+
+                function b(yield) {
+                    return yield;
+                }
+                assert.areEqual('b', b('b'), "Function with yield as a formal parameter name");
+
+                var c = async (yield) => yield;
+                assert.isTrue(c() instanceof Promise, "Async lambda with yield as a formal parameter name and compact body");
+                
+                async function d(yield) {
+                    return yield;
+                }
+                assert.isTrue(d() instanceof Promise, "Async lambda with yield as a formal parameter name and compact body");
+            `);
+        }
+    },
+    {
+        name: "Nested functions using 'yield' as identifier",
+        body: function () {
+            var a = async (yield) => { yield };
+            assert.isTrue(a() instanceof Promise, "Async lambda with yield as a formal parameter name");
+
+            function b(yield) {
+                return yield;
+            }
+            assert.areEqual('b', b('b'), "Function with yield as a formal parameter name");
+
+            var c = async (yield) => yield;
+            assert.isTrue(c() instanceof Promise, "Async lambda with yield as a formal parameter name and compact body");
+
+            async function d(yield) {
+                return yield;
+            }
+            assert.isTrue(d() instanceof Promise, "Async lambda with yield as a formal parameter name and compact body");
+            
+            var e = async (a = yield) => { yield };
+            assert.isTrue(e() instanceof Promise, "Async lambda with yield in a default argument");
+            
+            var f = async (a = yield) => yield;
+            assert.isTrue(f() instanceof Promise, "Async lambda with compact body and yield in a default argument");
+        }
+    },
 ]
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

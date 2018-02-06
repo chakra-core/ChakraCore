@@ -160,4 +160,26 @@
       <files>ehinlinearmbug.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>helperlabelbug.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>helperlabelbug2.js</files>
+  </default>
+  </test>
+  <test>
+    <default>
+      <files>tryfinallyinlineswbug.js</files>
+      <compile-flags> -force:inline </compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+       <files>hasBailedOutBug.js</files>
+       <baseline>hasBailedOutBug.baseline</baseline>
+  </default>
+  </test>
 </regress-exe>

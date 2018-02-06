@@ -26,13 +26,29 @@ struct CapturedValues
     SListBase<ConstantStackSymValue> constantValues;           // Captured constant values during glob opt
     SListBase<CopyPropSyms> copyPropSyms;                      // Captured copy prop values during glob opt
     BVSparse<JitArenaAllocator> * argObjSyms;                  // Captured arg object symbols during glob opt
+    uint refCount;
 
+    CapturedValues() : argObjSyms(nullptr), refCount(0) {}
     ~CapturedValues()
     {
         // Reset SListBase to be exception safe. Captured values are from GlobOpt->func->alloc
         // in normal case the 2 SListBase are empty so no Clear needed, also no need to Clear in exception case
         constantValues.Reset();
         copyPropSyms.Reset();
+        argObjSyms = nullptr;
+        Assert(refCount == 0);
+    }
+
+    uint DecrementRefCount()
+    {
+        Assert(refCount != 0);
+        return --refCount;
+    }
+
+    void IncrementRefCount()
+    {
+        Assert(refCount > 0);
+        refCount++;
     }
 };
 
@@ -42,7 +58,7 @@ class BranchJumpTableWrapper
 {
 public:
 
-    BranchJumpTableWrapper(uint tableSize) : defaultTarget(nullptr), labelInstr(nullptr), tableSize(tableSize)
+    BranchJumpTableWrapper(uint tableSize) : jmpTable(nullptr), defaultTarget(nullptr), labelInstr(nullptr), tableSize(tableSize)
     {
     }
 
@@ -272,10 +288,10 @@ public:
     IR::Instr *     GetPrevRealInstrOrLabel() const;
     IR::Instr *     GetInsertBeforeByteCodeUsesInstr();
     IR::LabelInstr *GetOrCreateContinueLabel(const bool isHelper = false);
-    static RegOpnd *FindRegUseSrc(StackSym *sym, IR::Opnd*);
-    static RegOpnd *FindRegUseDst(StackSym *sym, IR::Opnd*);
-    RegOpnd *       FindRegUse(StackSym *sym);
-    static RegOpnd *FindRegUseInRange(StackSym *sym, Instr *instrBegin, Instr *instrEnd);
+    static bool     HasSymUseSrc(StackSym *sym, IR::Opnd*);
+    static bool     HasSymUseDst(StackSym *sym, IR::Opnd*);
+    bool            HasSymUse(StackSym *sym);
+    static bool     HasSymUseInRange(StackSym *sym, Instr *instrBegin, Instr *instrEnd);
     RegOpnd *       FindRegDef(StackSym *sym);
     static Instr*   FindSingleDefInstr(Js::OpCode opCode, Opnd* src);
 
@@ -315,7 +331,7 @@ public:
 
     BailOutInfo *   GetBailOutInfo() const;
     BailOutInfo *   UnlinkBailOutInfo();
-    bool            ReplaceBailOutInfo(BailOutInfo *newBailOutInfo);
+    void            ReplaceBailOutInfo(BailOutInfo *newBailOutInfo);
     IR::Instr *     ShareBailOut();
     BailOutKind     GetBailOutKind() const;
     BailOutKind     GetBailOutKindNoBits() const;
@@ -832,7 +848,10 @@ public:
     IntConstType m_lastCaseValue;
 
     MultiBranchInstr() :
-        m_branchTargets(nullptr)
+        m_branchTargets(nullptr),
+        m_kind(IntJumpTable),
+        m_baseCaseValue(0),
+        m_lastCaseValue(0)
     {
 #if DBG
         m_isMultiBranch = true;

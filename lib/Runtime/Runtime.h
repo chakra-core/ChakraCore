@@ -143,6 +143,7 @@ namespace Js
     class StringCopyInfoStack;
     class ObjectPrototypeObject;
     class PropertyString;
+    class PropertyRecordUsageCache;
     class ArgumentsObject;
     class HeapArgumentsObject;
     class ActivationObject;
@@ -306,7 +307,9 @@ namespace Js
     class AsmJSByteCodeGenerator;
     enum AsmJSMathBuiltinFunction: int;
     //////////////////////////////////////////////////////////////////////////
-    typedef JsUtil::WeakReferenceDictionary<PropertyId, PropertyString, PrimeSizePolicy> PropertyStringCacheMap;
+    template <typename T> using WeakPropertyIdMap = JsUtil::WeakReferenceDictionary<PropertyId, T, PrimeSizePolicy>;
+    typedef WeakPropertyIdMap<PropertyString> PropertyStringCacheMap;
+    typedef WeakPropertyIdMap<JavascriptSymbol> SymbolCacheMap;
 
     extern const FrameDisplay NullFrameDisplay;
     extern const FrameDisplay StrictNullFrameDisplay;
@@ -513,6 +516,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Library/LiteralString.h"
 #include "Library/ConcatString.h"
 #include "Library/CompoundString.h"
+#include "Library/PropertyRecordUsageCache.h"
 #include "Library/PropertyString.h"
 #include "Library/SingleCharString.h"
 
@@ -520,6 +524,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Library/SparseArraySegment.h"
 #include "Library/JavascriptError.h"
 #include "Library/JavascriptArray.h"
+#include "Library/JavascriptSymbol.h"
 
 #include "Library/AtomicsObject.h"
 #include "DetachedStateBase.h"

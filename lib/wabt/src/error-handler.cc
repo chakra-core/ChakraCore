@@ -34,8 +34,8 @@ std::string ErrorHandler::DefaultErrorMessage(const Color& color,
 
   result += color.MaybeBoldCode();
 
-  if (loc.filename) {
-    result += loc.filename;
+  if (!loc.filename.empty()) {
+    result += loc.filename.to_string();
     result += ":";
   }
 
@@ -103,8 +103,9 @@ bool ErrorHandlerFile::OnError(const Location& loc,
 }
 
 void ErrorHandlerFile::PrintErrorHeader() {
-  if (header_.empty())
+  if (header_.empty()) {
     return;
+  }
 
   switch (print_header_) {
     case PrintHeader::Never:

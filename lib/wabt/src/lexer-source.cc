@@ -20,41 +20,46 @@
 
 namespace wabt {
 
-LexerSourceFile::LexerSourceFile(const std::string& filename)
+LexerSourceFile::LexerSourceFile(string_view filename)
   : filename_(filename) {
-  file_ = fopen(filename.c_str(), "rb");
+  file_ = fopen(filename_.c_str(), "rb");
 }
 
 LexerSourceFile::~LexerSourceFile() {
-  if (file_)
+  if (file_) {
     fclose(file_);
+  }
 }
 
 std::unique_ptr<LexerSource> LexerSourceFile::Clone() {
   std::unique_ptr<LexerSourceFile> result(new LexerSourceFile(filename_));
 
   Offset offset = 0;
-  if (Failed(Tell(&offset)) || Failed(result->Seek(offset)))
+  if (Failed(Tell(&offset)) || Failed(result->Seek(offset))) {
     result.reset();
+  }
 
   return std::move(result);
 }
 
 Result LexerSourceFile::Tell(Offset* out_offset) {
-  if (!file_)
+  if (!file_) {
     return Result::Error;
+  }
 
   long offset = ftell(file_);
-  if (offset < 0)
+  if (offset < 0) {
     return Result::Error;
+  }
 
   *out_offset = offset;
   return Result::Ok;
 }
 
 size_t LexerSourceFile::Fill(void* dest, size_t size)  {
-  if (!file_)
+  if (!file_) {
     return 0;
+  }
   return fread(dest, 1, size, file_);
 }
 
@@ -67,8 +72,9 @@ Result LexerSourceFile::ReadRange(OffsetRange range,
   std::vector<char> result(range.size());
   if (range.size() > 0) {
     size_t read_size = Fill(result.data(), range.size());
-    if (read_size < range.size())
+    if (read_size < range.size()) {
       result.resize(read_size);
+    }
   }
 
   CHECK_RESULT(Seek(old_offset));
@@ -78,8 +84,9 @@ Result LexerSourceFile::ReadRange(OffsetRange range,
 }
 
 Result LexerSourceFile::Seek(Offset offset) {
-  if (!file_)
+  if (!file_) {
     return Result::Error;
+  }
 
   int result = fseek(file_, offset, SEEK_SET);
   return result < 0 ? Result::Error : Result::Ok;

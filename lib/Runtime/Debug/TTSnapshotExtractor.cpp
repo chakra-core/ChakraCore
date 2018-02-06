@@ -107,7 +107,7 @@ namespace TTD
                 slotInfo->Slots[j] = slots.Get(j);
             }
 
-            if(slots.IsFunctionScopeSlotArray())
+            if(!slots.IsDebuggerScopeSlotArray())
             {
                 Js::FunctionBody* fb = slots.GetFunctionInfo()->GetFunctionBody();
 
@@ -247,7 +247,7 @@ namespace TTD
     void SnapshotExtractor::MarkVisitVar(Js::Var var)
     {
         TTDAssert(var != nullptr, "I don't think this should happen but not 100% sure.");
-        TTDAssert(Js::JavascriptOperators::GetTypeId(var) < Js::TypeIds_Limit || Js::RecyclableObject::FromVar(var)->CanHaveInterceptors(), "Not cool.");
+        TTDAssert(Js::JavascriptOperators::GetTypeId(var) < Js::TypeIds_Limit || Js::RecyclableObject::FromVar(var)->IsExternal(), "Not cool.");
 
         //We don't need to visit tagged things
         if(JsSupport::IsVarTaggedInline(var))
@@ -324,7 +324,7 @@ namespace TTD
                     {
                         Js::ScopeSlots slotArray = (Js::Var*)scope;
                         uint slotArrayCount = static_cast<uint>(slotArray.GetCount());
-                        if(slotArray.IsFunctionScopeSlotArray())
+                        if(!slotArray.IsDebuggerScopeSlotArray())
                         {
                             this->MarkFunctionBody(slotArray.GetFunctionInfo()->GetFunctionBody());
                         }

@@ -342,9 +342,12 @@ check_cxx_source_runs("
 int main()
 {
   int ret;
+#ifndef __APPLE__
   struct timespec ts;
   ret = clock_gettime(CLOCK_REALTIME, &ts);
-
+#else
+  ret = 1; // do not use clock_gettime on osx/ios (backward compatibility)
+#endif
   exit(ret);
 }" HAVE_WORKING_CLOCK_GETTIME)
 check_cxx_source_runs("
@@ -355,9 +358,12 @@ check_cxx_source_runs("
 int main()
 {
   int ret;
+#ifndef __APPLE__
   struct timespec ts;
   ret = clock_gettime(CLOCK_MONOTONIC, &ts);
-
+#else
+  ret = 1; // do not use clock_gettime on osx/ios (backward compatibility)
+#endif
   exit(ret);
 }" HAVE_CLOCK_MONOTONIC)
 check_cxx_source_runs("
@@ -368,9 +374,12 @@ check_cxx_source_runs("
 int main()
 {
   int ret;
+#ifndef __APPLE__
   struct timespec ts;
   ret = clock_gettime(CLOCK_MONOTONIC_COARSE, &ts);
-
+#else
+  ret = 1; // do not use clock_gettime on osx/ios (backward compatibility)
+#endif
   exit(ret);
 }" HAVE_CLOCK_MONOTONIC_COARSE)
 check_cxx_source_runs("
@@ -393,9 +402,12 @@ check_cxx_source_runs("
 int main()
 {
   int ret;
+#ifndef __APPLE__
   struct timespec ts;
   ret = clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts);
-
+#else
+  ret = 1; // do not use clock_gettime on osx/ios (backward compatibility)
+#endif
   exit(ret);
 }" HAVE_CLOCK_THREAD_CPUTIME)
 check_cxx_source_runs("
@@ -1029,4 +1041,4 @@ else() # ANDROID
   set(ZH_TW_LOCALE_NAME zh_TW_LOCALE_NOT_FOUND)
   set(HAS_FTRUNCATE_LENGTH_ISSUE 0)
 endif()
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/pal/src/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/pal/src/config.h)

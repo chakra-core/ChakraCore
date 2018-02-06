@@ -2,6 +2,12 @@
 <regress-exe>
   <test>
     <default>
+      <compile-flags>-dbgbaseline:empty.baseline</compile-flags>
+      <files>failfast.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <compile-flags>-dbgbaseline:JsDiagBreakpoints.js.dbg.baseline</compile-flags>
       <files>JsDiagBreakpoints.js</files>
     </default>
@@ -72,6 +78,12 @@
     <default>
       <compile-flags>-debuglaunch -dbgbaseline:dumpFunctionProperties.js.dbg.baseline</compile-flags>
       <files>dumpFunctionProperties.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <compile-flags>-dbgbaseline:emptyJson.dbg.baseline</compile-flags>
+      <files>loadscript_after_detach.js</files>
     </default>
   </test>
 </regress-exe>

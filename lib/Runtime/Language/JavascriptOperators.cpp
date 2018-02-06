@@ -123,19 +123,21 @@ namespace Js
             else
             {
                 JavascriptString* indexStr = JavascriptConversion::ToString(indexVar, scriptContext);
-                *propertyRecord = indexStr->GetPropertyRecord();
+                char16 const * propertyName = indexStr->GetString();
+                charcount_t const propertyLength = indexStr->GetLength();
 
-                if ((*propertyRecord)->IsNumeric())
+                if (!createIfNotFound && preferJavascriptStringOverPropertyRecord)
                 {
-                    *index = (*propertyRecord)->GetNumericValue();
-                    return IndexType_Number;
-                }
+                    if (JavascriptOperators::TryConvertToUInt32(propertyName, propertyLength, index) &&
+                        (*index != JavascriptArray::InvalidIndex))
+                    {
+                        return IndexType_Number;
+                    }
 
-                if (preferJavascriptStringOverPropertyRecord)
-                {
                     *propertyNameString = indexStr;
+                    return IndexType_JavascriptString;
                 }
-                return IndexType_PropertyId;
+                return GetIndexTypeFromString(propertyName, propertyLength, scriptContext, index, propertyRecord, createIfNotFound);
             }
         }
     }
@@ -1043,7 +1045,7 @@ CommonNumber:
 #endif
         }
 
-        if (RecyclableObject::FromVar(aLeft)->CanHaveInterceptors())
+        if (RecyclableObject::FromVar(aLeft)->IsExternal())
         {
             BOOL result;
             if (RecyclableObject::FromVar(aLeft)->StrictEquals(aRight, &result, requestContext))
@@ -1055,7 +1057,7 @@ CommonNumber:
             }
         }
 
-        if (!TaggedNumber::Is(aRight) && RecyclableObject::FromVar(aRight)->CanHaveInterceptors())
+        if (!TaggedNumber::Is(aRight) && RecyclableObject::FromVar(aRight)->IsExternal())
         {
             BOOL result;
             if (RecyclableObject::FromVar(aRight)->StrictEquals(aLeft, &result, requestContext))
@@ -1330,7 +1332,7 @@ CommonNumber:
             DynamicObject::IsAnyArrayTypeId(remoteTypeId));
     }
 
-    BOOL JavascriptOperators::IsArray(_In_ JavascriptProxy * instance)
+    bool JavascriptOperators::IsArray(_In_ JavascriptProxy * instance)
     {
         // If it is a proxy, follow to the end of the proxy chain before checking if it is an array again.
         JavascriptProxy * proxy = instance;
@@ -1345,7 +1347,7 @@ CommonNumber:
         }
     }
 
-    BOOL JavascriptOperators::IsArray(_In_ RecyclableObject* instance)
+    bool JavascriptOperators::IsArray(_In_ RecyclableObject* instance)
     {
         if (DynamicObject::IsAnyArray(instance))
         {
@@ -1361,34 +1363,44 @@ CommonNumber:
         return IsRemoteArray(instance);
     }
 
-    BOOL JavascriptOperators::IsArray(_In_ Var instanceVar)
+    bool JavascriptOperators::IsArray(_In_ Var instanceVar)
     {
-        if (!RecyclableObject::Is(instanceVar))
-        {
-            return FALSE;
-        }
-        return IsArray(RecyclableObject::FromVar(instanceVar));
+        RecyclableObject* instanceObj = TryFromVar<RecyclableObject>(instanceVar);
+        return instanceObj && IsArray(instanceObj);
     }
 
-    BOOL JavascriptOperators::IsConstructor(Var instanceVar)
+    bool JavascriptOperators::IsConstructor(_In_ JavascriptProxy * instance)
     {
-        if (!RecyclableObject::Is(instanceVar))
+        // If it is a proxy, follow to the end of the proxy chain before checking if it is a constructor again.
+        JavascriptProxy * proxy = instance;
+        while (true)
         {
-            return FALSE;
+            RecyclableObject* targetInstance = proxy->GetTarget();
+            proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(targetInstance);
+            if (proxy == nullptr)
+            {
+                JavascriptFunction* function = JavascriptOperators::TryFromVar<JavascriptFunction>(targetInstance);
+                return function && function->IsConstructor();
+            }
         }
+    }
 
-        JavascriptProxy* proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(instanceVar);
+    bool JavascriptOperators::IsConstructor(_In_ RecyclableObject* instanceObj)
+    {
+        JavascriptProxy* proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(instanceObj);
         if (proxy)
         {
-            return IsConstructor(proxy->GetTarget());
+            return IsConstructor(proxy);
         }
 
-        JavascriptFunction * function = JavascriptOperators::TryFromVar<JavascriptFunction>(instanceVar);
-        if (!function)
-        {
-            return FALSE;
-        }
-        return function->IsConstructor();
+        JavascriptFunction* function = JavascriptOperators::TryFromVar<JavascriptFunction>(instanceObj);
+        return function && function->IsConstructor();
+    }
+
+    bool JavascriptOperators::IsConstructor(_In_ Var instanceVar)
+    {
+        RecyclableObject* instanceObj = TryFromVar<RecyclableObject>(instanceVar);
+        return instanceObj && IsConstructor(instanceObj);
     }
 
     BOOL JavascriptOperators::IsConcatSpreadable(Var instanceVar)
@@ -1900,9 +1912,9 @@ CommonNumber:
             PropertyQueryFlags result = object->GetPropertyQuery(instance, propertyKey, value, info, requestContext);
             if (result != PropertyQueryFlags::Property_NotFound)
             {
-                if (value && !WithScopeObject::Is(object) && info->GetPropertyString())
+                if (value && !WithScopeObject::Is(object) && info->GetPropertyRecordUsageCache())
                 {
-                    PropertyId propertyId = info->GetPropertyString()->GetPropertyRecord()->GetPropertyId();
+                    PropertyId propertyId = info->GetPropertyRecordUsageCache()->GetPropertyRecord()->GetPropertyId();
                     CacheOperators::CachePropertyRead(instance, object, false, propertyId, false, info, requestContext);
                 }
                 return JavascriptConversion::PropertyQueryFlagsToBoolean(result);
@@ -1913,10 +1925,10 @@ CommonNumber:
             }
             object = JavascriptOperators::GetPrototypeNoTrap(object);
         }
-        if (!PHASE_OFF1(MissingPropertyCachePhase) && info->GetPropertyString() && DynamicObject::Is(instance) && ((DynamicObject*)instance)->GetDynamicType()->GetTypeHandler()->IsPathTypeHandler())
+        if (!PHASE_OFF1(MissingPropertyCachePhase) && info->GetPropertyRecordUsageCache() && DynamicObject::Is(instance) && ((DynamicObject*)instance)->GetDynamicType()->GetTypeHandler()->IsPathTypeHandler())
         {
             PropertyValueInfo::Set(info, requestContext->GetLibrary()->GetMissingPropertyHolder(), 0);
-            CacheOperators::CachePropertyRead(instance, requestContext->GetLibrary()->GetMissingPropertyHolder(), false, info->GetPropertyString()->GetPropertyRecord()->GetPropertyId(), true, info, requestContext);
+            CacheOperators::CachePropertyRead(instance, requestContext->GetLibrary()->GetMissingPropertyHolder(), false, info->GetPropertyRecordUsageCache()->GetPropertyRecord()->GetPropertyId(), true, info, requestContext);
         }
 
         *value = requestContext->GetMissingPropertyResult();
@@ -2288,9 +2300,9 @@ CommonNumber:
                     }
                     if (setterValueOrProxy)
                     {
-                        if (!WithScopeObject::Is(receiver) && info->GetPropertyString())
+                        if (!WithScopeObject::Is(receiver) && info->GetPropertyRecordUsageCache())
                         {
-                            CacheOperators::CachePropertyWrite(RecyclableObject::FromVar(receiver), false, object->GetType(), info->GetPropertyString()->GetPropertyRecord()->GetPropertyId(), info, requestContext);
+                            CacheOperators::CachePropertyWrite(RecyclableObject::FromVar(receiver), false, object->GetType(), info->GetPropertyRecordUsageCache()->GetPropertyRecord()->GetPropertyId(), info, requestContext);
                         }
                         receiver = (RecyclableObject::FromVar(receiver))->GetThisObjectOrUnWrap();
                         RecyclableObject* func = RecyclableObject::FromVar(setterValueOrProxy);
@@ -2306,7 +2318,7 @@ CommonNumber:
                     auto fn = [&](RecyclableObject* target) -> BOOL {
                         return JavascriptOperators::SetPropertyWPCache(receiver, target, propertyKey, newValue, requestContext, propertyOperationFlags, info);
                     };
-                    if (info->GetPropertyString())
+                    if (info->GetPropertyRecordUsageCache())
                     {
                         PropertyValueInfo::SetNoCache(info, proxy);
                         PropertyValueInfo::DisablePrototypeCache(info, proxy);
@@ -2344,14 +2356,14 @@ CommonNumber:
             // in 9.1.9, step 5, we should return false if receiver is not object, and that will happen in default RecyclableObject operation anyhow.
             if (receiverObject->SetProperty(propertyKey, newValue, propertyOperationFlags, info))
             {
-                if (!JavascriptProxy::Is(receiver) && info->GetPropertyString() && info->GetFlags() != InlineCacheSetterFlag && !object->CanHaveInterceptors())
+                if (!JavascriptProxy::Is(receiver) && info->GetPropertyRecordUsageCache() && info->GetFlags() != InlineCacheSetterFlag && !object->IsExternal())
                 {
-                    CacheOperators::CachePropertyWrite(RecyclableObject::FromVar(receiver), false, typeWithoutProperty, info->GetPropertyString()->GetPropertyRecord()->GetPropertyId(), info, requestContext);
+                    CacheOperators::CachePropertyWrite(RecyclableObject::FromVar(receiver), false, typeWithoutProperty, info->GetPropertyRecordUsageCache()->GetPropertyRecord()->GetPropertyId(), info, requestContext);
 
                     if (info->GetInstance() == receiverObject)
                     {
-                        PropertyValueInfo::SetCacheInfo(info, info->GetPropertyString(), info->GetPropertyString()->GetLdElemInlineCache(), info->AllowResizingPolymorphicInlineCache());
-                        CacheOperators::CachePropertyRead(object, receiverObject, false, info->GetPropertyString()->GetPropertyRecord()->GetPropertyId(), false, info, requestContext);
+                        PropertyValueInfo::SetCacheInfo(info, info->GetPropertyRecordUsageCache()->GetLdElemInlineCache(), info->AllowResizingPolymorphicInlineCache());
+                        CacheOperators::CachePropertyRead(object, receiverObject, false, info->GetPropertyRecordUsageCache()->GetPropertyRecord()->GetPropertyId(), false, info, requestContext);
                     }
                 }
                 return TRUE;
@@ -2474,61 +2486,74 @@ CommonNumber:
         return SetProperty_Internal<false>(instance, instance, true, propertyId, newValue, info, requestContext, propertyOperationFlags);
     }
 
-    template <bool unscopables>
-    BOOL JavascriptOperators::SetProperty_Internal(Var receiver, RecyclableObject* object, const bool isRoot, PropertyId propertyId, Var newValue, PropertyValueInfo * info, ScriptContext* requestContext, PropertyOperationFlags propertyOperationFlags)
+    // Returns true if a result was written.
+    bool JavascriptOperators::SetAccessorOrNonWritableProperty(
+        Var receiver,
+        RecyclableObject* object,
+        PropertyId propertyId,
+        Var newValue,
+        PropertyValueInfo * info,
+        ScriptContext* requestContext,
+        PropertyOperationFlags propertyOperationFlags,
+        bool isRoot,
+        bool allowUndecInConsoleScope,
+        BOOL *result)
     {
-        if (receiver)
+        *result = FALSE;
+        Var setterValueOrProxy = nullptr;
+        DescriptorFlags flags = None;
+        if ((isRoot && JavascriptOperators::CheckPrototypesForAccessorOrNonWritableRootProperty(object, propertyId, &setterValueOrProxy, &flags, info, requestContext)) ||
+            (!isRoot && JavascriptOperators::CheckPrototypesForAccessorOrNonWritableProperty(object, propertyId, &setterValueOrProxy, &flags, info, requestContext)))
         {
-            Assert(!TaggedNumber::Is(receiver));
-            Var setterValueOrProxy = nullptr;
-            DescriptorFlags flags = None;
-            if ((isRoot && JavascriptOperators::CheckPrototypesForAccessorOrNonWritableRootProperty(object, propertyId, &setterValueOrProxy, &flags, info, requestContext)) ||
-                (!isRoot && JavascriptOperators::CheckPrototypesForAccessorOrNonWritableProperty(object, propertyId, &setterValueOrProxy, &flags, info, requestContext)))
+            if ((flags & Accessor) == Accessor)
             {
-                if ((flags & Accessor) == Accessor)
+                if (JavascriptError::ThrowIfStrictModeUndefinedSetter(propertyOperationFlags, setterValueOrProxy, requestContext) ||
+                    JavascriptError::ThrowIfNotExtensibleUndefinedSetter(propertyOperationFlags, setterValueOrProxy, requestContext))
                 {
-                    if (JavascriptError::ThrowIfStrictModeUndefinedSetter(propertyOperationFlags, setterValueOrProxy, requestContext) ||
-                        JavascriptError::ThrowIfNotExtensibleUndefinedSetter(propertyOperationFlags, setterValueOrProxy, requestContext))
-                    {
-                        return TRUE;
-                    }
-                    if (setterValueOrProxy)
-                    {
-                        RecyclableObject* func = RecyclableObject::FromVar(setterValueOrProxy);
-                        Assert(!info || info->GetFlags() == InlineCacheSetterFlag || info->GetPropertyIndex() == Constants::NoSlot);
+                    *result = TRUE;
+                    return true;
+                }
+                if (setterValueOrProxy)
+                {
+                    RecyclableObject* func = RecyclableObject::FromVar(setterValueOrProxy);
+                    Assert(!info || info->GetFlags() == InlineCacheSetterFlag || info->GetPropertyIndex() == Constants::NoSlot);
 
-                        if (WithScopeObject::Is(receiver))
-                        {
-                            receiver = (RecyclableObject::FromVar(receiver))->GetThisObjectOrUnWrap();
-                        }
-                        else
-                        {
-                            CacheOperators::CachePropertyWrite(RecyclableObject::FromVar(receiver), isRoot, object->GetType(), propertyId, info, requestContext);
-                        }
+                    if (WithScopeObject::Is(receiver))
+                    {
+                        receiver = (RecyclableObject::FromVar(receiver))->GetThisObjectOrUnWrap();
+                    }
+                    else
+                    {
+                        CacheOperators::CachePropertyWrite(RecyclableObject::FromVar(receiver), isRoot, object->GetType(), propertyId, info, requestContext);
+                    }
 #ifdef ENABLE_MUTATION_BREAKPOINT
-                        if (MutationBreakpoint::IsFeatureEnabled(requestContext))
-                        {
-                            MutationBreakpoint::HandleSetProperty(requestContext, object, propertyId, newValue);
-                        }
-#endif
-                        JavascriptOperators::CallSetter(func, receiver, newValue, requestContext);
+                    if (MutationBreakpoint::IsFeatureEnabled(requestContext))
+                    {
+                        MutationBreakpoint::HandleSetProperty(requestContext, object, propertyId, newValue);
                     }
-                    return TRUE;
+#endif
+                    JavascriptOperators::CallSetter(func, receiver, newValue, requestContext);
                 }
-                else if ((flags & Proxy) == Proxy)
-                {
-                    Assert(JavascriptProxy::Is(setterValueOrProxy));
-                    JavascriptProxy* proxy = JavascriptProxy::FromVar(setterValueOrProxy);
-                    // We can't cache the property at this time. both target and handler can be changed outside of the proxy, so the inline cache needs to be
-                    // invalidate when target, handler, or handler prototype has changed. We don't have a way to achieve this yet.
-                    PropertyValueInfo::SetNoCache(info, proxy);
-                    PropertyValueInfo::DisablePrototypeCache(info, proxy); // We can't cache prototype property either
+                *result = TRUE;
+                return true;
+            }
+            else if ((flags & Proxy) == Proxy)
+            {
+                Assert(JavascriptProxy::Is(setterValueOrProxy));
+                JavascriptProxy* proxy = JavascriptProxy::FromVar(setterValueOrProxy);
+                // We can't cache the property at this time. both target and handler can be changed outside of the proxy, so the inline cache needs to be
+                // invalidate when target, handler, or handler prototype has changed. We don't have a way to achieve this yet.
+                PropertyValueInfo::SetNoCache(info, proxy);
+                PropertyValueInfo::DisablePrototypeCache(info, proxy); // We can't cache prototype property either
 
-                    return proxy->SetPropertyTrap(receiver, JavascriptProxy::SetPropertyTrapKind::SetPropertyKind, propertyId, newValue, requestContext);
-                }
-                else
+                *result = proxy->SetPropertyTrap(receiver, JavascriptProxy::SetPropertyTrapKind::SetPropertyKind, propertyId, newValue, requestContext);
+                return true;
+            }
+            else
+            {
+                Assert((flags & Data) == Data && (flags & Writable) == None);
+                if (!allowUndecInConsoleScope)
                 {
-                    Assert((flags & Data) == Data && (flags & Writable) == None);
                     if (flags & Const)
                     {
                         JavascriptError::ThrowTypeError(requestContext, ERRAssignmentToConst);
@@ -2536,70 +2561,89 @@ CommonNumber:
 
                     JavascriptError::ThrowCantAssign(propertyOperationFlags, requestContext, propertyId);
                     JavascriptError::ThrowCantAssignIfStrictMode(propertyOperationFlags, requestContext);
-                    return FALSE;
+
+                    *result = FALSE;
+                    return true;
                 }
             }
-            else if (!JavascriptOperators::IsObject(receiver))
-            {
-                JavascriptError::ThrowCantAssignIfStrictMode(propertyOperationFlags, requestContext);
-                return FALSE;
-            }
+        }
+        return false;
+    }
+
+     template <bool unscopables>
+    BOOL JavascriptOperators::SetProperty_Internal(Var receiver, RecyclableObject* object, const bool isRoot, PropertyId propertyId, Var newValue, PropertyValueInfo * info, ScriptContext* requestContext, PropertyOperationFlags propertyOperationFlags)
+    {
+        if (receiver == nullptr)
+        {
+            return FALSE;
+        }
+
+        Assert(!TaggedNumber::Is(receiver));
+        BOOL setAccessorResult = FALSE;
+        if (SetAccessorOrNonWritableProperty(receiver, object, propertyId, newValue, info, requestContext, propertyOperationFlags, isRoot, false, &setAccessorResult))
+        {
+            return setAccessorResult;
+        }
+        else if (!JavascriptOperators::IsObject(receiver))
+        {
+            JavascriptError::ThrowCantAssignIfStrictMode(propertyOperationFlags, requestContext);
+            return FALSE;
+        }
 
 #ifdef ENABLE_MUTATION_BREAKPOINT
-            // Break on mutation if needed
-            bool doNotUpdateCacheForMbp = MutationBreakpoint::IsFeatureEnabled(requestContext) ?
-                MutationBreakpoint::HandleSetProperty(requestContext, object, propertyId, newValue) : false;
+        // Break on mutation if needed
+        bool doNotUpdateCacheForMbp = MutationBreakpoint::IsFeatureEnabled(requestContext) ?
+            MutationBreakpoint::HandleSetProperty(requestContext, object, propertyId, newValue) : false;
 #endif
 
-            // Get the original type before setting the property
-            Type *typeWithoutProperty = object->GetType();
-            BOOL didSetProperty = false;
-            if (isRoot)
-            {
-                AssertMsg(JavascriptOperators::GetTypeId(receiver) == TypeIds_GlobalObject
-                    || JavascriptOperators::GetTypeId(receiver) == TypeIds_ModuleRoot,
-                    "Root must be a global object!");
+        // Get the original type before setting the property
+        Type *typeWithoutProperty = object->GetType();
+        BOOL didSetProperty = false;
+        if (isRoot)
+        {
+            AssertMsg(JavascriptOperators::GetTypeId(receiver) == TypeIds_GlobalObject
+                || JavascriptOperators::GetTypeId(receiver) == TypeIds_ModuleRoot,
+                "Root must be a global object!");
 
-                RootObjectBase* rootObject = static_cast<RootObjectBase*>(receiver);
-                didSetProperty = rootObject->SetRootProperty(propertyId, newValue, propertyOperationFlags, info);
-            }
-            else
+            RootObjectBase* rootObject = static_cast<RootObjectBase*>(receiver);
+            didSetProperty = rootObject->SetRootProperty(propertyId, newValue, propertyOperationFlags, info);
+        }
+        else
+        {
+            RecyclableObject* instanceObject = RecyclableObject::FromVar(receiver);
+            while (!JavascriptOperators::IsNull(instanceObject))
             {
-                RecyclableObject* instanceObject = RecyclableObject::FromVar(receiver);
-                while (!JavascriptOperators::IsNull(instanceObject))
+                if (unscopables && JavascriptOperators::IsPropertyUnscopable(instanceObject, propertyId))
                 {
-                    if (unscopables && JavascriptOperators::IsPropertyUnscopable(instanceObject, propertyId))
+                    break;
+                }
+                else
+                {
+                    didSetProperty = instanceObject->SetProperty(propertyId, newValue, propertyOperationFlags, info);
+                    if (didSetProperty || !unscopables)
                     {
                         break;
                     }
-                    else
-                    {
-                        didSetProperty = instanceObject->SetProperty(propertyId, newValue, propertyOperationFlags, info);
-                        if (didSetProperty || !unscopables)
-                        {
-                            break;
-                        }
-                    }
-                    instanceObject = JavascriptOperators::GetPrototypeNoTrap(instanceObject);
                 }
+                instanceObject = JavascriptOperators::GetPrototypeNoTrap(instanceObject);
             }
+        }
 
-            if (didSetProperty)
-            {
-                bool updateCache = true;
+        if (didSetProperty)
+        {
+            bool updateCache = true;
 #ifdef ENABLE_MUTATION_BREAKPOINT
-                updateCache = updateCache && !doNotUpdateCacheForMbp;
+            updateCache = updateCache && !doNotUpdateCacheForMbp;
 #endif
 
-                if (updateCache)
+            if (updateCache)
+            {
+                if (!JavascriptProxy::Is(receiver))
                 {
-                    if (!JavascriptProxy::Is(receiver))
-                    {
-                        CacheOperators::CachePropertyWrite(RecyclableObject::FromVar(receiver), isRoot, typeWithoutProperty, propertyId, info, requestContext);
-                    }
+                    CacheOperators::CachePropertyWrite(RecyclableObject::FromVar(receiver), isRoot, typeWithoutProperty, propertyId, info, requestContext);
                 }
-                return TRUE;
             }
+            return TRUE;
         }
 
         return FALSE;
@@ -2927,50 +2971,10 @@ CommonNumber:
             // is true, this must be a normal property.
             // TODO: merge OP_HasProperty and GetSetter in one pass if there is perf problem. In fastDOM we have quite
             // a lot of setters so separating the two might be actually faster.
-            Var setterValueOrProxy = nullptr;
-            DescriptorFlags flags = None;
-            if (JavascriptOperators::CheckPrototypesForAccessorOrNonWritableProperty(object, propertyId, &setterValueOrProxy, &flags, &info, scriptContext))
+            BOOL setAccessorResult = FALSE;
+            if (SetAccessorOrNonWritableProperty(object, object, propertyId, newValue, &info, scriptContext, propertyOperationFlags, false, allowUndecInConsoleScope, &setAccessorResult))
             {
-                if ((flags & Accessor) == Accessor)
-                {
-                    if (setterValueOrProxy)
-                    {
-                        JavascriptFunction* func = (JavascriptFunction*)setterValueOrProxy;
-                        Assert(info.GetFlags() == InlineCacheSetterFlag || info.GetPropertyIndex() == Constants::NoSlot);
-                        CacheOperators::CachePropertyWrite(object, false, type, propertyId, &info, scriptContext);
-                        JavascriptOperators::CallSetter(func, object, newValue, scriptContext);
-                    }
-
-                    Assert(!isLexicalThisSlotSymbol);
-                    return;
-                }
-                else if ((flags & Proxy) == Proxy)
-                {
-                    Assert(JavascriptProxy::Is(setterValueOrProxy));
-                    JavascriptProxy* proxy = JavascriptProxy::FromVar(setterValueOrProxy);
-                    auto fn = [&](RecyclableObject* target) -> BOOL {
-                        return JavascriptOperators::SetProperty(object, target, propertyId, newValue, scriptContext, propertyOperationFlags);
-                    };
-                    // We can't cache the property at this time. both target and handler can be changed outside of the proxy, so the inline cache needs to be
-                    // invalidate when target, handler, or handler prototype has changed. We don't have a way to achieve this yet.
-                    PropertyValueInfo::SetNoCache(&info, proxy);
-                    PropertyValueInfo::DisablePrototypeCache(&info, proxy); // We can't cache prototype property either
-                    proxy->SetPropertyTrap(object, JavascriptProxy::SetPropertyTrapKind::SetPropertyKind, propertyId, newValue, scriptContext);
-                }
-                else
-                {
-                    Assert((flags & Data) == Data && (flags & Writable) == None);
-                    if (!allowUndecInConsoleScope)
-                    {
-                        if (flags & Const)
-                        {
-                            JavascriptError::ThrowTypeError(scriptContext, ERRAssignmentToConst);
-                        }
-
-                        Assert(!isLexicalThisSlotSymbol);
-                        return;
-                    }
-                }
+                return;
             }
             else if (!JavascriptOperators::IsObject(object))
             {
@@ -3763,45 +3767,27 @@ CommonNumber:
                 }
                 else if (VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(temp))
                 {
-                    LiteralStringWithPropertyStringPtr * propStr = (LiteralStringWithPropertyStringPtr *)temp;
-                    propertyString = propStr->GetOrAddPropertyString();
+                    LiteralStringWithPropertyStringPtr * strWithPtr = (LiteralStringWithPropertyStringPtr *)temp;
+                    if (!strWithPtr->HasPropertyRecord())
+                    {
+                        PropertyRecord const * propertyRecord;
+                        strWithPtr->GetPropertyRecord(&propertyRecord); // lookup-cache propertyRecord
+                    }
+                    else
+                    {
+                        propertyString = strWithPtr->GetOrAddPropertyString();
+                        // this is the second time this property string is used
+                        // we already had created the propertyRecord..
+                        // now create the propertyString!
+                    }
                 }
 
                 if (propertyString != nullptr)
                 {
-                    RecyclableObject* object = nullptr;
-                    if (FALSE == JavascriptOperators::GetPropertyObject(instance, scriptContext, &object))
-                    {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_CannotGet_NullOrUndefined,
-                            JavascriptString::FromVar(index)->GetSz());
-                    }
-
-                    PropertyRecord const * propertyRecord = propertyString->GetPropertyRecord();
-                    Var value;
-
-                    if (propertyRecord->IsNumeric())
-                    {
-                        if (JavascriptOperators::GetItem(instance, object, propertyRecord->GetNumericValue(), &value, scriptContext))
-                        {
-                            return value;
-                        }
-                    }
-                    else
-                    {
-                        PropertyValueInfo info;
-                        if (propertyString->TryGetPropertyFromCache<false /* OwnPropertyOnly */>(instance, object, &value, scriptContext, &info))
-                        {
-                            return value;
-                        }
-                        if (JavascriptOperators::GetPropertyWPCache(instance, object, propertyRecord->GetPropertyId(), &value, scriptContext, &info))
-                        {
-                            return value;
-                        }
-                    }
-                    return scriptContext->GetLibrary()->GetUndefined();
+                    return GetElementIWithCache(instance, propertyString, propertyString->GetPropertyRecordUsageCache(), scriptContext);
                 }
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-                if (PHASE_TRACE1(PropertyStringCachePhase))
+                if (PHASE_TRACE1(PropertyCachePhase))
                 {
                     Output::Print(_u("PropertyCache: GetElem No property string for '%s'\n"), temp->GetString());
                 }
@@ -3810,9 +3796,49 @@ CommonNumber:
                 scriptContext->forinNoCache++;
 #endif
             }
+
+            JavascriptSymbol* symbol = JavascriptOperators::TryFromVar<JavascriptSymbol>(index);
+            if (symbol && RecyclableObject::Is(instance)) // fastpath for JavascriptSymbols
+            {
+                return GetElementIWithCache(instance, symbol, symbol->GetPropertyRecordUsageCache(), scriptContext);
+            }
         }
 
         return JavascriptOperators::GetElementIHelper(instance, index, instance, scriptContext);
+    }
+
+    Var JavascriptOperators::GetElementIWithCache(Var instance, RecyclableObject* index, PropertyRecordUsageCache* propertyRecordUsageCache, ScriptContext* scriptContext)
+    {
+        RecyclableObject* object = nullptr;
+        if (FALSE == JavascriptOperators::GetPropertyObject(instance, scriptContext, &object))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_CannotGet_NullOrUndefined,
+                JavascriptString::FromVar(index)->GetSz());
+        }
+
+        PropertyRecord const * propertyRecord = propertyRecordUsageCache->GetPropertyRecord();
+        Var value;
+
+        if (propertyRecord->IsNumeric())
+        {
+            if (JavascriptOperators::GetItem(instance, object, propertyRecord->GetNumericValue(), &value, scriptContext))
+            {
+                return value;
+            }
+        }
+        else
+        {
+            PropertyValueInfo info;
+            if (propertyRecordUsageCache->TryGetPropertyFromCache<false /* OwnPropertyOnly */>(instance, object, &value, scriptContext, &info, index))
+            {
+                return value;
+            }
+            if (JavascriptOperators::GetPropertyWPCache(instance, object, propertyRecord->GetPropertyId(), &value, scriptContext, &info))
+            {
+                return value;
+            }
+        }
+        return scriptContext->GetLibrary()->GetUndefined();
     }
 
     Var JavascriptOperators::GetElementIHelper(Var instance, Var index, Var receiver, ScriptContext* scriptContext)
@@ -4408,13 +4434,13 @@ CommonNumber:
             LiteralStringWithPropertyStringPtr * strWithPtr = LiteralStringWithPropertyStringPtr::TryFromVar(index);
             if (strWithPtr != nullptr)
             {
-                propertyString = strWithPtr->GetPropertyString(); // do not force create the PropertyString,
-                                                                  // if it wasn't there, it won't be efficient for now.
-                propertyRecord = strWithPtr->GetPropertyRecord(true /* dontLookupFromDictionary */);
+                propertyString = strWithPtr->GetPropertyString();   // do not force create the PropertyString,
+                                                                    // if it wasn't there, it won't be efficient for now.
+                strWithPtr->GetPropertyRecord(&propertyRecord, true /* dontLookupFromDictionary */);
                 if (propertyRecord == nullptr)
                 {
-                    propertyRecord = strWithPtr->GetPropertyRecord(); // lookup-cache propertyRecord
-                                                                      // later this call, there will be a lookup anyways!
+                    strWithPtr->GetPropertyRecord(&propertyRecord); // lookup-cache propertyRecord
+                                                                    // later this call, there will be a lookup anyways!
                 }
                 else if (propertyString == nullptr)
                 {
@@ -4426,7 +4452,19 @@ CommonNumber:
         }
         else
         {
-            propertyRecord = propertyString->GetPropertyRecord();
+            propertyString->GetPropertyRecord(&propertyRecord);
+        }
+
+        // fastpath for Symbols only if receiver == object
+        JavascriptSymbol * symbol = nullptr;
+
+        if (propertyString == nullptr)
+        {
+            symbol = JavascriptOperators::TryFromVar<JavascriptSymbol>(index);
+            if (symbol != nullptr && propertyRecord == nullptr)
+            {
+                propertyRecord = symbol->GetValue();
+            }
         }
 
         if (propertyRecord != nullptr)
@@ -4442,6 +4480,14 @@ CommonNumber:
                 {
                     Assert(propertyString->GetScriptContext() == scriptContext);
                     if (propertyString->TrySetPropertyFromCache(object, value, scriptContext, flags, &propertyValueInfo))
+                    {
+                        return true;
+                    }
+                }
+                else if (symbol != nullptr && receiver == object)
+                {
+                    Assert(symbol->GetScriptContext() == scriptContext);
+                    if (symbol->GetPropertyRecordUsageCache()->TrySetPropertyFromCache(object, value, scriptContext, flags, &propertyValueInfo, symbol))
                     {
                         return true;
                     }
@@ -5459,7 +5505,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
         if (firstFuncSlot != Constants::NoProperty)
         {
-            if (firstVarSlot == Constants::NoProperty)
+            if (firstVarSlot == Constants::NoProperty || firstVarSlot < firstFuncSlot)
             {
                 lastFuncSlot = propIds->count - 1;
             }
@@ -6665,7 +6711,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     BOOL JavascriptOperators::IsClassConstructor(Var instance)
     {
         JavascriptFunction * function = JavascriptOperators::TryFromVar<JavascriptFunction>(instance);
-        return function && (function->GetFunctionInfo()->IsClassConstructor() || !function->IsScriptFunction());
+        return function && (function->GetFunctionInfo()->IsClassConstructor() || (!function->IsScriptFunction() && !function->IsExternalFunction()));
     }
 
     BOOL JavascriptOperators::IsClassMethod(Var instance)
@@ -7070,11 +7116,6 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
                     ctorProtoObj->EnsureProperty(Js::PropertyIds::constructor);
                     ctorProtoObj->SetEnumerable(Js::PropertyIds::constructor, FALSE);
-
-                    if (ScriptFunctionBase::Is(constructor))
-                    {
-                        ScriptFunctionBase::FromVar(constructor)->GetFunctionInfo()->SetBaseConstructorKind();
-                    }
 
                     break;
                 }
@@ -8260,7 +8301,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                         // It is valid for some objects to not-support getters and setters, specifically, for projection of an ABI method
                         // (CustomExternalObject => MapWithStringKey) which SetAccessors returns VBSErr_ActionNotSupported.
                         // But for non-external objects SetAccessors should succeed.
-                        Assert(isSetAccessorsSuccess || obj->CanHaveInterceptors());
+                        Assert(isSetAccessorsSuccess || obj->IsExternal());
 
                         // If SetAccessors failed, the property wasn't created, so no need to change the attributes.
                         if (isSetAccessorsSuccess)
@@ -8338,7 +8379,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                         // It is valid for some objects to not-support getters and setters, specifically, for projection of an ABI method
                         // (CustomExternalObject => MapWithStringKey) which SetAccessors returns VBSErr_ActionNotSupported.
                         // But for non-external objects SetAccessors should succeed.
-                        Assert(isSetAccessorsSuccess || obj->CanHaveInterceptors());
+                        Assert(isSetAccessorsSuccess || obj->IsExternal());
 
                         if (isSetAccessorsSuccess)
                         {
@@ -9321,8 +9362,14 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
         if (FAILED(hr))
         {
+            // We cannot just use the buffer in the specifier string - need to make a copy here.
+            size_t length = wcslen(moduleName);
+            char16* allocatedString = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, length + 1);
+            wmemcpy_s(allocatedString, length + 1, moduleName, length);
+            allocatedString[length] = _u('\0');
+
             Js::JavascriptError *error = scriptContext->GetLibrary()->CreateURIError();
-            JavascriptError::SetErrorMessageProperties(error, hr, moduleName, scriptContext);
+            JavascriptError::SetErrorMessageProperties(error, hr, allocatedString, scriptContext);
             return SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, error, scriptContext);
         }
 
@@ -9458,7 +9505,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     }
 
     Js::Var
-    JavascriptOperators::BoxStackInstance(Js::Var instance, ScriptContext * scriptContext, bool allowStackFunction)
+    JavascriptOperators::BoxStackInstance(Js::Var instance, ScriptContext * scriptContext, bool allowStackFunction, bool deepCopy)
     {
         if (!ThreadContext::IsOnStack(instance) || (allowStackFunction && !TaggedNumber::Is(instance) && (*(int*)instance & 1)))
         {
@@ -9480,11 +9527,11 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         case Js::TypeIds_Object:
             return DynamicObject::BoxStackInstance(DynamicObject::FromVar(instance));
         case Js::TypeIds_Array:
-            return JavascriptArray::BoxStackInstance(JavascriptArray::UnsafeFromVar(instance));
+            return JavascriptArray::BoxStackInstance(JavascriptArray::UnsafeFromVar(instance), deepCopy);
         case Js::TypeIds_NativeIntArray:
-            return JavascriptNativeIntArray::BoxStackInstance(JavascriptNativeIntArray::UnsafeFromVar(instance));
+            return JavascriptNativeIntArray::BoxStackInstance(JavascriptNativeIntArray::UnsafeFromVar(instance), deepCopy);
         case Js::TypeIds_NativeFloatArray:
-            return JavascriptNativeFloatArray::BoxStackInstance(JavascriptNativeFloatArray::UnsafeFromVar(instance));
+            return JavascriptNativeFloatArray::BoxStackInstance(JavascriptNativeFloatArray::UnsafeFromVar(instance), deepCopy);
         case Js::TypeIds_Function:
             Assert(allowStackFunction);
             // Stack functions are deal with not mar mark them, but by nested function escape analysis
@@ -9729,7 +9776,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     }
 
     // SpeciesConstructor abstract operation as described in ES6.0 Section 7.3.20
-    Var JavascriptOperators::SpeciesConstructor(RecyclableObject* object, Var defaultConstructor, ScriptContext* scriptContext)
+    RecyclableObject* JavascriptOperators::SpeciesConstructor(_In_ RecyclableObject* object, _In_ JavascriptFunction* defaultConstructor, _In_ ScriptContext* scriptContext)
     {
         //1.Assert: Type(O) is Object.
         Assert(JavascriptOperators::IsObject(object));
@@ -9763,9 +9810,10 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             constructor = species;
         }
         //9.If IsConstructor(S) is true, return S.
-        if (JavascriptOperators::IsConstructor(constructor))
+        RecyclableObject* constructorObj = JavascriptOperators::TryFromVar<RecyclableObject>(constructor);
+        if (constructorObj && JavascriptOperators::IsConstructor(constructorObj))
         {
-            return constructor;
+            return constructorObj;
         }
         //10.Throw a TypeError exception.
         JavascriptError::ThrowTypeError(scriptContext, JSERR_NotAConstructor, _u("constructor[Symbol.species]"));
@@ -10500,7 +10548,9 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
     BOOL JavascriptOperators::CheckPrototypesForAccessorOrNonWritableProperty(RecyclableObject* instance, JavascriptString* propertyNameString, Var* setterValue, DescriptorFlags* flags, PropertyValueInfo* info, ScriptContext* scriptContext)
     {
-        PropertyId propertyId = propertyNameString->GetPropertyRecord()->GetPropertyId();
+        Js::PropertyRecord const * localPropertyRecord;
+        propertyNameString->GetPropertyRecord(&localPropertyRecord);
+        PropertyId propertyId = localPropertyRecord->GetPropertyId();
         return CheckPrototypesForAccessorOrNonWritableProperty(instance, propertyId, setterValue, flags, info, scriptContext);
     }
 

@@ -33,12 +33,14 @@ namespace Js
         : DynamicObject(type), functionInfo(nullptr), constructorCache(&ConstructorCache::DefaultInstance)
     {
         Assert(this->constructorCache != nullptr);
+#if DBG
+        isJsBuiltInInitCode = false;
+#endif
     }
 
 
     JavascriptFunction::JavascriptFunction(DynamicType * type, FunctionInfo * functionInfo)
         : DynamicObject(type), functionInfo(functionInfo), constructorCache(&ConstructorCache::DefaultInstance)
-
     {
         Assert(this->constructorCache != nullptr);
         this->GetTypeHandler()->ClearHasOnlyWritableDataProperties(); // length is non-writable
@@ -50,11 +52,13 @@ namespace Js
             // GetScriptContext()->InvalidateStoreFieldCaches(PropertyIds::length);
             GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
         }
+#if DBG
+        isJsBuiltInInitCode = false;
+#endif
     }
 
     JavascriptFunction::JavascriptFunction(DynamicType * type, FunctionInfo * functionInfo, ConstructorCache* cache)
         : DynamicObject(type), functionInfo(functionInfo), constructorCache(cache)
-
     {
         Assert(this->constructorCache != nullptr);
         this->GetTypeHandler()->ClearHasOnlyWritableDataProperties(); // length is non-writable
@@ -66,6 +70,9 @@ namespace Js
             // GetScriptContext()->InvalidateStoreFieldCaches(PropertyIds::length);
             GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
         }
+#if DBG
+        isJsBuiltInInitCode = false;
+#endif
     }
 
     FunctionProxy *JavascriptFunction::GetFunctionProxy() const
@@ -292,7 +299,7 @@ namespace Js
                     globalBody->GetUtf8SourceInfo()->SetSourceInfoForDebugReplay_TTD(bodyIdCtr);
                 }
 
-                if(scriptContext->ShouldPerformDebuggerAction())
+                if(scriptContext->ShouldPerformReplayDebuggerAction())
                 {
                     scriptContext->GetThreadContext()->TTDExecutionInfo->ProcessScriptLoad(scriptContext, bodyIdCtr, globalBody, globalBody->GetUtf8SourceInfo(), nullptr);
                 }
@@ -861,6 +868,8 @@ namespace Js
         // JavascriptOperators::NewScObjectNoCtor should have thrown if 'v' is not a constructor
         RecyclableObject* functionObj = RecyclableObject::UnsafeFromVar(v);
 
+        const unsigned STACK_ARGS_ALLOCA_THRESHOLD = 8; // Number of stack args we allow before using _alloca
+        Var stackArgs[STACK_ARGS_ALLOCA_THRESHOLD];
         Var* newValues = args.Values;
         CallFlags newFlags = args.Info.Flags;
 
@@ -879,8 +888,6 @@ namespace Js
             {
                 newCount++;
                 newFlags = (CallFlags)(newFlags | CallFlags_NewTarget | CallFlags_ExtraArg);
-                const unsigned STACK_ARGS_ALLOCA_THRESHOLD = 8; // Number of stack args we allow before using _alloca
-                Var stackArgs[STACK_ARGS_ALLOCA_THRESHOLD];
                 if (newCount > STACK_ARGS_ALLOCA_THRESHOLD)
                 {
                     PROBE_STACK(scriptContext, newCount * sizeof(Var) + Js::Constants::MinStackDefault); // args + function call
@@ -1224,6 +1231,8 @@ void __cdecl _alloca_probe_16()
         {
             PROBE_STACK_CALL(scriptContext, function, argsSize);
         }
+
+        JS_REENTRANCY_CHECK(scriptContext->GetThreadContext());
 
         void *data;
         void *savedEsp;
@@ -2859,6 +2868,7 @@ LABEL1:
         // and foo.arguments[n] will be maintained after this object is returned.
 
         JavascriptStackWalker walker(scriptContext);
+        walker.SetDeepCopyForArguments();
 
         if (walker.WalkToTarget(this))
         {
@@ -3440,4 +3450,39 @@ LABEL1:
 
         return result;
     }
+
+#ifdef ALLOW_JIT_REPRO
+    Var JavascriptFunction::EntryInvokeJit(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        // todo:: make it work with inproc jit
+        if (!JITManager::GetJITManager()->IsOOPJITEnabled())
+        {
+            Output::Print(_u("Out of proc jit is necessary to repro using an encoded buffer"));
+            Js::Throw::FatalInternalError();
+        }
+
+        if (args.Info.Count < 2 || !ArrayBufferBase::Is(args[1]))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedArrayBufferObject);
+        }
+
+        ArrayBufferBase* arrayBuffer = ArrayBufferBase::FromVar(args[1]);
+        const byte* buffer = arrayBuffer->GetBuffer();
+        uint32 size = arrayBuffer->GetByteLength();
+        HRESULT hr = JitFromEncodedWorkItem(scriptContext->GetNativeCodeGenerator(), buffer, size);
+        if (FAILED(hr))
+        {
+            JavascriptExceptionOperators::OP_Throw(JavascriptNumber::New(hr, scriptContext), scriptContext);
+        }
+        return scriptContext->GetLibrary()->GetUndefined();
+    }
+#endif
+
 }

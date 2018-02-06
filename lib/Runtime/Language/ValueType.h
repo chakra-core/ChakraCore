@@ -126,6 +126,7 @@ public:
 
     bool HasBeenFloat() const;
     bool IsFloat() const;
+    bool IsNotFloat() const;
     bool IsLikelyFloat() const;
 
     bool HasBeenNumber() const;
@@ -167,6 +168,10 @@ public:
     bool IsPrimitive() const;
     bool IsLikelyPrimitive() const;
 
+#if DBG
+    bool IsSimilar(ValueType v) const;
+#endif
+
 #if ENABLE_NATIVE_CODEGEN
 // SIMD_JS
     bool IsSimd128() const;
@@ -179,6 +184,7 @@ public:
     bool IsSimd128Uint16x8() const;
     bool IsSimd128Uint8x16() const;
     bool IsSimd128Float64x2() const;
+    bool IsSimd128Int64x2() const;
 
 
     bool IsLikelySimd128() const;
@@ -189,6 +195,7 @@ public:
     bool IsLikelySimd128Uint16x8() const;
     bool IsLikelySimd128Uint8x16() const;
     bool IsLikelySimd128Float64x2() const;
+    bool IsLikelySimd128Int64x2() const;
 #endif
 
     bool HasBeenObject() const;
@@ -228,6 +235,7 @@ public:
     bool IsTypedIntOrFloatArray() const;
 
     bool IsOptimizedTypedArray() const;
+    bool IsOptimizedVirtualTypedArray() const;
     bool IsLikelyOptimizedTypedArray() const;
     bool IsLikelyOptimizedVirtualTypedArray() const;
 

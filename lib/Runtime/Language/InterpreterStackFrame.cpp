@@ -14,7 +14,7 @@
 #include "Language/InterpreterStackFrame.h"
 #include "Library/JavascriptGeneratorFunction.h"
 #include "Library/ForInObjectEnumerator.h"
-
+#include "../../WasmReader/WasmParseTree.h"
 ///----------------------------------------------------------------------------
 ///
 /// macros PROCESS_INtoOUT
@@ -923,7 +923,7 @@
 #if ENABLE_TTD_DIAGNOSTICS_TRACING
 #define SHOULD_DO_TTD_STACK_STMT_OP(CTX) ((CTX)->ShouldPerformRecordOrReplayAction())
 #else
-#define SHOULD_DO_TTD_STACK_STMT_OP(CTX) ((CTX)->ShouldPerformDebuggerAction())
+#define SHOULD_DO_TTD_STACK_STMT_OP(CTX) ((CTX)->ShouldPerformRecordOrReplayDebuggerAction())
 #endif
 #endif
 
@@ -1746,6 +1746,50 @@ namespace Js
 #pragma optimize("", on)
 #endif
 
+    const bool InterpreterStackFrame::ShouldDoProfile(FunctionBody* executeFunction)
+    {
+#if ENABLE_PROFILE_INFO
+        const bool doProfile = executeFunction->GetInterpreterExecutionMode(false) == ExecutionMode::ProfilingInterpreter ||
+            (executeFunction->IsInDebugMode() && DynamicProfileInfo::IsEnabled(executeFunction));
+        return doProfile;
+#else
+        return false;
+#endif
+    }
+
+    InterpreterStackFrame* InterpreterStackFrame::CreateInterpreterStackFrameForGenerator(ScriptFunction* function, FunctionBody* executeFunction, JavascriptGenerator* generator, bool doProfile)
+    {
+        //
+        // Allocate a new InterpreterStackFrame instance on the recycler heap.
+        // It will live with the JavascriptGenerator object.
+        //
+        ScriptContext* functionScriptContext = function->GetScriptContext();
+        Arguments generatorArgs = generator->GetArguments();
+        InterpreterStackFrame::Setup setup(function, generatorArgs);
+        size_t varAllocCount = setup.GetAllocationVarCount();
+        size_t varSizeInBytes = varAllocCount * sizeof(Var);
+        DWORD_PTR stackAddr = reinterpret_cast<DWORD_PTR>(&generator); // use any stack address from this frame to ensure correct debugging functionality
+        LoopHeader* loopHeaderArray = executeFunction->GetHasAllocatedLoopHeaders() ? executeFunction->GetLoopHeaderArrayPtr() : nullptr;
+
+        Var* allocation = RecyclerNewPlus(functionScriptContext->GetRecycler(), varSizeInBytes, Var);
+        AnalysisAssert(allocation);
+        InterpreterStackFrame* newInstance;
+#if DBG
+        // Allocate invalidVar on GC instead of stack since this InterpreterStackFrame will out live the current real frame
+        Js::RecyclableObject* invalidVar = (Js::RecyclableObject*)RecyclerNewPlusLeaf(functionScriptContext->GetRecycler(), sizeof(Js::RecyclableObject), Var);
+        AnalysisAssert(invalidVar);
+        memset(reinterpret_cast<void*>(invalidVar), 0xFE, sizeof(Js::RecyclableObject));
+        newInstance = setup.InitializeAllocation(allocation, executeFunction->GetHasImplicitArgIns(), doProfile, loopHeaderArray, stackAddr, invalidVar);
+#else
+        newInstance = setup.InitializeAllocation(allocation, executeFunction->GetHasImplicitArgIns(), doProfile, loopHeaderArray, stackAddr);
+#endif
+
+        newInstance->m_reader.Create(executeFunction);
+
+        generator->SetFrame(newInstance, varSizeInBytes);
+        return newInstance;
+    }
+
     Var InterpreterStackFrame::InterpreterHelper(ScriptFunction* function, ArgumentReader args, void* returnAddress, void* addressOfReturnAddress, AsmJsReturnStruct* asmJsReturn)
     {
         const bool isAsmJs = asmJsReturn != nullptr;
@@ -1823,8 +1867,7 @@ namespace Js
 
 #if ENABLE_PROFILE_INFO
         DynamicProfileInfo * dynamicProfileInfo = nullptr;
-        const bool doProfile = executeFunction->GetInterpreterExecutionMode(false) == ExecutionMode::ProfilingInterpreter ||
-                               (executeFunction->IsInDebugMode() && DynamicProfileInfo::IsEnabled(executeFunction));
+        const bool doProfile = ShouldDoProfile(executeFunction);
         if (doProfile)
         {
 #if !DYNAMIC_INTERPRETER_THUNK
@@ -1850,7 +1893,6 @@ namespace Js
 
         bool fReleaseAlloc = false;
         InterpreterStackFrame* newInstance = nullptr;
-        Var* allocation = nullptr;
 
         if (!isAsmJs && executeFunction->IsCoroutine())
         {
@@ -1876,32 +1918,7 @@ namespace Js
             }
             else
             {
-                //
-                // Allocate a new InterpreterStackFrame instance on the recycler heap.
-                // It will live with the JavascriptGenerator object.
-                //
-                Arguments generatorArgs = generator->GetArguments();
-                InterpreterStackFrame::Setup setup(function, generatorArgs);
-                size_t varAllocCount = setup.GetAllocationVarCount();
-                size_t varSizeInBytes = varAllocCount * sizeof(Var);
-                DWORD_PTR stackAddr = reinterpret_cast<DWORD_PTR>(&generator); // as mentioned above, use any stack address from this frame to ensure correct debugging functionality
-                LoopHeader* loopHeaderArray = executeFunction->GetHasAllocatedLoopHeaders() ? executeFunction->GetLoopHeaderArrayPtr() : nullptr;
-
-                allocation = RecyclerNewPlus(functionScriptContext->GetRecycler(), varSizeInBytes, Var);
-                AnalysisAssert(allocation);
-#if DBG
-                // Allocate invalidVar on GC instead of stack since this InterpreterStackFrame will out live the current real frame
-                Js::RecyclableObject* invalidVar = (Js::RecyclableObject*)RecyclerNewPlusLeaf(functionScriptContext->GetRecycler(), sizeof(Js::RecyclableObject), Var);
-                AnalysisAssert(invalidVar);
-                memset(reinterpret_cast<void*>(invalidVar), 0xFE, sizeof(Js::RecyclableObject));
-                newInstance = setup.InitializeAllocation(allocation, executeFunction->GetHasImplicitArgIns(), doProfile, loopHeaderArray, stackAddr, invalidVar);
-#else
-                newInstance = setup.InitializeAllocation(allocation, executeFunction->GetHasImplicitArgIns(), doProfile, loopHeaderArray, stackAddr);
-#endif
-
-                newInstance->m_reader.Create(executeFunction);
-
-                generator->SetFrame(newInstance, varSizeInBytes);
+                newInstance = CreateInterpreterStackFrameForGenerator(function, executeFunction, generator, doProfile);
             }
         }
         else
@@ -1914,6 +1931,8 @@ namespace Js
             // Allocate a new InterpreterStackFrame instance on the interpreter's virtual stack.
             //
             DWORD_PTR stackAddr;
+
+            Var* allocation;
 
             // If the locals area exceeds a certain limit, allocate it from a private arena rather than
             // this frame. The current limit is based on an old assert on the number of locals we would allow here.
@@ -2077,13 +2096,20 @@ namespace Js
         case AsmJsRetType::Uint32x4:
         case AsmJsRetType::Uint16x8:
         case AsmJsRetType::Uint8x16:
-#ifdef ENABLE_SIMDJS
+
+#if defined(ENABLE_WASM_SIMD) || defined(ENABLE_SIMDJS)
+
+#ifdef ENABLE_WASM_SIMD
+            if (Wasm::Simd::IsEnabled())
+#elif ENABLE_SIMDJS
             if (function->GetScriptContext()->GetConfig()->IsSimdjsEnabled())
+#endif
             {
                 *(AsmJsSIMDValue*)retDst = asmJsReturn.simd;
                 break;
             }
 #endif
+
             Assert(UNREACHED);
         // double return
         case AsmJsRetType::Double:
@@ -2266,13 +2292,18 @@ namespace Js
         *(AsmJsSIMDValue*)(&(m_outParams[outRegisterID])) = val;
     }
 
-    template<bool toJs>
+    template<int type, bool toJs>
     void InterpreterStackFrame::OP_InvalidWasmTypeConversion(...)
     {
-        // Right now the only invalid wasm type conversion is with int64
-        const char16* fromType = toJs ? _u("int64") : _u("Javascript Variable");
-        const char16* toType = toJs ? _u("Javascript Variable") : _u("int64");
+#ifdef ENABLE_WASM
+        CompileAssert(type < Wasm::WasmTypes::Limit);
+        const char16* fromType = toJs ? Wasm::WasmTypes::GetTypeName(static_cast<Wasm::WasmTypes::WasmType>(type)) : _u("Javascript Variable");
+        const char16* toType = toJs ? _u("Javascript Variable") : Wasm::WasmTypes::GetTypeName(static_cast<Wasm::WasmTypes::WasmType>(type));
         JavascriptError::ThrowTypeErrorVar(scriptContext, WASMERR_InvalidTypeConversion, fromType, toType);
+#else
+        Assert(UNREACHED); //shouldn't get there
+        JavascriptError::ThrowTypeErrorVar(scriptContext, WASMERR_InvalidTypeConversion, _u("unknown"), _u("unknown")); //throw for a release build
+#endif
     }
 
     // This will be called in the beginning of the try_finally.
@@ -2464,7 +2495,8 @@ namespace Js
 
         if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
         {
-            this->scriptContext->GetThreadContext()->TTDExecutionInfo->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
+            TTD::ExecutionInfoManager* executionMgr = this->scriptContext->GetThreadContext()->TTDExecutionInfo;
+            executionMgr->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
         }
 
         OpCodeType op = (OpCodeType)ReadOpFunc(ip);
@@ -2515,6 +2547,7 @@ namespace Js
         Field(Var)* localFunctionImports = moduleMemoryPtr + moduleMemory.mFFIOffset ;
         Field(Var)* localModuleFunctions = moduleMemoryPtr + moduleMemory.mFuncOffset ;
         Field(Field(Var)*)* localFunctionTables = (Field(Field(Var)*)*)(moduleMemoryPtr + moduleMemory.mFuncPtrOffset) ;
+        
 
 #ifdef ENABLE_SIMDJS
         AsmJsSIMDValue* localSimdSlots = nullptr;
@@ -2994,13 +3027,13 @@ namespace Js
         int64* int64Arg = m_localInt64Slots + info->GetTypedSlotInfo(WAsmJs::INT64)->constCount;
         double* doubleArg = m_localDoubleSlots + info->GetTypedSlotInfo(WAsmJs::FLOAT64)->constCount;
         float* floatArg = m_localFloatSlots + info->GetTypedSlotInfo(WAsmJs::FLOAT32)->constCount;
-#if _M_X64
+#if defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)
         AsmJsSIMDValue* simdArg = m_localSimdSlots + info->GetTypedSlotInfo(WAsmJs::SIMD)->constCount;
 #endif
         // Move the arguments to the right location
         ArgSlot argCount = info->GetArgCount();
 
-#if _M_X64
+#if _M_X64 && _WIN32
         uint homingAreaSize = 0;
 #endif
 
@@ -3019,7 +3052,7 @@ namespace Js
         uintptr_t argAddress = (uintptr_t)m_inParams;
         for (ArgSlot i = 0; i < argCount; i++)
         {
-#if _M_X64
+#if _M_X64 && _WIN32
             // 3rd Argument should be at the end of the homing area.
             Assert(i != 3 || argAddress == (uintptr_t)m_inParams + homingAreaSize);
             if (i < 3)
@@ -3040,12 +3073,7 @@ namespace Js
                 // IAT xmm2 spill
                 // IAT xmm1 spill <- floatSpillAddress for arg1
 
-#ifdef _WIN32
 #define FLOAT_SPILL_ADDRESS_OFFSET_WORDS 15
-#else
-// On Sys V x64 we have 4 words less (4 reg shadow)
-#define FLOAT_SPILL_ADDRESS_OFFSET_WORDS 11
-#endif
                 // floats are spilled as xmmwords
                 uintptr_t floatSpillAddress = (uintptr_t)m_inParams - MachPtr * (FLOAT_SPILL_ADDRESS_OFFSET_WORDS - 2*i);
 
@@ -3099,13 +3127,24 @@ namespace Js
                 }
                 else
                 {
+#if defined (ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)
                     Assert(info->GetArgType(i).isSIMD());
                     *simdArg = *(AsmJsSIMDValue*)floatSpillAddress;
                     ++simdArg;
                     homingAreaSize += sizeof(AsmJsSIMDValue);
+#else
+                    Assert(UNREACHED);
+#endif
                 }
 #ifdef ENABLE_SIMDJS
                 if (scriptContext->GetConfig()->IsSimdjsEnabled() && i == 2) // last argument ?
+#endif
+
+#ifdef ENABLE_WASM_SIMD
+                if (Wasm::Simd::IsEnabled() && i == 2) // last argument ?
+#endif
+
+#if defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)
                 {
                     // If we have simd arguments, the homing area in m_inParams can be larger than 3 64-bit slots. This is because SIMD values are unboxed there too.
                     // After unboxing, the homing area is overwritten by rdx, r8 and r9, and we read/skip 64-bit slots from the homing area (argAddress += MachPtr).
@@ -3171,6 +3210,13 @@ namespace Js
             }
 #ifdef ENABLE_SIMDJS
             else if (scriptContext->GetConfig()->IsSimdjsEnabled() && info->GetArgType(i).isSIMD())
+#endif
+
+#ifdef ENABLE_WASM_SIMD
+            else if (Wasm::Simd::IsEnabled() && info->GetArgType(i).isSIMD())
+#endif
+
+#if defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)
             {
                 *simdArg = *(AsmJsSIMDValue*)argAddress;
                 ++simdArg;
@@ -3730,17 +3776,17 @@ namespace Js
         AsmJsScriptFunction* scriptFunc = AsmJsScriptFunction::FromVar(function);
         AsmJsFunctionInfo* asmInfo = scriptFunc->GetFunctionBody()->GetAsmJsFunctionInfo();
         uint alignedArgsSize = ::Math::Align<uint32>(asmInfo->GetArgByteSize(), 16);
-#if _M_X64
+#if _M_X64 && _WIN32
         // convention is to always allocate spill space for rcx,rdx,r8,r9
         if (alignedArgsSize < 0x20) alignedArgsSize = 0x20;
+        uint* argSizes = asmInfo->GetArgsSizesArray();
+        Assert(asmInfo->GetArgSizeArrayLength() >= 2);
+        byte* curOutParams = (byte*)m_outParams + sizeof(Var);
+        Assert(curOutParams + argSizes[0] + argSizes[1] + 16 <= (byte*)this->m_outParamsEnd);
 
         // Prepare in advance the possible arguments that will need to be put in register
         byte _declspec(align(16)) reg[3 * 16];
-        uint* argSizes = asmInfo->GetArgsSizesArray();
-        Assert(asmInfo->GetArgSizeArrayLength() >= 2);
         CompileAssert((FunctionBody::MinAsmJsOutParams() * sizeof(Var)) == (sizeof(Var) * 2 + sizeof(reg)));
-        byte* curOutParams = (byte*)m_outParams + sizeof(Var);
-        Assert(curOutParams + argSizes[0] + argSizes[1] + 16 <= (byte*)this->m_outParamsEnd);
         js_memcpy_s(reg, 16, curOutParams, 16);
         js_memcpy_s(reg + 16, 16, curOutParams + argSizes[0], 16);
         js_memcpy_s(reg + 32, 16, curOutParams + argSizes[0] + argSizes[1], 16);
@@ -3770,7 +3816,7 @@ namespace Js
         case AsmJsRetType::Float:
             m_localFloatSlots[returnReg] = JavascriptFunction::CallAsmJsFunction<float>(function, entrypointInfo->jsMethod, m_outParams, alignedArgsSize, reg);
             break;
-#ifdef ENABLE_SIMDJS
+#if defined (ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)
         case AsmJsRetType::Float32x4:
         case AsmJsRetType::Int32x4:
         case AsmJsRetType::Bool32x4:
@@ -3782,12 +3828,14 @@ namespace Js
         case AsmJsRetType::Uint32x4:
         case AsmJsRetType::Uint16x8:
         case AsmJsRetType::Uint8x16:
+#if _WIN32 //WASM.SIMD ToDo: Enable thunk for Xplat
 #if _M_X64
             X86SIMDValue simdVal;
             simdVal.m128_value = JavascriptFunction::CallAsmJsFunction<__m128>(function, entrypointInfo->jsMethod, m_outParams, alignedArgsSize, reg);
             m_localSimdSlots[returnReg] = X86SIMDValue::ToSIMDValue(simdVal);
 #else
             m_localSimdSlots[returnReg] = JavascriptFunction::CallAsmJsFunction<AsmJsSIMDValue>(function, entrypointInfo->jsMethod, m_outParams, alignedArgsSize, reg);
+#endif
 #endif
             break;
 #endif
@@ -6084,6 +6132,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
             }
 
 #if ENABLE_NATIVE_CODEGEN
+#if ENABLE_OOP_NATIVE_CODEGEN
+            // If for some reason OOP JIT isn't connected (e.g. it crashed), don't attempt to JIT a loop body
+            if (JITManager::GetJITManager()->IsOOPJITEnabled() && !JITManager::GetJITManager()->IsConnected())
+            {
+                return nullptr;
+            }
+#endif
             // If the job is not scheduled then we need to schedule it now.
             // It is possible a job was scheduled earlier and we find ourselves looking at the same entry point
             // again. For example, if the function with the loop was JITed and bailed out then as we finish
@@ -7999,12 +8054,18 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
     void InterpreterStackFrame::OP_SimdLdArrGeneric(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        const uint64 index = (uint32)GetRegRawInt(playout->SlotIndex) & ArrayBufferView::ViewMask[playout->ViewType];
-        JavascriptArrayBuffer* arr = GetAsmJsBuffer();
+        const uint64 index = ((uint64)(uint32)GetRegRawInt(playout->SlotIndex) + playout->Offset /* WASM only */) & (int64)(int)ArrayBufferView::ViewMask[playout->ViewType];
+
+        JavascriptArrayBuffer* arr =
+#ifdef ENABLE_WASM_SIMD
+            (m_functionBody->IsWasmFunction()) ?
+                m_wasmMemory->GetBuffer() :
+#endif
+                GetAsmJsBuffer();
+        
         BYTE* buffer = arr->GetBuffer();
         uint8 dataWidth = playout->DataWidth;
         RegSlot dstReg = playout->Value;
-
         if (index + dataWidth > arr->GetByteLength())
         {
             JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("Simd typed array access"));
@@ -8041,8 +8102,15 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
     void InterpreterStackFrame::OP_SimdStArrGeneric(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        const uint64 index = (uint32)GetRegRawInt(playout->SlotIndex) & ArrayBufferView::ViewMask[playout->ViewType];
-        JavascriptArrayBuffer* arr = GetAsmJsBuffer();
+        const uint64 index = ((uint64)(uint32)GetRegRawInt(playout->SlotIndex) + playout->Offset /* WASM only */) & (int64)(int)ArrayBufferView::ViewMask[playout->ViewType];
+
+        JavascriptArrayBuffer* arr =
+#ifdef ENABLE_WASM_SIMD
+            (m_functionBody->IsWasmFunction()) ?
+                m_wasmMemory->GetBuffer() :
+#endif
+                GetAsmJsBuffer();
+
         BYTE* buffer = arr->GetBuffer();
         uint8 dataWidth = playout->DataWidth;
         RegSlot srcReg = playout->Value;
@@ -8076,13 +8144,33 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
 
     }
 
+
+    bool InterpreterStackFrame::SIMDAnyNaN(AsmJsSIMDValue& input)
+    {
+        if (!GetFunctionBody()->IsWasmFunction()) 
+        {
+            return false;
+        }
+
+        AsmJsSIMDValue compResult = SIMDFloat32x4Operation::OpEqual(input, input);
+        return !SIMDBool32x4Operation::OpAllTrue(compResult);
+    }
+    
     // handler for SIMD.Int32x4.FromFloat32x4
     template <class T>
     void InterpreterStackFrame::OP_SimdInt32x4FromFloat32x4(const unaligned T* playout)
     {
         bool throws = false;
         AsmJsSIMDValue input = GetRegRawSimd(playout->F4_1);
-        AsmJsSIMDValue result = SIMDInt32x4Operation::OpFromFloat32x4(input, throws);
+        AsmJsSIMDValue result{ 0 };
+
+#ifdef ENABLE_WASM_SIMD
+        throws = SIMDAnyNaN(input);
+        if (!throws)
+#endif
+        {
+            result = SIMDInt32x4Operation::OpFromFloat32x4(input, throws);
+        }
 
         // value is out of bound
         if (throws)
@@ -8097,14 +8185,40 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
     {
         bool throws = false;
         AsmJsSIMDValue input = GetRegRawSimd(playout->F4_1);
-        AsmJsSIMDValue result = SIMDUint32x4Operation::OpFromFloat32x4(input, throws);
+        AsmJsSIMDValue result{ 0 };
 
-        // value is out of bound
+#ifdef ENABLE_WASM_SIMD
+        throws = SIMDAnyNaN(input);
+        if (!throws)
+#endif
+        {
+            result = SIMDUint32x4Operation::OpFromFloat32x4(input, throws);
+        }
+
         if (throws)
         {
             JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("SIMD.Int32x4.FromFloat32x4"));
         }
         SetRegRawSimd(playout->U4_0, result);
+    }
+
+    template <class T>
+    void InterpreterStackFrame::OP_WasmSimdConst(const unaligned T* playout)
+    {
+        AsmJsSIMDValue result{ playout->C1, playout->C2, playout->C3, playout->C4 };
+        SetRegRawSimd(playout->F4_0, result);
+    }
+    
+    template <class T>
+    void InterpreterStackFrame::OP_SimdShuffleV8X16(const unaligned T* playout)
+    {
+        uint32 lanes[Wasm::Simd::MAX_LANES];
+        for (uint32 i = 0; i < Wasm::Simd::MAX_LANES; i++)
+        {
+            Assert(playout->INDICES[i] < Wasm::Simd::MAX_LANES * 2);
+            lanes[i] = playout->INDICES[i];
+        }
+        SetRegRawSimd(playout->R0, SIMDUtils::SIMD128InnerShuffle(GetRegRawSimd(playout->R1), GetRegRawSimd(playout->R2), Wasm::Simd::MAX_LANES, lanes));
     }
 
     template <class T>
@@ -8259,6 +8373,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
 
     Var InterpreterStackFrame::GetRootObject() const
     {
+        Assert(!this->GetFunctionBody()->IsJsBuiltInInitCode());
         Var rootObject = GetReg(Js::FunctionBody::RootObjectRegSlot);
         Assert(rootObject == this->GetFunctionBody()->LoadRootObject());
         return rootObject;

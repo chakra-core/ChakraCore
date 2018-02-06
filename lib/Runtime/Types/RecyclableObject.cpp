@@ -3,7 +3,6 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeTypePch.h"
-#include "Library/JavascriptSymbol.h"
 #include "Library/JavascriptSymbolObject.h"
 
 DEFINE_VALIDATE_HAS_VTABLE_CTOR(Js::RecyclableObject);
@@ -24,15 +23,30 @@ namespace Js
 
     void PropertyValueInfo::SetCacheInfo(
         _Out_ PropertyValueInfo* info,
-        _In_opt_ PropertyString *const propertyString,
+        _In_opt_ RecyclableObject * prop,
+        _In_opt_ PropertyRecordUsageCache *const propertyRecordUsageCache,
         _In_ PolymorphicInlineCache *const polymorphicInlineCache,
         bool allowResizing)
+    {
+        Assert(info);
+
+        // Make sure the given prop and usage cache match
+        Assert(
+            prop == nullptr && propertyRecordUsageCache == nullptr ||
+            JavascriptSymbol::Is(prop) && JavascriptSymbol::UnsafeFromVar(prop)->GetPropertyRecordUsageCache() == propertyRecordUsageCache ||
+            PropertyString::Is(prop) && PropertyString::UnsafeFromVar(prop)->GetPropertyRecordUsageCache() == propertyRecordUsageCache);
+
+        info->prop = prop;
+        info->propertyRecordUsageCache = propertyRecordUsageCache;
+        SetCacheInfo(info, polymorphicInlineCache, allowResizing);
+    }
+
+    void PropertyValueInfo::SetCacheInfo(_Out_ PropertyValueInfo* info, _In_ PolymorphicInlineCache *const polymorphicInlineCache, bool allowResizing)
     {
         Assert(info);
         Assert(polymorphicInlineCache);
 
         info->functionBody = nullptr;
-        info->propertyString = propertyString;
         info->inlineCache = nullptr;
         info->polymorphicInlineCache = polymorphicInlineCache;
         info->inlineCacheIndex = Js::Constants::NoInlineCacheIndex;
@@ -84,7 +98,8 @@ namespace Js
             info->functionBody = nullptr;
             info->inlineCache = nullptr;
             info->polymorphicInlineCache = nullptr;
-            info->propertyString = nullptr;
+            info->prop = nullptr;
+            info->propertyRecordUsageCache = nullptr;
             info->inlineCacheIndex = Constants::NoInlineCacheIndex;
             info->allowResizingPolymorphicInlineCache = true;
         }
@@ -211,12 +226,6 @@ namespace Js
     {
         Assert(this->GetScriptContext()->IsHeapEnumInProgress());
         return NULL;
-    }
-
-    BOOL RecyclableObject::IsExternal() const
-    {
-        Assert(this->IsExternalVirtual() == this->GetType()->IsExternal());
-        return this->GetType()->IsExternal();
     }
 
     BOOL RecyclableObject::SkipsPrototype() const

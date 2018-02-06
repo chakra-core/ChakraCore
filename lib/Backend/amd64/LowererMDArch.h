@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -139,6 +139,7 @@ public:
     bool                GenerateFastNot(IR::Instr * instrNot);
     bool                GenerateFastShiftLeft(IR::Instr * instrShift);
     bool                GenerateFastShiftRight(IR::Instr * instrShift);
+    bool                GenerateFastDivAndRem(IR::Instr * divInstr, IR::LabelInstr* bailoutLabel);
 
     IR::Opnd*           GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsInstr);
     void                GenerateFunctionObjectTest(IR::Instr * callInstr, IR::RegOpnd  *functionObjOpnd, bool isHelper, IR::LabelInstr* afterCallLabel = nullptr);
@@ -156,6 +157,8 @@ private:
     void                GeneratePreCall(IR::Instr * callInstr, IR::Opnd  *functionObjOpnd, IR::Instr* insertBeforeInstrForCFGCheck = nullptr);
     void                SetMaxArgSlots(Js::ArgSlot actualCount /*including this*/);
     void                GenerateMemInit(IR::RegOpnd * opnd, int32 offset, size_t value, IR::Instr * insertBeforeInstr, bool isZeroed = false);
+    bool                GenerateFastDivAndRem_Signed(IR::Instr* instrDiv);
+    bool                GenerateFastDivAndRem_Unsigned(IR::Instr* instrDiv);
 };
 
 #define REG_EH_TARGET      RegArg0

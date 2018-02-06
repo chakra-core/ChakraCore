@@ -1,0 +1,3 @@
+gen.next() = {value: {"arg1":10,"arg2":{"v":2001,"q":3000},"i":101,"j":1000,"k":10000,"p":{"v":6}}, done: false}
+gen.next() = {value: {"arg1":11,"arg2":{"v":2002,"q":3000},"i":102,"j":1001,"k":10001,"p":{"v":7}}, done: false}
+gen.next() = {value: {"arg1":12,"arg2":{"v":2003,"q":3000},"i":103,"j":1002,"k":10002,"p":{"v":8}}, done: false}

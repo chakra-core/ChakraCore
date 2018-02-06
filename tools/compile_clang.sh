@@ -4,7 +4,7 @@
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
-LLVM_VERSION="4.0.0"
+LLVM_VERSION="5.0.0"
 DEFAULT_COLOR='\033[0m'
 ERROR_COLOR='\033[0;31m'
 GREEN_COLOR='\033[0;32m'
@@ -54,6 +54,23 @@ WARN_PACKAGE () {
     fi
 }
 
+DOWNLOAD_HELPER() {
+    WGET_CTR=1
+    while [ 1 ]; do
+        wget --no-dns-cache --tries=3 --retry-connrefused --waitretry=3 $1 >/dev/null 2>&1
+        if [[ $? == 0 ]]; then
+            break;
+        else
+            if [[ $WGET_CTR == 3 ]]; then
+              echo "Failed to download $1"
+              exit 1
+            fi
+            WGET_CTR=$(($WGET_CTR + 1))
+            echo "${WGET_CTR}. try...."
+        fi
+    done;
+}
+
 ROOT=${PWD}/cc-toolchain/
 GOLD_PLUGIN=""
 
@@ -95,7 +112,7 @@ if [ ! -d ./cc-toolchain/src/llvm/projects/compiler-rt ]; then
     mkdir binutils_compile; cd binutils_compile
     LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${ROOT}/build/lib/"
     ../binutils/configure --enable-gold --enable-plugins --disable-werror --prefix="${ROOT}/build"
-    make -j2
+    make -j
     make install
     if [ $? != 0 ]; then
         exit 1
@@ -105,8 +122,9 @@ if [ ! -d ./cc-toolchain/src/llvm/projects/compiler-rt ]; then
     cd "${ROOT}/src/"
 
     echo "Downloading LLVM ${LLVM_VERSION}"
-    wget --quiet "http://llvm.org/releases/${LLVM_VERSION}/llvm-${LLVM_VERSION}.src.tar.xz" >/dev/null 2>&1
-    tar -xf "llvm-${LLVM_VERSION}.src.tar.xz"
+    DOWNLOAD_HELPER "http://llvm.org/releases/${LLVM_VERSION}/llvm-${LLVM_VERSION}.src.tar.xz"
+
+    tar xf "llvm-${LLVM_VERSION}.src.tar.xz"
     if [ $? == 0 ]; then
         rm "llvm-${LLVM_VERSION}.src.tar.xz"
         mv "llvm-${LLVM_VERSION}.src" llvm
@@ -116,8 +134,9 @@ if [ ! -d ./cc-toolchain/src/llvm/projects/compiler-rt ]; then
 
     cd llvm/tools/
     echo "Downloading Clang ${LLVM_VERSION}"
-    wget --quiet "http://llvm.org/releases/${LLVM_VERSION}/cfe-${LLVM_VERSION}.src.tar.xz" >/dev/null 2>&1
-    tar -xf "cfe-${LLVM_VERSION}.src.tar.xz"
+    DOWNLOAD_HELPER "http://llvm.org/releases/${LLVM_VERSION}/cfe-${LLVM_VERSION}.src.tar.xz"
+
+    tar xf "cfe-${LLVM_VERSION}.src.tar.xz"
     if [ $? == 0 ]; then
         mv "cfe-${LLVM_VERSION}.src" clang
         rm "cfe-${LLVM_VERSION}.src.tar.xz"
@@ -128,8 +147,9 @@ if [ ! -d ./cc-toolchain/src/llvm/projects/compiler-rt ]; then
     mkdir -p ../projects/
     cd ../projects/
     echo "Downloading Compiler-RT ${LLVM_VERSION}"
-    wget --quiet "http://llvm.org/releases/${LLVM_VERSION}/compiler-rt-${LLVM_VERSION}.src.tar.xz" >/dev/null 2>&1
-    tar -xf "compiler-rt-${LLVM_VERSION}.src.tar.xz"
+    DOWNLOAD_HELPER "http://llvm.org/releases/${LLVM_VERSION}/compiler-rt-${LLVM_VERSION}.src.tar.xz"
+
+    tar xf "compiler-rt-${LLVM_VERSION}.src.tar.xz"
     if [ $? == 0 ]; then
         mv "compiler-rt-${LLVM_VERSION}.src" compiler-rt
         rm "compiler-rt-${LLVM_VERSION}.src.tar.xz"

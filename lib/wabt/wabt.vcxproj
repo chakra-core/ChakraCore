@@ -58,6 +58,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)src\feature.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\generate-names.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\hash-util.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\filenames.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\ir.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\leb128.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\lexer-source-line-finder.cc" />
@@ -102,6 +103,7 @@
     <ClInclude Include="src\feature.h" />
     <ClInclude Include="src\generate-names.h" />
     <ClInclude Include="src\hash-util.h" />
+    <ClInclude Include="src\filenames.h" />
     <ClInclude Include="src\intrusive-list.h" />
     <ClInclude Include="src\ir.h" />
     <ClInclude Include="src\leb128.h" />

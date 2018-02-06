@@ -69,7 +69,7 @@ void _NOINLINE __declspec(noreturn) TTDAbort_fatal_error(const char* msg);
 template <typename T>
 T* TTD_MEM_ALLOC_CHECK(T* alloc)
 {
-    if(alloc == nullptr)
+    if (alloc == nullptr)
     {
         TTDAssert(false, "OOM in TTD");
     }
@@ -172,8 +172,10 @@ namespace TTD
         CurrentlyEnabled = 0x1,  //The TTD system is enabled and actively performing record/replay/debug
         RecordMode = 0x2,     //The system is being run in Record mode
         ReplayMode = 0x4,  //The system is being run in Replay mode
-        DebuggerMode = (ReplayMode | 0x8),  //The system is being run in with Debugger actions enabled
-        AnyMode = (RecordMode | ReplayMode | DebuggerMode),
+        DebuggerAttachedMode = 0x8, //The system is running with a debugger attached
+        RecordDebuggerMode = (RecordMode | DebuggerAttachedMode),
+        ReplayDebuggerMode = (ReplayMode | DebuggerAttachedMode),
+        AnyMode = (RecordMode | ReplayMode | RecordDebuggerMode | ReplayDebuggerMode),
 
         ExcludedExecutionTTAction = 0x20,  //Set when the system is executing code on behalf of the TTD system (so we don't want to record/replay things for it)
         ExcludedExecutionDebuggerAction = 0x40,  //Set when the system is executing code on behalf of the Debugger system (so we don't want to record/replay things for it)
@@ -188,7 +190,7 @@ namespace TTD
     class TTModeStack
     {
     private:
-        TTDMode* m_stackEntries;
+        TTDMode * m_stackEntries;
 
         uint32 m_stackTop;
         uint32 m_stackMax;
@@ -248,6 +250,12 @@ namespace TTD
             SnapPromiseResolveOrRejectFunctionObject,
             SnapPromiseReactionTaskFunctionObject,
             SnapPromiseAllResolveElementFunctionObject,
+            SnapGeneratorFunction,
+            SnapGeneratorVirtualScriptFunction,
+            SnapAsyncFunction,
+            SnapGenerator,
+            JavascriptPromiseAsyncSpawnExecutorFunction,
+            JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction,
 
             //objects that should always be well known but which may have other info we want to restore
             SnapWellKnownObject,
@@ -456,7 +464,7 @@ namespace TTD
             uint32 desiredsize = TTD_WORD_ALIGN_ALLOC_SIZE(n + canUnlink); //make alloc size word aligned
             TTDAssert((desiredsize % 4 == 0) & (desiredsize >= (n + canUnlink)) & (desiredsize < TTD_SLAB_BLOCK_USABLE_SIZE(this->m_slabBlockSize)), "We can never allocate a block this big with the slab allocator!!");
 
-            if(this->m_currPos + desiredsize > this->m_endPos)
+            if (this->m_currPos + desiredsize > this->m_endPos)
             {
                 this->AddNewBlock();
             }
@@ -468,7 +476,7 @@ namespace TTD
             this->m_totalAllocatedSize += TTD_WORD_ALIGN_ALLOC_SIZE(n);
 #endif
 
-            if(canUnlink)
+            if (canUnlink)
             {
                 TTDAssert(canUnlink == sizeof(ptrdiff_t), "We need enough space for a ptr to the meta-data.");
 
@@ -495,18 +503,18 @@ namespace TTD
             uint32 desiredsize = TTD_WORD_ALIGN_ALLOC_SIZE(requestedBytes + canUnlink); //make alloc size word aligned
             TTDAssert((desiredsize % 4 == 0) & (desiredsize >= (requestedBytes + canUnlink)) & (desiredsize < TTD_SLAB_BLOCK_USABLE_SIZE(this->m_slabBlockSize)), "We can never allocate a block this big with the slab allocator!!");
 
-            if(reserve)
+            if (reserve)
             {
                 TTDAssert(this->m_reserveActiveBytes == 0, "Don't double allocate memory.");
 
-                if(this->m_currPos + desiredsize > this->m_endPos)
+                if (this->m_currPos + desiredsize > this->m_endPos)
                 {
                     this->AddNewBlock();
                 }
 
                 res = this->m_currPos;
 
-                if(canUnlink)
+                if (canUnlink)
                 {
                     TTDAssert(canUnlink == sizeof(ptrdiff_t), "We need enough space for a ptr to the meta-data.");
 
@@ -517,7 +525,7 @@ namespace TTD
                 }
             }
 
-            if(commit)
+            if (commit)
             {
                 this->m_currPos += desiredsize;
 
@@ -525,18 +533,18 @@ namespace TTD
                 this->m_totalAllocatedSize += desiredsize;
 #endif
 
-                if(canUnlink)
+                if (canUnlink)
                 {
                     this->m_headBlock->RefCounter++;
                 }
             }
 
-            if(reserve && !commit)
+            if (reserve && !commit)
             {
                 this->m_reserveActiveBytes = desiredsize;
             }
 
-            if(!reserve && commit)
+            if (!reserve && commit)
             {
                 TTDAssert(desiredsize <= this->m_reserveActiveBytes, "We are commiting more that we reserved.");
 
@@ -553,7 +561,7 @@ namespace TTD
             this->m_totalAllocatedSize += blockSize;
 #endif
 
-            if(this->m_largeBlockList != nullptr)
+            if (this->m_largeBlockList != nullptr)
             {
                 this->m_largeBlockList->Next = newBlock;
             }
@@ -583,7 +591,7 @@ namespace TTD
 
             newBlock->MetaDataSential = 0;
 
-            if(commit)
+            if (commit)
             {
                 this->CommitLargeBlockAllocation(newBlock, desiredsize);
             }
@@ -627,7 +635,7 @@ namespace TTD
         ~SlabAllocatorBase()
         {
             SlabBlock* currBlock = this->m_headBlock;
-            while(currBlock != nullptr)
+            while (currBlock != nullptr)
             {
                 SlabBlock* tmp = currBlock;
                 currBlock = currBlock->Previous;
@@ -636,7 +644,7 @@ namespace TTD
             }
 
             LargeSlabBlock* currLargeBlock = this->m_largeBlockList;
-            while(currLargeBlock != nullptr)
+            while (currLargeBlock != nullptr)
             {
                 LargeSlabBlock* tmp = currLargeBlock;
                 currLargeBlock = currLargeBlock->Previous;
@@ -644,7 +652,7 @@ namespace TTD
                 TT_HEAP_FREE_ARRAY(byte, (byte*)tmp, tmp->TotalBlockSize);
             }
 
-            if(this->m_reserveActiveLargeBlock != nullptr)
+            if (this->m_reserveActiveLargeBlock != nullptr)
             {
                 TT_HEAP_FREE_ARRAY(byte, (byte*)this->m_reserveActiveLargeBlock, this->m_reserveActiveBytes);
                 this->m_reserveActiveLargeBlock = nullptr;
@@ -658,7 +666,7 @@ namespace TTD
         //clone a null terminated char16* string (or nullptr) into the allocator -- currently only used for wellknown tokens
         const char16* CopyRawNullTerminatedStringInto(const char16* str)
         {
-            if(str == nullptr)
+            if (str == nullptr)
             {
                 return nullptr;
             }
@@ -698,7 +706,7 @@ namespace TTD
         //clone a string into the allocator
         void CopyNullTermStringInto(const char16* str, TTString& into)
         {
-            if(str == nullptr)
+            if (str == nullptr)
             {
                 into.Length = 0;
                 into.Contents = nullptr;
@@ -714,12 +722,12 @@ namespace TTD
         {
             uint64 memreserved = 0;
 
-            for(SlabBlock* currBlock = this->m_headBlock; currBlock != nullptr; currBlock = currBlock->Previous)
+            for (SlabBlock* currBlock = this->m_headBlock; currBlock != nullptr; currBlock = currBlock->Previous)
             {
                 memreserved += (uint64)this->m_slabBlockSize;
             }
 
-            for(LargeSlabBlock* currLargeBlock = this->m_largeBlockList; currLargeBlock != nullptr; currLargeBlock = currLargeBlock->Previous)
+            for (LargeSlabBlock* currLargeBlock = this->m_largeBlockList; currLargeBlock != nullptr; currLargeBlock = currLargeBlock->Previous)
             {
                 memreserved += (uint64)(currLargeBlock->TotalBlockSize);
             }
@@ -752,7 +760,7 @@ namespace TTD
         T* SlabAllocateArray(size_t count)
         {
             size_t size = count * sizeof(T);
-            if(size <= TTD_SLAB_LARGE_BLOCK_SIZE)
+            if (size <= TTD_SLAB_LARGE_BLOCK_SIZE)
             {
                 return (T*)this->SlabAllocateRawSize<true, true>(size);
             }
@@ -769,7 +777,7 @@ namespace TTD
             T* res = nullptr;
 
             size_t size = count * sizeof(T);
-            if(size <= TTD_SLAB_LARGE_BLOCK_SIZE)
+            if (size <= TTD_SLAB_LARGE_BLOCK_SIZE)
             {
                 res = (T*)this->SlabAllocateRawSize<true, true>(size);
             }
@@ -786,7 +794,7 @@ namespace TTD
         template <typename T, size_t count>
         T* SlabAllocateFixedSizeArray()
         {
-            if(count * sizeof(T) <= TTD_SLAB_LARGE_BLOCK_SIZE)
+            if (count * sizeof(T) <= TTD_SLAB_LARGE_BLOCK_SIZE)
             {
                 return (T*)this->SlabAllocateRawSize<true, true>(count * sizeof(T));
             }
@@ -801,7 +809,7 @@ namespace TTD
         T* SlabReserveArraySpace(size_t count)
         {
             size_t size = count * sizeof(T);
-            if(size <= TTD_SLAB_LARGE_BLOCK_SIZE)
+            if (size <= TTD_SLAB_LARGE_BLOCK_SIZE)
             {
                 return (T*)this->SlabAllocateRawSize<true, false>(size);
             }
@@ -818,7 +826,7 @@ namespace TTD
             TTDAssert(this->m_reserveActiveBytes != 0, "We don't have anything reserved.");
 
             size_t reservedSize = reservedCount * sizeof(T);
-            if(reservedSize <= TTD_SLAB_LARGE_BLOCK_SIZE)
+            if (reservedSize <= TTD_SLAB_LARGE_BLOCK_SIZE)
             {
                 TTDAssert(this->m_reserveActiveLargeBlock == nullptr, "We should not have a large block active!!!");
 
@@ -843,7 +851,7 @@ namespace TTD
             TTDAssert(this->m_reserveActiveBytes != 0, "We don't have anything reserved.");
 
             size_t reservedSize = reservedCount * sizeof(T);
-            if(reservedSize <= TTD_SLAB_LARGE_BLOCK_SIZE)
+            if (reservedSize <= TTD_SLAB_LARGE_BLOCK_SIZE)
             {
                 TTDAssert(this->m_reserveActiveLargeBlock == nullptr, "We should not have a large block active!!!");
 
@@ -870,29 +878,29 @@ namespace TTD
             byte* realBase = ((byte*)allocation) - canUnlink;
             ptrdiff_t offset = *((ptrdiff_t*)realBase);
 
-            if(offset == 0)
+            if (offset == 0)
             {
                 //it is a large allocation just free it
                 LargeSlabBlock* largeBlock = (LargeSlabBlock*)(((byte*)allocation) - TTD_LARGE_SLAB_BLOCK_SIZE);
 
-                if(largeBlock == this->m_largeBlockList)
+                if (largeBlock == this->m_largeBlockList)
                 {
                     TTDAssert(largeBlock->Next == nullptr, "Should always have a null next at head");
 
                     this->m_largeBlockList = this->m_largeBlockList->Previous;
-                    if(this->m_largeBlockList != nullptr)
+                    if (this->m_largeBlockList != nullptr)
                     {
                         this->m_largeBlockList->Next = nullptr;
                     }
                 }
                 else
                 {
-                    if(largeBlock->Next != nullptr)
+                    if (largeBlock->Next != nullptr)
                     {
                         largeBlock->Next->Previous = largeBlock->Previous;
                     }
 
-                    if(largeBlock->Previous != nullptr)
+                    if (largeBlock->Previous != nullptr)
                     {
                         largeBlock->Previous->Next = largeBlock->Next;
                     }
@@ -906,9 +914,9 @@ namespace TTD
                 SlabBlock* block = (SlabBlock*)(realBase - offset);
 
                 block->RefCounter--;
-                if(block->RefCounter == 0)
+                if (block->RefCounter == 0)
                 {
-                    if(block == this->m_headBlock)
+                    if (block == this->m_headBlock)
                     {
                         //we always need a head block to allocate out of -- so instead of deleting just reset it
                         this->m_currPos = this->m_headBlock->BlockData;
@@ -920,12 +928,12 @@ namespace TTD
                     }
                     else
                     {
-                        if(block->Next != nullptr)
+                        if (block->Next != nullptr)
                         {
                             block->Next->Previous = block->Previous;
                         }
 
-                        if(block->Previous != nullptr)
+                        if (block->Previous != nullptr)
                         {
                             block->Previous->Next = block->Next;
                         }
@@ -939,7 +947,7 @@ namespace TTD
         //Unlink the memory used by a string
         void UnlinkString(const TTString& str)
         {
-            if(str.Contents != nullptr)
+            if (str.Contents != nullptr)
             {
                 this->UnlinkAllocation(str.Contents);
             }
@@ -1018,7 +1026,7 @@ namespace TTD
             TTDAssert(this->m_inlineHeadBlock.CurrPos <= this->m_inlineHeadBlock.EndPos, "We are off the end of the array");
             TTDAssert((((byte*)this->m_inlineHeadBlock.CurrPos) - ((byte*)this->m_inlineHeadBlock.BlockData)) / sizeof(T) <= allocSize, "We are off the end of the array");
 
-            if(this->m_inlineHeadBlock.CurrPos == this->m_inlineHeadBlock.EndPos)
+            if (this->m_inlineHeadBlock.CurrPos == this->m_inlineHeadBlock.EndPos)
             {
                 this->AddArrayLink();
             }
@@ -1034,7 +1042,7 @@ namespace TTD
             TTDAssert(this->m_inlineHeadBlock.CurrPos <= this->m_inlineHeadBlock.EndPos, "We are off the end of the array");
             TTDAssert((((byte*)this->m_inlineHeadBlock.CurrPos) - ((byte*)this->m_inlineHeadBlock.BlockData)) / sizeof(T) <= allocSize, "We are off the end of the array");
 
-            if(this->m_inlineHeadBlock.CurrPos == this->m_inlineHeadBlock.EndPos)
+            if (this->m_inlineHeadBlock.CurrPos == this->m_inlineHeadBlock.EndPos)
             {
                 this->AddArrayLink();
             }
@@ -1051,7 +1059,7 @@ namespace TTD
             size_t count = (((byte*)this->m_inlineHeadBlock.CurrPos) - ((byte*)this->m_inlineHeadBlock.BlockData)) / sizeof(T);
             TTDAssert(count <= allocSize, "We somehow wrote in too much data.");
 
-            for(UnorderedArrayListLink* curr = this->m_inlineHeadBlock.Next; curr != nullptr; curr = curr->Next)
+            for (UnorderedArrayListLink* curr = this->m_inlineHeadBlock.Next; curr != nullptr; curr = curr->Next)
             {
                 size_t ncount = (((byte*)curr->CurrPos) - ((byte*)curr->BlockData)) / sizeof(T);
                 TTDAssert(ncount <= allocSize, "We somehow wrote in too much data.");
@@ -1073,7 +1081,7 @@ namespace TTD
                 : m_currLink(head), m_currEntry(head.BlockData)
             {
                 //check for empty list and invalidate the iter if it is
-                if(this->m_currEntry == this->m_currLink.CurrPos)
+                if (this->m_currEntry == this->m_currLink.CurrPos)
                 {
                     this->m_currEntry = nullptr;
                 }
@@ -1098,9 +1106,9 @@ namespace TTD
             {
                 this->m_currEntry++;
 
-                if(this->m_currEntry == this->m_currLink.CurrPos)
+                if (this->m_currEntry == this->m_currLink.CurrPos)
                 {
-                    if(this->m_currLink.Next == nullptr)
+                    if (this->m_currLink.Next == nullptr)
                     {
                         this->m_currEntry = nullptr;
                     }
@@ -1154,7 +1162,7 @@ namespace TTD
 
             //h1Prime is less than table size by construction so we dont need to re-index
             uint32 primaryIndex = TTD_DICTIONARY_HASH(id, this->m_h1Prime);
-            if(this->m_hashArray[primaryIndex].Key == searchKey)
+            if (this->m_hashArray[primaryIndex].Key == searchKey)
             {
                 return (this->m_hashArray + primaryIndex);
             }
@@ -1162,10 +1170,10 @@ namespace TTD
             //do a hash for the second offset to avoid clustering and then do linear probing
             uint32 offset = TTD_DICTIONARY_HASH(id, this->m_h2Prime);
             uint32 probeIndex = TTD_DICTIONARY_INDEX(primaryIndex + offset, this->m_capacity);
-            while(true)
+            while (true)
             {
                 Entry* curr = (this->m_hashArray + probeIndex);
-                if(curr->Key == searchKey)
+                if (curr->Key == searchKey)
                 {
                     return curr;
                 }
@@ -1184,7 +1192,7 @@ namespace TTD
     public:
         void Unload()
         {
-            if(this->m_hashArray != nullptr)
+            if (this->m_hashArray != nullptr)
             {
                 TT_HEAP_FREE_ARRAY(Entry, this->m_hashArray, this->m_capacity);
                 this->m_hashArray = nullptr;
@@ -1247,12 +1255,12 @@ namespace TTD
 
             //h1Prime is less than table size by construction so we dont need to re-index
             uint32 primaryIndex = TTD_DICTIONARY_HASH(id, this->m_h1Prime);
-            if(this->m_hashArray[primaryIndex].Key == id)
+            if (this->m_hashArray[primaryIndex].Key == id)
             {
                 return true;
             }
 
-            if(this->m_hashArray[primaryIndex].Key == 0)
+            if (this->m_hashArray[primaryIndex].Key == 0)
             {
                 return false;
             }
@@ -1260,15 +1268,15 @@ namespace TTD
             //do a hash for the second offset to avoid clustering and then do linear probing
             uint32 offset = TTD_DICTIONARY_HASH(id, this->m_h2Prime);
             uint32 probeIndex = TTD_DICTIONARY_INDEX(primaryIndex + offset, this->m_capacity);
-            while(true)
+            while (true)
             {
                 Entry* curr = (this->m_hashArray + probeIndex);
-                if(curr->Key == id)
+                if (curr->Key == id)
                 {
                     return true;
                 }
 
-                if(curr->Key == 0)
+                if (curr->Key == 0)
                 {
                     return false;
                 }
@@ -1329,7 +1337,7 @@ namespace TTD
     {
     private:
         //The addresses and their marks
-        uint64* m_addrArray;
+        uint64 * m_addrArray;
         MarkTableTag* m_markArray;
 
         //Capcity and count of the table (we use capcity for fast & hashing instead of %);
@@ -1351,7 +1359,7 @@ namespace TTD
 
             uint32 primaryIndex = TTD_MARK_TABLE_HASH1(addr, this->m_capcity);
             uint64 primaryAddr = this->m_addrArray[primaryIndex];
-            if((primaryAddr == addr) | (primaryAddr == 0))
+            if ((primaryAddr == addr) | (primaryAddr == 0))
             {
                 return (int32)primaryIndex;
             }
@@ -1359,10 +1367,10 @@ namespace TTD
             //do a hash for the second offset to avoid clustering and then do linear probing
             uint32 offset = TTD_MARK_TABLE_HASH2(addr, this->m_h2Prime);
             uint32 probeIndex = TTD_MARK_TABLE_INDEX(primaryIndex + offset, this->m_capcity);
-            while(true)
+            while (true)
             {
                 uint64 currAddr = this->m_addrArray[probeIndex];
-                if((currAddr == addr) | (currAddr == 0))
+                if ((currAddr == addr) | (currAddr == 0))
                 {
                     return (int32)probeIndex;
                 }
@@ -1387,7 +1395,7 @@ namespace TTD
             this->m_addrArray = TT_HEAP_ALLOC_ARRAY_ZERO(uint64, this->m_capcity);
             this->m_markArray = TT_HEAP_ALLOC_ARRAY_ZERO(MarkTableTag, this->m_capcity);
 
-            for(uint32 i = 0; i < oldCapacity; ++i)
+            for (uint32 i = 0; i < oldCapacity; ++i)
             {
                 int32 idx = this->FindIndexForKey(oldAddrArray[i]);
                 this->m_addrArray[idx] = oldAddrArray[i];
@@ -1401,7 +1409,7 @@ namespace TTD
         int32 FindIndexForKeyWGrow(const void* addr)
         {
             //keep the load factor < 25%
-            if((this->m_capcity >> 2) < this->m_count)
+            if ((this->m_capcity >> 2) < this->m_count)
             {
                 this->Grow();
             }
@@ -1424,7 +1432,7 @@ namespace TTD
             //we really want to do the check on m_markArray but since we know nothing has been cleared we can check the addrArray for better cache behavior
             bool notMarked = this->m_addrArray[idx] == 0;
 
-            if(notMarked)
+            if (notMarked)
             {
                 this->m_addrArray[idx] = reinterpret_cast<uint64>(vaddr);
                 this->m_markArray[idx] = kindtag;
@@ -1443,7 +1451,7 @@ namespace TTD
         {
             int32 idx = this->FindIndexForKey(reinterpret_cast<uint64>(vaddr));
 
-            if(this->m_markArray[idx] != MarkTableTag::Clear)
+            if (this->m_markArray[idx] != MarkTableTag::Clear)
             {
                 this->m_markArray[idx] |= specialtag;
             }
@@ -1468,7 +1476,7 @@ namespace TTD
         //return clear if no more addresses
         MarkTableTag GetTagValue() const
         {
-            if(this->m_iterPos >= this->m_capcity)
+            if (this->m_iterPos >= this->m_capcity)
             {
                 return MarkTableTag::Clear;
             }
@@ -1508,11 +1516,11 @@ namespace TTD
         {
             this->m_iterPos++;
 
-            while(this->m_iterPos < this->m_capcity)
+            while (this->m_iterPos < this->m_capcity)
             {
                 MarkTableTag tag = this->m_markArray[this->m_iterPos];
 
-                if((tag & MarkTableTag::AllKindMask) != MarkTableTag::Clear)
+                if ((tag & MarkTableTag::AllKindMask) != MarkTableTag::Clear)
                 {
                     return;
                 }
@@ -1525,7 +1533,7 @@ namespace TTD
         {
             this->m_iterPos = 0;
 
-            if(this->m_markArray[0] == MarkTableTag::Clear)
+            if (this->m_markArray[0] == MarkTableTag::Clear)
             {
                 this->MoveToNextAddress();
             }

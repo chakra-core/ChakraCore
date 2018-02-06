@@ -840,7 +840,7 @@ void GlobOpt::TrackIntSpecializedAddSubConstant(
             }
         } while(false);
 
-        if(updateSourceBounds && addSubConstantInfo->Offset() != IntConstMin)
+        if(!this->IsLoopPrePass() && updateSourceBounds && addSubConstantInfo->Offset() != IntConstMin)
         {
             // Track bounds for add or sub with a constant. For instance, consider (b = a + 2). The value of 'b' should track
             // that it is equal to (the value of 'a') + 2. That part has been done above. Similarly, the value of 'a' should

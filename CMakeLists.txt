@@ -150,22 +150,17 @@ if(ICU_INCLUDE_PATH)
       if (NOT ICUDATA)
           set(ICUDATA "")
       endif()
-      find_library(ICUTOOLS icutools PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-      if (NOT ICUTOOLS)
-          set(ICUTOOLS "")
-      endif()
       set(ICULIB
         ${ICUUC}
         ${ICU18}
         ${ICUDATA}
-        ${ICUTOOLS}
         )
     endif()
 endif()
 
 set(CLR_CMAKE_PLATFORM_XPLAT 1)
 if(CC_TARGETS_AMD64)
-    add_definitions(-D_M_X64_OR_ARM64)
+    add_definitions(-DTARGET_64)
     add_compile_options(-msse4.2)
 
     if(NOT CMAKE_BUILD_TYPE STREQUAL Release)
@@ -173,7 +168,7 @@ if(CC_TARGETS_AMD64)
     endif()
 elseif(CC_TARGETS_X86)
     add_definitions(-D__i686__)
-    add_definitions(-D_M_IX86_OR_ARM32)
+    add_definitions(-DTARGET_32)
     add_compile_options(-arch i386)
     add_compile_options(-msse3)
 
@@ -182,7 +177,7 @@ elseif(CC_TARGETS_X86)
     )
 elseif(CC_TARGETS_ARM)
     add_definitions(-D__arm__)
-    add_definitions(-D_M_IX86_OR_ARM32)
+    add_definitions(-DTARGET_32)
     add_definitions(-D_M_ARM32_OR_ARM64)
     if(CC_TARGET_OS_OSX)
         add_compile_options(-arch arm)
@@ -327,13 +322,24 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
         -Wno-return-type\
         -Wno-switch\
         -Wno-implicit-function-declaration\
-        -Wno-int-to-pointer-cast"
+        -Wno-int-to-pointer-cast\
+        -Wno-tautological-constant-compare\
+        -Wno-enum-compare-switch\
+        -Wno-unknown-warning-option"
     )
         # notes..
         # -Wno-address-of-temporary  # vtinfo.h, VirtualTableInfo<T>::RegisterVirtualTable
         # -Wno-null-conversion # Check shmemory.cpp and cs.cpp here...
         # -Wno-return-type # switch unreachable code
         # -Wno-switch # switch values not handled
+        # -W-enum-compare-switch # throws warning on enum1 == enum2 where both
+        # enums represent same value but do not share the type. ie. we use both AsmJsType
+        # and AsmJsRetType interchangably and filter things out by `default:` case.
+        # -W-tautological-constant-compare throws warning for checks known at compile time.
+        # Some of those checks are optimized out during compile / lto time, and others
+        # are platform / compiler dependent.
+        # -Wno-unknown-warning-option ... well, some of the new switches are not
+        # recognized by older compilers and they fail. So, put this one and not fail
 
     include(Build/CMakeFeatureDetect.cmake)
 
@@ -357,13 +363,6 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
         if(STATIC_LIBRARY OR ICU_INTL_DISABLED)
             add_compile_options(-fno-rtti)
         endif()
-    endif()
-
-    # Clang -fsanitize.
-    if (CLANG_SANITIZE_SH)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=${CLANG_SANITIZE_SH}")
-        set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -fsanitize=${CLANG_SANITIZE_SH}")
-        unset(CLANG_SANITIZE_SH CACHE)      # don't cache
     endif()
 endif(CLR_CMAKE_PLATFORM_XPLAT)
 
@@ -489,6 +488,18 @@ if(ICU_INCLUDE_PATH)
     endif()
 endif()
 
+# detect features
+include_directories(SYSTEM /usr/local/include)
+include(pal/src/configure.cmake)
+
+# this should be after `detect feature` to not to affect feature detection
+# Clang -fsanitize.
+if (CLANG_SANITIZE_SH)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=${CLANG_SANITIZE_SH}")
+    set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -fsanitize=${CLANG_SANITIZE_SH}")
+    unset(CLANG_SANITIZE_SH CACHE)      # don't cache
+endif()
+
 add_subdirectory (pal)
 
 # build the rest with NO_PAL_MINMAX and PAL_STDCPP_COMPAT
@@ -496,5 +507,21 @@ add_definitions(
     -DNO_PAL_MINMAX
     -DPAL_STDCPP_COMPAT
     )
+
+if (ENABLE_JS_LTTNG_SH)
+    unset(ENABLE_JS_LTTNG_SH CACHE)
+    include_directories (
+      ${CMAKE_CURRENT_SOURCE_DIR}/out/lttng
+    )
+    add_subdirectory ($ENV{TARGET_PATH}/lttng ${CMAKE_CURRENT_BINARY_DIR}/lttng)
+
+    add_definitions(
+      -DENABLE_JS_ETW
+      -DENABLE_JS_LTTNG
+    )
+    set(USE_LTTNG "1")
+endif()
+
 add_subdirectory (lib)
+
 add_subdirectory (bin)

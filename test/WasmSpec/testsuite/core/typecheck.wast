@@ -234,7 +234,7 @@
     (func (type 0))
     (table 0 anyfunc)
     (func
-      (call_indirect 0 (i32.const 0) (f32.const 0))))
+      (call_indirect (type 0) (i32.const 0) (f32.const 0))))
   "type mismatch")
 
 ;; call_indirect index
@@ -243,7 +243,7 @@
     (type (func))
     (func (type 0))
     (table 0 anyfunc)
-    (func (call_indirect 0 (f32.const 0))))
+    (func (call_indirect (type 0) (f32.const 0))))
   "type mismatch")
 
 ;; return

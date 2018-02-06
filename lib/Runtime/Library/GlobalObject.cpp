@@ -556,7 +556,7 @@ namespace Js
     }
 
     Var GlobalObject::VEval(JavascriptLibrary* library, FrameDisplay* environment, ModuleID moduleID, bool strictMode, bool isIndirect,
-        Arguments& args, bool isLibraryCode, bool registerDocument, uint32 additionalGrfscr)
+        Arguments& args, bool isLibraryCode, bool registerDocument, uint32 additionalGrfscr, ScriptContext* debugEvalScriptContext)
     {
         Assert(library);
         ScriptContext* scriptContext = library->GetScriptContext();
@@ -596,7 +596,7 @@ namespace Js
 
         // PropertyString's buffer references to PropertyRecord's inline buffer, if both PropertyString and PropertyRecord are collected
         // we'll leave the PropertyRecord's interior buffer pointer in the EvalMap. So do not use evalmap if we are evaluating PropertyString
-        bool useEvalMap = !VirtualTableInfo<PropertyString>::HasVirtualTable(argString);
+        bool useEvalMap = !VirtualTableInfo<PropertyString>::HasVirtualTable(argString) && debugEvalScriptContext == nullptr; // Don't use the cache in case of debugEval
         bool found = useEvalMap && scriptContext->IsInEvalMap(key, isIndirect, &pfuncScript);
         if (!found || (!isIndirect && pfuncScript->GetEnvironment() != &NullFrameDisplay))
         {
@@ -609,6 +609,14 @@ namespace Js
 
             pfuncScript = library->GetGlobalObject()->EvalHelper(scriptContext, argString->GetSz(), argString->GetLength(), moduleID,
                 grfscr, Constants::EvalCode, doRegisterDocument, isIndirect, strictMode);
+
+            if (debugEvalScriptContext != nullptr && CrossSite::NeedMarshalVar(pfuncScript, debugEvalScriptContext))
+            {
+                // This is console scope scenario. DebugEval script context is on the top of the stack. But we are going
+                // to execute the user script from target script context. In order to fix the script context stack we
+                // need to marshall the function object.
+                pfuncScript = ScriptFunction::FromVar(CrossSite::MarshalVar(debugEvalScriptContext, pfuncScript));
+            }
 
             if (useEvalMap && !found)
             {
@@ -666,7 +674,7 @@ namespace Js
                     globalBody->GetUtf8SourceInfo()->SetSourceInfoForDebugReplay_TTD(bodyIdCtr);
                 }
 
-                if(scriptContext->ShouldPerformDebuggerAction())
+                if(scriptContext->ShouldPerformReplayDebuggerAction())
                 {
                     scriptContext->GetThreadContext()->TTDExecutionInfo->ProcessScriptLoad(scriptContext, bodyIdCtr, globalBody, globalBody->GetUtf8SourceInfo(), nullptr);
                 }
@@ -1621,8 +1629,7 @@ LHexError:
             return function->GetScriptContext()->GetLibrary()->GetUndefined();
         }
 
-        Js::JavascriptString* jsString = Js::JavascriptConversion::ToString(args[1], function->GetScriptContext());
-        PlatformAgnostic::EventTrace::FireGenericEventTrace(jsString->GetSz());
+        JS_ETW(EventWriteJSCRIPT_INTERNAL_GENERIC_EVENT(Js::JavascriptConversion::ToString(args[1], function->GetScriptContext())->GetSz()));
         return function->GetScriptContext()->GetLibrary()->GetUndefined();
     }
 #endif

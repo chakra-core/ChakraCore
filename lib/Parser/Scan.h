@@ -481,14 +481,9 @@ public:
     charcount_t IchMinTok(void) const
     {
 
-        AssertOrFailFast(m_pchMinTok - m_pchBase >= 0);
-        AssertOrFailFast(m_pchMinTok - m_pchBase <= LONG_MAX);
-        if (static_cast<charcount_t>(m_pchMinTok - m_pchBase) < m_cMinTokMultiUnits)
-        {
-            AssertMsg(false, "IchMinTok subtraction overflow");
-            return 0;
-        }
-
+        Assert(m_pchMinTok - m_pchBase >= 0);
+        Assert(m_pchMinTok - m_pchBase <= LONG_MAX);
+        Assert(static_cast<charcount_t>(m_pchMinTok - m_pchBase) >= m_cMinTokMultiUnits);
         return static_cast<charcount_t>(m_pchMinTok - m_pchBase - m_cMinTokMultiUnits);
     }
 
@@ -497,15 +492,10 @@ public:
     charcount_t IchLimTok(void) const
     {
 
-        AssertOrFailFast(m_currentCharacter - m_pchBase >= 0);
-        AssertOrFailFast(m_currentCharacter - m_pchBase <= LONG_MAX);
-        if (static_cast<charcount_t>(m_currentCharacter - m_pchBase) < this->m_cMultiUnits)
-        {
-            AssertMsg(false, "IchLimTok subtraction overflow");
-            return 0;
-        }
-
-        return static_cast< charcount_t >(m_currentCharacter - m_pchBase - this->m_cMultiUnits);
+        Assert(m_currentCharacter - m_pchBase >= 0);
+        Assert(m_currentCharacter - m_pchBase <= LONG_MAX);
+        Assert(static_cast<charcount_t>(m_currentCharacter - m_pchBase) >= this->m_cMultiUnits);
+        return static_cast<charcount_t>(m_currentCharacter - m_pchBase - this->m_cMultiUnits);
     }
 
     void SetErrorPosition(charcount_t ichMinError, charcount_t ichLimError)
@@ -557,14 +547,9 @@ public:
     charcount_t IchMinLine(void) const
     {
 
-        AssertOrFailFast(m_pchMinLine - m_pchBase >= 0);
-        AssertOrFailFast(m_pchMinLine - m_pchBase <= LONG_MAX);
-        if (static_cast<charcount_t>(m_pchMinLine - m_pchBase) < m_cMinLineMultiUnits)
-        {
-            AssertMsg(false, "IchMinLine subtraction overflow");
-            return 0;
-        }
-
+        Assert(m_pchMinLine - m_pchBase >= 0);
+        Assert(m_pchMinLine - m_pchBase <= LONG_MAX);
+        Assert(static_cast<charcount_t>(m_pchMinLine - m_pchBase) >= m_cMinLineMultiUnits);
         return static_cast<charcount_t>(m_pchMinLine - m_pchBase - m_cMinLineMultiUnits);
     }
 

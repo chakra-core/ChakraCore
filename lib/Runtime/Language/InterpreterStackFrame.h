@@ -211,7 +211,7 @@ namespace Js
         void OP_I_SetOutAsmFlt(RegSlot outRegisterID, float val);
         void OP_I_SetOutAsmLong(RegSlot outRegisterID, int64 val);
         void OP_I_SetOutAsmSimd(RegSlot outRegisterID, AsmJsSIMDValue val);
-        template<bool toJs>
+        template<int type, bool toJs> //type is int to avoid including Wasm headers
         void OP_InvalidWasmTypeConversion(...);
         void OP_WasmPrintFunc(int index);
         template <class T> void OP_WasmPrintFunc(const unaligned T* playout) { OP_WasmPrintFunc((int)playout->I1);  }
@@ -257,12 +257,16 @@ namespace Js
 
         template <typename RegSlotType> AsmJsSIMDValue GetRegRawSimd(RegSlotType localRegisterID) const;
         template <typename RegSlotType> void           SetRegRawSimd(RegSlotType localRegisterID, AsmJsSIMDValue bValue);
+
         template <class T> void OP_SimdLdArrGeneric(const unaligned T* playout);
         template <class T> void OP_SimdLdArrConstIndex(const unaligned T* playout);
         template <class T> void OP_SimdStArrGeneric(const unaligned T* playout);
         template <class T> void OP_SimdStArrConstIndex(const unaligned T* playout);
+        bool SIMDAnyNaN(AsmJsSIMDValue& input);
         template <class T> void OP_SimdInt32x4FromFloat32x4(const unaligned T* playout);
         template <class T> void OP_SimdUint32x4FromFloat32x4(const unaligned T* playout);
+        template <class T> void OP_WasmSimdConst(const unaligned T* playout);
+        template <class T> void OP_SimdShuffleV8X16(const unaligned T* playout);
 
         template <class T> void OP_SimdInt16x8(const unaligned T* playout);
         template <class T> void OP_SimdInt8x16(const unaligned T* playout);
@@ -364,6 +368,11 @@ namespace Js
         _NOINLINE static Var InterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
 #endif
         static Var InterpreterHelper(ScriptFunction* function, ArgumentReader args, void* returnAddress, void* addressOfReturnAddress, AsmJsReturnStruct* asmReturn = nullptr);
+        static const bool ShouldDoProfile(FunctionBody* executeFunction);
+        static InterpreterStackFrame* CreateInterpreterStackFrameForGenerator(ScriptFunction* function, FunctionBody* executeFunction, JavascriptGenerator* generator, bool doProfile);
+
+        void InitializeClosures();
+
     private:
 #if DYNAMIC_INTERPRETER_THUNK
         static JavascriptMethod EnsureDynamicInterpreterThunk(Js::ScriptFunction * function);
@@ -869,7 +878,6 @@ namespace Js
         void SetExecutingStackFunction(ScriptFunction * scriptFunction);
         friend class StackScriptFunction;
 
-        void InitializeClosures();
         void SetLocalFrameDisplay(FrameDisplay *frameDisplay);
         Var  GetLocalClosure() const;
         void SetLocalClosure(Var closure);

@@ -508,9 +508,7 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
         {
-            Var constructorVar = JavascriptOperators::SpeciesConstructor(arrayBuffer, scriptContext->GetLibrary()->GetArrayBufferConstructor(), scriptContext);
-
-            JavascriptFunction* constructor = JavascriptFunction::FromVar(constructorVar);
+            RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(arrayBuffer, scriptContext->GetLibrary()->GetArrayBufferConstructor(), scriptContext);
 
             Js::Var constructorArgs[] = {constructor, JavascriptNumber::ToVar(byteLength, scriptContext)};
             Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
@@ -764,7 +762,7 @@ namespace Js
     bool JavascriptArrayBuffer::IsValidVirtualBufferLength(uint length) const
     {
 #if ENABLE_FAST_ARRAYBUFFER
-        return !PHASE_OFF1(Js::TypedArrayVirtualPhase) && IsValidAsmJsBufferLengthAlgo(length, true);
+        return PHASE_FORCE1(Js::TypedArrayVirtualPhase) || (!PHASE_OFF1(Js::TypedArrayVirtualPhase) && IsValidAsmJsBufferLengthAlgo(length, true));
 #else
         return false;
 #endif

@@ -33,8 +33,9 @@ void BindingHash::FindDuplicates(DuplicateCallback callback) const {
 }
 
 Index BindingHash::FindIndex(const Var& var) const {
-  if (var.is_name())
+  if (var.is_name()) {
     return FindIndex(var.name());
+  }
   return var.index();
 }
 
@@ -46,8 +47,9 @@ void BindingHash::CreateDuplicatesVector(
   bool is_first = true;
   for (auto iter = std::next(first); iter != end(); ++iter) {
     if (first->first == iter->first) {
-      if (is_first)
+      if (is_first) {
         out_duplicates->push_back(&*first);
+      }
       out_duplicates->push_back(&*iter);
       is_first = false;
     } else {
@@ -78,8 +80,9 @@ void BindingHash::CallCallbacks(const ValueTypeVector& duplicates,
                               [iter](const value_type* x) -> bool {
                                 return x->first == (*iter)->first;
                               });
-    if (first == iter)
+    if (first == iter) {
       continue;
+    }
     assert(first != duplicates.end());
     callback(**first, **iter);
   }

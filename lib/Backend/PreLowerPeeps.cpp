@@ -115,7 +115,7 @@ Lowerer::TryShiftAdd(IR::Instr *instrAdd, IR::Opnd * opndFold, IR::Opnd * opndAd
         {
             return instrAdd;
         }
-        if (instrIter->FindRegUse(foldSym))
+        if (instrIter->HasSymUse(foldSym))
         {
             return instrAdd;
         }
@@ -250,7 +250,7 @@ IR::Instr *Lowerer::PeepShl(IR::Instr *instrShl)
         {
             return instrShl;
         }
-        if (instrIter->FindRegUse(src1->AsRegOpnd()->m_sym))
+        if (instrIter->HasSymUse(src1->AsRegOpnd()->m_sym))
         {
             return instrShl;
         }

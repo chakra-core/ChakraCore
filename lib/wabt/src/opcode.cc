@@ -82,8 +82,9 @@ bool Opcode::IsNaturallyAligned(Address alignment) const {
 }
 
 Address Opcode::GetAlignment(Address alignment) const {
-  if (alignment == WABT_USE_NATURAL_ALIGNMENT)
+  if (alignment == WABT_USE_NATURAL_ALIGNMENT) {
     return GetMemorySize();
+  }
   return alignment;
 }
 
@@ -111,6 +112,9 @@ bool Opcode::IsEnabled(const Features& features) const {
     case Opcode::I64Extend8S:
     case Opcode::I64Extend16S:
     case Opcode::I64Extend32S:
+    case Opcode::AtomicWake:
+    case Opcode::I32AtomicWait:
+    case Opcode::I64AtomicWait:
     case Opcode::I32AtomicLoad:
     case Opcode::I64AtomicLoad:
     case Opcode::I32AtomicLoad8U:
@@ -176,12 +180,16 @@ bool Opcode::IsEnabled(const Features& features) const {
     case Opcode::I64AtomicRmw32UCmpxchg:
       return features.threads_enabled();
 
+    case Opcode::V128Const:
+    case Opcode::I8X16Splat:
+      return features.simd_enabled();
+
     // Interpreter opcodes are never "enabled".
-    case Opcode::InterpreterAlloca:
-    case Opcode::InterpreterBrUnless:
-    case Opcode::InterpreterCallHost:
-    case Opcode::InterpreterData:
-    case Opcode::InterpreterDropKeep:
+    case Opcode::InterpAlloca:
+    case Opcode::InterpBrUnless:
+    case Opcode::InterpCallHost:
+    case Opcode::InterpData:
+    case Opcode::InterpDropKeep:
       return false;
 
     default:

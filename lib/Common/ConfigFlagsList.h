@@ -302,7 +302,7 @@ PHASE(All)
         PHASE(InlineCache)
         PHASE(PolymorphicInlineCache)
         PHASE(MissingPropertyCache)
-        PHASE(PropertyStringCache)
+        PHASE(PropertyCache) // Trace caching of property lookups using PropertyString and JavascriptSymbol
         PHASE(CloneCacheInCollision)
         PHASE(ConstructorCache)
         PHASE(InlineCandidate)
@@ -371,6 +371,7 @@ PHASE(All)
         PHASE(DeferSourceLoad)
         PHASE(ObjectMutationBreakpoint)
         PHASE(NativeCodeData)
+        PHASE(XData)
 #undef PHASE
 #endif
 
@@ -393,12 +394,7 @@ PHASE(All)
 #endif
 #endif // #ifdef ENABLE_SIMDJS
 
-#ifdef _WIN32
 #define DEFAULT_CONFIG_Wasm               (true)
-#else
-// Do not enable wasm by default on xplat builds
-#define DEFAULT_CONFIG_Wasm               (false)
-#endif
 #define DEFAULT_CONFIG_WasmI64            (false)
 #if ENABLE_FAST_ARRAYBUFFER
     #define DEFAULT_CONFIG_WasmFastArray    (true)
@@ -411,6 +407,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_WasmMathExFilter     (false)
 #define DEFAULT_CONFIG_WasmIgnoreResponse   (false)
 #define DEFAULT_CONFIG_WasmMaxTableSize     (10000000)
+#define DEFAULT_CONFIG_WasmSimd             (false)
 #define DEFAULT_CONFIG_WasmSignExtends      (false)
 #define DEFAULT_CONFIG_BgJitDelayFgBuffer   (0)
 #define DEFAULT_CONFIG_BgJitPendingFuncCap  (31)
@@ -470,9 +467,9 @@ PHASE(All)
 #define DEFAULT_CONFIG_RecursiveInlineDepthMax      (8)      // Maximum inline depth for recursive calls
 #define DEFAULT_CONFIG_RecursiveInlineDepthMin      (2)      // Minimum inline depth for recursive call
 #define DEFAULT_CONFIG_InlineInLoopBodyScaleDownFactor    (4)
-#define DEFAULT_CONFIG_StringCacheMissPenalty (10)
-#define DEFAULT_CONFIG_StringCacheMissThreshold (-100)
-#define DEFAULT_CONFIG_StringCacheMissReset (-5000)
+#define DEFAULT_CONFIG_PropertyCacheMissPenalty (10)
+#define DEFAULT_CONFIG_PropertyCacheMissThreshold (-100)
+#define DEFAULT_CONFIG_PropertyCacheMissReset (-5000)
 
 #define DEFAULT_CONFIG_CloneInlinedPolymorphicCaches (true)
 #define DEFAULT_CONFIG_HighPrecisionDate    (false)
@@ -539,8 +536,9 @@ PHASE(All)
 #else
     #define DEFAULT_CONFIG_JsBuiltIn             (false)
 #endif
-
+#define DEFAULT_CONFIG_JitRepro                (false)
 #define DEFAULT_CONFIG_LdChakraLib             (false)
+#define DEFAULT_CONFIG_EntryPointInfoRpcData   (false)
 
 // ES6 DEFAULT BEHAVIOR
 #define DEFAULT_CONFIG_ES6                     (true)  // master flag to gate all P0-spec-test compliant ES6 features
@@ -613,7 +611,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ESObjectGetOwnPropertyDescriptors (true)
 #define DEFAULT_CONFIG_ESDynamicImport         (false)
 
-#define DEFAULT_CONFIG_ESSharedArrayBuffer     (true)
+#define DEFAULT_CONFIG_ESSharedArrayBuffer     (false)
 
 #define DEFAULT_CONFIG_ES6Verbose              (false)
 #define DEFAULT_CONFIG_ES6All                  (false)
@@ -623,6 +621,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_TraceAsyncDebugCalls     (false)
 #define DEFAULT_CONFIG_ForcePostLowerGlobOptInstrString (false)
 #define DEFAULT_CONFIG_EnumerateSpecialPropertiesInDebugger (true)
+#define DEFAULT_CONFIG_ESDynamicImport         (false)
 #endif
 
 #define DEFAULT_CONFIG_MaxJITFunctionBytecodeByteLength (4800000)
@@ -895,6 +894,9 @@ FLAGNR(Boolean, WasmFold              , "Enable i32/i64 const folding", DEFAULT_
 FLAGNR(Boolean, WasmIgnoreResponse    , "Ignore the type of the Response object", DEFAULT_CONFIG_WasmIgnoreResponse)
 FLAGNR(Number,  WasmMaxTableSize      , "Maximum size allowed to the WebAssembly.Table", DEFAULT_CONFIG_WasmMaxTableSize)
 FLAGNR(Boolean, WasmSignExtends       , "Use new WebAssembly sign extension operators", DEFAULT_CONFIG_WasmSignExtends)
+#ifdef ENABLE_WASM_SIMD
+FLAGNR(Boolean, WasmSimd              , "Enable SIMD in WebAssembly", DEFAULT_CONFIG_WasmSimd)
+#endif
 
 #ifdef ENABLE_SIMDJS
 #ifndef COMPILE_DISABLE_Simdjs
@@ -947,9 +949,9 @@ FLAGNR(Boolean, ConsoleExitPause      , "Pause on exit when a console window is 
 #endif
 FLAGNR(Number,  ConstructorInlineThreshold      , "Maximum size in bytecodes of a constructor inline candidate with monomorphic field access", DEFAULT_CONFIG_ConstructorInlineThreshold)
 FLAGNR(Number,  ConstructorCallsRequiredToFinalizeCachedType, "Number of calls to a constructor required before the type cached in the constructor cache is finalized", DEFAULT_CONFIG_ConstructorCallsRequiredToFinalizeCachedType)
-FLAGNR(Number,  StringCacheMissPenalty, "Number of string cache hits per miss needed to be worth using cache", DEFAULT_CONFIG_StringCacheMissPenalty)
-FLAGNR(Number,  StringCacheMissThreshold, "Point at which we disable string property cache", DEFAULT_CONFIG_StringCacheMissThreshold)
-FLAGNR(Number,  StringCacheMissReset, "Point at which we try to start using string cache after giving up", DEFAULT_CONFIG_StringCacheMissReset)
+FLAGNR(Number,  PropertyCacheMissPenalty, "Number of string or symbol cache hits per miss needed to be worth using cache", DEFAULT_CONFIG_PropertyCacheMissPenalty)
+FLAGNR(Number,  PropertyCacheMissThreshold, "Point at which we disable string or symbol property cache", DEFAULT_CONFIG_PropertyCacheMissThreshold)
+FLAGNR(Number,  PropertyCacheMissReset, "Point at which we try to start using string or symbol cache after giving up", DEFAULT_CONFIG_PropertyCacheMissReset)
 #ifdef SECURITY_TESTING
 FLAGNR(Boolean, CrashOnException      , "Removes the top-level exception handler, allowing jc.exe to crash on an unhandled exception.  No effect on IE. (default: false)", false)
 #endif
@@ -1009,6 +1011,8 @@ FLAGR (Boolean, Intl                  , "Intl object support", DEFAULT_CONFIG_In
 FLAGNR(Boolean, IntlBuiltIns          , "Intl built-in function support", DEFAULT_CONFIG_IntlBuiltIns)
 
 FLAGNR(Boolean, JsBuiltIn             , "JS Built-in function support", DEFAULT_CONFIG_JsBuiltIn)
+FLAGNR(Boolean, JitRepro              , "Add Function.invokeJit to execute codegen on an encoded rpc buffer", DEFAULT_CONFIG_JitRepro)
+FLAGNR(Boolean, EntryPointInfoRpcData , "Keep encoded rpc buffer for jitted function on EntryPointInfo until cleanup", DEFAULT_CONFIG_EntryPointInfoRpcData)
 
 FLAGNR(Boolean, LdChakraLib           , "Access to the Chakra internal library with the __chakraLibrary keyword", DEFAULT_CONFIG_LdChakraLib)
 // ES6 (BLUE+1) features/flags
@@ -1094,7 +1098,7 @@ FLAGPR           (Boolean, ES6, ESObjectGetOwnPropertyDescriptors, "Enable Objec
 #ifndef COMPILE_DISABLE_ESSharedArrayBuffer
     #define COMPILE_DISABLE_ESSharedArrayBuffer 0
 #endif
-FLAGPRA          (Boolean, ES6, ESSharedArrayBuffer    , sab     , "Enable SharedArrayBuffer"                       , DEFAULT_CONFIG_ESSharedArrayBuffer)
+FLAGPR_REGOVR_EXP(Boolean, ES6, ESSharedArrayBuffer    , "Enable SharedArrayBuffer"                                 , DEFAULT_CONFIG_ESSharedArrayBuffer)
 
 // /ES6 (BLUE+1) features/flags
 

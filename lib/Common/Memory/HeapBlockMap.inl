@@ -262,13 +262,13 @@ HeapBlockMap32::MarkInteriorInternal(MarkContext * markContext, L2MapChunk *& ch
     if (largeBlockType)
     {
 
-#if defined(_M_IX86_OR_ARM32)
+#if defined(TARGET_32)
         // we only check the first MaxLargeObjectMarkOffset byte for marking purpuse. 
         if ( (size_t)originalCandidate - (size_t)realCandidate > HeapConstants::MaxLargeObjectMarkOffset )
             return true;
 #endif    
 
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
         if (HeapBlockMap64::GetNodeIndex(originalCandidate) != HeapBlockMap64::GetNodeIndex(realCandidate))
         {
             // We crossed a node boundary (very rare) so we should just re-start from the real candidate.
@@ -439,7 +439,7 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
     }
 }
 
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
 
 //
 // 64-bit Mark
@@ -502,4 +502,4 @@ HeapBlockMap64::MarkInterior(void * candidate, MarkContext * markContext)
     // No Node found; must be an invalid reference. Do nothing.
 }
 
-#endif // defined(_M_X64_OR_ARM64)
+#endif // defined(TARGET_64)

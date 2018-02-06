@@ -396,7 +396,7 @@ Encoder::Encode()
     }
 #endif
 
-#ifdef _M_X64_OR_ARM64
+#ifdef TARGET_64
 #ifdef _M_X64
     PrologEncoder &unwindInfo = m_func->m_prologEncoder;
     unwindInfo.FinalizeUnwindInfo((BYTE*)m_func->GetJITOutput()->GetCodeAddress(), (DWORD)codeSize);
@@ -788,7 +788,7 @@ Encoder::Encode()
         {
             __analysis_assume(m_instrNumber < instrCount);
             instr->DumpGlobOptInstrString();
-#ifdef _WIN64
+#ifdef TARGET_64
             Output::Print(_u("%12IX  "), m_offsetBuffer[m_instrNumber++] + (BYTE *)m_func->GetJITOutput()->GetCodeAddress());
 #else
             Output::Print(_u("%8IX  "), m_offsetBuffer[m_instrNumber++] + (BYTE *)m_func->GetJITOutput()->GetCodeAddress());

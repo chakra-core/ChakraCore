@@ -11,7 +11,7 @@
 #define TypeHasAuxSlotTag(_t) \
     (!!(reinterpret_cast<size_t>(_t) & InlineCacheAuxSlotTypeTag))
 
-#if defined(_M_IX86_OR_ARM32)
+#if defined(TARGET_32)
 #define PolymorphicInlineCacheShift 5 // On 32 bit architectures, the least 5 significant bits of a DynamicTypePointer is 0
 #else
 #define PolymorphicInlineCacheShift 6 // On 64 bit architectures, the least 6 significant bits of a DynamicTypePointer is 0
@@ -353,7 +353,7 @@ namespace Js
 #endif
     };
 
-#if defined(_M_IX86_OR_ARM32)
+#if defined(TARGET_32)
     CompileAssert(sizeof(InlineCache) == 0x10);
 #else
     CompileAssert(sizeof(InlineCache) == 0x20);
@@ -499,8 +499,8 @@ namespace Js
 
 #ifdef INLINE_CACHE_STATS
         virtual void PrintStats(InlineCacheData *data) const = 0;
-        virtual ScriptContext* GetScriptContext() const = 0;
 #endif
+        virtual ScriptContext* GetScriptContext() const = 0;
 
         static uint32 GetOffsetOfSize() { return offsetof(Js::PolymorphicInlineCache, size); }
         static uint32 GetOffsetOfInlineCaches() { return offsetof(Js::PolymorphicInlineCache, inlineCaches); }
@@ -565,8 +565,8 @@ namespace Js
 
 #ifdef INLINE_CACHE_STATS
         virtual void PrintStats(InlineCacheData *data) const override;
-        virtual ScriptContext* GetScriptContext() const override;
 #endif
+        virtual ScriptContext* GetScriptContext() const override;
 
         virtual void Finalize(bool isShutdown) override;
     };
@@ -588,8 +588,8 @@ namespace Js
 
 #ifdef INLINE_CACHE_STATS
         virtual void PrintStats(InlineCacheData *data) const override;
-        virtual ScriptContext* GetScriptContext() const override;
 #endif
+        virtual ScriptContext* GetScriptContext() const override;
 
         virtual void Finalize(bool isShutdown) override;
     };
@@ -683,7 +683,7 @@ namespace Js
         }
     };
 
-#if defined(_M_IX86_OR_ARM32)
+#if defined(TARGET_32)
     CompileAssert(sizeof(IsInstInlineCache) == 0x10);
 #else
     CompileAssert(sizeof(IsInstInlineCache) == 0x20);

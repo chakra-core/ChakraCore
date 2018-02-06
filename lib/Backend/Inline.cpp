@@ -2065,19 +2065,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * 
     StackSym* originalCallTargetStackSym = callInstr->GetSrc1()->GetStackSym();
     bool originalCallTargetOpndIsJITOpt = callInstr->GetSrc1()->GetIsJITOptimizedReg();
 
-    // We are committed to inlining, optimize the call instruction for fixed fields now and don't attempt it later.
-    bool safeThis = false;
-    if (TryOptimizeCallInstrWithFixedMethod(callInstr, inlineeData, false /*isPolymorphic*/, true /*isBuiltIn*/, false /*isCtor*/, true /*isInlined*/, safeThis /*unused here*/))
-    {
-        Assert(callInstr->m_opcode == Js::OpCode::CallIFixed);
-        Assert(callInstr->GetFixedFunction()->GetFuncInfoAddr() == inlineeData->GetFunctionInfoAddr());
-    }
-    else
-    {
-        // FunctionObject check for built-ins
-        IR::BailOutInstr * bailOutInstr = IR::BailOutInstr::New(Js::OpCode::BailOnNotBuiltIn, IR::BailOutOnInlineFunction, callInstr, callInstr->m_func);
-        InsertFunctionObjectCheck(callInstr, callInstr, bailOutInstr, inlineeData);
-    }
+    IR::ByteCodeUsesInstr* useCallTargetInstr = EmitFixedMethodOrFunctionObjectChecksForBuiltIns(callInstr, callInstr, inlineeData, false, true, false, true);
 
     // To push function object for cases when we have to make calls to helper method to assist in inlining
     if(inlineCallOpCode == Js::OpCode::CallDirect)
@@ -2113,11 +2101,9 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * 
         }
     }
 
-    // Insert a byteCodeUsesInstr to make sure the function object's lifetime is extended beyond the last bailout point
-    // at which we may need to call the inlinee again in the interpreter.
+    if (useCallTargetInstr)
     {
-        IR::ByteCodeUsesInstr * useCallTargetInstr = IR::ByteCodeUsesInstr::New(callInstr);
-        useCallTargetInstr->SetRemovedOpndSymbol(originalCallTargetOpndIsJITOpt, originalCallTargetStackSym->m_id);
+        useCallTargetInstr->Unlink();
         callInstr->InsertBefore(useCallTargetInstr);
     }
 
@@ -2153,7 +2139,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * 
 
         // Insert a byteCodeUsesInstr to make sure the function object's lifetime is extended beyond the last bailout point
         // at which we may need to call the inlinee again in the interpreter.
-        IR::ByteCodeUsesInstr * useCallTargetInstr = IR::ByteCodeUsesInstr::New(callInstr->GetPrevRealInstrOrLabel());
+        useCallTargetInstr = IR::ByteCodeUsesInstr::New(callInstr->GetPrevRealInstrOrLabel());
         useCallTargetInstr->SetRemovedOpndSymbol(originalCallTargetOpndIsJITOpt, originalCallTargetStackSym->m_id);
 
         if(inlineCallOpCode == Js::OpCode::InlineArrayPop)
@@ -2451,7 +2437,7 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, const FunctionJITTimeInfo *
 
             // TODO: OOP JIT enable assert (readprocessmemory?)
             //Assert((inlineeData->GetFunctionInfo()->GetAttributes() & Js::FunctionInfo::Attributes::BuiltInInlinableAsLdFldInlinee) != 0);
-            return InlineApplyWithArray(callInstr, applyData, Js::JavascriptLibrary::GetBuiltInForFuncInfo(inlineeData->GetFunctionInfoAddr(), this->topFunc->GetThreadContextInfo()));
+            return InlineApplyBuiltInTargetWithArray(callInstr, applyData, inlineeData);
         }
         else
         {
@@ -2568,7 +2554,7 @@ IR::Instr * Inline::InlineApplyWithArgumentsObject(IR::Instr * callInstr, IR::In
 /*
 This method will only do CallDirect style inlining of built-in targets. No script function inlining.
 */
-IR::Instr * Inline::InlineApplyWithArray(IR::Instr * callInstr, const FunctionJITTimeInfo * funcInfo, Js::BuiltinFunction builtInId)
+IR::Instr * Inline::InlineApplyBuiltInTargetWithArray(IR::Instr * callInstr, const FunctionJITTimeInfo * applyInfo, const FunctionJITTimeInfo * builtInInfo)
 {
     IR::Instr * implicitThisArgOut = nullptr;
     IR::Instr * explicitThisArgOut = nullptr;
@@ -2579,8 +2565,24 @@ IR::Instr * Inline::InlineApplyWithArray(IR::Instr * callInstr, const FunctionJI
     Assert(implicitThisArgOut);
     Assert(explicitThisArgOut);
     Assert(arrayArgOut);
+    Js::OpCode originalCallOpcode = callInstr->m_opcode;
+    IR::Opnd * originalCallSrc1 = callInstr->GetSrc1()->Copy(this->topFunc);
+    IR::AutoReuseOpnd autoReuseOriginalCallSrc1(originalCallSrc1, this->topFunc);
 
-    TryFixedMethodAndPrepareInsertionPoint(callInstr, funcInfo, false /*isPolymorphic*/, true /*isBuiltIn*/, false /*isCtor*/, true /*isInlined*/);
+    IR::Instr* applyLdInstr = nullptr;
+    IR::Instr* applyTargetLdInstr = nullptr;
+    if (!TryGetApplyAndTargetLdInstrs(callInstr, &applyLdInstr, &applyTargetLdInstr))
+    {
+        return callInstr;
+    }
+    // Fixed function/function object checks for target built-in
+    callInstr->ReplaceSrc1(applyTargetLdInstr->GetDst());
+    EmitFixedMethodOrFunctionObjectChecksForBuiltIns(callInstr, callInstr, builtInInfo, false /*isPolymorphic*/, true /*isBuiltIn*/, false /*isCtor*/, true /*isInlined*/);
+
+    // Fixed function/function object checks for .apply
+    callInstr->m_opcode = originalCallOpcode;
+    callInstr->ReplaceSrc1(originalCallSrc1);
+    EmitFixedMethodOrFunctionObjectChecksForBuiltIns(callInstr, callInstr, applyInfo, false /*isPolymorphic*/, true /*isBuiltIn*/, false /*isCtor*/, true /*isInlined*/);
 
     IR::Instr* builtInEndInstr = InsertInlineeBuiltInStartEndTags(callInstr, 3); // 3 args (implicit this + explicit this + array = 3)
     builtInEndInstr->m_opcode = Js::OpCode::InlineNonTrackingBuiltInEnd; // We will call EndTrackCall when we see CallDirect for reasons explained in GlobOpt::TrackCalls
@@ -2608,6 +2610,7 @@ IR::Instr * Inline::InlineApplyWithArray(IR::Instr * callInstr, const FunctionJI
     argOut = IR::Instr::New(Js::OpCode::ArgOut_A_InlineSpecialized, linkOpnd, implicitThisArgOut->GetSrc1(), argOut->GetDst(), callInstr->m_func);
     callInstr->InsertBefore(argOut);
 
+    Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(builtInInfo->GetFunctionInfoAddr(), this->topFunc->GetThreadContextInfo());
     IR::HelperCallOpnd * helperCallOpnd = nullptr;
     switch (builtInId)
     {
@@ -2641,7 +2644,7 @@ IR::Instr * Inline::InlineApplyWithoutArrayArgument(IR::Instr *callInstr, const 
     Assert(implicitThisArgOut);
     Assert(explicitThisArgOut);
     
-    TryFixedMethodAndPrepareInsertionPoint(callInstr, applyInfo, false /*isPolymorphic*/, true /*isBuiltIn*/, false /*isCtor*/, true /*isInlined*/);
+    EmitFixedMethodOrFunctionObjectChecksForBuiltIns(callInstr, callInstr, applyInfo, false /*isPolymorphic*/, true /*isBuiltIn*/, false /*isCtor*/, true /*isInlined*/);
 
     InsertInlineeBuiltInStartEndTags(callInstr, 2); // 2 args (implicit this + explicit this)
 
@@ -2714,6 +2717,23 @@ void Inline::GetArgInstrsForCallAndApply(IR::Instr* callInstr, IR::Instr** impli
     linkOpnd->AsRegOpnd()->m_sym->m_isInlinedArgSlot = true;
 }
 
+_Success_(return != false)
+bool Inline::TryGetApplyAndTargetLdInstrs(IR::Instr * callInstr, _Outptr_result_nullonfailure_ IR::Instr ** applyLdInstr, _Outptr_result_nullonfailure_ IR::Instr ** applyTargetLdInstr)
+{
+    IR::Opnd* applyOpnd = callInstr->GetSrc1();
+    Assert(applyOpnd->IsRegOpnd());
+    StackSym* applySym = applyOpnd->AsRegOpnd()->m_sym->AsStackSym();
+    if (!applySym->IsSingleDef())
+    {
+        *applyLdInstr = nullptr;
+        *applyTargetLdInstr = nullptr;
+        return false;
+    }
+    *applyLdInstr = applySym->GetInstrDef();;
+    *applyTargetLdInstr = (*applyLdInstr)->m_prev;
+    return true;
+}
+
 /*
 This method only inlines targets which are script functions, under the
 condition that the second argument (if any) passed to apply is arguments object.
@@ -2735,16 +2755,13 @@ bool Inline::InlineApplyScriptTarget(IR::Instr *callInstr, const FunctionJITTime
 
     // Begin inlining apply target
 
-    IR::Opnd* applyOpnd = callInstr->GetSrc1();
-    Assert(applyOpnd->IsRegOpnd());
-    StackSym* applySym = applyOpnd->AsRegOpnd()->m_sym->AsStackSym();
-    if (!applySym->IsSingleDef())
+    IR::Instr* applyLdInstr = nullptr;
+    IR::Instr* applyTargetLdInstr = nullptr;
+    if (!TryGetApplyAndTargetLdInstrs(callInstr, &applyLdInstr, &applyTargetLdInstr))
     {
         return false;
     }
-    IR::Instr* applyLdInstr = applySym->GetInstrDef();
-    IR::Instr* applyTargetLdInstr = applyLdInstr->m_prev;
-
+    
     if(applyTargetLdInstr->m_opcode != Js::OpCode::LdFldForCallApplyTarget ||
         ((applyTargetLdInstr->AsProfiledInstr()->u.FldInfo().flags & Js::FldInfo_FromAccessor) != 0))
     {
@@ -3008,7 +3025,7 @@ Inline::InlineCall(IR::Instr *callInstr, const FunctionJITTimeInfo *funcInfo, co
 
     IR::SymOpnd* orgLinkOpnd = callInstr->GetSrc2()->AsSymOpnd();
 
-    TryFixedMethodAndPrepareInsertionPoint(callInstr, funcInfo, false /*isPolymorphic*/, true /*isBuiltIn*/, false /*isCtor*/, true /*isInlined*/);
+    EmitFixedMethodOrFunctionObjectChecksForBuiltIns(callInstr, callInstr, funcInfo, false /*isPolymorphic*/, true /*isBuiltIn*/, false /*isCtor*/, true /*isInlined*/);
 
     InsertInlineeBuiltInStartEndTags(callInstr, actualCount);
 
@@ -4330,26 +4347,29 @@ Inline::PrepareInsertionPoint(IR::Instr *callInstr, const FunctionJITTimeInfo *f
     return primaryBailOutInstr;
 }
 
-void
-Inline::TryFixedMethodAndPrepareInsertionPoint(IR::Instr *callInstr, const FunctionJITTimeInfo * inlineeInfo, bool isPolymorphic, bool isBuiltIn, bool isCtor, bool isInlined)
+IR::ByteCodeUsesInstr*
+Inline::EmitFixedMethodOrFunctionObjectChecksForBuiltIns(IR::Instr *callInstr, IR::Instr * funcObjCheckInsertInstr, const FunctionJITTimeInfo * inlineeInfo, bool isPolymorphic, bool isBuiltIn, bool isCtor, bool isInlined)
 {
     StackSym* originalCallTargetStackSym = callInstr->GetSrc1()->GetStackSym();
     bool originalCallTargetIsJITOpt = callInstr->GetSrc1()->GetIsJITOptimizedReg();
 
+    IR::ByteCodeUsesInstr * useCallTargetInstr = nullptr;
     bool safeThis = false;
     if (TryOptimizeCallInstrWithFixedMethod(callInstr, inlineeInfo, isPolymorphic, isBuiltIn, isCtor, isInlined, safeThis))
     {
         Assert(callInstr->m_opcode == Js::OpCode::CallIFixed);
-
+        Assert(callInstr->GetFixedFunction()->GetFuncInfoAddr() == inlineeInfo->GetFunctionInfoAddr());
         // If we optimized the call instruction for a fixed function, we must extend the function object's lifetime until after the last bailout before the call.
-        IR::ByteCodeUsesInstr * useCallTargetInstr = IR::ByteCodeUsesInstr::New(callInstr);
+        useCallTargetInstr = IR::ByteCodeUsesInstr::New(callInstr);
         useCallTargetInstr->SetRemovedOpndSymbol(originalCallTargetIsJITOpt, originalCallTargetStackSym->m_id);
         callInstr->InsertBefore(useCallTargetInstr);
     }
     else
     {
-        PrepareInsertionPoint(callInstr, inlineeInfo, callInstr);
+        IR::BailOutInstr * bailOutInstr = IR::BailOutInstr::New(Js::OpCode::BailOnNotBuiltIn, IR::BailOutOnInlineFunction, callInstr, callInstr->m_func);
+        InsertFunctionObjectCheck(callInstr, funcObjCheckInsertInstr, bailOutInstr, inlineeInfo);
     }
+    return useCallTargetInstr;
 }
 
 uint Inline::CountActuals(IR::Instr *callInstr)

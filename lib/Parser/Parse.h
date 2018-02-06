@@ -119,7 +119,6 @@ private:
         return pnode;
     }
 
-
 public:
 #if DEBUG
     Parser(Js::ScriptContext* scriptContext, BOOL strictMode = FALSE, PageAllocator *alloc = nullptr, bool isBackground = false, size_t size = sizeof(Parser));
@@ -129,7 +128,6 @@ public:
     ~Parser(void);
 
     Js::ScriptContext* GetScriptContext() const { return m_scriptContext; }
-    void ClearScriptContext() { m_scriptContext = nullptr; }
 
 #if ENABLE_BACKGROUND_PARSING
     bool IsBackgroundParser() const { return m_isInBackground; }
@@ -226,9 +224,6 @@ private:
     __declspec(noreturn) void Error(HRESULT hr, ParseNodePtr pnode);
     __declspec(noreturn) void Error(HRESULT hr, charcount_t ichMin, charcount_t ichLim);
     __declspec(noreturn) static void OutOfMemory();
-
-    void GenerateCode(ParseNodePtr pnode, void *pvUser, int32 cbUser,
-        LPCOLESTR pszSrc, int32 cchSrc, LPCOLESTR pszTitle);
 
     void EnsureStackAvailable();
 
@@ -510,20 +505,14 @@ private:
     bool NextTokenIsPropertyNameStart() const { return m_token.tk == tkID || m_token.tk == tkStrCon || m_token.tk == tkIntCon || m_token.tk == tkFltCon || m_token.tk == tkLBrack || m_token.IsReservedWord(); }
 
     template<bool buildAST>
-    void PushStmt(StmtNest *pStmt, ParseNodePtr pnode, OpCode op, ParseNodePtr pnodeLab, LabelId* pLabelIdList)
+    void PushStmt(StmtNest *pStmt, ParseNodePtr pnode, OpCode op, LabelId* pLabelIdList)
     {
-        AssertMem(pStmt);
-
         if (buildAST)
         {
-            AssertNodeMem(pnode);
-            AssertNodeMemN(pnodeLab);
-
             pnode->sxStmt.grfnop = 0;
             pnode->sxStmt.pnodeOuter = (NULL == m_pstmtCur) ? NULL : m_pstmtCur->pnodeStmt;
 
             pStmt->pnodeStmt = pnode;
-            pStmt->pnodeLab = pnodeLab;
         }
         else
         {
@@ -531,8 +520,8 @@ private:
             pStmt->pnodeStmt = 0;
             pStmt->isDeferred = true;
             pStmt->op = op;
-            pStmt->pLabelId = pLabelIdList;
         }
+        pStmt->pLabelId = pLabelIdList;
         pStmt->pstmtOuter = m_pstmtCur;
         SetCurrentStatement(pStmt);
     }
@@ -543,8 +532,6 @@ private:
     void PopBlockInfo();
     void PushDynamicBlock();
     void PopDynamicBlock();
-
-    ParseNodePtr PnodeLabel(IdentPtr pid, ParseNodePtr pnodeLabels);
 
     void MarkEvalCaller()
     {
@@ -758,16 +745,17 @@ private:
     // TODO: We should really call this StartScope and separate out the notion of scopes and blocks;
     // blocks refer to actual curly braced syntax, whereas scopes contain symbols.  All blocks have
     // a scope, but some statements like for loops or the with statement introduce a block-less scope.
-    template<bool buildAST> ParseNodePtr StartParseBlock(PnodeBlockType blockType, ScopeType scopeType, ParseNodePtr pnodeLabel = NULL, LabelId* pLabelId = NULL);
+    template<bool buildAST> ParseNodePtr StartParseBlock(PnodeBlockType blockType, ScopeType scopeType, LabelId* pLabelId = nullptr);
     template<bool buildAST> ParseNodePtr StartParseBlockWithCapacity(PnodeBlockType blockType, ScopeType scopeType, int capacity);
-    template<bool buildAST> ParseNodePtr StartParseBlockHelper(PnodeBlockType blockType, Scope *scope, ParseNodePtr pnodeLabel, LabelId* pLabelId);
+    template<bool buildAST> ParseNodePtr StartParseBlockHelper(PnodeBlockType blockType, Scope *scope, LabelId* pLabelId);
     void PushFuncBlockScope(ParseNodePtr pnodeBlock, ParseNodePtr **ppnodeScopeSave, ParseNodePtr **ppnodeExprScopeSave);
     void PopFuncBlockScope(ParseNodePtr *ppnodeScopeSave, ParseNodePtr *ppnodeExprScopeSave);
-    template<bool buildAST> ParseNodePtr ParseBlock(ParseNodePtr pnodeLabel, LabelId* pLabelId);
+    template<bool buildAST> ParseNodePtr ParseBlock(LabelId* pLabelId);
     void FinishParseBlock(ParseNode *pnodeBlock, bool needScanRCurly = true);
     void FinishParseFncExprScope(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncExprScope);
 
-    void CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc, bool isGlobal);
+    bool IsSpecialName(IdentPtr pid);
+    void CreateSpecialSymbolDeclarations(ParseNodePtr pnodeFnc);
     ParseNodePtr ReferenceSpecialName(IdentPtr pid, charcount_t ichMin = 0, charcount_t ichLim = 0, bool createNode = false);
     ParseNodePtr CreateSpecialVarDeclIfNeeded(ParseNodePtr pnodeFnc, IdentPtr pid, bool forceCreate = false);
 
@@ -1029,8 +1017,8 @@ private:
     void RestoreScopeInfo(Js::ScopeInfo * scopeInfo);
     void FinishScopeInfo(Js::ScopeInfo * scopeInfo);
 
-    BOOL PnodeLabelNoAST(IdentToken* pToken, LabelId* pLabelIdList);
-    LabelId* CreateLabelId(IdentToken* pToken);
+    bool LabelExists(IdentPtr pid, LabelId* pLabelIdList);
+    LabelId* CreateLabelId(IdentPtr pid);
 
     void AddToNodeList(ParseNode ** ppnodeList, ParseNode *** pppnodeLast, ParseNode * pnodeAdd);
     void AddToNodeListEscapedUse(ParseNode ** ppnodeList, ParseNode *** pppnodeLast, ParseNode * pnodeAdd);
@@ -1130,6 +1118,7 @@ private:
             : m_parser(parser)
         {
             m_prevState = m_parser->GetIsInParsingArgList();
+            m_prevDestructuringState = m_parser->GetHasDestructuringPattern();
             m_parser->SetHasDestructuringPattern(false);
             m_parser->SetIsInParsingArgList(true);
         }
@@ -1140,11 +1129,20 @@ private:
             {
                 m_parser->SetHasDestructuringPattern(false);
             }
+            else
+            {
+                // Reset back to previous state only when the current call node does not have usage of destructuring expression.
+                if (!m_parser->GetHasDestructuringPattern())
+                {
+                    m_parser->SetHasDestructuringPattern(m_prevDestructuringState);
+                }
+            }
         }
 
     private:
         Parser *m_parser;
         bool m_prevState;
+        bool m_prevDestructuringState;
     };
 
 public:

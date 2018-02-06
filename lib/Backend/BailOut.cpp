@@ -18,8 +18,12 @@ BailOutInfo::Clear(JitArenaAllocator * allocator)
 {
     // Currently, we don't have a case where we delete bailout info after we allocated the bailout record
     Assert(!bailOutRecord);
-    this->capturedValues.constantValues.Clear(allocator);
-    this->capturedValues.copyPropSyms.Clear(allocator);
+    if (this->capturedValues && this->capturedValues->DecrementRefCount() == 0)
+    {
+        this->capturedValues->constantValues.Clear(allocator);
+        this->capturedValues->copyPropSyms.Clear(allocator);
+        JitAdelete(allocator, this->capturedValues);
+    }
     this->usedCapturedValues.constantValues.Clear(allocator);
     this->usedCapturedValues.copyPropSyms.Clear(allocator);
     if (byteCodeUpwardExposedUsed)
@@ -83,7 +87,7 @@ BailOutInfo::NeedsStartCallAdjust(uint i, const IR::Instr * bailOutInstr) const
 }
 
 void
-BailOutInfo::RecordStartCallInfo(uint i, uint argRestoreAdjustCount, IR::Instr *instr)
+BailOutInfo::RecordStartCallInfo(uint i, IR::Instr *instr)
 {
     Assert(i < this->startCallCount);
     Assert(this->startCallInfo);
@@ -92,7 +96,8 @@ BailOutInfo::RecordStartCallInfo(uint i, uint argRestoreAdjustCount, IR::Instr *
 
     this->startCallInfo[i].instr = instr;
     this->startCallInfo[i].argCount = instr->GetArgOutCount(/*getInterpreterArgOutCount*/ true);
-    this->startCallInfo[i].argRestoreAdjustCount = argRestoreAdjustCount;
+    this->startCallInfo[i].argRestoreAdjustCount = 0;
+    this->startCallInfo[i].isOrphanedCall = false;
 }
 
 void
@@ -124,7 +129,7 @@ BailOutInfo::GetStartCallOutParamCount(uint i) const
 }
 
 void
-BailOutInfo::RecordStartCallInfo(uint i, uint argRestoreAdjust, IR::Instr *instr)
+BailOutInfo::RecordStartCallInfo(uint i, IR::Instr *instr)
 {
     Assert(i < this->startCallCount);
     Assert(this->startCallInfo);
@@ -1008,7 +1013,7 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
         if (boxStackInstance)
         {
             Js::Var oldValue = value;
-            value = Js::JavascriptOperators::BoxStackInstance(oldValue, scriptContext, /* allowStackFunction */ true);
+            value = Js::JavascriptOperators::BoxStackInstance(oldValue, scriptContext, /* allowStackFunction */ true, /* deepCopy */ false);
 
             if (oldValue != value)
             {
@@ -1028,6 +1033,7 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
     bool fromLoopBody, Js::Var * registerSaves, Js::InterpreterStackFrame * newInstance, Js::Var* pArgumentsObject, void * argoutRestoreAddress) const
 {
     bool isLocal = offsets == nullptr;
+
     if (isLocal == true)
     {
         globalBailOutRecordTable->IterateGlobalBailOutRecordTableRows(m_bailOutRecordId, [=](GlobalBailOutRecordDataRow *row) {
@@ -1071,7 +1077,15 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
             this->IsOffsetNativeIntOrFloat(i, argOutSlotStart, &isFloat64, &isInt32,
                                            &isSimd128F4, &isSimd128I4, &isSimd128I8, &isSimd128I16,
                                            &isSimd128U4, &isSimd128U8, &isSimd128U16, &isSimd128B4, &isSimd128B8, &isSimd128B16);
-
+#ifdef _M_IX86
+            if (this->argOutOffsetInfo->isOrphanedArgSlot->Test(argOutSlotStart + i))
+            {
+                RestoreValue(bailOutKind, layout, values, scriptContext, fromLoopBody, registerSaves, newInstance, pArgumentsObject,
+                    nullptr, i, offset, /* isLocal */ true, isFloat64, isInt32, isSimd128F4, isSimd128I4, isSimd128I8,
+                    isSimd128I16, isSimd128U4, isSimd128U8, isSimd128U16, isSimd128B4, isSimd128B8, isSimd128B16);
+                continue;
+            }
+#endif
             RestoreValue(bailOutKind, layout, values, scriptContext, fromLoopBody, registerSaves, newInstance, pArgumentsObject,
                          argoutRestoreAddress, i, offset, false, isFloat64, isInt32, isSimd128F4, isSimd128I4, isSimd128I8,
                          isSimd128I16, isSimd128U4, isSimd128U8, isSimd128U16, isSimd128B4, isSimd128B8, isSimd128B16);
@@ -1203,6 +1217,12 @@ BailOutRecord::BailOutInlinedCommon(Js::JavascriptCallStackLayout * layout, Bail
     BailOutReturnValue bailOutReturnValue;
     Js::ScriptFunction * innerMostInlinee = nullptr;
     BailOutInlinedHelper(layout, currentBailOutRecord, bailOutOffset, returnAddress, bailOutKind, registerSaves, &bailOutReturnValue, &innerMostInlinee, false, branchValue);
+
+    bool * hasBailOutBit = layout->functionObject->GetScriptContext()->GetThreadContext()->GetHasBailedOutBitPtr();
+    if (hasBailOutBit != nullptr && bailOutRecord->ehBailoutData)
+    {
+        *hasBailOutBit = true;
+    }
     Js::Var result = BailOutCommonNoCodeGen(layout, currentBailOutRecord, currentBailOutRecord->bailOutOffset, returnAddress, bailOutKind, branchValue,
         registerSaves, &bailOutReturnValue);
     ScheduleFunctionCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), innerMostInlinee, currentBailOutRecord, bailOutKind, bailOutOffset, savedImplicitCallFlags, returnAddress);
@@ -1241,6 +1261,11 @@ BailOutRecord::BailOutFromLoopBodyInlinedCommon(Js::JavascriptCallStackLayout * 
     BailOutReturnValue bailOutReturnValue;
     Js::ScriptFunction * innerMostInlinee = nullptr;
     BailOutInlinedHelper(layout, currentBailOutRecord, bailOutOffset, returnAddress, bailOutKind, registerSaves, &bailOutReturnValue, &innerMostInlinee, true, branchValue);
+    bool * hasBailOutBit = layout->functionObject->GetScriptContext()->GetThreadContext()->GetHasBailedOutBitPtr();
+    if (hasBailOutBit != nullptr && bailOutRecord->ehBailoutData)
+    {
+        *hasBailOutBit = true;
+    }
     uint32 result = BailOutFromLoopBodyHelper(layout, currentBailOutRecord, currentBailOutRecord->bailOutOffset,
         bailOutKind, nullptr, registerSaves, &bailOutReturnValue);
     ScheduleLoopBodyCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), innerMostInlinee, currentBailOutRecord, bailOutKind);
@@ -1277,7 +1302,7 @@ BailOutRecord::BailOutInlinedHelper(Js::JavascriptCallStackLayout * layout, Bail
         if (inlineeFrameRecord)
         {
             InlinedFrameLayout* outerMostFrame = (InlinedFrameLayout *)(((uint8 *)Js::JavascriptCallStackLayout::ToFramePointer(layout)) - entryPointInfo->frameHeight);
-            inlineeFrameRecord->RestoreFrames(functionBody, outerMostFrame, layout);
+            inlineeFrameRecord->RestoreFrames(functionBody, outerMostFrame, layout, false /* deepCopy */);
         }
     }
 
@@ -1286,7 +1311,13 @@ BailOutRecord::BailOutInlinedHelper(Js::JavascriptCallStackLayout * layout, Bail
         InlinedFrameLayout *inlinedFrame = (InlinedFrameLayout *)(((char *)layout) + currentBailOutRecord->globalBailOutRecordTable->firstActualStackOffset);
         Js::InlineeCallInfo inlineeCallInfo = inlinedFrame->callInfo;
         Assert((Js::ArgSlot)inlineeCallInfo.Count == currentBailOutRecord->actualCount);
-        Js::CallInfo callInfo(Js::CallFlags_Value, (Js::ArgSlot)inlineeCallInfo.Count);
+
+        Js::CallFlags callFlags = Js::CallFlags_Value;
+        if (currentBailOutRecord->globalBailOutRecordTable->isInlinedConstructor)
+        {
+            callFlags |= Js::CallFlags_New;
+        }
+        Js::CallInfo callInfo(callFlags, (Js::ArgSlot)inlineeCallInfo.Count);
 
         Js::ScriptFunction ** functionRef = (Js::ScriptFunction **)&(inlinedFrame->function);
         AnalysisAssert(*functionRef);
@@ -1485,7 +1516,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
         {
             const Js::Var arg = args.Values[i];
             BAILOUT_VERBOSE_TRACE(executeFunction, bailOutKind, _u("BailOut:   Argument #%3u: value: 0x%p"), i, arg);
-            const Js::Var boxedArg = Js::JavascriptOperators::BoxStackInstance(arg, functionScriptContext, true);
+            const Js::Var boxedArg = Js::JavascriptOperators::BoxStackInstance(arg, functionScriptContext, /* allowStackFunction */ true, /* deepCopy */ false);
             if(boxedArg != arg)
             {
                 args.Values[i] = boxedArg;
@@ -1788,7 +1819,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
         aReturn = Js::JavascriptFunction::FinishConstructor(aReturn, args.Values[0], function);
 
         Js::Var oldValue = aReturn;
-        aReturn = Js::JavascriptOperators::BoxStackInstance(oldValue, functionScriptContext, /* allowStackFunction */ true);
+        aReturn = Js::JavascriptOperators::BoxStackInstance(oldValue, functionScriptContext, /* allowStackFunction */ true, /* deepCopy */ false);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (oldValue != aReturn)
         {

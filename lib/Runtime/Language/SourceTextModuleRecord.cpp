@@ -114,8 +114,16 @@ namespace Js
             Assert(sourceLength == 0);
             OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("Failed to load: %s\n"), this->GetSpecifierSz());
             hr = E_FAIL;
+
+            // We cannot just use the buffer in the specifier string - need to make a copy here.
+            const char16* moduleName = this->GetSpecifierSz();
+            size_t length = wcslen(moduleName);
+            char16* allocatedString = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, length + 1);
+            wmemcpy_s(allocatedString, length + 1, moduleName, length);
+            allocatedString[length] = _u('\0');
+
             JavascriptError *pError = scriptContext->GetLibrary()->CreateURIError();
-            JavascriptError::SetErrorMessageProperties(pError, hr, this->GetSpecifierSz(), scriptContext);
+            JavascriptError::SetErrorMessageProperties(pError, hr, allocatedString, scriptContext);
             *exceptionVar = pError;
         }
         else
@@ -269,7 +277,10 @@ namespace Js
             HRESULT hr = NOERROR;
             if (!WasDeclarationInitialized())
             {
-                ModuleDeclarationInstantiation();
+                if (ModuleDeclarationInstantiation())
+                {
+                    GenerateRootFunction();
+                }
 
                 if (this->errorObject != nullptr)
                 {
@@ -294,8 +305,15 @@ namespace Js
 
             if (FAILED(hr))
             {
+                // We cannot just use the buffer in the specifier string - need to make a copy here.
+                const char16* moduleName = this->GetSpecifierSz();
+                size_t length = wcslen(moduleName);
+                char16* allocatedString = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, length + 1);
+                wmemcpy_s(allocatedString, length + 1, moduleName, length);
+                allocatedString[length] = _u('\0');
+
                 Js::JavascriptError * error = scriptContext->GetLibrary()->CreateURIError();
-                JavascriptError::SetErrorMessageProperties(error, hr, this->GetSpecifierSz(), scriptContext);
+                JavascriptError::SetErrorMessageProperties(error, hr, allocatedString, scriptContext);
                 return SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, error, scriptContext, this);
             }
         }
@@ -321,7 +339,10 @@ namespace Js
                 bool isScriptActive = scriptContext->GetThreadContext()->IsScriptActive();
                 Assert(!isScriptActive || this->promise != nullptr);
 
-                ModuleDeclarationInstantiation();
+                if (ModuleDeclarationInstantiation())
+                {
+                    GenerateRootFunction();
+                }
                 if (!hadNotifyHostReady && !WasEvaluated())
                 {
                     OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyHostAboutModuleReady %s (PrepareForModuleDeclarationInitialization)\n"), this->GetSpecifierSz());
@@ -701,9 +722,8 @@ namespace Js
                     Recycler* recycler = GetScriptContext()->GetRecycler();
                     this->parentModuleList = RecyclerNew(recycler, ModuleRecordList, recycler);
                 }
-                bool contains = this->parentModuleList->Contains(parentRecord);
-                Assert(!contains);
-                if (!contains)
+
+                if (!this->parentModuleList->Contains(parentRecord))
                 {
                     this->parentModuleList->Add(parentRecord);
                     parentRecord->numPendingChildrenModule++;
@@ -731,10 +751,18 @@ namespace Js
         if (requestedModuleList != nullptr)
         {
             EnsureChildModuleSet(scriptContext);
+            ArenaAllocator* allocator = scriptContext->GeneralAllocator();
+            SList<LPCOLESTR> * moduleRecords = Anew(allocator, SList<LPCOLESTR>, allocator);
+
+            // Reverse the order for the host. So, host can read the files top-down
             requestedModuleList->MapUntil([&](IdentPtr specifier) {
+                LPCOLESTR moduleName = specifier->Psz();
+                return !moduleRecords->Prepend(moduleName);
+            });
+
+            moduleRecords->MapUntil([&](LPCOLESTR moduleName) {
                 ModuleRecordBase* moduleRecordBase = nullptr;
                 SourceTextModuleRecord* moduleRecord = nullptr;
-                LPCOLESTR moduleName = specifier->Psz();
                 bool itemFound = childrenModuleSet->TryGetValue(moduleName, &moduleRecord);
                 if (!itemFound)
                 {
@@ -759,6 +787,8 @@ namespace Js
                 }
                 return false;
             });
+            moduleRecords->Clear();
+
             if (FAILED(hr))
             {
                 if (this->errorObject == nullptr)
@@ -785,14 +815,14 @@ namespace Js
         // helper information for now.
     }
 
-    void SourceTextModuleRecord::ModuleDeclarationInstantiation()
+    bool SourceTextModuleRecord::ModuleDeclarationInstantiation()
     {
         OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("ModuleDeclarationInstantiation(%s)\n"), this->GetSpecifierSz());
         ScriptContext* scriptContext = GetScriptContext();
 
         if (this->WasDeclarationInitialized())
         {
-            return;
+            return false;
         }
 
         try
@@ -807,10 +837,10 @@ namespace Js
             SetWasDeclarationInitialized();
             if (childrenModuleSet != nullptr)
             {
-                childrenModuleSet->Map([](LPCOLESTR specifier, SourceTextModuleRecord* moduleRecord)
+                childrenModuleSet->EachValue([=](SourceTextModuleRecord* childModuleRecord)
                 {
-                    Assert(moduleRecord->WasParsed());
-                    moduleRecord->ModuleDeclarationInstantiation();
+                    Assert(childModuleRecord->WasParsed());
+                    childModuleRecord->ModuleDeclarationInstantiation();
                 });
             }
 
@@ -828,12 +858,28 @@ namespace Js
         {
             OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentsAsNeeded (errorObject)\n"));
             NotifyParentsAsNeeded();
+            return false;
+        }
+
+        return true;
+    }
+
+    void SourceTextModuleRecord::GenerateRootFunction()
+    {
+        // On cyclic dependency, we may endup generating the root function twice
+        // so make sure we don't
+        if (this->rootFunction != nullptr)
+        {
             return;
         }
 
+        ScriptContext* scriptContext = GetScriptContext();
         Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
-        Assert(this == scriptContext->GetLibrary()->GetModuleRecord(this->pSourceInfo->GetSrcInfo()->moduleID));
         CompileScriptException se;
+
+        Assert(this->WasDeclarationInitialized());
+        Assert(this == scriptContext->GetLibrary()->GetModuleRecord(this->pSourceInfo->GetSrcInfo()->moduleID));
+
         this->rootFunction = scriptContext->GenerateRootFunction(parseTree, sourceIndex, this->parser, this->pSourceInfo->GetParseFlags(), &se, _u("module"));
         if (rootFunction == nullptr)
         {
@@ -852,6 +898,13 @@ namespace Js
             scriptContext->GetDebugContext()->RegisterFunction(this->rootFunction->GetFunctionBody(), nullptr);
         }
 #endif
+        if (childrenModuleSet != nullptr)
+        {
+            childrenModuleSet->EachValue([=](SourceTextModuleRecord* childModuleRecord)
+            {
+                childModuleRecord->GenerateRootFunction();
+            });
+        }
     }
 
     Var SourceTextModuleRecord::ModuleEvaluation()
@@ -945,7 +998,6 @@ namespace Js
         {
             return E_INVALIDARG;
         }
-        AssertMsg(!WasParsed(), "shouldn't be called after a module is parsed");
         if (WasParsed())
         {
             return E_INVALIDARG;

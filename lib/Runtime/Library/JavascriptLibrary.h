@@ -13,6 +13,7 @@
 CompileAssert(MaxPreInitializedObjectTypeInlineSlotCount <= USHRT_MAX);
 
 #include "StringCache.h"
+#include "Library/JavascriptGenerator.h"
 
 class ScriptSite;
 class ActiveScriptExternalLibrary;
@@ -396,6 +397,7 @@ namespace Js
         Field(DynamicObject*) missingPropertyHolder;
         Field(StaticType*) throwErrorObjectType;
         Field(PropertyStringCacheMap*) propertyStringMap;
+        Field(SymbolCacheMap*) symbolMap;
         Field(ConstructorCache*) builtInConstructorCache;
 
         Field(DynamicObject*) chakraLibraryObject;
@@ -413,6 +415,7 @@ namespace Js
         Field(JavascriptFunction*) arrayPrototypeToLocaleStringFunction;
         Field(JavascriptFunction*) identityFunction;
         Field(JavascriptFunction*) throwerFunction;
+        Field(JavascriptFunction*) generatorReturnFunction;
         Field(JavascriptFunction*) generatorNextFunction;
         Field(JavascriptFunction*) generatorThrowFunction;
 
@@ -577,6 +580,7 @@ namespace Js
             inProfileMode(false),
             inDispatchProfileMode(false),
             propertyStringMap(nullptr),
+            symbolMap(nullptr),
             parseIntFunctionObject(nullptr),
             evalFunctionObject(nullptr),
             parseFloatFunctionObject(nullptr),
@@ -751,6 +755,9 @@ namespace Js
 
         Js::JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* CreateRemainingElementsWrapper_TTD(Js::ScriptContext* ctx, uint32 value);
         Js::RecyclableObject* CreatePromiseAllResolveElementFunction_TTD(Js::JavascriptPromiseCapability* capabilities, uint32 index, Js::JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* wrapper, Js::RecyclableObject* values, bool alreadyCalled);
+        Js::RecyclableObject* CreateJavascriptGenerator_TTD(Js::ScriptContext *ctx,
+                                                            Js::RecyclableObject *prototype, Js::Arguments &arguments,
+                                                            Js::JavascriptGenerator::GeneratorState generatorState);
 #endif
 
 #ifdef ENABLE_INTL_OBJECT
@@ -808,6 +815,8 @@ namespace Js
         DynamicType * GetWebAssemblyInstanceType()  const { return webAssemblyInstanceType; }
         DynamicType * GetWebAssemblyMemoryType() const { return webAssemblyMemoryType; }
         DynamicType * GetWebAssemblyTableType() const { return webAssemblyTableType; }
+        DynamicType * GetGeneratorConstructorPrototypeObjectType() const { return generatorConstructorPrototypeObjectType; }
+
 #ifdef ENABLE_WASM
         JavascriptFunction* GetWebAssemblyQueryResponseFunction() const { return webAssemblyQueryResponseFunction; }
         JavascriptFunction* GetWebAssemblyCompileFunction() const { return webAssemblyCompileFunction; }
@@ -1070,6 +1079,7 @@ namespace Js
 #endif
         ScriptFunctionWithInlineCache * CreateScriptFunctionWithInlineCache(FunctionProxy* proxy);
         GeneratorVirtualScriptFunction * CreateGeneratorVirtualScriptFunction(FunctionProxy* proxy);
+
         DynamicType * CreateGeneratorType(RecyclableObject* prototype);
 
 #if 0
@@ -1077,12 +1087,13 @@ namespace Js
 #endif
         JavascriptNumber* CreateNumber(double value, RecyclerJavascriptNumberAllocator * numberAllocator);
         JavascriptGeneratorFunction* CreateGeneratorFunction(JavascriptMethod entryPoint, GeneratorVirtualScriptFunction* scriptFunction);
+        JavascriptGeneratorFunction* CreateGeneratorFunction(JavascriptMethod entryPoint, bool isAnonymousFunction);
         JavascriptAsyncFunction* CreateAsyncFunction(JavascriptMethod entryPoint, GeneratorVirtualScriptFunction* scriptFunction);
+        JavascriptAsyncFunction* CreateAsyncFunction(JavascriptMethod entryPoint, bool isAnonymousFunction);
         JavascriptExternalFunction* CreateExternalFunction(ExternalMethod entryPointer, PropertyId nameId, Var signature, UINT64 flags, bool isLengthAvailable = false);
         JavascriptExternalFunction* CreateExternalFunction(ExternalMethod entryPointer, Var nameId, Var signature, UINT64 flags, bool isLengthAvailable = false);
-        JavascriptExternalFunction* CreateStdCallExternalFunction(StdCallJavascriptMethod entryPointer, PropertyId nameId, void *callbackState);
         JavascriptExternalFunction* CreateStdCallExternalFunction(StdCallJavascriptMethod entryPointer, Var name, void *callbackState);
-        JavascriptPromiseAsyncSpawnExecutorFunction* CreatePromiseAsyncSpawnExecutorFunction(JavascriptMethod entryPoint, JavascriptGenerator* generator, Var target);
+        JavascriptPromiseAsyncSpawnExecutorFunction* CreatePromiseAsyncSpawnExecutorFunction(JavascriptGenerator* generator, Var target);
         JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* CreatePromiseAsyncSpawnStepArgumentExecutorFunction(JavascriptMethod entryPoint, JavascriptGenerator* generator, Var argument, Var resolve = nullptr, Var reject = nullptr, bool isReject = false);
         JavascriptPromiseCapabilitiesExecutorFunction* CreatePromiseCapabilitiesExecutorFunction(JavascriptMethod entryPoint, JavascriptPromiseCapability* capability);
         JavascriptPromiseResolveOrRejectFunction* CreatePromiseResolveOrRejectFunction(JavascriptMethod entryPoint, JavascriptPromise* promise, bool isReject, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyResolvedRecord);
@@ -1144,6 +1155,7 @@ namespace Js
 
         JavascriptFunction* EnsurePromiseResolveFunction();
         JavascriptFunction* EnsurePromiseThenFunction();
+        JavascriptFunction* EnsureGeneratorReturnFunction();
         JavascriptFunction* EnsureGeneratorNextFunction();
         JavascriptFunction* EnsureGeneratorThrowFunction();
         JavascriptFunction* EnsureArrayPrototypeForEachFunction();
@@ -1220,7 +1232,11 @@ namespace Js
 #endif
 
         PropertyStringCacheMap* EnsurePropertyStringMap();
-        PropertyStringCacheMap* GetPropertyStringMap() { return this->propertyStringMap; }
+        SymbolCacheMap* EnsureSymbolMap();
+
+        template <typename TProperty> WeakPropertyIdMap<TProperty>* GetPropertyMap();
+        template <> PropertyStringCacheMap* GetPropertyMap<PropertyString>() { return this->propertyStringMap; }
+        template <> SymbolCacheMap* GetPropertyMap<JavascriptSymbol>() { return this->symbolMap; }
 
         void TypeAndPrototypesAreEnsuredToHaveOnlyWritableDataProperties(Type *const type);
         void NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();

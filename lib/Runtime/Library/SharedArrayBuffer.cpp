@@ -176,9 +176,7 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
         {
-            Var constructorVar = JavascriptOperators::SpeciesConstructor(currentBuffer, scriptContext->GetLibrary()->GetSharedArrayBufferConstructor(), scriptContext);
-
-            JavascriptFunction* constructor = JavascriptFunction::FromVar(constructorVar);
+            RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(currentBuffer, scriptContext->GetLibrary()->GetSharedArrayBufferConstructor(), scriptContext);
 
             Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(newbyteLength, scriptContext) };
             Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));

@@ -47,13 +47,13 @@ var tests = [
             handler['defineProperty'] = function () {
                 assert.fail("This function will not be called as 'getOwnPropertyDescriptor' will add accessor");
             };
-            
+
             handler['getOwnPropertyDescriptor'] = function (t, property) {
                 getOwnPropertyDescriptorCalled = true;
                 Object.defineProperty(t, 'abc', { set: function () { } });
                 return Reflect.getOwnPropertyDescriptor(t, property);
             };
-            
+
             var proxy = new Proxy(target, handler);
             proxy.abc = undefined;
             assert.isTrue(getOwnPropertyDescriptorCalled);
@@ -68,13 +68,13 @@ var tests = [
             handler['defineProperty'] = function () {
                 assert.fail("This function will not be called as 'getOwnPropertyDescriptor' will add property with writable false");
             };
-            
+
             handler['getOwnPropertyDescriptor'] = function (t, property) {
                 getOwnPropertyDescriptorCalled = true;
                 Object.defineProperty(t, 'abc', { value : 1, writable : false });
                 return Reflect.getOwnPropertyDescriptor(t, property);
             };
-            
+
             var proxy = new Proxy(target, handler);
             proxy.abc = undefined;
             assert.isTrue(getOwnPropertyDescriptorCalled);
@@ -90,12 +90,12 @@ var tests = [
             handler['defineProperty'] = function () {
                 definePropertyCalled = true;
             };
-            
+
             handler['getOwnPropertyDescriptor'] = function (t, property) {
                 getOwnPropertyDescriptorCalled = true;
                 return Reflect.getOwnPropertyDescriptor(t, property);
             };
-            
+
             var proxy = new Proxy(target, handler);
             proxy.abc = undefined;
             assert.isTrue(definePropertyCalled);
@@ -108,7 +108,7 @@ var tests = [
             var targetCalled = false;
             var func4 = function () { targetCalled = true; };
             var v0 = new Proxy(func4, {});
-            
+
             var anotherScript = `function foo() {
                     var a = undefined;
                     v0(a) > 1;
@@ -140,7 +140,7 @@ var tests = [
                 }
             };
             var v0 = new Proxy(func4, handler);
-            
+
             var anotherScript = `function foo() {
                     var a = undefined;
                     v0(a) > 1;
@@ -162,7 +162,7 @@ var tests = [
                     return {};
                 }
             };
-            
+
             var obj = Proxy.revocable({}, handler);
             Object.getPrototypeOf(obj.proxy);
             assert.isTrue(trapCalled);
@@ -179,7 +179,7 @@ var tests = [
                     return true;
                 }
             };
-            
+
             var obj = Proxy.revocable({}, handler);
             var ret = Object.setPrototypeOf(obj.proxy, {});
             assert.isTrue(trapCalled);
@@ -196,7 +196,7 @@ var tests = [
                     return true;
                 }
             };
-            
+
             var obj = Proxy.revocable({}, handler);
             var ret = Object.isExtensible(obj.proxy);
             assert.isTrue(trapCalled);
@@ -212,7 +212,7 @@ var tests = [
                     obj.revoke();
                }
             };
-            
+
             var obj = Proxy.revocable({}, handler);
             Object.preventExtensions(obj.proxy);
             assert.isTrue(trapCalled);
@@ -228,7 +228,7 @@ var tests = [
                     obj.revoke();
                 }
             };
-            
+
             var obj = Proxy.revocable({}, handler);
             assert.throws( () => { Object.getOwnPropertyDescriptor(obj.proxy, 'a'); }, TypeError);
             assert.isTrue(trapCalled);
@@ -245,7 +245,7 @@ var tests = [
                         obj.revoke();
                 }
             };
-            
+
             var obj = Proxy.revocable({a:0}, new Proxy({}, handler));
             Object.getOwnPropertyDescriptor(obj.proxy, 'a');
             assert.isTrue(trapCalled);
@@ -262,7 +262,7 @@ var tests = [
                     return false;
                 }
             };
-            
+
             var obj = Proxy.revocable({}, handler);
             'a' in obj.proxy;
             assert.isTrue(trapCalled);
@@ -279,7 +279,7 @@ var tests = [
                     return {};
                 }
             };
-            
+
             var obj = Proxy.revocable({}, handler);
             var ret = obj.proxy.a;
             assert.isTrue(trapCalled);
@@ -296,7 +296,7 @@ var tests = [
                     return {};
                 }
             };
-            
+
             var obj = Proxy.revocable({}, handler);
             obj.proxy.a = 10;
             assert.isTrue(trapCalled);
@@ -313,7 +313,7 @@ var tests = [
                     return {};
                 }
             };
-            
+
             var obj = Proxy.revocable({}, handler);
             delete obj.proxy.a;
             assert.isTrue(trapCalled);
@@ -330,10 +330,24 @@ var tests = [
                     return {};
                 }
             };
-            
+
             var obj = Proxy.revocable({}, handler);
             Object.keys(obj.proxy);
             assert.isTrue(trapCalled);
+        }
+    },
+    {
+        name: "Missing item from ownKeys trap should throw error",
+        body() {
+            var keys = ['a'];
+            keys[100] = 'b';
+            var proxy = new Proxy({ a: 1, b: 2 }, {
+                ownKeys: function () { return keys; }
+            });
+
+            assert.throws(
+                () => Object.keys(proxy),
+                TypeError);
         }
     },
     {
@@ -346,7 +360,7 @@ var tests = [
                     obj.revoke();
                 }
             };
-            
+
             var obj = Proxy.revocable(() => {}, handler);
             obj.proxy();
             assert.isTrue(trapCalled);
@@ -363,7 +377,7 @@ var tests = [
                     return () => { return {}; };
                 }
             };
-            
+
             var obj = Proxy.revocable(() => {}, handler);
             new obj.proxy();
             assert.isTrue(trapCalled);

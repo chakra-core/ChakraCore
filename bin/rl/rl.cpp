@@ -274,8 +274,10 @@ const char * const TestInfoKindName[] =
    "command",
    "timeout",
    "sourcepath",
+   "eol-normalization",
    NULL
 };
+static_assert((sizeof(TestInfoKindName) / sizeof(TestInfoKindName[0])) - 1 == TestInfoKind::_TIK_COUNT, "Fix the buffer size");
 
 const char * const DirectiveNames[] =
 {
@@ -379,6 +381,7 @@ static const char *ProgramName;
 static const char *LogName;
 static const char *FullLogName;
 static const char *ResultsLogName;
+static const char *TestTimeout; // Stores timeout in seconds for all tests
 
 // NOTE: this might be unused now
 static char TempPath[MAX_PATH] = ""; // Path for temporary files
@@ -874,6 +877,55 @@ HANDLE OpenFileToCompare(char *file)
     return h;
 }
 
+struct MyFileWithoutCarriageReturn
+{
+    CHandle* handle;
+    char* buf = nullptr;
+    size_t i = 0;
+    DWORD count = 0;
+    MyFileWithoutCarriageReturn(CHandle* handle, char* buf) : handle(handle), buf(buf) { Read(); }
+    bool readingError;
+    void Read()
+    {
+        i = 0;
+        readingError = !ReadFile(*handle, buf, CMPBUF_SIZE, &count, NULL);
+    }
+    bool HasNextChar()
+    {
+        if (count == 0)
+        {
+            return false;
+        }
+        if (i == count)
+        {
+            Read();
+            if (readingError)
+            {
+                return false;
+            }
+            return HasNextChar();
+        }
+        while (buf[i] == '\r')
+        {
+            ++i;
+            if (i == count)
+            {
+                Read();
+                if (readingError)
+                {
+                    return false;
+                }
+                return HasNextChar();
+            }
+        }
+        return true;
+    }
+    char GetNextChar()
+    {
+        return buf[i++];
+    }
+};
+
 // Do a quick file equality comparison using pure Win32 functions. (Avoid
 // using CRT functions; the MT CRT seems to have locking/flushing problems on
 // MP boxes.)
@@ -881,7 +933,8 @@ HANDLE OpenFileToCompare(char *file)
 int
 DoCompare(
    char *file1,
-   char *file2
+   char *file2,
+   BOOL normalizeLineEndings
 )
 {
    CHandle h1, h2;     // automatically closes open handles
@@ -908,7 +961,42 @@ DoCompare(
       return -1;
    }
 
-   // Short circuit by first checking for different file lengths.
+   if (normalizeLineEndings)
+   {
+       MyFileWithoutCarriageReturn f1(&h1, cmpbuf1);
+       MyFileWithoutCarriageReturn f2(&h2, cmpbuf2);
+       if (f1.readingError || f2.readingError)
+       {
+           LogError("ReadFile failed doing compare of %s and %s", file1, file2);
+           return -1;
+       }
+       while (f1.HasNextChar() && f2.HasNextChar())
+       {
+           if (f1.readingError || f2.readingError)
+           {
+               LogError("ReadFile failed doing compare of %s and %s", file1, file2);
+               return -1;
+           }
+
+           if (f1.GetNextChar() != f2.GetNextChar())
+           {
+#ifndef NODEBUG
+               if (FDebug)
+                   printf("DoCompare shows %s and %s are NOT equal (contents differ)\n", file1, file2);
+#endif
+               return 1;
+           }
+       }
+       if (f1.HasNextChar() != f2.HasNextChar())
+       {
+#ifndef NODEBUG
+           if (FDebug)
+               printf("DoCompare shows %s and %s are NOT equal (contents differ)\n", file1, file2);
+#endif
+           return 1;
+       }
+       return 0;
+   }
 
    size1 = GetFileSize(h1, NULL);  // assume < 4GB files
    if (size1 == 0xFFFFFFFF) {
@@ -2380,6 +2468,7 @@ WriteEnvLst
              NULL,
              NULL,
              NULL,
+             NULL,
              NULL
          };
 
@@ -2888,6 +2977,11 @@ ParseArg(
          if (!_stricmp(&arg[1], "onlyassertoutput")) {
             FOnlyAssertOutput = TRUE;
             break;
+         }
+
+         if (!_stricmp(&arg[1], "timeout")) {
+             TestTimeout = ComplainIfNoArg(arg, s);
+             break;
          }
 
 #ifndef NODEBUG
@@ -3492,10 +3586,14 @@ GetTestInfoFromNode
                   childNode->Dump();
                   return FALSE;
                }
-            }
 
-            
+            }
          }
+      }
+      if (i == TIK_TIMEOUT && TestTimeout != NULL)
+      {
+          // Overriding the timeout value with the command line value
+          testInfo->data[i] = TestTimeout;
       }
    }
 
@@ -4972,7 +5070,11 @@ main(int argc, char *argv[])
       sprintf_s(fullCfg, "%s\\%s", pDir->fullPath, CFGfile);
       status = ProcessConfig(&TestList, fullCfg, Mode);
 
-      if (status != PCS_ERROR)
+      if (status == PCS_ERROR)
+      {
+          exit(1);
+      } 
+      else
       {
 
 #ifndef NODEBUG

@@ -7,7 +7,7 @@
 </dir>
 <dir>
   <default>
-    <files>$262</files>
+    <files>262</files>
   </default>
 </dir>
 <dir>
@@ -69,6 +69,7 @@
 <dir>
   <default>
     <files>Intl</files>
+    <tags>exclude_sanitize_address</tags>
   </default>
 </dir>
 <dir>
@@ -247,6 +248,11 @@
 </dir>
 <dir>
   <default>
+    <files>es6module</files>
+  </default>
+</dir>
+<dir>
+  <default>
     <files>es7</files>
   </default>
 </dir>
@@ -288,7 +294,7 @@
 <dir>
   <default>
     <files>WasmSpec</files>
-    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend,exclude_jshost,exclude_win7,require_wasm,exclude_xplat</tags>
+    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend,exclude_jshost,exclude_win7,require_wasm</tags>
   </default>
 </dir>
 <dir>
@@ -312,18 +318,24 @@
 <dir>
   <default>
     <files>TTExecuteBasic</files>
-    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized,require_debugger</tags>
+    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized,require_debugger,exclude_sanitize_address</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>TTBasic</files>
-    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized,require_debugger</tags>
+    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized,require_debugger,exclude_sanitize_address</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>Scanner</files>
+  </default>
+</dir>
+<dir>
+  <default>
+    <files>wasm.simd</files>
+    <tags>require_wasm,exclude_serialized,exclude_arm,exclude_arm64,require_backend,exclude_xplat</tags>
   </default>
 </dir>
 </regress-exe>

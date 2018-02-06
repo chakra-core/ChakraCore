@@ -180,7 +180,7 @@ namespace Js
         {
             PropertyString * propertyString = cachedData->strings[enumeratedCount];
             propertyStringName = propertyString;
-            propertyId = propertyString->GetPropertyRecord()->GetPropertyId();
+            propertyId = propertyString->GetPropertyId();
 
 #if DBG
             PropertyId tempPropertyId;
@@ -255,12 +255,12 @@ namespace Js
             }
         } while (Js::IsInternalPropertyId(propertyId));
 
-        if (info.GetPropertyString() != nullptr && info.GetPropertyString()->ShouldUseCache() && propertyString == info.GetPropertyString())
+        if (info.GetPropertyRecordUsageCache() != nullptr && info.GetPropertyRecordUsageCache()->ShouldUseCache() && propertyString == info.GetProperty())
         {
             CacheOperators::CachePropertyRead(startingObject, this->object, false, propertyId, false, &info, scriptContext);
             if ((!(this->flags & EnumeratorFlags::EphemeralReference)) && info.IsStoreFieldCacheEnabled() && info.IsWritable() && ((info.GetFlags() & (InlineCacheGetterFlag | InlineCacheSetterFlag)) == 0))
             {
-                PropertyValueInfo::SetCacheInfo(&info, info.GetPropertyString(), info.GetPropertyString()->GetStElemInlineCache(), info.AllowResizingPolymorphicInlineCache());
+                PropertyValueInfo::SetCacheInfo(&info, info.GetPropertyRecordUsageCache()->GetStElemInlineCache(), info.AllowResizingPolymorphicInlineCache());
                 CacheOperators::CachePropertyWrite(this->object, false, this->object->GetType(), propertyId, &info, scriptContext);
             }
         }
@@ -270,6 +270,7 @@ namespace Js
 
     JavascriptString * DynamicObjectPropertyEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes * attributes)
     {
+        propertyId = Js::Constants::NoProperty;
         if (this->cachedData && this->initialType == this->object->GetDynamicType())
         {
             return MoveAndGetNextWithCache(propertyId, attributes);

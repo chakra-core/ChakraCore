@@ -113,6 +113,12 @@ ServerScriptContext::GetStringTypeStaticAddr() const
 }
 
 intptr_t
+ServerScriptContext::GetSymbolTypeStaticAddr() const
+{
+    return m_contextData.symbolTypeStaticAddr;
+}
+
+intptr_t
 ServerScriptContext::GetObjectTypeAddr() const
 {
     return m_contextData.objectTypeAddr;

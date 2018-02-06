@@ -790,12 +790,23 @@ namespace TTD
             this->EnqueueRootPathObject(_u("_identityFunction"), ctx->GetLibrary()->GetIdentityFunction());
             this->EnqueueRootPathObject(_u("_throwerFunction"), ctx->GetLibrary()->GetThrowerFunction());
         }
-    // ArrayIteratorPrototype is not created when we have JsBuiltins, it it created on-demand only
-    // TODO (megupta) : Enable code below for on-demand loading as well
-    //  this->EnqueueRootPathObject(_u("_arrayIteratorPrototype"), ctx->GetLibrary()->GetArrayIteratorPrototype());
+       // ArrayIteratorPrototype is not created when we have JsBuiltins, it it created on-demand only
+#ifdef ENABLE_JS_BUILTINS
+        if (ctx->IsJsBuiltInEnabled())
+        {
+            ctx->GetLibrary()->EnsureBuiltInEngineIsReady();
+        }
+#endif
+        this->EnqueueRootPathObject(_u("_arrayIteratorPrototype"), ctx->GetLibrary()->GetArrayIteratorPrototype());
         this->EnqueueRootPathObject(_u("_mapIteratorPrototype"), ctx->GetLibrary()->GetMapIteratorPrototype());
         this->EnqueueRootPathObject(_u("_setIteratorPrototype"), ctx->GetLibrary()->GetSetIteratorPrototype());
         this->EnqueueRootPathObject(_u("_stringIteratorPrototype"), ctx->GetLibrary()->GetStringIteratorPrototype());
+
+        this->EnqueueRootPathObject(_u("_generatorNextFunction"), ctx->GetLibrary()->EnsureGeneratorNextFunction());
+        this->EnqueueRootPathObject(_u("_generatorReturnFunction"), ctx->GetLibrary()->EnsureGeneratorReturnFunction());
+        this->EnqueueRootPathObject(_u("_generatorThrowFunction"), ctx->GetLibrary()->EnsureGeneratorThrowFunction());
+        this->EnqueueRootPathObject(_u("_generatorFunctionConstructor"), ctx->GetLibrary()->GetGeneratorFunctionConstructor());
+        this->EnqueueRootPathObject(_u("_asyncFunctionConstructor"), ctx->GetLibrary()->GetAsyncFunctionConstructor());
 
         uint32 counter = 0;
         while(!this->m_worklist.Empty())

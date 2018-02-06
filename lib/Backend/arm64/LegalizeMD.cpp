@@ -24,8 +24,8 @@ public:
     }
 
     Js::OpCode m_opcode;
-    IntConstType m_immed;
     int m_shift;
+    IntConstType m_immed;
 };
 
 
@@ -669,11 +669,12 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
         // This is done by having the load be from a label operand, which is later
         // changed such that its offset is the correct value to ldimm
 
+        // InlineeCallInfo is encoded as ((offset into function) << 4) | (argCount & 0xF).
+        // This will fit into 32 bits as long as the function has less than 2^26 instructions, which should be always.
+
         // The assembly generated becomes something like
         // Label (offset:fake)
         // MOVZ DST, Label
-        // MOVK DST, Label
-        // MOVK DST, Label
         // MOVK DST, Label <- was the LDIMM
 
         Assert(Security::DontEncode(instr->GetSrc1()));
@@ -689,15 +690,11 @@ void LegalizeMD::LegalizeLDIMM(IR::Instr * instr, IntConstType immed)
 
         // We'll handle splitting this up to properly load the immediates now
         // Typically (and worst case) we'll need to load 64 bits.
-        IR::Instr* bits48_63 = IR::Instr::New(Js::OpCode::MOVZ, instr->GetDst(), target, IR::IntConstOpnd::New(48, IRType::TyUint8, instr->m_func, true), instr->m_func);
-        instr->InsertBefore(bits48_63);
-        IR::Instr* bits32_47 = IR::Instr::New(Js::OpCode::MOVK, instr->GetDst(), target, IR::IntConstOpnd::New(32, IRType::TyUint8, instr->m_func, true), instr->m_func);
-        instr->InsertBefore(bits32_47);
-        IR::Instr* bits16_31 = IR::Instr::New(Js::OpCode::MOVK, instr->GetDst(), target, IR::IntConstOpnd::New(16, IRType::TyUint8, instr->m_func, true), instr->m_func);
-        instr->InsertBefore(bits16_31);
+        IR::Instr* bits0_15 = IR::Instr::New(Js::OpCode::MOVZ, instr->GetDst(), target, IR::IntConstOpnd::New(0, IRType::TyUint8, instr->m_func, true), instr->m_func);
+        instr->InsertBefore(bits0_15);
 
         instr->ReplaceSrc1(target);
-        instr->SetSrc2(IR::IntConstOpnd::New(0, IRType::TyUint8, instr->m_func, true));
+        instr->SetSrc2(IR::IntConstOpnd::New(16, IRType::TyUint8, instr->m_func, true));
         instr->m_opcode = Js::OpCode::MOVK;
 
         instr->isInlineeEntryInstr = false;
@@ -982,6 +979,36 @@ bool LegalizeMD::LegalizeAdrOffset(IR::Instr *instr, uintptr_t instrOffset)
     continueLabel->InsertBefore(labelBranch);
 
     labelOpnd->SetLabel(adrLabel);
+    return true;
+}
+
+bool LegalizeMD::LegalizeDataAdr(IR::Instr *instr, uintptr_t dataOffset)
+{
+    Assert(instr->m_opcode == Js::OpCode::ADR);
+
+    IR::LabelOpnd* labelOpnd = instr->GetSrc1()->AsLabelOpnd();
+
+    Assert(labelOpnd->GetLabel()->m_isDataLabel);
+
+
+    // dataOffset provides an upper bound on the distance between instr and the label.
+    if (IS_CONST_INT19(dataOffset >> 2))
+    {
+        return false;
+    }
+
+    // The distance is too large to encode as an ADR isntruction so it must be handled as a 3 instruction load immediate. 
+    // The label address won't be known until after encoding. Assign the label opnd as src1 to let the encoder know to handle them as relocs.
+
+    IR::Instr* bits0_15 = IR::Instr::New(Js::OpCode::MOVZ, instr->GetDst(), labelOpnd, IR::IntConstOpnd::New(0, IRType::TyUint8, instr->m_func, true), instr->m_func);
+    instr->InsertBefore(bits0_15);
+
+    IR::Instr* bits16_31 = IR::Instr::New(Js::OpCode::MOVK, instr->GetDst(), labelOpnd, IR::IntConstOpnd::New(16, IRType::TyUint8, instr->m_func, true), instr->m_func);
+    instr->InsertBefore(bits16_31);
+
+    instr->SetSrc2(IR::IntConstOpnd::New(32, IRType::TyUint8, instr->m_func, true));
+    instr->m_opcode = Js::OpCode::MOVK;
+
     return true;
 }
 

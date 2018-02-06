@@ -46,15 +46,6 @@
   </test>
   <test>
     <default>
-      <files>parseISO.js</files>
-      <baseline>parseISO.baseline</baseline>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <!-- OSX doesn't provide expected DST for minus years -->
-      <tags>exclude_jenkins,exclude_xplat,Slow</tags>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>dateutc.js</files>
       <baseline>dateutc.baseline</baseline>
     </default>
@@ -152,6 +143,39 @@
       <!-- xplat tz info for BC != Windows tz info for BC -->
       <tags>exclude_jenkins,exclude_xplat</tags>
       <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>parseToStringResults.js</files>
+      <!-- xplat tz info for BC != Windows tz info for BC -->
+      <tags>exclude_xplat</tags>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>parseToUTCStringAndToISOStringResults.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>parseValidISO.js</files>
+      <baseline>parseValidISO.baseline</baseline>
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
+      <!-- xplat tz info for BC != Windows tz info for BC -->
+      <tags>exclude_jenkins,exclude_xplat</tags>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>parseInvalidISO.js</files>
+      <baseline>parseInvalidISO.baseline</baseline>
+      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
+      <!-- OSX doesn't provide expected DST for minus years -->
+      <tags>exclude_jenkins,exclude_xplat</tags>
     </default>
   </test>
 </regress-exe>

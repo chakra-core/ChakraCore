@@ -45,6 +45,9 @@ public:
 #ifdef IR_VIEWER
     Js::Var RejitIRViewerFunction(Js::FunctionBody *fn, Js::ScriptContext *scriptContext);
 #endif
+#ifdef ALLOW_JIT_REPRO
+    HRESULT JitFromEncodedWorkItem(_In_reads_(bufSize) const byte* buf, _In_ uint bufSize);
+#endif
 void SetProfileMode(BOOL fSet);
 public:
     static Js::Var CheckCodeGenThunk(Js::RecyclableObject* function, Js::CallInfo callInfo, ...);
@@ -126,6 +129,7 @@ public:
 private:
 
     void CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* workItem, const bool foreground);
+    void CodeGen(PageAllocator* pageAllocator, CodeGenWorkItemIDL* workItemData, _Out_ JITOutputIDL& jitWriteData, const bool foreground, Js::EntryPointInfo* epInfo = nullptr);
 
     InProcCodeGenAllocators *CreateAllocators(PageAllocator *const pageAllocator)
     {
@@ -138,7 +142,7 @@ private:
         {
             this->foregroundAllocators = CreateAllocators(pageAllocator);
 
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
+#if !TARGET_64 && _CONTROL_FLOW_GUARD
             if (this->scriptContext->webWorkerId != Js::Constants::NonWebWorkerContextId)
             {
                 this->foregroundAllocators->canCreatePreReservedSegment = true;
@@ -164,7 +168,7 @@ private:
         if (!this->backgroundAllocators)
         {
             this->backgroundAllocators = CreateAllocators(pageAllocator);
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
+#if !TARGET_64 && _CONTROL_FLOW_GUARD
             this->backgroundAllocators->canCreatePreReservedSegment = true;
 #endif
         }

@@ -93,6 +93,59 @@ struct HeapAllocatorData
 
 struct HeapAllocator
 {
+    template<typename T>
+    struct AutoFree
+    {
+    private:
+        T * obj = nullptr;
+    public:
+        ~AutoFree()
+        {
+            HeapDelete(obj);
+        }
+        void Set(T* obj)
+        {
+            Assert(this->obj == nullptr);
+            this->obj = obj;
+        }
+        void Release()
+        {
+            this->obj = nullptr;
+        }
+        T* Get() const
+        {
+            return this->obj;
+        }
+    };
+
+    template<typename T>
+    struct AutoFreeArray
+    {
+    private:
+        T* obj = nullptr;
+        size_t count = 0;
+    public:
+        ~AutoFreeArray()
+        {
+            HeapDeleteArray(count, obj);
+        }
+        void Set(__ecount(count) T* obj, size_t count)
+        {
+            Assert(this->obj == nullptr);
+            this->obj = obj;
+            this->count = count;
+        }
+        void Release()
+        {
+            this->obj = nullptr;
+            this->count = 0;
+        }
+        T* Get() const
+        {
+            return this->obj;
+        }
+    };
+
     static const bool FakeZeroLengthArray = false;
 
     char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t byteSize)

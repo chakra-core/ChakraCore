@@ -224,17 +224,15 @@ namespace Js
         return JavascriptOperators::GetTypeId(aValue) == TypeIds_String;
     }
 
-    Js::PropertyRecord const * JavascriptString::GetPropertyRecord(bool dontLookupFromDictionary)
+    void JavascriptString::GetPropertyRecord(_Out_ Js::PropertyRecord const ** propertyRecord, bool dontLookupFromDictionary)
     {
+        *propertyRecord = nullptr;
         if (dontLookupFromDictionary)
         {
-            return nullptr;
+            return;
         }
 
-        Js::PropertyRecord const * propertyRecord;
-        GetScriptContext()->GetOrAddPropertyRecord(GetString(), GetLength(), &propertyRecord);
-
-        return propertyRecord;
+        GetScriptContext()->GetOrAddPropertyRecord(GetString(), GetLength(), propertyRecord);
     }
 
     JavascriptString* JavascriptString::FromVar(Var aValue)
@@ -256,7 +254,7 @@ namespace Js
     {
         size_t cchActual = wcslen(content);
 
-#if defined(_M_X64_OR_ARM64)
+#if defined(TARGET_64)
         if (!IsValidCharCount(cchActual))
         {
             // Limit javascript string to 31-bit length
@@ -1768,7 +1766,11 @@ case_2:
     Var JavascriptString::CallRegExFunction<1>(RecyclableObject* fnObj, Var regExp, Arguments& args, ScriptContext *scriptContext)
     {
         // args[0]: String
-        return CALL_FUNCTION(scriptContext->GetThreadContext(), fnObj, CallInfo(CallFlags_Value, 2), regExp, args[0]);
+        ThreadContext * threadContext = scriptContext->GetThreadContext();
+        return threadContext->ExecuteImplicitCall(fnObj, ImplicitCall_Accessor, [=]()->Js::Var
+        {
+            return CALL_FUNCTION(threadContext, fnObj, CallInfo(CallFlags_Value, 2), regExp, args[0]);
+        });
     }
 
     template<>
@@ -1783,7 +1785,11 @@ case_2:
             return CallRegExFunction<1>(fnObj, regExp, args, scriptContext);
         }
 
-        return CALL_FUNCTION(scriptContext->GetThreadContext(), fnObj, CallInfo(CallFlags_Value, 3), regExp, args[0], args[2]);
+        ThreadContext * threadContext = scriptContext->GetThreadContext();
+        return threadContext->ExecuteImplicitCall(fnObj, ImplicitCall_Accessor, [=]()->Js::Var
+        {
+            return CALL_FUNCTION(threadContext, fnObj, CallInfo(CallFlags_Value, 3), regExp, args[0], args[2]);
+        });
     }
 
     Var JavascriptString::EntrySlice(RecyclableObject* function, CallInfo callInfo, ...)

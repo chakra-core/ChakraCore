@@ -5,21 +5,6 @@
 
 #pragma once
 
-//
-// Machine dependent constants.
-//
-
-const int MachInt = 4;
-const int MachRegInt = 4;
-__declspec(selectany) const int MachPtr = 4;
-const int MachDouble = 8;
-const int MachRegDouble = 8;
-const int MachMaxInstrSize = 11;
-const int MachArgsSlotOffset = MachPtr;
-const int MachStackAlignment = MachDouble;
-const unsigned int MachSignBit = 0x80000000;
-const int MachSimd128 = 16;
-
 const int PAGESIZE = 0x1000;
 
 const IRType TyMachReg = TyInt32;
@@ -36,6 +21,7 @@ const IRType TyMachSimd128B4 = TySimd128B4;
 const IRType TyMachSimd128B8 = TySimd128B8;
 const IRType TyMachSimd128B16 = TySimd128B16;
 const IRType TyMachSimd128D2  = TySimd128D2;
+const IRType TyMachSimd128I2 = TySimd128I2;
 
 const DWORD EMIT_BUFFER_ALIGNMENT = 16;
 const DWORD INSTR_ALIGNMENT = 1;

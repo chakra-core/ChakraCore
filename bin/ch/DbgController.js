@@ -103,6 +103,7 @@ var controllerObj = (function () {
             "RangeError",
             "read",
             "readbuffer",
+            "readline",
             "ReferenceError",
             "Reflect",
             "RegExp",

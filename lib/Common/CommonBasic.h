@@ -47,6 +47,8 @@ using std::type_info;
 
 #include "CommonPal.h"
 
+#include "Core/CommonMinMax.h"
+
 // === Core Header Files ===
 #include "Core/CommonTypedefs.h"
 #include "Core/Api.h"

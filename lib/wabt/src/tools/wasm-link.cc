@@ -183,8 +183,9 @@ static void ApplyRelocation(const Section* section, const Reloc* r) {
 }
 
 static void ApplyRelocations(const Section* section) {
-  if (!section->relocations.size())
+  if (!section->relocations.size()) {
     return;
+  }
 
   LOG_DEBUG("ApplyRelocations: %s\n", GetSectionName(section->section_code));
 
@@ -367,8 +368,9 @@ void Linker::WriteImportSection() {
   Index num_imports = 0;
   for (const std::unique_ptr<LinkerInputBinary>& binary: inputs_) {
     for (const FunctionImport& import : binary->function_imports) {
-      if (import.active)
+      if (import.active) {
         num_imports++;
+      }
     }
     num_imports += binary->global_imports.size();
   }
@@ -378,8 +380,9 @@ void Linker::WriteImportSection() {
 
   for (const std::unique_ptr<LinkerInputBinary>& binary: inputs_) {
     for (const FunctionImport& function_import : binary->function_imports) {
-      if (function_import.active)
+      if (function_import.active) {
         WriteFunctionImport(function_import, binary->type_index_offset);
+      }
     }
 
     for (const GlobalImport& global_import : binary->global_imports) {
@@ -442,16 +445,19 @@ void Linker::WriteNamesSection() {
   Index total_count = 0;
   for (const std::unique_ptr<LinkerInputBinary>& binary : inputs_) {
     for (size_t i = 0; i < binary->debug_names.size(); i++) {
-      if (binary->debug_names[i].empty())
+      if (binary->debug_names[i].empty()) {
         continue;
-      if (binary->IsInactiveFunctionImport(i))
+      }
+      if (binary->IsInactiveFunctionImport(i)) {
         continue;
+      }
       total_count++;
     }
   }
 
-  if (!total_count)
+  if (!total_count) {
     return;
+  }
 
   stream_.WriteU8Enum(BinarySection::Custom, "section code");
   Fixup fixup_section = WriteUnknownSize();
@@ -464,10 +470,12 @@ void Linker::WriteNamesSection() {
   // Write import names.
   for (const std::unique_ptr<LinkerInputBinary>& binary : inputs_) {
     for (size_t i = 0; i < binary->debug_names.size(); i++) {
-      if (binary->debug_names[i].empty() || !binary->IsFunctionImport(i))
+      if (binary->debug_names[i].empty() || !binary->IsFunctionImport(i)) {
         continue;
-      if (binary->IsInactiveFunctionImport(i))
+      }
+      if (binary->IsInactiveFunctionImport(i)) {
         continue;
+      }
       WriteU32Leb128(&stream_, binary->RelocateFuncIndex(i), "function index");
       WriteStr(&stream_, binary->debug_names[i], "function name");
     }
@@ -476,8 +484,9 @@ void Linker::WriteNamesSection() {
   // Write non-import names.
   for (const std::unique_ptr<LinkerInputBinary>& binary : inputs_) {
     for (size_t i = 0; i < binary->debug_names.size(); i++) {
-      if (binary->debug_names[i].empty() || binary->IsFunctionImport(i))
+      if (binary->debug_names[i].empty() || binary->IsFunctionImport(i)) {
         continue;
+      }
       WriteU32Leb128(&stream_, binary->RelocateFuncIndex(i), "function index");
       WriteStr(&stream_, binary->debug_names[i], "function name");
     }
@@ -518,8 +527,9 @@ void Linker::WriteRelocSection(BinarySection section_code,
   for (Section* sec: sections)
     total_relocs += sec->relocations.size();
 
-  if (!total_relocs)
+  if (!total_relocs) {
     return;
+  }
 
   std::string section_name = StringPrintf("%s.%s", WABT_BINARY_SECTION_RELOC,
                                           GetSectionName(section_code));
@@ -563,8 +573,9 @@ void Linker::WriteRelocSection(BinarySection section_code,
 
 bool Linker::WriteCombinedSection(BinarySection section_code,
                                   const SectionPtrVector& sections) {
-  if (!sections.size())
+  if (!sections.size()) {
     return false;
+  }
 
   if (section_code == BinarySection::Start && sections.size() > 1) {
     WABT_FATAL("Don't know how to combine sections of type: %s\n",
@@ -651,8 +662,9 @@ void Linker::ResolveSymbols() {
     for (FunctionImport& import: binary->function_imports) {
       Index export_index = export_map.FindIndex(import.name);
       if (export_index == kInvalidIndex) {
-        if (!s_relocatable)
+        if (!s_relocatable) {
           WABT_FATAL("undefined symbol: %s\n", import.name.c_str());
+        }
         continue;
       }
 
@@ -780,8 +792,9 @@ void Linker::DumpRelocOffsets() {
 }
 
 Result Linker::PerformLink() {
-  if (s_debug)
+  if (s_debug) {
     stream_.set_log_stream(s_log_stream.get());
+  }
 
   LOG_DEBUG("writing file: %s\n", s_outfile);
   CalculateRelocOffsets();
@@ -802,6 +815,12 @@ int ProgramMain(int argc, char** argv) {
 
   Linker linker;
 
+  printf(R"(
+******************************************************************
+WARNING: wasm-link is deprecated. Where possible, use lld instead.
+******************************************************************
+)");
+
   ParseOptions(argc, argv);
 
   Result result = Result::Ok;
@@ -809,18 +828,21 @@ int ProgramMain(int argc, char** argv) {
     LOG_DEBUG("reading file: %s\n", input_filename.c_str());
     std::vector<uint8_t> file_data;
     result = ReadFile(input_filename.c_str(), &file_data);
-    if (Failed(result))
+    if (Failed(result)) {
       return result != Result::Ok;
+    }
 
     auto binary = new LinkerInputBinary(input_filename.c_str(), file_data);
     linker.AppendBinary(binary);
 
     LinkOptions options = { NULL };
-    if (s_debug)
+    if (s_debug) {
       options.log_stream = s_log_stream.get();
+    }
     result = ReadBinaryLinker(binary, &options);
-    if (Failed(result))
+    if (Failed(result)) {
       WABT_FATAL("error parsing file: %s\n", input_filename.c_str());
+    }
   }
 
   result = linker.PerformLink();

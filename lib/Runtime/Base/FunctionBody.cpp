@@ -76,8 +76,12 @@ namespace Js
         m_functionNumber(functionNumber),
         m_defaultEntryPointInfo(nullptr),
         m_displayNameIsRecyclerAllocated(false),
-        m_tag11(true)
+        m_tag11(true),
+        m_isJsBuiltInCode(false)
     {
+#if DBG
+        m_isJsBuiltInInitCode = false;
+#endif
         PERF_COUNTER_INC(Code, TotalFunction);
     }
 
@@ -2131,7 +2135,7 @@ namespace Js
     //      E_OUTOFMEMORY
     //      E_UNEXPECTED
     //      SCRIPT_E_RECORDED,
-    //          with ei.scode: ERRnoMemory, VBSERR_OutOfStack, E_OUTOFMEMORY, E_FAIL
+    //          with ei.scode: ERRnoMemory, VBSERR_OutOfStack, E_OUTOFMEMORY, E_FAIL, E_ABORT
     //          Any other ei.scode shouldn't appear in deferred re-parse.
     //
     // Map errors like OOM/SOE, return it and clean hrParse. Any other error remaining in hrParse is an internal error.
@@ -2162,8 +2166,11 @@ namespace Js
             case JSERR_AsmJsCompileError:
                 hrMapped = JSERR_AsmJsCompileError;
                 break;
-            }
 
+            case E_ABORT:
+                hrMapped = E_ABORT;
+                break;
+            }
         }
 
         if (FAILED(hrMapped))
@@ -3435,7 +3442,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         JavascriptMethod originalEntryPoint = this->GetOriginalEntryPoint_Unchecked();
         return
-#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64_OR_ARM64)
+#if defined(_CONTROL_FLOW_GUARD) && !defined(_M_ARM)
             (
 #if ENABLE_OOP_NATIVE_CODEGEN
             JITManager::GetJITManager()->IsOOPJITEnabled()
@@ -4913,6 +4920,7 @@ namespace Js
 
         this->SetAuxiliaryData(nullptr);
         this->SetAuxiliaryContextData(nullptr);
+        AssertMsg(!this->byteCodeBlock || !this->IsWasmFunction(), "We should never reset the bytecode block for Wasm");
         this->byteCodeBlock = nullptr;
         this->SetLoopHeaderArray(nullptr);
         this->SetConstTable(nullptr);
@@ -5440,7 +5448,21 @@ namespace Js
         return ScopeType_WithScope;
     }
 
+    // ScopeSlots
+    bool ScopeSlots::IsDebuggerScopeSlotArray() 
+    {
+        return DebuggerScope::Is(slotArray[ScopeMetadataSlotIndex]);
+    }
+
     // DebuggerScope
+    bool DebuggerScope::Is(void* ptr)
+    {
+        if (!ptr)
+        {
+            return false;
+        }
+        return VirtualTableInfo<DebuggerScope>::HasVirtualTable(ptr);
+    }
 
     // Get the sibling for the current debugger scope.
     DebuggerScope * DebuggerScope::GetSiblingScope(RegSlot location, FunctionBody *functionBody)
@@ -6383,6 +6405,7 @@ namespace Js
         hasCachedScopePropIds = false;
         this->SetConstantCount(0);
         this->SetConstTable(nullptr);
+        AssertMsg(!this->byteCodeBlock || !this->IsWasmFunction(), "We should never reset the bytecode block for Wasm");
         this->byteCodeBlock = nullptr;
 
         // Also, remove the function body from the source info to prevent any further processing
@@ -7370,6 +7393,7 @@ namespace Js
         // Manually clear these values to break any circular references
         // that might prevent the script context from being disposed
         this->auxPtrs = nullptr;
+        AssertMsg(isScriptContextClosing || !m_hasActiveReference || !this->byteCodeBlock || !this->IsWasmFunction(), "We should never reset the bytecode block for Wasm when still referenced");
         this->byteCodeBlock = nullptr;
         this->entryPoints = nullptr;
         this->inlineCaches = nullptr;
@@ -8087,11 +8111,19 @@ namespace Js
                 // Set the recycler-allocated cache on the (heap-allocated) guard.
                 (*guard)->SetCache(cache);
 
-                for(uint i = 0; i < EQUIVALENT_TYPE_CACHE_SIZE; i++)
+                for (uint i = 0; i < EQUIVALENT_TYPE_CACHE_SIZE; i++)
                 {
                     if((*cache).types[i] != nullptr)
                     {
                         (*cache).types[i]->SetHasBeenCached();
+                    }
+                    else
+                    {
+#ifdef DEBUG
+                        for (uint __i = i; __i < EQUIVALENT_TYPE_CACHE_SIZE; __i++)
+                        { Assert((*cache).types[__i] == nullptr); }
+#endif
+                        break; // type array must be shrinked.
                     }
                 }
                 cache++;
@@ -8727,6 +8759,14 @@ namespace Js
 #endif
                 }
             }
+            else
+            {
+#ifdef DEBUG
+                for (int __i = i; __i < EQUIVALENT_TYPE_CACHE_SIZE; __i++)
+                { Assert(this->types[__i] == nullptr); }
+#endif
+                break; // array must be shrinked already
+            }
         }
 
         if (nonNullIndex > 0)
@@ -8735,9 +8775,6 @@ namespace Js
         }
         else
         {
-#if DBG
-            isGuardValuePresent = true; // never went into loop. (noNullIndex == 0)
-#endif
             if (guard->IsInvalidatedDuringSweep())
             {
                 // just mark this as actual invalidated since there are no types
@@ -8747,7 +8784,8 @@ namespace Js
         }
 
         // verify if guard value is valid, it is present in one of the types
-        AssertMsg(!this->guard->IsValid() || isGuardValuePresent, "After ClearUnusedTypes, valid guard value should be one of the cached equivalent types.");
+        AssertMsg(!this->guard->IsValid() || isGuardValuePresent || nonNullIndex == 0,
+            "After ClearUnusedTypes, valid guard value should be one of the cached equivalent types.");
         return isAnyTypeLive;
     }
 
@@ -8818,31 +8856,32 @@ namespace Js
     {
         if (this->GetState() != CleanedUp)
         {
-            // Unregister xdataInfo before OnCleanup() which may release xdataInfo->address
 #if ENABLE_NATIVE_CODEGEN
-#if defined(_M_X64_OR_ARM64)
+#if PDATA_ENABLED
             if (this->xdataInfo != nullptr)
             {
+#ifdef _WIN32
+                PHASE_PRINT_TESTTRACE1(Js::XDataPhase, _u("EntryPointInfo::Cleanup: Freeing: function table: %llx, codeAddress: %%llx\n"), this->xdataInfo->functionTable, this->GetNativeEntrypoint());
+                if (this->xdataInfo->functionTable
+                    && !DelayDeletingFunctionTable::AddEntry(this->xdataInfo->functionTable))
+                {
+                    PHASE_PRINT_TESTTRACE1(Js::XDataPhase, _u("EntryPointInfo::Cleanup: Failed to add to slist, table: %llx, address: %%llx\n"), this->xdataInfo->functionTable, this->GetNativeEntrypoint());
+                    DelayDeletingFunctionTable::DeleteFunctionTable(this->xdataInfo->functionTable);
+                }
+#endif
                 XDataAllocator::Unregister(this->xdataInfo);
-                HeapDelete(this->xdataInfo);
-                this->xdataInfo = nullptr;
-            }
-#elif defined(_M_ARM)
-            if (this->xdataInfo != nullptr)
-            {
-                XDataAllocator::Unregister(this->xdataInfo);
+#if defined(_M_ARM)
                 if (JITManager::GetJITManager()->IsOOPJITEnabled())
+#endif
                 {
                     HeapDelete(this->xdataInfo);
                 }
                 this->xdataInfo = nullptr;
             }
-#endif
-#endif
+#endif //PDATA_ENABLED
 
             this->OnCleanup(isShutdown);
 
-#if ENABLE_NATIVE_CODEGEN
             FreeJitTransferData();
 
             if (this->bailoutRecordMap != nullptr)
@@ -8920,6 +8959,12 @@ namespace Js
 #if DBG_DUMP | defined(VTUNE_PROFILING)
             this->nativeOffsetMaps.Reset();
 #endif
+#if DEBUG
+            const unsigned char* rpcData = serializedRpcData;
+            HeapDeleteArray(serializedRpcDataSize, rpcData);
+            serializedRpcDataSize = 0;
+            serializedRpcData = nullptr;
+#endif
         }
     }
 
@@ -8964,7 +9009,20 @@ namespace Js
         // Reset the entry point upon a lazy bailout.
         this->Reset(true);
         Assert(this->nativeAddress != nullptr);
+
+#if PDATA_ENABLED && defined(_WIN32)
+        if (this->xdataInfo)
+        {
+            if (this->xdataInfo->functionTable
+                && !DelayDeletingFunctionTable::AddEntry(this->xdataInfo->functionTable))
+            {
+                PHASE_PRINT_TESTTRACE1(Js::XDataPhase, _u("EntryPointInfo::ResetOnLazyBailoutFailure: Failed to add to slist, table: %llx, address: %llx\n"), this->xdataInfo->functionTable, this->nativeAddress);
+                DelayDeletingFunctionTable::DeleteFunctionTable(this->xdataInfo->functionTable);
+            }
+        }
+#endif
         FreeNativeCodeGenAllocation(GetScriptContext(), this->nativeAddress, this->thunkAddress);
+
         this->nativeAddress = nullptr;
         this->jsMethod = nullptr;
     }
@@ -9071,19 +9129,7 @@ namespace Js
                 HeapDelete(this->inlineeFrameMap);
                 this->inlineeFrameMap = nullptr;
             }
-#if PDATA_ENABLED
-            if (this->xdataInfo != nullptr)
-            {
-                XDataAllocator::Unregister(this->xdataInfo);
-#if defined(_M_ARM32_OR_ARM64)
-                if (JITManager::GetJITManager()->IsOOPJITEnabled())
-#endif
-                {
-                    HeapDelete(this->xdataInfo);
-                }
-                this->xdataInfo = nullptr;
-            }
-#endif
+
 #endif
 
             if(nativeEntryPointProcessed)
@@ -9136,6 +9182,14 @@ namespace Js
                 {
                     scriptContext->FreeFunctionEntryPoint((Js::JavascriptMethod)this->GetNativeAddress(), this->GetThunkAddress());
                 }
+#if PDATA_ENABLED && defined(_WIN32)
+                else
+                {
+                    // in case of debugger attaching, we have a new code generator and when deleting old code generator,
+                    // the xData is not put in the delay list yet. clear the list now so the code addresses are ready to reuse
+                    DelayDeletingFunctionTable::Clear();
+                }
+#endif
             }
 
 #ifdef PERF_COUNTERS
@@ -9411,19 +9465,6 @@ namespace Js
                 HeapDelete(this->inlineeFrameMap);
                 this->inlineeFrameMap = nullptr;
             }
-#if PDATA_ENABLED
-            if (this->xdataInfo != nullptr)
-            {
-                XDataAllocator::Unregister(this->xdataInfo);
-#if defined(_M_ARM32_OR_ARM64)
-                if (JITManager::GetJITManager()->IsOOPJITEnabled())
-#endif
-                {
-                    HeapDelete(this->xdataInfo);
-                }
-                this->xdataInfo = nullptr;
-            }
-#endif
 #endif
 
             if (!isShutdown)

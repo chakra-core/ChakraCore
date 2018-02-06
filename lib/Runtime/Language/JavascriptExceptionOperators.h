@@ -92,7 +92,7 @@ namespace Js
         static Var StackTraceAccessor(RecyclableObject* function, CallInfo callInfo, ...);
         static void WalkStackForExceptionContext(ScriptContext& scriptContext, JavascriptExceptionContext& exceptionContext, Var thrownObject, uint64 stackCrawlLimit, PVOID returnAddress, bool isThrownException = true, bool resetSatck = false);
 #if ENABLE_NATIVE_CODEGEN
-        static void WalkStackForCleaningUpInlineeInfo(ScriptContext *scriptContext, PVOID returnAddress);
+        static void WalkStackForCleaningUpInlineeInfo(ScriptContext *scriptContext, PVOID returnAddress, PVOID tryCatchFrameAddr);
 #endif
         static void AddStackTraceToObject(Var obj, JavascriptExceptionContext::StackTrace* stackTrace, ScriptContext& scriptContext, bool isThrownException = true, bool resetSatck = false);
         static uint64 StackCrawlLimitOnThrow(Var thrownObject, ScriptContext& scriptContext);

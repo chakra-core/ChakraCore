@@ -31,6 +31,11 @@ namespace Js
         return static_cast<JavascriptSymbolObject *>(aValue);
     }
 
+    Var JavascriptSymbolObject::Unwrap() const
+    {
+        return value;
+    }
+
     BOOL JavascriptSymbolObject::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
         if (this->GetValue())

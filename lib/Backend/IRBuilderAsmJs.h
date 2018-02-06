@@ -81,7 +81,11 @@ public:
         , m_switchAdapter(this)
         , m_switchBuilder(&m_switchAdapter)
     {
-        func->m_workItem->InitializeReader(&m_jnReader, &m_statementReader, func->m_alloc);
+        if (!m_func->GetJITFunctionBody()->IsWasmFunction())
+        {
+            m_statementReader = Anew(func->m_alloc, Js::StatementReader<Js::FunctionBody::ArenaStatementMapList>);
+        }
+        func->m_workItem->InitializeReader(&m_jnReader, m_statementReader, func->m_alloc);
         m_asmFuncInfo = m_func->GetJITFunctionBody()->GetAsmJsInfo();
 #if 0
         // templatized JIT loop body
@@ -180,7 +184,7 @@ private:
 #include "ByteCode/LayoutTypesAsmJs.h"
     void                    BuildSimd_1Ints(Js::OpCodeAsmJs newOpcode, uint32 offset, IRType dstSimdType, Js::RegSlot* srcRegSlots, Js::RegSlot dstRegSlot, uint LANES);
     void                    BuildSimd_1Int1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot, IRType simdType);
-    void                    BuildSimd_2Int2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot, Js::RegSlot src2RegSlot, Js::RegSlot src3RegSlot, IRType simdType);
+    void                    BuildSimd_2Int2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot, Js::RegSlot src2RegSlot, Js::RegSlot src3RegSlot, IRType simdType, IRType valType = TyInt32);
     void                    BuildSimd_2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot, IRType simdType);
     void                    BuildSimd_2Int1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot, Js::RegSlot src2RegSlot, IRType simdType);
     void                    BuildSimd_3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot, Js::RegSlot src2RegSlot, IRType simdType);
@@ -193,7 +197,7 @@ private:
     void                    BuildWasmLoopStart(Js::OpCodeAsmJs newOpcode, uint offset);
     void                    BuildWasmMemAccess(Js::OpCodeAsmJs newOpcode, uint32 offset, uint32 slotIndex, Js::RegSlot value, uint32 constOffset, Js::ArrayBufferView::ViewType viewType);
     void                    BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint32 slotIndex, Js::RegSlot value, Js::ArrayBufferView::ViewType viewType);
-    void                    BuildAsmSimdTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint32 slotIndex, Js::RegSlot value, Js::ArrayBufferView::ViewType viewType, uint8 DataWidth);
+    void                    BuildAsmSimdTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint32 slotIndex, Js::RegSlot value, Js::ArrayBufferView::ViewType viewType, uint8 DataWidth, uint32 simdOffset);
     void                    BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSlot argCount, Js::RegSlot ret, Js::RegSlot function, int8 returnType, Js::ProfileId profileId);
     void                    BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstReg);
     void                    BuildBrInt1(Js::OpCodeAsmJs newOpcode, uint32 offset, int32 relativeOffset, Js::RegSlot src);
@@ -217,7 +221,7 @@ private:
     IR::Instr *             m_lastInstr;
     IR::Instr **            m_offsetToInstruction;
     Js::ByteCodeReader      m_jnReader;
-    Js::StatementReader<Js::FunctionBody::ArenaStatementMapList> m_statementReader;
+    Js::StatementReader<Js::FunctionBody::ArenaStatementMapList>* m_statementReader = nullptr;
     SListCounted<IR::Instr *> *m_argStack;
     SList<IR::Instr *> *    m_tempList;
     SList<int32> *          m_argOffsetStack;
@@ -266,6 +270,7 @@ private:
 #define Bool32x4_Type Js::RegSlot
 #define Int32x4_Type Js::RegSlot
 #define Float64x2_Type Js::RegSlot
+#define Int64x2_Type Js::RegSlot
 #define Int16x8_Type Js::RegSlot
 #define Bool16x8_Type Js::RegSlot
 #define Int8x16_Type Js::RegSlot

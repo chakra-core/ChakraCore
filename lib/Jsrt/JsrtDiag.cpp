@@ -99,9 +99,13 @@ CHAKRA_API JsDiagStartDebugging(
                 return JsErrorFatal;
             }
 
-            Js::ProbeContainer* probeContainer = debugContext->GetProbeContainer();
-            probeContainer->InitializeInlineBreakEngine(jsrtDebugManager);
-            probeContainer->InitializeDebuggerScriptOptionCallback(jsrtDebugManager);
+            // ScriptContext might get closed in OnDebuggerAttached
+            if (!scriptContext->IsClosed())
+            {
+                Js::ProbeContainer* probeContainer = debugContext->GetProbeContainer();
+                probeContainer->InitializeInlineBreakEngine(jsrtDebugManager);
+                probeContainer->InitializeDebuggerScriptOptionCallback(jsrtDebugManager);
+            }
         }
 
         return JsNoError;
@@ -469,7 +473,7 @@ CHAKRA_API JsDiagSetStepType(
         }
         else if (stepType == JsDiagStepTypeStepOut)
         {
-            jsrtDebugManager->SetResumeType(BREAKRESUMEACTION_STEP_OUT);
+           jsrtDebugManager->SetResumeType(BREAKRESUMEACTION_STEP_OUT);
         }
         else if (stepType == JsDiagStepTypeStepOver)
         {
@@ -521,6 +525,29 @@ CHAKRA_API JsDiagSetStepType(
         {
             jsrtDebugManager->SetResumeType(BREAKRESUMEACTION_CONTINUE);
         }
+
+        return JsNoError;
+    });
+#endif
+}
+
+CHAKRA_API JsTTDDiagWriteLog(_In_reads_(uriLength) const char* uri, _In_ size_t uriLength)
+{
+#if !ENABLE_TTD
+    return JsErrorCategoryUsage;
+#else
+    return ContextAPIWrapper_NoRecord<true>([&](Js::ScriptContext * scriptContext) -> JsErrorCode {
+
+        JsrtContext *currentContext = JsrtContext::GetCurrent();
+        JsrtRuntime* runtime = currentContext->GetRuntime();
+
+        VALIDATE_RUNTIME_IS_AT_BREAK(runtime);
+
+        JsrtDebugManager* jsrtDebugManager = runtime->GetJsrtDebugManager();
+
+        TTD::TTDebuggerSourceLocation cloc;
+        jsrtDebugManager->GetThreadContext()->TTDExecutionInfo->GetTimeAndPositionForDebugger(cloc);
+        jsrtDebugManager->GetThreadContext()->TTDLog->InnerLoopEmitLog(cloc, uri, uriLength);
 
         return JsNoError;
     });

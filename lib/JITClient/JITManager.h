@@ -33,9 +33,6 @@ public:
 
     HRESULT InitializeThreadContext(
         __in ThreadContextDataIDL * data,
-#ifdef USE_RPC_HANDLE_MARSHALLING
-        __in HANDLE processHandle,
-#endif
         __out PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
         __out intptr_t * prereservedRegionAddr,
         __out intptr_t * jitThunkAddr);
@@ -107,6 +104,20 @@ public:
         __out boolean * result);
 #endif
 
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    static HRESULT DeserializeRPCData(
+        _In_reads_(bufferSize) const byte* buffer,
+        _In_ uint bufferSize,
+        _Out_ CodeGenWorkItemIDL **workItemData
+    );
+
+    static HRESULT SerializeRPCData(
+        _In_ CodeGenWorkItemIDL *workItemData,
+        _Out_ size_t* bufferSize,
+        _Outptr_result_buffer_(*bufferSize) const byte** outBuffer
+    );
+#endif
+
     HRESULT Shutdown();
 
 
@@ -121,6 +132,8 @@ private:
         __in_opt void* serverSecurityDescriptor,
         __in UUID* connectionUuid,
         __out RPC_BINDING_HANDLE* bindingHandle);
+
+    HRESULT ConnectProcess();
 
     RPC_BINDING_HANDLE m_rpcBindingHandle;
     UUID m_jitConnectionId;
@@ -148,9 +161,6 @@ public:
 
     HRESULT InitializeThreadContext(
         __in ThreadContextDataIDL * data,
-#ifdef USE_RPC_HANDLE_MARSHALLING
-        __in HANDLE processHandle,
-#endif
         __out PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
         __out intptr_t *prereservedRegionAddr,
         __out intptr_t * jitThunkAddr)
@@ -230,6 +240,20 @@ public:
         __in boolean asmjsThunk,
         __out boolean * result)
         { Assert(false); return E_FAIL; }
+#endif
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    static HRESULT DeserializeRPCData(
+        _In_reads_(bufferSize) const byte* buffer,
+        _In_ uint bufferSize,
+        _Out_ CodeGenWorkItemIDL **workItemData
+    ) { *workItemData = nullptr; return E_NOTIMPL; }
+
+    static HRESULT SerializeRPCData(
+        _In_ CodeGenWorkItemIDL *workItemData,
+        _Out_ size_t* bufferSize,
+        _Outptr_result_buffer_(*bufferSize) const byte** outBuffer
+    ) { *bufferSize = 0; *outBuffer = nullptr; return E_NOTIMPL; }
 #endif
 
     HRESULT Shutdown()

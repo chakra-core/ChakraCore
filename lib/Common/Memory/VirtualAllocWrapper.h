@@ -22,7 +22,7 @@ class PreReservedSectionAllocWrapper;
 class VirtualAllocWrapper
 {
 public:
-    LPVOID  Alloc(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation);
+    LPVOID  AllocPages(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t pageCount, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation);
     BOOL    Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType);
     LPVOID  AllocLocal(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize) { return lpAddress; }
     BOOL    FreeLocal(LPVOID lpAddress) { return true; }
@@ -42,19 +42,19 @@ private:
 class PreReservedVirtualAllocWrapper
 {
 public:
-#if _M_IX86_OR_ARM32
+#if TARGET_32
     static const uint PreReservedAllocationSegmentCount = 256; // (256 * 64K) == 16 MB, if 64k is the AllocationGranularity
-#else // _M_X64_OR_ARM64
+#else // TARGET_64
     static const uint PreReservedAllocationSegmentCount = 4096; //(4096 * 64K) == 256MB, if 64k is the AllocationGranularity
 #endif
 
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
+#if !TARGET_64 && _CONTROL_FLOW_GUARD
     static const unsigned MaxPreReserveSegment = 6;
 #endif
 public:
     PreReservedVirtualAllocWrapper();
     ~PreReservedVirtualAllocWrapper();
-    LPVOID      Alloc(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation);
+    LPVOID      AllocPages(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t pageCount, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation);
     BOOL        Free(LPVOID lpAddress,  size_t dwSize, DWORD dwFreeType);
     LPVOID  AllocLocal(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize) { return lpAddress; }
     BOOL    FreeLocal(LPVOID lpAddress) { return true; }
@@ -65,7 +65,7 @@ public:
 
     LPVOID      GetPreReservedEndAddress();
     static LPVOID GetPreReservedEndAddress(void * regionStart);
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
+#if !TARGET_64 && _CONTROL_FLOW_GUARD
     static int  NumPreReservedSegment() { return numPreReservedSegment; }
 #endif
 
@@ -83,7 +83,7 @@ private:
     BVStatic<PreReservedAllocationSegmentCount>     freeSegments;
     LPVOID                                          preReservedStartAddress;
     CriticalSection                                 cs;
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
+#if !TARGET_64 && _CONTROL_FLOW_GUARD
     static uint  numPreReservedSegment;
 #endif
 };

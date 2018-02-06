@@ -610,7 +610,7 @@ namespace Js
             ArenaAllocator *arena = pFrame->GetArena();
             ScopeSlots slotArray = GetSlotArray();
 
-            if (slotArray.IsFunctionScopeSlotArray())
+            if (!slotArray.IsDebuggerScopeSlotArray())
             {
                 DebuggerScope *formalScope = GetScopeWhenHaltAtFormals();
                 bool isInParamScope = IsInParamScope(formalScope, pFrame);
@@ -960,7 +960,11 @@ namespace Js
     // DiagScopeVariablesWalker
 
     DiagScopeVariablesWalker::DiagScopeVariablesWalker(DiagStackFrame* _pFrame, Var _instance, IDiagObjectModelWalkerBase* innerWalker)
-        : VariableWalkerBase(_pFrame, _instance, UIGroupType_InnerScope, /* allowLexicalThis */ false)
+        : VariableWalkerBase(_pFrame, _instance, UIGroupType_InnerScope, /* allowLexicalThis */ false),
+        pDiagScopeObjects(nullptr),
+        diagScopeVarCount(0),
+        scopeIsInitialized(false), // false until end of method
+        enumWithScopeAlso(false)
     {
         ScriptContext * scriptContext = _pFrame->GetScriptContext();
         ArenaAllocator *arena = GetArenaFromContext(scriptContext);
@@ -1900,9 +1904,8 @@ namespace Js
             Var objValue = nullptr;
 
 #if ENABLE_TTD
-            bool suppressGetterForTTDebug = requestContext->GetThreadContext()->IsRuntimeInTTDMode() && requestContext->GetThreadContext()->TTDLog->ShouldDoGetterInvocationSupression();
             TTD::TTModeStackAutoPopper suppressModeAutoPopper(requestContext->GetThreadContext()->TTDLog);
-            if(suppressGetterForTTDebug)
+            if(requestContext->GetThreadContext()->IsRuntimeInTTDMode())
             {
                 suppressModeAutoPopper.PushModeAndSetToAutoPop(TTD::TTDMode::DebuggerSuppressGetter);
             }
@@ -2137,7 +2140,7 @@ namespace Js
                     auto funcPtr = [&]()
                     {
                         IGNORE_STACKWALK_EXCEPTION(scriptContext);
-                        if (object->CanHaveInterceptors())
+                        if (object->IsExternal())
                         {
                             Js::ForInObjectEnumerator enumerator(object, object->GetScriptContext(), /* enumSymbols */ true);
                             Js::PropertyId propertyId;
@@ -2254,9 +2257,8 @@ namespace Js
         BOOL retValue = FALSE;
 
 #if ENABLE_TTD
-        bool suppressGetterForTTDebug = scriptContext->GetThreadContext()->IsRuntimeInTTDMode() && scriptContext->GetThreadContext()->TTDLog->ShouldDoGetterInvocationSupression();
         TTD::TTModeStackAutoPopper suppressModeAutoPopper(scriptContext->GetThreadContext()->TTDLog);
-        if(suppressGetterForTTDebug)
+        if(scriptContext->GetThreadContext()->IsRuntimeInTTDMode())
         {
             suppressModeAutoPopper.PushModeAndSetToAutoPop(TTD::TTDMode::DebuggerSuppressGetter);
         }
@@ -2457,7 +2459,7 @@ namespace Js
 
                 if (JavascriptOperators::IsObject(object))
                 {
-                    if (object->CanHaveInterceptors() || JavascriptOperators::GetTypeId(object) == TypeIds_Proxy)
+                    if (object->IsExternal() || JavascriptOperators::GetTypeId(object) == TypeIds_Proxy)
                     {
                         try
                         {
@@ -3892,6 +3894,7 @@ namespace Js
                 break;
             case JavascriptPromise::PromiseStatusCode_Unresolved:
                 pResolvedObject->obj = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("pending"));
+                break;
             case JavascriptPromise::PromiseStatusCode_HasResolution:
                 pResolvedObject->obj = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("resolved"));
                 break;
@@ -4083,15 +4086,15 @@ namespace Js
             // The scope is defined by a slot array object so grab the function body out to get the function name.
             ScopeSlots slotArray = ScopeSlots(reinterpret_cast<Var*>(instance));
 
-            if(slotArray.IsFunctionScopeSlotArray())
-            {
-                Js::FunctionBody *functionBody = slotArray.GetFunctionInfo()->GetFunctionBody();
-                return functionBody->GetDisplayName();
-            }
-            else
+            if(slotArray.IsDebuggerScopeSlotArray())
             {
                 // handling for block/catch scope
                 return _u("");
+            }
+            else
+            {
+                Js::FunctionBody *functionBody = slotArray.GetFunctionInfo()->GetFunctionBody();
+                return functionBody->GetDisplayName();
             }
         }
     }

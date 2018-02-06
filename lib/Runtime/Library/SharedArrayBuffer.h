@@ -42,7 +42,7 @@ namespace Js
 #if DBG
             , allowedAgents(nullptr)
 #endif
-        { 
+        {
         }
     };
 
@@ -89,7 +89,7 @@ namespace Js
         WaiterList *GetWaiterList(uint index);
         SharedContents *GetSharedContents() { return sharedContents; }
 
-#if _WIN64
+#if defined(TARGET_64)
         //maximum 2G -1  for amd64
         static const uint32 MaxSharedArrayBufferLength = 0x7FFFFFFF;
 #else

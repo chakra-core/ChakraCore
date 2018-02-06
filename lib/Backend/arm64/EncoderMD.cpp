@@ -195,9 +195,7 @@ int EncoderMD::EmitOp1Register64(Arm64CodeEmitter &Emitter, IR::Instr* instr, _R
 {
     IR::Opnd* src1 = instr->GetSrc1();
     Assert(src1->IsRegOpnd());
-
-    int size = src1->GetSize();
-    Assert(size == 8);
+    Assert(src1->GetSize() == 8);
 
     return reg64(Emitter, this->GetRegEncode(src1->AsRegOpnd()));
 }
@@ -551,11 +549,20 @@ int EncoderMD::EmitMovConstant(Arm64CodeEmitter &Emitter, IR::Instr *instr, _Emi
         Assert(src1->IsLabelOpnd());
         IR::LabelInstr* labelInstr = src1->AsLabelOpnd()->GetLabel();
 
-        // Here the LabelOpnd's offset is a post-lower immediate value; we need
-        // to mask in just the part indicated by our own shift amount, and send
-        // that along as our immediate load value.
-        uintptr_t fullvalue = labelInstr->GetOffset();
-        immediate = (fullvalue & (0xffff << shift)) >> shift;
+        if (labelInstr->m_isDataLabel)
+        {
+            // If the label is a data label, we don't know the label address yet so handle it as a reloc.
+            EncodeReloc::New(&m_relocList, RelocTypeLabelImmed, m_pc, labelInstr, m_encoder->m_tempAlloc);
+            immediate = 0;
+        }
+        else
+        {
+            // Here the LabelOpnd's offset is a post-lower immediate value; we need
+            // to mask in just the part indicated by our own shift amount, and send
+            // that along as our immediate load value.
+            uintptr_t fullvalue = labelInstr->GetOffset();
+            immediate = (fullvalue >> shift) & 0xffff;
+        }
     }
 
     Assert((immediate & 0xFFFF) == immediate);
@@ -726,7 +733,7 @@ int EncoderMD::EmitConvertToInt(Arm64CodeEmitter &Emitter, IR::Instr* instr, _In
     Assert(src1->IsRegOpnd());
     Assert(src1->IsFloat());
 
-    int size = dst->GetSize();
+    DebugOnly(int size = dst->GetSize());
     Assert(size == 4 || size == 8);
     int srcSize = src1->GetSize();
     Assert(srcSize == 4 || srcSize == 8);
@@ -1368,8 +1375,12 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
         {
             if (instr->isInlineeEntryInstr)
             {
+                size_t inlineeOffset = m_pc - m_encoder->m_encodeBuffer;
+                size_t argCount = instr->AsLabelInstr()->GetOffset();
+                Assert(inlineeOffset == (inlineeOffset & 0x0FFFFFFF));
+
                 intptr_t inlineeCallInfo = 0;
-                const bool encodeResult = Js::InlineeCallInfo::Encode(inlineeCallInfo, instr->AsLabelInstr()->GetOffset(), m_pc - m_encoder->m_encodeBuffer);
+                const bool encodeResult = Js::InlineeCallInfo::Encode(inlineeCallInfo, argCount, inlineeOffset);
                 Assert(encodeResult);
                 //We are re-using offset to save the inlineeCallInfo which will be patched in ApplyRelocs
                 //This is a cleaner way to patch MOVW\MOVT pair with the right inlineeCallInfo
@@ -1532,17 +1543,21 @@ EncoderMD::ApplyRelocs(size_t codeBufferAddress, size_t codeSize, uint* bufferCR
             Assert(!reloc->m_relocInstr->isInlineeEntryInstr);
             immediate = ULONG_PTR(targetAddress) - ULONG_PTR(relocAddress);
             Assert(IS_CONST_INT21(immediate));
-            if (!IS_CONST_INT21(immediate))
-            {
-                // JumpTable addresses are current loaded as ADR address instructions, and the address of the jump table is not known until after encoding. In
-                // cases where it is too far to be loaded by an ADR instruction abort jitting.
-                // TODO(magardn): detect these cases before encoding and convert these cases to use LDIMM instead.
-                throw Js::OperationAbortedException();
-            }
-
             *relocAddress = (*relocAddress & ~(3 << 29)) | ULONG((immediate & 3) << 29);
             *relocAddress = (*relocAddress & ~(0x7ffff << 5)) | ULONG(((immediate >> 2) & 0x7ffff) << 5);
             break;
+
+        case RelocTypeLabelImmed:
+        {
+            // read the shift from the encoded instruction.
+            uint32 shift = ((*relocAddress & (0x3 << 21)) >> 21) * 16;
+            uintptr_t fullvalue = ULONG_PTR(targetAddress) - ULONG_PTR(m_encoder->m_encodeBuffer) + ULONG_PTR(codeBufferAddress);
+            immediate = (fullvalue >> shift) & 0xffff;
+
+            // replace the immediate value in the encoded instruction.
+            *relocAddress = (*relocAddress & ~(0xffff << 5)) | ULONG((immediate & 0xffff) << 5);
+            break;
+        }
 
         case RelocTypeLabel:
             *(ULONG_PTR*)relocAddress = ULONG_PTR(targetAddress) - ULONG_PTR(m_encoder->m_encodeBuffer) + ULONG_PTR(codeBufferAddress);
@@ -1550,7 +1565,7 @@ EncoderMD::ApplyRelocs(size_t codeBufferAddress, size_t codeSize, uint* bufferCR
 
         default:
             // unexpected/unimplemented type
-            Assert(false);
+            Assert(UNREACHED);
         }
     }
 }
@@ -1558,7 +1573,7 @@ EncoderMD::ApplyRelocs(size_t codeBufferAddress, size_t codeSize, uint* bufferCR
 void
 EncoderMD::EncodeInlineeCallInfo(IR::Instr *instr, uint32 codeOffset)
 {
-     IR::LabelInstr* inlineeStart = instr->AsLabelInstr();
+     DebugOnly(IR::LabelInstr* inlineeStart = instr->AsLabelInstr());
      Assert((inlineeStart->GetOffset() & 0x0F) == inlineeStart->GetOffset());
      return;
 }

@@ -128,6 +128,12 @@ class BinaryReaderIR : public BinaryReaderNop {
   Result OnAtomicRmwCmpxchgExpr(Opcode opcode,
                                 uint32_t alignment_log2,
                                 Address offset) override;
+  wabt::Result OnAtomicWaitExpr(Opcode opcode,
+                                uint32_t alignment_log2,
+                                Address offset) override;
+  wabt::Result OnAtomicWakeExpr(Opcode opcode,
+                                uint32_t alignment_log2,
+                                Address offset) override;
   Result OnBinaryExpr(Opcode opcode) override;
   Result OnBlockExpr(Index num_types, Type* sig_types) override;
   Result OnBrExpr(Index depth) override;
@@ -146,6 +152,7 @@ class BinaryReaderIR : public BinaryReaderNop {
   Result OnEndExpr() override;
   Result OnF32ConstExpr(uint32_t value_bits) override;
   Result OnF64ConstExpr(uint64_t value_bits) override;
+  Result OnV128ConstExpr(v128 value_bits) override;
   Result OnGetGlobalExpr(Index global_index) override;
   Result OnGetLocalExpr(Index local_index) override;
   Result OnGrowMemoryExpr() override;
@@ -203,6 +210,7 @@ class BinaryReaderIR : public BinaryReaderNop {
 
   Result OnInitExprF32ConstExpr(Index index, uint32_t value) override;
   Result OnInitExprF64ConstExpr(Index index, uint64_t value) override;
+  Result OnInitExprV128ConstExpr(Index index, v128 value) override;
   Result OnInitExprGetGlobalExpr(Index index, Index global_index) override;
   Result OnInitExprI32ConstExpr(Index index, uint32_t value) override;
   Result OnInitExprI64ConstExpr(Index index, uint64_t value) override;
@@ -549,6 +557,20 @@ Result BinaryReaderIR::OnAtomicRmwCmpxchgExpr(Opcode opcode,
       MakeUnique<AtomicRmwCmpxchgExpr>(opcode, 1 << alignment_log2, offset));
 }
 
+wabt::Result BinaryReaderIR::OnAtomicWaitExpr(Opcode opcode,
+                                              uint32_t alignment_log2,
+                                              Address offset) {
+  return AppendExpr(
+      MakeUnique<AtomicWaitExpr>(opcode, 1 << alignment_log2, offset));
+}
+
+wabt::Result BinaryReaderIR::OnAtomicWakeExpr(Opcode opcode,
+                                              uint32_t alignment_log2,
+                                              Address offset) {
+  return AppendExpr(
+      MakeUnique<AtomicWakeExpr>(opcode, 1 << alignment_log2, offset));
+}
+
 Result BinaryReaderIR::OnBinaryExpr(Opcode opcode) {
   return AppendExpr(MakeUnique<BinaryExpr>(opcode, GetLocation()));
 }
@@ -589,8 +611,11 @@ Result BinaryReaderIR::OnCallExpr(Index func_index) {
 
 Result BinaryReaderIR::OnCallIndirectExpr(Index sig_index) {
   assert(sig_index < module_->func_types.size());
-  return AppendExpr(
-      MakeUnique<CallIndirectExpr>(Var(sig_index, GetLocation())));
+  auto expr = MakeUnique<CallIndirectExpr>(GetLocation());
+  expr->decl.has_func_type = true;
+  expr->decl.type_var = Var(sig_index, GetLocation());
+  expr->decl.sig = module_->func_types[sig_index]->sig;
+  return AppendExpr(std::move(expr));
 }
 
 Result BinaryReaderIR::OnCompareExpr(Opcode opcode) {
@@ -637,6 +662,11 @@ Result BinaryReaderIR::OnF32ConstExpr(uint32_t value_bits) {
 Result BinaryReaderIR::OnF64ConstExpr(uint64_t value_bits) {
   return AppendExpr(
       MakeUnique<ConstExpr>(Const::F64(value_bits, GetLocation())));
+}
+
+Result BinaryReaderIR::OnV128ConstExpr(v128 value_bits) {
+  return AppendExpr(
+      MakeUnique<ConstExpr>(Const::V128(value_bits, GetLocation())));
 }
 
 Result BinaryReaderIR::OnGetGlobalExpr(Index global_index) {
@@ -845,8 +875,9 @@ Result BinaryReaderIR::OnDataSegmentData(Index index,
   assert(index == module_->data_segments.size() - 1);
   DataSegment* segment = module_->data_segments[index];
   segment->data.resize(size);
-  if (size > 0)
+  if (size > 0) {
     memcpy(segment->data.data(), data, size);
+  }
   return Result::Ok;
 }
 
@@ -861,8 +892,9 @@ Result BinaryReaderIR::OnFunctionNamesCount(Index count) {
 }
 
 Result BinaryReaderIR::OnFunctionName(Index index, string_view name) {
-  if (name.empty())
+  if (name.empty()) {
     return Result::Ok;
+  }
 
   Func* func = module_->funcs[index];
   std::string dollar_name = std::string("$") + name.to_string();
@@ -903,6 +935,13 @@ Result BinaryReaderIR::OnInitExprF64ConstExpr(Index index, uint64_t value) {
   return Result::Ok;
 }
 
+Result BinaryReaderIR::OnInitExprV128ConstExpr(Index index, v128 value) {
+  Location loc = GetLocation();
+  current_init_expr_->push_back(
+      MakeUnique<ConstExpr>(Const::V128(value, loc), loc));
+  return Result::Ok;
+}
+
 Result BinaryReaderIR::OnInitExprGetGlobalExpr(Index index,
                                                Index global_index) {
   Location loc = GetLocation();
@@ -928,8 +967,9 @@ Result BinaryReaderIR::OnInitExprI64ConstExpr(Index index, uint64_t value) {
 Result BinaryReaderIR::OnLocalName(Index func_index,
                                    Index local_index,
                                    string_view name) {
-  if (name.empty())
+  if (name.empty()) {
     return Result::Ok;
+  }
 
   Func* func = module_->funcs[func_index];
   Index num_params = func->GetNumParams();

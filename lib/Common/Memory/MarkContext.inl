@@ -23,7 +23,7 @@ bool MarkContext::AddMarkedObject(void * objectAddress, size_t objectSize)
 
     MarkCandidate markCandidate;
 
-#if defined(_WIN64) && defined(_M_X64)
+#if defined(_WIN32) && defined(_M_X64)
     // Enabling store forwards. The intrinsic generates stores matching the load in size.
     // This enables skipping caches and forwarding the store data to the following load.
     *(__m128i *)&markCandidate = _mm_set_epi64x(objectSize, (__int64)objectAddress);
@@ -196,7 +196,11 @@ void MarkContext::MarkTrackedObject(FinalizableObject * trackedObject)
 {
 #if ENABLE_CONCURRENT_GC
     Assert(!recycler->queueTrackedObject);
+#if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
+    Assert(!recycler->IsConcurrentExecutingState() && !recycler->IsConcurrentSweepState());
+#else
     Assert(!recycler->IsConcurrentExecutingState());
+#endif
 #endif
 #if ENABLE_PARTIAL_GC
     Assert(!recycler->inPartialCollectMode);

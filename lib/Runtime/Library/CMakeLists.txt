@@ -110,6 +110,7 @@ set(CRLIB_SOURCE_CODES
     ModuleRoot.cpp
     ObjectPrototypeObject.cpp
     ProfileString.cpp
+    PropertyRecordUsageCache.cpp
     PropertyString.cpp
     RegexHelper.cpp
     RootObjectBase.cpp

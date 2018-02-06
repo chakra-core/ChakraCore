@@ -29,7 +29,7 @@ namespace Js
 
     bool JavascriptError::Is(Var aValue)
     {
-        AssertMsg(aValue != NULL, "Error is NULL - did it come from an out of memory exception?");
+        AssertMsg(aValue != NULL, "Error is NULL - did it come from an oom exception?");
         return JavascriptOperators::GetTypeId(aValue) == TypeIds_Error;
     }
 
@@ -831,6 +831,7 @@ namespace Js
         if (cse->ei.bstrDescription)
         {
             value = JavascriptString::NewCopySz(cse->ei.bstrDescription, scriptContext);
+            JavascriptOperators::OP_SetProperty(error, PropertyIds::description, value, scriptContext);
             JavascriptOperators::OP_SetProperty(error, PropertyIds::message, value, scriptContext);
         }
 

@@ -98,8 +98,9 @@ TEST(utf8, valid_3_bytes_e0) {
 TEST(utf8, valid_3_bytes) {
   FOR_RANGE(cu0, 0xe1, 0xf0) {
     // Handle 0xed in valid_3_bytes_ed.
-    if (cu0 == 0xed)
+    if (cu0 == 0xed) {
       continue;
+    }
 
     FOR_EACH_BYTE(cu1) {
       FOR_EACH_BYTE(cu2) {

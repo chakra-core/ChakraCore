@@ -1,5 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
+<!-- ByteCode Header verification tests begin -->
+  <test>
+    <default>
+      <files>../../lib/Runtime/Library/JsBuiltIn/JsBuiltIn.js</files>
+      <baseline>../../lib/Runtime/Library/JsBuiltIn/JsBuiltIn.js.bc.32b.h</baseline>
+      <compile-flags>-GenerateLibraryByteCodeHeader -JsBuiltIn -LdChakraLib</compile-flags>
+      <tags>exclude_jshost,exclude_dynapogo,exclude_amd64,exclude_disable_jit,exclude_lite</tags>
+      <eol-normalization />
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>../../lib/Runtime/Library/JsBuiltIn/JsBuiltIn.js</files>
+      <baseline>../../lib/Runtime/Library/JsBuiltIn/JsBuiltIn.js.bc.64b.h</baseline>
+      <compile-flags>-GenerateLibraryByteCodeHeader -JsBuiltIn -LdChakraLib</compile-flags>
+      <tags>exclude_jshost,exclude_dynapogo,exclude_x86,exclude_disable_jit,exclude_lite</tags>
+      <eol-normalization />
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>../../lib/Runtime/Library/JsBuiltIn/JsBuiltIn.js</files>
+      <baseline>../../lib/Runtime/Library/JsBuiltIn/JsBuiltIn.js.nojit.bc.32b.h</baseline>
+      <compile-flags>-GenerateLibraryByteCodeHeader -JsBuiltIn -LdChakraLib</compile-flags>
+      <tags>exclude_jshost,exclude_amd64,require_disable_jit,exclude_lite</tags>
+      <eol-normalization />
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>../../lib/Runtime/Library/JsBuiltIn/JsBuiltIn.js</files>
+      <baseline>../../lib/Runtime/Library/JsBuiltIn/JsBuiltIn.js.nojit.bc.64b.h</baseline>
+      <compile-flags>-GenerateLibraryByteCodeHeader -JsBuiltIn -LdChakraLib</compile-flags>
+      <tags>exclude_jshost,exclude_x86,require_disable_jit,exclude_lite</tags>
+      <eol-normalization />
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>../../lib/Runtime/Library/InJavascript/Intl.js</files>
+      <baseline>../../lib/Runtime/Library/InJavascript/Intl.js.bc.32b.h</baseline>
+      <compile-flags>-GenerateLibraryByteCodeHeader -Intl</compile-flags>
+      <tags>exclude_jshost,exclude_dynapogo,exclude_amd64,exclude_disable_jit,exclude_lite</tags>
+      <eol-normalization />
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>../../lib/Runtime/Library/InJavascript/Intl.js</files>
+      <baseline>../../lib/Runtime/Library/InJavascript/Intl.js.bc.64b.h</baseline>
+      <compile-flags>-GenerateLibraryByteCodeHeader -Intl</compile-flags>
+      <tags>exclude_jshost,exclude_dynapogo,exclude_x86,exclude_disable_jit,exclude_lite</tags>
+      <eol-normalization />
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>../../lib/Runtime/Library/InJavascript/Intl.js</files>
+      <baseline>../../lib/Runtime/Library/InJavascript/Intl.js.nojit.bc.32b.h</baseline>
+      <compile-flags>-GenerateLibraryByteCodeHeader -Intl</compile-flags>
+      <tags>exclude_jshost,exclude_amd64,require_disable_jit,exclude_lite</tags>
+      <eol-normalization />
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>../../lib/Runtime/Library/InJavascript/Intl.js</files>
+      <baseline>../../lib/Runtime/Library/InJavascript/Intl.js.nojit.bc.64b.h</baseline>
+      <compile-flags>-GenerateLibraryByteCodeHeader -Intl</compile-flags>
+      <tags>exclude_jshost,exclude_x86,require_disable_jit,exclude_lite</tags>
+      <eol-normalization />
+    </default>
+  </test>
+<!-- ByteCode Header verification tests end -->
   <test>
     <default>
       <files>HasOnlyWritableDataPropertiesCache.js</files>
@@ -21,19 +95,26 @@
   </test>
   <test>
     <default>
-      <files>oom.js</files>
-      <baseline>oom.baseline</baseline>
-      <!-- TODO fix and re-enable (Microsoft/ChakraCore#3119) -->
-      <!-- Investigate: adding -bgjit makes this test pass -->
-      <!-- <compile-flags>-forcefragmentaddressspace:8000000 -bgjit</compile-flags> -->
-      <compile-flags>-forcefragmentaddressspace:8000000</compile-flags>
-      <tags>exclude_amd64,fail</tags>
+      <files>SetTimeout.js</files>
+      <baseline>SetTimeout.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
-      <files>SetTimeout.js</files>
-      <baseline>SetTimeout.baseline</baseline>
+      <files>nullByte-comment.js</files>
+      <baseline>nullByte-comment.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>nullByte-regex.js</files>
+      <baseline>nullByte-regex.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>nullByte-string.js</files>
+      <baseline>nullByte-string.baseline</baseline>
     </default>
   </test>
 </regress-exe>

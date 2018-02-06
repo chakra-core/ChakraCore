@@ -56,12 +56,10 @@ namespace Js
         return this->GetLibrary()->GetScriptContext();
     }
 
-    inline BOOL RecyclableObject::CanHaveInterceptors() const
+    inline BOOL RecyclableObject::IsExternal() const
     {
-#if !defined(USED_IN_STATIC_LIB)
-        Assert(this->DbgCanHaveInterceptors() == this->GetType()->CanHaveInterceptors());
-#endif
-        return this->GetType()->CanHaveInterceptors();
+        Assert(this->IsExternalVirtual() == this->GetType()->IsExternal());
+        return this->GetType()->IsExternal();
     }
 
     inline BOOL RecyclableObject::HasItem(uint32 index)

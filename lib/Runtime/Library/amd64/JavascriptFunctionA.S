@@ -141,19 +141,7 @@ NESTED_ENTRY _ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16Recyclable
         mov rdi, rsp // rdi = arguments destination
         rep movsq
 
-        // Load 4 first arguments
-        // First Argument
         mov rdi, qword ptr [rsp]
-        // Review:: Is this really our calling convention on xplat ?
-        // Second Argument
-        mov rsi, qword ptr [r8]
-        movaps xmm1, xmmword ptr [r8]
-        // Third Argument
-        mov rdx, qword ptr [r8 + 10h]
-        movaps xmm2, xmmword ptr [r8 + 10h]
-        // Fourth Argument
-        mov rcx, qword ptr [r8 + 20h]
-        movaps xmm3, xmmword ptr [r8 + 20h]
 
         xor rax, rax // Zero out rax in case r11 expects varags
         call r11
@@ -183,6 +171,13 @@ LEAF_END _ZN2Js18JavascriptFunction17CallAsmJsFunctionIfEET_PNS_16RecyclableObje
 LEAF_ENTRY _ZN2Js18JavascriptFunction17CallAsmJsFunctionIdEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEPS5_jPh, _TEXT
     jmp C_FUNC(_ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEPS5_jPh)
 LEAF_END _ZN2Js18JavascriptFunction17CallAsmJsFunctionIdEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEPS5_jPh, _TEXT
+
+// AsmJsSIMDValue CallAsmJsFunction<AsmJsSIMDValue>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
+.balign 16
+LEAF_ENTRY _ZN2Js18JavascriptFunction17CallAsmJsFunctionIDv4_fEET_PNS_16RecyclableObjectEPFPvS5_NS_8CallInfoEzEjPS6_, _TEXT
+    int 3  //TODO: Verify this code path when enabling WASM.SIMD for xplat
+    jmp C_FUNC(_ZN2Js18JavascriptFunction17CallAsmJsFunctionIiEET_PNS_16RecyclableObjectEPFPvS4_NS_8CallInfoEzEPS5_jPh)
+LEAF_END _ZN2Js18JavascriptFunction17CallAsmJsFunctionIDv4_fEET_PNS_16RecyclableObjectEPFPvS5_NS_8CallInfoEzEjPS6_, _TEXT
 
 #endif // _ENABLE_DYNAMIC_THUNKS
 //------------------------------------------------------------------------------

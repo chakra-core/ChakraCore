@@ -151,7 +151,9 @@ namespace Js
         this->propertyString = propStr;
         if (propStr != nullptr)
         {
-            this->propertyRecord = propStr->GetPropertyRecord();
+            Js::PropertyRecord const * localPropertyRecord;
+            propStr->GetPropertyRecord(&localPropertyRecord);
+            this->propertyRecord = localPropertyRecord;
         }
     }
 
@@ -167,17 +169,29 @@ namespace Js
         return RecyclableObject::Is(var) && LiteralStringWithPropertyStringPtr::Is(RecyclableObject::UnsafeFromVar(var));
     }
 
-    Js::PropertyRecord const * LiteralStringWithPropertyStringPtr::GetPropertyRecord(bool dontLookupFromDictionary)
+    void LiteralStringWithPropertyStringPtr::GetPropertyRecord(_Out_ PropertyRecord const** propRecord, bool dontLookupFromDictionary)
     {
+        *propRecord = nullptr;
         ScriptContext * scriptContext = this->GetScriptContext();
 
-        if (this->propertyRecord == nullptr && !dontLookupFromDictionary)
+        if (this->propertyRecord == nullptr)
         {
-            scriptContext->GetOrAddPropertyRecord(this->GetSz(), static_cast<int>(this->GetLength()),
-                (Js::PropertyRecord const **)&(this->propertyRecord));
+            if (!dontLookupFromDictionary)
+            {
+                // cache PropertyRecord
+                Js::PropertyRecord const * localPropertyRecord;
+                scriptContext->GetOrAddPropertyRecord(this->GetSz(),
+                    static_cast<int>(this->GetLength()),
+                    &localPropertyRecord);
+                this->propertyRecord = localPropertyRecord;
+            }
+            else
+            {
+                return;
+            }
         }
 
-        return this->propertyRecord;
+        *propRecord = this->propertyRecord;
     }
 
     /////////////////////// ConcatStringBase //////////////////////////

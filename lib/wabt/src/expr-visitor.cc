@@ -42,6 +42,14 @@ Result ExprVisitor::VisitExpr(Expr* expr) {
           delegate_->OnAtomicRmwCmpxchgExpr(cast<AtomicRmwCmpxchgExpr>(expr)));
       break;
 
+    case ExprType::AtomicWait:
+      CHECK_RESULT(delegate_->OnAtomicWaitExpr(cast<AtomicWaitExpr>(expr)));
+      break;
+
+    case ExprType::AtomicWake:
+      CHECK_RESULT(delegate_->OnAtomicWakeExpr(cast<AtomicWakeExpr>(expr)));
+      break;
+
     case ExprType::Binary:
       CHECK_RESULT(delegate_->OnBinaryExpr(cast<BinaryExpr>(expr)));
       break;

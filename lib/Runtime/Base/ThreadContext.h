@@ -412,7 +412,9 @@ public:
     void AddSimdFuncInfo(Js::OpCode op, Js::FunctionInfo *funcInfo);
     Js::OpCode GetSimdOpcodeFromFuncInfo(Js::FunctionInfo * funcInfo);
     void GetSimdFuncSignatureFromOpcode(Js::OpCode op, SimdFuncSignature &funcSignature);
+#endif
 
+#if defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)
 #if _M_IX86 || _M_AMD64
     // auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle.
     _x86_SIMDValue X86_TEMP_SIMD[SIMD_TEMP_SIZE];
@@ -636,6 +638,7 @@ private:
     StackProber * stackProber;
     bool isThreadBound;
     bool hasThrownPendingException;
+    bool * hasBailedOutBitPtr;
     bool callDispose;
 #if ENABLE_JS_REENTRANCY_CHECK
     bool noJsReentrancy;
@@ -717,7 +720,7 @@ private:
     CustomHeap::InProcCodePageAllocators thunkPageAllocators;
 #endif
     CustomHeap::InProcCodePageAllocators codePageAllocators;
-#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64_OR_ARM64)
+#if defined(_CONTROL_FLOW_GUARD) && !defined(_M_ARM)
     InProcJITThunkEmitter jitThunkEmitter;
 #endif
 #endif
@@ -880,7 +883,7 @@ public:
 #endif
     CustomHeap::InProcCodePageAllocators * GetCodePageAllocators() { return &codePageAllocators; }
 
-#if defined(_CONTROL_FLOW_GUARD) && (_M_IX86 || _M_X64_OR_ARM64)
+#if defined(_CONTROL_FLOW_GUARD) && !defined(_M_ARM)
     InProcJITThunkEmitter * GetJITThunkEmitter() { return &jitThunkEmitter; }
 #endif
 #endif // ENABLE_NATIVE_CODEGEN
@@ -1324,7 +1327,7 @@ public:
 
     virtual intptr_t GetThreadStackLimitAddr() const override;
 
-#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SIMDJS) && (defined(_M_IX86) || defined(_M_X64))
+#if ENABLE_NATIVE_CODEGEN && (defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)) && (defined(_M_IX86) || defined(_M_X64))
     virtual intptr_t GetSimdTempAreaAddr(uint8 tempIndex) const override;
 #endif
 
@@ -1458,7 +1461,7 @@ public:
     }
 
     static bool IsOnStack(void const *ptr);
-    _NOINLINE bool IsStackAvailable(size_t size);
+    _NOINLINE bool IsStackAvailable(size_t size, bool* isInterrupt = nullptr);
     _NOINLINE bool IsStackAvailableNoThrow(size_t size = Js::Constants::MinStackDefault);
     static bool IsCurrentStackAvailable(size_t size);
     void ProbeStackNoDispose(size_t size, Js::ScriptContext *scriptContext, PVOID returnAddress = nullptr);
@@ -1527,6 +1530,16 @@ public:
     {
         Assert(this->IsInScript());
         this->hasThrownPendingException = true;
+    }
+
+    bool * GetHasBailedOutBitPtr()
+    {
+        return this->hasBailedOutBitPtr;
+    }
+
+    void SetHasBailedOutBitPtr(bool *setValue)
+    {
+        this->hasBailedOutBitPtr = setValue;
     }
 
     void SetRecordedException(Js::JavascriptExceptionObject* exceptionObject, bool propagateToDebugger = false)

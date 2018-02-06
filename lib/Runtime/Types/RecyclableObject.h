@@ -26,7 +26,10 @@ namespace Js {
         InlineCache* inlineCache;
         PolymorphicInlineCache * polymorphicInlineCache;
         FunctionBody * functionBody;
-        PropertyString * propertyString;
+
+        RecyclableObject* prop; // Symbol or PropertyString associated with this property
+        PropertyRecordUsageCache* propertyRecordUsageCache; // Usage cache for the Symbol or PropertyString `prop` (interior pointer).
+
         uint inlineCacheIndex;
         bool isFunctionPIC;
         bool allowResizingPolymorphicInlineCache;
@@ -46,7 +49,9 @@ namespace Js {
     public:
         PropertyValueInfo()
             : m_instance(NULL), m_propertyIndex(Constants::NoSlot), m_attributes(PropertyNone), flags(InlineCacheNoFlags),
-            cacheInfoFlag(CacheInfoFlag::defaultInfoFlags), inlineCache(nullptr), polymorphicInlineCache(nullptr), propertyString(nullptr), functionBody(nullptr), inlineCacheIndex(Constants::NoInlineCacheIndex), allowResizingPolymorphicInlineCache(true)
+            cacheInfoFlag(CacheInfoFlag::defaultInfoFlags), inlineCache(nullptr), polymorphicInlineCache(nullptr),
+            prop(nullptr), propertyRecordUsageCache(nullptr), functionBody(nullptr),
+            inlineCacheIndex(Constants::NoInlineCacheIndex), allowResizingPolymorphicInlineCache(true)
         {
         }
 
@@ -72,11 +77,21 @@ namespace Js {
         static void SetCacheInfo(PropertyValueInfo* info, InlineCache *const inlineCache);
         static void SetCacheInfo(PropertyValueInfo* info, FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, const bool allowResizingPolymorphicInlineCache);
         static void SetCacheInfo(PropertyValueInfo* info, FunctionBody *const functionBody, PolymorphicInlineCache *const polymorphicInlineCache, const InlineCacheIndex inlineCacheIndex, const bool allowResizingPolymorphicInlineCache);
+        template <typename TProperty> static void SetCacheInfo(
+            _Out_ PropertyValueInfo* info,
+            _In_opt_ TProperty * prop,
+            _In_ PolymorphicInlineCache *const polymorphicInlineCache,
+            bool allowResizing)
+        {
+            SetCacheInfo(info, prop, prop->GetPropertyRecordUsageCache(), polymorphicInlineCache, allowResizing);
+        }
         static void SetCacheInfo(
             _Out_ PropertyValueInfo* info,
-            _In_opt_ PropertyString *const propertyString,
+            _In_opt_ RecyclableObject * prop,
+            _In_opt_ PropertyRecordUsageCache *const propertyRecordUsageCache,
             _In_ PolymorphicInlineCache *const polymorphicInlineCache,
             bool allowResizing);
+        static void SetCacheInfo(_Out_ PropertyValueInfo* info, _In_ PolymorphicInlineCache *const polymorphicInlineCache, bool allowResizing);
         static void ClearCacheInfo(PropertyValueInfo* info);
 
         InlineCache * GetInlineCache() const
@@ -94,9 +109,14 @@ namespace Js {
             return this->functionBody;
         }
 
-        PropertyString * GetPropertyString() const
+        PropertyRecordUsageCache * GetPropertyRecordUsageCache() const
         {
-            return this->propertyString;
+            return this->propertyRecordUsageCache;
+        }
+
+        RecyclableObject * GetProperty() const
+        {
+            return this->prop;
         }
 
         uint GetInlineCacheIndex() const
@@ -318,7 +338,6 @@ namespace Js {
         virtual BOOL IsProtoImmutable() const { return false; }
         virtual BOOL PreventExtensions() { return false; };     // Sets [[Extensible]] flag of instance to false
         virtual void ThrowIfCannotDefineProperty(PropertyId propId, const PropertyDescriptor& descriptor);
-        virtual void ThrowIfCannotGetOwnPropertyDescriptor(PropertyId propId) {}
         virtual BOOL GetDefaultPropertyDescriptor(PropertyDescriptor& descriptor);
         virtual BOOL Seal() { return false; }                   // Seals the instance, no additional property can be added or deleted
         virtual BOOL Freeze() { return false; }                 // Freezes the instance, no additional property can be added or deleted or written
@@ -337,7 +356,6 @@ namespace Js {
         virtual BOOL HasInstance(Var instance, ScriptContext* scriptContext, IsInstInlineCache* inlineCache = NULL);
 
         BOOL SkipsPrototype() const;
-        BOOL CanHaveInterceptors() const;
         BOOL IsExternal() const;
         // Used only in JsVarToExtension where it may be during dispose and the type is not available
         virtual BOOL IsExternalVirtual() const { return FALSE; }
@@ -403,7 +421,6 @@ namespace Js {
         // Used to Assert that the object may safely be cast to a DynamicObject
         virtual bool DbgIsDynamicObject() const { return false; }
         virtual BOOL DbgSkipsPrototype() const { return FALSE; }
-        virtual BOOL DbgCanHaveInterceptors() const { return false; }
 #endif
 #if defined(PROFILE_RECYCLER_ALLOC) && defined(RECYCLER_DUMP_OBJECT_GRAPH)
     public:

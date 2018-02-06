@@ -131,7 +131,7 @@ namespace Js
             JavascriptSIMDBool16x8 *a = JavascriptSIMDBool16x8::FromVar(args[1]);
             Assert(a);
 
-            bool result = SIMDBool32x4Operation::OpAllTrue(a->GetValue());
+            bool result = SIMDBool32x4Operation::OpAllTrue<int16>(a->GetValue());
 
             return JavascriptBoolean::ToVar(result, scriptContext);
         }
