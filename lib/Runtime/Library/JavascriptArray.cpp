@@ -4137,6 +4137,10 @@ namespace Js
                     return i;
                 }
             }
+            else if (SparseArraySegment<Var>::IsMissingItem(&element))
+            {
+                AssertOrFailFast(false);
+            }
             else if (includesAlgorithm && JavascriptConversion::SameValueZero(element, search))
             {
                 //Array.prototype.includes
@@ -6667,6 +6671,8 @@ Case0:
             ClearSegmentMap(); // Dump the segmentMap again in case user compare function rebuilds it
             if (hasException)
             {
+                // The current array might have affected due to callbacks. As we have got the exception we should be resetting the missing value.
+                SetHasNoMissingValues(false);
                 head = startSeg;
                 this->InvalidateLastUsedSegment();
             }
