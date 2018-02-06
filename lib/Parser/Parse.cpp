@@ -7656,7 +7656,7 @@ LPCOLESTR Parser::ConstructFinalHintNode(IdentPtr pClassName, IdentPtr pMemberNa
     }
 
     LPCOLESTR pFinalName = isComputedName? pMemberNameHint : pMemberName->Psz();
-    uint32 fullNameHintLength = 0;
+    uint32 fullNameHintLength = (uint32)wcslen(pFinalName);
     uint32 shortNameOffset = 0;
     if (!isStatic)
     {
@@ -7686,15 +7686,9 @@ LPCOLESTR Parser::ConstructFinalHintNode(IdentPtr pClassName, IdentPtr pMemberNa
         }
 
     }
-    if (fullNameHintLength > *nameLength)
-    {
-        *nameLength = fullNameHintLength;
-    }
 
-    if (shortNameOffset > *pShortNameOffset)
-    {
-        *pShortNameOffset = shortNameOffset;
-    }
+    *nameLength = fullNameHintLength;
+    *pShortNameOffset = shortNameOffset;
 
     return pFinalName;
 }
