@@ -4665,7 +4665,7 @@ CHAKRA_API JsCreateString(
         length = strlen(content);
     }
 
-    if (length > static_cast<CharCount>(-1))
+    if (length > MaxCharCount)
     {
         return JsErrorOutOfMemory;
     }
