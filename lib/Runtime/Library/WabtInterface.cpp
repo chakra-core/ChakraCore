@@ -18,11 +18,11 @@ struct Context
     ScriptContext* scriptContext;
 };
 
-char16* NarrowStringToWide(Context* ctx, const char* src, const size_t* srcSize = nullptr, size_t* dstSize = nullptr)
+char16* NarrowStringToWide(Context* ctx, const char* src, const size_t* srcSize = nullptr, charcount_t* dstSize = nullptr)
 {
     auto allocator = [&ctx](size_t size) {return (char16*)AnewArray(ctx->allocator, char16, size); };
     char16* dst = nullptr;
-    size_t size;
+    charcount_t size;
     HRESULT hr = utf8::NarrowStringToWide(allocator, src, srcSize ? *srcSize : strlen(src), &dst, &size);
     if (hr != S_OK)
     {
@@ -86,11 +86,11 @@ Js::Var Int64ToVar(int64 value, void* user_data)
 Js::Var StringToVar(const char* src, uint length, void* user_data)
 {
     Context* ctx = (Context*)user_data;
-    size_t bufSize = 0;
+    charcount_t bufSize = 0;
     size_t slength = (size_t)length;
     char16* buf = NarrowStringToWide(ctx, src, &slength, &bufSize);
     Assert(bufSize < UINT32_MAX);
-    return JavascriptString::NewCopyBuffer(buf, (charcount_t)bufSize, ctx->scriptContext);
+    return JavascriptString::NewCopyBuffer(buf, bufSize, ctx->scriptContext);
 }
 
 Js::Var CreateBuffer(const uint8* buf, uint size, void* user_data)
