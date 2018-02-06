@@ -4573,7 +4573,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         // Can we get away with only invalidating a subset of the property guards?
         // Ask Paul.
-        threadContext->InvalidateAllPropertyGuards();
+        threadContext->InvalidatePropertyGuards(propertyId);
 #endif
         threadContext->InvalidateProtoTypePropertyCaches(propertyId);
         // XXX do we need to implement this, instead of invalidating all caches on the previous line?
