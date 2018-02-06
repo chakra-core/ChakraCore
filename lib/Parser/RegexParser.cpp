@@ -1750,11 +1750,27 @@ namespace UnifiedRegex
                 }
                 // Take to be identity escape if ill-formed as per Annex B
                 break;
+            case '^':
+            case '$':
+            case '\\':
+            case '.':
+            case '*':
+            case '+':
+            case '?':
+            case '(':
+            case ')':
+            case '[':
+            case ']':
+            case '{':
+            case '}':
+            case '|':
+            case '/':
+                break; // fall-through for identity escape
             default:
                 if (this->unicodeFlagPresent)
                 {
                     // As per #sec-forbidden-extensions, if unicode flag is present, we must disallow any other escape.
-                    Js::JavascriptError::ThrowSyntaxError(scriptContext, JSERR_RegExpInvalidEscape);
+                    this->Fail(JSERR_RegExpInvalidEscape); // throw SyntaxError
                 }
                 // As per Annex B, allow anything other than newlines and above. Embedded 0 is ok
                 break;
