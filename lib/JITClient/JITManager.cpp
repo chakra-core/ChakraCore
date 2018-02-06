@@ -226,20 +226,17 @@ JITManager::IsOOPJITEnabled() const
 HRESULT
 JITManager::ConnectRpcServer(__in HANDLE jitProcessHandle, __in_opt void* serverSecurityDescriptor, __in UUID connectionUuid)
 {
+    // We might be trying to connect from multiple threads simultaneously
+    AutoCriticalSection cs(&m_cs);
+
     Assert(IsOOPJITEnabled());
-    if(m_rpcBindingHandle != nullptr)
+    if (m_rpcBindingHandle != nullptr)
     {
-        // TODO: change this to allow connecting a new JIT process to new ThreadContexts
-        return E_FAIL;
+        return S_OK;
     }
 
     HRESULT hr = E_FAIL;
 
-    if (IsConnected())
-    {
-        Assert(UNREACHED);
-        return E_FAIL;
-    }
 
     hr = CreateBinding(jitProcessHandle, serverSecurityDescriptor, &connectionUuid, &m_rpcBindingHandle);
     if (FAILED(hr))

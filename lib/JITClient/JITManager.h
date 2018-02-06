@@ -140,6 +140,7 @@ private:
     bool m_oopJitEnabled;
     bool m_isJITServer;
     HRESULT m_failingHRESULT;
+    CriticalSection m_cs;
 
     static JITManager s_jitManager;
 
