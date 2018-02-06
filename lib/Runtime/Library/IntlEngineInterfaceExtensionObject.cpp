@@ -764,7 +764,7 @@ namespace Js
 
         // allocate toLangTagResultLength + 1 to leave room for null terminator
         char16 *canonicalized16 = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, toLangTagResultLength + 1);
-        size_t canonicalized16Len = 0;
+        charcount_t canonicalized16Len = 0;
         HRESULT hr = utf8::NarrowStringToWideNoAlloc(
             canonicalized,
             toLangTagResultLength,
@@ -942,7 +942,7 @@ namespace Js
 
                 // we only need strlen(unicodeCollation) + 1 char16s because unicodeCollation will always be ASCII (funnily enough)
                 char16 *unicodeCollation16 = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, strlen(unicodeCollation) + 1);
-                size_t unicodeCollation16Len = 0;
+                charcount_t unicodeCollation16Len = 0;
                 HRESULT hr = utf8::NarrowStringToWideNoAlloc(
                     unicodeCollation,
                     unicodeCollationLen,
@@ -1027,7 +1027,7 @@ namespace Js
 
                 // we only need strlen(unicodeCalendar) + 1 char16s because unicodeCalendar will always be ASCII (funnily enough)
                 char16 *unicodeCalendar16 = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, strlen(unicodeCalendar) + 1);
-                size_t unicodeCalendar16Len = 0;
+                charcount_t unicodeCalendar16Len = 0;
                 HRESULT hr = utf8::NarrowStringToWideNoAlloc(
                     unicodeCalendar,
                     unicodeCalendarLen,
@@ -1751,8 +1751,8 @@ namespace Js
         {
             right = str2->GetNormalizedString(UnicodeText::NormalizationForm::C, tempAllocator, rightLen);
         }
-		
-		END_TEMP_ALLOCATOR(tempAllocator, scriptContext);
+
+        END_TEMP_ALLOCATOR(tempAllocator, scriptContext);
 
         // CompareStringEx on Windows returns 0 for error, 1 if less, 2 if equal, 3 if greater
         // Default to the strings being equal, because sorting with == causes no change in the order but converges, whereas < would cause an infinite loop.
@@ -1777,14 +1777,14 @@ namespace Js
             &error
         );
 #elif !_WIN32
-		compareResult = wcsncmp(aLeft, aRight, min(size1, size2));
+        compareResult = wcsncmp(aLeft, aRight, min(size1, size2));
         if (compareResult == 0 && size1 != size2)
         {
             compareResult = size1 > size2 ? 1 : -1;
         }
-		
-		// return early because wcsncmp has a different return value format that CompareStringEx/CollatorCompare
-		return JavascriptNumber::ToVar(compareResult, scriptContext);
+
+        // return early because wcsncmp has a different return value format that CompareStringEx/CollatorCompare
+        return JavascriptNumber::ToVar(compareResult, scriptContext);
 #endif
 
         if (compareResult == 0)
