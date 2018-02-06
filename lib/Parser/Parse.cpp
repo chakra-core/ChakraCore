@@ -4030,7 +4030,16 @@ ParseNodePtr Parser::ParsePostfixOperators(
         case tkStrTmplBasic:
         case tkStrTmplBegin:
             {
-                ParseNode* templateNode = ParseStringTemplateDecl<buildAST>(pnode);
+                ParseNode* templateNode = nullptr;
+                if (pnode != nullptr)
+                {
+                    AutoMarkInParsingArgs autoMarkInParsingArgs(this);
+                    templateNode = ParseStringTemplateDecl<buildAST>(pnode);
+                }
+                else
+                {
+                    templateNode = ParseStringTemplateDecl<buildAST>(pnode);
+                }
 
                 if (!buildAST)
                 {
@@ -8285,6 +8294,7 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
 
             // We need to set the arg count explicitly
             pnodeStringTemplate->sxCall.argCount = stringConstantCount;
+            pnodeStringTemplate->sxCall.hasDestructuring = m_hasDestructuringPattern;
         }
     }
 
