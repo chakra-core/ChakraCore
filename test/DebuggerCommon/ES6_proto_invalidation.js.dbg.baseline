@@ -363,34 +363,6 @@
               "__lookupGetter__": "function <large string>",
               "__lookupSetter__": "function <large string>"
             },
-            "values": {
-              "#__proto__": "function <large string>",
-              "name": "string values",
-              "length": "number 0",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "Symbol.iterator": {
-              "#__proto__": "function <large string>",
-              "name": "string values",
-              "length": "number 0",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "entries": {
-              "#__proto__": "function <large string>",
-              "name": "string entries",
-              "length": "number 0",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "keys": {
-              "#__proto__": "function <large string>",
-              "name": "string keys",
-              "length": "number 0",
-              "caller": "object null",
-              "arguments": "object null"
-            },
             "constructor": {
               "#__proto__": "function <large string>",
               "length": "number 1",
@@ -563,6 +535,26 @@
               "name": "string findIndex",
               "caller": "object null",
               "arguments": "object null"
+            },
+            "keys": {
+              "#__proto__": "function <large string>",
+              "name": "string keys",
+              "length": "number 0"
+            },
+            "values": {
+              "#__proto__": "function <large string>",
+              "name": "string values",
+              "length": "number 0"
+            },
+            "Symbol.iterator": {
+              "#__proto__": "function <large string>",
+              "name": "string values",
+              "length": "number 0"
+            },
+            "entries": {
+              "#__proto__": "function <large string>",
+              "name": "string entries",
+              "length": "number 0"
             },
             "Symbol.unscopables": {
               "find": "boolean true",
@@ -642,34 +634,6 @@
               "__lookupGetter__": "function <large string>",
               "__lookupSetter__": "function <large string>"
             },
-            "values": {
-              "#__proto__": "function <large string>",
-              "name": "string values",
-              "length": "number 0",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "Symbol.iterator": {
-              "#__proto__": "function <large string>",
-              "name": "string values",
-              "length": "number 0",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "entries": {
-              "#__proto__": "function <large string>",
-              "name": "string entries",
-              "length": "number 0",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "keys": {
-              "#__proto__": "function <large string>",
-              "name": "string keys",
-              "length": "number 0",
-              "caller": "object null",
-              "arguments": "object null"
-            },
             "constructor": {
               "#__proto__": "function <large string>",
               "length": "number 1",
@@ -842,6 +806,26 @@
               "name": "string findIndex",
               "caller": "object null",
               "arguments": "object null"
+            },
+            "keys": {
+              "#__proto__": "function <large string>",
+              "name": "string keys",
+              "length": "number 0"
+            },
+            "values": {
+              "#__proto__": "function <large string>",
+              "name": "string values",
+              "length": "number 0"
+            },
+            "Symbol.iterator": {
+              "#__proto__": "function <large string>",
+              "name": "string values",
+              "length": "number 0"
+            },
+            "entries": {
+              "#__proto__": "function <large string>",
+              "name": "string entries",
+              "length": "number 0"
             },
             "Symbol.unscopables": {
               "find": "boolean true",

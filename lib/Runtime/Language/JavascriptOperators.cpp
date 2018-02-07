@@ -1090,6 +1090,20 @@ CommonNumber:
             return GetOwnPropertyDescriptor(object, propertyId, requestContext, &desc);
         }
 
+        if (JavascriptFunction::Is(instance))
+        {
+            JavascriptFunction *func = JavascriptFunction::UnsafeFromVar(instance);
+            if ((propertyId == PropertyIds::caller || propertyId == PropertyIds::arguments) && func->IsLibraryCode())
+            {
+                // As per #sec-forbidden-extensions, built-in library functions 'must not be created with own properties named "caller" or "arguments"'.
+                // Because these properties are synthetic properties, we must instead return `false` as the result of hasOwnProperty.
+                // NOTE: This is a spot fix for behavior of obj.hasOwnProperty('caller') or obj.hasOwnProperty('arguments') on built-in functions,
+                // and a general fix for all behavior related to '"caller"' and '"arguments"' (Ctrl+F with double quotes) in the spec
+                // might need to revisit this spot fix and wrap this logic into other, related, logic.
+                return FALSE;
+            }
+        }
+
         // If we have a PropertyString, attempt to shortcut the lookup by using its caches
         if (propString != nullptr)
         {
