@@ -13443,6 +13443,9 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
         return;
     }
 
+    const bool isLikelyVirtualTypedArray = baseValueType.IsLikelyOptimizedVirtualTypedArray();
+    Assert(!(isLikelyJsArray && isLikelyVirtualTypedArray));
+
     ValueType newBaseValueType(baseValueType.ToDefiniteObject());
     if(isLikelyJsArray && newBaseValueType.HasNoMissingValues() && !DoArrayMissingValueCheckHoist())
     {
@@ -13773,7 +13776,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
             {
                 const JsArrayKills loopKills(loop->jsArrayKills);
                 Value *baseValueInLoopLandingPad = nullptr;
-                if((isLikelyJsArray && loopKills.KillsValueType(newBaseValueType)) ||
+                if(((isLikelyJsArray || isLikelyVirtualTypedArray) && loopKills.KillsValueType(newBaseValueType)) ||
                     !OptIsInvariant(baseOpnd->m_sym, currentBlock, loop, baseValue, true, true, &baseValueInLoopLandingPad) ||
                     !(doArrayChecks || baseValueInLoopLandingPad->GetValueInfo()->IsObject()))
                 {
@@ -17387,7 +17390,9 @@ GlobOpt::DoArrayCheckHoist(const ValueType baseValueType, Loop* loop, IR::Instr 
         return false;
     }
 
-    if(!baseValueType.IsLikelyArrayOrObjectWithArray() ||
+    // This includes typed arrays, but not virtual typed arrays, whose vtable can change if the buffer goes away.
+    // Note that in the virtual case the vtable check is the only way to catch this, since there's no bound check.
+    if(!(baseValueType.IsLikelyArrayOrObjectWithArray() || baseValueType.IsLikelyOptimizedVirtualTypedArray()) ||
         (loop ? ImplicitCallFlagsAllowOpts(loop) : ImplicitCallFlagsAllowOpts(func)))
     {
         return true;
