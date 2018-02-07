@@ -4571,8 +4571,6 @@ namespace Js
         // XXX Determine what action is necessary for invalidating missing-property caches.
         threadContext->InvalidateStoreFieldInlineCaches(propertyId);
 #if ENABLE_NATIVE_CODEGEN
-        // Can we get away with only invalidating a subset of the property guards?
-        // Ask Paul.
         threadContext->InvalidatePropertyGuards(propertyId);
 #endif
         threadContext->InvalidateProtoTypePropertyCaches(propertyId);
