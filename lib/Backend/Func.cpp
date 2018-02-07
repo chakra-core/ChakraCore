@@ -1140,12 +1140,11 @@ Func::IsAggressiveIntTypeSpecDisabled() const
     return (HasProfileInfo() && GetReadOnlyProfileInfo()->IsAggressiveIntTypeSpecDisabled(IsLoopBody())) || m_output.IsAggressiveIntTypeSpecDisabled();
 }
 
-bool Func::CanAllocInPreReservedHeapPageSegment ()
+bool Func::CanAllocInPreReservedHeapPageSegment()
 {
 #ifdef _CONTROL_FLOW_GUARD
     return PHASE_FORCE1(Js::PreReservedHeapAllocPhase) || (!PHASE_OFF1(Js::PreReservedHeapAllocPhase) &&
-        !IsJitInDebugMode() && GetThreadContextInfo()->IsCFGEnabled()
-        //&& !GetScriptContext()->IsScriptContextInDebugMode()
+        !IsJitInDebugMode()
 #if _M_IX86
         && m_workItem->GetJitMode() == ExecutionMode::FullJit
 
