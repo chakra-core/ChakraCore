@@ -12904,6 +12904,10 @@ ParseNodePtr Parser::GetRightSideNodeFromPattern(ParseNodePtr pnode)
         {
             TrackAssignment<true>(pnode, nullptr);
         }
+        else if (op == knopAsg)
+        {
+            TrackAssignment<true>(pnode->sxBin.pnode1, nullptr);
+        }
     }
 
     return rightNode;
