@@ -4564,18 +4564,9 @@ namespace Js
     void ScriptContext::InvalidateMissingPropertyCaches(const PropertyId propertyId)
     {
         threadContext->InvalidateMissingPropertyInlineCaches(propertyId);
-        // We'd originally thought that the storeFieldInlineCaches wouldn't contain entries for propertyId,
-        // because the corresponding property isn't already in this type -- we only call this method when
-        // adding a new property.  However, experimentation demonstrates that this is not correct -- probably
-        // because the property may be present in other types, even if it isn't in "this type".
-        // XXX Determine what action is necessary for invalidating missing-property caches.
-        // threadContext->InvalidateStoreFieldInlineCaches(propertyId);
 #if ENABLE_NATIVE_CODEGEN
         threadContext->InvalidatePropertyGuards(propertyId);
 #endif
-        threadContext->InvalidateProtoTypePropertyCaches(propertyId);
-        // XXX do we need to implement this, instead of invalidating all caches on the previous line?
-        // threadContext->InvalidateMissingPropertyProtoTypePropertyCaches(propertyId);
     }
 
     void ScriptContext::RegisterStoreFieldInlineCache(InlineCache *pCache, PropertyId propId)
