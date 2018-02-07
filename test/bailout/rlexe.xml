@@ -249,6 +249,12 @@
   </test>
   <test>
     <default>
+      <files>inline_get_bailout.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>spill.js</files>
     </default>
   </test>
