@@ -4569,7 +4569,7 @@ namespace Js
         // adding a new property.  However, experimentation demonstrates that this is not correct -- probably
         // because the property may be present in other types, even if it isn't in "this type".
         // XXX Determine what action is necessary for invalidating missing-property caches.
-        threadContext->InvalidateStoreFieldInlineCaches(propertyId);
+        // threadContext->InvalidateStoreFieldInlineCaches(propertyId);
 #if ENABLE_NATIVE_CODEGEN
         threadContext->InvalidatePropertyGuards(propertyId);
 #endif
