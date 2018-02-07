@@ -204,8 +204,9 @@ public:
     static ObjTypeSpecFldInfo* CreateFrom(uint id, Js::PolymorphicInlineCache* cache, uint cacheId,
         Js::EntryPointInfo *entryPoint, Js::FunctionBody* const topFunctionBody, Js::FunctionBody *const functionBody, Js::FieldAccessStatsPtr inlineCacheStats);
 
-    // TODO: OOP JIT, implement this
-    char16* GetCacheLayoutString() { __debugbreak(); return nullptr; }
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    const char16* GetCacheLayoutString() const { return _u("ObjTypeSpecFldInfo"); }
+#endif
 
 private:
     ObjTypeSpecFldInfoFlags GetFlags() const;
