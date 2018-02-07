@@ -932,21 +932,6 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
             CheckRedeclarationErrorForBlockId(pid, pnodeFnc->sxFnc.pnodeScopes->sxBlock.blockId);
         }
 
-        if ((scope->GetScopeType() == ScopeType_FunctionBody || scope->GetScopeType() == ScopeType_Parameter) && symbolType != STFunction)
-        {
-            AnalysisAssert(pnodeFnc);
-            if (pnodeFnc->sxFnc.pnodeName &&
-                pnodeFnc->sxFnc.pnodeName->nop == knopVarDecl &&
-                pnodeFnc->sxFnc.pnodeName->sxVar.pid == pid &&
-                (pnodeFnc->sxFnc.IsBodyAndParamScopeMerged() || scope->GetScopeType() == ScopeType_Parameter))
-            {
-                // Named function expression has its name hidden by a local declaration.
-                // This is important to know if we don't know whether nested deferred functions refer to it,
-                // because if the name has a non-local reference then we have to create a scope object.
-                m_currentNodeFunc->sxFnc.SetNameIsHidden();
-            }
-        }
-
         if (!sym)
         {
             const char16 *name = reinterpret_cast<const char16*>(pid->Psz());
@@ -6574,15 +6559,6 @@ bool Parser::ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, u
     if (pFncNamePid != nullptr)
     {
         *pFncNamePid = pidBase;
-    }
-
-    if (fDeclaration &&
-        pnodeFncParent &&
-        pnodeFncParent->sxFnc.pnodeName &&
-        pnodeFncParent->sxFnc.pnodeName->nop == knopVarDecl &&
-        pnodeFncParent->sxFnc.pnodeName->sxVar.pid == pidBase)
-    {
-        pnodeFncParent->sxFnc.SetNameIsHidden();
     }
 
     if (buildAST)
