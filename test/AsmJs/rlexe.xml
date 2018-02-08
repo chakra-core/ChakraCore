@@ -1045,6 +1045,11 @@
   </test>
   <test>
     <default>
+      <files>manyargs.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>maybecallbug.js</files>
       <baseline>maybecallbug.baseline</baseline>
       <compile-flags>-testtrace:asmjs</compile-flags>
