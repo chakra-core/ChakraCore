@@ -1163,13 +1163,14 @@ namespace Js
         __asm
         {
             mov savedEsp, esp;
-            mov eax, argsSize;
-            cmp eax, 0x1000;
+            mov ecx, argsSize;
+            cmp ecx, 0x1000;
             jl allocate_stack;
             // Use _chkstk to probe each page when using more then a page size
-            call _chkstk;
-allocate_stack:
-            sub esp, eax;
+            mov eax, ecx;
+            call _chkstk; // _chkstk saves/restores ecx
+        allocate_stack:
+            sub esp, ecx;
 
             mov edi, esp;
             mov esi, argv;
