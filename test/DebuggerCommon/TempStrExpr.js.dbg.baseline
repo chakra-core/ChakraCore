@@ -180,26 +180,18 @@
         "fromCharCode": {
           "#__proto__": "function <large string>",
           "length": "number 1",
-          "name": "string fromCharCode",
-          "caller": "object null",
-          "arguments": "object null"
+          "name": "string fromCharCode"
         },
         "fromCodePoint": {
           "#__proto__": "function <large string>",
           "length": "number 1",
-          "name": "string fromCodePoint",
-          "caller": "object null",
-          "arguments": "object null"
+          "name": "string fromCodePoint"
         },
         "raw": {
           "#__proto__": "function <large string>",
           "length": "number 1",
-          "name": "string raw",
-          "caller": "object null",
-          "arguments": "object null"
-        },
-        "caller": "object null",
-        "arguments": "object null"
+          "name": "string raw"
+        }
       }
     }
   },

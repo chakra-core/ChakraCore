@@ -27,10 +27,8 @@
       },
       "Symbol.iterator": {
         "#__proto__": "function <large string>",
-        "length": "number 0",
         "name": "string values",
-        "caller": "object null",
-        "arguments": "object null"
+        "length": "number 0"
       }
     },
     "locals": {
