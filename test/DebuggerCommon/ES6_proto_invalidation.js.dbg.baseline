@@ -24,317 +24,227 @@
             "name": "string String",
             "fromCharCode": "function <large string>",
             "fromCodePoint": "function <large string>",
-            "raw": "function <large string>",
-            "caller": "object null",
-            "arguments": "object null"
+            "raw": "function <large string>"
           },
           "indexOf": {
             "#__proto__": "function <large string>",
             "length": "number 1",
-            "name": "string indexOf",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string indexOf"
           },
           "lastIndexOf": {
             "#__proto__": "function <large string>",
             "length": "number 1",
-            "name": "string lastIndexOf",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string lastIndexOf"
           },
           "replace": {
             "#__proto__": "function <large string>",
             "length": "number 2",
-            "name": "string replace",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string replace"
           },
           "search": {
             "#__proto__": "function <large string>",
             "length": "number 1",
-            "name": "string search",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string search"
           },
           "slice": {
             "#__proto__": "function <large string>",
             "length": "number 2",
-            "name": "string slice",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string slice"
           },
           "codePointAt": {
             "#__proto__": "function <large string>",
             "length": "number 1",
-            "name": "string codePointAt",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string codePointAt"
           },
           "normalize": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string normalize",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string normalize"
           },
           "charAt": {
             "#__proto__": "function <large string>",
             "length": "number 1",
-            "name": "string charAt",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string charAt"
           },
           "charCodeAt": {
             "#__proto__": "function <large string>",
             "length": "number 1",
-            "name": "string charCodeAt",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string charCodeAt"
           },
           "concat": {
             "#__proto__": "function <large string>",
             "length": "number 1",
-            "name": "string concat",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string concat"
           },
           "localeCompare": {
             "#__proto__": "function <large string>",
             "length": "number 1",
-            "name": "string localeCompare",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string localeCompare"
           },
           "match": {
             "#__proto__": "function <large string>",
             "length": "number 1",
-            "name": "string match",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string match"
           },
           "split": {
             "#__proto__": "function <large string>",
             "length": "number 2",
-            "name": "string split",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string split"
           },
           "substring": {
             "#__proto__": "function <large string>",
             "length": "number 2",
-            "name": "string substring",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string substring"
           },
           "substr": {
             "#__proto__": "function <large string>",
             "length": "number 2",
-            "name": "string substr",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string substr"
           },
           "toLocaleLowerCase": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string <large string>",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string <large string>"
           },
           "toLocaleUpperCase": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string <large string>",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string <large string>"
           },
           "toLowerCase": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string toLowerCase",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string toLowerCase"
           },
           "toString": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string toString",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string toString"
           },
           "toUpperCase": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string toUpperCase",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string toUpperCase"
           },
           "trim": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string trim",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string trim"
           },
           "valueOf": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string valueOf",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string valueOf"
           },
           "anchor": {
             "#__proto__": "function <large string>",
             "length": "number 1",
-            "name": "string anchor",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string anchor"
           },
           "big": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string big",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string big"
           },
           "blink": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string blink",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string blink"
           },
           "bold": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string bold",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string bold"
           },
           "fixed": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string fixed",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string fixed"
           },
           "fontcolor": {
             "#__proto__": "function <large string>",
             "length": "number 1",
-            "name": "string fontcolor",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string fontcolor"
           },
           "fontsize": {
             "#__proto__": "function <large string>",
             "length": "number 1",
-            "name": "string fontsize",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string fontsize"
           },
           "italics": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string italics",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string italics"
           },
           "link": {
             "#__proto__": "function <large string>",
             "length": "number 1",
-            "name": "string link",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string link"
           },
           "small": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string small",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string small"
           },
           "strike": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string strike",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string strike"
           },
           "sub": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string sub",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string sub"
           },
           "sup": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string sup",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string sup"
           },
           "repeat": {
             "#__proto__": "function <large string>",
             "length": "number 1",
-            "name": "string repeat",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string repeat"
           },
           "startsWith": {
             "#__proto__": "function <large string>",
             "length": "number 1",
-            "name": "string startsWith",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string startsWith"
           },
           "endsWith": {
             "#__proto__": "function <large string>",
             "length": "number 1",
-            "name": "string endsWith",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string endsWith"
           },
           "includes": {
             "#__proto__": "function <large string>",
             "length": "number 1",
-            "name": "string includes",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string includes"
           },
           "trimLeft": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string trimLeft",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string trimLeft"
           },
           "trimRight": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string trimRight",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string trimRight"
           },
           "Symbol.iterator": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string <large string>",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string <large string>"
           },
           "padStart": {
             "#__proto__": "function <large string>",
             "length": "number 1",
-            "name": "string padStart",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string padStart"
           },
           "padEnd": {
             "#__proto__": "function <large string>",
             "length": "number 1",
-            "name": "string padEnd",
-            "caller": "object null",
-            "arguments": "object null"
+            "name": "string padEnd"
           },
           "length": "number 0"
         },
@@ -363,34 +273,6 @@
               "__lookupGetter__": "function <large string>",
               "__lookupSetter__": "function <large string>"
             },
-            "values": {
-              "#__proto__": "function <large string>",
-              "name": "string values",
-              "length": "number 0",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "Symbol.iterator": {
-              "#__proto__": "function <large string>",
-              "name": "string values",
-              "length": "number 0",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "entries": {
-              "#__proto__": "function <large string>",
-              "name": "string entries",
-              "length": "number 0",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "keys": {
-              "#__proto__": "function <large string>",
-              "name": "string keys",
-              "length": "number 0",
-              "caller": "object null",
-              "arguments": "object null"
-            },
             "constructor": {
               "#__proto__": "function <large string>",
               "length": "number 1",
@@ -399,170 +281,142 @@
               "name": "string Array",
               "isArray": "function <large string>",
               "from": "function <large string>",
-              "of": "function <large string>",
-              "caller": "object null",
-              "arguments": "object null"
+              "of": "function <large string>"
             },
             "push": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string push",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string push"
             },
             "concat": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string concat",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string concat"
             },
             "join": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string join",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string join"
             },
             "pop": {
               "#__proto__": "function <large string>",
               "length": "number 0",
-              "name": "string pop",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string pop"
             },
             "reverse": {
               "#__proto__": "function <large string>",
               "length": "number 0",
-              "name": "string reverse",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string reverse"
             },
             "shift": {
               "#__proto__": "function <large string>",
               "length": "number 0",
-              "name": "string shift",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string shift"
             },
             "slice": {
               "#__proto__": "function <large string>",
               "length": "number 2",
-              "name": "string slice",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string slice"
             },
             "sort": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string sort",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string sort"
             },
             "splice": {
               "#__proto__": "function <large string>",
               "length": "number 2",
-              "name": "string splice",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string splice"
             },
             "toLocaleString": {
               "#__proto__": "function <large string>",
               "length": "number 0",
-              "name": "string toLocaleString",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string toLocaleString"
             },
             "toString": {
               "#__proto__": "function <large string>",
               "length": "number 0",
-              "name": "string toString",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string toString"
             },
             "unshift": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string unshift",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string unshift"
             },
             "indexOf": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string indexOf",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string indexOf"
             },
             "every": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string every",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string every"
             },
             "filter": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string filter",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string filter"
             },
             "forEach": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string forEach",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string forEach"
             },
             "lastIndexOf": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string lastIndexOf",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string lastIndexOf"
             },
             "map": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string map",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string map"
             },
             "reduce": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string reduce",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string reduce"
             },
             "reduceRight": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string reduceRight",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string reduceRight"
             },
             "some": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string some",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string some"
             },
             "find": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string find",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string find"
             },
             "findIndex": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string findIndex",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string findIndex"
+            },
+            "keys": {
+              "#__proto__": "function <large string>",
+              "name": "string keys",
+              "length": "number 0"
+            },
+            "values": {
+              "#__proto__": "function <large string>",
+              "name": "string values",
+              "length": "number 0"
+            },
+            "Symbol.iterator": {
+              "#__proto__": "function <large string>",
+              "name": "string values",
+              "length": "number 0"
+            },
+            "entries": {
+              "#__proto__": "function <large string>",
+              "name": "string entries",
+              "length": "number 0"
             },
             "Symbol.unscopables": {
               "find": "boolean true",
@@ -577,23 +431,17 @@
             "fill": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string fill",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string fill"
             },
             "copyWithin": {
               "#__proto__": "function <large string>",
               "length": "number 2",
-              "name": "string copyWithin",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string copyWithin"
             },
             "includes": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string includes",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string includes"
             },
             "length": "number 0"
           },
@@ -642,34 +490,6 @@
               "__lookupGetter__": "function <large string>",
               "__lookupSetter__": "function <large string>"
             },
-            "values": {
-              "#__proto__": "function <large string>",
-              "name": "string values",
-              "length": "number 0",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "Symbol.iterator": {
-              "#__proto__": "function <large string>",
-              "name": "string values",
-              "length": "number 0",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "entries": {
-              "#__proto__": "function <large string>",
-              "name": "string entries",
-              "length": "number 0",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "keys": {
-              "#__proto__": "function <large string>",
-              "name": "string keys",
-              "length": "number 0",
-              "caller": "object null",
-              "arguments": "object null"
-            },
             "constructor": {
               "#__proto__": "function <large string>",
               "length": "number 1",
@@ -678,170 +498,142 @@
               "name": "string Array",
               "isArray": "function <large string>",
               "from": "function <large string>",
-              "of": "function <large string>",
-              "caller": "object null",
-              "arguments": "object null"
+              "of": "function <large string>"
             },
             "push": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string push",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string push"
             },
             "concat": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string concat",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string concat"
             },
             "join": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string join",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string join"
             },
             "pop": {
               "#__proto__": "function <large string>",
               "length": "number 0",
-              "name": "string pop",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string pop"
             },
             "reverse": {
               "#__proto__": "function <large string>",
               "length": "number 0",
-              "name": "string reverse",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string reverse"
             },
             "shift": {
               "#__proto__": "function <large string>",
               "length": "number 0",
-              "name": "string shift",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string shift"
             },
             "slice": {
               "#__proto__": "function <large string>",
               "length": "number 2",
-              "name": "string slice",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string slice"
             },
             "sort": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string sort",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string sort"
             },
             "splice": {
               "#__proto__": "function <large string>",
               "length": "number 2",
-              "name": "string splice",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string splice"
             },
             "toLocaleString": {
               "#__proto__": "function <large string>",
               "length": "number 0",
-              "name": "string toLocaleString",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string toLocaleString"
             },
             "toString": {
               "#__proto__": "function <large string>",
               "length": "number 0",
-              "name": "string toString",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string toString"
             },
             "unshift": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string unshift",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string unshift"
             },
             "indexOf": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string indexOf",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string indexOf"
             },
             "every": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string every",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string every"
             },
             "filter": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string filter",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string filter"
             },
             "forEach": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string forEach",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string forEach"
             },
             "lastIndexOf": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string lastIndexOf",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string lastIndexOf"
             },
             "map": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string map",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string map"
             },
             "reduce": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string reduce",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string reduce"
             },
             "reduceRight": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string reduceRight",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string reduceRight"
             },
             "some": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string some",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string some"
             },
             "find": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string find",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string find"
             },
             "findIndex": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string findIndex",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string findIndex"
+            },
+            "keys": {
+              "#__proto__": "function <large string>",
+              "name": "string keys",
+              "length": "number 0"
+            },
+            "values": {
+              "#__proto__": "function <large string>",
+              "name": "string values",
+              "length": "number 0"
+            },
+            "Symbol.iterator": {
+              "#__proto__": "function <large string>",
+              "name": "string values",
+              "length": "number 0"
+            },
+            "entries": {
+              "#__proto__": "function <large string>",
+              "name": "string entries",
+              "length": "number 0"
             },
             "Symbol.unscopables": {
               "find": "boolean true",
@@ -856,23 +648,17 @@
             "fill": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string fill",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string fill"
             },
             "copyWithin": {
               "#__proto__": "function <large string>",
               "length": "number 2",
-              "name": "string copyWithin",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string copyWithin"
             },
             "includes": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string includes",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string includes"
             },
             "length": "number 0"
           },

@@ -349,8 +349,6 @@ namespace Js
             scriptFunction->GetFunctionBody()->SetJsBuiltInForceInline();
         }
         scriptFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(argumentsCount), PropertyConfigurable, nullptr);
-        scriptFunction->SetPropertyWithAttributes(PropertyIds::caller, library->nullValue, PropertyNone, nullptr);
-        scriptFunction->SetPropertyWithAttributes(PropertyIds::arguments, library->nullValue, PropertyNone, nullptr);
 
         scriptFunction->SetConfigurable(PropertyIds::prototype, true);
         scriptFunction->DeleteProperty(PropertyIds::prototype, Js::PropertyOperationFlags::PropertyOperation_None);

@@ -2467,8 +2467,10 @@ LABEL1:
             this->functionInfo->IsLambda() ||
             this->functionInfo->IsAsync() ||
             this->IsGeneratorFunction() ||
-            this->IsBoundFunction() ||
-            this->IsStrictMode()
+            this->IsStrictMode() ||
+            !this->IsScriptFunction() || // -> (BoundFunction || RuntimeFunction) // (RuntimeFunction = Native-defined built-in library functions)
+            this->IsLibraryCode() || // JS-defined built-in library functions
+            this == this->GetLibrary()->GetFunctionPrototype() // the intrinsic %FunctionPrototype% (original value of Function.prototype)
             );
     }
 
