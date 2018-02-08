@@ -3,14 +3,12 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-function write(v) { WScript.Echo(v + ""); }
+function write(v) { print(v + ""); }
 
 function printDesc(d) {
-    write(d);
-    write(d.set);
-    write(d.get);
+    write(`${typeof d}, ${typeof d.set}, ${typeof d.get}, ${d.set === d.get}`);
 
-    var s = "V:" + d.value + ", W:" + d.writable + ", E:" + d.enumerable + ", C:" + d.configurable;
+    var s = "value:" + d.value + ", writable:" + d.writable + ", enumerable:" + d.enumerable + ", configurable:" + d.configurable;
     s += ", get:" + d.hasOwnProperty('get') + ", set:" + d.hasOwnProperty('set');
 
     write(s);

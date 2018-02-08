@@ -2803,6 +2803,11 @@ namespace Js
             functionPrototype->SetConfigurable(PropertyIds::_symbolHasInstance, false);
         }
 
+        functionPrototype->DynamicObject::SetAccessors(PropertyIds::caller, library->throwTypeErrorRestrictedPropertyAccessorFunction, library->throwTypeErrorRestrictedPropertyAccessorFunction);
+        functionPrototype->SetEnumerable(PropertyIds::caller, false);
+        functionPrototype->DynamicObject::SetAccessors(PropertyIds::arguments, library->throwTypeErrorRestrictedPropertyAccessorFunction, library->throwTypeErrorRestrictedPropertyAccessorFunction);
+        functionPrototype->SetEnumerable(PropertyIds::arguments, false);
+
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
 
         functionPrototype->SetHasNoEnumerableProperties(true);

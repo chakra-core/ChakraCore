@@ -9,6 +9,10 @@ WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
 function verifyAttributes(obj, prop, attribs, name) {
     var p = Object.getOwnPropertyDescriptor(obj, prop);
+    if (typeof p === "undefined") {
+        assert.fail("FAIL: propertyDescriptor is undefined");
+        return;
+    }
 
     assert.areNotEqual(undefined, p, name + " does not have property named " + prop);
 
@@ -18,12 +22,18 @@ function verifyAttributes(obj, prop, attribs, name) {
 }
 
 function verifyHasRestrictedOwnProperties(obj, name) {
-    assert.isTrue(obj.hasOwnProperty('caller'), name + " reports that it has own property 'caller'")
-    assert.isTrue(obj.hasOwnProperty('arguments'), name + " reports that it has own property 'arguments'")
+    // NOTE: Results for this test method differ from other engines, but there are no regressions from previous ch behavior:
+    // NOTE: * (sm) treats sloppy-mode functions like strict-mode functions for caller/arguments
+    // NOTE: * (sm, v8, jsc) treat object-literal functions like strict-mode functions for caller/arguments
+
+    // NOTE: object-literal functions behavior more like strict-mode functions in other engines (sm, v8, jsc)
+    // NOTE: sm additionally seems to make sloppy-mode functions behave like strict-mode functions for caller/arguments
+    assert.isTrue(obj.hasOwnProperty('caller'), name + " reports (hasOwnProperty('caller')===false)")
+    assert.isTrue(obj.hasOwnProperty('arguments'), name + " reports (hasOwnProperty('arguments')===false)")
 
     var names = Object.getOwnPropertyNames(obj);
-    assert.areNotEqual(-1, names.findIndex((e) => { return e === 'arguments'; }), name + " has 'arguments' own property");
-    assert.areNotEqual(-1, names.findIndex((e) => { return e === 'caller'; }), name + " has 'caller' own property");
+    assert.areNotEqual(-1, names.findIndex((e) => { return e === 'arguments'; }), name + " has 'arguments' own property (as reported by Object.getOwnPropertyNames)");
+    assert.areNotEqual(-1, names.findIndex((e) => { return e === 'caller'; }), name + " has 'caller' own property (as reported by Object.getOwnPropertyNames)");
 
     verifyAttributes(obj, 'caller', { writable: false, enumerable: false, configurable: false }, name);
     assert.isFalse(obj.propertyIsEnumerable('caller'), name + " says 'caller' property is not enumerable");
@@ -33,21 +43,28 @@ function verifyHasRestrictedOwnProperties(obj, name) {
     assert.areEqual(null, obj.caller, name + " says 'caller' property is null")
     assert.areEqual(null, obj.arguments, name + " says 'arguments' property is null")
 
+    // NOTE: other engines throw here for object-literal function
     assert.doesNotThrow(function() { obj.caller = 'something'; }, name + " has 'caller' property which can't be assigned to");
     assert.doesNotThrow(function() { obj.arguments = 'something'; }, name + " has 'arguments' property which  can't be assigned to");
 
+    // NOTE: sm does not throw for non-strict function `obj`
     assert.throws(function() { 'use strict'; obj.caller = 'something'; }, TypeError, name + " has 'caller' own property but it is not configurable so we will throw in strict mode", "Assignment to read-only properties is not allowed in strict mode");
     assert.throws(function() { 'use strict'; obj.arguments = 'something'; }, TypeError, name + " has 'arguments' own property but it is not configurable so we will throw in strict mode", "Assignment to read-only properties is not allowed in strict mode");
 
+    // NOTE: other engines throw for object-literal function
     assert.areEqual(null, obj.caller, name + " says 'caller' property is null")
     assert.areEqual(null, obj.arguments, name + " says 'arguments' property is null")
 
+    // NOTE: other engines fail object-literal function (sm also fails non-strict function)
     assert.throws(function() { Object.defineProperty(obj, 'arguments', { value: 123 }); }, TypeError, name + " has 'arguments' property as non-writable, non-configurable", "Cannot modify non-writable property 'arguments'");
     assert.throws(function() { Object.defineProperty(obj, 'caller', { value: 123 }); }, TypeError, name + " has 'caller' property as non-writable, non-configurable", "Cannot modify non-writable property 'caller'");
 
+    // NOTE: other engines: the above defineProperty makes the following not fail unless the above lines are commented-out because the above do not throw and therefore actually do the defineProperty)
+    // NOTE: other engines fail object-literal function (sm also fails non-strict function)
     assert.isFalse(delete obj.arguments, name + " has 'arguments' property as non-configurable so delete returns false");
     assert.isFalse(delete obj.caller, name + " has 'caller' property as non-configurable so delete returns false");
 
+    // NOTE: other engines fail object-literal function (sm also fails non-strict function)
     assert.throws(function() { 'use strict'; delete obj.caller; }, TypeError, name + " has 'caller' own property but it is not configurable so we will throw in strict mode", "Calling delete on 'caller' is not allowed in strict mode");
     assert.throws(function() { 'use strict'; delete obj.arguments; }, TypeError, name + " has 'arguments' own property but it is not configurable so we will throw in strict mode", "Calling delete on 'arguments' is not allowed in strict mode");
 }
@@ -127,61 +144,53 @@ var tests = [
 
             var p = Object.getOwnPropertyDescriptor(obj, 'caller');
             assert.isFalse(p.enumerable, "Function.prototype function has 'caller' own property which is not enumerable");
-            assert.isFalse(p.configurable, "Function.prototype function has 'caller' own property which is not configurable");
+            assert.isTrue(p.configurable, "Function.prototype function has 'caller' own property which is configurable");
             assert.isFalse(obj.propertyIsEnumerable('caller'), "Function.prototype says 'caller' property is not enumerable");
             assert.areEqual('function', typeof p.get, "Function.prototype['caller'] has get accessor function");
             assert.areEqual('function', typeof p.set, "Function.prototype['caller'] has set accessor function");
             assert.throws(function() { p.get(); }, TypeError, "Function.prototype['caller'] has get accessor which throws");
             assert.throws(function() { p.set(); }, TypeError, "Function.prototype['caller'] has set accessor which throws");
-            assert.isTrue(p.get === p.set, "Function.prototype returns the same ThrowTypeError function for get/set accessor of 'caller' property");
 
             var p2 = Object.getOwnPropertyDescriptor(obj, 'arguments');
             assert.isFalse(p2.enumerable, "Function.prototype function has 'arguments' own property which is not enumerable");
-            assert.isFalse(p2.configurable, "Function.prototype function has 'arguments' own property which is not configurable");
+            assert.isTrue(p2.configurable, "Function.prototype function has 'arguments' own property which is configurable");
             assert.isFalse(obj.propertyIsEnumerable('arguments'), "Function.prototype says 'arguments' property is not enumerable");
             assert.areEqual('function', typeof p2.get, "Function.prototype['arguments'] has get accessor function");
             assert.areEqual('function', typeof p2.set, "Function.prototype['arguments'] has set accessor function");
             assert.throws(function() { p2.get(); }, TypeError, "Function.prototype['arguments'] has get accessor which throws");
             assert.throws(function() { p2.set(); }, TypeError, "Function.prototype['arguments'] has set accessor which throws");
-            assert.isTrue(p2.get === p2.set, "Function.prototype returns the same ThrowTypeError function for get/set accessor of 'arguments' property");
 
+            // NOTE: sm fails these tests
+            assert.isTrue(p.get === p.set, "Function.prototype returns the same ThrowTypeError function for get/set accessor of 'caller' property");
+            assert.isTrue(p2.get === p2.set, "Function.prototype returns the same ThrowTypeError function for get/set accessor of 'arguments' property");
             assert.isTrue(p.get === p2.get, "Function.prototype returns the same ThrowTypeError function for accessor of both 'arguments' and 'caller' properties");
 
             var names = Object.getOwnPropertyNames(obj);
             assert.areNotEqual(-1, names.findIndex((e) => { return e === 'arguments'; }), "Function.prototype has 'arguments' own property");
             assert.areNotEqual(-1, names.findIndex((e) => { return e === 'caller'; }), "Function.prototype has 'caller' own property");
 
+            // NOTE: sm fails these tests
             assert.throws(function() { obj.caller; }, TypeError, "Function.prototype throws on access to 'caller' property", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
             assert.throws(function() { obj.arguments; }, TypeError, "Function.prototype throws on access to 'arguments' property", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
-
             assert.throws(function() { obj.caller = 'something'; }, TypeError, "Function.prototype throws trying to assign to 'caller' property", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
             assert.throws(function() { obj.arguments = 'something'; }, TypeError, "Function.prototype throws trying to assign to 'arguments' property", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context");
 
-            // TODO: These descriptors should have configurable set to true so remaining asserts in this test should actually succeed
-            assert.throws(function() { Object.defineProperty(obj, 'arguments', { value: 123 }); }, TypeError, "Function.prototype has 'arguments' property as non-configurable", "Cannot redefine non-configurable property 'arguments'");
-            assert.throws(function() { Object.defineProperty(obj, 'caller', { value: 123 }); }, TypeError, "Function.prototype has 'caller' property as non-configurable", "Cannot redefine non-configurable property 'caller'");
-
-            assert.isFalse(delete obj.arguments, "Function.prototype has 'arguments' property as non-configurable so delete returns false");
-            assert.isFalse(delete obj.caller, "Function.prototype has 'caller' property as non-configurable so delete returns false");
-
-            assert.throws(function() { 'use strict'; delete obj.caller; }, TypeError, "Function.prototype has 'caller' own property but it is not configurable so we will throw in strict mode", "Calling delete on 'caller' is not allowed in strict mode");
-            assert.throws(function() { 'use strict'; delete obj.arguments; }, TypeError, "Function.prototype has 'arguments' own property but it is not configurable so we will throw in strict mode", "Calling delete on 'arguments' is not allowed in strict mode");
         }
     },
     {
         name: "Restricted properties of non-strict function",
         body: function () {
-            function obj() {};
+            function nonStrictFunc() {};
 
-            verifyHasRestrictedOwnProperties(obj, "Non-strict function");
+            verifyHasRestrictedOwnProperties(nonStrictFunc, "Non-strict function");
         }
     },
     {
         name: "Restricted properties of strict function",
         body: function () {
-            function foo() { 'use strict'; };
+            function strictFunc() { 'use strict'; };
 
-            verifyDoesNotHaveRestrictedOwnProperties(foo, "Strict function");
+            verifyDoesNotHaveRestrictedOwnProperties(strictFunc, "Strict function");
         }
     },
     {
@@ -369,6 +378,26 @@ var tests = [
             var obj = { func() { 'use strict'; } }
 
             verifyDoesNotHaveRestrictedOwnProperties(obj.func, "Object-literal strict-mode function");
+        }
+    },
+    {
+        name: "Destructive operations on Function.prototype", // Destructive! Must be the final test!
+        body: function() {
+            var obj = Function.prototype;
+
+            assert.doesNotThrow(function() { Object.defineProperty(obj, 'arguments', { value: 42 }); }, "Allow redefining configurable property 'arguments'");
+            assert.doesNotThrow(function() { Object.defineProperty(obj, 'caller', { value: 123 }); }, "Allow redefining configurable property 'caller'");
+            assert.areEqual(obj.arguments, 42);
+            assert.areEqual(obj.caller, 123);
+
+            assert.doesNotThrow(function() { 'use strict'; assert.isTrue(delete obj.caller); }, "Function.prototype has 'caller' own property as configurable, so delete is true; strict mode has no effect");
+            assert.doesNotThrow(function() { 'use strict'; assert.isTrue(delete obj.arguments); }, "Function.prototype has 'arguments' own property as configurable, so delete is true; strict mode has no effect");
+            assert.areEqual(obj.arguments, undefined);
+            assert.areEqual(obj.caller, undefined);
+
+            // These should succeed even after the first delete above (normal delete behavior)
+            assert.isTrue(delete obj.arguments, "Function.prototype has 'arguments' property as configurable so delete returns true (even after first delete)");
+            assert.isTrue(delete obj.caller, "Function.prototype has 'caller' property as configurable so delete returns true (even after first delete)");
         }
     },
 ];

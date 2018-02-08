@@ -1,14 +1,6 @@
 [
   {
     "this": {
-      "MyObj": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string MyObj",
-        "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
-      },
       "a": {
         "#__proto__": "Object {...}",
         "x": "number 2"
@@ -21,32 +13,17 @@
         "#__proto__": "Object {...}",
         "z": "number 1",
         "[1]": "string \"MyObjIndex\""
-      }
-    },
-    "locals": {
+      },
       "MyObj": {
-        "#__proto__": {
-          "#__proto__": "Object {...}",
-          "constructor": "function <large string>",
-          "length": "number 0",
-          "name": "string ",
-          "apply": "function <large string>",
-          "bind": "function <large string>",
-          "call": "function <large string>",
-          "toString": "function <large string>",
-          "Symbol.hasInstance": "function <large string>",
-          "caller": "object null",
-          "arguments": "object null"
-        },
-        "prototype": {
-          "#__proto__": "Object {...}",
-          "constructor": "function <large string>"
-        },
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
         "name": "string MyObj",
         "caller": "object null",
         "arguments": "object null",
         "length": "number 0"
-      },
+      }
+    },
+    "locals": {
       "a": {
         "#__proto__": {
           "constructor": "function <large string>",
@@ -78,6 +55,29 @@
         },
         "z": "number 1",
         "[1]": "string \"MyObjIndex\""
+      },
+      "MyObj": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "length": "number 0",
+          "name": "string ",
+          "apply": "function <large string>",
+          "bind": "function <large string>",
+          "call": "function <large string>",
+          "toString": "function <large string>",
+          "Symbol.hasInstance": "function <large string>",
+          "caller": "Error <large string>",
+          "arguments": "Error <large string>"
+        },
+        "prototype": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>"
+        },
+        "name": "string MyObj",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
       }
     },
     "globals": {}

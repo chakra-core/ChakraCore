@@ -39,99 +39,7 @@
   },
   {
     "this": {
-      "g": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string g",
-        "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
-      },
-      "f": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string f",
-        "caller": "object null",
-        "arguments": "Object {...}",
-        "length": "number 0"
-      },
-      "g1": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string g1",
-        "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
-      },
-      "f1": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string f1",
-        "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
-      },
       "i": "number 0",
-      "d": "number 7"
-    },
-    "arguments": {
-      "#__proto__": {
-        "constructor": "function <large string>",
-        "hasOwnProperty": "function <large string>",
-        "propertyIsEnumerable": "function <large string>",
-        "isPrototypeOf": "function <large string>",
-        "toLocaleString": "function <large string>",
-        "toString": "function <large string>",
-        "valueOf": "function <large string>",
-        "#__proto__": "object null",
-        "__defineGetter__": "function <large string>",
-        "__defineSetter__": "function <large string>",
-        "__lookupGetter__": "function <large string>",
-        "__lookupSetter__": "function <large string>"
-      },
-      "length": "number 0",
-      "callee": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string f",
-        "caller": "object null",
-        "arguments": "Object {...}",
-        "length": "number 0"
-      },
-      "Symbol.iterator": {
-        "#__proto__": "function <large string>",
-        "length": "number 0",
-        "name": "string values",
-        "caller": "object null",
-        "arguments": "object null"
-      }
-    },
-    "locals": {
-      "c": "number 7",
-      "obj": {
-        "#__proto__": {
-          "constructor": "function <large string>",
-          "hasOwnProperty": "function <large string>",
-          "propertyIsEnumerable": "function <large string>",
-          "isPrototypeOf": "function <large string>",
-          "toLocaleString": "function <large string>",
-          "toString": "function <large string>",
-          "valueOf": "function <large string>",
-          "#__proto__": "object null",
-          "__defineGetter__": "function <large string>",
-          "__defineSetter__": "function <large string>",
-          "__lookupGetter__": "function <large string>",
-          "__lookupSetter__": "function <large string>"
-        },
-        "x": "number 2",
-        "y": "number 3",
-        "o2": {
-          "#__proto__": "Object {...}",
-          "a": "number 44"
-        }
-      }
-    },
-    "globals": {
       "g": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -164,7 +72,97 @@
         "arguments": "object null",
         "length": "number 0"
       },
+      "d": "number 7"
+    },
+    "arguments": {
+      "#__proto__": {
+        "constructor": "function <large string>",
+        "hasOwnProperty": "function <large string>",
+        "propertyIsEnumerable": "function <large string>",
+        "isPrototypeOf": "function <large string>",
+        "toLocaleString": "function <large string>",
+        "toString": "function <large string>",
+        "valueOf": "function <large string>",
+        "#__proto__": "object null",
+        "__defineGetter__": "function <large string>",
+        "__defineSetter__": "function <large string>",
+        "__lookupGetter__": "function <large string>",
+        "__lookupSetter__": "function <large string>"
+      },
+      "length": "number 0",
+      "callee": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "Symbol.iterator": {
+        "#__proto__": "function <large string>",
+        "name": "string values",
+        "length": "number 0"
+      }
+    },
+    "locals": {
+      "c": "number 7",
+      "obj": {
+        "#__proto__": {
+          "constructor": "function <large string>",
+          "hasOwnProperty": "function <large string>",
+          "propertyIsEnumerable": "function <large string>",
+          "isPrototypeOf": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toString": "function <large string>",
+          "valueOf": "function <large string>",
+          "#__proto__": "object null",
+          "__defineGetter__": "function <large string>",
+          "__defineSetter__": "function <large string>",
+          "__lookupGetter__": "function <large string>",
+          "__lookupSetter__": "function <large string>"
+        },
+        "x": "number 2",
+        "y": "number 3",
+        "o2": {
+          "#__proto__": "Object {...}",
+          "a": "number 44"
+        }
+      }
+    },
+    "globals": {
       "i": "number 0",
+      "g": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "g1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
       "d": "number 7"
     }
   },
@@ -208,99 +206,7 @@
   },
   {
     "this": {
-      "g": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string g",
-        "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
-      },
-      "f": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string f",
-        "caller": "object null",
-        "arguments": "Object {...}",
-        "length": "number 0"
-      },
-      "g1": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string g1",
-        "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
-      },
-      "f1": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string f1",
-        "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
-      },
       "i": "number 1",
-      "d": "number 7"
-    },
-    "arguments": {
-      "#__proto__": {
-        "constructor": "function <large string>",
-        "hasOwnProperty": "function <large string>",
-        "propertyIsEnumerable": "function <large string>",
-        "isPrototypeOf": "function <large string>",
-        "toLocaleString": "function <large string>",
-        "toString": "function <large string>",
-        "valueOf": "function <large string>",
-        "#__proto__": "object null",
-        "__defineGetter__": "function <large string>",
-        "__defineSetter__": "function <large string>",
-        "__lookupGetter__": "function <large string>",
-        "__lookupSetter__": "function <large string>"
-      },
-      "length": "number 0",
-      "callee": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string f",
-        "caller": "object null",
-        "arguments": "Object {...}",
-        "length": "number 0"
-      },
-      "Symbol.iterator": {
-        "#__proto__": "function <large string>",
-        "length": "number 0",
-        "name": "string values",
-        "caller": "object null",
-        "arguments": "object null"
-      }
-    },
-    "locals": {
-      "c": "number 7",
-      "obj": {
-        "#__proto__": {
-          "constructor": "function <large string>",
-          "hasOwnProperty": "function <large string>",
-          "propertyIsEnumerable": "function <large string>",
-          "isPrototypeOf": "function <large string>",
-          "toLocaleString": "function <large string>",
-          "toString": "function <large string>",
-          "valueOf": "function <large string>",
-          "#__proto__": "object null",
-          "__defineGetter__": "function <large string>",
-          "__defineSetter__": "function <large string>",
-          "__lookupGetter__": "function <large string>",
-          "__lookupSetter__": "function <large string>"
-        },
-        "x": "number 2",
-        "y": "number 3",
-        "o2": {
-          "#__proto__": "Object {...}",
-          "a": "number 44"
-        }
-      }
-    },
-    "globals": {
       "g": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -333,7 +239,97 @@
         "arguments": "object null",
         "length": "number 0"
       },
+      "d": "number 7"
+    },
+    "arguments": {
+      "#__proto__": {
+        "constructor": "function <large string>",
+        "hasOwnProperty": "function <large string>",
+        "propertyIsEnumerable": "function <large string>",
+        "isPrototypeOf": "function <large string>",
+        "toLocaleString": "function <large string>",
+        "toString": "function <large string>",
+        "valueOf": "function <large string>",
+        "#__proto__": "object null",
+        "__defineGetter__": "function <large string>",
+        "__defineSetter__": "function <large string>",
+        "__lookupGetter__": "function <large string>",
+        "__lookupSetter__": "function <large string>"
+      },
+      "length": "number 0",
+      "callee": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "Symbol.iterator": {
+        "#__proto__": "function <large string>",
+        "name": "string values",
+        "length": "number 0"
+      }
+    },
+    "locals": {
+      "c": "number 7",
+      "obj": {
+        "#__proto__": {
+          "constructor": "function <large string>",
+          "hasOwnProperty": "function <large string>",
+          "propertyIsEnumerable": "function <large string>",
+          "isPrototypeOf": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toString": "function <large string>",
+          "valueOf": "function <large string>",
+          "#__proto__": "object null",
+          "__defineGetter__": "function <large string>",
+          "__defineSetter__": "function <large string>",
+          "__lookupGetter__": "function <large string>",
+          "__lookupSetter__": "function <large string>"
+        },
+        "x": "number 2",
+        "y": "number 3",
+        "o2": {
+          "#__proto__": "Object {...}",
+          "a": "number 44"
+        }
+      }
+    },
+    "globals": {
       "i": "number 1",
+      "g": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "g1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
       "d": "number 7"
     }
   },
@@ -377,99 +373,7 @@
   },
   {
     "this": {
-      "g": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string g",
-        "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
-      },
-      "f": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string f",
-        "caller": "object null",
-        "arguments": "Object {...}",
-        "length": "number 0"
-      },
-      "g1": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string g1",
-        "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
-      },
-      "f1": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string f1",
-        "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
-      },
       "i": "number 2",
-      "d": "number 7"
-    },
-    "arguments": {
-      "#__proto__": {
-        "constructor": "function <large string>",
-        "hasOwnProperty": "function <large string>",
-        "propertyIsEnumerable": "function <large string>",
-        "isPrototypeOf": "function <large string>",
-        "toLocaleString": "function <large string>",
-        "toString": "function <large string>",
-        "valueOf": "function <large string>",
-        "#__proto__": "object null",
-        "__defineGetter__": "function <large string>",
-        "__defineSetter__": "function <large string>",
-        "__lookupGetter__": "function <large string>",
-        "__lookupSetter__": "function <large string>"
-      },
-      "length": "number 0",
-      "callee": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string f",
-        "caller": "object null",
-        "arguments": "Object {...}",
-        "length": "number 0"
-      },
-      "Symbol.iterator": {
-        "#__proto__": "function <large string>",
-        "length": "number 0",
-        "name": "string values",
-        "caller": "object null",
-        "arguments": "object null"
-      }
-    },
-    "locals": {
-      "c": "number 7",
-      "obj": {
-        "#__proto__": {
-          "constructor": "function <large string>",
-          "hasOwnProperty": "function <large string>",
-          "propertyIsEnumerable": "function <large string>",
-          "isPrototypeOf": "function <large string>",
-          "toLocaleString": "function <large string>",
-          "toString": "function <large string>",
-          "valueOf": "function <large string>",
-          "#__proto__": "object null",
-          "__defineGetter__": "function <large string>",
-          "__defineSetter__": "function <large string>",
-          "__lookupGetter__": "function <large string>",
-          "__lookupSetter__": "function <large string>"
-        },
-        "x": "number 2",
-        "y": "number 3",
-        "o2": {
-          "#__proto__": "Object {...}",
-          "a": "number 44"
-        }
-      }
-    },
-    "globals": {
       "g": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -502,7 +406,97 @@
         "arguments": "object null",
         "length": "number 0"
       },
+      "d": "number 7"
+    },
+    "arguments": {
+      "#__proto__": {
+        "constructor": "function <large string>",
+        "hasOwnProperty": "function <large string>",
+        "propertyIsEnumerable": "function <large string>",
+        "isPrototypeOf": "function <large string>",
+        "toLocaleString": "function <large string>",
+        "toString": "function <large string>",
+        "valueOf": "function <large string>",
+        "#__proto__": "object null",
+        "__defineGetter__": "function <large string>",
+        "__defineSetter__": "function <large string>",
+        "__lookupGetter__": "function <large string>",
+        "__lookupSetter__": "function <large string>"
+      },
+      "length": "number 0",
+      "callee": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "Symbol.iterator": {
+        "#__proto__": "function <large string>",
+        "name": "string values",
+        "length": "number 0"
+      }
+    },
+    "locals": {
+      "c": "number 7",
+      "obj": {
+        "#__proto__": {
+          "constructor": "function <large string>",
+          "hasOwnProperty": "function <large string>",
+          "propertyIsEnumerable": "function <large string>",
+          "isPrototypeOf": "function <large string>",
+          "toLocaleString": "function <large string>",
+          "toString": "function <large string>",
+          "valueOf": "function <large string>",
+          "#__proto__": "object null",
+          "__defineGetter__": "function <large string>",
+          "__defineSetter__": "function <large string>",
+          "__lookupGetter__": "function <large string>",
+          "__lookupSetter__": "function <large string>"
+        },
+        "x": "number 2",
+        "y": "number 3",
+        "o2": {
+          "#__proto__": "Object {...}",
+          "a": "number 44"
+        }
+      }
+    },
+    "globals": {
       "i": "number 2",
+      "g": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      },
+      "g1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string g1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "f1": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string f1",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
       "d": "number 7"
     }
   },
@@ -546,6 +540,7 @@
   },
   {
     "this": {
+      "i": "number 3",
       "g": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -578,7 +573,6 @@
         "arguments": "object null",
         "length": "number 0"
       },
-      "i": "number 3",
       "d": "number 7"
     },
     "arguments": {
@@ -607,10 +601,8 @@
       },
       "Symbol.iterator": {
         "#__proto__": "function <large string>",
-        "length": "number 0",
         "name": "string values",
-        "caller": "object null",
-        "arguments": "object null"
+        "length": "number 0"
       }
     },
     "locals": {
@@ -639,6 +631,7 @@
       }
     },
     "globals": {
+      "i": "number 3",
       "g": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -671,7 +664,6 @@
         "arguments": "object null",
         "length": "number 0"
       },
-      "i": "number 3",
       "d": "number 7"
     }
   },
@@ -715,6 +707,7 @@
   },
   {
     "this": {
+      "i": "number 4",
       "g": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -747,7 +740,6 @@
         "arguments": "object null",
         "length": "number 0"
       },
-      "i": "number 4",
       "d": "number 7"
     },
     "arguments": {
@@ -776,10 +768,8 @@
       },
       "Symbol.iterator": {
         "#__proto__": "function <large string>",
-        "length": "number 0",
         "name": "string values",
-        "caller": "object null",
-        "arguments": "object null"
+        "length": "number 0"
       }
     },
     "locals": {
@@ -808,6 +798,7 @@
       }
     },
     "globals": {
+      "i": "number 4",
       "g": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -840,17 +831,16 @@
         "arguments": "object null",
         "length": "number 0"
       },
-      "i": "number 4",
       "d": "number 7"
     }
   },
   {
     "this": {
+      "i": "number 5",
       "g": "function <large string>",
       "f": "function <large string>",
       "g1": "function <large string>",
       "f1": "function <large string>",
-      "i": "number 5",
       "d": "number 7"
     },
     "locals": {
@@ -864,21 +854,21 @@
       }
     },
     "globals": {
+      "i": "number 5",
       "g": "function <large string>",
       "f": "function <large string>",
       "g1": "function <large string>",
       "f1": "function <large string>",
-      "i": "number 5",
       "d": "number 7"
     }
   },
   {
     "this": {
+      "i": "number 5",
       "g": "function <large string>",
       "f": "function <large string>",
       "g1": "function <large string>",
       "f1": "function <large string>",
-      "i": "number 5",
       "d": "number 7"
     },
     "locals": {
@@ -892,11 +882,11 @@
       }
     },
     "globals": {
+      "i": "number 5",
       "g": "function <large string>",
       "f": "function <large string>",
       "g1": "function <large string>",
       "f1": "function <large string>",
-      "i": "number 5",
       "d": "number 7"
     }
   }
