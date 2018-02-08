@@ -5443,8 +5443,13 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     void JavascriptOperators::OP_InvalidateCachedScope(void* varEnv, int32 envIndex)
     {
         FrameDisplay *disp = (FrameDisplay*)varEnv;
-        RecyclableObject *objScope = RecyclableObject::FromVar(disp->GetItem(envIndex));
-        objScope->InvalidateCachedScope();
+        Var item = disp->GetItem(envIndex);
+        if (item != nullptr)
+        {
+            Assert(ActivationObjectEx::Is(item));
+            RecyclableObject *objScope = RecyclableObject::FromVar(item);
+            objScope->InvalidateCachedScope();
+        }
     }
 
     void JavascriptOperators::OP_InitCachedFuncs(Var varScope, FrameDisplay *pDisplay, const FuncInfoArray *info, ScriptContext *scriptContext)
@@ -6739,7 +6744,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     Var JavascriptOperators::FillScopeObject(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var frameObj, Var * paramAddr,
         Js::PropertyIdArray *propIds, HeapArgumentsObject * argsObj, ScriptContext * scriptContext, bool nonSimpleParamList, bool useCachedScope)
     {
-        Assert(frameObj);
+        Assert(formalsCount == 0 || frameObj != nullptr);
 
         // Transfer formal arguments (that were actually passed) from their ArgIn slots to the local frame object.
         uint32 i;
