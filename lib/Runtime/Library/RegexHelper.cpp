@@ -1261,7 +1261,9 @@ namespace Js
         Var nonMatchValue = NonMatchValue(scriptContext, false);
         UnifiedRegex::GroupInfo lastMatch; // initially undefined
 
-        AssertOrFailFast(numGroups <= INT16_MAX);
+        // numGroups is always positive because the entire regular expression
+        // itself counts as a capturing group.
+        AssertOrFailFast(0 < numGroups && numGroups <= INT16_MAX);
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
         RegexHelperTrace(scriptContext, UnifiedRegex::RegexStats::Replace, regularExpression, input, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("<replace function>")));
