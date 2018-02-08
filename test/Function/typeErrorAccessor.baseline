@@ -1,27 +1,13 @@
 ***************** getter ***************** 
 length = 0
-[object Object]
-undefined
-undefined
-V:0, W:false, E:false, C:true, get:false, set:false
+object, undefined, undefined, true
+value:0, writable:false, enumerable:false, configurable:true, get:false, set:false
 ***************** g.caller ***************** 
-[object Object]
-function() {
-    [native code]
-}
-function() {
-    [native code]
-}
-V:undefined, W:undefined, E:false, C:false, get:true, set:true
+object, function, function, true
+value:undefined, writable:undefined, enumerable:false, configurable:true, get:true, set:true
 ***************** g.arguments ***************** 
-[object Object]
-function() {
-    [native code]
-}
-function() {
-    [native code]
-}
-V:undefined, W:undefined, E:false, C:false, get:true, set:true
+object, function, function, true
+value:undefined, writable:undefined, enumerable:false, configurable:true, get:true, set:true
 ***************** try to set/get the caller/arguments *****************
 Set caller passed
 Get caller passed
