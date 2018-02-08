@@ -3,6 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
+WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
+
 function foo() {}
 
 var all = [ undefined, null,
@@ -12,14 +14,14 @@ var all = [ undefined, null,
             1<<32, -(1<<32), (1<<32)-1, 1<<31, -(1<<31), 1<<25, -1<<25, 65536, 46341,
             Number.MIN_VALUE, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY,
             new Number(NaN), new Number(+0), new Number( -0), new Number(0), new Number(1),
-            new Number(10.0), new Number(10.1), 
-            new Number(Number.MIN_VALUE), new Number(Number.NaN), 
+            new Number(10.0), new Number(10.1),
+            new Number(Number.MIN_VALUE), new Number(Number.NaN),
             new Number(Number.POSITIVE_INFINITY), new Number(Number.NEGATIVE_INFINITY),
             "", "hello", "hel" + "lo", "+0", "-0", "0", "1", "10.0", "10.1",
             new String(""), new String("hello"), new String("he" + "llo"),
             new Object(), [1,2,3], new Object(), [1,2,3] , foo
           ];
-          
+
 function AsmModule(stdlib,foreign,buffer) {
     "use asm";
 
@@ -32,7 +34,7 @@ function AsmModule(stdlib,foreign,buffer) {
     var fd2 = +foreign.d2;
     var fun1 = foreign.fun1;
     var fun2 = foreign.fun2;
-    
+
     // stdlib immutable variable type double
     var sInf = stdlib.Infinity, sNaN = stdlib.NaN;
     // stdlib math (double) -> double
@@ -67,7 +69,7 @@ function AsmModule(stdlib,foreign,buffer) {
     var PI = stdlib.Math.PI;
     var SQRT1_2 = stdlib.Math.SQRT1_2;
     var SQRT2 = stdlib.Math.SQRT2;
-    
+
     //views
     var a=new stdlib.Int8Array(buffer);
     var b=new stdlib.Int16Array(buffer);
@@ -77,62 +79,62 @@ function AsmModule(stdlib,foreign,buffer) {
     var f=new stdlib.Uint32Array(buffer);
     var g=new stdlib.Float32Array(buffer);
     var h=new stdlib.Float64Array(buffer);
-    
+
     function f1(x){
         x = +x;
         return +acos(x);
     }
-    
+
     function f2(x){
         x = +x;
         return +asin(x);
     }
-    
+
     function f3(x){
         x = +x;
         return +atan(x);
     }
-    
+
     function f4(x){
         x = +x;
         return +cos(x);
     }
-    
+
     function f5(x){
         x = +x;
         return +sin(x);
     }
-    
+
     function f6(x){
         x = +x;
         return +tan(x);
     }
-    
+
     function f7(x){
         x = +x;
         return +ceil(x);
     }
-    
+
     function f8(x){
         x = +x;
         return +floor(x);
     }
-    
+
     function f9(x){
         x = +x;
         return +exp(x);
     }
-    
+
     function f10(x){
         x = +x;
         return +log(x);
     }
-    
+
     function f11(x){
         x = +x;
         return +sqrt(x);
     }
-    
+
     // stdlib math (signed) -> signed ^ (doublish) -> double
     function f12(x){
         x = +x;
@@ -142,14 +144,14 @@ function AsmModule(stdlib,foreign,buffer) {
         x = x|0;
         return abs(x|0)|0;
     }
-    
+
     // stdlib math (doublish, doublish) -> double
     function f14(x,y){
         x = +x;
         y = +y;
         return +atan2(x,y);
     }
-    
+
     function f15(x,y){
         x = +x;
         y = +y;
@@ -161,29 +163,29 @@ function AsmModule(stdlib,foreign,buffer) {
         y = y|0;
         return imul(x,y)|0;
     }
-     
+
     function f17(x){
         x = fround(x);
         return fround(ceil(x));
     }
-    
+
     function f18(x){
         x = fround(x);
         return fround(floor(x));
     }
-    
+
     function f19(x){
         x = fround(x);
         return fround(sqrt(x));
     }
-    
+
     function f20(x){
         x = fround(x);
         return fround(abs(x));
     }
-    
-    
-    return { 
+
+
+    return {
         f1  : f1  ,
         f2  : f2  ,
         f3  : f3  ,
@@ -215,7 +217,19 @@ var asmModule = AsmModule(global,env,buffer);
 for (var i=0; i<all.length; ++i) {
     print("f1   (a["+i+"](" + all[i] +"))= " + (asmModule.f1   (all[i])));
     print("f2   (a["+i+"](" + all[i] +"))= " + (asmModule.f2   (all[i])));
-    print("f3   (a["+i+"](" + all[i] +"))= " + (asmModule.f3   (all[i])));
+
+    if ((i == 11 || i == 41 || i == 54) && all[i] == 10) {
+        // f3 => atan(f->1.47....) OSX != Windows / Linux
+        if (WScript.Platform && WScript.Platform.OS == "darwin")
+        {
+            assert.areEqual(asmModule.f3(all[i]), 1.4711276743037344);
+        } else {
+            assert.areEqual(asmModule.f3(all[i]), 1.4711276743037347);
+        }
+    } else {
+        print("f3   (a["+i+"](" + all[i] +"))= " + (asmModule.f3   (all[i])));
+    }
+
     print("f4   (a["+i+"](" + all[i] +"))= " + Math.round(asmModule.f4   (all[i])));
     print("f5   (a["+i+"](" + all[i] +"))= " + Math.round(asmModule.f5   (all[i])));
     print("f6   (a["+i+"](" + all[i] +"))= " + Math.round(asmModule.f6   (all[i])));
@@ -231,8 +245,8 @@ for (var i=0; i<all.length; ++i) {
     print("f19  (a["+i+"](" + all[i] +"))= " + (asmModule.f19  (all[i])));
     print("f20  (a["+i+"](" + all[i] +"))= " + (asmModule.f20  (all[i])));
 }
-for (var i=0; i<all.length; ++i) {
-    for (var j=0; j<all.length; ++j) {
+for (var i = 0; i< all.length; ++i) {
+    for (var j = 0; j< all.length; ++j) {
         // rounding atan2, because crt call gives us slightly different precision
         print("f14  (a["+i+"](" + all[i] +") , a["+j+"](" + all[j] +") )= " + Math.round(asmModule.f14  (all[i],all[j])));
         print("f15  (a["+i+"](" + all[i] +") , a["+j+"](" + all[j] +") )= " + Math.round(asmModule.f15  (all[i],all[j]))|0);
