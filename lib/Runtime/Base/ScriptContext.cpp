@@ -4567,6 +4567,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         threadContext->InvalidatePropertyGuards(propertyId);
 #endif
+        threadContext->InvalidateProtoTypePropertyCaches(propertyId);
     }
 
     void ScriptContext::RegisterStoreFieldInlineCache(InlineCache *pCache, PropertyId propId)
