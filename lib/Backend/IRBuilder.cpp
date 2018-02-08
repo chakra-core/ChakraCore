@@ -414,7 +414,7 @@ IRBuilder::Build()
     m_func->m_tailInstr = m_func->m_exitInstr;
     m_func->m_headInstr->InsertAfter(m_func->m_tailInstr);
 
-    if (m_func->GetJITFunctionBody()->IsParamAndBodyScopeMerged())
+    if (m_func->GetJITFunctionBody()->IsParamAndBodyScopeMerged() || this->IsLoopBody())
     {
         this->SetParamScopeDone();
     }
