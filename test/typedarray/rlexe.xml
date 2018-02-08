@@ -382,4 +382,10 @@ Below test fails with difference in space. Investigate the cause and re-enable t
       <files>CrossSiteVirtual.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>builtin_from.js</files>
+      <tags>typedarray</tags>
+    </default>
+  </test>
 </regress-exe>
