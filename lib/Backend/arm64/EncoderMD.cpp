@@ -921,6 +921,14 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, BYTE *pc)
         Assert(false);
         break;
 
+    case Js::OpCode::CSELEQ:
+        bytes = this->EmitConditionalSelect(Emitter, instr, COND_EQ, EmitCsel, EmitCsel64);
+        break;
+
+    case Js::OpCode::CSELNE:
+        bytes = this->EmitConditionalSelect(Emitter, instr, COND_NE, EmitCsel, EmitCsel64);
+        break;
+
     case Js::OpCode::CSELLT:
         bytes = this->EmitConditionalSelect(Emitter, instr, COND_LT, EmitCsel, EmitCsel64);
         break;

@@ -105,8 +105,6 @@ namespace Js
     protected:
         DEFINE_VTABLE_CTOR(JavascriptArray, ArrayObject);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptArray);
-    private:
-        Field(bool) isInitialized;
     protected:
         Field(SparseArraySegmentBase*) head;
         union SegmentUnionType
