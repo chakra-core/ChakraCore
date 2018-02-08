@@ -440,4 +440,9 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug14057294.js</files>
+    </default>
+  </test>
 </regress-exe>
