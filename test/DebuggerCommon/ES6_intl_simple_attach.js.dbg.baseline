@@ -1,8 +1,8 @@
 [
   {
     "this": {
-      "Run": "function <large string>",
-      "x": "undefined undefined"
+      "x": "undefined undefined",
+      "Run": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -22,8 +22,8 @@
       }
     },
     "globals": {
-      "Run": "function <large string>",
-      "x": "undefined undefined"
+      "x": "undefined undefined",
+      "Run": "function <large string>"
     }
   },
   {
@@ -55,80 +55,58 @@
               "is": "function <large string>",
               "assign": "function <large string>",
               "values": "function <large string>",
-              "entries": "function <large string>",
-              "caller": "object null",
-              "arguments": "object null"
+              "entries": "function <large string>"
             },
             "hasOwnProperty": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string hasOwnProperty",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string hasOwnProperty"
             },
             "propertyIsEnumerable": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string <large string>",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string <large string>"
             },
             "isPrototypeOf": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string isPrototypeOf",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string isPrototypeOf"
             },
             "toLocaleString": {
               "#__proto__": "function <large string>",
               "length": "number 0",
-              "name": "string toLocaleString",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string toLocaleString"
             },
             "toString": {
               "#__proto__": "function <large string>",
               "length": "number 0",
-              "name": "string toString",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string toString"
             },
             "valueOf": {
               "#__proto__": "function <large string>",
               "length": "number 0",
-              "name": "string valueOf",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string valueOf"
             },
             "#__proto__": "object null",
             "__defineGetter__": {
               "#__proto__": "function <large string>",
               "length": "number 2",
-              "name": "string __defineGetter__",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string __defineGetter__"
             },
             "__defineSetter__": {
               "#__proto__": "function <large string>",
               "length": "number 2",
-              "name": "string __defineSetter__",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string __defineSetter__"
             },
             "__lookupGetter__": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string __lookupGetter__",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string __lookupGetter__"
             },
             "__lookupSetter__": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string __lookupSetter__",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string __lookupSetter__"
             }
           },
           "constructor": {
@@ -225,80 +203,58 @@
               "is": "function <large string>",
               "assign": "function <large string>",
               "values": "function <large string>",
-              "entries": "function <large string>",
-              "caller": "object null",
-              "arguments": "object null"
+              "entries": "function <large string>"
             },
             "hasOwnProperty": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string hasOwnProperty",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string hasOwnProperty"
             },
             "propertyIsEnumerable": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string <large string>",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string <large string>"
             },
             "isPrototypeOf": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string isPrototypeOf",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string isPrototypeOf"
             },
             "toLocaleString": {
               "#__proto__": "function <large string>",
               "length": "number 0",
-              "name": "string toLocaleString",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string toLocaleString"
             },
             "toString": {
               "#__proto__": "function <large string>",
               "length": "number 0",
-              "name": "string toString",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string toString"
             },
             "valueOf": {
               "#__proto__": "function <large string>",
               "length": "number 0",
-              "name": "string valueOf",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string valueOf"
             },
             "#__proto__": "object null",
             "__defineGetter__": {
               "#__proto__": "function <large string>",
               "length": "number 2",
-              "name": "string __defineGetter__",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string __defineGetter__"
             },
             "__defineSetter__": {
               "#__proto__": "function <large string>",
               "length": "number 2",
-              "name": "string __defineSetter__",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string __defineSetter__"
             },
             "__lookupGetter__": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string __lookupGetter__",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string __lookupGetter__"
             },
             "__lookupSetter__": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string __lookupSetter__",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string __lookupSetter__"
             }
           },
           "constructor": {
@@ -395,80 +351,58 @@
               "is": "function <large string>",
               "assign": "function <large string>",
               "values": "function <large string>",
-              "entries": "function <large string>",
-              "caller": "object null",
-              "arguments": "object null"
+              "entries": "function <large string>"
             },
             "hasOwnProperty": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string hasOwnProperty",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string hasOwnProperty"
             },
             "propertyIsEnumerable": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string <large string>",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string <large string>"
             },
             "isPrototypeOf": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string isPrototypeOf",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string isPrototypeOf"
             },
             "toLocaleString": {
               "#__proto__": "function <large string>",
               "length": "number 0",
-              "name": "string toLocaleString",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string toLocaleString"
             },
             "toString": {
               "#__proto__": "function <large string>",
               "length": "number 0",
-              "name": "string toString",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string toString"
             },
             "valueOf": {
               "#__proto__": "function <large string>",
               "length": "number 0",
-              "name": "string valueOf",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string valueOf"
             },
             "#__proto__": "object null",
             "__defineGetter__": {
               "#__proto__": "function <large string>",
               "length": "number 2",
-              "name": "string __defineGetter__",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string __defineGetter__"
             },
             "__defineSetter__": {
               "#__proto__": "function <large string>",
               "length": "number 2",
-              "name": "string __defineSetter__",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string __defineSetter__"
             },
             "__lookupGetter__": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string __lookupGetter__",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string __lookupGetter__"
             },
             "__lookupSetter__": {
               "#__proto__": "function <large string>",
               "length": "number 1",
-              "name": "string __lookupSetter__",
-              "caller": "object null",
-              "arguments": "object null"
+              "name": "string __lookupSetter__"
             }
           },
           "constructor": {

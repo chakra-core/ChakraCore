@@ -86,7 +86,7 @@ var tests = [
             assert.areEqual("SetTimeout",WScript.SetTimeout.name,"check to make sure external functions are supported");
             assert.areEqual("ClearTimeout",WScript.ClearTimeout.name,"check to make sure external functions are supported");
 
-            assert.areEqual("prototype,name,caller,arguments",Object.getOwnPropertyNames(WScript.Quit).toString(),"Check to make sure name is exposed");
+            assert.areEqual("prototype,name",Object.getOwnPropertyNames(WScript.Quit).toString(),"Check to make sure name is exposed");
 
             //Bug 639652
             var a = WScript.Echo.toString();
