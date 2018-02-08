@@ -1007,7 +1007,7 @@ namespace TTD
         return wcEvent->ContainsValue;
     }
 
-    NSLogEvents::EventLogEntry* EventLog::RecordExternalCallEvent(Js::JavascriptFunction* func, int32 rootDepth, uint32 argc, Js::Var* argv, bool checkExceptions)
+    NSLogEvents::EventLogEntry* EventLog::RecordExternalCallEvent(Js::JavascriptFunction* func, int32 rootDepth, const Js::Arguments& args, bool checkExceptions)
     {
         NSLogEvents::ExternalCallEventLogEntry* ecEvent = nullptr;
         NSLogEvents::EventLogEntry* evt = this->RecordGetInitializedEvent<NSLogEvents::ExternalCallEventLogEntry, NSLogEvents::EventKind::ExternalCallTag>(&ecEvent);
@@ -1015,7 +1015,7 @@ namespace TTD
         //We never fail with an exception (instead we set the HasRecordedException in script context)
         evt->ResultStatus = 0;
 
-        NSLogEvents::ExternalCallEventLogEntry_ProcessArgs(evt, rootDepth, func, argc, argv, checkExceptions, this->m_eventSlabAllocator);
+        NSLogEvents::ExternalCallEventLogEntry_ProcessArgs(evt, rootDepth, func, args, checkExceptions, this->m_eventSlabAllocator);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         NSLogEvents::ExternalCallEventLogEntry_ProcessDiagInfoPre(evt, func, this->m_eventSlabAllocator);
@@ -1037,7 +1037,7 @@ namespace TTD
 #endif
     }
 
-    void EventLog::ReplayExternalCallEvent(Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, Js::Var* result)
+    void EventLog::ReplayExternalCallEvent(Js::JavascriptFunction* function, const Js::Arguments& args, Js::Var* result)
     {
         TTDAssert(result != nullptr, "Must be non-null!!!");
         TTDAssert(*result == nullptr, "And initialized to a default value.");
@@ -1054,16 +1054,28 @@ namespace TTD
 #endif
 
         //make sure we log all of the passed arguments in the replay host
-        TTDAssert(argc + 1 == ecEvent->ArgCount, "Mismatch in args!!!");
+        TTDAssert(args.Info.Count + 1 == ecEvent->ArgCount, "Mismatch in args!!!");
 
         TTDVar recordedFunction = ecEvent->ArgArray[0];
         NSLogEvents::PassVarToHostInReplay(executeContext, recordedFunction, function);
 
-        for(uint32 i = 0; i < argc; ++i)
+        for(uint32 i = 0; i < args.Info.Count; ++i)
         {
-            Js::Var replayVar = argv[i];
+            Js::Var replayVar = args.Values[i];
             TTDVar recordedVar = ecEvent->ArgArray[i + 1];
             NSLogEvents::PassVarToHostInReplay(executeContext, recordedVar, replayVar);
+        }
+
+        if (args.HasNewTarget())
+        {
+            TTDAssert(ecEvent->NewTarget != nullptr, "Mismatch in new.target!!!");
+            Js::Var replayVar = args.GetNewTarget();
+            TTDVar recordedVar = ecEvent->NewTarget;
+            NSLogEvents::PassVarToHostInReplay(executeContext, recordedVar, replayVar);
+        }
+        else
+        {
+            TTDAssert(ecEvent->NewTarget == nullptr, "Mismatch in new.target!!!");
         }
 
         //replay anything that happens in the external call

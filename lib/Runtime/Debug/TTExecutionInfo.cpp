@@ -887,32 +887,35 @@ namespace TTD
         else
         {
             Js::FunctionBody* fb = cfinfo.Function;
+            TTDAssert(fb->GetUtf8SourceInfo() != nullptr, "Should always have a source info.");
 
-            int32 cIndex = fb->GetEnclosingStatementIndexFromByteCode(bytecodeOffset, true);
-            TTDAssert(cIndex != -1, "Should always have a mapping.");
-
-            //we moved to a new statement
-            Js::FunctionBody::StatementMap* pstmt = fb->GetStatementMaps()->Item(cIndex);
-            bool newstmt = (cIndex != cfinfo.CurrentStatementIndex && pstmt->byteCodeSpan.begin <= (int)bytecodeOffset && (int)bytecodeOffset <= pstmt->byteCodeSpan.end);
-            if(newstmt)
+            if (!fb->GetUtf8SourceInfo()->GetIsLibraryCode())
             {
-                cfinfo.LastStatementIndex = cfinfo.CurrentStatementIndex;
-                cfinfo.LastStatementLoopTime = cfinfo.CurrentStatementLoopTime;
+                int32 cIndex = fb->GetEnclosingStatementIndexFromByteCode(bytecodeOffset, true);
 
-                cfinfo.CurrentStatementIndex = cIndex;
-                cfinfo.CurrentStatementLoopTime = cfinfo.LoopTime;
+                //we moved to a new statement
+                Js::FunctionBody::StatementMap* pstmt = fb->GetStatementMaps()->Item(cIndex);
+                bool newstmt = (cIndex != cfinfo.CurrentStatementIndex && pstmt->byteCodeSpan.begin <= (int)bytecodeOffset && (int)bytecodeOffset <= pstmt->byteCodeSpan.end);
+                if (newstmt)
+                {
+                    cfinfo.LastStatementIndex = cfinfo.CurrentStatementIndex;
+                    cfinfo.LastStatementLoopTime = cfinfo.CurrentStatementLoopTime;
 
-                cfinfo.CurrentStatementBytecodeMin = (uint32)pstmt->byteCodeSpan.begin;
-                cfinfo.CurrentStatementBytecodeMax = (uint32)pstmt->byteCodeSpan.end;
+                    cfinfo.CurrentStatementIndex = cIndex;
+                    cfinfo.CurrentStatementLoopTime = cfinfo.LoopTime;
+
+                    cfinfo.CurrentStatementBytecodeMin = (uint32)pstmt->byteCodeSpan.begin;
+                    cfinfo.CurrentStatementBytecodeMax = (uint32)pstmt->byteCodeSpan.end;
 
 #if ENABLE_FULL_BC_TRACE
-                ULONG srcLine = 0;
-                LONG srcColumn = -1;
-                uint32 startOffset = cfinfo.Function->GetFunctionBody()->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
-                cfinfo.Function->GetFunctionBody()->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
+                    ULONG srcLine = 0;
+                    LONG srcColumn = -1;
+                    uint32 startOffset = cfinfo.Function->GetFunctionBody()->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
+                    cfinfo.Function->GetFunctionBody()->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
-                this->m_diagnosticLogger.WriteStmtIndex((uint32)srcLine, (uint32)srcColumn);
+                    this->m_diagnosticLogger.WriteStmtIndex((uint32)srcLine, (uint32)srcColumn);
 #endif
+                }
             }
         }
     }

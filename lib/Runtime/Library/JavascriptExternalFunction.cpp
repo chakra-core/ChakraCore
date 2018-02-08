@@ -386,7 +386,7 @@ namespace Js
         if(scriptContext->ShouldPerformReplayAction())
         {
             TTD::TTDNestingDepthAutoAdjuster logPopper(scriptContext->GetThreadContext());
-            scriptContext->GetThreadContext()->TTDLog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
+            scriptContext->GetThreadContext()->TTDLog->ReplayExternalCallEvent(externalFunction, args, &result);
         }
         else
         {
@@ -395,7 +395,7 @@ namespace Js
             TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
 
             TTD::TTDNestingDepthAutoAdjuster logPopper(scriptContext->GetThreadContext());
-            TTD::NSLogEvents::EventLogEntry* callEvent = elog->RecordExternalCallEvent(externalFunction, scriptContext->GetThreadContext()->TTDRootNestingCount, args.Info.Count, args.Values, false);
+            TTD::NSLogEvents::EventLogEntry* callEvent = elog->RecordExternalCallEvent(externalFunction, scriptContext->GetThreadContext()->TTDRootNestingCount, args, false);
 
             BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
             {
@@ -420,7 +420,7 @@ namespace Js
         if(scriptContext->ShouldPerformReplayAction())
         {
             TTD::TTDNestingDepthAutoAdjuster logPopper(scriptContext->GetThreadContext());
-            scriptContext->GetThreadContext()->TTDLog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
+            scriptContext->GetThreadContext()->TTDLog->ReplayExternalCallEvent(externalFunction, args, &result);
         }
         else
         {
@@ -429,7 +429,7 @@ namespace Js
             TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
 
             TTD::TTDNestingDepthAutoAdjuster logPopper(scriptContext->GetThreadContext());
-            TTD::NSLogEvents::EventLogEntry* callEvent = elog->RecordExternalCallEvent(externalFunction, scriptContext->GetThreadContext()->TTDRootNestingCount, args.Info.Count, args.Values, true);
+            TTD::NSLogEvents::EventLogEntry* callEvent = elog->RecordExternalCallEvent(externalFunction, scriptContext->GetThreadContext()->TTDRootNestingCount, args, true);
 
             StdCallJavascriptMethodInfo info = {
                 args[0],
