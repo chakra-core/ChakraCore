@@ -444,18 +444,27 @@ namespace TTD
             return callEvt->LastNestedEventTime;
         }
 
-        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, bool checkExceptions, UnlinkableSlabAllocator& alloc)
+        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, const Js::Arguments& args, bool checkExceptions, UnlinkableSlabAllocator& alloc)
         {
             ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
 
             callEvt->RootNestingDepth = rootDepth;
-            callEvt->ArgCount = argc + 1;
+            callEvt->ArgCount = args.Info.Count + 1;
 
             static_assert(sizeof(TTDVar) == sizeof(Js::Var), "These need to be the same size (and have same bit layout) for this to work!");
 
             callEvt->ArgArray = alloc.SlabAllocateArray<TTDVar>(callEvt->ArgCount);
             callEvt->ArgArray[0] = static_cast<TTDVar>(function);
-            js_memcpy_s(callEvt->ArgArray + 1, (callEvt->ArgCount - 1) * sizeof(TTDVar), argv, argc * sizeof(Js::Var));
+            js_memcpy_s(callEvt->ArgArray + 1, args.Info.Count * sizeof(TTDVar), args.Values, args.Info.Count * sizeof(Js::Var));
+
+            if (args.HasNewTarget())
+            {
+                callEvt->NewTarget = static_cast<TTDVar>(args.GetNewTarget());
+            }
+            else
+            {
+                callEvt->NewTarget = nullptr;
+            }
 
             callEvt->ReturnValue = nullptr;
             callEvt->LastNestedEventTime = TTD_EVENT_MAXTIME;
