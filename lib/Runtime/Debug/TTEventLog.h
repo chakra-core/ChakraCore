@@ -430,11 +430,11 @@ namespace TTD
         bool ReplayWeakCollectionContainsEvent();
 
         //Log a value event for return from an external call
-        NSLogEvents::EventLogEntry* RecordExternalCallEvent(Js::JavascriptFunction* func, int32 rootDepth, uint32 argc, Js::Var* argv, bool checkExceptions);
+        NSLogEvents::EventLogEntry* RecordExternalCallEvent(Js::JavascriptFunction* func, int32 rootDepth, const Js::Arguments& args, bool checkExceptions);
         void RecordExternalCallEvent_Complete(Js::JavascriptFunction* efunction, NSLogEvents::EventLogEntry* evt, Js::Var result);
 
         //replay an external return event (which should be the current event)
-        void ReplayExternalCallEvent(Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, Js::Var* result);
+        void ReplayExternalCallEvent(Js::JavascriptFunction* function, const Js::Arguments& args, Js::Var* result);
 
         NSLogEvents::EventLogEntry* RecordEnqueueTaskEvent(Js::Var taskVar);
         void RecordEnqueueTaskEvent_Complete(NSLogEvents::EventLogEntry* evt);
