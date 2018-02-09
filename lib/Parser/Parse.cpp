@@ -3029,7 +3029,6 @@ ParseFunctionDecl:
                 IdentPtr localName;
                 if (pnode->nop == knopClassDecl)
                 {
-                    pnode->sxClass.pnodeName->sxVar.sym->SetIsModuleExportStorage(true);
                     pnode->sxClass.pnodeDeclName->sxVar.sym->SetIsModuleExportStorage(true);
                     localName = pnode->sxClass.pnodeName->sxVar.pid;
                 }
