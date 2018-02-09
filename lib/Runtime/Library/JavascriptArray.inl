@@ -989,7 +989,7 @@ SECOND_PASS:
                         CopyArray(current->elements + endIndex + 1, endSeg->length,
                             ((Js::SparseArraySegment<T>*)endSeg)->elements, endSeg->length);
                         LinkSegments((Js::SparseArraySegment<T>*)startPrev, current);
-                        if (HasNoMissingValues())
+                        if (current == head && HasNoMissingValues())
                         {
                             if (ScanForMissingValues<T>(endIndex + 1, endIndex + growby))
                             {
