@@ -279,7 +279,7 @@ LPVOID PreReservedVirtualAllocWrapper::AllocPages(LPVOID lpAddress, size_t pageC
     size_t dwSize = pageCount * AutoSystemInfo::PageSize;
     
     AssertMsg(isCustomHeapAllocation, "PreReservation used for allocations other than CustomHeap?");
-    AssertMsg(AutoSystemInfo::Data.IsCFGEnabled() || PHASE_FORCE1(Js::PreReservedHeapAllocPhase), "PreReservation without CFG ?");
+
     Assert(dwSize != 0);
 
     {
