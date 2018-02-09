@@ -1403,6 +1403,10 @@ public:
     void InternalInvalidateProtoTypePropertyCaches(const Js::PropertyId propertyId);
     void InvalidateAllProtoTypePropertyCaches();
 
+    // Variant of InvalidateProtoTypePropertyCaches that invalidates only those cache entries associated
+    // with missing properties.
+    void InvalidateMissingPropertyProtoTypePropertyCaches(const Js::PropertyId propertyId);
+
     Js::ScriptContext ** RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext(Js::ScriptContext * scriptContext);
     void UnregisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext(Js::ScriptContext ** scriptContext);
     void ClearPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesCaches();

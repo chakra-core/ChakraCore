@@ -3954,6 +3954,35 @@ void ThreadContext::DoInvalidateProtoTypePropertyCaches(const Js::PropertyId pro
         });
 }
 
+void ThreadContext::InvalidateMissingPropertyProtoTypePropertyCaches(const Js::PropertyId propertyId)
+{
+    Assert(propertyId != Js::Constants::NoProperty);
+    Assert(IsActivePropertyId(propertyId));
+
+    // Get the hash set of registered types associated with the property
+    // ID, invalidate each type in the hash set for which we've cached the
+    // property as missing, and remove them from the hash set.  If the set
+    // is empty at this point, remove the property ID and its hash set from
+    // the map.
+    PropertyIdToTypeHashSetDictionary &typesWithProtoPropertyCache = recyclableData->typesWithProtoPropertyCache;
+    TypeHashSet *typeHashSet = nullptr;
+    if (typesWithProtoPropertyCache.Count() != 0 && typesWithProtoPropertyCache.TryGetValue(propertyId, &typeHashSet))
+    {
+        Assert(typeHashSet != nullptr);
+        typeHashSet->Map(
+            [propertyId](Js::Type * const type, const bool, const RecyclerWeakReference<Js::Type>*) -> bool
+            {
+                return !(type->GetPropertyCache()->ClearIfPropertyIsMissing(propertyId));
+            });
+        // If all of the entries in typeHashSet corresponding to missing properties, then
+        // we've empted typeHashSet, so remove the property from the dictionary.
+        if (typeHashSet->Count() == 0)
+        {
+            typesWithProtoPropertyCache.Remove(propertyId);
+        }
+    }
+}
+
 Js::ScriptContext **
 ThreadContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext(Js::ScriptContext * scriptContext)
 {

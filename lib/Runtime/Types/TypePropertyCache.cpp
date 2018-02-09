@@ -448,6 +448,20 @@ namespace Js
             element.Clear();
     }
 
+    bool TypePropertyCache::ClearIfPropertyIsMissing(const PropertyId id)
+    {
+        TypePropertyCacheElement &element = elements[ElementIndex(id)];
+        if (element.Id() == id && element.IsMissing())
+        {
+            element.Clear();
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
     void TypePropertyCache::Clear(const PropertyId id)
     {
         TypePropertyCacheElement &element = elements[ElementIndex(id)];

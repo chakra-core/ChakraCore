@@ -206,6 +206,37 @@ namespace JsUtil
             }
         }
 
+        // Variant of Map in which the function `fn' must return something convertable to a
+        // bool; removes all entries for which fn returns false.
+        template<typename Fn>
+        void FilterMap(Fn fn)
+        {
+            for (int i = 0; i < size; i++)
+            {
+                if (buckets[i] != -1)
+                {
+                    for (int previousIndex = -1, currentIndex = buckets[i]; currentIndex != -1;)
+                    {
+                        EntryType &currentEntry = entries[currentIndex];
+                        TKey *key = currentEntry.key->Get();
+                        if (key != nullptr && fn(key, currentEntry.value, currentEntry.key))
+                        {
+                            // Keep entry
+                            previousIndex = currentIndex;
+                            currentIndex = currentEntry.next;
+                        }
+                        else
+                        {
+                            // Remove the entry
+                            const int nextIndex = currentEntry.next;
+                            RemoveEntry(currentIndex, previousIndex, i);
+                            currentIndex = nextIndex;
+                        }
+                    }
+                }
+            }
+        }
+
         void SetDisableCleanup(bool disableCleanup)
         {
             this->disableCleanup = disableCleanup;
