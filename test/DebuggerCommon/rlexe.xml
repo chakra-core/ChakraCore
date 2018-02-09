@@ -513,8 +513,7 @@
     <default>
       <files>attachdetach-delaycapture.js</files>
       <compile-flags>-dbgbaseline:attachdetach-delaycapture.js.dbg.baseline</compile-flags>
-      <!-- xplat-todo: enable back - investigate [background job thread fails] (Microsoft/ChakraCore#3012) -->
-      <tags>BugFix,exclude_xplat</tags>
+      <tags>BugFix</tags>
     </default>
   </test>
   <test>
@@ -1269,8 +1268,6 @@
     <default>
       <files>TypedArray.js</files>
       <compile-flags>-ES6Species -debuglaunch -dbgbaseline:typedarray.js.dbg.baseline -InspectMaxStringLength:200</compile-flags>
-      <!-- xplat-todo: Microsoft/ChakraCore#2064 -->
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
