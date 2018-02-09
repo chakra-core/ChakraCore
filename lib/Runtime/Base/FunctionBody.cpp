@@ -9479,6 +9479,14 @@ namespace Js
                 {
                     scriptContext->FreeFunctionEntryPoint(reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()), this->GetThunkAddress());
                 }
+#if PDATA_ENABLED && defined(_WIN32)
+                else
+                {
+                    // in case of debugger attaching, we have a new code generator and when deleting old code generator,
+                    // the xData is not put in the delay list yet. clear the list now so the code addresses are ready to reuse
+                    DelayDeletingFunctionTable::Clear();
+                }
+#endif
             }
 
 #ifdef PERF_COUNTERS

@@ -9,6 +9,7 @@
 #include "Core/DelayLoadLibrary.h"
 #include <malloc.h>
 
+CriticalSection DelayDeletingFunctionTable::cs;
 PSLIST_HEADER DelayDeletingFunctionTable::Head = nullptr;
 DelayDeletingFunctionTable DelayDeletingFunctionTable::Instance;
 
@@ -52,6 +53,10 @@ void DelayDeletingFunctionTable::Clear()
 {
     if (Head)
     {
+        // add lock here to prevent in case one thread popped the entry and before deleting
+        // another thread is registering function table for the same address
+        AutoCriticalSection autoCS(&cs); 
+
         SLIST_ENTRY* entry = InterlockedPopEntrySList(Head);
         while (entry)
         {
