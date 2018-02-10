@@ -1301,8 +1301,11 @@ BailOutRecord::BailOutInlinedHelper(Js::JavascriptCallStackLayout * layout, Bail
         InlineeFrameRecord* inlineeFrameRecord = entryPointInfo->FindInlineeFrame(returnAddress);
         if (inlineeFrameRecord)
         {
+            // While bailing out, RestoreFrames should box all Vars on the stack. If there are multiple Vars pointing to the same
+            // object, the cached version (that was previously boxed) will be reused to maintain pointer identity and correctness
+            // after the transition to the interpreter.
             InlinedFrameLayout* outerMostFrame = (InlinedFrameLayout *)(((uint8 *)Js::JavascriptCallStackLayout::ToFramePointer(layout)) - entryPointInfo->frameHeight);
-            inlineeFrameRecord->RestoreFrames(functionBody, outerMostFrame, layout, false /* deepCopy */);
+            inlineeFrameRecord->RestoreFrames(functionBody, outerMostFrame, layout, true /* boxArgs */);
         }
     }
 

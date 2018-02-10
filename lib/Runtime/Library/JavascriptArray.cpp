@@ -11679,12 +11679,24 @@ Case0:
     T * JavascriptArray::BoxStackInstance(T * instance, bool deepCopy)
     {
         Assert(ThreadContext::IsOnStack(instance));
-        // On the stack, the we reserved a pointer before the object as to store the boxed value
-        T ** boxedInstanceRef = ((T **)instance) - 1;
-        T * boxedInstance = *boxedInstanceRef;
-        if (boxedInstance)
+        T * boxedInstance;
+        T ** boxedInstanceRef;
+        if (!deepCopy)
         {
-            return boxedInstance;
+            // On the stack, the we reserved a pointer before the object as to store the boxed value
+            boxedInstanceRef = ((T **)instance) - 1;
+            boxedInstance = *boxedInstanceRef;
+            if (boxedInstance)
+            {
+                return boxedInstance;
+            }
+        }
+        else
+        {
+            // When doing a deep copy, do not cache the boxed value to ensure that only shallow copies
+            // are reused
+            boxedInstance = nullptr;
+            boxedInstanceRef = nullptr;
         }
 
         const size_t inlineSlotsSize = instance->GetTypeHandler()->GetInlineSlotsSize();
@@ -11703,7 +11715,10 @@ Case0:
             boxedInstance = RecyclerNew(instance->GetRecycler(), T, instance, false, false);
         }
 
-        *boxedInstanceRef = boxedInstance;
+        if (boxedInstanceRef != nullptr)
+        {
+            *boxedInstanceRef = boxedInstance;
+        }
         return boxedInstance;
     }
 

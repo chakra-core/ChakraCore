@@ -2871,7 +2871,6 @@ LABEL1:
         // and foo.arguments[n] will be maintained after this object is returned.
 
         JavascriptStackWalker walker(scriptContext);
-        walker.SetDeepCopyForArguments();
 
         if (walker.WalkToTarget(this))
         {
@@ -2882,12 +2881,13 @@ LABEL1:
             else
             {
                 Var args = nullptr;
-                //Create a copy of the arguments and return it.
+                // Since the arguments will be returned back to script, box the arguments to ensure a copy of
+                // them with their own lifetime (as well as move any from the stack to the heap).
 
                 const CallInfo callInfo = walker.GetCallInfo();
                 args = JavascriptOperators::LoadHeapArguments(
                     this, callInfo.Count - 1,
-                    walker.GetJavascriptArgs(),
+                    walker.GetJavascriptArgs(true /* boxArgsAndDeepCopy */),
                     scriptContext->GetLibrary()->GetNull(),
                     scriptContext->GetLibrary()->GetNull(),
                     scriptContext,
