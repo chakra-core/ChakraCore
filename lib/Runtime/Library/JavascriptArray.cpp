@@ -11700,8 +11700,11 @@ Case0:
         }
 
         const size_t inlineSlotsSize = instance->GetTypeHandler()->GetInlineSlotsSize();
-        if (ThreadContext::IsOnStack(instance->head))
+        if (ThreadContext::IsOnStack(instance->head) || deepCopy)
         {
+            // Reallocate both the object as well as the head segment when the head is on the stack or
+            // when a deep copy is needed. This is to prevent a scenario where box may leave either one
+            // on the stack when both must be on the heap.
             boxedInstance = RecyclerNewPlusZ(instance->GetRecycler(),
                 inlineSlotsSize + sizeof(Js::SparseArraySegmentBase) + instance->head->size * sizeof(typename T::TElement),
                 T, instance, true, deepCopy);
