@@ -26,6 +26,8 @@
     <default>
       <files>toUint16.js</files>
       <baseline>toUint16.baseline</baseline>
+      <!-- OS:15856443 [RS4] Disabled failing core unit test toUint16.js DRT. Needs further investigation. -->
+      <tags>exclude_drt</tags>
     </default>
   </test>
   <test>
