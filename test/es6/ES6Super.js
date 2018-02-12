@@ -204,6 +204,85 @@ var tests = [
         assert.areEqual(6, count, "Side effects expected without SyntaxError");
     }
   },
+  {
+    name: "return value of super() should be this when super is plain function",
+    body: function () {
+        function A() { }
+
+        let s;
+        class B extends A {
+            constructor() {
+                s = super();
+            }
+        }
+
+        const b = new B();
+        assert.areEqual(b, s);
+    }
+  },
+  {
+    name: "return value of super() should be this when super is class",
+    body: function () {
+        class A { }
+
+        let s;
+        class B extends A {
+            constructor() {
+                s = super();
+            }
+        }
+
+        const b = new B();
+        assert.areEqual(b, s);
+    }
+  },
+  {
+    name: "return value of super() should be this when super is function with non-object return value",
+    body: function () {
+        function A() { return 4; }
+
+        let s;
+        class B extends A {
+            constructor() {
+                s = super();
+            }
+        }
+
+        const b = new B();
+        assert.areEqual(b, s);
+    }
+  },
+  {
+    name: "return value of super() should be this when super is function that returns an object",
+    body: function () {
+        function A() { return { a: 1 }; }
+
+        let s;
+        class B extends A {
+            constructor() {
+                s = super();
+            }
+        }
+
+        const b = new B();
+        assert.areEqual(b, s);
+        assert.areEqual(1, b.a);
+    }
+  },
+  {
+    name: "return value of super() should be this when super is built-in type",
+    body: function () {
+        let s;
+        class B extends Uint32Array {
+            constructor() {
+                s = super();
+            }
+        }
+
+        const b = new B();
+        assert.areEqual(b, s);
+    }
+  },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
