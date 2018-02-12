@@ -617,7 +617,7 @@ namespace JsUtil
         threadCount(0),
         maxThreadCount(0)
 #if PDATA_ENABLED && defined(_WIN32)
-        ,hasExtraWork(false)
+        ,hasExtraWork(0)
 #endif
     {
         if (!threadService->HasCallback())
@@ -713,7 +713,7 @@ namespace JsUtil
 #if PDATA_ENABLED && defined(_WIN32)
     void BackgroundJobProcessor::DoExtraWork()
     {
-        while (hasExtraWork)
+        while (InterlockedExchangeAdd(&hasExtraWork, 0) > 0)
         {
             DelayDeletingFunctionTable::Clear();
             Sleep(50);
@@ -1431,14 +1431,15 @@ namespace JsUtil
 #if PDATA_ENABLED && defined(_WIN32)
     void BackgroundJobProcessor::StartExtraWork()
     {
-        hasExtraWork = true;
+        InterlockedIncrement(&hasExtraWork);
 
         // Signal the background thread to wake up and process the extra work.
         jobReady.Set();
     }
     void BackgroundJobProcessor::EndExtraWork()
     {
-        hasExtraWork = false;
+        LONG newValue = InterlockedDecrement(&hasExtraWork);
+        Assert(newValue >= 0);
     }
 #endif
 
