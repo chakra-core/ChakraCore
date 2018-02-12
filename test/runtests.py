@@ -71,7 +71,7 @@ parser.add_argument('--timeout', type=int, default=DEFAULT_TIMEOUT,
 parser.add_argument('--swb', action='store_true',
                     help='use binary from VcBuild.SWB to run the test')
 parser.add_argument('--lldb', default=None,
-                    help='run a single test in lldb batch mode to get call stack and crash logs', action='store_true')
+                    help='run test suit with lldb batch mode to get call stack for crashing processes (ignores baseline matching)', action='store_true')
 parser.add_argument('-l', '--logfile', metavar='logfile',
                     help='file to log results to', default=None)
 parser.add_argument('--x86', action='store_true',
@@ -469,17 +469,28 @@ class TestVariant(object):
             timeout_data[1] = True
         timeout = test.get('timeout', args.timeout) # test override or default
         timer = Timer(timeout, timeout_func, [timeout_data])
+        skip_baseline_match = False
         try:
             timer.start()
             js_output = normalize_new_line(proc.communicate()[0])
             exit_code = proc.wait()
+            # if -lldb was set; check if test was crashed before corrupting the output
+            search_for = " exited with status = 0 (0x00000000)"
+            if args.lldb != None and exit_code == 0 and js_output.index(search_for) > 0:
+                js_output = js_output[0:js_output.index(search_for)]
+                exit_pos = js_output.rfind('\nProcess ')
+                if exit_pos > len(js_output) - 20: # if [Process ????? <seach for>]
+                    if 'baseline' not in test:
+                        js_output = "pass"
+                    else:
+                        skip_baseline_match = True
         finally:
             timer.cancel()
         test.done()
 
         # shared _show_failed args
         fail_args = { 'test': test, 'flags': flags,
-                      'exit_code': exit_code, 'output': js_output };
+                      'exit_code': exit_code, 'output': js_output }
 
         # check timed out
         if (timeout_data[1]):
@@ -498,7 +509,7 @@ class TestVariant(object):
                 return self._show_failed(**fail_args)
         else:
             baseline = test.get('baseline')
-            if baseline:
+            if not skip_baseline_match and baseline:
                 # perform baseline comparison
                 baseline = self._check_file(folder, baseline)
                 with open(baseline, 'rb') as bs_file:
