@@ -2214,6 +2214,7 @@ void ByteCodeGenerator::LoadSuperObject(FuncInfo *funcInfo)
 void ByteCodeGenerator::EmitSuperCall(FuncInfo* funcInfo, ParseNode* pnode, BOOL fReturnValue)
 {
     FuncInfo* nonLambdaFunc = funcInfo;
+    bool isResultUsed = pnode->isUsed;
 
     if (funcInfo->IsLambda())
     {
@@ -2226,11 +2227,11 @@ void ByteCodeGenerator::EmitSuperCall(FuncInfo* funcInfo, ParseNode* pnode, BOOL
         this->Writer()->W1(Js::OpCode::RuntimeReferenceError, SCODE_CODE(JSERR_ClassSuperInBaseClass));
         return;
     }
-    else
-    {
-        pnode->isUsed = true;
-    }
 
+    pnode->isUsed = true;
+
+    // pnode->location refers to two things: the result of the inner function call (`temp` in the pseudocode below),
+    // and the result of the super() expression itself
     funcInfo->AcquireLoc(pnode);
 
     // We need to emit 'this' directly so we can skip throwing a reference error if 'this' is currently undecl (we want to get undecl if 'this' is undecl)
@@ -2301,6 +2302,12 @@ void ByteCodeGenerator::EmitSuperCall(FuncInfo* funcInfo, ParseNode* pnode, BOOL
     this->Writer()->BrReg2(Js::OpCode::BrSrEq_A, skipLabel, pnode->sxSuperCall.pnodeThis->location, tmpUndeclReg);
     this->Writer()->W1(Js::OpCode::RuntimeReferenceError, SCODE_CODE(JSERR_ClassThisAlreadyAssigned));
     this->Writer()->MarkLabel(skipLabel);
+
+    // If calling code cares about the return value, then move the selected `this` value into the result register.
+    if (isResultUsed)
+    {
+        this->Writer()->Reg2(Js::OpCode::Ld_A, pnode->location, valueForThis);
+    }
 
     Symbol* thisSym = pnode->sxSuperCall.pnodeThis->sxPid.sym;
     this->Writer()->Reg2(Js::OpCode::StrictLdThis, pnode->sxSuperCall.pnodeThis->location, valueForThis);
