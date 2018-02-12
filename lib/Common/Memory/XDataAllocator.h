@@ -23,6 +23,7 @@ struct DelayDeletingFunctionTable
 {
     static PSLIST_HEADER Head;
     static DelayDeletingFunctionTable Instance;
+    static CriticalSection cs;
 
     DelayDeletingFunctionTable();
     ~DelayDeletingFunctionTable();

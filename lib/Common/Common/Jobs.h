@@ -463,7 +463,7 @@ namespace JsUtil
         ParallelThreadData **parallelThreadData;
 
 #if PDATA_ENABLED && defined(_WIN32)
-        bool hasExtraWork;
+        LONG hasExtraWork;
 #endif
 
 #if DBG_DUMP
