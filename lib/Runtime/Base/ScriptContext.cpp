@@ -3098,6 +3098,30 @@ namespace Js
     {
         OUTPUT_TRACE(Js::DebuggerPhase, _u("ScriptContext::OnDebuggerAttached: start 0x%p\n"), this);
 
+#if ENABLE_NATIVE_CODEGEN
+#if PDATA_ENABLED && defined(_WIN32)
+        // in case of debugger attaching, we have a new code generator and when deleting old code generator,
+        // the xData is not put in the delay list yet. clear the list now so the code addresses are ready to reuse
+        struct AutoReset
+        {
+            AutoReset(ThreadContext* threadContext)
+                :threadContext(threadContext)
+            {
+                // indicate background thread that we need help to delete the xData
+                threadContext->GetJobProcessor()->StartExtraWork();
+            }
+            ~AutoReset()
+            {
+                threadContext->GetJobProcessor()->EndExtraWork();
+                // in case the background thread didn't clear all the function tables
+                DelayDeletingFunctionTable::Clear();
+            }
+
+            ThreadContext* threadContext;
+        } autoReset(this->GetThreadContext());
+#endif
+#endif
+
         Js::StepController* stepController = &this->GetThreadContext()->GetDebugManager()->stepController;
         if (stepController->IsActive())
         {
@@ -3204,6 +3228,30 @@ namespace Js
     HRESULT ScriptContext::OnDebuggerDetached()
     {
         OUTPUT_TRACE(Js::DebuggerPhase, _u("ScriptContext::OnDebuggerDetached: start 0x%p\n"), this);
+
+#if ENABLE_NATIVE_CODEGEN
+#if PDATA_ENABLED && defined(_WIN32)
+        // in case of debugger detaching, we have a new code generator and when deleting old code generator,
+        // the xData is not put in the delay list yet. clear the list now so the code addresses are ready to reuse
+        struct AutoReset
+        {
+            AutoReset(ThreadContext* threadContext)
+                :threadContext(threadContext)
+            {
+                // indicate background thread that we need help to delete the xData
+                threadContext->GetJobProcessor()->StartExtraWork();
+            }
+            ~AutoReset()
+            {
+                threadContext->GetJobProcessor()->EndExtraWork();
+                // in case the background thread didn't clear all the function tables
+                DelayDeletingFunctionTable::Clear();
+            }
+
+            ThreadContext* threadContext;
+        } autoReset(this->GetThreadContext());
+#endif
+#endif
 
         Js::StepController* stepController = &this->GetThreadContext()->GetDebugManager()->stepController;
         if (stepController->IsActive())

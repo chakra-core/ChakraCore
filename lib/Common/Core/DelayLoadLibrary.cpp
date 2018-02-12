@@ -82,6 +82,8 @@ NtdllLibrary::NTSTATUS NtdllLibrary::AddGrowableFunctionTable( _Out_ PVOID * Dyn
                 return 1;
             }
         }
+
+        *DynamicTable = nullptr;
         NTSTATUS status = addGrowableFunctionTable(DynamicTable,
             FunctionTable,
             EntryCount,
@@ -92,7 +94,7 @@ NtdllLibrary::NTSTATUS NtdllLibrary::AddGrowableFunctionTable( _Out_ PVOID * Dyn
         PHASE_PRINT_TESTTRACE1(Js::XDataPhase, _u("Register: [%d] Begin: %llx, End: %x, Unwind: %llx, RangeBase: %llx, RangeEnd: %llx, table: %llx, Status: %x\n"),
            GetCurrentThreadId(), FunctionTable->BeginAddress, FunctionTable->EndAddress, FunctionTable->UnwindInfoAddress, RangeBase, RangeEnd, *DynamicTable, status);
 #endif
-        Assert((status >= 0 && FunctionTable != nullptr) || status == 0xC000009A /*STATUS_INSUFFICIENT_RESOURCES*/);
+        Assert((status >= 0 && *DynamicTable != nullptr) || status == 0xC000009A /*STATUS_INSUFFICIENT_RESOURCES*/);
         return status;
     }
     return 1;
