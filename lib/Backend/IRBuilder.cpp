@@ -6415,7 +6415,7 @@ IRBuilder::BuildCallCommon(IR::Instr * instr, StackSym * symDst, Js::ArgSlot arg
         count++;
 #endif
     }
-    AssertOrFailFast(argInstr->m_opcode == Js::OpCode::StartCall);
+    AssertOrFailFast(argInstr == nullptr || argInstr->m_opcode == Js::OpCode::StartCall);
 
     if (m_argStack->Empty())
     {

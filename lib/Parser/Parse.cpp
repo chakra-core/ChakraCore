@@ -9524,7 +9524,7 @@ ParseNodePtr Parser::ParseVariableDeclaration(
                 Error(ERRUninitializedConst);
             }
 
-            if (m_currentNodeFunc && pnodeThis->sxVar.sym->GetIsFormal())
+            if (m_currentNodeFunc && pnodeThis && pnodeThis->sxVar.sym->GetIsFormal())
             {
                 m_currentNodeFunc->sxFnc.SetHasAnyWriteToFormals(true);
             }
