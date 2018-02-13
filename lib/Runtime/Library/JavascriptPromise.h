@@ -461,6 +461,8 @@ namespace Js
             PromiseStatusCode_HasRejection
         };
 
+        bool GetIsHandled() { return isHandled; }
+        void SetIsHandled() { isHandled = true; }
         PromiseStatus GetStatus() const { return status; }
         Var GetResult() const { return result; }
 
@@ -469,6 +471,7 @@ namespace Js
 
     protected:
         Field(PromiseStatus) status;
+        Field(bool) isHandled;
         Field(Var) result;
         Field(JavascriptPromiseReactionList*) resolveReactions;
         Field(JavascriptPromiseReactionList*) rejectReactions;

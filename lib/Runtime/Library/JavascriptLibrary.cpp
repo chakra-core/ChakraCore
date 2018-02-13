@@ -5300,6 +5300,32 @@ namespace Js
         this->nativeHostPromiseContinuationFunctionState = state;
     }
 
+    void JavascriptLibrary::SetNativeHostPromiseRejectionTrackerCallback(HostPromiseRejectionTrackerCallback function, void *state)
+    {
+        this->nativeHostPromiseRejectionTracker = function;
+        this->nativeHostPromiseContinuationFunctionState = state;
+    }
+
+    void JavascriptLibrary::CallNativeHostPromiseRejectionTracker(Var promise, Var reason, bool handled)
+    {
+        if (this->nativeHostPromiseRejectionTracker != nullptr)
+        {
+            BEGIN_LEAVE_SCRIPT(scriptContext);
+            try
+            {
+               this->nativeHostPromiseRejectionTracker(promise, reason, handled, this->nativeHostPromiseContinuationFunctionState);
+            }
+            catch (...)
+            {
+                // Hosts are required not to pass exceptions back across the callback boundary. If
+                // this happens, it is a bug in the host, not something that we are expected to
+                // handle gracefully.
+                Js::Throw::FatalInternalError();
+            }
+            END_LEAVE_SCRIPT(scriptContext);
+        }
+    }
+
     void JavascriptLibrary::SetJsrtContext(FinalizableObject* jsrtContext)
     {
         // With JsrtContext supporting cross context, ensure that it doesn't get GCed
