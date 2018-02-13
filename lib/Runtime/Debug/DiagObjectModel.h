@@ -251,8 +251,9 @@ namespace Js
         virtual void PopulateMembers() override;
         virtual IDiagObjectAddress * GetObjectAddress(int index) override;
 
-        ScopeSlots GetSlotArray() {
-            Var *slotArray = (Var *) instance;
+        ScopeSlots GetSlotArray()
+        {
+            Field(Var) *slotArray = (Field(Var) *) instance;
             Assert(slotArray != nullptr);
             return ScopeSlots(slotArray);
         }

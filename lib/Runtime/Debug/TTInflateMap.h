@@ -15,14 +15,14 @@ namespace TTD
         TTDIdentifierDictionary<TTD_PTR_ID, Js::DynamicTypeHandler*> m_handlerMap;
         TTDIdentifierDictionary<TTD_PTR_ID, Js::Type*> m_typeMap;
 
-        //The maps for script contexts and objects 
+        //The maps for script contexts and objects
         TTDIdentifierDictionary<TTD_LOG_PTR_ID, Js::GlobalObject*> m_tagToGlobalObjectMap; //get the script context from here
         TTDIdentifierDictionary<TTD_PTR_ID, Js::RecyclableObject*> m_objectMap;
 
         //The maps for inflated function bodies
         TTDIdentifierDictionary<TTD_PTR_ID, Js::FunctionBody*> m_functionBodyMap;
         TTDIdentifierDictionary<TTD_PTR_ID, Js::FrameDisplay*> m_environmentMap;
-        TTDIdentifierDictionary<TTD_PTR_ID, Js::Var*> m_slotArrayMap;
+        TTDIdentifierDictionary<TTD_PTR_ID, Field(Js::Var)*> m_slotArrayMap;
 
         //The maps for resolving debug scopes
         TTDIdentifierDictionary<TTD_PTR_ID, Js::FunctionBody*> m_debuggerScopeHomeBodyMap;
@@ -72,7 +72,7 @@ namespace TTD
 
         Js::FunctionBody* LookupFunctionBody(TTD_PTR_ID functionId) const;
         Js::FrameDisplay* LookupEnvironment(TTD_PTR_ID envid) const;
-        Js::Var* LookupSlotArray(TTD_PTR_ID slotid) const;
+        Field(Js::Var)* LookupSlotArray(TTD_PTR_ID slotid) const;
 
         void LookupInfoForDebugScope(TTD_PTR_ID dbgScopeId, Js::FunctionBody** homeBody, int32* chainIndex) const;
 
@@ -86,7 +86,7 @@ namespace TTD
 
         void AddInflationFunctionBody(TTD_PTR_ID functionId, Js::FunctionBody* value);
         void AddEnvironment(TTD_PTR_ID envId, Js::FrameDisplay* value);
-        void AddSlotArray(TTD_PTR_ID slotId, Js::Var* value);
+        void AddSlotArray(TTD_PTR_ID slotId, Field(Js::Var)* value);
 
         void UpdateFBScopes(const NSSnapValues::SnapFunctionBodyScopeChain& scopeChainInfo, Js::FunctionBody* fb);
 

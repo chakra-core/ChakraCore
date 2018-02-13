@@ -1588,10 +1588,6 @@ public:
     template <class Fn>
     inline Js::Var ExecuteImplicitCall(Js::RecyclableObject * function, Js::ImplicitCallFlags flags, Fn implicitCall)
     {
-        // For now, we will not allow Function that is marked as HasNoSideEffect to be called, and we will just bailout.
-        // These function may still throw exceptions, so we will need to add checks with RecordImplicitException
-        // so that we don't throw exception when disableImplicitCall is set before we allow these function to be called
-        // as an optimization.  (These functions are valueOf and toString calls for built-in non primitive types)
 
         Js::FunctionInfo::Attributes attributes = Js::FunctionInfo::GetAttributes(function);
 
@@ -1601,7 +1597,16 @@ public:
         {
             // Has no side effect means the function does not change global value or
             // will check for implicit call flags
-            return implicitCall();
+            Js::Var result = implicitCall();
+
+            // If the value is on stack we need to bailout so that it can be boxed.
+            // Instead of putting this in valueOf (or other builtins which have no side effect) adding
+            // the check here to cover any other scenario we might miss.
+            if (IsOnStack(result))
+            {
+                AddImplicitCallFlags(flags);
+            }
+            return result;
         }
 
         // Don't call the implicit call if disable implicit call
@@ -1617,15 +1622,40 @@ public:
         {
             // Has no side effect means the function does not change global value or
             // will check for implicit call flags
-            return implicitCall();
+            Js::Var result = implicitCall();
+
+            // If the value is on stack we need to bailout so that it can be boxed.
+            // Instead of putting this in valueOf (or other builtins which have no side effect) adding
+            // the check here to cover any other scenario we might miss.
+            if (IsOnStack(result))
+            {
+                AddImplicitCallFlags(flags);
+            }
+            return result;
         }
 
         // Save and restore implicit flags around the implicit call
+        struct RestoreFlags
+        {
+            ThreadContext * const ctx;
+            const Js::ImplicitCallFlags flags;
+            const Js::ImplicitCallFlags savedFlags;
 
-        Js::ImplicitCallFlags saveImplicitCallFlags = this->GetImplicitCallFlags();
-        Js::Var result = implicitCall();
-        this->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags | flags));
-        return result;
+            RestoreFlags(ThreadContext *ctx, Js::ImplicitCallFlags flags) :
+                ctx(ctx),
+                flags(flags),
+                savedFlags(ctx->GetImplicitCallFlags())
+            {
+            }
+
+            ~RestoreFlags()
+            {
+                ctx->SetImplicitCallFlags(static_cast<Js::ImplicitCallFlags>(savedFlags | flags));
+            }
+        };
+
+        RestoreFlags restoreFlags(this, flags);
+        return implicitCall();
     }
     bool HasNoSideEffect(Js::RecyclableObject * function) const;
     bool HasNoSideEffect(Js::RecyclableObject * function, Js::FunctionInfo::Attributes attr) const;

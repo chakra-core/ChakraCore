@@ -141,33 +141,35 @@ JITTimeProfileInfo::InitializeJITProfileData(
 const Js::LdElemInfo *
 JITTimeProfileInfo::GetLdElemInfo(Js::ProfileId ldElemId) const
 {
+    AssertOrFailFast(ldElemId < m_profileData.profiledLdElemCount);
     return &(reinterpret_cast<Js::LdElemInfo*>(m_profileData.ldElemData)[ldElemId]);
 }
 
 const Js::StElemInfo *
 JITTimeProfileInfo::GetStElemInfo(Js::ProfileId stElemId) const
 {
+    AssertOrFailFast(stElemId < m_profileData.profiledStElemCount);
     return &(reinterpret_cast<Js::StElemInfo*>(m_profileData.stElemData)[stElemId]);
 }
 
 Js::ArrayCallSiteInfo *
 JITTimeProfileInfo::GetArrayCallSiteInfo(Js::ProfileId index) const
 {
-    Assert(index < GetProfiledArrayCallSiteCount());
+    AssertOrFailFast(index < GetProfiledArrayCallSiteCount());
     return &(reinterpret_cast<Js::ArrayCallSiteInfo*>(m_profileData.arrayCallSiteData)[index]);
 }
 
 intptr_t
 JITTimeProfileInfo::GetArrayCallSiteInfoAddr(Js::ProfileId index) const
 {
-    Assert(index < GetProfiledArrayCallSiteCount());
+    AssertOrFailFast(index < GetProfiledArrayCallSiteCount());
     return m_profileData.arrayCallSiteDataAddr + index * sizeof(ArrayCallSiteIDL);
 }
 
 Js::FldInfo *
 JITTimeProfileInfo::GetFldInfo(uint fieldAccessId) const
 {
-    Assert(fieldAccessId < GetProfiledFldCount());
+    AssertOrFailFast(fieldAccessId < GetProfiledFldCount());
     return &(reinterpret_cast<Js::FldInfo*>(m_profileData.fldData)[fieldAccessId]);
 }
 
@@ -181,7 +183,7 @@ JITTimeProfileInfo::GetFldInfoAddr(uint fieldAccessId) const
 ValueType
 JITTimeProfileInfo::GetSlotLoad(Js::ProfileId slotLoadId) const
 {
-    Assert(slotLoadId < GetProfiledSlotCount());
+    AssertOrFailFast(slotLoadId < GetProfiledSlotCount());
     return reinterpret_cast<ValueType*>(m_profileData.slotData)[slotLoadId];
 }
 
@@ -197,32 +199,32 @@ JITTimeProfileInfo::GetReturnType(Js::OpCode opcode, Js::ProfileId callSiteId) c
     if (opcode < Js::OpCode::ProfiledReturnTypeCallI || (opcode > Js::OpCode::ProfiledReturnTypeCallIFlags && opcode < Js::OpCode::ProfiledReturnTypeCallIExtended) || opcode > Js::OpCode::ProfiledReturnTypeCallIExtendedFlags)
     {
         Assert(Js::DynamicProfileInfo::IsProfiledCallOp(opcode));
-        Assert(callSiteId < GetProfiledCallSiteCount());
+        AssertOrFailFast(callSiteId < GetProfiledCallSiteCount());
         return GetCallSiteInfo()[callSiteId].returnType;
     }
     Assert(Js::DynamicProfileInfo::IsProfiledReturnTypeOp(opcode));
-    Assert(callSiteId < GetProfiledReturnTypeCount());
+    AssertOrFailFast(callSiteId < GetProfiledReturnTypeCount());
     return reinterpret_cast<ValueType*>(m_profileData.returnTypeData)[callSiteId];
 }
 
 ValueType
 JITTimeProfileInfo::GetDivProfileInfo(Js::ProfileId divideId) const
 {
-    Assert(divideId < GetProfiledDivOrRemCount());
+    AssertOrFailFast(divideId < GetProfiledDivOrRemCount());
     return reinterpret_cast<ValueType*>(m_profileData.divideTypeInfo)[divideId];
 }
 
 ValueType
 JITTimeProfileInfo::GetSwitchProfileInfo(Js::ProfileId switchId) const
 {
-    Assert(switchId < GetProfiledSwitchCount());
+    AssertOrFailFast(switchId < GetProfiledSwitchCount());
     return reinterpret_cast<ValueType*>(m_profileData.switchTypeInfo)[switchId];
 }
 
 ValueType
 JITTimeProfileInfo::GetParameterInfo(Js::ArgSlot index) const
 {
-    Assert(index < GetProfiledInParamsCount());
+    AssertOrFailFast(index < GetProfiledInParamsCount());
     return reinterpret_cast<ValueType*>(m_profileData.parameterInfo)[index];
 }
 
@@ -231,7 +233,7 @@ JITTimeProfileInfo::GetLoopImplicitCallFlags(uint loopNum) const
 {
     // TODO: michhol OOP JIT, investigate vaibility of reenabling this assert
     // Assert(Js::DynamicProfileInfo::EnableImplicitCallFlags(functionBody));
-    Assert(loopNum < GetLoopCount());
+    AssertOrFailFast(loopNum < GetLoopCount());
 
     // Mask out the dispose implicit call. We would bailout on reentrant dispose,
     // but it shouldn't affect optimization.

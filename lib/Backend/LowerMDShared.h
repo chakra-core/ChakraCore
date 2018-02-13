@@ -164,8 +164,6 @@ public:
             IR::Instr *     GenerateFastScopedStFld(IR::Instr * instrStFld);
             void            GenerateFastAbs(IR::Opnd *dst, IR::Opnd *src, IR::Instr *callInstr, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, IR::LabelInstr *doneLabel);
             IR::Instr *     GenerateFloatAbs(IR::RegOpnd * regOpnd, IR::Instr * insertInstr);
-            bool            GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR::Opnd *srcStr, IR::Opnd *srcIndex, IR::Instr *callInstr, IR::Instr *insertInstr,
-                IR::LabelInstr *labelHelper, IR::LabelInstr *doneLabel);
             void            GenerateClz(IR::Instr * instr);
             void            GenerateCtz(IR::Instr * instr);
             void            GeneratePopCnt(IR::Instr * instr);
@@ -250,6 +248,7 @@ public:
             void            GenerateIsJsObjectTest(IR::RegOpnd* instanceReg, IR::Instr* insertInstr, IR::LabelInstr* labelHelper);
             void            LowerTypeof(IR::Instr * typeOfInstr);
 
+     static void            InsertObjectPoison(IR::Opnd* poisonedOpnd, IR::BranchInstr* branchInstr, IR::Instr* insertInstr);
 public:
             //
             // These methods are simply forwarded to lowererMDArch

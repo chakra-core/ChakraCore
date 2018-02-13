@@ -137,7 +137,7 @@ namespace Js
         // and use that buffer for this InterpreterStackFrame.
         Field(Var)* argsHeapCopy = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), stackArgs.Info.Count);
         CopyArray(argsHeapCopy, stackArgs.Info.Count, stackArgs.Values, stackArgs.Info.Count);
-        Arguments heapArgs(callInfo, (Var*)argsHeapCopy);
+        Arguments heapArgs(callInfo, unsafe_write_barrier_cast<Var*>(argsHeapCopy));
 
         DynamicObject* prototype = scriptContext->GetLibrary()->CreateGeneratorConstructorPrototypeObject();
         JavascriptGenerator* generator = scriptContext->GetLibrary()->CreateGenerator(heapArgs, generatorFunction->scriptFunction, prototype);
@@ -163,7 +163,7 @@ namespace Js
         // and use that buffer for this InterpreterStackFrame.
         Field(Var)* argsHeapCopy = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), stackArgs.Info.Count);
         CopyArray(argsHeapCopy, stackArgs.Info.Count, stackArgs.Values, stackArgs.Info.Count);
-        Arguments heapArgs(callInfo, (Var*)argsHeapCopy);
+        Arguments heapArgs(callInfo, unsafe_write_barrier_cast<Var*>(argsHeapCopy));
 
         JavascriptExceptionObject* e = nullptr;
         JavascriptPromiseResolveOrRejectFunction* resolve;

@@ -217,7 +217,7 @@ namespace Js
 
     void AsmJsByteCodeDumper::DumpConstants(AsmJsFunc* func, FunctionBody* body)
     {
-        byte* table = (byte*)((Var*)body->GetConstTable());
+        byte* table = (byte*)body->GetConstTable();
         auto constSrcInfos = func->GetTypedRegisterAllocator().GetConstSourceInfos();
         for (int i = 0; i < WAsmJs::LIMIT; ++i)
         {

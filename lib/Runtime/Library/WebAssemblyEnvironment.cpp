@@ -82,7 +82,7 @@ void WebAssemblyEnvironment::SetVarElement(Field(Var)* ptr, T* val, uint32 index
 
     Field(Var)* dst = ptr + index;
     CheckPtrIsValid<Var>((intptr_t)dst);
-    AssertMsg(*(T**)dst == nullptr, "We shouldn't overwrite anything on the environment once it is set");
+    AssertMsg(*dst == nullptr, "We shouldn't overwrite anything on the environment once it is set");
     *dst = val;
 }
 

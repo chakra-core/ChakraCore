@@ -293,6 +293,7 @@ FlowGraph::Build(void)
         case Js::OpCode::TryCatch:
             if (this->catchLabelStack)
             {
+                AssertOrFailFast(!this->catchLabelStack->Empty());
                 this->catchLabelStack->Pop();
             }
             break;
@@ -300,6 +301,7 @@ FlowGraph::Build(void)
         case Js::OpCode::TryFinally:
             if (this->finallyLabelStack)
             {
+                AssertOrFailFast(!this->finallyLabelStack->Empty());
                 this->finallyLabelStack->Pop();
             }
             break;
@@ -497,6 +499,7 @@ FlowGraph::Build(void)
             }
             else if (instr->m_opcode == Js::OpCode::Finally)
             {
+                AssertOrFailFast(!this->finallyLabelStack->Empty());
                 this->finallyLabelStack->Pop();
             }
         }

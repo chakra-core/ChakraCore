@@ -88,7 +88,7 @@ namespace TTD
         }
     }
 
-    void SnapshotExtractor::ExtractSlotArrayIfNeeded(Js::ScriptContext* ctx, Js::Var* scope)
+    void SnapshotExtractor::ExtractSlotArrayIfNeeded(Js::ScriptContext* ctx, Field(Js::Var)* scope)
     {
         if(this->m_marks.IsMarked(scope))
         {
@@ -177,7 +177,7 @@ namespace TTD
                     break;
                 case Js::ScopeType::ScopeType_SlotArray:
                 {
-                    this->ExtractSlotArrayIfNeeded(ctx, (Js::Var*)scope);
+                    this->ExtractSlotArrayIfNeeded(ctx, (Field(Js::Var)*)scope);
 
                     entryInfo->IDValue = TTD_CONVERT_SLOTARRAY_TO_PTR_ID((Js::Var*)scope);
                     break;
@@ -322,7 +322,7 @@ namespace TTD
                 {
                     if(this->m_marks.MarkAndTestAddr<MarkTableTag::SlotArrayTag>(scope))
                     {
-                        Js::ScopeSlots slotArray = (Js::Var*)scope;
+                        Js::ScopeSlots slotArray = (Field(Js::Var)*)scope;
                         uint slotArrayCount = static_cast<uint>(slotArray.GetCount());
                         if(!slotArray.IsDebuggerScopeSlotArray())
                         {

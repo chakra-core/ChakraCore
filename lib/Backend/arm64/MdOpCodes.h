@@ -49,7 +49,9 @@ MACRO(CMP,        Reg1,       OpSideEffect,   UNUSED,   LEGAL_PSEUDO,   UNUSED, 
 MACRO(CMN,        Reg1,       OpSideEffect,   UNUSED,   LEGAL_PSEUDO,   UNUSED,   D__S)
 // CMP src1, src2, SXTW -- used in multiply overflow checks
 MACRO(CMP_SXTW,   Reg1,       OpSideEffect,   UNUSED,   LEGAL_REG3_ND,  UNUSED,   D__S)
-// CSELLT src1, src2 -- select src1 if LT or src2 if not; used in integer min/max
+// CSELcc src1, src2 -- select src1 if cc or src2 if not
+MACRO(CSELEQ,     Reg3,       0,              UNUSED,   LEGAL_REG3,     UNUSED,   D___)
+MACRO(CSELNE,     Reg3,       0,              UNUSED,   LEGAL_REG3,     UNUSED,   D___)
 MACRO(CSELLT,     Reg3,       0,              UNUSED,   LEGAL_REG3,     UNUSED,   D___)
 // CSNEGPL src1, src2 -- select src1 if PL or -src1 if not; used in integer absolute value
 MACRO(CSNEGPL,    Reg3,       0,              UNUSED,   LEGAL_REG3,     UNUSED,   D___)

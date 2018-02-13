@@ -112,7 +112,7 @@ FunctionJITTimeInfo::BuildJITTimeData(
         if(objTypeSpecInfo)
         {
             jitData->objTypeSpecFldInfoCount = jitData->bodyData->inlineCacheCount;
-            jitData->objTypeSpecFldInfoArray = (ObjTypeSpecFldIDL**)objTypeSpecInfo;
+            jitData->objTypeSpecFldInfoArray = unsafe_write_barrier_cast<ObjTypeSpecFldIDL**>(objTypeSpecInfo);
         }
         for (Js::InlineCacheIndex i = 0; i < jitData->bodyData->inlineCacheCount; ++i)
         {
@@ -131,7 +131,7 @@ FunctionJITTimeInfo::BuildJITTimeData(
         Assert(globObjTypeSpecInfo != nullptr);
 
         jitData->globalObjTypeSpecFldInfoCount = codeGenData->GetGlobalObjTypeSpecFldInfoCount();
-        jitData->globalObjTypeSpecFldInfoArray = (ObjTypeSpecFldIDL**)globObjTypeSpecInfo;
+        jitData->globalObjTypeSpecFldInfoArray = unsafe_write_barrier_cast<ObjTypeSpecFldIDL**>(globObjTypeSpecInfo);
     }
     const Js::FunctionCodeGenJitTimeData * nextJITData = codeGenData->GetNext();
     if (nextJITData != nullptr)
@@ -259,7 +259,7 @@ FunctionJITTimeInfo::GetRuntimeInfo() const
 ObjTypeSpecFldInfo *
 FunctionJITTimeInfo::GetObjTypeSpecFldInfo(uint index) const
 {
-    Assert(index < GetBody()->GetInlineCacheCount());
+    AssertOrFailFast(index < GetBody()->GetInlineCacheCount());
     if (m_data.objTypeSpecFldInfoArray == nullptr)
     {
         return nullptr;
@@ -271,7 +271,7 @@ FunctionJITTimeInfo::GetObjTypeSpecFldInfo(uint index) const
 ObjTypeSpecFldInfo *
 FunctionJITTimeInfo::GetGlobalObjTypeSpecFldInfo(uint index) const
 {
-    Assert(index < m_data.globalObjTypeSpecFldInfoCount);
+    AssertOrFailFast(index < m_data.globalObjTypeSpecFldInfoCount);
 
     return reinterpret_cast<ObjTypeSpecFldInfo *>(m_data.globalObjTypeSpecFldInfoArray[index]);
 }
@@ -298,8 +298,7 @@ FunctionJITTimeInfo::GetLdFldInlinee(Js::InlineCacheIndex inlineCacheIndex) cons
     {
         return nullptr;
     }
-    Assert(inlineCacheIndex < m_data.ldFldInlineeCount);
-
+    AssertOrFailFast(inlineCacheIndex < m_data.ldFldInlineeCount);
 
     return reinterpret_cast<const FunctionJITTimeInfo*>(m_data.ldFldInlinees[inlineCacheIndex]);
 }
@@ -312,7 +311,7 @@ FunctionJITTimeInfo::GetInlinee(Js::ProfileId profileId) const
     {
         return nullptr;
     }
-    Assert(profileId < m_data.inlineeCount);
+    AssertOrFailFast(profileId < m_data.inlineeCount);
 
     auto inlinee = reinterpret_cast<const FunctionJITTimeInfo *>(m_data.inlinees[profileId]);
     if (inlinee == nullptr && m_data.inlineesRecursionFlags[profileId])

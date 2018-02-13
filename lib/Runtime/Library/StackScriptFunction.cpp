@@ -229,12 +229,12 @@ namespace Js
                     }
                     if (callerFunctionBody->DoStackScopeSlots() && interpreterFrame->IsClosureInitDone())
                     {
-                        Var* stackScopeSlots = (Var*)interpreterFrame->GetLocalClosure();
+                        Field(Var)* stackScopeSlots = (Field(Var)*)interpreterFrame->GetLocalClosure();
                         if (stackScopeSlots)
                         {
                             // Scope slot pointer may be null if bailout didn't restore it, which means we don't need it.
-                            Var* boxedScopeSlots = this->BoxScopeSlots(stackScopeSlots, static_cast<uint>(ScopeSlots(stackScopeSlots).GetCount()));
-                            interpreterFrame->SetLocalClosure((Var)boxedScopeSlots);
+                            Field(Var)* boxedScopeSlots = this->BoxScopeSlots(stackScopeSlots, static_cast<uint>(ScopeSlots(stackScopeSlots).GetCount()));
+                            interpreterFrame->SetLocalClosure(boxedScopeSlots);
                         }
                     }
 
@@ -304,7 +304,7 @@ namespace Js
                         }
                         if (callerFunctionBody->DoStackScopeSlots())
                         {
-                            Var* stackScopeSlots = this->GetScopeSlotsFromNativeFrame(walker, callerFunctionBody);
+                            Field(Var)* stackScopeSlots = (Field(Var)*)this->GetScopeSlotsFromNativeFrame(walker, callerFunctionBody);
                             if (stackScopeSlots)
                             {
                                 // Scope slot pointer may be null if bailout didn't restore it, which means we don't need it.
@@ -356,7 +356,7 @@ namespace Js
                     int i;
                     for (i = 0; i < frameDisplay->GetLength(); i++)
                     {
-                        Var *slotArray = (Var*)frameDisplay->GetItem(i);
+                        Field(Var) *slotArray = (Field(Var)*)frameDisplay->GetItem(i);
 
                         if (ScopeSlots::Is(slotArray))
                         {
@@ -373,10 +373,10 @@ namespace Js
                     }
                     for (; i < frameDisplay->GetLength(); i++)
                     {
-                        Var *pScope = (Var*)frameDisplay->GetItem(i);
+                        Field(Var) *pScope = (Field(Var)*)frameDisplay->GetItem(i);
                         if (ScopeSlots::Is(pScope))
                         {
-                            Var *boxedSlots = this->BoxScopeSlots(pScope, static_cast<uint>(ScopeSlots(pScope).GetCount()));
+                            Field(Var) *boxedSlots = this->BoxScopeSlots(pScope, static_cast<uint>(ScopeSlots(pScope).GetCount()));
                             frameDisplay->SetItem(i, boxedSlots);
                         }
                     }
@@ -652,7 +652,7 @@ namespace Js
         for (uint16 i = 0; i < length; i++)
         {
             // TODO: Once we allocate the slots on the stack, we can only look those slots
-            Var * pScope = (Var *)frameDisplay->GetItem(i);
+            Field(Var) * pScope = (Field(Var) *)frameDisplay->GetItem(i);
             // We don't do stack slots if we exceed max encoded slot count
             if (ScopeSlots::Is(pScope))
             {
@@ -664,19 +664,21 @@ namespace Js
         return boxedFrameDisplay;
     }
 
-    Var * StackScriptFunction::BoxState::BoxScopeSlots(Var * slotArray, uint count)
+    Field(Var) * StackScriptFunction::BoxState::BoxScopeSlots(Field(Var) * slotArray, uint count)
     {
         Assert(slotArray != nullptr);
         Assert(count != 0);
-        Field(Var) * boxedSlotArray = nullptr;
-        if (boxedValues.TryGetValue(slotArray, (void **)&boxedSlotArray))
+
+        void * tmp = nullptr;
+        if (boxedValues.TryGetValue(slotArray, &tmp))
         {
-            return (Var*)boxedSlotArray;
+            return (Field(Var) *)tmp;
         }
 
+        Field(Var) * boxedSlotArray = nullptr;
         if (!ThreadContext::IsOnStack(slotArray))
         {
-            boxedSlotArray = (Field(Var)*)slotArray;
+            boxedSlotArray = slotArray;
         }
         else
         {
@@ -686,7 +688,7 @@ namespace Js
         boxedValues.Add(slotArray, boxedSlotArray);
 
         ScopeSlots scopeSlots(slotArray);
-        ScopeSlots boxedScopeSlots((Js::Var*)boxedSlotArray);
+        ScopeSlots boxedScopeSlots(boxedSlotArray);
 
         boxedScopeSlots.SetCount(count);
         boxedScopeSlots.SetScopeMetadata(scopeSlots.GetScopeMetadataRaw());
@@ -702,7 +704,7 @@ namespace Js
             }
             boxedScopeSlots.Set(i, slotValue);
         }
-        return (Var*)boxedSlotArray;
+        return boxedSlotArray;
     }
 
     ScriptFunction * StackScriptFunction::BoxState::BoxStackFunction(ScriptFunction * scriptFunction)

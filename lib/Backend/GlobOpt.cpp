@@ -5191,7 +5191,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         if (!PHASE_OFF(Js::OptTagChecksPhase, this->func) &&
             (src1ValueInfo == nullptr || src1ValueInfo->IsUninitialized()))
         {
-            return this->NewGenericValue(ValueType::GetObject(ObjectType::Object), dst);
+            return this->NewGenericValue(ValueType::GetObject(ObjectType::Object).ToLikely().SetCanBeTaggedValue(false), dst);
         }
         break;
 
@@ -15399,6 +15399,47 @@ GlobOpt::CheckJsArrayKills(IR::Instr *const instr)
             }
             break;
         }
+
+        case Js::OpCode::InitProto:
+        {
+            // Find the 'this' parameter and check if it's possible for it to be an array
+            IR::Opnd *const arrayOpnd = instr->GetSrc1();
+            Assert(arrayOpnd);
+            const ValueType arrayValueType(arrayOpnd->GetValueType());
+            if(!arrayOpnd->IsRegOpnd() || (useValueTypes && arrayValueType.IsNotArrayOrObjectWithArray()))
+            {
+                break;
+            }
+
+            if(doNativeArrayTypeSpec && !(useValueTypes && arrayValueType.IsNotNativeArray()))
+            {
+                kills.SetKillsNativeArrays();
+            }
+            break;
+        }            
+
+        case Js::OpCode::InitClass:
+            Assert(instr->GetSrc1());
+            if (instr->GetSrc2() == nullptr)
+            {
+                // No extends operand, so the InitClass will not make something into a prototype
+                break;
+            }
+
+            if(doNativeArrayTypeSpec)
+            {
+                // Class/object construction can make something a prototype
+                kills.SetKillsNativeArrays();
+            }
+            break;
+
+        case Js::OpCode::NewScObjectNoCtor:
+            if(doNativeArrayTypeSpec)
+            {
+                // Class/object construction can make something a prototype
+                kills.SetKillsNativeArrays();
+            }
+            break;
     }
 
     return kills;
