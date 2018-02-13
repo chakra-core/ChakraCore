@@ -444,4 +444,11 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_OS14115684.js</files>
+      <tags>BugFix</tags>
+      <compile-flags>-forceundodefer</compile-flags>
+    </default>
+  </test>
 </regress-exe>
