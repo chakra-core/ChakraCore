@@ -9478,10 +9478,6 @@ ParseNodePtr Parser::ParseVariableDeclaration(
                 if (pnodeThis && pnodeThis->sxVar.pnodeInit != nullptr)
                 {
                     pnodeThis->sxVar.sym->PromoteAssignmentState();
-                    if (m_currentNodeFunc && pnodeThis->sxVar.sym->GetIsFormal())
-                    {
-                        m_currentNodeFunc->sxFnc.SetHasAnyWriteToFormals(true);
-                    }
                 }
             }
             else if (declarationType == tkCONST /*pnodeThis->nop == knopConstDecl*/
@@ -9489,6 +9485,11 @@ ParseNodePtr Parser::ParseVariableDeclaration(
                      && !(isFor && TokIsForInOrForOf()))
             {
                 Error(ERRUninitializedConst);
+            }
+
+            if (m_currentNodeFunc && pnodeThis && pnodeThis->sxVar.sym->GetIsFormal())
+            {
+                m_currentNodeFunc->sxFnc.SetHasAnyWriteToFormals(true);
             }
         }
 

@@ -318,7 +318,6 @@ private:
     void            GenerateIsEnabledArraySetElementFastPathCheck(IR::LabelInstr * isDisabledLabel, IR::Instr * const insertBeforeInstr);
     void            GenerateIsEnabledIntArraySetElementFastPathCheck(IR::LabelInstr * isDisabledLabel, IR::Instr * const insertBeforeInstr);
     void            GenerateIsEnabledFloatArraySetElementFastPathCheck(IR::LabelInstr * isDisabledLabel, IR::Instr * const insertBeforeInstr);
-    void            GenerateTypeIdCheck(Js::TypeId typeId, IR::RegOpnd * opnd, IR::LabelInstr * labelFail, IR::Instr * insertBeforeInstr, bool generateObjectCheck = true);
     void            GenerateStringTest(IR::RegOpnd *srcReg, IR::Instr *instrInsert, IR::LabelInstr * failLabel, IR::LabelInstr * succeedLabel = nullptr, bool generateObjectCheck = true);
     void            GenerateSymbolTest(IR::RegOpnd *srcReg, IR::Instr *instrInsert, IR::LabelInstr * failLabel, IR::LabelInstr * succeedLabel = nullptr, bool generateObjectCheck = true);
     IR::RegOpnd *   GenerateUntagVar(IR::RegOpnd * opnd, IR::LabelInstr * labelFail, IR::Instr * insertBeforeInstr, bool generateTagCheck = true);
@@ -398,6 +397,7 @@ private:
         bool * pIsTypedArrayElement,
         bool * pIsStringIndex,
         bool *emitBailoutRef,
+        IR::Opnd** maskOpnd,
         IR::LabelInstr **pLabelSegmentLengthIncreased = nullptr,
         bool checkArrayLengthOverflow = true,
         bool forceGenerateFastPath = false,
@@ -416,6 +416,7 @@ private:
         bool *emitBailoutRef,
         IR::LabelInstr **pLabelSegmentLengthIncreased,
         bool checkArrayLengthOverflow,
+        IR::Opnd** maskOpnd,
         bool forceGenerateFastPath = false,
         bool returnLength = false,
         IR::LabelInstr *bailOutLabelInstr = nullptr,
@@ -427,6 +428,8 @@ private:
     bool            GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef);
     bool            GenerateFastStElemI(IR::Instr *& StElem, bool *instrIsInHelperBlockRef);
     bool            GenerateFastLdLen(IR::Instr *ldLen, bool *instrIsInHelperBlockRef);
+    bool            GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR::Opnd *srcStr, IR::Opnd *srcIndex, IR::Instr *callInstr, IR::Instr *insertInstr,
+        IR::LabelInstr *labelHelper, IR::LabelInstr *doneLabel);
     bool            GenerateFastInlineGlobalObjectParseInt(IR::Instr *instr);
     bool            GenerateFastInlineStringFromCharCode(IR::Instr* instr);
     bool            GenerateFastInlineStringFromCodePoint(IR::Instr* instr);
@@ -661,6 +664,7 @@ private:
     IR::Instr *     LowerSlotArrayCheck(IR::Instr * instr);
     void            InsertSlotArrayCheck(IR::Instr * instr, StackSym * dstSym, uint32 slotId);
     void            InsertFrameDisplayCheck(IR::Instr * instr, StackSym * dstSym, FrameDisplayCheckRecord * record);
+    static void     InsertObjectPoison(IR::Opnd* poisonedOpnd, IR::BranchInstr* branchInstr, IR::Instr* insertInstr);
 
     IR::RegOpnd *   LoadIndexFromLikelyFloat(IR::RegOpnd *indexOpnd, const bool skipNegativeCheck, IR::LabelInstr *const notTaggedIntLabel, IR::LabelInstr *const negativeLabel, IR::Instr *const insertBeforeInstr);
 

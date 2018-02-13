@@ -493,7 +493,7 @@ Recycler::ScanObjectInlineInterior(void ** obj, size_t byteCount)
     markContext.ScanObject<false, true>(obj, byteCount);
 }
 
-template <bool doSpecialMark>
+template <bool doSpecialMark, bool forceInterior>
 NO_SANITIZE_ADDRESS
 inline void
 Recycler::ScanMemoryInline(void ** obj, size_t byteCount
@@ -507,7 +507,7 @@ Recycler::ScanMemoryInline(void ** obj, size_t byteCount
         scanMemoryType == RecyclerScanMemoryType::Stack ? this->savedAsanFakeStack : nullptr;
 #endif
 
-    if (this->enableScanInteriorPointers)
+    if (this->enableScanInteriorPointers || forceInterior)
     {
         markContext.ScanMemory<false, true, doSpecialMark>(
                 obj, byteCount ADDRESS_SANITIZER_APPEND(asanFakeStack));

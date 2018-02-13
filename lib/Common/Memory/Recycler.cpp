@@ -1734,30 +1734,70 @@ Recycler::ScanStack()
     bool doSpecialMark = collectionWrapper->DoSpecialMarkOnScanStack();
 
     BEGIN_DUMP_OBJECT(this, _u("Registers"));
-    if (doSpecialMark)
+    // We will not scan interior pointers on stack if we are not in script or we are in mem-protect mode.
+    if (!this->isInScript || this->IsMemProtectMode())
     {
-        ScanMemoryInline<true>(
-            this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave
-            ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
+        if (doSpecialMark)
+        {
+            ScanMemoryInline<true>(
+                this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave
+                ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
+        }
+        else
+        {
+            ScanMemoryInline<false>(
+                this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave
+                ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
+        }
     }
     else
     {
-        ScanMemoryInline<false>(
-            this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave
-            ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
+        // We may have interior pointers on the stack such as pointers in the middle of the character buffers backing a JavascriptString or SubString object.
+        // To prevent UAFs of these buffers after the GC we will always do MarkInterior for the pointers on stack. This is necessary only when we are doing a
+        // GC while running a script as that is when the possiblity of a UAF after GC exists.
+        if (doSpecialMark)
+        {
+            ScanMemoryInline<true, true /* forceInterior */>(this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave
+                ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
+        }
+        else
+        {
+            ScanMemoryInline<false, true /* forceInterior */>(this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave
+                ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
+        }
     }
     END_DUMP_OBJECT(this);
 
     BEGIN_DUMP_OBJECT(this, _u("Stack"));
-    if (doSpecialMark)
+    // We will not scan interior pointers on stack if we are not in script or we are in mem-protect mode.
+    if (!this->isInScript || this->IsMemProtectMode())
     {
-        ScanMemoryInline<true>((void**) stackTop, stackScanned
-            ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
+        if (doSpecialMark)
+        {
+            ScanMemoryInline<true>((void**) stackTop, stackScanned
+                ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
+        }
+        else
+        {
+            ScanMemoryInline<false>((void**) stackTop, stackScanned
+                ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
+        }
     }
     else
     {
-        ScanMemoryInline<false>((void**) stackTop, stackScanned
-            ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
+        // We may have interior pointers on the stack such as pointers in the middle of the character buffers backing a JavascriptString or SubString object.
+        // To prevent UAFs of these buffers after the GC we will always do MarkInterior for the pointers on stack. This is necessary only when we are doing a
+        // GC while running a script as that is when the possiblity of a UAF after GC exists.
+        if (doSpecialMark)
+        {
+            ScanMemoryInline<true, true /* forceInterior */>((void**)stackTop, stackScanned
+                ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
+        }
+        else
+        {
+            ScanMemoryInline<false, true /* forceInterior */>((void**)stackTop, stackScanned
+                ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
+        }
     }
     END_DUMP_OBJECT(this);
 

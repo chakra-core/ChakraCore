@@ -5770,7 +5770,8 @@ namespace Js
         return function;
     }
 
-    Js::RecyclableObject* JavascriptLibrary::CreateBoundFunction_TTD(RecyclableObject* function, Var bThis, uint32 ct, Var* args)
+    Js::RecyclableObject* JavascriptLibrary::CreateBoundFunction_TTD(
+        RecyclableObject* function, Var bThis, uint32 ct, Field(Var)* args)
     {
         return BoundFunction::InflateBoundFunction(this->scriptContext, function, bThis, ct, args);
     }

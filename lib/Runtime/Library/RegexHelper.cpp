@@ -911,7 +911,7 @@ namespace Js
             ArenaAllocator* tempAlloc,
             JavascriptString* matchStr,
             int numberOfCaptures,
-            Var* captures,
+            Field(Var)* captures,
             CharCount position)
         {
             CharCount* substitutionOffsets = nullptr;
@@ -921,7 +921,7 @@ namespace Js
                 tempAlloc,
                 &substitutionOffsets);
             auto getGroup = [&](int captureIndex, Var nonMatchValue) {
-                return captureIndex <= numberOfCaptures ? captures[captureIndex] : nonMatchValue;
+                return captureIndex <= numberOfCaptures ? PointerValue(captures[captureIndex]) : nonMatchValue;
             };
             UnifiedRegex::GroupInfo match(position, matchStr->GetLength());
             int numGroups = numberOfCaptures + 1; // Take group 0 into account.
@@ -947,7 +947,7 @@ namespace Js
             ArenaAllocator* tempAlloc,
             JavascriptString* matchStr,
             int numberOfCaptures,
-            Var* captures,
+            Field(Var)* captures,
             CharCount position)
         {
             // replaceFn Arguments:
@@ -1084,7 +1084,7 @@ namespace Js
                     CharCount substringLength = position - nextSourcePosition;
                     accumulatedResultBuilder.Append(input, nextSourcePosition, substringLength);
 
-                    appendReplacement(accumulatedResultBuilder, tempAlloc, matchStr, (int) numberOfCapturesToKeep, (Var*)captures, position);
+                    appendReplacement(accumulatedResultBuilder, tempAlloc, matchStr, (int) numberOfCapturesToKeep, captures, position);
 
                     nextSourcePosition = JavascriptRegExp::AddIndex(position, matchStr->GetLength());
                 }

@@ -56,7 +56,7 @@ public:
     uint GetMarkCount(void* address, uint pageCount);
     template <bool interlocked, bool doSpecialMark>
     void Mark(void * candidate, MarkContext * markContext);
-    template <bool interlocked>
+    template <bool interlocked, bool doSpecialMark>
     void MarkInterior(void * candidate, MarkContext * markContext);
 
     bool IsMarked(void * address) const;
@@ -250,7 +250,7 @@ public:
     uint GetMarkCount(void* address, uint pageCount);
     template <bool interlocked, bool doSpecialMark>
     void Mark(void * candidate, MarkContext * markContext);
-    template <bool interlocked>
+    template <bool interlocked, bool doSpecialMark>
     void MarkInterior(void * candidate, MarkContext * markContext);
 
     bool IsMarked(void * address) const;

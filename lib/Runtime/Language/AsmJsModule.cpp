@@ -2501,7 +2501,7 @@ namespace Js
 #else
         Field(Var) * slotArray = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), moduleBody->scopeSlotArraySize + ScopeSlots::FirstSlotIndex);
 #endif
-        ScopeSlots scopeSlots((Js::Var*)slotArray);
+        ScopeSlots scopeSlots(slotArray);
         scopeSlots.SetCount(moduleBody->scopeSlotArraySize);
         scopeSlots.SetScopeMetadata(moduleBody->GetFunctionInfo());
 

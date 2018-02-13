@@ -117,7 +117,7 @@ namespace Js
         data->cachedCount = 0;
         data->propertyCount = propertyCount;
         data->strings = reinterpret_cast<Field(PropertyString*)*>(data + 1);
-        data->indexes = (BigPropertyIndex *)(data->strings + propertyCount);
+        data->indexes = unsafe_write_barrier_cast<BigPropertyIndex *>(data->strings + propertyCount);
         data->attributes = (PropertyAttributes*)(data->indexes + propertyCount);
         data->completed = false;
         data->enumNonEnumerable = GetEnumNonEnumerable();

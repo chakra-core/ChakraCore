@@ -138,8 +138,10 @@ namespace Js
 
         if (this->propertyRecord == nullptr)
         {
+            Js::PropertyRecord const * propertyRecord = nullptr;
             scriptContext->GetOrAddPropertyRecord(this->GetSz(), static_cast<int>(this->GetLength()),
-                (Js::PropertyRecord const **)&(this->propertyRecord));
+                &propertyRecord);
+            this->propertyRecord = propertyRecord;
         }
 
         this->propertyString = scriptContext->GetPropertyString(propertyRecord->GetPropertyId());

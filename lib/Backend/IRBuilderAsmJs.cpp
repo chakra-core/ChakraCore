@@ -112,9 +112,7 @@ IRBuilderAsmJs::Build()
         offsetToInstructionCount = lastOffset + 2;
     }
 
-#if DBG
     m_offsetToInstructionCount = offsetToInstructionCount;
-#endif
     m_offsetToInstruction = JitAnewArrayZ(m_tempAlloc, IR::Instr *, offsetToInstructionCount);
 
     LoadNativeCodeData();
@@ -220,7 +218,7 @@ IRBuilderAsmJs::AddInstr(IR::Instr * instr, uint32 offset)
     m_lastInstr->InsertAfter(instr);
     if (offset != Js::Constants::NoByteCodeOffset)
     {
-        Assert(offset < m_offsetToInstructionCount);
+        AssertOrFailFast(offset < m_offsetToInstructionCount);
         if (m_offsetToInstruction[offset] == nullptr)
         {
             m_offsetToInstruction[offset] = instr;
@@ -670,6 +668,7 @@ IRBuilderAsmJs::RegIsConstant(Js::RegSlot reg)
 BranchReloc *
 IRBuilderAsmJs::AddBranchInstr(IR::BranchInstr * branchInstr, uint32 offset, uint32 targetOffset)
 {
+    AssertOrFailFast(targetOffset <= m_func->GetJITFunctionBody()->GetByteCodeLength());
     //
     // Loop jitting would be done only till the LoopEnd
     // Any branches beyond that offset are for the return statement
@@ -1042,8 +1041,8 @@ IRBuilderAsmJs::CreateLabel(IR::BranchInstr * branchInstr, uint & offset)
     IR::Instr * targetInstr = nullptr;
     while (targetInstr == nullptr)
     {
+        AssertOrFailFast(offset < m_offsetToInstructionCount);
         targetInstr = m_offsetToInstruction[offset];
-        Assert(offset < m_offsetToInstructionCount);
         ++offset;
     }
 
@@ -1789,7 +1788,7 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
                 instr->AsProfiledInstr()->u.profileId = profileId;
             }
         }
-
+        AssertOrFailFast(!this->m_argOffsetStack->Empty());
         argOffset = m_argOffsetStack->Pop();
         argOffset -= MachPtr;
         break;
@@ -1811,7 +1810,8 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
     IR::Instr * argInstr = nullptr;
     IR::Instr * prevInstr = instr;
 
-    for (argInstr = m_argStack->Pop(); argInstr->m_opcode != Js::OpCode::StartCall; argInstr = m_argStack->Pop())
+    AssertOrFailFast(!this->m_argStack->Empty());
+    for (argInstr = m_argStack->Pop(); !m_argStack->Empty() && argInstr->m_opcode != Js::OpCode::StartCall; argInstr = m_argStack->Pop())
     {
         if (newOpcode == Js::OpCodeAsmJs::I_Call || newOpcode == Js::OpCodeAsmJs::ProfiledI_Call)
         {
@@ -1841,10 +1841,10 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
         count++;
     }
 
-    Assert(argInstr->m_opcode == Js::OpCode::StartCall);
+    AssertOrFailFast(argInstr->m_opcode == Js::OpCode::StartCall);
     argInstr->SetSrc1(IR::IntConstOpnd::New(count, TyUint16, m_func));
 
-    Assert(argOffset == 0);
+    AssertOrFailFast(argOffset == 0);
     prevInstr->SetSrc2(argInstr->GetDst());
 
 #ifdef ENABLE_SIMDJS

@@ -7,20 +7,47 @@
 MainVisitor::MainVisitor(
         CompilerInstance& compilerInstance, ASTContext& context, bool fix)
     : _compilerInstance(compilerInstance), _context(context),
-     _fix(fix), _fixed(false), _barrierTypeDefined(false)
+     _fix(fix), _fixed(false), _diagEngine(context.getDiagnostics()),
+     _barrierTypeDefined(false)
 {
     if (_fix)
     {
         _rewriter.setSourceMgr(compilerInstance.getSourceManager(),
                                compilerInstance.getLangOpts());
     }
+
+#define SWB_WIKI \
+    "https://github.com/microsoft/ChakraCore/wiki/Software-Write-Barrier#coding-rules"
+
+    _diagUnbarrieredField = _diagEngine.getCustomDiagID(
+        DiagnosticsEngine::Error,
+        "Unbarriered field, see " SWB_WIKI);
+   _diagIllegalBarrierCast = _diagEngine.getCustomDiagID(
+        DiagnosticsEngine::Error,
+        "Illegal casting away of write barrier, see " SWB_WIKI);
+#undef SWB_WIKI
+}
+
+void MainVisitor::ReportUnbarriedField(SourceLocation location)
+{
+    DiagReport(location, _diagUnbarrieredField);
+}
+
+void MainVisitor::ReportIllegalBarrierCast(SourceLocation location)
+{
+    DiagReport(location, _diagIllegalBarrierCast);
+}
+
+void MainVisitor::DiagReport(SourceLocation location, unsigned diagId)
+{
+    _diagEngine.Report(location, diagId);
 }
 
 bool MainVisitor::VisitCXXRecordDecl(CXXRecordDecl* recordDecl)
 {
-    if (Log::GetLevel() < Log::LogLevel::Info)
+    if (Log::GetLevel() < Log::LogLevel::Verbose)
     {
-        return true; // At least Info level, otherwise this not needed
+        return true; // At least Verbose level, otherwise this not needed
     }
 
     std::string typeName = recordDecl->getQualifiedNameAsString();
@@ -99,11 +126,6 @@ void MainVisitor::ProcessUnbarrieredFields(
     }
 
     const auto& sourceMgr = _compilerInstance.getSourceManager();
-    DiagnosticsEngine& diagEngine = _context.getDiagnostics();
-    const unsigned diagID = diagEngine.getCustomDiagID(
-        DiagnosticsEngine::Error,
-        "Unbarriered field, see "
-        "https://github.com/microsoft/ChakraCore/wiki/Software-Write-Barrier#coding-rules");
 
     for (auto field : recordDecl->fields())
     {
@@ -141,7 +163,7 @@ void MainVisitor::ProcessUnbarrieredFields(
             {
                 if (pushFieldType(originalType))
                 {
-                    Log::outs() << "Queue field type: " << originalTypeName
+                    Log::verbose() << "Queue field type: " << originalTypeName
                         << " (" << typeName << "::" << fieldName << ")\n";
                 }
             }
@@ -168,7 +190,7 @@ void MainVisitor::ProcessUnbarrieredFields(
                             << fieldName << "\n";
             }
 
-            diagEngine.Report(location, diagID);
+            ReportUnbarriedField(location);
         }
     }
 }
@@ -351,14 +373,14 @@ void MainVisitor::RecordRecyclerAllocation(const string& allocationFunction, con
 template <class Set, class DumpItemFunc>
 void MainVisitor::dump(const char* name, const Set& set, const DumpItemFunc& func)
 {
-    Log::outs() << "-------------------------\n\n";
-    Log::outs() << name << "\n";
-    Log::outs() << "-------------------------\n\n";
+    Log::verbose() << "-------------------------\n\n";
+    Log::verbose() << name << "\n";
+    Log::verbose() << "-------------------------\n\n";
     for (auto item : set)
     {
-        func(Log::outs(), item);
+        func(Log::verbose(), item);
     }
-    Log::outs() << "-------------------------\n\n";
+    Log::verbose() << "-------------------------\n\n";
 }
 
 template <class Item>
@@ -384,7 +406,7 @@ void MainVisitor::Inspect()
     Dump(pointerClasses);
     Dump(barrieredClasses);
 
-    Log::outs() << "Recycler allocations\n";
+    Log::verbose() << "Recycler allocations\n";
     for (auto item : _allocatorTypeMap)
     {
         dump(item.first.c_str(), item.second);
@@ -428,7 +450,7 @@ void MainVisitor::Inspect()
             {
                 if (pushBarrierType(base.getType().getTypePtr()))
                 {
-                    Log::outs() << "Queue base type: " << base.getType().getAsString()
+                    Log::verbose() << "Queue base type: " << base.getType().getAsString()
                         << " (base of " << typeName << ")\n";
                 }
             }
@@ -521,8 +543,8 @@ void CheckAllocationsInFunctionVisitor::VisitAllocate(
 
         if (allocationType & AllocationTypes::WriteBarrier)
         {
-            Log::outs() << "In \"" << _functionDecl->getQualifiedNameAsString() << "\"\n";
-            Log::outs() << "  Allocating \"" << allocatedTypeStr << "\" in write barriered memory\n";
+            Log::verbose() << "In \"" << _functionDecl->getQualifiedNameAsString() << "\"\n";
+            Log::verbose() << "  Allocating \"" << allocatedTypeStr << "\" in write barriered memory\n";
         }
 
         _mainVisitor->RecordAllocation(allocatedType, allocationType);
@@ -565,6 +587,45 @@ bool CheckAllocationsInFunctionVisitor::VisitCallExpr(CallExpr* callExpr)
     return true;
 }
 
+// Check if type is a "Field() *" pointer type, or alternatively a pointer to
+// any type in "alt" if provided.
+bool CheckAllocationsInFunctionVisitor::IsFieldPointer(
+    const QualType& qtype, const char* alt)
+{
+    if (qtype->isPointerType())
+    {
+        auto name = qtype->getPointeeType()
+            .getDesugaredType(_mainVisitor->getContext()).getAsString();
+        return StartsWith(name, "class Memory::WriteBarrierPtr<")
+            || StartsWith(name, "typename WriteBarrierFieldTypeTraits<")
+            || (alt && strstr(alt, name.c_str()));
+    }
+
+    return false;
+}
+
+bool CheckAllocationsInFunctionVisitor::CommonVisitCastExpr(CastExpr *cast)
+{
+    if (IsFieldPointer(cast->getSubExpr()->getType()) &&  // from Field() *
+        cast->getType()->isPointerType() &&     // to a pointer type
+        !IsFieldPointer(cast->getType(),        // not another Field() *
+            "int|float|double|unsigned char"))  // not int/float/double/byte *
+    {
+        _mainVisitor->ReportIllegalBarrierCast(cast->getLocStart());
+
+        if (Log::GetLevel() >= Log::LogLevel::Info)
+        {
+            cast->dumpColor();
+            cast->getSubExpr()->getType()->getPointeeType()
+                .getDesugaredType(_mainVisitor->getContext()).dump("CAST_FROM");
+            cast->getType()->getPointeeType()
+                .getDesugaredType(_mainVisitor->getContext()).dump("CAST_TO");
+        }
+    }
+
+    return true;
+}
+
 void RecyclerCheckerConsumer::HandleTranslationUnit(ASTContext& context)
 {
     MainVisitor mainVisitor(_compilerInstance, context, _fix);
@@ -585,13 +646,17 @@ bool RecyclerCheckerAction::ParseArgs(
 {
     for (auto i = args.begin(); i != args.end(); i++)
     {
-        if (*i == "-verbose")
-        {
-            Log::SetLevel(Log::LogLevel::Verbose);
-        }
-        else if (*i == "-fix")
+        if (*i == "-fix")
         {
             this->_fix = true;
+        }
+        else if (*i == "-info")
+        {
+            Log::SetLevel(Log::LogLevel::Info);
+        }
+        else if (*i == "-verbose")
+        {
+            Log::SetLevel(Log::LogLevel::Verbose);
         }
         else
         {
@@ -599,6 +664,7 @@ bool RecyclerCheckerAction::ParseArgs(
                 << "ERROR: Unrecognized check-recycler option: " << *i << "\n"
                 << "Supported options:\n"
                 << "  -fix          Fix missing write barrier annotations"
+                << "  -info         Log info messages\n"
                 << "  -verbose      Log verbose messages\n";
             return false;
         }

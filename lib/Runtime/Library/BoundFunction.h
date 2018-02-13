@@ -63,7 +63,8 @@ namespace Js
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 
-        static BoundFunction* InflateBoundFunction(ScriptContext* ctx, RecyclableObject* function, Var bThis, uint32 ct, Var* args);
+        static BoundFunction* InflateBoundFunction(
+            ScriptContext* ctx, RecyclableObject* function, Var bThis, uint32 ct, Field(Var)* args);
 #endif
 
     private:
