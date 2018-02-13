@@ -1631,7 +1631,7 @@ ParseNodePtr Parser::ParseBlock(LabelId* pLabelId)
         && outerBlockInfo->pnodeBlock->sxBlock.scope != nullptr
         && outerBlockInfo->pnodeBlock->sxBlock.scope->GetScopeType() == ScopeType_CatchParamPattern)
     {
-        // If we are parsing the catch block then destructured params can have let declrations. Let's add them to the new block.
+        // If we are parsing the catch block then destructured params can have let declarations. Let's add them to the new block.
         for (ParseNodePtr pnode = m_currentBlockInfo->pBlockInfoOuter->pnodeBlock->sxBlock.pnodeLexVars; pnode; pnode = pnode->sxVar.pnodeNext)
         {
             PidRefStack* ref = PushPidRef(pnode->sxVar.sym->GetPid());
@@ -1657,7 +1657,6 @@ ParseNodePtr Parser::ParseBlock(LabelId* pLabelId)
     FinishParseBlock(pnodeBlock);
 
     ChkCurTok(tkRCurly, ERRnoRcurly);
-
 
     return pnodeBlock;
 }
@@ -5087,8 +5086,9 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     pnodeFnc->sxFnc.SetIsClassConstructor((flags & fFncClassConstructor) != 0);
     pnodeFnc->sxFnc.SetIsBaseClassConstructor((flags & fFncBaseClassConstructor) != 0);
 
+    IdentPtr pFncNamePid = nullptr;
     bool needScanRCurly = true;
-    bool result = ParseFncDeclHelper<buildAST>(pnodeFnc, pNameHint, flags, &funcHasName, fUnaryOrParen, noStmtContext, &needScanRCurly, fModule);
+    bool result = ParseFncDeclHelper<buildAST>(pnodeFnc, pNameHint, flags, &funcHasName, fUnaryOrParen, noStmtContext, &needScanRCurly, fModule, &pFncNamePid);
     if (!result)
     {
         Assert(!pnodeFncBlockScope);
@@ -5171,9 +5171,10 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
 
     m_scopeCountNoAst = scopeCountNoAstSave;
 
-    if (buildAST && fDeclaration && !IsStrictMode())
+    if (fDeclaration && !IsStrictMode())
     {
-        if (pnodeFnc->sxFnc.pnodeName != nullptr && pnodeFnc->sxFnc.pnodeName->nop == knopVarDecl &&
+        if (pFncNamePid != nullptr &&
+            GetCurrentBlock() &&
             GetCurrentBlock()->sxBlock.blockType == PnodeBlockType::Regular)
         {
             // Add a function-scoped VarDecl with the same name as the function for
@@ -5182,9 +5183,9 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
             // level and we accomplish this by having each block scoped function
             // declaration assign to both the block scoped "let" binding, as well
             // as the function scoped "var" binding.
-            ParseNodePtr vardecl = CreateVarDeclNode(pnodeFnc->sxFnc.pnodeName->sxVar.pid, STVariable, false, nullptr, false);
+            ParseNodePtr vardecl = CreateVarDeclNode(pFncNamePid, STVariable, false, nullptr, false);
             vardecl->sxVar.isBlockScopeFncDeclVar = true;
-            if (vardecl->sxVar.sym->GetIsFormal())
+            if (GetCurrentFunctionNode() && vardecl->sxVar.sym->GetIsFormal())
             {
                 GetCurrentFunctionNode()->sxFnc.SetHasAnyWriteToFormals(true);
             }
@@ -5267,7 +5268,7 @@ void Parser::AppendFunctionToScopeList(bool fDeclaration, ParseNodePtr pnodeFnc)
 Parse a function definition.
 ***************************************************************************/
 template<bool buildAST>
-bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ushort flags, bool *pHasName, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly, bool skipFormals)
+bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ushort flags, bool *pHasName, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly, bool skipFormals, IdentPtr* pFncNamePid)
 {
     ParseNodePtr pnodeFncParent = GetCurrentFunctionNode();
     // is the following correct? When buildAST is false, m_currentNodeDeferredFunc can be nullptr on transition to deferred parse from non-deferred
@@ -5283,6 +5284,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
     StmtNest *pstmtSave;
     ParseNodePtr *lastNodeRef = nullptr;
     bool fFunctionInBlock = false;
+    
     if (buildAST)
     {
         fFunctionInBlock = GetCurrentBlockInfo() != GetCurrentFunctionBlockInfo() &&
@@ -5310,7 +5312,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
         this->UpdateCurrentNodeFunc<buildAST>(pnodeFnc, fLambda);
     }
 
-    *pHasName = !fLambda && !fModule && this->ParseFncNames<buildAST>(pnodeFnc, pnodeFncSave, flags, &lastNodeRef);
+    *pHasName = !fLambda && !fModule && this->ParseFncNames<buildAST>(pnodeFnc, pnodeFncSave, flags, &lastNodeRef, pFncNamePid);
 
     if (fDeclaration)
     {
@@ -6410,7 +6412,7 @@ void Parser::ParseNestedDeferredFunc(ParseNodePtr pnodeFnc, bool fLambda, bool *
 }
 
 template<bool buildAST>
-bool Parser::ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, ushort flags, ParseNodePtr **pLastNodeRef)
+bool Parser::ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, ushort flags, ParseNodePtr **pLastNodeRef, IdentPtr* pFncNamePid)
 {
     BOOL fDeclaration = flags & fFncDeclaration;
     BOOL fIsAsync = flags & fFncAsync;
@@ -6500,7 +6502,6 @@ bool Parser::ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, u
 
     ichMinNames = m_pscan->IchMinTok();
 
-
     Assert(m_token.tk == tkID || (m_token.tk == tkYIELD && !fDeclaration));
 
     if (IsStrictMode())
@@ -6517,6 +6518,11 @@ bool Parser::ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, u
     pnodeT = CreateDeclNode(knopVarDecl, pidBase, STFunction);
     pnodeT->ichMin = ichMinBase;
     pnodeT->ichLim = ichLimBase;
+
+    if (pFncNamePid != nullptr)
+    {
+        *pFncNamePid = pidBase;
+    }
 
     if (fDeclaration &&
         pnodeFncParent &&
