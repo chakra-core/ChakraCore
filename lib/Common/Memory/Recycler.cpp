@@ -1739,15 +1739,15 @@ Recycler::ScanStack()
     {
         if (doSpecialMark)
         {
-        ScanMemoryInline<true>(
-            this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave
-            ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
+            ScanMemoryInline<true>(
+                this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave
+                ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
         }
         else
         {
-        ScanMemoryInline<false>(
-            this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave
-            ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
+            ScanMemoryInline<false>(
+                this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave
+                ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
         }
     }
     else
@@ -1757,11 +1757,13 @@ Recycler::ScanStack()
         // GC while running a script as that is when the possiblity of a UAF after GC exists.
         if (doSpecialMark)
         {
-            ScanMemoryInline<true, true /* forceInterior */>(this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave);
+            ScanMemoryInline<true, true /* forceInterior */>(this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave
+                ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
         }
         else
         {
-            ScanMemoryInline<false, true /* forceInterior */>(this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave);
+            ScanMemoryInline<false, true /* forceInterior */>(this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave
+                ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
         }
     }
     END_DUMP_OBJECT(this);
@@ -1779,6 +1781,7 @@ Recycler::ScanStack()
         {
             ScanMemoryInline<false>((void**) stackTop, stackScanned
                 ADDRESS_SANITIZER_APPEND(RecyclerScanMemoryType::Stack));
+        }
     }
     else
     {
