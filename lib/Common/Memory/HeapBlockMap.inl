@@ -287,7 +287,7 @@ HeapBlockMap32::MarkInteriorInternal(MarkContext * markContext, L2MapChunk *& ch
     return MarkInternal<interlocked>(chunk, realCandidate);
 }
 
-template <bool interlocked>
+template <bool interlocked, bool doSpecialMark>
 inline
 void
 HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
@@ -305,6 +305,11 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
 
     if (MarkInternal<interlocked>(chunk, candidate))
     {
+        if (doSpecialMark)
+        {
+            this->OnSpecialMark(chunk, candidate);
+        }
+
         // Already marked (mark internal-then-actual first)
         return;
     }
@@ -320,10 +325,16 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
         break;
 
     case HeapBlock::HeapBlockType::SmallLeafBlockType:
-    case HeapBlock::HeapBlockType::MediumLeafBlockType:
-        // Leaf blocks don't need to be scanned.  Do nothing.
-        break;
+        {
+            // We want to scan leaf blocks for preventing UAFs due to interior pointers on stack.
+            byte bucketIndex = chunk->blockInfo[id2].bucketIndex;
+            uint objectSize = HeapInfo::GetObjectSizeForBucketIndex<SmallAllocationBlockAttributes>(bucketIndex);
+            void * realCandidate = SmallLeafHeapBlock::GetRealAddressFromInterior(candidate, objectSize, bucketIndex);
+            MarkInteriorInternal<interlocked, false>(markContext, chunk, candidate, realCandidate);
 
+            // Leaf object doesn't need to be added to the mark stack.
+        }
+        break;
     case HeapBlock::HeapBlockType::SmallNormalBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
     case HeapBlock::HeapBlockType::SmallNormalBlockWithBarrierType:
@@ -342,6 +353,17 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
                 // Failed to mark due to OOM.
                 ((SmallHeapBlock *)chunk->map[id2])->SetNeedOOMRescan(markContext->GetRecycler());
             }
+        }
+        break;
+    case HeapBlock::HeapBlockType::MediumLeafBlockType:
+        {
+            // We want to scan leaf blocks for preventing UAFs due to interior pointers on stack.
+            byte bucketIndex = chunk->blockInfo[id2].bucketIndex;
+            uint objectSize = HeapInfo::GetObjectSizeForBucketIndex<MediumAllocationBlockAttributes>(bucketIndex);
+            void * realCandidate = MediumLeafHeapBlock::GetRealAddressFromInterior(candidate, objectSize, bucketIndex);
+            MarkInteriorInternal<interlocked, false>(markContext, chunk, candidate, realCandidate);
+
+            // Leaf object doesn't need to be added to the mark stack.
         }
         break;
     case HeapBlock::HeapBlockType::MediumNormalBlockType:
@@ -375,7 +397,7 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
                 break;
             }
 
-            ((SmallFinalizableHeapBlock*)chunk->map[id2])->ProcessMarkedObject<false>(realCandidate, markContext);
+            ((SmallFinalizableHeapBlock*)chunk->map[id2])->ProcessMarkedObject<doSpecialMark>(realCandidate, markContext);
         }
         break;
     case HeapBlock::HeapBlockType::MediumFinalizableBlockType:
@@ -389,8 +411,8 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
                 break;
             }
 
-            ((MediumFinalizableHeapBlock*)chunk->map[id2])->ProcessMarkedObject<false>(realCandidate, markContext);
-        }
+            ((MediumFinalizableHeapBlock*)chunk->map[id2])->ProcessMarkedObject<doSpecialMark>(realCandidate, markContext);
+    }
         break;
 #ifdef RECYCLER_VISITED_HOST
     case HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType:
@@ -424,7 +446,7 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
                 break;
             }
 
-            ((LargeHeapBlock*)chunk->map[GetLevel2Id(realCandidate)])->Mark<false>(realCandidate, markContext);
+            ((LargeHeapBlock*)chunk->map[GetLevel2Id(realCandidate)])->Mark<doSpecialMark>(realCandidate, markContext);
         }
         break;
 
@@ -474,7 +496,7 @@ HeapBlockMap64::Mark(void * candidate, MarkContext * markContext)
     // No Node found; must be an invalid reference. Do nothing.
 }
 
-template <bool interlocked>
+template <bool interlocked, bool doSpecialMark>
 inline
 void
 HeapBlockMap64::MarkInterior(void * candidate, MarkContext * markContext)
@@ -492,7 +514,7 @@ HeapBlockMap64::MarkInterior(void * candidate, MarkContext * markContext)
         {
             // Found the correct Node.
             // Process the mark and return.
-            node->map.MarkInterior<interlocked>(candidate, markContext);
+            node->map.MarkInterior<interlocked, doSpecialMark>(candidate, markContext);
             return;
         }
 

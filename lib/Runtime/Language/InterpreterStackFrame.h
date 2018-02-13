@@ -831,7 +831,7 @@ namespace Js
             {
                 interpreterFrame->returnAddress = returnAddress; // Ensure these are set before pushing to interpreter frame list
                 interpreterFrame->addressOfReturnAddress = addressOfReturnAddress;
-                if (interpreterFrame->GetFunctionBody()->GetIsAsmJsFunction())
+                if (interpreterFrame->GetFunctionBody()->GetIsAsmjsMode())
                 {
                     m_isHiddenFrame = true;
                 }

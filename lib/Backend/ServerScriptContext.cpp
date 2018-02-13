@@ -384,7 +384,7 @@ ServerScriptContext::Release()
 Field(Js::Var)*
 ServerScriptContext::GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex)
 {
-    Assert(m_moduleRecords.ContainsKey(moduleIndex));
+    AssertOrFailFast(m_moduleRecords.ContainsKey(moduleIndex));
     auto record = m_moduleRecords.Item(moduleIndex);
     return record->localExportSlotsAddr;
 }

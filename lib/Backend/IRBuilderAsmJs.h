@@ -252,9 +252,7 @@ private:
     JitLoopBodyData*        m_jitLoopBodyData = nullptr;
     IRBuilderAsmJsSwitchAdapter m_switchAdapter;
     SwitchIRBuilder         m_switchBuilder;
-#if DBG
     uint32                  m_offsetToInstructionCount;
-#endif
 
 #define BUILD_LAYOUT_DEF(layout, ...) void Build##layout (Js::OpCodeAsmJs, uint32, __VA_ARGS__);
 #define Reg_Type Js::RegSlot

@@ -581,7 +581,7 @@ namespace TTD
         for(auto iter = this->m_slotArrayEntries.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
             const NSSnapValues::SlotArrayInfo* sai = iter.Current();
-            Js::Var* slots = NSSnapValues::InflateSlotArrayInfo(sai, inflator);
+            Field(Js::Var)* slots = NSSnapValues::InflateSlotArrayInfo(sai, inflator);
 
             inflator->AddSlotArray(sai->SlotId, slots);
         }

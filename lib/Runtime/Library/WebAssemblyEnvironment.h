@@ -20,7 +20,7 @@ namespace Js
     public:
         WebAssemblyEnvironment(WebAssemblyModule* module);
 
-        Var* GetStartPtr() const { return (Var*)PointerValue(start); }
+        Field(Var)* GetStartPtr() const { return start; }
 
         WasmScriptFunction* GetWasmFunction(uint32 index) const;
         void SetWasmFunction(uint32 index, WasmScriptFunction* func);

@@ -292,6 +292,7 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                             break;
                         }
 
+                        bool hasDstUsedBuiltInReturnType = false;
                         if(!inlineeData->HasBody())
                         {
                             Assert(builtInInlineCandidateOpCode != 0);
@@ -303,11 +304,12 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                                 break;
                             }
 
-                            // This built-in function is going to be inlined, so reset the destination's value type
+                            // This built-in function should be inlined, so reset the destination's value type
                             if(!builtInReturnType.IsUninitialized())
                             {
                                 if(instr->GetDst())
                                 {
+                                    hasDstUsedBuiltInReturnType = true;
                                     instr->GetDst()->SetValueType(builtInReturnType);
                                     if(builtInReturnType.IsDefinite())
                                     {
@@ -367,7 +369,12 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                         instrNext = builtInInlineCandidateOpCode != 0 ?
                             this->InlineBuiltInFunction(instr, inlineeData, builtInInlineCandidateOpCode, inlinerData, symThis, &isInlined, profileId, recursiveInlineDepth) :
                             this->InlineScriptFunction(instr, inlineeData, symThis, profileId, &isInlined, recursiveInlineDepth);
-
+                         if (!isInlined && hasDstUsedBuiltInReturnType)
+                        {
+                            // We haven't actually inlined the builtin, we need to revert the value type to likely
+                            instr->GetDst()->UnsetValueTypeFixed();
+                            instr->GetDst()->SetValueType(instr->GetDst()->GetValueType().ToLikely());
+                        }
                     }
                     if(++this->inlineesProcessed == inlinerData->GetInlineeCount())
                     {

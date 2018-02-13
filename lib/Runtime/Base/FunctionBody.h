@@ -3598,8 +3598,9 @@ namespace Js
         static uint const EncodedSlotCountSlotIndex = 0;
         static uint const ScopeMetadataSlotIndex = 1;    // Either a FunctionBody* or DebuggerScope*
         static uint const FirstSlotIndex = 2;
+
     public:
-        ScopeSlots(Var* slotArray) : slotArray((Field(Var)*)slotArray)
+        ScopeSlots(Field(Var)* slotArray) : slotArray(slotArray)
         {
         }
 
@@ -3710,7 +3711,7 @@ namespace Js
         bool   GetStrictMode() const { return strictMode; }
         void   SetStrictMode(bool flag) { this->strictMode = flag; }
 
-        void** GetDataAddress() { return (void**)&this->scopes; }
+        Field(void*)* GetDataAddress() { return this->scopes; }
         static uint32 GetOffsetOfStrictMode() { return offsetof(FrameDisplay, strictMode); }
         static uint32 GetOffsetOfLength() { return offsetof(FrameDisplay, length); }
         static uint32 GetOffsetOfScopes() { return offsetof(FrameDisplay, scopes); }

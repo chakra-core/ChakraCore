@@ -188,7 +188,7 @@ namespace Js
                 newValues[index++] = args[i];
             }
 
-            actualArgs = Arguments(args.Info, (Var*)newValues);
+            actualArgs = Arguments(args.Info, unsafe_write_barrier_cast<Var*>(newValues));
             actualArgs.Info.Count = boundFunction->count + argCount;
         }
         else
@@ -521,13 +521,14 @@ namespace Js
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapBoundFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapBoundFunctionObject>(objData, bfi, alloc, depCount, depArray);
     }
 
-    BoundFunction* BoundFunction::InflateBoundFunction(ScriptContext* ctx, RecyclableObject* function, Var bThis, uint32 ct, Var* args)
+    BoundFunction* BoundFunction::InflateBoundFunction(
+        ScriptContext* ctx, RecyclableObject* function, Var bThis, uint32 ct, Field(Var)* args)
     {
         BoundFunction* res = RecyclerNew(ctx->GetRecycler(), BoundFunction, ctx->GetLibrary()->GetBoundFunctionType());
 
         res->boundThis = bThis;
         res->count = ct;
-        res->boundArgs = (Field(Var)*)args;
+        res->boundArgs = args;
 
         res->targetFunction = function;
 

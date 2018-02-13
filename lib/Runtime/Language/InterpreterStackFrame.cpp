@@ -1254,7 +1254,7 @@ namespace Js
                 {
                     uint32 scopeSlots = this->executeFunction->scopeSlotArraySize;
                     Assert(scopeSlots != 0);
-                    ScopeSlots((Var*)nextAllocBytes).SetCount(0); // Start with count as 0. It will get set in NewScopeSlots
+                    ScopeSlots((Field(Var)*)nextAllocBytes).SetCount(0); // Start with count as 0. It will get set in NewScopeSlots
                     newInstance->localClosure = nextAllocBytes;
                     nextAllocBytes += (scopeSlots + ScopeSlots::FirstSlotIndex) * sizeof(Var);
                 }
@@ -2766,7 +2766,7 @@ namespace Js
 
                 scriptFuncObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
                 scriptFuncObj->GetFunctionBody()->GetAsmJsFunctionInfo()->SetModuleFunctionBody(asmJsModuleFunctionBody);
-                scriptFuncObj->SetModuleEnvironment((Field(Var)*)moduleMemoryPtr);
+                scriptFuncObj->SetModuleEnvironment(moduleMemoryPtr);
                 if (!info->IsRuntimeProcessed())
                 {
                     // don't reset entrypoint upon relinking
@@ -3865,6 +3865,7 @@ namespace Js
 #endif
 
         if (playout->Return == Js::Constants::NoRegister)
+        
         {
             Arguments args(CallInfo(CallFlags_NotUsed, playout->ArgCount), m_outParams);
             JavascriptFunction::CallFunction<true>(function, function->GetEntryPoint(), args);
@@ -7459,7 +7460,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
         slotArray = (Field(Var)*)this->GetLocalClosure();
         Assert(slotArray != nullptr);
 
-        ScopeSlots scopeSlots((Js::Var*)slotArray);
+        ScopeSlots scopeSlots(slotArray);
         scopeSlots.SetCount(scopeSlotCount);
         scopeSlots.SetScopeMetadata((Var)functionBody->GetFunctionInfo());
         Var undef = functionBody->GetScriptContext()->GetLibrary()->GetUndefined();

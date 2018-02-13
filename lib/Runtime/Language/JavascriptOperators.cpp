@@ -6969,7 +6969,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         Assert(size > ScopeSlots::FirstSlotIndex); // Should never see empty slot array
         Field(Var)* slotArray = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), size); // last initialized slot contains reference to array of propertyIds, correspondent to objects in previous slots
         uint count = size - ScopeSlots::FirstSlotIndex;
-        ScopeSlots slots((Js::Var*)slotArray);
+        ScopeSlots slots(slotArray);
         slots.SetCount(count);
         AssertMsg(!FunctionBody::Is(scope), "Scope should only be FunctionInfo or DebuggerScope, not FunctionBody");
         slots.SetScopeMetadata(scope);
@@ -6996,7 +6996,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
     Field(Var)* JavascriptOperators::OP_CloneScopeSlots(Field(Var) *slotArray, ScriptContext *scriptContext)
     {
-        ScopeSlots slots((Js::Var*)slotArray);
+        ScopeSlots slots(slotArray);
         uint size = ScopeSlots::FirstSlotIndex + static_cast<uint>(slots.GetCount());
 
         Field(Var)* slotArrayClone = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), size);

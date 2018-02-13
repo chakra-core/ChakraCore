@@ -40,6 +40,11 @@ private:
     bool _fix;      // whether user requested to fix missing annotations
     bool _fixed;    // whether this plugin committed any annotation fixes
 
+    // For emitting checker errors
+    DiagnosticsEngine& _diagEngine;
+    unsigned _diagUnbarrieredField;
+    unsigned _diagIllegalBarrierCast;
+
     bool _barrierTypeDefined;
     map<string, set<string>> _allocatorTypeMap;
     set<string> _pointerClasses;
@@ -51,6 +56,7 @@ public:
     MainVisitor(CompilerInstance& compilerInstance, ASTContext& context, bool fix);
 
     const ASTContext& getContext() const { return _context; }
+    const CompilerInstance& getCompilerInstance() const { return _compilerInstance; }
 
     bool VisitCXXRecordDecl(CXXRecordDecl* recordDecl);
     bool VisitFunctionDecl(FunctionDecl* functionDecl);
@@ -60,6 +66,9 @@ public:
         const string& allocationFunction, const string& type);
     void Inspect();
     bool ApplyFix();
+
+    void ReportUnbarriedField(SourceLocation location);
+    void ReportIllegalBarrierCast(SourceLocation location);
 
 private:
     template <class Set, class DumpItemFunc>
@@ -73,6 +82,8 @@ private:
 
     bool MatchType(const string& type, const char* source, const char** pSourceEnd);
     const char* GetFieldTypeAnnotation(QualType qtype);
+
+    void DiagReport(SourceLocation location, unsigned diagId);
 };
 
 class CheckAllocationsInFunctionVisitor:
@@ -87,12 +98,26 @@ public:
     bool VisitCXXNewExpr(CXXNewExpr* newExpression);
     bool VisitCallExpr(CallExpr* callExpr);
 
+#define IMPLEMENT_VISIT_CAST(Expr) \
+    bool Visit##Expr(Expr *cast) { return CommonVisitCastExpr(cast); }
+
+    IMPLEMENT_VISIT_CAST(CStyleCastExpr)
+    IMPLEMENT_VISIT_CAST(CXXFunctionalCastExpr)
+    IMPLEMENT_VISIT_CAST(CXXConstCastExpr)
+    IMPLEMENT_VISIT_CAST(CXXDynamicCastExpr)
+    IMPLEMENT_VISIT_CAST(CXXReinterpretCastExpr)
+    IMPLEMENT_VISIT_CAST(CXXStaticCastExpr)
+#undef IMPLEMENT_VISIT_CAST
+
 private:
     MainVisitor* _mainVisitor;
     FunctionDecl* _functionDecl;
 
     template <class A0, class A1, class T>
     void VisitAllocate(const A0& getArg0, const A1& getArg1, const T& getAllocType);
+
+    bool IsFieldPointer(const QualType& qtype, const char* alt = nullptr);
+    bool CommonVisitCastExpr(CastExpr *cast);
 };
 
 class RecyclerCheckerConsumer: public ASTConsumer

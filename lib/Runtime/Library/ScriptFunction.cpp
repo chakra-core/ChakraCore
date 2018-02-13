@@ -490,7 +490,7 @@ namespace Js
             BufferStringBuilder builder(cch, scriptContext);
             utf8::DecodeOptions options = pFuncBody->GetUtf8SourceInfo()->IsCesu8() ? utf8::doAllowThreeByteSurrogates : utf8::doDefault;
             size_t decodedCount = utf8::DecodeUnitsInto(builder.DangerousGetWritableBuffer(), pbStart, pbStart + cbLength, options);
-            
+
             if (decodedCount != cch)
             {
                 AssertMsg(false, "Decoded incorrect number of characters for function body");
@@ -574,7 +574,7 @@ namespace Js
             }
             case Js::ScopeType::ScopeType_SlotArray:
             {
-                Js::ScopeSlots slotArray = (Js::Var*)scope;
+                Js::ScopeSlots slotArray = (Field(Js::Var)*)scope;
                 uint slotArrayCount = static_cast<uint>(slotArray.GetCount());
 
                 //get the function body associated with the scope
@@ -716,7 +716,8 @@ namespace Js
     JavascriptArrayBuffer* AsmJsScriptFunction::GetAsmJsArrayBuffer() const
     {
 #ifdef ASMJS_PLAT
-        return *(JavascriptArrayBuffer**)(this->GetModuleEnvironment() + AsmJsModuleMemory::MemoryTableBeginOffset);
+        return (JavascriptArrayBuffer*)PointerValue(
+            *(this->GetModuleEnvironment() + AsmJsModuleMemory::MemoryTableBeginOffset));
 #else
         Assert(UNREACHED);
         return nullptr;
@@ -751,7 +752,8 @@ namespace Js
 
     WebAssemblyMemory* WasmScriptFunction::GetWebAssemblyMemory() const
     {
-        return *(WebAssemblyMemory**)(this->GetModuleEnvironment() + AsmJsModuleMemory::MemoryTableBeginOffset);
+        return (WebAssemblyMemory*)PointerValue(
+            *(this->GetModuleEnvironment() + AsmJsModuleMemory::MemoryTableBeginOffset));
     }
 #endif
 

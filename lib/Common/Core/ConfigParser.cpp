@@ -303,6 +303,27 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
             Js::Configuration::Global.flags.Asmjs = true;
         }
     }
+
+    // Spectre mitigation feature control
+    // This setting allows enabling\disabling spectre mitigations
+    //     0 - Disable Spectre mitigations
+    //     1 - Enable Spectre mitigations - Also default behavior
+    dwValue = 0;
+    dwSize = sizeof(dwValue);
+    if (NOERROR == RegGetValueW(hk, nullptr, _u("MitigateSpectre"), RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
+    {
+        Js::ConfigFlagsTable &configFlags = Js::Configuration::Global.flags;
+        configFlags.Enable(Js::MitigateSpectreFlag);
+        if (dwValue == 0)
+        {
+            configFlags.SetAsBoolean(Js::MitigateSpectreFlag, false);
+        }
+        else if (dwValue == 1)
+        {
+            configFlags.SetAsBoolean(Js::MitigateSpectreFlag, true);
+        }
+    }
+
 #endif // _WIN32
 }
 
