@@ -25,14 +25,12 @@
   <default>
     <files>fastarray.js</files>
     <compile-flags>-wasm -WasmFastArray-</compile-flags>
-    <tags>exclude_mac</tags>
   </default>
 </test>
 <test>
   <default>
     <files>fastarray.js</files>
     <compile-flags>-wasm -WasmFastArray</compile-flags>
-    <tags>exclude_mac</tags>
   </default>
 </test>
 <test>
@@ -141,7 +139,7 @@
 <test>
   <default>
     <files>table_signatures.js</files>
-    <tags>exclude_jshost,exclude_drt,exclude_win7,exclude_mac</tags>
+    <tags>exclude_jshost,exclude_drt,exclude_win7</tags>
     <compile-flags>-wasm -args --no-verbose -endargs</compile-flags>
   </default>
 </test>
