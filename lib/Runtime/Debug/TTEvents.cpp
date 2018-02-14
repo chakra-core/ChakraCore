@@ -510,6 +510,9 @@ namespace TTD
             }
             writer->WriteSequenceEnd();
 
+            writer->WriteKey(NSTokens::Key::newTargetVal, NSTokens::Separator::CommaSeparator);
+            NSSnapValues::EmitTTDVar(callEvt->NewTarget, writer, NSTokens::Separator::NoSeparator);
+
             writer->WriteKey(NSTokens::Key::argRetVal, NSTokens::Separator::CommaSeparator);
             NSSnapValues::EmitTTDVar(callEvt->ReturnValue, writer, NSTokens::Separator::NoSeparator);
 
@@ -537,6 +540,9 @@ namespace TTD
                 callEvt->ArgArray[i] = NSSnapValues::ParseTTDVar(i != 0, reader);
             }
             reader->ReadSequenceEnd();
+
+            reader->ReadKey(NSTokens::Key::newTargetVal, true);
+            callEvt->NewTarget = NSSnapValues::ParseTTDVar(false, reader);
 
             reader->ReadKey(NSTokens::Key::argRetVal, true);
             callEvt->ReturnValue = NSSnapValues::ParseTTDVar(false, reader);
