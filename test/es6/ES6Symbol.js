@@ -988,7 +988,7 @@ var tests = [
         body() {
             assert.isTrue(Symbol.toPrimitive != 1);
             assert.isTrue(Symbol.toPrimitive != NaN);
-            
+
             var valueOfCalled = false;
             var a = Symbol('f');
             var b = {
@@ -1004,7 +1004,19 @@ var tests = [
             assert.isTrue(valueOfCalled);
             assert.isTrue(a == Object(a));
         }
-    }
+    },
+    {
+        name: 'Getting or setting symbol properties on null or undefined should throw',
+        body: function () {
+            assert.throws(function () { null[Symbol()]; }, TypeError, "Getting symbol property from null fails", "Unable to get property 'Symbol()' of undefined or null reference");
+            assert.throws(function () { typeof null[Symbol()]; }, TypeError, "Getting symbol property from null fails", "Unable to get property 'Symbol()' of undefined or null reference");
+            assert.throws(function () { new null[Symbol()]; }, TypeError, "Getting symbol property from null fails", "Unable to get property 'Symbol()' of undefined or null reference");
+            assert.throws(function () { undefined[Symbol('foo')]; }, TypeError, "Getting symbol property from undefined fails", "Unable to get property 'Symbol(foo)' of undefined or null reference");
+            assert.throws(function () { null[Symbol.iterator](); }, TypeError, "Getting symbol method from null fails", "Unable to get property 'Symbol(Symbol.iterator)' of undefined or null reference");
+            assert.throws(function () { undefined[Symbol()] = 5; }, TypeError, "Setting symbol property on undefined fails", "Unable to set property 'Symbol()' of undefined or null reference");
+            assert.throws(function () { delete null[Symbol()]; }, TypeError, "Deleting symbol property on undefined fails", "Unable to delete property 'Symbol()' of undefined or null reference");
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

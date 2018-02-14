@@ -3813,7 +3813,7 @@ CommonNumber:
         if (FALSE == JavascriptOperators::GetPropertyObject(instance, scriptContext, &object))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_CannotGet_NullOrUndefined,
-                JavascriptString::FromVar(index)->GetSz());
+                GetPropertyDisplayNameForError(index, scriptContext));
         }
 
         PropertyRecord const * propertyRecord = propertyRecordUsageCache->GetPropertyRecord();
