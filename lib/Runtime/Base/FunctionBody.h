@@ -437,7 +437,11 @@ namespace Js
     public:
         void SetSerializedRpcData(const unsigned char* data, size_t size)
         {
-            Assert(serializedRpcData == nullptr);
+            if (this->serializedRpcData != nullptr)
+            {
+                // We may have multiple codegens happen for same entrypoint
+                HeapDeleteArray(this->serializedRpcDataSize, this->serializedRpcData);
+            }
             serializedRpcData = data;
             serializedRpcDataSize = size;
         }
