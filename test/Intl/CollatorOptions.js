@@ -86,7 +86,7 @@ var tests = [
                 }
                 catch (e) {
                     if (!(e instanceof RangeError || e instanceof TypeError)) {
-                        assert.fail("Incorrect exception was thrown.");
+                        assert.fail(`Incorrect exception was thrown: ${e.message || e}`);
                     }
                     assert.isTrue(e.message.indexOf(validValuesStr) !== -1,
                         "Exception didn't have the correct valid values when testing option:" + expectingInvalidOption +
@@ -95,7 +95,6 @@ var tests = [
                 }
             }
 
-            verifyCollatorException("en-US-u-kf-invalid", {}, "caseFirst", "['upper', 'lower', 'false']");
             verifyCollatorException("en-US", { caseFirst: "invalid" }, "caseFirst", "['upper', 'lower', 'false']");
 
             assert.areEqual(new Intl.Collator("en-US", { numeric: "blah" }).resolvedOptions().numeric, true, "Testing invalid numeric option.");

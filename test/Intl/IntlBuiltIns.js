@@ -12,11 +12,11 @@ function testBuiltInFunction(options, builtInConstructor, builtInName, builtInFu
         var intlValue = new Intl[intlConstructor]("en-US", options)[intlFunc](args[0], args[1]);
 
         if (builtInValue !== intlValue) {
-            console.log("ERROR: Result from built in function 'new " + builtInName + "()." + builtInFunc + "' doesn't match Intl." + intlConstructor + "'s function '" + intlFunc + "'!");
+            console.log(`ERROR: new ${builtInConstructor.name}(${args[0]}).${builtInFunc}() -> ${builtInValue} !== new Intl.${intlConstructor}("en-US", ${JSON.stringify(options)}).${intlFunc}(${args[0]}, ${args[1]}) -> ${intlValue}`);
         }
     }
     catch (ex) {
-        console.log(ex.message);
+        console.log(`Error: testBuiltInFunction(${[...arguments].join(",")}) threw message ${ex.message}`);
     }
 }
 

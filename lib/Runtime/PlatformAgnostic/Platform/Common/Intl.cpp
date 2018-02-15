@@ -46,13 +46,14 @@ typedef uint64_t uint64;
 
 #define U_STATIC_IMPLEMENTATION
 #define U_SHOW_CPLUSPLUS_API 1
-#pragma warning(push)
-#pragma warning(disable:4995) // deprecation warning
 #include <unicode/uloc.h>
 #include <unicode/numfmt.h>
 #include <unicode/enumset.h>
 #include <unicode/decimfmt.h>
-#pragma warning(pop)
+#include <unicode/ucol.h>
+#include <unicode/ucal.h>
+#include <unicode/udat.h>
+#include <unicode/udatpg.h>
 
 #include "CommonDefines.h" // INTL_ICU_DEBUG
 
@@ -65,6 +66,8 @@ public:
 };
 #endif
 
+// #define INTL_ICU_DEBUG
+
 #define ICU_ERROR_FMT _u("INTL: %S failed with error code %S\n")
 #define ICU_EXPR_FMT _u("INTL: %S failed expression check %S\n")
 
@@ -74,10 +77,12 @@ public:
 #define ICU_DEBUG_PRINT(fmt, msg)
 #endif
 
+#define ICU_FAILURE(e) (U_FAILURE(e) || e == U_STRING_NOT_TERMINATED_WARNING)
+
 #define ICU_RETURN(e, expr, r)                                                \
     do                                                                        \
     {                                                                         \
-        if (U_FAILURE(e))                                                     \
+        if (ICU_FAILURE(e))                                                   \
         {                                                                     \
             ICU_DEBUG_PRINT(ICU_ERROR_FMT, u_errorName(e));                   \
             return r;                                                         \
@@ -92,32 +97,30 @@ public:
 #define ICU_ASSERT(e, expr)                                                   \
     do                                                                        \
     {                                                                         \
-        if (U_FAILURE(e))                                                     \
+        if (ICU_FAILURE(e))                                                   \
         {                                                                     \
             ICU_DEBUG_PRINT(ICU_ERROR_FMT, u_errorName(e));                   \
-            AssertMsg(false, u_errorName(e));                                 \
+            AssertOrFailFastMsg(false, u_errorName(e));                       \
         }                                                                     \
         else if (!(expr))                                                     \
         {                                                                     \
             ICU_DEBUG_PRINT(ICU_EXPR_FMT, u_errorName(e));                    \
-            Assert(expr);                                                     \
+            AssertOrFailFast(expr);                                           \
         }                                                                     \
     } while (false)
 
-#define ICU_ASSERT_RETURN(e, expr, r)                                         \
+#define ICU_GOTO(e, expr, l)                                                  \
     do                                                                        \
     {                                                                         \
-        if (U_FAILURE(e))                                                     \
+        if (ICU_FAILURE(e))                                                   \
         {                                                                     \
             ICU_DEBUG_PRINT(ICU_ERROR_FMT, u_errorName(e));                   \
-            AssertMsg(false, u_errorName(e));                                 \
-            return r;                                                         \
+            goto l;                                                           \
         }                                                                     \
         else if (!(expr))                                                     \
         {                                                                     \
             ICU_DEBUG_PRINT(ICU_EXPR_FMT, u_errorName(e));                    \
-            Assert(expr);                                                     \
-            return r;                                                         \
+            goto l;                                                           \
         }                                                                     \
     } while (false)
 
@@ -131,7 +134,35 @@ public:
         }                                                                     \
     } while (false)
 
-#define UNWRAP_RESOURCE(resource, innerType) reinterpret_cast<PlatformAgnosticIntlObject<innerType> *>(resource)->GetInstance();
+#define ASSERT_ENUM(T, e)                                                     \
+    do                                                                        \
+    {                                                                         \
+        if ((int)(e) < 0 || (e) >= T::Max)                                    \
+        {                                                                     \
+            AssertOrFailFastMsg(false, #e " of type " #T " has an invalid value"); \
+        }                                                                     \
+    } while (false)
+
+// Some ICU functions don't like being given null/0-length buffers.
+// We can work around this by making a local allocation of size 1 that will still
+// trigger a U_BUFFER_OVERFLOW_ERROR but will allow the function to return the required length.
+#define ICU_FIXBUF(type, bufArg, bufArgLen)                                   \
+    type __temp; \
+    const int __tempLen = 1; \
+    bool isTemporaryBuffer = false; \
+    if (bufArg == nullptr && bufArgLen == 0) \
+    { \
+        bufArg = &__temp; \
+        bufArgLen = __tempLen; \
+        isTemporaryBuffer = true; \
+    }
+
+// UNWRAP_* macros are convenience macros to turn an IPlatformAgnosticResource into the desired innerType
+// UNWRAP_PAIO (PlatformAgnosticIntlObject) should only be called on IPlatformAgnosticResources that were originally
+// created as PlatformAgnosticIntlObjects
+// UNWRAP_C_OBJECT should only be called on IPlatformAgnosticResources that were originally created as IcuCObjects
+#define UNWRAP_PAIO(resource, innerType) reinterpret_cast<PlatformAgnosticIntlObject<innerType> *>(resource)->GetInstance();
+#define UNWRAP_C_OBJECT(resource, innerType) reinterpret_cast<IcuCObject<innerType> *>(resource)->GetInstance();
 
 namespace PlatformAgnostic
 {
@@ -160,335 +191,345 @@ namespace Intl
     // - UChar -> char16_t (all platforms)
     static_assert(sizeof(UChar) == sizeof(char16), "ICU-based Intl logic assumes that UChar is compatible with char16");
 
-    // This function duplicates the Utf8Helper.h classes/methods
-    // See https://github.com/Microsoft/ChakraCore/pull/3913 for a (failed) attempt to use those directly
-    // Use CHECK_UTF_CONVERSION macro at the callsite to check the return value
-    // The caller is responsible for delete[]ing the memory returned here
-    // TODO(jahorto): As long as this function exists, it _must_ be kept in sync with utf8::WideStringToNarrow (Utf8Helper.h)
-    // TODO(jahorto 10/13/2017): This function should not exist for long, and should eventually be replaced with official utf8:: code
-    static utf8char_t *Utf16ToUtf8(_In_ const char16 *src, _In_ const charcount_t srcLength, _Out_ size_t *destLength)
-    {
-        // Allocate memory for the UTF8 output buffer. Need 3 bytes for each (code point + null) to satisfy SAL.
-        size_t allocSize = AllocSizeMath::Mul(AllocSizeMath::Add(srcLength, 1), 3);
-        utf8char_t *dest = new utf8char_t[allocSize];
-        if (!dest)
-        {
-            // this check has to happen in the caller regardless, so asserting here doesn't do much good
-            return nullptr;
-        }
-
-        *destLength = utf8::EncodeIntoAndNullTerminate(dest, src, srcLength);
-        return dest;
-    }
-
-    bool IsWellFormedLanguageTag(_In_z_ const char16 *langtag16, _In_ const charcount_t cch)
-    {
-        UErrorCode error = UErrorCode::U_ZERO_ERROR;
-        char icuLocaleId[ULOC_FULLNAME_CAPACITY] = { 0 };
-        char icuLangTag[ULOC_FULLNAME_CAPACITY] = { 0 };
-        
-        size_t langtag8Length = 0;
-        const utf8char_t *langtag8 = Utf16ToUtf8(langtag16, cch, &langtag8Length);
-        StringBufferAutoPtr<utf8char_t> guard(langtag8);
-        CHECK_UTF_CONVERSION(langtag8, false);
-
-        // Convert input language tag to a locale ID for use in uloc_toLanguageTag API.
-        // We used utf8 conversion to turn char16* into utf8char_t* (unsigned char *) but uloc_forLanguageTag takes char*
-        // LangTags must be 7-bit-ASCII to be valid and any of these chars being "negative" is irrelevant.
-        int32_t parsedLength = 0;
-        int32_t forLangTagResultLength = uloc_forLanguageTag(reinterpret_cast<const char *>(langtag8),
-            icuLocaleId, ULOC_FULLNAME_CAPACITY, &parsedLength, &error);
-        ICU_RETURN(error, forLangTagResultLength > 0 && parsedLength > 0 && ((size_t) parsedLength) == langtag8Length, false);
-
-        int32_t toLangTagResultLength = uloc_toLanguageTag(icuLocaleId, icuLangTag, ULOC_FULLNAME_CAPACITY, true, &error);
-        ICU_RETURN(error, toLangTagResultLength > 0, false);
-
-        return true;
-    }
-
-    HRESULT NormalizeLanguageTag(_In_z_ const char16 *languageTag, _In_ const charcount_t cch,
-        _Out_ char16 *normalized, _Out_ size_t *normalizedLength)
-    {
-        UErrorCode error = UErrorCode::U_ZERO_ERROR;
-        char icuLocaleId[ULOC_FULLNAME_CAPACITY] = { 0 };
-        char icuLangTag[ULOC_FULLNAME_CAPACITY] = { 0 };
-
-        size_t langtag8Length = 0;
-        const utf8char_t *langtag8 = Utf16ToUtf8(languageTag, cch, &langtag8Length);
-        StringBufferAutoPtr<utf8char_t> guard(langtag8);
-        CHECK_UTF_CONVERSION(langtag8, E_OUTOFMEMORY);
-
-        // Convert input language tag to a locale ID for use in uloc_toLanguageTag API.
-        // We used utf8 conversion to turn char16* into utf8char_t* (unsigned char *) but uloc_forLanguageTag takes char*
-        // LangTags must be 7-bit-ASCII to be valid and any of these chars being "negative" is irrelevant.
-        int32_t parsedLength = 0;
-        int32_t forLangTagResultLength = uloc_forLanguageTag(reinterpret_cast<const char *>(langtag8),
-            icuLocaleId, ULOC_FULLNAME_CAPACITY, &parsedLength, &error);
-        ICU_ASSERT_RETURN(error, forLangTagResultLength > 0 && parsedLength > 0, E_INVALIDARG);
-
-        // Try to convert icuLocaleId (locale ID version of input locale string) to BCP47 language tag, using strict checks
-        int32_t toLangTagResultLength = uloc_toLanguageTag(icuLocaleId, icuLangTag, ULOC_FULLNAME_CAPACITY, true, &error);
-        ICU_ASSERT_RETURN(error, toLangTagResultLength > 0, E_INVALIDARG);
-
-        *normalizedLength = utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(
-            normalized,
-            reinterpret_cast<utf8char_t *>(icuLangTag),
-            reinterpret_cast<utf8char_t *>(icuLangTag + toLangTagResultLength)
-        );
-
-        return S_OK;
-    }
-
-    int32_t GetCurrencyFractionDigits(_In_z_ const char16 * currencyCode)
-    {
-        UErrorCode error = UErrorCode::U_ZERO_ERROR;
-        const UChar *uCurrencyCode = reinterpret_cast<const UChar *>(currencyCode);
-
-        // REVIEW (doilij): What does the spec say to do if a currency is not supported? Does that affect this decision?
-        const int32_t fallback = 2; // Picked a "reasonable" fallback value as a starting value here.
-
-        // Note: The number of fractional digits specified for a currency is not locale-dependent.
-        icu::NumberFormat *nf = icu::NumberFormat::createCurrencyInstance(error); // use default locale
-        AutoPtr<icu::NumberFormat> guard(nf);
-        ICU_RETURN(error, true, fallback);
-
-        nf->setCurrency(uCurrencyCode, error);
-        ICU_RETURN(error, true, fallback);
-
-        return nf->getMinimumFractionDigits();
-    }
-
-    template <typename Func>
-    HRESULT CreateFormatter(Func formatterFactory, _In_z_ const char16 *languageTag, _In_ const charcount_t cch, _Out_ IPlatformAgnosticResource **resource)
-    {
-        UErrorCode error = UErrorCode::U_ZERO_ERROR;
-
-        size_t langtag8Length = 0;
-        const utf8char_t *langtag8 = Utf16ToUtf8(languageTag, cch, &langtag8Length);
-        StringBufferAutoPtr<utf8char_t> guard(langtag8);
-        CHECK_UTF_CONVERSION(langtag8, E_OUTOFMEMORY);
-
-        // TODO(jahorto): Should this createCanonical instead?
-        icu::Locale locale = icu::Locale::createFromName(reinterpret_cast<const char*>(langtag8));
-        if (locale.isBogus())
-        {
-            return E_INVALIDARG;
-        }
-
-        icu::NumberFormat *nf = formatterFactory(locale, error);
-        ICU_ASSERT_RETURN(error, true, E_INVALIDARG);
-
-        // If the formatter produced a DecimalFormat, force it to round up
-        icu::DecimalFormat *df = dynamic_cast<icu::DecimalFormat *>(nf);
-        if (df)
-        {
-            df->setAttribute(UNUM_ROUNDING_MODE, UNUM_ROUND_HALFUP, error);
-            ICU_ASSERT(error, true);
-        }
-
-        IPlatformAgnosticResource *formatterResource = new PlatformAgnosticIntlObject<icu::NumberFormat>(nf);
-        if (!formatterResource)
-        {
-            return E_OUTOFMEMORY;
-        }
-
-        *resource = formatterResource;
-        return S_OK;
-    }
-
-    HRESULT CreateNumberFormatter(_In_z_ const char16 *languageTag, _In_ const charcount_t cch, _Out_ IPlatformAgnosticResource **resource)
-    {
-        return CreateFormatter(
-            [](icu::Locale &locale, UErrorCode &error) { return icu::NumberFormat::createInstance(locale, error); },
-            languageTag, cch, resource);
-    }
-
-    HRESULT CreatePercentFormatter(_In_z_ const char16 *languageTag, _In_ const charcount_t cch, _Out_ IPlatformAgnosticResource **resource)
-    {
-        return CreateFormatter(
-            [](icu::Locale &locale, UErrorCode &error) { return icu::NumberFormat::createPercentInstance(locale, error); },
-            languageTag, cch, resource);
-    }
-
-    HRESULT CreateCurrencyFormatter(_In_z_ const char16 *languageTag, _In_ const charcount_t cch,
-        _In_z_ const char16 *currencyCode, _In_ const NumberFormatCurrencyDisplay currencyDisplay, _Out_ IPlatformAgnosticResource **resource)
-    {
-        return CreateFormatter(
-            [&currencyDisplay, currencyCode](icu::Locale &locale, UErrorCode &error) -> icu::NumberFormat*
-            {
-                icu::NumberFormat *nf = nullptr;
-                if (currencyDisplay == NumberFormatCurrencyDisplay::SYMBOL || currencyDisplay >= NumberFormatCurrencyDisplay::MAX)
-                {
-                    // 0 (or default) => use symbol (e.g. "$" or "US$")
-                    nf = icu::NumberFormat::createCurrencyInstance(locale, error);
-                    ICU_ASSERT_RETURN(error, true, nullptr);
-
-                    nf->setCurrency(reinterpret_cast<const UChar *>(currencyCode), error); // Ctrl-F: UChar_cast_explainer
-                    ICU_ASSERT_RETURN(error, true, nullptr);
-                }
-                else if (currencyDisplay == NumberFormatCurrencyDisplay::CODE || currencyDisplay == NumberFormatCurrencyDisplay::NAME)
-                {
-                    // CODE e.g. "USD 42.00"; NAME (e.g. "42.00 US dollars")
-                    // In both cases we need to be able to format in decimal and add the code or name afterwards.
-                    // We will decide how to do this when platform.formatNumber is invoked (based on currencyDisplay again).
-                    // TODO(doilij): How do we handle which side of the number to put the code or name? Can ICU do this? It doesn't seem clear how at the moment.
-                    nf = icu::NumberFormat::createInstance(locale, error);
-                    ICU_ASSERT_RETURN(error, true, nullptr);
-                }
-
-                return nf;
-            },
-            languageTag,
-            cch,
-            resource
-        );
-    }
-
-    void SetNumberFormatSignificantDigits(IPlatformAgnosticResource *resource, const uint16 minSigDigits, const uint16 maxSigDigits)
-    {
-        // We know what actual type we stored in the IPlatformAgnosticResource*, so cast to it.
-        icu::NumberFormat *nf = UNWRAP_RESOURCE(resource, icu::NumberFormat);
-
-        // TODO(jahorto): Determine if we could ever have a NumberFormat that isn't a DecimalFormat (and if so, what to do here)
-        icu::DecimalFormat *df = dynamic_cast<icu::DecimalFormat *>(nf);
-        if (df)
-        {
-            df->setMinimumSignificantDigits(minSigDigits);
-            df->setMaximumSignificantDigits(maxSigDigits);
-        }
-        else
-        {
-            // if we can't use DecimalFormat-specific features because we didn't get a DecimalFormat, we should not crash.
-            // Best effort is good enough for Intl outputs, and we'd assume this is a transient issue.
-            // However, non-DecimalFormat-based output might be regarded as buggy, especially if consistently wrong.
-            // We'd like to use Debug builds to detect if this is the case and how prevalent it is, and we can make a further determination if and when we see failures here.
-            AssertMsg(false, "Could not cast an icu::NumberFormat to an icu::DecimalFormat");
-        }
-    }
-
-    void SetNumberFormatIntFracDigits(IPlatformAgnosticResource *resource, const uint16 minFracDigits, const uint16 maxFracDigits, const uint16 minIntDigits)
-    {
-        // We know what actual type we stored in the IPlatformAgnosticResource*, so cast to it.
-        icu::NumberFormat *nf = UNWRAP_RESOURCE(resource, icu::NumberFormat);
-        nf->setMinimumIntegerDigits(minIntDigits);
-        nf->setMinimumFractionDigits(minFracDigits);
-        nf->setMaximumFractionDigits(maxFracDigits);
-    }
-
-    void SetNumberFormatGroupingUsed(IPlatformAgnosticResource *resource, const bool isGroupingUsed)
-    {
-        // We know what actual type we stored in the IPlatformAgnosticResource*, so cast to it.
-        icu::NumberFormat *nf = UNWRAP_RESOURCE(resource, icu::NumberFormat);
-        nf->setGroupingUsed(isGroupingUsed);
-    }
-
-    // We explicitly declare these specializations of FormatNumber so the compiler creates them
-    // because they will be used in another compilation unit,
-    // at which time we cannot generate code for specializations of this template.
-    template const char16 *FormatNumber<>(IPlatformAgnosticResource *formatter, const int32_t val, const NumberFormatStyle formatterToUse,
-        const NumberFormatCurrencyDisplay currencyDisplay, const char16 *currencyCode);
-    template const char16 *FormatNumber<>(IPlatformAgnosticResource *formatter, const double val, const NumberFormatStyle formatterToUse,
-        const NumberFormatCurrencyDisplay currencyDisplay, const char16 *currencyCode);
-
-    template <typename T>
-    const char16 *FormatNumber(IPlatformAgnosticResource *formatter, const T val, const NumberFormatStyle formatterToUse,
-        const NumberFormatCurrencyDisplay currencyDisplay, const char16 *currencyCode)
-    {
-        icu::UnicodeString result;
-
-        auto *formatterHolder = reinterpret_cast<PlatformAgnosticIntlObject<icu::NumberFormat> *>(formatter);
-        if (!formatterHolder)
-        {
-            AssertOrFailFastMsg(formatterHolder, "Formatter did not hold an object of type `FinalizableIntlObject<icu::NumberFormat>`");
-            return nullptr;
-        }
-
-        icu::NumberFormat *numberFormatter = formatterHolder->GetInstance();
-
-        if (formatterToUse == NumberFormatStyle::DECIMAL || formatterToUse == NumberFormatStyle::PERCENT)
-        {
-            // we already created the formatter to format things according to the above options, so nothing else to do
-            numberFormatter->format(val, result);
-        }
-        else if (formatterToUse == NumberFormatStyle::CURRENCY)
-        {
-            UErrorCode error = UErrorCode::U_ZERO_ERROR;
-
-            const UChar *uCurrencyCode = reinterpret_cast<const UChar *>(currencyCode); // Ctrl-F: UChar_cast_explainer
-            const char *localeName = numberFormatter->getLocale(ULocDataLocaleType::ULOC_ACTUAL_LOCALE, error).getName();
-            ICU_ASSERT(error, true);
-
-            UBool isChoiceFormat = false;
-            int32_t currencyNameLen = 0;
-
-            if (currencyDisplay == NumberFormatCurrencyDisplay::SYMBOL || currencyDisplay >= NumberFormatCurrencyDisplay::MAX) // (e.g. "$42.00")
-            {
-                // the formatter is set up to render the symbol by default
-                numberFormatter->format(val, result);
-            }
-            else if (currencyDisplay == NumberFormatCurrencyDisplay::CODE) // (e.g. "USD 42.00")
-            {
-                result.append(uCurrencyCode);
-                result.append("\u00a0"); // NON-BREAKING SPACE
-                numberFormatter->format(val, result);
-            }
-            else if (currencyDisplay == NumberFormatCurrencyDisplay::NAME) // (e.g. "US dollars")
-            {
-                const char *pluralCount = nullptr; // REVIEW (doilij): is this okay? It's not entirely clear from the documentation whether this is an optional parameter.
-                const UChar *currencyLongName = ucurr_getPluralName(uCurrencyCode, localeName, &isChoiceFormat, pluralCount, &currencyNameLen, &error);
-                ICU_ASSERT(error, true);
-
-                numberFormatter->format(val, result);
-                result.append(" ");
-                result.append(currencyLongName);
-            }
-        }
-        else
-        {
-            AssertMsg(false, "No other value of NumberFormatStyle is allowed");
-        }
-
-        int32_t length = result.length();
-        char16 *ret = new char16[length + 1];
-        result.extract(0, length, reinterpret_cast<UChar *>(ret)); // Ctrl-F: UChar_cast_explainer
-        ret[length] = 0;
-        return ret;
-    }
-
-    bool ResolveLocaleLookup(_In_z_ const char16 *locale, _Out_ char16 *resolved)
-    {
-        // TODO (doilij): implement ResolveLocaleLookup
-        resolved[0] = '\0';
-        return false;
-    }
-
-    bool ResolveLocaleBestFit(_In_z_ const char16 *locale, _Out_ char16 *resolved)
-    {
-        // Note: the "best fit" matcher is implementation-defined, so it is okay to return the same result as ResolveLocaleLookup.
-        // TODO (doilij): implement a better "best fit" matcher
-        return ResolveLocaleLookup(locale, resolved);
-    }
-
-    size_t GetUserDefaultLanguageTag(_Out_ char16* langtag, _In_ size_t cchLangtag)
+    size_t GetUserDefaultLocaleName(_Out_ char16* langtag, _In_ size_t cchLangtag)
     {
         UErrorCode error = UErrorCode::U_ZERO_ERROR;
         char bcp47[ULOC_FULLNAME_CAPACITY] = { 0 };
         char defaultLocaleId[ULOC_FULLNAME_CAPACITY] = { 0 };
 
         int32_t written = uloc_getName(nullptr, defaultLocaleId, ULOC_FULLNAME_CAPACITY, &error);
-        ICU_ASSERT_RETURN(error, written > 0 && written < ULOC_FULLNAME_CAPACITY, 0);
+        ICU_ASSERT(error, written > 0 && written < ULOC_FULLNAME_CAPACITY);
 
         defaultLocaleId[written] = 0;
         error = UErrorCode::U_ZERO_ERROR;
 
         written = uloc_toLanguageTag(defaultLocaleId, bcp47, ULOC_FULLNAME_CAPACITY, true, &error);
-        ICU_ASSERT_RETURN(error, written > 0 && written < cchLangtag, 0);
+        ICU_ASSERT(error, written > 0 && static_cast<size_t>(written) < cchLangtag);
 
         return utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(
             langtag,
             reinterpret_cast<LPCUTF8>(bcp47),
             reinterpret_cast<LPCUTF8>(bcp47 + written)
         );
+    }
+
+    // Compares left and right in the given locale with the given options
+    // returns 0 on error, 1 for less, 2 for equal, and 3 for greater to match Win32 CompareStringEx API
+    // *hr is set in all cases
+    // TODO(jahorto): cache this UCollator object for later use
+    int CollatorCompare(_In_z_ const char *langtag, _In_z_ const char16 *left, _In_ charcount_t cchLeft, _In_z_ const char16 *right, _In_ charcount_t cchRight,
+        _In_ CollatorSensitivity sensitivity, _In_ bool ignorePunctuation, _In_ bool numeric, _In_ CollatorCaseFirst caseFirst, _Out_ HRESULT *hr)
+    {
+        ASSERT_ENUM(CollatorSensitivity, sensitivity);
+        ASSERT_ENUM(CollatorCaseFirst, caseFirst);
+        Assert(langtag != nullptr && left != nullptr && right != nullptr && hr != nullptr);
+        int ret = 0;
+        *hr = E_INVALIDARG;
+
+        UErrorCode error = U_ZERO_ERROR;
+        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        int32_t length = 0;
+        uloc_forLanguageTag(reinterpret_cast<const char *>(langtag), localeID, ULOC_FULLNAME_CAPACITY, &length, &error);
+        ICU_ASSERT(error, length > 0);
+
+        UCollator *collator = ucol_open(localeID, &error);
+        ICU_ASSERT(error, true);
+
+        if (sensitivity == CollatorSensitivity::Base)
+        {
+            ucol_setStrength(collator, UCOL_PRIMARY);
+        }
+        else if (sensitivity == CollatorSensitivity::Accent)
+        {
+            ucol_setStrength(collator, UCOL_SECONDARY);
+        }
+        else if (sensitivity == CollatorSensitivity::Case)
+        {
+            // see "description" for the caseLevel default option: http://userguide.icu-project.org/collation/customization
+            ucol_setStrength(collator, UCOL_PRIMARY);
+            ucol_setAttribute(collator, UCOL_CASE_LEVEL, UCOL_ON, &error);
+            ICU_ASSERT(error, true);
+        }
+        else if (sensitivity == CollatorSensitivity::Variant)
+        {
+            ucol_setStrength(collator, UCOL_TERTIARY);
+        }
+        else
+        {
+            AssertMsg(false, "sensitivity is not one of the CollatorSensitivity values");
+        }
+
+        if (ignorePunctuation)
+        {
+            // see http://userguide.icu-project.org/collation/customization/ignorepunct
+            ucol_setAttribute(collator, UCOL_ALTERNATE_HANDLING, UCOL_SHIFTED, &error);
+            ICU_ASSERT(error, true);
+        }
+
+        if (numeric)
+        {
+            ucol_setAttribute(collator, UCOL_NUMERIC_COLLATION, UCOL_ON, &error);
+            ICU_ASSERT(error, true);
+        }
+
+        if (caseFirst == CollatorCaseFirst::Upper)
+        {
+            ucol_setAttribute(collator, UCOL_CASE_FIRST, UCOL_UPPER_FIRST, &error);
+            ICU_ASSERT(error, true);
+        }
+        else if (caseFirst == CollatorCaseFirst::Lower)
+        {
+            ucol_setAttribute(collator, UCOL_CASE_FIRST, UCOL_LOWER_FIRST, &error);
+            ICU_ASSERT(error, true);
+        }
+
+        *hr = S_OK;
+        UCollationResult result = ucol_strcoll(collator, reinterpret_cast<const UChar *>(left), cchLeft, reinterpret_cast<const UChar *>(right), cchRight);
+        if (result == UCOL_LESS)
+        {
+            ret = 1;
+        }
+        else if (result == UCOL_EQUAL)
+        {
+            ret = 2;
+        }
+        else if (result == UCOL_GREATER)
+        {
+            ret = 3;
+        }
+        else
+        {
+            *hr = E_FAIL;
+            ret = 0;
+        }
+
+        ucol_close(collator);
+        return ret;
+    }
+
+    // Gets the system time zone. If tz is non-null, it is written into tz
+    // Returns the number of characters written into tz (including a null terminator)
+    int GetDefaultTimeZone(_Out_writes_opt_(tzLen) char16 *tz, _In_ int tzLen)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        ICU_FIXBUF(char16, tz, tzLen); // sets bool isTemporaryBuffer
+        int required = ucal_getDefaultTimeZone(reinterpret_cast<UChar *>(tz), tzLen, &status);
+        if (isTemporaryBuffer && status == U_BUFFER_OVERFLOW_ERROR)
+        {
+            // buffer overflow is expected when we are just trying to get the length returned
+            return required + 1;
+        }
+
+        ICU_ASSERT(status, required > 0 && required < tzLen);
+        return required + 1; // return enough space for null character
+    }
+
+    // Determines if a time zone is valid. If it is and tzOut is non-null, the canonicalized version is written into tzOut
+    // Returns the number of characters written into tzOut (including a null terminator), or 0 on invalid time zone
+    int ValidateAndCanonicalizeTimeZone(_In_z_ const char16 *tzIn, _Out_writes_opt_(tzOutLen) char16 *tzOut, _In_ int tzOutLen)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        ICU_FIXBUF(char16, tzOut, tzOutLen); // sets bool isTemporaryBuffer
+
+        int required = ucal_getCanonicalTimeZoneID(reinterpret_cast<const UChar *>(tzIn), -1, reinterpret_cast<UChar *>(tzOut), tzOutLen, nullptr, &status);
+        if (isTemporaryBuffer && status == U_BUFFER_OVERFLOW_ERROR)
+        {
+            // buffer overflow is expected when we are just trying to get the length returned
+            return required + 1;
+        }
+        else if (status == U_ILLEGAL_ARGUMENT_ERROR)
+        {
+            // illegal argument here means that tzIn is an invalid time zone
+            return 0;
+        }
+
+        ICU_ASSERT(status, required > 0 && required < tzOutLen);
+        return required + 1; // return enough space for null character
+    }
+
+    // Generates an LDML pattern for the given LDML skeleton in the given locale. If pattern is non-null, the result is written into pattern
+    // LDML here means the Unicode Locale Data Markup Language: http://www.unicode.org/reports/tr35/tr35-dates.html#Date_Field_Symbol_Table
+    // Returns the number of characters written into pattern (including a null terminator) [should always be positive]
+    int GetPatternForSkeleton(_In_z_ const char *langtag, _In_z_ const char16 *skeleton, _Out_writes_opt_(patternLen) char16 *pattern, _In_ int patternLen)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        int length = 0;
+        uloc_forLanguageTag(langtag, localeID, ULOC_FULLNAME_CAPACITY, &length, &status);
+        ICU_ASSERT(status, length > 0);
+
+        UDateTimePatternGenerator *dtpg = udatpg_open(localeID, &status);
+        ICU_ASSERT(status, true);
+
+        int bestPatternLen = udatpg_getBestPatternWithOptions(
+            dtpg,
+            reinterpret_cast<const UChar *>(skeleton),
+            -1,
+            UDATPG_MATCH_ALL_FIELDS_LENGTH,
+            reinterpret_cast<UChar *>(pattern),
+            patternLen,
+            &status
+        );
+
+        if (pattern == nullptr && patternLen == 0 && status == U_BUFFER_OVERFLOW_ERROR)
+        {
+            // just counting bytes, U_BUFFER_OVERFLOW_ERROR is expected
+            AssertOrFailFast(bestPatternLen > 0);
+        }
+        else
+        {
+            ICU_ASSERT(status, bestPatternLen > 0 && bestPatternLen < patternLen);
+        }
+
+        udatpg_close(dtpg);
+        return bestPatternLen + 1; // return enough space for null character
+    }
+
+    // creates a UDateFormat and wraps it in an IPlatformAgnosticResource
+    void CreateDateTimeFormat(_In_z_ const char *langtag, _In_z_ const char16 *timeZone, _In_z_ const char16 *pattern, _Out_ IPlatformAgnosticResource **resource)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        int length = 0;
+        uloc_forLanguageTag(langtag, localeID, ULOC_FULLNAME_CAPACITY, &length, &status);
+        ICU_ASSERT(status, length > 0);
+
+        UDateFormat *dtf = udat_open(
+            UDAT_PATTERN,
+            UDAT_PATTERN,
+            localeID,
+            reinterpret_cast<const UChar *>(timeZone),
+            -1,
+            reinterpret_cast<const UChar *>(pattern),
+            -1,
+            &status
+        );
+        ICU_ASSERT(status, true);
+
+        // DateTimeFormat is expected to use the "proleptic Gregorian calendar", which means that the Julian calendar should never be used.
+        // To accomplish this, we can set the switchover date between julian/gregorian
+        // to the ECMAScript beginning of time, which is -8.64e15 according to ecma262 #sec-time-values-and-time-range
+        UCalendar *cal = const_cast<UCalendar *>(udat_getCalendar(dtf));
+        ucal_setGregorianChange(cal, -8.64e15, &status);
+
+        // status can be U_UNSUPPORTED_ERROR if the calendar isn't gregorian, which
+        // there does not seem to be a way to check for ahead of time in the C API
+        AssertOrFailFastMsg(U_SUCCESS(status) || status == U_UNSUPPORTED_ERROR, u_errorName(status));
+
+        IPlatformAgnosticResource *formatterResource = new IcuCObject<UDateFormat>(dtf, &udat_close);
+        AssertOrFailFast(formatterResource);
+        *resource = formatterResource;
+    }
+
+    // Formats `date` using the UDateFormat wrapped by `resource`. If `formatted` is non-null, the result is written into `formatted`
+    // Returns the number of characters written into `formatted` (including a null terminator) [should always be positive]
+    int FormatDateTime(_In_ IPlatformAgnosticResource *resource, _In_ double date, _Out_writes_opt_(formattedLen) char16 *formatted, _In_ int formattedLen)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        UDateFormat *dtf = UNWRAP_C_OBJECT(resource, UDateFormat);
+
+        int required = udat_format(dtf, date, reinterpret_cast<UChar *>(formatted), formattedLen, /* UFieldPosition */ nullptr, &status);
+        if (formatted == nullptr && formattedLen == 0 && status == U_BUFFER_OVERFLOW_ERROR)
+        {
+            // when we are just counting bytes, we can ignore errors
+            AssertOrFailFast(required > 0);
+        }
+        else
+        {
+            ICU_ASSERT(status, required > 0 && required < formattedLen);
+        }
+
+        return required + 1; // return enough space for null character
+    }
+
+    // Formats `date` using the UDateFormat wrapped by `resource`. If `formatted` is non-null, the result is written into `formatted`
+    // Takes an additional parameter, fieldIterator, which is set to a IPlatformAgnosticResource* that should later be given to GetDateTimePartInfo
+    // Returns the number of characters written into `formatted` (includes a null terminator) [should always be positive]
+    int FormatDateTimeToParts(_In_ IPlatformAgnosticResource *resource, _In_ double date, _Out_writes_opt_(formattedLen) char16 *formatted,
+        _In_ int formattedLen, _Out_opt_ IPlatformAgnosticResource **fieldIterator)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        UDateFormat *dtf = UNWRAP_C_OBJECT(resource, UDateFormat);
+
+        UFieldPositionIterator *fpi = nullptr;
+
+        if (fieldIterator)
+        {
+            fpi = ufieldpositer_open(&status);
+            ICU_ASSERT(status, true);
+            IPlatformAgnosticResource *fpiResource = new IcuCObject<UFieldPositionIterator>(fpi, &ufieldpositer_close);
+            AssertOrFailFastMsg(fpiResource, "Out of memory");
+            *fieldIterator = fpiResource;
+        }
+
+        int required = udat_formatForFields(dtf, date, reinterpret_cast<UChar *>(formatted), formattedLen, fpi, &status);
+        if (formatted == nullptr && formattedLen == 0 && status == U_BUFFER_OVERFLOW_ERROR)
+        {
+            // when we are just counting bytes, we can ignore ICU errors
+            AssertOrFailFast(required > 0);
+        }
+        else
+        {
+            ICU_ASSERT(status, required > 0 && required < formattedLen);
+        }
+
+        return required + 1; // return enough space for null character
+    }
+
+    // Given a stateful fieldIterator, sets partStart and partEnd to the start (inclusive) and end (exclusive) of the substring for the part
+    // and sets partKind to be the type of the part (really a UDateFormatField -- see GetDateTimePartKind)
+    bool GetDateTimePartInfo(_In_ IPlatformAgnosticResource *fieldIterator, _Out_ int *partStart, _Out_ int *partEnd, _Out_ int *partKind)
+    {
+        UFieldPositionIterator *fpi = UNWRAP_C_OBJECT(fieldIterator, UFieldPositionIterator);
+
+        *partKind = ufieldpositer_next(fpi, partStart, partEnd);
+        return *partKind > 0;
+    }
+
+    // Given a partKind set by GetDateTimePartInfo, return the corresponding string for the "type" field of the formatToParts return object
+    // NOTE - keep this up to date with the map in Intl.js#getPatternForSkeleton and the UDateFormatField enum
+    // See ECMA-402: #sec-partitiondatetimepattern
+    const char16 *GetDateTimePartKind(_In_ int partKind)
+    {
+        UDateFormatField field = (UDateFormatField) partKind;
+        switch (field)
+        {
+        case UDAT_ERA_FIELD:
+            return _u("era");
+        case UDAT_YEAR_FIELD:
+        case UDAT_EXTENDED_YEAR_FIELD:
+        case UDAT_YEAR_NAME_FIELD:
+            return _u("year");
+        case UDAT_MONTH_FIELD:
+        case UDAT_STANDALONE_MONTH_FIELD:
+            return _u("month");
+        case UDAT_DATE_FIELD:
+            return _u("day");
+        case UDAT_HOUR_OF_DAY1_FIELD:
+        case UDAT_HOUR_OF_DAY0_FIELD:
+        case UDAT_HOUR1_FIELD:
+        case UDAT_HOUR0_FIELD:
+            return _u("hour");
+        case UDAT_MINUTE_FIELD:
+            return _u("minute");
+        case UDAT_SECOND_FIELD:
+            return _u("second");
+        case UDAT_DAY_OF_WEEK_FIELD:
+        case UDAT_STANDALONE_DAY_FIELD:
+        case UDAT_DOW_LOCAL_FIELD:
+            return _u("weekday");
+        case UDAT_AM_PM_FIELD:
+            return _u("dayPeriod");
+        case UDAT_TIMEZONE_FIELD:
+        case UDAT_TIMEZONE_RFC_FIELD:
+        case UDAT_TIMEZONE_GENERIC_FIELD:
+        case UDAT_TIMEZONE_SPECIAL_FIELD:
+        case UDAT_TIMEZONE_LOCALIZED_GMT_OFFSET_FIELD:
+        case UDAT_TIMEZONE_ISO_FIELD:
+            return _u("timeZone");
+        default:
+            return _u("unknown");
+        }
     }
 } // namespace Intl
 } // namespace PlatformAgnostic

@@ -774,6 +774,7 @@ namespace TTD
 
         this->EnqueueRootPathObject(_u("global"), ctx->GetGlobalObject());
         this->EnqueueRootPathObject(_u("null"), ctx->GetLibrary()->GetNull());
+        this->EnqueueRootPathObject(_u("undeclBlockVar"), Js::RecyclableObject::FromVar(ctx->GetLibrary()->GetUndeclBlockVar()));
 
         this->EnqueueRootPathObject(_u("_defaultAccessor"), ctx->GetLibrary()->GetDefaultAccessorFunction());
 
@@ -853,7 +854,14 @@ namespace TTD
             }
 
             //shouldn't have any dynamic array valued properties
-            TTDAssert(!Js::DynamicType::Is(curr->GetTypeId()) || (Js::DynamicObject::FromVar(curr))->GetObjectArray() == nullptr || (Js::DynamicObject::FromVar(curr))->GetObjectArray()->GetLength() == 0, "Shouldn't have any dynamic array valued properties at this point.");
+            if(Js::DynamicType::Is(curr->GetTypeId())) 
+            {
+                Js::ArrayObject* parray = Js::DynamicObject::FromVar(curr)->GetObjectArray();
+                if(parray != nullptr)
+                {
+                    this->EnqueueNewPathVarAsNeeded(curr, parray, _u("_object_array_"));
+                }
+            }
 
             Js::RecyclableObject* proto = curr->GetPrototype();
             bool skipProto = (proto == nullptr) || Js::JavascriptOperators::IsUndefinedOrNullType(proto->GetTypeId());
