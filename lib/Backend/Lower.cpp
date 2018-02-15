@@ -16202,6 +16202,7 @@ Lowerer::GenerateFastElemIIntIndexCommon(
         else
 #endif
         {
+            AnalysisAssert(headSegmentLengthOpnd != nullptr);
             lengthOpnd = IR::RegOpnd::New(headSegmentLengthOpnd->GetType(), m_func);
             IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV_TRUNC, lengthOpnd, headSegmentLengthOpnd, m_func);
             instr->InsertBefore(instrMov);
