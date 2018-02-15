@@ -2182,6 +2182,10 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
         function->GetFunctionBody()->GetDisplayName(), ::GetBailOutKindName(bailOutKind), bailOutRecord->bailOutCount, callsCount,
         GetRejitReasonName(rejitReason), reThunk ? trueString : falseString);
 
+    JS_ETW(EventWriteJSCRIPT_BACKEND_BAILOUT(function->GetFunctionBody()->GetLocalFunctionId(),
+        function->GetFunctionBody()->GetSourceContextId(), function->GetFunctionBody()->GetDisplayName(), bailOutKind, bailOutRecord->bailOutCount, callsCount,
+        GetRejitReasonName(rejitReason), reThunk));
+
 #ifdef REJIT_STATS
     executeFunction->GetScriptContext()->LogBailout(executeFunction, bailOutKind);
     if (bailOutRecord->bailOutCount > 500)
@@ -2539,6 +2543,11 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
     REJIT_KIND_TESTTRACE(bailOutKind, _u("Bailout from loop: function: %s, loopNumber: %d, bailOutKindName: (%S), reJitReason: %S\r\n"),
         function->GetFunctionBody()->GetDisplayName(), executeFunction->GetLoopNumber(loopHeader),
         ::GetBailOutKindName(bailOutKind), GetRejitReasonName(rejitReason));
+
+    JS_ETW(EventWriteJSCRIPT_BACKEND_BAILOUT_FROM_LOOP_BODY(
+        function->GetFunctionBody()->GetLocalFunctionId(), function->GetFunctionBody()->GetSourceContextId(),
+        function->GetFunctionBody()->GetDisplayName(), executeFunction->GetLoopNumber(loopHeader),
+        bailOutKind, GetRejitReasonName(rejitReason)));
 
 #ifdef REJIT_STATS
     executeFunction->GetScriptContext()->LogBailout(executeFunction, bailOutKind);

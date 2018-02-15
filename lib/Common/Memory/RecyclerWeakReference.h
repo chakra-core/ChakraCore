@@ -219,6 +219,11 @@ public:
         }
     }
 
+    uint Count()
+    {
+        return count;
+    }
+
     void Remove(char* key)
     {
         Remove(key, nullptr);
