@@ -16171,7 +16171,11 @@ Lowerer::GenerateFastElemIIntIndexCommon(
     if (shouldPoisonLoad)
     {
         // Use a mask to prevent arbitrary speculative reads
-        if (!headSegmentLengthOpnd)
+        if (!headSegmentLengthOpnd
+#if ENABLE_FAST_ARRAYBUFFER
+            && !baseValueType.IsLikelyOptimizedVirtualTypedArray()
+#endif
+            )
         {
             if (baseValueType.IsLikelyTypedArray())
             {
@@ -16189,30 +16193,42 @@ Lowerer::GenerateFastElemIIntIndexCommon(
         }
         IR::RegOpnd* localMaskOpnd = nullptr;
 #if TARGET_64
-        IR::RegOpnd* headSegmentLengthRegOpnd = IR::RegOpnd::New(headSegmentLengthOpnd->GetType(), m_func);
-        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV_TRUNC, headSegmentLengthRegOpnd, headSegmentLengthOpnd, m_func);
-        instr->InsertBefore(instrMov);
-        LowererMD::Legalize(instrMov);
-
-        if (headSegmentLengthRegOpnd->GetSize() != MachPtr)
+        IR::Opnd* lengthOpnd = nullptr;
+#if ENABLE_FAST_ARRAYBUFFER
+        if (baseValueType.IsLikelyOptimizedVirtualTypedArray())
         {
-            headSegmentLengthRegOpnd = headSegmentLengthRegOpnd->UseWithNewType(TyMachPtr, this->m_func)->AsRegOpnd();
-    }
+            lengthOpnd = IR::IntConstOpnd::New(MAX_ASMJS_ARRAYBUFFER_LENGTH >> indirScale, TyMachReg, m_func);
+        }
+        else
+#endif
+        {
+            AnalysisAssert(headSegmentLengthOpnd != nullptr);
+            lengthOpnd = IR::RegOpnd::New(headSegmentLengthOpnd->GetType(), m_func);
+            IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV_TRUNC, lengthOpnd, headSegmentLengthOpnd, m_func);
+            instr->InsertBefore(instrMov);
+            LowererMD::Legalize(instrMov);
 
-    //  MOV r1, [opnd + offset(type)]
+            if (lengthOpnd->GetSize() != MachPtr)
+            {
+                lengthOpnd = lengthOpnd->UseWithNewType(TyMachPtr, this->m_func)->AsRegOpnd();
+            }
+        }
+
+
+        //  MOV r1, [opnd + offset(type)]
         IR::RegOpnd* indexValueRegOpnd = IR::RegOpnd::New(indexValueOpnd->GetType(), m_func);
 
-        instrMov = IR::Instr::New(Js::OpCode::MOV_TRUNC, indexValueRegOpnd, indexValueOpnd, m_func);
+        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV_TRUNC, indexValueRegOpnd, indexValueOpnd, m_func);
         instr->InsertBefore(instrMov);
         LowererMD::Legalize(instrMov);
 
         if (indexValueRegOpnd->GetSize() != MachPtr)
         {
             indexValueRegOpnd = indexValueRegOpnd->UseWithNewType(TyMachPtr, this->m_func)->AsRegOpnd();
-    }
+        }
 
         localMaskOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
-        InsertSub(false, localMaskOpnd, indexValueRegOpnd, headSegmentLengthRegOpnd, instr);
+        InsertSub(false, localMaskOpnd, indexValueRegOpnd, lengthOpnd, instr);
         InsertShift(Js::OpCode::Shr_A, false, localMaskOpnd, localMaskOpnd, IR::IntConstOpnd::New(63, TyInt8, m_func), instr);
 #else
         localMaskOpnd = IR::RegOpnd::New(TyInt32, m_func);
