@@ -21,6 +21,19 @@ public:                                                   \
         return __##name;                                  \
     }
 
+#define DEFINE_CACHED_STRING_WITH_PROPERTYSTRING(name, str)   \
+private:                                                  \
+    Field(JavascriptString*) __##name;                    \
+public:                                                   \
+    JavascriptString* name() {                            \
+        if (__##name == nullptr)                          \
+        {                                                 \
+            __##name = CreatePropertyStringFromFromCppLiteral(str);   \
+        }                                                 \
+                                                          \
+        return __##name;                                  \
+    }
+
 class StaticType;
 
 class StringCache
@@ -159,26 +172,36 @@ public:
     DEFINE_CACHED_STRING(GetObjectStringDisplayString, _u("[object String]"))
     DEFINE_CACHED_STRING(GetObjectNullDisplayString, _u("[object Null]"))
     DEFINE_CACHED_STRING(GetObjectUndefinedDisplayString, _u("[object Undefined]"))
-    DEFINE_CACHED_STRING(GetUndefinedDisplayString, _u("undefined"))
-    DEFINE_CACHED_STRING(GetNaNDisplayString, _u("NaN"))
-    DEFINE_CACHED_STRING(GetNullDisplayString, _u("null"))
-    DEFINE_CACHED_STRING(GetUnknownDisplayString, _u("unknown"))
-    DEFINE_CACHED_STRING(GetTrueDisplayString, _u("true"))
-    DEFINE_CACHED_STRING(GetFalseDisplayString, _u("false"))
-    DEFINE_CACHED_STRING(GetStringTypeDisplayString, _u("string"))
-    DEFINE_CACHED_STRING(GetObjectTypeDisplayString, _u("object"))
-    DEFINE_CACHED_STRING(GetFunctionTypeDisplayString, _u("function"))
-    DEFINE_CACHED_STRING(GetBooleanTypeDisplayString, _u("boolean"))
-    DEFINE_CACHED_STRING(GetNumberTypeDisplayString, _u("number"))
-    DEFINE_CACHED_STRING(GetModuleTypeDisplayString, _u("Module"))
-    DEFINE_CACHED_STRING(GetVariantDateTypeDisplayString, _u("date"))
-    DEFINE_CACHED_STRING(GetSymbolTypeDisplayString, _u("symbol"))
+    DEFINE_CACHED_STRING_WITH_PROPERTYSTRING(GetUndefinedDisplayString, _u("undefined"))
+    DEFINE_CACHED_STRING_WITH_PROPERTYSTRING(GetNaNDisplayString, _u("NaN"))
+    DEFINE_CACHED_STRING_WITH_PROPERTYSTRING(GetNullDisplayString, _u("null"))
+    DEFINE_CACHED_STRING_WITH_PROPERTYSTRING(GetUnknownDisplayString, _u("unknown"))
+    DEFINE_CACHED_STRING_WITH_PROPERTYSTRING(GetTrueDisplayString, _u("true"))
+    DEFINE_CACHED_STRING_WITH_PROPERTYSTRING(GetFalseDisplayString, _u("false"))
+    DEFINE_CACHED_STRING_WITH_PROPERTYSTRING(GetStringTypeDisplayString, _u("string"))
+    DEFINE_CACHED_STRING_WITH_PROPERTYSTRING(GetObjectTypeDisplayString, _u("object"))
+    DEFINE_CACHED_STRING_WITH_PROPERTYSTRING(GetFunctionTypeDisplayString, _u("function"))
+    DEFINE_CACHED_STRING_WITH_PROPERTYSTRING(GetBooleanTypeDisplayString, _u("boolean"))
+    DEFINE_CACHED_STRING_WITH_PROPERTYSTRING(GetNumberTypeDisplayString, _u("number"))
+    DEFINE_CACHED_STRING_WITH_PROPERTYSTRING(GetModuleTypeDisplayString, _u("Module"))
+    DEFINE_CACHED_STRING_WITH_PROPERTYSTRING(GetVariantDateTypeDisplayString, _u("date"))
+    DEFINE_CACHED_STRING_WITH_PROPERTYSTRING(GetSymbolTypeDisplayString, _u("symbol"))
 
 private:
   template< size_t N > JavascriptString* CreateStringFromCppLiteral(const char16(&value)[N]) const
   {
       return LiteralString::New(stringTypeStatic, value, N - 1 /*don't include terminating NUL*/, scriptContext->GetRecycler());
   }
+
+  template< size_t N > JavascriptString* CreatePropertyStringFromFromCppLiteral(const char16(&value)[N]) const
+  {
+      const PropertyRecord* propertyRecord = nullptr;
+      scriptContext->FindPropertyRecord(value, N - 1, &propertyRecord);
+      AssertMsg(propertyRecord != nullptr, "Trying to create a propertystring for non property string?");
+      Assert(IsBuiltInPropertyId(propertyRecord->GetPropertyId()));
+      return scriptContext->GetPropertyString(propertyRecord->GetPropertyId());
+  }
+
 };
 
 #undef SCACHE_INIT_DEFAULT
