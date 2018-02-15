@@ -2446,6 +2446,10 @@ namespace Js
         }
         scriptContext->SetBuiltInLibraryFunction(JavascriptPromise::EntryInfo::Catch.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(promisePrototype, PropertyIds::catch_, &JavascriptPromise::EntryInfo::Catch, 1));
+
+        scriptContext->SetBuiltInLibraryFunction(JavascriptPromise::EntryInfo::Finally.GetOriginalEntryPoint(),
+            library->AddFunctionToLibraryObject(promisePrototype, PropertyIds::finally, &JavascriptPromise::EntryInfo::Finally, 1));
+
         library->AddMember(promisePrototype, PropertyIds::then, library->EnsurePromiseThenFunction(), PropertyBuiltInMethodDefaults);
         scriptContext->SetBuiltInLibraryFunction(JavascriptPromise::EntryInfo::Then.GetOriginalEntryPoint(), library->EnsurePromiseThenFunction());
 
@@ -6954,6 +6958,29 @@ namespace Js
         function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
 
         return function;
+    }
+
+    JavascriptPromiseThenFinallyFunction* JavascriptLibrary::CreatePromiseThenFinallyFunction(JavascriptMethod entryPoint, RecyclableObject* OnFinally, RecyclableObject* Constructor, bool shouldThrow)
+    {
+        Assert(scriptContext->GetConfig()->IsES6PromiseEnabled());
+        
+        FunctionInfo* functionInfo = RecyclerNew(this->GetRecycler(), FunctionInfo, entryPoint);
+        DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());
+
+        JavascriptPromiseThenFinallyFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseThenFinallyFunction, type, functionInfo, OnFinally, Constructor, shouldThrow);
+        function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
+        
+        return function;
+    }
+
+    JavascriptPromiseThunkFinallyFunction* JavascriptLibrary::CreatePromiseThunkFinallyFunction(JavascriptMethod entryPoint, Var value, bool shouldThrow)
+    {
+        Assert(scriptContext->GetConfig()->IsES6PromiseEnabled());
+        
+        FunctionInfo* functionInfo = RecyclerNew(this->GetRecycler(), FunctionInfo, entryPoint);
+        DynamicType* type = CreateDeferredPrototypeFunctionType(entryPoint);
+
+        return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseThunkFinallyFunction, type, functionInfo, value, shouldThrow);
     }
 
     JavascriptExternalFunction* JavascriptLibrary::CreateWrappedExternalFunction(JavascriptExternalFunction* wrappedFunction)

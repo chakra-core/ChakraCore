@@ -1092,6 +1092,82 @@ var tests = [
             );
         }
     },
+    {
+        name: "Promise.prototype.finally - called for resolved promise",
+        body: function (index) {
+            var p = Promise.resolve("failure");
+            p.finally((arg) => { if(arg == "failure") { echo(`Test #${index} - Failed finally handler called with incorrect parameter = '${arg}'`); }
+                                        else {echo(`Test #${index} - Success finally handler called for resolved promise without value`); } } );
+        }
+    },
+    {
+        name: "Promise.prototype.finally - called for rejected promise",
+        body: function (index) {
+            var p = Promise.reject("failure");
+            p.finally((arg) => { if(arg == "failure") { echo(`Test #${index} - Failed finally handler called with incorrect parameter = '${arg}'`); }
+                                        else { echo(`Test #${index} - Success finally handler called for rejected promise without value`); } } );
+        }
+    },
+    {
+        name: "Promise.prototype.finally passes through result for Reject",
+        body: function (index) {
+            var p = Promise.reject("Result");
+            var final = p.finally((arg) => { return "failure" } );
+            final.then((e) => { echo(`Test #${index} - Failed - wrong status passed through finally`); },
+                        (e) => { if(e == "Result") { echo(`Test #${index} - Success - Rejected status and value passed through finally`); }
+                                    else { echo(`Test #${index} - Failed - wrong value passed through finally`); }});
+        }
+    },
+    {
+        name: "Promise.prototype.finally passes through result for Resolve",
+        body: function (index) {
+            var p = Promise.resolve("Result");
+            var final = p.finally((arg) => { return "failure" } );
+            final.then((e) => { if(e == "Result") { echo(`Test #${index} - Success - Resolved status and value passed through finally`); }
+                                    else { echo(`Test #${index} - Failed - wrong value passed through finally`); }},
+                                    (e) => { echo(`Test #${index} - Failed - wrong status passed through finally`); });
+        }
+    },
+    {
+        name: "Promise.prototype.finally passes through result for Reject with not callable argument",
+        body: function (index) {
+            var p = Promise.reject("Result");
+            var final = p.finally("not callable");
+            final.then((e) => { echo(`Test #${index} - Failed - wrong status passed through finally`); },
+                        (e) => { if(e == "Result") { echo(`Test #${index} - Success - Rejected status and value passed through finally with not callable argument`); }
+                                    else { echo(`Test #${index} - Failed - wrong value passed through finally`); }});
+        }
+    },
+    {
+        name: "Promise.prototype.finally passes through result for Resolve with not callable argument",
+        body: function (index) {
+            var p = Promise.resolve("Result");
+            var final = p.finally("not callable");
+            final.then((e) => { if(e == "Result") { echo(`Test #${index} - Success - Resolved status and value passed through finally with not callable argument`); }
+                                    else { echo(`Test #${index} - Failed - wrong value passed through finally`); }},
+                                    (e) => { echo(`Test #${index} - Failed - wrong status passed through finally`); });
+        }
+    },
+    {
+        name: "Promise.prototype.finally throws own rejection after a resolved promise",
+        body: function (index) {
+            var p = Promise.resolve("Result");
+            var final = p.finally(()=>{throw "own rejection";});
+            final.then((e) => { (e) => echo(`Test #${index} - Failed - wrong status passed through finally`); },
+                        (e) => { if(e == "own rejection") { echo(`Test #${index} - Success - own rejection passed through finally`); }
+                            else {echo(`Test #${index} - Failed - wrong result ${e} passed through finally`); } } );
+        }
+    },
+    {
+        name: "Promise.prototype.finally throws own rejection after a rejected promise",
+        body: function (index) {
+            var p = Promise.reject("Result");
+            var final = p.finally(()=>{throw "own rejection";});
+            final.then((e) => { (e) => echo(`Test #${index} - Failed - wrong status passed through finally`); },
+                        (e) => { if(e == "own rejection") { echo(`Test #${index} - Success - own rejection passed through finally`); }
+                            else {echo(`Test #${index} - Failed - wrong result ${e} passed through finally`); } } );
+        }
+    }
 ];
 
 var index = 1;
@@ -1110,4 +1186,4 @@ function runTest(test) {
 
 tests.forEach(runTest);
     
-echo('\r\nCompletion Results:');
+echo('\nCompletion Results:');

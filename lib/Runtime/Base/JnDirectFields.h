@@ -203,6 +203,7 @@ ENTRY2(false_, _u("false")) // "false" cannot be an identifier in C++ so using "
 ENTRY(flags)
 ENTRY(fill)
 ENTRY(filter)
+ENTRY(finally)
 ENTRY(find)
 ENTRY(findIndex)
 ENTRY(fixed)

@@ -232,6 +232,85 @@ namespace Js
 #endif
     };
 
+    class JavascriptPromiseThenFinallyFunction : public RuntimeFunction
+    {
+    protected:
+        DEFINE_VTABLE_CTOR(JavascriptPromiseThenFinallyFunction, RuntimeFunction);
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptPromiseThenFinallyFunction);
+
+    public:
+        JavascriptPromiseThenFinallyFunction(DynamicType* type, FunctionInfo* functionInfo, RecyclableObject* OnFinally, RecyclableObject* Constructor, bool shouldThrow)
+            : RuntimeFunction(type, functionInfo), OnFinally(OnFinally), Constructor(Constructor), shouldThrow(shouldThrow)
+        { }
+
+        inline static bool Is(Var var)
+        {
+            if (JavascriptFunction::Is(var))
+            {
+                JavascriptFunction* obj = JavascriptFunction::UnsafeFromVar(var);
+
+                return VirtualTableInfo<JavascriptPromiseThenFinallyFunction>::HasVirtualTable(obj)
+                    || VirtualTableInfo<CrossSiteObject<JavascriptPromiseThenFinallyFunction>>::HasVirtualTable(obj);
+            }
+
+            return false;
+        }
+
+        inline static JavascriptPromiseThenFinallyFunction* FromVar(Var var)
+        {
+            AssertOrFailFast(JavascriptPromiseThenFinallyFunction::Is(var));
+
+            return static_cast<JavascriptPromiseThenFinallyFunction*>(var);
+        }
+
+        inline bool GetShouldThrow() { return this->shouldThrow; }
+        inline RecyclableObject* GetOnFinally() { return this->OnFinally; }
+        inline RecyclableObject* GetConstructor() { return this->Constructor; }
+
+    private:
+        Field(RecyclableObject*) OnFinally;
+        Field(RecyclableObject*) Constructor;
+        Field(bool) shouldThrow;
+    };
+
+    class JavascriptPromiseThunkFinallyFunction : public RuntimeFunction
+    {
+    protected:
+        DEFINE_VTABLE_CTOR(JavascriptPromiseThunkFinallyFunction, RuntimeFunction);
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptPromiseThunkFinallyFunction);
+
+    public:
+        JavascriptPromiseThunkFinallyFunction(DynamicType* type, FunctionInfo* functionInfo, Var value, bool shouldThrow)
+            : RuntimeFunction(type, functionInfo), value(value), shouldThrow(shouldThrow)
+        { }
+
+        inline static bool Is(Var var)
+        {
+            if (JavascriptFunction::Is(var))
+            {
+                JavascriptFunction* obj = JavascriptFunction::UnsafeFromVar(var);
+
+                return VirtualTableInfo<JavascriptPromiseThunkFinallyFunction>::HasVirtualTable(obj)
+                    || VirtualTableInfo<CrossSiteObject<JavascriptPromiseThunkFinallyFunction>>::HasVirtualTable(obj);
+            }
+            return false;
+        }
+
+        inline static JavascriptPromiseThunkFinallyFunction* FromVar(Var var)
+        {
+            AssertOrFailFast(JavascriptPromiseThunkFinallyFunction::Is(var));
+
+            return static_cast<JavascriptPromiseThunkFinallyFunction*>(var);
+        }
+
+        inline bool GetShouldThrow() { return this->shouldThrow; }
+        inline Var GetValue() { return this->value; }
+
+    private:
+        Field(Var) value;
+        Field(bool) shouldThrow;
+    };
+
     struct JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper
     {
         Field(uint32) remainingElements;
@@ -388,10 +467,13 @@ namespace Js
             static FunctionInfo Reject;
             static FunctionInfo Resolve;
             static FunctionInfo Then;
+            static FunctionInfo Finally;
 
             static FunctionInfo Identity;
             static FunctionInfo Thrower;
 
+            static FunctionInfo FinallyValueFunction;
+            static FunctionInfo ThenFinallyFunction;
             static FunctionInfo ResolveOrRejectFunction;
             static FunctionInfo CapabilitiesExecutorFunction;
             static FunctionInfo AllResolveElementFunction;
@@ -409,7 +491,10 @@ namespace Js
         static Var EntryReject(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryResolve(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryThen(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryFinally(RecyclableObject* function, CallInfo callInfo, ...);
 
+        static Var EntryThunkFinallyFunction(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryThenFinallyFunction(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryCapabilitiesExecutorFunction(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryResolveOrRejectFunction(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryReactionTaskFunction(RecyclableObject* function, CallInfo callInfo, ...);

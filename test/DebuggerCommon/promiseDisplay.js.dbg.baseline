@@ -7,7 +7,8 @@
           "constructor": "function <large string>",
           "Symbol.toStringTag": "string Promise",
           "catch": "function <large string>",
-          "then": "function <large string>"
+          "then": "function <large string>",
+          "finally": "function <large string>"
         },
         "someOtherProp": "string before",
         "[Promise]": {
@@ -25,7 +26,8 @@
           "constructor": "function <large string>",
           "Symbol.toStringTag": "string Promise",
           "catch": "function <large string>",
-          "then": "function <large string>"
+          "then": "function <large string>",
+          "finally": "function <large string>"
         },
         "someOtherProp": "string in fullfil",
         "[Promise]": {
@@ -43,7 +45,8 @@
           "constructor": "function <large string>",
           "Symbol.toStringTag": "string Promise",
           "catch": "function <large string>",
-          "then": "function <large string>"
+          "then": "function <large string>",
+          "finally": "function <large string>"
         },
         "someOtherProp": "string in then",
         "[Promise]": {
@@ -61,7 +64,8 @@
           "constructor": "function <large string>",
           "Symbol.toStringTag": "string Promise",
           "catch": "function <large string>",
-          "then": "function <large string>"
+          "then": "function <large string>",
+          "finally": "function <large string>"
         },
         "[Promise]": {
           "[status]": "string resolved",
@@ -78,7 +82,8 @@
           "constructor": "function <large string>",
           "Symbol.toStringTag": "string Promise",
           "catch": "function <large string>",
-          "then": "function <large string>"
+          "then": "function <large string>",
+          "finally": "function <large string>"
         },
         "[Promise]": {
           "[status]": "string rejected",
@@ -95,7 +100,8 @@
           "constructor": "function <large string>",
           "Symbol.toStringTag": "string Promise",
           "catch": "function <large string>",
-          "then": "function <large string>"
+          "then": "function <large string>",
+          "finally": "function <large string>"
         },
         "someOtherProp": "string in then",
         "[Promise]": {
@@ -113,7 +119,8 @@
           "constructor": "function <large string>",
           "Symbol.toStringTag": "string Promise",
           "catch": "function <large string>",
-          "then": "function <large string>"
+          "then": "function <large string>",
+          "finally": "function <large string>"
         },
         "[Promise]": {
           "[status]": "string resolved",
@@ -130,7 +137,8 @@
           "constructor": "function <large string>",
           "Symbol.toStringTag": "string Promise",
           "catch": "function <large string>",
-          "then": "function <large string>"
+          "then": "function <large string>",
+          "finally": "function <large string>"
         },
         "[Promise]": {
           "[status]": "string rejected",
