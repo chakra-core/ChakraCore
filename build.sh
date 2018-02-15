@@ -100,7 +100,7 @@ MULTICORE_BUILD=""
 NO_JIT=
 CMAKE_ICU="-DICU_SETTINGS_RESET=1"
 CMAKE_INTL="-DINTL_ICU_SH=1" # default to enabling intl
-USE_LOCAL_ICU=1 # default to using $CHAKRACORE_DIR/deps/Chakra.ICU/icu
+USE_LOCAL_ICU=0 # default to using system version of ICU
 STATIC_LIBRARY="-DSHARED_LIBRARY_SH=1"
 SANITIZE=
 WITHOUT_FEATURES=""
@@ -203,6 +203,20 @@ while [[ $# -gt 0 ]]; do
         ;;
 
     --custom-icu=*)
+        ICU_PATH=$1
+        # `eval` used to resolve tilde in the path
+        eval ICU_PATH="${ICU_PATH:13}"
+        if [[ ! -d $ICU_PATH || ! -d $ICU_PATH/unicode ]]; then
+            # if --custom-icu is given, do not fallback to no-icu
+            echo "!!! couldn't find ICU at $ICU_PATH"
+            exit 1
+        fi
+        CMAKE_ICU="-DICU_INCLUDE_PATH_SH=$ICU_PATH"
+        USE_LOCAL_ICU=0
+        ;;
+
+    # allow legacy --icu flag for compatability
+    --icu=*)
         ICU_PATH=$1
         # `eval` used to resolve tilde in the path
         eval ICU_PATH="${ICU_PATH:13}"
@@ -371,6 +385,12 @@ if [[ $USE_LOCAL_ICU == 1 ]]; then
     LOCAL_ICU_DIR="$CHAKRACORE_DIR/deps/Chakra.ICU/icu"
     if [[ ! -d $LOCAL_ICU_DIR ]]; then
         python "$CHAKRACORE_DIR/tools/configure_icu.py" 57.1 $ALWAYS_YES
+    fi
+
+    # if there is still no directory, then the user declined the license agreement
+    if [[ ! -d $LOCAL_ICU_DIR ]]; then
+        echo "You must accept the ICU license agreement in order to use this configuration"
+        exit 1
     fi
 
     LOCAL_ICU_DIST="$LOCAL_ICU_DIR/output"

@@ -32,6 +32,10 @@
   <ItemGroup Condition="'$(ChakraICU)'!='false'">
     <ClCompile Include="$(IcuCommonSources)" />
     <ClInclude Include="$(IcuCommonHeaders)" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)Chakra.ICU.Stubdata.vcxproj">
+      <Project>{E14F373D-05A0-4259-A5E9-AFE8405FB847}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -52,7 +52,7 @@
         Rpcrt4.lib;
         $(ChakraCommonLinkDependencies)
       </AdditionalDependencies>
-      <AdditionalDependencies Condition="'$(UseICU)'=='true' AND '$(ChakraICU)'!='false'">
+      <AdditionalDependencies Condition="'$(UseICU)'=='true' AND '$(ChakraICU)'=='false'">
         $(IcuLibraryDependencies)
         %(AdditionalDependencies)
       </AdditionalDependencies>
