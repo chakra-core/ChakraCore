@@ -3192,6 +3192,13 @@ namespace Js
         // Disable QC while functions are re-parsed as this can be time consuming
         AutoDisableInterrupt autoDisableInterrupt(this->threadContext, false /* explicitCompletion */);
 
+#if ENABLE_NATIVE_CODEGEN
+#if PDATA_ENABLED && defined(_WIN32)
+        // RundownSourcesAndReparse can cause code generation immediately, clear the leftovers if background thread didn't finish the work
+        DelayDeletingFunctionTable::Clear();
+#endif
+#endif
+
         hr = this->GetDebugContext()->RundownSourcesAndReparse(shouldPerformSourceRundown, /*shouldReparseFunctions*/ true);
 
         if (this->IsClosed())
@@ -3317,6 +3324,13 @@ namespace Js
 
         // Disable QC while functions are re-parsed as this can be time consuming
         AutoDisableInterrupt autoDisableInterrupt(this->threadContext, false /* explicitCompletion */);
+
+#if ENABLE_NATIVE_CODEGEN
+#if PDATA_ENABLED && defined(_WIN32)
+        // RundownSourcesAndReparse can cause code generation immediately, clear the leftovers if background thread didn't finish the work
+        DelayDeletingFunctionTable::Clear();
+#endif
+#endif
 
         // Force a reparse so that indirect function caches are updated.
         hr = this->GetDebugContext()->RundownSourcesAndReparse(/*shouldPerformSourceRundown*/ false, /*shouldReparseFunctions*/ true);
