@@ -440,7 +440,8 @@ namespace Js
             if (this->serializedRpcData != nullptr)
             {
                 // We may have multiple codegens happen for same entrypoint
-                HeapDeleteArray(this->serializedRpcDataSize, this->serializedRpcData);
+                const unsigned char* rpcData = this->serializedRpcData;
+                HeapDeleteArray(this->serializedRpcDataSize, rpcData);
             }
             serializedRpcData = data;
             serializedRpcDataSize = size;
