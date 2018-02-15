@@ -219,7 +219,7 @@ while [[ $# -gt 0 ]]; do
     --icu=*)
         ICU_PATH=$1
         # `eval` used to resolve tilde in the path
-        eval ICU_PATH="${ICU_PATH:13}"
+        eval ICU_PATH="${ICU_PATH:6}"
         if [[ ! -d $ICU_PATH || ! -d $ICU_PATH/unicode ]]; then
             # if --custom-icu is given, do not fallback to no-icu
             echo "!!! couldn't find ICU at $ICU_PATH"
