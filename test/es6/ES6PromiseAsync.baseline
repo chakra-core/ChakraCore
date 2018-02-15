@@ -53,7 +53,15 @@ Executing test #50 - Promise executor resolves/rejects with the first call to ei
 Executing test #51 - Promise executor rejects/resolves with the first call to either function
 Executing test #52 - Promise executor rejects/resolves/rejects with the first call to either function
 Executing test #53 - Promise executor resolves/rejects/resolves with the first call to either function
-
+Executing test #54 - Promise.prototype.finally - called for resolved promise
+Executing test #55 - Promise.prototype.finally - called for rejected promise
+Executing test #56 - Promise.prototype.finally passes through result for Reject
+Executing test #57 - Promise.prototype.finally passes through result for Resolve
+Executing test #58 - Promise.prototype.finally passes through result for Reject with not callable argument
+Executing test #59 - Promise.prototype.finally passes through result for Resolve with not callable argument
+Executing test #60 - Promise.prototype.finally throws own rejection after a resolved promise
+Executing test #61 - Promise.prototype.finally throws own rejection after a rejected promise
+
 Completion Results:
 Test #1 - Success handler called with result = basic:success
 Test #2 - Error handler called with err = basic:error
@@ -95,6 +103,8 @@ Test #50 - Success handler #1 called with res = 'success'
 Test #51 - Error handler #1 called with err = 'success'
 Test #52 - Error handler #1 called with err = 'success'
 Test #53 - Success handler #1 called with res = 'success'
+Test #54 - Success finally handler called for resolved promise without value
+Test #55 - Success finally handler called for rejected promise without value
 Test #6 - Error handler #2 called with err = thenable.get:error!
 Test #8 - Error handler #2 called with err = success.throw:error
 Test #9 - Error handler #2 called with err = error.throw:error
@@ -121,6 +131,10 @@ Test #39 - Success handler #1 called with result = success value 1,42,TypeError:
 Test #40 - Promise.resolve call nested within thenable.then = nested Promise.resolve call
 Test #46 - Success handler #1b called with result = '3' (isArray = false) (fulfillCalled = false)
 Test #47 - Error handler #1 called with err = 2
+Test #58 - Success - Rejected status and value passed through finally with not callable argument
+Test #59 - Success - Resolved status and value passed through finally with not callable argument
+Test #60 - Success - own rejection passed through finally
+Test #61 - Success - own rejection passed through finally
 Test #7 - Error handler #2 called with err = thenable.call:error!
 Test #13 - Catch handler #2 called with err = error2
 Test #15 - Catch handler #1 called with err = failure
@@ -132,4 +146,6 @@ Test #42 - Catch handler #1 called with err = expected1
 Test #42 - Catch handler #2 called with err = expected2
 Test #42 - Catch handler #3 called with err = expected3
 Test #4 - Success handler #2 called with result = chain:success2
+Test #56 - Success - Rejected status and value passed through finally
+Test #57 - Success - Resolved status and value passed through finally
 Test #46 - Success handler #2 called with result = '0,,4' (length = 3) (isArray = true) (fulfillCalled = true)

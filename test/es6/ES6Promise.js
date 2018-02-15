@@ -74,6 +74,7 @@ var tests = [
             assert.isTrue(descriptor.configurable, "Promise.prototype.catch.configurable === true");
             assert.areEqual('function', typeof descriptor.value, "typeof Promise.prototype.catch === 'function'");
             assert.areEqual(1, Promise.prototype.catch.length, "Promise.prototype.catch.length === 1");
+            assert.areEqual("catch", Promise.prototype.catch.name, "Promise.prototype.catch.name === 'catch'");
 
             var descriptor = Object.getOwnPropertyDescriptor(Promise.prototype, 'then');
             assert.isTrue(descriptor.writable, "Promise.prototype.then.writable === true");
@@ -81,6 +82,15 @@ var tests = [
             assert.isTrue(descriptor.configurable, "Promise.prototype.then.configurable === true");
             assert.areEqual('function', typeof descriptor.value, "typeof Promise.prototype.then === 'function'");
             assert.areEqual(2, Promise.prototype.then.length, "Promise.prototype.then.length === 2");
+            assert.areEqual("then", Promise.prototype.then.name, "Promise.prototype.then.name === 'then'");
+
+            var descriptor = Object.getOwnPropertyDescriptor(Promise.prototype, 'finally');
+            assert.isTrue(descriptor.writable, "Promise.prototype.finally.writable === true");
+            assert.isFalse(descriptor.enumerable, "Promise.prototype.finally.enumerable === false");
+            assert.isTrue(descriptor.configurable, "Promise.prototype.finally.configurable === true");
+            assert.areEqual('function', typeof descriptor.value, "typeof Promise.prototype.finally === 'function'");
+            assert.areEqual(1, Promise.prototype.finally.length, "Promise.prototype.finally.length === 1");
+            assert.areEqual("finally", Promise.prototype.finally.name, "Promise.prototype.finally.name === 'finally'");
 
             var descriptor = Object.getOwnPropertyDescriptor(Promise.prototype, Symbol.toStringTag);
             assert.isFalse(descriptor.writable, "Promise.prototype[@@toStringTag].writable === false");
@@ -136,6 +146,22 @@ var tests = [
 
             assert.throws(function() { Promise.prototype.catch.call({ get then() { throw new TypeError('error!'); } }); }, TypeError, "Promise.prototype.catch throws if the then property of the this argument throws", "error!");
             assert.throws(function() { Promise.prototype.catch.call({ then: function() { throw new TypeError('error!'); } }); }, TypeError, "Promise.prototype.catch throws if the then property of the this argument throws", "error!");
+        }
+    },
+    {
+        name: "Promise.prototype.finally throwing behavior",
+        body: function () {
+            assert.throws(function() { Promise.prototype.finally.call(); }, TypeError, "Promise.prototype.finally throws when called with no this parameter", "Promise.prototype.finally: 'this' is not an Object");
+            assert.throws(function() { Promise.prototype.finally.call(undefined); }, TypeError, "Promise.prototype.finally throws when called with undefined this parameter", "Promise.prototype.finally: 'this' is not an Object");
+            assert.throws(function() { Promise.prototype.finally.call(null); }, TypeError, "Promise.prototype.finally throws when called with null this parameter", "Promise.prototype.finally: 'this' is not an Object");
+
+            assert.throws(function() { Promise.prototype.finally.call({}); }, TypeError, "Promise.prototype.finally throws when called with a this parameter which doesn't have a then property", "Promise.prototype.finally: argument is not a Function object");
+            assert.throws(function() { Promise.prototype.finally.call({ then: undefined }); }, TypeError, "Promise.prototype.finally throws when called with a this parameter which has a then property with undefined value", "Promise.prototype.finally: argument is not a Function object");
+            assert.throws(function() { Promise.prototype.finally.call({ then: null }); }, TypeError, "Promise.prototype.finally throws when called with a this parameter which has a then property with null value", "Promise.prototype.finally: argument is not a Function object");
+            assert.throws(function() { Promise.prototype.finally.call({ then: {} }); }, TypeError, "Promise.prototype.finally throws when called with a this parameter which has a then property with non-function value", "Promise.prototype.finally: argument is not a Function object");
+
+            assert.throws(function() { Promise.prototype.finally.call({ get then() { throw new TypeError('error!'); } }); }, TypeError, "Promise.prototype.finally throws if the then property of the this argument throws", "error!");
+            assert.throws(function() { Promise.prototype.finally.call({ then: function() { throw new TypeError('error!'); } }); }, TypeError, "Promise.prototype.finally throws if the then property of the this argument throws", "error!");
         }
     },
     {
@@ -379,6 +405,81 @@ var tests = [
         }
     },
     {
+        name: "Promise.prototype.finally uses modified then",
+        body: function (index) {
+            var calledThen = false;
+            var p = new Promise(function() {});
+            p.then = function() { calledThen = true; }
+            p.finally("test");
+            assert.isTrue(calledThen, "Promise.prototype.finally uses the modified then function");
+        }
+    },
+    {
+        name: "Promise.prototype.finally creates anonymous ThenFinally function",
+        body: function (index) {
+            class TestPromise extends Promise {
+                then (a, b)
+                {
+                    this.first = a;
+                    this.second = b;
+                    this.argCount = arguments.length;
+                }
+            }
+            var p = new TestPromise(function() {});
+            p.finally(function() {});
+            assert.areEqual(p.first.name, "", "Promise.prototype.finally creates anonymous resolve handler");
+            assert.areEqual(p.first.length, 1, "Promise.prototype.finally creates resolve handler with length 1");
+            assert.areEqual(p.second.name, "", "Promise.prototype.finally creates anonymous reject handler");
+            assert.areEqual(p.second.length, 1, "Promise.prototype.finally creates reject handler with length 1");
+            assert.areEqual(p.argCount, 2, "Promise.prototype.finally invokes then with exactly 2 arguments");
+        }
+    },
+    {
+        name: "Promise.prototype.finally with non-callable argument",
+        body: function (index) {
+            class TestPromise extends Promise {
+                then (a, b)
+                {
+                    this.first = a;
+                    this.second = b;
+                    this.argCount = arguments.length;
+                }
+            }
+            let p = new TestPromise(r => r());
+            p.finally("not callable");
+            assert.areEqual(p.first, "not callable", "Promise.prototype.finally passes through value when not callable");
+            assert.areEqual(p.second, "not callable", "Promise.prototype.finally passes through value when not callable");
+        }
+    },
+    {
+        name: "Promise.prototype.finally called with non-promise this value throws",
+        body: function (index) {
+            let final = Promise.prototype.finally;
+            assert.throws(()=>{final.call(new Number(5), "test")}, TypeError, "finally throws when called with non-promise object");
+            assert.throws(()=>{final.call(new Array(5), "test")}, TypeError, "finally throws when called with non-promise object");
+            assert.throws(()=>{final.call(new Object(5), "test")}, TypeError, "finally throws when called with non-promise object");
+            assert.throws(()=>{final.call(5, "test")}, TypeError, "finally throws when called with non-promise object");
+            assert.throws(()=>{final.call({a:5, b:6, c:7}, "test")}, TypeError, "finally throws when called with non-promise object");
+            assert.throws(()=>{final.call([2,3,4], "test")}, TypeError, "finally throws when called with non-promise object");
+            assert.throws(()=>{final.call("test", "test")}, TypeError, "finally throws when called with non-promise object");
+            assert.throws(()=>{final.call(new String("test"), "test")}, TypeError, "finally throws when called with non-promise object");
+        }
+    },
+    {
+        name: "Anonymous thenFinally function doesn't throw",
+        body: function (index) {
+            let count = 0;
+            class TestPromise extends Promise {
+                then (a, b) {
+                    ++count;
+                    assert.doesNotThrow(()=>a(), "anonymous then finally function does not throw");
+                    if(count == 1) assert.doesNotThrow(()=>b(), "anonymous catchFinally function does not throw");
+                }
+            }
+            new TestPromise(function() {}).finally(()=>{});
+        }
+    },
+    {
         name: "Subclass of Promise should return instances of the subclass from Promise methods",
         body: function () {
             class MyPromise extends Promise { }
@@ -386,9 +487,11 @@ var tests = [
             var myPromise = new MyPromise(function(resolve, reject) { resolve(42); });
             var thenPromise = myPromise.then(function() {});
             var catchPromise = myPromise.catch(function() {});
+            var finallyPromise = myPromise.finally(function () {});
             
             assert.isTrue(thenPromise instanceof MyPromise, "Subclass of Promise is returned from Promise.prototype.then called with subclass of Promise object as this");
             assert.isTrue(catchPromise instanceof MyPromise, "Subclass of Promise is returned from Promise.prototype.catch called with subclass of Promise object as this");
+            assert.isTrue(finallyPromise instanceof MyPromise, "Subclass of Promise is returned from Promise.prototype.finally called with subclass of Promise object as this");
             assert.isTrue(MyPromise.race([]) instanceof MyPromise, "Subclass of Promise inherits Promise.race which uses 'this' argument as constructor for return object");
             assert.isTrue(MyPromise.all([]) instanceof MyPromise, "Subclass of Promise inherits Promise.all which uses 'this' argument as constructor for return object");
             assert.isTrue(MyPromise.resolve(42) instanceof MyPromise, "Subclass of Promise inherits Promise.resolve which uses 'this' argument as constructor for return object");

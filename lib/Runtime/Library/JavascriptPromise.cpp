@@ -560,6 +560,159 @@ namespace Js
         return CreateThenPromise(promise, fulfillmentHandler, rejectionHandler, scriptContext);
     }
 
+    // Promise.prototype.finally as described in the draft ES 2018 #sec-promise.prototype.finally
+    Var JavascriptPromise::EntryFinally(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Promise.prototype.finally"));
+        // 1. Let promise be the this value
+        // 2. If Type(promise) is not Object, throw a TypeError exception
+        if (args.Info.Count < 1 || !JavascriptOperators::IsObject(args[0]))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, _u("Promise.prototype.finally"));
+        }
+
+        JavascriptLibrary* library = scriptContext->GetLibrary();
+        RecyclableObject* promise = RecyclableObject::UnsafeFromVar(args[0]);
+        // 3. Let C be ? SpeciesConstructor(promise, %Promise%).
+        RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(promise, scriptContext->GetLibrary()->GetPromiseConstructor(), scriptContext);
+        // 4. Assert IsConstructor(C)
+        Assert(JavascriptOperators::IsConstructor(constructor));
+
+        // 5. If IsCallable(onFinally) is false
+        //   a. Let thenFinally be onFinally
+        //   b. Let catchFinally be onFinally 
+        // 6. Else,
+        //   a. Let thenFinally be a new built-in function object as defined in ThenFinally Function.
+        //   b. Let catchFinally be a new built-in function object as defined in CatchFinally Function.
+        //   c. Set thenFinally and catchFinally's [[Constructor]] internal slots to C.
+        //   d. Set thenFinally and catchFinally's [[OnFinally]] internal slots to onFinally.
+
+        Var thenFinally = nullptr;
+        Var catchFinally = nullptr;
+
+        if (args.Info.Count > 1)
+        {
+            if (JavascriptConversion::IsCallable(args[1]))
+            {
+                //note to avoid duplicating code the ThenFinallyFunction works as both thenFinally and catchFinally using a flag
+                thenFinally = library->CreatePromiseThenFinallyFunction(EntryThenFinallyFunction, RecyclableObject::FromVar(args[1]), constructor, false);
+                catchFinally = library->CreatePromiseThenFinallyFunction(EntryThenFinallyFunction, RecyclableObject::FromVar(args[1]), constructor, true);
+            }
+            else
+            {
+                thenFinally = args[1];
+                catchFinally = args[1];
+            }
+        }
+        else
+        {
+            thenFinally = library->GetUndefined();
+            catchFinally = library->GetUndefined();
+        }
+
+        Assert(thenFinally != nullptr && catchFinally != nullptr);
+
+        // 7. Return ? Invoke(promise, "then", << thenFinally, catchFinally >>).
+        Var funcVar = JavascriptOperators::GetProperty(promise, Js::PropertyIds::then, scriptContext);
+        if (!JavascriptConversion::IsCallable(funcVar))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Promise.prototype.finally"));
+        }
+        RecyclableObject* func = RecyclableObject::UnsafeFromVar(funcVar);
+
+        return CALL_FUNCTION(scriptContext->GetThreadContext(),
+            func, Js::CallInfo(CallFlags_Value, 3),
+            promise,
+            thenFinally,
+            catchFinally);
+    }
+
+    // ThenFinallyFunction as described in draft ES2018 #sec-thenfinallyfunctions
+    // AND CatchFinallyFunction as described in draft ES2018 #sec-catchfinallyfunctions
+    Var JavascriptPromise::EntryThenFinallyFunction(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+        Assert(!(callInfo.Flags & CallFlags_New));
+        ScriptContext* scriptContext = function->GetScriptContext();
+        
+        JavascriptLibrary* library = scriptContext->GetLibrary();
+
+        JavascriptPromiseThenFinallyFunction* thenFinallyFunction = JavascriptPromiseThenFinallyFunction::FromVar(function);
+
+        // 1. Let onFinally be F.[[OnFinally]]
+        // 2. Assert: IsCallable(onFinally)=true
+        Assert(JavascriptConversion::IsCallable(thenFinallyFunction->GetOnFinally()));
+
+        // 3. Let result be ? Call(onFinally, undefined)
+        Var result = CALL_FUNCTION(scriptContext->GetThreadContext(), thenFinallyFunction->GetOnFinally(), CallInfo(CallFlags_Value, 1), library->GetUndefined());
+
+        // 4. Let C be F.[[Constructor]]
+        // 5. Assert IsConstructor(C)
+        Assert(JavascriptOperators::IsConstructor(thenFinallyFunction->GetConstructor()));
+
+        // 6. Let promise be ? PromiseResolve(c, result)
+        Var promiseVar = CreateResolvedPromise(result, scriptContext, thenFinallyFunction->GetConstructor());
+
+        // 7. Let valueThunk be equivalent to a function that returns value
+        // OR 7. Let thrower be equivalent to a function that throws reason
+
+        Var valueOrReason = nullptr;
+
+        if (args.Info.Count > 1)
+        {
+            valueOrReason = args[1];
+        }
+        else
+        {
+            valueOrReason = scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        JavascriptPromiseThunkFinallyFunction* thunkFinallyFunction = library->CreatePromiseThunkFinallyFunction(EntryThunkFinallyFunction, valueOrReason, thenFinallyFunction->GetShouldThrow());
+
+        // 8. Return ? Invoke(promise, "then", <<valueThunk>>)
+        RecyclableObject* promise = JavascriptOperators::ToObject(promiseVar, scriptContext);
+        Var funcVar = JavascriptOperators::GetProperty(promise, Js::PropertyIds::then, scriptContext);
+
+        if (!JavascriptConversion::IsCallable(funcVar))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Promise.prototype.finally"));
+        }
+
+        RecyclableObject* func = RecyclableObject::FromVar(funcVar);
+
+        return CALL_FUNCTION(scriptContext->GetThreadContext(),
+            func, Js::CallInfo(CallFlags_Value, 2),
+            promiseVar,
+            thunkFinallyFunction);
+    }
+
+    // valueThunk Function as referenced within draft ES2018 #sec-thenfinallyfunctions
+    // and thrower as referenced within draft ES2018 #sec-catchfinallyfunctions
+    Var JavascriptPromise::EntryThunkFinallyFunction(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        JavascriptPromiseThunkFinallyFunction* thunkFinallyFunction = JavascriptPromiseThunkFinallyFunction::FromVar(function);
+
+        if (!thunkFinallyFunction->GetShouldThrow())
+        {
+            return thunkFinallyFunction->GetValue();  
+        }
+        else
+        {
+            JavascriptExceptionOperators::Throw(thunkFinallyFunction->GetValue(), function->GetScriptContext());
+        }
+    }
+
     // Promise Reject and Resolve Functions as described in ES 2015 Section 25.4.1.4.1 and 25.4.1.4.2
     Var JavascriptPromise::EntryResolveOrRejectFunction(RecyclableObject* function, CallInfo callInfo, ...)
     {
@@ -913,8 +1066,8 @@ namespace Js
         {
             Assert(args[1] != nullptr);
 
-        return args[1];
-    }
+            return args[1];
+        }
         else
         {
             return function->GetScriptContext()->GetLibrary()->GetUndefined();

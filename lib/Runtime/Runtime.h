@@ -117,6 +117,8 @@ namespace Js
     class JavascriptPromiseCapabilitiesExecutorFunction;
     class JavascriptPromiseResolveOrRejectFunction;
     class JavascriptPromiseReactionTaskFunction;
+    class JavascriptPromiseThenFinallyFunction;
+    class JavascriptPromiseThunkFinallyFunction;
     class JavascriptPromiseResolveThenableTaskFunction;
     class JavascriptPromiseAllResolveElementFunction;
     struct JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper;
