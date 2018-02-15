@@ -29,6 +29,7 @@
     <UseICU Condition="'$(BuildLite)'=='true'">false</UseICU>
     <UseICU Condition="'$(ChakraICU)'!='false'">true</UseICU>
   </PropertyGroup>
+  <Import Condition="'$(ChakraICU)'!='false'" Project="$(ChakraCoreRootDirectory)deps\Chakra.ICU\Chakra.ICU.props" />
   <ItemDefinitionGroup>
     <ClCompile>
       <PreprocessorDefinitions>
