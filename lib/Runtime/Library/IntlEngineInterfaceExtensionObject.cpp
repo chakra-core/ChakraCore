@@ -23,6 +23,7 @@ using namespace Windows::Globalization;
 #include "PlatformAgnostic/IPlatformAgnosticResource.h"
 using namespace PlatformAgnostic::Resource;
 #include "PlatformAgnostic/ICU.h"
+using namespace PlatformAgnostic::ICUHelpers;
 
 #define ICU_ERROR_FMT _u("INTL: %S failed with error code %S\n")
 #define ICU_EXPR_FMT _u("INTL: %S failed expression check %S\n")
@@ -2192,17 +2193,38 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 #else
-        int required = ValidateAndCanonicalizeTimeZone(tz->GetSz());
-        if (required > 0)
+        UErrorCode status = U_ZERO_ERROR;
+
+        // TODO(jahorto): Is this the list of timeZones that we want? How is this different from
+        // the other two enum values or ucal_openTimeZones?
+        AutoUEnumeration available(ucal_openTimeZoneIDEnumeration(UCAL_ZONE_TYPE_ANY, nullptr, nullptr, &status));
+        int availableLength = uenum_count(available, &status);
+        ICU_ASSERT(status, availableLength > 0);
+
+        charcount_t matchLen = 0;
+        UChar match[100];
+        for (int a = 0; a < availableLength; ++a)
         {
-            char16 *buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, required);
-            ValidateAndCanonicalizeTimeZone(tz->GetSz(), buffer, required);
-            return JavascriptString::NewWithBuffer(buffer, required - 1, scriptContext);
+            int curLen = -1;
+            const UChar *cur = uenum_unext(available, &curLen, &status);
+            ICU_ASSERT(status, curLen > 0);
+            if (_wcsicmp(reinterpret_cast<const char16 *>(cur), tz->GetSz()) == 0)
+            {
+                ucal_getCanonicalTimeZoneID(cur, curLen, match, _countof(match), nullptr, &status);
+                ICU_ASSERT(status, true);
+                size_t len = wcslen(reinterpret_cast<const char16 *>(match));
+                AssertMsg(len < MaxCharCount, "Returned canonicalized timezone is far too long");
+                matchLen = static_cast<charcount_t>(len);
+                break;
+            }
         }
-        else
+
+        if (matchLen == 0)
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
+
+        return JavascriptString::NewCopyBuffer(reinterpret_cast<const char16 *>(match), matchLen, scriptContext);
 #endif
     }
 
