@@ -203,4 +203,40 @@ namespace Js {
        return SameValueCommon<true>(aValue, bValue);
    }
 
+   template <bool allowNegOne>
+   inline Var JavascriptConversion::TryCanonicalizeAsTaggedInt(Var value)
+   {
+       if (TaggedInt::Is(value))
+       {
+           return (allowNegOne || value != TaggedInt::ToVarUnchecked(-1))
+               ? value
+               : nullptr;
+       }
+
+       if (!JavascriptNumber::Is(value))
+       {
+           return nullptr;
+       }
+
+       double doubleVal = JavascriptNumber::GetValue(value);
+       int32 intVal = 0;
+
+       if (!JavascriptNumber::TryGetInt32Value<true>(doubleVal, &intVal))
+       {
+           return nullptr;
+       }
+
+       if (TaggedInt::IsOverflow(intVal))
+       {
+           return false;
+       }
+
+       if (!allowNegOne && intVal == -1)
+       {
+           return false;
+       }
+
+       return TaggedInt::ToVarUnchecked(intVal);
+   }
+
 } // namespace Js

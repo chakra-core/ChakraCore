@@ -124,6 +124,11 @@ namespace Js
             {
                 return current->data;
             }
+
+            Field(MapOrSetDataNode<TData>*) CurrentNode() const
+            {
+                return current;
+            }
         };
 
         void Clear()
@@ -188,5 +193,13 @@ namespace Js
         {
             return Iterator(this);
         }
+    };
+
+
+    template <typename TData>
+    class DelayedDeleteMapOrSetDataList : MapOrSetDataList<TData>
+    {
+        Field(SList<TData>*) deletedList;
+
     };
 }

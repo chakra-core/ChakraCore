@@ -127,7 +127,7 @@ namespace Js
         static bool Is(Var aValue);
         static JavascriptString* FromVar(Var aValue);
         static JavascriptString* UnsafeFromVar(Var aValue);
-        static bool Equals(Var aLeft, Var aRight);
+        static bool Equals(JavascriptString* aLeft, JavascriptString* aRight);
         static bool LessThan(Var aLeft, Var aRight);
         static bool IsNegZero(JavascriptString *string);
 
@@ -396,7 +396,7 @@ namespace Js
     class JavascriptStringHelpers
     {
     public:
-        static bool Equals(Var aLeft, Var aRight);
+        static bool Equals(T* aLeft, T* aRight);
     };
 }
 

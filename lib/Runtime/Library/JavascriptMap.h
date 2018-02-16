@@ -12,15 +12,46 @@ namespace Js
         typedef JsUtil::KeyValuePair<Field(Var), Field(Var)> MapDataKeyValuePair;
         typedef MapOrSetDataNode<MapDataKeyValuePair> MapDataNode;
         typedef MapOrSetDataList<MapDataKeyValuePair> MapDataList;
-        typedef JsUtil::BaseDictionary<Var, MapDataNode*, Recycler, PowerOf2SizePolicy, SameValueZeroComparer> MapDataMap;
+        typedef JsUtil::BaseDictionary<Var, MapDataNode*, Recycler> SimpleVarDataMap;
+        typedef JsUtil::BaseDictionary<Var, MapDataNode*, Recycler, PowerOf2SizePolicy, SameValueZeroComparer> ComplexVarDataMap;
 
     private:
+        enum class MapKind : uint8
+        {
+            // An EmptyMap is a map containing no elements
+            EmptyMap,
+            // A SimpleVarMap is a map containing only Vars which are comparable by pointer, and don't require
+            // pointer comparison
+            //
+            // Addition of a Var that is not comparable by pointer value causes the set to be promoted to a ComplexVarSet
+            SimpleVarMap,
+            // A ComplexVarMap is a map containing Vars for which we must inspect the values to do a comparison
+            // This includes Strings, Symbols, and (sometimes) JavascriptNumbers
+            ComplexVarMap
+        };
+
         Field(MapDataList) list;
-        Field(MapDataMap*) map;
+
+        union
+        {
+            Field(SimpleVarDataMap*) simpleVarMap;
+            Field(ComplexVarDataMap*) complexVarMap;
+        } u;
+
+        Field(MapKind) kind = MapKind::EmptyMap;
 
         DEFINE_VTABLE_CTOR_MEMBER_INIT(JavascriptMap, DynamicObject, list);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptMap);
 
+        template <bool isComplex>
+        bool DeleteFromVarMap(Var value);
+        bool DeleteFromSimpleVarMap(Var value);
+
+        void SetOnEmptyMap(Var key, Var value);
+        bool TrySetOnSimpleVarMap(Var key, Var value);
+        void SetOnComplexVarMap(Var key, Var value);
+
+        void PromoteToComplexVarMap();
     public:
         JavascriptMap(DynamicType* type);
 
@@ -31,10 +62,14 @@ namespace Js
         static JavascriptMap* UnsafeFromVar(Var aValue);
 
         void Clear();
+
         bool Delete(Var key);
+
         bool Get(Var key, Var* value);
         bool Has(Var key);
+
         void Set(Var key, Var value);
+
         int Size();
 
         MapDataList::Iterator GetIterator();

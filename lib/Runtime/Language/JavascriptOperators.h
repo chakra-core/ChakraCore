@@ -150,7 +150,7 @@ namespace Js
         static BOOL LessEqual(Var aLeft, Var aRight,ScriptContext* scriptContext);
         static BOOL NotEqual(Var aLeft, Var aRight,ScriptContext* scriptContext);
         static BOOL StrictEqual(Var aLeft, Var aRight,ScriptContext* scriptContext);
-        static BOOL StrictEqualString(Var aLeft, Var aRight);
+        static BOOL StrictEqualString(Var aLeft, JavascriptString* aRight);
         static BOOL StrictEqualEmptyString(Var aLeft);
         static BOOL NotStrictEqual(Var aLeft, Var aRight,ScriptContext* scriptContext);
 
@@ -400,7 +400,7 @@ namespace Js
         static Var OP_CmEq_A(Js::Var a,Js::Var b,ScriptContext* scriptContext);
         static Var OP_CmNeq_A(Js::Var a,Js::Var b,ScriptContext* scriptContext);
         static Var OP_CmSrEq_A(Js::Var a,Js::Var b,ScriptContext* scriptContext);
-        static Var OP_CmSrEq_String(Var a, Var b, ScriptContext *scriptContext);
+        static Var OP_CmSrEq_String(Var a, JavascriptString* b, ScriptContext *scriptContext);
         static Var OP_CmSrEq_EmptyString(Var a, ScriptContext *scriptContext);
         static Var OP_CmSrNeq_A(Js::Var a,Js::Var b,ScriptContext* scriptContext);
         static Var OP_CmLt_A(Js::Var a,Js::Var b,ScriptContext* scriptContext);

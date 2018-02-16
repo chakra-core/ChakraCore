@@ -746,14 +746,14 @@ namespace Js
         return dblLeft < dblRight;
     }
 
-    BOOL JavascriptOperators::StrictEqualString(Var aLeft, Var aRight)
+    BOOL JavascriptOperators::StrictEqualString(Var aLeft, JavascriptString* aRight)
     {
-        Assert(JavascriptOperators::GetTypeId(aRight) == TypeIds_String);
-
-        if (JavascriptOperators::GetTypeId(aLeft) != TypeIds_String)
+        JavascriptString* leftStr = TryFromVar<JavascriptString>(aLeft);
+        if (!leftStr)
+        {
             return false;
-
-        return JavascriptString::Equals(aLeft, aRight);
+        }
+        return JavascriptString::Equals(leftStr, aRight);
     }
 
     BOOL JavascriptOperators::StrictEqualEmptyString(Var aLeft)
@@ -785,7 +785,7 @@ namespace Js
             switch (rightType)
             {
             case TypeIds_String:
-                return JavascriptString::Equals(aLeft, aRight);
+                return JavascriptString::Equals(JavascriptString::UnsafeFromVar(aLeft), JavascriptString::UnsafeFromVar(aRight));
             }
             return FALSE;
         case TypeIds_Integer:
@@ -5188,7 +5188,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
        return JavascriptBoolean::ToVar(JavascriptOperators::StrictEqual(a, b, scriptContext), scriptContext);
     }
 
-    Var JavascriptOperators::OP_CmSrEq_String(Var a, Var b, ScriptContext *scriptContext)
+    Var JavascriptOperators::OP_CmSrEq_String(Var a, JavascriptString* b, ScriptContext *scriptContext)
     {
         return JavascriptBoolean::ToVar(JavascriptOperators::StrictEqualString(a, b), scriptContext);
     }
