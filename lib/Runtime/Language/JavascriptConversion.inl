@@ -228,12 +228,12 @@ namespace Js {
 
        if (TaggedInt::IsOverflow(intVal))
        {
-           return false;
+           return nullptr;
        }
 
        if (!allowNegOne && intVal == -1)
        {
-           return false;
+           return nullptr;
        }
 
        return TaggedInt::ToVarUnchecked(intVal);

@@ -72,6 +72,7 @@ Var JavascriptSet::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
     // REVIEW: This condition seems impossible?
     if (setObject->kind != SetKind::EmptySet)
     {
+        Assert(UNREACHED);
         JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_ObjectIsAlreadyInitialized, _u("Set"), _u("Set"));
     }
 
@@ -108,12 +109,11 @@ Var JavascriptSet::EntryAdd(RecyclableObject* function, CallInfo callInfo, ...)
     ARGUMENTS(args, callInfo);
     ScriptContext* scriptContext = function->GetScriptContext();
 
-    if (!JavascriptSet::Is(args[0]))
+    JavascriptSet* set = JavascriptOperators::TryFromVar<JavascriptSet>(args[0]);
+    if (set == nullptr)
     {
         JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.add"), _u("Set"));
     }
-
-    JavascriptSet* set = JavascriptSet::FromVar(args[0]);
 
     Var value = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
 
@@ -135,12 +135,11 @@ Var JavascriptSet::EntryClear(RecyclableObject* function, CallInfo callInfo, ...
     ARGUMENTS(args, callInfo);
     ScriptContext* scriptContext = function->GetScriptContext();
 
-    if (!JavascriptSet::Is(args[0]))
+    JavascriptSet* set = JavascriptOperators::TryFromVar<JavascriptSet>(args[0]);
+    if (set == nullptr)
     {
         JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.clear"), _u("Set"));
     }
-
-    JavascriptSet* set = JavascriptSet::FromVar(args[0]);
 
     set->Clear();
 
@@ -154,12 +153,11 @@ Var JavascriptSet::EntryDelete(RecyclableObject* function, CallInfo callInfo, ..
     ARGUMENTS(args, callInfo);
     ScriptContext* scriptContext = function->GetScriptContext();
 
-    if (!JavascriptSet::Is(args[0]))
+    JavascriptSet* set = JavascriptOperators::TryFromVar<JavascriptSet>(args[0]);
+    if (set == nullptr)
     {
         JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.delete"), _u("Set"));
     }
-
-    JavascriptSet* set = JavascriptSet::FromVar(args[0]);
 
     Var value = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
 
@@ -176,13 +174,11 @@ Var JavascriptSet::EntryForEach(RecyclableObject* function, CallInfo callInfo, .
     ScriptContext* scriptContext = function->GetScriptContext();
     AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Set.prototype.forEach"));
 
-    if (!JavascriptSet::Is(args[0]))
+    JavascriptSet* set = JavascriptOperators::TryFromVar<JavascriptSet>(args[0]);
+    if (set == nullptr)
     {
         JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.forEach"), _u("Set"));
     }
-
-    JavascriptSet* set = JavascriptSet::FromVar(args[0]);
-
 
     if (args.Info.Count < 2 || !JavascriptConversion::IsCallable(args[1]))
     {
@@ -231,12 +227,11 @@ Var JavascriptSet::EntrySizeGetter(RecyclableObject* function, CallInfo callInfo
     ARGUMENTS(args, callInfo);
     ScriptContext* scriptContext = function->GetScriptContext();
 
-    if (!JavascriptSet::Is(args[0]))
+    JavascriptSet* set = JavascriptOperators::TryFromVar<JavascriptSet>(args[0]);
+    if (set == nullptr)
     {
         JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.size"), _u("Set"));
     }
-
-    JavascriptSet* set = JavascriptSet::FromVar(args[0]);
 
     int size = set->Size();
 
@@ -250,12 +245,11 @@ Var JavascriptSet::EntryEntries(RecyclableObject* function, CallInfo callInfo, .
     ARGUMENTS(args, callInfo);
     ScriptContext* scriptContext = function->GetScriptContext();
 
-    if (!JavascriptSet::Is(args[0]))
+    JavascriptSet* set = JavascriptOperators::TryFromVar<JavascriptSet>(args[0]);
+    if (set == nullptr)
     {
         JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.entries"), _u("Set"));
     }
-
-    JavascriptSet* set = JavascriptSet::FromVar(args[0]);
 
     return scriptContext->GetLibrary()->CreateSetIterator(set, JavascriptSetIteratorKind::KeyAndValue);
 }
@@ -267,12 +261,11 @@ Var JavascriptSet::EntryValues(RecyclableObject* function, CallInfo callInfo, ..
     ARGUMENTS(args, callInfo);
     ScriptContext* scriptContext = function->GetScriptContext();
 
-    if (!JavascriptSet::Is(args[0]))
+    JavascriptSet* set = JavascriptOperators::TryFromVar<JavascriptSet>(args[0]);
+    if (set == nullptr)
     {
         JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.values"), _u("Set"));
     }
-
-    JavascriptSet* set = JavascriptSet::FromVar(args[0]);
 
     return scriptContext->GetLibrary()->CreateSetIterator(set, JavascriptSetIteratorKind::Value);
 }
@@ -290,7 +283,7 @@ template <typename T>
 T*
 JavascriptSet::CreateVarSetFromList(uint initialCapacity)
 {
-    T* varSet = RecyclerNew(GetRecycler(), T, GetRecycler(), initialCapacity);
+    T* varSet = RecyclerNew(this->GetRecycler(), T, this->GetRecycler(), initialCapacity);
 
     JavascriptSet::SetDataList::Iterator iter = this->list.GetIterator();
     // TODO: we can use a more efficient Iterator, since we know there will be no side effects
@@ -339,10 +332,10 @@ JavascriptSet::AddToEmptySet(Var value)
     {
         int32 intVal = TaggedInt::ToInt32(taggedInt);
 
-        BVSparse<Recycler>* newIntSet = RecyclerNew(GetRecycler(), BVSparse<Recycler>, GetRecycler());
+        BVSparse<Recycler>* newIntSet = RecyclerNew(this->GetRecycler(), BVSparse<Recycler>, this->GetRecycler());
         newIntSet->Set(intVal);
 
-        this->list.Append(taggedInt, GetScriptContext()->GetRecycler());
+        this->list.Append(taggedInt, this->GetRecycler());
 
         this->u.intSet = newIntSet;
         this->kind = SetKind::IntSet;
@@ -352,8 +345,8 @@ JavascriptSet::AddToEmptySet(Var value)
     Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar(value);
     if (simpleVar)
     {
-        SimpleVarDataSet* newSimpleSet = RecyclerNew(GetRecycler(), SimpleVarDataSet, GetRecycler());
-        SetDataNode* node = this->list.Append(simpleVar, GetScriptContext()->GetRecycler());
+        SimpleVarDataSet* newSimpleSet = RecyclerNew(this->GetRecycler(), SimpleVarDataSet, this->GetRecycler());
+        SetDataNode* node = this->list.Append(simpleVar, this->GetRecycler());
 
         newSimpleSet->Add(simpleVar, node);
 
@@ -362,8 +355,8 @@ JavascriptSet::AddToEmptySet(Var value)
         return;
     }
 
-    ComplexVarDataSet* newComplexSet = RecyclerNew(GetRecycler(), ComplexVarDataSet, GetRecycler());
-    SetDataNode* node = this->list.Append(value, GetScriptContext()->GetRecycler());
+    ComplexVarDataSet* newComplexSet = RecyclerNew(this->GetRecycler(), ComplexVarDataSet, this->GetRecycler());
+    SetDataNode* node = this->list.Append(value, this->GetRecycler());
 
     newComplexSet->Add(value, node);
 
@@ -383,7 +376,7 @@ JavascriptSet::TryAddToIntSet(Var value)
     int32 intVal = TaggedInt::ToInt32(taggedInt);
     if (!this->u.intSet->TestAndSet(intVal))
     {
-        this->list.Append(taggedInt, GetScriptContext()->GetRecycler());
+        this->list.Append(taggedInt, this->GetRecycler());
     }
     return true;
 }
@@ -399,7 +392,7 @@ JavascriptSet::TryAddToSimpleVarSet(Var value)
 
     if (!this->u.simpleVarSet->ContainsKey(simpleVar))
     {
-        SetDataNode* node = this->list.Append(simpleVar, GetScriptContext()->GetRecycler());
+        SetDataNode* node = this->list.Append(simpleVar, this->GetRecycler());
         this->u.simpleVarSet->Add(simpleVar, node);
     }
 
@@ -411,7 +404,7 @@ JavascriptSet::AddToComplexVarSet(Var value)
 {
     if (!this->u.complexVarSet->ContainsKey(value))
     {
-        SetDataNode* node = this->list.Append(value, GetScriptContext()->GetRecycler());
+        SetDataNode* node = this->list.Append(value, this->GetRecycler());
         this->u.complexVarSet->Add(value, node);
     }
 }
@@ -419,6 +412,7 @@ JavascriptSet::AddToComplexVarSet(Var value)
 void
 JavascriptSet::Add(Var value)
 {
+    JS_REENTRANCY_LOCK(jsReentLock, this->GetScriptContext()->GetThreadContext());
     switch (this->kind)
     {
     case SetKind::EmptySet:
@@ -468,8 +462,7 @@ JavascriptSet::Add(Var value)
 
 void JavascriptSet::Clear()
 {
-    // TODO: (Consider) Should we clear the set here and leave it as large as it has grown, or
-    // toss it away and create a new empty set, letting it grow as needed?
+    JS_REENTRANCY_LOCK(jsReentLock, this->GetScriptContext()->GetThreadContext());
     this->list.Clear();
     switch (this->kind)
     {
@@ -531,6 +524,7 @@ JavascriptSet::DeleteFromSimpleVarSet(Var value)
 
 bool JavascriptSet::Delete(Var value)
 {
+    JS_REENTRANCY_LOCK(jsReentLock, this->GetScriptContext()->GetThreadContext());
     switch (this->kind)
     {
     case SetKind::EmptySet:
@@ -558,6 +552,7 @@ bool JavascriptSet::Delete(Var value)
 
 bool JavascriptSet::Has(Var value)
 {
+    JS_REENTRANCY_LOCK(jsReentLock, this->GetScriptContext()->GetThreadContext());
     switch (this->kind)
     {
     case SetKind::EmptySet:
@@ -603,6 +598,7 @@ bool JavascriptSet::Has(Var value)
 
 int JavascriptSet::Size()
 {
+    JS_REENTRANCY_LOCK(jsReentLock, this->GetScriptContext()->GetThreadContext());
     switch (this->kind)
     {
     case SetKind::EmptySet:

@@ -29,7 +29,7 @@ namespace Js
             // Deleting any element will also cause the set to be promoted to a SimpleVarSet
             IntSet,
             // A SimpleVarSet is a set containing only Vars which are comparable by pointer, and don't require
-            // pointer comparison
+            // value comparison
             //
             // Addition of a Var that is not comparable by pointer value causes the set to be promoted to a ComplexVarSet
             SimpleVarSet,

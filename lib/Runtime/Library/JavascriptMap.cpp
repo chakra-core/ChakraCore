@@ -72,6 +72,7 @@ Var JavascriptMap::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
     // REVIEW: This condition seems impossible?
     if (mapObject->kind != MapKind::EmptyMap)
     {
+        Assert(UNREACHED);
         JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_ObjectIsAlreadyInitialized, _u("Map"), _u("Map"));
     }
 
@@ -130,12 +131,11 @@ Var JavascriptMap::EntryClear(RecyclableObject* function, CallInfo callInfo, ...
     ARGUMENTS(args, callInfo);
     ScriptContext* scriptContext = function->GetScriptContext();
 
-    if (!JavascriptMap::Is(args[0]))
+    JavascriptMap* map = JavascriptOperators::TryFromVar<JavascriptMap>(args[0]);
+    if (map == nullptr)
     {
         JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Map.prototype.clear"), _u("Map"));
     }
-
-    JavascriptMap* map = JavascriptMap::FromVar(args[0]);
 
     map->Clear();
 
@@ -149,12 +149,11 @@ Var JavascriptMap::EntryDelete(RecyclableObject* function, CallInfo callInfo, ..
     ARGUMENTS(args, callInfo);
     ScriptContext* scriptContext = function->GetScriptContext();
 
-    if (!JavascriptMap::Is(args[0]))
+    JavascriptMap* map = JavascriptOperators::TryFromVar<JavascriptMap>(args[0]);
+    if (map == nullptr)
     {
         JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Map.prototype.delete"), _u("Map"));
     }
-
-    JavascriptMap* map = JavascriptMap::FromVar(args[0]);
 
     Var key = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
 
@@ -171,12 +170,11 @@ Var JavascriptMap::EntryForEach(RecyclableObject* function, CallInfo callInfo, .
     ScriptContext* scriptContext = function->GetScriptContext();
     AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Map.prototype.forEach"));
 
-    if (!JavascriptMap::Is(args[0]))
+    JavascriptMap* map = JavascriptOperators::TryFromVar<JavascriptMap>(args[0]);
+    if (map == nullptr)
     {
         JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Map.prototype.forEach"), _u("Map"));
     }
-
-    JavascriptMap* map = JavascriptMap::FromVar(args[0]);
 
     if (args.Info.Count < 2 || !JavascriptConversion::IsCallable(args[1]))
     {
@@ -206,12 +204,11 @@ Var JavascriptMap::EntryGet(RecyclableObject* function, CallInfo callInfo, ...)
     ARGUMENTS(args, callInfo);
     ScriptContext* scriptContext = function->GetScriptContext();
 
-    if (!JavascriptMap::Is(args[0]))
+    JavascriptMap* map = JavascriptOperators::TryFromVar<JavascriptMap>(args[0]);
+    if (map == nullptr)
     {
         JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Map.prototype.get"), _u("Map"));
     }
-
-    JavascriptMap* map = JavascriptMap::FromVar(args[0]);
 
     Var key = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
     Var value = nullptr;
@@ -231,12 +228,11 @@ Var JavascriptMap::EntryHas(RecyclableObject* function, CallInfo callInfo, ...)
     ARGUMENTS(args, callInfo);
     ScriptContext* scriptContext = function->GetScriptContext();
 
-    if (!JavascriptMap::Is(args[0]))
+    JavascriptMap* map = JavascriptOperators::TryFromVar<JavascriptMap>(args[0]);
+    if (map == nullptr)
     {
         JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Map.prototype.has"), _u("Map"));
     }
-
-    JavascriptMap* map = JavascriptMap::FromVar(args[0]);
 
     Var key = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
 
@@ -252,12 +248,11 @@ Var JavascriptMap::EntrySet(RecyclableObject* function, CallInfo callInfo, ...)
     ARGUMENTS(args, callInfo);
     ScriptContext* scriptContext = function->GetScriptContext();
 
-    if (!JavascriptMap::Is(args[0]))
+    JavascriptMap* map = JavascriptOperators::TryFromVar<JavascriptMap>(args[0]);
+    if (map == nullptr)
     {
         JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Map.prototype.set"), _u("Map"));
     }
-
-    JavascriptMap* map = JavascriptMap::FromVar(args[0]);
 
     Var key = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
     Var value = (args.Info.Count > 2) ? args[2] : scriptContext->GetLibrary()->GetUndefined();
@@ -280,12 +275,11 @@ Var JavascriptMap::EntrySizeGetter(RecyclableObject* function, CallInfo callInfo
     ARGUMENTS(args, callInfo);
     ScriptContext* scriptContext = function->GetScriptContext();
 
-    if (!JavascriptMap::Is(args[0]))
+    JavascriptMap* map = JavascriptOperators::TryFromVar<JavascriptMap>(args[0]);
+    if (map == nullptr)
     {
         JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Map.prototype.size"), _u("Map"));
     }
-
-    JavascriptMap* map = JavascriptMap::FromVar(args[0]);
 
     int size = map->Size();
 
@@ -299,12 +293,11 @@ Var JavascriptMap::EntryEntries(RecyclableObject* function, CallInfo callInfo, .
     ARGUMENTS(args, callInfo);
     ScriptContext* scriptContext = function->GetScriptContext();
 
-    if (!JavascriptMap::Is(args[0]))
+    JavascriptMap* map = JavascriptOperators::TryFromVar<JavascriptMap>(args[0]);
+    if (map == nullptr)
     {
         JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Map.prototype.entries"), _u("Map"));
     }
-
-    JavascriptMap* map = JavascriptMap::FromVar(args[0]);
 
     return scriptContext->GetLibrary()->CreateMapIterator(map, JavascriptMapIteratorKind::KeyAndValue);
 }
@@ -316,12 +309,11 @@ Var JavascriptMap::EntryKeys(RecyclableObject* function, CallInfo callInfo, ...)
     ARGUMENTS(args, callInfo);
     ScriptContext* scriptContext = function->GetScriptContext();
 
-    if (!JavascriptMap::Is(args[0]))
+    JavascriptMap* map = JavascriptOperators::TryFromVar<JavascriptMap>(args[0]);
+    if (map == nullptr)
     {
         JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Map.prototype.keys"), _u("Map"));
     }
-
-    JavascriptMap* map = JavascriptMap::FromVar(args[0]);
 
     return scriptContext->GetLibrary()->CreateMapIterator(map, JavascriptMapIteratorKind::Key);
 }
@@ -333,18 +325,18 @@ Var JavascriptMap::EntryValues(RecyclableObject* function, CallInfo callInfo, ..
     ARGUMENTS(args, callInfo);
     ScriptContext* scriptContext = function->GetScriptContext();
 
-    if (!JavascriptMap::Is(args[0]))
+    JavascriptMap* map = JavascriptOperators::TryFromVar<JavascriptMap>(args[0]);
+    if (map == nullptr)
     {
         JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Map.prototype.values"), _u("Map"));
     }
-
-    JavascriptMap* map = JavascriptMap::FromVar(args[0]);
     return scriptContext->GetLibrary()->CreateMapIterator(map, JavascriptMapIteratorKind::Value);
 }
 
 void
 JavascriptMap::Clear()
 {
+    JS_REENTRANCY_LOCK(jsReentLock, this->GetScriptContext()->GetThreadContext());
     list.Clear();
     switch (this->kind)
     {
@@ -392,6 +384,7 @@ JavascriptMap::DeleteFromSimpleVarMap(Var value)
 bool
 JavascriptMap::Delete(Var key)
 {
+    JS_REENTRANCY_LOCK(jsReentLock, this->GetScriptContext()->GetThreadContext());
     switch (this->kind)
     {
     case MapKind::EmptyMap:
@@ -410,6 +403,7 @@ JavascriptMap::Delete(Var key)
 bool
 JavascriptMap::Get(Var key, Var* value)
 {
+    JS_REENTRANCY_LOCK(jsReentLock, this->GetScriptContext()->GetThreadContext());
     switch (this->kind)
     {
     case MapKind::EmptyMap:
@@ -453,13 +447,13 @@ JavascriptMap::Get(Var key, Var* value)
         Assume(UNREACHED);
         return false;
     }
-
-    return false;
 }
+
 
 bool
 JavascriptMap::Has(Var key)
 {
+    JS_REENTRANCY_LOCK(jsReentLock, this->GetScriptContext()->GetThreadContext());
     switch (this->kind)
     {
     case MapKind::EmptyMap:
@@ -497,7 +491,7 @@ JavascriptMap::PromoteToComplexVarMap()
     AssertOrFailFast(this->kind == MapKind::SimpleVarMap);
 
     uint newMapSize = this->u.simpleVarMap->Count() + 1;
-    ComplexVarDataMap* newMap = RecyclerNew(GetRecycler(), ComplexVarDataMap, GetRecycler(), newMapSize);
+    ComplexVarDataMap* newMap = RecyclerNew(this->GetRecycler(), ComplexVarDataMap, this->GetRecycler(), newMapSize);
 
     JavascriptMap::MapDataList::Iterator iter = this->list.GetIterator();
     // TODO: we can use a more efficient Iterator, since we know there will be no side effects
@@ -516,10 +510,10 @@ JavascriptMap::SetOnEmptyMap(Var key, Var value)
     Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar(key);
     if (simpleVar)
     {
-        SimpleVarDataMap* newSimpleMap = RecyclerNew(GetRecycler(), SimpleVarDataMap, GetRecycler());
+        SimpleVarDataMap* newSimpleMap = RecyclerNew(this->GetRecycler(), SimpleVarDataMap, this->GetRecycler());
         MapDataKeyValuePair simplePair(simpleVar, value);
 
-        MapDataNode* node = this->list.Append(simplePair, GetScriptContext()->GetRecycler());
+        MapDataNode* node = this->list.Append(simplePair, this->GetRecycler());
 
         newSimpleMap->Add(simpleVar, node);
 
@@ -528,12 +522,12 @@ JavascriptMap::SetOnEmptyMap(Var key, Var value)
         return;
     }
 
-    ComplexVarDataMap* newComplexSet = RecyclerNew(GetRecycler(), ComplexVarDataMap, GetRecycler());
+    ComplexVarDataMap* newComplexSet = RecyclerNew(this->GetRecycler(), ComplexVarDataMap, this->GetRecycler());
     MapDataKeyValuePair complexPair(key, value);
 
-    MapDataNode* node = this->list.Append(complexPair, GetScriptContext()->GetRecycler());
+    MapDataNode* node = this->list.Append(complexPair, this->GetRecycler());
 
-    newComplexSet->Add(value, node);
+    newComplexSet->Add(key, node);
 
     this->u.complexVarMap = newComplexSet;
     this->kind = MapKind::ComplexVarMap;
@@ -556,7 +550,7 @@ JavascriptMap::TrySetOnSimpleVarMap(Var key, Var value)
     }
 
     MapDataKeyValuePair pair(simpleVar, value);
-    MapDataNode* newNode = this->list.Append(pair, GetScriptContext()->GetRecycler());
+    MapDataNode* newNode = this->list.Append(pair, this->GetRecycler());
     this->u.simpleVarMap->Add(simpleVar, newNode);
     return true;
 }
@@ -572,13 +566,14 @@ JavascriptMap::SetOnComplexVarMap(Var key, Var value)
     }
 
     MapDataKeyValuePair pair(key, value);
-    MapDataNode* newNode = this->list.Append(pair, GetScriptContext()->GetRecycler());
+    MapDataNode* newNode = this->list.Append(pair, this->GetRecycler());
     this->u.complexVarMap->Add(key, newNode);
 }
 
 void
 JavascriptMap::Set(Var key, Var value)
 {
+    JS_REENTRANCY_LOCK(jsReentLock, this->GetScriptContext()->GetThreadContext());
     switch (this->kind)
     {
     case MapKind::EmptyMap:
@@ -604,6 +599,7 @@ JavascriptMap::Set(Var key, Var value)
 
 int JavascriptMap::Size()
 {
+    JS_REENTRANCY_LOCK(jsReentLock, this->GetScriptContext()->GetThreadContext());
     switch (this->kind)
     {
     case MapKind::EmptyMap:
