@@ -2,7 +2,6 @@
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
-  <Import Condition="exists('$(ChakraCoreRootDirectory)deps\Chakra.ICU\Chakra.ICU.props')" Project="$(MSBuildThisFileDirectory)Chakra.ICU.props" />
   <PropertyGroup Label="Globals">
     <TargetName>Chakra.ICU.Common</TargetName>
     <ProjectGuid>{EE2A3111-4D85-427C-B0AB-E6B0EA7FFB44}</ProjectGuid>
