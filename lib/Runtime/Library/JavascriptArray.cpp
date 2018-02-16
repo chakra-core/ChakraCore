@@ -1921,8 +1921,21 @@ namespace Js
                 // And/or the old segment is not scanned by the recycler, so we need a new one to hold vars.
                 SparseArraySegment<Var> *newSeg =
                     SparseArraySegment<Var>::AllocateSegment(recycler, left, length, nextSeg);
-
                 AnalysisAssert(newSeg);
+
+                // Fill the new segment with the overflow.
+                for (i = 0; (uint)i < newSeg->length; i++)
+                {
+                    ival = ((SparseArraySegment<int32>*)seg)->elements[i];
+                    if (ival == JavascriptNativeIntArray::MissingItem)
+                    {
+                        continue;
+                    }
+                    newSeg->elements[i] = JavascriptNumber::ToVar(ival, scriptContext);
+                }
+
+                // seg elements are copied over, now it is safe to replace seg with newSeg.
+                // seg could be GC collected if replaced by newSeg.
                 Assert((prevSeg == nullptr) == (seg == intArray->head));
                 newSeg->next = nextSeg;
                 intArray->LinkSegments((SparseArraySegment<Var>*)prevSeg, newSeg);
@@ -1936,17 +1949,6 @@ namespace Js
                 if (segmentMap)
                 {
                     segmentMap->SwapSegment(left, seg, newSeg);
-                }
-
-                // Fill the new segment with the overflow.
-                for (i = 0; (uint)i < newSeg->length; i++)
-                {
-                    ival = ((SparseArraySegment<int32>*)seg)->elements[i];
-                    if (ival == JavascriptNativeIntArray::MissingItem)
-                    {
-                        continue;
-                    }
-                    newSeg->elements[i] = JavascriptNumber::ToVar(ival, scriptContext);
                 }
             }
             else
@@ -2097,26 +2099,12 @@ namespace Js
             }
             uint32 left = seg->left;
             uint32 length = seg->length;
-            SparseArraySegment<Var> *newSeg;
+            SparseArraySegment<Var> *newSeg = nullptr;
             if (seg->next == nullptr && SparseArraySegmentBase::IsLeafSegment(seg, recycler))
             {
                 // The old segment is not scanned by the recycler, so we need a new one to hold vars.
                 newSeg =
                     SparseArraySegment<Var>::AllocateSegment(recycler, left, length, nextSeg);
-                Assert((prevSeg == nullptr) == (seg == fArray->head));
-                newSeg->next = nextSeg;
-                fArray->LinkSegments((SparseArraySegment<Var>*)prevSeg, newSeg);
-                if (fArray->GetLastUsedSegment() == seg)
-                {
-                    fArray->SetLastUsedSegment(newSeg);
-                }
-                prevSeg = newSeg;
-
-                SegmentBTree * segmentMap = fArray->GetSegmentMap();
-                if (segmentMap)
-                {
-                    segmentMap->SwapSegment(left, seg, newSeg);
-                }
             }
             else
             {
@@ -2171,6 +2159,26 @@ namespace Js
             {
                 // Fill the remaining slots.
                 newSeg->FillSegmentBuffer(i, seg->size);
+            }
+
+            // seg elements are copied over, now it is safe to replace seg with newSeg.
+            // seg could be GC collected if replaced by newSeg.
+            if (newSeg != seg)
+            {
+                Assert((prevSeg == nullptr) == (seg == fArray->head));
+                newSeg->next = nextSeg;
+                fArray->LinkSegments((SparseArraySegment<Var>*)prevSeg, newSeg);
+                if (fArray->GetLastUsedSegment() == seg)
+                {
+                    fArray->SetLastUsedSegment(newSeg);
+                }
+                prevSeg = newSeg;
+
+                SegmentBTree * segmentMap = fArray->GetSegmentMap();
+                if (segmentMap)
+                {
+                    segmentMap->SwapSegment(left, seg, newSeg);
+                }
             }
         }
 
@@ -3140,7 +3148,7 @@ namespace Js
                     JS_REENTRANT_NO_MUTATE(jsReentLock, CopyNativeIntArrayElementsToVar(pDestArray, BigIndex(idxDest).GetSmallIndex(), pIntItemArray));
                     idxDest = idxDest + pIntItemArray->length;
                 }
-                else 
+                else
                 {
                     JavascriptNativeFloatArray *pFloatItemArray = JavascriptOperators::TryFromVar<JavascriptNativeFloatArray>(aItem);
                     if (pFloatItemArray)
@@ -3390,7 +3398,7 @@ namespace Js
 
                     idxDest = idxDest + pIntItemArray->length;
                 }
-                else 
+                else
                 {
                     JavascriptNativeFloatArray * pFloatItemArray = JavascriptOperators::TryFromVar<JavascriptNativeFloatArray>(aItem);
                     if (pFloatItemArray && !isFillFromPrototypes)
@@ -5384,7 +5392,7 @@ Case0:
             {
                 RecyclableObject* protoObj = prototype;
 
-                if (!(DynamicObject::IsAnyArray(protoObj) || JavascriptOperators::IsObject(protoObj)) 
+                if (!(DynamicObject::IsAnyArray(protoObj) || JavascriptOperators::IsObject(protoObj))
                     || JavascriptProxy::Is(protoObj)
                     || protoObj->IsExternal())
                 {
@@ -6099,7 +6107,7 @@ Case0:
             *isIntArray = true;
 #endif
         }
-        else 
+        else
         {
             JavascriptNativeFloatArray* nativeFloatArray = JavascriptOperators::TryFromVar<JavascriptNativeFloatArray>(this);
             if (nativeFloatArray)
