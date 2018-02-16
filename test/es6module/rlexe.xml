@@ -141,4 +141,9 @@
       <tags>BugFix,exclude_sanitize_address</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>module-load-twice.js</files>
+    </default>
+  </test>
 </regress-exe>
