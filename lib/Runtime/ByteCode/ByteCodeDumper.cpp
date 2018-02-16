@@ -1003,6 +1003,7 @@ namespace Js
         PropertyRecord const * pPropertyName = scriptContext->GetPropertyName(propertyId);
         switch (op)
         {
+            case OpCode::LdLen_A:
             case OpCode::LdFldForTypeOf:
             case OpCode::LdFld:
             case OpCode::LdFldForCallApplyTarget:

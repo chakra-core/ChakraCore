@@ -8389,13 +8389,13 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
         ImplicitCallFlags savedImplicitCallFlags = threadContext->GetImplicitCallFlags();
         threadContext->ClearImplicitCallFlags();
 
-        const auto instance = GetReg(playout->R1);
+        Var instance = GetReg(playout->Instance);
         Var length = JavascriptOperators::OP_GetLength(instance, GetScriptContext());
 
         threadContext->CheckAndResetImplicitCallAccessorFlag();
         threadContext->AddImplicitCallFlags(savedImplicitCallFlags);
 
-        SetReg(playout->R0, length);
+        SetReg(playout->Value, length);
     }
 
 #if ENABLE_PROFILE_INFO
@@ -8403,27 +8403,32 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
     void InterpreterStackFrame::OP_ProfiledLdLen(const unaligned OpLayoutDynamicProfile<T> *const playout)
     {
         Assert(playout);
+        FunctionBody * functionBody = m_functionBody;
+        DynamicProfileInfo * profileData = functionBody->GetDynamicProfileInfo();
 
-        const auto functionBody = m_functionBody;
-        const auto profileData = functionBody->GetDynamicProfileInfo();
+        Var instance = GetReg(playout->Instance);
 
-        const auto instance = GetReg(playout->R1);
-        LdElemInfo ldElemInfo;
-        ldElemInfo.arrayType = ValueType::Uninitialized.Merge(instance);
+        LdLenInfo ldLenInfo;
+        ldLenInfo.arrayType = ValueType::Uninitialized.Merge(instance);
+        profileData->RecordLengthLoad(functionBody, playout->profileId, ldLenInfo);
 
         ThreadContext* threadContext = this->GetScriptContext()->GetThreadContext();
         ImplicitCallFlags savedImplicitCallFlags = threadContext->GetImplicitCallFlags();
         threadContext->ClearImplicitCallFlags();
 
-        Var length = JavascriptOperators::OP_GetLength(instance, GetScriptContext());
+        PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
+        Var value = ProfilingHelpers::ProfiledLdFld<false, false, false>(
+            instance,
+            propertyId,
+            GetInlineCache(playout->inlineCacheIndex),
+            playout->inlineCacheIndex,
+            GetFunctionBody(),
+            instance);
+
+        SetReg(playout->Value, value);
 
         threadContext->CheckAndResetImplicitCallAccessorFlag();
         threadContext->AddImplicitCallFlags(savedImplicitCallFlags);
-
-        ldElemInfo.elemType = ldElemInfo.elemType.Merge(length);
-        profileData->RecordElementLoad(functionBody, playout->profileId, ldElemInfo);
-
-        SetReg(playout->R0, length);
     }
 #endif
 

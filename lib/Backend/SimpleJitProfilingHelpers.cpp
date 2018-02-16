@@ -84,22 +84,6 @@ namespace Js
         dynamicProfileInfo->RecordReturnType(functionBody, profileId, retval);
     }
 
-    Var SimpleJitHelpers::ProfiledLdLen_A(FunctionBody* body, DynamicObject * instance, ProfileId profileId)
-    {
-        FunctionBody*const functionBody = body;
-        const auto profileData = functionBody->GetDynamicProfileInfo();
-
-        LdElemInfo ldElemInfo;
-        ldElemInfo.arrayType = ValueType::Uninitialized.Merge(instance);
-
-        Var length = JavascriptOperators::OP_GetProperty(instance, PropertyIds::length, body->GetScriptContext());
-
-        ldElemInfo.elemType = ldElemInfo.elemType.Merge(length);
-        profileData->RecordElementLoad(functionBody, profileId, ldElemInfo);
-
-        return length;
-    }
-
     Var SimpleJitHelpers::ProfiledStrictLdThis(Var thisVar, FunctionBody* functionBody)
     {
         //Adapted from InterpreterStackFrame::OP_ProfiledStrictLdThis

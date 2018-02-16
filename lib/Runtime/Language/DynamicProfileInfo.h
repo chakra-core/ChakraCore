@@ -54,6 +54,7 @@ namespace Js
     {
     public:
         Field(Js::ArgSlot) paramInfoCount;
+        Field(ProfileId) ldLenInfoCount;
         Field(ProfileId) ldElemInfoCount;
         Field(ProfileId) stElemInfoCount;
         Field(ProfileId) arrayCallSiteCount;
@@ -175,6 +176,21 @@ namespace Js
         static uint32 GetOffsetOfFlags() { return offsetof(FldInfo, flags); }
     };
     CompileAssert(sizeof(FldInfo::TSize) == sizeof(FldInfo));
+
+    struct LdLenInfo
+    {
+        ValueType arrayType;
+
+        void Merge(const LdLenInfo & other)
+        {
+            arrayType = arrayType.Merge(other.arrayType);
+        }
+
+        ValueType GetArrayType() const
+        {
+            return arrayType;
+        }
+    };
 
     struct LdElemInfo
     {
@@ -350,6 +366,9 @@ namespace Js
         FunctionBody * GetFunctionBody() const { Assert(hasFunctionBody); return functionBody; }
 #endif
 
+        void RecordLengthLoad(FunctionBody* functionBody, ProfileId ldLenId, const LdLenInfo& info);
+        const LdLenInfo *GetLdLenInfo() const { return ldLenInfo; }
+
         void RecordElementLoad(FunctionBody* functionBody, ProfileId ldElemId, const LdElemInfo& info);
         void RecordElementLoadAsProfiled(FunctionBody *const functionBody, const ProfileId ldElemId);
         const LdElemInfo *GetLdElemInfo() const { return ldElemInfo; }
@@ -464,6 +483,7 @@ namespace Js
         Field(ValueType *) returnTypeInfo; // return type of calls for non inline call sites
         Field(ValueType *) divideTypeInfo;
         Field(ValueType *) switchTypeInfo;
+        Field(LdLenInfo *) ldLenInfo;
         Field(LdElemInfo *) ldElemInfo;
         Field(StElemInfo *) stElemInfo;
         Field(ArrayCallSiteInfo *) arrayCallSiteInfo;

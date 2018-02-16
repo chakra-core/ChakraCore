@@ -2977,7 +2977,10 @@ namespace Js
         bool AllocProfiledSlotId(ProfileId* profileId) { if (this->profiledSlotCount != Constants::NoProfileId) { *profileId = this->profiledSlotCount++; return true; } return false; }
         ProfileId GetProfiledSlotCount() const { return this->profiledSlotCount; }
 
-        ProfileId AllocProfiledLdElemId(ProfileId* profileId) { if (this->profiledLdElemCount != Constants::NoProfileId) { *profileId = this->profiledLdElemCount++; return true; } return false; }
+        bool AllocProfiledLdLenId(ProfileId* profileId) { if (this->profiledLdLenCount != Constants::NoProfileId) { *profileId = this->profiledLdLenCount++; return true; } return false; }
+        ProfileId GetProfiledLdLenCount() const { return this->profiledLdLenCount; }
+
+        bool AllocProfiledLdElemId(ProfileId* profileId) { if (this->profiledLdElemCount != Constants::NoProfileId) { *profileId = this->profiledLdElemCount++; return true; } return false; }
         ProfileId GetProfiledLdElemCount() const { return this->profiledLdElemCount; }
 
         bool AllocProfiledStElemId(ProfileId* profileId) { if (this->profiledStElemCount != Constants::NoProfileId) { *profileId = this->profiledStElemCount++; return true; } return false; }

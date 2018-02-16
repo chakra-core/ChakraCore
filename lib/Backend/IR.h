@@ -608,12 +608,20 @@ public:
         const Js::LdElemInfo *  ldElemInfo;
         const Js::StElemInfo *  stElemInfo;
     private:
-        Js::FldInfo::TSize      fldInfoData;
+        struct
+        {
+            Js::FldInfo::TSize      fldInfoData;
+            uint16                  arrayType; // used by LdLen
+        };
 
     public:
         Js::FldInfo &FldInfo()
         {
             return reinterpret_cast<Js::FldInfo &>(fldInfoData);
+        }
+        ValueType & LdLenArrayType()
+        {
+            return reinterpret_cast<ValueType &>(arrayType);
         }
     } u;
 

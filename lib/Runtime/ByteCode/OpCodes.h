@@ -449,7 +449,7 @@ MACRO_EXTEND_WMS(       InitGetElemI,           ElementI,       OpSideEffect|OpO
 MACRO_EXTEND_WMS(       InitComputedProperty,   ElementI,       OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)                  // Data property in Object Literal Syntax { [expr] : expr};
 MACRO_EXTEND_WMS(       InitProto,              ElementC,       OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)                  // Declare __proto__ in Object Literal Syntax {__proto__: ...}
 
-MACRO_WMS_PROFILED(     LdLen_A,            Reg2,           OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut|OpTempObjectSources)       // Push array / string length
+MACRO_WMS_PROFILED(     LdLen_A,            ElementCP,      OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut|OpTempObjectSources|OpCanLoadFixedFields)       // Push array / string length
 
 MACRO_WMS(              LdUndef,            Reg1,           OpByteCodeOnly|OpCanCSE)       // Load 'undefined'
 MACRO_WMS(              LdNaN,              Reg1,           OpByteCodeOnly|OpCanCSE)       // Load 'NaN'

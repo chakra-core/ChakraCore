@@ -10539,7 +10539,12 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         Js::RegSlot callObjLocation = pnode->sxBin.pnode1->location;
         Js::RegSlot protoLocation = callObjLocation;
 
-        if (pnode->IsCallApplyTargetLoad())
+        if (propertyId == Js::PropertyIds::length)
+        {
+            uint cacheId = funcInfo->FindOrAddInlineCacheId(protoLocation, propertyId, false, false);
+            byteCodeGenerator->Writer()->PatchableProperty(Js::OpCode::LdLen_A, pnode->location, protoLocation, cacheId);
+        }
+        else if (pnode->IsCallApplyTargetLoad())
         {
             if (ByteCodeGenerator::IsSuper(pnode->sxBin.pnode1))
             {

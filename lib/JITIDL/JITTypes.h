@@ -240,6 +240,11 @@ typedef struct ArrayCallSiteIDL
 #endif
 } ArrayCallSiteIDL;
 
+typedef struct LdLenIDL
+{
+    unsigned short arrayType;
+} LdLenIDL;
+
 typedef struct LdElemIDL
 {
     unsigned short arrayType;
@@ -262,6 +267,7 @@ typedef struct ProfileDataIDL
 
     ThisIDL thisData;
 
+    unsigned short profiledLdLenCount;
     unsigned short profiledLdElemCount;
     unsigned short profiledStElemCount;
     unsigned short profiledArrayCallSiteCount;
@@ -278,6 +284,8 @@ typedef struct ProfileDataIDL
     unsigned int loopCount;
 
     BVFixedIDL * loopFlags;
+
+    IDL_DEF([size_is(profiledLdLenCount)]) LdLenIDL * ldLenData;
 
     IDL_DEF([size_is(profiledLdElemCount)]) LdElemIDL * ldElemData;
 
