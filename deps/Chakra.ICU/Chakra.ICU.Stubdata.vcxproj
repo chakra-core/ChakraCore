@@ -2,7 +2,7 @@
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
-  <Import Project="$(MSBuildThisFileDirectory)Chakra.ICU.props" />
+  <Import Condition="exists('$(ChakraCoreRootDirectory)deps\Chakra.ICU\Chakra.ICU.props')" Project="$(MSBuildThisFileDirectory)Chakra.ICU.props" />
   <PropertyGroup Label="Globals">
     <TargetName>Chakra.ICU.Stubdata</TargetName>
     <ProjectGuid>{E14F373D-05A0-4259-A5E9-AFE8405FB847}</ProjectGuid>
