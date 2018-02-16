@@ -65,6 +65,7 @@ if(ICU_SETTINGS_RESET)
     unset(ICU_INCLUDE_PATH_SH CACHE)
     unset(NO_ICU_SH CACHE)
     unset(LOCAL_ICU_SH CACHE)
+    unset(SYSTEM_ICU_SH CACHE)
 endif()
 
 if(CC_TARGET_OS_ANDROID_SH)
@@ -110,9 +111,10 @@ if(NO_ICU_SH)
     unset(NO_ICU_SH CACHE)
 endif()
 
-function(clr_unknown_arch)
-    message(FATAL_ERROR "Only AMD64, ARM and I386 are supported")
-endfunction()
+if(SYSTEM_ICU_SH)
+    set(SYSTEM_ICU 1)
+    unset(SYSTEM_ICU_SH CACHE)
+endif()
 
 if(INTL_ICU_SH)
     unset(INTL_ICU_SH CACHE)
@@ -153,6 +155,27 @@ if(ICU_INCLUDE_PATH)
     endif()
 endif()
 
+if(CC_TARGET_OS_LINUX OR CC_TARGET_OS_ANDROID)
+    if(SYSTEM_ICU OR (NOT ICU_INCLUDE_PATH AND NOT NO_ICU))
+        set(ICU_LIBRARIES "icuuc")
+        if(INTL_ICU)
+            add_definitions(-DINTL_ICU=1)
+            set(ICU_LIBRARIES
+                ${ICU_LIBRARIES}
+                icui18n
+            )
+        endif()
+        add_definitions(-DHAS_REAL_ICU=1)
+    endif()
+elseif(CC_TARGET_OS_OSX)
+    # in case ICU path was given but it doesn't exist, build script will fail.
+    # so, fallback only if ICU path wasn't given
+    if(NOT ICU_INCLUDE_PATH)
+        set(NO_ICU 1)
+        message("-- Couldn't find ICU. Falling back to --no-icu build")
+    endif()
+endif()
+
 set(CLR_CMAKE_PLATFORM_XPLAT 1)
 if(CC_TARGETS_AMD64)
     add_definitions(-DTARGET_64)
@@ -181,7 +204,7 @@ elseif(CC_TARGETS_ARM)
         set(LINKER_REDUCED_MEMORY "-Xlinker --no-keep-memory")
     endif()
 else()
-    clr_unknown_arch()
+    message(FATAL_ERROR "Only AMD64, ARM and I386 are supported")
 endif()
 
 if(CAN_BUILD_WABT)
@@ -189,18 +212,6 @@ if(CAN_BUILD_WABT)
 endif()
 
 if(CC_TARGET_OS_LINUX OR CC_TARGET_OS_ANDROID)
-    if(SYSTEM_ICU_SH)
-        set(ICU_LIBRARIES "icuuc")
-        if(INTL_ICU)
-            add_definitions(-DINTL_ICU=1)
-            set(ICU_LIBRARIES
-                ${ICU_LIBRARIES}
-                icui18n
-            )
-        endif()
-        add_definitions(-DHAS_REAL_ICU=1)
-    endif()
-
     set(CLR_CMAKE_PLATFORM_LINUX 1)
     # OSX 10.12 Clang deprecates libstdc++ [See GH #1599]
     # So, -Werror is linux only for now
@@ -215,13 +226,6 @@ elseif(CC_TARGET_OS_OSX)
     add_definitions(
         -DPLATFORM_UNIX
     )
-
-    # in case ICU path was given but it doesn't exist, build script will fail.
-    # so, fallback only if ICU path wasn't given
-    if(NOT ICU_INCLUDE_PATH)
-        set(NO_ICU 1)
-        message("-- Couldn't find ICU. Falling back to --no-icu build")
-    endif()
 
     if(NOT CC_XCODE_PROJECT)
       set(OSX_DEPLOYMENT_TARGET "$ENV{MACOSX_DEPLOYMENT_TARGET} CC")

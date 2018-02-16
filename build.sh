@@ -229,6 +229,10 @@ while [[ $# -gt 0 ]]; do
         USE_LOCAL_ICU=0
         ;;
 
+    --embed-icu)
+        USE_LOCAL_ICU=1
+        ;;
+
     --system-icu)
         CMAKE_ICU="-DSYSTEM_ICU_SH=1"
         USE_LOCAL_ICU=0
@@ -398,7 +402,7 @@ if [[ $USE_LOCAL_ICU == 1 ]]; then
     if [ ! -d "$LOCAL_ICU_DIST" ]; then
         set -e
 
-        pushd "$LOCAL_ICU_DIR"
+        pushd "$LOCAL_ICU_DIR/source"
 
         ./configure --with-data-packaging=static\
                     --prefix="$LOCAL_ICU_DIST"\
@@ -407,6 +411,8 @@ if [[ $USE_LOCAL_ICU == 1 ]]; then
                     --with-library-bits=64\
                     --disable-icuio\
                     --disable-layout\
+                    --disable-tests\
+                    --disable-samples\
                     CXXFLAGS="-fPIC"\
                     CFLAGS="-fPIC"
 
@@ -432,7 +438,7 @@ else
     fi
 fi
 
-if [[ "$VERBOSE" != "0" ]]; then
+if [[ "$VERBOSE" != "" ]]; then
     # echo options back to the user
     echo "Printing command line options back to the user:"
     echo "_CXX=${_CXX}"
