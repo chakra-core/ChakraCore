@@ -144,6 +144,9 @@
   <test>
     <default>
       <files>module-load-twice.js</files>
+      <!-- This test is designed for ch only. -->
+      <!-- todo: enable using source code copy for jshost? -->
+      <tags>exclude_jshost</tags>
     </default>
   </test>
 </regress-exe>
