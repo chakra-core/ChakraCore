@@ -63,7 +63,7 @@ if(STATIC_LIBRARY)
     -Wl,-undefined,error
     ${LINKER_START_GROUP}
     ChakraCoreStatic
-    ${ICULIB}
+    ${ICU_LIBRARIES}
     ${LINKER_END_GROUP}
     dl
     )

@@ -127,7 +127,6 @@ namespace Js
         HRESULT GetClock(_In_ Windows::Globalization::DateTimeFormatting::IDateTimeFormatter* formatter, HSTRING * hClock);
         HRESULT GetItemAt(_In_ Windows::Foundation::Collections::IVectorView<HSTRING>* vector, _In_ uint32 index, HSTRING * item);
         void ResetCommonFactoryObjects();
-        void ResetTimeZoneFactoryObjects();
         void ResetDateTimeFormatFactoryObjects();
         void ResetNumberFormatFactoryObjects();
 #endif // ENABLE_INTL_OBJECT

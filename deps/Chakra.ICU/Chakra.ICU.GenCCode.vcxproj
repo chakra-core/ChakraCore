@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
+  <PropertyGroup Label="Globals">
+    <TargetName>Chakra.ICU.GenCCode</TargetName>
+    <ProjectGuid>{FA9E9590-0E6C-40F9-9527-E608F2DFA76D}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectName>Chakra.ICU.GenCCode</ProjectName>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.props" />
+  <Import Project="$(MSBuildThisFileDirectory)Chakra.ICU.Build.props" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>
+        %(AdditionalIncludeDirectories);
+        $(IcuSourceDirectory)\common;
+        $(IcuSourceDirectory)\i18n;
+        $(IcuSourceDirectory)\tools\toolutil
+      </AdditionalIncludeDirectories>
+      <CompileAs>CompileAsCpp</CompileAs>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup Condition="'$(ChakraICU)'!='false'">
+    <ClCompile Include="$(IcuGenccodeSources)" />
+    <ClInclude Include="$(IcuGenccodeHeaders)" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)Chakra.ICU.Common.vcxproj">
+      <Project>{EE2A3111-4D85-427C-B0AB-E6B0EA7FFB44}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)Chakra.ICU.i18n.vcxproj">
+      <Project>{0494C753-5BB9-45AA-874E-E61B9922E88F}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)Chakra.ICU.Toolutil.vcxproj">
+      <Project>{A87105AD-8F4A-4D7A-9096-EFD30DBA3E01}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)Chakra.ICU.Stubdata.vcxproj">
+      <Project>{E14F373D-05A0-4259-A5E9-AFE8405FB847}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

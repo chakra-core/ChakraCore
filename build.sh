@@ -40,14 +40,17 @@ PRINT_USAGE() {
     echo "     --cxx=PATH        Path to Clang++ (see example below)"
     echo "     --create-deb[=V]  Create .deb package with given V version."
     echo " -d, --debug           Debug build. Default: Release"
-    echo "     --embed-icu       Download and embed ICU-57 statically."
     echo "     --extra-defines=DEF=VAR,DEFINE,..."
     echo "                       Compile with additional defines"
     echo " -h, --help            Show help"
-    echo "     --icu=PATH        Path to ICU include folder (see example below)"
+    echo "     --custom-icu=PATH The path to ICUUC headers"
+    echo "                       If --libs-only --static is not specified,"
+    echo "                       PATH/../lib must be the location of ICU libraries"
+    echo "                       Example: /usr/local/opt/icu4c/include when using ICU from homebrew"
+    echo "     --system-icu      Use the ICU that you installed globally on your machine"
+    echo "     --no-icu          Compile without ICU (disables Unicode and Intl features)"
     echo " -j[=N], --jobs[=N]    Multicore build, allow N jobs at once."
     echo " -n, --ninja           Build with ninja instead of make."
-    echo "     --no-icu          Compile without unicode/icu/intl support."
     echo "     --no-jit          Disable JIT"
     echo "     --libs-only       Do not build CH and GCStress"
     echo "     --lto             Enables LLVM Full LTO"
@@ -61,7 +64,7 @@ PRINT_USAGE() {
     echo "     --target-path[=S] Output path for compiled binaries. Default: out/"
     echo "     --trace           Enables experimental built-in trace."
     echo "     --xcode           Generate XCode project."
-    echo "     --without-intl    --icu arg also enables Intl by default. Disable it."
+    echo "     --without-intl    Disable Intl (ECMA 402) support"
     echo "     --without=FEATURE,FEATURE,..."
     echo "                       Disable FEATUREs from JSRT experimental features."
     echo "     --valgrind        Enable Valgrind support"
@@ -79,7 +82,7 @@ script (at your own risk)"
     echo "example:"
     echo "  ./build.sh --cxx=/path/to/clang++ --cc=/path/to/clang -j"
     echo "with icu:"
-    echo "  ./build.sh --icu=/usr/local/opt/icu4c/include"
+    echo "  ./build.sh --custom-icu=/usr/local/opt/icu4c"
     echo ""
 }
 
@@ -88,14 +91,16 @@ CHAKRACORE_DIR=`pwd -P`
 popd > /dev/null
 _CXX=""
 _CC=""
-_VERBOSE=""
+VERBOSE="0"
 BUILD_TYPE="Release"
 CMAKE_GEN=
 EXTRA_DEFINES=""
 MAKE=make
 MULTICORE_BUILD=""
 NO_JIT=
-ICU_PATH="-DICU_SETTINGS_RESET=1"
+CMAKE_ICU="-DICU_SETTINGS_RESET=1"
+CMAKE_INTL="-DINTL_ICU_SH=1" # default to enabling intl
+USE_LOCAL_ICU=0 # default to using system version of ICU
 STATIC_LIBRARY="-DSHARED_LIBRARY_SH=1"
 SANITIZE=
 WITHOUT_FEATURES=""
@@ -116,8 +121,7 @@ VALGRIND=0
 # -DCMAKE_EXPORT_COMPILE_COMMANDS=ON useful for clang-query tool
 CMAKE_EXPORT_COMPILE_COMMANDS="-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
 LIBS_ONLY_BUILD=
-SHOULD_EMBED_ICU=0
-ALWAYS_YES=0
+ALWAYS_YES=
 
 UNAME_S=`uname -s`
 if [[ $UNAME_S =~ 'Linux' ]]; then
@@ -155,15 +159,11 @@ while [[ $# -gt 0 ]]; do
         ;;
 
     -v | --verbose)
-        _VERBOSE="VERBOSE=1"
+        VERBOSE="1"
         ;;
 
     -d | --debug)
         BUILD_TYPE="Debug"
-        ;;
-
-    --embed-icu)
-        SHOULD_EMBED_ICU=1
         ;;
 
     --extra-defines=*)
@@ -202,20 +202,45 @@ while [[ $# -gt 0 ]]; do
         fi
         ;;
 
+    --custom-icu=*)
+        ICU_PATH=$1
+        # `eval` used to resolve tilde in the path
+        eval ICU_PATH="${ICU_PATH:13}"
+        if [[ ! -d $ICU_PATH || ! -d $ICU_PATH/unicode ]]; then
+            # if --custom-icu is given, do not fallback to no-icu
+            echo "!!! couldn't find ICU at $ICU_PATH"
+            exit 1
+        fi
+        CMAKE_ICU="-DICU_INCLUDE_PATH_SH=$ICU_PATH"
+        USE_LOCAL_ICU=0
+        ;;
+
+    # allow legacy --icu flag for compatability
     --icu=*)
         ICU_PATH=$1
-        # resolve tilde on path
+        # `eval` used to resolve tilde in the path
         eval ICU_PATH="${ICU_PATH:6}"
-        if [[ ! -d ${ICU_PATH} ]]; then
-            if [[ -d "${CHAKRACORE_DIR}/${ICU_PATH}" ]]; then
-                ICU_PATH="${CHAKRACORE_DIR}/${ICU_PATH}"
-            else
-                # if ICU_PATH is given, do not fallback to no-icu
-                echo "!!! couldn't find ICU at $ICU_PATH"
-                exit 1
-            fi
+        if [[ ! -d $ICU_PATH || ! -d $ICU_PATH/unicode ]]; then
+            # if --custom-icu is given, do not fallback to no-icu
+            echo "!!! couldn't find ICU at $ICU_PATH"
+            exit 1
         fi
-        ICU_PATH="-DICU_INCLUDE_PATH_SH=${ICU_PATH}"
+        CMAKE_ICU="-DICU_INCLUDE_PATH_SH=$ICU_PATH"
+        USE_LOCAL_ICU=0
+        ;;
+
+    --embed-icu)
+        USE_LOCAL_ICU=1
+        ;;
+
+    --system-icu)
+        CMAKE_ICU="-DSYSTEM_ICU_SH=1"
+        USE_LOCAL_ICU=0
+        ;;
+
+    --no-icu)
+        CMAKE_ICU="-DNO_ICU_SH=1"
+        USE_LOCAL_ICU=0
         ;;
 
     --libs-only)
@@ -242,16 +267,12 @@ while [[ $# -gt 0 ]]; do
         MAKE=ninja
         ;;
 
-    --no-icu)
-        ICU_PATH="-DNO_ICU_PATH_GIVEN_SH=1"
-        ;;
-
     --no-jit)
         NO_JIT="-DNO_JIT_SH=1"
         ;;
 
     --without-intl)
-        INTL_ICU="-DNOINTL_ICU_SH=1"
+        CMAKE_INTL="-DINTL_ICU_SH=0"
         ;;
 
     --xcode)
@@ -351,7 +372,7 @@ while [[ $# -gt 0 ]]; do
         ;;
 
     -y | -Y)
-        ALWAYS_YES=1
+        ALWAYS_YES=-y
         ;;
 
     *)
@@ -364,64 +385,69 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-if [[ $SHOULD_EMBED_ICU == 1 ]]; then
-    if [ ! -d "${CHAKRACORE_DIR}/deps/icu/source/output" ]; then
-        ICU_URL="http://source.icu-project.org/repos/icu/icu/tags/release-57-1"
-        echo -e "\n----------------------------------------------------------------"
-        echo -e "\nThis script will download ICU-LIB from\n${ICU_URL}\n"
-        echo "It is licensed to you by its publisher, not Microsoft."
-        echo "Microsoft is not responsible for the software."
-        echo "Your installation and use of ICU-LIB is subject to the publisher's terms available here:"
-        echo -e "http://www.unicode.org/copyright.html#License\n"
-        echo -e "----------------------------------------------------------------\n"
-        echo "If you don't agree, press Ctrl+C to terminate"
-        WAIT_QUESTION="Hit ENTER to continue (or wait 10 seconds)"
-        if [[ $ALWAYS_YES == 1 ]]; then
-            echo "$WAIT_QUESTION : Y"
-        else
-            read -t 10 -p "$WAIT_QUESTION"
-        fi
-
-        SAFE_RUN `mkdir -p ${CHAKRACORE_DIR}/deps/`
-        cd "${CHAKRACORE_DIR}/deps/";
-        ABS_DIR=`pwd`
-        if [ ! -d "${ABS_DIR}/icu/" ]; then
-            echo "Downloading ICU ${ICU_URL}"
-            if [ ! -f "/usr/bin/svn" ]; then
-                echo -e "\nYou should install 'svn' client in order to use this feature"
-                if [ $OS_APT_GET == 1 ]; then
-                    echo "tip: Try 'sudo apt-get install subversion'"
-                fi
-                exit 1
-            fi
-            svn export -q $ICU_URL icu
-            ERROR_EXIT "rm -rf ${ABS_DIR}/icu/"
-        fi
-
-        cd "${ABS_DIR}/icu/source";./configure --with-data-packaging=static\
-                --prefix="${ABS_DIR}/icu/source/output/"\
-                --enable-static --disable-shared --with-library-bits=64\
-                --disable-icuio --disable-layout\
-                CXXFLAGS="-fPIC" CFLAGS="-fPIC"
-
-        ERROR_EXIT "rm -rf ${ABS_DIR}/icu/source/output/"
-        make STATICCFLAGS="-fPIC" STATICCXXFLAGS="-fPIC" STATICCPPFLAGS="-DPIC" install
-        ERROR_EXIT "rm -rf ${ABS_DIR}/icu/source/output/"
-        cd "${ABS_DIR}/../"
+if [[ $USE_LOCAL_ICU == 1 ]]; then
+    LOCAL_ICU_DIR="$CHAKRACORE_DIR/deps/Chakra.ICU/icu"
+    if [[ ! -d $LOCAL_ICU_DIR ]]; then
+        python "$CHAKRACORE_DIR/tools/configure_icu.py" 57.1 $ALWAYS_YES
     fi
-    ICU_PATH="-DCC_EMBED_ICU_SH=1"
+
+    # if there is still no directory, then the user declined the license agreement
+    if [[ ! -d $LOCAL_ICU_DIR ]]; then
+        echo "You must accept the ICU license agreement in order to use this configuration"
+        exit 1
+    fi
+
+    LOCAL_ICU_DIST="$LOCAL_ICU_DIR/output"
+
+    if [ ! -d "$LOCAL_ICU_DIST" ]; then
+        set -e
+
+        pushd "$LOCAL_ICU_DIR/source"
+
+        ./configure --with-data-packaging=static\
+                    --prefix="$LOCAL_ICU_DIST"\
+                    --enable-static\
+                    --disable-shared\
+                    --with-library-bits=64\
+                    --disable-icuio\
+                    --disable-layout\
+                    --disable-tests\
+                    --disable-samples\
+                    CXXFLAGS="-fPIC"\
+                    CFLAGS="-fPIC"
+
+        ERROR_EXIT "rm -rf $LOCAL_ICU_DIST"
+        make STATICCFLAGS="-fPIC" STATICCXXFLAGS="-fPIC" STATICCPPFLAGS="-DPIC" install
+        ERROR_EXIT "rm -rf $LOCAL_ICU_DIST"
+        popd
+    fi
+    CMAKE_ICU="-DICU_INCLUDE_PATH_SH=$LOCAL_ICU_DIST/include"
 fi
 
-if [[ ${#_VERBOSE} > 0 ]]; then
+if [[ "$MAKE" == "ninja" ]]; then
+    if [[ "$VERBOSE" == "1" ]]; then
+        VERBOSE="-v"
+    else
+        VERBOSE=""
+    fi
+else
+    if [[ "$VERBOSE" == "1" ]]; then
+        VERBOSE="VERBOSE=1"
+    else
+        VERBOSE=""
+    fi
+fi
+
+if [[ "$VERBOSE" != "" ]]; then
     # echo options back to the user
     echo "Printing command line options back to the user:"
     echo "_CXX=${_CXX}"
     echo "_CC=${_CC}"
     echo "BUILD_TYPE=${BUILD_TYPE}"
     echo "MULTICORE_BUILD=${MULTICORE_BUILD}"
-    echo "ICU_PATH=${ICU_PATH}"
+    echo "CMAKE_ICU=${CMAKE_ICU}"
     echo "CMAKE_GEN=${CMAKE_GEN}"
-    echo "MAKE=${MAKE} $_VERBOSE"
+    echo "MAKE=${MAKE} $VERBOSE"
     echo ""
 fi
 
@@ -619,8 +645,8 @@ fi
 
 echo Generating $BUILD_TYPE makefiles
 echo $EXTRA_DEFINES
-cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $LTO $LTTNG $STATIC_LIBRARY $ARCH $TARGET_OS \
-    $ENABLE_CC_XPLAT_TRACE $EXTRA_DEFINES -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT $INTL_ICU \
+cmake $CMAKE_GEN $CC_PREFIX $CMAKE_ICU $LTO $LTTNG $STATIC_LIBRARY $ARCH $TARGET_OS \
+    $ENABLE_CC_XPLAT_TRACE $EXTRA_DEFINES -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT $CMAKE_INTL \
     $WITHOUT_FEATURES $WB_FLAG $WB_ARGS $CMAKE_EXPORT_COMPILE_COMMANDS $LIBS_ONLY_BUILD\
     $VALGRIND $BUILD_RELATIVE_DIRECTORY
 
@@ -634,9 +660,9 @@ if [[ $? == 0 ]]; then
                 # Get -j flag from the host
                 MULTICORE_BUILD=""
             fi
-            $MAKE $MFLAGS $MULTICORE_BUILD $_VERBOSE $WB_TARGET 2>&1 | tee build.log
+            $MAKE $MFLAGS $MULTICORE_BUILD $VERBOSE $WB_TARGET 2>&1 | tee build.log
         else
-            $MAKE $MULTICORE_BUILD $_VERBOSE $WB_TARGET 2>&1 | tee build.log
+            $MAKE $MULTICORE_BUILD $VERBOSE $WB_TARGET 2>&1 | tee build.log
         fi
         _RET=${PIPESTATUS[0]}
     else

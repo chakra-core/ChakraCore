@@ -46,10 +46,10 @@ set(lib_target "${lib_target}"
   -Wl,-undefined,error
   ${LINKER_START_GROUP}
   ChakraCoreStatic
+  ${ICU_LIBRARIES}
   ${LINKER_END_GROUP}
   pthread
   dl
-  ${ICULIB}
   )
 
 if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)

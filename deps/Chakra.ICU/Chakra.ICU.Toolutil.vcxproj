@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
+  <PropertyGroup Label="Globals">
+    <TargetName>Chakra.ICU.Toolutil</TargetName>
+    <ProjectGuid>{A87105AD-8F4A-4D7A-9096-EFD30DBA3E01}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectName>Chakra.ICU.Toolutil</ProjectName>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.props" />
+  <Import Project="$(MSBuildThisFileDirectory)Chakra.ICU.Build.props" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PreprocessorDefinitions>
+        %(PreprocessorDefinitions);
+        U_TOOLUTIL_IMPLEMENTATION=1
+      </PreprocessorDefinitions>
+
+      <AdditionalIncludeDirectories>
+        %(AdditionalIncludeDirectories);
+        $(IcuSourceDirectory)\common;
+        $(IcuSourceDirectory)\i18n
+      </AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup Condition="'$(ChakraICU)'!='false'">
+    <ClCompile Include="$(IcuToolutilSources)" />
+    <ClInclude Include="$(IcuToolutilHeaders)" />
+  </ItemGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

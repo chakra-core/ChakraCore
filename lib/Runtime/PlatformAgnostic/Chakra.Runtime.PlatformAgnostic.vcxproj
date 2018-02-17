@@ -33,6 +33,10 @@
         $(MSBuildThisFileDirectory);
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(IcuIncludeDirectories)'!=''">
+        $(IcuIncludeDirectories);
+        %(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>RuntimePlatformAgnosticPch.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -51,7 +55,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Common\UnicodeText.Common.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\PerfTrace.cpp" />
   </ItemGroup>
-  <ItemGroup Condition="'$(IntlICU)'=='true'">
+  <ItemGroup Condition="'$(EnableIntl)'=='true' AND '$(UseICU)'=='true'">
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Common\Intl.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -61,8 +65,9 @@
     <ClInclude Include="UnicodeText.h" />
     <ClInclude Include="IPlatformAgnosticResource.h" />
   </ItemGroup>
-  <ItemGroup Condition="'$(IntlICU)'=='true'">
+  <ItemGroup Condition="'$(EnableIntl)'=='true' AND '$(UseICU)'=='true'">
     <ClInclude Include="Intl.h" />
+    <ClInclude Include="ICU.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\JITIDL\Chakra.JITIDL.vcxproj">

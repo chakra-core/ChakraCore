@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
+  <PropertyGroup Label="Globals">
+    <TargetName>Chakra.ICU.Data</TargetName>
+    <ProjectGuid>{347824B1-7100-4EE6-8A6B-4FF64E66B0C0}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectName>Chakra.ICU.Data</ProjectName>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType Condition="'$(ChakraICU)'!='shared'">StaticLibrary</ConfigurationType>
+    <ConfigurationType Condition="'$(ChakraICU)'=='shared'">DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.props" />
+  <Import Project="$(MSBuildThisFileDirectory)Chakra.ICU.Build.props" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <GenCCodePath>$(OutBaseDir)\bin\$(PlatformPathName.ToLower())_$(Configuration.ToLower())\Chakra.ICU.GenCCode.exe</GenCCodePath>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(ChakraICU)'!='false'">
+    <None Include="$(IntDir)icudt$(IcuVersionMajor)l_dat.obj" /> <!-- forces the automagic build system to create a lib from the obj -->
+    <CustomBuild Include="$(MSBuildThisFileDirectory)source\data\in\icudt$(IcuVersionMajor)l.dat">
+      <Command>$(GenCCodePath) --object --destdir $(IntDir) --entrypoint icudt$(IcuVersionMajor) $(IcuSourceDirectory)\data\in\icudt$(IcuVersionMajor)l.dat</Command>
+      <Outputs>$(IntDir)icudt$(IcuVersionMajor)l_dat.obj</Outputs>
+    </CustomBuild>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)Chakra.ICU.GenCCode.vcxproj">
+      <Project>{FA9E9590-0E6C-40F9-9527-E608F2DFA76D}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>
