@@ -889,19 +889,16 @@ namespace Js
         Var handlerResult = nullptr;
         JavascriptExceptionObject* exception = nullptr;
 
+        try
         {
-            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
-            try
-            {
-                handlerResult = CALL_FUNCTION(scriptContext->GetThreadContext(),
-                    handler, Js::CallInfo(Js::CallFlags::CallFlags_Value, 2),
-                    undefinedVar,
-                    argument);
-            }
-            catch (const JavascriptException& err)
-            {
-                exception = err.GetAndClear();
-            }
+            handlerResult = CALL_FUNCTION(scriptContext->GetThreadContext(),
+                handler, Js::CallInfo(Js::CallFlags::CallFlags_Value, 2),
+                undefinedVar,
+                argument);
+        }
+        catch (const JavascriptException& err)
+        {
+            exception = err.GetAndClear();
         }
 
         if (exception != nullptr)
@@ -1034,20 +1031,17 @@ namespace Js
         JavascriptPromiseResolveOrRejectFunction* reject = library->CreatePromiseResolveOrRejectFunction(EntryResolveOrRejectFunction, promise, true, alreadyResolvedRecord);
         JavascriptExceptionObject* exception = nullptr;
 
+        try
         {
-            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
-            try
-            {
-                return CALL_FUNCTION(scriptContext->GetThreadContext(),
-                    thenFunction, Js::CallInfo(Js::CallFlags::CallFlags_Value, 3),
-                    thenable,
-                    resolve,
-                    reject);
-            }
-            catch (const JavascriptException& err)
-            {
-                exception = err.GetAndClear();
-            }
+            return CALL_FUNCTION(scriptContext->GetThreadContext(),
+                thenFunction, Js::CallInfo(Js::CallFlags::CallFlags_Value, 3),
+                thenable,
+                resolve,
+                reject);
+        }
+        catch (const JavascriptException& err)
+        {
+            exception = err.GetAndClear();
         }
 
         Assert(exception != nullptr);
