@@ -202,15 +202,9 @@ JsValueRef WScriptJsrt::LoadScriptFileHelper(JsValueRef callee, JsValueRef *argu
             if (FAILED(hr))
             {
                 // check if have it registered
-                AutoString *data;
-                if (!SourceMap::Find(fileName, &data))
-                {
-                    fprintf(stderr, "Couldn't load file '%s'\n", fileName.GetString());
-                    IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
-                    return returnValue;
-                }
-
-                fileContent = data->GetString();
+                fprintf(stderr, "Couldn't load file '%s'\n", fileName.GetString());
+                IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
+                return returnValue;
             }
 
             returnValue = LoadScript(callee, *fileName, fileContent, *scriptInjectType ? *scriptInjectType : "self", isSourceModule, WScriptJsrt::FinalizeFree, true);
@@ -1105,16 +1099,9 @@ JsValueRef __stdcall WScriptJsrt::LoadTextFileCallback(JsValueRef callee, bool i
             if (FAILED(hr))
             {
                 // check if have it registered
-                AutoString *data;
-                if (!SourceMap::Find(fileName, &data))
-                {
-                    fprintf(stderr, "Couldn't load file '%s'\n", fileName.GetString());
-                    IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
-                    return returnValue;
-                }
-
-                fileContent = data->GetString();
-                lengthBytes = (UINT) data->GetLength();
+                fprintf(stderr, "Couldn't load file '%s'\n", fileName.GetString());
+                IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
+                return returnValue;
             }
 
             IfJsrtErrorSetGo(ChakraRTInterface::JsCreateString(
@@ -1276,17 +1263,9 @@ JsValueRef __stdcall WScriptJsrt::LoadBinaryFileCallback(JsValueRef callee,
             if (FAILED(hr))
             {
                 // check if have it registered
-                AutoString *data;
-                if (!SourceMap::Find(fileName, &data))
-                {
-                    fprintf(stderr, "Couldn't load file '%s'\n", fileName.GetString());
-                    IfJsrtErrorSetGoLabel(ChakraRTInterface::JsGetUndefinedValue(&returnValue), Error);
-                    return returnValue;
-                }
-
-                isHeapAlloc = false;
-                fileContent = data->GetString();
-                lengthBytes = (UINT) data->GetLength();
+                fprintf(stderr, "Couldn't load file '%s'\n", fileName.GetString());
+                IfJsrtErrorSetGoLabel(ChakraRTInterface::JsGetUndefinedValue(&returnValue), Error);
+                return returnValue;
             }
 
             JsValueRef arrayBuffer;
@@ -1726,17 +1705,12 @@ HRESULT WScriptJsrt::ModuleMessage::Call(LPCSTR fileName)
             if (FAILED(hr))
             {
                 // check if have it registered
-                AutoString *data;
-                if (!SourceMap::Find(specifierStr, &data))
+                if (!HostConfigFlags::flags.MuteHostErrorMsgIsEnabled)
                 {
-                    if (!HostConfigFlags::flags.MuteHostErrorMsgIsEnabled)
-                    {
-                        fprintf(stderr, "Couldn't load file '%s'\n", specifierStr.GetString());
-                    }
-                    LoadScript(nullptr, *specifierStr, nullptr, "module", true, WScriptJsrt::FinalizeFree, false);
-                    goto Error;
+                    fprintf(stderr, "Couldn't load file '%s'\n", specifierStr.GetString());
                 }
-                fileContent = data->GetString();
+                LoadScript(nullptr, *specifierStr, nullptr, "module", true, WScriptJsrt::FinalizeFree, false);
+                goto Error;
             }
             LoadScript(nullptr, *specifierStr, fileContent, "module", true, WScriptJsrt::FinalizeFree, true);
         }
