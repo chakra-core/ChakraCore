@@ -19412,13 +19412,14 @@ void Lowerer::GenerateFastInlineIsIn(IR::Instr * instr)
     }
 
     IR::LabelInstr* helperLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
+    IR::LabelInstr* doneFalseLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
     IR::LabelInstr* doneLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
     IR::LabelInstr* isArrayLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-    instr->InsertAfter(doneLabel);
 
     IR::RegOpnd* src1Untagged = GenerateUntagVar(src1->AsRegOpnd(), helperLabel, instr);
     IR::RegOpnd* src2RegOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
-    LowererMD::CreateAssign(src2RegOpnd, src2, instr);
+    InsertMove(src2RegOpnd, src2, instr);
+
 
     IR::AutoReuseOpnd autoReuseArrayOpnd;
     m_lowererMD.GenerateObjectTest(src2RegOpnd, instr, helperLabel);
@@ -19472,13 +19473,25 @@ void Lowerer::GenerateFastInlineIsIn(IR::Instr * instr)
         src1Untagged,
         headSegmentLengthOpnd,
         Js::OpCode::BrGe_A,
-        helperLabel,
+        doneFalseLabel,
+        instr);
+
+    InsertCompareBranch(
+        src1Untagged,
+        IR::IntConstOpnd::New(0, src1Untagged->GetType(), this->m_func),
+        Js::OpCode::BrLt_A,
+        doneFalseLabel,
         instr);
 
     InsertMove(instr->GetDst(), LoadLibraryValueOpnd(instr, LibraryValue::ValueTrue), instr);
     InsertBranch(Js::OpCode::Br, doneLabel, instr);
 
+    instr->InsertBefore(doneFalseLabel);
+    InsertMove(instr->GetDst(), LoadLibraryValueOpnd(instr, LibraryValue::ValueFalse), instr);
+    InsertBranch(Js::OpCode::Br, doneLabel, instr);
     instr->InsertBefore(helperLabel);
+
+    instr->InsertAfter(doneLabel);
 }
 
 void Lowerer::GenerateTruncWithCheck(IR::Instr* instr)
