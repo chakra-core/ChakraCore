@@ -1537,6 +1537,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::IsIn:
+            this->GenerateFastInlineIsIn(instr);
             this->LowerBinaryHelperMem(instr, IR::HelperOp_IsIn);
             break;
 
@@ -19396,6 +19397,88 @@ Lowerer::GenerateFastInlineRegExpExec(IR::Instr * instr)
     InsertBranch(Js::OpCode::Br, true, doneLabel, labelHelper);
 
     RelocateCallDirectToHelperPath(tmpInstr, labelHelper);
+}
+
+// Generate a fast path for the "in" operator that check quickly if we have an array or not and if the index of the data is contained in the array's length.
+void Lowerer::GenerateFastInlineIsIn(IR::Instr * instr)
+{
+    // operator "foo in bar"
+    IR::Opnd* src1 = instr->GetSrc1(); // foo
+    IR::Opnd* src2 = instr->GetSrc2(); // bar
+
+    if (!src2->GetValueType().IsLikelyArray() || !src2->GetValueType().HasNoMissingValues())
+    {
+        return;
+    }
+
+    IR::LabelInstr* helperLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
+    IR::LabelInstr* doneLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+    IR::LabelInstr* isArrayLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+    instr->InsertAfter(doneLabel);
+
+    IR::RegOpnd* src1Untagged = GenerateUntagVar(src1->AsRegOpnd(), helperLabel, instr);
+    IR::RegOpnd* src2RegOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
+    LowererMD::CreateAssign(src2RegOpnd, src2, instr);
+
+    IR::AutoReuseOpnd autoReuseArrayOpnd;
+    m_lowererMD.GenerateObjectTest(src2RegOpnd, instr, helperLabel);
+    IR::RegOpnd* arrayOpnd = src2RegOpnd->Copy(instr->m_func)->AsRegOpnd();
+    autoReuseArrayOpnd.Initialize(arrayOpnd, instr->m_func, false /* autoDelete */);
+
+    IR::Opnd* vtableOpnd = LoadVTableValueOpnd(instr, VTableValue::VtableJavascriptArray);
+    InsertCompareBranch(
+        IR::IndirOpnd::New(arrayOpnd, 0, TyMachPtr, instr->m_func),
+        vtableOpnd,
+        Js::OpCode::BrEq_A,
+        isArrayLabel,
+        instr);
+
+    vtableOpnd = LoadVTableValueOpnd(instr, VTableValue::VtableNativeIntArray);
+    InsertCompareBranch(
+        IR::IndirOpnd::New(arrayOpnd, 0, TyMachPtr, instr->m_func),
+        vtableOpnd,
+        Js::OpCode::BrEq_A,
+        isArrayLabel,
+        instr);
+
+    vtableOpnd = LoadVTableValueOpnd(instr, VTableValue::VtableNativeFloatArray);
+    InsertCompareBranch(
+        IR::IndirOpnd::New(arrayOpnd, 0, TyMachPtr, instr->m_func),
+        vtableOpnd,
+        Js::OpCode::BrNeq_A,
+        helperLabel,
+        instr);
+
+    instr->InsertBefore(isArrayLabel);
+
+    InsertTestBranch(
+        IR::IndirOpnd::New(src2RegOpnd, Js::JavascriptArray::GetOffsetOfArrayFlags(), TyUint8, m_func),
+        IR::IntConstOpnd::New(static_cast<uint8>(Js::DynamicObjectFlags::HasNoMissingValues), TyUint8, m_func, true),
+        Js::OpCode::BrEq_A,
+        helperLabel,
+        instr);
+
+    IR::AutoReuseOpnd autoReuseHeadSegmentOpnd;
+    IR::AutoReuseOpnd autoReuseHeadSegmentLengthOpnd;
+    IR::IndirOpnd* indirOpnd = IR::IndirOpnd::New(src2RegOpnd, Js::JavascriptArray::GetOffsetOfHead(), TyMachPtr, this->m_func);
+    IR::RegOpnd* headSegmentOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    autoReuseHeadSegmentOpnd.Initialize(headSegmentOpnd, m_func);
+    InsertMove(headSegmentOpnd, indirOpnd, instr);
+
+    IR::Opnd* headSegmentLengthOpnd = IR::IndirOpnd::New(headSegmentOpnd, Js::SparseArraySegmentBase::GetOffsetOfLength(), TyUint32, m_func);
+    autoReuseHeadSegmentLengthOpnd.Initialize(headSegmentLengthOpnd, m_func);
+
+    InsertCompareBranch(
+        src1Untagged,
+        headSegmentLengthOpnd,
+        Js::OpCode::BrGe_A,
+        helperLabel,
+        instr);
+
+    InsertMove(instr->GetDst(), LoadLibraryValueOpnd(instr, LibraryValue::ValueTrue), instr);
+    InsertBranch(Js::OpCode::Br, doneLabel, instr);
+
+    instr->InsertBefore(helperLabel);
 }
 
 void Lowerer::GenerateTruncWithCheck(IR::Instr* instr)

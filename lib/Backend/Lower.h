@@ -156,6 +156,7 @@ private:
     bool            GenerateLdThisCheck(IR::Instr * instr);
     bool            GenerateLdThisStrict(IR::Instr * instr);
     bool            GenerateFastIsInst(IR::Instr * instr);
+    void            GenerateFastInlineIsIn(IR::Instr * instr);
 
     void GenerateProtoLdFldFromFlagInlineCache(
         IR::Instr * insertBeforeInstr,
