@@ -137,7 +137,7 @@
       <baseline>proto_basic.baseline</baseline>
     </default>
   </test>
-  <!-- Microsoft/ChakraCore#2667 - Fix and Re-enable flaky tests proto_disable.js and proto_initializer.js
+  <!-- Microsoft/ChakraCore#2667 - Fix and Re-enable flaky tests proto_disable.js and proto_initializer.js -->
   <test>
     <default>
       <files>proto_disable.js</files>
@@ -158,7 +158,7 @@
       <tags>exclude_serialized</tags>
     </default>
   </test>
-  -->
+  <!--  xxxxxxxxxxxx -->
   <test>
     <default>
       <files>proto_addprop.js</files>
