@@ -30,6 +30,7 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsInitializeModuleRecordPtr)(JsModuleRecord referencingModule, JsValueRef normalizedSpecifier, JsModuleRecord* moduleRecord);
     typedef JsErrorCode (WINAPI *JsParseModuleSourcePtr)(JsModuleRecord requestModule, JsSourceContext sourceContext, byte* sourceText, unsigned int sourceLength, JsParseModuleSourceFlags sourceFlag, JsValueRef* exceptionValueRef);
     typedef JsErrorCode (WINAPI *JsModuleEvaluationPtr)(JsModuleRecord requestModule, JsValueRef* result);
+    typedef JsErrorCode (WINAPI *JsGetModuleNamespacePtr)(JsModuleRecord requestModule, JsValueRef *moduleNamespace);
     typedef JsErrorCode (WINAPI *JsSetModuleHostInfoPtr)(JsModuleRecord requestModule, JsModuleHostInfoKind moduleHostInfo, void* hostInfo);
     typedef JsErrorCode (WINAPI *JsGetModuleHostInfoPtr)(JsModuleRecord requestModule, JsModuleHostInfoKind moduleHostInfo, void** hostInfo);
     typedef JsErrorCode (WINAPI *JsrtCallFunctionPtr)(JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result);
@@ -129,6 +130,7 @@ struct JsAPIHooks
     JsParseModuleSourcePtr pfJsrtParseModuleSource;
     JsInitializeModuleRecordPtr pfJsrtInitializeModuleRecord;
     JsModuleEvaluationPtr pfJsrtModuleEvaluation;
+    JsGetModuleNamespacePtr pfJsrtGetModuleNamespace;
     JsSetModuleHostInfoPtr pfJsrtSetModuleHostInfo;
     JsGetModuleHostInfoPtr pfJsrtGetModuleHostInfo;
     JsrtCallFunctionPtr pfJsrtCallFunction;
@@ -381,6 +383,7 @@ public:
         return HOOK_JS_API(ParseModuleSource(requestModule, sourceContext, sourceText, sourceLength, sourceFlag, exceptionValueRef));
     }
     static JsErrorCode WINAPI JsModuleEvaluation(JsModuleRecord requestModule, JsValueRef* result) { return HOOK_JS_API(ModuleEvaluation(requestModule, result)); }
+    static JsErrorCode WINAPI JsGetModuleNamespace(JsModuleRecord requestModule, JsValueRef *moduleNamespace) { return HOOK_JS_API(GetModuleNamespace(requestModule, moduleNamespace)); }
     static JsErrorCode WINAPI JsInitializeModuleRecord(JsModuleRecord referencingModule, JsValueRef normalizedSpecifier, JsModuleRecord* moduleRecord) {
         return HOOK_JS_API(InitializeModuleRecord(referencingModule, normalizedSpecifier, moduleRecord));
     }

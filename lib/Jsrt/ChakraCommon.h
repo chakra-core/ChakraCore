@@ -230,6 +230,10 @@ typedef unsigned short uint16_t;
         /// </summary>
         JsNoWeakRefRequired,
         /// <summary>
+        ///     Module was not yet evaluated when JsGetModuleNamespace was called.
+        /// </summary>
+        JsErrorModuleNotEvaluated,
+        /// <summary>
         ///     Category of errors that relates to errors occurring within the engine itself.
         /// </summary>
         JsErrorCategoryEngine = 0x20000,
