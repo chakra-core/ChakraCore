@@ -101,7 +101,9 @@ namespace Js
             // Fetching the char* from the Field(char*) first so we can then cast to LPCUTF8
             const char* bufferStart = this->utf8String->buffer;
             LPCUTF8 start = reinterpret_cast<LPCUTF8>(bufferStart);
-            utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(buffer, start, start + this->utf8String->length);
+            size_t decodeLength = utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(buffer, start, start + this->utf8String->length);
+
+            Assert(decodeLength == this->GetLength());
 
             buffer[this->GetLength()] = 0;
 
@@ -112,6 +114,16 @@ namespace Js
         static bool Is(RecyclableObject* obj)
         {
             return VirtualTableInfo<Js::Utf8String>::HasVirtualTable(obj);
+        }
+
+        static Utf8String* From(RecyclableObject* obj)
+        {
+            if (Utf8String::Is(obj))
+            {
+                return static_cast<Utf8String*>(obj);
+            }
+
+            return nullptr;
         }
 
         template <typename StringType>
