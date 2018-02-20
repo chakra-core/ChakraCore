@@ -41,6 +41,40 @@ namespace Js
             this->SetBuffer(originalString->UnsafeGetBuffer());
         }
 
+        Utf8String(_In_reads_(utf8Length) char* buffer, size_t utf8Length, _In_ StaticType* type) :
+            JavascriptString(type),
+            utf8String(nullptr)
+        {
+            SetUtf8Buffer(buffer, utf8Length);
+
+            charcount_t utf16Length = 0;
+            utf8::DecodeOptions opts;
+            LPCUTF8 buf = reinterpret_cast<LPCUTF8>(buffer);
+            LPCUTF8 end = buf + utf8Length;
+            while (buf < end)
+            {
+                if ((*buf & 0x80) == 0)
+                {
+                    // Single byte character
+                    utf16Length++;
+                    buf++;
+                }
+                else
+                {
+                    // Decode a single utf16 character, and increment the pointer
+                    // to the start of the next character.
+                    char16 c1 = *buf;
+                    ++buf;
+                    utf8::DecodeTail(c1, buf, end, opts);
+                    utf16Length++;
+                }
+            }
+
+            this->SetLength(utf16Length);
+            this->SetBuffer(nullptr);
+        }
+
+
         size_t Utf8Length() const
         {
             return this->utf8String->length;
@@ -67,7 +101,9 @@ namespace Js
             // Fetching the char* from the Field(char*) first so we can then cast to LPCUTF8
             const char* bufferStart = this->utf8String->buffer;
             LPCUTF8 start = reinterpret_cast<LPCUTF8>(bufferStart);
-            utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(buffer, start, start + this->utf8String->length);
+            size_t decodeLength = utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(buffer, start, start + this->utf8String->length);
+
+            Assert(decodeLength == this->GetLength());
 
             buffer[this->GetLength()] = 0;
 
@@ -78,6 +114,16 @@ namespace Js
         static bool Is(RecyclableObject* obj)
         {
             return VirtualTableInfo<Js::Utf8String>::HasVirtualTable(obj);
+        }
+
+        static Utf8String* From(RecyclableObject* obj)
+        {
+            if (Utf8String::Is(obj))
+            {
+                return static_cast<Utf8String*>(obj);
+            }
+
+            return nullptr;
         }
 
         template <typename StringType>

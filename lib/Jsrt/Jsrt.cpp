@@ -4672,9 +4672,17 @@ CHAKRA_API JsCreateString(
 
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
 
-        Js::JavascriptString *stringValue = Js::LiteralStringWithPropertyStringPtr::
-            NewFromCString(content, (CharCount)length, scriptContext->GetLibrary());
+        char * recyclerBuffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char, length);
+        if (recyclerBuffer == nullptr)
+        {
+            Js::JavascriptError::ThrowOutOfMemoryError(scriptContext);
+        }
 
+        memcpy_s(recyclerBuffer, length, content, length);
+
+        Js::JavascriptString *stringValue = RecyclerNew(scriptContext->GetRecycler(), Js::Utf8String, recyclerBuffer, length, scriptContext->GetLibrary()->GetStringTypeStatic());
+
+        // TODO: With TTD enabled we immediately flatten these strings to utf16. Perhaps we should handle this differently.
         PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTCreateString, stringValue->GetSz(), stringValue->GetLength());
 
         *value = stringValue;
@@ -4857,10 +4865,20 @@ _ALWAYSINLINE JsErrorCode CompileRun(
         if (isString)
         {
             Js::JavascriptString* jsString = Js::JavascriptString::FromVar(scriptVal);
-            script = (const byte*)jsString->GetSz();
-
-            // JavascriptString is 2 bytes (WCHAR/char16)
-            cb = jsString->GetLength() * sizeof(WCHAR);
+            if (Js::Utf8String::Is(jsString))
+            {
+                // If we have a utf8 buffer, we can parse that directly
+                Js::Utf8String * utf8String = Js::Utf8String::From(jsString);
+                script = (const byte*)utf8String->Utf8Buffer();
+                cb = utf8String->Utf8Length();
+                scriptFlag = (LoadScriptFlag)(scriptFlag | LoadScriptFlag_Utf8Source);
+            }
+            else
+            {
+                script = (const byte*)jsString->GetSz();
+                // JavascriptString is 2 bytes (WCHAR/char16)
+                cb = jsString->GetLength() * sizeof(WCHAR);
+            }
         }
 
         if (!Js::JavascriptString::Is(sourceUrl))
