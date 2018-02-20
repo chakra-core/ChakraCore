@@ -54,6 +54,7 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtGetValueType)(JsValueRef value, JsValueType *type);
     typedef JsErrorCode (WINAPI *JsrtSetIndexedPropertyPtr)(JsValueRef object, JsValueRef index, JsValueRef value);
     typedef JsErrorCode (WINAPI *JsrtSetPromiseContinuationCallbackPtr)(JsPromiseContinuationCallback callback, void *callbackState);
+    typedef JsErrorCode (WINAPI *JsrtSetHostPromiseRejectionTrackerPtr)(JsHostPromiseRejectionTrackerCallback callback, void *callbackState);
     typedef JsErrorCode (WINAPI *JsrtGetContextOfObject)(JsValueRef object, JsContextRef *callbackState);
 
     typedef JsErrorCode(WINAPI *JsrtDiagStartDebugging)(JsRuntimeHandle runtimeHandle, JsDiagDebugEventCallback debugEventCallback, void* callbackState);
@@ -152,6 +153,7 @@ struct JsAPIHooks
     JsrtGetValueType pfJsrtGetValueType;
     JsrtSetIndexedPropertyPtr pfJsrtSetIndexedProperty;
     JsrtSetPromiseContinuationCallbackPtr pfJsrtSetPromiseContinuationCallback;
+    JsrtSetHostPromiseRejectionTrackerPtr pfJsrtSetHostPromiseRejectionTracker;
     JsrtGetContextOfObject pfJsrtGetContextOfObject;
     JsrtDiagStartDebugging pfJsrtDiagStartDebugging;
     JsrtDiagStopDebugging pfJsrtDiagStopDebugging;
@@ -356,6 +358,7 @@ public:
     static JsErrorCode WINAPI JsGetValueType(JsValueRef value, JsValueType *type) { return HOOK_JS_API(GetValueType(value, type)); }
     static JsErrorCode WINAPI JsSetIndexedProperty(JsValueRef object, JsValueRef index, JsValueRef value) { return HOOK_JS_API(SetIndexedProperty(object, index, value)); }
     static JsErrorCode WINAPI JsSetPromiseContinuationCallback(JsPromiseContinuationCallback callback, void *callbackState) { return HOOK_JS_API(SetPromiseContinuationCallback(callback, callbackState)); }
+    static JsErrorCode WINAPI JsSetHostPromiseRejectionTracker(JsHostPromiseRejectionTrackerCallback callback, void *callbackState) { return HOOK_JS_API(SetHostPromiseRejectionTracker(callback, callbackState)); }
     static JsErrorCode WINAPI JsGetContextOfObject(JsValueRef object, JsContextRef* context) { return HOOK_JS_API(GetContextOfObject(object, context)); }
     static JsErrorCode WINAPI JsDiagStartDebugging(JsRuntimeHandle runtimeHandle, JsDiagDebugEventCallback debugEventCallback, void* callbackState) { return HOOK_JS_API(DiagStartDebugging(runtimeHandle, debugEventCallback, callbackState)); }
     static JsErrorCode WINAPI JsDiagStopDebugging(JsRuntimeHandle runtimeHandle, void** callbackState) { return HOOK_JS_API(DiagStopDebugging(runtimeHandle, callbackState)); }

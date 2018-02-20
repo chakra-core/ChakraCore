@@ -62,3 +62,5 @@ JsLessThan
 JsLessThanOrEqual
 
 JsCreateEnhancedFunction
+
+JsSetHostPromiseRejectionTracker

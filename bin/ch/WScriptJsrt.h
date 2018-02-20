@@ -58,6 +58,7 @@ public:
     static JsErrorCode NotifyModuleReadyCallback(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef exceptionVar);
     static JsErrorCode InitializeModuleCallbacks();
     static void CALLBACK PromiseContinuationCallback(JsValueRef task, void *callbackState);
+    static void CALLBACK PromiseRejectionTrackerCallback(JsValueRef promise, JsValueRef reason, bool handled, void *callbackState);
 
     static LPCWSTR ConvertErrorCodeToMessage(JsErrorCode errorCode)
     {

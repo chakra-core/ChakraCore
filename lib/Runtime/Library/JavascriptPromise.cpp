@@ -12,6 +12,7 @@ namespace Js
         Assert(type->GetTypeId() == TypeIds_Promise);
 
         this->status = PromiseStatusCode_Undefined;
+        this->isHandled = false;
         this->result = nullptr;
         this->resolveReactions = nullptr;
         this->rejectReactions = nullptr;
@@ -660,6 +661,10 @@ namespace Js
         {
             reactions = this->GetRejectReactions();
             newStatus = PromiseStatusCode_HasRejection;
+            if (!GetIsHandled())
+            {
+                scriptContext->GetLibrary()->CallNativeHostPromiseRejectionTracker(this, resolution, false);
+            }
         }
         else
         {
@@ -838,12 +843,18 @@ namespace Js
             EnqueuePromiseReactionTask(resolveReaction, sourcePromise->result, scriptContext);
             break;
         case PromiseStatusCode_HasRejection:
+            if (!sourcePromise->GetIsHandled())
+            {
+                scriptContext->GetLibrary()->CallNativeHostPromiseRejectionTracker(sourcePromise, sourcePromise->result, true);
+            }
             EnqueuePromiseReactionTask(rejectReaction, sourcePromise->result, scriptContext);
             break;
         default:
             AssertMsg(false, "Promise status is in an invalid state");
             break;
         }
+
+        sourcePromise->SetIsHandled();
 
         return promiseCapability->GetPromise();
     }

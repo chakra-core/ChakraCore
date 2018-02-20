@@ -120,6 +120,7 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
     m_jsApiHooks.pfJsrtGetValueType = (JsAPIHooks::JsrtGetValueType)GetChakraCoreSymbol(library, "JsGetValueType");
     m_jsApiHooks.pfJsrtSetIndexedProperty = (JsAPIHooks::JsrtSetIndexedPropertyPtr)GetChakraCoreSymbol(library, "JsSetIndexedProperty");
     m_jsApiHooks.pfJsrtSetPromiseContinuationCallback = (JsAPIHooks::JsrtSetPromiseContinuationCallbackPtr)GetChakraCoreSymbol(library, "JsSetPromiseContinuationCallback");
+    m_jsApiHooks.pfJsrtSetHostPromiseRejectionTracker = (JsAPIHooks::JsrtSetHostPromiseRejectionTrackerPtr)GetChakraCoreSymbol(library, "JsSetHostPromiseRejectionTracker");
     m_jsApiHooks.pfJsrtGetContextOfObject = (JsAPIHooks::JsrtGetContextOfObject)GetChakraCoreSymbol(library, "JsGetContextOfObject");
     m_jsApiHooks.pfJsrtInitializeModuleRecord = (JsAPIHooks::JsInitializeModuleRecordPtr)GetChakraCoreSymbol(library, "JsInitializeModuleRecord");
     m_jsApiHooks.pfJsrtParseModuleSource = (JsAPIHooks::JsParseModuleSourcePtr)GetChakraCoreSymbol(library, "JsParseModuleSource");
