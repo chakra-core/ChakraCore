@@ -20,7 +20,6 @@
 #include "Common/ByteSwap.h"
 #include "Library/DataView.h"
 
-#include "Library/JSONString.h"
 #include "Library/LazyJSONString.h"
 #include "Library/JSONStringBuilder.h"
 #include "Library/JSONStringifier.h"
@@ -28,6 +27,7 @@
 #include "Library/SingleCharString.h"
 #include "Library/SubString.h"
 #include "Library/BufferStringBuilder.h"
+#include "Library/Utf8String.h"
 
 #include "Library/BoundFunction.h"
 #include "Library/JavascriptGeneratorFunction.h"

@@ -37,7 +37,6 @@
     <ClCompile Include="$(MsBuildThisFileDirectory)javascripttypednumber.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JSONParser.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JSONScanner.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)JSONString.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)ProfileString.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)RootObjectBase.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)RuntimeFunction.cpp" />
@@ -174,7 +173,6 @@
     <ClInclude Include="JavascriptWeakSet.h" />
     <ClInclude Include="JSONParser.h" />
     <ClInclude Include="JSONScanner.h" />
-    <ClInclude Include="JSONString.h" />
     <ClInclude Include="MapOrSetDataList.h" />
     <ClInclude Include="ProfileString.h" />
     <ClInclude Include="RootObjectBase.h" />
@@ -273,6 +271,7 @@
     <ClInclude Include="JsBuiltIn\JsBuiltIn.js.nojit.bc.32b.h" />
     <ClInclude Include="JsBuiltIn\JsBuiltIn.js.nojit.bc.64b.h" />
     <ClInclude Include="PropertyRecordUsageCache.h" />
+    <ClInclude Include="Utf8String.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ConcatString.inl" />

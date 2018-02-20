@@ -97,7 +97,7 @@ namespace Js
         void FinishCopy(__inout_xcount(m_charLength) char16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos);
 
     public:
-        virtual int GetRandomAccessItemsFromConcatString(Js::JavascriptString * const *& items) const { return -1; }
+        virtual int GetRandomAccessItemsFromConcatString(_Out_ Js::JavascriptString * const *& items) const { items = nullptr; return -1; }
         virtual bool IsTree() const { return false; }
 
         virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags propertyOperationFlags) override;
