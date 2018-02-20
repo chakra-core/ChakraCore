@@ -1465,8 +1465,8 @@ private:
         void InvalidateProtoCaches(const PropertyId propertyId);
         void InvalidateAllProtoCaches();
 
-        // Invalidate all prototype caches for propertyId where the property is missing
-        void InvalidateMissingPropertyCaches(const PropertyId propertyId);
+        // Invalidate all prototype caches for propertyId where the property is missing on the specified type
+        void InvalidateMissingPropertyCaches(const Type *type, const PropertyId propertyId);
 
         void RegisterStoreFieldInlineCache(InlineCache *pCache, PropertyId propId);
         void InvalidateStoreFieldCaches(const PropertyId propertyId);

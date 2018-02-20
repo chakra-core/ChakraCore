@@ -1358,8 +1358,8 @@ public:
 
     void InvalidateProtoInlineCaches(Js::PropertyId propertyId);
 
-    // Invalidates all prototype cache entries for propertyId where the property is missing.
-    void InvalidateMissingPropertyInlineCaches(Js::PropertyId propertyId);
+    // Invalidates all prototype cache entries for propertyId where the property is missing on the specified type
+    void InvalidateMissingPropertyInlineCaches(const Js::Type *type, Js::PropertyId propertyId);
     
     void InvalidateStoreFieldInlineCaches(Js::PropertyId propertyId);
     void InvalidateAllProtoInlineCaches();
@@ -1404,8 +1404,8 @@ public:
     void InvalidateAllProtoTypePropertyCaches();
 
     // Variant of InvalidateProtoTypePropertyCaches that invalidates only those cache entries associated
-    // with missing properties.
-    void InvalidateMissingPropertyProtoTypePropertyCaches(const Js::PropertyId propertyId);
+    // with missing properties for the specified type.
+    void InvalidateMissingPropertyProtoTypePropertyCaches(const Js::Type *type, const Js::PropertyId propertyId);
 
     Js::ScriptContext ** RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext(Js::ScriptContext * scriptContext);
     void UnregisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext(Js::ScriptContext ** scriptContext);

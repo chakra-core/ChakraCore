@@ -468,4 +468,12 @@ namespace Js
         if(element.Id() == id)
             element.Clear();
     }
+
+#if DBG
+    bool TypePropertyCache::PropertyIsMissing(const PropertyId id) const
+    {
+        const TypePropertyCacheElement &element = elements[ElementIndex(id)];
+        return (element.Id() == id && element.IsMissing());
+    }
+#endif
 }

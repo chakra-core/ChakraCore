@@ -68,5 +68,9 @@ namespace Js
         // If the property is marked as missing, clear the cache entry and return true; else return false with no other effects.
         bool ClearIfPropertyIsMissing(const PropertyId id);
         void Clear(const PropertyId id);
+
+#if DBG
+        bool PropertyIsMissing(const PropertyId id) const;
+#endif
     };
 }

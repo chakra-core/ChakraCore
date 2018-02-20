@@ -4561,13 +4561,13 @@ namespace Js
         threadContext->InvalidateAllProtoTypePropertyCaches();
     }
 
-    void ScriptContext::InvalidateMissingPropertyCaches(const PropertyId propertyId)
+    void ScriptContext::InvalidateMissingPropertyCaches(const Type *type, const PropertyId propertyId)
     {
-        threadContext->InvalidateMissingPropertyInlineCaches(propertyId);
+        threadContext->InvalidateMissingPropertyInlineCaches(type, propertyId);
 #if ENABLE_NATIVE_CODEGEN
         threadContext->InvalidatePropertyGuards(propertyId);
 #endif
-        threadContext->InvalidateMissingPropertyProtoTypePropertyCaches(propertyId);
+        threadContext->InvalidateMissingPropertyProtoTypePropertyCaches(type, propertyId);
     }
 
     void ScriptContext::RegisterStoreFieldInlineCache(InlineCache *pCache, PropertyId propId)

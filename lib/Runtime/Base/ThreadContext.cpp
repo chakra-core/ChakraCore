@@ -3231,12 +3231,13 @@ ThreadContext::InvalidateProtoInlineCaches(Js::PropertyId propertyId)
 }
 
 void
-ThreadContext::InvalidateMissingPropertyInlineCaches(Js::PropertyId propertyId) {
+ThreadContext::InvalidateMissingPropertyInlineCaches(const Js::Type *type, Js::PropertyId propertyId) {
     InlineCacheList *inlineCacheList;
     if (protoInlineCacheByPropId.TryGetValue(propertyId, &inlineCacheList))
     {
         if (PHASE_TRACE1(Js::TraceInlineCacheInvalidationPhase))
         {
+            // XXX Can we get type's name and include it in this log message?
             Output::Print(_u("InlineCacheInvalidation: invalidating missing-property proto caches for property %s(%u)\n"),
                 GetPropertyName(propertyId)->GetBuffer(), propertyId);
             Output::Flush();
@@ -3249,7 +3250,10 @@ ThreadContext::InvalidateMissingPropertyInlineCaches(Js::PropertyId propertyId) 
             // (among other things) it must update this->unregisteredInlineCacheCount to reflect the number of
             // NULL entries in the list that are being deleted.  For simplicity, I skip those here and leave the count intact.
             // Should we remove them?
-            if (inlineCache != nullptr && inlineCache->u.proto.isProto && inlineCache->u.proto.isMissing) {
+            if (inlineCache != nullptr && inlineCache->u.proto.isProto && inlineCache->u.proto.type == type) {
+                // Since this method is only called in response to adding a new property, then the property
+                // can only be in the cache if it was previously missing.
+                Assert(inlineCache->u.proto.isMissing);
                 if (PHASE_VERBOSE_TRACE1(Js::TraceInlineCacheInvalidationPhase))
                 {
                     Output::Print(_u("InlineCacheInvalidation: invalidating cache 0x%p\n"), inlineCache);
@@ -3954,25 +3958,35 @@ void ThreadContext::DoInvalidateProtoTypePropertyCaches(const Js::PropertyId pro
         });
 }
 
-void ThreadContext::InvalidateMissingPropertyProtoTypePropertyCaches(const Js::PropertyId propertyId)
+void ThreadContext::InvalidateMissingPropertyProtoTypePropertyCaches(const Js::Type *type, const Js::PropertyId propertyId)
 {
     Assert(propertyId != Js::Constants::NoProperty);
     Assert(IsActivePropertyId(propertyId));
 
     // Get the hash set of registered types associated with the property
-    // ID, invalidate each type in the hash set for which we've cached the
-    // property as missing, and remove them from the hash set.  If the set
-    // is empty at this point, remove the property ID and its hash set from
-    // the map.
+    // ID, invalidate the indicated type's property cache, and remove it from
+    // the hash set.  If the set is now empty, remove the property ID and its
+    // hash set from the map.
     PropertyIdToTypeHashSetDictionary &typesWithProtoPropertyCache = recyclableData->typesWithProtoPropertyCache;
     TypeHashSet *typeHashSet = nullptr;
     if (typesWithProtoPropertyCache.Count() != 0 && typesWithProtoPropertyCache.TryGetValue(propertyId, &typeHashSet))
     {
         Assert(typeHashSet != nullptr);
-        typeHashSet->Map(
-            [propertyId](Js::Type * const type, const bool, const RecyclerWeakReference<Js::Type>*) -> bool
+        typeHashSet->FilterMap(
+            [propertyId, type](Js::Type * const entryType, const bool, const RecyclerWeakReference<Js::Type>*) -> bool
             {
-                return !(type->GetPropertyCache()->ClearIfPropertyIsMissing(propertyId));
+                if (entryType == type)
+                {
+                    // We only call this method when adding a new property to a type.  If the property
+                    // is already cached, then it must have been cached as a missing property.
+                    Assert(entryType->GetPropertyCache()->PropertyIsMissing(propertyId));
+                    return !(entryType->GetPropertyCache()->ClearIfPropertyIsMissing(propertyId));
+                }
+                else
+                {
+                    // Entry is for a different type; return true to indicate that we should keep entry in typeHashSet.
+                    return true;
+                }
             });
         // If all of the entries in typeHashSet corresponding to missing properties, then
         // we've empted typeHashSet, so remove the property from the dictionary.

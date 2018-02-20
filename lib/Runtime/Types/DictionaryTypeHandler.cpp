@@ -2206,7 +2206,7 @@ namespace Js
         else
         {
             // If not a prototype, invalidate all of the missing-property caches for this property.
-            scriptContext->InvalidateMissingPropertyCaches(propertyRecord->GetPropertyId());
+            scriptContext->InvalidateMissingPropertyCaches(instance->GetDynamicType(), propertyRecord->GetPropertyId());
         }
 
         SetPropertyUpdateSideEffect(instance, propertyRecord->GetPropertyId(), value, possibleSideEffects);
