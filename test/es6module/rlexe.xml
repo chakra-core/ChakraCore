@@ -143,6 +143,13 @@
   </test>
   <test>
     <default>
+      <files>GetModuleNamespace.js</files>
+      <compile-flags>-ESDynamicImport</compile-flags>
+      <tags>exclude_jshost,exclude_sanitize_address</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>module-load-twice.js</files>
       <!-- This test is designed for ch only. -->
       <!-- todo: enable using source code copy for jshost? -->

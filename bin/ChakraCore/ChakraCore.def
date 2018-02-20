@@ -52,6 +52,7 @@ JsParseModuleSource
 JsModuleEvaluation
 JsSetModuleHostInfo
 JsGetModuleHostInfo
+JsGetModuleNamespace
 JsInitializeJITServer
 
 JsCreateSharedArrayBufferWithSharedContent

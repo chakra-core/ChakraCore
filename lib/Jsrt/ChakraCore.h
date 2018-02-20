@@ -1036,5 +1036,21 @@ CHAKRA_API
     JsSetHostPromiseRejectionTracker(
         _In_ JsHostPromiseRejectionTrackerCallback promiseRejectionTrackerCallback, 
         _In_opt_ void *callbackState);
+
+/// <summary>
+///     Provides the namespace object for a module.
+/// </summary>
+/// <remarks>
+///     Requires an active script context and that the module has already been evaluated.
+/// </remarks>
+/// <param name="requestModule">The JsModuleRecord for which the namespace is being requested.</param>
+/// <param name="moduleNamespace">A JsValueRef - the requested namespace object.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsGetModuleNamespace(
+        _In_ JsModuleRecord requestModule,
+        _Outptr_result_maybenull_ JsValueRef *moduleNamespace);
 #endif // _CHAKRACOREBUILD
 #endif // _CHAKRACORE_H_

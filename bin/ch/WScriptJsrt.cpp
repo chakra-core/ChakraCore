@@ -230,6 +230,67 @@ Error:
     return returnValue;
 }
 
+JsValueRef __stdcall WScriptJsrt::GetModuleNamespace(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    JsErrorCode errorCode = JsNoError;
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    LPCWSTR errorMessage = _u("");
+    char fullPath[_MAX_PATH];
+
+    if (argumentCount < 2)
+    {
+        errorCode = JsErrorInvalidArgument;
+        errorMessage = _u("Need an argument for WScript.GetModuleNamespace");
+    }
+    else
+    {
+        AutoString specifierStr(arguments[1]);
+        errorCode = specifierStr.GetError();
+
+        if (errorCode == JsNoError)
+        {
+            if (_fullpath(fullPath, specifierStr.GetString(), _MAX_PATH) == nullptr)
+            {
+                errorCode = JsErrorInvalidArgument;
+            }
+            else
+            {
+                auto moduleEntry = moduleRecordMap.find(fullPath);
+                if (moduleEntry == moduleRecordMap.end())
+                {
+                    errorCode = JsErrorInvalidArgument;
+                    errorMessage = _u("Need to supply a path for an already loaded module for WScript.GetModuleNamespace");
+                }
+                else
+                {
+                    errorCode = ChakraRTInterface::JsGetModuleNamespace(moduleEntry->second, &returnValue);
+                    if (errorCode == JsErrorModuleNotEvaluated)
+                    {
+                        errorMessage = _u("GetModuleNamespace called with un-evaluated module");
+                    }
+                }
+            }
+        }
+    }
+
+    if (errorCode != JsNoError)
+    {
+        JsValueRef errorObject;
+        JsValueRef errorMessageString;
+
+        if (wcscmp(errorMessage, _u("")) == 0)
+        {
+            errorMessage = ConvertErrorCodeToMessage(errorCode);
+        }
+
+        ERROR_MESSAGE_TO_STRING(errCode, errorMessage, errorMessageString);
+
+        ChakraRTInterface::JsCreateError(errorMessageString, &errorObject);
+        ChakraRTInterface::JsSetException(errorObject);
+    }
+    return returnValue;
+}
+
 JsValueRef __stdcall WScriptJsrt::LoadScriptCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
     return LoadScriptHelper(callee, isConstructCall, arguments, argumentCount, callbackState, false);
@@ -859,6 +920,7 @@ bool WScriptJsrt::Initialize()
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadTextFile", LoadTextFileCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Flag", FlagCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "RegisterModuleSource", RegisterModuleSourceCallback));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "GetModuleNamespace", GetModuleNamespace));
 
     // ToDo Remove
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Edit", EmptyCallback));

@@ -227,3 +227,20 @@ JsGetModuleHostInfo(
     });
     return errorCode;
 }
+
+CHAKRA_API JsGetModuleNamespace(_In_ JsModuleRecord requestModule, _Outptr_result_maybenull_ JsValueRef *moduleNamespace)
+{
+    PARAM_NOT_NULL(moduleNamespace);
+    *moduleNamespace = nullptr;
+    if (!Js::SourceTextModuleRecord::Is(requestModule))
+    {
+        return JsErrorInvalidArgument;
+    }
+    Js::SourceTextModuleRecord* moduleRecord = Js::SourceTextModuleRecord::FromHost(requestModule);
+    if (!moduleRecord->WasEvaluated())
+    {
+        return JsErrorModuleNotEvaluated;
+    }
+    *moduleNamespace = static_cast<JsValueRef>(moduleRecord->GetNamespace());
+    return JsNoError;
+}

@@ -5336,10 +5336,10 @@ CHAKRA_API JsGetDataViewInfo(
 
 CHAKRA_API JsSetHostPromiseRejectionTracker(_In_ JsHostPromiseRejectionTrackerCallback promiseRejectionTrackerCallback, _In_opt_ void *callbackState)
 {
-  return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
-    scriptContext->GetLibrary()->SetNativeHostPromiseRejectionTrackerCallback((Js::JavascriptLibrary::HostPromiseRejectionTrackerCallback) promiseRejectionTrackerCallback, callbackState);
-    return JsNoError;
-  },
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        scriptContext->GetLibrary()->SetNativeHostPromiseRejectionTrackerCallback((Js::JavascriptLibrary::HostPromiseRejectionTrackerCallback) promiseRejectionTrackerCallback, callbackState);
+        return JsNoError;
+    },
     /*allowInObjectBeforeCollectCallback*/true);
 }
 

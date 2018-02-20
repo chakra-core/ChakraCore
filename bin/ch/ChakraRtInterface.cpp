@@ -127,6 +127,7 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
     m_jsApiHooks.pfJsrtSetModuleHostInfo = (JsAPIHooks::JsSetModuleHostInfoPtr)GetChakraCoreSymbol(library, "JsSetModuleHostInfo");
     m_jsApiHooks.pfJsrtGetModuleHostInfo = (JsAPIHooks::JsGetModuleHostInfoPtr)GetChakraCoreSymbol(library, "JsGetModuleHostInfo");
     m_jsApiHooks.pfJsrtModuleEvaluation = (JsAPIHooks::JsModuleEvaluationPtr)GetChakraCoreSymbol(library, "JsModuleEvaluation");
+    m_jsApiHooks.pfJsrtGetModuleNamespace = (JsAPIHooks::JsGetModuleNamespacePtr)GetChakraCoreSymbol(library, "JsGetModuleNamespace");
     m_jsApiHooks.pfJsrtDiagStartDebugging = (JsAPIHooks::JsrtDiagStartDebugging)GetChakraCoreSymbol(library, "JsDiagStartDebugging");
     m_jsApiHooks.pfJsrtDiagStopDebugging = (JsAPIHooks::JsrtDiagStopDebugging)GetChakraCoreSymbol(library, "JsDiagStopDebugging");
     m_jsApiHooks.pfJsrtDiagGetSource = (JsAPIHooks::JsrtDiagGetSource)GetChakraCoreSymbol(library, "JsDiagGetSource");
