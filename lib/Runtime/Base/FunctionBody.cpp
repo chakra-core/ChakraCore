@@ -7514,7 +7514,8 @@ namespace Js
 
     bool FunctionBody::CheckCalleeContextForInlining(FunctionProxy* calleeFunctionProxy)
     {
-        return this->GetScriptContext() == calleeFunctionProxy->GetScriptContext();
+        return this->GetScriptContext() == calleeFunctionProxy->GetScriptContext() &&
+            this->GetSecondaryHostSourceContext() == calleeFunctionProxy->GetSecondaryHostSourceContext();
     }
 
 #if ENABLE_NATIVE_CODEGEN
