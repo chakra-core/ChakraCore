@@ -556,7 +556,7 @@ WebAssemblyModule::AllocateFunctionExports(uint32 entries)
 }
 
 void
-WebAssemblyModule::SetExport(uint32 iExport, uint32 funcIndex, const char16* exportName, uint32 nameLength, Wasm::ExternalKinds::ExternalKind kind)
+WebAssemblyModule::SetExport(uint32 iExport, uint32 funcIndex, const char16* exportName, uint32 nameLength, Wasm::ExternalKinds kind)
 {
     m_exports[iExport].index = funcIndex;
     m_exports[iExport].nameLength = nameLength;
@@ -923,7 +923,7 @@ WebAssemblyModule::AddGlobalByteSizeToOffset(Wasm::WasmTypes::WasmType type, uin
 
 
 JavascriptString *
-WebAssemblyModule::GetExternalKindString(ScriptContext * scriptContext, Wasm::ExternalKinds::ExternalKind kind)
+WebAssemblyModule::GetExternalKindString(ScriptContext * scriptContext, Wasm::ExternalKinds kind)
 {
     switch (kind)
     {

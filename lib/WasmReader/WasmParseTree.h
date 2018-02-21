@@ -42,17 +42,14 @@ namespace Wasm
     }
     typedef WasmTypes::WasmType Local;
 
-    namespace ExternalKinds
+    enum class ExternalKinds: uint8
     {
-        enum ExternalKind
-        {
-            Function = 0,
-            Table = 1,
-            Memory = 2,
-            Global = 3,
-            Limit
-        };
-    }
+        Function = 0,
+        Table = 1,
+        Memory = 2,
+        Global = 3,
+        Limit
+    };
 
     namespace FunctionIndexTypes
     {
@@ -194,12 +191,12 @@ namespace Wasm
         uint32 index;
         uint32 nameLength;
         const char16* name;
-        ExternalKinds::ExternalKind kind;
+        ExternalKinds kind;
     };
 
     struct WasmImport
     {
-        ExternalKinds::ExternalKind kind;
+        ExternalKinds kind;
         uint32 modNameLen;
         const char16* modName;
         uint32 importNameLen;

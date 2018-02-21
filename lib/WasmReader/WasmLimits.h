@@ -21,7 +21,7 @@ namespace Wasm {
         static const uint32 MaxStringSize = 100000;
         static const uint32 MaxFunctionLocals = 50000;
         static const uint32 MaxFunctionParams = 1000;
-        static const uint32 MaxFunctionReturns = 100; // todo::We need to figure out what is the right limit here
+        static const uint32 MaxFunctionReturns = 10000; // todo::We need to figure out what is the right limit here
         static const uint32 MaxBrTableElems = 1000000;
 
         static const uint32 MaxMemoryInitialPages = 16384;

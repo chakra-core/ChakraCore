@@ -90,12 +90,8 @@ const char16 * GetTypeName(WasmType type)
 
 } // namespace WasmTypes
 
-WasmTypes::WasmType LanguageTypes::ToWasmType(int8 binType, bool* isValid)
+WasmTypes::WasmType LanguageTypes::ToWasmType(int8 binType)
 {
-    if (isValid)
-    {
-        *isValid = true;
-    }
     switch (binType)
     {
     case LanguageTypes::i32: return WasmTypes::I32;
@@ -108,11 +104,6 @@ WasmTypes::WasmType LanguageTypes::ToWasmType(int8 binType, bool* isValid)
         return WasmTypes::M128;
 #endif
     default:
-        if (isValid)
-        {
-            *isValid = false;
-            return WasmTypes::Limit;
-        }
         throw WasmCompilationException(_u("Invalid binary type %d"), binType);
     }
 }
@@ -244,7 +235,7 @@ SectionHeader WasmBinaryReader::ReadSectionHeader()
 
     uint32 len = 0;
     CompileAssert(sizeof(SectionCode) == sizeof(uint8));
-    SectionCode sectionId = (SectionCode)ReadVarUInt7();
+    SectionCode sectionId = (SectionCode)LEB128<uint8, 7>(len);
 
     if (sectionId > bsectLastKnownSection)
     {
@@ -651,43 +642,51 @@ void WasmBinaryReader::CallIndirectNode()
 void WasmBinaryReader::BlockNode()
 {
     uint32 len = 0;
-    uint32 blockId = LEB128(len);
+    int64 blocktype = SLEB128<int64, 33>(len);
     m_funcState.count += len;
 
-    if (len == 1)
+    // Negative values means it's a value type or Void
+    if (blocktype < 0)
     {
-        int8 blockSig = (int8)blockId;
+        // Only support 1 byte for negative values
+        if (len != 1)
+        {
+            ThrowDecodingError(_u("Invalid blocktype %lld"), blocktype);
+        }
+        int8 blockSig = (int8)blocktype;
+        // Check if it's an empty block
         if (blockSig == LanguageTypes::emptyBlock)
         {
             m_currentNode.block.SetSingleResult(WasmTypes::Void);
-            return;
         }
-    
-        bool isValid = false;
-        WasmTypes::WasmType type = LanguageTypes::ToWasmType(blockSig, &isValid);
-        if (isValid)
+        else
         {
+            // Otherwise, it should be a value type
+            WasmTypes::WasmType type = LanguageTypes::ToWasmType(blockSig);
             m_currentNode.block.SetSingleResult(type);
-            return;
         }
     }
-
-    // Fallback, check if it's a signature
-    if (!m_module->IsSignatureIndexValid(blockId))
+    else
     {
-        ThrowDecodingError(_u("Block signature %u is invalid"), blockId);
-    }
-    if (!CONFIG_FLAG(WasmMultiValue))
-    {
-        WasmSignature* sig = m_module->GetSignature(blockId);
-        if (sig->GetResultCount() > 1 || sig->GetParamCount() > 0)
+        // Positive values means it a function signature
+        // Function signature is only supported with the Multi-Value feature
+        if (!CONFIG_FLAG(WasmMultiValue))
         {
-            char16 buf[512];
-            sig->WriteSignatureToString(buf, 512);
-            ThrowDecodingError(_u("Block signatures can only have at most 1 return value and no parameters. %s is invalid"), buf);
+            ThrowDecodingError(_u("Block signature not supported"));
         }
+
+        // Make sure the blocktype is a u32 after checking for negative values
+        if (blocktype > UINT32_MAX)
+        {
+            ThrowDecodingError(_u("Invalid blocktype %lld"), blocktype);
+        }
+        uint32 blockId = (uint32)blocktype;
+        if (!m_module->IsSignatureIndexValid(blockId))
+        {
+            ThrowDecodingError(_u("Block signature %u is invalid"), blockId);
+        }
+        m_currentNode.block.SetSignatureId(blockId);
     }
-    m_currentNode.block.SetSignatureId(blockId);
 }
 
 // control flow
@@ -844,7 +843,7 @@ void WasmBinaryReader::ReadSignatureTypeSection()
     {
         WasmSignature* sig = m_module->GetSignature(i);
         sig->SetSignatureId(i);
-        int8 form = ReadConst<int8>();
+        int8 form = SLEB128<int8, 7>(len);
         if (form != LanguageTypes::func)
         {
             ThrowDecodingError(_u("Unexpected type form 0x%X"), form);
@@ -950,7 +949,7 @@ void WasmBinaryReader::ReadExportSection()
         }
         list->Push(exportName);
 
-        ExternalKinds::ExternalKind kind = (ExternalKinds::ExternalKind)ReadConst<int8>();
+        ExternalKinds kind = ReadExternalKind();
         uint32 index = LEB128(length);
         switch (kind)
         {
@@ -1028,7 +1027,7 @@ void WasmBinaryReader::ReadTableSection(bool isImportSection)
 
     if (entries == 1)
     {
-        int8 elementType = ReadConst<int8>();
+        int8 elementType = SLEB128<int8, 7>(length);
         if (elementType != LanguageTypes::anyfunc)
         {
             ThrowDecodingError(_u("Only anyfunc type is supported. Unknown type %d"), elementType);
@@ -1253,7 +1252,7 @@ void WasmBinaryReader::ReadImportSection()
         const char16* modName = ReadInlineName(len, modNameLen);
         const char16* fnName = ReadInlineName(len, fnNameLen);
 
-        ExternalKinds::ExternalKind kind = (ExternalKinds::ExternalKind)ReadConst<int8>();
+        ExternalKinds kind = ReadExternalKind();
         TRACE_WASM_DECODER(_u("Import #%u: \"%s\".\"%s\", kind: %d"), i, modName, fnName, kind);
         switch (kind)
         {
@@ -1316,24 +1315,27 @@ void WasmBinaryReader::ReadStartFunction()
     m_module->SetStartFunction(id);
 }
 
-template<typename MaxAllowedType>
-MaxAllowedType WasmBinaryReader::LEB128(uint32 &length, bool sgn)
+template<typename LEBType, uint32 bits>
+LEBType WasmBinaryReader::LEB128(uint32 &length)
 {
-    MaxAllowedType result = 0;
-    uint32 shamt = 0;
+    CompileAssert((sizeof(LEBType) * 8) >= bits);
+    constexpr bool sign = LEBType(-1) < LEBType(0);
+    LEBType result = 0;
+    uint32 shift = 0;
     byte b = 0;
-    length = 1;
-    uint32 maxReads = sizeof(MaxAllowedType) == 4 ? 5 : 10;
-    CompileAssert(sizeof(MaxAllowedType) == 4 || sizeof(MaxAllowedType) == 8);
+    length = 0;
+    constexpr uint32 maxReads = (uint32)((float)bits / 7.f + 0.5f);
+    CompileAssert(maxReads > 0);
 
-    for (uint32 i = 0; i < maxReads; i++, length++)
+    for (uint32 i = 0; i < maxReads; ++i)
     {
         CheckBytesLeft(1);
         b = *m_pc++;
-        result = result | ((MaxAllowedType)(b & 0x7f) << shamt);
-        if (sgn)
+        ++length;
+        result = result | ((LEBType)(b & 0x7f) << shift);
+        if (sign)
         {
-            shamt += 7;
+            shift += 7;
             if ((b & 0x80) == 0)
                 break;
         }
@@ -1341,7 +1343,7 @@ MaxAllowedType WasmBinaryReader::LEB128(uint32 &length, bool sgn)
         {
             if ((b & 0x80) == 0)
                 break;
-            shamt += 7;
+            shift += 7;
         }
     }
 
@@ -1350,31 +1352,11 @@ MaxAllowedType WasmBinaryReader::LEB128(uint32 &length, bool sgn)
         ThrowDecodingError(_u("Invalid LEB128 format"));
     }
 
-    if (sgn && (shamt < sizeof(MaxAllowedType) * 8) && (0x40 & b))
+    if (sign && (shift < (sizeof(LEBType) * 8)) && (0x40 & b))
     {
-        if (sizeof(MaxAllowedType) == 4)
-        {
-            result |= -(1 << shamt);
-        }
-        else if (sizeof(MaxAllowedType) == 8)
-        {
-            result |= -((int64)1 << shamt);
-        }
+        result |= ((~(LEBType)0) << shift);
     }
     return result;
-}
-
-// Signed LEB128
-template<>
-int32 WasmBinaryReader::SLEB128(uint32 &length)
-{
-    return LEB128<uint32>(length, true);
-}
-
-template<>
-int64 WasmBinaryReader::SLEB128(uint32 &length)
-{
-    return LEB128<uint64>(length, true);
 }
 
 WasmNode WasmBinaryReader::ReadInitExpr(bool isOffset)
@@ -1462,11 +1444,6 @@ T WasmBinaryReader::ReadConst()
     return value;
 }
 
-uint8 WasmBinaryReader::ReadVarUInt7()
-{
-    return ReadConst<uint8>() & 0x7F;
-}
-
 bool WasmBinaryReader::ReadMutableValue()
 {
     uint8 mutableValue = ReadConst<UINT8>();
@@ -1481,8 +1458,7 @@ bool WasmBinaryReader::ReadMutableValue()
 
 WasmTypes::WasmType WasmBinaryReader::ReadWasmType(uint32& length)
 {
-    length = 1;
-    return LanguageTypes::ToWasmType(ReadConst<int8>());
+    return LanguageTypes::ToWasmType(SLEB128<int8, 7>(length));
 }
 
 void WasmBinaryReader::CheckBytesLeft(uint32 bytesNeeded)
