@@ -308,30 +308,27 @@ namespace Js
         }
     };
 
-    template<typename TResource>
+    template<typename TResource, void(__cdecl * CloseFunction)(TResource)>
     class FinalizableICUObject : public FinalizableObject
     {
-    public:
-        typedef void (__cdecl *CleanupFunc)(TResource *);
-
     private:
-        FieldNoBarrier(TResource) *resource;
-        FieldNoBarrier(CleanupFunc) cleanupFunc;
-
+        FieldNoBarrier(TResource) resource;
     public:
-        FinalizableICUObject(TResource *resource, CleanupFunc cleanupFunc) :
-            resource(resource),
-            cleanupFunc(cleanupFunc)
+        FinalizableICUObject(TResource resource) : resource(resource)
         {
 
         }
-
-        static FinalizableICUObject<TResource> *New(Recycler *recycler, TResource *resource, CleanupFunc cleanupFunc)
+        static FinalizableICUObject<TResource, CloseFunction> *New(Recycler *recycler, TResource resource)
         {
-            return RecyclerNewFinalized(recycler, FinalizableICUObject<TResource>, resource, cleanupFunc);
+            return RecyclerNewFinalized(recycler, FinalizableICUObject, resource);
         }
 
-        TResource *GetInstance()
+        TResource GetInstance()
+        {
+            return resource;
+        }
+
+        operator TResource()
         {
             return resource;
         }
@@ -345,7 +342,7 @@ namespace Js
         {
             if (!isShutdown)
             {
-                cleanupFunc(resource);
+                CloseFunction(resource);
             }
         }
 
@@ -354,6 +351,7 @@ namespace Js
 
         }
     };
+    typedef FinalizableICUObject<UNumberFormat *, unum_close> FinalizableUNumberFormat;
 #endif
 
     IntlEngineInterfaceExtensionObject::IntlEngineInterfaceExtensionObject(Js::ScriptContext* scriptContext) :
@@ -921,7 +919,7 @@ namespace Js
 
         if (kind == LocaleDataKind::Collation)
         {
-            UEnumeration *collations = ucol_getKeywordValuesForLocale("collation", localeID, false, &status);
+            ScopedUEnumeration collations(ucol_getKeywordValuesForLocale("collation", localeID, false, &status));
             ICU_ASSERT(status, true);
 
             // the return array can't include "standard" and "search", but must have its first element be null (count - 2 + 1) [#sec-intl-collator-internal-slots]
@@ -960,20 +958,17 @@ namespace Js
                 // i + 1 to not ovewrite leading null element
                 ret->SetItem(i + 1, JavascriptString::NewWithBuffer(
                     unicodeCollation16,
-                    static_cast<charcount_t>(unicodeCollation16Len),
+                    unicodeCollation16Len,
                     scriptContext
                 ), PropertyOperationFlags::PropertyOperation_None);
                 i++;
             }
-
-            uenum_close(collations);
         }
         else if (kind == LocaleDataKind::CaseFirst)
         {
-            UCollator *collator = ucol_open(localeID, &status);
+            ScopedUCollator collator(ucol_open(localeID, &status));
             UColAttributeValue kf = ucol_getAttribute(collator, UCOL_CASE_FIRST, &status);
             ICU_ASSERT(status, true);
-            ucol_close(collator);
             ret = scriptContext->GetLibrary()->CreateArray(3);
 
             if (kf == UCOL_OFF)
@@ -997,10 +992,9 @@ namespace Js
         }
         else if (kind == LocaleDataKind::Numeric)
         {
-            UCollator *collator = ucol_open(localeID, &status);
+            ScopedUCollator collator(ucol_open(localeID, &status));
             UColAttributeValue kn = ucol_getAttribute(collator, UCOL_NUMERIC_COLLATION, &status);
             ICU_ASSERT(status, true);
-            ucol_close(collator);
             ret = scriptContext->GetLibrary()->CreateArray(2);
 
             if (kn == UCOL_OFF)
@@ -1016,7 +1010,7 @@ namespace Js
         }
         else if (kind == LocaleDataKind::Calendar)
         {
-            UEnumeration *calendars = ucal_getKeywordValuesForLocale("calendar", localeID, false, &status);
+            ScopedUEnumeration calendars(ucal_getKeywordValuesForLocale("calendar", localeID, false, &status));
             ret = scriptContext->GetLibrary()->CreateArray(uenum_count(calendars, &status));
             ICU_ASSERT(status, true);
 
@@ -1049,8 +1043,6 @@ namespace Js
                 ), PropertyOperationFlags::PropertyOperation_None);
                 i++;
             }
-
-            uenum_close(calendars);
         }
         else if (kind == LocaleDataKind::NumberingSystem)
         {
@@ -1084,10 +1076,9 @@ namespace Js
                 _u("tibt")
             };
 
-            UNumberingSystem *numsys = unumsys_open(localeID, &status);
+            ScopedUNumberingSystem numsys(unumsys_open(localeID, &status));
             ICU_ASSERT(status, true);
             utf8::NarrowToWide numsysName(unumsys_getName(numsys));
-            unumsys_close(numsys);
 
             ret = scriptContext->GetLibrary()->CreateArray(_countof(available) + 1);
             ret->SetItem(0, JavascriptString::NewCopySz(numsysName, scriptContext), PropertyOperationFlags::PropertyOperation_None);
@@ -1327,45 +1318,45 @@ namespace Js
 
         AssertOrFailFast(unumStyle != UNUM_IGNORE);
 
-        UNumberFormat *fmt = unum_open(unumStyle, nullptr, 0, localeID, nullptr, &status);
+        auto fmt = FinalizableUNumberFormat::New(scriptContext->GetRecycler(), unum_open(unumStyle, nullptr, 0, localeID, nullptr, &status));
         ICU_ASSERT(status, true);
 
         AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, useGrouping, JavascriptBoolean));
-        unum_setAttribute(fmt, UNUM_GROUPING_USED, JavascriptBoolean::UnsafeFromVar(propertyValue)->GetValue());
+        unum_setAttribute(*fmt, UNUM_GROUPING_USED, JavascriptBoolean::UnsafeFromVar(propertyValue)->GetValue());
 
-        unum_setAttribute(fmt, UNUM_ROUNDING_MODE, UNUM_ROUND_HALFUP);
+        unum_setAttribute(*fmt, UNUM_ROUNDING_MODE, UNUM_ROUND_HALFUP);
 
         if (HasPropertyBuiltInOn(state, minimumSignificantDigits))
         {
-            unum_setAttribute(fmt, UNUM_SIGNIFICANT_DIGITS_USED, true);
+            unum_setAttribute(*fmt, UNUM_SIGNIFICANT_DIGITS_USED, true);
 
             AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, minimumSignificantDigits, TaggedInt));
-            unum_setAttribute(fmt, UNUM_MIN_SIGNIFICANT_DIGITS, TaggedInt::ToInt32(propertyValue));
+            unum_setAttribute(*fmt, UNUM_MIN_SIGNIFICANT_DIGITS, TaggedInt::ToInt32(propertyValue));
 
             AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, maximumSignificantDigits, TaggedInt));
-            unum_setAttribute(fmt, UNUM_MAX_SIGNIFICANT_DIGITS, TaggedInt::ToInt32(propertyValue));
+            unum_setAttribute(*fmt, UNUM_MAX_SIGNIFICANT_DIGITS, TaggedInt::ToInt32(propertyValue));
         }
         else
         {
             AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, minimumIntegerDigits, TaggedInt));
-            unum_setAttribute(fmt, UNUM_MIN_INTEGER_DIGITS, TaggedInt::ToInt32(propertyValue));
+            unum_setAttribute(*fmt, UNUM_MIN_INTEGER_DIGITS, TaggedInt::ToInt32(propertyValue));
 
             AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, minimumFractionDigits, TaggedInt));
-            unum_setAttribute(fmt, UNUM_MIN_FRACTION_DIGITS, TaggedInt::ToInt32(propertyValue));
+            unum_setAttribute(*fmt, UNUM_MIN_FRACTION_DIGITS, TaggedInt::ToInt32(propertyValue));
 
             AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, maximumFractionDigits, TaggedInt));
-            unum_setAttribute(fmt, UNUM_MAX_FRACTION_DIGITS, TaggedInt::ToInt32(propertyValue));
+            unum_setAttribute(*fmt, UNUM_MAX_FRACTION_DIGITS, TaggedInt::ToInt32(propertyValue));
         }
 
         if (currency != nullptr)
         {
-            unum_setTextAttribute(fmt, UNUM_CURRENCY_CODE, reinterpret_cast<const UChar *>(currency), -1, &status);
+            unum_setTextAttribute(*fmt, UNUM_CURRENCY_CODE, reinterpret_cast<const UChar *>(currency), -1, &status);
             ICU_ASSERT(status, true);
         }
 
         state->SetInternalProperty(
             InternalPropertyIds::HiddenObject,
-            FinalizableICUObject<UNumberFormat>::New(scriptContext->GetRecycler(), fmt, unum_close),
+            fmt,
             PropertyOperationFlags::PropertyOperation_None,
             nullptr
         );
@@ -1811,12 +1802,11 @@ namespace Js
 
 #if defined(INTL_ICU)
         UErrorCode status = U_ZERO_ERROR;
-        UNumberFormat *fmt = unum_open(UNUM_CURRENCY, nullptr, 0, nullptr, nullptr, &status);
+        ScopedUNumberFormat fmt(unum_open(UNUM_CURRENCY, nullptr, 0, nullptr, nullptr, &status));
         unum_setTextAttribute(fmt, UNUM_CURRENCY_CODE, reinterpret_cast<const UChar *>(currencyCode), -1, &status);
         ICU_ASSERT(status, true);
 
         int currencyDigits = unum_getAttribute(fmt, UNUM_FRACTION_DIGITS);
-        unum_close(fmt);
         return JavascriptNumber::ToVar(currencyDigits, scriptContext);
 #else
         HRESULT hr;
@@ -1902,20 +1892,20 @@ namespace Js
         Var cachedFormatter = nullptr; // cached by EntryIntl_CacheNumberFormat
         AssertOrFailFast(state->GetInternalProperty(state, Js::InternalPropertyIds::HiddenObject, &cachedFormatter, NULL, scriptContext));
 
-        UNumberFormat *fmt = static_cast<FinalizableICUObject<UNumberFormat> *>(cachedFormatter)->GetInstance();
+        auto fmt = static_cast<FinalizableUNumberFormat *>(cachedFormatter);
         UErrorCode status = U_ZERO_ERROR;
         JavascriptString *ret = nullptr;
 
         if (TaggedInt::Is(args.Values[1]))
         {
             int num = TaggedInt::ToInt32(args.Values[1]);
-            int required = unum_format(fmt, num, nullptr, 0, nullptr, &status);
+            int required = unum_format(*fmt, num, nullptr, 0, nullptr, &status);
             AssertOrFailFast(status == U_BUFFER_OVERFLOW_ERROR && required > 0);
             status = U_ZERO_ERROR;
 
             // allocate space for null character
             UChar *buf = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), UChar, required + 1);
-            required = unum_format(fmt, num, buf, required + 1, nullptr, &status);
+            required = unum_format(*fmt, num, buf, required + 1, nullptr, &status);
             ICU_ASSERT(status, true);
 
             ret = JavascriptString::NewWithBuffer(reinterpret_cast<char16 *>(buf), required, scriptContext);
@@ -1923,13 +1913,13 @@ namespace Js
         else
         {
             double num = JavascriptNumber::GetValue(args.Values[1]);
-            int required = unum_formatDouble(fmt, num, nullptr, 0, nullptr, &status);
+            int required = unum_formatDouble(*fmt, num, nullptr, 0, nullptr, &status);
             AssertOrFailFast(status == U_BUFFER_OVERFLOW_ERROR && required > 0);
             status = U_ZERO_ERROR;
 
             // allocate space for null character
             UChar *buf = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), UChar, required + 1);
-            required = unum_formatDouble(fmt, num, buf, required + 1, nullptr, &status);
+            required = unum_formatDouble(*fmt, num, buf, required + 1, nullptr, &status);
             ICU_ASSERT(status, true);
 
             ret = JavascriptString::NewWithBuffer(reinterpret_cast<char16 *>(buf), required, scriptContext);
@@ -2197,7 +2187,7 @@ namespace Js
 
         // TODO(jahorto): Is this the list of timeZones that we want? How is this different from
         // the other two enum values or ucal_openTimeZones?
-        AutoUEnumeration available(ucal_openTimeZoneIDEnumeration(UCAL_ZONE_TYPE_ANY, nullptr, nullptr, &status));
+        ScopedUEnumeration available(ucal_openTimeZoneIDEnumeration(UCAL_ZONE_TYPE_ANY, nullptr, nullptr, &status));
         int availableLength = uenum_count(available, &status);
         ICU_ASSERT(status, availableLength > 0);
 

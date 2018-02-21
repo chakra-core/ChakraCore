@@ -22,65 +22,40 @@ namespace PlatformAgnostic
 {
     namespace ICUHelpers
     {
-        template<typename T>
-        class AutoICUObject
+        template<typename TObject, void(__cdecl * CloseFunction)(TObject)>
+        class ScopedICUObject
         {
-        public:
-            typedef void(__cdecl * CloseFunction)(T);
         private:
-            T object;
-            CloseFunction closeFunc;
+            TObject object;
         public:
-            explicit AutoICUObject(T object);
-            AutoICUObject(const AutoICUObject &other) = delete;
-            ~AutoICUObject();
-            operator T();
-            T Detatch();
+            explicit ScopedICUObject(TObject object) : object(object)
+            {
+
+            }
+            ScopedICUObject(const ScopedICUObject &other) = delete;
+            ScopedICUObject(ScopedICUObject &&other) = delete;
+            ScopedICUObject &operator=(const ScopedICUObject &other) = delete;
+            ScopedICUObject &operator=(ScopedICUObject &&other) = delete;
+            ~ScopedICUObject()
+            {
+                if (object != nullptr)
+                {
+                    CloseFunction(object);
+                }
+            }
+
+            operator TObject()
+            {
+                return object;
+            }
         };
 
-        template<typename T>
-        constexpr typename AutoICUObject<T>::CloseFunction CloseFunctionForType(T type);
-
-        template<typename T>
-        AutoICUObject<T>::AutoICUObject(T object) : object(object)
-        {
-            closeFunc = CloseFunctionForType(object);
-        }
-
-        template<typename T>
-        AutoICUObject<T>::~AutoICUObject()
-        {
-            if (object != nullptr)
-            {
-                closeFunc(object);
-            }
-        }
-
-        template<typename T>
-        AutoICUObject<T>::operator T()
-        {
-            return object;
-        }
-
-        template<typename T>
-        T AutoICUObject<T>::Detatch()
-        {
-            T ret = object;
-            object = nullptr;
-            return ret;
-        }
-
-#define INSTANTIATE_AUTOICUOBJECT(T, Closer) \
-        template<> \
-        constexpr AutoICUObject<T *>::CloseFunction CloseFunctionForType(T *) \
-        { \
-            return Closer; \
-        } \
-        typedef AutoICUObject<T *> Auto##T;
-
-        INSTANTIATE_AUTOICUOBJECT(UEnumeration, uenum_close)
-        INSTANTIATE_AUTOICUOBJECT(UDateFormat, udat_close)
+        typedef ScopedICUObject<UEnumeration *, uenum_close> ScopedUEnumeration;
+        typedef ScopedICUObject<UCollator *, ucol_close> ScopedUCollator;
+        typedef ScopedICUObject<UDateFormat *, udat_close> ScopedUDateFormat;
+        typedef ScopedICUObject<UNumberFormat *, unum_close> ScopedUNumberFormat;
+        typedef ScopedICUObject<UNumberingSystem *, unumsys_close> ScopedUNumberingSystem;
+        typedef ScopedICUObject<UDateTimePatternGenerator *, udatpg_close> ScopedUDateTimePatternGenerator;
     }
 }
-
 #endif
