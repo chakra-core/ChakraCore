@@ -253,7 +253,6 @@ namespace Js
     protected:
         virtual BOOL FreezeImpl(DynamicObject* instance, bool isConvertedType) override;
         virtual BigDictionaryTypeHandler* NewBigDictionaryTypeHandler(Recycler* recycler, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots);
-        static Var CanonicalizeAccessor(Var accessor, /*const*/ JavascriptLibrary* library);
 
 #if ENABLE_TTD
     public:

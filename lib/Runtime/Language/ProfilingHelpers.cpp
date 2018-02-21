@@ -1269,8 +1269,7 @@ namespace Js
         FunctionBody *const functionBody)
     {
         RecyclableObject *callee = nullptr;
-        if((cacheType & (CacheType_Getter | CacheType_Setter)) &&
-            inlineCache->GetGetterSetter(object->GetType(), &callee))
+        if((cacheType & (CacheType_Getter | CacheType_Setter)) && inlineCache->GetGetterSetter(object, &callee))
         {
             const bool canInline = functionBody->GetDynamicProfileInfo()->RecordLdFldCallSiteInfo(functionBody, callee, false /*callApplyTarget*/);
             if(canInline)

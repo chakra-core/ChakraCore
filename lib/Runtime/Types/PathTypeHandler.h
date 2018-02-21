@@ -6,25 +6,8 @@
 
 namespace Js
 {
-    typedef uint8 PathTypeHandlerSetterSlotIndex;
-    static const PathTypeHandlerSetterSlotIndex NoSetterSlot = (PathTypeHandlerSetterSlotIndex)-1;
-
-    static const uint ObjectSlotAttr_BitSize = 8;
-    typedef uint8 ObjectSlotAttr_TSize;
-
-    enum ObjectSlotAttributes : ObjectSlotAttr_TSize
-    {
-        ObjectSlotAttr_None =         0x00,
-        ObjectSlotAttr_Enumerable =   0x01,
-        ObjectSlotAttr_Configurable = 0x02,
-        ObjectSlotAttr_Writable =     0x04,
-        ObjectSlotAttr_Deleted =      0x08,
-        ObjectSlotAttr_Accessor =     0x10,
-        ObjectSlotAttr_Int =          0x20,
-        ObjectSlotAttr_Double =       0x40,
-        ObjectSlotAttr_Default =      (ObjectSlotAttr_Writable|ObjectSlotAttr_Enumerable|ObjectSlotAttr_Configurable),
-        ObjectSlotAttr_PropertyAttributesMask = (ObjectSlotAttr_Default|ObjectSlotAttr_Deleted),
-    };
+    typedef uint8 PathTypeSetterSlotIndex;
+    static const PathTypeSetterSlotIndex NoSetterSlot = (PathTypeSetterSlotIndex)-1;
 
     class PathTypeSuccessorKey
     {
@@ -100,7 +83,14 @@ namespace Js
         virtual BOOL GetProperty(DynamicObject* instance, Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL SetProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL SetProperty(DynamicObject* instance, JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
+        virtual BOOL InitProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL DeleteProperty(DynamicObject* instance, PropertyId propertyId, PropertyOperationFlags flags) override;
+
+        virtual BOOL FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyString,
+            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info) override
+        {
+            return FindNextPropertyHelper(scriptContext, nullptr, index, propertyString, propertyId, attributes, type, typeToEnumerate, flags, instance, info);
+        }
 
         virtual BOOL IsEnumerable(DynamicObject* instance, PropertyId propertyId) override;
         virtual BOOL IsWritable(DynamicObject* instance, PropertyId propertyId) override;
@@ -136,6 +126,8 @@ namespace Js
         BOOL FindNextPropertyHelper(ScriptContext* scriptContext, ObjectSlotAttributes * objectAttributes, PropertyIndex& index, JavascriptString** propertyString,
             PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info);
         BOOL SetAttributesHelper(DynamicObject* instance, PropertyId propertyId, PropertyIndex propertyIndex, ObjectSlotAttributes * instanceAttributes, ObjectSlotAttributes propertyAttributes);
+        BOOL SetAccessorsHelper(DynamicObject* instance, PropertyId propertyId, ObjectSlotAttributes * attributes, PathTypeSetterSlotIndex * setters, Var getter, Var setter, PropertyOperationFlags flags);
+
 #if ENABLE_NATIVE_CODEGEN
         bool IsObjTypeSpecEquivalentHelper(const Type* type, const ObjectSlotAttributes * attributes, const TypeEquivalenceRecord& record, uint& failedPropertyIndex);
         bool IsObjTypeSpecEquivalentHelper(const Type* type, const ObjectSlotAttributes * attributes, const EquivalentPropertyEntry* entry);
@@ -225,6 +217,14 @@ namespace Js
         DictionaryTypeHandler* ConvertToDictionaryType(DynamicObject* instance);
         ES5ArrayTypeHandler* ConvertToES5ArrayType(DynamicObject* instance);
 
+        template <typename T> DynamicTypeHandler*
+        TryConvertToSimpleDictionaryType(DynamicObject* instance, int propertyCapacity, bool mayBecomeShared = false);
+
+        DynamicTypeHandler* TryConvertToSimpleDictionaryType(DynamicObject* instance, int propertyCapacity, bool mayBecomeShared = false)
+        {
+            return TryConvertToSimpleDictionaryType<SimpleDictionaryTypeHandler>(instance, propertyCapacity, mayBecomeShared);
+        }
+
         template <typename T> T*
         ConvertToSimpleDictionaryType(DynamicObject* instance, int propertyCapacity, bool mayBecomeShared = false);
 
@@ -235,7 +235,7 @@ namespace Js
 
         BOOL AddPropertyInternal(DynamicObject * instance, PropertyId propertyId, Js::Var value, ObjectSlotAttributes attr, PropertyValueInfo* info, PropertyOperationFlags flags, SideEffects possibleSideEffects);
         BOOL AddProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags, SideEffects possibleSideEffects);
-        template<bool setAttributes> BOOL SetPropertyInternal(DynamicObject* instance, PropertyId propertyId, Var value, ObjectSlotAttributes attr, PropertyValueInfo* info, PropertyOperationFlags flags, SideEffects possibleSideEffects);
+        template<bool setAttributes> BOOL SetPropertyInternal(DynamicObject* instance, PropertyId propertyId, PropertyIndex propertyIndex, Var value, ObjectSlotAttributes attr, PropertyValueInfo* info, PropertyOperationFlags flags, SideEffects possibleSideEffects, bool isInit = false);
         virtual BOOL FreezeImpl(DynamicObject* instance, bool isConvertedType) override;
 
         // Checks whether conversion to shared type is needed and performs it, then calls actual operation on the shared type.
@@ -247,7 +247,7 @@ namespace Js
         template <bool isObjectLiteral>
         DynamicType* PromoteType(DynamicType* type, const PathTypeSuccessorKey key, bool shareType, ScriptContext* scriptContext, DynamicObject* object = nullptr, PropertyIndex* propertyIndex = nullptr);
         ObjectSlotAttributes * UpdateAttributes(Recycler * recycler, ObjectSlotAttributes * oldAttributes, uint8 oldPathSize, uint8 newTypePathSize);
-        PathTypeHandlerSetterSlotIndex * UpdateSetterSlots(Recycler * recycler, PathTypeHandlerSetterSlotIndex * oldSetters, uint8 oldPathSize, uint8 newTypePathSize);
+        PathTypeSetterSlotIndex * UpdateSetterSlots(Recycler * recycler, PathTypeSetterSlotIndex * oldSetters, uint8 oldPathSize, uint8 newTypePathSize);
 
         PropertyIndex GetPropertyIndex(PropertyId propertyId);
 
@@ -261,13 +261,18 @@ namespace Js
         virtual void SetTypePath(TypePath *typePath) { this->typePath = typePath; }
         DynamicType * GetPredecessorType() const { return predecessorType; }
         PathTypeHandlerBase* GetRootPathTypeHandler();
+        bool HasAccessors() const { return this->GetSetterSlots() != nullptr; }
+        bool CanConvertToSimpleDictionaryType() const { return !HasAccessors(); }
 
         virtual ObjectSlotAttributes * GetAttributeArray() const { return nullptr; }
         virtual ObjectSlotAttributes GetAttributes(const PropertyIndex index) const { return ObjectSlotAttr_Default; }
         virtual void SetAttributeArray(ObjectSlotAttributes * attributes) { Assert(false); }
-        virtual PathTypeHandlerSetterSlotIndex * GetSetterSlots() const { return nullptr; }
-        virtual PathTypeHandlerSetterSlotIndex GetSetterSlotIndex(const PropertyIndex index) const { return NoSetterSlot; }
-        virtual void SetSetterSlots(PathTypeHandlerSetterSlotIndex * setters) { Assert(false); }
+        virtual void SetAttributes(PropertyIndex propertyIndex, ObjectSlotAttributes attr) { Assert(false); }
+        virtual PathTypeSetterSlotIndex * GetSetterSlots() const { return nullptr; }
+        virtual PathTypeSetterSlotIndex GetSetterSlotIndex(const PropertyIndex index) const { return NoSetterSlot; }
+        virtual PathTypeSetterSlotIndex GetSetterCount() const { return 0; }
+        virtual void SetSetterSlots(PathTypeSetterSlotIndex * setters) { Assert(false); }
+        virtual void SetSetterSlot(PropertyIndex propertyIndex, PathTypeSetterSlotIndex setterSlot) { Assert(false); }
 
 #if ENABLE_FIXED_FIELDS
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
@@ -359,7 +364,7 @@ namespace Js
 #endif
 #endif
 
-    typedef SimpleDictionaryTypeHandlerBase<PropertyIndex, const PropertyRecord*, true> SimpleDictionaryTypeHandlerWithNontExtensibleSupport;
+    typedef SimpleDictionaryTypeHandlerBase<PropertyIndex, const PropertyRecord*, true> SimpleDictionaryTypeHandlerWithNonExtensibleSupport;
 
     class SimplePathTypeHandler : public PathTypeHandlerBase
     {
@@ -377,7 +382,12 @@ namespace Js
 
     protected:
         virtual bool GetSuccessor(const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> ** typeWeakRef) override;
-        void SetSuccessorHelper(DynamicType * type, const PathTypeSuccessorKey successorKey, ObjectSlotAttributes * attributes, PathTypeHandlerSetterSlotIndex * accessors, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext);
+        virtual void SetSuccessor(DynamicType * type, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext) override
+        {
+            SetSuccessorHelper(type, successorKey, nullptr, nullptr, 0, typeWeakRef, scriptContext);
+        }
+
+        void SetSuccessorHelper(DynamicType * type, const PathTypeSuccessorKey successorKey, ObjectSlotAttributes * attributes, PathTypeSetterSlotIndex * accessors, PathTypeSetterSlotIndex setterCount, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext);
 
     public:
         virtual void ShrinkSlotAndInlineSlotCapacity(uint16 newInlineSlotCapacity) override;
@@ -402,54 +412,46 @@ namespace Js
 
         DEFINE_VTABLE_CTOR_NO_REGISTER(SimplePathTypeHandlerNoAttr, SimplePathTypeHandler);
 
-    protected:
-        virtual void SetSuccessor(DynamicType * type, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext) override
-        {
-            SetSuccessorHelper(type, successorKey, nullptr, nullptr, typeWeakRef, scriptContext);
-        }
-
     public:
         static SimplePathTypeHandlerNoAttr * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static SimplePathTypeHandlerNoAttr * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static SimplePathTypeHandlerNoAttr * New(ScriptContext * scriptContext, SimplePathTypeHandlerNoAttr * typeHandler, bool isLocked, bool isShared);
-
-        virtual BOOL FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyString,
-            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info) override
-        {
-            return FindNextPropertyHelper(scriptContext, nullptr, index, propertyString, propertyId, attributes, type, typeToEnumerate, flags, instance, info);
-        }
     };
 
     class SimplePathTypeHandlerWithAttr : public SimplePathTypeHandlerNoAttr
     {
     private:
         Field(ObjectSlotAttributes *) attributes;
-        Field(PathTypeHandlerSetterSlotIndex *) accessors;
+        Field(PathTypeSetterSlotIndex *) setters;
+        Field(PathTypeSetterSlotIndex) setterCount;
 
     public:
         DEFINE_GETCPPNAME();
 
     protected:
-        SimplePathTypeHandlerWithAttr(TypePath* typePath, ObjectSlotAttributes * attributes, PathTypeHandlerSetterSlotIndex * accessors, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
+        SimplePathTypeHandlerWithAttr(TypePath* typePath, ObjectSlotAttributes * attributes, PathTypeSetterSlotIndex * setters, PathTypeSetterSlotIndex setterCount, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
 
-        DEFINE_VTABLE_CTOR_INIT_NO_REGISTER(SimplePathTypeHandlerWithAttr, SimplePathTypeHandlerNoAttr, attributes(nullptr), accessors(nullptr));
+        DEFINE_VTABLE_CTOR_INIT_NO_REGISTER(SimplePathTypeHandlerWithAttr, SimplePathTypeHandlerNoAttr, attributes(nullptr), setters(nullptr), setterCount(0));
 
     protected:
         virtual ObjectSlotAttributes * GetAttributeArray() const override { return attributes; }
         virtual ObjectSlotAttributes GetAttributes(const PropertyIndex index) const override { Assert(index < GetPathLength()); return attributes[index]; }
         virtual void SetAttributeArray(ObjectSlotAttributes * attributes) override { this->attributes = attributes; }
-        virtual PathTypeHandlerSetterSlotIndex * GetSetterSlots() const override { return accessors; }
-        virtual PathTypeHandlerSetterSlotIndex GetSetterSlotIndex(const PropertyIndex index) const override { Assert(index < GetPathLength()); return accessors[index]; }
-        virtual void SetSetterSlots(PathTypeHandlerSetterSlotIndex * accessors) override { this->accessors = accessors; }
+        virtual void SetAttributes(PropertyIndex propertyIndex, ObjectSlotAttributes attr) override { Assert(propertyIndex < GetPathLength()); this->attributes[propertyIndex] = attr; }
+        virtual PathTypeSetterSlotIndex * GetSetterSlots() const override { return setters; }
+        virtual PathTypeSetterSlotIndex GetSetterSlotIndex(const PropertyIndex index) const override { Assert(index < GetPathLength()); return setters[index]; }
+        virtual PathTypeSetterSlotIndex GetSetterCount() const override { return setterCount; }
+        virtual void SetSetterSlots(PathTypeSetterSlotIndex * setters) override { this->setters = setters; }
+        virtual void SetSetterSlot(PropertyIndex propertyIndex, PathTypeSetterSlotIndex setterSlot) { Assert(attributes[propertyIndex] & ObjectSlotAttr_Accessor); setters[propertyIndex] = setterSlot; }
       
         virtual void SetSuccessor(DynamicType * type, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext)
         {
-            SetSuccessorHelper(type, successorKey, attributes, accessors, typeWeakRef, scriptContext);
+            SetSuccessorHelper(type, successorKey, attributes, setters, setterCount, typeWeakRef, scriptContext);
         }
 
     public:
-        static SimplePathTypeHandlerWithAttr * New(ScriptContext * scriptContext, TypePath * typePath, ObjectSlotAttributes * attributes, PathTypeHandlerSetterSlotIndex * accessors, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
-        static SimplePathTypeHandlerWithAttr * New(ScriptContext * scriptContext, TypePath * typePath, ObjectSlotAttributes * attributes, PathTypeHandlerSetterSlotIndex * accessors, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
+        static SimplePathTypeHandlerWithAttr * New(ScriptContext * scriptContext, TypePath * typePath, ObjectSlotAttributes * attributes, PathTypeSetterSlotIndex * setters, PathTypeSetterSlotIndex setterCount, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
+        static SimplePathTypeHandlerWithAttr * New(ScriptContext * scriptContext, TypePath * typePath, ObjectSlotAttributes * attributes, PathTypeSetterSlotIndex * setters, PathTypeSetterSlotIndex setterCount, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static SimplePathTypeHandlerWithAttr * New(ScriptContext * scriptContext, SimplePathTypeHandlerWithAttr * typeHandler, bool isLocked, bool isShared);
 
         virtual BOOL IsEnumerable(DynamicObject* instance, PropertyId propertyId) override;
@@ -459,10 +461,13 @@ namespace Js
         virtual BOOL SetWritable(DynamicObject* instance, PropertyId propertyId, BOOL value) override;
         virtual BOOL SetConfigurable(DynamicObject* instance, PropertyId propertyId, BOOL value) override;
 
+        virtual int GetPropertyCountForEnum() override;
         virtual BOOL GetProperty(DynamicObject* instance, Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL GetProperty(DynamicObject* instance, Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL GetAttributesWithPropertyIndex(DynamicObject * instance, PropertyId propertyId, BigPropertyIndex index, PropertyAttributes * attributes) override;
 
+        virtual BOOL GetAccessors(DynamicObject* instance, PropertyId propertyId, Var* getter, Var* setter) override;
+        virtual BOOL SetAccessors(DynamicObject* instance, PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None) override;
         virtual DescriptorFlags GetSetter(DynamicObject* instance, PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual DescriptorFlags GetSetter(DynamicObject* instance, JavascriptString* propertyNameString, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
 
@@ -476,6 +481,8 @@ namespace Js
         virtual bool IsObjTypeSpecEquivalent(const Type* type, const TypeEquivalenceRecord& record, uint& failedPropertyIndex) override;
         virtual bool IsObjTypeSpecEquivalent(const Type* type, const EquivalentPropertyEntry* entry) override;
 #endif
+
+        virtual BigPropertyIndex PropertyIndexToPropertyEnumeration(BigPropertyIndex index) const override { return index - setterCount; }
     };
 
     class PathTypeHandler : public PathTypeHandlerBase
@@ -525,39 +532,37 @@ namespace Js
         static PathTypeHandlerNoAttr * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static PathTypeHandlerNoAttr * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static PathTypeHandlerNoAttr * New(ScriptContext * scriptContext, PathTypeHandlerNoAttr * typeHandler, bool isLocked, bool isShared);
-
-        virtual BOOL FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyString,
-            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info) override
-        {
-            return FindNextPropertyHelper(scriptContext, nullptr, index, propertyString, propertyId, attributes, type, typeToEnumerate, flags, instance, info);
-        }
     };
 
     class PathTypeHandlerWithAttr : public PathTypeHandlerNoAttr
     {
     private:
         Field(ObjectSlotAttributes *) attributes;
-        Field(PathTypeHandlerSetterSlotIndex *) accessors;
+        Field(PathTypeSetterSlotIndex *) setters;
+        Field(PathTypeSetterSlotIndex) setterCount;
 
     public:
         DEFINE_GETCPPNAME();
 
     protected:
-        PathTypeHandlerWithAttr(TypePath* typePath, ObjectSlotAttributes * attributes, PathTypeHandlerSetterSlotIndex * accessors, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
+        PathTypeHandlerWithAttr(TypePath* typePath, ObjectSlotAttributes * attributes, PathTypeSetterSlotIndex * setters, PathTypeSetterSlotIndex setterCount, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
 
-        DEFINE_VTABLE_CTOR_INIT_NO_REGISTER(PathTypeHandlerWithAttr, PathTypeHandlerNoAttr, attributes(nullptr), accessors(nullptr));
+        DEFINE_VTABLE_CTOR_INIT_NO_REGISTER(PathTypeHandlerWithAttr, PathTypeHandlerNoAttr, attributes(nullptr), setters(nullptr), setterCount(0));
 
     protected:
         virtual ObjectSlotAttributes * GetAttributeArray() const override { return attributes; }
         virtual ObjectSlotAttributes GetAttributes(const PropertyIndex index) const override { Assert(index < GetPathLength()); return attributes[index]; }
         virtual void SetAttributeArray(ObjectSlotAttributes * attributes) override { this->attributes = attributes; }
-        virtual PathTypeHandlerSetterSlotIndex * GetSetterSlots() const override { return accessors; }
-        virtual PathTypeHandlerSetterSlotIndex GetSetterSlotIndex(const PropertyIndex index) const override { Assert(index < GetPathLength()); return accessors[index]; }
-        virtual void SetSetterSlots(PathTypeHandlerSetterSlotIndex * accessors) override { this->accessors = accessors; }
+        virtual void SetAttributes(PropertyIndex propertyIndex, ObjectSlotAttributes attr) override { Assert(propertyIndex < GetPathLength()); this->attributes[propertyIndex] = attr; }
+        virtual PathTypeSetterSlotIndex * GetSetterSlots() const override { return setters; }
+        virtual PathTypeSetterSlotIndex GetSetterSlotIndex(const PropertyIndex index) const override { Assert(index < GetPathLength()); return setters[index]; }
+        virtual PathTypeSetterSlotIndex GetSetterCount() const override { return setterCount; }
+        virtual void SetSetterSlots(PathTypeSetterSlotIndex * setters) override { this->setters = setters; }
+        virtual void SetSetterSlot(PropertyIndex propertyIndex, PathTypeSetterSlotIndex setterSlot) { Assert(attributes[propertyIndex] & ObjectSlotAttr_Accessor); setters[propertyIndex] = setterSlot; }
       
     public:
-        static PathTypeHandlerWithAttr * New(ScriptContext * scriptContext, TypePath * typePath, ObjectSlotAttributes * attributes, PathTypeHandlerSetterSlotIndex * accessors, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
-        static PathTypeHandlerWithAttr * New(ScriptContext * scriptContext, TypePath * typePath, ObjectSlotAttributes * attributes, PathTypeHandlerSetterSlotIndex * accessors, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
+        static PathTypeHandlerWithAttr * New(ScriptContext * scriptContext, TypePath * typePath, ObjectSlotAttributes * attributes, PathTypeSetterSlotIndex * setters, PathTypeSetterSlotIndex setterCount, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
+        static PathTypeHandlerWithAttr * New(ScriptContext * scriptContext, TypePath * typePath, ObjectSlotAttributes * attributes, PathTypeSetterSlotIndex * setters, PathTypeSetterSlotIndex setterCount, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static PathTypeHandlerWithAttr * New(ScriptContext * scriptContext, PathTypeHandlerWithAttr * typeHandler, bool isLocked, bool isShared);
 
         virtual BOOL IsEnumerable(DynamicObject* instance, PropertyId propertyId) override;
@@ -567,10 +572,13 @@ namespace Js
         virtual BOOL SetWritable(DynamicObject* instance, PropertyId propertyId, BOOL value) override;
         virtual BOOL SetConfigurable(DynamicObject* instance, PropertyId propertyId, BOOL value) override;
 
+        virtual int GetPropertyCountForEnum() override;
         virtual BOOL GetProperty(DynamicObject* instance, Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL GetProperty(DynamicObject* instance, Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL GetAttributesWithPropertyIndex(DynamicObject * instance, PropertyId propertyId, BigPropertyIndex index, PropertyAttributes * attributes) override;
 
+        virtual BOOL GetAccessors(DynamicObject* instance, PropertyId propertyId, Var* getter, Var* setter) override;
+        virtual BOOL SetAccessors(DynamicObject* instance, PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None) override;
         virtual DescriptorFlags GetSetter(DynamicObject* instance, PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual DescriptorFlags GetSetter(DynamicObject* instance, JavascriptString* propertyNameString, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
 
@@ -584,6 +592,8 @@ namespace Js
         virtual bool IsObjTypeSpecEquivalent(const Type* type, const TypeEquivalenceRecord& record, uint& failedPropertyIndex) override;
         virtual bool IsObjTypeSpecEquivalent(const Type* type, const EquivalentPropertyEntry* entry) override;
 #endif
+
+        virtual BigPropertyIndex PropertyIndexToPropertyEnumeration(BigPropertyIndex index) const override { return index - setterCount; }
     };
 
 }

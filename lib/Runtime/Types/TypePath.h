@@ -104,7 +104,31 @@ public:
             // This map has to be at the end, because TinyDictionary has a zero size array
             Field(TinyDictionary) map;
 
-            int Add(const PropertyRecord * propertyId, Field(const PropertyRecord *)* assignments);
+            template<bool addNewId>
+            int Add(const PropertyRecord* propId, Field(const PropertyRecord *)* assignments)
+            {
+                uint currentPathLength = this->pathLength;
+                Assert(currentPathLength < this->pathSize);
+                if (currentPathLength >= this->pathSize)
+                {
+                    Throw::InternalError();
+                }
+
+                if (addNewId)
+                {
+#if DBG
+                    PropertyIndex temp;
+                    if (this->map.TryGetValue(propId->GetPropertyId(), &temp, assignments))
+                    {
+                        AssertMsg(false, "Adding a duplicate to the type path");
+                    }
+#endif
+                    this->map.Add((unsigned int)propId->GetPropertyId(), (byte)currentPathLength);
+                }
+                assignments[currentPathLength] = propId;
+                this->pathLength++;
+                return currentPathLength;
+            }
         };
         Field(Data*) data;
 
@@ -128,7 +152,82 @@ public:
     public:
         static TypePath* New(Recycler* recycler, uint size = InitialTypePathSize);
 
-        TypePath * Branch(Recycler * alloc, int pathLength, bool couldSeeProto);
+        template<bool checkAttributes>
+        TypePath * Branch(Recycler * recycler, int pathLength, bool couldSeeProto, ObjectSlotAttributes * attributes = nullptr)
+        {
+            AssertMsg(pathLength < this->GetPathLength(), "Why are we branching at the tip of the type path?");
+            Assert(checkAttributes == (attributes != nullptr));
+
+            // Ensure there is at least one free entry in the new path, so we can extend it.
+            // TypePath::New will take care of aligning this appropriately.
+            TypePath * branchedPath = TypePath::New(recycler, pathLength + 1);
+
+            for (PropertyIndex i = 0; i < pathLength; i++)
+            {
+                if (checkAttributes && attributes[i] == ObjectSlotAttr_Setter)
+                {
+                    branchedPath->AddInternal<false>(assignments[i]);
+                }
+                else
+                {
+                    branchedPath->AddInternal<true>(assignments[i]);
+                }
+
+#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
+                if (couldSeeProto)
+                {
+                    if (this->GetData()->usedFixedFields.Test(i))
+                    {
+                        // We must conservatively copy all used as fixed bits if some prototype instance could also take
+                        // this transition.  See comment in PathTypeHandlerBase::ConvertToSimpleDictionaryType.
+                        // Yes, we could devise a more efficient way of copying bits 1 through pathLength, if performance of this
+                        // code path proves important enough.
+                        branchedPath->GetData()->usedFixedFields.Set(i);
+                    }
+                    else if (this->GetData()->fixedFields.Test(i))
+                    {
+                        // We must clear any fixed fields that are not also used as fixed if some prototype instance could also take
+                        // this transition.  See comment in PathTypeHandlerBase::ConvertToSimpleDictionaryType.
+                        this->GetData()->fixedFields.Clear(i);
+                    }
+                }
+#endif
+
+            }
+
+#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
+            // When branching, we must ensure that fixed field values on the prefix shared by the two branches are always
+            // consistent.  Hence, we can't leave any of them uninitialized, because they could later get initialized to
+            // different values, by two different instances (one on the old branch and one on the new branch).  If that happened
+            // and the instance from the old branch later switched to the new branch, it would magically gain a different set
+            // of fixed properties!
+            if (this->GetMaxInitializedLength() < pathLength)
+            {
+                this->SetMaxInitializedLength(pathLength);
+            }
+            branchedPath->SetMaxInitializedLength(pathLength);
+#endif
+
+#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
+            if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
+            {
+                Output::Print(_u("FixedFields: TypePath::Branch: singleton: 0x%p(0x%p)\n"), PointerValue(this->singletonInstance), this->singletonInstance->Get());
+                Output::Print(_u("   fixed fields:"));
+
+                for (PropertyIndex i = 0; i < GetPathLength(); i++)
+                {
+                    Output::Print(_u(" %s %d%d%d,"), GetPropertyId(i)->GetBuffer(),
+                        i < GetMaxInitializedLength() ? 1 : 0,
+                        GetIsFixedFieldAt(i, GetPathLength()) ? 1 : 0,
+                        GetIsUsedFixedFieldAt(i, GetPathLength()) ? 1 : 0);
+                }
+
+                Output::Print(_u("\n"));
+            }
+#endif
+
+            return branchedPath;
+        }
 
         TypePath * Grow(Recycler * alloc);
 
@@ -152,7 +251,7 @@ public:
             Assert(this->GetPathLength() == this->GetMaxInitializedLength());
             this->GetData()->maxInitializedLength++;
 #endif
-            return AddInternal(propertyRecord);
+            return AddInternal<true>(propertyRecord);
         }
 
         uint8 GetPathLength() { return this->GetData()->pathLength; }
@@ -162,7 +261,32 @@ public:
         PropertyIndex LookupInline(PropertyId propId,int typePathLength);
 
     private:
-        int AddInternal(const PropertyRecord* propId);
+    template<bool addNewId>
+    int AddInternal(const PropertyRecord * propId)
+    {
+        int propertyIndex = this->GetData()->Add<addNewId>(propId, assignments);
+
+#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
+        if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
+        {
+            Output::Print(_u("FixedFields: TypePath::AddInternal: singleton = 0x%p(0x%p)\n"),
+                PointerValue(this->singletonInstance), this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
+            Output::Print(_u("   fixed fields:"));
+
+            for (PropertyIndex i = 0; i < GetPathLength(); i++)
+            {
+                Output::Print(_u(" %s %d%d%d,"), GetPropertyId(i)->GetBuffer(),
+                    i < GetMaxInitializedLength() ? 1 : 0,
+                    GetIsFixedFieldAt(i, GetPathLength()) ? 1 : 0,
+                    GetIsUsedFixedFieldAt(i, GetPathLength()) ? 1 : 0);
+            }
+
+            Output::Print(_u("\n"));
+        }
+#endif
+
+        return propertyIndex;
+    }
 
 #if ENABLE_FIXED_FIELDS
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES

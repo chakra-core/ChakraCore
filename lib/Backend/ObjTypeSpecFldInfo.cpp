@@ -300,7 +300,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::InlineCache* cac
         }
 
         type = TypeWithoutAuxSlotTag(localCache.u.accessor.type);
-        propertyOwnerType = localCache.u.accessor.object->GetType();
+        propertyOwnerType = localCache.u.accessor.isOnProto ? localCache.u.accessor.object->GetType() : type;
     }
 
     Js::ScriptContext* scriptContext = functionBody->GetScriptContext();
@@ -361,9 +361,12 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::InlineCache* cac
         if (type != localCache.u.accessor.type)
         {
             usesAuxSlot = true;
-            fieldValue = localCache.u.accessor.object->GetAuxSlot(slotIndex);
+            if (localCache.u.accessor.isOnProto)
+            {
+                fieldValue = localCache.u.accessor.object->GetAuxSlot(slotIndex);
+            }
         }
-        else
+        else if (localCache.u.accessor.isOnProto)
         {
             fieldValue = localCache.u.accessor.object->GetInlineSlot(slotIndex);
         }
