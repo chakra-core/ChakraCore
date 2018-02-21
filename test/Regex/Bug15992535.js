@@ -76,3 +76,5 @@ main(); } catch(err) { }
 
 try { this.__defineGetter__("x", (a = (function f() { return; (function() {}); })()) => { });
 x; } catch(err) { }
+
+print("Didn't get expected fail fast");
