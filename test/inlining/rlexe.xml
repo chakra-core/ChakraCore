@@ -290,4 +290,10 @@
       <files>bug12528802.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>callToDynamicScript.js</files>
+      <compile-flags>-loopinterpretcount:1 -bgjit-</compile-flags>
+    </default>
+  </test>
 </regress-exe>
