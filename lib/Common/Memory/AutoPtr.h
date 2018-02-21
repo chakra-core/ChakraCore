@@ -116,6 +116,7 @@ public:
 template <typename T>
 class AutoCOMPtr : public AutoReleasePtr<T>
 {
+    using BasePtr<T>::ptr;
 public:
     AutoCOMPtr(T * ptr = nullptr) : AutoReleasePtr<T>(ptr)
     {
@@ -124,24 +125,71 @@ public:
             ptr->AddRef();
         }
     }
-};
 
-class AutoBSTR : public BasePtr<OLECHAR>
-{
-public:
-    AutoBSTR(BSTR ptr = nullptr) : BasePtr(ptr) {}
-    ~AutoBSTR()
+    AutoCOMPtr(const AutoCOMPtr<T>& other)
     {
-        Release();
+        if ((ptr = other.ptr) != nullptr)
+        {
+            ptr->AddRef();
+        }
     }
 
-    void Release()
+    template <class Q>
+    HRESULT QueryInterface(Q** pp) const
     {
-        if (ptr != nullptr)
+        return ptr->QueryInterface(__uuidof(Q), (void**)pp);
+    }
+
+    void Attach(T* p2)
+    {
+        if (ptr)
         {
-            ::SysFreeString(ptr);
-            this->ptr = nullptr;
+            ptr->Release();
         }
+        ptr = p2;
+    }
+
+    operator T*() const
+    {
+        return (T*)ptr;
+    }
+
+    T& operator*() const
+    {
+        Assert(ptr != nullptr);
+        return *ptr;
+    }
+
+    T* operator=(T* lp)
+    {
+        return (T*)ComPtrAssign((IUnknown**)&ptr, lp);
+    }
+
+    T** operator&()
+    {
+        return &ptr;
+    }
+
+private:
+    static IUnknown* ComPtrAssign(IUnknown** pp, IUnknown* lp)
+    {
+        if (pp == nullptr)
+        {
+            return nullptr;
+        }
+
+        if (lp != nullptr)
+        {
+            lp->AddRef();
+        }
+
+        if (*pp)
+        {
+            (*pp)->Release();
+        }
+        
+        *pp = lp;
+        return lp;
     }
 };
 
