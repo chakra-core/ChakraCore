@@ -49,6 +49,7 @@ public:
 }
 
 #include <Core/Assertions.h>
+#endif
 
 namespace PlatformAgnostic
 {
@@ -56,9 +57,7 @@ namespace PlatformAgnostic
     {
          namespace Internal
          {
-             template <typename CharType>
-             int LogicalStringCompareImpl(const CharType* str1, const CharType* str2);
+             int LogicalStringCompareImpl(const char16* p1, const char16* p2);
          }
     }
 }
-#endif

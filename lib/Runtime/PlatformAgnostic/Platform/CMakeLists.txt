@@ -4,12 +4,23 @@ set(PL_SOURCE_FILES
   Common/UnicodeText.Common.cpp
   Common/HiResTimer.cpp
   Common/DateTime.cpp
-  Linux/UnicodeText.ICU.cpp
   Linux/NumbersUtility.cpp
   Linux/Thread.cpp
   Common/Trace.cpp
   Common/SystemInfo.Common.cpp
   )
+
+if(NO_ICU)
+  set(PL_SOURCE_FILES
+    ${PL_SOURCE_FILES}
+    POSIX/UnicodeText.cpp
+  )
+else()
+  set(PL_SOURCE_FILES
+    ${PL_SOURCE_FILES}
+    Common/UnicodeText.ICU.cpp
+  )
+endif()
 
 if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
   set(PL_SOURCE_FILES ${PL_SOURCE_FILES}
@@ -24,7 +35,7 @@ elseif(CC_TARGET_OS_OSX)
     )
 endif()
 
-if(NOT ICU_INTL_DISABLED)
+if(INTL_ICU)
   set(PL_SOURCE_FILES ${PL_SOURCE_FILES} Common/Intl.cpp)
 endif()
 
