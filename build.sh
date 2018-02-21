@@ -138,6 +138,22 @@ else
     echo -e "Warning: Installation script couldn't detect host OS..\n" # exit ?
 fi
 
+SET_CUSTOM_ICU() {
+    ICU_PATH=$1
+    if [[ ! -d "$ICU_PATH" || ! -d "$ICU_PATH/unicode" ]]; then
+        ICU_PATH_LOCAL="$CHAKRACORE_DIR/$ICU_PATH"
+        if [[ ! -d "$ICU_PATH_LOCAL" || ! -d "$ICU_PATH_LOCAL/unicode" ]]; then
+            # if a path was explicitly provided, do not fallback to no-icu
+            echo "!!! couldn't find ICU at either $ICU_PATH or $ICU_PATH_LOCAL"
+            exit 1
+        else
+            ICU_PATH="$ICU_PATH_LOCAL"
+        fi
+    fi
+    CMAKE_ICU="-DICU_INCLUDE_PATH_SH=$ICU_PATH"
+    USE_LOCAL_ICU=0
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
     --arch=*)
@@ -208,13 +224,7 @@ while [[ $# -gt 0 ]]; do
         ICU_PATH=$1
         # `eval` used to resolve tilde in the path
         eval ICU_PATH="${ICU_PATH:13}"
-        if [[ ! -d $ICU_PATH || ! -d $ICU_PATH/unicode ]]; then
-            # if --custom-icu is given, do not fallback to no-icu
-            echo "!!! couldn't find ICU at $ICU_PATH"
-            exit 1
-        fi
-        CMAKE_ICU="-DICU_INCLUDE_PATH_SH=$ICU_PATH"
-        USE_LOCAL_ICU=0
+        SET_CUSTOM_ICU $ICU_PATH
         ;;
 
     # allow legacy --icu flag for compatability
@@ -222,13 +232,7 @@ while [[ $# -gt 0 ]]; do
         ICU_PATH=$1
         # `eval` used to resolve tilde in the path
         eval ICU_PATH="${ICU_PATH:6}"
-        if [[ ! -d $ICU_PATH || ! -d $ICU_PATH/unicode ]]; then
-            # if --custom-icu is given, do not fallback to no-icu
-            echo "!!! couldn't find ICU at $ICU_PATH"
-            exit 1
-        fi
-        CMAKE_ICU="-DICU_INCLUDE_PATH_SH=$ICU_PATH"
-        USE_LOCAL_ICU=0
+        SET_CUSTOM_ICU $ICU_PATH
         ;;
 
     --embed-icu)
