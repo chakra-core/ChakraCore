@@ -5351,7 +5351,7 @@ GlobOpt::GetPrepassValueTypeForDst(
     IR::Instr *const instr,
     Value *const src1Value,
     Value *const src2Value,
-    bool *const isValueInfoPreciseRef) const
+    bool const isValueInfoPrecise) const
 {
     // Values with definite types can be created in the loop prepass only when it is guaranteed that the value type will be the
     // same on any iteration of the loop. The heuristics currently used are:
@@ -5368,18 +5368,12 @@ GlobOpt::GetPrepassValueTypeForDst(
     Assert(IsLoopPrePass());
     Assert(instr);
 
-    if(isValueInfoPreciseRef)
-    {
-        *isValueInfoPreciseRef = false;
-    }
-
     if(!desiredValueType.IsDefinite())
     {
         return desiredValueType;
     }
 
-    if((instr->GetSrc1() && !IsPrepassSrcValueInfoPrecise(instr->GetSrc1(), src1Value)) ||
-       (instr->GetSrc2() && !IsPrepassSrcValueInfoPrecise(instr->GetSrc2(), src2Value)))
+    if(!isValueInfoPrecise)
     {
         // If the desired value type is not precise, the value type of the destination is derived from the value types of the
         // sources. Since the value type of a source sym is not definite, the destination value type also cannot be definite.
@@ -5396,42 +5390,45 @@ GlobOpt::GetPrepassValueTypeForDst(
         return desiredValueType.ToLikely();
     }
 
-    if(isValueInfoPreciseRef)
-    {
-        // The produced value info is derived from the sources, which have precise value infos
-        *isValueInfoPreciseRef = true;
-    }
     return desiredValueType;
 }
 
 bool
-GlobOpt::IsPrepassSrcValueInfoPrecise(IR::Opnd *const src, Value *const srcValue) const
+GlobOpt::IsPrepassSrcValueInfoPrecise(IR::Instr *const instr, Value *const src1Value, Value *const src2Value, bool * isSafeToTransferInPrepass) const
+{
+    return
+        (!instr->GetSrc1() || IsPrepassSrcValueInfoPrecise(instr->GetSrc1(), src1Value, isSafeToTransferInPrepass)) &&
+        (!instr->GetSrc2() || IsPrepassSrcValueInfoPrecise(instr->GetSrc2(), src2Value, isSafeToTransferInPrepass));
+}
+
+bool
+GlobOpt::IsPrepassSrcValueInfoPrecise(IR::Opnd *const src, Value *const srcValue, bool * isSafeToTransferInPrepass) const
 {
     Assert(IsLoopPrePass());
     Assert(src);
 
-    if(!src->IsRegOpnd() || !srcValue)
+    if (isSafeToTransferInPrepass)
+    {
+        *isSafeToTransferInPrepass = false;
+    }
+
+    if (!src->IsRegOpnd() || !srcValue)
     {
         return false;
     }
 
     ValueInfo *const srcValueInfo = srcValue->GetValueInfo();
-    if(!srcValueInfo->IsDefinite())
+    bool isValueInfoDefinite = srcValueInfo->IsDefinite();
+
+    StackSym * srcSym = src->AsRegOpnd()->m_sym;
+
+    bool isSafeToTransfer = IsSafeToTransferInPrepass(srcSym, srcValueInfo);
+    if (isSafeToTransferInPrepass)
     {
-        return false;
+        *isSafeToTransferInPrepass = isSafeToTransfer;
     }
 
-    StackSym *srcSym = src->AsRegOpnd()->m_sym;
-    Assert(!srcSym->IsTypeSpec());
-    int32 intConstantValue;
-    return
-        srcSym->IsFromByteCodeConstantTable() ||
-        (
-            srcValueInfo->TryGetIntConstantValue(&intConstantValue) &&
-            !Js::TaggedInt::IsOverflow(intConstantValue) &&
-            GetTaggedIntConstantStackSym(intConstantValue) == srcSym
-        ) ||
-        !currentBlock->loop->regAlloc.liveOnBackEdgeSyms->Test(srcSym->m_id);
+    return isValueInfoDefinite && isSafeToTransfer;
 }
 
 bool
@@ -5468,7 +5465,8 @@ Value *GlobOpt::CreateDstUntransferredIntValue(
     bool isValueInfoPrecise;
     if(IsLoopPrePass())
     {
-        valueType = GetPrepassValueTypeForDst(valueType, instr, src1Value, src2Value, &isValueInfoPrecise);
+        isValueInfoPrecise = IsPrepassSrcValueInfoPrecise(instr, src1Value, src2Value);
+        valueType = GetPrepassValueTypeForDst(valueType, instr, src1Value, src2Value, isValueInfoPrecise);
     }
     else
     {
@@ -5499,7 +5497,7 @@ GlobOpt::CreateDstUntransferredValue(
     ValueType valueType(desiredValueType);
     if(IsLoopPrePass())
     {
-        valueType = GetPrepassValueTypeForDst(valueType, instr, src1Value, src2Value);
+        valueType = GetPrepassValueTypeForDst(valueType, instr, src1Value, src2Value, IsPrepassSrcValueInfoPrecise(instr, src1Value, src2Value));
     }
     return NewGenericValue(valueType, instr->GetDst());
 }
@@ -5626,8 +5624,24 @@ GlobOpt::ValueNumberTransferDstInPrepass(IR::Instr *const instr, Value *const sr
 
     // In prepass we are going to copy the value but with a different value number
     // for aggressive int type spec.
-    const ValueType valueType(GetPrepassValueTypeForDst(src1ValueInfo->Type(), instr, src1Val, nullptr, &isValueInfoPrecise));
-    if(isValueInfoPrecise || (valueType == src1ValueInfo->Type() && src1ValueInfo->IsGeneric()))
+    bool isSafeToTransferInPrepass = false;
+    isValueInfoPrecise = IsPrepassSrcValueInfoPrecise(instr, src1Val, nullptr, &isSafeToTransferInPrepass);
+    
+    const ValueType valueType(GetPrepassValueTypeForDst(src1ValueInfo->Type(), instr, src1Val, nullptr, isValueInfoPrecise));
+    if(isValueInfoPrecise || isSafeToTransferInPrepass)
+    {
+        Assert(valueType == src1ValueInfo->Type());
+        if (!PHASE_OFF1(Js::AVTInPrePassPhase))
+        {
+            dstVal = src1Val;
+        }
+        else
+        {
+            dstVal = CopyValue(src1Val);
+            TrackCopiedValueForKills(dstVal);
+        }
+    }
+    else if (valueType == src1ValueInfo->Type() && src1ValueInfo->IsGeneric()) // this else branch is probably not needed
     {
         Assert(valueType == src1ValueInfo->Type());
         dstVal = CopyValue(src1Val);
@@ -8070,7 +8084,8 @@ GlobOpt::TypeSpecializeIntDst(IR::Instr* instr, Js::OpCode originalOpCode, Value
     bool isValueInfoPrecise;
     if(IsLoopPrePass())
     {
-        valueType = GetPrepassValueTypeForDst(valueType, instr, src1Value, src2Value, &isValueInfoPrecise);
+        isValueInfoPrecise = IsPrepassSrcValueInfoPrecise(instr, src1Value, src2Value);
+        valueType = GetPrepassValueTypeForDst(valueType, instr, src1Value, src2Value, isValueInfoPrecise);
     }
     else
     {

@@ -4666,9 +4666,9 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
     // (airlock block) to put in the conversion code.
     Assert(globOpt->tempBv->IsEmpty());
 
-    BVSparse<JitArenaAllocator> tempBv2(globOpt->tempAlloc);
-    BVSparse<JitArenaAllocator> tempBv3(globOpt->tempAlloc);
-    BVSparse<JitArenaAllocator> tempBv4(globOpt->tempAlloc);
+    BVSparse<JitArenaAllocator> symsNeedingLossyIntConversion(globOpt->tempAlloc);
+    BVSparse<JitArenaAllocator> symsNeedingLosslessIntConversion(globOpt->tempAlloc);
+    BVSparse<JitArenaAllocator> symsNeedingFloatConversion(globOpt->tempAlloc);
 
     FOREACH_PREDECESSOR_EDGE_EDITING(edge, this, iter)
     {
@@ -4690,22 +4690,22 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
         }
 
         // Lossy int in the merged block, and no int in the predecessor - need a lossy conversion to int
-        tempBv2.Minus(blockData.liveLossyInt32Syms, pred->globOptData.liveInt32Syms);
+        symsNeedingLossyIntConversion.Minus(blockData.liveLossyInt32Syms, pred->globOptData.liveInt32Syms);
 
         // Lossless int in the merged block, and no lossless int in the predecessor - need a lossless conversion to int
-        tempBv3.Minus(blockData.liveInt32Syms, this->globOptData.liveLossyInt32Syms);
+        symsNeedingLosslessIntConversion.Minus(blockData.liveInt32Syms, blockData.liveLossyInt32Syms);
         globOpt->tempBv->Minus(pred->globOptData.liveInt32Syms, pred->globOptData.liveLossyInt32Syms);
-        tempBv3.Minus(globOpt->tempBv);
+        symsNeedingLosslessIntConversion.Minus(globOpt->tempBv);
 
         globOpt->tempBv->Minus(blockData.liveVarSyms, pred->globOptData.liveVarSyms);
-        tempBv4.Minus(blockData.liveFloat64Syms, pred->globOptData.liveFloat64Syms);
+        symsNeedingFloatConversion.Minus(blockData.liveFloat64Syms, pred->globOptData.liveFloat64Syms);
 
-        bool symIVNeedsSpecializing = (symIV && !pred->globOptData.liveInt32Syms->Test(symIV->m_id) && !tempBv3.Test(symIV->m_id));
+        bool symIVNeedsSpecializing = (symIV && !pred->globOptData.liveInt32Syms->Test(symIV->m_id) && !symsNeedingLosslessIntConversion.Test(symIV->m_id));
 
         if (!globOpt->tempBv->IsEmpty() ||
-            !tempBv2.IsEmpty() ||
-            !tempBv3.IsEmpty() ||
-            !tempBv4.IsEmpty() ||
+            !symsNeedingLossyIntConversion.IsEmpty() ||
+            !symsNeedingLosslessIntConversion.IsEmpty() ||
+            !symsNeedingFloatConversion.IsEmpty() ||
             symIVNeedsSpecializing ||
             symsRequiringCompensationToMergedValueInfoMap.Count() != 0)
         {
@@ -4748,17 +4748,17 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
             {
                 globOpt->ToVar(globOpt->tempBv, pred);
             }
-            if (!tempBv2.IsEmpty())
+            if (!symsNeedingLossyIntConversion.IsEmpty())
             {
-                globOpt->ToInt32(&tempBv2, pred, true /* lossy */);
+                globOpt->ToInt32(&symsNeedingLossyIntConversion, pred, true /* lossy */);
             }
-            if (!tempBv3.IsEmpty())
+            if (!symsNeedingLosslessIntConversion.IsEmpty())
             {
-                globOpt->ToInt32(&tempBv3, pred, false /* lossy */);
+                globOpt->ToInt32(&symsNeedingLosslessIntConversion, pred, false /* lossy */);
             }
-            if (!tempBv4.IsEmpty())
+            if (!symsNeedingFloatConversion.IsEmpty())
             {
-                globOpt->ToFloat64(&tempBv4, pred);
+                globOpt->ToFloat64(&symsNeedingFloatConversion, pred);
             }
             if (symIVNeedsSpecializing)
             {
