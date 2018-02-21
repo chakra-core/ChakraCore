@@ -9107,7 +9107,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
 
                     if (pnode->sxBin.pnode1->nop == knopDot)
                     {
-                        pnode->sxBin.pnode2->sxFnc.isNameIdentifierRef  = false;
+                        pnode->sxBin.pnode2->sxFnc.isNameIdentifierRef = false;
                     }
                     else if (pnode->sxBin.pnode1->nop == knopName)
                     {
@@ -9118,7 +9118,11 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 if (pnode->sxBin.pnode2->nop == knopClassDecl && pnode->sxBin.pnode1->nop == knopDot)
                 {
                     Assert(pnode->sxBin.pnode2->sxClass.pnodeConstructor);
-                    pnode->sxBin.pnode2->sxClass.pnodeConstructor->sxFnc.isNameIdentifierRef  = false;
+
+                    if (!pnode->sxBin.pnode2->sxClass.pnodeConstructor->sxFnc.pid)
+                    {
+                        pnode->sxBin.pnode2->sxClass.pnodeConstructor->sxFnc.isNameIdentifierRef = false;
+                    }
                 }
             }
             pNameHint = NULL;

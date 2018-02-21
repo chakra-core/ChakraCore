@@ -7670,21 +7670,21 @@ void EmitCallTarget(
     {
         if (!pnodeTarget->IsSpecialName())
         {
-        funcInfo->AcquireLoc(pnodeTarget);
-        // Assign the call target operand(s), putting them into expression temps if necessary to protect
-        // them from side-effects.
-        if (fSideEffectArgs)
-        {
-            SaveOpndValue(pnodeTarget, funcInfo);
-        }
-        byteCodeGenerator->EmitLoadInstance(pnodeTarget->sxPid.sym, pnodeTarget->sxPid.pid, thisLocation, callObjLocation, funcInfo);
-        if (*callObjLocation != Js::Constants::NoRegister)
-        {
-            // Load the call target as a property of the instance.
-            Js::PropertyId propertyId = pnodeTarget->sxPid.PropertyIdFromNameNode();
-            EmitMethodFld(pnodeTarget, *callObjLocation, propertyId, byteCodeGenerator, funcInfo);
-            break;
-        }
+            funcInfo->AcquireLoc(pnodeTarget);
+            // Assign the call target operand(s), putting them into expression temps if necessary to protect
+            // them from side-effects.
+            if (fSideEffectArgs)
+            {
+                SaveOpndValue(pnodeTarget, funcInfo);
+            }
+            byteCodeGenerator->EmitLoadInstance(pnodeTarget->sxPid.sym, pnodeTarget->sxPid.pid, thisLocation, callObjLocation, funcInfo);
+            if (*callObjLocation != Js::Constants::NoRegister)
+            {
+                // Load the call target as a property of the instance.
+                Js::PropertyId propertyId = pnodeTarget->sxPid.PropertyIdFromNameNode();
+                EmitMethodFld(pnodeTarget, *callObjLocation, propertyId, byteCodeGenerator, funcInfo);
+                break;
+            }
         }
 
         // FALL THROUGH to evaluate call target.
