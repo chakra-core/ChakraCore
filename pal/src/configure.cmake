@@ -913,7 +913,7 @@ else() # Anything else is Linux
   set(HAS_FTRUNCATE_LENGTH_ISSUE 0)
 endif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
 
-if(NOT NO_ICU_PATH_GIVEN)
+if(NOT NO_ICU)
   if(NOT HAVE_LIBICU_UCHAR_H)
     unset(HAVE_LIBICU_UCHAR_H CACHE)
     message(FATAL_ERROR "Cannot find ICU. Try installing libicu-dev or the appropriate packages for your platform. You may also disable icu/unicode with '--no-icu' argument")
