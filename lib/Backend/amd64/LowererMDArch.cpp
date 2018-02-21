@@ -1011,19 +1011,6 @@ LowererMDArch::GetArgSlotOpnd(uint16 index, StackSym * argSym, bool isHelper /*=
     Assert(index != 0);
 
     uint16 argPosition = index;
-
-#ifdef ENABLE_SIMDJS
-    // Without SIMD the index is the Var offset and is also the argument index. Since each arg = 1 Var.
-    // With SIMD, args are of variable length and we need to the argument position in the args list.
-    if (m_func->IsSIMDEnabled() &&
-        m_func->GetJITFunctionBody()->IsAsmJsMode() &&
-        argSym != nullptr &&
-        argSym->m_argPosition != 0)
-    {
-        argPosition = (uint16)argSym->m_argPosition;
-    }
-#endif
-
     IR::Opnd *argSlotOpnd = nullptr;
 
     if (argSym != nullptr)
@@ -2088,6 +2075,7 @@ LowererMDArch::LowerExitInstr(IR::ExitInstr * exitInstr)
         case Js::AsmJsRetType::Float:
             retReg = IR::RegOpnd::New(nullptr, this->GetRegReturnAsmJs(TyMachDouble), TyMachDouble, this->m_func);
             break;
+#ifdef ENABLE_WASM_SIMD
         case Js::AsmJsRetType::Int32x4:
             retReg = IR::RegOpnd::New(nullptr, this->GetRegReturnAsmJs(TySimd128I4), TySimd128I4, this->m_func);
             break;
@@ -2124,6 +2112,7 @@ LowererMDArch::LowerExitInstr(IR::ExitInstr * exitInstr)
         case Js::AsmJsRetType::Int64x2:
             retReg = IR::RegOpnd::New(nullptr, this->GetRegReturnAsmJs(TySimd128I2), TySimd128I2, this->m_func);
             break;
+#endif
         case Js::AsmJsRetType::Int64:
         case Js::AsmJsRetType::Signed:
             retReg = IR::RegOpnd::New(nullptr, this->GetRegReturn(TyMachReg), TyMachReg, this->m_func);

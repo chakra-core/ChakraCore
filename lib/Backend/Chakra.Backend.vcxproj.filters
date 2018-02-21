@@ -121,7 +121,6 @@
       <Filter>arm64</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)Inline.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptSimd128.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SwitchIRBuilder.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BackendApi.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITOutput.cpp" />

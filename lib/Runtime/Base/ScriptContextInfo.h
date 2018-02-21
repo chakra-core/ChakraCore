@@ -36,9 +36,6 @@ public:
     virtual intptr_t GetNumberAllocatorAddr() const = 0;
     virtual intptr_t GetRecyclerAddr() const = 0;
     virtual bool GetRecyclerAllowNativeCodeBumpAllocation() const = 0;
-#ifdef ENABLE_SIMDJS
-    virtual bool IsSIMDEnabled() const = 0;
-#endif
     virtual bool IsPRNGSeeded() const = 0;
     virtual intptr_t GetBuiltinFunctionsBaseAddr() const = 0;
 

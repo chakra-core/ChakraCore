@@ -282,7 +282,7 @@ EXDEF2_WMS( D1toD1Mem, PrintF64, WAsmJs::Tracing::PrintF64 )
 #endif
   //unary ops
 
-#if defined(ENABLE_SIMD_JS) || defined(ENABLE_WASM_SIMD)
+#ifdef ENABLE_WASM_SIMD
 
 EXDEF2_WMS( SIMD_F4_1toF4_1  , Simd128_Ld_F4        , (AsmJsSIMDValue)                                   )
   DEF2_WMS( SIMD_I4_1toI4_1  , Simd128_Ld_I4        , (AsmJsSIMDValue)                                   )

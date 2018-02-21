@@ -501,6 +501,7 @@ namespace Js
         }
     }
 
+#ifdef ENABLE_WASM_SIMD
     template <class T>
     void Js::AsmJsEncoder::OP_Simd128_LdF4(const unaligned T* playout)
     {
@@ -978,4 +979,5 @@ namespace Js
     {
         AsmJsJitTemplate::Simd128_I_ArgOut_D2::ApplyTemplate(this, mPc, playout->R0, CalculateOffset<AsmJsSIMDValue>(playout->D2_1));
     }
+#endif // ENABLE_WASM_SIMD
 }

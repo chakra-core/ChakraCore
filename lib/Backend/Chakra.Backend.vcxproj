@@ -185,7 +185,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)EquivalentTypeSet.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptBailOut.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptExpr.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptSimd128.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptFields.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptIntBounds.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Backend.cpp">

@@ -482,7 +482,7 @@ LowererMD::Init(Lowerer *lowerer)
 {
     m_lowerer = lowerer;
     this->lowererMDArch.Init(this);
-#if defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)
+#ifdef ENABLE_WASM_SIMD
     Simd128InitOpcodeMap();
 #endif
 }
@@ -805,6 +805,7 @@ LowererMD::LowerRet(IR::Instr * retInstr)
         case Js::AsmJsRetType::Signed:
             regType = TyInt32;
             break;
+#ifdef ENABLE_WASM_SIMD
         case Js::AsmJsRetType::Float32x4:
             regType = TySimd128F4;
             break;
@@ -841,6 +842,7 @@ LowererMD::LowerRet(IR::Instr * retInstr)
         case Js::AsmJsRetType::Bool8x16:
             regType = TySimd128B16;
             break;
+#endif
         default:
             Assert(UNREACHED);
         }

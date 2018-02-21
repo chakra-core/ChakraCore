@@ -45,8 +45,7 @@
 #include "Debug/MutationBreakpoint.h"
 #endif
 
-// SIMD_JS
-#include "Library/SimdLib.h"
+// SIMD
 #include "Language/SimdOps.h"
 #include "Language/SimdUtils.h"
 

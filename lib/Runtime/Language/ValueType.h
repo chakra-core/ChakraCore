@@ -50,10 +50,6 @@ public:
     static ValueType GetInt(const bool isLikelyTagged);
     static ValueType GetNumberAndLikelyInt(const bool isLikelyTagged);
     static ValueType GetObject(const ObjectType objectType);
-
-    // SIMD_JS
-    static ValueType GetSimd128(const ObjectType objectType);
-
 private:
     static ValueType GetArray(const ObjectType objectType);
 
@@ -172,32 +168,7 @@ public:
     bool IsSimilar(ValueType v) const;
 #endif
 
-#if ENABLE_NATIVE_CODEGEN
-// SIMD_JS
     bool IsSimd128() const;
-    bool IsSimd128(IRType type) const;
-    bool IsSimd128Float32x4() const;
-    bool IsSimd128Int32x4() const;
-    bool IsSimd128Int16x8() const;
-    bool IsSimd128Int8x16() const;
-    bool IsSimd128Uint32x4() const;
-    bool IsSimd128Uint16x8() const;
-    bool IsSimd128Uint8x16() const;
-    bool IsSimd128Float64x2() const;
-    bool IsSimd128Int64x2() const;
-
-
-    bool IsLikelySimd128() const;
-    bool IsLikelySimd128Float32x4() const;
-    bool IsLikelySimd128Int32x4() const;
-    bool IsLikelySimd128Int16x8() const;
-    bool IsLikelySimd128Int8x16() const;
-    bool IsLikelySimd128Uint16x8() const;
-    bool IsLikelySimd128Uint8x16() const;
-    bool IsLikelySimd128Float64x2() const;
-    bool IsLikelySimd128Int64x2() const;
-#endif
-
     bool HasBeenObject() const;
     bool IsObject() const;
     bool IsLikelyObject() const;

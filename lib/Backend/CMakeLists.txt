@@ -28,7 +28,6 @@ add_library (Chakra.Backend OBJECT
     GlobOptExpr.cpp
     GlobOptFields.cpp
     GlobOptIntBounds.cpp
-    GlobOptSimd128.cpp
     IR.cpp
     IRBuilder.cpp
     IRBuilderAsmJs.cpp

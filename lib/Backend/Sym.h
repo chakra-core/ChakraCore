@@ -118,26 +118,18 @@ public:
     bool            IsInt64Const() const;
     bool            IsTaggableIntConst() const;
     bool            IsFloatConst() const;
-// SIMD_JS
     bool            IsSimd128Const() const;
 
     void            SetIsConst();
     void            SetIsIntConst(IntConstType value);
     void            SetIsInt64Const();
     void            SetIsFloatConst();
-// SIMD_JS
     void            SetIsSimd128Const();
 
     intptr_t        GetLiteralConstValue_PostGlobOpt() const;
     IR::Opnd *      GetConstOpnd() const;
     BailoutConstantValue GetConstValueForBailout() const;
 
-    // SIMD_JS
-    StackSym *      GetSimd128EquivSym(IRType type, Func *func);
-    StackSym *      GetSimd128F4EquivSym(Func *func);
-    StackSym *      GetSimd128I4EquivSym(Func *func);
-    StackSym *      GetSimd128I16EquivSym(Func *func);
-    StackSym *      GetSimd128D2EquivSym(Func *func);
     bool            IsSimd128() const { return IRType_IsSimd128(this->GetType()); }
 
     bool            IsSimd128F4()  const { return this->GetType() == TySimd128F4;  }

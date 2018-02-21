@@ -4957,9 +4957,6 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         contextData.chakraLibAddr = (intptr_t)GetLibrary()->GetChakraLib();
 #endif
         contextData.numberAllocatorAddr = (intptr_t)GetNumberAllocator();
-#ifdef ENABLE_SIMDJS
-        contextData.isSIMDEnabled = GetConfig()->IsSimdjsEnabled();
-#endif
         CompileAssert(VTableValue::Count == VTABLE_COUNT); // need to update idl when this changes
 
         auto vtblAddresses = GetLibrary()->GetVTableAddresses();
@@ -5158,13 +5155,6 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     {
         return GetRecycler()->AllowNativeCodeBumpAllocation();
     }
-
-#ifdef ENABLE_SIMDJS
-    bool ScriptContext::IsSIMDEnabled() const
-    {
-        return GetConfig()->IsSimdjsEnabled();
-    }
-#endif
 
     bool ScriptContext::IsPRNGSeeded() const
     {

@@ -2114,11 +2114,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * 
         callInstr->InsertBefore(useCallTargetInstr);
     }
 
-    if(Js::JavascriptLibrary::IsTypeSpecRequired(builtInFlags)
-// SIMD_JS
-        || IsSimd128Opcode(inlineCallOpCode)
-//
-        )
+    if(Js::JavascriptLibrary::IsTypeSpecRequired(builtInFlags))
     {
         // Emit byteCodeUses for function object
         IR::Instr * inlineBuiltInStartInstr = inlineBuiltInEndInstr;
@@ -2140,7 +2136,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * 
         }
         else
         {
-            AssertMsg(inlineCallOpCode == Js::OpCode::InlineArrayPush || inlineCallOpCode == Js::OpCode::InlineArrayPop || Js::IsSimd128Opcode(inlineCallOpCode),
+            AssertMsg(inlineCallOpCode == Js::OpCode::InlineArrayPush || inlineCallOpCode == Js::OpCode::InlineArrayPop,
                 "Currently Dst can be null only for InlineArrayPush/InlineArrayPop");
         }
 
@@ -2175,28 +2171,13 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * 
         IR::ByteCodeUsesInstr * byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(callInstr);
         IR::Instr *argInsertInstr = inlineBuiltInStartInstr;
 
-#ifdef ENABLE_SIMDJS
-        // SIMD_JS
-        IR::Instr *eaInsertInstr = callInstr;
-        IR::Opnd *eaLinkOpnd = nullptr;
-        ThreadContext::SimdFuncSignature simdFuncSignature;
-        if (IsSimd128Opcode(callInstr->m_opcode))
-        {
-            callInstr->m_func->GetScriptContext()->GetThreadContext()->GetSimdFuncSignatureFromOpcode(callInstr->m_opcode, simdFuncSignature);
-            Assert(simdFuncSignature.valid);
-            // if we have decided to inline, then actual arg count == signature arg count == required arg count from inlinee list (LibraryFunction.h)
-            Assert(simdFuncSignature.argCount == (uint)inlineCallArgCount);
-            Assert(simdFuncSignature.argCount == (uint)requiredInlineCallArgCount);
-        }
-#endif
-
         inlineBuiltInEndInstr->IterateArgInstrs([&](IR::Instr* argInstr) {
             StackSym *linkSym = linkOpnd->GetStackSym();
             linkSym->m_isInlinedArgSlot = true;
             linkSym->m_allocated = true;
 
             // We are going to replace the use on the call (below), insert byte code use if necessary
-            if (OpCodeAttr::BailOutRec(inlineCallOpCode) || Js::IsSimd128Opcode(inlineCallOpCode))
+            if (OpCodeAttr::BailOutRec(inlineCallOpCode))
             {
                 StackSym * sym = argInstr->GetSrc1()->GetStackSym();
                 if (!sym->m_isSingleDef || !sym->m_instrDef->GetSrc1() || !sym->m_instrDef->GetSrc1()->IsConstOpnd())
@@ -2210,65 +2191,19 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * 
 
             // Convert the arg out to built in arg out, and get the src of the arg out
             IR::Opnd * argOpnd = ConvertToInlineBuiltInArgOut(argInstr);
-
-#ifdef ENABLE_SIMDJS
-            // SIMD_JS
-            if (inlineCallArgCount > 2 && argIndex != 0 /* don't include 'this' */)
+            // Use parameter to the inline call to tempDst.
+            if (argIndex == 2)
             {
-                Assert(IsSimd128Opcode(callInstr->m_opcode));
-                // Insert ExtendedArgs
-
-                IR::Instr *eaInstr;
-
-                // inliner sets the dst type of the ExtendedArg to the expected arg type for the operation. The globOpt uses this info to know the type-spec target for each ExtendedArg.
-                eaInstr = IR::Instr::New(Js::OpCode::ExtendArg_A, callInstr->m_func);
-                eaInstr->SetByteCodeOffset(callInstr);
-                if (argIndex == inlineCallArgCount)
-                {
-                    // fix callInstr
-                    eaLinkOpnd = IR::RegOpnd::New(TyVar, callInstr->m_func);
-                    eaLinkOpnd->GetStackSym()->m_isInlinedArgSlot = true;
-                    eaLinkOpnd->GetStackSym()->m_allocated = true;
-
-                    Assert(callInstr->GetSrc1() == nullptr && callInstr->GetSrc2() == nullptr);
-                    callInstr->SetSrc1(eaLinkOpnd);
-                }
-                Assert(eaLinkOpnd);
-                eaInstr->SetDst(eaLinkOpnd);
-                eaInstr->SetSrc1(argInstr->GetSrc1());
-
-                // insert link opnd, except for first ExtendedArg
-                if (argIndex > 1)
-                {
-                    eaInstr->SetSrc2(IR::RegOpnd::New(TyVar, callInstr->m_func));
-                    eaLinkOpnd = eaInstr->GetSrc2();
-                    eaLinkOpnd->GetStackSym()->m_isInlinedArgSlot = true;
-                    eaLinkOpnd->GetStackSym()->m_allocated = true;
-                }
-
-                eaInstr->GetDst()->SetValueType(simdFuncSignature.args[argIndex - 1]);
-
-                eaInsertInstr->InsertBefore(eaInstr);
-                eaInsertInstr = eaInstr;
+                callInstr->SetSrc2(argOpnd);
+                // Prevent inserting ByteCodeUses instr during globopt, as we already track the src in ArgOut.
+                callInstr->GetSrc2()->SetIsJITOptimizedReg(true);
             }
-            else
-#endif
+            else if (argIndex == 1)
             {
-                // Use parameter to the inline call to tempDst.
-                if (argIndex == 2)
-                {
-                    callInstr->SetSrc2(argOpnd);
-                    // Prevent inserting ByteCodeUses instr during globopt, as we already track the src in ArgOut.
-                    callInstr->GetSrc2()->SetIsJITOptimizedReg(true);
-                }
-                else if (argIndex == 1)
-                {
-                    callInstr->SetSrc1(argOpnd);
-                    // Prevent inserting ByteCodeUses instr during globopt, as we already track the src in ArgOut.
-                    callInstr->GetSrc1()->SetIsJITOptimizedReg(true);
-                }
+                callInstr->SetSrc1(argOpnd);
+                // Prevent inserting ByteCodeUses instr during globopt, as we already track the src in ArgOut.
+                callInstr->GetSrc1()->SetIsJITOptimizedReg(true);
             }
-
 
             argIndex--;
 
@@ -2279,11 +2214,6 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * 
             argInsertInstr = argInstr;
             return false;
         });
-
-#ifdef ENABLE_SIMDJS
-        //SIMD_JS
-        Simd128FixLoadStoreInstr(builtInId, callInstr);
-#endif
 
         if(inlineCallOpCode == Js::OpCode::InlineMathImul || inlineCallOpCode == Js::OpCode::InlineMathClz)
         {
@@ -5736,123 +5666,6 @@ Inline::GetMethodLdOpndForCallInstr(IR::Instr* callInstr)
     }
     return nullptr;
 }
-
-#ifdef ENABLE_SIMDJS
-// SIMD_JS
-/*
-Fixes the format of a SIMD load/store to match format expected by globOpt. Namely:
-Load:
-    dst = Simd128LdArr arr, index
-    becomes
-    dst = Simd128LdArr [arr, indx]
-
-Store:
-    t3 =    EA arr
-    t2 =    EA index, t3
-    t1 =    EA value, t2
-            Simd128StArr t1
-    becomes
-    [arr, index] = Simd128StArr value
-
-It also sets width in bytes of data to be loaded. Needed for bound check generation in GlobOpt.
-*/
-void
-Inline::Simd128FixLoadStoreInstr(Js::BuiltinFunction builtInId, IR::Instr * callInstr)
-{
-    bool isStore = false;
-    callInstr->dataWidth = 0;
-    switch (builtInId)
-    {
-        case Js::BuiltinFunction::SIMDFloat32x4Lib_Store:
-        case Js::BuiltinFunction::SIMDInt32x4Lib_Store:
-            isStore = true;
-            // fall through
-        case Js::BuiltinFunction::SIMDFloat32x4Lib_Load:
-        case Js::BuiltinFunction::SIMDInt32x4Lib_Load:
-            callInstr->dataWidth = 16;
-            break;
-
-        case Js::BuiltinFunction::SIMDFloat32x4Lib_Store3:
-        case Js::BuiltinFunction::SIMDInt32x4Lib_Store3:
-            isStore = true;
-            // fall through
-        case Js::BuiltinFunction::SIMDFloat32x4Lib_Load3:
-        case Js::BuiltinFunction::SIMDInt32x4Lib_Load3:
-            callInstr->dataWidth = 12;
-            break;
-
-        case Js::BuiltinFunction::SIMDFloat32x4Lib_Store2:
-        case Js::BuiltinFunction::SIMDInt32x4Lib_Store2:
-            isStore = true;
-            // fall through
-        case Js::BuiltinFunction::SIMDFloat32x4Lib_Load2:
-        case Js::BuiltinFunction::SIMDInt32x4Lib_Load2:
-            callInstr->dataWidth = 8;
-            break;
-
-        case Js::BuiltinFunction::SIMDFloat32x4Lib_Store1:
-        case Js::BuiltinFunction::SIMDInt32x4Lib_Store1:
-            isStore = true;
-            // fall through
-        case Js::BuiltinFunction::SIMDFloat32x4Lib_Load1:
-        case Js::BuiltinFunction::SIMDInt32x4Lib_Load1:
-            callInstr->dataWidth = 4;
-            break;
-        default:
-            // nothing to do
-            return;
-    }
-
-    IR::IndirOpnd *indirOpnd;
-    if (!isStore)
-    {
-        // load
-        indirOpnd = IR::IndirOpnd::New(callInstr->GetSrc1()->AsRegOpnd(), callInstr->GetSrc2()->AsRegOpnd(), TyVar, callInstr->m_func);
-        callInstr->ReplaceSrc1(indirOpnd);
-        callInstr->FreeSrc2();
-    }
-    else
-    {
-        IR::Opnd *linkOpnd = callInstr->GetSrc1();
-        IR::Instr *eaInstr1, *eaInstr2, *eaInstr3;
-        IR::Opnd *value, *index, *arr;
-        IR::Opnd *dst = callInstr->GetDst();
-
-        eaInstr1 = linkOpnd->GetStackSym()->m_instrDef;
-        value = eaInstr1->GetSrc1();
-        linkOpnd = eaInstr1->GetSrc2();
-
-        eaInstr2 = linkOpnd->GetStackSym()->m_instrDef;
-        index = eaInstr2->GetSrc1();
-        linkOpnd = eaInstr2->GetSrc2();
-
-        eaInstr3 = linkOpnd->GetStackSym()->m_instrDef;
-        Assert(!eaInstr3->GetSrc2()); // end of args list
-        arr = eaInstr3->GetSrc1();
-
-        indirOpnd = IR::IndirOpnd::New(arr->AsRegOpnd(), index->AsRegOpnd(), TyVar, callInstr->m_func);
-        if (dst)
-        {
-            //Load value to be stored to dst. Store returns the value being stored.
-            IR::Instr * ldInstr = IR::Instr::New(Js::OpCode::Ld_A, dst, value, callInstr->m_func);
-            callInstr->InsertBefore(ldInstr);
-
-            //Replace dst
-            callInstr->ReplaceDst(indirOpnd);
-        }
-        else
-        {
-            callInstr->SetDst(indirOpnd);
-        }
-
-        callInstr->ReplaceSrc1(value);
-
-        // remove ea instructions
-        eaInstr1->Remove(); eaInstr2->Remove(); eaInstr3->Remove();
-
-    }
-}
-#endif
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
 // static

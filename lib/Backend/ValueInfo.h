@@ -177,13 +177,6 @@ public:
     using ValueType::HasVarElements;
 
     using ValueType::IsSimd128;
-    using ValueType::IsSimd128Float32x4;
-    using ValueType::IsSimd128Int32x4;
-    using ValueType::IsSimd128Float64x2;
-    using ValueType::IsLikelySimd128;
-    using ValueType::IsLikelySimd128Float32x4;
-    using ValueType::IsLikelySimd128Int32x4;
-    using ValueType::IsLikelySimd128Float64x2;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -253,13 +246,6 @@ private:
 public:
     ValueInfo *SpecializeToInt32(JitArenaAllocator *const allocator, const bool isForLoopBackEdgeCompensation = false);
     ValueInfo *SpecializeToFloat64(JitArenaAllocator *const allocator);
-
-    // SIMD_JS
-    ValueInfo *SpecializeToSimd128(IRType type, JitArenaAllocator *const allocator);
-    ValueInfo *SpecializeToSimd128F4(JitArenaAllocator *const allocator);
-    ValueInfo *SpecializeToSimd128I4(JitArenaAllocator *const allocator);
-
-
 
 public:
     Sym *                   GetSymStore() const { return this->symStore; }

@@ -103,7 +103,7 @@ public:
     virtual ptrdiff_t GetCRTBaseAddressDifference() const = 0;
 
 #if ENABLE_NATIVE_CODEGEN
-#if (defined(ENABLE_SIMDJS) || defined(ENABLE_WASM_SIMD)) && (defined(_M_IX86) || defined(_M_X64))
+#if defined(ENABLE_WASM_SIMD)
     virtual intptr_t GetSimdTempAreaAddr(uint8 tempIndex) const = 0;
 #endif
     virtual intptr_t GetBailOutRegisterSaveSpaceAddr() const = 0;

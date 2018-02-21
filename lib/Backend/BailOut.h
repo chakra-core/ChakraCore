@@ -29,13 +29,6 @@ public:
         byteCodeUpwardExposedUsed(nullptr), polymorphicCacheIndex((uint)-1), startCallCount(0), startCallInfo(nullptr), bailOutInstr(nullptr),
         totalOutParamCount(0), argOutSyms(nullptr), bailOutRecord(nullptr), wasCloned(false), isInvertedBranch(false), sharedBailOutKind(true), outParamInlinedArgSlot(nullptr),
         liveVarSyms(nullptr), liveLosslessInt32Syms(nullptr), liveFloat64Syms(nullptr),
-#ifdef ENABLE_SIMDJS
-        liveSimd128F4Syms(nullptr),
-        liveSimd128I4Syms(nullptr), liveSimd128I8Syms(nullptr), liveSimd128I16Syms(nullptr),
-        liveSimd128U4Syms(nullptr), liveSimd128U8Syms(nullptr), liveSimd128U16Syms(nullptr),
-        liveSimd128B4Syms(nullptr), liveSimd128B8Syms(nullptr), liveSimd128B16Syms(nullptr),
-        liveSimd128D2Syms(nullptr),
-#endif
         branchConditionOpnd(nullptr),
         stackLiteralBailOutInfoCount(0), stackLiteralBailOutInfo(nullptr)
     {
@@ -105,22 +98,6 @@ public:
     BVSparse<JitArenaAllocator> * liveVarSyms;
     BVSparse<JitArenaAllocator> * liveLosslessInt32Syms;                // These are only the live int32 syms that fully represent the var-equivalent sym's value (see GlobOpt::FillBailOutInfo)
     BVSparse<JitArenaAllocator> * liveFloat64Syms;
-
-#ifdef ENABLE_SIMDJS
-    // SIMD_JS
-    BVSparse<JitArenaAllocator> * liveSimd128F4Syms;
-    BVSparse<JitArenaAllocator> * liveSimd128I4Syms;
-    BVSparse<JitArenaAllocator> * liveSimd128I8Syms;
-    BVSparse<JitArenaAllocator> * liveSimd128I16Syms;
-    BVSparse<JitArenaAllocator> * liveSimd128U4Syms;
-    BVSparse<JitArenaAllocator> * liveSimd128U8Syms;
-    BVSparse<JitArenaAllocator> * liveSimd128U16Syms;
-    BVSparse<JitArenaAllocator> * liveSimd128B4Syms;
-    BVSparse<JitArenaAllocator> * liveSimd128B8Syms;
-    BVSparse<JitArenaAllocator> * liveSimd128B16Syms;
-    BVSparse<JitArenaAllocator> * liveSimd128D2Syms;
-#endif
-
     int * outParamOffsets;
 
     BVSparse<JitArenaAllocator> * outParamInlinedArgSlot;
@@ -207,9 +184,7 @@ public:
     }
 
 public:
-    void IsOffsetNativeIntOrFloat(uint offsetIndex, int argOutSlotStart, bool * pIsFloat64, bool * pIsInt32,
-        bool * pIsSimd128F4, bool * pIsSimd128I4, bool * pIsSimd128I8, bool * pIsSimd128I16,
-        bool * pIsSimd128U4, bool * pIsSimd128U8, bool * pIsSimd128U16, bool * pIsSimd128B4, bool * pIsSimd128B8, bool * pIsSimd128B16) const;
+    void IsOffsetNativeIntOrFloat(uint offsetIndex, int argOutSlotStart, bool * pIsFloat64, bool * pIsInt32) const;
 
     template <typename Fn>
     void MapStartCallParamCounts(Fn fn);
@@ -268,9 +243,7 @@ protected:
         void * argoutRestoreAddress = nullptr) const;
     void RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStackLayout * layout, Js::Var * values, Js::ScriptContext * scriptContext,
         bool fromLoopBody, Js::Var * registerSaves, Js::InterpreterStackFrame * newInstance, Js::Var* pArgumentsObject, void * argoutRestoreAddress,
-        uint regSlot, int offset, bool isLocal, bool isFloat64, bool isInt32,
-        bool isSimd128F4, bool isSimd128I4, bool isSimd128I8, bool isSimd128I16,
-        bool isSimd128U4, bool isSimd128U8, bool isSimd128U16, bool isSimd128B4, bool isSimd128B8, bool isSimd128B16 ) const;
+        uint regSlot, int offset, bool isLocal, bool isFloat64, bool isInt32) const;
 
     void AdjustOffsetsForDiagMode(Js::JavascriptCallStackLayout * layout, Js::ScriptFunction * function) const;
 
@@ -293,19 +266,6 @@ protected:
 #ifdef _M_IX86
         BVFixed * isOrphanedArgSlot;
 #endif
-#ifdef ENABLE_SIMDJS
-        // SIMD_JS
-        BVFixed * argOutSimd128F4Syms;
-        BVFixed * argOutSimd128I4Syms;
-        BVFixed * argOutSimd128I8Syms;
-        BVFixed * argOutSimd128I16Syms;
-        BVFixed * argOutSimd128U4Syms;
-        BVFixed * argOutSimd128U8Syms;
-        BVFixed * argOutSimd128U16Syms;
-        BVFixed * argOutSimd128B4Syms;
-        BVFixed * argOutSimd128B8Syms;
-        BVFixed * argOutSimd128B16Syms;
-#endif
         uint * startCallOutParamCounts;
         int * outParamOffsets;
         uint startCallCount;
@@ -318,19 +278,6 @@ protected:
 #ifdef _M_IX86
             FixupNativeDataPointer(isOrphanedArgSlot, chunkList);
 #endif
-#ifdef ENABLE_SIMDJS
-            FixupNativeDataPointer(argOutSimd128F4Syms, chunkList);
-            FixupNativeDataPointer(argOutSimd128I4Syms, chunkList);
-            FixupNativeDataPointer(argOutSimd128I8Syms, chunkList);
-            FixupNativeDataPointer(argOutSimd128I16Syms, chunkList);
-            FixupNativeDataPointer(argOutSimd128U4Syms, chunkList);
-            FixupNativeDataPointer(argOutSimd128U8Syms, chunkList);
-            FixupNativeDataPointer(argOutSimd128U16Syms, chunkList);
-            FixupNativeDataPointer(argOutSimd128B4Syms, chunkList);
-            FixupNativeDataPointer(argOutSimd128B8Syms, chunkList);
-            FixupNativeDataPointer(argOutSimd128B16Syms, chunkList);
-#endif
-
             // special handling for startCallOutParamCounts and outParamOffsets, becuase it points to middle of the allocation
             uint* startCallOutParamCountsStart = startCallOutParamCounts - startCallIndex;
             NativeCodeData::AddFixupEntry(startCallOutParamCounts, startCallOutParamCountsStart, &this->startCallOutParamCounts, this, chunkList);
@@ -457,19 +404,6 @@ struct GlobalBailOutRecordDataRow
     unsigned regSlot : 30;
     unsigned isFloat : 1;
     unsigned isInt : 1;
-#ifdef ENABLE_SIMDJS
-    // SIMD_JS
-    unsigned isSimd128F4 : 1;
-    unsigned isSimd128I4 : 1;
-    unsigned isSimd128I8 : 1;
-    unsigned isSimd128I16 : 1;
-    unsigned isSimd128B4 : 1;
-    unsigned isSimd128B8 : 1;
-    unsigned isSimd128B16 : 1;
-    unsigned isSimd128U4 : 1;
-    unsigned isSimd128U8 : 1;
-    unsigned isSimd128U16 : 1;
-#endif
 };
 
 struct GlobalBailOutRecordDataTable
@@ -491,9 +425,7 @@ struct GlobalBailOutRecordDataTable
     bool isScopeObjRestored     : 1;
 
     void Finalize(NativeCodeData::Allocator *allocator, JitArenaAllocator *tempAlloc);
-    void AddOrUpdateRow(JitArenaAllocator *allocator, uint32 bailOutRecordId, uint32 regSlot, bool isFloat, bool isInt,
-        bool isSimd128F4, bool isSimd128I4, bool isSimd128I8, bool isSimd128I16, bool isSimd128U4, bool isSimd128U8, bool isSimd128U16, bool isSimd128B4, bool isSimd128B8, bool isSimd128B16,
-        int32 offset, uint *lastUpdatedRowIndex);
+    void AddOrUpdateRow(JitArenaAllocator *allocator, uint32 bailOutRecordId, uint32 regSlot, bool isFloat, bool isInt, int32 offset, uint *lastUpdatedRowIndex);
 
     template<class Fn>
     void IterateGlobalBailOutRecordTableRows(uint32 bailOutRecordId, Fn callback)

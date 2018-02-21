@@ -341,32 +341,6 @@ namespace Js
         Field(DynamicType *) webAssemblyMemoryType;
         Field(DynamicType *) webAssemblyTableType;
 
-#ifdef ENABLE_SIMDJS
-        // SIMD_JS
-        Field(DynamicType *) simdBool8x16TypeDynamic;
-        Field(DynamicType *) simdBool16x8TypeDynamic;
-        Field(DynamicType *) simdBool32x4TypeDynamic;
-        Field(DynamicType *) simdInt8x16TypeDynamic;
-        Field(DynamicType *) simdInt16x8TypeDynamic;
-        Field(DynamicType *) simdInt32x4TypeDynamic;
-        Field(DynamicType *) simdUint8x16TypeDynamic;
-        Field(DynamicType *) simdUint16x8TypeDynamic;
-        Field(DynamicType *) simdUint32x4TypeDynamic;
-        Field(DynamicType *) simdFloat32x4TypeDynamic;
-
-        Field(StaticType *) simdFloat32x4TypeStatic;
-        Field(StaticType *) simdInt32x4TypeStatic;
-        Field(StaticType *) simdInt8x16TypeStatic;
-        Field(StaticType *) simdFloat64x2TypeStatic;
-        Field(StaticType *) simdInt16x8TypeStatic;
-        Field(StaticType *) simdBool32x4TypeStatic;
-        Field(StaticType *) simdBool16x8TypeStatic;
-        Field(StaticType *) simdBool8x16TypeStatic;
-        Field(StaticType *) simdUint32x4TypeStatic;
-        Field(StaticType *) simdUint16x8TypeStatic;
-        Field(StaticType *) simdUint8x16TypeStatic;
-#endif // #ifdef ENABLE_SIMDJS
-
         Field(DynamicType *) numberTypeDynamic;
         Field(DynamicType *) objectTypes[PreInitializedObjectTypeCount];
         Field(DynamicType *) objectHeaderInlinedTypes[PreInitializedObjectTypeCount];
@@ -432,21 +406,6 @@ namespace Js
         Field(JavascriptFunction*) webAssemblyQueryResponseFunction;
         Field(JavascriptFunction*) webAssemblyCompileFunction;
         Field(JavascriptFunction*) webAssemblyInstantiateBoundFunction;
-#endif
-
-#ifdef ENABLE_SIMDJS
-        // SIMD_JS
-        Field(JavascriptFunction*) simdFloat32x4ToStringFunction;
-        Field(JavascriptFunction*) simdFloat64x2ToStringFunction;
-        Field(JavascriptFunction*) simdInt32x4ToStringFunction;
-        Field(JavascriptFunction*) simdInt16x8ToStringFunction;
-        Field(JavascriptFunction*) simdInt8x16ToStringFunction;
-        Field(JavascriptFunction*) simdBool32x4ToStringFunction;
-        Field(JavascriptFunction*) simdBool16x8ToStringFunction;
-        Field(JavascriptFunction*) simdBool8x16ToStringFunction;
-        Field(JavascriptFunction*) simdUint32x4ToStringFunction;
-        Field(JavascriptFunction*) simdUint16x8ToStringFunction;
-        Field(JavascriptFunction*) simdUint8x16ToStringFunction;
 #endif
 
         Field(JavascriptSymbol*) symbolMatch;
@@ -628,19 +587,6 @@ namespace Js
         JavascriptString* GetEmptyString() const;
 
 #define SCACHE_FUNCTION_PROXY(name) JavascriptString* name() { return stringCache.##name##(); }
-#ifdef ENABLE_SIMDJS
-        SCACHE_FUNCTION_PROXY(GetSIMDFloat32x4DisplayString)
-        SCACHE_FUNCTION_PROXY(GetSIMDFloat64x2DisplayString)
-        SCACHE_FUNCTION_PROXY(GetSIMDInt32x4DisplayString)
-        SCACHE_FUNCTION_PROXY(GetSIMDInt16x8DisplayString)
-        SCACHE_FUNCTION_PROXY(GetSIMDInt8x16DisplayString)
-        SCACHE_FUNCTION_PROXY(GetSIMDBool32x4DisplayString)
-        SCACHE_FUNCTION_PROXY(GetSIMDBool16x8DisplayString)
-        SCACHE_FUNCTION_PROXY(GetSIMDBool8x16DisplayString)
-        SCACHE_FUNCTION_PROXY(GetSIMDUint32x4DisplayString)
-        SCACHE_FUNCTION_PROXY(GetSIMDUint16x8DisplayString)
-        SCACHE_FUNCTION_PROXY(GetSIMDUint8x16DisplayString)
-#endif
         SCACHE_FUNCTION_PROXY(GetEmptyObjectString)
         SCACHE_FUNCTION_PROXY(GetQuotesString)
         SCACHE_FUNCTION_PROXY(GetWhackString)
@@ -827,33 +773,7 @@ namespace Js
         JavascriptFunction* GetWebAssemblyCompileFunction() const { return webAssemblyCompileFunction; }
         JavascriptFunction* GetWebAssemblyInstantiateBoundFunction() const { return webAssemblyInstantiateBoundFunction; }
 #endif
-
-#ifdef ENABLE_SIMDJS
-        // SIMD_JS
-        DynamicType * GetSIMDBool8x16TypeDynamic()  const { return simdBool8x16TypeDynamic;  }
-        DynamicType * GetSIMDBool16x8TypeDynamic()  const { return simdBool16x8TypeDynamic;  }
-        DynamicType * GetSIMDBool32x4TypeDynamic()  const { return simdBool32x4TypeDynamic;  }
-        DynamicType * GetSIMDInt8x16TypeDynamic()   const { return simdInt8x16TypeDynamic;   }
-        DynamicType * GetSIMDInt16x8TypeDynamic()   const { return simdInt16x8TypeDynamic;   }
-        DynamicType * GetSIMDInt32x4TypeDynamic()   const { return simdInt32x4TypeDynamic;   }
-        DynamicType * GetSIMDUint8x16TypeDynamic()  const { return simdUint8x16TypeDynamic;  }
-        DynamicType * GetSIMDUint16x8TypeDynamic()  const { return simdUint16x8TypeDynamic;  }
-        DynamicType * GetSIMDUint32x4TypeDynamic()  const { return simdUint32x4TypeDynamic;  }
-        DynamicType * GetSIMDFloat32x4TypeDynamic() const { return simdFloat32x4TypeDynamic; }
-
-        StaticType* GetSIMDFloat32x4TypeStatic() const { return simdFloat32x4TypeStatic; }
-        StaticType* GetSIMDFloat64x2TypeStatic() const { return simdFloat64x2TypeStatic; }
-        StaticType* GetSIMDInt32x4TypeStatic()   const { return simdInt32x4TypeStatic; }
-        StaticType* GetSIMDInt16x8TypeStatic()   const { return simdInt16x8TypeStatic; }
-        StaticType* GetSIMDInt8x16TypeStatic()   const { return simdInt8x16TypeStatic; }
-        StaticType* GetSIMDBool32x4TypeStatic() const { return simdBool32x4TypeStatic; }
-        StaticType* GetSIMDBool16x8TypeStatic() const { return simdBool16x8TypeStatic; }
-        StaticType* GetSIMDBool8x16TypeStatic() const { return simdBool8x16TypeStatic; }
-        StaticType* GetSIMDUInt32x4TypeStatic()   const { return simdUint32x4TypeStatic; }
-        StaticType* GetSIMDUint16x8TypeStatic()   const { return simdUint16x8TypeStatic; }
-        StaticType* GetSIMDUint8x16TypeStatic()   const { return simdUint8x16TypeStatic; }
-#endif // #ifdef ENABLE_SIMDJS
-
+        
         DynamicType * GetObjectLiteralType(uint16 requestedInlineSlotCapacity);
         DynamicType * GetObjectHeaderInlinedLiteralType(uint16 requestedInlineSlotCapacity);
         DynamicType * GetObjectType() const { return objectTypes[0]; }
@@ -897,21 +817,6 @@ namespace Js
 
         JavascriptFunction* GetObjectValueOfFunction() const { return objectValueOfFunction; }
         JavascriptFunction* GetObjectToStringFunction() const { return objectToStringFunction; }
-
-#ifdef ENABLE_SIMDJS
-        // SIMD_JS
-        JavascriptFunction* GetSIMDFloat32x4ToStringFunction() const { return simdFloat32x4ToStringFunction;  }
-        JavascriptFunction* GetSIMDFloat64x2ToStringFunction() const { return simdFloat64x2ToStringFunction; }
-        JavascriptFunction* GetSIMDInt32x4ToStringFunction()   const { return simdInt32x4ToStringFunction; }
-        JavascriptFunction* GetSIMDInt16x8ToStringFunction()   const { return simdInt16x8ToStringFunction; }
-        JavascriptFunction* GetSIMDInt8x16ToStringFunction()   const { return simdInt8x16ToStringFunction; }
-        JavascriptFunction* GetSIMDBool32x4ToStringFunction()   const { return simdBool32x4ToStringFunction; }
-        JavascriptFunction* GetSIMDBool16x8ToStringFunction()   const { return simdBool16x8ToStringFunction; }
-        JavascriptFunction* GetSIMDBool8x16ToStringFunction()   const { return simdBool8x16ToStringFunction; }
-        JavascriptFunction* GetSIMDUint32x4ToStringFunction()   const { return simdUint32x4ToStringFunction; }
-        JavascriptFunction* GetSIMDUint16x8ToStringFunction()   const { return simdUint16x8ToStringFunction; }
-        JavascriptFunction* GetSIMDUint8x16ToStringFunction()   const { return simdUint8x16ToStringFunction; }
-#endif
 
         JavascriptFunction* GetDebugObjectNonUserGetterFunction() const { return debugObjectNonUserGetterFunction; }
         JavascriptFunction* GetDebugObjectNonUserSetterFunction() const { return debugObjectNonUserSetterFunction; }
@@ -1142,9 +1047,6 @@ namespace Js
         JavascriptBooleanObject* CreateBooleanObject();
         JavascriptNumberObject* CreateNumberObjectWithCheck(double value);
         JavascriptNumberObject* CreateNumberObject(Var number);
-#ifdef ENABLE_SIMDJS
-        JavascriptSIMDObject* CreateSIMDObject(Var simdValue, TypeId typeDescriptor);
-#endif
         JavascriptStringObject* CreateStringObject(JavascriptString* value);
         JavascriptStringObject* CreateStringObject(const char16* value, charcount_t length);
         JavascriptSymbolObject* CreateSymbolObject(JavascriptSymbol* value);
@@ -1348,27 +1250,6 @@ namespace Js
         static bool __cdecl InitializeWebAssemblyObject(DynamicObject* WasmObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 #endif
 
-#ifdef ENABLE_SIMDJS
-        // SIMD_JS
-        static bool __cdecl InitializeSIMDObject(DynamicObject* simdObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static bool __cdecl InitializeSIMDOpCodeMaps();
-
-        template<typename SIMDTypeName>
-        static void SIMDPrototypeInitHelper(DynamicObject* simdPrototype, JavascriptLibrary* library, JavascriptFunction* constructorFn, JavascriptString* strLiteral);
-
-        static bool __cdecl InitializeSIMDBool8x16Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static bool __cdecl InitializeSIMDBool16x8Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static bool __cdecl InitializeSIMDBool32x4Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static bool __cdecl InitializeSIMDInt8x16Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static bool __cdecl InitializeSIMDInt16x8Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static bool __cdecl InitializeSIMDInt32x4Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static bool __cdecl InitializeSIMDUint8x16Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static bool __cdecl InitializeSIMDUint16x8Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static bool __cdecl InitializeSIMDUint32x4Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static bool __cdecl InitializeSIMDFloat32x4Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static bool __cdecl InitializeSIMDFloat64x2Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-#endif
-
         static bool __cdecl InitializeJSONObject(DynamicObject* JSONObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static bool __cdecl InitializeEngineInterfaceObject(DynamicObject* engineInterface, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static bool __cdecl InitializeReflectObject(DynamicObject* reflectObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
@@ -1461,9 +1342,6 @@ namespace Js
         HRESULT ProfilerRegisterProxy();
         HRESULT ProfilerRegisterReflect();
         HRESULT ProfilerRegisterGenerator();
-#ifdef ENABLE_SIMDJS
-        HRESULT ProfilerRegisterSIMD();
-#endif
         HRESULT ProfilerRegisterAtomics();
 
 #ifdef IR_VIEWER

@@ -354,14 +354,6 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 #endif
 
 #endif
-
-#ifdef ENABLE_SIMDJS
-    bool IsSIMDEnabled() const
-    {
-        return GetScriptContextInfo()->IsSIMDEnabled();
-    }
-#endif
-
     uint32 GetInstrCount();
     inline Js::ScriptContext* GetScriptContext() const
     {
