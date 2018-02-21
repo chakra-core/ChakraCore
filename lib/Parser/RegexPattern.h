@@ -58,7 +58,7 @@ namespace UnifiedRegex
         Js::ScriptContext *GetScriptContext() const;
 
         inline bool IsLiteral() const { return isLiteral; }
-        uint16 NumGroups() const;
+        int NumGroups() const;
         bool IsIgnoreCase() const;
         bool IsGlobal() const;
         bool IsMultiline() const;
