@@ -23,7 +23,7 @@ void WasmSignature::AllocateParams(Js::ArgSlot count, Recycler * recycler)
 {
     if (GetParamCount() != 0)
     {
-        throw WasmCompilationException(_u("Invalid call to WasmSignature::AllocateResults: Results are already allocated"));
+        throw WasmCompilationException(_u("Invalid call to WasmSignature::AllocateParams: Params are already allocated"));
     }
     if (count > 0)
     {
@@ -238,6 +238,9 @@ WasmSignature* WasmSignature::FromIDL(WasmSignatureIDL* sig)
 
 uint32 WasmSignature::WriteSignatureToString(_Out_writes_(maxlen) char16* out, uint32 maxlen)
 {
+    bool hasMultiResults = GetResultCount() > 1;
+    const uint32 minEnd = GetResultCount() > 1 ? 20 : 12;
+    AssertOrFailFast(maxlen > minEnd);
     AssertOrFailFast(out != nullptr);
     uint32 numwritten = 0;
 #define WRITE_BUF(msg, ...) numwritten += _snwprintf_s(out+numwritten, maxlen-numwritten, _TRUNCATE, msg, ##__VA_ARGS__);
@@ -250,21 +253,28 @@ uint32 WasmSignature::WriteSignatureToString(_Out_writes_(maxlen) char16* out, u
         }
         WRITE_BUF(_u("%ls"), WasmTypes::GetTypeName(this->GetParam(i)));
     }
-    if (numwritten >= maxlen-12) {
+    if (numwritten >= maxlen - minEnd) {
         // null out the last 12 characters so we can properly end it 
-        for (int i = 1; i <= 12; i++) {
+        for (uint32 i = 1; i <= minEnd; i++)
+        {
             *(out + maxlen - i) = 0;
         }
-        if (numwritten < 12)
+        if (numwritten < minEnd)
         {
             numwritten = 0;
         }
         else
         {
-            numwritten -= 12;
+            numwritten -= minEnd;
         }
 
         WRITE_BUF(_u("..."));
+        if (hasMultiResults)
+        {
+            // If the signature has multiple results, just print the first one then terminate.
+            WRITE_BUF(_u(")->(%s, ...)"), WasmTypes::GetTypeName(this->GetResult(0)));
+            return numwritten;
+        }
     }
     if (GetResultCount() == 0)
     {

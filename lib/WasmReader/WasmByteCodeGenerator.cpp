@@ -1937,11 +1937,12 @@ BlockInfo* WasmBytecodeGenerator::PushLabel(WasmBlock blockData, Js::ByteCodeLab
             {
                 inParams.Init(paramCount, &m_alloc);
                 // Pop the params in reverse order
-                for (Js::ArgSlot i = paramCount - 1; i < paramCount; --i)
+                for (int i = paramCount - 1; i >= 0; --i)
                 {
-                    EmitInfo param = PopEvalStack(signature->GetParam(i));
+                    Js::ArgSlot iArg = (Js::ArgSlot)i;
+                    EmitInfo param = PopEvalStack(signature->GetParam(iArg));
                     ReleaseLocation(&param);
-                    inParams.SetInfo(param, i);
+                    inParams.SetInfo(param, iArg);
                 }
             }
 
@@ -1971,10 +1972,11 @@ BlockInfo* WasmBytecodeGenerator::PushLabel(WasmBlock blockData, Js::ByteCodeLab
                 // Treat inparams as local and bypass ReleaseLocation until we exit the scope
 
                 // Move in params to new location in reverse order
-                for (Js::ArgSlot i = paramCount - 1; i < paramCount; --i)
+                for (int i = paramCount - 1; i >= 0; --i)
                 {
-                    EmitInfo info = inParams.GetInfo(i);
-                    EmitInfo newInfo = blockInfo->paramInfo.GetInfo(i);
+                    Js::ArgSlot iArg = (Js::ArgSlot)i;
+                    EmitInfo info = inParams.GetInfo(iArg);
+                    EmitInfo newInfo = blockInfo->paramInfo.GetInfo(iArg);
                     m_writer->AsmReg2(GetLoadOp(newInfo.type), newInfo.location, info.location);
                 }
             }
