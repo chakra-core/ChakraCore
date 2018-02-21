@@ -218,4 +218,12 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>Bug15992535.js</files>
+      <!-- Test should fail assertion in debug build, so do not run -->
+      <tags>exclude_chk</tags>
+      <baseline>Bug15992535.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>
