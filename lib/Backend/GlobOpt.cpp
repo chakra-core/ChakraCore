@@ -2466,12 +2466,14 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     if (src1)
     {
         src1Val = this->OptSrc(src1, &instr, &src1IndirIndexVal);
+        GOPT_TRACE_VALUENUMBER(_u("[src1] "), instr->GetSrc1(), _u("%d"), src1Val ? src1Val->GetValueNumber() : -1);
 
         instr = this->SetTypeCheckBailOut(instr->GetSrc1(), instr, nullptr);
 
         if (src2)
         {
             src2Val = this->OptSrc(src2, &instr);
+            GOPT_TRACE_VALUENUMBER(_u("[src2] "), instr->GetSrc2(), _u("%d"), src2Val ? src2Val->GetValueNumber() : -1);
         }
     }
     if(instr->GetDst() && instr->GetDst()->IsIndirOpnd())
@@ -2606,6 +2608,11 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     }
 
     dstVal = this->OptDst(&instr, dstVal, src1Val, src2Val, dstIndirIndexVal, src1IndirIndexVal);
+    if (dst)
+    {
+        GOPT_TRACE_VALUENUMBER(_u("[dst] "), instr->GetDst(), _u("%d\n"), dstVal ? dstVal->GetValueNumber() : -1);
+    }
+
     dst = instr->GetDst();
 
     instrNext = instr->m_next;
