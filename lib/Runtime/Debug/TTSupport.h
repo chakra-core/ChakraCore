@@ -297,7 +297,7 @@ namespace TTD
     };
 
     //Function pointer definitions for creating/interacting with external objects
-    typedef void(CALLBACK *TTDCreateExternalObjectCallback)(Js::ScriptContext* ctx, Js::Var* object);
+    typedef void(CALLBACK *TTDCreateExternalObjectCallback)(Js::ScriptContext* ctx, Js::Var prototype, Js::Var* object);
 
     typedef void(CALLBACK *TTDCreateJsRTContextCallback)(void* runtimeHandle, Js::ScriptContext** ctx); //Create and pin the context so it does not get GC'd
     typedef void(CALLBACK *TTDReleaseJsRTContextCallback)(FinalizableObject* jsrtCtx); //Release an un-needed context during replay

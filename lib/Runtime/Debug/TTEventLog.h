@@ -543,7 +543,7 @@ namespace TTD
 
         //Record object allocate operations
         void RecordJsRTAllocateBasicObject(TTDJsRTActionResultAutoRecorder& actionPopper);
-        void RecordJsRTAllocateExternalObject(TTDJsRTActionResultAutoRecorder& actionPopper);
+        void RecordJsRTAllocateExternalObject(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var prototype);
         void RecordJsRTAllocateBasicArray(TTDJsRTActionResultAutoRecorder& actionPopper, uint32 length);
         void RecordJsRTAllocateArrayBuffer(TTDJsRTActionResultAutoRecorder& actionPopper, uint32 size);
         void RecordJsRTAllocateExternalArrayBuffer(TTDJsRTActionResultAutoRecorder& actionPopper, byte* buff, uint32 size);
