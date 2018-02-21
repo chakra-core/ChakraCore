@@ -4035,7 +4035,7 @@ BasicBlock::DumpHeader(bool insertCR)
 
     if (this->loop)
     {
-        Output::Print(_u("   Loop(%d) header: %d"), this->loop->loopNumber, this->loop->GetHeadBlock()->GetBlockNum());
+        Output::Print(_u("   Loop(%d) header: %d"), this->loop->loopNumber - 1, this->loop->GetHeadBlock()->GetBlockNum());
 
         if (this->loop->parent)
         {
