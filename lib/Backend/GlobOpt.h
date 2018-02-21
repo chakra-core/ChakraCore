@@ -30,7 +30,7 @@ class GlobOpt;
     { \
         PRINT_VALUENUMBER_TRACE_HEADER; \
         Output::Print(opndHeader); \
-        opnd->Dump(); \
+        opnd->Dump(IRDumpFlags_None, this->func); \
         Output::Print(_u(" : ")); \
         Output::Print(__VA_ARGS__); \
         Output::Print(_u("\n")); \
