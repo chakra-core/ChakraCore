@@ -129,7 +129,7 @@ namespace Js
         // Calculation for signed divisors
         DivMagicNumber static GenerateDivMagicNumber(const int divisor)
         {
-            Assert((1 < divisor && divisor < INT32_MAX - 1) || (-1 > divisor && divisor > INT32_MIN));
+            Assert((1 < divisor && divisor < INT32_MAX) || (-1 > divisor && divisor > INT32_MIN));
             int p;
             unsigned ad, anc, delta, q1, r1, q2, r2, t;
             const unsigned two31 = static_cast<unsigned>(1) << (sizeof(int) * 8 - 1); // 2^31
