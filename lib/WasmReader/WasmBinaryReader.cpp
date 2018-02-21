@@ -1324,7 +1324,7 @@ LEBType WasmBinaryReader::LEB128(uint32 &length)
     uint32 shift = 0;
     byte b = 0;
     length = 0;
-    constexpr uint32 maxReads = (uint32)((float)bits / 7.f + 0.5f);
+    constexpr uint32 maxReads = (uint32) (((bits % 7) == 0) ? bits/7 : bits/7 + 1);
     CompileAssert(maxReads > 0);
 
     for (uint32 i = 0; i < maxReads; ++i)
