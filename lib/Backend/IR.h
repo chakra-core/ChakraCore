@@ -611,7 +611,7 @@ public:
         struct
         {
             Js::FldInfo::TSize      fldInfoData;
-            uint16                  arrayType; // used by LdLen
+            Js::LdLenInfo::TSize    ldLenInfoData;
         };
 
     public:
@@ -619,14 +619,19 @@ public:
         {
             return reinterpret_cast<Js::FldInfo &>(fldInfoData);
         }
-        ValueType & LdLenArrayType()
+        Js::LdLenInfo & LdLenInfo()
         {
-            return reinterpret_cast<ValueType &>(arrayType);
+            return reinterpret_cast<Js::LdLenInfo &>(ldLenInfoData);
         }
     } u;
 
     static const uint InvalidProfileId = (uint)-1;
 };
+
+#if TARGET_64
+// Ensure that the size of the union doesn't exceed the size of a 64 bit pointer.
+CompileAssert(sizeof(ProfiledInstr::u) <= sizeof(void*));
+#endif
 
 ///---------------------------------------------------------------------------
 ///

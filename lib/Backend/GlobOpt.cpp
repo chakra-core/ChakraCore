@@ -3435,7 +3435,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                 case Js::OpCode::LdLen_A:
                     if(instr->GetSrc1()->IsRegOpnd() && opnd == instr->GetSrc1())
                     {
-                        profiledArrayType = profiledInstr->u.LdLenArrayType();
+                        profiledArrayType = profiledInstr->u.LdLenInfo().GetArrayType();
                     }
                     break;
             }

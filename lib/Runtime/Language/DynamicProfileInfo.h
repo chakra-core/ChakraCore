@@ -179,6 +179,8 @@ namespace Js
 
     struct LdLenInfo
     {
+        typedef struct { ValueType::TSize f1; } TSize;
+
         ValueType arrayType;
 
         void Merge(const LdLenInfo & other)
@@ -191,6 +193,7 @@ namespace Js
             return arrayType;
         }
     };
+    CompileAssert(sizeof(LdLenInfo::TSize) == sizeof(LdLenInfo));
 
     struct LdElemInfo
     {

@@ -4522,7 +4522,7 @@ IRBuilder::BuildProfiledElementCP(Js::OpCode newOpcode, uint32 offset, Js::RegSl
         IR::ProfiledInstr * profiledInstr = IR::ProfiledInstr::New(newOpcode, dstOpnd, fieldSymOpnd, m_func);
         instr = profiledInstr;
         profiledInstr->u.FldInfo() = *(m_func->GetReadOnlyProfileInfo()->GetFldInfo(inlineCacheIndex));
-        profiledInstr->u.LdLenArrayType() = arrayType;
+        profiledInstr->u.LdLenInfo().GetArrayType() = arrayType;
         wasNotProfiled = !profiledInstr->u.FldInfo().WasLdFldProfiled();
         dstOpnd->SetValueType(instr->AsProfiledInstr()->u.FldInfo().valueType);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
