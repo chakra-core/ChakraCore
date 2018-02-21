@@ -123,7 +123,6 @@ namespace Intl
 
     // DateTimeFormat
     int GetDefaultTimeZone(_Out_writes_opt_(tzLen) char16 *tz = nullptr, _In_ int tzLen = 0);
-    int ValidateAndCanonicalizeTimeZone(_In_z_ const char16 *tzIn, _Out_writes_opt_(tzOutLen) char16 *tzOut = nullptr, _In_ int tzOutLen = 0);
     int GetPatternForSkeleton(_In_z_ const char *langtag, _In_z_ const char16 *skeleton, _Out_writes_opt_(patternLen) char16 *pattern = nullptr, _In_ int patternLen = 0);
     void CreateDateTimeFormat(_In_z_ const char *langtag, _In_z_ const char16 *timeZone, _In_z_ const char16 *pattern, _Out_ IPlatformAgnosticResource **resource);
     int FormatDateTime(_In_ IPlatformAgnosticResource *resource, _In_ double date, _Out_writes_opt_(formattedLen) char16 *formatted = nullptr, _In_ int formattedLen = 0);

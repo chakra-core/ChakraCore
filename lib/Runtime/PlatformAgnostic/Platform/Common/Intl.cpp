@@ -307,29 +307,6 @@ namespace Intl
         return required + 1; // return enough space for null character
     }
 
-    // Determines if a time zone is valid. If it is and tzOut is non-null, the canonicalized version is written into tzOut
-    // Returns the number of characters written into tzOut (including a null terminator), or 0 on invalid time zone
-    int ValidateAndCanonicalizeTimeZone(_In_z_ const char16 *tzIn, _Out_writes_opt_(tzOutLen) char16 *tzOut, _In_ int tzOutLen)
-    {
-        UErrorCode status = U_ZERO_ERROR;
-        ICU_FIXBUF(char16, tzOut, tzOutLen); // sets bool isTemporaryBuffer
-
-        int required = ucal_getCanonicalTimeZoneID(reinterpret_cast<const UChar *>(tzIn), -1, reinterpret_cast<UChar *>(tzOut), tzOutLen, nullptr, &status);
-        if (isTemporaryBuffer && status == U_BUFFER_OVERFLOW_ERROR)
-        {
-            // buffer overflow is expected when we are just trying to get the length returned
-            return required + 1;
-        }
-        else if (status == U_ILLEGAL_ARGUMENT_ERROR)
-        {
-            // illegal argument here means that tzIn is an invalid time zone
-            return 0;
-        }
-
-        ICU_ASSERT(status, required > 0 && required < tzOutLen);
-        return required + 1; // return enough space for null character
-    }
-
     // Generates an LDML pattern for the given LDML skeleton in the given locale. If pattern is non-null, the result is written into pattern
     // LDML here means the Unicode Locale Data Markup Language: http://www.unicode.org/reports/tr35/tr35-dates.html#Date_Field_Symbol_Table
     // Returns the number of characters written into pattern (including a null terminator) [should always be positive]
@@ -509,7 +486,7 @@ namespace Intl
         case UDAT_TIMEZONE_SPECIAL_FIELD:
         case UDAT_TIMEZONE_LOCALIZED_GMT_OFFSET_FIELD:
         case UDAT_TIMEZONE_ISO_FIELD:
-            return _u("timeZone");
+            return _u("timeZoneName");
         default:
             return _u("unknown");
         }

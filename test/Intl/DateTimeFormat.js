@@ -281,6 +281,72 @@ const tests = [
             }
         }
     },
+    {
+        name: "options.timeZone + options.timeZoneName",
+        body: function () {
+            // WinGlob does not implement formatToParts, which is used for more easily testing
+            // Also, bizarrely, WinGlob code throws an exception *only in ch* when using timeZoneName
+            // Bug: https://github.com/Microsoft/ChakraCore/issues/3096
+            if (isWinGlob) {
+                return;
+            }
+
+            assert.isTrue(isICU, "This test requires an ICU implementation of Intl");
+
+            function test(date, timeZone, timeZoneName, expectedPart, expectedTimeZone) {
+                const options = {
+                    hour: "numeric",
+                    timeZone,
+                    timeZoneName
+                };
+                const fmt = new Intl.DateTimeFormat("en-US", options);
+
+                const actualTimeZone = fmt.resolvedOptions().timeZone;
+                assert.areEqual(expectedTimeZone, actualTimeZone, `resolvedOptions().timeZone was incorrect`);
+
+                const parts = fmt.formatToParts(date);
+                assert.isTrue(parts.length > 2, `There must at least be a time and timeZone part of ${JSON.stringify(parts)}`);
+
+                const actualPart = parts.filter((part) => part.type === "timeZoneName")[0];
+                assert.isNotUndefined(actualPart, `No timeZone part in ${JSON.stringify(parts)}`);
+                assert.areEqual(expectedPart, actualPart.value, `Incorrect timeZoneName for ${date.toString()} with options ${JSON.stringify(options)}`);
+            }
+
+            function date(str) {
+                return new Date(Date.parse(str));
+            }
+
+            const newYears = date("2018-01-01T00:00:00.000Z");
+            const juneFirst = date("2018-06-01T00:00:00.000Z");
+
+            // see https://github.com/tc39/ecma402/issues/121 for edge cases here
+            // TODO(jahorto): re-enable the commented out GMT/UTC tests once we have a way
+            // to assert different expected values depending on CLDR version
+            // ICU ~55 formats GMT-like time zones as GMT, but ICU ~60 formats them as UTC
+            // test(newYears, "GMT", "short", "UTC", "UTC");
+            // test(newYears, "GMT", "long", "Coordinated Universal Time", "UTC");
+            // test(newYears, "Etc/GMT", "short", "UTC", "UTC");
+            // test(newYears, "Etc/GMT", "long", "Coordinated Universal Time", "UTC");
+            // test(newYears, "Etc/UTC", "short", "UTC", "UTC");
+            // test(newYears, "Etc/UTC", "long", "Coordinated Universal Time", "UTC");
+            // test(newYears, "Etc/UCT", "short", "UTC", "UTC");
+            // test(newYears, "Etc/UCT", "long", "Coordinated Universal Time", "UTC");
+            test(newYears, "US/Pacific", "short", "PST", "America/Los_Angeles");
+            test(newYears, "US/Pacific", "long", "Pacific Standard Time", "America/Los_Angeles");
+            test(newYears, "Etc/GMT-2", "short", "GMT+2", "Etc/GMT-2");
+            test(newYears, "Etc/GMT-2", "long", "GMT+02:00", "Etc/GMT-2");
+
+            test(newYears, "America/New_York", "short", "EST", "America/New_York");
+            test(newYears, "America/New_York", "long", "Eastern Standard Time", "America/New_York");
+            test(newYears, "America/Los_Angeles", "short", "PST", "America/Los_Angeles");
+            test(newYears, "America/Los_Angeles", "long", "Pacific Standard Time","America/Los_Angeles");
+
+            test(juneFirst, "America/New_York", "short", "EDT", "America/New_York");
+            test(juneFirst, "America/New_York", "long", "Eastern Daylight Time", "America/New_York");
+            test(juneFirst, "America/Los_Angeles", "short", "PDT", "America/Los_Angeles");
+            test(juneFirst, "America/Los_Angeles", "long", "Pacific Daylight Time", "America/Los_Angeles");
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: !WScript.Arguments.includes("summary") });
