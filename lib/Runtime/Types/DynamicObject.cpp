@@ -515,7 +515,7 @@ namespace Js
         }
 
         PathTypeHandlerBase *const oldTypeHandler = PathTypeHandlerBase::FromTypeHandler(GetTypeHandler());
-        SimplePathTypeHandler *const newTypeHandler = oldTypeHandler->DeoptimizeObjectHeaderInlining(GetLibrary());
+        PathTypeHandlerBase *const newTypeHandler = oldTypeHandler->DeoptimizeObjectHeaderInlining(GetLibrary());
 
         const PropertyIndex newInlineSlotCapacity = newTypeHandler->GetInlineSlotCapacity();
         DynamicTypeHandler::AdjustSlots(

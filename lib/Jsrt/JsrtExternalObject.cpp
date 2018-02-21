@@ -13,7 +13,7 @@ JsrtExternalType::JsrtExternalType(Js::ScriptContext* scriptContext, JsFinalizeC
         Js::TypeIds_Object,
         scriptContext->GetLibrary()->GetObjectPrototype(),
         nullptr,
-        Js::SimplePathTypeHandlerNoAttr::New(scriptContext, scriptContext->GetLibrary()->GetRootPath(), 0, 0, 0, true, true),
+        Js::PathTypeHandlerNoAttr::New(scriptContext, scriptContext->GetLibrary()->GetRootPath(), 0, 0, 0, true, true),
         true,
         true)
         , jsFinalizeCallback(finalizeCallback)
