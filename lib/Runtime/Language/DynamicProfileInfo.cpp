@@ -1971,11 +1971,13 @@ namespace Js
 
             if (!reader->Read(functionId))
             {
+                AssertOrFailFast(false);
                 return nullptr;
             }
 
             if (!reader->Read(&paramInfoCount))
             {
+                AssertOrFailFast(false);
                 return nullptr;
             }
 
@@ -2206,6 +2208,7 @@ namespace Js
         }
 
     Error:
+        AssertOrFailFast(false);
         return nullptr;
     }
 

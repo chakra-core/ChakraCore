@@ -889,6 +889,7 @@ namespace Js
         {
             if (lengthLeft < sizeof(T))
             {
+                AssertOrFailFast(false);
                 return false;
             }
             *data = *(T *)current;
@@ -914,6 +915,7 @@ namespace Js
             size_t size = sizeof(T) * len;
             if (lengthLeft < size)
             {
+                AssertOrFailFast(false);
                 return false;
             }
             memcpy_s(data, size, current, size);

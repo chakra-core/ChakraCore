@@ -62,9 +62,7 @@ private:
     static HANDLE mutex;
     static CriticalSection cs;
     static DWORD nextFileId;
-#if DBG
     static bool locked;
-#endif
 #if DBG_DUMP
     static bool DoTrace();
 #endif
