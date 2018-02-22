@@ -378,7 +378,7 @@ var tests = [
                 }
             };
 
-            var obj = Proxy.revocable(() => {}, handler);
+            var obj = Proxy.revocable(function() {}, handler);
             new obj.proxy();
             assert.isTrue(trapCalled);
         }
