@@ -228,7 +228,7 @@
 
            (The failfast here is temporary behavior; see GitHub issue #4722.)
       -->
-      <tags>exclude_chk,exclude_xplat</tags>
+      <tags>exclude_chk,exclude_xplat,slow</tags>
       <baseline>Bug15992535.baseline</baseline>
     </default>
   </test>
