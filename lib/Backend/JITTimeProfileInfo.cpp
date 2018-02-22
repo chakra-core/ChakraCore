@@ -151,6 +151,7 @@ JITTimeProfileInfo::InitializeJITProfileData(
 const Js::LdLenInfo *
 JITTimeProfileInfo::GetLdLenInfo(Js::ProfileId ldLenId) const
 {
+    AssertOrFailFast(ldLenId < m_profileData.profiledLdLenCount);
     return &(reinterpret_cast<Js::LdLenInfo*>(m_profileData.ldLenData)[ldLenId]);
 }
 
