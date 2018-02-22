@@ -2191,6 +2191,11 @@ namespace Js
         varArgs[1] = targetObj;
         if (args.Info.Flags & CallFlags_New)
         {
+            if (!JavascriptOperators::IsConstructor(targetObj))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_NotAConstructor);
+            }
+
             varArgs[2] = argList;
             // 1st preference - overridden newTarget
             // 2nd preference - 'this' in case of super() call
