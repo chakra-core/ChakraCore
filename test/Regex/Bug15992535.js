@@ -7,7 +7,8 @@
 // intended behavior is that the regex parser hits an AssertOrFailFast; we may revisit
 // that error behavior in the future.
 
-print("Expecting fail fast");
+// Use WScript.Echo instead of print to avoid EOL problems on xplat!
+WScript.Echo("Expecting fail fast");
 
 try { function f() {
     (((-554663171.9).toTimeString));
@@ -77,4 +78,4 @@ main(); } catch(err) { }
 try { this.__defineGetter__("x", (a = (function f() { return; (function() {}); })()) => { });
 x; } catch(err) { }
 
-print("Didn't get expected fail fast");
+WScript.Echo("Didn't get expected fail fast");
