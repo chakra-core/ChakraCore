@@ -2982,7 +2982,13 @@ namespace UnifiedRegex
         this->scriptContext->ProfileEnd(Js::RegexCompilePhase);
 #endif
 
-        AssertOrFailFast(0 < pattern->NumGroups() && pattern->NumGroups() <= MAX_NUM_GROUPS);
+        // We expect pattern->NumGroups() to be positive, because the full regexp itself always
+        // counts as a capturing group.
+        Assert(pattern->NumGroups() > 0);
+        if (pattern->NumGroups() > MAX_NUM_GROUPS)
+        {
+            Js::JavascriptError::ThrowSyntaxError(this->scriptContext, JSERR_RegExpTooManyCapturingGroups);
+        }
 
         return pattern;
     }
@@ -3016,7 +3022,13 @@ namespace UnifiedRegex
 
         program->numGroups = nextGroupId;
 
-        AssertOrFailFast(0 < program->numGroups && program->numGroups <= MAX_NUM_GROUPS);
+        // We expect program->numGroups to be positive, because the full regexp itself always
+        // counts as a capturing group.
+        Assert(program->numGroups > 0);
+        if (program->numGroups > MAX_NUM_GROUPS)
+        {
+            Js::JavascriptError::ThrowSyntaxError(this->scriptContext, JSERR_RegExpTooManyCapturingGroups);
+        }
 
         // Remaining to set during compilation: litbuf, litbufLen, numLoops, insts, instsLen, entryPointLabel
     }

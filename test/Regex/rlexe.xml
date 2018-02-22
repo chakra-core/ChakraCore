@@ -221,15 +221,7 @@
   <test>
     <default>
       <files>Bug15992535.js</files>
-      <!-- Test should fail assertion in debug build, so do not run.  Also,
-           our test harness interprets a failfast as test failure on Linux
-           and MacOS (presumably because of a non-zero exit code from ch)
-           but not on Windows, so skip this test on xplat.
-
-           (The failfast here is temporary behavior; see GitHub issue #4722.)
-      -->
-      <tags>exclude_chk,exclude_xplat,slow</tags>
-      <baseline>Bug15992535.baseline</baseline>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
 </regress-exe>
