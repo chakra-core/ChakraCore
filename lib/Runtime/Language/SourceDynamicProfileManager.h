@@ -46,7 +46,6 @@ namespace Js
         uint GetStartupFunctionsLength() { return (this->startupFunctions ? this->startupFunctions->Length() : 0); }
 #ifdef DYNAMIC_PROFILE_STORAGE
         void ClearSavingData();
-        void CopySavingData();
 #endif
 
     private:
@@ -54,12 +53,14 @@ namespace Js
         FieldNoBarrier(Recycler*) recycler;
 
 #ifdef DYNAMIC_PROFILE_STORAGE
+        // while Finalizing Javascript library we can't allocate memory from recycler, 
+        // dynamicProfileInfoMapSaving is heap allocated and used for serializing dynamic profile cache
         typedef JsUtil::BaseDictionary<LocalFunctionId, DynamicProfileInfo *, HeapAllocator> DynamicProfileInfoMapSavingType;
         FieldNoBarrier(DynamicProfileInfoMapSavingType) dynamicProfileInfoMapSaving;
         
         void SaveDynamicProfileInfo(LocalFunctionId functionId, DynamicProfileInfo * dynamicProfileInfo);
         void SaveToDynamicProfileStorage(char16 const * url);
-        void AddItem(LocalFunctionId functionId, DynamicProfileInfo *info);
+        void AddSavingItem(LocalFunctionId functionId, DynamicProfileInfo *info);
         template <typename T>
         static SourceDynamicProfileManager * Deserialize(T * reader, Recycler* allocator);
         template <typename T>

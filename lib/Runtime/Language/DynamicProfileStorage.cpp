@@ -626,8 +626,7 @@ bool DynamicProfileStorage::ExportFile(__in_z char16 const * filename)
         Assert(FALSE);
         return false;
     }
-    uint recordWritten = 0;
-    for (uint i = 0; recordWritten < recordCount; i++)
+    for (uint i = 0; i < recordCount; i++)
     {
         char16 const * url = infoMap.GetKeyAt(i);
         if (url == nullptr)
@@ -675,8 +674,6 @@ bool DynamicProfileStorage::ExportFile(__in_z char16 const * filename)
             Assert(FALSE);
             return false;
         }
-
-        recordWritten++;
     }
     writer.Close();
 #if DBG_DUMP
