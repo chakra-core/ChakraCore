@@ -879,7 +879,7 @@ CHAKRA_API
     JsCreateExternalObjectWithPrototype(
         _In_opt_ void *data,
         _In_opt_ JsFinalizeCallback finalizeCallback,
-        _In_ JsValueRef prototype,
+        _In_opt_ JsValueRef prototype,
         _Out_ JsValueRef *object);
 
 /// <summary>

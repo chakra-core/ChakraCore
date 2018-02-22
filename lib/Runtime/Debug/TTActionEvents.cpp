@@ -314,11 +314,13 @@ namespace TTD
         void AllocateExternalObject_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)
         {
             TTD_REPLAY_ACTIVE_CONTEXT(executeContext);
+            const JsRTSingleVarArgumentAction* action = GetInlineEventDataAs<JsRTSingleVarArgumentAction, EventKind::AllocateExternalObjectActionTag>(evt);
+            Js::Var prototype = InflateVarInReplay(executeContext, GetVarItem_0(action));
 
             Js::Var res = nullptr;
-            executeContext->TTDExternalObjectFunctions.pfCreateExternalObject(ctx, &res);
+            executeContext->TTDExternalObjectFunctions.pfCreateExternalObject(ctx, prototype, &res);
 
-            JsRTActionHandleResultForReplay<JsRTResultOnlyAction, EventKind::AllocateExternalObjectActionTag>(executeContext, evt, res);
+            JsRTActionHandleResultForReplay<JsRTSingleVarArgumentAction, EventKind::AllocateExternalObjectActionTag>(executeContext, evt, res);
         }
 
         void AllocateArrayAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)

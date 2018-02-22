@@ -537,7 +537,7 @@ namespace TTD
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(AddWeakRootRefActionTag, GlobalAPIWrapper, JsRTSingleVarArgumentAction, AddWeakRootRef_Execute);
 
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(AllocateObjectActionTag, ContextAPINoScriptWrapper, JsRTResultOnlyAction, AllocateObject_Execute);
-        TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(AllocateExternalObjectActionTag, ContextAPINoScriptWrapper, JsRTResultOnlyAction, AllocateExternalObject_Execute);
+        TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(AllocateExternalObjectActionTag, ContextAPINoScriptWrapper, JsRTSingleVarArgumentAction, AllocateExternalObject_Execute);
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(AllocateArrayActionTag, ContextAPINoScriptWrapper, JsRTIntegralArgumentAction, AllocateArrayAction_Execute);
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(AllocateArrayBufferActionTag, ContextAPIWrapper, JsRTIntegralArgumentAction, AllocateArrayBufferAction_Execute);
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY(AllocateExternalArrayBufferActionTag, ContextAPINoScriptWrapper, JsRTByteBufferAction, NSLogEvents::AllocateExternalArrayBufferAction_Execute, NSLogEvents::JsRTByteBufferAction_UnloadEventMemory<NSLogEvents::EventKind::AllocateExternalArrayBufferActionTag>, NSLogEvents::JsRTByteBufferAction_Emit<NSLogEvents::EventKind::AllocateExternalArrayBufferActionTag>, NSLogEvents::JsRTByteBufferAction_Parse<NSLogEvents::EventKind::AllocateExternalArrayBufferActionTag>);
@@ -2085,10 +2085,11 @@ namespace TTD
         actionPopper.InitializeWithEventAndEnterWResult(evt, &(cAction->Result));
     }
 
-    void EventLog::RecordJsRTAllocateExternalObject(TTDJsRTActionResultAutoRecorder& actionPopper)
+    void EventLog::RecordJsRTAllocateExternalObject(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var prototype)
     {
-        NSLogEvents::JsRTResultOnlyAction* cAction = nullptr;
-        NSLogEvents::EventLogEntry* evt = this->RecordGetInitializedEvent<NSLogEvents::JsRTResultOnlyAction, NSLogEvents::EventKind::AllocateExternalObjectActionTag>(&cAction);
+        NSLogEvents::JsRTSingleVarArgumentAction* cAction = nullptr;
+        NSLogEvents::EventLogEntry* evt = this->RecordGetInitializedEvent<NSLogEvents::JsRTSingleVarArgumentAction, NSLogEvents::EventKind::AllocateExternalObjectActionTag>(&cAction);
+        NSLogEvents::SetVarItem_0(cAction, TTD_CONVERT_JSVAR_TO_TTDVAR(prototype));
 
         actionPopper.InitializeWithEventAndEnterWResult(evt, &(cAction->Result));
     }

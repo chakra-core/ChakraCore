@@ -704,7 +704,7 @@ namespace TTD
             {
                 Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
                 Js::Var res = nullptr;
-                ctx->GetThreadContext()->TTDContext->TTDExternalObjectFunctions.pfCreateExternalObject(ctx, &res);
+                ctx->GetThreadContext()->TTDContext->TTDExternalObjectFunctions.pfCreateExternalObject(ctx, nullptr, &res);
 
                 return Js::RecyclableObject::FromVar(res);
             }
