@@ -2346,45 +2346,37 @@ GlobOpt::IsInstrInvalidForMemOp(IR::Instr *instr, Loop *loop, Value *src1Val, Va
 void
 GlobOpt::TryReplaceLdLen(IR::Instr *& instr)
 {
-    // Change LdFld on arrays, strings, and 'arguments' to LdLen when we're accessing the .length field
-    if ((instr->GetSrc1() && instr->GetSrc1()->IsSymOpnd() && instr->m_opcode == Js::OpCode::ProfiledLdFld) || instr->m_opcode == Js::OpCode::LdFld || instr->m_opcode == Js::OpCode::ScopedLdFld)
+    // Change LdLen on objects other than arrays, strings, and 'arguments' to LdFld. Otherwise, convert the SymOpnd to a RegOpnd here.
+    if (instr->m_opcode == Js::OpCode::LdLen_A && instr->GetSrc1() && instr->GetSrc1()->IsSymOpnd())
     {
         IR::SymOpnd * opnd = instr->GetSrc1()->AsSymOpnd();
         Sym *sym = opnd->m_sym;
-        if (sym->IsPropertySym())
-        {
-            PropertySym *originalPropertySym = sym->AsPropertySym();
-            // only on .length
-            if (this->lengthEquivBv != nullptr && this->lengthEquivBv->Test(originalPropertySym->m_id))
-            {
-                IR::RegOpnd* newopnd = IR::RegOpnd::New(originalPropertySym->m_stackSym, IRType::TyVar, instr->m_func);
-                ValueInfo *const objectValueInfo = CurrentBlockData()->FindValue(originalPropertySym->m_stackSym)->GetValueInfo();
-                // Only for things we'd emit a fast path for
-                if (
-                    objectValueInfo->IsLikelyAnyArray() ||
-                    objectValueInfo->HasHadStringTag() ||
-                    objectValueInfo->IsLikelyString() ||
-                    newopnd->IsArgumentsObject() ||
-                    (CurrentBlockData()->argObjSyms && CurrentBlockData()->IsArgumentsOpnd(newopnd))
-                   )
-                {
-                    // We need to properly transfer over the information from the old operand, which is
-                    // a SymOpnd, to the new one, which is a RegOpnd. Unfortunately, the types mean the
-                    // normal copy methods won't work here, so we're going to directly copy data.
-                    newopnd->SetIsJITOptimizedReg(opnd->GetIsJITOptimizedReg());
-                    newopnd->SetValueType(objectValueInfo->Type());
-                    newopnd->SetIsDead(opnd->GetIsDead());
+        Assert(sym->IsPropertySym());
+        PropertySym *originalPropertySym = sym->AsPropertySym();
 
-                    // Now that we have the operand we need, we can go ahead and make the new instr.
-                    IR::Instr *newinstr = IR::Instr::New(Js::OpCode::LdLen_A, instr->m_func);
-                    instr->TransferTo(newinstr);
-                    newinstr->UnlinkSrc1();
-                    newinstr->SetSrc1(newopnd);
-                    instr->InsertAfter(newinstr);
-                    instr->Remove();
-                    instr = newinstr;
-                }
-            }
+        IR::RegOpnd* newopnd = IR::RegOpnd::New(originalPropertySym->m_stackSym, IRType::TyVar, instr->m_func);
+        ValueInfo *const objectValueInfo = CurrentBlockData()->FindValue(originalPropertySym->m_stackSym)->GetValueInfo();
+        // things we'd emit a fast path for
+        if (
+            objectValueInfo->IsLikelyAnyArray() ||
+            objectValueInfo->HasHadStringTag() ||
+            objectValueInfo->IsLikelyString() ||
+            newopnd->IsArgumentsObject() ||
+            (CurrentBlockData()->argObjSyms && CurrentBlockData()->IsArgumentsOpnd(newopnd))
+            )
+        {
+            // We need to properly transfer over the information from the old operand, which is
+            // a SymOpnd, to the new one, which is a RegOpnd. Unfortunately, the types mean the
+            // normal copy methods won't work here, so we're going to directly copy data.
+            newopnd->SetIsJITOptimizedReg(opnd->GetIsJITOptimizedReg());
+            newopnd->SetValueType(objectValueInfo->Type());
+            newopnd->SetIsDead(opnd->GetIsDead());
+            instr->ReplaceSrc1(newopnd);
+        }
+        else
+        {
+            // otherwise, change the instruction to an LdFld here.
+            instr->m_opcode = Js::OpCode::LdFld;
         }
     }
 }
@@ -2427,7 +2419,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         CurrentBlockData()->KillStateForGeneratorYield();
     }
 
-    // Change LdFld on arrays, strings, and 'arguments' to LdLen when we're accessing the .length field
+    // Change LdLen on objects other than arrays, strings, and 'arguments' to LdFld.
     this->TryReplaceLdLen(instr);
 
     // Consider: Do we ever get post-op bailout here, and if so is the FillBailOutInfo call in the right place?
@@ -3443,7 +3435,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                 case Js::OpCode::LdLen_A:
                     if(instr->GetSrc1()->IsRegOpnd() && opnd == instr->GetSrc1())
                     {
-                        profiledArrayType = profiledInstr->u.ldElemInfo->GetArrayType();
+                        profiledArrayType = profiledInstr->u.LdLenInfo().GetArrayType();
                     }
                     break;
             }
@@ -5060,7 +5052,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
     case Js::OpCode::LdLen_A:
         if (instr->IsProfiledInstr())
         {
-            const ValueType profiledValueType(instr->AsProfiledInstr()->u.ldElemInfo->GetElementType());
+            const ValueType profiledValueType(instr->AsProfiledInstr()->u.FldInfo().valueType);
             if(!(profiledValueType.IsLikelyInt() && dst->AsRegOpnd()->m_sym->m_isNotInt))
             {
                 return this->NewGenericValue(profiledValueType, dst);
@@ -17074,7 +17066,7 @@ GlobOpt::DoLdLenIntSpec(IR::Instr * const instr, const ValueType baseValueType)
     if(instr &&
         instr->IsProfiledInstr() &&
         (
-            !instr->AsProfiledInstr()->u.ldElemInfo->GetElementType().IsLikelyInt() ||
+            !instr->AsProfiledInstr()->u.FldInfo().valueType.IsLikelyInt() ||
             instr->GetDst()->AsRegOpnd()->m_sym->m_isNotInt
         ))
     {

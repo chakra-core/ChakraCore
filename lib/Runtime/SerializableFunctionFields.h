@@ -67,6 +67,7 @@ PUBLIC_FIELDS
     DECLARE_SERIALIZABLE_FIELD(uint16, m_argUsedForBranch, UInt16);
 
 PRIVATE_FIELDS
+    DECLARE_SERIALIZABLE_FIELD(ProfileId, profiledLdLenCount, UInt16);
     DECLARE_SERIALIZABLE_FIELD(ProfileId, profiledLdElemCount, UInt16);
     DECLARE_SERIALIZABLE_FIELD(ProfileId, profiledStElemCount, UInt16);
     DECLARE_SERIALIZABLE_FIELD(ProfileId, profiledCallSiteCount, UInt16);

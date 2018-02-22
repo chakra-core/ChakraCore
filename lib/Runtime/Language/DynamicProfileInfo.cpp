@@ -59,6 +59,7 @@ namespace Js
         Allocation batch[] =
         {
             { (uint)offsetof(DynamicProfileInfo, callSiteInfo), functionBody->GetProfiledCallSiteCount() * sizeof(CallSiteInfo) },
+            { (uint)offsetof(DynamicProfileInfo, ldLenInfo), functionBody->GetProfiledLdLenCount() * sizeof(LdLenInfo) },
             { (uint)offsetof(DynamicProfileInfo, ldElemInfo), functionBody->GetProfiledLdElemCount() * sizeof(LdElemInfo) },
             { (uint)offsetof(DynamicProfileInfo, stElemInfo), functionBody->GetProfiledStElemCount() * sizeof(StElemInfo) },
             { (uint)offsetof(DynamicProfileInfo, arrayCallSiteInfo), functionBody->GetProfiledArrayCallSiteCount() * sizeof(ArrayCallSiteInfo) },
@@ -151,6 +152,10 @@ namespace Js
         {
             callSiteInfo[i].returnType = ValueType::Uninitialized;
             callSiteInfo[i].u.functionData.sourceId = NoSourceId;
+        }
+        for (ProfileId i = 0; i < functionBody->GetProfiledLdLenCount(); ++i)
+        {
+            ldLenInfo[i].arrayType = ValueType::Uninitialized;
         }
         for (ProfileId i = 0; i < functionBody->GetProfiledLdElemCount(); ++i)
         {
@@ -946,6 +951,13 @@ namespace Js
         return callSiteInfo[callSiteId].ldFldInlineCacheId;
     }
 
+    void DynamicProfileInfo::RecordLengthLoad(FunctionBody* functionBody, ProfileId ldLenId, const LdLenInfo& info)
+    {
+        Assert(ldLenId < functionBody->GetProfiledLdLenCount());
+
+        ldLenInfo[ldLenId].Merge(info);
+    }
+
     void DynamicProfileInfo::RecordElementLoad(FunctionBody* functionBody, ProfileId ldElemId, const LdElemInfo& info)
     {
         Assert(ldElemId < functionBody->GetProfiledLdElemCount());
@@ -1194,6 +1206,7 @@ namespace Js
         this->dynamicProfileFunctionInfo->switchCount = functionBody->GetProfiledSwitchCount();
         this->dynamicProfileFunctionInfo->returnTypeInfoCount = functionBody->GetProfiledReturnTypeCount();
         this->dynamicProfileFunctionInfo->loopCount = functionBody->GetLoopCount();
+        this->dynamicProfileFunctionInfo->ldLenInfoCount = functionBody->GetProfiledLdLenCount();
         this->dynamicProfileFunctionInfo->ldElemInfoCount = functionBody->GetProfiledLdElemCount();
         this->dynamicProfileFunctionInfo->stElemInfoCount = functionBody->GetProfiledStElemCount();
         this->dynamicProfileFunctionInfo->arrayCallSiteCount = functionBody->GetProfiledArrayCallSiteCount();
@@ -1886,6 +1899,8 @@ namespace Js
         if (!writer->Write(functionBody->GetLocalFunctionId())
             || !writer->Write(paramInfoCount)
             || !writer->WriteArray(this->parameterInfo, paramInfoCount)
+            || !writer->Write(functionBody->GetProfiledLdLenCount())
+            || !writer->WriteArray(this->ldLenInfo, functionBody->GetProfiledLdLenCount())
             || !writer->Write(functionBody->GetProfiledLdElemCount())
             || !writer->WriteArray(this->ldElemInfo, functionBody->GetProfiledLdElemCount())
             || !writer->Write(functionBody->GetProfiledStElemCount())
@@ -1921,6 +1936,7 @@ namespace Js
     DynamicProfileInfo * DynamicProfileInfo::Deserialize(T * reader, Recycler* recycler, Js::LocalFunctionId * functionId)
     {
         Js::ArgSlot paramInfoCount = 0;
+        ProfileId ldLenInfoCount = 0;
         ProfileId ldElemInfoCount = 0;
         ProfileId stElemInfoCount = 0;
         ProfileId arrayCallSiteCount = 0;
@@ -1932,6 +1948,7 @@ namespace Js
         uint fldInfoCount = 0;
         uint loopCount = 0;
         ValueType * paramInfo = nullptr;
+        LdLenInfo * ldLenInfo = nullptr;
         LdElemInfo * ldElemInfo = nullptr;
         StElemInfo * stElemInfo = nullptr;
         ArrayCallSiteInfo * arrayCallSiteInfo = nullptr;
@@ -1966,6 +1983,20 @@ namespace Js
             {
                 paramInfo = RecyclerNewArrayLeaf(recycler, ValueType, paramInfoCount);
                 if (!reader->ReadArray(paramInfo, paramInfoCount))
+                {
+                    goto Error;
+                }
+            }
+
+            if (!reader->Read(&ldLenInfoCount))
+            {
+                goto Error;
+            }
+
+            if (ldLenInfoCount != 0)
+            {
+                ldLenInfo = RecyclerNewArrayLeaf(recycler, LdLenInfo, ldLenInfoCount);
+                if (!reader->ReadArray(ldLenInfo, ldLenInfoCount))
                 {
                     goto Error;
                 }
@@ -2133,6 +2164,7 @@ namespace Js
 
             DynamicProfileFunctionInfo * dynamicProfileFunctionInfo = RecyclerNewStructLeaf(recycler, DynamicProfileFunctionInfo);
             dynamicProfileFunctionInfo->paramInfoCount = paramInfoCount;
+            dynamicProfileFunctionInfo->ldLenInfoCount = ldLenInfoCount;
             dynamicProfileFunctionInfo->ldElemInfoCount = ldElemInfoCount;
             dynamicProfileFunctionInfo->stElemInfoCount = stElemInfoCount;
             dynamicProfileFunctionInfo->arrayCallSiteCount = arrayCallSiteCount;
@@ -2147,6 +2179,7 @@ namespace Js
             DynamicProfileInfo * dynamicProfileInfo = RecyclerNew(recycler, DynamicProfileInfo);
             dynamicProfileInfo->dynamicProfileFunctionInfo = dynamicProfileFunctionInfo;
             dynamicProfileInfo->parameterInfo = paramInfo;
+            dynamicProfileInfo->ldLenInfo = ldLenInfo;
             dynamicProfileInfo->ldElemInfo = ldElemInfo;
             dynamicProfileInfo->stElemInfo = stElemInfo;
             dynamicProfileInfo->arrayCallSiteInfo = arrayCallSiteInfo;
@@ -2299,6 +2332,7 @@ namespace Js
                     WriteData(-1, file);
                 }
             }
+            WriteArray(info->functionBody->GetProfiledLdLenCount(), info->ldLenInfo, file);
             WriteArray(info->functionBody->GetProfiledLdElemCount(), info->ldElemInfo, file);
             WriteArray(info->functionBody->GetProfiledStElemCount(), info->stElemInfo, file);
             WriteArray(info->functionBody->GetProfiledArrayCallSiteCount(), info->arrayCallSiteInfo, file);

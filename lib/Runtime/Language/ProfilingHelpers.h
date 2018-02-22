@@ -33,6 +33,7 @@ namespace Js
         static void ProfileLdSlot(const Var value, FunctionBody *const functionBody, const ProfileId profileId);
 
     public:
+        static Var ProfiledLdLen_Jit(const Var instance, const PropertyId propertyId, const InlineCacheIndex inlineCacheIndex, const ProfileId profileId, void *const framePointer);
         static Var ProfiledLdFld_Jit(const Var instance, const PropertyId propertyId, const InlineCacheIndex inlineCacheIndex, void *const framePointer);
         static Var ProfiledLdSuperFld_Jit(const Var instance, const PropertyId propertyId, const InlineCacheIndex inlineCacheIndex, void *const framePointer, const Var thisInstance);
         static Var ProfiledLdFldForTypeOf_Jit(const Var instance, const PropertyId propertyId, const InlineCacheIndex inlineCacheIndex, void *const framePointer);

@@ -669,6 +669,31 @@ namespace Js
         functionBody->GetDynamicProfileInfo()->RecordSlotLoad(functionBody, profileId, value);
     }
 
+    Var ProfilingHelpers::ProfiledLdLen_Jit(
+        const Var instance,
+        const PropertyId propertyId,
+        const InlineCacheIndex inlineCacheIndex,
+        const ProfileId profileId,
+        void *const framePointer)
+    {
+        ScriptFunction * const scriptFunction = ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+        FunctionBody * functionBody = scriptFunction->GetFunctionBody();
+        DynamicProfileInfo * profileInfo = functionBody->GetDynamicProfileInfo();
+
+        LdLenInfo ldLenInfo;
+        ldLenInfo.arrayType = ValueType::Uninitialized.Merge(instance);
+        profileInfo->RecordLengthLoad(functionBody, profileId, ldLenInfo);
+
+        return
+            ProfiledLdFld<false, false, false>(
+                instance,
+                propertyId,
+                GetInlineCache(scriptFunction, inlineCacheIndex),
+                inlineCacheIndex,
+                scriptFunction->GetFunctionBody(),
+                instance);
+    }
+
     Var ProfilingHelpers::ProfiledLdFld_Jit(
         const Var instance,
         const PropertyId propertyId,

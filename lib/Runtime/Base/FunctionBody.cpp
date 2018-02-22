@@ -492,6 +492,7 @@ namespace Js
         m_uScriptId(uScriptId),
         cleanedUp(false),
         sourceInfoCleanedUp(false),
+        profiledLdLenCount(0),
         profiledLdElemCount(0),
         profiledStElemCount(0),
         profiledCallSiteCount(0),
@@ -621,6 +622,7 @@ namespace Js
         m_uScriptId(proxy->GetUtf8SourceInfo()->GetSrcInfo()->sourceContextInfo->sourceContextId),
         cleanedUp(false),
         sourceInfoCleanedUp(false),
+        profiledLdLenCount(0),
         profiledLdElemCount(0),
         profiledStElemCount(0),
         profiledCallSiteCount(0),
@@ -4933,6 +4935,7 @@ namespace Js
         this->SetStatementMaps(nullptr);
         this->SetCodeGenGetSetRuntimeData(nullptr);
         this->SetPropertyIdOnRegSlotsContainer(nullptr);
+        this->profiledLdLenCount = 0;
         this->profiledLdElemCount = 0;
         this->profiledStElemCount = 0;
         this->profiledCallSiteCount = 0;
@@ -6374,6 +6377,7 @@ namespace Js
         profiledArrayCallSiteCount = 0;
         profiledReturnTypeCount = 0;
         profiledSlotCount = 0;
+        profiledLdLenCount = 0;
         profiledLdElemCount = 0;
         profiledStElemCount = 0;
 #endif

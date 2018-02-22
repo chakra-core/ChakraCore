@@ -5744,11 +5744,22 @@ ldFldCommon:
         }
 
         case Js::OpCode::LdLen_A:
-            // If we want to profile this call, then push some extra args and call the profiling version
+            Assert(ldFldInstr->profileId != Js::Constants::NoProfileId);
+
+            /*
+                Var ProfilingHelpers::ProfiledLdLen_Jit(
+                    const Var instance,
+                    const PropertyId propertyId,
+                    const InlineCacheIndex inlineCacheIndex,
+                    const ProfileId profileId,
+                    void *const framePointer)
+            */
+
+            m_lowererMD.LoadHelperArgument(ldFldInstr, IR::Opnd::CreateFramePointerOpnd(m_func));
             m_lowererMD.LoadHelperArgument(ldFldInstr, IR::Opnd::CreateProfileIdOpnd(ldFldInstr->profileId, m_func));
-            m_lowererMD.LoadHelperArgument(ldFldInstr, src->AsSymOpnd()->CreatePropertyOwnerOpnd(m_func));
-            m_lowererMD.LoadHelperArgument(ldFldInstr, CreateFunctionBodyOpnd(ldFldInstr->m_func));
-            helper = IR::HelperSimpleProfiledLdLen;
+            m_lowererMD.LoadHelperArgument(ldFldInstr, IR::Opnd::CreateInlineCacheIndexOpnd(src->AsPropertySymOpnd()->m_inlineCacheIndex, m_func));
+            LoadPropertySymAsArgument(ldFldInstr, src);
+            helper = IR::HelperProfiledLdLen;
             break;
 
         default:
@@ -9067,13 +9078,12 @@ void Lowerer::LowerLdLen(IR::Instr *const instr, const bool isHelper)
     // This is normally a load of the internal "length" of an Array, so it probably doesn't benefit
     // from inline caching.
 
-    // Changing the opcode to LdFld is done in LowerLdFld and needs to remain that way to take into
-    //    account ProfiledLdLen_A
-
-    IR::RegOpnd * baseOpnd = instr->UnlinkSrc1()->AsRegOpnd();
-    PropertySym* fieldSym = PropertySym::FindOrCreate(baseOpnd->m_sym->m_id, Js::PropertyIds::length, (uint32)-1, (uint)-1, PropertyKindData, m_func);
-    baseOpnd->Free(this->m_func);
-    instr->SetSrc1(IR::SymOpnd::New(fieldSym, TyVar, m_func));
+    if (instr->GetSrc1()->IsRegOpnd())
+    {
+        IR::RegOpnd * baseOpnd = instr->GetSrc1()->AsRegOpnd();
+        PropertySym* fieldSym = PropertySym::FindOrCreate(baseOpnd->m_sym->m_id, Js::PropertyIds::length, (uint32)-1, (uint)-1, PropertyKindData, m_func);
+        instr->ReplaceSrc1(IR::SymOpnd::New(fieldSym, TyVar, m_func));
+    }
     LowerLdFld(instr, IR::HelperOp_GetProperty, IR::HelperOp_GetProperty, false, nullptr, isHelper);
 }
 
@@ -17934,12 +17944,9 @@ Lowerer::GenerateFastLdLen(IR::Instr *ldLen, bool *instrIsInHelperBlockRef)
     //     CALL GetProperty(src, length_property_id, scriptContext)
     // $fallthru:
 
-    IR::RegOpnd *       opnd = ldLen->GetSrc1()->AsRegOpnd();
+    IR::Opnd *          opnd = ldLen->GetSrc1();
     IR::RegOpnd *       dst = ldLen->GetDst()->AsRegOpnd();
-    IR::RegOpnd *       src = opnd->AsRegOpnd();
-    const ValueType     srcValueType(src->GetValueType());
-
-    AssertMsg(src->IsRegOpnd(), "Expected regOpnd on LdLen");
+    const ValueType     srcValueType(opnd->GetValueType());
 
     IR::LabelInstr *const labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
 
@@ -17951,7 +17958,7 @@ Lowerer::GenerateFastLdLen(IR::Instr *ldLen, bool *instrIsInHelperBlockRef)
     }
     else
     {
-        const bool arrayFastPath = ShouldGenerateArrayFastPath(src, false, true, false);
+        const bool arrayFastPath = ShouldGenerateArrayFastPath(opnd, false, true, false);
 
         // HasBeenString instead of IsLikelyString because it could be a merge between StringObject and String, and this
         // information about whether it's a StringObject or some other object is not available in the profile data
@@ -17960,6 +17967,22 @@ Lowerer::GenerateFastLdLen(IR::Instr *ldLen, bool *instrIsInHelperBlockRef)
         if(!(arrayFastPath || stringFastPath))
         {
             return true;
+        }
+
+        IR::RegOpnd * src;
+        if (opnd->IsRegOpnd())
+        {
+            src = opnd->AsRegOpnd();
+        }
+        else
+        {
+            // LdLen has a PropertySymOpnd until globopt where the decision whether to convert it to LdFld is made. If globopt is skipped, the opnd will 
+            // still be a PropertySymOpnd here. In that case, do the conversion here.
+            IR::SymOpnd * symOpnd = opnd->AsSymOpnd();
+            PropertySym * propertySym = symOpnd->m_sym->AsPropertySym();
+            src = IR::RegOpnd::New(propertySym->m_stackSym, IRType::TyVar, this->m_func);
+            ldLen->ReplaceSrc1(src);
+            opnd = src;
         }
 
         const int32 arrayOffsetOfLength =

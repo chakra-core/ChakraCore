@@ -17,6 +17,7 @@ public:
         __out ProfileDataIDL * data,
         bool isForegroundJIT);
 
+    const Js::LdLenInfo * GetLdLenInfo(Js::ProfileId ldLenId) const;
     const Js::LdElemInfo * GetLdElemInfo(Js::ProfileId ldElemId) const;
     const Js::StElemInfo * GetStElemInfo(Js::ProfileId stElemId) const;
 

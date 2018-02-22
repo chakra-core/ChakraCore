@@ -413,17 +413,6 @@ namespace Js
 
         Assert(DoProfileNewScObjectOp(op) == false);
 
-        if (op == Js::OpCode::LdLen_A
-            && (DoDynamicProfileOpcode(AggressiveIntTypeSpecPhase) ||
-                DoDynamicProfileOpcode(FloatTypeSpecPhase) ||
-                DoDynamicProfileOpcode(TypedArrayTypeSpecPhase) ||
-                DoDynamicProfileOpcode(ArrayCheckHoistPhase))
-            && this->m_functionWrite->AllocProfiledLdElemId(&profileId))
-        {
-            OpCodeUtil::ConvertNonCallOpToProfiled(op);
-            isProfiled = true;
-        }
-
         MULTISIZE_LAYOUT_WRITE(Reg2, op, R0, R1);
 
         if (isProfiled)
@@ -2025,8 +2014,27 @@ StoreCommon:
         value = ConsumeReg(value);
         instance = ConsumeReg(instance);
 
+        bool isProfiled = false;
+        Js::ProfileId profileId = Js::Constants::NoProfileId;
+
         switch (op)
         {
+        case OpCode::LdLen_A:
+        {
+            if ((DoDynamicProfileOpcode(AggressiveIntTypeSpecPhase) ||
+                DoDynamicProfileOpcode(FloatTypeSpecPhase) ||
+                DoDynamicProfileOpcode(TypedArrayTypeSpecPhase) ||
+                DoDynamicProfileOpcode(ArrayCheckHoistPhase) ||
+                DoDynamicProfileOpcode(ObjTypeSpecPhase) ||
+                DoDynamicProfileOpcode(InlinePhase) ||
+                DoDynamicProfileOpcode(ProfileBasedFldFastPathPhase))
+                && this->m_functionWrite->AllocProfiledLdLenId(&profileId))
+            {
+                OpCodeUtil::ConvertNonCallOpToProfiled(op);
+                isProfiled = true;
+            }
+            break;
+        }
         case OpCode::LdFldForTypeOf:
         case OpCode::LdFld:
             if (isCtor) // The symbol loaded by this LdFld will be used as a constructor
@@ -2077,6 +2085,11 @@ StoreCommon:
         }
 
         MULTISIZE_LAYOUT_WRITE(ElementCP, op, value, instance, cacheId);
+
+        if (isProfiled)
+        {
+            m_byteCodeData.Encode(&profileId, sizeof(Js::ProfileId));
+        }
     }
 
     template <typename SizePolicy>

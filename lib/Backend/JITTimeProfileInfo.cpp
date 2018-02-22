@@ -28,17 +28,27 @@ JITTimeProfileInfo::InitializeJITProfileData(
     CompileAssert(sizeof(LdElemIDL) == sizeof(Js::LdElemInfo));
     CompileAssert(sizeof(StElemIDL) == sizeof(Js::StElemInfo));
 
+    data->profiledLdLenCount = functionBody->GetProfiledLdLenCount();
     data->profiledLdElemCount = functionBody->GetProfiledLdElemCount();
     data->profiledStElemCount = functionBody->GetProfiledStElemCount();
 
     if (JITManager::GetJITManager()->IsOOPJITEnabled() || isForegroundJIT)
     {
+        data->ldLenData = (LdLenIDL*)profileInfo->GetLdLenInfo();
         data->ldElemData = (LdElemIDL*)profileInfo->GetLdElemInfo();
         data->stElemData = (StElemIDL*)profileInfo->GetStElemInfo();
     }
     else
     {
-        // for in-proc background JIT we need to explicitly copy LdElem and StElem info
+        // for in-proc background JIT we need to explicitly copy LdLen, LdElem, and StElem info
+        data->ldLenData = AnewArray(alloc, LdLenIDL, data->profiledLdLenCount);
+        memcpy_s(
+            data->ldLenData,
+            data->profiledLdLenCount * sizeof(LdLenIDL),
+            profileInfo->GetLdLenInfo(),
+            functionBody->GetProfiledLdLenCount() * sizeof(Js::LdLenInfo)
+        );
+
         data->ldElemData = AnewArray(alloc, LdElemIDL, data->profiledLdElemCount);
         memcpy_s(
             data->ldElemData,
@@ -136,6 +146,13 @@ JITTimeProfileInfo::InitializeJITProfileData(
     data->flags |= profileInfo->IsPowIntIntTypeSpecDisabled() ? Flags_disablePowIntIntTypeSpec : 0;
     data->flags |= profileInfo->IsTagCheckDisabled() ? Flags_disableTagCheck : 0;
     data->flags |= profileInfo->IsOptimizeTryFinallyDisabled() ? Flags_disableOptimizeTryFinally : 0;
+}
+
+const Js::LdLenInfo *
+JITTimeProfileInfo::GetLdLenInfo(Js::ProfileId ldLenId) const
+{
+    AssertOrFailFast(ldLenId < m_profileData.profiledLdLenCount);
+    return &(reinterpret_cast<Js::LdLenInfo*>(m_profileData.ldLenData)[ldLenId]);
 }
 
 const Js::LdElemInfo *

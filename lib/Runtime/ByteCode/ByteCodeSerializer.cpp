@@ -1002,7 +1002,7 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(Reg1Unsigned1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg2Int1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Unsigned1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(ElementCP);
+                DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(ElementCP);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(ElementRootCP);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(ElementP);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(ElementPIndexed);
