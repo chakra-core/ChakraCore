@@ -223,6 +223,8 @@
       <files>Bug15992535.js</files>
       <!-- Test should fail assertion in debug build, so do not run -->
       <tags>exclude_chk</tags>
+      <!-- We need an empty baseline to convince the test system
+           that the test is successful even though it fails-fast. -->
       <baseline>Bug15992535.baseline</baseline>
     </default>
   </test>
