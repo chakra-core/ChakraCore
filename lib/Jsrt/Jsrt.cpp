@@ -213,11 +213,17 @@ JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ TTDRecord
 }
 
 #if ENABLE_TTD
-void CALLBACK CreateExternalObject_TTDCallback(Js::ScriptContext* ctx, Js::Var* object)
+void CALLBACK CreateExternalObject_TTDCallback(Js::ScriptContext* ctx, Js::Var prototype, Js::Var* object)
 {
     TTDAssert(object != nullptr, "This should always be a valid location");
 
-    *object = JsrtExternalObject::Create(nullptr, nullptr, nullptr, ctx);
+    Js::RecyclableObject * prototypeObject = nullptr;
+    if (prototype != JS_INVALID_REFERENCE)
+    {
+        prototypeObject = Js::RecyclableObject::FromVar(prototype);
+    }
+
+    *object = JsrtExternalObject::Create(nullptr, nullptr, prototypeObject, ctx);
 }
 
 void CALLBACK TTDDummyPromiseContinuationCallback(JsValueRef task, void *callbackState)
@@ -1290,34 +1296,18 @@ CHAKRA_API JsCreateObject(_Out_ JsValueRef *object)
     });
 }
 
-CHAKRA_API JsCreateExternalObject(_In_opt_ void *data, _In_opt_ JsFinalizeCallback finalizeCallback, _Out_ JsValueRef *object)
-{
-    return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTAllocateExternalObject);
-
-        PARAM_NOT_NULL(object);
-
-        *object = JsrtExternalObject::Create(data, finalizeCallback, nullptr, scriptContext);
-
-        PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, object);
-
-        return JsNoError;
-    });
-}
-
-#ifndef NTBUILD
 CHAKRA_API JsCreateExternalObjectWithPrototype(_In_opt_ void *data,
     _In_opt_ JsFinalizeCallback finalizeCallback,
-    _In_ JsValueRef prototype,
+    _In_opt_ JsValueRef prototype,
     _Out_ JsValueRef *object)
 {
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTAllocateExternalObject);
+        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTAllocateExternalObject, prototype);
 
         PARAM_NOT_NULL(object);
 
         Js::RecyclableObject * prototypeObject = nullptr;
-        if (prototype != nullptr)
+        if (prototype != JS_INVALID_REFERENCE)
         {
             VALIDATE_INCOMING_OBJECT(prototype, scriptContext);
             prototypeObject = Js::RecyclableObject::FromVar(prototype);
@@ -1327,15 +1317,14 @@ CHAKRA_API JsCreateExternalObjectWithPrototype(_In_opt_ void *data,
 
         PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, object);
 
-        if (prototypeObject != nullptr)
-        {
-            PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTSetPrototype, *object, prototypeObject);
-        }
-
         return JsNoError;
     });
 }
-#endif
+
+CHAKRA_API JsCreateExternalObject(_In_opt_ void *data, _In_opt_ JsFinalizeCallback finalizeCallback, _Out_ JsValueRef *object)
+{
+    return JsCreateExternalObjectWithPrototype(data, finalizeCallback, JS_INVALID_REFERENCE, object);
+}
 
 CHAKRA_API JsConvertValueToObject(_In_ JsValueRef value, _Out_ JsValueRef *result)
 {
