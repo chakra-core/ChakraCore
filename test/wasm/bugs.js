@@ -22,7 +22,7 @@ async function main() {
   bar();
 
   try {
-    new WebAssembly.Module(createView(`\x00asm\x01\x00\x00\x00\xff\xff\xff\xff\x7f\x00\x00\x00`));
+    new WebAssembly.Module(createView(`\x00asm\x01\x00\x00\x00\x3f\xff\xff\xff\x7f\x00\x00\x00`));
     console.log("Should have had an error");
   } catch (e) {
     if (!(e instanceof WebAssembly.CompileError && e.message.includes("Invalid known section opcode"))) {

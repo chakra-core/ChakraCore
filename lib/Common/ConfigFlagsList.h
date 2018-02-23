@@ -403,6 +403,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_WasmMaxTableSize     (10000000)
 #define DEFAULT_CONFIG_WasmSimd             (false)
 #define DEFAULT_CONFIG_WasmSignExtends      (false)
+#define DEFAULT_CONFIG_WasmMultiValue       (false)
 #define DEFAULT_CONFIG_BgJitDelayFgBuffer   (0)
 #define DEFAULT_CONFIG_BgJitPendingFuncCap  (31)
 #define DEFAULT_CONFIG_CurrentSourceInfo    (true)
@@ -897,6 +898,7 @@ FLAGNR(Boolean, WasmFold              , "Enable i32/i64 const folding", DEFAULT_
 FLAGNR(Boolean, WasmIgnoreResponse    , "Ignore the type of the Response object", DEFAULT_CONFIG_WasmIgnoreResponse)
 FLAGNR(Number,  WasmMaxTableSize      , "Maximum size allowed to the WebAssembly.Table", DEFAULT_CONFIG_WasmMaxTableSize)
 FLAGNR(Boolean, WasmSignExtends       , "Use new WebAssembly sign extension operators", DEFAULT_CONFIG_WasmSignExtends)
+FLAGNR(Boolean, WasmMultiValue        , "Use new WebAssembly multi-value", DEFAULT_CONFIG_WasmMultiValue)
 #ifdef ENABLE_WASM_SIMD
 FLAGNR(Boolean, WasmSimd              , "Enable SIMD in WebAssembly", DEFAULT_CONFIG_WasmSimd)
 #endif

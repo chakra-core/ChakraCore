@@ -304,13 +304,13 @@ void WebAssemblyInstance::LoadImports(
         JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
     }
 
-    uint32 counters[Wasm::ExternalKinds::Limit];
+    uint32 counters[(uint32)Wasm::ExternalKinds::Limit];
     memset(counters, 0, sizeof(counters));
     for (uint32 i = 0; i < importCount; ++i)
     {
         Wasm::WasmImport* import = wasmModule->GetImport(i);
         Var prop = GetImportVariable(import, ctx, ffi);
-        uint32& counter = counters[import->kind];
+        uint32& counter = counters[(uint32)import->kind];
         switch (import->kind)
         {
         case Wasm::ExternalKinds::Function:

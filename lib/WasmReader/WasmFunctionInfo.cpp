@@ -46,9 +46,15 @@ Local WasmFunctionInfo::GetLocal(uint32 index) const
     return WasmTypes::Limit;
 }
 
-WasmTypes::WasmType WasmFunctionInfo::GetResultType() const
+
+uint32 WasmFunctionInfo::GetResultCount() const
 {
-    return m_signature->GetResultType();
+    return m_signature->GetResultCount();
+}
+
+Local WasmFunctionInfo::GetResult(uint32 index) const
+{
+    return m_signature->GetResult(index);
 }
 
 uint32 WasmFunctionInfo::GetLocalCount() const

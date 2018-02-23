@@ -298,6 +298,10 @@ WebAssemblyModule::ValidateModule(
     catch (Wasm::WasmCompilationException& ex)
     {
         char16* originalMessage = ex.ReleaseErrorMessage();
+        if (PHASE_TRACE1(Js::WasmBytecodePhase) || PHASE_TRACE1(Js::WasmReaderPhase))
+        {
+            Output::Print(_u("WebAssembly.validate Error: %s\n"), originalMessage);
+        }
         SysFreeString(originalMessage);
 
         return false;
@@ -363,10 +367,16 @@ WebAssemblyModule::GetSignatures() const
     return m_signatures;
 }
 
+bool
+WebAssemblyModule::IsSignatureIndexValid(uint32 index) const
+{
+    return index < GetSignatureCount();
+}
+
 Wasm::WasmSignature *
 WebAssemblyModule::GetSignature(uint32 index) const
 {
-    if (index >= GetSignatureCount())
+    if (!IsSignatureIndexValid(index))
     {
         throw Wasm::WasmCompilationException(_u("Invalid signature index %u"), index);
     }
@@ -508,7 +518,8 @@ WebAssemblyModule::AttachCustomInOutTracingReader(Wasm::WasmFunctionInfo* func, 
     callNode.call.funcType = Wasm::FunctionIndexTypes::Function;
     customReader->AddNode(callNode);
 
-    Wasm::WasmTypes::WasmType returnType = signature->GetResultType();
+    // todo:: support multi return
+    Wasm::WasmTypes::WasmType returnType = signature->GetResultCount() > 0 ? signature->GetResult(0) : Wasm::WasmTypes::Void;
     Wasm::WasmNode endNode;
     endNode.op = Wasm::wbI32Const;
     endNode.cnst.i32 = returnType;
@@ -545,7 +556,7 @@ WebAssemblyModule::AllocateFunctionExports(uint32 entries)
 }
 
 void
-WebAssemblyModule::SetExport(uint32 iExport, uint32 funcIndex, const char16* exportName, uint32 nameLength, Wasm::ExternalKinds::ExternalKind kind)
+WebAssemblyModule::SetExport(uint32 iExport, uint32 funcIndex, const char16* exportName, uint32 nameLength, Wasm::ExternalKinds kind)
 {
     m_exports[iExport].index = funcIndex;
     m_exports[iExport].nameLength = nameLength;
@@ -576,6 +587,11 @@ WebAssemblyModule::AddFunctionImport(uint32 sigId, const char16* modName, uint32
     {
         throw Wasm::WasmCompilationException(_u("Function signature %u is out of bound"), sigId);
     }
+    Wasm::WasmSignature* signature = GetSignature(sigId);
+    if (signature->GetResultCount() > 1)
+    {
+        throw Wasm::WasmCompilationException(_u("Multiple results for function imports is not supported"));
+    }
 
     // Store the information about the import
     Wasm::WasmImport* importInfo = Anew(m_alloc, Wasm::WasmImport);
@@ -586,7 +602,6 @@ WebAssemblyModule::AddFunctionImport(uint32 sigId, const char16* modName, uint32
     importInfo->importName = fnName;
     m_imports->Add(importInfo);
 
-    Wasm::WasmSignature* signature = GetSignature(sigId);
     Wasm::WasmFunctionInfo* funcInfo = AddWasmFunctionInfo(signature);
     // Create the custom reader to generate the import thunk
     Wasm::WasmCustomReader* customReader = Anew(m_alloc, Wasm::WasmCustomReader, m_alloc);
@@ -908,7 +923,7 @@ WebAssemblyModule::AddGlobalByteSizeToOffset(Wasm::WasmTypes::WasmType type, uin
 
 
 JavascriptString *
-WebAssemblyModule::GetExternalKindString(ScriptContext * scriptContext, Wasm::ExternalKinds::ExternalKind kind)
+WebAssemblyModule::GetExternalKindString(ScriptContext * scriptContext, Wasm::ExternalKinds kind)
 {
     switch (kind)
     {

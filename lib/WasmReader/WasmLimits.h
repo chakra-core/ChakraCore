@@ -21,6 +21,7 @@ namespace Wasm {
         static const uint32 MaxStringSize = 100000;
         static const uint32 MaxFunctionLocals = 50000;
         static const uint32 MaxFunctionParams = 1000;
+        static const uint32 MaxFunctionReturns = 10000; // todo::We need to figure out what is the right limit here
         static const uint32 MaxBrTableElems = 1000000;
 
         static const uint32 MaxMemoryInitialPages = 16384;
@@ -40,6 +41,13 @@ namespace Wasm {
         static uint32 GetMaxStringSize() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxStringSize; }
         static uint32 GetMaxFunctionLocals() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxFunctionLocals; }
         static uint32 GetMaxFunctionParams() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxFunctionParams; }
+        static uint32 GetMaxFunctionReturns() {
+            if (CONFIG_FLAG(WasmMultiValue))
+            {
+                return CONFIG_FLAG(WasmIgnoreLimits) ? (UINT32_MAX - 1) : MaxFunctionReturns;
+            }
+            return 1;
+        }
         static uint64 GetMaxBrTableElems() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxBrTableElems; }
         static uint32 GetMaxMemoryInitialPages() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxMemoryInitialPages; }
         static uint32 GetMaxMemoryMaximumPages() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxMemoryMaximumPages; }

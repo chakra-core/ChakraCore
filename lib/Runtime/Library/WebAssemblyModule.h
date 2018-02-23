@@ -77,6 +77,7 @@ public:
     uint32 GetMemoryMaxSize() const { return m_memoryMaxSize; }
 
     Wasm::WasmSignature * GetSignatures() const;
+    bool IsSignatureIndexValid(uint32 index) const;
     Wasm::WasmSignature* GetSignature(uint32 index) const;
     void SetSignatureCount(uint32 count);
     uint32 GetSignatureCount() const;
@@ -100,7 +101,7 @@ public:
 
     void AllocateFunctionExports(uint32 entries);
     uint GetExportCount() const { return m_exportCount; }
-    void SetExport(uint32 iExport, uint32 funcIndex, const char16* exportName, uint32 nameLength, Wasm::ExternalKinds::ExternalKind kind);
+    void SetExport(uint32 iExport, uint32 funcIndex, const char16* exportName, uint32 nameLength, Wasm::ExternalKinds kind);
     Wasm::WasmExport* GetExport(uint32 iExport) const;
 
     uint32 GetImportCount() const;
@@ -158,7 +159,7 @@ public:
     virtual void Mark(Recycler * recycler) override;
 
 private:
-    static JavascriptString * GetExternalKindString(ScriptContext * scriptContext, Wasm::ExternalKinds::ExternalKind kind);
+    static JavascriptString * GetExternalKindString(ScriptContext * scriptContext, Wasm::ExternalKinds kind);
 
     Field(bool) m_hasTable;
     Field(bool) m_hasMemory;

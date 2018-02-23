@@ -10,14 +10,14 @@ namespace Wasm
     // Language Types binary encoding with varint7
     namespace LanguageTypes
     { 
-        const int8 i32 = 0x80 - 0x1;
-        const int8 i64 = 0x80 - 0x2;
-        const int8 f32 = 0x80 - 0x3;
-        const int8 f64 = 0x80 - 0x4;
-        const int8 m128 = 0x80 - 0x5;
-        const int8 anyfunc = 0x80 - 0x10;
-        const int8 func = 0x80 - 0x20;
-        const int8 emptyBlock = 0x80 - 0x40;
+        const int8 i32 = -0x1;
+        const int8 i64 = -0x2;
+        const int8 f32 = -0x3;
+        const int8 f64 = -0x4;
+        const int8 m128 = -0x5;
+        const int8 anyfunc = -0x10;
+        const int8 func = -0x20;
+        const int8 emptyBlock = -0x40;
         WasmTypes::WasmType ToWasmType(int8);
     }
 
@@ -105,13 +105,17 @@ namespace Wasm
         // Primitive reader
         template <WasmTypes::WasmType type> void ConstNode();
         template <typename T> T ReadConst();
-        uint8 ReadVarUInt7();
+        ExternalKinds ReadExternalKind() { return (ExternalKinds)ReadConst<uint8>(); }
         bool ReadMutableValue();
         const char16* ReadInlineName(uint32& length, uint32& nameLength);
-        template<typename MaxAllowedType = uint32>
-        MaxAllowedType LEB128(uint32 &length, bool sgn = false);
-        template<typename MaxAllowedType = int32>
-        MaxAllowedType SLEB128(uint32 &length);
+        template<typename LEBType = uint32, uint32 bits = sizeof(LEBType) * 8>
+        LEBType LEB128(uint32 &length);
+        template<typename LEBType = int32, uint32 bits = sizeof(LEBType) * 8>
+        LEBType SLEB128(uint32 &length)
+        {
+            CompileAssert(LEBType(-1) < LEBType(0));
+            return LEB128<LEBType, bits>(length);
+        }
         WasmNode ReadInitExpr(bool isOffset = false);
         SectionLimits ReadSectionLimits(uint32 maxInitial, uint32 maxMaximum, const char16* errorMsg);
 
