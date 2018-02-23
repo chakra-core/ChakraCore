@@ -2981,6 +2981,8 @@ namespace UnifiedRegex
 #ifdef PROFILE_EXEC
         this->scriptContext->ProfileEnd(Js::RegexCompilePhase);
 #endif
+        // CaptureSourceAndGroups throws if this condition doesn't hold.
+        Assert(0 < pattern->NumGroups() && pattern->NumGroups() <= MAX_NUM_GROUPS);
 
         return pattern;
     }
