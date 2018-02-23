@@ -60,7 +60,7 @@ namespace UnifiedRegex
         Field(Char*) source;
         Field(CharCount) sourceLen; // length in char16's, NOT including terminating null
         // Number of capturing groups (including implicit overall group at index 0)
-        Field(int) numGroups;
+        Field(uint16) numGroups;
         Field(int) numLoops;
         Field(RegexFlags) flags;
 
@@ -1847,7 +1847,7 @@ namespace UnifiedRegex
             return !groupInfos[0].IsUndefined();
         }
 
-        inline int NumGroups() const
+        inline uint16 NumGroups() const
         {
             return program->numGroups;
         }
