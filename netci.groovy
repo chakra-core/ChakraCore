@@ -291,6 +291,12 @@ if (isXPlatCompatibleBranch) {
     // PR and CI checks
     CreateXPlatBuildTasks(osString, "linux", "ubuntu", branch, null, "")
 
+    // Create a PR/continuous task to check ubuntu/static/debug/no-icu
+    [true, false].each { isPR -> 
+        CreateXPlatBuildTask(isPR, "debug", true, osString, "linux",
+            "ubuntu", branch, null, "--no-icu", "--not-tag exclude_noicu", "")
+    }
+
     // daily builds
     if (isXPlatDailyBranch) {
         CreateXPlatBuildTasks(osString, "linux", "daily_ubuntu", branch,

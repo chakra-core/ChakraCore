@@ -1181,7 +1181,7 @@
   <test>
     <default>
       <files>bug_OS_2553885.js</files>
-      <tags>exclude_win7,BugFix,Intl</tags>
+      <tags>exclude_win7,BugFix,Intl,exclude_noicu</tags>
     </default>
   </test>
   <test>
