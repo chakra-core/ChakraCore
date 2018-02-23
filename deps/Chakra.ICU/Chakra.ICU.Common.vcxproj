@@ -27,6 +27,9 @@
         U_COMMON_IMPLEMENTATION=1
       </PreprocessorDefinitions>
     </ClCompile>
+    <Link Condition="'$(ChakraICU)'=='shared'">
+      <SubSystem>Console</SubSystem>
+    </Link>
   </ItemDefinitionGroup>
   <ItemGroup Condition="'$(ChakraICU)'!='false'">
     <ClCompile Include="$(IcuCommonSources)" />
