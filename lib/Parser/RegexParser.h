@@ -82,13 +82,18 @@ namespace UnifiedRegex
         // group, plus a few additional values, to a JavaScript function without overflowing the
         // number of arguments.  This is important, for example, in the implementation of
         // String.prototype.replace, where the second argument is a function.
-        //
-        // This should really be an unsigned, but we compare it against numGroups, so make it
-        // an int for now to avoid a bunch of compiler warnings until we can go back and clean this up.
-        static const int MAX_NUM_GROUPS = INT16_MAX;
+        static const uint16 MAX_NUM_GROUPS = INT16_MAX;
 
-        int numGroups; // determined in first parse
+        uint16 numGroups; // determined in first parse
+
+        // Keeps track of how many capturing groups we've seen during parsing.  We use an int, rather than
+        // a uint16, to be sure we don't overflow during parsing and only check it against MAX_NUM_GROUPS at
+        // the end.  (We know we can't overflow an int because strings and regex literals are limited to
+        // 2G characters and therefore to 1G pairs of parentheses, which can fit into an int.  I'd prefer
+        // to use size_t here, but making that change would go down a serious rabbit hole changing the
+        // interface to UnifiedRegex::Node::AccumDefineGroups.)
         int nextGroupId;
+
         // Buffer accumulating all literals.
         // In compile-time allocator, must be transferred to runtime allocator when build program
         Char* litbuf;
