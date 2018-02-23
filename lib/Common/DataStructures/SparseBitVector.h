@@ -535,7 +535,7 @@ BVSparse<TAllocator>::GetNextBit(BVSparseNode *node) const
             return ret + node->startIndex;
         }
     }
-    return -1;
+    return (BVIndex)-1;
 }
 
 template <class TAllocator>
@@ -564,7 +564,7 @@ BVSparse<TAllocator>::GetNextBit(BVIndex i) const
         }
     }
 
-    return  -1;
+    return (BVIndex)-1;
 }
 
 template <class TAllocator>

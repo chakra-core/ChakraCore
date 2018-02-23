@@ -55,6 +55,7 @@ using namespace Memory;
 #include "DataStructures/KeyValuePair.h"
 #include "DataStructures/BaseDictionary.h"
 #include "DataStructures/DictionaryEntry.h"
+#include "DataStructures/ClusterList.h"
 
 // === Configurations Header ===
 #include "Core/ConfigFlagsTable.h"

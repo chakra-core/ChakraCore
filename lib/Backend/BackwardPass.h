@@ -178,9 +178,15 @@ private:
     BVSparse<JitArenaAllocator> * intOverflowDoesNotMatterInRangeBySymId;
     BVSparse<JitArenaAllocator> * candidateSymsRequiredToBeInt;
     BVSparse<JitArenaAllocator> * candidateSymsRequiredToBeLossyInt;
-    StackSym *considerSymAsRealUseInNoImplicitCallUses;
+    StackSym * considerSymAsRealUseInNoImplicitCallUses;
     bool intOverflowCurrentlyMattersInRange;
     bool isCollectionPass;
+    enum class CollectionPassSubPhase
+    {
+        None,
+        FirstPass,
+        SecondPass
+    } collectionPassSubPhase;
 
     class FloatSymEquivalenceClass
     {

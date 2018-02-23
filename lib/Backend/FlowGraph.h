@@ -603,6 +603,10 @@ public:
     BasicBlock *dominatingLoopCountableBlock;
     LoopCount *loopCount;
     SymIdToStackSymMap *loopCountBasedBoundBaseSyms;
+    typedef SegmentClusterList<SymID, JitArenaAllocator> LoopSymClusterList;
+    LoopSymClusterList *symClusterList;
+    BVSparse<JitArenaAllocator> * internallyDereferencedSyms;
+    SList<IR::ByteCodeUsesInstr*> *outwardSpeculationMaskInstrs;
 
     bool                isDead : 1;
     bool                hasDeadStoreCollectionPass : 1;
@@ -729,6 +733,9 @@ public:
         dominatingLoopCountableBlock(nullptr),
         loopCount(nullptr),
         loopCountBasedBoundBaseSyms(nullptr),
+        symClusterList(nullptr),
+        internallyDereferencedSyms(nullptr),
+        outwardSpeculationMaskInstrs(nullptr),
         isDead(false),
         allFieldsKilled(false),
         isLeaf(true),
