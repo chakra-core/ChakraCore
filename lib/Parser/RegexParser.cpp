@@ -3019,7 +3019,7 @@ namespace UnifiedRegex
         Assert(nextGroupId > 0);
         if (nextGroupId > MAX_NUM_GROUPS)
         {
-            Js::JavascriptError::ThrowSyntaxError(this->scriptContext, JSERR_RegExpTooManyCapturingGroups);
+            Js::JavascriptError::ThrowRangeError(this->scriptContext, JSERR_RegExpTooManyCapturingGroups);
         }
         else
         {

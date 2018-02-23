@@ -364,7 +364,7 @@ RT_ERROR_MSG(JSERR_InvalidIterableObject, 5671, "%s : Invalid iterable object", 
 RT_ERROR_MSG(JSERR_InvalidIteratorObject, 5672, "%s : Invalid iterator object", "Invalid iterator object", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_NoAccessors, 5673, "Invalid property descriptor: accessors not supported on this object", "", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_RegExpInvalidEscape, 5674, "", "Invalid regular expression: invalid escape in unicode pattern", kjstSyntaxError, 0)
-RT_ERROR_MSG(JSERR_RegExpTooManyCapturingGroups, 5675, "", "Too many capturing groups in regular expression", kjstSyntaxError, 0)
+RT_ERROR_MSG(JSERR_RegExpTooManyCapturingGroups, 5675, "", "Regular expression cannot have more than 32,767 capturing groups", kjstRangeError, 0)
 
 //Host errors
 RT_ERROR_MSG(JSERR_HostMaybeMissingPromiseContinuationCallback, 5700, "", "Host may not have set any promise continuation callback. Promises may not be executed.", kjstTypeError, 0)

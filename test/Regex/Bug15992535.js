@@ -18,9 +18,9 @@ var tests = [
             );
             assert.throws(
                 () => { return new RegExp("(ab)".repeat(0x8000)); },
-                SyntaxError,
+                RangeError,
                 "regex parsing throws when the regex has more than 2^15 - 1 capturing groups",
-                "Too many capturing groups in regular expression"
+                "Regular expression cannot have more than 32,767 capturing groups"
             );
         }
     }
