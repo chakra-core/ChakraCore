@@ -10,6 +10,7 @@ add_library (Chakra.Parser OBJECT
     OctoquadIdentifier.cpp
     Parse.cpp
     ParserPch.cpp
+    ptree.cpp
     RegexCompileTime.cpp
     RegexParser.cpp
     RegexPattern.cpp

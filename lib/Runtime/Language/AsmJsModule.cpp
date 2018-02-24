@@ -56,7 +56,7 @@ namespace Js
         funcBody->SetEntryPoint(funcBody->GetDefaultEntryPointInfo(), GetScriptContext()->DeferredParsingThunk);
         funcBody->SetIsAsmjsMode(false);
         funcBody->SetIsAsmJsFunction(false);
-        func->GetFncNode()->sxFnc.funcInfo->byteCodeFunction = func->GetFuncBody();
+        func->GetFncNode()->AsParseNodeFnc()->funcInfo->byteCodeFunction = func->GetFuncBody();
     }
 
     void AsmJsModuleCompiler::RevertAllFunctions()
@@ -117,20 +117,20 @@ namespace Js
 
     bool AsmJsModuleCompiler::CommitModule()
     {
-        FuncInfo* funcInfo = GetModuleFunctionNode()->sxFnc.funcInfo;
+        FuncInfo* funcInfo = GetModuleFunctionNode()->AsParseNodeFnc()->funcInfo;
         FunctionBody* functionBody = funcInfo->GetParsedFunctionBody();
         AsmJsModuleInfo* asmInfo = functionBody->AllocateAsmJsModuleInfo();
 
         if (funcInfo->byteCodeFunction->GetIsNamedFunctionExpression())
         {
-            Assert(GetModuleFunctionNode()->sxFnc.pnodeName);
-            if (GetModuleFunctionNode()->sxFnc.pnodeName->sxVar.sym->IsInSlot(funcInfo))
+            Assert(GetModuleFunctionNode()->AsParseNodeFnc()->pnodeName);
+            if (GetModuleFunctionNode()->AsParseNodeFnc()->pnodeName->AsParseNodeVar()->sym->IsInSlot(funcInfo))
             {
-                ParseNodePtr nameNode = GetModuleFunctionNode()->sxFnc.pnodeName;
+                ParseNodePtr nameNode = GetModuleFunctionNode()->AsParseNodeFnc()->pnodeName;
                 GetByteCodeGenerator()->AssignPropertyId(nameNode->name());
                 // if module is a named function expression, we may need to restore this for debugger
-                AsmJsClosureFunction* closure = Anew(&mAllocator, AsmJsClosureFunction, nameNode->sxVar.pid, AsmJsSymbol::ClosureFunction, &mAllocator);
-                DefineIdentifier(nameNode->sxVar.pid, closure);
+                AsmJsClosureFunction* closure = Anew(&mAllocator, AsmJsClosureFunction, nameNode->AsParseNodeVar()->pid, AsmJsSymbol::ClosureFunction, &mAllocator);
+                DefineIdentifier(nameNode->AsParseNodeVar()->pid, closure);
             }
         }
 
@@ -332,15 +332,15 @@ namespace Js
             // these first cases do the interesting work
         case knopBreak:
         case knopContinue:
-            GetByteCodeGenerator()->AddTargetStmt(pnode->sxJump.pnodeTarget);
+            GetByteCodeGenerator()->AddTargetStmt(pnode->AsParseNodeJump()->pnodeTarget);
             break;
 
         case knopInt:
-            func->AddConst<int>(pnode->sxInt.lw);
+            func->AddConst<int>(pnode->AsParseNodeInt()->lw);
             break;
         case knopFlt:
         {
-            const double d = pnode->sxFlt.dbl;
+            const double d = pnode->AsParseNodeFloat()->dbl;
             if (ParserWrapper::IsMinInt(pnode))
             {
                 func->AddConst<int>((int)d);
@@ -390,27 +390,27 @@ namespace Js
         }
         case knopCall:
         {
-            ASTPrepass(pnode->sxCall.pnodeTarget, func);
+            ASTPrepass(pnode->AsParseNodeCall()->pnodeTarget, func);
             bool evalArgs = true;
-            if (pnode->sxCall.pnodeTarget->nop == knopName)
+            if (pnode->AsParseNodeCall()->pnodeTarget->nop == knopName)
             {
-                AsmJsFunctionDeclaration* funcDecl = this->LookupFunction(pnode->sxCall.pnodeTarget->name());
-                if (AsmJsMathFunction::IsFround(funcDecl) && pnode->sxCall.argCount > 0)
+                AsmJsFunctionDeclaration* funcDecl = this->LookupFunction(pnode->AsParseNodeCall()->pnodeTarget->name());
+                if (AsmJsMathFunction::IsFround(funcDecl) && pnode->AsParseNodeCall()->argCount > 0)
                 {
-                    switch (pnode->sxCall.pnodeArgs->nop)
+                    switch (pnode->AsParseNodeCall()->pnodeArgs->nop)
                     {
                     case knopFlt:
-                        func->AddConst<float>((float)pnode->sxCall.pnodeArgs->sxFlt.dbl);
+                        func->AddConst<float>((float)pnode->AsParseNodeCall()->pnodeArgs->AsParseNodeFloat()->dbl);
                         evalArgs = false;
                         break;
 
                     case knopInt:
-                        func->AddConst<float>((float)pnode->sxCall.pnodeArgs->sxInt.lw);
+                        func->AddConst<float>((float)pnode->AsParseNodeCall()->pnodeArgs->AsParseNodeInt()->lw);
                         evalArgs = false;
                         break;
 
                     case knopNeg:
-                        if (pnode->sxCall.pnodeArgs->sxUni.pnode1->nop == knopInt && pnode->sxCall.pnodeArgs->sxUni.pnode1->sxInt.lw == 0)
+                        if (pnode->AsParseNodeCall()->pnodeArgs->AsParseNodeUni()->pnode1->nop == knopInt && pnode->AsParseNodeCall()->pnodeArgs->AsParseNodeUni()->pnode1->AsParseNodeInt()->lw == 0)
                         {
                             func->AddConst<float>(-0.0f);
                             evalArgs = false;
@@ -421,74 +421,74 @@ namespace Js
             }
             if (evalArgs)
             {
-                ASTPrepass(pnode->sxCall.pnodeArgs, func);
+                ASTPrepass(pnode->AsParseNodeCall()->pnodeArgs, func);
             }
             break;
         }
         case knopVarDecl:
             GetByteCodeGenerator()->AssignPropertyId(pnode->name());
-            ASTPrepass(pnode->sxVar.pnodeInit, func);
+            ASTPrepass(pnode->AsParseNodeVar()->pnodeInit, func);
             break;
             // all the rest of the cases simply walk the AST
         case knopQmark:
-            ASTPrepass(pnode->sxTri.pnode1, func);
-            ASTPrepass(pnode->sxTri.pnode2, func);
-            ASTPrepass(pnode->sxTri.pnode3, func);
+            ASTPrepass(pnode->AsParseNodeTri()->pnode1, func);
+            ASTPrepass(pnode->AsParseNodeTri()->pnode2, func);
+            ASTPrepass(pnode->AsParseNodeTri()->pnode3, func);
             break;
         case knopList:
             do
             {
-                ParseNode * pnode1 = pnode->sxBin.pnode1;
+                ParseNode * pnode1 = pnode->AsParseNodeBin()->pnode1;
                 ASTPrepass(pnode1, func);
-                pnode = pnode->sxBin.pnode2;
+                pnode = pnode->AsParseNodeBin()->pnode2;
             } while (pnode->nop == knopList);
             ASTPrepass(pnode, func);
             break;
         case knopFor:
-            ASTPrepass(pnode->sxFor.pnodeInit, func);
-            ASTPrepass(pnode->sxFor.pnodeCond, func);
-            ASTPrepass(pnode->sxFor.pnodeIncr, func);
-            ASTPrepass(pnode->sxFor.pnodeBody, func);
+            ASTPrepass(pnode->AsParseNodeFor()->pnodeInit, func);
+            ASTPrepass(pnode->AsParseNodeFor()->pnodeCond, func);
+            ASTPrepass(pnode->AsParseNodeFor()->pnodeIncr, func);
+            ASTPrepass(pnode->AsParseNodeFor()->pnodeBody, func);
             break;
         case knopIf:
-            ASTPrepass(pnode->sxIf.pnodeCond, func);
-            ASTPrepass(pnode->sxIf.pnodeTrue, func);
-            ASTPrepass(pnode->sxIf.pnodeFalse, func);
+            ASTPrepass(pnode->AsParseNodeIf()->pnodeCond, func);
+            ASTPrepass(pnode->AsParseNodeIf()->pnodeTrue, func);
+            ASTPrepass(pnode->AsParseNodeIf()->pnodeFalse, func);
             break;
         case knopDoWhile:
         case knopWhile:
-            ASTPrepass(pnode->sxWhile.pnodeCond, func);
-            ASTPrepass(pnode->sxWhile.pnodeBody, func);
+            ASTPrepass(pnode->AsParseNodeWhile()->pnodeCond, func);
+            ASTPrepass(pnode->AsParseNodeWhile()->pnodeBody, func);
             break;
         case knopReturn:
-            ASTPrepass(pnode->sxReturn.pnodeExpr, func);
+            ASTPrepass(pnode->AsParseNodeReturn()->pnodeExpr, func);
             break;
         case knopBlock:
-            ASTPrepass(pnode->sxBlock.pnodeStmt, func);
+            ASTPrepass(pnode->AsParseNodeBlock()->pnodeStmt, func);
             break;
         case knopSwitch:
-            ASTPrepass(pnode->sxSwitch.pnodeVal, func);
-            for (ParseNode *pnodeT = pnode->sxSwitch.pnodeCases; NULL != pnodeT; pnodeT = pnodeT->sxCase.pnodeNext)
+            ASTPrepass(pnode->AsParseNodeSwitch()->pnodeVal, func);
+            for (ParseNode *pnodeT = pnode->AsParseNodeSwitch()->pnodeCases; NULL != pnodeT; pnodeT = pnodeT->AsParseNodeCase()->pnodeNext)
             {
                 ASTPrepass(pnodeT, func);
             }
-            ASTPrepass(pnode->sxSwitch.pnodeBlock, func);
+            ASTPrepass(pnode->AsParseNodeSwitch()->pnodeBlock, func);
             break;
         case knopCase:
-            ASTPrepass(pnode->sxCase.pnodeExpr, func);
-            ASTPrepass(pnode->sxCase.pnodeBody, func);
+            ASTPrepass(pnode->AsParseNodeCase()->pnodeExpr, func);
+            ASTPrepass(pnode->AsParseNodeCase()->pnodeBody, func);
             break;
         case knopComma:
         {
-            ParseNode *pnode1 = pnode->sxBin.pnode1;
+            ParseNode *pnode1 = pnode->AsParseNodeBin()->pnode1;
             if (pnode1->nop == knopComma)
             {
                 // avoid recursion on very large comma expressions.
                 ArenaAllocator *alloc = GetByteCodeGenerator()->GetAllocator();
                 SList<ParseNode*> *rhsStack = Anew(alloc, SList<ParseNode*>, alloc);
                 do {
-                    rhsStack->Push(pnode1->sxBin.pnode2);
-                    pnode1 = pnode1->sxBin.pnode1;
+                    rhsStack->Push(pnode1->AsParseNodeBin()->pnode2);
+                    pnode1 = pnode1->AsParseNodeBin()->pnode1;
                 } while (pnode1->nop == knopComma);
                 ASTPrepass(pnode1, func);
                 while (!rhsStack->Empty())
@@ -502,7 +502,7 @@ namespace Js
             {
                 ASTPrepass(pnode1, func);
             }
-            ASTPrepass(pnode->sxBin.pnode2, func);
+            ASTPrepass(pnode->AsParseNodeBin()->pnode2, func);
             break;
         }
         default:
@@ -510,12 +510,12 @@ namespace Js
             uint flags = ParseNode::Grfnop(pnode->nop);
             if (flags&fnopUni)
             {
-                ASTPrepass(pnode->sxUni.pnode1, func);
+                ASTPrepass(pnode->AsParseNodeUni()->pnode1, func);
             }
             else if (flags&fnopBin)
             {
-                ASTPrepass(pnode->sxBin.pnode1, func);
-                ASTPrepass(pnode->sxBin.pnode2, func);
+                ASTPrepass(pnode->AsParseNodeBin()->pnode1, func);
+                ASTPrepass(pnode->AsParseNodeBin()->pnode2, func);
             }
             break;
         }
@@ -524,7 +524,7 @@ namespace Js
 
     void AsmJsModuleCompiler::BindArguments(ParseNode* argList)
     {
-        for (ParseNode* pnode = argList; pnode; pnode = pnode->sxVar.pnodeNext)
+        for (ParseNode* pnode = argList; pnode; pnode = pnode->AsParseNodeVar()->pnodeNext)
         {
             GetByteCodeGenerator()->AssignPropertyId(pnode->name());
         }
@@ -535,9 +535,9 @@ namespace Js
         ParseNodePtr fncNode = func->GetFncNode();
         ParseNodePtr pnodeBody = nullptr;
 
-        Assert(fncNode->nop == knopFncDecl && fncNode->sxFnc.funcInfo && fncNode->sxFnc.funcInfo->IsDeferred() && fncNode->sxFnc.pnodeBody == NULL);
+        Assert(fncNode->nop == knopFncDecl && fncNode->AsParseNodeFnc()->funcInfo && fncNode->AsParseNodeFnc()->funcInfo->IsDeferred() && fncNode->AsParseNodeFnc()->pnodeBody == NULL);
 
-        Js::ParseableFunctionInfo* deferParseFunction = fncNode->sxFnc.funcInfo->byteCodeFunction;
+        Js::ParseableFunctionInfo* deferParseFunction = fncNode->AsParseNodeFnc()->funcInfo->byteCodeFunction;
         Utf8SourceInfo * utf8SourceInfo = deferParseFunction->GetUtf8SourceInfo();
         ULONG grfscr = utf8SourceInfo->GetParseFlags();
         grfscr = grfscr & (~fscrGlobalCode);
@@ -548,10 +548,10 @@ namespace Js
             !!(grfscr & fscrEvalCode),
             ((grfscr & fscrDynamicCode) && !(grfscr & fscrEvalCode)));
 
-        deferParseFunction->SetInParamsCount(fncNode->sxFnc.funcInfo->inArgsCount);
-        deferParseFunction->SetReportedInParamsCount(fncNode->sxFnc.funcInfo->inArgsCount);
+        deferParseFunction->SetInParamsCount(fncNode->AsParseNodeFnc()->funcInfo->inArgsCount);
+        deferParseFunction->SetReportedInParamsCount(fncNode->AsParseNodeFnc()->funcInfo->inArgsCount);
 
-        if (fncNode->sxFnc.pnodeBody == NULL)
+        if (fncNode->AsParseNodeFnc()->pnodeBody == NULL)
         {
             if (!PHASE_OFF1(Js::SkipNestedDeferredPhase))
             {
@@ -566,28 +566,28 @@ namespace Js
 
         CompileScriptException se;
         funcBody = deferParseFunction->ParseAsmJs(&ps, &se, &parseTree);
-        fncNode->sxFnc.funcInfo->byteCodeFunction = funcBody;
+        fncNode->AsParseNodeFnc()->funcInfo->byteCodeFunction = funcBody;
 
         TRACE_BYTECODE(_u("\nDeferred parse %s\n"), funcBody->GetDisplayName());
         if (parseTree && parseTree->nop == knopProg)
         {
-            auto body = parseTree->sxProg.pnodeBody;
+            auto body = parseTree->AsParseNodeProg()->pnodeBody;
             if (body && body->nop == knopList)
             {
-                auto fncDecl = body->sxBin.pnode1;
+                auto fncDecl = body->AsParseNodeBin()->pnode1;
                 if (fncDecl && fncDecl->nop == knopFncDecl)
                 {
-                    pnodeBody = fncDecl->sxFnc.pnodeBody;
+                    pnodeBody = fncDecl->AsParseNodeFnc()->pnodeBody;
                     func->SetFuncBody(funcBody);
                 }
             }
         }
-        GetByteCodeGenerator()->PushFuncInfo(_u("Start asm.js AST prepass"), fncNode->sxFnc.funcInfo);
-        BindArguments(fncNode->sxFnc.pnodeParams);
+        GetByteCodeGenerator()->PushFuncInfo(_u("Start asm.js AST prepass"), fncNode->AsParseNodeFnc()->funcInfo);
+        BindArguments(fncNode->AsParseNodeFnc()->pnodeParams);
         ASTPrepass(pnodeBody, func);
         GetByteCodeGenerator()->PopFuncInfo(_u("End asm.js AST prepass"));
 
-        fncNode->sxFnc.pnodeBody = pnodeBody;
+        fncNode->AsParseNodeFnc()->pnodeBody = pnodeBody;
 
         if (!pnodeBody)
         {
@@ -597,26 +597,26 @@ namespace Js
         }
 
         // Check if this function requires a bigger Ast
-        UpdateMaxAstSize(fncNode->sxFnc.astSize);
+        UpdateMaxAstSize(fncNode->AsParseNodeFnc()->astSize);
 
         if (!SetupFunctionArguments(func, pnodeBody))
         {
             // failure message will be printed by SetupFunctionArguments
-            fncNode->sxFnc.pnodeBody = NULL;
+            fncNode->AsParseNodeFnc()->pnodeBody = NULL;
             return false;
         }
 
         if (!SetupLocalVariables(func))
         {
             // failure message will be printed by SetupLocalVariables
-            fncNode->sxFnc.pnodeBody = NULL;
+            fncNode->AsParseNodeFnc()->pnodeBody = NULL;
             return false;
         }
 
         // now that we have setup the function, we can generate bytecode for it
         AsmJSByteCodeGenerator gen(func, this);
         bool wasEmit = gen.EmitOneFunction();
-        fncNode->sxFnc.pnodeBody = NULL;
+        fncNode->AsParseNodeFnc()->pnodeBody = NULL;
         return wasEmit;
     }
 
@@ -701,18 +701,18 @@ namespace Js
                 {
                     return Fail(lhs, _u("Defining wrong argument"));
                 }
-                if (intSym->nop != knopInt || intSym->sxInt.lw != 0)
+                if (intSym->nop != knopInt || intSym->AsParseNodeInt()->lw != 0)
                 {
                     return Fail(lhs, _u("Or value must be 0 when defining arguments"));
                 }
             }
             else if (rhs->nop == knopCall)
             {
-                if (rhs->sxCall.pnodeTarget->nop != knopName)
+                if (rhs->AsParseNodeCall()->pnodeTarget->nop != knopName)
                 {
                     return Fail(rhs, _u("call should be for fround"));
                 }
-                AsmJsFunctionDeclaration* funcDecl = this->LookupFunction(rhs->sxCall.pnodeTarget->name());
+                AsmJsFunctionDeclaration* funcDecl = this->LookupFunction(rhs->AsParseNodeCall()->pnodeTarget->name());
 
                 if (!funcDecl)
                     return Fail(rhs, _u("Cannot resolve function for argument definition, or wrong function"));
@@ -731,7 +731,7 @@ namespace Js
                     return Fail(rhs, _u("Wrong function used for argument definition"));
                 }
 
-                if (!NodeDefineThisArgument(rhs->sxCall.pnodeArgs, var))
+                if (!NodeDefineThisArgument(rhs->AsParseNodeCall()->pnodeArgs, var))
                 {
                     return Fail(lhs, _u("Defining wrong argument"));
                 }
@@ -786,7 +786,7 @@ namespace Js
                 {
                     return true;
                 }
-                ParseNode* pnodeInit = decl->sxVar.pnodeInit;
+                ParseNode* pnodeInit = decl->AsParseNodeVar()->pnodeInit;
                 AsmJsSymbol * declSym = nullptr;
 
                 bool isFroundInit = false;
@@ -805,18 +805,18 @@ namespace Js
                 }
                 else if (pnodeInit->nop == knopCall)
                 {
-                    if (pnodeInit->sxCall.pnodeTarget->nop != knopName)
+                    if (pnodeInit->AsParseNodeCall()->pnodeTarget->nop != knopName)
                     {
                         return Fail(decl, _u("Var declaration with something else than a literal value|fround call"));
                     }
-                    AsmJsFunctionDeclaration* funcDecl = this->LookupFunction(pnodeInit->sxCall.pnodeTarget->name());
+                    AsmJsFunctionDeclaration* funcDecl = this->LookupFunction(pnodeInit->AsParseNodeCall()->pnodeTarget->name());
 
                     if (!funcDecl)
                         return Fail(pnodeInit, _u("Cannot resolve function name"));
 
                     if (AsmJsMathFunction::Is(funcDecl))
                     {
-                        if (!AsmJsMathFunction::IsFround(funcDecl) || !ParserWrapper::IsFroundNumericLiteral(pnodeInit->sxCall.pnodeArgs))
+                        if (!AsmJsMathFunction::IsFround(funcDecl) || !ParserWrapper::IsFroundNumericLiteral(pnodeInit->AsParseNodeCall()->pnodeArgs))
                         {
                             return Fail(decl, _u("Var declaration with something else than a literal value|fround call"));
                         }
@@ -853,8 +853,8 @@ namespace Js
                 {
                     var->SetVarType(AsmJsVarType::Int);
                     var->SetLocation(func->AcquireRegister<int>());
-                    var->SetConstInitialiser(pnodeInit->sxInt.lw);
-                    loc = func->GetConstRegister<int>(pnodeInit->sxInt.lw);
+                    var->SetConstInitialiser(pnodeInit->AsParseNodeInt()->lw);
+                    loc = func->GetConstRegister<int>(pnodeInit->AsParseNodeInt()->lw);
                 }
                 else if (ParserWrapper::IsMinInt(pnodeInit))
                 {
@@ -867,19 +867,19 @@ namespace Js
                 {
                     var->SetVarType(AsmJsVarType::Int);
                     var->SetLocation(func->AcquireRegister<int>());
-                    var->SetConstInitialiser((int)((uint32)pnodeInit->sxFlt.dbl));
-                    loc = func->GetConstRegister<int>((uint32)pnodeInit->sxFlt.dbl);
+                    var->SetConstInitialiser((int)((uint32)pnodeInit->AsParseNodeFloat()->dbl));
+                    loc = func->GetConstRegister<int>((uint32)pnodeInit->AsParseNodeFloat()->dbl);
                 }
                 else if (pnodeInit->nop == knopFlt)
                 {
-                    if (pnodeInit->sxFlt.maybeInt)
+                    if (pnodeInit->AsParseNodeFloat()->maybeInt)
                     {
                         return Fail(decl, _u("Var declaration with integer literal outside range [-2^31, 2^32)"));
                     }
                     var->SetVarType(AsmJsVarType::Double);
                     var->SetLocation(func->AcquireRegister<double>());
-                    loc = func->GetConstRegister<double>(pnodeInit->sxFlt.dbl);
-                    var->SetConstInitialiser(pnodeInit->sxFlt.dbl);
+                    loc = func->GetConstRegister<double>(pnodeInit->AsParseNodeFloat()->dbl);
+                    var->SetConstInitialiser(pnodeInit->AsParseNodeFloat()->dbl);
                 }
                 else if (pnodeInit->nop == knopName)
                 {
@@ -928,13 +928,13 @@ namespace Js
                     {
                         var->SetVarType(AsmJsVarType::Float);
                         var->SetLocation(func->AcquireRegister<float>());
-                        if (pnodeInit->sxCall.pnodeArgs->nop == knopInt)
+                        if (pnodeInit->AsParseNodeCall()->pnodeArgs->nop == knopInt)
                         {
-                            int iVal = pnodeInit->sxCall.pnodeArgs->sxInt.lw;
+                            int iVal = pnodeInit->AsParseNodeCall()->pnodeArgs->AsParseNodeInt()->lw;
                             var->SetConstInitialiser((float)iVal);
                             loc = func->GetConstRegister<float>((float)iVal);
                         }
-                        else if (ParserWrapper::IsNegativeZero(pnodeInit->sxCall.pnodeArgs))
+                        else if (ParserWrapper::IsNegativeZero(pnodeInit->AsParseNodeCall()->pnodeArgs))
                         {
                             var->SetConstInitialiser(-0.0f);
                             loc = func->GetConstRegister<float>(-0.0f);
@@ -942,8 +942,8 @@ namespace Js
                         else
                         {
                             // note: fround((-)NumericLiteral) is explicitly allowed for any range, so we do not need to check for maybeInt
-                            Assert(pnodeInit->sxCall.pnodeArgs->nop == knopFlt);
-                            float fVal = (float)pnodeInit->sxCall.pnodeArgs->sxFlt.dbl;
+                            Assert(pnodeInit->AsParseNodeCall()->pnodeArgs->nop == knopFlt);
+                            float fVal = (float)pnodeInit->AsParseNodeCall()->pnodeArgs->AsParseNodeFloat()->dbl;
                             var->SetConstInitialiser((float)fVal);
                             loc = func->GetConstRegister<float>(fVal);
                         }
@@ -984,7 +984,7 @@ namespace Js
             if (DefineIdentifier(name, func))
             {
                 uint index = (uint)mFunctionArray.Count();
-                if (pnodeFnc->sxFnc.nestedIndex != index)
+                if (pnodeFnc->AsParseNodeFnc()->nestedIndex != index)
                 {
                     return nullptr;
                 }
@@ -1002,23 +1002,23 @@ namespace Js
 
     bool AsmJsModuleCompiler::CheckByteLengthCall(ParseNode * callNode, ParseNode * bufferDecl)
     {
-        if (callNode->nop != knopCall || callNode->sxCall.pnodeTarget->nop != knopName)
+        if (callNode->nop != knopCall || callNode->AsParseNodeCall()->pnodeTarget->nop != knopName)
         {
             return false;
         }
-        AsmJsTypedArrayFunction* arrayFunc = LookupIdentifier<AsmJsTypedArrayFunction>(callNode->sxCall.pnodeTarget->name());
+        AsmJsTypedArrayFunction* arrayFunc = LookupIdentifier<AsmJsTypedArrayFunction>(callNode->AsParseNodeCall()->pnodeTarget->name());
         if (!arrayFunc)
         {
             return false;
         }
 
-        return callNode->sxCall.argCount == 1 &&
-            !callNode->sxCall.isApplyCall &&
-            !callNode->sxCall.isEvalCall &&
-            callNode->sxCall.spreadArgCount == 0 &&
+        return callNode->AsParseNodeCall()->argCount == 1 &&
+            !callNode->AsParseNodeCall()->isApplyCall &&
+            !callNode->AsParseNodeCall()->isEvalCall &&
+            callNode->AsParseNodeCall()->spreadArgCount == 0 &&
             arrayFunc->GetArrayBuiltInFunction() == AsmJSTypedArrayBuiltin_byteLength &&
-            callNode->sxCall.pnodeArgs->nop == knopName &&
-            callNode->sxCall.pnodeArgs->name()->GetPropertyId() == bufferDecl->name()->GetPropertyId();
+            callNode->AsParseNodeCall()->pnodeArgs->nop == knopName &&
+            callNode->AsParseNodeCall()->pnodeArgs->name()->GetPropertyId() == bufferDecl->name()->GetPropertyId();
     }
 
     bool AsmJsModuleCompiler::Fail(ParseNode* usepn, const wchar *error)
@@ -1376,7 +1376,7 @@ namespace Js
             var->SetLocation(mFloatVarSpace.AcquireRegister());
             if (pnode->nop == knopInt)
             {
-                var->SetConstInitialiser((float)pnode->sxInt.lw);
+                var->SetConstInitialiser((float)pnode->AsParseNodeInt()->lw);
             }
             else if (ParserWrapper::IsNegativeZero(pnode))
             {
@@ -1384,14 +1384,14 @@ namespace Js
             }
             else
             {
-                var->SetConstInitialiser((float)pnode->sxFlt.dbl);
+                var->SetConstInitialiser((float)pnode->AsParseNodeFloat()->dbl);
             }
         }
         else if (pnode->nop == knopInt)
         {
             var->SetVarType(AsmJsVarType::Int);
             var->SetLocation(mIntVarSpace.AcquireRegister());
-            var->SetConstInitialiser(pnode->sxInt.lw);
+            var->SetConstInitialiser(pnode->AsParseNodeInt()->lw);
         }
         else
         {
@@ -1405,9 +1405,9 @@ namespace Js
             {
                 var->SetVarType(AsmJsVarType::Int);
                 var->SetLocation(mIntVarSpace.AcquireRegister());
-                var->SetConstInitialiser((int)((uint32)pnode->sxFlt.dbl));
+                var->SetConstInitialiser((int)((uint32)pnode->AsParseNodeFloat()->dbl));
             }
-            else if (pnode->sxFlt.maybeInt)
+            else if (pnode->AsParseNodeFloat()->maybeInt)
             {
                 // this means there was an int literal not in range [-2^31,3^32)
                 return false;
@@ -1416,7 +1416,7 @@ namespace Js
             {
                 var->SetVarType(AsmJsVarType::Double);
                 var->SetLocation(mDoubleVarSpace.AcquireRegister());
-                var->SetConstInitialiser(pnode->sxFlt.dbl);
+                var->SetConstInitialiser(pnode->AsParseNodeFloat()->dbl);
             }
         }
         return true;

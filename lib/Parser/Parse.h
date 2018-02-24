@@ -280,9 +280,9 @@ public:
     ParseNodePtr CreateNameNode(IdentPtr pid)
     {
         ParseNodePtr pnode = CreateNode(knopName);
-        pnode->sxPid.pid = pid;
-        pnode->sxPid.sym=NULL;
-        pnode->sxPid.symRef=NULL;
+        pnode->AsParseNodePid()->pid = pid;
+        pnode->AsParseNodePid()->sym=NULL;
+        pnode->AsParseNodePid()->symRef=NULL;
         return pnode;
     }
     ParseNodePtr CreateSpecialNameNode(IdentPtr pid)
@@ -291,12 +291,12 @@ public:
 
         // knopSpecialName is unused in the code
         pnode->nop = knopName;
-        pnode->sxPid.pid = pid;
-        pnode->sxPid.sym = NULL;
-        pnode->sxPid.symRef = NULL;
+        pnode->AsParseNodePid()->pid = pid;
+        pnode->AsParseNodePid()->sym = NULL;
+        pnode->AsParseNodePid()->symRef = NULL;
         pnode->isSpecialName = true;
-        pnode->sxSpecialName.isThis = false;
-        pnode->sxSpecialName.isSuper = false;
+        pnode->AsParseNodeSpecialName()->isThis = false;
+        pnode->AsParseNodeSpecialName()->isSuper = false;
         return pnode;
     }
     ParseNodePtr CreateBlockNode(PnodeBlockType blockType = PnodeBlockType::Regular)
@@ -509,8 +509,8 @@ private:
     {
         if (buildAST)
         {
-            pnode->sxStmt.grfnop = 0;
-            pnode->sxStmt.pnodeOuter = (NULL == m_pstmtCur) ? NULL : m_pstmtCur->pnodeStmt;
+            pnode->AsParseNodeStmt()->grfnop = 0;
+            pnode->AsParseNodeStmt()->pnodeOuter = (NULL == m_pstmtCur) ? NULL : m_pstmtCur->pnodeStmt;
 
             pStmt->pnodeStmt = pnode;
         }
@@ -538,12 +538,12 @@ private:
         if (this->GetCurrentFunctionNode())
         {
             ParseNodePtr pnodeFunc = GetCurrentFunctionNode();
-            pnodeFunc->sxFnc.SetCallsEval(true);
+            pnodeFunc->AsParseNodeFnc()->SetCallsEval(true);
         }
         ParseNode *pnodeBlock = GetCurrentBlock();
         if (pnodeBlock != NULL)
         {
-            pnodeBlock->sxBlock.SetCallsEval(true);
+            pnodeBlock->AsParseNodeBlock()->SetCallsEval(true);
             PushDynamicBlock();
         }
     }
@@ -613,10 +613,10 @@ public:
         {
             if ((*current)->nop == knopList)
             {
-                handler(&(*current)->sxBin.pnode1);
+                handler(&(*current)->AsParseNodeBin()->pnode1);
 
                 // Advance to the next node
-                current = &(*current)->sxBin.pnode2;
+                current = &(*current)->AsParseNodeBin()->pnode2;
             }
             else
             {
@@ -642,11 +642,11 @@ public:
         ParseNodePtr bindIdentNode = elementNode;
         if (bindIdentNode->nop == knopAsg)
         {
-            bindIdentNode = bindIdentNode->sxBin.pnode1;
+            bindIdentNode = bindIdentNode->AsParseNodeBin()->pnode1;
         }
         else if (bindIdentNode->nop == knopEllipsis)
         {
-            bindIdentNode = bindIdentNode->sxUni.pnode1;
+            bindIdentNode = bindIdentNode->AsParseNodeUni()->pnode1;
         }
 
         if (bindIdentNode->IsPattern())
@@ -668,21 +668,21 @@ public:
     {
         if (patternNode->nop == knopAsg)
         {
-            patternNode = patternNode->sxBin.pnode1;
+            patternNode = patternNode->AsParseNodeBin()->pnode1;
         }
 
         Assert(patternNode->IsPattern());
         if (patternNode->nop == knopArrayPattern)
         {
-            ForEachItemInList(patternNode->sxArrLit.pnode1, [&](ParseNodePtr item) {
+            ForEachItemInList(patternNode->AsParseNodeArrLit()->pnode1, [&](ParseNodePtr item) {
                 MapBindIdentifierFromElement(item, handler);
             });
         }
         else
         {
-            ForEachItemInList(patternNode->sxUni.pnode1, [&](ParseNodePtr item) {
+            ForEachItemInList(patternNode->AsParseNodeUni()->pnode1, [&](ParseNodePtr item) {
                 Assert(item->nop == knopObjectPatternMember);
-                MapBindIdentifierFromElement(item->sxBin.pnode2, handler);
+                MapBindIdentifierFromElement(item->AsParseNodeBin()->pnode2, handler);
             });
         }
     }
@@ -906,7 +906,7 @@ private:
     BOOL NodeIsSuperName(ParseNodePtr pnode);
     BOOL IsJSONValid(ParseNodePtr pnodeExpr)
     {
-        OpCode jnop = (knopNeg == pnodeExpr->nop) ? pnodeExpr->sxUni.pnode1->nop : pnodeExpr->nop;
+        OpCode jnop = (knopNeg == pnodeExpr->nop) ? pnodeExpr->AsParseNodeUni()->pnode1->nop : pnodeExpr->nop;
         if (knopNeg == pnodeExpr->nop)
         {
             return (knopInt == jnop ||  knopFlt == jnop);

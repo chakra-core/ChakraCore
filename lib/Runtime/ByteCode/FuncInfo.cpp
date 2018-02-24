@@ -109,7 +109,7 @@ FuncInfo::FuncInfo(
     {
         paramScope->SetFunc(this);
     }
-    if (pnode && pnode->sxFnc.NestedFuncEscapes())
+    if (pnode && pnode->AsParseNodeFnc()->NestedFuncEscapes())
     {
         this->SetHasMaybeEscapedNestedFunc(DebugOnly(_u("Child")));
     }
@@ -131,17 +131,17 @@ bool FuncInfo::IsGlobalFunction() const
 
 bool FuncInfo::IsDeferred() const
 {
-    return root && root->sxFnc.pnodeBody == nullptr;
+    return root && root->AsParseNodeFnc()->pnodeBody == nullptr;
 }
 
 BOOL FuncInfo::HasSuperReference() const
 {
-    return root->sxFnc.HasSuperReference();
+    return root->AsParseNodeFnc()->HasSuperReference();
 }
 
 BOOL FuncInfo::HasDirectSuper() const
 {
-    return root->sxFnc.HasDirectSuper();
+    return root->AsParseNodeFnc()->HasDirectSuper();
 }
 
 BOOL FuncInfo::IsClassMember() const
@@ -166,14 +166,14 @@ BOOL FuncInfo::IsBaseClassConstructor() const
 
 BOOL FuncInfo::IsDerivedClassConstructor() const
 {
-    return root->sxFnc.IsDerivedClassConstructor();
+    return root->AsParseNodeFnc()->IsDerivedClassConstructor();
 }
 
 Scope *
 FuncInfo::GetGlobalBlockScope() const
 {
     Assert(this->IsGlobalFunction());
-    Scope * scope = this->root->sxFnc.pnodeScopes->sxBlock.scope;
+    Scope * scope = this->root->AsParseNodeFnc()->pnodeScopes->AsParseNodeBlock()->scope;
     Assert(scope == nullptr || scope == this->GetBodyScope() || scope->GetEnclosingScope() == this->GetBodyScope());
     return scope;
 }
@@ -281,12 +281,12 @@ void FuncInfo::ReleaseReference(ParseNode *pnode)
     switch (pnode->nop)
     {
     case knopDot:
-        this->ReleaseLoc(pnode->sxBin.pnode1);
+        this->ReleaseLoc(pnode->AsParseNodeBin()->pnode1);
         break;
 
     case knopIndex:
-        this->ReleaseLoc(pnode->sxBin.pnode2);
-        this->ReleaseLoc(pnode->sxBin.pnode1);
+        this->ReleaseLoc(pnode->AsParseNodeBin()->pnode2);
+        this->ReleaseLoc(pnode->AsParseNodeBin()->pnode1);
         break;
 
     case knopName:
@@ -299,24 +299,24 @@ void FuncInfo::ReleaseReference(ParseNode *pnode)
         // but we have the args in a singly linked list.
         // Fortunately, we know that the set we have to release is sequential.
         // So find the endpoints of the list and release them in descending order.
-        if (pnode->sxCall.pnodeArgs)
+        if (pnode->AsParseNodeCall()->pnodeArgs)
         {
-            ParseNode *pnodeArg = pnode->sxCall.pnodeArgs;
+            ParseNode *pnodeArg = pnode->AsParseNodeCall()->pnodeArgs;
             Js::RegSlot firstArg = Js::Constants::NoRegister;
             Js::RegSlot lastArg = Js::Constants::NoRegister;
             if (pnodeArg->nop == knopList)
             {
                 do
                 {
-                    if (this->IsTmpReg(pnodeArg->sxBin.pnode1->location))
+                    if (this->IsTmpReg(pnodeArg->AsParseNodeBin()->pnode1->location))
                     {
-                        lastArg = pnodeArg->sxBin.pnode1->location;
+                        lastArg = pnodeArg->AsParseNodeBin()->pnode1->location;
                         if (firstArg == Js::Constants::NoRegister)
                         {
                             firstArg = lastArg;
                         }
                     }
-                    pnodeArg = pnodeArg->sxBin.pnode2;
+                    pnodeArg = pnodeArg->AsParseNodeBin()->pnode2;
                 }
                 while (pnodeArg->nop == knopList);
             }
@@ -341,15 +341,15 @@ void FuncInfo::ReleaseReference(ParseNode *pnode)
             }
         }
         // Now release the call target.
-        switch (pnode->sxCall.pnodeTarget->nop)
+        switch (pnode->AsParseNodeCall()->pnodeTarget->nop)
         {
         case knopDot:
         case knopIndex:
-            this->ReleaseReference(pnode->sxCall.pnodeTarget);
-            this->ReleaseLoc(pnode->sxCall.pnodeTarget);
+            this->ReleaseReference(pnode->AsParseNodeCall()->pnodeTarget);
+            this->ReleaseLoc(pnode->AsParseNodeCall()->pnodeTarget);
             break;
         default:
-            this->ReleaseLoad(pnode->sxCall.pnodeTarget);
+            this->ReleaseLoad(pnode->AsParseNodeCall()->pnodeTarget);
             break;
         }
         break;
@@ -410,15 +410,15 @@ void FuncInfo::OnStartVisitFunction(ParseNode *pnodeFnc)
     Assert(pnodeFnc->nop == knopFncDecl);
     Assert(this->GetCurrentChildFunction() == nullptr);
 
-    this->SetCurrentChildFunction(pnodeFnc->sxFnc.funcInfo);
+    this->SetCurrentChildFunction(pnodeFnc->AsParseNodeFnc()->funcInfo);
 }
 
 void FuncInfo::OnEndVisitFunction(ParseNode *pnodeFnc)
 {
     Assert(pnodeFnc->nop == knopFncDecl);
-    Assert(this->GetCurrentChildFunction() == pnodeFnc->sxFnc.funcInfo);
+    Assert(this->GetCurrentChildFunction() == pnodeFnc->AsParseNodeFnc()->funcInfo);
 
-    pnodeFnc->sxFnc.funcInfo->SetCurrentChildScope(nullptr);
+    pnodeFnc->AsParseNodeFnc()->funcInfo->SetCurrentChildScope(nullptr);
     this->SetCurrentChildFunction(nullptr);
 }
 

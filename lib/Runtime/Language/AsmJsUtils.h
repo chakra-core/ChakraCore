@@ -56,23 +56,23 @@ namespace Js {
         static inline bool IsUInt(ParseNode *node);
         static inline uint GetUInt(ParseNode *node);
         static inline bool IsNegativeZero(ParseNode* node);
-        static inline bool IsMinInt(ParseNode *node){ return node && node->nop == knopFlt && node->sxFlt.maybeInt && node->sxFlt.dbl == -2147483648.0; };
+        static inline bool IsMinInt(ParseNode *node){ return node && node->nop == knopFlt && node->AsParseNodeFloat()->maybeInt && node->AsParseNodeFloat()->dbl == -2147483648.0; };
         static inline bool IsUnsigned(ParseNode *node)
         {
             return node &&
                 node->nop == knopFlt &&
-                node->sxFlt.maybeInt &&
-                node->sxFlt.dbl > (double)INT_MAX &&
-                node->sxFlt.dbl <= (double)UINT_MAX;
+                node->AsParseNodeFloat()->maybeInt &&
+                node->AsParseNodeFloat()->dbl > (double)INT_MAX &&
+                node->AsParseNodeFloat()->dbl <= (double)UINT_MAX;
         }
 
         static bool IsDefinition( ParseNode *arg );
         static bool ParseVarOrConstStatement( AsmJSParser &parser, ParseNode **var );
         static inline bool IsNumericLiteral(ParseNode* node) { return node && (node->nop == knopInt || node->nop == knopFlt); }
         static inline bool IsFroundNumericLiteral(ParseNode* node) { return node && (IsNumericLiteral(node) || IsNegativeZero(node)); }
-        static inline ParseNode* GetUnaryNode( ParseNode* node ){Assert(IsNodeUnary(node));return node->sxUni.pnode1;}
-        static inline ParseNode* GetBinaryLeft( ParseNode* node ){Assert(IsNodeBinary(node));return node->sxBin.pnode1;}
-        static inline ParseNode* GetBinaryRight( ParseNode* node ){Assert(IsNodeBinary(node));return node->sxBin.pnode2;}
+        static inline ParseNode* GetUnaryNode( ParseNode* node ){Assert(IsNodeUnary(node));return node->AsParseNodeUni()->pnode1;}
+        static inline ParseNode* GetBinaryLeft( ParseNode* node ){Assert(IsNodeBinary(node));return node->AsParseNodeBin()->pnode1;}
+        static inline ParseNode* GetBinaryRight( ParseNode* node ){Assert(IsNodeBinary(node));return node->AsParseNodeBin()->pnode2;}
         static inline ParseNode* DotBase( ParseNode *node );
         static inline bool IsDotMember( ParseNode *node );
         static inline PropertyName DotMember( ParseNode *node );
@@ -102,8 +102,8 @@ namespace Js {
 
     bool ParserWrapper::IsNegativeZero(ParseNode *node)
     {
-        return node && ((node->nop == knopFlt && JavascriptNumber::IsNegZero(node->sxFlt.dbl)) ||
-            (node->nop == knopNeg && node->sxUni.pnode1->nop == knopInt && node->sxUni.pnode1->sxInt.lw == 0));
+        return node && ((node->nop == knopFlt && JavascriptNumber::IsNegZero(node->AsParseNodeFloat()->dbl)) ||
+            (node->nop == knopNeg && node->AsParseNodeUni()->pnode1->nop == knopInt && node->AsParseNodeUni()->pnode1->AsParseNodeInt()->lw == 0));
     }
 
     bool ParserWrapper::IsUInt( ParseNode *node )
@@ -116,10 +116,10 @@ namespace Js {
         Assert( IsUInt( node ) );
         if( node->nop == knopInt )
         {
-            return (uint)node->sxInt.lw;
+            return (uint)node->AsParseNodeInt()->lw;
         }
         Assert( node->nop == knopFlt );
-        return (uint)node->sxFlt.dbl;
+        return (uint)node->AsParseNodeFloat()->dbl;
     }
 
     bool ParserWrapper::IsDotMember( ParseNode *node )
@@ -146,7 +146,7 @@ namespace Js {
     ParseNode * ParserWrapper::GetListHead( ParseNode *node )
     {
         Assert( node->nop == knopList );
-        return node->sxBin.pnode1;
+        return node->AsParseNodeBin()->pnode1;
     }
 };
 #endif

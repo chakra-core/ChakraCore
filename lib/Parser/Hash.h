@@ -176,7 +176,7 @@ public:
     {
         if (pnode && pnode->nop == knopStr)
         {
-            pnode->sxPid.pid->SetIsUsedInLdElem(true);
+            pnode->AsParseNodePid()->pid->SetIsUsedInLdElem(true);
         }
     }
 

@@ -926,7 +926,7 @@ namespace Js
                 // TODO: Handle strict mode.
                 if (isIndirect &&
                     !strictMode &&
-                    !parseTree->sxFnc.GetStrictMode())
+                    !parseTree->AsParseNodeFnc()->GetStrictMode())
                 {
                     grfscr &= ~fscrEval;
                 }

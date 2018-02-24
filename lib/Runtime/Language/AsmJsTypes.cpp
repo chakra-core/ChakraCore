@@ -725,7 +725,7 @@ namespace Js
             | 1 << WAsmJs::INT64
 #endif
         )
-        , mFuncInfo(pnodeFnc->sxFnc.funcInfo)
+        , mFuncInfo(pnodeFnc->AsParseNodeFnc()->funcInfo)
         , mFuncBody(nullptr)
         , mMaxArgOutDepth(0)
         , mDefined( false )

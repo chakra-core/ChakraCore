@@ -5381,7 +5381,7 @@ namespace Js
         IdentPtr pid;
 
         // If the length of string literals is different, these callsite objects are not equal.
-        if (x->sxStrTemplate.countStringLiterals != length)
+        if (x->AsParseNodeStrTemplate()->countStringLiterals != length)
         {
             return false;
         }
@@ -5395,7 +5395,7 @@ namespace Js
         // Length of the raw strings should be the same as the cooked string literals.
         AssertOrFailFast(length != 0 && length == rawArray->GetLength());
 
-        x = x->sxStrTemplate.pnodeStringRawLiterals;
+        x = x->AsParseNodeStrTemplate()->pnodeStringRawLiterals;
 
         for (uint32 i = 0; i < length - 1; i++)
         {
@@ -5404,9 +5404,9 @@ namespace Js
             str = Js::JavascriptString::FromVar(element);
 
             Assert(x->nop == knopList);
-            Assert(x->sxBin.pnode1->nop == knopStr);
+            Assert(x->AsParseNodeBin()->pnode1->nop == knopStr);
 
-            pid = x->sxBin.pnode1->sxPid.pid;
+            pid = x->AsParseNodeBin()->pnode1->AsParseNodePid()->pid;
 
             // If strings have different length, they aren't equal
             if (pid->Cch() != str->GetLength())
@@ -5420,7 +5420,7 @@ namespace Js
                 return false;
             }
 
-            x = x->sxBin.pnode2;
+            x = x->AsParseNodeBin()->pnode2;
         }
 
         // There should be one more string in the callsite array - and the final string in the ParseNode
@@ -5430,7 +5430,7 @@ namespace Js
         str = Js::JavascriptString::FromVar(element);
 
         Assert(x->nop == knopStr);
-        pid = x->sxPid.pid;
+        pid = x->AsParseNodePid()->pid;
 
         // If strings have different length, they aren't equal
         if (pid->Cch() != str->GetLength())
@@ -5458,8 +5458,8 @@ namespace Js
             return true;
         }
 
-        x = x->sxStrTemplate.pnodeStringRawLiterals;
-        y = y->sxStrTemplate.pnodeStringRawLiterals;
+        x = x->AsParseNodeStrTemplate()->pnodeStringRawLiterals;
+        y = y->AsParseNodeStrTemplate()->pnodeStringRawLiterals;
 
         // If one of the templates only includes one string value, the raw literals ParseNode will
         // be a knopStr instead of knopList.
@@ -5479,11 +5479,11 @@ namespace Js
                 return false;
             }
 
-            Assert(x->sxBin.pnode1->nop == knopStr);
-            Assert(y->sxBin.pnode1->nop == knopStr);
+            Assert(x->AsParseNodeBin()->pnode1->nop == knopStr);
+            Assert(y->AsParseNodeBin()->pnode1->nop == knopStr);
 
-            pid_x = x->sxBin.pnode1->sxPid.pid->Psz();
-            pid_y = y->sxBin.pnode1->sxPid.pid->Psz();
+            pid_x = x->AsParseNodeBin()->pnode1->AsParseNodePid()->pid->Psz();
+            pid_y = y->AsParseNodeBin()->pnode1->AsParseNodePid()->pid->Psz();
 
             // If the pid values of each raw string don't match each other, these are different.
             if (!DefaultComparer<const char16*>::Equals(pid_x, pid_y))
@@ -5491,8 +5491,8 @@ namespace Js
                 return false;
             }
 
-            x = x->sxBin.pnode2;
-            y = y->sxBin.pnode2;
+            x = x->AsParseNodeBin()->pnode2;
+            y = y->AsParseNodeBin()->pnode2;
         }
 
         // If y is still knopList here, that means y has more strings in the list than x does.
@@ -5503,8 +5503,8 @@ namespace Js
 
         Assert(x->nop == knopStr);
 
-        pid_x = x->sxPid.pid->Psz();
-        pid_y = y->sxPid.pid->Psz();
+        pid_x = x->AsParseNodePid()->pid->Psz();
+        pid_y = y->AsParseNodePid()->pid->Psz();
 
         // This is the final string in the raw literals list. Return true if they are equal.
         return DefaultComparer<const char16*>::Equals(pid_x, pid_y);
@@ -5517,25 +5517,25 @@ namespace Js
         Assert(i != nullptr);
         Assert(i->nop == knopStrTemplate);
 
-        i = i->sxStrTemplate.pnodeStringRawLiterals;
+        i = i->AsParseNodeStrTemplate()->pnodeStringRawLiterals;
 
         const char16* pid;
 
         while (i->nop == knopList)
         {
-            Assert(i->sxBin.pnode1->nop == knopStr);
+            Assert(i->AsParseNodeBin()->pnode1->nop == knopStr);
 
-            pid = i->sxBin.pnode1->sxPid.pid->Psz();
+            pid = i->AsParseNodeBin()->pnode1->AsParseNodePid()->pid->Psz();
 
             hash ^= DefaultComparer<const char16*>::GetHashCode(pid);
             hash ^= DefaultComparer<const char16*>::GetHashCode(_u("${}"));
 
-            i = i->sxBin.pnode2;
+            i = i->AsParseNodeBin()->pnode2;
         }
 
         Assert(i->nop == knopStr);
 
-        pid = i->sxPid.pid->Psz();
+        pid = i->AsParseNodePid()->pid->Psz();
 
         hash ^= DefaultComparer<const char16*>::GetHashCode(pid);
 

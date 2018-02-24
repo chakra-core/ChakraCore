@@ -30,7 +30,7 @@ namespace Js
     {
         Assert( parser );
         *var = nullptr;
-        ParseNode *body = parser->sxFnc.pnodeBody;
+        ParseNode *body = parser->AsParseNodeFnc()->pnodeBody;
         if( body )
         {
             ParseNode* lhs = GetBinaryLeft( body );
@@ -56,21 +56,21 @@ namespace Js
     ParseNode* ParserWrapper::NextInList( ParseNode *node )
     {
         Assert( node->nop == knopList );
-        return node->sxBin.pnode2;
+        return node->AsParseNodeBin()->pnode2;
     }
 
     ParseNode* ParserWrapper::NextVar( ParseNode *node )
     {
-        return node->sxVar.pnodeNext;
+        return node->AsParseNodeVar()->pnodeNext;
     }
 
     ParseNode* ParserWrapper::FunctionArgsList( ParseNode *node, ArgSlot &numformals )
     {
         Assert( node->nop == knopFncDecl );
-        PnFnc func = node->sxFnc;
-        ParseNode* first = func.pnodeParams;
+        ParseNodeFnc * func = node->AsParseNodeFnc();
+        ParseNode* first = func->pnodeParams;
         // throws OOM on uint16 overflow
-        for( ParseNode* pnode = first; pnode; pnode = pnode->sxVar.pnodeNext, ArgSlotMath::Inc(numformals));
+        for( ParseNode* pnode = first; pnode; pnode = pnode->AsParseNodeVar()->pnodeNext, ArgSlotMath::Inc(numformals));
         return first;
     }
 
@@ -83,10 +83,10 @@ namespace Js
     {
         if( node->nop == knopFncDecl )
         {
-            PnFnc function = node->sxFnc;
-            if( function.pnodeName && function.pnodeName->nop == knopVarDecl )
+            ParseNodeFnc * function = node->AsParseNodeFnc();
+            if( function->pnodeName && function->pnodeName->nop == knopVarDecl )
             {
-                return function.pnodeName->sxVar.pid;
+                return function->pnodeName->AsParseNodeVar()->pid;
             }
         }
         return nullptr;
