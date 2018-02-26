@@ -43,6 +43,7 @@ typedef uint64_t uint64;
 
 #include "Intl.h"
 #include "ICU.h"
+using namespace PlatformAgnostic::ICUHelpers;
 #include "IPlatformAgnosticResource.h"
 
 #include "CommonDefines.h" // INTL_ICU_DEBUG
@@ -215,7 +216,7 @@ namespace Intl
         uloc_forLanguageTag(reinterpret_cast<const char *>(langtag), localeID, ULOC_FULLNAME_CAPACITY, &length, &error);
         ICU_ASSERT(error, length > 0);
 
-        UCollator *collator = ucol_open(localeID, &error);
+        ScopedUCollator collator(ucol_open(localeID, &error));
         ICU_ASSERT(error, true);
 
         if (sensitivity == CollatorSensitivity::Base)
@@ -286,7 +287,6 @@ namespace Intl
             ret = 0;
         }
 
-        ucol_close(collator);
         return ret;
     }
 
@@ -318,7 +318,7 @@ namespace Intl
         uloc_forLanguageTag(langtag, localeID, ULOC_FULLNAME_CAPACITY, &length, &status);
         ICU_ASSERT(status, length > 0);
 
-        UDateTimePatternGenerator *dtpg = udatpg_open(localeID, &status);
+        ScopedUDateTimePatternGenerator dtpg(udatpg_open(localeID, &status));
         ICU_ASSERT(status, true);
 
         int bestPatternLen = udatpg_getBestPatternWithOptions(
@@ -341,7 +341,6 @@ namespace Intl
             ICU_ASSERT(status, bestPatternLen > 0 && bestPatternLen < patternLen);
         }
 
-        udatpg_close(dtpg);
         return bestPatternLen + 1; // return enough space for null character
     }
 
@@ -354,6 +353,7 @@ namespace Intl
         uloc_forLanguageTag(langtag, localeID, ULOC_FULLNAME_CAPACITY, &length, &status);
         ICU_ASSERT(status, length > 0);
 
+        // Not scoped because it is later adopted by *formatterResource
         UDateFormat *dtf = udat_open(
             UDAT_PATTERN,
             UDAT_PATTERN,
@@ -415,6 +415,7 @@ namespace Intl
 
         if (fieldIterator)
         {
+            // Not scoped because it is adopted by fpiResource
             fpi = ufieldpositer_open(&status);
             ICU_ASSERT(status, true);
             IPlatformAgnosticResource *fpiResource = new IcuCObject<UFieldPositionIterator>(fpi, &ufieldpositer_close);
