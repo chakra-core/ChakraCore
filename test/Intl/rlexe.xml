@@ -20,15 +20,8 @@
   <test>
     <default>
       <files>DateTimeFormat.js</files>
-      <compile-flags>-args summary winglob -endargs</compile-flags>
-      <tags>Intl,require_winglob</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>DateTimeFormat.js</files>
-      <compile-flags>-args summary icu -endargs</compile-flags>
-      <tags>Intl,require_icu</tags>
+      <compile-flags>-args summary -endargs</compile-flags>
+      <tags>Intl</tags>
     </default>
   </test>
   <test>
@@ -48,15 +41,8 @@
   <test>
     <default>
       <files>GetCanonicalLocales.js</files>
-      <compile-flags>-args summary winglob -endargs</compile-flags>
-      <tags>Intl,require_winglob</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>GetCanonicalLocales.js</files>
-      <compile-flags>-args summary icu -endargs</compile-flags>
-      <tags>Intl,require_icu</tags>
+      <compile-flags>-args summary -endargs</compile-flags>
+      <tags>Intl</tags>
     </default>
   </test>
   <test>

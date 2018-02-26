@@ -4,6 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 #include <vector>
+#ifdef HAS_ICU
+#include "unicode/uvernum.h"
+#endif
 
 #if defined(_X86_) || defined(_M_IX86)
 #define CPU_ARCH_TEXT "x86"
@@ -34,6 +37,17 @@
 #define DEST_PLATFORM_TEXT "bsd"
 #endif // FreeBSD or unix ?
 #endif // _WIN32 ?
+
+#ifdef HAS_ICU
+#define INTL_LIBRARY_TEXT "icu"
+#define ICU_VERSION U_ICU_VERSION_MAJOR_NUM
+#elif defined(_WIN32)
+#define INTL_LIBRARY_TEXT "winglob"
+#define ICU_VERSION -1
+#else
+#define INTL_LIBRARY_TEXT ""
+#define ICU_VERSION -1
+#endif
 
 MessageQueue* WScriptJsrt::messageQueue = nullptr;
 std::map<std::string, JsModuleRecord>  WScriptJsrt::moduleRecordMap;
@@ -987,6 +1001,18 @@ bool WScriptJsrt::Initialize()
         DEST_PLATFORM_TEXT, strlen(DEST_PLATFORM_TEXT), &osValue), false);
     IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(platformObject, osProperty,
         osValue, true), false);
+
+    // set Internationalization library
+    JsPropertyIdRef intlLibraryProp;
+    IfJsrtErrorFail(CreatePropertyIdFromString("INTL_LIBRARY", &intlLibraryProp), false);
+    JsValueRef intlLibraryStr;
+    IfJsrtErrorFail(ChakraRTInterface::JsCreateString(INTL_LIBRARY_TEXT, strlen(INTL_LIBRARY_TEXT), &intlLibraryStr), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(platformObject, intlLibraryProp, intlLibraryStr, true), false);
+    JsPropertyIdRef icuVersionProp;
+    IfJsrtErrorFail(CreatePropertyIdFromString("ICU_VERSION", &icuVersionProp), false);
+    JsValueRef icuVersionNum;
+    IfJsrtErrorFail(ChakraRTInterface::JsIntToNumber(ICU_VERSION, &icuVersionNum), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(platformObject, icuVersionProp, icuVersionNum, true), false);
 
     IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(wscript, platformProperty,
         platformObject, true), false);

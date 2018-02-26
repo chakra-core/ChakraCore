@@ -11,8 +11,8 @@ function ascii (str) {
     return str.replace(nonAsciiRegex, "");
 }
 
-const isICU = WScript.Arguments.includes("icu");
-const isWinGlob = WScript.Arguments.includes("winglob");
+const isICU = WScript.Platform.INTL_LIBRARY === "icu";
+const isWinGlob = WScript.Platform.INTL_LIBRARY === "winglob";
 
 const tests = [
     {
@@ -293,7 +293,7 @@ const tests = [
 
             assert.isTrue(isICU, "This test requires an ICU implementation of Intl");
 
-            function test(date, timeZone, timeZoneName, expectedPart, expectedTimeZone) {
+            function innerTest(date, timeZone, timeZoneName, expectedPart, expectedTimeZone) {
                 const options = {
                     hour: "numeric",
                     timeZone,
@@ -312,39 +312,31 @@ const tests = [
                 assert.areEqual(expectedPart, actualPart.value, `Incorrect timeZoneName for ${date.toString()} with options ${JSON.stringify(options)}`);
             }
 
-            function date(str) {
-                return new Date(Date.parse(str));
+            function test(date, timeZone, expectedShortPart, expectedLongPart, expectedTimeZone) {
+                innerTest(date, timeZone, "short", expectedShortPart, expectedTimeZone);
+                innerTest(date, timeZone, "long", expectedLongPart, expectedTimeZone);
             }
 
-            const newYears = date("2018-01-01T00:00:00.000Z");
-            const juneFirst = date("2018-06-01T00:00:00.000Z");
+            const newYears = new Date(Date.parse("2018-01-01T00:00:00.000Z"));
+            const juneFirst = new Date(Date.parse("2018-06-01T00:00:00.000Z"));
 
             // see https://github.com/tc39/ecma402/issues/121 for edge cases here
-            // TODO(jahorto): re-enable the commented out GMT/UTC tests once we have a way
-            // to assert different expected values depending on CLDR version
             // ICU ~55 formats GMT-like time zones as GMT, but ICU ~60 formats them as UTC
-            // test(newYears, "GMT", "short", "UTC", "UTC");
-            // test(newYears, "GMT", "long", "Coordinated Universal Time", "UTC");
-            // test(newYears, "Etc/GMT", "short", "UTC", "UTC");
-            // test(newYears, "Etc/GMT", "long", "Coordinated Universal Time", "UTC");
-            // test(newYears, "Etc/UTC", "short", "UTC", "UTC");
-            // test(newYears, "Etc/UTC", "long", "Coordinated Universal Time", "UTC");
-            // test(newYears, "Etc/UCT", "short", "UTC", "UTC");
-            // test(newYears, "Etc/UCT", "long", "Coordinated Universal Time", "UTC");
-            test(newYears, "US/Pacific", "short", "PST", "America/Los_Angeles");
-            test(newYears, "US/Pacific", "long", "Pacific Standard Time", "America/Los_Angeles");
-            test(newYears, "Etc/GMT-2", "short", "GMT+2", "Etc/GMT-2");
-            test(newYears, "Etc/GMT-2", "long", "GMT+02:00", "Etc/GMT-2");
+            const UTCshort = WScript.Platform.ICU_VERSION >= 59 ? "UTC" : "GMT";
+            const UTClong = WScript.Platform.ICU_VERSION >= 59 ? "Coordinated Universal Time" : "GMT";
+            test(newYears, "GMT", UTCshort, UTClong, "UTC");
+            test(newYears, "Etc/GMT", UTCshort, UTClong, "UTC");
+            test(newYears, "Etc/UTC", UTCshort, UTClong, "UTC");
+            test(newYears, "Etc/UCT", UTCshort, UTClong, "UTC");
 
-            test(newYears, "America/New_York", "short", "EST", "America/New_York");
-            test(newYears, "America/New_York", "long", "Eastern Standard Time", "America/New_York");
-            test(newYears, "America/Los_Angeles", "short", "PST", "America/Los_Angeles");
-            test(newYears, "America/Los_Angeles", "long", "Pacific Standard Time","America/Los_Angeles");
+            test(newYears, "US/Pacific", "PST", "Pacific Standard Time", "America/Los_Angeles");
+            test(newYears, "Etc/GMT-2", "GMT+2", "GMT+02:00", "Etc/GMT-2");
 
-            test(juneFirst, "America/New_York", "short", "EDT", "America/New_York");
-            test(juneFirst, "America/New_York", "long", "Eastern Daylight Time", "America/New_York");
-            test(juneFirst, "America/Los_Angeles", "short", "PDT", "America/Los_Angeles");
-            test(juneFirst, "America/Los_Angeles", "long", "Pacific Daylight Time", "America/Los_Angeles");
+            test(newYears, "America/New_York", "EST", "Eastern Standard Time", "America/New_York");
+            test(newYears, "America/Los_Angeles", "PST", "Pacific Standard Time","America/Los_Angeles");
+
+            test(juneFirst, "America/New_York", "EDT", "Eastern Daylight Time", "America/New_York");
+            test(juneFirst, "America/Los_Angeles", "PDT", "Pacific Daylight Time", "America/Los_Angeles");
         }
     },
 ];
