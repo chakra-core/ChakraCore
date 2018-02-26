@@ -490,6 +490,7 @@ public:
 #endif
     RestorePoint *pRestorePoint;
     DeferredFunctionStub *deferredStub;
+    IdentPtrSet *capturedNames;
     bool canBeDeferred;
     bool isBodyAndParamScopeMerged; // Indicates whether the param scope and the body scope of the function can be merged together or not.
                                     // We cannot merge both scopes together if there is any closure capture or eval is present in the param scope.
@@ -640,6 +641,10 @@ public:
             fn(this->pnodeBodyScope->pnodeScopes);
         }
     }
+
+    IdentPtrSet* EnsureCapturedNames(ArenaAllocator* alloc);
+    IdentPtrSet* GetCapturedNames();
+    bool HasAnyCapturedNames();
 
     DISABLE_SELF_CAST(ParseNodeFnc);
 };

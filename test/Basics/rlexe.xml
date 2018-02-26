@@ -398,4 +398,11 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>VerifyParserState.js</files>
+      <baseline>VerifyParserState.baseline</baseline>
+      <compile-flags>-forcecreateparserstate -trace:createparserstate -force:deferparse</compile-flags>
+    </default>
+  </test>
 </regress-exe>

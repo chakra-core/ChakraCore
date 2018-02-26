@@ -36,7 +36,8 @@ enum
 enum ParseType
 {
     ParseType_Upfront,
-    ParseType_Deferred
+    ParseType_Deferred,
+    ParseType_StateCache
 };
 
 enum DestructuringInitializerContext
@@ -116,6 +117,8 @@ public:
     ~Parser(void);
 
     Js::ScriptContext* GetScriptContext() const { return m_scriptContext; }
+
+    bool IsCreatingStateCache();
 
 #if ENABLE_BACKGROUND_PARSING
     bool IsBackgroundParser() const { return m_isInBackground; }
@@ -317,6 +320,8 @@ public:
                 return _u("Upfront");
             case ParseType_Deferred:
                 return _u("Deferred");
+            case ParseType_StateCache:
+                return _u("StateCache");
         }
         Assert(false);
         return NULL;
@@ -683,6 +688,9 @@ private:
     void CreateSpecialSymbolDeclarations(ParseNodeFnc * pnodeFnc);
     ParseNodeSpecialName * ReferenceSpecialName(IdentPtr pid, charcount_t ichMin = 0, charcount_t ichLim = 0, bool createNode = false);
     ParseNodeVar * CreateSpecialVarDeclIfNeeded(ParseNodeFnc * pnodeFnc, IdentPtr pid, bool forceCreate = false);
+
+    void ProcessCapturedNames(ParseNodeFnc* pnodeFnc);
+    void AddNestedCapturedNames(ParseNodeFnc* pnodeChildFnc);
 
     template<const bool backgroundPidRefs>
     void BindPidRefs(BlockInfoStack *blockInfo, uint maxBlockId = (uint)-1);

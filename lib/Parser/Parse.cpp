@@ -4881,7 +4881,6 @@ ParseNode * Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool n
     pnodeFnc->cbMin = this->GetScanner()->IecpMinTok();
     pnodeFnc->functionId = (*m_nextFunctionId)++;
 
-
     // Push new parser state with this new function node
 
     AppendFunctionToScopeList(fDeclaration, pnodeFnc);
@@ -4918,6 +4917,9 @@ ParseNode * Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool n
     IdentPtr pFncNamePid = nullptr;
     bool needScanRCurly = true;
     bool result = ParseFncDeclHelper<buildAST>(pnodeFnc, pNameHint, flags, &funcHasName, fUnaryOrParen, noStmtContext, &needScanRCurly, fModule, &pFncNamePid);
+
+    AddNestedCapturedNames(pnodeFnc);
+
     if (!result)
     {
         Assert(!pnodeFncBlockScope);
@@ -5658,6 +5660,8 @@ bool Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
             this->m_fUseStrictMode = oldStrictMode;
             CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(ES6, StrictModeFunction, m_scriptContext);
         }
+
+        ProcessCapturedNames(pnodeFnc);
 
         if (fDeferred)
         {
@@ -9029,19 +9033,27 @@ void Parser::TrackAssignment(ParseNodePtr pnodeT, IdentToken* pToken)
 
 PidRefStack* Parser::PushPidRef(IdentPtr pid)
 {
+    ParseNodeFnc* currentFnc = GetCurrentFunctionNode();
+
+    if (this->IsCreatingStateCache())
+    {
+        IdentPtrSet* capturedNames = currentFnc->EnsureCapturedNames(&m_nodeAllocator);
+        capturedNames->AddNew(pid);
+    }
+
     if (PHASE_ON1(Js::ParallelParsePhase))
     {
         // NOTE: the phase check is here to protect perf. See OSG 1020424.
         // In some LS AST-rewrite cases we lose a lot of perf searching the PID ref stack rather
         // than just pushing on the top. This hasn't shown up as a perf issue in non-LS benchmarks.
-        return pid->FindOrAddPidRef(&m_nodeAllocator, GetCurrentBlock()->blockId, GetCurrentFunctionNode()->functionId);
+        return pid->FindOrAddPidRef(&m_nodeAllocator, GetCurrentBlock()->blockId, currentFnc->functionId);
     }
 
     Assert(GetCurrentBlock() != nullptr);
     AssertMsg(pid != nullptr, "PID should be created");
     PidRefStack *ref = pid->GetTopRef(m_nextBlockId - 1);
     int blockId = GetCurrentBlock()->blockId;
-    int funcId = GetCurrentFunctionNode()->functionId;
+    int funcId = currentFnc->functionId;
     if (!ref || (ref->GetScopeId() < blockId))
     {
         ref = Anew(&m_nodeAllocator, PidRefStack);
@@ -13826,6 +13838,59 @@ void ParseNode::Dump()
 }
 #endif
 
+void Parser::AddNestedCapturedNames(ParseNodeFnc* pnodeChildFnc)
+{
+    if (m_currentNodeFunc && this->IsCreatingStateCache() && pnodeChildFnc->HasAnyCapturedNames())
+    {
+        IdentPtrSet* parentCapturedNames = GetCurrentFunctionNode()->EnsureCapturedNames(&m_nodeAllocator);
+        IdentPtrSet* childCaptureNames = pnodeChildFnc->GetCapturedNames();
+
+        auto iter = childCaptureNames->GetIterator();
+
+        while (iter.IsValid())
+        {
+            parentCapturedNames->AddNew(iter.CurrentValue());
+            iter.MoveNext();
+        }
+    }
+}
+
+void Parser::ProcessCapturedNames(ParseNodeFnc* pnodeFnc)
+{
+    if (this->IsCreatingStateCache() && pnodeFnc->HasAnyCapturedNames())
+    {
+        IdentPtrSet* capturedNames = pnodeFnc->GetCapturedNames();
+        auto iter = capturedNames->GetIteratorWithRemovalSupport();
+
+        while (iter.IsValid())
+        {
+            const IdentPtr& pid = iter.CurrentValueReference();
+            PidRefStack* ref = pid->GetTopRef();
+
+            // If the pid has no refs left in our function's scope after binding, we didn't capture it.
+            if (!ref || ref->GetScopeId() < pnodeFnc->pnodeBodyScope->blockId)
+            {
+                iter.RemoveCurrent();
+            }
+            else
+            {
+                OUTPUT_TRACE_DEBUGONLY(Js::CreateParserStatePhase, _u("Function %u captured name \"%s\"\n"), pnodeFnc->functionId, pid->Psz());
+            }
+
+            iter.MoveNext();
+        }
+    }
+}
+
+bool Parser::IsCreatingStateCache()
+{
+    return this->m_parseType == ParseType_StateCache
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        || CONFIG_FLAG(ForceCreateParserState)
+#endif
+            ;
+}
+
 DeferredFunctionStub * BuildDeferredStubTree(ParseNodeFnc *pnodeFnc, Recycler *recycler)
 {
     Assert(pnodeFnc->nop == knopFncDecl);
@@ -13887,6 +13952,7 @@ DeferredFunctionStub * BuildDeferredStubTree(ParseNodeFnc *pnodeFnc, Recycler *r
         deferredStubs[i].restorePoint = *pnodeFncChild->pRestorePoint;
         deferredStubs[i].deferredStubs = BuildDeferredStubTree(pnodeFncChild, recycler);
         deferredStubs[i].ichMin = pnodeChild->ichMin;
+
         ++i;
         pnodeChild = pnodeFncChild->pnodeNext;
     }

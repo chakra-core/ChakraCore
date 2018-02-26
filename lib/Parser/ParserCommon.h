@@ -51,6 +51,7 @@ struct ModuleImportOrExportEntry
 
 typedef SList<ModuleImportOrExportEntry, ArenaAllocator> ModuleImportOrExportEntryList;
 typedef SList<IdentPtr, ArenaAllocator> IdentPtrList;
+typedef JsUtil::BaseHashSet<IdentPtr, ArenaAllocator, PowerOf2SizePolicy> IdentPtrSet;
 
 //
 // Below was moved from scrutil.h to share with chakradiag.
