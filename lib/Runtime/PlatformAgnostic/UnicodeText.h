@@ -5,6 +5,7 @@
 #pragma once
 
 #include "Core/CommonTypedefs.h"
+#include "ICU.h"
 
 namespace PlatformAgnostic
 {
@@ -23,17 +24,53 @@ namespace PlatformAgnostic
         };
 
         // The form to use for NormalizeString
-        // Intentionally compatible with the NORM_FORM Win32 enum
+        // Intentionally compatible with backing Normalization Kind enums if available
+        // enum NormalizationForm
+        // {
+        //     C,     // Each base plus combining characters to the canonical precomposed equivalent.
+        //     D,     // Each precomposed character to its canonical decomposed equivalent.
+        //     KC,    // Each base plus combining characters to the canonical precomposed
+        //            //   equivalents and all compatibility characters to their equivalents.
+        //     KD,    // Each precomposed character to its canonical decomposed equivalent
+        //            //   and all compatibility characters to their equivalents.
+        //     Other, // Not supported
+        // };
+#if !defined(HAS_ICU) && !_WIN32
         enum NormalizationForm
         {
-            Other = 0, // Not supported
-            C = 0x1,   // Each base plus combining characters to the canonical precomposed equivalent.
-            D = 0x2,   // Each precomposed character to its canonical decomposed equivalent.
-            KC = 0x5,  // Each base plus combining characters to the canonical precomposed
-                       //   equivalents and all compatibility characters to their equivalents.
-            KD = 0x6   // Each precomposed character to its canonical decomposed equivalent
-                       //   and all compatibility characters to their equivalents.
+            C,
+            D,
+            KC,
+            KD,
+            Other
         };
+#elif !defined(HAS_ICU) && _WIN32
+        enum NormalizationForm
+        {
+            C = NORM_FORM::NormalizationC,
+            D = NORM_FORM::NormalizationD,
+            KC = NORM_FORM::NormalizationKC,
+            KD = NORM_FORM::NormalizationKD,
+            Other = NORM_FORM::NormalizationOther
+        };
+#else
+        // ICU does not have specific enums for KC and KD
+        // Instead, they have a string argument, "nfc" or "nfkc",
+        // coupled with the COMPOSE or DECOMPOSE enum variant
+        // ICU does not have an explicit "other", but the static_asserts
+        // in UnicodeText.ICU.cpp ensure that Other is different from C/D/KC/KD
+
+        static const char * const ICU_NORMALIZATION_NFC = "nfc";
+        static const char * const ICU_NORMALIZATION_NFKC = "nfkc";
+        enum NormalizationForm
+        {
+            C = UNORM2_COMPOSE,
+            D = UNORM2_DECOMPOSE,
+            KC = INT_MIN + UNORM2_COMPOSE,
+            KD = INT_MIN + UNORM2_DECOMPOSE,
+            Other = INT_MAX
+        };
+#endif
 
         // Mapping of a unicode codepoint to a class of characters
         // Used by the legacy API

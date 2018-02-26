@@ -4,10 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "RuntimePlatformAgnosticPch.h"
-
-#ifdef _WIN32
-// Windows Specific implementation
 #include "UnicodeText.h"
+
 #include <windows.h>
 #include "Runtime.h"
 #include "Base/ThreadContext.h"
@@ -124,7 +122,50 @@ namespace PlatformAgnostic
             return 0;
         }
 
-        // Helper wrapper methods
+        CharacterClassificationType GetLegacyCharacterClassificationType(char16 ch)
+        {
+            WORD charType = 0;
+            BOOL res = ::GetStringTypeW(CT_CTYPE1, &ch, 1, &charType);
+
+            if (res == TRUE)
+            {
+                // BOM ( 0xfeff) is recognized as GetStringTypeW as WS.
+                if ((0x03FF & charType) == 0x0200)
+                {
+                    // Some of the char types changed for Whistler (Unicode 3.0).
+                    // They will return 0x0200 on Whistler, indicating a defined char
+                    // with no type attributes. We want to continue to support these
+                    // characters, so we return the Win2K (Unicode 2.1) attributes.
+                    // We only return the ones we care about - ALPHA for ALPHA, PUNCT
+                    // for PUNCT or DIGIT, and SPACE for SPACE or BLANK.
+                    WORD wOldCharType = oFindOldCharType(ch);
+                    if (0 == wOldCharType)
+                    {
+                        return CharacterClassificationType::Invalid;
+                    }
+
+                    charType = wOldCharType;
+                }
+
+                if (charType & C1_ALPHA)
+                {
+                    return CharacterClassificationType::Letter;
+                }
+                else if (charType & (C1_DIGIT | C1_PUNCT))
+                {
+                    return CharacterClassificationType::DigitOrPunct;
+                }
+                else if (charType & (C1_SPACE | C1_BLANK))
+                {
+                    return CharacterClassificationType::Whitespace;
+                }
+            }
+
+            return CharacterClassificationType::Invalid;
+        }
+
+// Everything below this has a preferred ICU implementation in Platform\Common\UnicodeText.ICU.cpp
+#ifndef HAS_ICU
         template <typename TRet, typename Fn>
         static TRet ExecuteWithThreadContext(Fn fn, TRet defaultValue)
         {
@@ -144,7 +185,6 @@ namespace PlatformAgnostic
             return defaultValue;
         }
 
-#ifdef INTL_WINGLOB
         template <typename Fn, typename TDefaultValue>
         static TDefaultValue ExecuteWinGlobApi(Fn fn, TDefaultValue defaultValue)
         {
@@ -174,7 +214,6 @@ namespace PlatformAgnostic
                 return (returnValue != 0);
             }, false);
         }
-#endif
 
         // Helper Win32 conversion utilities
         static NORM_FORM TranslateToWin32NormForm(NormalizationForm normalizationForm)
@@ -308,7 +347,6 @@ namespace PlatformAgnostic
 
         UnicodeGeneralCategoryClass GetGeneralCategoryClass(codepoint_t codepoint)
         {
-#ifdef INTL_WINGLOB
             return ExecuteWinGlobApi([&](IUnicodeCharactersStatics* pUnicodeCharStatics) {
                 UnicodeGeneralCategory category = UnicodeGeneralCategory::UnicodeGeneralCategory_NotAssigned;
 
@@ -346,45 +384,25 @@ namespace PlatformAgnostic
 
                 return UnicodeGeneralCategoryClass::CategoryClassOther;
             }, UnicodeGeneralCategoryClass::CategoryClassOther);
-#else
-            // TODO (doilij) implement with ICU
-            return UnicodeGeneralCategoryClass::CategoryClassOther;
-#endif
         }
 
         bool IsIdStart(codepoint_t codepoint)
         {
-#ifdef INTL_WINGLOB
             return ExecuteWinGlobCodepointCheckApi(codepoint, &IUnicodeCharactersStatics::IsIdStart);
-#else
-            // TODO (doilij) implement with ICU
-            return false;
-#endif
         }
 
         bool IsIdContinue(codepoint_t codepoint)
         {
-#ifdef INTL_WINGLOB
             return ExecuteWinGlobCodepointCheckApi(codepoint, &IUnicodeCharactersStatics::IsIdContinue);
-#else
-            // TODO (doilij) implement with ICU
-            return false;
-#endif
         }
 
         bool IsWhitespace(codepoint_t codepoint)
         {
-#ifdef INTL_WINGLOB
             return ExecuteWinGlobCodepointCheckApi(codepoint, &IUnicodeCharactersStatics::IsWhitespace);
-#else
-            // TODO (doilij) implement with ICU
-            return false;
-#endif
         }
 
         bool IsExternalUnicodeLibraryAvailable()
         {
-#ifdef INTL_WINGLOB
             return ExecuteWithThreadContext([](ThreadContext* threadContext) {
                 Js::WindowsGlobalizationAdapter* globalizationAdapter = threadContext->GetWindowsGlobalizationAdapter();
                 Js::DelayLoadWindowsGlobalization* globLibrary = threadContext->GetWindowsGlobalizationLibrary();
@@ -402,10 +420,6 @@ namespace PlatformAgnostic
 
                 return false;
             }, false);
-#else
-            // TODO (doilij) implement with ICU
-            return false;
-#endif
         }
 
         int LogicalStringCompare(const char16* string1, const char16* string2)
@@ -416,51 +430,6 @@ namespace PlatformAgnostic
 
             return i - CSTR_EQUAL;
         }
-
-        // Win32 implementation of platform-agnostic Unicode interface
-        // These are the public APIs of this interface
-        CharacterClassificationType GetLegacyCharacterClassificationType(char16 ch)
-        {
-            WORD charType = 0;
-            BOOL res = ::GetStringTypeW(CT_CTYPE1, &ch, 1, &charType);
-
-            if (res == TRUE)
-            {
-                // BOM ( 0xfeff) is recognized as GetStringTypeW as WS.
-                if ((0x03FF & charType) == 0x0200)
-                {
-                    // Some of the char types changed for Whistler (Unicode 3.0).
-                    // They will return 0x0200 on Whistler, indicating a defined char
-                    // with no type attributes. We want to continue to support these
-                    // characters, so we return the Win2K (Unicode 2.1) attributes.
-                    // We only return the ones we care about - ALPHA for ALPHA, PUNCT
-                    // for PUNCT or DIGIT, and SPACE for SPACE or BLANK.
-                    WORD wOldCharType = oFindOldCharType(ch);
-                    if (0 == wOldCharType)
-                    {
-                        return CharacterClassificationType::Invalid;
-                    }
-
-                    charType = wOldCharType;
-                }
-
-                if (charType & C1_ALPHA)
-                {
-                    return CharacterClassificationType::Letter;
-                }
-                else if (charType & (C1_DIGIT | C1_PUNCT))
-                {
-                    return CharacterClassificationType::DigitOrPunct;
-                }
-                else if (charType & (C1_SPACE | C1_BLANK))
-                {
-                    return CharacterClassificationType::Whitespace;
-                }
-            }
-
-            return CharacterClassificationType::Invalid;
-        }
+#endif // HAS_ICU
     };
 };
-
-#endif

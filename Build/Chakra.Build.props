@@ -51,6 +51,10 @@
         %(PreprocessorDefinitions);
         CHAKRACORE_LITE
       </PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(UseICU)'=='true'">
+        %(PreprocessorDefinitions);
+        HAS_ICU
+      </PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(EnableIntl)'=='true' AND '$(UseICU)'=='true'">
         %(PreprocessorDefinitions);
         INTL_ICU=1
@@ -73,6 +77,10 @@
       <AdditionalIncludeDirectories>
         $(ChakraCoreRootDirectory)\lib\common\placeholder;
         $(IntDir)..\CoreManifests;
+        %(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(IcuIncludeDirectories)'!=''">
+        $(IcuIncludeDirectories);
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
     </ClCompile>

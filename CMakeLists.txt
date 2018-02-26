@@ -126,6 +126,7 @@ endif()
 
 if(ICU_INCLUDE_PATH)
     add_definitions(-DHAS_REAL_ICU=1)
+    add_definitions(-DHAS_ICU)
     set(ICU_LIBRARY_PATH "${ICU_INCLUDE_PATH}/../lib/")
     find_library(ICUUC icuuc PATHS ${ICU_LIBRARY_PATH} NO_DEFAULT_PATH)
 
@@ -166,6 +167,7 @@ if(CC_TARGET_OS_LINUX OR CC_TARGET_OS_ANDROID)
             )
         endif()
         add_definitions(-DHAS_REAL_ICU=1)
+        add_definitions(-DHAS_ICU)
     endif()
 elseif(CC_TARGET_OS_OSX)
     # in case ICU path was given but it doesn't exist, build script will fail.

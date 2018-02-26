@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#ifdef INTL_ICU // TODO(jahorto): this needs to eventually be HAS_ICU, but HAS_ICU (HAS_REAL_ICU) and ENABLE_GLOBALIZATION conflict
+#ifdef HAS_ICU
 #ifdef WINDOWS10_ICU
 #include <icu.h>
 #else
@@ -16,6 +16,8 @@
 #include "unicode/udatpg.h"
 #include "unicode/uloc.h"
 #include "unicode/unumsys.h"
+#include "unicode/ustring.h"
+#include "unicode/unorm2.h"
 #endif
 
 namespace PlatformAgnostic

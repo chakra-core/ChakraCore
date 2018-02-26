@@ -33,10 +33,6 @@
         $(MSBuildThisFileDirectory);
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(IcuIncludeDirectories)'!=''">
-        $(IcuIncludeDirectories);
-        %(AdditionalIncludeDirectories)
-      </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>RuntimePlatformAgnosticPch.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -48,15 +44,14 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\DateTime.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\DaylightHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\HiResTimer.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\UnicodeText.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\UnicodeText.cpp"/>
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\NumbersUtility.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\SystemInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\Thread.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Common\UnicodeText.Common.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\PerfTrace.cpp" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(EnableIntl)'=='true' AND '$(UseICU)'=='true'">
-    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Common\Intl.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Common\UnicodeText.Common.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Common\Intl.cpp" Condition="'$(EnableIntl)'=='true' AND '$(UseICU)'=='true'" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Common\UnicodeText.ICU.cpp" Condition="'$(UseICU)'=='true'" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ChakraPlatform.h" />
@@ -64,10 +59,8 @@
     <ClInclude Include="RuntimePlatformAgnosticPch.h" />
     <ClInclude Include="UnicodeText.h" />
     <ClInclude Include="IPlatformAgnosticResource.h" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(EnableIntl)'=='true' AND '$(UseICU)'=='true'">
-    <ClInclude Include="Intl.h" />
-    <ClInclude Include="ICU.h" />
+    <ClInclude Include="Intl.h" Condition="'$(EnableIntl)'=='true'" />
+    <ClInclude Include="ICU.h" Condition="'$(UseICU)'=='true'" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\JITIDL\Chakra.JITIDL.vcxproj">
