@@ -25,6 +25,7 @@ JITTimeProfileInfo::InitializeJITProfileData(
         return;
     }
 
+    CompileAssert(sizeof(LdLenIDL) == sizeof(Js::LdLenInfo));
     CompileAssert(sizeof(LdElemIDL) == sizeof(Js::LdElemInfo));
     CompileAssert(sizeof(StElemIDL) == sizeof(Js::StElemInfo));
 

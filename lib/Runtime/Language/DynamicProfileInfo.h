@@ -179,9 +179,22 @@ namespace Js
 
     struct LdLenInfo
     {
-        typedef struct { ValueType::TSize f1; } TSize;
+        typedef struct { ValueType::TSize f1; byte f2; } TSize;
 
         ValueType arrayType;
+
+        union
+        {
+            struct
+            {
+                bool disableAggressiveSpecialization : 1;
+            };
+            byte bits;
+        };
+
+        LdLenInfo() : bits(0)
+        {
+        }
 
         void Merge(const LdLenInfo & other)
         {
@@ -191,6 +204,11 @@ namespace Js
         ValueType GetArrayType() const
         {
             return arrayType;
+        }
+
+        bool DisableAggressiveSpecialization() const
+        {
+            return disableAggressiveSpecialization;
         }
     };
     CompileAssert(sizeof(LdLenInfo::TSize) == sizeof(LdLenInfo));
@@ -206,6 +224,7 @@ namespace Js
             {
                 bool wasProfiled : 1;
                 bool neededHelperCall : 1;
+                bool disableAggressiveSpecialization : 1;
             };
             byte bits;
         };
@@ -241,6 +260,11 @@ namespace Js
         {
             return neededHelperCall;
         }
+
+        bool DisableAggressiveSpecialization() const
+        {
+            return disableAggressiveSpecialization;
+        }
     };
 
     struct StElemInfo
@@ -257,6 +281,7 @@ namespace Js
                 bool neededHelperCall : 1;
                 bool storedOutsideHeadSegmentBounds : 1;
                 bool storedOutsideArrayBounds : 1;
+                bool disableAggressiveSpecialization : 1;
             };
             byte bits;
         };
@@ -305,6 +330,11 @@ namespace Js
         bool LikelyStoresOutsideArrayBounds() const
         {
             return storedOutsideArrayBounds;
+        }
+
+        bool DisableAggressiveSpecialization() const
+        {
+            return disableAggressiveSpecialization;
         }
     };
 

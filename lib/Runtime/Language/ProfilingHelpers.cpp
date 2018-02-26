@@ -12,7 +12,8 @@ namespace Js
         const Var varIndex,
         FunctionBody *const functionBody,
         const ProfileId profileId,
-        bool didArrayAccessHelperCall)
+        bool didArrayAccessHelperCall,
+        bool bailedOutOnArraySpecialization)
     {
         Assert(base);
         Assert(varIndex);
@@ -20,6 +21,11 @@ namespace Js
         Assert(profileId != Constants::NoProfileId);
 
         LdElemInfo ldElemInfo;
+
+        if (bailedOutOnArraySpecialization)
+        {
+            ldElemInfo.disableAggressiveSpecialization = true;
+        }
 
         // Only enable fast path if the javascript array is not cross site
 #if ENABLE_COPYONACCESS_ARRAY
@@ -197,7 +203,7 @@ namespace Js
         FunctionBody *const functionBody,
         const ProfileId profileId)
     {
-        ProfiledStElem(base, varIndex, value, functionBody, profileId, PropertyOperation_None, false);
+        ProfiledStElem(base, varIndex, value, functionBody, profileId, PropertyOperation_None, false, false);
     }
 
     void ProfilingHelpers::ProfiledStElem(
@@ -207,7 +213,8 @@ namespace Js
         FunctionBody *const functionBody,
         const ProfileId profileId,
         const PropertyOperationFlags flags,
-        bool didArrayAccessHelperCall)
+        bool didArrayAccessHelperCall,
+        bool bailedOutOnArraySpecialization)
     {
         Assert(base);
         Assert(varIndex);
@@ -216,6 +223,11 @@ namespace Js
         Assert(profileId != Constants::NoProfileId);
 
         StElemInfo stElemInfo;
+
+        if (bailedOutOnArraySpecialization)
+        {
+            stElemInfo.disableAggressiveSpecialization = true;
+        }
 
         // Only enable fast path if the javascript array is not cross site
         const bool isJsArray = !TaggedNumber::Is(base) && VirtualTableInfo<JavascriptArray>::HasVirtualTable(base);

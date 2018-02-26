@@ -1464,6 +1464,11 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
     {
         newInstance->OrFlags(Js::InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall);
     }
+    else if (bailOutKind == IR::BailOutOnNotNativeArray)
+    {
+        newInstance->OrFlags(Js::InterpreterStackFrameFlags_ProcessingBailOutOnArraySpecialization);
+    }
+
     if (isInlinee)
     {
         newInstance->OrFlags(Js::InterpreterStackFrameFlags_FromBailOutInInlinee);

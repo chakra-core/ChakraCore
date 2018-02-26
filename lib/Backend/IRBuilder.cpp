@@ -4482,9 +4482,10 @@ IRBuilder::BuildProfiledElementCP(Js::OpCode newOpcode, uint32 offset, Js::RegSl
 
     ValueType arrayType = ValueType::Uninitialized;
 
+    const Js::LdLenInfo * ldLenInfo = nullptr;
     if (m_func->HasProfileInfo())
     {
-        const Js::LdLenInfo * ldLenInfo = m_func->GetReadOnlyProfileInfo()->GetLdLenInfo(profileId);
+        ldLenInfo = m_func->GetReadOnlyProfileInfo()->GetLdLenInfo(profileId);
         arrayType = (ldLenInfo->GetArrayType());
         if (arrayType.IsLikelyNativeArray() &&
             (
@@ -4522,7 +4523,8 @@ IRBuilder::BuildProfiledElementCP(Js::OpCode newOpcode, uint32 offset, Js::RegSl
         IR::ProfiledInstr * profiledInstr = IR::ProfiledInstr::New(newOpcode, dstOpnd, fieldSymOpnd, m_func);
         instr = profiledInstr;
         profiledInstr->u.FldInfo() = *(m_func->GetReadOnlyProfileInfo()->GetFldInfo(inlineCacheIndex));
-        profiledInstr->u.LdLenInfo().GetArrayType() = arrayType;
+        profiledInstr->u.LdLenInfo() = *ldLenInfo;
+        profiledInstr->u.LdLenInfo().arrayType = arrayType;
         wasNotProfiled = !profiledInstr->u.FldInfo().WasLdFldProfiled();
         dstOpnd->SetValueType(instr->AsProfiledInstr()->u.FldInfo().valueType);
 #if ENABLE_DEBUG_CONFIG_OPTIONS

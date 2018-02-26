@@ -4977,9 +4977,10 @@ namespace Js
                 GetReg(playout->Element),
                 m_functionBody,
                 playout->profileId,
-                this->TestFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall)));
+                this->TestFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall),
+                this->TestFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArraySpecialization)));
 
-        this->ClearFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall);
+        this->ClearFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall | InterpreterStackFrameFlags_ProcessingBailOutOnArraySpecialization);
 
         threadContext->CheckAndResetImplicitCallAccessorFlag();
         threadContext->AddImplicitCallFlags(savedImplicitCallFlags);
@@ -5077,9 +5078,10 @@ namespace Js
             m_functionBody,
             playout->profileId,
             flags,
-            this->TestFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall));
+            this->TestFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall),
+            this->TestFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArraySpecialization));
 
-        this->ClearFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall);
+        this->ClearFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall | InterpreterStackFrameFlags_ProcessingBailOutOnArraySpecialization);
 
         threadContext->CheckAndResetImplicitCallAccessorFlag();
         threadContext->AddImplicitCallFlags(savedImplicitCallFlags);
@@ -8411,6 +8413,12 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
         LdLenInfo ldLenInfo;
         ldLenInfo.arrayType = ValueType::Uninitialized.Merge(instance);
         profileData->RecordLengthLoad(functionBody, playout->profileId, ldLenInfo);
+
+        if (this->TestFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArraySpecialization))
+        {
+            ldLenInfo.disableAggressiveSpecialization = true;
+            this->ClearFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArraySpecialization);
+        }
 
         ThreadContext* threadContext = this->GetScriptContext()->GetThreadContext();
         ImplicitCallFlags savedImplicitCallFlags = threadContext->GetImplicitCallFlags();
