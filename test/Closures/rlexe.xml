@@ -10,7 +10,6 @@
   <test>
     <default>
       <files>cachedscope_2.js</files>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
@@ -139,40 +138,35 @@
       <files>bug_OS_2299723.js</files>
       <baseline>bug_OS_2299723.baseline</baseline>
       <compile-flags>-force:cachedscope</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>bug_OS_2671095.js</files>
       <compile-flags>-forcedeferparse -force:cachedscope</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>bug_OS_2903083.js</files>
       <compile-flags>-force:cachedscope</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>bug_OS_9781249.js</files>
       <compile-flags>-forcejitloopbody -force:inline -force:rejit</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>bug_OS_9008744.js</files>
-      <tags>BugFix,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>bug_OS_10735999.js</files>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
@@ -184,7 +178,7 @@
   <test>
     <default>
       <files>bug_OS_13412380.js</files>
-      <tags>BugFix,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
 </regress-exe>
