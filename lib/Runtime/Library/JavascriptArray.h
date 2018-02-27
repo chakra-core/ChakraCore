@@ -568,6 +568,7 @@ namespace Js
 
         template<typename T>
         static void UnshiftHelper(JavascriptArray* pArr, uint32 unshiftElements, Js::Var * elements);
+        static Var UnshiftObjectHelper(Js::Arguments& args, ScriptContext * scriptContext);
 
         template<typename T>
         static void GrowArrayHeadHelperForUnshift(JavascriptArray* pArr, uint32 unshiftElements, ScriptContext * scriptContext);

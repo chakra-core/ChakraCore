@@ -74,8 +74,8 @@ length: 4294967295
   4294967297: 100
   4294967298: 101
   4294967299: 102
-  4294967300: 103
   4294967301: 104
+  4294967300: 103
 --- splice overflow 3
 RangeError : Array length must be assigned a finite positive integer
 length: 4294967295
