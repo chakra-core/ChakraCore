@@ -1538,7 +1538,17 @@ namespace Js
             // else use enumerator to extract keys from source
             else
             {
-                AssignForGenericObjects(from, to, scriptContext);
+                DynamicObject* fromObj = JavascriptOperators::TryFromVar<DynamicObject>(from);
+                DynamicObject* toObj = JavascriptOperators::TryFromVar<DynamicObject>(to);
+                bool cloned = false;
+                if (toObj && fromObj && toObj->GetType() == scriptContext->GetLibrary()->GetObjectType())
+                {
+                    cloned = toObj->TryCopy(fromObj);
+                }
+                if(!cloned)
+                {
+                    AssignForGenericObjects(from, to, scriptContext);
+                }
             }
         }
 

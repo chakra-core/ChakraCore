@@ -114,6 +114,8 @@ namespace Js
         void ReplaceType(DynamicType * type);
         void ReplaceTypeWithPredecessorType(DynamicType * previousType);
 
+        Field(Var)* GetInlineSlots() const;
+
     protected:
         DEFINE_VTABLE_CTOR(DynamicObject, RecyclableObject);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(DynamicObject);
@@ -144,7 +146,6 @@ namespace Js
         Var GetSlot(int index);
         Var GetInlineSlot(int index);
         Var GetAuxSlot(int index);
-
 #if DBG
         void SetSlot(PropertyId propertyId, bool allowLetConst, int index, Var value);
         void SetInlineSlot(PropertyId propertyId, bool allowLetConst, int index, Var value);
@@ -209,6 +210,8 @@ namespace Js
         BOOL SetObjectArrayItemAccessors(uint32 index, Var getter, Var setter);
         void InvalidateHasOnlyWritableDataPropertiesInPrototypeChainCacheIfPrototype();
         void ResetObject(DynamicType* type, BOOL keepProperties);
+
+        bool TryCopy(DynamicObject* from);
 
         virtual void SetIsPrototype();
 
