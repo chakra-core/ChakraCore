@@ -1290,6 +1290,8 @@ namespace Js
         ProxyEntryPointInfo* GetDefaultEntryPointInfo() const;
         ScriptFunctionType * GetDeferredPrototypeType() const;
         ScriptFunctionType * EnsureDeferredPrototypeType();
+        ScriptFunctionType * GetUndeferredFunctionType() const;
+        void SetUndeferredFunctionType(ScriptFunctionType * type);
         JavascriptMethod GetDirectEntryPoint(ProxyEntryPointInfo* entryPoint) const;
 
         // Function object type list methods
@@ -1368,6 +1370,7 @@ namespace Js
         FieldNoBarrier(ScriptContext*) m_scriptContext;   // Memory context for this function body
         FieldWithBarrier(Utf8SourceInfo*) m_utf8SourceInfo;
         FieldWithBarrier(ScriptFunctionType*) deferredPrototypeType;
+        FieldWithBarrier(ScriptFunctionType*) undeferredFunctionType;
         FieldWithBarrier(ProxyEntryPointInfo*) m_defaultEntryPointInfo; // The default entry point info for the function proxy
 
         FieldWithBarrier(uint) m_functionNumber;  // Per thread global function number

@@ -72,6 +72,8 @@ namespace Js
         m_isTopLevel(false),
         m_isPublicLibraryCode(false),
         m_scriptContext(scriptContext),
+        deferredPrototypeType(nullptr),
+        undeferredFunctionType(nullptr),
         m_utf8SourceInfo(utf8SourceInfo),
         m_functionNumber(functionNumber),
         m_defaultEntryPointInfo(nullptr),
@@ -1472,6 +1474,8 @@ namespace Js
         other->SetCachedSourceString(this->GetCachedSourceString());
         CopyDeferParseField(m_isAsmjsMode);
         CopyDeferParseField(m_isAsmJsFunction);
+        CopyDeferParseField(deferredPrototypeType);
+        CopyDeferParseField(undeferredFunctionType);
 
         other->SetFunctionObjectTypeList(this->GetFunctionObjectTypeList());
 
@@ -2015,6 +2019,16 @@ namespace Js
         return type;
     }
 
+    ScriptFunctionType * FunctionProxy::GetUndeferredFunctionType() const
+    {
+        return undeferredFunctionType;
+    }
+
+    void FunctionProxy::SetUndeferredFunctionType(ScriptFunctionType * type)
+    {
+        undeferredFunctionType = type;
+    }
+
     JavascriptMethod FunctionProxy::GetDirectEntryPoint(ProxyEntryPointInfo* entryPoint) const
     {
         Assert(entryPoint->jsMethod != nullptr);
@@ -2055,6 +2069,8 @@ namespace Js
         {
             func(this->deferredPrototypeType);
         }
+        // NOTE: We deliberately do not map the undeferredFunctionType here, since it's in the list
+        // of registered function object types we processed above.
     }
 
     FunctionProxy::FunctionTypeWeakRefList* FunctionProxy::EnsureFunctionObjectTypeList()
@@ -4871,6 +4887,11 @@ namespace Js
             this->deferredPrototypeType->SetEntryPoint(this->GetDefaultEntryPointInfo()->jsMethod);
             this->deferredPrototypeType->SetEntryPointInfo(this->GetDefaultEntryPointInfo());
         }
+        if (this->undeferredFunctionType)
+        {
+            this->undeferredFunctionType->SetEntryPoint(this->GetDefaultEntryPointInfo()->jsMethod);
+            this->undeferredFunctionType->SetEntryPointInfo(this->GetDefaultEntryPointInfo());
+        }
 
 #if DBG
         if (!this->HasValidEntryPoint())
@@ -5109,6 +5130,7 @@ namespace Js
 
             // Abandon the shared type so a new function will get a new one
             this->deferredPrototypeType = nullptr;
+            this->undeferredFunctionType = nullptr;
             this->SetAttributes((FunctionInfo::Attributes) (this->GetAttributes() | FunctionInfo::Attributes::DeferredParse));
         }
 
@@ -5168,6 +5190,11 @@ namespace Js
             // as they may point to old native code gen regions which age gone now.
             this->deferredPrototypeType->SetEntryPoint(this->GetDefaultEntryPointInfo()->jsMethod);
             this->deferredPrototypeType->SetEntryPointInfo(this->GetDefaultEntryPointInfo());
+        }
+        if (this->undeferredFunctionType)
+        {
+            this->undeferredFunctionType->SetEntryPoint(this->GetDefaultEntryPointInfo()->jsMethod);
+            this->undeferredFunctionType->SetEntryPointInfo(this->GetDefaultEntryPointInfo());
         }
         ReinitializeExecutionModeAndLimits();
     }
