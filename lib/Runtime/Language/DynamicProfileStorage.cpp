@@ -1057,9 +1057,15 @@ void DynamicProfileStorage::SaveRecord(__in_z char16 const * filename, __in_ecou
             AssertOrFailFast(!useCacheDir);
             if (info->record != nullptr)
             {
-                DeleteRecord(info->record);
+                // Here it can be in GC and generated new record, and the GC call an be from 
+                // allocation that deserializing info->record. So not replacing the old record 
+                // since we might be loading data from it, and drop the new generated one.
+                DeleteRecord(record);
             }
-            info->record = record;
+            else
+            {
+                info->record = record;
+            }
             return;
         }
         AssertOrFailFast(useCacheDir);
