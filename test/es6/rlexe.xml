@@ -3,7 +3,6 @@
   <test>
     <default>
       <files>bug_issue_2747.js</files>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
@@ -46,7 +45,6 @@
     <default>
       <files>boundBug3837520.js</files>
       <compile-flags>-es6generators -es6classes -args summary -endargs</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
@@ -77,13 +75,11 @@
     <default>
       <files>computedPropertySideEffect.js</files>
       <compile-flags>-force:deferparse</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>BugFix2214646.js</files>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
@@ -121,7 +117,6 @@
     <default>
       <files>superDotOSBug3930962.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
@@ -332,14 +327,14 @@
     <default>
       <files>classes_bugfixes.js</files>
       <compile-flags>-Off:Deferparse -args summary -endargs</compile-flags>
-      <tags>BugFix,exclude_noicu</tags>
+      <tags>exclude_noicu</tags>
     </default>
   </test>
   <test>
     <default>
       <files>classes_bugfixes.js</files>
       <compile-flags>-Force:Deferparse -args summary -endargs</compile-flags>
-      <tags>BugFix,exclude_noicu</tags>
+      <tags>exclude_noicu</tags>
     </default>
   </test>
   <test>
@@ -364,21 +359,18 @@
     <default>
       <files>classes_bug_OS_6471427.js</files>
       <compile-flags>-ForceSerialized</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>classes_bug_OS_6471427.js</files>
       <compile-flags></compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>classes_bug_OS_7100885.js</files>
       <compile-flags>-maxsimplejitruncount:4 -maxinterpretcount:4</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
@@ -698,7 +690,6 @@
     <default>
       <files>ES6Species-bugs.js</files>
       <compile-flags>-ES6 -ES6Species -args summary -endargs</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
@@ -946,7 +937,6 @@
     <default>
       <files>destructuring_bugs.js</files>
       <compile-flags>-ES6Destructuring -ForceDeferParse -args summary -endargs</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
@@ -1146,13 +1136,12 @@
     <default>
       <files>proxytest9.js</files>
       <baseline>proxytest9.baseline</baseline>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>ES6Function_bugs.js</files>
-      <tags>BugFix,exclude_nonrazzle</tags>
+      <tags>exclude_nonrazzle</tags>
       <compile-flags>-ES6 -args summary -endargs</compile-flags>
     </default>
   </test>
@@ -1160,32 +1149,28 @@
     <default>
       <files>OS_2700778.js</files>
       <compile-flags>-loopinterpretcount:1 -bgjit- -maxinterpretcount:3 -off:simplejit</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>bug_OS_2184795.js</files>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>unicode_whitespace.js</files>
-      <tags>BugFix</tags>
       <compile-flags>-ES6 -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>bug_OS_2553885.js</files>
-      <tags>exclude_win7,BugFix,Intl,exclude_noicu</tags>
+      <tags>exclude_win7,Intl,exclude_noicu</tags>
     </default>
   </test>
   <test>
     <default>
       <files>bug_OS_2915477.js</files>
-      <tags>BugFix</tags>
     </default>
   </test>
 
@@ -1193,14 +1178,12 @@
     <default>
       <files>bug_os3198161.js</files>
       <compile-flags>-es6all</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>bug_OS_4498031.js</files>
       <compile-flags>-MaxinterpretCount:1 -MaxSimpleJITRunCount:1 -args summary -endargs</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
 
@@ -1215,21 +1198,18 @@
     <default>
       <files>ES6NewTarget_bugfixes.js</files>
       <compile-flags>-ES6Classes -Off:Deferparse -args summary -endargs</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>ES6NewTarget_bugfixes.js</files>
       <compile-flags>-ES6Classes -Force:Deferparse -args summary -endargs</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>ES6NewTarget_bugfixes.js</files>
       <compile-flags>-ES6Classes -forceundodefer -args summary -endargs</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
 
@@ -1308,13 +1288,12 @@
     <default>
       <files>object_literal_bug.js</files>
       <compile-flags>-ES6Destructuring -args summary -endargs</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>OS_5403724.js</files>
-      <tags>BugFix,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
       <compile-flags>-maxinterpretcount:3 -off:simpleJit -ES6 -args summary -endargs</compile-flags>
     </default>
   </test>
@@ -1368,28 +1347,25 @@
       <files>bug_issue_1496.js</files>
       <compile-flags>-mic:1 -maxsimplejitruncount:2</compile-flags>
       <baseline>bug_issue_1496.baseline</baseline>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>bug_issue_3247.js</files>
       <baseline>bug_issue_3247.baseline</baseline>
-      <tags>BugFix,exclude_sanitize_address</tags>
+      <tags>exclude_sanitize_address</tags>
     </default>
   </test>
   <test>
     <default>
       <files>typedarray_bugs.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>bug-OS10595959.js</files>
       <compile-flags>-maxsimplejitruncount:1 -maxinterpretcount:1 -off:stackargopt -stress:bailonnoprofile -args summary -endargs</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
@@ -1401,34 +1377,29 @@
   <test>
     <default>
       <files>bug_OS10898061.js</files>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>bug_OS14880030.js</files>
-      <tags>BugFix</tags>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>bug_OS14880030.js</files>
-      <tags>BugFix</tags>
       <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>bug_OS13976524.js</files>
-      <tags>BugFix</tags>
       <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>bug_issue_4635.js</files>
-      <tags>BugFix</tags>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>

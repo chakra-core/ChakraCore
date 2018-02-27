@@ -513,7 +513,6 @@
     <default>
       <files>attachdetach-delaycapture.js</files>
       <compile-flags>-dbgbaseline:attachdetach-delaycapture.js.dbg.baseline</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
@@ -1292,7 +1291,7 @@
     <default>
       <files>bug_os_2946365.js</files>
       <compile-flags>-dbgbaseline:bug_os_2946365.js.dbg.baseline</compile-flags>
-      <tags>BugFix,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -1344,7 +1343,6 @@
     <default>
       <files>bug_vso5792108.js</files>
       <compile-flags>-debuglaunch -dbgbaseline:bug_vso5792108.js.dbg.baseline</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
@@ -1357,7 +1355,6 @@
     <default>
       <files>bug_OS12814968.js</files>
       <compile-flags>-forcedeferparse</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>

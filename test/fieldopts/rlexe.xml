@@ -792,7 +792,6 @@
     <default>
       <files>finaltype-objheaderinlining3.js</files>
       <compile-flags>-lic:1 -bgjit- -force:deferparse</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>

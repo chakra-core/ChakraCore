@@ -43,40 +43,35 @@
     <default>
       <compile-flags>-ForceArrayBTree</compile-flags>
       <files>bug945376SegLeftPlusSizeGreaterThanMaxArrayLen.js</files>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>bug1062870.js</files>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>bug1065362.js</files>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>bug11370283.js</files>
       <compile-flags>-bgjit- -lic:1</compile-flags>
-      <tags>BugFix,exclude_dynapogo</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
     <default>
       <files>bug4916987.js</files>
       <compile-flags>-mic:1 -off:simplejit</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>bug6268659.js</files>
       <compile-flags>-mic:1 -off:simplejit</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
@@ -84,7 +79,6 @@
       <compile-flags>-ForceArrayBTree</compile-flags>
       <files>ArrayBtreeBadCodeGen.js</files>
       <baseline>ArrayBtreeBadCodeGen.baseline</baseline>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
@@ -617,13 +611,12 @@
     <default>
       <compile-flags>-ForceArrayBTree</compile-flags>
       <files>bug945376SizeBoundStartSeg.js</files>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>CopyOnAccessArray_bugs.js</files>
-      <tags>BugFix,require_backend</tags>
+      <tags>require_backend</tags>
       <compile-flags>-force:copyonaccessarray</compile-flags>
       <baseline>CopyOnAccessArray_bugs.baseline</baseline>
     </default>
@@ -631,7 +624,7 @@
   <test>
     <default>
       <files>CopyOnAccessArray_cache_index_overflow.js</files>
-      <tags>BugFix,exclude_nonative,exclude_forceserialized,require_backend</tags>
+      <tags>exclude_nonative,exclude_forceserialized,require_backend</tags>
       <compile-flags>-force:copyonaccessarray -testtrace:CopyOnAccessArray</compile-flags>
       <baseline>CopyOnAccessArray_cache_index_overflow.baseline</baseline>
     </default>
@@ -736,14 +729,12 @@
     <default>
       <files>Array_TypeConfusion_bugs.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>Array_TypeConfusion_bugs.js</files>
       <compile-flags>-ForceArrayBTree -args summary -endargs</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
@@ -754,8 +745,7 @@
   <test>
     <default>
       <files>bug_12044876.js</files>
-        <compile-flags>-forcearraybtree</compile-flags>
-        <tags>BugFix</tags>
+      <compile-flags>-forcearraybtree</compile-flags>
     </default>
   </test>
   <test>

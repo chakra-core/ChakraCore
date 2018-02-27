@@ -35,7 +35,6 @@
     <default>
       <files>eval-strict-delete.js</files>
       <baseline>eval-strict-delete.baseline</baseline>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>

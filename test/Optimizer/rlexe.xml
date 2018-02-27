@@ -1349,7 +1349,6 @@
     <default>
       <files>opttagchecks2.js</files>
       <compile-flags>-off:bailonnoprofile</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>

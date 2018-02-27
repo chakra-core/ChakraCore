@@ -94,7 +94,7 @@
     <default>
       <files>module-bugfixes.js</files>
       <compile-flags>-MuteHostErrorMsg -ES6Module -args summary -endargs</compile-flags>
-      <tags>exclude_dynapogo,exclude_sanitize_address,bugfix</tags>
+      <tags>exclude_dynapogo,exclude_sanitize_address</tags>
     </default>
   </test>
   <test>
@@ -115,14 +115,13 @@
     <default>
       <files>bug_OS12095746.js</files>
         <compile-flags>-MuteHostErrorMsg -IgnoreScriptErrorCode -TraceHostCallback -ES6Module -ESDynamicImport</compile-flags>
-      <tags>exclude_dynapogo,exclude_sanitize_address,bugfix,exclude_drt</tags>
+      <tags>exclude_dynapogo,exclude_sanitize_address,exclude_drt</tags>
       <baseline>bug_OS12095746.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>bug_OS14562349.js</files>
-      <tags>BugFix</tags>
       <compile-flags>-ESDynamicImport -args summary -endargs</compile-flags>
     </default>
   </test>
@@ -130,7 +129,7 @@
     <default>
       <files>bug_issue_3076.js</files>
     <compile-flags>-force:deferparse -ESDynamicImport</compile-flags>
-      <tags>BugFix,exclude_sanitize_address</tags>
+      <tags>exclude_sanitize_address</tags>
     </default>
   </test>
   <test>
@@ -138,7 +137,7 @@
       <files>bug_issue_3257.js</files>
       <compile-flags>-ESDynamicImport</compile-flags>
       <baseline>bug_issue_3257.baseline</baseline>
-      <tags>BugFix,exclude_sanitize_address</tags>
+      <tags>exclude_sanitize_address</tags>
     </default>
   </test>
   <test>

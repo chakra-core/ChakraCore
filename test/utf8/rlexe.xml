@@ -10,13 +10,13 @@
   <test>
     <default>
       <files>unicode_digit_as_identifier_should_work.js</files>
-      <tags>exclude_serialized,bugfix,exclude_noicu</tags>
+      <tags>exclude_serialized,exclude_noicu</tags>
     </default>
   </test>
   <test>
     <default>
       <files>OS_2977448.js</files>
-      <tags>require_winglob,BugFix</tags>
+      <tags>require_winglob</tags>
     </default>
   </test>
   <test>

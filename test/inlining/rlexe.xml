@@ -241,14 +241,12 @@
     <default>
       <files>OS_2733280.js</files>
       <compile-flags>-loopinterpretcount:1 -bgjit- -maxsimplejitruncount:1 -maxinterpretcount:1 -force:scriptfunctionwithinlinecache</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>OS_2733280.js</files>
       <compile-flags>-loopinterpretcount:1 -bgjit- -maxsimplejitruncount:1 -maxinterpretcount:1 -force:scriptfunctionwithinlinecache -off:stackargopt</compile-flags>
-      <tags>BugFix</tags>
     </default>
   </test>
   <test>
