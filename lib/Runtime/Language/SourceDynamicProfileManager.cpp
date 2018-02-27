@@ -337,7 +337,7 @@ namespace Js
         dynamicProfileInfoMapSaving.Reset();
     }
 
-    void SourceDynamicProfileManager::AddItem(LocalFunctionId functionId, DynamicProfileInfo *info)
+    void SourceDynamicProfileManager::AddSavingItem(LocalFunctionId functionId, DynamicProfileInfo *info)
     {
         try
         {
@@ -351,19 +351,11 @@ namespace Js
         }
     }
 
-    void SourceDynamicProfileManager::CopySavingData()
-    {
-        dynamicProfileInfoMap.Map([&](LocalFunctionId functionId, DynamicProfileInfo *info)
-        {
-            this->AddItem(functionId, info);
-        });
-    }
-
     void
     SourceDynamicProfileManager::SaveDynamicProfileInfo(LocalFunctionId functionId, DynamicProfileInfo * dynamicProfileInfo)
     {
         Assert(dynamicProfileInfo->GetFunctionBody()->HasExecutionDynamicProfileInfo());
-        this->AddItem(functionId, dynamicProfileInfo);
+        this->AddSavingItem(functionId, dynamicProfileInfo);
     }
 
     template <typename T>
@@ -373,6 +365,7 @@ namespace Js
         uint functionCount;
         if (!reader->Peek(&functionCount))
         {
+            Assert(false);
             return nullptr;
         }
 
@@ -380,6 +373,7 @@ namespace Js
         if (!reader->ReadArray(((char *)startupFunctions),
             BVFixed::GetAllocSize(functionCount)))
         {
+            Assert(false);
             return nullptr;
         }
 
@@ -387,6 +381,7 @@ namespace Js
 
         if (!reader->Read(&profileCount))
         {
+            Assert(false);
             return nullptr;
         }
 
@@ -410,9 +405,11 @@ namespace Js
             DynamicProfileInfo * dynamicProfileInfo = DynamicProfileInfo::Deserialize(reader, recycler, &functionId);
             if (dynamicProfileInfo == nullptr || functionId >= functionCount)
             {
+                Assert(false);
                 return nullptr;
             }
             sourceDynamicProfileManager->dynamicProfileInfoMap.Add(functionId, dynamicProfileInfo);
+            sourceDynamicProfileManager->AddSavingItem(functionId, dynamicProfileInfo);
         }
         return sourceDynamicProfileManager;
     }

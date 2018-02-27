@@ -22,9 +22,8 @@ int32 DynamicProfileStorage::lastOffset = 0;
 DWORD const DynamicProfileStorage::MagicNumber = 20100526;
 DWORD const DynamicProfileStorage::FileFormatVersion = 2;
 DWORD DynamicProfileStorage::nextFileId = 0;
-#if DBG
 bool DynamicProfileStorage::locked = false;
-#endif
+
 
 class DynamicProfileStorageReaderWriter
 {
@@ -67,7 +66,7 @@ DynamicProfileStorageReaderWriter::~DynamicProfileStorageReaderWriter()
 
 bool DynamicProfileStorageReaderWriter::Init(char16 const * filename, char16 const * mode, bool deleteNonClosed, errno_t * err = nullptr)
 {
-    Assert(file == nullptr);
+    AssertOrFailFast(file == nullptr);
     errno_t e = _wfopen_s(&file, filename, mode);
     if (e != 0)
     {
@@ -91,7 +90,7 @@ bool DynamicProfileStorageReaderWriter::Read(T * t)
 template <typename T>
 bool DynamicProfileStorageReaderWriter::ReadArray(T * t, size_t len)
 {
-    Assert(file);
+    AssertOrFailFast(file);
     int32 pos = ftell(file);
     if (fread(t, sizeof(T), len, file) != len)
     {
@@ -149,7 +148,7 @@ bool DynamicProfileStorageReaderWriter::Write(T const& t)
 template <typename T>
 bool DynamicProfileStorageReaderWriter::WriteArray(T * t, size_t len)
 {
-    Assert(file);
+    AssertOrFailFast(file);
     if (fwrite(t, sizeof(T), len, file) != len)
     {
         Output::Print(_u("ERROR: DynamicProfileStorage: Unable to write to file '%s'\n"), filename);
@@ -177,19 +176,19 @@ bool DynamicProfileStorageReaderWriter::WriteUtf8String(char16 const * str)
 
 bool DynamicProfileStorageReaderWriter::Seek(int32 offset)
 {
-    Assert(file);
+    AssertOrFailFast(file);
     return fseek(file, offset, SEEK_SET) == 0;
 }
 
 bool DynamicProfileStorageReaderWriter::SeekToEnd()
 {
-    Assert(file);
+    AssertOrFailFast(file);
     return fseek(file, 0, SEEK_END) == 0;
 }
 
 int32 DynamicProfileStorageReaderWriter::Size()
 {
-    Assert(file);
+    AssertOrFailFast(file);
     int32 current = ftell(file);
     SeekToEnd();
     int32 end = ftell(file);
@@ -199,7 +198,7 @@ int32 DynamicProfileStorageReaderWriter::Size()
 
 void DynamicProfileStorageReaderWriter::Close(bool deleteFile)
 {
-    Assert(file);
+    AssertOrFailFast(file);
     fflush(file);
     fclose(file);
     file = nullptr;
@@ -296,7 +295,7 @@ char16 const * DynamicProfileStorage::GetMessageType()
 
 bool DynamicProfileStorage::Initialize()
 {
-    AssertMsg(!initialized, "Initialize called multiple times");
+    AssertOrFailFastMsg(!initialized, "Initialize called multiple times");
     if (initialized)
     {
         return true;
@@ -405,7 +404,7 @@ bool DynamicProfileStorage::Initialize()
 
 bool DynamicProfileStorage::Uninitialize()
 {
-    AssertMsg(!uninitialized, "Uninitialize called multiple times");
+    AssertOrFailFastMsg(!uninitialized, "Uninitialize called multiple times");
     if (!initialized || uninitialized)
     {
         return true;
@@ -418,7 +417,7 @@ bool DynamicProfileStorage::Uninitialize()
     bool success = true;
     if (Js::Configuration::Global.flags.DynamicProfileCache != nullptr)
     {
-        Assert(enabled);
+        AssertOrFailFast(enabled);
         if (!ExportFile(Js::Configuration::Global.flags.DynamicProfileCache))
         {
             success = false;
@@ -473,7 +472,7 @@ void DynamicProfileStorage::ClearInfoMap(bool deleteFileStorage)
         StorageInfo const& info = infoMap.GetValueAt(i);
         if (info.isFileStorage)
         {
-            Assert(useCacheDir);
+            AssertOrFailFast(useCacheDir);
             if (deleteFileStorage)
             {
                 char16 filename[_MAX_PATH];
@@ -493,7 +492,7 @@ void DynamicProfileStorage::ClearInfoMap(bool deleteFileStorage)
 
 bool DynamicProfileStorage::ImportFile(__in_z char16 const * filename, bool allowNonExistingFile)
 {
-    Assert(enabled);
+    AssertOrFailFast(enabled);
     DynamicProfileStorageReaderWriter reader;
     errno_t e;
     if (!reader.Init(filename, _u("rb"), false, &e))
@@ -552,14 +551,14 @@ bool DynamicProfileStorage::ImportFile(__in_z char16 const * filename, bool allo
         char16 * name;
         if (!reader.ReadUtf8String(&name, &len))
         {
-            Assert(false);
+            AssertOrFailFast(false);
             return false;
         }
 
         DWORD recordLen;
         if (!reader.Read(&recordLen))
         {
-            Assert(false);
+            AssertOrFailFast(false);
             return false;
         }
 
@@ -576,7 +575,7 @@ bool DynamicProfileStorage::ImportFile(__in_z char16 const * filename, bool allo
         {
             NoCheckHeapDeleteArray(len + 1, name);
             DeleteRecord(record);
-            Assert(false);
+            AssertOrFailFast(false);
             return false;
         }
 
@@ -592,20 +591,20 @@ bool DynamicProfileStorage::ImportFile(__in_z char16 const * filename, bool allo
         Output::Flush();
     }
 #endif
-    AssertMsg(recordCount == (uint)infoMap.Count(), "failed to read all the records");
+    AssertOrFailFastMsg(recordCount == (uint)infoMap.Count(), "failed to read all the records");
     return true;
 }
 
 bool DynamicProfileStorage::ExportFile(__in_z char16 const * filename)
 {
-    Assert(enabled);
+    AssertOrFailFast(enabled);
 
     if (useCacheDir && AcquireLock())
     {
         if (!LoadCacheCatalog()) // refresh the cache catalog
         {
             ReleaseLock();
-            Assert(FALSE);
+            AssertOrFailFast(FALSE);
             return false;
         }
     }
@@ -623,16 +622,15 @@ bool DynamicProfileStorage::ExportFile(__in_z char16 const * filename)
         || !writer.Write(FileFormatVersion)
         || !writer.Write(recordCount))
     {
-        Assert(FALSE);
+        AssertOrFailFast(FALSE);
         return false;
     }
-    uint recordWritten = 0;
-    for (uint i = 0; recordWritten < recordCount; i++)
+    for (uint i = 0; i < recordCount; i++)
     {
         char16 const * url = infoMap.GetKeyAt(i);
         if (url == nullptr)
         {
-            Assert(false);
+            AssertOrFailFast(false);
             continue;
         }
 
@@ -641,19 +639,19 @@ bool DynamicProfileStorage::ExportFile(__in_z char16 const * filename)
         char const * record;
         if (info.isFileStorage)
         {
-            Assert(useCacheDir);
+            AssertOrFailFast(useCacheDir);
             record = info.ReadRecord();
             if (record == nullptr)
             {
                 ReleaseLock();
-                Assert(FALSE);
+                AssertOrFailFast(FALSE);
                 return false;
             }
         }
         else
         {
-            Assert(!useCacheDir);
-            Assert(!locked);
+            AssertOrFailFast(!useCacheDir);
+            AssertOrFailFast(!locked);
             record = info.record;
         }
         DWORD recordSize = GetRecordSize(record);
@@ -672,11 +670,9 @@ bool DynamicProfileStorage::ExportFile(__in_z char16 const * filename)
             {
                 ReleaseLock();
             }
-            Assert(FALSE);
+            AssertOrFailFast(FALSE);
             return false;
         }
-
-        recordWritten++;
     }
     writer.Close();
 #if DBG_DUMP
@@ -691,7 +687,7 @@ bool DynamicProfileStorage::ExportFile(__in_z char16 const * filename)
 
 void DynamicProfileStorage::DisableCacheDir()
 {
-    Assert(useCacheDir);
+    AssertOrFailFast(useCacheDir);
     ClearInfoMap(false);
     useCacheDir = false;
 #ifdef FORCE_DYNAMIC_PROFILE_STORAGE
@@ -701,8 +697,8 @@ void DynamicProfileStorage::DisableCacheDir()
 
 bool DynamicProfileStorage::AcquireLock()
 {
-    Assert(mutex != nullptr);
-    Assert(!locked);
+    AssertOrFailFast(mutex != nullptr);
+    AssertOrFailFast(!locked);
     DWORD ret = WaitForSingleObject(mutex, INFINITE);
     if (ret == WAIT_OBJECT_0 || ret == WAIT_ABANDONED)
     {
@@ -720,8 +716,8 @@ bool DynamicProfileStorage::AcquireLock()
 
 bool DynamicProfileStorage::ReleaseLock()
 {
-    Assert(locked);
-    Assert(mutex != nullptr);
+    AssertOrFailFast(locked);
+    AssertOrFailFast(mutex != nullptr);
 #if DBG
     locked = false;
 #endif
@@ -737,7 +733,7 @@ bool DynamicProfileStorage::ReleaseLock()
 
 bool DynamicProfileStorage::SetupCacheDir(__in_z char16 const * dirname)
 {
-    Assert(enabled);
+    AssertOrFailFast(enabled);
 
     mutex = CreateMutex(NULL, FALSE, _u("JSDPCACHE"));
     if (mutex == nullptr)
@@ -792,9 +788,9 @@ bool DynamicProfileStorage::SetupCacheDir(__in_z char16 const * dirname)
 
 bool DynamicProfileStorage::CreateCacheCatalog()
 {
-    Assert(enabled);
-    Assert(useCacheDir);
-    Assert(locked);
+    AssertOrFailFast(enabled);
+    AssertOrFailFast(useCacheDir);
+    AssertOrFailFast(locked);
     nextFileId = 0;
     creationTime = GetCreationTime();
     DynamicProfileStorageReaderWriter catalogFile;
@@ -825,9 +821,9 @@ bool DynamicProfileStorage::CreateCacheCatalog()
 
 bool DynamicProfileStorage::AppendCacheCatalog(__in_z char16 const * url)
 {
-    Assert(enabled);
-    Assert(useCacheDir);
-    Assert(locked);
+    AssertOrFailFast(enabled);
+    AssertOrFailFast(useCacheDir);
+    AssertOrFailFast(locked);
     DWORD magic;
     DWORD version;
     DWORD count;
@@ -896,9 +892,9 @@ bool DynamicProfileStorage::AppendCacheCatalog(__in_z char16 const * url)
 
 bool DynamicProfileStorage::LoadCacheCatalog()
 {
-    Assert(enabled);
-    Assert(useCacheDir);
-    Assert(locked);
+    AssertOrFailFast(enabled);
+    AssertOrFailFast(useCacheDir);
+    AssertOrFailFast(locked);
     DynamicProfileStorageReaderWriter catalogFile;
     DWORD magic;
     DWORD version;
@@ -936,16 +932,16 @@ bool DynamicProfileStorage::LoadCacheCatalog()
 
     DWORD start = 0;
 
-    Assert(useCacheDir);
+    AssertOrFailFast(useCacheDir);
     if (time == creationTime)
     {
         // We can reuse existing data
         start = infoMap.Count();
-        Assert(count >= start);
-        Assert(catalogFile.Size() >= lastOffset);
+        AssertOrFailFast(count >= start);
+        AssertOrFailFast(catalogFile.Size() >= lastOffset);
         if (count == nextFileId)
         {
-            Assert(catalogFile.Size() == lastOffset);
+            AssertOrFailFast(catalogFile.Size() == lastOffset);
             return true;
         }
 
@@ -984,7 +980,7 @@ bool DynamicProfileStorage::LoadCacheCatalog()
         StorageInfo * oldInfo;
         if (infoMap.TryGetReference(url, &oldInfo))
         {
-            Assert(oldInfo->isFileStorage);
+            AssertOrFailFast(oldInfo->isFileStorage);
             oldInfo->fileId = i;
         }
         else
@@ -1012,7 +1008,7 @@ bool DynamicProfileStorage::LoadCacheCatalog()
 
 void DynamicProfileStorage::ClearCacheCatalog()
 {
-    Assert(enabled);
+    AssertOrFailFast(enabled);
     if (useCacheDir)
     {
         if (!AcquireLock())
@@ -1041,7 +1037,7 @@ void DynamicProfileStorage::ClearCacheCatalog()
 
 void DynamicProfileStorage::SaveRecord(__in_z char16 const * filename, __in_ecount(sizeof(DWORD) + *record) char const * record)
 {
-    Assert(enabled);
+    AssertOrFailFast(enabled);
     AutoCriticalSection autocs(&cs);
 
     StorageInfo * info;
@@ -1058,15 +1054,21 @@ void DynamicProfileStorage::SaveRecord(__in_z char16 const * filename, __in_ecou
     {
         if (!info->isFileStorage)
         {
-            Assert(!useCacheDir);
+            AssertOrFailFast(!useCacheDir);
             if (info->record != nullptr)
             {
-                DeleteRecord(info->record);
+                // Here it can be in GC and generated new record, and the GC call an be from 
+                // allocation that deserializing info->record. So not replacing the old record 
+                // since we might be loading data from it, and drop the new generated one.
+                DeleteRecord(record);
             }
-            info->record = record;
+            else
+            {
+                info->record = record;
+            }
             return;
         }
-        Assert(useCacheDir);
+        AssertOrFailFast(useCacheDir);
 
         char16 cacheFilename[_MAX_PATH];
         info->GetFilename(cacheFilename);
@@ -1094,7 +1096,7 @@ void DynamicProfileStorage::SaveRecord(__in_z char16 const * filename, __in_ecou
         }
 
         // Can't add a new file. Disable and use memory mode
-        Assert(!useCacheDir);
+        AssertOrFailFast(!useCacheDir);
         ReleaseLock();
     }
 
@@ -1103,7 +1105,7 @@ void DynamicProfileStorage::SaveRecord(__in_z char16 const * filename, __in_ecou
     if (newFilename == nullptr)
     {
         // out of memory, don't save anything
-        AssertMsg(false, "OOM");
+        AssertOrFailFastMsg(false, "OOM");
         DeleteRecord(record);
         if (useCacheDir)
         {
@@ -1134,8 +1136,8 @@ void DynamicProfileStorage::SaveRecord(__in_z char16 const * filename, __in_ecou
         ReleaseLock();
     }
 
-    Assert(!useCacheDir);
-    Assert(!locked);
+    AssertOrFailFast(!useCacheDir);
+    AssertOrFailFast(!locked);
 
     newInfo.isFileStorage = false;
     newInfo.record = record;
@@ -1144,7 +1146,7 @@ void DynamicProfileStorage::SaveRecord(__in_z char16 const * filename, __in_ecou
 
 char * DynamicProfileStorage::AllocRecord(DWORD bufferSize)
 {
-    Assert(enabled);
+    AssertOrFailFast(enabled);
     char * buffer = NoCheckHeapNewArray(char, bufferSize + sizeof(DWORD));
     if (buffer != nullptr)
     {
@@ -1155,25 +1157,25 @@ char * DynamicProfileStorage::AllocRecord(DWORD bufferSize)
 
 DWORD DynamicProfileStorage::GetRecordSize(__in_ecount(sizeof(DWORD) + *buffer) char const * buffer)
 {
-    Assert(enabled);
+    AssertOrFailFast(enabled);
     return *(DWORD *)buffer;
 }
 
 char const * DynamicProfileStorage::GetRecordBuffer(__in_ecount(sizeof(DWORD) + *buffer) char const * buffer)
 {
-    Assert(enabled);
+    AssertOrFailFast(enabled);
     return buffer + sizeof(DWORD);
 }
 
 char * DynamicProfileStorage::GetRecordBuffer(__in_ecount(sizeof(DWORD) + *buffer) char * buffer)
 {
-    Assert(enabled);
+    AssertOrFailFast(enabled);
     return buffer + sizeof(DWORD);
 }
 
 void DynamicProfileStorage::DeleteRecord(__in_ecount(sizeof(DWORD) + *buffer) char const * buffer)
 {
-    Assert(enabled);
+    AssertOrFailFast(enabled);
     NoCheckHeapDeleteArray(GetRecordSize(buffer) + sizeof(DWORD), buffer);
 }
 #endif

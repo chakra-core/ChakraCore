@@ -62,9 +62,7 @@ private:
     static HANDLE mutex;
     static CriticalSection cs;
     static DWORD nextFileId;
-#if DBG
     static bool locked;
-#endif
 #if DBG_DUMP
     static bool DoTrace();
 #endif
@@ -135,7 +133,12 @@ DynamicProfileStorage::Load(char16 const * filename, Fn loadFn)
     {
         record = info->record;
     }
-    Js::SourceDynamicProfileManager * sourceDynamicProfileManager = loadFn(GetRecordBuffer(record), GetRecordSize(record));
+    DWORD recordSize = GetRecordSize(record);
+    if (recordSize == 0) 
+    {
+        return nullptr;
+    }
+    Js::SourceDynamicProfileManager * sourceDynamicProfileManager = loadFn(GetRecordBuffer(record), recordSize);
     if (info->isFileStorage)
     {
         // The data is backed by a file, we can delete the memory
@@ -156,6 +159,7 @@ DynamicProfileStorage::Load(char16 const * filename, Fn loadFn)
         {
             Output::Print(_u("%s: DynamicProfileStorage: Dynamic Profile Data corrupted: '%s'\n"), messageType, filename);
             Output::Flush();
+            Assert(false);
         }
     }
     return sourceDynamicProfileManager;
