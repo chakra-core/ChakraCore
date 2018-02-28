@@ -156,12 +156,6 @@ if sys.platform != 'win32':
     not_tags.add('require_winglob')
     not_tags.add('require_simd')
 
-if sys.platform == 'win32':
-    if os.environ.get('IntlICU') == 'true':
-        not_tags.add('require_winglob')
-    else:
-        not_tags.add('require_icu')
-
 if args.sanitize != None:
     not_tags.add('exclude_sanitize_'+args.sanitize)
 

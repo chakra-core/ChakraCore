@@ -20,12 +20,12 @@ function testRangeError(tag) {
  * @param {String} message
  */
 const equal = (function () {
-    if (WScript.Arguments.includes("icu")) {
+    if (WScript.Platform.INTL_LIBRARY === "icu") {
         return function (_, expectedICU, actual, message) {
             assert.areEqual(expectedICU, actual, message);
         }
     } else {
-        assert.isTrue(WScript.Arguments.includes("winglob"));
+        assert.isTrue(WScript.Platform.INTL_LIBRARY === "winglob");
         return function (expectedWinGlob, _, actual, message) {
             assert.areEqual(expectedWinGlob, actual, message);
         }
@@ -132,7 +132,7 @@ var tests = [
             const duplicateSingletons = ['cmn-hans-cn-u-u', 'cmn-hans-cn-t-u-ca-u'];
             const duplicateUnicodeExtensionKeys = ['de-de-u-kn-true-co-phonebk-co-phonebk'];
 
-            if (WScript.Arguments.includes("icu")) {
+            if (WScript.Platform.INTL_LIBRARY === "icu") {
                 const duplicateTags = ['de-gregory-gregory'];
                 duplicateTags.forEach(testRangeError);
             }

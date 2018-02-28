@@ -332,12 +332,6 @@ goto :main
     set _TAGS=%_TAGS% -tags:Slow
   )
 
-  if "%IntlICU%" == "true" (
-    set _NOTTAGS=%_NOTTAGS% -nottags:require_winglob
-  ) else (
-    set _NOTTAGS=%_NOTTAGS% -nottags:require_icu
-  )
-
   if not "%NUM_RL_THREADS%" == "" (
     set _RL_THREAD_FLAGS=-threads:%NUM_RL_THREADS%
   )
