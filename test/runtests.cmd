@@ -350,6 +350,9 @@ goto :main
   if "%_BuildTypeMapped%" == "test" set _BuildTypeMapped=fre
   if "%_BuildTypeMapped%" == "codecoverage" set _BuildTypeMapped=fre
 
+  if "%_BuildArch%" == "arm"    set _NOTTAGS=%_NOTTAGS% -nottags:require_asmjs -nottags:require_wasm
+  if "%_BuildArch%" == "arm64"  set _NOTTAGS=%_NOTTAGS% -nottags:require_asmjs -nottags:require_wasm
+
   if "%Disable_JIT%" == "1" (
       set _dynamicprofilecache=
       set _dynamicprofileinput=
