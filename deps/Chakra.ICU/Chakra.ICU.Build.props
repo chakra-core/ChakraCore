@@ -18,7 +18,7 @@
         UCONFIG_NO_REGULAR_EXPRESSIONS=1;
         UCONFIG_NO_SERVICE=1;
         %(PreprocessorDefinitions)
-      </PreprocessorDefinitions>
+    </PreprocessorDefinitions>
 
       <!-- Default ICU Configuration (see source\common\common.vcxproj) -->
       <!-- Note that we already configure most of what common.vcxproj handles elsewhere -->

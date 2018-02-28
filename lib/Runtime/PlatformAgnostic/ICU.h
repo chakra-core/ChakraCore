@@ -8,8 +8,6 @@
 #ifdef WINDOWS10_ICU
 #include <icu.h>
 #else
-#define U_STATIC_IMPLEMENTATION 1
-#define U_SHOW_CPLUSPLUS_API 0
 #include "unicode/ucal.h"
 #include "unicode/ucol.h"
 #include "unicode/udat.h"

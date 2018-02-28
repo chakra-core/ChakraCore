@@ -21,6 +21,12 @@
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
     <GenCCodePath>$(OutBaseDir)\bin\$(PlatformPathName.ToLower())_$(Configuration.ToLower())\Chakra.ICU.GenCCode.exe</GenCCodePath>
   </PropertyGroup>
+  <ItemDefinitionGroup>
+    <Link Condition="'$(ChakraICU)'=='shared'">
+      <SubSystem>Console</SubSystem>
+      <NoEntryPoint>true</NoEntryPoint>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemGroup Condition="'$(ChakraICU)'!='false'">
     <None Include="$(IntDir)icudt$(IcuVersionMajor)l_dat.obj" /> <!-- forces the automagic build system to create a lib from the obj -->
     <CustomBuild Include="$(MSBuildThisFileDirectory)source\data\in\icudt$(IcuVersionMajor)l.dat">

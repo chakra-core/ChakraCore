@@ -59,6 +59,15 @@
         %(PreprocessorDefinitions);
         INTL_ICU=1
       </PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(ChakraICU)'=='static'">
+        %(PreprocessorDefinitions);
+        U_STATIC_IMPLEMENTATION=1
+      </PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(UseICU)'=='true'">
+        U_DISABLE_RENAMING=1; <!-- Disable renaming to maintain compatibility with Windows Kit ICU's icuuc/icuin.lib -->
+        ICU_VERSION=$(IcuVersionMajor);
+        %(PreprocessorDefinitions)
+      </PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(ForceSWB)'=='true'">
         %(PreprocessorDefinitions);
         GLOBAL_ENABLE_WRITE_BARRIER=1

@@ -9,7 +9,8 @@
     <ProjectName>Chakra.ICU.Stubdata</ProjectName>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType Condition="'$(ChakraICU)'!='shared'">StaticLibrary</ConfigurationType>
+    <ConfigurationType Condition="'$(ChakraICU)'=='shared'">DynamicLibrary</ConfigurationType>
   </PropertyGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.Default.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -31,6 +32,12 @@
         $(IcuSourceDirectory)\common
       </AdditionalIncludeDirectories>
     </ClCompile>
+    <Link Condition="'$(ChakraICU)'=='shared'">
+      <SubSystem>Console</SubSystem>
+      <!-- Make Chakra.ICU.Stubdata pretend like its Chakra.ICU.Data for linking purposes -->
+      <OutputFile>$(OutDir)\Chakra.ICU.Data.dll</OutputFile>
+      <ImportLibrary>$(OutDir)\Chakra.ICU.Data.lib</ImportLibrary>
+    </Link>
   </ItemDefinitionGroup>
   <ItemGroup Condition="'$(ChakraICU)'!='false'">
     <ClCompile Include="$(IcuStubdataSources)" />

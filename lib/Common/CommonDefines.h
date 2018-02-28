@@ -110,6 +110,19 @@
 #define ENABLE_UNICODE_API 1                        // Enable use of Unicode-related APIs
 #endif
 
+// ICU Configuration
+#if defined(HAS_ICU) || defined(HAS_REAL_ICU)
+#define U_SHOW_CPLUSPLUS_API 0
+// ICU 55 (Ubuntu 16.04 system default) has uloc_toUnicodeLocale* marked as draft, which is required for Intl
+#if ICU_VERSION > 56
+#define U_DEFAULT_SHOW_DRAFT 0
+#define U_HIDE_DRAFT_API 1
+#endif
+#define U_HIDE_DEPRECATED_API 1
+#define U_HIDE_OBSOLETE_API 1
+#define U_HIDE_INTERNAL_API 1
+#endif
+
 // Language features
 
 #if !defined(CHAKRACORE_LITE) && (defined(_WIN32) || defined(INTL_ICU))
