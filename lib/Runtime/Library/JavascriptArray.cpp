@@ -3457,6 +3457,7 @@ namespace Js
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {
@@ -4332,6 +4333,7 @@ namespace Js
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {
@@ -4989,6 +4991,7 @@ Case0:
         SETOBJECT_FOR_MUTATION(jsReentLock, args[0]);
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {
@@ -5284,6 +5287,7 @@ Case0:
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {
@@ -5341,6 +5345,7 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {
@@ -5789,6 +5794,7 @@ Case0:
         SETOBJECT_FOR_MUTATION(jsReentLock, args[0]);
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         Var res = scriptContext->GetLibrary()->GetUndefined();
 
@@ -6123,6 +6129,7 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         Var res = scriptContext->GetLibrary()->GetUndefined();
 
@@ -7730,6 +7737,7 @@ Case0:
         SETOBJECT_FOR_MUTATION(jsReentLock, args[0]);
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {
@@ -7857,6 +7865,7 @@ Case0:
         SETOBJECT_FOR_MUTATION(jsReentLock, args[0]);
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         Var res = scriptContext->GetLibrary()->GetUndefined();
 
@@ -8050,6 +8059,7 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {
@@ -8289,6 +8299,7 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {
@@ -8454,6 +8465,7 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {
@@ -8488,6 +8500,7 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {
@@ -8525,6 +8538,7 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {
@@ -8562,6 +8576,7 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {
@@ -8593,6 +8608,7 @@ Case0:
         Assert(!(callInfo.Flags & CallFlags_New));
 
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_every);
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {
@@ -8736,6 +8752,7 @@ Case0:
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_some);
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {
@@ -8877,6 +8894,7 @@ Case0:
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_forEach)
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {
@@ -8970,7 +8988,7 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
         SETOBJECT_FOR_MUTATION(jsReentLock, pArr);
 
-        Assert(args.Info.Count > 0);
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         bool isTypedArrayEntryPoint = typedArrayBase != nullptr;
         JavascriptLibrary* library = scriptContext->GetLibrary();
@@ -9168,7 +9186,7 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
         SETOBJECT_FOR_MUTATION(jsReentLock, pArr);
 
-        Assert(args.Info.Count > 0);
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
@@ -9285,6 +9303,7 @@ Case0:
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_map);
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {
@@ -9557,6 +9576,8 @@ Case0:
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_filter);
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+
         if (args.Info.Count == 0)
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.filter"));
@@ -9689,6 +9710,7 @@ Case0:
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_reduce);
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {
@@ -9859,6 +9881,7 @@ Case0:
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_reduceRight);
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {
@@ -10216,6 +10239,7 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {
@@ -10239,7 +10263,7 @@ Case0:
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
-        Assert(args.Info.Count > 0);
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         // args.Info.Count cannot equal zero or we would have thrown above so no chance of underflowing
         uint32 len = args.Info.Count - 1;

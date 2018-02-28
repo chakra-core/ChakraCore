@@ -285,7 +285,7 @@ namespace Js
     {
         ARGUMENTS(args, callInfo);
 
-        Assert(args.Info.Count > 0);
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         return args[0];
     }

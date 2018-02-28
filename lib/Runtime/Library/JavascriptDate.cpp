@@ -290,6 +290,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -317,6 +318,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -344,6 +346,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -371,6 +374,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -398,6 +402,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -425,6 +430,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -452,6 +458,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -479,6 +486,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -506,6 +514,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -533,6 +542,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -556,6 +566,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -579,6 +590,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -602,6 +614,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -625,6 +638,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -648,6 +662,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -671,6 +686,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -694,6 +710,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -717,6 +734,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -740,6 +758,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -763,6 +782,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -854,6 +874,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -877,6 +898,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -900,6 +922,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -923,6 +946,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -946,6 +970,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -969,6 +994,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -992,6 +1018,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -1013,6 +1040,7 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -1038,6 +1066,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -1050,7 +1079,6 @@ namespace Js
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
-        AssertMsg(args.Info.Count > 0, "Negative argument count");
         double value;
         if (args.Info.Count > 1)
         {
@@ -1078,6 +1106,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -1101,6 +1130,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -1124,6 +1154,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -1147,6 +1178,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -1170,6 +1202,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -1193,6 +1226,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -1216,6 +1250,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -1239,6 +1274,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -1251,7 +1287,6 @@ namespace Js
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
-        AssertMsg(args.Info.Count > 0, "Negative argument count");
         return date->m_date.GetString(
             DateImplementation::DateStringFormat::Default, scriptContext,
             DateImplementation::DateTimeFlag::NoTime);
@@ -1266,6 +1301,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Date_Prototype_toISOString);
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -1278,7 +1314,6 @@ namespace Js
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
-        AssertMsg(args.Info.Count > 0, "Negative argument count");
         return date->m_date.GetISOString(scriptContext);
     }
 
@@ -1290,6 +1325,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {
@@ -1331,6 +1367,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -1367,7 +1404,6 @@ namespace Js
         }
 #endif
 
-        AssertMsg(args.Info.Count > 0, "Negative argument count");
         return date->m_date.GetString(
             DateImplementation::DateStringFormat::Locale, scriptContext,
             DateImplementation::DateTimeFlag::NoTime);
@@ -1381,6 +1417,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -1416,7 +1453,6 @@ namespace Js
         }
 #endif
 
-        AssertMsg(args.Info.Count > 0, "Negative argument count");
         return JavascriptDate::ToLocaleString(date, scriptContext);
     }
 
@@ -1441,6 +1477,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -1476,7 +1513,6 @@ namespace Js
         }
 #endif
 
-        AssertMsg(args.Info.Count > 0, "Negative argument count");
         return date->m_date.GetString(
             DateImplementation::DateStringFormat::Locale, scriptContext,
             DateImplementation::DateTimeFlag::NoDate);
@@ -1490,6 +1526,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -1502,8 +1539,6 @@ namespace Js
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
-
-        AssertMsg(args.Info.Count > 0, "Negative argument count");
         return date->m_date.GetString(
             DateImplementation::DateStringFormat::Default, scriptContext,
             DateImplementation::DateTimeFlag::NoDate);
@@ -1517,6 +1552,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -1529,7 +1565,6 @@ namespace Js
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
-        AssertMsg(args.Info.Count > 0, "Negative argument count");
         return date->m_date.GetString(
             DateImplementation::DateStringFormat::GMT, scriptContext,
             DateImplementation::DateTimeFlag::None);
@@ -1543,6 +1578,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -1555,7 +1591,6 @@ namespace Js
         }
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
-        AssertMsg(args.Info.Count > 0, "Negative argument count");
         double value = date->m_date.GetMilliSeconds();
         return JavascriptNumber::ToVarNoCheck(value, scriptContext);
     }
@@ -1568,6 +1603,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {

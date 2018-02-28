@@ -6250,7 +6250,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     Var JavascriptOperators::NewScObject(const Var callee, const Arguments args, ScriptContext *const scriptContext, const Js::AuxArray<uint32> *spreadIndices)
     {
         Assert(callee);
-        Assert(args.Info.Count != 0);
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(scriptContext);
 
         // Always save and restore implicit call flags when calling out

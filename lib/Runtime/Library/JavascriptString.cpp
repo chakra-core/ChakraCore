@@ -124,7 +124,7 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        AssertMsg(args.Info.Count > 0, "Negative argument count");
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         // SkipDefaultNewObject function flag should have prevented the default object from
         // being created, except when call true a host dispatch.
@@ -839,6 +839,12 @@ case_2:
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+
+        if(args.Info.Count == 0)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedString, _u("String.prototype.concat"));
+        }
 
         //
         // General algorithm:
@@ -855,11 +861,6 @@ case_2:
         // The concat function is intentionally generic; it does not require that its this value be a String object. Therefore it can be transferred to other kinds of objects for use as a method.
         //
 
-        if(args.Info.Count == 0)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedString, _u("String.prototype.concat"));
-        }
-        AssertMsg(args.Info.Count > 0, "Negative argument count");
         if (!JavascriptConversion::CheckObjectCoercible(args[0], scriptContext))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("String.prototype.concat"));
@@ -896,16 +897,17 @@ case_2:
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+
+        if(args.Info.Count == 0)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedString, _u("String.fromCharCode"));
+        }
 
         //
         // Construct a new string instance to contain all of the explicit parameters:
         // - Don't include the 'this' parameter.
         //
-        if(args.Info.Count == 0)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedString, _u("String.fromCharCode"));
-        }
-        AssertMsg(args.Info.Count > 0, "Negative argument count");
 
         int charLength = args.Info.Count - 1;
 
@@ -942,8 +944,7 @@ case_2:
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-
-        AssertMsg(args.Info.Count > 0, "Negative argument count");
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count <= 1)
         {
@@ -1244,11 +1245,12 @@ case_2:
     // 3. ReturnIfAbrupt(S).
     void JavascriptString::GetThisStringArgument(ArgumentReader& args, ScriptContext* scriptContext, const char16* apiNameForErrorMsg, JavascriptString** ppThis)
     {
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+
         if (args.Info.Count == 0)
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedString, apiNameForErrorMsg);
         }
-        AssertMsg(args.Info.Count > 0, "Negative argument count");
 
         JavascriptString * pThis = JavascriptOperators::TryFromVar<JavascriptString>(args[0]);
         if (!pThis)
@@ -1297,12 +1299,12 @@ case_2:
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if(args.Info.Count == 0)
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedString, _u("String.prototype.localeCompare"));
         }
-        AssertMsg(args.Info.Count > 0, "Negative argument count");
 
         JavascriptString * pThis;
         JavascriptString * pThat;
@@ -2059,7 +2061,7 @@ case_2:
     JavascriptString* JavascriptString::PadCore(ArgumentReader& args, JavascriptString *mainString, bool isPadStart, ScriptContext* scriptContext)
     {
         Assert(mainString != nullptr);
-        Assert(args.Info.Count > 0);
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 1)
         {
@@ -2179,12 +2181,12 @@ case_2:
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if(args.Info.Count == 0)
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedString, _u("String.prototype.toString"));
         }
-        AssertMsg(args.Info.Count > 0, "Negative argument count");
 
         JavascriptString* str = nullptr;
         if (!GetThisValueVar(args[0], &str, scriptContext))
@@ -2665,12 +2667,12 @@ case_2:
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if(args.Info.Count == 0)
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedString, _u("String.prototype.valueOf"));
         }
-        AssertMsg(args.Info.Count > 0, "Negative argument count");
 
         JavascriptString* str = nullptr;
         if (!GetThisValueVar(args[0], &str, scriptContext))
@@ -2698,12 +2700,12 @@ case_2:
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedString, _u("String.prototype[Symbol.iterator]"));
         }
-        AssertMsg(args.Info.Count > 0, "Negative argument count");
 
         if (!JavascriptConversion::CheckObjectCoercible(args[0], scriptContext))
         {

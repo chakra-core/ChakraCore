@@ -1297,6 +1297,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !TypedArrayBase::Is(args[0]))
         {
@@ -1322,6 +1323,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !TypedArrayBase::Is(args[0]))
         {
@@ -1351,6 +1353,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !TypedArrayBase::Is(args[0]))
         {
@@ -1380,6 +1383,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !TypedArrayBase::Is(args[0]))
         {
@@ -1419,6 +1423,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         // 1. Let O be the this value.
         // 2. If Type(O) is not Object, return undefined.
@@ -1493,6 +1498,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !TypedArrayBase::Is(args[0]))
         {
@@ -1511,6 +1517,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         // This method is only called in pre-ES6 compat modes. In those modes, we need to throw an error
         // if the this argument is not the same type as our TypedArray template instance.
@@ -1574,6 +1581,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TypedArray_Prototype_subarray);
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !TypedArrayBase::Is(args[0]))
         {

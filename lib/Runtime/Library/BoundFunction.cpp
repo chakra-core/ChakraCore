@@ -120,6 +120,7 @@ namespace Js
     {
         RUNTIME_ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0)
         {

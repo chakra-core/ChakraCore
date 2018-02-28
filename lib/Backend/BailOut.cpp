@@ -1641,7 +1641,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
     if (bailOutRecord->globalBailOutRecordTable->isInlinedConstructor)
     {
         AssertMsg(!executeFunction->IsGenerator(), "Generator functions are not expected to be inlined. If this changes then need to use the real user args here from the generator object");
-        Assert(args.Info.Count != 0);
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         aReturn = Js::JavascriptFunction::FinishConstructor(aReturn, args.Values[0], function);
 
         Js::Var oldValue = aReturn;

@@ -369,6 +369,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !ArrayBuffer::Is(args[0]))
         {
@@ -564,7 +565,7 @@ namespace Js
     {
         ARGUMENTS(args, callInfo);
 
-        Assert(args.Info.Count > 0);
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         return args[0];
     }

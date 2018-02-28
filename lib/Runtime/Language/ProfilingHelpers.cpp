@@ -558,7 +558,7 @@ namespace Js
         const ProfileId arrayProfileId)
     {
         Assert(callee);
-        Assert(args.Info.Count != 0);
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(caller);
         Assert(profileId != Constants::NoProfileId);
         Assert(arrayProfileId != Constants::NoProfileId);
@@ -641,7 +641,7 @@ namespace Js
         const Js::AuxArray<uint32> *spreadIndices)
     {
         Assert(callee);
-        Assert(args.Info.Count != 0);
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(callerFunctionBody);
         Assert(profileId != Constants::NoProfileId);
 

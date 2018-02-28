@@ -664,7 +664,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        Assert(args.Info.Count > 0);
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         PCWSTR const varName = _u("RegExp.prototype.toString");
 
@@ -907,7 +907,7 @@ namespace Js
     {
         ARGUMENTS(args, callInfo);
 
-        Assert(args.Info.Count > 0);
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         return args[0];
     }

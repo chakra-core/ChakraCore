@@ -148,6 +148,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !DataView::Is(args[0]))
         {
@@ -171,6 +172,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !DataView::Is(args[0]))
         {
@@ -223,6 +225,7 @@ namespace Js
         BOOL isLittleEndian = FALSE;
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !DataView::Is(args[0]))
         {
@@ -251,6 +254,7 @@ namespace Js
         BOOL isLittleEndian = FALSE;
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !DataView::Is(args[0]))
         {
@@ -279,6 +283,7 @@ namespace Js
         BOOL isLittleEndian = FALSE;
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !DataView::Is(args[0]))
         {
@@ -307,6 +312,7 @@ namespace Js
         BOOL isLittleEndian = FALSE;
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !DataView::Is(args[0]))
         {
@@ -335,6 +341,7 @@ namespace Js
         BOOL isLittleEndian = FALSE;
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !DataView::Is(args[0]))
         {
@@ -362,6 +369,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !DataView::Is(args[0]))
         {
@@ -386,6 +394,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !DataView::Is(args[0]))
         {
@@ -411,6 +420,7 @@ namespace Js
         BOOL isLittleEndian = FALSE;
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !DataView::Is(args[0]))
         {
@@ -440,6 +450,7 @@ namespace Js
         BOOL isLittleEndian = FALSE;
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !DataView::Is(args[0]))
         {
@@ -469,6 +480,7 @@ namespace Js
         BOOL isLittleEndian = FALSE;
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !DataView::Is(args[0]))
         {
@@ -498,6 +510,7 @@ namespace Js
         BOOL isLittleEndian = FALSE;
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !DataView::Is(args[0]))
         {
@@ -527,6 +540,7 @@ namespace Js
         BOOL isLittleEndian = FALSE;
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !DataView::Is(args[0]))
         {
@@ -556,6 +570,7 @@ namespace Js
         BOOL isLittleEndian = FALSE;
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !DataView::Is(args[0]))
         {
@@ -584,6 +599,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !DataView::Is(args[0]))
         {
@@ -609,6 +625,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !DataView::Is(args[0]))
         {
@@ -638,6 +655,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         if (args.Info.Count == 0 || !DataView::Is(args[0]))
         {

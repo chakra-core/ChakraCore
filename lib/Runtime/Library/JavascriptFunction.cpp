@@ -426,6 +426,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         ///
         /// Check Argument[0] has internal [[Call]] property
@@ -590,6 +591,7 @@ namespace Js
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Function_Prototype_bind);
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         ///
         /// Check Argument[0] has internal [[Call]] property
@@ -1526,8 +1528,8 @@ dbl_align:
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+
         if (args.Info.Count == 0 || !JavascriptFunction::Is(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, _u("Function.prototype.toString"));
