@@ -1129,6 +1129,8 @@ LowererMDArch::LowerWasmArrayBoundsCheck(IR::Instr * instr, IR::Opnd *addrOpnd)
 void
 LowererMDArch::LowerAtomicStore(IR::Opnd * dst, IR::Opnd * src1, IR::Instr * insertBeforeInstr)
 {
+    Assert(IRType_IsNativeInt(dst->GetType()));
+    Assert(IRType_IsNativeInt(src1->GetType()));
     IR::RegOpnd* tmpSrc = IR::RegOpnd::New(dst->GetType(), m_func);
     Lowerer::InsertMove(tmpSrc, src1, insertBeforeInstr);
 
@@ -1140,6 +1142,8 @@ LowererMDArch::LowerAtomicStore(IR::Opnd * dst, IR::Opnd * src1, IR::Instr * ins
 void
 LowererMDArch::LowerAtomicLoad(IR::Opnd * dst, IR::Opnd * src1, IR::Instr * insertBeforeInstr)
 {
+    Assert(IRType_IsNativeInt(dst->GetType()));
+    Assert(IRType_IsNativeInt(src1->GetType()));
     IR::Instr* newMove = Lowerer::InsertMove(dst, src1, insertBeforeInstr);
 
 #if ENABLE_FAST_ARRAYBUFFER
