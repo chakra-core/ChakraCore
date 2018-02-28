@@ -4818,6 +4818,11 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 #endif
         }
 
+        if (result == FALSE && (propertyOperationFlags & PropertyOperation_StrictMode))
+        {
+            JavascriptError::ThrowCantDelete(propertyOperationFlags, scriptContext, GetPropertyDisplayNameForError(index, scriptContext)->GetString());
+        }
+
         return scriptContext->GetLibrary()->CreateBoolean(result);
     }
 
