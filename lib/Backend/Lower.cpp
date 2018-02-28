@@ -5944,7 +5944,7 @@ Lowerer::GenerateFastLdMethodFromFlags(IR::Instr * instrLdFld)
     // Label to jump to (or fall through to) when bailing out
     bailOutLabel = IR::LabelInstr::New(Js::OpCode::Label, instrLdFld->m_func, true /* isOpHelper */);
 
-    instrLdFld->InsertBefore(IR::Instr::New(Js::OpCode::MOV, opndInlineCache, LoadRuntimeInlineCacheOpnd(instrLdFld, propertySymOpnd), this->m_func));
+    InsertMove(opndInlineCache, LoadRuntimeInlineCacheOpnd(instrLdFld, propertySymOpnd), instrLdFld);
     IR::LabelInstr * labelFlagAux = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
     
     // Check the flag cache with the untagged type
