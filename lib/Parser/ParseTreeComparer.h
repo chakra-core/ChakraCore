@@ -16,6 +16,9 @@ namespace Js
     template <class SubClass, class Allocator>
     class ParseTreeComparer : public TreeComparerBase<SubClass, ParseNode>
     {
+    public:
+        using PNode = TreeComparerBase<SubClass, ParseNode>::PNode; // make the type explicit for /permissive-
+
     private:
         static const int TOKENLIST_MAXDIFF_SHIFT = 3; // Used to detect lists of significantly different lengths
 
@@ -205,6 +208,8 @@ namespace Js
     class FunctionTreeComparer : public ParseTreeComparer<FunctionTreeComparer<Allocator>, Allocator>
     {
     public:
+        using PNode = ParseTreeComparer<FunctionTreeComparer<Allocator>, Allocator>::PNode;
+
         FunctionTreeComparer(Allocator* alloc) : ParseTreeComparer(alloc) {}
         FunctionTreeComparer(const FunctionTreeComparer& other) : ParseTreeComparer(other) {}
 

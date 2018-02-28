@@ -698,7 +698,7 @@ namespace Js
         template <typename T>
         static BOOL OP_GetElementI_ArrayFastPath(T * arr, int indexInt, Var * result, ScriptContext * scriptContext);
 
-        static Var JavascriptOperators::GetElementIWithCache(Var instance, RecyclableObject* index, PropertyRecordUsageCache* propertyRecordUsageCache, ScriptContext* scriptContext);
+        static Var GetElementIWithCache(Var instance, RecyclableObject* index, PropertyRecordUsageCache* propertyRecordUsageCache, ScriptContext* scriptContext);
 
         static ImplicitCallFlags  CacheAndClearImplicitBit(ScriptContext* scriptContext);
 
