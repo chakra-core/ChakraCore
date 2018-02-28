@@ -3421,7 +3421,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                     if(instr->GetSrc1()->IsIndirOpnd() && opnd == instr->GetSrc1()->AsIndirOpnd()->GetBaseOpnd())
                     {
                         profiledArrayType = profiledInstr->u.ldElemInfo->GetArrayType();
-                        useAggressiveSpecialization = !profiledInstr->u.ldElemInfo->DisableAggressiveSpecialization();
+                        useAggressiveSpecialization = !profiledInstr->u.ldElemInfo->IsAggressiveSpecializationDisabled();
                     }
                     break;
 
@@ -3431,7 +3431,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                     if(instr->GetDst()->IsIndirOpnd() && opnd == instr->GetDst()->AsIndirOpnd()->GetBaseOpnd())
                     {
                         profiledArrayType = profiledInstr->u.stElemInfo->GetArrayType();
-                        useAggressiveSpecialization = !profiledInstr->u.stElemInfo->DisableAggressiveSpecialization();
+                        useAggressiveSpecialization = !profiledInstr->u.stElemInfo->IsAggressiveSpecializationDisabled();
                     }
                     break;
 
@@ -3439,7 +3439,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                     if(instr->GetSrc1()->IsRegOpnd() && opnd == instr->GetSrc1())
                     {
                         profiledArrayType = profiledInstr->u.LdLenInfo().GetArrayType();
-                        useAggressiveSpecialization = !profiledInstr->u.LdLenInfo().DisableAggressiveSpecialization();
+                        useAggressiveSpecialization = !profiledInstr->u.LdLenInfo().IsAggressiveSpecializationDisabled();
                     }
                     break;
             }

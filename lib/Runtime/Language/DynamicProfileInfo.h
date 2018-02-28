@@ -206,7 +206,7 @@ namespace Js
             return arrayType;
         }
 
-        bool DisableAggressiveSpecialization() const
+        bool IsAggressiveSpecializationDisabled() const
         {
             return disableAggressiveSpecialization;
         }
@@ -261,7 +261,7 @@ namespace Js
             return neededHelperCall;
         }
 
-        bool DisableAggressiveSpecialization() const
+        bool IsAggressiveSpecializationDisabled() const
         {
             return disableAggressiveSpecialization;
         }
@@ -332,7 +332,7 @@ namespace Js
             return storedOutsideArrayBounds;
         }
 
-        bool DisableAggressiveSpecialization() const
+        bool IsAggressiveSpecializationDisabled() const
         {
             return disableAggressiveSpecialization;
         }
