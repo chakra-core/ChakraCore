@@ -284,7 +284,7 @@ namespace Js
             }
         }
 
-        inline char16* Buffer()
+        inline const char16* Buffer()
         {
             if (this->IsChained())
             {
