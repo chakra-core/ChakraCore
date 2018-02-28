@@ -333,10 +333,7 @@ Encoder::Encode()
     pdataCount = 1;
     xdataSize = XDATA_SIZE;
 #elif defined(_M_ARM)
-#pragma warning(push)
-#pragma warning(disable:4244) // warning C4244: 'argument': conversion from 'ptrdiff_t' to 'DWORD', possible loss of data
     pdataCount = (ushort)m_func->m_unwindInfo.GetPDataCount(codeSize);
-#pragma warning(pop)
     xdataSize = (UnwindInfoManager::MaxXdataBytes + 3) * pdataCount;
 #else
     xdataSize = 0;

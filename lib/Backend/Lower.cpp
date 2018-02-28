@@ -4703,6 +4703,8 @@ Lowerer::GenerateCallProfiling(Js::ProfileId profileId, Js::InlineCacheIndex inl
     Assert(callInstr->m_opcode == Js::OpCode::CALL);
 #elif defined(_M_ARM)
     Assert(callInstr->m_opcode == Js::OpCode::BLX);
+#elif defined(_M_ARM64)
+    Assert(callInstr->m_opcode == Js::OpCode::BLR);
 #endif
     Func*const func = insertAfter->m_func;
 
