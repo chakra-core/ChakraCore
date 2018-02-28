@@ -149,6 +149,18 @@ const tests = [
             assert.matches(/1[\x20\u00a0]?%/, format({ style: "percent" }, 0.01));
             assert.matches(/10,000[\x20\u00a0]?%/,format({ style: "percent" }, 100));
         }
+    },
+    {
+        name: "Negative 0",
+        body() {
+            assert.areEqual(
+                0,
+                new Intl.NumberFormat(undefined, { minimumFractionDigits: -0 }).resolvedOptions().minimumFractionDigits,
+                "Passing -0 for minimumFractionDigits should get normalized to 0 by DefaultNumberOption"
+            );
+            // This assert may need to change in the future, pending any decision made on https://github.com/tc39/ecma402/issues/219
+            assert.areEqual("0", (-0).toLocaleString(), "-0 should be formatted as 0");
+        }
     }
 ];
 
