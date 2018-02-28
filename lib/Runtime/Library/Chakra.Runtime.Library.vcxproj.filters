@@ -97,6 +97,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)WabtInterface.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CustomExternalIterator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)VerifyMarkFalseReference.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)AtomicsOperations.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JsBuiltInEngineInterfaceExtensionObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)LazyJSONString.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringifier.cpp" />
@@ -215,6 +216,7 @@
     <ClInclude Include="WabtInterface.h" />
     <ClInclude Include="CustomExternalIterator.h" />
     <ClInclude Include="JavascriptExceptionMetadata.h" />
+    <ClInclude Include="AtomicsOperations.h" />
     <ClInclude Include="..\DetachedStateBase.h" />
     <ClInclude Include="LazyJSONString.h" />
     <ClInclude Include="JSONStringifier.h" />

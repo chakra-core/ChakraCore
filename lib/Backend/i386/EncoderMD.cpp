@@ -630,8 +630,9 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
     IR::Opnd  *opr1;
     IR::Opnd  *opr2;
 
+    uint32 opdope = this->GetOpdope(instr);
     // Canonicalize operands.
-    if (this->GetOpdope(instr) & DDST)
+    if (opdope & DDST)
     {
         opr1 = dst;
         opr2 = src1;
@@ -649,31 +650,37 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
     const uint32 leadIn = EncoderMD::GetLeadIn(instr);
     instrRestart = instrStart = m_pc;
 
-    if (instrSize == 2 && (this->GetOpdope(instr) & (DNO16|DFLT)) == 0)
+    // Emit the lock byte first if needed
+    if (opdope & DLOCK)
+    {
+        *instrRestart++ = 0xf0;
+    }
+
+    if (instrSize == 2 && (opdope & (DNO16|DFLT)) == 0)
     {
         *instrRestart++ = 0x66;
     }
-    if (this->GetOpdope(instr) & D66EX)
+    if (opdope & D66EX)
     {
         if (opr1->IsFloat64() || opr2->IsFloat64())
         {
             *instrRestart++ = 0x66;
         }
     }
-    if (this->GetOpdope(instr) & (DZEROF|DF2|DF3|D66))
+    if (opdope & (DZEROF|DF2|DF3|D66))
     {
-        if (this->GetOpdope(instr) & DZEROF)
+        if (opdope & DZEROF)
         {
         }
-        else if (this->GetOpdope(instr) & DF2)
+        else if (opdope & DF2)
         {
             *instrRestart++ = 0xf2;
         }
-        else if (this->GetOpdope(instr) & DF3)
+        else if (opdope & DF3)
         {
             *instrRestart++ = 0xf3;
         }
-        else if (this->GetOpdope(instr) & D66)
+        else if (opdope & D66)
         {
             *instrRestart++ = 0x66;
         }
@@ -1233,13 +1240,13 @@ modrm:
         }
 
         // if instr has W bit, set it appropriately
-        if ((*form & WBIT) && !(this->GetOpdope(instr) & DFLT) && instrSize != 1)
+        if ((*form & WBIT) && !(opdope & DFLT) && instrSize != 1)
         {
             *opcodeByte |= 0x1; // set WBIT
         }
 
         AssertMsg(m_pc - instrStart <= MachMaxInstrSize, "MachMaxInstrSize not set correctly");
-        if (this->GetOpdope(instr) & DSSE)
+        if (opdope & DSSE)
         {
             // extra imm8 byte for SSE instructions.
             uint valueImm = 0;

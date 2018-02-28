@@ -43,6 +43,7 @@
 #define D66     0x100000 // 0x66 0x0F style WNI form (usually 128-bit DP FP)
 #define DF2     0x200000 /* 0xF2 0x0F style WNI form (usually 64-bit DP FP) */
 #define DREXSRC  0x400000 /* Use src1's size to generate REX byte */
+#define DLOCK   0x800000 /* Prefix the instruction with the lock byte (0xf0) */
 
 // 2nd 3 bits is options
 #define SBIT 0x20
@@ -168,6 +169,7 @@ enum Forms : BYTE
 
 #define OPBYTE_CMPPD    {0xc2}                  // modrm
 #define OPBYTE_CMPPS    {0xc2}                  // modrm
+#define OPBYTE_CMPXCHG8B {0xC7,0xC7}            // special, modrm
 
 #define OPBYTE_COMISD   {0x2F}                   // modrm
 #define OPBYTE_COMISS   {0x2F}                   // modrm

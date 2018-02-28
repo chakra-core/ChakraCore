@@ -5515,6 +5515,18 @@ InterlockedAnd(
 EXTERN_C
 PALIMPORT
 inline
+LONGLONG
+PALAPI
+InterlockedAnd64(
+    IN OUT LONGLONG volatile *Destination,
+    IN LONGLONG Value)
+{
+    return __sync_fetch_and_and(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
 char
 PALAPI
 InterlockedOr8(
@@ -5551,6 +5563,18 @@ InterlockedOr(
 EXTERN_C
 PALIMPORT
 inline
+LONGLONG
+PALAPI
+InterlockedOr64(
+    IN OUT LONGLONG volatile *Destination,
+    IN LONGLONG Value)
+{
+    return __sync_fetch_and_or(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
 char
 PALAPI
 InterlockedXor8(
@@ -5580,6 +5604,18 @@ PALAPI
 InterlockedXor(
     IN OUT LONG volatile *Destination,
     IN LONG Value)
+{
+    return __sync_fetch_and_xor(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+LONGLONG
+PALAPI
+InterlockedXor64(
+    IN OUT LONGLONG volatile *Destination,
+    IN LONGLONG Value)
 {
     return __sync_fetch_and_xor(Destination, Value);
 }

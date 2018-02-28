@@ -282,9 +282,19 @@ LowererMD::LowerAsmJsCallE(IR::Instr * callInstr)
 }
 
 IR::Instr *
-LowererMD::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
+LowererMD::LowerWasmArrayBoundsCheck(IR::Instr * instr, IR::Opnd *addrOpnd)
 {
-    return this->lowererMDArch.LowerWasmMemOp(instr, addrOpnd);
+    return this->lowererMDArch.LowerWasmArrayBoundsCheck(instr, addrOpnd);
+}
+
+void LowererMD::LowerAtomicStore(IR::Opnd * dst, IR::Opnd * src1, IR::Instr * insertBeforeInstr)
+{
+    return this->lowererMDArch.LowerAtomicStore(dst, src1, insertBeforeInstr);
+}
+
+void LowererMD::LowerAtomicLoad(IR::Opnd * dst, IR::Opnd * src1, IR::Instr * insertBeforeInstr)
+{
+    return this->lowererMDArch.LowerAtomicLoad(dst, src1, insertBeforeInstr);
 }
 
 IR::Instr *
@@ -1557,6 +1567,43 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
                 L_Reg | L_Mem | L_Imm32);
             break;
 
+        case Js::OpCode::LOCKCMPXCHG8B:
+        case Js::OpCode::CMPXCHG8B:
+        {
+            const auto getRegMask = [](IR::Opnd* opnd)
+            {
+                Assert(opnd->IsListOpnd());
+                return opnd->AsListOpnd()->Reduce(
+                [](int i, IR::Opnd* opnd) {
+                    Assert(opnd->IsRegOpnd());
+                    return 1 << opnd->AsRegOpnd()->GetReg(); 
+                },
+                [](int i, uint32 regmask, uint32 allReg)
+                {
+                    AssertMsg((allReg & regmask) == 0, "Should not have the same register twice");
+                    return allReg | regmask;
+                }, 0);
+            };
+#if _M_IX86
+            const uint32 dstMask = (1 << RegEAX | 1 << RegEDX);
+            const uint32 srcMask = (1 << RegEAX | 1 << RegEBX | 1 << RegECX | 1 << RegEDX);
+#else
+            const uint32 dstMask = (1 << RegRAX | 1 << RegRDX);
+            const uint32 srcMask = (1 << RegRAX | 1 << RegRBX | 1 << RegRCX | 1 << RegRDX);
+#endif
+
+            AssertMsg(!instr->m_func->isPostFinalLower || !instr->GetDst(), "After FinalLower, there should not be a dst");
+            AssertMsg(instr->m_func->isPostFinalLower || getRegMask(instr->GetDst()) == dstMask,
+                "Before FinalLower, instr should have eax,edx as dst");
+            AssertMsg(!instr->m_func->isPostFinalLower || !instr->GetSrc2(), "After FinalLower, there should not be a src2");
+            AssertMsg(instr->m_func->isPostFinalLower || getRegMask(instr->GetSrc2()) == srcMask,
+                "Before FinalLower, instr should have eax,edx,ecx,ebx as src2");
+            LegalizeSrc<verify>(
+                instr,
+                instr->GetSrc1(),
+                L_Mem);
+            break;
+        }
         case Js::OpCode::TEST:
             if((instr->GetSrc1()->IsImmediateOpnd() && !instr->GetSrc2()->IsImmediateOpnd()) ||
                 (instr->GetSrc2()->IsMemoryOpnd() && !instr->GetSrc1()->IsMemoryOpnd()))
@@ -1983,7 +2030,7 @@ void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const uint fo
     Assert(src == instr->GetSrc1() || src == instr->GetSrc2());
     Assert(forms);
 #ifndef _M_X64
-    AssertMsg(!src->IsInt64(), "Int64 supported only on x64");
+    AssertMsg(!src->IsInt64() || src->IsMemoryOpnd(), "Int64 supported only on x64");
 #endif
     switch(src->GetKind())
     {

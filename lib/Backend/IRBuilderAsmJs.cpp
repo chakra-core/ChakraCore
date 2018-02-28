@@ -1420,64 +1420,20 @@ IRBuilderAsmJs::BuildStartCall(Js::OpCodeAsmJs newOpcode, uint32 offset)
 void
 IRBuilderAsmJs::InitializeMemAccessTypeInfo(Js::ArrayBufferView::ViewType viewType, _Out_ MemAccessTypeInfo * typeInfo)
 {
-    typeInfo->type = TyInt32;
-    typeInfo->valueRegType = WAsmJs::INT32;
-
+    AssertOrFailFast(typeInfo);
+    
     switch (viewType)
     {
-    case Js::ArrayBufferView::TYPE_INT8_TO_INT64:
-        typeInfo->valueRegType = WAsmJs::INT64;
-    case Js::ArrayBufferView::TYPE_INT8:
-        typeInfo->arrayType = ValueType::GetObject(ObjectType::Int8Array);
-        typeInfo->type = TyInt8;
+#define ARRAYBUFFER_VIEW(name, align, RegType, MemType, irSuffix) \
+    case Js::ArrayBufferView::TYPE_##name: \
+        typeInfo->valueRegType = WAsmJs::FromPrimitiveType<RegType>(); \
+        typeInfo->type = Ty##irSuffix;\
+        typeInfo->arrayType = ValueType::GetObject(ObjectType::##irSuffix##Array); \
+        Assert(TySize[Ty##irSuffix] == (1<<align)); \
         break;
-    case Js::ArrayBufferView::TYPE_UINT8_TO_INT64:
-        typeInfo->valueRegType = WAsmJs::INT64;
-    case Js::ArrayBufferView::TYPE_UINT8:
-        typeInfo->arrayType = ValueType::GetObject(ObjectType::Uint8Array);
-        typeInfo->type = TyUint8;
-        break;
-    case Js::ArrayBufferView::TYPE_INT16_TO_INT64:
-        typeInfo->valueRegType = WAsmJs::INT64;
-    case Js::ArrayBufferView::TYPE_INT16:
-        typeInfo->arrayType = ValueType::GetObject(ObjectType::Int16Array);
-        typeInfo->type = TyInt16;
-        break;
-    case Js::ArrayBufferView::TYPE_UINT16_TO_INT64:
-        typeInfo->valueRegType = WAsmJs::INT64;
-    case Js::ArrayBufferView::TYPE_UINT16:
-        typeInfo->arrayType = ValueType::GetObject(ObjectType::Uint16Array);
-        typeInfo->type = TyUint16;
-        break;
-    case Js::ArrayBufferView::TYPE_INT32_TO_INT64:
-        typeInfo->valueRegType = WAsmJs::INT64;
-    case Js::ArrayBufferView::TYPE_INT32:
-        typeInfo->arrayType = ValueType::GetObject(ObjectType::Int32Array);
-        typeInfo->type = TyInt32;
-        break;
-    case Js::ArrayBufferView::TYPE_UINT32_TO_INT64:
-        typeInfo->valueRegType = WAsmJs::INT64;
-    case Js::ArrayBufferView::TYPE_UINT32:
-        typeInfo->arrayType = ValueType::GetObject(ObjectType::Uint32Array);
-        typeInfo->type = TyUint32;
-        break;
-    case Js::ArrayBufferView::TYPE_FLOAT32:
-        typeInfo->valueRegType = WAsmJs::FLOAT32;
-        typeInfo->arrayType = ValueType::GetObject(ObjectType::Float32Array);
-        typeInfo->type = TyFloat32;
-        break;
-    case Js::ArrayBufferView::TYPE_FLOAT64:
-        typeInfo->valueRegType = WAsmJs::FLOAT64;
-        typeInfo->arrayType = ValueType::GetObject(ObjectType::Float64Array);
-        typeInfo->type = TyFloat64;
-        break;
-    case Js::ArrayBufferView::TYPE_INT64:
-        typeInfo->valueRegType = WAsmJs::INT64;
-        typeInfo->arrayType = ValueType::GetObject(ObjectType::Int64Array);
-        typeInfo->type = TyInt64;
-        break;
+#include "Language/AsmJsArrayBufferViews.h"
     default:
-        Assume(UNREACHED);
+        AssertOrFailFast(UNREACHED);
     }
 }
 
@@ -1493,11 +1449,15 @@ IRBuilderAsmJs::BuildWasmMemAccess(Js::OpCodeAsmJs newOpcode, uint32 offset)
 void
 IRBuilderAsmJs::BuildWasmMemAccess(Js::OpCodeAsmJs newOpcode, uint32 offset, uint32 slotIndex, Js::RegSlot value, uint32 constOffset, Js::ArrayBufferView::ViewType viewType)
 {
-    bool isLd = newOpcode == Js::OpCodeAsmJs::LdArrWasm;
-    Js::OpCode op = isLd ? Js::OpCode::LdArrViewElemWasm : Js::OpCode::StArrViewElem;
+    bool isAtomic = newOpcode == Js::OpCodeAsmJs::StArrAtomic || newOpcode == Js::OpCodeAsmJs::LdArrAtomic;
+    bool isLd = newOpcode == Js::OpCodeAsmJs::LdArrWasm || newOpcode == Js::OpCodeAsmJs::LdArrAtomic;
+    Js::OpCode op = isAtomic ? 
+        isLd ? Js::OpCode::LdAtomicWasm : Js::OpCode::StAtomicWasm
+        : isLd ? Js::OpCode::LdArrViewElemWasm : Js::OpCode::StArrViewElem;
 
     MemAccessTypeInfo typeInfo;
     InitializeMemAccessTypeInfo(viewType, &typeInfo);
+    const uint32 memAccessSize = TySize[typeInfo.type];
 
     Js::RegSlot valueRegSlot = GetRegSlotFromTypedReg(value, typeInfo.valueRegType);
     IR::Instr * instr = nullptr;
@@ -1506,6 +1466,22 @@ IRBuilderAsmJs::BuildWasmMemAccess(Js::OpCodeAsmJs newOpcode, uint32 offset, uin
 
     Js::RegSlot indexRegSlot = GetRegSlotFromIntReg(slotIndex);
     IR::RegOpnd * indexOpnd = BuildSrcOpnd(indexRegSlot, TyUint32);
+    if (isAtomic && memAccessSize > 1)
+    {
+        const uint32 mask = memAccessSize - 1;
+        // We need (constOffset + index) & mask == 0
+        // Since we know constOffset ahead of time
+        // what we need to check is index & mask == (memAccessSize - (constOffset & mask)) & mask
+        const uint32 offseted = constOffset & mask;
+        // In this IntContOpnd, the value is what the index&mask should be, the type carries the size of the access
+        IR::Opnd* offsetedOpnd = IR::IntConstOpnd::NewFromType((memAccessSize - offseted) & mask, typeInfo.type, m_func);
+        IR::RegOpnd* intermediateIndex = IR::RegOpnd::New(TyUint32, m_func);
+        instr = IR::Instr::New(Js::OpCode::TrapIfUnalignedAccess, intermediateIndex, indexOpnd, offsetedOpnd, m_func);
+        AddInstr(instr, offset);
+
+        // Create dependency between load/store and trap through the index
+        indexOpnd = intermediateIndex;
+    }
     indirOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::BufferReg, TyVar), constOffset, typeInfo.type, m_func);
     indirOpnd->SetIndexOpnd(indexOpnd);
     indirOpnd->GetBaseOpnd()->SetValueType(typeInfo.arrayType);
@@ -6877,36 +6853,12 @@ IRBuilderAsmJs::BuildAsmSimdTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, u
 
     switch (viewType)
     {
-    case Js::ArrayBufferView::TYPE_INT8:
-        arrayType = ValueType::GetObject(ObjectType::Int8Array);
+#define ARRAYBUFFER_VIEW(name, align, RegType, MemType, irSuffix) \
+    case Js::ArrayBufferView::TYPE_##name: \
+        mask = ARRAYBUFFER_VIEW_MASK(align); \
+        arrayType = ValueType::GetObject(ObjectType::##irSuffix##Array); \
         break;
-    case Js::ArrayBufferView::TYPE_UINT8:
-        arrayType = ValueType::GetObject(ObjectType::Uint8Array);
-        break;
-    case Js::ArrayBufferView::TYPE_INT16:
-        arrayType = ValueType::GetObject(ObjectType::Int16Array);
-        mask = (uint32)~1;
-        break;
-    case Js::ArrayBufferView::TYPE_UINT16:
-        arrayType = ValueType::GetObject(ObjectType::Uint16Array);
-        mask = (uint32)~1;
-        break;
-    case Js::ArrayBufferView::TYPE_INT32:
-        arrayType = ValueType::GetObject(ObjectType::Int32Array);
-        mask = (uint32)~3;
-        break;
-    case Js::ArrayBufferView::TYPE_UINT32:
-        arrayType = ValueType::GetObject(ObjectType::Uint32Array);
-        mask = (uint32)~3;
-        break;
-    case Js::ArrayBufferView::TYPE_FLOAT32:
-        arrayType = ValueType::GetObject(ObjectType::Float32Array);
-        mask = (uint32)~3;
-        break;
-    case Js::ArrayBufferView::TYPE_FLOAT64:
-        arrayType = ValueType::GetObject(ObjectType::Float64Array);
-        mask = (uint32)~7;
-        break;
+#include "Language/AsmJsArrayBufferViews.h"
     default:
         Assert(UNREACHED);
     }

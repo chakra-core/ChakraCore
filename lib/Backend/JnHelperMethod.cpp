@@ -176,6 +176,12 @@ DECLSPEC_GUARDIGNORE  _NOINLINE intptr_t GetNonTableMethodAddress(ThreadContextI
 
     case HelperDirectMath_Tan:
         return ShiftAddr(context, (double(*)(double))__libm_sse2_tan);
+
+    case HelperAtomicStore64:
+        return ShiftAddr(context, (double(*)(double))InterlockedExchange64);
+
+    case HelperMemoryBarrier:
+        return ShiftAddr(context, (void(*)())MemoryBarrier);
 #endif
 
     case HelperDirectMath_FloorDb:

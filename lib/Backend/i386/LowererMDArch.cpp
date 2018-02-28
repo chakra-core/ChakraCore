@@ -888,7 +888,7 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
 }
 
 IR::Instr *
-LowererMDArch::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
+LowererMDArch::LowerWasmArrayBoundsCheck(IR::Instr * instr, IR::Opnd *addrOpnd)
 {
     IR::IndirOpnd * indirOpnd = addrOpnd->AsIndirOpnd();
     IR::RegOpnd * indexOpnd = indirOpnd->GetIndexOpnd();
@@ -920,6 +920,132 @@ LowererMDArch::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
     Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);
 
     return doneLabel;
+}
+
+void
+LowererMDArch::LowerAtomicStore(IR::Opnd * dst, IR::Opnd * src1, IR::Instr * insertBeforeInstr)
+{
+    Assert(IRType_IsNativeInt(dst->GetType()));
+    Assert(IRType_IsNativeInt(src1->GetType()));
+    Func* func = insertBeforeInstr->m_func;
+
+    // Move src1 to a register of the same type as dst
+    IR::RegOpnd* tmpSrc = IR::RegOpnd::New(dst->GetType(), func);
+    Lowerer::InsertMove(tmpSrc, src1, insertBeforeInstr);
+    if (dst->IsInt64())
+    {
+        // todo:: Can do better implementation then InterlockedExchange64 with the following
+        /*
+        mov ebx, tmpSrc.low;
+        mov ecx, tmpSrc.high;
+        ;; Load old value first
+        mov eax, [buffer];
+        mov edx, [buffer+4];
+    tryAgain:
+        ;; CMPXCHG8B doc:
+            ;; Compare EDX:EAX with m64. If equal, set ZF
+            ;; and load ECX:EBX into m64. Else, clear ZF and
+            ;; load m64 into EDX:EAX.
+        lock CMPXCHG8B [buffer]
+        jnz tryAgain
+
+        ;; ZF was set, this means the old value hasn't changed between the load and the CMPXCHG8B
+        ;; so we correctly stored our value atomically
+        
+        // This is a failed attempt to implement this
+        // Review: Should I leave this as a comment or remove ?
+        IR::RegOpnd* ecx = IR::RegOpnd::New(RegECX, TyMachReg, func);
+        IR::RegOpnd* ebx = IR::RegOpnd::New(RegEBX, TyMachReg, func);
+        IR::RegOpnd* eax = IR::RegOpnd::New(RegEAX, TyMachReg, func);
+        IR::RegOpnd* edx = IR::RegOpnd::New(RegEDX, TyMachReg, func);
+        auto dstPair = func->FindOrCreateInt64Pair(dst);
+        auto srcPair = func->FindOrCreateInt64Pair(tmpSrc);
+        Lowerer::InsertMove(ebx, srcPair.low, insertBeforeInstr);
+        Lowerer::InsertMove(ecx, srcPair.high, insertBeforeInstr);
+        Lowerer::InsertMove(eax, dstPair.low, insertBeforeInstr);
+        Lowerer::InsertMove(edx, dstPair.high, insertBeforeInstr);
+
+        IR::LabelInstr* startLoop = IR::LabelInstr::New(Js::OpCode::Label, func);
+        startLoop->m_isLoopTop = true;
+        Loop *loop = JitAnew(this->m_func->m_alloc, Loop, this->m_func->m_alloc, this->m_func);
+        startLoop->SetLoop(loop);
+        loop->SetLoopTopInstr(startLoop);
+        loop->regAlloc.liveOnBackEdgeSyms = JitAnew(func->m_alloc, BVSparse<JitArenaAllocator>, func->m_alloc);
+        loop->regAlloc.liveOnBackEdgeSyms->Set(ebx->m_sym->m_id);
+        loop->regAlloc.liveOnBackEdgeSyms->Set(ecx->m_sym->m_id);
+        loop->regAlloc.liveOnBackEdgeSyms->Set(eax->m_sym->m_id);
+        loop->regAlloc.liveOnBackEdgeSyms->Set(edx->m_sym->m_id);
+        insertBeforeInstr->InsertBefore(startLoop);
+
+        insertBeforeInstr->InsertBefore(IR::Instr::New(Js::OpCode::CMPXCHG8B, nullptr, dstPair.low, func));
+        insertBeforeInstr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JNE, startLoop, func));
+        */
+
+        //////
+        IR::RegOpnd* bufferAddress = IR::RegOpnd::New(TyMachReg, func);
+        IR::Instr* lea = IR::Instr::New(Js::OpCode::LEA, bufferAddress, dst, func);
+        insertBeforeInstr->InsertBefore(lea);
+
+        LoadInt64HelperArgument(insertBeforeInstr, tmpSrc);
+        LoadHelperArgument(insertBeforeInstr, bufferAddress);
+
+        IR::Instr* callInstr = IR::Instr::New(Js::OpCode::Call, func);
+        insertBeforeInstr->InsertBefore(callInstr);
+        lowererMD->ChangeToHelperCall(callInstr, IR::HelperAtomicStore64);
+    }
+    else
+    {
+        // Put tmpSrc as dst to make sure we know that register is modified
+        IR::Instr* xchgInstr = IR::Instr::New(Js::OpCode::XCHG, tmpSrc, tmpSrc, dst, insertBeforeInstr->m_func);
+        insertBeforeInstr->InsertBefore(xchgInstr);
+    }
+}
+
+void
+LowererMDArch::LowerAtomicLoad(IR::Opnd * dst, IR::Opnd * src1, IR::Instr * insertBeforeInstr)
+{
+    Assert(IRType_IsNativeInt(dst->GetType()));
+    Assert(IRType_IsNativeInt(src1->GetType()));
+    Func* func = insertBeforeInstr->m_func;
+
+    if (src1->IsInt64())
+    {
+        /*
+        ;; Zero out all the relevant registers
+        xor ebx, ebx;
+        xor ecx, ecx;
+        xor eax, eax;
+        xor edx, edx;
+        lock CMPXCHG8B [buffer]
+        ;; The value in the buffer is in EDX:EAX
+        */
+
+        IR::RegOpnd* ecx = IR::RegOpnd::New(RegECX, TyMachReg, func);
+        IR::RegOpnd* ebx = IR::RegOpnd::New(RegEBX, TyMachReg, func);
+        IR::RegOpnd* eax = IR::RegOpnd::New(RegEAX, TyMachReg, func);
+        IR::RegOpnd* edx = IR::RegOpnd::New(RegEDX, TyMachReg, func);
+
+        IR::IntConstOpnd* zero = IR::IntConstOpnd::New(0, TyMachReg, func);
+        Lowerer::InsertMove(ebx, zero, insertBeforeInstr);
+        Lowerer::InsertMove(ecx, zero, insertBeforeInstr);
+        Lowerer::InsertMove(eax, zero, insertBeforeInstr);
+        Lowerer::InsertMove(edx, zero, insertBeforeInstr);
+
+        IR::ListOpnd* deps = IR::ListOpnd::New(func, eax, ebx, ecx, edx);
+        IR::ListOpnd* dsts = IR::ListOpnd::New(func, eax, edx);
+        IR::Instr* cmpxchg = IR::Instr::New(Js::OpCode::LOCKCMPXCHG8B, dsts, src1, deps, func);
+        insertBeforeInstr->InsertBefore(cmpxchg);
+        Int64RegPair dstPair = func->FindOrCreateInt64Pair(dst);
+        Lowerer::InsertMove(dstPair.low, eax, insertBeforeInstr);
+        Lowerer::InsertMove(dstPair.high, edx, insertBeforeInstr);
+    }
+    else
+    {
+        IR::Instr* callInstr = IR::Instr::New(Js::OpCode::Call, func);
+        insertBeforeInstr->InsertBefore(callInstr);
+        lowererMD->ChangeToHelperCall(callInstr, IR::HelperMemoryBarrier);
+        Lowerer::InsertMove(dst, src1, insertBeforeInstr);
+    }
 }
 
 IR::Instr*
@@ -1391,25 +1517,9 @@ LowererMDArch::LoadDynamicArgument(IR::Instr * instr, uint argNumber /*ignore fo
 IR::Instr *
 LowererMDArch::LoadInt64HelperArgument(IR::Instr * instrInsert, IR::Opnd * opndArg)
 {
-    IR::RegOpnd * espOpnd = IR::RegOpnd::New(nullptr, this->GetRegStackPointer(), TyMachReg, this->m_func);
-
-    IR::Opnd * opnd = IR::IndirOpnd::New(espOpnd, -8, TyMachReg, this->m_func);
-    IR::Instr * instrPrev = IR::Instr::New(Js::OpCode::LEA, espOpnd, opnd, this->m_func);
-    instrInsert->InsertBefore(instrPrev);
-
     Int64RegPair argPair = m_func->FindOrCreateInt64Pair(opndArg);
-
-    opnd = IR::IndirOpnd::New(espOpnd, 0, TyInt32, this->m_func);
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::MOV, opnd, argPair.low, this->m_func);
-    instrInsert->InsertBefore(instr);
-    LowererMD::Legalize(instr);
-
-    opnd = IR::IndirOpnd::New(espOpnd, 4, TyInt32, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::MOV, opnd, argPair.high, this->m_func);
-    instrInsert->InsertBefore(instr);
-    LowererMD::Legalize(instr);
-
-    return instrPrev;
+    LoadHelperArgument(instrInsert, argPair.high);
+    return LoadHelperArgument(instrInsert, argPair.low);
 }
 
 IR::Instr *
@@ -3972,6 +4082,12 @@ LowererMDArch::FinalLower()
                 instr->SwapOpnds();
                 instr->FreeSrc2();
             }
+            break;
+        case Js::OpCode::LOCKCMPXCHG8B:
+        case Js::OpCode::CMPXCHG8B:
+            // Get rid of the deps and srcs
+            instr->FreeDst();
+            instr->FreeSrc2();
             break;
         }
     }

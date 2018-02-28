@@ -580,8 +580,10 @@ namespace Js
         switch (op)
         {
         case OpCodeAsmJs::LdArrWasm:
+        case OpCodeAsmJs::LdArrAtomic:
             Output::Print(_u(" %c%d = %s[I%d + %d]"), tag.valueTag, data->Value, tag.heapTag, data->SlotIndex, data->Offset); break;
         case OpCodeAsmJs::StArrWasm:
+        case OpCodeAsmJs::StArrAtomic:
             Output::Print(_u(" %s[I%d + %d] = %c%d"), tag.heapTag, data->SlotIndex, data->Offset, tag.valueTag, data->Value); break;
         default:
             Assume(UNREACHED);
