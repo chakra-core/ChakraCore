@@ -1450,4 +1450,10 @@
     <compile-flags>-force:deferparse</compile-flags>
   </default>
 </test>
+<test>
+  <default>
+    <files>supersetter.js</files>
+    <baseline>supersetter.baseline</baseline>
+  </default>
+</test>
 </regress-exe>

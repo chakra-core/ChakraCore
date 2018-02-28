@@ -1,0 +1,2 @@
+goodbye
+hello
