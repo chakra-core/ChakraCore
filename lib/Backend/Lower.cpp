@@ -8696,11 +8696,13 @@ void Lowerer::LowerProfiledLdElemI(IR::JitProfilingInstr *const instr)
             const Var varIndex,
             FunctionBody *const functionBody,
             const ProfileId profileId,
-            bool didArrayAccessHelperCall)
+            bool didArrayAccessHelperCall,
+            bool bailedOutOnArraySpecialization)
     */
 
     Func *const func = instr->m_func;
 
+    m_lowererMD.LoadHelperArgument(instr, IR::IntConstOpnd::New(false, TyInt8, func));
     m_lowererMD.LoadHelperArgument(instr, IR::IntConstOpnd::New(false, TyInt8, func));
     m_lowererMD.LoadHelperArgument(instr, IR::Opnd::CreateProfileIdOpnd(instr->profileId, func));
     m_lowererMD.LoadHelperArgument(instr, CreateFunctionBodyOpnd(func));
@@ -8731,7 +8733,8 @@ void Lowerer::LowerProfiledStElemI(IR::JitProfilingInstr *const instr, const Js:
             FunctionBody *const functionBody,
             const ProfileId profileId,
             const PropertyOperationFlags flags,
-            bool didArrayAccessHelperCall)
+            bool didArrayAccessHelperCall,
+            bool bailedOutOnArraySpecialization)
     */
 
     Func *const func = instr->m_func;
@@ -8744,6 +8747,7 @@ void Lowerer::LowerProfiledStElemI(IR::JitProfilingInstr *const instr, const Js:
     else
     {
         helper = IR::HelperProfiledStElem;
+        m_lowererMD.LoadHelperArgument(instr, IR::IntConstOpnd::New(false, TyInt8, func));
         m_lowererMD.LoadHelperArgument(instr, IR::IntConstOpnd::New(false, TyInt8, func));
         m_lowererMD.LoadHelperArgument(instr, IR::IntConstOpnd::New(flags, TyInt32, func, true));
     }

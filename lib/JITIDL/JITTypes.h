@@ -243,6 +243,8 @@ typedef struct ArrayCallSiteIDL
 typedef struct LdLenIDL
 {
     unsigned short arrayType;
+    byte bits;
+    IDL_PAD1(0)
 } LdLenIDL;
 
 typedef struct LdElemIDL

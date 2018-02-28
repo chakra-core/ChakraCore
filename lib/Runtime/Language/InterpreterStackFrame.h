@@ -28,6 +28,7 @@ namespace Js
         InterpreterStackFrameFlags_ProcessingBailOutOnArrayAccessHelperCall = 0x10,
         InterpreterStackFrameFlags_ProcessingBailOutFromEHCode = 0x20,
         InterpreterStackFrameFlags_FromBailOutInInlinee = 0x40,
+        InterpreterStackFrameFlags_ProcessingBailOutOnArraySpecialization = 0x80,
         InterpreterStackFrameFlags_All = 0xFFFF,
     };
 

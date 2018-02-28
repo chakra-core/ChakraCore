@@ -3406,20 +3406,22 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
     {
         ValueType valueType(val->GetValueInfo()->Type());
 
-        // This block uses local profiling data to optimize the case of a native array being passed to a function that fills it with other types. When the function is inlined
-        // into different call paths which use different types this can cause a perf hit by performing unnecessary array conversions, so only perform this optimization when
-        // the function is not inlined.
-        if (valueType.IsLikelyNativeArray() && !valueType.IsObject() && instr->IsProfiledInstr() && !instr->m_func->IsInlined())
+        // This block uses per-instruction profile information on array types to optimize using the best available profile
+        // information and to prevent infinite bailouts by ensuring array type information is updated on bailouts.
+        if (valueType.IsLikelyArray() && !valueType.IsObject() && instr->IsProfiledInstr())
         {
             // See if we have profile data for the array type
             IR::ProfiledInstr *const profiledInstr = instr->AsProfiledInstr();
             ValueType profiledArrayType;
+
+            bool useAggressiveSpecialization = true;
             switch(instr->m_opcode)
             {
                 case Js::OpCode::LdElemI_A:
                     if(instr->GetSrc1()->IsIndirOpnd() && opnd == instr->GetSrc1()->AsIndirOpnd()->GetBaseOpnd())
                     {
                         profiledArrayType = profiledInstr->u.ldElemInfo->GetArrayType();
+                        useAggressiveSpecialization = !profiledInstr->u.ldElemInfo->IsAggressiveSpecializationDisabled();
                     }
                     break;
 
@@ -3429,6 +3431,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                     if(instr->GetDst()->IsIndirOpnd() && opnd == instr->GetDst()->AsIndirOpnd()->GetBaseOpnd())
                     {
                         profiledArrayType = profiledInstr->u.stElemInfo->GetArrayType();
+                        useAggressiveSpecialization = !profiledInstr->u.stElemInfo->IsAggressiveSpecializationDisabled();
                     }
                     break;
 
@@ -3436,16 +3439,28 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                     if(instr->GetSrc1()->IsRegOpnd() && opnd == instr->GetSrc1())
                     {
                         profiledArrayType = profiledInstr->u.LdLenInfo().GetArrayType();
+                        useAggressiveSpecialization = !profiledInstr->u.LdLenInfo().IsAggressiveSpecializationDisabled();
                     }
                     break;
             }
-            if(profiledArrayType.IsLikelyObject() &&
-                profiledArrayType.GetObjectType() == valueType.GetObjectType() &&
-                (profiledArrayType.HasVarElements() || (valueType.HasIntElements() && profiledArrayType.HasFloatElements())))
+
+            if (profiledArrayType.IsLikelyObject() && profiledArrayType.GetObjectType() == valueType.GetObjectType())
             {
-                // Merge array type we pulled from profile with type propagated by dataflow.
-                valueType = valueType.Merge(profiledArrayType).SetHasNoMissingValues(valueType.HasNoMissingValues());
-                ChangeValueType(this->currentBlock, CurrentBlockData()->FindValue(opnd->AsRegOpnd()->m_sym), valueType, false);
+                // Ideally we want to use the most specialized type seen by this path, but when that causes bailouts use the least specialized type instead.
+                if (useAggressiveSpecialization && !valueType.IsLikelyNativeIntArray() &&
+                    (profiledArrayType.HasIntElements() || (valueType.HasVarElements() && profiledArrayType.HasFloatElements())))
+                {
+                    // use the more specialized type profiled by the instruction.
+                    valueType = profiledArrayType.SetHasNoMissingValues(valueType.HasNoMissingValues());
+                    ChangeValueType(this->currentBlock, CurrentBlockData()->FindValue(opnd->AsRegOpnd()->m_sym), valueType, false);
+                }
+                else if (!useAggressiveSpecialization && valueType.IsLikelyNativeArray() &&
+                    (profiledArrayType.HasVarElements() || (valueType.HasIntElements() && profiledArrayType.HasFloatElements())))
+                {
+                    // Merge array type we pulled from profile with type propagated by dataflow.
+                    valueType = valueType.Merge(profiledArrayType).SetHasNoMissingValues(valueType.HasNoMissingValues());
+                    ChangeValueType(this->currentBlock, CurrentBlockData()->FindValue(opnd->AsRegOpnd()->m_sym), valueType, false);
+                }
             }
         }
 
@@ -13391,11 +13406,9 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                 if (!baseValueInLoopLandingPad->GetValueInfo()->CanMergeToSpecificObjectType())
                 {
                     ValueType landingPadValueType = baseValueInLoopLandingPad->GetValueInfo()->Type();
-                    Assert(landingPadValueType.IsSimilar(baseValueType) ||
-                        (
-                            landingPadValueType.IsLikelyNativeArray() &&
-                            landingPadValueType.Merge(baseValueType).IsSimilar(baseValueType)
-                        )
+                    Assert(landingPadValueType.IsSimilar(baseValueType) 
+                        || (landingPadValueType.IsLikelyNativeArray() && landingPadValueType.Merge(baseValueType).IsSimilar(baseValueType))
+                        || (baseValueType.IsLikelyNativeArray() && baseValueType.Merge(landingPadValueType).IsSimilar(landingPadValueType))
                     );
                 }
 #endif
