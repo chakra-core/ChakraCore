@@ -490,7 +490,6 @@ goto :main
   set _rlArgs=%_rlArgs% %_exclude_forcedeferparse%
   set _rlArgs=%_rlArgs% %_exclude_nodeferparse%
   set _rlArgs=%_rlArgs% %_exclude_forceundodefer%
-  set _rlArgs=%_rlArgs% %_ExcludeApolloTests%
   set _rlArgs=%_rlArgs% %_NoProgramOutput%
   set _rlArgs=%_rlArgs% %_OnlyAssertOutput%
   set _rlArgs=%_rlArgs% %_quiet%
