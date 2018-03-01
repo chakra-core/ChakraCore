@@ -909,6 +909,11 @@ bool WScriptJsrt::Initialize()
 #else
     const char* LINK_TYPE = "shared";
 #endif
+#ifdef HAS_ICU
+    int icuVersion = PlatformAgnostic::ICUHelpers::GetICUMajorVersion();
+#else
+    int icuVersion = -1;
+#endif
 
     JsValueRef wscript;
     IfJsrtErrorFail(ChakraRTInterface::JsCreateObject(&wscript), false);
@@ -1005,7 +1010,7 @@ bool WScriptJsrt::Initialize()
     JsPropertyIdRef icuVersionProp;
     IfJsrtErrorFail(CreatePropertyIdFromString("ICU_VERSION", &icuVersionProp), false);
     JsValueRef icuVersionNum;
-    IfJsrtErrorFail(ChakraRTInterface::JsIntToNumber(ICU_VERSION, &icuVersionNum), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsIntToNumber(icuVersion, &icuVersionNum), false);
     IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(platformObject, icuVersionProp, icuVersionNum, true), false);
 
     IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(wscript, platformProperty,

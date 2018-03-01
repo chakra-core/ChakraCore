@@ -34,10 +34,7 @@
     <ClInclude Include="IPlatformAgnosticResource.h">
       <Filter>Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="ICU.h">
-      <Filter>Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="Intl.h">
+    <ClInclude Include="ChakraICU.h">
       <Filter>Interfaces</Filter>
     </ClInclude>
   </ItemGroup>

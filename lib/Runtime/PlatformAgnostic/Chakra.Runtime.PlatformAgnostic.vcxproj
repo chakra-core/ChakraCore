@@ -57,7 +57,7 @@
     <ClInclude Include="PerfTrace.h" />
     <ClInclude Include="RuntimePlatformAgnosticPch.h" />
     <ClInclude Include="UnicodeText.h" />
-    <ClInclude Include="ICU.h" Condition="'$(UseICU)'=='true'" />
+    <ClInclude Include="ChakraICU.h" Condition="'$(UseICU)'=='true'" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\JITIDL\Chakra.JITIDL.vcxproj">
