@@ -1222,7 +1222,7 @@
       <files>ArrayCheckHoist.js</files>
       <baseline>ArrayCheckHoist_NoBailout.baseline</baseline>
       <compile-flags>-noNative -dynamicprofilecache:profile.dpl.ArrayCheckHoist.js</compile-flags>
-      <tags>exclude_dynapogo,exclude_serialized,exclude_default,Slow</tags>
+      <tags>exclude_dynapogo,exclude_serialized,Slow</tags>
       <timeout>300</timeout>
     </default>
   </test>
@@ -1258,7 +1258,7 @@
       <files>BoundCheckElimination.js</files>
       <baseline>BoundCheckElimination.baseline</baseline>
       <compile-flags>-bgJit- -minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -off:bailOnNoProfile -testTrace:boundCheckElimination -testTrace:boundCheckHoist</compile-flags>
-      <tags>exclude_dynapogo,exclude_serialized,exclude_default,exclude_nonative,exclude_arm64</tags>
+      <tags>exclude_dynapogo,exclude_serialized,exclude_nonative,exclude_arm64</tags>
     </default>
   </test>
   <test>
