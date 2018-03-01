@@ -231,7 +231,7 @@ def CreateStyleCheckTasks = { taskString, taskName, checkName ->
 // INNER LOOP TASKS
 // ----------------
 
-CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, null, "-winBlue", true, null, null)
+CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, null, null, "-winBlue", true, null, null)
 
 // Add some additional daily configs to trigger per-PR as a quality gate:
 // x64_debug Slow Tests
