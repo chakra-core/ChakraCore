@@ -9,7 +9,7 @@
   <test>
     <default>
       <files>array_qsortr.js</files>
-      <tags>exclude_jshost</tags>
+      <tags>exclude_windows</tags>
     </default>
   </test>
   <test>

@@ -155,6 +155,8 @@ if sys.platform != 'win32':
     not_tags.add('exclude_xplat')
     not_tags.add('require_winglob')
     not_tags.add('require_simd')
+else:
+    not_tags.add('exclude_windows')
 
 if args.sanitize != None:
     not_tags.add('exclude_sanitize_'+args.sanitize)

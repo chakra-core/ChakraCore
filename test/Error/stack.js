@@ -9,8 +9,8 @@ function printError(e) {
     print(e.description);
 }
 
-var isMac = (WScript.Platform && WScript.Platform.OS == 'darwin');
-var isWin = (WScript.Platform && WScript.Platform.OS == 'win32');
+var isMac = (WScript.Platform.OS === 'darwin');
+var isWin = (WScript.Platform.OS === 'win32');
 
 var expects = [
     '#1', // 0
