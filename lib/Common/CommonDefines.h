@@ -110,6 +110,19 @@
 #define ENABLE_UNICODE_API 1                        // Enable use of Unicode-related APIs
 #endif
 
+// Normalize ICU_VERSION which is set by the build system on Windows
+// because U_ICU_VERSION_MAJOR_NUM is not available in Windows Kit ICU
+#if defined(HAS_ICU) && !defined(ICU_VERSION)
+#ifndef WINDOWS10_ICU
+#include "unicode/uvernum.h"
+#define ICU_VERSION U_ICU_VERSION_MAJOR_NUM
+#else
+#error "No ICU version information"
+#endif
+#else
+#define ICU_VERSION -1
+#endif
+
 // ICU Configuration
 #if defined(HAS_ICU) || defined(HAS_REAL_ICU)
 #define U_SHOW_CPLUSPLUS_API 0

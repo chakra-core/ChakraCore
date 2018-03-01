@@ -20,28 +20,20 @@ using namespace Windows::Globalization;
 
 #ifdef INTL_ICU
 #include <CommonPal.h>
-#include "PlatformAgnostic/IPlatformAgnosticResource.h"
-using namespace PlatformAgnostic::Resource;
 #include "PlatformAgnostic/ICU.h"
 using namespace PlatformAgnostic::ICUHelpers;
 
+template<typename ICUFunc>
+static void RecyclerExecuteICUWithRetry(_In_ ICUFunc func, _In_ Recycler *recycler, _Out_writes_opt_(returnLen) char16 **ret, _Out_ int *returnLen, _In_ int firstTryLength = 32)
+{
+    bool success = ExecuteICUWithRetry<char16, ICUFunc>([&](int length) {
+        return RecyclerNewArrayLeaf(recycler, char16, length);
+    }, func, firstTryLength, ret, returnLen);
+    AssertOrFailFastMsg(success, "Could not allocate buffer for ICU call");
+}
+
 #define ICU_ERROR_FMT _u("INTL: %S failed with error code %S\n")
 #define ICU_EXPR_FMT _u("INTL: %S failed expression check %S\n")
-
-// Different assertion code is used in ChakraFull that enforces that messages are char literals
-#ifdef _CHAKRACOREBUILD
-#define ICU_ERRORMESSAGE(e) u_errorName(e)
-#else
-#define ICU_ERRORMESSAGE(e) "Bad status returned from ICU"
-#endif
-
-#ifdef INTL_ICU_DEBUG
-#define ICU_DEBUG_PRINT(fmt, msg) Output::Print(fmt, __func__, (msg))
-#else
-#define ICU_DEBUG_PRINT(fmt, msg)
-#endif
-
-#define ICU_FAILURE(e) (U_FAILURE(e) || e == U_STRING_NOT_TERMINATED_WARNING)
 
 #define ICU_ASSERT(e, expr)                                                   \
     do                                                                        \
@@ -59,7 +51,8 @@ using namespace PlatformAgnostic::ICUHelpers;
     } while (false)
 
 #define BCP47_TO_ICU(langtag, langtagLen, localeID, localeIDLen)              \
-    do {                                                                      \
+    do                                                                        \
+    {                                                                         \
         UErrorCode __status = U_ZERO_ERROR;                                   \
         utf8::WideToNarrow __lt((langtag), (langtagLen));                     \
         int32_t __len = 0;                                                    \
@@ -67,10 +60,59 @@ using namespace PlatformAgnostic::ICUHelpers;
         ICU_ASSERT(__status, __len > 0 && __len < localeIDLen);               \
     } while (false)
 
+#define ASSERT_ENUM(T, e)                                                     \
+    do                                                                        \
+    {                                                                         \
+        if ((int)(e) < 0 || (e) >= T::Max)                                    \
+        {                                                                     \
+            AssertMsg(false, #e " of type " #T " has an invalid value");      \
+        }                                                                     \
+    } while (false)
+
 #endif // INTL_ICU
 
-#include "PlatformAgnostic/Intl.h"
-using namespace PlatformAgnostic::Intl;
+// NOTE(jahorto): Keep these enums in sync with those by the same name in Intl.js
+// These enums are used by both WinGlob- and ICU-backed Intl
+enum class NumberFormatStyle
+{
+    Decimal, // Intl.NumberFormat(locale, { style: "decimal" }); // aka in our code as "number"
+    Percent, // Intl.NumberFormat(locale, { style: "percent" });
+    Currency, // Intl.NumberFormat(locale, { style: "currency", ... });
+
+    Max,
+    Default = Decimal,
+};
+
+enum class NumberFormatCurrencyDisplay
+{
+    Symbol, // Intl.NumberFormat(locale, { style: "currency", currencyDisplay: "symbol" }); // e.g. "$" or "US$" depeding on locale
+    Code, // Intl.NumberFormat(locale, { style: "currency", currencyDisplay: "code" }); // e.g. "USD"
+    Name, // Intl.NumberFormat(locale, { style: "currency", currencyDisplay: "name" }); // e.g. "US dollar"
+
+    Max,
+    Default = Symbol,
+};
+
+enum class CollatorSensitivity
+{
+    Base,
+    Accent,
+    Case,
+    Variant,
+
+    Max,
+    Default = Variant,
+};
+
+enum class CollatorCaseFirst
+{
+    Upper,
+    Lower,
+    False,
+
+    Max,
+    Default = False,
+};
 
 #pragma warning(push)
 #pragma warning(disable:4309) // truncation of constant value
@@ -261,53 +303,6 @@ namespace Js
 
 #elif defined(INTL_ICU)
 
-    template<typename T>
-    class AutoIcuJsObject : public FinalizableObject
-    {
-    private:
-        FieldNoBarrier(T *) instance;
-
-    public:
-        DEFINE_VTABLE_CTOR_NOBASE(AutoIcuJsObject<T>);
-
-        AutoIcuJsObject(T *object)
-            : instance(object)
-        { }
-
-        static AutoIcuJsObject<T> * New(Recycler *recycler, T *object)
-        {
-            return RecyclerNewFinalized(recycler, AutoIcuJsObject<T>, object);
-        }
-
-        void Finalize(bool isShutdown) override
-        {
-        }
-
-        void Dispose(bool isShutdown) override
-        {
-            if (!isShutdown)
-            {
-                // Here we use Cleanup() because we can't rely on delete (not dealing with virtual destructors).
-                // The template thus requires that the type implement the Cleanup function.
-                instance->Cleanup(); // e.g. deletes the object held in the IPlatformAgnosticResource
-
-                // REVIEW (doilij): Is cleanup in this way necessary or are the trivial destructors enough, assuming Cleanup() has been called?
-                // Note: delete here introduces a build break on Linux complaining of non-virtual dtor
-                // delete instance; // deletes the instance itself
-                // instance = nullptr;
-            }
-        }
-
-        void Mark(Recycler *recycler) override
-        {
-        }
-
-        T * GetInstance()
-        {
-            return instance;
-        }
-    };
-
     template<typename TResource, void(__cdecl * CloseFunction)(TResource)>
     class FinalizableICUObject : public FinalizableObject
     {
@@ -352,6 +347,8 @@ namespace Js
         }
     };
     typedef FinalizableICUObject<UNumberFormat *, unum_close> FinalizableUNumberFormat;
+    typedef FinalizableICUObject<UDateFormat *, udat_close> FinalizableUDateFormat;
+    typedef FinalizableICUObject<UFieldPositionIterator *, ufieldpositer_close> FinalizableUFieldPositionIterator;
 #endif
 
     IntlEngineInterfaceExtensionObject::IntlEngineInterfaceExtensionObject(Js::ScriptContext* scriptContext) :
@@ -1184,15 +1181,33 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
+#ifdef INTL_WINGLOB
         char16 defaultLocale[LOCALE_NAME_MAX_LENGTH];
         defaultLocale[0] = '\0';
 
         if (GetUserDefaultLocaleName(defaultLocale, _countof(defaultLocale)) == 0)
         {
-            return scriptContext->GetLibrary()->GetUndefined();
+            JavascriptError::MapAndThrowError(scriptContext, HRESULT_FROM_WIN32(GetLastError()));
         }
 
         return JavascriptString::NewCopySz(defaultLocale, scriptContext);
+#else
+        UErrorCode status = U_ZERO_ERROR;
+        char defaultLangtag[ULOC_FULLNAME_CAPACITY] = { 0 };
+        char defaultLocaleID[ULOC_FULLNAME_CAPACITY] = { 0 };
+
+        int localeIDActual = uloc_getName(nullptr, defaultLocaleID, _countof(defaultLocaleID), &status);
+        ICU_ASSERT(status, localeIDActual > 0 && localeIDActual < _countof(defaultLocaleID));
+
+        int langtagActual = uloc_toLanguageTag(defaultLocaleID, defaultLangtag, _countof(defaultLangtag), true, &status);
+        ICU_ASSERT(status, langtagActual > 0 && langtagActual < _countof(defaultLangtag));
+
+        char16 *defaultLangtag16 = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, langtagActual + 1);
+        charcount_t defaultLangtag16Actual = 0;
+        utf8::NarrowStringToWideNoAlloc(defaultLangtag, static_cast<size_t>(langtagActual), defaultLangtag16, langtagActual + 1, &defaultLangtag16Actual);
+        AssertOrFailFastMsg(defaultLangtag16Actual == static_cast<size_t>(langtagActual), "Language tags should always be ASCII");
+        return JavascriptString::NewWithBuffer(defaultLangtag16, defaultLangtag16Actual, scriptContext);
+#endif
     }
 
     Var IntlEngineInterfaceExtensionObject::EntryIntl_GetExtensions(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1640,17 +1655,118 @@ namespace Js
     }
 #endif
 
+#ifdef INTL_ICU
+    static int CompareStringICU(_In_opt_count_(langtagLen) const char16 *langtag, _In_ charcount_t langtagLen, _In_z_ const char16 *left, _In_ charcount_t cchLeft, _In_z_ const char16 *right, _In_ charcount_t cchRight,
+        _In_ CollatorSensitivity sensitivity, _In_ bool ignorePunctuation, _In_ bool numeric, _In_ CollatorCaseFirst caseFirst, _Out_ HRESULT *hr)
+    {
+        ASSERT_ENUM(CollatorSensitivity, sensitivity);
+        ASSERT_ENUM(CollatorCaseFirst, caseFirst);
+        Assert(left != nullptr && right != nullptr && hr != nullptr);
+        int ret = 0;
+        *hr = E_INVALIDARG;
+        UErrorCode error = U_ZERO_ERROR;
+
+        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        int32_t length = 0;
+        if (langtag == nullptr)
+        {
+            length = uloc_getName(nullptr, localeID, _countof(localeID), &error);
+        }
+        else
+        {
+            char langtag8[ULOC_FULLNAME_CAPACITY] = { 0 };
+            AssertOrFailFast(utf8::WideStringToNarrowNoAlloc(langtag, langtagLen, langtag8, _countof(langtag8)) == S_OK);
+            uloc_forLanguageTag(langtag8, localeID, _countof(localeID), &length, &error);
+        }
+        ICU_ASSERT(error, length > 0);
+
+        ScopedUCollator collator(ucol_open(localeID, &error));
+        ICU_ASSERT(error, true);
+
+        if (sensitivity == CollatorSensitivity::Base)
+        {
+            ucol_setStrength(collator, UCOL_PRIMARY);
+        }
+        else if (sensitivity == CollatorSensitivity::Accent)
+        {
+            ucol_setStrength(collator, UCOL_SECONDARY);
+        }
+        else if (sensitivity == CollatorSensitivity::Case)
+        {
+            // see "description" for the caseLevel default option: http://userguide.icu-project.org/collation/customization
+            ucol_setStrength(collator, UCOL_PRIMARY);
+            ucol_setAttribute(collator, UCOL_CASE_LEVEL, UCOL_ON, &error);
+            ICU_ASSERT(error, true);
+        }
+        else if (sensitivity == CollatorSensitivity::Variant)
+        {
+            ucol_setStrength(collator, UCOL_TERTIARY);
+        }
+        else
+        {
+            AssertOrFailFastMsg(false, "sensitivity is not one of the CollatorSensitivity values");
+        }
+
+        if (ignorePunctuation)
+        {
+            // see http://userguide.icu-project.org/collation/customization/ignorepunct
+            ucol_setAttribute(collator, UCOL_ALTERNATE_HANDLING, UCOL_SHIFTED, &error);
+            ICU_ASSERT(error, true);
+        }
+
+        if (numeric)
+        {
+            ucol_setAttribute(collator, UCOL_NUMERIC_COLLATION, UCOL_ON, &error);
+            ICU_ASSERT(error, true);
+        }
+
+        if (caseFirst == CollatorCaseFirst::Upper)
+        {
+            ucol_setAttribute(collator, UCOL_CASE_FIRST, UCOL_UPPER_FIRST, &error);
+            ICU_ASSERT(error, true);
+        }
+        else if (caseFirst == CollatorCaseFirst::Lower)
+        {
+            ucol_setAttribute(collator, UCOL_CASE_FIRST, UCOL_LOWER_FIRST, &error);
+            ICU_ASSERT(error, true);
+        }
+
+        *hr = S_OK;
+        UCollationResult result = ucol_strcoll(collator, reinterpret_cast<const UChar *>(left), cchLeft, reinterpret_cast<const UChar *>(right), cchRight);
+        if (result == UCOL_LESS)
+        {
+            ret = 1;
+        }
+        else if (result == UCOL_EQUAL)
+        {
+            ret = 2;
+        }
+        else if (result == UCOL_GREATER)
+        {
+            ret = 3;
+        }
+        else
+        {
+            *hr = E_FAIL;
+            ret = 0;
+        }
+
+        return ret;
+    }
+#endif
+
     Var IntlEngineInterfaceExtensionObject::EntryIntl_CompareString(RecyclableObject* function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+        INTL_CHECK_ARGS(args.Info.Count >= 3 && JavascriptString::Is(args[1]) && JavascriptString::Is(args[2]));
 
-        if (args.Info.Count < 3 || !JavascriptString::Is(args.Values[1]) || !JavascriptString::Is(args.Values[2]))
-        {
-            JavascriptError::MapAndThrowError(scriptContext, E_INVALIDARG);
-        }
-
+#ifdef INTL_WINGLOB
         const char16 *locale = nullptr; // args[3]
         char16 defaultLocale[LOCALE_NAME_MAX_LENGTH] = { 0 };
+#else
+        const char16 *langtag = nullptr;
+        charcount_t langtagLen = 0;
+#endif
         CollatorSensitivity sensitivity = CollatorSensitivity::Default; // args[4]
         bool ignorePunctuation = false; // args[5]
         bool numeric = false; // args[6]
@@ -1670,7 +1786,12 @@ namespace Js
 
             if (!JavascriptOperators::IsUndefinedObject(args.Values[3]) && JavascriptString::Is(args.Values[3]))
             {
+#ifdef INTL_WINGLOB
                 locale = JavascriptString::FromVar(args.Values[3])->GetSz();
+#else
+                langtag = JavascriptString::UnsafeFromVar(args[3])->GetSz();
+                langtagLen = JavascriptString::UnsafeFromVar(args[3])->GetLength();
+#endif
             }
             else
             {
@@ -1699,23 +1820,21 @@ namespace Js
         }
         else
         {
+#ifdef INTL_WINGLOB
             if (GetUserDefaultLocaleName(defaultLocale, _countof(defaultLocale)) != 0)
             {
                 locale = defaultLocale;
             }
             else
             {
-#if defined(INTL_WINGLOB)
-                // win32 GetUserDefaultLocaleName returns its error through GetLastError
                 JavascriptError::MapAndThrowError(scriptContext, HRESULT_FROM_WIN32(GetLastError()));
-#elif defined(INTL_ICU)
-                // TODO(jahorto): what error should we throw here for INTL_ICU?
-                JavascriptError::MapAndThrowError(scriptContext, E_FAIL);
-#endif
             }
+#endif
         }
 
+#ifdef INTL_WINGLOB
         Assert(locale != nullptr);
+#endif
         Assert((int)sensitivity >= 0 && sensitivity < CollatorSensitivity::Max);
         Assert((int)caseFirst >= 0 && caseFirst < CollatorCaseFirst::Max);
 
@@ -1757,9 +1876,9 @@ namespace Js
         compareResult = CompareStringEx(locale, comparisonFlags, left, leftLen, right, rightLen, NULL, NULL, 0);
         error = HRESULT_FROM_WIN32(GetLastError());
 #elif defined(INTL_ICU)
-        utf8::WideToNarrow locale8(locale);
-        compareResult = CollatorCompare(
-            locale8,
+        compareResult = CompareStringICU(
+            langtag,
+            langtagLen,
             left,
             leftLen,
             right,
@@ -1893,40 +2012,25 @@ namespace Js
         AssertOrFailFast(state->GetInternalProperty(state, Js::InternalPropertyIds::HiddenObject, &cachedFormatter, NULL, scriptContext));
 
         auto fmt = static_cast<FinalizableUNumberFormat *>(cachedFormatter);
-        UErrorCode status = U_ZERO_ERROR;
-        JavascriptString *ret = nullptr;
+        char16 *formatted = nullptr;
+        int formattedLen = 0;
 
         if (TaggedInt::Is(args.Values[1]))
         {
             int num = TaggedInt::ToInt32(args.Values[1]);
-            int required = unum_format(*fmt, num, nullptr, 0, nullptr, &status);
-            AssertOrFailFast(status == U_BUFFER_OVERFLOW_ERROR && required > 0);
-            status = U_ZERO_ERROR;
-
-            // allocate space for null character
-            UChar *buf = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), UChar, required + 1);
-            required = unum_format(*fmt, num, buf, required + 1, nullptr, &status);
-            ICU_ASSERT(status, true);
-
-            ret = JavascriptString::NewWithBuffer(reinterpret_cast<char16 *>(buf), required, scriptContext);
+            RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status) {
+                return unum_format(*fmt, num, buf, bufLen, nullptr, status);
+            }, scriptContext->GetRecycler(), &formatted, &formattedLen);
         }
         else
         {
             double num = JavascriptNumber::GetValue(args.Values[1]);
-            int required = unum_formatDouble(*fmt, num, nullptr, 0, nullptr, &status);
-            AssertOrFailFast(status == U_BUFFER_OVERFLOW_ERROR && required > 0);
-            status = U_ZERO_ERROR;
-
-            // allocate space for null character
-            UChar *buf = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), UChar, required + 1);
-            required = unum_formatDouble(*fmt, num, buf, required + 1, nullptr, &status);
-            ICU_ASSERT(status, true);
-
-            ret = JavascriptString::NewWithBuffer(reinterpret_cast<char16 *>(buf), required, scriptContext);
+            RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status) {
+                return unum_formatDouble(*fmt, num, buf, bufLen, nullptr, status);
+            }, scriptContext->GetRecycler(), &formatted, &formattedLen);
         }
 
-        AssertOrFailFast(ret != nullptr);
-        return ret;
+        return JavascriptString::NewWithBuffer(formatted, formattedLen, scriptContext);;
 #else
         DynamicObject *options = DynamicObject::FromVar(args.Values[2]);
         Var hiddenObject = nullptr;
@@ -2060,83 +2164,148 @@ namespace Js
         // On subsequent calls, the UDateFormat will be cached in state.hiddenObject
         // TODO(jahorto): Make these property IDs sane, so that hiddenObject doesn't have different meanings in different contexts
         Var hiddenObject = nullptr;
-        IPlatformAgnosticResource *dtf = nullptr;
+        FinalizableUDateFormat *dtf = nullptr;
+        UErrorCode status = U_ZERO_ERROR;
         if (state->GetInternalProperty(state, Js::InternalPropertyIds::HiddenObject, &hiddenObject, nullptr, scriptContext))
         {
-            dtf = reinterpret_cast<AutoIcuJsObject<IPlatformAgnosticResource> *>(hiddenObject)->GetInstance();
+            dtf = reinterpret_cast<FinalizableUDateFormat *>(hiddenObject);
         }
         else
         {
-            JavascriptString *locale = nullptr;
+            JavascriptString *langtag = nullptr;
             JavascriptString *timeZone = nullptr;
             JavascriptString *pattern = nullptr;
 
             Var propertyValue = nullptr; // set by the GetTypedPropertyBuiltInFrom macro
 
-            if (GetTypedPropertyBuiltInFrom(state, locale, JavascriptString))
-            {
-                locale = JavascriptString::UnsafeFromVar(propertyValue);
-            }
+            // the object key is locale for legacy compat, but its more accurately a BCP47 Language Tag,
+            // not an ICU LocaleID
+            AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, locale, JavascriptString));
+            langtag = JavascriptString::UnsafeFromVar(propertyValue);
 
-            if (GetTypedPropertyBuiltInFrom(state, timeZone, JavascriptString))
-            {
-                timeZone = JavascriptString::UnsafeFromVar(propertyValue);
-            }
+            AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, timeZone, JavascriptString));
+            timeZone = JavascriptString::UnsafeFromVar(propertyValue);
 
-            if (GetTypedPropertyBuiltInFrom(state, pattern, JavascriptString))
-            {
-                pattern = JavascriptString::UnsafeFromVar(propertyValue);
-            }
+            AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, pattern, JavascriptString));
+            pattern = JavascriptString::UnsafeFromVar(propertyValue);
 
-            AssertOrFailFast(timeZone != nullptr && locale != nullptr && pattern != nullptr);
+            char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+            BCP47_TO_ICU(langtag->GetSz(), langtag->GetLength(), localeID, _countof(localeID));
 
-            utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
+            dtf = FinalizableUDateFormat::New(scriptContext->GetRecycler(), udat_open(
+                UDAT_PATTERN,
+                UDAT_PATTERN,
+                localeID,
+                reinterpret_cast<const UChar *>(timeZone->GetSz()),
+                timeZone->GetLength(),
+                reinterpret_cast<const UChar *>(pattern->GetSz()),
+                pattern->GetLength(),
+                &status
+            ));
+            ICU_ASSERT(status, true);
 
-            CreateDateTimeFormat(locale8, timeZone->GetSz(), pattern->GetSz(), &dtf);
+            // DateTimeFormat is expected to use the "proleptic Gregorian calendar", which means that the Julian calendar should never be used.
+            // To accomplish this, we can set the switchover date between julian/gregorian
+            // to the ECMAScript beginning of time, which is -8.64e15 according to ecma262 #sec-time-values-and-time-range
+            UCalendar *cal = const_cast<UCalendar *>(udat_getCalendar(*dtf));
+            ucal_setGregorianChange(cal, -8.64e15, &status);
+
+            // status can be U_UNSUPPORTED_ERROR if the calendar isn't gregorian, which
+            // there does not seem to be a way to check for ahead of time in the C API
+            AssertOrFailFastMsg(U_SUCCESS(status) || status == U_UNSUPPORTED_ERROR, u_errorName(status));
+
+            // cache dtf for later use (so that the condition that brought us here returns true for future calls)
             state->SetInternalProperty(
                 InternalPropertyIds::HiddenObject,
-                AutoIcuJsObject<IPlatformAgnosticResource>::New(scriptContext->GetRecycler(), dtf),
+                dtf,
                 PropertyOperationFlags::PropertyOperation_None,
                 nullptr
             );
         }
 
-        // both format and formatToParts need the original string, so we can do the length calculation for both
-        int required = FormatDateTime(dtf, date);
-        char16 *formatted = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, required);
-
-        if (toParts)
+        char16 *formatted = nullptr;
+        int formattedLen = 0;
+        if (!toParts)
         {
-            IPlatformAgnosticResource *fieldIterator = nullptr;
-            FormatDateTimeToParts(dtf, date, formatted, required, &fieldIterator);
-            JavascriptArray* ret = scriptContext->GetLibrary()->CreateArray(0);
-            int partStart = 0;
-            int partEnd = 0;
-            int lastPartEnd = 0;
-            int partKind = 0;
-            int i = 0;
-            while (GetDateTimePartInfo(fieldIterator, &partStart, &partEnd, &partKind))
+            // if we aren't formatting to parts, we simply want to call udat_format with retry
+            RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status) {
+                return udat_format(*dtf, date, buf, bufLen, nullptr, status);
+            }, scriptContext->GetRecycler(), &formatted, &formattedLen);
+            return JavascriptString::NewWithBuffer(formatted, formattedLen, scriptContext);
+        }
+
+        ScopedUFieldPositionIterator fpi(ufieldpositer_open(&status));
+        ICU_ASSERT(status, true);
+        RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status) {
+            return udat_formatForFields(*dtf, date, buf, bufLen, fpi, status);
+        }, scriptContext->GetRecycler(), &formatted, &formattedLen);
+
+        JavascriptArray* ret = scriptContext->GetLibrary()->CreateArray(0);
+
+        int partStart = 0;
+        int partEnd = 0;
+        int lastPartEnd = 0;
+        for (
+            int kind = ufieldpositer_next(fpi, &partStart, &partEnd), i = 0;
+            kind > 0;
+            kind = ufieldpositer_next(fpi, &partStart, &partEnd), ++i
+            )
+        {
+            Assert(partStart < partEnd && partEnd <= formattedLen);
+            const char16 *typeString = nullptr;
+            UDateFormatField fieldKind = (UDateFormatField)kind;
+            switch (fieldKind)
             {
-                if (partStart > lastPartEnd)
-                {
-                    AddPartToPartsArray(scriptContext, ret, i, formatted, lastPartEnd, partStart, _u("literal"));
-
-                    i += 1;
-                }
-
-                AddPartToPartsArray(scriptContext, ret, i, formatted, partStart, partEnd, GetDateTimePartKind(partKind));
-
-                i += 1;
-                lastPartEnd = partEnd;
+            case UDAT_ERA_FIELD:
+                typeString = _u("era"); break;
+            case UDAT_YEAR_FIELD:
+            case UDAT_EXTENDED_YEAR_FIELD:
+            case UDAT_YEAR_NAME_FIELD:
+                typeString = _u("year"); break;
+            case UDAT_MONTH_FIELD:
+            case UDAT_STANDALONE_MONTH_FIELD:
+                typeString = _u("month"); break;
+            case UDAT_DATE_FIELD:
+                typeString = _u("day"); break;
+            case UDAT_HOUR_OF_DAY1_FIELD:
+            case UDAT_HOUR_OF_DAY0_FIELD:
+            case UDAT_HOUR1_FIELD:
+            case UDAT_HOUR0_FIELD:
+                typeString = _u("hour"); break;
+            case UDAT_MINUTE_FIELD:
+                typeString = _u("minute"); break;
+            case UDAT_SECOND_FIELD:
+                typeString = _u("second"); break;
+            case UDAT_DAY_OF_WEEK_FIELD:
+            case UDAT_STANDALONE_DAY_FIELD:
+            case UDAT_DOW_LOCAL_FIELD:
+                typeString = _u("weekday"); break;
+            case UDAT_AM_PM_FIELD:
+                typeString = _u("dayPeriod"); break;
+            case UDAT_TIMEZONE_FIELD:
+            case UDAT_TIMEZONE_RFC_FIELD:
+            case UDAT_TIMEZONE_GENERIC_FIELD:
+            case UDAT_TIMEZONE_SPECIAL_FIELD:
+            case UDAT_TIMEZONE_LOCALIZED_GMT_OFFSET_FIELD:
+            case UDAT_TIMEZONE_ISO_FIELD:
+                typeString = _u("timeZoneName"); break;
+            default:
+                typeString = _u("unknown"); break;
             }
 
-            return ret;
+            if (partStart > lastPartEnd)
+            {
+                // formatForFields does not report literal fields directly, so we have to detect them
+                // by seeing if the current part starts after the previous one ended
+                AddPartToPartsArray(scriptContext, ret, i, formatted, lastPartEnd, partStart, _u("literal"));
+                i += 1;
+            }
+
+            AddPartToPartsArray(scriptContext, ret, i, formatted, partStart, partEnd, typeString);
+            lastPartEnd = partEnd;
         }
-        else
-        {
-            FormatDateTime(dtf, date, formatted, required);
-            return JavascriptString::NewWithBuffer(formatted, required - 1, scriptContext);
-        }
+
+        return ret;
 #endif
     }
 
@@ -2146,15 +2315,30 @@ namespace Js
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
         INTL_CHECK_ARGS(args.Info.Count == 3 && JavascriptString::Is(args.Values[1]) && JavascriptString::Is(args.Values[2]));
 
-        JavascriptString *locale = JavascriptString::UnsafeFromVar(args.Values[1]);
+        JavascriptString *langtag = JavascriptString::UnsafeFromVar(args.Values[1]);
         JavascriptString *skeleton = JavascriptString::UnsafeFromVar(args.Values[2]);
-        utf8::WideToNarrow locale8(locale->GetSz(), locale->GetLength());
+        UErrorCode status = U_ZERO_ERROR;
+        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        BCP47_TO_ICU(langtag->GetSz(), langtag->GetLength(), localeID, _countof(localeID));
 
-        int patternLen = GetPatternForSkeleton(locale8, skeleton->GetSz());
-        char16 *pattern = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, patternLen);
-        GetPatternForSkeleton(locale8, skeleton->GetSz(), pattern, patternLen);
+        ScopedUDateTimePatternGenerator dtpg(udatpg_open(localeID, &status));
+        ICU_ASSERT(status, true);
 
-        return JavascriptString::NewWithBuffer(pattern, patternLen - 1, scriptContext);
+        char16 *formatted = nullptr;
+        int formattedLen = 0;
+        RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status) {
+            return udatpg_getBestPatternWithOptions(
+                dtpg,
+                reinterpret_cast<const UChar *>(skeleton->GetSz()),
+                skeleton->GetLength(),
+                UDATPG_MATCH_ALL_FIELDS_LENGTH,
+                buf,
+                bufLen,
+                status
+            );
+        }, scriptContext->GetRecycler(), &formatted, &formattedLen);
+
+        return JavascriptString::NewWithBuffer(formatted, formattedLen, scriptContext);
 #else
         AssertOrFailFastMsg(false, "GetPatternForSkeleton is not implemented outside of ICU");
         return nullptr;
@@ -2239,12 +2423,12 @@ namespace Js
         PCWSTR strBuf = wsl->WindowsGetStringRawBuffer(*str, NULL);
         return Js::JavascriptString::NewCopySz(strBuf, scriptContext);
 #else
-        int required = GetDefaultTimeZone();
-        AssertOrFailFastMsg(required > 0, "GetDefaultTimeZone returned an invalid buffer length");
-
-        char16 *buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, required);
-        GetDefaultTimeZone(buffer, required);
-        return JavascriptString::NewWithBuffer(buffer, required - 1, scriptContext);
+        int timeZoneLen = 0;
+        char16 *timeZone = nullptr;
+        RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status) {
+            return ucal_getDefaultTimeZone(buf, bufLen, status);
+        }, scriptContext->GetRecycler(), &timeZone, &timeZoneLen);
+        return JavascriptString::NewWithBuffer(timeZone, timeZoneLen, scriptContext);
 #endif
     }
 

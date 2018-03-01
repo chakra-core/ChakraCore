@@ -69,7 +69,7 @@
 <dir>
   <default>
     <files>Intl</files>
-    <tags>exclude_sanitize_address,exclude_noicu</tags>
+    <tags>exclude_noicu</tags>
   </default>
 </dir>
 <dir>

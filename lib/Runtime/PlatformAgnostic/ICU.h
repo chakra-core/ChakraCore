@@ -4,6 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#include "CommonDefines.h"
+
 #ifdef HAS_ICU
 #ifdef WINDOWS10_ICU
 #include <icu.h>
@@ -17,6 +19,22 @@
 #include "unicode/ustring.h"
 #include "unicode/unorm2.h"
 #endif
+
+// Different assertion code is used in ChakraFull that enforces that messages are char literals
+#ifdef _CHAKRACOREBUILD
+#define ICU_ERRORMESSAGE(e) u_errorName(e)
+#else
+#define ICU_ERRORMESSAGE(e) "Bad status returned from ICU"
+#endif
+
+#ifdef INTL_ICU_DEBUG
+#define ICU_DEBUG_PRINT(fmt, msg) Output::Print(fmt, __func__, (msg))
+#else
+#define ICU_DEBUG_PRINT(fmt, msg)
+#endif
+
+#define ICU_FAILURE(e) (U_FAILURE(e) || e == U_STRING_NOT_TERMINATED_WARNING)
+#define ICU_BUFFER_FAILURE(e) (e == U_BUFFER_OVERFLOW_ERROR || e == U_STRING_NOT_TERMINATED_WARNING)
 
 namespace PlatformAgnostic
 {
@@ -56,6 +74,25 @@ namespace PlatformAgnostic
         typedef ScopedICUObject<UNumberFormat *, unum_close> ScopedUNumberFormat;
         typedef ScopedICUObject<UNumberingSystem *, unumsys_close> ScopedUNumberingSystem;
         typedef ScopedICUObject<UDateTimePatternGenerator *, udatpg_close> ScopedUDateTimePatternGenerator;
+        typedef ScopedICUObject<UFieldPositionIterator *, ufieldpositer_close> ScopedUFieldPositionIterator;
+
+        // This function implements retry logic for calling ICU C APIs,
+        // where it is common that a first call might not succeed because a destination buffer is not big enough
+        template<typename TBuffer, typename ICUFunc, typename AllocatorFunc>
+        inline bool ExecuteICUWithRetry(AllocatorFunc allocate, ICUFunc func, int firstTryLen, TBuffer **ret, int *returnLen)
+        {
+            UErrorCode status = U_ZERO_ERROR;
+            *ret = allocate(firstTryLen);
+            *returnLen = func(reinterpret_cast<UChar *>(*ret), firstTryLen, &status);
+            if (ICU_BUFFER_FAILURE(status))
+            {
+                int secondTryLen = *returnLen + 1;
+                *ret = allocate(secondTryLen);
+                status = U_ZERO_ERROR;
+                *returnLen = func(reinterpret_cast<UChar *>(*ret), secondTryLen, &status);
+            }
+            return U_SUCCESS(status) && status != U_STRING_NOT_TERMINATED_WARNING && *returnLen > 0;
+        }
     }
 }
 #endif

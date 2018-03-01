@@ -4,9 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 #include <vector>
-#ifdef HAS_ICU
-#include "unicode/uvernum.h"
-#endif
 
 #if defined(_X86_) || defined(_M_IX86)
 #define CPU_ARCH_TEXT "x86"
@@ -40,13 +37,10 @@
 
 #ifdef HAS_ICU
 #define INTL_LIBRARY_TEXT "icu"
-#define ICU_VERSION U_ICU_VERSION_MAJOR_NUM
 #elif defined(_WIN32)
 #define INTL_LIBRARY_TEXT "winglob"
-#define ICU_VERSION -1
 #else
 #define INTL_LIBRARY_TEXT ""
-#define ICU_VERSION -1
 #endif
 
 MessageQueue* WScriptJsrt::messageQueue = nullptr;
