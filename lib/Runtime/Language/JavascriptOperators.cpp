@@ -2573,7 +2573,7 @@ CommonNumber:
         {
             thisInstance = instance;
         }
-        TypeId typeId = JavascriptOperators::GetTypeId(thisInstance);
+        TypeId typeId = JavascriptOperators::GetTypeId(instance);
 
         if (JavascriptOperators::IsUndefinedOrNullType(typeId))
         {
@@ -2592,7 +2592,7 @@ CommonNumber:
             return TRUE;
         }
 
-        if (!TaggedNumber::Is(thisInstance))
+        if (!TaggedNumber::Is(instance))
         {
             return JavascriptOperators::SetProperty(RecyclableObject::UnsafeFromVar(thisInstance), RecyclableObject::UnsafeFromVar(instance), propertyId, newValue, info, scriptContext, flags);
         }
