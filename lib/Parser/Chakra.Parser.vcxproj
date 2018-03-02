@@ -64,6 +64,7 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)TextbookBoyerMoore.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ptree.cpp" />
     <None Include="HashFunc.cpp" />
   </ItemGroup>
   <ItemGroup>

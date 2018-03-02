@@ -2781,14 +2781,14 @@ namespace Js
             this->m_sourceIndex = sourceIndex;
             this->m_cchStartOffset = node->ichMin;
             this->m_cchLength = node->LengthInCodepoints();
-            this->m_lineNumber = node->sxFnc.lineNumber;
-            this->m_columnNumber = node->sxFnc.columnNumber;
+            this->m_lineNumber = node->AsParseNodeFnc()->lineNumber;
+            this->m_columnNumber = node->AsParseNodeFnc()->columnNumber;
             this->m_isEval = isEval;
             this->m_isDynamicFunction = isDynamicFunction;
 
             // It would have been better if we detect and reject large source buffer earlier before parsing
-            size_t cbMin = node->sxFnc.cbMin;
-            size_t lengthInBytes = node->sxFnc.LengthInBytes();
+            size_t cbMin = node->AsParseNodeFnc()->cbMin;
+            size_t lengthInBytes = node->AsParseNodeFnc()->LengthInBytes();
             if (cbMin > UINT_MAX || lengthInBytes > UINT_MAX)
             {
                 Js::Throw::OutOfMemory();
@@ -2812,10 +2812,10 @@ namespace Js
             {
                 // In the global function case with a @cc_on, we modify some of these values so it might
                 // not match on reparse (see ParseableFunctionInfo::Parse()).
-                AssertMsg(this->StartOffset() == node->sxFnc.cbMin, "Mismatched source start offset");
+                AssertMsg(this->StartOffset() == node->AsParseNodeFnc()->cbMin, "Mismatched source start offset");
                 AssertMsg(this->m_cchStartOffset == node->ichMin, "Mismatched source character start offset");
                 AssertMsg(this->m_cchLength == node->LengthInCodepoints(), "Mismatched source length");
-                AssertMsg(this->LengthInBytes() == node->sxFnc.LengthInBytes(), "Mismatched source encoded byte length");
+                AssertMsg(this->LengthInBytes() == node->AsParseNodeFnc()->LengthInBytes(), "Mismatched source encoded byte length");
             }
 
             AssertMsg(this->m_isEval == isEval, "Mismatched source type");
@@ -2980,9 +2980,9 @@ namespace Js
     void FunctionBody::SaveState(ParseNodePtr pnode)
     {
         Assert(!this->IsReparsed());
-        this->SetChildCallsEval(!!pnode->sxFnc.ChildCallsEval());
-        this->SetCallsEval(!!pnode->sxFnc.CallsEval());
-        this->SetHasReferenceableBuiltInArguments(!!pnode->sxFnc.HasReferenceableBuiltInArguments());
+        this->SetChildCallsEval(!!pnode->AsParseNodeFnc()->ChildCallsEval());
+        this->SetCallsEval(!!pnode->AsParseNodeFnc()->CallsEval());
+        this->SetHasReferenceableBuiltInArguments(!!pnode->AsParseNodeFnc()->HasReferenceableBuiltInArguments());
     }
 
     void FunctionBody::RestoreState(ParseNodePtr pnode)
@@ -2991,22 +2991,22 @@ namespace Js
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
-        if(!!pnode->sxFnc.ChildCallsEval() != this->GetChildCallsEval())
+        if(!!pnode->AsParseNodeFnc()->ChildCallsEval() != this->GetChildCallsEval())
         {
             OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, _u("Child calls eval is different on debug reparse: %s(%s)\n"), this->GetExternalDisplayName(), this->GetDebugNumberSet(debugStringBuffer));
         }
-        if(!!pnode->sxFnc.CallsEval() != this->GetCallsEval())
+        if(!!pnode->AsParseNodeFnc()->CallsEval() != this->GetCallsEval())
         {
             OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, _u("Calls eval is different on debug reparse: %s(%s)\n"), this->GetExternalDisplayName(), this->GetDebugNumberSet(debugStringBuffer));
         }
-        if(!!pnode->sxFnc.HasReferenceableBuiltInArguments() != this->HasReferenceableBuiltInArguments())
+        if(!!pnode->AsParseNodeFnc()->HasReferenceableBuiltInArguments() != this->HasReferenceableBuiltInArguments())
         {
             OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, _u("Referenceable Built in args is different on debug reparse: %s(%s)\n"), this->GetExternalDisplayName(), this->GetDebugNumberSet(debugStringBuffer));
         }
 
-        pnode->sxFnc.SetChildCallsEval(this->GetChildCallsEval());
-        pnode->sxFnc.SetCallsEval(this->GetCallsEval());
-        pnode->sxFnc.SetHasReferenceableBuiltInArguments(this->HasReferenceableBuiltInArguments());
+        pnode->AsParseNodeFnc()->SetChildCallsEval(this->GetChildCallsEval());
+        pnode->AsParseNodeFnc()->SetCallsEval(this->GetCallsEval());
+        pnode->AsParseNodeFnc()->SetHasReferenceableBuiltInArguments(this->HasReferenceableBuiltInArguments());
     }
 
     // Retrieves statement map for given byte code offset.

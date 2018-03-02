@@ -239,7 +239,7 @@ namespace Js
     void SourceTextModuleRecord::ImportModuleListsFromParser()
     {
         Assert(scriptContext->GetConfig()->IsES6ModuleEnabled());
-        PnModule* moduleParseNode = static_cast<PnModule*>(&this->parseTree->sxModule);
+        ParseNodeModule* moduleParseNode = this->parseTree->AsParseNodeModule();
         SetrequestedModuleList(moduleParseNode->requestedModules);
         SetImportRecordList(moduleParseNode->importEntries);
         SetStarExportRecordList(moduleParseNode->starExportEntries);

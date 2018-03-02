@@ -94,7 +94,7 @@ namespace Js
     {
         mWriter.Create();
 
-        const int32 astSize = func->GetFncNode()->sxFnc.astSize/AstBytecodeRatioEstimate;
+        const int32 astSize = func->GetFncNode()->AsParseNodeFnc()->astSize/AstBytecodeRatioEstimate;
         // Use the temp allocator in bytecode write temp buffer.
         mWriter.InitData(&mAllocator, astSize);
 
@@ -107,7 +107,7 @@ namespace Js
     bool AsmJSByteCodeGenerator::BlockHasOwnScope( ParseNode* pnodeBlock )
     {
         Assert( pnodeBlock->nop == knopBlock );
-        return pnodeBlock->sxBlock.scope != nullptr && ( !( pnodeBlock->grfpn & fpnSyntheticNode ) );
+        return pnodeBlock->AsParseNodeBlock()->scope != nullptr && ( !( pnodeBlock->grfpn & fpnSyntheticNode ) );
     }
 
     template<typename T> byte* AsmJSByteCodeGenerator::SetConstsToTable(byte* byteTable, T zeroValue)
@@ -195,7 +195,7 @@ namespace Js
             MaybeTodo( mInfo->IsFakeGlobalFunction( byteCodeGen->GetFlags() ) );
 
             // Support default arguments ?
-            MaybeTodo( pnode->sxFnc.HasDefaultArguments() );
+            MaybeTodo( pnode->AsParseNodeFnc()->HasDefaultArguments() );
 
             FunctionBody* functionBody = mFunction->GetFuncBody();
             functionBody->SetStackNestedFunc( false );
@@ -299,8 +299,8 @@ namespace Js
         while (iter.Next())
         {
             ParseNode * node = iter.Data();
-            node->sxStmt.breakLabel=mWriter.DefineLabel();
-            node->sxStmt.continueLabel=mWriter.DefineLabel();
+            node->AsParseNodeStmt()->breakLabel=mWriter.DefineLabel();
+            node->AsParseNodeStmt()->continueLabel=mWriter.DefineLabel();
             node->emitLabels=true;
         }
     }
@@ -345,9 +345,9 @@ namespace Js
                 else
                 {
                     AsmJsVar * initSource = nullptr;
-                    if (decl->sxVar.pnodeInit->nop == knopName)
+                    if (decl->AsParseNodeVar()->pnodeInit->nop == knopName)
                     {
-                        AsmJsSymbol * initSym = mCompiler->LookupIdentifier(decl->sxVar.pnodeInit->name(), mFunction);
+                        AsmJsSymbol * initSym = mCompiler->LookupIdentifier(decl->AsParseNodeVar()->pnodeInit->name(), mFunction);
                         if (AsmJsVar::Is(initSym))
                         {
                             // in this case we are initializing with value of a constant var
@@ -410,7 +410,7 @@ namespace Js
 
     void AsmJSByteCodeGenerator::EmitTopLevelStatement( ParseNode *stmt )
     {
-        if( stmt->nop == knopFncDecl && stmt->sxFnc.IsDeclaration() )
+        if( stmt->nop == knopFncDecl && stmt->AsParseNodeFnc()->IsDeclaration() )
         {
             throw AsmJsCompilationException( _u("Cannot declare functions inside asm.js functions") );
         }
@@ -445,10 +445,10 @@ namespace Js
         }
         case knopBlock:
         {
-            EmitExpressionInfo info = Emit(pnode->sxBlock.pnodeStmt);
+            EmitExpressionInfo info = Emit(pnode->AsParseNodeBlock()->pnodeStmt);
             if (pnode->emitLabels)
             {
-                mWriter.MarkAsmJsLabel(pnode->sxStmt.breakLabel);
+                mWriter.MarkAsmJsLabel(pnode->AsParseNodeStmt()->breakLabel);
             }
             return info;
         }
@@ -516,24 +516,24 @@ namespace Js
             }
             else if (ParserWrapper::IsUnsigned(pnode))
             {
-                return EmitExpressionInfo(mFunction->GetConstRegister<int>((uint32)pnode->sxFlt.dbl), AsmJsType::Unsigned);
+                return EmitExpressionInfo(mFunction->GetConstRegister<int>((uint32)pnode->AsParseNodeFloat()->dbl), AsmJsType::Unsigned);
             }
-            else if (pnode->sxFlt.maybeInt)
+            else if (pnode->AsParseNodeFloat()->maybeInt)
             {
                 throw AsmJsCompilationException(_u("Int literal must be in the range [-2^31, 2^32)"));
             }
             else
             {
-                return EmitExpressionInfo(mFunction->GetConstRegister<double>(pnode->sxFlt.dbl), AsmJsType::DoubleLit);
+                return EmitExpressionInfo(mFunction->GetConstRegister<double>(pnode->AsParseNodeFloat()->dbl), AsmJsType::DoubleLit);
             }
         case knopInt:
-            if (pnode->sxInt.lw < 0)
+            if (pnode->AsParseNodeInt()->lw < 0)
             {
-                return EmitExpressionInfo(mFunction->GetConstRegister<int>(pnode->sxInt.lw), AsmJsType::Signed);
+                return EmitExpressionInfo(mFunction->GetConstRegister<int>(pnode->AsParseNodeInt()->lw), AsmJsType::Signed);
             }
             else
             {
-                return EmitExpressionInfo(mFunction->GetConstRegister<int>(pnode->sxInt.lw), AsmJsType::Fixnum);
+                return EmitExpressionInfo(mFunction->GetConstRegister<int>(pnode->AsParseNodeInt()->lw), AsmJsType::Fixnum);
             }
         case knopIf:
             return EmitIf( pnode );
@@ -542,41 +542,41 @@ namespace Js
         case knopSwitch:
             return EmitSwitch( pnode );
         case knopFor:
-            MaybeTodo( pnode->sxFor.pnodeInverted != NULL );
+            MaybeTodo( pnode->AsParseNodeFor()->pnodeInverted != NULL );
             {
-                const EmitExpressionInfo& initInfo = Emit( pnode->sxFor.pnodeInit );
+                const EmitExpressionInfo& initInfo = Emit( pnode->AsParseNodeFor()->pnodeInit );
                 mFunction->ReleaseLocationGeneric( &initInfo );
                 return EmitLoop( pnode,
-                          pnode->sxFor.pnodeCond,
-                          pnode->sxFor.pnodeBody,
-                          pnode->sxFor.pnodeIncr);
+                          pnode->AsParseNodeFor()->pnodeCond,
+                          pnode->AsParseNodeFor()->pnodeBody,
+                          pnode->AsParseNodeFor()->pnodeIncr);
             }
             break;
         case knopWhile:
             return EmitLoop( pnode,
-                      pnode->sxWhile.pnodeCond,
-                      pnode->sxWhile.pnodeBody,
+                      pnode->AsParseNodeWhile()->pnodeCond,
+                      pnode->AsParseNodeWhile()->pnodeBody,
                       nullptr);
         case knopDoWhile:
             return EmitLoop( pnode,
-                      pnode->sxWhile.pnodeCond,
-                      pnode->sxWhile.pnodeBody,
+                      pnode->AsParseNodeWhile()->pnodeCond,
+                      pnode->AsParseNodeWhile()->pnodeBody,
                       NULL,
                       true );
         case knopBreak:
-            Assert( pnode->sxJump.pnodeTarget->emitLabels );
+            Assert( pnode->AsParseNodeJump()->pnodeTarget->emitLabels );
             StartStatement(pnode);
-            mWriter.AsmBr( pnode->sxJump.pnodeTarget->sxStmt.breakLabel );
+            mWriter.AsmBr( pnode->AsParseNodeJump()->pnodeTarget->AsParseNodeStmt()->breakLabel );
             if( pnode->emitLabels )
             {
-                mWriter.MarkAsmJsLabel( pnode->sxStmt.breakLabel );
+                mWriter.MarkAsmJsLabel( pnode->AsParseNodeStmt()->breakLabel );
             }
             EndStatement(pnode);
             break;
         case knopContinue:
-            Assert( pnode->sxJump.pnodeTarget->emitLabels );
+            Assert( pnode->AsParseNodeJump()->pnodeTarget->emitLabels );
             StartStatement(pnode);
-            mWriter.AsmBr( pnode->sxJump.pnodeTarget->sxStmt.continueLabel );
+            mWriter.AsmBr( pnode->AsParseNodeJump()->pnodeTarget->AsParseNodeStmt()->continueLabel );
             EndStatement(pnode);
             break;
         case knopVarDecl:
@@ -672,7 +672,7 @@ namespace Js
     {
         ParseNode* lhs = ParserWrapper::GetBinaryLeft( pnode );
         ParseNode* rhs = ParserWrapper::GetBinaryRight( pnode );
-        const bool isRhs0 = rhs->nop == knopInt && rhs->sxInt.lw == 0;
+        const bool isRhs0 = rhs->nop == knopInt && rhs->AsParseNodeInt()->lw == 0;
         const bool isOr0Operation = op == OpCodeAsmJs::Or_Int && isRhs0;
         if( isOr0Operation && lhs->nop == knopCall )
         {
@@ -718,7 +718,7 @@ namespace Js
 
     EmitExpressionInfo AsmJSByteCodeGenerator::EmitReturn( ParseNode * pnode )
     {
-        ParseNode* expr = pnode->sxReturn.pnodeExpr;
+        ParseNode* expr = pnode->AsParseNodeReturn()->pnodeExpr;
         // return is always the beginning of a statement
         AsmJsRetType retType;
         EmitExpressionInfo emitInfo( Constants::NoRegister, AsmJsType::Void );
@@ -829,11 +829,11 @@ namespace Js
         {
             throw AsmJsCompilationException(_u("Function table call must be of format identifier[expr & NumericLiteral](...)"));
         }
-        if (tableSizeNode->sxInt.lw < 0)
+        if (tableSizeNode->AsParseNodeInt()->lw < 0)
         {
             throw AsmJsCompilationException(_u("Function table size must be positive"));
         }
-        const uint tableSize = tableSizeNode->sxInt.lw + 1;
+        const uint tableSize = tableSizeNode->AsParseNodeInt()->lw + 1;
         if (!::Math::IsPow2(tableSize))
         {
             throw AsmJsCompilationException(_u("Function table size must be a power of 2"));
@@ -876,14 +876,14 @@ namespace Js
     {
         Assert( pnode->nop == knopCall );
 
-        ParseNode* identifierNode = pnode->sxCall.pnodeTarget;
+        ParseNode* identifierNode = pnode->AsParseNodeCall()->pnodeTarget;
         RegSlot funcTableIndexRegister = Constants::NoRegister;
 
         // Function table
-        if( pnode->sxCall.pnodeTarget->nop == knopIndex )
+        if( pnode->AsParseNodeCall()->pnodeTarget->nop == knopIndex )
         {
-            identifierNode = ParserWrapper::GetBinaryLeft( pnode->sxCall.pnodeTarget );
-            ParseNode* indexNode = ParserWrapper::GetBinaryRight( pnode->sxCall.pnodeTarget );
+            identifierNode = ParserWrapper::GetBinaryLeft( pnode->AsParseNodeCall()->pnodeTarget );
+            ParseNode* indexNode = ParserWrapper::GetBinaryRight( pnode->AsParseNodeCall()->pnodeTarget );
 
             funcTableIndexRegister = EmitIndirectCallIndex(identifierNode, indexNode);
         }
@@ -912,7 +912,7 @@ namespace Js
             throw AsmJsCompilationException(_u("Different return type found for function %s"), funcName->Psz());
         }
 
-        const ArgSlot argCount = pnode->sxCall.argCount;
+        const ArgSlot argCount = pnode->AsParseNodeCall()->argCount;
 
         EmitExpressionInfo * argArray = nullptr;
         AsmJsType* types = nullptr;
@@ -920,7 +920,7 @@ namespace Js
         // first, evaluate function arguments
         if (argCount > 0)
         {
-            ParseNode* argNode = pnode->sxCall.pnodeArgs;
+            ParseNode* argNode = pnode->AsParseNodeCall()->pnodeArgs;
             argArray = AnewArray(&mAllocator, EmitExpressionInfo, argCount);
             types = AnewArray(&mAllocator, AsmJsType, argCount);
             for (ArgSlot i = 0; i < argCount; i++)
@@ -1004,7 +1004,7 @@ namespace Js
 
         if( argCount > 0 )
         {
-            ParseNode* argNode = pnode->sxCall.pnodeArgs;
+            ParseNode* argNode = pnode->AsParseNodeCall()->pnodeArgs;
             uint16 regSlotLocation = 1;
 
             for(ArgSlot i = 0; i < argCount; i++)
@@ -1145,8 +1145,8 @@ namespace Js
             return EmitMinMax(pnode, mathFunction);
         }
 
-        const ArgSlot argCount = pnode->sxCall.argCount;
-        ParseNode* argNode = pnode->sxCall.pnodeArgs;
+        const ArgSlot argCount = pnode->AsParseNodeCall()->argCount;
+        ParseNode* argNode = pnode->AsParseNodeCall()->pnodeArgs;
         const bool isFRound = AsmJsMathFunction::IsFround(mathFunction);
 
         // for fround, if we have a fround(NumericLiteral), we want to just emit Ld_Flt NumericLiteral
@@ -1158,11 +1158,11 @@ namespace Js
             float constValue = -0.0f;
             if (argNode->nop == knopFlt)
             {
-                constValue = (float)argNode->sxFlt.dbl;
+                constValue = (float)argNode->AsParseNodeFloat()->dbl;
             }
             else if (argNode->nop == knopInt)
             {
-                constValue = (float)argNode->sxInt.lw;
+                constValue = (float)argNode->AsParseNodeInt()->lw;
             }
             else
             {
@@ -1287,8 +1287,8 @@ namespace Js
     EmitExpressionInfo AsmJSByteCodeGenerator::EmitMinMax(ParseNode* pnode, AsmJsMathFunction* mathFunction)
     {
         Assert(mathFunction->GetArgCount() == 2);
-        uint16 argCount = pnode->sxCall.argCount;
-        ParseNode* argNode = pnode->sxCall.pnodeArgs;
+        uint16 argCount = pnode->AsParseNodeCall()->argCount;
+        ParseNode* argNode = pnode->AsParseNodeCall()->pnodeArgs;
 
         if (argCount < 2)
         {
@@ -1503,7 +1503,7 @@ namespace Js
             {
                 if (indexNode->nop == knopInt)
                 {
-                    slot = (uint32)indexNode->sxInt.lw;
+                    slot = (uint32)indexNode->AsParseNodeInt()->lw;
                 }
                 else if (ParserWrapper::IsMinInt(indexNode))
                 {
@@ -1512,7 +1512,7 @@ namespace Js
                 }
                 else if (ParserWrapper::IsUnsigned(indexNode))
                 {
-                    slot = (uint32)indexNode->sxFlt.dbl;
+                    slot = (uint32)indexNode->AsParseNodeFloat()->dbl;
                 }
                 else
                 {
@@ -1581,7 +1581,7 @@ namespace Js
                 default:
                     Assume(UNREACHED);
                 }
-                if (rhsNode->sxInt.lw != val)
+                if (rhsNode->AsParseNodeInt()->lw != val)
                 {
                     throw AsmJsCompilationException(_u("shift amount must be %d"), val);
                 }
@@ -2093,7 +2093,7 @@ namespace Js
         switch( expr->nop )
         {
         case knopLogNot:{
-            const EmitExpressionInfo& info = EmitBooleanExpression( expr->sxUni.pnode1, falseLabel, trueLabel );
+            const EmitExpressionInfo& info = EmitBooleanExpression( expr->AsParseNodeUni()->pnode1, falseLabel, trueLabel );
             return info;
             break;
         }
@@ -2104,11 +2104,11 @@ namespace Js
 //         case knopGe:
 //         case knopGt:
 //             byteCodeGenerator->StartStatement( expr );
-//             EmitBinaryOpnds( expr->sxBin.pnode1, expr->sxBin.pnode2, byteCodeGenerator, funcInfo );
-//             funcInfo->ReleaseLoc( expr->sxBin.pnode2 );
-//             funcInfo->ReleaseLoc( expr->sxBin.pnode1 );
-//             mWriter.BrReg2( nopToOp[expr->nop], trueLabel, expr->sxBin.pnode1->location,
-//                                                  expr->sxBin.pnode2->location );
+//             EmitBinaryOpnds( expr->AsParseNodeBin()->pnode1, expr->AsParseNodeBin()->pnode2, byteCodeGenerator, funcInfo );
+//             funcInfo->ReleaseLoc( expr->AsParseNodeBin()->pnode2 );
+//             funcInfo->ReleaseLoc( expr->AsParseNodeBin()->pnode1 );
+//             mWriter.BrReg2( nopToOp[expr->nop], trueLabel, expr->AsParseNodeBin()->pnode1->location,
+//                                                  expr->AsParseNodeBin()->pnode2->location );
 //             mWriter.AsmBr( falseLabel );
 //             byteCodeGenerator->EndStatement( expr );
 //             break;
@@ -2137,16 +2137,16 @@ namespace Js
     {
         Js::ByteCodeLabel trueLabel = mWriter.DefineLabel();
         Js::ByteCodeLabel falseLabel = mWriter.DefineLabel();
-        const EmitExpressionInfo& boolInfo = EmitBooleanExpression( pnode->sxIf.pnodeCond, trueLabel, falseLabel );
+        const EmitExpressionInfo& boolInfo = EmitBooleanExpression( pnode->AsParseNodeIf()->pnodeCond, trueLabel, falseLabel );
         mFunction->ReleaseLocation<int>( &boolInfo );
 
 
         mWriter.MarkAsmJsLabel( trueLabel );
 
-        const EmitExpressionInfo& trueInfo = Emit( pnode->sxIf.pnodeTrue );
+        const EmitExpressionInfo& trueInfo = Emit( pnode->AsParseNodeIf()->pnodeTrue );
         mFunction->ReleaseLocationGeneric( &trueInfo );
 
-        if( pnode->sxIf.pnodeFalse != nullptr )
+        if( pnode->AsParseNodeIf()->pnodeFalse != nullptr )
         {
             // has else clause
             Js::ByteCodeLabel skipLabel = mWriter.DefineLabel();
@@ -2159,7 +2159,7 @@ namespace Js
             // generate code for else clause
             mWriter.MarkAsmJsLabel( falseLabel );
 
-            const EmitExpressionInfo& falseInfo = Emit( pnode->sxIf.pnodeFalse );
+            const EmitExpressionInfo& falseInfo = Emit( pnode->AsParseNodeIf()->pnodeFalse );
             mFunction->ReleaseLocationGeneric( &falseInfo );
 
             mWriter.MarkAsmJsLabel( skipLabel );
@@ -2171,7 +2171,7 @@ namespace Js
         }
         if( pnode->emitLabels )
         {
-            mWriter.MarkAsmJsLabel( pnode->sxStmt.breakLabel );
+            mWriter.MarkAsmJsLabel( pnode->AsParseNodeStmt()->breakLabel );
         }
         return EmitExpressionInfo( AsmJsType::Void );
     }
@@ -2184,7 +2184,7 @@ namespace Js
         Js::ByteCodeLabel continuePastLoop = mWriter.DefineLabel();
 
         uint loopId = mWriter.EnterLoop( loopEntrance );
-        loopNode->sxLoop.loopId = loopId;
+        loopNode->AsParseNodeLoop()->loopId = loopId;
         EndStatement(loopNode);
         if( doWhile )
         {
@@ -2193,7 +2193,7 @@ namespace Js
 
             if( loopNode->emitLabels )
             {
-                mWriter.MarkAsmJsLabel( loopNode->sxStmt.continueLabel );
+                mWriter.MarkAsmJsLabel( loopNode->AsParseNodeStmt()->continueLabel );
             }
             if( !ByteCodeGenerator::IsFalse( cond ) )
             {
@@ -2215,7 +2215,7 @@ namespace Js
 
             if( loopNode->emitLabels )
             {
-                mWriter.MarkAsmJsLabel( loopNode->sxStmt.continueLabel );
+                mWriter.MarkAsmJsLabel( loopNode->AsParseNodeStmt()->continueLabel );
             }
             if( incr != NULL )
             {
@@ -2227,7 +2227,7 @@ namespace Js
         mWriter.MarkAsmJsLabel( continuePastLoop );
         if( loopNode->emitLabels )
         {
-            mWriter.MarkAsmJsLabel( loopNode->sxStmt.breakLabel );
+            mWriter.MarkAsmJsLabel( loopNode->AsParseNodeStmt()->breakLabel );
         }
 
         mWriter.ExitLoop( loopId );
@@ -2239,12 +2239,12 @@ namespace Js
 
     EmitExpressionInfo AsmJSByteCodeGenerator::EmitQMark( ParseNode * pnode )
     {
-        StartStatement(pnode->sxTri.pnode1);
+        StartStatement(pnode->AsParseNodeTri()->pnode1);
         Js::ByteCodeLabel trueLabel = mWriter.DefineLabel();
         Js::ByteCodeLabel falseLabel = mWriter.DefineLabel();
         Js::ByteCodeLabel skipLabel = mWriter.DefineLabel();
-        EndStatement(pnode->sxTri.pnode1);
-        const EmitExpressionInfo& boolInfo = EmitBooleanExpression( pnode->sxTri.pnode1, trueLabel, falseLabel );
+        EndStatement(pnode->AsParseNodeTri()->pnode1);
+        const EmitExpressionInfo& boolInfo = EmitBooleanExpression( pnode->AsParseNodeTri()->pnode1, trueLabel, falseLabel );
         mFunction->ReleaseLocationGeneric( &boolInfo );
 
         RegSlot intReg = mFunction->AcquireTmpRegister<int>();
@@ -2254,8 +2254,8 @@ namespace Js
 
 
         mWriter.MarkAsmJsLabel( trueLabel );
-        const EmitExpressionInfo& trueInfo = Emit( pnode->sxTri.pnode2 );
-        StartStatement(pnode->sxTri.pnode2);
+        const EmitExpressionInfo& trueInfo = Emit( pnode->AsParseNodeTri()->pnode2 );
+        StartStatement(pnode->AsParseNodeTri()->pnode2);
         if( trueInfo.type.isInt() )
         {
             mWriter.AsmReg2( Js::OpCodeAsmJs::Ld_Int, intReg, trueInfo.location );
@@ -2288,10 +2288,10 @@ namespace Js
             throw AsmJsCompilationException(_u("Conditional expressions must be of type int, double, or float"));
         }
         mWriter.AsmBr( skipLabel );
-        EndStatement(pnode->sxTri.pnode2);
+        EndStatement(pnode->AsParseNodeTri()->pnode2);
         mWriter.MarkAsmJsLabel( falseLabel );
-        const EmitExpressionInfo& falseInfo = Emit( pnode->sxTri.pnode3 );
-        StartStatement(pnode->sxTri.pnode3);
+        const EmitExpressionInfo& falseInfo = Emit( pnode->AsParseNodeTri()->pnode3 );
+        StartStatement(pnode->AsParseNodeTri()->pnode3);
         if( falseInfo.type.isInt() )
         {
             if( !trueInfo.type.isInt() )
@@ -2324,15 +2324,15 @@ namespace Js
             throw AsmJsCompilationException(_u("Conditional expressions must be of type int, double, or float"));
         }
         mWriter.MarkAsmJsLabel( skipLabel );
-        EndStatement(pnode->sxTri.pnode3);
+        EndStatement(pnode->AsParseNodeTri()->pnode3);
         return emitInfo;
     }
 
     EmitExpressionInfo AsmJSByteCodeGenerator::EmitSwitch( ParseNode * pnode )
     {
         BOOL fHasDefault = false;
-        Assert( pnode->sxSwitch.pnodeVal != NULL );
-        const EmitExpressionInfo& valInfo = Emit( pnode->sxSwitch.pnodeVal );
+        Assert( pnode->AsParseNodeSwitch()->pnodeVal != NULL );
+        const EmitExpressionInfo& valInfo = Emit( pnode->AsParseNodeSwitch()->pnodeVal );
 
         if( !valInfo.type.isSigned() )
         {
@@ -2348,45 +2348,45 @@ namespace Js
         // code so the BE can optimize it.
 
         ParseNode *pnodeCase;
-        for( pnodeCase = pnode->sxSwitch.pnodeCases; pnodeCase; pnodeCase = pnodeCase->sxCase.pnodeNext )
+        for( pnodeCase = pnode->AsParseNodeSwitch()->pnodeCases; pnodeCase; pnodeCase = pnodeCase->AsParseNodeCase()->pnodeNext )
         {
             // Jump to the first case body if this one doesn't match. Make sure any side-effects of the case
             // expression take place regardless.
-            pnodeCase->sxCase.labelCase = mWriter.DefineLabel();
-            if( pnodeCase == pnode->sxSwitch.pnodeDefault )
+            pnodeCase->AsParseNodeCase()->labelCase = mWriter.DefineLabel();
+            if( pnodeCase == pnode->AsParseNodeSwitch()->pnodeDefault )
             {
                 fHasDefault = true;
                 continue;
             }
-            ParseNode* caseExpr = pnodeCase->sxCase.pnodeExpr;
-            if ((caseExpr->nop != knopInt || (caseExpr->sxInt.lw >> 31) > 1) && !ParserWrapper::IsMinInt(caseExpr))
+            ParseNode* caseExpr = pnodeCase->AsParseNodeCase()->pnodeExpr;
+            if ((caseExpr->nop != knopInt || (caseExpr->AsParseNodeInt()->lw >> 31) > 1) && !ParserWrapper::IsMinInt(caseExpr))
             {
                 throw AsmJsCompilationException( _u("Switch case value must be int in the range [-2^31, 2^31)") );
             }
 
-            const EmitExpressionInfo& caseExprInfo = Emit( pnodeCase->sxCase.pnodeExpr );
-            mWriter.AsmBrReg2( OpCodeAsmJs::Case_Int, pnodeCase->sxCase.labelCase, regVal, caseExprInfo.location );
+            const EmitExpressionInfo& caseExprInfo = Emit( pnodeCase->AsParseNodeCase()->pnodeExpr );
+            mWriter.AsmBrReg2( OpCodeAsmJs::Case_Int, pnodeCase->AsParseNodeCase()->labelCase, regVal, caseExprInfo.location );
             // do not need to release location because int constants cannot be released
         }
 
         // No explicit case value matches. Jump to the default arm (if any) or break out altogether.
         if( fHasDefault )
         {
-            mWriter.AsmBr( pnode->sxSwitch.pnodeDefault->sxCase.labelCase, OpCodeAsmJs::EndSwitch_Int );
+            mWriter.AsmBr( pnode->AsParseNodeSwitch()->pnodeDefault->AsParseNodeCase()->labelCase, OpCodeAsmJs::EndSwitch_Int );
         }
         else
         {
             if( !pnode->emitLabels )
             {
-                pnode->sxStmt.breakLabel = mWriter.DefineLabel();
+                pnode->AsParseNodeStmt()->breakLabel = mWriter.DefineLabel();
             }
-            mWriter.AsmBr( pnode->sxStmt.breakLabel, OpCodeAsmJs::EndSwitch_Int );
+            mWriter.AsmBr( pnode->AsParseNodeStmt()->breakLabel, OpCodeAsmJs::EndSwitch_Int );
         }
         // Now emit the case arms to which we jump on matching a case value.
-        for( pnodeCase = pnode->sxSwitch.pnodeCases; pnodeCase; pnodeCase = pnodeCase->sxCase.pnodeNext )
+        for( pnodeCase = pnode->AsParseNodeSwitch()->pnodeCases; pnodeCase; pnodeCase = pnodeCase->AsParseNodeCase()->pnodeNext )
         {
-            mWriter.MarkAsmJsLabel( pnodeCase->sxCase.labelCase );
-            const EmitExpressionInfo& caseBodyInfo = Emit( pnodeCase->sxCase.pnodeBody );
+            mWriter.MarkAsmJsLabel( pnodeCase->AsParseNodeCase()->labelCase );
+            const EmitExpressionInfo& caseBodyInfo = Emit( pnodeCase->AsParseNodeCase()->pnodeBody );
             mFunction->ReleaseLocationGeneric( &caseBodyInfo );
         }
 
@@ -2394,7 +2394,7 @@ namespace Js
 
         if( !fHasDefault || pnode->emitLabels )
         {
-            mWriter.MarkAsmJsLabel( pnode->sxStmt.breakLabel );
+            mWriter.MarkAsmJsLabel( pnode->AsParseNodeStmt()->breakLabel );
         }
 
         return EmitExpressionInfo( AsmJsType::Void );

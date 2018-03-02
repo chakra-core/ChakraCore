@@ -416,7 +416,7 @@ private:
 template<class Fn> void ByteCodeGenerator::IterateBlockScopedVariables(ParseNode *pnodeBlock, Fn fn)
 {
     Assert(pnodeBlock->nop == knopBlock);
-    for (auto lexvar = pnodeBlock->sxBlock.pnodeLexVars; lexvar; lexvar = lexvar->sxVar.pnodeNext)
+    for (auto lexvar = pnodeBlock->AsParseNodeBlock()->pnodeLexVars; lexvar; lexvar = lexvar->AsParseNodeVar()->pnodeNext)
     {
         fn(lexvar);
     }

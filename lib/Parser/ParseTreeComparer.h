@@ -173,15 +173,15 @@ namespace Js
             {
             case knopName:
             case knopStr:
-                return ComputeDistance(left->sxPid.pid, right->sxPid.pid);
+                return ComputeDistance(left->AsParseNodePid()->pid, right->AsParseNodePid()->pid);
 
             case knopInt:
-                return left->sxInt.lw == right->sxInt.lw ? ExactMatchDistance : 1.0;
+                return left->AsParseNodeInt()->lw == right->AsParseNodeInt()->lw ? ExactMatchDistance : 1.0;
 
             case knopFlt:
-                return left->sxFlt.dbl == right->sxFlt.dbl ? ExactMatchDistance : 1.0;
+                return left->AsParseNodeFloat()->dbl == right->AsParseNodeFloat()->dbl ? ExactMatchDistance : 1.0;
 
-            case knopRegExp: //TODO: sxPid.regexPattern
+            case knopRegExp: //TODO: AsParseNodePid()->regexPattern
                 break;
             }
 
@@ -381,7 +381,7 @@ namespace Js
         static bool IsToken(ParseNode* pnode)
         {
             // TODO: We may use a new flag fnopToken
-            return (ParseNode::Grfnop(pnode->nop) & fnopLeaf)
+            return (pnode->Grfnop() & fnopLeaf)
                 && pnode->nop != knopFncDecl
                 && pnode->nop != knopClassDecl;
         }
@@ -407,16 +407,16 @@ namespace Js
             {
             case knopName:
             case knopStr:
-                return AreEquivalent(left->sxPid.pid, right->sxPid.pid);
+                return AreEquivalent(left->AsParseNodePid()->pid, right->AsParseNodePid()->pid);
 
             case knopInt:
-                return left->sxInt.lw == right->sxInt.lw;
+                return left->AsParseNodeInt()->lw == right->AsParseNodeInt()->lw;
 
             case knopFlt:
-                return left->sxFlt.dbl == right->sxFlt.dbl;
+                return left->AsParseNodeFloat()->dbl == right->AsParseNodeFloat()->dbl;
 
             case knopRegExp:
-                //TODO: sxPid.regexPattern
+                //TODO: AsParseNodePid()->regexPattern
                 break;
             }
 
@@ -434,10 +434,10 @@ namespace Js
             switch (left->nop)
             {
             case knopVarDecl:
-                return AreEquivalent(left->sxVar.pid, right->sxVar.pid);
+                return AreEquivalent(left->AsParseNodeVar()->pid, right->AsParseNodeVar()->pid);
 
             case knopFncDecl:
-                return AreEquivalent(left->sxFnc.pid, right->sxFnc.pid);
+                return AreEquivalent(left->AsParseNodeFnc()->pid, right->AsParseNodeFnc()->pid);
 
                 //TODO: other nodes with data
             }

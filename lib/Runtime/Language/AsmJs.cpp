@@ -58,39 +58,39 @@ namespace Js
     bool
     AsmJSCompiler::CheckFunctionHead(AsmJsModuleCompiler &m, ParseNode *fn, bool isGlobal /*= true*/)
     {
-        PnFnc fnc = fn->sxFnc;
+        ParseNodeFnc * fnc = fn->AsParseNodeFnc();
 
-        if (fnc.HasNonSimpleParameterList())
+        if (fnc->HasNonSimpleParameterList())
         {
             return m.Fail(fn, _u("default, rest & destructuring args not allowed"));
         }
 
-        if (fnc.IsStaticMember())
+        if (fnc->IsStaticMember())
         {
             return m.Fail(fn, _u("static functions are not allowed"));
         }
 
-        if (fnc.IsGenerator())
+        if (fnc->IsGenerator())
         {
             return m.Fail(fn, _u("generator functions are not allowed"));
         }
 
-        if (fnc.IsAsync())
+        if (fnc->IsAsync())
         {
             return m.Fail(fn, _u("async functions are not allowed"));
         }
 
-        if (fnc.IsLambda())
+        if (fnc->IsLambda())
         {
             return m.Fail(fn, _u("lambda functions are not allowed"));
         }
 
-        if (!isGlobal && fnc.nestedCount != 0)
+        if (!isGlobal && fnc->nestedCount != 0)
         {
             return m.Fail(fn, _u("closure functions are not allowed"));
         }
 
-        if (!fnc.IsAsmJsAllowed())
+        if (!fnc->IsAsmJsAllowed())
         {
             return m.Fail(fn, _u("invalid function flags detected"));
         }
@@ -113,7 +113,7 @@ namespace Js
             if( coercedExpr )
             {
 
-                if( rhs->nop == knopInt && rhs->sxInt.lw == 0 )
+                if( rhs->nop == knopInt && rhs->AsParseNodeInt()->lw == 0 )
                 {
                     if( rhs->nop == knopAnd )
                     {
@@ -145,7 +145,7 @@ namespace Js
             ParseNode* target;
             AsmJsFunctionDeclaration* sym;
 
-            target = coercionNode->sxCall.pnodeTarget;
+            target = coercionNode->AsParseNodeCall()->pnodeTarget;
 
             if (!target || target->nop != knopName)
             {
@@ -161,7 +161,7 @@ namespace Js
             }
             if( coercedExpr )
             {
-                *coercedExpr = coercionNode->sxCall.pnodeArgs;
+                *coercedExpr = coercionNode->AsParseNodeCall()->pnodeArgs;
             }
             return true;
         }
@@ -178,7 +178,7 @@ namespace Js
             {
                 *coercion = AsmJS_ToInt32;
             }
-            else if (coercionNode->sxFlt.maybeInt)
+            else if (coercionNode->AsParseNodeFloat()->maybeInt)
             {
                 return m.Fail(coercionNode, _u("Integer literal in return must be in range [-2^31, 2^31)"));
             }
@@ -345,7 +345,7 @@ namespace Js
         Assert( newExpr->nop == knopNew );
         m.SetUsesHeapBuffer(true);
 
-        ParseNode *ctorExpr = newExpr->sxCall.pnodeTarget;
+        ParseNode *ctorExpr = newExpr->AsParseNodeCall()->pnodeTarget;
         ArrayBufferView::ViewType type;
         if( ParserWrapper::IsDotMember(ctorExpr) )
         {
@@ -426,7 +426,7 @@ namespace Js
             return m.Fail(newExpr, _u("invalid 'new' import"));
         }
 
-        ParseNode *bufArg = newExpr->sxCall.pnodeArgs;
+        ParseNode *bufArg = newExpr->AsParseNodeCall()->pnodeArgs;
         if( !bufArg || !ParserWrapper::IsNameDeclaration( bufArg ) )
         {
             return m.Fail( ctorExpr, _u("array view constructor takes exactly one argument") );
@@ -553,12 +553,12 @@ namespace Js
             return false;
         }
 
-        if (!var->sxVar.pnodeInit)
+        if (!var->AsParseNodeVar()->pnodeInit)
         {
             return m.Fail(var, _u("module import needs initializer"));
         }
 
-        ParseNode *initNode = var->sxVar.pnodeInit;
+        ParseNode *initNode = var->AsParseNodeVar()->pnodeInit;
 
 
         if( ParserWrapper::IsNumericLiteral( initNode ) )
@@ -631,7 +631,7 @@ namespace Js
                     goto varDeclEnd;
                 }
 
-                if (decl->sxVar.pnodeInit && decl->sxVar.pnodeInit->nop == knopArray)
+                if (decl->AsParseNodeVar()->pnodeInit && decl->AsParseNodeVar()->pnodeInit->nop == knopArray)
                 {
                     // Assume we reached func tables
                     goto varDeclEnd;
@@ -685,7 +685,7 @@ varDeclEnd:
 
         if( PHASE_TRACE1( Js::ByteCodePhase ) )
         {
-            Output::Print( _u("  Checking Asm function: %s\n"), fncNode->sxFnc.funcInfo->name);
+            Output::Print( _u("  Checking Asm function: %s\n"), fncNode->AsParseNodeFnc()->funcInfo->name);
         }
 
         if( !CheckFunctionHead( m, fncNode, false ) )
@@ -742,11 +742,11 @@ varDeclEnd:
             {
                 break;
             }
-            if (!varStmt->sxVar.pnodeInit || varStmt->sxVar.pnodeInit->nop != knopArray)
+            if (!varStmt->AsParseNodeVar()->pnodeInit || varStmt->AsParseNodeVar()->pnodeInit->nop != knopArray)
             {
                 break;
             }
-            const uint tableSize = varStmt->sxVar.pnodeInit->sxArrLit.count;
+            const uint tableSize = varStmt->AsParseNodeVar()->pnodeInit->AsParseNodeArrLit()->count;
             if (!::Math::IsPow2(tableSize))
             {
                 return m.FailName(varStmt, _u("Function table [%s] size must be a power of 2"), varStmt->name());
@@ -758,7 +758,7 @@ varDeclEnd:
 
             AsmJsFunctionTable* ftable = (AsmJsFunctionTable*)m.LookupIdentifier(varStmt->name());
             Assert(ftable);
-            ParseNode* pnode = varStmt->sxVar.pnodeInit->sxArrLit.pnode1;
+            ParseNode* pnode = varStmt->AsParseNodeVar()->pnodeInit->AsParseNodeArrLit()->pnode1;
             if (pnode->nop == knopList)
             {
                 pnode = ParserWrapper::GetBinaryLeft(pnode);
@@ -794,7 +794,7 @@ varDeclEnd:
             return m.Fail( node, _u("Only expression after table functions must be a return") );
         }
 
-        ParseNode* objNode = node->sxReturn.pnodeExpr;
+        ParseNode* objNode = node->AsParseNodeReturn()->pnodeExpr;
         if ( !objNode )
         {
             return m.Fail( node, _u( "Module return must be an object or 1 function" ) );
@@ -895,7 +895,7 @@ varDeclEnd:
                 break;
             }
 
-            ParseNode* nodeInit = varStmt->sxVar.pnodeInit;
+            ParseNode* nodeInit = varStmt->AsParseNodeVar()->pnodeInit;
             if( !nodeInit || nodeInit->nop != knopArray )
             {
                 return m.Fail( varStmt, _u("Invalid variable after function declaration") );
@@ -923,14 +923,14 @@ varDeclEnd:
                 }
 
                 // Check content of the array
-                uint count = nodeInit->sxArrLit.count;
+                uint count = nodeInit->AsParseNodeArrLit()->count;
                 if( table->GetSize() != count )
                 {
                     return m.FailName( varStmt, _u("Invalid size of function table %s"), tableName );
                 }
 
                 // Set the content of the array in the table
-                ParseNode* node = nodeInit->sxArrLit.pnode1;
+                ParseNode* node = nodeInit->AsParseNodeArrLit()->pnode1;
                 uint i = 0;
                 while( node )
                 {
@@ -1069,7 +1069,7 @@ AsmJsCompilationError:
         ParseNode * moduleNode = m.GetModuleFunctionNode();
         if( moduleNode )
         {
-            FunctionBody* body = moduleNode->sxFnc.funcInfo->GetParsedFunctionBody();
+            FunctionBody* body = moduleNode->AsParseNodeFnc()->funcInfo->GetParsedFunctionBody();
             body->ResetByteCodeGenState();
         }
 

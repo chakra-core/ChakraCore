@@ -7,7 +7,7 @@
 /***************************************************************************
 Exception blocks
 ***************************************************************************/
-struct ParseNode;
+class ParseNode;
 class COleScript;
 interface IScanner;
 
