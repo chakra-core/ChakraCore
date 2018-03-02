@@ -3581,6 +3581,85 @@ namespace Js
         return PathTypeHandlerWithAttr::GetProperty(instance, originalInstance, propertyRecord->GetPropertyId(), value, info, requestContext);
     }
 
+    BOOL PathTypeHandlerWithAttr::SetProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
+    {
+        PropertyIndex index = PathTypeHandlerBase::GetPropertyIndex(propertyId);
+        if (index != Constants::NoSlot)
+        {
+            if (attributes[index] & ObjectSlotAttr_Accessor)
+            {
+                Assert(setters[index] != Constants::NoSlot);
+                RecyclableObject* func = RecyclableObject::FromVar(instance->GetSlot(setters[index]));
+                JavascriptOperators::CallSetter(func, instance, value, NULL);
+
+                // Wait for the setter to return before setting up the inline cache info, as the setter may change
+                // the attributes
+                DynamicTypeHandler *typeHandler = instance->GetTypeHandler();
+                if (typeHandler == this)
+                {
+                    // Common path: setter didn't change the handler. Do the rest without virtual calls.
+                    if (attributes[index] & ObjectSlotAttr_Deleted)
+                    {
+                        // Delete and re-add may have changed the index.
+                        index = PathTypeHandlerBase::GetPropertyIndex(propertyId);
+                        if (attributes[index] & ObjectSlotAttr_Deleted)
+                        {
+                            // Current state is really "deleted". Don't cache.
+                            return TRUE;
+                        }
+                    }
+                    Assert(index == PathTypeHandlerBase::GetPropertyIndex(propertyId));
+
+                    if (attributes[index] & ObjectSlotAttr_Accessor)
+                    {
+                        PropertyValueInfo::Set(info, instance, setters[index], ObjectSlotAttributesToPropertyAttributes(attributes[index]), InlineCacheSetterFlag);
+                    }
+                    else
+                    {
+                        PropertyValueInfo::Set(info, instance, index, ObjectSlotAttributesToPropertyAttributes(attributes[index]), InlineCacheNoFlags);
+                    }
+                }
+                else
+                {
+                    PropertyAttributes attributes;
+                    index = typeHandler->GetPropertyIndex(instance->GetScriptContext()->GetPropertyName(propertyId));
+                    if (index == Constants::NoSlot)
+                    {
+                        return TRUE;
+                    }
+                    if (typeHandler->GetAttributesWithPropertyIndex(instance, propertyId, index, &attributes) == FALSE)
+                    {
+                        return TRUE;
+                    }
+                    if (attributes & PropertyDeleted)
+                    {
+                        return TRUE;
+                    }
+                    DescriptorFlags descriptorFlags = typeHandler->GetSetter(instance, propertyId, (Var*)&func, info, instance->GetScriptContext());
+                    if (descriptorFlags & Data)
+                    {
+                        PropertyValueInfo::Set(info, instance, index, attributes, InlineCacheNoFlags);
+                    }
+                }
+
+                return TRUE;
+            }
+            else if (attributes[index] & ObjectSlotAttr_Deleted)
+            {
+                AssertMsg(0, "Re-add of deleted property NYI in PathTypeHandler");
+            }
+        }
+        return SetPropertyInternal<false>(instance, propertyId, index, value, ObjectSlotAttr_Default, info, flags, SideEffects_Any);
+    }
+
+    BOOL PathTypeHandlerWithAttr::SetProperty(DynamicObject* instance, JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
+    {
+        // Consider: Implement actual string hash lookup
+        PropertyRecord const* propertyRecord;
+        instance->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
+        return PathTypeHandlerWithAttr::SetProperty(instance, propertyRecord->GetPropertyId(), value, flags, info);
+    }
+
     BOOL PathTypeHandlerWithAttr::GetAttributesWithPropertyIndex(DynamicObject * instance, PropertyId propertyId, BigPropertyIndex index, PropertyAttributes * attributes)
     {
         if (index < this->GetPathLength())
