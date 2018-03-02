@@ -1234,13 +1234,11 @@ public:
     void DisplayMemStats();
 #endif
 
-    void AddExternalMemoryUsage(size_t size);
-
     bool NeedDispose() { return this->hasDisposableObject; }
 
     template <CollectionFlags flags>
     bool FinishDisposeObjectsNow();
-    bool RequestExternalMemoryAllocation(size_t size);
+    bool RequestExternalMemoryAllocation(size_t size, bool collectOnFail = false);
     void ReportExternalMemoryFailure(size_t size);
     void ReportExternalMemoryFree(size_t size);
     // ExternalAllocFunc returns true when allocation succeeds
@@ -2632,7 +2630,6 @@ bool Recycler::DoExternalAllocation(size_t size, ExternalAllocFunc externalAlloc
     AutoExternalAllocation externalAllocation(this, size);
     if (externalAllocFunc())
     {
-        this->AddExternalMemoryUsage(size);
         externalAllocation.allocationSucceeded = true;
         return true;
     }

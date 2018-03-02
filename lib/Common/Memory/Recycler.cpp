@@ -1087,20 +1087,31 @@ Recycler::Prime()
     });
 }
 
-void
-Recycler::AddExternalMemoryUsage(size_t size)
+#define KB64  (64 * 1024)
+#define KB128 (2  * KB64)
+bool Recycler::RequestExternalMemoryAllocation(size_t size, bool collectOnFail)
 {
-    this->autoHeap.uncollectedAllocBytes += size;
-    this->autoHeap.uncollectedExternalBytes += size;
-    // Generally normal GC can cleanup the uncollectedAllocBytes. But if external components
-    // do fast large allocations in a row, normal GC might not kick in. Let's force the GC
-    // here if we need to collect anyhow.
-    CollectNow<CollectOnAllocation>();
-}
+    bool success = recyclerPageAllocator.RequestAlloc(size);
+    // if this is not a success, caller will be collecting aggresively anyways
+    // otherwise caller should set collectOnFail
+    if (success || collectOnFail)
+    {
+        if (success)
+        {
+            this->autoHeap.uncollectedExternalBytes += size;
+        }
 
-bool Recycler::RequestExternalMemoryAllocation(size_t size)
-{
-    return recyclerPageAllocator.RequestAlloc(size);
+        // Generally normal GC can cleanup the uncollectedAllocBytes. But if external components
+        // do fast large allocations in a row, normal GC might not kick in. Let's force the GC
+        // here if we need to collect anyhow.
+
+        if (collectOnFail || this->autoHeap.uncollectedExternalBytes > KB128 || size >= KB64)
+        {
+            CollectNow<CollectOnAllocation>();
+        }
+    }
+
+    return success;
 }
 
 void Recycler::ReportExternalMemoryFailure(size_t size)

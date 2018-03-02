@@ -686,8 +686,8 @@ namespace Js
     {
         Recycler* recycler = type->GetScriptContext()->GetRecycler();
         JavascriptArrayBuffer* result = RecyclerNewFinalized(recycler, JavascriptArrayBuffer, length, type);
+
         Assert(result);
-        recycler->AddExternalMemoryUsage(length);
         return result;
     }
 
@@ -695,8 +695,8 @@ namespace Js
     {
         Recycler* recycler = type->GetScriptContext()->GetRecycler();
         JavascriptArrayBuffer* result = RecyclerNewFinalized(recycler, JavascriptArrayBuffer, buffer, length, type);
+
         Assert(result);
-        recycler->AddExternalMemoryUsage(length);
         return result;
     }
 
@@ -898,8 +898,6 @@ namespace Js
             {
                 result = RecyclerNewFinalized(recycler, WebAssemblyArrayBuffer, length, type);
             }
-            // Only add external memory when we create a new internal buffer
-            recycler->AddExternalMemoryUsage(length);
         }
         Assert(result);
         return result;
@@ -1010,16 +1008,15 @@ namespace Js
     ProjectionArrayBuffer* ProjectionArrayBuffer::Create(uint32 length, DynamicType * type)
     {
         Recycler* recycler = type->GetScriptContext()->GetRecycler();
-        recycler->AddExternalMemoryUsage(length);
         return RecyclerNewFinalized(recycler, ProjectionArrayBuffer, length, type);
     }
 
     ProjectionArrayBuffer* ProjectionArrayBuffer::Create(byte* buffer, uint32 length, DynamicType * type)
     {
         Recycler* recycler = type->GetScriptContext()->GetRecycler();
-        // This is user passed [in] buffer, user should AddExternalMemoryUsage before calling jscript, but
-        // I don't see we ask everyone to do this. Let's add the memory pressure here as well.
-        recycler->AddExternalMemoryUsage(length);
+        // we are not going to allocate any additional memory here
+        // yet let's add the memory pressure here as well.
+        recycler->RequestExternalMemoryAllocation(length, true);
         return RecyclerNewFinalized(recycler, ProjectionArrayBuffer, buffer, length, type);
     }
 

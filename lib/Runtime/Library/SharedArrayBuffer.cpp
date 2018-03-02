@@ -260,7 +260,7 @@ namespace Js
 
         Recycler* recycler = GetType()->GetLibrary()->GetRecycler();
 
-        auto alloc = [this](uint len)->BYTE* 
+        auto alloc = [this](uint len)->BYTE*
         {
 #if ENABLE_FAST_ARRAYBUFFER
             if (this->IsValidVirtualBufferLength(len))
@@ -332,7 +332,7 @@ namespace Js
         {
             sharedContents = contents;
         }
-        else 
+        else
         {
             Js::Throw::FatalInternalError();
         }
@@ -369,7 +369,7 @@ namespace Js
         return nullptr;
     }
 
-    uint32 SharedArrayBuffer::GetByteLength() const 
+    uint32 SharedArrayBuffer::GetByteLength() const
     {
         return sharedContents != nullptr ? sharedContents->bufferLength : 0;
     }
@@ -404,7 +404,6 @@ namespace Js
     {
         Recycler* recycler = type->GetScriptContext()->GetRecycler();
         JavascriptSharedArrayBuffer* result = RecyclerNewFinalized(recycler, JavascriptSharedArrayBuffer, length, type);
-        recycler->AddExternalMemoryUsage(length);
         return result;
     }
 
@@ -458,7 +457,7 @@ namespace Js
             {
                 HeapDeleteArray(sharedContents->bufferLength, sharedContents->buffer);
             }
-                        
+
             Recycler* recycler = GetType()->GetLibrary()->GetRecycler();
             recycler->ReportExternalMemoryFree(sharedContents->bufferLength);
 
