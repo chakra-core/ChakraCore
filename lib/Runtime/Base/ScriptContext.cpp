@@ -4565,7 +4565,7 @@ namespace Js
     {
         threadContext->InvalidateMissingPropertyInlineCaches(type, propertyId);
 #if ENABLE_NATIVE_CODEGEN
-        threadContext->InvalidatePropertyGuards(propertyId);
+        threadContext->InvalidatePropertyGuardsForType(propertyId, type);
 #endif
         threadContext->InvalidateMissingPropertyProtoTypePropertyCaches(type, propertyId);
     }

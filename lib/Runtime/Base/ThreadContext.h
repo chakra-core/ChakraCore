@@ -1333,6 +1333,8 @@ private:
     void InvalidateFixedFieldGuard(Js::PropertyGuard* guard);
     PropertyGuardEntry* EnsurePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, bool& foundExistingEntry);
     void InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, PropertyGuardEntry* entry, bool isAllPropertyGuardsInvalidation);
+    // Invalidate only those property guard entries that describe the indicated type
+    void InvalidatePropertyGuardEntryForType(const Js::PropertyRecord* propertyRecord, PropertyGuardEntry* entry, bool isAllPropertyGuardsInvalidation, const Js::Type *type);
 #endif
 
 public:
@@ -1360,7 +1362,7 @@ public:
 
     // Invalidates all prototype cache entries for propertyId where the property is missing on the specified type
     void InvalidateMissingPropertyInlineCaches(const Js::Type *type, Js::PropertyId propertyId);
-    
+
     void InvalidateStoreFieldInlineCaches(Js::PropertyId propertyId);
     void InvalidateAllProtoInlineCaches();
 #if DBG
@@ -1371,6 +1373,8 @@ public:
     void InvalidateAllStoreFieldInlineCaches();
     bool AreAllStoreFieldInlineCachesInvalidated();
     void InvalidatePropertyGuards(Js::PropertyId propertyId);
+    // Invalidate only those property guards that describe the indicated type.
+    void InvalidatePropertyGuardsForType(Js::PropertyId propertyId, const Js::Type *type);
     void InvalidateAllPropertyGuards();
     void RegisterIsInstInlineCache(Js::IsInstInlineCache * inlineCache, Js::Var function);
     void UnregisterIsInstInlineCache(Js::IsInstInlineCache * inlineCache, Js::Var function);
