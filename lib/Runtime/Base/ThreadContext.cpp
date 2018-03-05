@@ -3598,49 +3598,14 @@ ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRe
 
     entry->uniqueGuards.Clear();
 
-
     // Count no. of invalidations done so far. Exclude if this is all property guards invalidation in which case
     // the unique Guards will be cleared anyway.
     if (!isAllPropertyGuardsInvalidation)
     {
-        this->recyclableData->constructorCacheInvalidationCount += count;
-        if (this->recyclableData->constructorCacheInvalidationCount > (uint)CONFIG_FLAG(ConstructorCacheInvalidationThreshold))
-        {
-            // TODO: In future, we should compact the uniqueGuards dictionary so this function can be called from PreCollectionCallback
-            // instead
-            this->ClearInvalidatedUniqueGuards();
-            this->recyclableData->constructorCacheInvalidationCount = 0;
-        }
+        this->UpdateConstructorCacheInvalidationCount(count);
     }
 
-    if (entry->entryPoints && entry->entryPoints->Count() > 0)
-    {
-        Js::JavascriptStackWalker stackWalker(this->GetScriptContextList());
-        Js::JavascriptFunction* caller = nullptr;
-        while (stackWalker.GetCaller(&caller, /*includeInlineFrames*/ false))
-        {
-            // If the current frame is already from a bailout - we do not need to do on stack invalidation
-            if (caller != nullptr && Js::ScriptFunction::Test(caller) && !stackWalker.GetCurrentFrameFromBailout())
-            {
-                BYTE dummy;
-                Js::FunctionEntryPointInfo* functionEntryPoint = caller->GetFunctionBody()->GetDefaultFunctionEntryPointInfo();
-                if (functionEntryPoint->IsInNativeAddressRange((DWORD_PTR)stackWalker.GetInstructionPointer()))
-                {
-                    if (entry->entryPoints->TryGetValue(functionEntryPoint, &dummy))
-                    {
-                        functionEntryPoint->DoLazyBailout(stackWalker.GetCurrentAddressOfInstructionPointer(),
-                            caller->GetFunctionBody(), propertyRecord);
-                    }
-                }
-            }
-        }
-        entry->entryPoints->Map([=](Js::EntryPointInfo* info, BYTE& dummy, const RecyclerWeakReference<Js::EntryPointInfo>* infoWeakRef)
-        {
-            OUTPUT_TRACE2(Js::LazyBailoutPhase, info->GetFunctionBody(), _u("Lazy bailout - Invalidation due to property: %s \n"), propertyRecord->GetBuffer());
-            info->Invalidate(true);
-        });
-        entry->entryPoints->Clear();
-    }
+    this->UpdateEntryPoints(propertyRecord, entry);
 }
 
 void
@@ -3713,20 +3678,30 @@ ThreadContext::InvalidatePropertyGuardEntryForType(const Js::PropertyRecord* pro
         }
     });
 
-    // Count no. of invalidations done so far. Exclude if this is all property guards invalidation in which case
-    // the unique Guards will be cleared anyway.
     if (!isAllPropertyGuardsInvalidation)
     {
-        this->recyclableData->constructorCacheInvalidationCount += count;
-        if (this->recyclableData->constructorCacheInvalidationCount > (uint)CONFIG_FLAG(ConstructorCacheInvalidationThreshold))
-        {
-            // TODO: In future, we should compact the uniqueGuards dictionary so this function can be called from PreCollectionCallback
-            // instead
-            this->ClearInvalidatedUniqueGuards();
-            this->recyclableData->constructorCacheInvalidationCount = 0;
-        }
+        this->UpdateConstructorCacheInvalidationCount(count);
     }
 
+    this->UpdateEntryPoints(propertyRecord, entry);
+}
+
+void ThreadContext::UpdateConstructorCacheInvalidationCount(uint count)
+{
+    // Count no. of invalidations done so far. Exclude if this is all property guards invalidation in which case
+    // the unique Guards will be cleared anyway.
+    this->recyclableData->constructorCacheInvalidationCount += count;
+    if (this->recyclableData->constructorCacheInvalidationCount > (uint)CONFIG_FLAG(ConstructorCacheInvalidationThreshold))
+    {
+        // TODO: In future, we should compact the uniqueGuards dictionary so this function can be called from PreCollectionCallback
+        // instead
+        this->ClearInvalidatedUniqueGuards();
+        this->recyclableData->constructorCacheInvalidationCount = 0;
+    }
+}
+
+void ThreadContext::UpdateEntryPoints(const Js::PropertyRecord *propertyRecord, PropertyGuardEntry *entry)
+{
     if (entry->entryPoints && entry->entryPoints->Count() > 0)
     {
         Js::JavascriptStackWalker stackWalker(this->GetScriptContextList());

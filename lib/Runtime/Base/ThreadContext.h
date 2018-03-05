@@ -1388,6 +1388,9 @@ private:
     bool IsIsInstInlineCacheInList(const Js::IsInstInlineCache* inlineCache, const Js::IsInstInlineCache* inlineCacheList);
 #endif
 
+    void UpdateConstructorCacheInvalidationCount(uint count);
+    void UpdateEntryPoints(const Js::PropertyRecord *propertyRecord, PropertyGuardEntry *entry);
+
 public:
     void InvalidateIsInstInlineCachesForFunction(Js::Var function);
     void InvalidateAllIsInstInlineCaches();
