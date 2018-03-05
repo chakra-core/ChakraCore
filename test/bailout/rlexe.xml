@@ -214,7 +214,7 @@
       <!-- This version creates dynamic profile cache -->
       <files>inlineBuiltIns.js</files>
       <compile-flags>-dynamicprofilecache:profile.dpl.inlineBuiltIns.js</compile-flags>
-      <tags>exclude_dynapogo,exclude_default,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_serialized</tags>
       <baseline>inlineBuiltIns.baseline</baseline>
     </default>
   </test>
