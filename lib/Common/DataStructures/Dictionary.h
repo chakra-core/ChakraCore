@@ -206,10 +206,11 @@ namespace JsUtil
             }
         }
 
-        // Variant of Map in which the function `fn' must return something convertable to a
-        // bool; removes all entries for which fn returns false.
+        // Variant of Map that removes all entries for which fn returns
+        // (something convertible to) true.  Like Map, removes entries
+        // whose key is equal to nullptr.
         template<typename Fn>
-        void FilterMap(Fn fn)
+        void MapAndRemoveIf(Fn fn)
         {
             for (int i = 0; i < size; i++)
             {
@@ -219,18 +220,18 @@ namespace JsUtil
                     {
                         EntryType &currentEntry = entries[currentIndex];
                         TKey *key = currentEntry.key->Get();
-                        if (key != nullptr && fn(key, currentEntry.value, currentEntry.key))
-                        {
-                            // Keep entry
-                            previousIndex = currentIndex;
-                            currentIndex = currentEntry.next;
-                        }
-                        else
+                        if (key == nullptr || fn(key, currentEntry.value, currentEntry.key))
                         {
                             // Remove the entry
                             const int nextIndex = currentEntry.next;
                             RemoveEntry(currentIndex, previousIndex, i);
                             currentIndex = nextIndex;
+                        }
+                        else
+                        {
+                            // Keep entry
+                            previousIndex = currentIndex;
+                            currentIndex = currentEntry.next;
                         }
                     }
                 }

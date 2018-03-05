@@ -4091,7 +4091,7 @@ void ThreadContext::InvalidateMissingPropertyProtoTypePropertyCaches(const Js::T
     if (typesWithProtoPropertyCache.Count() != 0 && typesWithProtoPropertyCache.TryGetValue(propertyId, &typeHashSet))
     {
         Assert(typeHashSet != nullptr);
-        typeHashSet->FilterMap(
+        typeHashSet->MapAndRemoveIf(
             [propertyId, type](Js::Type * const entryType, const bool, const RecyclerWeakReference<Js::Type>*) -> bool
             {
                 if (entryType == type)
@@ -4099,12 +4099,12 @@ void ThreadContext::InvalidateMissingPropertyProtoTypePropertyCaches(const Js::T
                     // We only call this method when adding a new property to a type.  If the property
                     // is already cached, then it must have been cached as a missing property.
                     Assert(entryType->GetPropertyCache()->PropertyIsMissing(propertyId));
-                    return !(entryType->GetPropertyCache()->ClearIfPropertyIsMissing(propertyId));
+                    return entryType->GetPropertyCache()->ClearIfPropertyIsMissing(propertyId);
                 }
                 else
                 {
-                    // Entry is for a different type; return true to indicate that we should keep entry in typeHashSet.
-                    return true;
+                    // Entry is for a different type; return false to indicate that we should keep entry in typeHashSet.
+                    return false;
                 }
             });
         // If all of the entries in typeHashSet corresponding to missing properties, then
