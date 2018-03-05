@@ -71,6 +71,8 @@ PRINT_USAGE() {
     echo "                       Disable FEATUREs from JSRT experimental features."
     echo "     --valgrind        Enable Valgrind support"
     echo "                       !!! Disables Concurrent GC (lower performance)"
+    echo "     --ccache[=NAME]   Enable ccache, optionally with a custom binary name."
+    echo "                       Default: ccache"
     echo " -v, --verbose         Display verbose output including all options"
     echo "     --wb-check CPPFILE"
     echo "                       Write-barrier check given CPPFILE (git path)"
@@ -124,6 +126,7 @@ VALGRIND=0
 CMAKE_EXPORT_COMPILE_COMMANDS="-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
 LIBS_ONLY_BUILD=
 ALWAYS_YES=
+CCACHE_NAME=
 PYTHON2_BINARY=$(which python2.7 || which python2 || which python 2> /dev/null)
 
 UNAME_S=`uname -s`
@@ -334,6 +337,16 @@ while [[ $# -gt 0 ]]; do
     --target-path=*)
         TARGET_PATH=$1
         TARGET_PATH=${TARGET_PATH:14}
+        ;;
+
+    --ccache=*)
+        CCACHE_NAME="$1"
+        CCACHE_NAME=${CCACHE_NAME:9}
+        CCACHE_NAME="-DCCACHE_PROGRAM_NAME_SH=${CCACHE_NAME}"
+        ;;
+
+    --ccache)
+        CCACHE_NAME="-DCCACHE_PROGRAM_NAME_SH=ccache"
         ;;
 
     --without=*)
@@ -655,7 +668,7 @@ echo $EXTRA_DEFINES
 cmake $CMAKE_GEN $CC_PREFIX $CMAKE_ICU $LTO $LTTNG $STATIC_LIBRARY $ARCH $TARGET_OS \
     $ENABLE_CC_XPLAT_TRACE $EXTRA_DEFINES -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT $CMAKE_INTL \
     $WITHOUT_FEATURES $WB_FLAG $WB_ARGS $CMAKE_EXPORT_COMPILE_COMMANDS $LIBS_ONLY_BUILD\
-    $VALGRIND $BUILD_RELATIVE_DIRECTORY
+    $VALGRIND $BUILD_RELATIVE_DIRECTORY $CCACHE_NAME
 
 _RET=$?
 if [[ $? == 0 ]]; then
