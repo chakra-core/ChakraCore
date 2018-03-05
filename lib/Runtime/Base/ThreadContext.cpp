@@ -3237,19 +3237,19 @@ ThreadContext::InvalidateMissingPropertyInlineCaches(const Js::Type *type, Js::P
     {
         if (PHASE_TRACE1(Js::TraceInlineCacheInvalidationPhase))
         {
-            // XXX Can we get type's name and include it in this log message?
-            Output::Print(_u("InlineCacheInvalidation: invalidating missing-property proto caches for property %s(%u)\n"),
-                GetPropertyName(propertyId)->GetBuffer(), propertyId);
+            Output::Print(_u("InlineCacheInvalidation: invalidating missing-property proto caches for property %s(%u), type %d\n"),
+                GetPropertyName(propertyId)->GetBuffer(), propertyId, type->GetTypeId());
             Output::Flush();
         }
 
+        // Next section is based on InvalidateAndDeleteInlineCacheList.  Unlike that function, however, we only invalidate and
+        // remove entries that describe missing properties.
         uint numCachesInvalidated = 0;
         FOREACH_SLISTBASE_ENTRY_EDITING(Js::InlineCache*, inlineCache, inlineCacheList, editingIterator)
         {
             // ThreadContext::InvalidateAndDeleteInlineCacheList, on which this method is based, just deletes the entire list, so
             // (among other things) it must update this->unregisteredInlineCacheCount to reflect the number of
             // NULL entries in the list that are being deleted.  For simplicity, I skip those here and leave the count intact.
-            // Should we remove them?
             if (inlineCache != nullptr && inlineCache->u.proto.isProto && inlineCache->u.proto.type == type) {
                 // Since this method is only called in response to adding a new property, then the property
                 // can only be in the cache if it was previously missing.
@@ -3266,10 +3266,12 @@ ThreadContext::InvalidateMissingPropertyInlineCaches(const Js::Type *type, Js::P
         }
         NEXT_SLISTBASE_ENTRY_EDITING;
 
+        // If we've removed all of the entries in the list, clean up the list as well.
         if (inlineCacheList->Empty()) {
             protoInlineCacheByPropId.Remove(propertyId);
             Adelete(&this->inlineCacheThreadInfoAllocator, inlineCacheList);
         }
+
         this->registeredInlineCacheCount =
             this->registeredInlineCacheCount > numCachesInvalidated ? this->registeredInlineCacheCount - numCachesInvalidated : 0;
     }
@@ -3685,11 +3687,6 @@ ThreadContext::InvalidatePropertyGuardEntryForType(const Js::PropertyRecord* pro
     entry->uniqueGuards.MapAndRemoveIf([&count, propertyRecord, type](RecyclerWeakReference<Js::PropertyGuard>* guardWeakRef) -> bool
     {
         Js::PropertyGuard* guard = guardWeakRef->Get();
-        // XXX NOTE FOR REVIEWER: InvalidatePropertyGuardEntry, on which
-        // this method is based, automatically removes all guards from
-        // entry->uniqueGuards.  I'm deliberately removing only those which
-        // match the specified type, but leaving those for which guard is
-        // nullptr.  Is this the appropriate behavior?
         if (guard != nullptr && guard->GetValue() == reinterpret_cast<intptr_t>(type))
         {
             if (PHASE_TRACE1(Js::TracePropertyGuardsPhase) || PHASE_VERBOSE_TRACE1(Js::FixedMethodsPhase))
