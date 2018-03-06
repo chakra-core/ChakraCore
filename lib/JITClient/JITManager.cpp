@@ -223,6 +223,9 @@ JITManager::IsOOPJITEnabled() const
     return m_oopJitEnabled;
 }
 
+#pragma prefast(push)
+#pragma prefast(disable:__WARNING_RELEASING_UNHELD_LOCK_MEDIUM_CONFIDENCE, "Lock is correctly acquired and released by RAII class AutoCriticalSection")
+#pragma prefast(disable:__WARNING_CALLER_FAILING_TO_HOLD, "Lock is correctly acquired and released by RAII class AutoCriticalSection")
 HRESULT
 JITManager::ConnectRpcServer(__in HANDLE jitProcessHandle, __in_opt void* serverSecurityDescriptor, __in UUID connectionUuid)
 {
@@ -260,6 +263,7 @@ FailureCleanup:
 
     return hr;
 }
+#pragma prefast(pop)
 
 HRESULT
 JITManager::Shutdown()
