@@ -1091,6 +1091,48 @@ namespace JsRTApiTest
         REQUIRE(JsGetProperty(exceptionMetadata, property, &metadataValue) == JsNoError);
         REQUIRE(JsGetValueType(metadataValue, &type) == JsNoError);
         CHECK(type == JsString);
+
+        // Following requires eval to be enabled - no point in testing it if we've disabled eval
+        if (!(attributes & JsRuntimeAttributeDisableEval))
+        {
+            REQUIRE(JsRunScript(_u("eval('var a = b');"), JS_SOURCE_CONTEXT_NONE, _u(""), nullptr) == JsErrorScriptException);
+            REQUIRE(JsHasException(&value) == JsNoError);
+            CHECK(value == true);
+
+            REQUIRE(JsGetAndClearExceptionWithMetadata(&exceptionMetadata) == JsNoError);
+            REQUIRE(JsHasException(&value) == JsNoError);
+            CHECK(value == false);
+
+            REQUIRE(JsGetPropertyIdFromName(_u("exception"), &property) == JsNoError);
+            REQUIRE(JsGetProperty(exceptionMetadata, property, &metadataValue) == JsNoError);
+            REQUIRE(JsGetValueType(metadataValue, &type) == JsNoError);
+            CHECK(type == JsError);
+
+            REQUIRE(JsGetPropertyIdFromName(_u("line"), &property) == JsNoError);
+            REQUIRE(JsGetProperty(exceptionMetadata, property, &metadataValue) == JsNoError);
+            REQUIRE(JsGetValueType(metadataValue, &type) == JsNoError);
+            CHECK(type == JsNumber);
+
+            REQUIRE(JsGetPropertyIdFromName(_u("column"), &property) == JsNoError);
+            REQUIRE(JsGetProperty(exceptionMetadata, property, &metadataValue) == JsNoError);
+            REQUIRE(JsGetValueType(metadataValue, &type) == JsNoError);
+            CHECK(type == JsNumber);
+
+            REQUIRE(JsGetPropertyIdFromName(_u("length"), &property) == JsNoError);
+            REQUIRE(JsGetProperty(exceptionMetadata, property, &metadataValue) == JsNoError);
+            REQUIRE(JsGetValueType(metadataValue, &type) == JsNoError);
+            CHECK(type == JsNumber);
+
+            REQUIRE(JsGetPropertyIdFromName(_u("url"), &property) == JsNoError);
+            REQUIRE(JsGetProperty(exceptionMetadata, property, &metadataValue) == JsNoError);
+            REQUIRE(JsGetValueType(metadataValue, &type) == JsNoError);
+            CHECK(type == JsString);
+
+            REQUIRE(JsGetPropertyIdFromName(_u("source"), &property) == JsNoError);
+            REQUIRE(JsGetProperty(exceptionMetadata, property, &metadataValue) == JsNoError);
+            REQUIRE(JsGetValueType(metadataValue, &type) == JsNoError);
+            CHECK(type == JsString);
+        }
     }
 
     TEST_CASE("ApiTest_ExceptionHandlingTest", "[ApiTest]")
