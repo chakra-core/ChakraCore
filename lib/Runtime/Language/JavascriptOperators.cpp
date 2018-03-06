@@ -4818,11 +4818,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 #endif
         }
 
-        if (result == FALSE && (propertyOperationFlags & PropertyOperation_StrictMode))
-        {
-            JavascriptError::ThrowCantDelete(propertyOperationFlags, scriptContext, GetPropertyDisplayNameForError(index, scriptContext)->GetString());
-        }
-
+        Assert(result || !(propertyOperationFlags & (PropertyOperation_StrictMode | PropertyOperation_ThrowOnDeleteIfNotConfig)));
         return scriptContext->GetLibrary()->CreateBoolean(result);
     }
 

@@ -879,7 +879,8 @@ namespace Js
         }
         if (!(attr & ObjectSlotAttr_Configurable))
         {
-            JavascriptError::ThrowCantDelete(PropertyOperation_None, scriptContext, scriptContext->GetPropertyName(propertyId)->GetBuffer());
+            JavascriptError::ThrowCantDeleteIfStrictModeOrNonconfigurable(
+                flags, scriptContext, scriptContext->GetPropertyName(propertyId)->GetBuffer());
             return FALSE;
         }
 

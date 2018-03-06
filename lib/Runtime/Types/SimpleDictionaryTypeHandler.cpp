@@ -1576,7 +1576,8 @@ namespace Js
                 }
                 else if (!(descriptor->Attributes & PropertyConfigurable))
                 {
-                    JavascriptError::ThrowCantDelete(propertyOperationFlags, scriptContext, propertyNameString->GetString()); // or propertyName->GetBuffer
+                    JavascriptError::ThrowCantDeleteIfStrictModeOrNonconfigurable(
+                        propertyOperationFlags, scriptContext, propertyNameString->GetString()); // or propertyName->GetBuffer
 
                     return false;
                 }
@@ -1708,7 +1709,8 @@ namespace Js
                 else if (!(descriptor->Attributes & PropertyConfigurable) ||
                     (allowLetConstGlobal && (descriptor->Attributes & PropertyLetConstGlobal)))
                 {
-                    JavascriptError::ThrowCantDelete(propertyOperationFlags, scriptContext, propertyRecord->GetBuffer());
+                    JavascriptError::ThrowCantDeleteIfStrictModeOrNonconfigurable(
+                        propertyOperationFlags, scriptContext, propertyRecord->GetBuffer());
 
                     return false;
                 }
