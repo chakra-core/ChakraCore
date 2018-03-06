@@ -57,10 +57,6 @@
 #include "Debug/DebugContext.h"
 #endif
 
-#ifdef ENABLE_BASIC_TELEMETRY
-#include "ScriptContextTelemetry.h"
-#endif
-
 // .inl files
 #include "Language/CacheOperators.inl"
 #include "Language/JavascriptMathOperators.inl"

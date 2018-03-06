@@ -200,15 +200,6 @@ Js::Var Js::InterpreterStackFrame::INTERPRETERLOOPNAME()
 #endif
 #endif
 
-#ifdef ENABLE_BASIC_TELEMETRY
-        if( TELEMETRY_OPCODE_OFFSET_ENABLED )
-        {
-            OpcodeTelemetry& opcodeTelemetry = this->scriptContext->GetTelemetry().GetOpcodeTelemetry();
-            opcodeTelemetry.ProgramLocationFunctionId    ( this->function->GetFunctionInfo()->GetLocalFunctionId() );
-            opcodeTelemetry.ProgramLocationBytecodeOffset( this->m_reader.GetCurrentOffset() );
-        }
-#endif
-
 #if DEBUGGING_LOOP
         if (this->scriptContext->GetThreadContext()->GetDebugManager()->stepController.IsActive() &&
             this->scriptContext->GetThreadContext()->GetDebugManager()->stepController.IsStepComplete_AllowingFalsePositives(this))

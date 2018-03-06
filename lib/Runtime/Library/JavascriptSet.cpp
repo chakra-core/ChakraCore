@@ -53,7 +53,7 @@ Var JavascriptSet::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
 
     Var newTarget = args.GetNewTarget();
     bool isCtorSuperCall = JavascriptOperators::GetAndAssertIsConstructorSuperCall(args);
-    CHAKRATEL_LANGSTATS_INC_DATACOUNT(ES6_Set);
+    CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(ES6, Set, scriptContext);
 
     JavascriptSet* setObject = nullptr;
 

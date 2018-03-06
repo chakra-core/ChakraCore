@@ -2715,7 +2715,7 @@ namespace UnifiedRegex
                     }
                     flags = (RegexFlags)(flags | UnicodeRegexFlag);
                     // For telemetry
-                    CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(UnicodeRegexFlag, scriptContext);
+                    CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(ES6, UnicodeRegexFlag, scriptContext);
 
                     break;
                 }
@@ -2728,7 +2728,7 @@ namespace UnifiedRegex
                     }
                     flags = (RegexFlags)(flags | StickyRegexFlag);
                     // For telemetry
-                    CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(StickyRegexFlag, scriptContext);
+                    CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(ES6, StickyRegexFlag, scriptContext);
 
                     break;
                 }

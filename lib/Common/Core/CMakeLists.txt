@@ -6,6 +6,7 @@ add_library (Chakra.Common.Core OBJECT
     CommonCorePch.cpp
     ConfigFlagsTable.cpp
     ConfigParser.cpp
+    CRC.cpp
     DbgHelpSymbolManager.cpp
     DelayLoadLibrary.cpp
     EtwTraceCore.cpp

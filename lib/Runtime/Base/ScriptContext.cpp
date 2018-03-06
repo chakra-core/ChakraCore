@@ -34,7 +34,7 @@
 #endif
 
 #ifdef ENABLE_BASIC_TELEMETRY
-#include "ScriptContextTelemetry.h"
+#include "ScriptContext/ScriptContextTelemetry.h"
 #endif
 
 namespace Js
@@ -176,7 +176,7 @@ namespace Js
         , rejitReasonCountsCap(nullptr)
 #endif
 #ifdef ENABLE_BASIC_TELEMETRY
-        , telemetry(nullptr)
+        , telemetry()
 #endif
 #ifdef INLINE_CACHE_STATS
         , cacheDataMap(nullptr)
@@ -336,7 +336,7 @@ namespace Js
 #endif
 
 #ifdef ENABLE_BASIC_TELEMETRY
-        this->telemetry = Anew(this->TelemetryAllocator(), ScriptContextTelemetry, *this);
+        this->telemetry = Anew(this->TelemetryAllocator(), Js::ScriptContextTelemetry, this);
 #endif
 
 #ifdef PROFILE_STRINGS
@@ -5981,7 +5981,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 #endif
 
 #ifdef ENABLE_BASIC_TELEMETRY
-    ScriptContextTelemetry& ScriptContext::GetTelemetry()
+    Js::ScriptContextTelemetry& ScriptContext::GetTelemetry()
     {
         return *this->telemetry;
     }

@@ -44,6 +44,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobalSecurityPolicy.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Output.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PerfCounter.cpp" />
+    <ClCompile Include="CRC.cpp" />
     <None Include="PerfCounterImpl.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PerfCounterSet.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ProfileInstrument.cpp" />
@@ -67,6 +68,7 @@
     <ClInclude Include="CommonTypedefs.h" />
     <ClInclude Include="ConfigFlagsTable.h" />
     <ClInclude Include="ConfigParser.h" />
+    <ClInclude Include="CRC.h" />
     <ClInclude Include="CriticalSection.h" />
     <ClInclude Include="DbgHelpSymbolManager.h" />
     <ClInclude Include="DelayLoadLibrary.h" />

@@ -367,7 +367,6 @@
     <ClInclude Include="FunctionCodeGenJitTimeData.h" />
     <ClInclude Include="FixedFieldInfo.h" />
     <ClInclude Include="ObjTypeSpecFldInfo.h" />
-    <ClInclude Include="CRC.h" />
     <ClInclude Include="PageAllocatorPool.h" />
     <ClInclude Include="GlobOptBlockData.h" />
     <ClInclude Include="ValueInfo.h" />
