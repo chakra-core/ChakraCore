@@ -35,6 +35,7 @@
 #endif // FreeBSD or unix ?
 #endif // _WIN32 ?
 
+#pragma prefast(disable:26444, "This warning unfortunately raises false positives when auto is used for declaring the type of an iterator in a loop.")
 #ifdef HAS_ICU
 #define INTL_LIBRARY_TEXT "icu"
 #elif defined(_WIN32)
