@@ -134,7 +134,7 @@ namespace Js
     class DeferredTypeHandlerBase;
     template <bool IsPrototype> class NullTypeHandler;
     template<size_t size> class SimpleTypeHandler;
-    class PathTypeHandler;
+    class PathTypeHandlerBase;
     class IndexPropertyDescriptor;
     class DynamicObject;
     class ArrayObject;

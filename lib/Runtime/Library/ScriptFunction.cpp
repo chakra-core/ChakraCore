@@ -106,6 +106,13 @@ namespace Js
 
             pfuncScriptWithInlineCache->SetHasSuperReference(hasSuperReference);
 
+            ScriptFunctionType *scFuncType = functionProxy->GetUndeferredFunctionType();
+            if (scFuncType)
+            {
+                Assert(pfuncScriptWithInlineCache->GetType() == functionProxy->GetDeferredPrototypeType());
+                pfuncScriptWithInlineCache->GetTypeHandler()->EnsureObjectReady(pfuncScriptWithInlineCache);
+            }
+
             if (PHASE_TRACE1(Js::ScriptFunctionWithInlineCachePhase))
             {
                 char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
@@ -122,6 +129,13 @@ namespace Js
             pfuncScript->SetEnvironment(environment);
 
             pfuncScript->SetHasSuperReference(hasSuperReference);
+
+            ScriptFunctionType *scFuncType = functionProxy->GetUndeferredFunctionType();
+            if (scFuncType)
+            {
+                Assert(pfuncScript->GetType() == functionProxy->GetDeferredPrototypeType());
+                pfuncScript->GetTypeHandler()->EnsureObjectReady(pfuncScript);
+            }
 
             JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(pfuncScript, EtwTrace::GetFunctionId(functionProxy)));
 

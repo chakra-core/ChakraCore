@@ -39,6 +39,7 @@ namespace Js
         bool IsMultiSuccessor() const { return !IsSingleSuccessor(); }
         virtual bool GetSuccessor(const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> ** typeWeakRef) const = 0;
         virtual void SetSuccessor(DynamicType * type, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext) = 0;
+        virtual void ReplaceSuccessor(DynamicType * type, PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef) = 0;
 
         template<class Fn> void MapSuccessors(Fn fn);
         template<class Fn> void MapSuccessorsUntil(Fn fn);
@@ -61,6 +62,7 @@ namespace Js
 
         virtual bool GetSuccessor(const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> ** typeWeakRef) const override;
         virtual void SetSuccessor(DynamicType * type, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext) override;
+        virtual void ReplaceSuccessor(DynamicType * type, PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef) override;
 
         template<class Fn> void MapSingleSuccessor(Fn fn);
 
@@ -78,6 +80,7 @@ namespace Js
 
         virtual bool GetSuccessor(const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> ** typeWeakRef) const override;
         virtual void SetSuccessor(DynamicType * type, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext) override;
+        virtual void ReplaceSuccessor(DynamicType * type, PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef) override;
 
         template<class Fn> void MapMultiSuccessors(Fn fn);
         template<class Fn> void MapMultiSuccessorsUntil(Fn fn);
@@ -89,6 +92,8 @@ namespace Js
 
     class PathTypeHandlerBase : public DynamicTypeHandler
     {
+        template<size_t size>
+        friend class SimpleTypeHandler;
         friend class PathTypeHandlerNoAttr;
         friend class PathTypeHandlerWithAttr;
         friend class DynamicObject;
@@ -115,6 +120,7 @@ namespace Js
         template<class Fn> void MapSuccessorsUntil(Fn fn);
         PathTypeSuccessorInfo * GetSuccessorInfo() const { return successorInfo; }
         void SetSuccessorInfo(PathTypeSuccessorInfo * info) { successorInfo = info; }
+        void ReplaceSuccessor(DynamicType * type, PathTypeSuccessorKey key, RecyclerWeakReference<DynamicType> * typeWeakRef) { return successorInfo->ReplaceSuccessor(type, key, typeWeakRef); }
 
         static PropertyAttributes ObjectSlotAttributesToPropertyAttributes(const ObjectSlotAttributes attr) { return attr & ObjectSlotAttr_PropertyAttributesMask; }
         static ObjectSlotAttributes PropertyAttributesToObjectSlotAttributes(const PropertyAttributes attr) { return (ObjectSlotAttributes)(attr & ObjectSlotAttr_PropertyAttributesMask); }
@@ -182,7 +188,8 @@ namespace Js
 
         BOOL FindNextPropertyHelper(ScriptContext* scriptContext, ObjectSlotAttributes * objectAttributes, PropertyIndex& index, JavascriptString** propertyString,
             PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info);
-        BOOL SetAttributesHelper(DynamicObject* instance, PropertyId propertyId, PropertyIndex propertyIndex, ObjectSlotAttributes * instanceAttributes, ObjectSlotAttributes propertyAttributes);
+        BOOL SetAttributesAtIndex(DynamicObject* instance, PropertyId propertyId, PropertyIndex index, PropertyAttributes attributes);
+        BOOL SetAttributesHelper(DynamicObject* instance, PropertyId propertyId, PropertyIndex propertyIndex, ObjectSlotAttributes * instanceAttributes, ObjectSlotAttributes propertyAttributes, bool isInit = false);
         BOOL SetAccessorsHelper(DynamicObject* instance, PropertyId propertyId, ObjectSlotAttributes * attributes, PathTypeSetterSlotIndex * setters, Var getter, Var setter, PropertyOperationFlags flags);
 
 #if ENABLE_NATIVE_CODEGEN

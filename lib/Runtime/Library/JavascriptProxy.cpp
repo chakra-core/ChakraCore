@@ -130,7 +130,7 @@ namespace Js
 
         JavascriptProxy* proxy = JavascriptProxy::Create(scriptContext, args);
         JavascriptLibrary* library = scriptContext->GetLibrary();
-        DynamicType* type = library->CreateFunctionWithLengthType(&EntryInfo::Revoke);
+        DynamicType* type = library->CreateFunctionWithConfigurableLengthType(&EntryInfo::Revoke);
         RuntimeFunction* revoker = RecyclerNewEnumClass(scriptContext->GetRecycler(),
             JavascriptLibrary::EnumFunctionClass, RuntimeFunction,
             type, &EntryInfo::Revoke);
