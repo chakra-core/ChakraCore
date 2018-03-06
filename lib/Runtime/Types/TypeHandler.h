@@ -499,7 +499,7 @@ namespace Js
         virtual DescriptorFlags GetItemSetter(DynamicObject* instance, uint32 index, Var* setterValue, ScriptContext* requestContext);
 
         virtual BOOL SetAccessors(DynamicObject* instance, PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None) = 0;
-        virtual BOOL GetAccessors(DynamicObject* instance, PropertyId propertyId, Var* getter, Var* setter) { return false; };
+        _Success_(return) virtual BOOL GetAccessors(DynamicObject* instance, PropertyId propertyId, __out Var* getter, __out Var* setter) { return false; };
 
         virtual BOOL PreventExtensions(DynamicObject *instance) = 0;
         virtual BOOL Seal(DynamicObject *instance) = 0;
