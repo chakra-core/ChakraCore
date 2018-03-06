@@ -91,7 +91,7 @@ namespace Js {
             Js::JavascriptNumber::New(0, scriptContext), scriptContext);
 
         Js::JavascriptOperators::OP_SetProperty(metadata, Js::PropertyIds::url,
-            Js::JavascriptString::NewCopySz(functionBody->GetSourceContextInfo()->url, scriptContext), scriptContext);
+            Js::JavascriptString::NewCopySz(functionBody->GetSourceName(), scriptContext), scriptContext);
 
         LPCUTF8 functionSource = sourceInfo->GetSource(_u("Jsrt::JsExperimentalGetAndClearExceptionWithMetadata"));
 
