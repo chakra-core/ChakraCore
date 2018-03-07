@@ -273,6 +273,7 @@ namespace Js
             WinRTConstructorAllowed(Configuration::Global.flags.WinRTConstructorAllowed),
 #endif
             NoNative(Configuration::Global.flags.NoNative),
+            NoDynamicThunks(false),
             isOptimizedForManyInstances(isOptimizedForManyInstances),
             threadConfig(threadConfig)
         {
@@ -297,6 +298,9 @@ namespace Js
 #undef FORWARD_THREAD_CONFIG
 
         bool SupportsCollectGarbage() const { return true; }
+
+        void ForceNoDynamicThunks() { this->NoDynamicThunks = true; }
+        bool IsNoDynamicThunks() const { return this->NoDynamicThunks; }
 
         void ForceNoNative() { this->NoNative = true; }
         void ForceNative() { this->NoNative = false; }
@@ -341,6 +345,7 @@ namespace Js
 
         // Per script configurations
         bool NoNative;
+        bool NoDynamicThunks;
         BOOL fCanOptimizeGlobalLookup;
         const bool isOptimizedForManyInstances;
         const ThreadConfiguration * const threadConfig;
@@ -1056,6 +1061,7 @@ private:
         inline bool IsHeapEnumInProgress() { return GetRecycler()->IsHeapEnumInProgress(); }
 
         bool IsInterpreted() { return config.IsNoNative(); }
+        void ForceNoDynamicThunks() { config.ForceNoDynamicThunks(); }
         void ForceNoNative() { config.ForceNoNative(); }
         void ForceNative() { config.ForceNative(); }
         ScriptConfiguration const * GetConfig(void) const { return &config; }

@@ -3664,6 +3664,23 @@ namespace Js
         {
             this->SetOriginalEntryPoint((JavascriptMethod)InterpreterThunkEmitter::ConvertToEntryPoint(this->m_dynamicInterpreterThunk));
         }
+
+#if DBG
+        if (GetScriptContext()->GetThreadContext()->NoDynamicThunks())
+        {
+            Assert(this->m_dynamicInterpreterThunk == nullptr);
+#ifdef ASMJS_PLAT
+            if (m_isAsmJsFunction)
+            {
+                Assert(this->GetOriginalEntryPoint_Unchecked() == (JavascriptMethod)&Js::InterpreterStackFrame::StaticInterpreterAsmThunk);
+            }
+            else
+#endif
+            {
+                Assert(this->GetOriginalEntryPoint_Unchecked() == (JavascriptMethod)&Js::InterpreterStackFrame::StaticInterpreterThunk);
+            }
+        }
+#endif
     }
 
     JavascriptMethod FunctionBody::EnsureDynamicInterpreterThunk(FunctionEntryPointInfo* entryPointInfo)
@@ -3673,7 +3690,6 @@ namespace Js
         // We need to ensure dynamic profile info even if we didn't generate a dynamic interpreter thunk
         // This happens when we go through CheckCodeGen thunk, to DelayDynamicInterpreterThunk, to here
         // but the background codegen thread updated the entry point with the native entry point.
-
         this->EnsureDynamicProfileInfo();
 
         Assert(HasValidEntryPoint());

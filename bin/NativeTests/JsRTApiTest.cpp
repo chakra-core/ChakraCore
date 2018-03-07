@@ -66,6 +66,7 @@ namespace JsRTApiTest
         WithSetup(JsRuntimeAttributeAllowScriptInterrupt, handler);
         WithSetup(JsRuntimeAttributeEnableIdleProcessing, handler);
         WithSetup(JsRuntimeAttributeDisableNativeCodeGeneration, handler);
+        WithSetup(JsRuntimeAttributeDisableExecutablePageAllocation, handler);
         WithSetup(JsRuntimeAttributeDisableEval, handler);
         WithSetup((JsRuntimeAttributes)(JsRuntimeAttributeDisableBackgroundWork | JsRuntimeAttributeAllowScriptInterrupt | JsRuntimeAttributeEnableIdleProcessing), handler);
     }

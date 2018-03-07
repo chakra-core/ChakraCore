@@ -44,6 +44,7 @@ enum ThreadContextFlags
     ThreadContextFlagEvalDisabled                  = 0x00000002,
     ThreadContextFlagNoJIT                         = 0x00000004,
     ThreadContextFlagDisableFatalOnOOM             = 0x00000008,
+    ThreadContextFlagNoDynamicThunks               = 0x00000010,
 };
 
 const int LS_MAX_STACK_SIZE_KB = 300;
@@ -943,6 +944,11 @@ public:
     bool NoJIT() const
     {
         return this->TestThreadContextFlag(ThreadContextFlagNoJIT);
+    }
+
+    bool NoDynamicThunks() const
+    {
+        return this->TestThreadContextFlag(ThreadContextFlagNoDynamicThunks);
     }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS

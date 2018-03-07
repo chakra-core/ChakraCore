@@ -285,6 +285,7 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes,
             JsRuntimeAttributeEnableIdleProcessing |
             JsRuntimeAttributeDisableEval |
             JsRuntimeAttributeDisableNativeCodeGeneration |
+            JsRuntimeAttributeDisableExecutablePageAllocation |
             JsRuntimeAttributeEnableExperimentalFeatures |
             JsRuntimeAttributeDispatchSetExceptionsToDebugger |
             JsRuntimeAttributeDisableFatalOnOOM
@@ -337,6 +338,12 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes,
         if (attributes & JsRuntimeAttributeDisableNativeCodeGeneration)
         {
             threadContext->SetThreadContextFlag(ThreadContextFlagNoJIT);
+        }
+
+        if (attributes & JsRuntimeAttributeDisableExecutablePageAllocation)
+        {
+            threadContext->SetThreadContextFlag(ThreadContextFlagNoJIT);
+            threadContext->SetThreadContextFlag(ThreadContextFlagNoDynamicThunks);
         }
 
         if (attributes & JsRuntimeAttributeDisableFatalOnOOM)
