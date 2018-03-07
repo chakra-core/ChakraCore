@@ -97,6 +97,11 @@ namespace Js
             static int32 ToInt32(double value);
             static int32 ToInt32_Full(Var aValue, ScriptContext* scriptContext);
 
+            // different CRT versions define these with different calling conventions, so use our own method to prevent these inconsistencies
+            static float FloorF(float val) { return floorf(val); }
+            static double Floor(double val) { return floor(val); }
+            static float CeilF(float val) { return ceilf(val); }
+            static double Ceil(double val) { return ceil(val); }
         private:
             static Var Add_FullHelper(Var aLeft, Var aRight, ScriptContext* scriptContext, JavascriptNumber* result, bool leftIsDead);
             static Var Add_FullHelper_Wrapper(Var aLeft, Var aRight, ScriptContext* scriptContext, JavascriptNumber* result, bool leftIsDead);
