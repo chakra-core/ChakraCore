@@ -20,7 +20,7 @@ using namespace Windows::Globalization;
 
 #ifdef INTL_ICU
 #include <CommonPal.h>
-#include "PlatformAgnostic/ICU.h"
+#include "PlatformAgnostic/ChakraICU.h"
 using namespace PlatformAgnostic::ICUHelpers;
 
 template<typename ICUFunc>
@@ -2212,7 +2212,7 @@ namespace Js
 
             // status can be U_UNSUPPORTED_ERROR if the calendar isn't gregorian, which
             // there does not seem to be a way to check for ahead of time in the C API
-            AssertOrFailFastMsg(U_SUCCESS(status) || status == U_UNSUPPORTED_ERROR, u_errorName(status));
+            AssertOrFailFastMsg(U_SUCCESS(status) || status == U_UNSUPPORTED_ERROR, ICU_ERRORMESSAGE(status));
 
             // cache dtf for later use (so that the condition that brought us here returns true for future calls)
             state->SetInternalProperty(

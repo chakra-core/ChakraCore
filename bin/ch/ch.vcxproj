@@ -27,6 +27,11 @@
         $(IntDir);
         %(AdditionalIncludeDirectories);
       </AdditionalIncludeDirectories>
+      <!-- For ChakraICU.h -->
+      <AdditionalIncludeDirectories Condition="'$(UseICU)'=='true'">
+        $(ChakraCoreRootDirectory)lib\Runtime;
+        %(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <ModuleDefinitionFile>ch.def</ModuleDefinitionFile>
@@ -38,6 +43,10 @@
         kernel32.lib;
         Rpcrt4.lib;
         version.lib;
+      </AdditionalDependencies>
+      <AdditionalDependencies Condition="'$(UseICU)'=='true' AND '$(ChakraICU)'=='false'">
+        $(IcuLibraryDependencies);
+        %(AdditionalDependencies)
       </AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -87,6 +96,10 @@
   <ItemGroup>
     <ProjectReference Include="..\ChakraCore\ChakraCore.vcxproj">
       <Project>{EA882C8D-81FC-42FE-ABD5-2666DB933FDB}</Project>
+    </ProjectReference>
+    <!-- for u_getVersion() referenced in PlatformAgnostic::ICUHelpers::GetICUMajorVersion -->
+    <ProjectReference Condition="'$(ChakraICU)'!='false'" Include="..\..\deps\Chakra.ICU\Chakra.ICU.Common.vcxproj">
+      <Project>{EE2A3111-4D85-427C-B0AB-E6B0EA7FFB44}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

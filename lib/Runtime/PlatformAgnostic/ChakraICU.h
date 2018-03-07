@@ -8,7 +8,13 @@
 
 #ifdef HAS_ICU
 #ifdef WINDOWS10_ICU
+// if WINDOWS10_ICU is defined, pretend like we are building for recent Redstone,
+// even if that isn't necessarily true
+#pragma push_macro("NTDDI_VERSION")
+#undef NTDDI_VERSION
+#define NTDDI_VERSION NTDDI_WIN10_RS3
 #include <icu.h>
+#pragma pop_macro("NTDDI_VERSION")
 #else
 #include "unicode/ucal.h"
 #include "unicode/ucol.h"
@@ -92,6 +98,13 @@ namespace PlatformAgnostic
                 *returnLen = func(reinterpret_cast<UChar *>(*ret), secondTryLen, &status);
             }
             return U_SUCCESS(status) && status != U_STRING_NOT_TERMINATED_WARNING && *returnLen > 0;
+        }
+
+        inline int GetICUMajorVersion()
+        {
+            UVersionInfo version = { 0 };
+            u_getVersion(version);
+            return version[0];
         }
     }
 }

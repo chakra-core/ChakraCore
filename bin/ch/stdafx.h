@@ -88,6 +88,9 @@ using utf8::WideStringToNarrowDynamic;
 #include "Helpers.h"
 
 #include "PlatformAgnostic/SystemInfo.h"
+#ifdef HAS_ICU
+#include "PlatformAgnostic/ChakraICU.h"
+#endif
 
 #define IfJsErrorFailLog(expr) \
 do { \

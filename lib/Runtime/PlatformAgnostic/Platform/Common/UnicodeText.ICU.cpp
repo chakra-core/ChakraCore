@@ -5,7 +5,7 @@
 
 #include "RuntimePlatformAgnosticPch.h"
 #include "UnicodeText.h"
-#include "ICU.h"
+#include "ChakraICU.h"
 
 namespace PlatformAgnostic
 {
@@ -48,7 +48,7 @@ namespace PlatformAgnostic
 
             UErrorCode status = U_ZERO_ERROR;
             const UNormalizer2 *normalizer = unorm2_getInstance(nullptr, name, mode, &status);
-            AssertMsg(U_SUCCESS(status), u_errorName(status));
+            AssertMsg(U_SUCCESS(status), ICU_ERRORMESSAGE(status));
             return normalizer;
         }
 
@@ -214,7 +214,7 @@ namespace PlatformAgnostic
 
             UErrorCode status = U_ZERO_ERROR;
             bool isNormalized = unorm2_isNormalized(normalizer, reinterpret_cast<const UChar *>(testString), testStringLength, &status);
-            AssertMsg(U_SUCCESS(status), u_errorName(status));
+            AssertMsg(U_SUCCESS(status), ICU_ERRORMESSAGE(status));
 
             return isNormalized;
         }
