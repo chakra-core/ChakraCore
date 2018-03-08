@@ -83,7 +83,24 @@ var tests = [
       {
       }
     }
+  },
+  {
+    name: "splice an array which has getter/setter at 4294967295 should not fail due to re-entrancy error",
+    body: function () {
+        var base = 4294967290;
+        var arr = [];
+        for (var i = 0; i < 10; i++) {
+            arr[base + i] = 100 + i;
+        }
+        Object.defineProperty(arr, 4294967295, {
+          get: function () { }, set : function(b) {  }
+            }
+        );
+
+        assert.throws(()=> {arr.splice(4294967290, 0, 200, 201, 202, 203, 204, 205, 206);});
+    }
   }
+  
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
