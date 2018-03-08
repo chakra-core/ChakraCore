@@ -25,9 +25,14 @@
     <!-- ARM does not support ICU until we figure out how to link icudtXXl.dat without genccode.exe -->
     <ChakraICU Condition="'$(Platform)'=='ARM'">false</ChakraICU>
 
+    <WindowsICU Condition="'$(WindowsICU)'==''">false</WindowsICU>
+
     <UseICU Condition="'$(UseICU)'==''">false</UseICU>
     <UseICU Condition="'$(BuildLite)'=='true'">false</UseICU>
-    <UseICU Condition="'$(ChakraICU)'!='false'">true</UseICU>
+    <UseICU Condition="'$(ChakraICU)'!='false' OR '$(WindowsICU)'=='true'">true</UseICU>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(WindowsICU)'=='true'">
+    <IcuLibraryDependencies>icuuc.lib;icuin.lib</IcuLibraryDependencies>
   </PropertyGroup>
   <Import Condition="'$(ChakraICU)'!='false' AND exists('$(ChakraCoreRootDirectory)deps\Chakra.ICU\Chakra.ICU.props')" Project="$(ChakraCoreRootDirectory)deps\Chakra.ICU\Chakra.ICU.props" />
   <ItemDefinitionGroup>
@@ -53,7 +58,8 @@
       </PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(UseICU)'=='true'">
         %(PreprocessorDefinitions);
-        HAS_ICU
+        HAS_ICU;
+        U_DISABLE_RENAMING=1; <!-- Disable renaming to maintain compatibility with Windows Kit ICU's icuuc/icuin.lib -->
       </PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(EnableIntl)'=='true' AND '$(UseICU)'=='true'">
         %(PreprocessorDefinitions);
@@ -63,10 +69,13 @@
         %(PreprocessorDefinitions);
         U_STATIC_IMPLEMENTATION=1
       </PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(UseICU)'=='true'">
-        U_DISABLE_RENAMING=1; <!-- Disable renaming to maintain compatibility with Windows Kit ICU's icuuc/icuin.lib -->
-        ICU_VERSION=$(IcuVersionMajor);
-        %(PreprocessorDefinitions)
+      <PreprocessorDefinitions Condition="'$(WindowsICU)'=='true'">
+        %(PreprocessorDefinitions);
+        WINDOWS10_ICU
+      </PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(WindowsICU)'=='false'">
+        %(PreprocessorDefinitions);
+        ICU_VERSION=$(IcuVersionMajor)
       </PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(ForceSWB)'=='true'">
         %(PreprocessorDefinitions);
@@ -78,7 +87,7 @@
         %(DisableSpecificWarnings);
         4458;     <!-- declaration of '' hides class member -->
         4312;     <!-- 'type cast': conversion from '' to '' of greater size -->
-        4800;     <!-- type' : forcing value to bool 'true' or 'false' (performance warning) [always off in 2017 by default, but warns in 2015 -->
+        4800;     <!-- 'type' : forcing value to bool 'true' or 'false' (performance warning) [always off in 2017 by default, but warns in 2015] -->
       </DisableSpecificWarnings>
       <!-- Use the debug CRT in debug build -->
       <RuntimeLibrary Condition="'$(Configuration)'=='Debug' AND '$(RuntimeLib)'!='static_library'">MultiThreadedDebugDLL</RuntimeLibrary>

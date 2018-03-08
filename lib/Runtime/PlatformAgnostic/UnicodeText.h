@@ -5,7 +5,7 @@
 #pragma once
 
 #include "Core/CommonTypedefs.h"
-#include "ICU.h"
+#include "ChakraICU.h"
 
 namespace PlatformAgnostic
 {

@@ -53,7 +53,7 @@
         $(ChakraCommonLinkDependencies)
       </AdditionalDependencies>
       <AdditionalDependencies Condition="'$(UseICU)'=='true' AND '$(ChakraICU)'=='false'">
-        $(IcuLibraryDependencies)
+        $(IcuLibraryDependencies);
         %(AdditionalDependencies)
       </AdditionalDependencies>
       <DelayLoadDLLs>%(DelayLoadDLLs);oleaut32.dll</DelayLoadDLLs>
