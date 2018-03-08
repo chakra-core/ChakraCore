@@ -1333,8 +1333,8 @@ private:
     void InvalidateFixedFieldGuard(Js::PropertyGuard* guard);
     PropertyGuardEntry* EnsurePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, bool& foundExistingEntry);
     void InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, PropertyGuardEntry* entry, bool isAllPropertyGuardsInvalidation);
-    // Invalidate only those property guard entries that describe the indicated type
-    void InvalidatePropertyGuardEntryForType(const Js::PropertyRecord* propertyRecord, PropertyGuardEntry* entry, bool isAllPropertyGuardsInvalidation, const Js::Type *type);
+    // Invalidate only those property guard entries that describe the indicated type.  Returns true iff all property guard entries were invalidated.
+    bool InvalidatePropertyGuardEntryForType(const Js::PropertyRecord* propertyRecord, PropertyGuardEntry* entry, bool isAllPropertyGuardsInvalidation, const Js::Type *type);
 #endif
 
 public:

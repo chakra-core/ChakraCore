@@ -3620,11 +3620,14 @@ ThreadContext::InvalidatePropertyGuards(Js::PropertyId propertyId)
     }
 }
 
-void
+bool
 ThreadContext::InvalidatePropertyGuardEntryForType(const Js::PropertyRecord* propertyRecord, PropertyGuardEntry* entry, bool isAllPropertyGuardsInvalidation, const Js::Type *type)
 {
     Assert(entry != nullptr);
     Assert(type != nullptr);
+
+    // Are we invalidating all entries?  Starts out true; gets set to false if we encounter an entry that we do not invalidate.
+    bool removedAllEntries = true;
 
     if (entry->sharedGuard != nullptr)
     {
@@ -3646,10 +3649,14 @@ ThreadContext::InvalidatePropertyGuardEntryForType(const Js::PropertyRecord* pro
 
             guard->Invalidate();
         }
+        else
+        {
+            removedAllEntries = false;
+        }
     }
 
     uint count = 0;
-    entry->uniqueGuards.MapAndRemoveIf([&count, propertyRecord, type](RecyclerWeakReference<Js::PropertyGuard>* guardWeakRef) -> bool
+    entry->uniqueGuards.MapAndRemoveIf([&count, propertyRecord, type, &removedAllEntries](RecyclerWeakReference<Js::PropertyGuard>* guardWeakRef) -> bool
     {
         Js::PropertyGuard* guard = guardWeakRef->Get();
         if (guard != nullptr && guard->GetValue() == reinterpret_cast<intptr_t>(type))
@@ -3674,6 +3681,7 @@ ThreadContext::InvalidatePropertyGuardEntryForType(const Js::PropertyRecord* pro
         }
         else
         {
+            removedAllEntries = false;
             return false;
         }
     });
@@ -3684,6 +3692,8 @@ ThreadContext::InvalidatePropertyGuardEntryForType(const Js::PropertyRecord* pro
     }
 
     this->UpdateEntryPoints(propertyRecord, entry);
+
+    return removedAllEntries;
 }
 
 void ThreadContext::UpdateConstructorCacheInvalidationCount(uint count)
@@ -3738,9 +3748,11 @@ ThreadContext::InvalidatePropertyGuardsForType(Js::PropertyId propertyId, const 
     const Js::PropertyRecord* propertyRecord = GetPropertyName(propertyId);
     PropertyGuardDictionary &guards = this->recyclableData->propertyGuards;
     PropertyGuardEntry* entry = nullptr;
-    if (guards.TryGetValueAndRemove(propertyRecord, &entry))
+    if (guards.TryGetValue(propertyRecord, &entry))
     {
-        InvalidatePropertyGuardEntryForType(propertyRecord, entry, false, type);
+        if (InvalidatePropertyGuardEntryForType(propertyRecord, entry, false, type)) {
+            guards.TryGetValueAndRemove(propertyRecord, nullptr);
+        }
     }
 }
 

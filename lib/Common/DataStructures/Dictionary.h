@@ -118,6 +118,9 @@ namespace JsUtil
             return false;
         }
 
+        // Looks up key in the dictionary.  If not present, returns false; otherwise,
+        // copies val to *value (unless value is nullptr), removes entry from dictionary,
+        // and returns true.
         bool TryGetValueAndRemove(const TKey* key, TValue* value)
         {
             if (buckets == nullptr) return false;
@@ -129,7 +132,9 @@ namespace JsUtil
 
             if ((i = FindEntry<TKey>(key, hash, targetBucket, last)) != -1)
             {
-                *value = entries[i].value;
+                if (value != nullptr) {
+                    *value = entries[i].value;
+                }
                 RemoveEntry(i, last, targetBucket);
                 return true;
             }
