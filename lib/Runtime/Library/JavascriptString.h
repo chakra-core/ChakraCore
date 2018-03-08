@@ -106,7 +106,7 @@ namespace Js
         virtual PropertyQueryFlags GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
         virtual PropertyQueryFlags GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
         virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache = nullptr) override;
-        virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId) override;
+        virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info) override;
         virtual BOOL IsEnumerable(PropertyId propertyId) override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags propertyOperationFlags) override;
         virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags propertyOperationFlags) override;

@@ -226,7 +226,7 @@ JSONStringifier::ReadValue(_In_ JavascriptString* key, _In_opt_ const PropertyRe
     if (propertyString != nullptr)
     {
         PropertyValueInfo::SetCacheInfo(&info, propertyString, propertyString->GetLdElemInlineCache(), false);
-        if (propertyString->TryGetPropertyFromCache<false /* ownPropertyOnly */>(holder, holder, &value, this->scriptContext, &info))
+        if (propertyString->TryGetPropertyFromCache<false /* ownPropertyOnly */, false /* OutputExistence */>(holder, holder, &value, this->scriptContext, &info))
         {
             return value;
         }
@@ -280,7 +280,8 @@ JSONStringifier::ToJSON(_In_ JavascriptString* key, _In_ RecyclableObject* value
         true,   // CheckTypePropertyCache
         false,  // IsInlineCacheAvailable
         true,   // IsPolymorphicInlineCacheAvailable
-        false>  // ReturnOperationInfo
+        false,  // ReturnOperationInfo
+        false>  // OutputExistence
         (valueObject,
             false,
             valueObject,

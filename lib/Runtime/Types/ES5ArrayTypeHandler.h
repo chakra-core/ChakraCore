@@ -158,7 +158,7 @@ namespace Js
         BOOL GetItemAccessors(ES5Array* arr, DynamicObject* instance, uint32 index, Var* getter, Var* setter);
 
     public:
-        virtual BOOL HasProperty(DynamicObject* instance, PropertyId propertyId, bool *noRedecl = nullptr) override;
+        virtual BOOL HasProperty(DynamicObject* instance, PropertyId propertyId, bool *noRedecl = nullptr, _Inout_opt_ PropertyValueInfo* info = nullptr) override;
         virtual BOOL HasProperty(DynamicObject* instance, JavascriptString* propertyNameString) override;
         virtual BOOL GetProperty(DynamicObject* instance, Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL GetProperty(DynamicObject* instance, Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;

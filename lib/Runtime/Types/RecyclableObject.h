@@ -292,7 +292,7 @@ namespace Js {
         virtual PropertyId GetPropertyId(BigPropertyIndex index) { return Constants::NoProperty; }
         virtual PropertyIndex GetPropertyIndex(PropertyId propertyId) { return Constants::NoSlot; }
         virtual int GetPropertyCount() { return 0; }
-        virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId);
+        virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info);
         virtual BOOL HasOwnProperty( PropertyId propertyId);
         virtual BOOL HasOwnPropertyNoHostObject( PropertyId propertyId);
         virtual BOOL HasOwnPropertyCheckNoRedecl( PropertyId propertyId) { Assert(FALSE); return FALSE; }

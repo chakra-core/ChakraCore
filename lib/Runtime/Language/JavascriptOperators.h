@@ -177,7 +177,7 @@ namespace Js
         static BOOL HasProperty(RecyclableObject* instance, PropertyId propertyId);
         static BOOL HasRootProperty(RecyclableObject* instance, PropertyId propertyId);
         static BOOL HasProxyOrPrototypeInlineCacheProperty(RecyclableObject* instance, PropertyId propertyId);
-        template<typename PropertyKeyType>
+        template<bool OutputExistence, typename PropertyKeyType>
         static BOOL GetPropertyWPCache(Var instance, RecyclableObject* propertyObject, PropertyKeyType propertyKey, Var* value, ScriptContext* requestContext, _Inout_ PropertyValueInfo * info);
         static BOOL GetPropertyUnscopable(Var instance, RecyclableObject* propertyObject, PropertyId propertyId, Var* value, ScriptContext* requestContext, PropertyValueInfo* info=NULL);
         static Var  GetProperty(RecyclableObject* instance, PropertyId propertyId, ScriptContext* requestContext, PropertyValueInfo* info = NULL);
@@ -710,6 +710,12 @@ namespace Js
         static BOOL ToPropertyDescriptorForGenericObjects(Var propertySpec, PropertyDescriptor* descriptor, ScriptContext* scriptContext);
 
         static BOOL IsRemoteArray(RecyclableObject* instance);
+
+        // Get the property record usage cache from the given index variable, if it has one.
+        // Adds a PropertyString to a LiteralStringWithPropertyStringPtr on second call with that string.
+        // Also outputs the object that owns the usage cache, since PropertyRecordUsageCache is an interior pointer.
+        // Returns whether a PropertyRecordUsageCache was found.
+        _Success_(return) static bool GetPropertyRecordUsageCache(Var index, ScriptContext* scriptContext, _Outptr_ PropertyRecordUsageCache** propertyRecordUsageCache, _Outptr_ RecyclableObject** cacheOwner);
     };
 
 } // namespace Js

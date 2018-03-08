@@ -132,7 +132,7 @@ namespace Js
         static Var VEval(JavascriptLibrary* library, FrameDisplay* environment, ModuleID moduleID, bool isStrictMode, bool isIndirect,
             Arguments& args, bool isLibraryCode, bool registerDocument, uint32 additionalGrfscr, ScriptContext* debugEvalScriptContext = nullptr);
 
-        virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId) override;
+        virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info) override;
         virtual BOOL HasOwnProperty(PropertyId propertyId) override;
         virtual BOOL HasOwnPropertyNoHostObject(PropertyId propertyId) override;
         virtual BOOL UseDynamicObjectForNoHostObjectAccess() override { return TRUE; }

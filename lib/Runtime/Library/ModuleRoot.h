@@ -21,7 +21,7 @@ namespace Js
 
         virtual BOOL InitPropertyScoped(PropertyId propertyId, Var value) override;
         virtual BOOL InitFuncScoped(PropertyId propertyId, Var value) override;
-        virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId) override;
+        virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info) override;
         virtual BOOL HasOwnProperty(PropertyId propertyId) override;
         virtual BOOL UseDynamicObjectForNoHostObjectAccess() override { return TRUE; }
         virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;

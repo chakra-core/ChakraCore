@@ -15,7 +15,8 @@ namespace Js
         bool CheckTypePropertyCache,
         bool IsInlineCacheAvailable,
         bool IsPolymorphicInlineCacheAvailable,
-        bool ReturnOperationInfo>
+        bool ReturnOperationInfo,
+        bool OutputExistence /*When set, propertyValue represents whether the property exists on the instance, not its actual value*/>
     inline bool CacheOperators::TryGetProperty(
         Var const instance,
         const bool isRoot,
@@ -38,7 +39,7 @@ namespace Js
             InlineCache *const inlineCache = IsInlineCacheAvailable ? propertyValueInfo->GetInlineCache() : nullptr;
             if(IsInlineCacheAvailable)
             {
-                if (inlineCache->TryGetProperty<CheckLocal, CheckProto, CheckAccessor, CheckMissing, ReturnOperationInfo>(
+                if (inlineCache->TryGetProperty<CheckLocal, CheckProto, CheckAccessor, CheckMissing, ReturnOperationInfo, OutputExistence>(
                         instance,
                         object,
                         propertyId,
@@ -73,7 +74,8 @@ namespace Js
                             CheckAccessor,
                             CheckMissing,
                             IsInlineCacheAvailable,
-                            ReturnOperationInfo
+                            ReturnOperationInfo,
+                            OutputExistence
                         >(
                             instance,
                             object,
@@ -96,7 +98,7 @@ namespace Js
 
         TypePropertyCache *const typePropertyCache = object->GetType()->GetPropertyCache();
         if(!typePropertyCache ||
-            !typePropertyCache->TryGetProperty(
+            !typePropertyCache->TryGetProperty<OutputExistence>(
                     CheckMissing,
                     object,
                     propertyId,
@@ -346,6 +348,9 @@ namespace Js
             {
                 return;
             }
+
+            // Before allowing proxies to cache, we would need to solve various issues (see JavascriptProxy::GetPropertyQuery).
+            Assert(!JavascriptProxy::Is(objectWithProperty));
         }
         else
         {
