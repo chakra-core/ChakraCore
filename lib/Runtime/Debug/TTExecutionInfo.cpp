@@ -603,7 +603,7 @@ namespace TTD
             this->m_lastReturnLocation.SetExceptionLocation(this->m_callStack.Last());
         }
 
-        if(!m_lastExceptionPropagating)
+        if(!this->m_lastExceptionPropagating)
         {
             this->m_lastExceptionLocation.SetLocationFromFrame(this->m_topLevelCallbackEventTime, this->m_callStack.Last());
             this->m_lastExceptionPropagating = true;
@@ -893,10 +893,15 @@ namespace TTD
             {
                 int32 cIndex = fb->GetEnclosingStatementIndexFromByteCode(bytecodeOffset, true);
 
-                //we moved to a new statement
+                //We moved to a new statement
                 Js::FunctionBody::StatementMap* pstmt = fb->GetStatementMaps()->Item(cIndex);
                 bool newstmt = (cIndex != cfinfo.CurrentStatementIndex && pstmt->byteCodeSpan.begin <= (int)bytecodeOffset && (int)bytecodeOffset <= pstmt->byteCodeSpan.end);
-                if (newstmt)
+
+                //Make sure async step back is ok -- We always step back to the first location in a statement and in most cases a function body must start at the first location in a statement.
+                //However an await can be in the middle of a statment/expression and is implicitly the start of a function body. So, we must check for that case.
+                bool functionBodyStartUnalignedWithStatementCase = (cfinfo.CurrentStatementIndex == -1) && (pstmt->byteCodeSpan.begin != (int)bytecodeOffset);
+
+                if (newstmt && !functionBodyStartUnalignedWithStatementCase)
                 {
                     cfinfo.LastStatementIndex = cfinfo.CurrentStatementIndex;
                     cfinfo.LastStatementLoopTime = cfinfo.CurrentStatementLoopTime;
@@ -997,9 +1002,15 @@ namespace TTD
         {
             SingleCallCounter cfinfoCaller = { 0 };
             bool hasCaller = this->TryGetTopCallCallerCounter(cfinfoCaller);
+            if (hasCaller)
+            {
+                ftime = cfinfoCaller.FunctionTime;
+                ltime = cfinfoCaller.CurrentStatementLoopTime;
 
-            //check if we are at the first statement in the callback event
-            if(!hasCaller)
+                fbody = cfinfoCaller.Function;
+                statementIndex = cfinfoCaller.CurrentStatementIndex;
+            }
+            else
             {
                 //Set the position info to the current statement and return true
                 noPrevious = true;
@@ -1009,14 +1020,6 @@ namespace TTD
 
                 fbody = cfinfo.Function;
                 statementIndex = cfinfo.CurrentStatementIndex;
-            }
-            else
-            {
-                ftime = cfinfoCaller.FunctionTime;
-                ltime = cfinfoCaller.CurrentStatementLoopTime;
-
-                fbody = cfinfoCaller.Function;
-                statementIndex = cfinfoCaller.CurrentStatementIndex;
             }
         }
         else
@@ -1041,6 +1044,7 @@ namespace TTD
     void ExecutionInfoManager::GetLastExecutedTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const
     {
         const TTLastReturnLocationInfo& cframe = this->m_lastReturnLocation;
+
         if(!cframe.IsDefined())
         {
             sourceLocation.Clear();
