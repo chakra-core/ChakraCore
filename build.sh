@@ -124,6 +124,7 @@ VALGRIND=0
 CMAKE_EXPORT_COMPILE_COMMANDS="-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
 LIBS_ONLY_BUILD=
 ALWAYS_YES=
+PYTHON2_BINARY=$(which python2.7 || which python2 || which python 2> /dev/null)
 
 UNAME_S=`uname -s`
 if [[ $UNAME_S =~ 'Linux' ]]; then
@@ -394,7 +395,7 @@ done
 if [[ $USE_LOCAL_ICU == 1 ]]; then
     LOCAL_ICU_DIR="$CHAKRACORE_DIR/deps/Chakra.ICU/icu"
     if [[ ! -d $LOCAL_ICU_DIR ]]; then
-        python "$CHAKRACORE_DIR/tools/configure_icu.py" 57.1 $ALWAYS_YES
+        "$PYTHON2_BINARY" "$CHAKRACORE_DIR/tools/configure_icu.py" 57.1 $ALWAYS_YES
     fi
 
     # if there is still no directory, then the user declined the license agreement
@@ -559,7 +560,7 @@ export TARGET_PATH
 
 if [[ $HAS_LTTNG == 1 ]]; then
     CHAKRACORE_ROOT=`dirname $0`
-    python $CHAKRACORE_ROOT/tools/lttng.py --man $CHAKRACORE_ROOT/manifests/Microsoft-Scripting-Chakra-Instrumentation.man --intermediate $TARGET_PATH/intermediate
+    "$PYTHON2_BINARY" $CHAKRACORE_ROOT/tools/lttng.py --man $CHAKRACORE_ROOT/manifests/Microsoft-Scripting-Chakra-Instrumentation.man --intermediate $TARGET_PATH/intermediate
     mkdir -p $TARGET_PATH/lttng
     (diff -q $TARGET_PATH/intermediate/lttng/jscriptEtw.h $TARGET_PATH/lttng/jscriptEtw.h && echo "jscriptEtw.h up to date; skipping") || cp $TARGET_PATH/intermediate/lttng/* $TARGET_PATH/lttng/
 fi
@@ -568,7 +569,7 @@ fi
 BUILD_DIRECTORY="${TARGET_PATH}/${BUILD_TYPE:0}"
 echo "Build path: ${BUILD_DIRECTORY}"
 
-BUILD_RELATIVE_DIRECTORY=$(python -c "import os.path;print \
+BUILD_RELATIVE_DIRECTORY=$("$PYTHON2_BINARY" -c "import os.path;print \
     os.path.relpath('${CHAKRACORE_DIR}', '$BUILD_DIRECTORY')")
 
 ################# Write-barrier check/analyze run #################
