@@ -13683,8 +13683,8 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
   case knopCall:
       Indent(indentAmt);
       Output::Print(_u("Call\n"));
-      PrintPnodeWIndent(pnode->AsParseNodeBin()->pnode1,indentAmt+INDENT_SIZE);
-      PrintPnodeListWIndent(pnode->AsParseNodeBin()->pnode2,indentAmt+INDENT_SIZE);
+      PrintPnodeWIndent(pnode->AsParseNodeCall()->pnodeTarget,indentAmt+INDENT_SIZE);
+      PrintPnodeListWIndent(pnode->AsParseNodeCall()->pnodeArgs,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopDot        , "."            ,None    ,Bin  ,fnopBin)
   case knopDot:
@@ -13774,8 +13774,8 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
   case knopNew:
       Indent(indentAmt);
       Output::Print(_u("new\n"));
-      PrintPnodeWIndent(pnode->AsParseNodeBin()->pnode1,indentAmt+INDENT_SIZE);
-      PrintPnodeListWIndent(pnode->AsParseNodeBin()->pnode2,indentAmt+INDENT_SIZE);
+      PrintPnodeWIndent(pnode->AsParseNodeCall()->pnodeTarget, indentAmt + INDENT_SIZE);
+      PrintPnodeListWIndent(pnode->AsParseNodeCall()->pnodeArgs, indentAmt + INDENT_SIZE);
       break;
       //PTNODE(knopIndex      , "[]"        ,None    ,Bin  ,fnopBin)
   case knopIndex:
