@@ -14402,7 +14402,8 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                                 currentBlock->next,
                                 hoistBlock,
                                 hoistInfo.IndexSym(),
-                                hoistInfo.IndexValueNumber());
+                                hoistInfo.IndexValueNumber(),
+                                true);
                             it.IsValid();
                             it.MoveNext())
                         {
@@ -14670,7 +14671,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                     Assert(!hoistInfo.Loop() || hoistBlock != currentBlock);
                     if(hoistBlock != currentBlock)
                     {
-                        for(InvariantBlockBackwardIterator it(this, currentBlock->next, hoistBlock, nullptr);
+                        for(InvariantBlockBackwardIterator it(this, currentBlock->next, hoistBlock, nullptr, InvalidValueNumber, true);
                             it.IsValid();
                             it.MoveNext())
                         {
@@ -17116,12 +17117,15 @@ InvariantBlockBackwardIterator::InvariantBlockBackwardIterator(
     BasicBlock *const exclusiveBeginBlock,
     BasicBlock *const inclusiveEndBlock,
     StackSym *const invariantSym,
-    const ValueNumber invariantSymValueNumber)
+    const ValueNumber invariantSymValueNumber,
+    bool followFlow)
     : globOpt(globOpt),
     exclusiveEndBlock(inclusiveEndBlock->prev),
     invariantSym(invariantSym),
     invariantSymValueNumber(invariantSymValueNumber),
-    block(exclusiveBeginBlock)
+    block(exclusiveBeginBlock),
+    blockBV(globOpt->tempAlloc),
+    followFlow(followFlow)
 #if DBG
     ,
     inclusiveEndBlock(inclusiveEndBlock)
@@ -17159,6 +17163,11 @@ InvariantBlockBackwardIterator::MoveNext()
             break;
         }
 
+        if (!this->UpdatePredBlockBV())
+        {
+            continue;
+        }
+
         if(block->isDeleted)
         {
             continue;
@@ -17184,6 +17193,28 @@ InvariantBlockBackwardIterator::MoveNext()
         }
         break;
     }
+}
+
+bool
+InvariantBlockBackwardIterator::UpdatePredBlockBV()
+{
+    if (!this->followFlow)
+    {
+        return true;
+    }
+
+    // Track blocks we've visited to ensure that we only iterate over predecessor blocks
+    if (!this->blockBV.IsEmpty() && !this->blockBV.Test(this->block->GetBlockNum()))
+    {
+        return false;
+    }
+
+    FOREACH_SLISTBASECOUNTED_ENTRY(FlowEdge*, edge, this->block->GetPredList())
+    {
+        this->blockBV.Set(edge->GetPred()->GetBlockNum());
+    } NEXT_SLISTBASECOUNTED_ENTRY;
+
+    return true;
 }
 
 BasicBlock *

@@ -364,13 +364,16 @@ private:
     const ValueNumber invariantSymValueNumber;
     BasicBlock *block;
     Value *invariantSymValue;
+    BVSparse<JitArenaAllocator> blockBV;
+    bool followFlow;
 
 #if DBG
     BasicBlock *const inclusiveEndBlock;
 #endif
 
+    bool UpdatePredBlockBV();
 public:
-    InvariantBlockBackwardIterator(GlobOpt *const globOpt, BasicBlock *const exclusiveBeginBlock, BasicBlock *const inclusiveEndBlock, StackSym *const invariantSym, const ValueNumber invariantSymValueNumber = InvalidValueNumber);
+    InvariantBlockBackwardIterator(GlobOpt *const globOpt, BasicBlock *const exclusiveBeginBlock, BasicBlock *const inclusiveEndBlock, StackSym *const invariantSym, const ValueNumber invariantSymValueNumber = InvalidValueNumber, bool followFlow = false);
 
 public:
     bool IsValid() const;
