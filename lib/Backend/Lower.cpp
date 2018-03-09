@@ -285,7 +285,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
             else
             {
-                instr->ReplaceSrc1(this->LoadLibraryValueOpnd(instr, LibraryValue::ValueNull));
+                instr->ReplaceSrc1(IR::AddrOpnd::NewNull(instr->m_func));
                 instr->m_opcode = Js::OpCode::Ld_A;
                 instrPrev = instr;
 
@@ -320,7 +320,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
             else
             {
-                instr->SetSrc1(this->LoadLibraryValueOpnd(instr, LibraryValue::ValueNull));
+                instr->SetSrc1(IR::AddrOpnd::NewNull(instr->m_func));
                 instr->m_opcode = Js::OpCode::Ld_A;
                 instrPrev = instr;
 

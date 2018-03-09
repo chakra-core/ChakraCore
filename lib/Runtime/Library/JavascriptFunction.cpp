@@ -2747,8 +2747,8 @@ LABEL1:
                     uint length = (uint)pFrameDisplay->GetLength();
                     for (uint i = 0; i < length; i++)
                     {
-                        void * scope = pFrameDisplay->GetItem(i);
-                        if (!Js::ScopeSlots::Is(scope) && Js::ActivationObjectEx::Is(scope))
+                        Var scope = pFrameDisplay->GetItem(i);
+                        if (scope && !Js::ScopeSlots::Is(scope) && Js::ActivationObjectEx::Is(scope))
                         {
                             Js::ActivationObjectEx::FromVar(scope)->InvalidateCachedScope();
                         }

@@ -9107,7 +9107,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
         {
             //We reached here because, either we don't have any formals or we don't have a scope object (it could be in strict mode or have non-simple param list)
             Assert(formalsCount == 0 || (m_functionBody->GetIsStrictMode() || hasNonSimpleParams));
-            frameObject = scriptContext->GetLibrary()->GetNull();
+            frameObject = nullptr;
             formalsCount = 0;
 
             if (PHASE_VERBOSE_TRACE1(Js::StackArgOptPhase))
@@ -9119,8 +9119,9 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
 
         if (heapArgObj)
         {
+            Assert(frameObject == nullptr || ActivationObject::Is(frameObject));
             heapArgObj->SetFormalCount(formalsCount);
-            heapArgObj->SetFrameObject(frameObject != scriptContext->GetLibrary()->GetNull() ?
+            heapArgObj->SetFrameObject(frameObject != nullptr ?
                 static_cast<ActivationObject*>(frameObject) : nullptr);
 
             if (PHASE_TRACE1(Js::StackArgFormalsOptPhase) && formalsCount > 0)
