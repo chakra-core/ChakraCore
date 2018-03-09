@@ -851,6 +851,13 @@ namespace Js
         return PropertyQueryFlags::Property_NotFound_NoProto;
     }
 
+    BOOL TypedArrayBase::DeleteItem(uint32 index, Js::PropertyOperationFlags flags)
+    {
+        JavascriptError::ThrowCantDeleteIfStrictModeOrNonconfigurable(
+            flags, GetScriptContext(), GetScriptContext()->GetIntegerString(index)->GetString());
+        return FALSE;
+    }
+
     PropertyQueryFlags TypedArrayBase::GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
     {
         *value = DirectGetItem(index);

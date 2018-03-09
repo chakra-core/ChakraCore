@@ -640,7 +640,8 @@ namespace Js
             }
             else if (!(descriptor->Attributes & PropertyConfigurable))
             {
-                JavascriptError::ThrowCantDelete(propertyOperationFlags, instance->GetScriptContext(), TaggedInt::ToString(index, instance->GetScriptContext())->GetString());
+                JavascriptError::ThrowCantDeleteIfStrictModeOrNonconfigurable(
+                    propertyOperationFlags, instance->GetScriptContext(), TaggedInt::ToString(index, instance->GetScriptContext())->GetString());
 
                 return false;
             }

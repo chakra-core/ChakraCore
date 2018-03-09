@@ -694,7 +694,7 @@ namespace Js
         return false;
     }
 
-    bool JavascriptError::ThrowCantDelete(PropertyOperationFlags flags, ScriptContext* scriptContext, PCWSTR varName)
+    bool JavascriptError::ThrowCantDeleteIfStrictModeOrNonconfigurable(PropertyOperationFlags flags, ScriptContext* scriptContext, PCWSTR varName)
     {
         bool isNonConfigThrow = (flags & PropertyOperation_ThrowOnDeleteIfNotConfig) == PropertyOperation_ThrowOnDeleteIfNotConfig;
 
