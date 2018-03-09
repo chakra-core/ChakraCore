@@ -1389,7 +1389,7 @@ private:
 #endif
 
     void UpdateConstructorCacheInvalidationCount(uint count);
-    void UpdateEntryPoints(const Js::PropertyRecord *propertyRecord, PropertyGuardEntry *entry);
+    void InvalidateEntryPoints(const Js::PropertyRecord *propertyRecord, PropertyGuardEntry *entry);
 
 public:
     void InvalidateIsInstInlineCachesForFunction(Js::Var function);

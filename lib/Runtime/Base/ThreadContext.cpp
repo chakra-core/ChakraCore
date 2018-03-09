@@ -3605,7 +3605,7 @@ ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRe
         this->UpdateConstructorCacheInvalidationCount(count);
     }
 
-    this->UpdateEntryPoints(propertyRecord, entry);
+    this->InvalidateEntryPoints(propertyRecord, entry);
 }
 
 void
@@ -3691,7 +3691,7 @@ ThreadContext::InvalidatePropertyGuardEntryForType(const Js::PropertyRecord* pro
         this->UpdateConstructorCacheInvalidationCount(count);
     }
 
-    this->UpdateEntryPoints(propertyRecord, entry);
+    this->InvalidateEntryPoints(propertyRecord, entry);
 
     return removedAllEntries;
 }
@@ -3710,7 +3710,7 @@ void ThreadContext::UpdateConstructorCacheInvalidationCount(uint count)
     }
 }
 
-void ThreadContext::UpdateEntryPoints(const Js::PropertyRecord *propertyRecord, PropertyGuardEntry *entry)
+void ThreadContext::InvalidateEntryPoints(const Js::PropertyRecord *propertyRecord, PropertyGuardEntry *entry)
 {
     if (entry->entryPoints && entry->entryPoints->Count() > 0)
     {
