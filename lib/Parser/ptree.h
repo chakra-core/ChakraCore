@@ -109,6 +109,8 @@ class ParseNodeModule;
 class ParseNode
 {
 public:
+    void Init(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodeUni * AsParseNodeUni();
     ParseNodeBin * AsParseNodeBin();
     ParseNodeTri * AsParseNodeTri();
@@ -652,6 +654,8 @@ public:
     BYTE isEvalCall : 1;
     BYTE isSuperCall : 1;
     BYTE hasDestructuring : 1;
+
+    void Init(OpCode nop, ParseNodePtr pnodeTarget, ParseNodePtr pnodeArgs, charcount_t ichMin, charcount_t ichLim);
 };
 
 // base for statement nodes
@@ -684,6 +688,8 @@ public:
     PnodeBlockType blockType:2;
     BYTE         callsEval:1;
     BYTE         childCallsEval:1;
+
+    void Init(int blockId, PnodeBlockType blockType, charcount_t ichMin, charcount_t ichLim);
 
     void SetCallsEval(bool does) { callsEval = does; }
     bool GetCallsEval() const { return callsEval; }
@@ -862,6 +868,8 @@ class ParseNodeSuperCall : public ParseNodeCall
 public:
     ParseNodePtr pnodeThis;
     ParseNodePtr pnodeNewTarget;
+
+    void Init(OpCode nop, ParseNodePtr pnodeTarget, ParseNodePtr pnodeArgs, charcount_t ichMin, charcount_t ichLim);
 };
 
 const int kcbPnNone           = sizeof(ParseNode);

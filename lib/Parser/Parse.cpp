@@ -693,50 +693,14 @@ static const int g_mpnopcbNode[] =
 #include "ptlist.h"
 };
 
-const Js::RegSlot NoRegister = (Js::RegSlot)-1;
-const Js::RegSlot OneByteRegister = (Js::RegSlot_OneByte)-1;
-
-void Parser::InitNode(OpCode nop,ParseNodePtr pnode) {
-    pnode->nop = nop;
-    pnode->grfpn = PNodeFlags::fpnNone;
-    pnode->location = NoRegister;
-    pnode->emitLabels = false;
-    pnode->isUsed = true;
-    pnode->notEscapedUse = false;
-    pnode->isInList = false;
-    pnode->isCallApplyTargetLoad = false;
-    pnode->isSpecialName = false;
-}
-
 // Create nodes using Arena
 ParseNodePtr
 Parser::StaticCreateBlockNode(ArenaAllocator* alloc, charcount_t ichMin , charcount_t ichLim, int blockId, PnodeBlockType blockType)
 {
-    ParseNodePtr pnode = StaticCreateNodeT<knopBlock>(alloc, ichMin, ichLim);
-    InitBlockNode(pnode, blockId, blockType);
+    ParseNodeBlock* pnode = reinterpret_cast<ParseNodeBlock*>(StaticAllocNode<knopBlock>(alloc));
+    pnode->Init(blockId, blockType, ichMin, ichLim);
+
     return pnode;
-}
-
-void Parser::InitBlockNode(ParseNodePtr pnode, int blockId, PnodeBlockType blockType)
-{
-    Assert(pnode->nop == knopBlock);
-    pnode->AsParseNodeBlock()->pnodeScopes = nullptr;
-    pnode->AsParseNodeBlock()->pnodeNext = nullptr;
-    pnode->AsParseNodeBlock()->scope = nullptr;
-    pnode->AsParseNodeBlock()->enclosingBlock = nullptr;
-    pnode->AsParseNodeBlock()->pnodeLexVars = nullptr;
-    pnode->AsParseNodeBlock()->pnodeStmt = nullptr;
-    pnode->AsParseNodeBlock()->pnodeLastValStmt = nullptr;
-
-    pnode->AsParseNodeBlock()->callsEval = false;
-    pnode->AsParseNodeBlock()->childCallsEval = false;
-    pnode->AsParseNodeBlock()->blockType = blockType;
-    pnode->AsParseNodeBlock()->blockId = blockId;
-
-    if (blockType != PnodeBlockType::Regular)
-    {
-        pnode->grfpn |= PNodeFlags::fpnSyntheticNode;
-    }
 }
 
 // Create Node with limit
@@ -1060,7 +1024,7 @@ ParseNodePtr Parser::StaticCreateBinNode(OpCode nop,
 {
     DebugOnly(VerifyNodeSize(nopForSize, allocSize));
     ParseNodePtr pnode = (ParseNodePtr)alloc->Alloc(allocSize);
-    InitNode(nop, pnode);
+    pnode->Init(nop, 0 /*ichMin*/, 0 /*ichLim*/);
 
     pnode->AsParseNodeBin()->pnodeNext = nullptr;
     pnode->AsParseNodeBin()->pnode1 = pnode1;
@@ -1083,6 +1047,12 @@ ParseNodePtr Parser::StaticCreateBinNode(OpCode nop,
 }
 
 // Create nodes using parser allocator
+ParseNodePtr Parser::CreateBlockNode(PnodeBlockType blockType)
+{
+    ParseNodePtr pnode = CreateNode(knopBlock);
+    pnode->AsParseNodeBlock()->Init(m_nextBlockId++, blockType, pnode->ichMin, pnode->ichLim);
+    return pnode;
+}
 
 ParseNodePtr Parser::CreateNode(OpCode nop, charcount_t ichMin)
 {
@@ -1102,14 +1072,7 @@ ParseNodePtr Parser::CreateNode(OpCode nop, charcount_t ichMin)
         *m_pCurrentAstSize += cb;
     }
 
-    InitNode(nop,pnode);
-
-    // default - may be changed
-    pnode->ichMin = ichMin;
-    if (m_pscan!= nullptr) {
-      pnode->ichLim = m_pscan->IchLimTok();
-    }
-    else pnode->ichLim=0;
+    pnode->Init(nop, ichMin, (m_pscan != nullptr) ? m_pscan->IchLimTok() : 0 /*ichLim*/);
 
     return pnode;
 }
@@ -1123,7 +1086,7 @@ ParseNodePtr Parser::CreateUniNode(OpCode nop, ParseNodePtr pnode1)
     Assert(m_pCurrentAstSize != nullptr);
     *m_pCurrentAstSize += kcbPnUni;
 
-    InitNode(nop, pnode);
+    pnode->Init(nop, 0 /*ichMin*/, 0 /*ichLim*/);
 
     pnode->AsParseNodeUni()->pnode1 = pnode1;
     if (nullptr == pnode1)
@@ -1243,33 +1206,6 @@ ParseNodePtr Parser::CreateBlockNode(charcount_t ichMin,charcount_t ichLim, Pnod
     return StaticCreateBlockNode(&m_nodeAllocator, ichMin, ichLim, this->m_nextBlockId++, blockType);
 }
 
-ParseNodePtr
-Parser::CreateCallNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2,charcount_t ichMin,charcount_t ichLim)
-{
-    Assert(!this->m_deferringAST);
-    DebugOnly(VerifyNodeSize(nop, kcbPnCall));
-    ParseNodePtr pnode = (ParseNodePtr)m_nodeAllocator.Alloc(kcbPnCall);
-
-    Assert(m_pCurrentAstSize != nullptr);
-    *m_pCurrentAstSize += kcbPnCall;
-
-    InitNode(nop, pnode);
-
-    pnode->AsParseNodeCall()->pnodeTarget = pnode1;
-    pnode->AsParseNodeCall()->pnodeArgs = pnode2;
-    pnode->AsParseNodeCall()->argCount = 0;
-    pnode->AsParseNodeCall()->spreadArgCount = 0;
-    pnode->AsParseNodeCall()->callOfConstants = false;
-    pnode->AsParseNodeCall()->isApplyCall = false;
-    pnode->AsParseNodeCall()->isEvalCall = false;
-    pnode->AsParseNodeCall()->isSuperCall = false;
-    pnode->AsParseNodeCall()->hasDestructuring = false;
-    pnode->ichMin = ichMin;
-    pnode->ichLim = ichLim;
-
-    return pnode;
-}
-
 ParseNodePtr Parser::CreateStrNode(IdentPtr pid)
 {
     Assert(!this->m_deferringAST);
@@ -1338,16 +1274,9 @@ ParseNodePtr Parser::CreateCallNode(OpCode nop, ParseNodePtr pnode1, ParseNodePt
     }
     else
     {
-        if (nullptr == pnode2)
-        {
-            ichMin = pnode1->ichMin;
-            ichLim = pnode1->ichLim;
-        }
-        else
-        {
-            ichMin = pnode1->ichMin;
-            ichLim = pnode2->ichLim;
-        }
+        ichMin = pnode1->ichMin;
+        ichLim = pnode2 == nullptr ? pnode1->ichLim : pnode2->ichLim;
+
         if (pnode1->nop == knopDot || pnode1->nop == knopIndex)
         {
             this->CheckArguments(pnode1->AsParseNodeBin()->pnode1);
@@ -1356,32 +1285,38 @@ ParseNodePtr Parser::CreateCallNode(OpCode nop, ParseNodePtr pnode1, ParseNodePt
     return CreateCallNode(nop, pnode1, pnode2, ichMin, ichLim);
 }
 
+ParseNodePtr Parser::CreateCallNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2, charcount_t ichMin, charcount_t ichLim)
+{
+    Assert(!this->m_deferringAST);
+
+    // Classes, derived from ParseNodeCall, can be created here as well,
+    // as long as their size matches kcbPnCall (that is, they don't add
+    // any data members of their own).
+    DebugOnly(VerifyNodeSize(nop, kcbPnCall));
+    CompileAssert(kcbPnCall == sizeof(ParseNodeCall));
+
+    ParseNodeCall* pnode = reinterpret_cast<ParseNodeCall*>(m_nodeAllocator.Alloc(kcbPnCall));
+    pnode->Init(nop, pnode1, pnode2, ichMin, ichLim);
+
+    Assert(m_pCurrentAstSize != nullptr);
+    *m_pCurrentAstSize += kcbPnCall;
+
+    return pnode;
+}
+
 ParseNodePtr Parser::CreateSuperCallNode(ParseNodePtr pnode1, ParseNodePtr pnode2)
 {
     Assert(!this->m_deferringAST);
     Assert(pnode1 && pnode1->isSpecialName && pnode1->AsParseNodeSpecialName()->isSuper);
 
     DebugOnly(VerifyNodeSize(knopSuperCall, kcbPnSuperCall));
-    ParseNodePtr pnode = (ParseNodePtr)m_nodeAllocator.Alloc(kcbPnSuperCall);
+    CompileAssert(kcbPnSuperCall == sizeof(ParseNodeSuperCall));
+
+    ParseNodeSuperCall* pnode = reinterpret_cast<ParseNodeSuperCall*>(m_nodeAllocator.Alloc(kcbPnSuperCall));
+    pnode->Init(knopCall, pnode1, pnode2, pnode1->ichMin, pnode2 == nullptr ? pnode1->ichLim : pnode2->ichLim);
 
     Assert(m_pCurrentAstSize != nullptr);
     *m_pCurrentAstSize += kcbPnSuperCall;
-
-    InitNode(knopCall, pnode);
-
-    pnode->AsParseNodeCall()->pnodeTarget = pnode1;
-    pnode->AsParseNodeCall()->pnodeArgs = pnode2;
-    pnode->AsParseNodeCall()->argCount = 0;
-    pnode->AsParseNodeCall()->spreadArgCount = 0;
-    pnode->AsParseNodeCall()->callOfConstants = false;
-    pnode->AsParseNodeCall()->isApplyCall = false;
-    pnode->AsParseNodeCall()->isEvalCall = false;
-    pnode->AsParseNodeCall()->isSuperCall = true;
-    pnode->AsParseNodeSuperCall()->pnodeThis = nullptr;
-    pnode->AsParseNodeSuperCall()->pnodeNewTarget = nullptr;
-
-    pnode->ichMin = pnode1->ichMin;
-    pnode->ichLim = pnode2 == nullptr ? pnode1->ichLim : pnode2->ichLim;
 
     return pnode;
 }
@@ -12212,10 +12147,7 @@ ParseNodePtr Parser::CreateNode(OpCode nop, charcount_t ichMin, charcount_t ichL
     Assert(m_pCurrentAstSize != NULL);
     *m_pCurrentAstSize += cb;
 
-    InitNode(nop,pnode);
-
-    pnode->ichMin = ichMin;
-    pnode->ichLim = ichLim;
+    pnode->Init(nop, ichMin, ichLim);
 
     return pnode;
 }
@@ -12239,12 +12171,8 @@ ParseNodePtr Parser::CreateUniNode(OpCode nop, ParseNodePtr pnode1, charcount_t 
     Assert(m_pCurrentAstSize != NULL);
     *m_pCurrentAstSize += kcbPnUni;
 
-    InitNode(nop, pnode);
-
+    pnode->Init(nop, ichMin, ichLim);
     pnode->AsParseNodeUni()->pnode1 = pnode1;
-
-    pnode->ichMin = ichMin;
-    pnode->ichLim = ichLim;
 
     return pnode;
 }
@@ -12275,15 +12203,12 @@ ParseNodePtr Parser::CreateTriNode(OpCode nop, ParseNodePtr pnode1,
     Assert(m_pCurrentAstSize != NULL);
     *m_pCurrentAstSize += kcbPnTri;
 
-    InitNode(nop, pnode);
+    pnode->Init(nop, ichMin, ichLim);
 
     pnode->AsParseNodeTri()->pnodeNext = NULL;
     pnode->AsParseNodeTri()->pnode1 = pnode1;
     pnode->AsParseNodeTri()->pnode2 = pnode2;
     pnode->AsParseNodeTri()->pnode3 = pnode3;
-
-    pnode->ichMin = ichMin;
-    pnode->ichLim = ichLim;
 
     return pnode;
 }

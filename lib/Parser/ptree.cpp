@@ -4,6 +4,21 @@
 //-------------------------------------------------------------------------------------------------------
 #include "ParserPch.h"
 
+void ParseNode::Init(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+{
+    this->nop = nop;
+    this->grfpn = PNodeFlags::fpnNone;
+    this->location = Js::Constants::NoRegister;
+    this->emitLabels = false;
+    this->isUsed = true;
+    this->notEscapedUse = false;
+    this->isInList = false;
+    this->isCallApplyTargetLoad = false;
+    this->isSpecialName = false;
+    this->ichMin = ichMin;
+    this->ichLim = ichLim;
+}
+
 ParseNodeUni * ParseNode::AsParseNodeUni()
 {
     Assert(((this->Grfnop() & fnopUni) && this->nop != knopParamPattern) || this->nop == knopThrow);
@@ -251,4 +266,51 @@ ParseNodePtr ParseNode::GetFormalNext()
         pnodeNext = this->AsParseNodeVar()->pnodeNext;
     }
     return pnodeNext;
+}
+
+void ParseNodeCall::Init(OpCode nop, ParseNodePtr pnodeTarget, ParseNodePtr pnodeArgs, charcount_t ichMin, charcount_t ichLim)
+{
+    __super::Init(nop, ichMin, ichLim);
+
+    this->pnodeTarget = pnodeTarget;
+    this->pnodeArgs = pnodeArgs;
+    this->argCount = 0;
+    this->spreadArgCount = 0;
+    this->callOfConstants = false;
+    this->isApplyCall = false;
+    this->isEvalCall = false;
+    this->isSuperCall = false;
+    this->hasDestructuring = false;
+}
+
+void ParseNodeSuperCall::Init(OpCode nop, ParseNodePtr pnodeTarget, ParseNodePtr pnodeArgs, charcount_t ichMin, charcount_t ichLim)
+{
+    __super::Init(nop, pnodeTarget, pnodeArgs, ichMin, ichLim);
+
+    this->isSuperCall = true;
+    this->pnodeThis = nullptr;
+    this->pnodeNewTarget = nullptr;
+}
+
+void ParseNodeBlock::Init(int blockId, PnodeBlockType blockType, charcount_t ichMin, charcount_t ichLim)
+{
+    __super::Init(knopBlock, ichMin, ichLim);
+
+    this->pnodeScopes = nullptr;
+    this->pnodeNext = nullptr;
+    this->scope = nullptr;
+    this->enclosingBlock = nullptr;
+    this->pnodeLexVars = nullptr;
+    this->pnodeStmt = nullptr;
+    this->pnodeLastValStmt = nullptr;
+
+    this->callsEval = false;
+    this->childCallsEval = false;
+    this->blockType = blockType;
+    this->blockId = blockId;
+
+    if (blockType != PnodeBlockType::Regular)
+    {
+        this->grfpn |= PNodeFlags::fpnSyntheticNode;
+    }
 }
