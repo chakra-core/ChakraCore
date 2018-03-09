@@ -3231,7 +3231,8 @@ ThreadContext::InvalidateProtoInlineCaches(Js::PropertyId propertyId)
 }
 
 void
-ThreadContext::InvalidateMissingPropertyInlineCaches(const Js::Type *type, Js::PropertyId propertyId) {
+ThreadContext::InvalidateMissingPropertyInlineCaches(const Js::Type *type, Js::PropertyId propertyId)
+{
     InlineCacheList *inlineCacheList;
     if (protoInlineCacheByPropId.TryGetValue(propertyId, &inlineCacheList))
     {
@@ -3267,7 +3268,8 @@ ThreadContext::InvalidateMissingPropertyInlineCaches(const Js::Type *type, Js::P
         NEXT_SLISTBASE_ENTRY_EDITING;
 
         // If we've removed all of the entries in the list, clean up the list as well.
-        if (inlineCacheList->Empty()) {
+        if (inlineCacheList->Empty())
+        {
             protoInlineCacheByPropId.Remove(propertyId);
             Adelete(&this->inlineCacheThreadInfoAllocator, inlineCacheList);
         }
