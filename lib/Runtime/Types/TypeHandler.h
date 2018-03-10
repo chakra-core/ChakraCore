@@ -662,5 +662,13 @@ namespace Js
     public:
          virtual void Dump(unsigned indent = 0) const;
 #endif
+
+    protected:
+         // Is the specified property defined in an object that appears on
+         // a prototype chain (either because this type is used as a
+         // prototype, or because the property is acquired from a prototype
+         // of the given instance)?  Used when determining which caches
+         // must be invalidated when adding a new property to an object.
+         bool propertyInPrototype(DynamicObject *instance, Js::PropertyId propertyId) const;
     };
 }

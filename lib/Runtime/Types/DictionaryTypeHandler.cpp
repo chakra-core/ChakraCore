@@ -2195,9 +2195,7 @@ namespace Js
             SetPropertyValueInfo(info, instance, index, attributes);
         }
 
-        if ((this->GetFlags() & IsPrototypeFlag)
-            || (!IsInternalPropertyId(propertyRecord->GetPropertyId())
-                && JavascriptOperators::HasProxyOrPrototypeInlineCacheProperty(instance, propertyRecord->GetPropertyId())))
+        if (this->propertyInPrototype(instance, propertyRecord->GetPropertyId()))
         {
             // We don't evolve dictionary types when adding a field, so we need to invalidate prototype caches.
             // We only have to do this though if the current type is used as a prototype, or the current property
