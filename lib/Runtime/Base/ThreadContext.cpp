@@ -2415,6 +2415,12 @@ ThreadContext::RegisterScriptContext(Js::ScriptContext *scriptContext)
     {
         scriptContext->ForceNoNative();
     }
+
+    if (NoDynamicThunks())
+    {
+        scriptContext->ForceNoDynamicThunks();
+    }
+
 #if DBG || defined(RUNTIME_DATA_COLLECTION)
     scriptContextCount++;
 #endif

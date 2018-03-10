@@ -323,6 +323,11 @@ void* InterpreterThunkEmitter::ConvertToEntryPoint(PVOID dynamicInterpreterThunk
 
 bool InterpreterThunkEmitter::NewThunkBlock()
 {
+    if (this->scriptContext->GetConfig()->IsNoDynamicThunks())
+    {
+        return false;
+    }
+
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
     if (CONFIG_FLAG(ForceStaticInterpreterThunk))
     {
