@@ -23,6 +23,7 @@ add_library (Chakra.Backend OBJECT
     FunctionJITRuntimeInfo.cpp
     FunctionJITTimeInfo.cpp
     GlobOpt.cpp
+    GlobOptArrays.cpp
     GlobOptBailOut.cpp
     GlobOptBlockData.cpp
     GlobOptExpr.cpp

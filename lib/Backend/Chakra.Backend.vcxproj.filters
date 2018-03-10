@@ -150,6 +150,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)arm64\ARM64UnwindEncoder.cpp">
       <Filter>arm64</Filter>
     </ClCompile>
+    <ClCompile Include="GlobOptArrays.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />
@@ -381,6 +382,7 @@
     <ClInclude Include="arm64\ARM64UnwindEncoder.h">
       <Filter>arm64</Filter>
     </ClInclude>
+    <ClInclude Include="GlobOptArrays.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\LinearScanMdA.asm">

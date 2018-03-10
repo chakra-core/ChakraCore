@@ -149,6 +149,7 @@ enum IRDumpFlags
 #include "GlobOptBlockData.h"
 #include "GlobOpt.h"
 #include "GlobOptIntBounds.h"
+#include "GlobOptArrays.h"
 #include "QueuedFullJitWorkItem.h"
 #include "CodeGenWorkItem.h"
 #include "SimpleJitProfilingHelpers.h"
