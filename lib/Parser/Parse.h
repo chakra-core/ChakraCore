@@ -251,10 +251,7 @@ public:
     static ParseNodePtr StaticCreateNodeT(ArenaAllocator* alloc, charcount_t ichMin = 0, charcount_t ichLim = 0)
     {
         ParseNodePtr pnode = StaticAllocNode<nop>(alloc);
-        InitNode(nop,pnode);
-        // default - may be changed
-        pnode->ichMin = ichMin;
-        pnode->ichLim = ichLim;
+        pnode->Init(nop, ichMin, ichLim);
 
         return pnode;
     }
@@ -299,20 +296,15 @@ public:
         pnode->AsParseNodeSpecialName()->isSuper = false;
         return pnode;
     }
-    ParseNodePtr CreateBlockNode(PnodeBlockType blockType = PnodeBlockType::Regular)
-    {
-        ParseNodePtr pnode = CreateNode(knopBlock);
-        InitBlockNode(pnode, m_nextBlockId++, blockType);
-        return pnode;
-    }
-    // Creating parse nodes.
 
+    // Creating parse nodes.
     ParseNodePtr CreateNode(OpCode nop, charcount_t ichMin);
     ParseNodePtr CreateTriNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2, ParseNodePtr pnode3);
     ParseNodePtr CreateIntNode(int32 lw);
     ParseNodePtr CreateStrNode(IdentPtr pid);
 
     ParseNodePtr CreateUniNode(OpCode nop, ParseNodePtr pnodeOp);
+    ParseNodePtr CreateBlockNode(PnodeBlockType blockType = PnodeBlockType::Regular);
     ParseNodePtr CreateBinNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2);
     ParseNodePtr CreateSuperReferenceNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2);
     ParseNodePtr CreateCallNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2);
@@ -379,9 +371,6 @@ private:
     ParseNodePtr CreateStrNodeWithScanner(IdentPtr pid);
     ParseNodePtr CreateIntNodeWithScanner(int32 lw);
     ParseNodePtr CreateProgNodeWithScanner(bool isModuleSource);
-
-    static void InitNode(OpCode nop,ParseNodePtr pnode);
-    static void InitBlockNode(ParseNodePtr pnode, int blockId, PnodeBlockType blockType);
 
 private:
     ParseNodePtr m_currentNodeNonLambdaFunc; // current function or NULL
