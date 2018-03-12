@@ -110,10 +110,6 @@ class GlobOpt;
         TRACE_PHASE_INSTR(phase, instr, __VA_ARGS__); \
     }
 
-#define TRACE_TESTTRACE_PHASE_INSTR(phase, instr, ...) \
-    TRACE_PHASE_INSTR(phase, instr, __VA_ARGS__); \
-    TESTTRACE_PHASE_INSTR(phase, instr, __VA_ARGS__);
-
 #else   // ENABLE_DEBUG_CONFIG_OPTIONS && DBG_DUMP
 
 #define GOPT_TRACE(...)
@@ -124,7 +120,6 @@ class GlobOpt;
 #define GOPT_TRACE_BLOCK(block, before)
 #define TRACE_PHASE_INSTR(phase, instr, ...)
 #define TRACE_PHASE_INSTR_VERBOSE(phase, instr, ...)
-#define TRACE_TESTTRACE_PHASE_INSTR(phase, instr, ...) TESTTRACE_PHASE_INSTR(phase, instr, __VA_ARGS__);
 
 #endif  // ENABLE_DEBUG_CONFIG_OPTIONS && DBG_DUMP
 
@@ -417,6 +412,7 @@ private:
     class AddSubConstantInfo;
     class ArrayLowerBoundCheckHoistInfo;
     class ArrayUpperBoundCheckHoistInfo;
+    class ArraySrcOpt;
 
     friend BackwardPass;
 #if DBG

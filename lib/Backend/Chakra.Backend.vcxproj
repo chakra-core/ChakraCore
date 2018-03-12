@@ -198,6 +198,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)FlowGraph.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Func.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOpt.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptArrays.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)InductionVariable.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)InlineeFrameInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)InliningHeuristics.cpp" />
@@ -302,6 +303,7 @@
     <ClInclude Include="FunctionCodeGenJitTimeData.h" />
     <ClInclude Include="FunctionJITRuntimeInfo.h" />
     <ClInclude Include="FunctionJITTimeInfo.h" />
+    <ClInclude Include="GlobOptArrays.h" />
     <ClInclude Include="GlobOptBlockData.h" />
     <ClInclude Include="IntConstMath.h" />
     <ClInclude Include="IRBaseTypeList.h" />
