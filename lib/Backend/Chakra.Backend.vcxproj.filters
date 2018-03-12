@@ -14,6 +14,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptExpr.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptFields.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptIntBounds.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptArrays.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Backend.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BackwardPass.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Debug.cpp" />
@@ -150,7 +151,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)arm64\ARM64UnwindEncoder.cpp">
       <Filter>arm64</Filter>
     </ClCompile>
-    <ClCompile Include="GlobOptArrays.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />

@@ -11,7 +11,9 @@ public:
         globOpt(glob),
         func(glob->func),
         instr(*instrRef)
-    {}
+    {
+        Assert(instr != nullptr);
+    }
 
     void Optimize();
 
@@ -57,22 +59,22 @@ private:
     ValueType newBaseValueType;
     ArrayValueInfo * baseArrayValueInfo = nullptr;
 
-    bool isLikelyJsArray;
-    bool doArrayChecks;
-    bool doArraySegmentHoist;
-    bool headSegmentIsAvailable;
-    bool doHeadSegmentLoad;
-    bool doArraySegmentLengthHoist;
-    bool headSegmentLengthIsAvailable;
-    bool doHeadSegmentLengthLoad;
-    bool lengthIsAvailable;
-    bool doLengthLoad;
+    bool isLikelyJsArray = false;
+    bool doArrayChecks = false;
+    bool doArraySegmentHoist = false;
+    bool headSegmentIsAvailable = false;
+    bool doHeadSegmentLoad = false;
+    bool doArraySegmentLengthHoist = false;
+    bool headSegmentLengthIsAvailable = false;
+    bool doHeadSegmentLengthLoad = false;
+    bool lengthIsAvailable = false;
+    bool doLengthLoad = false;
 
     StackSym * newHeadSegmentSym = nullptr;
     StackSym * newHeadSegmentLengthSym = nullptr;
     StackSym * newLengthSym = nullptr;
 
-    bool canBailOutOnArrayAccessHelperCall;
+    bool canBailOutOnArrayAccessHelperCall = false;
 
     bool doExtractBoundChecks = false;
     bool eliminatedLowerBoundCheck = false;

@@ -2,7 +2,41 @@
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "backend.h"
+#include "Backend.h"
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+
+#define TESTTRACE_PHASE_INSTR(phase, instr, ...) \
+    if(PHASE_TESTTRACE(phase, this->func)) \
+    { \
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]; \
+        Output::Print( \
+            _u("Testtrace: %s function %s (%s): "), \
+            Js::PhaseNames[phase], \
+            instr->m_func->GetJITFunctionBody()->GetDisplayName(), \
+            instr->m_func->GetDebugNumberSet(debugStringBuffer)); \
+        Output::Print(__VA_ARGS__); \
+        Output::Flush(); \
+    }
+
+#else
+
+#define TESTTRACE_PHASE_INSTR(phase, instr, ...)
+
+#endif
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS && DBG_DUMP
+
+#define TRACE_TESTTRACE_PHASE_INSTR(phase, instr, ...) \
+    TRACE_PHASE_INSTR(phase, instr, __VA_ARGS__); \
+    TESTTRACE_PHASE_INSTR(phase, instr, __VA_ARGS__);
+
+#else
+
+#define TRACE_TESTTRACE_PHASE_INSTR(phase, instr, ...) TESTTRACE_PHASE_INSTR(phase, instr, __VA_ARGS__);
+
+#endif
+
 
 bool GlobOpt::ArraySrcOpt::CheckOpCode()
 {
@@ -1350,12 +1384,15 @@ void GlobOpt::ArraySrcOpt::UpdateHoistedValueInfo()
         return;
     }
 
-    Loop *rootLoop = nullptr;
+    AnalysisAssert(globOpt->currentBlock->loop != nullptr);
+
+    Loop * rootLoop = nullptr;
     for (Loop *loop = globOpt->currentBlock->loop; loop; loop = loop->parent)
     {
         rootLoop = loop;
     }
-    Assert(rootLoop);
+
+    AnalysisAssert(rootLoop != nullptr);
 
     ValueInfo *valueInfoToHoist = baseValueInfo;
     bool removeHeadSegment, removeHeadSegmentLength, removeLength;
@@ -1555,8 +1592,6 @@ void GlobOpt::ArraySrcOpt::InsertHeadSegmentLoad()
 
 void GlobOpt::ArraySrcOpt::Optimize()
 {
-    Assert(instr != nullptr);
-
     if (!CheckOpCode())
     {
         return;

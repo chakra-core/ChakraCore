@@ -110,23 +110,6 @@ class GlobOpt;
         TRACE_PHASE_INSTR(phase, instr, __VA_ARGS__); \
     }
 
-#define TESTTRACE_PHASE_INSTR(phase, instr, ...) \
-    if(PHASE_TESTTRACE(phase, this->func)) \
-    { \
-        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]; \
-        Output::Print( \
-            _u("Testtrace: %s function %s (%s): "), \
-            Js::PhaseNames[phase], \
-            instr->m_func->GetJITFunctionBody()->GetDisplayName(), \
-            instr->m_func->GetDebugNumberSet(debugStringBuffer)); \
-        Output::Print(__VA_ARGS__); \
-        Output::Flush(); \
-    }
-
-#define TRACE_TESTTRACE_PHASE_INSTR(phase, instr, ...) \
-    TRACE_PHASE_INSTR(phase, instr, __VA_ARGS__); \
-    TESTTRACE_PHASE_INSTR(phase, instr, __VA_ARGS__);
-
 #else   // ENABLE_DEBUG_CONFIG_OPTIONS && DBG_DUMP
 
 #define GOPT_TRACE(...)
@@ -137,8 +120,6 @@ class GlobOpt;
 #define GOPT_TRACE_BLOCK(block, before)
 #define TRACE_PHASE_INSTR(phase, instr, ...)
 #define TRACE_PHASE_INSTR_VERBOSE(phase, instr, ...)
-#define TESTTRACE_PHASE_INSTR(phase, instr, ...)
-#define TRACE_TESTTRACE_PHASE_INSTR(phase, instr, ...) TESTTRACE_PHASE_INSTR(phase, instr, __VA_ARGS__);
 
 #endif  // ENABLE_DEBUG_CONFIG_OPTIONS && DBG_DUMP
 
