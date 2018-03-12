@@ -4616,7 +4616,7 @@ CHAKRA_API JsTTDReplayExecution(_Inout_ JsTTDMoveMode* moveMode, _Out_ int64_t* 
             *moveMode = (JsTTDMoveMode)abortException.GetMoveMode();
             *rootEventTime = abortException.GetTargetEventTime();
 
-            //Check if we are tracking execution and, if so, set the exception locaiton so we can access it later
+            //Check if we are tracking execution and, if so, set the exception location so we can access it later
             if(emanager != nullptr && abortException.IsTopLevelException())
             {
                 emanager->SetPendingTTDUnhandledException();

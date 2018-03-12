@@ -599,6 +599,13 @@ namespace Js
         }
     }
 
+    void GeneratorVirtualScriptFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        this->ScriptFunction::MarkVisitKindSpecificPtrs(extractor);
+
+        extractor->MarkVisitVar(this->realFunction);
+    }
+
     TTD::NSSnapObjects::SnapObjectType GeneratorVirtualScriptFunction::GetSnapTag_TTD() const
     {
         return TTD::NSSnapObjects::SnapObjectType::SnapGeneratorVirtualScriptFunction;

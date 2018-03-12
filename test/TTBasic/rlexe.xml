@@ -976,7 +976,7 @@
       <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
-    <test>
+  <test>
     <default>
       <files>asyncAwaitBasic.js</files>
       <compile-flags>-TTRecord=asyncAwaitBasicTest -TTSnapInterval=0</compile-flags>
@@ -1021,6 +1021,54 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=asyncAwaitBasicTest -TTDStartEvent=5</compile-flags>
       <baseline>asyncAwaitBasicReplay_5.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>asyncAwait2.js</files>
+      <compile-flags>-TTRecord=asyncAwait2Test -TTSnapInterval=0</compile-flags>
+      <baseline>asyncAwait2Record.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=asyncAwait2Test -TTDStartEvent=1</compile-flags>
+      <baseline>asyncAwait2Replay_1.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+    <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=asyncAwait2Test -TTDStartEvent=5</compile-flags>
+      <baseline>asyncAwait2Replay_2.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>asyncAwait3.js</files>
+      <compile-flags>-TTRecord=asyncAwait3Test -TTSnapInterval=0</compile-flags>
+      <baseline>asyncAwait3Record.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=asyncAwait3Test -TTDStartEvent=1</compile-flags>
+      <baseline>asyncAwait3Replay_1.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+    <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=asyncAwait3Test -TTDStartEvent=5</compile-flags>
+      <baseline>asyncAwait3Replay_2.baseline</baseline>
       <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
