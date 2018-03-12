@@ -5,7 +5,12 @@
       <!-- ICU warning output is exceptionally noisy -->
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <TreatWarningAsError>false</TreatWarningAsError>
+
+      <!-- ICU uses RTTI internally, while the rest of ChakraCore does not -->
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
+
+      <!-- Common.Build.props sets the calling convention to stdcall for x86 and chpe, while ICU just wants the default -->
+      <CallingConvention></CallingConvention>
 
       <PreprocessorDefinitions Condition="'$(ChakraICU)'!='shared'">
         U_STATIC_IMPLEMENTATION=1;
