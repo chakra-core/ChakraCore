@@ -10,11 +10,21 @@
 #ifdef NTDDI_WIN10_RS2
 #if (NTDDI_VERSION >= NTDDI_WIN10_RS2)
 #define USEFILEMAP2 1
+#define USEVIRTUALUNLOCKEX 1
 #endif
 #endif
 
 namespace Memory
 {
+    
+void UnlockMemory(HANDLE process, LPVOID address, SIZE_T size)
+{
+#if USEVIRTUALUNLOCKEX
+    VirtualUnlockEx(process, address, size);
+#else
+    NtdllLibrary::Instance->UnlockVirtualMemory(process, &address, &size, NtdllLibrary::MAP_PROCESS);
+#endif
+}
 
 void CloseSectionHandle(HANDLE handle)
 {
@@ -593,12 +603,6 @@ SectionAllocWrapper::AllocPages(LPVOID requestAddress, size_t pageCount, DWORD a
             return nullptr;
         }
         address = requestAddress;
-
-        if ((allocationType & MEM_COMMIT) == MEM_COMMIT)
-        {
-            const DWORD allocProtectFlags = AutoSystemInfo::Data.IsCFGEnabled() ? PAGE_EXECUTE_RO_TARGETS_INVALID : PAGE_EXECUTE_READ;
-            address = VirtualAllocEx(this->process, address, dwSize, MEM_COMMIT, allocProtectFlags);
-        }
     }
 
     return address;
@@ -661,11 +665,7 @@ BOOL SectionAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType
             ZeroMemory(localAddr, AutoSystemInfo::PageSize);
             FreeLocal(localAddr);
         }
-        DWORD oldFlags = NULL;
-        if (!VirtualProtectEx(this->process, lpAddress, dwSize, PAGE_NOACCESS, &oldFlags))
-        {
-            return FALSE;
-        }
+        UnlockMemory(this->process, lpAddress, dwSize);
     }
 
     return TRUE;
@@ -924,37 +924,15 @@ LPVOID PreReservedSectionAllocWrapper::AllocPages(LPVOID lpAddress, DECLSPEC_GUA
         AssertMsg(freeSegmentsBVIndex < PreReservedAllocationSegmentCount, "Invalid BitVector index calculation?");
         AssertMsg(dwSize % AutoSystemInfo::PageSize == 0, "COMMIT is managed at AutoSystemInfo::PageSize granularity");
 
-        char * allocatedAddress = nullptr;
-
-        if ((allocationType & MEM_COMMIT) != 0)
-        {
-#if defined(ENABLE_JIT_CLAMP)
-            AutoEnableDynamicCodeGen enableCodeGen;
-#endif
-
-            const DWORD allocProtectFlags = AutoSystemInfo::Data.IsCFGEnabled() ? PAGE_EXECUTE_RO_TARGETS_INVALID : PAGE_EXECUTE_READ;
-            allocatedAddress = (char *)VirtualAllocEx(this->process, addressToReserve, dwSize, MEM_COMMIT, allocProtectFlags);
-            if (allocatedAddress == nullptr)
-            {
-                MemoryOperationLastError::RecordLastError();
-            }
-        }
-        else
-        {
-            // Just return the uncommitted address if we didn't ask to commit it.
-            allocatedAddress = addressToReserve;
-        }
-
         // Keep track of the committed pages within the preReserved Memory Region
-        if (lpAddress == nullptr && allocatedAddress != nullptr)
+        if (lpAddress == nullptr)
         {
-            Assert(allocatedAddress == addressToReserve);
             Assert(requestedNumOfSegments != 0);
             freeSegments.ClearRange(freeSegmentsBVIndex, static_cast<uint>(requestedNumOfSegments));
-        }
+    }
 
-        PreReservedHeapTrace(_u("MEM_COMMIT: StartAddress: 0x%p of size: 0x%x * 0x%x bytes \n"), allocatedAddress, requestedNumOfSegments, AutoSystemInfo::Data.GetAllocationGranularityPageSize());
-        return allocatedAddress;
+        PreReservedHeapTrace(_u("MEM_COMMIT: StartAddress: 0x%p of size: 0x%x * 0x%x bytes \n"), addressToReserve, requestedNumOfSegments, AutoSystemInfo::Data.GetAllocationGranularityPageSize());
+        return addressToReserve;
     }
 }
 
@@ -989,11 +967,7 @@ PreReservedSectionAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFr
         FreeLocal(localAddr);
     }
 
-    DWORD oldFlags = NULL;
-    if(!VirtualProtectEx(this->process, lpAddress, dwSize, PAGE_NOACCESS, &oldFlags))
-    {
-        return FALSE;
-    }
+    UnlockMemory(this->process, lpAddress, dwSize);
 
     size_t requestedNumOfSegments = dwSize / AutoSystemInfo::Data.GetAllocationGranularityPageSize();
     Assert(requestedNumOfSegments <= MAXUINT32);

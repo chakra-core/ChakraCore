@@ -324,6 +324,7 @@
 
 #ifndef NTBUILD
 #define DELAYLOAD_SECTIONAPI 1
+#define DELAYLOAD_UNLOCKMEMORY 1
 #endif
 
 #ifdef NTBUILD
