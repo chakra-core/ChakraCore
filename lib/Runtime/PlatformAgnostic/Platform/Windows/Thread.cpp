@@ -12,7 +12,8 @@ namespace PlatformAgnostic
     Thread::ThreadHandle Thread::Create(unsigned stack_size,
                                         unsigned ( __stdcall *start_address )( void * ),
                                         void* arg_list,
-                                        ThreadInitFlag init_flag)
+                                        ThreadInitFlag init_flag,
+                                        const char16* description)
     {
         unsigned int flag = 0;
 
@@ -31,6 +32,18 @@ namespace PlatformAgnostic
             Assert(false);
         }
 
-        return _beginthreadex(nullptr, stack_size, start_address, arg_list, flag, nullptr);
+        uintptr_t handle = _beginthreadex(nullptr, stack_size, start_address, arg_list, flag, nullptr);
+
+        if (handle == 0)
+        {
+            return InvalidHandle;
+        }
+
+        if (description != nullptr)
+        {
+            Kernel32Library::Instance->SetThreadDescription((HANDLE) handle, description);
+        }
+
+        return handle;
     }
 } // namespace PlatformAgnostic

@@ -5,7 +5,7 @@ set(PL_SOURCE_FILES
   Common/HiResTimer.cpp
   Common/DateTime.cpp
   Linux/NumbersUtility.cpp
-  Linux/Thread.cpp
+  Common/Thread.cpp
   Common/Trace.cpp
   Common/SystemInfo.Common.cpp
   )
