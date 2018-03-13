@@ -4301,7 +4301,20 @@ Instr::Dump(IRDumpFlags flags)
 
     const auto PrintOpCodeName = [&]() {
         Output::SkipToColumn(23);
+#if DBG
+        WORD oldValue = 0;
+        if (this->highlight != 0)
+        {
+            oldValue = Output::SetConsoleForeground(this->highlight);
+        }
+#endif
         Output::Print(_u("%s "), Js::OpCodeUtil::GetOpCodeName(m_opcode));
+#if DBG
+        if (this->highlight != 0)
+        {
+            Output::SetConsoleForeground(oldValue);
+        }
+#endif
         Output::SkipToColumn(38);
     };
 
@@ -4585,7 +4598,16 @@ LabelInstr::Dump(IRDumpFlags flags)
     {
         this->m_block->DumpHeader();
     }
-    Output::Print(_u("$L%d:"), this->m_id);
+#if DBG
+    if (this->m_name != nullptr)
+    {
+        Output::Print(_u("$L%d (%s):"), this->m_id, this->m_name);
+    }
+    else
+#endif
+    {
+        Output::Print(_u("$L%d:"), this->m_id);
+    }
     if (this->isOpHelper)
     {
         Output::Print(_u(" [helper]"));
