@@ -19412,7 +19412,6 @@ void Lowerer::GenerateFastInlineIsIn(IR::Instr * instr)
     }
 
     IR::LabelInstr* helperLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
-    IR::LabelInstr* doneFalseLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
     IR::LabelInstr* doneLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
     IR::LabelInstr* isArrayLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
 
@@ -19473,21 +19472,12 @@ void Lowerer::GenerateFastInlineIsIn(IR::Instr * instr)
         src1Untagged,
         headSegmentLengthOpnd,
         Js::OpCode::BrGe_A,
-        doneFalseLabel,
-        instr);
-
-    InsertCompareBranch(
-        src1Untagged,
-        IR::IntConstOpnd::New(0, src1Untagged->GetType(), this->m_func),
-        Js::OpCode::BrLt_A,
-        doneFalseLabel,
+        helperLabel,
         instr);
 
     InsertMove(instr->GetDst(), LoadLibraryValueOpnd(instr, LibraryValue::ValueTrue), instr);
     InsertBranch(Js::OpCode::Br, doneLabel, instr);
 
-    instr->InsertBefore(doneFalseLabel);
-    InsertMove(instr->GetDst(), LoadLibraryValueOpnd(instr, LibraryValue::ValueFalse), instr);
     InsertBranch(Js::OpCode::Br, doneLabel, instr);
     instr->InsertBefore(helperLabel);
 
