@@ -61,12 +61,12 @@ namespace PlatformAgnostic
         // Otherwise, we treat the char before as the invalid one and return index - 1
         // This function has defined behavior only for null-terminated strings.
         // If the string is not null terminated, the behavior is undefined (likely hang)
-        static bool IsUtf16StringValid(const UChar* str, size_t length, int32* invalidIndex)
+        static bool IsUtf16StringValid(const UChar* str, size_t length, size_t* invalidIndex)
         {
             Assert(invalidIndex != nullptr);
-            *invalidIndex = -1;
+            *invalidIndex = static_cast<size_t>(-1);
 
-            int32 i = 0;
+            size_t i = 0;
             for (;;)
             {
                 // Iterate through the UTF16-LE string
@@ -172,11 +172,11 @@ namespace PlatformAgnostic
             // is a malformed utf16 string. Maintain the same behavior here.
             // Note that Windows returns this failure only if the dest buffer
             // is passed in, not in the estimation case
-            int32 invalidIndex = 0;
+            size_t invalidIndex = 0;
             if (destString != nullptr && !IsUtf16StringValid((const UChar*) sourceString, sourceLength, &invalidIndex))
             {
                 *pErrorOut = InvalidUnicodeText;
-                return -1 * invalidIndex; // mimicking the behavior of Win32 NormalizeString
+                return -1 * static_cast<int32>(invalidIndex); // mimicking the behavior of Win32 NormalizeString
             }
 
             const UNormalizer2 *normalizer = StaticUNormalizerFactory(normalizationForm);
@@ -203,7 +203,7 @@ namespace PlatformAgnostic
 
             // On Windows, IsNormalizedString returns failure if the string
             // is a malformed utf16 string. Maintain the same behavior here.
-            int32 invalidIndex = 0;
+            size_t invalidIndex = 0;
             if (!IsUtf16StringValid((const UChar*) testString, testStringLength, &invalidIndex))
             {
                 return false;

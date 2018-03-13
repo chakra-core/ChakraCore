@@ -800,8 +800,8 @@ namespace Js
     }
 
 #ifdef INTL_ICU
-    typedef const char * (*GetAvailableLocaleFunc)(int);
-    typedef int (*CountAvailableLocaleFunc)(void);
+    typedef const char * (__cdecl *GetAvailableLocaleFunc)(int);
+    typedef int (__cdecl *CountAvailableLocaleFunc)(void);
     static bool findLocale(JavascriptString *langtag, CountAvailableLocaleFunc countAvailable, GetAvailableLocaleFunc getAvailable)
     {
         char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
