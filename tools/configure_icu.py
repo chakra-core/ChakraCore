@@ -203,6 +203,7 @@ def extract_icu(icuroot, archive_path):
     if os.path.isdir(icu_folder):
         shutil.rmtree(icu_folder)
 
+    print("Extraction successful, ICU will be located at %s" % icu_folder)
     shutil.move(os.path.join(tempdir, "icu"), icu_folder)
     shutil.rmtree(tempdir)
 
@@ -211,7 +212,7 @@ def main():
 
     argparser = ArgumentParser(description = "Download and set up ICU for use in ChakraCore")
     argparser.add_argument("-y", "--yes", action = "store_true", help = "Skip ICU License prompt text")
-    argparser.add_argument("version", help = "ICU version to download. Not compatible with --archive")
+    argparser.add_argument("version", help = "ICU version to download. Not compatible with --archive", default = "60.2", nargs = "?")
     argparser.add_argument("-i", "--icu-root",
         help = "Path to directory to extract ICU to. Resulting directory will contain a single subfolder, 'icu', which contains ICU's source tree",
         default = chakra_icu_root
