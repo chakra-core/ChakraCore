@@ -273,6 +273,14 @@ namespace Js
 
         ScriptContext * scriptContext = externalFunction->type->GetScriptContext();
         AnalysisAssert(scriptContext);
+
+        if (args.Info.Count > USHORT_MAX)
+        {
+            // Due to compat reasons, stdcall external functions expect a ushort count of args.
+            // To support more than this we will need a new API.
+            Js::JavascriptError::ThrowTypeError(scriptContext, JSERR_ArgListTooLarge);
+        }
+
         Var result = NULL;
 
 #if ENABLE_TTD
@@ -284,14 +292,15 @@ namespace Js
         {
             BEGIN_LEAVE_SCRIPT(scriptContext)
             {
-                result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
+                // ArgCount truncation has been verified above.
+                result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, static_cast<USHORT>(args.Info.Count), externalFunction->callbackState);
             }
             END_LEAVE_SCRIPT(scriptContext);
         }
 #else
         BEGIN_LEAVE_SCRIPT(scriptContext)
         {
-            result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
+            result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, static_cast<USHORT>(args.Info.Count), externalFunction->callbackState);
         }
         END_LEAVE_SCRIPT(scriptContext);
 #endif
@@ -417,6 +426,13 @@ namespace Js
         }
         else
         {
+            if (args.Info.Count > USHORT_MAX)
+            {
+                // Due to compat reasons, stdcall external functions expect a ushort count of args.
+                // To support more than this we will need a new API.
+                Js::JavascriptError::ThrowTypeError(scriptContext, JSERR_ArgListTooLarge);
+            }
+
             TTDAssert(scriptContext->ShouldPerformRecordAction(), "Check either record/replay before calling!!!");
 
             TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
@@ -426,7 +442,8 @@ namespace Js
 
             BEGIN_LEAVE_SCRIPT(scriptContext)
             {
-                result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
+                // ArgCount truncation has been verified above.
+                result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, static_cast<ushort>(args.Info.Count), externalFunction->callbackState);
             }
             END_LEAVE_SCRIPT(scriptContext);
 

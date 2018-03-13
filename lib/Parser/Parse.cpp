@@ -932,21 +932,6 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
             CheckRedeclarationErrorForBlockId(pid, pnodeFnc->sxFnc.pnodeScopes->sxBlock.blockId);
         }
 
-        if ((scope->GetScopeType() == ScopeType_FunctionBody || scope->GetScopeType() == ScopeType_Parameter) && symbolType != STFunction)
-        {
-            AnalysisAssert(pnodeFnc);
-            if (pnodeFnc->sxFnc.pnodeName &&
-                pnodeFnc->sxFnc.pnodeName->nop == knopVarDecl &&
-                pnodeFnc->sxFnc.pnodeName->sxVar.pid == pid &&
-                (pnodeFnc->sxFnc.IsBodyAndParamScopeMerged() || scope->GetScopeType() == ScopeType_Parameter))
-            {
-                // Named function expression has its name hidden by a local declaration.
-                // This is important to know if we don't know whether nested deferred functions refer to it,
-                // because if the name has a non-local reference then we have to create a scope object.
-                m_currentNodeFunc->sxFnc.SetNameIsHidden();
-            }
-        }
-
         if (!sym)
         {
             const char16 *name = reinterpret_cast<const char16*>(pid->Psz());
@@ -4030,7 +4015,16 @@ ParseNodePtr Parser::ParsePostfixOperators(
         case tkStrTmplBasic:
         case tkStrTmplBegin:
             {
-                ParseNode* templateNode = ParseStringTemplateDecl<buildAST>(pnode);
+                ParseNode* templateNode = nullptr;
+                if (pnode != nullptr)
+                {
+                    AutoMarkInParsingArgs autoMarkInParsingArgs(this);
+                    templateNode = ParseStringTemplateDecl<buildAST>(pnode);
+                }
+                else
+                {
+                    templateNode = ParseStringTemplateDecl<buildAST>(pnode);
+                }
 
                 if (!buildAST)
                 {
@@ -6567,15 +6561,6 @@ bool Parser::ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, u
         *pFncNamePid = pidBase;
     }
 
-    if (fDeclaration &&
-        pnodeFncParent &&
-        pnodeFncParent->sxFnc.pnodeName &&
-        pnodeFncParent->sxFnc.pnodeName->nop == knopVarDecl &&
-        pnodeFncParent->sxFnc.pnodeName->sxVar.pid == pidBase)
-    {
-        pnodeFncParent->sxFnc.SetNameIsHidden();
-    }
-
     if (buildAST)
     {
         AnalysisAssert(pnodeFnc);
@@ -7647,7 +7632,7 @@ LPCOLESTR Parser::ConstructFinalHintNode(IdentPtr pClassName, IdentPtr pMemberNa
     }
 
     LPCOLESTR pFinalName = isComputedName? pMemberNameHint : pMemberName->Psz();
-    uint32 fullNameHintLength = 0;
+    uint32 fullNameHintLength = (uint32)wcslen(pFinalName);
     uint32 shortNameOffset = 0;
     if (!isStatic)
     {
@@ -7677,15 +7662,9 @@ LPCOLESTR Parser::ConstructFinalHintNode(IdentPtr pClassName, IdentPtr pMemberNa
         }
 
     }
-    if (fullNameHintLength > *nameLength)
-    {
-        *nameLength = fullNameHintLength;
-    }
 
-    if (shortNameOffset > *pShortNameOffset)
-    {
-        *pShortNameOffset = shortNameOffset;
-    }
+    *nameLength = fullNameHintLength;
+    *pShortNameOffset = shortNameOffset;
 
     return pFinalName;
 }
@@ -8285,6 +8264,7 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
 
             // We need to set the arg count explicitly
             pnodeStringTemplate->sxCall.argCount = stringConstantCount;
+            pnodeStringTemplate->sxCall.hasDestructuring = m_hasDestructuringPattern;
         }
     }
 
@@ -12923,6 +12903,10 @@ ParseNodePtr Parser::GetRightSideNodeFromPattern(ParseNodePtr pnode)
         if (op == knopName)
         {
             TrackAssignment<true>(pnode, nullptr);
+        }
+        else if (op == knopAsg)
+        {
+            TrackAssignment<true>(pnode->sxBin.pnode1, nullptr);
         }
     }
 

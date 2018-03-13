@@ -43,7 +43,7 @@ WCHAR* DumpCallStackFull(uint frameCount, bool print)
 
             for (uint i = 0; i < callInfo.Count; i++)
             {
-                StringCchPrintf(buffer, _countof(buffer), _u(", 0x%p"), walker.GetJavascriptArgs()[i]);
+                StringCchPrintf(buffer, _countof(buffer), _u(", 0x%p"), walker.GetJavascriptArgs(false /*boxArgs*/)[i]);
                 sb.AppendSz(buffer);
             }
             StringCchPrintf(buffer, _countof(buffer), _u(")[%s (%u, %d)]\n"), sourceFileName, line + 1, column + 1);
