@@ -64,3 +64,5 @@ JsLessThanOrEqual
 JsCreateEnhancedFunction
 
 JsSetHostPromiseRejectionTracker
+
+JsGetProxyProperties

@@ -154,6 +154,7 @@ namespace Js
         virtual RecyclableObject* ToObject(ScriptContext * requestContext) override;
         virtual Var GetTypeOfString(ScriptContext* requestContext) override;
 
+        bool IsRevoked() const;
         BOOL SetPropertyTrap(Var receiver, SetPropertyTrapKind setPropertyTrapKind, PropertyId propertyId, Var newValue, ScriptContext* requestContext, BOOL skipPrototypeCheck = FALSE);
         BOOL SetPropertyTrap(Var receiver, SetPropertyTrapKind setPropertyTrapKind, Js::JavascriptString * propertyString, Var newValue, ScriptContext* requestContext);
 
