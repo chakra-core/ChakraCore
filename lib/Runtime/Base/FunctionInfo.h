@@ -38,7 +38,8 @@ namespace Js
             EnclosedByGlobalFunc           = 0x40000,
             CanDefer                       = 0x80000,
             AllowDirectSuper               = 0x100000,
-            BaseConstructorKind            = 0x200000
+            BaseConstructorKind            = 0x200000,
+            Method                         = 0x400000 // The function is a method
         };
         FunctionInfo(JavascriptMethod entryPoint, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
         FunctionInfo(JavascriptMethod entryPoint, _no_write_barrier_tag, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
@@ -68,6 +69,7 @@ namespace Js
 
         bool IsClassConstructor() const { return ((this->attributes & ClassConstructor) != 0); }
         bool IsClassMethod() const { return ((this->attributes & ClassMethod) != 0); }
+        bool IsMethod() const { return ((this->attributes & Method) != 0); }
         bool IsModule() const { return ((this->attributes & Module) != 0); }
         bool HasSuperReference() const { return ((this->attributes & SuperReference) != 0); }
         bool CanBeDeferred() const { return ((this->attributes & CanDefer) != 0); }

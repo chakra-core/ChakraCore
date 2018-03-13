@@ -22,12 +22,9 @@ function verifyAttributes(obj, prop, attribs, name) {
 }
 
 function verifyHasRestrictedOwnProperties(obj, name) {
-    // NOTE: Results for this test method differ from other engines, but there are no regressions from previous ch behavior:
-    // NOTE: * (sm) treats sloppy-mode functions like strict-mode functions for caller/arguments
-    // NOTE: * (sm, v8, jsc) treat object-literal functions like strict-mode functions for caller/arguments
+    // NOTE: Results for this test method differ from other engines
 
-    // NOTE: object-literal functions behavior more like strict-mode functions in other engines (sm, v8, jsc)
-    // NOTE: sm additionally seems to make sloppy-mode functions behave like strict-mode functions for caller/arguments
+    // NOTE: sm seems to make sloppy-mode functions behave like strict-mode functions for caller/arguments
     assert.isTrue(obj.hasOwnProperty('caller'), name + " reports (hasOwnProperty('caller')===false)")
     assert.isTrue(obj.hasOwnProperty('arguments'), name + " reports (hasOwnProperty('arguments')===false)")
 
@@ -43,7 +40,6 @@ function verifyHasRestrictedOwnProperties(obj, name) {
     assert.areEqual(null, obj.caller, name + " says 'caller' property is null")
     assert.areEqual(null, obj.arguments, name + " says 'arguments' property is null")
 
-    // NOTE: other engines throw here for object-literal function
     assert.doesNotThrow(function() { obj.caller = 'something'; }, name + " has 'caller' property which can't be assigned to");
     assert.doesNotThrow(function() { obj.arguments = 'something'; }, name + " has 'arguments' property which  can't be assigned to");
 
@@ -51,20 +47,19 @@ function verifyHasRestrictedOwnProperties(obj, name) {
     assert.throws(function() { 'use strict'; obj.caller = 'something'; }, TypeError, name + " has 'caller' own property but it is not configurable so we will throw in strict mode", "Assignment to read-only properties is not allowed in strict mode");
     assert.throws(function() { 'use strict'; obj.arguments = 'something'; }, TypeError, name + " has 'arguments' own property but it is not configurable so we will throw in strict mode", "Assignment to read-only properties is not allowed in strict mode");
 
-    // NOTE: other engines throw for object-literal function
     assert.areEqual(null, obj.caller, name + " says 'caller' property is null")
     assert.areEqual(null, obj.arguments, name + " says 'arguments' property is null")
 
-    // NOTE: other engines fail object-literal function (sm also fails non-strict function)
+    // NOTE: sm fails non-strict function
     assert.throws(function() { Object.defineProperty(obj, 'arguments', { value: 123 }); }, TypeError, name + " has 'arguments' property as non-writable, non-configurable", "Cannot modify non-writable property 'arguments'");
     assert.throws(function() { Object.defineProperty(obj, 'caller', { value: 123 }); }, TypeError, name + " has 'caller' property as non-writable, non-configurable", "Cannot modify non-writable property 'caller'");
 
     // NOTE: other engines: the above defineProperty makes the following not fail unless the above lines are commented-out because the above do not throw and therefore actually do the defineProperty)
-    // NOTE: other engines fail object-literal function (sm also fails non-strict function)
+    // NOTE: sm fails non-strict function
     assert.isFalse(delete obj.arguments, name + " has 'arguments' property as non-configurable so delete returns false");
     assert.isFalse(delete obj.caller, name + " has 'caller' property as non-configurable so delete returns false");
 
-    // NOTE: other engines fail object-literal function (sm also fails non-strict function)
+    // NOTE: sm also fails non-strict function
     assert.throws(function() { 'use strict'; delete obj.caller; }, TypeError, name + " has 'caller' own property but it is not configurable so we will throw in strict mode", "Calling delete on 'caller' is not allowed in strict mode");
     assert.throws(function() { 'use strict'; delete obj.arguments; }, TypeError, name + " has 'arguments' own property but it is not configurable so we will throw in strict mode", "Calling delete on 'arguments' is not allowed in strict mode");
 }
@@ -369,7 +364,7 @@ var tests = [
         body: function () {
             var obj = { func() { } }
 
-            verifyHasRestrictedOwnProperties(obj.func, "Object-literal function");
+            verifyDoesNotHaveRestrictedOwnProperties(obj.func, "Object-literal function");
         }
     },
     {

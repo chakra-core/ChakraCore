@@ -2467,6 +2467,7 @@ LABEL1:
         return !(
             this->functionInfo->IsClassMethod() ||
             this->functionInfo->IsClassConstructor() ||
+            this->functionInfo->IsMethod() ||
             this->functionInfo->IsLambda() ||
             this->functionInfo->IsAsync() ||
             this->IsGeneratorFunction() ||
