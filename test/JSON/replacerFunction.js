@@ -28,7 +28,7 @@ function replacer(k, v)
     return v;
 }
 
-var until = (!WScript.Platform || WScript.Platform.BUILD_TYPE == 'Debug') ? 12 : 1290;
+var until = (WScript.Platform.BUILD_TYPE == 'Debug') ? 12 : 1290;
 for (var i = 0; i < until; i++)
 {
     a[i + 10] = 0;

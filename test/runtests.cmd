@@ -340,6 +340,8 @@ goto :main
     set _DIRS=-all
   )
 
+  set _NOTTAGS=%_NOTTAGS% -nottags:exclude_windows
+
   set _BuildArchMapped=%_BuildArch%
   set _BuildTypeMapped=%_BuildType%
 

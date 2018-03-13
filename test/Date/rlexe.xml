@@ -91,7 +91,7 @@
     <default>
       <files>formatting_xplat.js</files>
       <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>exclude_jenkins</tags>
+      <tags>exclude_jenkins,exclude_windows</tags>
     </default>
   </test>
   <test>
@@ -123,7 +123,7 @@
   <test>
     <default>
       <files>xplatInterval.js</files>
-      <tags>Slow</tags>
+      <tags>Slow,exclude_windows</tags>
     </default>
   </test>
   <test>

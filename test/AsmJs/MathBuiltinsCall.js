@@ -220,8 +220,7 @@ for (var i=0; i<all.length; ++i) {
 
     if ((i == 11 || i == 41 || i == 54) && all[i] == 10) {
         // f3 => atan(f->1.47....) OSX != Windows / Linux
-        if (WScript.Platform && WScript.Platform.OS == "darwin")
-        {
+        if (WScript.Platform.OS == "darwin") {
             assert.areEqual(asmModule.f3(all[i]), 1.4711276743037344);
         } else {
             assert.areEqual(asmModule.f3(all[i]), 1.4711276743037347);

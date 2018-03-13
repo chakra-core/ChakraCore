@@ -49,8 +49,7 @@ function Test()
     d = new Date(1974, 9, 24, 0, 20, 30, 40); if (!CHECK(d.toISOString())) return;
     d = new Date(1974, 9, 24, 0, 20, 30, 40, 50); if (!CHECK(d.toISOString())) return;
 
-    if (!WScript.Platform || WScript.Platform.OS == "win32")
-    {
+    if (WScript.Platform.OS == "win32") {
         d = new Date(2000, -1200001); if (!CHECK(d.toISOString())) return; // Make sure there is no AV for negative month (WOOB 1140748).
     } else {
         index++; // xplat DST info for BC doesn't match to Windows.
