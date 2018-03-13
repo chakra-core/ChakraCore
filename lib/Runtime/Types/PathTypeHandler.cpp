@@ -2012,6 +2012,11 @@ namespace Js
             }
 #endif
 
+            if (key.GetPropertyId() == PropertyIds::constructor)
+            {
+                nextPath->isNotPathTypeHandlerOrHasUserDefinedCtor = true;
+            }
+
 #ifdef PROFILE_TYPES
             scriptContext->maxPathLength = max(GetPathLength() + 1, scriptContext->maxPathLength);
 #endif
@@ -2241,10 +2246,6 @@ namespace Js
 
         Assert(instance->GetTypeHandler()->IsPathTypeHandler());
         PathTypeHandlerBase* newTypeHandler = (PathTypeHandlerBase*)newType->GetTypeHandler();
-        if (propertyId == PropertyIds::constructor)
-        {
-            newTypeHandler->isNotPathTypeHandlerOrHasUserDefinedCtor = true;
-        }
 
         Assert(newType->GetIsShared() == newTypeHandler->GetIsShared());
 

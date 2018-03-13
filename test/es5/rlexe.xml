@@ -34,13 +34,11 @@
   <test>
     <default>
       <files>array_map.js</files>
-      <baseline>array_map.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>array_filter.js</files>
-      <baseline>array_filter.baseline</baseline>
     </default>
   </test>
   <test>
