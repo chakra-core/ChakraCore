@@ -257,7 +257,7 @@
   <test>
     <default>
       <files>simpletypehandler-property-deletion.js</files>
-      <compile-flags>-ES6FunctionName -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

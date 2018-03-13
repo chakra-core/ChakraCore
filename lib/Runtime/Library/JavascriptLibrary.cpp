@@ -495,24 +495,11 @@ namespace Js
 
         anonymousFunctionTypeHandler = NullTypeHandler<false>::GetDefaultInstance();
         anonymousFunctionWithPrototypeTypeHandler = &SharedFunctionWithPrototypeTypeHandlerV11;
-        //  Initialize function types
-        if (config->IsES6FunctionNameEnabled())
-        {
-            functionTypeHandler = &SharedFunctionWithoutPrototypeTypeHandler;
-        }
-        else
-        {
-            functionTypeHandler = anonymousFunctionTypeHandler;
-        }
 
-        if (config->IsES6FunctionNameEnabled())
-        {
-            functionWithPrototypeTypeHandler = &SharedFunctionWithPrototypeTypeHandler;
-        }
-        else
-        {
-            functionWithPrototypeTypeHandler = anonymousFunctionWithPrototypeTypeHandler;
-        }
+        //  Initialize function types
+
+        functionTypeHandler = &SharedFunctionWithoutPrototypeTypeHandler;
+        functionWithPrototypeTypeHandler = &SharedFunctionWithPrototypeTypeHandler;
         functionWithPrototypeTypeHandler->SetHasKnownSlot0();
 
         externalFunctionWithDeferredPrototypeType = CreateDeferredPrototypeFunctionTypeNoProfileThunk(JavascriptExternalFunction::ExternalFunctionThunk, true /*isShared*/);
@@ -526,16 +513,8 @@ namespace Js
         defaultExternalConstructorFunctionWithDeferredPrototypeType = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, JavascriptExternalFunction::DefaultExternalFunctionThunk,
             Js::DeferredTypeHandler<Js::JavascriptExternalFunction::DeferredConstructorInitializer>::GetDefaultInstance(), true, true);
 
-        if (config->IsES6FunctionNameEnabled())
-        {
-            boundFunctionType = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, BoundFunction::NewInstance,
-                GetDeferredFunctionTypeHandler(), true, true);
-        }
-        else
-        {
-            boundFunctionType = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, BoundFunction::NewInstance,
-                PathTypeHandlerNoAttr::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-        }
+        boundFunctionType = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, BoundFunction::NewInstance,
+            GetDeferredFunctionTypeHandler(), true, true);
         crossSiteDeferredPrototypeFunctionType = CreateDeferredPrototypeFunctionTypeNoProfileThunk(
             scriptContext->CurrentCrossSiteThunk, true /*isShared*/);
         crossSiteIdMappedFunctionWithPrototypeType = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, scriptContext->CurrentCrossSiteThunk,
@@ -660,7 +639,7 @@ namespace Js
         typeHandler->Convert(function, isAnonymousFunction ? javascriptLibrary->anonymousFunctionWithPrototypeTypeHandler : javascriptLibrary->functionWithPrototypeTypeHandler);
         function->SetPropertyWithAttributes(PropertyIds::prototype, javascriptLibrary->CreateGeneratorConstructorPrototypeObject(), PropertyWritable, nullptr);
 
-        if (function->GetScriptContext()->GetConfig()->IsES6FunctionNameEnabled() && !isAnonymousFunction)
+        if (!isAnonymousFunction)
         {
             JavascriptString * functionName = nullptr;
             DebugOnly(bool status = ) ((Js::JavascriptFunction*)function)->GetFunctionName(&functionName);
@@ -676,7 +655,7 @@ namespace Js
         // Async function instances do not have a prototype property as they are not constructable
         typeHandler->Convert(function, mode, 1);
 
-        if (function->GetScriptContext()->GetConfig()->IsES6FunctionNameEnabled() && !JavascriptAsyncFunction::FromVar(function)->IsAnonymousFunction())
+        if (!JavascriptAsyncFunction::FromVar(function)->IsAnonymousFunction())
         {
             JavascriptString * functionName = nullptr;
             DebugOnly(bool status = ) ((Js::JavascriptFunction*)function)->GetFunctionName(&functionName);
@@ -726,18 +705,14 @@ namespace Js
             }
         }
 
-        ScriptContext *scriptContext = function->GetScriptContext();
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
+        if(scriptFunction && (useAnonymous || scriptFunction->GetFunctionProxy()->EnsureDeserialized()->GetIsStaticNameFunction()))
         {
-            if(scriptFunction && (useAnonymous || scriptFunction->GetFunctionProxy()->EnsureDeserialized()->GetIsStaticNameFunction()))
-            {
-                return true;
-            }
-            JavascriptString * functionName = nullptr;
-            if (((Js::JavascriptFunction*)function)->GetFunctionName(&functionName))
-            {
-                function->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
-            }
+            return true;
+        }
+        JavascriptString * functionName = nullptr;
+        if (((Js::JavascriptFunction*)function)->GetFunctionName(&functionName))
+        {
+            function->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
         }
 
         return true;
@@ -832,26 +807,12 @@ namespace Js
 
     DynamicTypeHandler * JavascriptLibrary::GetDeferredPrototypeGeneratorFunctionTypeHandler(ScriptContext* scriptContext)
     {
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            return JavascriptLibrary::GetDeferredGeneratorFunctionTypeHandlerBase</*isNameAvailable*/ true>();
-        }
-        else
-        {
-            return JavascriptLibrary::GetDeferredGeneratorFunctionTypeHandlerBase</*isNameAvailable*/ false>();
-        }
+        return JavascriptLibrary::GetDeferredGeneratorFunctionTypeHandlerBase</*isNameAvailable*/ true>();
     }
 
     DynamicTypeHandler * JavascriptLibrary::GetDeferredPrototypeAsyncFunctionTypeHandler(ScriptContext* scriptContext)
     {
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            return JavascriptLibrary::GetDeferredAsyncFunctionTypeHandlerBase</*isNameAvailable*/ true>();
-        }
-        else
-        {
-            return JavascriptLibrary::GetDeferredAsyncFunctionTypeHandlerBase</*isNameAvailable*/ false>();
-        }
+        return JavascriptLibrary::GetDeferredAsyncFunctionTypeHandlerBase</*isNameAvailable*/ true>();
     }
 
     DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousPrototypeFunctionTypeHandler()
@@ -861,26 +822,12 @@ namespace Js
 
     DynamicTypeHandler * JavascriptLibrary::GetDeferredPrototypeFunctionTypeHandler(ScriptContext* scriptContext)
     {
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            return JavascriptLibrary::GetDeferredFunctionTypeHandlerBase</* isNameAvailable */ true>();
-        }
-        else
-        {
-            return JavascriptLibrary::GetDeferredFunctionTypeHandlerBase</* isNameAvailable */ false>();
-        }
+        return JavascriptLibrary::GetDeferredFunctionTypeHandlerBase</* isNameAvailable */ true>();
     }
 
     DynamicTypeHandler * JavascriptLibrary::GetDeferredPrototypeFunctionWithLengthTypeHandler(ScriptContext* scriptContext)
     {
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            return DeferredTypeHandler<Js::JavascriptExternalFunction::DeferredLengthInitializer, InitializeFunctionDeferredTypeHandlerFilter</* isNameAvailable */ true, /* isPrototypeAvailable */ true, /* isLengthAvailable */ true>>::GetDefaultInstance();
-        }
-        else
-        {
-            return DeferredTypeHandler<Js::JavascriptExternalFunction::DeferredLengthInitializer, InitializeFunctionDeferredTypeHandlerFilter</* isNameAvailable */ false, /* isPrototypeAvailable */ true, /* isLengthAvailable */ true>>::GetDefaultInstance();
-        }
+        return DeferredTypeHandler<Js::JavascriptExternalFunction::DeferredLengthInitializer, InitializeFunctionDeferredTypeHandlerFilter</* isNameAvailable */ true, /* isPrototypeAvailable */ true, /* isLengthAvailable */ true>>::GetDefaultInstance();
     }
 
     DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousFunctionTypeHandler()
@@ -890,11 +837,7 @@ namespace Js
 
     DynamicTypeHandler * JavascriptLibrary::GetDeferredFunctionTypeHandler()
     {
-        if (this->GetScriptContext()->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            return GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ true, /*isPrototypeAvailable*/ false>();
-        }
-        return functionTypeHandler;
+        return GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ true, /*isPrototypeAvailable*/ false>();
     }
 
     DynamicTypeHandler * JavascriptLibrary::ScriptFunctionTypeHandler(bool noPrototypeProperty, bool isAnonymousFunction)
@@ -1545,11 +1488,7 @@ namespace Js
         library->AddMember(arrayConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(arrayConstructor, PropertyIds::prototype, scriptContext->GetLibrary()->arrayPrototype, PropertyNone);
         library->AddSpeciesAccessorsToLibraryObject(arrayConstructor, &JavascriptArray::EntryInfo::GetterSymbolSpecies);
-
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(arrayConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Array), PropertyConfigurable);
-        }
+        library->AddMember(arrayConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Array), PropertyConfigurable);
 
 #ifdef ENABLE_JS_BUILTINS
         builtinFuncs[BuiltinFunction::JavascriptArray_IsArray] = library->isArrayFunction;
@@ -1778,11 +1717,7 @@ namespace Js
         library->AddMember(sharedArrayBufferConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(sharedArrayBufferConstructor, PropertyIds::prototype, scriptContext->GetLibrary()->sharedArrayBufferPrototype, PropertyNone);
         library->AddSpeciesAccessorsToLibraryObject(sharedArrayBufferConstructor, &SharedArrayBuffer::EntryInfo::GetterSymbolSpecies);
-
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(sharedArrayBufferConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::SharedArrayBuffer), PropertyConfigurable);
-        }
+        library->AddMember(sharedArrayBufferConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::SharedArrayBuffer), PropertyConfigurable);
 
         sharedArrayBufferConstructor->SetHasNoEnumerableProperties(true);
 
@@ -1847,11 +1782,8 @@ namespace Js
         library->AddMember(arrayBufferConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(arrayBufferConstructor, PropertyIds::prototype, scriptContext->GetLibrary()->arrayBufferPrototype, PropertyNone);
         library->AddSpeciesAccessorsToLibraryObject(arrayBufferConstructor, &ArrayBuffer::EntryInfo::GetterSymbolSpecies);
+        library->AddMember(arrayBufferConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::ArrayBuffer), PropertyConfigurable);
 
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(arrayBufferConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::ArrayBuffer), PropertyConfigurable);
-        }
         library->AddFunctionToLibraryObject(arrayBufferConstructor, PropertyIds::isView, &ArrayBuffer::EntryInfo::IsView, 1);
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
@@ -1891,10 +1823,8 @@ namespace Js
         JavascriptLibrary* library = dataViewConstructor->GetLibrary();
         library->AddMember(dataViewConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(3), PropertyConfigurable);
         library->AddMember(dataViewConstructor, PropertyIds::prototype, scriptContext->GetLibrary()->dataViewPrototype, PropertyNone);
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(dataViewConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::DataView), PropertyConfigurable);
-        }
+        library->AddMember(dataViewConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::DataView), PropertyConfigurable);
+
         dataViewConstructor->SetHasNoEnumerableProperties(true);
 
         return true;
@@ -1942,14 +1872,10 @@ namespace Js
     {
         typeHandler->Convert(typedArrayConstructor, mode, 5);
 
-        ScriptContext* scriptContext = typedArrayConstructor->GetScriptContext();
         JavascriptLibrary* library = typedArrayConstructor->GetLibrary();
 
         library->AddMember(typedArrayConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(3), PropertyConfigurable);
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(typedArrayConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("TypedArray")), PropertyConfigurable);
-        }
+        library->AddMember(typedArrayConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("TypedArray")), PropertyConfigurable);
         library->AddMember(typedArrayConstructor, PropertyIds::prototype, library->typedArrayPrototype, PropertyNone);
 
         library->AddFunctionToLibraryObject(typedArrayConstructor, PropertyIds::from, &TypedArrayBase::EntryInfo::From, 1);
@@ -2044,10 +1970,7 @@ namespace Js
         ScriptContext* scriptContext = typedArrayConstructor->GetScriptContext(); \
         JavascriptLibrary* library = typedArrayConstructor->GetLibrary(); \
         library->AddMember(typedArrayConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(3), PropertyConfigurable); \
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled()) \
-        { \
-            library->AddMember(typedArrayConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u(#typedArray)), PropertyConfigurable); \
-        } \
+        library->AddMember(typedArrayConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u(#typedArray)), PropertyConfigurable); \
         library->AddMember(typedArrayConstructor, PropertyIds::BYTES_PER_ELEMENT, TaggedInt::ToVarUnchecked(sizeof(TypeName)), PropertyNone); \
         library->AddMember(typedArrayConstructor, PropertyIds::prototype, scriptContext->GetLibrary()->##typedarrayPrototype##, PropertyNone); \
         typedArrayConstructor->SetHasNoEnumerableProperties(true); \
@@ -2111,11 +2034,8 @@ namespace Js
 
         library->AddMember(constructor, PropertyIds::prototype, library->errorPrototype, PropertyNone);
         library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
+        library->AddMember(constructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Error), PropertyConfigurable);
 
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(constructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Error), PropertyConfigurable);
-        }
         if (scriptContext->GetConfig()->IsErrorStackTraceEnabled())
         {
             library->AddMember(constructor, PropertyIds::stackTraceLimit, JavascriptNumber::ToVar(JavascriptExceptionOperators::DefaultStackTraceLimit, scriptContext), PropertyConfigurable | PropertyWritable | PropertyEnumerable);
@@ -2150,15 +2070,11 @@ namespace Js
     bool JavascriptLibrary::Initialize##error##Constructor(DynamicObject* constructor, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode) \
     { \
         typeHandler->Convert(constructor, mode, 3); \
-        ScriptContext* scriptContext = constructor->GetScriptContext(); \
         JavascriptLibrary* library = constructor->GetLibrary(); \
         library->AddMember(constructor, PropertyIds::prototype, library->Get##error##Prototype(), PropertyNone); \
         library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable); \
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled()) \
-        { \
-            PropertyAttributes prototypeNameMessageAttributes = PropertyConfigurable; \
-            library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u(#errorName)), prototypeNameMessageAttributes); \
-        } \
+        PropertyAttributes prototypeNameMessageAttributes = PropertyConfigurable; \
+        library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u(#errorName)), prototypeNameMessageAttributes); \
         constructor->SetHasNoEnumerableProperties(true); \
         return true; \
     } \
@@ -2198,10 +2114,7 @@ namespace Js
         JavascriptLibrary* library = booleanConstructor->GetLibrary();
         library->AddMember(booleanConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(booleanConstructor, PropertyIds::prototype, library->booleanPrototype, PropertyNone);
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(booleanConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Boolean), PropertyConfigurable);
-        }
+        library->AddMember(booleanConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Boolean), PropertyConfigurable);
 
         booleanConstructor->SetHasNoEnumerableProperties(true);
 
@@ -2234,10 +2147,7 @@ namespace Js
         ScriptContext* scriptContext = symbolConstructor->GetScriptContext();
         library->AddMember(symbolConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable);
         library->AddMember(symbolConstructor, PropertyIds::prototype, library->symbolPrototype, PropertyNone);
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(symbolConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Symbol), PropertyConfigurable);
-        }
+        library->AddMember(symbolConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Symbol), PropertyConfigurable);
         if (scriptContext->GetConfig()->IsES6HasInstanceEnabled())
         {
             library->AddMember(symbolConstructor, PropertyIds::hasInstance, library->GetSymbolHasInstance(), PropertyNone);
@@ -2320,11 +2230,7 @@ namespace Js
         library->AddMember(promiseConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(promiseConstructor, PropertyIds::prototype, library->promisePrototype, PropertyNone);
         library->AddSpeciesAccessorsToLibraryObject(promiseConstructor, &JavascriptPromise::EntryInfo::GetterSymbolSpecies);
-
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(promiseConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Promise), PropertyConfigurable);
-        }
+        library->AddMember(promiseConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Promise), PropertyConfigurable);
 
         library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::all, &JavascriptPromise::EntryInfo::All, 1);
         library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::race, &JavascriptPromise::EntryInfo::Race, 1);
@@ -2386,13 +2292,11 @@ namespace Js
     {
         typeHandler->Convert(generatorFunctionConstructor, mode, 3);
         JavascriptLibrary* library = generatorFunctionConstructor->GetLibrary();
-        ScriptContext* scriptContext = generatorFunctionConstructor->GetScriptContext();
+
         library->AddMember(generatorFunctionConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(generatorFunctionConstructor, PropertyIds::prototype, library->generatorFunctionPrototype, PropertyNone);
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(generatorFunctionConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("GeneratorFunction")), PropertyConfigurable);
-        }
+        library->AddMember(generatorFunctionConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("GeneratorFunction")), PropertyConfigurable);
+
         generatorFunctionConstructor->SetHasNoEnumerableProperties(true);
 
         return true;
@@ -2467,13 +2371,11 @@ namespace Js
     {
         typeHandler->Convert(asyncFunctionConstructor, mode, 3);
         JavascriptLibrary* library = asyncFunctionConstructor->GetLibrary();
-        ScriptContext* scriptContext = asyncFunctionConstructor->GetScriptContext();
+
         library->AddMember(asyncFunctionConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(asyncFunctionConstructor, PropertyIds::prototype, library->asyncFunctionPrototype, PropertyNone);
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(asyncFunctionConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("AsyncFunction")), PropertyConfigurable);
-        }
+        library->AddMember(asyncFunctionConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("AsyncFunction")), PropertyConfigurable);
+
         asyncFunctionConstructor->SetHasNoEnumerableProperties(true);
 
         return true;
@@ -2503,10 +2405,8 @@ namespace Js
         JavascriptLibrary* library = proxyConstructor->GetLibrary();
         ScriptContext* scriptContext = proxyConstructor->GetScriptContext();
         library->AddMember(proxyConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(2), PropertyConfigurable);
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(proxyConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Proxy), PropertyConfigurable);
-        }
+        library->AddMember(proxyConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Proxy), PropertyConfigurable);
+
         library->AddFunctionToLibraryObject(proxyConstructor, PropertyIds::revocable, &JavascriptProxy::EntryInfo::Revocable, 2, PropertyConfigurable);
 
         proxyConstructor->SetHasNoEnumerableProperties(true);
@@ -2536,10 +2436,8 @@ namespace Js
         ScriptContext* scriptContext = dateConstructor->GetScriptContext();
         library->AddMember(dateConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(7), PropertyConfigurable);
         library->AddMember(dateConstructor, PropertyIds::prototype, library->datePrototype, PropertyNone);
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(dateConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Date), PropertyConfigurable);
-        }
+        library->AddMember(dateConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Date), PropertyConfigurable);
+
         library->AddFunctionToLibraryObject(dateConstructor, PropertyIds::parse, &JavascriptDate::EntryInfo::Parse, 1); // should be static
         library->AddFunctionToLibraryObject(dateConstructor, PropertyIds::now, &JavascriptDate::EntryInfo::Now, 0);     // should be static
         library->AddFunctionToLibraryObject(dateConstructor, PropertyIds::UTC, &JavascriptDate::EntryInfo::UTC, 7);     // should be static
@@ -2679,10 +2577,8 @@ namespace Js
         JavascriptLibrary* library = functionConstructor->GetLibrary();
         library->AddMember(functionConstructor, PropertyIds::prototype, library->functionPrototype, PropertyNone);
         library->AddMember(functionConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(functionConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Function), PropertyConfigurable);
-        }
+        library->AddMember(functionConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Function), PropertyConfigurable);
+
         functionConstructor->SetHasNoEnumerableProperties(true);
 
 #ifdef ALLOW_JIT_REPRO
@@ -2706,11 +2602,7 @@ namespace Js
 
         library->AddMember(functionPrototype, PropertyIds::constructor, library->functionConstructor);
         library->AddMember(functionPrototype, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable);
-
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(functionPrototype, PropertyIds::name, LiteralString::CreateEmptyString(scriptContext->GetLibrary()->GetStringTypeStatic()), PropertyConfigurable);
-        }
+        library->AddMember(functionPrototype, PropertyIds::name, LiteralString::CreateEmptyString(scriptContext->GetLibrary()->GetStringTypeStatic()), PropertyConfigurable);
 
         JavascriptFunction *func = library->AddFunctionToLibraryObject(functionPrototype, PropertyIds::apply, &JavascriptFunction::EntryInfo::Apply, 2);
         builtinFuncs[BuiltinFunction::JavascriptFunction_Apply] = func;
@@ -2878,13 +2770,11 @@ namespace Js
     {
         typeHandler->Convert(constructor, mode, 3);
         JavascriptLibrary* library = constructor->GetLibrary();
-        ScriptContext* scriptContext = constructor->GetScriptContext();
+
         library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(constructor, PropertyIds::prototype, library->webAssemblyTablePrototype, PropertyNone);
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("Table")), PropertyConfigurable);
-        }
+        library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("Table")), PropertyConfigurable);
+
         constructor->SetHasNoEnumerableProperties(true);
 
         return true;
@@ -2916,13 +2806,11 @@ namespace Js
     {
         typeHandler->Convert(constructor, mode, 3);
         JavascriptLibrary* library = constructor->GetLibrary();
-        ScriptContext* scriptContext = constructor->GetScriptContext();
+
         library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(constructor, PropertyIds::prototype, library->webAssemblyMemoryPrototype, PropertyNone);
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("Memory")), PropertyConfigurable);
-        }
+        library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("Memory")), PropertyConfigurable);
+
         constructor->SetHasNoEnumerableProperties(true);
 
         return true;
@@ -2950,13 +2838,11 @@ namespace Js
     {
         typeHandler->Convert(constructor, mode, 3);
         JavascriptLibrary* library = constructor->GetLibrary();
-        ScriptContext* scriptContext = constructor->GetScriptContext();
+
         library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(constructor, PropertyIds::prototype, library->webAssemblyInstancePrototype, PropertyNone);
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("Instance")), PropertyConfigurable);
-        }
+        library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("Instance")), PropertyConfigurable);
+
         constructor->SetHasNoEnumerableProperties(true);
 
         return true;
@@ -2983,18 +2869,15 @@ namespace Js
     {
         typeHandler->Convert(constructor, mode, 5);
         JavascriptLibrary* library = constructor->GetLibrary();
-        ScriptContext* scriptContext = constructor->GetScriptContext();
+
         library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(constructor, PropertyIds::prototype, library->webAssemblyModulePrototype, PropertyNone);
+        library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("Module")), PropertyConfigurable);
 
         library->AddFunctionToLibraryObject(constructor, PropertyIds::exports, &WebAssemblyModule::EntryInfo::Exports, 1);
         library->AddFunctionToLibraryObject(constructor, PropertyIds::imports, &WebAssemblyModule::EntryInfo::Imports, 1);
         library->AddFunctionToLibraryObject(constructor, PropertyIds::customSections, &WebAssemblyModule::EntryInfo::CustomSections, 2);
 
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("Module")), PropertyConfigurable);
-        }
         constructor->SetHasNoEnumerableProperties(true);
 
         return true;
@@ -3035,11 +2918,7 @@ namespace Js
         library->AddFunction(webAssemblyObject, PropertyIds::Memory, library->webAssemblyMemoryConstructor);
         library->AddFunction(webAssemblyObject, PropertyIds::Table, library->webAssemblyTableConstructor);
 
-        ScriptContext* scriptContext = webAssemblyObject->GetScriptContext();
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(webAssemblyObject, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("WebAssembly")), PropertyConfigurable);
-        }
+        library->AddMember(webAssemblyObject, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("WebAssembly")), PropertyConfigurable);
 
         return true;
     }
@@ -3564,10 +3443,7 @@ namespace Js
         JavascriptLibrary* library = numberConstructor->GetLibrary();
         library->AddMember(numberConstructor, PropertyIds::length,            TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(numberConstructor, PropertyIds::prototype,         library->numberPrototype,     PropertyNone);
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(numberConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Number), PropertyConfigurable);
-        }
+        library->AddMember(numberConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Number), PropertyConfigurable);
         library->AddMember(numberConstructor, PropertyIds::MAX_VALUE,         library->maxValue,            PropertyNone);
         library->AddMember(numberConstructor, PropertyIds::MIN_VALUE,         library->minValue,            PropertyNone);
         library->AddMember(numberConstructor, PropertyIds::NaN,               library->nan,                 PropertyNone);
@@ -3650,10 +3526,7 @@ namespace Js
 
         library->AddMember(objectConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(objectConstructor, PropertyIds::prototype, library->objectPrototype, PropertyNone);
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(objectConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Object), PropertyConfigurable);
-        }
+        library->AddMember(objectConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Object), PropertyConfigurable);
 
         scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::DefineProperty.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::defineProperty, &JavascriptObject::EntryInfo::DefineProperty, 3));
@@ -3768,11 +3641,7 @@ namespace Js
         library->AddMember(regexConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(2), PropertyConfigurable);
         library->AddMember(regexConstructor, PropertyIds::prototype, library->regexPrototype, PropertyNone);
         library->AddSpeciesAccessorsToLibraryObject(regexConstructor, &JavascriptRegExp::EntryInfo::GetterSymbolSpecies);
-
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(regexConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::RegExp), PropertyConfigurable);
-        }
+        library->AddMember(regexConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::RegExp), PropertyConfigurable);
 
         regexConstructor->SetHasNoEnumerableProperties(true);
 
@@ -3887,12 +3756,7 @@ namespace Js
         Field(JavascriptFunction*)* builtinFuncs = library->GetBuiltinFunctions();
         library->AddMember(stringConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(stringConstructor, PropertyIds::prototype, library->stringPrototype, PropertyNone);
-
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(stringConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::String), PropertyConfigurable);
-        }
-
+        library->AddMember(stringConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::String), PropertyConfigurable);
 
         builtinFuncs[BuiltinFunction::JavascriptString_FromCharCode]  = library->AddFunctionToLibraryObject(stringConstructor, PropertyIds::fromCharCode,  &JavascriptString::EntryInfo::FromCharCode,  1);
         if(scriptContext->GetConfig()->IsES6UnicodeExtensionsEnabled())
@@ -3997,11 +3861,7 @@ namespace Js
         library->AddMember(mapConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable);
         library->AddMember(mapConstructor, PropertyIds::prototype, library->mapPrototype, PropertyNone);
         library->AddSpeciesAccessorsToLibraryObject(mapConstructor, &JavascriptMap::EntryInfo::GetterSymbolSpecies);
-
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(mapConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Map), PropertyConfigurable);
-        }
+        library->AddMember(mapConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Map), PropertyConfigurable);
 
         mapConstructor->SetHasNoEnumerableProperties(true);
 
@@ -4053,10 +3913,7 @@ namespace Js
         library->AddMember(setConstructor, PropertyIds::prototype, library->setPrototype, PropertyNone);
         library->AddSpeciesAccessorsToLibraryObject(setConstructor, &JavascriptSet::EntryInfo::GetterSymbolSpecies);
 
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(setConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Set), PropertyConfigurable);
-        }
+        library->AddMember(setConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Set), PropertyConfigurable);
 
         setConstructor->SetHasNoEnumerableProperties(true);
 
@@ -4105,10 +3962,7 @@ namespace Js
         ScriptContext* scriptContext = weakMapConstructor->GetScriptContext();
         library->AddMember(weakMapConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable);
         library->AddMember(weakMapConstructor, PropertyIds::prototype, library->weakMapPrototype, PropertyNone);
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(weakMapConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::WeakMap), PropertyConfigurable);
-        }
+        library->AddMember(weakMapConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::WeakMap), PropertyConfigurable);
 
         weakMapConstructor->SetHasNoEnumerableProperties(true);
 
@@ -4148,10 +4002,7 @@ namespace Js
         ScriptContext* scriptContext = weakSetConstructor->GetScriptContext();
         library->AddMember(weakSetConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable);
         library->AddMember(weakSetConstructor, PropertyIds::prototype, library->weakSetPrototype, PropertyNone);
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            library->AddMember(weakSetConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::WeakSet), PropertyConfigurable);
-        }
+        library->AddMember(weakSetConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::WeakSet), PropertyConfigurable);
 
         weakSetConstructor->SetHasNoEnumerableProperties(true);
 
@@ -4315,13 +4166,10 @@ namespace Js
         Assert(!function->IsWritable(Js::PropertyIds::prototype));
         function->SetPropertyWithAttributes(Js::PropertyIds::prototype, objPrototype, PropertyNone, nullptr);
 
-        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            JavascriptString * functionName = nullptr;
-            DebugOnly(bool status =) function->GetFunctionName(&functionName);
-            AssertMsg(status,"CreateExternalConstructor sets the functionNameId, status should always be true");
-            function->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
-        }
+        JavascriptString * functionName = nullptr;
+        DebugOnly(bool status =) function->GetFunctionName(&functionName);
+        AssertMsg(status,"CreateExternalConstructor sets the functionNameId, status should always be true");
+        function->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
 
         return function;
     }
@@ -4390,9 +4238,7 @@ namespace Js
         if (nullptr == functionType)
         {
             functionType = (nullptr == prototype) ?
-                                scriptContext->GetConfig()->IsES6FunctionNameEnabled() ?
-                                    CreateFunctionWithLengthAndNameType(functionInfo) :
-                                    CreateFunctionWithLengthType(functionInfo) :
+                                CreateFunctionWithLengthAndNameType(functionInfo) :
                                 CreateFunctionWithLengthAndPrototypeType(functionInfo);
         }
 
@@ -4406,13 +4252,11 @@ namespace Js
 
         function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(length), PropertyConfigurable, nullptr);
         function->SetFunctionNameId(nameId);
-        if (function->GetScriptContext()->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            JavascriptString * functionName = nullptr;
-            DebugOnly(bool status = ) function->GetFunctionName(&functionName);
-            AssertMsg(status, "DefaultCreateFunction sets the functionNameId, status should always be true");
-            function->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
-        }
+
+        JavascriptString * functionName = nullptr;
+        DebugOnly(bool status = ) function->GetFunctionName(&functionName);
+        AssertMsg(status, "DefaultCreateFunction sets the functionNameId, status should always be true");
+        function->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
 
 #ifdef HEAP_ENUMERATION_VALIDATION
         if (prototype) prototype->SetHeapEnumValidationCookie(HEAP_ENUMERATION_LIBRARY_OBJECT_COOKIE);

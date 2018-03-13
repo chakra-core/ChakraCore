@@ -4717,20 +4717,11 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
 
                 if (CONFIG_FLAG(UseFullName) && buildAST && pnodeArg->AsParseNodeBin()->pnode2->nop == knopFncDecl)
                 {
-                    if (m_scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-                    {
-                        // displays as "get object.funcname" or "set object.funcname"
-                        uint32 getOrSetOffset = 0;
-                        LPCOLESTR intermediateHint = AppendNameHints(pNameHint, pNameGetOrSet, &fullNameHintLength, &shortNameOffset);
-                        pFullNameHint = AppendNameHints(pidHint, intermediateHint, &fullNameHintLength, &getOrSetOffset, true);
-                        shortNameOffset += getOrSetOffset;
-                    }
-                    else
-                    {
-                        // displays as "object.funcname.get" or "object.funcname.set"
-                        LPCOLESTR intermediateHint = AppendNameHints(pNameGetOrSet, pidHint, &fullNameHintLength, &shortNameOffset);
-                        pFullNameHint = AppendNameHints(pNameHint, intermediateHint, &fullNameHintLength, &shortNameOffset);
-                    }
+                    // displays as "get object.funcname" or "set object.funcname"
+                    uint32 getOrSetOffset = 0;
+                    LPCOLESTR intermediateHint = AppendNameHints(pNameHint, pNameGetOrSet, &fullNameHintLength, &shortNameOffset);
+                    pFullNameHint = AppendNameHints(pidHint, intermediateHint, &fullNameHintLength, &getOrSetOffset, true);
+                    shortNameOffset += getOrSetOffset;
                 }
             }
             else if ((m_token.tk == tkRCurly || m_token.tk == tkComma || m_token.tk == tkAsg) && m_scriptContext->GetConfig()->IsES6ObjectLiteralsEnabled())
@@ -7556,18 +7547,10 @@ LPCOLESTR Parser::ConstructFinalHintNode(IdentPtr pClassName, IdentPtr pMemberNa
 
     if (pGetSet)
     {
-        if (m_scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            // displays as get/set prototype.funcname
-            uint32 getSetOffset = 0;
-            pFinalName = AppendNameHints(pGetSet, pFinalName, &fullNameHintLength, &getSetOffset, true);
-            shortNameOffset += getSetOffset;
-        }
-        else
-        {
-            pFinalName = AppendNameHints(pFinalName, pGetSet, &fullNameHintLength, &shortNameOffset);
-        }
-
+        // displays as get/set prototype.funcname
+        uint32 getSetOffset = 0;
+        pFinalName = AppendNameHints(pGetSet, pFinalName, &fullNameHintLength, &getSetOffset, true);
+        shortNameOffset += getSetOffset;
     }
     if (fullNameHintLength > *nameLength)
     {

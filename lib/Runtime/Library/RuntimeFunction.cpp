@@ -31,7 +31,7 @@ namespace Js
         {
             if (TaggedInt::Is(this->functionNameId))
             {
-                if (scriptContext->GetConfig()->IsES6FunctionNameEnabled() && this->GetTypeHandler()->IsDeferredTypeHandler())
+                if (this->GetTypeHandler()->IsDeferredTypeHandler())
                 {
                     JavascriptString* functionName = nullptr;
                     DebugOnly(bool status = ) this->GetFunctionName(&functionName);

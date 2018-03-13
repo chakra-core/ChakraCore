@@ -286,10 +286,7 @@ namespace Js
         Assert(scriptFunction->HasFunctionBody());
         scriptFunction->GetFunctionBody()->SetJsBuiltInForceInline();
 
-        if (scriptFunction->GetScriptContext()->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            scriptFunction->SetPropertyWithAttributes(PropertyIds::name, methodName, PropertyConfigurable, nullptr);
-        }
+        scriptFunction->SetPropertyWithAttributes(PropertyIds::name, methodName, PropertyConfigurable, nullptr);
 
         library->AddMember(chakraLibraryObject, functionIdentifier, scriptFunction);
 
@@ -353,10 +350,7 @@ namespace Js
         scriptFunction->SetConfigurable(PropertyIds::prototype, true);
         scriptFunction->DeleteProperty(PropertyIds::prototype, Js::PropertyOperationFlags::PropertyOperation_None);
 
-        if (scriptFunction->GetScriptContext()->GetConfig()->IsES6FunctionNameEnabled())
-        {
-            scriptFunction->SetPropertyWithAttributes(PropertyIds::name, methodName, PropertyConfigurable, nullptr);
-        }
+        scriptFunction->SetPropertyWithAttributes(PropertyIds::name, methodName, PropertyConfigurable, nullptr);
 
         library->AddMember(prototype, functionIdentifier, scriptFunction);
 
