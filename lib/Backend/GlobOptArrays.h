@@ -60,6 +60,7 @@ private:
     ArrayValueInfo * baseArrayValueInfo = nullptr;
 
     bool isLikelyJsArray = false;
+    bool isLikelyVirtualTypedArray = false;
     bool doArrayChecks = false;
     bool doArraySegmentHoist = false;
     bool headSegmentIsAvailable = false;

@@ -390,7 +390,7 @@ void GlobOpt::ArraySrcOpt::CheckLoops()
     {
         const JsArrayKills loopKills(loop->jsArrayKills);
         Value *baseValueInLoopLandingPad = nullptr;
-        if ((isLikelyJsArray && loopKills.KillsValueType(newBaseValueType)) ||
+        if (((isLikelyJsArray || isLikelyVirtualTypedArray) && loopKills.KillsValueType(newBaseValueType)) ||
             !globOpt->OptIsInvariant(baseOpnd->m_sym, globOpt->currentBlock, loop, baseValue, true, true, &baseValueInLoopLandingPad) ||
             !(doArrayChecks || baseValueInLoopLandingPad->GetValueInfo()->IsObject()))
         {
@@ -1656,6 +1656,9 @@ void GlobOpt::ArraySrcOpt::Optimize()
         // Fast path is not generated in this case since the subsequent call will throw
         return;
     }
+
+    isLikelyVirtualTypedArray = baseValueType.IsLikelyOptimizedVirtualTypedArray();
+    Assert(!(isLikelyJsArray && isLikelyVirtualTypedArray));
 
     newBaseValueType = baseValueType.ToDefiniteObject();
     if (isLikelyJsArray && newBaseValueType.HasNoMissingValues() && !globOpt->DoArrayMissingValueCheckHoist())
