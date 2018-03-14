@@ -7,6 +7,7 @@
 #define CATCH_CONFIG_RUNNER
 #pragma warning(push)
 // conversion from 'int' to 'char', possible loss of data
+#pragma warning(disable:4242)
 #pragma warning(disable:4244)
 #include "catch.hpp"
 #pragma warning(pop)

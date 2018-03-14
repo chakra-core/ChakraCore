@@ -97,11 +97,11 @@ namespace Js
         }
 
         static bool             FromPhysicalFrame(InlinedFrameWalker& self, StackFrame& physicalFrame, Js::ScriptFunction *parent, bool fromBailout,
-                                                  int loopNum, const JavascriptStackWalker * const walker, bool useInternalFrameInfo, bool noAlloc, bool deepCopy);
+                                                  int loopNum, const JavascriptStackWalker * const walker, bool useInternalFrameInfo, bool noAlloc);
         void                    Close();
         bool                    Next(CallInfo& callInfo);
         size_t                  GetArgc() const;
-        Js::Var                *GetArgv(bool includeThis = true) const;
+        Js::Var                *GetArgv(bool includeThis, bool boxArgsAndDeepCopy) const;
         Js::JavascriptFunction *GetFunctionObject() const;
         void                    SetFunctionObject(Js::JavascriptFunction * function);
         Js::Var                 GetArgumentsObject() const;
@@ -113,7 +113,7 @@ namespace Js
         uint32                  GetCurrentInlineeOffset() const;
         uint32                  GetBottomMostInlineeOffset() const;
         Js::JavascriptFunction *GetBottomMostFunctionObject() const;
-        void                    FinalizeStackValues(__in_ecount(argCount) Js::Var args[], size_t argCount) const;
+        void                    FinalizeStackValues(__in_ecount(argCount) Js::Var args[], size_t argCount, bool deepCopy) const;
         int32                   GetFrameCount() { return frameCount; }
 
     private:
@@ -218,7 +218,7 @@ namespace Js
         CallInfo GetCallInfo(bool includeInlinedFrames = true) const;
         CallInfo GetCallInfoFromPhysicalFrame() const;
         bool GetThis(Var *pThis, int moduleId) const;
-        Js::Var * GetJavascriptArgs() const;
+        Js::Var * GetJavascriptArgs(bool boxArgsAndDeepCopy) const;
         void **GetCurrentArgv() const;
 
         ScriptContext* GetCurrentScriptContext() const;
@@ -310,7 +310,6 @@ namespace Js
             return previousInterpreterFrameIsFromBailout;
         }
 
-        void SetDeepCopyForArguments() { deepCopyForArgs = true; }
 #if DBG
         static bool ValidateTopJitFrame(Js::ScriptContext* scriptContext);
 #endif
@@ -335,7 +334,6 @@ namespace Js
         bool                    previousInterpreterFrameIsFromBailout : 1;
         bool                    previousInterpreterFrameIsForLoopBody : 1;
         bool                    forceFullWalk               : 1; // ignoring hasCaller
-        bool                    deepCopyForArgs             : 1; // indicates when Var's data should be deep-copied when gathering Arguments for the frame
 
         Var GetThisFromFrame() const;                   // returns 'this' object from the physical frame
         Var GetCurrentArgumentsObject() const;          // returns arguments object from the current frame, which may be virtual (belonging to an inlinee)

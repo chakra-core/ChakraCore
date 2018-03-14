@@ -33,7 +33,7 @@ namespace Js
 
         Recycler* recycler = scriptContext->GetRecycler();
 
-        Assert(string->GetLength() >= start + length);
+        AssertOrFailFast(string->GetLength() >= start + length);
         const char16 * subString = string->GetString() + start;
         void const * originalFullStringReference = string->GetOriginalStringReference();
 

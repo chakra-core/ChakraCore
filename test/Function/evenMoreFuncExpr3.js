@@ -40,5 +40,11 @@ var a = function x() {
         "use strict";
         x = 1;
     };
-}
+};
 
+(function __f_997(__v_4351 = function () {
+        WScript.Echo('pass');
+        return __f_997;
+    }()) {
+    function __f_997() {}
+})();

@@ -273,6 +273,14 @@ namespace Js
 
         ScriptContext * scriptContext = externalFunction->type->GetScriptContext();
         AnalysisAssert(scriptContext);
+
+        if (args.Info.Count > USHORT_MAX)
+        {
+            // Due to compat reasons, stdcall external functions expect a ushort count of args.
+            // To support more than this we will need a new API.
+            Js::JavascriptError::ThrowTypeError(scriptContext, JSERR_ArgListTooLarge);
+        }
+
         Var result = nullptr;
         Assert(callInfo.Count > 0);
 
@@ -291,14 +299,14 @@ namespace Js
         {
             BEGIN_LEAVE_SCRIPT(scriptContext)
             {
-                result = externalFunction->stdCallNativeMethod(function, args.Values, args.Info.Count, &info, externalFunction->callbackState);
+                result = externalFunction->stdCallNativeMethod(function, args.Values, static_cast<USHORT>(args.Info.Count), &info, externalFunction->callbackState);
             }
             END_LEAVE_SCRIPT(scriptContext);
         }
 #else
         BEGIN_LEAVE_SCRIPT(scriptContext)
         {
-            result = externalFunction->stdCallNativeMethod(function, args.Values, args.Info.Count, &info, externalFunction->callbackState);
+            result = externalFunction->stdCallNativeMethod(function, args.Values, static_cast<USHORT>(args.Info.Count), &info, externalFunction->callbackState);
         }
         END_LEAVE_SCRIPT(scriptContext);
 #endif
@@ -424,6 +432,13 @@ namespace Js
         }
         else
         {
+            if (args.Info.Count > USHORT_MAX)
+            {
+                // Due to compat reasons, stdcall external functions expect a ushort count of args.
+                // To support more than this we will need a new API.
+                Js::JavascriptError::ThrowTypeError(scriptContext, JSERR_ArgListTooLarge);
+            }
+
             TTDAssert(scriptContext->ShouldPerformRecordAction(), "Check either record/replay before calling!!!");
 
             TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
@@ -439,7 +454,7 @@ namespace Js
 
             BEGIN_LEAVE_SCRIPT(scriptContext)
             {
-                result = externalFunction->stdCallNativeMethod(function, args.Values, args.Info.Count, &info, externalFunction->callbackState);
+                result = externalFunction->stdCallNativeMethod(function, args.Values, static_cast<ushort>(args.Info.Count), &info, externalFunction->callbackState);
             }
             END_LEAVE_SCRIPT(scriptContext);
 
