@@ -3928,12 +3928,7 @@ case_2:
             return false;
         }
 
-        if (wmemcmp(leftString->GetString(), rightString->GetString(), leftString->GetLength()) == 0)
-        {
-            return true;
-        }
-
-        return false;
+        return JsUtil::CharacterBuffer<char16>::StaticEquals(leftString->GetString(), rightString->GetString(), leftString->GetLength());
     }
 
 #if ENABLE_NATIVE_CODEGEN
