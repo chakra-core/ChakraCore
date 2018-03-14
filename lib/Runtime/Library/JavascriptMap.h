@@ -32,10 +32,11 @@ namespace Js
 
         Field(MapDataList) list;
 
-        union
+        union MapUnion
         {
             Field(SimpleVarDataMap*) simpleVarMap;
             Field(ComplexVarDataMap*) complexVarMap;
+            MapUnion() {}
         } u;
 
         Field(MapKind) kind = MapKind::EmptyMap;

@@ -39,11 +39,12 @@ namespace Js
         };
 
         Field(SetDataList) list;
-        union
+        union SetUnion
         {
             Field(SimpleVarDataSet*) simpleVarSet;
             Field(ComplexVarDataSet*) complexVarSet;
             Field(BVSparse<Recycler>*) intSet;
+            SetUnion() {}
         } u;
 
         Field(SetKind) kind = SetKind::EmptySet;
