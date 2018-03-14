@@ -112,7 +112,8 @@
   <PropertyGroup>
     <ChakraCommonLinkDependencies>
         oleaut32.lib;
-        version.lib
+        version.lib;
+	bcrypt.lib
     </ChakraCommonLinkDependencies>
     <RLCommonLinkDependencies>
         kernel32.lib;

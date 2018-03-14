@@ -43,6 +43,7 @@
         kernel32.lib;
         Rpcrt4.lib;
         version.lib;
+	bcrypt.lib;
       </AdditionalDependencies>
       <AdditionalDependencies Condition="'$(UseICU)'=='true' AND '$(ChakraICU)'=='false'">
         $(IcuLibraryDependencies);
