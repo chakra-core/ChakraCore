@@ -773,6 +773,22 @@ namespace Js
             }
             return false;
         }
+        if (!from->GetTypeHandler()->IsPathTypeHandler())
+        {
+            if (PHASE_TRACE1(ObjectCopyPhase))
+            {
+                Output::Print(_u("ObjectCopy: Can't copy: Don't have PathTypeHandler\n"));
+            }
+            return false;
+        }
+        if (PathTypeHandlerBase::FromTypeHandler(from->GetTypeHandler())->HasAccessors())
+        {
+            if (PHASE_TRACE1(ObjectCopyPhase))
+            {
+                Output::Print(_u("ObjectCopy: Can't copy: type handler has accessors\n"));
+            }
+            return false;
+        }
         if (this->GetPrototype() != from->GetPrototype())
         {
             if (PHASE_TRACE1(ObjectCopyPhase))
@@ -786,22 +802,6 @@ namespace Js
             if (PHASE_TRACE1(ObjectCopyPhase))
             {
                 Output::Print(_u("ObjectCopy: Can't copy: from obj has non-enumerable properties\n"));
-            }
-            return false;
-        }
-        if (!from->GetTypeHandler()->IsPathTypeHandler())
-        {
-            if (PHASE_TRACE1(ObjectCopyPhase))
-            {
-                Output::Print(_u("ObjectCopy: Can't copy: Don't have PathTypeHandler\n"));
-            }
-            return false;
-        }
-        if(PathTypeHandlerBase::FromTypeHandler(from->GetTypeHandler())->HasAccessors())
-        {
-            if (PHASE_TRACE1(ObjectCopyPhase))
-            {
-                Output::Print(_u("ObjectCopy: Can't copy: type handler has accessors\n"));
             }
             return false;
         }
@@ -819,8 +819,8 @@ namespace Js
         // Update this object
         this->ReplaceType(from->GetDynamicType());
         this->InitSlots(this);
-        const int slotCapacity = GetTypeHandler()->GetSlotCapacity();
-        const uint16 inlineSlotCapacity = GetTypeHandler()->GetInlineSlotCapacity();
+        const int slotCapacity = this->GetTypeHandler()->GetSlotCapacity();
+        const uint16 inlineSlotCapacity = this->GetTypeHandler()->GetInlineSlotCapacity();
         const int auxSlotCapacity = slotCapacity - inlineSlotCapacity;
 
         if (auxSlotCapacity > 0)
@@ -980,7 +980,7 @@ namespace Js
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapDynamicObject>(objData, nullptr);
     }
 
-    Js::Var const* DynamicObject::GetInlineSlots_TTD() const
+    Field(Js::Var) const* DynamicObject::GetInlineSlots_TTD() const
     {
         return this->GetInlineSlots();
     }

@@ -347,7 +347,7 @@ namespace Js
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 
-        Js::Var const* GetInlineSlots_TTD() const;
+        Field(Js::Var) const* GetInlineSlots_TTD() const;
         Js::Var const* GetAuxSlots_TTD() const;
 
 #if ENABLE_OBJECT_SOURCE_TRACKING

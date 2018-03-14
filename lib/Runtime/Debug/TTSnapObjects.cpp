@@ -82,7 +82,7 @@ namespace TTD
                 TTDVar* cpyBase = snpObject->VarArray;
                 if(sHandler->InlineSlotCapacity != 0)
                 {
-                    Js::Var const* inlineSlots = dynObj->GetInlineSlots_TTD();
+                    Field(Js::Var) const* inlineSlots = dynObj->GetInlineSlots_TTD();
 
                     //copy all the properties (if they all fit into the inline slots) otherwise just copy all the inline slot values
                     uint32 inlineSlotCount = min(sHandler->MaxPropertyIndex, sHandler->InlineSlotCapacity);
