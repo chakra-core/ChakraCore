@@ -37,7 +37,9 @@ namespace Js
             Field(SimpleVarDataMap*) simpleVarMap;
             Field(ComplexVarDataMap*) complexVarMap;
             MapUnion() {}
-        } u;
+        };
+
+        Field(MapUnion) u;
 
         Field(MapKind) kind = MapKind::EmptyMap;
 

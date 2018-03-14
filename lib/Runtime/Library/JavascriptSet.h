@@ -45,7 +45,9 @@ namespace Js
             Field(ComplexVarDataSet*) complexVarSet;
             Field(BVSparse<Recycler>*) intSet;
             SetUnion() {}
-        } u;
+        };
+
+        Field(SetUnion) u;
 
         Field(SetKind) kind = SetKind::EmptySet;
 
