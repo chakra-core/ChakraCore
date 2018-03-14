@@ -503,7 +503,7 @@ template <bool isComplex>
 bool
 JavascriptSet::DeleteFromVarSet(Var value)
 {
-    Assert(this->kind == isComplex ? SetKind::ComplexVarSet : SetKind::SimpleVarSet);
+    Assert(this->kind == (isComplex ? SetKind::ComplexVarSet : SetKind::SimpleVarSet));
     SetDataNode * node = nullptr;
     if (isComplex
         ? !this->u.complexVarSet->TryGetValueAndRemove(value, &node)

@@ -359,7 +359,7 @@ template <bool isComplex>
 bool
 JavascriptMap::DeleteFromVarMap(Var value)
 {
-    Assert(this->kind == isComplex ? MapKind::ComplexVarMap : MapKind::SimpleVarMap);
+    Assert(this->kind == (isComplex ? MapKind::ComplexVarMap : MapKind::SimpleVarMap));
 
     MapDataNode * node = nullptr;
     if (isComplex
