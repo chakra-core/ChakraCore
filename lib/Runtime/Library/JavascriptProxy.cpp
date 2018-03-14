@@ -16,6 +16,11 @@ namespace Js
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Proxy;
     }
 
+    bool JavascriptProxy::IsRevoked() const
+    {
+        return (target == nullptr);
+    }
+
     RecyclableObject* JavascriptProxy::GetTarget()
     {
         if (target == nullptr)

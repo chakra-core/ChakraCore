@@ -934,7 +934,8 @@ bool WScriptJsrt::Initialize()
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Flag", FlagCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "RegisterModuleSource", RegisterModuleSourceCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "GetModuleNamespace", GetModuleNamespace));
-
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "GetProxyProperties", GetProxyPropertiesCallback));
+    
     // ToDo Remove
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Edit", EmptyCallback));
 
@@ -1573,6 +1574,57 @@ JsValueRef __stdcall WScriptJsrt::SleepCallback(JsValueRef callee, bool isConstr
         Sleep((DWORD)timeout);
     }
 
+Error:
+    return returnValue;
+}
+
+JsValueRef __stdcall WScriptJsrt::GetProxyPropertiesCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    HRESULT hr = E_FAIL;
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsValueRef undefined = JS_INVALID_REFERENCE;
+    JsErrorCode errorCode = JsNoError;
+
+    IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&undefined));
+
+    returnValue = undefined;
+
+    if (argumentCount > 1)
+    {
+        bool isProxy = false;
+        JsValueRef target;
+        JsValueRef handler;
+        IfJsrtErrorSetGo(ChakraRTInterface::JsGetProxyProperties(arguments[1], &isProxy, &target, &handler));
+
+        if (isProxy)
+        {
+            JsPropertyIdRef targetProperty;
+            JsPropertyIdRef handlerProperty;
+            JsPropertyIdRef revokedProperty;
+            
+            IfJsrtErrorSetGo(CreatePropertyIdFromString("target", &targetProperty));
+            IfJsrtErrorSetGo(CreatePropertyIdFromString("handler", &handlerProperty));
+            IfJsrtErrorSetGo(CreatePropertyIdFromString("revoked", &revokedProperty));
+            IfJsrtErrorSetGo(ChakraRTInterface::JsCreateObject(&returnValue));
+
+            JsValueRef revoked = JS_INVALID_REFERENCE;
+
+            if (target == JS_INVALID_REFERENCE)
+            {
+                IfJsrtErrorSetGo(ChakraRTInterface::JsGetTrueValue(&revoked));
+                target = undefined;
+                handler = undefined;
+            }
+            else
+            {
+                IfJsrtErrorSetGo(ChakraRTInterface::JsGetFalseValue(&revoked));
+            }
+
+            IfJsrtErrorSetGo(ChakraRTInterface::JsSetProperty(returnValue, handlerProperty, handler, true));
+            IfJsrtErrorSetGo(ChakraRTInterface::JsSetProperty(returnValue, targetProperty, target, true));
+            IfJsrtErrorSetGo(ChakraRTInterface::JsSetProperty(returnValue, revokedProperty, revoked, true));
+        }
+    }
 Error:
     return returnValue;
 }

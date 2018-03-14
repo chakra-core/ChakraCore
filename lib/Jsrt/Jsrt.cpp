@@ -5339,4 +5339,45 @@ CHAKRA_API JsSetHostPromiseRejectionTracker(_In_ JsHostPromiseRejectionTrackerCa
     /*allowInObjectBeforeCollectCallback*/true);
 }
 
+CHAKRA_API JsGetProxyProperties (_In_ JsValueRef object, _Out_ bool* isProxy, _Out_opt_ JsValueRef* target, _Out_opt_ JsValueRef* handler)
+{
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext * scriptContext) -> JsErrorCode {
+        VALIDATE_INCOMING_REFERENCE(object, scriptContext);
+        PARAM_NOT_NULL(isProxy);
+
+        if (target != nullptr)
+        {
+            *target = JS_INVALID_REFERENCE;
+        }
+
+        if (handler != nullptr)
+        {
+            *handler = JS_INVALID_REFERENCE;
+        }
+
+        *isProxy = Js::JavascriptProxy::Is(object);
+
+        if (!*isProxy)
+        {
+            return JsNoError;
+        }
+
+        Js::JavascriptProxy* proxy = Js::JavascriptProxy::UnsafeFromVar(object);
+        bool revoked = proxy->IsRevoked();
+
+        if (target != nullptr && !revoked)
+        {
+            *target = static_cast<JsValueRef>(proxy->GetTarget());
+        }
+
+        if (handler != nullptr && !revoked)
+        {
+            *handler = static_cast<JsValueRef>(proxy->GetHandler());
+        }
+
+        return JsNoError;
+    },
+    /*allowInObjectBeforeCollectCallback*/true);
+}
+
 #endif // _CHAKRACOREBUILD
