@@ -17,12 +17,14 @@ interface ICustomConfigFlags;
 struct TestHooks
 {
     typedef HRESULT(TESTHOOK_CALL *SetConfigFlagsPtr)(int argc, LPWSTR argv[], ICustomConfigFlags* customConfigFlags);
+    typedef HRESULT(TESTHOOK_CALL *SetConfigFilePtr)(LPWSTR strConfigFile);
     typedef HRESULT(TESTHOOK_CALL *PrintConfigFlagsUsageStringPtr)(void);
     typedef HRESULT(TESTHOOK_CALL *SetAssertToConsoleFlagPtr)(bool flag);
     typedef HRESULT(TESTHOOK_CALL *SetEnableCheckMemoryLeakOutputPtr)(bool flag);
     typedef void(TESTHOOK_CALL * NotifyUnhandledExceptionPtr)(PEXCEPTION_POINTERS exceptionInfo);
 
     SetConfigFlagsPtr pfSetConfigFlags;
+    SetConfigFilePtr  pfSetConfigFile;
     PrintConfigFlagsUsageStringPtr pfPrintConfigFlagsUsageString;
     SetAssertToConsoleFlagPtr pfSetAssertToConsoleFlag;
     SetEnableCheckMemoryLeakOutputPtr pfSetEnableCheckMemoryLeakOutput;

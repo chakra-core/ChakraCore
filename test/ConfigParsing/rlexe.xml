@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<regress-exe>
+  <test>
+    <default>
+      <files>dummy.js</files>
+      <baseline>dummy.baseline</baseline>
+      <custom-config-file>standard.testconfig</custom-config-file>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>dummy.js</files>
+      <baseline>dummy.baseline</baseline>
+      <custom-config-file>leadingwhitespace.testconfig</custom-config-file>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>dummy.js</files>
+      <baseline>dummy.baseline</baseline>
+      <custom-config-file>interspersednewline.testconfig</custom-config-file>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>dummy.js</files>
+      <baseline>dummy.baseline</baseline>
+      <custom-config-file>interspersednewline_whitespace.testconfig</custom-config-file>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>dummy.js</files>
+      <baseline>dummy.baseline</baseline>
+      <custom-config-file>interspersednewline_leadingwhitespace.testconfig</custom-config-file>
+    </default>
+  </test>
+</regress-exe>

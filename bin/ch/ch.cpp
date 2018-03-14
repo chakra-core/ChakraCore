@@ -1109,6 +1109,11 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
 
     if (success)
     {
+        if (HostConfigFlags::flags.CustomConfigFile != NULL) 
+        {
+            ChakraRTInterface::SetConfigFile(HostConfigFlags::flags.CustomConfigFile);
+        }
+
 #ifdef _WIN32
 #if ENABLE_NATIVE_CODEGEN
         if (HostConfigFlags::flags.OOPJIT)

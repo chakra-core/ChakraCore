@@ -51,7 +51,14 @@ public:
 
     static void ParseOnModuleLoad(CmdLineArgsParser& parser, HANDLE hMod);
 
-    void ParseConfig(HANDLE hmod, CmdLineArgsParser &parser);
+#ifdef ENABLE_TEST_HOOKS
+    static void ParseCustomConfigFile(CmdLineArgsParser& parser, const char16* strConfigFile)
+    {
+        s_moduleConfigParser.ParseConfig(NULL /* hMod */, parser, strConfigFile);
+    }
+#endif
+
+    void ParseConfig(HANDLE hmod, CmdLineArgsParser &parser, const char16* strCustomConfigFile = nullptr);
     void ParseRegistry(CmdLineArgsParser &parser);
     void ProcessConfiguration(HANDLE mod);
     HRESULT SetOutputFile(const WCHAR* outputFile, const WCHAR* openMode);

@@ -524,7 +524,19 @@ int
         {
             cmd = pTestVariant->testInfo.data[TIK_COMMAND];
         }
-        sprintf_s(cmdbuf, "%s %s %s %s %s >%s 2>&1", cmd, optFlags, tempExtraCCFlags, ccFlags, testCmd, full);
+
+        //
+        // If the test is a JS test and we've passed in a custom config file, 
+        // ignore all of the other flags and just pass the config file in
+        //
+        if (kind == TK_JSCRIPT && pTestVariant->testInfo.data[TIK_CUSTOM_CONFIG_FILE] != nullptr)
+        {
+            sprintf_s(cmdbuf, "%s -CustomConfigFile:%s %s >%s 2>&1", cmd, pTestVariant->testInfo.data[TIK_CUSTOM_CONFIG_FILE], testCmd, full);
+        }
+        else
+        {
+            sprintf_s(cmdbuf, "%s %s %s %s %s >%s 2>&1", cmd, optFlags, tempExtraCCFlags, ccFlags, testCmd, full);
+        }
 
         Message("Running '%s'", cmdbuf);
 
