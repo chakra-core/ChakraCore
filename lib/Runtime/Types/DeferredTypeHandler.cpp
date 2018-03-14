@@ -8,7 +8,7 @@
 
 namespace Js
 {
-    void DeferredTypeHandlerBase::Convert(DynamicObject * instance, DynamicTypeHandler * typeHandler)
+    void DeferredTypeHandlerBase::ConvertFunction(JavascriptFunction * instance, DynamicTypeHandler * typeHandler)
     {
         Assert(instance->GetDynamicType()->GetTypeHandler() == this);
         Assert(this->inlineSlotCapacity == typeHandler->inlineSlotCapacity);
@@ -24,7 +24,29 @@ namespace Js
 
         ScriptContext* scriptContext = instance->GetScriptContext();
         instance->EnsureSlots(0, typeHandler->GetSlotCapacity(), scriptContext, typeHandler);
-        typeHandler->SetInstanceTypeHandler(instance);
+
+        FunctionProxy * functionProxy = instance->GetFunctionProxy();
+        ScriptFunctionType * undeferredFunctionType = nullptr;
+        if (functionProxy)
+        {
+            undeferredFunctionType = functionProxy->GetUndeferredFunctionType();
+        }
+        if (undeferredFunctionType && !instance->IsCrossSiteObject())
+        {
+            Assert(undeferredFunctionType->GetIsShared());
+            Assert(!CrossSite::IsThunk(undeferredFunctionType->GetEntryPoint()));
+            instance->ReplaceType(undeferredFunctionType);
+        }
+        else
+        {
+            typeHandler->SetInstanceTypeHandler(instance);
+            if (functionProxy && typeHandler->GetMayBecomeShared() && !CrossSite::IsThunk(instance->GetType()->GetEntryPoint()))
+            {
+                Assert(!functionProxy->GetUndeferredFunctionType());
+                functionProxy->SetUndeferredFunctionType(ScriptFunction::UnsafeFromVar(instance)->GetScriptFunctionType());
+                instance->ShareType();
+            }
+        }
 
         // We may be changing to a type handler that already has some properties. Initialize those to undefined.
         const Var undefined = scriptContext->GetLibrary()->GetUndefined();

@@ -67,15 +67,9 @@ namespace Js
 
         friend class JavascriptArray; // for xplat offsetof field access
         friend class JavascriptNativeArray; // for xplat offsetof field access
-        friend class JavascriptOperators; // for ReplaceType
-        friend class PathTypeHandlerBase; // for ReplaceType
-        friend class SimplePathTypeHandlerNoAttr;
-        friend class SimplePathTypeHandlerWithAttr;
-        friend class PathTypeHandlerNoAttr;
-        friend class JavascriptLibrary;  // for ReplaceType
-        friend class ScriptFunction; // for ReplaceType;
-        friend class JSON::JSONParser; //for ReplaceType
-        friend class ModuleNamespace; // for slot setting.
+        friend class JavascriptOperators;
+        friend class JavascriptLibrary;
+        friend class ModuleNamespace; // for slot setting.       
 
 #if ENABLE_OBJECT_SOURCE_TRACKING
     public:
@@ -111,8 +105,6 @@ namespace Js
 
         void InitSlots(DynamicObject * instance, ScriptContext * scriptContext);
         void SetTypeHandler(DynamicTypeHandler * typeHandler, bool hasChanged);
-        void ReplaceType(DynamicType * type);
-        void ReplaceTypeWithPredecessorType(DynamicType * previousType);
 
     protected:
         DEFINE_VTABLE_CTOR(DynamicObject, RecyclableObject);
@@ -138,6 +130,8 @@ namespace Js
 
         void EnsureSlots(int oldCount, int newCount, ScriptContext * scriptContext, DynamicTypeHandler * newTypeHandler = nullptr);
         void EnsureSlots(int newCount, ScriptContext *scriptContext);
+        void ReplaceType(DynamicType * type);
+        void ReplaceTypeWithPredecessorType(DynamicType * previousType);
 
         DynamicTypeHandler * GetTypeHandler() const;
 

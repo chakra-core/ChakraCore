@@ -631,12 +631,13 @@ namespace Js
 #endif
     }
 
-    bool JavascriptLibrary::InitializeGeneratorFunction(DynamicObject *function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeGeneratorFunction(DynamicObject *instance, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        bool isAnonymousFunction = JavascriptGeneratorFunction::FromVar(function)->IsAnonymousFunction();
+        JavascriptGeneratorFunction *function = JavascriptGeneratorFunction::FromVar(instance);
+        bool isAnonymousFunction = function->IsAnonymousFunction();
 
         JavascriptLibrary* javascriptLibrary = function->GetType()->GetLibrary();
-        typeHandler->Convert(function, isAnonymousFunction ? javascriptLibrary->anonymousFunctionWithPrototypeTypeHandler : javascriptLibrary->functionWithPrototypeTypeHandler);
+        typeHandler->ConvertFunction(function, isAnonymousFunction ? javascriptLibrary->anonymousFunctionWithPrototypeTypeHandler : javascriptLibrary->functionWithPrototypeTypeHandler);
         function->SetPropertyWithAttributes(PropertyIds::prototype, javascriptLibrary->CreateGeneratorConstructorPrototypeObject(), PropertyWritable, nullptr);
 
         if (!isAnonymousFunction)
@@ -675,8 +676,9 @@ namespace Js
     }
 
     template<bool addPrototype>
-    bool JavascriptLibrary::InitializeFunction(DynamicObject *function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    bool JavascriptLibrary::InitializeFunction(DynamicObject *instance, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
+        JavascriptFunction * function = JavascriptFunction::FromVar(instance);
         JavascriptLibrary* javascriptLibrary = function->GetType()->GetLibrary();
         ScriptFunction *scriptFunction = nullptr;
         bool useAnonymous = false;
@@ -689,19 +691,19 @@ namespace Js
         if (!addPrototype)
         {
             Assert(!useAnonymous);
-            typeHandler->Convert(function, javascriptLibrary->functionTypeHandler);
+            typeHandler->ConvertFunction(function, javascriptLibrary->functionTypeHandler);
         }
         else
         {
-            typeHandler->Convert(function, useAnonymous ? javascriptLibrary->anonymousFunctionWithPrototypeTypeHandler : javascriptLibrary->functionWithPrototypeTypeHandler);
-            function->SetProperty(PropertyIds::prototype, javascriptLibrary->CreateConstructorPrototypeObject((Js::JavascriptFunction *)function), PropertyOperation_None, nullptr);
-        }
-
-        if (scriptFunction)
-        {
-            if (scriptFunction->GetFunctionInfo()->IsClassConstructor())
+            typeHandler->ConvertFunction(function, useAnonymous ? javascriptLibrary->anonymousFunctionWithPrototypeTypeHandler : javascriptLibrary->functionWithPrototypeTypeHandler);
+            DynamicObject *protoObject = javascriptLibrary->CreateConstructorPrototypeObject(function);
+            if (scriptFunction && scriptFunction->GetFunctionInfo()->IsClassConstructor())
             {
-                scriptFunction->SetWritable(Js::PropertyIds::prototype, FALSE);
+                function->SetPropertyWithAttributes(PropertyIds::prototype, protoObject, PropertyNone, nullptr);
+            }
+            else
+            {
+                function->SetProperty(PropertyIds::prototype, protoObject, PropertyOperation_None, nullptr);
             }
         }
 
@@ -5012,21 +5014,6 @@ namespace Js
 
         if (ScriptFunction::Is(function))
         {
-#if DEBUG
-            if (!function->GetFunctionProxy()->GetIsAnonymousFunction())
-            {
-                Assert(function->GetFunctionInfo()->IsConstructor() ?
-                    (function->GetDynamicType()->GetTypeHandler() == JavascriptLibrary::GetDeferredPrototypeFunctionTypeHandler(this->GetScriptContext())
-                        || function->GetDynamicType()->GetTypeHandler() == JavascriptLibrary::GetDeferredPrototypeFunctionWithLengthTypeHandler(this->GetScriptContext()))
-                    : function->GetDynamicType()->GetTypeHandler() == JavascriptLibrary::GetDeferredFunctionTypeHandler());
-            }
-            else
-            {
-                Assert(function->GetFunctionInfo()->IsConstructor() ?
-                    function->GetDynamicType()->GetTypeHandler() == JavascriptLibrary::GetDeferredAnonymousPrototypeFunctionTypeHandler() :
-                    function->GetDynamicType()->GetTypeHandler() == JavascriptLibrary::GetDeferredAnonymousFunctionTypeHandler());
-            }
-#endif
             function->ChangeType();
             function->SetEntryPoint(scriptContext->CurrentCrossSiteThunk);
         }

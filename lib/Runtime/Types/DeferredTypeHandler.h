@@ -21,7 +21,7 @@ namespace Js
         }
 
     public:
-        void Convert(DynamicObject * instance, DynamicTypeHandler * handler);
+        void ConvertFunction(JavascriptFunction * instance, DynamicTypeHandler * handler);
         void Convert(DynamicObject * instance, DeferredInitializeMode mode, int initSlotCapacity,  BOOL hasAccessor = false);
 
         virtual void SetAllPropertiesToUndefined(DynamicObject* instance, bool invalidateFixedFields) override {};
