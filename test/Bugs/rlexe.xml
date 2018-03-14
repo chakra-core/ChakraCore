@@ -446,4 +446,9 @@
       <compile-flags>-forceundodefer</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>inbug.js</files>
+    </default>
+  </test>
 </regress-exe>
