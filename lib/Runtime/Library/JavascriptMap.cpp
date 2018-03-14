@@ -337,7 +337,9 @@ void
 JavascriptMap::Clear()
 {
     JS_REENTRANCY_LOCK(jsReentLock, this->GetScriptContext()->GetThreadContext());
+
     list.Clear();
+
     switch (this->kind)
     {
     case MapKind::EmptyMap:
@@ -357,6 +359,8 @@ template <bool isComplex>
 bool
 JavascriptMap::DeleteFromVarMap(Var value)
 {
+    Assert(this->kind == isComplex ? MapKind::ComplexVarMap : MapKind::SimpleVarMap);
+
     MapDataNode * node = nullptr;
     if (isComplex
         ? !this->u.complexVarMap->TryGetValueAndRemove(value, &node)
@@ -372,6 +376,8 @@ JavascriptMap::DeleteFromVarMap(Var value)
 bool
 JavascriptMap::DeleteFromSimpleVarMap(Var value)
 {
+    Assert(this->kind == MapKind::SimpleVarMap);
+
     Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar(value);
     if (!simpleVar)
     {
@@ -385,6 +391,7 @@ bool
 JavascriptMap::Delete(Var key)
 {
     JS_REENTRANCY_LOCK(jsReentLock, this->GetScriptContext()->GetThreadContext());
+
     switch (this->kind)
     {
     case MapKind::EmptyMap:
@@ -404,6 +411,7 @@ bool
 JavascriptMap::Get(Var key, Var* value)
 {
     JS_REENTRANCY_LOCK(jsReentLock, this->GetScriptContext()->GetThreadContext());
+
     switch (this->kind)
     {
     case MapKind::EmptyMap:
@@ -454,6 +462,7 @@ bool
 JavascriptMap::Has(Var key)
 {
     JS_REENTRANCY_LOCK(jsReentLock, this->GetScriptContext()->GetThreadContext());
+
     switch (this->kind)
     {
     case MapKind::EmptyMap:
@@ -507,6 +516,7 @@ JavascriptMap::PromoteToComplexVarMap()
 void
 JavascriptMap::SetOnEmptyMap(Var key, Var value)
 {
+    Assert(this->kind == MapKind::EmptyMap);
     Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar(key);
     if (simpleVar)
     {
@@ -536,6 +546,8 @@ JavascriptMap::SetOnEmptyMap(Var key, Var value)
 bool
 JavascriptMap::TrySetOnSimpleVarMap(Var key, Var value)
 {
+    Assert(this->kind == MapKind::SimpleVarMap);
+
     Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar(key);
     if (!simpleVar)
     {
@@ -558,6 +570,8 @@ JavascriptMap::TrySetOnSimpleVarMap(Var key, Var value)
 void
 JavascriptMap::SetOnComplexVarMap(Var key, Var value)
 {
+    Assert(this->kind == MapKind::ComplexVarMap);
+
     MapDataNode* node = nullptr;
     if (this->u.complexVarMap->TryGetValue(key, &node))
     {
@@ -574,6 +588,7 @@ void
 JavascriptMap::Set(Var key, Var value)
 {
     JS_REENTRANCY_LOCK(jsReentLock, this->GetScriptContext()->GetThreadContext());
+
     switch (this->kind)
     {
     case MapKind::EmptyMap:
@@ -600,6 +615,7 @@ JavascriptMap::Set(Var key, Var value)
 int JavascriptMap::Size()
 {
     JS_REENTRANCY_LOCK(jsReentLock, this->GetScriptContext()->GetThreadContext());
+
     switch (this->kind)
     {
     case MapKind::EmptyMap:

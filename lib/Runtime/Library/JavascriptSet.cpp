@@ -326,6 +326,7 @@ JavascriptSet::PromoteToComplexVarSet()
 void
 JavascriptSet::AddToEmptySet(Var value)
 {
+    Assert(this->kind == SetKind::EmptySet);
     // We cannot store an int with value -1 inside of a bit vector
     Var taggedInt = JavascriptConversion::TryCanonicalizeAsTaggedInt<false>(value);
     if (taggedInt)
@@ -367,6 +368,7 @@ JavascriptSet::AddToEmptySet(Var value)
 bool
 JavascriptSet::TryAddToIntSet(Var value)
 {
+    Assert(this->kind == SetKind::IntSet);
     Var taggedInt = JavascriptConversion::TryCanonicalizeAsTaggedInt<false>(value);
     if (!taggedInt)
     {
@@ -384,6 +386,7 @@ JavascriptSet::TryAddToIntSet(Var value)
 bool
 JavascriptSet::TryAddToSimpleVarSet(Var value)
 {
+    Assert(this->kind == SetKind::SimpleVarSet);
     Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar(value);
     if (!simpleVar)
     {
@@ -402,6 +405,7 @@ JavascriptSet::TryAddToSimpleVarSet(Var value)
 void
 JavascriptSet::AddToComplexVarSet(Var value)
 {
+    Assert(this->kind == SetKind::ComplexVarSet);
     if (!this->u.complexVarSet->ContainsKey(value))
     {
         SetDataNode* node = this->list.Append(value, this->GetRecycler());
@@ -485,6 +489,7 @@ void JavascriptSet::Clear()
 bool
 JavascriptSet::IsInIntSet(Var value)
 {
+    Assert(this->kind == SetKind::IntSet);
     Var taggedInt = JavascriptConversion::TryCanonicalizeAsTaggedInt<false>(value);
     if (!taggedInt)
     {
@@ -498,6 +503,7 @@ template <bool isComplex>
 bool
 JavascriptSet::DeleteFromVarSet(Var value)
 {
+    Assert(this->kind == isComplex ? SetKind::ComplexVarSet : SetKind::SimpleVarSet);
     SetDataNode * node = nullptr;
     if (isComplex
         ? !this->u.complexVarSet->TryGetValueAndRemove(value, &node)
@@ -513,6 +519,7 @@ JavascriptSet::DeleteFromVarSet(Var value)
 bool
 JavascriptSet::DeleteFromSimpleVarSet(Var value)
 {
+    Assert(this->kind == SetKind::SimpleVarSet);
     Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar(value);
     if (!simpleVar)
     {
@@ -535,6 +542,10 @@ bool JavascriptSet::Delete(Var value)
         {
             return false;
         }
+        // We don't have the list node pointer readily available, so deletion from int sets would require walking the list
+        // Because of this, let's just promote to a var set
+        //
+        // If this promotion becomes an issue, we can consider options to improve this, e.g. deferring until an iterator is requested
         this->PromoteToSimpleVarSet();
         return this->Delete(value);
 
