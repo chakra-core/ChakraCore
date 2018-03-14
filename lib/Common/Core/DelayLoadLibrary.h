@@ -63,6 +63,7 @@ class NtdllLibrary : protected DelayLoadLibrary
 public:
     // needed for InitializeObjectAttributes
     static const ULONG OBJ_KERNEL_HANDLE = 0x00000200;
+    static const ULONG MAP_PROCESS = 1;
 
     typedef struct _UNICODE_STRING {
         USHORT Length;
@@ -134,6 +135,13 @@ private:
     typedef NTSTATUS(NTAPI *PFnNtClose)(_In_ HANDLE Handle);
     PFnNtClose close;
 
+    typedef NTSTATUS(NTAPI *PFnNtUnlockVirtualMemory)(
+        _In_ HANDLE ProcessHandle,
+        _Inout_ PVOID *BaseAddress,
+        _Inout_ PSIZE_T RegionSize,
+        _In_ ULONG MapType);
+    PFnNtUnlockVirtualMemory unlock;
+
 public:
     static NtdllLibrary* Instance;
 
@@ -146,7 +154,8 @@ public:
         createSection(NULL),
         mapViewOfSection(NULL),
         unmapViewOfSection(NULL),
-        close(NULL)
+        close(NULL),
+        unlock(nullptr)
     {
         this->EnsureFromSystemDirOnly();
     }
@@ -204,6 +213,13 @@ public:
 
     NTSTATUS Close(
         _In_ HANDLE Handle
+    );
+
+    NTSTATUS UnlockVirtualMemory(
+        _In_ HANDLE ProcessHandle,
+        _Inout_ PVOID *BaseAddress,
+        _Inout_ PSIZE_T RegionSize,
+        _In_ ULONG MapType
     );
 };
 #endif

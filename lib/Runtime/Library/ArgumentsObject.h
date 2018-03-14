@@ -18,8 +18,6 @@ namespace Js
         {
             Assert(type->GetTypeId() == TypeIds_Arguments);
         }
-        Var GetCaller(ScriptContext * scriptContext);
-        static Var GetCaller(ScriptContext * scriptContext, JavascriptStackWalker *walker, bool skipGlobal);
 
         static bool Is(Var aValue);
 

@@ -290,7 +290,7 @@ RecyclerSweep::EndSweep()
 
     // Clean up the HeapBlockMap.
     // This will release any internal structures that are no longer needed after Sweep.
-    recycler->heapBlockMap.Cleanup(!recycler->IsMemProtectMode());
+    recycler->heapBlockMap.Cleanup(recycler->IsMemProtectMode());
 }
 
 #if ENABLE_CONCURRENT_GC

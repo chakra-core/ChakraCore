@@ -4137,6 +4137,10 @@ namespace Js
                     return i;
                 }
             }
+            else if (SparseArraySegment<Var>::IsMissingItem(&element))
+            {
+                AssertOrFailFast(false);
+            }
             else if (includesAlgorithm && JavascriptConversion::SameValueZero(element, search))
             {
                 //Array.prototype.includes
@@ -6663,6 +6667,8 @@ Case0:
             ClearSegmentMap(); // Dump the segmentMap again in case user compare function rebuilds it
             if (hasException)
             {
+                // The current array might have affected due to callbacks. As we have got the exception we should be resetting the missing value.
+                SetHasNoMissingValues(false);
                 head = startSeg;
                 this->InvalidateLastUsedSegment();
             }
@@ -11638,17 +11644,32 @@ Case0:
     T * JavascriptArray::BoxStackInstance(T * instance, bool deepCopy)
     {
         Assert(ThreadContext::IsOnStack(instance));
-        // On the stack, the we reserved a pointer before the object as to store the boxed value
-        T ** boxedInstanceRef = ((T **)instance) - 1;
-        T * boxedInstance = *boxedInstanceRef;
-        if (boxedInstance)
+        T * boxedInstance;
+        T ** boxedInstanceRef;
+        if (!deepCopy)
         {
-            return boxedInstance;
+            // On the stack, the we reserved a pointer before the object as to store the boxed value
+            boxedInstanceRef = ((T **)instance) - 1;
+            boxedInstance = *boxedInstanceRef;
+            if (boxedInstance)
+            {
+                return boxedInstance;
+            }
+        }
+        else
+        {
+            // When doing a deep copy, do not cache the boxed value to ensure that only shallow copies
+            // are reused
+            boxedInstance = nullptr;
+            boxedInstanceRef = nullptr;
         }
 
         const size_t inlineSlotsSize = instance->GetTypeHandler()->GetInlineSlotsSize();
-        if (ThreadContext::IsOnStack(instance->head))
+        if (ThreadContext::IsOnStack(instance->head) || deepCopy)
         {
+            // Reallocate both the object as well as the head segment when the head is on the stack or
+            // when a deep copy is needed. This is to prevent a scenario where box may leave either one
+            // on the stack when both must be on the heap.
             boxedInstance = RecyclerNewPlusZ(instance->GetRecycler(),
                 inlineSlotsSize + sizeof(Js::SparseArraySegmentBase) + instance->head->size * sizeof(typename T::TElement),
                 T, instance, true, deepCopy);
@@ -11662,7 +11683,10 @@ Case0:
             boxedInstance = RecyclerNew(instance->GetRecycler(), T, instance, false, false);
         }
 
-        *boxedInstanceRef = boxedInstance;
+        if (boxedInstanceRef != nullptr)
+        {
+            *boxedInstanceRef = boxedInstance;
+        }
         return boxedInstance;
     }
 

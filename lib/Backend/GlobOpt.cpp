@@ -15154,7 +15154,9 @@ GlobOpt::DoArrayCheckHoist(const ValueType baseValueType, Loop* loop, IR::Instr 
         return false;
     }
 
-    if(!baseValueType.IsLikelyArrayOrObjectWithArray() ||
+    // This includes typed arrays, but not virtual typed arrays, whose vtable can change if the buffer goes away.
+    // Note that in the virtual case the vtable check is the only way to catch this, since there's no bound check.
+    if(!(baseValueType.IsLikelyArrayOrObjectWithArray() || baseValueType.IsLikelyOptimizedVirtualTypedArray()) ||
         (loop ? ImplicitCallFlagsAllowOpts(loop) : ImplicitCallFlagsAllowOpts(func)))
     {
         return true;

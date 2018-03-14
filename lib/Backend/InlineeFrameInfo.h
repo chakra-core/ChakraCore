@@ -108,7 +108,7 @@ struct InlineeFrameRecord
     }
 
     void PopulateParent(Func* func);
-    void RestoreFrames(Js::FunctionBody* functionBody, InlinedFrameLayout* outerMostInlinee, Js::JavascriptCallStackLayout* callstack, bool deepCopy);
+    void RestoreFrames(Js::FunctionBody* functionBody, InlinedFrameLayout* outerMostInlinee, Js::JavascriptCallStackLayout* callstack, bool boxValues);
     void Finalize(Func* inlinee, uint currentOffset);
 #if DBG_DUMP
     void Dump() const;
@@ -123,8 +123,8 @@ struct InlineeFrameRecord
     }
 
 private:
-    void Restore(Js::FunctionBody* functionBody, InlinedFrameLayout *outerMostFrame, Js::JavascriptCallStackLayout * layout, bool deepCopy) const;
-    Js::Var Restore(int offset, bool isFloat64, bool isInt32, Js::JavascriptCallStackLayout * layout, Js::FunctionBody* functionBody, bool deepCopy) const;
+    void Restore(Js::FunctionBody* functionBody, InlinedFrameLayout *outerMostFrame, Js::JavascriptCallStackLayout * layout, bool boxValues) const;
+    Js::Var Restore(int offset, bool isFloat64, bool isInt32, Js::JavascriptCallStackLayout * layout, Js::FunctionBody* functionBody, bool boxValue) const;
     InlineeFrameRecord* Reverse();
 };
 

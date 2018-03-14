@@ -263,14 +263,14 @@ namespace Js
         this->GetCurrentArgv()[JavascriptFunctionArgIndex_ArgumentsObject] = args;
     }
 
-    Js::Var * JavascriptStackWalker::GetJavascriptArgs() const
+    Js::Var * JavascriptStackWalker::GetJavascriptArgs(bool boxArgsAndDeepCopy) const
     {
         Assert(this->IsJavascriptFrame());
 
 #if ENABLE_NATIVE_CODEGEN
         if (inlinedFramesBeingWalked)
         {
-            return inlinedFrameWalker.GetArgv(/* includeThis = */ false);
+            return inlinedFrameWalker.GetArgv(/* includeThis */ false, boxArgsAndDeepCopy);
         }
         else
 #endif
@@ -450,7 +450,7 @@ namespace Js
             // are inlined frames on the stack the InlineeCallInfo of the first inlined frame
             // has the native offset of the current physical frame.
             Assert(!*inlinee);
-            InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, ScriptFunction::FromVar(parentFunction), PreviousInterpreterFrameIsFromBailout(), loopNum, this, useInternalFrameInfo, false /*noAlloc*/, false /*deepCopy*/);
+            InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, ScriptFunction::FromVar(parentFunction), PreviousInterpreterFrameIsFromBailout(), loopNum, this, useInternalFrameInfo, false /*noAlloc*/);
             inlineeOffset = tmpFrameWalker.GetBottomMostInlineeOffset();
             tmpFrameWalker.Close();
         }
@@ -555,7 +555,7 @@ namespace Js
                         }
 
                         bool hasInlinedFramesOnStack = InlinedFrameWalker::FromPhysicalFrame(inlinedFrameWalker, currentFrame,
-                            ScriptFunction::FromVar(function), true /*fromBailout*/, loopNum, this, false /*useInternalFrameInfo*/, false /*noAlloc*/, this->deepCopyForArgs);
+                            ScriptFunction::FromVar(function), true /*fromBailout*/, loopNum, this, false /*useInternalFrameInfo*/, false /*noAlloc*/);
 
                         if (hasInlinedFramesOnStack)
                         {
@@ -611,8 +611,7 @@ namespace Js
                         -1,     // loopNum
                         nullptr,// walker
                         false,  // useInternalFrameInfo
-                        false,  // noAlloc
-                        this->deepCopyForArgs
+                        false   // noAlloc
                     );
                     if (inlinedFramesFound)
                     {
@@ -658,8 +657,7 @@ namespace Js
     _NOINLINE
     JavascriptStackWalker::JavascriptStackWalker(ScriptContext * scriptContext, bool useEERContext, PVOID returnAddress, bool _forceFullWalk /*=false*/) :
         inlinedFrameCallInfo(CallFlags_None, 0), shouldDetectPartiallyInitializedInterpreterFrame(true), forceFullWalk(_forceFullWalk),
-        previousInterpreterFrameIsFromBailout(false), previousInterpreterFrameIsForLoopBody(false), hasInlinedFramesOnStack(false),
-        deepCopyForArgs(false)
+        previousInterpreterFrameIsFromBailout(false), previousInterpreterFrameIsForLoopBody(false), hasInlinedFramesOnStack(false)
     {
         if (scriptContext == NULL)
         {
@@ -955,7 +953,7 @@ namespace Js
                 Assert(this->interpreterFrame->TestFlags(Js::InterpreterStackFrameFlags_FromBailOut));
                 InlinedFrameWalker tmpFrameWalker;
                 Assert(InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, Js::ScriptFunction::FromVar(argv[JavascriptFunctionArgIndex_Function]),
-                    true /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this, false /*useInternalFrameInfo*/, true /*noAlloc*/, false /*deepCopy*/));
+                    true /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this, false /*useInternalFrameInfo*/, true /*noAlloc*/));
                 tmpFrameWalker.Close();
             }
 #endif //DBG
@@ -1002,7 +1000,7 @@ namespace Js
             {
                 if (includeInlineFrames &&
                     InlinedFrameWalker::FromPhysicalFrame(inlinedFrameWalker, currentFrame, Js::ScriptFunction::FromVar(argv[JavascriptFunctionArgIndex_Function]),
-                        false /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this, false /*useInternalFrameInfo*/, false /*noAlloc*/, this->deepCopyForArgs))
+                        false /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this, false /*useInternalFrameInfo*/, false /*noAlloc*/))
                 {
                     // Found inlined frames in a jitted loop body. We dont want to skip the inlined frames; walk all of them before setting codeAddress on lastInternalFrameInfo.
                     // DeepCopy here because, if there is an inlinee in a loop body, FromPhysicalFrame won't be called from UpdateFrame
@@ -1246,7 +1244,7 @@ namespace Js
 
 #if ENABLE_NATIVE_CODEGEN
     bool InlinedFrameWalker::FromPhysicalFrame(InlinedFrameWalker& self, StackFrame& physicalFrame, Js::ScriptFunction *parent, bool fromBailout,
-        int loopNum, const JavascriptStackWalker * const stackWalker, bool useInternalFrameInfo, bool noAlloc, bool deepCopy)
+        int loopNum, const JavascriptStackWalker * const stackWalker, bool useInternalFrameInfo, bool noAlloc)
     {
         bool inlinedFramesFound = false;
         FunctionBody* parentFunctionBody = parent->GetFunctionBody();
@@ -1299,7 +1297,7 @@ namespace Js
 
                 if (record)
                 {
-                    record->RestoreFrames(parent->GetFunctionBody(), outerMostFrame, JavascriptCallStackLayout::FromFramePointer(framePointer), deepCopy);
+                    record->RestoreFrames(parent->GetFunctionBody(), outerMostFrame, JavascriptCallStackLayout::FromFramePointer(framePointer), false /* boxValues */);
                 }
             }
 
@@ -1366,26 +1364,46 @@ namespace Js
         return currentFrame->callInfo.Count;
     }
 
-    Js::Var *InlinedFrameWalker::GetArgv(bool includeThis /* = true */) const
+    // Note: the boxArgsAndDeepCopy parameter should be true when a copy of the JS args must be ensured to
+    // be on the heap. This results in a new array of Vars with deep copied boxed values (where
+    // appropriate).
+    // Otherwise, this parameter should be false. For instance, if the args will only be used
+    // internally to gather type info, the values are not boxed (so, some Vars may still be on
+    // the stack) and the array of the current frame is returned.
+    Js::Var *InlinedFrameWalker::GetArgv(bool includeThis, bool boxArgsAndDeepCopy) const
     {
         InlinedFrameWalker::InlinedFrame *const currentFrame = GetCurrentFrame();
         Assert(currentFrame);
 
         uint firstArg = includeThis ? InlinedFrameArgIndex_This : InlinedFrameArgIndex_SecondScriptArg;
-        Js::Var *args = &currentFrame->argv[firstArg];
+        size_t argCount = this->GetArgc() - firstArg;
+        Js::Var *args;
+        if (!boxArgsAndDeepCopy)
+        {
+            args = &currentFrame->argv[firstArg];
 
-        this->FinalizeStackValues(args, this->GetArgc() - firstArg);
+        }
+        else
+        {
+            args = RecyclerNewArray(parentFunction->GetScriptContext()->GetRecycler(), Js::Var, argCount);
+            for (size_t i = 0; i < argCount; i++)
+            {
+                args[i] = currentFrame->argv[firstArg + i];
+            }
+
+            this->FinalizeStackValues(args, argCount, true /*deepCopy*/);
+        }
 
         return args;
     }
 
-    void InlinedFrameWalker::FinalizeStackValues(__in_ecount(argCount) Js::Var args[], size_t argCount) const
+    void InlinedFrameWalker::FinalizeStackValues(__in_ecount(argCount) Js::Var args[], size_t argCount, bool deepCopy) const
     {
         ScriptContext *scriptContext = this->GetFunctionObject()->GetScriptContext();
 
         for (size_t i = 0; i < argCount; i++)
         {
-            args[i] = Js::JavascriptOperators::BoxStackInstance(args[i], scriptContext, false /*allowStackFunction*/, false /*deepCopy*/);
+            args[i] = Js::JavascriptOperators::BoxStackInstance(args[i], scriptContext, false /*allowStackFunction*/, deepCopy);
         }
     }
 
@@ -1443,15 +1461,20 @@ namespace Js
     {
         Assert(!IsTopMostFrame());
         Assert(currentIndex);
-
+#pragma warning(push)
+#pragma warning(disable: 4254)
         return GetFrameAtIndex(currentIndex - 1)->callInfo.InlineeStartOffset;
+#pragma warning(pop)
     }
 
     uint32 InlinedFrameWalker::GetBottomMostInlineeOffset() const
     {
         Assert(frameCount);
 
+#pragma warning(push)
+#pragma warning(disable: 4254)
         return GetFrameAtIndex(frameCount - 1)->callInfo.InlineeStartOffset;
+#pragma warning(pop)
     }
 
     Js::JavascriptFunction *InlinedFrameWalker::GetBottomMostFunctionObject() const

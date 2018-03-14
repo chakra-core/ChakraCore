@@ -2686,27 +2686,12 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
             Assert(CONFIG_FLAG(DeferNested));
             byteCodeGenerator->ProcessCapturedSym(sym);
 
-            if (!top->root->AsParseNodeFnc()->NameIsHidden())
+            top->SetFuncExprNameReference(true);
+            if (pnode->AsParseNodeFnc()->pnodeBody)
             {
-                top->SetFuncExprNameReference(true);
-                if (pnode->AsParseNodeFnc()->pnodeBody)
-                {
-                    top->GetParsedFunctionBody()->SetFuncExprNameReference(true);
-                }
-                if (!sym->GetScope()->GetIsObject())
-                {
-                    // The function expression symbol will be emitted in the param/body scope.
-                    if (top->GetParamScope())
-                    {
-                        top->GetParamScope()->SetHasOwnLocalInClosure(true);
-                    }
-                    else
-                    {
-                        top->GetBodyScope()->SetHasOwnLocalInClosure(true);
-                    }
-                    top->SetHasLocalInClosure(true);
-                }
+                top->GetParsedFunctionBody()->SetFuncExprNameReference(true);
             }
+            byteCodeGenerator->ProcessScopeWithCapturedSym(sym->GetScope());
         }
     }
 

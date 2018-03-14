@@ -359,12 +359,16 @@ public:
 public:
     bool KillsValueType(const ValueType valueType) const
     {
-        Assert(valueType.IsArrayOrObjectWithArray());
+        Assert(valueType.IsArrayOrObjectWithArray() || valueType.IsOptimizedVirtualTypedArray());
 
         return
             killsAllArrays ||
-            (killsArraysWithNoMissingValues && valueType.HasNoMissingValues()) ||
-            (killsNativeArrays && !valueType.HasVarElements());
+            (valueType.IsArrayOrObjectWithArray() && 
+             (
+              (killsArraysWithNoMissingValues && valueType.HasNoMissingValues()) ||
+              (killsNativeArrays && !valueType.HasVarElements())
+             )
+            );
     }
 
     bool AreSubsetOf(const JsArrayKills &other) const

@@ -346,4 +346,43 @@ NtdllLibrary::NTSTATUS NtdllLibrary::Close(_In_ HANDLE Handle)
 #endif
 }
 
+#ifndef DELAYLOAD_UNLOCKMEMORY
+extern "C"
+WINBASEAPI
+NtdllLibrary::NTSTATUS
+WINAPI
+NtUnlockVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _Inout_ PVOID *BaseAddress,
+    _Inout_ PSIZE_T RegionSize,
+    _In_ ULONG MapType
+);
+#endif
+
+NtdllLibrary::NTSTATUS NtdllLibrary::UnlockVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _Inout_ PVOID *BaseAddress,
+    _Inout_ PSIZE_T RegionSize,
+    _In_ ULONG MapType)
+{
+#ifdef DELAYLOAD_UNLOCKMEMORY
+    if (m_hModule)
+    {
+        if (unlock == nullptr)
+        {
+            unlock = (PFnNtUnlockVirtualMemory)GetFunction("NtUnlockVirtualMemory");
+            if (unlock == nullptr)
+            {
+                Assert(false);
+                return -1;
+            }
+        }
+        return unlock(ProcessHandle, BaseAddress, RegionSize, MapType);
+    }
+    return -1;
+#else
+    return NtUnlockVirtualMemory(ProcessHandle, BaseAddress, RegionSize, MapType);
+#endif
+}
+
 #endif // _WIN32

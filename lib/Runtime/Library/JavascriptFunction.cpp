@@ -878,7 +878,7 @@ namespace Js
         if (overridingNewTarget != nullptr)
         {
             ScriptFunction * scriptFunctionObj = JavascriptOperators::TryFromVar<ScriptFunction>(functionObj);
-            ushort newCount = args.Info.Count;
+            uint newCount = args.Info.Count;
             if (scriptFunctionObj && scriptFunctionObj->GetFunctionInfo()->IsClassConstructor())
             {
                 thisAlreadySpecified = true;
@@ -1097,7 +1097,7 @@ namespace Js
         uint32 actualLength = CallInfo::GetLargeArgCountWithExtraArgs(args.Info.Flags, spreadSize);
 
         // Allocate (if needed) space for the expanded arguments.
-        Arguments outArgs(CallInfo(args.Info.Flags, spreadSize, /* unUsedBool */ false), nullptr);
+        Arguments outArgs(CallInfo(args.Info.Flags, spreadSize), nullptr);
         Var stackArgs[STACK_ARGS_ALLOCA_THRESHOLD];
         size_t outArgsSize = 0;
         if (actualLength > STACK_ARGS_ALLOCA_THRESHOLD)
@@ -2875,7 +2875,6 @@ LABEL1:
         // and foo.arguments[n] will be maintained after this object is returned.
 
         JavascriptStackWalker walker(scriptContext);
-        walker.SetDeepCopyForArguments();
 
         if (walker.WalkToTarget(this))
         {
@@ -2886,12 +2885,13 @@ LABEL1:
             else
             {
                 Var args = nullptr;
-                //Create a copy of the arguments and return it.
+                // Since the arguments will be returned back to script, box the arguments to ensure a copy of
+                // them with their own lifetime (as well as move any from the stack to the heap).
 
                 const CallInfo callInfo = walker.GetCallInfo();
                 args = JavascriptOperators::LoadHeapArguments(
                     this, callInfo.Count - 1,
-                    walker.GetJavascriptArgs(),
+                    walker.GetJavascriptArgs(true /* boxArgsAndDeepCopy */),
                     scriptContext->GetLibrary()->GetNull(),
                     scriptContext->GetLibrary()->GetNull(),
                     scriptContext,

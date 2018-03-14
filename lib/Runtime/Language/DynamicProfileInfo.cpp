@@ -510,7 +510,7 @@ namespace Js
     }
 #endif
 
-    void DynamicProfileInfo::RecordCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, FunctionInfo* calleeFunctionInfo, JavascriptFunction* calleeFunction, ArgSlot actualArgCount, bool isConstructorCall, InlineCacheIndex ldFldInlineCacheId)
+    void DynamicProfileInfo::RecordCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, FunctionInfo* calleeFunctionInfo, JavascriptFunction* calleeFunction, uint actualArgCount, bool isConstructorCall, InlineCacheIndex ldFldInlineCacheId)
     {
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         // If we persistsAcrossScriptContext, the dynamic profile info may be referred to by multiple function body from

@@ -9,3 +9,4 @@ obj[0].z : proto[0].z
 obj[0].w : proto[0].w
 obj[1].z : undefined
 obj[1].w : undefined
+pass

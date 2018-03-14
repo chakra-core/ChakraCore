@@ -441,7 +441,7 @@ namespace Js
 #ifdef ASMJS_PLAT
         void RecordAsmJsCallSiteInfo(FunctionBody* callerBody, ProfileId callSiteId, FunctionBody* calleeBody);
 #endif
-        void RecordCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, FunctionInfo * calleeFunctionInfo, JavascriptFunction* calleeFunction, ArgSlot actualArgCount, bool isConstructorCall, InlineCacheIndex ldFldInlineCacheId = Js::Constants::NoInlineCacheIndex);
+        void RecordCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, FunctionInfo * calleeFunctionInfo, JavascriptFunction* calleeFunction, uint actualArgCount, bool isConstructorCall, InlineCacheIndex ldFldInlineCacheId = Js::Constants::NoInlineCacheIndex);
         void RecordConstParameterAtCallSite(ProfileId callSiteId, int argNum);
         static bool HasCallSiteInfo(FunctionBody* functionBody);
         bool HasCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId); // Does a particular callsite have ProfileInfo?
