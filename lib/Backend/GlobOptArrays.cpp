@@ -183,6 +183,7 @@ void GlobOpt::ArraySrcOpt::TypeSpecIndex()
         else if (instr->m_opcode == Js::OpCode::IsIn)
         {
             // If the optimization is unable to eliminate the bounds checks, we need to restore the original var sym.
+            Assert(originalIndexOpnd == nullptr);
             originalIndexOpnd = instr->GetSrc1()->Copy(func)->AsRegOpnd();
             globOpt->ToTypeSpecIndex(instr, instr->GetSrc1()->AsRegOpnd(), nullptr);
         }
@@ -1979,6 +1980,8 @@ void GlobOpt::ArraySrcOpt::Optimize()
     {
         if (eliminatedLowerBoundCheck && eliminatedUpperBoundCheck)
         {
+            TRACE_TESTTRACE_PHASE_INSTR(Js::Phase::BoundCheckEliminationPhase, instr, _u("Eliminating IsIn\n"));
+
             instr->m_opcode = Js::OpCode::Ld_A;
 
             IR::AddrOpnd * addrOpnd = IR::AddrOpnd::New(func->GetScriptContextInfo()->GetTrueAddr(), IR::AddrOpndKindDynamicVar, func, true);
