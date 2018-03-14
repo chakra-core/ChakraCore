@@ -8138,8 +8138,8 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
             pnodeStringTemplate = CreateCallNode(knopCall, pnodeTagFnc, pnodeTagFncArgs, ichMin, pnodeStringTemplate->ichLim);
 
             // We need to set the arg count explicitly
-            pnodeStringTemplate->AsParseNodeCall().argCount = stringConstantCount;
-            pnodeStringTemplate->AsParseNodeCall().hasDestructuring = m_hasDestructuringPattern;
+            pnodeStringTemplate->AsParseNodeCall()->argCount = stringConstantCount;
+            pnodeStringTemplate->AsParseNodeCall()->hasDestructuring = m_hasDestructuringPattern;
         }
     }
 
@@ -12722,7 +12722,7 @@ ParseNodePtr Parser::GetRightSideNodeFromPattern(ParseNodePtr pnode)
         }
         else if (op == knopAsg)
         {
-            TrackAssignment<true>(pnode->sxBin.pnode1, nullptr);
+            TrackAssignment<true>(pnode->AsParseNodeBin()->pnode1, nullptr);
         }
     }
 
