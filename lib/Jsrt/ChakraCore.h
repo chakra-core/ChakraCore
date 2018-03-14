@@ -1271,5 +1271,23 @@ CHAKRA_API
         _In_ JsValueRef parserState,
         _Out_ JsValueRef * result);
 
+/// <summary>
+///     Retrieves the <c>int64_t</c> value of a number value.
+/// </summary>
+/// <remarks>
+///     This function retrieves the value of a number value and converts to an <c>int64_t</c> value.
+///     Since number values only have 53-bits of integer precision, the same restriction applies to the output from this function.
+///     It will fail with <c>JsErrorInvalidArgument</c> if the type of the value is not number.
+/// </remarks>
+/// <param name="value">The number value to convert to an <c>int64_t</c> value.</param>
+/// <param name="result">The <c>int64_t</c> value.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsNumberToInt64(
+        _In_ JsValueRef value,
+        _Out_ int64_t *result);
+
 #endif // _CHAKRACOREBUILD
 #endif // _CHAKRACORE_H_

@@ -36,6 +36,7 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtCallFunctionPtr)(JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result);
     typedef JsErrorCode (WINAPI *JsrtNumberToDoublePtr)(JsValueRef value, double *doubleValue);
     typedef JsErrorCode (WINAPI *JsrtNumberToIntPtr)(JsValueRef value, int *intValue);
+    typedef JsErrorCode (WINAPI *JsrtNumberToInt64Ptr)(JsValueRef value, int64_t *intValue);
     typedef JsErrorCode (WINAPI *JsrtIntToNumberPtr)(int intValue, JsValueRef *value);
     typedef JsErrorCode (WINAPI *JsrtDoubleToNumberPtr)(double doubleValue, JsValueRef* value);
     typedef JsErrorCode (WINAPI *JsrtGetExternalDataPtr)(JsValueRef object, void **data);
@@ -141,6 +142,7 @@ struct JsAPIHooks
     JsrtCallFunctionPtr pfJsrtCallFunction;
     JsrtNumberToDoublePtr pfJsrtNumberToDouble;
     JsrtNumberToIntPtr pfJsrtNumberToInt;
+    JsrtNumberToInt64Ptr pfJsrtNumberToInt64;
     JsrtIntToNumberPtr pfJsrtIntToNumber;
     JsrtDoubleToNumberPtr pfJsrtDoubleToNumber;
     JsrtGetExternalDataPtr pfJsrtGetExternalData;
@@ -351,6 +353,7 @@ public:
     static JsErrorCode WINAPI JsCallFunction(JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result) { return HOOK_JS_API(CallFunction(function, arguments, argumentCount, result)); }
     static JsErrorCode WINAPI JsNumberToDouble(JsValueRef value, double* doubleValue) { return HOOK_JS_API(NumberToDouble(value, doubleValue)); }
     static JsErrorCode WINAPI JsNumberToInt(JsValueRef value, int* intValue) { return HOOK_JS_API(NumberToInt(value, intValue)); }
+    static JsErrorCode WINAPI JsNumberToInt64(JsValueRef value, int64_t* intValue) { return HOOK_JS_API(NumberToInt64(value, intValue)); }
     static JsErrorCode WINAPI JsIntToNumber(int intValue, JsValueRef *value) { return HOOK_JS_API(IntToNumber(intValue, value)); }
     static JsErrorCode WINAPI JsDoubleToNumber(double doubleValue, JsValueRef* value) { return HOOK_JS_API(DoubleToNumber(doubleValue, value)); }
     static JsErrorCode WINAPI JsGetExternalData(JsValueRef object, void **data) { return HOOK_JS_API(GetExternalData(object, data)); }

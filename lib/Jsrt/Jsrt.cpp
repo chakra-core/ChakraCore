@@ -1187,6 +1187,30 @@ CHAKRA_API JsNumberToInt(_In_ JsValueRef value, _Out_ int *asInt)
     END_JSRT_NO_EXCEPTION
 }
 
+CHAKRA_API JsNumberToInt64(_In_ JsValueRef value, _Out_ int64_t *result)
+{
+    VALIDATE_JSREF(value);
+    PARAM_NOT_NULL(result);
+
+    BEGIN_JSRT_NO_EXCEPTION
+    {
+        if (Js::TaggedInt::Is(value))
+        {
+            *result = Js::TaggedInt::ToInt64(value);
+        }
+        else if (Js::JavascriptNumber::Is_NoTaggedIntCheck(value))
+        {
+            *result = Js::JavascriptConversion::ToInt64(Js::JavascriptNumber::GetValue(value));
+        }
+        else
+        {
+            *result = 0;
+            RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
+        }
+    }
+    END_JSRT_NO_EXCEPTION
+}
+
 CHAKRA_API JsConvertValueToNumber(_In_ JsValueRef value, _Out_ JsValueRef *result)
 {
     return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {

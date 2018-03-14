@@ -1158,6 +1158,11 @@ CommonNumber:
         return JavascriptMath::ToInt32Core(T1);
     }
 
+    __int64 JavascriptConversion::ToInt64(double T1)
+    {
+        return JavascriptMath::TryToInt64(T1);
+    }
+
     __int64 JavascriptConversion::ToInt64(Var aValue, ScriptContext* scriptContext)
     {
         switch (JavascriptOperators::GetTypeId(aValue))

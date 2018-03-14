@@ -528,15 +528,38 @@ namespace JsRTApiTest
         REQUIRE(dbl == 3.141592);
 
         int intValue;
+        int64_t int64Value;
+
         REQUIRE(JsNumberToInt(value, &intValue) == JsNoError);
         CHECK(3 == intValue);
+        REQUIRE(JsNumberToInt64(value, &int64Value) == JsNoError);
+        CHECK(3 == int64Value);
 
         REQUIRE(JsDoubleToNumber(2147483648.1, &value) == JsNoError);
         REQUIRE(JsNumberToInt(value, &intValue) == JsNoError);
         CHECK(INT_MIN == intValue);
+        REQUIRE(JsNumberToInt64(value, &int64Value) == JsNoError);
+        CHECK(2147483648 == int64Value);
+
         REQUIRE(JsDoubleToNumber(-2147483649.1, &value) == JsNoError);
         REQUIRE(JsNumberToInt(value, &intValue) == JsNoError);
         CHECK(2147483647 == intValue);
+        REQUIRE(JsNumberToInt64(value, &int64Value) == JsNoError);
+        CHECK(-2147483649ll == int64Value);
+
+        // Number.MAX_SAFE_INTEGER
+        REQUIRE(JsDoubleToNumber(9007199254740991, &value) == JsNoError);
+        REQUIRE(JsNumberToInt(value, &intValue) == JsNoError);
+        CHECK(-1 == intValue);
+        REQUIRE(JsNumberToInt64(value, &int64Value) == JsNoError);
+        CHECK(9007199254740991 == int64Value);
+
+        // Number.MIN_SAFE_INTEGER
+        REQUIRE(JsDoubleToNumber(-9007199254740991, &value) == JsNoError);
+        REQUIRE(JsNumberToInt(value, &intValue) == JsNoError);
+        CHECK(1 == intValue);
+        REQUIRE(JsNumberToInt64(value, &int64Value) == JsNoError);
+        CHECK(-9007199254740991ll == int64Value);
 
         // String
 
