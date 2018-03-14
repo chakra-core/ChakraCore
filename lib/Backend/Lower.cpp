@@ -19474,11 +19474,16 @@ void Lowerer::GenerateFastInlineIsIn(IR::Instr * instr)
         Js::OpCode::BrGe_A,
         helperLabel,
         instr);
+    InsertCompareBranch(
+        src1Untagged,
+        IR::IntConstOpnd::New(0, src1Untagged->GetType(), this->m_func),
+        Js::OpCode::BrLt_A,
+        helperLabel,
+        instr);
 
     InsertMove(instr->GetDst(), LoadLibraryValueOpnd(instr, LibraryValue::ValueTrue), instr);
     InsertBranch(Js::OpCode::Br, doneLabel, instr);
 
-    InsertBranch(Js::OpCode::Br, doneLabel, instr);
     instr->InsertBefore(helperLabel);
 
     instr->InsertAfter(doneLabel);
