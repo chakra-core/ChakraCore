@@ -50,6 +50,7 @@
         advapi32.lib;
         ole32.lib;
         Rpcrt4.lib;
+	bcrypt.lib;
         $(ChakraCommonLinkDependencies)
       </AdditionalDependencies>
       <AdditionalDependencies Condition="'$(IntlICU)'=='true'">
