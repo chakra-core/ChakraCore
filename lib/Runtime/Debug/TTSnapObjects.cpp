@@ -2161,7 +2161,7 @@ namespace TTD
                 }
             }
 
-            Js::CallInfo callInfo(static_cast<Js::CallFlags>(generatorInfo->arguments_callInfo_flags), generatorInfo->arguments_callInfo_count, false /*unusedBool*/);
+            Js::CallInfo callInfo(static_cast<Js::CallFlags>(generatorInfo->arguments_callInfo_flags), generatorInfo->arguments_callInfo_count);
 
             Js::Arguments arguments(callInfo, unsafe_write_barrier_cast<Js::Var*>(argVals));
 
