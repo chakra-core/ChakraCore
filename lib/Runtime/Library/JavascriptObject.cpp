@@ -1507,53 +1507,63 @@ namespace Js
 
         // 4. Let sources be the List of argument values starting with the second argument.
         // 5. For each element nextSource of sources, in ascending index order,
-        for (unsigned int i = 2; i < args.Info.Count; i++)
+        AssignHelper<true>(args[2], to, scriptContext);
+        for (unsigned int i = 3; i < args.Info.Count; i++)
         {
-            //      a. If nextSource is undefined or null, let keys be an empty List.
-            //      b. Else,
-            //          i.Let from be ToObject(nextSource).
-            //          ii.ReturnIfAbrupt(from).
-            //          iii.Let keys be from.[[OwnPropertyKeys]]().
-            //          iv.ReturnIfAbrupt(keys).
-
-            RecyclableObject* from = nullptr;
-            if (!JavascriptConversion::ToObject(args[i], scriptContext, &from))
-            {
-                if (JavascriptOperators::IsUndefinedOrNull(args[i]))
-                {
-                    continue;
-                }
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Object.assign"));
-            }
-
-#if ENABLE_COPYONACCESS_ARRAY
-            JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(from);
-#endif
-
-            // if proxy, take slow path by calling [[OwnPropertyKeys]] on source
-            if (JavascriptProxy::Is(from))
-            {
-                AssignForProxyObjects(from, to, scriptContext);
-            }
-            // else use enumerator to extract keys from source
-            else
-            {
-                DynamicObject* fromObj = JavascriptOperators::TryFromVar<DynamicObject>(from);
-                DynamicObject* toObj = JavascriptOperators::TryFromVar<DynamicObject>(to);
-                bool cloned = false;
-                if (toObj && fromObj && toObj->GetType() == scriptContext->GetLibrary()->GetObjectType())
-                {
-                    cloned = toObj->TryCopy(fromObj);
-                }
-                if(!cloned)
-                {
-                    AssignForGenericObjects(from, to, scriptContext);
-                }
-            }
+            AssignHelper<false>(args[i], to, scriptContext);
         }
 
         // 6. Return to.
         return to;
+    }
+
+    template <bool tryCopy>
+    void JavascriptObject::AssignHelper(Var fromArg, RecyclableObject* to, ScriptContext* scriptContext)
+    {
+        //      a. If nextSource is undefined or null, let keys be an empty List.
+        //      b. Else,
+        //          i.Let from be ToObject(nextSource).
+        //          ii.ReturnIfAbrupt(from).
+        //          iii.Let keys be from.[[OwnPropertyKeys]]().
+        //          iv.ReturnIfAbrupt(keys).
+
+        RecyclableObject* from = nullptr;
+        if (!JavascriptConversion::ToObject(fromArg, scriptContext, &from))
+        {
+            if (JavascriptOperators::IsUndefinedOrNull(fromArg))
+            {
+                return;
+            }
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Object.assign"));
+        }
+
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(from);
+#endif
+
+        // if proxy, take slow path by calling [[OwnPropertyKeys]] on source
+        if (JavascriptProxy::Is(from))
+        {
+            AssignForProxyObjects(from, to, scriptContext);
+        }
+        // else use enumerator to extract keys from source
+        else
+        {
+            bool copied = false;
+            if (tryCopy)
+            {
+                DynamicObject* fromObj = JavascriptOperators::TryFromVar<DynamicObject>(from);
+                DynamicObject* toObj = JavascriptOperators::TryFromVar<DynamicObject>(to);
+                if (toObj && fromObj && toObj->GetType() == scriptContext->GetLibrary()->GetObjectType())
+                {
+                    copied = toObj->TryCopy(fromObj);
+                }
+            }
+            if (!copied)
+            {
+                AssignForGenericObjects(from, to, scriptContext);
+            }
+        }
     }
 
     void JavascriptObject::AssignForGenericObjects(RecyclableObject* from, RecyclableObject* to, ScriptContext* scriptContext)

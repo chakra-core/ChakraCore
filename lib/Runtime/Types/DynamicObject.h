@@ -157,6 +157,8 @@ namespace Js
 #endif
 
     private:
+        bool IsCompatibleForCopy(DynamicObject* from) const;
+
         bool IsObjectHeaderInlinedTypeHandlerUnchecked() const;
     public:
         bool IsObjectHeaderInlinedTypeHandler() const;

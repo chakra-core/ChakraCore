@@ -11,11 +11,14 @@ var tests = [
         body: function ()
         {
             let orig = {};
+            let sym = Symbol("c");
             orig.a = 1;
             orig.b = "asdf";
+            orig[sym] = "qwert";
             let newObj = Object.assign({}, orig);
             assert.areEqual(newObj.b, orig.b);
             assert.areEqual(newObj.a, orig.a);
+            assert.areEqual(newObj[sym], orig[sym]);
         }
     },
     {

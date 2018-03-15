@@ -110,6 +110,8 @@ namespace Js
         static JavascriptString* ToStringTagHelper(Var thisArg, ScriptContext* scriptContext, TypeId type);
 
     private:
+        template <bool tryCopy>
+        static void AssignHelper(Var fromArg, RecyclableObject* to, ScriptContext* scriptContext);
         static void AssignForGenericObjects(RecyclableObject* from, RecyclableObject* to, ScriptContext* scriptContext);
         static void AssignForProxyObjects(RecyclableObject* from, RecyclableObject* to, ScriptContext* scriptContext);
         static JavascriptArray* CreateKeysHelper(RecyclableObject* object, ScriptContext* scriptContext, BOOL enumNonEnumerable, bool includeSymbolProperties, bool includeStringProperties, bool includeSpecialProperties);

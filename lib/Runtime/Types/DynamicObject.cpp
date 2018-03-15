@@ -760,9 +760,8 @@ namespace Js
         return reinterpret_cast<Field(Var)*>(reinterpret_cast<size_t>(this) + this->GetOffsetOfInlineSlots());
     }
 
-    bool DynamicObject::TryCopy(DynamicObject* from)
+    bool DynamicObject::IsCompatibleForCopy(DynamicObject* from) const
     {
-        // Validate that objects are compatible
         if (this->GetTypeHandler()->GetInlineSlotCapacity() != from->GetTypeHandler()->GetInlineSlotCapacity())
         {
             if (PHASE_TRACE1(ObjectCopyPhase))
@@ -805,8 +804,35 @@ namespace Js
             }
             return false;
         }
+        if (from->IsExternal())
+        {
+            if (PHASE_TRACE1(ObjectCopyPhase))
+            {
+                Output::Print(_u("ObjectCopy: Can't copy: from obj is External\n"));
+            }
+            return false;
+        }
+        if (this->GetScriptContext() != from->GetScriptContext())
+        {
+            if (PHASE_TRACE1(ObjectCopyPhase))
+            {
+                Output::Print(_u("ObjectCopy: Can't copy: from obj is from different ScriptContext\n"));
+            }
+            return false;
+        }
 
+        return true;
+    }
+
+    bool DynamicObject::TryCopy(DynamicObject* from)
+    {
+        // Validate that objects are compatible
+        if (!this->IsCompatibleForCopy(from))
+        {
+            return false;
+        }
         // Share the type
+        // Note: this will mark type as shared in case of success
         if (!from->GetDynamicType()->ShareType())
         {
             if (PHASE_TRACE1(ObjectCopyPhase))
