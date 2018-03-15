@@ -1522,36 +1522,4 @@ CommonNumber:
         return NumberUtilities::TryToInt64(length);
     }
 
-    Var JavascriptConversion::TryCanonicalizeAsSimpleVar(Var value)
-    {
-        TypeId typeId = JavascriptOperators::GetTypeId(value);
-        switch (typeId)
-        {
-        case TypeIds_Integer:
-        case TypeIds_Number:
-        {
-            Var taggedInt = TryCanonicalizeAsTaggedInt<true>(value);
-            if (taggedInt)
-            {
-                return taggedInt;
-            }
-
-#if FLOATVAR
-            return value;
-#else
-            return nullptr;
-#endif
-        }
-        case TypeIds_String:
-        case TypeIds_Symbol:
-            // TODO: try to canonicalize Int64/Uint64 to TaggedInt
-        case TypeIds_Int64Number:
-        case TypeIds_UInt64Number:
-            return nullptr;
-
-        default:
-            return value;
-        }
-    }
-
 } // namespace Js

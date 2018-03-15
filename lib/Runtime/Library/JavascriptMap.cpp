@@ -378,13 +378,13 @@ JavascriptMap::DeleteFromSimpleVarMap(Var value)
 {
     Assert(this->kind == MapKind::SimpleVarMap);
 
-    Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar(value);
+    Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar<true /* allowLossyConversion */>(value);
     if (!simpleVar)
     {
         return false;
     }
 
-    return this->DeleteFromVarMap<false>(simpleVar);
+    return this->DeleteFromVarMap<false /* isComplex */>(simpleVar);
 }
 
 bool
@@ -427,7 +427,7 @@ JavascriptMap::Get(Var key, Var* value)
             return true;
         }
         // If the key isn't in the map, check if the canonical value is
-        Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar(key);
+        Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar<true /* allowLossyConversion */>(key);
         // If the simple var is the same as the original key, we know it isn't in the map
         if (!simpleVar || simpleVar == key)
         {
@@ -476,7 +476,7 @@ JavascriptMap::Has(Var key)
             return true;
         }
         // If the key isn't in the map, check if the canonical value is
-        Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar(key);
+        Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar<true /* allowLossyConversion */>(key);
         // If the simple var is the same as the original key, we know it isn't in the map
         if (!simpleVar || simpleVar == key)
         {
@@ -517,7 +517,7 @@ void
 JavascriptMap::SetOnEmptyMap(Var key, Var value)
 {
     Assert(this->kind == MapKind::EmptyMap);
-    Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar(key);
+    Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar<false /* allowLossyConversion */>(key);
     if (simpleVar)
     {
         SimpleVarDataMap* newSimpleMap = RecyclerNew(this->GetRecycler(), SimpleVarDataMap, this->GetRecycler());
@@ -548,7 +548,7 @@ JavascriptMap::TrySetOnSimpleVarMap(Var key, Var value)
 {
     Assert(this->kind == MapKind::SimpleVarMap);
 
-    Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar(key);
+    Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar<false /* allowLossyConversion */>(key);
     if (!simpleVar)
     {
         return false;

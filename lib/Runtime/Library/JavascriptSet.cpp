@@ -328,7 +328,7 @@ JavascriptSet::AddToEmptySet(Var value)
 {
     Assert(this->kind == SetKind::EmptySet);
     // We cannot store an int with value -1 inside of a bit vector
-    Var taggedInt = JavascriptConversion::TryCanonicalizeAsTaggedInt<false>(value);
+    Var taggedInt = JavascriptConversion::TryCanonicalizeAsTaggedInt<false /* allowNegOne */, false /* allowLossyConversion */>(value);
     if (taggedInt)
     {
         int32 intVal = TaggedInt::ToInt32(taggedInt);
@@ -343,7 +343,7 @@ JavascriptSet::AddToEmptySet(Var value)
         return;
     }
 
-    Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar(value);
+    Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar<false /* allowLossyConversion */>(value);
     if (simpleVar)
     {
         SimpleVarDataSet* newSimpleSet = RecyclerNew(this->GetRecycler(), SimpleVarDataSet, this->GetRecycler());
@@ -369,7 +369,7 @@ bool
 JavascriptSet::TryAddToIntSet(Var value)
 {
     Assert(this->kind == SetKind::IntSet);
-    Var taggedInt = JavascriptConversion::TryCanonicalizeAsTaggedInt<false>(value);
+    Var taggedInt = JavascriptConversion::TryCanonicalizeAsTaggedInt<false /* allowNegOne */, false /* allowLossyConversion */>(value);
     if (!taggedInt)
     {
         return false;
@@ -387,7 +387,7 @@ bool
 JavascriptSet::TryAddToSimpleVarSet(Var value)
 {
     Assert(this->kind == SetKind::SimpleVarSet);
-    Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar(value);
+    Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar<false /* allowLossyConversion */>(value);
     if (!simpleVar)
     {
         return false;
@@ -432,7 +432,7 @@ JavascriptSet::Add(Var value)
             return;
         }
 
-        Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar(value);
+        Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar<false /* allowLossyConversion */>(value);
         if (simpleVar)
         {
             this->PromoteToSimpleVarSet();
@@ -490,7 +490,7 @@ bool
 JavascriptSet::IsInIntSet(Var value)
 {
     Assert(this->kind == SetKind::IntSet);
-    Var taggedInt = JavascriptConversion::TryCanonicalizeAsTaggedInt<false>(value);
+    Var taggedInt = JavascriptConversion::TryCanonicalizeAsTaggedInt<false /* allowNegOne */, true /* allowLossyConversion */>(value);
     if (!taggedInt)
     {
         return false;
@@ -520,7 +520,7 @@ bool
 JavascriptSet::DeleteFromSimpleVarSet(Var value)
 {
     Assert(this->kind == SetKind::SimpleVarSet);
-    Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar(value);
+    Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar<true /* allowLossyConversion */>(value);
     if (!simpleVar)
     {
         return false;
@@ -553,7 +553,7 @@ bool JavascriptSet::Delete(Var value)
         return this->DeleteFromSimpleVarSet(value);
 
     case SetKind::ComplexVarSet:
-        return this->DeleteFromVarSet<true>(value);
+        return this->DeleteFromVarSet<true /* isComplex */>(value);
 
     default:
         Assume(UNREACHED);
@@ -571,7 +571,7 @@ bool JavascriptSet::Has(Var value)
 
     case SetKind::IntSet:
     {
-        Var taggedInt = JavascriptConversion::TryCanonicalizeAsTaggedInt<false>(value);
+        Var taggedInt = JavascriptConversion::TryCanonicalizeAsTaggedInt<false /* allowNegOne */, true /* allowLossyConversion */ >(value);
         if (!taggedInt)
         {
             return false;
@@ -588,7 +588,7 @@ bool JavascriptSet::Has(Var value)
             return true;
         }
         // If the value isn't in the set, check if the canonical value is
-        Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar(value);
+        Var simpleVar = JavascriptConversion::TryCanonicalizeAsSimpleVar<true /* allowLossyConversion */>(value);
         // If the simple value is the same as the original value, we know it isn't in the set
         if (!simpleVar || simpleVar == value)
         {

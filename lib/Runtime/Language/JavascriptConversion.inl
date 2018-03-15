@@ -203,40 +203,109 @@ namespace Js {
        return SameValueCommon<true>(aValue, bValue);
    }
 
-   template <bool allowNegOne>
-   inline Var JavascriptConversion::TryCanonicalizeAsTaggedInt(Var value)
+   template <typename T, bool allowNegOne>
+   inline Var JavascriptConversion::TryCanonicalizeIntHelper(T val)
    {
-       if (TaggedInt::Is(value))
+       if (TaggedInt::IsOverflow(val))
        {
+           return nullptr;
+       }
+
+       if (!allowNegOne && val == -1)
+       {
+           return nullptr;
+       }
+
+       return TaggedInt::ToVarUnchecked((int)val);
+   }
+
+   template <bool allowNegOne, bool allowLossyConversion>
+   inline Var JavascriptConversion::TryCanonicalizeAsTaggedInt(Var value, TypeId typeId)
+   {
+       switch (typeId)
+       {
+       case TypeIds_Integer:
            return (allowNegOne || value != TaggedInt::ToVarUnchecked(-1))
                ? value
                : nullptr;
-       }
 
-       if (!JavascriptNumber::Is(value))
+       case TypeIds_Number:
        {
+           double doubleVal = JavascriptNumber::GetValue(value);
+           int32 intVal = 0;
+
+           if (!JavascriptNumber::TryGetInt32Value<allowLossyConversion>(doubleVal, &intVal))
+           {
+               return nullptr;
+           }
+           return TryCanonicalizeIntHelper<int32, allowNegOne>(intVal);
+       }
+       case TypeIds_Int64Number:
+       {
+           if (!allowLossyConversion)
+           {
+               return nullptr;
+           }
+           int64 int64Val = JavascriptInt64Number::UnsafeFromVar(value)->GetValue();
+
+           return TryCanonicalizeIntHelper<int64, allowNegOne>(int64Val);
+
+       }
+       case TypeIds_UInt64Number:
+       {
+           if (!allowLossyConversion)
+           {
+               return nullptr;
+           }
+           uint64 uint64Val = JavascriptUInt64Number::UnsafeFromVar(value)->GetValue();
+
+           return TryCanonicalizeIntHelper<uint64, allowNegOne>(uint64Val);
+       }
+       default:
            return nullptr;
        }
+   }
 
-       double doubleVal = JavascriptNumber::GetValue(value);
-       int32 intVal = 0;
+   template <bool allowNegOne, bool allowLossyConversion>
+   inline Var JavascriptConversion::TryCanonicalizeAsTaggedInt(Var value)
+   {
+       TypeId typeId = JavascriptOperators::GetTypeId(value);
+       return TryCanonicalizeAsTaggedInt<allowNegOne, allowLossyConversion>(value, typeId);
+   }
 
-       if (!JavascriptNumber::TryGetInt32Value<true>(doubleVal, &intVal))
+   // Lossy conversion means values are StrictEqual equivalent,
+   // but we cannot reconstruct the original value after canonicalization
+   // (e.g. -0 or an Int64Number object)
+   template <bool allowLossyConversion>
+   inline Var JavascriptConversion::TryCanonicalizeAsSimpleVar(Var value)
+   {
+       TypeId typeId = JavascriptOperators::GetTypeId(value);
+       switch (typeId)
        {
-           return nullptr;
-       }
-
-       if (TaggedInt::IsOverflow(intVal))
+       case TypeIds_Integer:
+       case TypeIds_Number:
+       case TypeIds_Int64Number:
+       case TypeIds_UInt64Number:
        {
-           return nullptr;
-       }
+           Var taggedInt = TryCanonicalizeAsTaggedInt<true, allowLossyConversion>(value, typeId);
+           if (taggedInt)
+           {
+               return taggedInt;
+           }
 
-       if (!allowNegOne && intVal == -1)
-       {
+#if FLOATVAR
+           return value;
+#else
            return nullptr;
+#endif
        }
+       case TypeIds_String:
+       case TypeIds_Symbol:
+           return nullptr;
 
-       return TaggedInt::ToVarUnchecked(intVal);
+       default:
+           return value;
+       }
    }
 
 } // namespace Js

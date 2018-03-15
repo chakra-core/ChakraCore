@@ -21,7 +21,7 @@ namespace Js
             // An EmptyMap is a map containing no elements
             EmptyMap,
             // A SimpleVarMap is a map containing only Vars which are comparable by pointer, and don't require
-            // pointer comparison
+            // value comparison
             //
             // Addition of a Var that is not comparable by pointer value causes the set to be promoted to a ComplexVarSet
             SimpleVarMap,
