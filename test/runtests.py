@@ -454,6 +454,9 @@ class TestVariant(object):
                     args.flags.split() + \
                     flags.split()
 
+        if test.get('custom-config-file') != None:
+            flags = ['-CustomConfigFile:' + test.get('custom-config-file')]
+
         if args.lldb == None:
             cmd = [binary] + flags + [os.path.basename(js_file)]
         else:
