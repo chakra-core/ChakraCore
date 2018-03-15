@@ -37,7 +37,6 @@ struct FloatTraitsBase<float> {
   typedef uint32_t Uint;
   static constexpr int kBits = sizeof(Uint) * 8;
   static constexpr int kSigBits = 23;
-  static constexpr float kHugeVal = HUGE_VALF;
   static constexpr int kMaxHexBufferSize = WABT_MAX_FLOAT_HEX;
 
   static float Strto(const char* s, char** endptr) { return strtof(s, endptr); }
@@ -48,7 +47,6 @@ struct FloatTraitsBase<double> {
   typedef uint64_t Uint;
   static constexpr int kBits = sizeof(Uint) * 8;
   static constexpr int kSigBits = 52;
-  static constexpr float kHugeVal = HUGE_VAL;
   static constexpr int kMaxHexBufferSize = WABT_MAX_DOUBLE_HEX;
 
   static double Strto(const char* s, char** endptr) {
@@ -163,7 +161,7 @@ Result FloatParser<T>::ParseFloat(const char* s,
   char* endptr;
   Float value = Traits::Strto(buffer, &endptr);
   if (endptr != buffer_end ||
-      (value == Traits::kHugeVal || value == -Traits::kHugeVal)) {
+      (value == (1.0e300 * 1.0e300) || value == -(1.0e300 * 1.0e300))) {
     return Result::Error;
   }
 
