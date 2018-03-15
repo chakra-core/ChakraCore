@@ -107,17 +107,20 @@ namespace PlatformAgnostic
         {
             switch (icuError)
             {
-                case U_BUFFER_OVERFLOW_ERROR:
-                    return ApiError::InsufficientBuffer;
-                case U_ILLEGAL_ARGUMENT_ERROR:
-                case U_UNSUPPORTED_ERROR:
-                    return ApiError::InvalidParameter;
-                case U_INVALID_CHAR_FOUND:
-                case U_TRUNCATED_CHAR_FOUND:
-                case U_ILLEGAL_CHAR_FOUND:
-                    return ApiError::InvalidUnicodeText;
-                default:
-                    return ApiError::UntranslatedError;
+            case U_ZERO_ERROR:
+                return ApiError::NoError;
+            case U_BUFFER_OVERFLOW_ERROR:
+            case U_STRING_NOT_TERMINATED_WARNING:
+                return ApiError::InsufficientBuffer;
+            case U_ILLEGAL_ARGUMENT_ERROR:
+            case U_UNSUPPORTED_ERROR:
+                return ApiError::InvalidParameter;
+            case U_INVALID_CHAR_FOUND:
+            case U_TRUNCATED_CHAR_FOUND:
+            case U_ILLEGAL_CHAR_FOUND:
+                return ApiError::InvalidUnicodeText;
+            default:
+                return ApiError::UntranslatedError;
             }
         }
 
@@ -224,56 +227,45 @@ namespace PlatformAgnostic
             return u_isUWhiteSpace(ch) == 1;
         }
 
-        int32 ChangeStringLinguisticCase(CaseFlags caseFlags, const char16* sourceString, uint32 sourceLength, char16* destString, uint32 destLength, ApiError* pErrorOut)
+        template<bool toUpper>
+        charcount_t ChangeStringLinguisticCase(const char16* sourceString, charcount_t sourceLength, char16* destString, charcount_t destLength, ApiError* pErrorOut)
         {
             int32_t resultStringLength = 0;
             UErrorCode errorCode = U_ZERO_ERROR;
+            *pErrorOut = ApiError::NoError;
 
-            if (caseFlags == CaseFlagsUpper)
+            if (toUpper)
             {
                 resultStringLength = u_strToUpper((UChar*) destString, destLength,
-                    (UChar*) sourceString, sourceLength, NULL, &errorCode);
-            }
-            else if (caseFlags == CaseFlagsLower)
-            {
-                resultStringLength = u_strToLower((UChar*) destString, destLength,
-                    (UChar*) sourceString, sourceLength, NULL, &errorCode);
+                    (UChar*) sourceString, sourceLength, "", &errorCode);
             }
             else
             {
-                Assert(false);
+                resultStringLength = u_strToLower((UChar*) destString, destLength,
+                    (UChar*) sourceString, sourceLength, "", &errorCode);
             }
 
-            if (U_FAILURE(errorCode) &&
-                !(destLength == 0 && errorCode == U_BUFFER_OVERFLOW_ERROR))
-            {
-                *pErrorOut = TranslateUErrorCode(errorCode);
-                return -1;
-            }
+            AssertMsg(resultStringLength > 0, "u_strToCase must return required destString length");
 
-            // Todo: check for resultStringLength > destLength
-            // Return insufficient buffer in that case
-            return resultStringLength;
+            *pErrorOut = TranslateUErrorCode(errorCode);
+
+            return static_cast<charcount_t>(resultStringLength);
         }
+        template charcount_t ChangeStringLinguisticCase<true>(const char16* sourceString, charcount_t sourceLength, char16* destString, charcount_t destLength, ApiError* pErrorOut);
+        template charcount_t ChangeStringLinguisticCase<false>(const char16* sourceString, charcount_t sourceLength, char16* destString, charcount_t destLength, ApiError* pErrorOut);
 
-        uint32 ChangeStringCaseInPlace(CaseFlags caseFlags, char16* stringToChange, uint32 bufferLength)
+        template<bool toUpper>
+        bool TryChangeStringCaseInPlace(char16* buffer, charcount_t bufferLength, charcount_t* required)
         {
-            // Assert pointers
-            Assert(stringToChange != nullptr);
+            Assert(buffer != nullptr);
+            Assert(bufferLength > 0);
             ApiError error = NoError;
 
-            if (bufferLength == 0 || stringToChange == nullptr)
-            {
-                return 0;
-            }
-
-            int32 ret = ChangeStringLinguisticCase(caseFlags, stringToChange, bufferLength, stringToChange, bufferLength, &error);
-
-            // Callers to this function don't expect any errors
-            Assert(error == ApiError::NoError);
-            Assert(ret > 0);
-            return (uint32) ret;
+            *required = ChangeStringLinguisticCase<toUpper>(buffer, bufferLength, buffer, bufferLength, &error);
+            return error == NoError;
         }
+        template bool TryChangeStringCaseInPlace<true>(char16* buffer, charcount_t bufferLength, charcount_t* required);
+        template bool TryChangeStringCaseInPlace<false>(char16* buffer, charcount_t bufferLength, charcount_t* required);
 
         bool IsIdStart(codepoint_t ch)
         {

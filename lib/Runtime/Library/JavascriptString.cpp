@@ -2125,7 +2125,7 @@ case_2:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return ToLocaleCaseHelper(args[0], false, scriptContext);
+        return ToLocaleCaseHelper<false>(args[0], scriptContext);
     }
 
     Var JavascriptString::EntryToLocaleUpperCase(RecyclableObject* function, CallInfo callInfo, ...)
@@ -2137,11 +2137,12 @@ case_2:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return ToLocaleCaseHelper(args[0], true, scriptContext);
+        return ToLocaleCaseHelper<true>(args[0], scriptContext);
     }
 
     Var JavascriptString::EntryToLowerCase(RecyclableObject* function, CallInfo callInfo, ...)
     {
+        using namespace PlatformAgnostic::UnicodeText;
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
         ARGUMENTS(args, callInfo);
@@ -2152,23 +2153,7 @@ case_2:
         JavascriptString * pThis = nullptr;
         GetThisStringArgument(args, scriptContext, _u("String.prototype.toLowerCase"), &pThis);
 
-        // Fast path for one character strings
-        if (pThis->GetLength() == 1)
-        {
-            char16 inChar = pThis->GetString()[0];
-            char16 outChar = inChar;
-#if DBG
-            DWORD converted =
-#endif
-                PlatformAgnostic::UnicodeText::ChangeStringCaseInPlace(
-                    PlatformAgnostic::UnicodeText::CaseFlags::CaseFlagsLower, &outChar, 1);
-
-            Assert(converted == 1);
-
-            return (inChar == outChar) ? pThis : scriptContext->GetLibrary()->GetCharStringCache().GetStringForChar(outChar);
-        }
-
-        return ToCaseCore(pThis, ToLower);
+        return ToCaseCore<false>(pThis);
     }
 
     Var JavascriptString::EntryToString(RecyclableObject* function, CallInfo callInfo, ...)
@@ -2206,6 +2191,8 @@ case_2:
 
     Var JavascriptString::EntryToUpperCase(RecyclableObject* function, CallInfo callInfo, ...)
     {
+        using namespace PlatformAgnostic::UnicodeText;
+
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
         ARGUMENTS(args, callInfo);
@@ -2216,113 +2203,47 @@ case_2:
         JavascriptString* pThis = nullptr;
         GetThisStringArgument(args, scriptContext, _u("String.prototype.toUpperCase"), &pThis);
 
+        return ToCaseCore<true>(pThis);
+    }
+
+    template<bool toUpper>
+    JavascriptString* JavascriptString::ToCaseCore(JavascriptString* pThis)
+    {
+        using namespace PlatformAgnostic::UnicodeText;
+        ScriptContext* scriptContext = pThis->type->GetScriptContext();
+
         // Fast path for one character strings
         if (pThis->GetLength() == 1)
         {
             char16 inChar = pThis->GetString()[0];
-            char16 outChar = inChar;
-#if DBG
-            DWORD converted =
-#endif
-                PlatformAgnostic::UnicodeText::ChangeStringCaseInPlace(
-                    PlatformAgnostic::UnicodeText::CaseFlags::CaseFlagsUpper, &outChar, 1);
-
-            Assert(converted == 1);
-
-            return (inChar == outChar) ? pThis : scriptContext->GetLibrary()->GetCharStringCache().GetStringForChar(outChar);
-        }
-
-        return ToCaseCore(pThis, ToUpper);
-    }
-
-    Var JavascriptString::ToCaseCore(JavascriptString* pThis, ToCase toCase)
-    {
-        Var resultVar = nullptr;
-        EnterPinnedScope((volatile void**)& pThis);
-        charcount_t count = pThis->GetLength();
-
-        const char16* inStr = pThis->GetString();
-        const char16* inStrLim = inStr + count;
-        const char16* i = inStr;
-
-        // Try to find out the chars that do not need casing (in the ASCII range)
-        if (toCase == ToUpper)
-        {
-            while (i < inStrLim)
+            char16 outChar[2] = { inChar, 0 };
+            charcount_t required = 0;
+            if (TryChangeStringCaseInPlace<toUpper>(outChar, 2, &required))
             {
-                // first range of ascii lower-case (97-122)
-                // second range of ascii lower-case (223-255)
-                // non-ascii chars (255+)
-                if (*i >= 'a')
-                {
-                    if (*i <= 'z') { break; }
-                    if (*i >= 223) { break; }
-                }
-                i++;
-            }
-        }
-        else
-        {
-            Assert(toCase == ToLower);
-            while (i < inStrLim)
-            {
-                // first range of ascii uppercase (65-90)
-                // second range of ascii uppercase (192-222)
-                // non-ascii chars (255+)
-                if (*i >= 'A')
-                {
-                    if (*i <= 'Z') { break; }
-                    if (*i >= 192)
-                    {
-                        if (*i < 223) { break; }
-                        if (*i >= 255) { break; }
-                    }
-                }
-                i++;
+                Assert(required == 1);
+                return (inChar == outChar[0]) ? pThis : scriptContext->GetLibrary()->GetCharStringCache().GetStringForChar(outChar[0]);
             }
         }
 
-        // If no char needs casing, return immediately
-        if (i == inStrLim) { return pThis; }
-
-        // Otherwise, copy the string and start casing
-        charcount_t countToCase = (charcount_t)(inStrLim - i);
-        BufferStringBuilder builder(count, pThis->type->GetScriptContext());
-        char16 *outStr = builder.DangerousGetWritableBuffer();
-
-        char16* outStrLim = outStr + count;
-        char16 *o = outStr;
-
-        while (o < outStrLim)
+        ApiError error = ApiError::NoError;
+        // As a first guess, assume the toCase'd string will be as long as the original string
+        charcount_t attemptLen = pThis->GetLength() + 1;
+        char16* attempt = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, attemptLen);
+        charcount_t attemptActual = ChangeStringLinguisticCase<toUpper>(pThis->GetSz(), pThis->GetLength(), attempt, attemptLen, &error);
+        if (error == ApiError::InsufficientBuffer)
         {
-            *o++ = *inStr++;
-        }
-
-        if (toCase == ToUpper)
-        {
-#if DBG
-            DWORD converted =
-#endif
-                PlatformAgnostic::UnicodeText::ChangeStringCaseInPlace(
-                    PlatformAgnostic::UnicodeText::CaseFlags::CaseFlagsUpper, outStrLim - countToCase, countToCase);
-
-            Assert(converted == countToCase);
+            Assert(attemptActual >= attemptLen);
+            charcount_t convertedLen = attemptActual + 1;
+            char16* converted = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, convertedLen);
+            charcount_t convertedActual = ChangeStringLinguisticCase<toUpper>(pThis->GetSz(), pThis->GetLength(), converted, convertedLen, &error);
+            Assert(convertedActual == attemptActual && error == ApiError::NoError);
+            return JavascriptString::NewWithBuffer(converted, convertedActual, scriptContext);
         }
         else
         {
-            Assert(toCase == ToLower);
-#if DBG
-            DWORD converted =
-#endif
-                PlatformAgnostic::UnicodeText::ChangeStringCaseInPlace(
-                    PlatformAgnostic::UnicodeText::CaseFlags::CaseFlagsLower, outStrLim - countToCase, countToCase);
-
-            Assert(converted == countToCase);
+            Assert(attemptActual < attemptLen && error == ApiError::NoError);
+            return JavascriptString::NewWithBuffer(attempt, attemptActual, scriptContext);
         }
-        resultVar = builder.ToString();
-        LeavePinnedScope();     //  pThis
-
-        return resultVar;
     }
 
     Var JavascriptString::EntryTrim(RecyclableObject* function, CallInfo callInfo, ...)
@@ -3320,7 +3241,9 @@ case_2:
 
         return builder.ToString();
     }
-    Var JavascriptString::ToLocaleCaseHelper(Var thisObj, bool toUpper, ScriptContext *scriptContext)
+
+    template<bool toUpper>
+    Var JavascriptString::ToLocaleCaseHelper(Var thisObj, ScriptContext *scriptContext)
     {
         using namespace PlatformAgnostic::UnicodeText;
 
@@ -3331,36 +3254,21 @@ case_2:
             pThis = JavascriptConversion::ToString(thisObj, scriptContext);
         }
 
-        uint32 strLength = pThis->GetLength();
-        if (strLength == 0)
+        if (pThis->GetLength() == 0)
         {
             return pThis;
         }
 
-        // Get the number of chars in the mapped string.
-        CaseFlags caseFlags = (toUpper ? CaseFlags::CaseFlagsUpper : CaseFlags::CaseFlagsLower);
-        const char16* str = pThis->GetString();
         ApiError err = ApiError::NoError;
-        int32 count = PlatformAgnostic::UnicodeText::ChangeStringLinguisticCase(caseFlags, str, strLength, nullptr, 0, &err);
+        charcount_t required = ChangeStringLinguisticCase<toUpper>(pThis->GetSz(), pThis->GetLength(), nullptr, 0, &err);
+        Assert(required > 0 && err == ApiError::NoError);
 
-        if (count <= 0)
-        {
-            AssertMsg(err != ApiError::NoError, "LCMapString failed");
-            Throw::InternalError();
-        }
+        charcount_t actualBufferLength = required + 1;
+        char16* actual = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, actualBufferLength);
+        charcount_t actualStringLength = ChangeStringLinguisticCase<toUpper>(pThis->GetSz(), pThis->GetLength(), actual, actualBufferLength, &err);
+        Assert(actualStringLength == required && err == ApiError::NoError && actual[actualStringLength] == 0);
 
-        BufferStringBuilder builder(count, scriptContext);
-        char16* stringBuffer = builder.DangerousGetWritableBuffer();
-
-        int count1 = PlatformAgnostic::UnicodeText::ChangeStringLinguisticCase(caseFlags, str, strLength, stringBuffer, count, &err);
-
-        if (count1 <= 0)
-        {
-            AssertMsg(err != ApiError::NoError, "LCMapString failed");
-            Throw::InternalError();
-        }
-
-        return builder.ToString();
+        return JavascriptString::NewWithBuffer(actual, actualStringLength, scriptContext);
     }
 
     int JavascriptString::IndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, charcount_t len, const char16* searchStr, int searchLen, int position)

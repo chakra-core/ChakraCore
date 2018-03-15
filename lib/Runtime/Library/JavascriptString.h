@@ -135,13 +135,10 @@ namespace Js
         static int strcmp(JavascriptString *string1, JavascriptString *string2);
 
     private:
-        enum ToCase{
-            ToLower,
-            ToUpper
-        };
         char16* GetSzCopy();   // get a copy of the inner string without compacting the chunks
 
-        static Var ToCaseCore(JavascriptString* pThis, ToCase toCase);
+        template<bool toUpper>
+        static JavascriptString* ToCaseCore(JavascriptString* pThis);
         static int IndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, charcount_t len, const char16* searchStr, int searchLen, int position);
         static int LastIndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, charcount_t len, const char16* searchStr, charcount_t searchLen, charcount_t position);
 
@@ -331,7 +328,8 @@ namespace Js
         static void SearchValueHelper(ScriptContext* scriptContext, Var aValue, JavascriptRegExp ** ppSearchRegEx, JavascriptString ** ppSearchString);
         static void ReplaceValueHelper(ScriptContext* scriptContext, Var aValue, JavascriptFunction ** ppReplaceFn, JavascriptString ** ppReplaceString);
 
-        static Var ToLocaleCaseHelper(Var thisObj, bool toUpper, ScriptContext *scriptContext);
+        template<bool toUpper>
+        static Var ToLocaleCaseHelper(Var thisObj, ScriptContext *scriptContext);
 
         static void InstantiateForceInlinedMembers();
 
