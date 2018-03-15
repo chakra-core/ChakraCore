@@ -87,6 +87,21 @@ var tests = [
             assert.areEqual(newObj.b, undefined);
             assert.areEqual(newObj.a, orig.a);
         }
+    },
+    {
+        name: "proto accessor",
+        body: function ()
+        {
+            Object.defineProperty(Object.prototype, 'b', {
+                get: function() { return "asdf"; }
+              });
+            let orig = {};
+            orig.a = 1;
+            
+            let newObj = Object.assign({}, orig);
+            assert.areEqual(newObj.b, "asdf");
+            assert.areEqual(newObj.a, orig.a);
+        }
     }
 ];
 

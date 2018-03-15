@@ -439,7 +439,8 @@
   <test>
     <default>
       <files>assign.js</files>
-      <compile-flags>-args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs -trace:ObjectCopy</compile-flags>
+      <baseline>assign.baseline</baseline>
     </default>
   </test>
 </regress-exe>
