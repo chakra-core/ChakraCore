@@ -3802,14 +3802,6 @@ LowererMD::GenerateSmIntPairTest(
     else
     {
         opndReg = IR::RegOpnd::New(TyMachReg, this->m_func);
-#ifdef SHIFTLOAD
-
-        instr = IR::Instr::New(Js::OpCode::SHLD, opndReg, opndSrc1, IR::IntConstOpnd::New(16, TyInt8, this->m_func), this->m_func);
-        instrInsert->InsertBefore(instr);
-
-        instr = IR::Instr::New(Js::OpCode::SHLD, opndReg, opndSrc2, IR::IntConstOpnd::New(16, TyInt8, this->m_func), this->m_func);
-        instrInsert->InsertBefore(instr);
-#else
         IR::Opnd * opndReg1;
 
         // s1 = MOV src1
@@ -3845,7 +3837,7 @@ LowererMD::GenerateSmIntPairTest(
 
         instr = IR::Instr::New(Js::OpCode::OR, opndReg, opndReg, opndReg1, this->m_func);
         instrInsert->InsertBefore(instr);
-#endif
+
         opndReg = opndReg->UseWithNewType(TyInt32, this->m_func)->AsRegOpnd();
 
         // CMP s1, AtomTag_Pair
@@ -6414,24 +6406,6 @@ void LowererMD::GenerateSmIntTest(IR::Opnd *opndSrc, IR::Instr *insertInstr, IR:
 
     IR::Opnd  * opndReg = IR::RegOpnd::New(TyMachReg, this->m_func);
 
-#ifdef SHIFTLOAD
-    // s1 = SHLD src1, 16 - Shift top 16-bits of src1 to s1
-    IR::Instr* instr = IR::Instr::New(Js::OpCode::SHLD, opndReg, opndSrc, IR::IntConstOpnd::New(16, TyInt8, this->m_func), this->m_func);
-    insertInstr->InsertBefore(instr);
-
-    if (instrFirst)
-    {
-        *instrFirst = instr;
-    }
-
-    // CMP s1.i16, AtomTag.i16
-    IR::Opnd *opndReg16 = opndReg->Copy(m_func);
-    opndReg16->SetType(TyInt16);
-    instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
-    instr->SetSrc1(opndReg16);
-    instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag, TyInt16, this->m_func, /* dontEncode = */ true));
-    insertInstr->InsertBefore(instr);
-#else
     // s1 = MOV src1 - Move to a temporary
     IR::Instr * instr   = IR::Instr::New(Js::OpCode::MOV, opndReg, opndSrc, this->m_func);
     insertInstr->InsertBefore(instr);
@@ -6450,7 +6424,7 @@ void LowererMD::GenerateSmIntTest(IR::Opnd *opndSrc, IR::Instr *insertInstr, IR:
     instr->SetSrc1(opndReg);
     instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag, TyInt32, this->m_func, /* dontEncode = */ true));
     insertInstr->InsertBefore(instr);
-#endif
+
     if(fContinueLabel)
     {
         // JEQ $labelHelper
