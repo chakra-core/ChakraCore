@@ -78,7 +78,7 @@ CompileAssert(false)
 #pragma prefast(push)
 #pragma prefast(disable:__WARNING_USING_UNINIT_VAR, "The ETW data generated from the manifest includes a default null function which uses unintialized memory.")
 
-#include <microsoft-scripting-chakra-instrumentationevents.h>
+#include <Microsoft-Scripting-Chakra-InstrumentationEvents.h>
 #ifdef NTBUILD
 #include <ieresp_mshtml.h>
 #include <microsoft-scripting-jscript9.internalevents.h>
