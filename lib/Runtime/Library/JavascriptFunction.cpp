@@ -3081,6 +3081,10 @@ LABEL1:
         {
             InvalidateConstructorCacheOnPrototypeChange();
             this->GetScriptContext()->GetThreadContext()->InvalidateIsInstInlineCachesForFunction(this);
+            if (propertyId == PropertyIds::prototype)
+            {
+                this->GetTypeHandler()->ClearHasKnownSlot0();
+            }
         }
 
         return result;
@@ -3111,6 +3115,10 @@ LABEL1:
         {
             InvalidateConstructorCacheOnPrototypeChange();
             this->GetScriptContext()->GetThreadContext()->InvalidateIsInstInlineCachesForFunction(this);
+            if (BuiltInPropertyRecords::prototype.Equals(propertyNameString))
+            {
+                this->GetTypeHandler()->ClearHasKnownSlot0();
+            }
         }
 
         return result;

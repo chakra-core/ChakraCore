@@ -379,6 +379,11 @@ namespace Js
             SetFlags(HasKnownSlot0Flag);
         }
 
+        void ClearHasKnownSlot0()
+        {
+            ClearFlags(HasKnownSlot0Flag);
+        }
+
         void SetIsInlineSlotCapacityLocked()
         {
             Assert(!GetIsInlineSlotCapacityLocked());

@@ -451,4 +451,9 @@
       <files>inbug.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>instancebug.js</files>
+    </default>
+  </test>
 </regress-exe>
