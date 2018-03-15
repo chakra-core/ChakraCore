@@ -196,31 +196,40 @@ namespace PlatformAgnostic
         // Change the case of a string using linguistic rules
         // Params:
         //   sourceString: The string to convert
-        //   sourceLength: The number of characters in the source string. This must be provided, the function does not assume null-termination etc. Length should be greater than 0.
+        //   sourceLength: The number of characters in the source string. This must be provided, the function does not assume null-termination. Length should be greater than 0.
         //   destString:   Optional pointer to the destination string buffer. It can be null if destLength is 0, if you want the required buffer size
         //   destLength:   Size in characters of the destination buffer, or 0 if the function shuld just return the required character count for the dest buffer.
         //   pErrorOut:    Set to NoError, or the actual error if one occurred.
         //
         // Return Value:
-        //   The length required to convert sourceString to the given case, even if destString was not large enough to hold it
+        //   The length required to convert sourceString to the given case, even if destString was not large enough to hold it, including the null terminator
         //
-        template<bool toUpper>
+        template<bool toUpper, bool useInvariant>
         charcount_t ChangeStringLinguisticCase(_In_count_(sourceLength) const char16* sourceString, _In_ charcount_t sourceLength, _Out_writes_(destLength) char16* destString, _In_ charcount_t destLength, _Out_ ApiError* pErrorOut);
+
+        template charcount_t ChangeStringLinguisticCase<true, true>(const char16* sourceString, charcount_t sourceLength, char16* destString, charcount_t destLength, ApiError* pErrorOut);
+        template charcount_t ChangeStringLinguisticCase<true, false>(const char16* sourceString, charcount_t sourceLength, char16* destString, charcount_t destLength, ApiError* pErrorOut);
+        template charcount_t ChangeStringLinguisticCase<false, true>(const char16* sourceString, charcount_t sourceLength, char16* destString, charcount_t destLength, ApiError* pErrorOut);
+        template charcount_t ChangeStringLinguisticCase<false, false>(const char16* sourceString, charcount_t sourceLength, char16* destString, charcount_t destLength, ApiError* pErrorOut);
 
         //
         // Change the case of a string using linguistic rules
         // The string is changed in place
         //
         // Params:
+        //   caseFlags: the case to convert to
         //   sourceString: The string to convert
         //   sourceLength: The number of characters in the source string. This must be provided, the function does not assume null-termination etc. Length should be greater than 0.
-        //   required: A pointer to the number of characters that the conversion would require, not including a null terminator
         //
         // Return Value:
-        //   Whether the string can be converted in-place. If it cant, allocate a buffer of size required + 1 (for null terminator) and convert the string using ChangeStringLinguisticCase
+        //   length of the translated string in the destination buffer
+        //   If the return value is less than or equal to 0, then see the value of pErrorOut to understand the error
         //
         template<bool toUpper>
-        bool TryChangeStringCaseInPlace(_Inout_count_(bufferLength) char16* buffer, _In_ charcount_t bufferLength, _Out_ charcount_t* required);
+        bool TryChangeStringLinguisticCaseInPlace(_Inout_count_(bufferLength) char16* buffer, _In_ charcount_t bufferLength, _Out_ charcount_t* required);
+
+        template bool TryChangeStringLinguisticCaseInPlace<true>(_Inout_count_(bufferLength) char16* buffer, _In_ charcount_t bufferLength, _Out_ charcount_t* required);
+        template bool TryChangeStringLinguisticCaseInPlace<false>(_Inout_count_(bufferLength) char16* buffer, _In_ charcount_t bufferLength, _Out_ charcount_t* required);
 
         //
         // Return the classification type of the character using Unicode 2.0 rules

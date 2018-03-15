@@ -137,7 +137,7 @@ namespace Js
     private:
         char16* GetSzCopy();   // get a copy of the inner string without compacting the chunks
 
-        template<bool toUpper>
+        template<bool toUpper, bool useInvariant>
         static JavascriptString* ToCaseCore(JavascriptString* pThis);
         static int IndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, charcount_t len, const char16* searchStr, int searchLen, int position);
         static int LastIndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, charcount_t len, const char16* searchStr, charcount_t searchLen, charcount_t position);
@@ -329,7 +329,7 @@ namespace Js
         static void ReplaceValueHelper(ScriptContext* scriptContext, Var aValue, JavascriptFunction ** ppReplaceFn, JavascriptString ** ppReplaceString);
 
         template<bool toUpper>
-        static Var ToLocaleCaseHelper(Var thisObj, ScriptContext *scriptContext);
+        static JavascriptString* ToLocaleCaseHelper(JavascriptString* thisObj);
 
         static void InstantiateForceInlinedMembers();
 

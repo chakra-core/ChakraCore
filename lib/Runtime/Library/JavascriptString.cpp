@@ -2125,7 +2125,10 @@ case_2:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return ToLocaleCaseHelper<false>(args[0], scriptContext);
+        JavascriptString * pThis = nullptr;
+        GetThisStringArgument(args, scriptContext, _u("String.prototype.toLocaleUpperCase"), &pThis);
+
+        return ToLocaleCaseHelper<true>(pThis);
     }
 
     Var JavascriptString::EntryToLocaleUpperCase(RecyclableObject* function, CallInfo callInfo, ...)
@@ -2137,12 +2140,22 @@ case_2:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return ToLocaleCaseHelper<true>(args[0], scriptContext);
+        JavascriptString * pThis = nullptr;
+        GetThisStringArgument(args, scriptContext, _u("String.prototype.toLocaleLowerCase"), &pThis);
+
+        return ToLocaleCaseHelper<false>(pThis);
     }
+
+    template<bool toUpper>
+    JavascriptString* JavascriptString::ToLocaleCaseHelper(JavascriptString* pThis)
+    {
+        // TODO: implement locale-sensitive Intl versions of these functions
+        return ToCaseCore<toUpper, false>(pThis);
+    }
+
 
     Var JavascriptString::EntryToLowerCase(RecyclableObject* function, CallInfo callInfo, ...)
     {
-        using namespace PlatformAgnostic::UnicodeText;
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
         ARGUMENTS(args, callInfo);
@@ -2153,7 +2166,7 @@ case_2:
         JavascriptString * pThis = nullptr;
         GetThisStringArgument(args, scriptContext, _u("String.prototype.toLowerCase"), &pThis);
 
-        return ToCaseCore<false>(pThis);
+        return ToCaseCore<false, true>(pThis);
     }
 
     Var JavascriptString::EntryToString(RecyclableObject* function, CallInfo callInfo, ...)
@@ -2191,8 +2204,6 @@ case_2:
 
     Var JavascriptString::EntryToUpperCase(RecyclableObject* function, CallInfo callInfo, ...)
     {
-        using namespace PlatformAgnostic::UnicodeText;
-
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
         ARGUMENTS(args, callInfo);
@@ -2203,47 +2214,52 @@ case_2:
         JavascriptString* pThis = nullptr;
         GetThisStringArgument(args, scriptContext, _u("String.prototype.toUpperCase"), &pThis);
 
-        return ToCaseCore<true>(pThis);
+        return ToCaseCore<true, true>(pThis);
     }
 
-    template<bool toUpper>
+    template<bool toUpper, bool useInvariant>
     JavascriptString* JavascriptString::ToCaseCore(JavascriptString* pThis)
     {
         using namespace PlatformAgnostic::UnicodeText;
         ScriptContext* scriptContext = pThis->type->GetScriptContext();
 
-        // Fast path for one character strings
+        ApiError error = ApiError::NoError;
+        charcount_t requiredStringLength = 0;
+
         if (pThis->GetLength() == 1)
         {
-            char16 inChar = pThis->GetString()[0];
-            char16 outChar[2] = { inChar, 0 };
-            charcount_t required = 0;
-            if (TryChangeStringCaseInPlace<toUpper>(outChar, 2, &required))
+            // Fast path for one character strings
+            char16 inChar = pThis->GetSz()[0];
+            char16 oneCharAttempt[2] = { inChar, 0 };
+            // Pass a length of 1 because this function does not care about null bytes
+            if (TryChangeStringLinguisticCaseInPlace<toUpper>(oneCharAttempt, 1, &requiredStringLength))
             {
-                Assert(required == 1);
-                return (inChar == outChar[0]) ? pThis : scriptContext->GetLibrary()->GetCharStringCache().GetStringForChar(outChar[0]);
+                Assert(requiredStringLength == 1);
+                if (inChar == oneCharAttempt[0])
+                {
+                    // Casing was not required
+                    return pThis;
+                }
+                else
+                {
+                    return scriptContext->GetLibrary()->GetCharStringCache().GetStringForChar(oneCharAttempt[0]);
+                }
             }
-        }
-
-        ApiError error = ApiError::NoError;
-        // As a first guess, assume the toCase'd string will be as long as the original string
-        charcount_t attemptLen = pThis->GetLength() + 1;
-        char16* attempt = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, attemptLen);
-        charcount_t attemptActual = ChangeStringLinguisticCase<toUpper>(pThis->GetSz(), pThis->GetLength(), attempt, attemptLen, &error);
-        if (error == ApiError::InsufficientBuffer)
-        {
-            Assert(attemptActual >= attemptLen);
-            charcount_t convertedLen = attemptActual + 1;
-            char16* converted = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, convertedLen);
-            charcount_t convertedActual = ChangeStringLinguisticCase<toUpper>(pThis->GetSz(), pThis->GetLength(), converted, convertedLen, &error);
-            Assert(convertedActual == attemptActual && error == ApiError::NoError);
-            return JavascriptString::NewWithBuffer(converted, convertedActual, scriptContext);
         }
         else
         {
-            Assert(attemptActual < attemptLen && error == ApiError::NoError);
-            return JavascriptString::NewWithBuffer(attempt, attemptActual, scriptContext);
+            // pre-flight to get the length required, as it may be longer than the original string
+            requiredStringLength = ChangeStringLinguisticCase<toUpper, useInvariant>(pThis->GetSz(), pThis->GetLength(), nullptr, 0, &error);
         }
+
+
+        Assert(requiredStringLength >= pThis->GetLength() && (error == ApiError::NoError || error == ApiError::InsufficientBuffer));
+
+        charcount_t bufferLength = requiredStringLength + 1;
+        char16* buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, bufferLength);
+        charcount_t finalStringLength = ChangeStringLinguisticCase<toUpper, useInvariant>(pThis->GetSz(), pThis->GetLength(), buffer, bufferLength, &error);
+        Assert(finalStringLength == requiredStringLength && error == ApiError::NoError);
+        return JavascriptString::NewWithBuffer(buffer, finalStringLength, scriptContext);
     }
 
     Var JavascriptString::EntryTrim(RecyclableObject* function, CallInfo callInfo, ...)
@@ -3240,35 +3256,6 @@ case_2:
         AssertMsg((charcount_t)(pResult - builder.DangerousGetWritableBuffer()) == cchTotalChars, "Exceeded allocated string limit");
 
         return builder.ToString();
-    }
-
-    template<bool toUpper>
-    Var JavascriptString::ToLocaleCaseHelper(Var thisObj, ScriptContext *scriptContext)
-    {
-        using namespace PlatformAgnostic::UnicodeText;
-
-        JavascriptString * pThis = JavascriptOperators::TryFromVar<JavascriptString>(thisObj);
-
-        if (!pThis)
-        {
-            pThis = JavascriptConversion::ToString(thisObj, scriptContext);
-        }
-
-        if (pThis->GetLength() == 0)
-        {
-            return pThis;
-        }
-
-        ApiError err = ApiError::NoError;
-        charcount_t required = ChangeStringLinguisticCase<toUpper>(pThis->GetSz(), pThis->GetLength(), nullptr, 0, &err);
-        Assert(required > 0 && err == ApiError::NoError);
-
-        charcount_t actualBufferLength = required + 1;
-        char16* actual = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, actualBufferLength);
-        charcount_t actualStringLength = ChangeStringLinguisticCase<toUpper>(pThis->GetSz(), pThis->GetLength(), actual, actualBufferLength, &err);
-        Assert(actualStringLength == required && err == ApiError::NoError && actual[actualStringLength] == 0);
-
-        return JavascriptString::NewWithBuffer(actual, actualStringLength, scriptContext);
     }
 
     int JavascriptString::IndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, charcount_t len, const char16* searchStr, int searchLen, int position)

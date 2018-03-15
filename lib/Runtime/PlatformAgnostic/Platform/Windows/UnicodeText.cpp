@@ -295,54 +295,59 @@ namespace PlatformAgnostic
             return (::IsNormalizedString(TranslateToWin32NormForm(normalizationForm), (LPCWSTR)testString, testStringLength) == TRUE);
         }
 
-        int32 ChangeStringLinguisticCase(CaseFlags caseFlags, const char16* sourceString, uint32 sourceLength, char16* destString, uint32 destLength, ApiError* pErrorOut)
+        template<bool toUpper, bool useInvariant>
+        charcount_t ChangeStringLinguisticCase(const char16* sourceString, charcount_t sourceLength, char16* destString, charcount_t destLength, ApiError* pErrorOut)
         {
-            // Assert pointers
-            Assert(sourceString != nullptr);
+            Assert(sourceString != nullptr && sourceLength > 0);
             Assert(destString != nullptr || destLength == 0);
-
-            // LCMapString does not allow the source length to be set to 0
-            Assert(sourceLength > 0);
 
             *pErrorOut = NoError;
 
-            DWORD dwFlags = caseFlags == CaseFlags::CaseFlagsUpper ? LCMAP_UPPERCASE : LCMAP_LOWERCASE;
+            DWORD dwFlags = toUpper ? LCMAP_UPPERCASE : LCMAP_LOWERCASE;
             dwFlags |= LCMAP_LINGUISTIC_CASING;
 
-            LCID lcid = GetUserDefaultLCID();
+            // REVIEW: The documentation for LCMapStringEx says that it returns "the number of characters or bytes in the translated string
+            // or sort key, including a terminating null character, if successful." However, in testing, this does not seem to be the case,
+            // as it always returns the count of characters without the null terminator.
+            // See https://msdn.microsoft.com/en-us/library/windows/desktop/dd318702(v=vs.85).aspx
+            int required = LCMapStringEx(
+                useInvariant ? LOCALE_NAME_INVARIANT : LOCALE_NAME_USER_DEFAULT,
+                dwFlags,
+                sourceString,
+                sourceLength,
+                destString,
+                destLength,
+                nullptr,
+                nullptr,
+                0
+            );
 
-            int translatedStringLength = LCMapStringW(lcid, dwFlags, sourceString, sourceLength, destString, destLength);
-
-            if (translatedStringLength == 0)
+            Assert(required >= 0);
+            if (required == 0)
             {
                 *pErrorOut = TranslateWin32Error(::GetLastError());
             }
 
-            Assert(translatedStringLength >= 0);
-            return (uint32) translatedStringLength;
+            return static_cast<charcount_t>(required);
         }
 
-        uint32 ChangeStringCaseInPlace(CaseFlags caseFlags, char16* sourceString, uint32 sourceLength)
+        template<bool toUpper>
+        bool TryChangeStringLinguisticCaseInPlace(char16* buffer, charcount_t bufferLength, charcount_t* required)
         {
-            // Assert pointers
-            Assert(sourceString != nullptr);
+            Assert(buffer != nullptr && bufferLength > 0);
 
-            if (sourceLength == 0 || sourceString == nullptr)
+            // Using the Win32 API, this function always succeeds, thanks to CharUpperBuff/CharLowerBuff,
+            // which never requires more space for the resulting string
+            if (toUpper)
             {
-                return 0;
+                *required = static_cast<charcount_t>(CharUpperBuff(buffer, bufferLength));
+            }
+            else
+            {
+                *required = static_cast<charcount_t>(CharLowerBuff(buffer, bufferLength));
             }
 
-            if (caseFlags == CaseFlagsUpper)
-            {
-                return (uint32) CharUpperBuff(sourceString, sourceLength);
-            }
-            else if (caseFlags == CaseFlagsLower)
-            {
-                return (uint32) CharLowerBuff(sourceString, sourceLength);
-            }
-
-            AssertMsg(false, "Invalid flags passed to ChangeStringCaseInPlace");
-            return 0;
+            return true;
         }
 
         UnicodeGeneralCategoryClass GetGeneralCategoryClass(codepoint_t codepoint)

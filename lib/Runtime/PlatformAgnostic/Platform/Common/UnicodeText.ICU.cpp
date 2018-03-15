@@ -230,6 +230,9 @@ namespace PlatformAgnostic
         template<bool toUpper>
         charcount_t ChangeStringLinguisticCase(const char16* sourceString, charcount_t sourceLength, char16* destString, charcount_t destLength, ApiError* pErrorOut)
         {
+            Assert(sourceString != nullptr && sourceLength > 0);
+            Assert(destString != nullptr || destLength == 0);
+
             int32_t resultStringLength = 0;
             UErrorCode errorCode = U_ZERO_ERROR;
             *pErrorOut = ApiError::NoError;
@@ -251,21 +254,6 @@ namespace PlatformAgnostic
 
             return static_cast<charcount_t>(resultStringLength);
         }
-        template charcount_t ChangeStringLinguisticCase<true>(const char16* sourceString, charcount_t sourceLength, char16* destString, charcount_t destLength, ApiError* pErrorOut);
-        template charcount_t ChangeStringLinguisticCase<false>(const char16* sourceString, charcount_t sourceLength, char16* destString, charcount_t destLength, ApiError* pErrorOut);
-
-        template<bool toUpper>
-        bool TryChangeStringCaseInPlace(char16* buffer, charcount_t bufferLength, charcount_t* required)
-        {
-            Assert(buffer != nullptr);
-            Assert(bufferLength > 0);
-            ApiError error = NoError;
-
-            *required = ChangeStringLinguisticCase<toUpper>(buffer, bufferLength, buffer, bufferLength, &error);
-            return error == NoError;
-        }
-        template bool TryChangeStringCaseInPlace<true>(char16* buffer, charcount_t bufferLength, charcount_t* required);
-        template bool TryChangeStringCaseInPlace<false>(char16* buffer, charcount_t bufferLength, charcount_t* required);
 
         bool IsIdStart(codepoint_t ch)
         {
