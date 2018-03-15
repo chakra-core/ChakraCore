@@ -44,10 +44,6 @@
 // Defines
 //
 
-// The shld optimization is bad for AMD hardware
-// The lack of it is ameliorated for Intel hardware by adding BTS optimization
-#undef SHIFTLOAD
-
 #define Fatal()     Js::Throw::FatalInternalError()
 
 // By default, do encode large user constants for security.
