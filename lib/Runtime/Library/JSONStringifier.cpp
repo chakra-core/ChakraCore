@@ -402,6 +402,8 @@ JSONStringifier::AppendObjectElement(
             // If gap is specified, a space is appended
             UInt32Math::Inc(this->totalStringLength);
         }
+
+        jsonObject->Push(*prop);
     }
 }
 
@@ -421,8 +423,6 @@ JSONStringifier::ReadObjectElement(
     this->ReadProperty(propertyName, obj, &prop.propertyValue, value, objectStack);
 
     this->AppendObjectElement(propertyName, jsonObject, &prop);
-
-    jsonObject->Push(prop);
 }
 
 void
@@ -441,8 +441,6 @@ JSONStringifier::ReadObjectElement(
     this->ReadProperty(propertyName, obj, &prop.propertyValue, value, objectStack);
 
     this->AppendObjectElement(propertyName, jsonObject, &prop);
-
-    jsonObject->Push(prop);
 }
 
 // Calculates how many additional characters are needed for printing the Object/Array structure
