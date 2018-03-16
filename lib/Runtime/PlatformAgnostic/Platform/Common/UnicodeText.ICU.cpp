@@ -227,7 +227,7 @@ namespace PlatformAgnostic
             return u_isUWhiteSpace(ch) == 1;
         }
 
-        template<bool toUpper>
+        template<bool toUpper, bool useInvariant>
         charcount_t ChangeStringLinguisticCase(const char16* sourceString, charcount_t sourceLength, char16* destString, charcount_t destLength, ApiError* pErrorOut)
         {
             Assert(sourceString != nullptr && sourceLength > 0);
@@ -237,15 +237,18 @@ namespace PlatformAgnostic
             UErrorCode errorCode = U_ZERO_ERROR;
             *pErrorOut = ApiError::NoError;
 
+            // u_strTo treats nullptr as the system default locale and "" as root
+            const char* locale = useInvariant ? "" : nullptr;
+
             if (toUpper)
             {
                 resultStringLength = u_strToUpper((UChar*) destString, destLength,
-                    (UChar*) sourceString, sourceLength, "", &errorCode);
+                    (UChar*) sourceString, sourceLength, locale, &errorCode);
             }
             else
             {
                 resultStringLength = u_strToLower((UChar*) destString, destLength,
-                    (UChar*) sourceString, sourceLength, "", &errorCode);
+                    (UChar*) sourceString, sourceLength, locale, &errorCode);
             }
 
             AssertMsg(resultStringLength > 0, "u_strToCase must return required destString length");
@@ -253,6 +256,15 @@ namespace PlatformAgnostic
             *pErrorOut = TranslateUErrorCode(errorCode);
 
             return static_cast<charcount_t>(resultStringLength);
+        }
+
+        template<bool toUpper>
+        bool TryChangeStringLinguisticCaseInPlace(char16* buffer, charcount_t bufferLength, charcount_t* required)
+        {
+            ApiError error = ApiError::NoError;
+            *required = ChangeStringLinguisticCase<toUpper, true>(buffer, bufferLength, buffer, bufferLength, &error);
+
+            return error == ApiError::NoError;
         }
 
         bool IsIdStart(codepoint_t ch)
