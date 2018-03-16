@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
-  <!--
-  Some entries are duplicated so we can have all relevant tests
-  in a single file while allowing extra asserts to run depending on ICU/WinGlob
-  -->
   <test>
     <default>
       <files>Collator.js</files>
@@ -14,6 +10,12 @@
     <default>
       <files>CollatorOptions.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
+      <tags>Intl</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>common.js</files>
       <tags>Intl</tags>
     </default>
   </test>

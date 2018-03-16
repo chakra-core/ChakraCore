@@ -740,7 +740,8 @@ namespace Js
         int parsedLength = 0;
         char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
         int forLangTagResultLength = uloc_forLanguageTag(langtag8, localeID, ULOC_FULLNAME_CAPACITY, &parsedLength, &status);
-        if (status == U_ILLEGAL_ARGUMENT_ERROR)
+        AssertOrFailFast(parsedLength >= 0);
+        if (status == U_ILLEGAL_ARGUMENT_ERROR || ((charcount_t) parsedLength) < langtag->GetLength())
         {
             // The string passed in to NormalizeLanguageTag has already passed IsStructurallyValidLanguageTag.
             // However, duplicate unicode extension keys, such as "de-u-co-phonebk-co-phonebk", are structurally
@@ -748,6 +749,8 @@ namespace Js
             // V8 ~6.2 says that the above language tag is invalid, while SpiderMonkey ~58 handles it.
             // Until we have a more spec-compliant implementation of CanonicalizeLanguageTag, err on the side
             // of caution and say it is invalid.
+            // We also check for parsedLength < langtag->GetLength() because there are cases when status == U_ZERO_ERROR
+            // but the langtag was not valid, such as "en-tesTER-TESter" (OSS-Fuzz #6657).
             // NOTE: make sure we check for `undefined` at the platform.normalizeLanguageTag callsite.
             return scriptContext->GetLibrary()->GetUndefined();
         }
