@@ -5,6 +5,7 @@
 
 #include "RuntimePlatformAgnosticPch.h"
 #include "UnicodeText.h"
+#include "UnicodeTextInternal.h"
 
 #include <windows.h>
 #include "Runtime.h"
@@ -329,25 +330,6 @@ namespace PlatformAgnostic
             }
 
             return static_cast<charcount_t>(required);
-        }
-
-        template<bool toUpper>
-        bool TryChangeStringLinguisticCaseInPlace(char16* buffer, charcount_t bufferLength, charcount_t* required)
-        {
-            Assert(buffer != nullptr && bufferLength > 0);
-
-            // Using the Win32 API, this function always succeeds, thanks to CharUpperBuff/CharLowerBuff,
-            // which never requires more space for the resulting string
-            if (toUpper)
-            {
-                *required = static_cast<charcount_t>(CharUpperBuff(buffer, bufferLength));
-            }
-            else
-            {
-                *required = static_cast<charcount_t>(CharLowerBuff(buffer, bufferLength));
-            }
-
-            return true;
         }
 
         UnicodeGeneralCategoryClass GetGeneralCategoryClass(codepoint_t codepoint)

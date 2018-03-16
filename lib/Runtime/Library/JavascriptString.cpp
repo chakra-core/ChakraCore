@@ -2221,45 +2221,35 @@ case_2:
     JavascriptString* JavascriptString::ToCaseCore(JavascriptString* pThis)
     {
         using namespace PlatformAgnostic::UnicodeText;
+        if (pThis->GetLength() == 0)
+        {
+            return pThis;
+        }
+
         ScriptContext* scriptContext = pThis->type->GetScriptContext();
 
         ApiError error = ApiError::NoError;
-        charcount_t requiredStringLength = 0;
+        // pre-flight to get the length required, as it may be longer than the original string
+        charcount_t requiredStringLength = ChangeStringLinguisticCase<toUpper, useInvariant>(pThis->GetSz(), pThis->GetLength(), nullptr, 0, &error);
 
-        if (pThis->GetLength() == 1)
+        // REVIEW: this assert may be too defensive if strings can get shorter through upper/lower casing
+        Assert(requiredStringLength >= pThis->GetLength() && (error == ApiError::NoError || error == ApiError::InsufficientBuffer));
+
+        if (requiredStringLength == 1)
         {
-            // Fast path for one character strings
-            char16 inChar = pThis->GetSz()[0];
-            char16 oneCharAttempt[2] = { inChar, 0 };
-            // Pass a length of 1 because this function does not care about null bytes
-            if (TryChangeStringLinguisticCaseInPlace<toUpper>(oneCharAttempt, 1, &requiredStringLength))
-            {
-                Assert(requiredStringLength == 1);
-                if (inChar == oneCharAttempt[0])
-                {
-                    // Casing was not required
-                    return pThis;
-                }
-                else
-                {
-                    return scriptContext->GetLibrary()->GetCharStringCache().GetStringForChar(oneCharAttempt[0]);
-                }
-            }
+            char16 buffer[2] = { pThis->GetSz()[0], 0 };
+            charcount_t actualStringLength = ChangeStringLinguisticCase<toUpper, useInvariant>(pThis->GetSz(), pThis->GetLength(), buffer, 2, &error);
+            Assert(actualStringLength == 1 && error == ApiError::NoError);
+            return scriptContext->GetLibrary()->GetCharStringCache().GetStringForChar(buffer[0]);
         }
         else
         {
-            // pre-flight to get the length required, as it may be longer than the original string
-            requiredStringLength = ChangeStringLinguisticCase<toUpper, useInvariant>(pThis->GetSz(), pThis->GetLength(), nullptr, 0, &error);
+            charcount_t bufferLength = requiredStringLength + 1;
+            char16* buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, bufferLength);
+            charcount_t actualStringLength = ChangeStringLinguisticCase<toUpper, useInvariant>(pThis->GetSz(), pThis->GetLength(), buffer, bufferLength, &error);
+            Assert(actualStringLength == requiredStringLength && error == ApiError::NoError);
+            return JavascriptString::NewWithBuffer(buffer, actualStringLength, scriptContext);
         }
-
-
-        Assert(requiredStringLength >= pThis->GetLength() && (error == ApiError::NoError || error == ApiError::InsufficientBuffer));
-
-        charcount_t bufferLength = requiredStringLength + 1;
-        char16* buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, bufferLength);
-        charcount_t finalStringLength = ChangeStringLinguisticCase<toUpper, useInvariant>(pThis->GetSz(), pThis->GetLength(), buffer, bufferLength, &error);
-        Assert(finalStringLength == requiredStringLength && error == ApiError::NoError);
-        return JavascriptString::NewWithBuffer(buffer, finalStringLength, scriptContext);
     }
 
     Var JavascriptString::EntryTrim(RecyclableObject* function, CallInfo callInfo, ...)

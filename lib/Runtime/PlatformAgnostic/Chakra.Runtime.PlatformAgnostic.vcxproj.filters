@@ -31,11 +31,9 @@
     <ClInclude Include="PerfTrace.h">
       <Filter>Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="IPlatformAgnosticResource.h">
-      <Filter>Interfaces</Filter>
-    </ClInclude>
     <ClInclude Include="ChakraICU.h">
       <Filter>Interfaces</Filter>
     </ClInclude>
+    <ClInclude Include="UnicodeTextInternal.h" />
   </ItemGroup>
 </Project>

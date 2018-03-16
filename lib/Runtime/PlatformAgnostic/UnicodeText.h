@@ -207,30 +207,6 @@ namespace PlatformAgnostic
         template<bool toUpper, bool useInvariant>
         charcount_t ChangeStringLinguisticCase(_In_count_(sourceLength) const char16* sourceString, _In_ charcount_t sourceLength, _Out_writes_(destLength) char16* destString, _In_ charcount_t destLength, _Out_ ApiError* pErrorOut);
 
-        template charcount_t ChangeStringLinguisticCase<true, true>(const char16* sourceString, charcount_t sourceLength, char16* destString, charcount_t destLength, ApiError* pErrorOut);
-        template charcount_t ChangeStringLinguisticCase<true, false>(const char16* sourceString, charcount_t sourceLength, char16* destString, charcount_t destLength, ApiError* pErrorOut);
-        template charcount_t ChangeStringLinguisticCase<false, true>(const char16* sourceString, charcount_t sourceLength, char16* destString, charcount_t destLength, ApiError* pErrorOut);
-        template charcount_t ChangeStringLinguisticCase<false, false>(const char16* sourceString, charcount_t sourceLength, char16* destString, charcount_t destLength, ApiError* pErrorOut);
-
-        //
-        // Change the case of a string using linguistic rules
-        // The string is changed in place
-        //
-        // Params:
-        //   caseFlags: the case to convert to
-        //   sourceString: The string to convert
-        //   sourceLength: The number of characters in the source string. This must be provided, the function does not assume null-termination etc. Length should be greater than 0.
-        //
-        // Return Value:
-        //   length of the translated string in the destination buffer
-        //   If the return value is less than or equal to 0, then see the value of pErrorOut to understand the error
-        //
-        template<bool toUpper>
-        bool TryChangeStringLinguisticCaseInPlace(_Inout_count_(bufferLength) char16* buffer, _In_ charcount_t bufferLength, _Out_ charcount_t* required);
-
-        template bool TryChangeStringLinguisticCaseInPlace<true>(_Inout_count_(bufferLength) char16* buffer, _In_ charcount_t bufferLength, _Out_ charcount_t* required);
-        template bool TryChangeStringLinguisticCaseInPlace<false>(_Inout_count_(bufferLength) char16* buffer, _In_ charcount_t bufferLength, _Out_ charcount_t* required);
-
         //
         // Return the classification type of the character using Unicode 2.0 rules
         // Used for ES5 compat

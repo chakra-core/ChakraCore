@@ -121,15 +121,6 @@ namespace PlatformAgnostic
             }
         }
 
-        template<bool toUpper>
-        bool TryChangeStringLinguisticCaseInPlace(char16* buffer, charcount_t bufferLength, charcount_t* required)
-        {
-            ApiError error = ApiError::NoError;
-            *required = ChangeStringLinguisticCase<toUpper, true>(buffer, bufferLength, buffer, bufferLength, &error);
-
-            return error == ApiError::NoError;
-        }
-
         int LogicalStringCompare(const char16* string1, const char16* string2)
         {
             return PlatformAgnostic::UnicodeText::Internal::LogicalStringCompareImpl(string1, string2);

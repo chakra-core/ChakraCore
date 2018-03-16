@@ -5,6 +5,7 @@
 
 #include "RuntimePlatformAgnosticPch.h"
 #include "UnicodeText.h"
+#include "UnicodeTextInternal.h"
 #include "ChakraICU.h"
 
 namespace PlatformAgnostic
@@ -256,15 +257,6 @@ namespace PlatformAgnostic
             *pErrorOut = TranslateUErrorCode(errorCode);
 
             return static_cast<charcount_t>(resultStringLength);
-        }
-
-        template<bool toUpper>
-        bool TryChangeStringLinguisticCaseInPlace(char16* buffer, charcount_t bufferLength, charcount_t* required)
-        {
-            ApiError error = ApiError::NoError;
-            *required = ChangeStringLinguisticCase<toUpper, true>(buffer, bufferLength, buffer, bufferLength, &error);
-
-            return error == ApiError::NoError;
         }
 
         bool IsIdStart(codepoint_t ch)
