@@ -248,6 +248,7 @@ namespace Js
 
     BYTE* SharedArrayBuffer::AllocBuffer(uint32 length, uint32 maxLength)
     {
+        Unused(maxLength); // WebAssembly only
 #if ENABLE_FAST_ARRAYBUFFER
         if (this->IsValidVirtualBufferLength(length))
         {
@@ -262,6 +263,7 @@ namespace Js
 
     void SharedArrayBuffer::FreeBuffer(BYTE* buffer, uint32 length, uint32 maxLength)
     {
+        Unused(maxLength); // WebAssembly only
 #if ENABLE_FAST_ARRAYBUFFER
         //AsmJS Virtual Free
         if (this->IsValidVirtualBufferLength(length))
@@ -585,7 +587,7 @@ namespace Js
         return false;
     }
 
-    __checkReturn bool WebAssemblySharedArrayBuffer::GrowMemory(uint32 newBufferLength)
+    _Must_inspect_result_ bool WebAssemblySharedArrayBuffer::GrowMemory(uint32 newBufferLength)
     {
         uint32 bufferLength = sharedContents->bufferLength;
         BYTE* buffer = sharedContents->buffer;

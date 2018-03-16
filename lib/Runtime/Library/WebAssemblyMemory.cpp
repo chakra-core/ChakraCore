@@ -17,18 +17,19 @@ WebAssemblyMemory::WebAssemblyMemory(ArrayBufferBase* buffer, uint32 initial, ui
     m_initial(initial),
     m_maximum(maximum)
 {
+    Assert(buffer->IsWebAssemblyArrayBuffer());
     Assert(m_buffer);
     Assert(m_buffer->GetByteLength() >= UInt32Math::Mul<WebAssembly::PageSize>(initial));
 }
 
 
-__checkReturn bool WebAssemblyMemory::AreLimitsValid(uint32 initial, uint32 maximum)
+_Must_inspect_result_ bool WebAssemblyMemory::AreLimitsValid(uint32 initial, uint32 maximum)
 {
     return initial <= maximum && initial <= Wasm::Limits::GetMaxMemoryInitialPages() && maximum <= Wasm::Limits::GetMaxMemoryMaximumPages();
 }
 
 
-__checkReturn bool WebAssemblyMemory::AreLimitsValid(uint32 initial, uint32 maximum, uint32 bufferLength)
+_Must_inspect_result_ bool WebAssemblyMemory::AreLimitsValid(uint32 initial, uint32 maximum, uint32 bufferLength)
 {
     if (!AreLimitsValid(initial, maximum))
     {
@@ -186,7 +187,7 @@ WebAssemblyMemory::GrowInternal(uint32 deltaPages)
     if (m_buffer->IsSharedArrayBuffer())
     {
         AssertOrFailFast(Wasm::Threads::IsEnabled());
-        if (!((WebAssemblySharedArrayBuffer*)PointerValue(m_buffer))->GrowMemory(newBytes))
+        if (!((WebAssemblySharedArrayBuffer*)GetBuffer())->GrowMemory(newBytes))
         {
             return -1;
         }
@@ -197,7 +198,7 @@ WebAssemblyMemory::GrowInternal(uint32 deltaPages)
         JavascriptExceptionObject* caughtExceptionObject = nullptr;
         try
         {
-            WebAssemblyArrayBuffer* newBuffer = ((WebAssemblyArrayBuffer*)PointerValue(m_buffer))->GrowMemory(newBytes);
+            WebAssemblyArrayBuffer* newBuffer = ((WebAssemblyArrayBuffer*)GetBuffer())->GrowMemory(newBytes);
             if (newBuffer == nullptr)
             {
                 return -1;

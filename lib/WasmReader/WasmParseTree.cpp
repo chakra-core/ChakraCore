@@ -60,7 +60,7 @@ bool IsLocalType(WasmTypes::WasmType type)
         return false;
     }
 #endif
-    return (uint32)(type - 1) < (WasmTypes::Limit - 1);
+    return type > WasmTypes::Void && type < WasmTypes::Limit;
 }
 
 uint32 GetTypeByteSize(WasmType type)

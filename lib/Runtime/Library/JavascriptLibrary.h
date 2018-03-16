@@ -98,7 +98,6 @@ namespace Js
     class SourceTextModuleRecord;
     class ArrayBufferBase;
     class SharedContents;
-    class SharedContents;
     typedef RecyclerFastAllocator<JavascriptNumber, LeafBit> RecyclerJavascriptNumberAllocator;
     typedef JsUtil::List<Var, Recycler> ListForListIterator;
 

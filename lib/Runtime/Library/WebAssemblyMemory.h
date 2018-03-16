@@ -54,9 +54,8 @@ namespace Js
 #endif
     private:
         WebAssemblyMemory(ArrayBufferBase* buffer, uint32 initial, uint32 maximum, DynamicType * type);
-        static __checkReturn bool AreLimitsValid(uint32 initial, uint32 maximum);
-        static __checkReturn bool AreLimitsValid(uint32 initial, uint32 maximum, uint32 bufferLength);
-
+        static _Must_inspect_result_ bool AreLimitsValid(uint32 initial, uint32 maximum);
+        static _Must_inspect_result_ bool AreLimitsValid(uint32 initial, uint32 maximum, uint32 bufferLength);
 
         Field(ArrayBufferBase*) m_buffer;
 

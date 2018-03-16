@@ -104,6 +104,7 @@ namespace Js
         virtual bool IsValidVirtualBufferLength(uint length) const;
 
     protected:
+        // maxLength is necessary only for WebAssemblySharedArrayBuffer to know how much it can grow
         // Must call after constructor of child class is completed. Required to be able to make correct virtual calls
         void Init(uint32 length, uint32 maxLength);
         virtual BYTE* AllocBuffer(uint32 length, uint32 maxLength);
@@ -148,7 +149,7 @@ namespace Js
 
         virtual bool IsValidVirtualBufferLength(uint length) const override;
         virtual bool IsWebAssemblyArrayBuffer() override { return true; }
-        __checkReturn bool GrowMemory(uint32 newBufferLength);
+        _Must_inspect_result_ bool GrowMemory(uint32 newBufferLength);
 
     protected:
         virtual BYTE* AllocBuffer(uint32 length, uint32 maxLength) override;
