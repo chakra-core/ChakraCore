@@ -6,6 +6,7 @@
 
 #include "Core/CommonTypedefs.h"
 #include "ChakraICU.h"
+#include "sal.h"
 
 namespace PlatformAgnostic
 {
