@@ -63,6 +63,18 @@ private:
     uint32 ReadArrayLength(_In_ RecyclableObject* value);
     JSONArray* ReadArray(_In_ RecyclableObject* arr, _In_ JSONObjectStack* objectStack);
 
+    void AppendObjectElement(
+        _In_ JavascriptString* propertyName,
+        _In_ JSONObject* jsonObject,
+        _In_ JSONObjectProperty* prop);
+
+    void ReadObjectElement(
+        _In_ JavascriptString* propertyName,
+        _In_ uint32 numericIndex,
+        _In_ RecyclableObject* obj,
+        _In_ JSONObject* jsonObject,
+        _In_ JSONObjectStack* objectStack);
+
     void ReadObjectElement(
         _In_ JavascriptString* propertyName,
         _In_opt_ PropertyRecord const* propertyRecord,
@@ -95,8 +107,7 @@ public:
         _In_ JavascriptString* key,
         _In_opt_ RecyclableObject* holder,
         _Out_ JSONProperty* prop,
-        _In_opt_ Var value,
-        _In_opt_ const PropertyRecord* propertyRecord,
+        _In_ Var value,
         _In_ JSONObjectStack* objectStack);
 
     const char16* GetGap() const { return this->gap; };

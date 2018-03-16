@@ -21,5 +21,6 @@ namespace Js
         TypedArrayIndexEnumerator(TypedArrayBase* typeArrayBase, EnumeratorFlags flags, ScriptContext* scriptContext);
         virtual JavascriptString * MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
         virtual void Reset() override;
+        virtual uint32 GetCurrentItemIndex()  override { return index; }
     };
 }
