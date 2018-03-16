@@ -1642,7 +1642,7 @@ LError:
         double dblT;
         uint ivar;
 
-        // See: https://github.com/Microsoft/ChakraCore/issues/1318
+        // See: https://github.com/Microsoft/ChakraCore/issues/1665
         // Date.UTC should return NaN with 0 arguments.
         // args.Info.Count includes an implicit first parameter, so we check for Count <= 1.
         if (args.Info.Count <= 1)
@@ -1679,13 +1679,18 @@ LError:
             rgdbl[0] += 1900;
         }
 
-        // REVIEW : do we need to explicitly handle overflow or will the compiler
-        // do the right thing (produce Infinity or NaN).
-        // Get the local time value.
+        // Get the UTC time value.
         tv = TvFromDate(rgdbl[0], rgdbl[1], rgdbl[2] - 1,
             rgdbl[3] * 3600000 + rgdbl[4] * 60000 + rgdbl[5] * 1000 + rgdbl[6]);
 
-        return tv;
+        if (tv < ktvMin || tv > ktvMax)
+        {
+            return JavascriptNumber::NaN;
+        }
+        else
+        {
+            return tv;
+        }
     }
 
     // Maximum number of arguments used by this set operation.
