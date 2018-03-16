@@ -27,7 +27,7 @@ private:
     void TypeSpecIndex();
     void UpdateValue(StackSym * newHeadSegmentSym, StackSym * newHeadSegmentLengthSym, StackSym * newLengthSym);
     void CheckVirtualArrayBounds();
-    void TryEleminiteBoundsCheck();
+    void TryEliminiteBoundsCheck();
     void CheckLoops();
     void DoArrayChecks();
     void DoLengthLoad();

@@ -316,7 +316,7 @@ void GlobOpt::ArraySrcOpt::CheckVirtualArrayBounds()
 #endif
 }
 
-void GlobOpt::ArraySrcOpt::TryEleminiteBoundsCheck()
+void GlobOpt::ArraySrcOpt::TryEliminiteBoundsCheck()
 {
     AnalysisAssert(indexOpnd != nullptr || baseOwnerIndir != nullptr);
     Assert(needsHeadSegmentLength);
@@ -1822,7 +1822,7 @@ void GlobOpt::ArraySrcOpt::Optimize()
 
     if (needsBoundChecks && globOpt->DoBoundCheckElimination())
     {
-        TryEleminiteBoundsCheck();
+        TryEliminiteBoundsCheck();
     }
 
     if (doArrayChecks || doHeadSegmentLoad || doHeadSegmentLengthLoad || doLengthLoad || doExtractBoundChecks)
@@ -1898,7 +1898,7 @@ void GlobOpt::ArraySrcOpt::Optimize()
             else
             {
                 Assert(baseOwnerInstr->GetSrc2() == baseOpnd);
-                baseOwnerInstr->ReplaceSrc1(baseArrayOpnd);
+                baseOwnerInstr->ReplaceSrc2(baseArrayOpnd);
             }
         }
         else
