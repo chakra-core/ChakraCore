@@ -4335,6 +4335,7 @@ IRBuilder::BuildElementCP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
     {
     case Js::OpCode::LdFldForTypeOf:
     case Js::OpCode::LdFld:
+    case Js::OpCode::LdLen_A:
         if (fieldSymOpnd->IsPropertySymOpnd())
         {
             fieldSymOpnd->AsPropertySymOpnd()->TryDisableRuntimePolymorphicCache();
