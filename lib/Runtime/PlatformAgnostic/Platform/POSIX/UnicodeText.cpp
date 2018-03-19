@@ -59,7 +59,7 @@ namespace PlatformAgnostic
             }
 
             charcount_t len = static_cast<charcount_t>(minm(minm(destLength, sourceLength), MaxCharCount));
-            CaseConversionFunc fnc = toUpper ? PAL_towlower : PAL_towupper;
+            CaseConversionFunc fnc = toUpper ? PAL_towupper : PAL_towlower;
             for (charcount_t i = 0; i < len; i++)
             {
                 destString[i] = fnc(sourceString[i]);
