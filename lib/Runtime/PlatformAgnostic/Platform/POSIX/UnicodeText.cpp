@@ -5,6 +5,8 @@
 
 #include "RuntimePlatformAgnosticPch.h"
 #include "UnicodeText.h"
+#include "UnicodeTextInternal.h"
+
 #include <cctype>
 #include <string.h>
 #define IS_CHAR(ch) \

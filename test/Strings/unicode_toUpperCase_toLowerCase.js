@@ -9,8 +9,6 @@ var tests = [
     {
         name: "Edge cases",
         body() {
-            assert.areEqual("", "".toUpperCase(), "Empty string should return itself (toUpperCase)");
-            assert.areEqual("", "".toLowerCase(), "Empty string should return itself (toLowerCase)");
             assert.areEqual("\uDC37", "\uDC37".toUpperCase(), "Invalid unicode should be passed over (single character, toUpperCase)");
             assert.areEqual("\uDC37", "\uDC37".toLowerCase(), "Invalid unicode should be passed over (single character, toLowerCase)");
             assert.areEqual("ABC\uDC37DEF", "abc\uDC37def".toUpperCase(), "Invalid unicode should be passed over (mid-string, toUpperCase)");

@@ -324,6 +324,12 @@ namespace PlatformAgnostic
             );
 
             Assert(required >= 0);
+            if (destString != nullptr)
+            {
+                Assert(static_cast<charcount_t>(required) == destLength - 1);
+                destString[required] = 0;
+            }
+
             if (required == 0)
             {
                 *pErrorOut = TranslateWin32Error(::GetLastError());

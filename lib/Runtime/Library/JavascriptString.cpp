@@ -2126,9 +2126,9 @@ case_2:
         Assert(!(callInfo.Flags & CallFlags_New));
 
         JavascriptString * pThis = nullptr;
-        GetThisStringArgument(args, scriptContext, _u("String.prototype.toLocaleUpperCase"), &pThis);
+        GetThisStringArgument(args, scriptContext, _u("String.prototype.toLocaleLowerCase"), &pThis);
 
-        return ToLocaleCaseHelper<true>(pThis);
+        return ToLocaleCaseHelper<false /* toUpper */>(pThis);
     }
 
     Var JavascriptString::EntryToLocaleUpperCase(RecyclableObject* function, CallInfo callInfo, ...)
@@ -2141,9 +2141,9 @@ case_2:
         Assert(!(callInfo.Flags & CallFlags_New));
 
         JavascriptString * pThis = nullptr;
-        GetThisStringArgument(args, scriptContext, _u("String.prototype.toLocaleLowerCase"), &pThis);
+        GetThisStringArgument(args, scriptContext, _u("String.prototype.toLocaleUpperCase"), &pThis);
 
-        return ToLocaleCaseHelper<false>(pThis);
+        return ToLocaleCaseHelper<true /* toUpper */>(pThis);
     }
 
     template<bool toUpper>
@@ -2229,14 +2229,22 @@ case_2:
         ScriptContext* scriptContext = pThis->type->GetScriptContext();
 
         ApiError error = ApiError::NoError;
+
         // pre-flight to get the length required, as it may be longer than the original string
+        // NOTE: ICU and Win32(/POSIX) implementations of these functions differ slightly in how to get the required number of characters.
+        // For Win32 (LCMapStringEx), you must provide nullptr/0, as providing a buffer that is too small will cause an error and will *not*
+        // report the number of characters required. For ICU, however, you can provide a buffer that is too short, and it will still return
+        // the length it actually needs.
+        // TODO: Investigate pre-allocating buffers for ICU, as the ICU case will be the default going forward
         charcount_t requiredStringLength = ChangeStringLinguisticCase<toUpper, useInvariant>(pThis->GetSz(), pThis->GetLength(), nullptr, 0, &error);
+        Assert(error == ApiError::NoError || error == ApiError::InsufficientBuffer);
 
         // REVIEW: this assert may be too defensive if strings can get shorter through upper/lower casing
-        Assert(requiredStringLength >= pThis->GetLength() && (error == ApiError::NoError || error == ApiError::InsufficientBuffer));
+        Assert(requiredStringLength >= pThis->GetLength());
 
         if (requiredStringLength == 1)
         {
+            // Fast path for one-char strings
             char16 buffer[2] = { pThis->GetSz()[0], 0 };
             charcount_t actualStringLength = ChangeStringLinguisticCase<toUpper, useInvariant>(pThis->GetSz(), pThis->GetLength(), buffer, 2, &error);
             Assert(actualStringLength == 1 && error == ApiError::NoError);
