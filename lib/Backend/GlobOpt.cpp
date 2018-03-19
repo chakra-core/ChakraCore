@@ -2455,9 +2455,8 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     MarkArgumentsUsedForBranch(instr);
     CSEOptimize(this->currentBlock, &instr, &src1Val, &src2Val, &src1IndirIndexVal);
     OptimizeChecks(instr);
-    OptArraySrc(&instr);
+    OptArraySrc(&instr, &src1Val, &src2Val);
     OptNewScObject(&instr, src1Val);
-
 
     instr = this->OptPeep(instr, src1Val, src2Val);
 
@@ -10738,47 +10737,56 @@ GlobOpt::ToVarUses(IR::Instr *instr, IR::Opnd *opnd, bool isDst, Value *val)
         IR::RegOpnd *indexOpnd = opnd->AsIndirOpnd()->GetIndexOpnd();
         if (indexOpnd && !indexOpnd->m_sym->IsTypeSpec())
         {
-            if((indexOpnd->GetValueType().IsInt()
-                    ? !IsTypeSpecPhaseOff(func)
-                    : indexOpnd->GetValueType().IsLikelyInt() && DoAggressiveIntTypeSpec()) && !GetIsAsmJSFunc()) // typespec is disabled for asmjs
-            {
-                StackSym *const indexVarSym = indexOpnd->m_sym;
-                Value *const indexValue = CurrentBlockData()->FindValue(indexVarSym);
-                Assert(indexValue);
-                Assert(indexValue->GetValueInfo()->IsLikelyInt());
-
-                ToInt32(instr, indexOpnd, currentBlock, indexValue, opnd->AsIndirOpnd(), false);
-                Assert(indexValue->GetValueInfo()->IsInt());
-
-                if(!IsLoopPrePass())
-                {
-                    indexOpnd = opnd->AsIndirOpnd()->GetIndexOpnd();
-                    if(indexOpnd)
-                    {
-                        Assert(indexOpnd->m_sym->IsTypeSpec());
-                        IntConstantBounds indexConstantBounds;
-                        AssertVerify(indexValue->GetValueInfo()->TryGetIntConstantBounds(&indexConstantBounds));
-                        if(ValueInfo::IsGreaterThanOrEqualTo(
-                                indexValue,
-                                indexConstantBounds.LowerBound(),
-                                indexConstantBounds.UpperBound(),
-                                nullptr,
-                                0,
-                                0))
-                        {
-                            indexOpnd->SetType(TyUint32);
-                        }
-                    }
-                }
-            }
-            else if (!CurrentBlockData()->liveVarSyms->Test(indexOpnd->m_sym->m_id))
-            {
-                instr = this->ToVar(instr, indexOpnd, this->currentBlock, CurrentBlockData()->FindValue(indexOpnd->m_sym), true);
-            }
+            instr = ToTypeSpecIndex(instr, indexOpnd, opnd->AsIndirOpnd());
         }
         break;
     }
 
+    return instr;
+}
+
+IR::Instr * 
+GlobOpt::ToTypeSpecIndex(IR::Instr * instr, IR::RegOpnd * indexOpnd, IR::IndirOpnd * indirOpnd)
+{
+    Assert(indirOpnd != nullptr || indexOpnd == instr->GetSrc1());
+
+    if ((indexOpnd->GetValueType().IsInt()
+        ? !IsTypeSpecPhaseOff(func)
+        : indexOpnd->GetValueType().IsLikelyInt() && DoAggressiveIntTypeSpec()) && !GetIsAsmJSFunc()) // typespec is disabled for asmjs
+    {
+        StackSym *const indexVarSym = indexOpnd->m_sym;
+        Value *const indexValue = CurrentBlockData()->FindValue(indexVarSym);
+        Assert(indexValue);
+        Assert(indexValue->GetValueInfo()->IsLikelyInt());
+
+        ToInt32(instr, indexOpnd, currentBlock, indexValue, indirOpnd, false);
+        Assert(indexValue->GetValueInfo()->IsInt());
+
+        if (!IsLoopPrePass())
+        {
+            indexOpnd = indirOpnd ? indirOpnd->GetIndexOpnd() : instr->GetSrc1()->AsRegOpnd();
+            if (indexOpnd)
+            {
+                Assert(indexOpnd->m_sym->IsTypeSpec());
+                IntConstantBounds indexConstantBounds;
+                AssertVerify(indexValue->GetValueInfo()->TryGetIntConstantBounds(&indexConstantBounds));
+                if (ValueInfo::IsGreaterThanOrEqualTo(
+                    indexValue,
+                    indexConstantBounds.LowerBound(),
+                    indexConstantBounds.UpperBound(),
+                    nullptr,
+                    0,
+                    0))
+                {
+                    indexOpnd->SetType(TyUint32);
+                }
+            }
+        }
+    }
+    else if (!CurrentBlockData()->liveVarSyms->Test(indexOpnd->m_sym->m_id))
+    {
+        instr = this->ToVar(instr, indexOpnd, this->currentBlock, CurrentBlockData()->FindValue(indexOpnd->m_sym), true);
+    }
     return instr;
 }
 
@@ -12867,10 +12875,10 @@ GlobOpt::AttachBoundsCheckData(IR::Instr* instr, IR::Opnd* lowerBound, IR::Opnd*
 }
 
 void
-GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
+GlobOpt::OptArraySrc(IR::Instr ** const instrRef, Value ** src1Val, Value ** src2Val)
 {
     Assert(instrRef != nullptr);
-    ArraySrcOpt arraySrcOpt(this, instrRef);
+    ArraySrcOpt arraySrcOpt(this, instrRef, src1Val, src2Val);
     arraySrcOpt.Optimize();
 }
 

@@ -37,6 +37,15 @@
 
 #endif
 
+GlobOpt::ArraySrcOpt::~ArraySrcOpt()
+{
+    if (originalIndexOpnd != nullptr)
+    {
+        Assert(instr->m_opcode == Js::OpCode::IsIn);
+        instr->ReplaceSrc1(originalIndexOpnd);
+    }
+}
+
 
 bool GlobOpt::ArraySrcOpt::CheckOpCode()
 {
@@ -136,11 +145,73 @@ bool GlobOpt::ArraySrcOpt::CheckOpCode()
             needsLength = true;
             break;
 
+        case Js::OpCode::IsIn:
+            if (!instr->GetSrc1()->IsRegOpnd() || !instr->GetSrc2()->IsRegOpnd())
+            {
+                return false;
+            }
+
+            baseOpnd = instr->GetSrc2()->AsRegOpnd();
+            if (baseOpnd->GetValueType().IsLikelyObject() && baseOpnd->GetValueType().GetObjectType() == ObjectType::ObjectWithArray)
+            {
+                return false;
+            }
+
+            baseOwnerInstr = instr;
+
+            needsBoundChecks = true;
+            needsHeadSegmentLength = true;
+            needsHeadSegment = true;
+            break;
+
         default:
             return false;
     }
 
     return true;
+}
+
+void GlobOpt::ArraySrcOpt::TypeSpecIndex()
+{
+    // Since this happens before type specialization, make sure that any necessary conversions are done, and that the index is int-specialized if possible such that the const flags are correct.
+    if (!globOpt->IsLoopPrePass())
+    {
+        if (baseOwnerIndir)
+        {
+            globOpt->ToVarUses(instr, baseOwnerIndir, baseOwnerIndir == instr->GetDst(), nullptr);
+        }
+        else if (instr->m_opcode == Js::OpCode::IsIn)
+        {
+            // If the optimization is unable to eliminate the bounds checks, we need to restore the original var sym.
+            Assert(originalIndexOpnd == nullptr);
+            originalIndexOpnd = instr->GetSrc1()->Copy(func)->AsRegOpnd();
+            globOpt->ToTypeSpecIndex(instr, instr->GetSrc1()->AsRegOpnd(), nullptr);
+        }
+    }
+
+    if (baseOwnerIndir != nullptr)
+    {
+        indexOpnd = baseOwnerIndir->GetIndexOpnd();
+    }
+    else if (instr->m_opcode == Js::OpCode::IsIn)
+    {
+        indexOpnd = instr->GetSrc1()->AsRegOpnd();
+    }
+
+    if (indexOpnd != nullptr)
+    {
+        if (indexOpnd->m_sym->IsTypeSpec())
+        {
+            Assert(indexOpnd->m_sym->IsInt32());
+            indexVarSym = indexOpnd->m_sym->GetVarEquivSym(nullptr);
+        }
+        else
+        {
+            indexVarSym = indexOpnd->m_sym;
+        }
+
+        indexValue = globOpt->CurrentBlockData()->FindValue(indexVarSym);
+    }
 }
 
 void GlobOpt::ArraySrcOpt::UpdateValue(StackSym * newHeadSegmentSym, StackSym * newHeadSegmentLengthSym, StackSym * newLengthSym)
@@ -210,13 +281,10 @@ void GlobOpt::ArraySrcOpt::CheckVirtualArrayBounds()
             // checks in jitted code.
             if (!globOpt->GetIsAsmJSFunc() && baseOwnerIndir)
             {
-                IR::RegOpnd * idxOpnd = baseOwnerIndir->GetIndexOpnd();
-                if (idxOpnd)
+                if (indexOpnd)
                 {
-                    StackSym * idxSym = idxOpnd->m_sym->IsTypeSpec() ? idxOpnd->m_sym->GetVarEquivSym(nullptr) : idxOpnd->m_sym;
-                    Value * idxValue = globOpt->CurrentBlockData()->FindValue(idxSym);
                     IntConstantBounds idxConstantBounds;
-                    if (idxValue && idxValue->GetValueInfo()->TryGetIntConstantBounds(&idxConstantBounds))
+                    if (indexValue && indexValue->GetValueInfo()->TryGetIntConstantBounds(&idxConstantBounds))
                     {
                         BYTE indirScale = Lowerer::GetArrayIndirScale(baseValueType);
                         int32 upperBound = idxConstantBounds.UpperBound();
@@ -232,7 +300,7 @@ void GlobOpt::ArraySrcOpt::CheckVirtualArrayBounds()
             }
             else
             {
-                if (!baseOwnerIndir)
+                if (baseOwnerIndir == nullptr)
                 {
                     Assert(instr->m_opcode == Js::OpCode::InlineArrayPush ||
                         instr->m_opcode == Js::OpCode::InlineArrayPop ||
@@ -248,9 +316,9 @@ void GlobOpt::ArraySrcOpt::CheckVirtualArrayBounds()
 #endif
 }
 
-void GlobOpt::ArraySrcOpt::TryEleminiteBoundsCheck()
+void GlobOpt::ArraySrcOpt::TryEliminiteBoundsCheck()
 {
-    AnalysisAssert(baseOwnerIndir);
+    AnalysisAssert(indexOpnd != nullptr || baseOwnerIndir != nullptr);
     Assert(needsHeadSegmentLength);
 
     // Bound checks can be separated from the instruction only if it can bail out instead of making a helper call when a
@@ -259,16 +327,11 @@ void GlobOpt::ArraySrcOpt::TryEleminiteBoundsCheck()
     doExtractBoundChecks = (headSegmentLengthIsAvailable || doHeadSegmentLengthLoad) && canBailOutOnArrayAccessHelperCall;
 
     // Get the index value
-    IR::RegOpnd * const indexOpnd = baseOwnerIndir->GetIndexOpnd();
     if (indexOpnd != nullptr)
     {
-        StackSym * const indexSym = indexOpnd->m_sym;
-        if (indexSym->IsTypeSpec())
+        if (indexOpnd->m_sym->IsTypeSpec())
         {
-            Assert(indexSym->IsInt32());
-            indexVarSym = indexSym->GetVarEquivSym(nullptr);
             Assert(indexVarSym);
-            indexValue = globOpt->CurrentBlockData()->FindValue(indexVarSym);
             Assert(indexValue);
             AssertVerify(indexValue->GetValueInfo()->TryGetIntConstantBounds(&indexConstantBounds));
             Assert(indexOpnd->GetType() == TyInt32 || indexOpnd->GetType() == TyUint32);
@@ -290,7 +353,6 @@ void GlobOpt::ArraySrcOpt::TryEleminiteBoundsCheck()
         else
         {
             doExtractBoundChecks = false; // Bound check instruction operates only on int-specialized operands
-            indexValue = globOpt->CurrentBlockData()->FindValue(indexSym);
             if (!indexValue || !indexValue->GetValueInfo()->TryGetIntConstantBounds(&indexConstantBounds))
             {
                 return;
@@ -569,11 +631,11 @@ void GlobOpt::ArraySrcOpt::DoLengthLoad()
 
         // Hoist the length value
         for (InvariantBlockBackwardIterator it(
-            globOpt,
-            globOpt->currentBlock,
-            hoistLengthLoadOutOfLoop->landingPad,
-            baseOpnd->m_sym,
-            baseValue->GetValueNumber());
+                globOpt,
+                globOpt->currentBlock,
+                hoistLengthLoadOutOfLoop->landingPad,
+                baseOpnd->m_sym,
+                baseValue->GetValueNumber());
             it.IsValid();
             it.MoveNext())
         {
@@ -664,11 +726,11 @@ void GlobOpt::ArraySrcOpt::DoHeadSegmentLengthLoad()
 
         // Hoist the head segment length value
         for (InvariantBlockBackwardIterator it(
-            globOpt,
-            globOpt->currentBlock,
-            hoistHeadSegmentLengthLoadOutOfLoop->landingPad,
-            baseOpnd->m_sym,
-            baseValue->GetValueNumber());
+                globOpt,
+                globOpt->currentBlock,
+                hoistHeadSegmentLengthLoadOutOfLoop->landingPad,
+                baseOpnd->m_sym,
+                baseValue->GetValueNumber());
             it.IsValid();
             it.MoveNext())
         {
@@ -691,8 +753,8 @@ void GlobOpt::ArraySrcOpt::DoHeadSegmentLengthLoad()
 void GlobOpt::ArraySrcOpt::DoExtractBoundChecks()
 {
     Assert(!(eliminatedLowerBoundCheck && eliminatedUpperBoundCheck));
-    Assert(baseOwnerIndir);
-    Assert(!baseOwnerIndir->GetIndexOpnd() || baseOwnerIndir->GetIndexOpnd()->m_sym->IsTypeSpec());
+    Assert(baseOwnerIndir != nullptr || indexOpnd != nullptr);
+    Assert(indexOpnd == nullptr || indexOpnd->m_sym->IsTypeSpec());
     Assert(doHeadSegmentLengthLoad || headSegmentLengthIsAvailable);
     Assert(canBailOutOnArrayAccessHelperCall);
     Assert(!isStore || instr->m_opcode == Js::OpCode::StElemI_A || instr->m_opcode == Js::OpCode::StElemI_A_Strict || Js::IsSimd128LoadStore(instr->m_opcode));
@@ -753,7 +815,7 @@ void GlobOpt::ArraySrcOpt::DoLowerBoundCheck()
     eliminatedLowerBoundCheck = true;
 
     Assert(indexVarSym);
-    Assert(baseOwnerIndir->GetIndexOpnd());
+    Assert(indexOpnd);
     Assert(indexValue);
 
     GlobOpt::ArrayLowerBoundCheckHoistInfo &hoistInfo = lowerBoundCheckHoistInfo;
@@ -904,11 +966,11 @@ void GlobOpt::ArraySrcOpt::DoLowerBoundCheck()
         if (hoistBlock != globOpt->currentBlock && hoistInfo.IndexSym() && hoistInfo.Offset() != INT32_MIN)
         {
             for (InvariantBlockBackwardIterator it(
-                globOpt,
-                globOpt->currentBlock->next,
-                hoistBlock,
-                hoistInfo.IndexSym(),
-                hoistInfo.IndexValueNumber());
+                    globOpt,
+                    globOpt->currentBlock->next,
+                    hoistBlock,
+                    hoistInfo.IndexSym(),
+                    hoistInfo.IndexValueNumber());
                 it.IsValid();
                 it.MoveNext())
             {
@@ -938,7 +1000,7 @@ void GlobOpt::ArraySrcOpt::DoLowerBoundCheck()
     else
     {
         IR::Opnd* lowerBound = IR::IntConstOpnd::New(0, TyInt32, instr->m_func, true);
-        IR::Opnd* upperBound = baseOwnerIndir->GetIndexOpnd();
+        IR::Opnd* upperBound = indexOpnd;
         upperBound->SetIsJITOptimizedReg(true);
         const int offset = 0;
 
@@ -1262,8 +1324,8 @@ void GlobOpt::ArraySrcOpt::DoUpperBoundCheck()
     }
     else
     {
-        IR::Opnd* lowerBound = baseOwnerIndir->GetIndexOpnd()
-            ? static_cast<IR::Opnd *>(baseOwnerIndir->GetIndexOpnd())
+        IR::Opnd* lowerBound = indexOpnd
+            ? static_cast<IR::Opnd *>(indexOpnd)
             : IR::IntConstOpnd::New(baseOwnerIndir->GetOffset(), TyInt32, instr->m_func);
 
         lowerBound->SetIsJITOptimizedReg(true);
@@ -1304,7 +1366,7 @@ void GlobOpt::ArraySrcOpt::DoUpperBoundCheck()
 
         instr->extractedUpperBoundCheckWithoutHoisting = true;
 
-        if (baseOwnerIndir->GetIndexOpnd())
+        if (indexOpnd != nullptr)
         {
             TRACE_PHASE_INSTR(
                 Js::Phase::BoundCheckEliminationPhase,
@@ -1408,11 +1470,11 @@ void GlobOpt::ArraySrcOpt::UpdateHoistedValueInfo()
     }
 
     for (InvariantBlockBackwardIterator it(
-        globOpt,
-        globOpt->currentBlock,
-        rootLoop->landingPad,
-        baseOpnd->m_sym,
-        baseValue->GetValueNumber());
+            globOpt,
+            globOpt->currentBlock,
+            rootLoop->landingPad,
+            baseOpnd->m_sym,
+            baseValue->GetValueNumber());
         it.IsValid();
         it.MoveNext())
     {
@@ -1600,12 +1662,7 @@ void GlobOpt::ArraySrcOpt::Optimize()
     Assert(!(baseOwnerInstr && baseOwnerIndir));
     Assert(!needsHeadSegmentLength || needsHeadSegment);
 
-    if (baseOwnerIndir && !globOpt->IsLoopPrePass())
-    {
-        // Since this happens before type specialization, make sure that any necessary conversions are done, and that the index
-        // is int-specialized if possible such that the const flags are correct.
-        globOpt->ToVarUses(instr, baseOwnerIndir, baseOwnerIndir == instr->GetDst(), nullptr);
-    }
+    TypeSpecIndex();
 
     if (isProfilableStElem && !globOpt->IsLoopPrePass())
     {
@@ -1740,7 +1797,7 @@ void GlobOpt::ArraySrcOpt::Optimize()
     newHeadSegmentLengthSym = doHeadSegmentLengthLoad ? StackSym::New(TyUint32, instr->m_func) : nullptr;
     newLengthSym = doLengthLoad ? StackSym::New(TyUint32, instr->m_func) : nullptr;
 
-    if (Js::IsSimd128LoadStore(instr->m_opcode))
+    if (Js::IsSimd128LoadStore(instr->m_opcode) || instr->m_opcode == Js::OpCode::IsIn)
     {
         // SIMD_JS
         // simd load/store never call helper
@@ -1765,7 +1822,7 @@ void GlobOpt::ArraySrcOpt::Optimize()
 
     if (needsBoundChecks && globOpt->DoBoundCheckElimination())
     {
-        TryEleminiteBoundsCheck();
+        TryEliminiteBoundsCheck();
     }
 
     if (doArrayChecks || doHeadSegmentLoad || doHeadSegmentLengthLoad || doLengthLoad || doExtractBoundChecks)
@@ -1818,8 +1875,8 @@ void GlobOpt::ArraySrcOpt::Optimize()
         }
     }
 
-    IR::ArrayRegOpnd *baseArrayOpnd;
-    if (baseArrayValueInfo)
+    IR::ArrayRegOpnd * baseArrayOpnd;
+    if (baseArrayValueInfo != nullptr)
     {
         // Update the opnd to include the associated syms
         baseArrayOpnd =
@@ -1832,10 +1889,17 @@ void GlobOpt::ArraySrcOpt::Optimize()
                 eliminatedUpperBoundCheck,
                 instr->m_func);
 
-        if (baseOwnerInstr)
+        if (baseOwnerInstr != nullptr)
         {
-            Assert(baseOwnerInstr->GetSrc1() == baseOpnd);
-            baseOwnerInstr->ReplaceSrc1(baseArrayOpnd);
+            if (baseOwnerInstr->GetSrc1() == baseOpnd)
+            {
+                baseOwnerInstr->ReplaceSrc1(baseArrayOpnd);
+            }
+            else
+            {
+                Assert(baseOwnerInstr->GetSrc2() == baseOpnd);
+                baseOwnerInstr->ReplaceSrc2(baseArrayOpnd);
+            }
         }
         else
         {
@@ -1910,6 +1974,28 @@ void GlobOpt::ArraySrcOpt::Optimize()
         {
             OnEliminated(Js::Phase::BoundCheckEliminationPhase, "upper bound check");
         }
+    }
+
+    if (instr->m_opcode == Js::OpCode::IsIn)
+    {
+        if (eliminatedLowerBoundCheck && eliminatedUpperBoundCheck)
+        {
+            TRACE_TESTTRACE_PHASE_INSTR(Js::Phase::BoundCheckEliminationPhase, instr, _u("Eliminating IsIn\n"));
+
+            instr->m_opcode = Js::OpCode::Ld_A;
+
+            IR::AddrOpnd * addrOpnd = IR::AddrOpnd::New(func->GetScriptContextInfo()->GetTrueAddr(), IR::AddrOpndKindDynamicVar, func, true);
+            addrOpnd->SetValueType(ValueType::Boolean);
+            instr->ReplaceSrc1(addrOpnd);
+            instr->FreeSrc2();
+            originalIndexOpnd->Free(func);
+            originalIndexOpnd = nullptr;
+
+            src1Val = globOpt->GetVarConstantValue(instr->GetSrc1()->AsAddrOpnd());
+            src2Val = nullptr;
+        }
+
+        return;
     }
 
     if (!canBailOutOnArrayAccessHelperCall)

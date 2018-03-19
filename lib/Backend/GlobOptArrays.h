@@ -7,22 +7,27 @@
 class GlobOpt::ArraySrcOpt
 {
 public:
-    ArraySrcOpt(GlobOpt * glob, IR::Instr ** instrRef) :
+    ArraySrcOpt(GlobOpt * glob, IR::Instr ** instrRef, Value ** _src1Val, Value ** _src2Val) :
         globOpt(glob),
         func(glob->func),
-        instr(*instrRef)
+        instr(*instrRef),
+        src1Val(*_src1Val),
+        src2Val(*_src2Val)
     {
         Assert(instr != nullptr);
     }
+
+    ~ArraySrcOpt();
 
     void Optimize();
 
 private:
     bool CheckOpCode();
 
+    void TypeSpecIndex();
     void UpdateValue(StackSym * newHeadSegmentSym, StackSym * newHeadSegmentLengthSym, StackSym * newLengthSym);
     void CheckVirtualArrayBounds();
-    void TryEleminiteBoundsCheck();
+    void TryEliminiteBoundsCheck();
     void CheckLoops();
     void DoArrayChecks();
     void DoLengthLoad();
@@ -40,10 +45,14 @@ private:
     Func * func;
     GlobOpt * globOpt;
     IR::Instr *& instr;
+    Value *& src1Val;
+    Value *& src2Val;
+
     IR::Instr * baseOwnerInstr = nullptr;
     IR::IndirOpnd * baseOwnerIndir = nullptr;
     IR::RegOpnd * baseOpnd = nullptr;
     IR::RegOpnd * indexOpnd = nullptr;
+    IR::RegOpnd * originalIndexOpnd = nullptr;
     bool isProfilableLdElem = false;
     bool isProfilableStElem = false;
     bool isLoad = false;

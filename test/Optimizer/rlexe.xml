@@ -1471,4 +1471,12 @@
       <compile-flags>-off:aggressiveinttypespec</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>IsIn_ArrayNoMissingValues.js</files>
+      <baseline>IsIn_ArrayNoMissingValues.baseline</baseline>
+      <compile-flags>-testtrace:BoundCheckElimination</compile-flags>
+      <tags>exclude_dynapogo,exclude_serialized,exclude_nonative</tags>
+    </default>
+  </test>
 </regress-exe>
