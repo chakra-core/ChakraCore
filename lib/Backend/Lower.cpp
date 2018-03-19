@@ -1537,7 +1537,8 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::IsIn:
-            this->GenerateFastInlineIsIn(instr);
+            this->GenerateFastArrayIsIn(instr);
+            this->GenerateFastObjectIsIn(instr);
             this->LowerBinaryHelperMem(instr, IR::HelperOp_IsIn);
             break;
 
@@ -3323,17 +3324,7 @@ Lowerer::GenerateFastBrConst(IR::BranchInstr *branchInstr, IR::Opnd * constOpnd,
     // TODO: OOP JIT, enable this assert
     //Assert(this->IsConstRegOpnd(branchInstr->GetSrc2()->AsRegOpnd()));
 
-    IR::Opnd    *opnd    = branchInstr->GetSrc1();
-
-    if (!opnd->IsRegOpnd())
-    {
-        IR::RegOpnd *lhsReg = IR::RegOpnd::New(TyVar, m_func);
-        Lowerer::InsertMove(lhsReg, opnd, branchInstr);
-
-        opnd = lhsReg;
-    }
-
-    Assert(opnd->IsRegOpnd());
+    IR::RegOpnd *opnd = GetRegOpnd(branchInstr->GetSrc1(), branchInstr, m_func, TyVar);
 
     IR::BranchInstr *newBranch;
     newBranch = InsertCompareBranch(opnd, constOpnd, isEqual ? Js::OpCode::BrEq_A : Js::OpCode::BrNeq_A, branchInstr->GetTarget(), branchInstr);
@@ -5093,12 +5084,7 @@ Lowerer::LowerUpdateNewScObjectCache(IR::Instr * insertInstr, IR::Opnd *dst, IR:
     // $fallThru:
     IR::LabelInstr *labelFallThru = IR::LabelInstr::New(Js::OpCode::Label, m_func);
 
-    if (!src1->IsRegOpnd())
-    {
-        IR::RegOpnd *srcRegOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
-        Lowerer::InsertMove(srcRegOpnd, src1, insertInstr);
-        src1 = srcRegOpnd;
-    }
+    src1 = GetRegOpnd(src1, insertInstr, m_func, TyMachReg);
 
     // Check if constructor is a function if we don't already know it.
     if (!isCtorFunction)
@@ -5958,7 +5944,7 @@ Lowerer::GenerateFastLdMethodFromFlags(IR::Instr * instrLdFld)
 
     InsertMove(opndInlineCache, LoadRuntimeInlineCacheOpnd(instrLdFld, propertySymOpnd), instrLdFld);
     IR::LabelInstr * labelFlagAux = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-    
+
     // Check the flag cache with the untagged type
     GenerateObjectTestAndTypeLoad(instrLdFld, opndBase, opndType, bailOutLabel);
     GenerateFlagInlineCacheCheck(instrLdFld, opndType, opndInlineCache, labelFlagAux);
@@ -7988,7 +7974,7 @@ Lowerer::GenerateAdjustBaseSlots(IR::Instr *instrInsert, IR::RegOpnd *baseOpnd, 
     int newCount = 0;
     Js::PropertyIndex inlineSlotCapacity = 0;
     Js::PropertyIndex newInlineSlotCapacity = 0;
-    bool needSlotAdjustment = 
+    bool needSlotAdjustment =
         JITTypeHandler::NeedSlotAdjustment(initialType->GetTypeHandler(), finalType->GetTypeHandler(), &oldCount, &newCount, &inlineSlotCapacity, &newInlineSlotCapacity);
 
     if (!needSlotAdjustment)
@@ -11889,17 +11875,8 @@ Lowerer::LowerBailOnNotSpreadable(IR::Instr *instr)
     IR::Instr * prevInstr = instr->m_prev;
     Func *func = instr->m_func;
 
-    IR::RegOpnd *arrayOpnd = nullptr;
     IR::Opnd *arraySrcOpnd = instr->UnlinkSrc1();
-    if (!arraySrcOpnd->IsRegOpnd())
-    {
-        arrayOpnd = IR::RegOpnd::New(TyMachPtr, func);
-        Lowerer::InsertMove(arrayOpnd, arraySrcOpnd, instr);
-    }
-    else
-    {
-        arrayOpnd = arraySrcOpnd->AsRegOpnd();
-    }
+    IR::RegOpnd *arrayOpnd = GetRegOpnd(arraySrcOpnd, instr, func, TyMachPtr);
 
     const ValueType baseValueType(arrayOpnd->GetValueType());
 
@@ -15576,6 +15553,51 @@ Lowerer::GenerateDynamicLoadPolymorphicInlineCacheSlot(IR::Instr * instrInsert, 
     InsertLea(inlineCacheOpnd, IR::IndirOpnd::New(inlineCacheOpnd, opndOffset, TyMachPtr, m_func), instrInsert);
 }
 
+// Test that the operand is a PropertyString, or bail to helper
+void
+Lowerer::GeneratePropertyStringTest(IR::RegOpnd *srcReg, IR::Instr *instrInsert, IR::LabelInstr *labelHelper, bool usePoison)
+{
+    // Generates:
+    //      StringTest(srcReg, $helper)                ; verify index is string type
+    //      CMP srcReg, PropertyString::`vtable'       ; verify index is property string
+    //      JNE $helper
+
+    GenerateStringTest(srcReg, instrInsert, labelHelper);
+
+    IR::LabelInstr * notPropStrLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
+    IR::LabelInstr * propStrLoadedLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+    IR::BranchInstr *branchInstr = InsertCompareBranch(
+        IR::IndirOpnd::New(srcReg, 0, TyMachPtr, m_func),
+        LoadVTableValueOpnd(instrInsert, VTableValue::VtablePropertyString),
+        Js::OpCode::BrNeq_A, notPropStrLabel, instrInsert);
+    InsertBranch(Js::OpCode::Br, propStrLoadedLabel, instrInsert);
+
+    if (usePoison)
+    {
+        InsertObjectPoison(srcReg, branchInstr, instrInsert);
+    }
+
+    instrInsert->InsertBefore(notPropStrLabel);
+
+    branchInstr = InsertCompareBranch(
+        IR::IndirOpnd::New(srcReg, 0, TyMachPtr, m_func),
+        LoadVTableValueOpnd(instrInsert, VTableValue::VtableLiteralStringWithPropertyStringPtr),
+        Js::OpCode::BrNeq_A, labelHelper, instrInsert);
+
+    if (usePoison)
+    {
+        InsertObjectPoison(srcReg, branchInstr, instrInsert);
+    }
+
+    IR::IndirOpnd * propStrOpnd = IR::IndirOpnd::New(srcReg, Js::LiteralStringWithPropertyStringPtr::GetOffsetOfPropertyString(), TyMachPtr, m_func);
+    InsertCompareBranch(propStrOpnd, IR::IntConstOpnd::New(NULL, TyMachPtr, m_func), Js::OpCode::BrNeq_A, labelHelper, instrInsert);
+
+    // We don't really own srcReg, but it is fine to update it to be the PropertyString, since that is better to have anyway
+    InsertMove(srcReg, propStrOpnd, instrInsert);
+
+    instrInsert->InsertBefore(propStrLoadedLabel);
+}
+
 IR::IndirOpnd *
 Lowerer::GenerateFastElemIStringIndexCommon(IR::Instr * instrInsert, bool isStore, IR::IndirOpnd * indirOpnd, IR::LabelInstr * labelHelper)
 {
@@ -15585,45 +15607,10 @@ Lowerer::GenerateFastElemIStringIndexCommon(IR::Instr * instrInsert, bool isStor
     Assert(indexOpnd->GetValueType().IsLikelyString());
 
     // Generates:
-    //      StringTest(indexOpnd, $helper)                ; verify index is string type
-    //      CMP indexOpnd, PropertyString::`vtable'       ; verify index is property string
-    //      JNE $helper
+    //      PropertyStringTest(indexOpnd, $helper)                ; verify index is string type
     //      FastElemISymbolOrStringIndexCommon(indexOpnd, baseOpnd, $helper) ; shared code with JavascriptSymbol
 
-    GenerateStringTest(indexOpnd, instrInsert, labelHelper);
-
-    IR::LabelInstr * notPropStrLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
-    IR::LabelInstr * propStrLoadedLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-    IR::BranchInstr *branchInstr = InsertCompareBranch(
-        IR::IndirOpnd::New(indexOpnd, 0, TyMachPtr, m_func),
-        LoadVTableValueOpnd(instrInsert, VTableValue::VtablePropertyString),
-        Js::OpCode::BrNeq_A, notPropStrLabel, instrInsert);
-    InsertBranch(Js::OpCode::Br, propStrLoadedLabel, instrInsert);
-
-    if (!isStore)
-    {
-        InsertObjectPoison(indexOpnd, branchInstr, instrInsert);
-    }
-
-    instrInsert->InsertBefore(notPropStrLabel);
-
-    branchInstr = InsertCompareBranch(
-        IR::IndirOpnd::New(indexOpnd, 0, TyMachPtr, m_func),
-        LoadVTableValueOpnd(instrInsert, VTableValue::VtableLiteralStringWithPropertyStringPtr),
-        Js::OpCode::BrNeq_A, labelHelper, instrInsert);
-
-    if (!isStore)
-    {
-        InsertObjectPoison(indexOpnd, branchInstr, instrInsert);
-    }
-
-    IR::IndirOpnd * propStrOpnd = IR::IndirOpnd::New(indexOpnd, Js::LiteralStringWithPropertyStringPtr::GetOffsetOfPropertyString(), TyMachPtr, m_func);
-    InsertCompareBranch(propStrOpnd, IR::IntConstOpnd::New(NULL, TyMachPtr, m_func), Js::OpCode::BrNeq_A, labelHelper, instrInsert);
-
-    // We don't really own indexOpnd, but it is fine to update it to be the PropertyString, since that is better to have anyway
-    InsertMove(indexOpnd, propStrOpnd, instrInsert);
-
-    instrInsert->InsertBefore(propStrLoadedLabel);
+    GeneratePropertyStringTest(indexOpnd, instrInsert, labelHelper, !isStore /*usePoison*/);
 
     const uint32 inlineCacheOffset = isStore ? Js::PropertyString::GetOffsetOfStElemInlineCache() : Js::PropertyString::GetOffsetOfLdElemInlineCache();
     const uint32 hitRateOffset = Js::PropertyString::GetOffsetOfHitRate();
@@ -15651,8 +15638,39 @@ Lowerer::GenerateFastElemISymbolIndexCommon(IR::Instr * instrInsert, bool isStor
     return GenerateFastElemISymbolOrStringIndexCommon(instrInsert, indexOpnd, baseOpnd, inlineCacheOffset, hitRateOffset, labelHelper);
 }
 
+void
+Lowerer::GenerateFastIsInSymbolOrStringIndex(IR::Instr * instrInsert, IR::RegOpnd *indexOpnd, IR::RegOpnd *baseOpnd, IR::Opnd *dest, uint32 inlineCacheOffset, const uint32 hitRateOffset, IR::LabelInstr * labelHelper, IR::LabelInstr * labelDone)
+{
+    // Try to look up the property in the cache, or bail to helper
+    GenerateLookUpInIndexCache(instrInsert, indexOpnd, baseOpnd, nullptr /*opndSlotArray*/, nullptr /*opndSlotIndex*/, inlineCacheOffset, hitRateOffset, labelHelper);
+
+    // MOV dest, true
+    InsertMove(dest, LoadLibraryValueOpnd(instrInsert, LibraryValue::ValueTrue), instrInsert);
+
+    // JMP labelDone
+    InsertBranch(Js::OpCode::Br, labelDone, instrInsert);
+}
+
 IR::IndirOpnd *
 Lowerer::GenerateFastElemISymbolOrStringIndexCommon(IR::Instr * instrInsert, IR::RegOpnd *indexOpnd, IR::RegOpnd *baseOpnd, const uint32 inlineCacheOffset, const uint32 hitRateOffset, IR::LabelInstr * labelHelper)
+{
+    // Try to look up the property in the cache, or bail to helper
+    IR::RegOpnd * opndSlotArray = IR::RegOpnd::New(TyMachReg, instrInsert->m_func);
+    IR::RegOpnd * opndSlotIndex = IR::RegOpnd::New(TyMachReg, instrInsert->m_func);
+    GenerateLookUpInIndexCache(instrInsert, indexOpnd, baseOpnd, opndSlotArray, opndSlotIndex, inlineCacheOffset, hitRateOffset, labelHelper);
+
+    // return [opndSlotArray + opndSlotIndex * PtrSize]
+    return  IR::IndirOpnd::New(opndSlotArray, opndSlotIndex, m_lowererMD.GetDefaultIndirScale(), TyMachReg, instrInsert->m_func);
+}
+
+// Look up a value from the polymorphic inline cache on a PropertyString or Symbol. Offsets are relative to indexOpnd.
+// Currently only checks the local cache (not proto, accessor, or missing); we could consider generating extra checks
+// for those cases if we have some data indicating that they might be relevant at this instruction. If the property
+// is not found, jump to the helper.
+// opndSlotArray is optional; if provided, it will receive the base address of the slot array that contains the property.
+// opndSlotIndex is optional; if provided, it will receive the index of the match within the slot array.
+void
+Lowerer::GenerateLookUpInIndexCache(IR::Instr * instrInsert, IR::RegOpnd *indexOpnd, IR::RegOpnd *baseOpnd, IR::RegOpnd *opndSlotArray, IR::RegOpnd *opndSlotIndex, const uint32 inlineCacheOffset, const uint32 hitRateOffset, IR::LabelInstr * labelHelper)
 {
     // Generates:
     //      MOV inlineCacheOpnd, index->inlineCache
@@ -15685,8 +15703,10 @@ Lowerer::GenerateFastElemISymbolOrStringIndexCommon(IR::Instr * instrInsert, IR:
 
     GenerateLocalInlineCacheCheck(instrInsert, objectTypeOpnd, inlineCacheOpnd, notInlineSlotsLabel);
 
-    IR::RegOpnd * opndSlotArray = IR::RegOpnd::New(TyMachReg, instrInsert->m_func);
-    InsertMove(opndSlotArray, baseOpnd, instrInsert);
+    if (opndSlotArray)
+    {
+        InsertMove(opndSlotArray, baseOpnd, instrInsert);
+    }
     InsertBranch(Js::OpCode::Br, slotArrayLoadedLabel, instrInsert);
 
     instrInsert->InsertBefore(notInlineSlotsLabel);
@@ -15694,20 +15714,22 @@ Lowerer::GenerateFastElemISymbolOrStringIndexCommon(IR::Instr * instrInsert, IR:
     m_lowererMD.GenerateLoadTaggedType(instrInsert, objectTypeOpnd, opndTaggedType);
     GenerateLocalInlineCacheCheck(instrInsert, opndTaggedType, inlineCacheOpnd, labelHelper);
 
-    IR::IndirOpnd * opndIndir = IR::IndirOpnd::New(baseOpnd, Js::DynamicObject::GetOffsetOfAuxSlots(), TyMachReg, instrInsert->m_func);
-    InsertMove(opndSlotArray, opndIndir, instrInsert);
+    if (opndSlotArray)
+    {
+        IR::IndirOpnd * opndIndir = IR::IndirOpnd::New(baseOpnd, Js::DynamicObject::GetOffsetOfAuxSlots(), TyMachReg, instrInsert->m_func);
+        InsertMove(opndSlotArray, opndIndir, instrInsert);
+    }
 
     instrInsert->InsertBefore(slotArrayLoadedLabel);
 
-    IR::RegOpnd * opndSlotIndex = IR::RegOpnd::New(TyMachReg, instrInsert->m_func);
-    InsertMove(opndSlotIndex, IR::IndirOpnd::New(inlineCacheOpnd, (int32)offsetof(Js::InlineCache, u.local.slotIndex), TyUint16, instrInsert->m_func), instrInsert);
+    if (opndSlotIndex)
+    {
+        InsertMove(opndSlotIndex, IR::IndirOpnd::New(inlineCacheOpnd, (int32)offsetof(Js::InlineCache, u.local.slotIndex), TyUint16, instrInsert->m_func), instrInsert);
+    }
 
     IR::IndirOpnd * hitRateOpnd = IR::IndirOpnd::New(indexOpnd, hitRateOffset, TyInt32, m_func);
     IR::IntConstOpnd * incOpnd = IR::IntConstOpnd::New(1, TyInt32, instrInsert->m_func);
     InsertAdd(false, hitRateOpnd, hitRateOpnd, incOpnd, instrInsert);
-
-    // return [opndSlotArray + opndSlotIndex * PtrSize]
-    return  IR::IndirOpnd::New(opndSlotArray, opndSlotIndex, m_lowererMD.GetDefaultIndirScale(), TyMachReg, instrInsert->m_func);
 }
 
 IR::IndirOpnd *
@@ -18078,7 +18100,7 @@ Lowerer::GenerateFastLdLen(IR::Instr *ldLen, bool *instrIsInHelperBlockRef)
         }
         else
         {
-            // LdLen has a PropertySymOpnd until globopt where the decision whether to convert it to LdFld is made. If globopt is skipped, the opnd will 
+            // LdLen has a PropertySymOpnd until globopt where the decision whether to convert it to LdFld is made. If globopt is skipped, the opnd will
             // still be a PropertySymOpnd here. In that case, do the conversion here.
             IR::SymOpnd * symOpnd = opnd->AsSymOpnd();
             PropertySym * propertySym = symOpnd->m_sym->AsPropertySym();
@@ -18703,17 +18725,8 @@ Lowerer::GenerateFastInlineIsArray(IR::Instr * instr)
     IR::Instr * insertInstr = helperLabel;
     IR::LabelInstr *doneLabel = InsertLabel(false, instr->m_next);
 
-    IR::RegOpnd * src;
     ValueType valueType = argsOpnd[1]->GetValueType();
-    if (argsOpnd[1]->IsRegOpnd())
-    {
-        src = argsOpnd[1]->AsRegOpnd();
-    }
-    else
-    {
-        src = IR::RegOpnd::New(argsOpnd[1]->GetType(), m_func);
-        InsertMove(src, argsOpnd[1], insertInstr);
-    }
+    IR::RegOpnd * src = GetRegOpnd(argsOpnd[1], insertInstr, m_func, argsOpnd[1]->GetType());
 
     IR::LabelInstr *checkNotArrayLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, valueType.IsLikelyArray());
     IR::LabelInstr *notArrayLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, valueType.IsLikelyArray());
@@ -18982,12 +18995,7 @@ Lowerer::GenerateFastReplace(IR::Opnd* strOpnd, IR::Opnd* src1, IR::Opnd* src2, 
 
     if(!strOpnd->GetValueType().IsString())
     {
-        if(!strOpnd->IsRegOpnd())
-        {
-            IR::RegOpnd *strOpndReg = IR::RegOpnd::New(TyVar, m_func);
-            Lowerer::InsertMove(strOpndReg, strOpnd, insertInstr);
-            strOpnd = strOpndReg;
-        }
+        strOpnd = GetRegOpnd(strOpnd, insertInstr, m_func, TyVar);
 
         this->GenerateStringTest(strOpnd->AsRegOpnd(), insertInstr, labelHelper);
     }
@@ -19001,12 +19009,7 @@ Lowerer::GenerateFastReplace(IR::Opnd* strOpnd, IR::Opnd* src1, IR::Opnd* src2, 
 
     // cmp  [regex], vtableAddress
     // jne  $labelHelper
-    if(!src1->IsRegOpnd())
-    {
-        IR::RegOpnd *src1Reg = IR::RegOpnd::New(TyVar, m_func);
-        Lowerer::InsertMove(src1Reg, src1, insertInstr);
-        src1 = src1Reg;
-    }
+    src1 = GetRegOpnd(src1, insertInstr, m_func, TyVar);
     InsertCompareBranch(
         IR::IndirOpnd::New(src1->AsRegOpnd(), 0, TyMachPtr, insertInstr->m_func),
         vtableOpnd,
@@ -19016,12 +19019,7 @@ Lowerer::GenerateFastReplace(IR::Opnd* strOpnd, IR::Opnd* src1, IR::Opnd* src2, 
 
     if(!src2->GetValueType().IsString())
     {
-        if(!src2->IsRegOpnd())
-        {
-            IR::RegOpnd *src2Reg = IR::RegOpnd::New(TyVar, m_func);
-            Lowerer::InsertMove(src2Reg, src2, insertInstr);
-            src2 = src2Reg;
-        }
+        src2 = GetRegOpnd(src2, insertInstr, m_func, TyVar);
         this->GenerateStringTest(src2->AsRegOpnd(), insertInstr, labelHelper);
     }
 
@@ -19045,7 +19043,7 @@ Lowerer::GenerateFastReplace(IR::Opnd* strOpnd, IR::Opnd* src1, IR::Opnd* src2, 
     this->m_lowererMD.LoadHelperArgument(helperCallInstr, src1);
 
     // script context
-    LoadScriptContext(helperCallInstr); 
+    LoadScriptContext(helperCallInstr);
 
     if(callDst)
     {
@@ -19095,12 +19093,7 @@ Lowerer::GenerateFastInlineStringSplitMatch(IR::Instr * instr)
     IR::LabelInstr *labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
     if(!argsOpnd[0]->GetValueType().IsString())
     {
-        if(!argsOpnd[0]->IsRegOpnd())
-        {
-            IR::RegOpnd *opndReg = IR::RegOpnd::New(TyVar, m_func);
-            Lowerer::InsertMove(opndReg, argsOpnd[0], instr);
-            argsOpnd[0] = opndReg;
-        }
+        argsOpnd[0] = GetRegOpnd(argsOpnd[0], instr, m_func, TyVar);
         this->GenerateStringTest(argsOpnd[0]->AsRegOpnd(), instr, labelHelper);
     }
 
@@ -19113,12 +19106,7 @@ Lowerer::GenerateFastInlineStringSplitMatch(IR::Instr * instr)
 
     // cmp  [regex], vtableAddress
     // jne  $labelHelper
-    if(!argsOpnd[1]->IsRegOpnd())
-    {
-        IR::RegOpnd *opndReg = IR::RegOpnd::New(TyVar, m_func);
-        Lowerer::InsertMove(opndReg, argsOpnd[1], instr);
-        argsOpnd[1] = opndReg;
-    }
+    argsOpnd[1] = GetRegOpnd(argsOpnd[1], instr, m_func, TyVar);
     InsertCompareBranch(
         IR::IndirOpnd::New(argsOpnd[1]->AsRegOpnd(), 0, TyMachPtr, instr->m_func),
         vtableOpnd,
@@ -19241,12 +19229,7 @@ Lowerer::GenerateFastInlineRegExpExec(IR::Instr * instr)
     IR::LabelInstr *labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
     if(!opndString->GetValueType().IsString())
     {
-        if(!opndString->IsRegOpnd())
-        {
-            IR::RegOpnd *opndReg = IR::RegOpnd::New(TyVar, m_func);
-            Lowerer::InsertMove(opndReg, opndString, instr);
-            opndString = opndReg;
-        }
+        opndString = GetRegOpnd(opndString, instr, m_func, TyVar);
         this->GenerateStringTest(opndString->AsRegOpnd(), instr, labelHelper);
     }
 
@@ -19260,12 +19243,7 @@ Lowerer::GenerateFastInlineRegExpExec(IR::Instr * instr)
 
     // cmp  [regex], vtableAddress
     // jne  $labelHelper
-    if(!opndRegex->IsRegOpnd())
-    {
-        IR::RegOpnd *opndReg = IR::RegOpnd::New(TyVar, m_func);
-        Lowerer::InsertMove(opndReg, opndRegex, instr);
-        opndRegex = opndReg;
-    }
+    opndRegex = GetRegOpnd(opndRegex, instr, m_func, TyVar);
     InsertCompareBranch(
         IR::IndirOpnd::New(opndRegex->AsRegOpnd(), 0, TyMachPtr, instr->m_func),
         vtableOpnd,
@@ -19432,7 +19410,7 @@ Lowerer::GenerateFastInlineRegExpExec(IR::Instr * instr)
 }
 
 // Generate a fast path for the "in" operator that check quickly if we have an array or not and if the index of the data is contained in the array's length.
-void Lowerer::GenerateFastInlineIsIn(IR::Instr * instr)
+void Lowerer::GenerateFastArrayIsIn(IR::Instr * instr)
 {
     // operator "foo in bar"
     IR::Opnd* src1 = instr->GetSrc1(); // foo
@@ -19522,6 +19500,59 @@ void Lowerer::GenerateFastInlineIsIn(IR::Instr * instr)
     instr->InsertBefore(helperLabel);
 
     instr->InsertAfter(doneLabel);
+}
+
+// Generate a fast path for the "in" operator to use the cache where the key may be a PropertyString or Symbol.
+void Lowerer::GenerateFastObjectIsIn(IR::Instr * instr)
+{
+    IR::RegOpnd* baseOpnd = GetRegOpnd(instr->GetSrc2(), instr, m_func, TyVar);
+    IR::RegOpnd* indexOpnd = GetRegOpnd(instr->GetSrc1(), instr, m_func, TyVar);
+    bool likelyStringIndex = indexOpnd->GetValueType().IsLikelyString();
+    bool likelySymbolIndex = indexOpnd->GetValueType().IsLikelySymbol();
+
+    if (!baseOpnd->GetValueType().IsLikelyObject() || !(likelyStringIndex || likelySymbolIndex))
+    {
+        return;
+    }
+
+    IR::LabelInstr* helperLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
+    IR::LabelInstr* doneLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+
+    if (likelyStringIndex)
+    {
+        GeneratePropertyStringTest(indexOpnd, instr, helperLabel, true /*usePoison*/);
+
+        const uint32 inlineCacheOffset = Js::PropertyString::GetOffsetOfLdElemInlineCache();
+        const uint32 hitRateOffset = Js::PropertyString::GetOffsetOfHitRate();
+
+        GenerateFastIsInSymbolOrStringIndex(instr, indexOpnd, baseOpnd, instr->GetDst(), inlineCacheOffset, hitRateOffset, helperLabel, doneLabel);
+    }
+    else
+    {
+        Assert(likelySymbolIndex);
+
+        GenerateSymbolTest(indexOpnd, instr, helperLabel);
+
+        const uint32 inlineCacheOffset = Js::JavascriptSymbol::GetOffsetOfLdElemInlineCache();
+        const uint32 hitRateOffset = Js::JavascriptSymbol::GetOffsetOfHitRate();
+
+        GenerateFastIsInSymbolOrStringIndex(instr, indexOpnd, baseOpnd, instr->GetDst(), inlineCacheOffset, hitRateOffset, helperLabel, doneLabel);
+    }
+
+    instr->InsertBefore(helperLabel);
+    instr->InsertAfter(doneLabel);
+}
+
+// Given an operand, either cast it or move it to a register
+IR::RegOpnd * Lowerer::GetRegOpnd(IR::Opnd* opnd, IR::Instr* insertInstr, Func* func, IRType type)
+{
+    if (opnd->IsRegOpnd())
+    {
+        return opnd->AsRegOpnd();
+    }
+    IR::RegOpnd *regOpnd = IR::RegOpnd::New(type, func);
+    InsertMove(regOpnd, opnd, insertInstr);
+    return regOpnd;
 }
 
 void Lowerer::GenerateTruncWithCheck(IR::Instr* instr)
@@ -20055,7 +20086,6 @@ Lowerer::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR::Opnd *
     //      MOV dst, r2
     bool isInt = false;
     bool isNotTaggedValue = false;
-    IR::RegOpnd *regSrcStr;
 
     if (srcStr->IsRegOpnd())
     {
@@ -20070,16 +20100,7 @@ Lowerer::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR::Opnd *
         }
     }
 
-    if (srcStr->IsRegOpnd() == false)
-    {
-        IR::RegOpnd *regOpnd = IR::RegOpnd::New(TyVar, this->m_func);
-        InsertMove(regOpnd, srcStr, insertInstr);
-        regSrcStr = regOpnd;
-    }
-    else
-    {
-        regSrcStr = srcStr->AsRegOpnd();
-    }
+    IR::RegOpnd *regSrcStr = GetRegOpnd(srcStr, insertInstr, m_func, TyVar);
 
     if (!isNotTaggedValue)
     {
@@ -20326,17 +20347,8 @@ Lowerer::LowerCallIDynamicSpread(IR::Instr *callInstr, ushort callFlags)
 
     Assert(spreadArrayInstr->m_opcode == Js::OpCode::ArgOut_A_SpreadArg);
 
-    IR::RegOpnd *arrayOpnd = nullptr;
     IR::Opnd *arraySrcOpnd = spreadArrayInstr->UnlinkSrc1();
-    if (!arraySrcOpnd->IsRegOpnd())
-    {
-        arrayOpnd = IR::RegOpnd::New(TyMachPtr, func);
-        Lowerer::InsertMove(arrayOpnd, arraySrcOpnd, spreadArrayInstr);
-    }
-    else
-    {
-        arrayOpnd = arraySrcOpnd->AsRegOpnd();
-    }
+    IR::RegOpnd *arrayOpnd = GetRegOpnd(arraySrcOpnd, spreadArrayInstr, func, TyMachPtr);
 
     argLinkOpnd = spreadArrayInstr->UnlinkSrc2()->AsSymOpnd();
 
@@ -21897,9 +21909,7 @@ Lowerer::GenerateFastIsInst(IR::Instr * instr)
     IR::LabelInstr * done = IR::LabelInstr::New(Js::OpCode::Label, m_func);
     IR::RegOpnd * typeReg = IR::RegOpnd::New(TyMachReg, this->m_func);
     IR::Opnd * objectSrc;
-    IR::RegOpnd * objectReg;
     IR::Opnd * functionSrc;
-    IR::RegOpnd * functionReg;
     intptr_t inlineCache;
     IR::Instr * instrArg;
 
@@ -21919,16 +21929,7 @@ Lowerer::GenerateFastIsInst(IR::Instr * instr)
     // MOV dst, Js::false
     InsertMove(instr->GetDst(), LoadLibraryValueOpnd(instr, LibraryValue::ValueFalse), instr);
 
-    if (functionSrc->IsRegOpnd())
-    {
-        functionReg = functionSrc->AsRegOpnd();
-    }
-    else
-    {
-        functionReg = IR::RegOpnd::New(TyMachReg, this->m_func);
-        // MOV functionReg, functionSrc
-        InsertMove(functionReg, functionSrc, instr);
-    }
+    IR::RegOpnd * functionReg = GetRegOpnd(functionSrc, instr, m_func, TyMachReg);
 
     // CMP functionReg, [&(inlineCache->function)]
     {
@@ -21939,16 +21940,7 @@ Lowerer::GenerateFastIsInst(IR::Instr * instr)
     // JNE helper
     InsertBranch(Js::OpCode::BrNeq_A, helper, instr);
 
-    if (objectSrc->IsRegOpnd())
-    {
-        objectReg = objectSrc->AsRegOpnd();
-    }
-    else
-    {
-        objectReg = IR::RegOpnd::New(TyMachReg, this->m_func);
-        // MOV objectReg, objectSrc
-        InsertMove(objectReg, objectSrc, instr);
-    }
+    IR::RegOpnd * objectReg = GetRegOpnd(objectSrc, instr, m_func, TyMachReg);
 
     // TEST objectReg, Js::AtomTag
     // JNE done
@@ -22029,7 +22021,7 @@ bool Lowerer::GenerateJSBooleanTest(IR::RegOpnd * regSrc, IR::Instr * insertInst
     {
         // JEQ $labelTarget
         InsertBranch(Js::OpCode::BrEq_A, labelTarget, insertInstr);
-        
+
         // $helper
         InsertLabel(true, insertInstr);
     }
@@ -25850,13 +25842,9 @@ Lowerer::LowerNewScopeSlots(IR::Instr * instr, bool doStackSlots)
 
     // avoid using a register for the undefined pointer if we are going to assign 1 or 2
 
-    if (actualSlotCount > 2 && !undefinedOpnd->IsRegOpnd())
+    if (actualSlotCount > 2)
     {
-
-        // mov undefinedOpnd, undefined
-        IR::RegOpnd * regOpnd = IR::RegOpnd::New(TyVar, func);
-        InsertMove(regOpnd, undefinedOpnd, instr);
-        undefinedOpnd = regOpnd;
+        undefinedOpnd = GetRegOpnd(undefinedOpnd, instr, func, TyVar);
     }
 
     int const loopUnrollCount = 8;
