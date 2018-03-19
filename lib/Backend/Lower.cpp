@@ -10094,7 +10094,14 @@ Lowerer::LowerEqualityBranch(IR::Instr* instr, IR::JnHelperMethod helper)
     }
     if (!needHelper)
     {
-        instr->Remove();
+        if (instr->AsBranchInstr()->GetTarget()->m_isLoopTop)
+        {
+            LowerBrCMem(instr, helper, false, hasStrFastPath);
+        }
+        else
+        {
+            instr->Remove();
+        }
     }
 
     return instrPrev;
