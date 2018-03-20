@@ -316,13 +316,17 @@ public:
 class HashTbl
 {
 public:
-    static HashTbl * Create(uint cidHash);
-
-    void Release(void)
+    HashTbl(uint cidHash = DEFAULT_HASH_TABLE_SIZE)
     {
-        delete this;  // invokes overridden operator delete
+        AssertCanHandleOutOfMemory();
+        m_prgpidName = nullptr;
+        memset(&m_rpid, 0, sizeof(m_rpid));
+        if (!Init(cidHash))
+        {
+            Js::Throw::OutOfMemory();
+        }
     }
-
+    ~HashTbl(void) {}
 
     BOOL TokIsBinop(tokens tk, int *popl, OpCode *pnop)
     {
@@ -392,24 +396,14 @@ public:
     }
 
 private:
+    static const uint DEFAULT_HASH_TABLE_SIZE = 256;
+
     NoReleaseAllocator m_noReleaseAllocator;            // to allocate identifiers
     Ident ** m_prgpidName;        // hash table for names
 
     uint32 m_luMask;                // hash mask
     uint32 m_luCount;              // count of the number of entires in the hash table    
     IdentPtr m_rpid[tkLimKwd];
-
-    HashTbl()
-    {
-        m_prgpidName = nullptr;
-        memset(&m_rpid, 0, sizeof(m_rpid));
-    }
-    ~HashTbl(void) {}
-
-    void operator delete(void* p, size_t size)
-    {
-        HeapFree(p, size);
-    }
 
     // Called to grow the number of buckets in the table to reduce the table density.
     void Grow();

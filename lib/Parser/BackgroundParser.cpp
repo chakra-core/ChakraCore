@@ -32,7 +32,8 @@ BackgroundParser::~BackgroundParser()
         static_cast<JsUtil::BackgroundJobProcessor*>(processor)->IterateBackgroundThreads([&](JsUtil::ParallelThreadData *threadData)->bool {
             if (threadData->parser)
             {
-                threadData->parser->Release();
+                // Adelete to make sure dtor are called (since the HashTbl has its NoReleaseAllocator)
+                Adelete(threadData->threadArena, threadData->parser);
                 threadData->parser = nullptr;
             }
             return false;
@@ -79,7 +80,6 @@ bool BackgroundParser::Process(JsUtil::Job *const job, JsUtil::ParallelThreadDat
         // the background thread to decommit its pages.
         threadData->parser = Anew(threadData->threadArena, Parser, this->scriptContext, backgroundItem->IsStrictMode(), &threadData->backgroundPageAllocator, true);
         threadData->pse = Anew(threadData->threadArena, CompileScriptException);
-        threadData->parser->PrepareScanner(backgroundItem->GetParseContext()->fromExternal);
     }
 
     Parser *parser = threadData->parser;
@@ -143,7 +143,8 @@ void BackgroundParser::OnDecommit(JsUtil::ParallelThreadData *threadData)
 {
     if (threadData->parser)
     {
-        threadData->parser->Release();
+        // Adelete to make sure dtor are called (since the HashTbl has its NoReleaseAllocator)
+        Adelete(threadData->threadArena, threadData->parser);
         threadData->parser = nullptr;
     }
 }

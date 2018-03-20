@@ -70,43 +70,20 @@ IdentPtr Token::CreateIdentifier(HashTbl * hashTbl)
 }
 
 template <typename EncodingPolicy>
-Scanner<EncodingPolicy>::Scanner(Parser* parser, HashTbl *phtbl, Token *ptoken, Js::ScriptContext* scriptContext)
+Scanner<EncodingPolicy>::Scanner(Parser* parser, Token *ptoken, Js::ScriptContext* scriptContext)
 {
-    AssertMem(phtbl);
     AssertMem(ptoken);
     m_parser = parser;
-    m_phtbl = phtbl;
     m_ptoken = ptoken;
-    m_cMinLineMultiUnits = 0;
-    m_fHadEol = FALSE;
-
-    m_doubleQuoteOnLastTkStrCon = FALSE;
-    m_OctOrLeadingZeroOnLastTKNumber = false;
-
-    m_fStringTemplateDepth = 0;
-
-    m_scanState = ScanStateNormal;
     m_scriptContext = scriptContext;
-
-    m_line = 0;
-    m_startLine = 0;
-    m_pchStartLine = NULL;
-
-    m_ichMinError = 0;
-    m_ichLimError = 0;
 
     m_tempChBuf.m_pscanner = this;
     m_tempChBufSecondary.m_pscanner = this;
 
-    m_iecpLimTokPrevious = (size_t)-1;
-    m_ichLimTokPrevious = (charcount_t)-1;
-
     this->charClassifier = scriptContext->GetCharClassifier();
-
     this->es6UnicodeMode = scriptContext->GetConfig()->IsES6UnicodeExtensionsEnabled();
 
-    m_fYieldIsKeywordRegion = false;
-    m_fAwaitIsKeywordRegion = false;
+    ClearStates();
 }
 
 template <typename EncodingPolicy>
@@ -114,12 +91,60 @@ Scanner<EncodingPolicy>::~Scanner(void)
 {
 }
 
+template <typename EncodingPolicy>
+void Scanner<EncodingPolicy>::ClearStates()
+{
+    m_pchBase = nullptr;
+    m_pchLast = nullptr;
+    m_pchMinLine = nullptr;
+    m_pchMinTok = nullptr;
+    m_currentCharacter = nullptr;
+    m_pchPrevLine = nullptr;
+
+    m_cMinTokMultiUnits = 0;
+    m_cMinLineMultiUnits = 0;
+
+    m_fStringTemplateDepth = 0;
+
+    m_fHadEol = FALSE;
+    m_fIsModuleCode = FALSE;
+    m_doubleQuoteOnLastTkStrCon = FALSE;
+    m_OctOrLeadingZeroOnLastTKNumber = false;
+    m_EscapeOnLastTkStrCon = false;
+    m_fNextStringTemplateIsTagged = false;
+    m_DeferredParseFlags = ScanFlagNone;
+
+    m_fYieldIsKeywordRegion = false;
+    m_fAwaitIsKeywordRegion = false;
+
+    m_line = 0;
+    m_scanState = ScanStateNormal;
+
+    m_ichMinError = 0;
+    m_ichLimError = 0;
+
+    m_startLine = 0;
+    m_pchStartLine = NULL;
+
+    m_iecpLimTokPrevious = (size_t)-1;
+    m_ichLimTokPrevious = (charcount_t)-1;
+}
+
+template <typename EncodingPolicy>
+void Scanner<EncodingPolicy>::Clear()
+{
+    EncodingPolicy::Clear();
+    ClearStates();
+    this->m_tempChBuf.Clear();
+    this->m_tempChBufSecondary.Clear();
+}
+
 /*****************************************************************************
 *
 *  Initializes the scanner to prepare to scan the given source text.
 */
 template <typename EncodingPolicy>
-void Scanner<EncodingPolicy>::SetText(EncodedCharPtr pszSrc, size_t offset, size_t length, charcount_t charOffset, ULONG grfscr, ULONG lineNumber)
+void Scanner<EncodingPolicy>::SetText(EncodedCharPtr pszSrc, size_t offset, size_t length, charcount_t charOffset, bool isUtf8, ULONG grfscr, ULONG lineNumber)
 {
     // Save the start of the script and add the offset to get the point where we should start scanning.
     m_pchBase = pszSrc;
@@ -150,6 +175,8 @@ void Scanner<EncodingPolicy>::SetText(EncodedCharPtr pszSrc, size_t offset, size
     m_fIsModuleCode = (grfscr & fscrIsModuleCode) != 0;
     m_fHadEol = FALSE;
     m_DeferredParseFlags = ScanFlagNone;
+
+    this->SetIsUtf8(isUtf8);
 }
 
 #if ENABLE_BACKGROUND_PARSING
@@ -509,7 +536,7 @@ IdentPtr Scanner<EncodingPolicy>::PidAt(size_t iecpMin, size_t iecpLim)
 template <typename EncodingPolicy>
 uint32 Scanner<EncodingPolicy>::UnescapeToTempBuf(EncodedCharPtr p, EncodedCharPtr last)
 {
-    m_tempChBuf.Init();
+    m_tempChBuf.Reset();
     while( p < last )
     {
         codepoint_t codePoint;
@@ -536,7 +563,7 @@ template <typename EncodingPolicy>
 IdentPtr Scanner<EncodingPolicy>::PidOfIdentiferAt(EncodedCharPtr p, EncodedCharPtr last)
 {
     int32 cch = UnescapeToTempBuf(p, last);
-    return m_phtbl->PidHashNameLen(m_tempChBuf.m_prgch, cch);
+    return this->GetHashTbl()->PidHashNameLen(m_tempChBuf.m_prgch, cch);
 }
 
 template <typename EncodingPolicy>
@@ -552,12 +579,12 @@ IdentPtr Scanner<EncodingPolicy>::PidOfIdentiferAt(EncodedCharPtr p, EncodedChar
     else if (EncodingPolicy::MultiUnitEncoding)
     {
         Assert(sizeof(EncodedChar) == 1);
-        return m_phtbl->PidHashNameLen(reinterpret_cast<const char *>(p), reinterpret_cast<const char *>(last), (int32)(last - p));
+        return this->GetHashTbl()->PidHashNameLen(reinterpret_cast<const char *>(p), reinterpret_cast<const char *>(last), (int32)(last - p));
     }
     else
     {
         Assert(sizeof(EncodedChar) == 2);
-        return m_phtbl->PidHashNameLen(reinterpret_cast< const char16 * >(p), (int32)(last - p));
+        return this->GetHashTbl()->PidHashNameLen(reinterpret_cast< const char16 * >(p), (int32)(last - p));
     }
 }
 
@@ -829,7 +856,7 @@ tokens Scanner<EncodingPolicy>::ScanRegExpConstant(ArenaAllocator* alloc)
             , ctAllocator
             , standardEncodedChars
             , standardChars
-            , this->IsFromExternalSource()
+            , this->IsUtf8()
 #if ENABLE_REGEX_CONFIG_OPTIONS
             , w
 #endif
@@ -877,7 +904,7 @@ tokens Scanner<EncodingPolicy>::ScanRegExpConstantNoAST(ArenaAllocator* alloc)
             , alloc
             , standardEncodedChars
             , standardChars
-            , this->IsFromExternalSource()
+            , this->IsUtf8()
 #if ENABLE_REGEX_CONFIG_OPTIONS
             , 0
 #endif
@@ -995,13 +1022,13 @@ tokens Scanner<EncodingPolicy>::ScanStringConstant(OLECHAR delim, EncodedCharPtr
     m_OctOrLeadingZeroOnLastTKNumber = false;
     m_EscapeOnLastTkStrCon = FALSE;
 
-    m_tempChBuf.Init();
+    m_tempChBuf.Reset();
 
     // Use template parameter to gate raw string creation.
     // If createRawString is false, all these operations should be no-ops
     if (createRawString)
     {
-        m_tempChBufSecondary.Init();
+        m_tempChBufSecondary.Reset();
     }
 
     for (;;)
@@ -1385,7 +1412,7 @@ LBreak:
 
     if (createPid)
     {
-        m_ptoken->SetIdentifier(m_phtbl->PidHashNameLen(m_tempChBuf.m_prgch, m_tempChBuf.m_ichCur));
+        m_ptoken->SetIdentifier(this->GetHashTbl()->PidHashNameLen(m_tempChBuf.m_prgch, m_tempChBuf.m_ichCur));
     }
     else
     {
@@ -2162,7 +2189,7 @@ IdentPtr Scanner<EncodingPolicy>::GetSecondaryBufferAsPid()
 
     if (createPid)
     {
-        return m_phtbl->PidHashNameLen(m_tempChBufSecondary.m_prgch, m_tempChBufSecondary.m_ichCur);
+        return this->GetHashTbl()->PidHashNameLen(m_tempChBufSecondary.m_prgch, m_tempChBufSecondary.m_ichCur);
     }
     else
     {
@@ -2180,7 +2207,7 @@ LPCOLESTR Scanner<EncodingPolicy>::StringFromLong(int32 lw)
 template <typename EncodingPolicy>
 IdentPtr Scanner<EncodingPolicy>::PidFromLong(int32 lw)
 {
-    return m_phtbl->PidHashName(StringFromLong(lw));
+    return this->GetHashTbl()->PidHashName(StringFromLong(lw));
 }
 
 template <typename EncodingPolicy>
@@ -2196,7 +2223,7 @@ LPCOLESTR Scanner<EncodingPolicy>::StringFromDbl(double dbl)
 template <typename EncodingPolicy>
 IdentPtr Scanner<EncodingPolicy>::PidFromDbl(double dbl)
 {
-    return m_phtbl->PidHashName(StringFromDbl(dbl));
+    return this->GetHashTbl()->PidHashName(StringFromDbl(dbl));
 }
 
 
