@@ -16,6 +16,7 @@ WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byt
     DynamicObject(type),
     m_hasMemory(false),
     m_hasTable(false),
+    m_memoryIsShared(false),
     m_memImport(nullptr),
     m_tableImport(nullptr),
     m_importedFunctionCount(0),
@@ -331,12 +332,20 @@ WebAssemblyModule::GetFunctionIndexType(uint32 funcIndex) const
 }
 
 void
-WebAssemblyModule::InitializeMemory(uint32 minPage, uint32 maxPage)
+WebAssemblyModule::InitializeMemory(_In_ Wasm::MemorySectionLimits* memoryLimits)
 {
+    if (!memoryLimits)
+    {
+        Assert(UNREACHED);
+        throw Wasm::WasmCompilationException(_u("Internal Error"));
+    }
     if (m_hasMemory)
     {
         throw Wasm::WasmCompilationException(_u("Memory already allocated"));
     }
+
+    uint32 minPage = memoryLimits->initial;
+    uint32 maxPage = memoryLimits->maximum;
 
     if (maxPage < minPage)
     {
@@ -350,6 +359,8 @@ WebAssemblyModule::InitializeMemory(uint32 minPage, uint32 maxPage)
     {
         minPageTooBig();
     }
+
+    m_memoryIsShared = Wasm::Threads::IsEnabled() && memoryLimits->IsShared();
     m_hasMemory = true;
     m_memoryInitSize = minPage;
     m_memoryMaxSize = maxPage;
@@ -358,7 +369,12 @@ WebAssemblyModule::InitializeMemory(uint32 minPage, uint32 maxPage)
 WebAssemblyMemory *
 WebAssemblyModule::CreateMemory() const
 {
-    return WebAssemblyMemory::CreateMemoryObject(m_memoryInitSize, m_memoryMaxSize, GetScriptContext());
+    return WebAssemblyMemory::CreateMemoryObject(
+        m_memoryInitSize,
+        m_memoryMaxSize,
+        m_memoryIsShared,
+        GetScriptContext()
+    );
 }
 
 Wasm::WasmSignature *
@@ -402,13 +418,20 @@ WebAssemblyModule::GetEquivalentSignatureId(uint32 sigId) const
 }
 
 void
-WebAssemblyModule::InitializeTable(uint32 minEntries, uint32 maxEntries)
+WebAssemblyModule::InitializeTable(_In_ Wasm::TableSectionLimits* tableLimits)
 {
+    if (!tableLimits)
+    {
+        Assert(UNREACHED);
+        throw Wasm::WasmCompilationException(_u("Internal Error"));
+    }
     if (m_hasTable)
     {
         throw Wasm::WasmCompilationException(_u("Table already allocated"));
     }
 
+    uint32 minEntries = tableLimits->initial;
+    uint32 maxEntries = tableLimits->maximum;
     if (maxEntries < minEntries)
     {
         throw Wasm::WasmCompilationException(_u("Table: max entries (%d) is less than min entries (%d)"), maxEntries, minEntries);

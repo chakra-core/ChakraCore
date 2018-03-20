@@ -1667,7 +1667,7 @@ EmitInfo WasmBytecodeGenerator::EmitSimdMemAccess(Js::OpCodeAsmJs op, const Wasm
 template<bool isStore, bool isAtomic>
 EmitInfo WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* signature, Js::ArrayBufferView::ViewType viewType)
 {
-    Assert(!isAtomic || CONFIG_FLAG(WasmThreads));
+    Assert(!isAtomic || Wasm::Threads::IsEnabled());
     WasmTypes::WasmType type = signature[0];
     SetUsesMemory(0);
 

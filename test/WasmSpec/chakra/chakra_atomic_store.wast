@@ -1,6 +1,5 @@
 (module
-  ;; todo make this a shared memory
-  (memory 1)
+  (memory 1 1 shared)
 
   (func (export "store") (param i32 i64) (result i32)
     (i64.atomic.store offset=15 (get_local 0) (get_local 1))

@@ -395,6 +395,7 @@ PHASE(All)
 #else
     #define DEFAULT_CONFIG_WasmFastArray    (false)
 #endif
+#define DEFAULT_CONFIG_WasmSharedArrayVirtualBuffer (true)
 #define DEFAULT_CONFIG_WasmCheckVersion     (true)
 #define DEFAULT_CONFIG_WasmIgnoreLimits     (false)
 #define DEFAULT_CONFIG_WasmFold             (true)
@@ -893,6 +894,7 @@ FLAGNR(Boolean, AsmJsEdge             , "Enable asm.js features which may have b
 FLAGNR(Boolean, Wasm                  , "Enable WebAssembly", DEFAULT_CONFIG_Wasm)
 FLAGNR(Boolean, WasmI64               , "Enable Int64 testing for WebAssembly. ArgIns can be [number,string,{low:number,high:number}]. Return values will be {low:number,high:number}", DEFAULT_CONFIG_WasmI64)
 FLAGNR(Boolean, WasmFastArray         , "Enable fast array implementation for WebAssembly", DEFAULT_CONFIG_WasmFastArray)
+FLAGNR(Boolean, WasmSharedArrayVirtualBuffer, "Use Virtual allocation for WebAssemblySharedArrayBuffer (Windows only)", DEFAULT_CONFIG_WasmSharedArrayVirtualBuffer)
 FLAGNR(Boolean, WasmMathExFilter      , "Enable Math exception filter for WebAssembly", DEFAULT_CONFIG_WasmMathExFilter)
 FLAGNR(Boolean, WasmCheckVersion      , "Check the binary version for WebAssembly", DEFAULT_CONFIG_WasmCheckVersion)
 FLAGNR(Boolean, WasmIgnoreLimits      , "Ignore the WebAssembly binary limits ", DEFAULT_CONFIG_WasmIgnoreLimits)

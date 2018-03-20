@@ -19,6 +19,8 @@ namespace Js
         BYTE  *buffer;             // Points to a heap allocated RGBA buffer, can be null
         IndexToWaitersMap *indexToWaiterList;  // Map of agents waiting on a particular index.
         uint32 bufferLength;       // Number of bytes allocated
+        uint32 maxBufferLength = 0; // Maximum number of bytes to allocate (only used by WebAssemblySharedArrayBuffer)
+        bool isWebAssembly = false;
     private:
         // Addref/release counter for current buffer, this is needed as the current buffer will be shared among different workers
         long refCount;
@@ -26,6 +28,10 @@ namespace Js
     public:
         long AddRef();
         long Release();
+        bool IsWebAssembly() const { return isWebAssembly; }
+        void SetIsWebAssembly() { isWebAssembly = true; }
+        static int GetBufferOffset() { return offsetof(SharedContents, buffer); }
+        static int GetBufferLengthOffset() { return offsetof(SharedContents, bufferLength); }
 
 #if DBG
         // This is mainly used for validation purpose as the wait/wake APIs should be used on the agents (Workers) among which this buffer is shared.
@@ -37,8 +43,8 @@ namespace Js
 
         void Cleanup();
 
-        SharedContents(BYTE* b, uint32 l)
-            : buffer(b), bufferLength(l), refCount(1), indexToWaiterList(nullptr)
+        SharedContents(BYTE* b, uint32 l, uint32 m)
+            : buffer(b), bufferLength(l), maxBufferLength(m), refCount(1), indexToWaiterList(nullptr)
 #if DBG
             , allowedAgents(nullptr)
 #endif
@@ -50,9 +56,7 @@ namespace Js
     {
     public:
         DEFINE_VTABLE_CTOR_ABSTRACT(SharedArrayBuffer, ArrayBufferBase);
-
-        SharedArrayBuffer(uint32 length, DynamicType * type);
-
+        SharedArrayBuffer(DynamicType * type);
         SharedArrayBuffer(SharedContents *contents, DynamicType * type);
 
         class EntryInfo
@@ -81,6 +85,7 @@ namespace Js
 
         static int GetByteLengthOffset() { Assert(false); return 0; }
         static int GetBufferOffset() { Assert(false); return 0; }
+        static int GetSharedContentsOffset() { return offsetof(SharedArrayBuffer, sharedContents); }
         virtual bool IsArrayBuffer() override { return false; }
         virtual bool IsSharedArrayBuffer() override { return true; }
         virtual ArrayBuffer * GetAsArrayBuffer() { return nullptr; }
@@ -99,6 +104,12 @@ namespace Js
         virtual bool IsValidVirtualBufferLength(uint length) const;
 
     protected:
+        // maxLength is necessary only for WebAssemblySharedArrayBuffer to know how much it can grow
+        // Must call after constructor of child class is completed. Required to be able to make correct virtual calls
+        void Init(uint32 length, uint32 maxLength);
+        virtual BYTE* AllocBuffer(uint32 length, uint32 maxLength);
+        virtual void FreeBuffer(BYTE* buffer, uint32 length, uint32 maxLength);
+
         FieldNoBarrier(SharedContents *) sharedContents;
 
         static CriticalSection csSharedArrayBuffer;
@@ -116,11 +127,40 @@ namespace Js
         virtual void Dispose(bool isShutdown) override;
         virtual void Finalize(bool isShutdown) override;
 
-    private:
-        JavascriptSharedArrayBuffer(uint32 length, DynamicType * type);
+    protected:
+        JavascriptSharedArrayBuffer(DynamicType * type);
         JavascriptSharedArrayBuffer(SharedContents *sharedContents, DynamicType * type);
 
     };
+
+#ifdef ENABLE_WASM_THREADS
+    class WebAssemblySharedArrayBuffer : public JavascriptSharedArrayBuffer
+    {
+    protected:
+        DEFINE_VTABLE_CTOR(WebAssemblySharedArrayBuffer, JavascriptSharedArrayBuffer);
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(WebAssemblySharedArrayBuffer);
+
+    public:
+        static WebAssemblySharedArrayBuffer* Create(uint32 length, uint32 maxLength, DynamicType * type);
+        static WebAssemblySharedArrayBuffer* Create(SharedContents *sharedContents, DynamicType * type);
+
+        static bool Is(Var aValue);
+        static WebAssemblySharedArrayBuffer* FromVar(Var aValue);
+
+        virtual bool IsValidVirtualBufferLength(uint length) const override;
+        virtual bool IsWebAssemblyArrayBuffer() override { return true; }
+        _Must_inspect_result_ bool GrowMemory(uint32 newBufferLength);
+
+    protected:
+        virtual BYTE* AllocBuffer(uint32 length, uint32 maxLength) override;
+        virtual void FreeBuffer(BYTE* buffer, uint32 length, uint32 maxLength) override;
+
+    private:
+        WebAssemblySharedArrayBuffer(DynamicType * type);
+        WebAssemblySharedArrayBuffer(SharedContents *sharedContents, DynamicType * type);
+        void ValidateBuffer();
+    };
+#endif
 
     // An agent can be viewed as a worker
     struct AgentOfBuffer

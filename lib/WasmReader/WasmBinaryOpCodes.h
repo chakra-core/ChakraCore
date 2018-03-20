@@ -63,7 +63,7 @@
 #define WASM_PREFIX_THREADS 0xfe
 #define WASM_PREFIX_TRACING 0xf0
 
-WASM_PREFIX(Threads, WASM_PREFIX_THREADS, CONFIG_FLAG(WasmThreads), "WebAssembly Threads support is not enabled")
+WASM_PREFIX(Threads, WASM_PREFIX_THREADS, Wasm::Threads::IsEnabled(), "WebAssembly Threads support is not enabled")
 #if ENABLE_DEBUG_CONFIG_OPTIONS
 // We won't even look at that prefix in release builds
 // Mark the prefix as not implemented so we don't allow it in the binary buffer
@@ -329,7 +329,7 @@ WASM_UNARY__OPCODE(I64Extend8_s , 0xc2, L_L, I64Extend8_s , CONFIG_FLAG(WasmSign
 WASM_UNARY__OPCODE(I64Extend16_s, 0xc3, L_L, I64Extend16_s, CONFIG_FLAG(WasmSignExtends), "i64.extend16_s")
 WASM_UNARY__OPCODE(I64Extend32_s, 0xc4, L_L, I64Extend32_s, CONFIG_FLAG(WasmSignExtends), "i64.extend32_s")
 
-#define __has_atomics CONFIG_FLAG(WasmThreads)
+#define __has_atomics (Wasm::Threads::IsEnabled())
 #define __prefix (WASM_PREFIX_THREADS << 8)
 WASM_ATOMICREAD_OPCODE (I32AtomicLoad          , __prefix | 0x10, I_I  , __has_atomics, Js::ArrayBufferView::TYPE_INT32, "i32.atomic.load")
 WASM_ATOMICREAD_OPCODE (I64AtomicLoad          , __prefix | 0x11, L_I  , __has_atomics, Js::ArrayBufferView::TYPE_INT64, "i64.atomic.load")

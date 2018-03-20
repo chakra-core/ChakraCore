@@ -20,6 +20,7 @@
     <ClInclude Include="EmptyWasmByteCodeWriter.h" />
     <ClInclude Include="WasmLimits.h" />
     <ClInclude Include="WasmReaderInfo.h" />
+    <ClInclude Include="WasmSectionLimits.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmBytecodeGenerator.cpp" />
@@ -32,5 +33,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmReaderPch.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmGlobal.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmCustomReader.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmParseTree.cpp" />
   </ItemGroup>
 </Project>

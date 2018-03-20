@@ -48,6 +48,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmSignature.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmGlobal.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmCustomReader.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmParseTree.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EmptyWasmByteCodeWriter.h" />
@@ -64,6 +65,7 @@
     <ClInclude Include="WasmReaderPch.h" />
     <ClInclude Include="WasmParseTree.h" />
     <ClInclude Include="WasmSection.h" />
+    <ClInclude Include="WasmSectionLimits.h" />
     <ClInclude Include="WasmSections.h" />
     <ClInclude Include="WasmSignature.h" />
     <ClInclude Include="WasmBinaryReader.h" />

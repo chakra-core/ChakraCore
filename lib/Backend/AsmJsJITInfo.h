@@ -33,6 +33,7 @@ public:
 #ifdef ENABLE_WASM
     Wasm::WasmSignature * GetWasmSignature(uint index) const;
     intptr_t GetWasmSignatureAddr(uint index) const;
+    bool IsSharedMemory() const;
 #endif
 
     bool UsesHeapBuffer() const;

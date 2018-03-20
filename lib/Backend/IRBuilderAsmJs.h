@@ -16,6 +16,7 @@ namespace AsmJsRegSlots
         WasmMemoryReg,
         BufferReg,
         LengthReg,
+        SharedContents,
         RegCount
     };
 };

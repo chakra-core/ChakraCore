@@ -414,4 +414,10 @@
     <tags>exclude_win7</tags>
   </default>
 </test>
+<test>
+  <default>
+    <files>atomics_test.js</files>
+    <compile-flags>-wasmthreads -ESSharedArrayBuffer -args summary -endargs</compile-flags>
+  </default>
+</test>
 </regress-exe>

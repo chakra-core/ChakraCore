@@ -5,14 +5,36 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_atomic_load.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_atomic_load.wast -endargs -WasmThreads</compile-flags>
+      <compile-flags>-wasm -args chakra/chakra_atomic_load.wast -endargs -WasmThreads -ESSharedArrayBuffer</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_atomic_load.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_atomic_load.wast -endargs -nonative -WasmThreads</compile-flags>
+      <compile-flags>-wasm -args chakra/chakra_atomic_load.wast -endargs -nonative -WasmThreads -ESSharedArrayBuffer</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/chakra_atomic_load.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_atomic_load.wast -endargs -WasmThreads -ESSharedArrayBuffer -WasmSharedArrayVirtualBuffer- -WasmFastArray-</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/chakra_atomic_store.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_atomic_store.wast -endargs -WasmThreads -ESSharedArrayBuffer</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/chakra_atomic_store.baseline</baseline>
+      <compile-flags>-wasm -args chakra/chakra_atomic_store.wast -endargs -nonative -WasmThreads -ESSharedArrayBuffer</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -20,15 +42,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_atomic_store.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_atomic_store.wast -endargs -WasmThreads</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines/chakra_atomic_store.baseline</baseline>
-      <compile-flags>-wasm -args chakra/chakra_atomic_store.wast -endargs -nonative -WasmThreads</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <compile-flags>-wasm -args chakra/chakra_atomic_store.wast -endargs -WasmThreads -ESSharedArrayBuffer -WasmSharedArrayVirtualBuffer- -WasmFastArray-</compile-flags>
     </default>
   </test>
   <test>
@@ -1250,14 +1264,36 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/atomic_load.baseline</baseline>
-      <compile-flags>-wasm -args features/threads/atomic_load.wast -endargs -WasmThreads</compile-flags>
+      <compile-flags>-wasm -args features/threads/atomic_load.wast -endargs -WasmThreads -ESSharedArrayBuffer</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/atomic_load.baseline</baseline>
-      <compile-flags>-wasm -args features/threads/atomic_load.wast -endargs -nonative -WasmThreads</compile-flags>
+      <compile-flags>-wasm -args features/threads/atomic_load.wast -endargs -nonative -WasmThreads -ESSharedArrayBuffer</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/atomic_load.baseline</baseline>
+      <compile-flags>-wasm -args features/threads/atomic_load.wast -endargs -WasmThreads -ESSharedArrayBuffer -WasmSharedArrayVirtualBuffer- -WasmFastArray-</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/atomic_store.baseline</baseline>
+      <compile-flags>-wasm -args features/threads/atomic_store.wast -endargs -WasmThreads -ESSharedArrayBuffer</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/atomic_store.baseline</baseline>
+      <compile-flags>-wasm -args features/threads/atomic_store.wast -endargs -nonative -WasmThreads -ESSharedArrayBuffer</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -1265,15 +1301,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/atomic_store.baseline</baseline>
-      <compile-flags>-wasm -args features/threads/atomic_store.wast -endargs -WasmThreads</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines/atomic_store.baseline</baseline>
-      <compile-flags>-wasm -args features/threads/atomic_store.wast -endargs -nonative -WasmThreads</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <compile-flags>-wasm -args features/threads/atomic_store.wast -endargs -WasmThreads -ESSharedArrayBuffer -WasmSharedArrayVirtualBuffer- -WasmFastArray-</compile-flags>
     </default>
   </test>
 </regress-exe>

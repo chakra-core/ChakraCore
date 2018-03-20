@@ -43,11 +43,7 @@ namespace Js
 
         TypedArrayBase *typedArrayBase = TypedArrayBase::UnsafeFromVar(typedArray);
         ArrayBufferBase* arrayBuffer = typedArrayBase->GetArrayBuffer();
-
-        // todo:: Allow WebAssemblySharedArrayBuffer
-        // Since WebAssemblySharedArrayBuffer can be detached (through grow_memory), we need to revalidate the buffer
-        // after JavascriptConversion on index and values, because {valueOf} can detach the buffer
-        if (arrayBuffer == nullptr || !ArrayBufferBase::Is(arrayBuffer) || !arrayBuffer->IsSharedArrayBuffer() || arrayBuffer->IsWebAssemblyArrayBuffer())
+        if (arrayBuffer == nullptr || !ArrayBufferBase::Is(arrayBuffer) || !arrayBuffer->IsSharedArrayBuffer())
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedSharedArrayBufferObject);
         }
