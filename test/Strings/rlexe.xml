@@ -90,9 +90,7 @@
   </test>
   <test>
     <default>
-      <files>toLowerCase.js</files>
-      <baseline>toLowerCase.baseline</baseline>
-      <compile-flags>-Intl-</compile-flags>
+      <files>toCase.js</files>
     </default>
   </test>
   <test>

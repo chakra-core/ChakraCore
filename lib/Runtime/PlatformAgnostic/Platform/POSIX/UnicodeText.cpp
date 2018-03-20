@@ -5,6 +5,8 @@
 
 #include "RuntimePlatformAgnosticPch.h"
 #include "UnicodeText.h"
+#include "UnicodeTextInternal.h"
+
 #include <cctype>
 #include <string.h>
 #define IS_CHAR(ch) \
@@ -46,7 +48,8 @@ namespace PlatformAgnostic
             return true;
         }
 
-        int32 ChangeStringLinguisticCase(CaseFlags caseFlags, const char16* sourceString, uint32 sourceLength, char16* destString, uint32 destLength, ApiError* pErrorOut)
+        template<bool toUpper, bool useInvariant>
+        charcount_t ChangeStringLinguisticCase(const char16* sourceString, charcount_t sourceLength, char16* destString, charcount_t destLength, ApiError* pErrorOut)
         {
             typedef WCHAR(*CaseConversionFunc)(WCHAR);
             *pErrorOut = ApiError::NoError;
@@ -55,14 +58,14 @@ namespace PlatformAgnostic
                 return sourceLength;
             }
 
-            int32 len = (int32)minm(minm(destLength, sourceLength), INT_MAX);
-            CaseConversionFunc fnc = caseFlags == CaseFlagsLower ? PAL_towlower : PAL_towupper;
-            for (int32 i = 0; i < len; i++)
+            charcount_t len = static_cast<charcount_t>(minm(minm(destLength, sourceLength), MaxCharCount));
+            CaseConversionFunc fnc = toUpper ? PAL_towupper : PAL_towlower;
+            for (charcount_t i = 0; i < len; i++)
             {
                 destString[i] = fnc(sourceString[i]);
             }
 
-            return len;
+            return static_cast<charcount_t>(len);
         }
 
         bool IsWhitespace(codepoint_t ch)
@@ -118,30 +121,6 @@ namespace PlatformAgnostic
             case 0x19DA: return true; // NEW TAI LUE THAM DIGIT ONE
             default: return false;
             }
-        }
-
-        uint32 ChangeStringCaseInPlace(CaseFlags caseFlags, char16* stringToChange, uint32 bufferLength)
-        {
-            // ASCII only
-            typedef int (*CaseFlipper)(int);
-            CaseFlipper flipper;
-            if (caseFlags == CaseFlagsUpper)
-            {
-                flipper = toupper;
-            }
-            else
-            {
-                flipper = tolower;
-            }
-            for(uint32 i = 0; i < bufferLength; i++)
-            {
-                if (stringToChange[i] > 0 && stringToChange[i] < 127)
-                {
-                    char ch = (char)stringToChange[i];
-                    stringToChange[i] = flipper(ch);
-                }
-            }
-            return bufferLength;
         }
 
         int LogicalStringCompare(const char16* string1, const char16* string2)

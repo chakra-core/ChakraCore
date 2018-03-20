@@ -50,14 +50,3 @@ public:
 
 #include <Core/Assertions.h>
 #endif
-
-namespace PlatformAgnostic
-{
-    namespace UnicodeText
-    {
-         namespace Internal
-         {
-             int LogicalStringCompareImpl(const char16* p1, const char16* p2);
-         }
-    }
-}

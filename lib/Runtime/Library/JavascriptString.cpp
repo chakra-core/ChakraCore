@@ -2125,7 +2125,10 @@ case_2:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return ToLocaleCaseHelper(args[0], false, scriptContext);
+        JavascriptString * pThis = nullptr;
+        GetThisStringArgument(args, scriptContext, _u("String.prototype.toLocaleLowerCase"), &pThis);
+
+        return ToLocaleCaseHelper<false /* toUpper */>(pThis);
     }
 
     Var JavascriptString::EntryToLocaleUpperCase(RecyclableObject* function, CallInfo callInfo, ...)
@@ -2137,8 +2140,19 @@ case_2:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return ToLocaleCaseHelper(args[0], true, scriptContext);
+        JavascriptString * pThis = nullptr;
+        GetThisStringArgument(args, scriptContext, _u("String.prototype.toLocaleUpperCase"), &pThis);
+
+        return ToLocaleCaseHelper<true /* toUpper */>(pThis);
     }
+
+    template<bool toUpper>
+    JavascriptString* JavascriptString::ToLocaleCaseHelper(JavascriptString* pThis)
+    {
+        // TODO: implement locale-sensitive Intl versions of these functions
+        return ToCaseCore<toUpper, false>(pThis);
+    }
+
 
     Var JavascriptString::EntryToLowerCase(RecyclableObject* function, CallInfo callInfo, ...)
     {
@@ -2152,23 +2166,7 @@ case_2:
         JavascriptString * pThis = nullptr;
         GetThisStringArgument(args, scriptContext, _u("String.prototype.toLowerCase"), &pThis);
 
-        // Fast path for one character strings
-        if (pThis->GetLength() == 1)
-        {
-            char16 inChar = pThis->GetString()[0];
-            char16 outChar = inChar;
-#if DBG
-            DWORD converted =
-#endif
-                PlatformAgnostic::UnicodeText::ChangeStringCaseInPlace(
-                    PlatformAgnostic::UnicodeText::CaseFlags::CaseFlagsLower, &outChar, 1);
-
-            Assert(converted == 1);
-
-            return (inChar == outChar) ? pThis : scriptContext->GetLibrary()->GetCharStringCache().GetStringForChar(outChar);
-        }
-
-        return ToCaseCore(pThis, ToLower);
+        return ToCaseCore<false, true>(pThis);
     }
 
     Var JavascriptString::EntryToString(RecyclableObject* function, CallInfo callInfo, ...)
@@ -2216,113 +2214,50 @@ case_2:
         JavascriptString* pThis = nullptr;
         GetThisStringArgument(args, scriptContext, _u("String.prototype.toUpperCase"), &pThis);
 
-        // Fast path for one character strings
-        if (pThis->GetLength() == 1)
-        {
-            char16 inChar = pThis->GetString()[0];
-            char16 outChar = inChar;
-#if DBG
-            DWORD converted =
-#endif
-                PlatformAgnostic::UnicodeText::ChangeStringCaseInPlace(
-                    PlatformAgnostic::UnicodeText::CaseFlags::CaseFlagsUpper, &outChar, 1);
-
-            Assert(converted == 1);
-
-            return (inChar == outChar) ? pThis : scriptContext->GetLibrary()->GetCharStringCache().GetStringForChar(outChar);
-        }
-
-        return ToCaseCore(pThis, ToUpper);
+        return ToCaseCore<true, true>(pThis);
     }
 
-    Var JavascriptString::ToCaseCore(JavascriptString* pThis, ToCase toCase)
+    template<bool toUpper, bool useInvariant>
+    JavascriptString* JavascriptString::ToCaseCore(JavascriptString* pThis)
     {
-        Var resultVar = nullptr;
-        EnterPinnedScope((volatile void**)& pThis);
-        charcount_t count = pThis->GetLength();
-
-        const char16* inStr = pThis->GetString();
-        const char16* inStrLim = inStr + count;
-        const char16* i = inStr;
-
-        // Try to find out the chars that do not need casing (in the ASCII range)
-        if (toCase == ToUpper)
+        using namespace PlatformAgnostic::UnicodeText;
+        if (pThis->GetLength() == 0)
         {
-            while (i < inStrLim)
-            {
-                // first range of ascii lower-case (97-122)
-                // second range of ascii lower-case (223-255)
-                // non-ascii chars (255+)
-                if (*i >= 'a')
-                {
-                    if (*i <= 'z') { break; }
-                    if (*i >= 223) { break; }
-                }
-                i++;
-            }
+            return pThis;
+        }
+
+        ScriptContext* scriptContext = pThis->type->GetScriptContext();
+
+        ApiError error = ApiError::NoError;
+
+        // pre-flight to get the length required, as it may be longer than the original string
+        // NOTE: ICU and Win32(/POSIX) implementations of these functions differ slightly in how to get the required number of characters.
+        // For Win32 (LCMapStringEx), you must provide nullptr/0, as providing a buffer that is too small will cause an error and will *not*
+        // report the number of characters required. For ICU, however, you can provide a buffer that is too short, and it will still return
+        // the length it actually needs.
+        // TODO: Investigate pre-allocating buffers for ICU, as the ICU case will be the default going forward
+        charcount_t requiredStringLength = ChangeStringLinguisticCase<toUpper, useInvariant>(pThis->GetSz(), pThis->GetLength(), nullptr, 0, &error);
+        Assert(error == ApiError::NoError || error == ApiError::InsufficientBuffer);
+
+        // REVIEW: this assert may be too defensive if strings can get shorter through upper/lower casing
+        Assert(requiredStringLength >= pThis->GetLength());
+
+        if (requiredStringLength == 1)
+        {
+            // Fast path for one-char strings
+            char16 buffer[2] = { pThis->GetSz()[0], 0 };
+            charcount_t actualStringLength = ChangeStringLinguisticCase<toUpper, useInvariant>(pThis->GetSz(), pThis->GetLength(), buffer, 2, &error);
+            Assert(actualStringLength == 1 && error == ApiError::NoError);
+            return scriptContext->GetLibrary()->GetCharStringCache().GetStringForChar(buffer[0]);
         }
         else
         {
-            Assert(toCase == ToLower);
-            while (i < inStrLim)
-            {
-                // first range of ascii uppercase (65-90)
-                // second range of ascii uppercase (192-222)
-                // non-ascii chars (255+)
-                if (*i >= 'A')
-                {
-                    if (*i <= 'Z') { break; }
-                    if (*i >= 192)
-                    {
-                        if (*i < 223) { break; }
-                        if (*i >= 255) { break; }
-                    }
-                }
-                i++;
-            }
+            charcount_t bufferLength = requiredStringLength + 1;
+            char16* buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, bufferLength);
+            charcount_t actualStringLength = ChangeStringLinguisticCase<toUpper, useInvariant>(pThis->GetSz(), pThis->GetLength(), buffer, bufferLength, &error);
+            Assert(actualStringLength == requiredStringLength && error == ApiError::NoError);
+            return JavascriptString::NewWithBuffer(buffer, actualStringLength, scriptContext);
         }
-
-        // If no char needs casing, return immediately
-        if (i == inStrLim) { return pThis; }
-
-        // Otherwise, copy the string and start casing
-        charcount_t countToCase = (charcount_t)(inStrLim - i);
-        BufferStringBuilder builder(count, pThis->type->GetScriptContext());
-        char16 *outStr = builder.DangerousGetWritableBuffer();
-
-        char16* outStrLim = outStr + count;
-        char16 *o = outStr;
-
-        while (o < outStrLim)
-        {
-            *o++ = *inStr++;
-        }
-
-        if (toCase == ToUpper)
-        {
-#if DBG
-            DWORD converted =
-#endif
-                PlatformAgnostic::UnicodeText::ChangeStringCaseInPlace(
-                    PlatformAgnostic::UnicodeText::CaseFlags::CaseFlagsUpper, outStrLim - countToCase, countToCase);
-
-            Assert(converted == countToCase);
-        }
-        else
-        {
-            Assert(toCase == ToLower);
-#if DBG
-            DWORD converted =
-#endif
-                PlatformAgnostic::UnicodeText::ChangeStringCaseInPlace(
-                    PlatformAgnostic::UnicodeText::CaseFlags::CaseFlagsLower, outStrLim - countToCase, countToCase);
-
-            Assert(converted == countToCase);
-        }
-        resultVar = builder.ToString();
-        LeavePinnedScope();     //  pThis
-
-        return resultVar;
     }
 
     Var JavascriptString::EntryTrim(RecyclableObject* function, CallInfo callInfo, ...)
@@ -3317,48 +3252,6 @@ case_2:
 
         // Assert we ended at the right place.
         AssertMsg((charcount_t)(pResult - builder.DangerousGetWritableBuffer()) == cchTotalChars, "Exceeded allocated string limit");
-
-        return builder.ToString();
-    }
-    Var JavascriptString::ToLocaleCaseHelper(Var thisObj, bool toUpper, ScriptContext *scriptContext)
-    {
-        using namespace PlatformAgnostic::UnicodeText;
-
-        JavascriptString * pThis = JavascriptOperators::TryFromVar<JavascriptString>(thisObj);
-
-        if (!pThis)
-        {
-            pThis = JavascriptConversion::ToString(thisObj, scriptContext);
-        }
-
-        uint32 strLength = pThis->GetLength();
-        if (strLength == 0)
-        {
-            return pThis;
-        }
-
-        // Get the number of chars in the mapped string.
-        CaseFlags caseFlags = (toUpper ? CaseFlags::CaseFlagsUpper : CaseFlags::CaseFlagsLower);
-        const char16* str = pThis->GetString();
-        ApiError err = ApiError::NoError;
-        int32 count = PlatformAgnostic::UnicodeText::ChangeStringLinguisticCase(caseFlags, str, strLength, nullptr, 0, &err);
-
-        if (count <= 0)
-        {
-            AssertMsg(err != ApiError::NoError, "LCMapString failed");
-            Throw::InternalError();
-        }
-
-        BufferStringBuilder builder(count, scriptContext);
-        char16* stringBuffer = builder.DangerousGetWritableBuffer();
-
-        int count1 = PlatformAgnostic::UnicodeText::ChangeStringLinguisticCase(caseFlags, str, strLength, stringBuffer, count, &err);
-
-        if (count1 <= 0)
-        {
-            AssertMsg(err != ApiError::NoError, "LCMapString failed");
-            Throw::InternalError();
-        }
 
         return builder.ToString();
     }

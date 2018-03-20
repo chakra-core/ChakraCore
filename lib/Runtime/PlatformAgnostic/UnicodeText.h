@@ -6,6 +6,7 @@
 
 #include "Core/CommonTypedefs.h"
 #include "ChakraICU.h"
+#include "sal.h"
 
 namespace PlatformAgnostic
 {
@@ -195,33 +196,17 @@ namespace PlatformAgnostic
         //
         // Change the case of a string using linguistic rules
         // Params:
-        //   caseFlags: the case to convert to
         //   sourceString: The string to convert
-        //   sourceLength: The number of characters in the source string. This must be provided, the function does not assume null-termination etc. Length should be greater than 0.
+        //   sourceLength: The number of characters in the source string. This must be provided, the function does not assume null-termination. Length should be greater than 0.
         //   destString:   Optional pointer to the destination string buffer. It can be null if destLength is 0, if you want the required buffer size
         //   destLength:   Size in characters of the destination buffer, or 0 if the function shuld just return the required character count for the dest buffer.
         //   pErrorOut:    Set to NoError, or the actual error if one occurred.
         //
         // Return Value:
-        //   length of the translated string in the destination buffer
-        //   If the return value is less than or equal to 0, then see the value of pErrorOut to understand the error
+        //   The length required to convert sourceString to the given case, even if destString was not large enough to hold it, including the null terminator
         //
-        int32 ChangeStringLinguisticCase(CaseFlags caseFlags, const char16* sourceString, uint32 sourceLength, char16* destString, uint32 destLength, ApiError* pErrorOut);
-
-        //
-        // Change the case of a string using linguistic rules
-        // The string is changed in place
-        //
-        // Params:
-        //   caseFlags: the case to convert to
-        //   sourceString: The string to convert
-        //   sourceLength: The number of characters in the source string. This must be provided, the function does not assume null-termination etc. Length should be greater than 0.
-        //
-        // Return Value:
-        //   length of the translated string in the destination buffer
-        //   If the return value is less than or equal to 0, then see the value of pErrorOut to understand the error
-        //
-        uint32 ChangeStringCaseInPlace(CaseFlags caseFlags, char16* stringToChange, uint32 bufferLength);
+        template<bool toUpper, bool useInvariant>
+        charcount_t ChangeStringLinguisticCase(_In_count_(sourceLength) const char16* sourceString, _In_ charcount_t sourceLength, _Out_writes_(destLength) char16* destString, _In_ charcount_t destLength, _Out_ ApiError* pErrorOut);
 
         //
         // Return the classification type of the character using Unicode 2.0 rules

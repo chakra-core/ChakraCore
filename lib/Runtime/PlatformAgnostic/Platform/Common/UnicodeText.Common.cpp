@@ -44,13 +44,13 @@ namespace PlatformAgnostic
         namespace Internal
         {
             template <typename CharType>
-            inline bool isDigit(__in CharType c)
+            bool isDigit(__in CharType c)
             {
                 return c >= '0' && c <= '9';
             }
 
             template <typename CharType>
-            inline int readNumber(__inout CharType* &str)
+            int readNumber(__inout CharType* &str)
             {
                 int num = 0;
 
