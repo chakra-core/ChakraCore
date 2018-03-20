@@ -121,7 +121,7 @@ WebAssemblyInstance::GetterExports(RecyclableObject* function, CallInfo callInfo
         Assert(UNREACHED);
         exports = scriptContext->GetLibrary()->GetUndefined();
     }
-    return exports;
+    return CrossSite::MarshalVar(scriptContext, exports);
 }
 
 WebAssemblyInstance *
