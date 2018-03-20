@@ -6354,6 +6354,16 @@ namespace Js
         return this->propertyStringMap;
     }
 
+    ForInCache* JavascriptLibrary::GetObjectAssignCache(Type* type)
+    {
+        if (this->cache.assignCache == nullptr)
+        {
+            this->cache.assignCache = RecyclerNewArrayZ(scriptContext->GetRecycler(), ForInCache, Cache::AssignCacheSize);
+        }
+
+        return &this->cache.assignCache[(((size_t)type) >> PolymorphicInlineCacheShift) & (Cache::AssignCacheSize - 1)];
+    }
+
     SymbolCacheMap* JavascriptLibrary::EnsureSymbolMap()
     {
         if (this->symbolMap == nullptr)

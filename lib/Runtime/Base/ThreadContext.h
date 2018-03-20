@@ -1380,7 +1380,7 @@ public:
     void ClearInvalidatedUniqueGuards();
     void ClearInlineCaches();
     void ClearIsInstInlineCaches();
-    void ClearForInCaches();
+    void ClearEnumeratorCaches();
     void ClearEquivalentTypeCaches();
     void ClearScriptContextCaches();
 

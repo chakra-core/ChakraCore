@@ -68,13 +68,10 @@ namespace Js
         CachedData * data;
         if (forInCache && type == forInCache->type)
         {
-            // We shouldn't have a for in cache when asking to enum symbols
-            Assert(!GetEnumSymbols());
             data = (CachedData *)forInCache->data;
 
             Assert(data != nullptr);
             Assert(data->scriptContext == this->scriptContext); // The cache data script context should be the same as request context
-            Assert(!data->enumSymbols);
 
             if (data->enumNonEnumerable == GetEnumNonEnumerable())
             {

@@ -1481,6 +1481,7 @@ private:
         void ClearInlineCaches();
         void ClearIsInstInlineCaches();
         void ClearForInCaches();
+        void ClearAssignCache();
 #ifdef PERSISTENT_INLINE_CACHES
         void ClearInlineCachesWithDeadWeakRefs();
 #endif

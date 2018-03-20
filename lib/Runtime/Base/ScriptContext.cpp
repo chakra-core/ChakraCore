@@ -4732,6 +4732,13 @@ void ScriptContext::ClearForInCaches()
     DebugOnly(forInCacheAllocator.CheckIsAllZero(false));
 }
 
+void ScriptContext::ClearAssignCache()
+{
+    if (Cache()->assignCache)
+    {
+        memset(Cache()->assignCache, 0, Js::Cache::AssignCacheSize);
+    }
+}
 
 #ifdef PERSISTENT_INLINE_CACHES
 void ScriptContext::ClearInlineCachesWithDeadWeakRefs()
