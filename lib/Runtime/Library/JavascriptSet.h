@@ -11,15 +11,64 @@ namespace Js
     public:
         typedef MapOrSetDataNode<Var> SetDataNode;
         typedef MapOrSetDataList<Var> SetDataList;
-        typedef JsUtil::BaseDictionary<Var, SetDataNode*, Recycler, PowerOf2SizePolicy, SameValueZeroComparer> SetDataSet;
+        typedef JsUtil::BaseDictionary<Var, SetDataNode*, Recycler, PowerOf2SizePolicy, SameValueZeroComparer> ComplexVarDataSet;
+        typedef JsUtil::BaseDictionary<Var, SetDataNode*, Recycler> SimpleVarDataSet;
 
     private:
+        enum class SetKind : uint8
+        {
+            // An EmptySet is a set containing no elements
+            EmptySet,
+            // An IntSet is a set containing only int elements
+            //
+            // Adding any TaggedInt or JavascriptNumber that can be represented as a TaggedInt
+            // will succeed and be stored as an int32 in the set, EXCEPT for the value -1
+            // Adding any other value will cause the set to be promoted to a SimpleVarSet or ComplexVarSet,
+            // depending on the value being added
+            //
+            // Deleting any element will also cause the set to be promoted to a SimpleVarSet
+            IntSet,
+            // A SimpleVarSet is a set containing only Vars which are comparable by pointer, and don't require
+            // value comparison
+            //
+            // Addition of a Var that is not comparable by pointer value causes the set to be promoted to a ComplexVarSet
+            SimpleVarSet,
+            // A ComplexVarSet is a set containing Vars for which we must inspect the values to do a comparison
+            // This includes Strings, Symbols, and (sometimes) JavascriptNumbers
+            ComplexVarSet
+        };
+
         Field(SetDataList) list;
-        Field(SetDataSet*) set;
+        union SetUnion
+        {
+            Field(SimpleVarDataSet*) simpleVarSet;
+            Field(ComplexVarDataSet*) complexVarSet;
+            Field(BVSparse<Recycler>*) intSet;
+            SetUnion() {}
+        };
+
+        Field(SetUnion) u;
+
+        Field(SetKind) kind = SetKind::EmptySet;
 
         DEFINE_VTABLE_CTOR_MEMBER_INIT(JavascriptSet, DynamicObject, list);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptSet);
 
+        template <typename T>
+        T* CreateVarSetFromList(uint initialCapacity);
+        void PromoteToSimpleVarSet();
+        void PromoteToComplexVarSet();
+
+        void AddToEmptySet(Var value);
+        bool TryAddToIntSet(Var value);
+        bool TryAddToSimpleVarSet(Var value);
+        void AddToComplexVarSet(Var value);
+
+        bool IsInIntSet(Var value);
+
+        template <bool isComplex>
+        bool DeleteFromVarSet(Var value);
+        bool DeleteFromSimpleVarSet(Var value);
     public:
         JavascriptSet(DynamicType* type);
 
@@ -30,7 +79,9 @@ namespace Js
         static JavascriptSet* UnsafeFromVar(Var aValue);
 
         void Add(Var value);
+
         void Clear();
+
         bool Delete(Var value);
         bool Has(Var value);
         int Size();

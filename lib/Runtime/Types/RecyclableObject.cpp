@@ -669,7 +669,8 @@ namespace Js
             case TypeIds_Symbol:
                 goto ReturnFalse;
             case TypeIds_String:
-                goto CompareStrings;
+                *value = JavascriptString::Equals(JavascriptString::UnsafeFromVar(aLeft), JavascriptString::UnsafeFromVar(aRight));
+                return TRUE;
             case TypeIds_Number:
             case TypeIds_Integer:
             case TypeIds_Boolean:
@@ -756,9 +757,6 @@ namespace Js
         rightType = JavascriptOperators::GetTypeId(aRight);
         redoCount++;
         goto Redo;
-    CompareStrings:
-        *value = JavascriptString::Equals(aLeft, aRight);
-        return TRUE;
     CompareDoubles:
         *value = dblLeft == dblRight;
         return TRUE;

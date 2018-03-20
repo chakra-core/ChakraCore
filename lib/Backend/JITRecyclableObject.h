@@ -38,7 +38,7 @@ public:
         return m_charLength;
     }
 
-    static bool Equals(Js::Var aLeft, Js::Var aRight)
+    static bool Equals(JITJavascriptString* aLeft, JITJavascriptString* aRight)
     {
         return Js::JavascriptStringHelpers<JITJavascriptString>::Equals(aLeft, aRight);
     }

@@ -5432,7 +5432,7 @@ namespace Js
             AssertOrFailFast(hasRight);
 
             // If the strings at this index are not equal, the callsite objects are not equal.
-            if (!Js::JavascriptString::Equals(varLeft, varRight))
+            if (!Js::JavascriptString::Equals(JavascriptString::FromVar(varLeft), JavascriptString::FromVar(varRight)))
             {
                 return false;
             }

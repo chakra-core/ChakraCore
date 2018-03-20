@@ -2976,7 +2976,7 @@ case_2:
         return result;
     }
 
-    bool JavascriptString::Equals(Var aLeft, Var aRight)
+    bool JavascriptString::Equals(JavascriptString* aLeft, JavascriptString* aRight)
     {
         return JavascriptStringHelpers<JavascriptString>::Equals(aLeft, aRight);
     }
@@ -3799,33 +3799,28 @@ case_2:
 
     /* static */
     template <typename T>
-    bool JavascriptStringHelpers<T>::Equals(Var aLeft, Var aRight)
+    bool JavascriptStringHelpers<T>::Equals(T* aLeft, T* aRight)
     {
-        AssertMsg(T::Is(aLeft) && T::Is(aRight), "string comparison");
-
         if (aLeft == aRight) return true;
 
-        T *leftString = T::UnsafeFromVar(aLeft);
-        T *rightString = T::UnsafeFromVar(aRight);
-
         // methods could get called a lot of times this can show up as regressions in benchmarks.
-        volatile T** keepAliveLeftString = (volatile T**)& leftString;
-        volatile T** keepAliveRightString = (volatile T**)& rightString;
+        volatile T** keepAliveLeftString = (volatile T**)& aLeft;
+        volatile T** keepAliveRightString = (volatile T**)& aRight;
         auto keepAliveLambda = [&]() {
             UNREFERENCED_PARAMETER(keepAliveLeftString);
             UNREFERENCED_PARAMETER(keepAliveRightString);
         };
 
-        if (leftString->GetLength() != rightString->GetLength())
+        if (aLeft->GetLength() != aRight->GetLength())
         {
             return false;
         }
 
-        return JsUtil::CharacterBuffer<char16>::StaticEquals(leftString->GetString(), rightString->GetString(), leftString->GetLength());
+        return JsUtil::CharacterBuffer<char16>::StaticEquals(aLeft->GetString(), aRight->GetString(), aLeft->GetLength());
     }
 
 #if ENABLE_NATIVE_CODEGEN
-    template bool JavascriptStringHelpers<JITJavascriptString>::Equals(Var aLeft, Var aRight);
+    template bool JavascriptStringHelpers<JITJavascriptString>::Equals(JITJavascriptString* aLeft, JITJavascriptString* aRight);
 #endif
 
 }

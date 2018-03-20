@@ -92,7 +92,17 @@ namespace Js {
         static double LongToDouble(__int64 aValue);
         static double ULongToDouble(unsigned __int64 aValue);
 
+        template <bool allowNegOne, bool allowLossyConversion>
+        static Var TryCanonicalizeAsTaggedInt(Var value);
+        template <bool allowNegOne, bool allowLossyConversion>
+        static Var TryCanonicalizeAsTaggedInt(Var value, TypeId typeId);
+        template <bool allowLossyConversion>
+        static Var TryCanonicalizeAsSimpleVar(Var value);
+
     private:
+        template <typename T, bool allowNegOne>
+        static Var TryCanonicalizeIntHelper(T val);
+
         static BOOL ToInt32Finite(double value, int32* result);
         template<bool zero>
         static bool SameValueCommon(Var aValue, Var bValue);

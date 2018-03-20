@@ -54,14 +54,19 @@ namespace Js
     template<bool zero>
     bool JavascriptConversion::SameValueCommon(Var aLeft, Var aRight)
     {
+        if (aLeft == aRight)
+        {
+            return true;
+        }
+
         TypeId leftType = JavascriptOperators::GetTypeId(aLeft);
-        TypeId rightType = JavascriptOperators::GetTypeId(aRight);
 
         if (JavascriptOperators::IsUndefinedOrNullType(leftType))
         {
-            return leftType == rightType;
+            return false;
         }
 
+        TypeId rightType = JavascriptOperators::GetTypeId(aRight);
         double dblLeft, dblRight;
 
         switch (leftType)
@@ -70,7 +75,7 @@ namespace Js
             switch (rightType)
             {
             case TypeIds_Integer:
-                return aLeft == aRight;
+                return false;
             case TypeIds_Number:
                 dblLeft     = TaggedInt::ToDouble(aLeft);
                 dblRight    = JavascriptNumber::GetValue(aRight);
@@ -181,17 +186,12 @@ CommonNumber:
             }
             break;
         case TypeIds_Boolean:
-            switch (rightType)
-            {
-            case TypeIds_Boolean:
-                return aLeft == aRight;
-            }
-            break;
+            return false;
         case TypeIds_String:
             switch (rightType)
             {
             case TypeIds_String:
-                return JavascriptString::Equals(aLeft, aRight);
+                return JavascriptString::Equals(JavascriptString::UnsafeFromVar(aLeft), JavascriptString::UnsafeFromVar(aRight));
             }
             break;
         case TypeIds_Symbol:
@@ -208,7 +208,7 @@ CommonNumber:
         default:
             break;
         }
-        return aLeft == aRight;
+        return false;
     }
 
     template bool JavascriptConversion::SameValueCommon<false>(Var aLeft, Var aRight);
@@ -1521,4 +1521,5 @@ CommonNumber:
 
         return NumberUtilities::TryToInt64(length);
     }
+
 } // namespace Js
