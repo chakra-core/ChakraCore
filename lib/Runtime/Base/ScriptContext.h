@@ -18,6 +18,7 @@ using namespace PlatformAgnostic;
 
 class NativeCodeGenerator;
 class BackgroundParser;
+class BGParseManager;
 struct IActiveScriptDirect;
 namespace Js
 {
@@ -1277,6 +1278,20 @@ private:
             CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo,
             const char16 *rootDisplayName, LoadScriptFlag loadScriptFlag,
             Js::Var scriptSource = nullptr);
+
+        HRESULT CompileUTF8Core(
+            __in Js::Utf8SourceInfo* utf8SourceInfo,
+            __in SRCINFO *srcInfo,
+            __in BOOL fOriginalUTF8Code,
+            __in LPCUTF8 pszSrc,
+            __in size_t cbLength,
+            __in ULONG grfscr,
+            __in CompileScriptException *pse,
+            __inout charcount_t& cchLength,
+            __out size_t& srcLength,
+            __out uint& sourceIndex,
+            __deref_out Js::ParseableFunctionInfo ** func
+        );
 
         ArenaAllocator* GeneralAllocator() { return &generalAllocator; }
 

@@ -2070,6 +2070,61 @@ namespace Js
         return parseTree;
     }
 
+    HRESULT ScriptContext::CompileUTF8Core(
+        __in Js::Utf8SourceInfo* utf8SourceInfo,
+        __in SRCINFO *srcInfo,
+        __in BOOL fOriginalUTF8Code,
+        __in LPCUTF8 pszSrc,
+        __in size_t cbLength,
+        __in ULONG grfscr,
+        __in CompileScriptException *pse,
+        __inout charcount_t& cchLength,
+        __out size_t& srcLength,
+        __out uint& sourceIndex,
+        __deref_out Js::ParseableFunctionInfo ** func
+    )
+    {
+        HRESULT hr = E_FAIL;
+        Parser ps(this);
+        (*func) = nullptr;
+
+        ParseNodeProg * parseTree = nullptr;
+        SourceContextInfo * sourceContextInfo = srcInfo->sourceContextInfo;
+        if (fOriginalUTF8Code)
+        {
+            hr = ps.ParseUtf8Source(&parseTree, pszSrc, cbLength, grfscr, pse, &sourceContextInfo->nextLocalFunctionId,
+                sourceContextInfo);
+            cchLength = ps.GetSourceIchLim();
+
+            // Correcting total number of characters.
+            utf8SourceInfo->SetCchLength(cchLength);
+        }
+        else
+        {
+            hr = ps.ParseCesu8Source(&parseTree, pszSrc, cbLength, grfscr, pse, &sourceContextInfo->nextLocalFunctionId,
+                sourceContextInfo);
+        }
+        utf8SourceInfo->SetParseFlags(grfscr);
+        srcLength = ps.GetSourceLength();
+
+        if (SUCCEEDED(hr))
+        {
+            bool isCesu8 = !fOriginalUTF8Code;
+            sourceIndex = this->SaveSourceNoCopy(utf8SourceInfo, cchLength, isCesu8);
+            hr = GenerateByteCode(parseTree, grfscr, this, func, sourceIndex, this->IsForceNoNative(), &ps, pse);
+            utf8SourceInfo->SetByteCodeGenerationFlags(grfscr);
+        }
+#ifdef ENABLE_SCRIPT_DEBUGGING
+        else if (this->IsScriptContextInDebugMode() && !utf8SourceInfo->GetIsLibraryCode() && !utf8SourceInfo->IsInDebugMode())
+        {
+            // In case of syntax error, if we are in debug mode, put the utf8SourceInfo into debug mode.
+            utf8SourceInfo->SetInDebugMode(true);
+        }
+#endif
+
+        return hr;
+    }
+
     JavascriptFunction* ScriptContext::LoadScript(const byte* script, size_t cb,
         SRCINFO const * pSrcInfo, CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo,
         const char16 *rootDisplayName, LoadScriptFlag loadScriptFlag, Js::Var scriptSource)

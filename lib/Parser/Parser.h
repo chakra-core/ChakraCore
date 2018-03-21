@@ -53,3 +53,4 @@ namespace UnifiedRegex {
 #include "Parse.h"
 
 #include "BackgroundParser.h"
+#include "BGParseManager.h"

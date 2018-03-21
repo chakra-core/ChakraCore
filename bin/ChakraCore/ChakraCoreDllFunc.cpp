@@ -84,7 +84,7 @@ static BOOL AttachProcess(HANDLE hmod)
 
 static void DetachProcess()
 {
-    ThreadBoundThreadContextManager::DestroyAllContextsAndEntries();
+    ThreadBoundThreadContextManager::DestroyAllContextsAndEntries(false /*shouldDeleteCurrentTlsEntry*/);
 
     // In JScript, we never unload except for when the app shuts down
     // because DllCanUnloadNow always returns S_FALSE. As a result

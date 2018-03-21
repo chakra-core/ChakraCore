@@ -65,11 +65,13 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)TextbookBoyerMoore.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ptree.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)BGParseManager.cpp" />
     <None Include="HashFunc.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Alloc.h" />
     <ClInclude Include="BackgroundParser.h" />
+    <ClInclude Include="BGParseManager.h" />
     <ClInclude Include="CaseInsensitive.h" />
     <ClInclude Include="CharClassifier.h" />
     <ClInclude Include="CharMap.h" />

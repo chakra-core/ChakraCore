@@ -70,6 +70,8 @@ public:
         Free();
     }
 
+    void CopyInto(CompileScriptException* cse);
+
     HRESULT  ProcessError(IScanner * pScan, HRESULT hr, ParseNode * pnodeBase);
 
     friend class ActiveScriptError;

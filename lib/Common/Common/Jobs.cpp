@@ -484,6 +484,24 @@ namespace JsUtil
     // BackgroundJobProcessor
     // -------------------------------------------------------------------------------------------------------------------------
 
+    ParallelThreadData::ParallelThreadData(AllocationPolicyManager* policyManager) :
+        threadHandle(0),
+        isWaitingForJobs(false),
+        canDecommit(true),
+        currentJob(nullptr),
+        threadStartedOrClosing(false),
+        backgroundPageAllocator(policyManager, Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
+        (AutoSystemInfo::Data.IsLowMemoryProcess() ?
+            PageAllocator::DefaultLowMaxFreePageCount :
+            PageAllocator::DefaultMaxFreePageCount)),
+        threadArena(nullptr),
+        processor(nullptr),
+        parser(nullptr),
+        pse(nullptr),
+        scriptContextBG(nullptr)
+    {
+    }
+
     void BackgroundJobProcessor::InitializeThreadCount()
     {
         if (CONFIG_FLAG(ForceMaxJitThreadCount))
@@ -868,6 +886,12 @@ namespace JsUtil
             AutoCriticalSection lock(&criticalSection);
             // Managers must remove themselves. Hence, Close does not remove managers. So, not asserting on !IsClosed().
 
+            if (!HasManager(manager))
+            {
+                // Since this manager isn't owned by this processor, no need to remove and cleanup
+                return;
+            }
+
             managers.Unlink(manager);
             if(manager->numJobsAddedToProcessor == 0)
             {
@@ -1096,37 +1120,46 @@ namespace JsUtil
                     threadData->isWaitingForJobs = false;
                     continue;
                 }
-
-                Assert(numJobs != 0);
-                --numJobs;
-                threadData->currentJob = job;
-                criticalSection.Leave();
-
-                const bool succeeded = Process(job, threadData);
-
-                criticalSection.Enter();
-                threadData->currentJob = 0;
-                JobManager *const manager = job->Manager();
-                JobProcessed(manager, job, succeeded); // the job may be deleted during this and should not be used afterwards
-                Assert(manager->numJobsAddedToProcessor != 0);
-                --manager->numJobsAddedToProcessor;
-                if(manager->isWaitable)
+                else
                 {
-                    WaitableJobManager *const waitableManager = static_cast<WaitableJobManager *>(manager);
-                    Assert(!(waitableManager->jobBeingWaitedUpon && waitableManager->isWaitingForQueuedJobs));
-                    if(waitableManager->jobBeingWaitedUpon == job)
+                    // Job found. Proceed with Processing
+                    Assert(numJobs != 0);
+                    --numJobs;
+                    threadData->currentJob = job;
+
+                    JobManager *const manager = job->Manager();
+                    manager->JobProcessing(job);
+
+                    criticalSection.Leave();
+
+                    const bool succeeded = Process(job, threadData);
+
+                    criticalSection.Enter();
+                    threadData->currentJob = 0;
+                    
+                    JobProcessed(manager, job, succeeded); // the job may be deleted during this and should not be used afterwards
+                    Assert(manager->numJobsAddedToProcessor != 0);
+                    --manager->numJobsAddedToProcessor;
+                    if (manager->isWaitable)
                     {
-                        waitableManager->jobBeingWaitedUpon = 0;
-                        waitableManager->jobBeingWaitedUponProcessed.Set();
+                        WaitableJobManager *const waitableManager = static_cast<WaitableJobManager *>(manager);
+                        Assert(!(waitableManager->jobBeingWaitedUpon && waitableManager->isWaitingForQueuedJobs));
+                        if (waitableManager->jobBeingWaitedUpon == job)
+                        {
+                            waitableManager->jobBeingWaitedUpon = 0;
+                            waitableManager->jobBeingWaitedUponProcessed.Set();
+                        }
+                        else if (waitableManager->isWaitingForQueuedJobs && manager->numJobsAddedToProcessor == 0)
+                        {
+                            waitableManager->isWaitingForQueuedJobs = false;
+                            waitableManager->queuedJobsProcessed.Set();
+                        }
                     }
-                    else if(waitableManager->isWaitingForQueuedJobs && manager->numJobsAddedToProcessor == 0)
+                    if (manager->numJobsAddedToProcessor == 0)
                     {
-                        waitableManager->isWaitingForQueuedJobs = false;
-                        waitableManager->queuedJobsProcessed.Set();
+                        LastJobProcessed(manager); // the manager may be deleted during this and should not be used afterwards
                     }
                 }
-                if(manager->numJobsAddedToProcessor == 0)
-                    LastJobProcessed(manager); // the manager may be deleted during this and should not be used afterwards
             }
             criticalSection.Leave();
 

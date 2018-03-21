@@ -21,7 +21,7 @@ public:
     static ThreadContext * EnsureContextForCurrentThread();
     static void DestroyContextAndEntryForCurrentThread();
     static void DestroyAllContexts();
-    static void DestroyAllContextsAndEntries();
+    static void DestroyAllContextsAndEntries(bool shouldDeleteCurrentTlsEntry);
     static JsUtil::JobProcessor * GetSharedJobProcessor();
 private:
     static EntryList entries;

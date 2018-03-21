@@ -40,6 +40,7 @@ namespace Js {
     // Properties
     public:
                 uint64          ToMicroseconds() const;
+                double          ToMilliseconds() const;
         static  Tick            FromMicroseconds(uint64 luTick);
         static  Tick            FromQPC(uint64 luQPCTick);
 
