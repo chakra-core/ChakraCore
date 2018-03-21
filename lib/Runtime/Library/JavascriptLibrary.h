@@ -94,7 +94,7 @@ namespace Js
         Field(DynamicProfileInfoList*) profileInfoList;
 #endif
 #endif
-        Cache() : toStringTagCache(nullptr), toJSONCache(nullptr) { }
+        Cache() : toStringTagCache(nullptr), toJSONCache(nullptr), assignCache(nullptr) { }
     };
 
     class MissingPropertyTypeHandler;

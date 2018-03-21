@@ -6356,12 +6356,14 @@ namespace Js
 
     EnumeratorCache* JavascriptLibrary::GetObjectAssignCache(Type* type)
     {
+        // Size must be power of 2 for cache indexing to work
+        CompileAssert((Cache::AssignCacheSize & (Cache::AssignCacheSize - 1)) == 0);
+
         if (this->cache.assignCache == nullptr)
         {
             this->cache.assignCache = AllocatorNewArrayZ(CacheAllocator, scriptContext->GetEnumeratorAllocator(), EnumeratorCache, Cache::AssignCacheSize);
         }
-
-        return &this->cache.assignCache[(((size_t)type) >> PolymorphicInlineCacheShift) & (Cache::AssignCacheSize - 1)];
+        return &this->cache.assignCache[(((uintptr_t)type) >> PolymorphicInlineCacheShift) & (Cache::AssignCacheSize - 1)];
     }
 
     SymbolCacheMap* JavascriptLibrary::EnsureSymbolMap()
