@@ -11,6 +11,8 @@ var tests = [
         body: function () {
             assert.isNotUndefined(__chakraLibrary, "__chakraLibrary must NOT be undefined as we're using the -LdChakraLib flag.");
         },
+    },
+    {
         name: "Overriding __chakraLibrary must not work change the behavior.",
         body: function () {
             __chakraLibrary = -1;

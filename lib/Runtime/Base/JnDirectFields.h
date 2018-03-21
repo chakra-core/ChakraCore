@@ -514,6 +514,7 @@ ENTRY(subTags)
 ENTRY(supportedLocalesOf)
 ENTRY(tagPublicLibraryCode)
 ENTRY(winglob)
+ENTRY(platform)
 
 ENTRY(NumberFormat)
 ENTRY(__currency)

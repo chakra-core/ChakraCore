@@ -387,6 +387,7 @@ PHASE(All)
 #else
 #define DEFAULT_CONFIG_BgJitDelay           (30)
 #endif
+#endif // DEFAULT_CONFIG_BgJitDelay
 #define DEFAULT_CONFIG_AsmJs                (true)
 #define DEFAULT_CONFIG_AsmJsEdge            (false)
 #define DEFAULT_CONFIG_AsmJsStopOnError     (false)
@@ -538,6 +539,7 @@ PHASE(All)
 
 #define DEFAULT_CONFIG_Intl                    (true)
 #define DEFAULT_CONFIG_IntlBuiltIns            (true)
+#define DEFAULT_CONFIG_IntlPlatform            (false) // Makes the EngineExtension.Intl object visible to user code as Intl.platform, meant for testing
 
 #ifdef ENABLE_JS_BUILTINS
     #define DEFAULT_CONFIG_JsBuiltIn             (true)
@@ -631,7 +633,6 @@ PHASE(All)
 #define DEFAULT_CONFIG_ForcePostLowerGlobOptInstrString (false)
 #define DEFAULT_CONFIG_EnumerateSpecialPropertiesInDebugger (true)
 #define DEFAULT_CONFIG_ESDynamicImport         (false)
-#endif
 
 #define DEFAULT_CONFIG_MaxJITFunctionBytecodeByteLength (4800000)
 #define DEFAULT_CONFIG_MaxJITFunctionBytecodeCount (120000)
@@ -1020,6 +1021,7 @@ FLAGNR(Boolean, CollectGarbage        , "Enable CollectGarbage API", DEFAULT_CON
 
 FLAGR (Boolean, Intl                  , "Intl object support", DEFAULT_CONFIG_Intl)
 FLAGNR(Boolean, IntlBuiltIns          , "Intl built-in function support", DEFAULT_CONFIG_IntlBuiltIns)
+FLAGNR(Boolean, IntlPlatform          , "Make the internal Intl native helper object visible to user code", DEFAULT_CONFIG_IntlPlatform)
 
 FLAGNR(Boolean, JsBuiltIn             , "JS Built-in function support", DEFAULT_CONFIG_JsBuiltIn)
 FLAGNR(Boolean, JitRepro              , "Add Function.invokeJit to execute codegen on an encoded rpc buffer", DEFAULT_CONFIG_JitRepro)
