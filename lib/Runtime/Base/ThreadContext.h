@@ -382,18 +382,6 @@ public:
 
     virtual bool IsNumericProperty(Js::PropertyId propertyId) override;
 
-#ifdef ENABLE_BASIC_TELEMETRY
-    Js::LanguageStats* GetLanguageStats()
-    {
-        return langTel.GetLanguageStats();
-    }
-
-    void ResetLangStats()
-    {
-        this->langTel.Reset();
-    }
-#endif
-    
 #ifdef ENABLE_WASM_SIMD
 #if _M_IX86 || _M_AMD64
     // auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle.
@@ -441,10 +429,6 @@ private:
 
     // The current heap enumeration object being used during enumeration.
     IActiveScriptProfilerHeapEnum* heapEnum;
-
-#ifdef ENABLE_BASIC_TELEMETRY
-    Js::LanguageTelemetry langTel;
-#endif
 
     struct PropertyGuardEntry
     {

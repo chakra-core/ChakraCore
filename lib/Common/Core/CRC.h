@@ -1,6 +1,13 @@
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+
 /*
 *   CRC32 code derived from work by Gary S. Brown.
 */
+
+#pragma once
 
 /*
 * Pre-populated Table used for calculating CRC32.
@@ -41,11 +48,6 @@ static const unsigned int crc_32_tab[] =
     0xB3667A2EL, 0xC4614AB8L, 0x5D681B02L, 0x2A6F2B94L, 0xB40BBE37L, 0xC30C8EA1L, 0x5A05DF1BL, 0x2D02EF8DL
 };
 
-static unsigned int CalculateCRC32(unsigned int bufferCRC, size_t data)
-{
-    /* update running CRC calculation with contents of a buffer */
+unsigned int CalculateCRC32(unsigned int bufferCRC, size_t data);
 
-    bufferCRC = bufferCRC ^ 0xffffffffL;
-    bufferCRC = crc_32_tab[(bufferCRC ^ data) & 0xFF] ^ (bufferCRC >> 8);
-    return (bufferCRC ^ 0xffffffffL);
-}
+unsigned int CalculateCRC32(const char* in);

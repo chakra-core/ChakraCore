@@ -5,9 +5,6 @@
 #include "RuntimeLibraryPch.h"
 #include "Library/EngineInterfaceObject.h"
 #include "Library/IntlEngineInterfaceExtensionObject.h"
-#ifdef ENABLE_BASIC_TELEMETRY
-#include "ScriptContextTelemetry.h"
-#endif
 
 namespace Js
 {

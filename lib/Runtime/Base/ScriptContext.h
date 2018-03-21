@@ -19,11 +19,12 @@ using namespace PlatformAgnostic;
 class NativeCodeGenerator;
 class BackgroundParser;
 struct IActiveScriptDirect;
-#ifdef ENABLE_BASIC_TELEMETRY
-class ScriptContextTelemetry;
-#endif
 namespace Js
 {
+#ifdef ENABLE_BASIC_TELEMETRY
+    class ScriptContextTelemetry;
+#endif
+
     class ScriptContext;
     class ScriptEditQuery;
     class MutationBreakpoint;
@@ -737,9 +738,9 @@ public:
 #ifdef ENABLE_BASIC_TELEMETRY
 
     private:
-        ScriptContextTelemetry* telemetry;
+        Js::ScriptContextTelemetry * telemetry;
     public:
-        ScriptContextTelemetry& GetTelemetry();
+        Js::ScriptContextTelemetry& GetTelemetry();
         bool HasTelemetry();
 
 #endif
