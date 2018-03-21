@@ -135,7 +135,7 @@ namespace Js
 #endif
         inlineCacheAllocator(_u("SC-InlineCache"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
         isInstInlineCacheAllocator(_u("SC-IsInstInlineCache"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
-        forInCacheAllocator(_u("SC-ForInCache"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
+        enumeratorCacheAllocator(_u("SC-EnumeratorCache"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
         hasUsedInlineCache(false),
         hasProtoOrStoreFieldInlineCache(false),
         hasIsInstInlineCache(false),
@@ -4726,18 +4726,10 @@ void ScriptContext::ClearIsInstInlineCaches()
     DebugOnly(isInstInlineCacheAllocator.CheckIsAllZero(true));
 }
 
-void ScriptContext::ClearForInCaches()
+void ScriptContext::ClearEnumeratorCaches()
 {
-    forInCacheAllocator.ZeroAll();
-    DebugOnly(forInCacheAllocator.CheckIsAllZero(false));
-}
-
-void ScriptContext::ClearAssignCache()
-{
-    if (Cache()->assignCache)
-    {
-        memset(Cache()->assignCache, 0, Js::Cache::AssignCacheSize);
-    }
+    enumeratorCacheAllocator.ZeroAll();
+    DebugOnly(enumeratorCacheAllocator.CheckIsAllZero(false));
 }
 
 #ifdef PERSISTENT_INLINE_CACHES

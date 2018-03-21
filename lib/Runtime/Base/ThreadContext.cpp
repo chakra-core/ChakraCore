@@ -3121,8 +3121,7 @@ ThreadContext::ClearEnumeratorCaches()
     Js::ScriptContext *scriptContext = this->scriptContextList;
     while (scriptContext != nullptr)
     {
-        scriptContext->ClearForInCaches();
-        scriptContext->ClearAssignCache();
+        scriptContext->ClearEnumeratorCaches();
         scriptContext = scriptContext->next;
     }
 }

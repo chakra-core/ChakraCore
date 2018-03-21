@@ -6032,7 +6032,7 @@ namespace Js
         {
             return;
         }
-        this->SetAuxPtr(AuxPointerType::ForInCacheArray, AllocatorNewArrayZ(CacheAllocator, this->GetScriptContext()->ForInCacheAllocator(), EnumeratorCache, profiledForInLoopCount));
+        this->SetAuxPtr(AuxPointerType::ForInCacheArray, AllocatorNewArrayZ(CacheAllocator, this->GetScriptContext()->GetEnumeratorAllocator(), EnumeratorCache, profiledForInLoopCount));
     }
 
     EnumeratorCache * FunctionBody::GetForInCache(uint index)
@@ -6062,7 +6062,7 @@ namespace Js
             }
             else
             {
-                AllocatorDeleteArray(CacheAllocator, this->GetScriptContext()->ForInCacheAllocator(), profiledForInLoopCount, forInCacheArray);
+                AllocatorDeleteArray(CacheAllocator, this->GetScriptContext()->GetEnumeratorAllocator(), profiledForInLoopCount, forInCacheArray);
                 this->SetAuxPtr(AuxPointerType::ForInCacheArray, nullptr);
             }
         }

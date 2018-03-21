@@ -6358,7 +6358,7 @@ namespace Js
     {
         if (this->cache.assignCache == nullptr)
         {
-            this->cache.assignCache = RecyclerNewArrayZ(scriptContext->GetRecycler(), EnumeratorCache, Cache::AssignCacheSize);
+            this->cache.assignCache = AllocatorNewArrayZ(CacheAllocator, scriptContext->GetEnumeratorAllocator(), EnumeratorCache, Cache::AssignCacheSize);
         }
 
         return &this->cache.assignCache[(((size_t)type) >> PolymorphicInlineCacheShift) & (Cache::AssignCacheSize - 1)];

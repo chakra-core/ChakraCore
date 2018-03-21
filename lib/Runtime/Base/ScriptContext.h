@@ -570,7 +570,7 @@ namespace Js
         ArenaAllocator dynamicProfileInfoAllocator;
         InlineCacheAllocator inlineCacheAllocator;
         CacheAllocator isInstInlineCacheAllocator;
-        CacheAllocator forInCacheAllocator;
+        CacheAllocator enumeratorCacheAllocator;
 
         ArenaAllocator* interpreterArena;
         ArenaAllocator* guestArena;
@@ -1290,7 +1290,7 @@ private:
 #endif
         InlineCacheAllocator* GetInlineCacheAllocator() { return &inlineCacheAllocator; }
         CacheAllocator* GetIsInstInlineCacheAllocator() { return &isInstInlineCacheAllocator; }
-        CacheAllocator * ForInCacheAllocator() { return &forInCacheAllocator; }
+        CacheAllocator * GetEnumeratorAllocator() { return &enumeratorCacheAllocator; }
         ArenaAllocator* DynamicProfileInfoAllocator() { return &dynamicProfileInfoAllocator; }
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
@@ -1480,8 +1480,7 @@ private:
 #endif
         void ClearInlineCaches();
         void ClearIsInstInlineCaches();
-        void ClearForInCaches();
-        void ClearAssignCache();
+        void ClearEnumeratorCaches();
 #ifdef PERSISTENT_INLINE_CACHES
         void ClearInlineCachesWithDeadWeakRefs();
 #endif
