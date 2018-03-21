@@ -708,11 +708,12 @@ namespace Js
             }
             else if (rhs->nop == knopCall)
             {
-                if (rhs->AsParseNodeCall()->pnodeTarget->nop != knopName)
+                ParseNodeCall* callNode = rhs->AsParseNodeCall();
+                if (callNode->pnodeTarget->nop != knopName)
                 {
                     return Fail(rhs, _u("call should be for fround"));
                 }
-                AsmJsFunctionDeclaration* funcDecl = this->LookupFunction(rhs->AsParseNodeCall()->pnodeTarget->name());
+                AsmJsFunctionDeclaration* funcDecl = this->LookupFunction(callNode->pnodeTarget->name());
 
                 if (!funcDecl)
                     return Fail(rhs, _u("Cannot resolve function for argument definition, or wrong function"));
@@ -731,7 +732,7 @@ namespace Js
                     return Fail(rhs, _u("Wrong function used for argument definition"));
                 }
 
-                if (!NodeDefineThisArgument(rhs->AsParseNodeCall()->pnodeArgs, var))
+                if (callNode->argCount == 0 || !NodeDefineThisArgument(callNode->pnodeArgs, var))
                 {
                     return Fail(lhs, _u("Defining wrong argument"));
                 }

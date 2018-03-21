@@ -931,6 +931,11 @@
   </test>
   <test>
     <default>
+      <files>bug16253406.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>badFunctionType.js</files>
       <baseline>badFunctionType.baseline</baseline>
       <compile-flags>-testtrace:asmjs</compile-flags>
