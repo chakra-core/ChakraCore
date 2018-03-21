@@ -38,7 +38,7 @@ namespace Js
         this->initialPropertyCount = initialPropertyCount;
     }
 
-    bool DynamicObjectPropertyEnumerator::Initialize(DynamicObject * object, EnumeratorFlags flags, ScriptContext * requestContext, ForInCache * forInCache)
+    bool DynamicObjectPropertyEnumerator::Initialize(DynamicObject * object, EnumeratorFlags flags, ScriptContext * requestContext, EnumeratorCache * enumeratorCache)
     {
         this->scriptContext = requestContext;
         this->object = object;
@@ -66,9 +66,9 @@ namespace Js
         DynamicType * type = object->GetDynamicType();
 
         CachedData * data;
-        if (forInCache && type == forInCache->type)
+        if (enumeratorCache && type == enumeratorCache->type)
         {
-            data = (CachedData *)forInCache->data;
+            data = (CachedData *)enumeratorCache->data;
 
             Assert(data != nullptr);
             Assert(data->scriptContext == this->scriptContext); // The cache data script context should be the same as request context
@@ -86,10 +86,10 @@ namespace Js
         {
             Initialize(type, data, data->propertyCount);
 
-            if (forInCache)
+            if (enumeratorCache)
             {
-                forInCache->type = type;
-                forInCache->data = data;
+                enumeratorCache->type = type;
+                enumeratorCache->data = data;
             }
             return true;
         }
@@ -122,10 +122,10 @@ namespace Js
         requestContext->GetThreadContext()->AddDynamicObjectEnumeratorCache(type, data);
         Initialize(type, data, propertyCount);
 
-        if (forInCache)
+        if (enumeratorCache)
         {
-            forInCache->type = type;
-            forInCache->data = data;
+            enumeratorCache->type = type;
+            enumeratorCache->data = data;
         }
         return true;
     }

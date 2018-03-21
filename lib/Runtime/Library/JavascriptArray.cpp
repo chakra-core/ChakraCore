@@ -12575,12 +12575,12 @@ Case0:
         return this->DirectDeleteItemAt<double>(index);
     }
 
-    BOOL JavascriptArray::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
+    BOOL JavascriptArray::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, EnumeratorCache * enumeratorCache)
     {
 #if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(this);
 #endif
-        return enumerator->Initialize(nullptr, this, this, flags, requestContext, forInCache);
+        return enumerator->Initialize(nullptr, this, this, flags, requestContext, enumeratorCache);
     }
 
     BOOL JavascriptArray::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)

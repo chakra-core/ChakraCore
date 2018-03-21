@@ -88,7 +88,7 @@ namespace Js
         Field(BuiltInLibraryFunctionMap*) builtInLibraryFunctions;
         Field(ScriptContextPolymorphicInlineCache*) toStringTagCache;
         Field(ScriptContextPolymorphicInlineCache*) toJSONCache;
-        Field(ForInCache*) assignCache;
+        Field(EnumeratorCache*) assignCache;
 #if ENABLE_PROFILE_INFO
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         Field(DynamicProfileInfoList*) profileInfoList;
@@ -1174,7 +1174,7 @@ namespace Js
             return (JavascriptLibrary *)((uintptr_t)cache - offsetof(JavascriptLibrary, charStringCache));
         }
 
-        ForInCache* GetObjectAssignCache(Type* type);
+        EnumeratorCache* GetObjectAssignCache(Type* type);
 
         bool GetArrayObjectHasUserDefinedSpecies() const { return arrayObjectHasUserDefinedSpecies; }
         void SetArrayObjectHasUserDefinedSpecies(bool val) { arrayObjectHasUserDefinedSpecies = val; }

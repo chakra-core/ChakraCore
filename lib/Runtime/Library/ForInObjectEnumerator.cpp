@@ -29,7 +29,7 @@ namespace Js
         shadowData = nullptr;
     }
 
-    void ForInObjectEnumerator::Initialize(RecyclableObject* initObject, ScriptContext * requestContext, bool enumSymbols, ForInCache * forInCache)
+    void ForInObjectEnumerator::Initialize(RecyclableObject* initObject, ScriptContext * requestContext, bool enumSymbols, EnumeratorCache * forInCache)
     {
         this->enumeratingPrototype = false;
 
@@ -117,7 +117,7 @@ namespace Js
         return firstPrototypeWithEnumerableProperties;
     }
 
-    BOOL ForInObjectEnumerator::InitializeCurrentEnumerator(RecyclableObject * object, ForInCache * forInCache)
+    BOOL ForInObjectEnumerator::InitializeCurrentEnumerator(RecyclableObject * object, EnumeratorCache * forInCache)
     {
         EnumeratorFlags flags = enumerator.GetFlags();
         RecyclableObject * prototype = object->GetPrototype();
@@ -129,7 +129,7 @@ namespace Js
         return InitializeCurrentEnumerator(object, flags, GetScriptContext(), forInCache);
     }
 
-    BOOL ForInObjectEnumerator::InitializeCurrentEnumerator(RecyclableObject * object, EnumeratorFlags flags,  ScriptContext * scriptContext, ForInCache * forInCache)
+    BOOL ForInObjectEnumerator::InitializeCurrentEnumerator(RecyclableObject * object, EnumeratorFlags flags,  ScriptContext * scriptContext, EnumeratorCache * forInCache)
     {
         Assert(object);
         Assert(scriptContext);

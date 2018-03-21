@@ -58,7 +58,7 @@ namespace Js
             virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags flags) override { UNWRAP_FAILFAST(); return FALSE; };
             virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags) override { UNWRAP_FAILFAST(); return FALSE; };
             virtual BOOL ToPrimitive(JavascriptHint hint, Var* result, ScriptContext * requestContext) override { UNWRAP_FAILFAST(); return FALSE; };
-            virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache = nullptr) override { UNWRAP_FAILFAST(); return FALSE; };
+            virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, EnumeratorCache * enumeratorCache = nullptr) override { UNWRAP_FAILFAST(); return FALSE; };
             virtual BOOL SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None) override { UNWRAP_FAILFAST(); return FALSE; };
             virtual BOOL GetAccessors(PropertyId propertyId, Var *getter, Var *setter, ScriptContext * requestContext) override { UNWRAP_FAILFAST(); return FALSE; };
             virtual BOOL IsWritable(PropertyId propertyId) override { UNWRAP_FAILFAST(); return FALSE; };

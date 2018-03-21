@@ -40,10 +40,10 @@ namespace Js
     }
 
     //---------------------- ES5ArgumentsObjectEnumerator -------------------------------
-    ES5ArgumentsObjectEnumerator * ES5ArgumentsObjectEnumerator::New(ArgumentsObject* argumentsObject, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
+    ES5ArgumentsObjectEnumerator * ES5ArgumentsObjectEnumerator::New(ArgumentsObject* argumentsObject, EnumeratorFlags flags, ScriptContext* requestContext, EnumeratorCache * enumeratorCache)
     {
         ES5ArgumentsObjectEnumerator * enumerator = RecyclerNew(requestContext->GetRecycler(), ES5ArgumentsObjectEnumerator, argumentsObject, flags, requestContext);
-        if (!enumerator->Init(forInCache))
+        if (!enumerator->Init(enumeratorCache))
         {
             return nullptr;
         }
@@ -56,11 +56,11 @@ namespace Js
     {
     }
 
-    BOOL ES5ArgumentsObjectEnumerator::Init(ForInCache * forInCache)
+    BOOL ES5ArgumentsObjectEnumerator::Init(EnumeratorCache * enumeratorCache)
     {
         __super::Reset();
         this->enumeratedFormalsInObjectArrayCount = 0;
-        return argumentsObject->DynamicObject::GetEnumerator(&objectEnumerator, flags, GetScriptContext(), forInCache);
+        return argumentsObject->DynamicObject::GetEnumerator(&objectEnumerator, flags, GetScriptContext(), enumeratorCache);
     }
 
     JavascriptString * ES5ArgumentsObjectEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)

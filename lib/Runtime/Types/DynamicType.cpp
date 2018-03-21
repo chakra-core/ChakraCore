@@ -461,7 +461,7 @@ namespace Js
         return false;
     }
 
-    BOOL DynamicObject::GetEnumeratorWithPrefix(JavascriptEnumerator * prefixEnumerator, JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext * requestContext, ForInCache * forInCache)
+    BOOL DynamicObject::GetEnumeratorWithPrefix(JavascriptEnumerator * prefixEnumerator, JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext * requestContext, EnumeratorCache * enumeratorCache)
     {
         Js::ArrayObject * arrayObject = nullptr;
         if (this->HasObjectArray())
@@ -469,12 +469,12 @@ namespace Js
             arrayObject = this->GetObjectArrayOrFlagsAsArray();
             Assert(arrayObject->GetPropertyCount() == 0);
         }
-        return enumerator->Initialize(prefixEnumerator, arrayObject, this, flags, requestContext, forInCache);
+        return enumerator->Initialize(prefixEnumerator, arrayObject, this, flags, requestContext, enumeratorCache);
     }
 
-    BOOL DynamicObject::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext * requestContext, ForInCache * forInCache)
+    BOOL DynamicObject::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext * requestContext, EnumeratorCache * enumeratorCache)
     {
-        return GetEnumeratorWithPrefix(nullptr, enumerator, flags, requestContext, forInCache);
+        return GetEnumeratorWithPrefix(nullptr, enumerator, flags, requestContext, enumeratorCache);
     }
 
     BOOL DynamicObject::SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags)

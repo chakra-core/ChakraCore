@@ -1092,10 +1092,10 @@ JITTimeFunctionBody::GetFormalsPropIdArray() const
     return  (Js::PropertyIdArray *)m_bodyData.formalsPropIdArray;
 }
 
-Js::ForInCache *
+Js::EnumeratorCache *
 JITTimeFunctionBody::GetForInCache(uint profileId) const
 {
-    return  &((Js::ForInCache *)m_bodyData.forInCacheArrayAddr)[profileId];
+    return  &((Js::EnumeratorCache *)m_bodyData.forInCacheArrayAddr)[profileId];
 }
 
 bool

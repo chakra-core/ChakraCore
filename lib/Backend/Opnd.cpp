@@ -3906,15 +3906,15 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
             break;
         case AddrOpndKindForInCache:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, _u(" (ForInCache)"));
+            WriteToBuffer(&buffer, &n, _u(" (EnumeratorCache)"));
             break;
         case AddrOpndKindForInCacheType:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, _u(" (&ForInCache->type)"));
+            WriteToBuffer(&buffer, &n, _u(" (&EnumeratorCache->type)"));
             break;
         case AddrOpndKindForInCacheData:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            WriteToBuffer(&buffer, &n, _u(" (&ForInCache->data)"));
+            WriteToBuffer(&buffer, &n, _u(" (&EnumeratorCache->data)"));
             break;
         case AddrOpndKindDynamicNativeCodeDataRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
