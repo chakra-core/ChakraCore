@@ -10764,10 +10764,10 @@ GlobOpt::ToTypeSpecIndex(IR::Instr * instr, IR::RegOpnd * indexOpnd, IR::IndirOp
 
         if (!IsLoopPrePass())
         {
-            indexOpnd = indirOpnd ? indirOpnd->GetIndexOpnd() : instr->GetSrc1()->AsRegOpnd();
-            if (indexOpnd)
+            IR::Opnd * intOpnd = indirOpnd ? indirOpnd->GetIndexOpnd() : instr->GetSrc1();
+            if (intOpnd != nullptr)
             {
-                Assert(indexOpnd->m_sym->IsTypeSpec());
+                Assert(!intOpnd->IsRegOpnd() || intOpnd->AsRegOpnd()->m_sym->IsTypeSpec());
                 IntConstantBounds indexConstantBounds;
                 AssertVerify(indexValue->GetValueInfo()->TryGetIntConstantBounds(&indexConstantBounds));
                 if (ValueInfo::IsGreaterThanOrEqualTo(
@@ -10778,7 +10778,7 @@ GlobOpt::ToTypeSpecIndex(IR::Instr * instr, IR::RegOpnd * indexOpnd, IR::IndirOp
                     0,
                     0))
                 {
-                    indexOpnd->SetType(TyUint32);
+                    intOpnd->SetType(TyUint32);
                 }
             }
         }

@@ -146,7 +146,12 @@ bool GlobOpt::ArraySrcOpt::CheckOpCode()
             break;
 
         case Js::OpCode::IsIn:
-            if (!instr->GetSrc1()->IsRegOpnd() || !instr->GetSrc2()->IsRegOpnd())
+            if (!instr->GetSrc1()->IsRegOpnd() && !instr->GetSrc1()->IsIntConstOpnd())
+            {
+                return false;
+            }
+
+            if (!instr->GetSrc2()->IsRegOpnd())
             {
                 return false;
             }
@@ -180,7 +185,7 @@ void GlobOpt::ArraySrcOpt::TypeSpecIndex()
         {
             globOpt->ToVarUses(instr, baseOwnerIndir, baseOwnerIndir == instr->GetDst(), nullptr);
         }
-        else if (instr->m_opcode == Js::OpCode::IsIn)
+        else if (instr->m_opcode == Js::OpCode::IsIn && instr->GetSrc1()->IsRegOpnd())
         {
             // If the optimization is unable to eliminate the bounds checks, we need to restore the original var sym.
             Assert(originalIndexOpnd == nullptr);
@@ -195,19 +200,20 @@ void GlobOpt::ArraySrcOpt::TypeSpecIndex()
     }
     else if (instr->m_opcode == Js::OpCode::IsIn)
     {
-        indexOpnd = instr->GetSrc1()->AsRegOpnd();
+        indexOpnd = instr->GetSrc1();
     }
 
-    if (indexOpnd != nullptr)
+    if (indexOpnd != nullptr && indexOpnd->IsRegOpnd())
     {
-        if (indexOpnd->m_sym->IsTypeSpec())
+        IR::RegOpnd * regOpnd = indexOpnd->AsRegOpnd();
+        if (regOpnd->m_sym->IsTypeSpec())
         {
-            Assert(indexOpnd->m_sym->IsInt32());
-            indexVarSym = indexOpnd->m_sym->GetVarEquivSym(nullptr);
+            Assert(regOpnd->m_sym->IsInt32());
+            indexVarSym = regOpnd->m_sym->GetVarEquivSym(nullptr);
         }
         else
         {
-            indexVarSym = indexOpnd->m_sym;
+            indexVarSym = regOpnd->m_sym;
         }
 
         indexValue = globOpt->CurrentBlockData()->FindValue(indexVarSym);
@@ -327,9 +333,9 @@ void GlobOpt::ArraySrcOpt::TryEliminiteBoundsCheck()
     doExtractBoundChecks = (headSegmentLengthIsAvailable || doHeadSegmentLengthLoad) && canBailOutOnArrayAccessHelperCall;
 
     // Get the index value
-    if (indexOpnd != nullptr)
+    if (indexOpnd != nullptr && indexOpnd->IsRegOpnd())
     {
-        if (indexOpnd->m_sym->IsTypeSpec())
+        if (indexOpnd->AsRegOpnd()->m_sym->IsTypeSpec())
         {
             Assert(indexVarSym);
             Assert(indexValue);
@@ -385,7 +391,7 @@ void GlobOpt::ArraySrcOpt::TryEliminiteBoundsCheck()
     }
     else
     {
-        const int32 indexConstantValue = baseOwnerIndir->GetOffset();
+        const int32 indexConstantValue = indexOpnd ? indexOpnd->AsIntConstOpnd()->AsInt32() : baseOwnerIndir->GetOffset();
         if (indexConstantValue < 0)
         {
             eliminatedUpperBoundCheck = true;
@@ -754,7 +760,7 @@ void GlobOpt::ArraySrcOpt::DoExtractBoundChecks()
 {
     Assert(!(eliminatedLowerBoundCheck && eliminatedUpperBoundCheck));
     Assert(baseOwnerIndir != nullptr || indexOpnd != nullptr);
-    Assert(indexOpnd == nullptr || indexOpnd->m_sym->IsTypeSpec());
+    Assert(indexOpnd == nullptr || indexOpnd->IsIntConstOpnd() || indexOpnd->AsRegOpnd()->m_sym->IsTypeSpec());
     Assert(doHeadSegmentLengthLoad || headSegmentLengthIsAvailable);
     Assert(canBailOutOnArrayAccessHelperCall);
     Assert(!isStore || instr->m_opcode == Js::OpCode::StElemI_A || instr->m_opcode == Js::OpCode::StElemI_A_Strict || Js::IsSimd128LoadStore(instr->m_opcode));
@@ -1324,9 +1330,7 @@ void GlobOpt::ArraySrcOpt::DoUpperBoundCheck()
     }
     else
     {
-        IR::Opnd* lowerBound = indexOpnd
-            ? static_cast<IR::Opnd *>(indexOpnd)
-            : IR::IntConstOpnd::New(baseOwnerIndir->GetOffset(), TyInt32, instr->m_func);
+        IR::Opnd * lowerBound = indexOpnd ? indexOpnd : IR::IntConstOpnd::New(baseOwnerIndir->GetOffset(), TyInt32, instr->m_func);
 
         lowerBound->SetIsJITOptimizedReg(true);
         IR::Opnd* upperBound = IR::RegOpnd::New(headSegmentLengthSym, headSegmentLengthSym->GetType(), instr->m_func);
@@ -1366,7 +1370,7 @@ void GlobOpt::ArraySrcOpt::DoUpperBoundCheck()
 
         instr->extractedUpperBoundCheckWithoutHoisting = true;
 
-        if (indexOpnd != nullptr)
+        if (indexOpnd != nullptr && indexOpnd->IsRegOpnd())
         {
             TRACE_PHASE_INSTR(
                 Js::Phase::BoundCheckEliminationPhase,
@@ -1381,7 +1385,7 @@ void GlobOpt::ArraySrcOpt::DoUpperBoundCheck()
                 Js::Phase::BoundCheckEliminationPhase,
                 instr,
                 _u("Separating array upper bound check, as (%d < s%u)\n"),
-                baseOwnerIndir->GetOffset(),
+                indexOpnd ? indexOpnd->AsIntConstOpnd()->AsInt32() : baseOwnerIndir->GetOffset(),
                 headSegmentLengthSym->m_id);
         }
         TESTTRACE_PHASE_INSTR(
