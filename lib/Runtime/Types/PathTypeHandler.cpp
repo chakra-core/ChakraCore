@@ -724,6 +724,8 @@ namespace Js
     template <bool setAttributes>
     BOOL PathTypeHandlerBase::SetPropertyInternal(DynamicObject* instance, PropertyId propertyId, PropertyIndex index, Var value, ObjectSlotAttributes attr, PropertyValueInfo* info, PropertyOperationFlags flags, SideEffects possibleSideEffects, bool isInit)
     {
+        PathTypeHandlerBase *newTypeHandler = nullptr;
+
         // Path type handler doesn't support pre-initialization (PropertyOperation_PreInit). Pre-initialized properties
         // will get marked as fixed when pre-initialized and then as non-fixed when their actual values are set.
 
@@ -749,9 +751,15 @@ namespace Js
                 if (attributes && (attributes[index] & ObjectSlotAttr_Accessor))
                 {
                     this->SetAttributesHelper(instance, propertyId, index, attributes, (ObjectSlotAttributes)(attributes[index] & ~ObjectSlotAttr_Accessor), true);
+                    // We're changing an accessor into a data property at object init time. Don't cache this transition from setter to non-setter,
+                    // as it behaves differently from a normal set property.
+                    PropertyValueInfo::SetNoCache(info, instance);
+                    newTypeHandler = PathTypeHandlerBase::FromTypeHandler(instance->GetDynamicType()->GetTypeHandler());
+                    newTypeHandler->SetSlotUnchecked(instance, index, value);
+                    return true;
                 }
             }
-            PathTypeHandlerBase *newTypeHandler = PathTypeHandlerBase::FromTypeHandler(instance->GetDynamicType()->GetTypeHandler());
+            newTypeHandler = PathTypeHandlerBase::FromTypeHandler(instance->GetDynamicType()->GetTypeHandler());
             newTypeHandler->SetSlotAndCache(instance, propertyId, nullptr, index, value, info, flags, possibleSideEffects);
             return true;
         }
@@ -1127,6 +1135,18 @@ namespace Js
             _Analysis_assume_(setters != nullptr);
             setterSlot = setters[propertyIndex];
         }
+        else if (attributes != nullptr)
+        {
+            // We may already have a valid setter slot, if the property has gone from accessor to data and now back to accessor.
+            // Re-use the setter slot if we can.
+            setters = newTypeHandler->GetSetterSlots();
+            if (setters != nullptr)
+            {
+                setterSlot = setters[propertyIndex];
+                Assert(setterSlot == NoSetterSlot || setterSlot >= GetPathLength() || attributes[setterSlot] == ObjectSlotAttr_Setter);
+            }
+        }
+
         if (setterSlot == NoSetterSlot || setterSlot >= GetPathLength())
         {
             PropertyIndex index = Constants::NoSlot;
@@ -1877,7 +1897,7 @@ namespace Js
         const PropertyRecord *propertyRecord = scriptContext->GetPropertyName(key.GetPropertyId());
 
         PathTypeHandlerBase * nextPath;
-        if (!GetSuccessor(key, &nextTypeWeakRef) || nextTypeWeakRef->Get() == nullptr)
+        if (!GetSuccessor(key, &nextTypeWeakRef) || (nextType = nextTypeWeakRef->Get()) == nullptr)
         {
             TypePath * newTypePath = GetTypePath();
             uint8 oldPathSize = GetTypePath()->GetPathSize();
@@ -1926,7 +1946,7 @@ namespace Js
                     newAttributes = this->UpdateAttributes(recycler, oldAttributes, oldPathSize, newTypePath->GetPathSize());
                 }
 
-                if ((key.GetAttributes() & ObjectSlotAttr_Accessor) || oldSetters != nullptr)
+                if ((key.GetAttributes() == ObjectSlotAttr_Setter) || oldSetters != nullptr)
                 {
                     newSetters = this->UpdateSetterSlots(recycler, oldSetters, oldPathSize, newTypePath->GetPathSize());
                 }
@@ -1942,7 +1962,7 @@ namespace Js
                     newAttributes = this->UpdateAttributes(recycler, oldAttributes, oldPathSize, newTypePath->GetPathSize());
                 }
 
-                if ((key.GetAttributes() & ObjectSlotAttr_Accessor) || oldSetters != nullptr)
+                if ((key.GetAttributes() == ObjectSlotAttr_Setter) || oldSetters != nullptr)
                 {
                     newSetters = this->UpdateSetterSlots(recycler, oldSetters, oldPathSize, newTypePath->GetPathSize());
                 }
@@ -1986,7 +2006,7 @@ namespace Js
                     newAttributes = this->UpdateAttributes(recycler, nullptr, oldPathSize, newTypePath->GetPathSize());
                 }
             
-                if ((key.GetAttributes() & ObjectSlotAttr_Accessor) && oldSetters == nullptr)
+                if ((key.GetAttributes() == ObjectSlotAttr_Setter) && oldSetters == nullptr)
                 {
                     newSetters = this->UpdateSetterSlots(recycler, nullptr, oldPathSize, newTypePath->GetPathSize());
                 }
@@ -2092,7 +2112,6 @@ namespace Js
 #endif
 
             // Now that the second (or subsequent) instance reached this type, make sure that it's shared.
-            nextType = nextTypeWeakRef->Get();
             nextPath = (PathTypeHandlerBase *)nextType->GetTypeHandler();
             Assert(nextPath->GetIsInlineSlotCapacityLocked() == this->GetIsInlineSlotCapacityLocked());
 
