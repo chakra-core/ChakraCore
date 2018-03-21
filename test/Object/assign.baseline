@@ -1,0 +1,8 @@
+ObjectCopy succeeded
+ObjectCopy: Can't copy: Don't have PathTypeHandler
+ObjectCopy: Can't copy: type handler has accessors
+ObjectCopy: Can't copy: type handler has accessors
+ObjectCopy: Can't copy: Protoytypes don't match
+ObjectCopy: Can't copy: from obj has non-enumerable properties
+ObjectCopy succeeded
+pass
