@@ -130,6 +130,12 @@ namespace Js
 #endif
     }
 
+    void PathTypeSingleSuccessorInfo::ReplaceSuccessor(DynamicType * type, const PathTypeSuccessorKey key, RecyclerWeakReference<DynamicType> * typeWeakRef)
+    {
+        Assert(successorKey == key);
+        successorTypeWeakRef = typeWeakRef;
+    }
+
     template<class Fn>
     void PathTypeSingleSuccessorInfo::MapSingleSuccessor(Fn fn)
     {
@@ -165,6 +171,13 @@ namespace Js
     void PathTypeMultiSuccessorInfo::SetSuccessor(DynamicType * type, const PathTypeSuccessorKey key, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext)
     {
         Assert(this->propertySuccessors);
+        propertySuccessors->Item(key, typeWeakRef);
+    }
+
+    void PathTypeMultiSuccessorInfo::ReplaceSuccessor(DynamicType * type, const PathTypeSuccessorKey key, RecyclerWeakReference<DynamicType> * typeWeakRef)
+    {
+        Assert(this->propertySuccessors);
+        Assert(propertySuccessors->Item(key));
         propertySuccessors->Item(key, typeWeakRef);
     }
 
@@ -343,9 +356,21 @@ namespace Js
         return found;
     }
 
-    BOOL PathTypeHandlerBase::SetAttributesHelper(DynamicObject* instance, PropertyId propertyId, PropertyIndex propertyIndex, ObjectSlotAttributes * instanceAttributes, ObjectSlotAttributes propertyAttributes)
+    BOOL PathTypeHandlerBase::SetAttributesHelper(DynamicObject* instance, PropertyId propertyId, PropertyIndex propertyIndex, ObjectSlotAttributes * instanceAttributes, ObjectSlotAttributes propertyAttributes, bool isInit)
     {
-        if (instanceAttributes == nullptr ? propertyAttributes == ObjectSlotAttr_Default : propertyAttributes == instanceAttributes[propertyIndex])
+        if (instanceAttributes)
+        {
+            if (!isInit)
+            {
+                // Preserve non-default bits like accessors
+                propertyAttributes = (ObjectSlotAttributes)(propertyAttributes | (instanceAttributes[propertyIndex] & ~ObjectSlotAttr_PropertyAttributesMask));
+            }
+            if (propertyAttributes == instanceAttributes[propertyIndex])
+            {
+                return true;
+            }
+        }
+        else if (propertyAttributes == ObjectSlotAttr_Default)
         {
             return true;
         }
@@ -714,18 +739,16 @@ namespace Js
             // In CacheOperators::CachePropertyWrite we ensure that we never cache property adds for types that aren't shared.
             Assert(!instance->GetDynamicType()->GetIsShared() || GetIsShared());
 
-            Assert(instance->GetDynamicType()->GetIsShared() == GetIsShared());
-
             if (setAttributes)
             {
-                this->SetAttributesHelper(instance, propertyId, index, GetAttributeArray(), attr);
+                this->SetAttributesHelper(instance, propertyId, index, GetAttributeArray(), attr, isInit);
             }
             else if (isInit)
             {
                 ObjectSlotAttributes * attributes = this->GetAttributeArray();
                 if (attributes && (attributes[index] & ObjectSlotAttr_Accessor))
                 {
-                    this->SetAttributesHelper(instance, propertyId, index, attributes, (ObjectSlotAttributes)(attributes[index] & ~ObjectSlotAttr_Accessor));
+                    this->SetAttributesHelper(instance, propertyId, index, attributes, (ObjectSlotAttributes)(attributes[index] & ~ObjectSlotAttr_Accessor), true);
                 }
             }
             PathTypeHandlerBase *newTypeHandler = PathTypeHandlerBase::FromTypeHandler(instance->GetDynamicType()->GetTypeHandler());
@@ -1722,7 +1745,12 @@ namespace Js
             return true;
         }
 
-        return SetAttributesHelper(instance, propertyId, propertyIndex, GetAttributeArray(), PropertyAttributesToObjectSlotAttributes(attributes));
+        return SetAttributesAtIndex(instance, propertyId, propertyIndex, attributes);
+    }
+
+    BOOL PathTypeHandlerBase::SetAttributesAtIndex(DynamicObject* instance, PropertyId propertyId, PropertyIndex index, PropertyAttributes attributes)
+    {
+        return SetAttributesHelper(instance, propertyId, index, GetAttributeArray(), PropertyAttributesToObjectSlotAttributes(attributes));
     }
 
     BOOL PathTypeHandlerBase::GetAttributesWithPropertyIndex(DynamicObject * instance, PropertyId propertyId, BigPropertyIndex index, PropertyAttributes * attributes)

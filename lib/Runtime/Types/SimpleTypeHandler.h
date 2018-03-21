@@ -85,14 +85,14 @@ namespace Js
         template <typename T>
         T* ConvertToTypeHandler(DynamicObject* instance);
 
+        PathTypeHandlerBase* ConvertToPathType(DynamicObject* instance);
         DictionaryTypeHandler* ConvertToDictionaryType(DynamicObject* instance);
         SimpleDictionaryTypeHandler* ConvertToSimpleDictionaryType(DynamicObject* instance);
         ES5ArrayTypeHandler* ConvertToES5ArrayType(DynamicObject* instance);
-        SimpleTypeHandler<size>* ConvertToNonSharedSimpleType(DynamicObject * instance);
 
-        BOOL GetDescriptor(PropertyId propertyId, int * index);
-        BOOL SetAttribute(DynamicObject* instance, int index, PropertyAttributes attribute);
-        BOOL ClearAttribute(DynamicObject* instance, int index, PropertyAttributes attribute);
+        BOOL GetDescriptor(PropertyId propertyId, PropertyIndex * index);
+        BOOL SetAttribute(DynamicObject* instance, PropertyIndex index, PropertyAttributes attribute);
+        BOOL ClearAttribute(DynamicObject* instance, PropertyIndex index, PropertyAttributes attribute);
         BOOL AddProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags, SideEffects possibleSideEffects);
         virtual BOOL FreezeImpl(DynamicObject* instance, bool isConvertedType) override;
 

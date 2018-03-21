@@ -519,13 +519,15 @@ namespace Js
         static SimpleTypeHandler<1> SharedFunctionWithoutPrototypeTypeHandler;
         static SimpleTypeHandler<1> SharedFunctionWithPrototypeTypeHandlerV11;
         static SimpleTypeHandler<2> SharedFunctionWithPrototypeTypeHandler;
+        static SimpleTypeHandler<1> SharedFunctionWithConfigurableLengthTypeHandler;
         static SimpleTypeHandler<1> SharedFunctionWithLengthTypeHandler;
         static SimpleTypeHandler<2> SharedFunctionWithLengthAndNameTypeHandler;
-        static SimpleTypeHandler<1> SharedIdMappedFunctionWithPrototypeTypeHandler;
+        static SimpleTypeHandler<2> SharedIdMappedFunctionWithPrototypeTypeHandler;
         static SimpleTypeHandler<1> SharedNamespaceSymbolTypeHandler;
         static MissingPropertyTypeHandler MissingPropertyHolderTypeHandler;
 
         static SimplePropertyDescriptor const SharedFunctionPropertyDescriptors[2];
+        static SimplePropertyDescriptor const SharedIdMappedFunctionPropertyDescriptors[2];
         static SimplePropertyDescriptor const HeapArgumentsPropertyDescriptors[3];
         static SimplePropertyDescriptor const FunctionWithLengthAndPrototypeTypeDescriptors[2];
         static SimplePropertyDescriptor const FunctionWithLengthAndNameTypeDescriptors[2];
@@ -984,9 +986,11 @@ namespace Js
         DynamicType * CreateDeferredPrototypeFunctionType(JavascriptMethod entrypoint);
         DynamicType * CreateDeferredPrototypeFunctionTypeNoProfileThunk(JavascriptMethod entrypoint, bool isShared = false, bool isLengthAvailable = false);
         DynamicType * CreateFunctionType(JavascriptMethod entrypoint, RecyclableObject* prototype = nullptr);
+        DynamicType * CreateFunctionWithConfigurableLengthType(FunctionInfo * functionInfo);
         DynamicType * CreateFunctionWithLengthType(FunctionInfo * functionInfo);
         DynamicType * CreateFunctionWithLengthAndNameType(FunctionInfo * functionInfo);
         DynamicType * CreateFunctionWithLengthAndPrototypeType(FunctionInfo * functionInfo);
+        DynamicType * CreateFunctionWithConfigurableLengthType(DynamicObject * prototype, FunctionInfo * functionInfo);
         DynamicType * CreateFunctionWithLengthType(DynamicObject * prototype, FunctionInfo * functionInfo);
         DynamicType * CreateFunctionWithLengthAndNameType(DynamicObject * prototype, FunctionInfo * functionInfo);
         DynamicType * CreateFunctionWithLengthAndPrototypeType(DynamicObject * prototype, FunctionInfo * functionInfo);
