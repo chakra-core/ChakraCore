@@ -234,16 +234,11 @@ namespace Js
                 DynamicTypeHandler* oldTypeHandler = oldType->GetTypeHandler();
                 DynamicTypeHandler* newTypeHandler = newType->GetTypeHandler();
 
-#if ENABLE_FIXED_FIELDS
-                // the newType is a path-type so the old one should be too:
-                Assert(oldTypeHandler->IsPathTypeHandler());
-#else
                 // This may be the transition from deferred type handler to path type handler. Don't try to cache now.
                 if (!oldTypeHandler->IsPathTypeHandler())
                 {
                     return;
                 }
-#endif
 
                 int oldCapacity = oldTypeHandler->GetSlotCapacity();
                 int newCapacity = newTypeHandler->GetSlotCapacity();
