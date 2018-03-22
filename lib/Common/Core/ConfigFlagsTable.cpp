@@ -1249,7 +1249,6 @@ namespace Js
         AutoCriticalSection autocs(&csExperimentalFlags);
 #define FLAG_EXPERIMENTAL(type, name, ...) this->SetAsBoolean(Js::Flag::name##Flag, true);
 #include "ConfigFlagsList.h"
-#undef FLAG_EXPERIMENTAL
     }
 
     //

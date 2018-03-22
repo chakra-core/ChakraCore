@@ -1593,7 +1593,7 @@ FLAGNR(Boolean, EnableBGFreeZero, "Use to turn off background freeing and zeroin
 FLAGNR(Boolean, KeepRecyclerTrackData, "Keep recycler track data after sweep until reuse", DEFAULT_CONFIG_KeepRecyclerTrackData)
 
 #undef FLAG_REGOVR_EXP
-
+#undef FLAG_EXPERIMENTAL
 #undef FLAG
 #undef FLAGP
 
