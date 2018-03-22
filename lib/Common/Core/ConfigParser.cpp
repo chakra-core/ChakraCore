@@ -296,11 +296,13 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
     //     1 - Enable Asmjs phase
     dwValue = 0;
     dwSize = sizeof(dwValue);
-    if (NOERROR == RegGetValueW(hk, nullptr, _u("EnableAsmjs"), RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
+    if (NOERROR == RegGetValueW(hk, nullptr, _u("EnableWasmExperimental"), RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
     {
         if (dwValue == 1)
         {
-            Js::Configuration::Global.flags.Asmjs = true;
+            Js::ConfigFlagsTable &configFlags = Js::Configuration::Global.flags;
+            configFlags.Enable(Js::WasmExperimentalFlag);
+            configFlags.SetAsBoolean(Js::WasmExperimentalFlag, true);
         }
     }
 

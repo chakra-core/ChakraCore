@@ -386,7 +386,7 @@ PHASE(All)
 #else
 #define DEFAULT_CONFIG_BgJitDelay           (30)
 #endif
-#define DEFAULT_CONFIG_ASMJS                (true)
+#define DEFAULT_CONFIG_AsmJs                (true)
 #define DEFAULT_CONFIG_AsmJsEdge            (false)
 #define DEFAULT_CONFIG_AsmJsStopOnError     (false)
 
@@ -404,10 +404,9 @@ PHASE(All)
 #define DEFAULT_CONFIG_WasmMathExFilter     (false)
 #define DEFAULT_CONFIG_WasmIgnoreResponse   (false)
 #define DEFAULT_CONFIG_WasmMaxTableSize     (10000000)
-#define DEFAULT_CONFIG_WasmSimd             (false)
-#define DEFAULT_CONFIG_WasmSignExtends      (false)
 #define DEFAULT_CONFIG_WasmThreads          (false)
 #define DEFAULT_CONFIG_WasmMultiValue       (false)
+#define DEFAULT_CONFIG_WasmExperimental     (false)
 #define DEFAULT_CONFIG_BgJitDelayFgBuffer   (0)
 #define DEFAULT_CONFIG_BgJitPendingFuncCap  (31)
 #define DEFAULT_CONFIG_CurrentSourceInfo    (true)
@@ -807,18 +806,18 @@ PHASE(All)
 // Default values for stings must be prefixed with 'L'. See AsmDumpMode
 // Scroll till the extreme right to see the default values
 
-#if defined(FLAG) || defined(FLAG_REGOVR_EXP)
+#if defined(FLAG) || defined(FLAG_EXPERIMENTAL) || defined(FLAG_REGOVR_EXP)
 
 #ifndef FLAG
 #define FLAG(...)
 #endif
 
-#ifndef FLAG_REGOVR_ASMJS
-#define FLAG_REGOVR_ASMJS FLAG
+#ifndef FLAG_EXPERIMENTAL
+#define FLAG_EXPERIMENTAL FLAG
 #endif
 
 #ifndef FLAG_REGOVR_EXP
-#define FLAG_REGOVR_EXP FLAG
+#define FLAG_REGOVR_EXP FLAG_EXPERIMENTAL
 #endif
 
 // NON-RELEASE FLAGS
@@ -863,9 +862,9 @@ PHASE(All)
         FLAGNR(Type, Acronym, String, Default)
 #endif
 
-
-// RELEASE FLAGS WITH REGISTRY OVERRIDE
-#define FLAGPR_REGOVR_ASMJS(Type, ParentName, Name, String, Default) FLAG_REGOVR_ASMJS(Type, Name, String, Default, ParentName, FALSE)
+// RELEASE Flags enabled by Edge experimental flag
+#define FLAGPR_EXPERIMENTAL_WASM(Type, Name, String)    FLAG_EXPERIMENTAL(Type, Name, String, true, WasmExperimental, FALSE)
+// RELEASE FLAGS WITH REGISTRY OVERRIDE AND EDGE
 #define FLAGPR_REGOVR_EXP(Type, ParentName, Name, String, Default)   FLAG_REGOVR_EXP(Type, Name, String, Default, ParentName, FALSE)
 
 // Release flag with non-release acronym
@@ -890,7 +889,7 @@ FLAGNR(Boolean, ArenaUseHeapAlloc     , "Arena use heap to allocate memory inste
 FLAGNR(Boolean, ValidateInlineStack, "Does a stack walk on helper calls to validate inline stack is correctly restored", false)
 FLAGNR(Boolean, AsmDiff               , "Dump the IR without memory locations and varying parameters.", false)
 FLAGNR(String,  AsmDumpMode           , "Dump the final assembly to a file without memory locations and varying parameters\n\t\t\t\t\tThe 'filename' is the file where the assembly will be dumped. Dump to console if no file is specified", nullptr)
-FLAGR (Boolean, Asmjs                 , "Enable Asmjs", DEFAULT_CONFIG_ASMJS)
+FLAGNR(Boolean, AsmJs                 , "Enable Asmjs", DEFAULT_CONFIG_AsmJs)
 FLAGNR(Boolean, AsmJsStopOnError      , "Stop execution on any AsmJs validation errors", DEFAULT_CONFIG_AsmJsStopOnError)
 FLAGNR(Boolean, AsmJsEdge             , "Enable asm.js features which may have backward incompatible changes or not validate on old demos", DEFAULT_CONFIG_AsmJsEdge)
 FLAGNR(Boolean, Wasm                  , "Enable WebAssembly", DEFAULT_CONFIG_Wasm)
@@ -903,12 +902,19 @@ FLAGNR(Boolean, WasmIgnoreLimits      , "Ignore the WebAssembly binary limits ",
 FLAGNR(Boolean, WasmFold              , "Enable i32/i64 const folding", DEFAULT_CONFIG_WasmFold)
 FLAGNR(Boolean, WasmIgnoreResponse    , "Ignore the type of the Response object", DEFAULT_CONFIG_WasmIgnoreResponse)
 FLAGNR(Number,  WasmMaxTableSize      , "Maximum size allowed to the WebAssembly.Table", DEFAULT_CONFIG_WasmMaxTableSize)
-FLAGNR(Boolean, WasmSignExtends       , "Use new WebAssembly sign extension operators", DEFAULT_CONFIG_WasmSignExtends)
 FLAGNR(Boolean, WasmThreads           , "Enable WebAssembly threads feature", DEFAULT_CONFIG_WasmThreads)
 FLAGNR(Boolean, WasmMultiValue        , "Use new WebAssembly multi-value", DEFAULT_CONFIG_WasmMultiValue)
-#ifdef ENABLE_WASM_SIMD
-FLAGNR(Boolean, WasmSimd              , "Enable SIMD in WebAssembly", DEFAULT_CONFIG_WasmSimd)
-#endif
+
+// WebAssembly Experimental Features
+// Master WasmExperimental flag to activate WebAssembly experimental features
+FLAGR(Boolean, WasmExperimental, "Enable WebAssembly experimental features", DEFAULT_CONFIG_WasmExperimental)
+
+// The default value of the experimental features will be off because the parent is off
+// Turning on the parent causes the child flag to take on their default value (aka on)
+// In Edge, we manually turn on the individual child flags
+// Not having the DEFAULT_CONFIG_XXXX macro ensures we use CONFIG_FLAG_RELEASE instead of CONFIG_FLAG
+FLAGPR_EXPERIMENTAL_WASM(Boolean, WasmSignExtends , "Use new WebAssembly sign extension operators")
+FLAGPR_EXPERIMENTAL_WASM(Boolean, WasmSimd        , "Enable SIMD in WebAssembly")
 
 FLAGNR(Boolean, AssertBreak           , "Debug break on assert", false)
 FLAGNR(Boolean, AssertPopUp           , "Pop up asserts (default: false)", false)
@@ -1587,7 +1593,6 @@ FLAGNR(Boolean, EnableBGFreeZero, "Use to turn off background freeing and zeroin
 FLAGNR(Boolean, KeepRecyclerTrackData, "Keep recycler track data after sweep until reuse", DEFAULT_CONFIG_KeepRecyclerTrackData)
 
 #undef FLAG_REGOVR_EXP
-#undef FLAG_REGOVR_ASMJS
 
 #undef FLAG
 #undef FLAGP
