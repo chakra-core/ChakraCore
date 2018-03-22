@@ -11819,7 +11819,7 @@ bool Parser::CheckStrictModeStrPid(IdentPtr pid)
 bool Parser::CheckAsmjsModeStrPid(IdentPtr pid)
 {
 #ifdef ASMJS_PLAT
-    if (!CONFIG_FLAG_RELEASE(Asmjs))
+    if (!CONFIG_FLAG(Asmjs))
     {
         return false;
     }
