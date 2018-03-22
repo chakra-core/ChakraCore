@@ -5028,9 +5028,9 @@ namespace Js
 
 #endif // ENABLE_TTD
 
-    void JavascriptLibrary::SetCrossSiteForSharedFunctionType(JavascriptFunction * function)
+    void JavascriptLibrary::SetCrossSiteForLockedFunctionType(JavascriptFunction * function)
     {
-        Assert(function->GetDynamicType()->GetIsShared());
+        Assert(function->GetDynamicType()->GetIsLocked());
 
         if (ScriptFunction::Is(function))
         {

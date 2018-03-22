@@ -58,11 +58,11 @@ namespace Js
             HostScriptContext * hostScriptContext = scriptContext->GetHostScriptContext();
             if (!hostScriptContext || !hostScriptContext->SetCrossSiteForFunctionType(function))
             {
-                if (function->GetDynamicType()->GetIsShared())
+                if (function->GetDynamicType()->GetIsLocked())
                 {
-                    TTD_XSITE_LOG(scriptContext, "SetCrossSiteForSharedFunctionType ", object);
+                    TTD_XSITE_LOG(scriptContext, "SetCrossSiteForLockedFunctionType ", object);
 
-                    function->GetLibrary()->SetCrossSiteForSharedFunctionType(function);
+                    function->GetLibrary()->SetCrossSiteForLockedFunctionType(function);
                 }
                 else
                 {
@@ -186,9 +186,9 @@ namespace Js
             //TODO: what happens if the gaurd in marshal (MarshalDynamicObject) isn't true?
             //
 
-            if(function->GetDynamicType()->GetIsShared())
+            if(function->GetTypeHandler()->GetIsLocked())
             {
-                function->GetLibrary()->SetCrossSiteForSharedFunctionType(function);
+                function->GetLibrary()->SetCrossSiteForLockedFunctionType(function);
             }
             else
             {

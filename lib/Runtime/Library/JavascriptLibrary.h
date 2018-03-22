@@ -1086,7 +1086,7 @@ namespace Js
         JavascriptFunction* EnsureJSONStringifyFunction();
         JavascriptFunction* EnsureObjectFreezeFunction();
 
-        void SetCrossSiteForSharedFunctionType(JavascriptFunction * function);
+        void SetCrossSiteForLockedFunctionType(JavascriptFunction * function);
 
         bool IsPRNGSeeded() { return isPRNGSeeded; }
         uint64 GetRandSeed0() { return randSeed0; }
