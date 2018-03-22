@@ -147,7 +147,7 @@ GlobOpt::KillLiveFields(StackSym * stackSym, BVSparse<JitArenaAllocator> * bv)
 
     // If the sym has no objectSymInfo, it must not represent an object and, hence, has no type sym or
     // property syms to kill.
-    if (!stackSym->HasObjectInfo())
+    if (!stackSym->HasObjectInfo() || stackSym->IsSingleDef())
     {
         return;
     }
