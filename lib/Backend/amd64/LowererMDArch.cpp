@@ -3065,6 +3065,20 @@ bool LowererMDArch::GenerateFastDivAndRem(IR::Instr* instrDiv, IR::LabelInstr* b
     IR::Opnd* divisor   = instrDiv->GetSrc2(); // denominator
     IR::Opnd* dst       = instrDiv->GetDst();
 
+    if (divident->GetType() != TyInt32 && divident->GetType() == TyUint32)
+    {
+        return false;
+    }
+
+    if (divident->IsRegOpnd() && divident->AsRegOpnd()->IsSameRegUntyped(dst))
+    {
+        if (instrDiv->m_opcode == Js::OpCode::Rem_I4 || instrDiv->m_opcode == Js::OpCode::RemU_I4 || bailOutLabel)
+        {
+            divident = IR::RegOpnd::New(TyInt32, instrDiv->m_func);
+            Lowerer::InsertMove(divident, instrDiv->GetSrc1(), instrDiv);
+        }
+    }
+
     if (PHASE_OFF(Js::BitopsFastPathPhase, this->m_func) || !divisor->IsIntConstOpnd())
     {
         return false;
