@@ -40,7 +40,7 @@ namespace Js
         else
         {
             typeHandler->SetInstanceTypeHandler(instance);
-            if (functionProxy && typeHandler->GetMayBecomeShared() && !CrossSite::IsThunk(instance->GetType()->GetEntryPoint()))
+            if (functionProxy && typeHandler->GetMayBecomeShared() && !CrossSite::IsThunk(instance->GetType()->GetEntryPoint()) && !PHASE_OFF1(ShareFuncTypesPhase))
             {
                 Assert(!functionProxy->GetUndeferredFunctionType());
                 functionProxy->SetUndeferredFunctionType(ScriptFunction::UnsafeFromVar(instance)->GetScriptFunctionType());
