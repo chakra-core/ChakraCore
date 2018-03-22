@@ -110,26 +110,6 @@ public:
         }
     }
 
-    // For JScript, this should not return NULL because
-    // there is always an enclosing global scope.
-    Symbol *FindSymbol(SymbolName const& name, SymbolType symbolType, bool fCreate = true)
-    {
-        Symbol *sym = FindLocalSymbol(name);
-        if (sym == nullptr)
-        {
-            if (enclosingScope != nullptr)
-            {
-                sym = enclosingScope->FindSymbol(name, symbolType);
-            }
-            else if (fCreate)
-            {
-                sym = Anew(alloc, Symbol, name, nullptr, symbolType);
-                AddNewSymbol(sym);
-            }
-        }
-        return sym;
-    }
-
     void AddSymbol(Symbol *sym)
     {
         if (enclosingScope == nullptr)
