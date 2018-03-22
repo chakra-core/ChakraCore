@@ -10760,7 +10760,7 @@ GlobOpt::ToTypeSpecIndex(IR::Instr * instr, IR::RegOpnd * indexOpnd, IR::IndirOp
         Assert(indexValue->GetValueInfo()->IsLikelyInt());
 
         ToInt32(instr, indexOpnd, currentBlock, indexValue, indirOpnd, false);
-        Assert(indexValue->GetValueInfo()->IsInt());
+        Assert(indexValue->GetValueInfo()->IsInt() || IsLoopPrePass());
 
         if (!IsLoopPrePass())
         {
@@ -11081,26 +11081,16 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
             isLive = livenessBv->Test(varSym->m_id) && (lossy || !block->globOptData.liveLossyInt32Syms->Test(varSym->m_id));
             if (this->IsLoopPrePass())
             {
-                if(!isLive)
+                if (!isLive)
                 {
                     livenessBv->Set(varSym->m_id);
-                    if(lossy)
+                    if (lossy)
                     {
                         block->globOptData.liveLossyInt32Syms->Set(varSym->m_id);
                     }
                     else
                     {
                         block->globOptData.liveLossyInt32Syms->Clear(varSym->m_id);
-                    }
-                }
-                if(!lossy)
-                {
-                    Assert(bailOutKind == IR::BailOutIntOnly || bailOutKind == IR::BailOutExpectingInteger);
-                    valueInfo = valueInfo->SpecializeToInt32(alloc);
-                    ChangeValueInfo(nullptr, val, valueInfo);
-                    if(needReplaceSrc)
-                    {
-                        opnd->SetValueType(valueInfo->Type());
                     }
                 }
                 return instr;
@@ -11263,24 +11253,6 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                     }
                 }
 
-                if(bailOutKind == IR::BailOutNumberOnly)
-                {
-                    if(valueInfo)
-                    {
-                        valueInfo = valueInfo->SpecializeToFloat64(alloc);
-                        ChangeValueInfo(block, val, valueInfo);
-                    }
-                    else
-                    {
-                        val = NewGenericValue(ValueType::Float);
-                        valueInfo = val->GetValueInfo();
-                        block->globOptData.SetValue(val, varSym);
-                    }
-                    if(needReplaceSrc)
-                    {
-                        opnd->SetValueType(valueInfo->Type());
-                    }
-                }
                 return instr;
             }
 
