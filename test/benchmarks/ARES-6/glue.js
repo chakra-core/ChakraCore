@@ -49,6 +49,6 @@ function reportResult(...args) {
 
 driver.addBenchmark(AirBenchmarkRunner);
 driver.addBenchmark(BasicBenchmarkRunner);
-driver.addBenchmark(BabylonBenchmarkRunner);
+//driver.addBenchmark(BabylonBenchmarkRunner);
 driver.addBenchmark(MLBenchmarkRunner);
 driver.readyTrigger();

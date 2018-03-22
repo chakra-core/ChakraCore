@@ -28,7 +28,7 @@ const isInBrowser = false;
 function makeBenchmarkRunner(sources, benchmarkConstructor, numIterations = 200) {
     let source = "'use strict';"
     for (let file of sources) {
-        source += readFile(file);
+        source += read(file);
     }
     source += `
         this.results = [];
@@ -42,19 +42,19 @@ function makeBenchmarkRunner(sources, benchmarkConstructor, numIterations = 200)
         }
     `;
     return function doRun() {
-        let globalObjectOfScript = runString(source);
+        let globalObjectOfScript = WScript.LoadScript(source, 'samethread');
         let results = globalObjectOfScript.results;
         reportResult(results);
     }
 }
 
-load("driver.js");
-load("results.js");
-load("stats.js");
-load("air_benchmark.js");
-load("basic_benchmark.js");
-load("babylon_benchmark.js");
-load("ml_benchmark.js");
-load("glue.js");
+WScript.LoadScriptFile("driver.js");
+WScript.LoadScriptFile("results.js");
+WScript.LoadScriptFile("stats.js");
+WScript.LoadScriptFile("air_benchmark.js");
+WScript.LoadScriptFile("basic_benchmark.js");
+//WScript.LoadScriptFile("babylon_benchmark.js");
+WScript.LoadScriptFile("ml_benchmark.js");
+WScript.LoadScriptFile("glue.js");
 
 driver.start(6);
