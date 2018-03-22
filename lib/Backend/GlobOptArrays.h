@@ -51,7 +51,7 @@ private:
     IR::Instr * baseOwnerInstr = nullptr;
     IR::IndirOpnd * baseOwnerIndir = nullptr;
     IR::RegOpnd * baseOpnd = nullptr;
-    IR::RegOpnd * indexOpnd = nullptr;
+    IR::Opnd * indexOpnd = nullptr;
     IR::RegOpnd * originalIndexOpnd = nullptr;
     bool isProfilableLdElem = false;
     bool isProfilableStElem = false;

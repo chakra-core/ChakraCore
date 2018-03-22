@@ -453,6 +453,11 @@
   </test>
   <test>
     <default>
+      <files>inbug2.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>instancebug.js</files>
     </default>
   </test>
