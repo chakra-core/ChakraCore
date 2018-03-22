@@ -2227,7 +2227,6 @@ LowererMDArch::EmitInt4Instr(IR::Instr *instr)
     IR::Opnd *src1, *src2;
     IR::RegOpnd *regEDX;
 
-    bool legalize = false;
     switch(instr->m_opcode)
     {
     case Js::OpCode::Neg_I4:
@@ -2240,12 +2239,10 @@ LowererMDArch::EmitInt4Instr(IR::Instr *instr)
 
     case Js::OpCode::Add_I4:
         LowererMD::ChangeToAdd(instr, false /* needFlags */);
-        legalize = true;
         break;
 
     case Js::OpCode::Sub_I4:
         LowererMD::ChangeToSub(instr, false /* needFlags */);
-        legalize = true;
         break;
 
     case Js::OpCode::Mul_I4:
@@ -2313,7 +2310,6 @@ idiv_common:
     case Js::OpCode::Rol_I4:
     case Js::OpCode::Ror_I4:
         LowererMD::ChangeToShift(instr, false /* needFlags */);
-        legalize = true;
         break;
 
     case Js::OpCode::BrTrue_I4:
@@ -2381,15 +2377,7 @@ br2_Common:
         AssertMsg(UNREACHED, "Un-implemented int4 opcode");
     }
 
-    if(legalize)
-    {
-        LowererMD::Legalize(instr);
-    }
-    else
-    {
-        // OpEq's
-        LowererMD::MakeDstEquSrc1(instr);
-    }
+    LowererMD::Legalize(instr);
 }
 
 void
