@@ -12,7 +12,7 @@ namespace Simd
 bool IsEnabled()
 {
 #ifdef ENABLE_WASM_SIMD
-    return CONFIG_FLAG(WasmSimd);
+    return CONFIG_FLAG_RELEASE(WasmSimd);
 #else
     return false;
 #endif

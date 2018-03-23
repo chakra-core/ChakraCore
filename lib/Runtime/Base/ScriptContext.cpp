@@ -5708,11 +5708,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             Output::Print(_u("\n\n"));
 
             // If in verbose mode, dump data for each FunctionBody
-            if (
-#if defined(FLAG) || defined(FLAG_REGOVR_EXP)
-                Configuration::Global.flags.Verbose &&
-#endif
-                rejitStatsMap != nullptr)
+            if (CONFIG_FLAG(Verbose) && rejitStatsMap != nullptr)
             {
                 // Aggregated data
                 Output::Print(_u("%-30s %14s %14s\n"), _u("Function (#),"), _u("Bailout Count,"), _u("Rejit Count"));
@@ -5923,12 +5919,10 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         Assert(reasonIndex < NumRejitReasons);
         rejitReasonCounts[reasonIndex]++;
 
-#if defined(FLAG) || defined(FLAG_REGOVR_EXP)
-        if (Js::Configuration::Global.flags.Verbose)
+        if (CONFIG_FLAG(Verbose))
         {
             LogDataForFunctionBody(body, reasonIndex, true);
         }
-#endif
     }
     void ScriptContext::LogBailout(Js::FunctionBody *body, uint kind)
     {
@@ -5943,12 +5937,10 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             bailoutReasonCounts->Item(kind, val);
         }
 
-#if defined(FLAG) || defined(FLAG_REGOVR_EXP)
-        if (Js::Configuration::Global.flags.Verbose)
+        if (CONFIG_FLAG(Verbose))
         {
             LogDataForFunctionBody(body, kind, false);
         }
-#endif
     }
     void ScriptContext::ClearBailoutReasonCountsMap()
     {

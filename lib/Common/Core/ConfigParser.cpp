@@ -290,17 +290,17 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
         }
     }
 
-    // Asmjs feature control
-    // This setting allows enabling\disabling asmjs compilation
-    //     0 - Disable Asmjs phase - Also default behavior
-    //     1 - Enable Asmjs phase
+    // WebAssembly experimental feature control
+    //     1 - Enable WebAssembly Experimental features
     dwValue = 0;
     dwSize = sizeof(dwValue);
-    if (NOERROR == RegGetValueW(hk, nullptr, _u("EnableAsmjs"), RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
+    if (NOERROR == RegGetValueW(hk, nullptr, _u("EnableWasmExperimental"), RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
     {
         if (dwValue == 1)
         {
-            Js::Configuration::Global.flags.Asmjs = true;
+            Js::ConfigFlagsTable &configFlags = Js::Configuration::Global.flags;
+            configFlags.Enable(Js::WasmExperimentalFlag);
+            configFlags.SetAsBoolean(Js::WasmExperimentalFlag, true);
         }
     }
 

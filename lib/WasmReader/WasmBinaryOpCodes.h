@@ -323,11 +323,11 @@ WASM_UNARY__OPCODE(F32ReinterpretI32, 0xbe, F_I , Reinterpret_ITF, true, "f32.re
 WASM_UNARY__OPCODE(F64ReinterpretI64, 0xbf, D_L , Reinterpret_LTD, true, "f64.reinterpret/i64")
 
 // New sign extend operators
-WASM_UNARY__OPCODE(I32Extend8_s , 0xc0, I_I, I32Extend8_s , CONFIG_FLAG(WasmSignExtends), "i32.extend8_s")
-WASM_UNARY__OPCODE(I32Extend16_s, 0xc1, I_I, I32Extend16_s, CONFIG_FLAG(WasmSignExtends), "i32.extend16_s")
-WASM_UNARY__OPCODE(I64Extend8_s , 0xc2, L_L, I64Extend8_s , CONFIG_FLAG(WasmSignExtends), "i64.extend8_s")
-WASM_UNARY__OPCODE(I64Extend16_s, 0xc3, L_L, I64Extend16_s, CONFIG_FLAG(WasmSignExtends), "i64.extend16_s")
-WASM_UNARY__OPCODE(I64Extend32_s, 0xc4, L_L, I64Extend32_s, CONFIG_FLAG(WasmSignExtends), "i64.extend32_s")
+WASM_UNARY__OPCODE(I32Extend8_s , 0xc0, I_I, I32Extend8_s , CONFIG_FLAG_RELEASE(WasmSignExtends), "i32.extend8_s")
+WASM_UNARY__OPCODE(I32Extend16_s, 0xc1, I_I, I32Extend16_s, CONFIG_FLAG_RELEASE(WasmSignExtends), "i32.extend16_s")
+WASM_UNARY__OPCODE(I64Extend8_s , 0xc2, L_L, I64Extend8_s , CONFIG_FLAG_RELEASE(WasmSignExtends), "i64.extend8_s")
+WASM_UNARY__OPCODE(I64Extend16_s, 0xc3, L_L, I64Extend16_s, CONFIG_FLAG_RELEASE(WasmSignExtends), "i64.extend16_s")
+WASM_UNARY__OPCODE(I64Extend32_s, 0xc4, L_L, I64Extend32_s, CONFIG_FLAG_RELEASE(WasmSignExtends), "i64.extend32_s")
 
 #define __has_atomics (Wasm::Threads::IsEnabled())
 #define __prefix (WASM_PREFIX_THREADS << 8)
