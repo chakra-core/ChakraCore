@@ -1537,8 +1537,12 @@ namespace Js
 #ifdef ENABLE_JS_BUILTINS
         if (scriptContext->IsJsBuiltInEnabled())
         {
-            scriptContext->GetLibrary()->EnsureBuiltInEngineIsReady();
-            return JavascriptFunction::Is(function) && JavascriptFunction::FromVar(function)->IsJsBuiltIn();
+            ScriptFunction * scriptFunction = JavascriptOperators::TryFromVar<ScriptFunction>(function);
+            if (scriptFunction)
+            {
+                scriptContext->GetLibrary()->EnsureBuiltInEngineIsReady();
+                return scriptFunction->GetFunctionProxy()->IsJsBuiltInCode();
+            }
         }
 #endif
         JavascriptMethod method = function->GetEntryPoint();

@@ -46,7 +46,7 @@ namespace Js
     public:
         ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType);
         static bool Is(Var func);
-        inline static BOOL Test(JavascriptFunction *func) { return func->GetFunctionInfo()->HasBody(); }
+        inline static BOOL Test(JavascriptFunction *func) { return func->IsScriptFunction(); }
         static ScriptFunction * FromVar(Var func);
         static ScriptFunction * UnsafeFromVar(Var func);
         static ScriptFunction * OP_NewScFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef);

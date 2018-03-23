@@ -41,15 +41,8 @@ namespace Js
 
         // Need a constructor cache on every function (script and native) to avoid extra checks on the fast path, if the function isn't fixed.
         Field(ConstructorCache*) constructorCache;
-
-        Field(bool) isJsBuiltInCode;
-#if DBG
-        Field(bool) isJsBuiltInInitCode;
-#endif
     protected:
-
         Field(FunctionInfo *) functionInfo;  // Underlying function
-
 
         DEFINE_VTABLE_CTOR(JavascriptFunction, DynamicObject);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptFunction);
@@ -191,9 +184,6 @@ namespace Js
         BOOL IsLambda() const;
         virtual inline BOOL IsConstructor() const;
         bool HasRestrictedProperties() const;
-
-        void SetIsJsBuiltInCode();
-        bool IsJsBuiltIn();
 
         ConstructorCache* GetConstructorCache() { Assert(this->constructorCache != nullptr); return this->constructorCache; }
         ConstructorCache* EnsureValidConstructorCache();

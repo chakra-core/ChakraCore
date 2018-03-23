@@ -12,6 +12,6 @@
 
 // Define the basic byte code opcode range
 
-#define MACRO(opcode, layout, attr) DEF_OP(opcode, layout, attr)
-#define MACRO_WMS(opcode, layout, attr) DEF_OP(opcode, layout, OpHasMultiSizeLayout|attr )
+#define MACRO_WITH_DBG_ATTR(opcode, layout, attr, dbgAttr) DEF_OP(opcode, layout, attr, dbgAttr)
+#define MACRO_WMS_WITH_DBG_ATTR(opcode, layout, attr, dbgAttr) DEF_OP(opcode, layout, OpHasMultiSizeLayout|attr, dbgAttr)
 #include "OpCodes.h"

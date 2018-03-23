@@ -1316,11 +1316,6 @@ namespace Js
         bool IsJsBuiltInCode() const { return m_isJsBuiltInCode; }
 
 #if DBG
-        void SetIsJsBuiltInInitCode() { m_isJsBuiltInInitCode = true; }
-        bool IsJsBuiltInInitCode() { return m_isJsBuiltInInitCode; }
-#endif
-
-#if DBG
         bool HasValidEntryPoint() const;
 #if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
         bool HasValidProfileEntryPoint() const;
