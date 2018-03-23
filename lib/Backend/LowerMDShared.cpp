@@ -1661,7 +1661,7 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
             {
                 if (verify)
                 {
-                    AssertMsg(false, "Missing legalization");
+                    AssertMsg(false, "Invalid Js::OpCode::TEST opnd order. Missing legalization");
                     return;
                 }
                 instr->SwapOpnds();
@@ -1838,7 +1838,7 @@ void LowererMD::LegalizeDst(IR::Instr *const instr, const LegalForms forms)
             {
                 if (verify)
                 {
-                    AssertMsg(false, "Missing legalization");
+                    AssertMsg(false, "Memory reference not legal in dst opnd. Missing legalization");
                     return;
                 }
                 dst = instr->HoistMemRefAddress(memRefOpnd, Js::OpCode::MOV);
@@ -1861,7 +1861,7 @@ void LowererMD::LegalizeDst(IR::Instr *const instr, const LegalForms forms)
 
     if (verify)
     {
-        AssertMsg(false, "Missing legalization");
+        AssertMsg(false, "Dst opnd not legal. Missing legalization");
         return;
     }
 
@@ -1952,7 +1952,7 @@ void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const LegalFo
                 }
                 if (verify)
                 {
-                    AssertMsg(false, "Missing legalization");
+                    AssertMsg(false, "IntConstOpnd doesn't fit in 32 bits. Missing legalization");
                     return;
                 }
                 // The actual value for inlinee entry instr isn't determined until encoder
@@ -1989,10 +1989,11 @@ void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const LegalFo
                 }
                 if (verify)
                 {
-                    AssertMsg(false, "Missing legalization");
+                    AssertMsg(false, "Int64ConstOpnd doesn't fit in 32 bits. Missing legalization");
                     return;
                 }
 
+                Assert(forms & L_Reg);
                 IR::Opnd* regOpnd = IR::RegOpnd::New(src->GetType(), instr->m_func);
                 IR::Instr* moveToReg = IR::Instr::New(Js::OpCode::MOV, regOpnd, src, instr->m_func);
                 instr->InsertBefore(moveToReg);
@@ -2017,7 +2018,7 @@ void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const LegalFo
                 }
                 if (verify)
                 {
-                    AssertMsg(false, "Missing legalization");
+                    AssertMsg(false, "AddrOpnd doesn't fit in 32 bits. Missing legalization");
                     return;
                 }
 
@@ -2041,7 +2042,7 @@ void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const LegalFo
             {
                 if (verify)
                 {
-                    AssertMsg(false, "Missing legalization");
+                    AssertMsg(false, "Memory reference not legal in src opnd. Missing legalization");
                     return;
                 }
                 src = instr->HoistMemRefAddress(memRefOpnd, Js::OpCode::MOV);
@@ -2070,7 +2071,7 @@ void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const LegalFo
 
     if (verify)
     {
-        AssertMsg(false, "Missing legalization");
+        AssertMsg(false, "Src opnd not legal. Missing legalization");
         return;
     }
 
