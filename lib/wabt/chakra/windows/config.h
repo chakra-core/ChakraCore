@@ -101,7 +101,7 @@
 #include <intrin.h>
 
 #define WABT_UNUSED
-#define WABT_WARN_UNUSED _Check_return_
+#define WABT_WARN_UNUSED
 #define WABT_INLINE __inline
 #define WABT_STATIC_ASSERT(x) _STATIC_ASSERT(x)
 #define WABT_UNLIKELY(x) (x)
