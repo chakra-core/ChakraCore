@@ -9048,9 +9048,31 @@ GlobOpt::TypeSpecializeBinary(IR::Instr **pInstr, Value **pSrc1Val, Value **pSrc
 
             case Js::OpCode::Mul_A:
             {
+                bool isConservativeMulInt = !DoAggressiveMulIntTypeSpec() || !DoAggressiveIntTypeSpec();
+
+                // Be conservative about predicting Mul overflow in prepass.
+                // Operands that are live on back edge may be denied lossless-conversion to int32 and 
+                // trigger rejit with AggressiveIntTypeSpec off.
+                // Besides multiplying a variable in a loop can overflow in just a few iterations even in simple cases like v *= 2
+                // So, make sure we definitely know the source max/min values, otherwise assume the full range.
+                if (isConservativeMulInt && IsLoopPrePass())
+                {
+                    if (!IsPrepassSrcValueInfoPrecise(instr->GetSrc1(), src1Val))
+                    {
+                        max1 = INT32_MAX;
+                        min1 = INT32_MIN;
+                    }
+
+                    if (!IsPrepassSrcValueInfoPrecise(instr->GetSrc2(), src2Val))
+                    {
+                        max2 = INT32_MAX;
+                        min2 = INT32_MIN;
+                    }
+                }
+
                 if (Int32Math::Mul(min1, min2, &newMin))
                 {
-                    if (involesLargeInt32 || !DoAggressiveMulIntTypeSpec() || !DoAggressiveIntTypeSpec())
+                    if (involesLargeInt32 || isConservativeMulInt)
                     {
                         // May overflow
                         return trySpecializeToFloat(true);
@@ -9061,7 +9083,7 @@ GlobOpt::TypeSpecializeBinary(IR::Instr **pInstr, Value **pSrc1Val, Value **pSrc
                 newMax = newMin;
                 if (Int32Math::Mul(max1, max2, &tmp))
                 {
-                    if (involesLargeInt32 || !DoAggressiveMulIntTypeSpec() || !DoAggressiveIntTypeSpec())
+                    if (involesLargeInt32 || isConservativeMulInt)
                     {
                         // May overflow
                         return trySpecializeToFloat(true);
@@ -9073,7 +9095,7 @@ GlobOpt::TypeSpecializeBinary(IR::Instr **pInstr, Value **pSrc1Val, Value **pSrc
                 newMax = max(newMax, tmp);
                 if (Int32Math::Mul(min1, max2, &tmp))
                 {
-                    if (involesLargeInt32 || !DoAggressiveMulIntTypeSpec() || !DoAggressiveIntTypeSpec())
+                    if (involesLargeInt32 || isConservativeMulInt)
                     {
                         // May overflow
                         return trySpecializeToFloat(true);
@@ -9085,7 +9107,7 @@ GlobOpt::TypeSpecializeBinary(IR::Instr **pInstr, Value **pSrc1Val, Value **pSrc
                 newMax = max(newMax, tmp);
                 if (Int32Math::Mul(max1, min2, &tmp))
                 {
-                    if (involesLargeInt32 || !DoAggressiveMulIntTypeSpec() || !DoAggressiveIntTypeSpec())
+                    if (involesLargeInt32 || isConservativeMulInt)
                     {
                         // May overflow
                         return trySpecializeToFloat(true);
