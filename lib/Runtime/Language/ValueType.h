@@ -30,6 +30,16 @@ private:
         #include "ValueTypes.h"
         #undef VALUE_TYPE_BIT
     };
+    enum class ObjectBits : TSize
+    {
+#define VALUE_TYPE_BIT(t, b)
+#define COMMON_TYPE_BIT(t, b) t = (b),
+#define OBJECT_TYPE_BIT(t, b) t = (b),
+        #include "ValueTypes.h"
+#undef VALUE_TYPE_BIT
+#undef OBJECT_TYPE_BIT
+#undef COMMON_TYPE_BIT
+    };
 
 public:
     #define BASE_VALUE_TYPE(t, b) static const ValueType t;
@@ -68,7 +78,7 @@ private:
         };
         struct
         {
-            Field(Bits) _objectBits : VALUE_TYPE_COMMON_BIT_COUNT + VALUE_TYPE_OBJECT_BIT_COUNT;
+            Field(ObjectBits) _objectBits : VALUE_TYPE_COMMON_BIT_COUNT + VALUE_TYPE_OBJECT_BIT_COUNT;
             Field(ObjectType) _objectType : sizeof(TSize) * 8 - (VALUE_TYPE_COMMON_BIT_COUNT + VALUE_TYPE_OBJECT_BIT_COUNT); // use remaining bits
         };
 
