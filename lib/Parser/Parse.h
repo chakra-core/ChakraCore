@@ -92,7 +92,7 @@ struct ParseContext
     SourceContextInfo* sourceContextInfo;
     BlockInfoStack* currentBlockInfo;
     bool strictMode;
-    bool fromExternal;
+    bool isUtf8;
 };
 
 template <bool nullTerminated> class UTF8EncodingPolicyBase;
@@ -183,10 +183,10 @@ public:
 protected:
     HRESULT ParseSourceInternal(
         __out ParseNodePtr* parseTree, LPCUTF8 pszSrc, size_t offsetInBytes,
-        size_t lengthInCodePoints, charcount_t offsetInChars, bool fromExternal,
+        size_t lengthInCodePoints, charcount_t offsetInChars, bool isUtf8,
         ULONG grfscr, CompileScriptException *pse, Js::LocalFunctionId * nextFunctionId, ULONG lineNumber, SourceContextInfo * sourceContextInfo);
 
-    ParseNodePtr Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcount_t charOffset, ULONG grfscr, ULONG lineNumber,
+    ParseNodePtr Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcount_t charOffset, bool isUtf8, ULONG grfscr, ULONG lineNumber,
         Js::LocalFunctionId * nextFunctionId, CompileScriptException *pse);
 
 private:
@@ -215,9 +215,7 @@ private:
 
 protected:
     Js::ScriptContext* m_scriptContext;
-    HashTbl *   m_phtbl;
-
-    static const uint HASH_TABLE_SIZE = 256;
+    HashTbl * GetHashTbl() { return this->GetScanner()->GetHashTbl(); }
 
     __declspec(noreturn) void Error(HRESULT hr);
 private:
@@ -242,7 +240,10 @@ private:
     ***********************************************************************/
 protected:
     Token       m_token;
-    Scanner_t*  m_pscan;
+    Scanner_t   m_scan;
+
+    Scanner_t const * GetScanner() const { return &m_scan; }
+    Scanner_t * GetScanner() { return &m_scan; }
 
 public:
 
@@ -270,7 +271,7 @@ public:
     ParseNodePtr CreateTempNode(ParseNode* initExpr);
     ParseNodePtr CreateTempRef(ParseNode* tempNode);
 
-    ParseNodePtr CreateNode(OpCode nop) { return CreateNode(nop, m_pscan? m_pscan->IchMinTok() : 0); }
+    ParseNodePtr CreateNode(OpCode nop) { return CreateNode(nop, this->GetScanner()->IchMinTok()); }
     ParseNodePtr CreateDeclNode(OpCode nop, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl = true);
     Symbol*      AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl);
     void         CheckRedeclarationErrorForBlockId(IdentPtr pid, int blockId);
@@ -321,7 +322,6 @@ public:
     ParseNodePtr CreateCallNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2,
         charcount_t ichMin,charcount_t ichLim);
 
-    void PrepareScanner(bool fromExternal);
 #if ENABLE_BACKGROUND_PARSING
     void PrepareForBackgroundParse();
     void AddFastScannedRegExpNode(ParseNodePtr const pnode);
@@ -586,12 +586,12 @@ public:
 
     IdentPtr CreatePid(__in_ecount(len) LPCOLESTR name, charcount_t len)
     {
-        return m_phtbl->PidHashNameLen(name, len);
+        return this->GetHashTbl()->PidHashNameLen(name, len);
     }
 
     bool KnownIdent(__in_ecount(len) LPCOLESTR name, charcount_t len)
     {
-        return m_phtbl->Contains(name, len);
+        return this->GetHashTbl()->Contains(name, len);
     }
 
     template <typename THandler>
@@ -989,12 +989,6 @@ public:
     BackgroundParseItem *GetCurrBackgroundParseItem() const { return currBackgroundParseItem; }
     void SetCurrBackgroundParseItem(BackgroundParseItem *item) { currBackgroundParseItem = item; }
 
-    void Release()
-    {
-        RELEASEPTR(m_pscan);
-        RELEASEPTR(m_phtbl);
-    }
-
 private:
     void DeferOrEmitPotentialSpreadError(ParseNodePtr pnodeT);
     template<bool buildAST> void TrackAssignment(ParseNodePtr pnodeT, IdentToken* pToken);
@@ -1028,12 +1022,12 @@ private:
         }
         else
         {
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
         }
     }
     void ChkNxtTok(int tk, int wErr)
     {
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
         ChkCurTok(tk, wErr);
     }
 

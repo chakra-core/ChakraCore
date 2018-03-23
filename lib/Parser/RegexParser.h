@@ -216,7 +216,7 @@ namespace UnifiedRegex
             , ArenaAllocator* ctAllocator
             , StandardChars<EncodedChar>* standardEncodedChars
             , StandardChars<Char>* standardChars
-            , bool isFromExternalSource
+            , bool isUtf8
 #if ENABLE_REGEX_CONFIG_OPTIONS
             , DebugWriter* w
 #endif

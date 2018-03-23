@@ -93,10 +93,8 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_registeredRegexPatterns(scriptContext->GetGuestArena()),
 
     m_scriptContext(scriptContext),
-    m_phtbl(nullptr),
-
     m_token(), // should initialize to 0/nullptrs
-    m_pscan(nullptr),
+    m_scan(this, &m_token, scriptContext),
 
     m_currentNodeNonLambdaFunc(nullptr),
     m_currentNodeNonLambdaDeferredFunc(nullptr),
@@ -156,6 +154,9 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
 {
     AssertMsg(size == sizeof(Parser), "verify conditionals affecting the size of Parser agree");
     Assert(scriptContext != nullptr);
+
+    // init PID members
+    InitPids();
 }
 
 Parser::~Parser(void)
@@ -185,9 +186,6 @@ Parser::~Parser(void)
         }
     }
 #endif
-
-    Release();
-
 }
 
 void Parser::OutOfMemory()
@@ -214,7 +212,7 @@ void Parser::Error(HRESULT hr, ParseNodePtr pnode)
 
 void Parser::Error(HRESULT hr, charcount_t ichMin, charcount_t ichLim)
 {
-    m_pscan->SetErrorPosition(ichMin, ichLim);
+    this->GetScanner()->SetErrorPosition(ichMin, ichLim);
     Error(hr);
 }
 
@@ -269,8 +267,6 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
     {
         hr = NOERROR;
 
-        this->PrepareScanner(false);
-
         m_length = encodedCharCount;
         m_originalLength = encodedCharCount;
 
@@ -278,10 +274,10 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
         ULONG grfscr = fscrNil;
 
         // Give the scanner the source and get the first token
-        m_pscan->SetText(pszSrc, 0, encodedCharCount, 0, grfscr);
-        m_pscan->SetYieldIsKeywordRegion(isGenerator);
-        m_pscan->SetAwaitIsKeywordRegion(isAsync);
-        m_pscan->Scan();
+        this->GetScanner()->SetText(pszSrc, 0, encodedCharCount, 0, false, grfscr);
+        this->GetScanner()->SetYieldIsKeywordRegion(isGenerator);
+        this->GetScanner()->SetAwaitIsKeywordRegion(isAsync);
+        this->GetScanner()->Scan();
 
         uint nestedCount = 0;
         m_pnestedCount = &nestedCount;
@@ -321,15 +317,14 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
         (this->*validateFunction)();
         FinishParseBlock(block);
 
-        pnodeFnc->ichLim = m_pscan->IchLimTok();
-        pnodeFnc->AsParseNodeFnc()->cbLim = m_pscan->IecpLimTok();
+        pnodeFnc->ichLim = this->GetScanner()->IchLimTok();
+        pnodeFnc->AsParseNodeFnc()->cbLim = this->GetScanner()->IecpLimTok();
         pnodeFnc->AsParseNodeFnc()->pnodeVars = nullptr;
 
         // there should be nothing after successful parsing for a given construct
         if (m_token.tk != tkEOF)
             Error(ERRsyntax);
 
-        RELEASEPTR(m_pscan);
         m_deferringAST = fDeferSave;
     }
     catch(ParseExceptionObject& e)
@@ -340,14 +335,14 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
 
     if (nullptr != pse && FAILED(hr))
     {
-        hr = pse->ProcessError(m_pscan, hr, /* pnodeBase */ NULL);
+        hr = pse->ProcessError(this->GetScanner(), hr, /* pnodeBase */ NULL);
     }
     return hr;
 }
 
 HRESULT Parser::ParseSourceInternal(
     __out ParseNodePtr* parseTree, LPCUTF8 pszSrc, size_t offsetInBytes, size_t encodedCharCount, charcount_t offsetInChars,
-    bool fromExternal, ULONG grfscr, CompileScriptException *pse, Js::LocalFunctionId * nextFunctionId, ULONG lineNumber, SourceContextInfo * sourceContextInfo)
+    bool isUtf8, ULONG grfscr, CompileScriptException *pse, Js::LocalFunctionId * nextFunctionId, ULONG lineNumber, SourceContextInfo * sourceContextInfo)
 {
     AssertMem(parseTree);
     AssertPsz(pszSrc);
@@ -379,8 +374,6 @@ HRESULT Parser::ParseSourceInternal(
 
     try
     {
-        this->PrepareScanner(fromExternal);
-
         if ((grfscr & fscrEvalCode) != 0)
         {
             this->m_parsingSuperRestrictionState = Parser::ParsingSuperRestrictionState_SuperPropertyAllowed;
@@ -396,7 +389,7 @@ HRESULT Parser::ParseSourceInternal(
         }
 
         // parse the source
-        pnodeBase = Parse(pszSrc, offsetInBytes, encodedCharCount, offsetInChars, grfscr, lineNumber, nextFunctionId, pse);
+        pnodeBase = Parse(pszSrc, offsetInBytes, encodedCharCount, offsetInChars, isUtf8, grfscr, lineNumber, nextFunctionId, pse);
 
         AssertNodeMem(pnodeBase);
 
@@ -404,7 +397,7 @@ HRESULT Parser::ParseSourceInternal(
         m_sourceLim = pnodeBase->ichLim - offsetInChars;
 
         // TODO: The assert can be false positive in some scenarios and chuckj to fix it later
-        // Assert(utf8::ByteIndexIntoCharacterIndex(pszSrc + offsetInBytes, encodedCharCount, fromExternal ? utf8::doDefault : utf8::doAllowThreeByteSurrogates) == m_sourceLim);
+        // Assert(utf8::ByteIndexIntoCharacterIndex(pszSrc + offsetInBytes, encodedCharCount, isUtf8 ? utf8::doDefault : utf8::doAllowThreeByteSurrogates) == m_sourceLim);
 
 #if DBG_DUMP
         if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::ParsePhase))
@@ -429,7 +422,7 @@ HRESULT Parser::ParseSourceInternal(
 
     if (FAILED(hr))
     {
-        hr = pse->ProcessError(m_pscan, hr, pnodeBase);
+        hr = pse->ProcessError(this->GetScanner(), hr, pnodeBase);
     }
 
 #if ENABLE_BACKGROUND_PARSING
@@ -467,7 +460,7 @@ HRESULT Parser::ParseSourceInternal(
 #endif
 
     // done with the scanner
-    RELEASEPTR(m_pscan);
+    this->GetScanner()->Clear();
 
 #ifdef PROFILE_EXEC
     m_scriptContext->ProfileEnd(Js::ParsePhase);
@@ -940,7 +933,7 @@ bool Parser::IsCurBlockInLoop() const
 
 void Parser::RestorePidRefForSym(Symbol *sym)
 {
-    IdentPtr pid = m_pscan->m_phtbl->PidHashNameLen(sym->GetName().GetBuffer(), sym->GetName().GetLength());
+    IdentPtr pid = this->GetHashTbl()->PidHashNameLen(sym->GetName().GetBuffer(), sym->GetName().GetLength());
     Assert(pid);
     sym->SetPid(pid);
     PidRefStack *ref = this->PushPidRef(pid);
@@ -1057,7 +1050,7 @@ ParseNodePtr Parser::CreateNode(OpCode nop, charcount_t ichMin)
         *m_pCurrentAstSize += cb;
     }
 
-    pnode->Init(nop, ichMin, (m_pscan != nullptr) ? m_pscan->IchLimTok() : 0 /*ichLim*/);
+    pnode->Init(nop, ichMin, this->GetScanner()->IchLimTok());
 
     return pnode;
 }
@@ -1077,8 +1070,8 @@ ParseNodePtr Parser::CreateUniNode(OpCode nop, ParseNodePtr pnode1)
     if (nullptr == pnode1)
     {
         // no ops
-        pnode->ichMin = m_pscan->IchMinTok();
-        pnode->ichLim = m_pscan->IchLimTok();
+        pnode->ichMin = this->GetScanner()->IchMinTok();
+        pnode->ichLim = this->GetScanner()->IchLimTok();
     }
     else
     {
@@ -1100,8 +1093,8 @@ ParseNodePtr Parser::CreateBinNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr
     {
         // no ops
         Assert(nullptr == pnode2);
-        ichMin = m_pscan->IchMinTok();
-        ichLim = m_pscan->IchLimTok();
+        ichMin = this->GetScanner()->IchMinTok();
+        ichLim = this->GetScanner()->IchLimTok();
     }
     else
     {
@@ -1160,8 +1153,8 @@ ParseNodePtr Parser::CreateTriNode(OpCode nop, ParseNodePtr pnode1,
         // no ops
         Assert(nullptr == pnode2);
         Assert(nullptr == pnode3);
-        ichMin = m_pscan->IchMinTok();
-        ichLim = m_pscan->IchLimTok();
+        ichMin = this->GetScanner()->IchMinTok();
+        ichLim = this->GetScanner()->IchLimTok();
     }
     else if (nullptr == pnode2)
     {
@@ -1211,16 +1204,14 @@ ParseNodePtr Parser::CreateIntNode(int32 lw)
 // Create Node with scanner limit
 template <OpCode nop>
 ParseNodePtr Parser::CreateNodeWithScanner()
-{
-    Assert(m_pscan != nullptr);
-    return CreateNodeWithScanner<nop>(m_pscan->IchMinTok());
+{    
+    return CreateNodeWithScanner<nop>(this->GetScanner()->IchMinTok());
 }
 
 template <OpCode nop>
 ParseNodePtr Parser::CreateNodeWithScanner(charcount_t ichMin)
-{
-    Assert(m_pscan != nullptr);
-    return CreateNodeT<nop>(ichMin, m_pscan->IchLimTok());
+{    
+    return CreateNodeT<nop>(ichMin, this->GetScanner()->IchLimTok());
 }
 
 ParseNodePtr Parser::CreateProgNodeWithScanner(bool isModuleSource)
@@ -1254,8 +1245,8 @@ ParseNodePtr Parser::CreateCallNode(OpCode nop, ParseNodePtr pnode1, ParseNodePt
     if (nullptr == pnode1)
     {
         Assert(nullptr == pnode2);
-        ichMin = m_pscan->IchMinTok();
-        ichLim = m_pscan->IchLimTok();
+        ichMin = this->GetScanner()->IchMinTok();
+        ichLim = this->GetScanner()->IchLimTok();
     }
     else
     {
@@ -1686,7 +1677,7 @@ void Parser::FinishParseBlock(ParseNode *pnodeBlock, bool needScanRCurly)
         // Only update the ichLim if we were expecting an RCurly. If there is an
         // expression body without a necessary RCurly, the correct ichLim will
         // have been set already.
-        pnodeBlock->ichLim = m_pscan->IchLimTok();
+        pnodeBlock->ichLim = this->GetScanner()->IchLimTok();
     }
 
     BindPidRefs<false>(GetCurrentBlockInfo(), m_nextBlockId - 1);
@@ -1739,7 +1730,7 @@ void Parser::BindPidRefs(BlockInfoStack *blockInfo, uint maxBlockId)
                 pid = pnode->AsParseNodeVar()->pid;
                 if (backgroundPidRef)
                 {
-                    pid = this->m_pscan->m_phtbl->FindExistingPid(pid->Psz(), pid->Psz() + pid->Cch(), pid->Cch(), pid->Hash(), nullptr, nullptr
+                    pid = this->GetHashTbl()->FindExistingPid(pid->Psz(), pid->Psz() + pid->Cch(), pid->Cch(), pid->Hash(), nullptr, nullptr
 #if PROFILE_DICTIONARY
                                                                   , depth
 #endif
@@ -1755,7 +1746,7 @@ void Parser::BindPidRefs(BlockInfoStack *blockInfo, uint maxBlockId)
                 pid = pnode->AsParseNodePid()->pid;
                 if (backgroundPidRef)
                 {
-                    pid = this->m_pscan->m_phtbl->FindExistingPid(pid->Psz(), pid->Psz() + pid->Cch(), pid->Cch(), pid->Hash(), nullptr, nullptr
+                    pid = this->GetHashTbl()->FindExistingPid(pid->Psz(), pid->Psz() + pid->Cch(), pid->Cch(), pid->Hash(), nullptr, nullptr
 #if PROFILE_DICTIONARY
                                                                   , depth
 #endif
@@ -1957,7 +1948,7 @@ void Parser::PopDynamicBlock()
     }
     Assert(m_currentDynamicBlock);
 
-    m_phtbl->VisitPids([&](IdentPtr pid) {
+    this->GetHashTbl()->VisitPids([&](IdentPtr pid) {
         for (PidRefStack *ref = pid->GetTopRef(); ref && ref->GetScopeId() >= blockId; ref = ref->prev)
         {
             ref->SetDynamicBinding();
@@ -2203,9 +2194,9 @@ IdentPtr Parser::ParseMetaProperty(tokens metaParentKeyword, charcount_t ichMin,
     AssertMsg(metaParentKeyword == tkNEW, "Only supported for tkNEW parent keywords");
     AssertMsg(this->m_token.tk == tkDot, "We must be currently sitting on the dot after the parent keyword");
 
-    m_pscan->Scan();
+    this->GetScanner()->Scan();
 
-    if (this->m_token.tk == tkID && this->m_token.GetIdentifier(m_phtbl) == this->GetTargetPid())
+    if (this->m_token.tk == tkID && this->m_token.GetIdentifier(this->GetHashTbl()) == this->GetTargetPid())
     {
         ThrowNewTargetSyntaxErrForGlobalScope();
         if (pfCanAssign)
@@ -2226,7 +2217,7 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
     Assert(m_token.tk == tkLCurly);
     Assert(importOrExportEntryList != nullptr);
 
-    m_pscan->Scan();
+    this->GetScanner()->Scan();
 
     while (m_token.tk != tkRCurly && m_token.tk != tkEOF)
     {
@@ -2237,20 +2228,20 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
             Error(ERRsyntax);
         }
 
-        IdentPtr identifierName = m_token.GetIdentifier(m_phtbl);
+        IdentPtr identifierName = m_token.GetIdentifier(this->GetHashTbl());
         IdentPtr identifierAs = identifierName;
 
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
 
         if (m_token.tk == tkID)
         {
             // We have the pattern "IdentifierName as"
-            if (wellKnownPropertyPids.as != m_token.GetIdentifier(m_phtbl))
+            if (wellKnownPropertyPids.as != m_token.GetIdentifier(this->GetHashTbl()))
             {
                 Error(ERRsyntax);
             }
 
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
 
             // If we are parsing an import statement, the token after 'as' must be a BindingIdentifier.
             if (!isExportClause)
@@ -2263,10 +2254,10 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
                 Error(ERRsyntax);
             }
 
-            identifierAs = m_token.GetIdentifier(m_phtbl);
+            identifierAs = m_token.GetIdentifier(this->GetHashTbl());
 
             // Scan to the next token.
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
         }
         else if (!isExportClause && firstToken != tkID)
         {
@@ -2278,7 +2269,7 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
         if (m_token.tk == tkComma)
         {
             // Consume a trailing comma
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
         }
 
         if (buildAST)
@@ -2450,7 +2441,7 @@ void Parser::ParseImportClause(ModuleImportOrExportEntryList* importEntryList, b
 
         if (buildAST)
         {
-            IdentPtr localName = m_token.GetIdentifier(m_phtbl);
+            IdentPtr localName = m_token.GetIdentifier(this->GetHashTbl());
             IdentPtr importName = wellKnownPropertyPids._default;
 
             CreateModuleImportDeclNode(localName);
@@ -2471,19 +2462,19 @@ void Parser::ParseImportClause(ModuleImportOrExportEntryList* importEntryList, b
         // "* as ImportedBinding"
 
         // Token following * must be the identifier 'as'
-        m_pscan->Scan();
-        if (m_token.tk != tkID || wellKnownPropertyPids.as != m_token.GetIdentifier(m_phtbl))
+        this->GetScanner()->Scan();
+        if (m_token.tk != tkID || wellKnownPropertyPids.as != m_token.GetIdentifier(this->GetHashTbl()))
         {
             Error(ERRsyntax);
         }
 
         // Token following 'as' must be a binding identifier.
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
         ChkCurTokNoScan(tkID, ERRsyntax);
 
         if (buildAST)
         {
-            IdentPtr localName = m_token.GetIdentifier(m_phtbl);
+            IdentPtr localName = m_token.GetIdentifier(this->GetHashTbl());
             IdentPtr importName = wellKnownPropertyPids._star;
 
             CreateModuleImportDeclNode(localName);
@@ -2497,7 +2488,7 @@ void Parser::ParseImportClause(ModuleImportOrExportEntryList* importEntryList, b
         Error(ERRsyntax);
     }
 
-    m_pscan->Scan();
+    this->GetScanner()->Scan();
 
     if (m_token.tk == tkComma)
     {
@@ -2508,7 +2499,7 @@ void Parser::ParseImportClause(ModuleImportOrExportEntryList* importEntryList, b
             Error(ERRsyntax);
         }
 
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
 
         ParseImportClause<buildAST>(importEntryList, true);
     }
@@ -2535,14 +2526,14 @@ bool Parser::IsTopLevelModuleFunc()
 
 template<bool buildAST> ParseNodePtr Parser::ParseImportCall()
 {
-    m_pscan->Scan();
+    this->GetScanner()->Scan();
     ParseNodePtr specifier = ParseExpr<buildAST>(koplCma, nullptr, /* fAllowIn */FALSE, /* fAllowEllipsis */FALSE);
     if (m_token.tk != tkRParen)
     {
         Error(ERRnoRparen);
     }
 
-    m_pscan->Scan();
+    this->GetScanner()->Scan();
     return buildAST ? CreateCallNode(knopCall, CreateNodeWithScanner<knopImport>(), specifier) : nullptr;
 }
 
@@ -2553,8 +2544,8 @@ ParseNodePtr Parser::ParseImport()
     Assert(m_token.tk == tkIMPORT);
 
     RestorePoint parsedImport;
-    m_pscan->Capture(&parsedImport);
-    m_pscan->Scan();
+    this->GetScanner()->Capture(&parsedImport);
+    this->GetScanner()->Scan();
 
     // import()
     if (m_token.tk == tkLParen)
@@ -2570,7 +2561,7 @@ ParseNodePtr Parser::ParseImport()
         return ParsePostfixOperators<buildAST>(pnode, TRUE, FALSE, FALSE, &fCanAssign, &token);
     }
 
-    m_pscan->SeekTo(parsedImport);
+    this->GetScanner()->SeekTo(parsedImport);
 
     if (!IsImportOrExportStatementValidHere())
     {
@@ -2578,7 +2569,7 @@ ParseNodePtr Parser::ParseImport()
     }
 
     // We just parsed an import token. Next valid token is *, {, string constant, or binding identifier.
-    m_pscan->Scan();
+    this->GetScanner()->Scan();
 
     if (m_token.tk == tkStrCon)
     {
@@ -2590,7 +2581,7 @@ ParseNodePtr Parser::ParseImport()
         }
 
         // Scan past the module identifier.
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
     }
     else
     {
@@ -2626,9 +2617,9 @@ IdentPtr Parser::ParseImportOrExportFromClause(bool throwIfNotFound)
 {
     IdentPtr moduleSpecifier = nullptr;
 
-    if (m_token.tk == tkID && wellKnownPropertyPids.from == m_token.GetIdentifier(m_phtbl))
+    if (m_token.tk == tkID && wellKnownPropertyPids.from == m_token.GetIdentifier(this->GetHashTbl()))
     {
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
 
         // Token following the 'from' token must be a string constant - the module specifier.
         ChkCurTokNoScan(tkStrCon, ERRsyntax);
@@ -2638,7 +2629,7 @@ IdentPtr Parser::ParseImportOrExportFromClause(bool throwIfNotFound)
             moduleSpecifier = m_token.GetStr();
         }
 
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
     }
     else if (throwIfNotFound)
     {
@@ -2653,7 +2644,7 @@ ParseNodePtr Parser::ParseDefaultExportClause()
 {
     Assert(m_token.tk == tkDEFAULT);
 
-    m_pscan->Scan();
+    this->GetScanner()->Scan();
     ParseNodePtr pnode = nullptr;
     ushort flags = fFncNoFlgs;
 
@@ -2672,15 +2663,15 @@ ParseNodePtr Parser::ParseDefaultExportClause()
             // bind only to the export binding.
             BOOL classHasName = false;
             RestorePoint parsedClass;
-            m_pscan->Capture(&parsedClass);
-            m_pscan->Scan();
+            this->GetScanner()->Capture(&parsedClass);
+            this->GetScanner()->Scan();
 
             if (m_token.tk == tkID)
             {
                 classHasName = true;
             }
 
-            m_pscan->SeekTo(parsedClass);
+            this->GetScanner()->SeekTo(parsedClass);
             pnode = ParseClassDecl<buildAST>(classHasName, nullptr, nullptr, nullptr);
 
             if (buildAST)
@@ -2698,11 +2689,11 @@ ParseNodePtr Parser::ParseDefaultExportClause()
         // function token) or it could be an identifier (let async = 0; export default async;).
         // To handle both cases, when we parse an async token we need to keep the parser state
         // and rewind if the next token is not function.
-        if (wellKnownPropertyPids.async == m_token.GetIdentifier(m_phtbl))
+        if (wellKnownPropertyPids.async == m_token.GetIdentifier(this->GetHashTbl()))
         {
             RestorePoint parsedAsync;
-            m_pscan->Capture(&parsedAsync);
-            m_pscan->Scan();
+            this->GetScanner()->Capture(&parsedAsync);
+            this->GetScanner()->Scan();
             if (m_token.tk == tkFUNCTION)
             {
                 // Token after async is function, consume the async token and continue to parse the
@@ -2712,7 +2703,7 @@ ParseNodePtr Parser::ParseDefaultExportClause()
             }
             // Token after async is not function, no idea what the async token is supposed to mean
             // so rewind and let the default case handle it.
-            m_pscan->SeekTo(parsedAsync);
+            this->GetScanner()->SeekTo(parsedAsync);
         }
         goto LDefault;
         break;
@@ -2722,15 +2713,15 @@ LFunction:
             // We just parsed a function token but we need to figure out if the function
             // has an identifier name or not before we call the helper.
             RestorePoint parsedFunction;
-            m_pscan->Capture(&parsedFunction);
-            m_pscan->Scan();
+            this->GetScanner()->Capture(&parsedFunction);
+            this->GetScanner()->Scan();
 
             if (m_token.tk == tkStar)
             {
                 // If we saw 'function*' that indicates we are going to parse a generator,
                 // but doesn't tell us if the generator has an identifier or not.
                 // Skip the '*' token for now as it doesn't matter yet.
-                m_pscan->Scan();
+                this->GetScanner()->Scan();
             }
 
             // We say that if the function has an identifier name, it is a 'normal' declaration
@@ -2745,7 +2736,7 @@ LFunction:
             }
 
             // Rewind back to the function token and let the helper handle the parsing.
-            m_pscan->SeekTo(parsedFunction);
+            this->GetScanner()->SeekTo(parsedFunction);
             pnode = ParseFncDecl<buildAST>(flags);
 
             if (buildAST)
@@ -2809,12 +2800,12 @@ ParseNodePtr Parser::ParseExportDeclaration(bool *needTerminator)
     }
 
     // We just parsed an export token. Next valid tokens are *, {, var, let, const, async, function, class, default.
-    m_pscan->Scan();
+    this->GetScanner()->Scan();
 
     switch (m_token.tk)
     {
     case tkStar:
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
 
         // A star token in an export declaration must be followed by a from clause which begins with a token 'from'.
         moduleIdentifier = ParseImportOrExportFromClause<buildAST>(true);
@@ -2842,7 +2833,7 @@ ParseNodePtr Parser::ParseExportDeclaration(bool *needTerminator)
 
             ParseNamedImportOrExportClause<buildAST>(&exportEntryList, true);
 
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
 
             // Export clause may be followed by a from clause.
             moduleIdentifier = ParseImportOrExportFromClause<buildAST>(false);
@@ -2884,7 +2875,7 @@ ParseNodePtr Parser::ParseExportDeclaration(bool *needTerminator)
 
     case tkID:
         {
-            IdentPtr pid = m_token.GetIdentifier(m_phtbl);
+            IdentPtr pid = m_token.GetIdentifier(this->GetHashTbl());
 
             if (wellKnownPropertyPids.let == pid)
             {
@@ -2896,12 +2887,12 @@ ParseNodePtr Parser::ParseExportDeclaration(bool *needTerminator)
                 // In module export statements, async token is only valid if it's followed by function.
                 // We need to check here because ParseStatement would think 'async = 20' is a var decl.
                 RestorePoint parsedAsync;
-                m_pscan->Capture(&parsedAsync);
-                m_pscan->Scan();
+                this->GetScanner()->Capture(&parsedAsync);
+                this->GetScanner()->Scan();
                 if (m_token.tk == tkFUNCTION)
                 {
                     // Token after async is function, rewind to the async token and let ParseStatement handle it.
-                    m_pscan->SeekTo(parsedAsync);
+                    this->GetScanner()->SeekTo(parsedAsync);
                     goto ParseFunctionDecl;
                 }
                 // Token after async is not function, it's a syntax error.
@@ -2915,9 +2906,9 @@ ParseNodePtr Parser::ParseExportDeclaration(bool *needTerminator)
             declarationType = m_token.tk;
 
 ParseVarDecl:
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
 
-            pnode = ParseVariableDeclaration<buildAST>(declarationType, m_pscan->IchMinTok());
+            pnode = ParseVariableDeclaration<buildAST>(declarationType, this->GetScanner()->IchMinTok());
 
             if (buildAST)
             {
@@ -3019,11 +3010,11 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
     {
     case tkID:
     {
-        pid = m_token.GetIdentifier(m_phtbl);
-        ichMin = m_pscan->IchMinTok();
-        iecpMin = m_pscan->IecpMinTok();
-        ichLim = m_pscan->IchLimTok();
-        iecpLim = m_pscan->IecpLimTok();
+        pid = m_token.GetIdentifier(this->GetHashTbl());
+        ichMin = this->GetScanner()->IchMinTok();
+        iecpMin = this->GetScanner()->IecpMinTok();
+        ichLim = this->GetScanner()->IchLimTok();
+        iecpLim = this->GetScanner()->IecpLimTok();
 
         if (pid == wellKnownPropertyPids.async &&
             m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
@@ -3033,13 +3024,13 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
 
         // Put this into a block to avoid previousAwaitIsKeyword being not initialized after jump to LIdentifier
         {
-            bool previousAwaitIsKeyword = m_pscan->SetAwaitIsKeywordRegion(isAsyncExpr);
-            m_pscan->Scan();
-            m_pscan->SetAwaitIsKeywordRegion(previousAwaitIsKeyword);
+            bool previousAwaitIsKeyword = this->GetScanner()->SetAwaitIsKeywordRegion(isAsyncExpr);
+            this->GetScanner()->Scan();
+            this->GetScanner()->SetAwaitIsKeywordRegion(previousAwaitIsKeyword);
         }
 
         // We search for an Async expression (a function declaration or an async lambda expression)
-        if (isAsyncExpr && !m_pscan->FHadNewLine())
+        if (isAsyncExpr && !this->GetScanner()->FHadNewLine())
         {
             if (m_token.tk == tkFUNCTION)
             {
@@ -3110,17 +3101,17 @@ LIdentifier:
     }
 
     case tkSUPER:
-        ichMin = m_pscan->IchMinTok();
-        iecpMin = m_pscan->IecpMinTok();
-        ichLim = m_pscan->IchLimTok();
-        iecpLim = m_pscan->IecpLimTok();
+        ichMin = this->GetScanner()->IchMinTok();
+        iecpMin = this->GetScanner()->IecpMinTok();
+        ichLim = this->GetScanner()->IchLimTok();
+        iecpLim = this->GetScanner()->IecpLimTok();
 
         if (!m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
         {
             goto LUnknown;
         }
 
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
 
         pid = ParseSuper<buildAST>(!!fAllowCall);
         isSpecialName = true;
@@ -3136,32 +3127,32 @@ LIdentifier:
         goto LIdentifier;
 
     case tkTHIS:
-        ichMin = m_pscan->IchMinTok();
-        iecpMin = m_pscan->IecpMinTok();
-        ichLim = m_pscan->IchLimTok();
-        iecpLim = m_pscan->IecpLimTok();
+        ichMin = this->GetScanner()->IchMinTok();
+        iecpMin = this->GetScanner()->IecpMinTok();
+        ichLim = this->GetScanner()->IchLimTok();
+        iecpLim = this->GetScanner()->IecpLimTok();
 
         pid = wellKnownPropertyPids._this;
 
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
         isSpecialName = true;
 
         goto LIdentifier;
 
     case tkLParen:
     {
-        ichMin = m_pscan->IchMinTok();
-        iuMin = m_pscan->IecpMinTok();
-        m_pscan->Scan();
+        ichMin = this->GetScanner()->IchMinTok();
+        iuMin = this->GetScanner()->IecpMinTok();
+        this->GetScanner()->Scan();
         if (m_token.tk == tkRParen)
         {
             // Empty parens can only be legal as an empty parameter list to a lambda declaration.
             // We're in a lambda if the next token is =>.
             fAllowCall = FALSE;
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
 
             // If the token after the right paren is not => or if there was a newline between () and => this is a syntax error
-            if (!IsDoingFastScan() && (m_token.tk != tkDArrow || m_pscan->FHadNewLine()))
+            if (!IsDoingFastScan() && (m_token.tk != tkDArrow || this->GetScanner()->FHadNewLine()))
             {
                 Error(ERRsyntax);
             }
@@ -3190,7 +3181,7 @@ LIdentifier:
 
         if (buildAST && plastRParen)
         {
-            *plastRParen = m_pscan->IchLimTok();
+            *plastRParen = this->GetScanner()->IchLimTok();
         }
 
         ChkCurTok(tkRParen, ERRnoRparen);
@@ -3206,7 +3197,7 @@ LIdentifier:
         // Emit a deferred ... error if one was parsed.
         if (m_deferEllipsisError && m_token.tk != tkDArrow)
         {
-            m_pscan->SeekTo(m_deferEllipsisErrorLoc);
+            this->GetScanner()->SeekTo(m_deferEllipsisErrorLoc);
             Error(ERRInvalidSpreadUse);
         }
         else
@@ -3222,7 +3213,7 @@ LIdentifier:
     }
 
     case tkIntCon:
-        if (IsStrictMode() && m_pscan->IsOctOrLeadingZeroOnLastTKNumber())
+        if (IsStrictMode() && this->GetScanner()->IsOctOrLeadingZeroOnLastTKNumber())
         {
             Error(ERRES5NoOctal);
         }
@@ -3232,11 +3223,11 @@ LIdentifier:
             pnode = CreateIntNodeWithScanner(m_token.GetLong());
         }
         fCanAssign = FALSE;
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
         break;
 
     case tkFltCon:
-        if (IsStrictMode() && m_pscan->IsOctOrLeadingZeroOnLastTKNumber())
+        if (IsStrictMode() && this->GetScanner()->IsOctOrLeadingZeroOnLastTKNumber())
         {
             Error(ERRES5NoOctal);
         }
@@ -3248,11 +3239,11 @@ LIdentifier:
             pnode->AsParseNodeFloat()->maybeInt = m_token.GetDoubleMayBeInt();
         }
         fCanAssign = FALSE;
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
         break;
 
     case tkStrCon:
-        if (IsStrictMode() && m_pscan->IsOctOrLeadingZeroOnLastTKNumber())
+        if (IsStrictMode() && this->GetScanner()->IsOctOrLeadingZeroOnLastTKNumber())
         {
             Error(ERRES5NoOctal);
         }
@@ -3265,10 +3256,10 @@ LIdentifier:
         {
             // Subtract the string literal length from the total char count for the purpose
             // of deciding whether to defer parsing and byte code generation.
-            this->ReduceDeferredScriptLength(m_pscan->IchLimTok() - m_pscan->IchMinTok());
+            this->ReduceDeferredScriptLength(this->GetScanner()->IchLimTok() - this->GetScanner()->IchMinTok());
         }
         fCanAssign = FALSE;
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
         break;
 
     case tkTRUE:
@@ -3277,7 +3268,7 @@ LIdentifier:
             pnode = CreateNodeWithScanner<knopTrue>();
         }
         fCanAssign = FALSE;
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
         break;
 
     case tkFALSE:
@@ -3286,7 +3277,7 @@ LIdentifier:
             pnode = CreateNodeWithScanner<knopFalse>();
         }
         fCanAssign = FALSE;
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
         break;
 
     case tkNULL:
@@ -3295,30 +3286,30 @@ LIdentifier:
             pnode = CreateNodeWithScanner<knopNull>();
         }
         fCanAssign = FALSE;
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
         break;
 
     case tkDiv:
     case tkAsgDiv:
         pnode = ParseRegExp<buildAST>();
         fCanAssign = FALSE;
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
         break;
 
     case tkNEW:
     {
-        ichMin = m_pscan->IchMinTok();
-        iecpMin = m_pscan->IecpMinTok();
-        m_pscan->Scan();
+        ichMin = this->GetScanner()->IchMinTok();
+        iecpMin = this->GetScanner()->IecpMinTok();
+        this->GetScanner()->Scan();
 
         if (m_token.tk == tkDot && m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
         {
             pid = ParseMetaProperty<buildAST>(tkNEW, ichMin, &fCanAssign);
 
-            ichLim = m_pscan->IchLimTok();
-            iecpLim = m_pscan->IecpLimTok();
+            ichLim = this->GetScanner()->IchLimTok();
+            iecpLim = this->GetScanner()->IecpLimTok();
 
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
             isSpecialName = true;
 
             goto LIdentifier;
@@ -3339,19 +3330,19 @@ LIdentifier:
 
     case tkLBrack:
     {
-        ichMin = m_pscan->IchMinTok();
-        m_pscan->Scan();
+        ichMin = this->GetScanner()->IchMinTok();
+        this->GetScanner()->Scan();
         pnode = ParseArrayLiteral<buildAST>();
         if (buildAST)
         {
             pnode->ichMin = ichMin;
-            pnode->ichLim = m_pscan->IchLimTok();
+            pnode->ichLim = this->GetScanner()->IchLimTok();
         }
 
         if (this->m_arrayDepth == 0)
         {
-            Assert(m_pscan->IchLimTok() - ichMin > m_funcInArray);
-            this->ReduceDeferredScriptLength(m_pscan->IchLimTok() - ichMin - this->m_funcInArray);
+            Assert(this->GetScanner()->IchLimTok() - ichMin > m_funcInArray);
+            this->ReduceDeferredScriptLength(this->GetScanner()->IchLimTok() - ichMin - this->m_funcInArray);
             this->m_funcInArray = 0;
             this->m_funcInArrayDepth = 0;
         }
@@ -3369,14 +3360,14 @@ LIdentifier:
 
     case tkLCurly:
     {
-        ichMin = m_pscan->IchMinTok();
-        m_pscan->ScanForcingPid();
+        ichMin = this->GetScanner()->IchMinTok();
+        this->GetScanner()->ScanForcingPid();
         ParseNodePtr pnodeMemberList = ParseMemberList<buildAST>(pNameHint, pHintLength);
         if (buildAST)
         {
             pnode = CreateUniNode(knopObject, pnodeMemberList);
             pnode->ichMin = ichMin;
-            pnode->ichLim = m_pscan->IchLimTok();
+            pnode->ichLim = this->GetScanner()->IchLimTok();
         }
         ChkCurTok(tkRCurly, ERRnoRcurly);
         if (!IsES6DestructuringEnabled())
@@ -3445,7 +3436,7 @@ LFunction :
     case tkIMPORT:
         if (m_scriptContext->GetConfig()->IsES6ModuleEnabled() && m_scriptContext->GetConfig()->IsESDynamicImportEnabled())
         {
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
             ChkCurTokNoScan(tkLParen, ERRnoLparen);
             pnode = ParseImportCall<buildAST>();
         }
@@ -3472,7 +3463,7 @@ LFunction :
         {
             goto LUnknown;
         }
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
         ParseStatement<buildAST>();
         break;
 #endif
@@ -3518,7 +3509,7 @@ ParseNodePtr Parser::ParseRegExp()
 
     if (buildAST || IsDoingFastScan())
     {
-        m_pscan->RescanRegExp();
+        this->GetScanner()->RescanRegExp();
 
 #if ENABLE_BACKGROUND_PARSING
         BOOL saveDeferringAST = this->m_deferringAST;
@@ -3548,7 +3539,7 @@ ParseNodePtr Parser::ParseRegExp()
     }
     else
     {
-        m_pscan->RescanRegExpNoAST();
+        this->GetScanner()->RescanRegExpNoAST();
     }
     Assert(m_token.tk == tkRegExp);
 
@@ -3634,7 +3625,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                         Assert(!m_hasDestructuringPattern || count > 0);
                         pnode->AsParseNodeCall()->argCount = count;
                         pnode->AsParseNodeCall()->spreadArgCount = spreadArgCount;
-                        pnode->ichLim = m_pscan->IchLimTok();
+                        pnode->ichLim = this->GetScanner()->IchLimTok();
                     }
                     else
                     {
@@ -3675,8 +3666,8 @@ ParseNodePtr Parser::ParsePostfixOperators(
                             pnode = CreateSuperCallNode(pnode, pnodeArgs);
                             Assert(pnode);
 
-                            pnode->AsParseNodeSuperCall()->pnodeThis = ReferenceSpecialName(wellKnownPropertyPids._this, pnode->ichMin, m_pscan->IchLimTok(), true);
-                            pnode->AsParseNodeSuperCall()->pnodeNewTarget = ReferenceSpecialName(wellKnownPropertyPids._newTarget, pnode->ichMin, m_pscan->IchLimTok(), true);
+                            pnode->AsParseNodeSuperCall()->pnodeThis = ReferenceSpecialName(wellKnownPropertyPids._this, pnode->ichMin, this->GetScanner()->IchLimTok(), true);
+                            pnode->AsParseNodeSuperCall()->pnodeNewTarget = ReferenceSpecialName(wellKnownPropertyPids._newTarget, pnode->ichMin, this->GetScanner()->IchLimTok(), true);
                         }
                         else
                         {
@@ -3708,7 +3699,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                         pnode->AsParseNodeCall()->hasDestructuring = m_hasDestructuringPattern;
                         Assert(!m_hasDestructuringPattern || count > 0);
                         pnode->AsParseNodeCall()->argCount = count;
-                        pnode->ichLim = m_pscan->IchLimTok();
+                        pnode->ichLim = this->GetScanner()->IchLimTok();
                     }
                     else
                     {
@@ -3751,7 +3742,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
             }
         case tkLBrack:
             {
-                m_pscan->Scan();
+                this->GetScanner()->Scan();
                 IdentToken tok;
                 ParseNodePtr pnodeExpr = ParseExpr<buildAST>(0, FALSE, TRUE, FALSE, nullptr, nullptr, nullptr, &tok);
                 if (buildAST)
@@ -3767,7 +3758,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                     }
 
                     AnalysisAssert(pnode);
-                    pnode->ichLim = m_pscan->IchLimTok();
+                    pnode->ichLim = this->GetScanner()->IchLimTok();
                 }
                 else
                 {
@@ -3810,7 +3801,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                 if (pnode->AsParseNodeBin()->pnode2->nop == knopStr)
                 {
                     // if the string is empty or contains escape character, we will not convert them to dot node
-                    shouldConvertToDot = pnode->AsParseNodeBin()->pnode2->AsParseNodePid()->pid->Cch() > 0 && !m_pscan->IsEscapeOnLastTkStrCon();
+                    shouldConvertToDot = pnode->AsParseNodeBin()->pnode2->AsParseNodePid()->pid->Cch() > 0 && !this->GetScanner()->IsEscapeOnLastTkStrCon();
                 }
 
                 if (shouldConvertToDot)
@@ -3862,7 +3853,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
             ParseNodePtr name = nullptr;
             OpCode opCode = knopDot;
 
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
             if (!m_token.IsIdentifier())
             {
                 //allow reserved words in ES5 mode
@@ -3875,7 +3866,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
             // Convert a.Nan, a.Infinity into a["NaN"], a["Infinity"].
             // We don't care about -Infinity case here because x.-Infinity is invalid in JavaScript.
             // Both NaN and Infinity are identifiers.
-            else if (buildAST && Parser::IsNaNOrInfinityLiteral<false>(m_token.GetIdentifier(m_phtbl)->Psz()))
+            else if (buildAST && Parser::IsNaNOrInfinityLiteral<false>(m_token.GetIdentifier(this->GetHashTbl())->Psz()))
             {
                 opCode = knopIndex;
             }
@@ -3884,12 +3875,12 @@ ParseNodePtr Parser::ParsePostfixOperators(
             {
                 if (opCode == knopDot)
                 {
-                    name = CreateNameNode(m_token.GetIdentifier(m_phtbl));
+                    name = CreateNameNode(m_token.GetIdentifier(this->GetHashTbl()));
                 }
                 else
                 {
                     Assert(opCode == knopIndex);
-                    name = CreateStrNodeWithScanner(m_token.GetIdentifier(m_phtbl));
+                    name = CreateStrNodeWithScanner(m_token.GetIdentifier(this->GetHashTbl()));
                 }
                 if (pnode && pnode->isSpecialName && pnode->AsParseNodeSpecialName()->isSuper)
                 {
@@ -3915,7 +3906,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
             {
                 *pfIsDotOrIndex = true;
             }
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
 
             break;
             }
@@ -4008,7 +3999,7 @@ ParseNodePtr Parser::ParseArgList( bool *pCallOfConstants, uint16 *pSpreadArgCou
     // Check for an empty list
     Assert(m_token.tk == tkLParen);
 
-    if (m_pscan->Scan() == tkRParen)
+    if (this->GetScanner()->Scan() == tkRParen)
     {
         return nullptr;
     }
@@ -4049,7 +4040,7 @@ ParseNodePtr Parser::ParseArgList( bool *pCallOfConstants, uint16 *pSpreadArgCou
         {
             break;
         }
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
 
         if (m_token.tk == tkRParen && m_scriptContext->GetConfig()->IsES7TrailingCommaEnabled())
         {
@@ -4221,7 +4212,7 @@ ParseNodePtr Parser::ParseArrayList(bool *pArrayOfTaggedInts, bool *pArrayOfInts
         {
             break;
         }
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
 
         if (tkRBrack == m_token.tk)
         {
@@ -4261,7 +4252,7 @@ Parser::MemberNameToTypeMap* Parser::CreateMemberNameMap(ArenaAllocator* pAlloca
 
 template<bool buildAST> void Parser::ParseComputedName(ParseNodePtr* ppnodeName, LPCOLESTR* ppNameHint, LPCOLESTR* ppFullNameHint, uint32 *pNameLength, uint32 *pShortNameOffset)
 {
-    m_pscan->Scan();
+    this->GetScanner()->Scan();
     ParseNodePtr pnodeNameExpr = ParseExpr<buildAST>(koplCma, nullptr, TRUE, FALSE, *ppNameHint, pNameLength, pShortNameOffset);
     if (buildAST)
     {
@@ -4301,7 +4292,7 @@ ParseNodePtr Parser::ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint)
         }
         // fall through
     case tkID:
-        pid = m_token.GetIdentifier(m_phtbl);
+        pid = m_token.GetIdentifier(this->GetHashTbl());
         *ppNameHint = pid->Psz();
         if (buildAST)
         {
@@ -4309,7 +4300,7 @@ ParseNodePtr Parser::ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint)
         }
         break;
     case tkStrCon:
-        if (IsStrictMode() && m_pscan->IsOctOrLeadingZeroOnLastTKNumber())
+        if (IsStrictMode() && this->GetScanner()->IsOctOrLeadingZeroOnLastTKNumber())
         {
             Error(ERRES5NoOctal);
         }
@@ -4322,12 +4313,12 @@ ParseNodePtr Parser::ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint)
         break;
 
     case tkIntCon:
-        if (IsStrictMode() && m_pscan->IsOctOrLeadingZeroOnLastTKNumber())
+        if (IsStrictMode() && this->GetScanner()->IsOctOrLeadingZeroOnLastTKNumber())
         {
             Error(ERRES5NoOctal);
         }
 
-        pid = m_pscan->PidFromLong(m_token.GetLong());
+        pid = this->GetScanner()->PidFromLong(m_token.GetLong());
         if (buildAST)
         {
             pnodeName = CreateStrNodeWithScanner(pid);
@@ -4335,12 +4326,12 @@ ParseNodePtr Parser::ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint)
         break;
 
     case tkFltCon:
-        if (IsStrictMode() && m_pscan->IsOctOrLeadingZeroOnLastTKNumber())
+        if (IsStrictMode() && this->GetScanner()->IsOctOrLeadingZeroOnLastTKNumber())
         {
             Error(ERRES5NoOctal);
         }
 
-        pid = m_pscan->PidFromDbl(m_token.GetDouble());
+        pid = this->GetScanner()->PidFromDbl(m_token.GetDouble());
         if (buildAST)
         {
             pnodeName = CreateStrNodeWithScanner(pid);
@@ -4422,7 +4413,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
     {
         bool isComputedName = false;
 #if DEBUG
-        if((m_grfscr & fscrEnforceJSON) && (tkStrCon != m_token.tk || !(m_pscan->IsDoubleQuoteOnLastTkStrCon())))
+        if((m_grfscr & fscrEnforceJSON) && (tkStrCon != m_token.tk || !(this->GetScanner()->IsDoubleQuoteOnLastTkStrCon())))
         {
             Error(ERRsyntax);
         }
@@ -4430,17 +4421,17 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
         bool isAsyncMethod = false;
         charcount_t ichMin = 0;
         size_t iecpMin = 0;
-        if (m_token.tk == tkID && m_token.GetIdentifier(m_phtbl) == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+        if (m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
             RestorePoint parsedAsync;
-            m_pscan->Capture(&parsedAsync);
-            ichMin = m_pscan->IchMinTok();
-            iecpMin = m_pscan->IecpMinTok();
+            this->GetScanner()->Capture(&parsedAsync);
+            ichMin = this->GetScanner()->IchMinTok();
+            iecpMin = this->GetScanner()->IecpMinTok();
 
-            m_pscan->ScanForcingPid();
-            if (m_token.tk == tkLParen || m_token.tk == tkColon || m_token.tk == tkRCurly || m_pscan->FHadNewLine() || m_token.tk == tkComma)
+            this->GetScanner()->ScanForcingPid();
+            if (m_token.tk == tkLParen || m_token.tk == tkColon || m_token.tk == tkRCurly || this->GetScanner()->FHadNewLine() || m_token.tk == tkComma)
             {
-                m_pscan->SeekTo(parsedAsync);
+                this->GetScanner()->SeekTo(parsedAsync);
             }
             else
             {
@@ -4459,17 +4450,17 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
             }
 
             // Include star character in the function extents
-            ichMin = m_pscan->IchMinTok();
-            iecpMin = m_pscan->IecpMinTok();
+            ichMin = this->GetScanner()->IchMinTok();
+            iecpMin = this->GetScanner()->IecpMinTok();
 
-            m_pscan->ScanForcingPid();
+            this->GetScanner()->ScanForcingPid();
             fncDeclFlags |= fFncGenerator;
         }
 
         IdentPtr pidHint = nullptr;              // A name scoped to current expression
         Token tkHint = m_token;
-        charcount_t idHintIchMin = static_cast<charcount_t>(m_pscan->IecpMinTok());
-        charcount_t idHintIchLim = static_cast< charcount_t >(m_pscan->IecpLimTok());
+        charcount_t idHintIchMin = static_cast<charcount_t>(this->GetScanner()->IecpMinTok());
+        charcount_t idHintIchLim = static_cast< charcount_t >(this->GetScanner()->IecpLimTok());
         bool wrapInBrackets = false;
         switch (m_token.tk)
         {
@@ -4482,7 +4473,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
             wrapInBrackets = true;
             // fall-through
         case tkID:
-            pidHint = m_token.GetIdentifier(m_phtbl);
+            pidHint = m_token.GetIdentifier(this->GetHashTbl());
             if (buildAST)
             {
                 pnodeName = CreateStrNodeWithScanner(pidHint);
@@ -4490,7 +4481,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
             break;
 
         case tkStrCon:
-            if (IsStrictMode() && m_pscan->IsOctOrLeadingZeroOnLastTKNumber())
+            if (IsStrictMode() && this->GetScanner()->IsOctOrLeadingZeroOnLastTKNumber())
             {
                 Error(ERRES5NoOctal);
             }
@@ -4504,12 +4495,12 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
 
         case tkIntCon:
             // Object initializers with numeric labels allowed in JS6
-            if (IsStrictMode() && m_pscan->IsOctOrLeadingZeroOnLastTKNumber())
+            if (IsStrictMode() && this->GetScanner()->IsOctOrLeadingZeroOnLastTKNumber())
             {
                 Error(ERRES5NoOctal);
             }
 
-            pidHint = m_pscan->PidFromLong(m_token.GetLong());
+            pidHint = this->GetScanner()->PidFromLong(m_token.GetLong());
             if (buildAST)
             {
                 pnodeName = CreateStrNodeWithScanner(pidHint);
@@ -4517,12 +4508,12 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
             break;
 
         case tkFltCon:
-            if (IsStrictMode() && m_pscan->IsOctOrLeadingZeroOnLastTKNumber())
+            if (IsStrictMode() && this->GetScanner()->IsOctOrLeadingZeroOnLastTKNumber())
             {
                 Error(ERRES5NoOctal);
             }
 
-            pidHint = m_pscan->PidFromDbl(m_token.GetDouble());
+            pidHint = this->GetScanner()->PidFromDbl(m_token.GetDouble());
             if (buildAST)
             {
                 pnodeName = CreateStrNodeWithScanner(pidHint);
@@ -4558,9 +4549,9 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
         }
 
         RestorePoint atPid;
-        m_pscan->Capture(&atPid);
+        this->GetScanner()->Capture(&atPid);
 
-        m_pscan->ScanForcingPid();
+        this->GetScanner()->ScanForcingPid();
 
         if (isGenerator && m_token.tk != tkLParen)
         {
@@ -4583,7 +4574,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
                 }
             }
 
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
             ParseNodePtr pnodeExpr = nullptr;
             if (isObjectPattern)
             {
@@ -4595,7 +4586,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
                 RestorePoint atExpression;
                 if (!buildAST && declarationType == tkLCurly && IsPossiblePatternStart())
                 {
-                    m_pscan->Capture(&atExpression);
+                    this->GetScanner()->Capture(&atExpression);
 
                     // It is possible that we might encounter the shorthand init error. Lets find that out.
                     bool savedDeferredInitError = m_hasDeferredShorthandInitError;
@@ -4609,7 +4600,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
                     ParseTerm<buildAST>(/* fAllowCall */ m_token.tk != tkSUPER, nullptr /*pNameHint*/, nullptr /*pHintLength*/, nullptr /*pShortNameOffset*/, &token, false /*fUnaryOrParen*/,
                         nullptr /*pfCanAssign*/, &fLikelyPattern);
 
-                    m_pscan->SeekTo(atExpression);
+                    this->GetScanner()->SeekTo(atExpression);
 
                     if (fLikelyPattern)
                     {
@@ -4676,7 +4667,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
             // Shorthand syntax: foo() {} -> foo: function() {}
 
             // Rewind to the PID and parse a function expression.
-            m_pscan->SeekTo(atPid);
+            this->GetScanner()->SeekTo(atPid);
             this->m_parsingSuperRestrictionState = ParsingSuperRestrictionState_SuperPropertyAllowed;
             ParseNodePtr pnodeFunc = ParseFncDecl<buildAST>(fncDeclFlags | (isAsyncMethod ? fFncAsync : fFncNoFlgs), pFullNameHint,
                 /*needsPIDOnRCurlyScan*/ false, /*resetParsingSuperRestrictionState*/ false);
@@ -4756,7 +4747,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
                 ParseNodePtr pnodeIdent = nullptr;
                 if (isObjectPattern)
                 {
-                    m_pscan->SeekTo(atPid);
+                    this->GetScanner()->SeekTo(atPid);
                     pnodeIdent = ParseDestructuredVarDecl<buildAST>(declarationType, declarationType != tkLCurly, nullptr/* *hasSeenRest*/, false /*topLevel*/, false /*allowEmptyExpression*/);
 
                     if (m_token.tk != tkComma && m_token.tk != tkRCurly)
@@ -4815,7 +4806,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
         {
             break;
         }
-        m_pscan->ScanForcingPid();
+        this->GetScanner()->ScanForcingPid();
         if (tkRCurly == m_token.tk)
         {
             break;
@@ -4903,7 +4894,7 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     bool fDeclaration = flags & fFncDeclaration;
     bool fModule = (flags & fFncModule) != 0;
     bool fLambda = (flags & fFncLambda) != 0;
-    charcount_t ichMin = this->m_pscan->IchMinTok();
+    charcount_t ichMin = this->GetScanner()->IchMinTok();
     bool wasInDeferredNestedFunc = false;
 
     uint tryCatchOrFinallyDepthSave = this->m_tryCatchOrFinallyDepth;
@@ -4968,7 +4959,7 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     pnodeFnc->AsParseNodeFnc()->funcInfo            = nullptr;
     pnodeFnc->AsParseNodeFnc()->deferredStub        = nullptr;
     pnodeFnc->AsParseNodeFnc()->nestedCount         = 0;
-    pnodeFnc->AsParseNodeFnc()->cbMin = m_pscan->IecpMinTok();
+    pnodeFnc->AsParseNodeFnc()->cbMin = this->GetScanner()->IecpMinTok();
     pnodeFnc->AsParseNodeFnc()->functionId = (*m_nextFunctionId)++;
     pnodeFnc->AsParseNodeFnc()->isBodyAndParamScopeMerged = true;
 
@@ -4981,7 +4972,7 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
 
     if (buildAST)
     {
-        pnodeFnc->AsParseNodeFnc()->lineNumber = m_pscan->LineCur();
+        pnodeFnc->AsParseNodeFnc()->lineNumber = this->GetScanner()->LineCur();
         pnodeFnc->AsParseNodeFnc()->columnNumber = CalculateFunctionColumnNumber();
         pnodeFnc->AsParseNodeFnc()->SetNested(m_currentNodeFunc != nullptr); // If there is a current function, then we're a nested function.
         pnodeFnc->AsParseNodeFnc()->SetStrictMode(IsStrictMode()); // Inherit current strict mode -- may be overridden by the function itself if it contains a strict mode directive.
@@ -5055,11 +5046,11 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
         // The next token may need to have a PID created in !buildAST mode, as we may be parsing a method with a string name.
         if (needsPIDOnRCurlyScan)
         {
-            m_pscan->ScanForcingPid();
+            this->GetScanner()->ScanForcingPid();
         }
         else
         {
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
         }
     }
 
@@ -5078,13 +5069,13 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
             {
                 // Class member methods have optional separators. We need to check whether we are
                 // getting the IchLim of the correct token.
-                Assert(m_pscan->m_tkPrevious == tkRCurly && needScanRCurly);
+                Assert(this->GetScanner()->m_tkPrevious == tkRCurly && needScanRCurly);
 
-                this->m_funcInArray += m_pscan->IchMinTok() - /*tkRCurly*/ 1 - ichMin;
+                this->m_funcInArray += this->GetScanner()->IchMinTok() - /*tkRCurly*/ 1 - ichMin;
             }
             else
             {
-                this->m_funcInArray += m_pscan->IchLimTok() - ichMin;
+                this->m_funcInArray += this->GetScanner()->IchLimTok() - ichMin;
             }
         }
     }
@@ -5140,11 +5131,13 @@ uint Parser::CalculateFunctionColumnNumber()
 {
     uint columnNumber;
 
-    if (m_pscan->IchMinTok() >= m_pscan->IchMinLine())
+    charcount_t ichMinTok = this->GetScanner()->IchMinTok();
+    charcount_t ichMinLine = this->GetScanner()->IchMinLine();
+    if (ichMinTok >= ichMinLine)
     {
         // In scenarios involving defer parse IchMinLine() can be incorrect for the first line after defer parse
-        columnNumber = m_pscan->IchMinTok() - m_pscan->IchMinLine();
-        if (m_functionBody != nullptr && m_functionBody->GetRelativeLineNumber() == m_pscan->LineCur())
+        columnNumber = ichMinTok - ichMinLine;
+        if (m_functionBody != nullptr && m_functionBody->GetRelativeLineNumber() == this->GetScanner()->LineCur())
         {
             // Adjust the column if it falls on the first line, where the re-parse is happening.
             columnNumber += m_functionBody->GetRelativeColumnNumber();
@@ -5154,7 +5147,7 @@ uint Parser::CalculateFunctionColumnNumber()
     {
         // For the first line after defer parse, compute the column relative to the column number
         // of the lexically parent function.
-        ULONG offsetFromCurrentFunction = m_pscan->IchMinTok() - m_currentNodeFunc->ichMin;
+        ULONG offsetFromCurrentFunction = ichMinTok - m_currentNodeFunc->ichMin;
         columnNumber = m_currentNodeFunc->AsParseNodeFnc()->columnNumber + offsetFromCurrentFunction ;
     }
     else
@@ -5214,7 +5207,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
 
     // Save the position of the scanner in case we need to inspect the name hint later
     RestorePoint beginNameHint;
-    m_pscan->Capture(&beginNameHint);
+    this->GetScanner()->Capture(&beginNameHint);
 
     ParseNodePtr pnodeFncExprScope = nullptr;
     Scope *fncExprScope = nullptr;
@@ -5251,8 +5244,8 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
 
     // switch scanner to treat 'yield' as keyword in generator functions
     // or as an identifier in non-generator functions
-    bool fPreviousYieldIsKeyword = m_pscan->SetYieldIsKeywordRegion(pnodeFnc && pnodeFnc->AsParseNodeFnc()->IsGenerator());
-    bool fPreviousAwaitIsKeyword = m_pscan->SetAwaitIsKeywordRegion(fAsync);
+    bool fPreviousYieldIsKeyword = this->GetScanner()->SetYieldIsKeywordRegion(pnodeFnc && pnodeFnc->AsParseNodeFnc()->IsGenerator());
+    bool fPreviousAwaitIsKeyword = this->GetScanner()->SetAwaitIsKeywordRegion(fAsync);
 
     if (pnodeFnc && pnodeFnc->AsParseNodeFnc()->IsGenerator())
     {
@@ -5282,7 +5275,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
     SetCurrentStatement(nullptr);
 
     RestorePoint beginFormals;
-    m_pscan->Capture(&beginFormals);
+    this->GetScanner()->Capture(&beginFormals);
     BOOL fWasAlreadyStrictMode = IsStrictMode();
     BOOL oldStrictMode = this->m_fUseStrictMode;
 
@@ -5370,8 +5363,8 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
                         // Let the foreground thread take care of marking the limit on the function node,
                         // because in some cases this function's caller will want to change that limit,
                         // so we don't want the background thread to try and touch it.
-                        pnodeFnc->ichLim = m_pscan->IchLimTok();
-                        pnodeFnc->AsParseNodeFnc()->cbLim = m_pscan->IecpLimTok();
+                        pnodeFnc->ichLim = this->GetScanner()->IchLimTok();
+                        pnodeFnc->AsParseNodeFnc()->cbLim = this->GetScanner()->IecpLimTok();
                     }
                 }
             }
@@ -5569,12 +5562,12 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
 
         if (m_token.tk == tkRParen)
         {
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
         }
 
         if (fLambda)
         {
-            BOOL hadNewLine = m_pscan->FHadNewLine();
+            BOOL hadNewLine = this->GetScanner()->FHadNewLine();
 
             // it can be the case we do not have a fat arrow here if there is a valid expression on the left hand side
             // of the fat arrow, but that expression does not parse as a parameter list.  E.g.
@@ -5699,32 +5692,32 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
                 // If this function turned on strict mode then we didn't check the formal
                 // parameters or function name hint for future reserved word usage. So do that now.
                 RestorePoint afterFnc;
-                m_pscan->Capture(&afterFnc);
+                this->GetScanner()->Capture(&afterFnc);
 
                 if (*pHasName)
                 {
                     // Rewind to the function name hint and check if the token is a reserved word.
-                    m_pscan->SeekTo(beginNameHint);
-                    m_pscan->Scan();
+                    this->GetScanner()->SeekTo(beginNameHint);
+                    this->GetScanner()->Scan();
                     if (pnodeFnc->AsParseNodeFnc()->IsGenerator())
                     {
                         Assert(m_token.tk == tkStar);
                         Assert(m_scriptContext->GetConfig()->IsES6GeneratorsEnabled());
                         Assert(!(flags & fFncClassMember));
-                        m_pscan->Scan();
+                        this->GetScanner()->Scan();
                     }
                     if (m_token.IsReservedWord())
                     {
                         IdentifierExpectedError(m_token);
                     }
-                    CheckStrictModeEvalArgumentsUsage(m_token.GetIdentifier(m_phtbl));
+                    CheckStrictModeEvalArgumentsUsage(m_token.GetIdentifier(this->GetHashTbl()));
                 }
 
                 // Fast forward to formal parameter list, check for future reserved words,
                 // then restore scanner as it was.
-                m_pscan->SeekToForcingPid(beginFormals);
+                this->GetScanner()->SeekToForcingPid(beginFormals);
                 CheckStrictFormalParameters();
-                m_pscan->SeekTo(afterFnc);
+                this->GetScanner()->SeekTo(afterFnc);
             }
 
             if (buildAST)
@@ -5753,8 +5746,8 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
             // Let the foreground thread take care of marking the limit on the function node,
             // because in some cases this function's caller will want to change that limit,
             // so we don't want the background thread to try and touch it.
-            pnodeFnc->ichLim = m_pscan->IchLimTok();
-            pnodeFnc->AsParseNodeFnc()->cbLim = m_pscan->IecpLimTok();
+            pnodeFnc->ichLim = this->GetScanner()->IchLimTok();
+            pnodeFnc->AsParseNodeFnc()->cbLim = this->GetScanner()->IecpLimTok();
         }
     }
 
@@ -5778,8 +5771,8 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
         m_grfscr |= uDeferSave;
     }
 
-    m_pscan->SetYieldIsKeywordRegion(fPreviousYieldIsKeyword);
-    m_pscan->SetAwaitIsKeywordRegion(fPreviousAwaitIsKeyword);
+    this->GetScanner()->SetYieldIsKeywordRegion(fPreviousYieldIsKeyword);
+    this->GetScanner()->SetAwaitIsKeywordRegion(fPreviousAwaitIsKeyword);
 
     // Restore the current function.
     if (buildAST)
@@ -5852,7 +5845,7 @@ void Parser::ParseTopLevelDeferredFunc(ParseNodePtr pnodeFnc, ParseNodePtr pnode
     this->m_deferringAST = TRUE;
 
     // Put the scanner into "no hashing" mode.
-    BYTE deferFlags = m_pscan->SetDeferredParse(TRUE);
+    BYTE deferFlags = this->GetScanner()->SetDeferredParse(TRUE);
 
     if (!fLambda)
     {
@@ -5861,9 +5854,9 @@ void Parser::ParseTopLevelDeferredFunc(ParseNodePtr pnodeFnc, ParseNodePtr pnode
     else
     {
         // Lambda may consist of a single expression instead of a block
-        if (m_pscan->m_ptoken->tk == tkLCurly)
+        if (this->GetScanner()->m_ptoken->tk == tkLCurly)
         {
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
         }
         else
         {
@@ -5903,7 +5896,7 @@ void Parser::ParseTopLevelDeferredFunc(ParseNodePtr pnodeFnc, ParseNodePtr pnode
             _u("Skipping nested deferred function %d. %s: %d...%d\n"),
             pnodeFnc->AsParseNodeFnc()->functionId, GetFunctionName(pnodeFnc, pNameHint), pnodeFnc->ichMin, stub->restorePoint.m_ichMinTok);
 
-        m_pscan->SeekTo(stub->restorePoint, m_nextFunctionId);
+        this->GetScanner()->SeekTo(stub->restorePoint, m_nextFunctionId);
         pnodeFnc->AsParseNodeFnc()->nestedCount = stub->nestedCount;
         pnodeFnc->AsParseNodeFnc()->deferredStub = stub->deferredStubs;
         if (stub->fncFlags & kFunctionStrictMode)
@@ -5925,15 +5918,15 @@ void Parser::ParseTopLevelDeferredFunc(ParseNodePtr pnodeFnc, ParseNodePtr pnode
 
     if (!fLambda || *pNeedScanRCurly)
     {
-        pnodeFnc->ichLim = m_pscan->IchLimTok();
-        pnodeFnc->AsParseNodeFnc()->cbLim = m_pscan->IecpLimTok();
+        pnodeFnc->ichLim = this->GetScanner()->IchLimTok();
+        pnodeFnc->AsParseNodeFnc()->cbLim = this->GetScanner()->IecpLimTok();
     }
 
     m_ppnodeVar = ppnodeVarSave;
 
     // Restore the scanner's default hashing mode.
     // Do this before we consume the next token.
-    m_pscan->SetDeferredParseFlags(deferFlags);
+    this->GetScanner()->SetDeferredParseFlags(deferFlags);
 
     if (*pNeedScanRCurly)
     {
@@ -5967,7 +5960,7 @@ bool Parser::ScanAheadToFunctionEnd(uint count)
     uint curlyDepth = 0;
 
     RestorePoint funcStart;
-    m_pscan->Capture(&funcStart);
+    this->GetScanner()->Capture(&funcStart);
 
     for (uint i = 0; i < count; i++)
     {
@@ -6000,11 +5993,11 @@ bool Parser::ScanAheadToFunctionEnd(uint count)
                 break;
         }
 
-        m_pscan->ScanAhead();
+        this->GetScanner()->ScanAhead();
     }
 
  LEnd:
-    m_pscan->SeekTo(funcStart);
+    this->GetScanner()->SeekTo(funcStart);
     return found;
 }
 
@@ -6022,7 +6015,7 @@ bool Parser::FastScanFormalsAndBody()
     // point where we had to rewind. This will process the "/" as required.
 
     RestorePoint funcStart;
-    m_pscan->Capture(&funcStart);
+    this->GetScanner()->Capture(&funcStart);
 
     const int maxRestorePointDepth = 16;
     struct FastScanRestorePoint
@@ -6036,7 +6029,7 @@ bool Parser::FastScanFormalsAndBody()
     };
     FastScanRestorePoint lastSColonAtCurlyDepth[maxRestorePointDepth];
 
-    charcount_t ichStart = m_pscan->IchMinTok();
+    charcount_t ichStart = this->GetScanner()->IchMinTok();
     uint blockIdSave = m_nextBlockId;
     uint functionIdSave = *m_nextFunctionId;
     uint curlyDepth = 0;
@@ -6071,7 +6064,7 @@ bool Parser::FastScanFormalsAndBody()
                         Output::Print(_u("Finished fast seek: %d. %s -- %d...%d\n"),
                                       m_currentNodeFunc->AsParseNodeFnc()->functionId,
                                       GetFunctionName(m_currentNodeFunc, m_currentNodeFunc->AsParseNodeFnc()->hint),
-                                      ichStart, m_pscan->IchLimTok());
+                                      ichStart, this->GetScanner()->IchLimTok());
                     }
                     return true;
                 }
@@ -6082,7 +6075,7 @@ bool Parser::FastScanFormalsAndBody()
                 curlyDepth--;
                 if (strTmplDepth > 0)
                 {
-                    m_pscan->SetScanState(Scanner_t::ScanState::ScanStateStringTemplateMiddleOrEnd);
+                    this->GetScanner()->SetScanState(Scanner_t::ScanState::ScanStateStringTemplateMiddleOrEnd);
                 }
                 break;
 
@@ -6092,7 +6085,7 @@ bool Parser::FastScanFormalsAndBody()
                 // expression, we can do something more sophisticated.)
                 if (curlyDepth < maxRestorePointDepth && lastSColonAtCurlyDepth[curlyDepth].parenDepth == 0)
                 {
-                    m_pscan->Capture(&lastSColonAtCurlyDepth[curlyDepth].restorePoint);
+                    this->GetScanner()->Capture(&lastSColonAtCurlyDepth[curlyDepth].restorePoint);
                     lastSColonAtCurlyDepth[curlyDepth].functionId = *this->m_nextFunctionId;
                     lastSColonAtCurlyDepth[curlyDepth].blockId = m_nextBlockId;
                 }
@@ -6115,7 +6108,7 @@ bool Parser::FastScanFormalsAndBody()
 
             case tkID:
             {
-                charcount_t tokLength = m_pscan->IchLimTok() - m_pscan->IchMinTok();
+                charcount_t tokLength = this->GetScanner()->IchLimTok() - this->GetScanner()->IchMinTok();
                 // Detect the function and class keywords so we can track function ID's.
                 // (In fast mode, the scanner doesn't distinguish keywords and doesn't point the token
                 // to a PID.)
@@ -6123,24 +6116,24 @@ bool Parser::FastScanFormalsAndBody()
                 switch (tokLength)
                 {
                 case 3:
-                    if (!memcmp(m_pscan->PchMinTok(), "try", 3) || !memcmp(m_pscan->PchMinTok(), "for", 3))
+                    if (!memcmp(this->GetScanner()->PchMinTok(), "try", 3) || !memcmp(this->GetScanner()->PchMinTok(), "for", 3))
                     {
                         Int32Math::Inc(m_nextBlockId, &m_nextBlockId);
                     }
                     break;
                 case 5:
-                    if (!memcmp(m_pscan->PchMinTok(), "catch", 5))
+                    if (!memcmp(this->GetScanner()->PchMinTok(), "catch", 5))
                     {
                         Int32Math::Inc(m_nextBlockId, &m_nextBlockId);
                     }
-                    else if (!memcmp(m_pscan->PchMinTok(), "class", 5))
+                    else if (!memcmp(this->GetScanner()->PchMinTok(), "class", 5))
                     {
                         Int32Math::Inc(m_nextBlockId, &m_nextBlockId);
                         Int32Math::Inc(*this->m_nextFunctionId, (int*)this->m_nextFunctionId);
                     }
                     break;
                 case 8:
-                    if (!memcmp(m_pscan->PchMinTok(), "function", 8))
+                    if (!memcmp(this->GetScanner()->PchMinTok(), "function", 8))
                     {
                         // Account for the possible func expr scope or dummy block for missing {}'s around a declaration
                         Int32Math::Inc(m_nextBlockId, &m_nextBlockId);
@@ -6161,9 +6154,9 @@ bool Parser::FastScanFormalsAndBody()
             {
                 int opl;
                 OpCode nop;
-                tokens tkPrev = m_pscan->m_tkPrevious;
-                if ((m_pscan->m_phtbl->TokIsBinop(tkPrev, &opl, &nop) && nop != knopNone) ||
-                    (m_pscan->m_phtbl->TokIsUnop(tkPrev, &opl, &nop) &&
+                tokens tkPrev = this->GetScanner()->m_tkPrevious;
+                if ((this->GetHashTbl()->TokIsBinop(tkPrev, &opl, &nop) && nop != knopNone) ||
+                    (this->GetHashTbl()->TokIsUnop(tkPrev, &opl, &nop) &&
                      nop != knopNone &&
                      tkPrev != tkInc &&
                      tkPrev != tkDec) ||
@@ -6200,20 +6193,20 @@ bool Parser::FastScanFormalsAndBody()
                     m_ppnodeScope = &pnodeFnc->AsParseNodeFnc()->pnodeScopes;
                     m_ppnodeExprScope = nullptr;
 
-                    charcount_t ichStop = m_pscan->IchLimTok();
+                    charcount_t ichStop = this->GetScanner()->IchLimTok();
                     curlyDepth = tempCurlyDepth;
-                    m_pscan->SeekTo(lastSColonAtCurlyDepth[tempCurlyDepth].restorePoint);
+                    this->GetScanner()->SeekTo(lastSColonAtCurlyDepth[tempCurlyDepth].restorePoint);
                     m_nextBlockId = lastSColonAtCurlyDepth[tempCurlyDepth].blockId;
                     *this->m_nextFunctionId = lastSColonAtCurlyDepth[tempCurlyDepth].functionId;
 
                     ParseNodePtr pnodeBlock = StartParseBlock<true>(PnodeBlockType::Function, ScopeType_FunctionBody);
 
-                    m_pscan->Scan();
+                    this->GetScanner()->Scan();
                     do
                     {
                         ParseStatement<false>();
                     }
-                    while(m_pscan->IchMinTok() < ichStop);
+                    while(this->GetScanner()->IchMinTok() < ichStop);
 
                     FinishParseBlock(pnodeBlock);
 
@@ -6238,15 +6231,15 @@ bool Parser::FastScanFormalsAndBody()
                     Output::Print(_u("Failed fast seek: %d. %s -- %d...%d\n"),
                                   m_currentNodeFunc->AsParseNodeFnc()->functionId,
                                   GetFunctionName(m_currentNodeFunc, m_currentNodeFunc->AsParseNodeFnc()->hint),
-                                  ichStart, m_pscan->IchLimTok());
+                                  ichStart, this->GetScanner()->IchLimTok());
                 }
                 m_nextBlockId = blockIdSave;
                 *m_nextFunctionId = functionIdSave;
-                m_pscan->SeekTo(funcStart);
+                this->GetScanner()->SeekTo(funcStart);
                 return false;
         }
 
-        m_pscan->ScanNoKeywords();
+        this->GetScanner()->ScanNoKeywords();
     }
 }
 
@@ -6309,8 +6302,8 @@ void Parser::ParseNestedDeferredFunc(ParseNodePtr pnodeFnc, bool fLambda, bool *
 
         ChkCurTokNoScan(tkRCurly, ERRnoRcurly);
 
-        pnodeFnc->ichLim = m_pscan->IchLimTok();
-        pnodeFnc->AsParseNodeFnc()->cbLim = m_pscan->IecpLimTok();
+        pnodeFnc->ichLim = this->GetScanner()->IchLimTok();
+        pnodeFnc->AsParseNodeFnc()->cbLim = this->GetScanner()->IecpLimTok();
     }
 
     if (*pStrictModeTurnedOn)
@@ -6324,7 +6317,7 @@ void Parser::ParseNestedDeferredFunc(ParseNodePtr pnodeFnc, bool fLambda, bool *
         // Byte code gen will use this to build stub information to allow us to skip this function when the
         // enclosing function is fully parsed.
         RestorePoint *restorePoint = Anew(&m_nodeAllocator, RestorePoint);
-        m_pscan->Capture(restorePoint,
+        this->GetScanner()->Capture(restorePoint,
                          *m_nextFunctionId - pnodeFnc->AsParseNodeFnc()->functionId - 1,
                          lengthBeforeBody - this->GetSourceLength());
         pnodeFnc->AsParseNodeFnc()->pRestorePoint = restorePoint;
@@ -6367,7 +6360,7 @@ bool Parser::ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, u
     * surface.
     */
 
-    m_pscan->Scan();
+    this->GetScanner()->Scan();
 
     // If generators are enabled then we are in a recent enough version
     // that deferred parsing will create a parse node for pnodeFnc and
@@ -6383,13 +6376,13 @@ bool Parser::ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, u
     {
         if (!fDeclaration)
         {
-            bool fPreviousYieldIsKeyword = m_pscan->SetYieldIsKeywordRegion(!fDeclaration);
-            m_pscan->Scan();
-            m_pscan->SetYieldIsKeywordRegion(fPreviousYieldIsKeyword);
+            bool fPreviousYieldIsKeyword = this->GetScanner()->SetYieldIsKeywordRegion(!fDeclaration);
+            this->GetScanner()->Scan();
+            this->GetScanner()->SetYieldIsKeywordRegion(fPreviousYieldIsKeyword);
         }
         else
         {
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
         }
 
         pnodeFnc->AsParseNodeFnc()->SetIsGenerator();
@@ -6420,21 +6413,21 @@ bool Parser::ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, u
         return false;
     }
 
-    ichMinNames = m_pscan->IchMinTok();
+    ichMinNames = this->GetScanner()->IchMinTok();
 
     Assert(m_token.tk == tkID || (m_token.tk == tkYIELD && !fDeclaration));
 
     if (IsStrictMode())
     {
-        CheckStrictModeEvalArgumentsUsage(m_token.GetIdentifier(m_phtbl));
+        CheckStrictModeEvalArgumentsUsage(m_token.GetIdentifier(this->GetHashTbl()));
     }
     Token tokenBase = m_token;
-    charcount_t ichMinBase = m_pscan->IchMinTok();
-    charcount_t ichLimBase = m_pscan->IchLimTok();
+    charcount_t ichMinBase = this->GetScanner()->IchMinTok();
+    charcount_t ichLimBase = this->GetScanner()->IchLimTok();
 
-    m_pscan->Scan();
+    this->GetScanner()->Scan();
 
-    IdentPtr pidBase = tokenBase.GetIdentifier(m_phtbl);
+    IdentPtr pidBase = tokenBase.GetIdentifier(this->GetHashTbl());
     pnodeT = CreateDeclNode(knopVarDecl, pidBase, STFunction);
     pnodeT->ichMin = ichMinBase;
     pnodeT->ichLim = ichLimBase;
@@ -6460,9 +6453,9 @@ bool Parser::ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, u
         else
         {
             // Multiple names. Turn the source into an IdentPtr.
-            pnodeFnc->AsParseNodeFnc()->pid = m_phtbl->PidHashNameLen(
-                m_pscan->PchBase() + ichMinNames, 
-                m_pscan->AdjustedLast(),
+            pnodeFnc->AsParseNodeFnc()->pid = this->GetHashTbl()->PidHashNameLen(
+                this->GetScanner()->PchBase() + ichMinNames, 
+                this->GetScanner()->AdjustedLast(),
                 ichLimNames - ichMinNames);
         }
     }
@@ -6474,7 +6467,7 @@ void Parser::ValidateFormals()
 {
     ParseFncFormals<false>(this->GetCurrentFunctionNode(), nullptr, fFncNoFlgs);
     // Eat the tkRParen. The ParseFncDeclHelper caller expects to see it.
-    m_pscan->Scan();
+    this->GetScanner()->Scan();
 }
 
 void Parser::ValidateSourceElementList()
@@ -6521,8 +6514,8 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
 
     if (fLambda)
     {
-        fPreviousYieldIsKeyword = m_pscan->SetYieldIsKeywordRegion(pnodeParentFnc != nullptr && pnodeParentFnc->AsParseNodeFnc()->IsGenerator());
-        fPreviousAwaitIsKeyword = m_pscan->SetAwaitIsKeywordRegion(fAsync || (pnodeParentFnc != nullptr && pnodeParentFnc->AsParseNodeFnc()->IsAsync()));
+        fPreviousYieldIsKeyword = this->GetScanner()->SetYieldIsKeywordRegion(pnodeParentFnc != nullptr && pnodeParentFnc->AsParseNodeFnc()->IsGenerator());
+        fPreviousAwaitIsKeyword = this->GetScanner()->SetAwaitIsKeywordRegion(fAsync || (pnodeParentFnc != nullptr && pnodeParentFnc->AsParseNodeFnc()->IsAsync()));
     }
 
     Assert(!fNoArg || !fOneArg); // fNoArg and fOneArg can never be true at the same time.
@@ -6533,27 +6526,27 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
 
     // When detecting duplicated formals pids are needed so force PID creation (unless the function should take 0 or 1 arg).
     bool forcePid = fStrictFormals && !fNoArg && !fOneArg;
-    AutoTempForcePid autoForcePid(m_pscan, forcePid);
+    AutoTempForcePid autoForcePid(this->GetScanner(), forcePid);
 
     // Lambda's allow single formal specified by a single binding identifier without parentheses, special case it.
     if (fLambda && m_token.tk == tkID)
     {
-        IdentPtr pid = m_token.GetIdentifier(m_phtbl);
+        IdentPtr pid = m_token.GetIdentifier(this->GetHashTbl());
 
         CreateVarDeclNode(pid, STFormal, false, nullptr, false);
         CheckPidIsValid(pid);
 
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
 
         if (m_token.tk != tkDArrow)
         {
-            Error(ERRsyntax, m_pscan->IchMinTok(), m_pscan->IchLimTok());
+            Error(ERRsyntax, this->GetScanner()->IchMinTok(), this->GetScanner()->IchLimTok());
         }
 
         if (fLambda)
         {
-            m_pscan->SetYieldIsKeywordRegion(fPreviousYieldIsKeyword);
-            m_pscan->SetAwaitIsKeywordRegion(fPreviousAwaitIsKeyword);
+            this->GetScanner()->SetYieldIsKeywordRegion(fPreviousYieldIsKeyword);
+            this->GetScanner()->SetAwaitIsKeywordRegion(fPreviousAwaitIsKeyword);
         }
 
         return;
@@ -6591,7 +6584,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
             if (m_scriptContext->GetConfig()->IsES6RestEnabled() && m_token.tk == tkEllipsis)
             {
                 // Possible rest parameter
-                m_pscan->Scan();
+                this->GetScanner()->Scan();
                 seenRestParameter = true;
             }
             if (m_token.tk != tkID)
@@ -6639,7 +6632,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
                         {
                             Assert(pnodePattern == nullptr);
                             // Create a dummy pattern node as we need the node to be considered for the param count
-                            paramPattern = CreateDummyParamPatternNode(m_pscan->IchMinTok());
+                            paramPattern = CreateDummyParamPatternNode(this->GetScanner()->IchMinTok());
                         }
                         else
                         {
@@ -6663,7 +6656,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
 
             if (!isBindingPattern)
             {
-                IdentPtr pid = m_token.GetIdentifier(m_phtbl);
+                IdentPtr pid = m_token.GetIdentifier(this->GetHashTbl());
                 LPCOLESTR pNameHint = pid->Psz();
                 uint32 nameHintLength = pid->Cch();
                 uint32 nameHintOffset = 0;
@@ -6712,7 +6705,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
                     UpdateOrCheckForDuplicateInFormals(pid, &formals);
                 }
 
-                m_pscan->Scan();
+                this->GetScanner()->Scan();
 
                 if (seenRestParameter && m_token.tk != tkRParen && m_token.tk != tkAsg)
                 {
@@ -6737,7 +6730,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
                         currentFncNode->AsParseNodeFnc()->firstDefaultArg = argPos;
                     }
 
-                    m_pscan->Scan();
+                    this->GetScanner()->Scan();
 
                     ParseNodePtr pnodeInit;
                     if (isTopLevelDeferredFunc)
@@ -6782,7 +6775,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
                             CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(ES6, DefaultArgFunction, m_scriptContext);
                         }
                         pnodeT->AsParseNodeVar()->pnodeInit = pnodeInit;
-                        pnodeT->ichLim = m_pscan->IchLimTok();
+                        pnodeT->ichLim = this->GetScanner()->IchLimTok();
                     }
                 }
             }
@@ -6806,7 +6799,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
                 break;
             }
 
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
 
             if (m_token.tk == tkRParen && m_scriptContext->GetConfig()->IsES7TrailingCommaEnabled())
             {
@@ -6834,8 +6827,8 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
 
     if (fLambda)
     {
-        m_pscan->SetYieldIsKeywordRegion(fPreviousYieldIsKeyword);
-        m_pscan->SetAwaitIsKeywordRegion(fPreviousAwaitIsKeyword);
+        this->GetScanner()->SetYieldIsKeywordRegion(fPreviousYieldIsKeyword);
+        this->GetScanner()->SetAwaitIsKeywordRegion(fPreviousAwaitIsKeyword);
     }
 }
 
@@ -6866,12 +6859,12 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
     pnodeFnc->AsParseNodeFnc()->SetHasNonThisStmt();
     pnodeFnc->AsParseNodeFnc()->SetIsGeneratedDefault(TRUE);
 
-    pnodeFnc->ichLim = m_pscan->IchLimTok();
-    pnodeFnc->ichMin = m_pscan->IchMinTok();
-    pnodeFnc->AsParseNodeFnc()->cbLim = m_pscan->IecpLimTok();
-    pnodeFnc->AsParseNodeFnc()->cbMin = m_pscan->IecpMinTok();
+    pnodeFnc->ichLim = this->GetScanner()->IchLimTok();
+    pnodeFnc->ichMin = this->GetScanner()->IchMinTok();
+    pnodeFnc->AsParseNodeFnc()->cbLim = this->GetScanner()->IecpLimTok();
+    pnodeFnc->AsParseNodeFnc()->cbMin = this->GetScanner()->IecpMinTok();
     pnodeFnc->AsParseNodeFnc()->astSize = 0;
-    pnodeFnc->AsParseNodeFnc()->lineNumber = m_pscan->LineCur();
+    pnodeFnc->AsParseNodeFnc()->lineNumber = this->GetScanner()->LineCur();
 
     pnodeFnc->AsParseNodeFnc()->functionId          = (*m_nextFunctionId);
     pnodeFnc->AsParseNodeFnc()->pid                 = nullptr;
@@ -6915,16 +6908,16 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
         (*m_pnestedCount)++;
     }
 
-    if (m_pscan->IchMinTok() >= m_pscan->IchMinLine())
+    if (this->GetScanner()->IchMinTok() >= this->GetScanner()->IchMinLine())
     {
         // In scenarios involving defer parse IchMinLine() can be incorrect for the first line after defer parse
-        pnodeFnc->AsParseNodeFnc()->columnNumber = m_pscan->IchMinTok() - m_pscan->IchMinLine();
+        pnodeFnc->AsParseNodeFnc()->columnNumber = this->GetScanner()->IchMinTok() - this->GetScanner()->IchMinLine();
     }
     else if (m_currentNodeFunc)
     {
         // For the first line after defer parse, compute the column relative to the column number
         // of the lexically parent function.
-        ULONG offsetFromCurrentFunction = m_pscan->IchMinTok() - m_currentNodeFunc->ichMin;
+        ULONG offsetFromCurrentFunction = this->GetScanner()->IchMinTok() - m_currentNodeFunc->ichMin;
         pnodeFnc->AsParseNodeFnc()->columnNumber = m_currentNodeFunc->AsParseNodeFnc()->columnNumber + offsetFromCurrentFunction;
     }
     else
@@ -6951,7 +6944,7 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
         ParseNodePtr *const ppnodeVarSave = m_ppnodeVar;
         m_ppnodeVar = &pnodeFnc->AsParseNodeFnc()->pnodeVars;
 
-        IdentPtr pidargs = m_phtbl->PidHashNameLen(_u("args"), sizeof("args") - 1);
+        IdentPtr pidargs = this->GetHashTbl()->PidHashNameLen(_u("args"), sizeof("args") - 1);
         ParseNodePtr pnodeT = CreateVarDeclNode(pidargs, STFormal);
         pnodeT->AsParseNodeVar()->sym->SetIsNonSimpleParameter(true);
         pnodeFnc->AsParseNodeFnc()->pnodeRest = pnodeT;
@@ -7022,9 +7015,9 @@ void Parser::ParseExpressionLambdaBody(ParseNodePtr pnodeLambda)
     // We need to disable deferred parse mode in the scanner because the lambda body doesn't end with a right paren.
     // The scanner needs to create a pid in the case of a string constant token immediately following the lambda body expression.
     // Otherwise, we'll save null for the string constant pid which will AV during ByteCode generation.
-    BYTE fScanDeferredFlagsSave = m_pscan->SetDeferredParse(FALSE);
+    BYTE fScanDeferredFlagsSave = this->GetScanner()->SetDeferredParse(FALSE);
     ParseNodePtr result = ParseExpr<buildAST>(koplAsg, nullptr, TRUE, FALSE, nullptr, nullptr, nullptr, &token, false, nullptr, &lastRParen);
-    m_pscan->SetDeferredParseFlags(fScanDeferredFlagsSave);
+    this->GetScanner()->SetDeferredParseFlags(fScanDeferredFlagsSave);
 
     this->MarkEscapingRef(result, &token);
 
@@ -7041,7 +7034,7 @@ void Parser::ParseExpressionLambdaBody(ParseNodePtr pnodeLambda)
         pnodeRet->AsParseNodeStmt()->pnodeOuter = nullptr;
 
         pnodeLambda->ichLim = max(pnodeRet->ichLim, lastRParen);
-        pnodeLambda->AsParseNodeFnc()->cbLim = m_pscan->IecpLimTokPrevious();
+        pnodeLambda->AsParseNodeFnc()->cbLim = this->GetScanner()->IecpLimTokPrevious();
         pnodeLambda->AsParseNodeFnc()->pnodeScopes->ichLim = pnodeRet->ichLim;
 
         pnodeLambda->AsParseNodeFnc()->pnodeBody = nullptr;
@@ -7057,8 +7050,8 @@ void Parser::ParseExpressionLambdaBody(ParseNodePtr pnodeLambda)
     }
     else
     {
-        pnodeLambda->ichLim = max(m_pscan->IchLimTokPrevious(), lastRParen);
-        pnodeLambda->AsParseNodeFnc()->cbLim = m_pscan->IecpLimTokPrevious();
+        pnodeLambda->ichLim = max(this->GetScanner()->IchLimTokPrevious(), lastRParen);
+        pnodeLambda->AsParseNodeFnc()->cbLim = this->GetScanner()->IecpLimTokPrevious();
     }
 }
 
@@ -7067,13 +7060,13 @@ void Parser::CheckStrictFormalParameters()
     if (m_token.tk == tkID)
     {
         // single parameter arrow function case
-        IdentPtr pid = m_token.GetIdentifier(m_phtbl);
+        IdentPtr pid = m_token.GetIdentifier(this->GetHashTbl());
         CheckStrictModeEvalArgumentsUsage(pid);
         return;
     }
 
     Assert(m_token.tk == tkLParen);
-    m_pscan->ScanForcingPid();
+    this->GetScanner()->ScanForcingPid();
 
     if (m_token.tk != tkRParen)
     {
@@ -7085,22 +7078,22 @@ void Parser::CheckStrictFormalParameters()
                 IdentifierExpectedError(m_token);
             }
 
-            IdentPtr pid = m_token.GetIdentifier(m_phtbl);
+            IdentPtr pid = m_token.GetIdentifier(this->GetHashTbl());
             CheckStrictModeEvalArgumentsUsage(pid);
             if (formals.Has(pid))
             {
-                Error(ERRES5ArgSame, m_pscan->IchMinTok(), m_pscan->IchLimTok());
+                Error(ERRES5ArgSame, this->GetScanner()->IchMinTok(), this->GetScanner()->IchLimTok());
             }
             else
             {
                 formals.Prepend(pid);
             }
 
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
 
             if (m_token.tk == tkAsg && m_scriptContext->GetConfig()->IsES6DefaultArgsEnabled())
             {
-                m_pscan->Scan();
+                this->GetScanner()->Scan();
                 // We can avoid building the AST since we are just checking the default expression.
                 ParseNodePtr pnodeInit = ParseExpr<false>(koplCma);
                 Assert(pnodeInit == nullptr);
@@ -7110,7 +7103,7 @@ void Parser::CheckStrictFormalParameters()
             {
                 break;
             }
-            m_pscan->ScanForcingPid();
+            this->GetScanner()->ScanForcingPid();
 
             if (m_token.tk == tkRParen && m_scriptContext->GetConfig()->IsES7TrailingCommaEnabled())
             {
@@ -7152,23 +7145,23 @@ void Parser::FinishFncNode(ParseNodePtr pnodeFnc)
     if (pnodeFnc->AsParseNodeFnc()->pnodeName)
     {
         // Skip the name(s).
-        m_pscan->SetCurrentCharacter(pnodeFnc->AsParseNodeFnc()->pnodeName->ichLim, pnodeFnc->AsParseNodeFnc()->lineNumber);
+        this->GetScanner()->SetCurrentCharacter(pnodeFnc->AsParseNodeFnc()->pnodeName->ichLim, pnodeFnc->AsParseNodeFnc()->lineNumber);
     }
     else
     {
-        m_pscan->SetCurrentCharacter(pnodeFnc->ichMin, pnodeFnc->AsParseNodeFnc()->lineNumber);
+        this->GetScanner()->SetCurrentCharacter(pnodeFnc->ichMin, pnodeFnc->AsParseNodeFnc()->lineNumber);
         
         if (fMethod)
         {
             // Method. Skip identifier name, computed property name, "async", "get", "set", and '*' or '(' characters.
             for (;;)
             {
-                m_pscan->Scan();
+                this->GetScanner()->Scan();
                 // '[' character indicates a computed property name for this method. We should consume it.
                 if (m_token.tk == tkLBrack)
                 {
                     // We don't care what the name expr is.
-                    m_pscan->Scan();
+                    this->GetScanner()->Scan();
                     ParseExpr<false>();
                     Assert(m_token.tk == tkRBrack);
                     continue;
@@ -7183,15 +7176,15 @@ void Parser::FinishFncNode(ParseNodePtr pnodeFnc)
         else if (pnodeFnc->AsParseNodeFnc()->IsAccessor())
         {
             // Getter/setter. The node text starts with the name, so eat that.
-            m_pscan->ScanNoKeywords();
+            this->GetScanner()->ScanNoKeywords();
         }
         else if (!fLambda)
         {
             // Anonymous function. Skip "async", "function", and '(' or '*' characters.
             for (;;)
             {
-                m_pscan->Scan();
-                if (m_token.GetIdentifier(m_phtbl) == wellKnownPropertyPids.async)
+                this->GetScanner()->Scan();
+                if (m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.async)
                 {
                     Assert(pnodeFnc->AsParseNodeFnc()->IsAsync());
                     continue;
@@ -7208,27 +7201,27 @@ void Parser::FinishFncNode(ParseNodePtr pnodeFnc)
 
     // switch scanner to treat 'yield' as keyword in generator functions
     // or as an identifier in non-generator functions
-    bool fPreviousYieldIsKeyword = m_pscan->SetYieldIsKeywordRegion(pnodeFnc && pnodeFnc->AsParseNodeFnc()->IsGenerator());
-    bool fPreviousAwaitIsKeyword = m_pscan->SetAwaitIsKeywordRegion(pnodeFnc && pnodeFnc->AsParseNodeFnc()->IsAsync());
+    bool fPreviousYieldIsKeyword = this->GetScanner()->SetYieldIsKeywordRegion(pnodeFnc && pnodeFnc->AsParseNodeFnc()->IsGenerator());
+    bool fPreviousAwaitIsKeyword = this->GetScanner()->SetAwaitIsKeywordRegion(pnodeFnc && pnodeFnc->AsParseNodeFnc()->IsAsync());
 
     // Skip the arg list.
     if (!fMethod)
     {
         // If this is a method, we've already advanced to the '(' token.
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
     }
     if (m_token.tk == tkStar)
     {
         Assert(pnodeFnc->AsParseNodeFnc()->IsGenerator());
-        m_pscan->ScanNoKeywords();
+        this->GetScanner()->ScanNoKeywords();
     }
-    if (fLambda && m_token.tk == tkID && m_token.GetIdentifier(m_phtbl) == wellKnownPropertyPids.async)
+    if (fLambda && m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.async)
     {
         Assert(pnodeFnc->AsParseNodeFnc()->IsAsync());
-        m_pscan->ScanNoKeywords();
+        this->GetScanner()->ScanNoKeywords();
     }
     Assert(m_token.tk == tkLParen || (fLambda && m_token.tk == tkID));
-    m_pscan->ScanNoKeywords();
+    this->GetScanner()->ScanNoKeywords();
 
     if (m_token.tk != tkRParen && m_token.tk != tkDArrow)
     {
@@ -7236,17 +7229,17 @@ void Parser::FinishFncNode(ParseNodePtr pnodeFnc)
         {
             if (m_token.tk == tkEllipsis)
             {
-                m_pscan->ScanNoKeywords();
+                this->GetScanner()->ScanNoKeywords();
             }
 
             if (m_token.tk == tkID)
             {
-                m_pscan->ScanNoKeywords();
+                this->GetScanner()->ScanNoKeywords();
 
                 if (m_token.tk == tkAsg)
                 {
                     // Eat the default expression
-                    m_pscan->Scan();
+                    this->GetScanner()->Scan();
                     ParseExpr<false>(koplCma);
                 }
             }
@@ -7263,7 +7256,7 @@ void Parser::FinishFncNode(ParseNodePtr pnodeFnc)
             {
                 break;
             }
-            m_pscan->ScanNoKeywords();
+            this->GetScanner()->ScanNoKeywords();
 
             if (m_token.tk == tkRParen && m_scriptContext->GetConfig()->IsES7TrailingCommaEnabled())
             {
@@ -7274,11 +7267,11 @@ void Parser::FinishFncNode(ParseNodePtr pnodeFnc)
 
     if (m_token.tk == tkRParen)
     {
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
     }
     if (fLambda && m_token.tk == tkDArrow)
     {
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
     }
 
     // Finish the function body.
@@ -7298,10 +7291,10 @@ void Parser::FinishFncNode(ParseNodePtr pnodeFnc)
         if (pnodeFnc->ichLim != ichLim)
         {
             Assert(pnodeFnc->ichLim < ichLim);
-            m_pscan->SetCurrentCharacter(pnodeFnc->ichLim);
-            while (m_pscan->IchLimTok() != ichLim)
+            this->GetScanner()->SetCurrentCharacter(pnodeFnc->ichLim);
+            while (this->GetScanner()->IchLimTok() != ichLim)
             {
-                m_pscan->ScanNoKeywords();
+                this->GetScanner()->ScanNoKeywords();
                 Assert(m_token.tk == tkRParen);
             }
         }
@@ -7318,8 +7311,8 @@ void Parser::FinishFncNode(ParseNodePtr pnodeFnc)
     Assert(tempNextFunctionId == pnodeFnc->AsParseNodeFnc()->deferredParseNextFunctionId);
     this->m_nextFunctionId = nextFunctionIdSave;
 
-    m_pscan->SetYieldIsKeywordRegion(fPreviousYieldIsKeyword);
-    m_pscan->SetAwaitIsKeywordRegion(fPreviousAwaitIsKeyword);
+    this->GetScanner()->SetYieldIsKeywordRegion(fPreviousYieldIsKeyword);
+    this->GetScanner()->SetAwaitIsKeywordRegion(fPreviousAwaitIsKeyword);
 }
 
 void Parser::FinishFncDecl(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ParseNodePtr *lastNodeRef, bool fLambda, bool skipCurlyBraces)
@@ -7362,8 +7355,8 @@ void Parser::FinishFncDecl(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ParseNode
             ChkCurTokNoScan(tkRCurly, ERRnoRcurly);
         }
 
-        pnodeFnc->ichLim = m_pscan->IchLimTok();
-        pnodeFnc->AsParseNodeFnc()->cbLim = m_pscan->IecpLimTok();
+        pnodeFnc->ichLim = this->GetScanner()->IchLimTok();
+        pnodeFnc->AsParseNodeFnc()->cbLim = this->GetScanner()->IecpLimTok();
     }
 
 #ifdef ENABLE_JS_ETW
@@ -7469,7 +7462,7 @@ IdentPtr Parser::ParseClassPropertyName(IdentPtr * pidHint)
         IdentPtr pid;
         if (m_token.tk == tkStrCon)
         {
-            if (m_pscan->IsOctOrLeadingZeroOnLastTKNumber())
+            if (this->GetScanner()->IsOctOrLeadingZeroOnLastTKNumber())
             {
                 Error(ERRES5NoOctal);
             }
@@ -7478,28 +7471,28 @@ IdentPtr Parser::ParseClassPropertyName(IdentPtr * pidHint)
         }
         else
         {
-            pid = m_token.GetIdentifier(m_phtbl);
+            pid = m_token.GetIdentifier(this->GetHashTbl());
         }
         *pidHint = pid;
         return pid;
     }
     else if (m_token.tk == tkIntCon)
     {
-        if (m_pscan->IsOctOrLeadingZeroOnLastTKNumber())
+        if (this->GetScanner()->IsOctOrLeadingZeroOnLastTKNumber())
         {
             Error(ERRES5NoOctal);
         }
 
-        return m_pscan->PidFromLong(m_token.GetLong());
+        return this->GetScanner()->PidFromLong(m_token.GetLong());
     }
     else if (m_token.tk == tkFltCon)
     {
-        if (m_pscan->IsOctOrLeadingZeroOnLastTKNumber())
+        if (this->GetScanner()->IsOctOrLeadingZeroOnLastTKNumber())
         {
             Error(ERRES5NoOctal);
         }
 
-        return m_pscan->PidFromDbl(m_token.GetDouble());
+        return this->GetScanner()->PidFromDbl(m_token.GetDouble());
     }
 
     Error(ERRnoMemberIdent);
@@ -7588,14 +7581,14 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uin
 
         CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(ES6, Class, m_scriptContext);
 
-        cbMinConstructor = m_pscan->IecpMinTok();
+        cbMinConstructor = this->GetScanner()->IecpMinTok();
     }
 
-    m_pscan->Scan();
+    this->GetScanner()->Scan();
     if (m_token.tk == tkID)
     {
-        name = m_token.GetIdentifier(m_phtbl);
-        m_pscan->Scan();
+        name = m_token.GetIdentifier(this->GetHashTbl());
+        this->GetScanner()->Scan();
     }
     else if (isDeclaration)
     {
@@ -7633,7 +7626,7 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uin
 
     if (m_token.tk == tkEXTENDS)
     {
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
         pnodeExtends = ParseTerm<buildAST>();
         hasExtends = true;
     }
@@ -7646,9 +7639,9 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uin
     OUTPUT_TRACE_DEBUGONLY(Js::ES6VerboseFlag, _u("Parsing class (%s) : %s\n"), GetParseType(), name ? name->Psz() : _u("anonymous class"));
 
     RestorePoint beginClass;
-    m_pscan->Capture(&beginClass);
+    this->GetScanner()->Capture(&beginClass);
 
-    m_pscan->ScanForcingPid();
+    this->GetScanner()->ScanForcingPid();
 
     IdentPtr pClassNamePid = pnodeName ? pnodeName->AsParseNodeVar()->pid : nullptr;
 
@@ -7656,7 +7649,7 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uin
     {
         if (m_token.tk == tkSColon)
         {
-            m_pscan->ScanForcingPid();
+            this->GetScanner()->ScanForcingPid();
             continue;
         }
         if (m_token.tk == tkRCurly)
@@ -7672,13 +7665,13 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uin
             // See https://tc39.github.io/ecma262/#sec-keywords for more info.
 
             RestorePoint beginStatic;
-            m_pscan->Capture(&beginStatic);
+            this->GetScanner()->Capture(&beginStatic);
 
-            m_pscan->ScanForcingPid();
+            this->GetScanner()->ScanForcingPid();
 
             if (m_token.tk == tkLParen)
             {
-                m_pscan->SeekTo(beginStatic);
+                this->GetScanner()->SeekTo(beginStatic);
             }
             else
             {
@@ -7698,17 +7691,17 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uin
         bool isComputedName = false;
         bool isAsyncMethod = false;
 
-        if (m_token.tk == tkID && m_token.GetIdentifier(m_phtbl) == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+        if (m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
             RestorePoint parsedAsync;
-            m_pscan->Capture(&parsedAsync);
-            ichMin = m_pscan->IchMinTok();
-            iecpMin = m_pscan->IecpMinTok();
+            this->GetScanner()->Capture(&parsedAsync);
+            ichMin = this->GetScanner()->IchMinTok();
+            iecpMin = this->GetScanner()->IecpMinTok();
 
-            m_pscan->Scan();
-            if (m_token.tk == tkLParen || m_pscan->FHadNewLine())
+            this->GetScanner()->Scan();
+            if (m_token.tk == tkLParen || this->GetScanner()->FHadNewLine())
             {
-                m_pscan->SeekTo(parsedAsync);
+                this->GetScanner()->SeekTo(parsedAsync);
             }
             else
             {
@@ -7721,7 +7714,7 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uin
         if (isGenerator)
         {
             fncDeclFlags |= fFncGenerator;
-            m_pscan->ScanForcingPid();
+            this->GetScanner()->ScanForcingPid();
         }
 
 
@@ -7797,14 +7790,14 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uin
 
             bool isMemberNamedGetOrSet = false;
             RestorePoint beginMethodName;
-            m_pscan->Capture(&beginMethodName);
+            this->GetScanner()->Capture(&beginMethodName);
             if (memberPid == wellKnownPropertyPids.get || memberPid == wellKnownPropertyPids.set)
             {
-                m_pscan->ScanForcingPid();
+                this->GetScanner()->ScanForcingPid();
             }
             if (m_token.tk == tkLParen)
             {
-                m_pscan->SeekTo(beginMethodName);
+                this->GetScanner()->SeekTo(beginMethodName);
                 isMemberNamedGetOrSet = true;
             }
 
@@ -7901,8 +7894,8 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uin
     size_t cbLimConstructor = 0;
     if (buildAST)
     {
-        pnodeClass->ichLim = m_pscan->IchLimTok();
-        cbLimConstructor = m_pscan->IecpLimTok();
+        pnodeClass->ichLim = this->GetScanner()->IchLimTok();
+        cbLimConstructor = this->GetScanner()->IecpLimTok();
     }
 
     if (!hasConstructor)
@@ -7910,8 +7903,8 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uin
         OUTPUT_TRACE_DEBUGONLY(Js::ES6VerboseFlag, _u("Generating constructor (%s) : %s\n"), GetParseType(), name ? name->Psz() : _u("anonymous class"));
 
         RestorePoint endClass;
-        m_pscan->Capture(&endClass);
-        m_pscan->SeekTo(beginClass);
+        this->GetScanner()->Capture(&endClass);
+        this->GetScanner()->SeekTo(beginClass);
 
         pnodeConstructor = GenerateEmptyConstructor<buildAST>(pnodeExtends != nullptr);
         if (buildAST)
@@ -7932,7 +7925,7 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uin
             pnodeConstructor->AsParseNodeFnc()->pid = pClassNamePid;
         }
 
-        m_pscan->SeekTo(endClass);
+        this->GetScanner()->SeekTo(endClass);
     }
 
     if (buildAST)
@@ -7956,7 +7949,7 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uin
 
     m_fUseStrictMode = strictSave;
 
-    m_pscan->Scan();
+    this->GetScanner()->Scan();
 
     return pnodeClass;
 }
@@ -8012,7 +8005,7 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
     while (!templateClosed)
     {
         // First, extract the string constant part - we always have one
-        if (IsStrictMode() && m_pscan->IsOctOrLeadingZeroOnLastTKNumber())
+        if (IsStrictMode() && this->GetScanner()->IsOctOrLeadingZeroOnLastTKNumber())
         {
             Error(ERRES5NoOctal);
         }
@@ -8039,7 +8032,7 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
             if (isTagged)
             {
                 // Make the scanner create a PID for the raw string constant for the preceding scan
-                IdentPtr pid = m_pscan->GetSecondaryBufferAsPid();
+                IdentPtr pid = this->GetScanner()->GetSecondaryBufferAsPid();
 
                 stringLiteralRaw = CreateStrNodeWithScanner(pid);
 
@@ -8073,7 +8066,7 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
         case tkStrTmplMid:
             {
             // In the middle or begin string template token case, we need to parse an expression next
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
 
             // Parse the contents of the curly braces as an expression
             ParseNodePtr expression = ParseExpr<buildAST>(0);
@@ -8085,8 +8078,8 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
             ChkCurTokNoScan(tkRCurly, ERRnoRcurly);
 
             // Notify the scanner that it should scan for a middle or end string template token
-            m_pscan->SetScanState(Scanner_t::ScanState::ScanStateStringTemplateMiddleOrEnd);
-            m_pscan->Scan();
+            this->GetScanner()->SetScanState(Scanner_t::ScanState::ScanStateStringTemplateMiddleOrEnd);
+            this->GetScanner()->Scan();
 
             if (buildAST)
             {
@@ -8143,7 +8136,7 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
         }
     }
 
-    m_pscan->Scan();
+    this->GetScanner()->Scan();
 
     return pnodeStringTemplate;
 }
@@ -8170,11 +8163,11 @@ LPCOLESTR Parser::FormatPropertyString(LPCOLESTR propertyString, ParseNodePtr pN
     }
     else if(op == knopFlt)
     {
-        rightNode = m_pscan->StringFromDbl(pNode->AsParseNodeFloat()->dbl);
+        rightNode = this->GetScanner()->StringFromDbl(pNode->AsParseNodeFloat()->dbl);
     }
     else
     {
-        rightNode = op == knopInt ? m_pscan->StringFromLong(pNode->AsParseNodeInt()->lw)
+        rightNode = op == knopInt ? this->GetScanner()->StringFromLong(pNode->AsParseNodeInt()->lw)
             : pNode->AsParseNodePid()->pid->Psz();
     }
 
@@ -8296,7 +8289,7 @@ WCHAR * Parser::AllocateStringOfLength(ULONG length)
     {
         Error(ERRnoMemory);
     }
-    WCHAR* finalName = (WCHAR*)m_phtbl->GetAllocator()->Alloc(totalBytes);
+    WCHAR* finalName = (WCHAR*)this->GetHashTbl()->GetAllocator()->Alloc(totalBytes);
     if (finalName == nullptr)
     {
         Error(ERRnoMemory);
@@ -8455,7 +8448,7 @@ void Parser::DeferOrEmitPotentialSpreadError(ParseNodePtr pnodeT)
             {
                 // Capture only the first error instance. Because a lambda will cause a reparse in a formals context, we can assume
                 // that this will be a spread error. Nested paren exprs will have their own error instance.
-                m_pscan->Capture(&m_deferEllipsisErrorLoc);
+                this->GetScanner()->Capture(&m_deferEllipsisErrorLoc);
                 m_deferEllipsisError = true;
             }
         }
@@ -8479,7 +8472,7 @@ bool Parser::IsTerminateToken()
         m_token.tk == tkColon ||
         m_token.tk == tkComma ||
         m_token.tk == tkLimKwd ||
-        m_pscan->FHadNewLine());
+        this->GetScanner()->FHadNewLine());
 }
 
 /***************************************************************************
@@ -8559,24 +8552,24 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     // Storing the state here as we need to restore this state back when we need to reparse the grammar under lambda syntax.
     CaptureState(&parserState);
 
-    m_pscan->Capture(&termStart);
+    this->GetScanner()->Capture(&termStart);
 
     bool deferredErrorFoundOnLeftSide = false;
     bool savedDeferredInitError = m_hasDeferredShorthandInitError;
     m_hasDeferredShorthandInitError = false;
 
     // Is the current token a unary operator?
-    if (m_phtbl->TokIsUnop(m_token.tk, &opl, &nop) && nop != knopNone)
+    if (this->GetHashTbl()->TokIsUnop(m_token.tk, &opl, &nop) && nop != knopNone)
     {
         IdentToken operandToken;
-        ichMin = m_pscan->IchMinTok();
+        ichMin = this->GetScanner()->IchMinTok();
 
         if (nop == knopYield)
         {
-            if (!m_pscan->YieldIsKeywordRegion() || oplMin > opl)
+            if (!this->GetScanner()->YieldIsKeywordRegion() || oplMin > opl)
             {
                 // The case where 'yield' is scanned as a keyword (tkYIELD) but the scanner
-                // is not treating yield as a keyword (!m_pscan->YieldIsKeywordRegion()) occurs
+                // is not treating yield as a keyword (!this->GetScanner()->YieldIsKeywordRegion()) occurs
                 // in strict mode non-generator function contexts.
                 //
                 // That is, 'yield' is a keyword because of strict mode, but YieldExpression
@@ -8593,11 +8586,11 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         }
         else if (nop == knopAwait)
         {
-            if (!m_pscan->AwaitIsKeywordRegion() ||
+            if (!this->GetScanner()->AwaitIsKeywordRegion() ||
                 m_currentScope->GetScopeType() == ScopeType_Parameter)
             {
                 // As with the 'yield' keyword, the case where 'await' is scanned as a keyword (tkAWAIT)
-                // but the scanner is not treating await as a keyword (!m_pscan->AwaitIsKeyword())
+                // but the scanner is not treating await as a keyword (!this->GetScanner()->AwaitIsKeyword())
                 // occurs in strict mode non-async function contexts.
                 //
                 // That is, 'await' is a keyword because of strict mode, but AwaitExpression
@@ -8608,16 +8601,16 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             }
         }
 
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
 
         if (m_token.tk == tkEllipsis) {
             // ... cannot have a unary prefix.
             Error(ERRUnexpectedEllipsis);
         }
 
-        if (nop == knopYield && !m_pscan->FHadNewLine() && m_token.tk == tkStar)
+        if (nop == knopYield && !this->GetScanner()->FHadNewLine() && m_token.tk == tkStar)
         {
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
             nop = knopYieldStar;
         }
 
@@ -8628,7 +8621,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 nop = knopYieldLeaf;
                 if (buildAST)
                 {
-                    pnode = CreateNodeT<knopYieldLeaf>(ichMin, m_pscan->IchLimTok());
+                    pnode = CreateNodeT<knopYieldLeaf>(ichMin, this->GetScanner()->IchLimTok());
                 }
             }
         }
@@ -8737,7 +8730,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     }
     else
     {
-        ichMin = m_pscan->IchMinTok();
+        ichMin = this->GetScanner()->IchMinTok();
         BOOL fLikelyPattern = FALSE;
         pnode = ParseTerm<buildAST>(TRUE, pNameHint, &hintLength, &hintOffset, &term, fUnaryOrParen, &fCanAssign, IsES6DestructuringEnabled() ? &fLikelyPattern : nullptr, &fIsDotOrIndex, plastRParen);
         if (pfLikelyPattern != nullptr)
@@ -8752,7 +8745,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
 
         if (m_token.tk == tkAsg && oplMin <= koplAsg && fLikelyPattern)
         {
-            m_pscan->SeekTo(termStart);
+            this->GetScanner()->SeekTo(termStart);
 
             // As we are reparsing from the beginning of the destructured literal we need to reset the Block IDs as well to make sure the Block IDs
             // on the pidref stack match.
@@ -8807,7 +8800,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         }
 
         // Check for postfix unary operators.
-        if (!m_pscan->FHadNewLine() &&
+        if (!this->GetScanner()->FHadNewLine() &&
             (tkInc == m_token.tk || tkDec == m_token.tk))
         {
             if (!fCanAssign && PHASE_ON1(Js::EarlyReferenceErrorsPhase))
@@ -8824,7 +8817,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 }
                 this->CheckArguments(pnode);
                 pnode = CreateUniNode(tkInc == m_token.tk ? knopIncPost : knopDecPost, pnode);
-                pnode->ichLim = m_pscan->IchLimTok();
+                pnode->ichLim = this->GetScanner()->IchLimTok();
             }
             else
             {
@@ -8835,7 +8828,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 // This expression is not an identifier
                 term.tk = tkNone;
             }
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
         }
     }
 
@@ -8844,7 +8837,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     // Process a sequence of operators and operands.
     for (;;)
     {
-        if (!m_phtbl->TokIsBinop(m_token.tk, &opl, &nop) || nop == knopNone)
+        if (!this->GetHashTbl()->TokIsBinop(m_token.tk, &opl, &nop) || nop == knopNone)
         {
             break;
         }
@@ -8920,7 +8913,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         term.tk = tkNone;
 
         // Precedence is high enough. Consume the operator token.
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
         fCanAssign = FALSE;
 
         // Special case the "?:" operator
@@ -8944,21 +8937,21 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
 
             RestoreStateFrom(&parserState);
 
-            m_pscan->SeekTo(termStart);
-            if (m_token.tk == tkID && m_token.GetIdentifier(m_phtbl) == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+            this->GetScanner()->SeekTo(termStart);
+            if (m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
             {
-                ichMin = m_pscan->IchMinTok();
-                iecpMin = m_pscan->IecpMinTok();
+                ichMin = this->GetScanner()->IchMinTok();
+                iecpMin = this->GetScanner()->IecpMinTok();
 
-                m_pscan->Scan();
-                if ((m_token.tk == tkID || m_token.tk == tkLParen) && !m_pscan->FHadNewLine())
+                this->GetScanner()->Scan();
+                if ((m_token.tk == tkID || m_token.tk == tkLParen) && !this->GetScanner()->FHadNewLine())
                 {
                     flags |= fFncAsync;
                     isAsyncMethod = true;
                 }
                 else
                 {
-                    m_pscan->SeekTo(termStart);
+                    this->GetScanner()->SeekTo(termStart);
                 }
             }
             pnode = ParseFncDecl<buildAST>(flags, nullptr, /* needsPIDOnRCurlyScan = */false, /* resetParsingSuperRestrictionState = */false);
@@ -9291,7 +9284,7 @@ ParseNodePtr Parser::ParseVariableDeclaration(
                 IdentifierExpectedError(m_token);
             }
 
-            IdentPtr pid = m_token.GetIdentifier(m_phtbl);
+            IdentPtr pid = m_token.GetIdentifier(this->GetHashTbl());
             Assert(pid);
             pNameHint = pid->Psz();
             nameHintLength = pid->Cch();
@@ -9339,7 +9332,7 @@ ParseNodePtr Parser::ParseVariableDeclaration(
                 pnodeThis->ichMin = ichMin;
             }
 
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
 
             if (m_token.tk == tkAsg)
             {
@@ -9352,7 +9345,7 @@ ParseNodePtr Parser::ParseVariableDeclaration(
                     *pfForInOk = FALSE;
                 }
 
-                m_pscan->Scan();
+                this->GetScanner()->Scan();
                 pnodeInit = ParseExpr<buildAST>(koplCma, nullptr, fAllowIn, FALSE, pNameHint, &nameHintLength, &nameHintOffset);
                 if (buildAST)
                 {
@@ -9415,8 +9408,8 @@ ParseNodePtr Parser::ParseVariableDeclaration(
             // don't allow "for (var a, b in c)"
             *pfForInOk = FALSE;
         }
-        m_pscan->Scan();
-        ichMin = m_pscan->IchMinTok();
+        this->GetScanner()->Scan();
+        ichMin = this->GetScanner()->IchMinTok();
     }
 }
 
@@ -9503,7 +9496,7 @@ ParseNodePtr Parser::ParseTry()
     {
         pnode = CreateNode(knopTry);
     }
-    m_pscan->Scan();
+    this->GetScanner()->Scan();
     if (tkLCurly != m_token.tk)
     {
         Error(ERRnoLcurly);
@@ -9531,7 +9524,7 @@ ParseNodePtr Parser::ParseFinally()
     {
         pnode = CreateNode(knopFinally);
     }
-    m_pscan->Scan();
+    this->GetScanner()->Scan();
     if (tkLCurly != m_token.tk)
     {
         Error(ERRnoLcurly);
@@ -9569,9 +9562,9 @@ ParseNodePtr Parser::ParseCatch()
         charcount_t ichMin;
         if (buildAST)
         {
-            ichMin = m_pscan->IchMinTok();
+            ichMin = this->GetScanner()->IchMinTok();
         }
-        m_pscan->Scan(); //catch
+        this->GetScanner()->Scan(); //catch
         ChkCurTok(tkLParen, ERRnoLparen); //catch(
 
         bool isPattern = false;
@@ -9634,7 +9627,7 @@ ParseNodePtr Parser::ParseCatch()
         {
             if (IsStrictMode())
             {
-                IdentPtr pid = m_token.GetIdentifier(m_phtbl);
+                IdentPtr pid = m_token.GetIdentifier(this->GetHashTbl());
                 if (pid == wellKnownPropertyPids.eval)
                 {
                     Error(ERREvalUsage);
@@ -9645,7 +9638,7 @@ ParseNodePtr Parser::ParseCatch()
                 }
             }
 
-            pidCatch = m_token.GetIdentifier(m_phtbl);
+            pidCatch = m_token.GetIdentifier(this->GetHashTbl());
             PidRefStack *ref = this->FindOrAddPidRef(pidCatch, GetCurrentBlock()->AsParseNodeBlock()->blockId, GetCurrentFunctionNode()->AsParseNodeFnc()->functionId);
 
             ParseNodePtr pnodeParam = CreateNameNode(pidCatch);
@@ -9672,13 +9665,13 @@ ParseNodePtr Parser::ParseCatch()
                 pnode->AsParseNodeCatch()->scope = scope;
             }
 
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
         }
 
         charcount_t ichLim;
         if (buildAST)
         {
-            ichLim = m_pscan->IchLimTok();
+            ichLim = this->GetScanner()->IchLimTok();
         }
         ChkCurTok(tkRParen, ERRnoRparen); //catch(id[:expr])
 
@@ -9723,10 +9716,10 @@ ParseNodePtr Parser::ParseCase(ParseNodePtr *ppnodeBody)
 {
     ParseNodePtr pnodeT = nullptr;
 
-    charcount_t ichMinT = m_pscan->IchMinTok();
-    m_pscan->Scan();
+    charcount_t ichMinT = this->GetScanner()->IchMinTok();
+    this->GetScanner()->Scan();
     ParseNodePtr pnodeExpr = ParseExpr<buildAST>();
-    charcount_t ichLim = m_pscan->IchLimTok();
+    charcount_t ichLim = this->GetScanner()->IchLimTok();
 
     ChkCurTok(tkColon, ERRnoColon);
 
@@ -9854,51 +9847,51 @@ LFunctionStatement:
         break;
 
     case tkID:
-        if (m_token.GetIdentifier(m_phtbl) == wellKnownPropertyPids.let)
+        if (m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.let)
         {
             // We see "let" at the start of a statement. This could either be a declaration or an identifier
             // reference. The next token determines which.
             RestorePoint parsedLet;
-            m_pscan->Capture(&parsedLet);
-            ichMin = m_pscan->IchMinTok();
+            this->GetScanner()->Capture(&parsedLet);
+            ichMin = this->GetScanner()->IchMinTok();
 
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
             if (this->NextTokenConfirmsLetDecl())
             {
                 pnode = ParseVariableDeclaration<buildAST>(tkLET, ichMin);
                 goto LNeedTerminator;
             }
-            m_pscan->SeekTo(parsedLet);
+            this->GetScanner()->SeekTo(parsedLet);
         }
-        else if (m_token.GetIdentifier(m_phtbl) == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+        else if (m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
             RestorePoint parsedAsync;
-            m_pscan->Capture(&parsedAsync);
-            ichMin = m_pscan->IchMinTok();
-            iecpMin = m_pscan->IecpMinTok();
+            this->GetScanner()->Capture(&parsedAsync);
+            ichMin = this->GetScanner()->IchMinTok();
+            iecpMin = this->GetScanner()->IecpMinTok();
 
-            m_pscan->Scan();
-            if (m_token.tk == tkFUNCTION && !m_pscan->FHadNewLine())
+            this->GetScanner()->Scan();
+            if (m_token.tk == tkFUNCTION && !this->GetScanner()->FHadNewLine())
             {
                 isAsyncMethod = true;
                 goto LFunctionStatement;
             }
-            m_pscan->SeekTo(parsedAsync);
+            this->GetScanner()->SeekTo(parsedAsync);
         }
         goto LDefaultToken;
 
     case tkCONST:
     case tkLET:
-        ichMin = m_pscan->IchMinTok();
+        ichMin = this->GetScanner()->IchMinTok();
 
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
         pnode = ParseVariableDeclaration<buildAST>(tok, ichMin);
         goto LNeedTerminator;
 
     case tkVAR:
-        ichMin = m_pscan->IchMinTok();
+        ichMin = this->GetScanner()->IchMinTok();
 
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
         pnode = ParseVariableDeclaration<buildAST>(tok, ichMin);
         goto LNeedTerminator;
 
@@ -9908,7 +9901,7 @@ LFunctionStatement:
         ParseNodePtr *ppnodeScopeSave = nullptr;
         ParseNodePtr *ppnodeExprScopeSave = nullptr;
 
-        ichMin = m_pscan->IchMinTok();
+        ichMin = this->GetScanner()->IchMinTok();
         ChkNxtTok(tkLParen, ERRnoLparen);
         pnodeBlock = StartParseBlock<buildAST>(PnodeBlockType::Regular, ScopeType_Block);
         if (buildAST)
@@ -9925,18 +9918,18 @@ LFunctionStatement:
         switch (tok)
         {
         case tkID:
-            if (m_token.GetIdentifier(m_phtbl) == wellKnownPropertyPids.let)
+            if (m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.let)
             {
                 // We see "let" in the init part of a for loop. This could either be a declaration or an identifier
                 // reference. The next token determines which.
                 RestorePoint parsedLet;
-                m_pscan->Capture(&parsedLet);
-                auto ichMinInner = m_pscan->IchMinTok();
+                this->GetScanner()->Capture(&parsedLet);
+                auto ichMinInner = this->GetScanner()->IchMinTok();
 
-                m_pscan->Scan();
+                this->GetScanner()->Scan();
                 if (IsPossiblePatternStart())
                 {
-                    m_pscan->Capture(&startExprOrIdentifier);
+                    this->GetScanner()->Capture(&startExprOrIdentifier);
                 }
                 if (this->NextTokenConfirmsLetDecl() && m_token.tk != tkIN)
                 {
@@ -9950,19 +9943,19 @@ LFunctionStatement:
                                                                 , &nativeForOkay);
                     break;
                 }
-                m_pscan->SeekTo(parsedLet);
+                this->GetScanner()->SeekTo(parsedLet);
             }
             goto LDefaultTokenFor;
         case tkLET:
         case tkCONST:
         case tkVAR:
             {
-                auto ichMinInner = m_pscan->IchMinTok();
+                auto ichMinInner = this->GetScanner()->IchMinTok();
 
-                m_pscan->Scan();
+                this->GetScanner()->Scan();
                 if (IsPossiblePatternStart())
                 {
-                    m_pscan->Capture(&startExprOrIdentifier);
+                    this->GetScanner()->Capture(&startExprOrIdentifier);
                 }
                 pnodeT = ParseVariableDeclaration<buildAST>(tok, ichMinInner
                                                             , /*fAllowIn = */FALSE
@@ -9983,10 +9976,10 @@ LFunctionStatement:
 LDefaultTokenFor:
                 RestorePoint exprStart;
                 tokens beforeToken = tok;
-                m_pscan->Capture(&exprStart);
+                this->GetScanner()->Capture(&exprStart);
                 if (IsPossiblePatternStart())
                 {
-                    m_pscan->Capture(&startExprOrIdentifier);
+                    this->GetScanner()->Capture(&startExprOrIdentifier);
                 }
                 bool fLikelyPattern = false;
                 if (IsES6DestructuringEnabled() && (beforeToken == tkLBrack || beforeToken == tkLCurly))
@@ -10011,7 +10004,7 @@ LDefaultTokenFor:
                 // has already converted them appropriately.
                 if (fLikelyPattern && TokIsForInOrForOf())
                 {
-                    m_pscan->SeekTo(exprStart);
+                    this->GetScanner()->SeekTo(exprStart);
                     ParseDestructuredLiteralWithScopeSave(tkNone, false/*isDecl*/, false /*topLevel*/, DIC_None, false /*allowIn*/);
 
                     if (buildAST)
@@ -10031,7 +10024,7 @@ LDefaultTokenFor:
         if (TokIsForInOrForOf())
         {
             bool isForOf = (m_token.tk != tkIN);
-            Assert(!isForOf || (m_token.tk == tkID && m_token.GetIdentifier(m_phtbl) == wellKnownPropertyPids.of));
+            Assert(!isForOf || (m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.of));
 
             if ((buildAST && nullptr == pnodeT) || !fForInOrOfOkay)
             {
@@ -10049,9 +10042,9 @@ LDefaultTokenFor:
                 Error(JSERR_CantAssignTo);
             }
 
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
             ParseNodePtr pnodeObj = ParseExpr<buildAST>(isForOf ? koplCma : koplNo);
-            charcount_t ichLim = m_pscan->IchLimTok();
+            charcount_t ichLim = this->GetScanner()->IchLimTok();
             ChkCurTok(tkRParen, ERRnoRparen);
 
             if (buildAST)
@@ -10099,7 +10092,7 @@ LDefaultTokenFor:
             }
 
             tokens tk;
-            tk = m_pscan->Scan();
+            tk = this->GetScanner()->Scan();
 
             ParseNodePtr pnodeIncr = nullptr;
             if (tk != tkRParen)
@@ -10111,7 +10104,7 @@ LDefaultTokenFor:
                 }
             }
 
-            charcount_t ichLim = m_pscan->IchLimTok();
+            charcount_t ichLim = this->GetScanner()->IchLimTok();
 
             ChkCurTok(tkRParen, ERRnoRparen);
 
@@ -10151,10 +10144,10 @@ LDefaultTokenFor:
         ParseNodePtr *ppnodeScopeSave = nullptr;
         ParseNodePtr *ppnodeExprScopeSave = nullptr;
 
-        ichMin = m_pscan->IchMinTok();
+        ichMin = this->GetScanner()->IchMinTok();
         ChkNxtTok(tkLParen, ERRnoLparen);
         ParseNodePtr pnodeVal = ParseExpr<buildAST>();
-        charcount_t ichLim = m_pscan->IchLimTok();
+        charcount_t ichLim = this->GetScanner()->IchLimTok();
 
         ChkCurTok(tkRParen, ERRnoRparen);
         ChkCurTok(tkLCurly, ERRnoLcurly);
@@ -10196,9 +10189,9 @@ LDefaultTokenFor:
                     // No recovery necessary since this is a semantic, not structural, error
                 }
                 fSeenDefault = TRUE;
-                charcount_t ichMinT = m_pscan->IchMinTok();
-                m_pscan->Scan();
-                charcount_t ichMinInner = m_pscan->IchLimTok();
+                charcount_t ichMinT = this->GetScanner()->IchMinTok();
+                this->GetScanner()->Scan();
+                charcount_t ichMinInner = this->GetScanner()->IchLimTok();
                 ChkCurTok(tkColon, ERRnoColon);
                 if (buildAST)
                 {
@@ -10251,10 +10244,10 @@ LEndSwitch:
 
     case tkWHILE:
     {
-        ichMin = m_pscan->IchMinTok();
+        ichMin = this->GetScanner()->IchMinTok();
         ChkNxtTok(tkLParen, ERRnoLparen);
         ParseNodePtr pnodeCond = ParseExpr<buildAST>();
-        charcount_t ichLim = m_pscan->IchLimTok();
+        charcount_t ichLim = this->GetScanner()->IchLimTok();
         ChkCurTok(tkRParen, ERRnoRparen);
 
         if (buildAST)
@@ -10284,19 +10277,19 @@ LEndSwitch:
             pnode = CreateNodeWithScanner<knopDoWhile>();
         }
         PushStmt<buildAST>(&stmt, pnode, knopDoWhile, pLabelIdList);
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
         bool stashedDisallowImportExportStmt = m_disallowImportExportStmt;
         m_disallowImportExportStmt = true;
         ParseNodePtr pnodeBody = ParseStatement<buildAST>();
         m_disallowImportExportStmt = stashedDisallowImportExportStmt;
         PopStmt(&stmt);
-        charcount_t ichMinT = m_pscan->IchMinTok();
+        charcount_t ichMinT = this->GetScanner()->IchMinTok();
 
         ChkCurTok(tkWHILE, ERRnoWhile);
         ChkCurTok(tkLParen, ERRnoLparen);
 
         ParseNodePtr pnodeCond = ParseExpr<buildAST>();
-        charcount_t ichLim = m_pscan->IchLimTok();
+        charcount_t ichLim = this->GetScanner()->IchLimTok();
         ChkCurTok(tkRParen, ERRnoRparen);
 
         if (buildAST)
@@ -10317,7 +10310,7 @@ LEndSwitch:
             {
                 pnode->grfpn |= PNodeFlags::fpnExplicitSemicolon;
             }
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
         }
         else if (pnode)
         {
@@ -10329,13 +10322,13 @@ LEndSwitch:
 
     case tkIF:
     {
-        ichMin = m_pscan->IchMinTok();
+        ichMin = this->GetScanner()->IchMinTok();
         ChkNxtTok(tkLParen, ERRnoLparen);
         ParseNodePtr pnodeCond = ParseExpr<buildAST>();
         if (buildAST)
         {
             pnode = CreateNodeWithScanner<knopIf>(ichMin);
-            pnode->ichLim = m_pscan->IchLimTok();
+            pnode->ichLim = this->GetScanner()->IchLimTok();
             pnode->AsParseNodeIf()->pnodeCond = pnodeCond;
         }
         ChkCurTok(tkRParen, ERRnoRparen);
@@ -10347,7 +10340,7 @@ LEndSwitch:
         ParseNodePtr pnodeFalse = nullptr;
         if (m_token.tk == tkELSE)
         {
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
             pnodeFalse = ParseStatement<buildAST>();
         }
         if (buildAST)
@@ -10385,14 +10378,14 @@ LEndSwitch:
             GetCurrentFunctionNode()->AsParseNodeFnc()->SetHasWithStmt(); // Used by DeferNested
         }
 
-        ichMin = m_pscan->IchMinTok();
+        ichMin = this->GetScanner()->IchMinTok();
         ChkNxtTok(tkLParen, ERRnoLparen);
         ParseNodePtr pnodeObj = ParseExpr<buildAST>();
         if (!buildAST)
         {
             m_scopeCountNoAst++;
         }
-        charcount_t ichLim = m_pscan->IchLimTok();
+        charcount_t ichLim = this->GetScanner()->IchLimTok();
         ChkCurTok(tkRParen, ERRnoRparen);
 
         if (buildAST)
@@ -10466,7 +10459,7 @@ LEndSwitch:
 
     case tkSColon:
         pnode = nullptr;
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
         break;
 
     case tkBREAK:
@@ -10485,17 +10478,17 @@ LEndSwitch:
         fnop = fnopContinue;
 
 LGetJumpStatement:
-        m_pscan->ScanForcingPid();
-        if (tkID == m_token.tk && !m_pscan->FHadNewLine())
+        this->GetScanner()->ScanForcingPid();
+        if (tkID == m_token.tk && !this->GetScanner()->FHadNewLine())
         {
             // Labeled break or continue.
-            pid = m_token.GetIdentifier(m_phtbl);
+            pid = m_token.GetIdentifier(this->GetHashTbl());
             if (buildAST)
             {
                 pnode->AsParseNodeJump()->hasExplicitTarget=true;
-                pnode->ichLim = m_pscan->IchLimTok();
+                pnode->ichLim = this->GetScanner()->IchLimTok();
 
-                m_pscan->Scan();
+                this->GetScanner()->Scan();
                 PushStmt<buildAST>(&stmt, pnode, pnode->nop, pLabelIdList);
                 Assert(pnode->AsParseNodeStmt()->grfnop == 0);
                 for (pstmt = m_pstmtCur; nullptr != pstmt; pstmt = pstmt->pstmtOuter)
@@ -10527,7 +10520,7 @@ LGetJumpStatement:
             }
             else
             {
-                m_pscan->Scan();
+                this->GetScanner()->Scan();
                 for (pstmt = m_pstmtCur; pstmt; pstmt = pstmt->pstmtOuter)
                 {
                     LabelId* pLabelId;
@@ -10608,7 +10601,7 @@ LGetJumpStatement:
             }
             pnode = CreateNodeWithScanner<knopReturn>();
         }
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
         ParseNodePtr pnodeExpr = nullptr;
         ParseOptionalExpr<buildAST>(&pnodeExpr, true);
 
@@ -10649,11 +10642,11 @@ LGetJumpStatement:
         {
             pnode = CreateUniNode(knopThrow, nullptr);
         }
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
         ParseNodePtr pnode1 = nullptr;
         if (m_token.tk != tkSColon &&
             m_token.tk != tkRCurly &&
-            !m_pscan->FHadNewLine())
+            !this->GetScanner()->FHadNewLine())
         {
             pnode1 = ParseExpr<buildAST>();
         }
@@ -10679,7 +10672,7 @@ LGetJumpStatement:
         {
             pnode = CreateNodeWithScanner<knopDebugger>();
         }
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
         goto LNeedTerminator;
 
     case tkIMPORT:
@@ -10715,11 +10708,11 @@ LDefaultToken:
         if (m_token.tk == tkID)
         {
             RestorePoint idStart;
-            m_pscan->Capture(&idStart);
+            this->GetScanner()->Capture(&idStart);
 
-            IdentPtr pidInner = m_token.GetIdentifier(m_phtbl);
+            IdentPtr pidInner = m_token.GetIdentifier(this->GetHashTbl());
 
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
 
             if (m_token.tk == tkColon)
             {
@@ -10731,12 +10724,12 @@ LDefaultToken:
                 LabelId* pLabelId = CreateLabelId(pidInner);
                 pLabelId->next = pLabelIdList;
                 pLabelIdList = pLabelId;
-                m_pscan->Scan();
+                this->GetScanner()->Scan();
                 goto LRestart;
             }
 
             // No label, rewind back to the tkID and parse an expression
-            m_pscan->SeekTo(idStart);
+            this->GetScanner()->SeekTo(idStart);
         }
 
         // Must be an expression statement.
@@ -10762,7 +10755,7 @@ LNeedTerminator:
         switch (m_token.tk)
         {
         case tkSColon:
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
             if (pnode!= nullptr) pnode->grfpn |= PNodeFlags::fpnExplicitSemicolon;
             break;
         case tkEOF:
@@ -10770,7 +10763,7 @@ LNeedTerminator:
             if (pnode!= nullptr) pnode->grfpn |= PNodeFlags::fpnAutomaticSemicolon;
             break;
         default:
-            if (!m_pscan->FHadNewLine())
+            if (!this->GetScanner()->FHadNewLine())
             {
                 Error(ERRnoSemic);
             }
@@ -10834,7 +10827,7 @@ LNeedTerminator:
 
             // create a fake name for the catch var.
             const WCHAR *uniqueNameStr = _u("__ehobj");
-            IdentPtr uniqueName = m_phtbl->PidHashNameLen(uniqueNameStr, static_cast<int32>(wcslen(uniqueNameStr)));
+            IdentPtr uniqueName = this->GetHashTbl()->PidHashNameLen(uniqueNameStr, static_cast<int32>(wcslen(uniqueNameStr)));
 
             pCatch->AsParseNodeCatch()->pnodeParam = CreateNameNode(uniqueName);
 
@@ -10881,7 +10874,7 @@ Parser::TokIsForInOrForOf()
 {
     return m_token.tk == tkIN ||
         (m_token.tk == tkID &&
-         m_token.GetIdentifier(m_phtbl) == wellKnownPropertyPids.of);
+         m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.of);
 }
 
 /***************************************************************************
@@ -11277,26 +11270,26 @@ void Parser::FinishDeferredFunction(ParseNodePtr pnodeScopeList)
 void Parser::InitPids()
 {
     AssertMemN(m_phtbl);
-    wellKnownPropertyPids.arguments = m_phtbl->PidHashNameLen(g_ssym_arguments.sz, g_ssym_arguments.cch);
-    wellKnownPropertyPids.async = m_phtbl->PidHashNameLen(g_ssym_async.sz, g_ssym_async.cch);
-    wellKnownPropertyPids.eval = m_phtbl->PidHashNameLen(g_ssym_eval.sz, g_ssym_eval.cch);
-    wellKnownPropertyPids.get = m_phtbl->PidHashNameLen(g_ssym_get.sz, g_ssym_get.cch);
-    wellKnownPropertyPids.set = m_phtbl->PidHashNameLen(g_ssym_set.sz, g_ssym_set.cch);
-    wellKnownPropertyPids.let = m_phtbl->PidHashNameLen(g_ssym_let.sz, g_ssym_let.cch);
-    wellKnownPropertyPids.constructor = m_phtbl->PidHashNameLen(g_ssym_constructor.sz, g_ssym_constructor.cch);
-    wellKnownPropertyPids.prototype = m_phtbl->PidHashNameLen(g_ssym_prototype.sz, g_ssym_prototype.cch);
-    wellKnownPropertyPids.__proto__ = m_phtbl->PidHashNameLen(_u("__proto__"), sizeof("__proto__") - 1);
-    wellKnownPropertyPids.of = m_phtbl->PidHashNameLen(_u("of"), sizeof("of") - 1);
-    wellKnownPropertyPids.target = m_phtbl->PidHashNameLen(_u("target"), sizeof("target") - 1);
-    wellKnownPropertyPids.as = m_phtbl->PidHashNameLen(_u("as"), sizeof("as") - 1);
-    wellKnownPropertyPids.from = m_phtbl->PidHashNameLen(_u("from"), sizeof("from") - 1);
-    wellKnownPropertyPids._default = m_phtbl->PidHashNameLen(_u("default"), sizeof("default") - 1);
-    wellKnownPropertyPids._starDefaultStar = m_phtbl->PidHashNameLen(_u("*default*"), sizeof("*default*") - 1);
-    wellKnownPropertyPids._star = m_phtbl->PidHashNameLen(_u("*"), sizeof("*") - 1);
-    wellKnownPropertyPids._this = m_phtbl->PidHashNameLen(_u("*this*"), sizeof("*this*") - 1);
-    wellKnownPropertyPids._newTarget = m_phtbl->PidHashNameLen(_u("*new.target*"), sizeof("*new.target*") - 1);
-    wellKnownPropertyPids._super = m_phtbl->PidHashNameLen(_u("*super*"), sizeof("*super*") - 1);
-    wellKnownPropertyPids._superConstructor = m_phtbl->PidHashNameLen(_u("*superconstructor*"), sizeof("*superconstructor*") - 1);
+    wellKnownPropertyPids.arguments = this->GetHashTbl()->PidHashNameLen(g_ssym_arguments.sz, g_ssym_arguments.cch);
+    wellKnownPropertyPids.async = this->GetHashTbl()->PidHashNameLen(g_ssym_async.sz, g_ssym_async.cch);
+    wellKnownPropertyPids.eval = this->GetHashTbl()->PidHashNameLen(g_ssym_eval.sz, g_ssym_eval.cch);
+    wellKnownPropertyPids.get = this->GetHashTbl()->PidHashNameLen(g_ssym_get.sz, g_ssym_get.cch);
+    wellKnownPropertyPids.set = this->GetHashTbl()->PidHashNameLen(g_ssym_set.sz, g_ssym_set.cch);
+    wellKnownPropertyPids.let = this->GetHashTbl()->PidHashNameLen(g_ssym_let.sz, g_ssym_let.cch);
+    wellKnownPropertyPids.constructor = this->GetHashTbl()->PidHashNameLen(g_ssym_constructor.sz, g_ssym_constructor.cch);
+    wellKnownPropertyPids.prototype = this->GetHashTbl()->PidHashNameLen(g_ssym_prototype.sz, g_ssym_prototype.cch);
+    wellKnownPropertyPids.__proto__ = this->GetHashTbl()->PidHashNameLen(_u("__proto__"), sizeof("__proto__") - 1);
+    wellKnownPropertyPids.of = this->GetHashTbl()->PidHashNameLen(_u("of"), sizeof("of") - 1);
+    wellKnownPropertyPids.target = this->GetHashTbl()->PidHashNameLen(_u("target"), sizeof("target") - 1);
+    wellKnownPropertyPids.as = this->GetHashTbl()->PidHashNameLen(_u("as"), sizeof("as") - 1);
+    wellKnownPropertyPids.from = this->GetHashTbl()->PidHashNameLen(_u("from"), sizeof("from") - 1);
+    wellKnownPropertyPids._default = this->GetHashTbl()->PidHashNameLen(_u("default"), sizeof("default") - 1);
+    wellKnownPropertyPids._starDefaultStar = this->GetHashTbl()->PidHashNameLen(_u("*default*"), sizeof("*default*") - 1);
+    wellKnownPropertyPids._star = this->GetHashTbl()->PidHashNameLen(_u("*"), sizeof("*") - 1);
+    wellKnownPropertyPids._this = this->GetHashTbl()->PidHashNameLen(_u("*this*"), sizeof("*this*") - 1);
+    wellKnownPropertyPids._newTarget = this->GetHashTbl()->PidHashNameLen(_u("*new.target*"), sizeof("*new.target*") - 1);
+    wellKnownPropertyPids._super = this->GetHashTbl()->PidHashNameLen(_u("*super*"), sizeof("*super*") - 1);
+    wellKnownPropertyPids._superConstructor = this->GetHashTbl()->PidHashNameLen(_u("*superconstructor*"), sizeof("*superconstructor*") - 1);
 }
 
 void Parser::RestoreScopeInfo(Js::ScopeInfo * scopeInfo)
@@ -11368,7 +11361,7 @@ void Parser::FinishScopeInfo(Js::ScopeInfo * scopeInfo)
 /***************************************************************************
 Parse the code.
 ***************************************************************************/
-ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcount_t charOffset, ULONG grfscr, ULONG lineNumber, Js::LocalFunctionId * nextFunctionId, CompileScriptException *pse)
+ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcount_t charOffset, bool isUtf8, ULONG grfscr, ULONG lineNumber, Js::LocalFunctionId * nextFunctionId, CompileScriptException *pse)
 {
     ParseNodePtr pnodeProg;
     ParseNodePtr *lastNodeRef = nullptr;
@@ -11414,8 +11407,8 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
     }
 
     // Give the scanner the source and get the first token
-    m_pscan->SetText(pszSrc, offset, length, charOffset, grfscr, lineNumber);
-    m_pscan->Scan();
+    this->GetScanner()->SetText(pszSrc, offset, length, charOffset, isUtf8, grfscr, lineNumber);
+    this->GetScanner()->Scan();
 
     // Make the main 'knopProg' node
     int32 initSize = 0;
@@ -11428,7 +11421,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
     pnodeProg->AsParseNodeFnc()->ClearFlags();
     pnodeProg->AsParseNodeFnc()->SetNested(FALSE);
     pnodeProg->AsParseNodeFnc()->astSize = 0;
-    pnodeProg->AsParseNodeFnc()->cbMin = m_pscan->IecpMinTok();
+    pnodeProg->AsParseNodeFnc()->cbMin = this->GetScanner()->IecpMinTok();
     pnodeProg->AsParseNodeFnc()->lineNumber = lineNumber;
     pnodeProg->AsParseNodeFnc()->columnNumber = 0;
     pnodeProg->AsParseNodeFnc()->isBodyAndParamScopeMerged = true;
@@ -11574,22 +11567,22 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
             //   async arg => {}             -> async lambda with single identifier parameter
             //   async name() {}             -> async method
             //   async [computed_name]() {}  -> async method with a computed name
-            if (m_token.tk == tkID && m_token.GetIdentifier(m_phtbl) == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+            if (m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
             {
-                ichMin = m_pscan->IchMinTok();
-                iecpMin = m_pscan->IecpMinTok();
+                ichMin = this->GetScanner()->IchMinTok();
+                iecpMin = this->GetScanner()->IecpMinTok();
 
                 // Keep state so we can rewind if it turns out that this isn't an async function:
                 //   async() {}              -> method named async
                 //   async => {}             -> lambda with single parameter named async
                 RestorePoint termStart;
-                m_pscan->Capture(&termStart);
+                this->GetScanner()->Capture(&termStart);
 
-                m_pscan->Scan();
+                this->GetScanner()->Scan();
 
-                if (m_token.tk == tkDArrow || (m_token.tk == tkLParen && isMethod) || m_pscan->FHadNewLine())
+                if (m_token.tk == tkDArrow || (m_token.tk == tkLParen && isMethod) || this->GetScanner()->FHadNewLine())
                 {
-                    m_pscan->SeekTo(termStart);
+                    this->GetScanner()->SeekTo(termStart);
                 }
                 else
                 {
@@ -11600,19 +11593,19 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
 
             if (m_token.tk == tkStar && m_scriptContext->GetConfig()->IsES6GeneratorsEnabled())
             {
-                ichMin = m_pscan->IchMinTok();
-                iecpMin = m_pscan->IecpMinTok();
+                ichMin = this->GetScanner()->IchMinTok();
+                iecpMin = this->GetScanner()->IecpMinTok();
 
                 flags |= fFncGenerator;
                 isGenerator = true;
 
-                m_pscan->Scan();
+                this->GetScanner()->Scan();
             }
 
             // Eat the computed name expression
             if (m_token.tk == tkLBrack && isMethod)
             {
-                m_pscan->Scan();
+                this->GetScanner()->Scan();
                 ParseExpr<false>();
             }
 
@@ -11679,8 +11672,8 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
     (*lastNodeRef)->ichLim = 0;
 
     // Get the extent of the code.
-    pnodeProg->ichLim = m_pscan->IchLimTok();
-    pnodeProg->AsParseNodeFnc()->cbLim = m_pscan->IecpLimTok();
+    pnodeProg->ichLim = this->GetScanner()->IchLimTok();
+    pnodeProg->AsParseNodeFnc()->cbLim = this->GetScanner()->IecpLimTok();
 
     // Terminate the local list
     *m_ppnodeVar = nullptr;
@@ -11715,7 +11708,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
         FinishParseBlock(pnodeGlobalBlock);
 
         // Clear out references to undeclared identifiers.
-        m_phtbl->VisitPids([&](IdentPtr pid) { pid->SetTopRef(nullptr); });
+        this->GetHashTbl()->VisitPids([&](IdentPtr pid) { pid->SetTopRef(nullptr); });
 
         // Restore global scope and blockinfo stacks preparatory to reparsing deferred functions.
         PushScope(pnodeGlobalBlock->AsParseNodeBlock()->scope);
@@ -11757,18 +11750,18 @@ bool Parser::CheckForDirective(bool* pIsUseStrict, bool *pIsUseAsm, bool* pIsOct
     if (m_token.tk != tkStrCon)
         return false;
 
-    // Careful, need to check for octal before calling m_pscan->Scan()
+    // Careful, need to check for octal before calling this->GetScanner()->Scan()
     // because Scan() clears the "had octal" flag on the scanner and
-    // m_pscan->Restore() does not restore this flag.
+    // this->GetScanner()->Restore() does not restore this flag.
     if (pIsOctalInString != nullptr)
     {
-        *pIsOctalInString = m_pscan->IsOctOrLeadingZeroOnLastTKNumber();
+        *pIsOctalInString = this->GetScanner()->IsOctOrLeadingZeroOnLastTKNumber();
     }
 
     Ident* pidDirective = m_token.GetStr();
     RestorePoint start;
-    m_pscan->Capture(&start);
-    m_pscan->Scan();
+    this->GetScanner()->Capture(&start);
+    this->GetScanner()->Scan();
 
     bool isDirective = true;
 
@@ -11780,7 +11773,7 @@ bool Parser::CheckForDirective(bool* pIsUseStrict, bool *pIsUseAsm, bool* pIsOct
     case tkRCurly:
         break;
     default:
-        if (!m_pscan->FHadNewLine())
+        if (!this->GetScanner()->FHadNewLine())
         {
             isDirective = false;
         }
@@ -11799,7 +11792,7 @@ bool Parser::CheckForDirective(bool* pIsUseStrict, bool *pIsUseAsm, bool* pIsOct
         }
     }
 
-    m_pscan->SeekTo(start);
+    this->GetScanner()->SeekTo(start);
     return isDirective;
 }
 
@@ -11812,7 +11805,7 @@ bool Parser::CheckStrictModeStrPid(IdentPtr pid)
 
     return pid != nullptr &&
         pid->Cch() == 10 &&
-        !m_pscan->IsEscapeOnLastTkStrCon() &&
+        !this->GetScanner()->IsEscapeOnLastTkStrCon() &&
         wcsncmp(pid->Psz(), _u("use strict"), 10) == 0;
 }
 
@@ -11827,7 +11820,7 @@ bool Parser::CheckAsmjsModeStrPid(IdentPtr pid)
     bool isAsmCandidate = (pid != nullptr &&
         AutoSystemInfo::Data.SSE2Available() &&
         pid->Cch() == 7 &&
-        !m_pscan->IsEscapeOnLastTkStrCon() &&
+        !this->GetScanner()->IsEscapeOnLastTkStrCon() &&
         wcsncmp(pid->Psz(), _u("use asm"), 10) == 0);
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
@@ -11862,30 +11855,10 @@ HRESULT Parser::ParseCesu8Source(__out ParseNodePtr* parseTree, LPCUTF8 pSrc, si
     return ParseSourceInternal( parseTree, pSrc, 0, length, 0, false, grfsrc, pse, nextFunctionId, 0, sourceContextInfo);
 }
 
-void Parser::PrepareScanner(bool fromExternal)
-{
-    // NOTE: HashTbl and Scanner are currently allocated from the CRT heap. If we want to allocate them from the
-    // parser arena, then we also need to change the way the HashTbl allocates PID's from its underlying
-    // allocator (which also currently uses the CRT heap). This is not trivial, because we still need to support
-    // heap allocation for the colorizer interface.
-
-    // create the hash table and init PID members
-    if (nullptr == (m_phtbl = HashTbl::Create(HASH_TABLE_SIZE)))
-        Error(ERRnoMemory);
-    InitPids();
-
-    // create the scanner
-    if (nullptr == (m_pscan = Scanner_t::Create(this, m_phtbl, &m_token, m_scriptContext)))
-        Error(ERRnoMemory);
-
-    if (fromExternal)
-        m_pscan->FromExternalSource();
-}
-
 #if ENABLE_BACKGROUND_PARSING
 void Parser::PrepareForBackgroundParse()
 {
-    m_pscan->PrepareForBackgroundParse(m_scriptContext);
+    this->GetScanner()->PrepareForBackgroundParse(m_scriptContext);
 }
 
 void Parser::AddBackgroundParseItem(BackgroundParseItem *const item)
@@ -11959,14 +11932,14 @@ HRESULT Parser::ParseFunctionInBackground(ParseNodePtr pnodeFnc, ParseContext *p
 
     try
     {
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
 
         m_ppnodeVar = &pnodeFnc->AsParseNodeFnc()->pnodeParams;
         this->ParseFncFormals<true>(pnodeFnc, pnodeParentFnc, fFncNoFlgs);
 
         if (m_token.tk == tkRParen)
         {
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
         }
 
         ChkCurTok(tkLCurly, ERRnoLcurly);
@@ -11974,7 +11947,7 @@ HRESULT Parser::ParseFunctionInBackground(ParseNodePtr pnodeFnc, ParseContext *p
         m_ppnodeVar = &pnodeFnc->AsParseNodeFnc()->pnodeVars;
 
         // Put the scanner into "no hashing" mode.
-        BYTE deferFlags = m_pscan->SetDeferredParse(topLevelDeferred);
+        BYTE deferFlags = this->GetScanner()->SetDeferredParse(topLevelDeferred);
 
         // Process a sequence of statements/declarations
         if (topLevelDeferred)
@@ -11991,7 +11964,7 @@ HRESULT Parser::ParseFunctionInBackground(ParseNodePtr pnodeFnc, ParseContext *p
         }
 
         // Restore the scanner's default hashing mode.
-        m_pscan->SetDeferredParseFlags(deferFlags);
+        this->GetScanner()->SetDeferredParseFlags(deferFlags);
 
 #if DBG
         pnodeFnc->AsParseNodeFnc()->deferredParseNextFunctionId = *this->m_nextFunctionId;
@@ -12008,7 +11981,7 @@ HRESULT Parser::ParseFunctionInBackground(ParseNodePtr pnodeFnc, ParseContext *p
 
     if (FAILED(hr))
     {
-        hr = pse->ProcessError(m_pscan, hr, nullptr);
+        hr = pse->ProcessError(this->GetScanner(), hr, nullptr);
     }
 
     if (IsStrictMode())
@@ -12682,8 +12655,8 @@ ParseNodePtr Parser::CreateDummyParamPatternNode(charcount_t ichMin)
 
 ParseNodePtr Parser::ConvertObjectToObjectPattern(ParseNodePtr pnodeMemberList)
 {
-    charcount_t ichMin = m_pscan->IchMinTok();
-    charcount_t ichLim = m_pscan->IchLimTok();
+    charcount_t ichMin = this->GetScanner()->IchMinTok();
+    charcount_t ichLim = this->GetScanner()->IchLimTok();
     ParseNodePtr pnodeMemberNodeList = nullptr;
     if (pnodeMemberList != nullptr && pnodeMemberList->nop == knopObject)
     {
@@ -12843,7 +12816,7 @@ ParseNodePtr Parser::ParseDestructuredInitializer(ParseNodePtr lhsNode,
     BOOL *forInOfOkay,
     BOOL *nativeForOkay)
 {
-    m_pscan->Scan();
+    this->GetScanner()->Scan();
     if (topLevel && nativeForOkay == nullptr)
     {
         if (initializerContext != DIC_ForceErrorOnInitializer && m_token.tk != tkAsg)
@@ -12874,7 +12847,7 @@ ParseNodePtr Parser::ParseDestructuredInitializer(ParseNodePtr lhsNode,
         *forInOfOkay = FALSE;
     }
 
-    m_pscan->Scan();
+    this->GetScanner()->Scan();
 
 
     bool alreadyHasInitError = m_hasDeferredShorthandInitError;
@@ -12905,8 +12878,8 @@ template <bool buildAST>
 ParseNodePtr Parser::ParseDestructuredObjectLiteral(tokens declarationType, bool isDecl, bool topLevel/* = true*/)
 {
     Assert(m_token.tk == tkLCurly);
-    charcount_t ichMin = m_pscan->IchMinTok();
-    m_pscan->Scan();
+    charcount_t ichMin = this->GetScanner()->IchMinTok();
+    this->GetScanner()->Scan();
 
     if (!isDecl)
     {
@@ -12918,7 +12891,7 @@ ParseNodePtr Parser::ParseDestructuredObjectLiteral(tokens declarationType, bool
     ParseNodePtr objectPatternNode = nullptr;
     if (buildAST)
     {
-        charcount_t ichLim = m_pscan->IchLimTok();
+        charcount_t ichLim = this->GetScanner()->IchLimTok();
         objectPatternNode = CreateUniNode(knopObjectPattern, pnodeMemberList, ichMin, ichLim);
     }
     return objectPatternNode;
@@ -12939,7 +12912,7 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
     {
         while (m_token.tk == tkLParen)
         {
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
             ++parenCount;
 
             // Match the block increment we do upon entering parenthetical expressions
@@ -12954,14 +12927,14 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
         // But spec is going to change for this one to allow LHS-expression both on expression and declaration - so making that happen early.
 
         seenRest = true;
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
 
         // Eat the left parentheses only when its not a declaration. This will make sure we throw syntax errors early.
         if (!isDecl)
         {
             while (m_token.tk == tkLParen)
             {
-                m_pscan->Scan();
+                this->GetScanner()->Scan();
                 ++parenCount;
 
                 // Match the block increment we do upon entering parenthetical expressions
@@ -13005,7 +12978,7 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
     {
         if (isDecl)
         {
-            charcount_t ichMin = m_pscan->IchMinTok();
+            charcount_t ichMin = this->GetScanner()->IchMinTok();
             pnodeElem = ParseVariableDeclaration<buildAST>(declarationType, ichMin
                 ,/* fAllowIn */false, /* pfForInOk */nullptr, /* singleDefOnly */true, /* allowInit */!seenRest, false /*topLevelParse*/);
 
@@ -13057,7 +13030,7 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
     {
         while (m_token.tk == tkRParen)
         {
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
             --parenCount;
         }
 
@@ -13082,7 +13055,7 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
         {
             Error(ERRRestWithDefault);
         }
-        m_pscan->Scan();
+        this->GetScanner()->Scan();
 
         bool alreadyHasInitError = m_hasDeferredShorthandInitError;
         ParseNodePtr pnodeInit = ParseExpr<buildAST>(koplCma);
@@ -13121,9 +13094,9 @@ template <bool buildAST>
 ParseNodePtr Parser::ParseDestructuredArrayLiteral(tokens declarationType, bool isDecl, bool topLevel)
 {
     Assert(m_token.tk == tkLBrack);
-    charcount_t ichMin = m_pscan->IchMinTok();
+    charcount_t ichMin = this->GetScanner()->IchMinTok();
 
-    m_pscan->Scan();
+    this->GetScanner()->Scan();
 
     ParseNodePtr pnodeDestructArr = nullptr;
     ParseNodePtr pnodeList = nullptr;
@@ -13163,7 +13136,7 @@ ParseNodePtr Parser::ParseDestructuredArrayLiteral(tokens declarationType, bool 
                 Error(ERRDestructRestLast);
             }
 
-            m_pscan->Scan();
+            this->GetScanner()->Scan();
 
             // break if we have the trailing comma as well, eg. [a,]
             if (m_token.tk == tkRBrack)
@@ -13184,7 +13157,7 @@ ParseNodePtr Parser::ParseDestructuredArrayLiteral(tokens declarationType, bool 
         pnodeDestructArr->AsParseNodeArrLit()->count = count;
         pnodeDestructArr->AsParseNodeArrLit()->spreadCount = seenRest ? 1 : 0;
         pnodeDestructArr->ichMin = ichMin;
-        pnodeDestructArr->ichLim = m_pscan->IchLimTok();
+        pnodeDestructArr->ichLim = this->GetScanner()->IchLimTok();
 
         if (pnodeDestructArr->AsParseNodeArrLit()->pnode1)
         {
@@ -13197,15 +13170,15 @@ ParseNodePtr Parser::ParseDestructuredArrayLiteral(tokens declarationType, bool 
 
 void Parser::CaptureContext(ParseContext *parseContext) const
 {
-    parseContext->pszSrc = m_pscan->PchBase();
+    parseContext->pszSrc = this->GetScanner()->PchBase();
     parseContext->length = this->m_originalLength;
-    parseContext->characterOffset = m_pscan->IchMinTok();
-    parseContext->offset = parseContext->characterOffset + m_pscan->m_cMultiUnits;
+    parseContext->characterOffset = this->GetScanner()->IchMinTok();
+    parseContext->offset = parseContext->characterOffset + this->GetScanner()->m_cMultiUnits;
     parseContext->grfscr = this->m_grfscr;
-    parseContext->lineNumber = m_pscan->LineCur();
+    parseContext->lineNumber = this->GetScanner()->LineCur();
 
     parseContext->pnodeProg = this->m_currentNodeProg;
-    parseContext->fromExternal = m_pscan->IsFromExternalSource();
+    parseContext->isUtf8 = this->GetScanner()->IsUtf8();
     parseContext->strictMode = this->IsStrictMode();
     parseContext->sourceContextInfo = this->m_sourceContextInfo;
     parseContext->currentBlockInfo = this->m_currentBlockInfo;
@@ -13219,7 +13192,7 @@ void Parser::RestoreContext(ParseContext *const parseContext)
     m_nextBlockId = parseContext->nextBlockId;
     m_grfscr = parseContext->grfscr;
     m_length = parseContext->length;
-    m_pscan->SetText(parseContext->pszSrc, parseContext->offset, parseContext->length, parseContext->characterOffset, parseContext->grfscr, parseContext->lineNumber);
+    this->GetScanner()->SetText(parseContext->pszSrc, parseContext->offset, parseContext->length, parseContext->characterOffset, parseContext->isUtf8, parseContext->grfscr, parseContext->lineNumber);
     m_currentNodeProg = parseContext->pnodeProg;
     m_fUseStrictMode = parseContext->strictMode;
 }

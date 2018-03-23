@@ -26,22 +26,6 @@ const HashTbl::ReservedWordInfo HashTbl::s_reservedWordInfo[tkID] =
 #include "keywords.h"
 };
 
-HashTbl * HashTbl::Create(uint cidHash)
-{
-    HashTbl * phtbl;
-
-    if (nullptr == (phtbl = HeapNewNoThrow(HashTbl)))
-        return nullptr;
-    if (!phtbl->Init(cidHash))
-    {
-        delete phtbl;  // invokes overridden operator delete
-        return nullptr;
-    }
-
-    return phtbl;
-}
-
-
 BOOL HashTbl::Init(uint cidHash)
 {
     // cidHash must be a power of two
@@ -368,11 +352,9 @@ IdentPtr HashTbl::FindExistingPid(
 {
     int32 bucketCount;
     IdentPtr pid;
-    IdentPtr *ppid = &m_prgpidName[luHash & m_luMask];
 
     /* Search the hash table for an existing match */
-    ppid = &m_prgpidName[luHash & m_luMask];
-
+    IdentPtr *ppid = &m_prgpidName[luHash & m_luMask];
     for (bucketCount = 0; nullptr != (pid = *ppid); ppid = &pid->m_pidNext, bucketCount++)
     {
         if (pid->m_luHash == luHash && (int)pid->m_cch == cch &&
