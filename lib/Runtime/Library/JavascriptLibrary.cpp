@@ -5034,13 +5034,11 @@ namespace Js
 
         if (ScriptFunction::Is(function))
         {
-            function->ChangeType();
-            function->SetEntryPoint(scriptContext->CurrentCrossSiteThunk);
+            this->SetCrossSiteForLockedNonBuiltInFunctionType(function);
         }
         else if (BoundFunction::Is(function))
         {
-            function->ChangeType();
-            function->SetEntryPoint(scriptContext->CurrentCrossSiteThunk);
+            this->SetCrossSiteForLockedNonBuiltInFunctionType(function);
         }
         else
         {
@@ -5060,10 +5058,23 @@ namespace Js
             }
             else
             {
-                function->ChangeType();
-                function->SetEntryPoint(scriptContext->CurrentCrossSiteThunk);
+                this->SetCrossSiteForLockedNonBuiltInFunctionType(function);
             }
         }
+    }
+
+    void JavascriptLibrary::SetCrossSiteForLockedNonBuiltInFunctionType(JavascriptFunction * function)
+    {
+        DynamicTypeHandler *typeHandler = function->GetTypeHandler();
+        if (typeHandler->IsPathTypeHandler())
+        {
+            PathTypeHandlerBase::FromTypeHandler(typeHandler)->ConvertToNonShareableTypeHandler(function);
+        }
+        else
+        {
+            function->ChangeType();
+        }
+        function->SetEntryPoint(scriptContext->CurrentCrossSiteThunk);
     }
 
     JavascriptExternalFunction*

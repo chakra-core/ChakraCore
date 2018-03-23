@@ -202,6 +202,8 @@ namespace Js
         virtual bool CanStorePropertyValueDirectly(const DynamicObject* instance, PropertyId propertyId, bool allowLetConst) override;
 #endif
 
+        DynamicTypeHandler* ConvertToNonShareableTypeHandler(DynamicObject* instance);
+
 #if ENABLE_FIXED_FIELDS
         virtual void DoShareTypeHandler(ScriptContext* scriptContext) override;
         virtual BOOL IsFixedProperty(const DynamicObject* instance, PropertyId propertyId) override;

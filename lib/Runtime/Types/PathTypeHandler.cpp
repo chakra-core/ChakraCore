@@ -1505,6 +1505,11 @@ namespace Js
         return ConvertToTypeHandler<ES5ArrayTypeHandler>(instance);
     }
 
+    DynamicTypeHandler* PathTypeHandlerBase::ConvertToNonShareableTypeHandler(DynamicObject* instance)
+    {
+        return TryConvertToSimpleDictionaryType<SimpleDictionaryTypeHandler>(instance, GetPathLength(), false);
+    }
+
     template <typename T>
     DynamicTypeHandler * PathTypeHandlerBase::TryConvertToSimpleDictionaryType(DynamicObject* instance, int propertyCapacity, bool mayBecomeShared)
     {

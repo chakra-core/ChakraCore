@@ -1090,6 +1090,7 @@ namespace Js
         JavascriptFunction* EnsureObjectFreezeFunction();
 
         void SetCrossSiteForLockedFunctionType(JavascriptFunction * function);
+        void SetCrossSiteForLockedNonBuiltInFunctionType(JavascriptFunction * function);
 
         bool IsPRNGSeeded() { return isPRNGSeeded; }
         uint64 GetRandSeed0() { return randSeed0; }
