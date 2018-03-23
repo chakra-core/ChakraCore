@@ -19,6 +19,10 @@
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
   </PropertyGroup>
+  <PropertyGroup>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+    <RunCodeAnalysisOnThisProject>false</RunCodeAnalysisOnThisProject>
+  </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>
@@ -32,6 +36,7 @@
       <DisableSpecificWarnings>
         %(DisableSpecificWarnings);
         4996; <!-- Call to 'std::move' with parameters that may be unsafe; could also disable with -D_SCL_SECURE_NO_WARNINGS --></DisableSpecificWarnings>
+      <EnablePREfast>false</EnablePREfast>
     </ClCompile>
   </ItemDefinitionGroup>
   <!-- Do not build wabt with old toolset -->
