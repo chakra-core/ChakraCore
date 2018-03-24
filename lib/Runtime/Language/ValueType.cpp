@@ -1453,7 +1453,7 @@ void ValueType::ToVerboseString(char (&str)[VALUE_TYPE_MAX_STRING_SIZE]) const
     if(OneOn(Bits::Object))
     {
         // Exclude the object type for enumerating bits, and exclude bits specific to a different object type
-        b = _objectBits;
+        b = static_cast<Bits>(_objectBits);
         if(IsLikelyArrayOrObjectWithArray())
             b &= ~(Bits::NonInts | Bits::NonFloats); // these are handled separately for better readability
         else

@@ -8,11 +8,19 @@
 
 #ifdef VALUE_TYPE_BIT
 
-VALUE_TYPE_BIT(Likely,                  static_cast<ValueType::TSize>(1 << 0    ))
-VALUE_TYPE_BIT(Undefined,               static_cast<ValueType::TSize>(1 << 1    ))
-VALUE_TYPE_BIT(Null,                    static_cast<ValueType::TSize>(1 << 2    ))
-VALUE_TYPE_BIT(CanBeTaggedValue,        static_cast<ValueType::TSize>(1 << 3    ))
-VALUE_TYPE_BIT(Object,                  static_cast<ValueType::TSize>(1 << 4    ))
+#ifndef COMMON_TYPE_BIT
+#define COMMON_TYPE_BIT VALUE_TYPE_BIT
+#endif
+
+#ifndef OBJECT_TYPE_BIT
+#define OBJECT_TYPE_BIT VALUE_TYPE_BIT
+#endif
+
+COMMON_TYPE_BIT(Likely,                  static_cast<ValueType::TSize>(1 << 0    ))
+COMMON_TYPE_BIT(Undefined,               static_cast<ValueType::TSize>(1 << 1    ))
+COMMON_TYPE_BIT(Null,                    static_cast<ValueType::TSize>(1 << 2    ))
+COMMON_TYPE_BIT(CanBeTaggedValue,        static_cast<ValueType::TSize>(1 << 3    ))
+COMMON_TYPE_BIT(Object,                  static_cast<ValueType::TSize>(1 << 4    ))
 
 #if !defined(VALUE_TYPE_OBJECT_BIT_INDEX)
 #define VALUE_TYPE_OBJECT_BIT_INDEX static_cast<ValueType::TSize>(4)
@@ -39,9 +47,9 @@ VALUE_TYPE_BIT(Simd,                    static_cast<ValueType::TSize>(1 << 14   
 #endif
 
 // The following bits only apply when the Object bit is set
-VALUE_TYPE_BIT(NoMissingValues,         static_cast<ValueType::TSize>(1 << 5    )) // array
-VALUE_TYPE_BIT(NonInts,                 static_cast<ValueType::TSize>(1 << 6    )) // array
-VALUE_TYPE_BIT(NonFloats,               static_cast<ValueType::TSize>(1 << 7    )) // array
+OBJECT_TYPE_BIT(NoMissingValues,         static_cast<ValueType::TSize>(1 << 5    )) // array
+OBJECT_TYPE_BIT(NonInts,                 static_cast<ValueType::TSize>(1 << 6    )) // array
+OBJECT_TYPE_BIT(NonFloats,               static_cast<ValueType::TSize>(1 << 7    )) // array
 
 #if !defined(VALUE_TYPE_ARRAY_BIT_COUNT)
 #define VALUE_TYPE_ARRAY_BIT_COUNT static_cast<ValueType::TSize>(3)
@@ -51,6 +59,8 @@ VALUE_TYPE_BIT(NonFloats,               static_cast<ValueType::TSize>(1 << 7    
 #define VALUE_TYPE_OBJECT_BIT_COUNT static_cast<ValueType::TSize>(3)
 #endif
 
+#undef OBJECT_TYPE_BIT
+#undef COMMON_TYPE_BIT
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
