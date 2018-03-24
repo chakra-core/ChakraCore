@@ -19413,7 +19413,10 @@ void Lowerer::GenerateFastInlineIsIn(IR::Instr * instr)
     IR::Opnd* src1 = instr->GetSrc1(); // foo
     IR::Opnd* src2 = instr->GetSrc2(); // bar
 
-    if (!src2->GetValueType().IsLikelyArray() || !src2->GetValueType().HasNoMissingValues())
+    if (
+        !src1->GetValueType().IsLikelyInt() ||
+        !src2->GetValueType().IsLikelyArray() ||
+        !src2->GetValueType().HasNoMissingValues())
     {
         return;
     }
