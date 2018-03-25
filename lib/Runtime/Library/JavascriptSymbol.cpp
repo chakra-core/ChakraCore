@@ -266,10 +266,12 @@ namespace Js
         switch (typeId)
         {
         case TypeIds_Symbol:
-            *value = left->GetValue() == JavascriptSymbol::FromVar(right)->GetValue();
+            *value = left == JavascriptSymbol::UnsafeFromVar(right);
+            Assert((left->GetValue() == JavascriptSymbol::UnsafeFromVar(right)->GetValue()) == *value);
             break;
         case TypeIds_SymbolObject:
-            *value = left->GetValue() == JavascriptSymbolObject::FromVar(right)->GetValue();
+            *value = left == JavascriptSymbol::UnsafeFromVar(JavascriptSymbolObject::UnsafeFromVar(right)->Unwrap());
+            Assert((left->GetValue() == JavascriptSymbolObject::UnsafeFromVar(right)->GetValue()) == *value);
             break;
         default:
             *value = FALSE;

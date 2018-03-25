@@ -712,10 +712,12 @@ namespace Js
             case TypeIds_Boolean:
                 goto ReturnFalse;
             case TypeIds_Symbol:
-                *value = JavascriptSymbol::FromVar(aLeft)->GetValue() == JavascriptSymbol::FromVar(aRight)->GetValue();
+                *value = (aLeft == aRight);
+                Assert((JavascriptSymbol::UnsafeFromVar(aLeft)->GetValue() == JavascriptSymbol::UnsafeFromVar(aRight)->GetValue()) == *value);
                 return TRUE;
             case TypeIds_SymbolObject:
-                *value = JavascriptSymbol::FromVar(aLeft)->GetValue() == JavascriptSymbolObject::FromVar(aRight)->GetValue();
+                *value = (aLeft == JavascriptSymbolObject::UnsafeFromVar(aRight)->Unwrap());
+                Assert((JavascriptSymbol::UnsafeFromVar(aLeft)->GetValue() == JavascriptSymbolObject::UnsafeFromVar(aRight)->GetValue()) == *value);
                 return TRUE;
             default:
                 goto RedoRight;

@@ -883,19 +883,15 @@ CommonNumber:
 
         case TypeIds_Array:
             return (rightType == TypeIds_Array && aLeft == aRight);
-
+#if DBG
         case TypeIds_Symbol:
-            switch (rightType)
+            if (rightType == TypeIds_Symbol)
             {
-            case TypeIds_Symbol:
-                {
                     const PropertyRecord* leftValue = JavascriptSymbol::UnsafeFromVar(aLeft)->GetValue();
                     const PropertyRecord* rightValue = JavascriptSymbol::UnsafeFromVar(aRight)->GetValue();
-                    return leftValue == rightValue;
-                }
+                    Assert(leftValue != rightValue);
             }
-            return false;
-
+#endif
         case TypeIds_GlobalObject:
         case TypeIds_HostDispatch:
             switch (rightType)
