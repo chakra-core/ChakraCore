@@ -180,7 +180,7 @@
   <test>
     <default>
       <files>Slow.js</files>
-      <tags>exclude_chk,Slow</tags>
+      <tags>exclude_debug,Slow</tags>
     </default>
   </test>
   <test>

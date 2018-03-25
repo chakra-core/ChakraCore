@@ -950,7 +950,7 @@
   <test>
     <default>
       <files>lotsOfLocals.js</files>
-      <tags>exclude_chk,exclude_razzle</tags>
+      <tags>exclude_debug,exclude_razzle</tags>
     </default>
   </test>
   <test>
@@ -967,7 +967,7 @@
   <test>
     <default>
       <files>lotsOfLocals.js</files>
-      <tags>exclude_chk</tags>
+      <tags>exclude_debug</tags>
     </default>
   </test>
   <test>
