@@ -12,21 +12,21 @@
       <Visible>False</Visible>
     </Content>
   </ItemGroup>
-  <ItemGroup Condition=" (Exists('packages.config') Or Exists('packages.$(MSBuildProjectName).config')) And '$(Platform)' == 'x86'">
+  <ItemGroup Condition=" (Exists('packages.config') Or Exists('packages.$(MSBuildProjectName).config') Or Exists('project.json') Or Exists('project.$(MSBuildProjectName).json')) And '$(Platform)' == 'x86'">
     <Content Include="$(MSBuildThisFileDirectory)..\..\runtimes\win7-x86\native\*">
       <Link>%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>False</Visible>
     </Content>
   </ItemGroup>
-  <ItemGroup Condition=" (Exists('packages.config') Or Exists('packages.$(MSBuildProjectName).config')) And '$(Platform)' == 'x64'">
+  <ItemGroup Condition=" (Exists('packages.config') Or Exists('packages.$(MSBuildProjectName).config') Or Exists('project.json') Or Exists('project.$(MSBuildProjectName).json')) And '$(Platform)' == 'x64'">
     <Content Include="$(MSBuildThisFileDirectory)..\..\runtimes\win7-x64\native\*">
       <Link>%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>False</Visible>
     </Content>
   </ItemGroup>
-  <ItemGroup Condition=" (Exists('packages.config') Or Exists('packages.$(MSBuildProjectName).config')) And '$(Platform)' == 'ARM'">
+  <ItemGroup Condition=" (Exists('packages.config') Or Exists('packages.$(MSBuildProjectName).config') Or Exists('project.json') Or Exists('project.$(MSBuildProjectName).json')) And '$(Platform)' == 'ARM'">
     <Content Include="$(MSBuildThisFileDirectory)..\..\runtimes\win8-arm\native\*">
       <Link>%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
