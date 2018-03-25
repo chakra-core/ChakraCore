@@ -240,28 +240,28 @@
     <files>oom_wasm.js</files>
       <!-- These tests expect OOM, -EnableFatalErrorOnOOM- to disable fatal error for this test case. Bug will be filed to address this later -->
     <compile-flags>-EnableFatalErrorOnOOM- -wasm -args 0 16384 -endargs</compile-flags>
-    <tags>exclude_amd64</tags>
+    <tags>exclude_x64</tags>
   </default>
 </test>
 <test>
   <default>
     <files>oom_wasm.js</files>
     <compile-flags>-EnableFatalErrorOnOOM- -wasm -args 3 16381 -endargs</compile-flags>
-    <tags>exclude_amd64</tags>
+    <tags>exclude_x64</tags>
   </default>
 </test>
 <test>
   <default>
     <files>oom.js</files>
     <compile-flags>-EnableFatalErrorOnOOM- -wasm -args 0 16384 -endargs</compile-flags>
-    <tags>exclude_amd64</tags>
+    <tags>exclude_x64</tags>
   </default>
 </test>
 <test>
   <default>
     <files>oom.js</files>
     <compile-flags>-EnableFatalErrorOnOOM- -wasm -args 3 16381 -endargs</compile-flags>
-    <tags>exclude_amd64</tags>
+    <tags>exclude_x64</tags>
   </default>
 </test>
 <test>
@@ -282,7 +282,7 @@
   <default>
     <files>i64cf.js</files>
     <compile-flags>-wasm -maic:0</compile-flags>
-    <tags>exclude_amd64</tags>
+    <tags>exclude_x64</tags>
   </default>
 </test>
 <test>

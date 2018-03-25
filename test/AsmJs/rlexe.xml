@@ -204,7 +204,7 @@
     <default>
       <files>ArrayView.js</files>
       <baseline>ArrayView.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
@@ -215,7 +215,7 @@
     <default>
       <files>BasicBranching.js</files>
       <baseline>BasicBranching.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
@@ -226,7 +226,7 @@
     <default>
       <files>basicComparisonDouble.js</files>
       <baseline>basicComparisonDouble.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
@@ -237,7 +237,7 @@
     <default>
       <files>basicComparisonInt.js</files>
       <baseline>basicComparisonInt.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
@@ -248,7 +248,7 @@
     <default>
       <files>basicComparisonUInt.js</files>
       <baseline>basicComparisonUInt.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -off:fulljit</compile-flags>
       -->
@@ -259,7 +259,7 @@
     <default>
       <files>BasicLooping.js</files>
       <baseline>BasicLooping.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
@@ -270,7 +270,7 @@
     <default>
       <files>basicMath.js</files>
       <baseline>basicMath.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
@@ -281,7 +281,7 @@
     <default>
       <files>basicMathIntSpecific.js</files>
       <baseline>basicMathIntSpecific.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
@@ -292,7 +292,7 @@
     <default>
       <files>basicMathUnary.js</files>
       <baseline>basicMathUnary.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
@@ -303,7 +303,7 @@
     <default>
       <files>BasicSwitch.js</files>
       <baseline>BasicSwitch.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
@@ -314,7 +314,7 @@
     <default>
       <files>CompositionMathUnary.js</files>
       <baseline>CompositionMathUnary.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
@@ -325,7 +325,7 @@
     <default>
       <files>FunctionCalls.js</files>
       <baseline>FunctionCalls.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
@@ -336,7 +336,7 @@
     <default>
       <files>functiontablecalls.js</files>
       <baseline>functiontablecalls.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
@@ -347,7 +347,7 @@
     <default>
       <files>MathBuiltinsCall.js</files>
       <baseline>MathBuiltinsCall.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
@@ -358,7 +358,7 @@
     <default>
       <files>ModuleVarRead.js</files>
       <baseline>ModuleVarRead.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
@@ -369,7 +369,7 @@
     <default>
       <files>ModuleVarWrite.js</files>
       <baseline>ModuleVarWrite.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
@@ -380,7 +380,7 @@
     <default>
       <files>ReadArrayView.js</files>
       <baseline>ReadArrayView.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
@@ -391,7 +391,7 @@
     <default>
       <files>ReadFixOffset.js</files>
       <baseline>ReadFixOffset.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
@@ -402,7 +402,7 @@
     <default>
       <files>WriteArrayView.js</files>
       <baseline>WriteArrayView.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
@@ -413,7 +413,7 @@
     <default>
       <files>WriteFixOffset.js</files>
       <baseline>WriteFixOffset.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
@@ -643,7 +643,7 @@
     <default>
       <files>constTest.js</files>
       <baseline>constTest.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
@@ -794,7 +794,7 @@
     <default>
       <files>unitybug.js</files>
       <baseline>unitybug.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
@@ -833,7 +833,7 @@
     <default>
       <files>clz32.js</files>
       <baseline>clz32.baseline</baseline>
-      <tags>exclude_amd64</tags>
+      <tags>exclude_x64</tags>
       <!-- After removing -simdjs this test fail with -on:asmjsjittemplate. Investigate and enable
       <compile-flags>-testtrace:asmjs -oopjit- -on:asmjsjittemplate -off:fulljit</compile-flags>
       -->
