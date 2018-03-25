@@ -129,7 +129,7 @@ if not os.path.isfile(binary):
 
 # global tags/not_tags
 tags = set(args.tag or [])
-not_tags = set(args.not_tag or []).union(['fail', 'exclude_' + arch])
+not_tags = set(args.not_tag or []).union(['fail', 'exclude_' + arch, 'exclude_' + flavor])
 
 if arch_alias:
     not_tags.add('exclude_' + arch_alias)

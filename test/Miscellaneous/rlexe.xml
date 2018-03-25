@@ -84,7 +84,7 @@
     <default>
       <compile-flags>-recyclerVerify</compile-flags>
       <files>longstring.js</files>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>

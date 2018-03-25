@@ -84,7 +84,7 @@
     <default>
       <files>evalargs.js</files>
       <compile-flags>-Force:Deferparse</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
       <baseline />
     </default>
   </test>
@@ -195,7 +195,7 @@
       <files>03.assign.js</files>
       <baseline>03.assign_sm.baseline</baseline>
       <compile-flags>-Force:Deferparse -ForceStrictMode</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -209,7 +209,7 @@
       <files>03.assign_sm.js</files>
       <baseline>03.assign_sm.baseline</baseline>
       <compile-flags>-Force:Deferparse</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -252,7 +252,7 @@
       <files>05.arguments.js</files>
       <baseline>05.arguments_sm.baseline</baseline>
       <compile-flags>-Force:Deferparse -ForceStrictMode</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -274,7 +274,7 @@
       <files>05.arguments_sm.js</files>
       <baseline>05.arguments_sm.baseline</baseline>
       <compile-flags>-Force:Deferparse</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -295,7 +295,7 @@
       <files>06.arguments.js</files>
       <baseline>06.arguments_sm.baseline</baseline>
       <compile-flags>-Force:Deferparse -ForceStrictMode</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -303,7 +303,7 @@
       <files>06.arguments.js</files>
       <baseline>06.arguments_sm.baseline</baseline>
       <compile-flags>-force:cachedscope -ForceStrictMode</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -317,7 +317,7 @@
       <files>06.arguments_sm.js</files>
       <baseline>06.arguments_sm.baseline</baseline>
       <compile-flags>-Force:Deferparse</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -325,7 +325,7 @@
       <files>06.arguments_sm.js</files>
       <baseline>06.arguments_sm.baseline</baseline>
       <compile-flags>-force:cachedscope</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
