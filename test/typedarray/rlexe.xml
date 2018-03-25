@@ -263,7 +263,7 @@ Below test fails with difference in space. Investigate the cause and re-enable t
   </test>
   <test>
     <default>
-      <tags>exclude_fre,exclude_dynapogo,typedarray</tags>
+      <tags>exclude_test,exclude_dynapogo,typedarray</tags>
       <compile-flags>-maxinterpretcount:1 -off:simpleJit</compile-flags>
       <files>typedArrayProfile.js</files>
     </default>
