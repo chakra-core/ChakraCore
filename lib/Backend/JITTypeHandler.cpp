@@ -56,3 +56,14 @@ JITTypeHandler::IsTypeHandlerCompatibleForObjectHeaderInlining(const JITTypeHand
             oldTypeHandler->GetInlineSlotCapacity() - Js::DynamicTypeHandler::GetObjectHeaderInlinableSlotCapacity()
         );
 }
+
+bool 
+JITTypeHandler::NeedSlotAdjustment(const JITTypeHandler * oldTypeHandler, const JITTypeHandler * newTypeHandler, int *poldCount, int *pnewCount, Js::PropertyIndex *poldInlineSlotCapacity, Js::PropertyIndex *pnewInlineSlotCapacity)
+{
+    int oldCount = *poldCount = oldTypeHandler->GetSlotCapacity();
+    int newCount = *pnewCount = newTypeHandler->GetSlotCapacity();
+    int oldInlineSlotCapacity = *poldInlineSlotCapacity = oldTypeHandler->GetInlineSlotCapacity();
+    *pnewInlineSlotCapacity = newTypeHandler->GetInlineSlotCapacity();
+
+    return !(oldCount >= newCount || newCount <= oldInlineSlotCapacity);
+}    

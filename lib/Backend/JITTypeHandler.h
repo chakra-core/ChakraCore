@@ -19,6 +19,7 @@ public:
     int GetSlotCapacity() const;
 
     static bool IsTypeHandlerCompatibleForObjectHeaderInlining(const JITTypeHandler * oldTypeHandler, const JITTypeHandler * newTypeHandler);
+    static bool NeedSlotAdjustment(const JITTypeHandler * oldTypeHandler, const JITTypeHandler * newTypeHandler, int *oldCount, int *newCount, Js::PropertyIndex *oldInlineSlotCapacity, Js::PropertyIndex *newInlineSlotCapacity);
 private:
     TypeHandlerIDL m_data;
 };

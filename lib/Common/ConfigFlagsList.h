@@ -140,6 +140,7 @@ PHASE(All)
                     PHASE(TraceObjTypeSpecWriteGuards)
                     PHASE(LiveOutFields)
                     PHASE(DisabledObjTypeSpec)
+                    PHASE(ReuseAuxSlotPtr)
                     #if DBG
                         PHASE(SimulatePolyCacheWithOneTypeForFunction)
                     #endif

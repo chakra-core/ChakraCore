@@ -904,6 +904,17 @@ StackSym const *StackSym::GetVarEquivStackSym_NoCreate(Sym const * const sym)
     return stackSym;
 }
 
+StackSym *StackSym::EnsureAuxSlotPtrSym(Func * func)
+{
+    Assert(HasObjectInfo());
+    StackSym * auxSlotPtrSym = GetObjectInfo()->m_auxSlotPtrSym;
+    if (auxSlotPtrSym == nullptr)
+    {
+        auxSlotPtrSym = GetObjectInfo()->m_auxSlotPtrSym = StackSym::New(func);
+    }
+    return auxSlotPtrSym;
+}
+
 ///----------------------------------------------------------------------------
 ///
 /// PropertySym::New

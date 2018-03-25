@@ -4387,6 +4387,9 @@ BackwardPass::ProcessPropertySymOpndUse(IR::PropertySymOpnd * opnd)
 void
 BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *block)
 {
+    StackSym *auxSlotPtrSym = nullptr;
+    bool auxSlotPtrUpwardExposed = false;
+
     Assert(tag == Js::DeadStorePhase);
     Assert(opnd->IsTypeCheckSeqCandidate());
 
@@ -4453,6 +4456,8 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
 #endif
 
         bucket->AddToGuardedPropertyOps(opnd->GetObjTypeSpecFldId());
+        auxSlotPtrUpwardExposed = opnd->UsesAuxSlot() && !opnd->IsLoadedFromProto() && opnd->IsTypeChecked() && !PHASE_OFF(Js::ReuseAuxSlotPtrPhase, this->func);
+
         if (opnd->NeedsMonoCheck())
         {
             Assert(opnd->IsMono());
@@ -4498,6 +4503,12 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
                     bucket->SetGuardedPropertyOps(nullptr);
                     JitAdelete(this->tempAlloc, guardedPropertyOps);
                     block->stackSymToGuardedProperties->Clear(objSym->m_id);
+                    auxSlotPtrSym = opnd->GetAuxSlotPtrSym();
+                    if (auxSlotPtrSym)
+                    {
+                        this->currentBlock->upwardExposedUses->Clear(auxSlotPtrSym->m_id);
+                    }
+                    auxSlotPtrUpwardExposed = false;
                 }
             }
 #if DBG
@@ -4514,6 +4525,13 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
     {
         opnd->EnsureGuardedPropOps(this->func->m_alloc);
         opnd->SetGuardedPropOp(opnd->GetObjTypeSpecFldId());
+    }
+
+    if (auxSlotPtrUpwardExposed)
+    {
+        // This is an upward-exposed use of the aux slot pointer.
+        auxSlotPtrSym = opnd->EnsureAuxSlotPtrSym(this->func);
+        this->currentBlock->upwardExposedUses->Set(auxSlotPtrSym->m_id);
     }
 }
 
@@ -4782,16 +4800,37 @@ BackwardPass::InsertTypeTransition(IR::Instr *instrInsertBefore, StackSym *objSy
     IR::RegOpnd *baseOpnd = IR::RegOpnd::New(objSym, TyMachReg, this->func);
     baseOpnd->SetIsJITOptimizedReg(true);
 
+    JITTypeHolder initialType = data->GetInitialType();
     IR::AddrOpnd *initialTypeOpnd =
         IR::AddrOpnd::New(data->GetInitialType()->GetAddr(), IR::AddrOpndKindDynamicType, this->func);
-    initialTypeOpnd->m_metadata = data->GetInitialType().t;
+    initialTypeOpnd->m_metadata = initialType.t;
 
+    JITTypeHolder finalType = data->GetFinalType();
     IR::AddrOpnd *finalTypeOpnd =
         IR::AddrOpnd::New(data->GetFinalType()->GetAddr(), IR::AddrOpndKindDynamicType, this->func);
-    finalTypeOpnd->m_metadata = data->GetFinalType().t;
+    finalTypeOpnd->m_metadata = finalType.t;
 
     IR::Instr *adjustTypeInstr =
         IR::Instr::New(Js::OpCode::AdjustObjType, finalTypeOpnd, baseOpnd, initialTypeOpnd, this->func);
+
+    if (this->currentBlock->upwardExposedUses)
+    {
+        // If this type change causes a slot adjustment, the aux slot pointer (if any) will be reloaded here, so take it out of upwardExposedUses.
+        int oldCount;
+        int newCount;
+        Js::PropertyIndex inlineSlotCapacity;
+        Js::PropertyIndex newInlineSlotCapacity;
+        bool needSlotAdjustment = 
+            JITTypeHandler::NeedSlotAdjustment(initialType->GetTypeHandler(), finalType->GetTypeHandler(), &oldCount, &newCount, &inlineSlotCapacity, &newInlineSlotCapacity);
+        if (needSlotAdjustment)
+        {
+            StackSym *auxSlotPtrSym = baseOpnd->m_sym->GetAuxSlotPtrSym();
+            if (auxSlotPtrSym)
+            {
+                this->currentBlock->upwardExposedUses->Clear(auxSlotPtrSym->m_id);
+            }
+        }
+    }
 
     instrInsertBefore->InsertBefore(adjustTypeInstr);
 }

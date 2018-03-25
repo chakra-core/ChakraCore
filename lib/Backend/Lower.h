@@ -673,7 +673,7 @@ private:
     static IR::RegOpnd *    LoadGeneratorArgsPtr(IR::Instr *instrInsert);
     static IR::Instr *      LoadGeneratorObject(IR::Instr *instrInsert);
 
-    IR::Opnd *      LoadSlotArrayWithCachedLocalType(IR::Instr * instrInsert, IR::PropertySymOpnd *propertySymOpnd);
+    IR::Opnd *      LoadSlotArrayWithCachedLocalType(IR::Instr * instrInsert, IR::PropertySymOpnd *propertySymOpnd, bool canReuseAuxSlotPtr);
     IR::Opnd *      LoadSlotArrayWithCachedProtoType(IR::Instr * instrInsert, IR::PropertySymOpnd *propertySymOpnd);
     IR::Instr *     LowerLdAsmJsEnv(IR::Instr *instr);
     IR::Instr *     LowerLdEnv(IR::Instr *instr);
