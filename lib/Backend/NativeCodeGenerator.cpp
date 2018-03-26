@@ -474,7 +474,7 @@ NativeCodeGenerator::RejitIRViewerFunction(Js::FunctionBody *fn, Js::ScriptConte
 #endif /* IR_VIEWER */
 
 #ifdef ALLOW_JIT_REPRO
-HRESULT NativeCodeGenerator::JitFromEncodedWorkItem(_In_reads_(bufSize) const byte* buffer, _In_ uint bufferSize)
+HRESULT NativeCodeGenerator::JitFromEncodedWorkItem(_In_reads_(bufferSize) const byte* buffer, _In_ uint bufferSize)
 {
     CodeGenWorkItemIDL* workItemData = nullptr;
     HRESULT hr = JITManager::DeserializeRPCData(buffer, bufferSize, &workItemData);

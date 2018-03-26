@@ -76,7 +76,7 @@ RejitIRViewerFunction(NativeCodeGenerator *nativeCodeGen, Js::FunctionBody *fn, 
 }
 #endif
 #ifdef ALLOW_JIT_REPRO
-HRESULT JitFromEncodedWorkItem(NativeCodeGenerator *nativeCodeGen, _In_reads_(bufSize) const byte* buffer, _In_ uint bufferSize)
+HRESULT JitFromEncodedWorkItem(NativeCodeGenerator *nativeCodeGen, _In_reads_(bufferSize) const byte* buffer, _In_ uint bufferSize)
 {
     return nativeCodeGen->JitFromEncodedWorkItem(buffer, bufferSize);
 }

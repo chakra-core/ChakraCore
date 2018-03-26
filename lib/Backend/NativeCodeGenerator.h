@@ -46,7 +46,7 @@ public:
     Js::Var RejitIRViewerFunction(Js::FunctionBody *fn, Js::ScriptContext *scriptContext);
 #endif
 #ifdef ALLOW_JIT_REPRO
-    HRESULT JitFromEncodedWorkItem(_In_reads_(bufSize) const byte* buf, _In_ uint bufSize);
+    HRESULT JitFromEncodedWorkItem(_In_reads_(bufferSize) const byte* buf, _In_ uint bufferSize);
 #endif
 void SetProfileMode(BOOL fSet);
 public:
