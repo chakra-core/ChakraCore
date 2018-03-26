@@ -294,7 +294,7 @@ JITManager::ConnectProcess()
     HANDLE processHandle;
     if (!DuplicateHandle(GetCurrentProcess(), GetCurrentProcess(), GetCurrentProcess(), &processHandle, 0, false, DUPLICATE_SAME_ACCESS))
     {
-        return false;
+        return HRESULT_FROM_WIN32(GetLastError());
     }
 #endif
 
