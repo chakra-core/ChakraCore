@@ -156,7 +156,8 @@ private:
     bool            GenerateLdThisCheck(IR::Instr * instr);
     bool            GenerateLdThisStrict(IR::Instr * instr);
     bool            GenerateFastIsInst(IR::Instr * instr);
-    void            GenerateFastInlineIsIn(IR::Instr * instr);
+    void            GenerateFastArrayIsIn(IR::Instr * instr);
+    void            GenerateFastObjectIsIn(IR::Instr * instr);
 
     void GenerateProtoLdFldFromFlagInlineCache(
         IR::Instr * insertBeforeInstr,
@@ -339,9 +340,11 @@ private:
     void            GenerateIsEnabledFloatArraySetElementFastPathCheck(IR::LabelInstr * isDisabledLabel, IR::Instr * const insertBeforeInstr);
     void            GenerateStringTest(IR::RegOpnd *srcReg, IR::Instr *instrInsert, IR::LabelInstr * failLabel, IR::LabelInstr * succeedLabel = nullptr, bool generateObjectCheck = true);
     void            GenerateSymbolTest(IR::RegOpnd *srcReg, IR::Instr *instrInsert, IR::LabelInstr * failLabel, IR::LabelInstr * succeedLabel = nullptr, bool generateObjectCheck = true);
+    void            GeneratePropertyStringTest(IR::RegOpnd *srcReg, IR::Instr *instrInsert, IR::LabelInstr *labelHelper, bool usePoison);
     IR::RegOpnd *   GenerateUntagVar(IR::RegOpnd * opnd, IR::LabelInstr * labelFail, IR::Instr * insertBeforeInstr, bool generateTagCheck = true);
     void            GenerateNotZeroTest( IR::Opnd * opndSrc, IR::LabelInstr * labelZero, IR::Instr * instrInsert);
     IR::Opnd *      CreateOpndForSlotAccess(IR::Opnd * opnd);
+    IR::RegOpnd *   GetRegOpnd(IR::Opnd * opnd, IR::Instr * insertInstr, Func * func, IRType type);
 
     void            GenerateSwitchStringLookup(IR::Instr * instr);
     void            GenerateSingleCharStrJumpTableLookup(IR::Instr * instr);
@@ -443,7 +446,9 @@ private:
 
     IR::IndirOpnd * GenerateFastElemIStringIndexCommon(IR::Instr * ldElem, bool isStore, IR::IndirOpnd * indirOpnd, IR::LabelInstr * labelHelper);
     IR::IndirOpnd * GenerateFastElemISymbolIndexCommon(IR::Instr * ldElem, bool isStore, IR::IndirOpnd * indirOpnd, IR::LabelInstr * labelHelper);
+    void            GenerateFastIsInSymbolOrStringIndex(IR::Instr * instrInsert, IR::RegOpnd *indexOpnd, IR::RegOpnd *baseOpnd, IR::Opnd *dest, uint32 inlineCacheOffset, const uint32 hitRateOffset, IR::LabelInstr * labelHelper, IR::LabelInstr * labelDone);
     IR::IndirOpnd * GenerateFastElemISymbolOrStringIndexCommon(IR::Instr * instrInsert, IR::RegOpnd *indexOpnd, IR::RegOpnd *baseOpnd, const uint32 inlineCacheOffset, const uint32 hitRateOffset, IR::LabelInstr * labelHelper);
+    void            GenerateLookUpInIndexCache(IR::Instr * instrInsert, IR::RegOpnd *indexOpnd, IR::RegOpnd *baseOpnd, IR::RegOpnd *opndSlotArray, IR::RegOpnd *opndSlotIndex, const uint32 inlineCacheOffset, const uint32 hitRateOffset, IR::LabelInstr * labelHelper);
     bool            GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef);
     bool            GenerateFastStElemI(IR::Instr *& StElem, bool *instrIsInHelperBlockRef);
     bool            GenerateFastLdLen(IR::Instr *ldLen, bool *instrIsInHelperBlockRef);
