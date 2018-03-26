@@ -199,8 +199,8 @@ GlobOpt::Optimize()
         this->maxInitialSymID = this->func->m_symTable->GetMaxSymID();
         this->BackwardPass(Js::BackwardPhase);
         this->ForwardPass();
+        this->BackwardPass(Js::DeadStorePhase);
     }
-    this->BackwardPass(Js::DeadStorePhase);
     this->TailDupPass();
 }
 

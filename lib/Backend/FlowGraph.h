@@ -388,6 +388,7 @@ public:
     TempNumberTracker *                     tempNumberTracker;
     TempObjectTracker *                     tempObjectTracker;
 #if DBG
+    BVSparse<JitArenaAllocator> *           trackingByteCodeUpwardExposedUsed = nullptr;
     TempObjectVerifyTracker *               tempObjectVerifyTracker;
 #endif
     HashTable<AddPropertyCacheBucket> *     stackSymToFinalType;

@@ -47,8 +47,15 @@ BackwardPass::DoSetDead(IR::Opnd * opnd, bool isDead) const
 bool
 BackwardPass::DoByteCodeUpwardExposedUsed() const
 {
-    return (this->tag == Js::DeadStorePhase && this->func->hasBailout) ||
-        (this->func->HasTry() && this->func->DoOptimizeTry() && this->tag == Js::BackwardPhase);
+    return 
+        !this->func->GetJITFunctionBody()->IsAsmJsMode() &&
+        (
+            (this->tag == Js::DeadStorePhase && this->func->hasBailout) ||
+            (this->func->HasTry() && this->func->DoOptimizeTry() && this->tag == Js::BackwardPhase)
+#if DBG
+            || this->tag == Js::BackwardPhase
+#endif
+        );
 }
 
 bool
@@ -1110,7 +1117,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
             Assert(block->typesNeedingKnownObjectLayout == nullptr);
             Assert(block->fieldHoistCandidates == nullptr);
             // byteCodeUpwardExposedUsed is required to populate the writeThroughSymbolsSet for the try region in the backwards pass
-            Assert(block->byteCodeUpwardExposedUsed == nullptr || (this->tag == Js::BackwardPhase && this->func->HasTry() && this->func->DoOptimizeTry()));
+            Assert(block->byteCodeUpwardExposedUsed == nullptr || (this->DoByteCodeUpwardExposedUsed()));
             Assert(block->byteCodeRestoreSyms == nullptr);
             Assert(block->stackSymToFinalType == nullptr);
             Assert(block->stackSymToGuardedProperties == nullptr);
@@ -1608,6 +1615,84 @@ BackwardPass::OptBlock(BasicBlock * block)
             intOverflowDoesNotMatterInRangeBySymId->ClearAll();
         }
     }
+
+#if DBG
+    if (this->DoByteCodeUpwardExposedUsed())
+    {
+        if (this->tag == Js::BackwardPhase)
+        {
+            // Keep track of all the bytecode upward exposed after Backward's pass
+            BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed = nullptr;
+            const auto EnsureBV = [&] { if (!byteCodeUpwardExposedUsed) byteCodeUpwardExposedUsed = JitAnew(this->globOpt->alloc, BVSparse<JitArenaAllocator>, this->globOpt->alloc); };
+            Assert(block->byteCodeUpwardExposedUsed != nullptr);
+            FOREACH_BITSET_IN_SPARSEBV(symID, block->byteCodeUpwardExposedUsed)
+            {
+                Sym* sym = this->func->m_symTable->Find(symID);
+                if (sym != nullptr && sym->IsStackSym())
+                {
+                    StackSym* stackSym = sym->AsStackSym();
+                    if (stackSym->HasByteCodeRegSlot())
+                    {
+                        Js::RegSlot bytecode = stackSym->GetByteCodeRegSlot();
+                        EnsureBV();
+                        byteCodeUpwardExposedUsed->Set(bytecode);
+                    }
+                }
+            }
+            NEXT_BITSET_IN_SPARSEBV;
+            Assert(block->trackingByteCodeUpwardExposedUsed == nullptr);
+            block->trackingByteCodeUpwardExposedUsed = byteCodeUpwardExposedUsed;
+        }
+        else
+        {
+            // The calculated bytecode upward exposed should be the same between Backward and DeadStore passes
+            Assert(this->tag == Js::DeadStorePhase);
+            if (block->trackingByteCodeUpwardExposedUsed)
+            {
+                // We don't need to track bytecodeUpwardExposeUses if we don't have bailout
+                // We've collected the Backward bytecodeUpwardExposeUses for nothing, oh well.
+                if (this->func->hasBailout)
+                {
+                    Assert(block->byteCodeUpwardExposedUsed);
+                    BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed = JitAnew(this->globOpt->tempAlloc, BVSparse<JitArenaAllocator>, this->globOpt->tempAlloc);
+                    FOREACH_BITSET_IN_SPARSEBV(symID, block->byteCodeUpwardExposedUsed)
+                    {
+                        Sym* sym = this->func->m_symTable->Find(symID);
+                        Js::RegSlot bytecode = sym->AsStackSym()->GetByteCodeRegSlot();
+                        byteCodeUpwardExposedUsed->Set(bytecode);
+                    }
+                    NEXT_BITSET_IN_SPARSEBV;
+
+                    // Exclude symbol's that have weird lifetime from the check
+                    {
+                        BVSparse<JitArenaAllocator>* tempBv = this->globOpt->tempBv;
+                        tempBv->ClearAll();
+                        if (this->func->GetLocalClosureSym())
+                        {
+                            tempBv->Set(this->func->GetLocalClosureSym()->m_id);
+                        }
+                        if (this->func->GetParamClosureSym())
+                        {
+                            tempBv->Set(this->func->GetParamClosureSym()->m_id);
+                        }
+                        if (this->func->GetLocalFrameDisplaySym())
+                        {
+                            tempBv->Set(this->func->GetLocalFrameDisplaySym()->m_id);
+                        }
+                        block->trackingByteCodeUpwardExposedUsed->Minus(tempBv);
+                        byteCodeUpwardExposedUsed->Minus(tempBv);
+                        tempBv->ClearAll();
+                    }
+
+                    Assert(block->trackingByteCodeUpwardExposedUsed->Equal(byteCodeUpwardExposedUsed));
+                    JitAdelete(this->globOpt->tempAlloc, byteCodeUpwardExposedUsed);
+                }
+                JitAdelete(this->globOpt->alloc, block->trackingByteCodeUpwardExposedUsed);
+                block->trackingByteCodeUpwardExposedUsed = nullptr;
+            }
+        }
+    }
+#endif
 }
 
 void
@@ -1877,6 +1962,10 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr)
             if (byteCodeUpwardExposedUsed != nullptr)
             {
                 this->currentBlock->upwardExposedUses->Or(byteCodeUpwardExposedUsed);
+                if (this->DoByteCodeUpwardExposedUsed())
+                {
+                    this->currentBlock->byteCodeUpwardExposedUsed->Or(byteCodeUpwardExposedUsed);
+                }
             }
             return true;
         }
