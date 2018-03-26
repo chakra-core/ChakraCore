@@ -131,11 +131,11 @@ JsValueRef __stdcall WScriptJsrt::EchoCallback(JsValueRef callee, bool isConstru
                 {
                     wprintf(_u(" "));
                 }
-                size_t len;
+                charcount_t len;
                 LPWSTR ws = str.GetWideString(&len);
                 LPWSTR wsNoNull = new WCHAR[len + 1];
-                size_t newIndex = 0;
-                for (size_t j = 0; j < len; j++)
+                charcount_t newIndex = 0;
+                for (charcount_t j = 0; j < len; j++)
                 {
                     if (ws[j] != _u('\0'))
                     {
