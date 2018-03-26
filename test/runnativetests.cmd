@@ -76,6 +76,7 @@ goto :main
 
   call :cleanup
 
+  echo -- runnativetests.cmd ^>^> Exiting with exit code %_HadFailures%
   exit /b %_HadFailures%
 
 :: ============================================================================
@@ -182,10 +183,14 @@ goto :main
 :: ============================================================================
 :runtest
   pushd %_TestTempDir%
-  echo Calling %cd%\nativetests.exe with additional args: %_NativeTestArgs%
+  echo -- runnativetests.cmd ^>^> Calling %cd%\nativetests.exe with additional args: %_NativeTestArgs%
   call :do nativetests.exe %_NativeTestArgs%
-  if %ERRORLEVEL% NEQ 0 set _HadFailures=1
-  echo -- runnativetests.cmd ^>^> nativetests.exe exiting with exit code %_HadFailures%
+  set _error=%ERRORLEVEL%
+  if "%_error%" NEQ "0" (
+    set _HadFailures=1
+  )
+  echo -- runnativetests.cmd ^>^> nativetests.exe exited with non-zero exit code (%_error%)
+
   popd
 
   goto :eof
