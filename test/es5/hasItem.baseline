@@ -6,8 +6,8 @@ Test empty object
   pass (10)
   pass (4294967294)
   pass (x y)
-  pass (x
-  pass (x
+  pass (xy)
+  pass (xy)
 Test empty array
   pass (abc)
   pass (-1)
@@ -16,8 +16,8 @@ Test empty array
   pass (10)
   pass (4294967294)
   pass (x y)
-  pass (x
-  pass (x
+  pass (xy)
+  pass (xy)
 Test number object
   pass (abc)
   pass (-1)
@@ -26,8 +26,8 @@ Test number object
   pass (10)
   pass (4294967294)
   pass (x y)
-  pass (x
-  pass (x
+  pass (xy)
+  pass (xy)
 Test string object
   pass (abc)
   pass (-1)
@@ -36,8 +36,8 @@ Test string object
   pass (10)
   pass (4294967294)
   pass (x y)
-  pass (x
-  pass (x
+  pass (xy)
+  pass (xy)
 Test Object
   pass (abc)
   pass (-1)
@@ -46,8 +46,8 @@ Test Object
   pass (10)
   pass (4294967294)
   pass (x y)
-  pass (x
-  pass (x
+  pass (xy)
+  pass (xy)
 Test global object
   pass (abc)
   pass (-1)
@@ -56,8 +56,8 @@ Test global object
   pass (10)
   pass (4294967294)
   pass (x y)
-  pass (x
-  pass (x
+  pass (xy)
+  pass (xy)
 Test object with 1 property
   pass (abc)
   pass (-1)
@@ -66,8 +66,8 @@ Test object with 1 property
   pass (10)
   pass (4294967294)
   pass (x y)
-  pass (x
-  pass (x
+  pass (xy)
+  pass (xy)
 Test object with many properties
   pass (abc)
   pass (-1)
@@ -76,8 +76,8 @@ Test object with many properties
   pass (10)
   pass (4294967294)
   pass (x y)
-  pass (x
-  pass (x
+  pass (xy)
+  pass (xy)
 Test object with accessor
   pass (abc)
   pass (-1)
@@ -86,8 +86,8 @@ Test object with accessor
   pass (10)
   pass (4294967294)
   pass (x y)
-  pass (x
-  pass (x
+  pass (xy)
+  pass (xy)
 Test array
   pass (abc)
   pass (-1)
@@ -96,8 +96,8 @@ Test array
   pass (10)
   pass (4294967294)
   pass (x y)
-  pass (x
-  pass (x
+  pass (xy)
+  pass (xy)
 Test es5 array
   pass (abc)
   pass (-1)
@@ -106,5 +106,5 @@ Test es5 array
   pass (10)
   pass (4294967294)
   pass (x y)
-  pass (x
-  pass (x
+  pass (xy)
+  pass (xy)

@@ -49,4 +49,11 @@
       <tags>exclude_jshost</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>utf8_console_log_null_embedded.js</files>
+      <baseline>utf8_console_log_null_embedded.baseline</baseline>
+      <tags>exclude_jshost</tags>
+    </default>
+  </test>
 </regress-exe>

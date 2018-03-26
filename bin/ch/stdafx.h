@@ -243,13 +243,19 @@ public:
         return data;
     }
 
-    LPWSTR GetWideString()
+    LPWSTR GetWideString(charcount_t* destCount = nullptr)
     {
         if(data_wide || !data)
         {
             return data_wide;
         }
-        NarrowStringToWideDynamic(data, &data_wide);
+        charcount_t tempDestCount;
+        utf8::NarrowStringToWide<utf8::malloc_allocator>(data, length, &data_wide, &tempDestCount);
+
+        if (destCount)
+        {
+            *destCount = tempDestCount;
+        }
         return data_wide;
     }
 
