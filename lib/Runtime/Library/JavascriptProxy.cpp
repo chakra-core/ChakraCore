@@ -958,7 +958,7 @@ namespace Js
     }
 
     // No change to foreign enumerator, just forward
-    BOOL JavascriptProxy::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
+    BOOL JavascriptProxy::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, EnumeratorCache * enumeratorCache)
     {
         // Reject implicit call
         ThreadContext* threadContext = requestContext->GetThreadContext();
@@ -1044,7 +1044,7 @@ namespace Js
         JavascriptArray* trapResult = JavascriptOperators::GetOwnPropertyNames(this, requestContext);
         ProxyOwnkeysEnumerator* ownKeysEnum = RecyclerNew(requestContext->GetRecycler(), ProxyOwnkeysEnumerator, requestContext, this, trapResult);
 
-        return enumerator->Initialize(ownKeysEnum, nullptr, nullptr, flags, requestContext, forInCache);
+        return enumerator->Initialize(ownKeysEnum, nullptr, nullptr, flags, requestContext, enumeratorCache);
     }
 
     BOOL JavascriptProxy::SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags)

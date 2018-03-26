@@ -5199,7 +5199,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         return aEnumerator->MoveAndGetNext(id);
     }
 
-    void JavascriptOperators::OP_InitForInEnumerator(Var enumerable, ForInObjectEnumerator * enumerator, ScriptContext* scriptContext, ForInCache * forInCache)
+    void JavascriptOperators::OP_InitForInEnumerator(Var enumerable, ForInObjectEnumerator * enumerator, ScriptContext* scriptContext, EnumeratorCache * forInCache)
     {
         RecyclableObject* enumerableObject;
 #if ENABLE_COPYONACCESS_ARRAY

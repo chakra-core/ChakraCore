@@ -114,6 +114,8 @@ var tests = [
             var y = Symbol("y");
             o2[y] = 10;
             assert.isTrue((Object.assign({}, o2))[y] === 10, "Symbols are assigned to target object ");
+            assert.isTrue((Object.assign({a:1}, o2))[y] === 10, "Symbols are assigned to target object (for non-empty assignee)");
+            assert.isTrue((Object.assign({a:1}, o2))[y] === 10, "Symbols are assigned to target object (when hitting cache)");
         }
     },
     {

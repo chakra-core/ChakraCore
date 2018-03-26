@@ -3744,11 +3744,11 @@ case_2:
         return JavascriptConversion::BooleanToPropertyQueryFlags(this->GetItemAt(index, value));
     }
 
-    BOOL JavascriptString::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
+    BOOL JavascriptString::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, EnumeratorCache * enumeratorCache)
     {
         return enumerator->Initialize(
             RecyclerNew(GetScriptContext()->GetRecycler(), JavascriptStringEnumerator, this, requestContext),
-            nullptr, nullptr, flags, requestContext, forInCache);
+            nullptr, nullptr, flags, requestContext, enumeratorCache);
     }
 
     BOOL JavascriptString::DeleteProperty(PropertyId propertyId, PropertyOperationFlags propertyOperationFlags)

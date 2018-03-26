@@ -47,7 +47,7 @@ namespace Js
         bool GetUseCache() const;
         ScriptContext * GetScriptContext() const { return scriptContext; }
 
-        bool Initialize(DynamicObject * object, EnumeratorFlags flags, ScriptContext * requestContext, ForInCache * forInCache);
+        bool Initialize(DynamicObject * object, EnumeratorFlags flags, ScriptContext * requestContext, EnumeratorCache * enumeratorCache);
         bool IsNullEnumerator() const;
         void Reset();
         void Clear(EnumeratorFlags flags, ScriptContext * requestContext);

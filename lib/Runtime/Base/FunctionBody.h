@@ -77,7 +77,7 @@ namespace Js
         DiagParamScopeInObject,     // The scope represents symbols at formals and formal scope in activation object
     };
 
-    struct ForInCache
+    struct EnumeratorCache
     {
         Type * type;
         void * data;
@@ -3229,8 +3229,8 @@ namespace Js
         uint IncLiteralRegexCount() { return IncreaseCountField(CounterFields::LiteralRegexCount); }
 
         void AllocateForInCache();
-        ForInCache * GetForInCache(uint index);
-        ForInCache * GetForInCacheArray();
+        EnumeratorCache * GetForInCache(uint index);
+        EnumeratorCache * GetForInCacheArray();
         void CleanUpForInCache(bool isShutdown);
 
         void AllocateInlineCache();

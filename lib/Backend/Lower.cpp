@@ -27159,7 +27159,7 @@ Lowerer::GenerateHasObjectArrayCheck(IR::RegOpnd * objectOpnd, IR::RegOpnd * typ
 }
 
 void
-Lowerer::GenerateInitForInEnumeratorFastPath(IR::Instr * instr, Js::ForInCache * forInCache)
+Lowerer::GenerateInitForInEnumeratorFastPath(IR::Instr * instr, Js::EnumeratorCache * forInCache)
 {
     Func * func = this->m_func;
 
@@ -27292,7 +27292,7 @@ Lowerer::GenerateInitForInEnumeratorFastPath(IR::Instr * instr, Js::ForInCache *
 void
 Lowerer::LowerInitForInEnumerator(IR::Instr * instr)
 {
-    Js::ForInCache * forInCache = nullptr;
+    Js::EnumeratorCache * forInCache = nullptr;
     Func * func = instr->m_func;
     if (instr->IsProfiledInstr())
     {

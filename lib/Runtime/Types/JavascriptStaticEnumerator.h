@@ -29,7 +29,7 @@ namespace Js
         JavascriptString * MoveAndGetNextFromEnumerator(PropertyId& propertyId, PropertyAttributes* attributes);
     public:
         JavascriptStaticEnumerator() { Clear(EnumeratorFlags::None, nullptr); }
-        bool Initialize(JavascriptEnumerator * prefixEnumerator, ArrayObject * arrayToEnumerate, DynamicObject* objectToEnumerate, EnumeratorFlags flags, ScriptContext * requestContext, ForInCache * forInCache);
+        bool Initialize(JavascriptEnumerator * prefixEnumerator, ArrayObject * arrayToEnumerate, DynamicObject* objectToEnumerate, EnumeratorFlags flags, ScriptContext * requestContext, EnumeratorCache * enumeratorCache);
         bool IsNullEnumerator() const;
         bool CanUseJITFastPath() const;
         ScriptContext * GetScriptContext() const { return propertyEnumerator.GetScriptContext(); }

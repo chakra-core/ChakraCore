@@ -2529,7 +2529,7 @@ ThreadContext::PreSweepCallback()
 
     ClearEquivalentTypeCaches();
 
-    ClearForInCaches();
+    ClearEnumeratorCaches();
 
     this->dynamicObjectEnumeratorCacheMap.Clear();
 }
@@ -3116,12 +3116,12 @@ ThreadContext::ClearIsInstInlineCaches()
 }
 
 void
-ThreadContext::ClearForInCaches()
+ThreadContext::ClearEnumeratorCaches()
 {
     Js::ScriptContext *scriptContext = this->scriptContextList;
     while (scriptContext != nullptr)
     {
-        scriptContext->ClearForInCaches();
+        scriptContext->ClearEnumeratorCaches();
         scriptContext = scriptContext->next;
     }
 }
