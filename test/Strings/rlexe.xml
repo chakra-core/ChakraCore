@@ -248,7 +248,7 @@
   <test>
     <default>
       <files>repeatBug.js</files>
-      <tags>exclude_chk,Slow</tags>
+      <tags>exclude_debug,Slow</tags>
     </default>
   </test>  -->
 </regress-exe>
