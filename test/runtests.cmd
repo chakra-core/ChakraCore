@@ -119,6 +119,14 @@ goto :main
     )
   )
 
+  if "%_HadFailures%" NEQ "0" (
+    echo ^>^> Tests failed. See logs for details.
+  ) else (
+    echo ^>^> All tests passed!
+  )
+
+  echo ^>^> runtests.cmd -- exiting with exit code %_HadFailures%
+
   exit /b %_HadFailures%
 
 :: ============================================================================
@@ -224,7 +232,7 @@ goto :main
     set _Variants=lite
     goto :ArgOk
   )
-  
+
   if /i "%1" == "-nightly" (
     set _nightly=1
     if "%_ExtraVariants%" == "" (
