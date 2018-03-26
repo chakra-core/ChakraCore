@@ -605,17 +605,7 @@ bool JITTimeFunctionBody::UsesWAsmJsFastVirtualBuffer() const
 #ifdef ENABLE_WASM
     if (IsWasmFunction())
     {
-        if (CONFIG_FLAG(WasmFastArray))
-        {
-            return true;
-        }
-#ifdef _WIN32
-        if (GetAsmJsInfo()->IsSharedMemory() && CONFIG_FLAG(WasmSharedArrayVirtualBuffer))
-        {
-            return true;
-        }
-#endif
-        return false;
+        return CONFIG_FLAG(WasmFastArray);
     }
 #endif
     return true;
