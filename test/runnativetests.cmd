@@ -52,7 +52,6 @@ goto :main
 :: ============================================================================
 :main
 
-
   call :initVars
   call :parseArgs %*
 
@@ -185,7 +184,6 @@ goto :main
   pushd %_TestTempDir%
   echo -- runnativetests.cmd ^>^> Calling %cd%\nativetests.exe with additional args: %_NativeTestArgs%
   call :do nativetests.exe %_NativeTestArgs%
-  set _error=%ERRORLEVEL%
   if "%_error%" NEQ "0" (
     set _HadFailures=1
   )
@@ -212,6 +210,7 @@ goto :main
 
   echo ^>^> %*
   cmd /s /c "%*"
+  set _error=%ERRORLEVEL%
 
   goto :eof
 
