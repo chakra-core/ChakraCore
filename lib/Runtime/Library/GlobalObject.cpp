@@ -125,7 +125,7 @@ namespace Js
 
     BOOL GlobalObject::ReserveGlobalProperty(PropertyId propertyId)
     {
-        if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId)))
+        if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId, nullptr /*info*/)))
         {
             return false;
         }
@@ -1780,9 +1780,9 @@ LHexError:
         return FALSE;
     }
 
-    PropertyQueryFlags GlobalObject::HasPropertyQuery(PropertyId propertyId)
+    PropertyQueryFlags GlobalObject::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
     {
-        return JavascriptConversion::BooleanToPropertyQueryFlags(JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId)) ||
+        return JavascriptConversion::BooleanToPropertyQueryFlags(JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId, info)) ||
             (this->directHostObject && JavascriptOperators::HasProperty(this->directHostObject, propertyId)) ||
             (this->hostObject && JavascriptOperators::HasProperty(this->hostObject, propertyId)));
     }
@@ -1796,13 +1796,13 @@ LHexError:
 
     BOOL GlobalObject::HasOwnProperty(PropertyId propertyId)
     {
-        return JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId)) ||
+        return JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId, nullptr /*info*/)) ||
             (this->directHostObject && this->directHostObject->HasProperty(propertyId));
     }
 
     BOOL GlobalObject::HasOwnPropertyNoHostObject(PropertyId propertyId)
     {
-        return JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId));
+        return JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId, nullptr /*info*/));
     }
 
     PropertyQueryFlags GlobalObject::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -1922,7 +1922,7 @@ LHexError:
 
     BOOL GlobalObject::SetExistingProperty(PropertyId propertyId, Var value, PropertyValueInfo* info, BOOL *setAttempted)
     {
-        BOOL hasOwnProperty = JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId));
+        BOOL hasOwnProperty = JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId, nullptr /*info*/));
         BOOL hasProperty = JavascriptOperators::HasProperty(this->GetPrototype(), propertyId);
         *setAttempted = TRUE;
 
@@ -2167,7 +2167,7 @@ LHexError:
 
     BOOL GlobalObject::DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags)
     {
-        if (JavascriptConversion::PropertyQueryFlagsToBoolean(__super::HasPropertyQuery(propertyId)))
+        if (JavascriptConversion::PropertyQueryFlagsToBoolean(__super::HasPropertyQuery(propertyId, nullptr /*info*/)))
         {
             return __super::DeleteProperty(propertyId, flags);
         }

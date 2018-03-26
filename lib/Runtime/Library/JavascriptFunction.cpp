@@ -2488,7 +2488,7 @@ LABEL1:
         return isJsBuiltInCode;
     }
 
-    PropertyQueryFlags JavascriptFunction::HasPropertyQuery(PropertyId propertyId)
+    PropertyQueryFlags JavascriptFunction::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
     {
         switch (propertyId)
         {
@@ -2506,7 +2506,7 @@ LABEL1:
             }
             break;
         }
-        return DynamicObject::HasPropertyQuery(propertyId);
+        return DynamicObject::HasPropertyQuery(propertyId, info);
     }
 
     BOOL JavascriptFunction::GetAccessors(PropertyId propertyId, Var *getter, Var *setter, ScriptContext * requestContext)

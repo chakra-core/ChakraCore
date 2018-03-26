@@ -283,7 +283,8 @@ namespace Js
             bool CheckProto,
             bool CheckAccessor,
             bool CheckMissing,
-            bool ReturnOperationInfo>
+            bool ReturnOperationInfo,
+            bool OutputExistence /*When set, propertyValue is true or false, representing whether the property exists on the instance not its actual value*/>
         bool TryGetProperty(
             Var const instance,
             RecyclableObject *const propertyObject,
@@ -463,7 +464,8 @@ namespace Js
             bool CheckAccessor,
             bool CheckMissing,
             bool IsInlineCacheAvailable,
-            bool ReturnOperationInfo>
+            bool ReturnOperationInfo,
+            bool OutputExistence /*When set, propertyValue is true or false, representing whether the property exists on the instance not its actual value*/>
         bool TryGetProperty(
             Var const instance,
             RecyclableObject *const propertyObject,

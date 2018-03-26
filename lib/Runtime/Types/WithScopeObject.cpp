@@ -23,7 +23,7 @@ namespace Js
         return static_cast<WithScopeObject*>(aValue);
     }
 
-    PropertyQueryFlags WithScopeObject::HasPropertyQuery(PropertyId propertyId)
+    PropertyQueryFlags WithScopeObject::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
     {
         return JavascriptConversion::BooleanToPropertyQueryFlags(JavascriptOperators::HasPropertyUnscopables(wrappedObject, propertyId));
     }

@@ -269,14 +269,14 @@ namespace Js
         return false;
     }
 
-    PropertyQueryFlags BoundFunction::HasPropertyQuery(PropertyId propertyId)
+    PropertyQueryFlags BoundFunction::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
     {
         if (propertyId == PropertyIds::length)
         {
             return PropertyQueryFlags::Property_Found;
         }
 
-        return JavascriptFunction::HasPropertyQuery(propertyId);
+        return JavascriptFunction::HasPropertyQuery(propertyId, info);
     }
 
     PropertyQueryFlags BoundFunction::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
