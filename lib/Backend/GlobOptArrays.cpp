@@ -162,6 +162,11 @@ bool GlobOpt::ArraySrcOpt::CheckOpCode()
                 return false;
             }
 
+            if (!baseOpnd->GetValueType().IsLikelyAnyArray() || !baseOpnd->GetValueType().HasNoMissingValues())
+            {
+                return false;
+            }
+
             baseOwnerInstr = instr;
 
             needsBoundChecks = true;
@@ -1922,14 +1927,14 @@ void GlobOpt::ArraySrcOpt::Optimize()
     if (isLikelyJsArray)
     {
         // Insert an instruction to indicate to the dead-store pass that implicit calls need to be kept disabled until this
-        // instruction. Operations other than LdElem and StElem don't benefit much from arrays having no missing values, so
-        // no need to ensure that the array still has no missing values. For a particular array, if none of the accesses
+        // instruction. Operations other than LdElem, StElem and IsIn don't benefit much from arrays having no missing values,
+        // so no need to ensure that the array still has no missing values. For a particular array, if none of the accesses
         // benefit much from the no-missing-values information, it may be beneficial to avoid checking for no missing
         // values, especially in the case for a single array access, where the cost of the check could be relatively
         // significant. An StElem has to do additional checks in the common path if the array may have missing values, and
         // a StElem that operates on an array that has no missing values is more likely to keep the no-missing-values info
         // on the array more precise, so it still benefits a little from the no-missing-values info.
-        globOpt->CaptureNoImplicitCallUses(baseOpnd, isLoad || isStore);
+        globOpt->CaptureNoImplicitCallUses(baseOpnd, isLoad || isStore || instr->m_opcode == Js::OpCode::IsIn);
     }
     else if (baseArrayOpnd && baseArrayOpnd->HeadSegmentLengthSym())
     {
