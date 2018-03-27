@@ -31,9 +31,11 @@ def defaultXPlatMachineTag = defaultMachineTag
 
 def legacyWindowsMachine = 'Windows 7'
 def legacyWindowsMachineTag = defaultMachineTag
+def legacyWindowsTestExtra = '-win7'
 
 def latestWindowsMachine = 'Windows_NT'
 def latestWindowsMachineTag = 'latest-dev15-5'
+def latestWindowsTestExtra = '-win10'
 
 def dailyRegex = 'dailies'
 
@@ -233,21 +235,21 @@ def CreateStyleCheckTasks = { taskString, taskName, checkName ->
 // INNER LOOP TASKS
 // ----------------
 
-CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, null, null, "-win10", true, null, null)
+CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, null, null, latestWindowsTestExtra, true, null, null)
 
 // Add some additional daily configs to trigger per-PR as a quality gate:
 // x64_debug Slow Tests
 CreateBuildTask(true, 'x64', 'debug',
-    latestWindowsMachine, latestWindowsMachineTag, 'ci_slow', null, '-winBlue -includeSlow', false, null, null)
+    latestWindowsMachine, latestWindowsMachineTag, 'ci_slow', null, "${latestWindowsTestExtra} -includeSlow", false, null, null)
 // x64_debug DisableJIT
 CreateBuildTask(true, 'x64', 'debug',
-    latestWindowsMachine, latestWindowsMachineTag, 'ci_disablejit', '"/p:BuildJIT=false"', '-winBlue -disablejit', false, null, null)
+    latestWindowsMachine, latestWindowsMachineTag, 'ci_disablejit', '"/p:BuildJIT=false"', "${latestWindowsTestExtra} -disablejit", false, null, null)
 // x64_debug Lite
 CreateBuildTask(true, 'x64', 'debug',
-    latestWindowsMachine, latestWindowsMachineTag, 'ci_lite', '"/p:BuildLite=true"', '-winBlue -lite', false, null, null)
+    latestWindowsMachine, latestWindowsMachineTag, 'ci_lite', '"/p:BuildLite=true"', "${latestWindowsTestExtra} -lite", false, null, null)
 // x64_debug Legacy
 CreateBuildTask(true, 'x64', 'debug',
-    legacyWindowsMachine, legacyWindowsMachineTag, 'ci_legacy', 'msbuild14', '-win7 -includeSlow', false, null, null)
+    legacyWindowsMachine, legacyWindowsMachineTag, 'ci_legacy', 'msbuild14', "${legacyWindowsTestExtra} -includeSlow", false, null, null)
 
 // -----------------
 // DAILY BUILD TASKS
@@ -255,7 +257,7 @@ CreateBuildTask(true, 'x64', 'debug',
 
 if (!branch.endsWith('-ci')) {
     // build and test on the legacy configuration (Windows 7 + VS 2015 (Dev14))
-    CreateBuildTasks(legacyWindowsMachine, legacyWindowsMachineTag, 'daily_legacy', 'msbuild14', '-win7 -includeSlow', false,
+    CreateBuildTasks(legacyWindowsMachine, legacyWindowsMachineTag, 'daily_legacy', 'msbuild14', "${legacyWindowsTestExtra} -includeSlow", false,
         /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch == 'arm') },
         /* nonDefaultTaskSetup */ { newJob, isPR, config ->
             DailyBuildTaskSetup(newJob, isPR,
@@ -263,7 +265,7 @@ if (!branch.endsWith('-ci')) {
                 'legacy\\s+tests')})
 
     // build and test on the latest configuration (Server 2016 + VS 2017 (Dev15)) with -includeSlow
-    CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, 'daily_slow', null, '-winBlue -includeSlow', false,
+    CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, 'daily_slow', null, "${latestWindowsTestExtra} -includeSlow", false,
         /* excludeConfigIf */ null,
         /* nonDefaultTaskSetup */ { newJob, isPR, config ->
             DailyBuildTaskSetup(newJob, isPR,
@@ -271,7 +273,7 @@ if (!branch.endsWith('-ci')) {
                 'slow\\s+tests')})
 
     // build and test on the latest configuration (Server 2016 + VS 2017 (Dev15)) with JIT disabled
-    CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, 'daily_disablejit', '"/p:BuildJIT=false"', '-winBlue -disablejit', true,
+    CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, 'daily_disablejit', '"/p:BuildJIT=false"', "${latestWindowsTestExtra} -disablejit", true,
         /* excludeConfigIf */ null,
         /* nonDefaultTaskSetup */ { newJob, isPR, config ->
             DailyBuildTaskSetup(newJob, isPR,
