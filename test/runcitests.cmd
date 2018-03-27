@@ -131,7 +131,7 @@ set _HadFailures=0
 
   call :do %_TestDir%\runtests.cmd -%1%2 %3 -quiet -cleanupall -binDir %_StagingDir%\bin
 
-  if %ERRORLEVEL% NEQ 0 (
+  if "%_error%" NEQ "0" (
     echo -- runcitests.cmd ^>^> runtests.cmd failed
     set _HadFailures=3
   )
@@ -143,11 +143,14 @@ set _HadFailures=0
 :: ============================================================================
 :runNativeTests
 
+  echo -- runcitests.cmd ^>^> Running native tests... this can take some time
+  if not exist %_LogDir%\ mkdir %_LogDir%
   set _LogFile=%_TestDir%\logs\%1_%2\nativetests.log
   call :do %_TestDir%\runnativetests.cmd -%1%2 > %_LogFile% 2>&1
+  echo -- runcitests.cmd ^>^> Running native tests... DONE!
 
-  if %ERRORLEVEL% NEQ 0 (
-    echo -- runcitests.cmd ^>^> "runnativetests.cmd failed (printing %_LogFile% below)"
+  if "%_error%" NEQ "0" (
+    echo -- runcitests.cmd ^>^> runnativetests.cmd failed; printing %_LogFile%
     powershell "if (Test-Path %_LogFile%) { Get-Content %_LogFile% }"
     set _HadFailures=4
   )
@@ -283,6 +286,7 @@ set _HadFailures=0
 
   echo -- runcitests.cmd ^>^> %*
   cmd /s /c "%*"
+  set _error=%ERRORLEVEL%
 
   goto :eof
 
@@ -294,5 +298,6 @@ set _HadFailures=0
 
   echo -- runcitests.cmd ^>^> %* ^> nul 2^>^&1
   cmd /s /c "%* > nul 2>&1"
+  set _error=%ERRORLEVEL%
 
   goto :eof
