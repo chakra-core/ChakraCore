@@ -147,7 +147,7 @@ set _HadFailures=0
   call :do %_TestDir%\runnativetests.cmd -%1%2 > %_LogFile% 2>&1
 
   if %ERRORLEVEL% NEQ 0 (
-    echo -- runcitests.cmd ^>^> runnativetests.cmd failed (printing %_LogFile% below)
+    echo -- runcitests.cmd ^>^> "runnativetests.cmd failed (printing %_LogFile% below)"
     powershell "if (Test-Path %_LogFile%) { Get-Content %_LogFile% }"
     set _HadFailures=4
   )
