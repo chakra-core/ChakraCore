@@ -461,4 +461,9 @@
       <files>instancebug.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>missingvalue.js</files>
+    </default>
+  </test>
 </regress-exe>
