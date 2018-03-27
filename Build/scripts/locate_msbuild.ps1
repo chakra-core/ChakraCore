@@ -68,14 +68,6 @@ function Locate-MSBuild() {
         return $msbuildExe
     }
 
-    $_ = WriteMessage "Dev14 not found, trying Dev12..."
-
-    $msbuildExe = Locate-MSBuild-Version("12.0")
-    if ($msbuildExe -and (Test-Path $msbuildExe)) {
-        $_ = WriteMessage "Found `"$msbuildExe`""
-        return $msbuildExe
-    }
-
     WriteErrorMessage "Can't find msbuild.exe."
     return "" # return empty string
 }
