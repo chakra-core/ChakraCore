@@ -186,9 +186,8 @@ goto :main
   call :do nativetests.exe %_NativeTestArgs%
   if "%_error%" NEQ "0" (
     set _HadFailures=1
+    echo -- runnativetests.cmd ^>^> nativetests.exe exited with non-zero exit code %_error%
   )
-  echo -- runnativetests.cmd ^>^> nativetests.exe exited with non-zero exit code (%_error%)
-
   popd
 
   goto :eof
