@@ -50,7 +50,7 @@ n.toString(10):  444123.7891234568
 n.toString(8):  1543333.62401776537
 n.toString(2):  1101100011011011011.110010100000001111111110101011111
 n.toString(16):  6c6db.ca03feaf8
-n.toString(25):  13aen.ji518inh
+n.toString(25):  13aen.ji518io
 n.toFixed():  444124
 n.toFixed(0):  444124
 n.toFixed(2):  444123.79
@@ -73,7 +73,7 @@ n.toString(10):  -444123.7896363636
 n.toString(8):  -1543333.62422633653
 n.toString(2):  -1101100011011011011.110010100010010110011011110101011
 n.toString(16):  -6c6db.ca259bd58
-n.toString(25):  -13aen.jid1hf8b
+n.toString(25):  -13aen.jid1hf8
 n.toFixed():  -444124
 n.toFixed(0):  -444124
 n.toFixed(2):  -444123.79
