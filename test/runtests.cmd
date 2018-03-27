@@ -498,6 +498,11 @@ goto :main
   set _rlArgs=%_rlArgs% -nottags:exclude_%_NewBuildArchMapped%
   set _rlArgs=%_rlArgs% -nottags:exclude_%_BuildTypeMapped%
   set _rlArgs=%_rlArgs% -nottags:exclude_%_NewBuildTypeMapped%
+
+  if [%_JSHOST%] NEQ [1] (
+    set _rlArgs=%_rlArgs% -nottags:exclude_ch
+  )
+
   set _rlArgs=%_rlArgs% %_exclude_serialized%
   set _rlArgs=%_rlArgs% %_exclude_forcedeferparse%
   set _rlArgs=%_rlArgs% %_exclude_nodeferparse%
