@@ -89,6 +89,7 @@ namespace Js
         DictionaryTypeHandler* ConvertToDictionaryType(DynamicObject* instance);
         SimpleDictionaryTypeHandler* ConvertToSimpleDictionaryType(DynamicObject* instance);
         ES5ArrayTypeHandler* ConvertToES5ArrayType(DynamicObject* instance);
+        SimpleTypeHandler<size>* ConvertToNonSharedSimpleType(DynamicObject * instance);
 
         BOOL GetDescriptor(PropertyId propertyId, PropertyIndex * index);
         BOOL SetAttribute(DynamicObject* instance, PropertyIndex index, PropertyAttributes attribute);

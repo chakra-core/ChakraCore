@@ -62,6 +62,29 @@ namespace Js
     }
 
     template<size_t size>
+    SimpleTypeHandler<size> * SimpleTypeHandler<size>::ConvertToNonSharedSimpleType(DynamicObject* instance)
+    {
+        ScriptContext* scriptContext = instance->GetScriptContext();
+        Recycler* recycler = scriptContext->GetRecycler();
+
+
+        CompileAssert(_countof(descriptors) == size);
+
+        SimpleTypeHandler * newTypeHandler = RecyclerNew(recycler, SimpleTypeHandler, this);
+
+        // Consider: Add support for fixed fields to SimpleTypeHandler when
+        // non-shared.  Here we could set the instance as the singleton instance on the newly
+        // created handler.
+
+        newTypeHandler->SetFlags(IsPrototypeFlag | HasKnownSlot0Flag, this->GetFlags());
+        Assert(newTypeHandler->GetIsInlineSlotCapacityLocked());
+        newTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection, this->GetPropertyTypes());
+        newTypeHandler->SetInstanceTypeHandler(instance);
+
+        return newTypeHandler;
+    }
+
+    template<size_t size>
     template <typename T>
     T* SimpleTypeHandler<size>::ConvertToTypeHandler(DynamicObject* instance)
     {
@@ -115,6 +138,8 @@ namespace Js
     template<size_t size>
     PathTypeHandlerBase* SimpleTypeHandler<size>::ConvertToPathType(DynamicObject* instance)
     {
+        Assert(!CrossSite::IsThunk(instance->GetType()->GetEntryPoint()));
+
         ScriptContext *scriptContext = instance->GetScriptContext();
         PathTypeHandlerBase* newTypeHandler = 
             PathTypeHandlerNoAttr::New(
@@ -823,14 +848,19 @@ namespace Js
         // caches used in snapshot enumeration.
         if (GetIsLocked())
         {
-#if DBG
             DynamicType* oldType = instance->GetDynamicType();
-#endif
-            // This changes TypeHandler, but non-necessarily Type.
-            this->ConvertToPathType(instance)->SetAttributesAtIndex(instance, descriptors[index].Id->GetPropertyId(), index, attributes);
-#if DBG
+
+            // This changes TypeHandler, but not necessarily Type.
+            if (CrossSite::IsThunk(oldType->GetEntryPoint()))
+            {
+                // Don't attempt to share cross-site function types
+                this->ConvertToNonSharedSimpleType(instance)->descriptors[index].Attributes = attributes;
+            }
+            else
+            {
+                this->ConvertToPathType(instance)->SetAttributesAtIndex(instance, descriptors[index].Id->GetPropertyId(), index, attributes);
+            }
             Assert(!oldType->GetIsLocked() || instance->GetDynamicType() != oldType);
-#endif
         }
         else
         {
@@ -863,14 +893,19 @@ namespace Js
         // caches used in snapshot enumeration.
         if (GetIsLocked())
         {
-#if DBG
             DynamicType* oldType = instance->GetDynamicType();
-#endif
-            // This changes TypeHandler, but non-necessarily Type.
-            this->ConvertToPathType(instance)->SetAttributesAtIndex(instance, descriptors[index].Id->GetPropertyId(), index, attributes);
-#if DBG
+
+            // This changes TypeHandler, but not necessarily Type.
+            if (CrossSite::IsThunk(oldType->GetEntryPoint()))
+            {
+                // Don't attempt to share cross-site function types
+                this->ConvertToNonSharedSimpleType(instance)->descriptors[index].Attributes = attributes;
+            }
+            else
+            {
+                this->ConvertToPathType(instance)->SetAttributesAtIndex(instance, descriptors[index].Id->GetPropertyId(), index, attributes);
+            }
             Assert(!oldType->GetIsLocked() || instance->GetDynamicType() != oldType);
-#endif
         }
         else
         {
@@ -882,7 +917,15 @@ namespace Js
     template<size_t size>
     BOOL SimpleTypeHandler<size>::SetAccessors(DynamicObject* instance, PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags)
     {
-        return ConvertToPathType(instance)->SetAccessors(instance, propertyId, getter, setter, flags);
+        if (CrossSite::IsThunk(instance->GetDynamicType()->GetEntryPoint()))
+        {
+            // Don't attempt to share cross-site function types
+            return ConvertToDictionaryType(instance)->SetAccessors(instance, propertyId, getter, setter, flags);
+        }
+        else
+        {
+            return ConvertToPathType(instance)->SetAccessors(instance, propertyId, getter, setter, flags);
+        }
     }
 
     template<size_t size>
@@ -914,7 +957,17 @@ namespace Js
                 SimpleTypeHandler * typeHandler = this;
                 if (GetIsLocked())
                 {
-                    return this->ConvertToPathType(instance)->SetPropertyWithAttributes(instance, propertyId, value, attributes, info, flags, possibleSideEffects);
+                    DynamicType* oldType = instance->GetDynamicType();
+                    if (CrossSite::IsThunk(oldType->GetEntryPoint()))
+                    {
+                        // Don't attempt to share cross-site function types
+                        typeHandler = this->ConvertToNonSharedSimpleType(instance);
+                    }
+                    else
+                    {
+                        return this->ConvertToPathType(instance)->SetPropertyWithAttributes(instance, propertyId, value, attributes, info, flags, possibleSideEffects);
+                    }
+                    Assert(!oldType->GetIsLocked() || instance->GetDynamicType() != oldType);
                 }
                 typeHandler->descriptors[index].Attributes = attributes;
                 if (attributes & PropertyEnumerable)
@@ -1017,7 +1070,15 @@ namespace Js
         if (propertyCount >= sizeof(descriptors)/sizeof(SimplePropertyDescriptor))
         {
             Assert(propertyId != Constants::NoProperty);
-            return ConvertToPathType(instance)->SetPropertyWithAttributes(instance, propertyId, value, attributes, info, flags);
+            if (CrossSite::IsThunk(instance->GetDynamicType()->GetEntryPoint()))
+            {
+                PropertyRecord const* propertyRecord = scriptContext->GetPropertyName(propertyId);
+                return ConvertToSimpleDictionaryType(instance)->AddProperty(instance, propertyRecord, value, attributes, info, flags, possibleSideEffects);
+            }
+            else
+            {
+                return ConvertToPathType(instance)->SetPropertyWithAttributes(instance, propertyId, value, attributes, info, flags);
+            }
         }
 
         descriptors[propertyCount].Id = scriptContext->GetPropertyName(propertyId);
