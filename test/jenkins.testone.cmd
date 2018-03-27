@@ -30,6 +30,7 @@ setlocal
 
 set _RootDir=%~dp0..
 set _HadFailures=0
+set _error=0
 
 :: ============================================================================
 :: Main script
@@ -45,6 +46,7 @@ set _HadFailures=0
   set _TestDir=%CD%
 
   call jenkins.parsetestargs.cmd %*
+
   set _LogDir=%_TestDir%\logs\%_TestArch%_%_TestType%
   set _TestArgs=%_TestArch%%_TestType%
   set _BinDir=%_RootDir%\Build\VcBuild%_SpecialBuild%\bin
@@ -61,8 +63,15 @@ set _HadFailures=0
   call :summarizeLogs
 
   echo.
-  if "%_HadFailures%" == "1" (
-    echo -- jenkins.testone.cmd ^>^> Tests failed! 1>&2
+  echo -- jenkins.testone.cmd ^>^> Failure code: %_HadFailures%
+  if "%_HadFailures%" NEQ "0" (
+    if "%_HadFailures%" == "3" (
+      echo -- jenkins.testone.cmd ^>^> Unit tests failed! 1>&2
+    ) else if "%_HadFailures%" == "4" (
+      echo -- jenkins.testone.cmd ^>^> Native tests failed! 1>&2
+    ) else (
+      echo -- jenkins.testone.cmd ^>^> Unknown failure! 1>&2
+    )
   ) else (
     echo -- jenkins.testone.cmd ^>^> Tests passed!
   )
@@ -80,7 +89,10 @@ set _HadFailures=0
 
   call :do %_TestDir%\runtests.cmd -%1 -quiet -cleanupall -nottags exclude_jenkins %_ExtraTestArgs% -binDir %_BinDir%
 
-  if ERRORLEVEL 1 set _HadFailures=1
+  if "%_error%" NEQ "0" (
+    echo -- jenkins.testone.cmd ^>^> runtests.cmd failed
+    set _HadFailures=3
+  )
 
   goto :eof
 
@@ -90,10 +102,17 @@ set _HadFailures=0
 :runNativeTests
 
   echo -- jenkins.testone.cmd ^>^> Running native tests... (this can take some time)
-  call :do %_TestDir%\runnativetests.cmd -%1 -binDir %_BinDir% > %_LogDir%\nativetests.log 2>&1
+  :: ensure the _LogDir exists
+  mkdir %_LogDir%
+  set _LogFile=%_LogDir%\nativetests.log
+  call :do %_TestDir%\runnativetests.cmd -%1 -binDir %_BinDir% > %_LogFile% 2>&1
   echo -- jenkins.testone.cmd ^>^> Running native tests... DONE!
 
-  if ERRORLEVEL 1 set _HadFailures=1
+  if "%_error%" NEQ "0" (
+    echo -- jenkins.testone.cmd ^>^> runnativetests.cmd failed; printing %_LogFile%
+    powershell "if (Test-Path %_LogFile%) { Get-Content %_LogFile% }"
+    set _HadFailures=4
+  )
 
   goto :eof
 
@@ -106,6 +125,8 @@ set _HadFailures=0
   findstr /sp failed rl.results.log > summary.log
   findstr /sip failed nativetests.log >> summary.log
   rem Echo to stderr so that VSO includes the output in the build summary
+
+  echo -- jenkins.testone.cmd ^>^> Printing summary...
   type summary.log 1>&2
   popd
 
@@ -114,8 +135,9 @@ set _HadFailures=0
 :: ============================================================================
 :do
 
-  echo -- jenkins.testone.cmd ^>^> %*
+  echo -- jenkins.testone.cmd ^>^> :do %*
   cmd /s /c "%*"
+  set _error=%ERRORLEVEL%
 
   goto :eof
 
@@ -125,7 +147,8 @@ set _HadFailures=0
 :: ============================================================================
 :doSilent
 
-  echo -- jenkins.testone.cmd ^>^> %* ^> nul 2^>^&1
+  echo -- jenkins.testone.cmd ^>^> :doSilent %* ^> nul 2^>^&1
   cmd /s /c "%* > nul 2>&1"
+  set _error=%ERRORLEVEL%
 
   goto :eof
