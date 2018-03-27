@@ -463,14 +463,8 @@ namespace Js
         return hasProperty;
     }
 
-    PropertyQueryFlags JavascriptProxy::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
+    PropertyQueryFlags JavascriptProxy::HasPropertyQuery(PropertyId propertyId)
     {
-        if (info)
-        {
-            // Prevent caching. See comment in GetPropertyQuery for more detail.
-            PropertyValueInfo::SetNoCache(info, this);
-            PropertyValueInfo::DisablePrototypeCache(info, this);
-        }
         auto fn = [&](RecyclableObject* object)->BOOL {
             return JavascriptOperators::HasProperty(object, propertyId);
         };
@@ -533,7 +527,6 @@ namespace Js
     {
         // We can't cache the property at this time. both target and handler can be changed outside of the proxy, so the inline cache needs to be
         // invalidate when target, handler, or handler prototype has changed. We don't have a way to achieve this yet.
-        // Also, Get and Has operations share a cache, so a trap on either should prevent caching on both.
         PropertyValueInfo::SetNoCache(info, this);
         PropertyValueInfo::DisablePrototypeCache(info, this); // We can't cache prototype property either
         auto fn = [&](RecyclableObject* object)-> BOOL {
@@ -560,7 +553,7 @@ namespace Js
         PropertyValueInfo::SetNoCache(info, this);
         PropertyValueInfo::DisablePrototypeCache(info, this); // We can't cache prototype property either
         auto fn = [&](RecyclableObject* object)-> BOOL {
-            return JavascriptOperators::GetPropertyWPCache<false /* OutputExistence */>(originalInstance, object, propertyNameString, value, requestContext, info);
+            return JavascriptOperators::GetPropertyWPCache(originalInstance, object, propertyNameString, value, requestContext, info);
         };
         auto getPropertyId = [&]()->PropertyId{
             const PropertyRecord* propertyRecord;

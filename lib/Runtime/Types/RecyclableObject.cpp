@@ -334,7 +334,7 @@ namespace Js
             /* TODO-ERROR: args.Info.Count > 0? args[0] : nullptr); */);
     }
 
-    PropertyQueryFlags RecyclableObject::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
+    PropertyQueryFlags RecyclableObject::HasPropertyQuery(PropertyId propertyId)
     {
         return PropertyQueryFlags::Property_NotFound;
     }

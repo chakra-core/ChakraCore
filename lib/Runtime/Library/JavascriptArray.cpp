@@ -11973,7 +11973,7 @@ Case0:
         return DynamicObject::DeleteProperty(propertyNameString, flags);
     }
 
-    PropertyQueryFlags JavascriptArray::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
+    PropertyQueryFlags JavascriptArray::HasPropertyQuery(PropertyId propertyId)
     {
         if (propertyId == PropertyIds::length)
         {
@@ -11987,7 +11987,7 @@ Case0:
             return JavascriptConversion::BooleanToPropertyQueryFlags(this->HasItem(index));
         }
 
-        return DynamicObject::HasPropertyQuery(propertyId, info);
+        return DynamicObject::HasPropertyQuery(propertyId);
     }
 
     BOOL JavascriptArray::IsEnumerable(PropertyId propertyId)

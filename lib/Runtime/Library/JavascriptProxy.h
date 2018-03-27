@@ -73,7 +73,7 @@ namespace Js
 
         static DWORD GetOffsetOfTarget() { return offsetof(JavascriptProxy, target); }
 
-        virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info) override;
+        virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId) override;
         virtual BOOL HasOwnProperty(PropertyId propertyId) override;
         virtual BOOL HasOwnPropertyNoHostObject(PropertyId propertyId) override;
         virtual BOOL HasOwnPropertyCheckNoRedecl(PropertyId propertyId) override;

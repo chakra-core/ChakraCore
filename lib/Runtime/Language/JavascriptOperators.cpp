@@ -123,7 +123,6 @@ namespace Js
             else
             {
                 JavascriptString* indexStr = JavascriptConversion::ToString(indexVar, scriptContext);
-
                 char16 const * propertyName = indexStr->GetString();
                 charcount_t const propertyLength = indexStr->GetLength();
 
@@ -1420,7 +1419,7 @@ CommonNumber:
     {
         while (!JavascriptOperators::IsNull(instance))
         {
-            PropertyQueryFlags result = instance->HasPropertyQuery(propertyId, nullptr /*info*/);
+            PropertyQueryFlags result = instance->HasPropertyQuery(propertyId);
             if (result != PropertyQueryFlags::Property_NotFound)
             {
                 return JavascriptConversion::PropertyQueryFlagsToBoolean(result); // return false if instance is typed array and HasPropertyQuery() returns PropertyQueryFlags::Property_Found_Undefined
@@ -1772,38 +1771,16 @@ CommonNumber:
         }
     }
 
-    template<bool OutputExistence, typename PropertyKeyType> PropertyQueryFlags QueryGetOrHasProperty(
-        Var originalInstance, RecyclableObject* object, PropertyKeyType propertyKey, Var* value, PropertyValueInfo* info, ScriptContext* requestContext);
-    template<> PropertyQueryFlags QueryGetOrHasProperty<false /*OutputExistence*/, PropertyId /*PropertyKeyType*/>(
-        Var originalInstance, RecyclableObject* object, PropertyId propertyKey, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
-    {
-        return object->GetPropertyQuery(originalInstance, propertyKey, value, info, requestContext);
-    }
-    template<> PropertyQueryFlags QueryGetOrHasProperty<false /*OutputExistence*/, JavascriptString* /*PropertyKeyType*/>(
-        Var originalInstance, RecyclableObject* object, JavascriptString* propertyKey, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
-    {
-        return object->GetPropertyQuery(originalInstance, propertyKey, value, info, requestContext);
-    }
-    template<> PropertyQueryFlags QueryGetOrHasProperty<true /*OutputExistence*/, PropertyId /*PropertyKeyType*/>(
-        Var originalInstance, RecyclableObject* object, PropertyId propertyKey, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
-    {
-        PropertyQueryFlags result = object->HasPropertyQuery(propertyKey, info);
-        *value = JavascriptBoolean::ToVar(JavascriptConversion::PropertyQueryFlagsToBoolean(result), requestContext);
-        return result;
-    }
-
-    template<bool OutputExistence, typename PropertyKeyType>
+    template<typename PropertyKeyType>
     BOOL JavascriptOperators::GetPropertyWPCache(Var instance, RecyclableObject* propertyObject, PropertyKeyType propertyKey, Var* value, ScriptContext* requestContext, _Inout_ PropertyValueInfo * info)
     {
-        Assert(value);
         RecyclableObject* object = propertyObject;
         while (!JavascriptOperators::IsNull(object))
         {
-            PropertyQueryFlags result = QueryGetOrHasProperty<OutputExistence>(instance, object, propertyKey, value, info, requestContext);
-
+            PropertyQueryFlags result = object->GetPropertyQuery(instance, propertyKey, value, info, requestContext);
             if (result != PropertyQueryFlags::Property_NotFound)
             {
-                if (!WithScopeObject::Is(object) && info->GetPropertyRecordUsageCache())
+                if (value && !WithScopeObject::Is(object) && info->GetPropertyRecordUsageCache())
                 {
                     PropertyId propertyId = info->GetPropertyRecordUsageCache()->GetPropertyRecord()->GetPropertyId();
                     CacheOperators::CachePropertyRead(instance, object, false, propertyId, false, info, requestContext);
@@ -1822,9 +1799,7 @@ CommonNumber:
             CacheOperators::CachePropertyRead(instance, requestContext->GetLibrary()->GetMissingPropertyHolder(), false, info->GetPropertyRecordUsageCache()->GetPropertyRecord()->GetPropertyId(), true, info, requestContext);
         }
 
-        *value = OutputExistence
-            ? requestContext->GetLibrary()->GetFalse()
-            : requestContext->GetMissingPropertyResult();
+        *value = requestContext->GetMissingPropertyResult();
         return FALSE;
     }
 
@@ -3377,6 +3352,7 @@ CommonNumber:
 
     Var JavascriptOperators::OP_GetElementI(Var instance, Var index, ScriptContext* scriptContext)
     {
+        JavascriptString *temp = nullptr;
 #if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
 #endif
@@ -3647,72 +3623,56 @@ CommonNumber:
                 goto TaggedIntIndex;
             }
         }
-        else if (RecyclableObject::Is(instance))
+        else
         {
-            RecyclableObject* cacheOwner;
-            PropertyRecordUsageCache* propertyRecordUsageCache;
-            if (GetPropertyRecordUsageCache(index, scriptContext, &propertyRecordUsageCache, &cacheOwner))
+            temp = JavascriptOperators::TryFromVar<JavascriptString>(index);
+            if (temp && RecyclableObject::Is(instance)) // fastpath for PropertyStrings
             {
-                return GetElementIWithCache(instance, cacheOwner, propertyRecordUsageCache, scriptContext);
+                PropertyString * propertyString = nullptr;
+                if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(temp))
+                {
+                    propertyString = (PropertyString*)temp;
+                }
+                else if (VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(temp))
+                {
+                    LiteralStringWithPropertyStringPtr * strWithPtr = (LiteralStringWithPropertyStringPtr *)temp;
+                    if (!strWithPtr->HasPropertyRecord())
+                    {
+                        PropertyRecord const * propertyRecord;
+                        strWithPtr->GetPropertyRecord(&propertyRecord); // lookup-cache propertyRecord
+                    }
+                    else
+                    {
+                        propertyString = strWithPtr->GetOrAddPropertyString();
+                        // this is the second time this property string is used
+                        // we already had created the propertyRecord..
+                        // now create the propertyString!
+                    }
+                }
+
+                if (propertyString != nullptr)
+                {
+                    return GetElementIWithCache(instance, propertyString, propertyString->GetPropertyRecordUsageCache(), scriptContext);
+                }
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+                if (PHASE_TRACE1(PropertyCachePhase))
+                {
+                    Output::Print(_u("PropertyCache: GetElem No property string for '%s'\n"), temp->GetString());
+                }
+#endif
+#if DBG_DUMP
+                scriptContext->forinNoCache++;
+#endif
+            }
+
+            JavascriptSymbol* symbol = JavascriptOperators::TryFromVar<JavascriptSymbol>(index);
+            if (symbol && RecyclableObject::Is(instance)) // fastpath for JavascriptSymbols
+            {
+                return GetElementIWithCache(instance, symbol, symbol->GetPropertyRecordUsageCache(), scriptContext);
             }
         }
 
         return JavascriptOperators::GetElementIHelper(instance, index, instance, scriptContext);
-    }
-
-    _Success_(return) bool JavascriptOperators::GetPropertyRecordUsageCache(Var index, ScriptContext* scriptContext, _Outptr_ PropertyRecordUsageCache** propertyRecordUsageCache, _Outptr_ RecyclableObject** cacheOwner)
-    {
-        JavascriptString* string = JavascriptOperators::TryFromVar<JavascriptString>(index);
-        if (string)
-        {
-            PropertyString * propertyString = nullptr;
-            if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(string))
-            {
-                propertyString = (PropertyString*)string;
-            }
-            else if (VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(string))
-            {
-                LiteralStringWithPropertyStringPtr * strWithPtr = (LiteralStringWithPropertyStringPtr *)string;
-                if (!strWithPtr->HasPropertyRecord())
-                {
-                    PropertyRecord const * propertyRecord;
-                    strWithPtr->GetPropertyRecord(&propertyRecord); // lookup-cache propertyRecord
-                }
-                else
-                {
-                    propertyString = strWithPtr->GetOrAddPropertyString();
-                    // this is the second time this property string is used
-                    // we already had created the propertyRecord..
-                    // now create the propertyString!
-                }
-            }
-
-            if (propertyString != nullptr)
-            {
-                *propertyRecordUsageCache = propertyString->GetPropertyRecordUsageCache();
-                *cacheOwner = propertyString;
-                return true;
-            }
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-            if (PHASE_TRACE1(PropertyCachePhase))
-            {
-                Output::Print(_u("PropertyCache: GetElem No property string for '%s'\n"), string->GetString());
-            }
-#endif
-#if DBG_DUMP
-            scriptContext->forinNoCache++;
-#endif
-        }
-
-        JavascriptSymbol* symbol = JavascriptOperators::TryFromVar<JavascriptSymbol>(index);
-        if (symbol)
-        {
-            *propertyRecordUsageCache = symbol->GetPropertyRecordUsageCache();
-            *cacheOwner = symbol;
-            return true;
-        }
-
-        return false;
     }
 
     Var JavascriptOperators::GetElementIWithCache(Var instance, RecyclableObject* index, PropertyRecordUsageCache* propertyRecordUsageCache, ScriptContext* scriptContext)
@@ -3737,11 +3697,11 @@ CommonNumber:
         else
         {
             PropertyValueInfo info;
-            if (propertyRecordUsageCache->TryGetPropertyFromCache<false /* OwnPropertyOnly */, false /* OutputExistence */>(instance, object, &value, scriptContext, &info, index))
+            if (propertyRecordUsageCache->TryGetPropertyFromCache<false /* OwnPropertyOnly */>(instance, object, &value, scriptContext, &info, index))
             {
                 return value;
             }
-            if (JavascriptOperators::GetPropertyWPCache<false /* OutputExistence */>(instance, object, propertyRecord->GetPropertyId(), &value, scriptContext, &info))
+            if (JavascriptOperators::GetPropertyWPCache(instance, object, propertyRecord->GetPropertyId(), &value, scriptContext, &info))
             {
                 return value;
             }
@@ -3781,7 +3741,7 @@ CommonNumber:
         else if (indexType == IndexType_JavascriptString)
         {
             PropertyValueInfo info;
-            if (JavascriptOperators::GetPropertyWPCache<false /* OutputExistence */>(receiver, object, propertyNameString, &value, scriptContext, &info))
+            if (JavascriptOperators::GetPropertyWPCache(receiver, object, propertyNameString, &value, scriptContext, &info))
             {
                 return value;
             }
@@ -3799,7 +3759,7 @@ CommonNumber:
             if (propertyRecord != nullptr)
             {
                 PropertyValueInfo info;
-                if (JavascriptOperators::GetPropertyWPCache<false /* OutputExistence */>(receiver, object, propertyRecord->GetPropertyId(), &value, scriptContext, &info))
+                if (JavascriptOperators::GetPropertyWPCache(receiver, object, propertyRecord->GetPropertyId(), &value, scriptContext, &info))
                 {
                     return value;
                 }
@@ -7155,48 +7115,21 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("in"));
         }
 
-        RecyclableObject* object = RecyclableObject::FromVar(instance);
-        BOOL result;
         PropertyRecord const * propertyRecord = nullptr;
         uint32 index;
-        IndexType indexType;
+        IndexType indexType = GetIndexType(argProperty, scriptContext, &index, &propertyRecord, true);
 
-        // Fast path for JavascriptSymbols and PropertyStrings
-        RecyclableObject* cacheOwner;
-        PropertyRecordUsageCache* propertyRecordUsageCache;
-        if (GetPropertyRecordUsageCache(argProperty, scriptContext, &propertyRecordUsageCache, &cacheOwner))
-        {
-            Var value;
-            propertyRecord = propertyRecordUsageCache->GetPropertyRecord();
-            if (!propertyRecord->IsNumeric())
-            {
-                PropertyValueInfo info;
-                if (propertyRecordUsageCache->TryGetPropertyFromCache<false /* OwnPropertyOnly */, true /* OutputExistence */>(instance, object, &value, scriptContext, &info, cacheOwner))
-                {
-                    Assert(JavascriptBoolean::Is(value));
-                    return value;
-                }
-                result = JavascriptOperators::GetPropertyWPCache<true /* OutputExistence */>(instance, object, propertyRecordUsageCache->GetPropertyRecord()->GetPropertyId(), &value, scriptContext, &info);
-                Assert(value == JavascriptBoolean::ToVar(result, scriptContext));
-                return value;
-            }
+        RecyclableObject* object = RecyclableObject::FromVar(instance);
 
-            // We don't cache numeric property lookups, so fall through to the IndexType_Number case
-            index = propertyRecord->GetNumericValue();
-            indexType = IndexType_Number;
-        }
-        else
-        {
-            indexType = GetIndexType(argProperty, scriptContext, &index, &propertyRecord, true);
-        }
-
+        BOOL result;
         if (indexType == Js::IndexType_Number)
         {
             result = JavascriptOperators::HasItem(object, index);
         }
         else
         {
-            result = JavascriptOperators::HasProperty(object, propertyRecord->GetPropertyId());
+            PropertyId propertyId = propertyRecord->GetPropertyId();
+            result = JavascriptOperators::HasProperty(object, propertyId);
 
 #ifdef TELEMETRY_JSO
             {
@@ -7242,7 +7175,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
         Var value;
-        if (CacheOperators::TryGetProperty<true, true, true, true, true, true, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false, false>(
+        if (CacheOperators::TryGetProperty<true, true, true, true, true, true, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false>(
                 instance, false, object, propertyId, &value, scriptContext, nullptr, &info))
         {
             return value;
@@ -7293,7 +7226,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
         Var value;
-        if (CacheOperators::TryGetProperty<true, true, true, true, true, true, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false, false>(
+        if (CacheOperators::TryGetProperty<true, true, true, true, true, true, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false>(
             instance, false, object, propertyId, &value, scriptContext, nullptr, &info))
         {
             return value;
@@ -7324,7 +7257,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, inlineCache);
         Var value;
-        if (CacheOperators::TryGetProperty<true, true, true, true, false, true, !InlineCache::IsPolymorphic, InlineCache::IsPolymorphic, false, false>(
+        if (CacheOperators::TryGetProperty<true, true, true, true, false, true, !InlineCache::IsPolymorphic, InlineCache::IsPolymorphic, false>(
                 instance, false, object, propertyId, &value, scriptContext, nullptr, &info))
         {
             return value;
@@ -7378,7 +7311,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
         Var value;
-        if (CacheOperators::TryGetProperty<true, true, true, false, true, false, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false, false>(
+        if (CacheOperators::TryGetProperty<true, true, true, false, true, false, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false>(
                 object, true, object, propertyId, &value, scriptContext, nullptr, &info))
         {
             return value;
@@ -7408,7 +7341,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
         Var value = nullptr;
-        if (CacheOperators::TryGetProperty<true, true, true, false, true, false, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false, false>(
+        if (CacheOperators::TryGetProperty<true, true, true, false, true, false, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false>(
             object, true, object, propertyId, &value, scriptContext, nullptr, &info))
         {
             return value;
@@ -7479,7 +7412,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             RecyclableObject* object = RecyclableObject::UnsafeFromVar(pDisplay->GetItem(i));
 
             Var value;
-            if (CacheOperators::TryGetProperty<true, true, true, false, true, true, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false, false>(
+            if (CacheOperators::TryGetProperty<true, true, true, false, true, true, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false>(
                     object, false, object, propertyId, &value, scriptContext, nullptr, &info))
             {
                 return value;
@@ -7578,7 +7511,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
         Var value;
-        if (CacheOperators::TryGetProperty<true, true, true, false, true, true, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false, false>(
+        if (CacheOperators::TryGetProperty<true, true, true, false, true, true, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false>(
                 instance, false, object, propertyId, &value, scriptContext, nullptr, &info))
         {
             return value;
@@ -7618,7 +7551,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
         Var value;
-        if (CacheOperators::TryGetProperty<true, true, true, false, true, false, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false, false>(
+        if (CacheOperators::TryGetProperty<true, true, true, false, true, false, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false>(
                 object, true, object, propertyId, &value, scriptContext, nullptr, &info))
         {
             return value;
@@ -7672,7 +7605,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
         const bool isRoot = RootObjectBase::Is(object);
         Var value;
-        if (CacheOperators::TryGetProperty<true, true, true, false, true, false, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false, false>(
+        if (CacheOperators::TryGetProperty<true, true, true, false, true, false, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false>(
                 instance, isRoot, object, propertyId, &value, scriptContext, nullptr, &info))
         {
             return value;

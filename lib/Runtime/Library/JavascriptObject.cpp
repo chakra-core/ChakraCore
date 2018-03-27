@@ -373,8 +373,7 @@ namespace Js
             true,                                       // CheckTypePropertyCache
             !PolymorphicInlineCache::IsPolymorphic,     // IsInlineCacheAvailable
             PolymorphicInlineCache::IsPolymorphic,      // IsPolymorphicInlineCacheAvailable
-            false,                                      // ReturnOperationInfo
-            false>                                      // OutputExistence
+            false>                                      // ReturnOperationInfo
             (thisArg, false, thisArg, toStringTagId, &value, scriptContext, nullptr, &info))
         {
             return value;
@@ -1598,7 +1597,7 @@ namespace Js
             //
             // Whenever possible, our enumerator populates the cache, so we should generally get a cache hit here
             PropertyValueInfo getPropertyInfo;
-            if (propertyString == nullptr || !propertyString->TryGetPropertyFromCache<true /* OwnPropertyOnly */, false /* OutputExistence */>(from, from, &propValue, scriptContext, &getPropertyInfo))
+            if (propertyString == nullptr || !propertyString->TryGetPropertyFromCache<true /* OwnPropertyOnly */>(from, from, &propValue, scriptContext, &getPropertyInfo))
             {
                 if (!JavascriptOperators::GetOwnProperty(from, nextKey, &propValue, scriptContext, &getPropertyInfo))
                 {

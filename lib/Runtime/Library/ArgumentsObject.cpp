@@ -321,7 +321,7 @@ namespace Js
 
     }
 
-    PropertyQueryFlags HeapArgumentsObject::HasPropertyQuery(PropertyId id, _Inout_opt_ PropertyValueInfo* info)
+    PropertyQueryFlags HeapArgumentsObject::HasPropertyQuery(PropertyId id)
     {
         ScriptContext *scriptContext = GetScriptContext();
 
@@ -332,7 +332,7 @@ namespace Js
             return HeapArgumentsObject::HasItemQuery(index);
         }
 
-        return DynamicObject::HasPropertyQuery(id, info);
+        return DynamicObject::HasPropertyQuery(id);
     }
 
     PropertyQueryFlags HeapArgumentsObject::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)

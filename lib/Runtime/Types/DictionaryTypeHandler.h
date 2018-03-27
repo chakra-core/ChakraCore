@@ -85,7 +85,7 @@ namespace Js
         virtual bool IsObjTypeSpecEquivalent(const Type* type, const EquivalentPropertyEntry* entry) override;
 #endif
 
-        virtual BOOL HasProperty(DynamicObject* instance, PropertyId propertyId, bool *noRedecl = nullptr, _Inout_opt_ PropertyValueInfo* info = nullptr) override;
+        virtual BOOL HasProperty(DynamicObject* instance, PropertyId propertyId, bool *noRedecl = nullptr) override;
         virtual BOOL HasProperty(DynamicObject* instance, JavascriptString* propertyNameString) override;
         virtual BOOL GetProperty(DynamicObject* instance, Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL GetProperty(DynamicObject* instance, Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
@@ -225,11 +225,10 @@ namespace Js
 
         BigDictionaryTypeHandler* ConvertToBigDictionaryTypeHandler(DynamicObject* instance);
 
-        void SetPropertyValueInfo(PropertyValueInfo* info, RecyclableObject* instance, T propIndex, DictionaryPropertyDescriptor<T>* descriptor);
-        void SetPropertyValueInfoNonFixed(PropertyValueInfo* info, RecyclableObject* instance, T propIndex, PropertyAttributes attributes, InlineCacheFlags flags = InlineCacheNoFlags);
+        void SetPropertyValueInfo(PropertyValueInfo* info, RecyclableObject* instance, T propIndex, PropertyAttributes attributes, InlineCacheFlags flags = InlineCacheNoFlags);
 
         template<bool allowLetConstGlobal>
-        inline BOOL HasProperty_Internal(DynamicObject* instance, PropertyId propertyId, bool *noRedecl, _Inout_opt_ PropertyValueInfo* info, bool *pDeclaredProperty, bool *pNonconfigurableProperty);
+        inline BOOL HasProperty_Internal(DynamicObject* instance, PropertyId propertyId, bool *noRedecl, bool *pDeclaredProperty, bool *pNonconfigurableProperty);
         template<bool allowLetConstGlobal>
         inline PropertyIndex GetPropertyIndex_Internal(PropertyRecord const* propertyRecord);
         template<bool allowLetConstGlobal>

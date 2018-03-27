@@ -72,7 +72,7 @@ namespace Js
     }
 #endif
 
-    BOOL NullTypeHandlerBase::HasProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *noRedecl, _Inout_opt_ PropertyValueInfo* info)
+    BOOL NullTypeHandlerBase::HasProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *noRedecl)
     {
         // Check numeric propertyId only if objectArray is available
         uint32 indexVal;

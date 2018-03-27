@@ -17,9 +17,9 @@ namespace Js
         __super::SetHostObject(hostObject);
     }
 
-    PropertyQueryFlags ModuleRoot::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
+    PropertyQueryFlags ModuleRoot::HasPropertyQuery(PropertyId propertyId)
     {
-        if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId, info)))
+        if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId)))
         {
             return PropertyQueryFlags::Property_Found;
         }
@@ -27,7 +27,7 @@ namespace Js
         {
             return PropertyQueryFlags::Property_Found;
         }
-        return this->GetLibrary()->GetGlobalObject()->GlobalObject::HasPropertyQuery(propertyId, info);
+        return this->GetLibrary()->GetGlobalObject()->GlobalObject::HasPropertyQuery(propertyId);
     }
 
     BOOL ModuleRoot::EnsureProperty(PropertyId propertyId)
@@ -56,7 +56,7 @@ namespace Js
 
     BOOL ModuleRoot::HasOwnProperty(PropertyId propertyId)
     {
-        return JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId, nullptr /*info*/));
+        return JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId));
     }
 
     PropertyQueryFlags ModuleRoot::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)

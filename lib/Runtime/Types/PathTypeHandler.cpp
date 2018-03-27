@@ -312,7 +312,13 @@ namespace Js
                     if ((attr & (ObjectSlotAttr_Writable | ObjectSlotAttr_Accessor)) == ObjectSlotAttr_Writable)
                     {
                         PropertyValueInfo::SetCacheInfo(info, propertyString, propertyString->GetLdElemInlineCache(), false);
-                        SetPropertyValueInfo(info, instance, index, attr);
+                        PropertyValueInfo::Set(info, instance, index, ObjectSlotAttributesToPropertyAttributes(attr));
+#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
+                        if (FixPropsOnPathTypes() && (index >= this->GetTypePath()->GetMaxInitializedLength() || this->GetTypePath()->GetIsFixedFieldAt(index, GetPathLength())))
+                        {
+                            PropertyValueInfo::DisableStoreFieldCache(info);
+                        }
+#endif
                     }
                     else
                     {
@@ -581,18 +587,7 @@ namespace Js
     }
 #endif
 
-    void PathTypeHandlerBase::SetPropertyValueInfo(PropertyValueInfo* info, RecyclableObject* instance, PropertyIndex index, ObjectSlotAttributes attributes)
-    {
-        PropertyValueInfo::Set(info, instance, index, ObjectSlotAttributesToPropertyAttributes(attributes));
-#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
-        if (FixPropsOnPathTypes() && (index >= this->GetTypePath()->GetMaxInitializedLength() || this->GetTypePath()->GetIsFixedFieldAt(index, GetPathLength())))
-        {
-            PropertyValueInfo::DisableStoreFieldCache(info);
-        }
-#endif
-    }
-
-    BOOL PathTypeHandlerBase::HasProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *noRedecl, _Inout_opt_ PropertyValueInfo* info)
+    BOOL PathTypeHandlerBase::HasProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *noRedecl)
     {
         uint32 indexVal;
         if (noRedecl != nullptr)
@@ -600,13 +595,8 @@ namespace Js
             *noRedecl = false;
         }
 
-        PropertyIndex propertyIndex = PathTypeHandlerBase::GetPropertyIndex(propertyId);
-        if (propertyIndex != Constants::NoSlot)
+        if (PathTypeHandlerBase::GetPropertyIndex(propertyId) != Constants::NoSlot)
         {
-            if (info)
-            {
-                this->SetPropertyValueInfo(info, instance, propertyIndex);
-            }
             return true;
         }
 
@@ -634,7 +624,13 @@ namespace Js
         if (index != Constants::NoSlot)
         {
             *value = instance->GetSlot(index);
-            SetPropertyValueInfo(info, instance, index);
+            PropertyValueInfo::Set(info, instance, index);
+#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
+            if (FixPropsOnPathTypes() && (index >= this->GetTypePath()->GetMaxInitializedLength() || this->GetTypePath()->GetIsFixedFieldAt(index, GetPathLength())))
+            {
+                PropertyValueInfo::DisableStoreFieldCache(info);
+            }
+#endif
             return true;
         }
 
@@ -3578,41 +3574,6 @@ namespace Js
         return GetPropertyCount() - setterCount;
     }
 
-    BOOL PathTypeHandlerWithAttr::HasProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *noRedecl, _Inout_opt_ PropertyValueInfo* info)
-    {
-        if (noRedecl != nullptr)
-        {
-            *noRedecl = false;
-        }
-
-        PropertyIndex index = GetTypePath()->LookupInline(propertyId, GetPathLength());
-        if (index == Constants::NoSlot)
-        {
-            return __super::HasProperty(instance, propertyId, noRedecl, info);
-        }
-
-        ObjectSlotAttributes attr = attributes[index];
-
-        if (attr & ObjectSlotAttr_Deleted)
-        {
-            return false;
-        }
-
-        if (attr & ObjectSlotAttr_Accessor)
-        {
-            // PropertyAttributes is only one byte so it can't carry out data about whether this is an accessor.
-            // Accessors must be cached differently than normal properties, so if we want to cache this we must
-            // do so here rather than in the caller. However, caching here would require passing originalInstance and 
-            // requestContext through a wide variety of call paths to this point (like we do for GetProperty), for
-            // very little improvement. For now, just block caching this case.
-            PropertyValueInfo::SetNoCache(info, instance);
-            return true;
-        }
-
-        this->SetPropertyValueInfo(info, instance, index, attr);
-        return true;
-    }
-
     BOOL PathTypeHandlerWithAttr::GetProperty(DynamicObject* instance, Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         PropertyIndex index = GetTypePath()->LookupInline(propertyId, GetPathLength());
@@ -3640,7 +3601,13 @@ namespace Js
         }
 
         *value = instance->GetSlot(index);
-        this->SetPropertyValueInfo(info, instance, index, attr);
+        PropertyValueInfo::Set(info, instance, index, ObjectSlotAttributesToPropertyAttributes(attributes[index]));
+#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
+        if (FixPropsOnPathTypes() && (index >= this->GetTypePath()->GetMaxInitializedLength() || this->GetTypePath()->GetIsFixedFieldAt(index, GetPathLength())))
+        {
+            PropertyValueInfo::DisableStoreFieldCache(info);
+        }
+#endif
         return true;
     }
 
