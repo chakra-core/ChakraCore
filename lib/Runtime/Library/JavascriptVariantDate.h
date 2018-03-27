@@ -35,7 +35,7 @@ namespace Js
         double GetValue() { return value; }
 
         virtual BOOL Equals(Var other, BOOL* value, ScriptContext * requestContext) override;
-        virtual PropertyQueryFlags HasPropertyQuery(Js::PropertyId propertyId) override { return PropertyQueryFlags::Property_NotFound; };
+        virtual PropertyQueryFlags HasPropertyQuery(Js::PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info) override { return PropertyQueryFlags::Property_NotFound; };
         virtual PropertyQueryFlags GetPropertyQuery(Js::Var originalInstance, Js::PropertyId propertyId, Js::Var* value, Js::PropertyValueInfo* info, Js::ScriptContext* requestContext) override;
         virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual PropertyQueryFlags GetPropertyReferenceQuery(Js::Var originalInstance, Js::PropertyId propertyId, Js::Var* value, Js::PropertyValueInfo* info, Js::ScriptContext* requestContext) override;

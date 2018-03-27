@@ -3378,7 +3378,7 @@ namespace Js
         PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
         Var aValue;
         if (obj &&
-            CacheOperators::TryGetProperty<true, true, false, false, false, false, true, false, false>(
+            CacheOperators::TryGetProperty<true, true, false, false, false, false, true, false, false, false>(
                 obj, false, obj, propertyId, &aValue, GetScriptContext(), nullptr, &info))
         {
             SetReg(playout->Value, aValue);
@@ -3424,7 +3424,7 @@ namespace Js
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
         Var aValue;
-        if (CacheOperators::TryGetProperty<true, true, false, false, false, false, true, false, false>(
+        if (CacheOperators::TryGetProperty<true, true, false, false, false, false, true, false, false, false>(
                 obj, true, obj, propertyId, &aValue, GetScriptContext(), nullptr, &info))
         {
             SetReg(playout->Value, aValue);
@@ -3482,7 +3482,7 @@ namespace Js
         PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
         Var aValue;
         if (obj &&
-            CacheOperators::TryGetProperty<true, true, false, false, false, false, true, false, false>(
+            CacheOperators::TryGetProperty<true, true, false, false, false, false, true, false, false, false>(
                 obj, false, obj, propertyId, &aValue, GetScriptContext(), nullptr, &info))
         {
             threadContext->CheckAndResetImplicitCallAccessorFlag();
@@ -3811,7 +3811,7 @@ namespace Js
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
         Var value;
-        if(CacheOperators::TryGetProperty<true, false, false, false, false, false, true, false, false>(
+        if(CacheOperators::TryGetProperty<true, false, false, false, false, false, true, false, false, false>(
                 obj, true, obj, propertyId, &value, GetScriptContext(), nullptr, &info))
         {
             SetReg(playout->Value, value);
@@ -4012,7 +4012,7 @@ namespace Js
             PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
 
             Var value;
-            if (CacheOperators::TryGetProperty<true, false, false, false, false, false, true, false, false>(
+            if (CacheOperators::TryGetProperty<true, false, false, false, false, false, true, false, false, false>(
                     obj, false, obj, propertyId, &value, GetScriptContext(), nullptr, &info))
             {
                 SetReg(playout->Value, value);
@@ -4038,7 +4038,7 @@ namespace Js
             PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->PropertyIdIndex, true);
 
             Var value;
-            if (CacheOperators::TryGetProperty<true, false, false, false, false, false, true, false, false>(
+            if (CacheOperators::TryGetProperty<true, false, false, false, false, false, true, false, false, false>(
                 thisObj, false, superObj, propertyId, &value, GetScriptContext(), nullptr, &info))
             {
                 SetReg(playout->Value, value);
@@ -4159,7 +4159,7 @@ namespace Js
             PropertyValueInfo info;
             PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
             Var value;
-            if (CacheOperators::TryGetProperty<true, false, false, false, false, false, true, false, false>(
+            if (CacheOperators::TryGetProperty<true, false, false, false, false, false, true, false, false, false>(
                     obj, false, obj, propertyId, &value, scriptContext, nullptr, &info))
             {
                 threadContext->CheckAndResetImplicitCallAccessorFlag();
@@ -4196,7 +4196,7 @@ namespace Js
             PropertyValueInfo info;
             PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
             Var value;
-            if (CacheOperators::TryGetProperty<true, false, false, false, false, false, true, false, false>(
+            if (CacheOperators::TryGetProperty<true, false, false, false, false, false, true, false, false, false>(
                 obj, false, obj, propertyId, &value, scriptContext, nullptr, &info))
             {
                 threadContext->CheckAndResetImplicitCallAccessorFlag();
