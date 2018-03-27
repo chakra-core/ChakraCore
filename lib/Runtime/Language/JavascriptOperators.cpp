@@ -1826,7 +1826,11 @@ CommonNumber:
                 }
                 return JavascriptConversion::PropertyQueryFlagsToBoolean(result);
             }
-            if (object->SkipsPrototype())
+
+            // SkipsPrototype refers only to the Get operation, not Has. Some objects like CustomExternalObject respond
+            // to HasPropertyQuery with info only about the object itself and GetPropertyQuery with info about its prototype chain.
+            // For consistency with the behavior of JavascriptOperators::HasProperty, don't skip prototypes when outputting existence.
+            if (!OutputExistence && object->SkipsPrototype())
             {
                 break;
             }
