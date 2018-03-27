@@ -26,6 +26,8 @@ def machineTypeToOSTagMap = [
 ]
 
 def defaultMachineTag = 'latest-or-auto'
+def defaultWindowsMachineTag = defaultMachineTag
+def defaultXPlatMachineTag = defaultMachineTag
 
 def legacyWindowsMachine = 'Windows 7'
 def legacyWindowsMachineTag = defaultMachineTag
@@ -85,7 +87,7 @@ def CreateBuildTask = { isPR, buildArch, buildType, machine, machineTag, configT
         false, // doNotFailIfNothingArchived=false ~= failIfNothingArchived
         false) // archiveOnlyIfSuccessful=false ~= archiveAlways
 
-    Utilities.setMachineAffinity(newJob, machine, machineTag ?: defaultMachineTag)
+    Utilities.setMachineAffinity(newJob, machine, machineTag ?: defaultWindowsMachineTag)
     Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
 
     if (nonDefaultTaskSetup == null) {
@@ -152,7 +154,7 @@ def CreateXPlatBuildTask = { isPR, buildType, staticBuild, machine, platform, co
         true, // doNotFailIfNothingArchived=false ~= failIfNothingArchived (true ~= doNotFail)
         false) // archiveOnlyIfSuccessful=false ~= archiveAlways
 
-    Utilities.setMachineAffinity(newJob, machine, 'latest-or-auto')
+    Utilities.setMachineAffinity(newJob, machine, defaultXPlatMachineTag)
     Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
 
     if (nonDefaultTaskSetup == null) {
@@ -223,7 +225,7 @@ def CreateStyleCheckTasks = { taskString, taskName, checkName ->
             Utilities.addGithubPushTrigger(newJob)
         }
 
-        Utilities.setMachineAffinity(newJob, 'Ubuntu16.04', 'latest-or-auto')
+        Utilities.setMachineAffinity(newJob, 'Ubuntu16.04', defaultXPlatMachineTag)
     }
 }
 
@@ -231,7 +233,7 @@ def CreateStyleCheckTasks = { taskString, taskName, checkName ->
 // INNER LOOP TASKS
 // ----------------
 
-CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, null, null, "-winBlue", true, null, null)
+CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, null, null, "-win10", true, null, null)
 
 // Add some additional daily configs to trigger per-PR as a quality gate:
 // x64_debug Slow Tests
