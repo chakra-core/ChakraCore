@@ -6032,18 +6032,18 @@ namespace Js
         {
             return;
         }
-        this->SetAuxPtr(AuxPointerType::ForInCacheArray, AllocatorNewArrayZ(CacheAllocator, this->GetScriptContext()->ForInCacheAllocator(), ForInCache, profiledForInLoopCount));
+        this->SetAuxPtr(AuxPointerType::ForInCacheArray, AllocatorNewArrayZ(CacheAllocator, this->GetScriptContext()->GetEnumeratorAllocator(), EnumeratorCache, profiledForInLoopCount));
     }
 
-    ForInCache * FunctionBody::GetForInCache(uint index)
+    EnumeratorCache * FunctionBody::GetForInCache(uint index)
     {
         Assert(index < this->GetProfiledForInLoopCount());
-        return &((ForInCache *)this->GetAuxPtr(AuxPointerType::ForInCacheArray))[index];
+        return &((EnumeratorCache *)this->GetAuxPtr(AuxPointerType::ForInCacheArray))[index];
     }
 
-    ForInCache * FunctionBody::GetForInCacheArray()
+    EnumeratorCache * FunctionBody::GetForInCacheArray()
     {
-        return ((ForInCache *)this->GetAuxPtrWithLock(AuxPointerType::ForInCacheArray));
+        return ((EnumeratorCache *)this->GetAuxPtrWithLock(AuxPointerType::ForInCacheArray));
     }
 
     void FunctionBody::CleanUpForInCache(bool isShutdown)
@@ -6053,16 +6053,16 @@ namespace Js
         {
             return;
         }
-        ForInCache * forInCacheArray = (ForInCache *)this->GetAuxPtr(AuxPointerType::ForInCacheArray);
+        EnumeratorCache * forInCacheArray = (EnumeratorCache *)this->GetAuxPtr(AuxPointerType::ForInCacheArray);
         if (forInCacheArray)
         {
             if (isShutdown)
             {
-                memset(forInCacheArray, 0, sizeof(ForInCache) * profiledForInLoopCount);
+                memset(forInCacheArray, 0, sizeof(EnumeratorCache) * profiledForInLoopCount);
             }
             else
             {
-                AllocatorDeleteArray(CacheAllocator, this->GetScriptContext()->ForInCacheAllocator(), profiledForInLoopCount, forInCacheArray);
+                AllocatorDeleteArray(CacheAllocator, this->GetScriptContext()->GetEnumeratorAllocator(), profiledForInLoopCount, forInCacheArray);
                 this->SetAuxPtr(AuxPointerType::ForInCacheArray, nullptr);
             }
         }

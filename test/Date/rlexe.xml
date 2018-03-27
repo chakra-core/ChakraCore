@@ -117,7 +117,7 @@
       <!-- only to catch debug build assertions -->
       <compile-flags>-nonative -intl-</compile-flags>
       <baseline/>
-      <tags>exclude_fre,exclude_dynapogo</tags>
+      <tags>exclude_test,exclude_dynapogo</tags>
     </default>
   </test>
   <test>

@@ -295,9 +295,9 @@ namespace Js
         return JavascriptConversion::BooleanToPropertyQueryFlags(GetProperty(originalInstance, propertyId, value, info, requestContext));
     }
 
-    BOOL ModuleNamespace::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
+    BOOL ModuleNamespace::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, EnumeratorCache * enumeratorCache)
     {
-        ModuleNamespaceEnumerator* moduleEnumerator = ModuleNamespaceEnumerator::New(this, flags, requestContext, forInCache);
+        ModuleNamespaceEnumerator* moduleEnumerator = ModuleNamespaceEnumerator::New(this, flags, requestContext, enumeratorCache);
         if (moduleEnumerator == nullptr)
         {
             return FALSE;

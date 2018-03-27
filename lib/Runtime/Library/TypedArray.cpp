@@ -938,9 +938,9 @@ namespace Js
         return __super::GetItemSetter(index, setterValue, requestContext);
     }
 
-    BOOL TypedArrayBase::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
+    BOOL TypedArrayBase::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, EnumeratorCache * enumeratorCache)
     {
-        return enumerator->Initialize(nullptr, this, this, flags, requestContext, forInCache);
+        return enumerator->Initialize(nullptr, this, this, flags, requestContext, enumeratorCache);
     }
 
     JavascriptEnumerator * TypedArrayBase::GetIndexEnumerator(EnumeratorFlags flags, ScriptContext * requestContext)

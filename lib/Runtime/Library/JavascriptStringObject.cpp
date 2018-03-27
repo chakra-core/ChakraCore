@@ -396,11 +396,11 @@ namespace Js
         return DynamicObject::SetItem(index, value, flags);
     }
 
-    BOOL JavascriptStringObject::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
+    BOOL JavascriptStringObject::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, EnumeratorCache * enumeratorCache)
     {
         return GetEnumeratorWithPrefix(
             RecyclerNew(GetScriptContext()->GetRecycler(), JavascriptStringEnumerator, this->Unwrap(), requestContext),
-            enumerator, flags, requestContext, forInCache);
+            enumerator, flags, requestContext, enumeratorCache);
     }
 
     BOOL JavascriptStringObject::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)

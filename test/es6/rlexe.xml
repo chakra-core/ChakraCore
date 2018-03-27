@@ -248,7 +248,7 @@
       <files>blockscope-functionbinding.js</files>
       <compile-flags>-lic:1 -InitializeInterpreterSlotsWithInvalidStackVar</compile-flags>
       <baseline>blockscope-functionbinding.baseline</baseline>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -483,7 +483,7 @@
     <default>
       <files>ES6Symbol_540238.js</files>
       <compile-flags>-RecyclerStress</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -597,7 +597,7 @@
     <default>
       <files>bug620694.js</files>
       <compile-flags>-es6all -recyclerstress</compile-flags>
-      <tags>exclude_fre,Slow</tags>
+      <tags>exclude_test,Slow</tags>
     </default>
   </test>
   <test>
@@ -963,7 +963,7 @@
       <files>blue_641922.js</files>
       <baseline>blue_641922.baseline</baseline>
       <compile-flags> -ES6Rest -RecyclerNoPageReuse -PageHeap:2</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -1001,7 +1001,7 @@
     <default>
       <files>regex-octoquad.js</files>
       <compile-flags>-RegexOptimize -args summary -endargs</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -1118,7 +1118,7 @@
       <files>ProxyInProxy.js</files>
       <baseline>ProxyInProxy.baseline</baseline>
       <compile-flags> -mic:1 -off:simpleJIT </compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>

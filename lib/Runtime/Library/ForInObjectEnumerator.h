@@ -25,15 +25,15 @@ namespace Js
         bool enumeratingPrototype;
 
         BOOL TestAndSetEnumerated(PropertyId propertyId);
-        BOOL InitializeCurrentEnumerator(RecyclableObject * object, ForInCache * forInCache = nullptr);
-        BOOL InitializeCurrentEnumerator(RecyclableObject * object, EnumeratorFlags flags, ScriptContext * requestContext, ForInCache * forInCache);
+        BOOL InitializeCurrentEnumerator(RecyclableObject * object, EnumeratorCache * forInCache = nullptr);
+        BOOL InitializeCurrentEnumerator(RecyclableObject * object, EnumeratorFlags flags, ScriptContext * requestContext, EnumeratorCache * forInCache);
 
     public:
         ForInObjectEnumerator(RecyclableObject* currentObject, ScriptContext * requestContext, bool enumSymbols = false);
         ~ForInObjectEnumerator() { Clear(); }
 
         ScriptContext * GetScriptContext() const { return enumerator.GetScriptContext(); }
-        void Initialize(RecyclableObject* currentObject, ScriptContext * requestContext, bool enumSymbols = false, ForInCache * forInCache = nullptr);
+        void Initialize(RecyclableObject* currentObject, ScriptContext * requestContext, bool enumSymbols = false, EnumeratorCache * forInCache = nullptr);
         void Clear();
         JavascriptString * MoveAndGetNext(PropertyId& propertyId);
 

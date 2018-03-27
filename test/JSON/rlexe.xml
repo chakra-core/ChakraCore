@@ -19,7 +19,7 @@
       <files>stringify-replacer.js</files>
       <baseline>stringify-replacer.baseline</baseline>
       <compile-flags>-recyclerstress</compile-flags>
-      <tags>exclude_fre,Slow</tags>
+      <tags>exclude_test,Slow</tags>
     </default>
   </test>
   <test>
@@ -45,7 +45,7 @@
       <files>simple.withLog.js</files>
       <baseline>simple.withLog.baseline</baseline>
       <compile-flags>-recyclerstress -trace:JSON</compile-flags>
-      <tags>exclude_fre,Slow</tags>
+      <tags>exclude_test,Slow</tags>
     </default>
   </test>
   <test>
@@ -58,7 +58,7 @@
     <default>
       <files>parseWithGc.js</files>
       <compile-flags>-ForceGCAfterJSONParse</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -66,7 +66,7 @@
       <files>jsonCache.js</files>
       <compile-flags>-ForceGCAfterJSONParse</compile-flags>
       <baseline>jsonCache.baseline</baseline>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>

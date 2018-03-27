@@ -1569,8 +1569,9 @@ namespace Js
 
     void JavascriptObject::AssignForGenericObjects(RecyclableObject* from, RecyclableObject* to, ScriptContext* scriptContext)
     {
+        EnumeratorCache* cache = scriptContext->GetLibrary()->GetObjectAssignCache(from->GetType());
         JavascriptStaticEnumerator enumerator;
-        if (!from->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::EnumSymbols, scriptContext))
+        if (!from->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::EnumSymbols | EnumeratorFlags::UseCache, scriptContext, cache))
         {
             // Nothing to enumerate, continue with the nextSource.
             return;

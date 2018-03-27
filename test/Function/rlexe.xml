@@ -158,7 +158,7 @@
       <files>deferredParsing.js</files>
       <compile-flags>-force:deferparse</compile-flags>
       <baseline>deferredParsing_3.baseline</baseline>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -166,7 +166,7 @@
       <files>deferredParsing.js</files>
       <compile-flags>-forceUndoDefer</compile-flags>
       <baseline>deferredParsing_3.baseline</baseline>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -174,7 +174,7 @@
       <files>deferredGetterSetter.js</files>
       <compile-flags>-force:deferparse</compile-flags>
       <baseline>deferredGetterSetter.baseline</baseline>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -203,7 +203,7 @@
       <files>deferredWith.js</files>
       <compile-flags>-Force:Deferparse</compile-flags>
       <baseline>deferredWith.v4.baseline</baseline>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -211,7 +211,7 @@
       <files>deferredWith2.js</files>
       <compile-flags>-Force:Deferparse</compile-flags>
       <baseline>deferredWith2.baseline</baseline>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -298,7 +298,7 @@
       <files>FuncBody.bug133933.js</files>
       <baseline>FuncBody.bug133933.baseline</baseline>
       <compile-flags>-trace:FunctionSourceInfoParse -off:deferparse</compile-flags>
-      <tags>exclude_fre,exclude_dynapogo</tags>
+      <tags>exclude_test,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -326,7 +326,7 @@
       <files>FuncBody.bug231397.js</files>
       <baseline>FuncBody.bug231397.baseline</baseline>
       <compile-flags>-dump:bytecode</compile-flags>
-      <tags>exclude_bytecodelayout,exclude_fre,exclude_nonative,require_backend</tags>
+      <tags>exclude_bytecodelayout,exclude_test,exclude_nonative,require_backend</tags>
     </default>
   </test>
   <test>
@@ -381,7 +381,7 @@
     <default>
       <files>StackArgsWithFormals.js</files>
       <compile-flags>-mic:1 -off:simpleJit -trace:stackargformalsopt</compile-flags>
-      <tags>exclude_dynapogo,exclude_fre,exclude_nonative,require_backend,exclude_forceserialized,exclude_arm64</tags>
+      <tags>exclude_dynapogo,exclude_test,exclude_nonative,require_backend,exclude_forceserialized,exclude_arm64</tags>
       <baseline>StackArgsWithFormals.baseline</baseline>
     </default>
   </test>
@@ -397,7 +397,7 @@
       <files>childCallsEvalJitLoopBody.js</files>
       <baseline />
       <compile-flags>-prejit</compile-flags>
-      <tags>exclude_fre,exclude_dynapogo</tags>
+      <tags>exclude_test,exclude_dynapogo</tags>
     </default>
   </test>
   <test>

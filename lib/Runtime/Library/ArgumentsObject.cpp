@@ -8,11 +8,11 @@
 
 namespace Js
 {
-    BOOL ArgumentsObject::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
+    BOOL ArgumentsObject::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, EnumeratorCache * enumeratorCache)
     {
         return GetEnumeratorWithPrefix(
             RecyclerNew(GetScriptContext()->GetRecycler(), ArgumentsObjectPrefixEnumerator, this, flags, requestContext),
-            enumerator, flags, requestContext, forInCache);
+            enumerator, flags, requestContext, enumeratorCache);
     }
 
     BOOL ArgumentsObject::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
@@ -593,9 +593,9 @@ namespace Js
         return this->DynamicObject::SetPropertyWithAttributes(propertyId, value, attributes, info, flags, possibleSideEffects);
     }
 
-    BOOL ES5HeapArgumentsObject::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
+    BOOL ES5HeapArgumentsObject::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, EnumeratorCache * enumeratorCache)
     {
-        ES5ArgumentsObjectEnumerator * es5HeapArgumentsObjectEnumerator = ES5ArgumentsObjectEnumerator::New(this, flags, requestContext, forInCache);
+        ES5ArgumentsObjectEnumerator * es5HeapArgumentsObjectEnumerator = ES5ArgumentsObjectEnumerator::New(this, flags, requestContext, enumeratorCache);
         if (es5HeapArgumentsObjectEnumerator == nullptr)
         {
             return false;
