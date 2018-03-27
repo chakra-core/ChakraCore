@@ -40,7 +40,7 @@ namespace Js
         return GetTypeHandler()->IsLengthWritable();
     }
 
-    PropertyQueryFlags ES5Array::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
+    PropertyQueryFlags ES5Array::HasPropertyQuery(PropertyId propertyId)
     {
         if (propertyId == PropertyIds::length)
         {
@@ -48,7 +48,7 @@ namespace Js
         }
 
         // Skip JavascriptArray override
-        return DynamicObject::HasPropertyQuery(propertyId, info);
+        return DynamicObject::HasPropertyQuery(propertyId);
     }
 
     BOOL ES5Array::IsWritable(PropertyId propertyId)

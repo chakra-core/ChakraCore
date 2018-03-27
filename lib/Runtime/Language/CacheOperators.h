@@ -29,8 +29,7 @@ namespace Js
             bool CheckTypePropertyCache,
             bool IsInlineCacheAvailable,
             bool IsPolymorphicInlineCacheAvailable,
-            bool ReturnOperationInfo,
-            bool OutputExistence /*When set, propertyValue represents whether the property exists on the instance, not its actual value*/>
+            bool ReturnOperationInfo>
         static bool TryGetProperty(Var const instance, const bool isRoot, RecyclableObject *const object, const PropertyId propertyId, Var *const propertyValue, ScriptContext *const requestContext, PropertyCacheOperationInfo * operationInfo, PropertyValueInfo *const propertyValueInfo);
         template<
             bool CheckLocal,

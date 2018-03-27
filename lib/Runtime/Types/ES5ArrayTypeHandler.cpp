@@ -725,7 +725,7 @@ namespace Js
     }
 
     template <class T>
-    BOOL ES5ArrayTypeHandlerBase<T>::HasProperty(DynamicObject* instance, PropertyId propertyId, bool *noRedecl, _Inout_opt_ PropertyValueInfo* info)
+    BOOL ES5ArrayTypeHandlerBase<T>::HasProperty(DynamicObject* instance, PropertyId propertyId, bool *noRedecl)
     {
         ScriptContext* scriptContext = instance->GetScriptContext();
         uint32 index;
@@ -741,7 +741,7 @@ namespace Js
             return ES5ArrayTypeHandlerBase<T>::HasItem(instance, index);
         }
 
-        return __super::HasProperty(instance, propertyId, noRedecl, info);
+        return __super::HasProperty(instance, propertyId, noRedecl);
     }
 
     template <class T>

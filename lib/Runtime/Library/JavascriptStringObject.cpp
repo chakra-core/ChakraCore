@@ -94,14 +94,14 @@ namespace Js
         return !conditionMetBehavior;
     }
 
-    PropertyQueryFlags JavascriptStringObject::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
+    PropertyQueryFlags JavascriptStringObject::HasPropertyQuery(PropertyId propertyId)
     {
         if (propertyId == PropertyIds::length)
         {
             return PropertyQueryFlags::Property_Found;
         }
 
-        if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId, info)))
+        if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId)))
         {
             return PropertyQueryFlags::Property_Found;
         }
@@ -171,7 +171,7 @@ namespace Js
 
         // From DynamicObject::IsConfigurable we can't tell if the result is from a property or just default
         // value. Call HasProperty to find out.
-        if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId, nullptr /*info*/)))
+        if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId)))
         {
             return DynamicObject::IsConfigurable(propertyId);
         }
@@ -199,7 +199,7 @@ namespace Js
 
         // From DynamicObject::IsWritable we can't tell if the result is from a property or just default
         // value. Call HasProperty to find out.
-        if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId, nullptr /*info*/)))
+        if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId)))
         {
             return DynamicObject::IsWritable(propertyId);
         }

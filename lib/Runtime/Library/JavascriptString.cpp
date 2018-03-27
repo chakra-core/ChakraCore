@@ -3637,7 +3637,7 @@ case_2:
         return concatString;
     }
 
-    PropertyQueryFlags JavascriptString::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
+    PropertyQueryFlags JavascriptString::HasPropertyQuery(PropertyId propertyId)
     {
         if (propertyId == PropertyIds::length)
         {

@@ -243,12 +243,12 @@ namespace Js
         return GetTypeHandler()->GetPropertyIndex(this->GetScriptContext()->GetPropertyName(propertyId));
     }
 
-    PropertyQueryFlags DynamicObject::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
+    PropertyQueryFlags DynamicObject::HasPropertyQuery(PropertyId propertyId)
     {
         // HasProperty can be invoked with propertyId = NoProperty in some cases, namely cross-thread and DOM
         // This is done to force creation of a type handler in case the type handler is deferred
         Assert(!Js::IsInternalPropertyId(propertyId) || propertyId == Js::Constants::NoProperty);
-        return JavascriptConversion::BooleanToPropertyQueryFlags(GetTypeHandler()->HasProperty(this, propertyId, nullptr /*pNoRedecl*/, info));
+        return JavascriptConversion::BooleanToPropertyQueryFlags(GetTypeHandler()->HasProperty(this, propertyId));
     }
 
     // HasOwnProperty and HasProperty is the same for most objects except globalobject (moduleroot as well in legacy)

@@ -740,7 +740,7 @@ namespace Js
 
     BOOL TypedArrayBase::HasOwnProperty(PropertyId propertyId)
     {
-        return JavascriptConversion::PropertyQueryFlagsToBoolean(HasPropertyQuery(propertyId, nullptr /*info*/));
+        return JavascriptConversion::PropertyQueryFlagsToBoolean(HasPropertyQuery(propertyId));
     }
 
     inline BOOL TypedArrayBase::CanonicalNumericIndexString(PropertyId propertyId, ScriptContext *scriptContext)
@@ -755,7 +755,7 @@ namespace Js
         return JavascriptConversion::CanonicalNumericIndexString(propertyString, &result, scriptContext);
     }
 
-    PropertyQueryFlags TypedArrayBase::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
+    PropertyQueryFlags TypedArrayBase::HasPropertyQuery(PropertyId propertyId)
     {
         uint32 index = 0;
         ScriptContext *scriptContext = GetScriptContext();
@@ -770,7 +770,7 @@ namespace Js
             return PropertyQueryFlags::Property_NotFound_NoProto;
         }
 
-        return DynamicObject::HasPropertyQuery(propertyId, info);
+        return DynamicObject::HasPropertyQuery(propertyId);
     }
 
     BOOL TypedArrayBase::DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags)

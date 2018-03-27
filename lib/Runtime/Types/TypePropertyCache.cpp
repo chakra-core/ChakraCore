@@ -151,7 +151,6 @@ namespace Js
         return true;
     }
 
-    template <bool OutputExistence /*When set, propertyValue represents whether the property exists on the instance, not its actual value*/>
     bool TypePropertyCache::TryGetProperty(
         const bool checkMissing,
         RecyclableObject *const propertyObject,
@@ -212,27 +211,17 @@ namespace Js
                     ->InlineOrAuxSlotIndexToPropertyIndex(propertyIndex, isInlineSlot);
             Assert(typeHandlerPropertyIndex == propertyObject->GetPropertyIndex(propertyId));
         #endif
-            if (OutputExistence)
-            {
-                *propertyValue = JavascriptBoolean::ToVar(!isMissing, requestContext);
-                Assert(isMissing == !JavascriptOperators::HasProperty(propertyObject, propertyId));
-            }
-            else
-            {
-                *propertyValue =
-                    isInlineSlot
-                        ? DynamicObject::FromVar(propertyObject)->GetInlineSlot(propertyIndex)
-                        : DynamicObject::FromVar(propertyObject)->GetAuxSlot(propertyIndex);
-            }
+
+            *propertyValue =
+                isInlineSlot
+                    ? DynamicObject::FromVar(propertyObject)->GetInlineSlot(propertyIndex)
+                    : DynamicObject::FromVar(propertyObject)->GetAuxSlot(propertyIndex);
 
             if(propertyObject->GetScriptContext() == requestContext)
             {
-                if (!OutputExistence)
-                {
-                    DebugOnly(Var getPropertyValue = JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext));
-                    Assert(*propertyValue == getPropertyValue ||
-                        (getPropertyValue == requestContext->GetLibrary()->GetNull() && requestContext->GetThreadContext()->IsDisableImplicitCall() && propertyObject->GetType()->IsExternal()));
-                }
+                DebugOnly(Var getPropertyValue = JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext));
+                Assert(*propertyValue == getPropertyValue ||
+                    (getPropertyValue == requestContext->GetLibrary()->GetNull() && requestContext->GetThreadContext()->IsDisableImplicitCall() && propertyObject->GetType()->IsExternal()));
 
                 CacheOperators::Cache<false, true, false>(
                     false,
@@ -249,9 +238,9 @@ namespace Js
                     requestContext);
                 return true;
             }
-            else if (!OutputExistence)
+            else
             {
-                *propertyValue = CrossSite::MarshalVar(requestContext, *propertyValue);
+            *propertyValue = CrossSite::MarshalVar(requestContext, *propertyValue);
             }
             // Cannot use GetProperty and compare results since they may not compare equal when they're marshaled
 
@@ -284,24 +273,13 @@ namespace Js
         Assert(typeHandlerPropertyIndex == prototypeObjectWithProperty->GetPropertyIndex(propertyId));
     #endif
 
-        if (OutputExistence)
-        {
-            *propertyValue = JavascriptBoolean::ToVar(!isMissing, requestContext);
-            Assert(isMissing == !JavascriptOperators::HasProperty(propertyObject, propertyId));
-        }
-        else
-        {
-            *propertyValue =
-                isInlineSlot
-                    ? prototypeObjectWithProperty->GetInlineSlot(propertyIndex)
-                    : prototypeObjectWithProperty->GetAuxSlot(propertyIndex);
-        }
+        *propertyValue =
+            isInlineSlot
+                ? prototypeObjectWithProperty->GetInlineSlot(propertyIndex)
+                : prototypeObjectWithProperty->GetAuxSlot(propertyIndex);
         if(prototypeObjectWithProperty->GetScriptContext() == requestContext)
         {
-            if (!OutputExistence)
-            {
-                Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext));
-            }
+            Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext));
 
             if(propertyObject->GetScriptContext() != requestContext)
             {
@@ -323,9 +301,9 @@ namespace Js
                 requestContext);
             return true;
         }
-        else if (!OutputExistence)
+        else
         {
-            *propertyValue = CrossSite::MarshalVar(requestContext, *propertyValue);
+        *propertyValue = CrossSite::MarshalVar(requestContext, *propertyValue);
         }
         // Cannot use GetProperty and compare results since they may not compare equal when they're marshaled
 
@@ -336,22 +314,6 @@ namespace Js
         }
         return true;
     }
-    template bool TypePropertyCache::TryGetProperty<false>(
-        const bool checkMissing,
-        RecyclableObject *const propertyObject,
-        const PropertyId propertyId,
-        Var *const propertyValue,
-        ScriptContext *const requestContext,
-        PropertyCacheOperationInfo *const operationInfo,
-        PropertyValueInfo *const propertyValueInfo);
-    template bool TypePropertyCache::TryGetProperty<true>(
-        const bool checkMissing,
-        RecyclableObject *const propertyObject,
-        const PropertyId propertyId,
-        Var *const propertyValue,
-        ScriptContext *const requestContext,
-        PropertyCacheOperationInfo *const operationInfo,
-        PropertyValueInfo *const propertyValueInfo);
 
     bool TypePropertyCache::TrySetProperty(
         RecyclableObject *const object,

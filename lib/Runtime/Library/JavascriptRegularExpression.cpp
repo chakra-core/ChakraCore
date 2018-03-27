@@ -1098,12 +1098,12 @@ namespace Js
         PropertyIds::sticky
     };
 
-    PropertyQueryFlags JavascriptRegExp::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
+    PropertyQueryFlags JavascriptRegExp::HasPropertyQuery(PropertyId propertyId)
     {
         const ScriptConfiguration* scriptConfig = this->GetScriptContext()->GetConfig();
 
 #define HAS_PROPERTY(ownProperty) \
-        return (ownProperty ? PropertyQueryFlags::Property_Found : DynamicObject::HasPropertyQuery(propertyId, info));
+        return (ownProperty ? PropertyQueryFlags::Property_Found : DynamicObject::HasPropertyQuery(propertyId));
 
         switch (propertyId)
         {
@@ -1120,7 +1120,7 @@ namespace Js
         case PropertyIds::sticky:
             HAS_PROPERTY(scriptConfig->IsES6RegExStickyEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled())
         default:
-            return DynamicObject::HasPropertyQuery(propertyId, info);
+            return DynamicObject::HasPropertyQuery(propertyId);
         }
 
 #undef HAS_PROPERTY

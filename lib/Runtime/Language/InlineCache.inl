@@ -11,8 +11,7 @@ namespace Js
         bool CheckProto,
         bool CheckAccessor,
         bool CheckMissing,
-        bool ReturnOperationInfo,
-        bool OutputExistence /*When set, propertyValue represents whether the property exists on the instance, not its actual value*/>
+        bool ReturnOperationInfo>
     bool InlineCache::TryGetProperty(
         Var const instance,
         RecyclableObject *const propertyObject,
@@ -36,17 +35,9 @@ namespace Js
         if (CheckLocal && type == u.local.type)
         {
             Assert(propertyObject->GetScriptContext() == requestContext); // we never cache a type from another script context
-            if (OutputExistence)
-            {
-                *propertyValue = requestContext->GetLibrary()->GetTrue();
-                Assert(JavascriptOperators::HasProperty(propertyObject, propertyId));
-            }
-            else
-            {
-                *propertyValue = DynamicObject::UnsafeFromVar(propertyObject)->GetInlineSlot(u.local.slotIndex);
-                Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
-                    (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
-            }
+            *propertyValue = DynamicObject::UnsafeFromVar(propertyObject)->GetInlineSlot(u.local.slotIndex);
+            Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
+                (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
             if (ReturnOperationInfo)
             {
                 operationInfo->cacheType = CacheType_Local;
@@ -58,17 +49,9 @@ namespace Js
         if (CheckLocal && TypeWithAuxSlotTag(type) == u.local.type)
         {
             Assert(propertyObject->GetScriptContext() == requestContext); // we never cache a type from another script context
-            if (OutputExistence)
-            {
-                *propertyValue = requestContext->GetLibrary()->GetTrue();
-                Assert(JavascriptOperators::HasProperty(propertyObject, propertyId));
-            }
-            else
-            {
-                *propertyValue = DynamicObject::UnsafeFromVar(propertyObject)->GetAuxSlot(u.local.slotIndex);
-                Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
-                    (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
-            }
+            *propertyValue = DynamicObject::UnsafeFromVar(propertyObject)->GetAuxSlot(u.local.slotIndex);
+            Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
+                (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
             if (ReturnOperationInfo)
             {
                 operationInfo->cacheType = CacheType_Local;
@@ -80,17 +63,9 @@ namespace Js
         if (CheckProto && type == u.proto.type && !this->u.proto.isMissing)
         {
             Assert(u.proto.prototypeObject->GetScriptContext() == requestContext); // we never cache a type from another script context
-            if (OutputExistence)
-            {
-                *propertyValue = requestContext->GetLibrary()->GetTrue();
-                Assert(JavascriptOperators::HasProperty(propertyObject, propertyId));
-            }
-            else
-            {
-                *propertyValue = u.proto.prototypeObject->GetInlineSlot(u.proto.slotIndex);
-                Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
-                    (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
-            }
+            *propertyValue = u.proto.prototypeObject->GetInlineSlot(u.proto.slotIndex);
+            Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
+                (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
             if (ReturnOperationInfo)
             {
                 operationInfo->cacheType = CacheType_Proto;
@@ -102,17 +77,9 @@ namespace Js
         if (CheckProto && TypeWithAuxSlotTag(type) == u.proto.type && !this->u.proto.isMissing)
         {
             Assert(u.proto.prototypeObject->GetScriptContext() == requestContext); // we never cache a type from another script context
-            if (OutputExistence)
-            {
-                *propertyValue = requestContext->GetLibrary()->GetTrue();
-                Assert(JavascriptOperators::HasProperty(propertyObject, propertyId));
-            }
-            else
-            {
-                *propertyValue = u.proto.prototypeObject->GetAuxSlot(u.proto.slotIndex);
-                Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
-                    (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
-            }
+            *propertyValue = u.proto.prototypeObject->GetAuxSlot(u.proto.slotIndex);
+            Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
+                (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
             if (ReturnOperationInfo)
             {
                 operationInfo->cacheType = CacheType_Proto;
@@ -126,30 +93,22 @@ namespace Js
             Assert(propertyObject->GetScriptContext() == requestContext); // we never cache a type from another script context
             Assert(u.accessor.flags & InlineCacheGetterFlag);
 
-            if (OutputExistence)
+            RecyclableObject * function;
+            if (u.accessor.isOnProto)
             {
-                *propertyValue = requestContext->GetLibrary()->GetTrue();
-                Assert(JavascriptOperators::HasProperty(propertyObject, propertyId));
+                function = RecyclableObject::UnsafeFromVar(u.accessor.object->GetInlineSlot(u.accessor.slotIndex));
             }
             else
             {
-                RecyclableObject * function;
-                if (u.accessor.isOnProto)
-                {
-                    function = RecyclableObject::UnsafeFromVar(u.accessor.object->GetInlineSlot(u.accessor.slotIndex));
-                }
-                else
-                {
-                    function = RecyclableObject::UnsafeFromVar(DynamicObject::UnsafeFromVar(propertyObject)->GetInlineSlot(u.accessor.slotIndex));
-                }
-
-                *propertyValue = JavascriptOperators::CallGetter(function, instance, requestContext);
-
-                // Can't assert because the getter could have a side effect
-#ifdef CHKGETTER
-                Assert(JavascriptOperators::Equal(*propertyValue, JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext), requestContext));
-#endif
+                function = RecyclableObject::UnsafeFromVar(DynamicObject::UnsafeFromVar(propertyObject)->GetInlineSlot(u.accessor.slotIndex));
             }
+
+            *propertyValue = JavascriptOperators::CallGetter(function, instance, requestContext);
+
+            // Can't assert because the getter could have a side effect
+#ifdef CHKGETTER
+            Assert(JavascriptOperators::Equal(*propertyValue, JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext), requestContext));
+#endif
             if (ReturnOperationInfo)
             {
                 operationInfo->cacheType = CacheType_Getter;
@@ -163,30 +122,22 @@ namespace Js
             Assert(propertyObject->GetScriptContext() == requestContext); // we never cache a type from another script context
             Assert(u.accessor.flags & InlineCacheGetterFlag);
 
-            if (OutputExistence)
+            RecyclableObject * function;
+            if (u.accessor.isOnProto)
             {
-                *propertyValue = requestContext->GetLibrary()->GetTrue();
-                Assert(JavascriptOperators::HasProperty(propertyObject, propertyId));
+                function = RecyclableObject::UnsafeFromVar(u.accessor.object->GetAuxSlot(u.accessor.slotIndex));
             }
             else
             {
-                RecyclableObject * function;
-                if (u.accessor.isOnProto)
-                {
-                    function = RecyclableObject::UnsafeFromVar(u.accessor.object->GetAuxSlot(u.accessor.slotIndex));
-                }
-                else
-                {
-                    function = RecyclableObject::UnsafeFromVar(DynamicObject::FromVar(propertyObject)->GetAuxSlot(u.accessor.slotIndex));
-                }
-
-                *propertyValue = JavascriptOperators::CallGetter(function, instance, requestContext);
-
-                // Can't assert because the getter could have a side effect
-#ifdef CHKGETTER
-                Assert(JavascriptOperators::Equal(*propertyValue, JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext), requestContext));
-#endif
+                function = RecyclableObject::UnsafeFromVar(DynamicObject::FromVar(propertyObject)->GetAuxSlot(u.accessor.slotIndex));
             }
+
+            *propertyValue = JavascriptOperators::CallGetter(function, instance, requestContext);
+
+            // Can't assert because the getter could have a side effect
+#ifdef CHKGETTER
+            Assert(JavascriptOperators::Equal(*propertyValue, JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext), requestContext));
+#endif
             if (ReturnOperationInfo)
             {
                 operationInfo->cacheType = CacheType_Getter;
@@ -198,17 +149,9 @@ namespace Js
         if (CheckMissing && type == u.proto.type && this->u.proto.isMissing)
         {
             Assert(u.proto.prototypeObject->GetScriptContext() == requestContext); // we never cache a type from another script context
-            if (OutputExistence)
-            {
-                *propertyValue = requestContext->GetLibrary()->GetFalse();
-                Assert(!JavascriptOperators::HasProperty(propertyObject, propertyId));
-            }
-            else
-            {
-                *propertyValue = u.proto.prototypeObject->GetInlineSlot(u.proto.slotIndex);
-                Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
-                    (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
-            }
+            *propertyValue = u.proto.prototypeObject->GetInlineSlot(u.proto.slotIndex);
+            Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
+                (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
 
 #ifdef MISSING_PROPERTY_STATS
             if (PHASE_STATS1(MissingPropertyCachePhase))
@@ -228,17 +171,9 @@ namespace Js
         if (CheckMissing && TypeWithAuxSlotTag(type) == u.proto.type && this->u.proto.isMissing)
         {
             Assert(u.proto.prototypeObject->GetScriptContext() == requestContext); // we never cache a type from another script context
-            if (OutputExistence)
-            {
-                *propertyValue = requestContext->GetLibrary()->GetFalse();
-                Assert(!JavascriptOperators::HasProperty(propertyObject, propertyId));
-            }
-            else
-            {
-                *propertyValue = u.proto.prototypeObject->GetAuxSlot(u.proto.slotIndex);
-                Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
-                    (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
-            }
+            *propertyValue = u.proto.prototypeObject->GetAuxSlot(u.proto.slotIndex);
+            Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
+                (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
 
 #ifdef MISSING_PROPERTY_STATS
             if (PHASE_STATS1(MissingPropertyCachePhase))
@@ -605,8 +540,7 @@ namespace Js
         bool CheckAccessor,
         bool CheckMissing,
         bool IsInlineCacheAvailable,
-        bool ReturnOperationInfo,
-        bool OutputExistence /*When set, propertyValue is true or false, representing whether the property exists on the instance not its actual value*/>
+        bool ReturnOperationInfo>
     bool PolymorphicInlineCache::TryGetProperty(
         Var const instance,
         RecyclableObject *const propertyObject,
@@ -630,7 +564,7 @@ namespace Js
             isEmpty = cache->IsEmpty();
         }
 #endif
-        bool result = cache->TryGetProperty<CheckLocal, CheckProto, CheckAccessor, CheckMissing, ReturnOperationInfo, OutputExistence>(
+        bool result = cache->TryGetProperty<CheckLocal, CheckProto, CheckAccessor, CheckMissing, ReturnOperationInfo>(
             instance, propertyObject, propertyId, propertyValue, requestContext, operationInfo);
 
 #ifdef CLONE_INLINECACHE_TO_EMPTYSLOT
@@ -639,7 +573,7 @@ namespace Js
             result = CheckClonedInlineCache(inlineCacheIndex, [&](uint tryInlineCacheIndex) -> bool
             {
                 cache = &inlineCaches[tryInlineCacheIndex];
-                return cache->TryGetProperty<CheckLocal, CheckProto, CheckAccessor, CheckMissing, ReturnOperationInfo, OutputExistence>(
+                return cache->TryGetProperty<CheckLocal, CheckProto, CheckAccessor, CheckMissing, ReturnOperationInfo>(
                     instance, propertyObject, propertyId, propertyValue, requestContext, operationInfo);
             });
         }

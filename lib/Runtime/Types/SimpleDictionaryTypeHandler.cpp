@@ -623,7 +623,12 @@ namespace Js
                     if (descriptor.Attributes & PropertyWritable)
                     {
                         PropertyValueInfo::SetCacheInfo(info, propertyString, propertyString->GetLdElemInlineCache(), false);
-                        SetPropertyValueInfo(info, instance, &descriptor);
+                        SetPropertyValueInfo(info, instance, descriptor.propertyIndex, descriptor.Attributes);
+
+                        if (descriptor.IsOrMayBecomeFixed())
+                        {
+                            PropertyValueInfo::DisableStoreFieldCache(info);
+                        }
                     }
                     else
                     {
@@ -1044,20 +1049,20 @@ namespace Js
     }
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
-    BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::HasProperty(DynamicObject* instance, PropertyId propertyId, bool *noRedecl, _Inout_opt_ PropertyValueInfo* info)
+    BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::HasProperty(DynamicObject* instance, PropertyId propertyId, bool *noRedecl)
     {
-        return HasProperty_Internal<false>(instance, propertyId, noRedecl, info, nullptr, nullptr);
+        return HasProperty_Internal<false>(instance, propertyId, noRedecl, nullptr, nullptr);
     }
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::HasRootProperty(DynamicObject* instance, PropertyId propertyId, bool *noRedecl, bool *pDeclaredProperty, bool *pNonconfigurableProperty)
     {
-        return HasProperty_Internal<true>(instance, propertyId, noRedecl, nullptr /*info*/, pDeclaredProperty, pNonconfigurableProperty);
+        return HasProperty_Internal<true>(instance, propertyId, noRedecl, pDeclaredProperty, pNonconfigurableProperty);
     }
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     template <bool allowLetConstGlobal>
-    BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::HasProperty_Internal(DynamicObject* instance, PropertyId propertyId, bool *noRedecl, _Inout_opt_ PropertyValueInfo* info, bool *pDeclaredProperty, bool *pNonconfigurableProperty)
+    BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::HasProperty_Internal(DynamicObject* instance, PropertyId propertyId, bool *noRedecl, bool *pDeclaredProperty, bool *pNonconfigurableProperty)
     {
         // HasProperty is called with NoProperty in JavascriptDispatch.cpp to for undeferral of the
         // deferred type system that DOM objects use.  Allow NoProperty for this reason, but only
@@ -1087,10 +1092,6 @@ namespace Js
             if (pNonconfigurableProperty && !(descriptor->Attributes & PropertyConfigurable))
             {
                 *pNonconfigurableProperty = true;
-            }
-            if (info && descriptor->propertyIndex != NoSlots)
-            {
-                SetPropertyValueInfo(info, instance, descriptor);
             }
             return true;
         }
@@ -1188,7 +1189,11 @@ namespace Js
         if (descriptor->propertyIndex != NoSlots)
         {
             *value = instance->GetSlot(descriptor->propertyIndex);
-            SetPropertyValueInfo(info, instance, descriptor);
+            SetPropertyValueInfo(info, instance, descriptor->propertyIndex, descriptor->Attributes);
+            if (descriptor->IsOrMayBecomeFixed())
+            {
+                PropertyValueInfo::DisableStoreFieldCache(info);
+            }
         }
         else
         {
@@ -1419,7 +1424,7 @@ namespace Js
 
             if (!descriptor->IsOrMayBecomeFixed())
             {
-                SetPropertyValueInfoNonFixed(info, instance, descriptor->propertyIndex, descriptor->Attributes);
+                SetPropertyValueInfo(info, instance, descriptor->propertyIndex, descriptor->Attributes);
             }
             else
             {
@@ -2464,7 +2469,7 @@ namespace Js
 
                 if (!descriptor->IsOrMayBecomeFixed())
                 {
-                    SetPropertyValueInfoNonFixed(info, instance, descriptor->propertyIndex, descriptor->Attributes);
+                    SetPropertyValueInfo(info, instance, descriptor->propertyIndex, descriptor->Attributes);
                 }
                 else
                 {
@@ -2757,7 +2762,7 @@ namespace Js
         // without us knowing, and b) the inline cache doesn't inadvertently become polymorphic.
         if (markAsInitialized && !markAsFixed)
         {
-            SetPropertyValueInfoNonFixed(info, instance, index, attributes);
+            SetPropertyValueInfo(info, instance, index, attributes);
         }
         else
         {
@@ -3444,38 +3449,28 @@ namespace Js
     }
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
-    void SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::SetPropertyValueInfo(PropertyValueInfo* info, RecyclableObject* instance, SimpleDictionaryPropertyDescriptor<TPropertyIndex>* descriptor)
-    {
-        SetPropertyValueInfoNonFixed(info, instance, descriptor->propertyIndex, descriptor->Attributes);
-        if (descriptor->IsOrMayBecomeFixed())
-        {
-            PropertyValueInfo::DisableStoreFieldCache(info);
-        }
-    }
-
-    template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
-    void SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::SetPropertyValueInfoNonFixed(PropertyValueInfo* info, RecyclableObject* instance, TPropertyIndex propIndex, PropertyAttributes attributes, InlineCacheFlags flags)
+    void SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::SetPropertyValueInfo(PropertyValueInfo* info, RecyclableObject* instance, TPropertyIndex propIndex, PropertyAttributes attributes, InlineCacheFlags flags)
     {
         PropertyValueInfo::Set(info, instance, propIndex, attributes, flags);
     }
 
     template <>
-    void SimpleDictionaryTypeHandlerBase<BigPropertyIndex, const PropertyRecord*, false>::SetPropertyValueInfoNonFixed(PropertyValueInfo* info, RecyclableObject* instance, BigPropertyIndex propIndex, PropertyAttributes attributes, InlineCacheFlags flags)
+    void SimpleDictionaryTypeHandlerBase<BigPropertyIndex, const PropertyRecord*, false>::SetPropertyValueInfo(PropertyValueInfo* info, RecyclableObject* instance, BigPropertyIndex propIndex, PropertyAttributes attributes, InlineCacheFlags flags)
     {
         PropertyValueInfo::SetNoCache(info, instance);
     }
     template <>
-    void SimpleDictionaryTypeHandlerBase<BigPropertyIndex, const PropertyRecord*, true>::SetPropertyValueInfoNonFixed(PropertyValueInfo* info, RecyclableObject* instance, BigPropertyIndex propIndex, PropertyAttributes attributes, InlineCacheFlags flags)
+    void SimpleDictionaryTypeHandlerBase<BigPropertyIndex, const PropertyRecord*, true>::SetPropertyValueInfo(PropertyValueInfo* info, RecyclableObject* instance, BigPropertyIndex propIndex, PropertyAttributes attributes, InlineCacheFlags flags)
     {
         PropertyValueInfo::SetNoCache(info, instance);
     }
     template <>
-    void SimpleDictionaryTypeHandlerBase<BigPropertyIndex, JavascriptString*, false>::SetPropertyValueInfoNonFixed(PropertyValueInfo* info, RecyclableObject* instance, BigPropertyIndex propIndex, PropertyAttributes attributes, InlineCacheFlags flags)
+    void SimpleDictionaryTypeHandlerBase<BigPropertyIndex, JavascriptString*, false>::SetPropertyValueInfo(PropertyValueInfo* info, RecyclableObject* instance, BigPropertyIndex propIndex, PropertyAttributes attributes, InlineCacheFlags flags)
     {
         PropertyValueInfo::SetNoCache(info, instance);
     }
     template <>
-    void SimpleDictionaryTypeHandlerBase<BigPropertyIndex, JavascriptString*, true>::SetPropertyValueInfoNonFixed(PropertyValueInfo* info, RecyclableObject* instance, BigPropertyIndex propIndex, PropertyAttributes attributes, InlineCacheFlags flags)
+    void SimpleDictionaryTypeHandlerBase<BigPropertyIndex, JavascriptString*, true>::SetPropertyValueInfo(PropertyValueInfo* info, RecyclableObject* instance, BigPropertyIndex propIndex, PropertyAttributes attributes, InlineCacheFlags flags)
     {
         PropertyValueInfo::SetNoCache(info, instance);
     }

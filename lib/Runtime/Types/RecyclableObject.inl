@@ -69,7 +69,7 @@ namespace Js
 
     inline BOOL RecyclableObject::HasProperty(PropertyId propertyId)
     {
-        return JavascriptConversion::PropertyQueryFlagsToBoolean(HasPropertyQuery(propertyId, nullptr /*info*/));
+        return JavascriptConversion::PropertyQueryFlagsToBoolean(HasPropertyQuery(propertyId));
     }
 
     inline BOOL RecyclableObject::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)

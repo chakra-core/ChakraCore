@@ -43,70 +43,14 @@ namespace Js
             RecyclableObject *const owner /* Object that this usage cache is part of */);
 
 
-        template <
-            bool OwnPropertyOnly,
-            bool OutputExistence /*When set, propertyValue represents whether the property exists on the instance, not its actual value*/>
-        inline bool TryGetPropertyFromCache(
+        template <bool OwnPropertyOnly>
+        bool TryGetPropertyFromCache(
             Var const instance,
             RecyclableObject *const object,
             Var *const propertyValue,
             ScriptContext *const requestContext,
             PropertyValueInfo *const propertyValueInfo,
-            RecyclableObject *const owner /* Object that this usage cache is part of */)
-        {
-            if (ShouldUseCache())
-            {
-                PropertyValueInfo::SetCacheInfo(propertyValueInfo, owner, this, GetLdElemInlineCache(), true /* allowResizing */);
-
-                // Some caches will look at prototype, so GetOwnProperty lookups must not check these
-                bool found = CacheOperators::TryGetProperty<
-                    true,               // CheckLocal
-                    !OwnPropertyOnly,   // CheckProto
-                    !OwnPropertyOnly,   // CheckAccessor
-                    !OwnPropertyOnly,   // CheckMissing
-                    true,               // CheckPolymorphicInlineCache
-                    !OwnPropertyOnly,   // CheckTypePropertyCache
-                    false,              // IsInlineCacheAvailable
-                    true,               // IsPolymorphicInlineCacheAvailable
-                    false,              // ReturnOperationInfo
-                    OutputExistence>    // OutputExistence
-                        (instance,
-                        false, // isRoot
-                        object,
-                        this->propertyRecord->GetPropertyId(),
-                        propertyValue,
-                        requestContext,
-                        nullptr, // operationInfo
-                        propertyValueInfo);
-
-                if (found)
-                {
-                    RegisterCacheHit();
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-                    if (PHASE_TRACE1(PropertyCachePhase))
-                    {
-                        Output::Print(_u("PropertyCache: GetElem cache hit for '%s': type %p\n"),
-                            GetString(),
-                            object->GetType());
-                    }
-#endif
-                    return true;
-                }
-            }
-
-            RegisterCacheMiss();
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-            if (PHASE_TRACE1(PropertyCachePhase))
-            {
-                Output::Print(_u("PropertyCache: GetElem cache miss for '%s': type %p, index %d\n"),
-                    GetString(),
-                    object->GetType(),
-                    GetLdElemInlineCache()->GetInlineCacheIndexForType(object->GetType()));
-                DumpCache(true);
-            }
-#endif
-            return false;
-        }
+            RecyclableObject *const owner /* Object that this usage cache is part of */);
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
 
@@ -128,4 +72,66 @@ namespace Js
         }
 #endif
     };
+
+    template <bool OwnPropertyOnly> inline
+    bool PropertyRecordUsageCache::TryGetPropertyFromCache(
+        Var const instance,
+        RecyclableObject *const object,
+        Var *const propertyValue,
+        ScriptContext *const requestContext,
+        PropertyValueInfo *const propertyValueInfo,
+        RecyclableObject *const owner /* Object that this usage cache is part of */)
+    {
+        if (ShouldUseCache())
+        {
+            PropertyValueInfo::SetCacheInfo(propertyValueInfo, owner, this, GetLdElemInlineCache(), true /* allowResizing */);
+
+            // Some caches will look at prototype, so GetOwnProperty lookups must not check these
+            bool found = CacheOperators::TryGetProperty<
+                true,               // CheckLocal
+                !OwnPropertyOnly,   // CheckProto
+                !OwnPropertyOnly,   // CheckAccessor
+                !OwnPropertyOnly,   // CheckMissing
+                true,               // CheckPolymorphicInlineCache
+                !OwnPropertyOnly,   // CheckTypePropertyCache
+                false,              // IsInlineCacheAvailable
+                true,               // IsPolymorphicInlineCacheAvailable
+                false>              // ReturnOperationInfo
+                    (instance,
+                    false, // isRoot
+                    object,
+                    this->propertyRecord->GetPropertyId(),
+                    propertyValue,
+                    requestContext,
+                    nullptr, // operationInfo
+                    propertyValueInfo);
+
+            if (found)
+            {
+                RegisterCacheHit();
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+                if (PHASE_TRACE1(PropertyCachePhase))
+                {
+                    Output::Print(_u("PropertyCache: GetElem cache hit for '%s': type %p\n"),
+                        GetString(),
+                        object->GetType());
+                }
+#endif
+                return true;
+            }
+        }
+
+        RegisterCacheMiss();
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        if (PHASE_TRACE1(PropertyCachePhase))
+        {
+            Output::Print(_u("PropertyCache: GetElem cache miss for '%s': type %p, index %d\n"),
+                GetString(),
+                object->GetType(),
+                GetLdElemInlineCache()->GetInlineCacheIndexForType(object->GetType()));
+            DumpCache(true);
+        }
+#endif
+        return false;
+    }
 }

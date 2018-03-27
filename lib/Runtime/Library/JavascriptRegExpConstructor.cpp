@@ -173,7 +173,7 @@ namespace Js
         PropertyIds::index,
     };
 
-    PropertyQueryFlags JavascriptRegExpConstructor::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
+    PropertyQueryFlags JavascriptRegExpConstructor::HasPropertyQuery(PropertyId propertyId)
     {
         switch (propertyId)
         {
@@ -199,7 +199,7 @@ namespace Js
         case PropertyIds::$9:
             return PropertyQueryFlags::Property_Found;
         default:
-            return JavascriptFunction::HasPropertyQuery(propertyId, info);
+            return JavascriptFunction::HasPropertyQuery(propertyId);
         }
     }
 

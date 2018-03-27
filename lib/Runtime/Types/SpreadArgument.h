@@ -26,7 +26,7 @@ namespace Js
         uint GetArgumentSpreadCount()  const { return iteratorIndices ? iteratorIndices->Count() : 0; }
 
         // A SpreadArgument should never call the Functions defined below this comment
-        virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info) override { AssertAndFailFast();  return PropertyQueryFlags::Property_NotFound; };
+        virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId) override { AssertAndFailFast();  return PropertyQueryFlags::Property_NotFound; };
         virtual BOOL HasOwnProperty(PropertyId propertyId) override { AssertAndFailFast(); return FALSE; };
         virtual BOOL SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override { AssertAndFailFast(); return FALSE; };
         virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override { AssertAndFailFast(); return PropertyQueryFlags::Property_NotFound; };
