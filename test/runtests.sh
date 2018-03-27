@@ -34,7 +34,7 @@ else
 fi
 
 if [[ $release_build != 1 ]]; then
-    "$test_path/runtests.py" $build_type --not-tag exclude_jenkins $test_variant
+    "$test_path/runtests.py" $build_type --not-tag exclude_jenkins --not-tag exclude_ch $test_variant
     if [[ $? != 0 ]]; then
         exit 1
     fi
