@@ -162,10 +162,37 @@ $CommitMessage
     $changeJson | Add-Member -type NoteProperty -name Username -value $Env:Username
     $changeJson | Add-Member -type NoteProperty -name CommitMessage -value $CommitMessageLines
 
+    ## Look for a git note that requests a cirro run.
+
+    ## We assume that, when this script is called in the context of a full build, the working directory
+    ## is the root of the local full checkout.
+
+    ## It's a bit of a layering violation to have this logic, which only applies to full builds, in the
+    ## core pre_build script, but there's not an obviously better place to put it.  There is a pre_build
+    ## script in the full repo, but it doesn't seem to be executed as part of a VSO build, and it's not
+    ## clear if anyone else uses it.
+    ##
+    ## Since we have to handle the case where a full build doesn't have a ChakraHub note anyway, just
+    ## add the logic to the core script.
+
+    git -c http.extraheader="AUTHORIZATION: bearer ${Env:System.AccessToken}" fetch origin refs/notes/ChakraHub:refs/notes/ChakraHub
+    Write-Output "looking for notes"
+    ## One might be tempted to redirect the output of the "git notes" command on the next line to $null.  Don't do that;
+    ## it causes the check to fail even when git notes are present.
+    if (git notes --ref=ChakraHub list HEAD 2>&1)
+    {
+        $testConfig = (git notes --ref=ChakraHub show HEAD) -join "`n" | ConvertFrom-Json
+        $changeJson | Add-Member -type NoteProperty -name TestConfig -value $testConfig
+    }
+    else
+    {
+        Write-Output "no git notes found"
+    }
+
     Write-Output "-----"
     Write-Output $outputJsonFile
-    $changeJson | ConvertTo-Json | Write-Output
-    $changeJson | ConvertTo-Json | Out-File $outputJsonFile -Encoding utf8
+    $changeJson | ConvertTo-Json -depth 100 | Write-Output
+    $changeJson | ConvertTo-Json -depth 100 | Out-File $outputJsonFile -Encoding utf8
 
     $buildInfoOutputDir = $objpath
     if (-not(Test-Path -Path $buildInfoOutputDir)) {
