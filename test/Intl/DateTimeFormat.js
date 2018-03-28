@@ -339,6 +339,126 @@ const tests = [
             test(juneFirst, "America/Los_Angeles", "PDT", "Pacific Daylight Time", "America/Los_Angeles");
         }
     },
+    {
+        name: "ca and nu extensions",
+        body() {
+            if (isWinGlob) {
+                return;
+            }
+
+            const d = new Date(Date.UTC(2018, 2, 27, 12, 0, 0));
+
+            // lists of calendars and aliases taken from https://unicode.org/repos/cldr/trunk/common/bcp47/calendar.xml
+            // as of March 27th, 2018
+            const yearForCalendar = {
+                buddhist: {
+                    latn: "2561",
+                    thai: "๒๕๖๑",
+                },
+                // Chinese and dangi calendars are disabled for the time being until we can resolve Microsoft/ChakraCore#4885
+                // chinese: {},
+                coptic: {
+                    latn: "1734",
+                    thai: "๑๗๓๔",
+                },
+                // dangi: {},
+                ethioaa: {
+                    latn: "7510",
+                    thai: "๗๕๑๐",
+                },
+                ethiopic: {
+                    latn: "2010",
+                    thai: "๒๐๑๐",
+                },
+                gregory: {
+                    latn: "2018",
+                    thai: "๒๐๑๘",
+                },
+                hebrew: {
+                    latn: "5778",
+                    thai: "๕๗๗๘"
+                },
+                indian: {
+                    latn: "1940",
+                    thai: "๑๙๔๐",
+                },
+                islamic: {
+                    latn: "1439",
+                    thai: "๑๔๓๙",
+                },
+                "islamic-umalqura": {
+                    latn: "1439",
+                    thai: "๑๔๓๙",
+                },
+                "islamic-tbla": {
+                    latn: "1439",
+                    thai: "๑๔๓๙",
+                },
+                "islamic-civil": {
+                    latn: "1439",
+                    thai: "๑๔๓๙",
+                },
+                "islamic-rgsa": {
+                    latn: "1439",
+                    thai: "๑๔๓๙",
+                },
+                iso8601: {
+                    latn: "2018",
+                    thai: "๒๐๑๘",
+                },
+                japanese: {
+                    latn: "30",
+                    thai: "๓๐",
+                },
+                persian: {
+                    latn: "1397",
+                    thai: "๑๓๙๗",
+                },
+                roc: {
+                    latn: "107",
+                    thai: "๑๐๗",
+                },
+            };
+            const calendarAliases = {
+                ethioaa: ["ethiopic-amete-alem"],
+                // ICU does not recognize "gregorian" as a valid alias
+                // gregory: ["gregorian"],
+                "islamic-civil": ["islamicc"],
+            };
+
+            function test(expected, base, calendar, numberingSystem) {
+                let langtag = `${base}-u-ca-${calendar}`;
+                if (numberingSystem) {
+                    langtag += `-nu-${numberingSystem}`;
+                }
+
+                // Extract just the year out of the string, as the era may be present too
+                // SpiderMonkey does not print the era, but Chakra and V8 do -- is this an issue?
+                assert.areEqual(
+                    expected,
+                    new Intl.DateTimeFormat(langtag, { year: "numeric" }).formatToParts(d).filter((part) => part.type === "year")[0].value,
+                    `${langtag} did not produce the correct year`
+                );
+            }
+
+            function testEachCalendar(numberingSystem) {
+                for (const calendar of Object.getOwnPropertyNames(yearForCalendar)) {
+                    test(yearForCalendar[calendar][numberingSystem || "latn"], "en", calendar, numberingSystem);
+
+                    if (calendar in calendarAliases) {
+                        const aliases = calendarAliases[calendar];
+                        for (const alias of aliases) {
+                            test(yearForCalendar[calendar][numberingSystem || "latn"], "en", alias, numberingSystem);
+                        }
+                    }
+                }
+            }
+
+            for (const numberingSystem of [undefined, "latn", "thai"]) {
+                testEachCalendar(numberingSystem);
+            }
+        }
+    }
 ];
 
 testRunner.runTests(tests, { verbose: !WScript.Arguments.includes("summary") });

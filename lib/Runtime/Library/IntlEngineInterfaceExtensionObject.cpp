@@ -2217,6 +2217,9 @@ namespace Js
             // there does not seem to be a way to check for ahead of time in the C API
             AssertOrFailFastMsg(U_SUCCESS(status) || status == U_UNSUPPORTED_ERROR, ICU_ERRORMESSAGE(status));
 
+            // If we passed the previous check, we should reset the status to U_ZERO_ERROR (in case it was U_UNSUPPORTED_ERROR)
+            status = U_ZERO_ERROR;
+
             // cache dtf for later use (so that the condition that brought us here returns true for future calls)
             state->SetInternalProperty(
                 InternalPropertyIds::HiddenObject,
