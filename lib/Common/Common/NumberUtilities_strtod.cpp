@@ -2506,6 +2506,10 @@ BOOL Js::NumberUtilities::FNonZeroFiniteDblToStr(double dbl, _In_range_(2, 36) i
     // handle negative number
     if (0x80000000 & Js::NumberUtilities::LuHiDbl(dbl))
     {
+        if (len < 2)
+        {
+            return FALSE;
+        }
         *ppsz++ = '-';
         len--;
         Js::NumberUtilities::LuHiDbl(dbl) &= 0x7FFFFFFF;
