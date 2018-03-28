@@ -450,6 +450,11 @@ GlobOpt::OptBlock(BasicBlock *block)
         if (loop != this->prePassLoop)
         {
             OptLoops(loop);
+            if (!IsLoopPrePass() && loop->parent)
+            {
+                loop->fieldPRESymStores->Or(loop->parent->fieldPRESymStores);
+            }
+            
             if (!this->IsLoopPrePass() && DoFieldPRE(loop))
             {
                 // Note: !IsLoopPrePass means this was a root loop pre-pass. FieldPre() is called once per loop.
@@ -543,6 +548,7 @@ GlobOpt::OptBlock(BasicBlock *block)
                 if (succ->isLoopHeader && succ->loop->IsDescendentOrSelf(block->loop))
                 {
                     BVSparse<JitArenaAllocator> *liveOnBackEdge = block->loop->regAlloc.liveOnBackEdgeSyms;
+                    liveOnBackEdge->Or(block->loop->fieldPRESymStores);
 
                     this->tempBv->Minus(block->loop->varSymsOnEntry, block->globOptData.liveVarSyms);
                     this->tempBv->And(liveOnBackEdge);
@@ -663,7 +669,7 @@ GlobOpt::OptLoops(Loop *loop)
 
         loop->symsDefInLoop = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
         loop->fieldKilled = JitAnew(alloc, BVSparse<JitArenaAllocator>, this->alloc);
-        loop->fieldPRESymStore = JitAnew(alloc, BVSparse<JitArenaAllocator>, this->alloc);
+        loop->fieldPRESymStores = JitAnew(alloc, BVSparse<JitArenaAllocator>, this->alloc);
         loop->allFieldsKilled = false;
     }
     else
@@ -1035,13 +1041,13 @@ BOOL GlobOpt::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
     if (ldInstr->GetDst()->AsRegOpnd()->m_sym != symStore)
     {
         ldInstr->ReplaceDst(IR::RegOpnd::New(symStore->AsStackSym(), TyVar, this->func));
+        loop->fieldPRESymStores->Set(symStore->m_id);
     }
 
     ldInstr->GetSrc1()->SetIsJITOptimizedReg(true);
     ldInstr->GetDst()->SetIsJITOptimizedReg(true);
 
     landingPad->globOptData.liveVarSyms->Set(symStore->m_id);
-    loop->fieldPRESymStore->Set(symStore->m_id);
 
     ValueType valueType(ValueType::Uninitialized);
     Value *initialValue = nullptr;
@@ -3027,11 +3033,10 @@ GlobOpt::SetLoopFieldInitialValue(Loop *loop, IR::Instr *instr, PropertySym *pro
     Value *initialValue = nullptr;
     StackSym *symStore;
 
-    if (loop->allFieldsKilled || loop->fieldKilled->Test(originalPropertySym->m_id))
+    if (loop->allFieldsKilled || loop->fieldKilled->Test(originalPropertySym->m_id) || loop->fieldKilled->Test(propertySym->m_id))
     {
         return;
     }
-    Assert(!loop->fieldKilled->Test(propertySym->m_id));
 
     // Value already exists
     if (CurrentBlockData()->FindValue(propertySym))
@@ -14156,7 +14161,6 @@ GlobOpt::OptIsInvariant(
         return false;
 
         // Usually not worth hoisting these
-    case Js::OpCode::LdStr:
     case Js::OpCode::Ld_A:
     case Js::OpCode::Ld_I4:
     case Js::OpCode::LdC_A_I4:

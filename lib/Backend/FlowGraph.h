@@ -591,7 +591,7 @@ public:
     ValueNumber         firstValueNumberInLoop;
     JsArrayKills        jsArrayKills;
     BVSparse<JitArenaAllocator> *fieldKilled;
-    BVSparse<JitArenaAllocator> *fieldPRESymStore;
+    BVSparse<JitArenaAllocator> *fieldPRESymStores;
     InitialValueFieldMap initialValueFieldMap;
 
     InductionVariableSet *inductionVariables;

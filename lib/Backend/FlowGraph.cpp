@@ -4227,8 +4227,9 @@ BasicBlock::CleanUpValueMaps()
     {
         FOREACH_SLISTBASE_ENTRY_EDITING(GlobHashBucket, bucket, &thisTable->table[i], iter)
         {
-            bool isSymUpwardExposed = upwardExposedUses->Test(bucket.value->m_id) || upwardExposedFields->Test(bucket.value->m_id);
-            if (!isSymUpwardExposed && symsInCallSequence.Test(bucket.value->m_id))
+            Sym * sym = bucket.value;
+            bool isSymUpwardExposed = upwardExposedUses->Test(sym->m_id) || upwardExposedFields->Test(sym->m_id);
+            if (!isSymUpwardExposed && symsInCallSequence.Test(sym->m_id))
             {
                 // Don't remove/shrink sym-value pair if the sym is referenced in callSequence even if the sym is dead according to backward data flow.
                 // This is possible in some edge cases that an infinite loop is involved when evaluating parameter for a function (between StartCall and Call),
@@ -4241,22 +4242,22 @@ BasicBlock::CleanUpValueMaps()
             // Make sure symbol was created before backward pass.
             // If symbols isn't upward exposed, mark it as dead.
             // If a symbol was copy-prop'd in a loop prepass, the upwardExposedUses info could be wrong.  So wait until we are out of the loop before clearing it.
-            if ((SymID)bucket.value->m_id <= this->globOptData.globOpt->maxInitialSymID && !isSymUpwardExposed
-                && (!isInLoop || !this->globOptData.globOpt->prePassCopyPropSym->Test(bucket.value->m_id)))
+            bool isSymFieldPRESymStore = isInLoop && this->loop->fieldPRESymStores->Test(sym->m_id);
+            if ((SymID)sym->m_id <= this->globOptData.globOpt->maxInitialSymID && !isSymUpwardExposed && !isSymFieldPRESymStore
+                && (!isInLoop || !this->globOptData.globOpt->prePassCopyPropSym->Test(sym->m_id)))
             {
                 Value *val = bucket.element;
                 ValueInfo *valueInfo = val->GetValueInfo();
 
-                Sym * sym = bucket.value;
                 Sym *symStore = valueInfo->GetSymStore();
 
-                if (symStore && symStore == bucket.value)
+                if (symStore && symStore == sym)
                 {
                     // Keep constants around, as we don't know if there will be further uses
                     if (!bucket.element->GetValueInfo()->IsVarConstant() && !bucket.element->GetValueInfo()->HasIntConstantValue())
                     {
                         // Symbol may still be a copy-prop candidate.  Wait before deleting it.
-                        deadSymsBv.Set(bucket.value->m_id);
+                        deadSymsBv.Set(sym->m_id);
 
                         // Make sure the type sym is added to the dead syms vector as well, because type syms are
                         // created in backward pass and so their symIds > maxInitialSymID.
@@ -4287,8 +4288,6 @@ BasicBlock::CleanUpValueMaps()
             }
             else
             {
-                Sym * sym = bucket.value;
-
                 if (sym->IsPropertySym() && !this->globOptData.liveFields->Test(sym->m_id))
                 {
                     // Remove propertySyms which are not live anymore.
@@ -4306,7 +4305,7 @@ BasicBlock::CleanUpValueMaps()
 
                     Sym *symStore = valueInfo->GetSymStore();
 
-                    if (symStore && symStore != bucket.value)
+                    if (symStore && symStore != sym)
                     {
                         keepAliveSymsBv.Set(symStore->m_id);
                         if (symStore->IsStackSym() && symStore->AsStackSym()->HasObjectTypeSym())
