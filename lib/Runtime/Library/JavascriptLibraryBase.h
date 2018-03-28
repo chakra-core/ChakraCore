@@ -16,6 +16,7 @@ namespace Js
     {
         friend class JavascriptLibrary;
         friend class ScriptSite;
+
     public:
         JavascriptLibraryBase(GlobalObject* globalObject):
             globalObject(globalObject)
@@ -297,6 +298,19 @@ namespace Js
         Field(JavascriptSymbol*) symbolToPrimitive;
         Field(JavascriptSymbol*) symbolToStringTag;
         Field(JavascriptSymbol*) symbolUnscopables;
+
+    public:
+        typedef void (CALLBACK *HostPromiseRejectionTrackerCallback)(Var promise, Var reason, bool handled, void *callbackState);
+
+        void SetNativeHostPromiseRejectionTrackerCallback(HostPromiseRejectionTrackerCallback function, void *state)
+        {
+            this->nativeHostPromiseRejectionTracker = function;
+            this->nativeHostPromiseRejectionTrackerState = state;
+        }
+
+    private:
+        FieldNoBarrier(HostPromiseRejectionTrackerCallback) nativeHostPromiseRejectionTracker = nullptr;
+        Field(void *) nativeHostPromiseRejectionTrackerState = nullptr;
 
     public:
         Field(ScriptContext*) scriptContext;

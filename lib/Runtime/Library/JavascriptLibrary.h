@@ -247,7 +247,6 @@ namespace Js
         static DWORD GetRandSeed1Offset() { return offsetof(JavascriptLibrary, randSeed1); }
         static DWORD GetTypeDisplayStringsOffset() { return offsetof(JavascriptLibrary, typeDisplayStrings); }
         typedef bool (CALLBACK *PromiseContinuationCallback)(Var task, void *callbackState);
-        typedef void (CALLBACK *HostPromiseRejectionTrackerCallback)(Var promise, Var reason, bool handled, void *callbackState);
 
         Var GetUndeclBlockVar() const { return undeclBlockVarSentinel; }
         bool IsUndeclBlockVar(Var var) const { return var == undeclBlockVarSentinel; }
@@ -456,9 +455,6 @@ namespace Js
 
         FieldNoBarrier(PromiseContinuationCallback) nativeHostPromiseContinuationFunction;
         Field(void *) nativeHostPromiseContinuationFunctionState;
-
-        FieldNoBarrier(HostPromiseRejectionTrackerCallback) nativeHostPromiseRejectionTracker = nullptr;
-        Field(void *) nativeHostPromiseRejectionTrackerState;
 
         typedef SList<Js::FunctionProxy*, Recycler> FunctionReferenceList;
         typedef JsUtil::WeakReferenceDictionary<uintptr_t, DynamicType, DictionarySizePolicy<PowerOf2Policy, 1>> JsrtExternalTypesCache;
@@ -818,7 +814,7 @@ namespace Js
         JavascriptFunction* GetThrowerFunction() const { return throwerFunction; }
 
         void SetNativeHostPromiseContinuationFunction(PromiseContinuationCallback function, void *state);
-        void SetNativeHostPromiseRejectionTrackerCallback(HostPromiseRejectionTrackerCallback function, void *state);
+
         void CallNativeHostPromiseRejectionTracker(Var promise, Var reason, bool handled);
 
         void SetJsrtContext(FinalizableObject* jsrtContext);
