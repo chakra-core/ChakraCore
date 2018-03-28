@@ -531,7 +531,7 @@ IRBuilder::Build()
             }
             if (dstOpnd->m_sym->m_isSingleDef)
             {
-                dstOpnd->m_sym->m_isNotInt = true;
+                dstOpnd->m_sym->m_isNotNumber = true;
             }
             this->AddInstr(instr, offset);
         }
@@ -582,7 +582,7 @@ IRBuilder::Build()
             }
             if (closureOpnd->m_sym->m_isSingleDef)
             {
-                closureOpnd->m_sym->m_isNotInt = true;
+                closureOpnd->m_sym->m_isNotNumber = true;
             }
 
             if (m_func->DoStackScopeSlots())
@@ -647,7 +647,7 @@ IRBuilder::Build()
                 this->AddInstr(instr, offset);
                 if (dstOpnd->m_sym->m_isSingleDef)
                 {
-                    dstOpnd->m_sym->m_isNotInt = true;
+                    dstOpnd->m_sym->m_isNotNumber = true;
                 }
 
                 if (m_func->DoStackFrameDisplay())
@@ -1637,7 +1637,7 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
         if (dstSym->m_isSingleDef)
         {
             dstSym->m_isSafeThis = true;
-            dstSym->m_isNotInt = true;
+            dstSym->m_isNotNumber = true;
         }
         return;
     }
@@ -1841,13 +1841,13 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
             else if (srcOpnd->IsAddrOpnd())
             {
                 dstSym->m_isConst = true;
-                dstSym->m_isNotInt = true;
+                dstSym->m_isNotNumber = true;
             }
         }
     }
     if (isNotInt && dstSym->m_isSingleDef)
     {
-        dstSym->m_isNotInt = true;
+        dstSym->m_isNotNumber = true;
     }
 
     this->AddInstr(instr, offset);
@@ -1917,7 +1917,7 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
         src1Opnd = BuildSrcOpnd(R0);
         dstOpnd = BuildDstOpnd(m_func->GetJITFunctionBody()->GetLocalFrameDisplayReg());
         instr = IR::Instr::New(Js::OpCode::LdFrameDisplay, dstOpnd, src1Opnd, src2Opnd, m_func);
-        dstOpnd->m_sym->m_isNotInt = true;
+        dstOpnd->m_sym->m_isNotNumber = true;
         this->AddInstr(instr, offset);
         return;
     }
@@ -1969,7 +1969,7 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
         this->AddEnvOpndForInnerFrameDisplay(instr, offset);
         if (dstSym->m_isSingleDef)
         {
-            dstSym->m_isNotInt = true;
+            dstSym->m_isNotNumber = true;
         }
         this->AddInstr(instr, offset);
 
@@ -2142,7 +2142,7 @@ IRBuilder::BuildReg3(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot
                                m_func);
         if (instr->GetDst()->AsRegOpnd()->m_sym->m_isSingleDef)
         {
-            instr->GetDst()->AsRegOpnd()->m_sym->m_isNotInt = true;
+            instr->GetDst()->AsRegOpnd()->m_sym->m_isNotNumber = true;
         }
         this->AddInstr(instr, offset);
         return;
@@ -2179,14 +2179,14 @@ IRBuilder::BuildReg3(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot
     case Js::OpCode::NewScopeSlotsWithoutPropIds:
         if (dstSym->m_isSingleDef)
         {
-            dstSym->m_isNotInt = true;
+            dstSym->m_isNotNumber = true;
         }
         break;
 
     case Js::OpCode::LdInnerFrameDisplay:
         if (dstSym->m_isSingleDef)
         {
-            dstSym->m_isNotInt = true;
+            dstSym->m_isNotNumber = true;
         }
         break;
     }
@@ -2590,7 +2590,7 @@ IRBuilder::BuildUnsigned1(Js::OpCode newOpcode, uint32 offset, uint32 num)
             this->AddInstr(instr, offset);
             if (dstOpnd->m_sym->m_isSingleDef)
             {
-                dstOpnd->m_sym->m_isNotInt = true;
+                dstOpnd->m_sym->m_isNotNumber = true;
             }
             break;
         }
@@ -2816,7 +2816,7 @@ IRBuilder::BuildProfiledReg1Unsigned1(Js::OpCode newOpcode, uint32 offset, Js::R
     if (dstSym->m_isSingleDef)
     {
         dstSym->m_isSafeThis = true;
-        dstSym->m_isNotInt = true;
+        dstSym->m_isNotNumber = true;
     }
 
     // Undefined values in array literals ([0, undefined, 1]) are treated as missing values in some versions
@@ -2880,7 +2880,7 @@ IRBuilder::BuildReg1Unsigned1(Js::OpCode newOpcode, uint offset, Js::RegSlot R0,
             IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, m_func);
             if (dstOpnd->m_sym->m_isSingleDef)
             {
-                dstOpnd->m_sym->m_isNotInt = true;
+                dstOpnd->m_sym->m_isNotNumber = true;
             }
             this->AddInstr(instr, offset);
             return;
@@ -2895,7 +2895,7 @@ IRBuilder::BuildReg1Unsigned1(Js::OpCode newOpcode, uint offset, Js::RegSlot R0,
             this->AddEnvOpndForInnerFrameDisplay(instr, offset);
             if (dstOpnd->m_sym->m_isSingleDef)
             {
-                dstOpnd->m_sym->m_isNotInt = true;
+                dstOpnd->m_sym->m_isNotNumber = true;
             }
             this->AddInstr(instr, offset);
             return;
@@ -2909,7 +2909,7 @@ IRBuilder::BuildReg1Unsigned1(Js::OpCode newOpcode, uint offset, Js::RegSlot R0,
             IR::Instr *instr = IR::Instr::New(newOpcode, dstOpnd, src1Opnd, src2Opnd, m_func);
             if (dstOpnd->m_sym->m_isSingleDef)
             {
-                dstOpnd->m_sym->m_isNotInt = true;
+                dstOpnd->m_sym->m_isNotNumber = true;
             }
             this->AddInstr(instr, offset);
             return;
@@ -2950,7 +2950,7 @@ IRBuilder::BuildReg1Unsigned1(Js::OpCode newOpcode, uint offset, Js::RegSlot R0,
         case Js::OpCode::NewScArray:
         case Js::OpCode::NewScArrayWithMissingValues:
             dstSym->m_isSafeThis = true;
-            dstSym->m_isNotInt = true;
+            dstSym->m_isNotNumber = true;
             break;
         }
     }
@@ -3009,7 +3009,7 @@ IRBuilder::BuildReg2Int1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstReg
         instr = IR::Instr::New(newOpcode, dstOpnd, src1Opnd, src2Opnd, m_func);
         if (dstOpnd->m_sym->m_isSingleDef)
         {
-            dstOpnd->m_sym->m_isNotInt = true;
+            dstOpnd->m_sym->m_isNotNumber = true;
         }
         this->AddInstr(instr, offset);
         return;
@@ -3295,7 +3295,7 @@ NewScFuncCommon:
         if (regOpnd->m_sym->m_isSingleDef)
         {
             regOpnd->m_sym->m_isSafeThis = true;
-            regOpnd->m_sym->m_isNotInt = true;
+            regOpnd->m_sym->m_isNotNumber = true;
         }
         this->AddInstr(instr, offset);
         return;
@@ -3694,7 +3694,7 @@ NewScFuncCommon:
                 if (regOpnd->m_sym->m_isSingleDef)
                 {
                     regOpnd->m_sym->m_isSafeThis = true;
-                    regOpnd->m_sym->m_isNotInt = true;
+                    regOpnd->m_sym->m_isNotNumber = true;
                 }
                 this->AddInstr(instr, offset);
                 return;
@@ -4921,7 +4921,7 @@ IRBuilder::BuildAuxiliary(Js::OpCode newOpcode, uint32 offset)
 
             if (dstOpnd->m_sym->m_isSingleDef)
             {
-                dstOpnd->m_sym->m_isNotInt = true;
+                dstOpnd->m_sym->m_isNotNumber = true;
             }
 
             break;
@@ -5098,7 +5098,7 @@ IRBuilder::BuildProfiledAuxiliary(Js::OpCode newOpcode, uint32 offset)
             if (dstSym->m_isSingleDef)
             {
                 dstSym->m_isSafeThis = true;
-                dstSym->m_isNotInt = true;
+                dstSym->m_isNotNumber = true;
             }
             this->AddInstr(instr, offset);
 
@@ -5160,7 +5160,7 @@ IRBuilder::BuildProfiledAuxiliary(Js::OpCode newOpcode, uint32 offset)
             if (dstSym->m_isSingleDef)
             {
                 dstSym->m_isSafeThis = true;
-                dstSym->m_isNotInt = true;
+                dstSym->m_isNotNumber = true;
             }
 
             this->AddInstr(instr, offset);
@@ -5260,7 +5260,7 @@ IRBuilder::BuildReg2Aux(Js::OpCode newOpcode, uint32 offset)
 
             if (dstOpnd->m_sym->m_isSingleDef)
             {
-                dstOpnd->m_sym->m_isNotInt = true;
+                dstOpnd->m_sym->m_isNotNumber = true;
             }
             break;
         }
@@ -6430,7 +6430,7 @@ IRBuilder::BuildCallI_Helper(Js::OpCode newOpcode, uint32 offset, Js::RegSlot ds
         case Js::OpCode::NewScObjArray:
         case Js::OpCode::NewScObjArraySpread:
             symDst->m_isSafeThis = true;
-            symDst->m_isNotInt = true;
+            symDst->m_isNotNumber = true;
             break;
         }
     }
