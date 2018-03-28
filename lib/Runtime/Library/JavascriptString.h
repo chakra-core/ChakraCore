@@ -53,7 +53,12 @@ namespace Js
         virtual void GetPropertyRecord(_Out_ PropertyRecord const** propertyRecord, bool dontLookupFromDictionary = false);
 
         _Ret_range_(m_charLength, m_charLength) charcount_t GetLength() const;
+
+        // Non-finalized strings haven't allocated buffers yet, but
+        // it always makes sense to talk about string's size in bytes.
+        charcount_t GetSizeInBytes() const { return GetLength() * sizeof(char16); };
         virtual size_t GetAllocatedByteCount() const;
+
         virtual bool IsSubstring() const;
         int GetLengthAsSignedInt() const;
         const char16* UnsafeGetBuffer() const;

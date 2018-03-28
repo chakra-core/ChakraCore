@@ -4971,17 +4971,13 @@ CHAKRA_API JsSerialize(
 
     *bufferVal = nullptr;
 
-    bool isExternalArray = Js::ExternalArrayBuffer::Is(scriptVal),
-         isString = false;
-    bool isUtf8   = !(parseAttributes & JsParseScriptAttributeArrayBufferIsUtf16Encoded);
-    if (!isExternalArray)
+    const bool isExternalArray = Js::ExternalArrayBuffer::Is(scriptVal);
+    const bool isString = !isExternalArray && Js::JavascriptString::Is(scriptVal);
+    if (!isExternalArray && !isString)
     {
-        isString = Js::JavascriptString::Is(scriptVal);
-        if (!isString)
-        {
-            return JsErrorInvalidArgument;
-        }
+        return JsErrorInvalidArgument;
     }
+    const bool isUtf8 = !isString && !(parseAttributes & JsParseScriptAttributeArrayBufferIsUtf16Encoded);
 
     LoadScriptFlag scriptFlag;
     const byte* script = isExternalArray ?
@@ -4989,7 +4985,7 @@ CHAKRA_API JsSerialize(
         (const byte*)((Js::JavascriptString*)(scriptVal))->GetSz();
     const size_t cb = isExternalArray ?
         ((Js::ExternalArrayBuffer*)(scriptVal))->GetByteLength() :
-        ((Js::JavascriptString*)(scriptVal))->GetLength();
+        ((Js::JavascriptString*)(scriptVal))->GetSizeInBytes();
 
     if (isExternalArray && isUtf8)
     {

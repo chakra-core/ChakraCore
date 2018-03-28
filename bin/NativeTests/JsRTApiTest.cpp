@@ -2664,4 +2664,87 @@ namespace JsRTApiTest
     {
         JsRTApiTest::RunWithAttributes(JsRTApiTest::JsCreateStringTest);
     }
+
+    void ApiTest_JsSerializeArrayTest(JsRuntimeAttributes /*attributes*/, JsRuntimeHandle /*runtime*/)
+    {
+        LPCSTR raw_script = "(function (){return true;})();";
+        LPCWSTR raw_wscript = L"(function (){return true;})();";
+
+        // JsSerializeScript has good test coverage and can be used as an oracle for JsSerialize
+        unsigned int bcBufferSize_Expected = 0;
+        REQUIRE(JsSerializeScript(raw_wscript, nullptr, &bcBufferSize_Expected) == JsNoError);
+        BYTE *bcBuffer_Expected = new BYTE[bcBufferSize_Expected];
+        REQUIRE(JsSerializeScript(raw_wscript, bcBuffer_Expected, &bcBufferSize_Expected) == JsNoError);
+        REQUIRE(bcBuffer_Expected != nullptr);
+
+        // JsSerialize from an external array
+        JsValueRef scriptSource = JS_INVALID_REFERENCE;
+        REQUIRE(JsCreateExternalArrayBuffer(
+            (void*)raw_script, (unsigned int)strlen(raw_script), nullptr, (void*)raw_script, &scriptSource) == JsNoError);
+
+        JsValueRef buffer = JS_INVALID_REFERENCE;
+        REQUIRE(JsSerialize(scriptSource, &buffer, JsParseScriptAttributeNone) == JsNoError);
+
+        BYTE *bcBuffer = nullptr;
+        unsigned int bcBufferSize = 0;
+        REQUIRE(JsGetArrayBufferStorage(buffer, &bcBuffer, &bcBufferSize) == JsNoError);
+
+        REQUIRE(bcBufferSize_Expected == bcBufferSize);
+        CHECK(memcmp(bcBuffer_Expected, bcBuffer, bcBufferSize_Expected) == 0);
+    }
+
+    TEST_CASE("ApiTest_JsSerialize_Array", "[ApiTest]")
+    {
+        JsRTApiTest::RunWithAttributes(JsRTApiTest::ApiTest_JsSerializeArrayTest);
+    }
+
+    void ApiTest_JsSerializeStringTest(JsRuntimeAttributes /*attributes*/, JsRuntimeHandle /*runtime*/)
+    {
+        LPCSTR raw_script = "(function (){return true;})();";
+        LPCWSTR raw_wscript = L"(function (){return true;})();";
+
+        // JsSerializeScript has good test coverage and can be used as an oracle for JsSerialize
+        unsigned int bcBufferSize_Expected = 0;
+        REQUIRE(JsSerializeScript(raw_wscript, nullptr, &bcBufferSize_Expected) == JsNoError);
+        BYTE* bcBuffer_Expected = new BYTE[bcBufferSize_Expected];
+        REQUIRE(JsSerializeScript(raw_wscript, bcBuffer_Expected, &bcBufferSize_Expected) == JsNoError);
+        REQUIRE(bcBuffer_Expected != nullptr);
+
+        // JsSerialize from a string
+        JsValueRef script = JS_INVALID_REFERENCE;
+        REQUIRE(JsCreateString(raw_script, static_cast<size_t>(-1), &script) == JsNoError);
+
+        JsValueRef buffer = JS_INVALID_REFERENCE;
+        REQUIRE(JsSerialize(script, &buffer, JsParseScriptAttributeNone) == JsNoError);
+
+        BYTE *bcBuffer = nullptr;
+        unsigned int bcBufferSize = 0;
+        REQUIRE(JsGetArrayBufferStorage(buffer, &bcBuffer, &bcBufferSize) == JsNoError);
+
+        REQUIRE(bcBufferSize_Expected == bcBufferSize);
+        CHECK(memcmp(bcBuffer_Expected, bcBuffer, bcBufferSize_Expected) == 0);
+
+        delete[] bcBuffer_Expected;
+    }
+
+    TEST_CASE("ApiTest_JsSerialize_String", "[ApiTest]")
+    {
+        JsRTApiTest::RunWithAttributes(JsRTApiTest::ApiTest_JsSerializeStringTest);
+    }
+
+    void ApiTest_JsSerializeParseErrorTest(JsRuntimeAttributes /*attributes*/, JsRuntimeHandle /*runtime*/)
+    {
+        LPCSTR raw_script = "(function (){return true;})(;";
+
+        JsValueRef script = JS_INVALID_REFERENCE;
+        REQUIRE(JsCreateString(raw_script, static_cast<size_t>(-1), &script) == JsNoError);
+
+        JsValueRef buffer = JS_INVALID_REFERENCE;
+        CHECK(JsSerialize(script, &buffer, JsParseScriptAttributeNone) == JsErrorScriptCompile);
+    }
+
+    TEST_CASE("ApiTest_JsSerialize_FailParse", "[ApiTest]")
+    {
+        JsRTApiTest::RunWithAttributes(JsRTApiTest::ApiTest_JsSerializeParseErrorTest);
+    }
 }
