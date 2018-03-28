@@ -214,10 +214,10 @@ bool GlobOpt::ShouldExpectConventionalArrayIndexValue(IR::IndirOpnd *const indir
     }
 
     IR::RegOpnd *const indexOpnd = indirOpnd->GetIndexOpnd();
-    if(indexOpnd->m_sym->m_isNotInt)
+    if(indexOpnd->m_sym->m_isNotNumber)
     {
         // Typically, single-def or any sym-specific information for type-specialized syms should not be used because all of
-        // their defs will not have been accounted for until after the forward pass. But m_isNotInt is only ever changed from
+        // their defs will not have been accounted for until after the forward pass. But m_isNotNumber is only ever changed from
         // false to true, so it's okay in this case.
         return false;
     }
@@ -233,6 +233,10 @@ bool GlobOpt::ShouldExpectConventionalArrayIndexValue(IR::IndirOpnd *const indir
         // Don't use single-def info or const flags for type-specialized syms, as all of their defs will not have been accounted
         // for until after the forward pass. Also, don't use the const flags in a loop prepass because the const flags may not
         // be up-to-date.
+        if (indexOpnd->IsNotInt())
+        {
+            return false;
+        }
         StackSym *const indexSym = indexOpnd->m_sym;
         if(indexSym->IsIntConst())
         {
@@ -2816,7 +2820,7 @@ GlobOpt::TypeSpecializeBailoutExpectedInteger(IR::Instr* instr, Value* src1Val, 
 
     if(instr->GetSrc1()->IsRegOpnd())
     {
-        if (!src1Val || !src1Val->GetValueInfo()->IsLikelyInt() || instr->GetSrc1()->AsRegOpnd()->m_sym->m_isNotInt)
+        if (!src1Val || !src1Val->GetValueInfo()->IsLikelyInt() || instr->GetSrc1()->AsRegOpnd()->m_sym->m_isNotNumber)
         {
             Assert(IsSwitchOptEnabledForIntTypeSpec());
             throw Js::RejitException(RejitReason::DisableSwitchOptExpectingInteger);
@@ -3982,7 +3986,7 @@ Value *
 GlobOpt::NewGenericValue(const ValueType valueType, IR::Opnd *const opnd)
 {
     // Shouldn't assign a likely-int value to something that is definitely not an int
-    Assert(!(valueType.IsLikelyInt() && opnd && opnd->IsRegOpnd() && opnd->AsRegOpnd()->m_sym->m_isNotInt));
+    Assert(!(valueType.IsLikelyInt() && opnd && opnd->IsNotInt()));
 
     ValueInfo *valueInfo = ValueInfo::New(this->alloc, valueType);
     Value *val = NewValue(valueInfo);
@@ -4582,8 +4586,8 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
             if(!(
                     profiledValueType.IsLikelyInt() &&
                     (
-                        (dst->IsRegOpnd() && dst->AsRegOpnd()->m_sym->m_isNotInt) ||
-                        (instr->GetSrc1()->IsRegOpnd() && instr->GetSrc1()->AsRegOpnd()->m_sym->m_isNotInt)
+                        (dst->IsRegOpnd() && dst->AsRegOpnd()->m_sym->m_isNotNumber) ||
+                        (instr->GetSrc1()->IsRegOpnd() && instr->GetSrc1()->AsRegOpnd()->m_sym->m_isNotNumber)
                     )
                 ))
             {
@@ -4652,7 +4656,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         if (instr->IsProfiledInstr())
         {
             ValueType profiledValueType(instr->AsProfiledInstr()->u.FldInfo().valueType);
-            if(!(profiledValueType.IsLikelyInt() && dst->IsRegOpnd() && dst->AsRegOpnd()->m_sym->m_isNotInt))
+            if(!(profiledValueType.IsLikelyInt() && dst->IsRegOpnd() && dst->AsRegOpnd()->m_sym->m_isNotNumber))
             {
                 if(!src1ValueInfo)
                 {
@@ -5046,7 +5050,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         if (instr->IsProfiledInstr())
         {
             const ValueType profiledValueType(instr->AsProfiledInstr()->u.FldInfo().valueType);
-            if(!(profiledValueType.IsLikelyInt() && dst->AsRegOpnd()->m_sym->m_isNotInt))
+            if(!(profiledValueType.IsLikelyInt() && dst->AsRegOpnd()->m_sym->m_isNotNumber))
             {
                 return this->NewGenericValue(profiledValueType, dst);
             }
@@ -5117,7 +5121,7 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
     if (instr->IsProfiledInstr())
     {
         profiledElementType = instr->AsProfiledInstr()->u.ldElemInfo->GetElementType();
-        if(!(profiledElementType.IsLikelyInt() && dst->IsRegOpnd() && dst->AsRegOpnd()->m_sym->m_isNotInt) &&
+        if(!(profiledElementType.IsLikelyInt() && dst->IsRegOpnd() && dst->AsRegOpnd()->m_sym->m_isNotNumber) &&
             srcVal &&
             srcValueInfo->IsUninitialized())
         {
@@ -7593,7 +7597,7 @@ GlobOpt::TypeSpecializeIntUnary(
     bool ignoredNegativeZero = false;
     bool checkTypeSpecWorth = false;
 
-    if(instr->GetSrc1()->IsRegOpnd() && instr->GetSrc1()->AsRegOpnd()->m_sym->m_isNotInt)
+    if(instr->GetSrc1()->IsRegOpnd() && instr->GetSrc1()->AsRegOpnd()->m_sym->m_isNotNumber)
     {
         return TryTypeSpecializeUnaryToFloatHelper(pInstr, &src1Val, src1OriginalVal, pDstVal);
     }
@@ -8747,8 +8751,8 @@ GlobOpt::TypeSpecializeBinary(IR::Instr **pInstr, Value **pSrc1Val, Value **pSrc
                             !src2Val->GetValueInfo()->IsInt()
                         )
                     ) ||
-                    (instr->GetSrc1()->IsRegOpnd() && instr->GetSrc1()->AsRegOpnd()->m_sym->m_isNotInt) ||
-                    (instr->GetSrc2()->IsRegOpnd() && instr->GetSrc2()->AsRegOpnd()->m_sym->m_isNotInt))
+                    (instr->GetSrc1()->IsRegOpnd() && instr->GetSrc1()->AsRegOpnd()->m_sym->m_isNotNumber) ||
+                    (instr->GetSrc2()->IsRegOpnd() && instr->GetSrc2()->AsRegOpnd()->m_sym->m_isNotNumber))
                 {
                     return trySpecializeToFloat(true);
                 }
@@ -15272,7 +15276,7 @@ GlobOpt::DoLdLenIntSpec(IR::Instr * const instr, const ValueType baseValueType)
         instr->IsProfiledInstr() &&
         (
             !instr->AsProfiledInstr()->u.FldInfo().valueType.IsLikelyInt() ||
-            instr->GetDst()->AsRegOpnd()->m_sym->m_isNotInt
+            instr->GetDst()->AsRegOpnd()->m_sym->m_isNotNumber
         ))
     {
         return false;

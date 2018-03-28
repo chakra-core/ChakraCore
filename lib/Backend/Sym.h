@@ -126,6 +126,7 @@ public:
     void            SetIsInt64Const();
     void            SetIsFloatConst();
     void            SetIsSimd128Const();
+    void            SetIsStrConst();
 
     intptr_t        GetLiteralConstValue_PostGlobOpt() const;
     IR::Opnd *      GetConstOpnd() const;
@@ -201,7 +202,7 @@ private:
     Js::ArgSlot     m_slotNum;
 public:
     uint8           m_isSingleDef:1;            // the symbol only has a single definition in the IR
-    uint8           m_isNotInt:1;
+    uint8           m_isNotNumber:1;
     uint8           m_isSafeThis : 1;
     uint8           m_isConst : 1;              // single def and it is a constant
     uint8           m_isIntConst : 1;           // a constant and it's value is an Int32
