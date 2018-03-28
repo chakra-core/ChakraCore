@@ -1493,4 +1493,37 @@
       <tags>exclude_dynapogo,exclude_nonative</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>testsimplepathbrfold.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -oopjit- -trace:pathdepbranchfolding -bgjit-</compile-flags>
+      <baseline>testsimplepathbrfold.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_nonative</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bugsimplepathbrfold.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -oopjit-</compile-flags>
+      <baseline>bugsimplepathbrfold.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bugsimplepathbrfold1.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -oopjit-</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bugsimplepathbrfold3.js</files>
+      <compile-flags>-maxsimplejitruncount:1 -maxinterpretcount:1 -forcejitloopbody -oopjit-</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bugsimplepathbrfold4.js</files>
+      <compile-flags> -loopinterpretcount:1 -bgjit- -maxsimplejitruncount:1 -maxinterpretcount:1 -oopjit-</compile-flags>
+    </default>
+  </test>
 </regress-exe>

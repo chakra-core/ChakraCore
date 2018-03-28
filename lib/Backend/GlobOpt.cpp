@@ -470,6 +470,7 @@ GlobOpt::OptBlock(BasicBlock *block)
     PrepareLoopArrayCheckHoist();
 
     block->MergePredBlocksValueMaps(this);
+    block->PathDepBranchFolding(this);
 
     this->intOverflowCurrentlyMattersInRange = true;
     this->intOverflowDoesNotMatterRange = this->currentBlock->intOverflowDoesNotMatterRange;
@@ -4316,9 +4317,11 @@ GlobOpt::HoistConstantLoadAndPropagateValueBackward(Js::Var varConst, IR::Instr 
         {
             BasicBlock * block = it.Block();
             (block->globOptData.*bv)->Set(dstSym->m_id);
-            Assert(!block->globOptData.FindValue(dstSym));
-            Value *const valueCopy = CopyValue(value, value->GetValueNumber());
-            block->globOptData.SetValue(valueCopy, dstSym);
+            if (!block->globOptData.FindValue(dstSym))
+            {
+                Value *const valueCopy = CopyValue(value, value->GetValueNumber());
+                block->globOptData.SetValue(valueCopy, dstSym);
+            }
         }
     }
 
@@ -6414,15 +6417,15 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
         break;
 
         BRANCHSIGNED(BrEq_I4, == , int64, false)
-            BRANCHSIGNED(BrGe_I4, >= , int64, false)
-            BRANCHSIGNED(BrGt_I4, > , int64, false)
-            BRANCHSIGNED(BrLt_I4, < , int64, false)
-            BRANCHSIGNED(BrLe_I4, <= , int64, false)
-            BRANCHSIGNED(BrNeq_I4, != , int64, false)
-            BRANCHSIGNED(BrUnGe_I4, >= , uint64, true)
-            BRANCHSIGNED(BrUnGt_I4, > , uint64, true)
-            BRANCHSIGNED(BrUnLt_I4, < , uint64, true)
-            BRANCHSIGNED(BrUnLe_I4, <= , uint64, true)
+        BRANCHSIGNED(BrGe_I4, >= , int64, false)
+        BRANCHSIGNED(BrGt_I4, > , int64, false)
+        BRANCHSIGNED(BrLt_I4, < , int64, false)
+        BRANCHSIGNED(BrLe_I4, <= , int64, false)
+        BRANCHSIGNED(BrNeq_I4, != , int64, false)
+        BRANCHSIGNED(BrUnGe_I4, >= , uint64, true)
+        BRANCHSIGNED(BrUnGt_I4, > , uint64, true)
+        BRANCHSIGNED(BrUnLt_I4, < , uint64, true)
+        BRANCHSIGNED(BrUnLe_I4, <= , uint64, true)
 #undef BRANCHSIGNED
 #define BRANCH(OPCODE,CMP,VARCMPFUNC) \
     case Js::OpCode::##OPCODE: \
@@ -6449,8 +6452,6 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
         } \
         break;
 
-    BRANCH(BrEq_A, ==, Js::JavascriptOperators::Equal)
-    BRANCH(BrNotNeq_A, == , Js::JavascriptOperators::Equal)
     BRANCH(BrGe_A, >= , Js::JavascriptOperators::GreaterEqual)
     BRANCH(BrNotGe_A, <, !Js::JavascriptOperators::GreaterEqual)
     BRANCH(BrLt_A, <, Js::JavascriptOperators::Less)
@@ -6459,9 +6460,71 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
     BRANCH(BrNotGt_A, <= , !Js::JavascriptOperators::Greater)
     BRANCH(BrLe_A, <= , Js::JavascriptOperators::LessEqual)
     BRANCH(BrNotLe_A, >, !Js::JavascriptOperators::LessEqual)
-    BRANCH(BrNeq_A, != , Js::JavascriptOperators::NotEqual)
-    BRANCH(BrNotEq_A, != , Js::JavascriptOperators::NotEqual)
 #undef BRANCH
+    case Js::OpCode::BrEq_A:
+    case Js::OpCode::BrNotNeq_A:
+        if (src1Val && src2Val && src1Val->GetValueInfo()->TryGetIntConstantValue(&left) &&
+            src2Val->GetValueInfo()->TryGetIntConstantValue(&right))
+        {
+            *result = left == right;
+        }
+        else if (src1Val && src2Val && AreSourcesEqual(src1Val, src2Val))
+        {
+            *result = true;
+        }
+        else if (!src1Var || !src2Var)
+        {
+            if (BoolAndIntStaticAndTypeMismatch(src1Val, src2Val, src1Var, src2Var))
+            {
+                *result = false;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else
+        {
+            if (func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts))
+            {
+                // TODO: OOP JIT, const folding
+                return false;
+            }
+            *result = Js::JavascriptOperators::Equal(src1Var, src2Var, this->func->GetScriptContext());
+        }
+        break;
+    case Js::OpCode::BrNeq_A:
+    case Js::OpCode::BrNotEq_A:
+        if (src1Val && src2Val && src1Val->GetValueInfo()->TryGetIntConstantValue(&left) &&
+            src2Val->GetValueInfo()->TryGetIntConstantValue(&right))
+        {
+            *result = left != right;
+        }
+        else if (src1Val && src2Val && AreSourcesEqual(src1Val, src2Val))
+        {
+            *result = false;
+        }
+        else if (!src1Var || !src2Var)
+        {
+            if (BoolAndIntStaticAndTypeMismatch(src1Val, src2Val, src1Var, src2Var))
+            {
+                *result = true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else
+        {
+            if (func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts))
+            {
+                // TODO: OOP JIT, const folding
+                return false;
+            }
+            *result = Js::JavascriptOperators::NotEqual(src1Var, src2Var, this->func->GetScriptContext());
+        }
+        break;
     case Js::OpCode::BrSrEq_A:
     case Js::OpCode::BrSrNotNeq_A:
         if (!src1Var || !src2Var)

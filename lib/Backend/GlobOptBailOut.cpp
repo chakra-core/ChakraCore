@@ -549,7 +549,6 @@ GlobOpt::TrackCalls(IR::Instr * instr)
         Assert(instr->m_func->GetParentFunc() == this->currentBlock->globOptData.curFunc);
         Assert(instr->m_func->GetParentFunc());
         this->currentBlock->globOptData.curFunc = instr->m_func;
-        this->currentBlock->globOptData.curFunc = instr->m_func;
 
         this->func->UpdateMaxInlineeArgOutSize(this->currentBlock->globOptData.inlinedArgOutSize);
         this->EndTrackCall(instr);
@@ -840,7 +839,6 @@ void GlobOpt::EndTrackingOfArgObjSymsForInlinee()
         JitAdelete(this->tempAlloc, tempBv);
     }
     this->currentBlock->globOptData.curFunc = this->currentBlock->globOptData.curFunc->GetParentFunc();
-    this->currentBlock->globOptData.curFunc = this->currentBlock->globOptData.curFunc;
 }
 
 void GlobOpt::EndTrackCall(IR::Instr* instr)
