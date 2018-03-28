@@ -1,0 +1,11 @@
+BailOut: function: factorial ( (#1.1), #2) offset: #001a Opcode: Mul_I4 Kind: BailOutOnMulOverflow | BailOutOnNegativeZero
+BailOut: function: factorial ( (#1.1), #2) offset: #001a Opcode: Mul_I4 Kind: BailOutOnMulOverflow | BailOutOnNegativeZero
+BailOut: function: factorial ( (#1.1), #2) offset: #001a Opcode: Mul_I4 Kind: BailOutOnMulOverflow | BailOutOnNegativeZero
+BailOut: function: factorial ( (#1.1), #2) offset: #001a Opcode: Mul_I4 Kind: BailOutOnMulOverflow | BailOutOnNegativeZero
+6.209600278328219e+62
+BailOut: function: exponent ( (#1.2), #3) offset: #0016 Opcode: Mul_I4 Kind: BailOutOnMulOverflow
+BailOut: function: exponent ( (#1.2), #3) offset: #0016 Opcode: Mul_I4 Kind: BailOutOnMulOverflow
+BailOut: function: exponent ( (#1.2), #3) offset: #0016 Opcode: Mul_I4 Kind: BailOutOnMulOverflow
+BailOut: function: exponent ( (#1.2), #3) offset: #0016 Opcode: Mul_I4 Kind: BailOutOnMulOverflow
+BailOut: function: exponent ( (#1.2), #3) offset: #0016 Opcode: Mul_I4 Kind: BailOutOnMulOverflow
+1125899906842624
