@@ -112,6 +112,13 @@
       <tags>Intl</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>IntlPlatform.js</files>
+      <compile-flags>-IntlPlatform</compile-flags>
+      <tags>Intl,exclude_windows</tags>
+    </default>
+  </test>
 
   <!-- Slow Tests -->
 

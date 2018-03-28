@@ -95,7 +95,7 @@ namespace Js
         DynamicObject* GetMathObject() { return mathObject; }
         DynamicObject* GetJSONObject() { return JSONObject; }
 #ifdef ENABLE_INTL_OBJECT
-        DynamicObject* GetINTLObject() { return IntlObject; }
+        DynamicObject* GetIntlObject() { return IntlObject; }
 #endif
 #if defined(ENABLE_INTL_OBJECT)  || defined(ENABLE_JS_BUILTINS) || defined(ENABLE_PROJECTION)
         EngineInterfaceObject* GetEngineInterfaceObject() { return engineInterfaceObject; }

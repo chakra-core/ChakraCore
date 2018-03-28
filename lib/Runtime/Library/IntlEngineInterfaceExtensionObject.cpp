@@ -395,6 +395,12 @@ namespace Js
                 DynamicType::New(scriptContext, TypeIds_Object, commonObject, nullptr,
                     DeferredTypeHandler<InitializeIntlNativeInterfaces>::GetDefaultInstance()));
             library->AddMember(library->GetEngineInterfaceObject(), Js::PropertyIds::Intl, this->intlNativeInterfaces);
+
+            // Only show the platform object publicly if -IntlPlatform is passed
+            if (CONFIG_FLAG(IntlPlatform))
+            {
+                library->AddMember(library->GetIntlObject(), PropertyIds::platform, this->intlNativeInterfaces);
+            }
         }
 
         // TODO: JsBuiltIns fail without these being initialized here?
