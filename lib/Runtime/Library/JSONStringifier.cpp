@@ -775,7 +775,7 @@ JSONStringifier::ReadProperty(
     bool isObject = false;
     if (valueObj)
     {
-        isObject = JavascriptOperators::IsObject(value) != FALSE;
+        isObject = JavascriptOperators::IsObject(valueObj) != FALSE;
         if (isObject)
         {
             // If value is an object, we must first check if it has a ToJSON method
@@ -800,7 +800,7 @@ JSONStringifier::ReadProperty(
         // Callable JS objects are undefined, but we still stringify callable host objects
         // Host object case is for compat with old implementation, but isn't defined in the
         // spec, so we should consider removing it
-        if (JavascriptConversion::IsCallable(valueObj) && JavascriptOperators::IsJsNativeObject(value))
+        if (JavascriptConversion::IsCallable(valueObj) && JavascriptOperators::IsJsNativeObject(valueObj))
         {
             prop->type = JSONContentType::Undefined;
             return;

@@ -239,7 +239,9 @@ namespace Js
         static BOOL IsNull(Var instance);
         static BOOL IsNull(RecyclableObject* instance);
         static BOOL IsSpecialObjectType(TypeId typeId);
+        static BOOL IsJsNativeType(TypeId typeId);
         static BOOL IsJsNativeObject(Var instance);
+        static BOOL IsJsNativeObject(_In_ RecyclableObject* instance);
         static BOOL IsUndefinedObject(Var instance);
         static BOOL IsAnyNumberValue(Var instance);
         static BOOL IsClassConstructor(Var instance);

@@ -71,6 +71,7 @@ namespace Js {
         static bool SameValue(Var aValue, Var bValue);
         static bool SameValueZero(Var aValue, Var bValue);
         static bool IsCallable(Var aValue);
+        static bool IsCallable(_In_ RecyclableObject* aValue);
 
         static BOOL ToInt32Finite(Var aValue, ScriptContext* scriptContext, int32* result);
 

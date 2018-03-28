@@ -4965,9 +4965,9 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         return RecyclableObject::FromVar(aValue)->GetRemoteTypeId(typeId);
     }
 
-    BOOL JavascriptOperators::IsJsNativeObject(Var aValue)
+    BOOL JavascriptOperators::IsJsNativeType(TypeId type)
     {
-        switch(GetTypeId(aValue))
+        switch(type)
         {
             case TypeIds_Object:
             case TypeIds_Function:
@@ -5007,6 +5007,16 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             default:
                 return false;
         }
+    }
+
+    BOOL JavascriptOperators::IsJsNativeObject(Var instance)
+    {
+        return IsJsNativeType(GetTypeId(instance));
+    }
+
+    BOOL JavascriptOperators::IsJsNativeObject(_In_ RecyclableObject* instance)
+    {
+        return IsJsNativeType(GetTypeId(instance));
     }
 
     bool JavascriptOperators::CanShortcutOnUnknownPropertyName(RecyclableObject *instance)
