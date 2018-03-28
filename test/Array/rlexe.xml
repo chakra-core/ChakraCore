@@ -759,4 +759,9 @@
       <files>bug12340575.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>constructor_fastpath.js</files>
+    </default>
+  </test>
 </regress-exe>

@@ -5223,11 +5223,10 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
     IR::Opnd *opndOfArrayCtor = argInstr->GetSrc1();
     const uint16 upperBoundValue = 8;
     // Generate fast path only if it meets all the conditions:
-    // 1. It is the only parameter
+    // 1. It is the only parameter and it is a likely int
     // 2a. If 1st parameter is a variable, emit fast path with checks
     // 2b. If 1st parameter is a constant, it is in range 0 and upperBoundValue (inclusive)
-    if (opndOfArrayCtor->IsAddrOpnd() || opndOfArrayCtor->IsRegOpnd()) // #1
-
+    if (opndOfArrayCtor->GetValueType().IsLikelyInt() && (opndOfArrayCtor->IsAddrOpnd() || opndOfArrayCtor->IsRegOpnd())) // #1
     {
         if ((linkSym->GetArgSlotNum() == 2)) // 1. It is the only parameter
         {
@@ -18419,7 +18418,7 @@ Lowerer::GenerateFastInlineStringFromCodePoint(IR::Instr* instr)
     Assert(argInstr->m_opcode == Js::OpCode::ArgOut_A);
     IR::Opnd *src1 = argInstr->GetSrc1();
 
-    if (src1->GetValueType().IsLikelyNumber())
+    if (src1->GetValueType().IsLikelyInt())
     {
         //Trying to generate this code
         //      MOV resultOpnd, dst
@@ -18494,7 +18493,7 @@ Lowerer::GenerateFastInlineStringFromCharCode(IR::Instr* instr)
     Assert(argInstr->m_opcode == Js::OpCode::ArgOut_A);
     IR::Opnd *src1 = argInstr->GetSrc1();
 
-    if (src1->GetValueType().IsLikelyNumber())
+    if (src1->GetValueType().IsLikelyInt())
     {
         //Trying to generate this code
         //      MOV resultOpnd, dst
