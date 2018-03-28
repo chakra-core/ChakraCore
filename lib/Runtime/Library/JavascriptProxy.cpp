@@ -2136,8 +2136,15 @@ namespace Js
                 {
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, _u("construct"));
                 }
-                newThisObject = JavascriptOperators::NewScObjectNoCtor(targetObj, scriptContext);
-                args.Values[0] = newThisObject;
+                if (!isCtorSuperCall)
+                {
+                    newThisObject = JavascriptOperators::NewScObjectNoCtor(targetObj, scriptContext);
+                    args.Values[0] = newThisObject;
+                }
+                else
+                {
+                    newThisObject = args.Values[0];
+                }
             }
 
             ushort newCount = (ushort)args.Info.Count;

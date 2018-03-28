@@ -383,6 +383,52 @@ var tests = [
             assert.isTrue(trapCalled);
         }
     },
+    {
+        name: "Extending a proxy with an es6 class",
+        body() {
+            function parent() { this.noTrap = true; }
+            var proxyNoTrap = new Proxy(parent, {});
+            var handler = {
+                construct : function () {
+                    this.other = true;
+                    return { trap: true };
+                }
+            }
+            var proxyWithTrap = new Proxy(parent, handler );
+
+            class NoTrap extends proxyNoTrap
+            {
+                constructor()
+                {
+                    super();
+                    this.own = true;
+                }
+                a () { return true; }
+            }
+
+            class WithTrap extends proxyWithTrap
+            {
+                constructor()
+                {
+                    super();
+                    this.own = true;
+                }
+                a () { return true; }
+            }
+            
+            var notrap = new NoTrap();
+            assert.isTrue(notrap.own);
+            assert.isTrue(notrap.a());
+            assert.isTrue(notrap.noTrap);
+            
+            var withtrap = new WithTrap();
+            assert.isTrue(withtrap.own);
+            assert.isUndefined(withtrap.a);
+            assert.isTrue(withtrap.trap);
+            assert.isUndefined(withtrap.other);
+            assert.isUndefined(withtrap.noTrap);
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
