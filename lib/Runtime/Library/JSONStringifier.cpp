@@ -271,11 +271,37 @@ JSONStringifier::ToJSON(_In_ JavascriptString* key, _In_ RecyclableObject* value
     PolymorphicInlineCache* cache = this->scriptContext->Cache()->toJSONCache;
     PropertyValueInfo info;
     PropertyValueInfo::SetCacheInfo(&info, cache, false);
+
+    // The vast majority of objects don't have custom toJSON, so check the missing cache first.
+    // We can check all of the others afterward.
+    if (CacheOperators::TryGetProperty<
+        false,  // CheckLocal
+        false,  // CheckProto
+        false,  // CheckAccessor
+        true,   // CheckMissing
+        true,   // CheckPolymorphicInlineCache
+        false,  // CheckTypePropertyCache
+        false,  // IsInlineCacheAvailable
+        true,   // IsPolymorphicInlineCacheAvailable
+        false>  // ReturnOperationInfo
+        (valueObject,
+            false,
+            valueObject,
+            PropertyIds::toJSON,
+            &toJSON,
+            this->scriptContext,
+            nullptr,
+            &info))
+    {
+        // Any cache hit means the property is missing, so don't bother to do anything else
+        return nullptr;
+    }
+
     if (!CacheOperators::TryGetProperty<
         true,   // CheckLocal
         true,   // CheckProto
         true,   // CheckAccessor
-        true,   // CheckMissing
+        false,  // CheckMissing
         true,   // CheckPolymorphicInlineCache
         true,   // CheckTypePropertyCache
         false,  // IsInlineCacheAvailable

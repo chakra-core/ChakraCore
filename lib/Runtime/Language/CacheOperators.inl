@@ -33,7 +33,7 @@ namespace Js
         Assert(IsPolymorphicInlineCacheAvailable == !!propertyValueInfo->GetPolymorphicInlineCache());
         Assert(!ReturnOperationInfo || operationInfo);
 
-        if(CheckLocal || CheckProto || CheckAccessor)
+        if(CheckLocal || CheckProto || CheckAccessor || CheckMissing)
         {
             InlineCache *const inlineCache = IsInlineCacheAvailable ? propertyValueInfo->GetInlineCache() : nullptr;
             if(IsInlineCacheAvailable)
