@@ -162,7 +162,7 @@ bool GlobOpt::ArraySrcOpt::CheckOpCode()
                 return false;
             }
 
-            if (!baseOpnd->GetValueType().IsLikelyAnyArray() || !baseOpnd->GetValueType().HasNoMissingValues())
+            if (!baseOpnd->GetValueType().IsLikelyAnyArray() || (baseOpnd->GetValueType().IsLikelyArrayOrObjectWithArray() && !baseOpnd->GetValueType().HasNoMissingValues()))
             {
                 return false;
             }
