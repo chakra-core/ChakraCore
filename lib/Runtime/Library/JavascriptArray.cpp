@@ -11668,7 +11668,7 @@ Case0:
     }
 
     JavascriptArray::JavascriptArray(JavascriptArray * instance, bool boxHead, bool deepCopy)
-        : ArrayObject(instance)
+        : ArrayObject(instance, deepCopy)
     {
         if (boxHead)
         {
@@ -11681,6 +11681,40 @@ Case0:
             head = instance->head;
             SetLastUsedSegment(instance->GetLastUsedSegment());
         }
+    }
+
+    // Allocate a new Array with its own segments and copy the data in instance
+    // into the new Array
+    template <typename T>
+    T * JavascriptArray::DeepCopyInstance(T * instance)
+    {
+        return RecyclerNewPlusZ(instance->GetRecycler(),
+            instance->GetTypeHandler()->GetInlineSlotsSize() + sizeof(Js::SparseArraySegmentBase) + instance->head->size * sizeof(typename T::TElement),
+            T, instance, true /*boxHead*/, true /*deepCopy*/);
+    }
+
+    ArrayObject* JavascriptArray::DeepCopyInstance(ArrayObject* arrayObject)
+    {
+        ArrayObject* arrayCopy;
+        TypeId typeId = JavascriptOperators::GetTypeId(arrayObject);
+        switch (typeId)
+        {
+        case Js::TypeIds_Array:
+            arrayCopy = JavascriptArray::DeepCopyInstance<JavascriptArray>(JavascriptArray::UnsafeFromVar(arrayObject));
+            break;
+        case Js::TypeIds_NativeIntArray:
+            arrayCopy = JavascriptArray::DeepCopyInstance<JavascriptNativeIntArray>(JavascriptNativeIntArray::UnsafeFromVar(arrayObject));
+            break;
+        case Js::TypeIds_NativeFloatArray:
+            arrayCopy = JavascriptArray::DeepCopyInstance<JavascriptNativeFloatArray>(JavascriptNativeFloatArray::UnsafeFromVar(arrayObject));
+            break;
+
+        default:
+            AssertAndFailFast(!"Unexpected objectArray type while boxing stack instance");
+            arrayCopy = nullptr;
+        };
+
+        return arrayCopy;
     }
 
     template <typename T>
@@ -11713,9 +11747,16 @@ Case0:
             // Reallocate both the object as well as the head segment when the head is on the stack or
             // when a deep copy is needed. This is to prevent a scenario where box may leave either one
             // on the stack when both must be on the heap.
-            boxedInstance = RecyclerNewPlusZ(instance->GetRecycler(),
-                inlineSlotsSize + sizeof(Js::SparseArraySegmentBase) + instance->head->size * sizeof(typename T::TElement),
-                T, instance, true, deepCopy);
+            if (deepCopy)
+            {
+                boxedInstance = DeepCopyInstance(instance);
+            }
+            else
+            {
+                boxedInstance = RecyclerNewPlusZ(instance->GetRecycler(),
+                    inlineSlotsSize + sizeof(Js::SparseArraySegmentBase) + instance->head->size * sizeof(typename T::TElement),
+                    T, instance, true /*boxHead*/, false /*deepCopy*/);
+            }
         }
         else if(inlineSlotsSize)
         {
@@ -11803,14 +11844,14 @@ Case0:
     }
 #endif
 
-    JavascriptNativeArray::JavascriptNativeArray(JavascriptNativeArray * instance) :
-        JavascriptArray(instance, false, false),
+    JavascriptNativeArray::JavascriptNativeArray(JavascriptNativeArray * instance, bool deepCopy) :
+        JavascriptArray(instance, false, deepCopy),
         weakRefToFuncBody(instance->weakRefToFuncBody)
     {
     }
 
     JavascriptNativeIntArray::JavascriptNativeIntArray(JavascriptNativeIntArray * instance, bool boxHead, bool deepCopy) :
-        JavascriptNativeArray(instance)
+        JavascriptNativeArray(instance, deepCopy)
     {
         if (boxHead)
         {
@@ -11856,7 +11897,7 @@ Case0:
 #endif
 
     JavascriptNativeFloatArray::JavascriptNativeFloatArray(JavascriptNativeFloatArray * instance, bool boxHead, bool deepCopy) :
-        JavascriptNativeArray(instance)
+        JavascriptNativeArray(instance, deepCopy)
     {
         if (boxHead)
         {

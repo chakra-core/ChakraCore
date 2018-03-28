@@ -84,10 +84,26 @@ namespace Js
 #endif
 
     private:
+        // Memory layout of DynamicObject can be one of the following:
+        //        (#1)                (#2)                (#3)
+        //  +--------------+    +--------------+    +--------------+
+        //  | vtable, etc. |    | vtable, etc. |    | vtable, etc. |
+        //  |--------------|    |--------------|    |--------------|
+        //  | auxSlots     |    | auxSlots     |    | inline slots |
+        //  | union        |    | union        |    |              |
+        //  +--------------+    |--------------|    |              |
+        //                      | inline slots |    |              |
+        //                      +--------------+    +--------------+
+        // The allocation size of inline slots is variable and dependent on profile data for the
+        // object. The offset of the inline slots is managed by DynamicTypeHandler.
+        // More details for the layout scenarios below.
+
         Field(Field(Var)*) auxSlots;
-        // The objectArrayOrFlags field can store one of two things:
-        //   a) a pointer to the object array holding numeric properties of this object, or
-        //   b) a bitfield of flags.
+
+        // The objectArrayOrFlags field can store one of three things:
+        //   a) a pointer to the object array holding numeric properties of this object (#1, #2), or
+        //   b) a bitfield of flags (#1, #2), or
+        //   c) inline slot data (#3)
         // Because object arrays are not commonly used, the storage space can be reused to carry information that
         // can improve performance for typical objects. To indicate the bitfield usage we set the least significant bit to 1.
         // Object array pointer always trumps the flags, such that when the first numeric property is added to an
@@ -95,10 +111,13 @@ namespace Js
         // For functional correctness, some other fallback mechanism must exist to convey the information contained in flags.
         // This fields always starts off initialized to null.  Currently, only JavascriptArray overrides it to store flags, the
         // bits it uses are DynamicObjectFlags::AllArrayFlags.
+        // Regarding c) above, inline slots can be stored within the allocation of sizeof(DynamicObject) (#3) or after
+        // sizeof(DynamicObject) (#2). This is indicated by GetTypeHandler()->IsObjectHeaderInlinedTypeHandler(); when true, the
+        // inline slots are within the object, and thus the union members *and* auxSlots actually contain inline slot data.
 
         union
         {
-            Field(ArrayObject *) objectArray;          // Only if !IsAnyArray
+            Field(ArrayObject *) objectArray;       // Only if !IsAnyArray
             struct                                  // Only if IsAnyArray
             {
                 Field(DynamicObjectFlags) arrayFlags;
@@ -122,7 +141,7 @@ namespace Js
         DynamicObject(DynamicType * type, ScriptContext * scriptContext);
 
         // For boxing stack instance
-        DynamicObject(DynamicObject * instance);
+        DynamicObject(DynamicObject * instance, bool deepCopy);
 
         uint16 GetOffsetOfInlineSlots() const;
 
@@ -317,7 +336,7 @@ namespace Js
         ProfileId GetArrayCallSiteIndex() const;
         void SetArrayCallSiteIndex(ProfileId profileId);
 
-        static DynamicObject * BoxStackInstance(DynamicObject * instance);
+        static DynamicObject * BoxStackInstance(DynamicObject * instance, bool deepCopy);
         
     private:
         ArrayObject* EnsureObjectArray();

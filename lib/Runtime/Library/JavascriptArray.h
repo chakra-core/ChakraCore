@@ -899,10 +899,12 @@ namespace Js
         static uint32 GetSpreadArgLen(Var spreadArg, ScriptContext *scriptContext);
 
         static JavascriptArray * BoxStackInstance(JavascriptArray * instance, bool deepCopy);
+        static ArrayObject * DeepCopyInstance(ArrayObject * instance);
     protected:
         template <typename T> void InitBoxedInlineSegments(SparseArraySegment<T> * dst, SparseArraySegment<T> * src, bool deepCopy);
 
         template <typename T> static T * BoxStackInstance(T * instance, bool deepCopy);
+        template <typename T> static T * DeepCopyInstance(T * instance);
 
     public:
         template<class T, uint InlinePropertySlots> static size_t DetermineAllocationSize(const uint inlineElementSlots, size_t *const allocationPlusSizeRef = nullptr, uint *const alignedInlineElementSlotsRef = nullptr);
@@ -960,7 +962,7 @@ namespace Js
             JavascriptArray(length, type), weakRefToFuncBody(nullptr) {}
 
         // For BoxStackInstance
-        JavascriptNativeArray(JavascriptNativeArray * instance);
+        JavascriptNativeArray(JavascriptNativeArray * instance, bool deepCopy);
 
         Field(RecyclerWeakReference<FunctionBody> *) weakRefToFuncBody;
 
