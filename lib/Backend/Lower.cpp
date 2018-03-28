@@ -16678,6 +16678,15 @@ Lowerer::GenerateUntagVar(IR::RegOpnd * opnd, IR::LabelInstr * labelFail, IR::In
         AssertMsg(opnd->GetSize() == 4, "This should be 32-bit wide");
         return opnd;
     }
+    if (opnd->m_sym->IsIntConst())
+    {
+        int32 constValue = opnd->m_sym->GetIntConstValue();
+        IR::IntConstOpnd* constOpnd = IR::IntConstOpnd::New(constValue, TyInt32, this->m_func);
+        IR::RegOpnd* regOpnd = IR::RegOpnd::New(TyInt32, this->m_func);
+        InsertMove(regOpnd, constOpnd, insertBeforeInstr);
+        return regOpnd;
+    }
+    AssertMsg(!opnd->GetValueType().IsDefinite() || opnd->GetValueType().IsLikelyInt(), "Definitive type that are not ints should not try to untag it as it will always fail");
     return m_lowererMD.GenerateUntagVar(opnd, labelFail, insertBeforeInstr, generateTagCheck && !opnd->IsTaggedInt());
 }
 
