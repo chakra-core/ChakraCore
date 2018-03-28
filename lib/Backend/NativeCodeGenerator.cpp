@@ -3745,6 +3745,7 @@ JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
         return true;
     case E_ABORT:
         throw Js::OperationAbortedException();
+    case HRESULT_FROM_WIN32(ERROR_COMMITMENT_LIMIT): 
     case E_OUTOFMEMORY:
         if (callType == RemoteCallType::MemFree)
         {
