@@ -14,17 +14,25 @@ function ascii (str) {
 const isICU = WScript.Platform.INTL_LIBRARY === "icu";
 const isWinGlob = WScript.Platform.INTL_LIBRARY === "winglob";
 
+function assertFormat(expected, fmt, date, msg = "assertFormat") {
+    assert.areEqual(ascii(expected), ascii(fmt.format(date)), `${msg}: fmt.format(date) did not match expected value`);
+
+    if (isICU) {
+        const parts = fmt.formatToParts(date);
+        assert.areEqual(expected, parts.map((part) => part.value).join(""), `${msg}: fmt.formatToParts(date) did not match expected value`);
+
+        const types = parts.filter((part) => part.type != "literal").map((part) => part.type);
+        assert.areEqual(new Set(types).size, types.length, `Duplicate non-literal parts detected in ${JSON.stringify(parts)}`)
+    }
+}
+
 const tests = [
     {
         name: "Basic functionality",
         body() {
             const date = new Date(2000, 1, 1, 1, 1, 1);
             function test(options, expected) {
-                assert.areEqual(
-                    expected,
-                    ascii(new Intl.DateTimeFormat("en-US", options).format(date)),
-                    `new Intl.DateTimeFormat("en-US", ${JSON.stringify(options)}).format(date)`
-                );
+                assertFormat(expected, new Intl.DateTimeFormat("en-US", options), date);
                 assert.areEqual(
                     expected,
                     ascii(date.toLocaleString("en-US", options)),
@@ -169,7 +177,7 @@ const tests = [
                 const toString = fmt.format(date);
                 const toParts = fmt.formatToParts(date);
 
-                assert.areEqual(toString, toParts.map((part) => part.value).join(""), `${message} - format() and formatToParts() returned incompatible values`);
+                assertFormat(toString, fmt, date);
 
                 if (typeof key === "string") {
                     const part = toParts.find((p) => p.type === key);
@@ -184,7 +192,6 @@ const tests = [
                         assert.areEqual(v, part.value, `${message} - expected ${k} to be ${v}, but was actually ${part.value}`);
                     });
                 }
-
             }
 
             test(undefined, ["year", "month", "day"], ["2000", "1", "1"]);
@@ -355,13 +362,19 @@ const tests = [
                     latn: "2561",
                     thai: "๒๕๖๑",
                 },
-                // Chinese and dangi calendars are disabled for the time being until we can resolve Microsoft/ChakraCore#4885
-                // chinese: {},
+                // TODO(jahorto): investigate chinese and dangi calendars - Microsoft/ChakraCore#4885
+                chinese: {
+                    latn: "wu-xu",
+                    thai: "wu-xu",
+                },
                 coptic: {
                     latn: "1734",
                     thai: "๑๗๓๔",
                 },
-                // dangi: {},
+                dangi: {
+                    latn: "wu-xu",
+                    thai: "wu-xu",
+                },
                 ethioaa: {
                     latn: "7510",
                     thai: "๗๕๑๐",
@@ -433,10 +446,15 @@ const tests = [
                 }
 
                 // Extract just the year out of the string, as the era may be present too
-                // SpiderMonkey does not print the era, but Chakra and V8 do -- is this an issue?
+                // SpiderMonkey does not print the era, but Chakra and V8 do
+                // At least for Chakra, we print the era sometimes because giving "y" to udatpg_getBestPattern
+                // can result in "y G" for certain locales (and "r(U)" for chinese and dangi calendars.
+                // This seems like reasonable behavior, so perhaps SpiderMonkey is incorrect here
+                const fmt = new Intl.DateTimeFormat(langtag, { year: "numeric" });
+                assertFormat(fmt.format(d), fmt, d);
                 assert.areEqual(
                     expected,
-                    new Intl.DateTimeFormat(langtag, { year: "numeric" }).formatToParts(d).filter((part) => part.type === "year")[0].value,
+                    fmt.formatToParts(d).filter((part) => part.type === "year")[0].value,
                     `${langtag} did not produce the correct year`
                 );
             }

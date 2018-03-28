@@ -33,12 +33,6 @@
 #define ICU_ERRORMESSAGE(e) "Bad status returned from ICU"
 #endif
 
-#ifdef INTL_ICU_DEBUG
-#define ICU_DEBUG_PRINT(fmt, msg) Output::Print(fmt, __func__, (msg))
-#else
-#define ICU_DEBUG_PRINT(fmt, msg)
-#endif
-
 #define ICU_FAILURE(e) (U_FAILURE(e) || e == U_STRING_NOT_TERMINATED_WARNING)
 #define ICU_BUFFER_FAILURE(e) (e == U_BUFFER_OVERFLOW_ERROR || e == U_STRING_NOT_TERMINATED_WARNING)
 

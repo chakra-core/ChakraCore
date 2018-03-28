@@ -32,20 +32,17 @@ static void RecyclerExecuteICUWithRetry(_In_ ICUFunc func, _In_ Recycler *recycl
     AssertOrFailFastMsg(success, "Could not allocate buffer for ICU call");
 }
 
-#define ICU_ERROR_FMT _u("INTL: %S failed with error code %S\n")
-#define ICU_EXPR_FMT _u("INTL: %S failed expression check %S\n")
+#define INTL_TRACE(fmt, ...) Output::Trace(Js::IntlPhase, _u("%S(): " fmt "\n"), __func__, __VA_ARGS__)
 
 #define ICU_ASSERT(e, expr)                                                   \
     do                                                                        \
     {                                                                         \
         if (ICU_FAILURE(e))                                                   \
         {                                                                     \
-            ICU_DEBUG_PRINT(ICU_ERROR_FMT, ICU_ERRORMESSAGE(e));              \
             AssertOrFailFastMsg(false, ICU_ERRORMESSAGE(e));                  \
         }                                                                     \
         else if (!(expr))                                                     \
         {                                                                     \
-            ICU_DEBUG_PRINT(ICU_EXPR_FMT, ICU_ERRORMESSAGE(e));               \
             AssertOrFailFast(expr);                                           \
         }                                                                     \
     } while (false)
@@ -2172,6 +2169,7 @@ namespace Js
         if (state->GetInternalProperty(state, Js::InternalPropertyIds::HiddenObject, &hiddenObject, nullptr, scriptContext))
         {
             dtf = reinterpret_cast<FinalizableUDateFormat *>(hiddenObject);
+            INTL_TRACE("Using previously cached UDateFormat");
         }
         else
         {
@@ -2220,6 +2218,8 @@ namespace Js
             // If we passed the previous check, we should reset the status to U_ZERO_ERROR (in case it was U_UNSUPPORTED_ERROR)
             status = U_ZERO_ERROR;
 
+            INTL_TRACE("Caching new UDateFormat with langtag=%s, pattern=%s, timezone=%s", langtag->GetSz(), pattern->GetSz(), timeZone->GetSz());
+
             // cache dtf for later use (so that the condition that brought us here returns true for future calls)
             state->SetInternalProperty(
                 InternalPropertyIds::HiddenObject,
@@ -2240,6 +2240,7 @@ namespace Js
             return JavascriptString::NewWithBuffer(formatted, formattedLen, scriptContext);
         }
 
+        // The rest of this function most closely corresponds to ECMA 402 #sec-partitiondatetimepattern
         ScopedUFieldPositionIterator fpi(ufieldpositer_open(&status));
         ICU_ASSERT(status, true);
         RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status) {
@@ -2251,11 +2252,12 @@ namespace Js
         int partStart = 0;
         int partEnd = 0;
         int lastPartEnd = 0;
+        int i = 0;
         for (
-            int kind = ufieldpositer_next(fpi, &partStart, &partEnd), i = 0;
+            int kind = ufieldpositer_next(fpi, &partStart, &partEnd);
             kind > 0;
             kind = ufieldpositer_next(fpi, &partStart, &partEnd), ++i
-            )
+        )
         {
             Assert(partStart < partEnd && partEnd <= formattedLen);
             const char16 *typeString = nullptr;
@@ -2287,6 +2289,7 @@ namespace Js
             case UDAT_DOW_LOCAL_FIELD:
                 typeString = _u("weekday"); break;
             case UDAT_AM_PM_FIELD:
+            case UDAT_AM_PM_MIDNIGHT_NOON_FIELD:
                 typeString = _u("dayPeriod"); break;
             case UDAT_TIMEZONE_FIELD:
             case UDAT_TIMEZONE_RFC_FIELD:
@@ -2294,8 +2297,17 @@ namespace Js
             case UDAT_TIMEZONE_SPECIAL_FIELD:
             case UDAT_TIMEZONE_LOCALIZED_GMT_OFFSET_FIELD:
             case UDAT_TIMEZONE_ISO_FIELD:
+            case UDAT_TIMEZONE_ISO_LOCAL_FIELD:
                 typeString = _u("timeZoneName"); break;
+
+            // this is UDAT_RELATED_YEAR_FIELD, which is hidden from the Windows Kit version of ICU because it is an "internal" API
+#pragma warning(push)
+#pragma warning(disable: 4063) // case 'identifier' is not a valid value for switch of enum 'enumeration'
+            case 34:
+                typeString = _u("relatedYear"); break;
+#pragma warning(pop)
             default:
+                AssertMsg(false, "Unmapped UDateFormatField");
                 typeString = _u("unknown"); break;
             }
 
@@ -2309,6 +2321,16 @@ namespace Js
 
             AddPartToPartsArray(scriptContext, ret, i, formatted, partStart, partEnd, typeString);
             lastPartEnd = partEnd;
+        }
+
+        // Sometimes, there can be a literal at the end of the string, such as when formatting just the year in
+        // the chinese calendar, where the pattern string will be `r(U)`. The trailing `)` will be a literal
+        if (lastPartEnd != formattedLen)
+        {
+            AssertOrFailFast(lastPartEnd < formattedLen);
+
+            // `i` was incremented by the consequence of the last iteration of the for loop
+            AddPartToPartsArray(scriptContext, ret, i, formatted, lastPartEnd, formattedLen, _u("literal"));
         }
 
         return ret;
@@ -2343,6 +2365,8 @@ namespace Js
                 status
             );
         }, scriptContext->GetRecycler(), &formatted, &formattedLen);
+
+        INTL_TRACE("Best pattern '%s' will be used for skeleton '%s' and langtag '%s'", formatted, skeleton->GetSz(), langtag->GetSz());
 
         return JavascriptString::NewWithBuffer(formatted, formattedLen, scriptContext);
 #else
