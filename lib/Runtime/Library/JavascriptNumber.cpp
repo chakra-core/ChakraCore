@@ -921,7 +921,8 @@ namespace Js
         }
     }
 
-    static const int bufSize = 256;
+    // The largest string representing a number is the base 2 representation of -Math.pow(2,-1073), at 1076 characters.
+    static const int bufSize = 1280;
 
     JavascriptString* JavascriptNumber::ToString(double value, ScriptContext* scriptContext)
     {
