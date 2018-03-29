@@ -6375,7 +6375,7 @@ namespace Js
         return GetEnumeratorCache<Cache::StringifyCacheSize>(type, &this->cache.stringifyCache);
     }
 
-    template<uint cacheSlotCount> EnumeratorCache* JavascriptLibrary::GetEnumeratorCache(Type* type, EnumeratorCache** cacheSlots)
+    template<uint cacheSlotCount> EnumeratorCache* JavascriptLibrary::GetEnumeratorCache(Type* type, Field(EnumeratorCache*)* cacheSlots)
     {
         // Size must be power of 2 for cache indexing to work
         CompileAssert((cacheSlotCount & (cacheSlotCount - 1)) == 0);

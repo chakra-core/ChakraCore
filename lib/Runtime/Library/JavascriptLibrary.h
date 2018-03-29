@@ -1299,7 +1299,7 @@ namespace Js
         void AddMember(DynamicObject* object, PropertyId propertyId, Var value, PropertyAttributes attributes);
         JavascriptString* CreateEmptyString();
 
-        template<uint cacheSlotCount> EnumeratorCache* GetEnumeratorCache(Type* type, EnumeratorCache** cacheSlots);
+        template<uint cacheSlotCount> EnumeratorCache* GetEnumeratorCache(Type* type, Field(EnumeratorCache*)* cacheSlots);
 
         static bool __cdecl InitializeGeneratorFunction(DynamicObject* function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
