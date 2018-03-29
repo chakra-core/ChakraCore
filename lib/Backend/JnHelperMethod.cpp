@@ -250,8 +250,8 @@ DECLSPEC_GUARDIGNORE  _NOINLINE intptr_t GetNonTableMethodAddress(ThreadContextI
         return ShiftStdcallAddr(context, Js::JavascriptExceptionOperators::OP_TryFinally);
 
 
-    case HelperOp_TryFinallySimpleJit:
-        return ShiftStdcallAddr(context, Js::JavascriptExceptionOperators::OP_TryFinallySimpleJit);
+    case HelperOp_TryFinallyNoOpt:
+        return ShiftStdcallAddr(context, Js::JavascriptExceptionOperators::OP_TryFinallyNoOpt);
 
         //
         // Methods that we don't want to get marked as CFG targets as they dump all registers to a controlled address

@@ -208,7 +208,7 @@ namespace Js
         return tryContinuation;
     }
 
-    void * JavascriptExceptionOperators::OP_TryFinallySimpleJit(void * tryAddr, void * finallyAddr, void * frame, size_t spillSize, size_t argsSize, ScriptContext * scriptContext)
+    void * JavascriptExceptionOperators::OP_TryFinallyNoOpt(void * tryAddr, void * finallyAddr, void * frame, size_t spillSize, size_t argsSize, ScriptContext * scriptContext)
     {
         void                      *tryContinuation = nullptr;
         void                      *finallyContinuation = nullptr;
@@ -384,7 +384,7 @@ namespace Js
         return tryContinuation;
     }
 
-    void *JavascriptExceptionOperators::OP_TryFinallySimpleJit(
+    void *JavascriptExceptionOperators::OP_TryFinallyNoOpt(
         void *tryAddr,
         void *finallyAddr,
         void *framePtr,
@@ -759,7 +759,7 @@ namespace Js
         return continuationAddr;
     }
 
-    void* JavascriptExceptionOperators::OP_TryFinallySimpleJit(void* tryAddr, void* handlerAddr, void* framePtr, ScriptContext *scriptContext)
+    void* JavascriptExceptionOperators::OP_TryFinallyNoOpt(void* tryAddr, void* handlerAddr, void* framePtr, ScriptContext *scriptContext)
     {
         Js::JavascriptExceptionObject* pExceptionObject = NULL;
         void* continuationAddr = NULL;

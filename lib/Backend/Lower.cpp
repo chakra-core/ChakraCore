@@ -26380,7 +26380,7 @@ Lowerer::LowerTry(IR::Instr* instr, bool tryCatch)
     instr->InsertBefore(setInstr);
     LowererMD::Legalize(setInstr);
 
-    return m_lowererMD.LowerTry(instr, tryCatch ? IR::HelperOp_TryCatch : ((this->m_func->DoOptimizeTry() || (this->m_func->IsSimpleJit() && this->m_func->hasBailout))? IR::HelperOp_TryFinally : IR::HelperOp_TryFinallySimpleJit));
+    return m_lowererMD.LowerTry(instr, tryCatch ? IR::HelperOp_TryCatch : ((this->m_func->DoOptimizeTry() || (this->m_func->IsSimpleJit() && this->m_func->hasBailout))? IR::HelperOp_TryFinally : IR::HelperOp_TryFinallyNoOpt));
 }
 
 IR::Instr *

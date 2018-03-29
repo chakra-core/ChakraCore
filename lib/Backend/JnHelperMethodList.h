@@ -356,7 +356,7 @@ HELPERCALL(Simd128ConvertUD2, (void(*)(SIMDValue*, SIMDValue*))&Js::SIMDFloat64x
 
 HELPERCALL(Op_TryCatch, nullptr, 0)
 HELPERCALL(Op_TryFinally, nullptr, AttrCanThrow)
-HELPERCALL(Op_TryFinallySimpleJit, nullptr, AttrCanThrow)
+HELPERCALL(Op_TryFinallyNoOpt, nullptr, AttrCanThrow)
 #if _M_X64
 HELPERCALL(Op_ReturnFromCallWithFakeFrame, amd64_ReturnFromCallWithFakeFrame, 0)
 #endif
