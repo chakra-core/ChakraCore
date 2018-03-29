@@ -27,7 +27,6 @@
         $(ChakraCoreRootDirectory)bin\External;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
-
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <SmallerTypeCheck>false</SmallerTypeCheck>
       <MinimalRebuild>false</MinimalRebuild>
@@ -51,10 +50,14 @@
     <ClCompile Include="MemoryPolicyTest.cpp" />
     <ClCompile Include="NativeTests.cpp" />
     <ClCompile Include="ThreadServiceTest.cpp" />
+    <ClCompile Include="UnicodeTextTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\lib\Common\Codex\Chakra.Common.Codex.vcxproj">
       <Project>{1876e800-ad77-48c4-a2f7-e5265f24ac38}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\lib\Runtime\PlatformAgnostic\Chakra.Runtime.PlatformAgnostic.vcxproj">
+      <Project>{129ac184-877c-441f-ac49-a692ce700e62}</Project>
     </ProjectReference>
     <ProjectReference Include="..\ChakraCore\ChakraCore.vcxproj">
       <Project>{EA882C8D-81FC-42FE-ABD5-2666DB933FDB}</Project>
