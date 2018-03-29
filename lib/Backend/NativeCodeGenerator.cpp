@@ -3745,7 +3745,7 @@ JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
         return true;
     case E_ABORT:
         throw Js::OperationAbortedException();
-    case HRESULT_FROM_WIN32(ERROR_COMMITMENT_LIMIT): 
+    case 0x800705af: // = HRESULT_FROM_WIN32(ERROR_COMMITMENT_LIMIT) some of our tooling does not yet support constexpr switch labels.
     case E_OUTOFMEMORY:
         if (callType == RemoteCallType::MemFree)
         {
