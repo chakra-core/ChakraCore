@@ -5,6 +5,7 @@
 #include "CommonMemoryPch.h"
 
 #if _WIN32
+#if ENABLE_OOP_NATIVE_CODEGEN
 #include "../Core/DelayLoadLibrary.h"
 
 #ifdef NTDDI_WIN10_RS2
@@ -1005,4 +1006,4 @@ PreReservedSectionAllocWrapper::FreeLocal(LPVOID lpAddress)
 
 } // namespace Memory
 #endif
-
+#endif

@@ -60,7 +60,9 @@ private:
 #endif
 
     friend class PageAllocatorBase<VirtualAllocWrapper>;
+#if ENABLE_NATIVE_CODEGEN
     friend class PageAllocatorBase<PreReservedVirtualAllocWrapper>;
+#endif
 
 #if IDLE_DECOMMIT_ENABLED && DBG
 public:

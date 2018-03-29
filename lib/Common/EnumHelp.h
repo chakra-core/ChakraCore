@@ -191,6 +191,22 @@
     PREVENT_COPYCONSTRUCT(ClassName); \
     PREVENT_ASSIGN(ClassName);
 
+///----------------------------------------------------------------------------
+///----------------------------------------------------------------------------
+///
+/// macro PREVENT_STANDALONE_HEAPINSTANCE
+///
+/// PREVENT_STANDALONE_HEAPINSTANCE is used within a C++ type definition to 
+/// define and explicitly the new operator, preventing them from accidentally 
+/// being instantiated in the heap by itself.  This also ensures that the 
+/// correct destructor will always be called without using virtual destructors.
+///
+///----------------------------------------------------------------------------
+///----------------------------------------------------------------------------
+
+#define PREVENT_STANDALONE_HEAPINSTANCE() \
+    private: \
+        static void * operator new(size_t size);
 
 ///----------------------------------------------------------------------------
 ///----------------------------------------------------------------------------

@@ -5,6 +5,7 @@
 
 #pragma once
 #if _WIN32
+#if ENABLE_OOP_NATIVE_CODEGEN
 namespace Memory
 {
 
@@ -198,4 +199,5 @@ private:
 };
 
 } // namespace Memory
+#endif
 #endif
