@@ -548,7 +548,8 @@ JSONStringifier::ReadObject(_In_ RecyclableObject* obj, _In_ JSONObjectStack* ob
         else
         {
             JavascriptStaticEnumerator enumerator;
-            if (obj->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::EphemeralReference, this->scriptContext))
+            EnumeratorCache* cache = this->scriptContext->GetLibrary()->GetStringifyCache(obj->GetType());
+            if (obj->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::EphemeralReference | EnumeratorFlags::UseCache, this->scriptContext, cache))
             {
                 JavascriptString* propertyName = nullptr;
                 PropertyId nextKey = Constants::NoProperty;

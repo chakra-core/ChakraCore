@@ -70,6 +70,7 @@ namespace Js
     struct Cache
     {
         static const uint AssignCacheSize = 16;
+        static const uint StringifyCacheSize = 16;
 
         Field(PropertyStringMap*) propertyStrings[80];
         Field(JavascriptString *) lastNumberToStringRadix10String;
@@ -89,12 +90,13 @@ namespace Js
         Field(ScriptContextPolymorphicInlineCache*) toStringTagCache;
         Field(ScriptContextPolymorphicInlineCache*) toJSONCache;
         Field(EnumeratorCache*) assignCache;
+        Field(EnumeratorCache*) stringifyCache;
 #if ENABLE_PROFILE_INFO
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         Field(DynamicProfileInfoList*) profileInfoList;
 #endif
 #endif
-        Cache() : toStringTagCache(nullptr), toJSONCache(nullptr), assignCache(nullptr) { }
+        Cache() : toStringTagCache(nullptr), toJSONCache(nullptr), assignCache(nullptr), stringifyCache(nullptr) { }
     };
 
     class MissingPropertyTypeHandler;
@@ -1176,6 +1178,7 @@ namespace Js
         }
 
         EnumeratorCache* GetObjectAssignCache(Type* type);
+        EnumeratorCache* GetStringifyCache(Type* type);
 
         bool GetArrayObjectHasUserDefinedSpecies() const { return arrayObjectHasUserDefinedSpecies; }
         void SetArrayObjectHasUserDefinedSpecies(bool val) { arrayObjectHasUserDefinedSpecies = val; }
@@ -1296,6 +1299,7 @@ namespace Js
         void AddMember(DynamicObject* object, PropertyId propertyId, Var value, PropertyAttributes attributes);
         JavascriptString* CreateEmptyString();
 
+        template<uint cacheSlotCount> EnumeratorCache* GetEnumeratorCache(Type* type, EnumeratorCache** cacheSlots);
 
         static bool __cdecl InitializeGeneratorFunction(DynamicObject* function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
