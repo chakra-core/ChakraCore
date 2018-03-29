@@ -2,6 +2,41 @@
 <regress-exe>
 <test>
   <default>
+    <files>unsigned.js</files>
+    <compile-flags>-wasm -args 0 5 -endargs</compile-flags>
+    <tags>exclude_jshost,exclude_drt,exclude_win7</tags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>unsigned.js</files>
+    <compile-flags>-wasm -args 6 10 -endargs</compile-flags>
+    <tags>exclude_jshost,exclude_drt,exclude_win7</tags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>unsigned.js</files>
+    <compile-flags>-wasm -args 11 15 -endargs</compile-flags>
+    <tags>exclude_jshost,exclude_drt,exclude_win7</tags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>unsigned.js</files>
+    <compile-flags>-wasm -args 16 20 -endargs</compile-flags>
+    <tags>exclude_jshost,exclude_drt,exclude_win7</tags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>unsigned.js</files>
+    <compile-flags>-wasm -args 21 -endargs</compile-flags>
+    <tags>exclude_jshost,exclude_drt,exclude_win7</tags>
+  </default>
+</test>
+<test>
+  <default>
     <files>regress.js</files>
     <compile-flags>-wasm -args --no-verbose -endargs</compile-flags>
     <tags>exclude_jshost,exclude_win7</tags>
@@ -305,14 +340,6 @@
     <files>signextend.js</files>
     <compile-flags>-wasm -args --no-verbose -endargs</compile-flags>
     <tags>exclude_jshost,exclude_win7</tags>
-  </default>
-</test>
-<test>
-  <default>
-    <files>unsigned.js</files>
-    <baseline>baselines/unsigned.baseline</baseline>
-    <compile-flags>-wasm</compile-flags>
-    <tags>exclude_jshost,exclude_drt,exclude_win7</tags>
   </default>
 </test>
 <test>

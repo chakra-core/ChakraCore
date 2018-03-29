@@ -148,8 +148,8 @@ const ops = [
   },
 ];
 const allValues = {
-  i32: [0, 1, -1, 3, 432123, 0x80000000, 0xCCCCCCCC],
-  f32: [0, 1, -1, Math.PI, -Math.PI, Math.E, -Math.E]
+  i32: [0, 1, -1, 0x80000000, 0xCCCCCCCC],
+  f32: [0, 1, -1, -Math.PI, Math.E]
 };
 allValues.i64 = allValues.i32.concat("0x8000000000000000", "0xCCCCCCCCCCCCCCCC");
 allValues.f64 = allValues.f32;
@@ -276,7 +276,7 @@ for (let i = 0; i < ops.length; ++i) {
   let paramFn, paramModuleId;
   if (!shouldSkipModule()) {
     paramModuleId = moduleId;
-    if (!verbose) {
+    if (verbose) {
       print(`${i}: Running arguments tests for ${unsigned}. Module #${paramModuleId}`);
     }
     paramFn = generateModule(ops[i]);
@@ -322,3 +322,4 @@ for (let i = 0; i < ops.length; ++i) {
     }
   }
 }
+print("pass");
