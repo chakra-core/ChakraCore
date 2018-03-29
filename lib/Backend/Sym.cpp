@@ -364,6 +364,7 @@ StackSym::SetIsSimd128Const()
     this->m_isFltConst = false;
     this->m_isSimd128Const = true;
     this->m_isStrConst = false;
+    this->m_isNotNumber = true;
 }
 
 void
@@ -377,6 +378,7 @@ StackSym::SetIsStrConst()
     this->m_isFltConst = false;
     this->m_isSimd128Const = false;
     this->m_isStrConst = true;
+    this->m_isNotNumber = true;
 }
 
 Js::RegSlot
@@ -560,7 +562,7 @@ StackSym::CloneUse(Func *func)
 void
 StackSym::CopySymAttrs(StackSym *symSrc)
 {
-    m_isNotInt = symSrc->m_isNotInt;
+    m_isNotNumber = symSrc->m_isNotNumber;
     m_isSafeThis = symSrc->m_isSafeThis;
     m_builtInIndex = symSrc->m_builtInIndex;
 }

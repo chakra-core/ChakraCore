@@ -2104,7 +2104,7 @@ Instr::SetDst(Opnd * newDst)
             stackSym->m_isIntConst  = false;
             stackSym->m_isInt64Const= false;
             stackSym->m_isTaggableIntConst  = false;
-            stackSym->m_isNotInt    = false;
+            stackSym->m_isNotNumber    = false;
             stackSym->m_isStrConst  = false;
             stackSym->m_isStrEmpty  = false;
             stackSym->m_isFltConst  = false;
@@ -3665,11 +3665,11 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, V
                     dstOpnd->m_sym->SetIsFloatConst();
 
 #if FLOATVAR
-                    dstOpnd->m_sym->m_isNotInt = FALSE;
+                    dstOpnd->m_sym->m_isNotNumber = FALSE;
 #else
-                    // Don't set m_isNotInt to true if the float constant value is an int32 or uint32. Uint32s may sometimes be
+                    // Don't set m_isNotNumber to true if the float constant value is an int32 or uint32. Uint32s may sometimes be
                     // treated as int32s for the purposes of int specialization.
-                    dstOpnd->m_sym->m_isNotInt = !Js::JavascriptNumber::IsInt32OrUInt32(((IR::FloatConstOpnd*)srcOpnd)->m_value);
+                    dstOpnd->m_sym->m_isNotNumber = !Js::JavascriptNumber::IsInt32OrUInt32(((IR::FloatConstOpnd*)srcOpnd)->m_value);
 
 
 #endif

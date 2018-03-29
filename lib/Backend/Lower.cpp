@@ -27050,8 +27050,8 @@ Lowerer::LoadIndexFromLikelyFloat(
     IR::LabelInstr * fallThrough = IR::LabelInstr::New(Js::OpCode::Label, func);
 
     IR::RegOpnd *int32IndexOpnd = nullptr;
-    // If we know for sure that it's a float, do not check to see if it's a tagged int
-    if (!indexOpnd->GetValueType().IsDefinite())
+    // If we know for sure that it's not an int, do not check to see if it's a tagged int
+    if (indexOpnd->IsNotInt())
     {
         IR::LabelInstr * convertToUint = IR::LabelInstr::New(Js::OpCode::Label, func);
         // First generate test for tagged int even though profile data says likely float. Indices are usually int and we need a fast path before we try to convert float to int

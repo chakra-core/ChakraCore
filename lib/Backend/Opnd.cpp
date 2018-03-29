@@ -67,11 +67,7 @@ Opnd::IsNotNumber() const
             return true;
         }
 
-        if (regOpnd->m_sym->m_isNotInt)
-        {
-            // m_isNotInt actually means "is not number". It should not be set to true for definitely-float values.
-            return true;
-        }
+        return regOpnd->m_sym->m_isNotNumber;
     }
     return false;
 }
