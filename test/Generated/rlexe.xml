@@ -645,12 +645,14 @@
   <test>
     <default>
       <files>B9AA6BBF.0.js</files>
+      <compile-flags>-CollectGarbage</compile-flags>
       <baseline>B9AA6BBF.0.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>6E55FA7A.0.js</files>
+      <compile-flags>-CollectGarbage</compile-flags>
       <baseline>6E55FA7A.0.baseline</baseline>
     </default>
   </test>

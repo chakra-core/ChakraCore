@@ -51,6 +51,7 @@
   <test>
     <default>
       <files>forInMisc.js</files>
+      <compile-flags>-CollectGarbage</compile-flags>
       <baseline>forInMisc.baseline</baseline>
     </default>
   </test>

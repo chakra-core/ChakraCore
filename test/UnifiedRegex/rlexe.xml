@@ -135,12 +135,13 @@
   <test>
     <default>
       <files>propertyString.js</files>
+      <compile-flags>-CollectGarbage</compile-flags>
       <baseline>propertyString.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
-      <compile-flags>-Serialized</compile-flags>
+      <compile-flags>-CollectGarbage -Serialized</compile-flags>
       <files>propertyString.js</files>
       <baseline>propertyString.baseline</baseline>
       <tags>exclude_forceserialized</tags>
@@ -155,6 +156,7 @@
   <test>
     <default>
       <files>mru.js</files>
+      <compile-flags>-CollectGarbage</compile-flags>
       <baseline>mru.baseline</baseline>
     </default>
   </test>

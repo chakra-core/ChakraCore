@@ -96,7 +96,7 @@
   <test>
     <default>
       <files>fixedmethods_polyInlining.js</files>
-      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:2</compile-flags>
+      <compile-flags>-CollectGarbage -maxinterpretcount:1 -maxsimplejitruncount:2</compile-flags>
     </default>
   </test>
   <test>
