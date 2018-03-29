@@ -157,6 +157,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
             jitBody->loopHeaders[i].endOffset = loopHeaders[i].endOffset;
             jitBody->loopHeaders[i].isNested = loopHeaders[i].isNested;
             jitBody->loopHeaders[i].isInTry = loopHeaders[i].isInTry;
+            jitBody->loopHeaders[i].isInTryFinally = loopHeaders[i].isInTryFinally;
             jitBody->loopHeaders[i].interpretCount = functionBody->GetLoopInterpretCount(&loopHeaders[i]);
         }
     }

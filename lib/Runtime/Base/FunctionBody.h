@@ -1021,6 +1021,7 @@ namespace Js
 #endif
         Field(bool) isNested;
         Field(bool) isInTry;
+        Field(bool) isInTryFinally;
         Field(FunctionBody *) functionBody;
 
 #if DBG_DUMP

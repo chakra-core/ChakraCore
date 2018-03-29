@@ -172,7 +172,7 @@ FlowGraph::Build(void)
 
     bool assignRegionsBeforeGlobopt = this->func->HasTry() && (this->func->DoOptimizeTry() ||
         (this->func->IsSimpleJit() && this->func->hasBailout) ||
-        (this->func->HasFinally() && this->func->IsLoopBodyInTry()));
+        this->func->IsLoopBodyInTryFinally());
 
     // We don't optimize fully with SimpleJit. But, when JIT loop body is enabled, we do support
     // bailing out from a simple jitted function to do a full jit of a loop body in the function
@@ -536,7 +536,7 @@ FlowGraph::Build(void)
         } NEXT_BLOCK_ALL;
     }
 
-    if (this->func->HasFinally() && this->func->IsLoopBodyInTry())
+    if (this->func->IsLoopBodyInTryFinally())
     {
         FOREACH_BLOCK_IN_FUNC(block, this->func)
         {
@@ -1089,7 +1089,7 @@ FlowGraph::MoveBlocksBefore(BasicBlock *blockStart, BasicBlock *blockEnd, BasicB
 
     bool assignRegionsBeforeGlobopt = this->func->HasTry() && (this->func->DoOptimizeTry() ||
         (this->func->IsSimpleJit() && this->func->hasBailout) ||
-        (this->func->HasFinally() && this->func->IsLoopBodyInTry()));
+        this->func->IsLoopBodyInTryFinally());
 
     if (dstLastInstr->IsBranchInstr() && dstLastInstr->AsBranchInstr()->HasFallThrough())
     {
@@ -1878,7 +1878,7 @@ FlowGraph::UpdateRegionForBlock(BasicBlock * block)
 #if DBG
         bool assignRegionsBeforeGlobopt = this->func->HasTry() && (this->func->DoOptimizeTry() ||
         (this->func->IsSimpleJit() && this->func->hasBailout) ||
-        (this->func->HasFinally() && this->func->IsLoopBodyInTry()));
+        this->func->IsLoopBodyInTryFinally());
         Assert(assignRegionsBeforeGlobopt);
 #endif
         return;
@@ -2420,7 +2420,7 @@ FlowGraph::InsertCompensationCodeForBlockMove(FlowEdge * edge,  bool insertToLoo
 
     bool assignRegionsBeforeGlobopt = this->func->HasTry() && (this->func->DoOptimizeTry() ||
         (this->func->IsSimpleJit() && this->func->hasBailout) ||
-        (this->func->HasFinally() && this->func->IsLoopBodyInTry()));
+        this->func->IsLoopBodyInTryFinally());
 
     if (assignRegionsBeforeGlobopt)
     {

@@ -5754,6 +5754,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
 
         Js::LoopHeader *loopHeader = fn->GetLoopHeader(loopNumber);
         loopHeader->isInTry = this->TestFlags(Js::InterpreterStackFrameFlags_WithinTryBlock);
+        loopHeader->isInTryFinally = this->TestFlags(Js::InterpreterStackFrameFlags_WithinTryFinallyBlock);
 
         Js::LoopEntryPointInfo * entryPointInfo = loopHeader->GetCurrentEntryPointInfo();
 
@@ -6538,6 +6539,11 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
                 // mark the stackFrame as 'in try block'
                 this->OrFlags(InterpreterStackFrameFlags_WithinTryBlock);
 
+                if (finallyOffset != 0)
+                {
+                    this->OrFlags(InterpreterStackFrameFlags_WithinTryFinallyBlock);
+                }
+
                 if (tryNestingDepth != 0)
                 {
                     this->ProcessTryHandlerBailout(ehBailoutData->child, --tryNestingDepth);
@@ -6638,7 +6644,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
         if (--this->nestedTryDepth == -1)
         {
             // unmark the stackFrame as 'in try block'
-            this->ClearFlags(InterpreterStackFrameFlags_WithinTryBlock);
+            this->ClearFlags(InterpreterStackFrameFlags_WithinTryBlock | InterpreterStackFrameFlags_WithinTryFinallyBlock);
         }
 
         // Now that the stack is unwound, let's run the catch block.
@@ -6844,7 +6850,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
 
             this->nestedTryDepth++;
             // mark the stackFrame as 'in try block'
-            this->OrFlags(InterpreterStackFrameFlags_WithinTryBlock);
+            this->OrFlags(InterpreterStackFrameFlags_WithinTryBlock | InterpreterStackFrameFlags_WithinTryFinallyBlock);
 
             if (shouldCacheSP)
             {
@@ -6887,7 +6893,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
         if (--this->nestedTryDepth == -1)
         {
             // unmark the stackFrame as 'in try block'
-            this->ClearFlags(InterpreterStackFrameFlags_WithinTryBlock);
+            this->ClearFlags(InterpreterStackFrameFlags_WithinTryBlock | InterpreterStackFrameFlags_WithinTryFinallyBlock);
         }
 
         shouldCacheSP = !skipFinallyBlock;
