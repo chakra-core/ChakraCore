@@ -41,61 +41,6 @@ namespace Js
         return this->hitRate > (int)CONFIG_FLAG(PropertyCacheMissThreshold);
     }
 
-    bool PropertyRecordUsageCache::TrySetPropertyFromCache(
-        _In_ RecyclableObject *const object,
-        _In_ Var propertyValue,
-        _In_ ScriptContext *const requestContext,
-        const PropertyOperationFlags propertyOperationFlags,
-        _Inout_ PropertyValueInfo *const propertyValueInfo,
-        RecyclableObject *const owner /* Object that this usage cache is part of */)
-    {
-        if (ShouldUseCache())
-        {
-            PropertyValueInfo::SetCacheInfo(propertyValueInfo, owner, this, GetStElemInlineCache(), true /* allowResizing */);
-            bool found = CacheOperators::TrySetProperty<
-                true,   // CheckLocal
-                true,   // CheckLocalTypeWithoutProperty
-                true,   // CheckAccessor
-                true,   // CheckPolymorphicInlineCache
-                true,   // CheckTypePropertyCache
-                false,  // IsInlineCacheAvailable
-                true,   // IsPolymorphicInlineCacheAvailable
-                false>  // ReturnOperationInfo
-                    (object,
-                    false, // isRoot
-                    this->propertyRecord->GetPropertyId(),
-                    propertyValue,
-                    requestContext,
-                    propertyOperationFlags,
-                    nullptr, // operationInfo
-                    propertyValueInfo);
-
-            if (found)
-            {
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-                if (PHASE_TRACE1(PropertyCachePhase))
-                {
-                    Output::Print(_u("PropertyCache: SetElem cache hit for '%s': type %p\n"), GetString(), object->GetType());
-                }
-#endif
-                RegisterCacheHit();
-                return true;
-            }
-        }
-        RegisterCacheMiss();
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        if (PHASE_TRACE1(PropertyCachePhase))
-        {
-            Output::Print(_u("PropertyCache: SetElem cache miss for '%s': type %p, index %d\n"),
-                GetString(),
-                object->GetType(),
-                GetStElemInlineCache()->GetInlineCacheIndexForType(object->GetType()));
-            DumpCache(false);
-        }
-#endif
-        return false;
-    }
-
     void PropertyRecordUsageCache::RegisterCacheMiss()
     {
         this->hitRate -= (int)CONFIG_FLAG(PropertyCacheMissPenalty);

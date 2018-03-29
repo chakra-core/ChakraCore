@@ -218,6 +218,7 @@ namespace Js
     {
         ValueType arrayType;
         ValueType elemType;
+        FldInfoFlags flags;
 
         union
         {
@@ -230,17 +231,12 @@ namespace Js
             byte bits;
         };
 
-        LdElemInfo() : bits(0)
+        LdElemInfo() : bits(0), flags(FldInfo_NoInfo)
         {
             wasProfiled = true;
         }
 
-        void Merge(const LdElemInfo &other)
-        {
-            arrayType = arrayType.Merge(other.arrayType);
-            elemType = elemType.Merge(other.elemType);
-            bits |= other.bits;
-        }
+        void Merge(const LdElemInfo &other);
 
         ValueType GetArrayType() const
         {
@@ -271,6 +267,7 @@ namespace Js
     struct StElemInfo
     {
         ValueType arrayType;
+        FldInfoFlags flags;
 
         union
         {
@@ -287,16 +284,12 @@ namespace Js
             byte bits;
         };
 
-        StElemInfo() : bits(0)
+        StElemInfo() : bits(0), flags(FldInfo_NoInfo)
         {
             wasProfiled = true;
         }
 
-        void Merge(const StElemInfo &other)
-        {
-            arrayType = arrayType.Merge(other.arrayType);
-            bits |= other.bits;
-        }
+        void Merge(const StElemInfo &other);
 
         ValueType GetArrayType() const
         {

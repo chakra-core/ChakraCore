@@ -1137,6 +1137,8 @@ namespace Js
         uint32 GetNextIndex(uint32 index) const;
         BOOL DirectGetItemAt(uint32 index, int* outVal);
 
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         static VTableValue VtableHelper()
         {
             return VTableValue::VtableCopyOnAccessNativeIntArray;

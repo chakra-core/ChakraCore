@@ -12265,6 +12265,20 @@ Case0:
         return DynamicObject::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext);
     }
 
+#if ENABLE_COPYONACCESS_ARRAY
+    PropertyQueryFlags JavascriptCopyOnAccessNativeIntArray::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    {
+        this->ConvertCopyOnAccessSegment();
+        return JavascriptArray::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
+    }
+
+    PropertyQueryFlags JavascriptCopyOnAccessNativeIntArray::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    {
+        this->ConvertCopyOnAccessSegment();
+        return JavascriptArray::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext);
+    }
+#endif
+
     BOOL JavascriptArray::GetPropertyBuiltIns(PropertyId propertyId, Var* value)
     {
         //

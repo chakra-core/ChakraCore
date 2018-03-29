@@ -986,6 +986,21 @@ namespace Js
         stElemInfo[stElemId].wasProfiled = true;
     }
 
+    void LdElemInfo::Merge(const LdElemInfo &other)
+    {
+        arrayType = arrayType.Merge(other.arrayType);
+        elemType = elemType.Merge(other.elemType);
+        flags = DynamicProfileInfo::MergeFldInfoFlags(flags, other.flags);
+        bits |= other.bits;
+    }
+
+    void StElemInfo::Merge(const StElemInfo &other)
+    {
+        arrayType = arrayType.Merge(other.arrayType);
+        flags = DynamicProfileInfo::MergeFldInfoFlags(flags, other.flags);
+        bits |= other.bits;
+    }
+
     ArrayCallSiteInfo * DynamicProfileInfo::GetArrayCallSiteInfo(FunctionBody *functionBody, ProfileId index) const
     {
         Assert(index < functionBody->GetProfiledArrayCallSiteCount());

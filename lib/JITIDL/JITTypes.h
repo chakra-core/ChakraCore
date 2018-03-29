@@ -251,15 +251,15 @@ typedef struct LdElemIDL
 {
     unsigned short arrayType;
     unsigned short elemType;
+    byte flags;
     byte bits;
-    IDL_PAD1(0)
 } LdElemIDL;
 
 typedef struct StElemIDL
 {
     unsigned short arrayType;
+    byte flags;
     byte bits;
-    IDL_PAD1(0)
 } StElemIDL;
 
 typedef struct ProfileDataIDL

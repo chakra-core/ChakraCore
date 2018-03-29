@@ -191,6 +191,26 @@ namespace Js
 
         static BOOL GetProperty(Var instance, RecyclableObject* propertyObject, PropertyId propertyId, Var* value, ScriptContext* requestContext, PropertyValueInfo* info = NULL);
         static BOOL GetPropertyObject(Var instance, ScriptContext * scriptContext, RecyclableObject** propertyObject);
+
+        static bool GetPropertyObjectForElementAccess(
+            _In_ Var instance,
+            _In_ Var index,
+            _In_ ScriptContext* scriptContext,
+            _Out_ RecyclableObject** propertyObject,
+            _In_ rtErrors error);
+
+        static bool GetPropertyObjectForSetElementI(
+            _In_ Var instance,
+            _In_ Var index,
+            _In_ ScriptContext* scriptContext,
+            _Out_ RecyclableObject** propertyObject);
+
+        static bool GetPropertyObjectForGetElementI(
+            _In_ Var instance,
+            _In_ Var index,
+            _In_ ScriptContext* scriptContext,
+            _Out_ RecyclableObject** propertyObject);
+
         static BOOL GetRootProperty(Var instance, PropertyId propertyId, Var* value, ScriptContext* requestContext, PropertyValueInfo* info = NULL);
         static Var  GetRootProperty(RecyclableObject* instance, PropertyId propertyId, ScriptContext* requestContext, PropertyValueInfo* info = NULL);
         static Var  GetPropertyReference(RecyclableObject* instance, PropertyId propertyId, ScriptContext* requestContext);
@@ -306,6 +326,13 @@ namespace Js
         static Var OP_GetRootProperty(Var instance, PropertyId propertyId, PropertyValueInfo * info, ScriptContext* scriptContext);
 
         static BOOL OP_SetProperty(Var instance, PropertyId propertyId, Var newValue, ScriptContext* scriptContext, PropertyValueInfo * info = nullptr, PropertyOperationFlags flags = PropertyOperation_None, Var thisInstance = nullptr);
+        static bool SetElementIOnTaggedNumber(
+            _In_ Var receiver,
+            _In_ RecyclableObject* object,
+            _In_ Var index,
+            _In_ Var value,
+            _In_ ScriptContext* requestContext,
+            _In_ PropertyOperationFlags propertyOperationFlags);
         static BOOL SetPropertyOnTaggedNumber(Var instance, RecyclableObject* object, PropertyId propertyId, Var newValue, ScriptContext* requestContext, PropertyOperationFlags flags);
         static BOOL SetItemOnTaggedNumber(Var instance, RecyclableObject* object, uint32 index, Var newValue, ScriptContext* requestContext, PropertyOperationFlags propertyOperationFlags);
         static BOOL OP_StFunctionExpression(Var instance, PropertyId propertyId, Var newValue);
@@ -630,6 +657,31 @@ namespace Js
         static RecyclableObject* SpeciesConstructor(_In_ RecyclableObject* object, _In_ JavascriptFunction* defaultConstructor, _In_ ScriptContext* scriptContext);
         static Var GetSpecies(RecyclableObject* constructor, ScriptContext* scriptContext);
 
+        // Get the property record usage cache from the given index variable, if it has one.
+        // Adds a PropertyString to a LiteralStringWithPropertyStringPtr on second call with that string.
+        // Also outputs the object that owns the usage cache, since PropertyRecordUsageCache is an interior pointer.
+        // Returns whether a PropertyRecordUsageCache was found.
+        _Success_(return) static bool GetPropertyRecordUsageCache(Var index, ScriptContext* scriptContext, _Outptr_ PropertyRecordUsageCache** propertyRecordUsageCache, _Outptr_ RecyclableObject** cacheOwner);
+
+        template <bool ReturnOperationInfo>
+        static bool SetElementIWithCache(
+            _In_ Var receiver,
+            _In_ RecyclableObject* object,
+            _In_ RecyclableObject* index,
+            _In_ Var value,
+            _In_ PropertyRecordUsageCache* propertyRecordUsageCache,
+            _In_ ScriptContext* scriptContext,
+            _In_ PropertyOperationFlags flags,
+            _Inout_opt_ PropertyCacheOperationInfo* operationInfo);
+
+        template <bool ReturnOperationInfo>
+        static Var GetElementIWithCache(
+            _In_ Var instance,
+            _In_ RecyclableObject* index,
+            _In_ PropertyRecordUsageCache* propertyRecordUsageCache,
+            _In_ ScriptContext* scriptContext,
+            _Inout_opt_ PropertyCacheOperationInfo* operationInfo);
+
     private:
         static BOOL RelationalComparisonHelper(Var aLeft, Var aRight, ScriptContext* scriptContext, bool leftFirst, bool undefinedAs);
 
@@ -644,6 +696,7 @@ namespace Js
         template <typename ArrayType>
         static Js::Var GetElementAtIndex(ArrayType* arrayObject, UINT index, Js::ScriptContext* scriptContext);
 
+        static Var GetElementIIntIndex(_In_ Var instance, _In_ Var index, _In_ ScriptContext* scriptContext);
 #if DBG
         static BOOL IsPropertyObject(RecyclableObject * instance);
 #endif
@@ -702,8 +755,6 @@ namespace Js
         template <typename T>
         static BOOL OP_GetElementI_ArrayFastPath(T * arr, int indexInt, Var * result, ScriptContext * scriptContext);
 
-        static Var GetElementIWithCache(Var instance, RecyclableObject* index, PropertyRecordUsageCache* propertyRecordUsageCache, ScriptContext* scriptContext);
-
         static ImplicitCallFlags  CacheAndClearImplicitBit(ScriptContext* scriptContext);
 
         static ImplicitCallFlags CheckAndUpdateFunctionBodyWithImplicitFlag(FunctionBody* functionBody);
@@ -714,12 +765,6 @@ namespace Js
         static BOOL ToPropertyDescriptorForGenericObjects(Var propertySpec, PropertyDescriptor* descriptor, ScriptContext* scriptContext);
 
         static BOOL IsRemoteArray(RecyclableObject* instance);
-
-        // Get the property record usage cache from the given index variable, if it has one.
-        // Adds a PropertyString to a LiteralStringWithPropertyStringPtr on second call with that string.
-        // Also outputs the object that owns the usage cache, since PropertyRecordUsageCache is an interior pointer.
-        // Returns whether a PropertyRecordUsageCache was found.
-        _Success_(return) static bool GetPropertyRecordUsageCache(Var index, ScriptContext* scriptContext, _Outptr_ PropertyRecordUsageCache** propertyRecordUsageCache, _Outptr_ RecyclableObject** cacheOwner);
     };
 
 } // namespace Js

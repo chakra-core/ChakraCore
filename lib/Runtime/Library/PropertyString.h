@@ -40,14 +40,14 @@ public:
     template <
         bool OwnPropertyOnly,
         bool OutputExistence /*When set, propertyValue represents whether the property exists on the instance, not its actual value*/>
-    inline bool TryGetPropertyFromCache(
+    bool TryGetPropertyFromCache(
         Var const instance,
         RecyclableObject *const object,
         Var *const propertyValue,
         ScriptContext *const requestContext,
         PropertyValueInfo *const propertyValueInfo)
     {
-        return this->propertyRecordUsageCache.TryGetPropertyFromCache<OwnPropertyOnly, OutputExistence>(instance, object, propertyValue, requestContext, propertyValueInfo, this);
+        return this->propertyRecordUsageCache.TryGetPropertyFromCache<OwnPropertyOnly, OutputExistence, false /* ReturnOperationInfo */>(instance, object, propertyValue, requestContext, propertyValueInfo, this, nullptr);
     }
 
     static PropertyString* New(StaticType* type, const Js::PropertyRecord* propertyRecord, Recycler *recycler);
