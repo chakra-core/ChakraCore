@@ -353,6 +353,15 @@ const tests = [
                 return;
             }
 
+            // This test raised Microsoft/ChakraCore#4885 and tc39/ecma402#225 - In the original ICU implementation
+            // of Intl.DateTimeFormat, we would generate the date pattern using the fully resolved locale, including
+            // any unicode extension keys to specify the calendar and numbering system.
+            // This caused ICU to generate more accurate patterns in the given calendar system, but is not spec
+            // compliant by #sec-initializedatetimeformat as of Intl 2018.
+            // Revisit the values for chinese and dangi calendars in particular in the future if pattern generation
+            // switches to using the full locale instead of just the basename, as those calendar systems prefer to
+            // to be represented in ICU by a year name and a related gregorian year.
+
             const d = new Date(Date.UTC(2018, 2, 27, 12, 0, 0));
 
             // lists of calendars and aliases taken from https://unicode.org/repos/cldr/trunk/common/bcp47/calendar.xml
@@ -364,16 +373,16 @@ const tests = [
                 },
                 // TODO(jahorto): investigate chinese and dangi calendars - Microsoft/ChakraCore#4885
                 chinese: {
-                    latn: "wu-xu",
-                    thai: "wu-xu",
+                    latn: "35",
+                    thai: "๓๕",
                 },
                 coptic: {
                     latn: "1734",
                     thai: "๑๗๓๔",
                 },
                 dangi: {
-                    latn: "wu-xu",
-                    thai: "wu-xu",
+                    latn: "35",
+                    thai: "๓๕",
                 },
                 ethioaa: {
                     latn: "7510",
@@ -445,11 +454,7 @@ const tests = [
                     langtag += `-nu-${numberingSystem}`;
                 }
 
-                // Extract just the year out of the string, as the era may be present too
-                // SpiderMonkey does not print the era, but Chakra and V8 do
-                // At least for Chakra, we print the era sometimes because giving "y" to udatpg_getBestPattern
-                // can result in "y G" for certain locales (and "r(U)" for chinese and dangi calendars.
-                // This seems like reasonable behavior, so perhaps SpiderMonkey is incorrect here
+                // Extract just the year out of the string to ensure we don't get confused by added information, like eras.
                 const fmt = new Intl.DateTimeFormat(langtag, { year: "numeric" });
                 assertFormat(fmt.format(d), fmt, d);
                 assert.areEqual(

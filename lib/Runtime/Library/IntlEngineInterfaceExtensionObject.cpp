@@ -2289,7 +2289,6 @@ namespace Js
             case UDAT_DOW_LOCAL_FIELD:
                 typeString = _u("weekday"); break;
             case UDAT_AM_PM_FIELD:
-            case UDAT_AM_PM_MIDNIGHT_NOON_FIELD:
                 typeString = _u("dayPeriod"); break;
             case UDAT_TIMEZONE_FIELD:
             case UDAT_TIMEZONE_RFC_FIELD:
@@ -2299,13 +2298,6 @@ namespace Js
             case UDAT_TIMEZONE_ISO_FIELD:
             case UDAT_TIMEZONE_ISO_LOCAL_FIELD:
                 typeString = _u("timeZoneName"); break;
-
-            // this is UDAT_RELATED_YEAR_FIELD, which is hidden from the Windows Kit version of ICU because it is an "internal" API
-#pragma warning(push)
-#pragma warning(disable: 4063) // case 'identifier' is not a valid value for switch of enum 'enumeration'
-            case 34:
-                typeString = _u("relatedYear"); break;
-#pragma warning(pop)
             default:
                 AssertMsg(false, "Unmapped UDateFormatField");
                 typeString = _u("unknown"); break;
@@ -2349,7 +2341,23 @@ namespace Js
         char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
         BCP47_TO_ICU(langtag->GetSz(), langtag->GetLength(), localeID, _countof(localeID));
 
-        ScopedUDateTimePatternGenerator dtpg(udatpg_open(localeID, &status));
+        // See https://github.com/tc39/ecma402/issues/225
+        // When picking a format, we should be using the locale data of the basename of the resolved locale,
+        // compared to when we actually format the date using the format string, where we use the full locale including extensions
+        //
+        // ECMA 402 #sec-initializedatetimeformat
+        // 10: Let localeData be %DateTimeFormat%.[[LocaleData]].
+        // 11: Let r be ResolveLocale( %DateTimeFormat%.[[AvailableLocales]], requestedLocales, opt, %DateTimeFormat%.[[RelevantExtensionKeys]], localeData).
+        // 16: Let dataLocale be r.[[dataLocale]].
+        // 23: Let dataLocaleData be localeData.[[<dataLocale>]].
+        // 24: Let formats be dataLocaleData.[[formats]].
+        char baseLocaleID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        int baseLocaleIDLength = uloc_getBaseName(localeID, baseLocaleID, _countof(baseLocaleID), &status);
+        ICU_ASSERT(status, baseLocaleIDLength > 0 && baseLocaleIDLength < ULOC_FULLNAME_CAPACITY);
+
+        INTL_TRACE("Converted input langtag '%s' to base locale ID '%S' for pattern generation", langtag->GetSz(), baseLocaleID);
+
+        ScopedUDateTimePatternGenerator dtpg(udatpg_open(baseLocaleID, &status));
         ICU_ASSERT(status, true);
 
         char16 *formatted = nullptr;
