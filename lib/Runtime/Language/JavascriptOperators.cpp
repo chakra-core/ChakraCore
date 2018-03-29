@@ -1762,7 +1762,7 @@ CommonNumber:
             {
                 if (info && info->AllowResizingPolymorphicInlineCache()) // If in interpreted mode, not JIT.
                 {
-                    requestContext->GetTelemetry().GetOpcodeTelemetry().GetProperty(instance, propertyId, nullptr, /*successful: */false);
+                    requestContext->GetTelemetry().GetOpcodeTelemetry().GetProperty(instance, propertyId, nullptr);
                 }
             }
 #endif
@@ -2030,7 +2030,7 @@ CommonNumber:
             {
                 if (info && info->AllowResizingPolymorphicInlineCache()) // If in interpreted mode, not JIT.
                 {
-                    requestContext->GetTelemetry().GetOpcodeTelemetry().GetProperty(instance, propertyId, nullptr, /*successful: */false);
+                    requestContext->GetTelemetry().GetOpcodeTelemetry().GetProperty(instance, propertyId, nullptr);
                 }
             }
 #endif

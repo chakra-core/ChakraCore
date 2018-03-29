@@ -71,7 +71,7 @@ namespace Js
         {
             if (TELEMETRY_PROPERTY_OPCODE_FILTER(propertyId))
             {
-                requestContext->GetTelemetry().GetOpcodeTelemetry().GetProperty(objectWithProperty, propertyId, nullptr, !isMissing);
+                requestContext->GetTelemetry().GetOpcodeTelemetry().GetProperty(objectWithProperty, propertyId, nullptr);
             }
         }
 #endif
@@ -137,7 +137,7 @@ namespace Js
         {
             if (TELEMETRY_PROPERTY_OPCODE_FILTER(propertyId))
             {
-                requestContext->GetTelemetry().GetOpcodeTelemetry().GetProperty(info->GetInstance(), propertyId, nullptr, true /* true, because if a getter is being evaluated then the property does exist. */);
+                requestContext->GetTelemetry().GetOpcodeTelemetry().GetProperty(info->GetInstance(), propertyId, nullptr);
             }
         }
 #endif
