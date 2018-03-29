@@ -96,7 +96,7 @@ namespace Js
         void *tryCatchFrameAddr = nullptr;
         scriptContext->GetThreadContext()->SetHasBailedOutBitPtr((bool*)((char*)frame + hasBailedOutOffset));
 
-        PROBE_STACK(scriptContext, Constants::MinStackDefault + spillSize + argsSize);
+        PROBE_STACK(scriptContext, Constants::MinStackJitEHBailout + spillSize + argsSize);
         {
             Js::JavascriptExceptionOperators::TryCatchFrameAddrStack tryCatchFrameAddrStack(scriptContext, frame);
             try
@@ -161,7 +161,7 @@ namespace Js
         JavascriptExceptionObject *exception           = nullptr;
         scriptContext->GetThreadContext()->SetHasBailedOutBitPtr((bool*)((char*)frame + hasBailedOutOffset));
 
-        PROBE_STACK(scriptContext, Constants::MinStackDefault + spillSize + argsSize);
+        PROBE_STACK(scriptContext, Constants::MinStackJitEHBailout + spillSize + argsSize);
 
         try
         {
@@ -214,7 +214,7 @@ namespace Js
         void                      *finallyContinuation = nullptr;
         JavascriptExceptionObject *exception           = nullptr;
 
-        PROBE_STACK(scriptContext, Constants::MinStackDefault + spillSize + argsSize);
+        PROBE_STACK(scriptContext, Constants::MinStackJitEHBailout + spillSize + argsSize);
         try
         {
             tryContinuation = amd64_CallWithFakeFrame(tryAddr, frame, spillSize, argsSize);
@@ -260,7 +260,7 @@ namespace Js
         void * tryCatchFrameAddr = nullptr;
         scriptContext->GetThreadContext()->SetHasBailedOutBitPtr((bool*)((char*)localsPtr + hasBailedOutOffset));
 
-        PROBE_STACK(scriptContext, Constants::MinStackDefault + argsSize);
+        PROBE_STACK(scriptContext, Constants::MinStackJitEHBailout + argsSize);
         {
             Js::JavascriptExceptionOperators::TryCatchFrameAddrStack tryCatchFrameAddrStack(scriptContext, framePtr);
 
@@ -334,7 +334,7 @@ namespace Js
         JavascriptExceptionObject *exception           = nullptr;
         scriptContext->GetThreadContext()->SetHasBailedOutBitPtr((bool*)((char*)localsPtr + hasBailedOutOffset));
 
-        PROBE_STACK(scriptContext, Constants::MinStackDefault + argsSize);
+        PROBE_STACK(scriptContext, Constants::MinStackJitEHBailout + argsSize);
         try
         {
 #if defined(_M_ARM)
@@ -396,7 +396,7 @@ namespace Js
         void                      *finallyContinuation = nullptr;
         JavascriptExceptionObject *exception = nullptr;
 
-        PROBE_STACK(scriptContext, Constants::MinStackDefault + argsSize);
+        PROBE_STACK(scriptContext, Constants::MinStackJitEHBailout + argsSize);
 
         try
         {
@@ -446,7 +446,7 @@ namespace Js
         void *tryCatchFrameAddr = nullptr;
         scriptContext->GetThreadContext()->SetHasBailedOutBitPtr((bool*)((char*)framePtr + hasBailedOutOffset));
 
-        PROBE_STACK(scriptContext, Constants::MinStackDefault);
+        PROBE_STACK(scriptContext, Constants::MinStackJitEHBailout);
         {
             Js::JavascriptExceptionOperators::TryCatchFrameAddrStack tryCatchFrameAddrStack(scriptContext, framePtr);
 
@@ -608,7 +608,7 @@ namespace Js
         Js::JavascriptExceptionObject* pExceptionObject = NULL;
         void* continuationAddr = NULL;
         scriptContext->GetThreadContext()->SetHasBailedOutBitPtr((bool*)((char*)framePtr + hasBailedOutOffset));
-        PROBE_STACK(scriptContext, Constants::MinStackDefault);
+        PROBE_STACK(scriptContext, Constants::MinStackJitEHBailout);
 
         try
         {
@@ -764,7 +764,7 @@ namespace Js
         Js::JavascriptExceptionObject* pExceptionObject = NULL;
         void* continuationAddr = NULL;
 
-        PROBE_STACK(scriptContext, Constants::MinStackDefault);
+        PROBE_STACK(scriptContext, Constants::MinStackJitEHBailout);
 
         try
         {
