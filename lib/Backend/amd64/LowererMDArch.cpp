@@ -3065,7 +3065,7 @@ bool LowererMDArch::GenerateFastDivAndRem(IR::Instr* instrDiv, IR::LabelInstr* b
     IR::Opnd* divisor   = instrDiv->GetSrc2(); // denominator
     IR::Opnd* dst       = instrDiv->GetDst();
 
-    if (divident->GetType() != TyInt32 && divident->GetType() == TyUint32)
+    if (divident->GetType() != TyInt32 && divident->GetType() != TyUint32)
     {
         return false;
     }
