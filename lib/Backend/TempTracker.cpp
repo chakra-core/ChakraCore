@@ -733,7 +733,7 @@ NumberTemp::IsTempIndirTransferLoad(IR::Instr * instr, BackwardPass * backwardPa
             // If the index is an int, then we don't care about the non-temp use
             IR::Opnd * src1Opnd = instr->GetSrc1();
             IR::RegOpnd * indexOpnd = src1Opnd->AsIndirOpnd()->GetIndexOpnd();
-            if (indexOpnd && (indexOpnd->m_sym->m_isNotInt || !indexOpnd->GetValueType().IsInt()))
+            if (indexOpnd && (indexOpnd->m_sym->m_isNotNumber || !indexOpnd->GetValueType().IsInt()))
             {
                 return src1Opnd->CanStoreTemp();
             }

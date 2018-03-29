@@ -67,11 +67,7 @@ Opnd::IsNotNumber() const
             return true;
         }
 
-        if (regOpnd->m_sym->m_isNotInt)
-        {
-            // m_isNotInt actually means "is not number". It should not be set to true for definitely-float values.
-            return true;
-        }
+        return regOpnd->m_sym->m_isNotNumber;
     }
     return false;
 }
@@ -79,7 +75,22 @@ Opnd::IsNotNumber() const
 bool
 Opnd::IsNotInt() const
 {
-    return IsNotNumber() || IsFloat();
+    if (IsNotNumber() || IsFloat())
+    {
+        return true;
+    }
+    // Check if it's a definitive type that is not an int
+    if (GetValueType().IsDefinite() && !GetValueType().IsLikelyInt())
+    {
+        return true;
+    }
+    if (this->IsRegOpnd())
+    {
+        const IR::RegOpnd* reg = this->AsRegOpnd();
+        // If the reg is const, it should be an int const
+        return reg->m_sym->IsConst() && !reg->m_sym->IsIntConst();
+    }
+    return false;
 }
 
 bool
