@@ -10,33 +10,33 @@
 
 namespace UnicodeTextTest
 {
-	void Test(const WCHAR* str1, const WCHAR* str2, int expected)
-	{
-		// there are two tests, one to validate the expected value and validate the result of the call
-		int compareStringResult = CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE | SORT_DIGITSASNUMBERS, str1, -1, str2, -1);
-		CHECK(compareStringResult != 0);
-		compareStringResult = compareStringResult - CSTR_EQUAL;
+    void Test(const WCHAR* str1, const WCHAR* str2, int expected)
+    {
+        // there are two tests, one to validate the expected value and validate the result of the call
+        int compareStringResult = CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE | SORT_DIGITSASNUMBERS, str1, -1, str2, -1);
+        CHECK(compareStringResult != 0);
+        compareStringResult = compareStringResult - CSTR_EQUAL;
 
-		int res = PlatformAgnostic::UnicodeText::LogicalStringCompare(str1, str2);
+        int res = PlatformAgnostic::UnicodeText::LogicalStringCompare(str1, str2);
 
-		//int res = Chakra::PlatformAgnostic::UnicodeText::Internal::LogicalStringCompareImpl(str1, str2);
-		
-		bool passed = res == expected;
+        //int res = Chakra::PlatformAgnostic::UnicodeText::Internal::LogicalStringCompareImpl(str1, str2);
+        
+        bool passed = res == expected;
 
-		//test to check that expected value passed is correct
-		CHECK(compareStringResult == expected);
-		
-		//test to check that the result from call to LogicalStringCompareImpl is the expected value
-		CHECK(passed);    		
-	}
+        //test to check that expected value passed is correct
+        CHECK(compareStringResult == expected);
+        
+        //test to check that the result from call to LogicalStringCompareImpl is the expected value
+        CHECK(passed);    		
+    }
 
-	TEST_CASE(){
+    TEST_CASE(){
         Test(_u("a"), _u("a"), 0);
     }
-	TEST_CASE(){
-		Test(_u("a"), _u("b"), -1);
+    TEST_CASE(){
+        Test(_u("a"), _u("b"), -1);
     }
-	TEST_CASE(){
+    TEST_CASE(){
         Test(_u("b"), _u("a"), 1);
     }
 
