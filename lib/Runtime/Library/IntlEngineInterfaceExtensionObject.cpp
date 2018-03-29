@@ -2169,7 +2169,7 @@ namespace Js
         if (state->GetInternalProperty(state, Js::InternalPropertyIds::HiddenObject, &hiddenObject, nullptr, scriptContext))
         {
             dtf = reinterpret_cast<FinalizableUDateFormat *>(hiddenObject);
-            INTL_TRACE("Using previously cached UDateFormat");
+            INTL_TRACE("Using previously cached UDateFormat (0x%x)", dtf);
         }
         else
         {
@@ -2218,7 +2218,7 @@ namespace Js
             // If we passed the previous check, we should reset the status to U_ZERO_ERROR (in case it was U_UNSUPPORTED_ERROR)
             status = U_ZERO_ERROR;
 
-            INTL_TRACE("Caching new UDateFormat with langtag=%s, pattern=%s, timezone=%s", langtag->GetSz(), pattern->GetSz(), timeZone->GetSz());
+            INTL_TRACE("Caching new UDateFormat (0x%x) with langtag=%s, pattern=%s, timezone=%s", dtf, langtag->GetSz(), pattern->GetSz(), timeZone->GetSz());
 
             // cache dtf for later use (so that the condition that brought us here returns true for future calls)
             state->SetInternalProperty(
