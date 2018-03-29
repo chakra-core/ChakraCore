@@ -1,11 +1,4 @@
-BailOut: function: factorial ( (#1.1), #2) offset: #001a Opcode: Mul_I4 Kind: BailOutOnMulOverflow | BailOutOnNegativeZero
-BailOut: function: factorial ( (#1.1), #2) offset: #001a Opcode: Mul_I4 Kind: BailOutOnMulOverflow | BailOutOnNegativeZero
-BailOut: function: factorial ( (#1.1), #2) offset: #001a Opcode: Mul_I4 Kind: BailOutOnMulOverflow | BailOutOnNegativeZero
-BailOut: function: factorial ( (#1.1), #2) offset: #001a Opcode: Mul_I4 Kind: BailOutOnMulOverflow | BailOutOnNegativeZero
+Rejit: function: factorial ( (#1.1), #2), bailOutCount: 4 callCount: 0 reason: AggressiveMulIntTypeSpecDisabled (BailOutOnMulOverflow | BailOutOnNegativeZero)
 6.209600278328219e+62
-BailOut: function: exponent ( (#1.2), #3) offset: #0016 Opcode: Mul_I4 Kind: BailOutOnMulOverflow
-BailOut: function: exponent ( (#1.2), #3) offset: #0016 Opcode: Mul_I4 Kind: BailOutOnMulOverflow
-BailOut: function: exponent ( (#1.2), #3) offset: #0016 Opcode: Mul_I4 Kind: BailOutOnMulOverflow
-BailOut: function: exponent ( (#1.2), #3) offset: #0016 Opcode: Mul_I4 Kind: BailOutOnMulOverflow
-BailOut: function: exponent ( (#1.2), #3) offset: #0016 Opcode: Mul_I4 Kind: BailOutOnMulOverflow
+Rejit: function: exponent ( (#1.2), #3), bailOutCount: 5 callCount: 0 reason: AggressiveMulIntTypeSpecDisabled (BailOutOnMulOverflow)
 1125899906842624
