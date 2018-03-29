@@ -126,6 +126,7 @@ public:
     void            SetIsInt64Const();
     void            SetIsFloatConst();
     void            SetIsSimd128Const();
+    void            SetIsStrConst();
 
     intptr_t        GetLiteralConstValue_PostGlobOpt() const;
     IR::Opnd *      GetConstOpnd() const;

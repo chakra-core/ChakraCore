@@ -4312,7 +4312,7 @@ IR::RegOpnd *LowererMD::LoadNonnegativeIndex(
         //     mov  intIndex, index
         //     sar  intIndex, 1
         //     jae  $notTaggedIntOrNegative
-        indexOpnd = GenerateUntagVar(indexOpnd, notTaggedIntLabel, insertBeforeInstr, !indexOpnd->IsTaggedInt());
+        indexOpnd = m_lowerer->GenerateUntagVar(indexOpnd, notTaggedIntLabel, insertBeforeInstr, !indexOpnd->IsTaggedInt());
     }
 
     if(!skipNegativeCheck)

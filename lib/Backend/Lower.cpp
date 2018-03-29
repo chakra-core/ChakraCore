@@ -16678,6 +16678,7 @@ Lowerer::GenerateUntagVar(IR::RegOpnd * opnd, IR::LabelInstr * labelFail, IR::In
         AssertMsg(opnd->GetSize() == 4, "This should be 32-bit wide");
         return opnd;
     }
+    AssertMsg(!opnd->IsNotInt(), "An opnd we know is not an int should not try to untag it as it will always fail");
     if (opnd->m_sym->IsIntConst())
     {
         int32 constValue = opnd->m_sym->GetIntConstValue();
@@ -16686,7 +16687,6 @@ Lowerer::GenerateUntagVar(IR::RegOpnd * opnd, IR::LabelInstr * labelFail, IR::In
         InsertMove(regOpnd, constOpnd, insertBeforeInstr);
         return regOpnd;
     }
-    AssertMsg(!opnd->GetValueType().IsDefinite() || opnd->GetValueType().IsLikelyInt(), "Definitive type that are not ints should not try to untag it as it will always fail");
     return m_lowererMD.GenerateUntagVar(opnd, labelFail, insertBeforeInstr, generateTagCheck && !opnd->IsTaggedInt());
 }
 
@@ -20794,7 +20794,7 @@ Lowerer::GenerateFastArgumentsLdElemI(IR::Instr* ldElem, IR::LabelInstr *labelFa
 
     bool hasIntConstIndex = indirOpnd->TryGetIntConstIndexValue(true, &value, &isNotInt);
 
-    if (isInlinee && hasIntConstIndex && value >= (ldElem->m_func->actualCount - 1))
+    if (isNotInt || (isInlinee && hasIntConstIndex && value >= (ldElem->m_func->actualCount - 1)))
     {
         //Outside the range of actuals, skip
     }

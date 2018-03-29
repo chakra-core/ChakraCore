@@ -3636,8 +3636,7 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, V
                 Assert(dstOpnd->m_sym->m_isSingleDef);
                 if (dstOpnd->m_sym->IsSingleDef())
                 {
-                    dstOpnd->m_sym->m_isStrConst = true;
-                    dstOpnd->m_sym->m_isConst = true;
+                    dstOpnd->m_sym->SetIsStrConst();
                 }
                 dstOpnd->SetValueType(ValueType::String);
                 srcOpnd->SetValueType(ValueType::String);
