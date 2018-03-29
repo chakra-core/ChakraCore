@@ -448,10 +448,32 @@ namespace Js
             element.Clear();
     }
 
+    bool TypePropertyCache::ClearIfPropertyIsMissing(const PropertyId id)
+    {
+        TypePropertyCacheElement &element = elements[ElementIndex(id)];
+        if (element.Id() == id && element.IsMissing())
+        {
+            element.Clear();
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
     void TypePropertyCache::Clear(const PropertyId id)
     {
         TypePropertyCacheElement &element = elements[ElementIndex(id)];
         if(element.Id() == id)
             element.Clear();
     }
+
+#if DBG
+    bool TypePropertyCache::PropertyIsMissing(const PropertyId id) const
+    {
+        const TypePropertyCacheElement &element = elements[ElementIndex(id)];
+        return (element.Id() == id && element.IsMissing());
+    }
+#endif
 }

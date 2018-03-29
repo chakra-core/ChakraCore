@@ -112,6 +112,12 @@
   </test>
   <test>
     <default>
+      <files>MissingPropertyCache4.js</files>
+      <compile-flags>-off:simplejit -force:rejit</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>instanceOfCacheCrossRegistration.js</files>
       <baseline>instanceOfCacheCrossRegistration.baseline</baseline>
     </default>

@@ -118,6 +118,9 @@ namespace JsUtil
             return false;
         }
 
+        // Looks up key in the dictionary.  If not present, returns false; otherwise,
+        // copies val to *value (unless value is nullptr), removes entry from dictionary,
+        // and returns true.
         bool TryGetValueAndRemove(const TKey* key, TValue* value)
         {
             if (buckets == nullptr) return false;
@@ -129,7 +132,9 @@ namespace JsUtil
 
             if ((i = FindEntry<TKey>(key, hash, targetBucket, last)) != -1)
             {
-                *value = entries[i].value;
+                if (value != nullptr) {
+                    *value = entries[i].value;
+                }
                 RemoveEntry(i, last, targetBucket);
                 return true;
             }
@@ -200,6 +205,38 @@ namespace JsUtil
                             const int nextIndex = currentEntry.next;
                             RemoveEntry(currentIndex, previousIndex, i);
                             currentIndex = nextIndex;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Variant of Map that removes all entries for which fn returns
+        // (something convertible to) true.  Like Map, removes entries
+        // whose key is equal to nullptr.
+        template<typename Fn>
+        void MapAndRemoveIf(Fn fn)
+        {
+            for (int i = 0; i < size; i++)
+            {
+                if (buckets[i] != -1)
+                {
+                    for (int previousIndex = -1, currentIndex = buckets[i]; currentIndex != -1;)
+                    {
+                        EntryType &currentEntry = entries[currentIndex];
+                        TKey *key = currentEntry.key->Get();
+                        if (key == nullptr || fn(key, currentEntry.value, currentEntry.key))
+                        {
+                            // Remove the entry
+                            const int nextIndex = currentEntry.next;
+                            RemoveEntry(currentIndex, previousIndex, i);
+                            currentIndex = nextIndex;
+                        }
+                        else
+                        {
+                            // Keep entry
+                            previousIndex = currentIndex;
+                            currentIndex = currentEntry.next;
                         }
                     }
                 }

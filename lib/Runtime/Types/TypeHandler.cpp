@@ -864,4 +864,10 @@ namespace Js
         Output::Print(_u("%*sisNotPathTypeHandlerOrHasUserDefinedCtor: %d\n"), fieldIndent, padding, static_cast<int>(this->isNotPathTypeHandlerOrHasUserDefinedCtor));
     }
 #endif
+
+    bool DynamicTypeHandler::propertyInPrototype(DynamicObject *instance, Js::PropertyId propertyId) const
+    {
+        return ((this->GetFlags() & IsPrototypeFlag)
+            || (!IsInternalPropertyId(propertyId) && JavascriptOperators::HasProxyOrPrototypeInlineCacheProperty(instance, propertyId)));
+    }
 }

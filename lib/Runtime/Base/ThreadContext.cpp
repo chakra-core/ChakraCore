@@ -3237,6 +3237,55 @@ ThreadContext::InvalidateProtoInlineCaches(Js::PropertyId propertyId)
 }
 
 void
+ThreadContext::InvalidateMissingPropertyInlineCaches(const Js::Type *type, Js::PropertyId propertyId)
+{
+    InlineCacheList *inlineCacheList;
+    if (protoInlineCacheByPropId.TryGetValue(propertyId, &inlineCacheList))
+    {
+        if (PHASE_TRACE1(Js::TraceInlineCacheInvalidationPhase))
+        {
+            Output::Print(_u("InlineCacheInvalidation: invalidating missing-property proto caches for property %s(%u), type %d\n"),
+                GetPropertyName(propertyId)->GetBuffer(), propertyId, type->GetTypeId());
+            Output::Flush();
+        }
+
+        // Next section is based on InvalidateAndDeleteInlineCacheList.  Unlike that function, however, we only invalidate and
+        // remove entries that describe missing properties.
+        uint numCachesInvalidated = 0;
+        FOREACH_SLISTBASE_ENTRY_EDITING(Js::InlineCache*, inlineCache, inlineCacheList, editingIterator)
+        {
+            // ThreadContext::InvalidateAndDeleteInlineCacheList, on which this method is based, just deletes the entire list, so
+            // (among other things) it must update this->unregisteredInlineCacheCount to reflect the number of
+            // NULL entries in the list that are being deleted.  For simplicity, I skip those here and leave the count intact.
+            if (inlineCache != nullptr && inlineCache->u.proto.isProto && inlineCache->u.proto.type == type) {
+                // Since this method is only called in response to adding a new property, then the property
+                // can only be in the cache if it was previously missing.
+                Assert(inlineCache->u.proto.isMissing);
+                if (PHASE_VERBOSE_TRACE1(Js::TraceInlineCacheInvalidationPhase))
+                {
+                    Output::Print(_u("InlineCacheInvalidation: invalidating cache 0x%p\n"), inlineCache);
+                    Output::Flush();
+                }
+                ++numCachesInvalidated;
+                memset(inlineCache, 0, sizeof(Js::InlineCache));
+                editingIterator.RemoveCurrent();
+            }
+        }
+        NEXT_SLISTBASE_ENTRY_EDITING;
+
+        // If we've removed all of the entries in the list, clean up the list as well.
+        if (inlineCacheList->Empty())
+        {
+            protoInlineCacheByPropId.Remove(propertyId);
+            Adelete(&this->inlineCacheThreadInfoAllocator, inlineCacheList);
+        }
+
+        this->registeredInlineCacheCount =
+            this->registeredInlineCacheCount > numCachesInvalidated ? this->registeredInlineCacheCount - numCachesInvalidated : 0;
+    }
+}
+
+void
 ThreadContext::InvalidateStoreFieldInlineCaches(Js::PropertyId propertyId)
 {
     InlineCacheList* inlineCacheList;
@@ -3557,21 +3606,120 @@ ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRe
 
     entry->uniqueGuards.Clear();
 
-
     // Count no. of invalidations done so far. Exclude if this is all property guards invalidation in which case
     // the unique Guards will be cleared anyway.
     if (!isAllPropertyGuardsInvalidation)
     {
-        this->recyclableData->constructorCacheInvalidationCount += count;
-        if (this->recyclableData->constructorCacheInvalidationCount > (uint)CONFIG_FLAG(ConstructorCacheInvalidationThreshold))
+        this->UpdateConstructorCacheInvalidationCount(count);
+    }
+
+    this->InvalidateEntryPoints(propertyRecord, entry);
+}
+
+void
+ThreadContext::InvalidatePropertyGuards(Js::PropertyId propertyId)
+{
+    const Js::PropertyRecord* propertyRecord = GetPropertyName(propertyId);
+    PropertyGuardDictionary &guards = this->recyclableData->propertyGuards;
+    PropertyGuardEntry* entry = nullptr;
+    if (guards.TryGetValueAndRemove(propertyRecord, &entry))
+    {
+        InvalidatePropertyGuardEntry(propertyRecord, entry, false);
+    }
+}
+
+bool
+ThreadContext::InvalidatePropertyGuardEntryForType(const Js::PropertyRecord* propertyRecord, PropertyGuardEntry* entry, bool isAllPropertyGuardsInvalidation, const Js::Type *type)
+{
+    Assert(entry != nullptr);
+    Assert(type != nullptr);
+
+    // Are we invalidating all entries?  Starts out true; gets set to false if we encounter an entry that we do not invalidate.
+    bool removedAllEntries = true;
+
+    if (entry->sharedGuard != nullptr)
+    {
+        Js::PropertyGuard* guard = entry->sharedGuard;
+        if (guard->GetValue() == reinterpret_cast<intptr_t>(type))
         {
-            // TODO: In future, we should compact the uniqueGuards dictionary so this function can be called from PreCollectionCallback
-            // instead
-            this->ClearInvalidatedUniqueGuards();
-            this->recyclableData->constructorCacheInvalidationCount = 0;
+            if (PHASE_TRACE1(Js::TracePropertyGuardsPhase) || PHASE_VERBOSE_TRACE1(Js::FixedMethodsPhase))
+            {
+                Output::Print(_u("FixedFields: invalidating guard: name: %s, address: 0x%p, value: 0x%p, value address: 0x%p\n"),
+                              propertyRecord->GetBuffer(), guard, guard->GetValue(), guard->GetAddressOfValue());
+                Output::Flush();
+            }
+
+            if (PHASE_TESTTRACE1(Js::TracePropertyGuardsPhase) || PHASE_VERBOSE_TESTTRACE1(Js::FixedMethodsPhase))
+            {
+                Output::Print(_u("FixedFields: invalidating guard: name: %s, value: 0x%p\n"), propertyRecord->GetBuffer(), guard->GetValue());
+                Output::Flush();
+            }
+
+            guard->Invalidate();
+        }
+        else
+        {
+            removedAllEntries = false;
         }
     }
 
+    uint count = 0;
+    entry->uniqueGuards.MapAndRemoveIf([&count, propertyRecord, type, &removedAllEntries](RecyclerWeakReference<Js::PropertyGuard>* guardWeakRef) -> bool
+    {
+        Js::PropertyGuard* guard = guardWeakRef->Get();
+        if (guard != nullptr && guard->GetValue() == reinterpret_cast<intptr_t>(type))
+        {
+            if (PHASE_TRACE1(Js::TracePropertyGuardsPhase) || PHASE_VERBOSE_TRACE1(Js::FixedMethodsPhase))
+            {
+                Output::Print(_u("FixedFields: invalidating guard: name: %s, address: 0x%p, value: 0x%p, value address: 0x%p\n"),
+                    propertyRecord->GetBuffer(), guard, guard->GetValue(), guard->GetAddressOfValue());
+                Output::Flush();
+            }
+
+            if (PHASE_TESTTRACE1(Js::TracePropertyGuardsPhase) || PHASE_VERBOSE_TESTTRACE1(Js::FixedMethodsPhase))
+            {
+                Output::Print(_u("FixedFields: invalidating guard: name: %s, value: 0x%p\n"),
+                    propertyRecord->GetBuffer(), guard->GetValue());
+                Output::Flush();
+            }
+
+            guard->Invalidate();
+            count++;
+            return true;
+        }
+        else
+        {
+            removedAllEntries = false;
+            return false;
+        }
+    });
+
+    if (!isAllPropertyGuardsInvalidation)
+    {
+        this->UpdateConstructorCacheInvalidationCount(count);
+    }
+
+    this->InvalidateEntryPoints(propertyRecord, entry);
+
+    return removedAllEntries;
+}
+
+void ThreadContext::UpdateConstructorCacheInvalidationCount(uint count)
+{
+    // Count no. of invalidations done so far. Exclude if this is all property guards invalidation in which case
+    // the unique Guards will be cleared anyway.
+    this->recyclableData->constructorCacheInvalidationCount += count;
+    if (this->recyclableData->constructorCacheInvalidationCount > (uint)CONFIG_FLAG(ConstructorCacheInvalidationThreshold))
+    {
+        // TODO: In future, we should compact the uniqueGuards dictionary so this function can be called from PreCollectionCallback
+        // instead
+        this->ClearInvalidatedUniqueGuards();
+        this->recyclableData->constructorCacheInvalidationCount = 0;
+    }
+}
+
+void ThreadContext::InvalidateEntryPoints(const Js::PropertyRecord *propertyRecord, PropertyGuardEntry *entry)
+{
     if (entry->entryPoints && entry->entryPoints->Count() > 0)
     {
         Js::JavascriptStackWalker stackWalker(this->GetScriptContextList());
@@ -3603,14 +3751,16 @@ ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRe
 }
 
 void
-ThreadContext::InvalidatePropertyGuards(Js::PropertyId propertyId)
+ThreadContext::InvalidatePropertyGuardsForType(Js::PropertyId propertyId, const Js::Type *type)
 {
     const Js::PropertyRecord* propertyRecord = GetPropertyName(propertyId);
     PropertyGuardDictionary &guards = this->recyclableData->propertyGuards;
     PropertyGuardEntry* entry = nullptr;
-    if (guards.TryGetValueAndRemove(propertyRecord, &entry))
+    if (guards.TryGetValue(propertyRecord, &entry))
     {
-        InvalidatePropertyGuardEntry(propertyRecord, entry, false);
+        if (InvalidatePropertyGuardEntryForType(propertyRecord, entry, false, type)) {
+            guards.TryGetValueAndRemove(propertyRecord, nullptr);
+        }
     }
 }
 
@@ -3917,6 +4067,45 @@ void ThreadContext::DoInvalidateProtoTypePropertyCaches(const Js::PropertyId pro
         {
             type->GetPropertyCache()->ClearIfPropertyIsOnAPrototype(propertyId);
         });
+}
+
+void ThreadContext::InvalidateMissingPropertyProtoTypePropertyCaches(const Js::Type *type, const Js::PropertyId propertyId)
+{
+    Assert(propertyId != Js::Constants::NoProperty);
+    Assert(IsActivePropertyId(propertyId));
+
+    // Get the hash set of registered types associated with the property
+    // ID, invalidate the indicated type's property cache, and remove it from
+    // the hash set.  If the set is now empty, remove the property ID and its
+    // hash set from the map.
+    PropertyIdToTypeHashSetDictionary &typesWithProtoPropertyCache = recyclableData->typesWithProtoPropertyCache;
+    TypeHashSet *typeHashSet = nullptr;
+    if (typesWithProtoPropertyCache.Count() != 0 && typesWithProtoPropertyCache.TryGetValue(propertyId, &typeHashSet))
+    {
+        Assert(typeHashSet != nullptr);
+        typeHashSet->MapAndRemoveIf(
+            [propertyId, type](Js::Type * const entryType, const bool, const RecyclerWeakReference<Js::Type>*) -> bool
+            {
+                if (entryType == type)
+                {
+                    // We only call this method when adding a new property to a type.  If the property
+                    // is already cached, then it must have been cached as a missing property.
+                    Assert(entryType->GetPropertyCache()->PropertyIsMissing(propertyId));
+                    return entryType->GetPropertyCache()->ClearIfPropertyIsMissing(propertyId);
+                }
+                else
+                {
+                    // Entry is for a different type; return false to indicate that we should keep entry in typeHashSet.
+                    return false;
+                }
+            });
+        // If all of the entries in typeHashSet corresponding to missing properties, then
+        // we've empted typeHashSet, so remove the property from the dictionary.
+        if (typeHashSet->Count() == 0)
+        {
+            typesWithProtoPropertyCache.Remove(propertyId);
+        }
+    }
 }
 
 Js::ScriptContext **
