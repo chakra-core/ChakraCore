@@ -357,6 +357,117 @@ namespace Js
 #if DBG_DUMP
         void Dump();
 #endif
+
+    private:
+
+        // Write operation info if relevant
+        template<bool ReturnOperationInfo> inline static void OutputOperationInfo(PropertyCacheOperationInfo *const operationInfo, CacheType cacheType, SlotType slotType);
+
+        // Get the source object that supplies property values, based on the cache type and the starting object
+        template<CacheType cacheType> inline DynamicObject* GetSourceObject(RecyclableObject *const propertyObject);
+
+        // Get the source object that we should test for script context matching, based on the cache type and the starting object
+        template<CacheType cacheType> inline RecyclableObject* GetSourceObjectForScriptContext(RecyclableObject *const propertyObject);
+
+        // Get the slot index for the property, based on the cache type
+        template<CacheType cacheType> inline int GetSlotIndex();
+
+        // Get the property value, based on the source object and slot index
+        template<SlotType slotType> inline static Var GetPropertyValue(DynamicObject* sourceObject, int slotIndex);
+
+        // Set the output propertyValue and operationInfo
+        template<
+            bool OutputExistence,
+            bool IsMissing,
+            bool ReturnOperationInfo,
+            CacheType cacheType,
+            SlotType slotType>
+        void OutputPropertyValueAndOperationInfo(
+            Var const instance,
+            RecyclableObject *const propertyObject,
+            const PropertyId propertyId,
+            Var *const propertyValue,
+            ScriptContext *const requestContext,
+            PropertyCacheOperationInfo *const operationInfo)
+        {
+            Assert(this->GetSourceObjectForScriptContext<cacheType>(propertyObject)->GetScriptContext() == requestContext); // we never cache a type from another script context
+            OutputPropertyValue<OutputExistence, IsMissing, cacheType, slotType>::impl(this, instance, propertyObject, propertyId, propertyValue, requestContext);
+            OutputOperationInfo<ReturnOperationInfo>(operationInfo, cacheType, slotType);
+        }
+
+        // Because C++ can't partially specialize functions, here's a struct. Calling the impl method on this struct
+        // will set the output propertyValue.
+        template<
+            bool OutputExistence,
+            bool IsMissing,
+            CacheType cacheType,
+            SlotType slotType>
+        struct OutputPropertyValue {};
+
+        template<bool IsMissing, CacheType cacheType, SlotType slotType>
+        struct OutputPropertyValue<true /*OutputExistence*/, IsMissing, cacheType, slotType>
+        {
+            static void impl(
+                InlineCache* cache,
+                Var const instance,
+                RecyclableObject *const propertyObject,
+                const PropertyId propertyId,
+                Var *const propertyValue,
+                ScriptContext *const requestContext)
+            {
+                *propertyValue = IsMissing ? requestContext->GetLibrary()->GetFalse() : requestContext->GetLibrary()->GetTrue();
+                Assert(!JavascriptOperators::HasProperty(propertyObject, propertyId) == IsMissing);
+            }
+        };
+
+        template<bool IsMissing, SlotType slotType>
+        struct OutputPropertyValue<false /*OutputExistence*/, IsMissing, CacheType::CacheType_Getter, slotType>
+        {
+            static void impl(
+                InlineCache* cache,
+                Var const instance,
+                RecyclableObject *const propertyObject,
+                const PropertyId propertyId,
+                Var *const propertyValue,
+                ScriptContext *const requestContext)
+            {
+                Assert(cache->u.accessor.flags & InlineCacheGetterFlag);
+
+                RecyclableObject * function;
+                if (cache->u.accessor.isOnProto)
+                {
+                    function = RecyclableObject::UnsafeFromVar(cache->GetPropertyValue<slotType>(cache->u.accessor.object, cache->u.accessor.slotIndex));
+                }
+                else
+                {
+                    function = RecyclableObject::UnsafeFromVar(cache->GetPropertyValue<slotType>(DynamicObject::UnsafeFromVar(propertyObject), cache->u.accessor.slotIndex));
+                }
+
+                *propertyValue = JavascriptOperators::CallGetter(function, instance, requestContext);
+
+                // Can't assert because the getter could have a side effect
+#ifdef CHKGETTER
+                Assert(JavascriptOperators::Equal(*propertyValue, JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext), requestContext));
+#endif
+            }
+        };
+
+        template<bool IsMissing, CacheType cacheType, SlotType slotType>
+        struct OutputPropertyValue<false /*OutputExistence*/, IsMissing, cacheType, slotType>
+        {
+            static void impl(
+                InlineCache* cache,
+                Var const instance,
+                RecyclableObject *const propertyObject,
+                const PropertyId propertyId,
+                Var *const propertyValue,
+                ScriptContext *const requestContext)
+            {
+                *propertyValue = InlineCache::GetPropertyValue<slotType>(cache->GetSourceObject<cacheType>(propertyObject), cache->GetSlotIndex<cacheType>());
+                Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
+                    (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
+            }
+        };
     };
 
 #if defined(TARGET_32)
