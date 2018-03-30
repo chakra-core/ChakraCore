@@ -1,16 +1,16 @@
 "use strict";
 
-load("ast.js");
-load("basic.js");
-load("caseless_map.js");
-load("lexer.js");
-load("number.js");
-load("parser.js");
-load("random.js");
-load("state.js");
-load("util.js");
+WScript.LoadScriptFile("ast.js");
+WScript.LoadScriptFile("basic.js");
+WScript.LoadScriptFile("caseless_map.js");
+WScript.LoadScriptFile("lexer.js");
+WScript.LoadScriptFile("number.js");
+WScript.LoadScriptFile("parser.js");
+WScript.LoadScriptFile("random.js");
+WScript.LoadScriptFile("state.js");
+WScript.LoadScriptFile("util.js");
 
-load("benchmark.js");
+WScript.LoadScriptFile("benchmark.js");
 
 let result = runBenchmark();
 print("That took " + result + " ms.");
