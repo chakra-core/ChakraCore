@@ -4526,7 +4526,8 @@ Recycler::FinishConcurrent()
 
         const BOOL forceFinish = flags & CollectOverride_ForceFinish;
 
-        if (forceFinish || !IsConcurrentExecutingState())
+        if (forceFinish || !IsConcurrentExecutingState()
+            || flags == FinishConcurrentOnIdleAtRoot) // UI thread is idle, help background thread a bit
         {
 #if ENABLE_BACKGROUND_PAGE_FREEING
             if (CONFIG_FLAG(EnableBGFreeZero))
