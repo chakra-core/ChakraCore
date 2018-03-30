@@ -22,18 +22,33 @@ IR::LabelInstr * FlowGraph::DeleteLeaveChainBlocks(IR::BranchInstr *leaveInstr, 
 {
     // Cleanup Rest of the Leave chain
     IR::LabelInstr * leaveTarget = leaveInstr->GetTarget();
-    Assert(leaveTarget->GetNextRealInstr()->IsBranchInstr());
-    IR::BranchInstr *leaveChain = leaveTarget->GetNextRealInstr()->AsBranchInstr();
+    Assert(leaveTarget->GetNextBranchOrLabel()->IsBranchInstr());
+    IR::BranchInstr *leaveChain = leaveTarget->GetNextBranchOrLabel()->AsBranchInstr();
     IR::LabelInstr * curLabel = leaveTarget->AsLabelInstr();
 
     while (leaveChain->m_opcode != Js::OpCode::Br)
     {
         Assert(leaveChain->m_opcode == Js::OpCode::Leave || leaveChain->m_opcode == Js::OpCode::BrOnException);
-        IR::LabelInstr * nextLabel = leaveChain->m_next->AsLabelInstr();
-        leaveChain = nextLabel->m_next->AsBranchInstr();
+        IR::Instr * nextLabel = leaveChain->GetNextRealInstrOrLabel();
+        if (!nextLabel->GetNextRealInstrOrLabel()->IsBranchInstr())
+        {
+            // For jit loop bodies - we can encounter ProfiledLoopEnd before every early return
+            Assert(nextLabel->GetNextRealInstrOrLabel()->m_opcode == Js::OpCode::ProfiledLoopEnd);
+            IR::Instr * loopEnd = nextLabel->GetNextRealInstrOrLabel();
+            while (!loopEnd->GetNextRealInstrOrLabel()->IsBranchInstr())
+            {
+                Assert(loopEnd->m_opcode == Js::OpCode::ProfiledLoopEnd);
+                loopEnd = loopEnd->GetNextRealInstrOrLabel();
+            }
+            leaveChain = loopEnd->GetNextRealInstrOrLabel()->AsBranchInstr();
+        }
+        else
+        {
+            leaveChain = nextLabel->GetNextRealInstrOrLabel()->AsBranchInstr();
+        }
         BasicBlock *curBlock = curLabel->GetBasicBlock();
         this->RemoveBlock(curBlock);
-        curLabel = nextLabel;
+        curLabel = nextLabel->AsLabelInstr();
     }
 
     instrPrev = leaveChain->m_next;
@@ -67,13 +82,19 @@ bool FlowGraph::Dominates(Region *region1, Region *region2)
 bool FlowGraph::DoesExitLabelDominate(IR::BranchInstr *leaveInstr)
 {
     IR::LabelInstr * leaveTarget = leaveInstr->GetTarget();
-    Assert(leaveTarget->GetNextRealInstr()->IsBranchInstr());
-    IR::BranchInstr *leaveChain = leaveTarget->GetNextRealInstr()->AsBranchInstr();
+    Assert(leaveTarget->GetNextRealInstr()->IsBranchInstr() || leaveTarget->GetNextRealInstr()->m_opcode == Js::OpCode::ProfiledLoopEnd);
+    IR::BranchInstr *leaveChain = leaveTarget->GetNextBranchOrLabel()->AsBranchInstr();
 
     while (leaveChain->m_opcode != Js::OpCode::Br)
     {
         Assert(leaveChain->m_opcode == Js::OpCode::Leave || leaveChain->m_opcode == Js::OpCode::BrOnException);
         IR::LabelInstr * nextLabel = leaveChain->m_next->AsLabelInstr();
+        if (!nextLabel->m_next->IsBranchInstr())
+        {
+            // For jit loop bodies - we can encounter ProfiledLoopEnd before every early return
+            Assert(nextLabel->m_next->m_opcode == Js::OpCode::ProfiledLoopEnd);
+            break;
+        }
         leaveChain = nextLabel->m_next->AsBranchInstr();
     }
     IR::LabelInstr * exitLabel = leaveChain->GetTarget();
@@ -148,6 +169,10 @@ FlowGraph::Build(void)
     BEGIN_CODEGEN_PHASE(func, Js::FGPeepsPhase);
     this->RunPeeps();
     END_CODEGEN_PHASE(func, Js::FGPeepsPhase);
+
+    bool assignRegionsBeforeGlobopt = this->func->HasTry() && (this->func->DoOptimizeTry() ||
+        (this->func->IsSimpleJit() && this->func->hasBailout) ||
+        this->func->IsLoopBodyInTryFinally());
 
     // We don't optimize fully with SimpleJit. But, when JIT loop body is enabled, we do support
     // bailing out from a simple jitted function to do a full jit of a loop body in the function
@@ -241,7 +266,8 @@ FlowGraph::Build(void)
             //          <try code>
             //          Leave L2
             //  L2 :    Br L3
-            //  L1 :    <finally code>
+            //  L1 :    Finally
+            //          <finally code>
             //          LeaveNull
             //  L3 :    <code after try finally>
             //
@@ -250,7 +276,7 @@ FlowGraph::Build(void)
             //          TryFinally L1
             //          <try code>
             //          BrOnException L1
-            //          Leave L1'
+            //          Leave L2
             //  L1 :    BailOnException
             //  L2 :    Finally
             //          <finally code>
@@ -263,8 +289,9 @@ FlowGraph::Build(void)
 
             IR::LabelInstr * finallyLabel = instr->m_prev->AsLabelInstr();
 
-            // Find leave label
+            this->finallyLabelStack->Push(finallyLabel);
 
+            // Find leave label
             Assert(finallyLabel->m_prev->m_opcode == Js::OpCode::Br && finallyLabel->m_prev->m_prev->m_opcode == Js::OpCode::Label);
 
             IR::Instr * insertPoint = finallyLabel->m_prev;
@@ -279,8 +306,6 @@ FlowGraph::Build(void)
             IR::Instr * bailOnException = IR::BailOutInstr::New(Js::OpCode::BailOnException, IR::BailOutOnException, instr->m_next, instr->m_func);
             insertPoint->InsertBefore(bailOnException);
             insertPoint->Remove();
-
-            this->finallyLabelStack->Push(finallyLabel);
 
             Assert(leaveTarget->labelRefs.HasOne());
             IR::BranchInstr * brOnException = IR::BranchInstr::New(Js::OpCode::BrOnException, finallyLabel, instr->m_func);
@@ -385,9 +410,6 @@ FlowGraph::Build(void)
     //     2. SimpleJit: Same case of correct restoration as above applies in SimpleJit too. However, the only bailout
     //        we have in Simple Jitted code right now is BailOnSimpleJitToFullJitLoopBody, installed in IRBuilder. So,
     //        for now, we can just check if the func has a bailout to assign regions pre globopt while running SimpleJit.
-
-    bool assignRegionsBeforeGlobopt = this->func->HasTry() && (this->func->DoOptimizeTry() ||
-        (this->func->IsSimpleJit() && this->func->hasBailout));
 
     blockNum = 0;
     FOREACH_BLOCK_ALL(block, this)
@@ -512,6 +534,24 @@ FlowGraph::Build(void)
         {
             block->SetBlockNum(blockNum++);
         } NEXT_BLOCK_ALL;
+    }
+
+    if (this->func->IsLoopBodyInTryFinally())
+    {
+        FOREACH_BLOCK_IN_FUNC(block, this->func)
+        {
+            FOREACH_INSTR_IN_BLOCK_EDITING(instr, instrNext, block)
+            {
+                if (instr->m_opcode == Js::OpCode::Leave && (block->GetFirstInstr()->AsLabelInstr()->GetRegion()->GetType() == RegionTypeRoot))
+                {
+                    // Found an orphaned leave, should be an early return from the loop body, insert bailout
+                    Assert(instr->AsBranchInstr()->m_isOrphanedLeave);
+                    IR::Instr * bailOnEarlyExit = IR::BailOutInstr::New(Js::OpCode::BailOnEarlyExit, IR::BailOutOnEarlyExit, instr, instr->m_func);
+                    instr->InsertBefore(bailOnEarlyExit);
+                }
+            }
+            NEXT_INSTR_IN_BLOCK_EDITING
+        } NEXT_BLOCK_IN_FUNC;
     }
 
     this->FindLoops();
@@ -1048,7 +1088,8 @@ FlowGraph::MoveBlocksBefore(BasicBlock *blockStart, BasicBlock *blockEnd, BasicB
     IR::Instr *dstLastInstr = dstPredBlockLastInstr;
 
     bool assignRegionsBeforeGlobopt = this->func->HasTry() && (this->func->DoOptimizeTry() ||
-        (this->func->IsSimpleJit() && this->func->hasBailout));
+        (this->func->IsSimpleJit() && this->func->hasBailout) ||
+        this->func->IsLoopBodyInTryFinally());
 
     if (dstLastInstr->IsBranchInstr() && dstLastInstr->AsBranchInstr()->HasFallThrough())
     {
@@ -1700,7 +1741,9 @@ FlowGraph::Destroy(void)
                         break;
                     case Js::OpCode::Leave:
                         AssertMsg(region == predRegion->GetParent() || (predRegion->GetType() == RegionTypeTry && predRegion->GetMatchingFinallyRegion(false) == region) ||
-                            (region == predRegion && this->func->IsLoopBodyInTry()), "Bad region prop on leaving try-catch/finally");
+                            (region == predRegion && this->func->IsLoopBodyInTry() ||
+                            // edge from early exit to finally in simplejit - in fulljit this Leave would have been deadcoded due to preceeding BailOutOnEarlyExit
+                            (predBlock->GetLastInstr()->GetPrevRealInstr()->m_opcode == Js::OpCode::BailOnEarlyExit && region->GetType() == RegionTypeFinally && this->func->IsSimpleJit())), "Bad region prop on leaving try-catch/finally");
                         break;
                     case Js::OpCode::LeaveNull:
                         AssertMsg(region == predRegion->GetParent() || (region == predRegion && this->func->IsLoopBodyInTry()), "Bad region prop on leaving try-catch/finally");
@@ -1757,13 +1800,13 @@ FlowGraph::Destroy(void)
                 break;
 
             case RegionTypeTry:
-                if ((this->func->IsSimpleJit() && this->func->hasBailout) || !this->func->DoOptimizeTry())
+                if (this->func->DoOptimizeTry() || (this->func->IsSimpleJit() && this->func->hasBailout))
                 {
-                    Assert((region->GetMatchingCatchRegion() != nullptr) ^ (region->GetMatchingFinallyRegion(true) && !region->GetMatchingFinallyRegion(false)));
+                    Assert((region->GetMatchingCatchRegion() != nullptr) ^ (region->GetMatchingFinallyRegion(true) && region->GetMatchingFinallyRegion(false)));
                 }
                 else
                 {
-                    Assert((region->GetMatchingCatchRegion() != nullptr) ^ (region->GetMatchingFinallyRegion(true) && region->GetMatchingFinallyRegion(false)));
+                    Assert((region->GetMatchingCatchRegion() != nullptr) ^ (region->GetMatchingFinallyRegion(true) && !region->GetMatchingFinallyRegion(false)));
                 }
                 break;
 
@@ -1832,7 +1875,12 @@ FlowGraph::UpdateRegionForBlock(BasicBlock * block)
     IR::Instr * firstInstr = block->GetFirstInstr();
     if (firstInstr->IsLabelInstr() && firstInstr->AsLabelInstr()->GetRegion())
     {
-        Assert(this->func->HasTry() && (this->func->DoOptimizeTry() || (this->func->IsSimpleJit() && this->func->hasBailout)));
+#if DBG
+        bool assignRegionsBeforeGlobopt = this->func->HasTry() && (this->func->DoOptimizeTry() ||
+        (this->func->IsSimpleJit() && this->func->hasBailout) ||
+        this->func->IsLoopBodyInTryFinally());
+        Assert(assignRegionsBeforeGlobopt);
+#endif
         return;
     }
 
@@ -2371,7 +2419,8 @@ FlowGraph::InsertCompensationCodeForBlockMove(FlowEdge * edge,  bool insertToLoo
     }
 
     bool assignRegionsBeforeGlobopt = this->func->HasTry() && (this->func->DoOptimizeTry() ||
-        (this->func->IsSimpleJit() && this->func->hasBailout));
+        (this->func->IsSimpleJit() && this->func->hasBailout) ||
+        this->func->IsLoopBodyInTryFinally());
 
     if (assignRegionsBeforeGlobopt)
     {

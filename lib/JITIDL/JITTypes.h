@@ -393,7 +393,8 @@ typedef struct JITLoopHeaderIDL
 {
     boolean isNested;
     boolean isInTry;
-    IDL_PAD2(0)
+    boolean isInTryFinally;
+    IDL_PAD1(0)
     unsigned int interpretCount;
     unsigned int startOffset;
     unsigned int endOffset;

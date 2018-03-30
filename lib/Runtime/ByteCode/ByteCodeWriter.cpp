@@ -210,8 +210,8 @@ namespace Js
         }
 
         if (this->DoJitLoopBodies() &&
-            !this->m_functionWrite->GetFunctionBody()->GetHasFinally() &&
-            !(this->m_functionWrite->GetFunctionBody()->GetHasTry() && PHASE_OFF(Js::JITLoopBodyInTryCatchPhase, this->m_functionWrite)))
+            !(this->m_functionWrite->GetFunctionBody()->GetHasTry() && PHASE_OFF(Js::JITLoopBodyInTryCatchPhase, this->m_functionWrite)) &&
+            !(this->m_functionWrite->GetFunctionBody()->GetHasFinally() && PHASE_OFF(Js::JITLoopBodyInTryFinallyPhase, this->m_functionWrite)))
         {
             AllocateLoopHeaders();
         }
