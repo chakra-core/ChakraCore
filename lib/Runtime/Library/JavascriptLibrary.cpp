@@ -1116,12 +1116,15 @@ namespace Js
         AddFunctionToLibraryObject(globalObject, PropertyIds::escape, &GlobalObject::EntryInfo::Escape, 1);
         AddFunctionToLibraryObject(globalObject, PropertyIds::unescape, &GlobalObject::EntryInfo::UnEscape, 1);
 
-        if (scriptContext->GetConfig()->SupportsCollectGarbage()
+// for backward compat reasons in non-core builds add CollectGarbage function even if it would do nothing later
+#ifdef _CHAKRACOREBUILD
+        if (scriptContext->GetConfig()->IsCollectGarbageEnabled()
 #ifdef ENABLE_PROJECTION
             || scriptContext->GetConfig()->GetHostType() == HostType::HostTypeApplication
             || scriptContext->GetConfig()->GetHostType() == HostType::HostTypeWebview
 #endif
             )
+#endif
         {
             AddFunctionToLibraryObject(globalObject, PropertyIds::CollectGarbage, &GlobalObject::EntryInfo::CollectGarbage, 0);
         }
@@ -6855,11 +6858,7 @@ namespace Js
         REG_GLOBAL_LIB_FUNC(escape, GlobalObject::EntryEscape);
         REG_GLOBAL_LIB_FUNC(unescape, GlobalObject::EntryUnEscape);
 
-        ScriptConfiguration const& config = *(scriptContext->GetConfig());
-        if (config.SupportsCollectGarbage())
-        {
-            REG_GLOBAL_LIB_FUNC(CollectGarbage, GlobalObject::EntryCollectGarbage);
-        }
+        REG_GLOBAL_LIB_FUNC(CollectGarbage, GlobalObject::EntryCollectGarbage);
 
         // Register constructors, prototypes and objects in global
         REGISTER_OBJECT(Object);
@@ -6887,6 +6886,8 @@ namespace Js
         REGISTER_OBJECT(StringIterator);
 
         REGISTER_OBJECT(TypedArray);
+
+        ScriptConfiguration const& config = *(scriptContext->GetConfig());
 
         if (config.IsES6PromiseEnabled())
         {

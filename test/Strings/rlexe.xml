@@ -144,7 +144,7 @@
     <default>
       <files>substring.js</files>
       <baseline>substring.baseline</baseline>
-      <compile-flags>-Intl-</compile-flags>
+      <compile-flags>-CollectGarbage -Intl-</compile-flags>
     </default>
   </test>
   <test>

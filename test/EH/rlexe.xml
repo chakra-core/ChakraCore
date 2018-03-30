@@ -153,6 +153,7 @@
   <test>
     <default>
       <files>asyncintrystackwalkbug.js</files>
+      <compile-flags>-CollectGarbage</compile-flags>
     </default>
   </test>
   <test>

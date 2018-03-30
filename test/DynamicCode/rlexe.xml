@@ -4,7 +4,7 @@
     <default>
       <tags>exclude_test,Slow</tags>
       <files>eval-nativecodedata.js</files>
-      <compile-flags>-force:fieldhoist</compile-flags>
+      <compile-flags>-CollectGarbage -force:fieldhoist</compile-flags>
       <baseline />
     </default>
   </test>
@@ -12,6 +12,7 @@
     <default>
       <tags>exclude_test,Slow</tags>
       <files>eval-nativenumber.js</files>
+      <compile-flags>-CollectGarbage</compile-flags>
       <timeout>300</timeout>
     </default>
   </test>
@@ -19,7 +20,7 @@
     <default>
       <tags>exclude_test,exclude_dynapogo</tags>
       <files>eval-nativenumber.js</files>
-      <compile-flags>-maxinterpretcount:1 -off:simpleJit</compile-flags>
+      <compile-flags>-CollectGarbage -maxinterpretcount:1 -off:simpleJit</compile-flags>
     </default>
   </test>
 </regress-exe>

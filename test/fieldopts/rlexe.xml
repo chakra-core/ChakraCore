@@ -15,7 +15,7 @@
   <test>
     <default>
       <files>equiv-mismatch.js</files>
-      <compile-flags>-maxsimplejitruncount:2</compile-flags>
+      <compile-flags>-CollectGarbage -maxsimplejitruncount:2</compile-flags>
       <baseline>equiv-mismatch.baseline</baseline>
     </default>
   </test>
