@@ -4456,7 +4456,7 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
 #endif
 
         bucket->AddToGuardedPropertyOps(opnd->GetObjTypeSpecFldId());
-        auxSlotPtrUpwardExposed = opnd->UsesAuxSlot() && !opnd->IsLoadedFromProto() && opnd->IsTypeChecked() && !PHASE_OFF(Js::ReuseAuxSlotPtrPhase, this->func);
+        auxSlotPtrUpwardExposed = PHASE_ON(Js::ReuseAuxSlotPtrPhase, this->func) && opnd->UsesAuxSlot() && !opnd->IsLoadedFromProto() && opnd->IsTypeChecked();
 
         if (opnd->NeedsMonoCheck())
         {
