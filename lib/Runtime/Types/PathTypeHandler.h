@@ -174,6 +174,9 @@ namespace Js
         virtual DynamicTypeHandler* ConvertToTypeWithItemAttributes(DynamicObject* instance) override;
         virtual BOOL AllPropertiesAreEnumerable() override { return true; }
         virtual BOOL IsPathTypeHandler() const { return TRUE; }
+#if DBG
+        virtual bool IsPathTypeHandlerWithAttr() const { return false; }
+#endif
 
         virtual void ShrinkSlotAndInlineSlotCapacity() override;
         virtual void LockInlineSlotCapacity() override;
@@ -434,6 +437,8 @@ namespace Js
 
     class PathTypeHandlerNoAttr : public PathTypeHandlerBase
     {
+        friend class PathTypeHandlerBase;
+
     public:
         DEFINE_GETCPPNAME();
 
@@ -450,6 +455,8 @@ namespace Js
 
     class PathTypeHandlerWithAttr : public PathTypeHandlerNoAttr
     {
+        friend class PathTypeHandlerBase;
+
     private:
         Field(ObjectSlotAttributes *) attributes;
         Field(PathTypeSetterSlotIndex *) setters;
@@ -478,6 +485,16 @@ namespace Js
         static PathTypeHandlerWithAttr * New(ScriptContext * scriptContext, TypePath * typePath, ObjectSlotAttributes * attributes, PathTypeSetterSlotIndex * setters, PathTypeSetterSlotIndex setterCount, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static PathTypeHandlerWithAttr * New(ScriptContext * scriptContext, TypePath * typePath, ObjectSlotAttributes * attributes, PathTypeSetterSlotIndex * setters, PathTypeSetterSlotIndex setterCount, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static PathTypeHandlerWithAttr * New(ScriptContext * scriptContext, PathTypeHandlerWithAttr * typeHandler, bool isLocked, bool isShared);
+
+        static PathTypeHandlerWithAttr * FromPathTypeHandler(PathTypeHandlerBase * typeHandler)
+        {
+            Assert(typeHandler->IsPathTypeHandlerWithAttr());
+            return static_cast<PathTypeHandlerWithAttr*>(typeHandler);
+        }
+
+#if DBG
+        virtual bool IsPathTypeHandlerWithAttr() const override { return true; }
+#endif
 
         virtual BOOL IsEnumerable(DynamicObject* instance, PropertyId propertyId) override;
         virtual BOOL IsWritable(DynamicObject* instance, PropertyId propertyId) override;

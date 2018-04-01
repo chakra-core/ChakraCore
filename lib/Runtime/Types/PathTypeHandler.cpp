@@ -1135,11 +1135,11 @@ namespace Js
             _Analysis_assume_(setters != nullptr);
             setterSlot = setters[propertyIndex];
         }
-        else if (attributes != nullptr)
+        else
         {
             // We may already have a valid setter slot, if the property has gone from accessor to data and now back to accessor.
             // Re-use the setter slot if we can.
-            setters = newTypeHandler->GetSetterSlots();
+            setters = PathTypeHandlerWithAttr::FromPathTypeHandler(newTypeHandler)->PathTypeHandlerWithAttr::GetSetterSlots();
             if (setters != nullptr)
             {
                 setterSlot = setters[propertyIndex];
@@ -1160,7 +1160,7 @@ namespace Js
                 instance->ReplaceType(newType);
             }
             newTypeHandler = PathTypeHandlerBase::FromTypeHandler(newType->GetTypeHandler());
-            setters = newTypeHandler->GetSetterSlots();
+            setters = PathTypeHandlerWithAttr::FromPathTypeHandler(newTypeHandler)->PathTypeHandlerWithAttr::GetSetterSlots();
             Assert(setters != nullptr);
             _Analysis_assume_(setters != nullptr);
             setters[propertyIndex] = setterSlot;
@@ -2188,9 +2188,17 @@ namespace Js
         }
         else
         {
+            uint16 pathLength = GetPathLength();
             // In branching cases, the new type path may be shorter than the old.
             initStart = min(newTypePathSize, oldPathSize);
-            memcpy(newSetters, oldSetters, sizeof(PathTypeSetterSlotIndex) * initStart);
+            for (uint8 i = 0; i < initStart; i++)
+            {
+                // Only copy setter indices that refer to the part of the path contained by this handler already.
+                // Otherwise, wait for the correct index, which may be different on this path of the branch,
+                // to be set when the setter property is added to the handler.
+                PathTypeSetterSlotIndex oldIndex = oldSetters[i];
+                newSetters[i] = oldIndex < pathLength ? oldIndex : NoSetterSlot;
+            }
         }
         for (uint8 i = initStart; i < newTypePathSize; i++)
         {
