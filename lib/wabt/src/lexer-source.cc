@@ -20,8 +20,7 @@
 
 namespace wabt {
 
-LexerSourceFile::LexerSourceFile(string_view filename)
-  : filename_(filename) {
+LexerSourceFile::LexerSourceFile(string_view filename) : filename_(filename) {
   file_ = fopen(filename_.c_str(), "rb");
 }
 
@@ -56,7 +55,7 @@ Result LexerSourceFile::Tell(Offset* out_offset) {
   return Result::Ok;
 }
 
-size_t LexerSourceFile::Fill(void* dest, size_t size)  {
+size_t LexerSourceFile::Fill(void* dest, size_t size) {
   if (!file_) {
     return 0;
   }

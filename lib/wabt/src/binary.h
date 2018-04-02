@@ -58,6 +58,11 @@ enum class BinarySection {
 /* clang-format on */
 static const int kBinarySectionCount = WABT_ENUM_COUNT(BinarySection);
 
+enum class NameSectionSubsection {
+  Function = 1,
+  Local = 2,
+};
+
 extern const char* g_section_name[];
 
 static WABT_INLINE const char* GetSectionName(BinarySection sec) {

@@ -38,19 +38,19 @@ class Color {
  public:
   Color(FILE*, bool enabled = true);
 
-  // Write the given color to the file, if enabled.
+// Write the given color to the file, if enabled.
 #define WABT_COLOR(Name, code) \
   void Name() const { WriteCode(Name##Code()); }
   WABT_FOREACH_COLOR_CODE(WABT_COLOR)
 #undef WABT_COLOR
 
-  // Get the color code as a string, if enabled.
+// Get the color code as a string, if enabled.
 #define WABT_COLOR(Name, code) \
   const char* Maybe##Name##Code() const { return enabled_ ? Name##Code() : ""; }
   WABT_FOREACH_COLOR_CODE(WABT_COLOR)
 #undef WABT_COLOR
 
-  // Get the color code as a string.
+// Get the color code as a string.
 #define WABT_COLOR(Name, code) \
   static const char* Name##Code() { return code; }
   WABT_FOREACH_COLOR_CODE(WABT_COLOR)

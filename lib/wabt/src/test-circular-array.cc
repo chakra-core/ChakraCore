@@ -43,9 +43,7 @@ struct TestObject {
     return *this;
   }
 
-  TestObject(TestObject&& other) {
-    *this = std::move(other);
-  }
+  TestObject(TestObject&& other) { *this = std::move(other); }
 
   TestObject& operator=(TestObject&& other) {
     data = other.data;
@@ -107,7 +105,6 @@ class CircularArrayTest : public ::testing::Test {
 };
 
 }  // end anonymous namespace
-
 
 // Basic API tests
 

@@ -123,7 +123,7 @@ string_view::size_type string_view::find(const char* s, size_type pos) const {
 
 string_view::size_type string_view::rfind(string_view s, size_type pos) const
     noexcept {
-  pos = std::min(std::min(pos, size_  - s.size_) + s.size_, size_);
+  pos = std::min(std::min(pos, size_ - s.size_) + s.size_, size_);
   reverse_iterator iter = std::search(reverse_iterator(begin() + pos), rend(),
                                       s.rbegin(), s.rend());
   return iter == rend() ? npos : (rend() - iter - s.size_);
@@ -173,7 +173,7 @@ string_view::size_type string_view::find_last_of(string_view s,
                                                  size_type pos) const noexcept {
   pos = std::min(pos, size_ - 1);
   reverse_iterator iter = std::find_first_of(
-      reverse_iterator(begin() + pos + 1), rend(), s.begin(), s.end());
+      reverse_iterator(begin() + (pos + 1)), rend(), s.begin(), s.end());
   return iter == rend() ? npos : (rend() - iter - 1);
 }
 

@@ -28,6 +28,7 @@
 #include "src/common.h"
 #include "src/error-handler.h"
 #include "src/feature.h"
+#include "src/filenames.h"
 #include "src/ir.h"
 #include "src/option-parser.h"
 #include "src/resolve-names.h"
@@ -72,7 +73,7 @@ static void ParseOptions(int argc, char* argv[]) {
                    [](const char* argument) { s_outfile = argument; });
   parser.AddOption(
       'r', "relocatable",
-      "Create a relocatable wasm binary (suitable for linking with wasm-link)",
+      "Create a relocatable wasm binary (suitable for linking with e.g. lld)",
       []() { s_write_binary_options.relocatable = true; });
   parser.AddOption(
       "no-canonicalize-leb128s",
@@ -115,12 +116,23 @@ int ProgramMain(int argc, char** argv) {
     }
 
     if (Succeeded(result)) {
-      WriteBinarySpecOptions write_binary_spec_options;
-      write_binary_spec_options.log_stream = s_log_stream.get();
-      write_binary_spec_options.json_filename = s_outfile;
-      write_binary_spec_options.write_binary_options = s_write_binary_options;
-      result = WriteBinarySpecScript(script.get(), s_infile,
-                                     &write_binary_spec_options);
+      std::vector<FilenameMemoryStreamPair> module_streams;
+      MemoryStream json_stream;
+
+      std::string module_filename_noext =
+          StripExtension(s_outfile ? s_outfile : s_infile).to_string();
+      result = WriteBinarySpecScript(
+          &json_stream, script.get(), s_infile, module_filename_noext,
+          &s_write_binary_options, &module_streams, s_log_stream.get());
+
+      if (s_outfile) {
+        json_stream.WriteToFile(s_outfile);
+      }
+
+      for (auto iter = module_streams.begin(); iter != module_streams.end();
+           ++iter) {
+        iter->stream->WriteToFile(iter->filename);
+      }
     }
   }
 

@@ -96,7 +96,6 @@ enum class TokenType {
   Call,
   CallIndirect,
   Catch,
-  CatchAll,
   Compare,
   Const,
   Convert,
@@ -108,6 +107,7 @@ enum class TokenType {
   GetLocal,
   GrowMemory,
   If,
+  IfExcept,
   Load,
   Loop,
   Nop,
@@ -118,9 +118,12 @@ enum class TokenType {
   SetLocal,
   Store,
   TeeLocal,
+  Ternary,
   Throw,
   Try,
   Unary,
+  SimdLaneOp,
+  SimdShuffleOp,
   Unreachable,
   First_Opcode = AtomicLoad,
   Last_Opcode = Unreachable,
@@ -196,9 +199,15 @@ struct Token {
     return text_;
   }
 
-  Type type() const { assert(HasType()); return type_; }
+  Type type() const {
+    assert(HasType());
+    return type_;
+  }
 
-  Opcode opcode() const { assert(HasOpcode()); return opcode_; }
+  Opcode opcode() const {
+    assert(HasOpcode());
+    return opcode_;
+  }
 
   const Literal& literal() const {
     assert(HasLiteral());
@@ -223,4 +232,4 @@ struct Token {
 
 }  // namespace wabt
 
-#endif // WABT_TOKEN_H_
+#endif  // WABT_TOKEN_H_

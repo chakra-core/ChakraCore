@@ -76,6 +76,8 @@ static void ParseOptions(int argc, char** argv) {
   s_features.AddOptions(&parser);
   parser.AddOption("inline-exports", "Write all exports inline",
                    []() { s_write_wat_options.inline_export = true; });
+  parser.AddOption("inline-imports", "Write all imports inline",
+                   []() { s_write_wat_options.inline_import = true; });
   parser.AddOption("no-debug-names", "Ignore debug names in the binary file",
                    []() { s_read_debug_names = false; });
   parser.AddOption(

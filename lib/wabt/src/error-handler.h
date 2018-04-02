@@ -126,4 +126,4 @@ class ErrorHandlerBuffer : public ErrorHandler {
 
 }  // namespace wabt
 
-#endif // WABT_ERROR_HANDLER_H_
+#endif  // WABT_ERROR_HANDLER_H_

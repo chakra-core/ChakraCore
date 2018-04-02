@@ -25,4 +25,4 @@ bool IsValidUtf8(const char* s, size_t length);
 
 }  // namespace wabt
 
-#endif // WABT_UTF8_H_
+#endif  // WABT_UTF8_H_

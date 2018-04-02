@@ -207,8 +207,7 @@ class BinaryReaderDelegate {
                                Index default_target_depth) = 0;
   virtual Result OnCallExpr(Index func_index) = 0;
   virtual Result OnCallIndirectExpr(Index sig_index) = 0;
-  virtual Result OnCatchExpr(Index except_index) = 0;
-  virtual Result OnCatchAllExpr() = 0;
+  virtual Result OnCatchExpr() = 0;
   virtual Result OnCompareExpr(Opcode opcode) = 0;
   virtual Result OnConvertExpr(Opcode opcode) = 0;
   virtual Result OnCurrentMemoryExpr() = 0;
@@ -225,12 +224,15 @@ class BinaryReaderDelegate {
   virtual Result OnI32ConstExpr(uint32_t value) = 0;
   virtual Result OnI64ConstExpr(uint64_t value) = 0;
   virtual Result OnIfExpr(Index num_types, Type* sig_types) = 0;
+  virtual Result OnIfExceptExpr(Index num_types,
+                                Type* sig_types,
+                                Index except_index) = 0;
   virtual Result OnLoadExpr(Opcode opcode,
                             uint32_t alignment_log2,
                             Address offset) = 0;
   virtual Result OnLoopExpr(Index num_types, Type* sig_types) = 0;
   virtual Result OnNopExpr() = 0;
-  virtual Result OnRethrowExpr(Index depth) = 0;
+  virtual Result OnRethrowExpr() = 0;
   virtual Result OnReturnExpr() = 0;
   virtual Result OnSelectExpr() = 0;
   virtual Result OnSetGlobalExpr(Index global_index) = 0;
@@ -243,9 +245,14 @@ class BinaryReaderDelegate {
   virtual Result OnTryExpr(Index num_types, Type* sig_types) = 0;
 
   virtual Result OnUnaryExpr(Opcode opcode) = 0;
+  virtual Result OnTernaryExpr(Opcode opcode) = 0;
   virtual Result OnUnreachableExpr() = 0;
   virtual Result EndFunctionBody(Index index) = 0;
   virtual Result EndCodeSection() = 0;
+
+  /* Simd instructions with Lane Imm operand*/
+  virtual Result OnSimdLaneOpExpr(Opcode opcode, uint64_t value) = 0;
+  virtual Result OnSimdShuffleOpExpr(Opcode opcode, v128 value) = 0;
 
   /* Elem section */
   virtual Result BeginElemSection(Offset size) = 0;
@@ -304,15 +311,30 @@ class BinaryReaderDelegate {
   /* Linking section */
   virtual Result BeginLinkingSection(Offset size) = 0;
   virtual Result OnStackGlobal(Index stack_global) = 0;
-  virtual Result OnSymbolInfoCount(Index count) = 0;
-  virtual Result OnSymbolInfo(string_view name, uint32_t flags) = 0;
+  virtual Result OnSymbolCount(Index count) = 0;
+  virtual Result OnSymbol(Index index, SymbolType type, uint32_t flags) = 0;
+  virtual Result OnDataSymbol(Index index,
+                              uint32_t flags,
+                              string_view name,
+                              Index segment,
+                              uint32_t offset,
+                              uint32_t size) = 0;
+  virtual Result OnFunctionSymbol(Index index,
+                                  uint32_t flags,
+                                  string_view name,
+                                  Index function_index) = 0;
+  virtual Result OnGlobalSymbol(Index index,
+                                uint32_t flags,
+                                string_view name,
+                                Index global_index) = 0;
   virtual Result OnDataSize(uint32_t data_size) = 0;
-  virtual Result OnDataAlignment(uint32_t data_alignment) = 0;
   virtual Result OnSegmentInfoCount(Index count) = 0;
   virtual Result OnSegmentInfo(Index index,
                                string_view name,
                                uint32_t alignment,
                                uint32_t flags) = 0;
+  virtual Result OnInitFunctionCount(Index count) = 0;
+  virtual Result OnInitFunction(uint32_t priority, Index function_index) = 0;
   virtual Result EndLinkingSection() = 0;
 
   /* Exception section */

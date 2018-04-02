@@ -4,12 +4,12 @@
 
 WABT (we pronounce it "wabbit") is a suite of tools for WebAssembly, including:
 
- - **wat2wasm**: translate from [WebAssembly text format](http://webassembly.github.io/spec/text/index.html) to the [WebAssembly binary format](http://webassembly.github.io/spec/binary/index.html)
+ - **wat2wasm**: translate from [WebAssembly text format](https://webassembly.github.io/spec/core/text/index.html) to the [WebAssembly binary format](https://webassembly.github.io/spec/core/binary/index.html)
  - **wasm2wat**: the inverse of wat2wasm, translate from the binary format back to the text format (also known as a .wat)
  - **wasm-objdump**: print information about a wasm binary. Similiar to objdump.
  - **wasm-interp**: decode and run a WebAssembly binary file using a stack-based interpreter
  - **wat-desugar**: parse .wat text form as supported by the spec interpreter (s-expressions, flat syntax, or mixed) and print "canonical" flat format
- - **wasm-link**: simple linker for merging multiple wasm files.
+ - **wasm2c**: convert a WebAssembly binary file to a C source and header
 
 These tools are intended for use in (or for development of) toolchains or other
 systems that want to manipulate WebAssembly files. Unlike the WebAssembly spec
@@ -199,19 +199,10 @@ $ out/wasm-interp test.json --spec
 $ out/wasm-interp test.wasm -V 100 --run-all-exports
 ```
 
-As a convenience, you can use `test/run-interp.py` to convert a .wat file to
-binary first, then run it in the interpreter:
-
-```console
-$ test/run-interp.py --spec spec-test.wat
-20/20 tests.passed.
-```
-
 You can use `-h` to get additional help:
 
 ```console
 $ out/wasm-interp -h
-$ out/run-interp.py -h
 ```
 
 ## Running the test suite

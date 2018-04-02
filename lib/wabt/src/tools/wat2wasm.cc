@@ -82,7 +82,7 @@ static void ParseOptions(int argc, char* argv[]) {
                    [](const char* argument) { s_outfile = argument; });
   parser.AddOption(
       'r', "relocatable",
-      "Create a relocatable wasm binary (suitable for linking with wasm-link)",
+      "Create a relocatable wasm binary (suitable for linking with e.g. lld)",
       []() { s_write_binary_options.relocatable = true; });
   parser.AddOption(
       "no-canonicalize-leb128s",

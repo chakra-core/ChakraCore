@@ -26,7 +26,7 @@ namespace wabt {
 
 // TODO(karlschimpf) Complete the API
 // Note: Capacity must be a power of 2.
-template<class T, size_t kCapacity>
+template <class T, size_t kCapacity>
 class CircularArray {
  public:
   typedef T value_type;
@@ -41,14 +41,12 @@ class CircularArray {
   }
 
   CircularArray(const CircularArray&) = default;
-  CircularArray& operator =(const CircularArray&) = default;
+  CircularArray& operator=(const CircularArray&) = default;
 
   CircularArray(CircularArray&&) = default;
-  CircularArray& operator =(CircularArray&&) = default;
+  CircularArray& operator=(CircularArray&&) = default;
 
-  ~CircularArray() {
-    clear();
-  }
+  ~CircularArray() { clear(); }
 
   reference at(size_type index) {
     assert(index < size_);
@@ -60,31 +58,21 @@ class CircularArray {
     return (*this)[index];
   }
 
-  reference operator[](size_type index) {
-    return contents_[position(index)];
-  }
+  reference operator[](size_type index) { return contents_[position(index)]; }
 
   const_reference operator[](size_type index) const {
     return contents_[position(index)];
   }
 
-  reference back() {
-    return at(size_ - 1);
-  }
+  reference back() { return at(size_ - 1); }
 
-  const_reference back() const {
-    return at(size_  - 1);
-  }
+  const_reference back() const { return at(size_ - 1); }
 
   bool empty() const { return size_ == 0; }
 
-  reference front() {
-    return at(0);
-  }
+  reference front() { return at(0); }
 
-  const_reference front() const {
-    return at(0);
-  }
+  const_reference front() const { return at(0); }
 
   size_type max_size() const { return kCapacity; }
 
@@ -130,6 +118,6 @@ class CircularArray {
   size_type front_ = 0;
 };
 
-}
+}  // namespace wabt
 
-#endif // WABT_CIRCULAR_ARRAY_H_
+#endif  // WABT_CIRCULAR_ARRAY_H_

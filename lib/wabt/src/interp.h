@@ -551,10 +551,16 @@ class Thread {
   template <typename R, typename T = R>
   Result UnopTrap(UnopTrapFunc<R, T> func) WABT_WARN_UNUSED;
 
+  template <typename T, typename L, typename R, typename P = R>
+  Result SimdUnop(UnopFunc<R, P> func) WABT_WARN_UNUSED;
+
   template <typename R, typename T = R>
   Result Binop(BinopFunc<R, T> func) WABT_WARN_UNUSED;
   template <typename R, typename T = R>
   Result BinopTrap(BinopTrapFunc<R, T> func) WABT_WARN_UNUSED;
+
+  template <typename T, typename L, typename R, typename P = R>
+  Result SimdBinop(BinopFunc<R, P> func) WABT_WARN_UNUSED;
 
   Environment* env_ = nullptr;
   std::vector<Value> value_stack_;
