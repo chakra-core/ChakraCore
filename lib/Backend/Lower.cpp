@@ -16678,6 +16678,15 @@ Lowerer::GenerateUntagVar(IR::RegOpnd * opnd, IR::LabelInstr * labelFail, IR::In
         AssertMsg(opnd->GetSize() == 4, "This should be 32-bit wide");
         return opnd;
     }
+    AssertMsg(!opnd->IsNotInt(), "An opnd we know is not an int should not try to untag it as it will always fail");
+    if (opnd->m_sym->IsIntConst())
+    {
+        int32 constValue = opnd->m_sym->GetIntConstValue();
+        IR::IntConstOpnd* constOpnd = IR::IntConstOpnd::New(constValue, TyInt32, this->m_func);
+        IR::RegOpnd* regOpnd = IR::RegOpnd::New(TyInt32, this->m_func);
+        InsertMove(regOpnd, constOpnd, insertBeforeInstr);
+        return regOpnd;
+    }
     return m_lowererMD.GenerateUntagVar(opnd, labelFail, insertBeforeInstr, generateTagCheck && !opnd->IsTaggedInt());
 }
 
@@ -20785,7 +20794,7 @@ Lowerer::GenerateFastArgumentsLdElemI(IR::Instr* ldElem, IR::LabelInstr *labelFa
 
     bool hasIntConstIndex = indirOpnd->TryGetIntConstIndexValue(true, &value, &isNotInt);
 
-    if (isInlinee && hasIntConstIndex && value >= (ldElem->m_func->actualCount - 1))
+    if (isNotInt || (isInlinee && hasIntConstIndex && value >= (ldElem->m_func->actualCount - 1)))
     {
         //Outside the range of actuals, skip
     }
@@ -27037,25 +27046,34 @@ Lowerer::LoadIndexFromLikelyFloat(
 
     Func *func = insertBeforeInstr->m_func;
 
-    IR::LabelInstr * convertToUint = IR::LabelInstr::New(Js::OpCode::Label, func);
     IR::LabelInstr * fallThrough = IR::LabelInstr::New(Js::OpCode::Label, func);
 
-    // First generate test for tagged int even though profile data says likely float. Indices are usually int and we need a fast path before we try to convert float to int
-
-    //     mov  intIndex, index
-    //     sar  intIndex, 1
-    //     jae  convertToInt
-    IR::RegOpnd *int32IndexOpnd = GenerateUntagVar(indexOpnd, convertToUint, insertBeforeInstr, !indexOpnd->IsTaggedInt());
-
-    if (!skipNegativeCheck)
+    IR::RegOpnd *int32IndexOpnd = nullptr;
+    // If we know for sure that it's not an int, do not check to see if it's a tagged int
+    if (indexOpnd->IsNotInt())
     {
-        //     test index, index
-        //     js   $notTaggedIntOrNegative
-        InsertTestBranch(int32IndexOpnd, int32IndexOpnd, LowererMD::MDCompareWithZeroBranchOpcode(Js::OpCode::BrLt_A), negativeLabel, insertBeforeInstr);
+        int32IndexOpnd = IR::RegOpnd::New(TyInt32, func);
     }
-    InsertBranch(Js::OpCode::Br, fallThrough, insertBeforeInstr);
+    else
+    {
+        IR::LabelInstr * convertToUint = IR::LabelInstr::New(Js::OpCode::Label, func);
+        // First generate test for tagged int even though profile data says likely float. Indices are usually int and we need a fast path before we try to convert float to int
 
-    insertBeforeInstr->InsertBefore(convertToUint);
+        //     mov  intIndex, index
+        //     sar  intIndex, 1
+        //     jae  convertToInt
+        int32IndexOpnd = GenerateUntagVar(indexOpnd, convertToUint, insertBeforeInstr, !indexOpnd->IsTaggedInt());
+
+        if (!skipNegativeCheck)
+        {
+            //     test index, index
+            //     js   $notTaggedIntOrNegative
+            InsertTestBranch(int32IndexOpnd, int32IndexOpnd, LowererMD::MDCompareWithZeroBranchOpcode(Js::OpCode::BrLt_A), negativeLabel, insertBeforeInstr);
+        }
+        InsertBranch(Js::OpCode::Br, fallThrough, insertBeforeInstr);
+
+        insertBeforeInstr->InsertBefore(convertToUint);
+    }
 
     // try to convert float to int in a fast path
 #if FLOATVAR
