@@ -256,7 +256,7 @@ namespace Js
         return scriptFunction->EnsureSourceString();
     }
 
-    PropertyQueryFlags JavascriptGeneratorFunction::HasPropertyQuery(PropertyId propertyId)
+    PropertyQueryFlags JavascriptGeneratorFunction::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
     {
         if (propertyId == PropertyIds::length)
         {
@@ -266,10 +266,10 @@ namespace Js
         if (propertyId == PropertyIds::caller || propertyId == PropertyIds::arguments)
         {
             // JavascriptFunction has special case for caller and arguments; call DynamicObject:: virtual directly to skip that.
-            return DynamicObject::HasPropertyQuery(propertyId);
+            return DynamicObject::HasPropertyQuery(propertyId, info);
         }
 
-        return JavascriptFunction::HasPropertyQuery(propertyId);
+        return JavascriptFunction::HasPropertyQuery(propertyId, info);
     }
 
     PropertyQueryFlags JavascriptGeneratorFunction::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)

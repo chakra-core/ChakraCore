@@ -58,6 +58,7 @@ namespace Js
         bool TryGetIndexForStore(const PropertyId id, PropertyIndex *const index, bool *const isInlineSlot) const;
 
     public:
+        template <bool OutputExistence /*When set, propertyValue represents whether the property exists on the instance, not its actual value*/>
         bool TryGetProperty(const bool checkMissing, RecyclableObject *const propertyObject, const PropertyId propertyId, Var *const propertyValue, ScriptContext *const requestContext, PropertyCacheOperationInfo *const operationInfo, PropertyValueInfo *const propertyValueInfo);
         bool TrySetProperty(RecyclableObject *const object, const PropertyId propertyId, Var propertyValue, ScriptContext *const requestContext, PropertyCacheOperationInfo *const operationInfo, PropertyValueInfo *const propertyValueInfo);
 

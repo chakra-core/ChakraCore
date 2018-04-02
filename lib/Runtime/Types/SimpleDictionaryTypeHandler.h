@@ -125,7 +125,7 @@ namespace Js
         virtual BOOL FindNextProperty(ScriptContext* scriptContext, BigPropertyIndex& index, JavascriptString** propertyString,
             PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info) override;
 
-        virtual BOOL HasProperty(DynamicObject* instance, PropertyId propertyId, bool *noRedecl = nullptr) override;
+        virtual BOOL HasProperty(DynamicObject* instance, PropertyId propertyId, bool *noRedecl = nullptr, _Inout_opt_ PropertyValueInfo* info = nullptr) override;
         virtual BOOL HasProperty(DynamicObject* instance, JavascriptString* propertyNameString) override;
         virtual BOOL GetProperty(DynamicObject* instance, Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL GetProperty(DynamicObject* instance, Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
@@ -270,7 +270,7 @@ namespace Js
         virtual BOOL FreezeImpl(DynamicObject* instance, bool isConvertedType) override;
 
         template <bool allowLetConstGlobal>
-        inline BOOL HasProperty_Internal(DynamicObject* instance, PropertyId propertyId, bool *noRedecl, bool *pDeclaredProperty, bool *pNonconfigurableProperty);
+        inline BOOL HasProperty_Internal(DynamicObject* instance, PropertyId propertyId, bool *noRedecl, _Inout_opt_ PropertyValueInfo* info, bool *pDeclaredProperty, bool *pNonconfigurableProperty);
         template <bool allowLetConstGlobal>
         inline PropertyIndex GetPropertyIndex_Internal(const PropertyRecord* propertyRecord);
         template <bool allowLetConstGlobal>
@@ -293,7 +293,8 @@ namespace Js
         BOOL SetProperty_JavascriptString(DynamicObject* instance, JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info, TemplateParameter::Box<JavascriptString*>);
 
         BigSimpleDictionaryTypeHandler* ConvertToBigSimpleDictionaryTypeHandler(DynamicObject* instance);
-        void SetPropertyValueInfo(PropertyValueInfo* info, RecyclableObject* instance, TPropertyIndex propIndex, PropertyAttributes attributes, InlineCacheFlags flags = InlineCacheNoFlags);
+        void SetPropertyValueInfo(PropertyValueInfo* info, RecyclableObject* instance, SimpleDictionaryPropertyDescriptor<TPropertyIndex>* descriptor);
+        void SetPropertyValueInfoNonFixed(PropertyValueInfo* info, RecyclableObject* instance, TPropertyIndex propIndex, PropertyAttributes attributes, InlineCacheFlags flags = InlineCacheNoFlags);
 
         BOOL PreventExtensionsInternal(DynamicObject* instance);
         BOOL SealInternal(DynamicObject* instance);
