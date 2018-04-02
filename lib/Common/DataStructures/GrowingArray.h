@@ -35,7 +35,7 @@ namespace JsUtil
         {
             if (buffer != nullptr)
             {
-                AllocatorFree(alloc, (TypeAllocatorFunc<AllocatorType, int>::GetFreeFunc()), buffer, UInt32Math::Mul(length, sizeof(TValue)));
+                AllocatorFree(alloc, (TypeAllocatorFunc<TAllocator, int>::GetFreeFunc()), buffer, UInt32Math::Mul(length, sizeof(TValue)));
             }
         }
 
@@ -76,7 +76,7 @@ namespace JsUtil
             {
                 pNewArray->buffer = AllocateArray<AllocatorType, TValue, false>(
                     TRACK_ALLOC_INFO(alloc, TValue, AllocatorType, 0, length),
-                    TypeAllocatorFunc<AllocatorType, TValue>::GetAllocFunc(),
+                    TypeAllocatorFunc<TAllocator, TValue>::GetAllocFunc(),
                     length);
                 CopyArray<TValue, TValue, TAllocator>(pNewArray->buffer, length, buffer, length);
             }
@@ -96,7 +96,7 @@ namespace JsUtil
             {
                 buffer = AllocateArray<AllocatorType, TValue, false>(
                     TRACK_ALLOC_INFO(alloc, TValue, AllocatorType, 0, length),
-                    TypeAllocatorFunc<AllocatorType, TValue>::GetAllocFunc(),
+                    TypeAllocatorFunc<TAllocator, TValue>::GetAllocFunc(),
                     length);
                 count = 0;
             }
@@ -105,7 +105,7 @@ namespace JsUtil
                 uint32 newLength = UInt32Math::AddMul<1, 2>(length);
                 TValue * newbuffer = AllocateArray<AllocatorType, TValue, false>(
                     TRACK_ALLOC_INFO(alloc, TValue, AllocatorType, 0, newLength),
-                    TypeAllocatorFunc<AllocatorType, TValue>::GetAllocFunc(),
+                    TypeAllocatorFunc<TAllocator, TValue>::GetAllocFunc(),
                     newLength);
                 CopyArray<TValue, TValue, TAllocator>(newbuffer, newLength, buffer, length);
 #ifdef DIAG_MEM
@@ -114,7 +114,7 @@ namespace JsUtil
                 if (length != 0)
                 {
                     const size_t lengthByteSize = UInt32Math::Mul(length, sizeof(TValue));
-                    AllocatorFree(alloc, (TypeAllocatorFunc<AllocatorType, int>::GetFreeFunc()), buffer, lengthByteSize);
+                    AllocatorFree(alloc, (TypeAllocatorFunc<TAllocator, int>::GetFreeFunc()), buffer, lengthByteSize);
                 }
                 length = newLength;
                 buffer = newbuffer;
