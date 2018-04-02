@@ -153,6 +153,7 @@ Js::Var WabtInterface::EntryConvertWast2Wasm(RecyclableObject* function, CallInf
         wabtCtx.createBuffer = CreateBuffer;
         wabtCtx.features.sign_extends = CONFIG_FLAG(WasmSignExtends);
         wabtCtx.features.threads = Wasm::Threads::IsEnabled();
+        wabtCtx.features.simd = Wasm::Simd::IsEnabled();
         if (isSpecText)
         {
             wabtCtx.spec = &spec;

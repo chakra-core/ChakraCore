@@ -45,11 +45,12 @@ class NameResolver : public ExprVisitor::DelegateNop {
   Result OnBrTableExpr(BrTableExpr*) override;
   Result OnCallExpr(CallExpr*) override;
   Result OnCallIndirectExpr(CallIndirectExpr*) override;
-  Result OnCatchExpr(TryExpr*, Catch*) override;
   Result OnGetGlobalExpr(GetGlobalExpr*) override;
   Result OnGetLocalExpr(GetLocalExpr*) override;
   Result BeginIfExpr(IfExpr*) override;
   Result EndIfExpr(IfExpr*) override;
+  Result BeginIfExceptExpr(IfExceptExpr*) override;
+  Result EndIfExceptExpr(IfExceptExpr*) override;
   Result BeginLoopExpr(LoopExpr*) override;
   Result EndLoopExpr(LoopExpr*) override;
   Result OnSetGlobalExpr(SetGlobalExpr*) override;
@@ -58,7 +59,6 @@ class NameResolver : public ExprVisitor::DelegateNop {
   Result BeginTryExpr(TryExpr*) override;
   Result EndTryExpr(TryExpr*) override;
   Result OnThrowExpr(ThrowExpr*) override;
-  Result OnRethrowExpr(RethrowExpr*) override;
 
  private:
   void PrintError(const Location* loc, const char* fmt, ...);
@@ -272,6 +272,17 @@ Result NameResolver::EndIfExpr(IfExpr* expr) {
   return Result::Ok;
 }
 
+Result NameResolver::BeginIfExceptExpr(IfExceptExpr* expr) {
+  PushLabel(expr->true_.label);
+  ResolveExceptionVar(&expr->except_var);
+  return Result::Ok;
+}
+
+Result NameResolver::EndIfExceptExpr(IfExceptExpr* expr) {
+  PopLabel();
+  return Result::Ok;
+}
+
 Result NameResolver::OnSetGlobalExpr(SetGlobalExpr* expr) {
   ResolveGlobalVar(&expr->var);
   return Result::Ok;
@@ -297,22 +308,8 @@ Result NameResolver::EndTryExpr(TryExpr*) {
   return Result::Ok;
 }
 
-Result NameResolver::OnCatchExpr(TryExpr* expr, Catch* catch_) {
-  if (!catch_->IsCatchAll()) {
-    ResolveExceptionVar(&catch_->var);
-  }
-  return Result::Ok;
-}
-
 Result NameResolver::OnThrowExpr(ThrowExpr* expr) {
   ResolveExceptionVar(&expr->var);
-  return Result::Ok;
-}
-
-Result NameResolver::OnRethrowExpr(RethrowExpr* expr) {
-  // Note: the variable refers to corresponding (enclosing) catch, using the try
-  // block label for context.
-  ResolveLabelVar(&expr->var);
   return Result::Ok;
 }
 

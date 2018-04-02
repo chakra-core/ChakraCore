@@ -58,21 +58,15 @@ TEST(utf8, valid_empty) {
 }
 
 TEST(utf8, valid_1_byte) {
-  FOR_RANGE(cu0, 0, 0x80) {
-    assert_is_valid_utf8(true, 1, cu0);
-  }
+  FOR_RANGE(cu0, 0, 0x80) { assert_is_valid_utf8(true, 1, cu0); }
 }
 
 TEST(utf8, invalid_continuation_bytes) {
-  FOR_RANGE(cu0, 0x80, 0xc0) {
-    assert_is_valid_utf8(false, 1, cu0);
-  }
+  FOR_RANGE(cu0, 0x80, 0xc0) { assert_is_valid_utf8(false, 1, cu0); }
 }
 
 TEST(utf8, invalid_2_byte) {
-  FOR_RANGE(cu0, 0xc0, 0xc2) {
-    assert_is_valid_utf8(false, 1, cu0);
-  }
+  FOR_RANGE(cu0, 0xc0, 0xc2) { assert_is_valid_utf8(false, 1, cu0); }
 }
 
 TEST(utf8, valid_2_bytes) {

@@ -42,7 +42,8 @@
 #define WABT_USE(x) static_cast<void>(x)
 
 #define WABT_PAGE_SIZE 0x10000 /* 64k */
-#define WABT_MAX_PAGES 0x10000 /* # of pages that fit in 32-bit address space */
+#define WABT_MAX_PAGES 0x10000 /* # of pages that fit in 32-bit address space \
+                                */
 #define WABT_BYTES_TO_PAGES(x) ((x) >> 16)
 #define WABT_ALIGN_UP_TO_PAGE(x) \
   (((x) + WABT_PAGE_SIZE - 1) & ~(WABT_PAGE_SIZE - 1))
@@ -76,6 +77,10 @@
 
 #if WITH_EXCEPTIONS
 #define WABT_TRY try {
+#define WABT_CATCH_BAD_ALLOC \
+  }                          \
+  catch (std::bad_alloc&) {  \
+  }
 #define WABT_CATCH_BAD_ALLOC_AND_EXIT           \
   }                                             \
   catch (std::bad_alloc&) {                     \
@@ -83,6 +88,7 @@
   }
 #else
 #define WABT_TRY
+#define WABT_CATCH_BAD_ALLOC
 #define WABT_CATCH_BAD_ALLOC_AND_EXIT
 #endif
 
@@ -112,7 +118,7 @@ Dst Bitcast(Src&& value) {
   return result;
 }
 
-template<typename T>
+template <typename T>
 void ZeroMemory(T& v) {
   WABT_STATIC_ASSERT(std::is_pod<T>::value);
   memset(&v, 0, sizeof(v));
@@ -150,6 +156,8 @@ enum class LabelType {
   Loop,
   If,
   Else,
+  IfExcept,
+  IfExceptElse,
   Try,
   Catch,
 
@@ -189,14 +197,15 @@ struct Location {
 
 /* matches binary format, do not change */
 enum class Type {
-  I32 = -0x01,
-  I64 = -0x02,
-  F32 = -0x03,
-  F64 = -0x04,
-  V128 = -0x05,
-  Anyfunc = -0x10,
-  Func = -0x20,
-  Void = -0x40,
+  I32 = 0x7F,
+  I64 = 0x7E,
+  F32 = 0x7D,
+  F64 = 0x7C,
+  V128 = 0x7B,
+  Anyfunc = 0x70,
+  Func = 0x60,
+  Void = 0x40,
+  ExceptRef = 0x3f,
   ___ = Void, /* convenient for the opcode table in opcode.h */
   Any = 0,    /* Not actually specified, but useful for type-checking */
 };
@@ -228,10 +237,26 @@ struct Reloc {
 
 enum class LinkingEntryType {
   StackPointer = 1,
-  SymbolInfo = 2,
   DataSize = 3,
-  DataAlignment = 4,
   SegmentInfo = 5,
+  InitFunctions = 6,
+  ComdatInfo = 7,
+  SymbolTable = 8,
+};
+
+enum class SymbolType {
+  Function = 0,
+  Data = 1,
+  Global = 2,
+};
+
+#define WABT_SYMBOL_FLAG_UNDEFINED 0x10
+#define WABT_SYMBOL_MASK_VISIBILITY 0x4
+#define WABT_SYMBOL_MASK_BINDING 0x3
+
+enum class SymbolVisibility {
+  Default = 0,
+  Hidden = 4,
 };
 
 enum class SymbolBinding {
@@ -259,14 +284,8 @@ struct Limits {
   bool has_max = false;
   bool is_shared = false;
 };
-enum class LimitsShareable { Allowed, NotAllowed };
 
 enum { WABT_USE_NATURAL_ALIGNMENT = 0xFFFFFFFF };
-
-enum class NameSectionSubsection {
-  Function = 1,
-  Local = 2,
-};
 
 Result ReadFile(string_view filename, std::vector<uint8_t>* out_data);
 
@@ -290,6 +309,20 @@ static WABT_INLINE const char* GetRelocTypeName(RelocType reloc) {
   return g_reloc_type_name[static_cast<size_t>(reloc)];
 }
 
+/* symbol */
+
+static WABT_INLINE const char* GetSymbolTypeName(SymbolType type) {
+  switch (type) {
+    case SymbolType::Function:
+      return "func";
+    case SymbolType::Global:
+      return "global";
+    case SymbolType::Data:
+      return "data";
+  }
+  WABT_UNREACHABLE;
+}
+
 /* type */
 
 static WABT_INLINE const char* GetTypeName(Type type) {
@@ -308,6 +341,8 @@ static WABT_INLINE const char* GetTypeName(Type type) {
       return "anyfunc";
     case Type::Func:
       return "func";
+    case Type::ExceptRef:
+      return "except_ref";
     case Type::Void:
       return "void";
     case Type::Any:
@@ -335,4 +370,4 @@ inline void ConvertBackslashToSlash(std::string* s) {
 
 }  // namespace wabt
 
-#endif // WABT_COMMON_H_
+#endif  // WABT_COMMON_H_

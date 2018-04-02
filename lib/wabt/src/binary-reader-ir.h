@@ -32,6 +32,6 @@ Result ReadBinaryIr(const char* filename,
                     ErrorHandler*,
                     Module* out_module);
 
-} // namespace wabt
+}  // namespace wabt
 
 #endif /* WABT_BINARY_READER_IR_H_ */

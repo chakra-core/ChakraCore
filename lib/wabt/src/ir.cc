@@ -18,6 +18,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <numeric>
 
 #include "src/cast.h"
 
@@ -46,6 +47,7 @@ const char* ExprTypeName[] = {
   "GetLocal",
   "GrowMemory",
   "If",
+  "IfExcept",
   "Load",
   "Loop",
   "Nop",
@@ -54,10 +56,13 @@ const char* ExprTypeName[] = {
   "Select",
   "SetGlobal",
   "SetLocal",
+  "SimdLaneOp",
+  "SimdShuffleOp",
   "Store",
   "TeeLocal",
+  "Ternary",
   "Throw",
-  "TryBlock",
+  "Try",
   "Unary",
   "Unreachable",
 };
@@ -134,6 +139,59 @@ bool Module::IsImport(ExternalKind kind, const Var& var) const {
   }
 }
 
+void LocalTypes::Set(const TypeVector& types) {
+  decls.clear();
+  if (types.empty()) {
+    return;
+  }
+
+  Type type = types[0];
+  Index count = 1;
+  for (Index i = 1; i < types.size(); ++i) {
+    if (types[i] != type) {
+      decls.emplace_back(type, count);
+      type = types[i];
+      count = 1;
+    } else {
+      ++count;
+    }
+  }
+  decls.emplace_back(type, count);
+}
+
+Index LocalTypes::size() const {
+  return std::accumulate(
+      decls.begin(), decls.end(), 0,
+      [](Index sum, const Decl& decl) { return sum + decl.second; });
+}
+
+Type LocalTypes::operator[](Index i) const {
+  Index count = 0;
+  for (auto decl: decls) {
+    if (i < count + decl.second) {
+      return decl.first;
+    }
+    count += decl.second;
+  }
+  assert(i < count);
+  return Type::Any;
+}
+
+Type Func::GetLocalType(Index index) const {
+  Index num_params = decl.GetNumParams();
+  if (index < num_params) {
+    return GetParamType(index);
+  } else {
+    index -= num_params;
+    assert(index < local_types.size());
+    return local_types[index];
+  }
+}
+
+Type Func::GetLocalType(const Var& var) const {
+  return GetLocalType(GetLocalIndex(var));
+}
+
 Index Func::GetLocalIndex(const Var& var) const {
   if (var.is_index()) {
     return var.index();
@@ -177,12 +235,20 @@ Global* Module::GetGlobal(const Var& var) {
   return globals[index];
 }
 
+const Table* Module::GetTable(const Var& var) const {
+  return const_cast<Module*>(this)->GetTable(var);
+}
+
 Table* Module::GetTable(const Var& var) {
   Index index = table_bindings.FindIndex(var);
   if (index >= tables.size()) {
     return nullptr;
   }
   return tables[index];
+}
+
+const Memory* Module::GetMemory(const Var& var) const {
+  return const_cast<Module*>(this)->GetMemory(var);
 }
 
 Memory* Module::GetMemory(const Var& var) {
@@ -212,7 +278,6 @@ FuncType* Module::GetFuncType(const Var& var) {
   }
   return func_types[index];
 }
-
 
 Index Module::GetFuncTypeIndex(const FuncSignature& sig) const {
   for (size_t i = 0; i < func_types.size(); ++i) {
@@ -451,11 +516,11 @@ const Module* Script::GetModule(const Var& var) const {
 }
 
 void MakeTypeBindingReverseMapping(
-    const TypeVector& types,
+    size_t num_types,
     const BindingHash& bindings,
     std::vector<std::string>* out_reverse_mapping) {
   out_reverse_mapping->clear();
-  out_reverse_mapping->resize(types.size());
+  out_reverse_mapping->resize(num_types);
   for (const auto& pair : bindings) {
     assert(static_cast<size_t>(pair.second.index) <
            out_reverse_mapping->size());
@@ -524,23 +589,18 @@ void Var::Destroy() {
 }
 
 Const::Const(I32Tag, uint32_t value, const Location& loc_)
-    : loc(loc_), type(Type::I32), u32(value) {
-}
+    : loc(loc_), type(Type::I32), u32(value) {}
 
 Const::Const(I64Tag, uint64_t value, const Location& loc_)
-    : loc(loc_), type(Type::I64), u64(value) {
-}
+    : loc(loc_), type(Type::I64), u64(value) {}
 
 Const::Const(F32Tag, uint32_t value, const Location& loc_)
-    : loc(loc_), type(Type::F32), f32_bits(value) {
-}
+    : loc(loc_), type(Type::F32), f32_bits(value) {}
 
 Const::Const(F64Tag, uint64_t value, const Location& loc_)
-    : loc(loc_), type(Type::F64), f64_bits(value) {
-}
+    : loc(loc_), type(Type::F64), f64_bits(value) {}
 
 Const::Const(V128Tag, v128 value, const Location& loc_)
-    : loc(loc_), type(Type::V128), v128_bits(value) {
-}
+    : loc(loc_), type(Type::V128), v128_bits(value) {}
 
 }  // namespace wabt

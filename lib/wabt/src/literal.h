@@ -23,7 +23,8 @@
 
 namespace wabt {
 
-/* These functions all return Result::Ok on success and Result::Error on failure.
+/* These functions all return Result::Ok on success and Result::Error on
+ * failure.
  *
  * NOTE: the functions are written for use with the re2c lexer, assuming that
  * the literal has already matched the regular expressions defined there. As a

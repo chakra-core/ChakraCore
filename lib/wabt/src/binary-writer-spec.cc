@@ -21,8 +21,8 @@
 
 #include "config.h"
 
-#include "src/binary.h"
 #include "src/binary-writer.h"
+#include "src/binary.h"
 #include "src/cast.h"
 #include "src/filenames.h"
 #include "src/ir.h"
@@ -35,8 +35,11 @@ namespace {
 
 class BinaryWriterSpec {
  public:
-  BinaryWriterSpec(const char* source_filename,
-                   const WriteBinarySpecOptions* spec_options);
+  BinaryWriterSpec(Stream* json_stream,
+                   WriteBinarySpecStreamFactory module_stream_factory,
+                   string_view source_filename,
+                   string_view module_filename_noext,
+                   const WriteBinaryOptions* options);
 
   Result WriteScript(const Script& script);
 
@@ -53,32 +56,34 @@ class BinaryWriterSpec {
   void WriteConst(const Const& const_);
   void WriteConstVector(const ConstVector& consts);
   void WriteAction(const Action& action);
-  void WriteActionResultType(const Script& script, const Action& action);
+  void WriteActionResultType(const Action& action);
   void WriteModule(string_view filename, const Module& module);
   void WriteScriptModule(string_view filename,
                          const ScriptModule& script_module);
   void WriteInvalidModule(const ScriptModule& module, string_view text);
-  void WriteCommands(const Script& script);
+  void WriteCommands();
 
-  MemoryStream json_stream_;
+  const Script* script_ = nullptr;
+  Stream* json_stream_ = nullptr;
+  WriteBinarySpecStreamFactory module_stream_factory_;
   std::string source_filename_;
   std::string module_filename_noext_;
-  bool write_modules_ = false; /* Whether to write the modules files. */
-  const WriteBinarySpecOptions* spec_options_ = nullptr;
+  const WriteBinaryOptions* options_ = nullptr;
   Result result_ = Result::Ok;
   size_t num_modules_ = 0;
 };
 
-BinaryWriterSpec::BinaryWriterSpec(const char* source_filename,
-                                   const WriteBinarySpecOptions* spec_options)
-    : spec_options_(spec_options) {
-  source_filename_ = source_filename;
-  module_filename_noext_ =
-      StripExtension(spec_options_->json_filename ? spec_options_->json_filename
-                                                  : source_filename)
-          .to_string();
-  write_modules_ = !!spec_options_->json_filename;
-}
+BinaryWriterSpec::BinaryWriterSpec(
+    Stream* json_stream,
+    WriteBinarySpecStreamFactory module_stream_factory,
+    string_view source_filename,
+    string_view module_filename_noext,
+    const WriteBinaryOptions* options)
+    : json_stream_(json_stream),
+      module_stream_factory_(module_stream_factory),
+      source_filename_(source_filename),
+      module_filename_noext_(module_filename_noext),
+      options_(options) {}
 
 std::string BinaryWriterSpec::GetModuleFilename(const char* extension) {
   std::string result = module_filename_noext_;
@@ -90,28 +95,28 @@ std::string BinaryWriterSpec::GetModuleFilename(const char* extension) {
 }
 
 void BinaryWriterSpec::WriteString(const char* s) {
-  json_stream_.Writef("\"%s\"", s);
+  json_stream_->Writef("\"%s\"", s);
 }
 
 void BinaryWriterSpec::WriteKey(const char* key) {
-  json_stream_.Writef("\"%s\": ", key);
+  json_stream_->Writef("\"%s\": ", key);
 }
 
 void BinaryWriterSpec::WriteSeparator() {
-  json_stream_.Writef(", ");
+  json_stream_->Writef(", ");
 }
 
 void BinaryWriterSpec::WriteEscapedString(string_view s) {
-  json_stream_.WriteChar('"');
+  json_stream_->WriteChar('"');
   for (size_t i = 0; i < s.length(); ++i) {
     uint8_t c = s[i];
     if (c < 0x20 || c == '\\' || c == '"' || c > 0x7f) {
-      json_stream_.Writef("\\u%04x", c);
+      json_stream_->Writef("\\u%04x", c);
     } else {
-      json_stream_.WriteChar(c);
+      json_stream_->WriteChar(c);
     }
   }
-  json_stream_.WriteChar('"');
+  json_stream_->WriteChar('"');
 }
 
 void BinaryWriterSpec::WriteCommandType(const Command& command) {
@@ -138,26 +143,26 @@ void BinaryWriterSpec::WriteCommandType(const Command& command) {
 
 void BinaryWriterSpec::WriteLocation(const Location& loc) {
   WriteKey("line");
-  json_stream_.Writef("%d", loc.line);
+  json_stream_->Writef("%d", loc.line);
 }
 
 void BinaryWriterSpec::WriteVar(const Var& var) {
   if (var.is_index()) {
-    json_stream_.Writef("\"%" PRIindex "\"", var.index());
+    json_stream_->Writef("\"%" PRIindex "\"", var.index());
   } else {
     WriteEscapedString(var.name());
   }
 }
 
 void BinaryWriterSpec::WriteTypeObject(Type type) {
-  json_stream_.Writef("{");
+  json_stream_->Writef("{");
   WriteKey("type");
   WriteString(GetTypeName(type));
-  json_stream_.Writef("}");
+  json_stream_->Writef("}");
 }
 
 void BinaryWriterSpec::WriteConst(const Const& const_) {
-  json_stream_.Writef("{");
+  json_stream_->Writef("{");
   WriteKey("type");
 
   /* Always write the values as strings, even though they may be representable
@@ -167,14 +172,14 @@ void BinaryWriterSpec::WriteConst(const Const& const_) {
       WriteString("i32");
       WriteSeparator();
       WriteKey("value");
-      json_stream_.Writef("\"%u\"", const_.u32);
+      json_stream_->Writef("\"%u\"", const_.u32);
       break;
 
     case Type::I64:
       WriteString("i64");
       WriteSeparator();
       WriteKey("value");
-      json_stream_.Writef("\"%" PRIu64 "\"", const_.u64);
+      json_stream_->Writef("\"%" PRIu64 "\"", const_.u64);
       break;
 
     case Type::F32: {
@@ -182,7 +187,7 @@ void BinaryWriterSpec::WriteConst(const Const& const_) {
       WriteString("f32");
       WriteSeparator();
       WriteKey("value");
-      json_stream_.Writef("\"%u\"", const_.f32_bits);
+      json_stream_->Writef("\"%u\"", const_.f32_bits);
       break;
     }
 
@@ -191,7 +196,7 @@ void BinaryWriterSpec::WriteConst(const Const& const_) {
       WriteString("f64");
       WriteSeparator();
       WriteKey("value");
-      json_stream_.Writef("\"%" PRIu64 "\"", const_.f64_bits);
+      json_stream_->Writef("\"%" PRIu64 "\"", const_.f64_bits);
       break;
     }
 
@@ -199,11 +204,11 @@ void BinaryWriterSpec::WriteConst(const Const& const_) {
       assert(0);
   }
 
-  json_stream_.Writef("}");
+  json_stream_->Writef("}");
 }
 
 void BinaryWriterSpec::WriteConstVector(const ConstVector& consts) {
-  json_stream_.Writef("[");
+  json_stream_->Writef("[");
   for (size_t i = 0; i < consts.size(); ++i) {
     const Const& const_ = consts[i];
     WriteConst(const_);
@@ -211,12 +216,12 @@ void BinaryWriterSpec::WriteConstVector(const ConstVector& consts) {
       WriteSeparator();
     }
   }
-  json_stream_.Writef("]");
+  json_stream_->Writef("]");
 }
 
 void BinaryWriterSpec::WriteAction(const Action& action) {
   WriteKey("action");
-  json_stream_.Writef("{");
+  json_stream_->Writef("{");
   WriteKey("type");
   if (action.type() == ActionType::Invoke) {
     WriteString("invoke");
@@ -240,14 +245,13 @@ void BinaryWriterSpec::WriteAction(const Action& action) {
     WriteKey("field");
     WriteEscapedString(action.name);
   }
-  json_stream_.Writef("}");
+  json_stream_->Writef("}");
 }
 
-void BinaryWriterSpec::WriteActionResultType(const Script& script,
-                                             const Action& action) {
-  const Module* module = script.GetModule(action.module_var);
+void BinaryWriterSpec::WriteActionResultType(const Action& action) {
+  const Module* module = script_->GetModule(action.module_var);
   const Export* export_;
-  json_stream_.Writef("[");
+  json_stream_->Writef("[");
   switch (action.type()) {
     case ActionType::Invoke: {
       export_ = module->GetExport(action.name);
@@ -267,16 +271,12 @@ void BinaryWriterSpec::WriteActionResultType(const Script& script,
       break;
     }
   }
-  json_stream_.Writef("]");
+  json_stream_->Writef("]");
 }
 
 void BinaryWriterSpec::WriteModule(string_view filename, const Module& module) {
-  MemoryStream memory_stream(spec_options_->log_stream);
-  result_ = WriteBinaryModule(&memory_stream, &module,
-                              &spec_options_->write_binary_options);
-  if (Succeeded(result_) && write_modules_) {
-    result_ = memory_stream.WriteToFile(filename);
-  }
+  result_ |=
+      WriteBinaryModule(module_stream_factory_(filename), &module, options_);
 }
 
 void BinaryWriterSpec::WriteScriptModule(string_view filename,
@@ -287,29 +287,13 @@ void BinaryWriterSpec::WriteScriptModule(string_view filename,
       break;
 
     case ScriptModuleType::Binary:
-      if (write_modules_) {
-        FileStream file_stream(filename);
-        if (file_stream.is_open()) {
-          file_stream.WriteData(cast<BinaryScriptModule>(&script_module)->data,
-                                "");
-          result_ = file_stream.result();
-        } else {
-          result_ = Result::Error;
-        }
-      }
+      module_stream_factory_(filename)->WriteData(
+          cast<BinaryScriptModule>(&script_module)->data, "");
       break;
 
     case ScriptModuleType::Quoted:
-      if (write_modules_) {
-        FileStream file_stream(filename);
-        if (file_stream.is_open()) {
-          file_stream.WriteData(cast<QuotedScriptModule>(&script_module)->data,
-                                "");
-          result_ = file_stream.result();
-        } else {
-          result_ = Result::Error;
-        }
-      }
+      module_stream_factory_(filename)->WriteData(
+          cast<QuotedScriptModule>(&script_module)->data, "");
       break;
   }
 }
@@ -349,20 +333,20 @@ void BinaryWriterSpec::WriteInvalidModule(const ScriptModule& module,
   WriteScriptModule(filename, module);
 }
 
-void BinaryWriterSpec::WriteCommands(const Script& script) {
-  json_stream_.Writef("{\"source_filename\": ");
+void BinaryWriterSpec::WriteCommands() {
+  json_stream_->Writef("{\"source_filename\": ");
   WriteEscapedString(source_filename_);
-  json_stream_.Writef(",\n \"commands\": [\n");
+  json_stream_->Writef(",\n \"commands\": [\n");
   Index last_module_index = kInvalidIndex;
-  for (size_t i = 0; i < script.commands.size(); ++i) {
-    const Command* command = script.commands[i].get();
+  for (size_t i = 0; i < script_->commands.size(); ++i) {
+    const Command* command = script_->commands[i].get();
 
     if (i != 0) {
       WriteSeparator();
-      json_stream_.Writef("\n");
+      json_stream_->Writef("\n");
     }
 
-    json_stream_.Writef("  {");
+    json_stream_->Writef("  {");
     WriteCommandType(*command);
     WriteSeparator();
 
@@ -390,6 +374,9 @@ void BinaryWriterSpec::WriteCommands(const Script& script) {
         WriteLocation(action.loc);
         WriteSeparator();
         WriteAction(action);
+        WriteSeparator();
+        WriteKey("expected");
+        WriteActionResultType(action);
         break;
       }
 
@@ -466,8 +453,7 @@ void BinaryWriterSpec::WriteCommands(const Script& script) {
         WriteAction(*assert_return_canonical_nan_command->action);
         WriteSeparator();
         WriteKey("expected");
-        WriteActionResultType(script,
-                              *assert_return_canonical_nan_command->action);
+        WriteActionResultType(*assert_return_canonical_nan_command->action);
         break;
       }
 
@@ -479,8 +465,7 @@ void BinaryWriterSpec::WriteCommands(const Script& script) {
         WriteAction(*assert_return_arithmetic_nan_command->action);
         WriteSeparator();
         WriteKey("expected");
-        WriteActionResultType(script,
-                              *assert_return_arithmetic_nan_command->action);
+        WriteActionResultType(*assert_return_arithmetic_nan_command->action);
         break;
       }
 
@@ -492,6 +477,9 @@ void BinaryWriterSpec::WriteCommands(const Script& script) {
         WriteSeparator();
         WriteKey("text");
         WriteEscapedString(assert_trap_command->text);
+        WriteSeparator();
+        WriteKey("expected");
+        WriteActionResultType(*assert_trap_command->action);
         break;
       }
 
@@ -501,30 +489,56 @@ void BinaryWriterSpec::WriteCommands(const Script& script) {
         WriteLocation(assert_exhaustion_command->action->loc);
         WriteSeparator();
         WriteAction(*assert_exhaustion_command->action);
+        WriteSeparator();
+        WriteKey("expected");
+        WriteActionResultType(*assert_exhaustion_command->action);
         break;
       }
     }
 
-    json_stream_.Writef("}");
+    json_stream_->Writef("}");
   }
-  json_stream_.Writef("]}\n");
+  json_stream_->Writef("]}\n");
 }
 
 Result BinaryWriterSpec::WriteScript(const Script& script) {
-  WriteCommands(script);
-  if (spec_options_->json_filename) {
-    json_stream_.WriteToFile(spec_options_->json_filename);
-  }
+  script_ = &script;
+  WriteCommands();
   return result_;
 }
 
 }  // end anonymous namespace
 
-Result WriteBinarySpecScript(Script* script,
-                             const char* source_filename,
-                             const WriteBinarySpecOptions* spec_options) {
-  assert(source_filename);
-  BinaryWriterSpec binary_writer_spec(source_filename, spec_options);
+Result WriteBinarySpecScript(Stream* json_stream,
+                             WriteBinarySpecStreamFactory module_stream_factory,
+                             Script* script,
+                             string_view source_filename,
+                             string_view module_filename_noext,
+                             const WriteBinaryOptions* options) {
+  BinaryWriterSpec binary_writer_spec(json_stream, module_stream_factory,
+                                      source_filename, module_filename_noext,
+                                      options);
+  return binary_writer_spec.WriteScript(*script);
+}
+
+Result WriteBinarySpecScript(
+    Stream* json_stream,
+    Script* script,
+    string_view source_filename,
+    string_view module_filename_noext,
+    const WriteBinaryOptions* options,
+    std::vector<FilenameMemoryStreamPair>* out_module_streams,
+    Stream* log_stream) {
+  WriteBinarySpecStreamFactory module_stream_factory =
+      [&](string_view filename) {
+        out_module_streams->emplace_back(filename,
+                                         MakeUnique<MemoryStream>(log_stream));
+        return out_module_streams->back().stream.get();
+      };
+
+  BinaryWriterSpec binary_writer_spec(json_stream, module_stream_factory,
+                                      source_filename, module_filename_noext,
+                                      options);
   return binary_writer_spec.WriteScript(*script);
 }
 
