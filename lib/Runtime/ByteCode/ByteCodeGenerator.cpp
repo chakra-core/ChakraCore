@@ -3869,7 +3869,7 @@ ParseNode* ConstructInvertedStatement(ParseNode* stmt, ByteCodeGenerator* byteCo
             rhs = stmt->AsParseNodeVar()->pnodeInit;
             }
         ArenaAllocator* alloc = byteCodeGenerator->GetAllocator();
-        ParseNode* loopInvar = byteCodeGenerator->GetParser()->CreateTempNode(rhs);
+        ParseNode* loopInvar = Parser::StaticCreateTempNode(rhs, alloc);
         loopInvar->location = funcInfo->NextVarRegister();
 
             // Can't use a temp register here because the inversion happens at the parse tree level without generating
@@ -3890,7 +3890,7 @@ ParseNode* ConstructInvertedStatement(ParseNode* stmt, ByteCodeGenerator* byteCo
             *outerStmtRef = listNode;
             }
 
-        ParseNode* tempName = byteCodeGenerator->GetParser()->CreateTempRef(loopInvar);
+        ParseNode* tempName = Parser::StaticCreateTempRef(loopInvar, alloc);
 
         if (lhs != nullptr)
         {
@@ -3950,13 +3950,14 @@ ParseNode* ConstructInvertedLoop(ParseNode* innerLoop, ParseNode* outerLoop, Byt
         while (origStmt->nop == knopList)
         {
             ParseNode* invertedItem = ConstructInvertedStatement(origStmt->AsParseNodeBin()->pnode1, byteCodeGenerator, funcInfo, &listNode);
+            ParseNode * newInvertedStmt = Parser::StaticCreateBinNode(knopList, invertedItem, nullptr, alloc, invertedItem->ichMin, invertedItem->ichLim);
             if (invertedStmt != nullptr)
             {
-                invertedStmt = invertedStmt->AsParseNodeBin()->pnode2 = byteCodeGenerator->GetParser()->CreateBinNode(knopList, invertedItem, nullptr);
+                invertedStmt = invertedStmt->AsParseNodeBin()->pnode2 = newInvertedStmt;
             }
             else
             {
-                invertedStmt = innerBod->AsParseNodeBlock()->pnodeStmt = byteCodeGenerator->GetParser()->CreateBinNode(knopList, invertedItem, nullptr);
+                invertedStmt = innerBod->AsParseNodeBlock()->pnodeStmt = newInvertedStmt;
             }
             origStmt = origStmt->AsParseNodeBin()->pnode2;
         }
@@ -3970,7 +3971,7 @@ ParseNode* ConstructInvertedLoop(ParseNode* innerLoop, ParseNode* outerLoop, Byt
 
     if (listNode->AsParseNodeBin()->pnode1 == nullptr)
     {
-        listNode->AsParseNodeBin()->pnode1 = byteCodeGenerator->GetParser()->CreateTempNode(nullptr);
+        listNode->AsParseNodeBin()->pnode1 = Parser::StaticCreateTempNode(nullptr, alloc);
     }
 
     listNode->AsParseNodeBin()->pnode2 = innerLoopC;
@@ -4432,7 +4433,7 @@ void Bind(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         break;
 
     case knopRegExp:
-        pnode->AsParseNodePid()->regexPatternIndex = byteCodeGenerator->TopFuncInfo()->GetParsedFunctionBody()->NewLiteralRegex();
+        pnode->AsParseNodeRegExp()->regexPatternIndex = byteCodeGenerator->TopFuncInfo()->GetParsedFunctionBody()->NewLiteralRegex();
         break;
 
     case knopComma:
