@@ -239,7 +239,9 @@ namespace Js
         static BOOL IsNull(Var instance);
         static BOOL IsNull(RecyclableObject* instance);
         static BOOL IsSpecialObjectType(TypeId typeId);
+        static BOOL IsJsNativeType(TypeId typeId);
         static BOOL IsJsNativeObject(Var instance);
+        static BOOL IsJsNativeObject(_In_ RecyclableObject* instance);
         static BOOL IsUndefinedObject(Var instance);
         static BOOL IsAnyNumberValue(Var instance);
         static BOOL IsClassConstructor(Var instance);
@@ -665,6 +667,8 @@ namespace Js
 
         template <bool unscopables>
         static BOOL GetProperty_Internal(Var instance, RecyclableObject* propertyObject, const bool isRoot, PropertyId propertyId, Var* value, ScriptContext* requestContext, PropertyValueInfo* info);
+
+        static void TryCacheMissingProperty(Var instance, Var cacheInstance, bool isRoot, PropertyId propertyId, ScriptContext* requestContext, _Inout_ PropertyValueInfo * info);
 
         static RecyclableObject* GetPrototypeNoTrap(RecyclableObject* instance);
 

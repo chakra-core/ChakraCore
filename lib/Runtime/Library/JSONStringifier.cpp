@@ -271,11 +271,37 @@ JSONStringifier::ToJSON(_In_ JavascriptString* key, _In_ RecyclableObject* value
     PolymorphicInlineCache* cache = this->scriptContext->Cache()->toJSONCache;
     PropertyValueInfo info;
     PropertyValueInfo::SetCacheInfo(&info, cache, false);
+
+    // The vast majority of objects don't have custom toJSON, so check the missing cache first.
+    // We can check all of the others afterward.
+    if (CacheOperators::TryGetProperty<
+        false,  // CheckLocal
+        false,  // CheckProto
+        false,  // CheckAccessor
+        true,   // CheckMissing
+        true,   // CheckPolymorphicInlineCache
+        false,  // CheckTypePropertyCache
+        false,  // IsInlineCacheAvailable
+        true,   // IsPolymorphicInlineCacheAvailable
+        false>  // ReturnOperationInfo
+        (valueObject,
+            false,
+            valueObject,
+            PropertyIds::toJSON,
+            &toJSON,
+            this->scriptContext,
+            nullptr,
+            &info))
+    {
+        // Any cache hit means the property is missing, so don't bother to do anything else
+        return nullptr;
+    }
+
     if (!CacheOperators::TryGetProperty<
         true,   // CheckLocal
         true,   // CheckProto
         true,   // CheckAccessor
-        true,   // CheckMissing
+        false,  // CheckMissing
         true,   // CheckPolymorphicInlineCache
         true,   // CheckTypePropertyCache
         false,  // IsInlineCacheAvailable
@@ -776,7 +802,7 @@ JSONStringifier::ReadProperty(
     bool isObject = false;
     if (valueObj)
     {
-        isObject = JavascriptOperators::IsObject(value) != FALSE;
+        isObject = JavascriptOperators::IsObject(valueObj) != FALSE;
         if (isObject)
         {
             // If value is an object, we must first check if it has a ToJSON method
@@ -801,7 +827,7 @@ JSONStringifier::ReadProperty(
         // Callable JS objects are undefined, but we still stringify callable host objects
         // Host object case is for compat with old implementation, but isn't defined in the
         // spec, so we should consider removing it
-        if (JavascriptConversion::IsCallable(valueObj) && JavascriptOperators::IsJsNativeObject(value))
+        if (JavascriptConversion::IsCallable(valueObj) && JavascriptOperators::IsJsNativeObject(valueObj))
         {
             prop->type = JSONContentType::Undefined;
             return;

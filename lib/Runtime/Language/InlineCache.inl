@@ -20,7 +20,7 @@ namespace Js
         ScriptContext *const requestContext,
         PropertyCacheOperationInfo *const operationInfo)
     {
-        CompileAssert(CheckLocal || CheckProto || CheckAccessor);
+        CompileAssert(CheckLocal || CheckProto || CheckAccessor || CheckMissing);
         Assert(!ReturnOperationInfo || operationInfo);
         CompileAssert(!ReturnOperationInfo || (CheckLocal && CheckProto && CheckAccessor));
         Assert(instance);

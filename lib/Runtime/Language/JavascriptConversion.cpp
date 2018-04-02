@@ -32,6 +32,11 @@ namespace Js
         {
             return false;
         }
+        return IsCallable(RecyclableObject::UnsafeFromVar(aValue));
+    }
+
+    bool JavascriptConversion::IsCallable(_In_ RecyclableObject* aValue)
+    {
         JavascriptMethod entryPoint = RecyclableObject::UnsafeFromVar(aValue)->GetEntryPoint();
         return RecyclableObject::DefaultEntryPoint != entryPoint;
     }

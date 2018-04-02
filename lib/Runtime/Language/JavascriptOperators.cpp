@@ -1737,26 +1737,8 @@ CommonNumber:
                 Output::Print(_u("MissingPropertyCaching: Missing property %d on slow path.\n"), propertyId);
             }
 
-            // Only cache missing property lookups for non-root field loads on objects that have PathTypeHandlers and DictionaryTypeHandlers, because only these types have the right behavior
-            // when the missing property is later added: path types guarantee a type change, and DictionaryTypeHandlerBase::AddProperty explicitly invalidates all prototype caches for the
-            // property.  (We don't support other types only because we haven't needed to yet; we do not anticipate any difficulties in adding the cache-invalidation logic there if that changes.)
-            if (!PHASE_OFF1(MissingPropertyCachePhase) && !isRoot && DynamicObject::Is(instance) &&
-                (DynamicObject::FromVar(instance)->GetDynamicType()->GetTypeHandler()->IsPathTypeHandler() || DynamicObject::FromVar(instance)->GetDynamicType()->GetTypeHandler()->IsDictionaryTypeHandler()))
-            {
-#ifdef MISSING_PROPERTY_STATS
-                if (PHASE_STATS1(MissingPropertyCachePhase))
-                {
-                    requestContext->RecordMissingPropertyCacheAttempt();
-                }
-#endif
-                if (PHASE_TRACE1(MissingPropertyCachePhase))
-                {
-                    Output::Print(_u("MissingPropertyCache: Caching missing property for property %d.\n"), propertyId);
-                }
+            TryCacheMissingProperty(instance, propertyObject, isRoot, propertyId, requestContext, info);
 
-                PropertyValueInfo::Set(info, requestContext->GetLibrary()->GetMissingPropertyHolder(), 0);
-                CacheOperators::CachePropertyRead(propertyObject, requestContext->GetLibrary()->GetMissingPropertyHolder(), isRoot, propertyId, true, info, requestContext);
-            }
 #if defined(TELEMETRY_JSO) || defined(TELEMETRY_AddToCache) // enabled for `TELEMETRY_AddToCache`, because this is the property-not-found codepath where the normal TELEMETRY_AddToCache code wouldn't be executed.
             if (TELEMETRY_PROPERTY_OPCODE_FILTER(propertyId))
             {
@@ -1769,6 +1751,40 @@ CommonNumber:
             *value = requestContext->GetMissingPropertyResult();
             return FALSE;
         }
+    }
+
+    // If the given instance is a type where we can cache missing properties, then cache that the given property ID is missing.
+    // cacheInstance is used as startingObject in CachePropertyRead, and might be instance's proto if we are fetching a super property (see #3064).
+    void JavascriptOperators::TryCacheMissingProperty(Var instance, Var cacheInstance, bool isRoot, PropertyId propertyId, ScriptContext* requestContext, _Inout_ PropertyValueInfo * info)
+    {
+        if (PHASE_OFF1(MissingPropertyCachePhase) || isRoot || !DynamicType::Is(GetTypeId(instance)))
+        {
+            return;
+        }
+
+        DynamicTypeHandler* handler = DynamicObject::UnsafeFromVar(instance)->GetDynamicType()->GetTypeHandler();
+
+        // Only cache missing property lookups for non-root field loads on objects that have PathTypeHandlers and DictionaryTypeHandlers, because only these types have the right behavior
+        // when the missing property is later added: path types guarantee a type change, and DictionaryTypeHandlerBase::AddProperty explicitly invalidates all prototype caches for the
+        // property.  (We don't support other types only because we haven't needed to yet; we do not anticipate any difficulties in adding the cache-invalidation logic there if that changes.)
+        if (!handler->IsPathTypeHandler() && !handler->IsDictionaryTypeHandler())
+        {
+            return;
+        }
+
+#ifdef MISSING_PROPERTY_STATS
+        if (PHASE_STATS1(MissingPropertyCachePhase))
+        {
+            requestContext->RecordMissingPropertyCacheAttempt();
+        }
+#endif
+        if (PHASE_TRACE1(MissingPropertyCachePhase))
+        {
+            Output::Print(_u("MissingPropertyCache: Caching missing property for property %d.\n"), propertyId);
+        }
+
+        PropertyValueInfo::Set(info, requestContext->GetLibrary()->GetMissingPropertyHolder(), 0);
+        CacheOperators::CachePropertyRead(cacheInstance, requestContext->GetLibrary()->GetMissingPropertyHolder(), isRoot, propertyId, true /*isMissing*/, info, requestContext);
     }
 
     template<typename PropertyKeyType>
@@ -1793,10 +1809,9 @@ CommonNumber:
             }
             object = JavascriptOperators::GetPrototypeNoTrap(object);
         }
-        if (!PHASE_OFF1(MissingPropertyCachePhase) && info->GetPropertyRecordUsageCache() && DynamicObject::Is(instance) && ((DynamicObject*)instance)->GetDynamicType()->GetTypeHandler()->IsPathTypeHandler())
+        if (info->GetPropertyRecordUsageCache())
         {
-            PropertyValueInfo::Set(info, requestContext->GetLibrary()->GetMissingPropertyHolder(), 0);
-            CacheOperators::CachePropertyRead(instance, requestContext->GetLibrary()->GetMissingPropertyHolder(), false, info->GetPropertyRecordUsageCache()->GetPropertyRecord()->GetPropertyId(), true, info, requestContext);
+            TryCacheMissingProperty(instance, instance, false /*isRoot*/, info->GetPropertyRecordUsageCache()->GetPropertyRecord()->GetPropertyId(), requestContext, info);
         }
 
         *value = requestContext->GetMissingPropertyResult();
@@ -4965,9 +4980,9 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         return RecyclableObject::FromVar(aValue)->GetRemoteTypeId(typeId);
     }
 
-    BOOL JavascriptOperators::IsJsNativeObject(Var aValue)
+    BOOL JavascriptOperators::IsJsNativeType(TypeId type)
     {
-        switch(GetTypeId(aValue))
+        switch(type)
         {
             case TypeIds_Object:
             case TypeIds_Function:
@@ -5007,6 +5022,16 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             default:
                 return false;
         }
+    }
+
+    BOOL JavascriptOperators::IsJsNativeObject(Var instance)
+    {
+        return IsJsNativeType(GetTypeId(instance));
+    }
+
+    BOOL JavascriptOperators::IsJsNativeObject(_In_ RecyclableObject* instance)
+    {
+        return IsJsNativeType(GetTypeId(instance));
     }
 
     bool JavascriptOperators::CanShortcutOnUnknownPropertyName(RecyclableObject *instance)
