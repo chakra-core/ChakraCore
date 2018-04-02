@@ -57,7 +57,7 @@ namespace Js
     SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithConfigurableLengthTypeHandler(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length), PropertyConfigurable);
     SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithLengthTypeHandler(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length));
     SimpleTypeHandler<2> JavascriptLibrary::SharedFunctionWithLengthAndNameTypeHandler(NO_WRITE_BARRIER_TAG(FunctionWithLengthAndNameTypeDescriptors));
-    SimpleTypeHandler<1> JavascriptLibrary::SharedNamespaceSymbolTypeHandler(NO_WRITE_BARRIER_TAG(ModuleNamespaceTypeDescriptors));
+    SimpleTypeHandler<1> JavascriptLibrary::SharedNamespaceSymbolTypeHandler(NO_WRITE_BARRIER_TAG(ModuleNamespaceTypeDescriptors), PropertyTypesHasSpecialProperties);
     MissingPropertyTypeHandler JavascriptLibrary::MissingPropertyHolderTypeHandler;
 
 
@@ -84,7 +84,8 @@ namespace Js
         this->recycler = scriptContext->GetRecycler();
         this->undeclBlockVarSentinel = RecyclerNew(recycler, UndeclaredBlockVariable, StaticType::New(scriptContext, TypeIds_Null, nullptr, nullptr));
 
-        typesEnsuredToHaveOnlyWritableDataPropertiesInItAndPrototypeChain = RecyclerNew(recycler, JsUtil::List<Type *>, recycler);
+        this->typesWithOnlyWritablePropertyProtoChain = RecyclerNew(recycler, OnlyWritablePropertyProtoChainCache, scriptContext, scriptContext->GetOnlyWritablePropertyRegistry());
+        this->typesWithNoSpecialPropertyProtoChain = RecyclerNew(recycler, NoSpecialPropertyProtoChainCache, scriptContext, scriptContext->GetNoSpecialPropertyRegistry());
 
         // Library is not zero-initialized. memset the memory occupied by builtinFunctions array to 0.
         ClearArray(builtinFunctions, BuiltinFunction::Count);
@@ -3426,31 +3427,6 @@ namespace Js
             return true;
         }
         return false;
-    }
-
-    void JavascriptLibrary::TypeAndPrototypesAreEnsuredToHaveOnlyWritableDataProperties(Type *const type)
-    {
-        Assert(type);
-        Assert(type->GetScriptContext() == scriptContext);
-        Assert(type->AreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties());
-        Assert(!scriptContext->IsClosed());
-
-        if(typesEnsuredToHaveOnlyWritableDataPropertiesInItAndPrototypeChain->Count() == 0)
-        {
-            scriptContext->RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext();
-        }
-        typesEnsuredToHaveOnlyWritableDataPropertiesInItAndPrototypeChain->Add(type);
-    }
-
-    void JavascriptLibrary::NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties()
-    {
-        for(int i = 0; i < typesEnsuredToHaveOnlyWritableDataPropertiesInItAndPrototypeChain->Count(); ++i)
-        {
-            typesEnsuredToHaveOnlyWritableDataPropertiesInItAndPrototypeChain
-                ->Item(i)
-                ->SetAreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties(false);
-        }
-        typesEnsuredToHaveOnlyWritableDataPropertiesInItAndPrototypeChain->ClearAndZero();
     }
 
     bool JavascriptLibrary::ArrayIteratorPrototypeHasUserDefinedNext(ScriptContext *scriptContext)

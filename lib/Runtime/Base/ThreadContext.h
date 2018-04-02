@@ -735,8 +735,8 @@ private:
 
     Js::IsConcatSpreadableCache isConcatSpreadableCache;
 
-    ArenaAllocator prototypeChainEnsuredToHaveOnlyWritableDataPropertiesAllocator;
-    DListBase<Js::ScriptContext *> prototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext;
+    Js::NoSpecialPropertyThreadRegistry noSpecialPropertyRegistry;
+    Js::OnlyWritablePropertyThreadRegistry onlyWritablePropertyRegistry;
 
     DListBase<CollectCallBack> collectCallBackList;
     CriticalSection csCollectionCallBack;
@@ -890,6 +890,9 @@ public:
 
     void* GetTridentLoadAddress() const { return tridentLoadAddress;  }
     void SetTridentLoadAddress(void *loadAddress) { tridentLoadAddress = loadAddress; }
+
+    Js::NoSpecialPropertyThreadRegistry* GetNoSpecialPropertyRegistry() { return &this->noSpecialPropertyRegistry; }
+    Js::OnlyWritablePropertyThreadRegistry* GetOnlyWritablePropertyRegistry() { return &this->onlyWritablePropertyRegistry; }
 
 #ifdef ENABLE_DIRECTCALL_TELEMETRY
     DirectCallTelemetry directCallTelemetry;
@@ -1390,10 +1393,6 @@ public:
     void InvalidateProtoTypePropertyCaches(const Js::PropertyId propertyId);
     void InternalInvalidateProtoTypePropertyCaches(const Js::PropertyId propertyId);
     void InvalidateAllProtoTypePropertyCaches();
-
-    Js::ScriptContext ** RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext(Js::ScriptContext * scriptContext);
-    void UnregisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext(Js::ScriptContext ** scriptContext);
-    void ClearPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesCaches();
 
     BOOL HasUnhandledException() const { return hasUnhandledException; }
     void SetHasUnhandledException() {hasUnhandledException = TRUE; }

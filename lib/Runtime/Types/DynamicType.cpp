@@ -399,9 +399,22 @@ namespace Js
     BOOL DynamicObject::ToPrimitiveImpl(Var* result, ScriptContext * requestContext)
     {
         CompileAssert(propertyId == PropertyIds::valueOf || propertyId == PropertyIds::toString);
-        InlineCache * inlineCache = propertyId == PropertyIds::valueOf ? requestContext->GetValueOfInlineCache() : requestContext->GetToStringInlineCache();
-        // Use per script context inline cache for valueOf and toString
-        Var aValue = JavascriptOperators::PatchGetValueUsingSpecifiedInlineCache(inlineCache, this, this, propertyId, requestContext);
+        Var aValue = nullptr;
+        if (JavascriptOperators::CheckIfObjectAndProtoChainHasNoSpecialProperties(this))
+        {
+            if (this->GetPrototype() == this->GetLibrary()->GetObjectPrototype())
+            {
+                aValue = (propertyId == PropertyIds::valueOf)
+                    ? requestContext->GetLibrary()->GetObjectValueOfFunction()
+                    : requestContext->GetLibrary()->GetObjectToStringFunction();
+            }
+        }
+        if(!aValue)
+        {
+            InlineCache * inlineCache = propertyId == PropertyIds::valueOf ? requestContext->GetValueOfInlineCache() : requestContext->GetToStringInlineCache();
+            // Use per script context inline cache for valueOf and toString
+            aValue = JavascriptOperators::PatchGetValueUsingSpecifiedInlineCache(inlineCache, this, this, propertyId, requestContext);
+        }
 
         // Fast path to the default valueOf/toString implementation
         if (propertyId == PropertyIds::valueOf)

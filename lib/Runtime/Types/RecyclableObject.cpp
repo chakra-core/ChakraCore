@@ -197,6 +197,18 @@ namespace Js
         return true;
     }
 
+    bool RecyclableObject::HasAnySpecialProperties()
+    {
+        if (DynamicType::Is(this->GetTypeId()))
+        {
+            DynamicObject* obj = DynamicObject::UnsafeFromVar(this);
+            return obj->GetTypeHandler()->GetHasSpecialProperties() ||
+                (obj->HasObjectArray() && obj->GetObjectArrayOrFlagsAsArray()->HasAnySpecialProperties());
+        }
+
+        return true;
+    }
+
     void RecyclableObject::ClearWritableDataOnlyDetectionBit()
     {
         if (DynamicType::Is(this->GetTypeId()))
@@ -750,12 +762,12 @@ namespace Js
         }
 
     RedoLeft:
-        aLeft = JavascriptConversion::ToPrimitive(aLeft, JavascriptHint::None, requestContext);
+        aLeft = JavascriptConversion::ToPrimitive<JavascriptHint::None>(aLeft, requestContext);
         leftType = JavascriptOperators::GetTypeId(aLeft);
         redoCount++;
         goto Redo;
     RedoRight:
-        aRight = JavascriptConversion::ToPrimitive(aRight, JavascriptHint::None, requestContext);
+        aRight = JavascriptConversion::ToPrimitive<JavascriptHint::None>(aRight, requestContext);
         rightType = JavascriptOperators::GetTypeId(aRight);
         redoCount++;
         goto Redo;

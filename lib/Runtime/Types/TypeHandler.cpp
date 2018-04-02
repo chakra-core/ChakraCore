@@ -842,6 +842,7 @@ namespace Js
         Output::Print(_u("%*spropertyTypes: 0x%02x "), fieldIndent, padding, this->propertyTypes);
         if (this->propertyTypes & PropertyTypesReserved) Output::Print(_u("PropertyTypesReserved "));
         if (this->propertyTypes & PropertyTypesWritableDataOnly) Output::Print(_u("PropertyTypesWritableDataOnly "));
+        if (this->propertyTypes & PropertyTypesHasSpecialProperties) Output::Print(_u("PropertyTypesHasSpecialProperties "));
         if (this->propertyTypes & PropertyTypesWritableDataOnlyDetection) Output::Print(_u("PropertyTypesWritableDataOnlyDetection "));
         if (this->propertyTypes & PropertyTypesInlineSlotCapacityLocked) Output::Print(_u("PropertyTypesInlineSlotCapacityLocked "));
         Output::Print(_u("\n"));

@@ -1498,7 +1498,7 @@ namespace Js
         // Any new type handler we expect to see here should have inline slot capacity locked.  If this were to change, we would need
         // to update our shrinking logic (see ShrinkSlotAndInlineSlotCapacity).
         Assert(newTypeHandler->GetIsInlineSlotCapacityLocked());
-        newTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection, oldTypeHandler->GetPropertyTypes());
+        newTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection | PropertyTypesHasSpecialProperties, oldTypeHandler->GetPropertyTypes());
         newTypeHandler->SetInstanceTypeHandler(instance);
 
 #if ENABLE_FIXED_FIELDS
@@ -1732,7 +1732,7 @@ namespace Js
         // Any new type handler we expect to see here should have inline slot capacity locked.  If this were to change, we would need
         // to update our shrinking logic (see ShrinkSlotAndInlineSlotCapacity).
         Assert(newTypeHandler->GetIsInlineSlotCapacityLocked());
-        newTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection, oldTypeHandler->GetPropertyTypes());
+        newTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection | PropertyTypesHasSpecialProperties, oldTypeHandler->GetPropertyTypes());
         newTypeHandler->SetInstanceTypeHandler(instance);
 
 #if ENABLE_FIXED_FIELDS
@@ -1916,6 +1916,7 @@ namespace Js
         Assert(propertyIndex != nullptr);
         Assert(isObjectLiteral || instance != nullptr);
 
+        JavascriptLibrary* library = scriptContext->GetLibrary();
         Recycler* recycler = scriptContext->GetRecycler();
         PropertyIndex index;
         DynamicType * nextType;
@@ -2076,7 +2077,7 @@ namespace Js
             }
             if (!markTypeAsShared) nextPath->SetMayBecomeShared();
             Assert(nextPath->GetHasOnlyWritableDataProperties());
-            nextPath->CopyPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection, GetPropertyTypes());
+            nextPath->CopyPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection | PropertyTypesHasSpecialProperties, GetPropertyTypes());
             nextPath->SetPropertyTypes(PropertyTypesInlineSlotCapacityLocked, GetPropertyTypes());
 
 #if ENABLE_FIXED_FIELDS
@@ -2161,16 +2162,11 @@ namespace Js
         nextPath->SetFlags(IsPrototypeFlag, this->GetFlags());
         Assert(this->GetHasOnlyWritableDataProperties() == nextPath->GetHasOnlyWritableDataProperties() || !(key.GetAttributes() & ObjectSlotAttr_Writable) || (key.GetAttributes() & ObjectSlotAttr_Accessor));
         Assert(this->GetIsInlineSlotCapacityLocked() == nextPath->GetIsInlineSlotCapacityLocked());
-        nextPath->SetPropertyTypes(PropertyTypesWritableDataOnlyDetection, this->GetPropertyTypes());
-        if (!(key.GetAttributes() & ObjectSlotAttr_Writable) || (key.GetAttributes() & ObjectSlotAttr_Accessor))
-        {
-            nextPath->ClearHasOnlyWritableDataProperties();
-            if (nextPath->GetFlags() & IsPrototypeFlag)
-            {
-                scriptContext->InvalidateStoreFieldCaches(key.GetPropertyId());
-                instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
-            }
-        }
+        nextPath->SetPropertyTypes(PropertyTypesWritableDataOnlyDetection | PropertyTypesHasSpecialProperties, this->GetPropertyTypes());
+
+        PropertyAttributes isWritableAttribute = ((key.GetAttributes() & ObjectSlotAttr_Writable) && !(key.GetAttributes() & ObjectSlotAttr_Accessor)) ? PropertyWritable : PropertyNone;
+        library->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(nextPath, isWritableAttribute, propertyRecord);
+        library->GetTypesWithNoSpecialPropertyProtoChainCache()->ProcessProperty(nextPath, isWritableAttribute, propertyRecord);
 
         (*propertyIndex) = index;
 
@@ -2583,7 +2579,7 @@ namespace Js
                     false);
         }
         clonedTypeHandler->SetMayBecomeShared();
-        clonedTypeHandler->CopyPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection, this->GetPropertyTypes());
+        clonedTypeHandler->CopyPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection | PropertyTypesHasSpecialProperties, this->GetPropertyTypes());
         
         return clonedTypeHandler;
     }

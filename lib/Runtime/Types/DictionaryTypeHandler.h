@@ -248,8 +248,13 @@ namespace Js
         template<bool allowLetConstGlobal>
         inline DescriptorFlags GetSetterFromDescriptor(DynamicObject* instance, DictionaryPropertyDescriptor<T> * descriptor, Var* setterValue, PropertyValueInfo* info);
         template <bool allowLetConstGlobal>
-        inline void SetPropertyWithDescriptor(DynamicObject* instance, PropertyRecord const* propertyRecord, DictionaryPropertyDescriptor<T> ** pdescriptor,
-            Var value, PropertyOperationFlags flags, PropertyValueInfo* info);
+        inline void SetPropertyWithDescriptor(
+            _In_ DynamicObject* instance,
+            _In_ PropertyRecord const* propertyRecord,
+            _Inout_ DictionaryPropertyDescriptor<T> ** pdescriptor,
+            _In_ Var value,
+            _In_ PropertyOperationFlags flags,
+            _Inout_opt_ PropertyValueInfo* info);
 
     protected:
         virtual BOOL FreezeImpl(DynamicObject* instance, bool isConvertedType) override;

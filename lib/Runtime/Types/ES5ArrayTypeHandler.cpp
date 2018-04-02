@@ -455,7 +455,7 @@ namespace Js
             this->ClearHasOnlyWritableDataProperties();
             if(this->GetFlags() & this->IsPrototypeFlag)
             {
-                instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+                instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->Clear();
             }
         }
 
@@ -516,7 +516,7 @@ namespace Js
                 this->ClearHasOnlyWritableDataProperties();
                 if(this->GetFlags() & this->IsPrototypeFlag)
                 {
-                    instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+                    instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->Clear();
                 }
             }
             return true;
@@ -532,7 +532,7 @@ namespace Js
                 this->ClearHasOnlyWritableDataProperties();
                 if(this->GetFlags() & this->IsPrototypeFlag)
                 {
-                    instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+                    instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->Clear();
                 }
             }
             return true;
@@ -594,7 +594,7 @@ namespace Js
         this->ClearHasOnlyWritableDataProperties();
         if(this->GetFlags() & this->IsPrototypeFlag)
         {
-            instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+            instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->Clear();
         }
         return true;
     }
@@ -1033,7 +1033,7 @@ namespace Js
                         this->ClearHasOnlyWritableDataProperties();
                         if(this->GetFlags() & this->IsPrototypeFlag)
                         {
-                            instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+                            instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->Clear();
                         }
                     }
                 }
@@ -1063,7 +1063,7 @@ namespace Js
                         this->ClearHasOnlyWritableDataProperties();
                         if(this->GetFlags() & this->IsPrototypeFlag)
                         {
-                            instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+                            instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->Clear();
                         }
                     }
                 }
@@ -1127,7 +1127,7 @@ namespace Js
             SetLengthWritable(value ? true : false);
             if(!value && this->GetFlags() & this->IsPrototypeFlag)
             {
-                instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+                instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->Clear();
             }
             return true;
         }

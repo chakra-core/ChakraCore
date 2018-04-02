@@ -553,12 +553,15 @@ namespace Js
         InlineCache * GetValueOfInlineCache() const { return valueOfInlineCache;}
         InlineCache * GetToStringInlineCache() const { return toStringInlineCache; }
 
+        NoSpecialPropertyScriptRegistry* GetNoSpecialPropertyRegistry() { return &this->noSpecialPropertyRegistry; }
+        OnlyWritablePropertyScriptRegistry* GetOnlyWritablePropertyRegistry() { return &this->onlyWritablePropertyRegistry; }
     private:
 
         JavascriptFunction* GenerateRootFunction(ParseNodeProg * parseTree, uint sourceIndex, Parser* parser, uint32 grfscr, CompileScriptException * pse, const char16 *rootDisplayName);
 
         typedef void (*EventHandler)(ScriptContext *);
-        ScriptContext ** registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext;
+        NoSpecialPropertyScriptRegistry noSpecialPropertyRegistry;
+        OnlyWritablePropertyScriptRegistry onlyWritablePropertyRegistry;
 
         ArenaAllocator generalAllocator;
 #ifdef ENABLE_BASIC_TELEMETRY
@@ -1491,13 +1494,6 @@ private:
 #if ENABLE_NATIVE_CODEGEN
         void RegisterConstructorCache(Js::PropertyId propertyId, Js::ConstructorCache* cache);
 #endif
-
-    public:
-        void RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext();
-    private:
-        void DoRegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext();
-    public:
-        void ClearPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesCaches();
 
     public:
         JavascriptString * GetLastNumberToStringRadix10(double value);

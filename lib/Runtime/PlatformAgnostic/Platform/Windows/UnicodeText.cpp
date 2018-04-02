@@ -9,7 +9,6 @@
 
 #include <windows.h>
 #include "Runtime.h"
-#include "Base/ThreadContext.h"
 #ifdef NTBUILD
 #include "Windows.Globalization.h"
 #else

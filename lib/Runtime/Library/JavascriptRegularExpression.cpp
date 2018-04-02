@@ -19,6 +19,7 @@ namespace Js
     {
         Assert(type->GetTypeId() == TypeIds_RegEx);
         Assert(!this->GetType()->AreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties());
+        Assert(!this->GetType()->ThisAndPrototypesHaveNoSpecialProperties());
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
         if (REGEX_CONFIG_FLAG(RegexTracing))

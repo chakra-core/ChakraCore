@@ -58,9 +58,13 @@ namespace Js
         // for that property ID must be cleared on this new type after the type property cache is copied. Also, types are not
         // changed consistently to use this copy constructor, so those would need to be fixed as well.
 
-        if(type->AreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties())
+        if (type->AreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties())
         {
             SetAreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties(true);
+        }
+        if(type->ThisAndPrototypesHaveNoSpecialProperties())
+        {
+            SetThisAndPrototypesHaveNoSpecialProperties(true);
         }
         if(type->IsFalsy())
         {
@@ -105,7 +109,7 @@ namespace Js
             }
 
             flags |= TypeFlagMask_AreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties;
-            javascriptLibrary->TypeAndPrototypesAreEnsuredToHaveOnlyWritableDataProperties(this);
+            javascriptLibrary->GetTypesWithOnlyWritablePropertyProtoChainCache()->Register(this);
         }
         else
         {
@@ -116,6 +120,31 @@ namespace Js
     BOOL Type::AreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties() const
     {
         return flags & TypeFlagMask_AreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties;
+    }
+
+    void Type::SetThisAndPrototypesHaveNoSpecialProperties(const bool truth)
+    {
+        if (truth)
+        {
+            if (GetScriptContext()->IsClosed())
+            {
+                // The cache is disabled after the script context is closed, to avoid issues between being closed and being deleted,
+                // where the cache of these types in JavascriptLibrary may be reclaimed at any point
+                return;
+            }
+
+            flags |= TypeFlagMask_ThisAndPrototypesHaveNoSpecialProperties;
+            javascriptLibrary->GetTypesWithNoSpecialPropertyProtoChainCache()->Register(this);
+        }
+        else
+        {
+            flags &= ~TypeFlagMask_ThisAndPrototypesHaveNoSpecialProperties;
+        }
+    }
+
+    BOOL Type::ThisAndPrototypesHaveNoSpecialProperties() const
+    {
+        return flags & TypeFlagMask_ThisAndPrototypesHaveNoSpecialProperties;
     }
 
     void Type::SetIsFalsy(const bool truth)

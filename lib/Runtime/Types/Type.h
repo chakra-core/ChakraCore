@@ -12,7 +12,7 @@ enum TypeFlagMask : uint8
     TypeFlagMask_HasSpecialPrototype                                               = 0x04,
     TypeFlagMask_EngineExternal                                                    = 0x08,
     TypeFlagMask_SkipsPrototype                                                    = 0x10,
-    TypeFlagMask_RESERVED                                                          = 0x20,
+    TypeFlagMask_ThisAndPrototypesHaveNoSpecialProperties                          = 0x20,
     TypeFlagMask_JsrtExternal                                                      = 0x40,
     TypeFlagMask_HasBeenCached                                                     = 0x80
 };
@@ -59,6 +59,9 @@ namespace Js
         // type and all of its prototypes. However, if this function returns false, it does not imply the converse.
         BOOL AreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties() const;
         void SetAreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties(const bool truth);
+
+        BOOL ThisAndPrototypesHaveNoSpecialProperties() const;
+        void SetThisAndPrototypesHaveNoSpecialProperties(const bool truth);
 
         inline BOOL IsExternal() const
         {

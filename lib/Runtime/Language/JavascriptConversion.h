@@ -9,9 +9,12 @@ namespace Js {
     class JavascriptConversion  /* All static */
     {
     public:
-        static Var OrdinaryToPrimitive(Var aValue, JavascriptHint hint, ScriptContext * scriptContext);
-        static Var MethodCallToPrimitive(Var aValue, JavascriptHint hint, ScriptContext * scriptContext);
-        static Var ToPrimitive(Var aValue, JavascriptHint hint, ScriptContext * scriptContext);
+        template <JavascriptHint hint>
+        static Var OrdinaryToPrimitive(_In_ RecyclableObject* value, _In_ ScriptContext * scriptContext);
+        template <JavascriptHint hint>
+        static Var MethodCallToPrimitive(_In_ RecyclableObject* value, _In_ ScriptContext * scriptContext);
+        template <JavascriptHint hint>
+        static Var ToPrimitive(_In_ Var aValue, _In_ ScriptContext * scriptContext);
         static BOOL CanonicalNumericIndexString(JavascriptString *aValue, double *indexValue, ScriptContext * scriptContext);
 
         static void ToPropertyKey(

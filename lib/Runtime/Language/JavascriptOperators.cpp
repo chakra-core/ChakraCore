@@ -150,7 +150,7 @@ namespace Js
 
     IndexType GetIndexType(Var& indexVar, ScriptContext* scriptContext, uint32* index, PropertyRecord const ** propertyRecord, JavascriptString ** propertyNameString, bool createIfNotFound, bool preferJavascriptStringOverPropertyRecord)
     {
-        indexVar = JavascriptConversion::ToPrimitive(indexVar, JavascriptHint::HintString, scriptContext);
+        indexVar = JavascriptConversion::ToPrimitive<JavascriptHint::HintString>(indexVar, scriptContext);
         return GetIndexTypeFromPrimitive(indexVar, scriptContext, index, propertyRecord, propertyNameString, createIfNotFound, preferJavascriptStringOverPropertyRecord);
     }
 
@@ -693,7 +693,7 @@ namespace Js
             case TypeIds_Boolean:
                 break;
             default:
-                aRight = JavascriptConversion::ToPrimitive(aRight, JavascriptHint::HintNumber, scriptContext);
+                aRight = JavascriptConversion::ToPrimitive<JavascriptHint::HintNumber>(aRight, scriptContext);
                 rightType = JavascriptOperators::GetTypeId(aRight);
                 if (rightType != TypeIds_String)
                 {
@@ -716,13 +716,13 @@ namespace Js
         default:
             if (leftFirst)
             {
-                aLeft = JavascriptConversion::ToPrimitive(aLeft, JavascriptHint::HintNumber, scriptContext);
-                aRight = JavascriptConversion::ToPrimitive(aRight, JavascriptHint::HintNumber, scriptContext);
+                aLeft = JavascriptConversion::ToPrimitive<JavascriptHint::HintNumber>(aLeft, scriptContext);
+                aRight = JavascriptConversion::ToPrimitive<JavascriptHint::HintNumber>(aRight, scriptContext);
             }
             else
             {
-                aRight = JavascriptConversion::ToPrimitive(aRight, JavascriptHint::HintNumber, scriptContext);
-                aLeft = JavascriptConversion::ToPrimitive(aLeft, JavascriptHint::HintNumber, scriptContext);
+                aRight = JavascriptConversion::ToPrimitive<JavascriptHint::HintNumber>(aRight, scriptContext);
+                aLeft = JavascriptConversion::ToPrimitive<JavascriptHint::HintNumber>(aLeft, scriptContext);
             }
             //BugFix: When @@ToPrimitive of an object is overridden with a function that returns null/undefined
             //this helper will fall into a inescapable goto loop as the checks for null/undefined were outside of the path
@@ -9891,74 +9891,19 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         return !StrictEqual(aLeft, aRight, scriptContext);
     }
 
-    bool JavascriptOperators::CheckIfObjectAndPrototypeChainHasOnlyWritableDataProperties(RecyclableObject* object)
+    bool JavascriptOperators::CheckIfObjectAndPrototypeChainHasOnlyWritableDataProperties(_In_ RecyclableObject* object)
     {
-        Assert(object);
-        if (object->GetType()->HasSpecialPrototype())
-        {
-            TypeId typeId = object->GetTypeId();
-            if (typeId == TypeIds_Null)
-            {
-                return true;
-            }
-            if (typeId == TypeIds_Proxy)
-            {
-                return false;
-            }
-        }
-        if (!object->HasOnlyWritableDataProperties())
-        {
-            return false;
-        }
-        return CheckIfPrototypeChainHasOnlyWritableDataProperties(object->GetPrototype());
+        return object->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->Check(object);
     }
 
-    bool JavascriptOperators::CheckIfPrototypeChainHasOnlyWritableDataProperties(RecyclableObject* prototype)
+    bool JavascriptOperators::CheckIfPrototypeChainHasOnlyWritableDataProperties(_In_ RecyclableObject* prototype)
     {
-        Assert(prototype);
-
-        if (prototype->GetType()->AreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties())
-        {
-            Assert(DoCheckIfPrototypeChainHasOnlyWritableDataProperties(prototype));
-            return true;
-        }
-        return DoCheckIfPrototypeChainHasOnlyWritableDataProperties(prototype);
+        return prototype->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->CheckProtoChain(prototype);
     }
 
-    // Does a quick check to see if the specified object (which should be a prototype object) and all objects in its prototype
-    // chain have only writable data properties (i.e. no accessors or non-writable properties).
-    bool JavascriptOperators::DoCheckIfPrototypeChainHasOnlyWritableDataProperties(RecyclableObject* prototype)
+    bool JavascriptOperators::CheckIfObjectAndProtoChainHasNoSpecialProperties(_In_ RecyclableObject* object)
     {
-        Assert(prototype);
-
-        Type *const originalType = prototype->GetType();
-        ScriptContext *const scriptContext = prototype->GetScriptContext();
-        bool onlyOneScriptContext = true;
-        TypeId typeId;
-        for (; (typeId = prototype->GetTypeId()) != TypeIds_Null; prototype = prototype->GetPrototype())
-        {
-            if (typeId == TypeIds_Proxy)
-            {
-                return false;
-            }
-            if (!prototype->HasOnlyWritableDataProperties())
-            {
-                return false;
-            }
-            if (prototype->GetScriptContext() != scriptContext)
-            {
-                onlyOneScriptContext = false;
-            }
-        }
-
-        if (onlyOneScriptContext)
-        {
-            // See JavascriptLibrary::typesEnsuredToHaveOnlyWritableDataPropertiesInItAndPrototypeChain for a description of
-            // this cache. Technically, we could register all prototypes in the chain but this is good enough for now.
-            originalType->SetAreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties(true);
-        }
-
-        return true;
+        return object->GetLibrary()->GetTypesWithNoSpecialPropertyProtoChainCache()->Check(object);
     }
 
     // Checks to see if the specified object (which should be a prototype object)

@@ -237,7 +237,7 @@ namespace Js
         instance->EnsureSlots(0, newTypeHandler->GetSlotCapacity(), scriptContext, newTypeHandler);
         Assert(((this->GetFlags() & IsPrototypeFlag) != 0) == this->isPrototype);
         newTypeHandler->SetFlags(IsPrototypeFlag, this->GetFlags());
-        newTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection | PropertyTypesInlineSlotCapacityLocked, this->GetPropertyTypes());
+        newTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection | PropertyTypesInlineSlotCapacityLocked | PropertyTypesHasSpecialProperties, this->GetPropertyTypes());
         if (instance->HasReadOnlyPropertiesInvisibleToTypeHandler())
         {
             newTypeHandler->ClearHasOnlyWritableDataProperties();
@@ -332,7 +332,7 @@ namespace Js
             NullTypeHandler<true>* protoTypeHandler = NullTypeHandler<true>::GetDefaultInstance();
             AssertMsg(protoTypeHandler->GetFlags() == (GetFlags() | IsPrototypeFlag), "Why did we change the flags of a NullTypeHandler?");
             Assert(this->GetIsInlineSlotCapacityLocked() == protoTypeHandler->GetIsInlineSlotCapacityLocked());
-            protoTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection, GetPropertyTypes());
+            protoTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection | PropertyTypesHasSpecialProperties, GetPropertyTypes());
             SetInstanceTypeHandler(instance, protoTypeHandler);
         }
     }

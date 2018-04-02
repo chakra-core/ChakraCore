@@ -32,6 +32,7 @@ set(CRL_SOURCE_FILES ${CRL_SOURCE_FILES}
     ModuleNamespace.cpp
     ModuleNamespaceEnumerator.cpp
     ProfilingHelpers.cpp
+    PrototypeChainCache.cpp
     RuntimeLanguagePch.cpp
     SimdBool16x8Operation.cpp
     SimdBool16x8OperationX86X64.cpp
