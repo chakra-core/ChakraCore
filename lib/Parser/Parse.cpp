@@ -254,8 +254,7 @@ void Parser::IdentifierExpectedError(const Token& token)
 
 HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isGenerator, bool isAsync, CompileScriptException *pse, void (Parser::*validateFunction)())
 {
-    AssertPsz(pszSrc);
-    AssertMemN(pse);
+    Assert(pszSrc);
 
     PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackDefault);
 
@@ -344,9 +343,8 @@ HRESULT Parser::ParseSourceInternal(
     __out ParseNodePtr* parseTree, LPCUTF8 pszSrc, size_t offsetInBytes, size_t encodedCharCount, charcount_t offsetInChars,
     bool isUtf8, ULONG grfscr, CompileScriptException *pse, Js::LocalFunctionId * nextFunctionId, ULONG lineNumber, SourceContextInfo * sourceContextInfo)
 {
-    AssertMem(parseTree);
-    AssertPsz(pszSrc);
-    AssertMemN(pse);
+    Assert(parseTree);
+    Assert(pszSrc);
 
     if (this->IsBackgroundParser())
     {
@@ -391,7 +389,7 @@ HRESULT Parser::ParseSourceInternal(
         // parse the source
         pnodeBase = Parse(pszSrc, offsetInBytes, encodedCharCount, offsetInChars, isUtf8, grfscr, lineNumber, nextFunctionId, pse);
 
-        AssertNodeMem(pnodeBase);
+        Assert(pnodeBase);
 
         // Record the actual number of words parsed.
         m_sourceLim = pnodeBase->ichLim - offsetInChars;
@@ -1297,13 +1295,13 @@ ParseNodePtr Parser::CreateVarDeclNode(IdentPtr pid, SymbolType symbolType, bool
     ParseNodePtr pnode = CreateDeclNode(knopVarDecl, pid, symbolType, errorOnRedecl);
 
     // Append the variable to the end of the current variable list.
-    AssertMem(m_ppnodeVar);
+    Assert(m_ppnodeVar);
     pnode->AsParseNodeVar()->pnodeNext = *m_ppnodeVar;
     *m_ppnodeVar = pnode;
     if (nullptr != pid)
     {
         // this is not a temp - make sure temps go after this node
-        AssertMem(pid);
+        Assert(pid);
         m_ppnodeVar = &pnode->AsParseNodeVar()->pnodeNext;
         CheckPidIsValid(pid, autoArgumentsObject);
     }
@@ -1319,7 +1317,7 @@ ParseNodePtr Parser::CreateBlockScopedDeclNode(IdentPtr pid, OpCode nodeType)
 
     if (nullptr != pid)
     {
-        AssertMem(pid);
+        Assert(pid);
         AddVarDeclToBlock(pnode);
         CheckPidIsValid(pid);
     }
@@ -1334,7 +1332,7 @@ void Parser::AddVarDeclToBlock(ParseNode *pnode)
     // Maintain a combined list of let and const declarations to keep
     // track of declaration order.
 
-    AssertMem(m_currentBlockInfo->m_ppnodeLex);
+    Assert(m_currentBlockInfo->m_ppnodeLex);
     *m_currentBlockInfo->m_ppnodeLex = pnode;
     m_currentBlockInfo->m_ppnodeLex = &pnode->AsParseNodeVar()->pnodeNext;
     pnode->AsParseNodeVar()->pnodeNext = nullptr;
@@ -1436,7 +1434,7 @@ void Parser::PopFuncBlockScope(ParseNodePtr *ppnodeScopeSave, ParseNodePtr *ppno
     Assert(m_ppnodeExprScope == nullptr || *m_ppnodeExprScope == nullptr);
     m_ppnodeExprScope = ppnodeExprScopeSave;
 
-    AssertMem(m_ppnodeScope);
+    Assert(m_ppnodeScope);
     Assert(nullptr == *m_ppnodeScope);
     m_ppnodeScope = ppnodeScopeSave;
 }
@@ -1981,8 +1979,8 @@ void Parser::AddToNodeList(ParseNode ** ppnodeList, ParseNode *** pppnodeLast,
     else
     {
         //
-        AssertNodeMem(*ppnodeList);
-        AssertNodeMem(**pppnodeLast);
+        Assert(*ppnodeList);
+        Assert(**pppnodeLast);
 
         ParseNode *pnodeT = CreateBinNode(knopList, **pppnodeLast, pnodeAdd);
         **pppnodeLast = pnodeT;
@@ -3968,8 +3966,8 @@ ParseNodePtr Parser::ParseArgList( bool *pCallOfConstants, uint16 *pSpreadArgCou
     *pCount = static_cast<uint16>(count);
     if (buildAST)
     {
-        AssertMem(lastNodeRef);
-        AssertNodeMem(*lastNodeRef);
+        Assert(lastNodeRef);
+        Assert(*lastNodeRef);
         pnodeList->ichLim = (*lastNodeRef)->ichLim;
     }
 
@@ -4139,8 +4137,8 @@ ParseNodePtr Parser::ParseArrayList(bool *pArrayOfTaggedInts, bool *pArrayOfInts
 
     if (buildAST)
     {
-        AssertMem(lastNodeRef);
-        AssertNodeMem(*lastNodeRef);
+        Assert(lastNodeRef);
+        Assert(*lastNodeRef);
         pnodeList->ichLim = (*lastNodeRef)->ichLim;
 
         if (arrayOfVarInts && arrayOfInts)
@@ -4189,7 +4187,7 @@ ParseNodePtr Parser::ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint)
 {
     ParseNodePtr pnodeName = nullptr;
     Assert(nop == knopGetMember || nop == knopSetMember);
-    AssertMem(ppNameHint);
+    Assert(ppNameHint);
     IdentPtr pid = nullptr;
     bool isComputedName = false;
 
@@ -4729,8 +4727,8 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
 
     if (buildAST)
     {
-        AssertMem(lastNodeRef);
-        AssertNodeMem(*lastNodeRef);
+        Assert(lastNodeRef);
+        Assert(*lastNodeRef);
         pnodeList->ichLim = (*lastNodeRef)->ichLim;
     }
 
@@ -5586,7 +5584,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
         Assert(m_ppnodeExprScope == nullptr || *m_ppnodeExprScope == nullptr);
         m_ppnodeExprScope = ppnodeExprScopeSave;
 
-        AssertMem(m_ppnodeScope);
+        Assert(m_ppnodeScope);
         Assert(nullptr == *m_ppnodeScope);
         m_ppnodeScope = ppnodeScopeSave;
 
@@ -9615,7 +9613,7 @@ ParseNodePtr Parser::ParseCatch()
 
             // Restore the lists of function expression scopes.
 
-            AssertMem(m_ppnodeExprScope);
+            Assert(m_ppnodeExprScope);
             Assert(*m_ppnodeExprScope == nullptr);
             m_ppnodeExprScope = ppnodeExprScopeSave;
         }
@@ -10805,8 +10803,7 @@ void Parser::ParseStmtList(ParseNodePtr *ppnodeList, ParseNodePtr **pppnodeLast,
 
     if (buildAST)
     {
-        AssertMem(ppnodeList);
-        AssertMemN(pppnodeLast);
+        Assert(ppnodeList);
         *ppnodeList = nullptr;
     }
 
@@ -11153,7 +11150,7 @@ void Parser::FinishDeferredFunction(ParseNodePtr pnodeScopeList)
 
             m_ppnodeExprScope = ppnodeExprScopeSave;
 
-            AssertMem(m_ppnodeScope);
+            Assert(m_ppnodeScope);
             Assert(nullptr == *m_ppnodeScope);
             m_ppnodeScope = ppnodeScopeSave;
 
@@ -11181,7 +11178,6 @@ void Parser::FinishDeferredFunction(ParseNodePtr pnodeScopeList)
 
 void Parser::InitPids()
 {
-    AssertMemN(m_phtbl);
     wellKnownPropertyPids.arguments = this->GetHashTbl()->PidHashNameLen(g_ssym_arguments.sz, g_ssym_arguments.cch);
     wellKnownPropertyPids.async = this->GetHashTbl()->PidHashNameLen(g_ssym_async.sz, g_ssym_async.cch);
     wellKnownPropertyPids.eval = this->GetHashTbl()->PidHashNameLen(g_ssym_eval.sz, g_ssym_eval.cch);
@@ -11577,8 +11573,8 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
     // Append an EndCode node.
     AddToNodeList(&pnodeProg->AsParseNodeFnc()->pnodeBody, &lastNodeRef,
         CreateNodeForOpT<knopEndCode>());
-    AssertMem(lastNodeRef);
-    AssertNodeMem(*lastNodeRef);
+    Assert(lastNodeRef);
+    Assert(*lastNodeRef);
     Assert((*lastNodeRef)->nop == knopEndCode);
     (*lastNodeRef)->ichMin = 0;
     (*lastNodeRef)->ichLim = 0;

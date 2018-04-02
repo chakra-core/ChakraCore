@@ -3945,7 +3945,7 @@ namespace Js
             // The recycler doesn't like allocations from a different thread, so we allocate
             // the backing byte code block in the arena
             ArenaAllocator *pArena = m_scriptContext->AllocatorForDiagnostics();
-            AssertMem(pArena);
+            Assert(pArena);
             ByteBlock* probeBackingBlock = ByteBlock::NewFromArena(pArena, pbyteCodeBlockBuffer, byteCodeBlock->GetLength());
             SetProbeBackingBlock(probeBackingBlock);
         }

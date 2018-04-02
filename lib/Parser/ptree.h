@@ -934,10 +934,6 @@ public:
     ParseNodePtr pnodeNewTarget;
 };
 
-#define AssertNodeMem(pnode) AssertPvCb(pnode, sizeof(ParseNode))
-#define AssertNodeMemN(pnode) AssertPvCbN(pnode, sizeof(ParseNode))
-
-
 typedef ParseNode ParseNodeNone;
 template <OpCode nop> class OpCodeTrait;
 #define PTNODE(nop,sn,pc,nk,ok,json) \
