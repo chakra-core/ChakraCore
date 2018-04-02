@@ -6370,14 +6370,24 @@ namespace Js
 
     EnumeratorCache* JavascriptLibrary::GetObjectAssignCache(Type* type)
     {
-        // Size must be power of 2 for cache indexing to work
-        CompileAssert((Cache::AssignCacheSize & (Cache::AssignCacheSize - 1)) == 0);
+        return GetEnumeratorCache<Cache::AssignCacheSize>(type, &this->cache.assignCache);
+    }
 
-        if (this->cache.assignCache == nullptr)
+    EnumeratorCache* JavascriptLibrary::GetStringifyCache(Type* type)
+    {
+        return GetEnumeratorCache<Cache::StringifyCacheSize>(type, &this->cache.stringifyCache);
+    }
+
+    template<uint cacheSlotCount> EnumeratorCache* JavascriptLibrary::GetEnumeratorCache(Type* type, Field(EnumeratorCache*)* cacheSlots)
+    {
+        // Size must be power of 2 for cache indexing to work
+        CompileAssert((cacheSlotCount & (cacheSlotCount - 1)) == 0);
+
+        if (*cacheSlots == nullptr)
         {
-            this->cache.assignCache = AllocatorNewArrayZ(CacheAllocator, scriptContext->GetEnumeratorAllocator(), EnumeratorCache, Cache::AssignCacheSize);
+            *cacheSlots = AllocatorNewArrayZ(CacheAllocator, scriptContext->GetEnumeratorAllocator(), EnumeratorCache, cacheSlotCount);
         }
-        return &this->cache.assignCache[(((uintptr_t)type) >> PolymorphicInlineCacheShift) & (Cache::AssignCacheSize - 1)];
+        return &(*cacheSlots)[(((uintptr_t)type) >> PolymorphicInlineCacheShift) & (cacheSlotCount - 1)];
     }
 
     SymbolCacheMap* JavascriptLibrary::EnsureSymbolMap()
