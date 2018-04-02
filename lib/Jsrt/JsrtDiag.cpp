@@ -537,6 +537,10 @@ CHAKRA_API JsTTDDiagWriteLog(_In_reads_(uriLength) const char* uri, _In_ size_t 
     return JsErrorCategoryUsage;
 #else
     return ContextAPIWrapper_NoRecord<true>([&](Js::ScriptContext * scriptContext) -> JsErrorCode {
+        if (!scriptContext->GetThreadContext()->IsRuntimeInTTDMode() || !scriptContext->GetThreadContext()->TTDLog->CanWriteInnerLoopTrace())
+        {
+            return JsErrorDiagUnableToPerformAction;
+        }
 
         JsrtContext *currentContext = JsrtContext::GetCurrent();
         JsrtRuntime* runtime = currentContext->GetRuntime();

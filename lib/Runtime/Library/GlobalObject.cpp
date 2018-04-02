@@ -1674,7 +1674,7 @@ LHexError:
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
         ARGUMENTS(args, callInfo);
 
-        if(function->GetScriptContext()->ShouldPerformRecordOrReplayAction())
+        if(function->GetScriptContext()->ShouldPerformRecordOrReplayAction() && !function->GetScriptContext()->GetThreadContext()->TTDLog->SuppressDiagnosticTracesDuringInnerLoop())
         {
             return function->GetScriptContext()->GetLibrary()->GetTrue();
         }
