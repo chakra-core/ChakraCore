@@ -26,6 +26,7 @@ const uint fnopJump     = 0x0200;
 const uint fnopNotExprStmt = 0x0400;
 const uint fnopBinList  = 0x0800;
 const uint fnopExprMask = (fnopLeaf|fnopUni|fnopBin);
+const uint fnopAllowDefer = 0x1000; // allow to be created during defer parse
 
 /***************************************************************************
 Flags for classifying parse nodes.
@@ -65,13 +66,14 @@ enum PNodeFlags : ushort
 };
 
 /***************************************************************************
-Data structs for ParseNodes. ParseNode includes a union of these.
+Data structs for ParseNodes. 
 ***************************************************************************/
 class ParseNodeUni;
 class ParseNodeBin;
 class ParseNodeTri;
 class ParseNodeInt;
 class ParseNodeFloat;
+class ParseNodeRegExp;
 class ParseNodePid;
 class ParseNodeVar;
 class ParseNodeCall;
@@ -109,13 +111,14 @@ class ParseNodeModule;
 class ParseNode
 {
 public:
-    void Init(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+    ParseNode(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
     ParseNodeUni * AsParseNodeUni();
     ParseNodeBin * AsParseNodeBin();
     ParseNodeTri * AsParseNodeTri();
     ParseNodeInt * AsParseNodeInt();
     ParseNodeFloat * AsParseNodeFloat();
+    ParseNodeRegExp * AsParseNodeRegExp();
     ParseNodeVar * AsParseNodeVar();
     ParseNodePid * AsParseNodePid();
 
@@ -251,6 +254,8 @@ public:
 class ParseNodeUni : public ParseNode
 {
 public:
+    ParseNodeUni(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1);
+
     ParseNodePtr pnode1;
 };
 
@@ -258,6 +263,8 @@ public:
 class ParseNodeBin : public ParseNode
 {
 public:
+    ParseNodeBin(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1, ParseNode * pnode2);
+
     ParseNodePtr pnodeNext;
     ParseNodePtr pnode1;
     ParseNodePtr pnode2;
@@ -267,6 +274,8 @@ public:
 class ParseNodeTri : public ParseNode
 {
 public:
+    ParseNodeTri(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeNext;
     ParseNodePtr pnode1;
     ParseNodePtr pnode2;
@@ -277,6 +286,8 @@ public:
 class ParseNodeInt : public ParseNode
 {
 public:
+    ParseNodeInt(charcount_t ichMin, charcount_t ichMax, int32 lw);
+
     int32 lw;
 };
 
@@ -284,8 +295,19 @@ public:
 class ParseNodeFloat : public ParseNode
 {
 public:
+    ParseNodeFloat(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     double dbl;
     bool maybeInt : 1;
+};
+
+class ParseNodeRegExp : public ParseNode
+{
+public:
+    ParseNodeRegExp(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
+    UnifiedRegex::RegexPattern* regexPattern;
+    uint regexPatternIndex;
 };
 
 // identifier or string
@@ -294,11 +316,11 @@ struct PidRefStack;
 class ParseNodePid : public ParseNode
 {
 public:
+    ParseNodePid(OpCode nop, charcount_t ichMin, charcount_t ichLim, IdentPtr pid);
+
     IdentPtr pid;
     Symbol **symRef;
     Symbol *sym;
-    UnifiedRegex::RegexPattern* regexPattern;
-    uint regexPatternIndex;
 
     void SetSymRef(PidRefStack *ref);
     Symbol **GetSymRef() const { return symRef; }
@@ -309,6 +331,8 @@ public:
 class ParseNodeVar : public ParseNode
 {
 public:
+    ParseNodeVar(OpCode nop, charcount_t ichMin, charcount_t ichLim, IdentPtr name);
+
     ParseNodePtr pnodeNext;
     IdentPtr pid;
     Symbol *sym;
@@ -316,23 +340,14 @@ public:
     ParseNodePtr pnodeInit;
     BOOLEAN isSwitchStmtDecl;
     BOOLEAN isBlockScopeFncDeclVar;
-
-    void InitDeclNode(IdentPtr name, ParseNodePtr initExpr)
-    {
-        this->pid = name;
-        this->pnodeInit = initExpr;
-        this->pnodeNext = nullptr;
-        this->sym = nullptr;
-        this->symRef = nullptr;
-        this->isSwitchStmtDecl = false;
-        this->isBlockScopeFncDeclVar = false;
-    }
 };
 
 // Array literal
 class ParseNodeArrLit : public ParseNodeUni
 {
 public:
+    ParseNodeArrLit(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+        
     uint count;
     uint spreadCount;
     BYTE arrayOfTaggedInts:1;     // indicates that array initializer nodes are all tagged ints
@@ -395,6 +410,8 @@ struct DeferredFunctionStub;
 class ParseNodeFnc : public ParseNode
 {
 public:
+    ParseNodeFnc(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeNext;
     ParseNodePtr pnodeName;
     IdentPtr pid;
@@ -586,6 +603,8 @@ public:
 class ParseNodeClass : public ParseNode
 {
 public:
+    ParseNodeClass(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeName;
     ParseNodePtr pnodeDeclName;
     ParseNodePtr pnodeBlock;
@@ -604,6 +623,8 @@ public:
 class ParseNodeExportDefault : public ParseNode
 {
 public:
+    ParseNodeExportDefault(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeExpr;
 };
 
@@ -611,6 +632,8 @@ public:
 class ParseNodeStrTemplate : public ParseNode
 {
 public:
+    ParseNodeStrTemplate(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeStringLiterals;
     ParseNodePtr pnodeStringRawLiterals;
     ParseNodePtr pnodeSubstitutionExpressions;
@@ -622,6 +645,8 @@ public:
 class ParseNodeProg : public ParseNodeFnc
 {
 public:
+    ParseNodeProg(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeLastValStmt;
     bool m_UsesArgumentsAtGlobal;
 };
@@ -630,6 +655,8 @@ public:
 class ParseNodeModule : public ParseNodeProg
 {
 public:
+    ParseNodeModule(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ModuleImportOrExportEntryList* localExportEntries;
     ModuleImportOrExportEntryList* indirectExportEntries;
     ModuleImportOrExportEntryList* starExportEntries;
@@ -641,6 +668,8 @@ public:
 class ParseNodeCall : public ParseNode
 {
 public:
+    ParseNodeCall(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNodePtr pnodeTarget, ParseNodePtr pnodeArgs);
+
     ParseNodePtr pnodeNext;
     ParseNodePtr pnodeTarget;
     ParseNodePtr pnodeArgs;
@@ -651,14 +680,14 @@ public:
     BYTE isEvalCall : 1;
     BYTE isSuperCall : 1;
     BYTE hasDestructuring : 1;
-
-    void Init(OpCode nop, ParseNodePtr pnodeTarget, ParseNodePtr pnodeArgs, charcount_t ichMin, charcount_t ichLim);
 };
 
 // base for statement nodes
 class ParseNodeStmt : public ParseNode
 {
 public:
+    ParseNodeStmt(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeOuter;
 
     // Set by parsing code, used by code gen.
@@ -673,6 +702,8 @@ public:
 class ParseNodeBlock : public ParseNodeStmt
 {
 public:
+    ParseNodeBlock(charcount_t ichMin, charcount_t ichLim, int blockId, PnodeBlockType blockType);
+
     ParseNodePtr pnodeStmt;
     ParseNodePtr pnodeLastValStmt;
     ParseNodePtr pnodeLexVars;
@@ -685,8 +716,6 @@ public:
     PnodeBlockType blockType:2;
     BYTE         callsEval:1;
     BYTE         childCallsEval:1;
-
-    void Init(int blockId, PnodeBlockType blockType, charcount_t ichMin, charcount_t ichLim);
 
     void SetCallsEval(bool does) { callsEval = does; }
     bool GetCallsEval() const { return callsEval; }
@@ -704,6 +733,8 @@ public:
 class ParseNodeJump : public ParseNodeStmt
 {
 public:
+    ParseNodeJump(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeTarget;
     bool hasExplicitTarget;
 };
@@ -712,6 +743,8 @@ public:
 class ParseNodeLoop : public ParseNodeStmt
 {
 public:
+    ParseNodeLoop(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     // Needed for byte code gen
     uint loopId;
 };
@@ -720,6 +753,8 @@ public:
 class ParseNodeWhile : public ParseNodeLoop
 {
 public:
+    ParseNodeWhile(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeCond;
     ParseNodePtr pnodeBody;
 };
@@ -728,6 +763,8 @@ public:
 class ParseNodeWith : public ParseNodeStmt
 {
 public:
+    ParseNodeWith(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeObj;
     ParseNodePtr pnodeBody;
     ParseNodePtr pnodeScopes;
@@ -739,6 +776,8 @@ public:
 class ParseNodeParamPattern : public ParseNode
 {
 public:
+    ParseNodeParamPattern(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeNext;
     Js::RegSlot location;
     ParseNodePtr pnode1;
@@ -748,6 +787,8 @@ public:
 class ParseNodeIf : public ParseNodeStmt
 {
 public:
+    ParseNodeIf(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeCond;
     ParseNodePtr pnodeTrue;
     ParseNodePtr pnodeFalse;
@@ -757,6 +798,8 @@ public:
 class ParseNodeForInOrForOf : public ParseNodeLoop
 {
 public:
+    ParseNodeForInOrForOf(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeObj;
     ParseNodePtr pnodeBody;
     ParseNodePtr pnodeLval;
@@ -768,6 +811,8 @@ public:
 class ParseNodeFor : public ParseNodeLoop
 {
 public:
+    ParseNodeFor(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeCond;
     ParseNodePtr pnodeBody;
     ParseNodePtr pnodeInit;
@@ -780,6 +825,8 @@ public:
 class ParseNodeSwitch : public ParseNodeStmt
 {
 public:
+    ParseNodeSwitch(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeVal;
     ParseNodePtr pnodeCases;
     ParseNodePtr pnodeDefault;
@@ -790,6 +837,8 @@ public:
 class ParseNodeCase : public ParseNodeStmt
 {
 public:
+    ParseNodeCase(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeNext;
     ParseNodePtr pnodeExpr; // nullptr for default
     ParseNodePtr pnodeBody;
@@ -800,6 +849,8 @@ public:
 class ParseNodeReturn : public ParseNodeStmt
 {
 public:
+    ParseNodeReturn(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeExpr;
 };
 
@@ -807,6 +858,8 @@ public:
 class ParseNodeTryFinally : public ParseNodeStmt
 {
 public:
+    ParseNodeTryFinally(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeTry;
     ParseNodePtr pnodeFinally;
 };
@@ -815,6 +868,8 @@ public:
 class ParseNodeTryCatch : public ParseNodeStmt
 {
 public:
+    ParseNodeTryCatch(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeTry;
     ParseNodePtr pnodeCatch;
 };
@@ -823,6 +878,8 @@ public:
 class ParseNodeTry : public ParseNodeStmt
 {
 public:
+    ParseNodeTry(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeBody;
 };
 
@@ -830,6 +887,8 @@ public:
 class ParseNodeCatch : public ParseNodeStmt
 {
 public:
+    ParseNodeCatch(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeNext;
     ParseNodePtr pnodeParam;
     ParseNodePtr pnodeBody;
@@ -841,6 +900,8 @@ public:
 class ParseNodeFinally : public ParseNodeStmt
 {
 public:
+    ParseNodeFinally(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
     ParseNodePtr pnodeBody;
 };
 
@@ -848,6 +909,8 @@ public:
 class ParseNodeSpecialName : public ParseNodePid
 {
 public:
+    ParseNodeSpecialName(charcount_t ichMin, charcount_t ichLim, IdentPtr pid);
+
     bool isThis : 1;
     bool isSuper : 1;
 };
@@ -856,6 +919,8 @@ public:
 class ParseNodeSuperReference : public ParseNodeBin
 {
 public:
+    ParseNodeSuperReference(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1, ParseNode * pnode2);
+
     ParseNodePtr pnodeThis;
 };
 
@@ -863,48 +928,24 @@ public:
 class ParseNodeSuperCall : public ParseNodeCall
 {
 public:
+    ParseNodeSuperCall(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnodeTarget, ParseNode * pnodeArgs);
+
     ParseNodePtr pnodeThis;
     ParseNodePtr pnodeNewTarget;
-
-    void Init(OpCode nop, ParseNodePtr pnodeTarget, ParseNodePtr pnodeArgs, charcount_t ichMin, charcount_t ichLim);
 };
 
-const int kcbPnNone           = sizeof(ParseNode);
-const int kcbPnArrLit         = sizeof(ParseNodeArrLit);
-const int kcbPnBin            = sizeof(ParseNodeBin);
-const int kcbPnBlock          = sizeof(ParseNodeBlock);
-const int kcbPnCall           = sizeof(ParseNodeCall);
-const int kcbPnCase           = sizeof(ParseNodeCase);
-const int kcbPnCatch          = sizeof(ParseNodeCatch);
-const int kcbPnClass          = sizeof(ParseNodeClass);
-const int kcbPnExportDefault  = sizeof(ParseNodeExportDefault);
-const int kcbPnFinally        = sizeof(ParseNodeFinally);
-const int kcbPnFlt            = sizeof(ParseNodeFloat);
-const int kcbPnFnc            = sizeof(ParseNodeFnc);
-const int kcbPnFor            = sizeof(ParseNodeFor);
-const int kcbPnForIn          = sizeof(ParseNodeForInOrForOf);
-const int kcbPnForOf          = sizeof(ParseNodeForInOrForOf);
-const int kcbPnIf             = sizeof(ParseNodeIf);
-const int kcbPnInt            = sizeof(ParseNodeInt);
-const int kcbPnJump           = sizeof(ParseNodeJump);
-const int kcbPnModule         = sizeof(ParseNodeModule);
-const int kcbPnParamPattern   = sizeof(ParseNodeParamPattern);
-const int kcbPnPid            = sizeof(ParseNodePid);
-const int kcbPnProg           = sizeof(ParseNodeProg);
-const int kcbPnReturn         = sizeof(ParseNodeReturn);
-const int kcbPnSpecialName    = sizeof(ParseNodeSpecialName);
-const int kcbPnStrTemplate    = sizeof(ParseNodeStrTemplate);
-const int kcbPnSuperCall      = sizeof(ParseNodeSuperCall);
-const int kcbPnSuperReference = sizeof(ParseNodeSuperReference);
-const int kcbPnSwitch         = sizeof(ParseNodeSwitch);
-const int kcbPnTri            = sizeof(ParseNodeTri);
-const int kcbPnTry            = sizeof(ParseNodeTry);
-const int kcbPnTryCatch       = sizeof(ParseNodeTryCatch);
-const int kcbPnTryFinally     = sizeof(ParseNodeTryFinally);
-const int kcbPnUni            = sizeof(ParseNodeUni);
-const int kcbPnVar            = sizeof(ParseNodeVar);
-const int kcbPnWhile          = sizeof(ParseNodeWhile);
-const int kcbPnWith           = sizeof(ParseNodeWith);
+#define AssertNodeMem(pnode) AssertPvCb(pnode, sizeof(ParseNode))
+#define AssertNodeMemN(pnode) AssertPvCbN(pnode, sizeof(ParseNode))
 
-#define AssertNodeMem(pnode) AssertPvCb(pnode, kcbPnNone)
-#define AssertNodeMemN(pnode) AssertPvCbN(pnode, kcbPnNone)
+
+typedef ParseNode ParseNodeNone;
+template <OpCode nop> class OpCodeTrait;
+#define PTNODE(nop,sn,pc,nk,ok,json) \
+    template<> \
+    class OpCodeTrait<nop>  \
+    { \
+    public:  \
+        typedef ParseNode##nk ParseNodeType; \
+        static const bool AllowDefer = ((ok) & fnopAllowDefer) != 0; \
+    };
+#include "ptlist.h"

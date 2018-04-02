@@ -10084,8 +10084,8 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         break;
         // PTNODE(knopRegExp     , "reg expr"    ,None    ,Pid  ,fnopLeaf|fnopConst)
     case knopRegExp:
-        funcInfo->GetParsedFunctionBody()->SetLiteralRegex(pnode->AsParseNodePid()->regexPatternIndex, pnode->AsParseNodePid()->regexPattern);
-        byteCodeGenerator->Writer()->Reg1Unsigned1(Js::OpCode::NewRegEx, funcInfo->AcquireLoc(pnode), pnode->AsParseNodePid()->regexPatternIndex);
+        funcInfo->GetParsedFunctionBody()->SetLiteralRegex(pnode->AsParseNodeRegExp()->regexPatternIndex, pnode->AsParseNodeRegExp()->regexPattern);
+        byteCodeGenerator->Writer()->Reg1Unsigned1(Js::OpCode::NewRegEx, funcInfo->AcquireLoc(pnode), pnode->AsParseNodeRegExp()->regexPatternIndex);
         break;
         // PTNODE(knopNull       , "null"        ,Null    ,None ,fnopLeaf)
     case knopNull:
