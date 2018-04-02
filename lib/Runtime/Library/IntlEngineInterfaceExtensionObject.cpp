@@ -2302,7 +2302,7 @@ namespace Js
             case UDAT_TIMEZONE_ISO_FIELD:
             case UDAT_TIMEZONE_ISO_LOCAL_FIELD:
                 typeString = _u("timeZoneName"); break;
-#if !defined(UDAT_HAS_PATTERN_CHAR_FOR_TIME_SEPARATOR) || UDAT_HAS_PATTERN_CHAR_FOR_TIME_SEPARATOR
+#if defined(ICU_VERSION) && ICU_VERSION == 55
             case UDAT_TIME_SEPARATOR_FIELD:
                 // ICU 55 (Ubuntu 16.04 system default) has the ":" in "5:23 PM" as a special field
                 // Intl should just treat this as a literal
