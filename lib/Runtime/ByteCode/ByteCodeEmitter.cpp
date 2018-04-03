@@ -521,14 +521,14 @@ void ByteCodeGenerator::LoadUncachedHeapArguments(FuncInfo *funcInfo)
     Js::RegSlot argumentsLoc = argSym->GetLocation();
 
 
-    Js::OpCode opcode = !funcInfo->root->AsParseNodeFnc()->HasNonSimpleParameterList() ? Js::OpCode::LdHeapArguments : Js::OpCode::LdLetHeapArguments;
-    bool hasRest = funcInfo->root->AsParseNodeFnc()->pnodeRest != nullptr;
+    Js::OpCode opcode = !funcInfo->root->HasNonSimpleParameterList() ? Js::OpCode::LdHeapArguments : Js::OpCode::LdLetHeapArguments;
+    bool hasRest = funcInfo->root->pnodeRest != nullptr;
     uint count = funcInfo->inArgsCount + (hasRest ? 1 : 0) - 1;
     if (count == 0)
     {
         // If no formals to function (only "this"), then no need to create the scope object.
         // Leave both the arguments location and the propertyIds location as null.
-        Assert(funcInfo->root->AsParseNodeFnc()->pnodeParams == nullptr && !hasRest);
+        Assert(funcInfo->root->pnodeParams == nullptr && !hasRest);
     }
     else if (!NeedScopeObjectForArguments(funcInfo, funcInfo->root))
     {
@@ -556,7 +556,7 @@ void ByteCodeGenerator::LoadCachedHeapArguments(FuncInfo *funcInfo)
     Assert(argSym && argSym->IsArguments());
     Js::RegSlot argumentsLoc = argSym->GetLocation();
 
-    Js::OpCode op = !funcInfo->root->AsParseNodeFnc()->HasNonSimpleParameterList() ? Js::OpCode::LdHeapArgsCached : Js::OpCode::LdLetHeapArgsCached;
+    Js::OpCode op = !funcInfo->root->HasNonSimpleParameterList() ? Js::OpCode::LdHeapArgsCached : Js::OpCode::LdLetHeapArgsCached;
 
     this->m_writer.Reg1(op, argumentsLoc);
     EmitLocalPropInit(argumentsLoc, argSym, funcInfo);
@@ -792,7 +792,7 @@ void BeginEmitBlock(ParseNode *pnodeBlock, ByteCodeGenerator *byteCodeGenerator,
                         tmpInnerEnvReg = funcInfo->AcquireTmpRegister();
                         frameDisplayLoc = byteCodeGenerator->PrependLocalScopes(frameDisplayLoc, tmpInnerEnvReg, funcInfo);
                     }
-                    byteCodeGenerator->DefineOneFunction(pnodeScope, funcInfo, true, frameDisplayLoc);
+                    byteCodeGenerator->DefineOneFunction(pnodeScope->AsParseNodeFnc(), funcInfo, true, frameDisplayLoc);
                 }
 
                 // If this is the global eval block scope, the function is actually assigned to the global
@@ -1085,7 +1085,7 @@ void ByteCodeGenerator::DefineCachedFunctions(FuncInfo *funcInfoParent)
             // Only happens if the sym is null (e.g., function x.y(){}).
             if (sym == nullptr)
             {
-                this->DefineOneFunction(pnodeFnc, funcInfoParent);
+                this->DefineOneFunction(pnodeFnc->AsParseNodeFnc(), funcInfoParent);
             }
             else if (!sym->IsInSlot(funcInfoParent) && sym->GetLocation() != Js::Constants::NoRegister)
             {
@@ -1126,7 +1126,7 @@ void ByteCodeGenerator::DefineUncachedFunctions(FuncInfo *funcInfoParent)
 
         if (pnodeFnc->AsParseNodeFnc()->IsDeclaration())
         {
-            this->DefineOneFunction(pnodeFnc, funcInfoParent);
+            this->DefineOneFunction(pnodeFnc->AsParseNodeFnc(), funcInfoParent);
             // The "x = function() {...}" case is being generated on the fly, during emission,
             // so the caller expects to be able to release this register.
             funcInfoParent->ReleaseLoc(pnodeFnc);
@@ -1136,10 +1136,10 @@ void ByteCodeGenerator::DefineUncachedFunctions(FuncInfo *funcInfoParent)
     MapContainerScopeFunctions(pnodeParent, defineCheck);
 }
 
-void EmitAssignmentToFuncName(ParseNode *pnodeFnc, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfoParent)
+void EmitAssignmentToFuncName(ParseNodeFnc *pnodeFnc, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfoParent)
 {
     // Assign the location holding the func object reference to the given name.
-    Symbol *sym = pnodeFnc->AsParseNodeFnc()->pnodeName->AsParseNodeVar()->sym;
+    Symbol *sym = pnodeFnc->pnodeName->AsParseNodeVar()->sym;
 
     if (sym != nullptr && !sym->GetIsFuncExpr())
     {
@@ -1196,7 +1196,7 @@ void EmitAssignmentToFuncName(ParseNode *pnodeFnc, ByteCodeGenerator *byteCodeGe
     }
 }
 
-Js::RegSlot ByteCodeGenerator::DefineOneFunction(ParseNode *pnodeFnc, FuncInfo *funcInfoParent, bool generateAssignment, Js::RegSlot regEnv, Js::RegSlot frameDisplayTemp)
+Js::RegSlot ByteCodeGenerator::DefineOneFunction(ParseNodeFnc *pnodeFnc, FuncInfo *funcInfoParent, bool generateAssignment, Js::RegSlot regEnv, Js::RegSlot frameDisplayTemp)
 {
     Assert(pnodeFnc->nop == knopFncDecl);
 
@@ -1231,11 +1231,11 @@ Js::RegSlot ByteCodeGenerator::DefineOneFunction(ParseNode *pnodeFnc, FuncInfo *
     // If we are in a parameter scope and it is not merged with body scope then we have to create the child function as an inner function
     if (regEnv == funcInfoParent->frameDisplayRegister || regEnv == funcInfoParent->GetEnvRegister())
     {
-        m_writer.NewFunction(pnodeFnc->location, pnodeFnc->AsParseNodeFnc()->nestedIndex, pnodeFnc->AsParseNodeFnc()->IsCoroutine());
+        m_writer.NewFunction(pnodeFnc->location, pnodeFnc->nestedIndex, pnodeFnc->IsCoroutine());
     }
     else
     {
-        m_writer.NewInnerFunction(pnodeFnc->location, pnodeFnc->AsParseNodeFnc()->nestedIndex, regEnv, pnodeFnc->AsParseNodeFnc()->IsCoroutine());
+        m_writer.NewInnerFunction(pnodeFnc->location, pnodeFnc->nestedIndex, regEnv, pnodeFnc->IsCoroutine());
     }
 
     if (funcInfoParent->IsGlobalFunction() && (this->flags & fscrEval))
@@ -1246,9 +1246,9 @@ Js::RegSlot ByteCodeGenerator::DefineOneFunction(ParseNode *pnodeFnc, FuncInfo *
     }
     else
     {
-        if (pnodeFnc->AsParseNodeFnc()->IsDeclaration())
+        if (pnodeFnc->IsDeclaration())
         {
-            Symbol * funcSymbol = pnodeFnc->AsParseNodeFnc()->GetFuncSymbol();
+            Symbol * funcSymbol = pnodeFnc->GetFuncSymbol();
             if (funcSymbol)
             {
                 // In the case where a let/const declaration is the same symbol name
@@ -1292,12 +1292,12 @@ Js::RegSlot ByteCodeGenerator::DefineOneFunction(ParseNode *pnodeFnc, FuncInfo *
         }
     }
 
-    if (pnodeFnc->AsParseNodeFnc()->IsDefaultModuleExport())
+    if (pnodeFnc->IsDefaultModuleExport())
     {
         this->EmitAssignmentToDefaultModuleExport(pnodeFnc, funcInfoParent);
     }
 
-    if (pnodeFnc->AsParseNodeFnc()->pnodeName == nullptr || !generateAssignment)
+    if (pnodeFnc->pnodeName == nullptr || !generateAssignment)
     {
         return regEnv;
     }
@@ -1319,7 +1319,7 @@ void ByteCodeGenerator::DefineUserVars(FuncInfo *funcInfo)
     // Just assign one on the fly and re-use it for all initializations.
     Js::RegSlot tmpReg = fGlobal ? funcInfo->AcquireTmpRegister() : Js::Constants::NoRegister;
 
-    for (pnode = funcInfo->root->AsParseNodeFnc()->pnodeVars; pnode; pnode = pnode->AsParseNodeVar()->pnodeNext)
+    for (pnode = funcInfo->root->pnodeVars; pnode; pnode = pnode->AsParseNodeVar()->pnodeNext)
     {
         Symbol* sym = pnode->AsParseNodeVar()->sym;
 
@@ -1332,7 +1332,7 @@ void ByteCodeGenerator::DefineUserVars(FuncInfo *funcInfo)
                 // We must do that because a default parameter may access a special symbol through a scope slot.
                 // In the non-default-argument case, though, we didn't yet store the values into the
                 // slots so let's do that now.
-                if (!funcInfo->root->AsParseNodeFnc()->HasNonSimpleParameterList())
+                if (!funcInfo->root->HasNonSimpleParameterList())
                 {
                     EmitPropStoreForSpecialSymbol(sym->GetLocation(), sym, sym->GetPid(), funcInfo, true);
 
@@ -1565,13 +1565,13 @@ void ByteCodeGenerator::EmitScopeObjectInit(FuncInfo *funcInfo)
 
     Js::PropertyIdArray *propIds = funcInfo->GetParsedFunctionBody()->AllocatePropertyIdArrayForFormals(extraAlloc, slotCount, Js::ActivationObjectEx::ExtraSlotCount());
 
-    ParseNode *pnodeFnc = funcInfo->root;
+    ParseNodeFnc *pnodeFnc = funcInfo->root;
     ParseNode *pnode;
     Symbol *sym;
 
-    if (funcInfo->GetFuncExprNameReference() && pnodeFnc->AsParseNodeFnc()->GetFuncSymbol()->GetScope() == funcInfo->GetBodyScope())
+    if (funcInfo->GetFuncExprNameReference() && pnodeFnc->GetFuncSymbol()->GetScope() == funcInfo->GetBodyScope())
     {
-        Symbol::SaveToPropIdArray(pnodeFnc->AsParseNodeFnc()->GetFuncSymbol(), propIds, this);
+        Symbol::SaveToPropIdArray(pnodeFnc->GetFuncSymbol(), propIds, this);
     }
 
     if (funcInfo->GetHasArguments())
@@ -1608,9 +1608,9 @@ void ByteCodeGenerator::EmitScopeObjectInit(FuncInfo *funcInfo)
         MapFormalsWithoutRest(pnodeFnc, initArg);
 
         // If the rest is in the slot - we need to keep that slot.
-        if (pnodeFnc->AsParseNodeFnc()->pnodeRest != nullptr && pnodeFnc->AsParseNodeFnc()->pnodeRest->AsParseNodeVar()->sym->IsInSlot(funcInfo))
+        if (pnodeFnc->pnodeRest != nullptr && pnodeFnc->pnodeRest->sym->IsInSlot(funcInfo))
         {
-            Symbol::SaveToPropIdArray(pnodeFnc->AsParseNodeFnc()->pnodeRest->AsParseNodeVar()->sym, propIds, this);
+            Symbol::SaveToPropIdArray(pnodeFnc->pnodeRest->sym, propIds, this);
         }
     }
     else
@@ -1659,7 +1659,7 @@ void ByteCodeGenerator::EmitScopeObjectInit(FuncInfo *funcInfo)
 
     if (currentScope->GetScopeType() != ScopeType_Parameter)
     {
-        for (pnode = pnodeFnc->AsParseNodeFnc()->pnodeVars; pnode; pnode = pnode->AsParseNodeVar()->pnodeNext)
+        for (pnode = pnodeFnc->pnodeVars; pnode; pnode = pnode->AsParseNodeVar()->pnodeNext)
         {
             sym = pnode->AsParseNodeVar()->sym;
             if (!(pnode->AsParseNodeVar()->isBlockScopeFncDeclVar && sym->GetIsBlockVar()))
@@ -1672,14 +1672,14 @@ void ByteCodeGenerator::EmitScopeObjectInit(FuncInfo *funcInfo)
             }
         }
 
-        ParseNode *pnodeBlock = pnodeFnc->AsParseNodeFnc()->pnodeScopes;
+        ParseNode *pnodeBlock = pnodeFnc->pnodeScopes;
         for (pnode = pnodeBlock->AsParseNodeBlock()->pnodeLexVars; pnode; pnode = pnode->AsParseNodeVar()->pnodeNext)
         {
             sym = pnode->AsParseNodeVar()->sym;
             Symbol::SaveToPropIdArray(sym, propIds, this, &firstVarSlot);
         }
 
-        pnodeBlock = pnodeFnc->AsParseNodeFnc()->pnodeBodyScope;
+        pnodeBlock = pnodeFnc->pnodeBodyScope;
         for (pnode = pnodeBlock->AsParseNodeBlock()->pnodeLexVars; pnode; pnode = pnode->AsParseNodeVar()->pnodeNext)
         {
             sym = pnode->AsParseNodeVar()->sym;
@@ -1698,7 +1698,7 @@ void ByteCodeGenerator::EmitScopeObjectInit(FuncInfo *funcInfo)
     slots[2] = firstVarSlot;
     slots[3] = funcInfo->GetParsedFunctionBody()->NewObjectLiteral();
 
-    propIds->hasNonSimpleParams = funcInfo->root->AsParseNodeFnc()->HasNonSimpleParameterList();
+    propIds->hasNonSimpleParams = funcInfo->root->HasNonSimpleParameterList();
 
     funcInfo->GetParsedFunctionBody()->SetHasCachedScopePropIds(true);
 }
@@ -1995,7 +1995,7 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
     }
     else if (!funcInfo->IsGlobalFunction() && !IsInNonDebugMode())
     {
-        uint count = funcInfo->inArgsCount + (funcInfo->root->AsParseNodeFnc()->pnodeRest != nullptr ? 1 : 0) - 1;
+        uint count = funcInfo->inArgsCount + (funcInfo->root->pnodeRest != nullptr ? 1 : 0) - 1;
         if (count != 0)
         {
             Js::PropertyIdArray *propIds = RecyclerNewPlus(scriptContext->GetRecycler(), UInt32Math::Mul(count, sizeof(Js::PropertyId)), Js::PropertyIdArray, count, 0);
@@ -2042,7 +2042,7 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
     // If the function is a function expression with a name,
     // load the function object at runtime to its activation object.
     //
-    sym = funcInfo->root->AsParseNodeFnc()->GetFuncSymbol();
+    sym = funcInfo->root->GetFuncSymbol();
     bool funcExprWithName = !funcInfo->IsGlobalFunction() && sym && sym->GetIsFuncExpr();
 
     if (funcExprWithName)
@@ -2385,10 +2385,10 @@ void ByteCodeGenerator::HomeArguments(FuncInfo *funcInfo)
     // Transfer formal parameters to their home locations on the local frame.
     if (funcInfo->GetHasArguments())
     {
-        if (funcInfo->root->AsParseNodeFnc()->pnodeRest != nullptr)
+        if (funcInfo->root->pnodeRest != nullptr)
         {
             // Since we don't have to iterate over arguments here, we'll trust the location to be correct.
-            EmitLoadFormalIntoRegister(funcInfo->root->AsParseNodeFnc()->pnodeRest, funcInfo->root->AsParseNodeFnc()->pnodeRest->AsParseNodeVar()->sym->GetLocation() + 1, funcInfo);
+            EmitLoadFormalIntoRegister(funcInfo->root->pnodeRest, funcInfo->root->pnodeRest->sym->GetLocation() + 1, funcInfo);
         }
 
         // The arguments object creation helper does this work for us.
@@ -2421,7 +2421,7 @@ void ByteCodeGenerator::EmitGlobalBody(FuncInfo *funcInfo)
 {
     // Emit global code (global scope or eval), fixing up the return register with the implicit
     // return value.
-    ParseNode *pnode = funcInfo->root->AsParseNodeFnc()->pnodeBody;
+    ParseNode *pnode = funcInfo->root->pnodeBody;
     ParseNode *pnodeLastVal = funcInfo->root->AsParseNodeProg()->pnodeLastValStmt;
     if (pnodeLastVal == nullptr)
     {
@@ -2456,7 +2456,7 @@ void ByteCodeGenerator::EmitFunctionBody(FuncInfo *funcInfo)
 {
     // Emit a function body. Only explicit returns and the implicit "undef" at the bottom
     // get copied to the return register.
-    ParseNode *pnodeBody = funcInfo->root->AsParseNodeFnc()->pnodeBody;
+    ParseNode *pnodeBody = funcInfo->root->pnodeBody;
     ParseNode *pnode = pnodeBody;
     while (pnode->nop == knopList)
     {
@@ -2718,10 +2718,10 @@ void ByteCodeGenerator::EmitDefaultArgs(FuncInfo *funcInfo, ParseNode *pnode)
     }
 }
 
-void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
+void ByteCodeGenerator::EmitOneFunction(ParseNodeFnc *pnodeFnc)
 {
-    Assert(pnode && (pnode->nop == knopProg || pnode->nop == knopFncDecl));
-    FuncInfo *funcInfo = pnode->AsParseNodeFnc()->funcInfo;
+    Assert(pnodeFnc && (pnodeFnc->nop == knopProg || pnodeFnc->nop == knopFncDecl));
+    FuncInfo *funcInfo = pnodeFnc->funcInfo;
     Assert(funcInfo != nullptr);
 
     if (funcInfo->IsFakeGlobalFunction(this->flags))
@@ -2737,9 +2737,9 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         ((this->flags & fscrDynamicCode) && !(this->flags & fscrEvalCode)));
 
     deferParseFunction->SetInParamsCount(funcInfo->inArgsCount);
-    if (pnode->AsParseNodeFnc()->HasDefaultArguments())
+    if (pnodeFnc->HasDefaultArguments())
     {
-        deferParseFunction->SetReportedInParamsCount(pnode->AsParseNodeFnc()->firstDefaultArg + 1);
+        deferParseFunction->SetReportedInParamsCount(pnodeFnc->firstDefaultArg + 1);
     }
     else
     {
@@ -2753,7 +2753,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         Js::ScopeInfo::SaveEnclosingScopeInfo(this, funcInfo);
     }
 
-    if (funcInfo->root->AsParseNodeFnc()->pnodeBody == nullptr)
+    if (funcInfo->root->pnodeBody == nullptr)
     {
         if (!PHASE_OFF1(Js::SkipNestedDeferredPhase))
         {
@@ -2780,7 +2780,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 #if DBG
                 byteCodeFunction->SetCanDoStackNestedFunc();
 #endif
-                if (funcInfo->root->AsParseNodeFnc()->astSize <= ParseNodeFnc::MaxStackClosureAST)
+                if (funcInfo->root->astSize <= ParseNodeFnc::MaxStackClosureAST)
                 {
                     byteCodeFunction->SetStackNestedFunc(true);
                 }
@@ -2809,17 +2809,17 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         // Bug : 301517
         // In the debug mode the hasOnlyThis optimization needs to be disabled, since user can break in this function
         // and do operation on 'this' and its property, which may not be defined yet.
-        if (funcInfo->root->AsParseNodeFnc()->HasOnlyThisStmts() && !IsInDebugMode())
+        if (funcInfo->root->HasOnlyThisStmts() && !IsInDebugMode())
         {
             byteCodeFunction->SetHasOnlyThisStmts(true);
         }
 
         if (byteCodeFunction->IsInlineApplyDisabled() || this->scriptContext->GetConfig()->IsNoNative())
         {
-            if ((pnode->nop == knopFncDecl) && (funcInfo->GetHasHeapArguments()) && (!funcInfo->GetCallsEval()) && ApplyEnclosesArgs(pnode, this))
+            if ((pnodeFnc->nop == knopFncDecl) && (funcInfo->GetHasHeapArguments()) && (!funcInfo->GetCallsEval()) && ApplyEnclosesArgs(pnodeFnc, this))
             {
                 bool applyEnclosesArgs = true;
-                for (ParseNode* pnodeVar = funcInfo->root->AsParseNodeFnc()->pnodeVars; pnodeVar; pnodeVar = pnodeVar->AsParseNodeVar()->pnodeNext)
+                for (ParseNode* pnodeVar = funcInfo->root->pnodeVars; pnodeVar; pnodeVar = pnodeVar->AsParseNodeVar()->pnodeNext)
                 {
                     Symbol* sym = pnodeVar->AsParseNodeVar()->sym;
                     if (sym->GetSymbolType() == STVariable && !sym->IsArguments())
@@ -2843,8 +2843,8 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
                         }
                     }
                 };
-                constAndLetCheck(funcInfo->root->AsParseNodeFnc()->pnodeScopes, &applyEnclosesArgs);
-                constAndLetCheck(funcInfo->root->AsParseNodeFnc()->pnodeBodyScope, &applyEnclosesArgs);
+                constAndLetCheck(funcInfo->root->pnodeScopes, &applyEnclosesArgs);
+                constAndLetCheck(funcInfo->root->pnodeBodyScope, &applyEnclosesArgs);
                 funcInfo->SetApplyEnclosesArgs(applyEnclosesArgs);
             }
         }
@@ -2910,29 +2910,29 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             Assert(this->GetCurrentScope() == paramScope);
         }
 
-        if (funcInfo->root->AsParseNodeFnc()->pnodeRest != nullptr)
+        if (funcInfo->root->pnodeRest != nullptr)
         {
             byteCodeFunction->SetHasRestParameter();
         }
 
         if (funcInfo->IsGlobalFunction())
         {
-            EnsureNoRedeclarations(pnode->AsParseNodeFnc()->pnodeScopes, funcInfo);
+            EnsureNoRedeclarations(pnodeFnc->pnodeScopes, funcInfo);
         }
 
-        ::BeginEmitBlock(pnode->AsParseNodeFnc()->pnodeScopes, this, funcInfo);
+        ::BeginEmitBlock(pnodeFnc->pnodeScopes, this, funcInfo);
 
         DefineLabels(funcInfo);
 
         // We need to emit the storage for special symbols before we emit the default arguments in case the default
         // argument expressions reference those special names.
-        if (pnode->AsParseNodeFnc()->HasNonSimpleParameterList())
+        if (pnodeFnc->HasNonSimpleParameterList())
         {
             // If the param and body scope are merged, the special symbol vars are located in the body scope so we
             // need to walk over the var list.
             if (funcInfo->IsBodyAndParamScopeMerged())
             {
-                for (ParseNodePtr pnodeVar = pnode->AsParseNodeFnc()->pnodeVars; pnodeVar; pnodeVar = pnodeVar->AsParseNodeVar()->pnodeNext)
+                for (ParseNodePtr pnodeVar = pnodeFnc->pnodeVars; pnodeVar; pnodeVar = pnodeVar->AsParseNodeVar()->pnodeNext)
                 {
 #if DBG
                     bool reachedEndOfSpecialSymbols = false;
@@ -2977,13 +2977,13 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             }
         }
 
-        if (pnode->AsParseNodeFnc()->HasNonSimpleParameterList() || !funcInfo->IsBodyAndParamScopeMerged())
+        if (pnodeFnc->HasNonSimpleParameterList() || !funcInfo->IsBodyAndParamScopeMerged())
         {
-            Assert(pnode->AsParseNodeFnc()->HasNonSimpleParameterList() || CONFIG_FLAG(ForceSplitScope));
+            Assert(pnodeFnc->HasNonSimpleParameterList() || CONFIG_FLAG(ForceSplitScope));
 
-            this->InitBlockScopedNonTemps(funcInfo->root->AsParseNodeFnc()->pnodeScopes, funcInfo);
+            this->InitBlockScopedNonTemps(funcInfo->root->pnodeScopes, funcInfo);
 
-            EmitDefaultArgs(funcInfo, pnode);
+            EmitDefaultArgs(funcInfo, pnodeFnc);
 
             if (!funcInfo->IsBodyAndParamScopeMerged())
             {
@@ -3002,7 +3002,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         // (that is when the function is called). This yield opcode is to mark the  begining of the function body.
         // TODO: Inserting a yield should have almost no impact on perf as it is a direct return from the function. But this needs
         // to be verified. Ideally if the function has simple parameter list then we can avoid inserting the opcode and the additional call.
-        if (pnode->AsParseNodeFnc()->IsGenerator())
+        if (pnodeFnc->IsGenerator())
         {
             Js::RegSlot tempReg = funcInfo->AcquireTmpRegister();
             EmitYield(funcInfo->AssignUndefinedConstRegister(), tempReg, this, funcInfo);
@@ -3023,26 +3023,26 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             DefineFunctions(funcInfo);
         }
 
-        if (pnode->AsParseNodeFnc()->HasNonSimpleParameterList() || !funcInfo->IsBodyAndParamScopeMerged())
+        if (pnodeFnc->HasNonSimpleParameterList() || !funcInfo->IsBodyAndParamScopeMerged())
         {
-            Assert(pnode->AsParseNodeFnc()->HasNonSimpleParameterList() || CONFIG_FLAG(ForceSplitScope));
-            this->InitBlockScopedNonTemps(funcInfo->root->AsParseNodeFnc()->pnodeBodyScope, funcInfo);
+            Assert(pnodeFnc->HasNonSimpleParameterList() || CONFIG_FLAG(ForceSplitScope));
+            this->InitBlockScopedNonTemps(funcInfo->root->pnodeBodyScope, funcInfo);
         }
         else
         {
-            this->InitBlockScopedNonTemps(funcInfo->root->AsParseNodeFnc()->pnodeScopes, funcInfo);
+            this->InitBlockScopedNonTemps(funcInfo->root->pnodeScopes, funcInfo);
         }
 
-        if (!pnode->AsParseNodeFnc()->HasNonSimpleParameterList() && funcInfo->GetHasArguments() && !NeedScopeObjectForArguments(funcInfo, pnode))
+        if (!pnodeFnc->HasNonSimpleParameterList() && funcInfo->GetHasArguments() && !NeedScopeObjectForArguments(funcInfo, pnodeFnc))
         {
             // If we didn't create a scope object and didn't have default args, we still need to transfer the formals to their slots.
-            MapFormalsWithoutRest(pnode, [&](ParseNode *pnodeArg) { EmitPropStore(pnodeArg->AsParseNodeVar()->sym->GetLocation(), pnodeArg->AsParseNodeVar()->sym, pnodeArg->AsParseNodeVar()->pid, funcInfo); });
+            MapFormalsWithoutRest(pnodeFnc, [&](ParseNode *pnodeArg) { EmitPropStore(pnodeArg->AsParseNodeVar()->sym->GetLocation(), pnodeArg->AsParseNodeVar()->sym, pnodeArg->AsParseNodeVar()->pid, funcInfo); });
         }
 
         // Rest needs to trigger use before declaration until all default args have been processed.
-        if (pnode->AsParseNodeFnc()->pnodeRest != nullptr)
+        if (pnodeFnc->pnodeRest != nullptr)
         {
-            pnode->AsParseNodeFnc()->pnodeRest->AsParseNodeVar()->sym->SetNeedDeclaration(false);
+            pnodeFnc->pnodeRest->sym->SetNeedDeclaration(false);
         }
 
         Js::RegSlot formalsUpperBound = Js::Constants::NoRegister; // Needed for tracking the last RegSlot in the param scope
@@ -3050,7 +3050,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         {
             // Emit bytecode to copy the initial values from param names to their corresponding body bindings.
             // We have to do this after the rest param is marked as false for need declaration.
-            Symbol* funcSym = funcInfo->root->AsParseNodeFnc()->GetFuncSymbol();
+            Symbol* funcSym = funcInfo->root->GetFuncSymbol();
             paramScope->ForEachSymbol([&](Symbol* param) {
                 Symbol* varSym = funcInfo->GetBodyScope()->FindLocalSymbol(param->GetName());
                 if ((funcSym == nullptr || funcSym != param)    // Do not copy the symbol over to body as the function expression symbol
@@ -3105,9 +3105,9 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             byteCodeFunction->GetPropertyIdOnRegSlotsContainer()->formalsUpperBound = formalsUpperBound;
         }
 
-        if (pnode->AsParseNodeFnc()->pnodeBodyScope != nullptr)
+        if (pnodeFnc->pnodeBodyScope != nullptr)
         {
-            ::BeginEmitBlock(pnode->AsParseNodeFnc()->pnodeBodyScope, this, funcInfo);
+            ::BeginEmitBlock(pnodeFnc->pnodeBodyScope, this, funcInfo);
         }
 
         this->inPrologue = false;
@@ -3121,11 +3121,11 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             EmitFunctionBody(funcInfo);
         }
 
-        if (pnode->AsParseNodeFnc()->pnodeBodyScope != nullptr)
+        if (pnodeFnc->pnodeBodyScope != nullptr)
         {
-            ::EndEmitBlock(pnode->AsParseNodeFnc()->pnodeBodyScope, this, funcInfo);
+            ::EndEmitBlock(pnodeFnc->pnodeBodyScope, this, funcInfo);
         }
-        ::EndEmitBlock(pnode->AsParseNodeFnc()->pnodeScopes, this, funcInfo);
+        ::EndEmitBlock(pnodeFnc->pnodeScopes, this, funcInfo);
 
         if (!this->IsInDebugMode())
         {
@@ -3175,7 +3175,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         PopFuncInfo(_u("EmitOneFunction"));
         m_writer.SetCallSiteCount(m_callSiteId);
 #ifdef LOG_BYTECODE_AST_RATIO
-        m_writer.End(funcInfo->root->AsParseNodeFnc()->astSize, this->maxAstSize);
+        m_writer.End(funcInfo->root->astSize, this->maxAstSize);
 #else
         m_writer.End();
 #endif
@@ -3242,7 +3242,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 #if DBG_DUMP
     if (PHASE_DUMP(Js::ByteCodePhase, funcInfo->byteCodeFunction) && Js::Configuration::Global.flags.Verbose)
     {
-        pnode->Dump();
+        pnodeFnc->Dump();
     }
     if (this->Trace() || PHASE_DUMP(Js::ByteCodePhase, funcInfo->byteCodeFunction))
     {
@@ -3367,7 +3367,7 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, ParseNode *breakOnBodySc
             if (pnode->AsParseNodeFnc()->GetAsmjsMode())
             {
                 Js::ExclusiveContext context(this, GetScriptContext());
-                if (Js::AsmJSCompiler::Compile(&context, pnode, pnode->AsParseNodeFnc()->pnodeParams))
+                if (Js::AsmJSCompiler::Compile(&context, pnode->AsParseNodeFnc(), pnode->AsParseNodeFnc()->pnodeParams))
                 {
                     pnode = pnode->AsParseNodeFnc()->pnodeNext;
                     break;
@@ -3398,7 +3398,7 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, ParseNode *breakOnBodySc
                 {
                     funcInfo->SetCurrentChildScope(funcInfo->GetBodyScope());
                 }
-                this->StartEmitFunction(pnode);
+                this->StartEmitFunction(pnode->AsParseNodeFnc());
 
                 PushFuncInfo(_u("StartEmitFunction"), funcInfo);
 
@@ -3411,8 +3411,8 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, ParseNode *breakOnBodySc
                     this->EmitScopeList(pnode->AsParseNodeFnc()->pnodeScopes);
                 }
 
-                this->EmitOneFunction(pnode);
-                this->EndEmitFunction(pnode);
+                this->EmitOneFunction(pnode->AsParseNodeFnc());
+                this->EndEmitFunction(pnode->AsParseNodeFnc());
 
                 Assert(pnode->AsParseNodeFnc()->pnodeBody == nullptr || funcInfo->isReused || funcInfo->GetCurrentChildScope() == funcInfo->GetBodyScope());
                 funcInfo->SetCurrentChildScope(nullptr);
@@ -3421,9 +3421,9 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, ParseNode *breakOnBodySc
             break;
 
         case knopBlock:
-            this->StartEmitBlock(pnode);
+            this->StartEmitBlock(pnode->AsParseNodeBlock());
             this->EmitScopeList(pnode->AsParseNodeBlock()->pnodeScopes);
-            this->EndEmitBlock(pnode);
+            this->EndEmitBlock(pnode->AsParseNodeBlock());
             pnode = pnode->AsParseNodeBlock()->pnodeNext;
             break;
 
@@ -3448,12 +3448,12 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, ParseNode *breakOnBodySc
     }
 }
 
-void EnsureFncDeclScopeSlot(ParseNode *pnodeFnc, FuncInfo *funcInfo)
+void EnsureFncDeclScopeSlot(ParseNodeFnc *pnodeFnc, FuncInfo *funcInfo)
 {
-    if (pnodeFnc->AsParseNodeFnc()->pnodeName)
+    if (pnodeFnc->pnodeName)
     {
-        Assert(pnodeFnc->AsParseNodeFnc()->pnodeName->nop == knopVarDecl);
-        Symbol *sym = pnodeFnc->AsParseNodeFnc()->pnodeName->AsParseNodeVar()->sym;
+        Assert(pnodeFnc->pnodeName->nop == knopVarDecl);
+        Symbol *sym = pnodeFnc->pnodeName->AsParseNodeVar()->sym;
         // If this function is shadowing the arguments symbol in body then skip it.
         // We will allocate scope slot for the arguments symbol during EmitLocalPropInit.
         if (sym && !sym->IsArguments())
@@ -3464,12 +3464,11 @@ void EnsureFncDeclScopeSlot(ParseNode *pnodeFnc, FuncInfo *funcInfo)
 }
 
 // Similar to EnsureFncScopeSlot visitor function, but verifies that a slot is needed before assigning it.
-void CheckFncDeclScopeSlot(ParseNode *pnodeFnc, FuncInfo *funcInfo)
+void CheckFncDeclScopeSlot(ParseNodeFnc *pnodeFnc, FuncInfo *funcInfo)
 {
-    if (pnodeFnc->AsParseNodeFnc()->pnodeName && pnodeFnc->AsParseNodeFnc()->pnodeName->nop == knopVarDecl)
+    if (pnodeFnc->pnodeName && pnodeFnc->pnodeName->nop == knopVarDecl)
     {
-        Assert(pnodeFnc->AsParseNodeFnc()->pnodeName->nop == knopVarDecl);
-        Symbol *sym = pnodeFnc->AsParseNodeFnc()->pnodeName->AsParseNodeVar()->sym;
+        Symbol *sym = pnodeFnc->pnodeName->AsParseNodeVar()->sym;
         if (sym && sym->NeedsSlotAlloc(funcInfo))
         {
             sym->EnsureScopeSlot(funcInfo);
@@ -3477,15 +3476,15 @@ void CheckFncDeclScopeSlot(ParseNode *pnodeFnc, FuncInfo *funcInfo)
     }
 }
 
-void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
+void ByteCodeGenerator::StartEmitFunction(ParseNodeFnc *pnodeFnc)
 {
     Assert(pnodeFnc->nop == knopFncDecl || pnodeFnc->nop == knopProg);
 
-    FuncInfo *funcInfo = pnodeFnc->AsParseNodeFnc()->funcInfo;
+    FuncInfo *funcInfo = pnodeFnc->funcInfo;
     Scope * const bodyScope = funcInfo->GetBodyScope();
     Scope * const paramScope = funcInfo->GetParamScope();
 
-    if (funcInfo->byteCodeFunction->IsFunctionParsed() && funcInfo->root->AsParseNodeFnc()->pnodeBody != nullptr)
+    if (funcInfo->byteCodeFunction->IsFunctionParsed() && funcInfo->root->pnodeBody != nullptr)
     {
         if (funcInfo->GetParsedFunctionBody()->GetByteCode() == nullptr && !(flags & (fscrEval | fscrImplicitThis | fscrImplicitParents)))
         {
@@ -3514,7 +3513,7 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
             }
             else
             {
-                Symbol *sym = funcInfo->root->AsParseNodeFnc()->GetFuncSymbol();
+                Symbol *sym = funcInfo->root->GetFuncSymbol();
                 if (funcInfo->IsBodyAndParamScopeMerged())
                 {
                     funcInfo->bodyScope->AddSymbol(sym);
@@ -3568,8 +3567,8 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                     funcInfo->frameObjRegister != Js::Constants::NoRegister &&
                     !ApplyEnclosesArgs(pnodeFnc, this) &&
                     funcInfo->IsBodyAndParamScopeMerged() && // There is eval in the param scope
-                    !pnodeFnc->AsParseNodeFnc()->HasDefaultArguments() &&
-                    !pnodeFnc->AsParseNodeFnc()->HasDestructuredParams() &&
+                    !pnodeFnc->HasDefaultArguments() &&
+                    !pnodeFnc->HasDestructuredParams() &&
                     (PHASE_FORCE(Js::CachedScopePhase, funcInfo->byteCodeFunction) || !IsInDebugMode())
 #if ENABLE_TTD
                     && !funcInfo->GetParsedFunctionBody()->GetScriptContext()->GetThreadContext()->IsRuntimeInTTDMode()
@@ -3579,7 +3578,7 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                 if (funcInfo->GetHasCachedScope())
                 {
                     Assert(funcInfo->funcObjRegister == Js::Constants::NoRegister);
-                    Symbol *funcSym = funcInfo->root->AsParseNodeFnc()->GetFuncSymbol();
+                    Symbol *funcSym = funcInfo->root->GetFuncSymbol();
                     if (funcSym && funcSym->GetIsFuncExpr())
                     {
                         if (funcSym->GetLocation() == Js::Constants::NoRegister)
@@ -3625,7 +3624,7 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                     }
                 }
 
-                sym = funcInfo->root->AsParseNodeFnc()->GetFuncSymbol();
+                sym = funcInfo->root->GetFuncSymbol();
 
                 if (sym && sym->NeedsSlotAlloc(funcInfo))
                 {
@@ -3661,7 +3660,7 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                     MapFormalsFromPattern(pnodeFnc, [&](ParseNode *pnode) { pnode->AsParseNodeVar()->sym->EnsureScopeSlot(funcInfo); });
                 }
 
-                for (pnode = pnodeFnc->AsParseNodeFnc()->pnodeVars; pnode; pnode = pnode->AsParseNodeVar()->pnodeNext)
+                for (pnode = pnodeFnc->pnodeVars; pnode; pnode = pnode->AsParseNodeVar()->pnodeNext)
                 {
                     sym = pnode->AsParseNodeVar()->sym;
                     if (!(pnode->AsParseNodeVar()->isBlockScopeFncDeclVar && sym->GetIsBlockVar()))
@@ -3685,7 +3684,7 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                         case knopFncDecl:
                             if (pnode->AsParseNodeFnc()->IsDeclaration())
                             {
-                                EnsureFncDeclScopeSlot(pnode, funcInfo);
+                                EnsureFncDeclScopeSlot(pnode->AsParseNodeFnc(), funcInfo);
                             }
                             pnode = pnode->AsParseNodeFnc()->pnodeNext;
                             break;
@@ -3701,12 +3700,12 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                         }
                     }
                 };
-                pnodeFnc->AsParseNodeFnc()->MapContainerScopes(ensureFncDeclScopeSlots);
+                pnodeFnc->MapContainerScopes(ensureFncDeclScopeSlots);
 
-                if (pnodeFnc->AsParseNodeFnc()->pnodeBody)
+                if (pnodeFnc->pnodeBody)
                 {
-                    Assert(pnodeFnc->AsParseNodeFnc()->pnodeScopes->nop == knopBlock);
-                    this->EnsureLetConstScopeSlots(pnodeFnc->AsParseNodeFnc()->pnodeBodyScope, funcInfo);
+                    Assert(pnodeFnc->pnodeScopes->nop == knopBlock);
+                    this->EnsureLetConstScopeSlots(pnodeFnc->pnodeBodyScope, funcInfo);
                 }
             }
             else
@@ -3714,9 +3713,9 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                 ParseNode *pnode;
                 Symbol *sym;
 
-                pnodeFnc->AsParseNodeFnc()->MapContainerScopes([&](ParseNode *pnodeScope) { this->EnsureFncScopeSlots(pnodeScope, funcInfo); });
+                pnodeFnc->MapContainerScopes([&](ParseNode *pnodeScope) { this->EnsureFncScopeSlots(pnodeScope, funcInfo); });
 
-                for (pnode = pnodeFnc->AsParseNodeFnc()->pnodeVars; pnode; pnode = pnode->AsParseNodeVar()->pnodeNext)
+                for (pnode = pnodeFnc->pnodeVars; pnode; pnode = pnode->AsParseNodeVar()->pnodeNext)
                 {
                     sym = pnode->AsParseNodeVar()->sym;
                     if (!(pnode->AsParseNodeVar()->isBlockScopeFncDeclVar && sym->GetIsBlockVar()))
@@ -3757,10 +3756,10 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                     sym->EnsureScopeSlot(funcInfo);
                 }
 
-                if (pnodeFnc->AsParseNodeFnc()->pnodeBody)
+                if (pnodeFnc->pnodeBody)
                 {
-                    this->EnsureLetConstScopeSlots(pnodeFnc->AsParseNodeFnc()->pnodeScopes, funcInfo);
-                    this->EnsureLetConstScopeSlots(pnodeFnc->AsParseNodeFnc()->pnodeBodyScope, funcInfo);
+                    this->EnsureLetConstScopeSlots(pnodeFnc->pnodeScopes, funcInfo);
+                    this->EnsureLetConstScopeSlots(pnodeFnc->pnodeBodyScope, funcInfo);
                 }
             }
 
@@ -3769,12 +3768,12 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
             {
                 bodyScope->SetMustInstantiate(true);
             }
-            else if (pnodeFnc->AsParseNodeFnc()->IsBodyAndParamScopeMerged() || bodyScope->GetScopeSlotCount() != 0)
+            else if (pnodeFnc->IsBodyAndParamScopeMerged() || bodyScope->GetScopeSlotCount() != 0)
             {
                 bodyScope->SetMustInstantiate(funcInfo->frameSlotsRegister != Js::Constants::NoRegister);
             }
 
-            if (!pnodeFnc->AsParseNodeFnc()->IsBodyAndParamScopeMerged())
+            if (!pnodeFnc->IsBodyAndParamScopeMerged())
             {
                 if (funcInfo->frameObjRegister != Js::Constants::NoRegister)
                 {
@@ -3801,14 +3800,14 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
 
     if (!funcInfo->IsBodyAndParamScopeMerged())
     {
-        ParseNodePtr paramBlock = pnodeFnc->AsParseNodeFnc()->pnodeScopes;
+        ParseNodePtr paramBlock = pnodeFnc->pnodeScopes;
         Assert(paramBlock->nop == knopBlock && paramBlock->AsParseNodeBlock()->blockType == Parameter);
 
         PushScope(paramScope);
 
         // While emitting the functions we have to stop when we see the body scope block.
         // Otherwise functions defined in the body scope will not be able to get the right references.
-        this->EmitScopeList(paramBlock->AsParseNodeBlock()->pnodeScopes, pnodeFnc->AsParseNodeFnc()->pnodeBodyScope);
+        this->EmitScopeList(paramBlock->AsParseNodeBlock()->pnodeScopes, pnodeFnc->pnodeBodyScope);
         Assert(this->GetCurrentScope() == paramScope);
     }
 
@@ -3913,7 +3912,7 @@ void ByteCodeGenerator::EnsureFncScopeSlots(ParseNode *pnode, FuncInfo *funcInfo
         case knopFncDecl:
             if (pnode->AsParseNodeFnc()->IsDeclaration())
             {
-                CheckFncDeclScopeSlot(pnode, funcInfo);
+                CheckFncDeclScopeSlot(pnode->AsParseNodeFnc(), funcInfo);
             }
             pnode = pnode->AsParseNodeFnc()->pnodeNext;
             break;
@@ -3930,14 +3929,14 @@ void ByteCodeGenerator::EnsureFncScopeSlots(ParseNode *pnode, FuncInfo *funcInfo
     }
 }
 
-void ByteCodeGenerator::EndEmitFunction(ParseNode *pnodeFnc)
+void ByteCodeGenerator::EndEmitFunction(ParseNodeFnc *pnodeFnc)
 {
     Assert(pnodeFnc->nop == knopFncDecl || pnodeFnc->nop == knopProg);
     Assert(pnodeFnc->nop == knopFncDecl && currentScope->GetEnclosingScope() != nullptr || pnodeFnc->nop == knopProg);
 
     PopScope(); // function body
 
-    FuncInfo *funcInfo = pnodeFnc->AsParseNodeFnc()->funcInfo;
+    FuncInfo *funcInfo = pnodeFnc->funcInfo;
 
     Scope* paramScope = funcInfo->paramScope;
     if (!funcInfo->IsBodyAndParamScopeMerged())
@@ -3946,7 +3945,7 @@ void ByteCodeGenerator::EndEmitFunction(ParseNode *pnodeFnc)
         PopScope(); // Pop the param scope
     }
 
-    if (funcInfo->byteCodeFunction->IsFunctionParsed() && funcInfo->root->AsParseNodeFnc()->pnodeBody != nullptr)
+    if (funcInfo->byteCodeFunction->IsFunctionParsed() && funcInfo->root->pnodeBody != nullptr)
     {
         // StartEmitFunction omits the matching PushScope for already-parsed functions.
         // TODO: Refactor Start and EndEmitFunction for clarity.
@@ -4036,7 +4035,7 @@ void ByteCodeGenerator::EndEmitCatch(ParseNode *pnodeCatch)
     PopScope();
 }
 
-void ByteCodeGenerator::StartEmitBlock(ParseNode *pnodeBlock)
+void ByteCodeGenerator::StartEmitBlock(ParseNodeBlock *pnodeBlock)
 {
     if (!BlockHasOwnScope(pnodeBlock, this))
     {
@@ -4047,8 +4046,8 @@ void ByteCodeGenerator::StartEmitBlock(ParseNode *pnodeBlock)
 
     PushBlock(pnodeBlock);
 
-    Scope *scope = pnodeBlock->AsParseNodeBlock()->scope;
-    if (pnodeBlock->AsParseNodeBlock()->GetCallsEval() || pnodeBlock->AsParseNodeBlock()->GetChildCallsEval() || (this->flags & (fscrEval | fscrImplicitThis | fscrImplicitParents)))
+    Scope *scope = pnodeBlock->scope;
+    if (pnodeBlock->GetCallsEval() || pnodeBlock->GetChildCallsEval() || (this->flags & (fscrEval | fscrImplicitThis | fscrImplicitParents)))
     {
         Assert(scope->GetIsObject());
     }
@@ -4057,13 +4056,13 @@ void ByteCodeGenerator::StartEmitBlock(ParseNode *pnodeBlock)
     if (scope->GetMustInstantiate())
     {
         FuncInfo *funcInfo = scope->GetFunc();
-        this->EnsureFncScopeSlots(pnodeBlock->AsParseNodeBlock()->pnodeScopes, funcInfo);
+        this->EnsureFncScopeSlots(pnodeBlock->pnodeScopes, funcInfo);
         this->EnsureLetConstScopeSlots(pnodeBlock, funcInfo);
         PushScope(scope);
     }
 }
 
-void ByteCodeGenerator::EndEmitBlock(ParseNode *pnodeBlock)
+void ByteCodeGenerator::EndEmitBlock(ParseNodeBlock *pnodeBlock)
 {
     if (!BlockHasOwnScope(pnodeBlock, this))
     {
@@ -4072,10 +4071,10 @@ void ByteCodeGenerator::EndEmitBlock(ParseNode *pnodeBlock)
 
     Assert(pnodeBlock->nop == knopBlock);
 
-    Scope *scope = pnodeBlock->AsParseNodeBlock()->scope;
+    Scope *scope = pnodeBlock->scope;
     if (scope && scope->GetMustInstantiate())
     {
-        Assert(currentScope == pnodeBlock->AsParseNodeBlock()->scope);
+        Assert(currentScope == pnodeBlock->scope);
         PopScope();
     }
 
@@ -5573,7 +5572,7 @@ void ByteCodeGenerator::EnsureNoRedeclarations(ParseNode *pnodeBlock, FuncInfo *
         });
     }
 
-    for (ParseNode *pnode = funcInfo->root->AsParseNodeFnc()->pnodeVars; pnode; pnode = pnode->AsParseNodeVar()->pnodeNext)
+    for (ParseNode *pnode = funcInfo->root->pnodeVars; pnode; pnode = pnode->AsParseNodeVar()->pnodeNext)
     {
         Symbol* sym = pnode->AsParseNodeVar()->sym;
 
@@ -10856,7 +10855,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         // The "function declarations" were emitted in DefineFunctions()
         if (!pnode->AsParseNodeFnc()->IsDeclaration())
         {
-            byteCodeGenerator->DefineOneFunction(pnode, funcInfo, false);
+            byteCodeGenerator->DefineOneFunction(pnode->AsParseNodeFnc(), funcInfo, false);
         }
         break;
         // PTNODE(knopClassDecl, "class"    ,None    ,None ,fnopLeaf)

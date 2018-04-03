@@ -94,7 +94,7 @@ namespace Js
     {
         mWriter.Create();
 
-        const int32 astSize = func->GetFncNode()->AsParseNodeFnc()->astSize/AstBytecodeRatioEstimate;
+        const int32 astSize = func->GetFncNode()->astSize/AstBytecodeRatioEstimate;
         // Use the temp allocator in bytecode write temp buffer.
         mWriter.InitData(&mAllocator, astSize);
 

@@ -250,6 +250,7 @@ public:
 #endif
 };
 
+#define DISABLE_SELF_CAST(T) private: T * As##T()
 // unary operators
 class ParseNodeUni : public ParseNode
 {
@@ -257,6 +258,8 @@ public:
     ParseNodeUni(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1);
 
     ParseNodePtr pnode1;
+
+    DISABLE_SELF_CAST(ParseNodeUni);
 };
 
 // binary operators
@@ -268,6 +271,8 @@ public:
     ParseNodePtr pnodeNext;
     ParseNodePtr pnode1;
     ParseNodePtr pnode2;
+
+    DISABLE_SELF_CAST(ParseNodeBin);
 };
 
 // ternary operator
@@ -280,6 +285,8 @@ public:
     ParseNodePtr pnode1;
     ParseNodePtr pnode2;
     ParseNodePtr pnode3;
+
+    DISABLE_SELF_CAST(ParseNodeTri);
 };
 
 // integer constant
@@ -289,6 +296,8 @@ public:
     ParseNodeInt(charcount_t ichMin, charcount_t ichMax, int32 lw);
 
     int32 lw;
+
+    DISABLE_SELF_CAST(ParseNodeInt);
 };
 
 // double constant
@@ -299,6 +308,8 @@ public:
 
     double dbl;
     bool maybeInt : 1;
+
+    DISABLE_SELF_CAST(ParseNodeFloat);
 };
 
 class ParseNodeRegExp : public ParseNode
@@ -308,6 +319,8 @@ public:
 
     UnifiedRegex::RegexPattern* regexPattern;
     uint regexPatternIndex;
+
+    DISABLE_SELF_CAST(ParseNodeRegExp);
 };
 
 // identifier or string
@@ -325,6 +338,8 @@ public:
     void SetSymRef(PidRefStack *ref);
     Symbol **GetSymRef() const { return symRef; }
     Js::PropertyId PropertyIdFromNameNode() const;
+
+    DISABLE_SELF_CAST(ParseNodePid);
 };
 
 // variable declaration
@@ -340,6 +355,8 @@ public:
     ParseNodePtr pnodeInit;
     BOOLEAN isSwitchStmtDecl;
     BOOLEAN isBlockScopeFncDeclVar;
+
+    DISABLE_SELF_CAST(ParseNodeVar);
 };
 
 // Array literal
@@ -354,6 +371,8 @@ public:
     BYTE arrayOfInts:1;           // indicates that array initializer nodes are all ints
     BYTE arrayOfNumbers:1;        // indicates that array initializer nodes are all numbers
     BYTE hasMissingValues:1;
+
+    DISABLE_SELF_CAST(ParseNodeArrLit);
 };
 
 class FuncInfo;
@@ -425,7 +444,7 @@ public:
     ParseNodePtr pnodeParams;
     ParseNodePtr pnodeVars;
     ParseNodePtr pnodeBody;
-    ParseNodePtr pnodeRest;
+    ParseNodeVar * pnodeRest;
 
     FuncInfo *funcInfo; // function information gathered during byte code generation
     Scope *scope;
@@ -597,6 +616,8 @@ public:
             fn(this->pnodeBodyScope->AsParseNodeBlock()->pnodeScopes);
         }
     }
+
+    DISABLE_SELF_CAST(ParseNodeFnc);
 };
 
 // class declaration
@@ -617,6 +638,8 @@ public:
 
     void SetIsDefaultModuleExport(bool set) { isDefaultModuleExport = set; }
     bool IsDefaultModuleExport() const { return isDefaultModuleExport; }
+
+    DISABLE_SELF_CAST(ParseNodeClass);
 };
 
 // export default expr
@@ -626,6 +649,8 @@ public:
     ParseNodeExportDefault(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
     ParseNodePtr pnodeExpr;
+
+    DISABLE_SELF_CAST(ParseNodeExportDefault);
 };
 
 // string template declaration
@@ -639,6 +664,8 @@ public:
     ParseNodePtr pnodeSubstitutionExpressions;
     uint16 countStringLiterals;
     BYTE isTaggedTemplate:1;
+
+    DISABLE_SELF_CAST(ParseNodeStrTemplate);
 };
 
 // global program
@@ -649,6 +676,8 @@ public:
 
     ParseNodePtr pnodeLastValStmt;
     bool m_UsesArgumentsAtGlobal;
+
+    DISABLE_SELF_CAST(ParseNodeProg);
 };
 
 // global module
@@ -662,6 +691,8 @@ public:
     ModuleImportOrExportEntryList* starExportEntries;
     ModuleImportOrExportEntryList* importEntries;
     IdentPtrList* requestedModules;
+
+    DISABLE_SELF_CAST(ParseNodeModule);
 };
 
 // function call
@@ -680,6 +711,8 @@ public:
     BYTE isEvalCall : 1;
     BYTE isSuperCall : 1;
     BYTE hasDestructuring : 1;
+
+    DISABLE_SELF_CAST(ParseNodeCall);
 };
 
 // base for statement nodes
@@ -696,6 +729,8 @@ public:
     // Needed for byte code gen.
     Js::ByteCodeLabel breakLabel;
     Js::ByteCodeLabel continueLabel;
+
+    DISABLE_SELF_CAST(ParseNodeStmt);
 };
 
 // block { }
@@ -727,6 +762,8 @@ public:
     ParseNodePtr GetEnclosingBlock() const { return enclosingBlock; }
 
     bool HasBlockScopedContent() const;
+
+    DISABLE_SELF_CAST(ParseNodeBlock);
 };
 
 // break and continue
@@ -737,6 +774,8 @@ public:
 
     ParseNodePtr pnodeTarget;
     bool hasExplicitTarget;
+
+    DISABLE_SELF_CAST(ParseNodeJump);
 };
 
 // base for loop nodes
@@ -747,6 +786,9 @@ public:
 
     // Needed for byte code gen
     uint loopId;
+
+
+    DISABLE_SELF_CAST(ParseNodeLoop);
 };
 
 // while and do-while loops
@@ -757,6 +799,8 @@ public:
 
     ParseNodePtr pnodeCond;
     ParseNodePtr pnodeBody;
+
+    DISABLE_SELF_CAST(ParseNodeWhile);
 };
 
 // with
@@ -770,6 +814,8 @@ public:
     ParseNodePtr pnodeScopes;
     ParseNodePtr pnodeNext;
     Scope        *scope;
+
+    DISABLE_SELF_CAST(ParseNodeWith);
 };
 
 // Destructure pattern for function/catch parameter
@@ -781,6 +827,8 @@ public:
     ParseNodePtr pnodeNext;
     Js::RegSlot location;
     ParseNodePtr pnode1;
+
+    DISABLE_SELF_CAST(ParseNodeParamPattern);
 };
 
 // if
@@ -792,6 +840,8 @@ public:
     ParseNodePtr pnodeCond;
     ParseNodePtr pnodeTrue;
     ParseNodePtr pnodeFalse;
+
+    DISABLE_SELF_CAST(ParseNodeIf);
 };
 
 // for-in loop
@@ -805,6 +855,8 @@ public:
     ParseNodePtr pnodeLval;
     ParseNodePtr pnodeBlock;
     Js::RegSlot itemLocation;
+
+    DISABLE_SELF_CAST(ParseNodeForInOrForOf);
 };
 
 // for loop
@@ -819,6 +871,8 @@ public:
     ParseNodePtr pnodeIncr;
     ParseNodePtr pnodeBlock;
     ParseNodePtr pnodeInverted;
+
+    DISABLE_SELF_CAST(ParseNodeFor);
 };
 
 // switch
@@ -830,7 +884,9 @@ public:
     ParseNodePtr pnodeVal;
     ParseNodePtr pnodeCases;
     ParseNodePtr pnodeDefault;
-    ParseNodePtr pnodeBlock;
+    ParseNodeBlock * pnodeBlock;
+
+    DISABLE_SELF_CAST(ParseNodeSwitch);
 };
 
 // switch case
@@ -843,6 +899,9 @@ public:
     ParseNodePtr pnodeExpr; // nullptr for default
     ParseNodePtr pnodeBody;
     Js::ByteCodeLabel labelCase;
+
+
+    DISABLE_SELF_CAST(ParseNodeCase);
 };
 
 // return [expr]
@@ -852,6 +911,8 @@ public:
     ParseNodeReturn(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
     ParseNodePtr pnodeExpr;
+
+    DISABLE_SELF_CAST(ParseNodeReturn);
 };
 
 // try-catch-finally     
@@ -860,8 +921,10 @@ class ParseNodeTryFinally : public ParseNodeStmt
 public:
     ParseNodeTryFinally(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
-    ParseNodePtr pnodeTry;
-    ParseNodePtr pnodeFinally;
+    ParseNodeTry * pnodeTry;
+    ParseNodeFinally * pnodeFinally;
+
+    DISABLE_SELF_CAST(ParseNodeTryFinally);
 };
 
 // try-catch
@@ -870,8 +933,10 @@ class ParseNodeTryCatch : public ParseNodeStmt
 public:
     ParseNodeTryCatch(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
-    ParseNodePtr pnodeTry;
-    ParseNodePtr pnodeCatch;
+    ParseNodeTry * pnodeTry;
+    ParseNodeCatch * pnodeCatch;
+
+    DISABLE_SELF_CAST(ParseNodeTryCatch);
 };
 
 // try-catch
@@ -881,6 +946,8 @@ public:
     ParseNodeTry(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
     ParseNodePtr pnodeBody;
+
+    DISABLE_SELF_CAST(ParseNodeTry);
 };
 
 // { catch(e : expr) {body} }
@@ -894,6 +961,8 @@ public:
     ParseNodePtr pnodeBody;
     ParseNodePtr pnodeScopes;
     Scope        *scope;
+
+    DISABLE_SELF_CAST(ParseNodeCatch);
 };
 
 // finally
@@ -903,6 +972,8 @@ public:
     ParseNodeFinally(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
     ParseNodePtr pnodeBody;
+
+    DISABLE_SELF_CAST(ParseNodeFinally);
 };
 
 // special name like 'this'
@@ -913,6 +984,8 @@ public:
 
     bool isThis : 1;
     bool isSuper : 1;
+
+    DISABLE_SELF_CAST(ParseNodeSpecialName);
 };
 
 // binary operator with super reference
@@ -922,6 +995,8 @@ public:
     ParseNodeSuperReference(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1, ParseNode * pnode2);
 
     ParseNodePtr pnodeThis;
+
+    DISABLE_SELF_CAST(ParseNodeSuperReference);
 };
 
 // call node with super target
@@ -932,6 +1007,8 @@ public:
 
     ParseNodePtr pnodeThis;
     ParseNodePtr pnodeNewTarget;
+
+    DISABLE_SELF_CAST(ParseNodeSuperCall);
 };
 
 typedef ParseNode ParseNodeNone;

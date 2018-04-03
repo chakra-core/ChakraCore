@@ -710,7 +710,7 @@ namespace Js
         }
     }
 
-    AsmJsFunc::AsmJsFunc(PropertyName name, ParseNode* pnodeFnc, ArenaAllocator* allocator, ScriptContext* scriptContext) :
+    AsmJsFunc::AsmJsFunc(PropertyName name, ParseNodeFnc* pnodeFnc, ArenaAllocator* allocator, ScriptContext* scriptContext) :
         AsmJsFunctionDeclaration(name, AsmJsSymbol::ModuleFunction, allocator)
         , mCompileTime(0)
         , mVarMap(allocator)
@@ -725,7 +725,7 @@ namespace Js
             | 1 << WAsmJs::INT64
 #endif
         )
-        , mFuncInfo(pnodeFnc->AsParseNodeFnc()->funcInfo)
+        , mFuncInfo(pnodeFnc->funcInfo)
         , mFuncBody(nullptr)
         , mMaxArgOutDepth(0)
         , mDefined( false )
