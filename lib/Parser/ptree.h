@@ -24,9 +24,8 @@ const uint fnopContinue = 0x0080; // continue can be used within this statement
 const uint fnopCleanup  = 0x0100; // requires cleanup (eg, with or for-in).
 const uint fnopJump     = 0x0200;
 const uint fnopNotExprStmt = 0x0400;
-const uint fnopBinList  = 0x0800;
 const uint fnopExprMask = (fnopLeaf|fnopUni|fnopBin);
-const uint fnopAllowDefer = 0x1000; // allow to be created during defer parse
+const uint fnopAllowDefer = 0x0800; // allow to be created during defer parse
 
 /***************************************************************************
 Flags for classifying parse nodes.
@@ -66,7 +65,7 @@ enum PNodeFlags : ushort
 };
 
 /***************************************************************************
-Data structs for ParseNodes. 
+Data structs for ParseNodes.
 ***************************************************************************/
 class ParseNodeUni;
 class ParseNodeBin;
@@ -371,7 +370,7 @@ class ParseNodeArrLit : public ParseNodeUni
 {
 public:
     ParseNodeArrLit(OpCode nop, charcount_t ichMin, charcount_t ichLim);
-        
+
     uint count;
     uint spreadCount;
     BYTE arrayOfTaggedInts:1;     // indicates that array initializer nodes are all tagged ints
@@ -833,9 +832,8 @@ public:
     ParseNodeParamPattern(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
     ParseNodePtr pnodeNext;
-    Js::RegSlot location;
     ParseNodePtr pnode1;
-
+    Js::RegSlot location;
     DISABLE_SELF_CAST(ParseNodeParamPattern);
 };
 
@@ -923,7 +921,7 @@ public:
     DISABLE_SELF_CAST(ParseNodeReturn);
 };
 
-// try-catch-finally     
+// try-catch-finally
 class ParseNodeTryFinally : public ParseNodeStmt
 {
 public:

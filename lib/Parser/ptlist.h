@@ -77,7 +77,7 @@ PTNODE(knopLt         , "<"                , OP(Lt)   , Bin         , fnopBin|fn
 PTNODE(knopLe         , "<="               , OP(Le)   , Bin         , fnopBin|fnopRel       , "LessThanEqualOper"              )
 PTNODE(knopGe         , ">="               , OP(Ge)   , Bin         , fnopBin|fnopRel       , "GreaterThanEqualOper"           )
 PTNODE(knopGt         , ">"                , OP(Gt)   , Bin         , fnopBin|fnopRel       , "GreaterThanOper"                )
-PTNODE(knopCall       , "()"               , Nop      , Call        , fnopBin               , "CallExpr"                       )
+PTNODE(knopCall       , "()"               , Nop      , Call        , fnopNone              , "CallExpr"                       )
 PTNODE(knopDot        , "."                , Nop      , Bin         , fnopBin               , "DotOper"                        )
 PTNODE(knopAsg        , "="                , Nop      , Bin         , fnopBin|fnopAsg       , "AssignmentOper"                 )
 PTNODE(knopInstOf     , "instanceof"       , IsInst   , Bin         , fnopBin|fnopRel       , "InstanceOfExpr"                 )
@@ -90,9 +90,9 @@ PTNODE(knopLogAnd     , "&&"               , Nop      , Bin         , fnopBin   
 PTNODE(knopLsh        , "<<"               , Shl_A    , Bin         , fnopBin               , "LeftShiftOper"                  )
 PTNODE(knopRsh        , ">>"               , Shr_A    , Bin         , fnopBin               , "RightShiftOper"                 )
 PTNODE(knopRs2        , ">>>"              , ShrU_A   , Bin         , fnopBin               , "UnsignedRightShiftOper"         )
-PTNODE(knopNew        , "new"              , Nop      , Call        , fnopBin               , "NewExpr"                        )
+PTNODE(knopNew        , "new"              , Nop      , Call        , fnopNone              , "NewExpr"                        )
 PTNODE(knopIndex      , "[]"               , Nop      , Bin         , fnopBin               , "IndexOper"                      )
-PTNODE(knopQmark      , "?"                , Nop      , Tri         , fnopBin               , "IfExpr"                         )
+PTNODE(knopQmark      , "?"                , Nop      , Tri         , fnopNone              , "IfExpr"                         )
 
 // ___compact range : do not add or remove in this range.
 //    Gen code of  OP_LclAsg*,.. depends on parallel tables with this range
@@ -117,7 +117,7 @@ PTNODE(knopGetMember  , "get"              , Nop      , Bin         , fnopBin   
 /***************************************************************************
 General nodes.
 ***************************************************************************/
-PTNODE(knopList       , "<list>"           , Nop      , Bin         , fnopBinList|fnopNotExprStmt, ""                          )
+PTNODE(knopList       , "<list>"           , Nop      , Bin         , fnopBin|fnopNotExprStmt, ""                          )
 PTNODE(knopVarDecl    , "varDcl"           , Nop      , Var         , fnopNotExprStmt|fnopAllowDefer, "VarDecl"                       )
 PTNODE(knopConstDecl  , "constDcl"         , Nop      , Var         , fnopNotExprStmt|fnopAllowDefer, "ConstDecl"                     )
 PTNODE(knopLetDecl    , "letDcl"           , Nop      , Var         , fnopNotExprStmt|fnopAllowDefer, "LetDecl"                       )
@@ -151,9 +151,8 @@ PTNODE(knopTryFinally , "try-finally"      , Nop      , TryFinally  , fnopNotExp
 PTNODE(knopObjectPattern, "{} = "          , Nop      , Uni         , fnopUni                , "ObjectAssignmentPattern"       )
 PTNODE(knopObjectPatternMember, "{:} = "   , Nop      , Bin         , fnopBin                , "ObjectAssignmentPatternMember" )
 PTNODE(knopArrayPattern, "[] = "           , Nop      , ArrLit      , fnopUni                , "ArrayAssignmentPattern"        )
-PTNODE(knopParamPattern, "({[]})"          , Nop      , ParamPattern, fnopUni                , "DestructurePattern"            )
+PTNODE(knopParamPattern, "({[]})"          , Nop      , ParamPattern, fnopNone               , "DestructurePattern"            )
 PTNODE(knopExportDefault, "export default" , Nop      , ExportDefault,fnopNone               , "ExportDefault"                 )
-PTNODE(knopSuperCall  , "super call"       , Nop      , SuperCall   , fnopBin                , "SuperCall"                     )
 
 
 #undef PTNODE

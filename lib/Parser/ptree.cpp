@@ -25,7 +25,7 @@ ParseNodeUni * ParseNode::AsParseNodeUni()
 
 ParseNodeBin * ParseNode::AsParseNodeBin()
 {
-    Assert(((this->Grfnop() & fnopBin) && this->nop != knopQmark && this->nop != knopCall && this->nop != knopNew) || this->nop == knopList);
+    Assert(this->Grfnop() & fnopBin);
     return reinterpret_cast<ParseNodeBin *>(this);
 }
 
