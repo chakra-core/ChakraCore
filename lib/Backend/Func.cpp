@@ -194,7 +194,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     if (doStackNestedFunc && GetJITFunctionBody()->GetNestedCount() != 0 &&
         (this->IsTopFunc() || this->GetTopFunc()->m_workItem->Type() != JsLoopBodyWorkItemType)) // make sure none of the functions inlined in a jitted loop body allocate nested functions on the stack
     {
-        Assert(!(this->IsJitInDebugMode() && !GetJITFunctionBody()->IsLibraryCode()));
+        Assert(!(this-> GetJITFunctionBody()->IsLibraryCode()));
         stackNestedFunc = true;
         this->GetTopFunc()->hasAnyStackNestedFunc = true;
     }
@@ -380,7 +380,7 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
 void
 Func::TryCodegen()
 {
-    Assert(!IsJitInDebugMode() || !GetJITFunctionBody()->HasTry());
+    Assert(!GetJITFunctionBody()->HasTry());
 
     BEGIN_CODEGEN_PHASE(this, Js::BackEndPhase);
     {
@@ -790,7 +790,7 @@ Func::GetLocalVarSlotOffset(int32 slotId)
 void Func::OnAddSym(Sym* sym)
 {
     Assert(sym);
-    if (this->IsJitInDebugMode() && this->IsNonTempLocalVar(sym->m_id))
+    if (this->IsNonTempLocalVar(sym->m_id))
     {
         Assert(m_nonTempLocalVars);
         m_nonTempLocalVars->Set(sym->m_id);
@@ -806,12 +806,6 @@ Func::GetHasLocalVarChangedOffset()
 {
     this->EnsureLocalVarSlots();
     return m_hasLocalVarChangedOffset;
-}
-
-bool
-Func::IsJitInDebugMode() const
-{
-    return m_workItem->IsJitInDebugMode();
 }
 
 bool

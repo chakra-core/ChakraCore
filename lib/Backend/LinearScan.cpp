@@ -1036,13 +1036,7 @@ bool
 LinearScan::IsSymNonTempLocalVar(StackSym *sym)
 {
     Assert(sym);
-
-    if (this->func->IsJitInDebugMode() && sym->HasByteCodeRegSlot())
-    {
-        Js::RegSlot slotIndex = sym->GetByteCodeRegSlot();
-
-        return this->func->IsNonTempLocalVar(slotIndex);
-    }
+    
     return false;
 }
 
@@ -2982,7 +2976,7 @@ LinearScan::AllocateStackSpace(Lifetime *spilledRange)
 
     StackSlot * newStackSlot = nullptr;
 
-    if (!PHASE_OFF(Js::StackPackPhase, this->func) && !this->func->IsJitInDebugMode() && !spilledRange->cantStackPack)
+    if (!PHASE_OFF(Js::StackPackPhase, this->func) && !spilledRange->cantStackPack)
     {
         // Search for a free stack slot to re-use
         FOREACH_SLIST_ENTRY_EDITING(StackSlot *, slot, this->stackSlotsFreeList, iter)

@@ -510,7 +510,7 @@ GlobOpt::OptBlock(BasicBlock *block)
     {
         GOPT_TRACE_INSTRTRACE(instr);
         BailOutInfo* oldBailOutInfo = nullptr;
-        bool isCheckAuxBailoutNeeded = this->func->IsJitInDebugMode() && !this->IsLoopPrePass();
+        bool isCheckAuxBailoutNeeded = !this->IsLoopPrePass();
         if (isCheckAuxBailoutNeeded && instr->HasAuxBailOut() && !instr->HasBailOutInfo())
         {
             oldBailOutInfo = instr->GetBailOutInfo();
@@ -2634,7 +2634,6 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         !isHoisted &&
         !(instr->IsJitProfilingInstr()) &&
         this->currentBlock->loop && !IsLoopPrePass() &&
-        !func->IsJitInDebugMode() &&
         (func->HasProfileInfo() && !func->GetReadOnlyProfileInfo()->IsMemOpDisabled()) &&
         this->currentBlock->loop->doMemOp)
     {
@@ -2944,7 +2943,6 @@ GlobOpt::OptDst(
                 !IsLoopPrePass() &&
                 (instr->m_opcode == Js::OpCode::Ld_A || instr->m_opcode == Js::OpCode::Ld_I4) &&
                 instr->GetSrc1()->IsRegOpnd() &&
-                !func->IsJitInDebugMode() &&
                 func->DoGlobOptsForGeneratorFunc())
             {
                 // Look for the following patterns:
@@ -15035,7 +15033,7 @@ GlobOpt::DoConstFold() const
 bool
 GlobOpt::IsTypeSpecPhaseOff(Func const *func)
 {
-    return PHASE_OFF(Js::TypeSpecPhase, func) || func->IsJitInDebugMode() || !func->DoGlobOptsForGeneratorFunc();
+    return PHASE_OFF(Js::TypeSpecPhase, func) || !func->DoGlobOptsForGeneratorFunc();
 }
 
 bool
@@ -15142,7 +15140,6 @@ GlobOpt::DoArrayCheckHoist(Func const * const func)
     return
         !PHASE_OFF(Js::ArrayCheckHoistPhase, func) &&
         !func->IsArrayCheckHoistDisabled() &&
-        !func->IsJitInDebugMode() && // StElemI fast path is not allowed when in debug mode, so it cannot have bailout
         func->DoGlobOptsForGeneratorFunc();
 }
 
