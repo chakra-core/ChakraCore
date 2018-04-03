@@ -164,16 +164,15 @@ void ThreadServiceWrapperBase::FinishIdleCollect(ThreadServiceWrapperBase::Finis
 
     IDLE_COLLECT_TRACE(_u("Idle timer finished\n"));
 
-    if (threadContext->GetRecycler()->CollectionInProgress() && !threadContext->IsInScript())
+    if (reason == FinishReason::FinishReasonTaskComplete 
+        && threadContext->GetRecycler()->CollectionInProgress() 
+        && !threadContext->IsInScript())
     {
-        if (reason == FinishReason::FinishReasonTaskComplete)
-        {
-            // schedule another timer to check the progress
-            IDLE_COLLECT_TRACE(_u("FinishIdleCollect- collection is still in progress, schedule another timer to check the status\n"));
-            // schedule a shorter timer here to check the progress since the idle GC has already last more than one second and is likely to close to finish
-            // TODO: measure and adjust the timeout bellow
-            ScheduleIdleCollect(500, false);
-        }
+        // schedule another timer to check the progress
+        IDLE_COLLECT_TRACE(_u("FinishIdleCollect- collection is still in progress, schedule another timer to check the status\n"));
+        // schedule a shorter timer here to check the progress since the idle GC has already last more than one second and is likely to close to finish
+        // TODO: measure and adjust the timeout bellow
+        ScheduleIdleCollect(RecyclerHeuristic::TickCountIdleCollectRepeatTimer, false);
     }
     else
     {
