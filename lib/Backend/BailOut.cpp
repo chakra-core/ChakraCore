@@ -590,11 +590,6 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
         }
 #endif
 
-        if (functionBody->IsInDebugMode())
-        {
-            this->AdjustOffsetsForDiagMode(layout, newInstance->GetJavascriptFunction());
-        }
-
         this->RestoreValues(bailOutKind, layout, this->localOffsetsCount,
             nullptr, 0, newInstance->m_localSlots, scriptContext, fromLoopBody, registerSaves, newInstance, pArgumentsObject);
     }
@@ -653,49 +648,6 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
     // Clear the register save area for the next bailout
     memset((void*)scriptContext->GetThreadContext()->GetBailOutRegisterSaveSpace(), 0, GetBailOutRegisterSaveSlotCount() * sizeof(Js::Var));
 #endif
-}
-
-void
-BailOutRecord::AdjustOffsetsForDiagMode(Js::JavascriptCallStackLayout * layout, Js::ScriptFunction * function) const
-{
-    // In this function we are going to do
-    // 1. Check if the value got changed (by checking at the particular location at the stack)
-    // 2. In that case update the offset to point to the stack offset
-
-    Js::FunctionBody *functionBody =  function->GetFunctionBody();
-    Assert(functionBody != nullptr);
-
-    Assert(functionBody->IsInDebugMode());
-
-    Js::FunctionEntryPointInfo *entryPointInfo = functionBody->GetDefaultFunctionEntryPointInfo();
-    Assert(entryPointInfo != nullptr);
-
-    // Note: the offset may be not initialized/InvalidOffset when there are no non-temp local vars.
-    if (entryPointInfo->localVarChangedOffset != Js::Constants::InvalidOffset)
-    {
-        Assert(functionBody->GetNonTempLocalVarCount() != 0);
-
-        char * valueChangeOffset = layout->GetValueChangeOffset(entryPointInfo->localVarChangedOffset);
-        if (*valueChangeOffset == Js::FunctionBody::LocalsChangeDirtyValue)
-        {
-            // The value got changed due to debugger, lets read values from the stack position
-            // Get the corresponding offset on the stack related to the frame.
-
-            globalBailOutRecordTable->IterateGlobalBailOutRecordTableRows(m_bailOutRecordId, [=](GlobalBailOutRecordDataRow *row) {
-                int32 offset = row->offset;
-                // offset is zero, is it possible that a locals is not living in the debug mode?
-                Assert(offset != 0);
-                int32 slotOffset;
-                if (functionBody->GetSlotOffset(row->regSlot, &slotOffset))
-                {
-                    slotOffset = entryPointInfo->localVarSlotsOffset + slotOffset;
-                    // If it was taken from the stack location, we should have arrived to the same stack location.
-                    Assert(offset > 0 || offset == slotOffset);
-                    row->offset = slotOffset;
-                }
-            });
-        }
-    }
 }
 
 void
