@@ -51,25 +51,6 @@ static void RecyclerExecuteICUWithRetry(_In_ ICUFunc func, _In_ Recycler *recycl
         }                                                                     \
     } while (false)
 
-#define BCP47_TO_ICU(langtag, langtagLen, localeID, localeIDLen)              \
-    do                                                                        \
-    {                                                                         \
-        UErrorCode __status = U_ZERO_ERROR;                                   \
-        utf8::WideToNarrow __lt((langtag), (langtagLen));                     \
-        int32_t __len = 0;                                                    \
-        uloc_forLanguageTag(__lt, localeID, localeIDLen, &__len, &__status);  \
-        ICU_ASSERT(__status, __len > 0 && __len < localeIDLen);               \
-    } while (false)
-
-#define ASSERT_ENUM(T, e)                                                     \
-    do                                                                        \
-    {                                                                         \
-        if ((int)(e) < 0 || (e) >= T::Max)                                    \
-        {                                                                     \
-            AssertMsg(false, #e " of type " #T " has an invalid value");      \
-        }                                                                     \
-    } while (false)
-
 #endif // INTL_ICU
 
 // NOTE(jahorto): Keep these enums in sync with those by the same name in Intl.js
@@ -135,12 +116,11 @@ enum class CollatorCaseFirst
 
 #pragma warning(pop)
 
-#define TO_JSBOOL(sc, b) ((b) ? (sc)->GetLibrary()->GetTrue() : (sc)->GetLibrary()->GetFalse())
-
-#define IfCOMFailIgnoreSilentlyAndReturn(op) \
-    if(FAILED(hr=(op))) \
+#define IfFailAssertAndThrowHr(op) \
+    if (FAILED(hr=(op))) \
     { \
-        return; \
+    AssertMsg(false, "HRESULT was a failure."); \
+    JavascriptError::MapAndThrowError(scriptContext, hr); \
     } \
 
 #define IfFailAssertMsgAndThrowHr(op, msg) \
@@ -148,6 +128,16 @@ enum class CollatorCaseFirst
     { \
     AssertMsg(false, msg); \
     JavascriptError::MapAndThrowError(scriptContext, hr); \
+    } \
+
+#ifdef INTL_WINGLOB
+
+#define TO_JSBOOL(sc, b) ((b) ? (sc)->GetLibrary()->GetTrue() : (sc)->GetLibrary()->GetFalse())
+
+#define IfCOMFailIgnoreSilentlyAndReturn(op) \
+    if(FAILED(hr=(op))) \
+    { \
+        return; \
     } \
 
 #define HandleOOMSOEHR(hr) \
@@ -163,13 +153,6 @@ enum class CollatorCaseFirst
 #define IfFailThrowHr(op) \
     if (FAILED(hr=(op))) \
     { \
-    JavascriptError::MapAndThrowError(scriptContext, hr); \
-    } \
-
-#define IfFailAssertAndThrowHr(op) \
-    if (FAILED(hr=(op))) \
-    { \
-    AssertMsg(false, "HRESULT was a failure."); \
     JavascriptError::MapAndThrowError(scriptContext, hr); \
     } \
 
@@ -211,8 +194,6 @@ enum class CollatorCaseFirst
 
 #define HasPropertyLOn(obj, propertyName) \
     HasPropertyOn(obj, scriptContext->GetOrAddPropertyIdTracked(propertyName, wcslen(propertyName)))
-
-#ifdef INTL_WINGLOB
 
 #define SetHSTRINGPropertyOn(obj, propID, hstringValue) \
     SetStringPropertyOn(obj, propID, wgl->WindowsGetStringRawBuffer(hstringValue, &length)) \
@@ -352,8 +333,17 @@ namespace Js
     typedef FinalizableICUObject<UFieldPositionIterator *, ufieldpositer_close> FinalizableUFieldPositionIterator;
     typedef FinalizableICUObject<UCollator *, ucol_close> FinalizableUCollator;
 
+    template<typename ICUFunc>
+    static void RecyclerExecuteICUWithRetry(_In_ ICUFunc func, _In_ Recycler *recycler, _Out_writes_opt_(returnLen) char16 **ret, _Out_ int *returnLen, _In_ int firstTryLength = 32)
+    {
+        bool success = ExecuteICUWithRetry<char16, ICUFunc>([&](int length) {
+            return RecyclerNewArrayLeaf(recycler, char16, length);
+        }, func, firstTryLength, ret, returnLen);
+        AssertOrFailFastMsg(success, "Could not allocate buffer for ICU call");
+    }
+
     template <typename T>
-    static T *AssertProperty(DynamicObject *state, PropertyIds propertyId)
+    static T *AssertProperty(_In_ DynamicObject *state, _In_ PropertyIds propertyId)
     {
         Var propertyValue = nullptr;
         JavascriptOperators::GetProperty(state, propertyId, &propertyValue, state->GetScriptContext());
@@ -363,24 +353,62 @@ namespace Js
         return T::UnsafeFromVar(propertyValue);
     }
 
-    static int AssertIntegerProperty(DynamicObject *state, PropertyIds propertyId)
+    static JavascriptString *AssertStringProperty(_In_ DynamicObject *state, _In_ PropertyIds propertyId)
     {
-        Var propertyValue = nullptr;
-        JavascriptOperators::GetProperty(state, propertyId, &propertyValue, state->GetScriptContext());
-
-        AssertOrFailFast(propertyValue && TaggedInt::Is(propertyValue));
-
-        return TaggedInt::ToInt32(propertyValue);
+        return AssertProperty<JavascriptString>(state, propertyId);
     }
 
-    static bool AssertBooleanProperty(DynamicObject *state, PropertyIds propertyId)
+    static int AssertIntegerProperty(_In_ DynamicObject *state, _In_ PropertyIds propertyId)
     {
         Var propertyValue = nullptr;
         JavascriptOperators::GetProperty(state, propertyId, &propertyValue, state->GetScriptContext());
 
-        AssertOrFailFast(propertyValue && JavascriptBoolean::Is(propertyValue));
+        AssertOrFailFast(propertyValue);
 
-        return JavascriptBoolean::UnsafeFromVar(propertyValue)->GetValue();
+        if (TaggedInt::Is(propertyValue))
+        {
+            return TaggedInt::ToInt32(propertyValue);
+        }
+        else
+        {
+            AssertOrFailFast(JavascriptNumber::Is(propertyValue));
+            int ret;
+            AssertOrFailFast(JavascriptNumber::TryGetInt32Value(JavascriptNumber::GetValue(propertyValue), &ret));
+
+            return ret;
+        }
+    }
+
+    static bool AssertBooleanProperty(_In_ DynamicObject *state, _In_ PropertyIds propertyId)
+    {
+        return AssertProperty<JavascriptBoolean>(state, propertyId)->GetValue();
+    }
+
+    template <typename T>
+    static T AssertEnumProperty(_In_ DynamicObject *state, _In_ PropertyIds propertyId)
+    {
+        int p = AssertIntegerProperty(state, propertyId);
+        T ret = static_cast<T>(p);
+        AssertMsg(p >= 0 && ret < T::Max, "Invalid value for enum property");
+        return ret;
+    }
+
+    template <size_t N>
+    static void LangtagToLocaleID(_In_count_(langtagLength) const char16 *langtag, _In_ charcount_t langtagLength, _Out_ char(&localeID)[N])
+    {
+        static_assert(N >= ULOC_FULLNAME_CAPACITY, "LocaleID must be large enough to fit the largest possible ICU localeID");
+
+        UErrorCode status = U_ZERO_ERROR;
+        utf8::WideToNarrow langtag8(langtag, langtagLength);
+        int32_t localeIDLength = 0;
+        uloc_forLanguageTag(langtag8, localeID, N, &localeIDLength, &status);
+        ICU_ASSERT(status, localeIDLength > 0 && static_cast<size_t>(localeIDLength) < N);
+    }
+
+    template <size_t N>
+    static void LangtagToLocaleID(_In_ JavascriptString *langtag, _Out_ char(&localeID)[N])
+    {
+        LangtagToLocaleID(langtag->GetSz(), langtag->GetLength(), localeID);
     }
 #endif
 
@@ -842,45 +870,80 @@ namespace Js
     }
 
 #ifdef INTL_ICU
-    typedef const char * (__cdecl *GetAvailableLocaleFunc)(int);
-    typedef int (__cdecl *CountAvailableLocaleFunc)(void);
-    static bool findLocale(JavascriptString *langtag, CountAvailableLocaleFunc countAvailable, GetAvailableLocaleFunc getAvailable)
+    template <const char *(__cdecl *GetAvailableLocalesFunc)(int), int(__cdecl *CountAvailableLocalesFunc)(void)>
+    static bool BinarySearchForLocale(const char *localeID)
     {
-        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
-        BCP47_TO_ICU(langtag->GetSz(), langtag->GetLength(), localeID, ULOC_FULLNAME_CAPACITY);
-
-        // ICU's "available locales" do not include (all? most?) aliases.
-        // For example, searching for "zh_TW" will return false, even though
-        // zh_TW is equivalent to zh_Hant_TW, which would return true.
-        // We can work around this by searching for both the locale as requested and
-        // the locale in addition to all of its "likely subtags."
-        // This works in practice because, for instance, unum_open("zh_TW") will actually
-        // use "zh_Hant_TW" (confirmed with unum_getLocaleByType(..., ULOC_VALID_LOCALE))
-        // The code below performs, for example, the following mappings:
-        // pa_PK -> pa_Arab_PK
-        // sr_RS -> sr_Cyrl_RS
-        // zh_CN -> zh_Hans_CN
-        // zh_TW -> zh_Hant_TW
-        // TODO(jahorto): Determine if there is any scenario where a language tag + likely subtags is
-        // not exactly functionally equivalent to the language tag on its own -- basically, where
-        // constructor_open(language_tag) behaves differently to constructor_open(language_tag_and_likely_subtags)
-        // for all supported constructors.
-        UErrorCode status = U_ZERO_ERROR;
-        char localeIDWithLikelySubtags[ULOC_FULLNAME_CAPACITY] = { 0 };
-        int likelySubtagLen = uloc_addLikelySubtags(localeID, localeIDWithLikelySubtags, ULOC_FULLNAME_CAPACITY, &status);
-        ICU_ASSERT(status, likelySubtagLen > 0 && likelySubtagLen < ULOC_FULLNAME_CAPACITY);
-
-        // TODO(jahorto): can we binary search this instead?
-        for (int i = 0; i < countAvailable(); i++)
+        const int count = CountAvailableLocalesFunc();
+        int left = 0;
+        int right = count - 1;
+        int iterations = 0;
+        while (true)
         {
-            const char *cur = getAvailable(i);
-            if (strcmp(localeID, cur) == 0 || strcmp(localeIDWithLikelySubtags, cur) == 0)
+            iterations += 1;
+            int i = (left + right) / 2;
+            Assert(i > 0 && i < count);
+            if (left > right)
             {
+                INTL_TRACE("Could not find localeID %S in %d iterations", localeID, iterations);
+                return false;
+            }
+
+            const char *cur = GetAvailableLocalesFunc(i);
+
+            // Ensure that this list is actually binary searchable
+            Assert(i > 0 ? strcmp(GetAvailableLocalesFunc(i - 1), cur) < 0 : true);
+            Assert(i < count - 1 ? strcmp(GetAvailableLocalesFunc(i + 1), cur) > 0 : true);
+
+            int res = strcmp(localeID, cur);
+            if (res == 0)
+            {
+                INTL_TRACE("Found localeID %S in %d iterations", localeID, iterations);
                 return true;
             }
+            else if (res < 0)
+            {
+                right = i - 1;
+            }
+            else
+            {
+                left = i + 1;
+            }
+        }
+    }
+
+    template <const char *(__cdecl *GetAvailableLocalesFunc)(int), int(__cdecl *CountAvailableLocalesFunc)(void)>
+    static bool IsLocaleAvailable(JavascriptString *langtag)
+    {
+        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        LangtagToLocaleID(langtag, localeID);
+
+        if (!BinarySearchForLocale<GetAvailableLocalesFunc, CountAvailableLocalesFunc>(localeID))
+        {
+            // ICU's "available locales" do not include (all? most?) aliases.
+            // For example, searching for "zh_TW" will return false, even though
+            // zh_TW is equivalent to zh_Hant_TW, which would return true.
+            // We can work around this by searching for both the locale as requested and
+            // the locale in addition to all of its "likely subtags."
+            // This works in practice because, for instance, unum_open("zh_TW") will actually
+            // use "zh_Hant_TW" (confirmed with unum_getLocaleByType(..., ULOC_VALID_LOCALE))
+            // The code below performs, for example, the following mappings:
+            // pa_PK -> pa_Arab_PK
+            // sr_RS -> sr_Cyrl_RS
+            // zh_CN -> zh_Hans_CN
+            // zh_TW -> zh_Hant_TW
+            // TODO(jahorto): Determine if there is any scenario where a language tag + likely subtags is
+            // not exactly functionally equivalent to the language tag on its own -- basically, where
+            // constructor_open(language_tag) behaves differently to constructor_open(language_tag_and_likely_subtags)
+            // for all supported constructors.
+            UErrorCode status = U_ZERO_ERROR;
+            char localeIDWithLikelySubtags[ULOC_FULLNAME_CAPACITY] = { 0 };
+            int likelySubtagLen = uloc_addLikelySubtags(localeID, localeIDWithLikelySubtags, ULOC_FULLNAME_CAPACITY, &status);
+            ICU_ASSERT(status, likelySubtagLen > 0 && likelySubtagLen < ULOC_FULLNAME_CAPACITY);
+
+            return BinarySearchForLocale<GetAvailableLocalesFunc, CountAvailableLocalesFunc>(localeIDWithLikelySubtags);
         }
 
-        return false;
+        return true;
     }
 #endif
 
@@ -890,7 +953,9 @@ namespace Js
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
         INTL_CHECK_ARGS(args.Info.Count == 2 && JavascriptString::Is(args.Values[1]));
 
-        return TO_JSBOOL(scriptContext, findLocale(JavascriptString::UnsafeFromVar(args.Values[1]), udat_countAvailable, udat_getAvailable));
+        return scriptContext->GetLibrary()->GetTrueOrFalse(
+            IsLocaleAvailable<udat_getAvailable, udat_countAvailable>(JavascriptString::UnsafeFromVar(args.Values[1]))
+        );
 #else
         AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call IsDTFLocaleAvailable");
         return nullptr;
@@ -903,7 +968,9 @@ namespace Js
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
         INTL_CHECK_ARGS(args.Info.Count == 2 && JavascriptString::Is(args.Values[1]));
 
-        return TO_JSBOOL(scriptContext, findLocale(JavascriptString::UnsafeFromVar(args.Values[1]), ucol_countAvailable, ucol_getAvailable));
+        return scriptContext->GetLibrary()->GetTrueOrFalse(
+            IsLocaleAvailable<ucol_getAvailable, ucol_countAvailable>(JavascriptString::UnsafeFromVar(args.Values[1]))
+        );
 #else
         AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call IsCollatorLocaleAvailable");
         return nullptr;
@@ -916,7 +983,9 @@ namespace Js
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
         INTL_CHECK_ARGS(args.Info.Count == 2 && JavascriptString::Is(args.Values[1]));
 
-        return TO_JSBOOL(scriptContext, findLocale(JavascriptString::UnsafeFromVar(args.Values[1]), unum_countAvailable, unum_getAvailable));
+        return scriptContext->GetLibrary()->GetTrueOrFalse(
+            IsLocaleAvailable<unum_getAvailable, unum_countAvailable>(JavascriptString::UnsafeFromVar(args.Values[1]))
+        );
 #else
         AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call IsNFLocaleAvailable");
         return nullptr;
@@ -954,7 +1023,7 @@ namespace Js
         UErrorCode status = U_ZERO_ERROR;
         char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
         JavascriptString *langtag = JavascriptString::UnsafeFromVar(args.Values[2]);
-        BCP47_TO_ICU(langtag->GetSz(), langtag->GetLength(), localeID, ULOC_FULLNAME_CAPACITY);
+        LangtagToLocaleID(langtag, localeID);
 
         if (kind == LocaleDataKind::Collation)
         {
@@ -1318,26 +1387,19 @@ namespace Js
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
         INTL_CHECK_ARGS(args.Info.Count == 2 && DynamicObject::Is(args.Values[1]));
 
-        Var propertyValue = nullptr; // set by the GetTypedPropertyBuiltInFrom macro
-
 #if defined(INTL_ICU)
         DynamicObject *state = DynamicObject::UnsafeFromVar(args.Values[1]);
 
         // always AssertOrFailFast that the properties we need are there, because if they aren't, Intl.js isn't functioning correctly
-        AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, formatterToUse, TaggedInt));
-        NumberFormatStyle style = NumberFormatStyle::Default;
-        int formatterToUse = TaggedInt::ToInt32(propertyValue);
-        AssertOrFailFast(formatterToUse >= 0 || formatterToUse < (int) NumberFormatStyle::Max);
-        style = static_cast<NumberFormatStyle>(formatterToUse);
+        NumberFormatStyle style = AssertEnumProperty<NumberFormatStyle>(state, PropertyIds::formatterToUse);
 
         UNumberFormatStyle unumStyle = UNUM_IGNORE;
         UErrorCode status = U_ZERO_ERROR;
-        const char16 *currency = nullptr;
+        JavascriptString *currency = nullptr;
 
-        AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, locale, JavascriptString));
-        JavascriptString *langtag = JavascriptString::UnsafeFromVar(propertyValue);
+        JavascriptString *langtag = AssertStringProperty(state, PropertyIds::locale);
         char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
-        BCP47_TO_ICU(langtag->GetSz(), langtag->GetLength(), localeID, ULOC_FULLNAME_CAPACITY);
+        LangtagToLocaleID(langtag, localeID);
 
         if (style == NumberFormatStyle::Decimal)
         {
@@ -1349,11 +1411,9 @@ namespace Js
         }
         else if (style == NumberFormatStyle::Currency)
         {
-            AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, currencyDisplayToUse, TaggedInt));
-            NumberFormatCurrencyDisplay nfcd = NumberFormatCurrencyDisplay::Default;
-            int currencyDisplayToUse = TaggedInt::ToInt32(propertyValue);
-            AssertOrFailFast(currencyDisplayToUse >= 0 || currencyDisplayToUse < (int) NumberFormatCurrencyDisplay::Max);
-            nfcd = static_cast<NumberFormatCurrencyDisplay>(currencyDisplayToUse);
+            NumberFormatCurrencyDisplay nfcd = AssertEnumProperty<NumberFormatCurrencyDisplay>(state, PropertyIds::currencyDisplayToUse);
+
+            // TODO(jahorto): Investigate making our enum values equal to the corresponding UNumberFormatStyle values
             if (nfcd == NumberFormatCurrencyDisplay::Symbol)
             {
                 unumStyle = UNUM_CURRENCY;
@@ -1367,10 +1427,7 @@ namespace Js
                 unumStyle = UNUM_CURRENCY_PLURAL;
             }
 
-            if (GetTypedPropertyBuiltInFrom(state, currency, JavascriptString))
-            {
-                currency = JavascriptString::UnsafeFromVar(propertyValue)->GetSz();
-            }
+            currency = AssertStringProperty(state, PropertyIds::currency);
         }
 
         AssertOrFailFast(unumStyle != UNUM_IGNORE);
@@ -1378,36 +1435,27 @@ namespace Js
         auto fmt = FinalizableUNumberFormat::New(scriptContext->GetRecycler(), unum_open(unumStyle, nullptr, 0, localeID, nullptr, &status));
         ICU_ASSERT(status, true);
 
-        AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, useGrouping, JavascriptBoolean));
-        unum_setAttribute(*fmt, UNUM_GROUPING_USED, JavascriptBoolean::UnsafeFromVar(propertyValue)->GetValue());
+        bool groupingUsed = AssertBooleanProperty(state, PropertyIds::useGrouping);
+        unum_setAttribute(*fmt, UNUM_GROUPING_USED, groupingUsed);
 
         unum_setAttribute(*fmt, UNUM_ROUNDING_MODE, UNUM_ROUND_HALFUP);
 
-        if (HasPropertyBuiltInOn(state, minimumSignificantDigits))
+        if (JavascriptOperators::HasProperty(state, PropertyIds::minimumSignificantDigits))
         {
             unum_setAttribute(*fmt, UNUM_SIGNIFICANT_DIGITS_USED, true);
-
-            AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, minimumSignificantDigits, TaggedInt));
-            unum_setAttribute(*fmt, UNUM_MIN_SIGNIFICANT_DIGITS, TaggedInt::ToInt32(propertyValue));
-
-            AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, maximumSignificantDigits, TaggedInt));
-            unum_setAttribute(*fmt, UNUM_MAX_SIGNIFICANT_DIGITS, TaggedInt::ToInt32(propertyValue));
+            unum_setAttribute(*fmt, UNUM_MIN_SIGNIFICANT_DIGITS, AssertIntegerProperty(state, PropertyIds::minimumSignificantDigits));
+            unum_setAttribute(*fmt, UNUM_MAX_SIGNIFICANT_DIGITS, AssertIntegerProperty(state, PropertyIds::maximumSignificantDigits));
         }
         else
         {
-            AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, minimumIntegerDigits, TaggedInt));
-            unum_setAttribute(*fmt, UNUM_MIN_INTEGER_DIGITS, TaggedInt::ToInt32(propertyValue));
-
-            AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, minimumFractionDigits, TaggedInt));
-            unum_setAttribute(*fmt, UNUM_MIN_FRACTION_DIGITS, TaggedInt::ToInt32(propertyValue));
-
-            AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, maximumFractionDigits, TaggedInt));
-            unum_setAttribute(*fmt, UNUM_MAX_FRACTION_DIGITS, TaggedInt::ToInt32(propertyValue));
+            unum_setAttribute(*fmt, UNUM_MIN_INTEGER_DIGITS, AssertIntegerProperty(state, PropertyIds::minimumIntegerDigits));
+            unum_setAttribute(*fmt, UNUM_MIN_FRACTION_DIGITS, AssertIntegerProperty(state, PropertyIds::minimumFractionDigits));
+            unum_setAttribute(*fmt, UNUM_MAX_FRACTION_DIGITS, AssertIntegerProperty(state, PropertyIds::maximumFractionDigits));
         }
 
         if (currency != nullptr)
         {
-            unum_setTextAttribute(*fmt, UNUM_CURRENCY_CODE, reinterpret_cast<const UChar *>(currency), -1, &status);
+            unum_setTextAttribute(*fmt, UNUM_CURRENCY_CODE, reinterpret_cast<const UChar *>(currency->GetSz()), currency->GetLength(), &status);
             ICU_ASSERT(status, true);
         }
 
@@ -1723,18 +1771,15 @@ namespace Js
         }
         else
         {
-            // the object key is locale for legacy compat, but its more accurately a BCP47 Language Tag, not an ICU LocaleID
-            JavascriptString *langtag = AssertProperty<JavascriptString>(state, PropertyIds::locale);
-            CollatorSensitivity sensitivity = static_cast<CollatorSensitivity>(AssertIntegerProperty(state, PropertyIds::sensitivityEnum));
+            // the object key is locale according to Intl spec, but its more accurately a BCP47 Language Tag, not an ICU LocaleID
+            JavascriptString *langtag = AssertStringProperty(state, PropertyIds::locale);
+            CollatorSensitivity sensitivity = AssertEnumProperty<CollatorSensitivity>(state, PropertyIds::sensitivityEnum);
             bool ignorePunctuation = AssertBooleanProperty(state, PropertyIds::ignorePunctuation);
             bool numeric = AssertBooleanProperty(state, PropertyIds::numeric);
-            CollatorCaseFirst caseFirst = static_cast<CollatorCaseFirst>(AssertIntegerProperty(state, PropertyIds::caseFirstEnum));
-
-            ASSERT_ENUM(CollatorSensitivity, sensitivity);
-            ASSERT_ENUM(CollatorCaseFirst, caseFirst);
+            CollatorCaseFirst caseFirst = AssertEnumProperty<CollatorCaseFirst>(state, PropertyIds::caseFirstEnum);
 
             char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
-            BCP47_TO_ICU(langtag->GetSz(), langtag->GetLength(), localeID, _countof(localeID));
+            LangtagToLocaleID(langtag, localeID);
 
             coll = FinalizableUCollator::New(scriptContext->GetRecycler(), ucol_open(localeID, &status));
             ICU_ASSERT(status, true);
@@ -1784,7 +1829,7 @@ namespace Js
             ICU_ASSERT(status, true);
 
             INTL_TRACE(
-                "Caching UCollator (0x%x) with langtag = %s, sensitivity = %d, caseFirst = %b, ignorePunctuation = %b, and numeric = %b",
+                "Caching UCollator (0x%x) with langtag = %s, sensitivity = %d, caseFirst = %d, ignorePunctuation = %d, and numeric = %d",
                 coll,
                 langtag->GetSz(),
                 sensitivity,
@@ -2198,25 +2243,12 @@ namespace Js
         }
         else
         {
-            JavascriptString *langtag = nullptr;
-            JavascriptString *timeZone = nullptr;
-            JavascriptString *pattern = nullptr;
-
-            Var propertyValue = nullptr; // set by the GetTypedPropertyBuiltInFrom macro
-
-            // the object key is locale for legacy compat, but its more accurately a BCP47 Language Tag,
-            // not an ICU LocaleID
-            AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, locale, JavascriptString));
-            langtag = JavascriptString::UnsafeFromVar(propertyValue);
-
-            AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, timeZone, JavascriptString));
-            timeZone = JavascriptString::UnsafeFromVar(propertyValue);
-
-            AssertOrFailFast(GetTypedPropertyBuiltInFrom(state, pattern, JavascriptString));
-            pattern = JavascriptString::UnsafeFromVar(propertyValue);
+            JavascriptString *langtag = AssertStringProperty(state, PropertyIds::locale);
+            JavascriptString *timeZone = AssertStringProperty(state, PropertyIds::timeZone);
+            JavascriptString *pattern = AssertStringProperty(state, PropertyIds::pattern);
 
             char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
-            BCP47_TO_ICU(langtag->GetSz(), langtag->GetLength(), localeID, _countof(localeID));
+            LangtagToLocaleID(langtag, localeID);
 
             dtf = FinalizableUDateFormat::New(scriptContext->GetRecycler(), udat_open(
                 UDAT_PATTERN,
@@ -2370,7 +2402,7 @@ namespace Js
         JavascriptString *skeleton = JavascriptString::UnsafeFromVar(args.Values[2]);
         UErrorCode status = U_ZERO_ERROR;
         char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
-        BCP47_TO_ICU(langtag->GetSz(), langtag->GetLength(), localeID, _countof(localeID));
+        LangtagToLocaleID(langtag, localeID);
 
         // See https://github.com/tc39/ecma402/issues/225
         // When picking a format, we should be using the locale data of the basename of the resolved locale,
