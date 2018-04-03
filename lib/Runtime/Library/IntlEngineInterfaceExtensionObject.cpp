@@ -350,6 +350,38 @@ namespace Js
     typedef FinalizableICUObject<UNumberFormat *, unum_close> FinalizableUNumberFormat;
     typedef FinalizableICUObject<UDateFormat *, udat_close> FinalizableUDateFormat;
     typedef FinalizableICUObject<UFieldPositionIterator *, ufieldpositer_close> FinalizableUFieldPositionIterator;
+    typedef FinalizableICUObject<UCollator *, ucol_close> FinalizableUCollator;
+
+    template <typename T>
+    static T *AssertProperty(DynamicObject *state, PropertyIds propertyId)
+    {
+        Var propertyValue = nullptr;
+        JavascriptOperators::GetProperty(state, propertyId, &propertyValue, state->GetScriptContext());
+
+        AssertOrFailFast(propertyValue && T::Is(propertyValue));
+
+        return T::UnsafeFromVar(propertyValue);
+    }
+
+    static int AssertIntegerProperty(DynamicObject *state, PropertyIds propertyId)
+    {
+        Var propertyValue = nullptr;
+        JavascriptOperators::GetProperty(state, propertyId, &propertyValue, state->GetScriptContext());
+
+        AssertOrFailFast(propertyValue && TaggedInt::Is(propertyValue));
+
+        return TaggedInt::ToInt32(propertyValue);
+    }
+
+    static bool AssertBooleanProperty(DynamicObject *state, PropertyIds propertyId)
+    {
+        Var propertyValue = nullptr;
+        JavascriptOperators::GetProperty(state, propertyId, &propertyValue, state->GetScriptContext());
+
+        AssertOrFailFast(propertyValue && JavascriptBoolean::Is(propertyValue));
+
+        return JavascriptBoolean::UnsafeFromVar(propertyValue)->GetValue();
+    }
 #endif
 
     IntlEngineInterfaceExtensionObject::IntlEngineInterfaceExtensionObject(Js::ScriptContext* scriptContext) :
@@ -1665,118 +1697,134 @@ namespace Js
     }
 #endif
 
-#ifdef INTL_ICU
-    static int CompareStringICU(_In_opt_count_(langtagLen) const char16 *langtag, _In_ charcount_t langtagLen, _In_z_ const char16 *left, _In_ charcount_t cchLeft, _In_z_ const char16 *right, _In_ charcount_t cchRight,
-        _In_ CollatorSensitivity sensitivity, _In_ bool ignorePunctuation, _In_ bool numeric, _In_ CollatorCaseFirst caseFirst, _Out_ HRESULT *hr)
+    Var IntlEngineInterfaceExtensionObject::EntryIntl_LocaleCompare(RecyclableObject* function, CallInfo callInfo, ...)
     {
-        ASSERT_ENUM(CollatorSensitivity, sensitivity);
-        ASSERT_ENUM(CollatorCaseFirst, caseFirst);
-        Assert(left != nullptr && right != nullptr && hr != nullptr);
-        int ret = 0;
-        *hr = E_INVALIDARG;
-        UErrorCode error = U_ZERO_ERROR;
+#ifdef INTL_WINGLOB
+        AssertOrFailFastMsg(false, "platform.localeCompare should not be called in Intl-WinGlob");
+        return nullptr;
+#else
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+        INTL_CHECK_ARGS(args.Info.Count == 4 && JavascriptString::Is(args[1]) && JavascriptString::Is(args[2]) && DynamicObject::Is(args[3]));
 
-        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
-        int32_t length = 0;
-        if (langtag == nullptr)
+        JavascriptString *left = JavascriptString::UnsafeFromVar(args[1]);
+        JavascriptString *right = JavascriptString::UnsafeFromVar(args[2]);
+        DynamicObject *state = DynamicObject::UnsafeFromVar(args[3]);
+
+        // Below, we lazy-initialize the backing UCollator on the first call to localeCompare
+        // On subsequent calls, the UCollator will be cached in state.hiddenObject
+        // TODO(jahorto): Make these property IDs sane, so that hiddenObject doesn't have different meanings in different contexts
+        Var hiddenObject = nullptr;
+        FinalizableUCollator *coll = nullptr;
+        UErrorCode status = U_ZERO_ERROR;
+        if (state->GetInternalProperty(state, Js::InternalPropertyIds::HiddenObject, &hiddenObject, nullptr, scriptContext))
         {
-            length = uloc_getName(nullptr, localeID, _countof(localeID), &error);
+            coll = reinterpret_cast<FinalizableUCollator *>(hiddenObject);
+            INTL_TRACE("Using previously cached UCollator (0x%x)", coll);
         }
         else
         {
-            char langtag8[ULOC_FULLNAME_CAPACITY] = { 0 };
-            AssertOrFailFast(utf8::WideStringToNarrowNoAlloc(langtag, langtagLen, langtag8, _countof(langtag8)) == S_OK);
-            uloc_forLanguageTag(langtag8, localeID, _countof(localeID), &length, &error);
-        }
-        ICU_ASSERT(error, length > 0);
+            // the object key is locale for legacy compat, but its more accurately a BCP47 Language Tag, not an ICU LocaleID
+            JavascriptString *langtag = AssertProperty<JavascriptString>(state, PropertyIds::locale);
+            CollatorSensitivity sensitivity = static_cast<CollatorSensitivity>(AssertIntegerProperty(state, PropertyIds::sensitivityEnum));
+            bool ignorePunctuation = AssertBooleanProperty(state, PropertyIds::ignorePunctuation);
+            bool numeric = AssertBooleanProperty(state, PropertyIds::numeric);
+            CollatorCaseFirst caseFirst = static_cast<CollatorCaseFirst>(AssertIntegerProperty(state, PropertyIds::caseFirstEnum));
 
-        ScopedUCollator collator(ucol_open(localeID, &error));
-        ICU_ASSERT(error, true);
+            ASSERT_ENUM(CollatorSensitivity, sensitivity);
+            ASSERT_ENUM(CollatorCaseFirst, caseFirst);
 
-        if (sensitivity == CollatorSensitivity::Base)
-        {
-            ucol_setStrength(collator, UCOL_PRIMARY);
-        }
-        else if (sensitivity == CollatorSensitivity::Accent)
-        {
-            ucol_setStrength(collator, UCOL_SECONDARY);
-        }
-        else if (sensitivity == CollatorSensitivity::Case)
-        {
-            // see "description" for the caseLevel default option: http://userguide.icu-project.org/collation/customization
-            ucol_setStrength(collator, UCOL_PRIMARY);
-            ucol_setAttribute(collator, UCOL_CASE_LEVEL, UCOL_ON, &error);
-            ICU_ASSERT(error, true);
-        }
-        else if (sensitivity == CollatorSensitivity::Variant)
-        {
-            ucol_setStrength(collator, UCOL_TERTIARY);
-        }
-        else
-        {
-            AssertOrFailFastMsg(false, "sensitivity is not one of the CollatorSensitivity values");
+            char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+            BCP47_TO_ICU(langtag->GetSz(), langtag->GetLength(), localeID, _countof(localeID));
+
+            coll = FinalizableUCollator::New(scriptContext->GetRecycler(), ucol_open(localeID, &status));
+            ICU_ASSERT(status, true);
+
+            // REVIEW(jahorto): Anything that requires a status will no-op if its in a failure state
+            // Thus, we can ICU_ASSERT the status once after all of the properties are set for simplicity
+            if (sensitivity == CollatorSensitivity::Base)
+            {
+                ucol_setStrength(*coll, UCOL_PRIMARY);
+            }
+            else if (sensitivity == CollatorSensitivity::Accent)
+            {
+                ucol_setStrength(*coll, UCOL_SECONDARY);
+            }
+            else if (sensitivity == CollatorSensitivity::Case)
+            {
+                // see "description" for the caseLevel default option: http://userguide.icu-project.org/collation/customization
+                ucol_setStrength(*coll, UCOL_PRIMARY);
+                ucol_setAttribute(*coll, UCOL_CASE_LEVEL, UCOL_ON, &status);
+            }
+            else if (sensitivity == CollatorSensitivity::Variant)
+            {
+                ucol_setStrength(*coll, UCOL_TERTIARY);
+            }
+
+            if (ignorePunctuation)
+            {
+                // see http://userguide.icu-project.org/collation/customization/ignorepunct
+                ucol_setAttribute(*coll, UCOL_ALTERNATE_HANDLING, UCOL_SHIFTED, &status);
+            }
+
+            if (numeric)
+            {
+                ucol_setAttribute(*coll, UCOL_NUMERIC_COLLATION, UCOL_ON, &status);
+            }
+
+            if (caseFirst == CollatorCaseFirst::Upper)
+            {
+                ucol_setAttribute(*coll, UCOL_CASE_FIRST, UCOL_UPPER_FIRST, &status);
+            }
+            else if (caseFirst == CollatorCaseFirst::Lower)
+            {
+                ucol_setAttribute(*coll, UCOL_CASE_FIRST, UCOL_LOWER_FIRST, &status);
+            }
+
+            // Ensure that collator configuration was successfull
+            ICU_ASSERT(status, true);
+
+            INTL_TRACE(
+                "Caching UCollator (0x%x) with langtag = %s, sensitivity = %d, caseFirst = %b, ignorePunctuation = %b, and numeric = %b",
+                coll,
+                langtag->GetSz(),
+                sensitivity,
+                caseFirst,
+                ignorePunctuation,
+                numeric
+            );
+
+            // cache coll for later use (so that the condition that brought us here returns true for future calls)
+            state->SetInternalProperty(
+                InternalPropertyIds::HiddenObject,
+                coll,
+                PropertyOperationFlags::PropertyOperation_None,
+                nullptr
+            );
         }
 
-        if (ignorePunctuation)
-        {
-            // see http://userguide.icu-project.org/collation/customization/ignorepunct
-            ucol_setAttribute(collator, UCOL_ALTERNATE_HANDLING, UCOL_SHIFTED, &error);
-            ICU_ASSERT(error, true);
-        }
-
-        if (numeric)
-        {
-            ucol_setAttribute(collator, UCOL_NUMERIC_COLLATION, UCOL_ON, &error);
-            ICU_ASSERT(error, true);
-        }
-
-        if (caseFirst == CollatorCaseFirst::Upper)
-        {
-            ucol_setAttribute(collator, UCOL_CASE_FIRST, UCOL_UPPER_FIRST, &error);
-            ICU_ASSERT(error, true);
-        }
-        else if (caseFirst == CollatorCaseFirst::Lower)
-        {
-            ucol_setAttribute(collator, UCOL_CASE_FIRST, UCOL_LOWER_FIRST, &error);
-            ICU_ASSERT(error, true);
-        }
-
-        *hr = S_OK;
-        UCollationResult result = ucol_strcoll(collator, reinterpret_cast<const UChar *>(left), cchLeft, reinterpret_cast<const UChar *>(right), cchRight);
-        if (result == UCOL_LESS)
-        {
-            ret = 1;
-        }
-        else if (result == UCOL_EQUAL)
-        {
-            ret = 2;
-        }
-        else if (result == UCOL_GREATER)
-        {
-            ret = 3;
-        }
-        else
-        {
-            *hr = E_FAIL;
-            ret = 0;
-        }
-
-        return ret;
-    }
+        static_assert(UCOL_LESS == -1 && UCOL_EQUAL == 0 && UCOL_GREATER == 1, "ucol_strcoll should return values compatible with localeCompare");
+        return JavascriptNumber::ToVar(ucol_strcoll(
+            *coll,
+            reinterpret_cast<const UChar *>(left->GetSz()),
+            left->GetLength(),
+            reinterpret_cast<const UChar *>(right->GetSz()),
+            right->GetLength()
+        ), scriptContext);
 #endif
+    }
 
     Var IntlEngineInterfaceExtensionObject::EntryIntl_CompareString(RecyclableObject* function, CallInfo callInfo, ...)
     {
+#ifdef INTL_ICU
+        AssertOrFailFastMsg(false, "EntryIntl_CompareString should not be called in Intl-ICU");
+        return nullptr;
+#else
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
         INTL_CHECK_ARGS(args.Info.Count >= 3 && JavascriptString::Is(args[1]) && JavascriptString::Is(args[2]));
 
-#ifdef INTL_WINGLOB
         const char16 *locale = nullptr; // args[3]
         char16 defaultLocale[LOCALE_NAME_MAX_LENGTH] = { 0 };
-#else
-        const char16 *langtag = nullptr;
-        charcount_t langtagLen = 0;
-#endif
+
         CollatorSensitivity sensitivity = CollatorSensitivity::Default; // args[4]
         bool ignorePunctuation = false; // args[5]
         bool numeric = false; // args[6]
@@ -1796,12 +1844,7 @@ namespace Js
 
             if (!JavascriptOperators::IsUndefinedObject(args.Values[3]) && JavascriptString::Is(args.Values[3]))
             {
-#ifdef INTL_WINGLOB
                 locale = JavascriptString::FromVar(args.Values[3])->GetSz();
-#else
-                langtag = JavascriptString::UnsafeFromVar(args[3])->GetSz();
-                langtagLen = JavascriptString::UnsafeFromVar(args[3])->GetLength();
-#endif
             }
             else
             {
@@ -1830,7 +1873,6 @@ namespace Js
         }
         else
         {
-#ifdef INTL_WINGLOB
             if (GetUserDefaultLocaleName(defaultLocale, _countof(defaultLocale)) != 0)
             {
                 locale = defaultLocale;
@@ -1839,12 +1881,9 @@ namespace Js
             {
                 JavascriptError::MapAndThrowError(scriptContext, HRESULT_FROM_WIN32(GetLastError()));
             }
-#endif
         }
 
-#ifdef INTL_WINGLOB
         Assert(locale != nullptr);
-#endif
         Assert((int)sensitivity >= 0 && sensitivity < CollatorSensitivity::Max);
         Assert((int)caseFirst >= 0 && caseFirst < CollatorCaseFirst::Max);
 
@@ -1881,34 +1920,9 @@ namespace Js
         // Default to the strings being equal, because sorting with == causes no change in the order but converges, whereas < would cause an infinite loop.
         int compareResult = 2;
         HRESULT error = S_OK;
-#if defined(INTL_WINGLOB)
         DWORD comparisonFlags = GetCompareStringComparisonFlags(sensitivity, ignorePunctuation, numeric);
         compareResult = CompareStringEx(locale, comparisonFlags, left, leftLen, right, rightLen, NULL, NULL, 0);
         error = HRESULT_FROM_WIN32(GetLastError());
-#elif defined(INTL_ICU)
-        compareResult = CompareStringICU(
-            langtag,
-            langtagLen,
-            left,
-            leftLen,
-            right,
-            rightLen,
-            sensitivity,
-            ignorePunctuation,
-            numeric,
-            caseFirst,
-            &error
-        );
-#elif !_WIN32
-        compareResult = wcsncmp(aLeft, aRight, min(size1, size2));
-        if (compareResult == 0 && size1 != size2)
-        {
-            compareResult = size1 > size2 ? 1 : -1;
-        }
-
-        // return early because wcsncmp has a different return value format that CompareStringEx/CollatorCompare
-        return JavascriptNumber::ToVar(compareResult, scriptContext);
-#endif
 
         if (compareResult == 0)
         {
@@ -1916,6 +1930,7 @@ namespace Js
         }
 
         return JavascriptNumber::ToVar(compareResult - 2, scriptContext);
+#endif
     }
 
     Var IntlEngineInterfaceExtensionObject::EntryIntl_CurrencyDigits(RecyclableObject* function, CallInfo callInfo, ...)
