@@ -192,10 +192,15 @@ class BinaryReaderInterp : public BinaryReaderNop {
                            Address offset) override;
   wabt::Result OnTeeLocalExpr(Index local_index) override;
   wabt::Result OnUnaryExpr(wabt::Opcode opcode) override;
+  wabt::Result OnTernaryExpr(wabt::Opcode opcode) override;
   wabt::Result OnUnreachableExpr() override;
   wabt::Result EndFunctionBody(Index index) override;
+  wabt::Result OnSimdLaneOpExpr(wabt::Opcode opcode, uint64_t value) override;
+  wabt::Result OnSimdShuffleOpExpr(wabt::Opcode opcode, v128 value) override;
 
   wabt::Result EndElemSegmentInitExpr(Index index) override;
+  wabt::Result OnElemSegmentFunctionIndexCount(Index index,
+                                               Index count) override;
   wabt::Result OnElemSegmentFunctionIndex(Index index,
                                           Index func_index) override;
 
@@ -624,7 +629,9 @@ wabt::Result BinaryReaderInterp::AppendExport(Module* module,
                                               ExternalKind kind,
                                               Index item_index,
                                               string_view name) {
-  if (module->export_bindings.FindIndex(name) != kInvalidIndex) {
+  // Host modules are allowed to have duplicated exports; e.g. "spectest.print"
+  if (isa<DefinedModule>(module) &&
+      module->export_bindings.FindIndex(name) != kInvalidIndex) {
     PrintError("duplicate export \"" PRIstringview "\"",
                WABT_PRINTF_STRING_VIEW_ARG(name));
     return wabt::Result::Error;
@@ -737,6 +744,8 @@ wabt::Result BinaryReaderInterp::OnImportTable(Index import_index,
         import, table, MakePrintErrorCallback()));
 
     CHECK_RESULT(CheckImportLimits(elem_limits, &table->limits));
+
+    table->func_indexes.resize(table->limits.initial);
 
     module_->table_index = env_->GetTableCount() - 1;
     AppendExport(host_import_module, ExternalKind::Table, module_->table_index,
@@ -1002,16 +1011,23 @@ wabt::Result BinaryReaderInterp::EndElemSegmentInitExpr(Index index) {
   return wabt::Result::Ok;
 }
 
-wabt::Result BinaryReaderInterp::OnElemSegmentFunctionIndex(Index index,
-                                                            Index func_index) {
+wabt::Result BinaryReaderInterp::OnElemSegmentFunctionIndexCount(Index index,
+                                                                 Index count) {
   assert(module_->table_index != kInvalidIndex);
   Table* table = env_->GetTable(module_->table_index);
-  if (table_offset_ >= table->func_indexes.size()) {
-    PrintError("elem segment offset is out of bounds: %u >= max value %" PRIzd,
-               table_offset_, table->func_indexes.size());
+  // Check both cases, as table_offset_ + count may overflow.
+  if (table_offset_ > table->func_indexes.size() ||
+      table_offset_ + count > table->func_indexes.size()) {
+    PrintError("elem segment is out of bounds: [%u, %u) >= max value %" PRIzd,
+               table_offset_, table_offset_ + count,
+               table->func_indexes.size());
     return wabt::Result::Error;
   }
+  return wabt::Result::Ok;
+}
 
+wabt::Result BinaryReaderInterp::OnElemSegmentFunctionIndex(Index index,
+                                                            Index func_index) {
   Index max_func_index = func_index_mapping_.size();
   if (func_index >= max_func_index) {
     PrintError("invalid func_index: %" PRIindex " (max %" PRIindex ")",
@@ -1019,6 +1035,7 @@ wabt::Result BinaryReaderInterp::OnElemSegmentFunctionIndex(Index index,
     return wabt::Result::Error;
   }
 
+  Table* table = env_->GetTable(module_->table_index);
   elem_segment_infos_.emplace_back(&table->func_indexes[table_offset_++],
                                    TranslateFuncIndexToEnv(func_index));
   return wabt::Result::Ok;
@@ -1155,6 +1172,28 @@ wabt::Result BinaryReaderInterp::CheckAtomicAlign(uint32_t alignment_log2,
 wabt::Result BinaryReaderInterp::OnUnaryExpr(wabt::Opcode opcode) {
   CHECK_RESULT(typechecker_.OnUnary(opcode));
   CHECK_RESULT(EmitOpcode(opcode));
+  return wabt::Result::Ok;
+}
+
+wabt::Result BinaryReaderInterp::OnTernaryExpr(wabt::Opcode opcode) {
+  CHECK_RESULT(typechecker_.OnTernary(opcode));
+  CHECK_RESULT(EmitOpcode(opcode));
+  return wabt::Result::Ok;
+}
+
+wabt::Result BinaryReaderInterp::OnSimdLaneOpExpr(wabt::Opcode opcode,
+                                                  uint64_t value) {
+  CHECK_RESULT(typechecker_.OnSimdLaneOp(opcode, value));
+  CHECK_RESULT(EmitOpcode(opcode));
+  CHECK_RESULT(EmitI8(static_cast<uint8_t>(value)));
+  return wabt::Result::Ok;
+}
+
+wabt::Result BinaryReaderInterp::OnSimdShuffleOpExpr(wabt::Opcode opcode,
+                                                     v128 value) {
+  CHECK_RESULT(typechecker_.OnSimdShuffleOp(opcode, value));
+  CHECK_RESULT(EmitOpcode(opcode));
+  CHECK_RESULT(EmitV128(value));
   return wabt::Result::Ok;
 }
 

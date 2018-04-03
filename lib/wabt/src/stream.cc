@@ -154,6 +154,13 @@ std::unique_ptr<OutputBuffer> MemoryStream::ReleaseOutputBuffer() {
   return std::move(buf_);
 }
 
+void MemoryStream::Clear() {
+  if (buf_)
+    buf_->clear();
+  else
+    buf_.reset(new OutputBuffer());
+}
+
 Result MemoryStream::WriteDataImpl(size_t dst_offset,
                                    const void* src,
                                    size_t size) {
@@ -270,6 +277,5 @@ std::unique_ptr<FileStream> FileStream::CreateStdout() {
 std::unique_ptr<FileStream> FileStream::CreateStderr() {
   return std::unique_ptr<FileStream>(new FileStream(stderr));
 }
-
 
 }  // namespace wabt

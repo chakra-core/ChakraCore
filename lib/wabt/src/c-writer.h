@@ -14,27 +14,24 @@
  * limitations under the License.
  */
 
-#ifndef WABT_BINARY_READER_LINKER_H_
-#define WABT_BINARY_READER_LINKER_H_
+#ifndef WABT_C_WRITER_H_
+#define WABT_C_WRITER_H_
 
 #include "src/common.h"
-#include "src/stream.h"
 
 namespace wabt {
 
+struct Module;
 class Stream;
 
-namespace link {
+struct WriteCOptions {};
 
-class LinkerInputBinary;
+Result WriteC(Stream* c_stream,
+              Stream* h_stream,
+              const char* header_name,
+              const Module*,
+              const WriteCOptions*);
 
-struct LinkOptions {
-  Stream* log_stream;
-};
-
-Result ReadBinaryLinker(LinkerInputBinary* input_info, LinkOptions* options);
-
-} // namespace link
 }  // namespace wabt
 
-#endif /* WABT_BINARY_READER_LINKER_H_ */
+#endif /* WABT_C_WRITER_H_ */

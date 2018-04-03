@@ -27,6 +27,7 @@ class Stream;
 struct WriteWatOptions {
   bool fold_exprs = false;  // Write folded expressions.
   bool inline_export = false;
+  bool inline_import = false;
 };
 
 Result WriteWat(Stream*, const Module*, const WriteWatOptions*);

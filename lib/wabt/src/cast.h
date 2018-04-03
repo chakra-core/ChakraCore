@@ -104,6 +104,6 @@ std::unique_ptr<Derived> cast(std::unique_ptr<Base>&& base) {
   return std::unique_ptr<Derived>(static_cast<Derived*>(base.release()));
 };
 
-} // namespace wabt
+}  // namespace wabt
 
-#endif // WABT_CAST_H_
+#endif  // WABT_CAST_H_
