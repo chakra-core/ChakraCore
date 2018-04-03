@@ -90,6 +90,7 @@ BOOL VirtualAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType
     return ret;
 }
 
+#if ENABLE_NATIVE_CODEGEN
 /*
 * class PreReservedVirtualAllocWrapper
 */
@@ -474,6 +475,8 @@ PreReservedVirtualAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFr
         return success;
     }
 }
+
+#endif // ENABLE_NATIVE_CODEGEN
 
 #if defined(ENABLE_JIT_CLAMP)
 /*

@@ -32,6 +32,7 @@ private:
     VirtualAllocWrapper() {}
 };
 
+#if ENABLE_NATIVE_CODEGEN
 /*
 * PreReservedVirtualAllocWrapper class takes care of Reserving a large memory region initially
 * and then committing mem regions for the size requested.
@@ -87,6 +88,8 @@ private:
     static uint  numPreReservedSegment;
 #endif
 };
+
+#endif
 
 #if defined(ENABLE_JIT_CLAMP)
 

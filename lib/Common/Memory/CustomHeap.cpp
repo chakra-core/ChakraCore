@@ -3,6 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
+
+#if ENABLE_NATIVE_CODEGEN || DYNAMIC_INTERPRETER_THUNK
+
 #include "Memory/XDataAllocator.h"
 #if defined(_M_ARM)
 #include <wchar.h>
@@ -1215,3 +1218,4 @@ CodePageAllocators<SectionAllocWrapper, PreReservedSectionAllocWrapper>::FreeLoc
 } // namespace CustomHeap
 
 } // namespace Memory
+#endif // ENABLE_NATIVE_CODEGEN || DYNAMIC_INTERPRETER_THUNK

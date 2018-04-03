@@ -21,9 +21,13 @@ SegmentBaseCommon::SegmentBaseCommon(PageAllocatorBaseCommon* allocator)
 
 bool SegmentBaseCommon::IsInPreReservedHeapPageAllocator() const
 {
+#if ENABLE_NATIVE_CODEGEN
     return allocator->GetAllocatorType() == PageAllocatorBaseCommon::AllocatorType::PreReservedVirtualAlloc
 #if ENABLE_OOP_NATIVE_CODEGEN
         || allocator->GetAllocatorType() == PageAllocatorBaseCommon::AllocatorType::PreReservedSectionAlloc
+#endif
+#else
+    return false
 #endif
         ;
 }
@@ -40,6 +44,9 @@ SegmentBase<T>::SegmentBase(PageAllocatorBase<T> * allocator, size_t pageCount, 
     , isWriteBarrierAllowed(false)
     , isWriteBarrierEnabled(enableWriteBarrier)
 #endif
+#if DBG
+    , isPageSegment(false)
+#endif // DBG
 {
     this->segmentPageCount = pageCount + secondaryAllocPageCount;
 }
@@ -211,6 +218,9 @@ template<typename T>
 PageSegmentBase<T>::PageSegmentBase(PageAllocatorBase<T> * allocator, bool committed, bool allocated, bool enableWriteBarrier) :
     SegmentBase<T>(allocator, allocator->maxAllocPageCount, enableWriteBarrier), decommitPageCount(0)
 {
+#if DBG
+    this->isPageSegment = true;
+#endif // DBG
     Assert(this->segmentPageCount == allocator->maxAllocPageCount + allocator->secondaryAllocPageCount);
 
     uint maxPageCount = GetMaxPageCount();
@@ -248,6 +258,9 @@ template<typename T>
 PageSegmentBase<T>::PageSegmentBase(PageAllocatorBase<T> * allocator, void* address, uint pageCount, uint committedCount, bool enableWriteBarrier) :
     SegmentBase<T>(allocator, allocator->maxAllocPageCount, enableWriteBarrier), decommitPageCount(0), freePageCount(0)
 {
+#if DBG
+    this->isPageSegment = true;
+#endif // DBG
     this->address = (char*)address;
     this->segmentPageCount = pageCount;
 }
@@ -1871,6 +1884,7 @@ PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::SuspendIdleDecommit()
 #endif
 }
 
+#if ENABLE_OOP_NATIVE_CODEGEN
 template<>
 void
 PageAllocatorBase<SectionAllocWrapper>::SuspendIdleDecommit()
@@ -1883,6 +1897,7 @@ PageAllocatorBase<PreReservedSectionAllocWrapper>::SuspendIdleDecommit()
 {
     Assert(!this->IsIdleDecommitPageAllocator());
 }
+#endif
 
 template<typename TVirtualAlloc, typename TSegment, typename TPageSegment>
 void
@@ -1899,6 +1914,7 @@ PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::ResumeIdleDecommit()
 #endif
 }
 
+#if ENABLE_OOP_NATIVE_CODEGEN
 template<>
 void
 PageAllocatorBase<SectionAllocWrapper>::ResumeIdleDecommit()
@@ -1911,7 +1927,7 @@ PageAllocatorBase<PreReservedSectionAllocWrapper>::ResumeIdleDecommit()
 {
     Assert(!this->IsIdleDecommitPageAllocator());
 }
-
+#endif
 
 template<typename TVirtualAlloc, typename TSegment, typename TPageSegment>
 void
@@ -2932,14 +2948,18 @@ uint PageSegmentBase<T>::GetMaxPageCount()
 namespace Memory
 {
     //Instantiate all the Templates in this class below.
-    template class PageAllocatorBase < PreReservedVirtualAllocWrapper >;
+    
     template class PageAllocatorBase < VirtualAllocWrapper >;
-    template class HeapPageAllocator < PreReservedVirtualAllocWrapper >;
     template class HeapPageAllocator < VirtualAllocWrapper >;
-    template class SegmentBase       < VirtualAllocWrapper > ;
-    template class SegmentBase       < PreReservedVirtualAllocWrapper >;
+    template class SegmentBase       < VirtualAllocWrapper >;
     template class PageSegmentBase   < VirtualAllocWrapper >;
+#if ENABLE_NATIVE_CODEGEN
+    template class PageAllocatorBase < PreReservedVirtualAllocWrapper >;
+    template class HeapPageAllocator < PreReservedVirtualAllocWrapper >;
+    template class SegmentBase       < PreReservedVirtualAllocWrapper >;
     template class PageSegmentBase   < PreReservedVirtualAllocWrapper >;
+#endif
+    
 #if ENABLE_OOP_NATIVE_CODEGEN
     template class PageAllocatorBase < SectionAllocWrapper >;
     template class PageAllocatorBase < PreReservedSectionAllocWrapper >;
