@@ -14,17 +14,25 @@ function ascii (str) {
 const isICU = WScript.Platform.INTL_LIBRARY === "icu";
 const isWinGlob = WScript.Platform.INTL_LIBRARY === "winglob";
 
+function assertFormat(expected, fmt, date, msg = "assertFormat") {
+    assert.areEqual(ascii(expected), ascii(fmt.format(date)), `${msg}: fmt.format(date) did not match expected value`);
+
+    if (isICU) {
+        const parts = fmt.formatToParts(date);
+        assert.areEqual(expected, parts.map((part) => part.value).join(""), `${msg}: fmt.formatToParts(date) did not match expected value`);
+
+        const types = parts.filter((part) => part.type != "literal").map((part) => part.type);
+        assert.areEqual(new Set(types).size, types.length, `Duplicate non-literal parts detected in ${JSON.stringify(parts)}`)
+    }
+}
+
 const tests = [
     {
         name: "Basic functionality",
         body() {
             const date = new Date(2000, 1, 1, 1, 1, 1);
             function test(options, expected) {
-                assert.areEqual(
-                    expected,
-                    ascii(new Intl.DateTimeFormat("en-US", options).format(date)),
-                    `new Intl.DateTimeFormat("en-US", ${JSON.stringify(options)}).format(date)`
-                );
+                assertFormat(expected, new Intl.DateTimeFormat("en-US", options), date);
                 assert.areEqual(
                     expected,
                     ascii(date.toLocaleString("en-US", options)),
@@ -169,7 +177,7 @@ const tests = [
                 const toString = fmt.format(date);
                 const toParts = fmt.formatToParts(date);
 
-                assert.areEqual(toString, toParts.map((part) => part.value).join(""), `${message} - format() and formatToParts() returned incompatible values`);
+                assertFormat(toString, fmt, date);
 
                 if (typeof key === "string") {
                     const part = toParts.find((p) => p.type === key);
@@ -184,7 +192,6 @@ const tests = [
                         assert.areEqual(v, part.value, `${message} - expected ${k} to be ${v}, but was actually ${part.value}`);
                     });
                 }
-
             }
 
             test(undefined, ["year", "month", "day"], ["2000", "1", "1"]);
@@ -346,6 +353,15 @@ const tests = [
                 return;
             }
 
+            // This test raised Microsoft/ChakraCore#4885 and tc39/ecma402#225 - In the original ICU implementation
+            // of Intl.DateTimeFormat, we would generate the date pattern using the fully resolved locale, including
+            // any unicode extension keys to specify the calendar and numbering system.
+            // This caused ICU to generate more accurate patterns in the given calendar system, but is not spec
+            // compliant by #sec-initializedatetimeformat as of Intl 2018.
+            // Revisit the values for chinese and dangi calendars in particular in the future if pattern generation
+            // switches to using the full locale instead of just the basename, as those calendar systems prefer to
+            // to be represented in ICU by a year name and a related gregorian year.
+
             const d = new Date(Date.UTC(2018, 2, 27, 12, 0, 0));
 
             // lists of calendars and aliases taken from https://unicode.org/repos/cldr/trunk/common/bcp47/calendar.xml
@@ -355,13 +371,19 @@ const tests = [
                     latn: "2561",
                     thai: "๒๕๖๑",
                 },
-                // Chinese and dangi calendars are disabled for the time being until we can resolve Microsoft/ChakraCore#4885
-                // chinese: {},
+                // TODO(jahorto): investigate chinese and dangi calendars - Microsoft/ChakraCore#4885
+                chinese: {
+                    latn: "35",
+                    thai: "๓๕",
+                },
                 coptic: {
                     latn: "1734",
                     thai: "๑๗๓๔",
                 },
-                // dangi: {},
+                dangi: {
+                    latn: "35",
+                    thai: "๓๕",
+                },
                 ethioaa: {
                     latn: "7510",
                     thai: "๗๕๑๐",
@@ -432,11 +454,12 @@ const tests = [
                     langtag += `-nu-${numberingSystem}`;
                 }
 
-                // Extract just the year out of the string, as the era may be present too
-                // SpiderMonkey does not print the era, but Chakra and V8 do -- is this an issue?
+                // Extract just the year out of the string to ensure we don't get confused by added information, like eras.
+                const fmt = new Intl.DateTimeFormat(langtag, { year: "numeric" });
+                assertFormat(fmt.format(d), fmt, d);
                 assert.areEqual(
                     expected,
-                    new Intl.DateTimeFormat(langtag, { year: "numeric" }).formatToParts(d).filter((part) => part.type === "year")[0].value,
+                    fmt.formatToParts(d).filter((part) => part.type === "year")[0].value,
                     `${langtag} did not produce the correct year`
                 );
             }
