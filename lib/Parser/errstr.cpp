@@ -16,7 +16,7 @@ static BOOL FGetStringFromLibrary(HMODULE hlib, int istring, __out_ecount(cchMax
     // NOTE - istring is expected to be HRESULT
 
     Assert(0 < cchMax);
-    AssertArrMem(psz, cchMax);
+    Assert(psz);
 
     HGLOBAL hgl = NULL;
     WCHAR * pchRes = NULL;
