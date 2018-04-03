@@ -248,6 +248,11 @@ namespace Js
 
     void PathTypeHandlerBase::SetSuccessor(DynamicType * type, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext)
     {
+#if DBG
+        DynamicType * successorType = typeWeakRef->Get();
+        AssertMsg(!successorType || !successorType->GetTypeHandler()->IsPathTypeHandler() || 
+                  PathTypeHandlerBase::FromTypeHandler(successorType->GetTypeHandler())->GetPredecessorType() == type, "We're using a successor that has a different predecessor?");
+#endif
         if (this->successorInfo == nullptr)
         {
             this->successorInfo = PathTypeSingleSuccessorInfo::New(successorKey, typeWeakRef, scriptContext);
@@ -2156,6 +2161,10 @@ namespace Js
         }
 
         (*propertyIndex) = index;
+
+#if DBG
+        AssertMsg(nextPath->GetPredecessorType()->GetTypeHandler() == this, "Promoting this type to a successor with a different predecessor?");
+#endif
 
         return nextType;
     }

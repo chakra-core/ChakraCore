@@ -16,11 +16,11 @@
 
 #include "src/wast-parser.h"
 
-#include "src/binary-reader.h"
 #include "src/binary-reader-ir.h"
+#include "src/binary-reader.h"
 #include "src/cast.h"
-#include "src/expr-visitor.h"
 #include "src/error-handler.h"
+#include "src/expr-visitor.h"
 #include "src/make-unique.h"
 #include "src/utf8.h"
 #include "src/wast-parser-lexer-shared.h"
@@ -172,6 +172,9 @@ bool IsPlainInstr(TokenType token_type) {
     case TokenType::AtomicRmwCmpxchg:
     case TokenType::AtomicWake:
     case TokenType::AtomicWait:
+    case TokenType::Ternary:
+    case TokenType::SimdLaneOp:
+    case TokenType::SimdShuffleOp:
       return true;
     default:
       return false;
@@ -183,6 +186,7 @@ bool IsBlockInstr(TokenType token_type) {
     case TokenType::Block:
     case TokenType::Loop:
     case TokenType::If:
+    case TokenType::IfExcept:
     case TokenType::Try:
       return true;
     default:
@@ -200,10 +204,6 @@ bool IsExpr(TokenTypePair pair) {
 
 bool IsInstr(TokenTypePair pair) {
   return IsPlainOrBlockInstr(pair[0]) || IsExpr(pair);
-}
-
-bool IsCatch(TokenType token_type) {
-  return token_type == TokenType::Catch || token_type == TokenType::CatchAll;
 }
 
 bool IsModuleField(TokenTypePair pair) {
@@ -862,8 +862,10 @@ Result WastParser::ParseFuncModuleField(Module* module) {
     Func& func = field->func;
     CHECK_RESULT(ParseTypeUseOpt(&func.decl));
     CHECK_RESULT(ParseFuncSignature(&func.decl.sig, &func.param_bindings));
-    CHECK_RESULT(ParseBoundValueTypeList(TokenType::Local, &func.local_types,
+    TypeVector local_types;
+    CHECK_RESULT(ParseBoundValueTypeList(TokenType::Local, &local_types,
                                          &func.local_bindings));
+    func.local_types.Set(local_types);
     CHECK_RESULT(ParseTerminatingInstrList(&func.exprs));
     module->AppendField(std::move(field));
   }
@@ -1294,7 +1296,6 @@ Result WastParser::ParsePlainLoadStoreInstr(Location loc,
   return Result::Ok;
 }
 
-
 Result WastParser::ParsePlainInstr(std::unique_ptr<Expr>* out_expr) {
   WABT_TRACE(ParsePlainInstr);
   Location loc = GetLocation();
@@ -1439,7 +1440,7 @@ Result WastParser::ParsePlainInstr(std::unique_ptr<Expr>* out_expr) {
 
     case TokenType::Rethrow:
       ErrorUnlessOpcodeEnabled(Consume());
-      CHECK_RESULT(ParsePlainInstrVar<RethrowExpr>(loc, out_expr));
+      out_expr->reset(new RethrowExpr(loc));
       break;
 
     case TokenType::AtomicWake: {
@@ -1490,6 +1491,32 @@ Result WastParser::ParsePlainInstr(std::unique_ptr<Expr>* out_expr) {
       break;
     }
 
+    case TokenType::Ternary: {
+      Token token = Consume();
+      ErrorUnlessOpcodeEnabled(token);
+      out_expr->reset(new TernaryExpr(token.opcode(), loc));
+      break;
+    }
+
+    case TokenType::SimdLaneOp: {
+      Token token = Consume();
+      ErrorUnlessOpcodeEnabled(token);
+      uint64_t lane_idx;
+      CHECK_RESULT(ParseNat(&lane_idx));
+      out_expr->reset(new SimdLaneOpExpr(token.opcode(), lane_idx, loc));
+      break;
+    }
+
+    case TokenType::SimdShuffleOp: {
+      Token token = Consume();
+      ErrorUnlessOpcodeEnabled(token);
+      Const const_;
+      CHECK_RESULT((ParseSimdConst(&const_, Type::I32, sizeof(v128))));
+      out_expr->reset(
+          new SimdShuffleOpExpr(token.opcode(), const_.v128_bits, loc));
+      break;
+    }
+
     default:
       assert(
           !"ParsePlainInstr should only be called when IsPlainInstr() is true");
@@ -1502,16 +1529,18 @@ Result WastParser::ParsePlainInstr(std::unique_ptr<Expr>* out_expr) {
 // Current Simd const type is V128 const only.
 // The current expected V128 const lists is:
 // i32 0xXXXXXXXX 0xXXXXXXXX 0xXXXXXXXX 0xXXXXXXXX
-Result WastParser::ParseSimdConst(Const* const_, Type in_type, int32_t nSimdConstBytes) {
+Result WastParser::ParseSimdConst(Const* const_,
+                                  Type in_type,
+                                  int32_t nSimdConstBytes) {
   WABT_TRACE(ParseSimdConst);
 
   // Parse the Simd Consts according to input data type.
   switch (in_type) {
     case Type::I32: {
       const_->loc = GetLocation();
-      int Count = nSimdConstBytes/sizeof(uint32_t);
+      int Count = nSimdConstBytes / sizeof(uint32_t);
       // Meet expected "i32" token. start parse 4 i32 consts
-      for(int i=0; i<Count; i++) {
+      for (int i = 0; i < Count; i++) {
         Location loc = GetLocation();
 
         // Expected one 0xXXXXXXXX number
@@ -1525,8 +1554,8 @@ Result WastParser::ParseSimdConst(Const* const_, Type in_type, int32_t nSimdCons
         const char* end = sv.end();
         Result result;
 
-        result =
-            ParseInt32(s, end, &(const_->v128_bits.v[i]), ParseIntType::SignedAndUnsigned);
+        result = ParseInt32(s, end, &(const_->v128_bits.v[i]),
+                            ParseIntType::SignedAndUnsigned);
 
         if (Failed(result)) {
           Error(loc, "invalid literal \"%s\"", literal.text.c_str());
@@ -1568,8 +1597,9 @@ Result WastParser::ParseConst(Const* const_) {
     }
     case TokenType::ValueType: {
       // ValueType token is valid here only when after a Simd const opcode.
-      if(opcode != Opcode::V128Const) {
-        return ErrorExpected({"a numeric literal for non-simd const opcode"}, "123, -45, 6.7e8");
+      if (opcode != Opcode::V128Const) {
+        return ErrorExpected({"a numeric literal for non-simd const opcode"},
+                             "123, -45, 6.7e8");
       }
       // Get Simd Const input type.
       in_type = Consume().type();
@@ -1608,8 +1638,11 @@ Result WastParser::ParseConst(Const* const_) {
       const_->type = Type::V128;
       // Parse V128 Simd Const (16 bytes).
       result = ParseSimdConst(const_, in_type, sizeof(v128));
-      // ParseSimdConst report error already, just return here if parser get errors.
-      if (Failed(result)) return Result::Error;
+      // ParseSimdConst report error already, just return here if parser get
+      // errors.
+      if (Failed(result)) {
+        return Result::Error;
+      }
       break;
 
     default:
@@ -1681,14 +1714,29 @@ Result WastParser::ParseBlockInstr(std::unique_ptr<Expr>* out_expr) {
       break;
     }
 
+    case TokenType::IfExcept: {
+      ErrorUnlessOpcodeEnabled(Consume());
+      auto expr = MakeUnique<IfExceptExpr>(loc);
+      CHECK_RESULT(ParseIfExceptHeader(expr.get()));
+      CHECK_RESULT(ParseInstrList(&expr->true_.exprs));
+      if (Match(TokenType::Else)) {
+        CHECK_RESULT(ParseEndLabelOpt(expr->true_.label));
+        CHECK_RESULT(ParseTerminatingInstrList(&expr->false_));
+      }
+      EXPECT(End);
+      CHECK_RESULT(ParseEndLabelOpt(expr->true_.label));
+      *out_expr = std::move(expr);
+      break;
+    }
+
     case TokenType::Try: {
       ErrorUnlessOpcodeEnabled(Consume());
       auto expr = MakeUnique<TryExpr>(loc);
-      CatchVector catches;
       CHECK_RESULT(ParseLabelOpt(&expr->block.label));
       CHECK_RESULT(ParseBlock(&expr->block));
-      CHECK_RESULT(ParseCatchInstrList(&expr->catches));
-      CHECK_RESULT(ErrorIfLpar({"a catch expr"}));
+      EXPECT(Catch);
+      CHECK_RESULT(ParseEndLabelOpt(expr->block.label));
+      CHECK_RESULT(ParseTerminatingInstrList(&expr->catch_));
       EXPECT(End);
       CHECK_RESULT(ParseEndLabelOpt(expr->block.label));
       *out_expr = std::move(expr);
@@ -1737,6 +1785,51 @@ Result WastParser::ParseBlock(Block* block) {
   return Result::Ok;
 }
 
+Result WastParser::ParseIfExceptHeader(IfExceptExpr* expr) {
+  WABT_TRACE(ParseIfExceptHeader);
+  // if_except has the syntax:
+  //
+  //     if_except label_opt block_type except_index
+  //
+  // This means that it can have a few different forms:
+  //
+  //     1. if_except <num> ...
+  //     2. if_except $except ...
+  //     3. if_except $label $except/<num> ...
+  //     4. if_except (result...) $except/<num> ...
+  //     5. if_except $label (result...) $except/<num> ...
+
+  if (PeekMatchLpar(TokenType::Result)) {
+    // Case 4.
+    CHECK_RESULT(ParseResultList(&expr->true_.sig));
+    CHECK_RESULT(ParseVar(&expr->except_var));
+  } else if (PeekMatch(TokenType::Nat)) {
+    // Case 1.
+    CHECK_RESULT(ParseVar(&expr->except_var));
+  } else if (PeekMatch(TokenType::Var)) {
+    // Cases 2, 3, 5.
+    Var var;
+    CHECK_RESULT(ParseVar(&var));
+    if (PeekMatchLpar(TokenType::Result)) {
+      // Case 5.
+      expr->true_.label = var.name();
+      CHECK_RESULT(ParseResultList(&expr->true_.sig));
+      CHECK_RESULT(ParseVar(&expr->except_var));
+    } else if (ParseVarOpt(&expr->except_var, Var())) {
+      // Case 3.
+      expr->true_.label = var.name();
+    } else {
+      // Case 2.
+      expr->except_var = var;
+    }
+  } else {
+    return ErrorExpected({"a var", "a block type"},
+                         "12 or $foo or (result ...)");
+  }
+
+  return Result::Ok;
+}
+
 Result WastParser::ParseExprList(ExprList* exprs) {
   WABT_TRACE(ParseExprList);
   ExprList new_exprs;
@@ -1780,7 +1873,7 @@ Result WastParser::ParseExpr(ExprList* exprs) {
       case TokenType::Loop: {
         Consume();
         Consume();
-        auto expr = MakeUnique<LoopExpr>();
+        auto expr = MakeUnique<LoopExpr>(loc);
         CHECK_RESULT(ParseLabelOpt(&expr->block.label));
         CHECK_RESULT(ParseBlock(&expr->block));
         exprs->push_back(std::move(expr));
@@ -1825,6 +1918,43 @@ Result WastParser::ParseExpr(ExprList* exprs) {
         break;
       }
 
+      case TokenType::IfExcept: {
+        Consume();
+        ErrorUnlessOpcodeEnabled(Consume());
+        auto expr = MakeUnique<IfExceptExpr>(loc);
+
+        CHECK_RESULT(ParseIfExceptHeader(expr.get()));
+
+        if (PeekMatchExpr()) {
+          ExprList cond;
+          CHECK_RESULT(ParseExpr(&cond));
+          exprs->splice(exprs->end(), cond);
+        }
+
+        if (MatchLpar(TokenType::Then)) {
+          CHECK_RESULT(ParseTerminatingInstrList(&expr->true_.exprs));
+          EXPECT(Rpar);
+
+          if (MatchLpar(TokenType::Else)) {
+            CHECK_RESULT(ParseTerminatingInstrList(&expr->false_));
+            EXPECT(Rpar);
+          } else if (PeekMatchExpr()) {
+            CHECK_RESULT(ParseExpr(&expr->false_));
+          }
+        } else if (PeekMatchExpr()) {
+          CHECK_RESULT(ParseExpr(&expr->true_.exprs));
+          if (PeekMatchExpr()) {
+            CHECK_RESULT(ParseExpr(&expr->false_));
+          }
+        } else {
+          ConsumeIfLpar();
+          return ErrorExpected({"then block"}, "(then ...)");
+        }
+
+        exprs->push_back(std::move(expr));
+        break;
+      }
+
       case TokenType::Try: {
         Consume();
         ErrorUnlessOpcodeEnabled(Consume());
@@ -1833,9 +1963,10 @@ Result WastParser::ParseExpr(ExprList* exprs) {
         CHECK_RESULT(ParseLabelOpt(&expr->block.label));
         CHECK_RESULT(ParseResultList(&expr->block.sig));
         CHECK_RESULT(ParseInstrList(&expr->block.exprs));
-        CHECK_RESULT(ParseCatchExprList(&expr->catches));
-        CHECK_RESULT(ErrorIfLpar({"a catch expr"}));
-
+        EXPECT(Lpar);
+        EXPECT(Catch);
+        CHECK_RESULT(ParseTerminatingInstrList(&expr->catch_));
+        EXPECT(Rpar);
         exprs->push_back(std::move(expr));
         break;
       }
@@ -1847,40 +1978,6 @@ Result WastParser::ParseExpr(ExprList* exprs) {
   }
 
   EXPECT(Rpar);
-  return Result::Ok;
-}
-
-Result WastParser::ParseCatchInstrList(CatchVector* catches) {
-  WABT_TRACE(ParseCatchInstrList);
-  while (IsCatch(Peek())) {
-    Catch catch_(GetLocation());
-
-    if (Consume().token_type() == TokenType::Catch) {
-      CHECK_RESULT(ParseVar(&catch_.var));
-    }
-
-    CHECK_RESULT(ParseInstrList(&catch_.exprs));
-    catches->push_back(std::move(catch_));
-  }
-
-  return Result::Ok;
-}
-
-Result WastParser::ParseCatchExprList(CatchVector* catches) {
-  WABT_TRACE(ParseCatchExprList);
-  while (PeekMatch(TokenType::Lpar) && IsCatch(Peek(1))) {
-    Consume();
-    Catch catch_(GetLocation());
-
-    if (Consume().token_type() == TokenType::Catch) {
-      CHECK_RESULT(ParseVar(&catch_.var));
-    }
-
-    CHECK_RESULT(ParseTerminatingInstrList(&catch_.exprs));
-    EXPECT(Rpar);
-    catches->push_back(std::move(catch_));
-  }
-
   return Result::Ok;
 }
 
@@ -2231,14 +2328,13 @@ void WastParser::CheckImportOrdering(Module* module) {
 }
 
 Result ParseWatModule(WastLexer* lexer,
-                       std::unique_ptr<Module>* out_module,
-                       ErrorHandler* error_handler,
-                       WastParseOptions* options) {
+                      std::unique_ptr<Module>* out_module,
+                      ErrorHandler* error_handler,
+                      WastParseOptions* options) {
   assert(out_module != nullptr);
   WastParser parser(lexer, error_handler, options);
   return parser.ParseModule(out_module);
 }
-
 
 Result ParseWastScript(WastLexer* lexer,
                        std::unique_ptr<Script>* out_script,

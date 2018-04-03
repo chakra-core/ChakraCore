@@ -134,8 +134,8 @@ class string_view {
   /*constexpr*/ size_type find_last_of(const char* s,
                                        size_type pos = npos) const;
 
-  // TODO(binji): These are defined by C++17 basic_string_view but not
-  // implemented here.
+// TODO(binji): These are defined by C++17 basic_string_view but not
+// implemented here.
 #if 0
   constexpr size_type find_first_not_of(string_view s, size_type pos = 0) const
       noexcept;
@@ -271,7 +271,7 @@ constexpr inline string_view::const_pointer string_view::data() const noexcept {
   return data_;
 }
 
-} // namespace wabt
+}  // namespace wabt
 
 namespace std {
 
@@ -283,6 +283,6 @@ struct hash<::wabt::string_view> {
   }
 };
 
-}
+}  // namespace std
 
 #endif  // WABT_STRING_VIEW_H_

@@ -72,8 +72,9 @@ std::string TypedValueToString(const TypedValue& tv) {
     }
 
     case Type::V128:
-      return StringPrintf("v128:0x%08x 0x%08x 0x%08x 0x%08x", tv.value.v128_bits.v[0],
-             tv.value.v128_bits.v[1],tv.value.v128_bits.v[2],tv.value.v128_bits.v[3]);
+      return StringPrintf("v128:0x%08x 0x%08x 0x%08x 0x%08x",
+                          tv.value.v128_bits.v[0], tv.value.v128_bits.v[1],
+                          tv.value.v128_bits.v[2], tv.value.v128_bits.v[3]);
 
     default:
       WABT_UNREACHABLE;
@@ -152,10 +153,8 @@ Module* Environment::FindRegisteredModule(string_view name) {
   return modules_[iter->second.index].get();
 }
 
-Thread::Options::Options(uint32_t value_stack_size,
-                         uint32_t call_stack_size)
-    : value_stack_size(value_stack_size),
-      call_stack_size(call_stack_size) {}
+Thread::Options::Options(uint32_t value_stack_size, uint32_t call_stack_size)
+    : value_stack_size(value_stack_size), call_stack_size(call_stack_size) {}
 
 Thread::Thread(Environment* env, const Options& options)
     : env_(env),
@@ -269,6 +268,8 @@ template <>
 float FromRep<float>(uint32_t x) { return Bitcast<float>(x); }
 template <>
 double FromRep<double>(uint64_t x) { return Bitcast<double>(x); }
+template <>
+v128 FromRep<v128>(v128 x) { return Bitcast<v128>(x); }
 
 template <typename T>
 struct FloatTraits;
@@ -488,6 +489,7 @@ template<> struct ExtendMemType<uint64_t, uint64_t> { typedef uint64_t type; };
 template<> struct ExtendMemType<uint64_t, int64_t> { typedef int64_t type; };
 template<> struct ExtendMemType<float, float> { typedef float type; };
 template<> struct ExtendMemType<double, double> { typedef double type; };
+template<> struct ExtendMemType<v128, v128> { typedef v128 type; };
 
 template <typename T, typename MemType> struct WrapMemType;
 template<> struct WrapMemType<uint32_t, uint8_t> { typedef uint8_t type; };
@@ -499,6 +501,7 @@ template<> struct WrapMemType<uint64_t, uint32_t> { typedef uint32_t type; };
 template<> struct WrapMemType<uint64_t, uint64_t> { typedef uint64_t type; };
 template<> struct WrapMemType<float, float> { typedef uint32_t type; };
 template<> struct WrapMemType<double, double> { typedef uint64_t type; };
+template<> struct WrapMemType<v128, v128> { typedef v128 type; };
 
 template <typename T>
 Value MakeValue(ValueTypeRep<T>);
@@ -833,6 +836,29 @@ Result Thread::Unop(UnopFunc<R, T> func) {
   return PushRep<R>(func(value));
 }
 
+// {i8, i16, 132, i64}{16, 8, 4, 2}.(neg)
+template <typename T, typename L, typename R, typename P>
+Result Thread::SimdUnop(UnopFunc<R, P> func) {
+  auto value = PopRep<T>();
+
+  // Calculate how many Lanes according to input lane data type.
+  constexpr int32_t lanes = sizeof(T) / sizeof(L);
+
+  // Define SIMD data array for Simd add by Lanes.
+  L simd_data_ret[lanes];
+  L simd_data_0[lanes];
+
+  // Convert intput SIMD data to array.
+  memcpy(simd_data_0, &value, sizeof(T));
+
+  // Constuct the Simd value by Lane data and Lane nums.
+  for (int32_t i = 0; i < lanes; i++) {
+    simd_data_ret[i] = static_cast<L>(func(simd_data_0[i]));
+  }
+
+  return PushRep<T>(Bitcast<T>(simd_data_ret));
+}
+
 template <typename R, typename T>
 Result Thread::UnopTrap(UnopTrapFunc<R, T> func) {
   auto value = PopRep<T>();
@@ -848,6 +874,32 @@ Result Thread::Binop(BinopFunc<R, T> func) {
   return PushRep<R>(func(lhs_rep, rhs_rep));
 }
 
+// {i8, i16, 132, i64}{16, 8, 4, 2}.(add/sub/mul)
+template <typename T, typename L, typename R, typename P>
+Result Thread::SimdBinop(BinopFunc<R, P> func) {
+  auto rhs_rep = PopRep<T>();
+  auto lhs_rep = PopRep<T>();
+
+  // Calculate how many Lanes according to input lane data type.
+  constexpr int32_t lanes = sizeof(T) / sizeof(L);
+
+  // Define SIMD data array for Simd add by Lanes.
+  L simd_data_ret[lanes];
+  L simd_data_0[lanes];
+  L simd_data_1[lanes];
+
+  // Convert intput SIMD data to array.
+  memcpy(simd_data_0, &lhs_rep, sizeof(T));
+  memcpy(simd_data_1, &rhs_rep, sizeof(T));
+
+  // Constuct the Simd value by Lane data and Lane nums.
+  for (int32_t i = 0; i < lanes; i++) {
+    simd_data_ret[i] = static_cast<L>(func(simd_data_0[i], simd_data_1[i]));
+  }
+
+  return PushRep<T>(Bitcast<T>(simd_data_ret));
+}
+
 template <typename R, typename T>
 Result Thread::BinopTrap(BinopTrapFunc<R, T> func) {
   auto rhs_rep = PopRep<T>();
@@ -861,6 +913,58 @@ Result Thread::BinopTrap(BinopTrapFunc<R, T> func) {
 template <typename T>
 ValueTypeRep<T> Add(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
   return ToRep(FromRep<T>(lhs_rep) + FromRep<T>(rhs_rep));
+}
+
+template <typename T, typename R>
+ValueTypeRep<T> AddSaturate(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  T max = std::numeric_limits<R>::max();
+  T min = std::numeric_limits<R>::min();
+  T result = static_cast<T>(lhs_rep) + static_cast<T>(rhs_rep);
+
+  if (result < min) {
+    return ToRep(min);
+  } else if (result > max) {
+    return ToRep(max);
+  } else {
+    return ToRep(result);
+  }
+}
+
+template <typename T, typename R>
+ValueTypeRep<T> SubSaturate(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
+  T max = std::numeric_limits<R>::max();
+  T min = std::numeric_limits<R>::min();
+  T result = static_cast<T>(lhs_rep) - static_cast<T>(rhs_rep);
+
+  if (result < min) {
+    return ToRep(min);
+  } else if (result > max) {
+    return ToRep(max);
+  } else {
+    return ToRep(result);
+  }
+}
+
+template <typename T, typename L>
+int32_t SimdIsLaneTrue(ValueTypeRep<T> value, int32_t true_cond) {
+  int true_count = 0;
+
+  // Calculate how many Lanes according to input lane data type.
+  constexpr int32_t lanes = sizeof(T) / sizeof(L);
+
+  // Define SIMD data array for Simd Lanes.
+  L simd_data_0[lanes];
+
+  // Convert intput SIMD data to array.
+  memcpy(simd_data_0, &value, sizeof(T));
+
+  // Constuct the Simd value by Lane data and Lane nums.
+  for (int32_t i = 0; i < lanes; i++) {
+    if (simd_data_0[i] != 0)
+      true_count++;
+  }
+
+  return (true_count >= true_cond) ? 1 : 0;
 }
 
 // {i,f}{32,64}.sub
@@ -1021,6 +1125,18 @@ ValueTypeRep<R> IntEqz(ValueTypeRep<T> v_rep) {
   return ToRep(v_rep == 0);
 }
 
+template <typename T>
+ValueTypeRep<T> IntNeg(ValueTypeRep<T> v_rep) {
+  T tmp = static_cast<T>(v_rep);
+  return ToRep(-tmp);
+}
+
+template <typename T>
+ValueTypeRep<T> IntNot(ValueTypeRep<T> v_rep) {
+  T tmp = static_cast<T>(v_rep);
+  return ToRep(~tmp);
+}
+
 // f{32,64}.abs
 template <typename T>
 ValueTypeRep<T> FloatAbs(ValueTypeRep<T> v_rep) {
@@ -1167,6 +1283,19 @@ uint32_t Ge(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
   return ToRep(FromRep<T>(lhs_rep) >= FromRep<T>(rhs_rep));
 }
 
+// f32x4.convert_{s,u}/i32x4 and f64x2.convert_s/i64x2.
+template <typename R, typename T>
+ValueTypeRep<R> SimdConvert(ValueTypeRep<T> v_rep) {
+  return ToRep(static_cast<R>(static_cast<T>(v_rep)));
+}
+
+// f64x2.convert_u/i64x2 use this instance due to MSVC issue.
+template <>
+ValueTypeRep<double> SimdConvert<double, uint64_t>(
+    ValueTypeRep<uint64_t> v_rep) {
+  return ToRep(wabt_convert_uint64_to_double(v_rep));
+}
+
 // i{32,64}.trunc_{s,u}/f{32,64}
 template <typename R, typename T>
 Result IntTrunc(ValueTypeRep<T> v_rep, ValueTypeRep<R>* out_result) {
@@ -1218,17 +1347,54 @@ ValueTypeRep<T> Xchg(ValueTypeRep<T> lhs_rep, ValueTypeRep<T> rhs_rep) {
 template <typename T, typename V>
 ValueTypeRep<T> SimdSplat(V lane_data) {
   // Calculate how many Lanes according to input lane data type.
-  int32_t lanes = sizeof(T)/sizeof(V);
+  int32_t lanes = sizeof(T) / sizeof(V);
 
   // Define SIMD data array by Lanes.
-  V simd_data[sizeof(T)/sizeof(V)];
+  V simd_data[sizeof(T) / sizeof(V)];
 
   // Constuct the Simd value by Land data and Lane nums.
-  for(int32_t i = 0; i < lanes; i++) {
+  for (int32_t i = 0; i < lanes; i++) {
     simd_data[i] = lane_data;
   }
 
   return ToRep(Bitcast<T>(simd_data));
+}
+
+// Simd instructions of Lane extract.
+// value: input v128 value.
+// typename T: lane data type.
+template <typename R, typename V, typename T>
+ValueTypeRep<R> SimdExtractLane(V value, uint32_t laneidx) {
+  // Calculate how many Lanes according to input lane data type.
+  constexpr int32_t lanes = sizeof(V) / sizeof(T);
+
+  // Define SIMD data array for Simd add by Lanes.
+  T simd_data_0[lanes];
+
+  // Convert intput SIMD data to array.
+  memcpy(simd_data_0, &value, sizeof(V));
+
+  return ToRep(static_cast<R>(simd_data_0[laneidx]));
+}
+
+// Simd instructions of Lane replace.
+// value: input v128 value.  lane_val: input lane data.
+// typename T: lane data type.
+template <typename R, typename V, typename T>
+ValueTypeRep<R> SimdReplaceLane(V value, uint32_t lane_idx, T lane_val) {
+  // Calculate how many Lanes according to input lane data type.
+  constexpr int32_t lanes = sizeof(V) / sizeof(T);
+
+  // Define SIMD data array for Simd add by Lanes.
+  T simd_data_0[lanes];
+
+  // Convert intput SIMD data to array.
+  memcpy(simd_data_0, &value, sizeof(V));
+
+  // Replace the indicated lane.
+  simd_data_0[lane_idx] = lane_val;
+
+  return ToRep(Bitcast<R>(simd_data_0));
 }
 
 bool Environment::FuncSignaturesAreEqual(Index sig_index_0,
@@ -2243,6 +2409,14 @@ Result Thread::Run(int num_instructions) {
         break;
       }
 
+      case Opcode::V128Load:
+        CHECK_TRAP(Load<v128>(&pc));
+        break;
+
+      case Opcode::V128Store:
+        CHECK_TRAP(Store<v128>(&pc));
+        break;
+
       case Opcode::I8X16Splat: {
         uint8_t lane_data = Pop<uint32_t>();
         CHECK_TRAP(Push<v128>(SimdSplat<v128, uint8_t>(lane_data)));
@@ -2279,14 +2453,703 @@ Result Thread::Run(int num_instructions) {
         break;
       }
 
+      case Opcode::I8X16ExtractLaneS: {
+        v128 lane_val = static_cast<v128>(Pop<v128>());
+        uint32_t lane_idx = ReadU8(&pc);
+        CHECK_TRAP(PushRep<int32_t>(
+            SimdExtractLane<int32_t, v128, int8_t>(lane_val, lane_idx)));
+        break;
+      }
+
+      case Opcode::I8X16ExtractLaneU: {
+        v128 lane_val = static_cast<v128>(Pop<v128>());
+        uint32_t lane_idx = ReadU8(&pc);
+        CHECK_TRAP(PushRep<int32_t>(
+            SimdExtractLane<int32_t, v128, uint8_t>(lane_val, lane_idx)));
+        break;
+      }
+
+      case Opcode::I16X8ExtractLaneS: {
+        v128 lane_val = static_cast<v128>(Pop<v128>());
+        uint32_t lane_idx = ReadU8(&pc);
+        CHECK_TRAP(PushRep<int32_t>(
+            SimdExtractLane<int32_t, v128, int16_t>(lane_val, lane_idx)));
+        break;
+      }
+
+      case Opcode::I16X8ExtractLaneU: {
+        v128 lane_val = static_cast<v128>(Pop<v128>());
+        uint32_t lane_idx = ReadU8(&pc);
+        CHECK_TRAP(PushRep<int32_t>(
+            SimdExtractLane<int32_t, v128, uint16_t>(lane_val, lane_idx)));
+        break;
+      }
+
+      case Opcode::I32X4ExtractLane: {
+        v128 lane_val = static_cast<v128>(Pop<v128>());
+        uint32_t lane_idx = ReadU8(&pc);
+        CHECK_TRAP(PushRep<int32_t>(
+            SimdExtractLane<int32_t, v128, int32_t>(lane_val, lane_idx)));
+        break;
+      }
+
+      case Opcode::I64X2ExtractLane: {
+        v128 lane_val = static_cast<v128>(Pop<v128>());
+        uint32_t lane_idx = ReadU8(&pc);
+        CHECK_TRAP(PushRep<int64_t>(
+            SimdExtractLane<int64_t, v128, int64_t>(lane_val, lane_idx)));
+        break;
+      }
+
+      case Opcode::F32X4ExtractLane: {
+        v128 lane_val = static_cast<v128>(Pop<v128>());
+        uint32_t lane_idx = ReadU8(&pc);
+        CHECK_TRAP(PushRep<float>(
+            SimdExtractLane<int32_t, v128, int32_t>(lane_val, lane_idx)));
+        break;
+      }
+
+      case Opcode::F64X2ExtractLane: {
+        v128 lane_val = static_cast<v128>(Pop<v128>());
+        uint32_t lane_idx = ReadU8(&pc);
+        CHECK_TRAP(PushRep<double>(
+            SimdExtractLane<int64_t, v128, int64_t>(lane_val, lane_idx)));
+        break;
+      }
+
+      case Opcode::I8X16ReplaceLane: {
+        int8_t lane_val = static_cast<int8_t>(Pop<int32_t>());
+        v128 value = static_cast<v128>(Pop<v128>());
+        uint32_t lane_idx = ReadU8(&pc);
+        CHECK_TRAP(Push<v128>(
+            SimdReplaceLane<v128, v128, int8_t>(value, lane_idx, lane_val)));
+        break;
+      }
+
+      case Opcode::I16X8ReplaceLane: {
+        int16_t lane_val = static_cast<int16_t>(Pop<int32_t>());
+        v128 value = static_cast<v128>(Pop<v128>());
+        uint32_t lane_idx = ReadU8(&pc);
+        CHECK_TRAP(Push<v128>(
+            SimdReplaceLane<v128, v128, int16_t>(value, lane_idx, lane_val)));
+        break;
+      }
+
+      case Opcode::I32X4ReplaceLane: {
+        int32_t lane_val = Pop<int32_t>();
+        v128 value = static_cast<v128>(Pop<v128>());
+        uint32_t lane_idx = ReadU8(&pc);
+        CHECK_TRAP(Push<v128>(
+            SimdReplaceLane<v128, v128, int32_t>(value, lane_idx, lane_val)));
+        break;
+      }
+
+      case Opcode::I64X2ReplaceLane: {
+        int64_t lane_val = Pop<int64_t>();
+        v128 value = static_cast<v128>(Pop<v128>());
+        uint32_t lane_idx = ReadU8(&pc);
+        CHECK_TRAP(Push<v128>(
+            SimdReplaceLane<v128, v128, int64_t>(value, lane_idx, lane_val)));
+        break;
+      }
+
+      case Opcode::F32X4ReplaceLane: {
+        float lane_val = Pop<float>();
+        v128 value = static_cast<v128>(Pop<v128>());
+        uint32_t lane_idx = ReadU8(&pc);
+        CHECK_TRAP(Push<v128>(
+            SimdReplaceLane<v128, v128, float>(value, lane_idx, lane_val)));
+        break;
+      }
+
+      case Opcode::F64X2ReplaceLane: {
+        double lane_val = Pop<double>();
+        v128 value = static_cast<v128>(Pop<v128>());
+        uint32_t lane_idx = ReadU8(&pc);
+        CHECK_TRAP(Push<v128>(
+            SimdReplaceLane<v128, v128, double>(value, lane_idx, lane_val)));
+        break;
+      }
+
+      case Opcode::V8X16Shuffle: {
+        const int32_t lanes = 16;
+        // Define SIMD data array for Simd add by Lanes.
+        int8_t simd_data_ret[lanes];
+        int8_t simd_data_0[lanes];
+        int8_t simd_data_1[lanes];
+        int8_t simd_shuffle[lanes];
+
+        v128 v2 = PopRep<v128>();
+        v128 v1 = PopRep<v128>();
+        v128 shuffle_imm = ReadV128(&pc);
+
+        // Convert intput SIMD data to array.
+        memcpy(simd_data_0, &v1, sizeof(v128));
+        memcpy(simd_data_1, &v2, sizeof(v128));
+        memcpy(simd_shuffle, &shuffle_imm, sizeof(v128));
+
+        // Constuct the Simd value by Lane data and Lane nums.
+        for (int32_t i = 0; i < lanes; i++) {
+          int8_t lane_idx = simd_shuffle[i];
+          simd_data_ret[i] = (lane_idx < lanes) ? simd_data_0[lane_idx]
+                                                : simd_data_1[lane_idx - lanes];
+        }
+
+        CHECK_TRAP(PushRep<v128>(Bitcast<v128>(simd_data_ret)));
+        break;
+      }
+
+      case Opcode::I8X16Add:
+        CHECK_TRAP(SimdBinop<v128, uint8_t>(Add<uint32_t>));
+        break;
+
+      case Opcode::I16X8Add:
+        CHECK_TRAP(SimdBinop<v128, uint16_t>(Add<uint32_t>));
+        break;
+
+      case Opcode::I32X4Add:
+        CHECK_TRAP(SimdBinop<v128, uint32_t>(Add<uint32_t>));
+        break;
+
+      case Opcode::I64X2Add:
+        CHECK_TRAP(SimdBinop<v128, uint64_t>(Add<uint64_t>));
+        break;
+
+      case Opcode::I8X16Sub:
+        CHECK_TRAP(SimdBinop<v128, uint8_t>(Sub<uint32_t>));
+        break;
+
+      case Opcode::I16X8Sub:
+        CHECK_TRAP(SimdBinop<v128, uint16_t>(Sub<uint32_t>));
+        break;
+
+      case Opcode::I32X4Sub:
+        CHECK_TRAP(SimdBinop<v128, uint32_t>(Sub<uint32_t>));
+        break;
+
+      case Opcode::I64X2Sub:
+        CHECK_TRAP(SimdBinop<v128, uint64_t>(Sub<uint64_t>));
+        break;
+
+      case Opcode::I8X16Mul:
+        CHECK_TRAP(SimdBinop<v128, uint8_t>(Mul<uint32_t>));
+        break;
+
+      case Opcode::I16X8Mul:
+        CHECK_TRAP(SimdBinop<v128, uint16_t>(Mul<uint32_t>));
+        break;
+
+      case Opcode::I32X4Mul:
+        CHECK_TRAP(SimdBinop<v128, uint32_t>(Mul<uint32_t>));
+        break;
+
+      case Opcode::I8X16Neg:
+        CHECK_TRAP(SimdUnop<v128, int8_t>(IntNeg<int32_t>));
+        break;
+
+      case Opcode::I16X8Neg:
+        CHECK_TRAP(SimdUnop<v128, int16_t>(IntNeg<int32_t>));
+        break;
+
+      case Opcode::I32X4Neg:
+        CHECK_TRAP(SimdUnop<v128, int32_t>(IntNeg<int32_t>));
+        break;
+
+      case Opcode::I64X2Neg:
+        CHECK_TRAP(SimdUnop<v128, int64_t>(IntNeg<int64_t>));
+        break;
+
+      case Opcode::I8X16AddSaturateS:
+        CHECK_TRAP(SimdBinop<v128, int8_t>(AddSaturate<int32_t, int8_t>));
+        break;
+
+      case Opcode::I8X16AddSaturateU:
+        CHECK_TRAP(SimdBinop<v128, uint8_t>(AddSaturate<uint32_t, uint8_t>));
+        break;
+
+      case Opcode::I16X8AddSaturateS:
+        CHECK_TRAP(SimdBinop<v128, int16_t>(AddSaturate<int32_t, int16_t>));
+        break;
+
+      case Opcode::I16X8AddSaturateU:
+        CHECK_TRAP(SimdBinop<v128, uint16_t>(AddSaturate<uint32_t, uint16_t>));
+        break;
+
+      case Opcode::I8X16SubSaturateS:
+        CHECK_TRAP(SimdBinop<v128, int8_t>(SubSaturate<int32_t, int8_t>));
+        break;
+
+      case Opcode::I8X16SubSaturateU:
+        CHECK_TRAP(SimdBinop<v128, uint8_t>(SubSaturate<int32_t, uint8_t>));
+        break;
+
+      case Opcode::I16X8SubSaturateS:
+        CHECK_TRAP(SimdBinop<v128, int16_t>(SubSaturate<int32_t, int16_t>));
+        break;
+
+      case Opcode::I16X8SubSaturateU:
+        CHECK_TRAP(SimdBinop<v128, uint16_t>(SubSaturate<int32_t, uint16_t>));
+        break;
+
+      case Opcode::I8X16Shl: {
+        uint32_t shift_count = Pop<uint32_t>();
+        shift_count = shift_count % 8;
+        CHECK_TRAP(Push<v128>(SimdSplat<v128, uint8_t>(shift_count)));
+        CHECK_TRAP(SimdBinop<v128, uint8_t>(IntShl<uint32_t>));
+        break;
+      }
+
+      case Opcode::I16X8Shl: {
+        uint32_t shift_count = Pop<uint32_t>();
+        shift_count = shift_count % 16;
+        CHECK_TRAP(Push<v128>(SimdSplat<v128, uint16_t>(shift_count)));
+        CHECK_TRAP(SimdBinop<v128, uint16_t>(IntShl<uint32_t>));
+        break;
+      }
+
+      case Opcode::I32X4Shl: {
+        uint32_t shift_count = Pop<uint32_t>();
+        shift_count = shift_count % 32;
+        CHECK_TRAP(Push<v128>(SimdSplat<v128, uint32_t>(shift_count)));
+        CHECK_TRAP(SimdBinop<v128, uint32_t>(IntShl<uint32_t>));
+        break;
+      }
+
+      case Opcode::I64X2Shl: {
+        uint32_t shift_count = Pop<uint32_t>();
+        shift_count = shift_count % 64;
+        CHECK_TRAP(Push<v128>(SimdSplat<v128, uint64_t>(shift_count)));
+        CHECK_TRAP(SimdBinop<v128, uint64_t>(IntShl<uint64_t>));
+        break;
+      }
+
+      case Opcode::I8X16ShrS: {
+        uint32_t shift_count = Pop<uint32_t>();
+        shift_count = shift_count % 8;
+        CHECK_TRAP(Push<v128>(SimdSplat<v128, uint8_t>(shift_count)));
+        CHECK_TRAP(SimdBinop<v128, int8_t>(IntShr<int32_t>));
+        break;
+      }
+
+      case Opcode::I8X16ShrU: {
+        uint32_t shift_count = Pop<uint32_t>();
+        shift_count = shift_count % 8;
+        CHECK_TRAP(Push<v128>(SimdSplat<v128, uint8_t>(shift_count)));
+        CHECK_TRAP(SimdBinop<v128, uint8_t>(IntShr<uint32_t>));
+        break;
+      }
+
+      case Opcode::I16X8ShrS: {
+        uint32_t shift_count = Pop<uint32_t>();
+        shift_count = shift_count % 16;
+        CHECK_TRAP(Push<v128>(SimdSplat<v128, uint16_t>(shift_count)));
+        CHECK_TRAP(SimdBinop<v128, int16_t>(IntShr<int32_t>));
+        break;
+      }
+
+      case Opcode::I16X8ShrU: {
+        uint32_t shift_count = Pop<uint32_t>();
+        shift_count = shift_count % 16;
+        CHECK_TRAP(Push<v128>(SimdSplat<v128, uint16_t>(shift_count)));
+        CHECK_TRAP(SimdBinop<v128, uint16_t>(IntShr<uint32_t>));
+        break;
+      }
+
+      case Opcode::I32X4ShrS: {
+        uint32_t shift_count = Pop<uint32_t>();
+        shift_count = shift_count % 32;
+        CHECK_TRAP(Push<v128>(SimdSplat<v128, uint32_t>(shift_count)));
+        CHECK_TRAP(SimdBinop<v128, int32_t>(IntShr<int32_t>));
+        break;
+      }
+
+      case Opcode::I32X4ShrU: {
+        uint32_t shift_count = Pop<uint32_t>();
+        shift_count = shift_count % 32;
+        CHECK_TRAP(Push<v128>(SimdSplat<v128, uint32_t>(shift_count)));
+        CHECK_TRAP(SimdBinop<v128, uint32_t>(IntShr<uint32_t>));
+        break;
+      }
+
+      case Opcode::I64X2ShrS: {
+        uint32_t shift_count = Pop<uint32_t>();
+        shift_count = shift_count % 64;
+        CHECK_TRAP(Push<v128>(SimdSplat<v128, uint64_t>(shift_count)));
+        CHECK_TRAP(SimdBinop<v128, int64_t>(IntShr<int64_t>));
+        break;
+      }
+
+      case Opcode::I64X2ShrU: {
+        uint32_t shift_count = Pop<uint32_t>();
+        shift_count = shift_count % 64;
+        CHECK_TRAP(Push<v128>(SimdSplat<v128, uint64_t>(shift_count)));
+        CHECK_TRAP(SimdBinop<v128, uint64_t>(IntShr<uint64_t>));
+        break;
+      }
+
+      case Opcode::V128And:
+        CHECK_TRAP(SimdBinop<v128, uint64_t>(IntAnd<uint64_t>));
+        break;
+
+      case Opcode::V128Or:
+        CHECK_TRAP(SimdBinop<v128, uint64_t>(IntOr<uint64_t>));
+        break;
+
+      case Opcode::V128Xor:
+        CHECK_TRAP(SimdBinop<v128, uint64_t>(IntXor<uint64_t>));
+        break;
+
+      case Opcode::V128Not:
+        CHECK_TRAP(SimdUnop<v128, uint64_t>(IntNot<uint64_t>));
+        break;
+
+      case Opcode::V128BitSelect: {
+        // Follow Wasm Simd spec to compute V128BitSelect:
+        // v128.or(v128.and(v1, c), v128.and(v2, v128.not(c)))
+        v128 c_mask = PopRep<v128>();
+        v128 v2 = PopRep<v128>();
+        v128 v1 = PopRep<v128>();
+        // 1. v128.and(v1, c)
+        CHECK_TRAP(Push<v128>(v1));
+        CHECK_TRAP(Push<v128>(c_mask));
+        CHECK_TRAP(SimdBinop<v128, uint64_t>(IntAnd<uint64_t>));
+        // 2. v128.and(v2, v128.not(c))
+        CHECK_TRAP(Push<v128>(v2));
+        CHECK_TRAP(Push<v128>(c_mask));
+        CHECK_TRAP(SimdUnop<v128, uint64_t>(IntNot<uint64_t>));
+        CHECK_TRAP(SimdBinop<v128, uint64_t>(IntAnd<uint64_t>));
+        // 3. v128.or( 1 , 2)
+        CHECK_TRAP(SimdBinop<v128, uint64_t>(IntOr<uint64_t>));
+        break;
+      }
+
+      case Opcode::I8X16AnyTrue: {
+        v128 value = PopRep<v128>();
+        CHECK_TRAP(Push<int32_t>(SimdIsLaneTrue<v128, uint8_t>(value, 1)));
+        break;
+      }
+
+      case Opcode::I16X8AnyTrue: {
+        v128 value = PopRep<v128>();
+        CHECK_TRAP(Push<int32_t>(SimdIsLaneTrue<v128, uint16_t>(value, 1)));
+        break;
+      }
+
+      case Opcode::I32X4AnyTrue: {
+        v128 value = PopRep<v128>();
+        CHECK_TRAP(Push<int32_t>(SimdIsLaneTrue<v128, uint32_t>(value, 1)));
+        break;
+      }
+
+      case Opcode::I64X2AnyTrue: {
+        v128 value = PopRep<v128>();
+        CHECK_TRAP(Push<int32_t>(SimdIsLaneTrue<v128, uint64_t>(value, 1)));
+        break;
+      }
+
+      case Opcode::I8X16AllTrue: {
+        v128 value = PopRep<v128>();
+        CHECK_TRAP(Push<int32_t>(SimdIsLaneTrue<v128, uint8_t>(value, 16)));
+        break;
+      }
+
+      case Opcode::I16X8AllTrue: {
+        v128 value = PopRep<v128>();
+        CHECK_TRAP(Push<int32_t>(SimdIsLaneTrue<v128, uint16_t>(value, 8)));
+        break;
+      }
+
+      case Opcode::I32X4AllTrue: {
+        v128 value = PopRep<v128>();
+        CHECK_TRAP(Push<int32_t>(SimdIsLaneTrue<v128, uint32_t>(value, 4)));
+        break;
+      }
+
+      case Opcode::I64X2AllTrue: {
+        v128 value = PopRep<v128>();
+        CHECK_TRAP(Push<int32_t>(SimdIsLaneTrue<v128, uint64_t>(value, 2)));
+        break;
+      }
+
+      case Opcode::I8X16Eq:
+        CHECK_TRAP(SimdBinop<v128, int8_t>(Eq<int32_t>));
+        break;
+
+      case Opcode::I16X8Eq:
+        CHECK_TRAP(SimdBinop<v128, int16_t>(Eq<int32_t>));
+        break;
+
+      case Opcode::I32X4Eq:
+        CHECK_TRAP(SimdBinop<v128, int32_t>(Eq<int32_t>));
+        break;
+
+      case Opcode::F32X4Eq:
+        CHECK_TRAP(SimdBinop<v128, int32_t>(Eq<float>));
+        break;
+
+      case Opcode::F64X2Eq:
+        CHECK_TRAP(SimdBinop<v128, int64_t>(Eq<double>));
+        break;
+
+      case Opcode::I8X16Ne:
+        CHECK_TRAP(SimdBinop<v128, int8_t>(Ne<int32_t>));
+        break;
+
+      case Opcode::I16X8Ne:
+        CHECK_TRAP(SimdBinop<v128, int16_t>(Ne<int32_t>));
+        break;
+
+      case Opcode::I32X4Ne:
+        CHECK_TRAP(SimdBinop<v128, int32_t>(Ne<int32_t>));
+        break;
+
+      case Opcode::F32X4Ne:
+        CHECK_TRAP(SimdBinop<v128, int32_t>(Ne<float>));
+        break;
+
+      case Opcode::F64X2Ne:
+        CHECK_TRAP(SimdBinop<v128, int64_t>(Ne<double>));
+        break;
+
+      case Opcode::I8X16LtS:
+        CHECK_TRAP(SimdBinop<v128, int8_t>(Lt<int32_t>));
+        break;
+
+      case Opcode::I8X16LtU:
+        CHECK_TRAP(SimdBinop<v128, uint8_t>(Lt<uint32_t>));
+        break;
+
+      case Opcode::I16X8LtS:
+        CHECK_TRAP(SimdBinop<v128, int16_t>(Lt<int32_t>));
+        break;
+
+      case Opcode::I16X8LtU:
+        CHECK_TRAP(SimdBinop<v128, uint16_t>(Lt<uint32_t>));
+        break;
+
+      case Opcode::I32X4LtS:
+        CHECK_TRAP(SimdBinop<v128, int32_t>(Lt<int32_t>));
+        break;
+
+      case Opcode::I32X4LtU:
+        CHECK_TRAP(SimdBinop<v128, uint32_t>(Lt<uint32_t>));
+        break;
+
+      case Opcode::F32X4Lt:
+        CHECK_TRAP(SimdBinop<v128, int32_t>(Lt<float>));
+        break;
+
+      case Opcode::F64X2Lt:
+        CHECK_TRAP(SimdBinop<v128, int64_t>(Lt<double>));
+        break;
+
+      case Opcode::I8X16LeS:
+        CHECK_TRAP(SimdBinop<v128, int8_t>(Le<int32_t>));
+        break;
+
+      case Opcode::I8X16LeU:
+        CHECK_TRAP(SimdBinop<v128, uint8_t>(Le<uint32_t>));
+        break;
+
+      case Opcode::I16X8LeS:
+        CHECK_TRAP(SimdBinop<v128, int16_t>(Le<int32_t>));
+        break;
+
+      case Opcode::I16X8LeU:
+        CHECK_TRAP(SimdBinop<v128, uint16_t>(Le<uint32_t>));
+        break;
+
+      case Opcode::I32X4LeS:
+        CHECK_TRAP(SimdBinop<v128, int32_t>(Le<int32_t>));
+        break;
+
+      case Opcode::I32X4LeU:
+        CHECK_TRAP(SimdBinop<v128, uint32_t>(Le<uint32_t>));
+        break;
+
+      case Opcode::F32X4Le:
+        CHECK_TRAP(SimdBinop<v128, int32_t>(Le<float>));
+        break;
+
+      case Opcode::F64X2Le:
+        CHECK_TRAP(SimdBinop<v128, int64_t>(Le<double>));
+        break;
+
+      case Opcode::I8X16GtS:
+        CHECK_TRAP(SimdBinop<v128, int8_t>(Gt<int32_t>));
+        break;
+
+      case Opcode::I8X16GtU:
+        CHECK_TRAP(SimdBinop<v128, uint8_t>(Gt<uint32_t>));
+        break;
+
+      case Opcode::I16X8GtS:
+        CHECK_TRAP(SimdBinop<v128, int16_t>(Gt<int32_t>));
+        break;
+
+      case Opcode::I16X8GtU:
+        CHECK_TRAP(SimdBinop<v128, uint16_t>(Gt<uint32_t>));
+        break;
+
+      case Opcode::I32X4GtS:
+        CHECK_TRAP(SimdBinop<v128, int32_t>(Gt<int32_t>));
+        break;
+
+      case Opcode::I32X4GtU:
+        CHECK_TRAP(SimdBinop<v128, uint32_t>(Gt<uint32_t>));
+        break;
+
+      case Opcode::F32X4Gt:
+        CHECK_TRAP(SimdBinop<v128, int32_t>(Gt<float>));
+        break;
+
+      case Opcode::F64X2Gt:
+        CHECK_TRAP(SimdBinop<v128, int64_t>(Gt<double>));
+        break;
+
+      case Opcode::I8X16GeS:
+        CHECK_TRAP(SimdBinop<v128, int8_t>(Ge<int32_t>));
+        break;
+
+      case Opcode::I8X16GeU:
+        CHECK_TRAP(SimdBinop<v128, uint8_t>(Ge<uint32_t>));
+        break;
+
+      case Opcode::I16X8GeS:
+        CHECK_TRAP(SimdBinop<v128, int16_t>(Ge<int32_t>));
+        break;
+
+      case Opcode::I16X8GeU:
+        CHECK_TRAP(SimdBinop<v128, uint16_t>(Ge<uint32_t>));
+        break;
+
+      case Opcode::I32X4GeS:
+        CHECK_TRAP(SimdBinop<v128, int32_t>(Ge<int32_t>));
+        break;
+
+      case Opcode::I32X4GeU:
+        CHECK_TRAP(SimdBinop<v128, uint32_t>(Ge<uint32_t>));
+        break;
+
+      case Opcode::F32X4Ge:
+        CHECK_TRAP(SimdBinop<v128, int32_t>(Ge<float>));
+        break;
+
+      case Opcode::F64X2Ge:
+        CHECK_TRAP(SimdBinop<v128, int64_t>(Ge<double>));
+        break;
+
+      case Opcode::F32X4Neg:
+        CHECK_TRAP(SimdUnop<v128, int32_t>(FloatNeg<float>));
+        break;
+
+      case Opcode::F64X2Neg:
+        CHECK_TRAP(SimdUnop<v128, int64_t>(FloatNeg<double>));
+        break;
+
+      case Opcode::F32X4Abs:
+        CHECK_TRAP(SimdUnop<v128, int32_t>(FloatAbs<float>));
+        break;
+
+      case Opcode::F64X2Abs:
+        CHECK_TRAP(SimdUnop<v128, int64_t>(FloatAbs<double>));
+        break;
+
+      case Opcode::F32X4Min:
+        CHECK_TRAP(SimdBinop<v128, int32_t>(FloatMin<float>));
+        break;
+
+      case Opcode::F64X2Min:
+        CHECK_TRAP(SimdBinop<v128, int64_t>(FloatMin<double>));
+        break;
+
+      case Opcode::F32X4Max:
+        CHECK_TRAP(SimdBinop<v128, int32_t>(FloatMax<float>));
+        break;
+
+      case Opcode::F64X2Max:
+        CHECK_TRAP(SimdBinop<v128, int64_t>(FloatMax<double>));
+        break;
+
+      case Opcode::F32X4Add:
+        CHECK_TRAP(SimdBinop<v128, int32_t>(Add<float>));
+        break;
+
+      case Opcode::F64X2Add:
+        CHECK_TRAP(SimdBinop<v128, int64_t>(Add<double>));
+        break;
+
+      case Opcode::F32X4Sub:
+        CHECK_TRAP(SimdBinop<v128, int32_t>(Sub<float>));
+        break;
+
+      case Opcode::F64X2Sub:
+        CHECK_TRAP(SimdBinop<v128, int64_t>(Sub<double>));
+        break;
+
+      case Opcode::F32X4Div:
+        CHECK_TRAP(SimdBinop<v128, int32_t>(FloatDiv<float>));
+        break;
+
+      case Opcode::F64X2Div:
+        CHECK_TRAP(SimdBinop<v128, int64_t>(FloatDiv<double>));
+        break;
+
+      case Opcode::F32X4Mul:
+        CHECK_TRAP(SimdBinop<v128, int32_t>(Mul<float>));
+        break;
+
+      case Opcode::F64X2Mul:
+        CHECK_TRAP(SimdBinop<v128, int64_t>(Mul<double>));
+        break;
+
+      case Opcode::F32X4Sqrt:
+        CHECK_TRAP(SimdUnop<v128, int32_t>(FloatSqrt<float>));
+        break;
+
+      case Opcode::F64X2Sqrt:
+        CHECK_TRAP(SimdUnop<v128, int64_t>(FloatSqrt<double>));
+        break;
+
+      case Opcode::F32X4ConvertSI32X4:
+        CHECK_TRAP(SimdUnop<v128, int32_t>(SimdConvert<float, int32_t>));
+        break;
+
+      case Opcode::F32X4ConvertUI32X4:
+        CHECK_TRAP(SimdUnop<v128, uint32_t>(SimdConvert<float, uint32_t>));
+        break;
+
+      case Opcode::F64X2ConvertSI64X2:
+        CHECK_TRAP(SimdUnop<v128, int64_t>(SimdConvert<double, int64_t>));
+        break;
+
+      case Opcode::F64X2ConvertUI64X2:
+        CHECK_TRAP(SimdUnop<v128, uint64_t>(SimdConvert<double, uint64_t>));
+        break;
+
+      case Opcode::I32X4TruncSF32X4Sat:
+        CHECK_TRAP(SimdUnop<v128, int32_t>(IntTruncSat<int32_t, float>));
+        break;
+
+      case Opcode::I32X4TruncUF32X4Sat:
+        CHECK_TRAP(SimdUnop<v128, uint32_t>(IntTruncSat<uint32_t, float>));
+        break;
+
+      case Opcode::I64X2TruncSF64X2Sat:
+        CHECK_TRAP(SimdUnop<v128, int64_t>(IntTruncSat<int64_t, double>));
+        break;
+
+      case Opcode::I64X2TruncUF64X2Sat:
+        CHECK_TRAP(SimdUnop<v128, uint64_t>(IntTruncSat<uint64_t, double>));
+        break;
       // The following opcodes are either never generated or should never be
       // executed.
       case Opcode::Block:
       case Opcode::Catch:
-      case Opcode::CatchAll:
       case Opcode::Else:
       case Opcode::End:
       case Opcode::If:
+      case Opcode::IfExcept:
       case Opcode::InterpData:
       case Opcode::Invalid:
       case Opcode::Loop:
@@ -2414,7 +3277,8 @@ void Thread::Trace(Stream* stream) {
     case Opcode::I32Load:
     case Opcode::I64Load:
     case Opcode::F32Load:
-    case Opcode::F64Load: {
+    case Opcode::F64Load:
+    case Opcode::V128Load: {
       Index memory_index = ReadU32(&pc);
       stream->Writef("%s $%" PRIindex ":%u+$%u\n", opcode.GetName(),
                      memory_index, Top().i32, ReadU32At(pc));
@@ -2537,6 +3401,15 @@ void Thread::Trace(Stream* stream) {
       break;
     }
 
+    case Opcode::V128Store: {
+      Index memory_index = ReadU32(&pc);
+      stream->Writef("%s $%" PRIindex ":%u+$%u, $0x%08x 0x%08x 0x%08x 0x%08x\n",
+                     opcode.GetName(), memory_index, Pick(2).i32, ReadU32At(pc),
+                     Pick(1).v128_bits.v[0], Pick(1).v128_bits.v[1],
+                     Pick(1).v128_bits.v[2], Pick(1).v128_bits.v[3]);
+      break;
+    }
+
     case Opcode::GrowMemory: {
       Index memory_index = ReadU32(&pc);
       stream->Writef("%s $%" PRIindex ":%u\n", opcode.GetName(), memory_index,
@@ -2578,6 +3451,9 @@ void Thread::Trace(Stream* stream) {
     case Opcode::I32Eqz:
     case Opcode::I32Extend16S:
     case Opcode::I32Extend8S:
+    case Opcode::I8X16Splat:
+    case Opcode::I16X8Splat:
+    case Opcode::I32X4Splat:
       stream->Writef("%s %u\n", opcode.GetName(), Top().i32);
       break;
 
@@ -2617,6 +3493,7 @@ void Thread::Trace(Stream* stream) {
     case Opcode::I64Extend16S:
     case Opcode::I64Extend32S:
     case Opcode::I64Extend8S:
+    case Opcode::I64X2Splat:
       stream->Writef("%s %" PRIu64 "\n", opcode.GetName(), Top().i64);
       break;
 
@@ -2644,6 +3521,7 @@ void Thread::Trace(Stream* stream) {
     case Opcode::F32Trunc:
     case Opcode::F32Nearest:
     case Opcode::F32Sqrt:
+    case Opcode::F32X4Splat:
       stream->Writef("%s %g\n", opcode.GetName(), Bitcast<float>(Top().i32));
       break;
 
@@ -2672,6 +3550,7 @@ void Thread::Trace(Stream* stream) {
     case Opcode::F64Trunc:
     case Opcode::F64Nearest:
     case Opcode::F64Sqrt:
+    case Opcode::F64X2Splat:
       stream->Writef("%s %g\n", opcode.GetName(), Bitcast<double>(Top().i64));
       break;
 
@@ -2735,19 +3614,220 @@ void Thread::Trace(Stream* stream) {
       break;
 
     case Opcode::V128Const: {
-      stream->Writef("%s $0x%08x 0x%08x 0x%08x 0x%08x \n", opcode.GetName(),
-                     ReadU32At(pc), ReadU32At(pc+4),ReadU32At(pc+8),ReadU32At(pc+12));
+      stream->Writef("%s $0x%08x 0x%08x 0x%08x 0x%08x\n", opcode.GetName(),
+                     ReadU32At(pc), ReadU32At(pc + 4), ReadU32At(pc + 8),
+                     ReadU32At(pc + 12));
       break;
     }
 
-    case Opcode::I8X16Splat:
-    case Opcode::I16X8Splat:
-    case Opcode::I32X4Splat:
-    case Opcode::I64X2Splat:
-    case Opcode::F32X4Splat:
-    case Opcode::F64X2Splat: {
-      stream->Writef("%s $0x%08x 0x%08x 0x%08x 0x%08x \n", opcode.GetName(), Top().v128_bits.v[0],
-                                Top().v128_bits.v[1], Top().v128_bits.v[2], Top().v128_bits.v[3]);
+    case Opcode::I8X16Neg:
+    case Opcode::I16X8Neg:
+    case Opcode::I32X4Neg:
+    case Opcode::I64X2Neg:
+    case Opcode::V128Not:
+    case Opcode::I8X16AnyTrue:
+    case Opcode::I16X8AnyTrue:
+    case Opcode::I32X4AnyTrue:
+    case Opcode::I64X2AnyTrue:
+    case Opcode::I8X16AllTrue:
+    case Opcode::I16X8AllTrue:
+    case Opcode::I32X4AllTrue:
+    case Opcode::I64X2AllTrue:
+    case Opcode::F32X4Neg:
+    case Opcode::F64X2Neg:
+    case Opcode::F32X4Abs:
+    case Opcode::F64X2Abs:
+    case Opcode::F32X4Sqrt:
+    case Opcode::F64X2Sqrt:
+    case Opcode::F32X4ConvertSI32X4:
+    case Opcode::F32X4ConvertUI32X4:
+    case Opcode::F64X2ConvertSI64X2:
+    case Opcode::F64X2ConvertUI64X2:
+    case Opcode::I32X4TruncSF32X4Sat:
+    case Opcode::I32X4TruncUF32X4Sat:
+    case Opcode::I64X2TruncSF64X2Sat:
+    case Opcode::I64X2TruncUF64X2Sat: {
+      stream->Writef("%s $0x%08x 0x%08x 0x%08x 0x%08x\n", opcode.GetName(),
+                     Top().v128_bits.v[0], Top().v128_bits.v[1],
+                     Top().v128_bits.v[2], Top().v128_bits.v[3]);
+      break;
+    }
+
+    case Opcode::V128BitSelect:
+      stream->Writef(
+          "%s $0x%08x %08x %08x %08x $0x%08x %08x %08x %08x $0x%08x %08x %08x "
+          "%08x\n",
+          opcode.GetName(), Pick(3).v128_bits.v[0], Pick(3).v128_bits.v[1],
+          Pick(3).v128_bits.v[2], Pick(3).v128_bits.v[3],
+          Pick(2).v128_bits.v[0], Pick(2).v128_bits.v[1],
+          Pick(2).v128_bits.v[2], Pick(2).v128_bits.v[3],
+          Pick(1).v128_bits.v[0], Pick(1).v128_bits.v[1],
+          Pick(1).v128_bits.v[2], Pick(1).v128_bits.v[3]);
+      break;
+
+    case Opcode::I8X16ExtractLaneS:
+    case Opcode::I8X16ExtractLaneU:
+    case Opcode::I16X8ExtractLaneS:
+    case Opcode::I16X8ExtractLaneU:
+    case Opcode::I32X4ExtractLane:
+    case Opcode::I64X2ExtractLane:
+    case Opcode::F32X4ExtractLane:
+    case Opcode::F64X2ExtractLane: {
+      stream->Writef("%s : LaneIdx %d From $0x%08x 0x%08x 0x%08x 0x%08x\n",
+                     opcode.GetName(), ReadU8At(pc), Top().v128_bits.v[0],
+                     Top().v128_bits.v[1], Top().v128_bits.v[2],
+                     Top().v128_bits.v[3]);
+      break;
+    }
+
+    case Opcode::I8X16ReplaceLane:
+    case Opcode::I16X8ReplaceLane:
+    case Opcode::I32X4ReplaceLane: {
+      stream->Writef(
+          "%s : Set %u to LaneIdx %d In $0x%08x 0x%08x 0x%08x 0x%08x\n",
+          opcode.GetName(), Pick(1).i32, ReadU8At(pc), Pick(2).v128_bits.v[0],
+          Pick(2).v128_bits.v[1], Pick(2).v128_bits.v[2],
+          Pick(2).v128_bits.v[3]);
+      break;
+    }
+    case Opcode::I64X2ReplaceLane: {
+      stream->Writef("%s : Set %" PRIu64
+                     " to LaneIdx %d In $0x%08x 0x%08x 0x%08x 0x%08x\n",
+                     opcode.GetName(), Pick(1).i64, ReadU8At(pc),
+                     Pick(2).v128_bits.v[0], Pick(2).v128_bits.v[1],
+                     Pick(2).v128_bits.v[2], Pick(2).v128_bits.v[3]);
+      break;
+    }
+    case Opcode::F32X4ReplaceLane: {
+      stream->Writef(
+          "%s : Set %g to LaneIdx %d In $0x%08x 0x%08x 0x%08x 0x%08x\n",
+          opcode.GetName(), Bitcast<float>(Pick(1).f32_bits), ReadU8At(pc),
+          Pick(2).v128_bits.v[0], Pick(2).v128_bits.v[1],
+          Pick(2).v128_bits.v[2], Pick(2).v128_bits.v[3]);
+
+      break;
+    }
+    case Opcode::F64X2ReplaceLane: {
+      stream->Writef(
+          "%s : Set %g to LaneIdx %d In $0x%08x 0x%08x 0x%08x 0x%08x\n",
+          opcode.GetName(), Bitcast<double>(Pick(1).f64_bits), ReadU8At(pc),
+          Pick(2).v128_bits.v[0], Pick(2).v128_bits.v[1],
+          Pick(2).v128_bits.v[2], Pick(2).v128_bits.v[3]);
+      break;
+    }
+
+    case Opcode::V8X16Shuffle:
+      stream->Writef(
+          "%s $0x%08x %08x %08x %08x $0x%08x %08x %08x %08x : with lane imm: "
+          "$0x%08x %08x %08x %08x\n",
+          opcode.GetName(), Pick(2).v128_bits.v[0], Pick(2).v128_bits.v[1],
+          Pick(2).v128_bits.v[2], Pick(2).v128_bits.v[3],
+          Pick(1).v128_bits.v[0], Pick(1).v128_bits.v[1],
+          Pick(1).v128_bits.v[2], Pick(1).v128_bits.v[3], ReadU32At(pc),
+          ReadU32At(pc + 4), ReadU32At(pc + 8), ReadU32At(pc + 12));
+      break;
+
+    case Opcode::I8X16Add:
+    case Opcode::I16X8Add:
+    case Opcode::I32X4Add:
+    case Opcode::I64X2Add:
+    case Opcode::I8X16Sub:
+    case Opcode::I16X8Sub:
+    case Opcode::I32X4Sub:
+    case Opcode::I64X2Sub:
+    case Opcode::I8X16Mul:
+    case Opcode::I16X8Mul:
+    case Opcode::I32X4Mul:
+    case Opcode::I8X16AddSaturateS:
+    case Opcode::I8X16AddSaturateU:
+    case Opcode::I16X8AddSaturateS:
+    case Opcode::I16X8AddSaturateU:
+    case Opcode::I8X16SubSaturateS:
+    case Opcode::I8X16SubSaturateU:
+    case Opcode::I16X8SubSaturateS:
+    case Opcode::I16X8SubSaturateU:
+    case Opcode::V128And:
+    case Opcode::V128Or:
+    case Opcode::V128Xor:
+    case Opcode::I8X16Eq:
+    case Opcode::I16X8Eq:
+    case Opcode::I32X4Eq:
+    case Opcode::F32X4Eq:
+    case Opcode::F64X2Eq:
+    case Opcode::I8X16Ne:
+    case Opcode::I16X8Ne:
+    case Opcode::I32X4Ne:
+    case Opcode::F32X4Ne:
+    case Opcode::F64X2Ne:
+    case Opcode::I8X16LtS:
+    case Opcode::I8X16LtU:
+    case Opcode::I16X8LtS:
+    case Opcode::I16X8LtU:
+    case Opcode::I32X4LtS:
+    case Opcode::I32X4LtU:
+    case Opcode::F32X4Lt:
+    case Opcode::F64X2Lt:
+    case Opcode::I8X16LeS:
+    case Opcode::I8X16LeU:
+    case Opcode::I16X8LeS:
+    case Opcode::I16X8LeU:
+    case Opcode::I32X4LeS:
+    case Opcode::I32X4LeU:
+    case Opcode::F32X4Le:
+    case Opcode::F64X2Le:
+    case Opcode::I8X16GtS:
+    case Opcode::I8X16GtU:
+    case Opcode::I16X8GtS:
+    case Opcode::I16X8GtU:
+    case Opcode::I32X4GtS:
+    case Opcode::I32X4GtU:
+    case Opcode::F32X4Gt:
+    case Opcode::F64X2Gt:
+    case Opcode::I8X16GeS:
+    case Opcode::I8X16GeU:
+    case Opcode::I16X8GeS:
+    case Opcode::I16X8GeU:
+    case Opcode::I32X4GeS:
+    case Opcode::I32X4GeU:
+    case Opcode::F32X4Ge:
+    case Opcode::F64X2Ge:
+    case Opcode::F32X4Min:
+    case Opcode::F64X2Min:
+    case Opcode::F32X4Max:
+    case Opcode::F64X2Max:
+    case Opcode::F32X4Add:
+    case Opcode::F64X2Add:
+    case Opcode::F32X4Sub:
+    case Opcode::F64X2Sub:
+    case Opcode::F32X4Div:
+    case Opcode::F64X2Div:
+    case Opcode::F32X4Mul:
+    case Opcode::F64X2Mul: {
+      stream->Writef("%s $0x%08x %08x %08x %08x  $0x%08x %08x %08x %08x\n",
+                     opcode.GetName(), Pick(2).v128_bits.v[0],
+                     Pick(2).v128_bits.v[1], Pick(2).v128_bits.v[2],
+                     Pick(2).v128_bits.v[3], Pick(1).v128_bits.v[0],
+                     Pick(1).v128_bits.v[1], Pick(1).v128_bits.v[2],
+                     Pick(1).v128_bits.v[3]);
+      break;
+    }
+
+    case Opcode::I8X16Shl:
+    case Opcode::I16X8Shl:
+    case Opcode::I32X4Shl:
+    case Opcode::I64X2Shl:
+    case Opcode::I8X16ShrS:
+    case Opcode::I8X16ShrU:
+    case Opcode::I16X8ShrS:
+    case Opcode::I16X8ShrU:
+    case Opcode::I32X4ShrS:
+    case Opcode::I32X4ShrU:
+    case Opcode::I64X2ShrS:
+    case Opcode::I64X2ShrU: {
+      stream->Writef("%s $0x%08x %08x %08x %08x  $0x%08x\n", opcode.GetName(),
+                     Pick(2).v128_bits.v[0], Pick(2).v128_bits.v[1],
+                     Pick(2).v128_bits.v[2], Pick(2).v128_bits.v[3],
+                     Pick(1).i32);
       break;
     }
 
@@ -2755,10 +3835,10 @@ void Thread::Trace(Stream* stream) {
     // executed.
     case Opcode::Block:
     case Opcode::Catch:
-    case Opcode::CatchAll:
     case Opcode::Else:
     case Opcode::End:
     case Opcode::If:
+    case Opcode::IfExcept:
     case Opcode::InterpData:
     case Opcode::Invalid:
     case Opcode::Loop:
@@ -2789,6 +3869,7 @@ void Environment::Disassemble(Stream* stream,
     assert(!opcode.IsInvalid());
     switch (opcode) {
       case Opcode::Select:
+      case Opcode::V128BitSelect:
         stream->Writef("%s %%[-3], %%[-2], %%[-1]\n", opcode.GetName());
         break;
 
@@ -2885,7 +3966,8 @@ void Environment::Disassemble(Stream* stream,
       case Opcode::I32Load:
       case Opcode::I64Load:
       case Opcode::F32Load:
-      case Opcode::F64Load: {
+      case Opcode::F64Load:
+      case Opcode::V128Load: {
         Index memory_index = ReadU32(&pc);
         stream->Writef("%s $%" PRIindex ":%%[-1]+$%u\n", opcode.GetName(),
                        memory_index, ReadU32(&pc));
@@ -2950,7 +4032,8 @@ void Environment::Disassemble(Stream* stream,
       case Opcode::I64Store32:
       case Opcode::I64Store:
       case Opcode::F32Store:
-      case Opcode::F64Store: {
+      case Opcode::F64Store:
+      case Opcode::V128Store: {
         Index memory_index = ReadU32(&pc);
         stream->Writef("%s $%" PRIindex ":%%[-2]+$%u, %%[-1]\n",
                        opcode.GetName(), memory_index, ReadU32(&pc));
@@ -3048,6 +4131,94 @@ void Environment::Disassemble(Stream* stream,
       case Opcode::F64Le:
       case Opcode::F64Gt:
       case Opcode::F64Ge:
+      case Opcode::I8X16Add:
+      case Opcode::I16X8Add:
+      case Opcode::I32X4Add:
+      case Opcode::I64X2Add:
+      case Opcode::I8X16Sub:
+      case Opcode::I16X8Sub:
+      case Opcode::I32X4Sub:
+      case Opcode::I64X2Sub:
+      case Opcode::I8X16Mul:
+      case Opcode::I16X8Mul:
+      case Opcode::I32X4Mul:
+      case Opcode::I8X16AddSaturateS:
+      case Opcode::I8X16AddSaturateU:
+      case Opcode::I16X8AddSaturateS:
+      case Opcode::I16X8AddSaturateU:
+      case Opcode::I8X16SubSaturateS:
+      case Opcode::I8X16SubSaturateU:
+      case Opcode::I16X8SubSaturateS:
+      case Opcode::I16X8SubSaturateU:
+      case Opcode::I8X16Shl:
+      case Opcode::I16X8Shl:
+      case Opcode::I32X4Shl:
+      case Opcode::I64X2Shl:
+      case Opcode::I8X16ShrS:
+      case Opcode::I8X16ShrU:
+      case Opcode::I16X8ShrS:
+      case Opcode::I16X8ShrU:
+      case Opcode::I32X4ShrS:
+      case Opcode::I32X4ShrU:
+      case Opcode::I64X2ShrS:
+      case Opcode::I64X2ShrU:
+      case Opcode::V128And:
+      case Opcode::V128Or:
+      case Opcode::V128Xor:
+      case Opcode::I8X16Eq:
+      case Opcode::I16X8Eq:
+      case Opcode::I32X4Eq:
+      case Opcode::F32X4Eq:
+      case Opcode::F64X2Eq:
+      case Opcode::I8X16Ne:
+      case Opcode::I16X8Ne:
+      case Opcode::I32X4Ne:
+      case Opcode::F32X4Ne:
+      case Opcode::F64X2Ne:
+      case Opcode::I8X16LtS:
+      case Opcode::I8X16LtU:
+      case Opcode::I16X8LtS:
+      case Opcode::I16X8LtU:
+      case Opcode::I32X4LtS:
+      case Opcode::I32X4LtU:
+      case Opcode::F32X4Lt:
+      case Opcode::F64X2Lt:
+      case Opcode::I8X16LeS:
+      case Opcode::I8X16LeU:
+      case Opcode::I16X8LeS:
+      case Opcode::I16X8LeU:
+      case Opcode::I32X4LeS:
+      case Opcode::I32X4LeU:
+      case Opcode::F32X4Le:
+      case Opcode::F64X2Le:
+      case Opcode::I8X16GtS:
+      case Opcode::I8X16GtU:
+      case Opcode::I16X8GtS:
+      case Opcode::I16X8GtU:
+      case Opcode::I32X4GtS:
+      case Opcode::I32X4GtU:
+      case Opcode::F32X4Gt:
+      case Opcode::F64X2Gt:
+      case Opcode::I8X16GeS:
+      case Opcode::I8X16GeU:
+      case Opcode::I16X8GeS:
+      case Opcode::I16X8GeU:
+      case Opcode::I32X4GeS:
+      case Opcode::I32X4GeU:
+      case Opcode::F32X4Ge:
+      case Opcode::F64X2Ge:
+      case Opcode::F32X4Min:
+      case Opcode::F64X2Min:
+      case Opcode::F32X4Max:
+      case Opcode::F64X2Max:
+      case Opcode::F32X4Add:
+      case Opcode::F64X2Add:
+      case Opcode::F32X4Sub:
+      case Opcode::F64X2Sub:
+      case Opcode::F32X4Div:
+      case Opcode::F64X2Div:
+      case Opcode::F32X4Mul:
+      case Opcode::F64X2Mul:
         stream->Writef("%s %%[-2], %%[-1]\n", opcode.GetName());
         break;
 
@@ -3117,7 +4288,65 @@ void Environment::Disassemble(Stream* stream,
       case Opcode::I64X2Splat:
       case Opcode::F32X4Splat:
       case Opcode::F64X2Splat:
+      case Opcode::I8X16Neg:
+      case Opcode::I16X8Neg:
+      case Opcode::I32X4Neg:
+      case Opcode::I64X2Neg:
+      case Opcode::V128Not:
+      case Opcode::I8X16AnyTrue:
+      case Opcode::I16X8AnyTrue:
+      case Opcode::I32X4AnyTrue:
+      case Opcode::I64X2AnyTrue:
+      case Opcode::I8X16AllTrue:
+      case Opcode::I16X8AllTrue:
+      case Opcode::I32X4AllTrue:
+      case Opcode::I64X2AllTrue:
+      case Opcode::F32X4Neg:
+      case Opcode::F64X2Neg:
+      case Opcode::F32X4Abs:
+      case Opcode::F64X2Abs:
+      case Opcode::F32X4Sqrt:
+      case Opcode::F64X2Sqrt:
+      case Opcode::F32X4ConvertSI32X4:
+      case Opcode::F32X4ConvertUI32X4:
+      case Opcode::F64X2ConvertSI64X2:
+      case Opcode::F64X2ConvertUI64X2:
+      case Opcode::I32X4TruncSF32X4Sat:
+      case Opcode::I32X4TruncUF32X4Sat:
+      case Opcode::I64X2TruncSF64X2Sat:
+      case Opcode::I64X2TruncUF64X2Sat:
         stream->Writef("%s %%[-1]\n", opcode.GetName());
+        break;
+
+      case Opcode::I8X16ExtractLaneS:
+      case Opcode::I8X16ExtractLaneU:
+      case Opcode::I16X8ExtractLaneS:
+      case Opcode::I16X8ExtractLaneU:
+      case Opcode::I32X4ExtractLane:
+      case Opcode::I64X2ExtractLane:
+      case Opcode::F32X4ExtractLane:
+      case Opcode::F64X2ExtractLane: {
+        stream->Writef("%s %%[-1] : (Lane imm: %d)\n", opcode.GetName(),
+                       ReadU8(&pc));
+        break;
+      }
+
+      case Opcode::I8X16ReplaceLane:
+      case Opcode::I16X8ReplaceLane:
+      case Opcode::I32X4ReplaceLane:
+      case Opcode::I64X2ReplaceLane:
+      case Opcode::F32X4ReplaceLane:
+      case Opcode::F64X2ReplaceLane: {
+        stream->Writef("%s %%[-1], %%[-2] : (Lane imm: %d)\n",
+                       opcode.GetName(), ReadU8(&pc));
+        break;
+      }
+
+      case Opcode::V8X16Shuffle:
+        stream->Writef(
+            "%s %%[-2], %%[-1] : (Lane imm: $0x%08x 0x%08x 0x%08x 0x%08x )\n",
+            opcode.GetName(), ReadU32(&pc), ReadU32(&pc), ReadU32(&pc),
+            ReadU32(&pc));
         break;
 
       case Opcode::GrowMemory: {
@@ -3169,8 +4398,8 @@ void Environment::Disassemble(Stream* stream,
       }
 
       case Opcode::V128Const: {
-      stream->Writef("%s $0x%08x 0x%08x 0x%08x 0x%08x \n", opcode.GetName(),
-                     ReadU32(&pc), ReadU32(&pc),ReadU32(&pc),ReadU32(&pc));
+        stream->Writef("%s $0x%08x 0x%08x 0x%08x 0x%08x\n", opcode.GetName(),
+                       ReadU32(&pc), ReadU32(&pc), ReadU32(&pc), ReadU32(&pc));
 
         break;
       }
@@ -3178,10 +4407,10 @@ void Environment::Disassemble(Stream* stream,
       // executed.
       case Opcode::Block:
       case Opcode::Catch:
-      case Opcode::CatchAll:
       case Opcode::Else:
       case Opcode::End:
       case Opcode::If:
+      case Opcode::IfExcept:
       case Opcode::Invalid:
       case Opcode::Loop:
       case Opcode::Rethrow:
@@ -3212,9 +4441,9 @@ ExecResult Executor::RunFunction(Index func_index, const TypedValues& args) {
 
   exec_result.result = PushArgs(sig, args);
   if (exec_result.result == Result::Ok) {
-    exec_result.result = func->is_host
-                 ? thread_.CallHost(cast<HostFunc>(func))
-                 : RunDefinedFunction(cast<DefinedFunc>(func)->offset);
+    exec_result.result =
+        func->is_host ? thread_.CallHost(cast<HostFunc>(func))
+                      : RunDefinedFunction(cast<DefinedFunc>(func)->offset);
     if (exec_result.result == Result::Ok) {
       CopyResults(sig, &exec_result.values);
     }

@@ -17,6 +17,8 @@
 #ifndef WABT_CONFIG_H_
 #define WABT_CONFIG_H_
 
+#include <stdint.h>
+
 /* TODO(binji): nice way to define these with WABT_ prefix? */
 
 /* Whether <alloca.h> is available */
@@ -63,8 +65,8 @@
 
 #if COMPILER_IS_CLANG || COMPILER_IS_GNU
 
-#define WABT_UNUSED __attribute__ ((unused))
-#define WABT_WARN_UNUSED __attribute__ ((warn_unused_result))
+#define WABT_UNUSED __attribute__((unused))
+#define WABT_WARN_UNUSED __attribute__((warn_unused_result))
 #define WABT_INLINE inline
 #define WABT_UNLIKELY(x) __builtin_expect(!!(x), 0)
 #define WABT_LIKELY(x) __builtin_expect(!!(x), 1)
@@ -97,11 +99,11 @@
 
 #elif COMPILER_IS_MSVC
 
-#include <cstring>
 #include <intrin.h>
+#include <cstring>
 
 #define WABT_UNUSED
-#define WABT_WARN_UNUSED _Check_return_
+#define WABT_WARN_UNUSED
 #define WABT_INLINE __inline
 #define WABT_STATIC_ASSERT(x) _STATIC_ASSERT(x)
 #define WABT_UNLIKELY(x) (x)
@@ -115,7 +117,6 @@
 #error unknown compiler
 
 #endif
-
 
 namespace wabt {
 
@@ -235,8 +236,7 @@ inline int Popcount(unsigned __int64 value) {
 
 #endif
 
-} // namespace wabt
-
+}  // namespace wabt
 
 #if COMPILER_IS_MSVC
 
@@ -262,7 +262,6 @@ inline int Popcount(unsigned __int64 value) {
 #error unknown compiler
 
 #endif
-
 
 #if HAVE_SNPRINTF
 #define wabt_snprintf snprintf
@@ -320,8 +319,13 @@ __inline float wabt_convert_uint64_to_float(unsigned __int64 x) {
 }
 
 #else
-#define wabt_convert_uint64_to_double(x) static_cast<double>(x)
-#define wabt_convert_uint64_to_float(x) static_cast<float>(x)
+__inline double wabt_convert_uint64_to_double(uint64_t x) {
+  return static_cast<double>(x);
+}
+
+__inline float wabt_convert_uint64_to_float(uint64_t x) {
+  return static_cast<float>(x);
+}
 #endif
 
 #endif /* WABT_CONFIG_H_ */

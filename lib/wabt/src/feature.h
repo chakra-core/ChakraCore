@@ -33,19 +33,18 @@ class Features {
 #undef WABT_FEATURE
   }
 
-#define WABT_FEATURE(variable, flag, help) \
+#define WABT_FEATURE(variable, flag, help)                        \
   bool variable##_enabled() const { return variable##_enabled_; } \
   void enable_##variable() { variable##_enabled_ = true; }
 #include "src/feature.def"
 #undef WABT_FEATURE
 
  private:
-#define WABT_FEATURE(variable, flag, help) \
-  bool variable##_enabled_ = false;
+#define WABT_FEATURE(variable, flag, help) bool variable##_enabled_ = false;
 #include "src/feature.def"
 #undef WABT_FEATURE
 };
 
 }  // namespace wabt
 
-#endif // WABT_FEATURE_H_
+#endif  // WABT_FEATURE_H_

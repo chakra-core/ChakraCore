@@ -39,6 +39,7 @@ class NameGenerator : public ExprVisitor::DelegateNop {
   Result BeginBlockExpr(BlockExpr* expr) override;
   Result BeginLoopExpr(LoopExpr* expr) override;
   Result BeginIfExpr(IfExpr* expr) override;
+  Result BeginIfExceptExpr(IfExceptExpr* expr) override;
 
  private:
   static bool HasName(const std::string& str);
@@ -207,15 +208,20 @@ Result NameGenerator::BeginIfExpr(IfExpr* expr) {
   return Result::Ok;
 }
 
+Result NameGenerator::BeginIfExceptExpr(IfExceptExpr* expr) {
+  MaybeGenerateName("$E", label_count_++, &expr->true_.label);
+  return Result::Ok;
+}
+
 Result NameGenerator::VisitFunc(Index func_index, Func* func) {
   MaybeGenerateAndBindName(&module_->func_bindings, "$f", func_index,
                            &func->name);
 
-  MakeTypeBindingReverseMapping(func->decl.sig.param_types,
+  MakeTypeBindingReverseMapping(func->decl.sig.param_types.size(),
                                 func->param_bindings, &index_to_name_);
   GenerateAndBindLocalNames(&func->param_bindings, "$p");
 
-  MakeTypeBindingReverseMapping(func->local_types, func->local_bindings,
+  MakeTypeBindingReverseMapping(func->local_types.size(), func->local_bindings,
                                 &index_to_name_);
   GenerateAndBindLocalNames(&func->local_bindings, "$l");
 

@@ -222,6 +222,7 @@ class JSONParser {
   wabt::Result ParseConst(TypedValue* out_value);
   wabt::Result ParseConstVector(TypedValues* out_values);
   wabt::Result ParseAction(Action* out_action);
+  wabt::Result ParseActionResult();
   wabt::Result ParseModuleType(ModuleType* out_type);
 
   std::string CreateModulePath(string_view filename);
@@ -553,6 +554,14 @@ wabt::Result JSONParser::ParseAction(Action* out_action) {
   return wabt::Result::Ok;
 }
 
+wabt::Result JSONParser::ParseActionResult() {
+  // Not needed for wabt-interp, but useful for other parsers.
+  EXPECT_KEY("expected");
+  TypeVector expected;
+  CHECK_RESULT(ParseTypeVector(&expected));
+  return wabt::Result::Ok;
+}
+
 wabt::Result JSONParser::ParseModuleType(ModuleType* out_type) {
   std::string module_type_str;
 
@@ -628,6 +637,8 @@ wabt::Result JSONParser::ParseCommand(CommandPtr* out_command) {
     CHECK_RESULT(ParseLine(&command->line));
     EXPECT(",");
     CHECK_RESULT(ParseAction(&command->action));
+    EXPECT(",");
+    CHECK_RESULT(ParseActionResult());
     *out_command = std::move(command);
   } else if (Match("\"register\"")) {
     auto command = MakeUnique<RegisterCommand>();
@@ -698,10 +709,7 @@ wabt::Result JSONParser::ParseCommand(CommandPtr* out_command) {
     EXPECT(",");
     CHECK_RESULT(ParseAction(&command->action));
     EXPECT(",");
-    // Not needed for wabt-interp, but useful for other parsers.
-    EXPECT_KEY("expected");
-    TypeVector expected;
-    CHECK_RESULT(ParseTypeVector(&expected));
+    CHECK_RESULT(ParseActionResult());
     *out_command = std::move(command);
   } else if (Match("\"assert_return_arithmetic_nan\"")) {
     auto command = MakeUnique<AssertReturnArithmeticNanCommand>();
@@ -710,10 +718,7 @@ wabt::Result JSONParser::ParseCommand(CommandPtr* out_command) {
     EXPECT(",");
     CHECK_RESULT(ParseAction(&command->action));
     EXPECT(",");
-    // Not needed for wabt-interp, but useful for other parsers.
-    EXPECT_KEY("expected");
-    TypeVector expected;
-    CHECK_RESULT(ParseTypeVector(&expected));
+    CHECK_RESULT(ParseActionResult());
     *out_command = std::move(command);
   } else if (Match("\"assert_trap\"")) {
     auto command = MakeUnique<AssertTrapCommand>();
@@ -723,6 +728,8 @@ wabt::Result JSONParser::ParseCommand(CommandPtr* out_command) {
     CHECK_RESULT(ParseAction(&command->action));
     EXPECT(",");
     PARSE_KEY_STRING_VALUE("text", &command->text);
+    EXPECT(",");
+    CHECK_RESULT(ParseActionResult());
     *out_command = std::move(command);
   } else if (Match("\"assert_exhaustion\"")) {
     auto command = MakeUnique<AssertExhaustionCommand>();
@@ -730,6 +737,8 @@ wabt::Result JSONParser::ParseCommand(CommandPtr* out_command) {
     CHECK_RESULT(ParseLine(&command->line));
     EXPECT(",");
     CHECK_RESULT(ParseAction(&command->action));
+    EXPECT(",");
+    CHECK_RESULT(ParseActionResult());
     *out_command = std::move(command);
   } else {
     PrintError("unknown command type");
@@ -838,7 +847,11 @@ class SpectestHostImportDelegate : public HostImportDelegate {
                           interp::Func* func,
                           interp::FuncSignature* func_sig,
                           const ErrorCallback& callback) override {
-    if (import->field_name == "print") {
+    if (import->field_name == "print" || import->field_name == "print_i32" ||
+        import->field_name == "print_f32" ||
+        import->field_name == "print_f64" ||
+        import->field_name == "print_i32_f32" ||
+        import->field_name == "print_f64_f64") {
       cast<HostFunc>(func)->callback = DefaultHostCallback;
       return wabt::Result::Ok;
     } else {
@@ -882,34 +895,23 @@ class SpectestHostImportDelegate : public HostImportDelegate {
   wabt::Result ImportGlobal(interp::GlobalImport* import,
                             interp::Global* global,
                             const ErrorCallback& callback) override {
-    if (import->field_name == "global") {
-      switch (global->typed_value.type) {
-        case Type::I32:
-          global->typed_value.value.i32 = 666;
-          break;
-
-        case Type::F32: {
-          float value = 666.6f;
-          memcpy(&global->typed_value.value.f32_bits, &value, sizeof(value));
-          break;
-        }
-
-        case Type::I64:
-          global->typed_value.value.i64 = 666;
-          break;
-
-        case Type::F64: {
-          double value = 666.6;
-          memcpy(&global->typed_value.value.f64_bits, &value, sizeof(value));
-          break;
-        }
-
-        default:
-          PrintError(callback, "bad type for host global import " PRIimport,
-                     PRINTF_IMPORT_ARG(*import));
-          return wabt::Result::Error;
-      }
-
+    if (import->field_name == "global_i32") {
+      global->typed_value.type = Type::I32;
+      global->typed_value.value.i32 = 666;
+      return wabt::Result::Ok;
+    } else if (import->field_name == "global_f32") {
+      global->typed_value.type = Type::F32;
+      float value = 666.6f;
+      memcpy(&global->typed_value.value.f32_bits, &value, sizeof(value));
+      return wabt::Result::Ok;
+    } else if (import->field_name == "global_i64") {
+      global->typed_value.type = Type::I64;
+      global->typed_value.value.i64 = 666;
+      return wabt::Result::Ok;
+    } else if (import->field_name == "global_f64") {
+      global->typed_value.type = Type::F64;
+      double value = 666.6;
+      memcpy(&global->typed_value.value.f64_bits, &value, sizeof(value));
       return wabt::Result::Ok;
     } else {
       PrintError(callback, "unknown host global import " PRIimport,

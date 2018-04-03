@@ -143,12 +143,24 @@ bool operator!=(const OpcodeInfo& lhs, const OpcodeInfo& rhs) {
 }
 
 bool operator<(const OpcodeInfo& lhs, const OpcodeInfo& rhs) {
-  if (lhs.opcode_ < rhs.opcode_) { return true; }
-  if (lhs.opcode_ > rhs.opcode_) { return false; }
-  if (lhs.kind_ < rhs.kind_) { return true; }
-  if (lhs.kind_ > rhs.kind_) { return false; }
-  if (lhs.data_ < rhs.data_) { return true; }
-  if (lhs.data_ > rhs.data_) { return false; }
+  if (lhs.opcode_ < rhs.opcode_) {
+    return true;
+  }
+  if (lhs.opcode_ > rhs.opcode_) {
+    return false;
+  }
+  if (lhs.kind_ < rhs.kind_) {
+    return true;
+  }
+  if (lhs.kind_ > rhs.kind_) {
+    return false;
+  }
+  if (lhs.data_ < rhs.data_) {
+    return true;
+  }
+  if (lhs.data_ > rhs.data_) {
+    return false;
+  }
   return false;
 }
 

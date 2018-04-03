@@ -37,7 +37,7 @@ struct Opcode {
     Invalid,
   };
 
-  // Static opcode objects.
+// Static opcode objects.
 #define WABT_OPCODE(rtype, type1, type2, type3, mem_size, prefix, code, Name, \
                     text)                                                     \
   static Opcode Name##_Opcode;
@@ -60,6 +60,9 @@ struct Opcode {
   Type GetParamType2() const { return GetInfo().param2_type; }
   Type GetParamType3() const { return GetInfo().param3_type; }
   Address GetMemorySize() const { return GetInfo().memory_size; }
+
+  // Get the lane count of an extract/replace simd op.
+  uint32_t GetSimdLaneCount() const;
 
   // Return 1 if |alignment| matches the alignment of |opcode|, or if
   // |alignment| is WABT_USE_NATURAL_ALIGNMENT.
@@ -131,6 +134,6 @@ struct Opcode {
   Enum enum_;
 };
 
-}  // end anonymous namespace
+}  // namespace wabt
 
 #endif  // WABT_OPCODE_H_

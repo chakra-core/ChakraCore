@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 WebAssembly Community Group participants
+ * Copyright 2017 WebAssembly Community Group participants
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,8 @@
 #include "src/stream.h"
 #include "src/validator.h"
 #include "src/wast-lexer.h"
-#include "src/wat-writer.h"
+
+#include "src/c-writer.h"
 
 using namespace wabt;
 
@@ -38,26 +39,24 @@ static int s_verbose;
 static std::string s_infile;
 static std::string s_outfile;
 static Features s_features;
-static WriteWatOptions s_write_wat_options;
-static bool s_generate_names;
+static WriteCOptions s_write_c_options;
 static bool s_read_debug_names = true;
 static std::unique_ptr<FileStream> s_log_stream;
-static bool s_validate = true;
 
 static const char s_description[] =
 R"(  Read a file in the WebAssembly binary format, and convert it to
-  the WebAssembly text format.
+  a C source file and header.
 
 examples:
-  # parse binary file test.wasm and write text file test.wast
-  $ wasm2wat test.wasm -o test.wat
+  # parse binary file test.wasm and write test.c and test.h
+  $ wasm2c test.wasm -o test.c
 
-  # parse test.wasm, write test.wat, but ignore the debug names, if any
-  $ wasm2wat test.wasm --no-debug-names -o test.wat
+  # parse test.wasm, write test.c and test.h, but ignore the debug names, if any
+  $ wasm2c test.wasm --no-debug-names -o test.c
 )";
 
 static void ParseOptions(int argc, char** argv) {
-  OptionParser parser("wasm2wat", s_description);
+  OptionParser parser("wasm2c", s_description);
 
   parser.AddOption('v', "verbose", "Use multiple times for more info", []() {
     s_verbose++;
@@ -66,32 +65,30 @@ static void ParseOptions(int argc, char** argv) {
   parser.AddHelpOption();
   parser.AddOption(
       'o', "output", "FILENAME",
-      "Output file for the generated wast file, by default use stdout",
+      "Output file for the generated C source file, by default use stdout",
       [](const char* argument) {
         s_outfile = argument;
         ConvertBackslashToSlash(&s_outfile);
       });
-  parser.AddOption('f', "fold-exprs", "Write folded expressions where possible",
-                   []() { s_write_wat_options.fold_exprs = true; });
   s_features.AddOptions(&parser);
-  parser.AddOption("inline-exports", "Write all exports inline",
-                   []() { s_write_wat_options.inline_export = true; });
-  parser.AddOption("inline-imports", "Write all imports inline",
-                   []() { s_write_wat_options.inline_import = true; });
   parser.AddOption("no-debug-names", "Ignore debug names in the binary file",
                    []() { s_read_debug_names = false; });
-  parser.AddOption(
-      "generate-names",
-      "Give auto-generated names to non-named functions, types, etc.",
-      []() { s_generate_names = true; });
-  parser.AddOption("no-check", "Don't check for invalid modules",
-                   []() { s_validate = false; });
   parser.AddArgument("filename", OptionParser::ArgumentCount::One,
                      [](const char* argument) {
                        s_infile = argument;
                        ConvertBackslashToSlash(&s_infile);
                      });
   parser.Parse(argc, argv);
+}
+
+// TODO(binji): copied from binary-writer-spec.cc, probably should share.
+static string_view strip_extension(string_view s) {
+  string_view ext = s.substr(s.find_last_of('.'));
+  string_view result = s;
+
+  if (ext == ".c")
+    result.remove_suffix(ext.length());
+  return result;
 }
 
 int ProgramMain(int argc, char** argv) {
@@ -108,17 +105,14 @@ int ProgramMain(int argc, char** argv) {
     const bool kStopOnFirstError = true;
     ReadBinaryOptions options(s_features, s_log_stream.get(),
                               s_read_debug_names, kStopOnFirstError);
-    result = ReadBinaryIr(s_infile.c_str(), file_data.data(),
-                          file_data.size(), &options, &error_handler, &module);
+    result = ReadBinaryIr(s_infile.c_str(), file_data.data(), file_data.size(),
+                          &options, &error_handler, &module);
     if (Succeeded(result)) {
-      if (Succeeded(result) && s_validate) {
-        WastLexer* lexer = nullptr;
+      if (Succeeded(result)) {
         ValidateOptions options(s_features);
+        WastLexer* lexer = nullptr;
         result = ValidateModule(lexer, &module, &error_handler, &options);
-      }
-
-      if (s_generate_names) {
-        result = GenerateNames(&module);
+        result |= GenerateNames(&module);
       }
 
       if (Succeeded(result)) {
@@ -129,9 +123,18 @@ int ProgramMain(int argc, char** argv) {
       }
 
       if (Succeeded(result)) {
-        FileStream stream(!s_outfile.empty() ? FileStream(s_outfile)
-                                             : FileStream(stdout));
-        result = WriteWat(&stream, &module, &s_write_wat_options);
+        if (!s_outfile.empty()) {
+          std::string header_name =
+              strip_extension(s_outfile).to_string() + ".h";
+          FileStream c_stream(s_outfile.c_str());
+          FileStream h_stream(header_name);
+          result = WriteC(&c_stream, &h_stream, header_name.c_str(), &module,
+                          &s_write_c_options);
+        } else {
+          FileStream stream(stdout);
+          result =
+              WriteC(&stream, &stream, "wasm.h", &module, &s_write_c_options);
+        }
       }
     }
   }
@@ -143,3 +146,4 @@ int main(int argc, char** argv) {
   return ProgramMain(argc, argv);
   WABT_CATCH_BAD_ALLOC_AND_EXIT
 }
+

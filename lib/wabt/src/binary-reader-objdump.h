@@ -50,12 +50,20 @@ struct ObjdumpOptions {
   const char* section_name;
 };
 
+struct ObjdumpSymbol {
+  wabt::SymbolType kind;
+  std::string name;
+  Index index;
+};
+
 // read_binary_objdump uses this state to store information from previous runs
 // and use it to display more useful information.
 struct ObjdumpState {
   std::vector<Reloc> code_relocations;
   std::vector<Reloc> data_relocations;
   std::vector<std::string> function_names;
+  std::vector<std::string> global_names;
+  std::vector<ObjdumpSymbol> symtab;
 };
 
 Result ReadBinaryObjdump(const uint8_t* data,
