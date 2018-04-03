@@ -3376,21 +3376,6 @@ namespace Js
 
         } autoRestore(this->GetThreadContext());
 
-        if (!Js::Configuration::Global.EnableJitInDebugMode())
-        {
-            if (attach)
-            {
-                // Now force nonative, so the job will not be put in jit queue.
-                ForceNoNative();
-            }
-            else
-            {
-                // Take the runtime out of interpreted mode so the JIT
-                // queue can be exercised.
-                this->ForceNative();
-            }
-        }
-
         // Invalidate all the caches.
         this->threadContext->InvalidateAllProtoInlineCaches();
         this->threadContext->InvalidateAllStoreFieldInlineCaches();
@@ -4041,11 +4026,6 @@ namespace Js
         if (this->IsScriptContextInSourceRundownOrDebugMode())
         {
             forceNoNative = this->IsInterpreted();
-        }
-        else if (!Js::Configuration::Global.EnableJitInDebugMode())
-        {
-            forceNoNative = true;
-            this->ForceNoNative();
         }
         return forceNoNative;
     }
@@ -6509,4 +6489,3 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 #endif
 
 } // End namespace Js
-

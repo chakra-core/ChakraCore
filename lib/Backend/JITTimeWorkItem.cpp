@@ -38,14 +38,6 @@ JITTimeWorkItem::IsLoopBody() const
     return Type() == JsLoopBodyWorkItemType;
 }
 
-bool
-JITTimeWorkItem::IsJitInDebugMode() const
-{
-    // TODO (michhol): flags?
-    return Js::Configuration::Global.EnableJitInDebugMode()
-        && m_workItemData->isJitInDebugMode;
-}
-
 intptr_t
 JITTimeWorkItem::GetCallsCountAddress() const
 {

@@ -369,10 +369,6 @@ bool JsrtDebugManager::EnableAsyncBreak(Js::ScriptContext* scriptContext)
     if (!probeContainer->IsAsyncActivate())
     {
         probeContainer->AsyncActivate(this);
-        if (Js::Configuration::Global.EnableJitInDebugMode())
-        {
-            scriptContext->GetThreadContext()->GetDebugManager()->GetDebuggingFlags()->SetForceInterpreter(true);
-        }
         return true;
     }
     return false;
@@ -451,11 +447,6 @@ void JsrtDebugManager::CallDebugEventCallbackForBreak(JsDiagDebugEvent debugEven
         tempScriptContext = tempScriptContext->next)
     {
         tempScriptContext->GetDebugContext()->GetProbeContainer()->AsyncDeactivate();
-    }
-
-    if (Js::Configuration::Global.EnableJitInDebugMode())
-    {
-        scriptContext->GetThreadContext()->GetDebugManager()->GetDebuggingFlags()->SetForceInterpreter(false);
     }
 }
 

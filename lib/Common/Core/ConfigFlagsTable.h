@@ -561,8 +561,6 @@ namespace Js
     public:
         ConfigFlagsTable           flags;
         static Configuration        Global;
-        bool EnableJitInDebugMode();
-
         // Public in case the client wants to have
         // a separate config from the global one
         Configuration();
@@ -996,4 +994,3 @@ bool RangeBase<TRangeUnitData>::InRange(TRangeUnitData n)
     }
 }
 }  // namespace Js
-
