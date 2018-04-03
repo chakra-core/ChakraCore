@@ -1224,7 +1224,6 @@ ParseNodePtr Parser::CreateSuperCallNode(ParseNodePtr pnode1, ParseNodePtr pnode
     Assert(!this->m_deferringAST);
     Assert(pnode1 && pnode1->isSpecialName && pnode1->AsParseNodeSpecialName()->isSuper);
 
-    DebugOnly(VerifyNodeSize(knopSuperCall, sizeof(ParseNodeSuperCall)));
     ParseNodeSuperCall* pnode = Anew(&m_nodeAllocator, ParseNodeSuperCall, knopCall, pnode1->ichMin, pnode2 == nullptr ? pnode1->ichLim : pnode2->ichLim, pnode1, pnode2);
     AddAstSize(sizeof(ParseNodeSuperCall));    
     return pnode;
