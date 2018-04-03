@@ -632,6 +632,8 @@ LowererMDArch::LowerCallIDynamic(IR::Instr *callInstr, IR::Instr*saveThisArgOutI
 void
 LowererMDArch::GenerateFunctionObjectTest(IR::Instr * callInstr, IR::RegOpnd  *functionObjOpnd, bool isHelper, IR::LabelInstr* continueAfterExLabel /* = nullptr */)
 {
+    AssertMsg(!m_func->IsJitInDebugMode() || continueAfterExLabel, "When jit is in debug mode, continueAfterExLabel must be provided otherwise continue after exception may cause AV.");
+
     IR::RegOpnd *functionObjRegOpnd = functionObjOpnd->AsRegOpnd();
     IR::Instr * insertBeforeInstr = callInstr;
 
@@ -1706,6 +1708,7 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
 
     if ((this->m_func->HasArgumentSlot() &&
             (this->m_func->IsStackArgsEnabled() ||
+            this->m_func->IsJitInDebugMode() ||
             // disabling apply inlining leads to explicit load from the zero-inited slot
             this->m_func->GetJITFunctionBody()->IsInlineApplyDisabled()))
 #ifdef BAILOUT_INJECTION

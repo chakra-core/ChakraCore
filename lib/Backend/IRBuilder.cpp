@@ -2826,7 +2826,7 @@ IRBuilder::BuildProfiledReg1Unsigned1(Js::OpCode newOpcode, uint32 offset, Js::R
         arrayInfo = m_func->GetReadOnlyProfileInfo()->GetArrayCallSiteInfo(profileId);
     }
     Js::TypeId arrayTypeId = Js::TypeIds_Array;
-    if (arrayInfo && Js::JavascriptArray::HasInlineHeadSegment(value))
+    if (arrayInfo && !m_func->IsJitInDebugMode() && Js::JavascriptArray::HasInlineHeadSegment(value))
     {
         if (arrayInfo->IsNativeIntArray())
         {
@@ -4937,6 +4937,7 @@ IRBuilder::BuildAuxiliary(Js::OpCode newOpcode, uint32 offset)
 
             instr = IR::Instr::New(newOpcode, dstOpnd, src1Opnd, m_func);
 
+            const Js::TypeId arrayTypeId = m_func->IsJitInDebugMode() ? Js::TypeIds_Array : Js::TypeIds_NativeIntArray;
             dstOpnd->SetValueType(
                 ValueType::GetObject(ObjectType::Array).SetHasNoMissingValues(true).SetArrayTypeId(arrayTypeId));
             dstOpnd->SetValueTypeFixed();
@@ -4954,6 +4955,7 @@ IRBuilder::BuildAuxiliary(Js::OpCode newOpcode, uint32 offset)
 
             instr = IR::Instr::New(newOpcode, dstOpnd, src1Opnd, m_func);
 
+            const Js::TypeId arrayTypeId = m_func->IsJitInDebugMode() ? Js::TypeIds_Array : Js::TypeIds_NativeFloatArray;
             dstOpnd->SetValueType(
                 ValueType::GetObject(ObjectType::Array).SetHasNoMissingValues(true).SetArrayTypeId(arrayTypeId));
             dstOpnd->SetValueTypeFixed();

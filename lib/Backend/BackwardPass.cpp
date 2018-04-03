@@ -83,6 +83,7 @@ BackwardPass::DoMarkTempObjects() const
     // only mark temp object on the backward store phase
     return (tag == Js::BackwardPhase) && !PHASE_OFF(Js::MarkTempPhase, this->func) &&
         !PHASE_OFF(Js::MarkTempObjectPhase, this->func) && func->DoGlobOpt() && func->GetHasTempObjectProducingInstr() &&
+        !func->IsJitInDebugMode() &&
         func->DoGlobOptsForGeneratorFunc();
 
     // Why MarkTempObject is disabled under debugger:
@@ -140,7 +141,7 @@ BackwardPass::DoDeadStore(Func* func, StackSym* sym)
     // Dead store is disabled under debugger for non-temp local vars.
     return
         DoDeadStore(func) &&
-        !sym->HasByteCodeRegSlot() && func->IsNonTempLocalVar(sym->GetByteCodeRegSlot())) &&
+        !(func->IsJitInDebugMode() && sym->HasByteCodeRegSlot() && func->IsNonTempLocalVar(sym->GetByteCodeRegSlot())) &&
         func->DoGlobOptsForGeneratorFunc();
 }
 
@@ -152,6 +153,7 @@ BackwardPass::DoTrackNegativeZero() const
         !PHASE_OFF(Js::TrackNegativeZeroPhase, func) &&
         func->DoGlobOpt() &&
         !IsPrePass() &&
+        !func->IsJitInDebugMode() &&
         func->DoGlobOptsForGeneratorFunc();
 }
 
@@ -164,6 +166,7 @@ BackwardPass::DoTrackBitOpsOrNumber() const
         tag == Js::BackwardPhase &&
         func->DoGlobOpt() &&
         !IsPrePass() &&
+        !func->IsJitInDebugMode() &&
         func->DoGlobOptsForGeneratorFunc();
 #else
     return false;
@@ -179,6 +182,7 @@ BackwardPass::DoTrackIntOverflow() const
         tag == Js::BackwardPhase &&
         !IsPrePass() &&
         globOpt->DoLossyIntTypeSpec() &&
+        !func->IsJitInDebugMode() &&
         func->DoGlobOptsForGeneratorFunc();
 }
 

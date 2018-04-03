@@ -180,7 +180,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         // extract/split out BailOutForDebugger into separate instr, if needed.
         // The instr can have just debugger bailout, or debugger bailout + other shared bailout.
         // Note that by the time we get here, we should not have aux-only bailout (in globopt we promote it to normal bailout).
-        if (instr->HasBailOutInfo() &&
+        if (m_func->IsJitInDebugMode() && instr->HasBailOutInfo() &&
             (((instr->GetBailOutKind() & IR::BailOutForDebuggerBits) && instr->m_opcode != Js::OpCode::BailForDebugger) ||
             instr->HasAuxBailOut()))
         {
@@ -11489,7 +11489,7 @@ Lowerer::HasSideEffects(IR::Instr *instr)
 }
 
 bool Lowerer::IsArgSaveRequired(Func *func) {
-    return (!func->IsTrueLeaf() ||
+    return (!func->IsTrueLeaf() || func->IsJitInDebugMode() ||
         // GetHasImplicitParamLoad covers generators, asmjs,
         // and other javascript functions that implicitly read from the arg stack slots
         func->GetHasThrow() || func->GetHasImplicitParamLoad() || func->HasThis() || func->argInsCount > 0);
@@ -13209,7 +13209,7 @@ Lowerer::SplitBailOnImplicitCall(IR::Instr * instr, IR::Instr * helperCall, IR::
 //   - real instr with BailOutInfo w/o debugger bailout, then debuggerBailout, then sharedBailout -- in case bailout for debugger was shared w/some other b.o.
 IR::Instr* Lowerer::SplitBailForDebugger(IR::Instr* instr)
 {
-    Assert(instr->m_opcode != Js::OpCode::BailForDebugger);
+    Assert(m_func->IsJitInDebugMode() && instr->m_opcode != Js::OpCode::BailForDebugger);
 
     IR::BailOutKind debuggerBailOutKind;    // Used for splitted instr.
     BailOutInfo* bailOutInfo = instr->GetBailOutInfo();
@@ -23349,6 +23349,7 @@ Lowerer::CreateHelperCallOpnd(IR::JnHelperMethod helperMethod, int helperArgCoun
 
     IR::HelperCallOpnd* helperCallOpnd;
     if (CONFIG_FLAG(EnableContinueAfterExceptionWrappersForHelpers) &&
+        func->IsJitInDebugMode() &&
         HelperMethodAttributes::CanThrow(helperMethod))
     {
         // Create DiagHelperCallOpnd to indicate that it's needed to wrap original helper with try-catch wrapper,
