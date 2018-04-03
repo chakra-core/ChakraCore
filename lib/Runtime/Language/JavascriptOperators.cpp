@@ -1758,7 +1758,10 @@ CommonNumber:
     // cacheInstance is used as startingObject in CachePropertyRead, and might be instance's proto if we are fetching a super property (see #3064).
     void JavascriptOperators::TryCacheMissingProperty(Var instance, Var cacheInstance, bool isRoot, PropertyId propertyId, ScriptContext* requestContext, _Inout_ PropertyValueInfo * info)
     {
-        if (PHASE_OFF1(MissingPropertyCachePhase) || isRoot || !DynamicType::Is(GetTypeId(instance)))
+        // Here, any well-behaved subclasses of DynamicObject can opt in to getting included in the missing property cache.
+        // For now, we only include basic objects and arrays. CustomExternalObject in particular is problematic because in
+        // some cases it can add new properties without transitioning its type handler.
+        if (PHASE_OFF1(MissingPropertyCachePhase) || isRoot || !(DynamicObject::Is(instance) || DynamicObject::IsAnyArray(instance)))
         {
             return;
         }
