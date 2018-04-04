@@ -1473,6 +1473,7 @@ namespace Js
         DynamicObject *options = DynamicObject::FromVar(args.Values[1]);
         DelayLoadWindowsGlobalization* wgl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
         WindowsGlobalizationAdapter* wga = GetWindowsGlobalizationAdapter(scriptContext);
+        Var propertyValue;
 
         // Verify locale is present
         // REVIEW (doilij): Fix comparison of the unsigned value <= 0
