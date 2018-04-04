@@ -178,7 +178,8 @@ $CommitMessage
     git -c http.extraheader="AUTHORIZATION: bearer ${Env:System.AccessToken}" fetch origin refs/notes/ChakraHub:refs/notes/ChakraHub
     Write-Output "looking for notes"
     ## One might be tempted to redirect the output of the "git notes" command on the next line to $null.  Don't do that;
-    ## it causes the check to fail even when git notes are present.
+    ## it causes the check to fail even when git notes are present.  However, we do have to redirect stderr, because
+    ## git prints something to stderr if it doesn't find a note, and that would cause VSTS to think that the build failed.
     if (git notes --ref=ChakraHub list HEAD 2>&1)
     {
         $testConfig = (git notes --ref=ChakraHub show HEAD) -join "`n" | ConvertFrom-Json
