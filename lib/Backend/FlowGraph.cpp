@@ -172,18 +172,21 @@ FlowGraph::Build(void)
 
     bool assignRegionsBeforeGlobopt = this->func->HasTry() && (this->func->DoOptimizeTry() ||
         (this->func->IsSimpleJit() && this->func->hasBailout) ||
-        this->func->IsLoopBodyInTryFinally());
+        (this->func->IsLoopBodyInTryFinally() && this->func->GetJITFunctionBody()->DoJITLoopBody()));
+
+    bool createNonExceptionFinally = this->func->HasFinally() && (this->func->DoOptimizeTry() ||
+        (this->func->IsSimpleJit() && this->func->GetJITFunctionBody()->DoJITLoopBody()));
 
     // We don't optimize fully with SimpleJit. But, when JIT loop body is enabled, we do support
     // bailing out from a simple jitted function to do a full jit of a loop body in the function
     // (BailOnSimpleJitToFullJitLoopBody). For that purpose, we need the flow from try to handler.
-    if (this->func->HasTry() && (this->func->DoOptimizeTry() ||
-            (this->func->IsSimpleJit() && this->func->GetJITFunctionBody()->DoJITLoopBody())))
+    // We also need accurate flow when we are jitting a loop body and have a tryfinally, because we could be insterting BailOutOnEarlyExit
+
+    if (this->func->HasTry() && (this->func->DoOptimizeTry() || this->func->GetJITFunctionBody()->DoJITLoopBody()))
     {
         this->catchLabelStack = JitAnew(this->alloc, SList<IR::LabelInstr*>, this->alloc);
     }
-    if (this->func->HasFinally() && (this->func->DoOptimizeTry() ||
-        (this->func->IsSimpleJit() && this->func->GetJITFunctionBody()->DoJITLoopBody())))
+    if (this->func->HasFinally() && (this->func->DoOptimizeTry() ||this->func->GetJITFunctionBody()->DoJITLoopBody()))
     {
         this->finallyLabelStack = JitAnew(this->alloc, SList<IR::LabelInstr*>, this->alloc);
         this->regToFinallyEndMap = JitAnew(this->alloc, RegionToFinallyEndMapType, this->alloc, 0);
@@ -290,6 +293,11 @@ FlowGraph::Build(void)
             IR::LabelInstr * finallyLabel = instr->m_prev->AsLabelInstr();
 
             this->finallyLabelStack->Push(finallyLabel);
+
+            if (!createNonExceptionFinally)
+            {
+                break;
+            }
 
             // Find leave label
             Assert(finallyLabel->m_prev->m_opcode == Js::OpCode::Br && finallyLabel->m_prev->m_prev->m_opcode == Js::OpCode::Label);
@@ -451,18 +459,21 @@ FlowGraph::Build(void)
     }
 #endif
 
-    if (this->finallyLabelStack)
+    if (createNonExceptionFinally || this->func->IsLoopBodyInTryFinally())
     {
         Assert(this->finallyLabelStack->Empty());
 
-        // Add s0 definition at the beginning of the function
-        // We need this because - s0 symbol can get added to bytcodeUpwardExposed use when there are early returns,
-        // And globopt will complain that s0 is uninitialized, because we define it to undefined only at the end of the function
-        const auto addrOpnd = IR::AddrOpnd::New(this->func->GetScriptContextInfo()->GetUndefinedAddr(), IR::AddrOpndKindDynamicVar, this->func, true);
-        addrOpnd->SetValueType(ValueType::Undefined);
-        IR::RegOpnd *regOpnd = IR::RegOpnd::New(this->func->m_symTable->FindStackSym(0), TyVar, this->func);
-        IR::Instr *ldRet = IR::Instr::New(Js::OpCode::Ld_A, regOpnd, addrOpnd, this->func);
-        this->func->m_headInstr->GetNextRealInstr()->InsertBefore(ldRet);
+        if (createNonExceptionFinally)
+        {
+            // Add s0 definition at the beginning of the function
+            // We need this because - s0 symbol can get added to bytcodeUpwardExposed use when there are early returns,
+            // And globopt will complain that s0 is uninitialized, because we define it to undefined only at the end of the function
+            const auto addrOpnd = IR::AddrOpnd::New(this->func->GetScriptContextInfo()->GetUndefinedAddr(), IR::AddrOpndKindDynamicVar, this->func, true);
+            addrOpnd->SetValueType(ValueType::Undefined);
+            IR::RegOpnd *regOpnd = IR::RegOpnd::New(this->func->m_symTable->FindStackSym(0), TyVar, this->func);
+            IR::Instr *ldRet = IR::Instr::New(Js::OpCode::Ld_A, regOpnd, addrOpnd, this->func);
+            this->func->m_headInstr->GetNextRealInstr()->InsertBefore(ldRet);
+        }
 
         IR::LabelInstr * currentLabel = nullptr;
         // look for early exits from a try, and insert bailout
@@ -479,46 +490,81 @@ FlowGraph::Build(void)
             }
             else if (instr->m_opcode == Js::OpCode::Leave)
             {
-                IR::LabelInstr *branchTarget = instr->AsBranchInstr()->GetTarget();
-                IR::LabelInstr *exitLabel = nullptr;
-                // An early exit (break, continue, return) from an EH region appears as Leave opcode
-                // When there is an early exit within a try finally, we have to execute finally code
-                // Currently we bailout on early exits
-                // For all such edges add edge from eh region -> finally and finally -> earlyexit
-                Assert(currentLabel != nullptr);
-                if (currentLabel && CheckIfEarlyExitAndAddEdgeToFinally(instr->AsBranchInstr(), currentLabel->GetRegion(), branchTarget->GetRegion(), instrNext, exitLabel))
+                if (createNonExceptionFinally)
                 {
-                    Assert(exitLabel);
-                    IR::Instr * bailOnEarlyExit = IR::BailOutInstr::New(Js::OpCode::BailOnEarlyExit, IR::BailOutOnEarlyExit, instr, instr->m_func); 
-                    instr->InsertBefore(bailOnEarlyExit);
-                    IR::LabelInstr *exceptFinallyLabel = this->finallyLabelStack->Top();
-                    IR::LabelInstr *nonExceptFinallyLabel = exceptFinallyLabel->m_next->m_next->AsLabelInstr();
-
-                    // It is possible for the finally region to have a non terminating loop, in which case the end of finally is eliminated
-                    // We can skip adding edge from finally to early exit in this case
-                    IR::Instr * leaveToFinally = IR::BranchInstr::New(Js::OpCode::Leave, exceptFinallyLabel, this->func);
-                    instr->InsertBefore(leaveToFinally);
-                    instr->Remove();
-                    this->AddEdge(currentLabel->GetBasicBlock(), exceptFinallyLabel->GetBasicBlock());
-
-                    if (this->regToFinallyEndMap->ContainsKey(nonExceptFinallyLabel->GetRegion()))
+                    IR::LabelInstr *branchTarget = instr->AsBranchInstr()->GetTarget();
+                    IR::LabelInstr *exitLabel = nullptr;
+                    // An early exit (break, continue, return) from an EH region appears as Leave opcode
+                    // When there is an early exit within a try finally, we have to execute finally code
+                    // Currently we bailout on early exits
+                    // For all such edges add edge from eh region -> finally and finally -> earlyexit
+                    Assert(currentLabel != nullptr);
+                    if (currentLabel && CheckIfEarlyExitAndAddEdgeToFinally(instr->AsBranchInstr(), currentLabel->GetRegion(), branchTarget->GetRegion(), instrNext, exitLabel))
                     {
-                        BasicBlock * finallyEndBlock = this->regToFinallyEndMap->Item(nonExceptFinallyLabel->GetRegion());
-                        Assert(finallyEndBlock);
-                        Assert(finallyEndBlock->GetFirstInstr()->AsLabelInstr()->GetRegion() == nonExceptFinallyLabel->GetRegion());
-                        InsertEdgeFromFinallyToEarlyExit(finallyEndBlock, exitLabel);
+                        Assert(exitLabel);
+                        IR::Instr * bailOnEarlyExit = IR::BailOutInstr::New(Js::OpCode::BailOnEarlyExit, IR::BailOutOnEarlyExit, instr, instr->m_func);
+                        instr->InsertBefore(bailOnEarlyExit);
+                        IR::LabelInstr *exceptFinallyLabel = this->finallyLabelStack->Top();
+                        IR::LabelInstr *nonExceptFinallyLabel = exceptFinallyLabel->m_next->m_next->AsLabelInstr();
+
+                        // It is possible for the finally region to have a non terminating loop, in which case the end of finally is eliminated
+                        // We can skip adding edge from finally to early exit in this case
+                        IR::Instr * leaveToFinally = IR::BranchInstr::New(Js::OpCode::Leave, exceptFinallyLabel, this->func);
+                        instr->InsertBefore(leaveToFinally);
+                        instr->Remove();
+                        this->AddEdge(currentLabel->GetBasicBlock(), exceptFinallyLabel->GetBasicBlock());
+
+                        if (this->regToFinallyEndMap->ContainsKey(nonExceptFinallyLabel->GetRegion()))
+                        {
+                            BasicBlock * finallyEndBlock = this->regToFinallyEndMap->Item(nonExceptFinallyLabel->GetRegion());
+                            Assert(finallyEndBlock);
+                            Assert(finallyEndBlock->GetFirstInstr()->AsLabelInstr()->GetRegion() == nonExceptFinallyLabel->GetRegion());
+                            InsertEdgeFromFinallyToEarlyExit(finallyEndBlock, exitLabel);
+                        }
+                    }
+                    else if (currentLabel->GetRegion()->GetType() == RegionTypeFinally)
+                    {
+                        Assert(currentLabel->GetRegion()->GetMatchingTryRegion()->GetMatchingFinallyRegion(false) == currentLabel->GetRegion());
+                        // Convert Leave to Br because we execute non-excepting Finally in native code
+                        instr->m_opcode = Js::OpCode::Br;
+#if DBG
+                        instr->AsBranchInstr()->m_leaveConvToBr = true;
+#endif
                     }
                 }
-                else if (currentLabel && currentLabel->GetRegion()->GetType() == RegionTypeFinally)
+                else
                 {
-                    Assert(currentLabel->GetRegion()->GetMatchingTryRegion()->GetMatchingFinallyRegion(false) == currentLabel->GetRegion());
-                    // Convert Leave to Br because we execute non-excepting Finally in native code
-                    instr->m_opcode = Js::OpCode::Br;
-#if DBG
-                    instr->AsBranchInstr()->m_leaveConvToBr = true;
-#endif
+                    if (currentLabel->GetRegion()->GetType() == RegionTypeRoot)
+                    {
+                        // Found an orphaned leave, should be an early return from the loop body, insert bailout
+                        Assert(instr->AsBranchInstr()->m_isOrphanedLeave);
+                        IR::Instr * bailOnEarlyExit = IR::BailOutInstr::New(Js::OpCode::BailOnEarlyExit, IR::BailOutOnEarlyExit, instr, instr->m_func);
+                        instr->InsertBefore(bailOnEarlyExit);
+                    }
+                    else if (currentLabel->GetRegion()->GetType() == RegionTypeCatch)
+                    {
+                        if (!this->finallyLabelStack->Empty())
+                        {
+                            BasicBlock *currentBlock = currentLabel->GetBasicBlock();
+                            Assert(currentBlock->GetSuccList()->Count() == 1);
+                            BasicBlock *succ = currentBlock->GetSuccList()->Head()->GetSucc();
+                            currentBlock->RemoveSucc(succ, this, true);
+
+                            // Add an edge to the finally block
+                            IR::BranchInstr * brOnException = IR::BranchInstr::New(Js::OpCode::BrOnException, this->finallyLabelStack->Top(), instr->m_func);
+                            instr->InsertBefore(brOnException);
+
+                            IR::LabelInstr * label = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func);
+                            instr->InsertBefore(label);
+                            BasicBlock *leaveBlock = this->AddBlock(label, instr, currentBlock->GetNext(), currentBlock);
+
+                            // Add edge to finally block, leave block
+                            this->AddEdge(currentBlock, this->finallyLabelStack->Top()->GetBasicBlock());
+                            this->AddEdge(currentBlock, leaveBlock);                            
+                        }
+                    }
                 }
-            }
+            }            
             else if (instr->m_opcode == Js::OpCode::Finally)
             {
                 AssertOrFailFast(!this->finallyLabelStack->Empty());
@@ -526,7 +572,6 @@ FlowGraph::Build(void)
             }
         }
         NEXT_INSTR_IN_FUNC_EDITING;
-
         this->RemoveUnreachableBlocks();
 
         blockNum = 0;
@@ -535,25 +580,7 @@ FlowGraph::Build(void)
             block->SetBlockNum(blockNum++);
         } NEXT_BLOCK_ALL;
     }
-
-    if (this->func->IsLoopBodyInTryFinally())
-    {
-        FOREACH_BLOCK_IN_FUNC(block, this->func)
-        {
-            FOREACH_INSTR_IN_BLOCK_EDITING(instr, instrNext, block)
-            {
-                if (instr->m_opcode == Js::OpCode::Leave && (block->GetFirstInstr()->AsLabelInstr()->GetRegion()->GetType() == RegionTypeRoot))
-                {
-                    // Found an orphaned leave, should be an early return from the loop body, insert bailout
-                    Assert(instr->AsBranchInstr()->m_isOrphanedLeave);
-                    IR::Instr * bailOnEarlyExit = IR::BailOutInstr::New(Js::OpCode::BailOnEarlyExit, IR::BailOutOnEarlyExit, instr, instr->m_func);
-                    instr->InsertBefore(bailOnEarlyExit);
-                }
-            }
-            NEXT_INSTR_IN_BLOCK_EDITING
-        } NEXT_BLOCK_IN_FUNC;
-    }
-
+    
     this->FindLoops();
 
 #if DBG_DUMP
