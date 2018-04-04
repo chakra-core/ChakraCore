@@ -435,13 +435,6 @@ namespace Js
                 library->AddMember(library->GetIntlObject(), PropertyIds::platform, this->intlNativeInterfaces);
             }
         }
-
-        // TODO: JsBuiltIns fail without these being initialized here?
-        library->AddFunctionToLibraryObject(commonObject, Js::PropertyIds::builtInSetPrototype, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_BuiltIn_SetPrototype, 1);
-        library->AddFunctionToLibraryObject(commonObject, Js::PropertyIds::builtInGetArrayLength, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_BuiltIn_GetArrayLength, 1);
-        library->AddFunctionToLibraryObject(commonObject, Js::PropertyIds::builtInRegexMatch, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_BuiltIn_RegexMatch, 1);
-        library->AddFunctionToLibraryObject(commonObject, Js::PropertyIds::builtInCallInstanceFunction, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_BuiltIn_CallInstanceFunction, 1);
-
         wasInitialized = true;
     }
 
@@ -2601,100 +2594,6 @@ namespace Js
         {
             return scriptContext->GetLibrary()->GetFalse();
         }
-    }
-
-    /*
-    * First parameter is the object onto which prototype should be set; second is the value
-    */
-    Var IntlEngineInterfaceExtensionObject::EntryIntl_BuiltIn_SetPrototype(RecyclableObject *function, CallInfo callInfo, ...)
-    {
-        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-
-        if (callInfo.Count < 3 || !DynamicObject::Is(args.Values[1]) || !RecyclableObject::Is(args.Values[2]))
-        {
-            return scriptContext->GetLibrary()->GetUndefined();
-        }
-
-        DynamicObject* obj = DynamicObject::FromVar(args.Values[1]);
-        RecyclableObject* value = RecyclableObject::FromVar(args.Values[2]);
-
-        obj->SetPrototype(value);
-
-        return obj;
-    }
-
-    /*
-    * First parameter is the array object.
-    */
-    Var IntlEngineInterfaceExtensionObject::EntryIntl_BuiltIn_GetArrayLength(RecyclableObject *function, CallInfo callInfo, ...)
-    {
-        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-
-        if (callInfo.Count < 2)
-        {
-            return scriptContext->GetLibrary()->GetUndefined();
-        }
-
-        if (DynamicObject::IsAnyArray(args.Values[1]))
-        {
-            JavascriptArray* arr = JavascriptArray::FromAnyArray(args.Values[1]);
-            return TaggedInt::ToVarUnchecked(arr->GetLength());
-        }
-        else
-        {
-            AssertMsg(false, "Object passed in with unknown type ID, verify Intl.js is correct.");
-            return TaggedInt::ToVarUnchecked(0);
-        }
-    }
-
-    /*
-    * First parameter is the string on which to match.
-    * Second parameter is the regex object
-    */
-    Var IntlEngineInterfaceExtensionObject::EntryIntl_BuiltIn_RegexMatch(RecyclableObject *function, CallInfo callInfo, ...)
-    {
-        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-
-        if (callInfo.Count < 2 || !JavascriptString::Is(args.Values[1]) || !JavascriptRegExp::Is(args.Values[2]))
-        {
-            return scriptContext->GetLibrary()->GetUndefined();
-        }
-
-        JavascriptString *stringToUse = JavascriptString::FromVar(args.Values[1]);
-        JavascriptRegExp *regexpToUse = JavascriptRegExp::FromVar(args.Values[2]);
-
-        return RegexHelper::RegexMatchNoHistory(scriptContext, regexpToUse, stringToUse, false);
-    }
-
-    /*
-    * First parameter is the function, then its the this arg; so at least 2 are needed.
-    */
-    Var IntlEngineInterfaceExtensionObject::EntryIntl_BuiltIn_CallInstanceFunction(RecyclableObject *function, CallInfo callInfo, ...)
-    {
-        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-
-        Assert(args.Info.Count <= 5);
-        if (callInfo.Count < 3 || args.Info.Count > 5 || !JavascriptConversion::IsCallable(args.Values[1]) || !RecyclableObject::Is(args.Values[2]))
-        {
-            return scriptContext->GetLibrary()->GetUndefined();
-        }
-
-        RecyclableObject *func = RecyclableObject::FromVar(args.Values[1]);
-
-        AssertOrFailFastMsg(func != scriptContext->GetLibrary()->GetUndefined(), "Trying to callInstanceFunction(undefined, ...)");
-
-        //Shift the arguments by 2 so argument at index 2 becomes the 'this' argument at index 0
-        Var newVars[3];
-        Js::Arguments newArgs(callInfo, newVars);
-
-        for (uint i = 0; i<args.Info.Count - 2; ++i)
-        {
-            newArgs.Values[i] = args.Values[i + 2];
-        }
-
-        newArgs.Info.Count = args.Info.Count - 2;
-
-        return JavascriptFunction::CallFunction<true>(func, func->GetEntryPoint(), newArgs);
     }
 #endif
 }
