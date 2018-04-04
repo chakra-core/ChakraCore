@@ -172,13 +172,7 @@ public:
         this->isUsedInLdElem = is;
     }
 
-    static void TrySetIsUsedInLdElem(ParseNode * pnode)
-    {
-        if (pnode && pnode->nop == knopStr)
-        {
-            pnode->AsParseNodePid()->pid->SetIsUsedInLdElem(true);
-        }
-    }
+    static void TrySetIsUsedInLdElem(ParseNode * pnode);
 
     bool IsSingleAssignment()
     {

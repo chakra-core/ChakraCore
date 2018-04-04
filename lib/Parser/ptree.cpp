@@ -9,12 +9,10 @@ ParseNode::ParseNode(OpCode nop, charcount_t ichMin, charcount_t ichLim)
     this->nop = nop;
     this->grfpn = PNodeFlags::fpnNone;
     this->location = Js::Constants::NoRegister;
-    this->emitLabels = false;
     this->isUsed = true;
     this->notEscapedUse = false;
     this->isInList = false;
     this->isCallApplyTargetLoad = false;
-    this->isSpecialName = false;
     this->ichMin = ichMin;
     this->ichLim = ichLim;
 }
@@ -69,7 +67,7 @@ ParseNodePid * ParseNode::AsParseNodePid()
 
 ParseNodeSpecialName * ParseNode::AsParseNodeSpecialName()
 {
-    Assert(this->nop == knopName && this->isSpecialName);
+    Assert(this->nop == knopName && this->AsParseNodePid()->IsSpecialName());
     return reinterpret_cast<ParseNodeSpecialName *>(this);
 }
 
@@ -88,7 +86,7 @@ ParseNodeStrTemplate * ParseNode::AsParseNodeStrTemplate()
 ParseNodeSuperReference * ParseNode::AsParseNodeSuperReference()
 {
     Assert(this->nop == knopDot || this->nop == knopIndex);
-    Assert(this->AsParseNodeBin()->pnode1 && this->AsParseNodeBin()->pnode1->isSpecialName && this->AsParseNodeBin()->pnode1->AsParseNodeSpecialName()->isSuper);
+    Assert(this->AsParseNodeBin()->pnode1 && this->AsParseNodeBin()->pnode1->AsParseNodeSpecialName()->isSuper);
     return reinterpret_cast<ParseNodeSuperReference*>(this);
 }
 
@@ -274,6 +272,11 @@ ParseNodePtr ParseNode::GetFormalNext()
     return pnodeNext;
 }
 
+bool ParseNode::IsUserIdentifier()
+{
+    return this->nop == knopName && !this->AsParseNodePid()->IsSpecialName();
+}
+
 ParseNodeUni::ParseNodeUni(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1)
     : ParseNode(nop, ichMin, ichLim)
 {
@@ -283,7 +286,6 @@ ParseNodeUni::ParseNodeUni(OpCode nop, charcount_t ichMin, charcount_t ichLim, P
 ParseNodeBin::ParseNodeBin(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1, ParseNode * pnode2)
     : ParseNode(nop, ichMin, ichLim)
 {
-    this->pnodeNext = nullptr;
     this->pnode1 = pnode1;
     this->pnode2 = pnode2;
 
@@ -330,6 +332,7 @@ ParseNodePid::ParseNodePid(OpCode nop, charcount_t ichMin, charcount_t ichLim, I
     this->pid = pid;
     this->sym = nullptr;
     this->symRef = nullptr;
+    this->isSpecialName = false;
 }
 
 ParseNodeVar::ParseNodeVar(OpCode nop, charcount_t ichMin, charcount_t ichLim, IdentPtr name)
@@ -354,6 +357,42 @@ ParseNodeArrLit::ParseNodeArrLit(OpCode nop, charcount_t ichMin, charcount_t ich
 ParseNodeFnc::ParseNodeFnc(OpCode nop, charcount_t ichMin, charcount_t ichLim)
     : ParseNode(nop, ichMin, ichLim)
 {
+    this->ClearFlags();     // Initialize fncFlags, canBeDeferred and isBodyAndParamScopeMerged
+    this->SetDeclaration(false);
+    this->pnodeNext = nullptr;
+    this->pnodeName = nullptr;
+    this->pid = nullptr;
+    this->hint = nullptr;
+    this->hintOffset = 0;
+    this->hintLength = 0;
+    this->isNameIdentifierRef = true;
+    this->nestedFuncEscapes = false;
+    this->pnodeScopes = nullptr;
+    this->pnodeBodyScope = nullptr;
+    this->pnodeParams = nullptr;
+    this->pnodeVars = nullptr;
+    this->pnodeBody = nullptr;
+    this->pnodeRest = nullptr;
+    
+    this->funcInfo = nullptr;
+    this->scope = nullptr;
+    this->nestedCount = 0;
+    this->nestedIndex = (uint)-1;
+    this->firstDefaultArg = 0;
+
+    this->astSize = 0;
+    this->cbMin = 0;
+    this->cbLim = 0;
+    this->lineNumber = 0;
+    this->columnNumber = 0;
+    this->functionId = 0;
+#if DBG
+    this->deferredParseNextFunctionId = Js::Constants::NoFunctionId;
+#endif
+    this->pRestorePoint = nullptr;
+    this->deferredStub = nullptr;
+
+    
 }
 
 ParseNodeClass::ParseNodeClass(OpCode nop, charcount_t ichMin, charcount_t ichLim)
@@ -374,6 +413,8 @@ ParseNodeStrTemplate::ParseNodeStrTemplate(OpCode nop, charcount_t ichMin, charc
 ParseNodeProg::ParseNodeProg(OpCode nop, charcount_t ichMin, charcount_t ichLim)
     : ParseNodeFnc(nop, ichMin, ichLim)
 {
+    this->pnodeLastValStmt = nullptr;
+    this->m_UsesArgumentsAtGlobal = false;
 }
 
 ParseNodeModule::ParseNodeModule(OpCode nop, charcount_t ichMin, charcount_t ichLim)
@@ -398,7 +439,7 @@ ParseNodeCall::ParseNodeCall(OpCode nop, charcount_t ichMin, charcount_t ichLim,
 ParseNodeStmt::ParseNodeStmt(OpCode nop, charcount_t ichMin, charcount_t ichLim)
     : ParseNode(nop, ichMin, ichLim)
 {
-
+    this->emitLabels = false;
 }
 
 ParseNodeBlock::ParseNodeBlock(charcount_t ichMin, charcount_t ichLim, int blockId, PnodeBlockType blockType)
@@ -506,7 +547,7 @@ ParseNodeFinally::ParseNodeFinally(OpCode nop, charcount_t ichMin, charcount_t i
 ParseNodeSpecialName::ParseNodeSpecialName(charcount_t ichMin, charcount_t ichLim, IdentPtr pid)
     : ParseNodePid(knopName, ichMin, ichLim, pid)
 {
-    this->isSpecialName = true;
+    this->SetIsSpecialName();
     this->isThis = false;
     this->isSuper = false;
 }

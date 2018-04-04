@@ -6,8 +6,8 @@
 #include "FormalsUtil.h"
 #include "Library/StackScriptFunction.h"
 
-void PreVisitBlock(ParseNode *pnodeBlock, ByteCodeGenerator *byteCodeGenerator);
-void PostVisitBlock(ParseNode *pnodeBlock, ByteCodeGenerator *byteCodeGenerator);
+void PreVisitBlock(ParseNodeBlock *pnodeBlock, ByteCodeGenerator *byteCodeGenerator);
+void PostVisitBlock(ParseNodeBlock *pnodeBlock, ByteCodeGenerator *byteCodeGenerator);
 
 bool IsCallOfConstants(ParseNode *pnode)
 {
@@ -81,19 +81,19 @@ void VisitWithStmt(ParseNode *pnode, Js::RegSlot loc, ByteCodeGenerator* byteCod
     byteCodeGenerator->PopScope();
 }
 
-bool BlockHasOwnScope(ParseNode* pnodeBlock, ByteCodeGenerator *byteCodeGenerator)
+bool BlockHasOwnScope(ParseNodeBlock* pnodeBlock, ByteCodeGenerator *byteCodeGenerator)
 {
     Assert(pnodeBlock->nop == knopBlock);
-    return pnodeBlock->AsParseNodeBlock()->scope != nullptr &&
+    return pnodeBlock->scope != nullptr &&
         (!(pnodeBlock->grfpn & fpnSyntheticNode) ||
-            (pnodeBlock->AsParseNodeBlock()->blockType == PnodeBlockType::Global && byteCodeGenerator->IsEvalWithNoParentScopeInfo()));
+            (pnodeBlock->blockType == PnodeBlockType::Global && byteCodeGenerator->IsEvalWithNoParentScopeInfo()));
 }
 
-void BeginVisitBlock(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
+void BeginVisitBlock(ParseNodeBlock *pnode, ByteCodeGenerator *byteCodeGenerator)
 {
     if (BlockHasOwnScope(pnode, byteCodeGenerator))
     {
-        Scope *scope = pnode->AsParseNodeBlock()->scope;
+        Scope *scope = pnode->scope;
         FuncInfo *func = scope->GetFunc();
 
         if (scope->IsInnerScope())
@@ -104,15 +104,15 @@ void BeginVisitBlock(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         }
 
         byteCodeGenerator->PushBlock(pnode);
-        byteCodeGenerator->PushScope(pnode->AsParseNodeBlock()->scope);
+        byteCodeGenerator->PushScope(pnode->scope);
     }
 }
 
-void EndVisitBlock(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
+void EndVisitBlock(ParseNodeBlock *pnode, ByteCodeGenerator *byteCodeGenerator)
 {
     if (BlockHasOwnScope(pnode, byteCodeGenerator))
     {
-        Scope *scope = pnode->AsParseNodeBlock()->scope;
+        Scope *scope = pnode->scope;
         FuncInfo *func = scope->GetFunc();
 
         if (!byteCodeGenerator->IsInDebugMode() &&
@@ -389,15 +389,16 @@ void Visit(ParseNode *pnode, ByteCodeGenerator* byteCodeGenerator, PrefixFn pref
     // PTNODE(knopBlock      , "{}"        ,None    ,Block,fnopNone)
     case knopBlock:
     {
-        if (pnode->AsParseNodeBlock()->pnodeStmt != nullptr)
+        ParseNodeBlock * pnodeBlock = pnode->AsParseNodeBlock();
+        if (pnodeBlock->pnodeStmt != nullptr)
         {
-            BeginVisitBlock(pnode, byteCodeGenerator);
-            pnode->AsParseNodeBlock()->pnodeLastValStmt = VisitBlock(pnode->AsParseNodeBlock()->pnodeStmt, byteCodeGenerator, prefix, postfix, pnode);
-            EndVisitBlock(pnode, byteCodeGenerator);
+            BeginVisitBlock(pnodeBlock, byteCodeGenerator);
+            pnodeBlock->pnodeLastValStmt = VisitBlock(pnodeBlock->pnodeStmt, byteCodeGenerator, prefix, postfix, pnode);
+            EndVisitBlock(pnodeBlock, byteCodeGenerator);
         }
         else
         {
-            pnode->AsParseNodeBlock()->pnodeLastValStmt = nullptr;
+            pnodeBlock->pnodeLastValStmt = nullptr;
         }
         break;
     }
@@ -418,7 +419,7 @@ void Visit(ParseNode *pnode, ByteCodeGenerator* byteCodeGenerator, PrefixFn pref
     case knopSwitch:
         Visit(pnode->AsParseNodeSwitch()->pnodeVal, byteCodeGenerator, prefix, postfix);
         BeginVisitBlock(pnode->AsParseNodeSwitch()->pnodeBlock, byteCodeGenerator);
-        for (ParseNode *pnodeT = pnode->AsParseNodeSwitch()->pnodeCases; nullptr != pnodeT; pnodeT = pnodeT->AsParseNodeCase()->pnodeNext)
+        for (ParseNodeCase *pnodeT = pnode->AsParseNodeSwitch()->pnodeCases; nullptr != pnodeT; pnodeT = pnodeT->pnodeNext)
         {
             Visit(pnodeT, byteCodeGenerator, prefix, postfix, pnode);
         }
@@ -651,12 +652,12 @@ bool MustProduceValue(ParseNode *pnode, const Js::ScriptContext *const scriptCon
                     // Can't guarantee that any code is executed.
                 return false;
                 }
-                ParseNode *pnodeCase;
-                for (pnodeCase = pnode->AsParseNodeSwitch()->pnodeCases; pnodeCase; pnodeCase = pnodeCase->AsParseNodeCase()->pnodeNext)
+                ParseNodeCase *pnodeCase;
+                for (pnodeCase = pnode->AsParseNodeSwitch()->pnodeCases; pnodeCase; pnodeCase = pnodeCase->pnodeNext)
                 {
-                    if (pnodeCase->AsParseNodeCase()->pnodeBody == nullptr)
+                    if (pnodeCase->pnodeBody == nullptr)
                     {
-                        if (pnodeCase->AsParseNodeCase()->pnodeNext == nullptr)
+                        if (pnodeCase->pnodeNext == nullptr)
                         {
                             // Last case has no code to execute.
                         return false;
@@ -665,7 +666,7 @@ bool MustProduceValue(ParseNode *pnode, const Js::ScriptContext *const scriptCon
                     }
                     else
                     {
-                        if (!MustProduceValue(pnodeCase->AsParseNodeCase()->pnodeBody, scriptContext))
+                        if (!MustProduceValue(pnodeCase->pnodeBody, scriptContext))
                         {
                         return false;
                         }
@@ -762,13 +763,13 @@ bool ByteCodeGenerator::IsFalse(ParseNode* node)
 /* static */
 bool ByteCodeGenerator::IsThis(ParseNode* pnode)
 {
-    return pnode->nop == knopName && pnode->IsSpecialName() && pnode->AsParseNodeSpecialName()->isThis;
+    return pnode->nop == knopName && pnode->AsParseNodePid()->IsSpecialName() && pnode->AsParseNodeSpecialName()->isThis;
 }
 
 /* static */
 bool ByteCodeGenerator::IsSuper(ParseNode* pnode)
 {
-    return pnode->nop == knopName && pnode->IsSpecialName() && pnode->AsParseNodeSpecialName()->isSuper;
+    return pnode->nop == knopName && pnode->AsParseNodePid()->IsSpecialName() && pnode->AsParseNodeSpecialName()->isSuper;
 }
 
 bool ByteCodeGenerator::IsES6DestructuringEnabled() const
@@ -868,7 +869,7 @@ void ByteCodeGenerator::AssignRegister(Symbol *sym)
     }
 }
 
-void ByteCodeGenerator::AddTargetStmt(ParseNode *pnodeStmt)
+void ByteCodeGenerator::AddTargetStmt(ParseNodeStmt *pnodeStmt)
 {
     FuncInfo *top = funcInfoStack->Top();
     top->AddTargetStmt(pnodeStmt);
@@ -1430,15 +1431,15 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
         }
     }
 
-    Scope *paramScope = pnodeFnc->pnodeScopes ? pnodeFnc->pnodeScopes->AsParseNodeBlock()->scope : nullptr;
-    Scope *bodyScope = pnodeFnc->pnodeBodyScope ? pnodeFnc->pnodeBodyScope->AsParseNodeBlock()->scope : nullptr;
+    Scope *paramScope = pnodeFnc->pnodeScopes ? pnodeFnc->pnodeScopes->scope : nullptr;
+    Scope *bodyScope = pnodeFnc->pnodeBodyScope ? pnodeFnc->pnodeBodyScope->scope : nullptr;
     Assert(paramScope != nullptr || !pnodeFnc->pnodeScopes);
     if (paramScope == nullptr)
     {
         paramScope = Anew(alloc, Scope, alloc, ScopeType_Parameter, true);
         if (pnodeFnc->pnodeScopes)
         {
-            pnodeFnc->pnodeScopes->AsParseNodeBlock()->scope = paramScope;
+            pnodeFnc->pnodeScopes->scope = paramScope;
         }
     }
     if (bodyScope == nullptr)
@@ -1446,7 +1447,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
         bodyScope = Anew(alloc, Scope, alloc, ScopeType_FunctionBody, true);
         if (pnodeFnc->pnodeBodyScope)
         {
-            pnodeFnc->pnodeBodyScope->AsParseNodeBlock()->scope = bodyScope;
+            pnodeFnc->pnodeBodyScope->scope = bodyScope;
         }
     }
 
@@ -1604,15 +1605,15 @@ void ByteCodeGenerator::PopScope()
     currentScope = currentScope->GetEnclosingScope();
 }
 
-void ByteCodeGenerator::PushBlock(ParseNode *pnode)
+void ByteCodeGenerator::PushBlock(ParseNodeBlock *pnode)
 {
-    pnode->AsParseNodeBlock()->SetEnclosingBlock(currentBlock);
+    pnode->SetEnclosingBlock(currentBlock);
     currentBlock = pnode;
 }
 
 void ByteCodeGenerator::PopBlock()
 {
-    currentBlock = currentBlock->AsParseNodeBlock()->GetEnclosingBlock();
+    currentBlock = currentBlock->GetEnclosingBlock();
 }
 
 void ByteCodeGenerator::PushFuncInfo(char16 const * location, FuncInfo* funcInfo)
@@ -2979,11 +2980,11 @@ FuncInfo* PostVisitFunction(ParseNodeFnc* pnodeFnc, ByteCodeGenerator* byteCodeG
     if (top->GetCallsEval() || top->GetChildCallsEval())
     {
         parentFunc->SetChildCallsEval(true);
-        ParseNode *currentBlock = byteCodeGenerator->GetCurrentBlock();
+        ParseNodeBlock *currentBlock = byteCodeGenerator->GetCurrentBlock();
         if (currentBlock)
         {
             Assert(currentBlock->nop == knopBlock);
-            currentBlock->AsParseNodeBlock()->SetChildCallsEval(true);
+            currentBlock->SetChildCallsEval(true);
         }
         parentFunc->SetHasHeapArguments(true);
         setHasNonLocalReference = true;
@@ -3345,8 +3346,8 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
 
                     if (!funcInfo->IsBodyAndParamScopeMerged())
                     {
-                        Assert(pnodeFnc->pnodeBodyScope->AsParseNodeBlock()->scope);
-                        VisitNestedScopes(pnodeFnc->pnodeBodyScope->AsParseNodeBlock()->pnodeScopes, pnodeFnc, byteCodeGenerator, prefix, postfix, &i);
+                        Assert(pnodeFnc->pnodeBodyScope->scope);
+                        VisitNestedScopes(pnodeFnc->pnodeBodyScope->pnodeScopes, pnodeFnc, byteCodeGenerator, prefix, postfix, &i);
                     }
                 }
 
@@ -3404,12 +3405,13 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
 
         case knopBlock:
         {
-            PreVisitBlock(pnodeScope, byteCodeGenerator);
+            ParseNodeBlock * pnodeBlockScope = pnodeScope->AsParseNodeBlock();
+            PreVisitBlock(pnodeBlockScope, byteCodeGenerator);
             bool isMergedScope;
-            parentFuncInfo->OnStartVisitScope(pnodeScope->AsParseNodeBlock()->scope, &isMergedScope);
-            VisitNestedScopes(pnodeScope->AsParseNodeBlock()->pnodeScopes, pnodeParent, byteCodeGenerator, prefix, postfix, pIndex);
-            parentFuncInfo->OnEndVisitScope(pnodeScope->AsParseNodeBlock()->scope, isMergedScope);
-            PostVisitBlock(pnodeScope, byteCodeGenerator);
+            parentFuncInfo->OnStartVisitScope(pnodeBlockScope->scope, &isMergedScope);
+            VisitNestedScopes(pnodeBlockScope->pnodeScopes, pnodeParent, byteCodeGenerator, prefix, postfix, pIndex);
+            parentFuncInfo->OnEndVisitScope(pnodeBlockScope->scope, isMergedScope);
+            PostVisitBlock(pnodeBlockScope, byteCodeGenerator);
 
             pnodeScope = pnodeScope->AsParseNodeBlock()->pnodeNext;
             break;
@@ -3454,11 +3456,11 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
     }
 }
 
-void PreVisitBlock(ParseNode *pnodeBlock, ByteCodeGenerator *byteCodeGenerator)
+void PreVisitBlock(ParseNodeBlock *pnodeBlock, ByteCodeGenerator *byteCodeGenerator)
 {
-    if (!pnodeBlock->AsParseNodeBlock()->scope &&
-        !pnodeBlock->AsParseNodeBlock()->HasBlockScopedContent() &&
-        !pnodeBlock->AsParseNodeBlock()->GetCallsEval())
+    if (!pnodeBlock->scope &&
+        !pnodeBlock->HasBlockScopedContent() &&
+        !pnodeBlock->GetCallsEval())
     {
         // Do nothing here if the block doesn't declare anything or call eval (which may declare something).
         return;
@@ -3472,36 +3474,36 @@ void PreVisitBlock(ParseNode *pnodeBlock, ByteCodeGenerator *byteCodeGenerator)
     {
         isGlobalEvalBlockScope = true;
     }
-    Assert(!pnodeBlock->AsParseNodeBlock()->scope ||
-           isGlobalEvalBlockScope == (pnodeBlock->AsParseNodeBlock()->scope->GetScopeType() == ScopeType_GlobalEvalBlock));
+    Assert(!pnodeBlock->scope ||
+           isGlobalEvalBlockScope == (pnodeBlock->scope->GetScopeType() == ScopeType_GlobalEvalBlock));
 
     ArenaAllocator *alloc = byteCodeGenerator->GetAllocator();
     Scope *scope;
 
-    if ((pnodeBlock->AsParseNodeBlock()->blockType == PnodeBlockType::Global && !byteCodeGenerator->IsEvalWithNoParentScopeInfo()) || pnodeBlock->AsParseNodeBlock()->blockType == PnodeBlockType::Function)
+    if ((pnodeBlock->blockType == PnodeBlockType::Global && !byteCodeGenerator->IsEvalWithNoParentScopeInfo()) || pnodeBlock->blockType == PnodeBlockType::Function)
     {
         scope = byteCodeGenerator->GetCurrentScope();
 
-        if (pnodeBlock->AsParseNodeBlock()->blockType == PnodeBlockType::Function)
+        if (pnodeBlock->blockType == PnodeBlockType::Function)
         {
-            AnalysisAssert(pnodeBlock->AsParseNodeBlock()->scope);
-            if (pnodeBlock->AsParseNodeBlock()->scope->GetScopeType() == ScopeType_Parameter
+            AnalysisAssert(pnodeBlock->scope);
+            if (pnodeBlock->scope->GetScopeType() == ScopeType_Parameter
                 && scope->GetScopeType() == ScopeType_FunctionBody)
             {
                 scope = scope->GetEnclosingScope();
             }
         }
 
-        pnodeBlock->AsParseNodeBlock()->scope = scope;
+        pnodeBlock->scope = scope;
     }
     else if (!(pnodeBlock->grfpn & fpnSyntheticNode) || isGlobalEvalBlockScope)
     {
-        scope = pnodeBlock->AsParseNodeBlock()->scope;
+        scope = pnodeBlock->scope;
         if (!scope)
         {
             scope = Anew(alloc, Scope, alloc,
                          isGlobalEvalBlockScope? ScopeType_GlobalEvalBlock : ScopeType_Block, true);
-            pnodeBlock->AsParseNodeBlock()->scope = scope;
+            pnodeBlock->scope = scope;
         }
         scope->SetFunc(byteCodeGenerator->TopFuncInfo());
         // For now, prevent block scope from being merged with enclosing function scope.
@@ -3521,7 +3523,7 @@ void PreVisitBlock(ParseNode *pnodeBlock, ByteCodeGenerator *byteCodeGenerator)
         return;
     }
 
-    Assert(scope && scope == pnodeBlock->AsParseNodeBlock()->scope);
+    Assert(scope && scope == pnodeBlock->scope);
 
     bool isGlobalScope = (scope->GetEnclosingScope() == nullptr);
     Assert(!isGlobalScope || (pnodeBlock->grfpn & fpnSyntheticNode));
@@ -3530,7 +3532,7 @@ void PreVisitBlock(ParseNode *pnodeBlock, ByteCodeGenerator *byteCodeGenerator)
     // They should already declared in the global function's scope.
     if (!isGlobalEvalBlockScope && !isGlobalScope)
     {
-        AddFunctionsToScope(pnodeBlock->AsParseNodeBlock()->pnodeScopes, byteCodeGenerator);
+        AddFunctionsToScope(pnodeBlock->pnodeScopes, byteCodeGenerator);
     }
 
     // We can skip this check by not creating the GlobalEvalBlock above and in Parser::Parse for console eval but that seems to break couple of places
@@ -3564,16 +3566,16 @@ void PreVisitBlock(ParseNode *pnodeBlock, ByteCodeGenerator *byteCodeGenerator)
     byteCodeGenerator->IterateBlockScopedVariables(pnodeBlock, addSymbolToScope);
 }
 
-void PostVisitBlock(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
+void PostVisitBlock(ParseNodeBlock *pnodeBlock, ByteCodeGenerator *byteCodeGenerator)
 {
-    if (!BlockHasOwnScope(pnode, byteCodeGenerator))
+    if (!BlockHasOwnScope(pnodeBlock, byteCodeGenerator))
     {
         return;
     }
 
-    Scope *scope = pnode->AsParseNodeBlock()->scope;
+    Scope *scope = pnodeBlock->scope;
 
-    if (pnode->AsParseNodeBlock()->GetCallsEval() || pnode->AsParseNodeBlock()->GetChildCallsEval() || (byteCodeGenerator->GetFlags() & (fscrEval | fscrImplicitThis | fscrImplicitParents)))
+    if (pnodeBlock->GetCallsEval() || pnodeBlock->GetChildCallsEval() || (byteCodeGenerator->GetFlags() & (fscrEval | fscrImplicitThis | fscrImplicitParents)))
     {
         bool scopeIsEmpty = scope->IsEmpty();
         scope->SetIsObject();
@@ -3589,10 +3591,10 @@ void PostVisitBlock(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
     byteCodeGenerator->PopScope();
     byteCodeGenerator->PopBlock();
 
-    ParseNode *currentBlock = byteCodeGenerator->GetCurrentBlock();
-    if (currentBlock && (pnode->AsParseNodeBlock()->GetCallsEval() || pnode->AsParseNodeBlock()->GetChildCallsEval()))
+    ParseNodeBlock *currentBlock = byteCodeGenerator->GetCurrentBlock();
+    if (currentBlock && (pnodeBlock->GetCallsEval() || pnodeBlock->GetChildCallsEval()))
     {
-        currentBlock->AsParseNodeBlock()->SetChildCallsEval(true);
+        currentBlock->SetChildCallsEval(true);
     }
 }
 
@@ -3915,7 +3917,7 @@ ParseNode* ConstructInvertedStatement(ParseNode* stmt, ByteCodeGenerator* byteCo
         return cStmt;
 }
 
-ParseNode* ConstructInvertedLoop(ParseNode* innerLoop, ParseNode* outerLoop, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo)
+ParseNodeFor* ConstructInvertedLoop(ParseNode* innerLoop, ParseNode* outerLoop, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo)
 {
     ArenaAllocator* alloc = byteCodeGenerator->GetAllocator();
     ParseNodeFor * outerLoopC = Parser::StaticCreateNodeT<knopFor>(alloc);
@@ -4164,7 +4166,7 @@ bool InvertableBlock(ParseNode* block, Symbol* outerVar, ParseNode* innerLoop, P
 // side effects level, if any that guards the new AST (old AST will be
 // used if guard fails).
 // Should only be called with loopNode representing top-level statement.
-ParseNode* InvertLoop(ParseNode* outerLoop, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo)
+ParseNodeFor* InvertLoop(ParseNode* outerLoop, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo)
 {
     if (byteCodeGenerator->GetScriptContext()->optimizationOverrides.GetSideEffects() != Js::SideEffects_None)
     {
@@ -4403,7 +4405,7 @@ void Bind(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
     case knopTryCatch:
         byteCodeGenerator->SetHasTry(true);
         byteCodeGenerator->TopFuncInfo()->byteCodeFunction->SetDontInline(true);
-        byteCodeGenerator->AddTargetStmt(pnode);
+        byteCodeGenerator->AddTargetStmt(pnode->AsParseNodeStmt());
         break;
     case knopAsg:
         BindReference(pnode, byteCodeGenerator);
