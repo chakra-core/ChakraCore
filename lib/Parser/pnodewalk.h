@@ -174,7 +174,7 @@ private:
     {
         ResultType result;
         // For ordering, arguments are considered prior to the function and the body after.
-        for (ParseNode** argNode = &(pnode->AsParseNodeFnc()->pnodeParams); *argNode != nullptr; argNode = &((*argNode)->AsParseNodeVar()->pnodeNext))
+        for (ParseNodePtr* argNode = &(pnode->AsParseNodeFnc()->pnodeParams); *argNode != nullptr; argNode = &((*argNode)->AsParseNodeVar()->pnodeNext))
         {
             result = *argNode == pnode->AsParseNodeFnc()->pnodeParams ? WalkFirstChild(*argNode, context) : WalkNthChild(pnode, *argNode, context);
             if (!ContinueWalk(result)) return result;

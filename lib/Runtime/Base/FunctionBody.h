@@ -1927,7 +1927,7 @@ namespace Js
             m_hasBeenParsed = hasBeenParsed;
         }
 
-        void SetSourceInfo(uint sourceIndex, ParseNodePtr node, bool isEval, bool isDynamicFunction);
+        void SetSourceInfo(uint sourceIndex, ParseNodeFnc * node, bool isEval, bool isDynamicFunction);
         void SetSourceInfo(uint sourceIndex);
         void Copy(ParseableFunctionInfo * other);
         void Copy(FunctionBody* other);
@@ -3376,8 +3376,8 @@ namespace Js
         void SetDontRethunkAfterBailout() { dontRethunkAfterBailout = true; }
         void ClearDontRethunkAfterBailout() { dontRethunkAfterBailout = false; }
 
-        void SaveState(ParseNodePtr pnode);
-        void RestoreState(ParseNodePtr pnode);
+        void SaveState(ParseNodeFnc * pnodeFnc);
+        void RestoreState(ParseNodeFnc * pnodeFnc);
 
         // Used for the debug purpose, this info will be stored (in the non-debug mode), when a function has all locals marked as non-local-referenced.
         // So when we got to no-refresh debug mode, and try to re-use the same function body we can then enforce all locals to be non-local-referenced.

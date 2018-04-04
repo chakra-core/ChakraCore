@@ -9,10 +9,10 @@ typedef DList<ParseNode*, ArenaAllocator> NodeDList;
 
 struct BackgroundParseItem sealed : public JsUtil::Job
 {
-    BackgroundParseItem(JsUtil::JobManager *const manager, Parser *const parser, ParseNode *parseNode, bool defer);
+    BackgroundParseItem(JsUtil::JobManager *const manager, Parser *const parser, ParseNodeFnc *parseNode, bool defer);
 
     ParseContext *GetParseContext() { return &parseContext; }
-    ParseNode *GetParseNode() const { return parseNode; }
+    ParseNodeFnc *GetParseNode() const { return parseNode; }
     CompileScriptException *GetPSE() const { return pse; }
     HRESULT GetHR() const { return hr; }
     bool IsStrictMode() const { return strictMode; }
@@ -45,7 +45,7 @@ private:
     BackgroundParseItem *nextItem;
     BackgroundParseItem *nextUnprocessedItem;
     BackgroundParseItem *prevUnprocessedItem;
-    ParseNode *parseNode;
+    ParseNodeFnc *parseNode;
     CompileScriptException *pse;
     NodeDList* regExpNodes;
     HRESULT hr;
@@ -72,8 +72,8 @@ public:
     virtual void OnDecommit(JsUtil::ParallelThreadData *threadData) override;
 
     bool Process(JsUtil::Job *const job, Parser *parser, CompileScriptException *pse);
-    bool ParseBackgroundItem(Parser *parser, ParseNode *parseNode, bool isDeferred);
-    BackgroundParseItem * NewBackgroundParseItem(Parser *parser, ParseNode *parseNode, bool isDeferred);
+    bool ParseBackgroundItem(Parser *parser, ParseNodeFnc *parseNode, bool isDeferred);
+    BackgroundParseItem * NewBackgroundParseItem(Parser *parser, ParseNodeFnc *parseNode, bool isDeferred);
 
     BackgroundParseItem *GetJob(BackgroundParseItem *item) const;
     bool WasAddedToJobProcessor(JsUtil::Job *const job) const;
