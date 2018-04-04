@@ -189,9 +189,9 @@ var tests = [
 
             assert.areEqual("Array Iterator", aip[Symbol.toStringTag], "@@toStringTag is the string value 'Array Iterator'");
 
-            assert.throws(function () { aip.next.call(123); }, TypeError, "%ArrayIteratorPrototype%.next() throws if its 'this' is not an object", "Array Iterator.prototype.next: 'this' is not an Array Iterator object");
-            assert.throws(function () { aip.next.call("o"); }, TypeError, "%ArrayIteratorPrototype%.next() throws if its 'this' is not an object", "Array Iterator.prototype.next: 'this' is not an Array Iterator object");
-            assert.throws(function () { aip.next.call({ }); }, TypeError, "%ArrayIteratorPrototype%.next() throws if its 'this' is an object but not an Array Iterator object", "Array Iterator.prototype.next: 'this' is not an Array Iterator object");
+            assert.throws(function () { aip.next.call(123); }, TypeError, "%ArrayIteratorPrototype%.next() throws if its 'this' is not an object", "Array Iterator.prototype.next: 'this' is not a Array Iterator object");
+            assert.throws(function () { aip.next.call("o"); }, TypeError, "%ArrayIteratorPrototype%.next() throws if its 'this' is not an object", "Array Iterator.prototype.next: 'this' is not a Array Iterator object");
+            assert.throws(function () { aip.next.call({ }); }, TypeError, "%ArrayIteratorPrototype%.next() throws if its 'this' is an object but not an Array Iterator object", "Array Iterator.prototype.next: 'this' is not a Array Iterator object");
         }
     },
     {
