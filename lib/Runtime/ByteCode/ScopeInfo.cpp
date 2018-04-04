@@ -22,7 +22,7 @@ namespace Js
         else if (needScopeSlot)
         {
             // Any symbol may have non-local ref from deferred child. Allocate slot for it.
-            scopeSlot = sym->EnsureScopeSlot(mapSymbolData->func);
+            scopeSlot = sym->EnsureScopeSlot(mapSymbolData->byteCodeGenerator, mapSymbolData->func);
         }
 
         if (needScopeSlot || sym->GetIsModuleExportStorage())
@@ -52,7 +52,7 @@ namespace Js
     //
     // Create scope info for a single scope.
     //
-    ScopeInfo* ScopeInfo::SaveOneScopeInfo(/*ByteCodeGenerator* byteCodeGenerator, ParseableFunctionInfo* parent,*/ Scope* scope, ScriptContext *scriptContext)
+    ScopeInfo* ScopeInfo::SaveOneScopeInfo(ByteCodeGenerator* byteCodeGenerator, Scope* scope, ScriptContext *scriptContext)
     {
         Assert(scope->GetScopeInfo() == nullptr);
         Assert(scope->GetScopeType() != ScopeType_Global);
@@ -82,7 +82,7 @@ namespace Js
             scope->GetFunc()->name, count,
             scopeInfo->isObject ? _u("isObject") : _u(""));
 
-        MapSymbolData mapSymbolData = { scope->GetFunc(), 0 };
+        MapSymbolData mapSymbolData = { byteCodeGenerator, scope->GetFunc(), 0 };
         scope->ForEachSymbol([&mapSymbolData, scopeInfo, scope](Symbol * sym)
         {
             Assert(scope == sym->GetScope());
@@ -109,7 +109,7 @@ namespace Js
     //
     // Save scope info for an individual scope and link it to its enclosing scope.
     //
-    ScopeInfo * ScopeInfo::SaveScopeInfo(Scope * scope/*ByteCodeGenerator* byteCodeGenerator, FuncInfo* parentFunc, FuncInfo* func*/, ScriptContext * scriptContext)
+    ScopeInfo * ScopeInfo::SaveScopeInfo(ByteCodeGenerator* byteCodeGenerator, Scope * scope, ScriptContext * scriptContext)
     {
         // Advance past scopes that will be excluded from the closure environment. (But note that we always want the body scope.)
         while (scope && (!scope->GetMustInstantiate() && scope != scope->GetFunc()->GetBodyScope()))
@@ -131,13 +131,13 @@ namespace Js
         }
 
         // Do the work for this scope.
-        scopeInfo = ScopeInfo::SaveOneScopeInfo(scope, scriptContext);
+        scopeInfo = ScopeInfo::SaveOneScopeInfo(byteCodeGenerator, scope, scriptContext);
 
         // Link to the parent (if any).
         scope = scope->GetEnclosingScope();
         if (scope)
         {
-            scopeInfo->SetParentScopeInfo(ScopeInfo::SaveScopeInfo(scope, scriptContext));
+            scopeInfo->SetParentScopeInfo(ScopeInfo::SaveScopeInfo(byteCodeGenerator, scope, scriptContext));
         }
 
         return scopeInfo;
@@ -167,7 +167,7 @@ namespace Js
             currentScope = currentScope->GetEnclosingScope();
         }
 
-        ScopeInfo * scopeInfo = ScopeInfo::SaveScopeInfo(currentScope, byteCodeGenerator->GetScriptContext());
+        ScopeInfo * scopeInfo = ScopeInfo::SaveScopeInfo(byteCodeGenerator, currentScope, byteCodeGenerator->GetScriptContext());
         if (scopeInfo != nullptr)
         {
             funcInfo->byteCodeFunction->SetScopeInfo(scopeInfo);
