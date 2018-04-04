@@ -33,6 +33,7 @@ INTL_ENTRY(validateAndCanonicalizeTimeZone, ValidateAndCanonicalizeTimeZone)
 INTL_ENTRY(getDefaultTimeZone, GetDefaultTimeZone)
 INTL_ENTRY(getPatternForSkeleton, GetPatternForSkeleton)
 INTL_ENTRY(getLocaleData, GetLocaleData)
+INTL_ENTRY(localeCompare, LocaleCompare)
 
 INTL_ENTRY(registerBuiltInFunction, RegisterBuiltInFunction)
 INTL_ENTRY(getHiddenObject, GetHiddenObject)
