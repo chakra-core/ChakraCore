@@ -593,59 +593,11 @@ namespace Js
         JavascriptString* GetNullString() { return nullString; }
         JavascriptString* GetEmptyString() const;
 
-#define SCACHE_FUNCTION_PROXY(name) JavascriptString* name() { return stringCache.##name##(); }
-        SCACHE_FUNCTION_PROXY(GetEmptyObjectString)
-        SCACHE_FUNCTION_PROXY(GetQuotesString)
-        SCACHE_FUNCTION_PROXY(GetWhackString)
-        SCACHE_FUNCTION_PROXY(GetCommaDisplayString)
-        SCACHE_FUNCTION_PROXY(GetCommaSpaceDisplayString)
-        SCACHE_FUNCTION_PROXY(GetOpenBracketString)
-        SCACHE_FUNCTION_PROXY(GetCloseBracketString)
-        SCACHE_FUNCTION_PROXY(GetOpenSBracketString)
-        SCACHE_FUNCTION_PROXY(GetCloseSBracketString)
-        SCACHE_FUNCTION_PROXY(GetEmptyArrayString)
-        SCACHE_FUNCTION_PROXY(GetNewLineString)
-        SCACHE_FUNCTION_PROXY(GetColonString)
-        SCACHE_FUNCTION_PROXY(GetFunctionAnonymousString)
-        SCACHE_FUNCTION_PROXY(GetFunctionPTRAnonymousString)
-        SCACHE_FUNCTION_PROXY(GetAsyncFunctionAnonymouseString)
-        SCACHE_FUNCTION_PROXY(GetOpenRBracketString)
-        SCACHE_FUNCTION_PROXY(GetNewLineCloseRBracketString)
-        SCACHE_FUNCTION_PROXY(GetSpaceOpenBracketString)
-        SCACHE_FUNCTION_PROXY(GetNewLineCloseBracketString)
-        SCACHE_FUNCTION_PROXY(GetFunctionPrefixString)
-        SCACHE_FUNCTION_PROXY(GetGeneratorFunctionPrefixString)
-        SCACHE_FUNCTION_PROXY(GetAsyncFunctionPrefixString)
-        SCACHE_FUNCTION_PROXY(GetFunctionDisplayString)
-        SCACHE_FUNCTION_PROXY(GetXDomainFunctionDisplayString)
-        SCACHE_FUNCTION_PROXY(GetInvalidDateString)
-        SCACHE_FUNCTION_PROXY(GetObjectDisplayString)
-        SCACHE_FUNCTION_PROXY(GetObjectArgumentsDisplayString)
-        SCACHE_FUNCTION_PROXY(GetObjectArrayDisplayString)
-        SCACHE_FUNCTION_PROXY(GetObjectBooleanDisplayString)
-        SCACHE_FUNCTION_PROXY(GetObjectDateDisplayString)
-        SCACHE_FUNCTION_PROXY(GetObjectErrorDisplayString)
-        SCACHE_FUNCTION_PROXY(GetObjectFunctionDisplayString)
-        SCACHE_FUNCTION_PROXY(GetObjectNumberDisplayString)
-        SCACHE_FUNCTION_PROXY(GetObjectRegExpDisplayString)
-        SCACHE_FUNCTION_PROXY(GetObjectStringDisplayString)
-        SCACHE_FUNCTION_PROXY(GetObjectNullDisplayString)
-        SCACHE_FUNCTION_PROXY(GetObjectUndefinedDisplayString)
-        SCACHE_FUNCTION_PROXY(GetUndefinedDisplayString)
-        SCACHE_FUNCTION_PROXY(GetNaNDisplayString)
-        SCACHE_FUNCTION_PROXY(GetNullDisplayString)
-        SCACHE_FUNCTION_PROXY(GetUnknownDisplayString)
-        SCACHE_FUNCTION_PROXY(GetTrueDisplayString)
-        SCACHE_FUNCTION_PROXY(GetFalseDisplayString)
-        SCACHE_FUNCTION_PROXY(GetStringTypeDisplayString)
-        SCACHE_FUNCTION_PROXY(GetObjectTypeDisplayString)
-        SCACHE_FUNCTION_PROXY(GetFunctionTypeDisplayString)
-        SCACHE_FUNCTION_PROXY(GetBooleanTypeDisplayString)
-        SCACHE_FUNCTION_PROXY(GetNumberTypeDisplayString)
-        SCACHE_FUNCTION_PROXY(GetModuleTypeDisplayString)
-        SCACHE_FUNCTION_PROXY(GetVariantDateTypeDisplayString)
-        SCACHE_FUNCTION_PROXY(GetSymbolTypeDisplayString)
-#undef  SCACHE_FUNCTION_PROXY
+#define STRING(name, str) JavascriptString* Get##name##String() { return stringCache.Get##name(); }
+#define PROPERTY_STRING(name, str) STRING(name, str)
+#include "StringCacheList.h"
+#undef PROPERTY_STRING
+#undef STRING
 
         JavascriptString* GetSymbolTypeDisplayString() const { return symbolTypeDisplayString; }
         JavascriptString* GetDebuggerDeadZoneBlockVariableString() { Assert(debuggerDeadZoneBlockVariableString); return debuggerDeadZoneBlockVariableString; }

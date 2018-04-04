@@ -1025,15 +1025,18 @@ namespace Js
         JavascriptString *langtag = JavascriptString::UnsafeFromVar(args.Values[2]);
         LangtagToLocaleID(langtag, localeID);
 
+        JavascriptLibrary *library = scriptContext->GetLibrary();
+        PropertyOperationFlags flag = PropertyOperationFlags::PropertyOperation_None;
+
         if (kind == LocaleDataKind::Collation)
         {
             ScopedUEnumeration collations(ucol_getKeywordValuesForLocale("collation", localeID, false, &status));
             ICU_ASSERT(status, true);
 
             // the return array can't include "standard" and "search", but must have its first element be null (count - 2 + 1) [#sec-intl-collator-internal-slots]
-            ret = scriptContext->GetLibrary()->CreateArray(uenum_count(collations, &status) - 1);
+            ret = library->CreateArray(uenum_count(collations, &status) - 1);
             ICU_ASSERT(status, true);
-            ret->SetItem(0, scriptContext->GetLibrary()->GetNull(), PropertyOperationFlags::PropertyOperation_None);
+            ret->SetItem(0, library->GetNull(), flag);
 
             int collationLen = 0;
             const char *collation = nullptr;
@@ -1077,25 +1080,29 @@ namespace Js
             ScopedUCollator collator(ucol_open(localeID, &status));
             UColAttributeValue kf = ucol_getAttribute(collator, UCOL_CASE_FIRST, &status);
             ICU_ASSERT(status, true);
-            ret = scriptContext->GetLibrary()->CreateArray(3);
+            ret = library->CreateArray(3);
+
+            JavascriptString *falseStr = library->GetFalseDisplayString();
+            JavascriptString *upperStr = library->GetIntlCaseFirstUpperString();
+            JavascriptString *lowerStr = library->GetIntlCaseFirstLowerString();
 
             if (kf == UCOL_OFF)
             {
-                ret->SetItem(0, JavascriptString::NewCopySz(_u("false"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
-                ret->SetItem(1, JavascriptString::NewCopySz(_u("upper"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
-                ret->SetItem(2, JavascriptString::NewCopySz(_u("lower"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+                ret->SetItem(0, falseStr, flag);
+                ret->SetItem(1, upperStr, flag);
+                ret->SetItem(2, lowerStr, flag);
             }
             else if (kf == UCOL_UPPER_FIRST)
             {
-                ret->SetItem(0, JavascriptString::NewCopySz(_u("upper"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
-                ret->SetItem(1, JavascriptString::NewCopySz(_u("lower"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
-                ret->SetItem(2, JavascriptString::NewCopySz(_u("false"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+                ret->SetItem(0, upperStr, flag);
+                ret->SetItem(1, lowerStr, flag);
+                ret->SetItem(2, falseStr, flag);
             }
             else if (kf == UCOL_LOWER_FIRST)
             {
-                ret->SetItem(0, JavascriptString::NewCopySz(_u("lower"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
-                ret->SetItem(1, JavascriptString::NewCopySz(_u("upper"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
-                ret->SetItem(2, JavascriptString::NewCopySz(_u("false"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+                ret->SetItem(0, lowerStr, flag);
+                ret->SetItem(1, upperStr, flag);
+                ret->SetItem(2, falseStr, flag);
             }
         }
         else if (kind == LocaleDataKind::Numeric)
@@ -1103,23 +1110,26 @@ namespace Js
             ScopedUCollator collator(ucol_open(localeID, &status));
             UColAttributeValue kn = ucol_getAttribute(collator, UCOL_NUMERIC_COLLATION, &status);
             ICU_ASSERT(status, true);
-            ret = scriptContext->GetLibrary()->CreateArray(2);
+            ret = library->CreateArray(2);
+
+            JavascriptString *falseStr = library->GetFalseDisplayString();
+            JavascriptString *trueStr = library->GetTrueDisplayString();
 
             if (kn == UCOL_OFF)
             {
-                ret->SetItem(0, JavascriptString::NewCopySz(_u("false"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
-                ret->SetItem(1, JavascriptString::NewCopySz(_u("true"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+                ret->SetItem(0, falseStr, flag);
+                ret->SetItem(1, trueStr, flag);
             }
             else if (kn == UCOL_ON)
             {
-                ret->SetItem(0, JavascriptString::NewCopySz(_u("true"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
-                ret->SetItem(1, JavascriptString::NewCopySz(_u("false"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+                ret->SetItem(0, trueStr, flag);
+                ret->SetItem(1, falseStr, flag);
             }
         }
         else if (kind == LocaleDataKind::Calendar)
         {
             ScopedUEnumeration calendars(ucal_getKeywordValuesForLocale("calendar", localeID, false, &status));
-            ret = scriptContext->GetLibrary()->CreateArray(uenum_count(calendars, &status));
+            ret = library->CreateArray(uenum_count(calendars, &status));
             ICU_ASSERT(status, true);
 
             int calendarLen = 0;
@@ -1148,7 +1158,7 @@ namespace Js
                     unicodeCalendar16,
                     static_cast<charcount_t>(unicodeCalendar16Len),
                     scriptContext
-                ), PropertyOperationFlags::PropertyOperation_None);
+                ), flag);
                 i++;
             }
         }
@@ -1159,51 +1169,50 @@ namespace Js
             // the Intl spec provides a list of required numbering systems to support in #table-numbering-system-digits
             // For now, assume that all of those numbering systems are supported, and just get the default using unumsys_open
             // unumsys_open will also ensure that "native", "traditio", and "finance" are not returned, as per #sec-intl.datetimeformat-internal-slots
-            static const char16 *available[] = {
-                _u("arab"),
-                _u("arabext"),
-                _u("bali"),
-                _u("beng"),
-                _u("deva"),
-                _u("fullwide"),
-                _u("gujr"),
-                _u("guru"),
-                _u("hanidec"),
-                _u("khmr"),
-                _u("knda"),
-                _u("laoo"),
-                _u("latn"),
-                _u("limb"),
-                _u("mlym"),
-                _u("mong"),
-                _u("mymr"),
-                _u("orya"),
-                _u("tamldec"),
-                _u("telu"),
-                _u("thai"),
-                _u("tibt")
-            };
-
             ScopedUNumberingSystem numsys(unumsys_open(localeID, &status));
             ICU_ASSERT(status, true);
             utf8::NarrowToWide numsysName(unumsys_getName(numsys));
 
-            ret = scriptContext->GetLibrary()->CreateArray(_countof(available) + 1);
-            ret->SetItem(0, JavascriptString::NewCopySz(numsysName, scriptContext), PropertyOperationFlags::PropertyOperation_None);
-            for (int i = 0; i < _countof(available); i++)
-            {
-                ret->SetItem(i + 1, JavascriptString::NewCopySz(available[i], scriptContext), PropertyOperationFlags::PropertyOperation_None);
-            }
+            // NOTE: update the initial array length if the list of available numbering systems changes in the future!
+            ret = library->CreateArray(22);
+            int i = 0;
+            ret->SetItem(i++, JavascriptString::NewCopySz(numsysName, scriptContext), flag);
+
+            // It doesn't matter that item 0 will be in the array twice (aside for size), because item 0 is the
+            // preferred numbering system for the given locale, so it has precedence over everything else
+            ret->SetItem(i++, library->GetIntlNumsysArabString(), flag);
+            ret->SetItem(i++, library->GetIntlNumsysArabextString(), flag);
+            ret->SetItem(i++, library->GetIntlNumsysBaliString(), flag);
+            ret->SetItem(i++, library->GetIntlNumsysBengString(), flag);
+            ret->SetItem(i++, library->GetIntlNumsysDevaString(), flag);
+            ret->SetItem(i++, library->GetIntlNumsysFullwideString(), flag);
+            ret->SetItem(i++, library->GetIntlNumsysGujrString(), flag);
+            ret->SetItem(i++, library->GetIntlNumsysGuruString(), flag);
+            ret->SetItem(i++, library->GetIntlNumsysHanidecString(), flag);
+            ret->SetItem(i++, library->GetIntlNumsysKhmrString(), flag);
+            ret->SetItem(i++, library->GetIntlNumsysKndaString(), flag);
+            ret->SetItem(i++, library->GetIntlNumsysLaooString(), flag);
+            ret->SetItem(i++, library->GetIntlNumsysLatnString(), flag);
+            ret->SetItem(i++, library->GetIntlNumsysLimbString(), flag);
+            ret->SetItem(i++, library->GetIntlNumsysMlymString(), flag);
+            ret->SetItem(i++, library->GetIntlNumsysMongString(), flag);
+            ret->SetItem(i++, library->GetIntlNumsysMymrString(), flag);
+            ret->SetItem(i++, library->GetIntlNumsysOryaString(), flag);
+            ret->SetItem(i++, library->GetIntlNumsysTamldecString(), flag);
+            ret->SetItem(i++, library->GetIntlNumsysTeluString(), flag);
+            ret->SetItem(i++, library->GetIntlNumsysThaiString(), flag);
+            ret->SetItem(i++, library->GetIntlNumsysTibtString(), flag);
         }
         else if (kind == LocaleDataKind::HourCycle)
         {
             // #sec-intl.datetimeformat-internal-slots: "[[LocaleData]][locale].hc must be < null, h11, h12, h23, h24 > for all locale values"
-            ret = scriptContext->GetLibrary()->CreateArray(5);
-            ret->SetItem(0, scriptContext->GetLibrary()->GetNull(), PropertyOperationFlags::PropertyOperation_None);
-            ret->SetItem(1, JavascriptString::NewCopySz(_u("h11"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
-            ret->SetItem(2, JavascriptString::NewCopySz(_u("h12"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
-            ret->SetItem(3, JavascriptString::NewCopySz(_u("h23"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
-            ret->SetItem(4, JavascriptString::NewCopySz(_u("h24"), scriptContext), PropertyOperationFlags::PropertyOperation_None);
+            ret = library->CreateArray(5);
+            int i = 0;
+            ret->SetItem(i++, library->GetNull(), flag);
+            ret->SetItem(i++, library->GetIntlHourCycle11String(), flag);
+            ret->SetItem(i++, library->GetIntlHourCycle12String(), flag);
+            ret->SetItem(i++, library->GetIntlHourCycle23String(), flag);
+            ret->SetItem(i++, library->GetIntlHourCycle24String(), flag);
         }
         else
         {
@@ -2138,15 +2147,13 @@ namespace Js
     }
 
 #ifdef INTL_ICU
-    static void AddPartToPartsArray(ScriptContext *scriptContext, JavascriptArray *arr, int arrIndex, const char16 *src, int start, int end, const char16 *kind)
+    static void AddPartToPartsArray(ScriptContext *scriptContext, JavascriptArray *arr, int arrIndex, const char16 *src, int start, int end, JavascriptString *partType)
     {
         JavascriptString *partValue = JavascriptString::NewCopyBuffer(
             src + start,
             end - start,
             scriptContext
         );
-
-        JavascriptString *partType = JavascriptString::NewCopySz(kind, scriptContext);
 
         DynamicObject* part = scriptContext->GetLibrary()->CreateObject();
         JavascriptOperators::InitProperty(part, PropertyIds::type, partType);
@@ -2305,7 +2312,8 @@ namespace Js
             return udat_formatForFields(*dtf, date, buf, bufLen, fpi, status);
         }, scriptContext->GetRecycler(), &formatted, &formattedLen);
 
-        JavascriptArray* ret = scriptContext->GetLibrary()->CreateArray(0);
+        JavascriptLibrary *library = scriptContext->GetLibrary();
+        JavascriptArray* ret = library->CreateArray(0);
 
         int partStart = 0;
         int partEnd = 0;
@@ -2318,36 +2326,36 @@ namespace Js
         )
         {
             Assert(partStart < partEnd && partEnd <= formattedLen);
-            const char16 *typeString = nullptr;
+            JavascriptString *typeString = nullptr;
             UDateFormatField fieldKind = (UDateFormatField)kind;
             switch (fieldKind)
             {
             case UDAT_ERA_FIELD:
-                typeString = _u("era"); break;
+                typeString = library->GetIntlEraPartString(); break;
             case UDAT_YEAR_FIELD:
             case UDAT_EXTENDED_YEAR_FIELD:
             case UDAT_YEAR_NAME_FIELD:
-                typeString = _u("year"); break;
+                typeString = library->GetIntlYearPartString(); break;
             case UDAT_MONTH_FIELD:
             case UDAT_STANDALONE_MONTH_FIELD:
-                typeString = _u("month"); break;
+                typeString = library->GetIntlMonthPartString(); break;
             case UDAT_DATE_FIELD:
-                typeString = _u("day"); break;
+                typeString = library->GetIntlDayPartString(); break;
             case UDAT_HOUR_OF_DAY1_FIELD:
             case UDAT_HOUR_OF_DAY0_FIELD:
             case UDAT_HOUR1_FIELD:
             case UDAT_HOUR0_FIELD:
-                typeString = _u("hour"); break;
+                typeString = library->GetIntlHourPartString(); break;
             case UDAT_MINUTE_FIELD:
-                typeString = _u("minute"); break;
+                typeString = library->GetIntlMinutePartString(); break;
             case UDAT_SECOND_FIELD:
-                typeString = _u("second"); break;
+                typeString = library->GetIntlSecondPartString(); break;
             case UDAT_DAY_OF_WEEK_FIELD:
             case UDAT_STANDALONE_DAY_FIELD:
             case UDAT_DOW_LOCAL_FIELD:
-                typeString = _u("weekday"); break;
+                typeString = library->GetIntlWeekdayPartString(); break;
             case UDAT_AM_PM_FIELD:
-                typeString = _u("dayPeriod"); break;
+                typeString = library->GetIntlDayPeriodPartString(); break;
             case UDAT_TIMEZONE_FIELD:
             case UDAT_TIMEZONE_RFC_FIELD:
             case UDAT_TIMEZONE_GENERIC_FIELD:
@@ -2355,23 +2363,23 @@ namespace Js
             case UDAT_TIMEZONE_LOCALIZED_GMT_OFFSET_FIELD:
             case UDAT_TIMEZONE_ISO_FIELD:
             case UDAT_TIMEZONE_ISO_LOCAL_FIELD:
-                typeString = _u("timeZoneName"); break;
+                typeString = library->GetIntlTimeZoneNamePartString(); break;
 #if defined(ICU_VERSION) && ICU_VERSION == 55
             case UDAT_TIME_SEPARATOR_FIELD:
                 // ICU 55 (Ubuntu 16.04 system default) has the ":" in "5:23 PM" as a special field
                 // Intl should just treat this as a literal
-                typeString = _u("literal"); break;
+                typeString = library->GetIntlLiteralPartString(); break;
 #endif
             default:
                 AssertMsg(false, "Unmapped UDateFormatField");
-                typeString = _u("unknown"); break;
+                typeString = library->GetIntlUnknownPartString(); break;
             }
 
             if (partStart > lastPartEnd)
             {
                 // formatForFields does not report literal fields directly, so we have to detect them
                 // by seeing if the current part starts after the previous one ended
-                AddPartToPartsArray(scriptContext, ret, i, formatted, lastPartEnd, partStart, _u("literal"));
+                AddPartToPartsArray(scriptContext, ret, i, formatted, lastPartEnd, partStart, library->GetIntlLiteralPartString());
                 i += 1;
             }
 
@@ -2386,7 +2394,7 @@ namespace Js
             AssertOrFailFast(lastPartEnd < formattedLen);
 
             // `i` was incremented by the consequence of the last iteration of the for loop
-            AddPartToPartsArray(scriptContext, ret, i, formatted, lastPartEnd, formattedLen, _u("literal"));
+            AddPartToPartsArray(scriptContext, ret, i, formatted, lastPartEnd, formattedLen, library->GetIntlLiteralPartString());
         }
 
         return ret;
