@@ -16,6 +16,8 @@
 
 #include "src/type-checker.h"
 
+#include <cinttypes>
+
 namespace wabt {
 
 TypeChecker::Label::Label(LabelType label_type,
@@ -124,8 +126,9 @@ void TypeChecker::PushType(Type type) {
 }
 
 void TypeChecker::PushTypes(const TypeVector& types) {
-  for (Type type : types)
+  for (Type type : types) {
     PushType(type);
+  }
 }
 
 Result TypeChecker::CheckTypeStackEnd(const char* desc) {
@@ -146,8 +149,9 @@ Result TypeChecker::CheckType(Type actual, Type expected) {
 
 Result TypeChecker::CheckSignature(const TypeVector& sig) {
   Result result = Result::Ok;
-  for (size_t i = 0; i < sig.size(); ++i)
+  for (size_t i = 0; i < sig.size(); ++i) {
     result |= PeekAndCheckType(sig.size() - i - 1, sig[i]);
+  }
   return result;
 }
 
@@ -242,48 +246,49 @@ static std::string TypesToString(const TypeVector& types,
 void TypeChecker::PrintStackIfFailed(Result result,
                                      const char* desc,
                                      const TypeVector& expected) {
-  if (Failed(result)) {
-    size_t limit = 0;
-    Label* label;
-    if (Succeeded(TopLabel(&label))) {
-      limit = label->type_stack_limit;
-    }
-
-    TypeVector actual;
-    size_t max_depth = type_stack_.size() - limit;
-
-    // In general we want to print as many values of the actual stack as were
-    // expected. However, if the stack was expected to be empty, we should
-    // print some amount of the actual stack.
-    size_t actual_size;
-    if (expected.size() == 0) {
-      // Don't print too many elements if the stack is really deep.
-      const size_t kMaxActualStackToPrint = 4;
-      actual_size = std::min(kMaxActualStackToPrint, max_depth);
-    } else {
-      actual_size = std::min(expected.size(), max_depth);
-    }
-
-    bool incomplete_actual_stack = actual_size != max_depth;
-
-    for (size_t i = 0; i < actual_size; ++i) {
-      Type type;
-      Result result = PeekType(actual_size - i - 1, &type);
-      WABT_USE(result);
-      assert(Succeeded(result));
-      actual.push_back(type);
-    }
-
-    std::string message = "type mismatch in ";
-    message += desc;
-    message += ", expected ";
-    message += TypesToString(expected);
-    message += " but got ";
-    message +=
-        TypesToString(actual, incomplete_actual_stack ? "... " : nullptr);
-
-    PrintError("%s", message.c_str());
+  if (Succeeded(result)) {
+    return;
   }
+
+  size_t limit = 0;
+  Label* label;
+  if (Succeeded(TopLabel(&label))) {
+    limit = label->type_stack_limit;
+  }
+
+  TypeVector actual;
+  size_t max_depth = type_stack_.size() - limit;
+
+  // In general we want to print as many values of the actual stack as were
+  // expected. However, if the stack was expected to be empty, we should
+  // print some amount of the actual stack.
+  size_t actual_size;
+  if (expected.size() == 0) {
+    // Don't print too many elements if the stack is really deep.
+    const size_t kMaxActualStackToPrint = 4;
+    actual_size = std::min(kMaxActualStackToPrint, max_depth);
+  } else {
+    actual_size = std::min(expected.size(), max_depth);
+  }
+
+  bool incomplete_actual_stack = actual_size != max_depth;
+
+  for (size_t i = 0; i < actual_size; ++i) {
+    Type type;
+    Result result = PeekType(actual_size - i - 1, &type);
+    WABT_USE(result);
+    assert(Succeeded(result));
+    actual.push_back(type);
+  }
+
+  std::string message = "type mismatch in ";
+  message += desc;
+  message += ", expected ";
+  message += TypesToString(expected);
+  message += " but got ";
+  message += TypesToString(actual, incomplete_actual_stack ? "... " : nullptr);
+
+  PrintError("%s", message.c_str());
 }
 
 Result TypeChecker::BeginFunction(const TypeVector* sig) {
@@ -401,12 +406,7 @@ Result TypeChecker::OnCompare(Opcode opcode) {
   return CheckOpcode2(opcode);
 }
 
-Result TypeChecker::OnCatch(const TypeVector* sig) {
-  PushTypes(*sig);
-  return Result::Ok;
-}
-
-Result TypeChecker::OnCatchBlock(const TypeVector* sig) {
+Result TypeChecker::OnCatch() {
   Result result = Result::Ok;
   Label* label;
   CHECK_RESULT(TopLabel(&label));
@@ -416,6 +416,7 @@ Result TypeChecker::OnCatchBlock(const TypeVector* sig) {
   ResetTypeStackToLabel(label);
   label->label_type = LabelType::Catch;
   label->unreachable = false;
+  PushType(Type::ExceptRef);
   return result;
 }
 
@@ -467,14 +468,21 @@ Result TypeChecker::OnEnd(Label* label,
 
 Result TypeChecker::OnEnd() {
   Result result = Result::Ok;
-  static const char* s_label_type_name[] = {"function", "block", "loop", "if",
-                                            "if false branch", "try",
+  static const char* s_label_type_name[] = {"function",
+                                            "block",
+                                            "loop",
+                                            "if",
+                                            "if false branch",
+                                            "if_except",
+                                            "if_except false branch",
+                                            "try",
                                             "try catch"};
   WABT_STATIC_ASSERT(WABT_ARRAY_SIZE(s_label_type_name) == kLabelTypeCount);
   Label* label;
   CHECK_RESULT(TopLabel(&label));
   assert(static_cast<int>(label->label_type) < kLabelTypeCount);
-  if (label->label_type == LabelType::If) {
+  if (label->label_type == LabelType::If ||
+      label->label_type == LabelType::IfExcept) {
     if (label->sig.size() != 0) {
       PrintError("if without else cannot have type signature.");
       result = Result::Error;
@@ -492,6 +500,14 @@ Result TypeChecker::OnGrowMemory() {
 Result TypeChecker::OnIf(const TypeVector* sig) {
   Result result = PopAndCheck1Type(Type::I32, "if");
   PushLabel(LabelType::If, *sig);
+  return result;
+}
+
+Result TypeChecker::OnIfExcept(const TypeVector* sig,
+                               const TypeVector* except_sig) {
+  Result result = PopAndCheck1Type(Type::ExceptRef, "if_except");
+  PushLabel(LabelType::IfExcept, *sig);
+  PushTypes(*except_sig);
   return result;
 }
 
@@ -514,29 +530,8 @@ Result TypeChecker::OnLoop(const TypeVector* sig) {
   return Result::Ok;
 }
 
-Result TypeChecker::OnRethrow(Index depth) {
-  Result result = Result::Ok;
-  Label* label;
-  CHECK_RESULT(GetLabel(depth, &label));
-  if (label->label_type != LabelType::Catch) {
-    std::string candidates;
-    size_t last = label_stack_.size() - 1;
-    for (size_t i = 0; i < label_stack_.size(); ++i) {
-      if (label_stack_[last - i].label_type == LabelType::Catch) {
-        if (!candidates.empty()) {
-          candidates.append(", ");
-        }
-        candidates.append(std::to_string(i));
-      }
-    }
-    if (candidates.empty()) {
-      PrintError("Rethrow not in try catch block");
-    } else {
-      PrintError("invalid rethrow depth: %" PRIindex " (catches: %s)", depth,
-                 candidates.c_str());
-    }
-    result = Result::Error;
-  }
+Result TypeChecker::OnRethrow() {
+  Result result = PopAndCheck1Type(Type::ExceptRef, "rethrow");
   CHECK_RESULT(SetUnreachable());
   return result;
 }
@@ -581,7 +576,7 @@ Result TypeChecker::OnStore(Opcode opcode) {
   return CheckOpcode2(opcode);
 }
 
-Result TypeChecker::OnTryBlock(const TypeVector* sig) {
+Result TypeChecker::OnTry(const TypeVector* sig) {
   PushLabel(LabelType::Try, *sig);
   return Result::Ok;
 }
@@ -595,6 +590,57 @@ Result TypeChecker::OnTeeLocal(Type type) {
 
 Result TypeChecker::OnUnary(Opcode opcode) {
   return CheckOpcode1(opcode);
+}
+
+Result TypeChecker::OnTernary(Opcode opcode) {
+  return CheckOpcode3(opcode);
+}
+
+Result TypeChecker::OnSimdLaneOp(Opcode opcode, uint64_t lane_idx) {
+  Result result = Result::Error;
+  uint32_t lane_count = opcode.GetSimdLaneCount();
+  if (lane_idx >= lane_count) {
+    PrintError("lane index must be less than %d (got %" PRIu64 ")", lane_count,
+               lane_idx);
+  }
+
+  switch (opcode) {
+    case Opcode::I8X16ExtractLaneS:
+    case Opcode::I8X16ExtractLaneU:
+    case Opcode::I16X8ExtractLaneS:
+    case Opcode::I16X8ExtractLaneU:
+    case Opcode::I32X4ExtractLane:
+    case Opcode::F32X4ExtractLane:
+    case Opcode::I64X2ExtractLane:
+    case Opcode::F64X2ExtractLane:
+      result = CheckOpcode1(opcode);
+      break;
+    case Opcode::I8X16ReplaceLane:
+    case Opcode::I16X8ReplaceLane:
+    case Opcode::I32X4ReplaceLane:
+    case Opcode::F32X4ReplaceLane:
+    case Opcode::I64X2ReplaceLane:
+    case Opcode::F64X2ReplaceLane:
+      result = CheckOpcode2(opcode);
+      break;
+    default:
+      WABT_UNREACHABLE;
+  }
+  return result;
+}
+
+Result TypeChecker::OnSimdShuffleOp(Opcode opcode, v128 lane_idx) {
+  Result result = Result::Error;
+  uint8_t simd_data[16];
+  memcpy(simd_data, &lane_idx, 16);
+  for (int i = 0; i < 16; i++) {
+    if (simd_data[i] >= 32) {
+      PrintError("lane index must be less than 32 (got %d)", simd_data[i]);
+    }
+  }
+
+  result = CheckOpcode2(opcode);
+  return result;
 }
 
 Result TypeChecker::OnUnreachable() {

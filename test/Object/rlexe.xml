@@ -229,6 +229,7 @@
   <test>
     <default>
       <files>propertyStrings.js</files>
+      <compile-flags>-CollectGarbage</compile-flags>
     </default>
   </test>
   <test>

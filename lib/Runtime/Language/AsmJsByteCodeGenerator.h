@@ -94,10 +94,10 @@ namespace Js
         EmitExpressionInfo EmitBinaryMultiType( ParseNode * pnode, EBinaryMathOpCodes op );
         EmitExpressionInfo EmitBinaryInt( ParseNode * pnode, OpCodeAsmJs op );
         EmitExpressionInfo EmitQMark( ParseNode * pnode );
-        EmitExpressionInfo EmitSwitch( ParseNode * pnode );
+        EmitExpressionInfo EmitSwitch( ParseNodeSwitch * pnode );
         EmitExpressionInfo EmitBinaryComparator( ParseNode * pnode, EBinaryComparatorOpCodes op);
-        EmitExpressionInfo EmitLoop( ParseNode *loopNode, ParseNode *cond, ParseNode *body, ParseNode *incr, BOOL doWhile = false );
-        EmitExpressionInfo EmitIf( ParseNode * pnode );
+        EmitExpressionInfo EmitLoop( ParseNodeLoop *loopNode, ParseNode *cond, ParseNode *body, ParseNode *incr, BOOL doWhile = false );
+        EmitExpressionInfo EmitIf( ParseNodeIf * pnode );
         EmitExpressionInfo EmitBooleanExpression( ParseNode* pnodeCond, Js::ByteCodeLabel trueLabel, Js::ByteCodeLabel falseLabel );
 
         void FinalizeRegisters( FunctionBody* byteCodeFunction );

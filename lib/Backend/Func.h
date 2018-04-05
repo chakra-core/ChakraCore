@@ -187,6 +187,7 @@ public:
     bool HasArgumentSlot() const { return this->GetInParamsCount() != 0 && !this->IsLoopBody(); }
     bool IsLoopBody() const { return m_workItem->IsLoopBody(); }
     bool IsLoopBodyInTry() const;
+    bool IsLoopBodyInTryFinally() const;
     bool CanAllocInPreReservedHeapPageSegment();
     void SetDoFastPaths();
     bool DoFastPaths() const { Assert(this->hasCalledSetDoFastPaths); return this->m_doFastPaths; }

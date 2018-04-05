@@ -153,6 +153,7 @@
   <test>
     <default>
       <files>asyncintrystackwalkbug.js</files>
+      <compile-flags>-CollectGarbage</compile-flags>
     </default>
   </test>
   <test>
@@ -180,6 +181,11 @@
     <default>
        <files>hasBailedOutBug.js</files>
        <baseline>hasBailedOutBug.baseline</baseline>
+  </default>
+  </test>
+  <test>
+    <default>
+       <files>tfjitlooparmbug.js</files>
   </default>
   </test>
 </regress-exe>

@@ -1116,12 +1116,15 @@ namespace Js
         AddFunctionToLibraryObject(globalObject, PropertyIds::escape, &GlobalObject::EntryInfo::Escape, 1);
         AddFunctionToLibraryObject(globalObject, PropertyIds::unescape, &GlobalObject::EntryInfo::UnEscape, 1);
 
-        if (scriptContext->GetConfig()->SupportsCollectGarbage()
+// for backward compat reasons in non-core builds add CollectGarbage function even if it would do nothing later
+#ifdef _CHAKRACOREBUILD
+        if (scriptContext->GetConfig()->IsCollectGarbageEnabled()
 #ifdef ENABLE_PROJECTION
             || scriptContext->GetConfig()->GetHostType() == HostType::HostTypeApplication
             || scriptContext->GetConfig()->GetHostType() == HostType::HostTypeWebview
 #endif
             )
+#endif
         {
             AddFunctionToLibraryObject(globalObject, PropertyIds::CollectGarbage, &GlobalObject::EntryInfo::CollectGarbage, 0);
         }
@@ -1534,8 +1537,12 @@ namespace Js
 #ifdef ENABLE_JS_BUILTINS
         if (scriptContext->IsJsBuiltInEnabled())
         {
-            scriptContext->GetLibrary()->EnsureBuiltInEngineIsReady();
-            return JavascriptFunction::Is(function) && JavascriptFunction::FromVar(function)->IsJsBuiltIn();
+            ScriptFunction * scriptFunction = JavascriptOperators::TryFromVar<ScriptFunction>(function);
+            if (scriptFunction)
+            {
+                scriptContext->GetLibrary()->EnsureBuiltInEngineIsReady();
+                return scriptFunction->GetFunctionProxy()->IsJsBuiltInCode();
+            }
         }
 #endif
         JavascriptMethod method = function->GetEntryPoint();
@@ -3057,30 +3064,30 @@ namespace Js
                 break;
 
             case TypeIds_Function:
-                typeDisplayStrings[typeId] = stringCache.GetFunctionTypeDisplayString();
+                typeDisplayStrings[typeId] = GetFunctionTypeDisplayString();
                 break;
 
             case TypeIds_Boolean:
-                typeDisplayStrings[typeId] = stringCache.GetBooleanTypeDisplayString();
+                typeDisplayStrings[typeId] = GetBooleanTypeDisplayString();
                 break;
 
             case TypeIds_String:
-                typeDisplayStrings[typeId] = stringCache.GetStringTypeDisplayString();
+                typeDisplayStrings[typeId] = GetStringTypeDisplayString();
                 break;
 
             case TypeIds_Symbol:
-                typeDisplayStrings[typeId] = stringCache.GetSymbolTypeDisplayString();
+                typeDisplayStrings[typeId] = GetSymbolTypeDisplayString();
                 break;
 
             case TypeIds_VariantDate:
-                typeDisplayStrings[typeId] = stringCache.GetVariantDateTypeDisplayString();
+                typeDisplayStrings[typeId] = GetVariantDateTypeDisplayString();
                 break;
 
             case TypeIds_Integer:
             case TypeIds_Number:
             case TypeIds_Int64Number:
             case TypeIds_UInt64Number:
-                typeDisplayStrings[typeId] = stringCache.GetNumberTypeDisplayString();
+                typeDisplayStrings[typeId] = GetNumberTypeDisplayString();
                 break;
 
             case TypeIds_Enumerator:
@@ -3093,7 +3100,7 @@ namespace Js
                 break;
 
             default:
-                typeDisplayStrings[typeId] = stringCache.GetObjectTypeDisplayString();
+                typeDisplayStrings[typeId] = GetObjectTypeDisplayString();
                 break;
             }
         }
@@ -6367,14 +6374,24 @@ namespace Js
 
     EnumeratorCache* JavascriptLibrary::GetObjectAssignCache(Type* type)
     {
-        // Size must be power of 2 for cache indexing to work
-        CompileAssert((Cache::AssignCacheSize & (Cache::AssignCacheSize - 1)) == 0);
+        return GetEnumeratorCache<Cache::AssignCacheSize>(type, &this->cache.assignCache);
+    }
 
-        if (this->cache.assignCache == nullptr)
+    EnumeratorCache* JavascriptLibrary::GetStringifyCache(Type* type)
+    {
+        return GetEnumeratorCache<Cache::StringifyCacheSize>(type, &this->cache.stringifyCache);
+    }
+
+    template<uint cacheSlotCount> EnumeratorCache* JavascriptLibrary::GetEnumeratorCache(Type* type, Field(EnumeratorCache*)* cacheSlots)
+    {
+        // Size must be power of 2 for cache indexing to work
+        CompileAssert((cacheSlotCount & (cacheSlotCount - 1)) == 0);
+
+        if (*cacheSlots == nullptr)
         {
-            this->cache.assignCache = AllocatorNewArrayZ(CacheAllocator, scriptContext->GetEnumeratorAllocator(), EnumeratorCache, Cache::AssignCacheSize);
+            *cacheSlots = AllocatorNewArrayZ(CacheAllocator, scriptContext->GetEnumeratorAllocator(), EnumeratorCache, cacheSlotCount);
         }
-        return &this->cache.assignCache[(((uintptr_t)type) >> PolymorphicInlineCacheShift) & (Cache::AssignCacheSize - 1)];
+        return &(*cacheSlots)[(((uintptr_t)type) >> PolymorphicInlineCacheShift) & (cacheSlotCount - 1)];
     }
 
     SymbolCacheMap* JavascriptLibrary::EnsureSymbolMap()
@@ -6855,11 +6872,7 @@ namespace Js
         REG_GLOBAL_LIB_FUNC(escape, GlobalObject::EntryEscape);
         REG_GLOBAL_LIB_FUNC(unescape, GlobalObject::EntryUnEscape);
 
-        ScriptConfiguration const& config = *(scriptContext->GetConfig());
-        if (config.SupportsCollectGarbage())
-        {
-            REG_GLOBAL_LIB_FUNC(CollectGarbage, GlobalObject::EntryCollectGarbage);
-        }
+        REG_GLOBAL_LIB_FUNC(CollectGarbage, GlobalObject::EntryCollectGarbage);
 
         // Register constructors, prototypes and objects in global
         REGISTER_OBJECT(Object);
@@ -6887,6 +6900,8 @@ namespace Js
         REGISTER_OBJECT(StringIterator);
 
         REGISTER_OBJECT(TypedArray);
+
+        ScriptConfiguration const& config = *(scriptContext->GetConfig());
 
         if (config.IsES6PromiseEnabled())
         {

@@ -3,6 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
+
+#if ENABLE_NATIVE_CODEGEN || DYNAMIC_INTERPRETER_THUNK
 namespace Memory
 {
 
@@ -576,3 +578,4 @@ BucketId GetBucketForSize(DECLSPEC_GUARD_OVERFLOW size_t bytes);
 void FillDebugBreak(_Out_writes_bytes_all_(byteCount) BYTE* buffer, _In_ size_t byteCount);
 } // namespace CustomHeap
 } // namespace Memory
+#endif

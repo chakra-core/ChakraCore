@@ -372,7 +372,7 @@ GlobOpt::KillLiveElems(IR::IndirOpnd * indirOpnd, BVSparse<JitArenaAllocator> * 
         (
             indexOpnd &&
             (
-                indexOpnd->m_sym->m_isNotInt ||
+                indexOpnd->m_sym->m_isNotNumber ||
                 (inGlobOpt && !indexOpnd->GetValueType().IsNumber() && !currentBlock->globOptData.IsTypeSpecialized(indexOpnd->m_sym))
             )
         ))

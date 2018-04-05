@@ -1504,7 +1504,7 @@ LowererMD::LowerTry(IR::Instr * tryInstr, IR::JnHelperMethod helperMethod)
     // Arg 7: ScriptContext
     this->m_lowerer->LoadScriptContext(tryAddr);
 
-    if (tryInstr->m_opcode == Js::OpCode::TryCatch || this->m_func->DoOptimizeTry())
+    if (tryInstr->m_opcode == Js::OpCode::TryCatch || this->m_func->DoOptimizeTry() || (this->m_func->IsSimpleJit() && this->m_func->hasBailout))
     {
         // Arg 6 : hasBailedOutOffset
         IR::Opnd * hasBailedOutOffset = IR::IntConstOpnd::New(this->m_func->m_hasBailedOutSym->m_offset + tryInstr->m_func->GetInlineeArgumentStackSize(), TyInt32, this->m_func);
@@ -2687,11 +2687,11 @@ bool LowererMD::GenerateFastCmXxTaggedInt(IR::Instr *instr, bool isInHelper  /* 
     Assert(src1 && src2 && dst);
 
     // Not tagged ints?
-    if (src1->IsRegOpnd() && src1->AsRegOpnd()->m_sym->m_isNotInt)
+    if (src1->IsRegOpnd() && src1->AsRegOpnd()->m_sym->m_isNotNumber)
     {
         return false;
     }
-    if (src2->IsRegOpnd() && src2->AsRegOpnd()->m_sym->m_isNotInt)
+    if (src2->IsRegOpnd() && src2->AsRegOpnd()->m_sym->m_isNotNumber)
     {
         return false;
     }
@@ -3997,7 +3997,7 @@ LowererMD::GenerateFastScopedFld(IR::Instr * instrScopedFld, bool isLoad)
     // BNE $helper
 
     opndInlineCache = IR::RegOpnd::New(TyMachReg, this->m_func);
-    opndReg2->m_sym->m_isNotInt = true;
+    opndReg2->m_sym->m_isNotNumber = true;
 
     IR::RegOpnd * opndType = IR::RegOpnd::New(TyMachReg, this->m_func);
     this->m_lowerer->GenerateObjectTestAndTypeLoad(instrScopedFld, opndReg2, opndType, labelHelper);

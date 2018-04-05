@@ -32,6 +32,6 @@ struct Range {
 typedef Range<Offset> OffsetRange;
 typedef Range<int> ColumnRange;
 
-} // namespace wabt
+}  // namespace wabt
 
 #endif  // WABT_RANGE_H_

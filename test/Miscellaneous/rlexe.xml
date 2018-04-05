@@ -6,7 +6,7 @@
       <files>../../lib/Runtime/Library/JsBuiltIn/JsBuiltIn.js</files>
       <baseline>../../lib/Runtime/Library/JsBuiltIn/JsBuiltIn.js.bc.32b.h</baseline>
       <compile-flags>-GenerateLibraryByteCodeHeader -JsBuiltIn -LdChakraLib</compile-flags>
-      <tags>exclude_jshost,exclude_dynapogo,exclude_x64,exclude_disable_jit,exclude_lite</tags>
+      <tags>exclude_jshost,exclude_dynapogo,exclude_x64,exclude_disable_jit,exclude_lite,exclude_forceserialized</tags>
       <eol-normalization />
     </default>
   </test>
@@ -15,7 +15,7 @@
       <files>../../lib/Runtime/Library/JsBuiltIn/JsBuiltIn.js</files>
       <baseline>../../lib/Runtime/Library/JsBuiltIn/JsBuiltIn.js.bc.64b.h</baseline>
       <compile-flags>-GenerateLibraryByteCodeHeader -JsBuiltIn -LdChakraLib</compile-flags>
-      <tags>exclude_jshost,exclude_dynapogo,exclude_x86,exclude_disable_jit,exclude_lite</tags>
+      <tags>exclude_jshost,exclude_dynapogo,exclude_x86,exclude_disable_jit,exclude_lite,exclude_forceserialized</tags>
       <eol-normalization />
     </default>
   </test>
@@ -24,7 +24,7 @@
       <files>../../lib/Runtime/Library/JsBuiltIn/JsBuiltIn.js</files>
       <baseline>../../lib/Runtime/Library/JsBuiltIn/JsBuiltIn.js.nojit.bc.32b.h</baseline>
       <compile-flags>-GenerateLibraryByteCodeHeader -JsBuiltIn -LdChakraLib</compile-flags>
-      <tags>exclude_jshost,exclude_x64,require_disable_jit,exclude_lite</tags>
+      <tags>exclude_jshost,exclude_x64,require_disable_jit,exclude_lite,exclude_forceserialized</tags>
       <eol-normalization />
     </default>
   </test>
@@ -33,7 +33,7 @@
       <files>../../lib/Runtime/Library/JsBuiltIn/JsBuiltIn.js</files>
       <baseline>../../lib/Runtime/Library/JsBuiltIn/JsBuiltIn.js.nojit.bc.64b.h</baseline>
       <compile-flags>-GenerateLibraryByteCodeHeader -JsBuiltIn -LdChakraLib</compile-flags>
-      <tags>exclude_jshost,exclude_x86,require_disable_jit,exclude_lite</tags>
+      <tags>exclude_jshost,exclude_x86,require_disable_jit,exclude_lite,exclude_forceserialized</tags>
       <eol-normalization />
     </default>
   </test>
@@ -42,7 +42,7 @@
       <files>../../lib/Runtime/Library/InJavascript/Intl.js</files>
       <baseline>../../lib/Runtime/Library/InJavascript/Intl.js.bc.32b.h</baseline>
       <compile-flags>-GenerateLibraryByteCodeHeader -Intl</compile-flags>
-      <tags>exclude_jshost,exclude_dynapogo,exclude_x64,exclude_disable_jit,exclude_lite</tags>
+      <tags>exclude_jshost,exclude_dynapogo,exclude_x64,exclude_disable_jit,exclude_lite,exclude_forceserialized</tags>
       <eol-normalization />
     </default>
   </test>
@@ -51,7 +51,7 @@
       <files>../../lib/Runtime/Library/InJavascript/Intl.js</files>
       <baseline>../../lib/Runtime/Library/InJavascript/Intl.js.bc.64b.h</baseline>
       <compile-flags>-GenerateLibraryByteCodeHeader -Intl</compile-flags>
-      <tags>exclude_jshost,exclude_dynapogo,exclude_x86,exclude_disable_jit,exclude_lite</tags>
+      <tags>exclude_jshost,exclude_dynapogo,exclude_x86,exclude_disable_jit,exclude_lite,exclude_forceserialized</tags>
       <eol-normalization />
     </default>
   </test>
@@ -60,7 +60,7 @@
       <files>../../lib/Runtime/Library/InJavascript/Intl.js</files>
       <baseline>../../lib/Runtime/Library/InJavascript/Intl.js.nojit.bc.32b.h</baseline>
       <compile-flags>-GenerateLibraryByteCodeHeader -Intl</compile-flags>
-      <tags>exclude_jshost,exclude_x64,require_disable_jit,exclude_lite</tags>
+      <tags>exclude_jshost,exclude_x64,require_disable_jit,exclude_lite,exclude_forceserialized</tags>
       <eol-normalization />
     </default>
   </test>
@@ -69,7 +69,7 @@
       <files>../../lib/Runtime/Library/InJavascript/Intl.js</files>
       <baseline>../../lib/Runtime/Library/InJavascript/Intl.js.nojit.bc.64b.h</baseline>
       <compile-flags>-GenerateLibraryByteCodeHeader -Intl</compile-flags>
-      <tags>exclude_jshost,exclude_x86,require_disable_jit,exclude_lite</tags>
+      <tags>exclude_jshost,exclude_x86,require_disable_jit,exclude_lite,exclude_forceserialized</tags>
       <eol-normalization />
     </default>
   </test>
@@ -77,6 +77,7 @@
   <test>
     <default>
       <files>HasOnlyWritableDataPropertiesCache.js</files>
+      <compile-flags>-CollectGarbage</compile-flags>
       <baseline>HasOnlyWritableDataPropertiesCache.baseline</baseline>
     </default>
   </test>

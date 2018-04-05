@@ -752,7 +752,7 @@ namespace Js
         unsigned        mCompileTime; //unused
         VarNameMap      mVarMap;
         ParseNode*      mBodyNode;
-        ParseNode*      mFncNode;
+        ParseNodeFnc*      mFncNode;
         WAsmJs::TypedRegisterAllocator mTypedRegisterAllocator;
 
         FuncInfo*       mFuncInfo;
@@ -764,14 +764,14 @@ namespace Js
         bool            mDefined : 1; // true when compiled completely without any errors
     public:
         ASMJS_SYMBOL_LEAF_CAST(AsmJsFunc, ModuleFunction)
-        AsmJsFunc( PropertyName name, ParseNode* pnodeFnc, ArenaAllocator* allocator, ScriptContext* scriptContext );
+        AsmJsFunc( PropertyName name, ParseNodeFnc* pnodeFnc, ArenaAllocator* allocator, ScriptContext* scriptContext );
 
         unsigned GetCompileTime() const { return mCompileTime; }
         void AccumulateCompileTime(unsigned ms) { mCompileTime += ms; }
         ProfileId GetNextProfileId();
         ProfileId GetProfileIdCount() const { return mCurrentProfileId; }
-        inline ParseNode* GetFncNode() const{ return mFncNode; }
-        inline void       SetFncNode(ParseNode* fncNode) { mFncNode = fncNode; }
+        inline ParseNodeFnc* GetFncNode() const{ return mFncNode; }
+        inline void       SetFncNode(ParseNodeFnc* fncNode) { mFncNode = fncNode; }
         inline FuncInfo*  GetFuncInfo() const{ return mFuncInfo; }
         inline void       SetFuncInfo(FuncInfo* fncInfo) { mFuncInfo = fncInfo; }
         inline FunctionBody*GetFuncBody() const{ return mFuncBody; }

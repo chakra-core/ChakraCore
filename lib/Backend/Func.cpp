@@ -278,6 +278,12 @@ Func::IsLoopBodyInTry() const
     return IsLoopBody() && m_workItem->GetLoopHeader()->isInTry;
 }
 
+bool
+Func::IsLoopBodyInTryFinally() const
+{
+    return IsLoopBody() && m_workItem->GetLoopHeader()->isInTryFinally;
+}
+
 /* static */
 void
 Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,

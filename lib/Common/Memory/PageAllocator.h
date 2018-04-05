@@ -118,12 +118,15 @@ class PageAllocatorBaseCommon;
 
 class SegmentBaseCommon
 {
+    // Disable create instance of PageAllocatorBaseCommon directly
+protected:
+    SegmentBaseCommon(PageAllocatorBaseCommon* allocator);
+    ~SegmentBaseCommon() {}
+
 protected:
     PageAllocatorBaseCommon* allocator;
 
 public:
-    SegmentBaseCommon(PageAllocatorBaseCommon* allocator);
-    virtual ~SegmentBaseCommon() {}
     bool IsInPreReservedHeapPageAllocator() const;
 };
 
@@ -136,9 +139,10 @@ public:
 template<typename TVirtualAlloc>
 class SegmentBase: public SegmentBaseCommon
 {
+    PREVENT_STANDALONE_HEAPINSTANCE();
 public:
     SegmentBase(PageAllocatorBase<TVirtualAlloc> * allocator, DECLSPEC_GUARD_OVERFLOW size_t pageCount, bool enableWriteBarrier);
-    virtual ~SegmentBase();
+    ~SegmentBase();
 
     size_t GetPageCount() const { return segmentPageCount; }
 
@@ -163,9 +167,9 @@ public:
     bool Initialize(DWORD allocFlags, bool excludeGuardPages);
 
 #if DBG
-    virtual bool IsPageSegment() const
+    bool IsPageSegment() const
     {
-        return false;
+        return isPageSegment;
     }
 #endif
 
@@ -212,6 +216,9 @@ protected:
 
     bool   isWriteBarrierAllowed : 1;
     bool   isWriteBarrierEnabled : 1;
+#if DBG
+    bool   isPageSegment : 1;
+#endif
 };
 
 /*
@@ -228,6 +235,7 @@ protected:
 template<typename TVirtualAlloc>
 class PageSegmentBase : public SegmentBase<TVirtualAlloc>
 {
+    PREVENT_STANDALONE_HEAPINSTANCE();
     typedef SegmentBase<TVirtualAlloc> Base;
 public:
     PageSegmentBase(PageAllocatorBase<TVirtualAlloc> * allocator, bool committed, bool allocated, bool enableWriteBarrier);
@@ -337,13 +345,6 @@ public:
 
     void ChangeSegmentProtection(DWORD protectFlags, DWORD expectedOldProtectFlags);
 
-#if DBG
-    bool IsPageSegment() const override
-    {
-        return true;
-    }
-#endif
-
 //---------- Private members ---------------/
 private:
     void DecommitFreePagesInternal(uint index, uint pageCount);
@@ -382,7 +383,9 @@ private:
     void * segment;
 
     friend class PageAllocatorBase<VirtualAllocWrapper>;
+#if ENABLE_NATIVE_CODEGEN
     friend class PageAllocatorBase<PreReservedVirtualAllocWrapper>;
+#endif
 #if ENABLE_OOP_NATIVE_CODEGEN
     friend class PageAllocatorBase<SectionAllocWrapper>;
     friend class PageAllocatorBase<PreReservedSectionAllocWrapper>;
@@ -435,11 +438,20 @@ private:
 
 class PageAllocatorBaseCommon
 {
+protected:
+    // Disable create instance of PageAllocatorBaseCommon directly
+    PageAllocatorBaseCommon() :
+        virtualAllocator(nullptr),
+        allocatorType(AllocatorType::VirtualAlloc)
+    {}
+    ~PageAllocatorBaseCommon() {}
 public:
     enum class AllocatorType
     {
         VirtualAlloc,
+#if ENABLE_NATIVE_CODEGEN
         PreReservedVirtualAlloc,
+#endif
 #if ENABLE_OOP_NATIVE_CODEGEN
         SectionAlloc,
         PreReservedSectionAlloc
@@ -454,16 +466,12 @@ public:
 protected:
     void* virtualAllocator;
     AllocatorType allocatorType;
-public:
-
-    PageAllocatorBaseCommon() :
-        virtualAllocator(nullptr),
-        allocatorType(AllocatorType::VirtualAlloc)
-    {}
-    virtual ~PageAllocatorBaseCommon() {}
 };
+
 template<> inline PageAllocatorBaseCommon::AllocatorType PageAllocatorBaseCommon::GetAllocatorType<VirtualAllocWrapper>() { return AllocatorType::VirtualAlloc; };
+#if ENABLE_NATIVE_CODEGEN
 template<> inline PageAllocatorBaseCommon::AllocatorType PageAllocatorBaseCommon::GetAllocatorType<PreReservedVirtualAllocWrapper>() { return AllocatorType::PreReservedVirtualAlloc; };
+#endif
 #if ENABLE_OOP_NATIVE_CODEGEN
 template<> inline PageAllocatorBaseCommon::AllocatorType PageAllocatorBaseCommon::GetAllocatorType<SectionAllocWrapper>() { return AllocatorType::SectionAlloc; };
 template<> inline PageAllocatorBaseCommon::AllocatorType PageAllocatorBaseCommon::GetAllocatorType<PreReservedSectionAllocWrapper>() { return AllocatorType::PreReservedSectionAlloc; };
@@ -644,7 +652,7 @@ public:
         bool enableWriteBarrier = false
         );
 
-    virtual ~PageAllocatorBase();
+    ~PageAllocatorBase();
 
     bool IsClosed() const { return isClosed; }
     void Close() { Assert(!isClosed); isClosed = true; }
@@ -998,6 +1006,8 @@ template<typename TVirtualAlloc>
 class HeapPageAllocator : public PageAllocatorBase<TVirtualAlloc>
 {
     typedef PageAllocatorBase<TVirtualAlloc> Base;
+
+    PREVENT_STANDALONE_HEAPINSTANCE();
 public:
     HeapPageAllocator(AllocationPolicyManager * policyManager, bool allocXdata, bool excludeGuardPages, TVirtualAlloc * virtualAllocator, HANDLE processHandle = nullptr);
 
@@ -1018,7 +1028,6 @@ private:
 #if PDATA_ENABLED
     virtual bool CreateSecondaryAllocator(SegmentBase<TVirtualAlloc>* segment, bool committed, SecondaryAllocator** allocator) override;
 #endif
-
 };
 
 }

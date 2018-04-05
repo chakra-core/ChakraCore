@@ -34,3 +34,13 @@ function __getRandomProperty(obj, seed) {
       if (__v_13862.q !== 0) WScript.Echo(__v_13862.q);
   })();
   __v_13851[__getRandomProperty(__v_13851, 483779)] = __getRandomObject();
+
+let o = {get a(){},x:0};
+if (o.x !== 0) WScript.Echo('fail x0');
+Object.defineProperty(o, 'x', {configurable:true,enumerable:true,get:function(){return 'x1'}});
+if (o.x !== 'x1') WScript.Echo('fail x1');
+let p = {get a(){},x:0};
+p.y = 'y';
+Object.defineProperty(p, 'x', {configurable:true,enumerable:true,get:function(){return 'x2'}});
+if (p.x !== 'x2') WScript.Echo('fail x2');
+if (p.y !== 'y') WScript.Echo('fail y');

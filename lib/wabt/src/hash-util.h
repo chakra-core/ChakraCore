@@ -24,8 +24,12 @@ namespace wabt {
 
 typedef std::size_t hash_code;
 
-inline hash_code HashCombine() { return 0; }
-inline hash_code HashCombine(hash_code seed) { return seed; }
+inline hash_code HashCombine() {
+  return 0;
+}
+inline hash_code HashCombine(hash_code seed) {
+  return seed;
+}
 hash_code HashCombine(hash_code x, hash_code y);
 
 template <typename T, typename... U>

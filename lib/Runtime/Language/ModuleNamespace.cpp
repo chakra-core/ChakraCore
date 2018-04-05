@@ -145,13 +145,13 @@ namespace Js
         unambiguousNonLocalExports->AddNew(propertyId, *nonLocalExportNameRecord);
     }
 
-    PropertyQueryFlags ModuleNamespace::HasPropertyQuery(PropertyId propertyId)
+    PropertyQueryFlags ModuleNamespace::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
     {
         SimpleDictionaryPropertyDescriptor<BigPropertyIndex> propertyDescriptor;
         const Js::PropertyRecord* propertyRecord = GetScriptContext()->GetThreadContext()->GetPropertyName(propertyId);
         if (propertyRecord->IsSymbol())
         {
-            return this->DynamicObject::HasPropertyQuery(propertyId);
+            return this->DynamicObject::HasPropertyQuery(propertyId, info);
         }
         if (propertyMap != nullptr && propertyMap->TryGetValue(propertyRecord, &propertyDescriptor))
         {

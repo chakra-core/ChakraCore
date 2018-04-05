@@ -1710,7 +1710,7 @@ LowererMD::LowerTry(IR::Instr * tryInstr, IR::JnHelperMethod helperMethod)
     // Arg 7: ScriptContext
     this->m_lowerer->LoadScriptContext(tryAddr);
 
-    if (tryInstr->m_opcode == Js::OpCode::TryCatch || this->m_func->DoOptimizeTry())
+    if (tryInstr->m_opcode == Js::OpCode::TryCatch || this->m_func->DoOptimizeTry() || (this->m_func->IsSimpleJit() && this->m_func->hasBailout))
     {
         // Arg 6 : hasBailedOutOffset
         IR::Opnd * hasBailedOutOffset = IR::IntConstOpnd::New(this->m_func->m_hasBailedOutSym->m_offset + tryInstr->m_func->GetInlineeArgumentStackSize(), TyInt32, this->m_func);
@@ -2881,11 +2881,11 @@ bool LowererMD::GenerateFastCmXxTaggedInt(IR::Instr *instr, bool isInHelper  /* 
     Assert(src1 && src2 && dst);
 
     // Not tagged ints?
-    if (src1->IsRegOpnd() && src1->AsRegOpnd()->m_sym->m_isNotInt)
+    if (src1->IsRegOpnd() && src1->AsRegOpnd()->m_sym->m_isNotNumber)
     {
         return false;
     }
-    if (src2->IsRegOpnd() && src2->AsRegOpnd()->m_sym->m_isNotInt)
+    if (src2->IsRegOpnd() && src2->AsRegOpnd()->m_sym->m_isNotNumber)
     {
         return false;
     }
@@ -3099,12 +3099,12 @@ LowererMD::GenerateFastAdd(IR::Instr * instrAdd)
 
     // Generate fastpath for Incr_A anyway -
     // Incrementing strings representing integers can be inter-mixed with integers e.g. "1"++ -> converts 1 to an int and thereafter, integer increment is expected.
-    if (opndSrc1->IsRegOpnd() && (opndSrc1->AsRegOpnd()->m_sym->m_isNotInt || opndSrc1->GetValueType().IsString()
+    if (opndSrc1->IsRegOpnd() && (opndSrc1->AsRegOpnd()->m_sym->m_isNotNumber || opndSrc1->GetValueType().IsString()
         || (instrAdd->m_opcode != Js::OpCode::Incr_A && opndSrc1->GetValueType().IsLikelyString())))
     {
         return false;
     }
-    if (opndSrc2->IsRegOpnd() && (opndSrc2->AsRegOpnd()->m_sym->m_isNotInt ||
+    if (opndSrc2->IsRegOpnd() && (opndSrc2->AsRegOpnd()->m_sym->m_isNotNumber ||
         opndSrc2->GetValueType().IsLikelyString()))
     {
         return true;
@@ -3208,8 +3208,8 @@ LowererMD::GenerateFastSub(IR::Instr * instrSub)
     AssertMsg(opndSrc1 && opndSrc2, "Expected 2 src opnd's on Sub instruction");
 
     // Not tagged ints?
-    if (opndSrc1->IsRegOpnd() && opndSrc1->AsRegOpnd()->m_sym->m_isNotInt ||
-        opndSrc2->IsRegOpnd() && opndSrc2->AsRegOpnd()->m_sym->m_isNotInt)
+    if (opndSrc1->IsRegOpnd() && opndSrc1->AsRegOpnd()->m_sym->m_isNotNumber ||
+        opndSrc2->IsRegOpnd() && opndSrc2->AsRegOpnd()->m_sym->m_isNotNumber)
     {
         return false;
     }
@@ -3315,8 +3315,8 @@ LowererMD::GenerateFastMul(IR::Instr * instrMul)
     AssertMsg(opndSrc1 && opndSrc2, "Expected 2 src opnd's on mul instruction");
 
     // (If not 2 Int31's, jump to $helper.)
-    if (opndSrc1->IsRegOpnd() && opndSrc1->AsRegOpnd()->m_sym->m_isNotInt ||
-        opndSrc2->IsRegOpnd() && opndSrc2->AsRegOpnd()->m_sym->m_isNotInt)
+    if (opndSrc1->IsRegOpnd() && opndSrc1->AsRegOpnd()->m_sym->m_isNotNumber ||
+        opndSrc2->IsRegOpnd() && opndSrc2->AsRegOpnd()->m_sym->m_isNotNumber)
     {
         return true;
     }
@@ -3462,11 +3462,11 @@ LowererMD::GenerateFastAnd(IR::Instr * instrAnd)
     IR::Instr *instr;
 
     // Not tagged ints?
-    if (src1->IsRegOpnd() && src1->AsRegOpnd()->m_sym->m_isNotInt)
+    if (src1->IsRegOpnd() && src1->AsRegOpnd()->m_sym->m_isNotNumber)
     {
         return true;
     }
-    if (src2->IsRegOpnd() && src2->AsRegOpnd()->m_sym->m_isNotInt)
+    if (src2->IsRegOpnd() && src2->AsRegOpnd()->m_sym->m_isNotNumber)
     {
         return true;
     }
@@ -3563,11 +3563,11 @@ LowererMD::GenerateFastOr(IR::Instr * instrOr)
     IR::LabelInstr *labelHelper = nullptr;
 
     // Not tagged ints?
-    if (src1->IsRegOpnd() && src1->AsRegOpnd()->m_sym->m_isNotInt)
+    if (src1->IsRegOpnd() && src1->AsRegOpnd()->m_sym->m_isNotNumber)
     {
         return true;
     }
-    if (src2->IsRegOpnd() && src2->AsRegOpnd()->m_sym->m_isNotInt)
+    if (src2->IsRegOpnd() && src2->AsRegOpnd()->m_sym->m_isNotNumber)
     {
         return true;
     }
@@ -3824,7 +3824,7 @@ LowererMD::GenerateFastNeg(IR::Instr * instrNeg)
 
     bool isInt = (opndSrc1->IsTaggedInt());
 
-    if (opndSrc1->IsRegOpnd() && opndSrc1->AsRegOpnd()->m_sym->m_isNotInt)
+    if (opndSrc1->IsRegOpnd() && opndSrc1->AsRegOpnd()->m_sym->m_isNotNumber)
     {
         return true;
     }
@@ -4288,7 +4288,7 @@ LowererMD::GenerateFastScopedFld(IR::Instr * instrScopedFld, bool isLoad)
     // BNE $helper
 
     opndInlineCache = IR::RegOpnd::New(TyInt32, this->m_func);
-    opndReg2->m_sym->m_isNotInt = true;
+    opndReg2->m_sym->m_isNotNumber = true;
 
     IR::RegOpnd * opndType = IR::RegOpnd::New(TyMachReg, this->m_func);
     this->m_lowerer->GenerateObjectTestAndTypeLoad(instrScopedFld, opndReg2, opndType, labelHelper);
@@ -4662,9 +4662,9 @@ bool LowererMD::TryGenerateFastMulAdd(IR::Instr * instrAdd, IR::Instr ** pInstrP
     *pInstrPrev = instrMul->m_prev;
 
     // Generate int31 fast-path for Mul-Add, go to MulAdd helper if it fails, or one of the source is marked notInt
-    if (!(addSrc->IsRegOpnd() && addSrc->AsRegOpnd()->m_sym->AsStackSym()->m_isNotInt)
-        && !(mulSrc1->IsRegOpnd() && mulSrc1->AsRegOpnd()->m_sym->AsStackSym()->m_isNotInt)
-        && !(mulSrc2->IsRegOpnd() && mulSrc2->AsRegOpnd()->m_sym->AsStackSym()->m_isNotInt))
+    if (!(addSrc->IsRegOpnd() && addSrc->AsRegOpnd()->m_sym->AsStackSym()->m_isNotNumber)
+        && !(mulSrc1->IsRegOpnd() && mulSrc1->AsRegOpnd()->m_sym->AsStackSym()->m_isNotNumber)
+        && !(mulSrc2->IsRegOpnd() && mulSrc2->AsRegOpnd()->m_sym->AsStackSym()->m_isNotNumber))
     {
         // General idea:
         // - mulSrc1: clear 1 but keep *2  - need special test for tagged int

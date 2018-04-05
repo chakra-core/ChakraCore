@@ -94,7 +94,7 @@ namespace Js
     {
         mWriter.Create();
 
-        const int32 astSize = func->GetFncNode()->AsParseNodeFnc()->astSize/AstBytecodeRatioEstimate;
+        const int32 astSize = func->GetFncNode()->astSize/AstBytecodeRatioEstimate;
         // Use the temp allocator in bytecode write temp buffer.
         mWriter.InitData(&mAllocator, astSize);
 
@@ -295,12 +295,12 @@ namespace Js
     void AsmJSByteCodeGenerator::DefineLabels()
     {
         mInfo->singleExit=mWriter.DefineLabel();
-        SList<ParseNode *>::Iterator iter(&mInfo->targetStatements);
+        SList<ParseNodeStmt *>::Iterator iter(&mInfo->targetStatements);
         while (iter.Next())
         {
-            ParseNode * node = iter.Data();
-            node->AsParseNodeStmt()->breakLabel=mWriter.DefineLabel();
-            node->AsParseNodeStmt()->continueLabel=mWriter.DefineLabel();
+            ParseNodeStmt * node = iter.Data();
+            node->breakLabel=mWriter.DefineLabel();
+            node->continueLabel=mWriter.DefineLabel();
             node->emitLabels=true;
         }
     }
@@ -445,10 +445,11 @@ namespace Js
         }
         case knopBlock:
         {
-            EmitExpressionInfo info = Emit(pnode->AsParseNodeBlock()->pnodeStmt);
-            if (pnode->emitLabels)
+            ParseNodeBlock * pnodeBlock = pnode->AsParseNodeBlock();
+            EmitExpressionInfo info = Emit(pnodeBlock->pnodeStmt);
+            if (pnodeBlock->emitLabels)
             {
-                mWriter.MarkAsmJsLabel(pnode->AsParseNodeStmt()->breakLabel);
+                mWriter.MarkAsmJsLabel(pnodeBlock->breakLabel);
             }
             return info;
         }
@@ -536,47 +537,57 @@ namespace Js
                 return EmitExpressionInfo(mFunction->GetConstRegister<int>(pnode->AsParseNodeInt()->lw), AsmJsType::Fixnum);
             }
         case knopIf:
-            return EmitIf( pnode );
+            return EmitIf( pnode->AsParseNodeIf() );
         case knopQmark:
             return EmitQMark( pnode );
         case knopSwitch:
-            return EmitSwitch( pnode );
+            return EmitSwitch( pnode->AsParseNodeSwitch() );
         case knopFor:
             MaybeTodo( pnode->AsParseNodeFor()->pnodeInverted != NULL );
             {
-                const EmitExpressionInfo& initInfo = Emit( pnode->AsParseNodeFor()->pnodeInit );
+                ParseNodeFor * pnodeFor = pnode->AsParseNodeFor();
+                const EmitExpressionInfo& initInfo = Emit(pnodeFor->pnodeInit );
                 mFunction->ReleaseLocationGeneric( &initInfo );
-                return EmitLoop( pnode,
-                          pnode->AsParseNodeFor()->pnodeCond,
-                          pnode->AsParseNodeFor()->pnodeBody,
-                          pnode->AsParseNodeFor()->pnodeIncr);
+                return EmitLoop( pnodeFor,
+                          pnodeFor->pnodeCond,
+                          pnodeFor->pnodeBody,
+                          pnodeFor->pnodeIncr);
             }
             break;
         case knopWhile:
-            return EmitLoop( pnode,
-                      pnode->AsParseNodeWhile()->pnodeCond,
-                      pnode->AsParseNodeWhile()->pnodeBody,
+        {
+            ParseNodeWhile * pnodeWhile = pnode->AsParseNodeWhile();
+            return EmitLoop( pnodeWhile,
+                      pnodeWhile->pnodeCond,
+                      pnodeWhile->pnodeBody,
                       nullptr);
+        }
         case knopDoWhile:
-            return EmitLoop( pnode,
-                      pnode->AsParseNodeWhile()->pnodeCond,
-                      pnode->AsParseNodeWhile()->pnodeBody,
+        {
+            ParseNodeWhile * pnodeWhile = pnode->AsParseNodeWhile();
+            return EmitLoop( pnodeWhile,
+                      pnodeWhile->pnodeCond,
+                      pnodeWhile->pnodeBody,
                       NULL,
                       true );
+        }
         case knopBreak:
-            Assert( pnode->AsParseNodeJump()->pnodeTarget->emitLabels );
-            StartStatement(pnode);
-            mWriter.AsmBr( pnode->AsParseNodeJump()->pnodeTarget->AsParseNodeStmt()->breakLabel );
-            if( pnode->emitLabels )
+        {
+            ParseNodeJump * pnodeJump = pnode->AsParseNodeJump();
+            Assert(pnodeJump->pnodeTarget->emitLabels);
+            StartStatement(pnodeJump);
+            mWriter.AsmBr(pnodeJump->pnodeTarget->breakLabel);
+            if (pnodeJump->emitLabels)
             {
-                mWriter.MarkAsmJsLabel( pnode->AsParseNodeStmt()->breakLabel );
+                mWriter.MarkAsmJsLabel(pnodeJump->breakLabel);
             }
-            EndStatement(pnode);
+            EndStatement(pnodeJump);
             break;
+        }
         case knopContinue:
             Assert( pnode->AsParseNodeJump()->pnodeTarget->emitLabels );
             StartStatement(pnode);
-            mWriter.AsmBr( pnode->AsParseNodeJump()->pnodeTarget->AsParseNodeStmt()->continueLabel );
+            mWriter.AsmBr( pnode->AsParseNodeJump()->pnodeTarget->continueLabel );
             EndStatement(pnode);
             break;
         case knopVarDecl:
@@ -2133,20 +2144,20 @@ namespace Js
         }
     }
 
-    EmitExpressionInfo AsmJSByteCodeGenerator::EmitIf( ParseNode * pnode )
+    EmitExpressionInfo AsmJSByteCodeGenerator::EmitIf( ParseNodeIf * pnode )
     {
         Js::ByteCodeLabel trueLabel = mWriter.DefineLabel();
         Js::ByteCodeLabel falseLabel = mWriter.DefineLabel();
-        const EmitExpressionInfo& boolInfo = EmitBooleanExpression( pnode->AsParseNodeIf()->pnodeCond, trueLabel, falseLabel );
+        const EmitExpressionInfo& boolInfo = EmitBooleanExpression( pnode->pnodeCond, trueLabel, falseLabel );
         mFunction->ReleaseLocation<int>( &boolInfo );
 
 
         mWriter.MarkAsmJsLabel( trueLabel );
 
-        const EmitExpressionInfo& trueInfo = Emit( pnode->AsParseNodeIf()->pnodeTrue );
+        const EmitExpressionInfo& trueInfo = Emit( pnode->pnodeTrue );
         mFunction->ReleaseLocationGeneric( &trueInfo );
 
-        if( pnode->AsParseNodeIf()->pnodeFalse != nullptr )
+        if( pnode->pnodeFalse != nullptr )
         {
             // has else clause
             Js::ByteCodeLabel skipLabel = mWriter.DefineLabel();
@@ -2159,7 +2170,7 @@ namespace Js
             // generate code for else clause
             mWriter.MarkAsmJsLabel( falseLabel );
 
-            const EmitExpressionInfo& falseInfo = Emit( pnode->AsParseNodeIf()->pnodeFalse );
+            const EmitExpressionInfo& falseInfo = Emit( pnode->pnodeFalse );
             mFunction->ReleaseLocationGeneric( &falseInfo );
 
             mWriter.MarkAsmJsLabel( skipLabel );
@@ -2171,12 +2182,12 @@ namespace Js
         }
         if( pnode->emitLabels )
         {
-            mWriter.MarkAsmJsLabel( pnode->AsParseNodeStmt()->breakLabel );
+            mWriter.MarkAsmJsLabel( pnode->breakLabel );
         }
         return EmitExpressionInfo( AsmJsType::Void );
     }
 
-    Js::EmitExpressionInfo AsmJSByteCodeGenerator::EmitLoop( ParseNode *loopNode, ParseNode *cond, ParseNode *body, ParseNode *incr, BOOL doWhile /*= false */ )
+    Js::EmitExpressionInfo AsmJSByteCodeGenerator::EmitLoop( ParseNodeLoop *loopNode, ParseNode *cond, ParseNode *body, ParseNode *incr, BOOL doWhile /*= false */ )
     {
         // Need to increment loop count whether we are going to profile or not for HasLoop()
         StartStatement(loopNode);
@@ -2184,7 +2195,7 @@ namespace Js
         Js::ByteCodeLabel continuePastLoop = mWriter.DefineLabel();
 
         uint loopId = mWriter.EnterLoop( loopEntrance );
-        loopNode->AsParseNodeLoop()->loopId = loopId;
+        loopNode->loopId = loopId;
         EndStatement(loopNode);
         if( doWhile )
         {
@@ -2193,7 +2204,7 @@ namespace Js
 
             if( loopNode->emitLabels )
             {
-                mWriter.MarkAsmJsLabel( loopNode->AsParseNodeStmt()->continueLabel );
+                mWriter.MarkAsmJsLabel( loopNode->continueLabel );
             }
             if( !ByteCodeGenerator::IsFalse( cond ) )
             {
@@ -2215,7 +2226,7 @@ namespace Js
 
             if( loopNode->emitLabels )
             {
-                mWriter.MarkAsmJsLabel( loopNode->AsParseNodeStmt()->continueLabel );
+                mWriter.MarkAsmJsLabel( loopNode->continueLabel );
             }
             if( incr != NULL )
             {
@@ -2227,7 +2238,7 @@ namespace Js
         mWriter.MarkAsmJsLabel( continuePastLoop );
         if( loopNode->emitLabels )
         {
-            mWriter.MarkAsmJsLabel( loopNode->AsParseNodeStmt()->breakLabel );
+            mWriter.MarkAsmJsLabel( loopNode->breakLabel );
         }
 
         mWriter.ExitLoop( loopId );
@@ -2328,11 +2339,11 @@ namespace Js
         return emitInfo;
     }
 
-    EmitExpressionInfo AsmJSByteCodeGenerator::EmitSwitch( ParseNode * pnode )
+    EmitExpressionInfo AsmJSByteCodeGenerator::EmitSwitch( ParseNodeSwitch * pnode )
     {
         BOOL fHasDefault = false;
-        Assert( pnode->AsParseNodeSwitch()->pnodeVal != NULL );
-        const EmitExpressionInfo& valInfo = Emit( pnode->AsParseNodeSwitch()->pnodeVal );
+        Assert( pnode->pnodeVal != NULL );
+        const EmitExpressionInfo& valInfo = Emit( pnode->pnodeVal );
 
         if( !valInfo.type.isSigned() )
         {
@@ -2347,46 +2358,46 @@ namespace Js
         // TODO: if all cases are compile-time constants, emit a switch statement in the byte
         // code so the BE can optimize it.
 
-        ParseNode *pnodeCase;
-        for( pnodeCase = pnode->AsParseNodeSwitch()->pnodeCases; pnodeCase; pnodeCase = pnodeCase->AsParseNodeCase()->pnodeNext )
+        ParseNodeCase *pnodeCase;
+        for( pnodeCase = pnode->pnodeCases; pnodeCase; pnodeCase = pnodeCase->pnodeNext )
         {
             // Jump to the first case body if this one doesn't match. Make sure any side-effects of the case
             // expression take place regardless.
-            pnodeCase->AsParseNodeCase()->labelCase = mWriter.DefineLabel();
-            if( pnodeCase == pnode->AsParseNodeSwitch()->pnodeDefault )
+            pnodeCase->labelCase = mWriter.DefineLabel();
+            if( pnodeCase == pnode->pnodeDefault )
             {
                 fHasDefault = true;
                 continue;
             }
-            ParseNode* caseExpr = pnodeCase->AsParseNodeCase()->pnodeExpr;
+            ParseNode* caseExpr = pnodeCase->pnodeExpr;
             if ((caseExpr->nop != knopInt || (caseExpr->AsParseNodeInt()->lw >> 31) > 1) && !ParserWrapper::IsMinInt(caseExpr))
             {
                 throw AsmJsCompilationException( _u("Switch case value must be int in the range [-2^31, 2^31)") );
             }
 
-            const EmitExpressionInfo& caseExprInfo = Emit( pnodeCase->AsParseNodeCase()->pnodeExpr );
-            mWriter.AsmBrReg2( OpCodeAsmJs::Case_Int, pnodeCase->AsParseNodeCase()->labelCase, regVal, caseExprInfo.location );
+            const EmitExpressionInfo& caseExprInfo = Emit( pnodeCase->pnodeExpr );
+            mWriter.AsmBrReg2( OpCodeAsmJs::Case_Int, pnodeCase->labelCase, regVal, caseExprInfo.location );
             // do not need to release location because int constants cannot be released
         }
 
         // No explicit case value matches. Jump to the default arm (if any) or break out altogether.
         if( fHasDefault )
         {
-            mWriter.AsmBr( pnode->AsParseNodeSwitch()->pnodeDefault->AsParseNodeCase()->labelCase, OpCodeAsmJs::EndSwitch_Int );
+            mWriter.AsmBr( pnode->pnodeDefault->labelCase, OpCodeAsmJs::EndSwitch_Int );
         }
         else
         {
             if( !pnode->emitLabels )
             {
-                pnode->AsParseNodeStmt()->breakLabel = mWriter.DefineLabel();
+                pnode->breakLabel = mWriter.DefineLabel();
             }
-            mWriter.AsmBr( pnode->AsParseNodeStmt()->breakLabel, OpCodeAsmJs::EndSwitch_Int );
+            mWriter.AsmBr( pnode->breakLabel, OpCodeAsmJs::EndSwitch_Int );
         }
         // Now emit the case arms to which we jump on matching a case value.
-        for( pnodeCase = pnode->AsParseNodeSwitch()->pnodeCases; pnodeCase; pnodeCase = pnodeCase->AsParseNodeCase()->pnodeNext )
+        for( pnodeCase = pnode->pnodeCases; pnodeCase; pnodeCase = pnodeCase->pnodeNext )
         {
-            mWriter.MarkAsmJsLabel( pnodeCase->AsParseNodeCase()->labelCase );
-            const EmitExpressionInfo& caseBodyInfo = Emit( pnodeCase->AsParseNodeCase()->pnodeBody );
+            mWriter.MarkAsmJsLabel( pnodeCase->labelCase );
+            const EmitExpressionInfo& caseBodyInfo = Emit( pnodeCase->pnodeBody );
             mFunction->ReleaseLocationGeneric( &caseBodyInfo );
         }
 
@@ -2394,7 +2405,7 @@ namespace Js
 
         if( !fHasDefault || pnode->emitLabels )
         {
-            mWriter.MarkAsmJsLabel( pnode->AsParseNodeStmt()->breakLabel );
+            mWriter.MarkAsmJsLabel( pnode->breakLabel );
         }
 
         return EmitExpressionInfo( AsmJsType::Void );

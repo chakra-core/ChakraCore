@@ -11,7 +11,8 @@ namespace Js
         bool CheckProto,
         bool CheckAccessor,
         bool CheckMissing,
-        bool ReturnOperationInfo>
+        bool ReturnOperationInfo,
+        bool OutputExistence /*When set, propertyValue represents whether the property exists on the instance, not its actual value*/>
     bool InlineCache::TryGetProperty(
         Var const instance,
         RecyclableObject *const propertyObject,
@@ -20,7 +21,7 @@ namespace Js
         ScriptContext *const requestContext,
         PropertyCacheOperationInfo *const operationInfo)
     {
-        CompileAssert(CheckLocal || CheckProto || CheckAccessor);
+        CompileAssert(CheckLocal || CheckProto || CheckAccessor || CheckMissing);
         Assert(!ReturnOperationInfo || operationInfo);
         CompileAssert(!ReturnOperationInfo || (CheckLocal && CheckProto && CheckAccessor));
         Assert(instance);
@@ -34,124 +35,50 @@ namespace Js
 
         if (CheckLocal && type == u.local.type)
         {
-            Assert(propertyObject->GetScriptContext() == requestContext); // we never cache a type from another script context
-            *propertyValue = DynamicObject::UnsafeFromVar(propertyObject)->GetInlineSlot(u.local.slotIndex);
-            Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
-                (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
-            if (ReturnOperationInfo)
-            {
-                operationInfo->cacheType = CacheType_Local;
-                operationInfo->slotType = SlotType_Inline;
-            }
+            OutputPropertyValueAndOperationInfo<OutputExistence, false /*IsMissing*/, ReturnOperationInfo, CacheType_Local, SlotType_Inline>(
+                instance, propertyObject, propertyId, propertyValue, requestContext, operationInfo);
             return true;
         }
 
         if (CheckLocal && TypeWithAuxSlotTag(type) == u.local.type)
         {
-            Assert(propertyObject->GetScriptContext() == requestContext); // we never cache a type from another script context
-            *propertyValue = DynamicObject::UnsafeFromVar(propertyObject)->GetAuxSlot(u.local.slotIndex);
-            Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
-                (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
-            if (ReturnOperationInfo)
-            {
-                operationInfo->cacheType = CacheType_Local;
-                operationInfo->slotType = SlotType_Aux;
-            }
+            OutputPropertyValueAndOperationInfo<OutputExistence, false /*IsMissing*/, ReturnOperationInfo, CacheType_Local, SlotType_Aux>(
+                instance, propertyObject, propertyId, propertyValue, requestContext, operationInfo);
             return true;
         }
 
         if (CheckProto && type == u.proto.type && !this->u.proto.isMissing)
         {
-            Assert(u.proto.prototypeObject->GetScriptContext() == requestContext); // we never cache a type from another script context
-            *propertyValue = u.proto.prototypeObject->GetInlineSlot(u.proto.slotIndex);
-            Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
-                (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
-            if (ReturnOperationInfo)
-            {
-                operationInfo->cacheType = CacheType_Proto;
-                operationInfo->slotType = SlotType_Inline;
-            }
+            OutputPropertyValueAndOperationInfo<OutputExistence, false /*IsMissing*/, ReturnOperationInfo, CacheType_Proto, SlotType_Inline>(
+                instance, propertyObject, propertyId, propertyValue, requestContext, operationInfo);
             return true;
         }
 
         if (CheckProto && TypeWithAuxSlotTag(type) == u.proto.type && !this->u.proto.isMissing)
         {
-            Assert(u.proto.prototypeObject->GetScriptContext() == requestContext); // we never cache a type from another script context
-            *propertyValue = u.proto.prototypeObject->GetAuxSlot(u.proto.slotIndex);
-            Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
-                (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
-            if (ReturnOperationInfo)
-            {
-                operationInfo->cacheType = CacheType_Proto;
-                operationInfo->slotType = SlotType_Aux;
-            }
+            OutputPropertyValueAndOperationInfo<OutputExistence, false /*IsMissing*/, ReturnOperationInfo, CacheType_Proto, SlotType_Aux>(
+                instance, propertyObject, propertyId, propertyValue, requestContext, operationInfo);
             return true;
         }
 
         if (CheckAccessor && type == u.accessor.type)
         {
-            Assert(propertyObject->GetScriptContext() == requestContext); // we never cache a type from another script context
-            Assert(u.accessor.flags & InlineCacheGetterFlag);
-
-            RecyclableObject * function;
-            if (u.accessor.isOnProto)
-            {
-                function = RecyclableObject::UnsafeFromVar(u.accessor.object->GetInlineSlot(u.accessor.slotIndex));
-            }
-            else
-            {
-                function = RecyclableObject::UnsafeFromVar(DynamicObject::UnsafeFromVar(propertyObject)->GetInlineSlot(u.accessor.slotIndex));
-            }
-
-            *propertyValue = JavascriptOperators::CallGetter(function, instance, requestContext);
-
-            // Can't assert because the getter could have a side effect
-#ifdef CHKGETTER
-            Assert(JavascriptOperators::Equal(*propertyValue, JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext), requestContext));
-#endif
-            if (ReturnOperationInfo)
-            {
-                operationInfo->cacheType = CacheType_Getter;
-                operationInfo->slotType = SlotType_Inline;
-            }
+            OutputPropertyValueAndOperationInfo<OutputExistence, false /*IsMissing*/, ReturnOperationInfo, CacheType_Getter, SlotType_Inline>(
+                instance, propertyObject, propertyId, propertyValue, requestContext, operationInfo);
             return true;
         }
 
         if (CheckAccessor && TypeWithAuxSlotTag(type) == u.accessor.type)
         {
-            Assert(propertyObject->GetScriptContext() == requestContext); // we never cache a type from another script context
-            Assert(u.accessor.flags & InlineCacheGetterFlag);
-
-            RecyclableObject * function;
-            if (u.accessor.isOnProto)
-            {
-                function = RecyclableObject::UnsafeFromVar(u.accessor.object->GetAuxSlot(u.accessor.slotIndex));
-            }
-            else
-            {
-                function = RecyclableObject::UnsafeFromVar(DynamicObject::FromVar(propertyObject)->GetAuxSlot(u.accessor.slotIndex));
-            }
-
-            *propertyValue = JavascriptOperators::CallGetter(function, instance, requestContext);
-
-            // Can't assert because the getter could have a side effect
-#ifdef CHKGETTER
-            Assert(JavascriptOperators::Equal(*propertyValue, JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext), requestContext));
-#endif
-            if (ReturnOperationInfo)
-            {
-                operationInfo->cacheType = CacheType_Getter;
-                operationInfo->slotType = SlotType_Aux;
-            }
+            OutputPropertyValueAndOperationInfo<OutputExistence, false /*IsMissing*/, ReturnOperationInfo, CacheType_Getter, SlotType_Aux>(
+                instance, propertyObject, propertyId, propertyValue, requestContext, operationInfo);
             return true;
         }
 
         if (CheckMissing && type == u.proto.type && this->u.proto.isMissing)
         {
-            Assert(u.proto.prototypeObject->GetScriptContext() == requestContext); // we never cache a type from another script context
-            *propertyValue = u.proto.prototypeObject->GetInlineSlot(u.proto.slotIndex);
-            Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
-                (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
+            OutputPropertyValueAndOperationInfo<OutputExistence, true /*IsMissing*/, ReturnOperationInfo, CacheType_Proto, SlotType_Inline>(
+                instance, propertyObject, propertyId, propertyValue, requestContext, operationInfo);
 
 #ifdef MISSING_PROPERTY_STATS
             if (PHASE_STATS1(MissingPropertyCachePhase))
@@ -160,20 +87,13 @@ namespace Js
             }
 #endif
 
-            if (ReturnOperationInfo)
-            {
-                operationInfo->cacheType = CacheType_Proto;
-                operationInfo->slotType = SlotType_Inline;
-            }
             return true;
         }
 
         if (CheckMissing && TypeWithAuxSlotTag(type) == u.proto.type && this->u.proto.isMissing)
         {
-            Assert(u.proto.prototypeObject->GetScriptContext() == requestContext); // we never cache a type from another script context
-            *propertyValue = u.proto.prototypeObject->GetAuxSlot(u.proto.slotIndex);
-            Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
-                (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
+            OutputPropertyValueAndOperationInfo<OutputExistence, true /*IsMissing*/, ReturnOperationInfo, CacheType_Proto, SlotType_Aux>(
+                instance, propertyObject, propertyId, propertyValue, requestContext, operationInfo);
 
 #ifdef MISSING_PROPERTY_STATS
             if (PHASE_STATS1(MissingPropertyCachePhase))
@@ -182,15 +102,59 @@ namespace Js
             }
 #endif
 
-            if (ReturnOperationInfo)
-            {
-                operationInfo->cacheType = CacheType_Proto;
-                operationInfo->slotType = SlotType_Aux;
-            }
             return true;
         }
 
         return false;
+    }
+
+    template<> inline void InlineCache::OutputOperationInfo<true>(PropertyCacheOperationInfo *const operationInfo, CacheType cacheType, SlotType slotType)
+    {
+        operationInfo->cacheType = cacheType;
+        operationInfo->slotType = slotType;
+    }
+    template<> inline void InlineCache::OutputOperationInfo<false>(PropertyCacheOperationInfo *const operationInfo, CacheType cacheType, SlotType slotType)
+    {
+    }
+
+    template<> inline DynamicObject* InlineCache::GetSourceObject<CacheType::CacheType_Local>(RecyclableObject *const propertyObject)
+    {
+        return DynamicObject::UnsafeFromVar(propertyObject);
+    }
+    template<> inline DynamicObject* InlineCache::GetSourceObject<CacheType::CacheType_Proto>(RecyclableObject *const propertyObject)
+    {
+        return u.proto.prototypeObject;
+    }
+
+    template<> inline RecyclableObject* InlineCache::GetSourceObjectForScriptContext<CacheType::CacheType_Local>(RecyclableObject *const propertyObject)
+    {
+        return propertyObject;
+    }
+    template<> inline RecyclableObject* InlineCache::GetSourceObjectForScriptContext<CacheType::CacheType_Proto>(RecyclableObject *const propertyObject)
+    {
+        return u.proto.prototypeObject;
+    }
+    template<> inline RecyclableObject* InlineCache::GetSourceObjectForScriptContext<CacheType::CacheType_Getter>(RecyclableObject *const propertyObject)
+    {
+        return propertyObject;
+    }
+
+    template<> inline int InlineCache::GetSlotIndex<CacheType::CacheType_Local>()
+    {
+        return u.local.slotIndex;
+    }
+    template<> inline int InlineCache::GetSlotIndex<CacheType::CacheType_Proto>()
+    {
+        return u.proto.slotIndex;
+    }
+
+    template<> inline Var InlineCache::GetPropertyValue<SlotType::SlotType_Inline>(DynamicObject* sourceObject, int slotIndex)
+    {
+        return sourceObject->GetInlineSlot(slotIndex);
+    }
+    template<> inline Var InlineCache::GetPropertyValue<SlotType::SlotType_Aux>(DynamicObject* sourceObject, int slotIndex)
+    {
+        return sourceObject->GetAuxSlot(slotIndex);
     }
 
     template<
@@ -540,7 +504,8 @@ namespace Js
         bool CheckAccessor,
         bool CheckMissing,
         bool IsInlineCacheAvailable,
-        bool ReturnOperationInfo>
+        bool ReturnOperationInfo,
+        bool OutputExistence /*When set, propertyValue is true or false, representing whether the property exists on the instance not its actual value*/>
     bool PolymorphicInlineCache::TryGetProperty(
         Var const instance,
         RecyclableObject *const propertyObject,
@@ -564,7 +529,7 @@ namespace Js
             isEmpty = cache->IsEmpty();
         }
 #endif
-        bool result = cache->TryGetProperty<CheckLocal, CheckProto, CheckAccessor, CheckMissing, ReturnOperationInfo>(
+        bool result = cache->TryGetProperty<CheckLocal, CheckProto, CheckAccessor, CheckMissing, ReturnOperationInfo, OutputExistence>(
             instance, propertyObject, propertyId, propertyValue, requestContext, operationInfo);
 
 #ifdef CLONE_INLINECACHE_TO_EMPTYSLOT
@@ -573,7 +538,7 @@ namespace Js
             result = CheckClonedInlineCache(inlineCacheIndex, [&](uint tryInlineCacheIndex) -> bool
             {
                 cache = &inlineCaches[tryInlineCacheIndex];
-                return cache->TryGetProperty<CheckLocal, CheckProto, CheckAccessor, CheckMissing, ReturnOperationInfo>(
+                return cache->TryGetProperty<CheckLocal, CheckProto, CheckAccessor, CheckMissing, ReturnOperationInfo, OutputExistence>(
                     instance, propertyObject, propertyId, propertyValue, requestContext, operationInfo);
             });
         }

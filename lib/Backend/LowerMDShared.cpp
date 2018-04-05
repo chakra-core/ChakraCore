@@ -367,7 +367,7 @@ LowererMD::LowerTry(IR::Instr *tryInstr, IR::JnHelperMethod helperMethod)
     // Arg 5: ScriptContext
     this->m_lowerer->LoadScriptContext(tryAddr);
 
-    if (tryInstr->m_opcode == Js::OpCode::TryCatch || this->m_func->DoOptimizeTry())
+    if (tryInstr->m_opcode == Js::OpCode::TryCatch || (this->m_func->DoOptimizeTry() || (this->m_func->IsSimpleJit() && this->m_func->hasBailout)))
     {
         // Arg 4 : hasBailedOutOffset
         IR::Opnd * hasBailedOutOffset = IR::IntConstOpnd::New(this->m_func->m_hasBailedOutSym->m_offset, TyInt32, this->m_func);
@@ -4113,7 +4113,7 @@ LowererMD::GenerateFastScopedLdFld(IR::Instr * instrLdScopedFld)
 
     labelFallThru = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
 
-    r1->m_sym->m_isNotInt = true;
+    r1->m_sym->m_isNotNumber = true;
 
     // Load the type
     this->m_lowerer->GenerateObjectTestAndTypeLoad(instrLdScopedFld, r1, opndType, labelHelper);
@@ -4208,7 +4208,7 @@ LowererMD::GenerateFastScopedStFld(IR::Instr * instrStScopedFld)
     IR::RegOpnd * opndType = IR::RegOpnd::New(TyMachReg, this->m_func);
     labelFallThru = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
 
-    r1->m_sym->m_isNotInt = true;
+    r1->m_sym->m_isNotNumber = true;
 
     // Load the type
     this->m_lowerer->GenerateObjectTestAndTypeLoad(instrStScopedFld, r1, opndType, labelHelper);
@@ -4312,7 +4312,7 @@ IR::RegOpnd *LowererMD::LoadNonnegativeIndex(
         //     mov  intIndex, index
         //     sar  intIndex, 1
         //     jae  $notTaggedIntOrNegative
-        indexOpnd = GenerateUntagVar(indexOpnd, notTaggedIntLabel, insertBeforeInstr, !indexOpnd->IsTaggedInt());
+        indexOpnd = m_lowerer->GenerateUntagVar(indexOpnd, notTaggedIntLabel, insertBeforeInstr, !indexOpnd->IsTaggedInt());
     }
 
     if(!skipNegativeCheck)

@@ -604,7 +604,10 @@ namespace TTD
 
         void InnerLoopEmitLog(const TTDebuggerSourceLocation& writeLocation, const char* emitUri, size_t emitUriLength);
 
-        void EmitLog(const char* emitUri, size_t emitUriLength);
+        bool CanWriteInnerLoopTrace() const;
+        bool SuppressDiagnosticTracesDuringInnerLoop() const;
+
+        void EmitLog(const char* emitUri, size_t emitUriLength, NSLogEvents::EventLogEntry* optInnerLoopEvent = nullptr);
         void ParseLogInto(TTDataIOInfo& iofp, const char* parseUri, size_t parseUriLength);
     };
 

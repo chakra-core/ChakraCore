@@ -62,8 +62,8 @@ class WastLexer {
   std::string filename_;
   int line_;
   int comment_nesting_;
-  size_t buffer_file_offset_; // File offset of the start of the buffer.
-  size_t line_file_offset_;   // File offset of the start of the current line.
+  size_t buffer_file_offset_;  // File offset of the start of the buffer.
+  size_t line_file_offset_;    // File offset of the start of the current line.
 
   // Lexing data needed by re2c.
   bool eof_;

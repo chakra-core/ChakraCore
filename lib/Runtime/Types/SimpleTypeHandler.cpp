@@ -396,7 +396,7 @@ namespace Js
 #endif
 
     template<size_t size>
-    BOOL SimpleTypeHandler<size>::HasProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *noRedecl)
+    BOOL SimpleTypeHandler<size>::HasProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *noRedecl, _Inout_opt_ PropertyValueInfo* info)
     {
         if (noRedecl != nullptr)
         {
@@ -414,6 +414,11 @@ namespace Js
                 if (noRedecl && descriptors[i].Attributes & PropertyNoRedecl)
                 {
                     *noRedecl = true;
+                }
+
+                if (info)
+                {
+                    PropertyValueInfo::Set(info, instance, static_cast<PropertyIndex>(i), descriptors[i].Attributes);
                 }
                 return true;
             }

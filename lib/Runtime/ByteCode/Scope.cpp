@@ -77,11 +77,11 @@ void Scope::SetIsObject()
     }
 }
 
-void Scope::MergeParamAndBodyScopes(ParseNode *pnodeScope)
+void Scope::MergeParamAndBodyScopes(ParseNodeFnc *pnodeScope)
 {
-    Assert(pnodeScope->AsParseNodeFnc()->funcInfo);
-    Scope *paramScope = pnodeScope->AsParseNodeFnc()->pnodeScopes->AsParseNodeBlock()->scope;
-    Scope *bodyScope = pnodeScope->AsParseNodeFnc()->pnodeBodyScope->AsParseNodeBlock()->scope;
+    Assert(pnodeScope->funcInfo);
+    Scope *paramScope = pnodeScope->pnodeScopes->scope;
+    Scope *bodyScope = pnodeScope->pnodeBodyScope->scope;
 
     if (paramScope->Count() == 0)
     {
@@ -108,11 +108,11 @@ void Scope::MergeParamAndBodyScopes(ParseNode *pnodeScope)
     }
 }
 
-void Scope::RemoveParamScope(ParseNode *pnodeScope)
+void Scope::RemoveParamScope(ParseNodeFnc *pnodeScope)
 {
-    Assert(pnodeScope->AsParseNodeFnc()->funcInfo);
-    Scope *paramScope = pnodeScope->AsParseNodeFnc()->pnodeScopes->AsParseNodeBlock()->scope;
-    Scope *bodyScope = pnodeScope->AsParseNodeFnc()->pnodeBodyScope->AsParseNodeBlock()->scope;
+    Assert(pnodeScope->funcInfo);
+    Scope *paramScope = pnodeScope->pnodeScopes->scope;
+    Scope *bodyScope = pnodeScope->pnodeBodyScope->scope;
 
     // Once the scopes are merged, there's no reason to instantiate the param scope.
     paramScope->SetMustInstantiate(false);

@@ -298,8 +298,6 @@ namespace Js
 #undef FLAG
 #undef FORWARD_THREAD_CONFIG
 
-        bool SupportsCollectGarbage() const { return true; }
-
         void ForceNoDynamicThunks() { this->NoDynamicThunks = true; }
         bool IsNoDynamicThunks() const { return this->NoDynamicThunks; }
 

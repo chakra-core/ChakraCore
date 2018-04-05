@@ -452,7 +452,7 @@
   <test>
     <default>
       <files>ES6TypedArrayExtensions.js</files>
-      <compile-flags>-ES6ObjectLiterals -ES6Species -ESSharedArrayBuffer -args summary -endargs</compile-flags>
+      <compile-flags>-CollectGarbage -ES6ObjectLiterals -ES6Species -ESSharedArrayBuffer -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -476,7 +476,7 @@
   <test>
     <default>
       <files>ES6Symbol.js</files>
-      <compile-flags>-ES6ObjectLiterals -ES6Species -ES6RegExSymbols -args summary -endargs</compile-flags>
+      <compile-flags>-CollectGarbage -ES6ObjectLiterals -ES6Species -ES6RegExSymbols -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -689,7 +689,7 @@
   <test>
     <default>
       <files>ES6Species-bugs.js</files>
-      <compile-flags>-ES6 -ES6Species -args summary -endargs</compile-flags>
+      <compile-flags>-CollectGarbage -ES6 -ES6Species -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

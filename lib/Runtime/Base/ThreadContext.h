@@ -611,7 +611,9 @@ private:
     AllocationPolicyManager * allocationPolicyManager;
 
     JsUtil::ThreadService threadService;
+#if ENABLE_NATIVE_CODEGEN
     PreReservedVirtualAllocWrapper preReservedVirtualAllocator;
+#endif
 
     uint callRootLevel;
 

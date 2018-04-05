@@ -33,9 +33,6 @@ namespace Js
         : DynamicObject(type), functionInfo(nullptr), constructorCache(&ConstructorCache::DefaultInstance)
     {
         Assert(this->constructorCache != nullptr);
-#if DBG
-        isJsBuiltInInitCode = false;
-#endif
     }
 
 
@@ -52,9 +49,6 @@ namespace Js
             // GetScriptContext()->InvalidateStoreFieldCaches(PropertyIds::length);
             GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
         }
-#if DBG
-        isJsBuiltInInitCode = false;
-#endif
     }
 
     JavascriptFunction::JavascriptFunction(DynamicType * type, FunctionInfo * functionInfo, ConstructorCache* cache)
@@ -70,9 +64,6 @@ namespace Js
             // GetScriptContext()->InvalidateStoreFieldCaches(PropertyIds::length);
             GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
         }
-#if DBG
-        isJsBuiltInInitCode = false;
-#endif
     }
 
     FunctionProxy *JavascriptFunction::GetFunctionProxy() const
@@ -2478,17 +2469,7 @@ LABEL1:
             );
     }
 
-    void JavascriptFunction::SetIsJsBuiltInCode()
-    {
-        isJsBuiltInCode = true;
-    }
-
-    bool JavascriptFunction::IsJsBuiltIn()
-    {
-        return isJsBuiltInCode;
-    }
-
-    PropertyQueryFlags JavascriptFunction::HasPropertyQuery(PropertyId propertyId)
+    PropertyQueryFlags JavascriptFunction::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
     {
         switch (propertyId)
         {
@@ -2506,7 +2487,7 @@ LABEL1:
             }
             break;
         }
-        return DynamicObject::HasPropertyQuery(propertyId);
+        return DynamicObject::HasPropertyQuery(propertyId, info);
     }
 
     BOOL JavascriptFunction::GetAccessors(PropertyId propertyId, Var *getter, Var *setter, ScriptContext * requestContext)
@@ -3494,6 +3475,24 @@ LABEL1:
         HRESULT hr = JitFromEncodedWorkItem(scriptContext->GetNativeCodeGenerator(), buffer, size);
         if (FAILED(hr))
         {
+#ifdef _WIN32
+            char16* lpMsgBuf = nullptr;
+            DWORD bufLen = FormatMessageW(
+                FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                FORMAT_MESSAGE_FROM_SYSTEM |
+                FORMAT_MESSAGE_IGNORE_INSERTS,
+                NULL,
+                hr,
+                MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                (LPTSTR)&lpMsgBuf,
+                0, NULL);
+            if (bufLen)
+            {
+                JavascriptString* string = JavascriptString::NewCopyBuffer(lpMsgBuf, bufLen, scriptContext);
+                LocalFree(lpMsgBuf);
+                JavascriptExceptionOperators::OP_Throw(string, scriptContext);
+            }
+#endif
             JavascriptExceptionOperators::OP_Throw(JavascriptNumber::New(hr, scriptContext), scriptContext);
         }
         return scriptContext->GetLibrary()->GetUndefined();

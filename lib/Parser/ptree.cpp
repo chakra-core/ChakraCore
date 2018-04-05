@@ -4,17 +4,15 @@
 //-------------------------------------------------------------------------------------------------------
 #include "ParserPch.h"
 
-void ParseNode::Init(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+ParseNode::ParseNode(OpCode nop, charcount_t ichMin, charcount_t ichLim)
 {
     this->nop = nop;
     this->grfpn = PNodeFlags::fpnNone;
     this->location = Js::Constants::NoRegister;
-    this->emitLabels = false;
     this->isUsed = true;
     this->notEscapedUse = false;
     this->isInList = false;
     this->isCallApplyTargetLoad = false;
-    this->isSpecialName = false;
     this->ichMin = ichMin;
     this->ichLim = ichLim;
 }
@@ -49,6 +47,12 @@ ParseNodeFloat * ParseNode::AsParseNodeFloat()
     return reinterpret_cast<ParseNodeFloat *>(this);
 }
 
+ParseNodeRegExp * ParseNode::AsParseNodeRegExp()
+{
+    Assert(this->nop == knopRegExp);
+    return reinterpret_cast<ParseNodeRegExp *>(this);
+}
+
 ParseNodeVar * ParseNode::AsParseNodeVar()
 {
     Assert(this->nop == knopVarDecl || this->nop == knopConstDecl || this->nop == knopLetDecl || this->nop == knopTemp);
@@ -57,13 +61,13 @@ ParseNodeVar * ParseNode::AsParseNodeVar()
 
 ParseNodePid * ParseNode::AsParseNodePid()
 {
-    Assert(this->nop == knopName || this->nop == knopStr || this->nop == knopRegExp || this->nop == knopSpecialName);
+    Assert(this->nop == knopName || this->nop == knopStr);
     return reinterpret_cast<ParseNodePid *>(this);
 }
 
 ParseNodeSpecialName * ParseNode::AsParseNodeSpecialName()
 {
-    Assert(this->nop == knopName && this->isSpecialName);
+    Assert(this->nop == knopName && this->AsParseNodePid()->IsSpecialName());
     return reinterpret_cast<ParseNodeSpecialName *>(this);
 }
 
@@ -82,7 +86,7 @@ ParseNodeStrTemplate * ParseNode::AsParseNodeStrTemplate()
 ParseNodeSuperReference * ParseNode::AsParseNodeSuperReference()
 {
     Assert(this->nop == knopDot || this->nop == knopIndex);
-    Assert(this->AsParseNodeBin()->pnode1 && this->AsParseNodeBin()->pnode1->isSpecialName && this->AsParseNodeBin()->pnode1->AsParseNodeSpecialName()->isSuper);
+    Assert(this->AsParseNodeBin()->pnode1 && this->AsParseNodeBin()->pnode1->AsParseNodeSpecialName()->isSuper);
     return reinterpret_cast<ParseNodeSuperReference*>(this);
 }
 
@@ -268,10 +272,159 @@ ParseNodePtr ParseNode::GetFormalNext()
     return pnodeNext;
 }
 
-void ParseNodeCall::Init(OpCode nop, ParseNodePtr pnodeTarget, ParseNodePtr pnodeArgs, charcount_t ichMin, charcount_t ichLim)
+bool ParseNode::IsUserIdentifier()
 {
-    __super::Init(nop, ichMin, ichLim);
+    return this->nop == knopName && !this->AsParseNodePid()->IsSpecialName();
+}
 
+ParseNodeUni::ParseNodeUni(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1)
+    : ParseNode(nop, ichMin, ichLim)
+{
+    this->pnode1 = pnode1;
+}
+
+ParseNodeBin::ParseNodeBin(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1, ParseNode * pnode2)
+    : ParseNode(nop, ichMin, ichLim)
+{
+    this->pnode1 = pnode1;
+    this->pnode2 = pnode2;
+
+    // Statically detect if the add is a concat
+    if (!PHASE_OFF1(Js::ByteCodeConcatExprOptPhase))
+    {
+        // We can't flatten the concat expression if the LHS is not a flatten concat already
+        // e.g.  a + (<str> + b)
+        //      Side effect of ToStr(b) need to happen first before ToStr(a)
+        //      If we flatten the concat expression, we will do ToStr(a) before ToStr(b)
+        if ((nop == knopAdd) && (pnode1->CanFlattenConcatExpr() || pnode2->nop == knopStr))
+        {
+            this->grfpn |= fpnCanFlattenConcatExpr;
+        }
+    }
+}
+
+ParseNodeTri::ParseNodeTri(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNode(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeInt::ParseNodeInt(charcount_t ichMin, charcount_t ichLim, int32 lw)
+    : ParseNode(knopInt, ichMin, ichLim)
+{
+    this->lw = lw;
+}
+
+ParseNodeFloat::ParseNodeFloat(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNode(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeRegExp::ParseNodeRegExp(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNode(nop, ichMin, ichLim)
+{
+    this->regexPattern = nullptr;
+    this->regexPatternIndex = 0;
+}
+
+ParseNodePid::ParseNodePid(OpCode nop, charcount_t ichMin, charcount_t ichLim, IdentPtr pid)
+    : ParseNode(nop, ichMin, ichLim)
+{
+    this->pid = pid;
+    this->sym = nullptr;
+    this->symRef = nullptr;
+    this->isSpecialName = false;
+}
+
+ParseNodeVar::ParseNodeVar(OpCode nop, charcount_t ichMin, charcount_t ichLim, IdentPtr name)
+    : ParseNode(nop, ichMin, ichLim)
+{
+    Assert(nop == knopVarDecl || nop == knopConstDecl || nop == knopLetDecl || nop == knopTemp);
+
+    this->pid = name;
+    this->pnodeInit = nullptr;
+    this->pnodeNext = nullptr;
+    this->sym = nullptr;
+    this->symRef = nullptr;
+    this->isSwitchStmtDecl = false;
+    this->isBlockScopeFncDeclVar = false;
+}
+
+ParseNodeArrLit::ParseNodeArrLit(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNodeUni(nop, ichMin, ichLim, nullptr)
+{
+}
+
+ParseNodeFnc::ParseNodeFnc(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNode(nop, ichMin, ichLim)
+{
+    this->ClearFlags();     // Initialize fncFlags, canBeDeferred and isBodyAndParamScopeMerged
+    this->SetDeclaration(false);
+    this->pnodeNext = nullptr;
+    this->pnodeName = nullptr;
+    this->pid = nullptr;
+    this->hint = nullptr;
+    this->hintOffset = 0;
+    this->hintLength = 0;
+    this->isNameIdentifierRef = true;
+    this->nestedFuncEscapes = false;
+    this->pnodeScopes = nullptr;
+    this->pnodeBodyScope = nullptr;
+    this->pnodeParams = nullptr;
+    this->pnodeVars = nullptr;
+    this->pnodeBody = nullptr;
+    this->pnodeRest = nullptr;
+    
+    this->funcInfo = nullptr;
+    this->scope = nullptr;
+    this->nestedCount = 0;
+    this->nestedIndex = (uint)-1;
+    this->firstDefaultArg = 0;
+
+    this->astSize = 0;
+    this->cbMin = 0;
+    this->cbLim = 0;
+    this->lineNumber = 0;
+    this->columnNumber = 0;
+    this->functionId = 0;
+#if DBG
+    this->deferredParseNextFunctionId = Js::Constants::NoFunctionId;
+#endif
+    this->pRestorePoint = nullptr;
+    this->deferredStub = nullptr;
+
+    
+}
+
+ParseNodeClass::ParseNodeClass(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNode(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeExportDefault::ParseNodeExportDefault(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNode(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeStrTemplate::ParseNodeStrTemplate(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNode(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeProg::ParseNodeProg(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNodeFnc(nop, ichMin, ichLim)
+{
+    this->pnodeLastValStmt = nullptr;
+    this->m_UsesArgumentsAtGlobal = false;
+}
+
+ParseNodeModule::ParseNodeModule(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNodeProg(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeCall::ParseNodeCall(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNodePtr pnodeTarget, ParseNodePtr pnodeArgs)
+    : ParseNode(nop, ichMin, ichLim)
+{
     this->pnodeTarget = pnodeTarget;
     this->pnodeArgs = pnodeArgs;
     this->argCount = 0;
@@ -283,19 +436,15 @@ void ParseNodeCall::Init(OpCode nop, ParseNodePtr pnodeTarget, ParseNodePtr pnod
     this->hasDestructuring = false;
 }
 
-void ParseNodeSuperCall::Init(OpCode nop, ParseNodePtr pnodeTarget, ParseNodePtr pnodeArgs, charcount_t ichMin, charcount_t ichLim)
+ParseNodeStmt::ParseNodeStmt(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNode(nop, ichMin, ichLim)
 {
-    __super::Init(nop, pnodeTarget, pnodeArgs, ichMin, ichLim);
-
-    this->isSuperCall = true;
-    this->pnodeThis = nullptr;
-    this->pnodeNewTarget = nullptr;
+    this->emitLabels = false;
 }
 
-void ParseNodeBlock::Init(int blockId, PnodeBlockType blockType, charcount_t ichMin, charcount_t ichLim)
+ParseNodeBlock::ParseNodeBlock(charcount_t ichMin, charcount_t ichLim, int blockId, PnodeBlockType blockType)
+    : ParseNodeStmt(knopBlock, ichMin, ichLim)
 {
-    __super::Init(knopBlock, ichMin, ichLim);
-
     this->pnodeScopes = nullptr;
     this->pnodeNext = nullptr;
     this->scope = nullptr;
@@ -313,4 +462,106 @@ void ParseNodeBlock::Init(int blockId, PnodeBlockType blockType, charcount_t ich
     {
         this->grfpn |= PNodeFlags::fpnSyntheticNode;
     }
+}
+
+ParseNodeJump::ParseNodeJump(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNodeStmt(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeLoop::ParseNodeLoop(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNodeStmt(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeWhile::ParseNodeWhile(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNodeLoop(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeWith::ParseNodeWith(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNodeStmt(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeParamPattern::ParseNodeParamPattern(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNode(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeIf::ParseNodeIf(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNodeStmt(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeForInOrForOf::ParseNodeForInOrForOf(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNodeLoop(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeFor::ParseNodeFor(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNodeLoop(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeSwitch::ParseNodeSwitch(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNodeStmt(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeCase::ParseNodeCase(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNodeStmt(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeReturn::ParseNodeReturn(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNodeStmt(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeTryFinally::ParseNodeTryFinally(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNodeStmt(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeTryCatch::ParseNodeTryCatch(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNodeStmt(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeTry::ParseNodeTry(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNodeStmt(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeCatch::ParseNodeCatch(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNodeStmt(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeFinally::ParseNodeFinally(OpCode nop, charcount_t ichMin, charcount_t ichLim)
+    : ParseNodeStmt(nop, ichMin, ichLim)
+{
+}
+
+ParseNodeSpecialName::ParseNodeSpecialName(charcount_t ichMin, charcount_t ichLim, IdentPtr pid)
+    : ParseNodePid(knopName, ichMin, ichLim, pid)
+{
+    this->SetIsSpecialName();
+    this->isThis = false;
+    this->isSuper = false;
+}
+
+ParseNodeSuperReference::ParseNodeSuperReference(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1, ParseNode * pnode2)
+    : ParseNodeBin(nop, ichMin, ichLim, pnode1, pnode2)
+{
+    this->pnodeThis = nullptr;
+}
+
+ParseNodeSuperCall::ParseNodeSuperCall(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnodeTarget, ParseNode * pnodeArgs)
+    : ParseNodeCall(nop, ichMin, ichLim, pnodeTarget, pnodeArgs)
+{
+    this->isSuperCall = true;
+    this->pnodeThis = nullptr;
+    this->pnodeNewTarget = nullptr;
 }

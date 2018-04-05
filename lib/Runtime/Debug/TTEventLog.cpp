@@ -2526,8 +2526,14 @@ namespace TTD
 
     void EventLog::InnerLoopEmitLog(const TTDebuggerSourceLocation& writeLocation, const char* emitUri, size_t emitUriLength)
     {
-        NSLogEvents::TTDInnerLoopLogWriteEventLogEntry* evt = nullptr;
-        this->RecordGetInitializedEvent<NSLogEvents::TTDInnerLoopLogWriteEventLogEntry, NSLogEvents::EventKind::TTDInnerLoopLogWriteTag>(&evt);
+        //Events are slab allocated with header immediately followed by payload -- we need to replicate this layout here so we allocate an array and explicitly layout.
+        //See definition of GetNextAvailableEntry and GetInlineEventDataAs for more detail.
+        byte buff[TTD_EVENT_PLUS_DATA_SIZE(NSLogEvents::TTDInnerLoopLogWriteEventLogEntry)];
+
+        NSLogEvents::EventLogEntry* entry = reinterpret_cast<NSLogEvents::EventLogEntry*>(buff);
+        NSLogEvents::EventLogEntry_Initialize<NSLogEvents::EventKind::TTDInnerLoopLogWriteTag>(entry, this->m_eventTimeCtr);
+
+        NSLogEvents::TTDInnerLoopLogWriteEventLogEntry* evt = NSLogEvents::GetInlineEventDataAs<NSLogEvents::TTDInnerLoopLogWriteEventLogEntry, NSLogEvents::EventKind::TTDInnerLoopLogWriteTag>(entry);
 
         evt->SourceScriptLogId = writeLocation.GetScriptLogTagId();
         evt->EventTime = writeLocation.GetRootEventTime();
@@ -2541,10 +2547,23 @@ namespace TTD
         evt->Line = writeLocation.GetSourceLine();
         evt->Column = writeLocation.GetSourceColumn();
 
-        this->EmitLog(emitUri, emitUriLength);
+        this->EmitLog(emitUri, emitUriLength, entry);
     }
 
-    void EventLog::EmitLog(const char* emitUri, size_t emitUriLength)
+    bool EventLog::CanWriteInnerLoopTrace() const
+    {
+        bool isInnerLoop = (this->m_currentMode & (TTDMode::RecordDebuggerMode)) == TTDMode::RecordDebuggerMode;
+        bool isEnabled = (this->m_currentMode & (TTDMode::CurrentlyEnabled)) == TTDMode::CurrentlyEnabled;
+
+        return isInnerLoop & isEnabled;
+    }
+
+    bool EventLog::SuppressDiagnosticTracesDuringInnerLoop() const
+    {
+        return (this->m_currentMode & (TTDMode::DebuggerAttachedMode)) == TTDMode::DebuggerAttachedMode;
+    }
+
+    void EventLog::EmitLog(const char* emitUri, size_t emitUriLength, NSLogEvents::EventLogEntry* optInnerLoopEvent)
     {
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
         this->m_threadContext->TTDExecutionInfo->GetTraceLogger()->ForceFlush();
@@ -2604,7 +2623,7 @@ namespace TTD
         writer.WriteUInt64(NSTokens::Key::usedMemory, usedSpace, NSTokens::Separator::CommaSeparator);
         writer.WriteUInt64(NSTokens::Key::reservedMemory, reservedSpace, NSTokens::Separator::CommaSeparator);
 
-        uint32 ecount = this->m_eventList.Count();
+        uint32 ecount = this->m_eventList.Count() + (optInnerLoopEvent != nullptr ? 1 : 0);
         writer.WriteLengthValue(ecount, NSTokens::Separator::CommaAndBigSpaceSeparator);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
@@ -2677,6 +2696,13 @@ namespace TTD
             }
 #endif
         }
+
+        if (optInnerLoopEvent != nullptr)
+        {
+            //Emit the special event that indicates we want to break at the end of the log (with a known breakpoint time)
+            NSLogEvents::EventLogEntry_Emit(optInnerLoopEvent, this->m_eventListVTable, &writer, this->m_threadContext, NSTokens::Separator::BigSpaceSeparator);
+        }
+
         writer.AdjustIndent(-1);
         writer.WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
 

@@ -1090,7 +1090,8 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         bool doJITLoopBody =
             !this->executeFunction->GetScriptContext()->GetConfig()->IsNoNative() &&
-            !(this->executeFunction->GetHasTry() && (PHASE_OFF((Js::JITLoopBodyInTryCatchPhase), this->executeFunction) || this->executeFunction->GetHasFinally())) &&
+            !(this->executeFunction->GetHasTry() && (PHASE_OFF((Js::JITLoopBodyInTryCatchPhase), this->executeFunction))) &&
+            !(this->executeFunction->GetHasFinally() && (PHASE_OFF((Js::JITLoopBodyInTryFinallyPhase), this->executeFunction))) &&
             (this->executeFunction->ForceJITLoopBody() || this->executeFunction->IsJitLoopBodyPhaseEnabled()) &&
             !this->executeFunction->IsInDebugMode();
 #endif
@@ -3377,7 +3378,7 @@ namespace Js
         PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
         Var aValue;
         if (obj &&
-            CacheOperators::TryGetProperty<true, true, false, false, false, false, true, false, false>(
+            CacheOperators::TryGetProperty<true, true, false, false, false, false, true, false, false, false>(
                 obj, false, obj, propertyId, &aValue, GetScriptContext(), nullptr, &info))
         {
             SetReg(playout->Value, aValue);
@@ -3423,7 +3424,7 @@ namespace Js
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
         Var aValue;
-        if (CacheOperators::TryGetProperty<true, true, false, false, false, false, true, false, false>(
+        if (CacheOperators::TryGetProperty<true, true, false, false, false, false, true, false, false, false>(
                 obj, true, obj, propertyId, &aValue, GetScriptContext(), nullptr, &info))
         {
             SetReg(playout->Value, aValue);
@@ -3481,7 +3482,7 @@ namespace Js
         PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
         Var aValue;
         if (obj &&
-            CacheOperators::TryGetProperty<true, true, false, false, false, false, true, false, false>(
+            CacheOperators::TryGetProperty<true, true, false, false, false, false, true, false, false, false>(
                 obj, false, obj, propertyId, &aValue, GetScriptContext(), nullptr, &info))
         {
             threadContext->CheckAndResetImplicitCallAccessorFlag();
@@ -3810,7 +3811,7 @@ namespace Js
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
         Var value;
-        if(CacheOperators::TryGetProperty<true, false, false, false, false, false, true, false, false>(
+        if(CacheOperators::TryGetProperty<true, false, false, false, false, false, true, false, false, false>(
                 obj, true, obj, propertyId, &value, GetScriptContext(), nullptr, &info))
         {
             SetReg(playout->Value, value);
@@ -4011,7 +4012,7 @@ namespace Js
             PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
 
             Var value;
-            if (CacheOperators::TryGetProperty<true, false, false, false, false, false, true, false, false>(
+            if (CacheOperators::TryGetProperty<true, false, false, false, false, false, true, false, false, false>(
                     obj, false, obj, propertyId, &value, GetScriptContext(), nullptr, &info))
             {
                 SetReg(playout->Value, value);
@@ -4037,7 +4038,7 @@ namespace Js
             PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->PropertyIdIndex, true);
 
             Var value;
-            if (CacheOperators::TryGetProperty<true, false, false, false, false, false, true, false, false>(
+            if (CacheOperators::TryGetProperty<true, false, false, false, false, false, true, false, false, false>(
                 thisObj, false, superObj, propertyId, &value, GetScriptContext(), nullptr, &info))
             {
                 SetReg(playout->Value, value);
@@ -4158,7 +4159,7 @@ namespace Js
             PropertyValueInfo info;
             PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
             Var value;
-            if (CacheOperators::TryGetProperty<true, false, false, false, false, false, true, false, false>(
+            if (CacheOperators::TryGetProperty<true, false, false, false, false, false, true, false, false, false>(
                     obj, false, obj, propertyId, &value, scriptContext, nullptr, &info))
             {
                 threadContext->CheckAndResetImplicitCallAccessorFlag();
@@ -4195,7 +4196,7 @@ namespace Js
             PropertyValueInfo info;
             PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
             Var value;
-            if (CacheOperators::TryGetProperty<true, false, false, false, false, false, true, false, false>(
+            if (CacheOperators::TryGetProperty<true, false, false, false, false, false, true, false, false, false>(
                 obj, false, obj, propertyId, &value, scriptContext, nullptr, &info))
             {
                 threadContext->CheckAndResetImplicitCallAccessorFlag();
@@ -5753,6 +5754,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
 
         Js::LoopHeader *loopHeader = fn->GetLoopHeader(loopNumber);
         loopHeader->isInTry = this->TestFlags(Js::InterpreterStackFrameFlags_WithinTryBlock);
+        loopHeader->isInTryFinally = this->TestFlags(Js::InterpreterStackFrameFlags_WithinTryFinallyBlock);
 
         Js::LoopEntryPointInfo * entryPointInfo = loopHeader->GetCurrentEntryPointInfo();
 
@@ -6537,6 +6539,11 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
                 // mark the stackFrame as 'in try block'
                 this->OrFlags(InterpreterStackFrameFlags_WithinTryBlock);
 
+                if (finallyOffset != 0)
+                {
+                    this->OrFlags(InterpreterStackFrameFlags_WithinTryFinallyBlock);
+                }
+
                 if (tryNestingDepth != 0)
                 {
                     this->ProcessTryHandlerBailout(ehBailoutData->child, --tryNestingDepth);
@@ -6637,7 +6644,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
         if (--this->nestedTryDepth == -1)
         {
             // unmark the stackFrame as 'in try block'
-            this->ClearFlags(InterpreterStackFrameFlags_WithinTryBlock);
+            this->ClearFlags(InterpreterStackFrameFlags_WithinTryBlock | InterpreterStackFrameFlags_WithinTryFinallyBlock);
         }
 
         // Now that the stack is unwound, let's run the catch block.
@@ -6843,7 +6850,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
 
             this->nestedTryDepth++;
             // mark the stackFrame as 'in try block'
-            this->OrFlags(InterpreterStackFrameFlags_WithinTryBlock);
+            this->OrFlags(InterpreterStackFrameFlags_WithinTryBlock | InterpreterStackFrameFlags_WithinTryFinallyBlock);
 
             if (shouldCacheSP)
             {
@@ -6886,7 +6893,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
         if (--this->nestedTryDepth == -1)
         {
             // unmark the stackFrame as 'in try block'
-            this->ClearFlags(InterpreterStackFrameFlags_WithinTryBlock);
+            this->ClearFlags(InterpreterStackFrameFlags_WithinTryBlock | InterpreterStackFrameFlags_WithinTryFinallyBlock);
         }
 
         shouldCacheSP = !skipFinallyBlock;
@@ -8196,7 +8203,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
 
     Var InterpreterStackFrame::GetRootObject() const
     {
-        Assert(!this->GetFunctionBody()->IsJsBuiltInInitCode());
+        Assert(!this->GetFunctionBody()->IsJsBuiltInCode());
         Var rootObject = GetReg(Js::FunctionBody::RootObjectRegSlot);
         Assert(rootObject == this->GetFunctionBody()->LoadRootObject());
         return rootObject;
@@ -8336,13 +8343,14 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
 
         LdLenInfo ldLenInfo;
         ldLenInfo.arrayType = ValueType::Uninitialized.Merge(instance);
-        profileData->RecordLengthLoad(functionBody, playout->profileId, ldLenInfo);
 
         if (this->TestFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArraySpecialization))
         {
             ldLenInfo.disableAggressiveSpecialization = true;
             this->ClearFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArraySpecialization);
         }
+
+        profileData->RecordLengthLoad(functionBody, playout->profileId, ldLenInfo);
 
         ThreadContext* threadContext = this->GetScriptContext()->GetThreadContext();
         ImplicitCallFlags savedImplicitCallFlags = threadContext->GetImplicitCallFlags();

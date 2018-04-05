@@ -248,6 +248,11 @@ namespace Js
 
     void PathTypeHandlerBase::SetSuccessor(DynamicType * type, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext)
     {
+#if DBG
+        DynamicType * successorType = typeWeakRef->Get();
+        AssertMsg(!successorType || !successorType->GetTypeHandler()->IsPathTypeHandler() || 
+                  PathTypeHandlerBase::FromTypeHandler(successorType->GetTypeHandler())->GetPredecessorType() == type, "We're using a successor that has a different predecessor?");
+#endif
         if (this->successorInfo == nullptr)
         {
             this->successorInfo = PathTypeSingleSuccessorInfo::New(successorKey, typeWeakRef, scriptContext);
@@ -312,13 +317,7 @@ namespace Js
                     if ((attr & (ObjectSlotAttr_Writable | ObjectSlotAttr_Accessor)) == ObjectSlotAttr_Writable)
                     {
                         PropertyValueInfo::SetCacheInfo(info, propertyString, propertyString->GetLdElemInlineCache(), false);
-                        PropertyValueInfo::Set(info, instance, index, ObjectSlotAttributesToPropertyAttributes(attr));
-#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
-                        if (FixPropsOnPathTypes() && (index >= this->GetTypePath()->GetMaxInitializedLength() || this->GetTypePath()->GetIsFixedFieldAt(index, GetPathLength())))
-                        {
-                            PropertyValueInfo::DisableStoreFieldCache(info);
-                        }
-#endif
+                        SetPropertyValueInfo(info, instance, index, attr);
                     }
                     else
                     {
@@ -587,7 +586,18 @@ namespace Js
     }
 #endif
 
-    BOOL PathTypeHandlerBase::HasProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *noRedecl)
+    void PathTypeHandlerBase::SetPropertyValueInfo(PropertyValueInfo* info, RecyclableObject* instance, PropertyIndex index, ObjectSlotAttributes attributes)
+    {
+        PropertyValueInfo::Set(info, instance, index, ObjectSlotAttributesToPropertyAttributes(attributes));
+#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
+        if (FixPropsOnPathTypes() && (index >= this->GetTypePath()->GetMaxInitializedLength() || this->GetTypePath()->GetIsFixedFieldAt(index, GetPathLength())))
+        {
+            PropertyValueInfo::DisableStoreFieldCache(info);
+        }
+#endif
+    }
+
+    BOOL PathTypeHandlerBase::HasProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *noRedecl, _Inout_opt_ PropertyValueInfo* info)
     {
         uint32 indexVal;
         if (noRedecl != nullptr)
@@ -595,8 +605,13 @@ namespace Js
             *noRedecl = false;
         }
 
-        if (PathTypeHandlerBase::GetPropertyIndex(propertyId) != Constants::NoSlot)
+        PropertyIndex propertyIndex = PathTypeHandlerBase::GetPropertyIndex(propertyId);
+        if (propertyIndex != Constants::NoSlot)
         {
+            if (info)
+            {
+                this->SetPropertyValueInfo(info, instance, propertyIndex);
+            }
             return true;
         }
 
@@ -624,13 +639,7 @@ namespace Js
         if (index != Constants::NoSlot)
         {
             *value = instance->GetSlot(index);
-            PropertyValueInfo::Set(info, instance, index);
-#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
-            if (FixPropsOnPathTypes() && (index >= this->GetTypePath()->GetMaxInitializedLength() || this->GetTypePath()->GetIsFixedFieldAt(index, GetPathLength())))
-            {
-                PropertyValueInfo::DisableStoreFieldCache(info);
-            }
-#endif
+            SetPropertyValueInfo(info, instance, index);
             return true;
         }
 
@@ -1135,11 +1144,11 @@ namespace Js
             _Analysis_assume_(setters != nullptr);
             setterSlot = setters[propertyIndex];
         }
-        else if (attributes != nullptr)
+        else
         {
             // We may already have a valid setter slot, if the property has gone from accessor to data and now back to accessor.
             // Re-use the setter slot if we can.
-            setters = newTypeHandler->GetSetterSlots();
+            setters = PathTypeHandlerWithAttr::FromPathTypeHandler(newTypeHandler)->PathTypeHandlerWithAttr::GetSetterSlots();
             if (setters != nullptr)
             {
                 setterSlot = setters[propertyIndex];
@@ -1160,7 +1169,7 @@ namespace Js
                 instance->ReplaceType(newType);
             }
             newTypeHandler = PathTypeHandlerBase::FromTypeHandler(newType->GetTypeHandler());
-            setters = newTypeHandler->GetSetterSlots();
+            setters = PathTypeHandlerWithAttr::FromPathTypeHandler(newTypeHandler)->PathTypeHandlerWithAttr::GetSetterSlots();
             Assert(setters != nullptr);
             _Analysis_assume_(setters != nullptr);
             setters[propertyIndex] = setterSlot;
@@ -2153,6 +2162,10 @@ namespace Js
 
         (*propertyIndex) = index;
 
+#if DBG
+        AssertMsg(nextPath->GetPredecessorType()->GetTypeHandler() == this, "Promoting this type to a successor with a different predecessor?");
+#endif
+
         return nextType;
     }
 
@@ -2188,9 +2201,17 @@ namespace Js
         }
         else
         {
+            uint16 pathLength = GetPathLength();
             // In branching cases, the new type path may be shorter than the old.
             initStart = min(newTypePathSize, oldPathSize);
-            memcpy(newSetters, oldSetters, sizeof(PathTypeSetterSlotIndex) * initStart);
+            for (uint8 i = 0; i < initStart; i++)
+            {
+                // Only copy setter indices that refer to the part of the path contained by this handler already.
+                // Otherwise, wait for the correct index, which may be different on this path of the branch,
+                // to be set when the setter property is added to the handler.
+                PathTypeSetterSlotIndex oldIndex = oldSetters[i];
+                newSetters[i] = oldIndex < pathLength ? oldIndex : NoSetterSlot;
+            }
         }
         for (uint8 i = initStart; i < newTypePathSize; i++)
         {
@@ -3574,6 +3595,41 @@ namespace Js
         return GetPropertyCount() - setterCount;
     }
 
+    BOOL PathTypeHandlerWithAttr::HasProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *noRedecl, _Inout_opt_ PropertyValueInfo* info)
+    {
+        if (noRedecl != nullptr)
+        {
+            *noRedecl = false;
+        }
+
+        PropertyIndex index = GetTypePath()->LookupInline(propertyId, GetPathLength());
+        if (index == Constants::NoSlot)
+        {
+            return __super::HasProperty(instance, propertyId, noRedecl, info);
+        }
+
+        ObjectSlotAttributes attr = attributes[index];
+
+        if (attr & ObjectSlotAttr_Deleted)
+        {
+            return false;
+        }
+
+        if (attr & ObjectSlotAttr_Accessor)
+        {
+            // PropertyAttributes is only one byte so it can't carry out data about whether this is an accessor.
+            // Accessors must be cached differently than normal properties, so if we want to cache this we must
+            // do so here rather than in the caller. However, caching here would require passing originalInstance and 
+            // requestContext through a wide variety of call paths to this point (like we do for GetProperty), for
+            // very little improvement. For now, just block caching this case.
+            PropertyValueInfo::SetNoCache(info, instance);
+            return true;
+        }
+
+        this->SetPropertyValueInfo(info, instance, index, attr);
+        return true;
+    }
+
     BOOL PathTypeHandlerWithAttr::GetProperty(DynamicObject* instance, Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         PropertyIndex index = GetTypePath()->LookupInline(propertyId, GetPathLength());
@@ -3601,13 +3657,7 @@ namespace Js
         }
 
         *value = instance->GetSlot(index);
-        PropertyValueInfo::Set(info, instance, index, ObjectSlotAttributesToPropertyAttributes(attributes[index]));
-#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
-        if (FixPropsOnPathTypes() && (index >= this->GetTypePath()->GetMaxInitializedLength() || this->GetTypePath()->GetIsFixedFieldAt(index, GetPathLength())))
-        {
-            PropertyValueInfo::DisableStoreFieldCache(info);
-        }
-#endif
+        this->SetPropertyValueInfo(info, instance, index, attr);
         return true;
     }
 

@@ -71,6 +71,7 @@ namespace ChakraWabt
         {
             bool sign_extends : 1;
             bool threads : 1;
+            bool simd : 1;
         } features;
     };
 

@@ -55,13 +55,13 @@
     <default>
       <files>randombug.js</files>
       <baseline>randombug.baseline</baseline>
-      <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
+      <compile-flags>-CollectGarbage -ExtendedErrorStackForTestHost</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>blue_532460.js</files>
-      <compile-flags>-MaxinterpretCount:1 -MaxSimpleJITRunCount:0 -loopinterpretcount:1 -force:deferparse</compile-flags>
+      <compile-flags>-CollectGarbage -MaxinterpretCount:1 -MaxSimpleJITRunCount:0 -loopinterpretcount:1 -force:deferparse</compile-flags>
     </default>
   </test>
   <test>

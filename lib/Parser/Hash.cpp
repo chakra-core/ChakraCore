@@ -206,6 +206,14 @@ void Ident::SetTk(tokens token, ushort grfid)
     }
 }
 
+void Ident::TrySetIsUsedInLdElem(ParseNode * pnode)
+{
+    if (pnode && pnode->nop == knopStr)
+    {
+        pnode->AsParseNodePid()->pid->SetIsUsedInLdElem(true);
+    }
+}
+
 IdentPtr HashTbl::PidFromTk(tokens token)
 {
     Assert(token > tkNone && token < tkID);
@@ -250,7 +258,7 @@ template <typename CharType>
 IdentPtr HashTbl::PidHashNameLenWithHash(_In_reads_(cch) CharType const * prgch, CharType const * end, int32 cch, uint32 luHash)
 {
     Assert(cch >= 0);
-    AssertArrMemR(prgch, cch);
+    Assert(cch == 0 || prgch != nullptr);
     Assert(luHash == CaseSensitiveComputeHash(prgch, end));
 
     IdentPtr * ppid = nullptr;

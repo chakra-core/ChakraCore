@@ -13,8 +13,6 @@ namespace OpCodeAttr
 //      Doesn't include all "exit" script (e.g. LdThis doesn't have side effect for HostDispatch for exiting script to getting the name space parent)
 // OpHasImplicitCall:
 //      Include all possible exit scripts, call valueOf/toString/getter/setter
-// OpSerialized:
-//      Op is a serialized (indirected) variant of another op code
 enum OpCodeAttrEnum
 {
     None                        = 0x00000000,
@@ -46,15 +44,13 @@ enum OpCodeAttrEnum
     OpCanCSE                    = 0x00200000, // Opcode has no side-effect and always produces the same value for a given input (InlineMathAbs is OK, InlineMathRandom is not)
     OpNoFallThrough             = 0x00400000, // Opcode doesn't fallthrough in flow and it always jumps to the return from this opcode
     OpPostOpDbgBailOut          = 0x00800000, // Generate bail out after this opcode. This must be a helper call and needs bailout on return from it. Used for Fast F12.
-
     OpHasMultiSizeLayout        = 0x01000000,
     OpHasProfiled               = 0x02000000,
     OpHasProfiledWithICIndex    = 0x04000000,
     OpDeadFallThrough           = 0x08000000,
     OpProfiled                  = 0x10000000, // OpCode is a profiled variant
     OpProfiledWithICIndex       = 0x20000000, // OpCode is a profiled with IC index variant
-    OpBackEndOnly               = 0x40000000,
-    OpByteCodeOnly              = 0x80000000,
+    OpByteCodeOnly              = 0x40000000,
 };
 
 static const int OpcodeAttributes[] =
@@ -166,10 +162,7 @@ bool ByteCodeOnly(Js::OpCode opcode)
 {
     return ((GetOpCodeAttributes(opcode) & OpByteCodeOnly) != 0);
 }
-bool BackEndOnly(Js::OpCode opcode)
-{
-    return ((GetOpCodeAttributes(opcode) & OpBackEndOnly) != 0);
-}
+
 bool DoNotTransfer(Js::OpCode opcode)
 {
     return ((GetOpCodeAttributes(opcode) & OpDoNotTransfer) != 0);
@@ -210,12 +203,10 @@ bool NeedsPostOpDbgBailOut(Js::OpCode opcode)
 {
     return ((GetOpCodeAttributes(opcode) & OpPostOpDbgBailOut) != 0);
 }
-
 bool HasMultiSizeLayout(Js::OpCode opcode)
 {
     return ((GetOpCodeAttributes(opcode) & OpHasMultiSizeLayout) != 0);
 }
-
 bool HasProfiledOp(Js::OpCode opcode)
 {
     return ((GetOpCodeAttributes(opcode) & OpHasProfiled) != 0);
@@ -233,4 +224,61 @@ bool CanLoadFixedFields(Js::OpCode opcode)
     return ((GetOpCodeAttributes(opcode) & OpCanLoadFixedFields) != 0);
 }
 
+#if DBG
+
+enum OpCodeDebugAttrEnum
+{
+    OpDbgAttr_None,
+    OpDbgAttr_BackEndOnly           = 0x00000001,
+    OpDbgAttr_LoadRoot              = 0x00000002,       // opcode uses root object
+};
+static const int OpcodeDebugAttributes[] =
+{
+#define DEF_OP(name, jnLayout, attrib, dbgAttrib) dbgAttrib,
+#include "ByteCode/OpCodeList.h"
+#undef DEF_OP
+};
+
+static const int ExtendedOpcodeDebugAttributes[] =
+{
+#define DEF_OP(name, jnLayout, attrib, dbgAttrib) dbgAttrib,
+#include "ByteCode/ExtendedOpCodeList.h"
+#undef DEF_OP
+};
+
+static const int BackendOpCodeDebugAttributes[] =
+{
+#define DEF_OP(name, jnLayout, attrib, dbgAttrib) dbgAttrib,
+#include "BackendOpCodeList.h"
+#undef DEF_OP
+};
+
+static const int GetOpCodeDebugAttributes(Js::OpCode op)
+{
+    if (op <= Js::OpCode::MaxByteSizedOpcodes)
+    {
+        AnalysisAssert(op < _countof(OpcodeDebugAttributes));
+        return OpcodeDebugAttributes[(int)op];
+    }
+    else if (op < Js::OpCode::ByteCodeLast)
+    {
+        uint opIndex = op - (Js::OpCode::MaxByteSizedOpcodes + 1);
+        AnalysisAssert(opIndex < _countof(ExtendedOpcodeDebugAttributes));
+        return ExtendedOpcodeDebugAttributes[opIndex];
+    }
+    uint opIndex = op - (Js::OpCode::ByteCodeLast + 1);
+    AnalysisAssert(opIndex < _countof(BackendOpCodeDebugAttributes));
+    return BackendOpCodeDebugAttributes[opIndex];
+}
+
+bool BackEndOnly(Js::OpCode opcode)
+{
+    return ((GetOpCodeDebugAttributes(opcode) & OpDbgAttr_BackEndOnly) != 0);
+}
+
+bool LoadRoot(Js::OpCode opcode)
+{
+    return ((GetOpCodeDebugAttributes(opcode) & OpDbgAttr_LoadRoot) != 0);
+}
+#endif // DBG
 }; // OpCodeAttr

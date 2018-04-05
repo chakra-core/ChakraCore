@@ -63,4 +63,4 @@ size_t ReadS64Leb128(const uint8_t* p, const uint8_t* end, uint64_t* out_value);
 
 }  // namespace wabt
 
-#endif // WABT_LEB128_H_
+#endif  // WABT_LEB128_H_

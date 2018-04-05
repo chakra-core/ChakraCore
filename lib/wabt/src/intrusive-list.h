@@ -424,8 +424,7 @@ inline void intrusive_list<T>::emplace_back(Args&&... args) {
 
 template <typename T>
 inline void intrusive_list<T>::push_front(std::unique_ptr<T> node) {
-  assert(node->prev_ == nullptr &&
-         node->next_ == nullptr);
+  assert(node->prev_ == nullptr && node->next_ == nullptr);
 
   T* node_p = node.release();
   if (first_) {
@@ -445,8 +444,7 @@ inline void intrusive_list<T>::push_front(T&& node) {
 
 template <typename T>
 inline void intrusive_list<T>::push_back(std::unique_ptr<T> node) {
-  assert(node->prev_ == nullptr &&
-         node->next_ == nullptr);
+  assert(node->prev_ == nullptr && node->next_ == nullptr);
 
   T* node_p = node.release();
   if (last_) {
@@ -516,8 +514,7 @@ template <typename T>
 inline typename intrusive_list<T>::iterator intrusive_list<T>::insert(
     iterator pos,
     std::unique_ptr<T> node) {
-  assert(node->prev_ == nullptr &&
-         node->next_ == nullptr);
+  assert(node->prev_ == nullptr && node->next_ == nullptr);
 
   T* node_p;
   if (pos == end()) {
@@ -633,4 +630,4 @@ inline void intrusive_list<T>::splice(iterator pos,
 
 }  // namespace wabt
 
-#endif // WABT_INTRUSIVE_LIST_H_
+#endif  // WABT_INTRUSIVE_LIST_H_

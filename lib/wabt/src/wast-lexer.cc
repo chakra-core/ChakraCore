@@ -104,16 +104,19 @@ WastLexer::~WastLexer() {
 
 // static
 std::unique_ptr<WastLexer> WastLexer::CreateFileLexer(string_view filename) {
-  std::unique_ptr<LexerSource> source(new LexerSourceFile(filename));
-  return std::unique_ptr<WastLexer>(new WastLexer(std::move(source), filename));
+  auto source = MakeUnique<LexerSourceFile>(filename);
+  if (!source->IsOpen()) {
+    return std::unique_ptr<WastLexer>();
+  }
+  return MakeUnique<WastLexer>(std::move(source), filename);
 }
 
 // static
 std::unique_ptr<WastLexer> WastLexer::CreateBufferLexer(string_view filename,
                                                         const void* data,
                                                         size_t size) {
-  std::unique_ptr<LexerSource> source(new LexerSourceBuffer(data, size));
-  return std::unique_ptr<WastLexer>(new WastLexer(std::move(source), filename));
+  return MakeUnique<WastLexer>(MakeUnique<LexerSourceBuffer>(data, size),
+                               filename);
 }
 
 Location WastLexer::GetLocation() {
@@ -514,12 +517,145 @@ Token WastLexer::GetToken(WastParser* parser) {
       <i> "i64.atomic.rmw16_u.cmpxchg" { RETURN_OPCODE(AtomicRmwCmpxchg, I64AtomicRmw16UCmpxchg); }
       <i> "i64.atomic.rmw32_u.cmpxchg" { RETURN_OPCODE(AtomicRmwCmpxchg, I64AtomicRmw32UCmpxchg); }
       <i> "v128.const"           { RETURN_OPCODE(Const, V128Const); }
+      <i> "v128.load"            { RETURN_OPCODE(Load,  V128Load); }
+      <i> "v128.store"           { RETURN_OPCODE(Store, V128Store); }
       <i> "i8x16.splat"          { RETURN_OPCODE(Unary, I8X16Splat); }
       <i> "i16x8.splat"          { RETURN_OPCODE(Unary, I16X8Splat); }
       <i> "i32x4.splat"          { RETURN_OPCODE(Unary, I32X4Splat); }
       <i> "i64x2.splat"          { RETURN_OPCODE(Unary, I64X2Splat); }
       <i> "f32x4.splat"          { RETURN_OPCODE(Unary, F32X4Splat); }
       <i> "f64x2.splat"          { RETURN_OPCODE(Unary, F64X2Splat); }
+      <i> "i8x16.extract_lane_s" { RETURN_OPCODE(SimdLaneOp, I8X16ExtractLaneS); }
+      <i> "i8x16.extract_lane_u" { RETURN_OPCODE(SimdLaneOp, I8X16ExtractLaneU); }
+      <i> "i16x8.extract_lane_s" { RETURN_OPCODE(SimdLaneOp, I16X8ExtractLaneS); }
+      <i> "i16x8.extract_lane_u" { RETURN_OPCODE(SimdLaneOp, I16X8ExtractLaneU); }
+      <i> "i32x4.extract_lane"   { RETURN_OPCODE(SimdLaneOp, I32X4ExtractLane); }
+      <i> "i64x2.extract_lane"   { RETURN_OPCODE(SimdLaneOp, I64X2ExtractLane); }
+      <i> "f32x4.extract_lane"   { RETURN_OPCODE(SimdLaneOp, F32X4ExtractLane); }
+      <i> "f64x2.extract_lane"   { RETURN_OPCODE(SimdLaneOp, F64X2ExtractLane); }
+      <i> "i8x16.replace_lane"   { RETURN_OPCODE(SimdLaneOp, I8X16ReplaceLane); }
+      <i> "i16x8.replace_lane"   { RETURN_OPCODE(SimdLaneOp, I16X8ReplaceLane); }
+      <i> "i32x4.replace_lane"   { RETURN_OPCODE(SimdLaneOp, I32X4ReplaceLane); }
+      <i> "i64x2.replace_lane"   { RETURN_OPCODE(SimdLaneOp, I64X2ReplaceLane); }
+      <i> "f32x4.replace_lane"   { RETURN_OPCODE(SimdLaneOp, F32X4ReplaceLane); }
+      <i> "f64x2.replace_lane"   { RETURN_OPCODE(SimdLaneOp, F64X2ReplaceLane); }
+      <i> "v8x16.shuffle"        { RETURN_OPCODE(SimdShuffleOp, V8X16Shuffle); }
+      <i> "i8x16.add"            { RETURN_OPCODE(Binary, I8X16Add); }
+      <i> "i16x8.add"            { RETURN_OPCODE(Binary, I16X8Add); }
+      <i> "i32x4.add"            { RETURN_OPCODE(Binary, I32X4Add); }
+      <i> "i64x2.add"            { RETURN_OPCODE(Binary, I64X2Add); }
+      <i> "i8x16.sub"            { RETURN_OPCODE(Binary, I8X16Sub); }
+      <i> "i16x8.sub"            { RETURN_OPCODE(Binary, I16X8Sub); }
+      <i> "i32x4.sub"            { RETURN_OPCODE(Binary, I32X4Sub); }
+      <i> "i64x2.sub"            { RETURN_OPCODE(Binary, I64X2Sub); }
+      <i> "i8x16.mul"            { RETURN_OPCODE(Binary, I8X16Mul); }
+      <i> "i16x8.mul"            { RETURN_OPCODE(Binary, I16X8Mul); }
+      <i> "i32x4.mul"            { RETURN_OPCODE(Binary, I32X4Mul); }
+      <i> "i8x16.neg"            { RETURN_OPCODE(Unary, I8X16Neg); }
+      <i> "i16x8.neg"            { RETURN_OPCODE(Unary, I16X8Neg); }
+      <i> "i32x4.neg"            { RETURN_OPCODE(Unary, I32X4Neg); }
+      <i> "i64x2.neg"            { RETURN_OPCODE(Unary, I64X2Neg); }
+      <i> "i8x16.add_saturate_s" { RETURN_OPCODE(Binary, I8X16AddSaturateS); }
+      <i> "i8x16.add_saturate_u" { RETURN_OPCODE(Binary, I8X16AddSaturateU); }
+      <i> "i16x8.add_saturate_s" { RETURN_OPCODE(Binary, I16X8AddSaturateS); }
+      <i> "i16x8.add_saturate_u" { RETURN_OPCODE(Binary, I16X8AddSaturateU); }
+      <i> "i8x16.sub_saturate_s" { RETURN_OPCODE(Binary, I8X16SubSaturateS); }
+      <i> "i8x16.sub_saturate_u" { RETURN_OPCODE(Binary, I8X16SubSaturateU); }
+      <i> "i16x8.sub_saturate_s" { RETURN_OPCODE(Binary, I16X8SubSaturateS); }
+      <i> "i16x8.sub_saturate_u" { RETURN_OPCODE(Binary, I16X8SubSaturateU); }
+      <i> "i8x16.shl"            { RETURN_OPCODE(Binary, I8X16Shl); }
+      <i> "i16x8.shl"            { RETURN_OPCODE(Binary, I16X8Shl); }
+      <i> "i32x4.shl"            { RETURN_OPCODE(Binary, I32X4Shl); }
+      <i> "i64x2.shl"            { RETURN_OPCODE(Binary, I64X2Shl); }
+      <i> "i8x16.shr_s"          { RETURN_OPCODE(Binary, I8X16ShrS); }
+      <i> "i8x16.shr_u"          { RETURN_OPCODE(Binary, I8X16ShrU); }
+      <i> "i16x8.shr_s"          { RETURN_OPCODE(Binary, I16X8ShrS); }
+      <i> "i16x8.shr_u"          { RETURN_OPCODE(Binary, I16X8ShrU); }
+      <i> "i32x4.shr_s"          { RETURN_OPCODE(Binary, I32X4ShrS); }
+      <i> "i32x4.shr_u"          { RETURN_OPCODE(Binary, I32X4ShrU); }
+      <i> "i64x2.shr_s"          { RETURN_OPCODE(Binary, I64X2ShrS); }
+      <i> "i64x2.shr_u"          { RETURN_OPCODE(Binary, I64X2ShrU); }
+      <i> "v128.and"             { RETURN_OPCODE(Binary, V128And); }
+      <i> "v128.or"              { RETURN_OPCODE(Binary, V128Or); }
+      <i> "v128.xor"             { RETURN_OPCODE(Binary, V128Xor); }
+      <i> "v128.not"             { RETURN_OPCODE(Unary, V128Not); }
+      <i> "v128.bitselect"       { RETURN_OPCODE(Ternary, V128BitSelect); }
+      <i> "i8x16.any_true"       { RETURN_OPCODE(Unary,  I8X16AnyTrue); }
+      <i> "i16x8.any_true"       { RETURN_OPCODE(Unary,  I16X8AnyTrue); }
+      <i> "i32x4.any_true"       { RETURN_OPCODE(Unary,  I32X4AnyTrue); }
+      <i> "i64x2.any_true"       { RETURN_OPCODE(Unary,  I64X2AnyTrue); }
+      <i> "i8x16.all_true"       { RETURN_OPCODE(Unary,  I8X16AllTrue); }
+      <i> "i16x8.all_true"       { RETURN_OPCODE(Unary,  I16X8AllTrue); }
+      <i> "i32x4.all_true"       { RETURN_OPCODE(Unary,  I32X4AllTrue); }
+      <i> "i64x2.all_true"       { RETURN_OPCODE(Unary,  I64X2AllTrue); }
+      <i> "i8x16.eq"             { RETURN_OPCODE(Compare, I8X16Eq); }
+      <i> "i16x8.eq"             { RETURN_OPCODE(Compare, I16X8Eq); }
+      <i> "i32x4.eq"             { RETURN_OPCODE(Compare, I32X4Eq); }
+      <i> "f32x4.eq"             { RETURN_OPCODE(Compare, F32X4Eq); }
+      <i> "f64x2.eq"             { RETURN_OPCODE(Compare, F64X2Eq); }
+      <i> "i8x16.ne"             { RETURN_OPCODE(Compare, I8X16Ne); }
+      <i> "i16x8.ne"             { RETURN_OPCODE(Compare, I16X8Ne); }
+      <i> "i32x4.ne"             { RETURN_OPCODE(Compare, I32X4Ne); }
+      <i> "f32x4.ne"             { RETURN_OPCODE(Compare, F32X4Ne); }
+      <i> "f64x2.ne"             { RETURN_OPCODE(Compare, F64X2Ne); }
+      <i> "i8x16.lt_s"           { RETURN_OPCODE(Compare, I8X16LtS); }
+      <i> "i8x16.lt_u"           { RETURN_OPCODE(Compare, I8X16LtU); }
+      <i> "i16x8.lt_s"           { RETURN_OPCODE(Compare, I16X8LtS); }
+      <i> "i16x8.lt_u"           { RETURN_OPCODE(Compare, I16X8LtU); }
+      <i> "i32x4.lt_s"           { RETURN_OPCODE(Compare, I32X4LtS); }
+      <i> "i32x4.lt_u"           { RETURN_OPCODE(Compare, I32X4LtU); }
+      <i> "f32x4.lt"             { RETURN_OPCODE(Compare, F32X4Lt); }
+      <i> "f64x2.lt"             { RETURN_OPCODE(Compare, F64X2Lt); }
+      <i> "i8x16.le_s"           { RETURN_OPCODE(Compare, I8X16LeS); }
+      <i> "i8x16.le_u"           { RETURN_OPCODE(Compare, I8X16LeU); }
+      <i> "i16x8.le_s"           { RETURN_OPCODE(Compare, I16X8LeS); }
+      <i> "i16x8.le_u"           { RETURN_OPCODE(Compare, I16X8LeU); }
+      <i> "i32x4.le_s"           { RETURN_OPCODE(Compare, I32X4LeS); }
+      <i> "i32x4.le_u"           { RETURN_OPCODE(Compare, I32X4LeU); }
+      <i> "f32x4.le"             { RETURN_OPCODE(Compare, F32X4Le); }
+      <i> "f64x2.le"             { RETURN_OPCODE(Compare, F64X2Le); }
+      <i> "i8x16.gt_s"           { RETURN_OPCODE(Compare, I8X16GtS); }
+      <i> "i8x16.gt_u"           { RETURN_OPCODE(Compare, I8X16GtU); }
+      <i> "i16x8.gt_s"           { RETURN_OPCODE(Compare, I16X8GtS); }
+      <i> "i16x8.gt_u"           { RETURN_OPCODE(Compare, I16X8GtU); }
+      <i> "i32x4.gt_s"           { RETURN_OPCODE(Compare, I32X4GtS); }
+      <i> "i32x4.gt_u"           { RETURN_OPCODE(Compare, I32X4GtU); }
+      <i> "f32x4.gt"             { RETURN_OPCODE(Compare, F32X4Gt); }
+      <i> "f64x2.gt"             { RETURN_OPCODE(Compare, F64X2Gt); }
+      <i> "i8x16.ge_s"           { RETURN_OPCODE(Compare, I8X16GeS); }
+      <i> "i8x16.ge_u"           { RETURN_OPCODE(Compare, I8X16GeU); }
+      <i> "i16x8.ge_s"           { RETURN_OPCODE(Compare, I16X8GeS); }
+      <i> "i16x8.ge_u"           { RETURN_OPCODE(Compare, I16X8GeU); }
+      <i> "i32x4.ge_s"           { RETURN_OPCODE(Compare, I32X4GeS); }
+      <i> "i32x4.ge_u"           { RETURN_OPCODE(Compare, I32X4GeU); }
+      <i> "f32x4.ge"             { RETURN_OPCODE(Compare, F32X4Ge); }
+      <i> "f64x2.ge"             { RETURN_OPCODE(Compare, F64X2Ge); }
+      <i> "f32x4.neg"            { RETURN_OPCODE(Unary, F32X4Neg); }
+      <i> "f64x2.neg"            { RETURN_OPCODE(Unary, F64X2Neg); }
+      <i> "f32x4.abs"            { RETURN_OPCODE(Unary, F32X4Abs); }
+      <i> "f64x2.abs"            { RETURN_OPCODE(Unary, F64X2Abs); }
+      <i> "f32x4.min"            { RETURN_OPCODE(Binary, F32X4Min); }
+      <i> "f64x2.min"            { RETURN_OPCODE(Binary, F64X2Min); }
+      <i> "f32x4.max"            { RETURN_OPCODE(Binary, F32X4Max); }
+      <i> "f64x2.max"            { RETURN_OPCODE(Binary, F64X2Max); }
+      <i> "f32x4.add"            { RETURN_OPCODE(Binary, F32X4Add); }
+      <i> "f64x2.add"            { RETURN_OPCODE(Binary, F64X2Add); }
+      <i> "f32x4.sub"            { RETURN_OPCODE(Binary, F32X4Sub); }
+      <i> "f64x2.sub"            { RETURN_OPCODE(Binary, F64X2Sub); }
+      <i> "f32x4.div"            { RETURN_OPCODE(Binary, F32X4Div); }
+      <i> "f64x2.div"            { RETURN_OPCODE(Binary, F64X2Div); }
+      <i> "f32x4.mul"            { RETURN_OPCODE(Binary, F32X4Mul); }
+      <i> "f64x2.mul"            { RETURN_OPCODE(Binary, F64X2Mul); }
+      <i> "f32x4.sqrt"            { RETURN_OPCODE(Unary, F32X4Sqrt); }
+      <i> "f64x2.sqrt"            { RETURN_OPCODE(Unary, F64X2Sqrt); }
+      <i> "f32x4.convert_s/i32x4" { RETURN_OPCODE(Unary, F32X4ConvertSI32X4); }
+      <i> "f32x4.convert_u/i32x4" { RETURN_OPCODE(Unary, F32X4ConvertUI32X4); }
+      <i> "f64x2.convert_s/i64x2" { RETURN_OPCODE(Unary, F64X2ConvertSI64X2); }
+      <i> "f64x2.convert_u/i64x2" { RETURN_OPCODE(Unary, F64X2ConvertUI64X2); }
+      <i> "i32x4.trunc_s/f32x4:sat" { RETURN_OPCODE(Unary, I32X4TruncSF32X4Sat); }
+      <i> "i32x4.trunc_u/f32x4:sat" { RETURN_OPCODE(Unary, I32X4TruncUF32X4Sat); }
+      <i> "i64x2.trunc_s/f64x2:sat" { RETURN_OPCODE(Unary, I64X2TruncSF64X2Sat); }
+      <i> "i64x2.trunc_u/f64x2:sat" { RETURN_OPCODE(Unary, I64X2TruncUF64X2Sat); }
 
       <i> "type"                { RETURN(Type); }
       <i> "func"                { RETURN(Func); }
@@ -552,9 +688,9 @@ Token WastLexer::GetToken(WastParser* parser) {
       <i> "assert_exhaustion"   { RETURN(AssertExhaustion); }
       <i> "try"                 { RETURN_OPCODE0(Try); }
       <i> "catch"               { RETURN_OPCODE0(Catch); }
-      <i> "catch_all"           { RETURN_OPCODE0(CatchAll); }
       <i> "throw"               { RETURN_OPCODE0(Throw); }
       <i> "rethrow"             { RETURN_OPCODE0(Rethrow); }
+      <i> "if_except"           { RETURN_OPCODE0(IfExcept); }
       <i> name                  { RETURN_TEXT(Var); }
       <i> "shared"              { RETURN(Shared); }
 

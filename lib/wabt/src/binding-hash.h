@@ -19,8 +19,8 @@
 
 #include <functional>
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 #include "src/common.h"
 #include "src/string-view.h"

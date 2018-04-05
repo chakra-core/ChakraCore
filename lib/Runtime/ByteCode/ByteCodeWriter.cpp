@@ -210,8 +210,8 @@ namespace Js
         }
 
         if (this->DoJitLoopBodies() &&
-            !this->m_functionWrite->GetFunctionBody()->GetHasFinally() &&
-            !(this->m_functionWrite->GetFunctionBody()->GetHasTry() && PHASE_OFF(Js::JITLoopBodyInTryCatchPhase, this->m_functionWrite)))
+            !(this->m_functionWrite->GetFunctionBody()->GetHasTry() && PHASE_OFF(Js::JITLoopBodyInTryCatchPhase, this->m_functionWrite)) &&
+            !(this->m_functionWrite->GetFunctionBody()->GetHasFinally() && PHASE_OFF(Js::JITLoopBodyInTryFinallyPhase, this->m_functionWrite)))
         {
             AllocateLoopHeaders();
         }
@@ -312,6 +312,8 @@ namespace Js
         AssertMsg(!OpCodeAttr::BackEndOnly(op), "Can't write back end only OpCode");
 #endif
         AssertMsg(OpCodeUtil::GetOpCodeLayout(op) == layoutType, "Ensure correct layout for OpCode");
+
+        AssertMsg(!CONFIG_FLAG(LdChakraLib) || !OpCodeAttr::LoadRoot(op), "JsBuiltIn code shouldn't touch the global");
     }
 
     void ByteCodeWriter::CheckLabel(ByteCodeLabel labelID)

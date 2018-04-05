@@ -679,13 +679,13 @@ varDeclEnd:
     }
 
 
-    bool AsmJSCompiler::CheckFunction( AsmJsModuleCompiler &m, ParseNode* fncNode )
+    bool AsmJSCompiler::CheckFunction( AsmJsModuleCompiler &m, ParseNodeFnc * fncNode )
     {
         Assert( fncNode->nop == knopFncDecl );
 
         if( PHASE_TRACE1( Js::ByteCodePhase ) )
         {
-            Output::Print( _u("  Checking Asm function: %s\n"), fncNode->AsParseNodeFnc()->funcInfo->name);
+            Output::Print( _u("  Checking Asm function: %s\n"), fncNode->funcInfo->name);
         }
 
         if( !CheckFunctionHead( m, fncNode, false ) )
@@ -711,7 +711,7 @@ varDeclEnd:
 
         while (pnode->nop == knopFncDecl)
         {
-            if( !CheckFunction( m, pnode ) )
+            if( !CheckFunction( m, pnode->AsParseNodeFnc() ) )
             {
                 return false;
             }
