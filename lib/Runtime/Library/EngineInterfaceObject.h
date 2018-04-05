@@ -94,7 +94,10 @@ namespace Js
             static NoProfileFunctionInfo GetErrorMessage;
             static NoProfileFunctionInfo LogDebugMessage;
             static NoProfileFunctionInfo TagPublicLibraryCode;
-
+            static NoProfileFunctionInfo SetPrototype;
+            static NoProfileFunctionInfo GetArrayLength;
+            static NoProfileFunctionInfo RegexMatch;
+            static NoProfileFunctionInfo CallInstanceFunction;
 
 #ifndef GlobalBuiltIn
 #define GlobalBuiltIn(global, method) \
@@ -123,6 +126,10 @@ namespace Js
         static Var Entry_GetErrorMessage(RecyclableObject *function, CallInfo callInfo, ...);
         static Var Entry_LogDebugMessage(RecyclableObject *function, CallInfo callInfo, ...);
         static Var Entry_TagPublicLibraryCode(RecyclableObject *function, CallInfo callInfo, ...);
+        static Var Entry_SetPrototype(RecyclableObject *function, CallInfo callInfo, ...);
+        static Var Entry_GetArrayLength(RecyclableObject *function, CallInfo callInfo, ...);
+        static Var Entry_RegexMatch(RecyclableObject *function, CallInfo callInfo, ...);
+        static Var Entry_CallInstanceFunction(RecyclableObject *function, CallInfo callInfo, ...);
 #ifdef ENABLE_PROJECTION
         static Var EntryPromise_EnqueueTask(RecyclableObject *function, CallInfo callInfo, ...);
 #endif

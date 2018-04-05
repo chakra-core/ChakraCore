@@ -56,7 +56,6 @@ namespace Js
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_RegisterChakraLibraryFunction(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_RegisterChakraLibraryFunction));
 
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_GetLength(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_GetLength));
-    NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_SetPrototype(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_SetPrototype));
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_GetIteratorPrototype(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_GetIteratorPrototype));
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_InitInternalProperties(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_InitInternalProperties));
 
@@ -399,24 +398,6 @@ namespace Js
         }
 
         return JavascriptNumber::ToVar(length, scriptContext);
-    }
-
-    /*
-    * First parameter is the object onto which prototype should be set; second is the value
-    */
-    Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_SetPrototype(RecyclableObject *function, CallInfo callInfo, ...)
-    {
-        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-        UNREFERENCED_PARAMETER(scriptContext);
-
-        Assert(callInfo.Count == 3 && DynamicObject::Is(args.Values[1]) && RecyclableObject::Is(args.Values[2]));
-
-        DynamicObject* obj = DynamicObject::FromVar(args.Values[1]);
-        RecyclableObject* value = RecyclableObject::FromVar(args.Values[2]);
-
-        obj->SetPrototype(value);
-
-        return obj;
     }
 
     Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_GetIteratorPrototype(RecyclableObject *function, CallInfo callInfo, ...)
