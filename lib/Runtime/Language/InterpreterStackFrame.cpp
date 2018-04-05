@@ -8203,7 +8203,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
 
     Var InterpreterStackFrame::GetRootObject() const
     {
-        Assert(!this->GetFunctionBody()->IsJsBuiltInInitCode());
+        Assert(!this->GetFunctionBody()->IsJsBuiltInCode());
         Var rootObject = GetReg(Js::FunctionBody::RootObjectRegSlot);
         Assert(rootObject == this->GetFunctionBody()->LoadRootObject());
         return rootObject;

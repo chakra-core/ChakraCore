@@ -109,9 +109,6 @@ namespace Js
             // so marshalling will inadvertantly transition the entrypoint of the prototype to a crosssite entrypoint
             // So we set the prototype to null here
             functionGlobal->SetPrototype(scriptContext->GetLibrary()->nullValue);
-#if DBG
-            functionGlobal->GetFunctionProxy()->SetIsJsBuiltInInitCode();
-#endif
 
 #ifdef ENABLE_SCRIPT_PROFILING
             // If we are profiling, we need to register the script to the profiler callback, so the script compiled event will be sent.
@@ -138,9 +135,6 @@ namespace Js
 
             Js::ScriptFunction *functionBuiltins = scriptContext->GetLibrary()->CreateScriptFunction(jsBuiltInByteCode->GetNestedFunctionForExecution(0));
             functionBuiltins->SetPrototype(scriptContext->GetLibrary()->nullValue);
-#if DBG
-            functionBuiltins->GetFunctionProxy()->SetIsJsBuiltInInitCode();
-#endif
 
             // Clear disable implicit call bit as initialization code doesn't have any side effect
             saveImplicitCallFlags = scriptContext->GetThreadContext()->GetImplicitCallFlags();
@@ -279,7 +273,6 @@ namespace Js
 
         // Link the function to __chakraLibrary.
         ScriptFunction* scriptFunction = library->CreateScriptFunction(func->GetFunctionProxy());
-        scriptFunction->SetIsJsBuiltInCode();
         scriptFunction->GetFunctionProxy()->SetIsJsBuiltInCode();
 
         Assert(scriptFunction->HasFunctionBody());
@@ -336,7 +329,6 @@ namespace Js
 
         // Link the function to the prototype.
         ScriptFunction* scriptFunction = library->CreateScriptFunction(func->GetFunctionProxy());
-        scriptFunction->SetIsJsBuiltInCode();
         scriptFunction->GetFunctionProxy()->SetIsJsBuiltInCode();
 
         if (forceInline)

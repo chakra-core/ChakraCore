@@ -38,8 +38,6 @@ namespace OpCodeAttr
     bool BailOutRec(Js::OpCode opcode);
     // True if the opcode can only appear in the byte code
     bool ByteCodeOnly(Js::OpCode opcode);
-    // True if the opcode can only appear in the back end
-    bool BackEndOnly(Js::OpCode opcode);
     // True if the opcode does not transfer value from src to dst (only some opcode are marked property)
     bool DoNotTransfer(Js::OpCode opcode);
     // True if the opcode may have implicit call
@@ -70,4 +68,10 @@ namespace OpCodeAttr
     bool HasDeadFallThrough(Js::OpCode opcode);
     // True if the opcode can use fixed fields
     bool CanLoadFixedFields(Js::OpCode opcode);
+#if DBG
+    // True if the opcode can only appear in the back end
+    bool BackEndOnly(Js::OpCode opcode);
+    // True if the opcode load the global object
+    bool LoadRoot(Js::OpCode opcode);
+#endif
 };

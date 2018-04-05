@@ -175,7 +175,7 @@ namespace Js
 
     bool ScriptFunction::Is(Var func)
     {
-        return JavascriptFunction::Is(func) && JavascriptFunction::UnsafeFromVar(func)->GetFunctionInfo()->HasBody();
+        return JavascriptFunction::Is(func) && JavascriptFunction::UnsafeFromVar(func)->IsScriptFunction();
     }
 
     ScriptFunction * ScriptFunction::FromVar(Var func)
