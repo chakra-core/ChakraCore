@@ -578,6 +578,11 @@ public:
     BVSparse<JitArenaAllocator> *forceFloat64SymsOnEntry;
 
     BVSparse<JitArenaAllocator> *symsDefInLoop;
+    // This is different from symsDefInLoop which only captures syms that survived IR 
+    // cleanup in PreOptPeep in the pre-pass of a loop. For aggressively transferring
+    // values in prepass, we need to know if a source sym was ever assigned to in a loop.
+    BVSparse<JitArenaAllocator> *symsAssignedToInLoop;
+
     BailOutInfo *       bailOutInfo;
     IR::BailOutInstr *  toPrimitiveSideEffectCheck;
     BVSparse<JitArenaAllocator> * fieldHoistCandidates;
@@ -719,6 +724,7 @@ public:
         likelyNumberSymsUsedBeforeDefined(nullptr),
         forceFloat64SymsOnEntry(nullptr),
         symsDefInLoop(nullptr),
+        symsAssignedToInLoop(nullptr),
         fieldHoistCandidateTypes(nullptr),
         fieldHoistSymMap(alloc),
         needImplicitCallBailoutChecksForJsArrayCheckHoist(false),
@@ -752,6 +758,7 @@ public:
     IR::LabelInstr *    GetLoopTopInstr() const;
     void                SetLoopTopInstr(IR::LabelInstr * loopTop);
     Func *              GetFunc() const { return GetLoopTopInstr()->m_func; }
+    bool                IsSymAssignedToInSelfOrParents(StackSym * const sym) const;
 #if DBG_DUMP
     bool                GetHasCall() const { return hasCall; }
     uint                GetLoopNumber() const;
