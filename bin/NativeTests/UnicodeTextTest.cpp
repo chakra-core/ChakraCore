@@ -5,8 +5,19 @@
 
 #include "stdafx.h"
 #include "catch.hpp"
-#include "PlatformAgnostic/UnicodeText.h"
 
+
+namespace PlatformAgnostic
+{
+    namespace UnicodeText
+    {
+        namespace Internal
+        {
+            int LogicalStringCompareImpl(const char16* p1, const char16* p2);
+        }
+        
+    }
+}
 
 namespace UnicodeTextTest
 {
@@ -17,9 +28,8 @@ namespace UnicodeTextTest
         CHECK(compareStringResult != 0);
         compareStringResult = compareStringResult - CSTR_EQUAL;
 
-        int res = PlatformAgnostic::UnicodeText::LogicalStringCompare(str1, str2);
 
-        //int res = Chakra::PlatformAgnostic::UnicodeText::Internal::LogicalStringCompareImpl(str1, str2);
+        int res = PlatformAgnostic::UnicodeText::Internal::LogicalStringCompareImpl(str1, str2);
         
         bool passed = res == expected;
 
