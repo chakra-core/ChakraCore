@@ -199,6 +199,7 @@ namespace Js
         void Merge(const LdLenInfo & other)
         {
             arrayType = arrayType.Merge(other.arrayType);
+            bits |= other.bits;
         }
 
         ValueType GetArrayType() const
