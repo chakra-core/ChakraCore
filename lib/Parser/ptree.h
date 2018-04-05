@@ -24,8 +24,9 @@ const uint fnopContinue = 0x0080; // continue can be used within this statement
 const uint fnopCleanup  = 0x0100; // requires cleanup (eg, with or for-in).
 const uint fnopJump     = 0x0200;
 const uint fnopNotExprStmt = 0x0400;
+const uint fnopBinList  = 0x0800;
 const uint fnopExprMask = (fnopLeaf|fnopUni|fnopBin);
-const uint fnopAllowDefer = 0x0800; // allow to be created during defer parse
+const uint fnopAllowDefer = 0x1000; // allow to be created during defer parse
 
 /***************************************************************************
 Flags for classifying parse nodes.
@@ -826,13 +827,12 @@ public:
 };
 
 // Destructure pattern for function/catch parameter
-class ParseNodeParamPattern : public ParseNode
+class ParseNodeParamPattern : public ParseNodeUni
 {
 public:
     ParseNodeParamPattern(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
     ParseNodePtr pnodeNext;
-    ParseNodePtr pnode1;
     Js::RegSlot location;
     DISABLE_SELF_CAST(ParseNodeParamPattern);
 };

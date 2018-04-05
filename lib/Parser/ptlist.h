@@ -117,7 +117,7 @@ PTNODE(knopGetMember  , "get"              , Nop      , Bin         , fnopBin   
 /***************************************************************************
 General nodes.
 ***************************************************************************/
-PTNODE(knopList       , "<list>"           , Nop      , Bin         , fnopBin|fnopNotExprStmt, ""                          )
+PTNODE(knopList       , "<list>"           , Nop      , Bin         , fnopBinList|fnopNotExprStmt, ""                          )
 PTNODE(knopVarDecl    , "varDcl"           , Nop      , Var         , fnopNotExprStmt|fnopAllowDefer, "VarDecl"                       )
 PTNODE(knopConstDecl  , "constDcl"         , Nop      , Var         , fnopNotExprStmt|fnopAllowDefer, "ConstDecl"                     )
 PTNODE(knopLetDecl    , "letDcl"           , Nop      , Var         , fnopNotExprStmt|fnopAllowDefer, "LetDecl"                       )
@@ -151,7 +151,7 @@ PTNODE(knopTryFinally , "try-finally"      , Nop      , TryFinally  , fnopNotExp
 PTNODE(knopObjectPattern, "{} = "          , Nop      , Uni         , fnopUni                , "ObjectAssignmentPattern"       )
 PTNODE(knopObjectPatternMember, "{:} = "   , Nop      , Bin         , fnopBin                , "ObjectAssignmentPatternMember" )
 PTNODE(knopArrayPattern, "[] = "           , Nop      , ArrLit      , fnopUni                , "ArrayAssignmentPattern"        )
-PTNODE(knopParamPattern, "({[]})"          , Nop      , ParamPattern, fnopNone               , "DestructurePattern"            )
+PTNODE(knopParamPattern, "({[]})"          , Nop      , ParamPattern, fnopUni                , "DestructurePattern"            )
 PTNODE(knopExportDefault, "export default" , Nop      , ExportDefault,fnopNone               , "ExportDefault"                 )
 
 

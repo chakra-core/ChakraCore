@@ -6,6 +6,10 @@
 #include "FormalsUtil.h"
 #include "Library/StackScriptFunction.h"
 
+#if DBG
+#include "pnodewalk.h"
+#endif
+
 void PreVisitBlock(ParseNodeBlock *pnodeBlock, ByteCodeGenerator *byteCodeGenerator);
 void PostVisitBlock(ParseNodeBlock *pnodeBlock, ByteCodeGenerator *byteCodeGenerator);
 
@@ -1941,6 +1945,16 @@ void ByteCodeGenerator::Generate(__in ParseNode *pnode, uint32 grfscr, __in Byte
     __inout Js::ParseableFunctionInfo ** ppRootFunc, __in uint sourceIndex,
     __in bool forceNoNative, __in Parser* parser, Js::ScriptFunction **functionRef)
 {
+#if DBG
+    struct WalkerPolicyTest : public WalkerPolicyBase<bool, ParseNodeWalker<WalkerPolicyTest>*>
+    {
+        inline bool ContinueWalk(ResultType) { return ThreadContext::IsCurrentStackAvailable(Js::Constants::MinStackByteCodeVisitor); }
+        virtual ResultType WalkChild(ParseNode *pnode, ParseNodeWalker<WalkerPolicyTest>* walker) { return ContinueWalk(true) && walker->Walk(pnode, walker); }
+    };
+    ParseNodeWalker<WalkerPolicyTest> walker;
+    // Just walk the ast to see if our walker encounters any problems
+    walker.Walk(pnode, &walker);
+#endif
     Js::ScriptContext * scriptContext = byteCodeGenerator->scriptContext;
 
 #ifdef PROFILE_EXEC
