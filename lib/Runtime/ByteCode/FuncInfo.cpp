@@ -173,7 +173,7 @@ Scope *
 FuncInfo::GetGlobalBlockScope() const
 {
     Assert(this->IsGlobalFunction());
-    Scope * scope = this->root->pnodeScopes->AsParseNodeBlock()->scope;
+    Scope * scope = this->root->pnodeScopes->scope;
     Assert(scope == nullptr || scope == this->GetBodyScope() || scope->GetEnclosingScope() == this->GetBodyScope());
     return scope;
 }

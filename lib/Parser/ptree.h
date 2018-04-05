@@ -206,15 +206,9 @@ public:
     bool CanFlattenConcatExpr() const { return !!(this->grfpn & PNodeFlags::fpnCanFlattenConcatExpr); }
 
     bool IsCallApplyTargetLoad() { return isCallApplyTargetLoad; }
-    void SetIsCallApplyTargetLoad() { isCallApplyTargetLoad = true; }
+    void SetIsCallApplyTargetLoad() { isCallApplyTargetLoad = true; }    
 
-    bool IsSpecialName() { return isSpecialName; }
-    void SetIsSpecialName() { isSpecialName = true; }
-
-    bool IsUserIdentifier() const
-    {
-        return this->nop == knopName && !this->isSpecialName;
-    }
+    bool IsUserIdentifier();
 
     bool IsVarLetOrConst() const
     {
@@ -231,20 +225,27 @@ public:
 #if DBG_DUMP
     void Dump();
 #endif
+
 public:
     static const uint mpnopgrfnop[knopLim];
 
     OpCode nop;
+
+    bool isUsed : 1;                // indicates whether an expression such as x++ is used
+
+private:
+    bool isInList : 1;
+    // Use by byte code generator
+    bool notEscapedUse : 1;         // Currently, only used by child of knopComma
+    bool isCallApplyTargetLoad : 1;
+
+public:
     ushort grfpn;
+
     charcount_t ichMin;         // start offset into the original source buffer
     charcount_t ichLim;         // end offset into the original source buffer
     Js::RegSlot location;
-    bool isUsed;                // indicates whether an expression such as x++ is used
-    bool emitLabels;
-    bool notEscapedUse;         // Use by byte code generator.  Currently, only used by child of knopComma
-    bool isInList;
-    bool isCallApplyTargetLoad;
-    bool isSpecialName;         // indicates a PnPid (knopName) is a special name like 'this' or 'super'
+
 #ifdef EDIT_AND_CONTINUE
     ParseNodePtr parent;
 #endif
@@ -268,7 +269,6 @@ class ParseNodeBin : public ParseNode
 public:
     ParseNodeBin(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1, ParseNode * pnode2);
 
-    ParseNodePtr pnodeNext;
     ParseNodePtr pnode1;
     ParseNodePtr pnode2;
 
@@ -281,7 +281,6 @@ class ParseNodeTri : public ParseNode
 public:
     ParseNodeTri(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
-    ParseNodePtr pnodeNext;
     ParseNodePtr pnode1;
     ParseNodePtr pnode2;
     ParseNodePtr pnode3;
@@ -339,7 +338,15 @@ public:
     Symbol **GetSymRef() const { return symRef; }
     Js::PropertyId PropertyIdFromNameNode() const;
 
+    bool IsSpecialName() { return isSpecialName; }
+
     DISABLE_SELF_CAST(ParseNodePid);
+
+protected:
+    void SetIsSpecialName() { isSpecialName = true; }
+
+private:
+    bool isSpecialName;         // indicates a PnPid (knopName) is a special name like 'this' or 'super'
 };
 
 // variable declaration
@@ -439,8 +446,8 @@ public:
     uint32 hintOffset;
     bool  isNameIdentifierRef;
     bool  nestedFuncEscapes;
-    ParseNodePtr pnodeScopes;
-    ParseNodePtr pnodeBodyScope;
+    ParseNodeBlock * pnodeScopes;
+    ParseNodeBlock * pnodeBodyScope;
     ParseNodePtr pnodeParams;
     ParseNodePtr pnodeVars;
     ParseNodePtr pnodeBody;
@@ -450,7 +457,7 @@ public:
     Scope *scope;
 
     uint nestedCount; // Nested function count (valid until children have been processed)
-    uint nestedIndex; // Index within the parent function
+    uint nestedIndex; // Index within the parent function (Used by ByteCodeGenerator)
 
     uint16 firstDefaultArg; // Position of the first default argument, if any
 
@@ -610,10 +617,10 @@ public:
     template<typename Fn>
     void MapContainerScopes(Fn fn)
     {
-        fn(this->pnodeScopes->AsParseNodeBlock()->pnodeScopes);
+        fn(this->pnodeScopes->pnodeScopes);
         if (this->pnodeBodyScope != nullptr)
         {
-            fn(this->pnodeBodyScope->AsParseNodeBlock()->pnodeScopes);
+            fn(this->pnodeBodyScope->pnodeScopes);
         }
     }
 
@@ -626,9 +633,9 @@ class ParseNodeClass : public ParseNode
 public:
     ParseNodeClass(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
-    ParseNodePtr pnodeName;
-    ParseNodePtr pnodeDeclName;
-    ParseNodePtr pnodeBlock;
+    ParseNodeVar * pnodeName;
+    ParseNodeVar * pnodeDeclName;
+    ParseNodeBlock * pnodeBlock;
     ParseNodePtr pnodeConstructor;
     ParseNodePtr pnodeMembers;
     ParseNodePtr pnodeStaticMembers;
@@ -674,7 +681,7 @@ class ParseNodeProg : public ParseNodeFnc
 public:
     ParseNodeProg(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
-    ParseNodePtr pnodeLastValStmt;
+    ParseNodePtr pnodeLastValStmt;  // Used by ByteCodeGenerator
     bool m_UsesArgumentsAtGlobal;
 
     DISABLE_SELF_CAST(ParseNodeProg);
@@ -701,7 +708,6 @@ class ParseNodeCall : public ParseNode
 public:
     ParseNodeCall(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNodePtr pnodeTarget, ParseNodePtr pnodeArgs);
 
-    ParseNodePtr pnodeNext;
     ParseNodePtr pnodeTarget;
     ParseNodePtr pnodeArgs;
     uint16 argCount;
@@ -730,6 +736,8 @@ public:
     Js::ByteCodeLabel breakLabel;
     Js::ByteCodeLabel continueLabel;
 
+    bool emitLabels;
+
     DISABLE_SELF_CAST(ParseNodeStmt);
 };
 
@@ -746,7 +754,7 @@ public:
     ParseNodePtr pnodeNext;
     Scope        *scope;
 
-    ParseNodePtr enclosingBlock;
+    ParseNodeBlock * enclosingBlock;
     int blockId;
     PnodeBlockType blockType:2;
     BYTE         callsEval:1;
@@ -758,8 +766,8 @@ public:
     void SetChildCallsEval(bool does) { childCallsEval = does; }
     bool GetChildCallsEval() const { return childCallsEval; }
 
-    void SetEnclosingBlock(ParseNodePtr pnode) { enclosingBlock = pnode; }
-    ParseNodePtr GetEnclosingBlock() const { return enclosingBlock; }
+    void SetEnclosingBlock(ParseNodeBlock * pnode) { enclosingBlock = pnode; }
+    ParseNodeBlock * GetEnclosingBlock() const { return enclosingBlock; }
 
     bool HasBlockScopedContent() const;
 
@@ -772,7 +780,7 @@ class ParseNodeJump : public ParseNodeStmt
 public:
     ParseNodeJump(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
-    ParseNodePtr pnodeTarget;
+    ParseNodeStmt * pnodeTarget;
     bool hasExplicitTarget;
 
     DISABLE_SELF_CAST(ParseNodeJump);
@@ -853,7 +861,7 @@ public:
     ParseNodePtr pnodeObj;
     ParseNodePtr pnodeBody;
     ParseNodePtr pnodeLval;
-    ParseNodePtr pnodeBlock;
+    ParseNodeBlock * pnodeBlock;
     Js::RegSlot itemLocation;
 
     DISABLE_SELF_CAST(ParseNodeForInOrForOf);
@@ -869,8 +877,8 @@ public:
     ParseNodePtr pnodeBody;
     ParseNodePtr pnodeInit;
     ParseNodePtr pnodeIncr;
-    ParseNodePtr pnodeBlock;
-    ParseNodePtr pnodeInverted;
+    ParseNodeBlock * pnodeBlock;
+    ParseNodeFor * pnodeInverted;
 
     DISABLE_SELF_CAST(ParseNodeFor);
 };
@@ -882,8 +890,8 @@ public:
     ParseNodeSwitch(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
     ParseNodePtr pnodeVal;
-    ParseNodePtr pnodeCases;
-    ParseNodePtr pnodeDefault;
+    ParseNodeCase * pnodeCases;
+    ParseNodeCase * pnodeDefault;
     ParseNodeBlock * pnodeBlock;
 
     DISABLE_SELF_CAST(ParseNodeSwitch);
@@ -895,9 +903,9 @@ class ParseNodeCase : public ParseNodeStmt
 public:
     ParseNodeCase(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
-    ParseNodePtr pnodeNext;
+    ParseNodeCase * pnodeNext;
     ParseNodePtr pnodeExpr; // nullptr for default
-    ParseNodePtr pnodeBody;
+    ParseNodeBlock * pnodeBody;
     Js::ByteCodeLabel labelCase;
 
 
@@ -994,7 +1002,7 @@ class ParseNodeSuperReference : public ParseNodeBin
 public:
     ParseNodeSuperReference(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1, ParseNode * pnode2);
 
-    ParseNodePtr pnodeThis;
+    ParseNodeSpecialName * pnodeThis;
 
     DISABLE_SELF_CAST(ParseNodeSuperReference);
 };
@@ -1005,8 +1013,8 @@ class ParseNodeSuperCall : public ParseNodeCall
 public:
     ParseNodeSuperCall(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnodeTarget, ParseNode * pnodeArgs);
 
-    ParseNodePtr pnodeThis;
-    ParseNodePtr pnodeNewTarget;
+    ParseNodeSpecialName * pnodeThis;
+    ParseNodeSpecialName * pnodeNewTarget;
 
     DISABLE_SELF_CAST(ParseNodeSuperCall);
 };

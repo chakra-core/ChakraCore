@@ -272,19 +272,19 @@ private:
     ParseNodePid * CreateNameNode(IdentPtr pid);
     ParseNodePid * CreateNameNode(IdentPtr pid, PidRefStack * ref, charcount_t ichMin, charcount_t ichLim);
     ParseNodeSpecialName * CreateSpecialNameNode(IdentPtr pid, PidRefStack * ref, charcount_t ichMin, charcount_t ichLim);
-    ParseNodeSuperReference * CreateSuperReferenceNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2);
-    ParseNodeProg * CreateProgNode(bool isModuleSource);
+    ParseNodeSuperReference * CreateSuperReferenceNode(OpCode nop, ParseNodeSpecialName * pnode1, ParseNodePtr pnode2);
+    ParseNodeProg * CreateProgNode(bool isModuleSource, ULONG lineNumber);
 
     ParseNodeCall * CreateCallNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2);
     ParseNodeCall * CreateCallNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2, charcount_t ichMin, charcount_t ichLim);
-    ParseNodeSuperCall * CreateSuperCallNode(ParseNodePtr pnode1, ParseNodePtr pnode2);
+    ParseNodeSuperCall * CreateSuperCallNode(ParseNodeSpecialName * pnode1, ParseNodePtr pnode2);
        
     ParseNodeFnc * CreateDummyFuncNode(bool fDeclaration);
 
     ParseNodeParamPattern * CreateParamPatternNode(ParseNodePtr pnode1);
     ParseNodeParamPattern * CreateDummyParamPatternNode(charcount_t ichMin);
 
-    Symbol*      AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl);
+    Symbol*      AddDeclForPid(ParseNodeVar * pnode, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl);
     void         CheckRedeclarationErrorForBlockId(IdentPtr pid, int blockId);
 
 public:
@@ -431,12 +431,12 @@ private:
     bool NextTokenIsPropertyNameStart() const { return m_token.tk == tkID || m_token.tk == tkStrCon || m_token.tk == tkIntCon || m_token.tk == tkFltCon || m_token.tk == tkLBrack || m_token.IsReservedWord(); }
 
     template<bool buildAST>
-    void PushStmt(StmtNest *pStmt, ParseNodePtr pnode, OpCode op, LabelId* pLabelIdList)
+    void PushStmt(StmtNest *pStmt, ParseNodeStmt * pnode, OpCode op, LabelId* pLabelIdList)
     {
         if (buildAST)
         {
-            pnode->AsParseNodeStmt()->grfnop = 0;
-            pnode->AsParseNodeStmt()->pnodeOuter = (NULL == m_pstmtCur) ? NULL : m_pstmtCur->pnodeStmt;
+            pnode->grfnop = 0;
+            pnode->pnodeOuter = (NULL == m_pstmtCur) ? NULL : m_pstmtCur->pnodeStmt;
 
             pStmt->pnodeStmt = pnode;
         }
@@ -662,7 +662,9 @@ private:
         StrictModeEnvironment smEnvironment = SM_NotUsed,
         const bool isSourceElementList = false,
         bool* strictModeOn = NULL);
+#if ENABLE_BACKGROUND_PARSING
     bool FastScanFormalsAndBody();
+#endif
     bool ScanAheadToFunctionEnd(uint count);
 
     bool DoParallelParse(ParseNodeFnc * pnodeFnc) const;
@@ -730,10 +732,10 @@ private:
     void ParseTopLevelDeferredFunc(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeFncParent, LPCOLESTR pNameHint, bool fLambda, bool *pNeedScanRCurly = nullptr);
     void ParseNestedDeferredFunc(ParseNodeFnc * pnodeFnc, bool fLambda, bool *pNeedScanRCurly, bool *pStrictModeTurnedOn);
     void CheckStrictFormalParameters();
-    ParseNodePtr AddArgumentsNodeToVars(ParseNodeFnc * pnodeFnc);
+    ParseNodeVar * AddArgumentsNodeToVars(ParseNodeFnc * pnodeFnc);
     ParseNodeVar * InsertVarAtBeginning(ParseNodeFnc * pnodeFnc, IdentPtr pid);
     ParseNodeVar * CreateSpecialVarDeclNode(ParseNodeFnc * pnodeFnc, IdentPtr pid);
-    void UpdateArgumentsNode(ParseNodeFnc * pnodeFnc, ParseNodePtr argNode);
+    void UpdateArgumentsNode(ParseNodeFnc * pnodeFnc, ParseNodeVar * argNode);
     void UpdateOrCheckForDuplicateInFormals(IdentPtr pid, SList<IdentPtr> *formals);
 
     LPCOLESTR GetFunctionName(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint);
@@ -753,7 +755,7 @@ private:
 
     // Construct the name from the parse node.
     LPCOLESTR FormatPropertyString(LPCOLESTR propertyString, ParseNodePtr pNode, uint32 *fullNameHintLength, uint32 *pShortNameOffset);
-    LPCOLESTR ConstructNameHint(ParseNodePtr pNode, uint32* fullNameHintLength, uint32 *pShortNameOffset);
+    LPCOLESTR ConstructNameHint(ParseNodeBin * pNode, uint32* fullNameHintLength, uint32 *pShortNameOffset);
     LPCOLESTR AppendNameHints(IdentPtr  left, IdentPtr  right, uint32 *pNameLength, uint32 *pShortNameOffset, bool ignoreAddDotWithSpace = false, bool wrapInBrackets = false);
     LPCOLESTR AppendNameHints(IdentPtr  left, LPCOLESTR right, uint32 *pNameLength, uint32 *pShortNameOffset, bool ignoreAddDotWithSpace = false, bool wrapInBrackets = false);
     LPCOLESTR AppendNameHints(LPCOLESTR left, IdentPtr  right, uint32 *pNameLength, uint32 *pShortNameOffset, bool ignoreAddDotWithSpace = false, bool wrapInBrackets = false);
@@ -966,7 +968,7 @@ private:
 
     template <class Fn>
     void FinishFunctionsInScope(ParseNodePtr pnodeScopeList, Fn fn);
-    void FinishDeferredFunction(ParseNodePtr pnodeScopeList);
+    void FinishDeferredFunction(ParseNodeBlock * pnodeScopeList);
 
     /***********************************************************************
     Misc

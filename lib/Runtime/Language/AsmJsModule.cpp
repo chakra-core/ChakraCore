@@ -468,7 +468,7 @@ namespace Js
             break;
         case knopSwitch:
             ASTPrepass(pnode->AsParseNodeSwitch()->pnodeVal, func);
-            for (ParseNode *pnodeT = pnode->AsParseNodeSwitch()->pnodeCases; NULL != pnodeT; pnodeT = pnodeT->AsParseNodeCase()->pnodeNext)
+            for (ParseNodeCase *pnodeT = pnode->AsParseNodeSwitch()->pnodeCases; NULL != pnodeT; pnodeT = pnodeT->pnodeNext)
             {
                 ASTPrepass(pnodeT, func);
             }

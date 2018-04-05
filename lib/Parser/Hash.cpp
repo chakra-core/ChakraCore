@@ -206,6 +206,14 @@ void Ident::SetTk(tokens token, ushort grfid)
     }
 }
 
+void Ident::TrySetIsUsedInLdElem(ParseNode * pnode)
+{
+    if (pnode && pnode->nop == knopStr)
+    {
+        pnode->AsParseNodePid()->pid->SetIsUsedInLdElem(true);
+    }
+}
+
 IdentPtr HashTbl::PidFromTk(tokens token)
 {
     Assert(token > tkNone && token < tkID);
