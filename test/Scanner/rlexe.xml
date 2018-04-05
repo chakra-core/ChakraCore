@@ -7,4 +7,10 @@
       <tags>require_winglob</tags> <!-- Microsoft/ChakraCore#3777: Fix this test under ICU -->
     </default>
   </test>
+  <test>
+    <default>
+      <files>InvalidCharacter.js</files>
+      <baseline>InvalidCharacter.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>

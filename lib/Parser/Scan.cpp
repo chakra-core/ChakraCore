@@ -1681,6 +1681,7 @@ LLoop:
             if (p < last)
             {
                 // A \0 prior to the end of the text is an invalid character.
+                m_currentCharacter = p;
                 Error(ERRillegalChar);
             }
 LEof:
