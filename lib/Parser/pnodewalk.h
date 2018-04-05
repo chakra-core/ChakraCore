@@ -41,6 +41,14 @@ struct WalkerPolicyBase<bool, Context>
 template <typename WalkerPolicy>
 class ParseNodeWalker : public WalkerPolicy
 {
+    using WalkerPolicy::ContinueWalk;
+    using WalkerPolicy::DefaultResult;
+    using WalkerPolicy::WalkNode;
+    using WalkerPolicy::WalkListNode;
+    using WalkerPolicy::WalkFirstChild;
+    using WalkerPolicy::WalkSecondChild;
+    using WalkerPolicy::WalkNthChild;
+    using WalkerPolicy::WalkReference;
 public:
     typedef typename WalkerPolicy::Context Context;
 
@@ -532,7 +540,7 @@ private:
         {
             uint fnop = ParseNode::Grfnop(pnode->nop);
 
-            if (fnop & fnopLeaf || fnop && fnopNone)
+            if (fnop & fnopLeaf || fnop & fnopNone)
             {
                 return WalkLeaf(pnode, context);
             }
