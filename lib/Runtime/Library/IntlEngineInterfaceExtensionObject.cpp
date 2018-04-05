@@ -23,15 +23,6 @@ using namespace Windows::Globalization;
 #include "PlatformAgnostic/ChakraICU.h"
 using namespace PlatformAgnostic::ICUHelpers;
 
-template<typename ICUFunc>
-static void RecyclerExecuteICUWithRetry(_In_ ICUFunc func, _In_ Recycler *recycler, _Out_writes_opt_(returnLen) char16 **ret, _Out_ int *returnLen, _In_ int firstTryLength = 32)
-{
-    bool success = ExecuteICUWithRetry<char16, ICUFunc>([&](int length) {
-        return RecyclerNewArrayLeaf(recycler, char16, length);
-    }, func, firstTryLength, ret, returnLen);
-    AssertOrFailFastMsg(success, "Could not allocate buffer for ICU call");
-}
-
 #if defined(DBG) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
 #define INTL_TRACE(fmt, ...) Output::Trace(Js::IntlPhase, _u("%S(): " fmt "\n"), __func__, __VA_ARGS__)
 #else
@@ -334,9 +325,10 @@ namespace Js
     typedef FinalizableICUObject<UCollator *, ucol_close> FinalizableUCollator;
 
     template<typename ICUFunc>
-    static void RecyclerExecuteICUWithRetry(_In_ ICUFunc func, _In_ Recycler *recycler, _Out_writes_opt_(returnLen) char16 **ret, _Out_ int *returnLen, _In_ int firstTryLength = 32)
+    static void RecyclerExecuteICUWithRetry(_In_ ICUFunc func, _In_ Recycler *recycler, _Out_writes_opt_(returnLen) char16 **ret, _Out_ int *returnLen, _In_ int firstTryLength = 8)
     {
-        bool success = ExecuteICUWithRetry<char16, ICUFunc>([&](int length) {
+        bool success = ExecuteICUWithRetry<char16, ICUFunc>([&](int length)
+        {
             return RecyclerNewArrayLeaf(recycler, char16, length);
         }, func, firstTryLength, ret, returnLen);
         AssertOrFailFastMsg(success, "Could not allocate buffer for ICU call");
@@ -880,13 +872,14 @@ namespace Js
         while (true)
         {
             iterations += 1;
-            int i = (left + right) / 2;
-            Assert(i > 0 && i < count);
             if (left > right)
             {
                 INTL_TRACE("Could not find localeID %S in %d iterations", localeID, iterations);
                 return false;
             }
+
+            int i = (left + right) / 2;
+            Assert(i >= 0 && i < count);
 
             const char *cur = GetAvailableLocalesFunc(i);
 
@@ -2098,14 +2091,16 @@ namespace Js
         if (TaggedInt::Is(args.Values[1]))
         {
             int num = TaggedInt::ToInt32(args.Values[1]);
-            RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status) {
+            RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status)
+            {
                 return unum_format(*fmt, num, buf, bufLen, nullptr, status);
             }, scriptContext->GetRecycler(), &formatted, &formattedLen);
         }
         else
         {
             double num = JavascriptNumber::GetValue(args.Values[1]);
-            RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status) {
+            RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status)
+            {
                 return unum_formatDouble(*fmt, num, buf, bufLen, nullptr, status);
             }, scriptContext->GetRecycler(), &formatted, &formattedLen);
         }
@@ -2299,7 +2294,8 @@ namespace Js
         if (!toParts)
         {
             // if we aren't formatting to parts, we simply want to call udat_format with retry
-            RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status) {
+            RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status)
+            {
                 return udat_format(*dtf, date, buf, bufLen, nullptr, status);
             }, scriptContext->GetRecycler(), &formatted, &formattedLen);
             return JavascriptString::NewWithBuffer(formatted, formattedLen, scriptContext);
@@ -2308,7 +2304,8 @@ namespace Js
         // The rest of this function most closely corresponds to ECMA 402 #sec-partitiondatetimepattern
         ScopedUFieldPositionIterator fpi(ufieldpositer_open(&status));
         ICU_ASSERT(status, true);
-        RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status) {
+        RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status)
+        {
             return udat_formatForFields(*dtf, date, buf, bufLen, fpi, status);
         }, scriptContext->GetRecycler(), &formatted, &formattedLen);
 
@@ -2434,7 +2431,8 @@ namespace Js
 
         char16 *formatted = nullptr;
         int formattedLen = 0;
-        RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status) {
+        RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status)
+        {
             return udatpg_getBestPatternWithOptions(
                 dtpg,
                 reinterpret_cast<const UChar *>(skeleton->GetSz()),
@@ -2535,7 +2533,8 @@ namespace Js
 #else
         int timeZoneLen = 0;
         char16 *timeZone = nullptr;
-        RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status) {
+        RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status)
+        {
             return ucal_getDefaultTimeZone(buf, bufLen, status);
         }, scriptContext->GetRecycler(), &timeZone, &timeZoneLen);
         return JavascriptString::NewWithBuffer(timeZone, timeZoneLen, scriptContext);
