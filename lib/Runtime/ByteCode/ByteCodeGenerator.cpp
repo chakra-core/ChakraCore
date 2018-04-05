@@ -1941,7 +1941,7 @@ bool ByteCodeGenerator::DoJitLoopBodies(FuncInfo *funcInfo) const
     return functionBody->ForceJITLoopBody() || funcInfo->byteCodeFunction->IsJitLoopBodyPhaseEnabled();
 }
 
-void ByteCodeGenerator::Generate(__in ParseNode *pnode, uint32 grfscr, __in ByteCodeGenerator* byteCodeGenerator,
+void ByteCodeGenerator::Generate(__in ParseNodeProg *pnodeProg, uint32 grfscr, __in ByteCodeGenerator* byteCodeGenerator,
     __inout Js::ParseableFunctionInfo ** ppRootFunc, __in uint sourceIndex,
     __in bool forceNoNative, __in Parser* parser, Js::ScriptFunction **functionRef)
 {
@@ -1953,7 +1953,7 @@ void ByteCodeGenerator::Generate(__in ParseNode *pnode, uint32 grfscr, __in Byte
     };
     ParseNodeWalker<WalkerPolicyTest> walker;
     // Just walk the ast to see if our walker encounters any problems
-    walker.Walk(pnode, &walker);
+    walker.Walk(pnodeProg, &walker);
 #endif
     Js::ScriptContext * scriptContext = byteCodeGenerator->scriptContext;
 
@@ -1969,7 +1969,7 @@ void ByteCodeGenerator::Generate(__in ParseNode *pnode, uint32 grfscr, __in Byte
     // For dynamic code, just provide a small number since that source info should have very few functions
     // For static code, the nextLocalFunctionId is a good guess of the initial size of the array to minimize reallocs
     SourceContextInfo * sourceContextInfo = utf8SourceInfo->GetSrcInfo()->sourceContextInfo;
-    utf8SourceInfo->EnsureInitialized((grfscr & fscrDynamicCode) ? 4 : (sourceContextInfo->nextLocalFunctionId - pnode->AsParseNodeFnc()->functionId));
+    utf8SourceInfo->EnsureInitialized((grfscr & fscrDynamicCode) ? 4 : (sourceContextInfo->nextLocalFunctionId - pnodeProg->functionId));
     sourceContextInfo->EnsureInitialized();
 
     ArenaAllocator localAlloc(_u("ByteCode"), threadContext->GetPageAllocator(), Js::Throw::OutOfMemory);
@@ -1990,16 +1990,16 @@ void ByteCodeGenerator::Generate(__in ParseNode *pnode, uint32 grfscr, __in Byte
     byteCodeGenerator->SetCurrentSourceIndex(sourceIndex);
     byteCodeGenerator->Begin(&localAlloc, grfscr, *ppRootFunc);
     byteCodeGenerator->functionRef = functionRef;
-    Visit(pnode, byteCodeGenerator, Bind, AssignRegisters);
+    Visit(pnodeProg, byteCodeGenerator, Bind, AssignRegisters);
 
     byteCodeGenerator->forceNoNative = forceNoNative;
-    byteCodeGenerator->EmitProgram(pnode);
+    byteCodeGenerator->EmitProgram(pnodeProg);
 
     if (byteCodeGenerator->flags & fscrEval)
     {
         // The eval caller's frame always escapes if eval refers to the caller's arguments.
         byteCodeGenerator->GetRootFunc()->GetFunctionBody()->SetFuncEscapes(
-            byteCodeGenerator->funcEscapes || pnode->AsParseNodeProg()->m_UsesArgumentsAtGlobal);
+            byteCodeGenerator->funcEscapes || pnodeProg->m_UsesArgumentsAtGlobal);
     }
 
 #ifdef IR_VIEWER
@@ -2175,7 +2175,7 @@ void ByteCodeGenerator::Begin(
     }
 }
 
-HRESULT GenerateByteCode(__in ParseNode *pnode, __in uint32 grfscr, __in Js::ScriptContext* scriptContext, __inout Js::ParseableFunctionInfo ** ppRootFunc,
+HRESULT GenerateByteCode(__in ParseNodeProg *pnode, __in uint32 grfscr, __in Js::ScriptContext* scriptContext, __inout Js::ParseableFunctionInfo ** ppRootFunc,
                          __in uint sourceIndex, __in bool forceNoNative, __in Parser* parser, __in CompileScriptException *pse, Js::ScopeInfo* parentScopeInfo,
                         Js::ScriptFunction ** functionRef)
 {
@@ -2267,11 +2267,11 @@ void MarkFormal(ByteCodeGenerator *byteCodeGenerator, Symbol *formal, bool assig
     }
 }
 
-void AddArgsToScope(ParseNodePtr pnode, ByteCodeGenerator *byteCodeGenerator, bool assignLocation)
+void AddArgsToScope(ParseNodeFnc * pnodeFnc, ByteCodeGenerator *byteCodeGenerator, bool assignLocation)
 {
     Assert(byteCodeGenerator->TopFuncInfo()->varRegsCount == 0);
     Js::ArgSlot pos = 1;
-    bool isNonSimpleParameterList = pnode->AsParseNodeFnc()->HasNonSimpleParameterList();
+    bool isNonSimpleParameterList = pnodeFnc->HasNonSimpleParameterList();
 
     auto addArgToScope = [&](ParseNode *arg)
     {
@@ -2309,22 +2309,22 @@ void AddArgsToScope(ParseNodePtr pnode, ByteCodeGenerator *byteCodeGenerator, bo
     };
 
     // We process rest separately because the number of in args needs to exclude rest.
-    MapFormalsWithoutRest(pnode, addArgToScope);
+    MapFormalsWithoutRest(pnodeFnc, addArgToScope);
     byteCodeGenerator->SetNumberOfInArgs(pos);
 
-    if (pnode->AsParseNodeFnc()->pnodeRest != nullptr)
+    if (pnodeFnc->pnodeRest != nullptr)
     {
         // The rest parameter will always be in a register, regardless of whether it is in a scope slot.
         // We save the assignLocation value for the assert condition below.
         bool assignLocationSave = assignLocation;
         assignLocation = true;
 
-        addArgToScope(pnode->AsParseNodeFnc()->pnodeRest);
+        addArgToScope(pnodeFnc->pnodeRest);
 
         assignLocation = assignLocationSave;
     }
 
-    MapFormalsFromPattern(pnode, addArgToScope);
+    MapFormalsFromPattern(pnodeFnc, addArgToScope);
 
     Assert(!assignLocation || byteCodeGenerator->TopFuncInfo()->varRegsCount + 1 == pos);
 }

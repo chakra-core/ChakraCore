@@ -2380,7 +2380,7 @@ namespace Js
                     {
                         CompileScriptException se;
                         Parser ps(m_scriptContext, funcBody->GetIsStrictMode() ? TRUE : FALSE);
-                        ParseNodePtr parseTree = nullptr;
+                        ParseNodeProg * parseTree = nullptr;
 
                         uint nextFunctionId = funcBody->GetLocalFunctionId();
                         hrParser = ps.ParseSourceWithOffset(&parseTree, pszStart, offset, length, charOffset, isCesu8, grfscr, &se,
@@ -2487,7 +2487,7 @@ namespace Js
     }
 
 #ifdef ASMJS_PLAT
-    FunctionBody* ParseableFunctionInfo::ParseAsmJs(Parser * ps, __out CompileScriptException * se, __out ParseNodePtr * parseTree)
+    FunctionBody* ParseableFunctionInfo::ParseAsmJs(Parser * ps, __out CompileScriptException * se, __out ParseNodeProg ** parseTree)
     {
         Assert(IsDeferredParseFunction());
         Assert(m_isAsmjsMode);

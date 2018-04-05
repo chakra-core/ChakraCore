@@ -121,7 +121,7 @@ namespace Js
         Field(bool) parentsNotified;
         Field(bool) isRootModule;
         Field(bool) hadNotifyHostReady;
-        Field(ParseNodePtr) parseTree;
+        Field(ParseNodeProg *) parseTree;
         Field(Utf8SourceInfo*) pSourceInfo;
         Field(uint) sourceIndex;
         FieldNoBarrier(Parser*) parser;  // we'll need to keep the parser around till we are done with bytecode gen.

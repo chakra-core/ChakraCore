@@ -727,7 +727,7 @@ class ParseNodeStmt : public ParseNode
 public:
     ParseNodeStmt(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
-    ParseNodePtr pnodeOuter;
+    ParseNodeStmt * pnodeOuter;
 
     // Set by parsing code, used by code gen.
     uint grfnop;

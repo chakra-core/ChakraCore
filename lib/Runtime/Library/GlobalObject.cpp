@@ -897,7 +897,7 @@ namespace Js
             Parser parser(scriptContext, strictMode);
             bool forceNoNative = false;
 
-            ParseNodePtr parseTree = nullptr;
+            ParseNodeProg * parseTree = nullptr;
 
             SourceContextInfo * sourceContextInfo = pSrcInfo->sourceContextInfo;
             ULONG deferParseThreshold = Parser::GetDeferralThreshold(sourceContextInfo->IsSourceProfileLoaded());
@@ -926,7 +926,7 @@ namespace Js
                 // TODO: Handle strict mode.
                 if (isIndirect &&
                     !strictMode &&
-                    !parseTree->AsParseNodeFnc()->GetStrictMode())
+                    !parseTree->GetStrictMode())
                 {
                     grfscr &= ~fscrEval;
                 }

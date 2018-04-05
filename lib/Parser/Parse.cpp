@@ -331,7 +331,7 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
 }
 
 HRESULT Parser::ParseSourceInternal(
-    __out ParseNodePtr* parseTree, LPCUTF8 pszSrc, size_t offsetInBytes, size_t encodedCharCount, charcount_t offsetInChars,
+    __out ParseNodeProg ** parseTree, LPCUTF8 pszSrc, size_t offsetInBytes, size_t encodedCharCount, charcount_t offsetInChars,
     bool isUtf8, ULONG grfscr, CompileScriptException *pse, Js::LocalFunctionId * nextFunctionId, ULONG lineNumber, SourceContextInfo * sourceContextInfo)
 {
     Assert(parseTree);
@@ -357,7 +357,7 @@ HRESULT Parser::ParseSourceInternal(
     m_grfscr = grfscr;
     m_sourceContextInfo = sourceContextInfo;
 
-    ParseNodePtr pnodeBase = NULL;
+    ParseNodeProg * pnodeBase = NULL;
     HRESULT hr;
     SmartFPUControl smartFpuControl;
 
@@ -2474,12 +2474,12 @@ void Parser::ParseImportClause(ModuleImportOrExportEntryList* importEntryList, b
 
 bool Parser::IsImportOrExportStatementValidHere()
 {
-    ParseNodePtr curFunc = GetCurrentFunctionNode();
+    ParseNodeFnc * curFunc = GetCurrentFunctionNode();
 
     // Import must be located in the top scope of the module body.
     return curFunc->nop == knopFncDecl
-        && curFunc->AsParseNodeFnc()->IsModule()
-        && this->m_currentBlockInfo->pnodeBlock == curFunc->AsParseNodeFnc()->pnodeBodyScope
+        && curFunc->IsModule()
+        && this->m_currentBlockInfo->pnodeBlock == curFunc->pnodeBodyScope
         && (this->m_grfscr & fscrEvalCode) != fscrEvalCode
         && this->m_tryCatchOrFinallyDepth == 0
         && !this->m_disallowImportExportStmt;
@@ -2487,8 +2487,8 @@ bool Parser::IsImportOrExportStatementValidHere()
 
 bool Parser::IsTopLevelModuleFunc()
 {
-    ParseNodePtr curFunc = GetCurrentFunctionNode();
-    return curFunc->nop == knopFncDecl && curFunc->AsParseNodeFnc()->IsModule();
+    ParseNodeFnc * curFunc = GetCurrentFunctionNode();
+    return curFunc->nop == knopFncDecl && curFunc->IsModule();
 }
 
 template<bool buildAST> ParseNodePtr Parser::ParseImportCall()
@@ -2639,14 +2639,15 @@ ParseNodePtr Parser::ParseDefaultExportClause()
         }
 
         this->GetScanner()->SeekTo(parsedClass);
-        pnode = ParseClassDecl<buildAST>(classHasName, nullptr, nullptr, nullptr);
+        ParseNodeClass * pnodeClass;
+        pnode = pnodeClass = ParseClassDecl<buildAST>(classHasName, nullptr, nullptr, nullptr);
 
         if (buildAST)
         {
             AnalysisAssert(pnode != nullptr);
             Assert(pnode->nop == knopClassDecl);
 
-            pnode->AsParseNodeClass()->SetIsDefaultModuleExport(true);
+            pnodeClass->SetIsDefaultModuleExport(true);
         }
 
         break;
@@ -2732,7 +2733,8 @@ ParseNodePtr Parser::ParseDefaultExportClause()
 
             // Mark this node as the default module export. We need to make sure it is put into the correct
             // module export slot when we emit the node.
-            pnode = CreateNodeForOpT<knopExportDefault>();
+            ParseNodeExportDefault * pnodeExportDefault;
+            pnode = pnodeExportDefault = CreateNodeForOpT<knopExportDefault>();
             pnode->AsParseNodeExportDefault()->pnodeExpr = pnodeExpression;
         }
         break;
@@ -2915,8 +2917,9 @@ ParseNodePtr Parser::ParseExportDeclaration(bool *needTerminator)
             {
                 Assert(pnode->nop == knopFncDecl);
 
-                pnode->AsParseNodeFnc()->GetFuncSymbol()->SetIsModuleExportStorage(true);
-                localName = pnode->AsParseNodeFnc()->pid;
+                ParseNodeFnc * pnodeFnc = pnode->AsParseNodeFnc();
+                pnodeFnc->GetFuncSymbol()->SetIsModuleExportStorage(true);
+                localName = pnodeFnc->pid;
             }
             Assert(localName != nullptr);
 
@@ -3024,7 +3027,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         isSpecialName = false;
 
     LIdentifier:
-        PidRefStack *ref = nullptr;
+        PidRefStack * ref = nullptr;
 
         // Don't push a reference if this is a single lambda parameter, because we'll reparse with
         // a correct function ID.
@@ -3189,9 +3192,10 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
 
         if (buildAST)
         {
-            pnode = CreateNodeForOpT<knopFlt>();
-            pnode->AsParseNodeFloat()->dbl = m_token.GetDouble();
-            pnode->AsParseNodeFloat()->maybeInt = m_token.GetDoubleMayBeInt();
+            ParseNodeFloat * pnodeFloat;
+            pnode = pnodeFloat = CreateNodeForOpT<knopFlt>();
+            pnodeFloat->dbl = m_token.GetDouble();
+            pnodeFloat->maybeInt = m_token.GetDoubleMayBeInt();
         }
         fCanAssign = FALSE;
         this->GetScanner()->Scan();
@@ -4747,9 +4751,10 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
             if (pnodeArg->pnode2->nop == knopFncDecl)
             {
                 Assert(fullNameHintLength >= shortNameOffset);
-                pnodeArg->pnode2->AsParseNodeFnc()->hint = pFullNameHint;
-                pnodeArg->pnode2->AsParseNodeFnc()->hintLength = fullNameHintLength;
-                pnodeArg->pnode2->AsParseNodeFnc()->hintOffset = shortNameOffset;
+                ParseNodeFnc * pnodeFunc = pnodeArg->pnode2->AsParseNodeFnc();
+                pnodeFunc->hint = pFullNameHint;
+                pnodeFunc->hintLength = fullNameHintLength;
+                pnodeFunc->hintOffset = shortNameOffset;
             }
             AddToNodeListEscapedUse(&pnodeList, &lastNodeRef, pnodeArg);
         }
@@ -4895,11 +4900,11 @@ ParseNode * Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool n
     // Create the node.
     pnodeFnc = CreateAllowDeferNodeForOpT<knopFncDecl>();
     pnodeFnc->SetDeclaration(fDeclaration);
-        
-    pnodeFnc->nestedFuncEscapes = false;    
+
+    pnodeFnc->nestedFuncEscapes = false;
     pnodeFnc->cbMin = this->GetScanner()->IecpMinTok();
     pnodeFnc->functionId = (*m_nextFunctionId)++;
-    
+
 
     // Push new parser state with this new function node
 
@@ -6189,7 +6194,7 @@ ParseNodeFnc * Parser::CreateDummyFuncNode(bool fDeclaration)
 
     ParseNodeFnc * pnodeFnc = CreateAllowDeferNodeForOpT<knopFncDecl>();
     pnodeFnc->SetDeclaration(fDeclaration);
-       
+
     pnodeFnc->SetNested(m_currentNodeFunc != nullptr); // If there is a current function, then we're a nested function.
     pnodeFnc->SetStrictMode(IsStrictMode()); // Inherit current strict mode -- may be overridden by the function itself if it contains a strict mode directive.   
 
@@ -6782,11 +6787,11 @@ ParseNodeFnc * Parser::GenerateEmptyConstructor(bool extends)
     pnodeFnc->ichLim = this->GetScanner()->IchLimTok();
     pnodeFnc->ichMin = this->GetScanner()->IchMinTok();
     pnodeFnc->cbLim = this->GetScanner()->IecpLimTok();
-    pnodeFnc->cbMin = this->GetScanner()->IecpMinTok();   
+    pnodeFnc->cbMin = this->GetScanner()->IecpMinTok();
     pnodeFnc->lineNumber = this->GetScanner()->LineCur();
 
     pnodeFnc->functionId = (*m_nextFunctionId);
-   
+
     // In order to (re-)defer the default constructor, we need to, for instance, track
     // deferred class expression the way we track function expression, since we lose the part of the source
     // that tells us which we have.
@@ -7450,7 +7455,7 @@ public:
         this->m_parser->m_parsingSuperRestrictionState = m_originalParsingSuperRestrictionState;
     }
 private:
-    Parser* m_parser;
+    Parser * m_parser;
     int m_originalParsingSuperRestrictionState;
 };
 
@@ -7866,7 +7871,8 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
     ParseNodePtr* lastTagFncArgNodeRef = nullptr;
     ParseNodePid * stringLiteral = nullptr;
     ParseNodePid * stringLiteralRaw = nullptr;
-    ParseNodePtr pnodeStringTemplate = nullptr;
+    ParseNodeStrTemplate * pnodeStringTemplate = nullptr;
+    ParseNode * pnodeReturn = nullptr;
     bool templateClosed = false;
     const bool isTagged = pnodeTagFnc != nullptr;
     uint16 stringConstantCount = 0;
@@ -7876,9 +7882,9 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
 
     if (buildAST)
     {
-        pnodeStringTemplate = CreateNodeForOpT<knopStrTemplate>();
-        pnodeStringTemplate->AsParseNodeStrTemplate()->countStringLiterals = 0;
-        pnodeStringTemplate->AsParseNodeStrTemplate()->isTaggedTemplate = isTagged ? TRUE : FALSE;
+        pnodeReturn = pnodeStringTemplate = CreateNodeForOpT<knopStrTemplate>();
+        pnodeStringTemplate->countStringLiterals = 0;
+        pnodeStringTemplate->isTaggedTemplate = isTagged ? TRUE : FALSE;
 
         // If this is a tagged string template, we need to start building the arg list for the call
         if (isTagged)
@@ -8014,10 +8020,10 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
 
     if (buildAST)
     {
-        pnodeStringTemplate->AsParseNodeStrTemplate()->pnodeStringLiterals = pnodeStringLiterals;
-        pnodeStringTemplate->AsParseNodeStrTemplate()->pnodeStringRawLiterals = pnodeRawStringLiterals;
-        pnodeStringTemplate->AsParseNodeStrTemplate()->pnodeSubstitutionExpressions = pnodeSubstitutionExpressions;
-        pnodeStringTemplate->AsParseNodeStrTemplate()->countStringLiterals = stringConstantCount;
+        pnodeStringTemplate->pnodeStringLiterals = pnodeStringLiterals;
+        pnodeStringTemplate->pnodeStringRawLiterals = pnodeRawStringLiterals;
+        pnodeStringTemplate->pnodeSubstitutionExpressions = pnodeSubstitutionExpressions;
+        pnodeStringTemplate->countStringLiterals = stringConstantCount;
 
         // We should still have the last string literal.
         // Use the char offset of the end of that constant as the end of the string template.
@@ -8027,17 +8033,18 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
         if (isTagged)
         {
             // Return the call node here and let the byte code generator Emit the string template automagically
-            pnodeStringTemplate = CreateCallNode(knopCall, pnodeTagFnc, pnodeTagFncArgs, ichMin, pnodeStringTemplate->ichLim);
+            ParseNodeCall * pnodeCall;
+            pnodeReturn = pnodeCall = CreateCallNode(knopCall, pnodeTagFnc, pnodeTagFncArgs, ichMin, pnodeStringTemplate->ichLim);
 
             // We need to set the arg count explicitly
-            pnodeStringTemplate->AsParseNodeCall()->argCount = stringConstantCount;
-            pnodeStringTemplate->AsParseNodeCall()->hasDestructuring = m_hasDestructuringPattern;
+            pnodeCall->argCount = stringConstantCount;
+            pnodeCall->hasDestructuring = m_hasDestructuringPattern;
         }
     }
 
     this->GetScanner()->Scan();
 
-    return pnodeStringTemplate;
+    return pnodeReturn;
 }
 
 LPCOLESTR Parser::FormatPropertyString(LPCOLESTR propertyString, ParseNodePtr pNode, uint32 *fullNameHintLength, uint32 *pShortNameOffset)
@@ -8680,7 +8687,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             {
                 if (CONFIG_FLAG(UseFullName))
                 {
-                    pNameHint = ConstructNameHint(pnode->AsParseNodeBin() , &hintLength, &hintOffset);
+                    pNameHint = ConstructNameHint(pnode->AsParseNodeBin(), &hintLength, &hintOffset);
                 }
                 else
                 {
@@ -11283,7 +11290,7 @@ void Parser::FinishScopeInfo(Js::ScopeInfo * scopeInfo)
 /***************************************************************************
 Parse the code.
 ***************************************************************************/
-ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcount_t charOffset, bool isUtf8, ULONG grfscr, ULONG lineNumber, Js::LocalFunctionId * nextFunctionId, CompileScriptException *pse)
+ParseNodeProg * Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcount_t charOffset, bool isUtf8, ULONG grfscr, ULONG lineNumber, Js::LocalFunctionId * nextFunctionId, CompileScriptException *pse)
 {
     ParseNodeProg * pnodeProg;
     ParseNodePtr *lastNodeRef = nullptr;
@@ -11399,7 +11406,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
         if (scopeInfo)
         {
             // Create an enclosing function context.
-            m_currentNodeFunc = CreateNodeForOpT<knopFncDecl>();            
+            m_currentNodeFunc = CreateNodeForOpT<knopFncDecl>();
             m_currentNodeFunc->functionId = m_functionBody->GetLocalFunctionId();
             m_currentNodeFunc->nestedCount = m_functionBody->GetNestedCount();
             m_currentNodeFunc->SetStrictMode(!!this->m_fUseStrictMode);
@@ -11732,7 +11739,7 @@ bool Parser::CheckAsmjsModeStrPid(IdentPtr pid)
 #endif
 }
 
-HRESULT Parser::ParseUtf8Source(__out ParseNodePtr* parseTree, LPCUTF8 pSrc, size_t length, ULONG grfsrc, CompileScriptException *pse,
+HRESULT Parser::ParseUtf8Source(__out ParseNodeProg ** parseTree, LPCUTF8 pSrc, size_t length, ULONG grfsrc, CompileScriptException *pse,
     Js::LocalFunctionId * nextFunctionId, SourceContextInfo * sourceContextInfo)
 {
     m_functionBody = nullptr;
@@ -11740,7 +11747,7 @@ HRESULT Parser::ParseUtf8Source(__out ParseNodePtr* parseTree, LPCUTF8 pSrc, siz
     return ParseSourceInternal(parseTree, pSrc, 0, length, 0, true, grfsrc, pse, nextFunctionId, 0, sourceContextInfo);
 }
 
-HRESULT Parser::ParseCesu8Source(__out ParseNodePtr* parseTree, LPCUTF8 pSrc, size_t length, ULONG grfsrc, CompileScriptException *pse,
+HRESULT Parser::ParseCesu8Source(__out ParseNodeProg ** parseTree, LPCUTF8 pSrc, size_t length, ULONG grfsrc, CompileScriptException *pse,
     Js::LocalFunctionId * nextFunctionId, SourceContextInfo * sourceContextInfo)
 {
     m_functionBody = nullptr;
@@ -11896,7 +11903,7 @@ HRESULT Parser::ParseFunctionInBackground(ParseNodeFnc * pnodeFnc, ParseContext 
 
 #endif
 
-HRESULT Parser::ParseSourceWithOffset(__out ParseNodePtr* parseTree, LPCUTF8 pSrc, size_t offset, size_t cbLength, charcount_t cchOffset,
+HRESULT Parser::ParseSourceWithOffset(__out ParseNodeProg ** parseTree, LPCUTF8 pSrc, size_t offset, size_t cbLength, charcount_t cchOffset,
     bool isCesu8, ULONG grfscr, CompileScriptException *pse, Js::LocalFunctionId * nextFunctionId, ULONG lineNumber, SourceContextInfo * sourceContextInfo,
     Js::ParseableFunctionInfo* functionInfo)
 {
@@ -12318,7 +12325,7 @@ inline bool Parser::IsNaNOrInfinityLiteral(LPCOLESTR str)
 template <bool buildAST>
 IdentPtr Parser::ParseSuper(bool fAllowCall)
 {
-    ParseNodePtr currentNodeFunc = GetCurrentFunctionNode();
+    ParseNodeFnc * currentNodeFunc = GetCurrentFunctionNode();
     IdentPtr superPid = nullptr;
 
     switch (m_token.tk)
@@ -12336,7 +12343,7 @@ IdentPtr Parser::ParseSuper(bool fAllowCall)
         break;
     }
 
-    currentNodeFunc->AsParseNodeFnc()->SetHasSuperReference(TRUE);
+    currentNodeFunc->SetHasSuperReference(TRUE);
     CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(ES6, Super, m_scriptContext);
 
     // If we are defer parsing, we can skip verifying that the super reference is valid.

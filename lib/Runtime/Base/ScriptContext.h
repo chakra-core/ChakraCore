@@ -555,7 +555,7 @@ namespace Js
 
     private:
 
-        JavascriptFunction* GenerateRootFunction(ParseNodePtr parseTree, uint sourceIndex, Parser* parser, uint32 grfscr, CompileScriptException * pse, const char16 *rootDisplayName);
+        JavascriptFunction* GenerateRootFunction(ParseNodeProg * parseTree, uint sourceIndex, Parser* parser, uint32 grfscr, CompileScriptException * pse, const char16 *rootDisplayName);
 
         typedef void (*EventHandler)(ScriptContext *);
         ScriptContext ** registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext;
@@ -1258,7 +1258,7 @@ private:
         bool IsWellKnownHostType(Js::TypeId typeId) { return threadContext->IsWellKnownHostType<wellKnownType>(typeId); }
         void SetWellKnownHostTypeId(WellKnownHostType wellKnownType, Js::TypeId typeId) { threadContext->SetWellKnownHostTypeId(wellKnownType, typeId); }
 
-        ParseNodePtr ParseScript(Parser* parser, const byte* script,
+        ParseNodeProg * ParseScript(Parser* parser, const byte* script,
             size_t cb, SRCINFO const * pSrcInfo,
             CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo,
             const char16 *rootDisplayName, LoadScriptFlag loadScriptFlag,
