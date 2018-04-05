@@ -194,6 +194,10 @@ $CommitMessage
             Write-Output "no git notes found"
         }
     }
+    else
+    {
+        Write-Output "No OAuth token found; skipping check for git note that requests a cirro run"
+    }
 
     Write-Output "-----"
     Write-Output $outputJsonFile
