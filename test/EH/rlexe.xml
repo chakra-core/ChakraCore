@@ -183,4 +183,9 @@
        <baseline>hasBailedOutBug.baseline</baseline>
   </default>
   </test>
+  <test>
+    <default>
+       <files>tfjitlooparmbug.js</files>
+  </default>
+  </test>
 </regress-exe>
