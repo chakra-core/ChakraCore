@@ -2090,6 +2090,13 @@ namespace Js
         // Code below has potential to throw due to OOM or SO. Just FailFast on those cases
         AutoDisableInterrupt failFastError(scriptContext->GetThreadContext());
 
+#if defined(TARGET_32)
+        if (fArray->head && (fArray->head->size >= SparseArraySegmentBase::INLINE_CHUNK_SIZE / shrinkFactor))
+        {
+            CopyHeadIfInlinedHeadSegment<double>(fArray, recycler);
+        }
+#endif
+
         for (seg = fArray->head; seg; seg = nextSeg)
         {
             nextSeg = seg->next;
@@ -5320,6 +5327,8 @@ Case0:
             AnalysisAssert(array->head);
             SparseArraySegment<T>* newHeadSeg = array->ReallocNonLeafSegment((SparseArraySegment<T>*)PointerValue(array->head), array->head->next);
             array->head = newHeadSeg;
+            array->InvalidateLastUsedSegment();
+            array->ClearSegmentMap();
         }
     }
 

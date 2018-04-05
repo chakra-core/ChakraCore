@@ -549,6 +549,8 @@ namespace Js
         void SetHeadAndLastUsedSegment(SparseArraySegmentBase * segment);
         void SetLastUsedSegment(SparseArraySegmentBase * segment);
         bool HasSegmentMap() const;
+        template<typename T>
+        static void CopyHeadIfInlinedHeadSegment(JavascriptArray *array, Recycler *recycler);
 
     private:
         void SetSegmentMap(SegmentBTreeRoot * segmentMap);
@@ -584,8 +586,6 @@ namespace Js
 
         virtual int32 HeadSegmentIndexOfHelper(Var search, uint32 &fromIndex, uint32 toIndex, bool includesAlgorithm, ScriptContext * scriptContext);
 
-        template<typename T>
-        static void CopyHeadIfInlinedHeadSegment(JavascriptArray *array, Recycler *recycler);
         template<typename T>
         static void ReallocateNonLeafLastSegmentIfLeaf(JavascriptArray * arr, Recycler * recycler);
 
