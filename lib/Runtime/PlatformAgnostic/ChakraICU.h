@@ -26,6 +26,7 @@
 #include "unicode/unumsys.h"
 #include "unicode/ustring.h"
 #include "unicode/unorm2.h"
+#include "unicode/upluralrules.h"
 #endif
 
 // Different assertion code is used in ChakraFull that enforces that messages are char literals

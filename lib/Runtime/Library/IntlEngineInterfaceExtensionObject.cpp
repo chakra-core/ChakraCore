@@ -327,6 +327,7 @@ namespace Js
     typedef FinalizableICUObject<UDateFormat *, udat_close> FinalizableUDateFormat;
     typedef FinalizableICUObject<UFieldPositionIterator *, ufieldpositer_close> FinalizableUFieldPositionIterator;
     typedef FinalizableICUObject<UCollator *, ucol_close> FinalizableUCollator;
+    typedef FinalizableICUObject<UPluralRules *, uplrules_close> FinalizableUPluralRules;
 
     template<typename TExecutor>
     static void EnsureBuffer(_In_ TExecutor executor, _In_ Recycler *recycler, _Outptr_result_buffer_(returnLength) char16 **ret, _Out_ int *returnLength, _In_ int firstTryLength = 8)
@@ -431,6 +432,35 @@ namespace Js
     static void LangtagToLocaleID(_In_ JavascriptString *langtag, _Out_ char(&localeID)[N])
     {
         LangtagToLocaleID(langtag->GetSz(), langtag->GetLength(), localeID);
+    }
+
+    template <typename Callback>
+    static void ForEachUEnumeration(UEnumeration *enumeration, Callback callback)
+    {
+        int valueLength = 0;
+        UErrorCode status = U_ZERO_ERROR;
+        for (int index = 0, const char *value = uenum_next(enumeration, &valueLength, &status); value != nullptr; index++, value = uenum_next(enumeration, &valueLength, &status))
+        {
+            ICU_ASSERT(status, valueLength > 0);
+
+            // cast valueLength now since we have verified its greater than 0
+            callback(index, value, static_cast<charcount_t>(valueLength));
+        }
+    }
+
+    template <typename Callback>
+    static void ForEachUEnumeration16(UEnumeration *enumeration, Callback callback)
+    {
+        int valueLength = 0;
+        UErrorCode status = U_ZERO_ERROR;
+        int index = 0;
+        for (const UChar *value = uenum_unext(enumeration, &valueLength, &status); value != nullptr; index++, value = uenum_unext(enumeration, &valueLength, &status))
+        {
+            ICU_ASSERT(status, valueLength > 0);
+
+            // cast valueLength now since we have verified its greater than 0
+            callback(index, reinterpret_cast<const char16 *>(value), static_cast<charcount_t>(valueLength));
+        }
     }
 #endif
 
@@ -986,50 +1016,31 @@ namespace Js
     }
 #endif
 
-    Var IntlEngineInterfaceExtensionObject::EntryIntl_IsDTFLocaleAvailable(RecyclableObject* function, CallInfo callInfo, ...)
-    {
 #ifdef INTL_ICU
-        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-        INTL_CHECK_ARGS(args.Info.Count == 2 && JavascriptString::Is(args.Values[1]));
-
-        return scriptContext->GetLibrary()->GetTrueOrFalse(
-            IsLocaleAvailable<udat_getAvailable, udat_countAvailable>(JavascriptString::UnsafeFromVar(args.Values[1]))
-        );
-#else
-        AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call IsDTFLocaleAvailable");
-        return nullptr;
-#endif
+#define DEFINE_ISXLOCALEAVAILABLE(ctorShortName, icuNamespace) \
+    Var IntlEngineInterfaceExtensionObject::EntryIntl_Is##ctorShortName##LocaleAvailable(RecyclableObject* function, CallInfo callInfo, ...) \
+    { \
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo); \
+        INTL_CHECK_ARGS(args.Info.Count == 2 && JavascriptString::Is(args.Values[1])); \
+        return scriptContext->GetLibrary()->GetTrueOrFalse( \
+            IsLocaleAvailable<##icuNamespace##_getAvailable, ##icuNamespace##_countAvailable>(JavascriptString::UnsafeFromVar(args.Values[1])) \
+        ); \
     }
-
-    Var IntlEngineInterfaceExtensionObject::EntryIntl_IsCollatorLocaleAvailable(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-#ifdef INTL_ICU
-        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-        INTL_CHECK_ARGS(args.Info.Count == 2 && JavascriptString::Is(args.Values[1]));
-
-        return scriptContext->GetLibrary()->GetTrueOrFalse(
-            IsLocaleAvailable<ucol_getAvailable, ucol_countAvailable>(JavascriptString::UnsafeFromVar(args.Values[1]))
-        );
 #else
-        AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call IsCollatorLocaleAvailable");
-        return nullptr;
-#endif
+#define DEFINE_ISXLOCALEAVAILABLE(ctorShortName, icuNamespace) \
+    Var IntlEngineInterfaceExtensionObject::EntryIntl_Is##ctorShortName##LocaleAvailable(RecyclableObject* function, CallInfo callInfo, ...) \
+    { \
+        AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call Is" #ctorShortName "LocaleAvailable"); \
+        return nullptr; \
     }
-
-    Var IntlEngineInterfaceExtensionObject::EntryIntl_IsNFLocaleAvailable(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-#ifdef INTL_ICU
-        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-        INTL_CHECK_ARGS(args.Info.Count == 2 && JavascriptString::Is(args.Values[1]));
-
-        return scriptContext->GetLibrary()->GetTrueOrFalse(
-            IsLocaleAvailable<unum_getAvailable, unum_countAvailable>(JavascriptString::UnsafeFromVar(args.Values[1]))
-        );
-#else
-        AssertOrFailFastMsg(false, "Intl with Windows Globalization should never call IsNFLocaleAvailable");
-        return nullptr;
 #endif
-    }
+
+DEFINE_ISXLOCALEAVAILABLE(Collator, ucol)
+DEFINE_ISXLOCALEAVAILABLE(NF, unum)
+DEFINE_ISXLOCALEAVAILABLE(DTF, udat)
+// uplrules namespace doesn't have its own getAvailable/countAvailable
+// assume it supports whatever is supported in the base data
+DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
 
 #ifdef INTL_ICU
     enum class LocaleDataKind
@@ -2668,6 +2679,119 @@ namespace Js
             return ucal_getDefaultTimeZone(buf, bufLen, status);
         }, scriptContext->GetRecycler(), &timeZone, &timeZoneLen);
         return JavascriptString::NewWithBuffer(timeZone, timeZoneLen, scriptContext);
+#endif
+    }
+
+#ifdef INTL_ICU
+    static FinalizableUPluralRules *GetOrCreatePluralRulesCache(DynamicObject *stateObject, ScriptContext *scriptContext)
+    {
+        Var hiddenObject = nullptr;
+        FinalizableUPluralRules *pr = nullptr;
+        if (stateObject->GetInternalProperty(stateObject, InternalPropertyIds::HiddenObject, &hiddenObject, nullptr, scriptContext))
+        {
+            pr = reinterpret_cast<FinalizableUPluralRules *>(hiddenObject);
+            INTL_TRACE("Using previously cached UPluralRules (0x%x)", pr);
+        }
+        else
+        {
+            UErrorCode status = U_ZERO_ERROR;
+
+            JavascriptString *langtag = AssertStringProperty(stateObject, PropertyIds::locale);
+            JavascriptString *type = AssertStringProperty(stateObject, PropertyIds::type);
+
+            UPluralType prType = UPLURAL_TYPE_CARDINAL;
+            if (wcscmp(type->GetSz(), _u("ordinal")) == 0)
+            {
+                prType = UPLURAL_TYPE_ORDINAL;
+            }
+            else
+            {
+                AssertOrFailFast(wcscmp(type->GetSz(), _u("cardinal")) == 0);
+            }
+
+            char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+            LangtagToLocaleID(langtag, localeID);
+
+            pr = FinalizableUPluralRules::New(scriptContext->GetRecycler(), uplrules_openForType(localeID, prType, &status));
+            ICU_ASSERT(status, true);
+
+            INTL_TRACE("Caching UPluralRules object (0x%x) with langtag %s and type %s", langtag->GetSz(), type->GetSz());
+
+            stateObject->SetInternalProperty(InternalPropertyIds::HiddenObject, pr, PropertyOperationFlags::PropertyOperation_None, nullptr);
+        }
+
+        return pr;
+    }
+#endif
+
+    // This method implements Step 13 and 14 of ECMA 402 #sec-initializepluralrules
+    Var IntlEngineInterfaceExtensionObject::EntryIntl_PluralRulesKeywords(RecyclableObject *function, CallInfo callInfo, ...)
+    {
+#ifdef INTL_ICU
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+        INTL_CHECK_ARGS(args.Info.Count == 2 && DynamicObject::Is(args[1]));
+
+        JavascriptArray *ret = scriptContext->GetLibrary()->CreateArray(0);
+
+        // uplrules_getKeywords is only stable since ICU 61.
+        // For ICU < 61, we can fake it by creating an array of ["other"], which
+        // uplrules_getKeywords is guaranteed to return at minimum.
+        // This array is only used in resolved options, so the majority of the functionality can remain (namely, select() still works)
+#if defined(ICU_VERSION) && ICU_VERSION >= 61
+        DynamicObject *state = DynamicObject::UnsafeFromVar(args[1]);
+        FinalizableUPluralRules *pr = GetOrCreatePluralRulesCache(state, scriptContext);
+
+        UErrorCode status = U_ZERO_ERROR;
+        ScopedUEnumeration keywords(uplrules_getKeywords(*pr, &status));
+        ICU_ASSERT(status, true);
+
+        ForEachUEnumeration16(keywords, [&](int index, const char16 *kw, charcount_t kwLength)
+        {
+            ret->SetItem(index, JavascriptString::NewCopyBuffer(kw, kwLength, scriptContext), PropertyOperation_None);
+        });
+#else
+        ret->SetItem(0, scriptContext->GetLibrary()->GetIntlPluralRulesOtherString(), PropertyOperation_None);
+#endif
+
+        return ret;
+#else
+        AssertOrFailFastMsg(false, "Intl-WinGlob should not be using PluralRulesKeywords");
+        return nullptr;
+#endif
+    }
+
+    // This method roughly implements ECMA 402 #sec-pluralruleselect, except ICU takes care of handling the operand logic for us
+    Var IntlEngineInterfaceExtensionObject::EntryIntl_PluralRulesSelect(RecyclableObject *function, CallInfo callInfo, ...)
+    {
+#ifdef INTL_ICU
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+        INTL_CHECK_ARGS(args.Info.Count == 3 && DynamicObject::Is(args[1]));
+
+        DynamicObject *state = DynamicObject::UnsafeFromVar(args[1]);
+        double n = 0.0;
+        if (TaggedInt::Is(args[2]))
+        {
+            n = TaggedInt::ToDouble(args[2]);
+        }
+        else
+        {
+            AssertOrFailFast(JavascriptNumber::Is(args[2]));
+            n = JavascriptNumber::GetValue(args[2]);
+        }
+
+        FinalizableUPluralRules *pr = GetOrCreatePluralRulesCache(state, scriptContext);
+
+        char16 *selected = nullptr;
+        int selectedLength = 0;
+        EnsureBuffer([&](UChar *buf, int bufLen, UErrorCode *status)
+        {
+            return uplrules_select(*pr, n, buf, bufLen, status);
+        }, scriptContext->GetRecycler(), &selected, &selectedLength);
+
+        return JavascriptString::NewWithBuffer(selected, static_cast<charcount_t>(selectedLength), scriptContext);
+#else
+        AssertOrFailFastMsg(false, "Intl-WinGlob should not be using PluralRulesSelect");
+        return nullptr;
 #endif
     }
 

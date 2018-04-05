@@ -96,4 +96,5 @@ STRING(IntlDayPeriodPart, _u("dayPeriod"))
 STRING(IntlTimeZoneNamePart, _u("timeZoneName"))
 STRING(IntlLiteralPart, _u("literal"))
 STRING(IntlUnknownPart, _u("unknown"))
+STRING(IntlPluralRulesOther, _u("other"))
 #endif
