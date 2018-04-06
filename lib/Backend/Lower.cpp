@@ -15695,9 +15695,7 @@ Lowerer::GenerateFastElemISymbolOrStringIndexCommon(
 }
 
 // Look up a value from the polymorphic inline cache on a PropertyString or Symbol. Offsets are relative to indexOpnd.
-// Currently only checks the local cache (not proto, accessor, or missing); we could consider generating extra checks
-// for those cases if we have some data indicating that they might be relevant at this instruction. If the property
-// is not found, jump to the helper.
+// Checks local and/or proto caches based on profile data. If the property is not found, jump to the helper.
 // opndSlotArray is optional; if provided, it will receive the base address of the slot array that contains the property.
 // opndSlotIndex is optional; if provided, it will receive the index of the match within the slot array.
 void
