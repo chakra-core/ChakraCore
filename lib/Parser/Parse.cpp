@@ -1043,7 +1043,6 @@ ParseNodeSuperCall * Parser::CreateSuperCallNode(ParseNodeSpecialName * pnode1, 
     Assert(!this->m_deferringAST);
     Assert(pnode1 && pnode1->isSuper);
 
-    DebugOnly(VerifyNodeSize(knopSuperCall, sizeof(ParseNodeSuperCall)));
     ParseNodeSuperCall* pnode = Anew(&m_nodeAllocator, ParseNodeSuperCall, knopCall, pnode1->ichMin, pnode2 == nullptr ? pnode1->ichLim : pnode2->ichLim, pnode1, pnode2);
     AddAstSize(sizeof(ParseNodeSuperCall));
     return pnode;
@@ -13266,7 +13265,7 @@ void PrintPnodeWIndent(ParseNode *pnode, int indentAmt) {
         //PTNODE(knopMod        , "%"            ,Mod     ,Bin  ,fnopBin)
     case knopMod:
         Indent(indentAmt);
-        Output::Print(_u("%\n"));
+        Output::Print(_u("%%\n"));
         PrintPnodeWIndent(pnode->AsParseNodeBin()->pnode1, indentAmt + INDENT_SIZE);
         PrintPnodeWIndent(pnode->AsParseNodeBin()->pnode2, indentAmt + INDENT_SIZE);
         break;

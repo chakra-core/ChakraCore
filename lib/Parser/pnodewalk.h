@@ -41,6 +41,14 @@ struct WalkerPolicyBase<bool, Context>
 template <typename WalkerPolicy>
 class ParseNodeWalker : public WalkerPolicy
 {
+    using WalkerPolicy::ContinueWalk;
+    using WalkerPolicy::DefaultResult;
+    using WalkerPolicy::WalkNode;
+    using WalkerPolicy::WalkListNode;
+    using WalkerPolicy::WalkFirstChild;
+    using WalkerPolicy::WalkSecondChild;
+    using WalkerPolicy::WalkNthChild;
+    using WalkerPolicy::WalkReference;
 public:
     typedef typename WalkerPolicy::Context Context;
 
@@ -173,10 +181,19 @@ private:
     {
         ResultType result;
         // For ordering, arguments are considered prior to the function and the body after.
-        for (ParseNodePtr* argNode = &(pnode->pnodeParams); *argNode != nullptr; argNode = &((*argNode)->AsParseNodeVar()->pnodeNext))
+        ParseNodePtr argNode = pnode->pnodeParams;
+        while (argNode)
         {
-            result = *argNode == pnode->pnodeParams ? WalkFirstChild(*argNode, context) : WalkNthChild(pnode, *argNode, context);
+            result = argNode == pnode->pnodeParams ? WalkFirstChild(argNode, context) : WalkNthChild(pnode, argNode, context);
             if (!ContinueWalk(result)) return result;
+            if (argNode->nop == knopParamPattern)
+            {
+                argNode = argNode->AsParseNodeParamPattern()->pnodeNext;
+            }
+            else
+            {
+                argNode = argNode->AsParseNodeVar()->pnodeNext;
+            }
         }
 
         if (pnode->pnodeRest != nullptr)
@@ -523,7 +540,7 @@ private:
         {
             uint fnop = ParseNode::Grfnop(pnode->nop);
 
-            if (fnop & fnopLeaf || fnop && fnopNone)
+            if (fnop & fnopLeaf || fnop & fnopNone)
             {
                 return WalkLeaf(pnode, context);
             }

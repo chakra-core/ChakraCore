@@ -66,7 +66,7 @@ enum PNodeFlags : ushort
 };
 
 /***************************************************************************
-Data structs for ParseNodes. 
+Data structs for ParseNodes.
 ***************************************************************************/
 class ParseNodeUni;
 class ParseNodeBin;
@@ -371,7 +371,7 @@ class ParseNodeArrLit : public ParseNodeUni
 {
 public:
     ParseNodeArrLit(OpCode nop, charcount_t ichMin, charcount_t ichLim);
-        
+
     uint count;
     uint spreadCount;
     BYTE arrayOfTaggedInts:1;     // indicates that array initializer nodes are all tagged ints
@@ -827,15 +827,13 @@ public:
 };
 
 // Destructure pattern for function/catch parameter
-class ParseNodeParamPattern : public ParseNode
+class ParseNodeParamPattern : public ParseNodeUni
 {
 public:
     ParseNodeParamPattern(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
     ParseNodePtr pnodeNext;
     Js::RegSlot location;
-    ParseNodePtr pnode1;
-
     DISABLE_SELF_CAST(ParseNodeParamPattern);
 };
 
@@ -923,7 +921,7 @@ public:
     DISABLE_SELF_CAST(ParseNodeReturn);
 };
 
-// try-catch-finally     
+// try-catch-finally
 class ParseNodeTryFinally : public ParseNodeStmt
 {
 public:

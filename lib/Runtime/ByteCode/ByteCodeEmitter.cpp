@@ -79,22 +79,19 @@ BOOL MayHaveSideEffectOnNode(ParseNode *pnode, ParseNode *pnodeSE)
     else if (fnop & fnopBin)
     {
         // pnodeSE is a binary (or ternary) op, so recurse to the sources (if present).
-        if (pnodeSE->nop == knopQmark)
-        {
-            return MayHaveSideEffectOnNode(pnode, pnodeSE->AsParseNodeTri()->pnode1) ||
-                MayHaveSideEffectOnNode(pnode, pnodeSE->AsParseNodeTri()->pnode2) ||
-                MayHaveSideEffectOnNode(pnode, pnodeSE->AsParseNodeTri()->pnode3);
-        }
-        else if (pnodeSE->nop == knopCall || pnodeSE->nop == knopNew)
-        {
-            return MayHaveSideEffectOnNode(pnode, pnodeSE->AsParseNodeCall()->pnodeTarget) ||
-                (pnodeSE->AsParseNodeCall()->pnodeArgs && MayHaveSideEffectOnNode(pnode, pnodeSE->AsParseNodeCall()->pnodeArgs));
-        }
-        else
-        {
-            return MayHaveSideEffectOnNode(pnode, pnodeSE->AsParseNodeBin()->pnode1) ||
-                (pnodeSE->AsParseNodeBin()->pnode2 && MayHaveSideEffectOnNode(pnode, pnodeSE->AsParseNodeBin()->pnode2));
-        }
+        return MayHaveSideEffectOnNode(pnode, pnodeSE->AsParseNodeBin()->pnode1) ||
+            (pnodeSE->AsParseNodeBin()->pnode2 && MayHaveSideEffectOnNode(pnode, pnodeSE->AsParseNodeBin()->pnode2));
+    }
+    else if (pnodeSE->nop == knopQmark)
+    {
+        return MayHaveSideEffectOnNode(pnode, pnodeSE->AsParseNodeTri()->pnode1) ||
+            MayHaveSideEffectOnNode(pnode, pnodeSE->AsParseNodeTri()->pnode2) ||
+            MayHaveSideEffectOnNode(pnode, pnodeSE->AsParseNodeTri()->pnode3);
+    }
+    else if (pnodeSE->nop == knopCall || pnodeSE->nop == knopNew)
+    {
+        return MayHaveSideEffectOnNode(pnode, pnodeSE->AsParseNodeCall()->pnodeTarget) ||
+            (pnodeSE->AsParseNodeCall()->pnodeArgs && MayHaveSideEffectOnNode(pnode, pnodeSE->AsParseNodeCall()->pnodeArgs));
     }
     else if (pnodeSE->nop == knopList)
     {
@@ -9958,7 +9955,6 @@ void TrackIntConstantsOnGlobalObject(ByteCodeGenerator *byteCodeGenerator, Symbo
 void TrackMemberNodesInObjectForIntConstants(ByteCodeGenerator *byteCodeGenerator, ParseNodePtr objNode)
 {
     Assert(objNode->nop == knopObject);
-    Assert(ParseNode::Grfnop(objNode->nop) & fnopUni);
 
     ParseNodePtr memberList = objNode->AsParseNodeUni()->pnode1;
 
@@ -10020,7 +10016,7 @@ void TrackGlobalIntAssignments(ParseNodePtr pnode, ByteCodeGenerator * byteCodeG
             Assert(lhs && rhs);
 
             // Don't track other than integers and objects with member nodes.
-            if (rhs->nop == knopObject && (ParseNode::Grfnop(rhs->nop) & fnopUni))
+            if (rhs->nop == knopObject)
             {
                 TrackMemberNodesInObjectForIntConstants(byteCodeGenerator, rhs);
             }

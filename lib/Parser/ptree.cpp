@@ -19,13 +19,13 @@ ParseNode::ParseNode(OpCode nop, charcount_t ichMin, charcount_t ichLim)
 
 ParseNodeUni * ParseNode::AsParseNodeUni()
 {
-    Assert(((this->Grfnop() & fnopUni) && this->nop != knopParamPattern) || this->nop == knopThrow);
+    Assert((this->Grfnop() & fnopUni) || this->nop == knopThrow);
     return reinterpret_cast<ParseNodeUni *>(this);
 }
 
 ParseNodeBin * ParseNode::AsParseNodeBin()
 {
-    Assert(((this->Grfnop() & fnopBin) && this->nop != knopQmark && this->nop != knopCall && this->nop != knopNew) || this->nop == knopList);
+    Assert((this->Grfnop() & fnopBin) || this->nop == knopList);
     return reinterpret_cast<ParseNodeBin *>(this);
 }
 
@@ -485,7 +485,7 @@ ParseNodeWith::ParseNodeWith(OpCode nop, charcount_t ichMin, charcount_t ichLim)
 }
 
 ParseNodeParamPattern::ParseNodeParamPattern(OpCode nop, charcount_t ichMin, charcount_t ichLim)
-    : ParseNode(nop, ichMin, ichLim)
+    : ParseNodeUni(nop, ichMin, ichLim, nullptr)
 {
 }
 
