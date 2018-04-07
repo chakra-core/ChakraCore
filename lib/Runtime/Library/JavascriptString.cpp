@@ -1318,6 +1318,22 @@ case_2:
                 IntlEngineInterfaceExtensionObject* intlExtensionObject = static_cast<IntlEngineInterfaceExtensionObject*>(
                     nativeEngineInterfaceObj->GetEngineExtension(EngineInterfaceExtensionKind_Intl));
 
+#ifdef INTL_WINGLOB
+                if (args.Info.Count == 2)
+                {
+                    auto undefined = scriptContext->GetLibrary()->GetUndefined();
+                    CallInfo toPass(callInfo.Flags, 3);
+                    ThreadContext *threadContext = scriptContext->GetThreadContext();
+                    return threadContext->ExecuteImplicitCall(function, ImplicitCall_Accessor,
+                        [threadContext, intlExtensionObject, function, toPass, undefined, pThis, pThat]() -> Var
+                        {
+                            return CALL_ENTRYPOINT(threadContext, intlExtensionObject->EntryIntl_CompareString,
+                                function, toPass, undefined, pThis, pThat);
+                        }
+                    );
+                }
+#endif
+
                 // Check if String.prototype.localeCompare/Intl.Collator was already initialized
                 JavascriptFunction* func = intlExtensionObject->GetStringLocaleCompare();
                 if (func)
