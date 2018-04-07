@@ -1705,42 +1705,6 @@ namespace Js
 #endif
     }
 
-#ifdef INTL_WINGLOB
-    static DWORD GetCompareStringComparisonFlags(CollatorSensitivity sensitivity, bool ignorePunctuation, bool numeric)
-    {
-        DWORD flags = 0;
-
-        if (sensitivity == CollatorSensitivity::Base)
-        {
-            flags |= LINGUISTIC_IGNOREDIACRITIC | LINGUISTIC_IGNORECASE | NORM_IGNOREKANATYPE | NORM_IGNOREWIDTH;
-        }
-        else if (sensitivity == CollatorSensitivity::Accent)
-        {
-            flags |= LINGUISTIC_IGNORECASE | NORM_IGNOREKANATYPE | NORM_IGNOREWIDTH;
-        }
-        else if (sensitivity == CollatorSensitivity::Case)
-        {
-            flags |= NORM_IGNOREKANATYPE | NORM_IGNOREWIDTH | LINGUISTIC_IGNOREDIACRITIC;
-        }
-        else if (sensitivity == CollatorSensitivity::Variant)
-        {
-            flags |= NORM_LINGUISTIC_CASING;
-        }
-
-        if (ignorePunctuation)
-        {
-            flags |= NORM_IGNORESYMBOLS;
-        }
-
-        if (numeric)
-        {
-            flags |= SORT_DIGITSASNUMBERS;
-        }
-
-        return flags;
-    }
-#endif
-
     Var IntlEngineInterfaceExtensionObject::EntryIntl_LocaleCompare(RecyclableObject* function, CallInfo callInfo, ...)
     {
 #ifdef INTL_WINGLOB
@@ -1843,16 +1807,83 @@ namespace Js
             );
         }
 
+        // As of ES2015, String.prototype.localeCompare must compare canonically equivalent strings as equal
+        BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, _u("EntryIntl_LocaleCompare"));
+
+        const char16 *leftNormalized = nullptr;
+        charcount_t leftNormalizedLength = 0;
+        if (UnicodeText::IsNormalizedString(UnicodeText::NormalizationForm::C, left->GetSz(), left->GetLength()))
+        {
+            leftNormalized = left->GetSz();
+            leftNormalizedLength = left ->GetLength();
+        }
+        else
+        {
+            leftNormalized = left->GetNormalizedString(UnicodeText::NormalizationForm::C, tempAllocator, leftNormalizedLength);
+        }
+
+        const char16 *rightNormalized = nullptr;
+        charcount_t rightNormalizedLength = 0;
+        if (UnicodeText::IsNormalizedString(UnicodeText::NormalizationForm::C, right->GetSz(), right->GetLength()))
+        {
+            rightNormalized = right->GetSz();
+            rightNormalizedLength = right->GetLength();
+        }
+        else
+        {
+            rightNormalized = right->GetNormalizedString(UnicodeText::NormalizationForm::C, tempAllocator, rightNormalizedLength);
+        }
+
         static_assert(UCOL_LESS == -1 && UCOL_EQUAL == 0 && UCOL_GREATER == 1, "ucol_strcoll should return values compatible with localeCompare");
-        return JavascriptNumber::ToVar(ucol_strcoll(
+        Var ret = JavascriptNumber::ToVar(ucol_strcoll(
             *coll,
-            reinterpret_cast<const UChar *>(left->GetSz()),
-            left->GetLength(),
-            reinterpret_cast<const UChar *>(right->GetSz()),
-            right->GetLength()
+            reinterpret_cast<const UChar *>(leftNormalized),
+            leftNormalizedLength,
+            reinterpret_cast<const UChar *>(rightNormalized),
+            rightNormalizedLength
         ), scriptContext);
+
+        END_TEMP_ALLOCATOR(tempAllocator, scriptContext);
+
+        return ret;
 #endif
     }
+
+#ifdef INTL_WINGLOB
+    static DWORD GetCompareStringComparisonFlags(CollatorSensitivity sensitivity, bool ignorePunctuation, bool numeric)
+    {
+        DWORD flags = 0;
+
+        if (sensitivity == CollatorSensitivity::Base)
+        {
+            flags |= LINGUISTIC_IGNOREDIACRITIC | LINGUISTIC_IGNORECASE | NORM_IGNOREKANATYPE | NORM_IGNOREWIDTH;
+        }
+        else if (sensitivity == CollatorSensitivity::Accent)
+        {
+            flags |= LINGUISTIC_IGNORECASE | NORM_IGNOREKANATYPE | NORM_IGNOREWIDTH;
+        }
+        else if (sensitivity == CollatorSensitivity::Case)
+        {
+            flags |= NORM_IGNOREKANATYPE | NORM_IGNOREWIDTH | LINGUISTIC_IGNOREDIACRITIC;
+        }
+        else if (sensitivity == CollatorSensitivity::Variant)
+        {
+            flags |= NORM_LINGUISTIC_CASING;
+        }
+
+        if (ignorePunctuation)
+        {
+            flags |= NORM_IGNORESYMBOLS;
+        }
+
+        if (numeric)
+        {
+            flags |= SORT_DIGITSASNUMBERS;
+        }
+
+        return flags;
+    }
+#endif
 
     Var IntlEngineInterfaceExtensionObject::EntryIntl_CompareString(RecyclableObject* function, CallInfo callInfo, ...)
     {
@@ -1930,7 +1961,6 @@ namespace Js
 
         BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, _u("EntryIntl_CompareString"));
 
-        // TODO(jahorto): Investigate using ICU's built-in in-line normalization techniques if possible.
         const char16 *left = nullptr;
         charcount_t leftLen = 0;
         if (UnicodeText::IsNormalizedString(UnicodeText::NormalizationForm::C, str1->GetSz(), str1->GetLength()))
@@ -1955,8 +1985,6 @@ namespace Js
             right = str2->GetNormalizedString(UnicodeText::NormalizationForm::C, tempAllocator, rightLen);
         }
 
-        END_TEMP_ALLOCATOR(tempAllocator, scriptContext);
-
         // CompareStringEx on Windows returns 0 for error, 1 if less, 2 if equal, 3 if greater
         // Default to the strings being equal, because sorting with == causes no change in the order but converges, whereas < would cause an infinite loop.
         int compareResult = 2;
@@ -1964,6 +1992,8 @@ namespace Js
         DWORD comparisonFlags = GetCompareStringComparisonFlags(sensitivity, ignorePunctuation, numeric);
         compareResult = CompareStringEx(locale, comparisonFlags, left, leftLen, right, rightLen, NULL, NULL, 0);
         error = HRESULT_FROM_WIN32(GetLastError());
+
+        END_TEMP_ALLOCATOR(tempAllocator, scriptContext);
 
         if (compareResult == 0)
         {
@@ -2135,6 +2165,39 @@ namespace Js
     }
 
 #ifdef INTL_ICU
+    // Implementation of ECMA 262 #sec-timeclip
+    // REVIEW(jahorto): Where is a better place for this function? JavascriptDate? DateUtilities? JavascriptConversion?
+    static double TimeClip(Var x)
+    {
+        double time = 0.0;
+        if (TaggedInt::Is(x))
+        {
+            time = TaggedInt::ToDouble(x);
+        }
+        else
+        {
+            AssertOrFailFast(JavascriptNumber::Is(x));
+            time = JavascriptNumber::GetValue(x);
+
+            // Only perform steps 1, 3, and 4 if the input was not a TaggedInt, since TaggedInts cant be infinite or -0
+            if (!NumberUtilities::IsFinite(time))
+            {
+                return NumberConstants::NaN;
+            }
+
+            // This performs both steps 3 and 4
+            time = JavascriptConversion::ToInteger(time);
+        }
+
+        // Step 2: If abs(time) > 8.64e15, return NaN.
+        if (Math::Abs(time) > 8.64e15)
+        {
+            return NumberConstants::NaN;
+        }
+
+        return time;
+    }
+
     static void AddPartToPartsArray(ScriptContext *scriptContext, JavascriptArray *arr, int arrIndex, const char16 *src, int start, int end, JavascriptString *partType)
     {
         JavascriptString *partValue = JavascriptString::NewCopyBuffer(
@@ -2215,16 +2278,23 @@ namespace Js
 
         return Js::JavascriptString::NewCopySz(strBuf, scriptContext);
 #else
+        // This function vaguely implements ECMA 402 #sec-partitiondatetimepattern
         INTL_CHECK_ARGS(
             args.Info.Count == 4 &&
             DynamicObject::Is(args.Values[1]) &&
-            (TaggedInt::Is(args.Values[2]) || JavascriptNumber::Is(args.Values[2])) &&
             JavascriptBoolean::Is(args.Values[3])
         );
 
         DynamicObject *state = DynamicObject::UnsafeFromVar(args.Values[1]);
-        double date = TaggedInt::Is(args.Values[2]) ? TaggedInt::ToDouble(args.Values[2]) : JavascriptNumber::GetValue(args.Values[2]);
-        bool toParts = Js::JavascriptBoolean::UnsafeFromVar(args.Values[3])->GetValue() ? true : false;
+        bool toParts = Js::JavascriptBoolean::UnsafeFromVar(args.Values[3])->GetValue();
+
+        // 1. Let x be TimeClip(x)
+        // 2. If x is NaN, throw a RangeError exception
+        double date = TimeClip(args[2]);
+        if (JavascriptNumber::IsNan(date))
+        {
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidDate);
+        }
 
         // Below, we lazy-initialize the backing UDateFormat on the first call to format{ToParts}
         // On subsequent calls, the UDateFormat will be cached in state.hiddenObject

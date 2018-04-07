@@ -3,12 +3,6 @@
   <test>
     <default>
       <files>Collator.js</files>
-      <tags>Intl</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>CollatorOptions.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
       <tags>Intl</tags>
     </default>
