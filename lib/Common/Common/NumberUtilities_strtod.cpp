@@ -347,7 +347,7 @@ template<typename EncodedChar>
 void BIGNUM::SetFromRgchExp(const EncodedChar *prgch, int32 cch, int32 lwExp)
 {
     Assert(cch > 0);
-    AssertArrMemR(prgch, cch);
+    Assert(prgch);
 
     const BIGNUM *prgnum;
     int wT;
@@ -1883,7 +1883,6 @@ LFail:
 
 static BOOL FormatDigits(_In_reads_(pbLim - pbSrc) byte *pbSrc, byte *pbLim, int wExp10, _Out_writes_(cchDst) OLECHAR *pchDst, int cchDst)
 {
-    AssertArrMem(pbSrc, pbLim - pbSrc);
     AnalysisAssert(pbLim > pbSrc);
 
     if (pbLim <= pbSrc)
@@ -1891,6 +1890,8 @@ static BOOL FormatDigits(_In_reads_(pbLim - pbSrc) byte *pbSrc, byte *pbLim, int
         Assert(0);
         return FALSE;
     }
+
+    Assert(pbSrc);
 
     // check the expected size of the resulting string...
     size_t nCount;
@@ -1987,7 +1988,7 @@ __success(return <= nDstBufSize)
 static int FormatDigitsFixed(byte *pbSrc, byte *pbLim, int wExp10, int nFractionDigits, __out_ecount_part(nDstBufSize, return) char16 *pchDst, int nDstBufSize)
 {
     AnalysisAssert(pbLim > pbSrc);
-    AssertArrMem(pbSrc, pbLim - pbSrc);
+    Assert(pbSrc);
     AnalysisAssert(nFractionDigits >= -1);
     // nFractionDigits == -1 => print exactly as many fractional digits as necessary : no trailing 0's.
 
@@ -2083,8 +2084,8 @@ static int FormatDigitsExponential(
 {
     AnalysisAssert(pbLim > pbSrc);
     Assert(pbLim - pbSrc <= kcbMaxRgb);
-    AssertArrMem(pbSrc, pbLim - pbSrc);
-    AssertArrMem(pchDst, cchDst);
+    Assert(pbSrc);
+    Assert(cchDst == 0 || pchDst != nullptr);
     Assert(wExp10 < 1000);
 
     int n = 1; // first digit
@@ -2196,7 +2197,7 @@ static int FormatDigitsExponential(
 static int RoundTo(byte *pbSrc, byte *pbLim, int nDigits, __out_bcount(nDigits+1) byte *pbDst, byte **ppbLimRes )
 {
     AnalysisAssert(pbLim > pbSrc);
-    AssertArrMem(pbSrc, pbLim - pbSrc);
+    Assert(pbSrc);
     AnalysisAssert(nDigits >= 0);
 
     int retVal = 0;
@@ -2506,6 +2507,10 @@ BOOL Js::NumberUtilities::FNonZeroFiniteDblToStr(double dbl, _In_range_(2, 36) i
     // handle negative number
     if (0x80000000 & Js::NumberUtilities::LuHiDbl(dbl))
     {
+        if (len < 2)
+        {
+            return FALSE;
+        }
         *ppsz++ = '-';
         len--;
         Js::NumberUtilities::LuHiDbl(dbl) &= 0x7FFFFFFF;

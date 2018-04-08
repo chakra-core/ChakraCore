@@ -12,14 +12,14 @@
 
 // -----------------------------------------------------------------------------------------------
 // Additional machine independent opcode used byte backend
-#define MACRO_BACKEND_ONLY(opcode, layout, attr) \
-    DEF_OP(opcode, layout, OpBackEndOnly|attr)
+#define MACRO_BACKEND_ONLY_WITH_DBG_ATTR(opcode, layout, attr, dbgAttrib) \
+    DEF_OP(opcode, layout, attr, OpDbgAttr_BackEndOnly|dbgAttrib)
 
 #include "ByteCode/OpCodes.h"
 
-DEF_OP(MDStart, Empty, None)
+DEF_OP(MDStart, Empty, None, OpDbgAttr_BackEndOnly)
 
-#define MACRO DEF_OP
+#define MACRO(opcode, layout, attr, ...) DEF_OP(opcode, layout, attr, OpDbgAttr_BackEndOnly)
 
 #ifdef _M_AMD64
     #include "../../Backend/amd64/MdOpCodes.h"

@@ -1537,8 +1537,12 @@ namespace Js
 #ifdef ENABLE_JS_BUILTINS
         if (scriptContext->IsJsBuiltInEnabled())
         {
-            scriptContext->GetLibrary()->EnsureBuiltInEngineIsReady();
-            return JavascriptFunction::Is(function) && JavascriptFunction::FromVar(function)->IsJsBuiltIn();
+            ScriptFunction * scriptFunction = JavascriptOperators::TryFromVar<ScriptFunction>(function);
+            if (scriptFunction)
+            {
+                scriptContext->GetLibrary()->EnsureBuiltInEngineIsReady();
+                return scriptFunction->GetFunctionProxy()->IsJsBuiltInCode();
+            }
         }
 #endif
         JavascriptMethod method = function->GetEntryPoint();
@@ -3060,30 +3064,30 @@ namespace Js
                 break;
 
             case TypeIds_Function:
-                typeDisplayStrings[typeId] = stringCache.GetFunctionTypeDisplayString();
+                typeDisplayStrings[typeId] = GetFunctionTypeDisplayString();
                 break;
 
             case TypeIds_Boolean:
-                typeDisplayStrings[typeId] = stringCache.GetBooleanTypeDisplayString();
+                typeDisplayStrings[typeId] = GetBooleanTypeDisplayString();
                 break;
 
             case TypeIds_String:
-                typeDisplayStrings[typeId] = stringCache.GetStringTypeDisplayString();
+                typeDisplayStrings[typeId] = GetStringTypeDisplayString();
                 break;
 
             case TypeIds_Symbol:
-                typeDisplayStrings[typeId] = stringCache.GetSymbolTypeDisplayString();
+                typeDisplayStrings[typeId] = GetSymbolTypeDisplayString();
                 break;
 
             case TypeIds_VariantDate:
-                typeDisplayStrings[typeId] = stringCache.GetVariantDateTypeDisplayString();
+                typeDisplayStrings[typeId] = GetVariantDateTypeDisplayString();
                 break;
 
             case TypeIds_Integer:
             case TypeIds_Number:
             case TypeIds_Int64Number:
             case TypeIds_UInt64Number:
-                typeDisplayStrings[typeId] = stringCache.GetNumberTypeDisplayString();
+                typeDisplayStrings[typeId] = GetNumberTypeDisplayString();
                 break;
 
             case TypeIds_Enumerator:
@@ -3096,7 +3100,7 @@ namespace Js
                 break;
 
             default:
-                typeDisplayStrings[typeId] = stringCache.GetObjectTypeDisplayString();
+                typeDisplayStrings[typeId] = GetObjectTypeDisplayString();
                 break;
             }
         }

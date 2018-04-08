@@ -12,6 +12,7 @@
 
 // Define the extended byte code opcode range
 
-#define MACRO_EXTEND(opcode, layout, attr) DEF_OP(opcode, layout, attr)
-#define MACRO_EXTEND_WMS(opcode, layout, attr) DEF_OP(opcode, layout, OpHasMultiSizeLayout|attr )
+#define MACRO_EXTEND_WITH_DBG_ATTR(opcode, layout, attr, dbgAttr) DEF_OP(opcode, layout, attr, dbgAttr)
+#define MACRO_EXTEND_WMS_WITH_DBG_ATTR(opcode, layout, attr, dbgAttr) DEF_OP(opcode, layout, OpHasMultiSizeLayout|attr, dbgAttr)
 #include "OpCodes.h"
+

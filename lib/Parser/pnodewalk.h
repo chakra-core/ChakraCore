@@ -41,6 +41,14 @@ struct WalkerPolicyBase<bool, Context>
 template <typename WalkerPolicy>
 class ParseNodeWalker : public WalkerPolicy
 {
+    using WalkerPolicy::ContinueWalk;
+    using WalkerPolicy::DefaultResult;
+    using WalkerPolicy::WalkNode;
+    using WalkerPolicy::WalkListNode;
+    using WalkerPolicy::WalkFirstChild;
+    using WalkerPolicy::WalkSecondChild;
+    using WalkerPolicy::WalkNthChild;
+    using WalkerPolicy::WalkReference;
 public:
     typedef typename WalkerPolicy::Context Context;
 
@@ -83,136 +91,144 @@ private:
         return WalkNode(pnode, context);
     }
 
-    ResultType WalkPreUnary(ParseNode *pnode, Context context)
+    ResultType WalkPreUnary(ParseNodeUni *pnode, Context context)
     {
         ResultType result = WalkNode(pnode, context);
-        if (ContinueWalk(result) && pnode->AsParseNodeUni()->pnode1) result = WalkFirstChild(pnode->AsParseNodeUni()->pnode1, context);
+        if (ContinueWalk(result) && pnode->pnode1) result = WalkFirstChild(pnode->pnode1, context);
         return result;
     }
 
-    ResultType WalkPostUnary(ParseNode *pnode, Context context)
+    ResultType WalkPostUnary(ParseNodeUni *pnode, Context context)
     {
-        ResultType result = WalkFirstChild(pnode->AsParseNodeUni()->pnode1, context);
+        ResultType result = WalkFirstChild(pnode->pnode1, context);
         if (ContinueWalk(result)) result = WalkNode(pnode, context);
         return result;
     }
 
-    ResultType WalkBinary(ParseNode *pnode, Context context)
+    ResultType WalkBinary(ParseNodeBin *pnode, Context context)
     {
-        ResultType result = WalkFirstChild(pnode->AsParseNodeBin()->pnode1, context);
+        ResultType result = WalkFirstChild(pnode->pnode1, context);
         if (ContinueWalk(result))
         {
             result = WalkNode(pnode, context);
-            if (ContinueWalk(result)) result = WalkSecondChild(pnode->AsParseNodeBin()->pnode2, context);
+            if (ContinueWalk(result)) result = WalkSecondChild(pnode->pnode2, context);
         }
         return result;
     }
 
-    ResultType WalkTernary(ParseNode *pnode, Context context)
+    ResultType WalkTernary(ParseNodeTri *pnode, Context context)
     {
-        ResultType result = WalkFirstChild(pnode->AsParseNodeTri()->pnode1, context);
+        ResultType result = WalkFirstChild(pnode->pnode1, context);
         if (ContinueWalk(result))
         {
             result = WalkNode(pnode, context);
             if (ContinueWalk(result))
             {
-                result = WalkSecondChild(pnode->AsParseNodeTri()->pnode2, context);
-                if (ContinueWalk(result)) result = WalkNthChild(pnode, pnode->AsParseNodeTri()->pnode3, context);
+                result = WalkSecondChild(pnode->pnode2, context);
+                if (ContinueWalk(result)) result = WalkNthChild(pnode, pnode->pnode3, context);
             }
         }
         return result;
     }
 
-    ResultType WalkCall(ParseNode *pnode, Context context)
+    ResultType WalkCall(ParseNodeCall *pnode, Context context)
     {
-        ResultType result = WalkFirstChild(pnode->AsParseNodeCall()->pnodeTarget, context);
+        ResultType result = WalkFirstChild(pnode->pnodeTarget, context);
         if (ContinueWalk(result))
         {
             result = WalkNode(pnode, context);
-            if (ContinueWalk(result)) result = WalkList(pnode, pnode->AsParseNodeCall()->pnodeArgs, context);
+            if (ContinueWalk(result)) result = WalkList(pnode, pnode->pnodeArgs, context);
         }
         return result;
     }
 
-    ResultType WalkStringTemplate(ParseNode *pnode, Context context)
+    ResultType WalkStringTemplate(ParseNodeStrTemplate *pnode, Context context)
     {
         ResultType result;
 
-        if (!pnode->AsParseNodeStrTemplate()->isTaggedTemplate)
+        if (!pnode->isTaggedTemplate)
         {
-            if (pnode->AsParseNodeStrTemplate()->pnodeSubstitutionExpressions == nullptr)
+            if (pnode->pnodeSubstitutionExpressions == nullptr)
             {
                 // If we don't have any substitution expressions, then we should only have one string literal and not a list
-                result = WalkNode(pnode->AsParseNodeStrTemplate()->pnodeStringLiterals, context);
+                result = WalkNode(pnode->pnodeStringLiterals, context);
             }
             else
             {
-                result = WalkList(pnode, pnode->AsParseNodeStrTemplate()->pnodeSubstitutionExpressions, context);
+                result = WalkList(pnode, pnode->pnodeSubstitutionExpressions, context);
                 if (ContinueWalk(result))
                 {
-                    result = WalkList(pnode, pnode->AsParseNodeStrTemplate()->pnodeStringLiterals, context);
+                    result = WalkList(pnode, pnode->pnodeStringLiterals, context);
                 }
             }
         }
         else
         {
-            // Tagged template nodes are call nodes
-            result = WalkCall(pnode, context);
+            result = WalkList(pnode, pnode->pnodeStringLiterals, context);
         }
 
         return result;
     }
 
-    ResultType WalkVar(ParseNode *pnode, Context context)
+    ResultType WalkVar(ParseNodeVar *pnode, Context context)
     {
         ResultType result = WalkNode(pnode, context);
-        if (ContinueWalk(result) && pnode->AsParseNodeVar()->pnodeInit) result = WalkFirstChild(pnode->AsParseNodeVar()->pnodeInit, context);
+        if (ContinueWalk(result) && pnode->pnodeInit) result = WalkFirstChild(pnode->pnodeInit, context);
         return result;
     }
 
-    ResultType WalkFnc(ParseNode *pnode, Context context)
+    ResultType WalkFnc(ParseNodeFnc *pnode, Context context)
     {
         ResultType result;
         // For ordering, arguments are considered prior to the function and the body after.
-        for (ParseNode** argNode = &(pnode->AsParseNodeFnc()->pnodeParams); *argNode != nullptr; argNode = &((*argNode)->AsParseNodeVar()->pnodeNext))
+        ParseNodePtr argNode = pnode->pnodeParams;
+        while (argNode)
         {
-            result = *argNode == pnode->AsParseNodeFnc()->pnodeParams ? WalkFirstChild(*argNode, context) : WalkNthChild(pnode, *argNode, context);
+            result = argNode == pnode->pnodeParams ? WalkFirstChild(argNode, context) : WalkNthChild(pnode, argNode, context);
             if (!ContinueWalk(result)) return result;
+            if (argNode->nop == knopParamPattern)
+            {
+                argNode = argNode->AsParseNodeParamPattern()->pnodeNext;
+            }
+            else
+            {
+                argNode = argNode->AsParseNodeVar()->pnodeNext;
+            }
         }
 
-        if (pnode->AsParseNodeFnc()->pnodeRest != nullptr)
+        if (pnode->pnodeRest != nullptr)
         {
-            result = WalkSecondChild(pnode->AsParseNodeFnc()->pnodeRest, context);
+            result = WalkSecondChild(pnode->pnodeRest, context);
             if (!ContinueWalk(result))  return result;
         }
 
         result = WalkNode(pnode, context);
-        if (ContinueWalk(result)) result = WalkNthChild(pnode, pnode->AsParseNodeFnc()->pnodeBody, context);
+        if (ContinueWalk(result)) result = WalkNthChild(pnode, pnode->pnodeBody, context);
         return result;
     }
 
-    ResultType WalkProg(ParseNode *pnode, Context context)
+    ResultType WalkProg(ParseNodeProg *pnode, Context context)
     {
         ResultType result = WalkNode(pnode, context);
-        if (ContinueWalk(result)) result = WalkList(pnode, pnode->AsParseNodeFnc()->pnodeBody, context);
+        if (ContinueWalk(result)) result = WalkList(pnode, pnode->pnodeBody, context);
         return result;
     }
 
-    ResultType WalkFor(ParseNode *pnode, Context context)
+    ResultType WalkFor(ParseNodeFor *pnode, Context context)
     {
-        ResultType result = WalkFirstChild(pnode->AsParseNodeFor()->pnodeInit, context);
+        ResultType result = WalkFirstChild(pnode->pnodeInit, context);
         if (ContinueWalk(result))
         {
-            result = WalkNthChild(pnode, pnode->AsParseNodeFor()->pnodeCond, context);
+            result = WalkNthChild(pnode, pnode->pnodeCond, context);
             if (ContinueWalk(result))
             {
-                result = WalkNthChild(pnode, pnode->AsParseNodeFor()->pnodeIncr, context);
+                result = WalkNthChild(pnode, pnode->pnodeIncr, context);
                 if (ContinueWalk(result))
                 {
                     result = WalkNode(pnode, context);
                     if (ContinueWalk(result))
                     {
-                        result = WalkSecondChild(pnode->AsParseNodeFor()->pnodeBody, context);
+                        result = WalkSecondChild(pnode->pnodeBody, context);
                     }
                 }
             }
@@ -220,99 +236,99 @@ private:
         return result;
     }
 
-    ResultType WalkIf(ParseNode *pnode, Context context)
+    ResultType WalkIf(ParseNodeIf *pnode, Context context)
     {
-        ResultType result = WalkFirstChild(pnode->AsParseNodeIf()->pnodeCond, context);
+        ResultType result = WalkFirstChild(pnode->pnodeCond, context);
         if (ContinueWalk(result))
         {
             result = WalkNode(pnode, context);
             if (ContinueWalk(result))
             {
-                result = WalkSecondChild(pnode->AsParseNodeIf()->pnodeTrue, context);
-                if (ContinueWalk(result) && pnode->AsParseNodeIf()->pnodeFalse)
-                    result = WalkNthChild(pnode, pnode->AsParseNodeIf()->pnodeFalse, context);
+                result = WalkSecondChild(pnode->pnodeTrue, context);
+                if (ContinueWalk(result) && pnode->pnodeFalse)
+                    result = WalkNthChild(pnode, pnode->pnodeFalse, context);
             }
         }
         return result;
     }
 
-    ResultType WalkWhile(ParseNode *pnode, Context context)
+    ResultType WalkWhile(ParseNodeWhile *pnode, Context context)
     {
-        ResultType result = WalkFirstChild(pnode->AsParseNodeWhile()->pnodeCond, context);
+        ResultType result = WalkFirstChild(pnode->pnodeCond, context);
         if (ContinueWalk(result))
         {
             result = WalkNode(pnode, context);
-            if (ContinueWalk(result)) result = WalkSecondChild(pnode->AsParseNodeWhile()->pnodeBody, context);
+            if (ContinueWalk(result)) result = WalkSecondChild(pnode->pnodeBody, context);
         }
         return result;
     }
 
-    ResultType WalkDoWhile(ParseNode *pnode, Context context)
+    ResultType WalkDoWhile(ParseNodeWhile *pnode, Context context)
     {
-        ResultType result = WalkFirstChild(pnode->AsParseNodeWhile()->pnodeBody, context);
+        ResultType result = WalkFirstChild(pnode->pnodeBody, context);
         if (ContinueWalk(result))
         {
             result = WalkNode(pnode, context);
             if (ContinueWalk(result))
             {
-                result = WalkSecondChild(pnode->AsParseNodeWhile()->pnodeCond, context);
+                result = WalkSecondChild(pnode->pnodeCond, context);
             }
         }
         return result;
     }
 
-    ResultType WalkForInOrForOf(ParseNode *pnode, Context context)
+    ResultType WalkForInOrForOf(ParseNodeForInOrForOf *pnode, Context context)
     {
-        ResultType result = WalkFirstChild(pnode->AsParseNodeForInOrForOf()->pnodeLval, context);
+        ResultType result = WalkFirstChild(pnode->pnodeLval, context);
         if (ContinueWalk(result))
         {
-            result = WalkNthChild(pnode, pnode->AsParseNodeForInOrForOf()->pnodeObj, context);
+            result = WalkNthChild(pnode, pnode->pnodeObj, context);
             if (ContinueWalk(result))
             {
                 result = WalkNode(pnode, context);
-                if (ContinueWalk(result)) result = WalkSecondChild(pnode->AsParseNodeForInOrForOf()->pnodeBody, context);
+                if (ContinueWalk(result)) result = WalkSecondChild(pnode->pnodeBody, context);
             }
         }
         return result;
     }
 
-    ResultType WalkReturn(ParseNode *pnode, Context context)
+    ResultType WalkReturn(ParseNodeReturn *pnode, Context context)
     {
         ResultType result = WalkNode(pnode, context);
-        if (ContinueWalk(result) && pnode->AsParseNodeReturn()->pnodeExpr) result = WalkFirstChild(pnode->AsParseNodeReturn()->pnodeExpr, context);
+        if (ContinueWalk(result) && pnode->pnodeExpr) result = WalkFirstChild(pnode->pnodeExpr, context);
         return result;
     }
 
-    ResultType WalkBlock(ParseNode *pnode, Context context)
+    ResultType WalkBlock(ParseNodeBlock *pnode, Context context)
     {
         ResultType result = WalkNode(pnode, context);
-        if (ContinueWalk(result) && pnode->AsParseNodeBlock()->pnodeStmt)
-            result = WalkList(pnode, pnode->AsParseNodeBlock()->pnodeStmt, context);
+        if (ContinueWalk(result) && pnode->pnodeStmt)
+            result = WalkList(pnode, pnode->pnodeStmt, context);
         return result;
     }
 
-    ResultType WalkWith(ParseNode *pnode, Context context)
+    ResultType WalkWith(ParseNodeWith *pnode, Context context)
     {
-        ResultType result = WalkFirstChild(pnode->AsParseNodeWith()->pnodeObj, context);
+        ResultType result = WalkFirstChild(pnode->pnodeObj, context);
         if (ContinueWalk(result))
         {
             result = WalkNode(pnode, context);
             if (ContinueWalk(result))
             {
-                result = WalkSecondChild(pnode->AsParseNodeWith()->pnodeBody, context);
+                result = WalkSecondChild(pnode->pnodeBody, context);
             }
         }
         return result;
     }
 
-    ResultType WalkSwitch(ParseNode *pnode, Context context)
+    ResultType WalkSwitch(ParseNodeSwitch *pnode, Context context)
     {
-        ResultType result = WalkFirstChild(pnode->AsParseNodeSwitch()->pnodeVal, context);
+        ResultType result = WalkFirstChild(pnode->pnodeVal, context);
         if (ContinueWalk(result))
         {
-            for (ParseNode** caseNode = &(pnode->AsParseNodeSwitch()->pnodeCases); *caseNode != nullptr; caseNode = &((*caseNode)->AsParseNodeCase()->pnodeNext))
+            for (ParseNodeCase** caseNode = &(pnode->pnodeCases); *caseNode != nullptr; caseNode = &((*caseNode)->pnodeNext))
             {
-                result = *caseNode == pnode->AsParseNodeSwitch()->pnodeCases ? WalkFirstChild(*caseNode, context) : WalkNthChild(pnode, *caseNode, context);
+                result = *caseNode == pnode->pnodeCases ? WalkFirstChild(*caseNode, context) : WalkNthChild(pnode, *caseNode, context);
                 if (!ContinueWalk(result)) return result;
             }
             result = WalkNode(pnode, context);
@@ -320,80 +336,80 @@ private:
         return result;
     }
 
-    ResultType WalkCase(ParseNode *pnode, Context context)
+    ResultType WalkCase(ParseNodeCase *pnode, Context context)
     {
-        ResultType result = WalkFirstChild(pnode->AsParseNodeCase()->pnodeExpr, context);
+        ResultType result = WalkFirstChild(pnode->pnodeExpr, context);
         if (ContinueWalk(result))
         {
             result = WalkNode(pnode, context);
-            if (ContinueWalk(result)) result = WalkSecondChild(pnode->AsParseNodeCase()->pnodeBody, context);
+            if (ContinueWalk(result)) result = WalkSecondChild(pnode->pnodeBody, context);
         }
         return result;
     }
 
-    ResultType WalkTryFinally(ParseNode *pnode, Context context)
+    ResultType WalkTryFinally(ParseNodeTryFinally *pnode, Context context)
     {
-        ResultType result = WalkFirstChild(pnode->AsParseNodeTryFinally()->pnodeTry, context);
+        ResultType result = WalkFirstChild(pnode->pnodeTry, context);
         if (ContinueWalk(result))
         {
             result = WalkNode(pnode, context);
-            if (ContinueWalk(result)) result = WalkSecondChild(pnode->AsParseNodeTryFinally()->pnodeFinally, context);
+            if (ContinueWalk(result)) result = WalkSecondChild(pnode->pnodeFinally, context);
         }
         return result;
     }
 
-    ResultType WalkFinally(ParseNode *pnode, Context context)
+    ResultType WalkFinally(ParseNodeFinally *pnode, Context context)
     {
         ResultType result = WalkNode(pnode, context);
-        if (ContinueWalk(result)) result = WalkFirstChild(pnode->AsParseNodeFinally()->pnodeBody, context);
+        if (ContinueWalk(result)) result = WalkFirstChild(pnode->pnodeBody, context);
         return result;
     }
 
-    ResultType WalkCatch(ParseNode *pnode, Context context)
+    ResultType WalkCatch(ParseNodeCatch *pnode, Context context)
     {
-        ResultType result = WalkFirstChild(pnode->AsParseNodeCatch()->pnodeParam, context);
+        ResultType result = WalkFirstChild(pnode->pnodeParam, context);
         if (ContinueWalk(result))
         {
             result = WalkNode(pnode, context);
-            if (ContinueWalk(result)) result = WalkSecondChild(pnode->AsParseNodeCatch()->pnodeBody, context);
+            if (ContinueWalk(result)) result = WalkSecondChild(pnode->pnodeBody, context);
         }
         return result;
     }
 
-    ResultType WalkTryCatch(ParseNode *pnode, Context context)
+    ResultType WalkTryCatch(ParseNodeTryCatch *pnode, Context context)
     {
-        ResultType result = WalkFirstChild(pnode->AsParseNodeTryCatch()->pnodeTry, context);
+        ResultType result = WalkFirstChild(pnode->pnodeTry, context);
         if (ContinueWalk(result))
         {
             result = WalkNode(pnode, context);
-            if (ContinueWalk(result)) result = WalkSecondChild(pnode->AsParseNodeTryCatch()->pnodeCatch, context);
+            if (ContinueWalk(result)) result = WalkSecondChild(pnode->pnodeCatch, context);
         }
         return result;
     }
 
-    ResultType WalkTry(ParseNode *pnode, Context context)
+    ResultType WalkTry(ParseNodeTry *pnode, Context context)
     {
         ResultType result = WalkNode(pnode, context);
-        if (ContinueWalk(result)) result = WalkFirstChild(pnode->AsParseNodeTry()->pnodeBody, context);
+        if (ContinueWalk(result)) result = WalkFirstChild(pnode->pnodeBody, context);
         return result;
     }
 
-    ResultType WalkClass(ParseNode *pnode, Context context)
+    ResultType WalkClass(ParseNodeClass *pnode, Context context)
     {
         // First walk the class node itself
         ResultType result = WalkNode(pnode, context);
         if (!ContinueWalk(result)) return result;
         // Walk extends expr
-        result = WalkFirstChild(pnode->AsParseNodeClass()->pnodeExtends, context);
+        result = WalkFirstChild(pnode->pnodeExtends, context);
         if (!ContinueWalk(result)) return result;
         // Walk the constructor
-        result = WalkNthChild(pnode, pnode->AsParseNodeClass()->pnodeConstructor, context);
+        result = WalkNthChild(pnode, pnode->pnodeConstructor, context);
         if (!ContinueWalk(result)) return result;
         // Walk all non-static members
-        result = WalkList(pnode, pnode->AsParseNodeClass()->pnodeMembers, context);
+        result = WalkList(pnode, pnode->pnodeMembers, context);
         if (!ContinueWalk(result)) return result;
         // Walk all static members
-        result = WalkList(pnode, pnode->AsParseNodeClass()->pnodeStaticMembers, context);
+        result = WalkList(pnode, pnode->pnodeStaticMembers, context);
         return result;
     }
 
@@ -410,19 +426,19 @@ private:
         //PTNODE(knopDecPost    , "-- post"    ,Dec     ,Uni  ,fnopUni|fnopAsg)
         case knopIncPost:
         case knopDecPost:
-            return WalkPostUnary(pnode, context);
+            return WalkPostUnary(pnode->AsParseNodeUni(), context);
 
         // Call and call like
         //PTNODE(knopCall       , "()"        ,None    ,Bin  ,fnopBin)
         //PTNODE(knopNew        , "new"        ,None    ,Bin  ,fnopBin)
         case knopCall:
         case knopNew:
-            return WalkCall(pnode, context);
+            return WalkCall(pnode->AsParseNodeCall(), context);
 
         // Ternary operator
         //PTNODE(knopQmark      , "?"            ,None    ,Tri  ,fnopBin)
         case knopQmark:
-            return WalkTernary(pnode, context);
+            return WalkTernary(pnode->AsParseNodeTri(), context);
 
         // General nodes.
         //PTNODE(knopList       , "<list>"    ,None    ,Bin  ,fnopNone)
@@ -434,88 +450,88 @@ private:
         case knopConstDecl:
         case knopLetDecl:
         case knopTemp:
-            return WalkVar(pnode, context);
+            return WalkVar(pnode->AsParseNodeVar(), context);
 
         //PTNODE(knopFncDecl    , "fncDcl"    ,None    ,Fnc  ,fnopLeaf)
         case knopFncDecl:
-            return WalkFnc(pnode, context);
+            return WalkFnc(pnode->AsParseNodeFnc(), context);
 
         //PTNODE(knopProg       , "program"    ,None    ,Fnc  ,fnopNone)
         case knopProg:
-            return WalkProg(pnode, context);
+            return WalkProg(pnode->AsParseNodeProg(), context);
 
         //PTNODE(knopFor        , "for"        ,None    ,For  ,fnopBreak|fnopContinue)
         case knopFor:
-            return WalkFor(pnode, context);
+            return WalkFor(pnode->AsParseNodeFor(), context);
 
         //PTNODE(knopIf         , "if"        ,None    ,If   ,fnopNone)
         case knopIf:
-            return WalkIf(pnode, context);
+            return WalkIf(pnode->AsParseNodeIf(), context);
 
         //PTNODE(knopWhile      , "while"        ,None    ,While,fnopBreak|fnopContinue)
         case knopWhile:
-            return WalkWhile(pnode, context);
+            return WalkWhile(pnode->AsParseNodeWhile(), context);
 
          //PTNODE(knopDoWhile    , "do-while"    ,None    ,While,fnopBreak|fnopContinue)
         case knopDoWhile:
-            return WalkDoWhile(pnode, context);
+            return WalkDoWhile(pnode->AsParseNodeWhile(), context);
 
         //PTNODE(knopForIn      , "for in"    ,None    ,ForIn,fnopBreak|fnopContinue|fnopCleanup)
         case knopForIn:
-            return WalkForInOrForOf(pnode, context);
+            return WalkForInOrForOf(pnode->AsParseNodeForInOrForOf(), context);
 
         case knopForOf:
-            return WalkForInOrForOf(pnode, context);
+            return WalkForInOrForOf(pnode->AsParseNodeForInOrForOf(), context);
 
         //PTNODE(knopReturn     , "return"    ,None    ,Uni  ,fnopNone)
         case knopReturn:
-            return WalkReturn(pnode, context);
+            return WalkReturn(pnode->AsParseNodeReturn(), context);
 
         //PTNODE(knopBlock      , "{}"        ,None    ,Block,fnopNone)
         case knopBlock:
-            return WalkBlock(pnode, context);
+            return WalkBlock(pnode->AsParseNodeBlock(), context);
 
         //PTNODE(knopWith       , "with"        ,None    ,With ,fnopCleanup)
         case knopWith:
-            return WalkWith(pnode, context);
+            return WalkWith(pnode->AsParseNodeWith(), context);
 
         //PTNODE(knopSwitch     , "switch"    ,None    ,Switch,fnopBreak)
         case knopSwitch:
-            return WalkSwitch(pnode, context);
+            return WalkSwitch(pnode->AsParseNodeSwitch(), context);
 
         //PTNODE(knopCase       , "case"        ,None    ,Case ,fnopNone)
         case knopCase:
-            return WalkCase(pnode, context);
+            return WalkCase(pnode->AsParseNodeCase(), context);
 
         //PTNODE(knopTryFinally,"try-finally",None,TryFinally,fnopCleanup)
         case knopTryFinally:
-            return WalkTryFinally(pnode, context);
+            return WalkTryFinally(pnode->AsParseNodeTryFinally(), context);
 
        case knopFinally:
-           return WalkFinally(pnode, context);
+           return WalkFinally(pnode->AsParseNodeFinally(), context);
 
         //PTNODE(knopCatch      , "catch"     ,None    ,Catch,fnopNone)
         case knopCatch:
-            return WalkCatch(pnode, context);
+            return WalkCatch(pnode->AsParseNodeCatch(), context);
 
         //PTNODE(knopTryCatch      , "try-catch" ,None    ,TryCatch  ,fnopCleanup)
         case knopTryCatch:
-            return WalkTryCatch(pnode, context);
+            return WalkTryCatch(pnode->AsParseNodeTryCatch(), context);
 
         //PTNODE(knopTry        , "try"       ,None    ,Try  ,fnopCleanup)
         case knopTry:
-            return WalkTry(pnode, context);
+            return WalkTry(pnode->AsParseNodeTry(), context);
 
         //PTNODE(knopThrow      , "throw"     ,None    ,Uni  ,fnopNone)
         case knopThrow:
-            return WalkPostUnary(pnode, context);
+            return WalkPostUnary(pnode->AsParseNodeUni(), context);
 
         case knopStrTemplate:
-            return WalkStringTemplate(pnode, context);
+            return WalkStringTemplate(pnode->AsParseNodeStrTemplate(), context);
 
         //PTNODE(knopClassDecl  , "classDecl" ,None    ,Class       ,fnopLeaf)
         case knopClassDecl:
-            return WalkClass(pnode, context);
+            return WalkClass(pnode->AsParseNodeClass(), context);
 
         case knopExportDefault:
             return Walk(pnode->AsParseNodeExportDefault()->pnodeExpr, context);
@@ -524,18 +540,18 @@ private:
         {
             uint fnop = ParseNode::Grfnop(pnode->nop);
 
-            if (fnop & fnopLeaf || fnop && fnopNone)
+            if (fnop & fnopLeaf || fnop & fnopNone)
             {
                 return WalkLeaf(pnode, context);
             }
             else if (fnop & fnopBin)
             {
-                return WalkBinary(pnode, context);
+                return WalkBinary(pnode->AsParseNodeBin(), context);
             }
             else if (fnop & fnopUni)
             {
                 // Prefix unary operators.
-                return WalkPreUnary(pnode, context);
+                return WalkPreUnary(pnode->AsParseNodeUni(), context);
             }
 
             // Some node types are both fnopNotExprStmt and something else. Try the above cases first and fall back to this one.

@@ -3,25 +3,78 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 // Default all macro to nothing
+#ifndef MACRO_WITH_DBG_ATTR
+#ifdef MACRO
+#define MACRO_WITH_DBG_ATTR(opcode, layout, attr, ...) MACRO(opcode, layout, attr)
+#else
+#define MACRO_WITH_DBG_ATTR(...)
+#endif
+#endif
+
+#ifndef MACRO_WMS_WITH_DBG_ATTR
+#ifdef MACRO_WMS
+#define MACRO_WMS_WITH_DBG_ATTR(opcode, layout, attr, ...) MACRO_WMS(opcode, layout, attr)
+#else
+#define MACRO_WMS_WITH_DBG_ATTR(...)
+#endif
+#endif
+
+#ifndef MACRO_EXTEND_WITH_DBG_ATTR
+#ifdef MACRO_EXTEND
+#define MACRO_EXTEND_WITH_DBG_ATTR(opcode, layout, attr, ...) MACRO_EXTEND(opcode, layout, attr)
+#else
+#define MACRO_EXTEND_WITH_DBG_ATTR(...)
+#endif
+#endif
+
+#ifndef MACRO_EXTEND_WMS_WITH_DBG_ATTR
+#ifdef MACRO_EXTEND_WMS
+#define MACRO_EXTEND_WMS_WITH_DBG_ATTR(opcode, layout, attr, ...) MACRO_EXTEND_WMS(opcode, layout, attr)
+#else
+#define MACRO_EXTEND_WMS_WITH_DBG_ATTR(...)
+#endif
+#endif
+
+#ifndef MACRO_BACKEND_ONLY_WITH_DBG_ATTR
+#ifdef MACRO_BACKEND_ONLY
+#define MACRO_BACKEND_ONLY_WITH_DBG_ATTR(opcode, layout, attr, ...) MACRO_BACKEND_ONLY(opcode, layout, attr)
+#else
+#define MACRO_BACKEND_ONLY_WITH_DBG_ATTR(...)
+#endif
+#endif
+
+// Default the debug attributes to OpDbgAttr_None
 #ifndef MACRO
-#define MACRO( opcode, layout, attr)
+#define MACRO(opcode, layout, attr) MACRO_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_None)
 #endif
 
 #ifndef MACRO_WMS
-#define MACRO_WMS(opcode, layout, attr)
+#define MACRO_WMS(opcode, layout, attr) MACRO_WMS_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_None)
 #endif
 
 #ifndef MACRO_EXTEND
-#define MACRO_EXTEND(opcode, layout, attr)
+#define MACRO_EXTEND(opcode, layout, attr) MACRO_EXTEND_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_None)
 #endif
 
 #ifndef MACRO_EXTEND_WMS
-#define MACRO_EXTEND_WMS(opcode, layout, attr)
+#define MACRO_EXTEND_WMS(opcode, layout, attr) MACRO_EXTEND_WMS_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_None)
 #endif
 
 #ifndef MACRO_BACKEND_ONLY
-#define MACRO_BACKEND_ONLY(opcode, layout, attr)
+#define MACRO_BACKEND_ONLY(opcode, layout, attr) MACRO_BACKEND_ONLY_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_None)
 #endif
+
+#define MACRO_ROOT(opcode, layout, attr) \
+    MACRO_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_LoadRoot)
+
+#define MACRO_WMS_ROOT(opcode, layout, attr) \
+    MACRO_WMS_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_LoadRoot)
+
+#define MACRO_EXTENDED_ROOT(opcode, layout, attr) \
+    MACRO_EXTENDED_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_LoadRoot)
+
+#define MACRO_EXTEND_WMS_ROOT(opcode, layout, attr) \
+    MACRO_EXTENDED_WMS_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_LoadRoot)
 
 #define MACRO_WMS_PROFILED( opcode, layout, attr) \
     MACRO_WMS(opcode, layout, OpHasProfiled|attr) \
@@ -36,13 +89,27 @@
     MACRO_WMS(Profiled##opcode, Profiled##layout, OpByteCodeOnly|OpProfiled|attr) \
     MACRO_WMS(Profiled##opcode##WithICIndex, Profiled##layout##WithICIndex, OpByteCodeOnly|OpProfiledWithICIndex|attr) \
 
-#define MACRO_WMS_PROFILED_OP(  opcode, layout, attr) \
-    MACRO_WMS(opcode, layout, OpHasProfiled|attr) \
-    MACRO_WMS(Profiled##opcode, layout, OpByteCodeOnly|OpProfiled|attr) \
+
+#define MACRO_WMS_PROFILED_OP_WITH_DBG_ATTR(opcode, layout, attr, dbgAttr) \
+    MACRO_WMS_WITH_DBG_ATTR(opcode, layout, OpHasProfiled|attr, dbgAttr) \
+    MACRO_WMS_WITH_DBG_ATTR(Profiled##opcode, layout, OpByteCodeOnly|OpProfiled|attr, dbgAttr) \
+
+#define MACRO_WMS_PROFILED_OP(opcode, layout, attr) \
+    MACRO_WMS_PROFILED_OP_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_None)
+
+#define MACRO_WMS_PROFILED_OP_ROOT(opcode, layout, attr) \
+    MACRO_WMS_PROFILED_OP_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_LoadRoot)
+
+
+#define MACRO_EXTEND_WMS_AND_PROFILED_OP_WITH_DBG_ATTR(opcode, layout, attr, dbgAttr) \
+    MACRO_EXTEND_WMS_WITH_DBG_ATTR(opcode, layout, OpHasProfiled | attr, dbgAttr) \
+    MACRO_EXTEND_WMS_WITH_DBG_ATTR(Profiled##opcode, layout, OpByteCodeOnly | OpProfiled | attr, dbgAttr) \
 
 #define MACRO_EXTEND_WMS_AND_PROFILED_OP(opcode, layout, attr) \
-    MACRO_EXTEND_WMS(opcode, layout, OpHasProfiled | attr) \
-    MACRO_EXTEND_WMS(Profiled##opcode, layout, OpByteCodeOnly | OpProfiled | attr) \
+    MACRO_EXTEND_WMS_AND_PROFILED_OP_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_None)
+
+#define MACRO_EXTEND_WMS_AND_PROFILED_OP_ROOT(opcode, layout, attr) \
+    MACRO_EXTEND_WMS_AND_PROFILED_OP_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_LoadRoot)
 
 #define MACRO_PROFILED(opcode, layout, attr) \
     MACRO(opcode, layout, OpHasProfiled|attr) \
@@ -284,18 +351,18 @@ MACRO_BACKEND_ONLY(     LdIndir,            Empty,          OpTempNumberSources|
 
 MACRO_WMS(              ChkUndecl,                  Reg1,           OpSideEffect)
 
-MACRO_WMS(              EnsureNoRootFld,            ElementRootU,   OpSideEffect)
-MACRO_WMS(              EnsureNoRootRedeclFld,      ElementRootU,   OpSideEffect)
+MACRO_WMS_ROOT(         EnsureNoRootFld,            ElementRootU,   OpSideEffect)
+MACRO_WMS_ROOT(         EnsureNoRootRedeclFld,      ElementRootU,   OpSideEffect)
 MACRO_WMS(              ScopedEnsureNoRedeclFld,    ElementScopedC, OpSideEffect)
 
 MACRO_WMS(              InitUndecl,                 Reg1,           OpCanCSE)
 // TODO: Change InitUndeclLetFld and InitUndeclConstFld to ElementU layouts since they do not use their inline cache
 MACRO_WMS(              InitUndeclLetFld,           ElementPIndexed,OpByteCodeOnly|OpSideEffect)
 MACRO_EXTEND_WMS(       InitUndeclLocalLetFld,      ElementP,       OpByteCodeOnly|OpSideEffect)
-MACRO_WMS(              InitUndeclRootLetFld,       ElementRootU,   OpSideEffect)
+MACRO_WMS_ROOT(         InitUndeclRootLetFld,       ElementRootU,   OpSideEffect)
 MACRO_WMS(              InitUndeclConstFld,         ElementPIndexed,OpByteCodeOnly|OpSideEffect)
 MACRO_EXTEND_WMS(       InitUndeclLocalConstFld,    ElementP,       OpByteCodeOnly|OpSideEffect)
-MACRO_WMS(              InitUndeclRootConstFld,     ElementRootU,   OpSideEffect)
+MACRO_WMS_ROOT(         InitUndeclRootConstFld,     ElementRootU,   OpSideEffect)
 MACRO_EXTEND_WMS(       InitUndeclConsoleLetFld,    ElementScopedU, OpSideEffect)
 MACRO_EXTEND_WMS(       InitUndeclConsoleConstFld,  ElementScopedU, OpSideEffect)
 MACRO_WMS(              InitConst,                  Reg2,           OpTempNumberTransfer|OpTempObjectTransfer|OpNonIntTransfer|OpCanCSE)    // Create and initialize 'const' as property of global object
@@ -304,9 +371,9 @@ MACRO_WMS(              InitConstSlot,              ElementSlot,    None)
 // Re-evaluate following 4 opcodes and InitInnerLetFld for obj type spec and inline cache lookup when we add sharing of types having properties with non-default
 // attributes. Currently, these opcodes are used to set properties on scope objects, whose types we do not share as all their properties are non-configurable
 MACRO_WMS(              InitLetFld,                 ElementCP,      OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)   // Declare a property with an initial value
-MACRO_WMS(              InitRootLetFld,             ElementRootCP,  OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)   // Declare a property with an initial value
+MACRO_WMS_ROOT(         InitRootLetFld,             ElementRootCP,  OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)   // Declare a property with an initial value
 MACRO_WMS(              InitConstFld,               ElementCP,      OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)   // Declare a property with an initial value
-MACRO_WMS(              InitRootConstFld,           ElementRootCP,  OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)   // Declare a property with an initial value
+MACRO_WMS_ROOT(         InitRootConstFld,           ElementRootCP,  OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)   // Declare a property with an initial value
 
 MACRO_WMS(              InitClassMember,            ElementCP,      OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)                  // Class member
 MACRO_EXTEND_WMS(       InitClassMemberComputedName,ElementI,       OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)                  // Class member with computed property name
@@ -338,38 +405,38 @@ MACRO_WMS_PROFILED_OP(  LdLocalFld,           ElementP,       OpSideEffect|OpOpn
 MACRO_WMS(              LdEnvObj,             ElementSlotI1,  OpTempNumberSources)
 MACRO_EXTEND_WMS_AND_PROFILED_OP(LdSuperFld,  ElementC2,      OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut|OpCanLoadFixedFields)    // Load from ScriptObject super instance's direct field
 MACRO_WMS_PROFILED_OP(  LdFldForTypeOf,       ElementCP,      OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut|OpCanLoadFixedFields)
-MACRO_EXTEND_WMS_AND_PROFILED_OP(LdRootFldForTypeOf, ElementRootCP, OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut|OpCanLoadFixedFields)
+MACRO_EXTEND_WMS_AND_PROFILED_OP_ROOT(LdRootFldForTypeOf, ElementRootCP, OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut|OpCanLoadFixedFields)
 
 MACRO_WMS_PROFILED_OP(  LdFldForCallApplyTarget,  ElementCP,      OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)
-MACRO_WMS_PROFILED_OP(LdRootFld,              ElementRootCP,  OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut|OpCanLoadFixedFields)    // Load from ScriptObject instance's direct field (access to let/const on root object)
+MACRO_WMS_PROFILED_OP_ROOT(LdRootFld,         ElementRootCP,  OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut|OpCanLoadFixedFields)    // Load from ScriptObject instance's direct field (access to let/const on root object)
 MACRO_WMS_PROFILED_OP(LdMethodFld,            ElementCP,      OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut|OpCanLoadFixedFields)    // Load call target from ScriptObject instance's direct field
 MACRO_EXTEND_WMS_AND_PROFILED_OP(LdLocalMethodFld, ElementP,  OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut|OpCanLoadFixedFields)    // Load call target from ScriptObject instance's direct field
 MACRO_BACKEND_ONLY(     LdMethodFldPolyInlineMiss, ElementCP, OpSideEffect|OpOpndHasImplicitCall|OpDoNotTransfer|OpPostOpDbgBailOut)                        // Load call target from ScriptObject instance's direct field, when the call target is neither of
                                                                                                                                                         // the ones we inlined using fixed methods, at a polymorphic call site,
                                                                                                                                                         // but don't allow it to participate in any obj type spec optimizations,
                                                                                                                                                         // as it will always result in a helper call.
-MACRO_WMS_PROFILED_OP(  LdRootMethodFld,      ElementRootCP,  OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Load call target from ScriptObject instance's direct field (access to let/const on root object)
+MACRO_WMS_PROFILED_OP_ROOT(LdRootMethodFld,   ElementRootCP,  OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Load call target from ScriptObject instance's direct field (access to let/const on root object)
 MACRO_WMS_PROFILED_OP(  StFld,                ElementCP,      OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Store into ScriptObject instance's direct field
 MACRO_EXTEND_WMS_AND_PROFILED_OP(StSuperFld,  ElementC2,      OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Store into ScriptObject super instance's direct field
-MACRO_WMS_PROFILED_OP(  StRootFld,            ElementRootCP,  OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Store into ScriptObject instance's direct field (access to let/const on root object)
+MACRO_WMS_PROFILED_OP_ROOT(StRootFld,         ElementRootCP,  OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Store into ScriptObject instance's direct field (access to let/const on root object)
 MACRO_WMS_PROFILED_OP(  StLocalFld,           ElementP,       OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Store into local activation object
 MACRO_WMS_PROFILED_OP(  StFldStrict,          ElementCP,      OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Store into ScriptObject instance's direct field (strict mode, a.x = ...)
-MACRO_WMS_PROFILED_OP(  StRootFldStrict,      ElementRootCP,  OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Store into ScriptObject instance's direct field (strict mode, x = ..., access to let/const on root object)
+MACRO_WMS_PROFILED_OP_ROOT(StRootFldStrict,   ElementRootCP,  OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Store into ScriptObject instance's direct field (strict mode, x = ..., access to let/const on root object)
 MACRO_WMS_PROFILED_OP(  InitFld,              ElementCP,      OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Declare a property with an initial value
 MACRO_WMS_PROFILED_OP(  InitLocalFld,         ElementP,       OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Declare a property with an initial value
 MACRO_EXTEND_WMS(       InitLocalLetFld,      ElementP,       OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)   // Declare a property with an initial value
 MACRO_EXTEND_WMS(       InitInnerFld,         ElementPIndexed,OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Declare a property with an initial value
 MACRO_EXTEND_WMS(       InitInnerLetFld,      ElementPIndexed,OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)                  // Declare a property with an initial value
-MACRO_WMS_PROFILED_OP(  InitRootFld,          ElementRootCP,  OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Declare a property with an initial value
-MACRO_BACKEND_ONLY(     LdMethodFromFlags,          ElementCP,      OpFastFldInstr|OpCanCSE)
+MACRO_WMS_PROFILED_OP_ROOT(InitRootFld,       ElementRootCP,  OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Declare a property with an initial value
+MACRO_BACKEND_ONLY(     LdMethodFromFlags,    ElementCP,      OpFastFldInstr|OpCanCSE)
 
 MACRO_WMS(              DeleteFld,                  ElementC,       OpSideEffect|OpOpndHasImplicitCall|OpDoNotTransfer|OpPostOpDbgBailOut)  // Remove a property
 MACRO_EXTEND_WMS(       DeleteLocalFld,             ElementU,       OpSideEffect|OpOpndHasImplicitCall|OpDoNotTransfer|OpPostOpDbgBailOut)  // Remove a property
-MACRO_WMS(              DeleteRootFld,              ElementC,       OpSideEffect|OpOpndHasImplicitCall|OpDoNotTransfer|OpPostOpDbgBailOut)  // Remove a property (access to let/const on root object)
+MACRO_WMS_ROOT(         DeleteRootFld,              ElementC,       OpSideEffect|OpOpndHasImplicitCall|OpDoNotTransfer|OpPostOpDbgBailOut)  // Remove a property (access to let/const on root object)
 MACRO_WMS(              DeleteFldStrict,            ElementC,       OpSideEffect|OpOpndHasImplicitCall|OpDoNotTransfer|OpPostOpDbgBailOut)  // Remove a property in strict mode
-MACRO_WMS(              DeleteRootFldStrict,        ElementC,       OpSideEffect|OpHasImplicitCall|OpDoNotTransfer|OpPostOpDbgBailOut)  // Remove a property in strict mode (access to let/const on root object)
+MACRO_WMS_ROOT(         DeleteRootFldStrict,        ElementC,       OpSideEffect|OpHasImplicitCall|OpDoNotTransfer|OpPostOpDbgBailOut)  // Remove a property in strict mode (access to let/const on root object)
 MACRO_WMS(              ScopedLdFld,                ElementP,       OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Load from function's scope stack
-MACRO_EXTEND_WMS(       ScopedLdFldForTypeOf,       ElementP,       OpSideEffect|OpHasImplicitCall| OpPostOpDbgBailOut)                 // Load from function's scope stack for Typeof of a property
+MACRO_EXTEND_WMS(       ScopedLdFldForTypeOf,       ElementP,       OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Load from function's scope stack for Typeof of a property
 MACRO_WMS(              ScopedLdMethodFld,          ElementCP,      OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Load call target from ScriptObject instance's direct field, but either scope object or root load from root object
 MACRO_WMS(              ScopedLdInst,               ElementScopedC2,OpSideEffect|OpHasImplicitCall)                                     // Load owning instance from function's scope stack (NOTE: HasProperty may call DOM)
 MACRO_WMS(              ScopedInitFunc,             ElementScopedC, OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Init on instance on scope stack
@@ -488,7 +555,7 @@ MACRO_WMS(              LdIndexedFrameDisplay,Reg2Int1,         None)        // 
 MACRO_WMS(              LdIndexedFrameDisplayNoParent,Reg1Unsigned1, None)        // Set up a frame display for this function and its parent frames -- this is for an inner scope, not the function-level scope
 MACRO_WMS(              LdFuncExprFrameDisplay,Reg2,        None)
 MACRO_BACKEND_ONLY(     NewStackFrameDisplay,Reg3,          None)           // Set up a frame display allocated on the stack
-    MACRO_WMS(              IsIn,               Reg3,           OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)        // "x in y"  (NOTE: calls valueOf for the index
+MACRO_WMS(              IsIn,               Reg3,           OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)        // "x in y"  (NOTE: calls valueOf for the index
 MACRO_WMS(              LdArgumentsFromFrame,Reg1,          None)           // Load the argument object from frame
 MACRO_WMS(              LdElemUndef,        ElementU,       OpSideEffect)   // Load 'undefined' to instance.property if not already present
 MACRO_EXTEND_WMS(       LdLocalElemUndef,   ElementRootU,   OpSideEffect)   // Load 'undefined' to instance.property if not already present
@@ -778,3 +845,8 @@ MACRO_BACKEND_ONLY(     TrapIfUnalignedAccess, Reg3,        OpSideEffect)
 #undef MACRO_EXTEND
 #undef MACRO_EXTEND_WMS
 #undef MACRO_BACKEND_ONLY
+#undef MACRO_WITH_DBG_ATTR
+#undef MACRO_WMS_WITH_DBG_ATTR
+#undef MACRO_EXTEND_WITH_DBG_ATTR
+#undef MACRO_EXTEND_WMS_WITH_DBG_ATTR
+#undef MACRO_BACKEND_ONLY_WITH_DBG_ATTR

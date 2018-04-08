@@ -35,6 +35,7 @@ enum ErrorTypeEnum
 };
 
 class ParseNode;
+class ParseNodeFnc;
 typedef ParseNode *ParseNodePtr;
 
 struct Ident;

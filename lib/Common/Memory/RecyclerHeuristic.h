@@ -53,6 +53,9 @@ public:
     static const uint TickCountFinishCollection = 45;                                       // 45 milliseconds
     static const uint TickCountDoDispose = 300;                                             // Allow for 300 milliseconds of script before attempting dispose
                                                                                             // This heuristic is currently used for dispose on stack probes
+    static const uint TickCountIdleCollectRepeatTimer = 500;                                // This heuristic is for in case the first idle task call back didn't finish the GC
+                                                                                            // We schedule another timer task to check the collection progress
+
     void ConfigureBaseFactor(uint baseFactor);
 
 #if ENABLE_CONCURRENT_GC

@@ -146,7 +146,7 @@ namespace Js {
         ExclusiveContext *              mCx;
         AsmJSParser &                   mCurrentParserNode;
         PropertyName                    mModuleFunctionName;
-        ParseNode *                     mModuleFunctionNode;
+        ParseNodeFnc *                  mModuleFunctionNode;
         MathNameMap                     mStandardLibraryMathNames;
         ArrayNameMap                    mStandardLibraryArrayNames;
         ModuleEnvironment               mModuleEnvironment;
@@ -192,7 +192,7 @@ namespace Js {
 
         // A valid module may have a NULL name
         inline PropertyName GetModuleFunctionName() const{return mModuleFunctionName;}
-        inline ParseNode *GetModuleFunctionNode() const{return mModuleFunctionNode;}
+        inline ParseNodeFnc *GetModuleFunctionNode() const{return mModuleFunctionNode;}
 
         inline ArenaAllocator* GetAllocator() {return &mAllocator;}
         inline int32 GetMaxAstSize() const{return mMaxAstSize;}
@@ -200,7 +200,7 @@ namespace Js {
 
         //Mutable interface
         inline void InitModuleName( PropertyName name ){mModuleFunctionName = name;}
-        inline void InitModuleNode( AsmJSParser &parser ){mModuleFunctionNode = parser;}
+        inline void InitModuleNode( ParseNodeFnc * parser ){mModuleFunctionNode = parser;}
         inline AsmJSParser& GetCurrentParserNode(){return mCurrentParserNode;}
         inline void SetCurrentParseNode( AsmJSParser & val ){mCurrentParserNode = val;}
 
@@ -253,7 +253,7 @@ namespace Js {
         bool CommitFunctions();
         bool CommitModule();
         bool FinalizeModule();
-        AsmJsFunc* CreateNewFunctionEntry(ParseNode* pnodeFnc);
+        AsmJsFunc* CreateNewFunctionEntry(ParseNodeFnc* pnodeFnc);
         bool CheckChangeHeap(AsmJsFunc * func);
 
 

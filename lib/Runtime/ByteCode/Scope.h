@@ -255,6 +255,6 @@ public:
 
     bool IsGlobalEvalBlockScope() const;
 
-    static void MergeParamAndBodyScopes(ParseNode *pnodeScope);
-    static void RemoveParamScope(ParseNode *pnodeScope);
+    static void MergeParamAndBodyScopes(ParseNodeFnc *pnodeScope);
+    static void RemoveParamScope(ParseNodeFnc *pnodeScope);
 };

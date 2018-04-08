@@ -56,7 +56,7 @@ namespace Js
         funcBody->SetEntryPoint(funcBody->GetDefaultEntryPointInfo(), GetScriptContext()->DeferredParsingThunk);
         funcBody->SetIsAsmjsMode(false);
         funcBody->SetIsAsmJsFunction(false);
-        func->GetFncNode()->AsParseNodeFnc()->funcInfo->byteCodeFunction = func->GetFuncBody();
+        func->GetFncNode()->funcInfo->byteCodeFunction = func->GetFuncBody();
     }
 
     void AsmJsModuleCompiler::RevertAllFunctions()
@@ -117,20 +117,20 @@ namespace Js
 
     bool AsmJsModuleCompiler::CommitModule()
     {
-        FuncInfo* funcInfo = GetModuleFunctionNode()->AsParseNodeFnc()->funcInfo;
+        FuncInfo* funcInfo = GetModuleFunctionNode()->funcInfo;
         FunctionBody* functionBody = funcInfo->GetParsedFunctionBody();
         AsmJsModuleInfo* asmInfo = functionBody->AllocateAsmJsModuleInfo();
 
         if (funcInfo->byteCodeFunction->GetIsNamedFunctionExpression())
         {
-            Assert(GetModuleFunctionNode()->AsParseNodeFnc()->pnodeName);
-            if (GetModuleFunctionNode()->AsParseNodeFnc()->pnodeName->AsParseNodeVar()->sym->IsInSlot(funcInfo))
+            Assert(GetModuleFunctionNode()->pnodeName);
+            ParseNodeVar * nameNode = GetModuleFunctionNode()->pnodeName->AsParseNodeVar();
+            if (nameNode->sym->IsInSlot(funcInfo))
             {
-                ParseNodePtr nameNode = GetModuleFunctionNode()->AsParseNodeFnc()->pnodeName;
                 GetByteCodeGenerator()->AssignPropertyId(nameNode->name());
                 // if module is a named function expression, we may need to restore this for debugger
-                AsmJsClosureFunction* closure = Anew(&mAllocator, AsmJsClosureFunction, nameNode->AsParseNodeVar()->pid, AsmJsSymbol::ClosureFunction, &mAllocator);
-                DefineIdentifier(nameNode->AsParseNodeVar()->pid, closure);
+                AsmJsClosureFunction* closure = Anew(&mAllocator, AsmJsClosureFunction, nameNode->pid, AsmJsSymbol::ClosureFunction, &mAllocator);
+                DefineIdentifier(nameNode->pid, closure);
             }
         }
 
@@ -468,7 +468,7 @@ namespace Js
             break;
         case knopSwitch:
             ASTPrepass(pnode->AsParseNodeSwitch()->pnodeVal, func);
-            for (ParseNode *pnodeT = pnode->AsParseNodeSwitch()->pnodeCases; NULL != pnodeT; pnodeT = pnodeT->AsParseNodeCase()->pnodeNext)
+            for (ParseNodeCase *pnodeT = pnode->AsParseNodeSwitch()->pnodeCases; NULL != pnodeT; pnodeT = pnodeT->pnodeNext)
             {
                 ASTPrepass(pnodeT, func);
             }
@@ -532,12 +532,12 @@ namespace Js
 
     bool AsmJsModuleCompiler::CompileFunction(AsmJsFunc * func, int funcIndex)
     {
-        ParseNodePtr fncNode = func->GetFncNode();
+        ParseNodeFnc * fncNode = func->GetFncNode();
         ParseNodePtr pnodeBody = nullptr;
 
-        Assert(fncNode->nop == knopFncDecl && fncNode->AsParseNodeFnc()->funcInfo && fncNode->AsParseNodeFnc()->funcInfo->IsDeferred() && fncNode->AsParseNodeFnc()->pnodeBody == NULL);
+        Assert(fncNode->nop == knopFncDecl && fncNode->funcInfo && fncNode->funcInfo->IsDeferred() && fncNode->pnodeBody == NULL);
 
-        Js::ParseableFunctionInfo* deferParseFunction = fncNode->AsParseNodeFnc()->funcInfo->byteCodeFunction;
+        Js::ParseableFunctionInfo* deferParseFunction = fncNode->funcInfo->byteCodeFunction;
         Utf8SourceInfo * utf8SourceInfo = deferParseFunction->GetUtf8SourceInfo();
         ULONG grfscr = utf8SourceInfo->GetParseFlags();
         grfscr = grfscr & (~fscrGlobalCode);
@@ -548,10 +548,10 @@ namespace Js
             !!(grfscr & fscrEvalCode),
             ((grfscr & fscrDynamicCode) && !(grfscr & fscrEvalCode)));
 
-        deferParseFunction->SetInParamsCount(fncNode->AsParseNodeFnc()->funcInfo->inArgsCount);
-        deferParseFunction->SetReportedInParamsCount(fncNode->AsParseNodeFnc()->funcInfo->inArgsCount);
+        deferParseFunction->SetInParamsCount(fncNode->funcInfo->inArgsCount);
+        deferParseFunction->SetReportedInParamsCount(fncNode->funcInfo->inArgsCount);
 
-        if (fncNode->AsParseNodeFnc()->pnodeBody == NULL)
+        if (fncNode->pnodeBody == NULL)
         {
             if (!PHASE_OFF1(Js::SkipNestedDeferredPhase))
             {
@@ -566,7 +566,7 @@ namespace Js
 
         CompileScriptException se;
         funcBody = deferParseFunction->ParseAsmJs(&ps, &se, &parseTree);
-        fncNode->AsParseNodeFnc()->funcInfo->byteCodeFunction = funcBody;
+        fncNode->funcInfo->byteCodeFunction = funcBody;
 
         TRACE_BYTECODE(_u("\nDeferred parse %s\n"), funcBody->GetDisplayName());
         if (parseTree && parseTree->nop == knopProg)
@@ -582,12 +582,12 @@ namespace Js
                 }
             }
         }
-        GetByteCodeGenerator()->PushFuncInfo(_u("Start asm.js AST prepass"), fncNode->AsParseNodeFnc()->funcInfo);
-        BindArguments(fncNode->AsParseNodeFnc()->pnodeParams);
+        GetByteCodeGenerator()->PushFuncInfo(_u("Start asm.js AST prepass"), fncNode->funcInfo);
+        BindArguments(fncNode->pnodeParams);
         ASTPrepass(pnodeBody, func);
         GetByteCodeGenerator()->PopFuncInfo(_u("End asm.js AST prepass"));
 
-        fncNode->AsParseNodeFnc()->pnodeBody = pnodeBody;
+        fncNode->pnodeBody = pnodeBody;
 
         if (!pnodeBody)
         {
@@ -597,26 +597,26 @@ namespace Js
         }
 
         // Check if this function requires a bigger Ast
-        UpdateMaxAstSize(fncNode->AsParseNodeFnc()->astSize);
+        UpdateMaxAstSize(fncNode->astSize);
 
         if (!SetupFunctionArguments(func, pnodeBody))
         {
             // failure message will be printed by SetupFunctionArguments
-            fncNode->AsParseNodeFnc()->pnodeBody = NULL;
+            fncNode->pnodeBody = NULL;
             return false;
         }
 
         if (!SetupLocalVariables(func))
         {
             // failure message will be printed by SetupLocalVariables
-            fncNode->AsParseNodeFnc()->pnodeBody = NULL;
+            fncNode->pnodeBody = NULL;
             return false;
         }
 
         // now that we have setup the function, we can generate bytecode for it
         AsmJSByteCodeGenerator gen(func, this);
         bool wasEmit = gen.EmitOneFunction();
-        fncNode->AsParseNodeFnc()->pnodeBody = NULL;
+        fncNode->pnodeBody = NULL;
         return wasEmit;
     }
 
@@ -970,7 +970,7 @@ namespace Js
         return true;
     }
 
-    AsmJsFunc* AsmJsModuleCompiler::CreateNewFunctionEntry(ParseNode* pnodeFnc)
+    AsmJsFunc* AsmJsModuleCompiler::CreateNewFunctionEntry(ParseNodeFnc* pnodeFnc)
     {
         PropertyName name = ParserWrapper::FunctionName(pnodeFnc);
         if (!name)
@@ -985,7 +985,7 @@ namespace Js
             if (DefineIdentifier(name, func))
             {
                 uint index = (uint)mFunctionArray.Count();
-                if (pnodeFnc->AsParseNodeFnc()->nestedIndex != index)
+                if (pnodeFnc->nestedIndex != index)
                 {
                     return nullptr;
                 }
@@ -1245,7 +1245,7 @@ namespace Js
         , mBufferArgNameInit(false)
 #endif
     {
-        InitModuleNode(parser);
+        InitModuleNode(parser->AsParseNodeFnc());
     }
 
     bool AsmJsModuleCompiler::AddStandardLibraryMathName(PropertyId id, const double* cstAddr, AsmJSMathBuiltinFunction mathLibFunctionName)

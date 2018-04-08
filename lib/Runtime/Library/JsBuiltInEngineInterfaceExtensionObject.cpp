@@ -56,7 +56,6 @@ namespace Js
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_RegisterChakraLibraryFunction(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_RegisterChakraLibraryFunction));
 
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_GetLength(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_GetLength));
-    NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_SetPrototype(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_SetPrototype));
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_GetIteratorPrototype(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_GetIteratorPrototype));
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_InitInternalProperties(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_InitInternalProperties));
 
@@ -110,9 +109,6 @@ namespace Js
             // so marshalling will inadvertantly transition the entrypoint of the prototype to a crosssite entrypoint
             // So we set the prototype to null here
             functionGlobal->SetPrototype(scriptContext->GetLibrary()->nullValue);
-#if DBG
-            functionGlobal->GetFunctionProxy()->SetIsJsBuiltInInitCode();
-#endif
 
 #ifdef ENABLE_SCRIPT_PROFILING
             // If we are profiling, we need to register the script to the profiler callback, so the script compiled event will be sent.
@@ -139,9 +135,6 @@ namespace Js
 
             Js::ScriptFunction *functionBuiltins = scriptContext->GetLibrary()->CreateScriptFunction(jsBuiltInByteCode->GetNestedFunctionForExecution(0));
             functionBuiltins->SetPrototype(scriptContext->GetLibrary()->nullValue);
-#if DBG
-            functionBuiltins->GetFunctionProxy()->SetIsJsBuiltInInitCode();
-#endif
 
             // Clear disable implicit call bit as initialization code doesn't have any side effect
             saveImplicitCallFlags = scriptContext->GetThreadContext()->GetImplicitCallFlags();
@@ -280,7 +273,6 @@ namespace Js
 
         // Link the function to __chakraLibrary.
         ScriptFunction* scriptFunction = library->CreateScriptFunction(func->GetFunctionProxy());
-        scriptFunction->SetIsJsBuiltInCode();
         scriptFunction->GetFunctionProxy()->SetIsJsBuiltInCode();
 
         Assert(scriptFunction->HasFunctionBody());
@@ -337,7 +329,6 @@ namespace Js
 
         // Link the function to the prototype.
         ScriptFunction* scriptFunction = library->CreateScriptFunction(func->GetFunctionProxy());
-        scriptFunction->SetIsJsBuiltInCode();
         scriptFunction->GetFunctionProxy()->SetIsJsBuiltInCode();
 
         if (forceInline)
@@ -399,24 +390,6 @@ namespace Js
         }
 
         return JavascriptNumber::ToVar(length, scriptContext);
-    }
-
-    /*
-    * First parameter is the object onto which prototype should be set; second is the value
-    */
-    Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_SetPrototype(RecyclableObject *function, CallInfo callInfo, ...)
-    {
-        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-        UNREFERENCED_PARAMETER(scriptContext);
-
-        Assert(callInfo.Count == 3 && DynamicObject::Is(args.Values[1]) && RecyclableObject::Is(args.Values[2]));
-
-        DynamicObject* obj = DynamicObject::FromVar(args.Values[1]);
-        RecyclableObject* value = RecyclableObject::FromVar(args.Values[2]);
-
-        obj->SetPrototype(value);
-
-        return obj;
     }
 
     Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_GetIteratorPrototype(RecyclableObject *function, CallInfo callInfo, ...)

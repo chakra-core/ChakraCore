@@ -1811,6 +1811,7 @@ template<typename TVirtualAlloc, typename TSegment, typename TPageSegment>
 void
 PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::BackgroundReleasePages(void * address, uint pageCount, TPageSegment * segment)
 {
+    // TODO: no need to zero the pages if it's going to be decommitted
     FillFreePages(address, pageCount);
     QueuePages(address, pageCount, segment);
 }

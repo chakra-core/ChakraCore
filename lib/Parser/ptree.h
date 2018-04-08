@@ -66,7 +66,7 @@ enum PNodeFlags : ushort
 };
 
 /***************************************************************************
-Data structs for ParseNodes. 
+Data structs for ParseNodes.
 ***************************************************************************/
 class ParseNodeUni;
 class ParseNodeBin;
@@ -206,15 +206,9 @@ public:
     bool CanFlattenConcatExpr() const { return !!(this->grfpn & PNodeFlags::fpnCanFlattenConcatExpr); }
 
     bool IsCallApplyTargetLoad() { return isCallApplyTargetLoad; }
-    void SetIsCallApplyTargetLoad() { isCallApplyTargetLoad = true; }
+    void SetIsCallApplyTargetLoad() { isCallApplyTargetLoad = true; }    
 
-    bool IsSpecialName() { return isSpecialName; }
-    void SetIsSpecialName() { isSpecialName = true; }
-
-    bool IsUserIdentifier() const
-    {
-        return this->nop == knopName && !this->isSpecialName;
-    }
+    bool IsUserIdentifier();
 
     bool IsVarLetOrConst() const
     {
@@ -231,25 +225,33 @@ public:
 #if DBG_DUMP
     void Dump();
 #endif
+
 public:
     static const uint mpnopgrfnop[knopLim];
 
     OpCode nop;
+
+    bool isUsed : 1;                // indicates whether an expression such as x++ is used
+
+private:
+    bool isInList : 1;
+    // Use by byte code generator
+    bool notEscapedUse : 1;         // Currently, only used by child of knopComma
+    bool isCallApplyTargetLoad : 1;
+
+public:
     ushort grfpn;
+
     charcount_t ichMin;         // start offset into the original source buffer
     charcount_t ichLim;         // end offset into the original source buffer
     Js::RegSlot location;
-    bool isUsed;                // indicates whether an expression such as x++ is used
-    bool emitLabels;
-    bool notEscapedUse;         // Use by byte code generator.  Currently, only used by child of knopComma
-    bool isInList;
-    bool isCallApplyTargetLoad;
-    bool isSpecialName;         // indicates a PnPid (knopName) is a special name like 'this' or 'super'
+
 #ifdef EDIT_AND_CONTINUE
     ParseNodePtr parent;
 #endif
 };
 
+#define DISABLE_SELF_CAST(T) private: T * As##T()
 // unary operators
 class ParseNodeUni : public ParseNode
 {
@@ -257,6 +259,8 @@ public:
     ParseNodeUni(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1);
 
     ParseNodePtr pnode1;
+
+    DISABLE_SELF_CAST(ParseNodeUni);
 };
 
 // binary operators
@@ -265,9 +269,10 @@ class ParseNodeBin : public ParseNode
 public:
     ParseNodeBin(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1, ParseNode * pnode2);
 
-    ParseNodePtr pnodeNext;
     ParseNodePtr pnode1;
     ParseNodePtr pnode2;
+
+    DISABLE_SELF_CAST(ParseNodeBin);
 };
 
 // ternary operator
@@ -276,10 +281,11 @@ class ParseNodeTri : public ParseNode
 public:
     ParseNodeTri(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
-    ParseNodePtr pnodeNext;
     ParseNodePtr pnode1;
     ParseNodePtr pnode2;
     ParseNodePtr pnode3;
+
+    DISABLE_SELF_CAST(ParseNodeTri);
 };
 
 // integer constant
@@ -289,6 +295,8 @@ public:
     ParseNodeInt(charcount_t ichMin, charcount_t ichMax, int32 lw);
 
     int32 lw;
+
+    DISABLE_SELF_CAST(ParseNodeInt);
 };
 
 // double constant
@@ -299,6 +307,8 @@ public:
 
     double dbl;
     bool maybeInt : 1;
+
+    DISABLE_SELF_CAST(ParseNodeFloat);
 };
 
 class ParseNodeRegExp : public ParseNode
@@ -308,6 +318,8 @@ public:
 
     UnifiedRegex::RegexPattern* regexPattern;
     uint regexPatternIndex;
+
+    DISABLE_SELF_CAST(ParseNodeRegExp);
 };
 
 // identifier or string
@@ -325,6 +337,16 @@ public:
     void SetSymRef(PidRefStack *ref);
     Symbol **GetSymRef() const { return symRef; }
     Js::PropertyId PropertyIdFromNameNode() const;
+
+    bool IsSpecialName() { return isSpecialName; }
+
+    DISABLE_SELF_CAST(ParseNodePid);
+
+protected:
+    void SetIsSpecialName() { isSpecialName = true; }
+
+private:
+    bool isSpecialName;         // indicates a PnPid (knopName) is a special name like 'this' or 'super'
 };
 
 // variable declaration
@@ -340,6 +362,8 @@ public:
     ParseNodePtr pnodeInit;
     BOOLEAN isSwitchStmtDecl;
     BOOLEAN isBlockScopeFncDeclVar;
+
+    DISABLE_SELF_CAST(ParseNodeVar);
 };
 
 // Array literal
@@ -347,13 +371,15 @@ class ParseNodeArrLit : public ParseNodeUni
 {
 public:
     ParseNodeArrLit(OpCode nop, charcount_t ichMin, charcount_t ichLim);
-        
+
     uint count;
     uint spreadCount;
     BYTE arrayOfTaggedInts:1;     // indicates that array initializer nodes are all tagged ints
     BYTE arrayOfInts:1;           // indicates that array initializer nodes are all ints
     BYTE arrayOfNumbers:1;        // indicates that array initializer nodes are all numbers
     BYTE hasMissingValues:1;
+
+    DISABLE_SELF_CAST(ParseNodeArrLit);
 };
 
 class FuncInfo;
@@ -420,18 +446,18 @@ public:
     uint32 hintOffset;
     bool  isNameIdentifierRef;
     bool  nestedFuncEscapes;
-    ParseNodePtr pnodeScopes;
-    ParseNodePtr pnodeBodyScope;
+    ParseNodeBlock * pnodeScopes;
+    ParseNodeBlock * pnodeBodyScope;
     ParseNodePtr pnodeParams;
     ParseNodePtr pnodeVars;
     ParseNodePtr pnodeBody;
-    ParseNodePtr pnodeRest;
+    ParseNodeVar * pnodeRest;
 
     FuncInfo *funcInfo; // function information gathered during byte code generation
     Scope *scope;
 
     uint nestedCount; // Nested function count (valid until children have been processed)
-    uint nestedIndex; // Index within the parent function
+    uint nestedIndex; // Index within the parent function (Used by ByteCodeGenerator)
 
     uint16 firstDefaultArg; // Position of the first default argument, if any
 
@@ -591,12 +617,14 @@ public:
     template<typename Fn>
     void MapContainerScopes(Fn fn)
     {
-        fn(this->pnodeScopes->AsParseNodeBlock()->pnodeScopes);
+        fn(this->pnodeScopes->pnodeScopes);
         if (this->pnodeBodyScope != nullptr)
         {
-            fn(this->pnodeBodyScope->AsParseNodeBlock()->pnodeScopes);
+            fn(this->pnodeBodyScope->pnodeScopes);
         }
     }
+
+    DISABLE_SELF_CAST(ParseNodeFnc);
 };
 
 // class declaration
@@ -605,9 +633,9 @@ class ParseNodeClass : public ParseNode
 public:
     ParseNodeClass(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
-    ParseNodePtr pnodeName;
-    ParseNodePtr pnodeDeclName;
-    ParseNodePtr pnodeBlock;
+    ParseNodeVar * pnodeName;
+    ParseNodeVar * pnodeDeclName;
+    ParseNodeBlock * pnodeBlock;
     ParseNodePtr pnodeConstructor;
     ParseNodePtr pnodeMembers;
     ParseNodePtr pnodeStaticMembers;
@@ -617,6 +645,8 @@ public:
 
     void SetIsDefaultModuleExport(bool set) { isDefaultModuleExport = set; }
     bool IsDefaultModuleExport() const { return isDefaultModuleExport; }
+
+    DISABLE_SELF_CAST(ParseNodeClass);
 };
 
 // export default expr
@@ -626,6 +656,8 @@ public:
     ParseNodeExportDefault(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
     ParseNodePtr pnodeExpr;
+
+    DISABLE_SELF_CAST(ParseNodeExportDefault);
 };
 
 // string template declaration
@@ -639,6 +671,8 @@ public:
     ParseNodePtr pnodeSubstitutionExpressions;
     uint16 countStringLiterals;
     BYTE isTaggedTemplate:1;
+
+    DISABLE_SELF_CAST(ParseNodeStrTemplate);
 };
 
 // global program
@@ -647,8 +681,10 @@ class ParseNodeProg : public ParseNodeFnc
 public:
     ParseNodeProg(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
-    ParseNodePtr pnodeLastValStmt;
+    ParseNodePtr pnodeLastValStmt;  // Used by ByteCodeGenerator
     bool m_UsesArgumentsAtGlobal;
+
+    DISABLE_SELF_CAST(ParseNodeProg);
 };
 
 // global module
@@ -662,6 +698,8 @@ public:
     ModuleImportOrExportEntryList* starExportEntries;
     ModuleImportOrExportEntryList* importEntries;
     IdentPtrList* requestedModules;
+
+    DISABLE_SELF_CAST(ParseNodeModule);
 };
 
 // function call
@@ -670,7 +708,6 @@ class ParseNodeCall : public ParseNode
 public:
     ParseNodeCall(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNodePtr pnodeTarget, ParseNodePtr pnodeArgs);
 
-    ParseNodePtr pnodeNext;
     ParseNodePtr pnodeTarget;
     ParseNodePtr pnodeArgs;
     uint16 argCount;
@@ -680,6 +717,8 @@ public:
     BYTE isEvalCall : 1;
     BYTE isSuperCall : 1;
     BYTE hasDestructuring : 1;
+
+    DISABLE_SELF_CAST(ParseNodeCall);
 };
 
 // base for statement nodes
@@ -696,6 +735,10 @@ public:
     // Needed for byte code gen.
     Js::ByteCodeLabel breakLabel;
     Js::ByteCodeLabel continueLabel;
+
+    bool emitLabels;
+
+    DISABLE_SELF_CAST(ParseNodeStmt);
 };
 
 // block { }
@@ -711,7 +754,7 @@ public:
     ParseNodePtr pnodeNext;
     Scope        *scope;
 
-    ParseNodePtr enclosingBlock;
+    ParseNodeBlock * enclosingBlock;
     int blockId;
     PnodeBlockType blockType:2;
     BYTE         callsEval:1;
@@ -723,10 +766,12 @@ public:
     void SetChildCallsEval(bool does) { childCallsEval = does; }
     bool GetChildCallsEval() const { return childCallsEval; }
 
-    void SetEnclosingBlock(ParseNodePtr pnode) { enclosingBlock = pnode; }
-    ParseNodePtr GetEnclosingBlock() const { return enclosingBlock; }
+    void SetEnclosingBlock(ParseNodeBlock * pnode) { enclosingBlock = pnode; }
+    ParseNodeBlock * GetEnclosingBlock() const { return enclosingBlock; }
 
     bool HasBlockScopedContent() const;
+
+    DISABLE_SELF_CAST(ParseNodeBlock);
 };
 
 // break and continue
@@ -735,8 +780,10 @@ class ParseNodeJump : public ParseNodeStmt
 public:
     ParseNodeJump(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
-    ParseNodePtr pnodeTarget;
+    ParseNodeStmt * pnodeTarget;
     bool hasExplicitTarget;
+
+    DISABLE_SELF_CAST(ParseNodeJump);
 };
 
 // base for loop nodes
@@ -747,6 +794,9 @@ public:
 
     // Needed for byte code gen
     uint loopId;
+
+
+    DISABLE_SELF_CAST(ParseNodeLoop);
 };
 
 // while and do-while loops
@@ -757,6 +807,8 @@ public:
 
     ParseNodePtr pnodeCond;
     ParseNodePtr pnodeBody;
+
+    DISABLE_SELF_CAST(ParseNodeWhile);
 };
 
 // with
@@ -770,17 +822,19 @@ public:
     ParseNodePtr pnodeScopes;
     ParseNodePtr pnodeNext;
     Scope        *scope;
+
+    DISABLE_SELF_CAST(ParseNodeWith);
 };
 
 // Destructure pattern for function/catch parameter
-class ParseNodeParamPattern : public ParseNode
+class ParseNodeParamPattern : public ParseNodeUni
 {
 public:
     ParseNodeParamPattern(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
     ParseNodePtr pnodeNext;
     Js::RegSlot location;
-    ParseNodePtr pnode1;
+    DISABLE_SELF_CAST(ParseNodeParamPattern);
 };
 
 // if
@@ -792,6 +846,8 @@ public:
     ParseNodePtr pnodeCond;
     ParseNodePtr pnodeTrue;
     ParseNodePtr pnodeFalse;
+
+    DISABLE_SELF_CAST(ParseNodeIf);
 };
 
 // for-in loop
@@ -803,8 +859,10 @@ public:
     ParseNodePtr pnodeObj;
     ParseNodePtr pnodeBody;
     ParseNodePtr pnodeLval;
-    ParseNodePtr pnodeBlock;
+    ParseNodeBlock * pnodeBlock;
     Js::RegSlot itemLocation;
+
+    DISABLE_SELF_CAST(ParseNodeForInOrForOf);
 };
 
 // for loop
@@ -817,8 +875,10 @@ public:
     ParseNodePtr pnodeBody;
     ParseNodePtr pnodeInit;
     ParseNodePtr pnodeIncr;
-    ParseNodePtr pnodeBlock;
-    ParseNodePtr pnodeInverted;
+    ParseNodeBlock * pnodeBlock;
+    ParseNodeFor * pnodeInverted;
+
+    DISABLE_SELF_CAST(ParseNodeFor);
 };
 
 // switch
@@ -828,9 +888,11 @@ public:
     ParseNodeSwitch(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
     ParseNodePtr pnodeVal;
-    ParseNodePtr pnodeCases;
-    ParseNodePtr pnodeDefault;
-    ParseNodePtr pnodeBlock;
+    ParseNodeCase * pnodeCases;
+    ParseNodeCase * pnodeDefault;
+    ParseNodeBlock * pnodeBlock;
+
+    DISABLE_SELF_CAST(ParseNodeSwitch);
 };
 
 // switch case
@@ -839,10 +901,13 @@ class ParseNodeCase : public ParseNodeStmt
 public:
     ParseNodeCase(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
-    ParseNodePtr pnodeNext;
+    ParseNodeCase * pnodeNext;
     ParseNodePtr pnodeExpr; // nullptr for default
-    ParseNodePtr pnodeBody;
+    ParseNodeBlock * pnodeBody;
     Js::ByteCodeLabel labelCase;
+
+
+    DISABLE_SELF_CAST(ParseNodeCase);
 };
 
 // return [expr]
@@ -852,16 +917,20 @@ public:
     ParseNodeReturn(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
     ParseNodePtr pnodeExpr;
+
+    DISABLE_SELF_CAST(ParseNodeReturn);
 };
 
-// try-catch-finally     
+// try-catch-finally
 class ParseNodeTryFinally : public ParseNodeStmt
 {
 public:
     ParseNodeTryFinally(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
-    ParseNodePtr pnodeTry;
-    ParseNodePtr pnodeFinally;
+    ParseNodeTry * pnodeTry;
+    ParseNodeFinally * pnodeFinally;
+
+    DISABLE_SELF_CAST(ParseNodeTryFinally);
 };
 
 // try-catch
@@ -870,8 +939,10 @@ class ParseNodeTryCatch : public ParseNodeStmt
 public:
     ParseNodeTryCatch(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
-    ParseNodePtr pnodeTry;
-    ParseNodePtr pnodeCatch;
+    ParseNodeTry * pnodeTry;
+    ParseNodeCatch * pnodeCatch;
+
+    DISABLE_SELF_CAST(ParseNodeTryCatch);
 };
 
 // try-catch
@@ -881,6 +952,8 @@ public:
     ParseNodeTry(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
     ParseNodePtr pnodeBody;
+
+    DISABLE_SELF_CAST(ParseNodeTry);
 };
 
 // { catch(e : expr) {body} }
@@ -894,6 +967,8 @@ public:
     ParseNodePtr pnodeBody;
     ParseNodePtr pnodeScopes;
     Scope        *scope;
+
+    DISABLE_SELF_CAST(ParseNodeCatch);
 };
 
 // finally
@@ -903,6 +978,8 @@ public:
     ParseNodeFinally(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
     ParseNodePtr pnodeBody;
+
+    DISABLE_SELF_CAST(ParseNodeFinally);
 };
 
 // special name like 'this'
@@ -913,6 +990,8 @@ public:
 
     bool isThis : 1;
     bool isSuper : 1;
+
+    DISABLE_SELF_CAST(ParseNodeSpecialName);
 };
 
 // binary operator with super reference
@@ -921,7 +1000,9 @@ class ParseNodeSuperReference : public ParseNodeBin
 public:
     ParseNodeSuperReference(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1, ParseNode * pnode2);
 
-    ParseNodePtr pnodeThis;
+    ParseNodeSpecialName * pnodeThis;
+
+    DISABLE_SELF_CAST(ParseNodeSuperReference);
 };
 
 // call node with super target
@@ -930,13 +1011,11 @@ class ParseNodeSuperCall : public ParseNodeCall
 public:
     ParseNodeSuperCall(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnodeTarget, ParseNode * pnodeArgs);
 
-    ParseNodePtr pnodeThis;
-    ParseNodePtr pnodeNewTarget;
+    ParseNodeSpecialName * pnodeThis;
+    ParseNodeSpecialName * pnodeNewTarget;
+
+    DISABLE_SELF_CAST(ParseNodeSuperCall);
 };
-
-#define AssertNodeMem(pnode) AssertPvCb(pnode, sizeof(ParseNode))
-#define AssertNodeMemN(pnode) AssertPvCbN(pnode, sizeof(ParseNode))
-
 
 typedef ParseNode ParseNodeNone;
 template <OpCode nop> class OpCodeTrait;

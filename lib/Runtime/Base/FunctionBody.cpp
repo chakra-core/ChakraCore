@@ -2790,21 +2790,21 @@ namespace Js
         return map;
     }
 
-    void ParseableFunctionInfo::SetSourceInfo(uint sourceIndex, ParseNodePtr node, bool isEval, bool isDynamicFunction)
+    void ParseableFunctionInfo::SetSourceInfo(uint sourceIndex, ParseNodeFnc * node, bool isEval, bool isDynamicFunction)
     {
         if (!m_utf8SourceHasBeenSet)
         {
             this->m_sourceIndex = sourceIndex;
             this->m_cchStartOffset = node->ichMin;
             this->m_cchLength = node->LengthInCodepoints();
-            this->m_lineNumber = node->AsParseNodeFnc()->lineNumber;
-            this->m_columnNumber = node->AsParseNodeFnc()->columnNumber;
+            this->m_lineNumber = node->lineNumber;
+            this->m_columnNumber = node->columnNumber;
             this->m_isEval = isEval;
             this->m_isDynamicFunction = isDynamicFunction;
 
             // It would have been better if we detect and reject large source buffer earlier before parsing
-            size_t cbMin = node->AsParseNodeFnc()->cbMin;
-            size_t lengthInBytes = node->AsParseNodeFnc()->LengthInBytes();
+            size_t cbMin = node->cbMin;
+            size_t lengthInBytes = node->LengthInBytes();
             if (cbMin > UINT_MAX || lengthInBytes > UINT_MAX)
             {
                 Js::Throw::OutOfMemory();
@@ -2828,10 +2828,10 @@ namespace Js
             {
                 // In the global function case with a @cc_on, we modify some of these values so it might
                 // not match on reparse (see ParseableFunctionInfo::Parse()).
-                AssertMsg(this->StartOffset() == node->AsParseNodeFnc()->cbMin, "Mismatched source start offset");
+                AssertMsg(this->StartOffset() == node->cbMin, "Mismatched source start offset");
                 AssertMsg(this->m_cchStartOffset == node->ichMin, "Mismatched source character start offset");
                 AssertMsg(this->m_cchLength == node->LengthInCodepoints(), "Mismatched source length");
-                AssertMsg(this->LengthInBytes() == node->AsParseNodeFnc()->LengthInBytes(), "Mismatched source encoded byte length");
+                AssertMsg(this->LengthInBytes() == node->LengthInBytes(), "Mismatched source encoded byte length");
             }
 
             AssertMsg(this->m_isEval == isEval, "Mismatched source type");
@@ -2993,36 +2993,36 @@ namespace Js
 
     // In some cases in legacy mode, due to the state scriptContext->windowIdList, the parser might not detect an eval call in the first parse but do so in the reparse
     // This fixes up the state at the start of reparse
-    void FunctionBody::SaveState(ParseNodePtr pnode)
+    void FunctionBody::SaveState(ParseNodeFnc * pnodeFnc)
     {
         Assert(!this->IsReparsed());
-        this->SetChildCallsEval(!!pnode->AsParseNodeFnc()->ChildCallsEval());
-        this->SetCallsEval(!!pnode->AsParseNodeFnc()->CallsEval());
-        this->SetHasReferenceableBuiltInArguments(!!pnode->AsParseNodeFnc()->HasReferenceableBuiltInArguments());
+        this->SetChildCallsEval(!!pnodeFnc->ChildCallsEval());
+        this->SetCallsEval(!!pnodeFnc->CallsEval());
+        this->SetHasReferenceableBuiltInArguments(!!pnodeFnc->HasReferenceableBuiltInArguments());
     }
 
-    void FunctionBody::RestoreState(ParseNodePtr pnode)
+    void FunctionBody::RestoreState(ParseNodeFnc * pnodeFnc)
     {
         Assert(this->IsReparsed());
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
-        if(!!pnode->AsParseNodeFnc()->ChildCallsEval() != this->GetChildCallsEval())
+        if(!!pnodeFnc->ChildCallsEval() != this->GetChildCallsEval())
         {
             OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, _u("Child calls eval is different on debug reparse: %s(%s)\n"), this->GetExternalDisplayName(), this->GetDebugNumberSet(debugStringBuffer));
         }
-        if(!!pnode->AsParseNodeFnc()->CallsEval() != this->GetCallsEval())
+        if(!!pnodeFnc->CallsEval() != this->GetCallsEval())
         {
             OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, _u("Calls eval is different on debug reparse: %s(%s)\n"), this->GetExternalDisplayName(), this->GetDebugNumberSet(debugStringBuffer));
         }
-        if(!!pnode->AsParseNodeFnc()->HasReferenceableBuiltInArguments() != this->HasReferenceableBuiltInArguments())
+        if(!!pnodeFnc->HasReferenceableBuiltInArguments() != this->HasReferenceableBuiltInArguments())
         {
             OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, _u("Referenceable Built in args is different on debug reparse: %s(%s)\n"), this->GetExternalDisplayName(), this->GetDebugNumberSet(debugStringBuffer));
         }
 
-        pnode->AsParseNodeFnc()->SetChildCallsEval(this->GetChildCallsEval());
-        pnode->AsParseNodeFnc()->SetCallsEval(this->GetCallsEval());
-        pnode->AsParseNodeFnc()->SetHasReferenceableBuiltInArguments(this->HasReferenceableBuiltInArguments());
+        pnodeFnc->SetChildCallsEval(this->GetChildCallsEval());
+        pnodeFnc->SetCallsEval(this->GetCallsEval());
+        pnodeFnc->SetHasReferenceableBuiltInArguments(this->HasReferenceableBuiltInArguments());
     }
 
     // Retrieves statement map for given byte code offset.
@@ -3945,7 +3945,7 @@ namespace Js
             // The recycler doesn't like allocations from a different thread, so we allocate
             // the backing byte code block in the arena
             ArenaAllocator *pArena = m_scriptContext->AllocatorForDiagnostics();
-            AssertMem(pArena);
+            Assert(pArena);
             ByteBlock* probeBackingBlock = ByteBlock::NewFromArena(pArena, pbyteCodeBlockBuffer, byteCodeBlock->GetLength());
             SetProbeBackingBlock(probeBackingBlock);
         }

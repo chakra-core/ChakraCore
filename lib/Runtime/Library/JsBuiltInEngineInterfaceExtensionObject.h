@@ -26,7 +26,6 @@ namespace Js
             static NoProfileFunctionInfo JsBuiltIn_RegisterChakraLibraryFunction;
             static NoProfileFunctionInfo JsBuiltIn_RegisterFunction;
             static NoProfileFunctionInfo JsBuiltIn_Internal_GetLength;
-            static NoProfileFunctionInfo JsBuiltIn_Internal_SetPrototype;
             static NoProfileFunctionInfo JsBuiltIn_Internal_GetIteratorPrototype;
             static NoProfileFunctionInfo JsBuiltIn_Internal_InitInternalProperties;
         };
@@ -44,7 +43,6 @@ namespace Js
         static Var EntryJsBuiltIn_RegisterChakraLibraryFunction(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryJsBuiltIn_RegisterFunction(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryJsBuiltIn_Internal_GetLength(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntryJsBuiltIn_Internal_SetPrototype(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryJsBuiltIn_Internal_GetIteratorPrototype(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryJsBuiltIn_Internal_InitInternalProperties(RecyclableObject* function, CallInfo callInfo, ...);
     };

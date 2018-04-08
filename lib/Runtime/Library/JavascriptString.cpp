@@ -1317,6 +1317,8 @@ case_2:
             {
                 IntlEngineInterfaceExtensionObject* intlExtensionObject = static_cast<IntlEngineInterfaceExtensionObject*>(
                     nativeEngineInterfaceObj->GetEngineExtension(EngineInterfaceExtensionKind_Intl));
+
+#ifdef INTL_WINGLOB
                 if (args.Info.Count == 2)
                 {
                     auto undefined = scriptContext->GetLibrary()->GetUndefined();
@@ -1330,22 +1332,21 @@ case_2:
                         }
                     );
                 }
-                else
-                {
-                    // Check if String.prototype.localeCompare/Intl.Collator was already initialized
-                    JavascriptFunction* func = intlExtensionObject->GetStringLocaleCompare();
-                    if (func)
-                    {
-                        return func->CallFunction(args);
-                    }
+#endif
 
-                    // String.prototype.localeCompare/Intl.Collator was not initialized yet, so we need to manually initialize it here
-                    scriptContext->GetLibrary()->InitializeIntlForStringPrototype();
-                    func = intlExtensionObject->GetStringLocaleCompare();
-                    if (func)
-                    {
-                        return func->CallFunction(args);
-                    }
+                // Check if String.prototype.localeCompare/Intl.Collator was already initialized
+                JavascriptFunction* func = intlExtensionObject->GetStringLocaleCompare();
+                if (func)
+                {
+                    return func->CallFunction(args);
+                }
+
+                // String.prototype.localeCompare/Intl.Collator was not initialized yet, so we need to manually initialize it here
+                scriptContext->GetLibrary()->InitializeIntlForStringPrototype();
+                func = intlExtensionObject->GetStringLocaleCompare();
+                if (func)
+                {
+                    return func->CallFunction(args);
                 }
             }
         }

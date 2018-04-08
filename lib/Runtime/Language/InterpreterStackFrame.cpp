@@ -8203,7 +8203,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
 
     Var InterpreterStackFrame::GetRootObject() const
     {
-        Assert(!this->GetFunctionBody()->IsJsBuiltInInitCode());
+        Assert(!this->GetFunctionBody()->IsJsBuiltInCode());
         Var rootObject = GetReg(Js::FunctionBody::RootObjectRegSlot);
         Assert(rootObject == this->GetFunctionBody()->LoadRootObject());
         return rootObject;
@@ -8343,13 +8343,14 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
 
         LdLenInfo ldLenInfo;
         ldLenInfo.arrayType = ValueType::Uninitialized.Merge(instance);
-        profileData->RecordLengthLoad(functionBody, playout->profileId, ldLenInfo);
 
         if (this->TestFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArraySpecialization))
         {
             ldLenInfo.disableAggressiveSpecialization = true;
             this->ClearFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArraySpecialization);
         }
+
+        profileData->RecordLengthLoad(functionBody, playout->profileId, ldLenInfo);
 
         ThreadContext* threadContext = this->GetScriptContext()->GetThreadContext();
         ImplicitCallFlags savedImplicitCallFlags = threadContext->GetImplicitCallFlags();

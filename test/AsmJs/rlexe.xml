@@ -1068,4 +1068,11 @@
       <compile-flags>-testtrace:asmjs -maic:1</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug16252562.js</files>
+      <baseline>bug16252562.baseline</baseline>
+      <compile-flags>-testtrace:asmjs</compile-flags>
+    </default>
+  </test>
 </regress-exe>

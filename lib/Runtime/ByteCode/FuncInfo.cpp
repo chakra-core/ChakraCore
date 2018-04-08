@@ -10,7 +10,7 @@ FuncInfo::FuncInfo(
     ByteCodeGenerator *byteCodeGenerator,
     Scope *paramScope,
     Scope *bodyScope,
-    ParseNode *pnode,
+    ParseNodeFnc *pnode,
     Js::ParseableFunctionInfo* byteCodeFunction)
     :
     inlineCacheCount(0),
@@ -109,7 +109,7 @@ FuncInfo::FuncInfo(
     {
         paramScope->SetFunc(this);
     }
-    if (pnode && pnode->AsParseNodeFnc()->NestedFuncEscapes())
+    if (pnode && pnode->NestedFuncEscapes())
     {
         this->SetHasMaybeEscapedNestedFunc(DebugOnly(_u("Child")));
     }
@@ -131,17 +131,17 @@ bool FuncInfo::IsGlobalFunction() const
 
 bool FuncInfo::IsDeferred() const
 {
-    return root && root->AsParseNodeFnc()->pnodeBody == nullptr;
+    return root && root->pnodeBody == nullptr;
 }
 
 BOOL FuncInfo::HasSuperReference() const
 {
-    return root->AsParseNodeFnc()->HasSuperReference();
+    return root->HasSuperReference();
 }
 
 BOOL FuncInfo::HasDirectSuper() const
 {
-    return root->AsParseNodeFnc()->HasDirectSuper();
+    return root->HasDirectSuper();
 }
 
 BOOL FuncInfo::IsClassMember() const
@@ -166,14 +166,14 @@ BOOL FuncInfo::IsBaseClassConstructor() const
 
 BOOL FuncInfo::IsDerivedClassConstructor() const
 {
-    return root->AsParseNodeFnc()->IsDerivedClassConstructor();
+    return root->IsDerivedClassConstructor();
 }
 
 Scope *
 FuncInfo::GetGlobalBlockScope() const
 {
     Assert(this->IsGlobalFunction());
-    Scope * scope = this->root->AsParseNodeFnc()->pnodeScopes->AsParseNodeBlock()->scope;
+    Scope * scope = this->root->pnodeScopes->scope;
     Assert(scope == nullptr || scope == this->GetBodyScope() || scope->GetEnclosingScope() == this->GetBodyScope());
     return scope;
 }
@@ -405,20 +405,20 @@ void FuncInfo::AddCapturedSym(Symbol *sym)
     this->capturedSyms->AddNew(sym);
 }
 
-void FuncInfo::OnStartVisitFunction(ParseNode *pnodeFnc)
+void FuncInfo::OnStartVisitFunction(ParseNodeFnc *pnodeFnc)
 {
     Assert(pnodeFnc->nop == knopFncDecl);
     Assert(this->GetCurrentChildFunction() == nullptr);
 
-    this->SetCurrentChildFunction(pnodeFnc->AsParseNodeFnc()->funcInfo);
+    this->SetCurrentChildFunction(pnodeFnc->funcInfo);
 }
 
-void FuncInfo::OnEndVisitFunction(ParseNode *pnodeFnc)
+void FuncInfo::OnEndVisitFunction(ParseNodeFnc *pnodeFnc)
 {
     Assert(pnodeFnc->nop == knopFncDecl);
-    Assert(this->GetCurrentChildFunction() == pnodeFnc->AsParseNodeFnc()->funcInfo);
+    Assert(this->GetCurrentChildFunction() == pnodeFnc->funcInfo);
 
-    pnodeFnc->AsParseNodeFnc()->funcInfo->SetCurrentChildScope(nullptr);
+    pnodeFnc->funcInfo->SetCurrentChildScope(nullptr);
     this->SetCurrentChildFunction(nullptr);
 }
 

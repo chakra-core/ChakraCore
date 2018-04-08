@@ -104,6 +104,10 @@ namespace Js
     NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::GetErrorMessage(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_GetErrorMessage));
     NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::LogDebugMessage(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_LogDebugMessage));
     NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::TagPublicLibraryCode(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_TagPublicLibraryCode));
+    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::SetPrototype(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_SetPrototype));
+    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::GetArrayLength(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_GetArrayLength));
+    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::RegexMatch(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_RegexMatch));
+    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::CallInstanceFunction(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_CallInstanceFunction));
 
 #ifndef GlobalBuiltIn
 #define GlobalBuiltIn(global, method) \
@@ -240,6 +244,11 @@ namespace Js
         library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::logDebugMessage, &EngineInterfaceObject::EntryInfo::LogDebugMessage, 1);
         library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::tagPublicLibraryCode, &EngineInterfaceObject::EntryInfo::TagPublicLibraryCode, 1);
 
+        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtInSetPrototype, &EngineInterfaceObject::EntryInfo::SetPrototype, 1);
+        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtInGetArrayLength, &EngineInterfaceObject::EntryInfo::GetArrayLength, 1);
+        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtInRegexMatch, &EngineInterfaceObject::EntryInfo::RegexMatch, 1);
+        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtInCallInstanceFunction, &EngineInterfaceObject::EntryInfo::CallInstanceFunction, 1);
+
         commonNativeInterfaces->SetHasNoEnumerableProperties(true);
 
         return true;
@@ -332,6 +341,100 @@ namespace Js
         }
 
         return scriptContext->GetLibrary()->GetUndefined();
+    }
+
+    /*
+    * First parameter is the object onto which prototype should be set; second is the value
+    */
+    Var EngineInterfaceObject::Entry_SetPrototype(RecyclableObject *function, CallInfo callInfo, ...)
+    {
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+
+        if (callInfo.Count < 3 || !DynamicObject::Is(args.Values[1]) || !RecyclableObject::Is(args.Values[2]))
+        {
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        DynamicObject* obj = DynamicObject::FromVar(args.Values[1]);
+        RecyclableObject* value = RecyclableObject::FromVar(args.Values[2]);
+
+        obj->SetPrototype(value);
+
+        return obj;
+    }
+
+    /*
+    * First parameter is the array object.
+    */
+    Var EngineInterfaceObject::Entry_GetArrayLength(RecyclableObject *function, CallInfo callInfo, ...)
+    {
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+
+        if (callInfo.Count < 2)
+        {
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        if (DynamicObject::IsAnyArray(args.Values[1]))
+        {
+            JavascriptArray* arr = JavascriptArray::FromAnyArray(args.Values[1]);
+            return TaggedInt::ToVarUnchecked(arr->GetLength());
+        }
+        else
+        {
+            AssertMsg(false, "Object passed in with unknown type ID, verify Intl.js is correct.");
+            return TaggedInt::ToVarUnchecked(0);
+        }
+    }
+
+    /*
+    * First parameter is the string on which to match.
+    * Second parameter is the regex object
+    */
+    Var EngineInterfaceObject::Entry_RegexMatch(RecyclableObject *function, CallInfo callInfo, ...)
+    {
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+
+        if (callInfo.Count < 2 || !JavascriptString::Is(args.Values[1]) || !JavascriptRegExp::Is(args.Values[2]))
+        {
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        JavascriptString *stringToUse = JavascriptString::FromVar(args.Values[1]);
+        JavascriptRegExp *regexpToUse = JavascriptRegExp::FromVar(args.Values[2]);
+
+        return RegexHelper::RegexMatchNoHistory(scriptContext, regexpToUse, stringToUse, false);
+    }
+
+    /*
+    * First parameter is the function, then its the this arg; so at least 2 are needed.
+    */
+    Var EngineInterfaceObject::Entry_CallInstanceFunction(RecyclableObject *function, CallInfo callInfo, ...)
+    {
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+
+        Assert(args.Info.Count <= 5);
+        if (callInfo.Count < 3 || args.Info.Count > 5 || !JavascriptConversion::IsCallable(args.Values[1]) || !RecyclableObject::Is(args.Values[2]))
+        {
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        RecyclableObject *func = RecyclableObject::FromVar(args.Values[1]);
+
+        AssertOrFailFastMsg(func != scriptContext->GetLibrary()->GetUndefined(), "Trying to callInstanceFunction(undefined, ...)");
+
+        //Shift the arguments by 2 so argument at index 2 becomes the 'this' argument at index 0
+        Var newVars[3];
+        Js::Arguments newArgs(callInfo, newVars);
+
+        for (uint i = 0; i<args.Info.Count - 2; ++i)
+        {
+            newArgs.Values[i] = args.Values[i + 2];
+        }
+
+        newArgs.Info.Count = args.Info.Count - 2;
+
+        return JavascriptFunction::CallFunction<true>(func, func->GetEntryPoint(), newArgs);
     }
 
 #ifndef GlobalBuiltIn

@@ -245,6 +245,7 @@
     <ClInclude Include="JavascriptFunction.h" />
     <ClInclude Include="JavascriptLibrary.h" />
     <ClInclude Include="StringCache.h" />
+    <ClInclude Include="StringCacheList.h" />
     <ClInclude Include="JavascriptLibraryBase.h" />
     <ClInclude Include="JavascriptNumber.h" />
     <ClInclude Include="JavascriptNumberObject.h" />

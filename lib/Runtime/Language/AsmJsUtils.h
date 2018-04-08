@@ -70,9 +70,9 @@ namespace Js {
         static bool ParseVarOrConstStatement( AsmJSParser &parser, ParseNode **var );
         static inline bool IsNumericLiteral(ParseNode* node) { return node && (node->nop == knopInt || node->nop == knopFlt); }
         static inline bool IsFroundNumericLiteral(ParseNode* node) { return node && (IsNumericLiteral(node) || IsNegativeZero(node)); }
-        static inline ParseNode* GetUnaryNode( ParseNode* node ){Assert(IsNodeUnary(node));return node->AsParseNodeUni()->pnode1;}
-        static inline ParseNode* GetBinaryLeft( ParseNode* node ){Assert(IsNodeBinary(node));return node->AsParseNodeBin()->pnode1;}
-        static inline ParseNode* GetBinaryRight( ParseNode* node ){Assert(IsNodeBinary(node));return node->AsParseNodeBin()->pnode2;}
+        static inline ParseNode* GetUnaryNode( ParseNode* node ){return node->AsParseNodeUni()->pnode1;}
+        static inline ParseNode* GetBinaryLeft( ParseNode* node ){return node->AsParseNodeBin()->pnode1;}
+        static inline ParseNode* GetBinaryRight( ParseNode* node ){return node->AsParseNodeBin()->pnode2;}
         static inline ParseNode* DotBase( ParseNode *node );
         static inline bool IsDotMember( ParseNode *node );
         static inline PropertyName DotMember( ParseNode *node );
@@ -80,19 +80,6 @@ namespace Js {
         static ParseNode* GetVarDeclList(ParseNode* node);
         // Goes through the nodes until the end of the list of VarDecl
         static void ReachEndVarDeclList( ParseNode** node );
-
-        // nop utils
-        static inline bool IsNodeBinary    (ParseNode* pnode){ return pnode && !!(ParseNode::Grfnop(pnode->nop) & (fnopBin|fnopBinList)); }
-        static inline bool IsNodeUnary     (ParseNode* pnode){ return pnode && !!(ParseNode::Grfnop(pnode->nop) & fnopUni        ); }
-        static inline bool IsNodeConst     (ParseNode* pnode){ return pnode && !!(ParseNode::Grfnop(pnode->nop) & fnopConst      ); }
-        static inline bool IsNodeLeaf      (ParseNode* pnode){ return pnode && !!(ParseNode::Grfnop(pnode->nop) & fnopLeaf       ); }
-        static inline bool IsNodeRelational(ParseNode* pnode){ return pnode && !!(ParseNode::Grfnop(pnode->nop) & fnopRel        ); }
-        static inline bool IsNodeAssignment(ParseNode* pnode){ return pnode && !!(ParseNode::Grfnop(pnode->nop) & fnopAsg        ); }
-        static inline bool IsNodeBreak     (ParseNode* pnode){ return pnode && !!(ParseNode::Grfnop(pnode->nop) & fnopBreak      ); }
-        static inline bool IsNodeContinue  (ParseNode* pnode){ return pnode && !!(ParseNode::Grfnop(pnode->nop) & fnopContinue   ); }
-        static inline bool IsNodeCleanUp   (ParseNode* pnode){ return pnode && !!(ParseNode::Grfnop(pnode->nop) & fnopCleanup    ); }
-        static inline bool IsNodeJump      (ParseNode* pnode){ return pnode && !!(ParseNode::Grfnop(pnode->nop) & fnopJump       ); }
-        static inline bool IsNodeExpression(ParseNode* pnode){ return pnode &&  !(ParseNode::Grfnop(pnode->nop) & fnopNotExprStmt); }
     };
 
     bool ParserWrapper::IsNameDeclaration( ParseNode *node )

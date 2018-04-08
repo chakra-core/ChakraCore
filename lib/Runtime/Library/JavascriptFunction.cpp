@@ -33,9 +33,6 @@ namespace Js
         : DynamicObject(type), functionInfo(nullptr), constructorCache(&ConstructorCache::DefaultInstance)
     {
         Assert(this->constructorCache != nullptr);
-#if DBG
-        isJsBuiltInInitCode = false;
-#endif
     }
 
 
@@ -52,9 +49,6 @@ namespace Js
             // GetScriptContext()->InvalidateStoreFieldCaches(PropertyIds::length);
             GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
         }
-#if DBG
-        isJsBuiltInInitCode = false;
-#endif
     }
 
     JavascriptFunction::JavascriptFunction(DynamicType * type, FunctionInfo * functionInfo, ConstructorCache* cache)
@@ -70,9 +64,6 @@ namespace Js
             // GetScriptContext()->InvalidateStoreFieldCaches(PropertyIds::length);
             GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
         }
-#if DBG
-        isJsBuiltInInitCode = false;
-#endif
     }
 
     FunctionProxy *JavascriptFunction::GetFunctionProxy() const
@@ -2476,16 +2467,6 @@ LABEL1:
             this->IsLibraryCode() || // JS-defined built-in library functions
             this == this->GetLibrary()->GetFunctionPrototype() // the intrinsic %FunctionPrototype% (original value of Function.prototype)
             );
-    }
-
-    void JavascriptFunction::SetIsJsBuiltInCode()
-    {
-        isJsBuiltInCode = true;
-    }
-
-    bool JavascriptFunction::IsJsBuiltIn()
-    {
-        return isJsBuiltInCode;
     }
 
     PropertyQueryFlags JavascriptFunction::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)

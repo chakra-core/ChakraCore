@@ -260,7 +260,7 @@ RT_ERROR_MSG(JSERR_IntlNotImplemented, 5126, "", "Intl operation '%s' is not imp
 
 RT_ERROR_MSG(JSERR_ArgumentOutOfRange, 5130, "%s: argument out of range", "argument out of range", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_ErrorOnNew, 5131, "", "Function is not a constructor", kjstTypeError, 0)
-RT_ERROR_MSG(JSERR_This_NeedArrayIterator, 5132, "%s: 'this' is not an Array Iterator object", "Array Iterator expected", kjstTypeError, 0) // {Locked="\'this\'"}
+RT_ERROR_MSG(JSERR_This_NeedArrayIterator, 5132, "%s: 'this' is not a Array Iterator object", "Array Iterator expected", kjstTypeError, 0) // {Locked="\'this\'"}
 RT_ERROR_MSG(JSERR_This_NeedMapIterator, 5133, "%s: 'this' is not a Map Iterator object", "Map Iterator expected", kjstTypeError, 0) // {Locked="\'this\'"}
 RT_ERROR_MSG(JSERR_This_NeedSetIterator, 5134, "%s: 'this' is not a Set Iterator object", "Set Iterator expected", kjstTypeError, 0) // {Locked="\'this\'"}
 RT_ERROR_MSG(JSERR_This_NeedStringIterator, 5135, "%s: 'this' is not a String Iterator object", "String Iterator expected", kjstTypeError, 0) // {Locked="\'this\'"}

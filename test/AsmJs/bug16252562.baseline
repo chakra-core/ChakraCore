@@ -1,0 +1,7 @@
+
+bug16252562.js(9, 3)
+	Asm.js Compilation Error function : AsmModule::foo
+	Unhandled parse opcode for asm.js
+
+Asm.js compilation failed.
+new.target: function () {console.log(`new.target: ${new.target}`);}
