@@ -15715,15 +15715,19 @@ Lowerer::GenerateLookUpInIndexCache(
     //      GenerateObjectTest(baseOpnd, $helper)         ; verify base is an object
     //      MOV objectTypeOpnd, baseOpnd->type
     //      GenerateDynamicLoadPolymorphicInlineCacheSlot(inlineCacheOpnd, objectTypeOpnd) ; loads inline cache for given type
-    //      LocalInlineCacheCheck(objectTypeOpnd, inlineCacheOpnd, $notInlineSlots)        ; check for type in local inline slots, jump to $notInlineSlotsLabel on failure
-    //      MOV opndSlotArray, baseOpnd
-    //      JMP slotArrayLoadedLabel
-    // $notInlineSlotsLabel
-    //      opndTaggedType = GenerateLoadTaggedType(objectTypeOpnd)         ; load objectTypeOpnd with InlineCacheAuxSlotTypeTag into opndTaggedType
-    //      LocalInlineCacheCheck(opndTaggedType, inlineCacheOpnd, $helper) ; check for type in local aux slots, jump to $helper on failure
-    //      MOV opndSlotArray, baseOpnd->auxSlots                           ; load the aux slot array
+    // if (checkLocalInlineSlots)
+    //      GenerateLookUpInIndexCacheHelper<CheckLocal, CheckInlineSlot> // checks local inline slots, goes to next on failure
+    // if (checkLocalAuxSlots)
+    //      GenerateLookUpInIndexCacheHelper<CheckLocal, CheckAuxSlot> // checks local aux slots, goes to next on failure
+    // if (fromProto && fromInlineSlots)
+    //      GenerateLookUpInIndexCacheHelper<CheckProto, CheckInlineSlot> // checks proto inline slots, goes to next on failure
+    // if (fromProto && fromAuxSlots)
+    //      GenerateLookUpInIndexCacheHelper<CheckProto, CheckAuxSlot> // checks proto aux slots, goes to next on failure
+    // if (doAdd && fromInlineSlots)
+    //      GenerateLookUpInIndexCacheHelper<CheckLocal, CheckInlineSlot, DoAdd> // checks typeWithoutProperty inline slots, goes to next on failure
+    // if (doAdd && fromAuxSlots)
+    //      GenerateLookUpInIndexCacheHelper<CheckLocal, CheckAuxSlot, DoAdd> // checks typeWithoutProperty aux slots, goes to helper on failure
     // $slotIndexLoadedLabel
-    //      MOV opndSlotIndex, inlineCacheOpnd->u.local.slotIndex           ; load the cached slot offset or index
     //      INC indexOpnd->hitRate
 
     const bool fromInlineSlots = (flags & Js::FldInfo_FromInlineSlots) == Js::FldInfo_FromInlineSlots;
@@ -15851,6 +15855,7 @@ Lowerer::GenerateLookUpInIndexCache(
     }
     Assert(branchToPatch);
     Assert(nextLabel);
+    Assert(nextLabel->labelRefs.Count() == 1 && nextLabel->labelRefs.Head() == branchToPatch);
 
     branchToPatch->SetTarget(labelHelper);
     nextLabel->Remove();
@@ -17095,7 +17100,6 @@ Lowerer::GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef)
     else
     {
         IR::LabelInstr * labelCantUseArray = labelHelper;
-        Js::FldInfoFlags flags = Js::FldInfo_NoInfo;
         if (isNativeArrayLoad)
         {
             if (ldElem->GetDst()->GetType() == TyVar)
@@ -17111,6 +17115,7 @@ Lowerer::GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef)
             labelBailOut = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
             labelCantUseArray = labelBailOut;
         }
+        Js::FldInfoFlags flags = Js::FldInfo_NoInfo;
         if (ldElem->IsProfiledInstr())
         {
             flags = ldElem->AsProfiledInstr()->u.ldElemInfo->flags;
@@ -17671,6 +17676,11 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
         }
     }
 
+    Js::FldInfoFlags flags = Js::FldInfo_NoInfo;
+    if (stElem->IsProfiledInstr())
+    {
+        flags = stElem->AsProfiledInstr()->u.stElemInfo->flags;
+    }
     bool isTypedArrayElement, isStringIndex, indirOpndOverflowed = false;
     indirOpnd =
         GenerateFastElemICommon(
@@ -17689,7 +17699,8 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
             false,      /* forceGenerateFastPath */
             false,      /* returnLength */
             nullptr,    /* bailOutLabelInstr */
-            &indirOpndOverflowed);
+            &indirOpndOverflowed,
+            flags);
 
     IR::Opnd *src = stElem->GetSrc1();
     const IR::AutoReuseOpnd autoReuseSrc(src, m_func);

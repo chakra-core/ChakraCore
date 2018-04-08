@@ -161,10 +161,12 @@ namespace Js
         {
             ldElemInfo[i].arrayType = ValueType::Uninitialized;
             ldElemInfo[i].elemType = ValueType::Uninitialized;
+            ldElemInfo[i].flags = Js::FldInfo_NoInfo;
         }
         for (ProfileId i = 0; i < functionBody->GetProfiledStElemCount(); ++i)
         {
             stElemInfo[i].arrayType = ValueType::Uninitialized;
+            stElemInfo[i].flags = Js::FldInfo_NoInfo;
         }
         for (uint i = 0; i < functionBody->GetProfiledFldCount(); ++i)
         {

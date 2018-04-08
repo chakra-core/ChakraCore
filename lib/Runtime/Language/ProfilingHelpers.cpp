@@ -123,7 +123,7 @@ namespace Js
         }
 
         const ValueType arrayType(ldElemInfo.GetArrayType());
-        if(!arrayType.IsUninitialized())
+        if(!arrayType.IsUninitialized() || ldElemInfo.flags != Js::FldInfo_NoInfo)
         {
             if(array && arrayType.IsLikelyObject() && arrayType.GetObjectType() == ObjectType::Array && !arrayType.HasIntElements())
             {
@@ -374,7 +374,7 @@ namespace Js
             JavascriptOperators::OP_SetElementI(base, varIndex, value, scriptContext, flags);
         }
 
-        if(!stElemInfo.GetArrayType().IsUninitialized())
+        if(!stElemInfo.GetArrayType().IsUninitialized() || stElemInfo.flags != Js::FldInfo_NoInfo)
         {
             if(array)
             {
