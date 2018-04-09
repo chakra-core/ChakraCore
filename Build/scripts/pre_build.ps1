@@ -176,7 +176,7 @@ $CommitMessage
     ## add the logic to the core script.
 
     ## Without the OAuth token, the git fetch command hangs, causing the entire build to time out.
-    if (${Env:System.AccessToken})
+    if (${Env:System.AccessToken} -ne null)
     {
         git -c http.extraheader="AUTHORIZATION: bearer ${Env:System.AccessToken}" fetch origin refs/notes/ChakraHub:refs/notes/ChakraHub
         Write-Output "looking for notes"
