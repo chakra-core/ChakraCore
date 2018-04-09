@@ -2,6 +2,7 @@
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+fail = false;
 // #1
 function test0() {
   function leaf() {
@@ -33,15 +34,40 @@ function foo(a, b)
   return b;
 }
 
-v1 = foo(4,2);
+base1 = foo(4,2);
 foo(4,2);
 foo(4,2);
 foo(4,2);
 foo(4,2);
 
-v2 = foo(4,2);
+case1 = foo(4,2);
+if(base1 != case1)
+{
+  print("ERROR: Functional error in jit - Case1");
+  fail = true;
+}
 
-if(v1 != v2)
-  print("ERROR: Functional error in jit code");
-else
+// #3
+function foo1(a)
+{
+  a %= 94;
+  a = a & 255;
+  return a;
+}
+
+base2 = foo1(123);
+foo1(123);
+foo1(123);
+foo1(123);
+foo1(123);
+foo1(123);
+
+case2 = foo1(123);
+
+if(base2 != case2)
+{
+  print("ERROR: Functional error in jit - Case2");
+  fail = true;
+}
+if(!fail)
   print('PASS'); //Test failure causes assertion /error

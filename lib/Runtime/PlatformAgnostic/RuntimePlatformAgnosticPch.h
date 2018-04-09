@@ -34,6 +34,7 @@
 #define FALSE 0
 #endif
 #else
+#define U_USING_ICU_NAMESPACE 0
 #include <unicode/umachine.h>
 #endif
 

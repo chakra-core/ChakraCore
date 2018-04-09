@@ -2906,6 +2906,8 @@ bool LowererMDArch::GenerateFastDivAndRem_Signed(IR::Instr* instrDiv)
     IR::Opnd* divisor   = instrDiv->GetSrc2(); // denominator
     IR::Opnd* dst       = instrDiv->GetDst();
     int constDivisor    = divisor->AsIntConstOpnd()->AsInt32();
+    IR::Opnd* result = IR::RegOpnd::New(TyInt32, this->m_func);
+
     bool isNegDevisor   = false;
 
     Assert(divisor->GetType() == TyInt32); // constopnd->AsInt32() currently does silent casts between int32 and uint32
@@ -2941,10 +2943,10 @@ bool LowererMDArch::GenerateFastDivAndRem_Signed(IR::Instr* instrDiv)
         //      sar q q k
 
         int k = Math::Log2(constDivisor);
-        Lowerer::InsertShift(Js::OpCode::Shr_A, false, dst, divident, IR::IntConstOpnd::New(k - 1, TyInt8, this->m_func), instrDiv);
-        Lowerer::InsertShift(Js::OpCode::ShrU_A, false, dst, dst, IR::IntConstOpnd::New(32 - k, TyInt8, this->m_func), instrDiv);
-        Lowerer::InsertAdd(false, dst, dst, divident, instrDiv);
-        Lowerer::InsertShift(Js::OpCode::Shr_A, false, dst, dst, IR::IntConstOpnd::New(k, TyInt8, this->m_func), instrDiv);
+        Lowerer::InsertShift(Js::OpCode::Shr_A, false, result, divident, IR::IntConstOpnd::New(k - 1, TyInt8, this->m_func), instrDiv);
+        Lowerer::InsertShift(Js::OpCode::ShrU_A, false, result, result, IR::IntConstOpnd::New(32 - k, TyInt8, this->m_func), instrDiv);
+        Lowerer::InsertAdd(false, result, result, divident, instrDiv);
+        Lowerer::InsertShift(Js::OpCode::Shr_A, false, dst, result, IR::IntConstOpnd::New(k, TyInt8, this->m_func), instrDiv);
     }
     else
     {
@@ -2957,32 +2959,32 @@ bool LowererMDArch::GenerateFastDivAndRem_Signed(IR::Instr* instrDiv)
         int32 multiplier = magic_number.multiplier;
 
         // Compute mulhs divident, multiplier
-        IR::Opnd* quotient      = IR::RegOpnd::New(TyInt64, this->m_func);
+        IR::Opnd* quotient64reg = IR::RegOpnd::New(TyInt64, this->m_func);
         IR::Opnd* divident64Reg = IR::RegOpnd::New(TyInt64, this->m_func);
 
         Lowerer::InsertMove(divident64Reg, divident, instrDiv);
-        IR::Instr* imul = IR::Instr::New(LowererMD::MDImulOpcode, quotient, IR::IntConstOpnd::New(multiplier, TyInt32, this->m_func), divident64Reg, this->m_func);
+        IR::Instr* imul = IR::Instr::New(LowererMD::MDImulOpcode, quotient64reg, IR::IntConstOpnd::New(multiplier, TyInt32, this->m_func), divident64Reg, this->m_func);
         instrDiv->InsertBefore(imul);
         LowererMD::Legalize(imul);
 
-        Lowerer::InsertShift(Js::OpCode::Shr_A, false, quotient, quotient, IR::IntConstOpnd::New(32, TyInt8, this->m_func), instrDiv);
-        Lowerer::InsertMove(dst, quotient, instrDiv);
+        Lowerer::InsertShift(Js::OpCode::Shr_A, false, quotient64reg, quotient64reg, IR::IntConstOpnd::New(32, TyInt8, this->m_func), instrDiv);
+        Lowerer::InsertMove(result, quotient64reg, instrDiv);
 
         // Special handling when divisor is of type 5 and 7.
         if (multiplier < 0)
         {
-            Lowerer::InsertAdd(false, dst, dst, divident, instrDiv);
+            Lowerer::InsertAdd(false, result, result, divident, instrDiv);
         }
         if (magic_number.shiftAmt > 0)
         {
-            Lowerer::InsertShift(Js::OpCode::Shr_A, false, dst, dst, IR::IntConstOpnd::New(magic_number.shiftAmt, TyInt8, this->m_func), instrDiv);
+            Lowerer::InsertShift(Js::OpCode::Shr_A, false, result, result, IR::IntConstOpnd::New(magic_number.shiftAmt, TyInt8, this->m_func), instrDiv);
         }
         IR::Opnd* tmpReg2 = IR::RegOpnd::New(TyInt32, this->m_func);
         Lowerer::InsertMove(tmpReg2, divident, instrDiv);
 
         // Add 1 if divisor is less than 0
         Lowerer::InsertShift(Js::OpCode::ShrU_A, false, tmpReg2, tmpReg2, IR::IntConstOpnd::New(31, TyInt8, this->m_func), instrDiv); // 1 if divident < 0, 0 otherwise
-        Lowerer::InsertAdd(false, dst, dst, tmpReg2, instrDiv);
+        Lowerer::InsertAdd(false, dst, result, tmpReg2, instrDiv);
     }
 
     // Negate results if divident is less than zero
@@ -3029,25 +3031,26 @@ bool LowererMDArch::GenerateFastDivAndRem_Unsigned(IR::Instr* instrDiv)
         uint multiplier   = magic_number.multiplier;
         int addIndicator  = magic_number.addIndicator;
 
-        IR::Opnd* quotient      = IR::RegOpnd::New(TyUint64, this->m_func);
+        IR::Opnd* quotient64Reg = IR::RegOpnd::New(TyUint64, this->m_func);
         IR::Opnd* multiplierReg = IR::RegOpnd::New(TyUint64, this->m_func);
+
         Lowerer::InsertMove(multiplierReg, IR::IntConstOpnd::New(multiplier, TyInt64, this->m_func), instrDiv);
 
-        IR::Instr* imul = IR::Instr::New(LowererMD::MDImulOpcode, quotient, divident, multiplierReg, this->m_func);
+        IR::Instr* imul = IR::Instr::New(LowererMD::MDImulOpcode, quotient64Reg, divident, multiplierReg, this->m_func);
         instrDiv->InsertBefore(imul);
         LowererMD::Legalize(imul);
         if (!addIndicator) // Simple case type 3, 5..
         {
-            Lowerer::InsertShift(Js::OpCode::ShrU_A, false, quotient, quotient, IR::IntConstOpnd::New(32 + magic_number.shiftAmt, TyInt8, this->m_func), instrDiv);
-            Lowerer::InsertMove(dst, quotient, instrDiv);
+            Lowerer::InsertShift(Js::OpCode::ShrU_A, false, quotient64Reg, quotient64Reg, IR::IntConstOpnd::New(32 + magic_number.shiftAmt, TyInt8, this->m_func), instrDiv);
+            Lowerer::InsertMove(dst, quotient64Reg, instrDiv);
         }
         else // Special case type 7..
         {
             IR::Opnd* tmpReg = IR::RegOpnd::New(TyUint32, this->m_func);
             Lowerer::InsertMove(dst, divident, instrDiv);
 
-            Lowerer::InsertShift(Js::OpCode::ShrU_A, false, quotient, quotient, IR::IntConstOpnd::New(32, TyInt8, this->m_func), instrDiv);
-            Lowerer::InsertMove(tmpReg, quotient, instrDiv);
+            Lowerer::InsertShift(Js::OpCode::ShrU_A, false, quotient64Reg, quotient64Reg, IR::IntConstOpnd::New(32, TyInt8, this->m_func), instrDiv);
+            Lowerer::InsertMove(tmpReg, quotient64Reg, instrDiv);
 
             Lowerer::InsertSub(false, dst, dst, tmpReg, instrDiv);
             Lowerer::InsertShift(Js::OpCode::ShrU_A, false, dst, dst, IR::IntConstOpnd::New(1, TyInt8, this->m_func), instrDiv);
