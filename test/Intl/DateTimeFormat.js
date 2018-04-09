@@ -481,7 +481,27 @@ const tests = [
                 testEachCalendar(numberingSystem);
             }
         }
-    }
+    },
+    {
+        name: "Supplied times should be clipped using TimeClip",
+        body() {
+            if (isWinGlob) {
+                return;
+            }
+
+            const dtf = new Intl.DateTimeFormat("en", { hour: "numeric", minute: "numeric", second: "numeric" });
+
+            for (const nearZero of [-0.9, -0.1, -Number.MIN_VALUE, -0, +0, Number.MIN_VALUE, 0.1, 0.9]) {
+                assert.areEqual(dtf.format(0), dtf.format(nearZero), `Formatting 0 and ${nearZero} should produce the same result`);
+            }
+
+            assert.throws(() => dtf.format(-8.64e15 - 1), RangeError, "Formatting a time before the beginning of ES time");
+            assert.doesNotThrow(() => dtf.format(-8.64e15), "Formatting the beginning of ES time");
+
+            assert.doesNotThrow(() => dtf.format(8.64e15), "Formatting the end of ES time");
+            assert.throws(() => dtf.format(8.64e15 + 1), RangeError, "Formatting a time after the end of ES time");
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: !WScript.Arguments.includes("summary") });
