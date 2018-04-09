@@ -46,6 +46,7 @@ typedef uint64_t uint64;
 
 #define U_STATIC_IMPLEMENTATION
 #define U_SHOW_CPLUSPLUS_API 1
+#define U_USING_ICU_NAMESPACE 0
 #pragma warning(push)
 #pragma warning(disable:4995) // deprecation warning
 #include <unicode/uloc.h>

@@ -101,6 +101,7 @@
 #ifdef INTL_ICU
 #define U_STATIC_IMPLEMENTATION
 #define U_SHOW_CPLUSPLUS_API 0
+#define U_USING_ICU_NAMESPACE 0
 #pragma warning(push)
 #pragma warning(disable:4995)
 #include <unicode/uloc.h>

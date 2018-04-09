@@ -6,6 +6,7 @@
 #include "RuntimePlatformAgnosticPch.h"
 #include "UnicodeText.h"
 #ifdef HAS_REAL_ICU
+#define U_USING_ICU_NAMESPACE 0
 #include <unicode/uchar.h>
 #include <unicode/ustring.h>
 #include <unicode/normalizer2.h>
@@ -31,24 +32,24 @@ namespace PlatformAgnostic
 
 #ifdef HAS_REAL_ICU
         // Helper ICU conversion facilities
-        static const Normalizer2* TranslateToICUNormalizer(NormalizationForm normalizationForm)
+        static const icu::Normalizer2* TranslateToICUNormalizer(NormalizationForm normalizationForm)
         {
             UErrorCode errorCode = U_ZERO_ERROR;
-            const Normalizer2* normalizer;
+            const icu::Normalizer2* normalizer;
 
             switch (normalizationForm)
             {
                 case NormalizationForm::C:
-                    normalizer = Normalizer2::getNFCInstance(errorCode);
+                    normalizer = icu::Normalizer2::getNFCInstance(errorCode);
                     break;
                 case NormalizationForm::D:
-                    normalizer = Normalizer2::getNFDInstance(errorCode);
+                    normalizer = icu::Normalizer2::getNFDInstance(errorCode);
                     break;
                 case NormalizationForm::KC:
-                    normalizer = Normalizer2::getNFKCInstance(errorCode);
+                    normalizer = icu::Normalizer2::getNFKCInstance(errorCode);
                     break;
                 case NormalizationForm::KD:
-                    normalizer = Normalizer2::getNFKDInstance(errorCode);
+                    normalizer = icu::Normalizer2::getNFKDInstance(errorCode);
                     break;
                 default:
                     AssertMsg(false, "Unsupported normalization form");
@@ -157,13 +158,13 @@ namespace PlatformAgnostic
                 return -1 * invalidIndex; // mimicking the behavior of Win32 NormalizeString
             }
 
-            const Normalizer2* normalizer = TranslateToICUNormalizer(normalizationForm);
+            const icu::Normalizer2* normalizer = TranslateToICUNormalizer(normalizationForm);
             Assert(normalizer != nullptr);
 
-            const UnicodeString sourceUniStr((const UChar*) sourceString, sourceLength);
+            const icu::UnicodeString sourceUniStr((const UChar*) sourceString, sourceLength);
 
             UErrorCode errorCode = U_ZERO_ERROR;
-            const UnicodeString destUniStr = normalizer->normalize(sourceUniStr, errorCode);
+            const icu::UnicodeString destUniStr = normalizer->normalize(sourceUniStr, errorCode);
 
             if (U_FAILURE(errorCode))
             {
@@ -208,10 +209,10 @@ namespace PlatformAgnostic
                 return false;
             }
 
-            const Normalizer2* normalizer = TranslateToICUNormalizer(normalizationForm);
+            const icu::Normalizer2* normalizer = TranslateToICUNormalizer(normalizationForm);
             Assert(normalizer != nullptr);
 
-            const UnicodeString testUniStr((const UChar*) testString, length);
+            const icu::UnicodeString testUniStr((const UChar*) testString, length);
             bool isNormalized = normalizer->isNormalized(testUniStr, errorCode);
 
             Assert(U_SUCCESS(errorCode));
