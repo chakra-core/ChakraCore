@@ -216,11 +216,8 @@ namespace Js
             AllocateLoopHeaders();
         }
 
-
-
         m_functionWrite->MarkScript(finalByteCodeBlock, finalAuxiliaryBlock, finalAuxiliaryContextBlock,
             m_byteCodeCount, m_byteCodeInLoopCount, m_byteCodeWithoutLDACount);
-
 
 #if ENABLE_PROFILE_INFO
         m_functionWrite->LoadDynamicProfileInfo();

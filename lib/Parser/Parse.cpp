@@ -29,15 +29,6 @@ bool Parser::IsES6DestructuringEnabled() const
     return m_scriptContext->GetConfig()->IsES6DestructuringEnabled();
 }
 
-struct DeferredFunctionStub
-{
-    Field(RestorePoint) restorePoint;
-    Field(FncFlags) fncFlags;
-    Field(uint) nestedCount;
-    Field(DeferredFunctionStub *) deferredStubs;
-    Field(charcount_t) ichMin;
-};
-
 struct StmtNest
 {
     union
@@ -11314,8 +11305,6 @@ ParseNodeProg * Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, char
 
     m_pCurrentAstSize = &(pnodeProg->astSize);
 
-
-
     // initialize parsing variables
     m_currentNodeFunc = nullptr;
     m_currentNodeDeferredFunc = nullptr;
@@ -13882,17 +13871,15 @@ void Parser::ProcessCapturedNames(ParseNodeFnc* pnodeFnc)
 
 bool Parser::IsCreatingStateCache()
 {
-    return this->m_parseType == ParseType_StateCache
+    return ((this->m_grfscr & fscrCreateParserState) == fscrCreateParserState)
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        || (CONFIG_FLAG(ForceCreateParserState) && this->m_parseType != ParseType_Deferred)
+        || (CONFIG_FLAG(ForceCreateParserState))
 #endif
         ;
 }
 
-DeferredFunctionStub * BuildDeferredStubTree(ParseNodeFnc *pnodeFnc, Recycler *recycler)
+DeferredFunctionStub * Parser::BuildDeferredStubTree(ParseNodeFnc *pnodeFnc, Recycler *recycler)
 {
-    Assert(pnodeFnc->nop == knopFncDecl);
-
     uint nestedCount = pnodeFnc->nestedCount;
     if (nestedCount == 0)
     {
@@ -13904,18 +13891,31 @@ DeferredFunctionStub * BuildDeferredStubTree(ParseNodeFnc *pnodeFnc, Recycler *r
         return pnodeFnc->deferredStub;
     }
 
-    DeferredFunctionStub *deferredStubs = RecyclerNewArray(recycler, DeferredFunctionStub, nestedCount);
+    DeferredFunctionStub* deferredStubs = RecyclerNewArray(recycler, DeferredFunctionStub, nestedCount);
     uint i = 0;
+    ParseNodeBlock* pnodeBlock = pnodeFnc->pnodeBodyScope;
+    ParseNodePtr pnodeChild = nullptr;
 
-    ParseNodeBlock *pnodeBlock = pnodeFnc->pnodeBodyScope;
-    Assert(pnodeBlock != nullptr
-        && pnodeBlock->nop == knopBlock
-        && (pnodeBlock->blockType == PnodeBlockType::Function
-            || pnodeBlock->blockType == PnodeBlockType::Parameter));
-
-    for (ParseNode *pnodeChild = pnodeBlock->pnodeScopes; pnodeChild != nullptr;)
+    if (pnodeFnc->nop == knopProg)
     {
+        Assert(pnodeFnc->pnodeBodyScope == nullptr
+            && pnodeFnc->pnodeScopes != nullptr
+            && pnodeFnc->pnodeScopes->blockType == PnodeBlockType::Global);
 
+        pnodeBlock = pnodeFnc->pnodeScopes;
+        pnodeChild = pnodeFnc->pnodeScopes->pnodeScopes;
+    }
+    else
+    {
+        Assert(pnodeBlock != nullptr
+            && (pnodeBlock->blockType == PnodeBlockType::Function
+                || pnodeBlock->blockType == PnodeBlockType::Parameter));
+
+        pnodeChild = pnodeBlock->pnodeScopes;
+    }
+
+    while (pnodeChild != nullptr)
+    {
         if (pnodeChild->nop != knopFncDecl)
         {
             // We only expect to find a function body block in a parameter scope block.
@@ -13926,8 +13926,8 @@ DeferredFunctionStub * BuildDeferredStubTree(ParseNodeFnc *pnodeFnc, Recycler *r
             continue;
         }
 
-        ParseNodeFnc * pnodeFncChild = pnodeChild->AsParseNodeFnc();
-        AssertOrFailFast(i < nestedCount);
+        ParseNodeFnc* pnodeFncChild = pnodeChild->AsParseNodeFnc();
+        AnalysisAssertOrFailFast(i < nestedCount);
 
         if (pnodeFncChild->pnodeBody != nullptr)
         {
@@ -13943,17 +13943,21 @@ DeferredFunctionStub * BuildDeferredStubTree(ParseNodeFnc *pnodeFnc, Recycler *r
             continue;
         }
 
-        AnalysisAssertOrFailFast(i < nestedCount);
-
         deferredStubs[i].fncFlags = pnodeFncChild->fncFlags;
         deferredStubs[i].nestedCount = pnodeFncChild->nestedCount;
         deferredStubs[i].restorePoint = *pnodeFncChild->pRestorePoint;
         deferredStubs[i].deferredStubs = BuildDeferredStubTree(pnodeFncChild, recycler);
         deferredStubs[i].ichMin = pnodeChild->ichMin;
 
+        // Save the set of captured names onto the deferred stub.
+        // Since this set is allocated in the Parser arena, we'll have to convert these
+        // into indices in a string table which will survive when the parser goes away.
+        deferredStubs[i].capturedNamePointers = pnodeFncChild->GetCapturedNames();
+
         ++i;
         pnodeChild = pnodeFncChild->pnodeNext;
     }
 
+    pnodeFnc->deferredStub = deferredStubs;
     return deferredStubs;
 }

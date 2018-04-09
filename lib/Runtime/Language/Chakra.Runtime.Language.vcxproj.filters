@@ -21,6 +21,7 @@
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptMathOperators.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)ProfilingHelpers.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)SourceDynamicProfileManager.cpp" />
+    <ClCompile Include="$(MsBuildThisFileDirectory)SimpleDataCacheWrapper.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)StackTraceArguments.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)ValueType.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)InterpreterStackFrame.cpp" />
@@ -104,6 +105,7 @@
     <ClInclude Include="JavascriptMathOperators.h" />
     <ClInclude Include="ProfilingHelpers.h" />
     <ClInclude Include="SourceDynamicProfileManager.h" />
+    <ClInclude Include="SimpleDataCacheWrapper.h" />
     <ClInclude Include="StackTraceArguments.h" />
     <ClInclude Include="ValueType.h" />
     <ClInclude Include="Arguments.h" />

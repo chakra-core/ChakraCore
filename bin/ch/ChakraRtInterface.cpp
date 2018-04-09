@@ -157,6 +157,8 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
     m_jsApiHooks.pfJsrtCreatePropertyId = (JsAPIHooks::JsrtCreatePropertyId)GetChakraCoreSymbol(library, "JsCreatePropertyId");
     m_jsApiHooks.pfJsrtCreateExternalArrayBuffer = (JsAPIHooks::JsrtCreateExternalArrayBuffer)GetChakraCoreSymbol(library, "JsCreateExternalArrayBuffer");
     m_jsApiHooks.pfJsrtGetProxyProperties = (JsAPIHooks::JsrtGetProxyProperties)GetChakraCoreSymbol(library, "JsGetProxyProperties");
+    m_jsApiHooks.pfJsrtSerializeParserState = (JsAPIHooks::JsrtSerializeParserState)GetChakraCoreSymbol(library, "JsSerializeParserState");
+    m_jsApiHooks.pfJsrtRunScriptWithParserState = (JsAPIHooks::JsrtRunScriptWithParserState)GetChakraCoreSymbol(library, "JsRunScriptWithParserState");
 
     m_jsApiHooks.pfJsrtTTDCreateRecordRuntime = (JsAPIHooks::JsrtTTDCreateRecordRuntimePtr)GetChakraCoreSymbol(library, "JsTTDCreateRecordRuntime");
     m_jsApiHooks.pfJsrtTTDCreateReplayRuntime = (JsAPIHooks::JsrtTTDCreateReplayRuntimePtr)GetChakraCoreSymbol(library, "JsTTDCreateReplayRuntime");

@@ -49,5 +49,8 @@ enum
     fscrIsModuleCode = 1 << 26, // Current code should be parsed as a module body
 
     fscrDeferredFncIsMethod = 1 << 27,
-    fscrAll = (1 << 28) - 1
+    fscrCreateParserState = 1 << 28, // The parser should expose parser state information on the parse nodes.
+                                     // This parser state includes the set of names which are captured by each function
+                                     // and is stored in ParseNodeFnc::capturedNames.
+    fscrAll = (1 << 29) - 1
 };

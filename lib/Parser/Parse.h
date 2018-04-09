@@ -36,8 +36,7 @@ enum
 enum ParseType
 {
     ParseType_Upfront,
-    ParseType_Deferred,
-    ParseType_StateCache
+    ParseType_Deferred
 };
 
 enum DestructuringInitializerContext
@@ -94,6 +93,79 @@ struct ParseContext
     bool isUtf8;
 };
 
+// DeferredFunctionStub is part of the parser state cache we serialize and restore in an
+// attempt to avoid doing another upfront parse of the same source.
+// Each deferred stub contains information needed to identify the function location in source,
+// flags for the function, the set of names captured by this function, and links to deferred
+// stubs for further nested functions.
+// These stubs are only created for defer-parsed functions and we create one stub for each
+// nested function. When we fully parse the defer-parsed function, we will use information
+// in these stubs to skip scanning the nested functions again.
+//
+//  Example code:
+//    let a, b;
+//    function foo() {
+//        function bar() {
+//            return a;
+//        }
+//        function baz() {
+//            return b;
+//        }
+//    }
+//
+//  Deferred stubs for foo:
+//    capturedNames: { a, b }
+//    nestedCount: 2
+//    deferredStubs :
+//    [
+//      // 0 = bar:
+//      {
+//        capturedNames: { a }
+//        nestedCount: 0
+//        deferredStubs : nullptr
+//        ...
+//      },
+//      // 1 = baz:
+//      {
+//        capturedNames: { b }
+//        nestedCount: 0
+//        deferredStubs : nullptr
+//        ...
+//      }
+//    ]
+//    ...
+struct DeferredFunctionStub
+{
+    Field(RestorePoint) restorePoint;
+    Field(FncFlags) fncFlags;
+    Field(uint) nestedCount;
+    Field(charcount_t) ichMin;
+
+    // Number of names captured by this function.
+    // This is used as length for capturedNameSerializedIds but should
+    // also be equal to the length of capturedNamePointers when
+    // capturedNamePointers is not nullptr.
+    Field(uint) capturedNameCount;
+
+    // After the parser memory is cleaned-up, we no longer have access to
+    // the IdentPtrs allocated from the Parser arena. We keep a list of
+    // ids into the string table deserialized from the parser state cache.
+    // This list is Recycler-allocated.
+    Field(int *) capturedNameSerializedIds;
+
+    // The set of names which are captured by this function.
+    // A function captures a name when it references a name not defined within
+    // the function.
+    // A function also captures all names captured by nested functions.
+    // The IdentPtrs in this set and the set itself are allocated from Parser
+    // arena memory.
+    Field(IdentPtrSet *) capturedNamePointers;
+
+    // List of deferred stubs for further nested functions.
+    // Length of this list is equal to nestedCount.
+    Field(DeferredFunctionStub *) deferredStubs;
+};
+
 template <bool nullTerminated> class UTF8EncodingPolicyBase;
 typedef UTF8EncodingPolicyBase<false> NotNullTerminatedUTF8EncodingPolicy;
 template <typename T> class Scanner;
@@ -144,6 +216,7 @@ public:
     BOOL WillDeferParse(Js::LocalFunctionId functionId);
     BOOL IsDeferredFnc();
     void ReduceDeferredScriptLength(size_t chars);
+    static DeferredFunctionStub * BuildDeferredStubTree(ParseNodeFnc *pnodeFnc, Recycler *recycler);
 
     void RestorePidRefForSym(Symbol *sym);
 
@@ -320,8 +393,6 @@ public:
                 return _u("Upfront");
             case ParseType_Deferred:
                 return _u("Deferred");
-            case ParseType_StateCache:
-                return _u("StateCache");
         }
         Assert(false);
         return NULL;

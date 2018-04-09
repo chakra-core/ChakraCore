@@ -163,6 +163,7 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)SimdUtils.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SourceDynamicProfileManager.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimpleDataCacheWrapper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)StackTraceArguments.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)TaggedInt.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ValueType.cpp" />
@@ -255,6 +256,7 @@
     <ClInclude Include="SimdBool8x16Operation.h" />
     <ClInclude Include="SimdOps.h" />
     <ClInclude Include="SimdUtils.h" />
+    <ClInclude Include="SimpleDataCacheWrapper.h" />
     <ClInclude Include="TaggedInt.h" />
     <ClInclude Include="RuntimeLanguagePch.h" />
     <ClInclude Include="WAsmjsUtils.h" />

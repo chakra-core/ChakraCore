@@ -26,6 +26,7 @@
 #include "Language/DynamicProfileStorage.h"
 #endif
 #include "Language/SourceDynamicProfileManager.h"
+#include "Language/SimpleDataCacheWrapper.h"
 
 #include "Base/EtwTrace.h"
 

@@ -90,6 +90,9 @@ struct JsAPIHooks
     typedef JsErrorCode(WINAPI *JsrtCreatePropertyId)(const char *name, size_t length, JsPropertyIdRef *propertyId);
     typedef JsErrorCode(WINAPI *JsrtGetProxyProperties)(JsValueRef object, bool* isProxy, JsValueRef* target, JsValueRef* handler);
 
+    typedef JsErrorCode(WINAPI *JsrtSerializeParserState)(JsValueRef script, JsValueRef *buffer, JsParseScriptAttributes parseAttributes);
+    typedef JsErrorCode(WINAPI *JsrtRunScriptWithParserState)(JsValueRef script, JsSourceContext sourceContext, JsValueRef sourceUrl, JsParseScriptAttributes parseAttributes, JsValueRef parserState, JsValueRef *result);
+
     typedef JsErrorCode(WINAPI *JsrtTTDCreateRecordRuntimePtr)(JsRuntimeAttributes attributes, bool enableDebugging, size_t snapInterval, size_t snapHistoryLength, TTDOpenResourceStreamCallback openResourceStream, JsTTDWriteBytesToStreamCallback writeBytesToStream, JsTTDFlushAndCloseStreamCallback flushAndCloseStream, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
     typedef JsErrorCode(WINAPI *JsrtTTDCreateReplayRuntimePtr)(JsRuntimeAttributes attributes, const char* infoUri, size_t infoUriCount, bool enableDebugging, TTDOpenResourceStreamCallback openResourceStream, JsTTDReadBytesFromStreamCallback readBytesFromStream, JsTTDFlushAndCloseStreamCallback flushAndCloseStream, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
     typedef JsErrorCode(WINAPI *JsrtTTDCreateContextPtr)(JsRuntimeHandle runtime, bool useRuntimeTTDMode, JsContextRef *newContext);
@@ -189,6 +192,8 @@ struct JsAPIHooks
     JsrtCreatePropertyId pfJsrtCreatePropertyId;
     JsrtCreateExternalArrayBuffer pfJsrtCreateExternalArrayBuffer;
     JsrtGetProxyProperties pfJsrtGetProxyProperties;
+    JsrtSerializeParserState pfJsrtSerializeParserState;
+    JsrtRunScriptWithParserState pfJsrtRunScriptWithParserState;
 
     JsrtTTDCreateRecordRuntimePtr pfJsrtTTDCreateRecordRuntime;
     JsrtTTDCreateReplayRuntimePtr pfJsrtTTDCreateReplayRuntime;
@@ -422,6 +427,9 @@ public:
     static JsErrorCode WINAPI JsCreatePropertyId(const char *name, size_t length, JsPropertyIdRef *propertyId) { return HOOK_JS_API(CreatePropertyId(name, length, propertyId)); }
     static JsErrorCode WINAPI JsCreateExternalArrayBuffer(void *data, unsigned int byteLength, JsFinalizeCallback finalizeCallback, void *callbackState, JsValueRef *result)  { return HOOK_JS_API(CreateExternalArrayBuffer(data, byteLength, finalizeCallback, callbackState, result)); }
     static JsErrorCode WINAPI JsGetProxyProperties(JsValueRef object, bool* isProxy, JsValueRef* target, JsValueRef* handler)  { return HOOK_JS_API(GetProxyProperties(object, isProxy, target, handler)); }
+
+    static JsErrorCode WINAPI JsSerializeParserState(JsValueRef script, JsValueRef *buffer, JsParseScriptAttributes parseAttributes) { return HOOK_JS_API(SerializeParserState(script, buffer, parseAttributes)); }
+    static JsErrorCode WINAPI JsRunScriptWithParserState(JsValueRef script, JsSourceContext sourceContext, JsValueRef sourceUrl, JsParseScriptAttributes parseAttributes, JsValueRef parserState, JsValueRef * result) { return HOOK_JS_API(RunScriptWithParserState(script, sourceContext, sourceUrl, parseAttributes, parserState, result)); }
 };
 
 class AutoRestoreContext
