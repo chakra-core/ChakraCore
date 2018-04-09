@@ -175,10 +175,12 @@ $CommitMessage
     ## Since we have to handle the case where a full build doesn't have a ChakraHub note anyway, just
     ## add the logic to the core script.
 
-    ## Without the OAuth token, the git fetch command hangs, causing the entire build to time out.
-    if (${Env:System.AccessToken} -ne $null)
+    ## Without the OAuth token, the git fetch command hangs, causing the entire build to time out.  Per
+    ## https://docs.microsoft.com/en-us/vsts/build-release/concepts/definitions/release/variables?view=vsts&tabs=shell#using-default-variables,
+    ## we expect to find the auth token in System_AccessToken instead of System.AccessToken.
+    if (${Env:System_AccessToken})
     {
-        git -c http.extraheader="AUTHORIZATION: bearer ${Env:System.AccessToken}" fetch origin refs/notes/ChakraHub:refs/notes/ChakraHub
+        git -c http.extraheader="AUTHORIZATION: bearer ${Env:System_AccessToken}" fetch origin refs/notes/ChakraHub:refs/notes/ChakraHub
         Write-Output "looking for notes"
         ## One might be tempted to redirect the output of the "git notes" command on the next line to $null.  Don't do that;
         ## it causes the check to fail even when git notes are present.  However, we do have to redirect stderr, because
