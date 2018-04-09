@@ -154,7 +154,7 @@ typedef unsigned __int32 uint32_t;
     CHAKRA_API
         JsDiagStopDebugging(
             _In_ JsRuntimeHandle runtimeHandle,
-            _Out_ void** callbackState);
+            _Out_opt_ void** callbackState);
 
     /// <summary>
     ///     Request the runtime to break on next JavaScript statement.
