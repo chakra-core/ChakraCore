@@ -671,6 +671,7 @@ GlobOpt::OptLoops(Loop *loop)
         }
     }
 
+    Assert(loop->symsAssignedToInLoop != nullptr);
     if (loop->symsUsedBeforeDefined == nullptr)
     {
         loop->symsUsedBeforeDefined = JitAnew(alloc, BVSparse<JitArenaAllocator>, this->alloc);
@@ -5486,6 +5487,21 @@ GlobOpt::IsPrepassSrcValueInfoPrecise(IR::Opnd *const src, Value *const srcValue
             GetTaggedIntConstantStackSym(intConstantValue) == srcSym
         ) ||
         !currentBlock->loop->regAlloc.liveOnBackEdgeSyms->Test(srcSym->m_id);
+}
+
+bool
+GlobOpt::IsSafeToTransferInPrepass(StackSym * const srcSym, ValueInfo *const srcValueInfo) const
+{
+    int32 intConstantValue;
+    return
+        srcSym->IsFromByteCodeConstantTable() ||
+        (
+            srcValueInfo->TryGetIntConstantValue(&intConstantValue) &&
+            !Js::TaggedInt::IsOverflow(intConstantValue) &&
+            GetTaggedIntConstantStackSym(intConstantValue) == srcSym
+            ) ||
+        !currentBlock->loop->regAlloc.liveOnBackEdgeSyms->Test(srcSym->m_id) ||
+        !currentBlock->loop->IsSymAssignedToInSelfOrParents(srcSym);
 }
 
 Value *GlobOpt::CreateDstUntransferredIntValue(

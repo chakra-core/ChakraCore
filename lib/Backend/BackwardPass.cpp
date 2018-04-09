@@ -1547,6 +1547,12 @@ BackwardPass::ProcessLoop(BasicBlock * lastBlock)
     Assert(!this->IsPrePass());
     this->currentPrePassLoop = loop;
 
+    if (tag == Js::BackwardPhase)
+    {
+        Assert(loop->symsAssignedToInLoop == nullptr);
+        loop->symsAssignedToInLoop = JitAnew(this->globOpt->alloc, BVSparse<JitArenaAllocator>, this->globOpt->alloc);
+    }
+
     FOREACH_BLOCK_BACKWARD_IN_RANGE_DEAD_OR_ALIVE(block, lastBlock, nullptr)
     {
         this->ProcessBlock(block);
@@ -6507,6 +6513,10 @@ BackwardPass::ProcessDef(IR::Opnd * opnd)
         if (!IsCollectionPass())
         {
             this->InvalidateCloneStrCandidate(opnd);
+            if ((tag == Js::BackwardPhase) && IsPrePass())
+            {
+                this->currentPrePassLoop->symsAssignedToInLoop->Set(sym->m_id);
+            }
         }
     }
     else if (opnd->IsSymOpnd())
