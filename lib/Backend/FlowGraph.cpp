@@ -3648,21 +3648,14 @@ Loop::SetLoopTopInstr(IR::LabelInstr * loopTop)
 bool
 Loop::IsSymAssignedToInSelfOrParents(StackSym * const sym) const
 {
-    if (!this->symsAssignedToInLoop->Test(sym->m_id))
+    for (const Loop* curLoop = this; curLoop != nullptr; curLoop = curLoop->parent)
     {
-        for (Loop* curLoop = this->parent; curLoop != nullptr; curLoop = curLoop->parent)
+        if (curLoop->symsAssignedToInLoop->Test(sym->m_id))
         {
-            if (curLoop->symsAssignedToInLoop->Test(sym->m_id))
-            {
-                return true;
-            }
+            return true;
         }
-        return false;
     }
-    else
-    {
-        return true;
-    }
+    return false;
 }
 
 #if DBG_DUMP
