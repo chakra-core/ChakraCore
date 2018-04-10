@@ -106,7 +106,7 @@
     <ChakraCommonLinkDependencies>
         oleaut32.lib;
         version.lib;
-	bcrypt.lib
+        bcrypt.lib
     </ChakraCommonLinkDependencies>
     <RLCommonLinkDependencies>
         kernel32.lib;
