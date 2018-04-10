@@ -50,10 +50,10 @@
         advapi32.lib;
         ole32.lib;
         Rpcrt4.lib;
-	bcrypt.lib;
+        bcrypt.lib;
         $(ChakraCommonLinkDependencies)
       </AdditionalDependencies>
-      <AdditionalDependencies Condition="'$(UseICU)'=='true' AND '$(ChakraICU)'=='false'">
+      <AdditionalDependencies Condition="'$(ChakraICU)'!='false' AND '$(IcuLibraryDependencies)'!=''">
         $(IcuLibraryDependencies);
         %(AdditionalDependencies)
       </AdditionalDependencies>
@@ -173,13 +173,13 @@
     <ProjectReference Include="..\..\lib\Runtime\Types\Chakra.Runtime.Types.vcxproj">
       <Project>{706083f7-6aa4-4558-a153-6352ef9110f6}</Project>
     </ProjectReference>
-    <ProjectReference Condition="'$(ChakraICU)'!='false'" Include="..\..\deps\Chakra.ICU\Chakra.ICU.Common.vcxproj">
+    <ProjectReference Condition="'$(ChakraICU)'=='static' OR '$(ChakraICU)'=='shared'" Include="..\..\deps\Chakra.ICU\Chakra.ICU.Common.vcxproj">
       <Project>{EE2A3111-4D85-427C-B0AB-E6B0EA7FFB44}</Project>
     </ProjectReference>
-    <ProjectReference Condition="'$(ChakraICU)'!='false'" Include="..\..\deps\Chakra.ICU\Chakra.ICU.i18n.vcxproj">
+    <ProjectReference Condition="'$(ChakraICU)'=='static' OR '$(ChakraICU)'=='shared'" Include="..\..\deps\Chakra.ICU\Chakra.ICU.i18n.vcxproj">
       <Project>{0494C753-5BB9-45AA-874E-E61B9922E88F}</Project>
     </ProjectReference>
-    <ProjectReference Condition="'$(ChakraICU)'!='false'" Include="..\..\deps\Chakra.ICU\Chakra.ICU.Data.vcxproj">
+    <ProjectReference Condition="'$(ChakraICU)'=='static' OR '$(ChakraICU)'=='shared'" Include="..\..\deps\Chakra.ICU\Chakra.ICU.Data.vcxproj">
       <Project>{347824B1-7100-4EE6-8A6B-4FF64E66B0C0}</Project>
     </ProjectReference>
   </ItemGroup>

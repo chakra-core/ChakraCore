@@ -39,7 +39,7 @@
       <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup Condition="'$(ChakraICU)'!='false'">
+  <ItemGroup Condition="'$(BuildLocalICU)'=='true'">
     <ClCompile Include="$(IcuI18nSources)" />
     <ClInclude Include="$(IcuI18nHeaders)" />
     <ProjectReference Include="$(MSBuildThisFileDirectory)Chakra.ICU.Stubdata.vcxproj">

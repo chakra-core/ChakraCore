@@ -25,14 +25,7 @@
     <!-- ARM does not support ICU until we figure out how to link icudtXXl.dat without genccode.exe -->
     <ChakraICU Condition="'$(Platform)'=='ARM'">false</ChakraICU>
 
-    <WindowsICU Condition="'$(WindowsICU)'==''">false</WindowsICU>
-
-    <UseICU Condition="'$(UseICU)'==''">false</UseICU>
-    <UseICU Condition="'$(BuildLite)'=='true'">false</UseICU>
-    <UseICU Condition="'$(ChakraICU)'!='false' OR '$(WindowsICU)'=='true'">true</UseICU>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(WindowsICU)'=='true'">
-    <IcuLibraryDependencies>icuuc.lib;icuin.lib</IcuLibraryDependencies>
+    <IcuLibraryDependencies Condition="'$(ChakraICU)'=='windows'">icuuc.lib;icuin.lib</IcuLibraryDependencies>
   </PropertyGroup>
   <Import Condition="'$(ChakraICU)'!='false' AND exists('$(ChakraCoreRootDirectory)deps\Chakra.ICU\Chakra.ICU.props')" Project="$(ChakraCoreRootDirectory)deps\Chakra.ICU\Chakra.ICU.props" />
   <ItemDefinitionGroup>
@@ -56,12 +49,12 @@
         %(PreprocessorDefinitions);
         CHAKRACORE_LITE
       </PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(UseICU)'=='true'">
+      <PreprocessorDefinitions Condition="'$(ChakraICU)'!='false'">
         %(PreprocessorDefinitions);
         HAS_ICU;
         U_DISABLE_RENAMING=1; <!-- Disable renaming to maintain compatibility with Windows Kit ICU's icuuc/icuin.lib -->
       </PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(EnableIntl)'=='true' AND '$(UseICU)'=='true'">
+      <PreprocessorDefinitions Condition="'$(EnableIntl)'=='true' AND '$(ChakraICU)'!='false'">
         %(PreprocessorDefinitions);
         INTL_ICU=1
       </PreprocessorDefinitions>
@@ -69,11 +62,11 @@
         %(PreprocessorDefinitions);
         U_STATIC_IMPLEMENTATION=1
       </PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(WindowsICU)'=='true'">
+      <PreprocessorDefinitions Condition="'$(ChakraICU)'=='windows'">
         %(PreprocessorDefinitions);
         WINDOWS10_ICU
       </PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(WindowsICU)'=='false'">
+      <PreprocessorDefinitions Condition="'$(ChakraICU)'!='windows' AND '$(ChakraICU)'!='false'">
         %(PreprocessorDefinitions);
         ICU_VERSION=$(IcuVersionMajor)
       </PreprocessorDefinitions>
@@ -113,7 +106,7 @@
     <ChakraCommonLinkDependencies>
         oleaut32.lib;
         version.lib;
-	bcrypt.lib
+        bcrypt.lib
     </ChakraCommonLinkDependencies>
     <RLCommonLinkDependencies>
         kernel32.lib;

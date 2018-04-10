@@ -33,7 +33,7 @@
       <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup Condition="'$(ChakraICU)'!='false'">
+  <ItemGroup Condition="'$(BuildLocalICU)'=='true'">
     <ClCompile Include="$(IcuGenccodeSources)" />
     <ClInclude Include="$(IcuGenccodeHeaders)" />
     <ProjectReference Include="$(MSBuildThisFileDirectory)Chakra.ICU.Common.vcxproj">
