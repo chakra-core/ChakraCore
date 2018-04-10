@@ -5359,6 +5359,11 @@ Inline::RemoveLdThis(IR::Instr *instr)
     }
     else
     {
+        if (instr->GetSrc2())
+        {
+            Assert(instr->m_opcode == Js::OpCode::LdThis);
+            instr->FreeSrc2();
+        }
         instr->m_opcode = Js::OpCode::Ld_A;
         return instr;
     }
