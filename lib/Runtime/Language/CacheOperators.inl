@@ -447,6 +447,7 @@ namespace Js
                 {
                     if (info->GetFunctionBody())
                     {
+                        Assert(polymorphicInlineCache == info->GetFunctionBody()->GetPolymorphicInlineCache(info->GetInlineCacheIndex()));
                         polymorphicInlineCache =
                             info->GetFunctionBody()->CreateBiggerPolymorphicInlineCache(
                                 info->GetInlineCacheIndex(),
@@ -455,6 +456,7 @@ namespace Js
                     else
                     {
                         Assert(!info->GetFunctionBody());
+                        Assert(polymorphicInlineCache == (IsRead ? info->GetPropertyRecordUsageCache()->GetLdElemInlineCache() : info->GetPropertyRecordUsageCache()->GetStElemInlineCache()));
                         polymorphicInlineCache = info->GetPropertyRecordUsageCache()->CreateBiggerPolymorphicInlineCache(IsRead);
                     }
                 }
