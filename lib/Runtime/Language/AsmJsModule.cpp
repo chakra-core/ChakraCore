@@ -559,8 +559,7 @@ namespace Js
             }
         }
         deferParseFunction->SetIsAsmjsMode(true);
-        PageAllocator tempPageAlloc(NULL, Js::Configuration::Global.flags);
-        Parser ps(GetScriptContext(), FALSE, &tempPageAlloc);
+        Parser ps(GetScriptContext(), FALSE, this->GetAllocator()->GetPageAllocator());
         FunctionBody * funcBody;
         ParseNodePtr parseTree;
 
