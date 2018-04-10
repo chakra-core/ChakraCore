@@ -33,7 +33,7 @@
       </AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
-  <ItemGroup Condition="'$(ChakraICU)'!='false'">
+  <ItemGroup Condition="'$(BuildLocalICU)'=='true'">
     <ClCompile Include="$(IcuToolutilSources)" />
     <ClInclude Include="$(IcuToolutilHeaders)" />
   </ItemGroup>

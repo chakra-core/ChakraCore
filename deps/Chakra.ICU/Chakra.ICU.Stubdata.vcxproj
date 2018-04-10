@@ -39,7 +39,7 @@
       <ImportLibrary>$(OutDir)\Chakra.ICU.Data.lib</ImportLibrary>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup Condition="'$(ChakraICU)'!='false'">
+  <ItemGroup Condition="'$(BuildLocalICU)'=='true'">
     <ClCompile Include="$(IcuStubdataSources)" />
     <ClInclude Include="$(IcuStubdataHeaders)" />
   </ItemGroup>

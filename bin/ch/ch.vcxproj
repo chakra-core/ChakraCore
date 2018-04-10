@@ -28,7 +28,7 @@
         %(AdditionalIncludeDirectories);
       </AdditionalIncludeDirectories>
       <!-- For ChakraICU.h -->
-      <AdditionalIncludeDirectories Condition="'$(UseICU)'=='true'">
+      <AdditionalIncludeDirectories Condition="'$(ChakraICU)'!='false'">
         $(ChakraCoreRootDirectory)lib\Runtime;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
@@ -45,7 +45,7 @@
         version.lib;
 	bcrypt.lib;
       </AdditionalDependencies>
-      <AdditionalDependencies Condition="'$(UseICU)'=='true' AND '$(ChakraICU)'=='false'">
+      <AdditionalDependencies Condition="'$(ChakraICU)'!='false' AND '$(IcuLibraryDependencies)'!=''">
         $(IcuLibraryDependencies);
         %(AdditionalDependencies)
       </AdditionalDependencies>
@@ -99,7 +99,7 @@
       <Project>{EA882C8D-81FC-42FE-ABD5-2666DB933FDB}</Project>
     </ProjectReference>
     <!-- for u_getVersion() referenced in PlatformAgnostic::ICUHelpers::GetICUMajorVersion -->
-    <ProjectReference Condition="'$(ChakraICU)'!='false'" Include="..\..\deps\Chakra.ICU\Chakra.ICU.Common.vcxproj">
+    <ProjectReference Condition="'$(ChakraICU)'=='static' OR '$(ChakraICU)'=='shared'" Include="..\..\deps\Chakra.ICU\Chakra.ICU.Common.vcxproj">
       <Project>{EE2A3111-4D85-427C-B0AB-E6B0EA7FFB44}</Project>
     </ProjectReference>
   </ItemGroup>

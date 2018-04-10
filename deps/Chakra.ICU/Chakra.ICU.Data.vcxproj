@@ -27,7 +27,7 @@
       <NoEntryPoint>true</NoEntryPoint>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup Condition="'$(ChakraICU)'!='false'">
+  <ItemGroup Condition="'$(BuildLocalICU)'=='true'">
     <None Include="$(IntDir)icudt$(IcuVersionMajor)l_dat.obj" /> <!-- forces the automagic build system to create a lib from the obj -->
     <CustomBuild Include="$(MSBuildThisFileDirectory)source\data\in\icudt$(IcuVersionMajor)l.dat">
       <Command>$(GenCCodePath) --object --destdir $(IntDir) --entrypoint icudt$(IcuVersionMajor) $(IcuSourceDirectory)\data\in\icudt$(IcuVersionMajor)l.dat</Command>

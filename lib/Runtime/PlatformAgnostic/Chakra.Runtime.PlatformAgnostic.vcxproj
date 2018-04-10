@@ -50,7 +50,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\Thread.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\PerfTrace.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Common\UnicodeText.Common.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Common\UnicodeText.ICU.cpp" Condition="'$(UseICU)'=='true'" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Common\UnicodeText.ICU.cpp" Condition="'$(ChakraICU)'!='false'" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ChakraPlatform.h" />
