@@ -105,10 +105,25 @@ namespace Js
             }
         } while(false);
 
-        const Var element = JavascriptOperators::OP_GetElementI(base, varIndex, functionBody->GetScriptContext());
+        ScriptContext* scriptContext = functionBody->GetScriptContext();
+        RecyclableObject* cacheOwner;
+        PropertyRecordUsageCache* propertyRecordUsageCache;
+        Var element = nullptr;
+        if (JavascriptOperators::GetPropertyRecordUsageCache(varIndex, scriptContext, &propertyRecordUsageCache, &cacheOwner))
+        {
+            PropertyCacheOperationInfo operationInfo;
+            element = JavascriptOperators::GetElementIWithCache<true /* ReturnOperationInfo */>(base, cacheOwner, propertyRecordUsageCache, scriptContext, &operationInfo);
+
+            ldElemInfo.flags = DynamicProfileInfo::FldInfoFlagsFromCacheType(operationInfo.cacheType);
+            ldElemInfo.flags = DynamicProfileInfo::MergeFldInfoFlags(ldElemInfo.flags, DynamicProfileInfo::FldInfoFlagsFromSlotType(operationInfo.slotType));
+        }
+        else
+        {
+            element = JavascriptOperators::OP_GetElementI(base, varIndex, scriptContext);
+        }
 
         const ValueType arrayType(ldElemInfo.GetArrayType());
-        if(!arrayType.IsUninitialized())
+        if(!arrayType.IsUninitialized() || ldElemInfo.flags != Js::FldInfo_NoInfo)
         {
             if(array && arrayType.IsLikelyObject() && arrayType.GetObjectType() == ObjectType::Array && !arrayType.HasIntElements())
             {
@@ -119,6 +134,7 @@ namespace Js
             }
 
             ldElemInfo.elemType = ValueType::Uninitialized.Merge(element);
+
             functionBody->GetDynamicProfileInfo()->RecordElementLoad(functionBody, profileId, ldElemInfo);
             return element;
         }
@@ -337,14 +353,34 @@ namespace Js
             }
         } while(false);
 
-        JavascriptOperators::OP_SetElementI(base, varIndex, value, scriptContext, flags);
+        RecyclableObject* cacheOwner;
+        PropertyRecordUsageCache* propertyRecordUsageCache;
+        TypeId instanceType = JavascriptOperators::GetTypeId(base);
+        bool isTypedArray = (instanceType >= TypeIds_Int8Array && instanceType <= TypeIds_Float64Array);
+        if (!isTypedArray && JavascriptOperators::GetPropertyRecordUsageCache(varIndex, scriptContext, &propertyRecordUsageCache, &cacheOwner))
+        {
+            RecyclableObject* object = nullptr;
+            bool result = JavascriptOperators::GetPropertyObjectForSetElementI(base, cacheOwner, scriptContext, &object);
+            Assert(result);
 
-        if(!stElemInfo.GetArrayType().IsUninitialized())
+            PropertyCacheOperationInfo operationInfo;
+            JavascriptOperators::SetElementIWithCache<true /* ReturnOperationInfo */>(base, object, cacheOwner, value, propertyRecordUsageCache, scriptContext, flags, &operationInfo);
+
+            stElemInfo.flags = DynamicProfileInfo::FldInfoFlagsFromCacheType(operationInfo.cacheType);
+            stElemInfo.flags = DynamicProfileInfo::MergeFldInfoFlags(stElemInfo.flags, DynamicProfileInfo::FldInfoFlagsFromSlotType(operationInfo.slotType));
+        }
+        else
+        {
+            JavascriptOperators::OP_SetElementI(base, varIndex, value, scriptContext, flags);
+        }
+
+        if(!stElemInfo.GetArrayType().IsUninitialized() || stElemInfo.flags != Js::FldInfo_NoInfo)
         {
             if(array)
             {
                 stElemInfo.createdMissingValue &= !array->HasNoMissingValues();
             }
+
             functionBody->GetDynamicProfileInfo()->RecordElementStore(functionBody, profileId, stElemInfo);
             return;
         }

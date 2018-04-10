@@ -409,23 +409,24 @@ public:
     }
 
 private:
-    IR::IndirOpnd * GenerateFastElemICommon(
-        IR::Instr * ldElem,
-        bool isStore,
-        IR::IndirOpnd * indirOpnd,
-        IR::LabelInstr * labelHelper,
-        IR::LabelInstr * labelCantUseArray,
-        IR::LabelInstr *labelFallthrough,
-        bool * pIsTypedArrayElement,
-        bool * pIsStringIndex,
-        bool *emitBailoutRef,
-        IR::Opnd** maskOpnd,
-        IR::LabelInstr **pLabelSegmentLengthIncreased = nullptr,
-        bool checkArrayLengthOverflow = true,
-        bool forceGenerateFastPath = false,
-        bool returnLength = false,
-        IR::LabelInstr *bailOutLabelInstr = nullptr,
-        bool * indirOpndOverflowed = nullptr);
+    IR::IndirOpnd* GenerateFastElemICommon(
+        _In_ IR::Instr* elemInstr,
+        _In_ bool isStore,
+        _In_ IR::IndirOpnd* indirOpnd,
+        _In_ IR::LabelInstr* labelHelper,
+        _In_ IR::LabelInstr* labelCantUseArray,
+        _In_opt_ IR::LabelInstr* labelFallthrough,
+        _Out_ bool* pIsTypedArrayElement,
+        _Out_ bool* pIsStringIndex,
+        _Out_opt_ bool* emitBailoutRef,
+        _Outptr_opt_result_maybenull_ IR::Opnd** maskOpnd,
+        _Outptr_opt_result_maybenull_ IR::LabelInstr** pLabelSegmentLengthIncreased = nullptr,
+        _In_ bool checkArrayLengthOverflow = true,
+        _In_ bool forceGenerateFastPath = false,
+        _In_ bool returnLength = false,
+        _In_opt_ IR::LabelInstr* bailOutLabelInstr = nullptr,
+        _Out_opt_ bool* indirOpndOverflowed = nullptr,
+        _In_ Js::FldInfoFlags flags = Js::FldInfo_NoInfo);
 
     IR::IndirOpnd * GenerateFastElemIIntIndexCommon(
         IR::Instr * ldElem,
@@ -444,11 +445,55 @@ private:
         IR::LabelInstr *bailOutLabelInstr = nullptr,
         bool * indirOpndOverflowed = nullptr);
 
-    IR::IndirOpnd * GenerateFastElemIStringIndexCommon(IR::Instr * ldElem, bool isStore, IR::IndirOpnd * indirOpnd, IR::LabelInstr * labelHelper);
-    IR::IndirOpnd * GenerateFastElemISymbolIndexCommon(IR::Instr * ldElem, bool isStore, IR::IndirOpnd * indirOpnd, IR::LabelInstr * labelHelper);
+    IR::IndirOpnd* GenerateFastElemIStringIndexCommon(
+        _In_ IR::Instr* elemInstr,
+        _In_ bool isStore,
+        _In_ IR::IndirOpnd* indirOpnd,
+        _In_ IR::LabelInstr* labelHelper,
+        _In_ Js::FldInfoFlags flags);
+
+    IR::IndirOpnd* GenerateFastElemISymbolIndexCommon(
+        _In_ IR::Instr* elemInstr,
+        _In_ bool isStore,
+        _In_ IR::IndirOpnd* indirOpnd,
+        _In_ IR::LabelInstr* labelHelper,
+        _In_ Js::FldInfoFlags flags);
+
+    IR::IndirOpnd* GenerateFastElemISymbolOrStringIndexCommon(
+        _In_ IR::Instr* instrInsert,
+        _In_ IR::RegOpnd* indexOpnd,
+        _In_ IR::RegOpnd* baseOpnd,
+        _In_ const uint32 inlineCacheOffset,
+        _In_ const uint32 hitRateOffset,
+        _In_ IR::LabelInstr* labelHelper,
+        _In_ Js::FldInfoFlags flags);
+
+    void GenerateLookUpInIndexCache(
+        _In_ IR::Instr* instrInsert,
+        _In_ IR::RegOpnd* indexOpnd,
+        _In_ IR::RegOpnd* baseOpnd,
+        _In_opt_ IR::RegOpnd* opndSlotArray,
+        _In_opt_ IR::RegOpnd* opndSlotIndex,
+        _In_ const uint32 inlineCacheOffset,
+        _In_ const uint32 hitRateOffset,
+        _In_ IR::LabelInstr* labelHelper,
+        _In_ Js::FldInfoFlags flags = Js::FldInfo_NoInfo);
+
+    template <bool CheckLocal, bool CheckInlineSlot, bool DoAdd>
+    void GenerateLookUpInIndexCacheHelper(
+        _In_ IR::Instr* instrInsert,
+        _In_ IR::RegOpnd* baseOpnd,
+        _In_opt_ IR::RegOpnd* opndSlotArray,
+        _In_opt_ IR::RegOpnd* opndSlotIndex,
+        _In_ IR::RegOpnd* objectTypeOpnd,
+        _In_ IR::RegOpnd* inlineCacheOpnd,
+        _In_ IR::LabelInstr* doneLabel,
+        _In_ IR::LabelInstr* helperLabel,
+        _Outptr_ IR::LabelInstr** nextLabel,
+        _Outptr_ IR::BranchInstr** branchToPatch,
+        _Inout_ IR::RegOpnd** taggedTypeOpnd);
+
     void            GenerateFastIsInSymbolOrStringIndex(IR::Instr * instrInsert, IR::RegOpnd *indexOpnd, IR::RegOpnd *baseOpnd, IR::Opnd *dest, uint32 inlineCacheOffset, const uint32 hitRateOffset, IR::LabelInstr * labelHelper, IR::LabelInstr * labelDone);
-    IR::IndirOpnd * GenerateFastElemISymbolOrStringIndexCommon(IR::Instr * instrInsert, IR::RegOpnd *indexOpnd, IR::RegOpnd *baseOpnd, const uint32 inlineCacheOffset, const uint32 hitRateOffset, IR::LabelInstr * labelHelper);
-    void            GenerateLookUpInIndexCache(IR::Instr * instrInsert, IR::RegOpnd *indexOpnd, IR::RegOpnd *baseOpnd, IR::RegOpnd *opndSlotArray, IR::RegOpnd *opndSlotIndex, const uint32 inlineCacheOffset, const uint32 hitRateOffset, IR::LabelInstr * labelHelper);
     bool            GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef);
     bool            GenerateFastStElemI(IR::Instr *& StElem, bool *instrIsInHelperBlockRef);
     bool            GenerateFastLdLen(IR::Instr *ldLen, bool *instrIsInHelperBlockRef);

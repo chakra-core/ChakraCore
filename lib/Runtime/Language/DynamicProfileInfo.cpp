@@ -161,10 +161,12 @@ namespace Js
         {
             ldElemInfo[i].arrayType = ValueType::Uninitialized;
             ldElemInfo[i].elemType = ValueType::Uninitialized;
+            ldElemInfo[i].flags = Js::FldInfo_NoInfo;
         }
         for (ProfileId i = 0; i < functionBody->GetProfiledStElemCount(); ++i)
         {
             stElemInfo[i].arrayType = ValueType::Uninitialized;
+            stElemInfo[i].flags = Js::FldInfo_NoInfo;
         }
         for (uint i = 0; i < functionBody->GetProfiledFldCount(); ++i)
         {
@@ -984,6 +986,21 @@ namespace Js
     {
         Assert(stElemId < functionBody->GetProfiledStElemCount());
         stElemInfo[stElemId].wasProfiled = true;
+    }
+
+    void LdElemInfo::Merge(const LdElemInfo &other)
+    {
+        arrayType = arrayType.Merge(other.arrayType);
+        elemType = elemType.Merge(other.elemType);
+        flags = DynamicProfileInfo::MergeFldInfoFlags(flags, other.flags);
+        bits |= other.bits;
+    }
+
+    void StElemInfo::Merge(const StElemInfo &other)
+    {
+        arrayType = arrayType.Merge(other.arrayType);
+        flags = DynamicProfileInfo::MergeFldInfoFlags(flags, other.flags);
+        bits |= other.bits;
     }
 
     ArrayCallSiteInfo * DynamicProfileInfo::GetArrayCallSiteInfo(FunctionBody *functionBody, ProfileId index) const
