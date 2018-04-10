@@ -10,8 +10,8 @@
 
 namespace Js
 {
-    ArrayObject::ArrayObject(ArrayObject * instance)
-        : DynamicObject(instance),
+    ArrayObject::ArrayObject(ArrayObject * instance, bool deepCopy)
+        : DynamicObject(instance, deepCopy),
         length(instance->length)
     {
     }

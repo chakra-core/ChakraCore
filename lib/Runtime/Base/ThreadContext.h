@@ -443,8 +443,6 @@ public:
 
 private:
     const Js::PropertyRecord * emptyStringPropertyRecord;
-
-    Js::JavascriptExceptionObject * pendingFinallyException;
     bool noScriptScope;
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
@@ -558,6 +556,8 @@ private:
         RecyclableData(Recycler *const recycler);
         Field(Js::TempArenaAllocatorObject *) temporaryArenaAllocators[MaxTemporaryArenaAllocators];
         Field(Js::TempGuestArenaAllocatorObject *) temporaryGuestArenaAllocators[MaxTemporaryArenaAllocators];
+
+        Field(Js::JavascriptExceptionObject *) pendingFinallyException;
 
         Field(Js::JavascriptExceptionObject *) exceptionObject;
         Field(bool) propagateException;
@@ -1294,12 +1294,12 @@ public:
 
     void SetPendingFinallyException(Js::JavascriptExceptionObject * exceptionObj)
     {
-        pendingFinallyException = exceptionObj;
+        recyclableData->pendingFinallyException = exceptionObj;
     }
 
     Js::JavascriptExceptionObject * GetPendingFinallyException()
     {
-        return pendingFinallyException;
+        return recyclableData->pendingFinallyException;
     }
 
     Js::EntryPointInfo ** RegisterEquivalentTypeCacheEntryPoint(Js::EntryPointInfo * entryPoint);

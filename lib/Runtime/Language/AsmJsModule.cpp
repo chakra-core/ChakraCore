@@ -124,7 +124,7 @@ namespace Js
         if (funcInfo->byteCodeFunction->GetIsNamedFunctionExpression())
         {
             Assert(GetModuleFunctionNode()->sxFnc.pnodeName);
-            if (GetModuleFunctionNode()->sxFnc.pnodeName->sxVar.sym->IsInSlot(funcInfo))
+            if (GetModuleFunctionNode()->sxFnc.pnodeName->sxVar.sym->IsInSlot(GetByteCodeGenerator(), funcInfo))
             {
                 ParseNodePtr nameNode = GetModuleFunctionNode()->sxFnc.pnodeName;
                 GetByteCodeGenerator()->AssignPropertyId(nameNode->name());

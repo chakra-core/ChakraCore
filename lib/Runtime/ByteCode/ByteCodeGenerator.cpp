@@ -2541,7 +2541,7 @@ FuncInfo* PreVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerato
     }
     PreVisitBlock(pnode->sxFnc.pnodeScopes, byteCodeGenerator);
     // If we have arguments, we are going to need locations if the function is in strict mode or we have a non-simple parameter list. This is because we will not create a scope object.
-    bool assignLocationForFormals = !ByteCodeGenerator::NeedScopeObjectForArguments(funcInfo, funcInfo->root);
+    bool assignLocationForFormals = !byteCodeGenerator->NeedScopeObjectForArguments(funcInfo, funcInfo->root);
     AddArgsToScope(pnode, byteCodeGenerator, assignLocationForFormals);
 
     return funcInfo;
@@ -2601,7 +2601,7 @@ void AssignFuncSymRegister(ParseNode * pnode, ByteCodeGenerator * byteCodeGenera
                 Symbol * functionScopeVarSym = sym->GetFuncScopeVarSym();
                 if (functionScopeVarSym &&
                     !functionScopeVarSym->GetIsGlobal() &&
-                    !functionScopeVarSym->IsInSlot(sym->GetScope()->GetFunc()))
+                    !functionScopeVarSym->IsInSlot(byteCodeGenerator, sym->GetScope()->GetFunc()))
                 {
                     byteCodeGenerator->AssignRegister(functionScopeVarSym);
                 }
@@ -2776,7 +2776,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
         {
             if (top->GetCallsEval() ||
                 top->GetChildCallsEval() ||
-                (top->GetHasArguments() && ByteCodeGenerator::NeedScopeObjectForArguments(top, pnode)) ||
+                (top->GetHasArguments() && byteCodeGenerator->NeedScopeObjectForArguments(top, pnode)) ||
                 top->GetHasLocalInClosure() ||
                 (top->funcExprScope && top->funcExprScope->GetMustInstantiate()) ||
                 // When we have split scope normally either eval will be present or the GetHasLocalInClosure will be true as one of the formal is
@@ -2845,10 +2845,10 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                     };
 
                     // We need to include the rest as well -as it will get slot assigned.
-                    if (ByteCodeGenerator::NeedScopeObjectForArguments(top, pnode))
+                    if (byteCodeGenerator->NeedScopeObjectForArguments(top, pnode))
                     {
                         MapFormals(pnode, setArgScopeSlot);
-                        if (argSym->NeedsSlotAlloc(top))
+                        if (argSym->NeedsSlotAlloc(byteCodeGenerator, top))
                         {
                             Assert(argSym->GetScopeSlot() == Js::Constants::NoProperty);
                             argSym->SetScopeSlot(i++);
@@ -2859,7 +2859,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                     top->paramScope->SetScopeSlotCount(i);
 
                     Assert(top->GetHasHeapArguments());
-                    if (ByteCodeGenerator::NeedScopeObjectForArguments(top, pnode)
+                    if (byteCodeGenerator->NeedScopeObjectForArguments(top, pnode)
                         && !pnode->sxFnc.HasNonSimpleParameterList())
                     {
                         top->byteCodeFunction->SetHasImplicitArgIns(false);
@@ -3064,7 +3064,7 @@ void ByteCodeGenerator::ProcessCapturedSym(Symbol *sym)
     FuncInfo *funcHome = sym->GetScope()->GetFunc();
     FuncInfo *funcChild = funcHome->GetCurrentChildFunction();
 
-    Assert(sym->NeedsSlotAlloc(funcHome) || sym->GetIsGlobal() || sym->GetIsModuleImport() || sym->GetIsModuleExportStorage());
+    Assert(sym->NeedsSlotAlloc(this, funcHome) || sym->GetIsGlobal() || sym->GetIsModuleImport() || sym->GetIsModuleExportStorage());
 
     // If this is not a local property, or not all its references can be tracked, or
     // it's not scoped to the function, or we're in debug mode, disable the delayed capture optimization.
@@ -4949,11 +4949,11 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
                 }
                 // Don't give the declared var a register if it's in a closure, because the closure slot
                 // is its true "home". (Need to check IsGlobal again as the sym may have changed above.)
-                if (!sym->GetIsGlobal() && !sym->IsInSlot(funcInfo))
+                if (!sym->GetIsGlobal() && !sym->IsInSlot(byteCodeGenerator, funcInfo))
                 {
                     if (PHASE_TRACE(Js::DelayCapturePhase, funcInfo->byteCodeFunction))
                     {
-                        if (sym->NeedsSlotAlloc(byteCodeGenerator->TopFuncInfo()))
+                        if (sym->NeedsSlotAlloc(byteCodeGenerator, byteCodeGenerator->TopFuncInfo()))
                         {
                             Output::Print(_u("--- DelayCapture: Delayed capturing symbol '%s' during initialization.\n"),
                                 sym->GetName().GetBuffer());
@@ -5007,12 +5007,12 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
             if (!sym->GetIsGlobal() &&
                 !sym->GetIsMember() &&
                 byteCodeGenerator->TopFuncInfo() == sym->GetScope()->GetEnclosingFunc() &&
-                !sym->IsInSlot(byteCodeGenerator->TopFuncInfo()) &&
+                !sym->IsInSlot(byteCodeGenerator, byteCodeGenerator->TopFuncInfo()) &&
                 !sym->HasVisitedCapturingFunc())
             {
                 if (PHASE_TRACE(Js::DelayCapturePhase, byteCodeGenerator->TopFuncInfo()->byteCodeFunction))
                 {
-                    if (sym->NeedsSlotAlloc(byteCodeGenerator->TopFuncInfo()))
+                    if (sym->NeedsSlotAlloc(byteCodeGenerator, byteCodeGenerator->TopFuncInfo()))
                     {
                         Output::Print(_u("--- DelayCapture: Delayed capturing symbol '%s'.\n"),
                             sym->GetName().GetBuffer());
@@ -5173,8 +5173,7 @@ Js::FunctionBody * ByteCodeGenerator::MakeGlobalFunctionBody(ParseNode *pnode)
     return func;
 }
 
-/* static */
-bool ByteCodeGenerator::NeedScopeObjectForArguments(FuncInfo *funcInfo, ParseNode *pnodeFnc)
+bool ByteCodeGenerator::NeedScopeObjectForArguments(FuncInfo *funcInfo, ParseNode *pnodeFnc) const
 {
     // We can avoid creating a scope object with arguments present if:
     bool dontNeedScopeObject =
@@ -5183,6 +5182,8 @@ bool ByteCodeGenerator::NeedScopeObjectForArguments(FuncInfo *funcInfo, ParseNod
         // Either we are in strict mode, or have strict mode formal semantics from a non-simple parameter list, and
         && (funcInfo->GetIsStrictMode()
             || pnodeFnc->sxFnc.HasNonSimpleParameterList())
+        // We're not in eval or event handler, which will force the scope(s) to be objects
+        && !(this->flags & (fscrEval | fscrImplicitThis | fscrImplicitParents))
         // Neither of the scopes are objects
         && !funcInfo->paramScope->GetIsObject()
         && !funcInfo->bodyScope->GetIsObject();

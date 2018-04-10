@@ -9493,9 +9493,9 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         case Js::TypeIds_Integer:
             return instance;
         case Js::TypeIds_RegEx:
-            return JavascriptRegExp::BoxStackInstance(JavascriptRegExp::FromVar(instance));
+            return JavascriptRegExp::BoxStackInstance(JavascriptRegExp::FromVar(instance), deepCopy);
         case Js::TypeIds_Object:
-            return DynamicObject::BoxStackInstance(DynamicObject::FromVar(instance));
+            return DynamicObject::BoxStackInstance(DynamicObject::FromVar(instance), deepCopy);
         case Js::TypeIds_Array:
             return JavascriptArray::BoxStackInstance(JavascriptArray::UnsafeFromVar(instance), deepCopy);
         case Js::TypeIds_NativeIntArray:
