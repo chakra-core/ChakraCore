@@ -72,6 +72,7 @@ const Js::PropertyRecord * const ThreadContext::builtInPropertyRecords[] =
 };
 
 ThreadContext::RecyclableData::RecyclableData(Recycler *const recycler) :
+    pendingFinallyException(nullptr),
     soErrorObject(nullptr, nullptr, nullptr, true),
     oomErrorObject(nullptr, nullptr, nullptr, true),
     terminatedErrorObject(nullptr, nullptr, nullptr),
@@ -94,7 +95,6 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     isThreadBound(false),
     hasThrownPendingException(false),
     hasBailedOutBitPtr(nullptr),
-    pendingFinallyException(nullptr),
     noScriptScope(false),
     heapEnum(nullptr),
     threadContextFlags(ThreadContextFlagNoFlag),

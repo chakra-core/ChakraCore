@@ -716,9 +716,14 @@ namespace Js
 
     template <typename T>
     template <bool allowLetConstGlobal>
-    void DictionaryTypeHandlerBase<T>::SetPropertyWithDescriptor(DynamicObject* instance, PropertyId propertyId, DictionaryPropertyDescriptor<T> * descriptor,
+    void DictionaryTypeHandlerBase<T>::SetPropertyWithDescriptor(DynamicObject* instance,
+        PropertyRecord const* propertyRecord,
+        DictionaryPropertyDescriptor<T> ** pdescriptor,
         Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
+        Assert(pdescriptor && *pdescriptor);
+        DictionaryPropertyDescriptor<T> * descriptor = *pdescriptor;
+        PropertyId propertyId = propertyRecord->GetPropertyId();
         Assert(instance);
         Assert((descriptor->Attributes & PropertyDeleted) == 0 || (allowLetConstGlobal && descriptor->IsShadowed));
 
@@ -784,14 +789,23 @@ namespace Js
 
             // Wait for the setter to return before setting up the inline cache info, as the setter may change
             // the attributes
-            T dataSlot = descriptor->template GetDataPropertyIndex<false>();
-            if (dataSlot != NoSlots)
+
+            if (propertyMap->TryGetReference(propertyRecord, pdescriptor))
             {
-                SetPropertyValueInfo(info, instance, dataSlot, descriptor->Attributes);
+                descriptor = *pdescriptor;
+                T dataSlot = descriptor->template GetDataPropertyIndex<false>();
+                if (dataSlot != NoSlots)
+                {
+                    SetPropertyValueInfo(info, instance, dataSlot, descriptor->Attributes);
+                }
+                else if (descriptor->GetSetterPropertyIndex() != NoSlots)
+                {
+                    SetPropertyValueInfo(info, instance, descriptor->GetSetterPropertyIndex(), descriptor->Attributes, InlineCacheSetterFlag);
+                }
             }
-            else if (descriptor->GetSetterPropertyIndex() != NoSlots)
+            else
             {
-                SetPropertyValueInfo(info, instance, descriptor->GetSetterPropertyIndex(), descriptor->Attributes, InlineCacheSetterFlag);
+                *pdescriptor = nullptr;
             }
         }
         SetPropertyUpdateSideEffect(instance, propertyId, value, SideEffects_Any);
@@ -854,7 +868,7 @@ namespace Js
             {
                 descriptor->ConvertToData();
             }
-            SetPropertyWithDescriptor<allowLetConstGlobal>(instance, propertyId, descriptor, value, flags, info);
+            SetPropertyWithDescriptor<allowLetConstGlobal>(instance, propertyRecord, &descriptor, value, flags, info);
             return true;
         }
 
@@ -1895,25 +1909,26 @@ namespace Js
 
             if (attributes & PropertyLetConstGlobal)
             {
-                SetPropertyWithDescriptor<true>(instance, propertyId, descriptor, value, flags, info);
+                SetPropertyWithDescriptor<true>(instance, propertyRecord, &descriptor, value, flags, info);
             }
             else
             {
-                SetPropertyWithDescriptor<false>(instance, propertyId, descriptor, value, flags, info);
+                SetPropertyWithDescriptor<false>(instance, propertyRecord, &descriptor, value, flags, info);
             }
-
-            if (descriptor->Attributes & PropertyEnumerable)
+            if (descriptor != nullptr)  //descriptor can dissappear, so this reference may not exist.
             {
-                instance->SetHasNoEnumerableProperties(false);
-            }
-
-            if (!(descriptor->Attributes & PropertyWritable))
-            {
-                this->ClearHasOnlyWritableDataProperties();
-                if(GetFlags() & IsPrototypeFlag)
+                if (descriptor->Attributes & PropertyEnumerable)
                 {
-                    scriptContext->InvalidateStoreFieldCaches(propertyId);
-                    instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+                    instance->SetHasNoEnumerableProperties(false);
+                }
+                if (!(descriptor->Attributes & PropertyWritable))
+                {
+                    this->ClearHasOnlyWritableDataProperties();
+                    if (GetFlags() & IsPrototypeFlag)
+                    {
+                        scriptContext->InvalidateStoreFieldCaches(propertyId);
+                        instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+                    }
                 }
             }
 

@@ -1921,8 +1921,21 @@ namespace Js
                 // And/or the old segment is not scanned by the recycler, so we need a new one to hold vars.
                 SparseArraySegment<Var> *newSeg =
                     SparseArraySegment<Var>::AllocateSegment(recycler, left, length, nextSeg);
-
                 AnalysisAssert(newSeg);
+
+                // Fill the new segment with the overflow.
+                for (i = 0; (uint)i < newSeg->length; i++)
+                {
+                    ival = ((SparseArraySegment<int32>*)seg)->elements[i];
+                    if (ival == JavascriptNativeIntArray::MissingItem)
+                    {
+                        continue;
+                    }
+                    newSeg->elements[i] = JavascriptNumber::ToVar(ival, scriptContext);
+                }
+
+                // seg elements are copied over, now it is safe to replace seg with newSeg.
+                // seg could be GC collected if replaced by newSeg.
                 Assert((prevSeg == nullptr) == (seg == intArray->head));
                 newSeg->next = nextSeg;
                 intArray->LinkSegments((SparseArraySegment<Var>*)prevSeg, newSeg);
@@ -1936,17 +1949,6 @@ namespace Js
                 if (segmentMap)
                 {
                     segmentMap->SwapSegment(left, seg, newSeg);
-                }
-
-                // Fill the new segment with the overflow.
-                for (i = 0; (uint)i < newSeg->length; i++)
-                {
-                    ival = ((SparseArraySegment<int32>*)seg)->elements[i];
-                    if (ival == JavascriptNativeIntArray::MissingItem)
-                    {
-                        continue;
-                    }
-                    newSeg->elements[i] = JavascriptNumber::ToVar(ival, scriptContext);
                 }
             }
             else
@@ -2088,6 +2090,13 @@ namespace Js
         // Code below has potential to throw due to OOM or SO. Just FailFast on those cases
         AutoDisableInterrupt failFastError(scriptContext->GetThreadContext());
 
+#if defined(TARGET_32)
+        if (fArray->head && (fArray->head->size >= SparseArraySegmentBase::INLINE_CHUNK_SIZE / shrinkFactor))
+        {
+            CopyHeadIfInlinedHeadSegment<double>(fArray, recycler);
+        }
+#endif
+
         for (seg = fArray->head; seg; seg = nextSeg)
         {
             nextSeg = seg->next;
@@ -2097,26 +2106,12 @@ namespace Js
             }
             uint32 left = seg->left;
             uint32 length = seg->length;
-            SparseArraySegment<Var> *newSeg;
+            SparseArraySegment<Var> *newSeg = nullptr;
             if (seg->next == nullptr && SparseArraySegmentBase::IsLeafSegment(seg, recycler))
             {
                 // The old segment is not scanned by the recycler, so we need a new one to hold vars.
                 newSeg =
                     SparseArraySegment<Var>::AllocateSegment(recycler, left, length, nextSeg);
-                Assert((prevSeg == nullptr) == (seg == fArray->head));
-                newSeg->next = nextSeg;
-                fArray->LinkSegments((SparseArraySegment<Var>*)prevSeg, newSeg);
-                if (fArray->GetLastUsedSegment() == seg)
-                {
-                    fArray->SetLastUsedSegment(newSeg);
-                }
-                prevSeg = newSeg;
-
-                SegmentBTree * segmentMap = fArray->GetSegmentMap();
-                if (segmentMap)
-                {
-                    segmentMap->SwapSegment(left, seg, newSeg);
-                }
             }
             else
             {
@@ -2171,6 +2166,26 @@ namespace Js
             {
                 // Fill the remaining slots.
                 newSeg->FillSegmentBuffer(i, seg->size);
+            }
+
+            // seg elements are copied over, now it is safe to replace seg with newSeg.
+            // seg could be GC collected if replaced by newSeg.
+            if (newSeg != seg)
+            {
+                Assert((prevSeg == nullptr) == (seg == fArray->head));
+                newSeg->next = nextSeg;
+                fArray->LinkSegments((SparseArraySegment<Var>*)prevSeg, newSeg);
+                if (fArray->GetLastUsedSegment() == seg)
+                {
+                    fArray->SetLastUsedSegment(newSeg);
+                }
+                prevSeg = newSeg;
+
+                SegmentBTree * segmentMap = fArray->GetSegmentMap();
+                if (segmentMap)
+                {
+                    segmentMap->SwapSegment(left, seg, newSeg);
+                }
             }
         }
 
@@ -3140,7 +3155,7 @@ namespace Js
                     JS_REENTRANT_NO_MUTATE(jsReentLock, CopyNativeIntArrayElementsToVar(pDestArray, BigIndex(idxDest).GetSmallIndex(), pIntItemArray));
                     idxDest = idxDest + pIntItemArray->length;
                 }
-                else 
+                else
                 {
                     JavascriptNativeFloatArray *pFloatItemArray = JavascriptOperators::TryFromVar<JavascriptNativeFloatArray>(aItem);
                     if (pFloatItemArray)
@@ -3390,7 +3405,7 @@ namespace Js
 
                     idxDest = idxDest + pIntItemArray->length;
                 }
-                else 
+                else
                 {
                     JavascriptNativeFloatArray * pFloatItemArray = JavascriptOperators::TryFromVar<JavascriptNativeFloatArray>(aItem);
                     if (pFloatItemArray && !isFillFromPrototypes)
@@ -5312,6 +5327,8 @@ Case0:
             AnalysisAssert(array->head);
             SparseArraySegment<T>* newHeadSeg = array->ReallocNonLeafSegment((SparseArraySegment<T>*)PointerValue(array->head), array->head->next);
             array->head = newHeadSeg;
+            array->InvalidateLastUsedSegment();
+            array->ClearSegmentMap();
         }
     }
 
@@ -5384,7 +5401,7 @@ Case0:
             {
                 RecyclableObject* protoObj = prototype;
 
-                if (!(DynamicObject::IsAnyArray(protoObj) || JavascriptOperators::IsObject(protoObj)) 
+                if (!(DynamicObject::IsAnyArray(protoObj) || JavascriptOperators::IsObject(protoObj))
                     || JavascriptProxy::Is(protoObj)
                     || protoObj->IsExternal())
                 {
@@ -6099,7 +6116,7 @@ Case0:
             *isIntArray = true;
 #endif
         }
-        else 
+        else
         {
             JavascriptNativeFloatArray* nativeFloatArray = JavascriptOperators::TryFromVar<JavascriptNativeFloatArray>(this);
             if (nativeFloatArray)
@@ -11660,7 +11677,7 @@ Case0:
     }
 
     JavascriptArray::JavascriptArray(JavascriptArray * instance, bool boxHead, bool deepCopy)
-        : ArrayObject(instance)
+        : ArrayObject(instance, deepCopy)
     {
         if (boxHead)
         {
@@ -11673,6 +11690,40 @@ Case0:
             head = instance->head;
             SetLastUsedSegment(instance->GetLastUsedSegment());
         }
+    }
+
+    // Allocate a new Array with its own segments and copy the data in instance
+    // into the new Array
+    template <typename T>
+    T * JavascriptArray::DeepCopyInstance(T * instance)
+    {
+        return RecyclerNewPlusZ(instance->GetRecycler(),
+            instance->GetTypeHandler()->GetInlineSlotsSize() + sizeof(Js::SparseArraySegmentBase) + instance->head->size * sizeof(typename T::TElement),
+            T, instance, true /*boxHead*/, true /*deepCopy*/);
+    }
+
+    ArrayObject* JavascriptArray::DeepCopyInstance(ArrayObject* arrayObject)
+    {
+        ArrayObject* arrayCopy;
+        TypeId typeId = JavascriptOperators::GetTypeId(arrayObject);
+        switch (typeId)
+        {
+        case Js::TypeIds_Array:
+            arrayCopy = JavascriptArray::DeepCopyInstance<JavascriptArray>(JavascriptArray::UnsafeFromVar(arrayObject));
+            break;
+        case Js::TypeIds_NativeIntArray:
+            arrayCopy = JavascriptArray::DeepCopyInstance<JavascriptNativeIntArray>(JavascriptNativeIntArray::UnsafeFromVar(arrayObject));
+            break;
+        case Js::TypeIds_NativeFloatArray:
+            arrayCopy = JavascriptArray::DeepCopyInstance<JavascriptNativeFloatArray>(JavascriptNativeFloatArray::UnsafeFromVar(arrayObject));
+            break;
+
+        default:
+            AssertAndFailFast(!"Unexpected objectArray type while boxing stack instance");
+            arrayCopy = nullptr;
+        };
+
+        return arrayCopy;
     }
 
     template <typename T>
@@ -11705,9 +11756,16 @@ Case0:
             // Reallocate both the object as well as the head segment when the head is on the stack or
             // when a deep copy is needed. This is to prevent a scenario where box may leave either one
             // on the stack when both must be on the heap.
-            boxedInstance = RecyclerNewPlusZ(instance->GetRecycler(),
-                inlineSlotsSize + sizeof(Js::SparseArraySegmentBase) + instance->head->size * sizeof(typename T::TElement),
-                T, instance, true, deepCopy);
+            if (deepCopy)
+            {
+                boxedInstance = DeepCopyInstance(instance);
+            }
+            else
+            {
+                boxedInstance = RecyclerNewPlusZ(instance->GetRecycler(),
+                    inlineSlotsSize + sizeof(Js::SparseArraySegmentBase) + instance->head->size * sizeof(typename T::TElement),
+                    T, instance, true /*boxHead*/, false /*deepCopy*/);
+            }
         }
         else if(inlineSlotsSize)
         {
@@ -11795,14 +11853,14 @@ Case0:
     }
 #endif
 
-    JavascriptNativeArray::JavascriptNativeArray(JavascriptNativeArray * instance) :
-        JavascriptArray(instance, false, false),
+    JavascriptNativeArray::JavascriptNativeArray(JavascriptNativeArray * instance, bool deepCopy) :
+        JavascriptArray(instance, false, deepCopy),
         weakRefToFuncBody(instance->weakRefToFuncBody)
     {
     }
 
     JavascriptNativeIntArray::JavascriptNativeIntArray(JavascriptNativeIntArray * instance, bool boxHead, bool deepCopy) :
-        JavascriptNativeArray(instance)
+        JavascriptNativeArray(instance, deepCopy)
     {
         if (boxHead)
         {
@@ -11848,7 +11906,7 @@ Case0:
 #endif
 
     JavascriptNativeFloatArray::JavascriptNativeFloatArray(JavascriptNativeFloatArray * instance, bool boxHead, bool deepCopy) :
-        JavascriptNativeArray(instance)
+        JavascriptNativeArray(instance, deepCopy)
     {
         if (boxHead)
         {

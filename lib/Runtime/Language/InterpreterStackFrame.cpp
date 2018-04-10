@@ -1296,10 +1296,20 @@ namespace Js
             // In the debug mode zero out the local slot, so this could prevent locals being uninitialized in the case of setNextStatement.
             memset(newInstance->m_localSlots, 0, sizeof(Js::Var) * localCount);
         }
-        // Zero out only the return slot. This is not a user local, so the byte code will not initialize
-        // it to "undefined". And it's not an expression temp, so, for instance, a jitted loop body may expect
-        // it to be valid on entry to the loop, where "valid" means either a var or null.
-        newInstance->SetNonVarReg(0, NULL);
+        else 
+        {
+            Js::RegSlot varCount = function->GetFunctionBody()->GetVarCount();
+            if (varCount)
+            {
+                // Zero out the non-constant var slots.
+                Js::RegSlot constantCount = function->GetFunctionBody()->GetConstantCount();
+                memset(newInstance->m_localSlots + constantCount, 0, varCount * sizeof(Js::Var));
+            }
+            // Zero out the return slot. This is not a user local, so the byte code will not initialize
+            // it to "undefined". And it's not an expression temp, so, for instance, a jitted loop body may expect
+            // it to be valid on entry to the loop, where "valid" means either a var or null.
+            newInstance->SetNonVarReg(0, NULL);
+        }
 #endif
         // Wasm doesn't use const table
         if (!executeFunction->IsWasmFunction())

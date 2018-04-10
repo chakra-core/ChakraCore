@@ -15,6 +15,7 @@ namespace Js {
 
         struct MapSymbolData
         {
+            ByteCodeGenerator *byteCodeGenerator;
             FuncInfo* func;
             int nonScopeSymbolCount;
         };
@@ -181,8 +182,8 @@ namespace Js {
 
         void SaveSymbolInfo(Symbol* sym, MapSymbolData* mapSymbolData);
 
-        static ScopeInfo* SaveScopeInfo(Scope * scope, ScriptContext * scriptContext);
-        static ScopeInfo* SaveOneScopeInfo(Scope * scope, ScriptContext * scriptContext);
+        static ScopeInfo* SaveScopeInfo(ByteCodeGenerator * byteCodeGenerator, Scope * scope, ScriptContext * scriptContext);
+        static ScopeInfo* SaveOneScopeInfo(ByteCodeGenerator * byteCodeGenerator, Scope * scope, ScriptContext * scriptContext);
 
     public:
         FunctionInfo * GetFunctionInfo() const

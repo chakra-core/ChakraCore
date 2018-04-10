@@ -82,7 +82,7 @@ namespace Js
         UnifiedRegex::RegexFlags SetRegexFlag(PropertyId propertyId, UnifiedRegex::RegexFlags flags, UnifiedRegex::RegexFlags flag, ScriptContext* scriptContext);
 
         // For boxing stack instance
-        JavascriptRegExp(JavascriptRegExp * instance);
+        JavascriptRegExp(JavascriptRegExp * instance, bool deepCopy);
 
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptRegExp);
     protected:
@@ -201,7 +201,7 @@ namespace Js
         virtual uint GetSpecialPropertyCount() const override;
         virtual PropertyId const * GetSpecialPropertyIds() const override;
 
-        static Js::JavascriptRegExp * BoxStackInstance(Js::JavascriptRegExp * instance);
+        static Js::JavascriptRegExp * BoxStackInstance(Js::JavascriptRegExp * instance, bool deepCopy);
 
 #if ENABLE_TTD
     public:
