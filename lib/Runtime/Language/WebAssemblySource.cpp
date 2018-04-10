@@ -67,8 +67,10 @@ void WebAssemblySource::CreateSourceInfo(bool createNewContext, ScriptContext* s
         /* grfsi               */ 0
     };
     SRCINFO const * srcInfo = scriptContext->Cache()->noContextGlobalSourceInfo;
-    if (createNewContext)
+    if (createNewContext && CONFIG_FLAG(WasmAssignModuleID))
     {
+        // It is not legal to assign a SourceContextInfo on dynamic code, but it is usefull for debugging
+        // Only do it if the specified as a test config
         si.sourceContextInfo = scriptContext->CreateSourceContextInfo(scriptContext->GetNextSourceContextId(), nullptr, 0, nullptr);
         srcInfo = &si;
     }

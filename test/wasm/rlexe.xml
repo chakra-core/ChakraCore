@@ -331,7 +331,7 @@
   <default>
     <files>cse.js</files>
     <baseline>baselines/cse.baseline</baseline>
-    <compile-flags>-wasm -maic:0 -testtrace:cse:2.0-99.999</compile-flags>
+    <compile-flags>-wasm -maic:0 -WasmAssignModuleID -testtrace:cse:2.0-99.999</compile-flags>
     <tags>exclude_jshost,exclude_drt,exclude_win7,exclude_interpreted,exclude_sanitize_address</tags>
   </default>
 </test>
