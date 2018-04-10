@@ -69,6 +69,7 @@
     <ClInclude Include="MathUtil.h" />
     <ClInclude Include="NumberUtilities.h" />
     <ClInclude Include="NumberUtilitiesBase.h" />
+    <ClInclude Include="ObservableValue.h" />
     <ClInclude Include="RejitReason.h" />
     <ClInclude Include="RejitReasons.h" />
     <ClInclude Include="SmartFpuControl.h" />

@@ -345,6 +345,7 @@ namespace Js
 #endif
 
 #ifdef ENABLE_BASIC_TELEMETRY
+        // TODO - allocate this on the Heap instead of using a custom allocator?
         this->telemetry = Anew(this->TelemetryAllocator(), Js::ScriptContextTelemetry, this);
 #endif
 

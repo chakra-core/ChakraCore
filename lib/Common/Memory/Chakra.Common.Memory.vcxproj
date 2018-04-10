@@ -76,6 +76,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)RecyclerObjectGraphDumper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)RecyclerPageAllocator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)RecyclerSweep.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)RecyclerTelemetryInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)RecyclerWriteBarrierManager.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SmallFinalizableHeapBlock.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SmallFinalizableHeapBucket.cpp" />
@@ -98,6 +99,7 @@
   <ItemGroup>
     <ClInclude Include="AllocationPolicyManager.h" />
     <ClInclude Include="Allocator.h" />
+    <ClInclude Include="AllocatorTelemetryStats.h" />
     <ClInclude Include="amd64\XDataAllocator.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClInclude>
@@ -144,6 +146,7 @@
     <ClInclude Include="RecyclerRootPtr.h" />
     <ClInclude Include="RecyclerSweep.h" />
     <ClInclude Include="RecyclerSweepManager.h" />
+    <ClInclude Include="RecyclerTelemetryInfo.h" />
     <ClInclude Include="RecyclerWeakReference.h" />
     <ClInclude Include="RecyclerWriteBarrierManager.h" />
     <ClInclude Include="SectionAllocWrapper.h" />
@@ -157,6 +160,8 @@
     <ClInclude Include="MemoryLogger.h" />
     <ClInclude Include="StressTest.h" />
     <ClInclude Include="VirtualAllocWrapper.h" />
+    <ClInclude Include="RecyclerWaitReason.h" />
+    <ClInclude Include="RecyclerWaitReasonInc.h" />
     <ClInclude Include="WriteBarrierMacros.h" />
     <ClInclude Include="XDataAllocator.h" />
   </ItemGroup>

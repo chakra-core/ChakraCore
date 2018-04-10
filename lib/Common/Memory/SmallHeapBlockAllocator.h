@@ -225,7 +225,7 @@ SmallHeapBlockAllocator<TBlockType>::InlinedAllocImpl(Recycler * recycler, DECLS
 #ifdef RECYCLER_TRACE
             if (recycler->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase) && recycler->GetRecyclerFlagsTable().Trace.IsEnabled(Js::MemoryAllocationPhase) && CONFIG_FLAG_RELEASE(Verbose))
             {
-                Output::Print(_u("[**33**]FreeListAlloc: Object 0x%p from HeapBlock 0x%p used for allocation during ConcurrentSweep [CollectionState: %d] \n"), memBlock, heapBlock, recycler->collectionState);
+                Output::Print(_u("[**33**]FreeListAlloc: Object 0x%p from HeapBlock 0x%p used for allocation during ConcurrentSweep [CollectionState: %d] \n"), memBlock, heapBlock, static_cast<CollectionState>(recycler->collectionState));
             }
 #endif
         }

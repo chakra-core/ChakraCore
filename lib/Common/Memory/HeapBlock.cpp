@@ -1360,7 +1360,8 @@ SmallHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queu
         if (recycler->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase) && CONFIG_FLAG_RELEASE(Verbose))
         {
             SweepState stateReturned = (this->freeCount == 0) ? SweepStateFull : state;
-            Output::Print(_u("[GC #%d] [HeapBucket 0x%p] HeapBlock 0x%p %s %d [CollectionState: %d] \n"), recycler->collectionCount, this->heapBucket, this, _u("[**37**] heapBlock swept. State returned:"), stateReturned, recycler->collectionState);
+            CollectionState collectionState = recycler->collectionState;
+            Output::Print(_u("[GC #%d] [HeapBucket 0x%p] HeapBlock 0x%p %s %d [CollectionState: %d] \n"), recycler->collectionCount, this->heapBucket, this, _u("[**37**] heapBlock swept. State returned:"), stateReturned, collectionState);
         }
 #endif
         return (this->freeCount == 0) ? SweepStateFull : state;
@@ -1425,7 +1426,8 @@ SmallHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queu
         if (recycler->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase) && CONFIG_FLAG_RELEASE(Verbose))
         {
             SweepState stateReturned = (this->freeCount == 0) ? SweepStateFull : state;
-            Output::Print(_u("[GC #%d] [HeapBucket 0x%p] HeapBlock 0x%p %s %d [CollectionState: %d] \n"), recycler->collectionCount, this->heapBucket, this, _u("[**38**] heapBlock swept. State returned:"), stateReturned, recycler->collectionState);
+            CollectionState collectionState = recycler->collectionState;
+            Output::Print(_u("[GC #%d] [HeapBucket 0x%p] HeapBlock 0x%p %s %d [CollectionState: %d] \n"), recycler->collectionCount, this->heapBucket, this, _u("[**38**] heapBlock swept. State returned:"), stateReturned, collectionState);
         }
 #endif
         // We always need to check the free count as we may have allocated from this block during concurrent sweep.
