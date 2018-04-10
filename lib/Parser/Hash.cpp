@@ -210,7 +210,7 @@ void Ident::TrySetIsUsedInLdElem(ParseNode * pnode)
 {
     if (pnode && pnode->nop == knopStr)
     {
-        pnode->AsParseNodePid()->pid->SetIsUsedInLdElem(true);
+        pnode->AsParseNodeStr()->pid->SetIsUsedInLdElem(true);
     }
 }
 

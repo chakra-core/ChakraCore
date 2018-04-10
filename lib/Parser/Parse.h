@@ -129,9 +129,7 @@ public:
     void SetIsInParsingArgList(bool set) { m_isInParsingArgList = set; }
 
     bool GetHasDestructuringPattern() const { return m_hasDestructuringPattern; }
-    void SetHasDestructuringPattern(bool set) { m_hasDestructuringPattern = set; }
-
-    static IdentPtr PidFromNode(ParseNodePtr pnode);
+    void SetHasDestructuringPattern(bool set) { m_hasDestructuringPattern = set; }    
 
     ParseNode* CopyPnode(ParseNode* pnode);
 
@@ -268,9 +266,9 @@ private:
     ParseNodeVar * CreateDeclNode(OpCode nop, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl = true);
 
     ParseNodeInt * CreateIntNode(int32 lw);
-    ParseNodePid * CreateStrNode(IdentPtr pid);
-    ParseNodePid * CreateNameNode(IdentPtr pid);
-    ParseNodePid * CreateNameNode(IdentPtr pid, PidRefStack * ref, charcount_t ichMin, charcount_t ichLim);
+    ParseNodeStr * CreateStrNode(IdentPtr pid);
+    ParseNodeName * CreateNameNode(IdentPtr pid);
+    ParseNodeName * CreateNameNode(IdentPtr pid, PidRefStack * ref, charcount_t ichMin, charcount_t ichLim);
     ParseNodeSpecialName * CreateSpecialNameNode(IdentPtr pid, PidRefStack * ref, charcount_t ichMin, charcount_t ichLim);
     ParseNodeSuperReference * CreateSuperReferenceNode(OpCode nop, ParseNodeSpecialName * pnode1, ParseNodePtr pnode2);
     ParseNodeProg * CreateProgNode(bool isModuleSource, ULONG lineNumber);

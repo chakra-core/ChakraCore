@@ -59,15 +59,21 @@ ParseNodeVar * ParseNode::AsParseNodeVar()
     return reinterpret_cast<ParseNodeVar *>(this);
 }
 
-ParseNodePid * ParseNode::AsParseNodePid()
+ParseNodeStr * ParseNode::AsParseNodeStr()
 {
-    Assert(this->nop == knopName || this->nop == knopStr);
-    return reinterpret_cast<ParseNodePid *>(this);
+    Assert(this->nop == knopStr);
+    return reinterpret_cast<ParseNodeStr *>(this);
+}
+
+ParseNodeName * ParseNode::AsParseNodeName()
+{
+    Assert(this->nop == knopName);
+    return reinterpret_cast<ParseNodeName *>(this);
 }
 
 ParseNodeSpecialName * ParseNode::AsParseNodeSpecialName()
 {
-    Assert(this->nop == knopName && this->AsParseNodePid()->IsSpecialName());
+    Assert(this->nop == knopName && this->AsParseNodeName()->IsSpecialName());
     return reinterpret_cast<ParseNodeSpecialName *>(this);
 }
 
@@ -245,9 +251,13 @@ ParseNodeModule * ParseNode::AsParseNodeModule()
 
 IdentPtr ParseNode::name()
 {
-    if (this->nop == knopName || this->nop == knopStr)
+    if (this->nop == knopStr)
     {
-        return this->AsParseNodePid()->pid;
+        return this->AsParseNodeStr()->pid;
+    }
+    else if (this->nop == knopName)
+    {
+        return this->AsParseNodeName()->pid;
     }
     else if (this->nop == knopVarDecl || this->nop == knopConstDecl)
     {
@@ -274,7 +284,7 @@ ParseNodePtr ParseNode::GetFormalNext()
 
 bool ParseNode::IsUserIdentifier()
 {
-    return this->nop == knopName && !this->AsParseNodePid()->IsSpecialName();
+    return this->nop == knopName && !this->AsParseNodeName()->IsSpecialName();
 }
 
 ParseNodeUni::ParseNodeUni(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1)
@@ -286,6 +296,13 @@ ParseNodeUni::ParseNodeUni(OpCode nop, charcount_t ichMin, charcount_t ichLim, P
 ParseNodeBin::ParseNodeBin(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1, ParseNode * pnode2)
     : ParseNode(nop, ichMin, ichLim)
 {
+    // Member name is either a string or a computed name
+    Assert((nop != knopMember && nop != knopMemberShort && nop != knopObjectPatternMember && nop != knopGetMember && nop != knopSetMember) 
+        || (pnode1->nop == knopStr || pnode1->nop == knopComputedName));
+
+    // Dot's rhs has to be a name;
+    Assert(nop != knopDot || pnode2->nop == knopName);
+
     this->pnode1 = pnode1;
     this->pnode2 = pnode2;
 
@@ -326,21 +343,45 @@ ParseNodeRegExp::ParseNodeRegExp(OpCode nop, charcount_t ichMin, charcount_t ich
     this->regexPatternIndex = 0;
 }
 
-ParseNodePid::ParseNodePid(OpCode nop, charcount_t ichMin, charcount_t ichLim, IdentPtr pid)
-    : ParseNode(nop, ichMin, ichLim)
+ParseNodeStr::ParseNodeStr(charcount_t ichMin, charcount_t ichLim, IdentPtr name)
+    : ParseNode(knopStr, ichMin, ichLim), pid(name)
 {
-    this->pid = pid;
-    this->sym = nullptr;
+}
+
+ParseNodeName::ParseNodeName(charcount_t ichMin, charcount_t ichLim, IdentPtr name)
+    : ParseNode(knopName, ichMin, ichLim), pid(name)
+{     
+    this->sym = nullptr;    
     this->symRef = nullptr;
     this->isSpecialName = false;
 }
 
+void ParseNodeName::SetSymRef(PidRefStack * ref)
+{
+    Assert(this->symRef == nullptr);
+    this->symRef = ref->GetSymRef();
+}
+
+Js::PropertyId ParseNodeName::PropertyIdFromNameNode() const
+{
+    Js::PropertyId propertyId;
+    Symbol *sym = this->sym;
+    if (sym)
+    {
+        propertyId = sym->GetPosition();
+    }
+    else
+    {
+        propertyId = this->pid->GetPropertyId();
+    }
+    return propertyId;
+}
+
 ParseNodeVar::ParseNodeVar(OpCode nop, charcount_t ichMin, charcount_t ichLim, IdentPtr name)
-    : ParseNode(nop, ichMin, ichLim)
+    : ParseNode(nop, ichMin, ichLim), pid(name)
 {
     Assert(nop == knopVarDecl || nop == knopConstDecl || nop == knopLetDecl || nop == knopTemp);
 
-    this->pid = name;
     this->pnodeInit = nullptr;
     this->pnodeNext = nullptr;
     this->sym = nullptr;
@@ -545,7 +586,7 @@ ParseNodeFinally::ParseNodeFinally(OpCode nop, charcount_t ichMin, charcount_t i
 }
 
 ParseNodeSpecialName::ParseNodeSpecialName(charcount_t ichMin, charcount_t ichLim, IdentPtr pid)
-    : ParseNodePid(knopName, ichMin, ichLim, pid)
+    : ParseNodeName(ichMin, ichLim, pid)
 {
     this->SetIsSpecialName();
     this->isThis = false;

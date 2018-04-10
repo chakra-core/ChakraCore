@@ -308,7 +308,7 @@ public:
 
     bool ShouldLoadConstThis(FuncInfo* funcInfo);
 
-    void EmitPropLoadThis(Js::RegSlot lhsLocation, ParseNode *pnode, FuncInfo *funcInfo, bool chkUndecl);
+    void EmitPropLoadThis(Js::RegSlot lhsLocation, ParseNodeSpecialName *pnode, FuncInfo *funcInfo, bool chkUndecl);
     void EmitPropStoreForSpecialSymbol(Js::RegSlot rhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo, bool init);
 
     void EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot *pThisLocation, Js::RegSlot *pTargetLocation, FuncInfo *funcInfo);
