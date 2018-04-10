@@ -193,4 +193,9 @@
        <files>tfjitlooparmbug.js</files>
   </default>
   </test>
+  <test>
+    <default>
+       <files>tfjitloopbug.js</files>
+  </default>
+  </test>
 </regress-exe>
