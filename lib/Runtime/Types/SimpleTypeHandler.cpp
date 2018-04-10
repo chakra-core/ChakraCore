@@ -62,6 +62,25 @@ namespace Js
     }
 
     template<size_t size>
+    bool SimpleTypeHandler<size>::DoConvertToPathType(DynamicType* type)
+    {
+        if (CrossSite::IsThunk(type->GetEntryPoint()))
+        {
+            return false;
+        }
+
+        if (PHASE_OFF1(ShareFuncTypesPhase))
+        {
+            if (type->GetTypeId() == TypeIds_Function)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    template<size_t size>
     SimpleTypeHandler<size> * SimpleTypeHandler<size>::ConvertToNonSharedSimpleType(DynamicObject* instance)
     {
         ScriptContext* scriptContext = instance->GetScriptContext();
@@ -851,14 +870,14 @@ namespace Js
             DynamicType* oldType = instance->GetDynamicType();
 
             // This changes TypeHandler, but not necessarily Type.
-            if (CrossSite::IsThunk(oldType->GetEntryPoint()))
+            if (DoConvertToPathType(oldType))
             {
-                // Don't attempt to share cross-site function types
-                this->ConvertToNonSharedSimpleType(instance)->descriptors[index].Attributes = attributes;
+                this->ConvertToPathType(instance)->SetAttributesAtIndex(instance, descriptors[index].Id->GetPropertyId(), index, attributes);
             }
             else
             {
-                this->ConvertToPathType(instance)->SetAttributesAtIndex(instance, descriptors[index].Id->GetPropertyId(), index, attributes);
+                // Don't attempt to share cross-site function types
+                this->ConvertToNonSharedSimpleType(instance)->descriptors[index].Attributes = attributes;
             }
             Assert(!oldType->GetIsLocked() || instance->GetDynamicType() != oldType);
         }
@@ -896,14 +915,14 @@ namespace Js
             DynamicType* oldType = instance->GetDynamicType();
 
             // This changes TypeHandler, but not necessarily Type.
-            if (CrossSite::IsThunk(oldType->GetEntryPoint()))
+            if (DoConvertToPathType(oldType))
             {
-                // Don't attempt to share cross-site function types
-                this->ConvertToNonSharedSimpleType(instance)->descriptors[index].Attributes = attributes;
+                this->ConvertToPathType(instance)->SetAttributesAtIndex(instance, descriptors[index].Id->GetPropertyId(), index, attributes);
             }
             else
             {
-                this->ConvertToPathType(instance)->SetAttributesAtIndex(instance, descriptors[index].Id->GetPropertyId(), index, attributes);
+                // Don't attempt to share cross-site function types
+                this->ConvertToNonSharedSimpleType(instance)->descriptors[index].Attributes = attributes;
             }
             Assert(!oldType->GetIsLocked() || instance->GetDynamicType() != oldType);
         }
@@ -917,14 +936,14 @@ namespace Js
     template<size_t size>
     BOOL SimpleTypeHandler<size>::SetAccessors(DynamicObject* instance, PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags)
     {
-        if (CrossSite::IsThunk(instance->GetDynamicType()->GetEntryPoint()))
+        if (DoConvertToPathType(instance->GetDynamicType()))
         {
-            // Don't attempt to share cross-site function types
-            return ConvertToDictionaryType(instance)->SetAccessors(instance, propertyId, getter, setter, flags);
+            return ConvertToPathType(instance)->SetAccessors(instance, propertyId, getter, setter, flags);
         }
         else
         {
-            return ConvertToPathType(instance)->SetAccessors(instance, propertyId, getter, setter, flags);
+            // Don't attempt to share cross-site function types
+            return ConvertToDictionaryType(instance)->SetAccessors(instance, propertyId, getter, setter, flags);
         }
     }
 
@@ -958,14 +977,14 @@ namespace Js
                 if (GetIsLocked())
                 {
                     DynamicType* oldType = instance->GetDynamicType();
-                    if (CrossSite::IsThunk(oldType->GetEntryPoint()))
+                    if (DoConvertToPathType(oldType))
                     {
-                        // Don't attempt to share cross-site function types
-                        typeHandler = this->ConvertToNonSharedSimpleType(instance);
+                        return this->ConvertToPathType(instance)->SetPropertyWithAttributes(instance, propertyId, value, attributes, info, flags, possibleSideEffects);
                     }
                     else
                     {
-                        return this->ConvertToPathType(instance)->SetPropertyWithAttributes(instance, propertyId, value, attributes, info, flags, possibleSideEffects);
+                        // Don't attempt to share cross-site function types
+                        typeHandler = this->ConvertToNonSharedSimpleType(instance);
                     }
                     Assert(!oldType->GetIsLocked() || instance->GetDynamicType() != oldType);
                 }
@@ -1070,14 +1089,14 @@ namespace Js
         if (propertyCount >= sizeof(descriptors)/sizeof(SimplePropertyDescriptor))
         {
             Assert(propertyId != Constants::NoProperty);
-            if (CrossSite::IsThunk(instance->GetDynamicType()->GetEntryPoint()))
+            if (DoConvertToPathType(instance->GetDynamicType()))
             {
-                PropertyRecord const* propertyRecord = scriptContext->GetPropertyName(propertyId);
-                return ConvertToSimpleDictionaryType(instance)->AddProperty(instance, propertyRecord, value, attributes, info, flags, possibleSideEffects);
+                return ConvertToPathType(instance)->SetPropertyWithAttributes(instance, propertyId, value, attributes, info, flags);
             }
             else
             {
-                return ConvertToPathType(instance)->SetPropertyWithAttributes(instance, propertyId, value, attributes, info, flags);
+                PropertyRecord const* propertyRecord = scriptContext->GetPropertyName(propertyId);
+                return ConvertToSimpleDictionaryType(instance)->AddProperty(instance, propertyRecord, value, attributes, info, flags, possibleSideEffects);
             }
         }
 
