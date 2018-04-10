@@ -2157,10 +2157,15 @@ void ByteCodeGenerator::LoadThisObject(FuncInfo *funcInfo, bool thisLoadedFromPa
         //
         if (!thisLoadedFromParams)
         {
-            m_writer.ArgIn0(thisSym->GetLocation());
+            Js::RegSlot tmpReg = funcInfo->AcquireTmpRegister();
+            m_writer.ArgIn0(tmpReg);
+            EmitThis(funcInfo, thisSym->GetLocation(), tmpReg);
+            funcInfo->ReleaseTmpRegister(tmpReg);
         }
-
-        EmitThis(funcInfo, thisSym->GetLocation(), thisSym->GetLocation());
+        else
+        {
+            EmitThis(funcInfo, thisSym->GetLocation(), thisSym->GetLocation());
+        }
     }
     else
     {
