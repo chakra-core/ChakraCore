@@ -115,7 +115,7 @@ CHAKRA_API JsDiagStartDebugging(
 
 CHAKRA_API JsDiagStopDebugging(
     _In_ JsRuntimeHandle runtimeHandle,
-    _Out_ void** callbackState)
+    _Out_opt_ void** callbackState)
 {
 #ifndef ENABLE_SCRIPT_DEBUGGING
     return JsErrorCategoryUsage;
@@ -124,9 +124,10 @@ CHAKRA_API JsDiagStopDebugging(
 
         VALIDATE_INCOMING_RUNTIME_HANDLE(runtimeHandle);
 
-        PARAM_NOT_NULL(callbackState);
-
-        *callbackState = nullptr;
+        if (callbackState != nullptr)
+        {
+            *callbackState = nullptr;
+        }
 
         JsrtRuntime * runtime = JsrtRuntime::FromHandle(runtimeHandle);
         ThreadContext * threadContext = runtime->GetThreadContext();
@@ -159,7 +160,12 @@ CHAKRA_API JsDiagStopDebugging(
             jsrtDebugManager->ClearBreakpointDebugDocumentDictionary();
         }
 
-        *callbackState = jsrtDebugManager->GetAndClearCallbackState();
+        void* cbState = jsrtDebugManager->GetAndClearCallbackState();
+
+        if (callbackState != nullptr)
+        {
+            *callbackState = cbState;
+        }
 
         return JsNoError;
     });
