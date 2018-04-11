@@ -146,6 +146,11 @@ bool GlobOpt::ArraySrcOpt::CheckOpCode()
             break;
 
         case Js::OpCode::IsIn:
+            if (!globOpt->DoArrayMissingValueCheckHoist())
+            {
+                return false;
+            }
+
             if (!instr->GetSrc1()->IsRegOpnd() && !instr->GetSrc1()->IsIntConstOpnd())
             {
                 return false;
