@@ -402,8 +402,8 @@ public:
 
     void AddFuncInfoToFinalizationSet(FuncInfo *funcInfo);
     void FinalizeFuncInfos();
-    void CheckFncDeclScopeSlot(ParseNode *pnodeFnc, FuncInfo *funcInfo);
-    void EnsureFncDeclScopeSlot(ParseNode *pnodeFnc, FuncInfo *funcInfo);
+    void CheckFncDeclScopeSlot(ParseNodeFnc *pnodeFnc, FuncInfo *funcInfo);
+    void EnsureFncDeclScopeSlot(ParseNodeFnc *pnodeFnc, FuncInfo *funcInfo);
 
     Js::OpCode GetStSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLocation, bool chkBlockVar, FuncInfo *funcInfo);
     Js::OpCode GetLdSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLocation, FuncInfo *funcInfo);
