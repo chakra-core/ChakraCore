@@ -81,9 +81,6 @@ namespace Js
         m_tag11(true),
         m_isJsBuiltInCode(false)
     {
-#if DBG
-        m_isJsBuiltInInitCode = false;
-#endif
         PERF_COUNTER_INC(Code, TotalFunction);
     }
 
@@ -1444,10 +1441,17 @@ namespace Js
         {
             other->SetIsPublicLibraryCode();
         }
+
+        if (this->IsJsBuiltInCode())
+        {
+            other->SetIsJsBuiltInCode();
+        }
     }
 
     void ParseableFunctionInfo::Copy(ParseableFunctionInfo * other)
     {
+        __super::Copy(other);
+
 #define CopyDeferParseField(field) other->field = this->field;
         CopyDeferParseField(flags);
         CopyDeferParseField(m_isDeclaration);

@@ -1376,9 +1376,6 @@ namespace Js
         FieldWithBarrier(bool) m_isTopLevel : 1; // Indicates that this function is top-level function, currently being used in script profiler and debugger
         FieldWithBarrier(bool) m_isPublicLibraryCode: 1; // Indicates this function is public boundary library code that should be visible in JS stack
         FieldWithBarrier(bool) m_isJsBuiltInCode: 1; // Indicates this function comes from the JS Built In implementation
-#if DBG
-        FieldWithBarrier(bool) m_isJsBuiltInInitCode: 1;
-#endif
         FieldWithBarrier(bool) m_canBeDeferred : 1;
         FieldWithBarrier(bool) m_displayNameIsRecyclerAllocated : 1;
 
