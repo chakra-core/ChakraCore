@@ -172,21 +172,21 @@ FlowGraph::Build(void)
 
     bool assignRegionsBeforeGlobopt = this->func->HasTry() && (this->func->DoOptimizeTry() ||
         (this->func->IsSimpleJit() && this->func->hasBailout) ||
-        (this->func->IsLoopBodyInTryFinally() && this->func->GetJITFunctionBody()->DoJITLoopBody()));
+        this->func->IsLoopBodyInTryFinally());
 
     bool createNonExceptionFinally = this->func->HasFinally() && (this->func->DoOptimizeTry() ||
-        (this->func->IsSimpleJit() && this->func->GetJITFunctionBody()->DoJITLoopBody()));
+        (this->func->IsSimpleJit() && this->func->hasBailout));
 
     // We don't optimize fully with SimpleJit. But, when JIT loop body is enabled, we do support
     // bailing out from a simple jitted function to do a full jit of a loop body in the function
     // (BailOnSimpleJitToFullJitLoopBody). For that purpose, we need the flow from try to handler.
-    // We also need accurate flow when we are jitting a loop body and have a tryfinally, because we could be insterting BailOutOnEarlyExit
+    // We also need accurate flow when we are jitting a loop body and have a tryfinally, because we could be inserting BailOutOnEarlyExit
 
-    if (this->func->HasTry() && (this->func->DoOptimizeTry() || this->func->GetJITFunctionBody()->DoJITLoopBody()))
+    if (assignRegionsBeforeGlobopt)
     {
         this->catchLabelStack = JitAnew(this->alloc, SList<IR::LabelInstr*>, this->alloc);
     }
-    if (this->func->HasFinally() && (this->func->DoOptimizeTry() ||this->func->GetJITFunctionBody()->DoJITLoopBody()))
+    if (this->func->HasFinally() && assignRegionsBeforeGlobopt)
     {
         this->finallyLabelStack = JitAnew(this->alloc, SList<IR::LabelInstr*>, this->alloc);
         this->regToFinallyEndMap = JitAnew(this->alloc, RegionToFinallyEndMapType, this->alloc, 0);
@@ -459,7 +459,7 @@ FlowGraph::Build(void)
     }
 #endif
 
-    if (createNonExceptionFinally || this->func->IsLoopBodyInTryFinally())
+    if (this->finallyLabelStack)
     {
         Assert(this->finallyLabelStack->Empty());
 
