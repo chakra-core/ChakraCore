@@ -732,8 +732,6 @@ namespace TTD
                 func = ifunc;
             }
 
-            func->SetHasSuperReference(snapFuncInfo->HasSuperReference);
-
             return func;
         }
 
@@ -746,8 +744,6 @@ namespace TTD
 
         void DoAddtlValueInstantiation_SnapScriptFunctionInfoEx(const SnapScriptFunctionInfo* snapFuncInfo, Js::ScriptFunction* func, InflateMap* inflator)
         {
-            func->SetHasSuperReference(snapFuncInfo->HasSuperReference);
-
             if(snapFuncInfo->CachedScopeObjId != TTD_INVALID_PTR_ID)
             {
                 func->SetCachedScope(Js::ActivationObjectEx::FromVar(inflator->LookupObject(snapFuncInfo->CachedScopeObjId)));
@@ -789,8 +785,6 @@ namespace TTD
 
             writer->WriteKey(NSTokens::Key::nameInfo, NSTokens::Separator::CommaSeparator);
             NSSnapValues::EmitTTDVar(snapFuncInfo->ComputedNameInfo, writer, NSTokens::Separator::NoSeparator);
-
-            writer->WriteBool(NSTokens::Key::boolVal, snapFuncInfo->HasSuperReference, NSTokens::Separator::CommaSeparator);
         }
 
         void ParseAddtlInfo_SnapScriptFunctionInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
@@ -810,8 +804,6 @@ namespace TTD
 
             reader->ReadKey(NSTokens::Key::nameInfo, true);
             snapFuncInfo->ComputedNameInfo = NSSnapValues::ParseTTDVar(false, reader);
-
-            snapFuncInfo->HasSuperReference = reader->ReadBool(NSTokens::Key::boolVal, true);
         }
 
 #if ENABLE_SNAPSHOT_COMPARE
@@ -829,8 +821,6 @@ namespace TTD
             compareMap.CheckConsistentAndAddPtrIdMapping_Special(snapFuncInfo1->HomeObjId, snapFuncInfo2->HomeObjId, _u("homeObject"));
 
             NSSnapValues::AssertSnapEquivTTDVar_Special(snapFuncInfo1->ComputedNameInfo, snapFuncInfo2->ComputedNameInfo, compareMap, _u("computedName"));
-
-            compareMap.DiagnosticAssert(snapFuncInfo1->HasSuperReference == snapFuncInfo2->HasSuperReference);
         }
 #endif
 

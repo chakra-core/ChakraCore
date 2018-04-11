@@ -40,7 +40,8 @@ namespace Js
             AllowDirectSuper               = 0x100000,
             BaseConstructorKind            = 0x200000,
             Method                         = 0x400000, // The function is a method
-            ComputedName                   = 0x800000, 
+            ComputedName                   = 0x800000,
+            ActiveScript                   = 0x1000000
         };
         FunctionInfo(JavascriptMethod entryPoint, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
         FunctionInfo(JavascriptMethod entryPoint, _no_write_barrier_tag, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
@@ -126,7 +127,8 @@ namespace Js
         bool GetAllowDirectSuper() const { return (attributes & Attributes::AllowDirectSuper) != 0; }
         void SetBaseConstructorKind() { attributes = (Attributes)(attributes | Attributes::BaseConstructorKind); }
         bool GetBaseConstructorKind() const { return (attributes & Attributes::BaseConstructorKind) != 0; }
-
+        bool IsActiveScript() const { return ((this->attributes & Attributes::ActiveScript) != 0); }
+        void SetIsActiveScript() { attributes = (Attributes)(attributes | Attributes::ActiveScript); }
     protected:
         FieldNoBarrier(JavascriptMethod) originalEntryPoint;
         FieldWithBarrier(FunctionProxy *) functionBodyImpl;     // Implementation of the function- null if the function doesn't have a body
