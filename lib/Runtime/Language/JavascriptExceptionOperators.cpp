@@ -199,6 +199,13 @@ namespace Js
                     WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, scriptContext->GetThreadContext()->GetTryCatchFrameAddr());
                 }
             }
+            else
+            {
+                if (exception->GetExceptionContext() && exception->GetExceptionContext()->ThrowingFunction())
+                {
+                     WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, frame);
+                }
+            }
 #endif
             bool hasBailedOut = *(bool*)((char*)frame + hasBailedOutOffset); // stack offsets are negative
             if (hasBailedOut)
@@ -369,6 +376,13 @@ namespace Js
                 if (exception->GetExceptionContext() && exception->GetExceptionContext()->ThrowingFunction())
                 {
                     WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, scriptContext->GetThreadContext()->GetTryCatchFrameAddr());
+                }
+            }
+            else
+            {
+                if (exception->GetExceptionContext() && exception->GetExceptionContext()->ThrowingFunction())
+                {
+                    WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, framePtr);
                 }
             }
 #endif
@@ -699,6 +713,13 @@ namespace Js
                 if (pExceptionObject->GetExceptionContext() && pExceptionObject->GetExceptionContext()->ThrowingFunction())
                 {
                     WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, scriptContext->GetThreadContext()->GetTryCatchFrameAddr());
+                }
+            }
+            else
+            {
+                if (pExceptionObject->GetExceptionContext() && pExceptionObject->GetExceptionContext()->ThrowingFunction())
+                {
+                    WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, framePtr);
                 }
             }
 #endif
