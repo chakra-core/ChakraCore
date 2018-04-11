@@ -464,6 +464,7 @@
   <test>
     <default>
       <files>missingvalue.js</files>
+      <compile-flags>-off:ArrayMissingValueCheckHoist</compile-flags>
     </default>
   </test>
 </regress-exe>
