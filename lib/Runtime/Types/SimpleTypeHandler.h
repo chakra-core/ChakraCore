@@ -97,6 +97,8 @@ namespace Js
         BOOL AddProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags, SideEffects possibleSideEffects);
         virtual BOOL FreezeImpl(DynamicObject* instance, bool isConvertedType) override;
 
+        static bool DoConvertToPathType(DynamicType * type);
+
 #if ENABLE_TTD
     public:
         virtual void MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const override;
