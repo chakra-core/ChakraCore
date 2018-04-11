@@ -248,7 +248,7 @@ namespace Js
         template<bool allowLetConstGlobal>
         inline DescriptorFlags GetSetterFromDescriptor(DynamicObject* instance, DictionaryPropertyDescriptor<T> * descriptor, Var* setterValue, PropertyValueInfo* info);
         template <bool allowLetConstGlobal>
-        inline void SetPropertyWithDescriptor(DynamicObject* instance, PropertyId propertyId, DictionaryPropertyDescriptor<T> * descriptor,
+        inline void SetPropertyWithDescriptor(DynamicObject* instance, PropertyRecord const* propertyRecord, DictionaryPropertyDescriptor<T> ** pdescriptor,
             Var value, PropertyOperationFlags flags, PropertyValueInfo* info);
 
     protected:

@@ -398,10 +398,12 @@ public:
     Js::FunctionBody *EnsureFakeGlobalFuncForUndefer(ParseNode *pnode);
     Js::FunctionBody *MakeGlobalFunctionBody(ParseNode *pnode);
 
-    static bool NeedScopeObjectForArguments(FuncInfo *funcInfo, ParseNodeFnc *pnodeFnc);
+    bool NeedScopeObjectForArguments(FuncInfo *funcInfo, ParseNodeFnc *pnodeFnc) const;
 
     void AddFuncInfoToFinalizationSet(FuncInfo *funcInfo);
     void FinalizeFuncInfos();
+    void CheckFncDeclScopeSlot(ParseNode *pnodeFnc, FuncInfo *funcInfo);
+    void EnsureFncDeclScopeSlot(ParseNode *pnodeFnc, FuncInfo *funcInfo);
 
     Js::OpCode GetStSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLocation, bool chkBlockVar, FuncInfo *funcInfo);
     Js::OpCode GetLdSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLocation, FuncInfo *funcInfo);

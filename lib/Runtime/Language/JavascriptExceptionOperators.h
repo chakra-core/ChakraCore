@@ -54,6 +54,16 @@ namespace Js
             ~TryCatchFrameAddrStack();
         };
 
+        class PendingFinallyExceptionStack
+        {
+        private:
+            ThreadContext* m_threadContext;
+
+        public:
+            PendingFinallyExceptionStack(ScriptContext* scriptContext, Js::JavascriptExceptionObject *exceptionObj);
+            ~PendingFinallyExceptionStack();
+        };
+
         static void __declspec(noreturn) OP_Throw(Var object, ScriptContext* scriptContext);
         static void __declspec(noreturn) Throw(Var object, ScriptContext* scriptContext);
         static void __declspec(noreturn) ThrowExceptionObject(Js::JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext, bool considerPassingToDebugger = false, PVOID returnAddress = NULL, bool resetStack = false);

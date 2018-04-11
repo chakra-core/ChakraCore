@@ -981,7 +981,8 @@ void GlobOpt::ArraySrcOpt::DoLowerBoundCheck()
                     globOpt->currentBlock->next,
                     hoistBlock,
                     hoistInfo.IndexSym(),
-                    hoistInfo.IndexValueNumber());
+                    hoistInfo.IndexValueNumber(),
+                    true);
                 it.IsValid();
                 it.MoveNext())
             {
@@ -1257,7 +1258,7 @@ void GlobOpt::ArraySrcOpt::DoUpperBoundCheck()
         Assert(!hoistInfo.Loop() || hoistBlock != globOpt->currentBlock);
         if (hoistBlock != globOpt->currentBlock)
         {
-            for (InvariantBlockBackwardIterator it(globOpt, globOpt->currentBlock->next, hoistBlock, nullptr);
+            for (InvariantBlockBackwardIterator it(globOpt, globOpt->currentBlock->next, hoistBlock, nullptr, InvalidValueNumber, true);
                 it.IsValid();
                 it.MoveNext())
             {

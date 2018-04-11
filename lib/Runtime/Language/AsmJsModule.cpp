@@ -125,7 +125,7 @@ namespace Js
         {
             Assert(GetModuleFunctionNode()->pnodeName);
             ParseNodeVar * nameNode = GetModuleFunctionNode()->pnodeName->AsParseNodeVar();
-            if (nameNode->sym->IsInSlot(funcInfo))
+            if (nameNode->sym->IsInSlot(GetByteCodeGenerator(), funcInfo))
             {
                 GetByteCodeGenerator()->AssignPropertyId(nameNode->name());
                 // if module is a named function expression, we may need to restore this for debugger

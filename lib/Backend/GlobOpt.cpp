@@ -14902,12 +14902,15 @@ InvariantBlockBackwardIterator::InvariantBlockBackwardIterator(
     BasicBlock *const exclusiveBeginBlock,
     BasicBlock *const inclusiveEndBlock,
     StackSym *const invariantSym,
-    const ValueNumber invariantSymValueNumber)
+    const ValueNumber invariantSymValueNumber,
+    bool followFlow)
     : globOpt(globOpt),
     exclusiveEndBlock(inclusiveEndBlock->prev),
     invariantSym(invariantSym),
     invariantSymValueNumber(invariantSymValueNumber),
-    block(exclusiveBeginBlock)
+    block(exclusiveBeginBlock),
+    blockBV(globOpt->tempAlloc),
+    followFlow(followFlow)
 #if DBG
     ,
     inclusiveEndBlock(inclusiveEndBlock)
@@ -14945,6 +14948,11 @@ InvariantBlockBackwardIterator::MoveNext()
             break;
         }
 
+        if (!this->UpdatePredBlockBV())
+        {
+            continue;
+        }
+
         if(block->isDeleted)
         {
             continue;
@@ -14970,6 +14978,28 @@ InvariantBlockBackwardIterator::MoveNext()
         }
         break;
     }
+}
+
+bool
+InvariantBlockBackwardIterator::UpdatePredBlockBV()
+{
+    if (!this->followFlow)
+    {
+        return true;
+    }
+
+    // Track blocks we've visited to ensure that we only iterate over predecessor blocks
+    if (!this->blockBV.IsEmpty() && !this->blockBV.Test(this->block->GetBlockNum()))
+    {
+        return false;
+    }
+
+    FOREACH_SLISTBASECOUNTED_ENTRY(FlowEdge*, edge, this->block->GetPredList())
+    {
+        this->blockBV.Set(edge->GetPred()->GetBlockNum());
+    } NEXT_SLISTBASECOUNTED_ENTRY;
+
+    return true;
 }
 
 BasicBlock *

@@ -72,6 +72,17 @@ namespace Js
         m_threadContext->SetTryCatchFrameAddr(m_prevTryCatchFrameAddr);
     }
 
+    JavascriptExceptionOperators::PendingFinallyExceptionStack::PendingFinallyExceptionStack(ScriptContext* scriptContext, Js::JavascriptExceptionObject *exceptionObj)
+    {
+        m_threadContext = scriptContext->GetThreadContext();
+        m_threadContext->SetPendingFinallyException(exceptionObj);
+    }
+
+    JavascriptExceptionOperators::PendingFinallyExceptionStack::~PendingFinallyExceptionStack()
+    {
+        m_threadContext->SetPendingFinallyException(nullptr);
+    }
+
     bool JavascriptExceptionOperators::CrawlStackForWER(Js::ScriptContext& scriptContext)
     {
         return Js::Configuration::Global.flags.WERExceptionSupport && !scriptContext.GetThreadContext()->HasCatchHandler();
@@ -199,9 +210,11 @@ namespace Js
                 JavascriptExceptionOperators::DoThrow(exception, scriptContext);
             }
 
-            scriptContext->GetThreadContext()->SetPendingFinallyException(exception);
-            void *continuation = amd64_CallWithFakeFrame(finallyAddr, frame, spillSize, argsSize, exception);
-            return continuation;
+            {
+                Js::JavascriptExceptionOperators::PendingFinallyExceptionStack pendingFinallyExceptionStack(scriptContext, exception);
+                void *continuation = amd64_CallWithFakeFrame(finallyAddr, frame, spillSize, argsSize, exception);
+                return continuation;
+            }
         }
 
         scriptContext->GetThreadContext()->SetHasBailedOutBitPtr(nullptr);
@@ -371,13 +384,15 @@ namespace Js
                 JavascriptExceptionOperators::DoThrow(exception, scriptContext);
             }
 
-            scriptContext->GetThreadContext()->SetPendingFinallyException(exception);
+            {
+                Js::JavascriptExceptionOperators::PendingFinallyExceptionStack pendingFinallyExceptionStack(scriptContext, exception);
 #if defined(_M_ARM)
-            void * finallyContinuation = arm_CallEhFrame(finallyAddr, framePtr, localsPtr, argsSize);
+                void * finallyContinuation = arm_CallEhFrame(finallyAddr, framePtr, localsPtr, argsSize);
 #elif defined(_M_ARM64)
-            void * finallyContinuation = arm64_CallEhFrame(finallyAddr, framePtr, localsPtr, argsSize);
+                void * finallyContinuation = arm64_CallEhFrame(finallyAddr, framePtr, localsPtr, argsSize);
 #endif
-            return finallyContinuation;
+                return finallyContinuation;
+            }
         }
 
         scriptContext->GetThreadContext()->SetHasBailedOutBitPtr(nullptr);
@@ -699,60 +714,68 @@ namespace Js
                 JavascriptExceptionOperators::DoThrow(pExceptionObject, scriptContext);
             }
 
-            scriptContext->GetThreadContext()->SetPendingFinallyException(pExceptionObject);
-
-            void* newContinuationAddr = NULL;
-#ifdef _M_IX86
-            void *savedEsp;
-
-            __asm
             {
-                // Save and restore the callee-saved registers around the call.
-                // TODO: track register kills by region and generate per-region prologs and epilogs
-                push esi
-                push edi
-                push ebx
+                Js::JavascriptExceptionOperators::PendingFinallyExceptionStack pendingFinallyExceptionStack(scriptContext, pExceptionObject);
 
-                // 8-byte align frame to improve floating point perf of our JIT'd code.
-                // Save ESP
-                mov ecx, esp
-                mov savedEsp, ecx
-                and esp, -8
+                if (!tryAddr)
+                {
+                    // Bug in compiler optimizer: dtor is not called, it is a compiler bug
+                    // The compiler thinks the asm cannot throw, so add an explicit throw to generate dtor calls
+                    Js::Throw::InternalError();
+                }
+                void* newContinuationAddr = NULL;
+#ifdef _M_IX86
+                void *savedEsp;
 
-                // Set up the call target
-                mov eax, handlerAddr
+                __asm
+                {
+                    // Save and restore the callee-saved registers around the call.
+                    // TODO: track register kills by region and generate per-region prologs and epilogs
+                    push esi
+                    push edi
+                    push ebx
+
+                    // 8-byte align frame to improve floating point perf of our JIT'd code.
+                    // Save ESP
+                    mov ecx, esp
+                    mov savedEsp, ecx
+                    and esp, -8
+
+                    // Set up the call target
+                    mov eax, handlerAddr
 
 #if 0 && defined(_CONTROL_FLOW_GUARD)
-                // verify that the call target is valid
-                mov  ebx, eax; save call target
-                mov  ecx, eax
-                call[__guard_check_icall_fptr]
-                mov  eax, ebx; restore call target
+                    // verify that the call target is valid
+                    mov  ebx, eax; save call target
+                    mov  ecx, eax
+                    call[__guard_check_icall_fptr]
+                    mov  eax, ebx; restore call target
 #endif
 
-                // save the current frame ptr, and adjust the frame to access
-                // locals in native code.
-                push ebp
-                mov ebp, framePtr
-                call eax
-                pop ebp
+                    // save the current frame ptr, and adjust the frame to access
+                    // locals in native code.
+                    push ebp
+                    mov ebp, framePtr
+                    call eax
+                    pop ebp
 
-                // The native code gives us the address where execution should continue on exit
-                // from the finally, but only if flow leaves the finally before it completes.
-                mov newContinuationAddr, eax
+                    // The native code gives us the address where execution should continue on exit
+                    // from the finally, but only if flow leaves the finally before it completes.
+                    mov newContinuationAddr, eax
 
-                // Restore ESP
-                mov ecx, savedEsp
-                mov esp, ecx
+                    // Restore ESP
+                    mov ecx, savedEsp
+                    mov esp, ecx
 
-                pop ebx
-                pop edi
-                pop esi
-            }
+                    pop ebx
+                    pop edi
+                    pop esi
+                }
 #else
-        AssertMsg(FALSE, "Unsupported native try-finally handler");
+                AssertMsg(FALSE, "Unsupported native try-finally handler");
 #endif
-            return newContinuationAddr;
+                return newContinuationAddr;
+            }
         }
 
         scriptContext->GetThreadContext()->SetHasBailedOutBitPtr(nullptr);

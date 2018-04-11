@@ -54,8 +54,8 @@ namespace Js
 #endif
     }
 
-     JavascriptRegExp::JavascriptRegExp(JavascriptRegExp * instance) :
-        DynamicObject(instance),
+     JavascriptRegExp::JavascriptRegExp(JavascriptRegExp * instance, bool deepCopy) :
+        DynamicObject(instance, deepCopy),
         pattern(instance->GetPattern()),
         splitPattern(instance->GetSplitPattern()),
         lastIndexVar(instance->lastIndexVar),
@@ -63,6 +63,11 @@ namespace Js
     {
         // For boxing stack instance
         Assert(ThreadContext::IsOnStack(instance));
+
+        // These members should never be on the stack and thus never need to be deep copied
+        Assert(!ThreadContext::IsOnStack(instance->GetPattern()));
+        Assert(!ThreadContext::IsOnStack(instance->GetSplitPattern()));
+        Assert(!ThreadContext::IsOnStack(instance->lastIndexVar));
     }
 
     bool JavascriptRegExp::Is(Var aValue)
@@ -1057,7 +1062,7 @@ namespace Js
     DEFINE_FLAG_GETTER(EntryGetterSticky, sticky, IsSticky)
     DEFINE_FLAG_GETTER(EntryGetterUnicode, unicode, IsUnicode)
 
-    JavascriptRegExp * JavascriptRegExp::BoxStackInstance(JavascriptRegExp * instance)
+    JavascriptRegExp * JavascriptRegExp::BoxStackInstance(JavascriptRegExp * instance, bool deepCopy)
     {
         Assert(ThreadContext::IsOnStack(instance));
         // On the stack, the we reserved a pointer before the object as to store the boxed value
@@ -1068,7 +1073,7 @@ namespace Js
             return boxedInstance;
         }
         Assert(instance->GetTypeHandler()->GetInlineSlotsSize() == 0);
-        boxedInstance = RecyclerNew(instance->GetRecycler(), JavascriptRegExp, instance);
+        boxedInstance = RecyclerNew(instance->GetRecycler(), JavascriptRegExp, instance, deepCopy);
         *boxedInstanceRef = boxedInstance;
         return boxedInstance;
     }

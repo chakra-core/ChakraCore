@@ -465,9 +465,9 @@ public:
         return this->name;
     }
 
-    Js::PropertyId EnsureScopeSlot(FuncInfo *funcInfo);
-    bool IsInSlot(FuncInfo *funcInfo, bool ensureSlotAlloc = false);
-    bool NeedsSlotAlloc(FuncInfo *funcInfo);
+    Js::PropertyId EnsureScopeSlot(ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
+    bool IsInSlot(ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, bool ensureSlotAlloc = false);
+    bool NeedsSlotAlloc(ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
 
     static void SaveToPropIdArray(Symbol *sym, Js::PropertyIdArray *propIds, ByteCodeGenerator *byteCodeGenerator, Js::PropertyId *pFirstSlot = nullptr);
 

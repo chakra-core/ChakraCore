@@ -46,7 +46,7 @@ namespace Js
 #endif
     }
 
-    DynamicObject::DynamicObject(DynamicObject * instance) :
+    DynamicObject::DynamicObject(DynamicObject * instance, bool deepCopy) :
         RecyclableObject(instance->type),
         auxSlots(instance->auxSlots),
         objectArray(instance->objectArray)  // copying the array should copy the array flags and array call site index as well
@@ -63,6 +63,8 @@ namespace Js
 #if !FLOATVAR
         ScriptContext * scriptContext = this->GetScriptContext();
 #endif
+        // Copy the inline slot data from the source instance. Deep copy is implicit because
+        // the inline slot allocation is already accounted for with the allocation of the object.
         for (int i = 0; i < inlineSlotCount; i++)
         {
 #if !FLOATVAR
@@ -71,11 +73,27 @@ namespace Js
 #else
             dstSlots[i] = srcSlots[i];
 #endif
-
+            Assert(!ThreadContext::IsOnStack(dstSlots[i]));
         }
 
         if (propertyCount > inlineSlotCapacity)
         {
+            // Properties that are not inlined are stored in the auxSlots, which must be copied
+            // from the source instance.
+
+            // Assert that this block of code will not overwrite inline slot data
+            Assert(!typeHandler->IsObjectHeaderInlinedTypeHandler());
+
+            if (deepCopy)
+            {
+                // When a deepCopy is needed, ensure that auxSlots is not shared with the source instance
+                // so that both objects can have their own, separate lifetimes.
+                InitSlots(this);
+
+                // This auxSlots should now be a separate allocation.
+                Assert(auxSlots != instance->auxSlots);
+            }
+
             uint auxSlotCount = propertyCount - inlineSlotCapacity;
 
             for (uint i = 0; i < auxSlotCount; i++)
@@ -84,9 +102,41 @@ namespace Js
                 // Currently we only support temp numbers assigned to stack objects
                 auxSlots[i] = JavascriptNumber::BoxStackNumber(instance->auxSlots[i], scriptContext);
 #else
+                // Copy the slot values from that instance to this
+                Assert(!ThreadContext::IsOnStack(instance->auxSlots[i]));
                 auxSlots[i] = instance->auxSlots[i];
 #endif
+                Assert(!ThreadContext::IsOnStack(auxSlots[i]));
             }
+        }
+
+        if (deepCopy && instance->HasObjectArray())
+        {
+            // Assert that this block of code will not overwrite inline slot data
+            Assert(!typeHandler->IsObjectHeaderInlinedTypeHandler());
+
+            // While the objectArray can be any array type, a DynamicObject that is created on the
+            // stack will only have one of these three types (as these are also the only array types
+            // that can be allocated on the stack).
+            Assert(Js::JavascriptArray::Is(instance->GetObjectArrayOrFlagsAsArray())
+                || Js::JavascriptNativeIntArray::Is(instance->GetObjectArrayOrFlagsAsArray())
+                || Js::JavascriptNativeFloatArray::Is(instance->GetObjectArrayOrFlagsAsArray())
+            );
+
+            // Since a deep copy was requested for this DynamicObject, deep copy the object array as well
+            SetObjectArray(JavascriptArray::DeepCopyInstance(instance->GetObjectArrayOrFlagsAsArray()));
+        }
+        else
+        {
+            // Otherwise, assert that there is either 
+            // - no object array to deep copy
+            // - an object array, but no deep copy needed
+            // - data in the objectArray member, but it is inline slot data
+            // - data in the objectArray member, but it is array flags
+            Assert(
+                (instance->GetObjectArrayOrFlagsAsArray() == nullptr) ||
+                (!deepCopy || typeHandler->IsObjectHeaderInlinedTypeHandler() || instance->UsesObjectArrayOrFlagsAsFlags())
+            );
         }
 
 #if ENABLE_OBJECT_SOURCE_TRACKING
@@ -919,7 +969,7 @@ namespace Js
     }
 
     DynamicObject *
-    DynamicObject::BoxStackInstance(DynamicObject * instance)
+    DynamicObject::BoxStackInstance(DynamicObject * instance, bool deepCopy)
     {
         Assert(ThreadContext::IsOnStack(instance));
         // On the stack, the we reserved a pointer before the object as to store the boxed value
@@ -933,11 +983,11 @@ namespace Js
         size_t inlineSlotsSize = instance->GetTypeHandler()->GetInlineSlotsSize();
         if (inlineSlotsSize)
         {
-            boxedInstance = RecyclerNewPlusZ(instance->GetRecycler(), inlineSlotsSize, DynamicObject, instance);
+            boxedInstance = RecyclerNewPlusZ(instance->GetRecycler(), inlineSlotsSize, DynamicObject, instance, deepCopy);
         }
         else
         {
-            boxedInstance = RecyclerNew(instance->GetRecycler(), DynamicObject, instance);
+            boxedInstance = RecyclerNew(instance->GetRecycler(), DynamicObject, instance, deepCopy);
         }
 
         *boxedInstanceRef = boxedInstance;
