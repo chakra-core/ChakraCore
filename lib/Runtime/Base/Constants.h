@@ -122,6 +122,8 @@ namespace Js
         static const unsigned MaxProcessJITCodeHeapSize = 1024 * 1024 * 1024;
 #endif
 
+        static const unsigned MinStackJitEHBailout = MinStackInterpreter + MinStackDefault;
+
         static const size_t StackLimitForScriptInterrupt;
 
 

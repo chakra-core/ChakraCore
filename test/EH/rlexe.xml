@@ -181,7 +181,12 @@
     <default>
        <files>hasBailedOutBug.js</files>
        <baseline>hasBailedOutBug.baseline</baseline>
-  </default>
+    </default>
+  </test>
+  <test>
+    <default>
+       <files>StackOverflow.js</files>
+    </default>
   </test>
   <test>
     <default>
