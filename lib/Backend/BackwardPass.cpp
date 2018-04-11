@@ -233,6 +233,7 @@ BackwardPass::CleanupBackwardPassInfoInFlowGraph()
         block->byteCodeUpwardExposedUsed = nullptr;
 #if DBG
         block->byteCodeRestoreSyms = nullptr;
+        block->excludeByteCodeUpwardExposedTracking = nullptr;
 #endif
         block->tempNumberTracker = nullptr;
         block->tempObjectTracker = nullptr;
@@ -485,6 +486,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
 #if DBG
     uint byteCodeLocalsCount = func->GetJITFunctionBody()->GetLocalsCount();
     StackSym ** byteCodeRestoreSyms = nullptr;
+    BVSparse<JitArenaAllocator> * excludeByteCodeUpwardExposedTracking = nullptr;
 #endif
 
     Assert(!block->isDead || block->GetSuccList()->Empty());
@@ -494,6 +496,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
         byteCodeUpwardExposedUsed = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
 #if DBG
         byteCodeRestoreSyms = JitAnewArrayZ(this->tempAlloc, StackSym *, byteCodeLocalsCount);
+        excludeByteCodeUpwardExposedTracking = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
 #endif
     }
 
@@ -574,6 +577,13 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
                 deleteData = (blockSucc->DecrementDataUseCount() == 0);
             }
 
+#if DBG
+            if (excludeByteCodeUpwardExposedTracking && blockSucc->excludeByteCodeUpwardExposedTracking)
+            {
+                excludeByteCodeUpwardExposedTracking->Or(blockSucc->excludeByteCodeUpwardExposedTracking);
+            }
+#endif
+
             Assert((byteCodeUpwardExposedUsed == nullptr) == !this->DoByteCodeUpwardExposedUsed());
             if (byteCodeUpwardExposedUsed && blockSucc->byteCodeUpwardExposedUsed)
             {
@@ -606,6 +616,8 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
                 {
                     JitAdeleteArray(this->tempAlloc, byteCodeLocalsCount, blockSucc->byteCodeRestoreSyms);
                     blockSucc->byteCodeRestoreSyms = nullptr;
+                    JitAdelete(this->tempAlloc, blockSucc->excludeByteCodeUpwardExposedTracking);
+                    blockSucc->excludeByteCodeUpwardExposedTracking = nullptr;
                 }
 #endif
 
@@ -614,6 +626,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
             {
                 Assert(blockSucc->byteCodeUpwardExposedUsed == nullptr);
                 Assert(blockSucc->byteCodeRestoreSyms == nullptr);
+                Assert(blockSucc->excludeByteCodeUpwardExposedTracking == nullptr);
             }
 
             if(IsCollectionPass())
@@ -1065,6 +1078,12 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
     {
         FOREACH_DEAD_SUCCESSOR_BLOCK(deadBlockSucc, block)
         {
+#if DBG
+            if (excludeByteCodeUpwardExposedTracking && deadBlockSucc->excludeByteCodeUpwardExposedTracking)
+            {
+                excludeByteCodeUpwardExposedTracking->Or(deadBlockSucc->excludeByteCodeUpwardExposedTracking);
+            }
+#endif
             Assert(deadBlockSucc->byteCodeUpwardExposedUsed || deadBlockSucc->isLoopHeader);
             if (deadBlockSucc->byteCodeUpwardExposedUsed)
             {
@@ -1119,6 +1138,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
             // byteCodeUpwardExposedUsed is required to populate the writeThroughSymbolsSet for the try region in the backwards pass
             Assert(block->byteCodeUpwardExposedUsed == nullptr || (this->DoByteCodeUpwardExposedUsed()));
             Assert(block->byteCodeRestoreSyms == nullptr);
+            Assert(block->excludeByteCodeUpwardExposedTracking == nullptr || (this->DoByteCodeUpwardExposedUsed()));
             Assert(block->stackSymToFinalType == nullptr);
             Assert(block->stackSymToGuardedProperties == nullptr);
             Assert(block->stackSymToWriteGuardsMap == nullptr);
@@ -1163,6 +1183,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
     block->byteCodeUpwardExposedUsed = byteCodeUpwardExposedUsed;
 #if DBG
     block->byteCodeRestoreSyms = byteCodeRestoreSyms;
+    block->excludeByteCodeUpwardExposedTracking = excludeByteCodeUpwardExposedTracking;
 #endif
     block->slotDeadStoreCandidates = slotDeadStoreCandidates;
 
@@ -1346,6 +1367,8 @@ BackwardPass::DeleteBlockData(BasicBlock * block)
 #if DBG
         JitAdeleteArray(this->tempAlloc, func->GetJITFunctionBody()->GetLocalsCount(), block->byteCodeRestoreSyms);
         block->byteCodeRestoreSyms = nullptr;
+        JitAdelete(this->tempAlloc, block->excludeByteCodeUpwardExposedTracking);
+        block->excludeByteCodeUpwardExposedTracking = nullptr;
 #endif
     }
     if (block->couldRemoveNegZeroBailoutForDef != nullptr)
@@ -1640,8 +1663,13 @@ BackwardPass::OptBlock(BasicBlock * block)
                 }
             }
             NEXT_BITSET_IN_SPARSEBV;
-            Assert(block->trackingByteCodeUpwardExposedUsed == nullptr);
-            block->trackingByteCodeUpwardExposedUsed = byteCodeUpwardExposedUsed;
+            if (byteCodeUpwardExposedUsed)
+            {
+                // Exclude unwanted syms
+                byteCodeUpwardExposedUsed->Minus(block->excludeByteCodeUpwardExposedTracking);
+                Assert(block->trackingByteCodeUpwardExposedUsed == nullptr);
+                block->trackingByteCodeUpwardExposedUsed = byteCodeUpwardExposedUsed;
+            }
         }
         else
         {
@@ -1662,28 +1690,8 @@ BackwardPass::OptBlock(BasicBlock * block)
                         byteCodeUpwardExposedUsed->Set(bytecode);
                     }
                     NEXT_BITSET_IN_SPARSEBV;
-
-                    // Exclude symbol's that have weird lifetime from the check
-                    {
-                        BVSparse<JitArenaAllocator>* tempBv = this->globOpt->tempBv;
-                        tempBv->ClearAll();
-                        if (this->func->GetLocalClosureSym())
-                        {
-                            tempBv->Set(this->func->GetLocalClosureSym()->m_id);
-                        }
-                        if (this->func->GetParamClosureSym())
-                        {
-                            tempBv->Set(this->func->GetParamClosureSym()->m_id);
-                        }
-                        if (this->func->GetLocalFrameDisplaySym())
-                        {
-                            tempBv->Set(this->func->GetLocalFrameDisplaySym()->m_id);
-                        }
-                        block->trackingByteCodeUpwardExposedUsed->Minus(tempBv);
-                        byteCodeUpwardExposedUsed->Minus(tempBv);
-                        tempBv->ClearAll();
-                    }
-
+                    // Exclude unwanted syms
+                    byteCodeUpwardExposedUsed->Minus(block->excludeByteCodeUpwardExposedTracking);
                     Assert(block->trackingByteCodeUpwardExposedUsed->Equal(byteCodeUpwardExposedUsed));
                     JitAdelete(this->globOpt->tempAlloc, byteCodeUpwardExposedUsed);
                 }
@@ -2634,6 +2642,19 @@ BackwardPass::ProcessBlock(BasicBlock * block)
             Output::Print(_u("--------------------\n"));
         }
 #endif
+
+#if DBG
+        // Track Symbol with weird lifetime to exclude them from the ByteCodeUpwardExpose verification
+        if (DoByteCodeUpwardExposedUsed() && instr->m_func->GetScopeObjSym())
+        {
+            StackSym* sym = instr->m_func->GetScopeObjSym();
+            if (sym->HasByteCodeRegSlot())
+            {
+                block->excludeByteCodeUpwardExposedTracking->Set(sym->GetByteCodeRegSlot());
+            }
+        }
+#endif
+
 
         AssertOrFailFastMsg(!instr->IsLowered(), "Lowered instruction detected in pre-lower context!");
 
