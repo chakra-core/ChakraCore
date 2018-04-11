@@ -490,6 +490,8 @@ FlowGraph::Build(void)
             }
             else if (instr->m_opcode == Js::OpCode::Leave)
             {
+                Assert(currentLabel != nullptr);
+                __analysis_assume(currentLabel != nullptr);
                 if (createNonExceptionFinally)
                 {
                     IR::LabelInstr *branchTarget = instr->AsBranchInstr()->GetTarget();
@@ -498,8 +500,7 @@ FlowGraph::Build(void)
                     // When there is an early exit within a try finally, we have to execute finally code
                     // Currently we bailout on early exits
                     // For all such edges add edge from eh region -> finally and finally -> earlyexit
-                    Assert(currentLabel != nullptr);
-                    if (currentLabel && CheckIfEarlyExitAndAddEdgeToFinally(instr->AsBranchInstr(), currentLabel->GetRegion(), branchTarget->GetRegion(), instrNext, exitLabel))
+                    if (CheckIfEarlyExitAndAddEdgeToFinally(instr->AsBranchInstr(), currentLabel->GetRegion(), branchTarget->GetRegion(), instrNext, exitLabel))
                     {
                         Assert(exitLabel);
                         IR::Instr * bailOnEarlyExit = IR::BailOutInstr::New(Js::OpCode::BailOnEarlyExit, IR::BailOutOnEarlyExit, instr, instr->m_func);
