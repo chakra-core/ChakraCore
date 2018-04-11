@@ -5040,6 +5040,15 @@ ParseNode * Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool n
         }
     }
 
+    if (buildAST && fDeclaration)
+    {
+        Symbol* funcSym = pnodeFnc->GetFuncSymbol();
+        if (funcSym->GetIsFormal())
+        {
+            GetCurrentFunctionNode()->SetHasAnyWriteToFormals(true);
+        }
+    }
+
     if (pnodeFncBlockScope)
     {
         Assert(pnodeFncBlockScope->pnodeStmt == nullptr);
