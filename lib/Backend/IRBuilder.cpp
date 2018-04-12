@@ -6951,6 +6951,7 @@ IRBuilder::BuildEmpty(Js::OpCode newOpcode, uint32 offset)
         }
         else
         {
+            AssertOrFailFast(this->m_func->GetJITFunctionBody()->GetScopeSlotArraySize() == 0 && !this->m_func->GetJITFunctionBody()->HasScopeObject());
             localClosureOpnd = IR::IntConstOpnd::New(0, TyVar, this->m_func);
         }
 
