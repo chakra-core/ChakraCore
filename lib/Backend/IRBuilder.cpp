@@ -391,7 +391,9 @@ IRBuilder::Build()
     Func * topFunc = this->m_func->GetTopFunc();
     if (topFunc->HasTry() &&
         ((!topFunc->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryCatchPhase, topFunc)) ||
-        (topFunc->IsSimpleJit() && topFunc->GetJITFunctionBody()->DoJITLoopBody()))) // should be relaxed as more bailouts are added in Simple Jit
+        (topFunc->HasFinally() && !topFunc->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryFinallyPhase, topFunc)) ||
+        (topFunc->IsSimpleJit() && topFunc->GetJITFunctionBody()->DoJITLoopBody()) ||  // should be relaxed as more bailouts are added in Simple Jit
+        topFunc->IsLoopBodyInTryFinally())) // We need accurate flow when we are full jitting loop bodies which have try finally
     {
         this->handlerOffsetStack = JitAnew(m_tempAlloc, SList<handlerStackElementType>, m_tempAlloc);
     }
