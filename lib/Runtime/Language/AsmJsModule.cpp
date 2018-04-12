@@ -562,7 +562,7 @@ namespace Js
         PageAllocator tempPageAlloc(NULL, Js::Configuration::Global.flags);
         Parser ps(GetScriptContext(), FALSE, &tempPageAlloc);
         FunctionBody * funcBody;
-        ParseNodePtr parseTree;
+        ParseNodeProg * parseTree;
 
         CompileScriptException se;
         funcBody = deferParseFunction->ParseAsmJs(&ps, &se, &parseTree);
@@ -571,7 +571,7 @@ namespace Js
         TRACE_BYTECODE(_u("\nDeferred parse %s\n"), funcBody->GetDisplayName());
         if (parseTree && parseTree->nop == knopProg)
         {
-            auto body = parseTree->AsParseNodeProg()->pnodeBody;
+            auto body = parseTree->pnodeBody;
             if (body && body->nop == knopList)
             {
                 auto fncDecl = body->AsParseNodeBin()->pnode1;

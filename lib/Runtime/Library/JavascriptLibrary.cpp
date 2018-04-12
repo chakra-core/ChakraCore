@@ -5279,7 +5279,7 @@ namespace Js
             Assert(x->nop == knopList);
             Assert(x->AsParseNodeBin()->pnode1->nop == knopStr);
 
-            pid = x->AsParseNodeBin()->pnode1->AsParseNodePid()->pid;
+            pid = x->AsParseNodeBin()->pnode1->AsParseNodeStr()->pid;
 
             // If strings have different length, they aren't equal
             if (pid->Cch() != str->GetLength())
@@ -5303,7 +5303,7 @@ namespace Js
         str = Js::JavascriptString::FromVar(element);
 
         Assert(x->nop == knopStr);
-        pid = x->AsParseNodePid()->pid;
+        pid = x->AsParseNodeStr()->pid;
 
         // If strings have different length, they aren't equal
         if (pid->Cch() != str->GetLength())
@@ -5355,8 +5355,8 @@ namespace Js
             Assert(x->AsParseNodeBin()->pnode1->nop == knopStr);
             Assert(y->AsParseNodeBin()->pnode1->nop == knopStr);
 
-            pid_x = x->AsParseNodeBin()->pnode1->AsParseNodePid()->pid->Psz();
-            pid_y = y->AsParseNodeBin()->pnode1->AsParseNodePid()->pid->Psz();
+            pid_x = x->AsParseNodeBin()->pnode1->AsParseNodeStr()->pid->Psz();
+            pid_y = y->AsParseNodeBin()->pnode1->AsParseNodeStr()->pid->Psz();
 
             // If the pid values of each raw string don't match each other, these are different.
             if (!DefaultComparer<const char16*>::Equals(pid_x, pid_y))
@@ -5376,8 +5376,8 @@ namespace Js
 
         Assert(x->nop == knopStr);
 
-        pid_x = x->AsParseNodePid()->pid->Psz();
-        pid_y = y->AsParseNodePid()->pid->Psz();
+        pid_x = x->AsParseNodeStr()->pid->Psz();
+        pid_y = y->AsParseNodeStr()->pid->Psz();
 
         // This is the final string in the raw literals list. Return true if they are equal.
         return DefaultComparer<const char16*>::Equals(pid_x, pid_y);
@@ -5398,7 +5398,7 @@ namespace Js
         {
             Assert(i->AsParseNodeBin()->pnode1->nop == knopStr);
 
-            pid = i->AsParseNodeBin()->pnode1->AsParseNodePid()->pid->Psz();
+            pid = i->AsParseNodeBin()->pnode1->AsParseNodeStr()->pid->Psz();
 
             hash ^= DefaultComparer<const char16*>::GetHashCode(pid);
             hash ^= DefaultComparer<const char16*>::GetHashCode(_u("${}"));
@@ -5408,7 +5408,7 @@ namespace Js
 
         Assert(i->nop == knopStr);
 
-        pid = i->AsParseNodePid()->pid->Psz();
+        pid = i->AsParseNodeStr()->pid->Psz();
 
         hash ^= DefaultComparer<const char16*>::GetHashCode(pid);
 

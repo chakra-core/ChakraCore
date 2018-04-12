@@ -1919,7 +1919,7 @@ namespace Js
         Js::JavascriptError::MapAndThrowError(this, E_FAIL);
     }
 
-    ParseNode* ScriptContext::ParseScript(Parser* parser,
+    ParseNodeProg * ScriptContext::ParseScript(Parser* parser,
         const byte* script,
         size_t cb,
         SRCINFO const * pSrcInfo,
@@ -2043,7 +2043,7 @@ namespace Js
             grfscr |= fscrIsLibraryCode;
         }
 
-        ParseNodePtr parseTree;
+        ParseNodeProg * parseTree;
         if((loadScriptFlag & LoadScriptFlag_Utf8Source) == LoadScriptFlag_Utf8Source)
         {
             hr = parser->ParseUtf8Source(&parseTree, script, cb, grfscr, pse,
@@ -2092,7 +2092,7 @@ namespace Js
             uint sourceIndex;
             JavascriptFunction * pFunction = nullptr;
 
-            ParseNodePtr parseTree = ParseScript(&parser, script, cb, pSrcInfo,
+            ParseNodeProg * parseTree = ParseScript(&parser, script, cb, pSrcInfo,
                 pse, ppSourceInfo, rootDisplayName, loadScriptFlag,
                 &sourceIndex, scriptSource);
 
@@ -2134,7 +2134,7 @@ namespace Js
         return nullptr;
     }
 
-    JavascriptFunction* ScriptContext::GenerateRootFunction(ParseNodePtr parseTree, uint sourceIndex, Parser* parser, uint32 grfscr, CompileScriptException * pse, const char16 *rootDisplayName)
+    JavascriptFunction* ScriptContext::GenerateRootFunction(ParseNodeProg * parseTree, uint sourceIndex, Parser* parser, uint32 grfscr, CompileScriptException * pse, const char16 *rootDisplayName)
     {
         HRESULT hr;
 

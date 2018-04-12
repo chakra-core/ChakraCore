@@ -1701,7 +1701,7 @@ namespace Js
         DEFINE_VTABLE_CTOR_NO_REGISTER(ParseableFunctionInfo, FunctionProxy);
         FunctionBody* Parse(ScriptFunction ** functionRef = nullptr, bool isByteCodeDeserialization = false);
 #ifdef ASMJS_PLAT
-        FunctionBody* ParseAsmJs(Parser * p, __out CompileScriptException * se, __out ParseNodePtr * ptree);
+        FunctionBody* ParseAsmJs(Parser * p, __out CompileScriptException * se, __out ParseNodeProg ** ptree);
 #endif
 
         FunctionBodyFlags GetFlags() const { return flags; }

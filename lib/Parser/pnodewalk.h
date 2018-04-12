@@ -367,7 +367,7 @@ private:
 
     ResultType WalkCatch(ParseNodeCatch *pnode, Context context)
     {
-        ResultType result = WalkFirstChild(pnode->pnodeParam, context);
+        ResultType result = WalkFirstChild(pnode->GetParam(), context);
         if (ContinueWalk(result))
         {
             result = WalkNode(pnode, context);

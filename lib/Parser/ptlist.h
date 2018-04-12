@@ -21,11 +21,11 @@ PTNODE(knopNone       , "<none>"           , Nop      , None        , fnopNone  
 /***************************************************************************
     Leaf nodes.
 ***************************************************************************/
-PTNODE(knopName       , "name"             , Nop      , Pid         , fnopLeaf|fnopAllowDefer, "NameExpr"                       )
+PTNODE(knopName       , "name"             , Nop      , Name        , fnopLeaf|fnopAllowDefer, "NameExpr"                       )
 PTNODE(knopInt        , "int const"        , Nop      , Int         , fnopLeaf|fnopConst    , "NumberLit"                      )
 PTNODE(knopImport     , "import"           , Nop      , None        , fnopLeaf              , "ImportExpr"                     )
 PTNODE(knopFlt        , "flt const"        , Nop      , Float       , fnopLeaf|fnopConst    , "NumberLit"                      )
-PTNODE(knopStr        , "str const"        , Nop      , Pid         , fnopLeaf|fnopConst    , "StringLit"                      )
+PTNODE(knopStr        , "str const"        , Nop      , Str         , fnopLeaf|fnopConst    , "StringLit"                      )
 PTNODE(knopRegExp     , "reg expr"         , Nop      , RegExp      , fnopLeaf|fnopConst    , "RegExprLit"                     )
 PTNODE(knopNull       , "null"             , Nop      , None        , fnopLeaf              , "NullLit"                        )
 PTNODE(knopFalse      , "false"            , Nop      , None        , fnopLeaf              , "FalseLit"                       )

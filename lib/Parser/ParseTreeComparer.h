@@ -172,8 +172,10 @@ namespace Js
             switch (left->nop)
             {
             case knopName:
+                return ComputeDistance(left->AsParseNodeName()->pid, right->AsParseNodeName()->pid);
+
             case knopStr:
-                return ComputeDistance(left->AsParseNodePid()->pid, right->AsParseNodePid()->pid);
+                return ComputeDistance(left->AsParseNodeStr()->pid, right->AsParseNodeStr()->pid);
 
             case knopInt:
                 return left->AsParseNodeInt()->lw == right->AsParseNodeInt()->lw ? ExactMatchDistance : 1.0;
@@ -181,7 +183,7 @@ namespace Js
             case knopFlt:
                 return left->AsParseNodeFloat()->dbl == right->AsParseNodeFloat()->dbl ? ExactMatchDistance : 1.0;
 
-            case knopRegExp: //TODO: AsParseNodePid()->regexPattern
+            case knopRegExp: //TODO: AsParseNodeRegExp()->regexPattern
                 break;
             }
 
@@ -406,8 +408,10 @@ namespace Js
             switch (left->nop)
             {
             case knopName:
+                return AreEquivalent(left->AsParseNodeName()->pid, right->AsParseNodeName()->pid);
+
             case knopStr:
-                return AreEquivalent(left->AsParseNodePid()->pid, right->AsParseNodePid()->pid);
+                return AreEquivalent(left->AsParseNodeStr()->pid, right->AsParseNodeStr()->pid);
 
             case knopInt:
                 return left->AsParseNodeInt()->lw == right->AsParseNodeInt()->lw;

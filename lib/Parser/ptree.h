@@ -74,7 +74,8 @@ class ParseNodeTri;
 class ParseNodeInt;
 class ParseNodeFloat;
 class ParseNodeRegExp;
-class ParseNodePid;
+class ParseNodeStr;
+class ParseNodeName;
 class ParseNodeVar;
 class ParseNodeCall;
 class ParseNodeSuperCall;
@@ -120,7 +121,8 @@ public:
     ParseNodeFloat * AsParseNodeFloat();
     ParseNodeRegExp * AsParseNodeRegExp();
     ParseNodeVar * AsParseNodeVar();
-    ParseNodePid * AsParseNodePid();
+    ParseNodeStr * AsParseNodeStr();
+    ParseNodeName * AsParseNodeName();
 
     ParseNodeSpecialName * AsParseNodeSpecialName();
     ParseNodeExportDefault * AsParseNodeExportDefault();
@@ -323,24 +325,39 @@ public:
 };
 
 // identifier or string
-class Symbol;
-struct PidRefStack;
-class ParseNodePid : public ParseNode
+
+class ParseNodeStr : public ParseNode
 {
 public:
-    ParseNodePid(OpCode nop, charcount_t ichMin, charcount_t ichLim, IdentPtr pid);
+    ParseNodeStr(charcount_t ichMin, charcount_t ichLim, IdentPtr pid);
 
-    IdentPtr pid;
+    IdentPtr const pid;
+
+    DISABLE_SELF_CAST(ParseNodeStr);
+
+};
+
+class Symbol;
+struct PidRefStack;
+class ParseNodeName : public ParseNode
+{
+public:
+    ParseNodeName(charcount_t ichMin, charcount_t ichLim, IdentPtr pid);
+
+    IdentPtr const pid;
+private:
     Symbol **symRef;
+public:
     Symbol *sym;
 
     void SetSymRef(PidRefStack *ref);
+    void ClearSymRef() { symRef = nullptr; }
     Symbol **GetSymRef() const { return symRef; }
     Js::PropertyId PropertyIdFromNameNode() const;
 
     bool IsSpecialName() { return isSpecialName; }
 
-    DISABLE_SELF_CAST(ParseNodePid);
+    DISABLE_SELF_CAST(ParseNodeName);
 
 protected:
     void SetIsSpecialName() { isSpecialName = true; }
@@ -356,7 +373,7 @@ public:
     ParseNodeVar(OpCode nop, charcount_t ichMin, charcount_t ichLim, IdentPtr name);
 
     ParseNodePtr pnodeNext;
-    IdentPtr pid;
+    IdentPtr const pid;
     Symbol *sym;
     Symbol **symRef;
     ParseNodePtr pnodeInit;
@@ -727,7 +744,7 @@ class ParseNodeStmt : public ParseNode
 public:
     ParseNodeStmt(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
-    ParseNodePtr pnodeOuter;
+    ParseNodeStmt * pnodeOuter;
 
     // Set by parsing code, used by code gen.
     uint grfnop;
@@ -962,8 +979,15 @@ class ParseNodeCatch : public ParseNodeStmt
 public:
     ParseNodeCatch(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
+    ParseNodePtr GetParam() { return pnodeParam; }
+    void SetParam(ParseNodeName * pnode) { pnodeParam = pnode;  }
+    void SetParam(ParseNodeParamPattern * pnode) { pnodeParam = pnode; }    
+
     ParseNodePtr pnodeNext;
-    ParseNodePtr pnodeParam;
+
+private:
+    ParseNode *  pnodeParam;   // Name or ParamPattern
+public:
     ParseNodePtr pnodeBody;
     ParseNodePtr pnodeScopes;
     Scope        *scope;
@@ -983,7 +1007,7 @@ public:
 };
 
 // special name like 'this'
-class ParseNodeSpecialName : public ParseNodePid
+class ParseNodeSpecialName : public ParseNodeName
 {
 public:
     ParseNodeSpecialName(charcount_t ichMin, charcount_t ichLim, IdentPtr pid);

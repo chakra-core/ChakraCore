@@ -19,7 +19,7 @@ void VisitClearTmpRegs(ParseNode * pnode, ByteCodeGenerator * byteCodeGenerator,
 
 bool CallTargetIsArray(ParseNode *pnode)
 {
-    return pnode->nop == knopName && pnode->AsParseNodePid()->PropertyIdFromNameNode() == Js::PropertyIds::Array;
+    return pnode->nop == knopName && pnode->AsParseNodeName()->PropertyIdFromNameNode() == Js::PropertyIds::Array;
 }
 
 #define STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode) \
@@ -84,9 +84,10 @@ BOOL MayHaveSideEffectOnNode(ParseNode *pnode, ParseNode *pnodeSE)
     }
     else if (pnodeSE->nop == knopQmark)
     {
-        return MayHaveSideEffectOnNode(pnode, pnodeSE->AsParseNodeTri()->pnode1) ||
-            MayHaveSideEffectOnNode(pnode, pnodeSE->AsParseNodeTri()->pnode2) ||
-            MayHaveSideEffectOnNode(pnode, pnodeSE->AsParseNodeTri()->pnode3);
+        ParseNodeTri * pnodeTriSE = pnodeSE->AsParseNodeTri();
+        return MayHaveSideEffectOnNode(pnode, pnodeTriSE->pnode1) ||
+            MayHaveSideEffectOnNode(pnode, pnodeTriSE->pnode2) ||
+            MayHaveSideEffectOnNode(pnode, pnodeTriSE->pnode3);
     }
     else if (pnodeSE->nop == knopCall || pnodeSE->nop == knopNew)
     {
@@ -112,7 +113,7 @@ bool IsArguments(ParseNode *pnode)
         switch (pnode->nop)
         {
         case knopName:
-            return pnode->AsParseNodePid()->sym && pnode->AsParseNodePid()->sym->IsArguments();
+            return pnode->AsParseNodeName()->sym && pnode->AsParseNodeName()->sym->IsArguments();
 
         case knopCall:
         case knopNew:
@@ -194,21 +195,23 @@ bool IsArguments(ParseNode *pnode)
             uint flags = ParseNode::Grfnop(pnode->nop);
             if (flags&fnopUni)
             {
-                Assert(pnode->AsParseNodeUni()->pnode1);
+                ParseNodeUni * pnodeUni = pnode->AsParseNodeUni();
+                Assert(pnodeUni->pnode1);
 
-                pnode = pnode->AsParseNodeUni()->pnode1;
+                pnode = pnodeUni->pnode1;
                 break;
             }
             else if (flags&fnopBin)
             {
-                Assert(pnode->AsParseNodeBin()->pnode1 && pnode->AsParseNodeBin()->pnode2);
+                ParseNodeBin * pnodeBin = pnode->AsParseNodeBin();
+                Assert(pnodeBin->pnode1 && pnodeBin->pnode2);
 
-                if (IsArguments(pnode->AsParseNodeBin()->pnode1))
+                if (IsArguments(pnodeBin->pnode1))
                 {
                     return true;
                 }
 
-                pnode = pnode->AsParseNodeBin()->pnode2;
+                pnode = pnodeBin->pnode2;
                 break;
             }
 
@@ -572,7 +575,7 @@ Js::JavascriptArray* ByteCodeGenerator::BuildArrayFromStringList(ParseNode* stri
     {
         Assert(stringNodeList->AsParseNodeBin()->pnode1->nop == knopStr);
 
-        pid = stringNodeList->AsParseNodeBin()->pnode1->AsParseNodePid()->pid;
+        pid = stringNodeList->AsParseNodeBin()->pnode1->AsParseNodeStr()->pid;
         str = Js::JavascriptString::NewCopyBuffer(pid->Psz(), pid->Cch(), scriptContext);
         pArr->SetItemWithAttributes(index, str, PropertyEnumerable);
 
@@ -582,7 +585,7 @@ Js::JavascriptArray* ByteCodeGenerator::BuildArrayFromStringList(ParseNode* stri
 
     Assert(stringNodeList->nop == knopStr);
 
-    pid = stringNodeList->AsParseNodePid()->pid;
+    pid = stringNodeList->AsParseNodeStr()->pid;
     str = Js::JavascriptString::NewCopyBuffer(pid->Psz(), pid->Cch(), scriptContext);
     pArr->SetItemWithAttributes(index, str, PropertyEnumerable);
 
@@ -600,7 +603,7 @@ void ByteCodeGenerator::AssignPropertyIds(Js::ParseableFunctionInfo* functionInf
     });
 }
 
-void ByteCodeGenerator::InitBlockScopedContent(ParseNode *pnodeBlock, Js::DebuggerScope* debuggerScope, FuncInfo *funcInfo)
+void ByteCodeGenerator::InitBlockScopedContent(ParseNodeBlock *pnodeBlock, Js::DebuggerScope* debuggerScope, FuncInfo *funcInfo)
 {
     Assert(pnodeBlock->nop == knopBlock);
 
@@ -696,10 +699,10 @@ void ByteCodeGenerator::InitBlockScopedContent(ParseNode *pnodeBlock, Js::Debugg
 
 // Records the start of a debugger scope if the passed in node has any let/const variables (or is not a block node).
 // If it has no let/const variables, nullptr will be returned as no scope will be created.
-Js::DebuggerScope* ByteCodeGenerator::RecordStartScopeObject(ParseNode *pnodeBlock, Js::DiagExtraScopesType scopeType, Js::RegSlot scopeLocation /*= Js::Constants::NoRegister*/, int* index /*= nullptr*/)
+Js::DebuggerScope* ByteCodeGenerator::RecordStartScopeObject(ParseNode * pnode, Js::DiagExtraScopesType scopeType, Js::RegSlot scopeLocation /*= Js::Constants::NoRegister*/, int* index /*= nullptr*/)
 {
-    Assert(pnodeBlock);
-    if (pnodeBlock->nop == knopBlock && !pnodeBlock->AsParseNodeBlock()->HasBlockScopedContent())
+    Assert(pnode);
+    if (pnode->nop == knopBlock && !pnode->AsParseNodeBlock()->HasBlockScopedContent())
     {
         // In order to reduce allocations now that we track debugger scopes in non-debug mode,
         // don't add a block to the chain if it has no let/const variables at all.
@@ -1493,7 +1496,8 @@ void ByteCodeGenerator::InitBlockScopedNonTemps(ParseNode *pnode, FuncInfo *func
 
         case knopBlock:
         {
-            Scope *scope = pnode->AsParseNodeBlock()->scope;
+            ParseNodeBlock * pnodeBlock = pnode->AsParseNodeBlock();
+            Scope *scope = pnodeBlock->scope;
             if (scope)
             {
                 if (scope->IsBlockScope(funcInfo))
@@ -1512,10 +1516,10 @@ void ByteCodeGenerator::InitBlockScopedNonTemps(ParseNode *pnode, FuncInfo *func
                         this->m_writer.Reg1(Js::OpCode::InitUndecl, pnode->AsParseNodeVar()->sym->GetLocation());
                     }
                 };
-                IterateBlockScopedVariables(pnode, fnInit);
+                IterateBlockScopedVariables(pnodeBlock, fnInit);
             }
-            InitBlockScopedNonTemps(pnode->AsParseNodeBlock()->pnodeScopes, funcInfo);
-            pnode = pnode->AsParseNodeBlock()->pnodeNext;
+            InitBlockScopedNonTemps(pnodeBlock->pnodeScopes, funcInfo);
+            pnode = pnodeBlock->pnodeNext;
             break;
         }
         case knopCatch:
@@ -2500,12 +2504,12 @@ void ByteCodeGenerator::EmitFunctionBody(FuncInfo *funcInfo)
     EmitTopLevelStatement(pnode, funcInfo, false);
 }
 
-void ByteCodeGenerator::EmitProgram(ParseNode *pnodeProg)
+void ByteCodeGenerator::EmitProgram(ParseNodeProg *pnodeProg)
 {
     // Indicate that the binding phase is over.
     this->isBinding = false;
     this->trackEnvDepth = true;
-    AssignPropertyIds(pnodeProg->AsParseNodeFnc()->funcInfo->byteCodeFunction);
+    AssignPropertyIds(pnodeProg->funcInfo->byteCodeFunction);
 
     int32 initSize = this->maxAstSize / AstBytecodeRatioEstimate;
 
@@ -2523,7 +2527,7 @@ void ByteCodeGenerator::EmitProgram(ParseNode *pnodeProg)
     {
         // Scope stack is already set up the way we want it, so don't visit the global scope.
         // Start emitting with the nested scope (i.e., the deferred function).
-        this->EmitScopeList(pnodeProg->AsParseNodeProg()->pnodeScopes);
+        this->EmitScopeList(pnodeProg->pnodeScopes);
     }
     else
     {
@@ -2534,7 +2538,7 @@ void ByteCodeGenerator::EmitProgram(ParseNode *pnodeProg)
 void EmitDestructuredObject(ParseNode *lhs, Js::RegSlot rhsLocation, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
 void EmitDestructuredValueOrInitializer(ParseNodePtr lhsElementNode, Js::RegSlot rhsLocation, ParseNodePtr initializer, bool isNonPatternAssignmentTarget, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
 
-void ByteCodeGenerator::PopulateFormalsScope(uint beginOffset, FuncInfo *funcInfo, ParseNode *pnode)
+void ByteCodeGenerator::PopulateFormalsScope(uint beginOffset, FuncInfo *funcInfo, ParseNodeFnc *pnodeFnc)
 {
     Js::DebuggerScope *debuggerScope = nullptr;
     auto processArg = [&](ParseNode *pnodeArg) {
@@ -2542,7 +2546,7 @@ void ByteCodeGenerator::PopulateFormalsScope(uint beginOffset, FuncInfo *funcInf
         {
             if (debuggerScope == nullptr)
             {
-                debuggerScope = RecordStartScopeObject(pnode, funcInfo->paramScope && funcInfo->paramScope->GetIsObject() ? Js::DiagParamScopeInObject : Js::DiagParamScope);
+                debuggerScope = RecordStartScopeObject(pnodeFnc, funcInfo->paramScope && funcInfo->paramScope->GetIsObject() ? Js::DiagParamScopeInObject : Js::DiagParamScope);
                 debuggerScope->SetBegin(beginOffset);
             }
 
@@ -2550,8 +2554,8 @@ void ByteCodeGenerator::PopulateFormalsScope(uint beginOffset, FuncInfo *funcInf
         }
     };
 
-    MapFormals(pnode, processArg);
-    MapFormalsFromPattern(pnode, processArg);
+    MapFormals(pnodeFnc, processArg);
+    MapFormalsFromPattern(pnodeFnc, processArg);
 
     if (debuggerScope != nullptr)
     {
@@ -2560,7 +2564,7 @@ void ByteCodeGenerator::PopulateFormalsScope(uint beginOffset, FuncInfo *funcInf
             InsertPropertyToDebuggerScope(funcInfo, debuggerScope, funcInfo->GetArgumentsSymbol());
         }
 
-        RecordEndScopeObject(pnode);
+        RecordEndScopeObject(pnodeFnc);
     }
 }
 
@@ -2581,7 +2585,7 @@ void ByteCodeGenerator::InsertPropertyToDebuggerScope(FuncInfo* funcInfo, Js::De
     }
 }
 
-void ByteCodeGenerator::EmitDefaultArgs(FuncInfo *funcInfo, ParseNode *pnode)
+void ByteCodeGenerator::EmitDefaultArgs(FuncInfo *funcInfo, ParseNodeFnc *pnodeFnc)
 {
     uint beginOffset = m_writer.GetCurrentOffset();
 
@@ -2662,7 +2666,7 @@ void ByteCodeGenerator::EmitDefaultArgs(FuncInfo *funcInfo, ParseNode *pnode)
     };
 
     // If the function is async, we wrap the default arguments in a try catch and reject a Promise in case of error.
-    if (pnode->AsParseNodeFnc()->IsAsync())
+    if (pnodeFnc->IsAsync())
     {
         uint cacheId;
         Js::ByteCodeLabel catchLabel = m_writer.DefineLabel();
@@ -2676,7 +2680,7 @@ void ByteCodeGenerator::EmitDefaultArgs(FuncInfo *funcInfo, ParseNode *pnode)
         m_writer.Br(Js::OpCode::TryCatch, catchLabel);
 
         // Rest cannot have a default argument, so we ignore it.
-        MapFormalsWithoutRest(pnode, emitDefaultArg);
+        MapFormalsWithoutRest(pnodeFnc, emitDefaultArg);
 
         m_writer.RecordCrossFrameEntryExitRecord(/* isEnterBlock = */ false);
         m_writer.Empty(Js::OpCode::Leave);
@@ -2713,12 +2717,12 @@ void ByteCodeGenerator::EmitDefaultArgs(FuncInfo *funcInfo, ParseNode *pnode)
     else
     {
         // Rest cannot have a default argument, so we ignore it.
-        MapFormalsWithoutRest(pnode, emitDefaultArg);
+        MapFormalsWithoutRest(pnodeFnc, emitDefaultArg);
     }
 
     if (m_writer.GetCurrentOffset() > beginOffset)
     {
-        PopulateFormalsScope(beginOffset, funcInfo, pnode);
+        PopulateFormalsScope(beginOffset, funcInfo, pnodeFnc);
     }
 }
 
@@ -3434,11 +3438,14 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, ParseNode *breakOnBodySc
             break;
         }
         case knopCatch:
-            this->StartEmitCatch(pnode);
-            this->EmitScopeList(pnode->AsParseNodeCatch()->pnodeScopes);
-            this->EndEmitCatch(pnode);
-            pnode = pnode->AsParseNodeCatch()->pnodeNext;
+        {
+            ParseNodeCatch * pnodeCatch = pnode->AsParseNodeCatch();
+            this->StartEmitCatch(pnodeCatch);
+            this->EmitScopeList(pnodeCatch->pnodeScopes);
+            this->EndEmitCatch(pnodeCatch);
+            pnode = pnodeCatch->pnodeNext;
             break;
+        }
 
         case knopWith:
             this->StartEmitWith(pnode);
@@ -3970,11 +3977,11 @@ void ByteCodeGenerator::EndEmitFunction(ParseNodeFnc *pnodeFnc)
     }
 }
 
-void ByteCodeGenerator::StartEmitCatch(ParseNode *pnodeCatch)
+void ByteCodeGenerator::StartEmitCatch(ParseNodeCatch *pnodeCatch)
 {
     Assert(pnodeCatch->nop == knopCatch);
 
-    Scope *scope = pnodeCatch->AsParseNodeCatch()->scope;
+    Scope *scope = pnodeCatch->scope;
     FuncInfo *funcInfo = scope->GetFunc();
 
     // Catch scope is a dynamic object if it can be passed to a scoped lookup helper (i.e., eval is present or we're in an event handler).
@@ -3983,12 +3990,13 @@ void ByteCodeGenerator::StartEmitCatch(ParseNode *pnodeCatch)
         scope->SetIsObject();
     }
 
-    if (pnodeCatch->AsParseNodeCatch()->pnodeParam->nop == knopParamPattern)
+    ParseNode * pnodeParam = pnodeCatch->GetParam();
+    if (pnodeParam->nop == knopParamPattern)
     {
         scope->SetCapturesAll(funcInfo->GetCallsEval() || funcInfo->GetChildCallsEval());
         scope->SetMustInstantiate(scope->Count() > 0 && (scope->GetMustInstantiate() || scope->GetCapturesAll() || funcInfo->IsGlobalFunction()));
 
-        Parser::MapBindIdentifier(pnodeCatch->AsParseNodeCatch()->pnodeParam->AsParseNodeParamPattern()->pnode1, [&](ParseNodePtr item)
+        Parser::MapBindIdentifier(pnodeParam->AsParseNodeParamPattern()->pnode1, [&](ParseNodePtr item)
         {
             Symbol *sym = item->AsParseNodeVar()->sym;
             if (funcInfo->IsGlobalFunction())
@@ -4008,7 +4016,7 @@ void ByteCodeGenerator::StartEmitCatch(ParseNode *pnodeCatch)
     }
     else
     {
-        Symbol *sym = pnodeCatch->AsParseNodeCatch()->pnodeParam->AsParseNodePid()->sym;
+        Symbol *sym = pnodeParam->AsParseNodeName()->sym;
 
         // Catch object is stored in the catch scope if there may be an ambiguous lookup or a var declaration that hides it.
         scope->SetCapturesAll(funcInfo->GetCallsEval() || funcInfo->GetChildCallsEval() || sym->GetHasNonLocalReference());
@@ -4034,10 +4042,10 @@ void ByteCodeGenerator::StartEmitCatch(ParseNode *pnodeCatch)
     }
 }
 
-void ByteCodeGenerator::EndEmitCatch(ParseNode *pnodeCatch)
+void ByteCodeGenerator::EndEmitCatch(ParseNodeCatch *pnodeCatch)
 {
     Assert(pnodeCatch->nop == knopCatch);
-    Assert(currentScope == pnodeCatch->AsParseNodeCatch()->scope);
+    Assert(currentScope == pnodeCatch->scope);
     PopScope();
 }
 
@@ -4902,9 +4910,9 @@ bool ByteCodeGenerator::ShouldLoadConstThis(FuncInfo* funcInfo)
     return funcInfo->thisConstantRegister != Js::Constants::NoRegister;
 }
 
-void ByteCodeGenerator::EmitPropLoadThis(Js::RegSlot lhsLocation, ParseNode *pnode, FuncInfo *funcInfo, bool chkUndecl)
+void ByteCodeGenerator::EmitPropLoadThis(Js::RegSlot lhsLocation, ParseNodeSpecialName *pnodeSpecialName, FuncInfo *funcInfo, bool chkUndecl)
 {
-    Symbol* sym = pnode->AsParseNodePid()->sym;
+    Symbol* sym = pnodeSpecialName->sym;
 
     if (!sym && this->ShouldLoadConstThis(funcInfo))
     {
@@ -4912,7 +4920,7 @@ void ByteCodeGenerator::EmitPropLoadThis(Js::RegSlot lhsLocation, ParseNode *pno
     }
     else
     {
-        this->EmitPropLoad(lhsLocation, pnode->AsParseNodePid()->sym, pnode->AsParseNodePid()->pid, funcInfo, true);
+        this->EmitPropLoad(lhsLocation, pnodeSpecialName->sym, pnodeSpecialName->pid, funcInfo, true);
 
         if ((!sym || sym->GetNeedDeclaration()) && chkUndecl)
         {
@@ -5554,14 +5562,14 @@ void ByteCodeGenerator::EmitPropTypeof(Js::RegSlot lhsLocation, Symbol *sym, Ide
     }
 }
 
-void ByteCodeGenerator::EnsureNoRedeclarations(ParseNode *pnodeBlock, FuncInfo *funcInfo)
+void ByteCodeGenerator::EnsureNoRedeclarations(ParseNodeBlock *pnodeBlock, FuncInfo *funcInfo)
 {
     // Emit dynamic runtime checks for variable re-declarations. Only necessary for global functions (script or eval).
     // In eval only var declarations can cause redeclaration, and only in non-strict mode, because let/const variables
     // remain local to the eval code.
 
     Assert(pnodeBlock->nop == knopBlock);
-    Assert(pnodeBlock->AsParseNodeBlock()->blockType == PnodeBlockType::Global || pnodeBlock->AsParseNodeBlock()->scope->GetScopeType() == ScopeType_GlobalEvalBlock);
+    Assert(pnodeBlock->blockType == PnodeBlockType::Global || pnodeBlock->scope->GetScopeType() == ScopeType_GlobalEvalBlock);
 
     if (!(this->flags & fscrEvalCode))
     {
@@ -5663,10 +5671,10 @@ void ByteCodeGenerator::RecordAllStringTemplateCallsiteConstants(FuncInfo* funcI
     });
 }
 
-bool IsApplyArgs(ParseNode* callNode)
+bool IsApplyArgs(ParseNodeCall* callNode)
 {
-    ParseNode* target = callNode->AsParseNodeCall()->pnodeTarget;
-    ParseNode* args = callNode->AsParseNodeCall()->pnodeArgs;
+    ParseNode* target = callNode->pnodeTarget;
+    ParseNode* args = callNode->pnodeArgs;
     if ((target != nullptr) && (target->nop == knopDot))
     {
         ParseNode* lhsNode = target->AsParseNodeBin()->pnode1;
@@ -5675,14 +5683,14 @@ bool IsApplyArgs(ParseNode* callNode)
             ParseNode* nameNode = target->AsParseNodeBin()->pnode2;
             if (nameNode != nullptr)
             {
-                bool nameIsApply = nameNode->AsParseNodePid()->PropertyIdFromNameNode() == Js::PropertyIds::apply;
+                bool nameIsApply = nameNode->AsParseNodeName()->PropertyIdFromNameNode() == Js::PropertyIds::apply;
                 if (nameIsApply && args != nullptr && args->nop == knopList)
                 {
                     ParseNode* arg1 = args->AsParseNodeBin()->pnode1;
                     ParseNode* arg2 = args->AsParseNodeBin()->pnode2;
-                    if ((arg1 != nullptr) && ByteCodeGenerator::IsThis(arg1) && (arg2 != nullptr) && (arg2->nop == knopName) && (arg2->AsParseNodePid()->sym != nullptr))
+                    if ((arg1 != nullptr) && ByteCodeGenerator::IsThis(arg1) && (arg2 != nullptr) && (arg2->nop == knopName) && (arg2->AsParseNodeName()->sym != nullptr))
                     {
-                        return arg2->AsParseNodePid()->sym->IsArguments();
+                        return arg2->AsParseNodeName()->sym->IsArguments();
                     }
                 }
             }
@@ -5700,7 +5708,7 @@ void PostCheckApplyEnclosesArgs(ParseNode* pnode, ByteCodeGenerator* byteCodeGen
 
     if (pnode->nop == knopCall)
     {
-        if ((!pnode->isUsed) && IsApplyArgs(pnode))
+        if ((!pnode->isUsed) && IsApplyArgs(pnode->AsParseNodeCall()))
         {
             if (!applyCheck->insideApplyCall)
             {
@@ -5722,7 +5730,7 @@ void CheckApplyEnclosesArgs(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
     {
     case knopName:
     {
-        Symbol* sym = pnode->AsParseNodePid()->sym;
+        Symbol* sym = pnode->AsParseNodeName()->sym;
         if (sym != nullptr)
         {
             if (sym->IsArguments())
@@ -5737,7 +5745,7 @@ void CheckApplyEnclosesArgs(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
     }
 
     case knopCall:
-        if ((!pnode->isUsed) && IsApplyArgs(pnode))
+        if ((!pnode->isUsed) && IsApplyArgs(pnode->AsParseNodeCall()))
         {
             // no nested apply calls
             if (applyCheck->insideApplyCall)
@@ -5798,14 +5806,14 @@ void SaveOpndValue(ParseNode *pnode, FuncInfo *funcInfo)
     Symbol *sym = nullptr;
     if (pnode->nop == knopName)
     {
-        sym = pnode->AsParseNodePid()->sym;
+        sym = pnode->AsParseNodeName()->sym;
     }
     else if (pnode->nop == knopComputedName)
     {
         ParseNode *pnode1 = pnode->AsParseNodeUni()->pnode1;
         if (pnode1->nop == knopName)
         {
-            sym = pnode1->AsParseNodePid()->sym;
+            sym = pnode1->AsParseNodeName()->sym;
         }
     }
 
@@ -5883,7 +5891,7 @@ void EmitReference(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncI
 
         case knopName:
         {
-            Symbol *sym = pnode->AsParseNodeCall()->pnodeTarget->AsParseNodePid()->sym;
+            Symbol *sym = pnode->AsParseNodeCall()->pnodeTarget->AsParseNodeName()->sym;
             if (!sym || sym->GetLocation() == Js::Constants::NoRegister)
             {
                 funcInfo->AcquireLoc(pnode->AsParseNodeCall()->pnodeTarget);
@@ -5898,7 +5906,7 @@ void EmitReference(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncI
                 // EmitLoad will check for needsDeclaration and emit the Use Before Declaration error
                 // bytecode op as necessary, but EmitReference does not check this (by design). So we
                 // must manually check here.
-                EmitUseBeforeDeclaration(pnode->AsParseNodeCall()->pnodeTarget->AsParseNodePid()->sym, byteCodeGenerator, funcInfo);
+                EmitUseBeforeDeclaration(pnode->AsParseNodeCall()->pnodeTarget->AsParseNodeName()->sym, byteCodeGenerator, funcInfo);
                 EmitReference(pnode->AsParseNodeCall()->pnodeTarget, byteCodeGenerator, funcInfo);
             }
             break;
@@ -6606,9 +6614,8 @@ void EmitNameInvoke(Js::RegSlot lhsLocation,
     }
     else
     {
-        Assert(nameNode->nop == knopName || nameNode->nop == knopStr);
-        Symbol *sym = nameNode->AsParseNodePid()->sym;
-        Js::PropertyId propertyId = sym ? sym->EnsurePosition(byteCodeGenerator) : nameNode->AsParseNodePid()->pid->GetPropertyId();
+        Assert(nameNode->nop == knopStr);
+        Js::PropertyId propertyId = nameNode->AsParseNodeStr()->pid->GetPropertyId();
 
         uint cacheId = funcInfo->FindOrAddInlineCacheId(objectLocation, propertyId, false/*isLoadMethod*/, false/*isStore*/);
         byteCodeGenerator->Writer()->PatchableProperty(Js::OpCode::LdFld, lhsLocation, objectLocation, cacheId);
@@ -6759,14 +6766,14 @@ void EmitAssignment(
     case knopName:
     {
         // Special names like 'this' or 'new.target' cannot be assigned to
-        ParseNodePid * pnodePidLhs = lhs->AsParseNodePid();
-        if (pnodePidLhs->IsSpecialName())
+        ParseNodeName * pnodeNameLhs = lhs->AsParseNodeName();
+        if (pnodeNameLhs->IsSpecialName())
         {
             byteCodeGenerator->Writer()->W1(Js::OpCode::RuntimeReferenceError, SCODE_CODE(JSERR_CantAssignTo));
         }
         else
         {
-            byteCodeGenerator->EmitPropStore(rhsLocation, pnodePidLhs->sym, pnodePidLhs->pid, funcInfo);
+            byteCodeGenerator->EmitPropStore(rhsLocation, pnodeNameLhs->sym, pnodeNameLhs->pid, funcInfo);
         }
         break;
     }
@@ -6775,7 +6782,7 @@ void EmitAssignment(
     case knopDot:
     {
         // PutValue(x, "y", rhs)
-        Js::PropertyId propertyId = lhs->AsParseNodeBin()->pnode2->AsParseNodePid()->PropertyIdFromNameNode();
+        Js::PropertyId propertyId = lhs->AsParseNodeBin()->pnode2->AsParseNodeName()->PropertyIdFromNameNode();
 
         if (ByteCodeGenerator::IsSuper(lhs->AsParseNodeBin()->pnode1))
         {
@@ -6878,7 +6885,7 @@ void EmitLoad(
     case knopName:
     {
         funcInfo->AcquireLoc(lhs);
-        byteCodeGenerator->EmitPropLoad(lhs->location, lhs->AsParseNodePid()->sym, lhs->AsParseNodePid()->pid, funcInfo);
+        byteCodeGenerator->EmitPropLoad(lhs->location, lhs->AsParseNodeName()->sym, lhs->AsParseNodeName()->pid, funcInfo);
         break;
     }
 
@@ -6886,7 +6893,7 @@ void EmitLoad(
     case knopDot:
     {
         // get field id for "y"
-        Js::PropertyId propertyId = lhs->AsParseNodeBin()->pnode2->AsParseNodePid()->PropertyIdFromNameNode();
+        Js::PropertyId propertyId = lhs->AsParseNodeBin()->pnode2->AsParseNodeName()->PropertyIdFromNameNode();
         funcInfo->AcquireLoc(lhs);
         EmitReference(lhs, byteCodeGenerator, funcInfo);
         uint cacheId = funcInfo->FindOrAddInlineCacheId(lhs->AsParseNodeBin()->pnode1->location, propertyId, false, false);
@@ -7433,7 +7440,7 @@ void EmitMethodFld(ParseNode *pnode, Js::RegSlot callObjLocation, Js::PropertyId
 {
     // Load a call target of the form x.y(). (Call target may be a plain knopName if we're getting it from
     // the global object, etc.)
-    bool isRoot = pnode->nop == knopName && (pnode->AsParseNodePid()->sym == nullptr || pnode->AsParseNodePid()->sym->GetIsGlobal());
+    bool isRoot = pnode->nop == knopName && (pnode->AsParseNodeName()->sym == nullptr || pnode->AsParseNodeName()->sym->GetIsGlobal());
     bool isScoped = (byteCodeGenerator->GetFlags() & fscrEval) != 0 ||
         (isRoot && callObjLocation != ByteCodeGenerator::RootObjectRegister);
 
@@ -7457,7 +7464,7 @@ void EmitApplyCall(ParseNodeCall* pnodeCall, ByteCodeGenerator* byteCodeGenerato
     Emit(funcNode, byteCodeGenerator, funcInfo, false);
 
     funcInfo->AcquireLoc(applyNode);
-    Js::PropertyId propertyId = applyNode->AsParseNodeBin()->pnode2->AsParseNodePid()->PropertyIdFromNameNode();
+    Js::PropertyId propertyId = applyNode->AsParseNodeBin()->pnode2->AsParseNodeName()->PropertyIdFromNameNode();
 
     // As we won't be emitting a call instruction for apply, no need to register the cacheId for apply
     // load to be associated with the call. This is also required, as in the absence of a corresponding
@@ -7552,7 +7559,7 @@ void EmitCallTargetNoEvalComponents(
 
     case knopName:
         // If the call target is a name, do some extra work to get its instance and the "this" pointer.
-        byteCodeGenerator->EmitLoadInstance(pnodeTarget->AsParseNodePid()->sym, pnodeTarget->AsParseNodePid()->pid, thisLocation, callObjLocation, funcInfo);
+        byteCodeGenerator->EmitLoadInstance(pnodeTarget->AsParseNodeName()->sym, pnodeTarget->AsParseNodeName()->pid, thisLocation, callObjLocation, funcInfo);
         if (*thisLocation == Js::Constants::NoRegister)
         {
             *thisLocation = funcInfo->undefinedConstantRegister;
@@ -7590,42 +7597,44 @@ void EmitCallTarget(
     {
     case knopDot:
     {
-        funcInfo->AcquireLoc(pnodeTarget);
+        ParseNodeBin * pnodeBinTarget = pnodeTarget->AsParseNodeBin();
+        funcInfo->AcquireLoc(pnodeBinTarget);
         // Assign the call target operand(s), putting them into expression temps if necessary to protect
         // them from side-effects.
         if (fSideEffectArgs)
         {
             // Though we're done with target evaluation after this point, still protect opnd1 from
             // arg side-effects as it's the "this" pointer.
-            SaveOpndValue(pnodeTarget->AsParseNodeBin()->pnode1, funcInfo);
+            SaveOpndValue(pnodeBinTarget->pnode1, funcInfo);
         }
 
-        if ((pnodeTarget->AsParseNodeBin()->pnode2->nop == knopName) && ((pnodeTarget->AsParseNodeBin()->pnode2->AsParseNodePid()->PropertyIdFromNameNode() == Js::PropertyIds::apply) || (pnodeTarget->AsParseNodeBin()->pnode2->AsParseNodePid()->PropertyIdFromNameNode() == Js::PropertyIds::call)))
+        Assert(pnodeBinTarget->pnode2->nop == knopName);
+        if ((pnodeBinTarget->pnode2->AsParseNodeName()->PropertyIdFromNameNode() == Js::PropertyIds::apply) || (pnodeTarget->AsParseNodeBin()->pnode2->AsParseNodeName()->PropertyIdFromNameNode() == Js::PropertyIds::call))
         {
-            pnodeTarget->AsParseNodeBin()->pnode1->SetIsCallApplyTargetLoad();
+            pnodeBinTarget->pnode1->SetIsCallApplyTargetLoad();
         }
 
-        Emit(pnodeTarget->AsParseNodeBin()->pnode1, byteCodeGenerator, funcInfo, false);
-        Js::PropertyId propertyId = pnodeTarget->AsParseNodeBin()->pnode2->AsParseNodePid()->PropertyIdFromNameNode();
-        Js::RegSlot protoLocation = pnodeTarget->AsParseNodeBin()->pnode1->location;
+        Emit(pnodeBinTarget->pnode1, byteCodeGenerator, funcInfo, false);
+        Js::PropertyId propertyId = pnodeBinTarget->pnode2->AsParseNodeName()->PropertyIdFromNameNode();
+        Js::RegSlot protoLocation = pnodeBinTarget->pnode1->location;
 
-        if (ByteCodeGenerator::IsSuper(pnodeTarget->AsParseNodeBin()->pnode1))
+        if (ByteCodeGenerator::IsSuper(pnodeBinTarget->pnode1))
         {
-            Emit(pnodeTarget->AsParseNodeSuperReference()->pnodeThis, byteCodeGenerator, funcInfo, false);
+            Emit(pnodeBinTarget->AsParseNodeSuperReference()->pnodeThis, byteCodeGenerator, funcInfo, false);
             protoLocation = byteCodeGenerator->EmitLdObjProto(Js::OpCode::LdHomeObjProto, protoLocation, funcInfo);
-            funcInfo->ReleaseLoc(pnodeTarget->AsParseNodeSuperReference()->pnodeThis);
-            funcInfo->ReleaseLoc(pnodeTarget->AsParseNodeBin()->pnode1);
+            funcInfo->ReleaseLoc(pnodeBinTarget->AsParseNodeSuperReference()->pnodeThis);
+            funcInfo->ReleaseLoc(pnodeBinTarget->pnode1);
 
             // Function calls on the 'super' object should maintain current 'this' pointer
-            *thisLocation = pnodeTarget->AsParseNodeSuperReference()->pnodeThis->location;
+            *thisLocation = pnodeBinTarget->AsParseNodeSuperReference()->pnodeThis->location;
             *releaseThisLocation = false;
         }
         else
         {
-            *thisLocation = pnodeTarget->AsParseNodeBin()->pnode1->location;
+            *thisLocation = pnodeBinTarget->pnode1->location;
         }
 
-        EmitMethodFld(pnodeTarget, protoLocation, propertyId, byteCodeGenerator, funcInfo);
+        EmitMethodFld(pnodeBinTarget, protoLocation, propertyId, byteCodeGenerator, funcInfo);
         break;
     }
 
@@ -7674,22 +7683,22 @@ void EmitCallTarget(
 
     case knopName:
     {
-        ParseNodePid * pnodePidTarget = pnodeTarget->AsParseNodePid();
-        if (!pnodePidTarget->IsSpecialName())
+        ParseNodeName * pnodeNameTarget = pnodeTarget->AsParseNodeName();
+        if (!pnodeNameTarget->IsSpecialName())
         {
-            funcInfo->AcquireLoc(pnodePidTarget);
+            funcInfo->AcquireLoc(pnodeNameTarget);
             // Assign the call target operand(s), putting them into expression temps if necessary to protect
             // them from side-effects.
             if (fSideEffectArgs)
             {
-                SaveOpndValue(pnodePidTarget, funcInfo);
+                SaveOpndValue(pnodeNameTarget, funcInfo);
             }
-            byteCodeGenerator->EmitLoadInstance(pnodePidTarget->sym, pnodePidTarget->pid, thisLocation, callObjLocation, funcInfo);
+            byteCodeGenerator->EmitLoadInstance(pnodeNameTarget->sym, pnodeNameTarget->pid, thisLocation, callObjLocation, funcInfo);
             if (*callObjLocation != Js::Constants::NoRegister)
             {
                 // Load the call target as a property of the instance.
-                Js::PropertyId propertyId = pnodePidTarget->PropertyIdFromNameNode();
-                EmitMethodFld(pnodePidTarget, *callObjLocation, propertyId, byteCodeGenerator, funcInfo);
+                Js::PropertyId propertyId = pnodeNameTarget->PropertyIdFromNameNode();
+                EmitMethodFld(pnodeNameTarget, *callObjLocation, propertyId, byteCodeGenerator, funcInfo);
                 break;
             }
         }
@@ -7842,7 +7851,7 @@ void EmitCallInstrNoEvalComponents(
     case knopDot:
     {
         Assert(pnodeTarget->AsParseNodeBin()->pnode2->nop == knopName);
-        Js::PropertyId propertyId = pnodeTarget->AsParseNodeBin()->pnode2->AsParseNodePid()->PropertyIdFromNameNode();
+        Js::PropertyId propertyId = pnodeTarget->AsParseNodeBin()->pnode2->AsParseNodeName()->PropertyIdFromNameNode();
 
         EmitMethodFld(pnodeTarget, callObjLocation, propertyId, byteCodeGenerator, funcInfo);
         EmitCallI(pnodeCall, /*fEvaluateComponents*/ FALSE, fIsEval, /*fHasNewTarget*/ FALSE, actualArgCount, byteCodeGenerator, funcInfo, callSiteId, spreadIndices);
@@ -7867,7 +7876,7 @@ void EmitCallInstrNoEvalComponents(
             }
             funcInfo->ReleaseTmpRegister(callObjLocation);
 
-            Js::PropertyId propertyId = pnodeTarget->AsParseNodePid()->PropertyIdFromNameNode();
+            Js::PropertyId propertyId = pnodeTarget->AsParseNodeName()->PropertyIdFromNameNode();
             EmitMethodFld(pnodeTarget, callObjLocation, propertyId, byteCodeGenerator, funcInfo);
             EmitCallI(pnodeCall, /*fEvaluateComponents*/ FALSE, fIsEval, /*fHasNewTarget*/ FALSE, actualArgCount, byteCodeGenerator, funcInfo, callSiteId, spreadIndices);
             break;
@@ -8245,7 +8254,7 @@ void EmitMemberNode(ParseNode *memberNode, Js::RegSlot objectLocation, ByteCodeG
     }
 
     Emit(exprNode, byteCodeGenerator, funcInfo, false);
-    Js::PropertyId propertyId = nameNode->AsParseNodePid()->PropertyIdFromNameNode();
+    Js::PropertyId propertyId = nameNode->AsParseNodeStr()->pid->GetPropertyId();
 
     if (Js::PropertyIds::name == propertyId
         && exprNode->nop == knopFncDecl
@@ -8360,7 +8369,7 @@ void EmitObjectInitializers(ParseNode *memberList, Js::RegSlot objectLocation, B
                 break;
             }
 
-            propertyId = memberList->AsParseNodeBin()->pnode1->AsParseNodeBin()->pnode1->AsParseNodePid()->PropertyIdFromNameNode();
+            propertyId = memberList->AsParseNodeBin()->pnode1->AsParseNodeBin()->pnode1->AsParseNodeStr()->pid->GetPropertyId();
             if (!byteCodeGenerator->GetScriptContext()->IsNumericPropertyId(propertyId, &value))
             {
                 propertyIds->Item(propertyId);
@@ -8371,7 +8380,7 @@ void EmitObjectInitializers(ParseNode *memberList, Js::RegSlot objectLocation, B
 
         if (memberList->AsParseNodeBin()->pnode1->nop != knopComputedName && !hasComputedName)
         {
-            propertyId = memberList->AsParseNodeBin()->pnode1->AsParseNodePid()->PropertyIdFromNameNode();
+            propertyId = memberList->AsParseNodeBin()->pnode1->AsParseNodeStr()->pid->GetPropertyId();
             if (!byteCodeGenerator->GetScriptContext()->IsNumericPropertyId(propertyId, &value))
             {
                 propertyIds->Item(propertyId);
@@ -8406,7 +8415,7 @@ void EmitObjectInitializers(ParseNode *memberList, Js::RegSlot objectLocation, B
             {
                 break;
             }
-            propertyId = memberList->AsParseNodeBin()->pnode1->AsParseNodeBin()->pnode1->AsParseNodePid()->PropertyIdFromNameNode();
+            propertyId = memberList->AsParseNodeBin()->pnode1->AsParseNodeBin()->pnode1->AsParseNodeStr()->pid->GetPropertyId();
             if (!byteCodeGenerator->GetScriptContext()->IsNumericPropertyId(propertyId, &value) && propertyIds->Remove(propertyId))
             {
                 propIds->elements[argIndex] = propertyId;
@@ -8417,7 +8426,7 @@ void EmitObjectInitializers(ParseNode *memberList, Js::RegSlot objectLocation, B
 
         if (memberList->AsParseNodeBin()->pnode1->nop != knopComputedName && !hasComputedName)
         {
-            propertyId = memberList->AsParseNodeBin()->pnode1->AsParseNodePid()->PropertyIdFromNameNode();
+            propertyId = memberList->AsParseNodeBin()->pnode1->AsParseNodeStr()->pid->GetPropertyId();
             if (!byteCodeGenerator->GetScriptContext()->IsNumericPropertyId(propertyId, &value) && propertyIds->Remove(propertyId))
             {
                 propIds->elements[argIndex] = propertyId;
@@ -8462,46 +8471,46 @@ void EmitObjectInitializers(ParseNode *memberList, Js::RegSlot objectLocation, B
     }
 }
 
-void EmitStringTemplate(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo)
+void EmitStringTemplate(ParseNodeStrTemplate *pnodeStrTemplate, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo)
 {
-    Assert(pnode->AsParseNodeStrTemplate()->pnodeStringLiterals);
+    Assert(pnodeStrTemplate->pnodeStringLiterals);
 
     // For a tagged string template, we will create the callsite constant object as part of the FunctionBody constants table.
     // We only need to emit code for non-tagged string templates here.
-    if (!pnode->AsParseNodeStrTemplate()->isTaggedTemplate)
+    if (!pnodeStrTemplate->isTaggedTemplate)
     {
         // If we have no substitutions and this is not a tagged template, we can emit just the single cooked string.
-        if (pnode->AsParseNodeStrTemplate()->pnodeSubstitutionExpressions == nullptr)
+        if (pnodeStrTemplate->pnodeSubstitutionExpressions == nullptr)
         {
-            Assert(pnode->AsParseNodeStrTemplate()->pnodeStringLiterals->nop != knopList);
+            Assert(pnodeStrTemplate->pnodeStringLiterals->nop != knopList);
 
-            funcInfo->AcquireLoc(pnode);
-            Emit(pnode->AsParseNodeStrTemplate()->pnodeStringLiterals, byteCodeGenerator, funcInfo, false);
+            funcInfo->AcquireLoc(pnodeStrTemplate);
+            Emit(pnodeStrTemplate->pnodeStringLiterals, byteCodeGenerator, funcInfo, false);
 
-            Assert(pnode->location != pnode->AsParseNodeStrTemplate()->pnodeStringLiterals->location);
+            Assert(pnodeStrTemplate->location != pnodeStrTemplate->pnodeStringLiterals->location);
 
-            byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, pnode->location, pnode->AsParseNodeStrTemplate()->pnodeStringLiterals->location);
-            funcInfo->ReleaseLoc(pnode->AsParseNodeStrTemplate()->pnodeStringLiterals);
+            byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, pnodeStrTemplate->location, pnodeStrTemplate->pnodeStringLiterals->location);
+            funcInfo->ReleaseLoc(pnodeStrTemplate->pnodeStringLiterals);
         }
         else
         {
             // If we have substitutions but no tag function, we can skip the callSite object construction (and also ignore raw strings).
-            funcInfo->AcquireLoc(pnode);
+            funcInfo->AcquireLoc(pnodeStrTemplate);
 
             // First string must be a list node since we have substitutions.
-            AssertMsg(pnode->AsParseNodeStrTemplate()->pnodeStringLiterals->nop == knopList, "First string in the list must be a knopList node.");
+            AssertMsg(pnodeStrTemplate->pnodeStringLiterals->nop == knopList, "First string in the list must be a knopList node.");
 
-            ParseNode* stringNodeList = pnode->AsParseNodeStrTemplate()->pnodeStringLiterals;
+            ParseNode* stringNodeList = pnodeStrTemplate->pnodeStringLiterals;
 
             // Emit the first string and load that into the pnode location.
             Emit(stringNodeList->AsParseNodeBin()->pnode1, byteCodeGenerator, funcInfo, false);
 
-            Assert(pnode->location != stringNodeList->AsParseNodeBin()->pnode1->location);
+            Assert(pnodeStrTemplate->location != stringNodeList->AsParseNodeBin()->pnode1->location);
 
-            byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, pnode->location, stringNodeList->AsParseNodeBin()->pnode1->location);
+            byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, pnodeStrTemplate->location, stringNodeList->AsParseNodeBin()->pnode1->location);
             funcInfo->ReleaseLoc(stringNodeList->AsParseNodeBin()->pnode1);
 
-            ParseNode* expressionNodeList = pnode->AsParseNodeStrTemplate()->pnodeSubstitutionExpressions;
+            ParseNode* expressionNodeList = pnodeStrTemplate->pnodeSubstitutionExpressions;
             ParseNode* stringNode;
             ParseNode* expressionNode;
 
@@ -8533,7 +8542,7 @@ void EmitStringTemplate(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, 
 
                 Js::RegSlot toStringLocation = funcInfo->AcquireTmpRegister();
                 byteCodeGenerator->Writer()->Reg2(Js::OpCode::Conv_Str, toStringLocation, expressionNode->location);
-                byteCodeGenerator->Writer()->Reg3(Js::OpCode::Add_A, pnode->location, pnode->location, toStringLocation);
+                byteCodeGenerator->Writer()->Reg3(Js::OpCode::Add_A, pnodeStrTemplate->location, pnodeStrTemplate->location, toStringLocation);
                 funcInfo->ReleaseTmpRegister(toStringLocation);
                 funcInfo->ReleaseLoc(expressionNode);
 
@@ -8554,7 +8563,7 @@ void EmitStringTemplate(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, 
                 // Emit the string node following the previous expression and append it to the string.
                 // This is either just some string in the list or it is the last string.
                 Emit(stringNode, byteCodeGenerator, funcInfo, false);
-                byteCodeGenerator->Writer()->Reg3(Js::OpCode::Add_A, pnode->location, pnode->location, stringNode->location);
+                byteCodeGenerator->Writer()->Reg3(Js::OpCode::Add_A, pnodeStrTemplate->location, pnodeStrTemplate->location, stringNode->location);
                 funcInfo->ReleaseLoc(stringNode);
             }
         }
@@ -9455,9 +9464,9 @@ void EmitArrayLiteral(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, Fu
     }
 }
 
-void EmitJumpCleanup(ParseNode *pnode, ParseNode *pnodeTarget, ByteCodeGenerator *byteCodeGenerator, FuncInfo * funcInfo)
+void EmitJumpCleanup(ParseNodeStmt *pnode, ParseNode *pnodeTarget, ByteCodeGenerator *byteCodeGenerator, FuncInfo * funcInfo)
 {
-    for (; pnode != pnodeTarget; pnode = pnode->AsParseNodeStmt()->pnodeOuter)
+    for (; pnode != pnodeTarget; pnode = pnode->pnodeOuter)
     {
         switch (pnode->nop)
         {
@@ -9641,7 +9650,7 @@ bool CollectConcat(ParseNode *pnodeAdd, DListCounted<ParseNode *, ArenaAllocator
 
             // Detect if there are any string larger then the append size limit.
             // If there are, we can do concat; otherwise, still use add so we will not lose the AddLeftDead opportunities.
-            doConcatString = doConcatString || !Js::CompoundString::ShouldAppendChars(pnode->AsParseNodePid()->pid->Cch());
+            doConcatString = doConcatString || !Js::CompoundString::ShouldAppendChars(pnode->AsParseNodeStr()->pid->Cch());
         }
         else
         {
@@ -9889,7 +9898,7 @@ void EmitYield(Js::RegSlot inputLocation, Js::RegSlot resultLocation, ByteCodeGe
     }
 }
 
-void EmitYieldStar(ParseNode* yieldStarNode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo)
+void EmitYieldStar(ParseNodeUni* yieldStarNode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo)
 {
     funcInfo->AcquireLoc(yieldStarNode);
 
@@ -9899,10 +9908,10 @@ void EmitYieldStar(ParseNode* yieldStarNode, ByteCodeGenerator* byteCodeGenerato
     Js::RegSlot iteratorLocation = funcInfo->AcquireTmpRegister();
 
     // Evaluate operand
-    Emit(yieldStarNode->AsParseNodeUni()->pnode1, byteCodeGenerator, funcInfo, false);
-    funcInfo->ReleaseLoc(yieldStarNode->AsParseNodeUni()->pnode1);
+    Emit(yieldStarNode->pnode1, byteCodeGenerator, funcInfo, false);
+    funcInfo->ReleaseLoc(yieldStarNode->pnode1);
 
-    EmitGetIterator(iteratorLocation, yieldStarNode->AsParseNodeUni()->pnode1->location, byteCodeGenerator, funcInfo);
+    EmitGetIterator(iteratorLocation, yieldStarNode->pnode1->location, byteCodeGenerator, funcInfo);
 
     // Call the iterator's next()
     EmitIteratorNext(yieldStarNode->location, iteratorLocation, funcInfo->undefinedConstantRegister, byteCodeGenerator, funcInfo);
@@ -9971,7 +9980,7 @@ void TrackMemberNodesInObjectForIntConstants(ByteCodeGenerator *byteCodeGenerato
 
         if (memberNameNode->nop != knopComputedName && memberValNode->nop == knopInt)
         {
-            Js::PropertyId propertyId = memberNameNode->AsParseNodePid()->PropertyIdFromNameNode();
+            Js::PropertyId propertyId = memberNameNode->AsParseNodeStr()->pid->GetPropertyId();
             TrackIntConstantsOnGlobalUserObject(byteCodeGenerator, true, propertyId);
         }
 
@@ -9984,7 +9993,7 @@ void TrackGlobalIntAssignmentsForknopDotProps(ParseNodePtr knopDotNode, ByteCode
     Assert(knopDotNode->nop == knopDot);
 
     ParseNodePtr objectNode = knopDotNode->AsParseNodeBin()->pnode1;
-    ParseNodePtr propertyNode = knopDotNode->AsParseNodeBin()->pnode2;
+    ParseNodeName * propertyNode = knopDotNode->AsParseNodeBin()->pnode2->AsParseNodeName();
     bool isSymGlobalAndSingleAssignment = false;
 
     if (objectNode->nop == knopName)
@@ -9993,15 +10002,15 @@ void TrackGlobalIntAssignmentsForknopDotProps(ParseNodePtr knopDotNode, ByteCode
         {
             // Assume 'this' always refer to GlobalObject
             // Cases like "this.a = "
-            isSymGlobalAndSingleAssignment = propertyNode->AsParseNodePid()->pid->IsSingleAssignment();
-            Js::PropertyId propertyId = propertyNode->AsParseNodePid()->PropertyIdFromNameNode();
+            isSymGlobalAndSingleAssignment = propertyNode->pid->IsSingleAssignment();
+            Js::PropertyId propertyId = propertyNode->PropertyIdFromNameNode();
             TrackIntConstantsOnGlobalObject(byteCodeGenerator, isSymGlobalAndSingleAssignment, propertyId);
         }
         else
         {
-            Symbol * sym = objectNode->AsParseNodePid()->sym;
-            isSymGlobalAndSingleAssignment = sym && sym->GetIsGlobal() && sym->IsAssignedOnce() && propertyNode->AsParseNodePid()->pid->IsSingleAssignment();
-            Js::PropertyId propertyId = propertyNode->AsParseNodePid()->PropertyIdFromNameNode();
+            Symbol * sym = objectNode->AsParseNodeName()->sym;
+            isSymGlobalAndSingleAssignment = sym && sym->GetIsGlobal() && sym->IsAssignedOnce() && propertyNode->pid->IsSingleAssignment();
+            Js::PropertyId propertyId = propertyNode->PropertyIdFromNameNode();
             TrackIntConstantsOnGlobalUserObject(byteCodeGenerator, isSymGlobalAndSingleAssignment, propertyId);
         }
     }
@@ -10034,7 +10043,7 @@ void TrackGlobalIntAssignments(ParseNodePtr pnode, ByteCodeGenerator * byteCodeG
             if (lhs->nop == knopName)
             {
                 // Handle "a = <Integer>" cases here
-                Symbol * sym = lhs->AsParseNodePid()->sym;
+                Symbol * sym = lhs->AsParseNodeName()->sym;
                 TrackIntConstantsOnGlobalObject(byteCodeGenerator, sym);
             }
             else if (lhs->nop == knopDot && lhs->AsParseNodeBin()->pnode2->nop == knopName)
@@ -10050,7 +10059,7 @@ void TrackGlobalIntAssignments(ParseNodePtr pnode, ByteCodeGenerator * byteCodeG
             if (lhs->nop == knopName)
             {
                 // Cases like "a++"
-                Symbol * sym = lhs->AsParseNodePid()->sym;
+                Symbol * sym = lhs->AsParseNodeName()->sym;
                 TrackIntConstantsOnGlobalObject(byteCodeGenerator, sym);
             }
             else if (lhs->nop == knopDot && lhs->AsParseNodeBin()->pnode2->nop == knopName)
@@ -10286,7 +10295,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         case knopDot:
         {
             Emit(pnodeOpnd->AsParseNodeBin()->pnode1, byteCodeGenerator, funcInfo, false);
-            Js::PropertyId propertyId = pnodeOpnd->AsParseNodeBin()->pnode2->AsParseNodePid()->PropertyIdFromNameNode();
+            Js::PropertyId propertyId = pnodeOpnd->AsParseNodeBin()->pnode2->AsParseNodeName()->PropertyIdFromNameNode();
             Assert(pnodeOpnd->AsParseNodeBin()->pnode2->nop == knopName);
             funcInfo->ReleaseLoc(pnodeOpnd->AsParseNodeBin()->pnode1);
             funcInfo->AcquireLoc(pnode);
@@ -10306,10 +10315,11 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         }
         case knopName:
         {
-            if (pnodeOpnd->IsUserIdentifier())
+            ParseNodeName * pnodeNameOpnd = pnodeOpnd->AsParseNodeName();
+            if (pnodeNameOpnd->IsUserIdentifier())
             {
                 funcInfo->AcquireLoc(pnode);
-                byteCodeGenerator->EmitPropTypeof(pnode->location, pnodeOpnd->AsParseNodePid()->sym, pnodeOpnd->AsParseNodePid()->pid, funcInfo);
+                byteCodeGenerator->EmitPropTypeof(pnode->location, pnodeNameOpnd->sym, pnodeNameOpnd->pid, funcInfo);
                 break;
             }
             // Special names should fallthrough to default case
@@ -10421,7 +10431,8 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         {
         case knopName:
         {
-            if (pexpr->AsParseNodePid()->IsSpecialName())
+            ParseNodeName * pnodeName = pexpr->AsParseNodeName();
+            if (pnodeName->IsSpecialName())
             {
                 funcInfo->AcquireLoc(pnode);
                 byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, pnode->location);
@@ -10429,7 +10440,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             else
             {
                 funcInfo->AcquireLoc(pnode);
-                byteCodeGenerator->EmitPropDelete(pnode->location, pexpr->AsParseNodePid()->sym, pexpr->AsParseNodePid()->pid, funcInfo);
+                byteCodeGenerator->EmitPropDelete(pnode->location, pnodeName->sym, pnodeName->pid, funcInfo);
             }
             break;
         }
@@ -10447,7 +10458,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
                 Emit(pexpr->AsParseNodeBin()->pnode1, byteCodeGenerator, funcInfo, false);
 
                 funcInfo->ReleaseLoc(pexpr->AsParseNodeBin()->pnode1);
-                Js::PropertyId propertyId = pexpr->AsParseNodeBin()->pnode2->AsParseNodePid()->PropertyIdFromNameNode();
+                Js::PropertyId propertyId = pexpr->AsParseNodeBin()->pnode2->AsParseNodeName()->PropertyIdFromNameNode();
                 funcInfo->AcquireLoc(pnode);
                 byteCodeGenerator->Writer()->Property(Js::OpCode::DeleteFld, pnode->location, pexpr->AsParseNodeBin()->pnode1->location,
                     funcInfo->FindOrAddReferencedPropertyId(propertyId));
@@ -10542,7 +10553,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         Emit(pnode->AsParseNodeBin()->pnode1, byteCodeGenerator, funcInfo, false);
         funcInfo->ReleaseLoc(pnode->AsParseNodeBin()->pnode1);
         funcInfo->AcquireLoc(pnode);
-        Js::PropertyId propertyId = pnode->AsParseNodeBin()->pnode2->AsParseNodePid()->PropertyIdFromNameNode();
+        Js::PropertyId propertyId = pnode->AsParseNodeBin()->pnode2->AsParseNodeName()->PropertyIdFromNameNode();
 
         Js::RegSlot callObjLocation = pnode->AsParseNodeBin()->pnode1->location;
         Js::RegSlot protoLocation = callObjLocation;
@@ -10616,11 +10627,11 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
 
         if (ByteCodeGenerator::IsThis(pnode))
         {
-            byteCodeGenerator->EmitPropLoadThis(pnode->location, pnode, funcInfo, true);
+            byteCodeGenerator->EmitPropLoadThis(pnode->location, pnode->AsParseNodeSpecialName(), funcInfo, true);
         }
         else
         {
-            byteCodeGenerator->EmitPropLoad(pnode->location, pnode->AsParseNodePid()->sym, pnode->AsParseNodePid()->pid, funcInfo);
+            byteCodeGenerator->EmitPropLoad(pnode->location, pnode->AsParseNodeName()->sym, pnode->AsParseNodeName()->pid, funcInfo);
         }
         break;
 
@@ -10945,7 +10956,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
     }
     case knopStrTemplate:
         STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
-        EmitStringTemplate(pnode, byteCodeGenerator, funcInfo);
+        EmitStringTemplate(pnode->AsParseNodeStrTemplate(), byteCodeGenerator, funcInfo);
         ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
     case knopEndCode:
@@ -11053,7 +11064,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
 
         if (pnodeIf->emitLabels)
         {
-            byteCodeGenerator->Writer()->MarkLabel(pnode->AsParseNodeStmt()->breakLabel);
+            byteCodeGenerator->Writer()->MarkLabel(pnodeIf->breakLabel);
         }
         break;
     }
@@ -11092,18 +11103,20 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         break;
         // PTNODE(knopReturn     , "return"    ,None    ,Uni  ,fnopNone)
     case knopReturn:
-        byteCodeGenerator->StartStatement(pnode);
-        if (pnode->AsParseNodeReturn()->pnodeExpr != nullptr)
+    {
+        ParseNodeReturn * pnodeReturn = pnode->AsParseNodeReturn();
+        byteCodeGenerator->StartStatement(pnodeReturn);
+        if (pnodeReturn->pnodeExpr != nullptr)
         {
-            if (pnode->AsParseNodeReturn()->pnodeExpr->location == Js::Constants::NoRegister)
+            if (pnodeReturn->pnodeExpr->location == Js::Constants::NoRegister)
             {
                 // No need to burn a register for the return value. If we need a temp, use R0 directly.
-                pnode->AsParseNodeReturn()->pnodeExpr->location = ByteCodeGenerator::ReturnRegister;
+                pnodeReturn->pnodeExpr->location = ByteCodeGenerator::ReturnRegister;
             }
-            Emit(pnode->AsParseNodeReturn()->pnodeExpr, byteCodeGenerator, funcInfo, fReturnValue);
-            if (pnode->AsParseNodeReturn()->pnodeExpr->location != ByteCodeGenerator::ReturnRegister)
+            Emit(pnodeReturn->pnodeExpr, byteCodeGenerator, funcInfo, fReturnValue);
+            if (pnodeReturn->pnodeExpr->location != ByteCodeGenerator::ReturnRegister)
             {
-                byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, ByteCodeGenerator::ReturnRegister, pnode->AsParseNodeReturn()->pnodeExpr->location);
+                byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, ByteCodeGenerator::ReturnRegister, pnodeReturn->pnodeExpr->location);
             }
             funcInfo->GetParsedFunctionBody()->SetHasNoExplicitReturnValue(false);
         }
@@ -11141,14 +11154,15 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
 
             byteCodeGenerator->Writer()->MarkLabel(returnExprLabel);
         }
-        if (pnode->AsParseNodeStmt()->grfnop & fnopCleanup)
+        if (pnodeReturn->grfnop & fnopCleanup)
         {
-            EmitJumpCleanup(pnode, nullptr, byteCodeGenerator, funcInfo);
+            EmitJumpCleanup(pnodeReturn, nullptr, byteCodeGenerator, funcInfo);
         }
 
         byteCodeGenerator->Writer()->Br(funcInfo->singleExit);
-        byteCodeGenerator->EndStatement(pnode);
+        byteCodeGenerator->EndStatement(pnodeReturn);
         break;
+    }
         // PTNODE(knopBlock      , "{}"        ,None    ,Block,fnopNone)
     case knopBlock:
     {
@@ -11238,15 +11252,18 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         break;
     }
     case knopContinue:
-        Assert(pnode->AsParseNodeJump()->pnodeTarget->emitLabels);
-        byteCodeGenerator->StartStatement(pnode);
-        if (pnode->AsParseNodeStmt()->grfnop & fnopCleanup)
+    {
+        ParseNodeJump * pnodeJump = pnode->AsParseNodeJump();
+        Assert(pnodeJump->pnodeTarget->emitLabels);
+        byteCodeGenerator->StartStatement(pnodeJump);
+        if (pnodeJump->grfnop & fnopCleanup)
         {
-            EmitJumpCleanup(pnode, pnode->AsParseNodeJump()->pnodeTarget, byteCodeGenerator, funcInfo);
+            EmitJumpCleanup(pnodeJump, pnodeJump->pnodeTarget, byteCodeGenerator, funcInfo);
         }
-        byteCodeGenerator->Writer()->Br(pnode->AsParseNodeJump()->pnodeTarget->continueLabel);
-        byteCodeGenerator->EndStatement(pnode);
+        byteCodeGenerator->Writer()->Br(pnodeJump->pnodeTarget->continueLabel);
+        byteCodeGenerator->EndStatement(pnodeJump);
         break;
+    }
         // PTNODE(knopContinue   , "continue"    ,None    ,Jump ,fnopNone)
     case knopSwitch:
     {
@@ -11353,8 +11370,10 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         byteCodeGenerator->Writer()->Empty(Js::OpCode::Leave);
         byteCodeGenerator->Writer()->Br(pnodeTryCatch->breakLabel);
         byteCodeGenerator->Writer()->MarkLabel(catchLabel);
-        Assert(pnodeCatch->pnodeParam);
-        ParseNode *pnodeObj = pnodeCatch->pnodeParam;
+        
+        ParseNode *pnodeObj = pnodeCatch->GetParam();
+        Assert(pnodeObj);
+
         Js::RegSlot location;
 
         bool acquiredTempLocation = false;
@@ -11370,7 +11389,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         }
         else
         {
-            location = pnodeObj->AsParseNodePid()->sym->GetLocation();
+            location = pnodeObj->AsParseNodeName()->sym->GetLocation();
         }
 
         if (location == Js::Constants::NoRegister)
@@ -11481,10 +11500,10 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         }
         else
         {
-            ParamTrackAndInitialization(pnodeObj->AsParseNodePid()->sym, true /*initializeParam*/, location);
+            ParamTrackAndInitialization(pnodeObj->AsParseNodeName()->sym, true /*initializeParam*/, location);
             if (scope->GetMustInstantiate())
             {
-                pnodeObj->AsParseNodePid()->sym->SetIsGlobalCatch(true);
+                pnodeObj->AsParseNodeName()->sym->SetIsGlobalCatch(true);
             }
             byteCodeGenerator->Writer()->RecordCrossFrameEntryExitRecord(true);
 
@@ -11631,7 +11650,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         break;
     case knopYieldStar:
         byteCodeGenerator->StartStatement(pnode);
-        EmitYieldStar(pnode, byteCodeGenerator, funcInfo);
+        EmitYieldStar(pnode->AsParseNodeUni(), byteCodeGenerator, funcInfo);
         byteCodeGenerator->EndStatement(pnode);
         break;
     case knopExportDefault:
