@@ -55,6 +55,34 @@ namespace Js
             return static_cast<DataView*>(aValue);
         }
 
+        static uint32 ToIndex (Var value, ScriptContext *scriptContext)
+        {
+            if (JavascriptOperators::IsUndefined(value))
+            {
+                return 0;
+            }
+
+            if (TaggedInt::Is(value))
+            {
+                int64 index = TaggedInt::ToInt64(value);
+                if (index < 0)
+                {
+                    JavascriptError::ThrowRangeError(scriptContext, JSERR_DataView_InvalidOffset);
+                }
+
+                return  (uint32)index;
+            }
+
+            // Slower path
+            double d = JavascriptConversion::ToInteger(value, scriptContext);
+            if (d < 0.0)
+            {
+                JavascriptError::ThrowRangeError(scriptContext, JSERR_DataView_InvalidOffset);
+            }
+
+            return (uint32)d;
+        }
+
         uint32 GetByteOffset() const { return byteOffset; }
         void ClearLengthAndBufferOnDetach();
 

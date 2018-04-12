@@ -107,6 +107,13 @@
   </test>
   <test>
     <default>
+      <files>dataview2.js</files>
+      <tags>typedarray</tags>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>objectproperty.js</files>
       <baseline>objectproperty_es6.baseline</baseline>
       <tags>typedarray</tags>
