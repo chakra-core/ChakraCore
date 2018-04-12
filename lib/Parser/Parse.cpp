@@ -1596,13 +1596,13 @@ void Parser::CreateSpecialSymbolDeclarations(ParseNodeFnc * pnodeFnc)
         varDeclNode->AsParseNodeVar()->sym->SetIsSuper(true);
     }
 
-    // Create a 'super' (as the call target for super()) symbol.
-    varDeclNode = CreateSpecialVarDeclIfNeeded(pnodeFnc, wellKnownPropertyPids._superConstructor);
-    if (varDeclNode)
-    {
-        varDeclNode->AsParseNodeVar()->sym->SetIsSuperConstructor(true);
+    // Create a 'super' (as the call target for super()) symbol only for derived class constructors.
+        varDeclNode = CreateSpecialVarDeclIfNeeded(pnodeFnc, wellKnownPropertyPids._superConstructor);
+        if (varDeclNode)
+        {
+            varDeclNode->AsParseNodeVar()->sym->SetIsSuperConstructor(true);
+        }
     }
-}
 
 void Parser::FinishParseBlock(ParseNodeBlock *pnodeBlock, bool needScanRCurly)
 {
@@ -2674,7 +2674,7 @@ ParseNodePtr Parser::ParseDefaultExportClause()
 
         // Rewind back to the function token and let the helper handle the parsing.
         this->GetScanner()->SeekTo(parsedFunction);
-        pnode = ParseFncDecl<buildAST>(flags);
+        pnode = ParseFncDeclCheckScope<buildAST>(flags);
 
         if (buildAST)
         {
@@ -3333,7 +3333,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         {
             flags |= fFncAsync;
         }
-        pnode = ParseFncDecl<buildAST>(flags, pNameHint, false, true, fUnaryOrParen);
+        pnode = ParseFncDeclNoCheckScope<buildAST>(flags, pNameHint, false, true, fUnaryOrParen);
         if (isAsyncExpr)
         {
             pnode->AsParseNodeFnc()->cbMin = iecpMin;
@@ -4298,12 +4298,17 @@ ParseNodeBin * Parser::ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint)
     }
 
     this->m_parsingSuperRestrictionState = ParsingSuperRestrictionState_SuperPropertyAllowed;
-    ParseNodePtr pnodeFnc = ParseFncDecl<buildAST>(flags, *ppNameHint,
+    ParseNodeFnc * pnodeFnc = ParseFncDeclNoCheckScope<buildAST>(flags, *ppNameHint,
         /*needsPIDOnRCurlyScan*/ false, /*resetParsingSuperRestrictionState*/ false);
+
+    if (isComputedName)
+    {
+        pnodeFnc->SetHasComputedName();
+    }
 
     if (buildAST)
     {
-        pnodeFnc->AsParseNodeFnc()->SetIsAccessor();
+        pnodeFnc->SetIsAccessor();
         return CreateBinNode(nop, pnodeName, pnodeFnc);
     }
     else
@@ -4573,6 +4578,11 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
             else
             {
                 pnodeExpr = ParseExpr<buildAST>(koplCma, nullptr/*pfCantAssign*/, TRUE/*fAllowIn*/, FALSE/*fAllowEllipsis*/, pFullNameHint, &fullNameHintLength, &shortNameOffset);
+
+                if (isComputedName && pnodeExpr && pnodeExpr->nop == knopFncDecl)
+                {
+                    pnodeExpr->AsParseNodeFnc()->SetHasComputedName();
+                }
             }
 #if DEBUG
             if ((m_grfscr & fscrEnforceJSON) && !IsJSONValid(pnodeExpr))
@@ -4600,17 +4610,23 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
             // Rewind to the PID and parse a function expression.
             this->GetScanner()->SeekTo(atPid);
             this->m_parsingSuperRestrictionState = ParsingSuperRestrictionState_SuperPropertyAllowed;
-            ParseNodePtr pnodeFunc = ParseFncDecl<buildAST>(fncDeclFlags | (isAsyncMethod ? fFncAsync : fFncNoFlgs), pFullNameHint,
+            ParseNodeFnc * pnodeFnc = ParseFncDeclNoCheckScope<buildAST>(fncDeclFlags | (isAsyncMethod ? fFncAsync : fFncNoFlgs), pFullNameHint,
                 /*needsPIDOnRCurlyScan*/ false, /*resetParsingSuperRestrictionState*/ false);
 
             if (isAsyncMethod || isGenerator)
             {
-                pnodeFunc->AsParseNodeFnc()->cbMin = iecpMin;
-                pnodeFunc->ichMin = ichMin;
+                pnodeFnc->cbMin = iecpMin;
+                pnodeFnc->ichMin = ichMin;
             }
+
+            if (isComputedName)
+            {
+                pnodeFnc->SetHasComputedName();
+            }
+
             if (buildAST)
             {
-                pnodeArg = CreateBinNode(knopMember, pnodeName, pnodeFunc);
+                pnodeArg = CreateBinNode(knopMember, pnodeName, pnodeFnc);
             }
         }
         else if (nullptr != pidHint) //Its either tkID/tkStrCon/tkFloatCon/tkIntCon
@@ -4807,7 +4823,61 @@ BOOL Parser::IsDeferredFnc()
 }
 
 template<bool buildAST>
-ParseNode * Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool needsPIDOnRCurlyScan, bool resetParsingSuperRestrictionState, bool fUnaryOrParen)
+ParseNode * Parser::ParseFncDeclCheckScope(ushort flags, bool resetParsingSuperRestrictionState)
+{
+    ParseNodeBlock * pnodeFncBlockScope = nullptr;
+    ParseNodePtr *ppnodeScopeSave = nullptr;
+    ParseNodePtr *ppnodeExprScopeSave = nullptr;
+    bool fDeclaration = flags & fFncDeclaration;
+    bool noStmtContext = false;
+    if (fDeclaration)
+    {
+        noStmtContext = m_pstmtCur->GetNop() != knopBlock;
+
+        if (noStmtContext)
+        {
+            // We have a function declaration like "if (a) function f() {}". We didn't see
+            // a block scope on the way in, so we need to pretend we did. Note that this is a syntax error
+            // in strict mode.
+            if (!this->FncDeclAllowedWithoutContext(flags))
+            {
+                Error(ERRsyntax);
+            }
+            pnodeFncBlockScope = StartParseBlock<buildAST>(PnodeBlockType::Regular, ScopeType_Block);
+            if (buildAST)
+            {
+                PushFuncBlockScope(pnodeFncBlockScope, &ppnodeScopeSave, &ppnodeExprScopeSave);
+            }
+        }
+    }
+
+    ParseNodeFnc * pnodeFnc = ParseFncDeclInternal<buildAST>(flags, nullptr, /* needsPIDOnRCurlyScan */ false, resetParsingSuperRestrictionState, /* fUnaryOrParen */ false, noStmtContext);
+
+    if (pnodeFncBlockScope)
+    {
+        Assert(pnodeFncBlockScope->pnodeStmt == nullptr);
+        pnodeFncBlockScope->pnodeStmt = pnodeFnc;
+        if (buildAST)
+        {
+            PopFuncBlockScope(ppnodeScopeSave, ppnodeExprScopeSave);
+        }
+        FinishParseBlock(pnodeFncBlockScope);
+        return pnodeFncBlockScope;
+    }
+
+    return pnodeFnc;
+
+}
+
+template<bool buildAST>
+ParseNodeFnc * Parser::ParseFncDeclNoCheckScope(ushort flags, LPCOLESTR pNameHint, const bool needsPIDOnRCurlyScan, bool resetParsingSuperRestrictionState, bool fUnaryOrParen)
+{
+    Assert((flags & fFncDeclaration) == 0);
+    return ParseFncDeclInternal<buildAST>(flags, pNameHint, needsPIDOnRCurlyScan, resetParsingSuperRestrictionState, fUnaryOrParen, /* noStmtContext */ false);
+}
+
+template<bool buildAST>
+ParseNodeFnc * Parser::ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, const bool needsPIDOnRCurlyScan, bool resetParsingSuperRestrictionState, bool fUnaryOrParen, bool noStmtContext)
 {
     AutoParsingSuperRestrictionStateRestorer restorer(this);
     if (resetParsingSuperRestrictionState)
@@ -4818,10 +4888,7 @@ ParseNode * Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool n
 
     ParseNodeFnc * pnodeFnc = nullptr;
     ParseNodePtr *ppnodeVarSave = nullptr;
-    ParseNodeBlock * pnodeFncBlockScope = nullptr;
-    ParseNodePtr *ppnodeScopeSave = nullptr;
-    ParseNodePtr *ppnodeExprScopeSave = nullptr;
-    bool funcHasName = false;
+
     bool fDeclaration = flags & fFncDeclaration;
     bool fModule = (flags & fFncModule) != 0;
     bool fLambda = (flags & fFncLambda) != 0;
@@ -4847,29 +4914,6 @@ ParseNode * Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool n
     uint scopeCountNoAstSave = m_scopeCountNoAst;
     m_scopeCountNoAst = 0;
 
-    bool noStmtContext = false;
-
-    if (fDeclaration)
-    {
-        noStmtContext = m_pstmtCur->GetNop() != knopBlock;
-
-        if (noStmtContext)
-        {
-            // We have a function declaration like "if (a) function f() {}". We didn't see
-            // a block scope on the way in, so we need to pretend we did. Note that this is a syntax error
-            // in strict mode.
-            if (!this->FncDeclAllowedWithoutContext(flags))
-            {
-                Error(ERRsyntax);
-            }
-            pnodeFncBlockScope = StartParseBlock<buildAST>(PnodeBlockType::Regular, ScopeType_Block);
-            if (buildAST)
-            {
-                PushFuncBlockScope(pnodeFncBlockScope, &ppnodeScopeSave, &ppnodeExprScopeSave);
-            }
-        }
-    }
-
     // Create the node.
     pnodeFnc = CreateAllowDeferNodeForOpT<knopFncDecl>();
     pnodeFnc->SetDeclaration(fDeclaration);
@@ -4878,8 +4922,8 @@ ParseNode * Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool n
     pnodeFnc->cbMin = this->GetScanner()->IecpMinTok();
     pnodeFnc->functionId = (*m_nextFunctionId)++;
 
-    // Push new parser state with this new function node
 
+    // Push new parser state with this new function node
     AppendFunctionToScopeList(fDeclaration, pnodeFnc);
 
     // Start the argument list.
@@ -4913,17 +4957,9 @@ ParseNode * Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool n
 
     IdentPtr pFncNamePid = nullptr;
     bool needScanRCurly = true;
-    bool result = ParseFncDeclHelper<buildAST>(pnodeFnc, pNameHint, flags, &funcHasName, fUnaryOrParen, noStmtContext, &needScanRCurly, fModule, &pFncNamePid);
-
+    ParseFncDeclHelper<buildAST>(pnodeFnc, pNameHint, flags, fUnaryOrParen, noStmtContext, &needScanRCurly, fModule, &pFncNamePid);
     AddNestedCapturedNames(pnodeFnc);
-
-    if (!result)
-    {
-        Assert(!pnodeFncBlockScope);
-
-        return pnodeFnc;
-    }
-
+  
     AnalysisAssert(pnodeFnc);
 
     *m_ppnodeVar = nullptr;
@@ -5027,21 +5063,7 @@ ParseNode * Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool n
         {
             GetCurrentFunctionNode()->SetHasAnyWriteToFormals(true);
         }
-    }
-
-    if (pnodeFncBlockScope)
-    {
-        Assert(pnodeFncBlockScope->pnodeStmt == nullptr);
-        pnodeFncBlockScope->pnodeStmt = pnodeFnc;
-        if (buildAST)
-        {
-            PopFuncBlockScope(ppnodeScopeSave, ppnodeExprScopeSave);
-        }
-        FinishParseBlock(pnodeFncBlockScope);
-        return pnodeFncBlockScope;
-    }
-
-    this->m_tryCatchOrFinallyDepth = tryCatchOrFinallyDepthSave;
+    }    this->m_tryCatchOrFinallyDepth = tryCatchOrFinallyDepthSave;
 
     return pnodeFnc;
 }
@@ -5107,8 +5129,9 @@ void Parser::AppendFunctionToScopeList(bool fDeclaration, ParseNodeFnc * pnodeFn
 Parse a function definition.
 ***************************************************************************/
 template<bool buildAST>
-bool Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, ushort flags, bool *pHasName, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly, bool skipFormals, IdentPtr* pFncNamePid)
+void Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, ushort flags, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly, bool skipFormals, IdentPtr* pFncNamePid)
 {
+    Assert(pnodeFnc);
     ParseNodeFnc * pnodeFncParent = GetCurrentFunctionNode();
     // is the following correct? When buildAST is false, m_currentNodeDeferredFunc can be nullptr on transition to deferred parse from non-deferred
     ParseNodeFnc * pnodeFncSave = buildAST ? m_currentNodeFunc : m_currentNodeDeferredFunc;
@@ -5121,7 +5144,6 @@ bool Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
     bool fModule = (flags & fFncModule) != 0;
     bool fDeferred = false;
     StmtNest *pstmtSave;
-    ParseNodePtr *lastNodeRef = nullptr;
     bool fFunctionInBlock = false;
 
     if (buildAST)
@@ -5151,7 +5173,10 @@ bool Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
         this->UpdateCurrentNodeFunc<buildAST>(pnodeFnc, fLambda);
     }
 
-    *pHasName = !fLambda && !fModule && this->ParseFncNames<buildAST>(pnodeFnc, pnodeFncSave, flags, &lastNodeRef, pFncNamePid);
+    if (!fLambda && !fModule)
+    {
+        this->ParseFncName<buildAST>(pnodeFnc, flags, pFncNamePid);
+    }
 
     if (fDeclaration)
     {
@@ -5170,15 +5195,15 @@ bool Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
 
     // switch scanner to treat 'yield' as keyword in generator functions
     // or as an identifier in non-generator functions
-    bool fPreviousYieldIsKeyword = this->GetScanner()->SetYieldIsKeywordRegion(pnodeFnc && pnodeFnc->IsGenerator());
+    bool fPreviousYieldIsKeyword = this->GetScanner()->SetYieldIsKeywordRegion(pnodeFnc->IsGenerator());
     bool fPreviousAwaitIsKeyword = this->GetScanner()->SetAwaitIsKeywordRegion(fAsync);
 
-    if (pnodeFnc && pnodeFnc->IsGenerator())
+    if (pnodeFnc->IsGenerator())
     {
         CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(ES6, Generator, m_scriptContext);
     }
 
-    if (fncExprScope && !*pHasName)
+    if (fncExprScope && pnodeFnc->pnodeName == nullptr)
     {
         FinishParseBlock(pnodeFncExprScope);
         m_nextBlockId--;
@@ -5186,10 +5211,8 @@ bool Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
         fncExprScope = nullptr;
         pnodeFncExprScope = nullptr;
     }
-    if (pnodeFnc)
-    {
-        pnodeFnc->scope = fncExprScope;
-    }
+
+    pnodeFnc->scope = fncExprScope;
 
     // Start a new statement stack.
     bool topLevelStmt =
@@ -5232,27 +5255,24 @@ bool Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
 #endif
 
     bool doParallel = false;
+#if ENABLE_BACKGROUND_PARSING
     bool parallelJobStarted = false;
+#endif
     if (buildAST)
     {
-        bool isLikelyIIFE = !fDeclaration && pnodeFnc && fUnaryOrParen;
+        bool isLikelyIIFE = !fDeclaration && fUnaryOrParen;
 
         BOOL isDeferredFnc = IsDeferredFnc();
-        AnalysisAssert(isDeferredFnc || pnodeFnc);
         // These are the conditions that prohibit upfront deferral *and* redeferral.
         isTopLevelDeferredFunc =
-            (pnodeFnc
-                && DeferredParse(pnodeFnc->functionId)
+            (DeferredParse(pnodeFnc->functionId)
                 && (!pnodeFnc->IsNested() || CONFIG_FLAG(DeferNested))
                 && !m_InAsmMode
                 // Don't defer a module function wrapper because we need to do export resolution at parse time
                 && !fModule
                 );
 
-        if (pnodeFnc)
-        {
-            pnodeFnc->SetCanBeDeferred(isTopLevelDeferredFunc && ParseNodeFnc::CanBeRedeferred(pnodeFnc->fncFlags));
-        }
+        pnodeFnc->SetCanBeDeferred(isTopLevelDeferredFunc && ParseNodeFnc::CanBeRedeferred(pnodeFnc->fncFlags));
 
         // These are heuristic conditions that prohibit upfront deferral but not redeferral.
         isTopLevelDeferredFunc = isTopLevelDeferredFunc && !isDeferredFnc &&
@@ -5300,6 +5320,7 @@ bool Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
 
     if (!doParallel)
     {
+#if ENABLE_BACKGROUND_PARSING
         // We don't want to, or couldn't, let the main thread scan past this function body, so parse
         // it for real.
         ParseNodeFnc * pnodeRealFnc = pnodeFnc;
@@ -5310,6 +5331,7 @@ bool Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
             // operate on the same node.
             pnodeFnc = CreateDummyFuncNode(fDeclaration);
         }
+#endif
 
         AnalysisAssert(pnodeFnc);
         ParseNodeBlock * pnodeBlock = StartParseBlock<buildAST>(PnodeBlockType::Parameter, ScopeType_Parameter);
@@ -5446,7 +5468,8 @@ bool Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
 
                 if (pnodeFnc->IsBodyAndParamScopeMerged() && !fDeclaration && pnodeFnc->pnodeName != nullptr)
                 {
-                    Symbol* funcSym = pnodeFnc->pnodeName->AsParseNodeVar()->sym;
+                    Assert(pnodeFnc->pnodeName->nop == knopVarDecl);
+                    Symbol* funcSym = pnodeFnc->pnodeName->sym;
                     if (funcSym->GetPid()->GetTopRef()->GetFuncScopeId() > pnodeFnc->functionId)
                     {
                         // This is a function expression with name captured in the param scope. In non-eval, non-split cases the function
@@ -5527,7 +5550,7 @@ bool Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
 
             if (!pnodeFnc->IsBodyAndParamScopeMerged())
             {
-                OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, _u("The param and body scope of the function %s cannot be merged\n"), pnodeFnc->pnodeName ? pnodeFnc->pnodeName->AsParseNodeVar()->pid->Psz() : _u("Anonymous function"));
+                OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, _u("The param and body scope of the function %s cannot be merged\n"), pnodeFnc->pnodeName ? pnodeFnc->pnodeName->pid->Psz() : _u("Anonymous function"));
             }
 
             // Keep nested function declarations and expressions in the same list at function scope.
@@ -5570,7 +5593,7 @@ bool Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
                 {
                     *pNeedScanRCurly = false;
                 }
-                this->FinishFncDecl(pnodeFnc, pNameHint, lastNodeRef, fLambda, skipFormals);
+                this->FinishFncDecl(pnodeFnc, pNameHint, fLambda, skipFormals);
 
                 m_currDeferredStub = saveCurrentStub;
             }
@@ -5620,7 +5643,7 @@ bool Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
                 RestorePoint afterFnc;
                 this->GetScanner()->Capture(&afterFnc);
 
-                if (*pHasName)
+                if (pnodeFnc->pnodeName != nullptr)
                 {
                     // Rewind to the function name hint and check if the token is a reserved word.
                     this->GetScanner()->SeekTo(beginNameHint);
@@ -5648,9 +5671,10 @@ bool Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
 
             if (buildAST)
             {
-                if (pnodeFnc->pnodeName != nullptr && knopVarDecl == pnodeFnc->pnodeName->nop)
+                if (pnodeFnc->pnodeName != nullptr)
                 {
-                    CheckStrictModeEvalArgumentsUsage(pnodeFnc->pnodeName->AsParseNodeVar()->pid, pnodeFnc->pnodeName);
+                    Assert(pnodeFnc->pnodeName->nop == knopVarDecl);
+                    CheckStrictModeEvalArgumentsUsage(pnodeFnc->pnodeName->pid, pnodeFnc->pnodeName);
                 }
             }
 
@@ -5666,6 +5690,7 @@ bool Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
             pnodeFnc->pnodeVars = nullptr;
         }
 
+#if ENABLE_BACKGROUND_PARSING
         if (parallelJobStarted)
         {
             pnodeFnc = pnodeRealFnc;
@@ -5677,6 +5702,7 @@ bool Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
             pnodeFnc->ichLim = this->GetScanner()->IchLimTok();
             pnodeFnc->cbLim = this->GetScanner()->IecpLimTok();
         }
+#endif
     }
 
     // after parsing asm.js module, we want to reset asm.js state before continuing
@@ -5731,8 +5757,6 @@ bool Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
     {
         GetCurrentFunctionNode()->SetHasWithStmt(true);
     }
-
-    return true;
 }
 
 template<bool buildAST>
@@ -6236,41 +6260,12 @@ void Parser::ParseNestedDeferredFunc(ParseNodeFnc * pnodeFnc, bool fLambda, bool
 }
 
 template<bool buildAST>
-bool Parser::ParseFncNames(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeFncParent, ushort flags, ParseNodePtr **pLastNodeRef, IdentPtr* pFncNamePid)
+void Parser::ParseFncName(ParseNodeFnc * pnodeFnc, ushort flags, IdentPtr* pFncNamePid)
 {
+    Assert(pnodeFnc);
     BOOL fDeclaration = flags & fFncDeclaration;
     BOOL fIsAsync = flags & fFncAsync;
-    ParseNodePtr pnodeT;
-    charcount_t ichMinNames, ichLimNames;
-
-    // Get the names to bind to.
-    /*
-    * KaushiS [5/15/08]:
-    * ECMAScript defines a FunctionExpression as follows:
-    *
-    * "function" [Identifier] ( [FormalParameterList] ) { FunctionBody }
-    *
-    * The function name being optional is omitted by most real world
-    * code that uses a FunctionExpression to define a function. This however
-    * is problematic for tools because there isn't a function name that
-    * the runtime can provide.
-    *
-    * To fix this (primarily for the profiler), I'm adding simple, static
-    * name inferencing logic to the parser. When it encounters the following
-    * productions
-    *
-    *   "var" Identifier "=" FunctionExpression
-    *   "var" IdentifierA.IdentifierB...Identifier "=" FunctionExpression
-    *   Identifier = FunctionExpression
-    *   "{" Identifier: FunctionExpression "}"
-    *
-    * it associates Identifier with the function created by the
-    * FunctionExpression. This identifier is *not* the function's name. It
-    * is ignored by the runtime and is only an additional piece of information
-    * about the function (function name hint) that tools could opt to
-    * surface.
-    */
-
+    
     this->GetScanner()->Scan();
 
     // If generators are enabled then we are in a recent enough version
@@ -6308,23 +6303,18 @@ bool Parser::ParseFncNames(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeFncParen
         pnodeFnc->SetIsAsync();
     }
 
-    if (pnodeFnc)
-    {
-        pnodeFnc->pnodeName = nullptr;
-    }
+    pnodeFnc->pnodeName = nullptr;
 
     if ((m_token.tk != tkID || flags & fFncNoName)
-        && (IsStrictMode() || (pnodeFnc && pnodeFnc->IsGenerator()) || m_token.tk != tkYIELD || fDeclaration)) // Function expressions can have the name yield even inside generator functions
+        && (IsStrictMode() || (pnodeFnc->IsGenerator()) || m_token.tk != tkYIELD || fDeclaration)) // Function expressions can have the name yield even inside generator functions
     {
         if (fDeclaration ||
             m_token.IsReservedWord())  // For example:  var x = (function break(){});
         {
             IdentifierExpectedError(m_token);
         }
-        return false;
+        return;
     }
-
-    ichMinNames = this->GetScanner()->IchMinTok();
 
     Assert(m_token.tk == tkID || (m_token.tk == tkYIELD && !fDeclaration));
 
@@ -6332,46 +6322,18 @@ bool Parser::ParseFncNames(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeFncParen
     {
         CheckStrictModeEvalArgumentsUsage(m_token.GetIdentifier(this->GetHashTbl()));
     }
-    Token tokenBase = m_token;
-    charcount_t ichMinBase = this->GetScanner()->IchMinTok();
-    charcount_t ichLimBase = this->GetScanner()->IchLimTok();
 
-    this->GetScanner()->Scan();
 
-    IdentPtr pidBase = tokenBase.GetIdentifier(this->GetHashTbl());
-    pnodeT = CreateDeclNode(knopVarDecl, pidBase, STFunction);
-    pnodeT->ichMin = ichMinBase;
-    pnodeT->ichLim = ichLimBase;
+    IdentPtr pidBase = m_token.GetIdentifier(this->GetHashTbl());
+    pnodeFnc->pnodeName = CreateDeclNode(knopVarDecl, pidBase, STFunction);
+    pnodeFnc->pid = pnodeFnc->pnodeName->pid;
 
     if (pFncNamePid != nullptr)
     {
         *pFncNamePid = pidBase;
     }
 
-    if (buildAST)
-    {
-        AnalysisAssert(pnodeFnc);
-        ichLimNames = pnodeT->ichLim;
-        AddToNodeList(&pnodeFnc->pnodeName, pLastNodeRef, pnodeT);
-
-        pnodeFnc->pnodeName->ichMin = ichMinNames;
-        pnodeFnc->pnodeName->ichLim = ichLimNames;
-        if (knopVarDecl == pnodeFnc->pnodeName->nop)
-        {
-            // Only one name (the common case).
-            pnodeFnc->pid = pnodeFnc->pnodeName->AsParseNodeVar()->pid;
-        }
-        else
-        {
-            // Multiple names. Turn the source into an IdentPtr.
-            pnodeFnc->pid = this->GetHashTbl()->PidHashNameLen(
-                this->GetScanner()->PchBase() + ichMinNames,
-                this->GetScanner()->AdjustedLast(),
-                ichLimNames - ichMinNames);
-        }
-    }
-
-    return true;
+    this->GetScanner()->Scan();
 }
 
 void Parser::ValidateFormals()
@@ -6747,7 +6709,7 @@ void Parser::ParseFncFormals(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeParent
 template<bool buildAST>
 ParseNodePtr Parser::GenerateModuleFunctionWrapper()
 {
-    ParseNodePtr pnodeFnc = ParseFncDecl<buildAST>(fFncModule, nullptr, false, true, true);
+    ParseNodePtr pnodeFnc = ParseFncDeclNoCheckScope<buildAST>(fFncModule, nullptr, false, true, true);
     ParseNodePtr callNode = CreateCallNode(knopCall, pnodeFnc, nullptr);
 
     return callNode;
@@ -6769,6 +6731,7 @@ ParseNodeFnc * Parser::GenerateEmptyConstructor(bool extends)
     pnodeFnc->SetIsBaseClassConstructor(!extends);
     pnodeFnc->SetHasNonThisStmt();
     pnodeFnc->SetIsGeneratedDefault(TRUE);
+    pnodeFnc->SetHasComputedName();
 
     pnodeFnc->ichLim = this->GetScanner()->IchLimTok();
     pnodeFnc->ichMin = this->GetScanner()->IchMinTok();
@@ -7168,11 +7131,10 @@ void Parser::FinishFncNode(ParseNodeFnc * pnodeFnc)
     {
         // Note that in IE8- modes, surrounding parentheses are considered part of function body. e.g. "( function x(){} )".
         // We lose that context here since we start from middle of function body. So save and restore source range info.
-        ParseNodePtr* lastNodeRef = NULL;
         const charcount_t ichLim = pnodeFnc->ichLim;
         const size_t cbLim = pnodeFnc->cbLim;
 
-        this->FinishFncDecl(pnodeFnc, NULL, lastNodeRef, fLambda);
+        this->FinishFncDecl(pnodeFnc, NULL, fLambda);
 
 #if DBG
         // The pnode extent may not match the original extent.
@@ -7205,7 +7167,7 @@ void Parser::FinishFncNode(ParseNodeFnc * pnodeFnc)
     this->GetScanner()->SetAwaitIsKeywordRegion(fPreviousAwaitIsKeyword);
 }
 
-void Parser::FinishFncDecl(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, ParseNodePtr *lastNodeRef, bool fLambda, bool skipCurlyBraces)
+void Parser::FinishFncDecl(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, bool fLambda, bool skipCurlyBraces)
 {
     LPCOLESTR name = NULL;
     JS_ETW(int32 startAstSize = *m_pCurrentAstSize);
@@ -7236,6 +7198,7 @@ void Parser::FinishFncDecl(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, ParseNo
             ChkCurTok(tkLCurly, ERRnoLcurly);
         }
 
+        ParseNodePtr * lastNodeRef = nullptr;
         ParseStmtList<true>(&pnodeFnc->pnodeBody, &lastNodeRef, SM_OnFunctionCode, true /* isSourceElementList */);
         // Append an EndCode node.
         AddToNodeList(&pnodeFnc->pnodeBody, &lastNodeRef, CreateNodeForOpT<knopEndCode>());
@@ -7326,9 +7289,10 @@ void Parser::UpdateArgumentsNode(ParseNodeFnc * pnodeFnc, ParseNodeVar * argNode
 LPCOLESTR Parser::GetFunctionName(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint)
 {
     LPCOLESTR name = nullptr;
-    if (pnodeFnc->pnodeName != nullptr && knopVarDecl == pnodeFnc->pnodeName->nop)
+    if (pnodeFnc->pnodeName != nullptr)
     {
-        name = pnodeFnc->pnodeName->AsParseNodeVar()->pid->Psz();
+        Assert(pnodeFnc->pnodeName->nop == knopVarDecl);
+        name = pnodeFnc->pnodeName->pid->Psz();
     }
     if (name == nullptr && pNameHint != nullptr)
     {
@@ -7452,7 +7416,7 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
     bool hasExtends = false;
     IdentPtr name = nullptr;
     ParseNodeVar * pnodeName = nullptr;
-    ParseNodePtr pnodeConstructor = nullptr;
+    ParseNodeFnc * pnodeConstructor = nullptr;
     ParseNodePtr pnodeExtends = nullptr;
     ParseNodePtr pnodeMembers = nullptr;
     ParseNodePtr *lastMemberNodeRef = nullptr;
@@ -7656,23 +7620,24 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
                 AutoParsingSuperRestrictionStateRestorer restorer(this);
                 this->m_parsingSuperRestrictionState = hasExtends ? ParsingSuperRestrictionState_SuperCallAndPropertyAllowed : ParsingSuperRestrictionState_SuperPropertyAllowed;
 
-                // Add the class constructor flag and base class constructor flag (for non-derived constructors)
+                // Add the class constructor flag and base class constructor flag if pnodeExtends is nullptr
                 fncDeclFlags |= fFncClassConstructor | (hasExtends ? kFunctionNone : fFncBaseClassConstructor);
-                pnodeConstructor = ParseFncDecl<buildAST>(fncDeclFlags, pConstructorName, /* needsPIDOnRCurlyScan */ true, /* resetParsingSuperRestrictionState = */false);
+                pnodeConstructor = ParseFncDeclNoCheckScope<buildAST>(fncDeclFlags, pConstructorName, /* needsPIDOnRCurlyScan */ true, /* resetParsingSuperRestrictionState = */false);
             }
 
-            if (pnodeConstructor->AsParseNodeFnc()->IsGenerator())
+            if (pnodeConstructor->IsGenerator())
             {
                 Error(ERRConstructorCannotBeGenerator);
             }
 
             Assert(constructorNameLength >= constructorShortNameHintOffset);
             // The constructor function will get the same name as class.
-            pnodeConstructor->AsParseNodeFnc()->hint = pConstructorName;
-            pnodeConstructor->AsParseNodeFnc()->hintLength = constructorNameLength;
-            pnodeConstructor->AsParseNodeFnc()->hintOffset = constructorShortNameHintOffset;
-            pnodeConstructor->AsParseNodeFnc()->pid = pnodeName && pnodeName->pid ? pnodeName->pid : wellKnownPropertyPids.constructor;
-            pnodeConstructor->AsParseNodeFnc()->SetHasNonThisStmt();
+            pnodeConstructor->hint = pConstructorName;
+            pnodeConstructor->hintLength = constructorNameLength;
+            pnodeConstructor->hintOffset = constructorShortNameHintOffset;
+            pnodeConstructor->pid = pnodeName && pnodeName->pid ? pnodeName->pid : wellKnownPropertyPids.constructor;
+            pnodeConstructor->SetHasNonThisStmt();
+            pnodeConstructor->SetHasComputedName();
         }
         else
         {
@@ -7716,20 +7681,24 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
                     pnodeMemberName = CreateStrNode(memberPid);
                 }
 
-                ParseNodePtr pnodeFnc = nullptr;
+                ParseNodeFnc * pnodeFnc = nullptr;
                 {
                     AutoParsingSuperRestrictionStateRestorer restorer(this);
                     this->m_parsingSuperRestrictionState = ParsingSuperRestrictionState_SuperPropertyAllowed;
-                    pnodeFnc = ParseFncDecl<buildAST>(fncDeclFlags | (isGetter ? fFncNoArg : fFncOneArg),
+                    pnodeFnc = ParseFncDeclNoCheckScope<buildAST>(fncDeclFlags | (isGetter ? fFncNoArg : fFncOneArg),
                         pidHint ? pidHint->Psz() : nullptr, /* needsPIDOnRCurlyScan */ true,
                         /* resetParsingSuperRestrictionState */false);
                 }
 
-                pnodeFnc->AsParseNodeFnc()->SetIsStaticMember(isStatic);
+                pnodeFnc->SetIsStaticMember(isStatic);
+                if (isComputedName)
+                {
+                    pnodeFnc->SetHasComputedName();
+                }
 
                 if (buildAST)
                 {
-                    pnodeFnc->AsParseNodeFnc()->SetIsAccessor();
+                    pnodeFnc->SetIsAccessor();
                     pnodeMember = CreateBinNode(isGetter ? knopGetMember : knopSetMember, pnodeMemberName, pnodeFnc);
                     pMemberNameHint = ConstructFinalHintNode(pClassNamePid, pidHint,
                         isGetter ? wellKnownPropertyPids.get : wellKnownPropertyPids.set, isStatic,
@@ -7743,7 +7712,7 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
                     Error(ERRsyntax);
                 }
 
-                ParseNodePtr pnodeFnc = nullptr;
+                ParseNodeFnc * pnodeFnc = nullptr;
                 {
                     AutoParsingSuperRestrictionStateRestorer restorer(this);
                     this->m_parsingSuperRestrictionState = ParsingSuperRestrictionState_SuperPropertyAllowed;
@@ -7752,14 +7721,18 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
                     {
                         fncDeclFlags |= fFncAsync;
                     }
-                    pnodeFnc = ParseFncDecl<buildAST>(fncDeclFlags, pidHint ? pidHint->Psz() : nullptr, /* needsPIDOnRCurlyScan */ true, /* resetParsingSuperRestrictionState */false);
+                    pnodeFnc = ParseFncDeclNoCheckScope<buildAST>(fncDeclFlags, pidHint ? pidHint->Psz() : nullptr, /* needsPIDOnRCurlyScan */ true, /* resetParsingSuperRestrictionState */false);
                     if (isAsyncMethod)
                     {
-                        pnodeFnc->AsParseNodeFnc()->cbMin = iecpMin;
+                        pnodeFnc->cbMin = iecpMin;
                         pnodeFnc->ichMin = ichMin;
                     }
                 }
-                pnodeFnc->AsParseNodeFnc()->SetIsStaticMember(isStatic);
+                pnodeFnc->SetIsStaticMember(isStatic);
+                if (isComputedName)
+                {
+                    pnodeFnc->SetHasComputedName();
+                }
 
                 if (buildAST)
                 {
@@ -7797,22 +7770,23 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
         this->GetScanner()->SeekTo(beginClass);
 
         pnodeConstructor = GenerateEmptyConstructor<buildAST>(pnodeExtends != nullptr);
+
         if (buildAST)
         {
             if (pClassNamePid)
             {
-                pnodeConstructor->AsParseNodeFnc()->hint = pClassNamePid->Psz();
-                pnodeConstructor->AsParseNodeFnc()->hintLength = pClassNamePid->Cch();
-                pnodeConstructor->AsParseNodeFnc()->hintOffset = 0;
+                pnodeConstructor->hint = pClassNamePid->Psz();
+                pnodeConstructor->hintLength = pClassNamePid->Cch();
+                pnodeConstructor->hintOffset = 0;
             }
             else
             {
                 Assert(nameHintLength >= nameHintOffset);
-                pnodeConstructor->AsParseNodeFnc()->hint = pNameHint;
-                pnodeConstructor->AsParseNodeFnc()->hintLength = nameHintLength;
-                pnodeConstructor->AsParseNodeFnc()->hintOffset = nameHintOffset;
+                pnodeConstructor->hint = pNameHint;
+                pnodeConstructor->hintLength = nameHintLength;
+                pnodeConstructor->hintOffset = nameHintOffset;
             }
-            pnodeConstructor->AsParseNodeFnc()->pid = pClassNamePid;
+            pnodeConstructor->pid = pClassNamePid;
         }
 
         this->GetScanner()->SeekTo(endClass);
@@ -7820,8 +7794,8 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
 
     if (buildAST)
     {
-        pnodeConstructor->AsParseNodeFnc()->cbMin = cbMinConstructor;
-        pnodeConstructor->AsParseNodeFnc()->cbLim = cbLimConstructor;
+        pnodeConstructor->cbMin = cbMinConstructor;
+        pnodeConstructor->cbLim = cbLimConstructor;
         pnodeConstructor->ichMin = pnodeClass->ichMin;
         pnodeConstructor->ichLim = pnodeClass->ichLim;
 
@@ -8849,7 +8823,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                     this->GetScanner()->SeekTo(termStart);
                 }
             }
-            pnode = ParseFncDecl<buildAST>(flags, nullptr, /* needsPIDOnRCurlyScan = */false, /* resetParsingSuperRestrictionState = */false);
+            pnode = ParseFncDeclNoCheckScope<buildAST>(flags, nullptr, /* needsPIDOnRCurlyScan = */false, /* resetParsingSuperRestrictionState = */false);
             if (isAsyncMethod)
             {
                 pnode->AsParseNodeFnc()->cbMin = iecpMin;
@@ -8905,9 +8879,9 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 {
                     Assert(pnode->AsParseNodeBin()->pnode2->AsParseNodeClass()->pnodeConstructor);
 
-                    if (!pnode->AsParseNodeBin()->pnode2->AsParseNodeClass()->pnodeConstructor->AsParseNodeFnc()->pid)
+                    if (!pnode->AsParseNodeBin()->pnode2->AsParseNodeClass()->pnodeConstructor->pid)
                     {
-                        pnode->AsParseNodeBin()->pnode2->AsParseNodeClass()->pnodeConstructor->AsParseNodeFnc()->isNameIdentifierRef = false;
+                        pnode->AsParseNodeBin()->pnode2->AsParseNodeClass()->pnodeConstructor->isNameIdentifierRef = false;
                     }
                 }
             }
@@ -9697,11 +9671,11 @@ LRestart:
             // parsing it, so unset the flag so that any nested functions are parsed normally. This flag is only applicable the
             // first time we see it.
             m_grfscr &= ~fscrDeferredFncExpression;
-            pnode = ParseFncDecl<buildAST>(isAsyncMethod ? fFncAsync : fFncNoFlgs, nullptr);
+            pnode = ParseFncDeclNoCheckScope<buildAST>(isAsyncMethod ? fFncAsync : fFncNoFlgs);
         }
         else
         {
-            pnode = ParseFncDecl<buildAST>(fFncDeclaration | (isAsyncMethod ? fFncAsync : fFncNoFlgs), nullptr);
+            pnode = ParseFncDeclCheckScope<buildAST>(fFncDeclaration | (isAsyncMethod ? fFncAsync : fFncNoFlgs));
         }
         if (isAsyncMethod)
         {
@@ -11488,7 +11462,7 @@ ParseNodeProg * Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, char
                 flags |= fFncLambda;
             }
 
-            ParseNode * pnodeFnc = ParseFncDecl<true>(flags, nullptr, false, false);
+            ParseNode * pnodeFnc = ParseFncDeclCheckScope<true>(flags, /* resetParsingSuperRestrictionState*/ false);
             pnodeProg->pnodeBody = nullptr;
             AddToNodeList(&pnodeProg->pnodeBody, &lastNodeRef, pnodeFnc);
 
@@ -11904,19 +11878,19 @@ BOOL Parser::ExpectingExternalSource()
 
 Symbol *ParseNodeFnc::GetFuncSymbol()
 {
-    if (pnodeName &&
-        pnodeName->nop == knopVarDecl)
+    if (pnodeName)
     {
-        return pnodeName->AsParseNodeVar()->sym;
+        Assert(pnodeName->nop == knopVarDecl);
+        return pnodeName->sym;
     }
     return nullptr;
 }
 
 void ParseNodeFnc::SetFuncSymbol(Symbol *sym)
 {
-    Assert(pnodeName &&
-        pnodeName->nop == knopVarDecl);
-    pnodeName->AsParseNodeVar()->sym = sym;
+    Assert(pnodeName);
+    Assert(pnodeName->nop == knopVarDecl);
+    pnodeName->sym = sym;
 }
 
 ParseNodePtr ParseNodeFnc::GetParamScope() const
@@ -13814,7 +13788,8 @@ void ParseNode::Dump()
         LPCOLESTR name = Js::Constants::AnonymousFunction;
         if (this->AsParseNodeFnc()->pnodeName)
         {
-            name = this->AsParseNodeFnc()->pnodeName->AsParseNodeVar()->pid->Psz();
+            Assert(this->AsParseNodeFnc()->pnodeName->nop == knopVarDecl);
+            name = this->AsParseNodeFnc()->pnodeName->pid->Psz();
         }
 
         Output::Print(_u("%s (%d) [%d, %d]:\n"), name, this->AsParseNodeFnc()->functionId, this->AsParseNodeFnc()->lineNumber, this->AsParseNodeFnc()->columnNumber);

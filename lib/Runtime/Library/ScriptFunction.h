@@ -26,21 +26,50 @@ namespace Js
         virtual bool IsAnonymousFunction() const = 0;
     };
 
+    template <class BaseClass>
+    class FunctionWithComputedName : public BaseClass
+    {
+    private:
+        Field(Var) computedNameVar;
+
+    protected:
+        DEFINE_VTABLE_CTOR(FunctionWithComputedName<BaseClass>, BaseClass);
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(FunctionWithComputedName<BaseClass>);
+    public:
+        FunctionWithComputedName(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType)
+            : BaseClass(proxy, deferredPrototypeType), computedNameVar(nullptr)
+        {
+            Assert(proxy->GetFunctionInfo()->HasComputedName());
+        }
+        virtual Var GetComputedNameVar() const override { return this->computedNameVar; }
+        virtual void SetComputedNameVar(Var computedNameVar) override { this->computedNameVar = computedNameVar; }
+
+#if ENABLE_TTD
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+        {
+            __super::MarkVisitKindSpecificPtrs(extractor);
+            if (this->computedNameVar != nullptr)
+            {
+                extractor->MarkVisitVar(this->computedNameVar);
+            }
+        }
+#endif
+    };
+
     class ScriptFunction : public ScriptFunctionBase
     {
     private:
         Field(FrameDisplay*) environment;  // Optional environment, for closures
         Field(ActivationObjectEx *) cachedScopeObj;
         Field(Var) homeObj;
-        Field(Var) computedNameVar;
         Field(bool) hasInlineCaches;
         Field(bool) hasSuperReference;
         Field(bool) isActiveScript;
 
         Var FormatToString(JavascriptString* inputString);
+        static JavascriptString* GetComputedName(Var computedNameVar, ScriptContext * scriptContext);
+        static bool GetSymbolName(Var computedNameVar, const char16** symbolName, charcount_t *length);
     protected:
-        ScriptFunction(DynamicType * type);
-
         DEFINE_VTABLE_CTOR(ScriptFunction, ScriptFunctionBase);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(ScriptFunction);
     public:
@@ -92,12 +121,11 @@ namespace Js
         void SetIsActiveScript(bool is) { isActiveScript = is; }
 
         virtual Var GetHomeObj() const override { return homeObj; }
-        virtual void SetHomeObj(Var homeObj) override { this->homeObj = homeObj; }
-        virtual void SetComputedNameVar(Var computedNameVar) override { this->computedNameVar = computedNameVar; }
-        bool GetSymbolName(const char16** symbolName, charcount_t *length) const;
-        virtual Var GetComputedNameVar() const override { return this->computedNameVar; }
-        virtual JavascriptString* GetDisplayNameImpl() const;
-        JavascriptString* GetComputedName() const;
+        virtual void SetHomeObj(Var homeObj) override { this->homeObj = homeObj; }               
+
+        virtual Var GetComputedNameVar() const override { return nullptr; }
+        virtual void SetComputedNameVar(Var computedNameVar) override { AssertMsg(false, "Should have created the FunctionWithComputedName variant"); }
+        virtual JavascriptString* GetDisplayNameImpl() const override;
         virtual bool IsAnonymousFunction() const override;
         virtual bool IsAsmJsFunction() const { return false; }
         virtual bool IsWasmFunction() const { return false; }
@@ -123,6 +151,8 @@ namespace Js
         }
     };
 
+    typedef FunctionWithComputedName<ScriptFunction> ScriptFunctionWithComputedName;
+
     class AsmJsScriptFunction : public ScriptFunction
     {
     public:
@@ -141,13 +171,14 @@ namespace Js
 
         class JavascriptArrayBuffer* GetAsmJsArrayBuffer() const;
     protected:
-        AsmJsScriptFunction(DynamicType * type);
         DEFINE_VTABLE_CTOR(AsmJsScriptFunction, ScriptFunction);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(AsmJsScriptFunction);
 
     private:
         Field(Field(Var)*) m_moduleEnvironment;
     };
+
+    typedef FunctionWithComputedName<AsmJsScriptFunction> AsmJsScriptFunctionWithComputedName;
 
 #ifdef ENABLE_WASM
     class WasmScriptFunction : public AsmJsScriptFunction
@@ -166,8 +197,7 @@ namespace Js
         WebAssemblyMemory* GetWebAssemblyMemory() const;
 
         virtual bool IsWasmFunction() const override { return true; }
-    protected:
-        WasmScriptFunction(DynamicType * type);
+    protected:        
         DEFINE_VTABLE_CTOR(WasmScriptFunction, AsmJsScriptFunction);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(WasmScriptFunction);
     private:
@@ -224,4 +254,6 @@ namespace Js
         void FreeOwnInlineCaches();
         virtual void Finalize(bool isShutdown) override;
     };
+
+    typedef FunctionWithComputedName<ScriptFunctionWithInlineCache> ScriptFunctionWithInlineCacheAndComputedName;
 } // namespace Js

@@ -727,14 +727,16 @@ private:
 
     template<bool buildAST> void ParseComputedName(ParseNodePtr* ppnodeName, LPCOLESTR* ppNameHint, LPCOLESTR* ppFullNameHint = nullptr, uint32 *pNameLength = nullptr, uint32 *pShortNameOffset = nullptr);
     template<bool buildAST> ParseNodeBin * ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint);
-    template<bool buildAST> ParseNode * ParseFncDecl(ushort flags, LPCOLESTR pNameHint = NULL, const bool needsPIDOnRCurlyScan = false, bool resetParsingSuperRestrictionState = true, bool fUnaryOrParen = false);
-    template<bool buildAST> bool ParseFncNames(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeFncParent, ushort flags, ParseNodePtr **pLastNodeRef, IdentPtr* pFncNamePid = nullptr);
+    template<bool buildAST> ParseNode * ParseFncDeclCheckScope(ushort flags, bool resetParsingSuperRestrictionState = true);
+    template<bool buildAST> ParseNodeFnc * ParseFncDeclNoCheckScope(ushort flags, LPCOLESTR pNameHint = nullptr, const bool needsPIDOnRCurlyScan = false, bool resetParsingSuperRestrictionState = true, bool fUnaryOrParen = false);
+    template<bool buildAST> ParseNodeFnc * ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, const bool needsPIDOnRCurlyScan, bool resetParsingSuperRestrictionState, bool fUnaryOrParen, bool noStmtContext);
+    template<bool buildAST> void ParseFncName(ParseNodeFnc * pnodeFnc, ushort flags, IdentPtr* pFncNamePid = nullptr);
     template<bool buildAST> void ParseFncFormals(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeParentFnc, ushort flags, bool isTopLevelDeferredFunc = false);
-    template<bool buildAST> bool ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, ushort flags, bool *pHasName, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly, bool skipFormals = false, IdentPtr* pFncNamePid = nullptr);
+    template<bool buildAST> void ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, ushort flags, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly, bool skipFormals = false, IdentPtr* pFncNamePid = nullptr);
     template<bool buildAST> void ParseExpressionLambdaBody(ParseNodeFnc * pnodeFnc);
     template<bool buildAST> void UpdateCurrentNodeFunc(ParseNodeFnc * pnodeFnc, bool fLambda);
     bool FncDeclAllowedWithoutContext(ushort flags);
-    void FinishFncDecl(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, ParseNodePtr *lastNodeRef, bool fLambda, bool skipCurlyBraces = false);
+    void FinishFncDecl(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, bool fLambda, bool skipCurlyBraces = false);
     void ParseTopLevelDeferredFunc(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeFncParent, LPCOLESTR pNameHint, bool fLambda, bool *pNeedScanRCurly = nullptr);
     void ParseNestedDeferredFunc(ParseNodeFnc * pnodeFnc, bool fLambda, bool *pNeedScanRCurly, bool *pStrictModeTurnedOn);
     void CheckStrictFormalParameters();

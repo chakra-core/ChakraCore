@@ -39,7 +39,8 @@ namespace Js
             CanDefer                       = 0x80000,
             AllowDirectSuper               = 0x100000,
             BaseConstructorKind            = 0x200000,
-            Method                         = 0x400000 // The function is a method
+            Method                         = 0x400000, // The function is a method
+            ComputedName                   = 0x800000, 
         };
         FunctionInfo(JavascriptMethod entryPoint, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
         FunctionInfo(JavascriptMethod entryPoint, _no_write_barrier_tag, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
@@ -75,7 +76,7 @@ namespace Js
         bool CanBeDeferred() const { return ((this->attributes & CanDefer) != 0); }
         static bool IsCoroutine(Attributes attributes) { return ((attributes & (Async | Generator)) != 0); }
         bool IsCoroutine() const { return IsCoroutine(this->attributes); }
-
+        bool HasComputedName() const { return (this->attributes & Attributes::ComputedName) != 0; }
 
         BOOL HasBody() const { return functionBodyImpl != NULL; }
         BOOL HasParseableInfo() const { return this->HasBody() && !this->IsDeferredDeserializeFunction(); }

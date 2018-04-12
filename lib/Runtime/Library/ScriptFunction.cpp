@@ -38,16 +38,10 @@ namespace Js
         return reinterpret_cast<ScriptFunctionBase *>(func);
     }
 
-    ScriptFunction::ScriptFunction(DynamicType * type) :
-        ScriptFunctionBase(type), environment((FrameDisplay*)&NullFrameDisplay),
-        cachedScopeObj(nullptr), hasInlineCaches(false), hasSuperReference(false), homeObj(nullptr),
-        computedNameVar(nullptr), isActiveScript(false)
-    {}
-
     ScriptFunction::ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType)
         : ScriptFunctionBase(deferredPrototypeType, proxy->GetFunctionInfo()),
         environment((FrameDisplay*)&NullFrameDisplay), cachedScopeObj(nullptr), homeObj(nullptr),
-        hasInlineCaches(false), hasSuperReference(false), isActiveScript(false), computedNameVar(nullptr)
+        hasInlineCaches(false), hasSuperReference(false), isActiveScript(false)
     {
         Assert(proxy->GetFunctionInfo()->GetFunctionProxy() == proxy);
         Assert(proxy->EnsureDeferredPrototypeType() == deferredPrototypeType);
@@ -409,10 +403,12 @@ namespace Js
             }
         }
 
+        Var computedNameVar = this->GetComputedNameVar();
+
         ENTER_PINNED_SCOPE(JavascriptString, computedName);
-        computedName = this->GetComputedName();
-        if (computedName != nullptr)
+        if (computedNameVar != nullptr)
         {
+            computedName = ScriptFunction::GetComputedName(computedNameVar, scriptContext);
             prefixString = nullptr;
             prefixStringLength = 0;
             name = computedName->GetString();
@@ -542,11 +538,6 @@ namespace Js
         {
             extractor->MarkVisitVar(this->homeObj);
         }
-
-        if(this->computedNameVar != nullptr)
-        {
-            extractor->MarkVisitVar(this->computedNameVar);
-        }
     }
 
     void ScriptFunction::ProcessCorePaths()
@@ -663,7 +654,7 @@ namespace Js
             ssfi->HomeObjId = TTD_CONVERT_VAR_TO_PTR_ID(this->homeObj);
         }
 
-        ssfi->ComputedNameInfo = TTD_CONVERT_JSVAR_TO_TTDVAR(this->computedNameVar);
+        ssfi->ComputedNameInfo = TTD_CONVERT_JSVAR_TO_TTDVAR(this->GetComputedNameVar());
 
         ssfi->HasSuperReference = this->hasSuperReference;
     }
@@ -671,10 +662,6 @@ namespace Js
 
     AsmJsScriptFunction::AsmJsScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
         ScriptFunction(proxy, deferredPrototypeType), m_moduleEnvironment(nullptr)
-    {}
-
-    AsmJsScriptFunction::AsmJsScriptFunction(DynamicType * type) :
-        ScriptFunction(type), m_moduleEnvironment(nullptr)
     {}
 
     bool AsmJsScriptFunction::Is(Var func)
@@ -727,13 +714,11 @@ namespace Js
     }
 
 #ifdef ENABLE_WASM
-    WasmScriptFunction::WasmScriptFunction(DynamicType * type) :
-        AsmJsScriptFunction(type), m_signature(nullptr)
-    {}
-
     WasmScriptFunction::WasmScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
         AsmJsScriptFunction(proxy, deferredPrototypeType), m_signature(nullptr)
-    {}
+    {
+        Assert(!proxy->GetFunctionInfo()->HasComputedName());
+    }
 
     bool WasmScriptFunction::Is(Var func)
     {
@@ -761,10 +746,6 @@ namespace Js
 
     ScriptFunctionWithInlineCache::ScriptFunctionWithInlineCache(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
         ScriptFunction(proxy, deferredPrototypeType), hasOwnInlineCaches(false)
-    {}
-
-    ScriptFunctionWithInlineCache::ScriptFunctionWithInlineCache(DynamicType * type) :
-        ScriptFunction(type), hasOwnInlineCaches(false)
     {}
 
     bool ScriptFunctionWithInlineCache::Is(Var func)
@@ -980,11 +961,11 @@ namespace Js
         }
     }
 
-    bool ScriptFunction::GetSymbolName(const char16** symbolName, charcount_t* length) const
+    bool ScriptFunction::GetSymbolName(Var computedNameVar, const char16** symbolName, charcount_t* length)
     {
-        if (nullptr != this->computedNameVar && JavascriptSymbol::Is(this->computedNameVar))
+        if (nullptr != computedNameVar && JavascriptSymbol::Is(computedNameVar))
         {
-            const PropertyRecord* symbolRecord = JavascriptSymbol::FromVar(this->computedNameVar)->GetValue();
+            const PropertyRecord* symbolRecord = JavascriptSymbol::FromVar(computedNameVar)->GetValue();
             *symbolName = symbolRecord->GetBuffer();
             *length = symbolRecord->GetLength();
             return true;
@@ -1002,12 +983,12 @@ namespace Js
         charcount_t length = 0;
         JavascriptString* returnStr = nullptr;
         ENTER_PINNED_SCOPE(JavascriptString, computedName);
-
+        Var computedNameVar = this->GetComputedNameVar();
         if (computedNameVar != nullptr)
         {
             const char16* symbolName = nullptr;
             charcount_t symbolNameLength = 0;
-            if (this->GetSymbolName(&symbolName, &symbolNameLength))
+            if (ScriptFunction::GetSymbolName(computedNameVar, &symbolName, &symbolNameLength))
             {
                 if (symbolNameLength == 0)
                 {
@@ -1021,7 +1002,7 @@ namespace Js
             }
             else
             {
-                computedName = this->GetComputedName();
+                computedName = ScriptFunction::GetComputedName(computedNameVar, this->GetScriptContext());
                 if (!func->GetIsAccessor())
                 {
                     return computedName;
@@ -1065,10 +1046,9 @@ namespace Js
         return this->GetFunctionProxy()->GetIsAnonymousFunction();
     }
 
-    JavascriptString* ScriptFunction::GetComputedName() const
+    JavascriptString* ScriptFunction::GetComputedName(Var computedNameVar, ScriptContext * scriptContext)
     {
         JavascriptString* computedName = nullptr;
-        ScriptContext* scriptContext = this->GetScriptContext();
         if (computedNameVar != nullptr)
         {
             if (TaggedInt::Is(computedNameVar))

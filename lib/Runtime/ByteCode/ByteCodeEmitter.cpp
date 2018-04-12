@@ -224,7 +224,6 @@ bool IsArguments(ParseNode *pnode)
 
 bool ApplyEnclosesArgs(ParseNode* fncDecl, ByteCodeGenerator* byteCodeGenerator);
 void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, BOOL fReturnValue, bool isConstructorCall = false, ParseNode *bindPnode = nullptr, bool isTopLevel = false);
-void EmitComputedFunctionNameVar(ParseNode *nameNode, ParseNode *exprNode, ByteCodeGenerator *byteCodeGenerator);
 void EmitBinaryOpnds(ParseNode *pnode1, ParseNode *pnode2, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
 bool IsExpressionStatement(ParseNode* stmt, const Js::ScriptContext *const scriptContext);
 void EmitInvoke(Js::RegSlot location, Js::RegSlot callObjLocation, Js::PropertyId propertyId, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo);
@@ -1139,7 +1138,8 @@ void ByteCodeGenerator::DefineUncachedFunctions(FuncInfo *funcInfoParent)
 void EmitAssignmentToFuncName(ParseNodeFnc *pnodeFnc, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfoParent)
 {
     // Assign the location holding the func object reference to the given name.
-    Symbol *sym = pnodeFnc->pnodeName->AsParseNodeVar()->sym;
+    Assert(pnodeFnc->pnodeName->nop == knopVarDecl);
+    Symbol *sym = pnodeFnc->pnodeName->sym;
 
     if (sym != nullptr && !sym->GetIsFuncExpr())
     {
@@ -1476,10 +1476,11 @@ void ByteCodeGenerator::InitBlockScopedNonTemps(ParseNode *pnode, FuncInfo *func
         case knopFncDecl:
         {
             // If this is a block-scoped function, initialize it.
-            ParseNode *pnodeName = pnode->AsParseNodeFnc()->pnodeName;
-            if (!pnode->AsParseNodeFnc()->IsMethod() && pnodeName && pnodeName->nop == knopVarDecl)
+            ParseNodeFnc * pnodeFnc = pnode->AsParseNodeFnc();
+            ParseNodeVar *pnodeName = pnodeFnc->pnodeName;
+            if (!pnodeFnc->IsMethod() && pnodeName != nullptr)
             {
-                Symbol *sym = pnodeName->AsParseNodeVar()->sym;
+                Symbol *sym = pnodeName->sym;
                 Assert(sym);
                 if (sym->GetLocation() != Js::Constants::NoRegister &&
                     sym->GetScope()->IsBlockScope(funcInfo) &&
@@ -1490,7 +1491,7 @@ void ByteCodeGenerator::InitBlockScopedNonTemps(ParseNode *pnode, FuncInfo *func
             }
 
             // No need to recurse to the nested scopes, as they belong to a nested function.
-            pnode = pnode->AsParseNodeFnc()->pnodeNext;
+            pnode = pnodeFnc->pnodeNext;
             break;
         }
 
@@ -3472,7 +3473,7 @@ void ByteCodeGenerator::EnsureFncDeclScopeSlot(ParseNodeFnc *pnodeFnc, FuncInfo 
     if (pnodeFnc->pnodeName)
     {
         Assert(pnodeFnc->pnodeName->nop == knopVarDecl);
-        Symbol *sym = pnodeFnc->pnodeName->AsParseNodeVar()->sym;
+        Symbol *sym = pnodeFnc->pnodeName->sym;
         // If this function is shadowing the arguments symbol in body then skip it.
         // We will allocate scope slot for the arguments symbol during EmitLocalPropInit.
         if (sym && !sym->IsArguments())
@@ -3485,9 +3486,10 @@ void ByteCodeGenerator::EnsureFncDeclScopeSlot(ParseNodeFnc *pnodeFnc, FuncInfo 
 // Similar to EnsureFncScopeSlot visitor function, but verifies that a slot is needed before assigning it.
 void ByteCodeGenerator::CheckFncDeclScopeSlot(ParseNodeFnc *pnodeFnc, FuncInfo *funcInfo)
 {
-    if (pnodeFnc->pnodeName && pnodeFnc->pnodeName->nop == knopVarDecl)
+    if (pnodeFnc->pnodeName)
     {
-        Symbol *sym = pnodeFnc->pnodeName->AsParseNodeVar()->sym;
+        Assert(pnodeFnc->pnodeName->nop == knopVarDecl);
+        Symbol *sym = pnodeFnc->pnodeName->sym;
         if (sym && sym->NeedsSlotAlloc(this, funcInfo))
         {
             sym->EnsureScopeSlot(this, funcInfo);
@@ -8181,16 +8183,17 @@ void EmitInvoke(
     byteCodeGenerator->Writer()->CallI(Js::OpCode::CallI, location, location, 2, callSiteId);
 }
 
-void EmitComputedFunctionNameVar(ParseNode *nameNode, ParseNode *exprNode, ByteCodeGenerator *byteCodeGenerator)
+void EmitComputedFunctionNameVar(ParseNode *nameNode, ParseNodeFnc *exprNode, ByteCodeGenerator *byteCodeGenerator)
 {
     AssertMsg(exprNode != nullptr, "callers of this function should pass in a valid expression Node");
+    Assert(exprNode->HasComputedName());
 
     if (nameNode == nullptr)
     {
         return;
     }
 
-    if ((exprNode->nop == knopFncDecl && (exprNode->AsParseNodeFnc()->pnodeName == nullptr || exprNode->AsParseNodeFnc()->pnodeName->nop != knopVarDecl)))
+    if (exprNode->pnodeName == nullptr)
     {
         byteCodeGenerator->Writer()->Reg2(Js::OpCode::SetComputedNameVar, exprNode->location, nameNode->location);
     }
@@ -8215,7 +8218,7 @@ void EmitMemberNode(ParseNode *memberNode, Js::RegSlot objectLocation, ByteCodeG
         EmitBinaryOpnds(nameNode, exprNode, byteCodeGenerator, funcInfo);
         if (isFncDecl && !exprNode->AsParseNodeFnc()->IsClassConstructor())
         {
-            EmitComputedFunctionNameVar(nameNode, exprNode, byteCodeGenerator);
+            EmitComputedFunctionNameVar(nameNode, exprNode->AsParseNodeFnc(), byteCodeGenerator);
         }
     }
 
@@ -8268,7 +8271,7 @@ void EmitMemberNode(ParseNode *memberNode, Js::RegSlot objectLocation, ByteCodeG
         && parentNode != nullptr && parentNode->nop == knopClassDecl
         && parentNode->AsParseNodeClass()->pnodeConstructor != nullptr)
     {
-        Js::ParseableFunctionInfo* nameFunc = parentNode->AsParseNodeClass()->pnodeConstructor->AsParseNodeFnc()->funcInfo->byteCodeFunction->GetParseableFunctionInfo();
+        Js::ParseableFunctionInfo* nameFunc = parentNode->AsParseNodeClass()->pnodeConstructor->funcInfo->byteCodeFunction->GetParseableFunctionInfo();
         nameFunc->SetIsStaticNameFunction(true);
     }
 
@@ -11109,11 +11112,11 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         break;
         // PTNODE(knopReturn     , "return"    ,None    ,Uni  ,fnopNone)
     case knopReturn:
-    {
+        {
         ParseNodeReturn * pnodeReturn = pnode->AsParseNodeReturn();
         byteCodeGenerator->StartStatement(pnodeReturn);
         if (pnodeReturn->pnodeExpr != nullptr)
-        {
+            {
             if (pnodeReturn->pnodeExpr->location == Js::Constants::NoRegister)
             {
                 // No need to burn a register for the return value. If we need a temp, use R0 directly.
@@ -11258,7 +11261,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         break;
     }
     case knopContinue:
-    {
+        {
         ParseNodeJump * pnodeJump = pnode->AsParseNodeJump();
         Assert(pnodeJump->pnodeTarget->emitLabels);
         byteCodeGenerator->StartStatement(pnodeJump);

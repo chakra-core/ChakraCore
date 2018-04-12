@@ -1220,6 +1220,80 @@ ParseNode* VisitBlock(ParseNode *pnode, ByteCodeGenerator* byteCodeGenerator, Pr
     return pnodeLastVal;
 }
 
+// Attributes that should be consistent between defer parse and full parse.
+static const Js::FunctionInfo::Attributes StableFunctionInfoAttributesMask = (Js::FunctionInfo::Attributes)
+(
+    Js::FunctionInfo::Attributes::ErrorOnNew |
+    Js::FunctionInfo::Attributes::Async |
+    Js::FunctionInfo::Attributes::Lambda |
+    Js::FunctionInfo::Attributes::SuperReference |
+    Js::FunctionInfo::Attributes::ClassConstructor |
+    Js::FunctionInfo::Attributes::BaseConstructorKind |
+    Js::FunctionInfo::Attributes::ClassMethod |
+    Js::FunctionInfo::Attributes::Method |
+    Js::FunctionInfo::Attributes::Generator |
+    Js::FunctionInfo::Attributes::Module |
+    Js::FunctionInfo::Attributes::ComputedName
+);
+
+static Js::FunctionInfo::Attributes GetFunctionInfoAttributes(ParseNodeFnc * pnodeFnc)
+{
+    Js::FunctionInfo::Attributes attributes = Js::FunctionInfo::Attributes::None;
+    if (pnodeFnc->IsAsync())
+    {
+        attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::ErrorOnNew | Js::FunctionInfo::Attributes::Async);
+    }
+    if (pnodeFnc->IsLambda())
+    {
+        attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::ErrorOnNew | Js::FunctionInfo::Attributes::Lambda);
+    }
+    if (pnodeFnc->HasSuperReference())
+    {
+        attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::SuperReference);
+    }
+    if (pnodeFnc->IsClassMember())
+    {
+        if (pnodeFnc->IsClassConstructor())
+        {
+            attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::ClassConstructor);
+
+            if (pnodeFnc->IsBaseClassConstructor())
+            {
+                attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::BaseConstructorKind);
+            }
+        }
+        else
+        {
+            attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::ErrorOnNew | Js::FunctionInfo::Attributes::ClassMethod);
+        }
+    }
+    if (pnodeFnc->IsMethod())
+    {
+        attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::Method);
+    }
+    if (pnodeFnc->IsGenerator())
+    {
+        attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::Generator);
+    }
+    if (pnodeFnc->IsAccessor())
+    {
+        attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::ErrorOnNew);
+    }
+    if (pnodeFnc->IsModule())
+    {
+        attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::Module);
+    }
+    if (pnodeFnc->CanBeDeferred())
+    {
+        attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::CanDefer);
+    }
+    if (pnodeFnc->HasComputedName() && pnodeFnc->pnodeName == nullptr)
+    {
+        attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::ComputedName);
+    }
+    return attributes;
+}
+
 FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLength, uint shortNameOffset, bool* pfuncExprWithName, ParseNodeFnc *pnodeFnc, Js::ParseableFunctionInfo * reuseNestedFunc)
 {
     bool funcExprWithName;
@@ -1290,55 +1364,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
         bool createFunctionBody = (pnodeFnc->pnodeBody != nullptr);
         if (!CONFIG_FLAG(CreateFunctionProxy)) createFunctionBody = true;
 
-        Js::FunctionInfo::Attributes attributes = Js::FunctionInfo::Attributes::None;
-        if (pnodeFnc->IsAsync())
-        {
-            attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::ErrorOnNew | Js::FunctionInfo::Attributes::Async);
-        }
-        if (pnodeFnc->IsLambda())
-        {
-            attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::ErrorOnNew | Js::FunctionInfo::Attributes::Lambda);
-        }
-        if (pnodeFnc->HasSuperReference())
-        {
-            attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::SuperReference);
-        }
-        if (pnodeFnc->IsClassMember())
-        {
-            if (pnodeFnc->IsClassConstructor())
-            {
-                attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::ClassConstructor);
-
-                if (pnodeFnc->IsBaseClassConstructor())
-                {
-                    attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::BaseConstructorKind);
-                }
-            }
-            else
-            {
-                attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::ErrorOnNew | Js::FunctionInfo::Attributes::ClassMethod);
-            }
-        }
-        if (pnodeFnc->IsMethod())
-        {
-            attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::Method);
-        }
-        if (pnodeFnc->IsGenerator())
-        {
-            attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::Generator);
-        }
-        if (pnodeFnc->IsAccessor())
-        {
-            attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::ErrorOnNew);
-        }
-        if (pnodeFnc->IsModule())
-        {
-            attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::Module);
-        }
-        if (pnodeFnc->CanBeDeferred())
-        {
-            attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::CanDefer);
-        }
+        const Js::FunctionInfo::Attributes attributes = GetFunctionInfoAttributes(pnodeFnc);
 
         if (createFunctionBody)
         {
@@ -1358,6 +1384,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
                 {
                     parseableFunctionInfo = reuseNestedFunc->GetFunctionBody();
                 }
+                Assert((parseableFunctionInfo->GetAttributes() & StableFunctionInfoAttributesMask) == attributes);
             }
             else
             {
@@ -1389,6 +1416,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
                 Assert(!reuseNestedFunc->IsFunctionBody() || reuseNestedFunc->GetFunctionBody()->GetByteCode() != nullptr);
                 Assert(pnodeFnc->pnodeBody == nullptr);
                 parseableFunctionInfo = reuseNestedFunc;
+                Assert((parseableFunctionInfo->GetAttributes() & StableFunctionInfoAttributesMask) == attributes);
             }
             else
             {
@@ -2454,11 +2482,11 @@ FuncInfo* PreVisitFunction(ParseNodeFnc* pnodeFnc, ByteCodeGenerator* byteCodeGe
             functionNameOffset = 0;
         }
     }
-    else if ((pnodeFnc->pnodeName != nullptr) &&
-        (pnodeFnc->pnodeName->nop == knopVarDecl))
+    else if (pnodeFnc->pnodeName != nullptr)
     {
-        funcName = reinterpret_cast<const char16*>(pnodeFnc->pnodeName->AsParseNodeVar()->pid->Psz());
-        funcNameLength = pnodeFnc->pnodeName->AsParseNodeVar()->pid->Cch();
+        Assert(pnodeFnc->pnodeName->nop == knopVarDecl);
+        funcName = reinterpret_cast<const char16*>(pnodeFnc->pnodeName->pid->Psz());
+        funcNameLength = pnodeFnc->pnodeName->pid->Cch();
         functionNameOffset = 0;
         //
         // create the new scope for Function expression only in ES5 mode
@@ -2577,7 +2605,7 @@ void AssignFuncSymRegister(ParseNodeFnc * pnodeFnc, ByteCodeGenerator * byteCode
         return;
     }
     Assert(pnodeFnc->pnodeName->nop == knopVarDecl);
-    Symbol *sym = pnodeFnc->pnodeName->AsParseNodeVar()->sym;
+    Symbol *sym = pnodeFnc->pnodeName->sym;
     if (sym)
     {
         if (!sym->GetIsGlobal() && !(callee->funcExprScope && callee->funcExprScope->GetIsObject()))

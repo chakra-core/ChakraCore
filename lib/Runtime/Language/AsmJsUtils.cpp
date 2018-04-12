@@ -84,9 +84,10 @@ namespace Js
         if( node->nop == knopFncDecl )
         {
             ParseNodeFnc * function = node->AsParseNodeFnc();
-            if( function->pnodeName && function->pnodeName->nop == knopVarDecl )
+            if(function->pnodeName)
             {
-                return function->pnodeName->AsParseNodeVar()->pid;
+                Assert(function->pnodeName->nop == knopVarDecl);
+                return function->pnodeName->pid;
             }
         }
         return nullptr;
