@@ -984,28 +984,69 @@ void ByteCodeUsesInstr::SetBV(BVSparse<JitArenaAllocator>* newbv)
 // a compare, but still need to generate them for bailouts. Without this, we cause
 // problems because we end up with an instruction losing atomicity in terms of its
 // bytecode use and generation lifetimes.
-void ByteCodeUsesInstr::Aggregate()
+void ByteCodeUsesInstr::AggregateFollowingByteCodeUses()
 {
     IR::Instr* scanner = this->m_next;
     while (scanner && scanner->m_opcode == Js::OpCode::ByteCodeUses && scanner->GetByteCodeOffset() == this->GetByteCodeOffset() && scanner->GetDst() == nullptr)
     {
         IR::ByteCodeUsesInstr* target = scanner->AsByteCodeUsesInstr();
-        Assert(this->m_func == target->m_func);
-        if (target->byteCodeUpwardExposedUsed)
-        {
-            if (this->byteCodeUpwardExposedUsed)
-            {
-                this->byteCodeUpwardExposedUsed->Or(target->byteCodeUpwardExposedUsed);
-                JitAdelete(target->byteCodeUpwardExposedUsed->GetAllocator(), target->byteCodeUpwardExposedUsed);
-                target->byteCodeUpwardExposedUsed = nullptr;
-            }
-            else
-            {
-                this->byteCodeUpwardExposedUsed = target->byteCodeUpwardExposedUsed;
-                target->byteCodeUpwardExposedUsed = nullptr;
-            }
-        }
+        this->Aggregate(target);
         scanner = scanner->m_next;
+    }
+}
+
+void ByteCodeUsesInstr::AggregatePrecedingByteCodeUses()
+{
+    IR::Instr * instr = this->m_prev;
+    while (instr && this->CanAggregateByteCodeUsesAcrossInstr(instr))
+    {
+        if (instr->IsByteCodeUsesInstr())
+        {
+            IR::ByteCodeUsesInstr* precedingByteCodeUsesInstr = instr->AsByteCodeUsesInstr();
+            this->Aggregate(precedingByteCodeUsesInstr);
+        }
+        instr = instr->m_prev;
+    }
+}
+
+void ByteCodeUsesInstr::Aggregate(ByteCodeUsesInstr * byteCodeUsesInstr)
+{
+    Assert(this->m_func == byteCodeUsesInstr->m_func);
+    if (byteCodeUsesInstr->byteCodeUpwardExposedUsed)
+    {
+        if (this->byteCodeUpwardExposedUsed)
+        {
+            this->byteCodeUpwardExposedUsed->Or(byteCodeUsesInstr->byteCodeUpwardExposedUsed);
+            JitAdelete(byteCodeUsesInstr->byteCodeUpwardExposedUsed->GetAllocator(), byteCodeUsesInstr->byteCodeUpwardExposedUsed);
+            byteCodeUsesInstr->byteCodeUpwardExposedUsed = nullptr;
+        }
+        else
+        {
+            this->byteCodeUpwardExposedUsed = byteCodeUsesInstr->byteCodeUpwardExposedUsed;
+            byteCodeUsesInstr->byteCodeUpwardExposedUsed = nullptr;
+        }
+    }
+}
+
+bool Instr::CanAggregateByteCodeUsesAcrossInstr(Instr * instr)
+{
+    if (instr->GetByteCodeOffset() != Js::Constants::NoByteCodeOffset)
+    {
+        return (instr->GetByteCodeOffset() == this->GetByteCodeOffset()) &&
+                    (instr->IsByteCodeUsesInstr() ||
+                     instr->m_opcode == Js::OpCode::ToVar);
+    }
+    else
+    {
+        if (instr->HasBailOutInfo())
+        {
+            return (instr->GetBailOutInfo()->bailOutOffset == this->GetByteCodeOffset()) &&
+                instr->m_opcode == Js::OpCode::BailOnNotObject;
+        }
+        else
+        {
+            return (instr->m_opcode == Js::OpCode::Ld_A || instr->m_opcode == Js::OpCode::Ld_I4) && instr->GetSrc1()->IsImmediateOpnd(); // could have been inserted by PreLowerCanonicalize
+        }
     }
 }
 
@@ -2838,6 +2879,27 @@ IR::Instr *Instr::GetInsertBeforeByteCodeUsesInstr()
     return insertBeforeInstr;
 }
 
+IR::ByteCodeUsesInstr *
+Instr::GetFirstByteCodeUsesInstrBackward()
+{
+    IR::Instr * prevInstr = this->m_prev;
+    while (prevInstr && this->CanAggregateByteCodeUsesAcrossInstr(prevInstr))
+    {
+        if (prevInstr->IsByteCodeUsesInstr())
+        {
+            return prevInstr->AsByteCodeUsesInstr();
+        }
+        prevInstr = prevInstr->m_prev;
+    }
+    return nullptr;
+}
+
+bool
+Instr::IsByteCodeUsesInstrFor(IR::Instr * instr) const
+{
+    return this->IsByteCodeUsesInstr() && this->GetByteCodeOffset() == instr->GetByteCodeOffset();
+}
+
 ///----------------------------------------------------------------------------
 ///
 /// Instr::GetOrCreateContinueLabel
@@ -3339,6 +3401,22 @@ void Instr::Move(IR::Instr* insertInstr)
     this->ClearByteCodeOffset();
     this->SetByteCodeOffset(insertInstr);
     insertInstr->InsertBefore(this);
+}
+
+void Instr::AggregateByteCodeUses()
+{
+    // Currently, this only aggregates byteCodeUpwardExposedUsed of those ByteCodeUses instructions 
+    // associated with this instr which have at most a ToVar, Ld_A, Ld_I4, or a BailOnNotObject between them.
+    IR::ByteCodeUsesInstr * primaryByteCodeUsesInstr = this->GetFirstByteCodeUsesInstrBackward();
+    if (primaryByteCodeUsesInstr)
+    {
+        primaryByteCodeUsesInstr->AggregatePrecedingByteCodeUses();
+        if (primaryByteCodeUsesInstr != this->m_prev)
+        {
+            primaryByteCodeUsesInstr->Unlink();
+            this->InsertBefore(primaryByteCodeUsesInstr);
+        }
+    }
 }
 
 IR::Instr* Instr::GetBytecodeArgOutCapture()

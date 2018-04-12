@@ -2643,6 +2643,16 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         this->InsertByteCodeUses(instr);
     }
 
+    if (!IsLoopPrePass() && instr->HasBailOutInfo())
+    {
+        // Aggregate byteCodeUpwardExposedUsed of preceding ByteCodeUses instrs with the same bytecode offset.
+        // This is required as different ByteCodeUses instrs may be inserted for an instr in the loop pre-pass
+        // and the main pass (and there may be additional instructions inserted between the two sets of 
+        // ByteCodeUses instructions), but the Backward Pass only processes immediately preceding consecutive
+        // ByteCodeUses instructions before processing a pre-op bailout.
+        instr->AggregateByteCodeUses();
+    }
+
     if (!this->IsLoopPrePass() && !isHoisted && this->IsImplicitCallBailOutCurrentlyNeeded(instr, src1Val, src2Val))
     {
         IR::BailOutKind kind = IR::BailOutOnImplicitCalls;
@@ -9588,7 +9598,7 @@ LOutsideSwitch:
                 // calculation, we want to insert the Conv_bool after the whole compare instruction
                 // block.
                 IR::Instr *putAfter = instr;
-                while (putAfter->m_next && putAfter->m_next->m_opcode == Js::OpCode::ByteCodeUses)
+                while (putAfter->m_next && putAfter->m_next->IsByteCodeUsesInstrFor(instr))
                 {
                     putAfter = putAfter->m_next;
                 }
