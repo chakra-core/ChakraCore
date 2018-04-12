@@ -181,4 +181,9 @@
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>update-funcexpr.js</files>
+    </default>
+  </test>
 </regress-exe>

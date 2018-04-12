@@ -10199,23 +10199,21 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         if (pnode->isUsed || fReturnValue)
         {
             byteCodeGenerator->StartStatement(pnode);
-            Js::OpCode op = Js::OpCode::Add_A;
-            if (pnode->nop == knopDecPost)
-            {
-                op = Js::OpCode::Sub_A;
-            }
+            const Js::OpCode op = (pnode->nop == knopDecPost) ? Js::OpCode::Sub_A : Js::OpCode::Add_A;
+            ParseNode* pnode1 = pnode->AsParseNodeUni()->pnode1;
+
             // Grab a register for the expression result.
             funcInfo->AcquireLoc(pnode);
 
             // Load the initial value, convert it (this is the expression result), and increment it.
-            EmitLoad(pnode->AsParseNodeUni()->pnode1, byteCodeGenerator, funcInfo);
-            byteCodeGenerator->Writer()->Reg2(Js::OpCode::Conv_Num, pnode->location, pnode->AsParseNodeUni()->pnode1->location);
+            EmitLoad(pnode1, byteCodeGenerator, funcInfo);
+            byteCodeGenerator->Writer()->Reg2(Js::OpCode::Conv_Num, pnode->location, pnode1->location);
 
-            Js::RegSlot incDecResult = pnode->AsParseNodeUni()->pnode1->location;
-            if (funcInfo->RegIsConst(incDecResult))
+            // Use temporary register if lhs cannot be assigned
+            Js::RegSlot incDecResult = pnode1->location;
+            if (funcInfo->RegIsConst(incDecResult) ||
+                (pnode1->nop == knopName && pnode1->AsParseNodeName()->sym && pnode1->AsParseNodeName()->sym->GetIsFuncExpr()))
             {
-                // Avoid letting the add/sub overwrite a constant reg, as this may actually change the
-                // contents of the constant table.
                 incDecResult = funcInfo->AcquireTmpRegister();
             }
 
@@ -10224,14 +10222,14 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             byteCodeGenerator->Writer()->Reg3(op, incDecResult, pnode->location, oneReg);
 
             // Store the incremented value.
-            EmitAssignment(nullptr, pnode->AsParseNodeUni()->pnode1, incDecResult, byteCodeGenerator, funcInfo);
+            EmitAssignment(nullptr, pnode1, incDecResult, byteCodeGenerator, funcInfo);
 
             // Release the incremented value and the l-value.
-            if (incDecResult != pnode->AsParseNodeUni()->pnode1->location)
+            if (incDecResult != pnode1->location)
             {
                 funcInfo->ReleaseTmpRegister(incDecResult);
             }
-            funcInfo->ReleaseLoad(pnode->AsParseNodeUni()->pnode1);
+            funcInfo->ReleaseLoad(pnode1);
             byteCodeGenerator->EndStatement(pnode);
 
             break;
@@ -10247,49 +10245,36 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
     case knopDecPre:
     {
         byteCodeGenerator->StartStatement(pnode);
-        Js::OpCode op = Js::OpCode::Incr_A;
-        if (pnode->nop == knopDecPre)
-        {
-            op = Js::OpCode::Decr_A;
-        }
+        const Js::OpCode op = (pnode->nop == knopDecPre) ? Js::OpCode::Decr_A : Js::OpCode::Incr_A;
+        ParseNode* pnode1 = pnode->AsParseNodeUni()->pnode1;
 
-        // Assign a register for the result only if the result is used or the operand can't be assigned to
+        // Assign a register for the result only if the result is used or the LHS can't be assigned to
         // (i.e., is a constant).
-        if (pnode->isUsed || fReturnValue)
-        {
-            funcInfo->AcquireLoc(pnode);
+        const bool need_result_location =
+            pnode->isUsed
+            || fReturnValue
+            || funcInfo->RegIsConst(pnode1->location)
+            || (pnode1->nop == knopName && pnode1->AsParseNodeName()->sym && pnode1->AsParseNodeName()->sym->GetIsFuncExpr());
 
-            // Load the initial value and increment it (this is the expression result).
-            EmitLoad(pnode->AsParseNodeUni()->pnode1, byteCodeGenerator, funcInfo);
-            byteCodeGenerator->Writer()->Reg2(op, pnode->location, pnode->AsParseNodeUni()->pnode1->location);
+        if (need_result_location)
+        {
+            const Js::RegSlot result_location = funcInfo->AcquireLoc(pnode);
+
+            EmitLoad(pnode1, byteCodeGenerator, funcInfo);
+            byteCodeGenerator->Writer()->Reg2(op, result_location, pnode1->location);
 
             // Store the incremented value and release the l-value.
-            EmitAssignment(nullptr, pnode->AsParseNodeUni()->pnode1, pnode->location, byteCodeGenerator, funcInfo);
-            funcInfo->ReleaseLoad(pnode->AsParseNodeUni()->pnode1);
+            EmitAssignment(nullptr, pnode1, result_location, byteCodeGenerator, funcInfo);
         }
         else
         {
-            // Load the initial value and increment it (this is the expression result).
-            EmitLoad(pnode->AsParseNodeUni()->pnode1, byteCodeGenerator, funcInfo);
-
-            Js::RegSlot incDecResult = pnode->AsParseNodeUni()->pnode1->location;
-            if (funcInfo->RegIsConst(incDecResult))
-            {
-                // Avoid letting the add/sub overwrite a constant reg, as this may actually change the
-                // contents of the constant table.
-                incDecResult = funcInfo->AcquireTmpRegister();
-            }
-
-            byteCodeGenerator->Writer()->Reg2(op, incDecResult, pnode->AsParseNodeUni()->pnode1->location);
+            EmitLoad(pnode1, byteCodeGenerator, funcInfo);
+            byteCodeGenerator->Writer()->Reg2(op, pnode1->location, pnode1->location);
 
             // Store the incremented value and release the l-value.
-            EmitAssignment(nullptr, pnode->AsParseNodeUni()->pnode1, incDecResult, byteCodeGenerator, funcInfo);
-            if (incDecResult != pnode->AsParseNodeUni()->pnode1->location)
-            {
-                funcInfo->ReleaseTmpRegister(incDecResult);
-            }
-            funcInfo->ReleaseLoad(pnode->AsParseNodeUni()->pnode1);
+            EmitAssignment(nullptr, pnode1, pnode1->location, byteCodeGenerator, funcInfo);
         }
+        funcInfo->ReleaseLoad(pnode1);
 
         byteCodeGenerator->EndStatement(pnode);
         break;
@@ -10780,38 +10765,47 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
     case knopAsgLsh:
     case knopAsgRsh:
     case knopAsgRs2:
+    {
         byteCodeGenerator->StartStatement(pnode);
+
+        ParseNode *lhs = pnode->AsParseNodeBin()->pnode1;
+        ParseNode *rhs = pnode->AsParseNodeBin()->pnode2;
+
         // Assign a register for the result only if the result is used or the LHS can't be assigned to
         // (i.e., is a constant).
-        if (pnode->isUsed || fReturnValue || funcInfo->RegIsConst(pnode->AsParseNodeBin()->pnode1->location))
+        const bool need_result_location =
+            pnode->isUsed
+            || fReturnValue
+            || funcInfo->RegIsConst(lhs->location)
+            || (lhs->nop == knopName && lhs->AsParseNodeName()->sym && lhs->AsParseNodeName()->sym->GetIsFuncExpr());
+
+        if (need_result_location)
         {
-            // If the assign-op result is used, grab a register to hold it.
-            funcInfo->AcquireLoc(pnode);
+            const Js::RegSlot result_location = funcInfo->AcquireLoc(pnode);
 
             // Grab a register for the initial value and load it.
-            EmitBinaryReference(pnode->AsParseNodeBin()->pnode1, pnode->AsParseNodeBin()->pnode2, byteCodeGenerator, funcInfo, true);
-            funcInfo->ReleaseLoc(pnode->AsParseNodeBin()->pnode2);
+            EmitBinaryReference(lhs, rhs, byteCodeGenerator, funcInfo, true);
+            funcInfo->ReleaseLoc(rhs);
             // Do the arithmetic, store the result, and release the l-value.
-            byteCodeGenerator->Writer()->Reg3(nopToOp[pnode->nop], pnode->location, pnode->AsParseNodeBin()->pnode1->location,
-                pnode->AsParseNodeBin()->pnode2->location);
+            byteCodeGenerator->Writer()->Reg3(nopToOp[pnode->nop], result_location, lhs->location, rhs->location);
 
-            EmitAssignment(pnode, pnode->AsParseNodeBin()->pnode1, pnode->location, byteCodeGenerator, funcInfo);
+            EmitAssignment(pnode, lhs, result_location, byteCodeGenerator, funcInfo);
         }
         else
         {
-            // Grab a register for the initial value and load it.
-            EmitBinaryReference(pnode->AsParseNodeBin()->pnode1, pnode->AsParseNodeBin()->pnode2, byteCodeGenerator, funcInfo, true);
-            funcInfo->ReleaseLoc(pnode->AsParseNodeBin()->pnode2);
+            // Grab a register for the initial value and load it. Might modify lhs->location.
+            EmitBinaryReference(lhs, rhs, byteCodeGenerator, funcInfo, true);
+
+            funcInfo->ReleaseLoc(rhs);
             // Do the arithmetic, store the result, and release the l-value.
-            byteCodeGenerator->Writer()->Reg3(nopToOp[pnode->nop], pnode->AsParseNodeBin()->pnode1->location, pnode->AsParseNodeBin()->pnode1->location,
-                pnode->AsParseNodeBin()->pnode2->location);
-            EmitAssignment(nullptr, pnode->AsParseNodeBin()->pnode1, pnode->AsParseNodeBin()->pnode1->location, byteCodeGenerator, funcInfo);
+            byteCodeGenerator->Writer()->Reg3(nopToOp[pnode->nop], lhs->location, lhs->location, rhs->location);
+            EmitAssignment(nullptr, lhs, lhs->location, byteCodeGenerator, funcInfo);
         }
-        funcInfo->ReleaseLoad(pnode->AsParseNodeBin()->pnode1);
+        funcInfo->ReleaseLoad(lhs);
 
         byteCodeGenerator->EndStatement(pnode);
         break;
-
+    }
         // General nodes.
         // PTNODE(knopTempRef      , "temp ref"  ,None   ,Uni ,fnopUni)
     case knopTempRef:
