@@ -69,16 +69,19 @@ namespace Js {
     void Throw::FatalInternalError()
     {
         int scenario = 2;
+        AssertMsg(false, "Fatal internal error");
         ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, scenario);
     }
 
     void Throw::FatalInternalErrorEx(int scenario)
     {
+        AssertMsg(false, "Fatal internal error");
         ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, scenario);
     }
 
     void Throw::FatalProjectionError()
     {
+        AssertMsg(false, "Fatal projection error");
         RaiseException((DWORD)DBG_TERMINATE_PROCESS, EXCEPTION_NONCONTINUABLE, 0, NULL);
     }
 
