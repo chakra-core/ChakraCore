@@ -13836,6 +13836,25 @@ void ParseNode::Dump()
         break;
     }
 }
+
+void DumpCapturedNames(ParseNodeFnc* pnodeFnc, IdentPtrSet* capturedNames, ArenaAllocator* alloc)
+{
+    auto sortedNames = JsUtil::List<IdentPtr, ArenaAllocator>::New(alloc);
+
+    capturedNames->Map([=](const IdentPtr& pid) -> void {
+        sortedNames->Add(pid);
+    });
+
+    sortedNames->Sort([](void* context, const void* left, const void* right) -> int {
+        const IdentPtr leftIdentPtr = *(const IdentPtr*)(left);
+        const IdentPtr rightIdentPtr = *(const IdentPtr*)(right);
+        return ::wcscmp(leftIdentPtr->Psz(), rightIdentPtr->Psz());
+    }, nullptr);
+
+    sortedNames->Map([=](int index, const IdentPtr pid) -> void {
+        OUTPUT_TRACE_DEBUGONLY(Js::CreateParserStatePhase, _u("Function %u captured name \"%s\"\n"), pnodeFnc->functionId, pid->Psz());
+    });
+}
 #endif
 
 void Parser::AddNestedCapturedNames(ParseNodeFnc* pnodeChildFnc)
@@ -13872,13 +13891,17 @@ void Parser::ProcessCapturedNames(ParseNodeFnc* pnodeFnc)
             {
                 iter.RemoveCurrent();
             }
-            else
-            {
-                OUTPUT_TRACE_DEBUGONLY(Js::CreateParserStatePhase, _u("Function %u captured name \"%s\"\n"), pnodeFnc->functionId, pid->Psz());
-            }
 
             iter.MoveNext();
         }
+
+#if DBG_DUMP
+        if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::CreateParserStatePhase))
+        {
+            DumpCapturedNames(pnodeFnc, capturedNames, &this->m_nodeAllocator);
+            fflush(stdout);
+        }
+#endif
     }
 }
 
