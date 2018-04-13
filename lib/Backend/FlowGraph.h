@@ -347,11 +347,19 @@ public:
 
     bool IsLandingPad();
 
+    const BVSparse<JitArenaAllocator>* GetByteCodeUpwardExposedUsed() const { return byteCodeUpwardExposedUsed; }
+    void SetByteCodeUpwardExposedUsedSym(Sym* sym);
+    void ClearByteCodeUpwardExposedUsedSym(Sym* sym);
+    void OrByteCodeUpwardExposedUsed(const BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed);
+    void SetByteCodeUpwardExposedUsed(BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed);
+    void FreeByteCodeUpwardExposedUsed();
+
+    void Reset();
     // GlobOpt Stuff
 public:
-    void         MergePredBlocksValueMaps(GlobOpt* globOptState);
+    void MergePredBlocksValueMaps(GlobOpt* globOptState);
 private:
-    void         CleanUpValueMaps();
+    void CleanUpValueMaps();
 
 #if DBG_DUMP
 public:
@@ -380,11 +388,11 @@ public:
 #endif
 
     // Deadstore data
-    BVSparse<JitArenaAllocator> *              upwardExposedUses;
-    BVSparse<JitArenaAllocator> *              upwardExposedFields;
-    BVSparse<JitArenaAllocator> *              typesNeedingKnownObjectLayout;
-    BVSparse<JitArenaAllocator> *              fieldHoistCandidates;
-    BVSparse<JitArenaAllocator> *              slotDeadStoreCandidates;
+    BVSparse<JitArenaAllocator> *           upwardExposedUses;
+    BVSparse<JitArenaAllocator> *           upwardExposedFields;
+    BVSparse<JitArenaAllocator> *           typesNeedingKnownObjectLayout;
+    BVSparse<JitArenaAllocator> *           fieldHoistCandidates;
+    BVSparse<JitArenaAllocator> *           slotDeadStoreCandidates;
     TempNumberTracker *                     tempNumberTracker;
     TempObjectTracker *                     tempObjectTracker;
 #if DBG
@@ -408,7 +416,6 @@ public:
     GlobOptBlockData                        globOptData;
 
     // Bailout data
-    BVSparse<JitArenaAllocator> *           byteCodeUpwardExposedUsed;
 #if DBG
     StackSym **                             byteCodeRestoreSyms;
 #endif
@@ -471,7 +478,14 @@ private:
 #if DBG_DUMP
     bool Contains(IR::Instr * instr);
 #endif
+#if DBG
+    void SetTrackingByteCodeUpwardExposedUsedSym(SymID symID);
+    void SetTrackingByteCodeUpwardExposedUsedSym(Sym* sym);
+    void ClearTrackingByteCodeUpwardExposedUsedSym(Sym* sym);
+#endif
+
 private:
+    BVSparse<JitArenaAllocator> *  byteCodeUpwardExposedUsed;
     IR::Instr *          firstInstr;
     SListBaseCounted<FlowEdge *> predList;
     SListBaseCounted<FlowEdge *> succList;

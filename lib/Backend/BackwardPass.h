@@ -150,7 +150,10 @@ private:
     bool FoldCmBool(IR::Instr *instr);
     void SetWriteThroughSymbolsSetForRegion(BasicBlock * catchBlock, Region * tryRegion);
     bool CheckWriteThroughSymInRegion(Region * region, StackSym * sym);
-
+#if DBG
+    void VerifyByteCodeUpwardExposed(BasicBlock* block, BVSparse<JitArenaAllocator>* trackingByteCodeUpwardExposedUsed, IR::Instr* instr, uint32 bytecodeOffset);
+    void CaptureByteCodeUpwardExposed(uint32 offset, Func* func, BasicBlock* block);
+#endif
 private:
     // Javascript number values (64-bit floats) have 53 bits excluding the sign bit to precisely represent integers. If we have
     // compounded uses in add/sub, such as:

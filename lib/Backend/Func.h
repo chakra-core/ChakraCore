@@ -738,6 +738,9 @@ public:
     bool                isPostLayout:1;
     bool                isPostFinalLower:1;
 
+    typedef JsUtil::BaseDictionary<uint32, BVSparse<JitArenaAllocator>*, JitArenaAllocator> InstrTrackingByteCodeUpwardExposedUsed;
+    InstrTrackingByteCodeUpwardExposedUsed* instrTrackingByteCodeUpwardExposedUsed = nullptr;
+
     typedef JsUtil::Stack<Js::Phase> CurrentPhasesStack;
     CurrentPhasesStack  currentPhases;
 

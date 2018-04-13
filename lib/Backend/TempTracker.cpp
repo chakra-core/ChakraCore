@@ -1322,7 +1322,7 @@ ObjectTempVerify::ProcessInstr(IR::Instr * instr, BackwardPass * backwardPass)
     if (instr->m_opcode == Js::OpCode::InlineThrow)
     {
         // We cannot accurately track mark temp for any upward exposed symbol here
-        this->removedUpwardExposedUse.Or(backwardPass->currentBlock->byteCodeUpwardExposedUsed);
+        this->removedUpwardExposedUse.Or(backwardPass->currentBlock->GetByteCodeUpwardExposedUsed());
         return;
     }
 
@@ -1442,9 +1442,9 @@ ObjectTempVerify::MergeDeadData(BasicBlock * block)
         // new mark temp object, so all its current used (upwardExposedUsed) and optimized
         // use (byteCodeupwardExposedUsed) might not be trace for "missed" mark temp object
         this->removedUpwardExposedUse.Or(block->upwardExposedUses);
-        if (block->byteCodeUpwardExposedUsed)
+        if (block->GetByteCodeUpwardExposedUsed())
         {
-            this->removedUpwardExposedUse.Or(block->byteCodeUpwardExposedUsed);
+            this->removedUpwardExposedUse.Or(block->GetByteCodeUpwardExposedUsed());
         }
     }
 }

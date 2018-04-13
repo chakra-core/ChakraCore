@@ -4431,6 +4431,152 @@ BasicBlock::CleanUpValueMaps()
     }
 }
 
+#if DBG
+void
+BasicBlock::SetTrackingByteCodeUpwardExposedUsedSym(SymID symID)
+{
+    Sym* sym = this->func->m_symTable->Find(symID);
+    if (sym)
+    {
+        SetTrackingByteCodeUpwardExposedUsedSym(sym);
+    }
+}
+
+void
+BasicBlock::SetTrackingByteCodeUpwardExposedUsedSym(Sym* sym)
+{
+    if (sym->IsStackSym())
+    {
+        StackSym* stackSym = sym->AsStackSym();
+        if (stackSym->HasByteCodeRegSlot())
+        {
+            Js::RegSlot bytecode = stackSym->GetByteCodeRegSlot();
+            this->trackingByteCodeUpwardExposedUsed->Set(bytecode);
+        }
+    }
+}
+
+void
+BasicBlock::ClearTrackingByteCodeUpwardExposedUsedSym(Sym* sym)
+{
+    if (sym->IsStackSym())
+    {
+        StackSym* stackSym = sym->AsStackSym();
+        if (stackSym->HasByteCodeRegSlot())
+        {
+            Js::RegSlot bytecode = stackSym->GetByteCodeRegSlot();
+            this->trackingByteCodeUpwardExposedUsed->Clear(bytecode);
+        }
+    }
+}
+#endif
+
+void
+BasicBlock::SetByteCodeUpwardExposedUsedSym(Sym* sym)
+{
+    byteCodeUpwardExposedUsed->Set(sym->m_id);
+#if DBG
+    SetTrackingByteCodeUpwardExposedUsedSym(sym);
+#endif
+}
+
+void
+BasicBlock::ClearByteCodeUpwardExposedUsedSym(Sym* sym)
+{
+    byteCodeUpwardExposedUsed->Clear(sym->m_id);
+#if DBG
+    ClearTrackingByteCodeUpwardExposedUsedSym(sym);
+#endif
+}
+
+void
+BasicBlock::OrByteCodeUpwardExposedUsed(const BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed)
+{
+#if DBG
+    // Convert new sym to the corresponding bytecode register
+    FOREACH_BITSET_IN_SPARSEBV(symID, byteCodeUpwardExposedUsed)
+    {
+        if (!this->byteCodeUpwardExposedUsed->Test(symID))
+        {
+            SetTrackingByteCodeUpwardExposedUsedSym(symID);
+        }
+    }
+    NEXT_BITSET_IN_SPARSEBV;
+#endif
+    this->byteCodeUpwardExposedUsed->Or(byteCodeUpwardExposedUsed);
+}
+
+void
+BasicBlock::SetByteCodeUpwardExposedUsed(BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed)
+{
+    this->byteCodeUpwardExposedUsed = byteCodeUpwardExposedUsed;
+#if DBG
+    if (byteCodeUpwardExposedUsed)
+    {
+        JitArenaAllocator* alloc = byteCodeUpwardExposedUsed->GetAllocator();
+        this->trackingByteCodeUpwardExposedUsed = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
+        // Convert the sym to the corresponding bytecode register
+        FOREACH_BITSET_IN_SPARSEBV(symID, byteCodeUpwardExposedUsed)
+        {
+            SetTrackingByteCodeUpwardExposedUsedSym(symID);
+        }
+        NEXT_BITSET_IN_SPARSEBV;
+    }
+#endif
+}
+
+void
+BasicBlock::FreeByteCodeUpwardExposedUsed()
+{
+    if (byteCodeUpwardExposedUsed)
+    {
+        JitArenaAllocator* alloc = byteCodeUpwardExposedUsed->GetAllocator();
+        JitAdelete(alloc, byteCodeUpwardExposedUsed);
+        byteCodeUpwardExposedUsed = nullptr;
+#if DBG
+        JitAdelete(alloc, trackingByteCodeUpwardExposedUsed);
+        trackingByteCodeUpwardExposedUsed = nullptr;
+#endif
+    }
+}
+
+void
+BasicBlock::Reset()
+{
+    upwardExposedUses = nullptr;
+    upwardExposedFields = nullptr;
+    typesNeedingKnownObjectLayout = nullptr;
+    fieldHoistCandidates = nullptr;
+    slotDeadStoreCandidates = nullptr;
+    byteCodeUpwardExposedUsed = nullptr;
+#if DBG
+    trackingByteCodeUpwardExposedUsed = nullptr;
+    byteCodeRestoreSyms = nullptr;
+    excludeByteCodeUpwardExposedTracking = nullptr;
+#endif
+    tempNumberTracker = nullptr;
+    tempObjectTracker = nullptr;
+#if DBG
+    tempObjectVerifyTracker = nullptr;
+#endif
+    stackSymToFinalType = nullptr;
+    stackSymToGuardedProperties = nullptr;
+    stackSymToWriteGuardsMap = nullptr;
+    cloneStrCandidates = nullptr;
+    noImplicitCallUses = nullptr;
+    noImplicitCallNoMissingValuesUses = nullptr;
+    noImplicitCallNativeArrayUses = nullptr;
+    noImplicitCallJsArrayHeadSegmentSymUses = nullptr;
+    noImplicitCallArrayLengthSymUses = nullptr;
+    couldRemoveNegZeroBailoutForDef = nullptr;
+
+    if (loop != nullptr)
+    {
+        loop->hasDeadStoreCollectionPass = false;
+        loop->hasDeadStorePrepass = false;
+    }
+}
+
 void
 BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
 {
