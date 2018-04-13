@@ -42,6 +42,9 @@ RecyclerSweep::BeginSweep(Recycler * recycler)
         // And clean up all the cache not monitor by the GC (e.g. inline caches)
         AUTO_NO_EXCEPTION_REGION;
 
+        // RecyclerSweep may not be initialized till later in this function but
+        // GCETW relies on the recycler pointer being correctly set up
+        this->recycler = recycler;
         GCETW(GC_PRESWEEPCALLBACK_START, (this));
         recycler->collectionWrapper->PreSweepCallback();
         GCETW(GC_PRESWEEPCALLBACK_STOP, (this));
