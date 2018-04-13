@@ -17,6 +17,7 @@
 #pragma pop_macro("NTDDI_VERSION")
 #else
 #include "unicode/ucal.h"
+#include "unicode/uclean.h"
 #include "unicode/ucol.h"
 #include "unicode/udat.h"
 #include "unicode/udatpg.h"
