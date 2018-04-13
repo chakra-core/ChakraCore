@@ -41,7 +41,10 @@ RecyclerSweep::BeginSweep(Recycler * recycler)
         // We are about to sweep, give the runtime a chance to see the now-immutable state of the world.
         // And clean up all the cache not monitor by the GC (e.g. inline caches)
         AUTO_NO_EXCEPTION_REGION;
+
+        GCETW(GC_PRESWEEPCALLBACK_START, (this));
         recycler->collectionWrapper->PreSweepCallback();
+        GCETW(GC_PRESWEEPCALLBACK_STOP, (this));
     }
 
     Assert(!recycler->IsSweeping());
