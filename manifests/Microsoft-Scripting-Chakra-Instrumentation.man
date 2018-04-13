@@ -2101,7 +2101,7 @@
                     outType="xs:string"
                     />
                 <data
-                    inType="win:UInt8"
+                    inType="win:Boolean"
                     name="Rethunk"
                     outType="xs:boolean"
                     />
