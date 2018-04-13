@@ -454,6 +454,24 @@ namespace Js
             {
                 library->AddMember(library->GetIntlObject(), PropertyIds::platform, this->intlNativeInterfaces);
             }
+
+#ifdef INTL_ICU
+            // when using ICU, we need to call u_init to ensure that ICU is functioning properly before allowing Intl to continue.
+            // u_init will cause the data file to be loaded, and if we don't have enough memory to do so, we can throw OutOfMemory here.
+            // This is to protect against spurious U_MISSING_RESOURCE_ERRORs and U_FILE_ACCESS_ERRORs coming from early-lifecycle
+            // functions that require ICU data.
+            // See OS#16897150, OS#16896933, and others relating to bad statuses returned by GetLocaleData and IsLocaleAvailable
+            UErrorCode status = U_ZERO_ERROR;
+            u_init(&status);
+            if (status == U_MEMORY_ALLOCATION_ERROR || status == U_FILE_ACCESS_ERROR || status == U_MISSING_RESOURCE_ERROR)
+            {
+                // Trace that this happens in case there are build system changes that actually cause the data file to be not found
+                INTL_TRACE("Could not initialize ICU - u_init returned status %S", u_errorName(status));
+                Throw::OutOfMemory();
+            }
+
+            AssertOrFailFastMsg(U_SUCCESS(status), "u_init returned non-OOM failure");
+#endif
         }
         wasInitialized = true;
     }
