@@ -42,8 +42,6 @@ __declspec(thread) char EnvFlags[MAX_ENV_LEN];
 // either be protected by synchronization or use thread-local storage.
 //
 
-// currently, none
-
 
 LOCAL void __cdecl
     RunCleanUp()
@@ -599,6 +597,10 @@ logFailure:
         LogOut("    %s", cmdbuf);
         if (fDumpOutputFile) {
             DumpFileToLog(full);
+        }
+        if (FStonOnError)
+        {
+            GStopDueToError = TRUE;
         }
     }
 
@@ -1333,7 +1335,7 @@ int
 
     // Check to see if all of the files exist.
 
-    for (StringList * pFile = pTest->files; pFile != NULL; pFile = pFile->next)
+    for (StringList * pFile = pTest->files; pFile != NULL && !GStopDueToError; pFile = pFile->next)
     {
         // Get a pointer to the filename sans path, if present.
 

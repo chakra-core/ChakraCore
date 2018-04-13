@@ -58,6 +58,8 @@ goto :main
   echo Options:
   echo.
   echo   -dirs dirname  Run only the specified directory
+  echo   -rebase        Create .rebase file on baseline comparision failure
+  echo   -stoponerror   Stop testing after first failure (will finish current execution)
   :: TODO Add more usage help
 
   goto :eof
@@ -177,6 +179,7 @@ goto :main
   :: TODO Consider removing -drt and exclude_drt in some reasonable manner
   if /i "%1" == "-drt"              set _drt=1& set _NOTTAGS=%_NOTTAGS% -nottags:exclude_drt&   goto :ArgOk
   if /i "%1" == "-rebase"           set _rebase=-rebase&                                        goto :ArgOk
+  if /i "%1" == "-stoponerror"      set _stoponerror=-stoponerror&                              goto :ArgOk
   if /i "%1" == "-rundebug"         set _RUNDEBUG=1&                                            goto :ArgOk
   :: TODO Figure out best way to specify build arch for tests that are excluded to specific archs
   if /i "%1" == "-platform"         set _buildArch=%2&                                          goto :ArgOkShift2
@@ -273,6 +276,7 @@ goto :main
   set _DIRTAGS=
   set _drt=
   set _rebase=
+  set _stoponerror=
   set _ExtraVariants=
   set _dynamicprofilecache=-dynamicprofilecache:profile.dpl
   set _dynamicprofileinput=-dynamicprofileinput:profile.dpl
@@ -381,6 +385,15 @@ goto :main
 :: Run one variant
 :: ============================================================================
 :RunOneVariant
+  if exist %_logsRoot%\%_BuildArch%_%_BuildType%\%_TESTCONFIG% (
+    rd /q /s %_logsRoot%\%_BuildArch%_%_BuildType%\%_TESTCONFIG%
+  )
+
+  if %_HadFailures% NEQ 0 (
+    if "%_stoponerror%" NEQ "" (
+      goto :eof
+    )
+  )
 
   if "%_BuildType%" == "test" (
     rem bytecode layout switches not available in test build
@@ -521,6 +534,7 @@ goto :main
   set _rlArgs=%_rlArgs% -exe
   set _rlArgs=%_rlArgs% %EXTRA_RL_FLAGS%
   set _rlArgs=%_rlArgs% %_rebase%
+  set _rlArgs=%_rlArgs% %_stoponerror%
 
   set REGRESS=%CD%
 
