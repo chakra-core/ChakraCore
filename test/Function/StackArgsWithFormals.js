@@ -303,6 +303,13 @@ function test20(v16) {
 test20();
 test20();
 
+function test21(v21) {
+  arguments;
+  function v21() {}
+}
+test21();
+test21();
+
 if(hasAllPassed)
 {
     print("PASSED");
