@@ -386,7 +386,6 @@ EXDEF2_WMS(TRYBR2,                  ResumeFinally,              OP_ResumeFinally
 EXDEF2    (W1,                      RuntimeTypeError,           JavascriptExceptionOperators::OP_RuntimeTypeError)
 EXDEF2    (W1,                      RuntimeReferenceError,      JavascriptExceptionOperators::OP_RuntimeReferenceError)
   DEF3    (CUSTOM_L_R0,             SpreadArrayLiteral,         OP_SpreadArrayLiteral, Reg2Aux)
-EXDEF2_WMS(A1toXX,                  ObjectFreeze,               JavascriptOperators::OP_Freeze)
 EXDEF3_WMS(CUSTOM,                  ClearAttributes,            OP_ClearAttributes, ElementU)
   DEF3_WMS(CUSTOM,                  ApplyArgs,                  OP_ApplyArgs, Reg5)
 #ifdef ENABLE_SCRIPT_DEBUGGING

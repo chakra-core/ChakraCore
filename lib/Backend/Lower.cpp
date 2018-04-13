@@ -2795,10 +2795,6 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             this->LowerConvPrimStr(instr);
             break;
 
-        case Js::OpCode::ObjectFreeze:
-            this->LowerUnaryHelper(instr, IR::HelperOP_Freeze);
-            break;
-
         case Js::OpCode::ClearAttributes:
             this->LowerBinaryHelper(instr, IR::HelperOP_ClearAttributes);
             break;

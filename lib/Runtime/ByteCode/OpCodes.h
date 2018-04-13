@@ -791,7 +791,6 @@ MACRO(                  SpreadArrayLiteral, Reg2Aux,        OpSideEffect|OpHasIm
 MACRO_BACKEND_ONLY(     LdSpreadIndices,    Empty,          None)
 
 MACRO_EXTEND_WMS(       ClearAttributes,    ElementU,       None)
-MACRO_EXTEND_WMS(       ObjectFreeze,       Reg1,           None)
 
 MACRO_EXTEND_WMS(       LdHomeObj,          Reg1,           OpSideEffect)
 MACRO_EXTEND_WMS(       LdFuncObj,          Reg1,           OpSideEffect)
