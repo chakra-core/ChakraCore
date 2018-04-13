@@ -798,7 +798,7 @@ MACRO_EXTEND_WMS(       LdHomeObjProto,     Reg2,           OpSideEffect)
 MACRO_EXTEND_WMS(       LdFuncObjProto,     Reg2,           OpSideEffect)
 MACRO_EXTEND_WMS(       SetHomeObj,         Reg2,           OpSideEffect)
 
-MACRO_EXTEND_WMS(       ImportCall,         Reg2,           OpSideEffect)
+MACRO_EXTEND_WMS(       ImportCall,         Reg2,           OpSideEffect|OpHasImplicitCall)
 
 MACRO_BACKEND_ONLY(     BrFncCachedScopeEq, Reg2,           None)
 MACRO_BACKEND_ONLY(     BrFncCachedScopeNeq,Reg2,           None)
