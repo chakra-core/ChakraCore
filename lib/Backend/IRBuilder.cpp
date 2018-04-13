@@ -1703,17 +1703,6 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
             return;
         }
 
-    case Js::OpCode::ObjectFreeze:
-        {
-            srcOpnd = this->BuildSrcOpnd(srcRegOpnd);
-
-            instr = IR::Instr::New(newOpcode, m_func);
-            instr->SetSrc1(srcOpnd);
-
-            this->AddInstr(instr, offset);
-            return;
-        }
-
     case Js::OpCode::LdC_A_Null:
         {
             const auto addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetNullAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
