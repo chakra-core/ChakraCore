@@ -1596,14 +1596,11 @@ void Parser::CreateSpecialSymbolDeclarations(ParseNodeFnc * pnodeFnc)
         varDeclNode->AsParseNodeVar()->sym->SetIsSuper(true);
     }
 
-    // Create a 'super' (as the call target for super()) symbol only for derived class constructors.
-    if (pnodeFnc->IsDerivedClassConstructor())
+    // Create a 'super' (as the call target for super()) symbol.
+    varDeclNode = CreateSpecialVarDeclIfNeeded(pnodeFnc, wellKnownPropertyPids._superConstructor);
+    if (varDeclNode)
     {
-        varDeclNode = CreateSpecialVarDeclIfNeeded(pnodeFnc, wellKnownPropertyPids._superConstructor);
-        if (varDeclNode)
-        {
-            varDeclNode->AsParseNodeVar()->sym->SetIsSuperConstructor(true);
-        }
+        varDeclNode->AsParseNodeVar()->sym->SetIsSuperConstructor(true);
     }
 }
 
@@ -7659,8 +7656,8 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
                 AutoParsingSuperRestrictionStateRestorer restorer(this);
                 this->m_parsingSuperRestrictionState = hasExtends ? ParsingSuperRestrictionState_SuperCallAndPropertyAllowed : ParsingSuperRestrictionState_SuperPropertyAllowed;
 
-                // Add the class constructor flag and base class constructor flag if pnodeExtends is nullptr
-                fncDeclFlags |= fFncClassConstructor | (pnodeExtends == nullptr ? fFncBaseClassConstructor : kFunctionNone);
+                // Add the class constructor flag and base class constructor flag (for non-derived constructors)
+                fncDeclFlags |= fFncClassConstructor | (hasExtends ? kFunctionNone : fFncBaseClassConstructor);
                 pnodeConstructor = ParseFncDecl<buildAST>(fncDeclFlags, pConstructorName, /* needsPIDOnRCurlyScan */ true, /* resetParsingSuperRestrictionState = */false);
             }
 
@@ -13887,7 +13884,7 @@ void Parser::ProcessCapturedNames(ParseNodeFnc* pnodeFnc)
             PidRefStack* ref = pid->GetTopRef();
 
             // If the pid has no refs left in our function's scope after binding, we didn't capture it.
-            if (!ref || ref->GetScopeId() < pnodeFnc->pnodeBodyScope->blockId)
+            if (!ref || ref->GetFuncScopeId() < pnodeFnc->functionId)
             {
                 iter.RemoveCurrent();
             }
@@ -13909,9 +13906,9 @@ bool Parser::IsCreatingStateCache()
 {
     return this->m_parseType == ParseType_StateCache
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        || CONFIG_FLAG(ForceCreateParserState)
+        || (CONFIG_FLAG(ForceCreateParserState) && this->m_parseType != ParseType_Deferred)
 #endif
-            ;
+        ;
 }
 
 DeferredFunctionStub * BuildDeferredStubTree(ParseNodeFnc *pnodeFnc, Recycler *recycler)

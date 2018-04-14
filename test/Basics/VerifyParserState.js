@@ -193,3 +193,22 @@ function f_1() {
 }
 `);
 console.log();
+
+console.log('names referenced in param scope can be captured');
+WScript.LoadScript(`
+let a14, c14;
+function f_1(b14 = a14, d14 = () => c14) {
+    return b14 + d14;
+}
+`);
+console.log();
+
+console.log('eval referencing and declaring names');
+WScript.LoadScript(`
+let a15, b15;
+function f_1() {
+    eval('var c15 = a15;');
+    return c15 + b15;
+}
+`);
+console.log();

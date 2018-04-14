@@ -123,10 +123,8 @@ CreateParserState:Function 4 captured name "*new.target*"
 CreateParserState:Function 6 captured name "*new.target*"
 CreateParserState:Function 6 captured name "*superconstructor*"
 CreateParserState:Function 6 captured name "*this*"
-CreateParserState:Function 5 captured name "*superconstructor*"
 CreateParserState:Function 8 captured name "*super*"
 CreateParserState:Function 8 captured name "*this*"
-CreateParserState:Function 1 captured name "*superconstructor*"
 
 nested function with shadowing block-scoped name
 CreateParserState:Function 1 captured name "v12"
@@ -146,4 +144,14 @@ CreateParserState:Function 4 captured name "f13"
 CreateParserState:Function 1 captured name "a13"
 CreateParserState:Function 1 captured name "e13"
 CreateParserState:Function 1 captured name "f13"
+
+names referenced in param scope can be captured
+CreateParserState:Function 2 captured name "c14"
+CreateParserState:Function 1 captured name "a14"
+CreateParserState:Function 1 captured name "c14"
+
+eval referencing and declaring names
+CreateParserState:Function 1 captured name "b15"
+CreateParserState:Function 1 captured name "c15"
+CreateParserState:Function 1 captured name "eval"
 

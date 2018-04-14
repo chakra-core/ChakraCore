@@ -2205,9 +2205,15 @@ void ByteCodeGenerator::LoadSuperConstructorObject(FuncInfo *funcInfo)
     Symbol* superConstructorSym = funcInfo->GetSuperConstructorSymbol();
     Assert(superConstructorSym);
     Assert(!funcInfo->IsLambda());
-    Assert(funcInfo->IsDerivedClassConstructor());
 
-    m_writer.Reg1(Js::OpCode::LdFuncObj, superConstructorSym->GetLocation());
+    if (funcInfo->IsDerivedClassConstructor())
+    {
+        m_writer.Reg1(Js::OpCode::LdFuncObj, superConstructorSym->GetLocation());
+    }
+    else
+    {
+        m_writer.Reg1(Js::OpCode::LdUndef, superConstructorSym->GetLocation());
+    }
 }
 
 void ByteCodeGenerator::LoadSuperObject(FuncInfo *funcInfo)
