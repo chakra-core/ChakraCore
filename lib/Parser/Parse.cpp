@@ -1596,14 +1596,11 @@ void Parser::CreateSpecialSymbolDeclarations(ParseNodeFnc * pnodeFnc)
         varDeclNode->AsParseNodeVar()->sym->SetIsSuper(true);
     }
 
-    // Create a 'super' (as the call target for super()) symbol only for derived class constructors.
-    if (pnodeFnc->IsDerivedClassConstructor())
+    // Create a 'super' (as the call target for super()) symbol.
+    varDeclNode = CreateSpecialVarDeclIfNeeded(pnodeFnc, wellKnownPropertyPids._superConstructor);
+    if (varDeclNode)
     {
-        varDeclNode = CreateSpecialVarDeclIfNeeded(pnodeFnc, wellKnownPropertyPids._superConstructor);
-        if (varDeclNode)
-        {
-            varDeclNode->AsParseNodeVar()->sym->SetIsSuperConstructor(true);
-        }
+        varDeclNode->AsParseNodeVar()->sym->SetIsSuperConstructor(true);
     }
 }
 
@@ -4881,7 +4878,6 @@ ParseNode * Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool n
     pnodeFnc->cbMin = this->GetScanner()->IecpMinTok();
     pnodeFnc->functionId = (*m_nextFunctionId)++;
 
-
     // Push new parser state with this new function node
 
     AppendFunctionToScopeList(fDeclaration, pnodeFnc);
@@ -4918,6 +4914,9 @@ ParseNode * Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool n
     IdentPtr pFncNamePid = nullptr;
     bool needScanRCurly = true;
     bool result = ParseFncDeclHelper<buildAST>(pnodeFnc, pNameHint, flags, &funcHasName, fUnaryOrParen, noStmtContext, &needScanRCurly, fModule, &pFncNamePid);
+
+    AddNestedCapturedNames(pnodeFnc);
+
     if (!result)
     {
         Assert(!pnodeFncBlockScope);
@@ -5658,6 +5657,8 @@ bool Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
             this->m_fUseStrictMode = oldStrictMode;
             CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(ES6, StrictModeFunction, m_scriptContext);
         }
+
+        ProcessCapturedNames(pnodeFnc);
 
         if (fDeferred)
         {
@@ -7655,8 +7656,8 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
                 AutoParsingSuperRestrictionStateRestorer restorer(this);
                 this->m_parsingSuperRestrictionState = hasExtends ? ParsingSuperRestrictionState_SuperCallAndPropertyAllowed : ParsingSuperRestrictionState_SuperPropertyAllowed;
 
-                // Add the class constructor flag and base class constructor flag if pnodeExtends is nullptr
-                fncDeclFlags |= fFncClassConstructor | (pnodeExtends == nullptr ? fFncBaseClassConstructor : kFunctionNone);
+                // Add the class constructor flag and base class constructor flag (for non-derived constructors)
+                fncDeclFlags |= fFncClassConstructor | (hasExtends ? kFunctionNone : fFncBaseClassConstructor);
                 pnodeConstructor = ParseFncDecl<buildAST>(fncDeclFlags, pConstructorName, /* needsPIDOnRCurlyScan */ true, /* resetParsingSuperRestrictionState = */false);
             }
 
@@ -9029,19 +9030,27 @@ void Parser::TrackAssignment(ParseNodePtr pnodeT, IdentToken* pToken)
 
 PidRefStack* Parser::PushPidRef(IdentPtr pid)
 {
+    ParseNodeFnc* currentFnc = GetCurrentFunctionNode();
+
+    if (this->IsCreatingStateCache())
+    {
+        IdentPtrSet* capturedNames = currentFnc->EnsureCapturedNames(&m_nodeAllocator);
+        capturedNames->AddNew(pid);
+    }
+
     if (PHASE_ON1(Js::ParallelParsePhase))
     {
         // NOTE: the phase check is here to protect perf. See OSG 1020424.
         // In some LS AST-rewrite cases we lose a lot of perf searching the PID ref stack rather
         // than just pushing on the top. This hasn't shown up as a perf issue in non-LS benchmarks.
-        return pid->FindOrAddPidRef(&m_nodeAllocator, GetCurrentBlock()->blockId, GetCurrentFunctionNode()->functionId);
+        return pid->FindOrAddPidRef(&m_nodeAllocator, GetCurrentBlock()->blockId, currentFnc->functionId);
     }
 
     Assert(GetCurrentBlock() != nullptr);
     AssertMsg(pid != nullptr, "PID should be created");
     PidRefStack *ref = pid->GetTopRef(m_nextBlockId - 1);
     int blockId = GetCurrentBlock()->blockId;
-    int funcId = GetCurrentFunctionNode()->functionId;
+    int funcId = currentFnc->functionId;
     if (!ref || (ref->GetScopeId() < blockId))
     {
         ref = Anew(&m_nodeAllocator, PidRefStack);
@@ -13824,7 +13833,83 @@ void ParseNode::Dump()
         break;
     }
 }
+
+void DumpCapturedNames(ParseNodeFnc* pnodeFnc, IdentPtrSet* capturedNames, ArenaAllocator* alloc)
+{
+    auto sortedNames = JsUtil::List<IdentPtr, ArenaAllocator>::New(alloc);
+
+    capturedNames->Map([=](const IdentPtr& pid) -> void {
+        sortedNames->Add(pid);
+    });
+
+    sortedNames->Sort([](void* context, const void* left, const void* right) -> int {
+        const IdentPtr leftIdentPtr = *(const IdentPtr*)(left);
+        const IdentPtr rightIdentPtr = *(const IdentPtr*)(right);
+        return ::wcscmp(leftIdentPtr->Psz(), rightIdentPtr->Psz());
+    }, nullptr);
+
+    sortedNames->Map([=](int index, const IdentPtr pid) -> void {
+        OUTPUT_TRACE_DEBUGONLY(Js::CreateParserStatePhase, _u("Function %u captured name \"%s\"\n"), pnodeFnc->functionId, pid->Psz());
+    });
+}
 #endif
+
+void Parser::AddNestedCapturedNames(ParseNodeFnc* pnodeChildFnc)
+{
+    if (m_currentNodeFunc && this->IsCreatingStateCache() && pnodeChildFnc->HasAnyCapturedNames())
+    {
+        IdentPtrSet* parentCapturedNames = GetCurrentFunctionNode()->EnsureCapturedNames(&m_nodeAllocator);
+        IdentPtrSet* childCaptureNames = pnodeChildFnc->GetCapturedNames();
+
+        auto iter = childCaptureNames->GetIterator();
+
+        while (iter.IsValid())
+        {
+            parentCapturedNames->AddNew(iter.CurrentValue());
+            iter.MoveNext();
+        }
+    }
+}
+
+void Parser::ProcessCapturedNames(ParseNodeFnc* pnodeFnc)
+{
+    if (this->IsCreatingStateCache() && pnodeFnc->HasAnyCapturedNames())
+    {
+        IdentPtrSet* capturedNames = pnodeFnc->GetCapturedNames();
+        auto iter = capturedNames->GetIteratorWithRemovalSupport();
+
+        while (iter.IsValid())
+        {
+            const IdentPtr& pid = iter.CurrentValueReference();
+            PidRefStack* ref = pid->GetTopRef();
+
+            // If the pid has no refs left in our function's scope after binding, we didn't capture it.
+            if (!ref || ref->GetFuncScopeId() < pnodeFnc->functionId)
+            {
+                iter.RemoveCurrent();
+            }
+
+            iter.MoveNext();
+        }
+
+#if DBG_DUMP
+        if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::CreateParserStatePhase))
+        {
+            DumpCapturedNames(pnodeFnc, capturedNames, &this->m_nodeAllocator);
+            fflush(stdout);
+        }
+#endif
+    }
+}
+
+bool Parser::IsCreatingStateCache()
+{
+    return this->m_parseType == ParseType_StateCache
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        || (CONFIG_FLAG(ForceCreateParserState) && this->m_parseType != ParseType_Deferred)
+#endif
+        ;
+}
 
 DeferredFunctionStub * BuildDeferredStubTree(ParseNodeFnc *pnodeFnc, Recycler *recycler)
 {
@@ -13887,6 +13972,7 @@ DeferredFunctionStub * BuildDeferredStubTree(ParseNodeFnc *pnodeFnc, Recycler *r
         deferredStubs[i].restorePoint = *pnodeFncChild->pRestorePoint;
         deferredStubs[i].deferredStubs = BuildDeferredStubTree(pnodeFncChild, recycler);
         deferredStubs[i].ichMin = pnodeChild->ichMin;
+
         ++i;
         pnodeChild = pnodeFncChild->pnodeNext;
     }

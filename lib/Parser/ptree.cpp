@@ -433,7 +433,7 @@ ParseNodeFnc::ParseNodeFnc(OpCode nop, charcount_t ichMin, charcount_t ichLim)
     this->pRestorePoint = nullptr;
     this->deferredStub = nullptr;
 
-    
+    this->capturedNames = nullptr;
 }
 
 ParseNodeClass::ParseNodeClass(OpCode nop, charcount_t ichMin, charcount_t ichLim)
@@ -605,4 +605,23 @@ ParseNodeSuperCall::ParseNodeSuperCall(OpCode nop, charcount_t ichMin, charcount
     this->isSuperCall = true;
     this->pnodeThis = nullptr;
     this->pnodeNewTarget = nullptr;
+}
+
+IdentPtrSet* ParseNodeFnc::EnsureCapturedNames(ArenaAllocator* alloc)
+{
+    if (this->capturedNames == nullptr)
+    {
+        this->capturedNames = Anew(alloc, IdentPtrSet, alloc);
+    }
+    return this->capturedNames;
+}
+
+IdentPtrSet* ParseNodeFnc::GetCapturedNames()
+{
+    return this->capturedNames;
+}
+
+bool ParseNodeFnc::HasAnyCapturedNames()
+{
+    return this->capturedNames != nullptr && this->capturedNames->Count() != 0;
 }
