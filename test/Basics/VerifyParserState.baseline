@@ -155,3 +155,15 @@ CreateParserState:Function 1 captured name "b15"
 CreateParserState:Function 1 captured name "c15"
 CreateParserState:Function 1 captured name "eval"
 
+named function expression referencing itself by name
+CreateParserState:Function 1 captured name "f_1"
+
+nested function containing a with statement which has a property shadowing a local
+CreateParserState:Function 1 captured name "a17"
+CreateParserState:Function 1 captured name "o17"
+
+nested function containing a with statement which captures a name
+CreateParserState:Function 1 captured name "a18"
+CreateParserState:Function 1 captured name "d18"
+CreateParserState:Function 1 captured name "o18"
+

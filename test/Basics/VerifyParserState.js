@@ -212,3 +212,36 @@ function f_1() {
 }
 `);
 console.log();
+
+console.log('named function expression referencing itself by name');
+WScript.LoadScript(`
+(function f_1() {
+    return f_1;
+})()
+`);
+console.log();
+
+console.log('nested function containing a with statement which has a property shadowing a local');
+WScript.LoadScript(`
+var a17 = 'a', b17 = 'b';
+var o17 = { c17: 'c', d17: 'd' }
+function f_1() {
+    let d17 = 'not d';
+    with(o17) {
+        return a17 + d17;
+    }
+}
+`);
+console.log();
+
+console.log('nested function containing a with statement which captures a name');
+WScript.LoadScript(`
+var a18 = 'a', b18 = 'b';
+var o18 = { c18: 'c', d18: 'd' }
+function f_1() {
+    with(o18) {
+        return a18 + d18;
+    }
+}
+`);
+console.log();
