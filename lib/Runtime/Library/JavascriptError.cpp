@@ -263,14 +263,12 @@ namespace Js
     \
     void __declspec(noreturn) JavascriptError::err_method(ScriptContext* scriptContext, int32 hCode, EXCEPINFO* pei) \
     { \
-        if (hCode == VBSERR_InternalError) AssertMsg(false, "Internal error"); \
         JavascriptError *pError = create_method(scriptContext); \
         SetMessageAndThrowError(scriptContext, pError, hCode, pei); \
     } \
     \
     void __declspec(noreturn) JavascriptError::err_method(ScriptContext* scriptContext, int32 hCode, PCWSTR varName) \
     { \
-        if (hCode == VBSERR_InternalError) AssertMsg(false, "Internal error"); \
         JavascriptLibrary *library = scriptContext->GetLibrary(); \
         JavascriptError *pError = library->create_method(); \
         JavascriptError::SetErrorMessage(pError, hCode, varName, scriptContext); \
@@ -279,7 +277,6 @@ namespace Js
     \
     void __declspec(noreturn) JavascriptError::err_method(ScriptContext* scriptContext, int32 hCode, JavascriptString* varName) \
     { \
-        if (hCode == VBSERR_InternalError) AssertMsg(false, "Internal error"); \
         JavascriptLibrary *library = scriptContext->GetLibrary(); \
         JavascriptError *pError = library->create_method(); \
         JavascriptError::SetErrorMessage(pError, hCode, varName->GetSz(), scriptContext); \
@@ -288,7 +285,6 @@ namespace Js
     \
     void __declspec(noreturn) JavascriptError::err_method##Var(ScriptContext* scriptContext, int32 hCode, ...) \
     { \
-        if (hCode == VBSERR_InternalError) AssertMsg(false, "Internal error"); \
         JavascriptLibrary *library = scriptContext->GetLibrary(); \
         JavascriptError *pError = library->create_method(); \
         va_list argList; \
