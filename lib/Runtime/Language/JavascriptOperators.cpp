@@ -1335,7 +1335,7 @@ CommonNumber:
     {
         bool isCtorSuperCall = JavascriptOperators::IsConstructorSuperCall(args);
         Assert(isCtorSuperCall || !args.IsNewCall()
-                || args[0] == nullptr || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
+                || args.GetNewTarget() == nullptr || JavascriptOperators::GetTypeId(args.GetNewTarget()) == TypeIds_HostDispatch);
         return isCtorSuperCall;
     }
 

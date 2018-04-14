@@ -136,16 +136,14 @@ namespace Js
         Var newVarInstance = nullptr;
         if (callInfo.Flags & CallFlags_New)
         {
-          if (JavascriptProxy::Is(targetFunction))
-          {
-            JavascriptProxy* proxy = JavascriptProxy::FromVar(targetFunction);
-            Arguments proxyArgs(CallInfo(CallFlags_New, 1), &targetFunction);
-            args.Values[0] = newVarInstance = proxy->ConstructorTrap(proxyArgs, scriptContext, 0);
-          }
-          else
-          {
-            args.Values[0] = newVarInstance = JavascriptOperators::NewScObjectNoCtor(targetFunction, scriptContext);
-          }
+            if (JavascriptProxy::Is(targetFunction))
+            {
+                args.Values[0] = newVarInstance = JavascriptProxy::FromVar(targetFunction);//JavascriptOperators::CreateFromConstructor(RecyclableObject::FromVar(targetFunction), scriptContext);
+            }
+            else
+            {
+                args.Values[0] = newVarInstance = JavascriptOperators::NewScObjectNoCtor(targetFunction, scriptContext);
+            }
         }
 
         Js::Arguments actualArgs = args;
@@ -183,7 +181,7 @@ namespace Js
             }
 
             // Copy the extra args
-            for (uint i=1; i<argCount; i++)
+            for (uint i=1; i < args.Info.GetArgCountWithExtraArgs(); i++)
             {
                 newValues[index++] = args[i];
             }

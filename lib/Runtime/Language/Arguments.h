@@ -182,7 +182,7 @@ namespace Js
         Var operator [](int idxArg) { return const_cast<Var>(static_cast<const Arguments&>(*this)[idxArg]); }
         const Var operator [](int idxArg) const
         {
-            AssertMsg((idxArg < (int)Info.Count) && (idxArg >= 0), "Ensure a valid argument index");
+            AssertMsg((idxArg < (int)Info.Count + HasExtraArg() ? 1 : 0) && (idxArg >= 0), "Ensure a valid argument index");
             return Values[idxArg];
         }
 
