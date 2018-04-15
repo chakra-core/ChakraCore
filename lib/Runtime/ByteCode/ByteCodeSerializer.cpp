@@ -2064,8 +2064,9 @@ public:
                 | FunctionInfo::Attributes::ClassMethod
                 | FunctionInfo::Attributes::Method
                 | FunctionInfo::Attributes::EnclosedByGlobalFunc
-                | FunctionInfo::Attributes::AllowDirectSuper)) == 0,
-            "Only the ErrorOnNew|SuperReference|Lambda|CapturesThis|Generator|ClassConstructor|BaseConstructorKind|Async|ClassMember|Method|EnclosedByGlobalFunc|AllowDirectSuper attributes should be set on a serialized function");
+                | FunctionInfo::Attributes::AllowDirectSuper
+                | FunctionInfo::Attributes::ComputedName)) == 0,
+            "Only the ErrorOnNew|SuperReference|Lambda|CapturesThis|Generator|ClassConstructor|BaseConstructorKind|Async|ClassMember|Method|EnclosedByGlobalFunc|AllowDirectSuper|ComputedName attributes should be set on a serialized function");
         if (attributes != FunctionInfo::Attributes::None)
         {
             definedFields.has_attributes = true;

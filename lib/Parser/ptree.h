@@ -423,7 +423,7 @@ enum FncFlags : uint
     kFunctionStrictMode                         = 1 << 8,
     kFunctionHasDestructuredParams              = 1 << 9,
     kFunctionIsModule                           = 1 << 10, // function is a module body
-    // Free = 1 << 11,
+    kFunctionHasComputedName                    = 1 << 11,
     kFunctionHasWithStmt                        = 1 << 12, // function (or child) uses with
     kFunctionIsLambda                           = 1 << 13,
     kFunctionChildCallsEval                     = 1 << 14,
@@ -456,7 +456,7 @@ public:
     ParseNodeFnc(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
     ParseNodePtr pnodeNext;
-    ParseNodePtr pnodeName;
+    ParseNodeVar * pnodeName;
     IdentPtr pid;
     LPCOLESTR hint;
     uint32 hintLength;
@@ -562,6 +562,7 @@ public:
     void SetNested(bool set = true) { SetFlags(kFunctionNested, set); }
     void SetStrictMode(bool set = true) { SetFlags(kFunctionStrictMode, set); }
     void SetIsModule(bool set = true) { SetFlags(kFunctionIsModule, set); }
+    void SetHasComputedName(bool set = true) { SetFlags(kFunctionHasComputedName, set); }
     void SetUsesArguments(bool set = true) { SetFlags(kFunctionUsesArguments, set); }
     void SetIsDefaultModuleExport(bool set = true) { SetFlags(kFunctionIsDefaultModuleExport, set); }
     void SetNestedFuncEscapes(bool set = true) { nestedFuncEscapes = set; }
@@ -599,6 +600,7 @@ public:
     bool IsNested() const { return HasFlags(kFunctionNested); }
     bool IsStaticMember() const { return HasFlags(kFunctionIsStaticMember); }
     bool IsModule() const { return HasFlags(kFunctionIsModule); }
+    bool HasComputedName() const { return HasFlags(kFunctionHasComputedName); }
     bool UsesArguments() const { return HasFlags(kFunctionUsesArguments); }
     bool IsDefaultModuleExport() const { return HasFlags(kFunctionIsDefaultModuleExport); }
     bool NestedFuncEscapes() const { return nestedFuncEscapes; }
@@ -658,7 +660,7 @@ public:
     ParseNodeVar * pnodeName;
     ParseNodeVar * pnodeDeclName;
     ParseNodeBlock * pnodeBlock;
-    ParseNodePtr pnodeConstructor;
+    ParseNodeFnc * pnodeConstructor;
     ParseNodePtr pnodeMembers;
     ParseNodePtr pnodeStaticMembers;
     ParseNodePtr pnodeExtends;

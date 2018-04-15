@@ -146,6 +146,9 @@ namespace Js
 
         Field(JavascriptGeneratorFunction*) realFunction;
 
+    protected:
+        DEFINE_VTABLE_CTOR(GeneratorVirtualScriptFunction, ScriptFunction);
+ 
     public:
         GeneratorVirtualScriptFunction(FunctionProxy* proxy, ScriptFunctionType* deferredPrototypeType) : ScriptFunction(proxy, deferredPrototypeType) { }
 
@@ -160,4 +163,6 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    typedef FunctionWithComputedName<GeneratorVirtualScriptFunction> GeneratorVirtualScriptFunctionWithComputedName;
 }
