@@ -524,7 +524,7 @@ CommonNumber:
     }
 
     template <JavascriptHint hint>
-    Var JavascriptConversion::OrdinaryToPrimitive(_In_ RecyclableObject* value, _In_ ScriptContext * requestContext)
+    Var JavascriptConversion::OrdinaryToPrimitive(_In_ RecyclableObject* value, _In_ ScriptContext* requestContext)
     {
         Var result;
         if (!value->ToPrimitive(hint, &result, requestContext))
@@ -550,6 +550,9 @@ CommonNumber:
         }
         return result;
     }
+    template Var JavascriptConversion::OrdinaryToPrimitive<JavascriptHint::HintNumber>(RecyclableObject* value, ScriptContext* requestContext);
+    template Var JavascriptConversion::OrdinaryToPrimitive<JavascriptHint::HintString>(RecyclableObject* value, ScriptContext* requestContext);
+    template Var JavascriptConversion::OrdinaryToPrimitive<JavascriptHint::None>(RecyclableObject* value, ScriptContext* requestContext);
 
     JavascriptString *JavascriptConversion::CoerseString(Var aValue, ScriptContext* scriptContext, const char16* apiNameForErrorMsg)
     {

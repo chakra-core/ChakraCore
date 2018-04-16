@@ -936,6 +936,8 @@ namespace Js
         {
             if (!this->GetHasSpecialProperties() && NoSpecialPropertyCache::IsDefaultHandledSpecialProperty(propertyNameString))
             {
+                // If you are deleting a valueOf/toString and the flag wasn't set, it means you are deleting the default
+                // implementation off of Object.prototype
                 this->SetHasSpecialProperties();
                 if (GetFlags() & IsPrototypeFlag)
                 {

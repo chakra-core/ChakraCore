@@ -793,8 +793,8 @@ namespace Js
         isWeakReferenceDictionaryListCleared = true;
         this->weakReferenceDictionaryList.Clear(this->GeneralAllocator());
 
-        this->noSpecialPropertyRegistry.Clear(true /* Unregister */);
-        this->onlyWritablePropertyRegistry.Clear(true /* Unregister */);
+        this->noSpecialPropertyRegistry.Clear(false /* isThreadClear */);
+        this->onlyWritablePropertyRegistry.Clear(false /* isThreadClear */);
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
         threadContext->ReleaseDebugManager();

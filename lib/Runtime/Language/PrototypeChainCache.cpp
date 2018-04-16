@@ -41,7 +41,7 @@ ThreadCacheRegistry<T>::Clear()
     bool hasItem = false;
     FOREACH_DLISTBASE_ENTRY(ScriptCacheRegistry<T>*, registration, &this->scriptRegistrations)
     {
-        registration->Clear(false /* unregister */);
+        registration->Clear(true /* isThreadClear */);
         hasItem = true;
     }
     NEXT_DLISTBASE_ENTRY;
@@ -84,13 +84,14 @@ ScriptCacheRegistry<T>::Register()
 
 template <typename T>
 void
-ScriptCacheRegistry<T>::Clear(bool unregister)
+ScriptCacheRegistry<T>::Clear(bool isThreadClear)
 {
     if (this->registration != nullptr)
     {
         Assert(this->cache);
         this->cache->Clear();
-        if (unregister)
+        // Thread clear will reset the registry, so we don't need to call unregister
+        if (!isThreadClear)
         {
             this->threadRegistry->Unregister(this->registration);
         }
@@ -205,8 +206,7 @@ PrototypeChainCache<T>::CheckProtoChainInternal(RecyclableObject* prototype)
 
     if (onlyOneScriptContext)
     {
-        // See JavascriptLibrary::typesWithNoSpecialPropertiesInItAndPrototypeChain for a description of
-        // this cache. Technically, we could register all prototypes in the chain but this is good enough for now.
+        // Technically, we could register all prototypes in the chain but this is good enough for now
         T::Cache(originalType);
     }
 

@@ -31,7 +31,7 @@ class ScriptCacheRegistry
 public:
     ScriptCacheRegistry(_In_ ThreadCacheRegistry<T>* threadRegistry);
     void Register();
-    void Clear(bool unregister);
+    void Clear(bool isThreadClear);
     void AssignCache(_In_ T* cache);
 private:
     T* cache;
