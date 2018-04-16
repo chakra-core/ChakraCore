@@ -300,7 +300,6 @@ namespace Js {
 #endif
        }
        case TypeIds_String:
-       case TypeIds_Symbol:
            return nullptr;
 
        default:

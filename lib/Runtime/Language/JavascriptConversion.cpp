@@ -199,17 +199,15 @@ CommonNumber:
                 return JavascriptString::Equals(JavascriptString::UnsafeFromVar(aLeft), JavascriptString::UnsafeFromVar(aRight));
             }
             break;
+#if DBG
         case TypeIds_Symbol:
-            switch (rightType)
+            if (rightType == TypeIds_Symbol)
             {
-            case TypeIds_Symbol:
-                {
-                    JavascriptSymbol* leftSymbol = JavascriptSymbol::UnsafeFromVar(aLeft);
-                    JavascriptSymbol* rightSymbol = JavascriptSymbol::UnsafeFromVar(aRight);
-                    return leftSymbol->GetValue() == rightSymbol->GetValue();
-                }
+                JavascriptSymbol* leftSymbol = JavascriptSymbol::UnsafeFromVar(aLeft);
+                JavascriptSymbol* rightSymbol = JavascriptSymbol::UnsafeFromVar(aRight);
+                Assert(leftSymbol->GetValue() != rightSymbol->GetValue());
             }
-            return false;
+#endif
         default:
             break;
         }

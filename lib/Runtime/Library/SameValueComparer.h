@@ -89,12 +89,6 @@ namespace Js
                     return JsUtil::CharacterBuffer<WCHAR>::StaticGetHashCode(v->GetString(), v->GetLength());
                 }
 
-            case TypeIds_Symbol:
-            {
-                JavascriptSymbol* sym = JavascriptSymbol::UnsafeFromVar(i);
-                return sym->GetValue()->GetHashCode();
-            }
-
             default:
                 return RecyclerPointerComparer<Var>::GetHashCode(i);
             }

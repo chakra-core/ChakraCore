@@ -34,7 +34,7 @@ namespace Js
             // Addition of a Var that is not comparable by pointer value causes the set to be promoted to a ComplexVarSet
             SimpleVarSet,
             // A ComplexVarSet is a set containing Vars for which we must inspect the values to do a comparison
-            // This includes Strings, Symbols, and (sometimes) JavascriptNumbers
+            // This includes Strings and (sometimes) JavascriptNumbers
             ComplexVarSet
         };
 
