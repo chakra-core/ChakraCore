@@ -1384,7 +1384,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
                 {
                     parseableFunctionInfo = reuseNestedFunc->GetFunctionBody();
                 }
-                Assert((parseableFunctionInfo->GetAttributes() & StableFunctionInfoAttributesMask) == attributes);
+                Assert((parseableFunctionInfo->GetAttributes() & StableFunctionInfoAttributesMask) == (attributes & StableFunctionInfoAttributesMask));
             }
             else
             {
@@ -1416,7 +1416,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
                 Assert(!reuseNestedFunc->IsFunctionBody() || reuseNestedFunc->GetFunctionBody()->GetByteCode() != nullptr);
                 Assert(pnodeFnc->pnodeBody == nullptr);
                 parseableFunctionInfo = reuseNestedFunc;
-                Assert((parseableFunctionInfo->GetAttributes() & StableFunctionInfoAttributesMask) == attributes);
+                Assert((parseableFunctionInfo->GetAttributes() & StableFunctionInfoAttributesMask) == (attributes & StableFunctionInfoAttributesMask));
             }
             else
             {
