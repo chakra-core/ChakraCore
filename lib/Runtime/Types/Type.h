@@ -12,6 +12,8 @@ enum TypeFlagMask : uint8
     TypeFlagMask_HasSpecialPrototype                                               = 0x04,
     TypeFlagMask_EngineExternal                                                    = 0x08,
     TypeFlagMask_SkipsPrototype                                                    = 0x10,
+    // Indicates that no @@toStringTag, @@toPrimitive, toString, or valueOf properties are set
+    // (except for the default values on Object.prototype)
     TypeFlagMask_ThisAndPrototypesHaveNoSpecialProperties                          = 0x20,
     TypeFlagMask_JsrtExternal                                                      = 0x40,
     TypeFlagMask_HasBeenCached                                                     = 0x80

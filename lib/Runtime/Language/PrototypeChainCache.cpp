@@ -351,11 +351,11 @@ OnlyWritablePropertyCache::RegistrationAssert(_In_ Type* type)
 }
 #endif
 
-template class PrototypeChainCache<NoSpecialPropertyCache>;
-template class PrototypeChainCache<OnlyWritablePropertyCache>;
+template class Js::PrototypeChainCache<NoSpecialPropertyCache>;
+template class Js::PrototypeChainCache<OnlyWritablePropertyCache>;
 
-template class ScriptCacheRegistry<NoSpecialPropertyProtoChainCache>;
-template class ScriptCacheRegistry<OnlyWritablePropertyProtoChainCache>;
+template class Js::ScriptCacheRegistry<NoSpecialPropertyProtoChainCache>;
+template class Js::ScriptCacheRegistry<OnlyWritablePropertyProtoChainCache>;
 
-template class ThreadCacheRegistry<NoSpecialPropertyProtoChainCache>;
-template class ThreadCacheRegistry<OnlyWritablePropertyProtoChainCache>;
+template class Js::ThreadCacheRegistry<NoSpecialPropertyProtoChainCache>;
+template class Js::ThreadCacheRegistry<OnlyWritablePropertyProtoChainCache>;
