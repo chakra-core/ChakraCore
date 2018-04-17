@@ -20,7 +20,7 @@ def msbuildTypeMap = [
 def machineTypeToOSTagMap = [
     'Windows_NT': 'Windows',        // Windows Server 2012 R2, equivalent to Windows 8.1 (aka Blue)
     'Ubuntu16.04': 'Ubuntu',
-    'OSX': 'OSX'
+    'OSX10.12': 'OSX'
 ]
 
 def dailyRegex = 'dailies'
@@ -313,7 +313,7 @@ if (isXPlatCompatibleBranch) {
 // ---------------
 
 if (isXPlatCompatibleBranch) {
-    def osString = 'OSX'
+    def osString = 'OSX10.12'
 
     // PR and CI checks
     CreateXPlatBuildTasks(osString, "osx", "osx", branch, null, "")
