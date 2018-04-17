@@ -47,7 +47,7 @@ namespace Js
             // an object that is already a prototype. If it becomes a prototype and then we attempt to add a property to an object derived from this
             // object, then we will check if this property is writable, and only if it is will we do the fast path for add property.
             // GetScriptContext()->InvalidateStoreFieldCaches(PropertyIds::length);
-            GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+            GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->Clear();
         }
     }
 
@@ -62,7 +62,7 @@ namespace Js
             // an object that is already a prototype. If it becomes a prototype and then we attempt to add a property to an object derived from this
             // object, then we will check if this property is writable, and only if it is will we do the fast path for add property.
             // GetScriptContext()->InvalidateStoreFieldCaches(PropertyIds::length);
-            GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+            GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->Clear();
         }
     }
 

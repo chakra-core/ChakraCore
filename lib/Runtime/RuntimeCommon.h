@@ -115,14 +115,16 @@ namespace Js
                                                          // (no accessors or non-writable properties)
     #define PropertyTypesWritableDataOnlyDetection 0x20  // Set on each call to DynamicTypeHandler::SetHasOnlyWritableDataProperties.
     #define PropertyTypesInlineSlotCapacityLocked  0x40  // Indicates that the inline slot capacity has been shrunk already and shouldn't be touched again.
-    #define PropertyTypesAll                       (PropertyTypesWritableDataOnly|PropertyTypesWritableDataOnlyDetection|PropertyTypesInlineSlotCapacityLocked)
+    #define PropertyTypesHasSpecialProperties      0x80  // Indicates that @@toStringTag, @@toPrimitive, toString, or valueOf are set
+    #define PropertyTypesAll                       (PropertyTypesHasSpecialProperties|PropertyTypesWritableDataOnly|PropertyTypesWritableDataOnlyDetection|PropertyTypesInlineSlotCapacityLocked)
     typedef unsigned char PropertyTypes;                 // Holds flags that represent general information about the types of properties
                                                          // handled by a type handler.
-    BEGIN_ENUM_UINT(JavascriptHint)
+    enum class JavascriptHint
+    {
         None,                                   // no hint. use the default for that object
-        HintString  = 0x00000001,               // 'string' hint in ToPrimitiveValue()
-        HintNumber  = 0x00000002,               // 'number' hint
-    END_ENUM_UINT()
+        HintString = 0x00000001,               // 'string' hint in ToPrimitiveValue()
+        HintNumber = 0x00000002,               // 'number' hint
+    };
 
     enum DescriptorFlags
     {

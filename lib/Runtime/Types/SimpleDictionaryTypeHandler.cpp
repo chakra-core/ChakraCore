@@ -481,7 +481,7 @@ namespace Js
         // Any new type handler we expect to see here should have inline slot capacity locked.  If this were to change, we would need
         // to update our shrinking logic (see PathTypeHandlerBase::ShrinkSlotAndInlineSlotCapacity).
         Assert(newTypeHandler->GetIsInlineSlotCapacityLocked());
-        newTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection, this->GetPropertyTypes());
+        newTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection | PropertyTypesHasSpecialProperties, this->GetPropertyTypes());
         newTypeHandler->SetInstanceTypeHandler(instance);
 #if ENABLE_FIXED_FIELDS
         // We assumed that we don't need to transfer used as fixed bits unless we are a prototype, which is only valid if we also changed the type.
@@ -1011,6 +1011,7 @@ namespace Js
         bool isInitialized, bool isFixed, bool usedAsFixed,
         ScriptContext *const scriptContext)
     {
+        JavascriptLibrary* library = scriptContext->GetLibrary();
         //
         // For a function with same named parameters,
         // property id Constants::NoProperty will be passed for all the dups except the last one
@@ -1030,16 +1031,9 @@ namespace Js
             descriptor.usedAsFixed = usedAsFixed;
 #endif
             propertyMap->Add(TMapKey_ConvertKey<TMapKey>(scriptContext, propertyKey), descriptor);
-        }
 
-        if (!(attributes & PropertyWritable))
-        {
-            this->ClearHasOnlyWritableDataProperties();
-            if (GetFlags() & IsPrototypeFlag)
-            {
-                scriptContext->InvalidateStoreFieldCaches(TMapKey_GetPropertyId(scriptContext, propertyKey));
-                scriptContext->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
-            }
+            library->GetTypesWithNoSpecialPropertyProtoChainCache()->ProcessProperty(this, attributes, propertyKey);
+            library->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, attributes, propertyKey);
         }
     }
 
@@ -2006,12 +2000,8 @@ namespace Js
                 // Clearing the attribute may have changed the type handler, so make sure
                 // we access the current one.
                 DynamicTypeHandler *const typeHandler = GetCurrentTypeHandler(instance);
-                typeHandler->ClearHasOnlyWritableDataProperties();
-                if(typeHandler->GetFlags() & IsPrototypeFlag)
-                {
-                    instance->GetScriptContext()->InvalidateStoreFieldCaches(propertyId);
-                    instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
-                }
+
+                instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(typeHandler, PropertyNone, propertyId);
             }
         }
         return true;
@@ -2196,7 +2186,7 @@ namespace Js
         if (GetFlags() & IsPrototypeFlag)
         {
             InvalidateStoreFieldCachesForAllProperties(instance->GetScriptContext());
-            instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+            instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->Clear();
         }
 
         return TRUE;
@@ -2477,15 +2467,8 @@ namespace Js
                 instance->SetHasNoEnumerableProperties(false);
             }
 
-            if (!(descriptor->Attributes & PropertyWritable))
-            {
-                this->ClearHasOnlyWritableDataProperties();
-                if(GetFlags() & IsPrototypeFlag)
-                {
-                    instance->GetScriptContext()->InvalidateStoreFieldCaches(propertyId);
-                    instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
-                }
-            }
+            instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, descriptor->Attributes, propertyId);
+
             SetPropertyUpdateSideEffect(instance, propertyId, value, possibleSideEffects);
             return true;
         }
@@ -2597,15 +2580,7 @@ namespace Js
                     instance->SetHasNoEnumerableProperties(false);
                 }
 
-                if (!(descriptor->Attributes & PropertyWritable))
-                {
-                    this->ClearHasOnlyWritableDataProperties();
-                    if(GetFlags() & IsPrototypeFlag)
-                    {
-                        instance->GetScriptContext()->InvalidateStoreFieldCaches(propertyId);
-                        instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
-                    }
-                }
+                instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, descriptor->Attributes, propertyId);
 
                 return true;
             }

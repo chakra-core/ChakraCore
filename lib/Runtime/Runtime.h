@@ -227,7 +227,7 @@ namespace Js
     class EntryPointInfo;
     struct LoopHeader;
     class InternalString;
-    /* enum */ struct JavascriptHint;
+    enum class JavascriptHint;
     /* enum */ struct BuiltinFunction;
     class EnterScriptObject;
     class PropertyRecord;
@@ -425,6 +425,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 
 #include "Base/CharStringCache.h"
 
+#include "Language/PrototypeChainCache.h"
 #include "Library/JavascriptObject.h"
 #include "Library/BuiltInFlags.h"
 #include "Types/DynamicObjectPropertyEnumerator.h"

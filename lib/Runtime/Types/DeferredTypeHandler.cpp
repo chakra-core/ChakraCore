@@ -111,7 +111,7 @@ namespace Js
         // EnsureSlots before updating the type handler and instance, as EnsureSlots allocates and may throw.
         instance->EnsureSlots(0, newTypeHandler->GetSlotCapacity(), scriptContext, newTypeHandler);
         newTypeHandler->SetFlags(IsPrototypeFlag, this->GetFlags());
-        newTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection | PropertyTypesInlineSlotCapacityLocked , this->GetPropertyTypes());
+        newTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection | PropertyTypesInlineSlotCapacityLocked | PropertyTypesHasSpecialProperties, this->GetPropertyTypes());
         if (instance->HasReadOnlyPropertiesInvisibleToTypeHandler())
         {
             newTypeHandler->ClearHasOnlyWritableDataProperties();

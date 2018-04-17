@@ -322,7 +322,7 @@ namespace Js
 
             // If this object is used as a prototype, the has-only-writable-data-properties-in-prototype-chain cache needs to be
             // invalidated here since the type handler of 'objectArray' is not marked as being used as a prototype
-            GetType()->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+            GetType()->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->Clear();
         }
     }
 

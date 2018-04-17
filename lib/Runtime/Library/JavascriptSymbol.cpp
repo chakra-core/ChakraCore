@@ -259,7 +259,7 @@ namespace Js
         TypeId typeId = JavascriptOperators::GetTypeId(right);
         if (typeId != TypeIds_Symbol && typeId != TypeIds_SymbolObject)
         {
-            right = JavascriptConversion::ToPrimitive(right, JavascriptHint::None, requestContext);
+            right = JavascriptConversion::ToPrimitive<JavascriptHint::None>(right, requestContext);
             typeId = JavascriptOperators::GetTypeId(right);
         }
 

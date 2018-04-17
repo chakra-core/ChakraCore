@@ -273,7 +273,7 @@ CommonNumber:
         _Out_ const PropertyRecord** propertyRecord,
         _Out_opt_ PropertyString** propString)
     {
-        Var key = JavascriptConversion::ToPrimitive(argument, JavascriptHint::HintString, scriptContext);
+        Var key = JavascriptConversion::ToPrimitive<JavascriptHint::HintString>(argument, scriptContext);
         PropertyString * propertyString = nullptr;
         if (JavascriptSymbol::Is(key))
         {
@@ -309,7 +309,8 @@ CommonNumber:
     //              The behavior of the [[DefaultValue]] internal method is defined by this specification
     //              for all native ECMAScript objects (8.12.9).
     //----------------------------------------------------------------------------
-    Var JavascriptConversion::ToPrimitive(Var aValue, JavascriptHint hint, ScriptContext * requestContext)
+    template <JavascriptHint hint>
+    Var JavascriptConversion::ToPrimitive(_In_ Var aValue, _In_ ScriptContext * requestContext)
     {
         switch (JavascriptOperators::GetTypeId(aValue))
         {
@@ -338,7 +339,7 @@ CommonNumber:
                 ScriptContext * objectScriptContext = stringObject->GetScriptContext();
                 if (objectScriptContext->optimizationOverrides.GetSideEffects() & (hint == JavascriptHint::HintString ? SideEffects_ToString : SideEffects_ValueOf))
                 {
-                    return MethodCallToPrimitive(aValue, hint, requestContext);
+                    return MethodCallToPrimitive<hint>(stringObject, requestContext);
                 }
 
                 return CrossSite::MarshalVar(requestContext, stringObject->Unwrap(), objectScriptContext);
@@ -352,7 +353,7 @@ CommonNumber:
                 {
                     if (objectScriptContext->optimizationOverrides.GetSideEffects() & SideEffects_ToString)
                     {
-                        return MethodCallToPrimitive(aValue, hint, requestContext);
+                        return MethodCallToPrimitive<hint>(numberObject, requestContext);
                     }
                     return JavascriptNumber::ToStringRadix10(numberObject->GetValue(), requestContext);
                 }
@@ -360,7 +361,7 @@ CommonNumber:
                 {
                     if (objectScriptContext->optimizationOverrides.GetSideEffects() & SideEffects_ValueOf)
                     {
-                        return MethodCallToPrimitive(aValue, hint, requestContext);
+                        return MethodCallToPrimitive<hint>(numberObject, requestContext);
                     }
 
                     return CrossSite::MarshalVar(requestContext, numberObject->Unwrap(), objectScriptContext);
@@ -385,7 +386,7 @@ CommonNumber:
                     {
                         // if no Method exists this function falls back to OrdinaryToPrimitive
                         // if IsES6ToPrimitiveEnabled flag is off we also fall back to OrdinaryToPrimitive
-                        return MethodCallToPrimitive(aValue, hint, requestContext);
+                        return MethodCallToPrimitive<hint>(dateObject, requestContext);
                     }
                     return JavascriptNumber::ToVarNoCheck(dateObject->GetTime(), requestContext);
                 }
@@ -395,7 +396,7 @@ CommonNumber:
                     {
                         // if no Method exists this function falls back to OrdinaryToPrimitive
                         // if IsES6ToPrimitiveEnabled flag is off we also fall back to OrdinaryToPrimitive
-                        return MethodCallToPrimitive(aValue, hint, requestContext);
+                        return MethodCallToPrimitive<hint>(dateObject, requestContext);
                     }
                     return JavascriptDate::ToString(dateObject, requestContext);
                 }
@@ -410,7 +411,7 @@ CommonNumber:
         default:
             // if no Method exists this function falls back to OrdinaryToPrimitive
             // if IsES6ToPrimitiveEnabled flag is off we also fall back to OrdinaryToPrimitive
-            return MethodCallToPrimitive(aValue, hint, requestContext);
+            return MethodCallToPrimitive<hint>(RecyclableObject::UnsafeFromVar(aValue), requestContext);
         }
     }
 
@@ -440,11 +441,11 @@ CommonNumber:
         return FALSE;
     }
 
-    Var JavascriptConversion::MethodCallToPrimitive(Var aValue, JavascriptHint hint, ScriptContext * requestContext)
+    template <JavascriptHint hint>
+    Var JavascriptConversion::MethodCallToPrimitive(_In_ RecyclableObject* value, _In_ ScriptContext * requestContext)
     {
         Var result = nullptr;
-        RecyclableObject *const recyclableObject = RecyclableObject::FromVar(aValue);
-        ScriptContext *const scriptContext = recyclableObject->GetScriptContext();
+        ScriptContext *const scriptContext = value->GetScriptContext();
 
         //7.3.9 GetMethod(V, P)
         //  The abstract operation GetMethod is used to get the value of a specific property of an ECMAScript language value when the value of the
@@ -457,11 +458,12 @@ CommonNumber:
         //  5. Return func.
         Var varMethod = nullptr;
 
-        if (!(requestContext->GetConfig()->IsES6ToPrimitiveEnabled()
-            && JavascriptOperators::GetPropertyReference(recyclableObject, PropertyIds::_symbolToPrimitive, &varMethod, requestContext)
-            && !JavascriptOperators::IsUndefinedOrNull(varMethod)))
+        if (!requestContext->GetConfig()->IsES6ToPrimitiveEnabled()
+            || JavascriptOperators::CheckIfObjectAndProtoChainHasNoSpecialProperties(value)
+            || !JavascriptOperators::GetPropertyReference(value, PropertyIds::_symbolToPrimitive, &varMethod, requestContext)
+            || JavascriptOperators::IsUndefinedOrNull(varMethod))
         {
-            return OrdinaryToPrimitive(aValue, hint, requestContext);
+            return OrdinaryToPrimitive<hint>(value, requestContext);
         }
         if (!JavascriptFunction::Is(varMethod))
         {
@@ -493,10 +495,10 @@ CommonNumber:
         result = threadContext->ExecuteImplicitCall(exoticToPrim, ImplicitCall_ToPrimitive, [=]()->Js::Var
         {
             // Stack object should have a pre-op bail on implicit call.  We shouldn't see them here.
-            Assert(!ThreadContext::IsOnStack(recyclableObject));
+            Assert(!ThreadContext::IsOnStack(value));
 
             // Let result be the result of calling the[[Call]] internal method of exoticToPrim, with input as thisArgument and(hint) as argumentsList.
-            return CALL_FUNCTION(threadContext, exoticToPrim, CallInfo(CallFlags_Value, 2), recyclableObject, hintString);
+            return CALL_FUNCTION(threadContext, exoticToPrim, CallInfo(CallFlags_Value, 2), value, hintString);
         });
 
         if (!result)
@@ -521,13 +523,13 @@ CommonNumber:
         }
     }
 
-    Var JavascriptConversion::OrdinaryToPrimitive(Var aValue, JavascriptHint hint, ScriptContext * requestContext)
+    template <JavascriptHint hint>
+    Var JavascriptConversion::OrdinaryToPrimitive(_In_ RecyclableObject* value, _In_ ScriptContext* requestContext)
     {
         Var result;
-        RecyclableObject *const recyclableObject = RecyclableObject::FromVar(aValue);
-        if (!recyclableObject->ToPrimitive(hint, &result, requestContext))
+        if (!value->ToPrimitive(hint, &result, requestContext))
         {
-            ScriptContext *const scriptContext = recyclableObject->GetScriptContext();
+            ScriptContext *const scriptContext = value->GetScriptContext();
 
             int32 hCode;
 
@@ -548,6 +550,9 @@ CommonNumber:
         }
         return result;
     }
+    template Var JavascriptConversion::OrdinaryToPrimitive<JavascriptHint::HintNumber>(RecyclableObject* value, ScriptContext* requestContext);
+    template Var JavascriptConversion::OrdinaryToPrimitive<JavascriptHint::HintString>(RecyclableObject* value, ScriptContext* requestContext);
+    template Var JavascriptConversion::OrdinaryToPrimitive<JavascriptHint::None>(RecyclableObject* value, ScriptContext* requestContext);
 
     JavascriptString *JavascriptConversion::CoerseString(Var aValue, ScriptContext* scriptContext, const char16* apiNameForErrorMsg)
     {
@@ -656,7 +661,7 @@ CommonNumber:
                         JavascriptError::ThrowError(scriptContext, VBSERR_InternalError);
                     }
                     fPrimitiveOnly = true;
-                    aValue = ToPrimitive(aValue, JavascriptHint::HintString, scriptContext);
+                    aValue = ToPrimitive<JavascriptHint::HintString>(aValue, scriptContext);
                 }
             }
         }
@@ -886,7 +891,7 @@ CommonNumber:
                         JavascriptError::ThrowError(scriptContext, VBSERR_OLENoPropOrMethod);
                     }
                     fPrimitiveOnly = true;
-                    aValue = ToPrimitive(aValue, JavascriptHint::HintNumber, scriptContext);
+                    aValue = ToPrimitive<JavascriptHint::HintNumber>(aValue, scriptContext);
                 }
             }
         }
@@ -940,7 +945,7 @@ CommonNumber:
                         JavascriptError::ThrowError(scriptContext, VBSERR_OLENoPropOrMethod);
                     }
                     fPrimitiveOnly = true;
-                    aValue = ToPrimitive(aValue, JavascriptHint::HintNumber, scriptContext);
+                    aValue = ToPrimitive<JavascriptHint::HintNumber>(aValue, scriptContext);
                 }
             }
         }
@@ -1020,7 +1025,7 @@ CommonNumber:
 
         default:
             AssertMsg(JavascriptOperators::IsObject(aValue), "bad type object in conversion ToInteger32");
-            aValue = ToPrimitive(aValue, JavascriptHint::HintNumber, scriptContext);
+            aValue = ToPrimitive<JavascriptHint::HintNumber>(aValue, scriptContext);
         }
 
         switch (JavascriptOperators::GetTypeId(aValue))
@@ -1127,7 +1132,7 @@ CommonNumber:
                         JavascriptError::ThrowError(scriptContext, VBSERR_OLENoPropOrMethod);
                     }
                     fPrimitiveOnly = true;
-                    aValue = ToPrimitive(aValue, JavascriptHint::HintNumber, scriptContext);
+                    aValue = ToPrimitive<JavascriptHint::HintNumber>(aValue, scriptContext);
                 }
             }
         }
@@ -1263,7 +1268,7 @@ CommonNumber:
                         JavascriptError::ThrowError(scriptContext, VBSERR_OLENoPropOrMethod);
                     }
                     fPrimitiveOnly = true;
-                    aValue = ToPrimitive(aValue, JavascriptHint::HintNumber, scriptContext);
+                    aValue = ToPrimitive<JavascriptHint::HintNumber>(aValue, scriptContext);
                 }
             }
         }
@@ -1337,7 +1342,7 @@ CommonNumber:
                         JavascriptError::ThrowError(scriptContext, VBSERR_OLENoPropOrMethod);
                     }
                     fPrimitiveOnly = true;
-                    aValue = ToPrimitive(aValue, JavascriptHint::HintNumber, scriptContext);
+                    aValue = ToPrimitive<JavascriptHint::HintNumber>(aValue, scriptContext);
                 }
             }
         }
@@ -1381,7 +1386,7 @@ CommonNumber:
 
     JavascriptString * JavascriptConversion::ToPrimitiveString(Var aValue, ScriptContext * scriptContext)
     {
-        return ToString(ToPrimitive(aValue, JavascriptHint::None, scriptContext), scriptContext);
+        return ToString(ToPrimitive<JavascriptHint::None>(aValue, scriptContext), scriptContext);
     }
 
     double JavascriptConversion::LongToDouble(__int64 aValue)

@@ -270,6 +270,8 @@ namespace Js {
         // (i.e. no accessors or non-writable properties)?
         bool HasOnlyWritableDataProperties();
 
+        bool HasAnySpecialProperties();
+
         void ClearWritableDataOnlyDetectionBit();
         bool IsWritableDataOnlyDetectionBitSet();
 

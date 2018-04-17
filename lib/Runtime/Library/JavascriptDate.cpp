@@ -172,7 +172,7 @@ namespace Js
             }
             else
             {
-                Var value = JavascriptConversion::ToPrimitive(args[1], Js::JavascriptHint::None, scriptContext);
+                Var value = JavascriptConversion::ToPrimitive<Js::JavascriptHint::None>(args[1], scriptContext);
                 if (JavascriptString::Is(value))
                 {
                     timeValue = ParseHelper(scriptContext, JavascriptString::FromVar(value));
@@ -264,13 +264,13 @@ namespace Js
                     // Date objects, are unique among built-in ECMAScript object in that they treat "default" as being equivalent to "string"
                     // If hint is the string value "string" or the string value "default", then
                     // Let tryFirst be "string".
-                    return JavascriptConversion::OrdinaryToPrimitive(args[0], JavascriptHint::HintString/*tryFirst*/, scriptContext);
+                    return JavascriptConversion::OrdinaryToPrimitive<JavascriptHint::HintString>(RecyclableObject::UnsafeFromVar(args[0]), scriptContext);
                 }
                 // Else if hint is the string value "number", then
                 // Let tryFirst be "number".
                 else if(wcscmp(str, _u("number")) == 0)
                 {
-                    return JavascriptConversion::OrdinaryToPrimitive(args[0], JavascriptHint::HintNumber/*tryFirst*/, scriptContext);
+                    return JavascriptConversion::OrdinaryToPrimitive<JavascriptHint::HintNumber>(RecyclableObject::UnsafeFromVar(args[0]), scriptContext);
                 }
                 //anything else should throw a type error
             }
@@ -1304,7 +1304,7 @@ namespace Js
             return result;
         }
 
-        Var num = JavascriptConversion::ToPrimitive(thisObj, JavascriptHint::HintNumber, scriptContext);
+        Var num = JavascriptConversion::ToPrimitive<JavascriptHint::HintNumber>(thisObj, scriptContext);
         if (JavascriptNumber::Is(num)
             && !NumberUtilities::IsFinite(JavascriptNumber::GetValue(num)))
         {

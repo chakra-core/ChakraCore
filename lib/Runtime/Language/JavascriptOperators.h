@@ -600,9 +600,11 @@ namespace Js
         static Var CallGetter(RecyclableObject * const function, Var const object, ScriptContext * const scriptContext);
         static void CallSetter(RecyclableObject * const function, Var const object, Var const value, ScriptContext * const scriptContext);
 
-        static bool CheckIfObjectAndPrototypeChainHasOnlyWritableDataProperties(RecyclableObject* object);
-        static bool CheckIfPrototypeChainHasOnlyWritableDataProperties(RecyclableObject* prototype);
-        static bool DoCheckIfPrototypeChainHasOnlyWritableDataProperties(RecyclableObject* prototype);
+        static bool CheckIfObjectAndPrototypeChainHasOnlyWritableDataProperties(_In_ RecyclableObject* object);
+        static bool CheckIfPrototypeChainHasOnlyWritableDataProperties(_In_ RecyclableObject* prototype);
+
+        static bool CheckIfObjectAndProtoChainHasNoSpecialProperties(_In_ RecyclableObject* object);
+
         static bool CheckIfPrototypeChainContainsProxyObject(RecyclableObject* prototype);
         static void OP_SetComputedNameVar(Var method, Var computedNameVar);
         static void OP_SetHomeObj(Var method, Var homeObj);

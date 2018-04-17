@@ -149,7 +149,8 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     isInstInlineCacheByFunction(&isInstInlineCacheThreadInfoAllocator, 131),
     registeredInlineCacheCount(0),
     unregisteredInlineCacheCount(0),
-    prototypeChainEnsuredToHaveOnlyWritableDataPropertiesAllocator(_u("TC-ProtoWritableProp"), GetPageAllocator(), Js::Throw::OutOfMemory),
+    noSpecialPropertyRegistry(this->GetPageAllocator()),
+    onlyWritablePropertyRegistry(this->GetPageAllocator()),
     standardUTF8Chars(0),
     standardUnicodeChars(0),
     hasUnhandledException(FALSE),
@@ -550,7 +551,8 @@ ThreadContext::~ThreadContext()
     this->storeFieldInlineCacheByPropId.Reset();
     this->isInstInlineCacheByFunction.Reset();
     this->equivalentTypeCacheEntryPoints.Reset();
-    this->prototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext.Reset();
+    this->noSpecialPropertyRegistry.Reset();
+    this->onlyWritablePropertyRegistry.Reset();
 
     this->registeredInlineCacheCount = 0;
     this->unregisteredInlineCacheCount = 0;
@@ -2484,8 +2486,9 @@ ThreadContext::PreCollectionCallBack(CollectionFlags flags)
     // script contexts with inline caches
     this->ClearScriptContextCaches();
 
-    // Clear up references to types to avoid keep them alive
-    this->ClearPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesCaches();
+    // Clear up references to types to avoid keeping them alive
+    this->noSpecialPropertyRegistry.Clear();
+    this->onlyWritablePropertyRegistry.Clear();
 
     // Clean up unused memory before we start collecting
     this->CleanNoCasePropertyMap();
@@ -3928,38 +3931,6 @@ void ThreadContext::DoInvalidateProtoTypePropertyCaches(const Js::PropertyId pro
         {
             type->GetPropertyCache()->ClearIfPropertyIsOnAPrototype(propertyId);
         });
-}
-
-Js::ScriptContext **
-ThreadContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext(Js::ScriptContext * scriptContext)
-{
-    return prototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext.PrependNode(&prototypeChainEnsuredToHaveOnlyWritableDataPropertiesAllocator, scriptContext);
-}
-
-void
-ThreadContext::UnregisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext(Js::ScriptContext ** scriptContext)
-{
-    prototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext.RemoveElement(&prototypeChainEnsuredToHaveOnlyWritableDataPropertiesAllocator, scriptContext);
-}
-
-void
-ThreadContext::ClearPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesCaches()
-{
-    bool hasItem = false;
-    FOREACH_DLISTBASE_ENTRY(Js::ScriptContext *, scriptContext, &prototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext)
-    {
-        scriptContext->ClearPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesCaches();
-        hasItem = true;
-    }
-    NEXT_DLISTBASE_ENTRY;
-
-    if (!hasItem)
-    {
-        return;
-    }
-
-    prototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext.Reset();
-    prototypeChainEnsuredToHaveOnlyWritableDataPropertiesAllocator.Reset();
 }
 
 BOOL ThreadContext::HasPreviousHostScriptContext()

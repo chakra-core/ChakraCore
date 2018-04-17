@@ -483,21 +483,8 @@ namespace Js
 
         Field(ModuleRecordList*) moduleRecordList;
 
-        // This list contains types ensured to have only writable data properties in it and all objects in its prototype chain
-        // (i.e., no readonly properties or accessors). Only prototype objects' types are stored in the list. When something
-        // in the script context adds a readonly property or accessor to an object that is used as a prototype object, this
-        // list is cleared. The list is also cleared before garbage collection so that it does not keep growing, and so, it can
-        // hold strong references to the types.
-        //
-        // The cache is used by the type-without-property local inline cache. When setting a property on a type that doesn't
-        // have the property, to determine whether to promote the object like an object of that type was last promoted, we need
-        // to ensure that objects in the prototype chain have not acquired a readonly property or setter (ideally, only for that
-        // property ID, but we just check for any such property). This cache is used to avoid doing this many times, especially
-        // when the prototype chain is not short.
-        //
-        // This list is only used to invalidate the status of types. The type itself contains a boolean indicating whether it
-        // and prototypes contain only writable data properties, which is reset upon invalidating the status.
-        Field(JsUtil::List<Type *> *) typesEnsuredToHaveOnlyWritableDataPropertiesInItAndPrototypeChain;
+        Field(OnlyWritablePropertyProtoChainCache*) typesWithOnlyWritablePropertyProtoChain;
+        Field(NoSpecialPropertyProtoChainCache*) typesWithNoSpecialPropertyProtoChain;
 
         Field(uint64) randSeed0, randSeed1;
         Field(bool) isPRNGSeeded;
@@ -1117,8 +1104,9 @@ namespace Js
         template <> PropertyStringCacheMap* GetPropertyMap<PropertyString>() { return this->propertyStringMap; }
         template <> SymbolCacheMap* GetPropertyMap<JavascriptSymbol>() { return this->symbolMap; }
 
-        void TypeAndPrototypesAreEnsuredToHaveOnlyWritableDataProperties(Type *const type);
-        void NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
+
+        Field(OnlyWritablePropertyProtoChainCache*) GetTypesWithOnlyWritablePropertyProtoChainCache() const { return this->typesWithOnlyWritablePropertyProtoChain; }
+        Field(NoSpecialPropertyProtoChainCache*) GetTypesWithNoSpecialPropertyProtoChainCache() const { return this->typesWithNoSpecialPropertyProtoChain; }
 
         static bool IsDefaultArrayValuesFunction(RecyclableObject * function, ScriptContext *scriptContext);
         static bool ArrayIteratorPrototypeHasUserDefinedNext(ScriptContext *scriptContext);

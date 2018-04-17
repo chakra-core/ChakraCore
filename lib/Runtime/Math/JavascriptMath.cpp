@@ -371,8 +371,8 @@ StringCommon:
 
         Var JavascriptMath::Add_FullHelper_Wrapper(Var aLeft, Var aRight, ScriptContext* scriptContext, JavascriptNumber* result, bool leftIsDead)
         {
-            Var aLeftToPrim = JavascriptConversion::ToPrimitive(aLeft, JavascriptHint::None, scriptContext);
-            Var aRightToPrim = JavascriptConversion::ToPrimitive(aRight, JavascriptHint::None, scriptContext);
+            Var aLeftToPrim = JavascriptConversion::ToPrimitive<JavascriptHint::None>(aLeft, scriptContext);
+            Var aRightToPrim = JavascriptConversion::ToPrimitive<JavascriptHint::None>(aRight, scriptContext);
             return Add_FullHelper(aLeftToPrim, aRightToPrim, scriptContext, result, leftIsDead);
         }
 

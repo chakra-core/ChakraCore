@@ -139,7 +139,8 @@ namespace Js
         hasUsedInlineCache(false),
         hasProtoOrStoreFieldInlineCache(false),
         hasIsInstInlineCache(false),
-        registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext(nullptr),
+        noSpecialPropertyRegistry(threadContext->GetNoSpecialPropertyRegistry()),
+        onlyWritablePropertyRegistry(threadContext->GetOnlyWritablePropertyRegistry()),
         firstInterpreterFrameReturnAddress(nullptr),
         builtInLibraryFunctions(nullptr),
         isWeakReferenceDictionaryListCleared(false)
@@ -792,14 +793,8 @@ namespace Js
         isWeakReferenceDictionaryListCleared = true;
         this->weakReferenceDictionaryList.Clear(this->GeneralAllocator());
 
-        if (registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext != nullptr)
-        {
-            // UnregisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext may throw, set up the correct state first
-            ScriptContext ** registeredScriptContext = registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext;
-            ClearPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesCaches();
-            Assert(registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext == nullptr);
-            threadContext->UnregisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext(registeredScriptContext);
-        }
+        this->noSpecialPropertyRegistry.Clear(false /* isThreadClear */);
+        this->onlyWritablePropertyRegistry.Clear(false /* isThreadClear */);
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
         threadContext->ReleaseDebugManager();
@@ -4765,37 +4760,6 @@ ScriptContext::GetJitFuncRangeCache()
     return jitFuncRangeCache;
 }
 #endif
-
-void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext()
-{
-    Assert(!IsClosed());
-
-    if (registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext == nullptr)
-    {
-        DoRegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext();
-    }
-}
-
-    void ScriptContext::DoRegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext()
-    {
-        Assert(!IsClosed());
-        Assert(registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext == nullptr);
-
-        // this call may throw OOM
-        registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext = threadContext->RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext(this);
-    }
-
-    void ScriptContext::ClearPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesCaches()
-    {
-        Assert(registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext != nullptr);
-        if (!isFinalized)
-        {
-            javascriptLibrary->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
-        }
-
-        // Caller will unregister the script context from the thread context
-        registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext = nullptr;
-    }
 
     JavascriptString * ScriptContext::GetLastNumberToStringRadix10(double value)
     {

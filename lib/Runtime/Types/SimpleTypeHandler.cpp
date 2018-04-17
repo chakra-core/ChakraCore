@@ -39,8 +39,8 @@ namespace Js
         NoWriteBarrierSet(descriptors[0].Id, id); // Used to init from global static BuiltInPropertyId
         descriptors[0].Attributes = attributes;
 
-        Assert((propertyTypes & (PropertyTypesAll & ~PropertyTypesWritableDataOnly)) == 0);
-        SetPropertyTypes(PropertyTypesWritableDataOnly, propertyTypes);
+        Assert((propertyTypes & (PropertyTypesAll & ~(PropertyTypesWritableDataOnly | PropertyTypesHasSpecialProperties))) == 0);
+        SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesHasSpecialProperties, propertyTypes);
         SetIsInlineSlotCapacityLocked();
     }
 
@@ -56,8 +56,8 @@ namespace Js
             NoWriteBarrierSet(descriptors[i].Id, SharedFunctionPropertyDescriptors[i].Id);
             descriptors[i].Attributes = SharedFunctionPropertyDescriptors[i].Attributes;
         }
-        Assert((propertyTypes & (PropertyTypesAll & ~PropertyTypesWritableDataOnly)) == 0);
-        SetPropertyTypes(PropertyTypesWritableDataOnly, propertyTypes);
+        Assert((propertyTypes & (PropertyTypesAll & ~(PropertyTypesWritableDataOnly | PropertyTypesHasSpecialProperties))) == 0);
+        SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesHasSpecialProperties, propertyTypes);
         SetIsInlineSlotCapacityLocked();
     }
 
@@ -97,7 +97,7 @@ namespace Js
 
         newTypeHandler->SetFlags(IsPrototypeFlag | HasKnownSlot0Flag, this->GetFlags());
         Assert(newTypeHandler->GetIsInlineSlotCapacityLocked());
-        newTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection, this->GetPropertyTypes());
+        newTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection | PropertyTypesHasSpecialProperties, this->GetPropertyTypes());
         newTypeHandler->SetInstanceTypeHandler(instance);
 
         return newTypeHandler;
@@ -143,7 +143,7 @@ namespace Js
         // inline slot capacity, or if we want to allow shrinking of the SimpleTypeHandler's inline slot capacity.
         Assert(!newTypeHandler->IsPathTypeHandler());
         Assert(newTypeHandler->GetIsInlineSlotCapacityLocked());
-        newTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection, this->GetPropertyTypes());
+        newTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection | PropertyTypesHasSpecialProperties, this->GetPropertyTypes());
         newTypeHandler->SetInstanceTypeHandler(instance);
 
 #if ENABLE_FIXED_FIELDS && DBG
@@ -203,7 +203,7 @@ namespace Js
             newTypeHandler->ShareTypeHandler(scriptContext);
         }
         newTypeHandler->SetFlags(IsPrototypeFlag | HasKnownSlot0Flag, this->GetFlags());
-        newTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection, this->GetPropertyTypes());
+        newTypeHandler->SetPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection | PropertyTypesHasSpecialProperties, this->GetPropertyTypes());
         newTypeHandler->SetInstanceTypeHandler(instance, false);
         if (newTypeHandler->GetPredecessorType())
         {
@@ -789,12 +789,7 @@ namespace Js
                 // Clearing the attribute may have changed the type handler, so make sure
                 // we access the current one.
                 DynamicTypeHandler* const typeHandler = GetCurrentTypeHandler(instance);
-                typeHandler->ClearHasOnlyWritableDataProperties();
-                if (typeHandler->GetFlags() & IsPrototypeFlag)
-                {
-                    instance->GetScriptContext()->InvalidateStoreFieldCaches(propertyId);
-                    instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
-                }
+                instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(typeHandler, PropertyNone, propertyId);
             }
         }
         return true;
@@ -993,15 +988,7 @@ namespace Js
                 {
                     instance->SetHasNoEnumerableProperties(false);
                 }
-                if (!(attributes & PropertyWritable))
-                {
-                    typeHandler->ClearHasOnlyWritableDataProperties();
-                    if (typeHandler->GetFlags() & IsPrototypeFlag)
-                    {
-                        instance->GetScriptContext()->InvalidateStoreFieldCaches(propertyId);
-                        instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
-                    }
-                }
+                instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(typeHandler, attributes, propertyId);
             }
             SetSlotUnchecked(instance, index, value);
             PropertyValueInfo::Set(info, instance, static_cast<PropertyIndex>(index), descriptors[index].Attributes);
@@ -1037,15 +1024,7 @@ namespace Js
                 {
                     instance->SetHasNoEnumerableProperties(false);
                 }
-                if (!(descriptors[i].Attributes & PropertyWritable))
-                {
-                    this->ClearHasOnlyWritableDataProperties();
-                    if (GetFlags() & IsPrototypeFlag)
-                    {
-                        instance->GetScriptContext()->InvalidateStoreFieldCaches(propertyId);
-                        instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
-                    }
-                }
+                instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, descriptors[i].Attributes, propertyId);
                 return true;
             }
         }
@@ -1078,7 +1057,7 @@ namespace Js
     BOOL SimpleTypeHandler<size>::AddProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags, SideEffects possibleSideEffects)
     {
         ScriptContext* scriptContext = instance->GetScriptContext();
-
+        JavascriptLibrary* library = scriptContext->GetLibrary();
 #if DBG
         PropertyIndex index;
         uint32 indexVal;
@@ -1106,15 +1085,10 @@ namespace Js
         {
             instance->SetHasNoEnumerableProperties(false);
         }
-        if (!(attributes & PropertyWritable))
-        {
-            this->ClearHasOnlyWritableDataProperties();
-            if (GetFlags() & IsPrototypeFlag)
-            {
-                instance->GetScriptContext()->InvalidateStoreFieldCaches(propertyId);
-                instance->GetLibrary()->NoPrototypeChainsAreEnsuredToHaveOnlyWritableDataProperties();
-            }
-        }
+
+        library->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, attributes, propertyId);
+        library->GetTypesWithNoSpecialPropertyProtoChainCache()->ProcessProperty(this, attributes, propertyId);
+
         SetSlotUnchecked(instance, propertyCount, value);
         PropertyValueInfo::Set(info, instance, static_cast<PropertyIndex>(propertyCount), attributes);
         propertyCount++;
