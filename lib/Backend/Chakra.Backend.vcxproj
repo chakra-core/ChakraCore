@@ -475,7 +475,6 @@
     <ClInclude Include="NativeCodeGenerator.h" />
     <ClInclude Include="Opnd.h" />
     <ClInclude Include="Peeps.h" />
-    <ClInclude Include="PropertyGuard.h" />
     <ClInclude Include="QueuedFullJitWorkItem.h" />
     <ClInclude Include="Region.h" />
     <ClInclude Include="SccLiveness.h" />

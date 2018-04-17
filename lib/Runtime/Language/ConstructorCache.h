@@ -17,18 +17,12 @@ namespace Js
 
     #define MaxCachedSlotCount 65535
 
-    struct ConstructorCache
+    struct ConstructorCache : public PropertyGuard
     {
         friend class JavascriptFunction;
 
-        struct GuardStruct
-        {
-            Field(CtorCacheGuardValues) value;
-        };
-
         struct ContentStruct
         {
-            Field(DynamicType*) type;
             Field(ScriptContext*) scriptContext;
             // In a pinch we could eliminate this and store type pending sharing in the type field as long
             // as the guard value flags fit below the object alignment boundary.  However, this wouldn't
@@ -63,14 +57,8 @@ namespace Js
             Field(int16) inlineSlotCount;
         };
 
-        union
-        {
-            Field(GuardStruct) guard;
-            Field(ContentStruct) content;
-        };
+        Field(ContentStruct) content;
 
-        CompileAssert(offsetof(GuardStruct, value) == offsetof(ContentStruct, type));
-        CompileAssert(sizeof(((GuardStruct*)nullptr)->value) == sizeof(((ContentStruct*)nullptr)->type));
         CompileAssert(static_cast<intptr_t>(CtorCacheGuardValues::Invalid) == static_cast<intptr_t>(NULL));
 
         static ConstructorCache DefaultInstance;
@@ -79,8 +67,8 @@ namespace Js
         ConstructorCache();
         ConstructorCache(ConstructorCache const * other);
 
-        static size_t const GetOffsetOfGuardValue() { return offsetof(Js::ConstructorCache, guard.value); }
-        static size_t const GetSizeOfGuardValue() { return sizeof(((Js::ConstructorCache*)nullptr)->guard.value); }
+        static size_t const GetOffsetOfGuardValue() { return PropertyGuard::GetOffsetOfValue(); }
+        static size_t const GetSizeOfGuardValue() { return PropertyGuard::GetSizeOfValue(); }
 
         void Populate(DynamicType* type, ScriptContext* scriptContext, bool ctorHasNoExplicitReturnValue, bool updateAfterCtor);
         void PopulateForSkipDefaultNewObject(ScriptContext* scriptContext);
@@ -88,20 +76,17 @@ namespace Js
         void UpdateInlineSlotCount();
         void EnableAfterTypeUpdate();
 
-        intptr_t GetRawGuardValue() const
-        {
-            return static_cast<intptr_t>(this->guard.value);
-        }
+        intptr_t GetRawGuardValue() const { return __super::GetValue(); }
 
         DynamicType* GetGuardValueAsType() const
         {
-            return reinterpret_cast<DynamicType*>(this->guard.value & ~CtorCacheGuardValues::TagFlag);
+            return reinterpret_cast<DynamicType*>((CtorCacheGuardValues)__super::GetValue() & ~CtorCacheGuardValues::TagFlag);
         }
 
         DynamicType* GetType() const
         {
-            Assert(static_cast<intptr_t>(this->guard.value & CtorCacheGuardValues::TagFlag) == 0);
-            return this->content.type;
+            Assert(static_cast<intptr_t>((CtorCacheGuardValues)__super::GetValue() & CtorCacheGuardValues::TagFlag) == 0);
+            return reinterpret_cast<DynamicType*>(__super::GetValue());
         }
 
         DynamicType* GetPendingType() const
@@ -179,12 +164,12 @@ namespace Js
 
         bool IsInvalidated() const
         {
-            return this->guard.value == CtorCacheGuardValues::Invalid && this->content.isPopulated;
+            return (CtorCacheGuardValues)__super::GetValue() == CtorCacheGuardValues::Invalid && this->content.isPopulated;
         }
 
         bool NeedsTypeUpdate() const
         {
-            return this->guard.value == CtorCacheGuardValues::Special && this->content.typeUpdatePending;
+            return (CtorCacheGuardValues)__super::GetValue() == CtorCacheGuardValues::Special && this->content.typeUpdatePending;
         }
 
         uint8 CallCount() const
@@ -205,12 +190,12 @@ namespace Js
 
         bool IsNormal() const
         {
-            return this->guard.value != CtorCacheGuardValues::Invalid && static_cast<intptr_t>(this->guard.value & CtorCacheGuardValues::TagFlag) == 0;
+            return (CtorCacheGuardValues)__super::GetValue() != CtorCacheGuardValues::Invalid && static_cast<intptr_t>((CtorCacheGuardValues)__super::GetValue() & CtorCacheGuardValues::TagFlag) == 0;
         }
 
         bool SkipDefaultNewObject() const
         {
-            return this->guard.value == CtorCacheGuardValues::Special && this->content.skipDefaultNewObject;
+            return (CtorCacheGuardValues)__super::GetValue() == CtorCacheGuardValues::Special && this->content.skipDefaultNewObject;
         }
 
         bool IsSetUpForJit() const
@@ -229,9 +214,9 @@ namespace Js
 
         static ConstructorCache* EnsureValidInstance(ConstructorCache* currentCache, ScriptContext* scriptContext);
 
-        const void* GetAddressOfGuardValue() const
+        const void* GetAddressOfGuardValue()
         {
-            return reinterpret_cast<const void*>(&this->guard.value);
+            return reinterpret_cast<const void*>(__super::GetAddressOfValue());
         }
 
         static uint32 GetOffsetOfUpdateAfterCtor()
@@ -242,9 +227,8 @@ namespace Js
         void InvalidateAsGuard()
         {
             Assert(!IsDefault(this));
-            this->guard.value = CtorCacheGuardValues::Invalid;
+            Invalidate();
             // Make sure we don't leak the types.
-            Assert(this->content.type == nullptr);
             Assert(this->content.pendingType == nullptr);
             Assert(IsInvalidated());
             Assert(IsConsistent());
@@ -253,11 +237,11 @@ namespace Js
     #if DBG
         bool IsConsistent() const
         {
-            return this->guard.value == CtorCacheGuardValues::Invalid ||
+            return (CtorCacheGuardValues)__super::GetValue() == CtorCacheGuardValues::Invalid ||
                 (this->content.isPopulated && (
-                (this->guard.value == CtorCacheGuardValues::Special && !this->content.updateAfterCtor && this->content.skipDefaultNewObject && !this->content.typeUpdatePending && this->content.slotCount == 0 && this->content.inlineSlotCount == 0 && this->content.pendingType == nullptr) ||
-                    (this->guard.value == CtorCacheGuardValues::Special && !this->content.updateAfterCtor && this->content.typeUpdatePending && !this->content.skipDefaultNewObject && this->content.pendingType != nullptr) ||
-                    ((this->guard.value & CtorCacheGuardValues::TagFlag) == CtorCacheGuardValues::Invalid && !this->content.skipDefaultNewObject && !this->content.typeUpdatePending && this->content.pendingType == nullptr)));
+                ((CtorCacheGuardValues)__super::GetValue() == CtorCacheGuardValues::Special && !this->content.updateAfterCtor && this->content.skipDefaultNewObject && !this->content.typeUpdatePending && this->content.slotCount == 0 && this->content.inlineSlotCount == 0 && this->content.pendingType == nullptr) ||
+                    ((CtorCacheGuardValues)__super::GetValue() == CtorCacheGuardValues::Special && !this->content.updateAfterCtor && this->content.typeUpdatePending && !this->content.skipDefaultNewObject && this->content.pendingType != nullptr) ||
+                    (((CtorCacheGuardValues)__super::GetValue() & CtorCacheGuardValues::TagFlag) == CtorCacheGuardValues::Invalid && !this->content.skipDefaultNewObject && !this->content.typeUpdatePending && this->content.pendingType == nullptr)));
         }
     #endif
 

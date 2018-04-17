@@ -228,6 +228,7 @@
     <ClInclude Include="ModuleNamespace.h" />
     <ClInclude Include="ModuleNamespaceEnumerator.h" />
     <ClInclude Include="ProfilingHelpers.h" />
+    <ClInclude Include="PropertyGuard.h" />
     <ClInclude Include="PrototypeChainCache.h" />
     <ClInclude Include="SourceDynamicProfileManager.h" />
     <ClInclude Include="ModuleRecordBase.h" />

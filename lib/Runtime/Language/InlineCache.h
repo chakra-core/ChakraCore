@@ -11,12 +11,6 @@
 #define TypeHasAuxSlotTag(_t) \
     (!!(reinterpret_cast<size_t>(_t) & InlineCacheAuxSlotTypeTag))
 
-#if defined(TARGET_32)
-#define PolymorphicInlineCacheShift 5 // On 32 bit architectures, the least 5 significant bits of a DynamicTypePointer is 0
-#else
-#define PolymorphicInlineCacheShift 6 // On 64 bit architectures, the least 6 significant bits of a DynamicTypePointer is 0
-#endif
-
 // forward decl
 class JITType;
 struct InlineCacheData;

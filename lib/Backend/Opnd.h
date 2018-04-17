@@ -678,6 +678,8 @@ public:
         }
     }
 
+    bool ShouldUsePolyEquivTypeGuard(Func *const func) const;
+
     bool HasObjTypeSpecFldInfo() const
     {
         return this->objTypeSpecFldInfo != nullptr;

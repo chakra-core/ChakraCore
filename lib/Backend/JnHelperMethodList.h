@@ -252,6 +252,8 @@ HELPERCALL(Op_ScopedGetMethodPolymorphic, ((Js::Var (*)(Js::FunctionBody *const,
 
 HELPERCALL(CheckIfTypeIsEquivalent, Js::JavascriptNativeOperators::CheckIfTypeIsEquivalent, 0)
 HELPERCALL(CheckIfTypeIsEquivalentForFixedField, Js::JavascriptNativeOperators::CheckIfTypeIsEquivalentForFixedField, 0)
+HELPERCALL(CheckIfPolyTypeIsEquivalent, Js::JavascriptNativeOperators::CheckIfPolyTypeIsEquivalent, 0)
+HELPERCALL(CheckIfPolyTypeIsEquivalentForFixedField, Js::JavascriptNativeOperators::CheckIfPolyTypeIsEquivalentForFixedField, 0)
 
 HELPERCALL(Op_Delete, Js::JavascriptOperators::Delete, AttrCanThrow)
 HELPERCALL(OP_InitSetter, Js::JavascriptOperators::OP_InitSetter, AttrCanThrow)

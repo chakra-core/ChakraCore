@@ -9,6 +9,12 @@
 
 const extern int TotalNumberOfBuiltInProperties;
 
+#if defined(TARGET_32)
+#define PolymorphicInlineCacheShift 5 // On 32 bit architectures, the least 5 significant bits of a DynamicTypePointer is 0
+#else
+#define PolymorphicInlineCacheShift 6 // On 64 bit architectures, the least 6 significant bits of a DynamicTypePointer is 0
+#endif
+
 namespace Js
 {
     // Forwards

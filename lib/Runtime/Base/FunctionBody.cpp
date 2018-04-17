@@ -8618,14 +8618,37 @@ namespace Js
         Assert(this->guard);
         if (this->guard->IsValid())
         {
-            Type *type = reinterpret_cast<Type*>(this->guard->GetValue());
-            if (!recycler->IsObjectMarked(type))
+            if (this->guard->IsPoly())
             {
-                this->guard->InvalidateDuringSweep();
+                JitPolyEquivalentTypeGuard * polyGuard = this->guard->AsPolyTypeCheckGuard();
+                for (uint8 i = 0; i < polyGuard->GetSize(); i++)
+                {
+                    intptr_t value = polyGuard->GetPolyValue(i);
+                    if (value != PropertyGuard::GuardValue::Uninitialized && value != PropertyGuard::GuardValue::Invalidated_DuringSweep)
+                    {
+                        Type *type = reinterpret_cast<Type*>(value);
+                        if (!recycler->IsObjectMarked(type))
+                        {
+                            polyGuard->InvalidateDuringSweep(i);
+                        }
+                        else
+                        {
+                            isAnyTypeLive = true;
+                        }
+                    }
+                }
             }
             else
             {
-                isAnyTypeLive = true;
+                Type *type = reinterpret_cast<Type*>(this->guard->GetValue());
+                if (!recycler->IsObjectMarked(type))
+                {
+                    this->guard->InvalidateDuringSweep();
+                }
+                else
+                {
+                    isAnyTypeLive = true;
+                }
             }
         }
         uint16 nonNullIndex = 0;
@@ -8641,10 +8664,17 @@ namespace Js
                 if (recycler->IsObjectMarked(type))
                 {
                     // compact the types array by moving non-null types
-                    // at the beginning.
+                    // to the beginning.
                     this->types[nonNullIndex++] = type;
 #if DBG
-                    isGuardValuePresent = this->guard->GetValue() == reinterpret_cast<intptr_t>(type) ? true : isGuardValuePresent;
+                    if (guard->IsPoly())
+                    {
+                        isGuardValuePresent = true;
+                    }
+                    else if (this->guard->GetValue() == reinterpret_cast<intptr_t>(type))
+                    {
+                        isGuardValuePresent = true;
+                    }
 #endif
                 }
             }
@@ -8662,14 +8692,18 @@ namespace Js
         {
             isAnyTypeLive = true;
         }
-        else
+        else if (guard->IsPoly())
         {
-            if (guard->IsInvalidatedDuringSweep())
+            if (!isAnyTypeLive)
             {
-                // just mark this as actual invalidated since there are no types
-                // present
                 guard->Invalidate();
             }
+        }
+        else if (guard->IsInvalidatedDuringSweep())
+        {
+            // just mark this as actual invalidated since there are no types
+            // present
+            guard->Invalidate();
         }
 
         // verify if guard value is valid, it is present in one of the types

@@ -7329,8 +7329,20 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
         m_lowererMD.GenerateObjectTest(regOpnd, instrChk, labelObjCheckFailed);
     }
 
-    IR::Opnd *expectedTypeOpnd;
-    bool emitDirectCheck = true;
+    // Load the current object type into typeOpnd
+    IR::RegOpnd* typeOpnd = IR::RegOpnd::New(TyMachReg, func);
+    IR::Opnd *sourceType;
+    if (regOpnd->m_sym->IsConst() && !regOpnd->m_sym->IsIntConst() && !regOpnd->m_sym->IsFloatConst())
+    {
+        sourceType = IR::MemRefOpnd::New((BYTE*)regOpnd->m_sym->GetConstAddress() +
+            Js::RecyclableObject::GetOffsetOfType(), TyMachReg, func, IR::AddrOpndKindDynamicObjectTypeRef);
+    }
+    else
+    {
+        sourceType = IR::IndirOpnd::New(regOpnd, Js::RecyclableObject::GetOffsetOfType(), TyMachReg, func);
+    }
+    InsertMove(typeOpnd, sourceType, instrChk);
+
     // Note: don't attempt equivalent type check if we're doing a final type optimization or if we have a monomorphic
     // cache and no type check bailout. In the latter case, we can wind up doing expensive failed equivalence checks
     // repeatedly and never rejit.
@@ -7341,17 +7353,34 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
         (propertySymOpnd->IsPoly() || instrChk->HasTypeCheckBailOut());
     Assert(doEquivTypeCheck || !instrChk->HasEquivalentTypeCheckBailOut());
 
-    JITTypeHolder type = propertySymOpnd->MustDoMonoCheck() ? propertySymOpnd->GetMonoGuardType() :
-        doEquivTypeCheck ? propertySymOpnd->GetFirstEquivalentType() : propertySymOpnd->GetType();
+    // Create and initialize the property guard if required. Note that for non-shared monomorphic checks we can refer
+    // directly to the (pinned) type and not use a guard.
+    Js::PropertyGuard * typeCheckGuard;
+    IR::RegOpnd * polyIndexOpnd = nullptr;
+    JITTypeHolder monoType = nullptr;
+    if (doEquivTypeCheck)
+    {
+        typeCheckGuard = CreateEquivalentTypeGuardAndLinkToGuardedProperties(propertySymOpnd);
+        if (typeCheckGuard->IsPoly())
+        {
+            Assert(propertySymOpnd->ShouldUsePolyEquivTypeGuard(this->m_func));
+            polyIndexOpnd = this->GeneratePolymorphicTypeIndex(typeOpnd, typeCheckGuard, instrChk);
+        }
+    }
+    else
+    {
+        monoType = propertySymOpnd->MustDoMonoCheck() ? propertySymOpnd->GetMonoGuardType() : propertySymOpnd->GetType();
+        typeCheckGuard = CreateTypePropertyGuardForGuardedProperties(monoType, propertySymOpnd);
+    }
 
-    Js::PropertyGuard* typeCheckGuard = doEquivTypeCheck ?
-        (Js::PropertyGuard*)CreateEquivalentTypeGuardAndLinkToGuardedProperties(type, propertySymOpnd) :
-        (Js::PropertyGuard*)CreateTypePropertyGuardForGuardedProperties(type, propertySymOpnd);
-
+    // Create the opnd we will check against the current type.
+    IR::Opnd *expectedTypeOpnd;
+    JITTypeHolder directCheckType = nullptr;
     if (typeCheckGuard == nullptr)
     {
-        Assert(type != nullptr);
-        expectedTypeOpnd = IR::AddrOpnd::New(type->GetAddr(), IR::AddrOpndKindDynamicType, func, true);
+        Assert(monoType != nullptr);
+        expectedTypeOpnd = IR::AddrOpnd::New(monoType->GetAddr(), IR::AddrOpndKindDynamicType, func, true);
+        directCheckType = monoType;
     }
     else
     {
@@ -7359,25 +7388,37 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
 
         if (this->m_func->IsOOPJIT())
         {
-            int typeCheckGuardOffset = NativeCodeData::GetDataTotalOffset(typeCheckGuard);
-            expectedTypeOpnd = IR::IndirOpnd::New(IR::RegOpnd::New(func->GetTopFunc()->GetNativeCodeDataSym(), TyVar, m_func), typeCheckGuardOffset, TyMachPtr,
-#if DBG
-                NativeCodeData::GetDataDescription(typeCheckGuard, func->m_alloc),
-#endif
-                func, true);
+            if (polyIndexOpnd != nullptr)
+            {
+                IR::RegOpnd * baseOpnd = IR::RegOpnd::New(TyMachPtr, func);
+                this->GenerateLeaOfOOPData(baseOpnd, typeCheckGuard, Js::JitPolyEquivalentTypeGuard::GetOffsetOfPolyValues(), instrChk);
+                expectedTypeOpnd = IR::IndirOpnd::New(baseOpnd, polyIndexOpnd, m_lowererMD.GetDefaultIndirScale(), TyMachPtr, func);
+            }
+            else
+            {
+                expectedTypeOpnd = this->GenerateIndirOfOOPData(typeCheckGuard, 0, instrChk);
+            }
             this->addToLiveOnBackEdgeSyms->Set(func->GetTopFunc()->GetNativeCodeDataSym()->m_id);
         }
         else
         {
-            expectedTypeOpnd = IR::MemRefOpnd::New((void*)(typeCheckGuard->GetAddressOfValue()), TyMachPtr, func, IR::AddrOpndKindDynamicGuardValueRef);
+            if (polyIndexOpnd != nullptr)
+            {
+                IR::RegOpnd * baseOpnd = IR::RegOpnd::New(TyMachPtr, func);
+                InsertMove(baseOpnd, IR::AddrOpnd::New((Js::Var)typeCheckGuard->AsPolyTypeCheckGuard()->GetAddressOfPolyValues(), IR::AddrOpndKindDynamicTypeCheckGuard, func, true), instrChk);
+                expectedTypeOpnd = IR::IndirOpnd::New(baseOpnd, polyIndexOpnd, m_lowererMD.GetDefaultIndirScale(), TyMachPtr, func);
+            }
+            else
+            {
+                expectedTypeOpnd = IR::MemRefOpnd::New((void*)(typeCheckGuard->GetAddressOfValue()), TyMachPtr, func, IR::AddrOpndKindDynamicGuardValueRef);
+            }
         }
-        emitDirectCheck = false;
     }
 
     if (PHASE_VERBOSE_TRACE(Js::ObjTypeSpecPhase, this->m_func))
     {
-        OUTPUT_VERBOSE_TRACE_FUNC(Js::ObjTypeSpecPhase, this->m_func, _u("Emitted %s type check for type 0x%p"),
-            emitDirectCheck ? _u("direct") : propertySymOpnd->IsPoly() ? _u("equivalent") : _u("indirect"), type);
+        OUTPUT_VERBOSE_TRACE_FUNC(Js::ObjTypeSpecPhase, this->m_func, _u("Emitted %s type check "),
+            directCheckType != nullptr ? _u("direct") : propertySymOpnd->IsPoly() ? _u("equivalent") : _u("indirect"));
 #if DBG
         if (propertySymOpnd->GetGuardedPropOps() != nullptr)
         {
@@ -7393,19 +7434,6 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
 #endif
         Output::Flush();
     }
-
-    IR::RegOpnd* typeOpnd = IR::RegOpnd::New(TyMachReg, func);
-    IR::Opnd *sourceType;
-    if (regOpnd->m_sym->IsConst() && !regOpnd->m_sym->IsIntConst() && !regOpnd->m_sym->IsFloatConst())
-    {
-        sourceType = IR::MemRefOpnd::New((BYTE*)regOpnd->m_sym->GetConstAddress() +
-            Js::RecyclableObject::GetOffsetOfType(), TyMachReg, func, IR::AddrOpndKindDynamicObjectTypeRef);
-    }
-    else
-    {
-        sourceType = IR::IndirOpnd::New(regOpnd, Js::RecyclableObject::GetOffsetOfType(), TyMachReg, func);
-    }
-    InsertMove(typeOpnd, sourceType, instrChk);
 
     if (doEquivTypeCheck)
     {
@@ -7427,17 +7455,7 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
         if (this->m_func->IsOOPJIT())
         {
             typeCheckGuardOpnd = IR::RegOpnd::New(TyMachPtr, func);
-
-            int typeCheckGuardOffset = NativeCodeData::GetDataTotalOffset(typeCheckGuard);
-            Lowerer::InsertLea(
-                typeCheckGuardOpnd->AsRegOpnd(),
-                IR::IndirOpnd::New(IR::RegOpnd::New(func->GetTopFunc()->GetNativeCodeDataSym(), TyVar, m_func), typeCheckGuardOffset, TyMachPtr,
-#if DBG
-                    NativeCodeData::GetDataDescription(typeCheckGuard, func->m_alloc),
-#endif
-                    func, true),
-                instrChk);
-
+            this->GenerateLeaOfOOPData(typeCheckGuardOpnd->AsRegOpnd(), typeCheckGuard, 0, instrChk);
             this->addToLiveOnBackEdgeSyms->Set(func->GetTopFunc()->GetNativeCodeDataSym()->m_id);
         }
         else
@@ -7445,12 +7463,22 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
             typeCheckGuardOpnd = IR::AddrOpnd::New((Js::Var)typeCheckGuard, IR::AddrOpndKindDynamicTypeCheckGuard, func, true);
         }
 
+        IR::JnHelperMethod helperMethod;
+        if (polyIndexOpnd != nullptr)
+        {
+            helperMethod = propertySymOpnd->HasFixedValue() ? IR::HelperCheckIfPolyTypeIsEquivalentForFixedField : IR::HelperCheckIfPolyTypeIsEquivalent;
+
+            this->m_lowererMD.LoadHelperArgument(instrChk, polyIndexOpnd);
+        }
+        else
+        {
+            helperMethod = propertySymOpnd->HasFixedValue() ? IR::HelperCheckIfTypeIsEquivalentForFixedField : IR::HelperCheckIfTypeIsEquivalent;
+        }
         this->m_lowererMD.LoadHelperArgument(instrChk, typeCheckGuardOpnd);
         this->m_lowererMD.LoadHelperArgument(instrChk, typeOpnd);
 
         IR::RegOpnd* equivalentTypeCheckResultOpnd = IR::RegOpnd::New(TyUint8, func);
-        IR::HelperCallOpnd* equivalentTypeCheckHelperCallOpnd = IR::HelperCallOpnd::New(
-            propertySymOpnd->HasFixedValue() ? IR::HelperCheckIfTypeIsEquivalentForFixedField : IR::HelperCheckIfTypeIsEquivalent, func);
+        IR::HelperCallOpnd* equivalentTypeCheckHelperCallOpnd = IR::HelperCallOpnd::New(helperMethod, func);
         IR::Instr* equivalentTypeCheckCallInstr = IR::Instr::New(Js::OpCode::Call, equivalentTypeCheckResultOpnd, equivalentTypeCheckHelperCallOpnd, func);
         instrChk->InsertBefore(equivalentTypeCheckCallInstr);
         this->m_lowererMD.LowerCall(equivalentTypeCheckCallInstr, 0);
@@ -7479,12 +7507,53 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
     // as long as there are other objects with types equivalent on the properties referenced by this code. The type is kept alive until entry point
     // installation by the JIT transfer data, and after that by the equivalent type cache, so it will stay alive unless or until it gets evicted
     // from the cache.
-    if (!doEquivTypeCheck)
+    if (directCheckType != nullptr)
     {
-        PinTypeRef(type, type.t, instrChk, propertySymOpnd->m_sym->AsPropertySym()->m_propertyId);
+        PinTypeRef(directCheckType, directCheckType.t, instrChk, propertySymOpnd->m_sym->AsPropertySym()->m_propertyId);
     }
 
     return typeOpnd;
+}
+
+IR::RegOpnd *
+Lowerer::GeneratePolymorphicTypeIndex(IR::RegOpnd * typeOpnd, Js::PropertyGuard * typeCheckGuard, IR::Instr * instrInsert)
+{
+    IR::RegOpnd * resultOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
+    InsertMove(resultOpnd, typeOpnd, instrInsert);
+    InsertShift(Js::OpCode::ShrU_A, false, resultOpnd, resultOpnd, IR::IntConstOpnd::New(PolymorphicInlineCacheShift, TyInt8, this->m_func, true), instrInsert);
+    InsertAnd(resultOpnd, resultOpnd, IR::IntConstOpnd::New(typeCheckGuard->AsPolyTypeCheckGuard()->GetSize() - 1, TyMachReg, this->m_func, true), instrInsert);
+
+    return resultOpnd;
+}
+
+void
+Lowerer::GenerateLeaOfOOPData(IR::RegOpnd * regOpnd, void * address, int32 offset, IR::Instr * instrInsert)
+{
+    Func * func = instrInsert->m_func;
+    int32 dataOffset;
+    Int32Math::Add(NativeCodeData::GetDataTotalOffset(address), offset, &dataOffset);
+    InsertLea(regOpnd,
+              IR::IndirOpnd::New(IR::RegOpnd::New(func->GetTopFunc()->GetNativeCodeDataSym(), TyVar, m_func), dataOffset, TyMachPtr,
+#if DBG
+                                 NativeCodeData::GetDataDescription(address, func->m_alloc),
+#endif
+                                 func, true),
+              instrInsert);
+}
+
+IR::Opnd *
+Lowerer::GenerateIndirOfOOPData(void * address, int32 offset, IR::Instr * instrInsert)
+{
+    Func * func = instrInsert->m_func;
+    int32 dataOffset;
+    Int32Math::Add(NativeCodeData::GetDataTotalOffset(address), offset, &dataOffset);
+    IR::Opnd * opnd = IR::IndirOpnd::New(IR::RegOpnd::New(func->GetTopFunc()->GetNativeCodeDataSym(), TyVar, m_func), dataOffset, TyMachPtr,
+#if DBG
+                                         NativeCodeData::GetDataDescription(address, func->m_alloc),
+#endif
+                                         func, true);
+
+    return opnd;
 }
 
 void
@@ -7632,12 +7701,30 @@ Lowerer::CreateTypePropertyGuardForGuardedProperties(JITTypeHolder type, IR::Pro
 }
 
 Js::JitEquivalentTypeGuard*
-Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(JITTypeHolder type, IR::PropertySymOpnd* propertySymOpnd)
+Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(IR::PropertySymOpnd* propertySymOpnd)
 {
     // We should always have a list of guarded properties.
     Assert(propertySymOpnd->HasObjTypeSpecFldInfo() && propertySymOpnd->HasEquivalentTypeSet() && propertySymOpnd->GetGuardedPropOps());
 
-    Js::JitEquivalentTypeGuard* guard = this->m_func->CreateEquivalentTypeGuard(type, propertySymOpnd->GetObjTypeSpecFldId());
+    Js::JitEquivalentTypeGuard* guard;
+    if (propertySymOpnd->ShouldUsePolyEquivTypeGuard(this->m_func))
+    {
+        Js::JitPolyEquivalentTypeGuard *polyGuard = this->m_func->CreatePolyEquivalentTypeGuard(propertySymOpnd->GetObjTypeSpecFldId());
+       
+        // Copy types from the type set to the guard's value locations
+        Js::EquivalentTypeSet* typeSet = propertySymOpnd->GetEquivalentTypeSet();
+        for (uint16 ti = 0; ti < typeSet->GetCount(); ti++)
+        {
+            intptr_t typeToCache = typeSet->GetType(ti)->GetAddr();
+            polyGuard->SetPolyValue(typeToCache, polyGuard->GetIndexForValue(typeToCache));
+        }
+
+        guard = polyGuard;
+    }
+    else
+    {
+        guard = this->m_func->CreateEquivalentTypeGuard(propertySymOpnd->GetFirstEquivalentType(), propertySymOpnd->GetObjTypeSpecFldId());
+    }
 
     if (m_func->GetWorkItem()->GetJITTimeInfo()->HasSharedPropertyGuards())
     {
@@ -7696,7 +7783,7 @@ Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(JITTypeHolder type,
     auto propOps = propertySymOpnd->GetGuardedPropOps();
     uint propOpCount = propOps->Count();
 
-    bool isTypeStatic = Js::StaticType::Is(type->GetTypeId());
+    bool isTypeStatic = Js::StaticType::Is(propertySymOpnd->GetFirstEquivalentType()->GetTypeId());
     JsUtil::BaseDictionary<Js::PropertyId, Js::EquivalentPropertyEntry*, JitArenaAllocator> propIds(this->m_alloc, propOpCount);
     Js::EquivalentPropertyEntry* properties = AnewArray(this->m_alloc, Js::EquivalentPropertyEntry, propOpCount);
     uint propIdCount = 0;

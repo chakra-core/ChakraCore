@@ -372,7 +372,6 @@
     <ClInclude Include="ValueInfo.h" />
     <ClInclude Include="JITThunkEmitter.h" />
     <ClInclude Include="IntConstMath.h" />
-    <ClInclude Include="PropertyGuard.h" />
     <ClInclude Include="JavascriptNativeOperators.h" />
     <ClInclude Include="EquivalentTypeSet.h" />
     <ClInclude Include="arm64\MdOpCodes.h">

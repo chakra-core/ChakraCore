@@ -50,7 +50,6 @@ typedef double  FloatConstType;
 #include "IRType.h"
 #include "InlineeFrameInfo.h"
 #include "CodeGenAllocators.h"
-#include "PropertyGuard.h"
 
 NativeCodeGenerator * NewNativeCodeGenerator(Js::ScriptContext * nativeCodeGen);
 void DeleteNativeCodeGenerator(NativeCodeGenerator * nativeCodeGen);

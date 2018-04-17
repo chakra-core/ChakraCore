@@ -101,16 +101,47 @@ namespace Js
         return CheckIfTypeIsEquivalent(type, guard);
     }
 
+    bool JavascriptNativeOperators::CheckIfPolyTypeIsEquivalentForFixedField(Type* type, JitPolyEquivalentTypeGuard* guard, uint8 index)
+    {
+        if (guard->GetPolyValue(index) == PropertyGuard::GuardValue::Invalidated_DuringSweep)
+        {
+            return false;
+        }
+        return CheckIfPolyTypeIsEquivalent(type, guard, index);
+    }
+
     bool JavascriptNativeOperators::CheckIfTypeIsEquivalent(Type* type, JitEquivalentTypeGuard* guard)
     {
-        if (guard->GetValue() == PropertyGuard::GuardValue::Invalidated)
+        bool result = EquivalenceCheckHelper(type, guard, guard->GetValue());
+        if (result)
+        {
+            guard->SetTypeAddr((intptr_t)type);
+        }
+        return result;
+    }
+
+    bool JavascriptNativeOperators::CheckIfPolyTypeIsEquivalent(Type* type, JitPolyEquivalentTypeGuard* guard, uint8 index)
+    {
+        bool result = EquivalenceCheckHelper(type, guard, guard->GetPolyValue(index));
+        if (result)
+        {
+            guard->SetPolyValue((intptr_t)type, index);
+        }
+        return result;
+    }
+
+    bool JavascriptNativeOperators::EquivalenceCheckHelper(Type* type, JitEquivalentTypeGuard* guard, intptr_t guardValue)
+    {
+        if (guardValue == PropertyGuard::GuardValue::Invalidated)
         {
             return false;
         }
 
-        AssertMsg(type && type->GetScriptContext(), "type and it's ScriptContext should be valid.");
+        AssertMsg(type && type->GetScriptContext(), "type and its ScriptContext should be valid.");
 
-        if (!guard->IsInvalidatedDuringSweep() && ((Js::Type*)guard->GetTypeAddr())->GetScriptContext() != type->GetScriptContext())
+        if (guardValue != PropertyGuard::GuardValue::Invalidated_DuringSweep &&
+            guardValue != PropertyGuard::GuardValue::Uninitialized &&
+            ((Js::Type*)guardValue)->GetScriptContext() != type->GetScriptContext())
         {
             // For valid guard value, can't cache cross-context objects
             return false;
@@ -158,7 +189,6 @@ namespace Js
                     }
                 }
 #endif
-                guard->SetTypeAddr((intptr_t)type);
                 return true;
             }
 
@@ -326,7 +356,6 @@ namespace Js
         }
 
         type->SetHasBeenCached();
-        guard->SetTypeAddr((intptr_t)type);
         return true;
     }
 #endif
