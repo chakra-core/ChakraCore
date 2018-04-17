@@ -1249,13 +1249,14 @@ namespace Js
         }
         else
         {
-            JavascriptOperators::PatchPutValueNoLocalFastPath<false>(
+            JavascriptOperators::PatchPutValueWithThisPtrNoLocalFastPath<false>(
                 functionBody,
                 inlineCache,
                 inlineCacheIndex,
                 instance,
                 propertyId,
                 value,
+                thisInstance,
                 flags);
         }
 
