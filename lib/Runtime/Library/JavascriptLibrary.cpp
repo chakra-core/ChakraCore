@@ -995,6 +995,7 @@ namespace Js
             scriptContext = nullptr;
         }
     }
+
     void JavascriptLibrary::Finalize(bool isShutdown)
     {
         __super::Finalize(isShutdown);
@@ -4418,12 +4419,6 @@ namespace Js
         this->nativeHostPromiseContinuationFunctionState = state;
     }
 
-    void JavascriptLibrary::SetNativeHostPromiseRejectionTrackerCallback(HostPromiseRejectionTrackerCallback function, void *state)
-    {
-        this->nativeHostPromiseRejectionTracker = function;
-        this->nativeHostPromiseContinuationFunctionState = state;
-    }
-
     void JavascriptLibrary::CallNativeHostPromiseRejectionTracker(Var promise, Var reason, bool handled)
     {
         if (this->nativeHostPromiseRejectionTracker != nullptr)
@@ -4431,7 +4426,7 @@ namespace Js
             BEGIN_LEAVE_SCRIPT(scriptContext);
             try
             {
-               this->nativeHostPromiseRejectionTracker(promise, reason, handled, this->nativeHostPromiseContinuationFunctionState);
+                this->nativeHostPromiseRejectionTracker(promise, reason, handled, this->nativeHostPromiseRejectionTrackerState);
             }
             catch (...)
             {
