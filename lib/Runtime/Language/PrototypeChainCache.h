@@ -80,12 +80,12 @@ public:
         _In_ DynamicTypeHandler* typeHandler,
         PropertyAttributes attributes,
         _In_ KeyType propertyKey);
+    bool CheckObject(_In_ RecyclableObject* object);
 
     static void ClearType(_In_ Type* type);
 
     static bool IsCached(_In_ Type* type);
     static void Cache(_In_ Type* type);
-    static bool CheckObject(_In_ RecyclableObject* object);
 
     static bool IsSpecialProperty(PropertyId propertyId);
     static bool IsSpecialProperty(_In_ PropertyRecord const* propertyRecord);
@@ -131,12 +131,12 @@ public:
         _In_ DynamicTypeHandler* typeHandler,
         PropertyAttributes attributes,
         _In_ KeyType propertyKey);
+    bool CheckObject(_In_ RecyclableObject* object);
 
     static void ClearType(_In_ Type* type);
 
     static bool IsCached(_In_ Type* type);
     static void Cache(_In_ Type* type);
-    static bool CheckObject(_In_ RecyclableObject* object);
 #if DBG
     void RegistrationAssert(_In_ Type* type);
 #endif
