@@ -92,7 +92,7 @@ ScriptCacheRegistry<T>::Clear(bool isThreadClear)
         Assert(this->cache);
         if (!this->scriptContext->IsFinalized())
         {
-            // If ScriptContext is finalized, then cache is invalid
+            // If ScriptContext is finalized, then cache may be freed so we shouldn't clear it
             this->cache->Clear();
         }
         // Thread clear will reset the registry, so we don't need to call unregister
@@ -174,7 +174,7 @@ PrototypeChainCache<T>::CheckProtoChain(_In_ RecyclableObject* prototype)
 {
     Assert(prototype);
 
-    if (T::IsCached(prototype->GetType()))
+    if (this->cache.IsCached(prototype))
     {
         Assert(CheckProtoChainInternal(prototype));
         return true;
@@ -294,9 +294,15 @@ NoSpecialPropertyCache::IsDefaultHandledSpecialProperty(_In_ JavascriptString* p
 }
 
 bool
-NoSpecialPropertyCache::IsCached(_In_ Type* type)
+NoSpecialPropertyCache::IsCached(_In_ RecyclableObject* prototype)
 {
-    return type->ThisAndPrototypesHaveNoSpecialProperties();
+    if (!prototype->GetType()->ThisAndPrototypesHaveNoSpecialProperties())
+    {
+        return false;
+    }
+    DynamicObject* dynamicObject = JavascriptOperators::TryFromVar<DynamicObject>(prototype);
+
+    return dynamicObject && !dynamicObject->IsCrossSiteObject();
 }
 
 void
@@ -337,9 +343,9 @@ OnlyWritablePropertyCache::ClearType(_In_ Type* type)
 }
 
 bool
-OnlyWritablePropertyCache::IsCached(_In_ Type* type)
+OnlyWritablePropertyCache::IsCached(_In_ RecyclableObject* prototype)
 {
-    return type->AreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties();
+    return prototype->GetType()->AreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties();
 }
 
 void
