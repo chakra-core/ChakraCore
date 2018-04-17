@@ -29,7 +29,7 @@ template <typename T>
 class ScriptCacheRegistry
 {
 public:
-    ScriptCacheRegistry(_In_ ThreadCacheRegistry<T>* threadRegistry);
+    ScriptCacheRegistry(_In_ ScriptContext* scriptContext, _In_ ThreadCacheRegistry<T>* threadRegistry);
     void Register();
     void Clear(bool isThreadClear);
     void AssignCache(_In_ T* cache);
@@ -37,6 +37,7 @@ private:
     T* cache;
     ScriptCacheRegistry<T>** registration;
     ThreadCacheRegistry<T>* threadRegistry;
+    ScriptContext* scriptContext;
 };
 
 template <typename T>
