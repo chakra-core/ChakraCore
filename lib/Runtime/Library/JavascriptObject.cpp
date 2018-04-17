@@ -1929,6 +1929,14 @@ namespace Js
         });
     }
 
+    bool JavascriptObject::IsPrototypeOfStopAtProxy(RecyclableObject* proto, RecyclableObject* object, ScriptContext* scriptContext)
+    {
+        return JavascriptOperators::MapObjectAndPrototypesUntil<true>(object, [=](RecyclableObject* obj)
+        {
+            return obj == proto;
+        });
+    }
+
     static const size_t ConstructNameGetSetLength = 5;    // 5 = 1 ( for .) + 3 (get or set) + 1 for null)
 
     /*static*/

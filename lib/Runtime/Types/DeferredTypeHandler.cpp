@@ -20,7 +20,7 @@ namespace Js
         // also responsible for populating PropertyTypes to indicate whether there are any read-only
         // properties unknown to the type handler.
 
-        BOOL isProto = (GetFlags() & IsPrototypeFlag);
+        BOOL isProto = this->GetIsPrototype();
 
         ScriptContext* scriptContext = instance->GetScriptContext();
         instance->EnsureSlots(0, typeHandler->GetSlotCapacity(), scriptContext, typeHandler);
@@ -31,7 +31,7 @@ namespace Js
         {
             undeferredFunctionType = functionProxy->GetUndeferredFunctionType();
         }
-        if (undeferredFunctionType && !instance->IsCrossSiteObject())
+        if (undeferredFunctionType && !isProto && !instance->IsCrossSiteObject())
         {
             Assert(undeferredFunctionType->GetIsShared());
             Assert(!CrossSite::IsThunk(undeferredFunctionType->GetEntryPoint()));
@@ -40,7 +40,7 @@ namespace Js
         else
         {
             typeHandler->SetInstanceTypeHandler(instance);
-            if (functionProxy && typeHandler->GetMayBecomeShared() && !CrossSite::IsThunk(instance->GetType()->GetEntryPoint()) && !PHASE_OFF1(ShareFuncTypesPhase))
+            if (functionProxy && !isProto && typeHandler->GetMayBecomeShared() && !CrossSite::IsThunk(instance->GetType()->GetEntryPoint()) && !PHASE_OFF1(ShareFuncTypesPhase))
             {
                 Assert(!functionProxy->GetUndeferredFunctionType());
                 functionProxy->SetUndeferredFunctionType(ScriptFunction::UnsafeFromVar(instance)->GetScriptFunctionType());

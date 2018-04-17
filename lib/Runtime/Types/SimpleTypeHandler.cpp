@@ -64,7 +64,7 @@ namespace Js
     template<size_t size>
     bool SimpleTypeHandler<size>::DoConvertToPathType(DynamicType* type)
     {
-        if (CrossSite::IsThunk(type->GetEntryPoint()))
+        if (CrossSite::IsThunk(type->GetEntryPoint()) || type->GetTypeHandler()->GetIsPrototype())
         {
             return false;
         }
