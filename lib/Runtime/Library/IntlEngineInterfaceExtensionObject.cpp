@@ -324,14 +324,29 @@ namespace Js
     typedef FinalizableICUObject<UFieldPositionIterator *, ufieldpositer_close> FinalizableUFieldPositionIterator;
     typedef FinalizableICUObject<UCollator *, ucol_close> FinalizableUCollator;
 
-    template<typename ICUFunc>
-    static void RecyclerExecuteICUWithRetry(_In_ ICUFunc func, _In_ Recycler *recycler, _Out_writes_opt_(returnLen) char16 **ret, _Out_ int *returnLen, _In_ int firstTryLength = 8)
+    template<typename TExecutor>
+    static void EnsureBuffer(_In_ TExecutor executor, _In_ Recycler *recycler, _Outptr_result_buffer_(returnLength) char16 **ret, _Out_ int *returnLength, _In_ int firstTryLength = 8)
     {
-        bool success = ExecuteICUWithRetry<char16, ICUFunc>([&](int length)
+        UErrorCode status = U_ZERO_ERROR;
+        *ret = RecyclerNewArrayLeaf(recycler, char16, firstTryLength);
+        *returnLength = executor(reinterpret_cast<UChar *>(*ret), firstTryLength, &status);
+        AssertOrFailFastMsg(*returnLength > 0, "Executor reported needing negative bytes");
+        if (ICU_BUFFER_FAILURE(status))
         {
-            return RecyclerNewArrayLeaf(recycler, char16, length);
-        }, func, firstTryLength, ret, returnLen);
-        AssertOrFailFastMsg(success, "Could not allocate buffer for ICU call");
+            AssertOrFailFastMsg(*returnLength >= firstTryLength, "Executor reported buffer failure but did not require additional space");
+            int secondTryLength = *returnLength + 1;
+            INTL_TRACE("Buffer of length %d was too short, retrying with buffer of length %d", firstTryLength, secondTryLength);
+            status = U_ZERO_ERROR;
+            *ret = RecyclerNewArrayLeaf(recycler, char16, secondTryLength);
+            *returnLength = executor(reinterpret_cast<UChar *>(*ret), secondTryLength, &status);
+            AssertOrFailFastMsg(*returnLength == secondTryLength - 1, "Second try of executor returned unexpected length");
+        }
+        else
+        {
+            AssertOrFailFastMsg(*returnLength < firstTryLength, "Executor required additional length but reported successful status");
+        }
+
+        AssertOrFailFastMsg(!ICU_FAILURE(status), ICU_ERRORMESSAGE(status));
     }
 
     template <typename T>
@@ -2132,7 +2147,7 @@ namespace Js
         if (TaggedInt::Is(args.Values[1]))
         {
             int num = TaggedInt::ToInt32(args.Values[1]);
-            RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status)
+            EnsureBuffer([&](UChar *buf, int bufLen, UErrorCode *status)
             {
                 return unum_format(*fmt, num, buf, bufLen, nullptr, status);
             }, scriptContext->GetRecycler(), &formatted, &formattedLen);
@@ -2140,7 +2155,7 @@ namespace Js
         else
         {
             double num = JavascriptNumber::GetValue(args.Values[1]);
-            RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status)
+            EnsureBuffer([&](UChar *buf, int bufLen, UErrorCode *status)
             {
                 return unum_formatDouble(*fmt, num, buf, bufLen, nullptr, status);
             }, scriptContext->GetRecycler(), &formatted, &formattedLen);
@@ -2375,7 +2390,7 @@ namespace Js
         if (!toParts)
         {
             // if we aren't formatting to parts, we simply want to call udat_format with retry
-            RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status)
+            EnsureBuffer([&](UChar *buf, int bufLen, UErrorCode *status)
             {
                 return udat_format(*dtf, date, buf, bufLen, nullptr, status);
             }, scriptContext->GetRecycler(), &formatted, &formattedLen);
@@ -2385,7 +2400,7 @@ namespace Js
         // The rest of this function most closely corresponds to ECMA 402 #sec-partitiondatetimepattern
         ScopedUFieldPositionIterator fpi(ufieldpositer_open(&status));
         ICU_ASSERT(status, true);
-        RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status)
+        EnsureBuffer([&](UChar *buf, int bufLen, UErrorCode *status)
         {
             return udat_formatForFields(*dtf, date, buf, bufLen, fpi, status);
         }, scriptContext->GetRecycler(), &formatted, &formattedLen);
@@ -2512,7 +2527,7 @@ namespace Js
 
         char16 *formatted = nullptr;
         int formattedLen = 0;
-        RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status)
+        EnsureBuffer([&](UChar *buf, int bufLen, UErrorCode *status)
         {
             return udatpg_getBestPatternWithOptions(
                 dtpg,
@@ -2614,7 +2629,7 @@ namespace Js
 #else
         int timeZoneLen = 0;
         char16 *timeZone = nullptr;
-        RecyclerExecuteICUWithRetry([&](UChar *buf, int bufLen, UErrorCode *status)
+        EnsureBuffer([&](UChar *buf, int bufLen, UErrorCode *status)
         {
             return ucal_getDefaultTimeZone(buf, bufLen, status);
         }, scriptContext->GetRecycler(), &timeZone, &timeZoneLen);
