@@ -82,10 +82,10 @@ public:
         PropertyAttributes attributes,
         _In_ KeyType propertyKey);
     bool CheckObject(_In_ RecyclableObject* object);
+    bool IsCached(_In_ RecyclableObject* prototype);
 
     static void ClearType(_In_ Type* type);
 
-    static bool IsCached(_In_ Type* type);
     static void Cache(_In_ Type* type);
 
     static bool IsSpecialProperty(PropertyId propertyId);
@@ -133,10 +133,10 @@ public:
         PropertyAttributes attributes,
         _In_ KeyType propertyKey);
     bool CheckObject(_In_ RecyclableObject* object);
+    bool IsCached(_In_ RecyclableObject* prototype);
 
     static void ClearType(_In_ Type* type);
 
-    static bool IsCached(_In_ Type* type);
     static void Cache(_In_ Type* type);
 #if DBG
     void RegistrationAssert(_In_ Type* type);
