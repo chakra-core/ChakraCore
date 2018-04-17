@@ -155,7 +155,7 @@ PrototypeChainCache<T>::Check(_In_ RecyclableObject* object)
         }
     }
 
-    if (!T::CheckObject(object))
+    if (!this->cache.CheckObject(object))
     {
         return false;
     }
@@ -198,7 +198,7 @@ PrototypeChainCache<T>::CheckProtoChainInternal(RecyclableObject* prototype)
         {
             onlyOneScriptContext = false;
         }
-        if (!T::CheckObject(prototype))
+        if (!this->cache.CheckObject(prototype))
         {
             return false;
         }
@@ -303,7 +303,13 @@ NoSpecialPropertyCache::Cache(_In_ Type* type)
 bool
 NoSpecialPropertyCache::CheckObject(_In_ RecyclableObject* object)
 {
-    return !object->HasAnySpecialProperties() && !object->HasDeferredTypeHandler();
+    if (object->HasAnySpecialProperties() || object->HasDeferredTypeHandler())
+    {
+        return false;
+    }
+    DynamicObject* dynamicObject = JavascriptOperators::TryFromVar<DynamicObject>(object);
+
+    return dynamicObject && !dynamicObject->IsCrossSiteObject();
 }
 
 #if DBG
