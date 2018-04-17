@@ -56,8 +56,9 @@ ThreadCacheRegistry<T>::Clear()
 }
 
 template <typename T>
-ScriptCacheRegistry<T>::ScriptCacheRegistry(_In_ ThreadCacheRegistry<T>* threadRegistry) :
+ScriptCacheRegistry<T>::ScriptCacheRegistry(_In_ ScriptContext* scriptContext, _In_ ThreadCacheRegistry<T>* threadRegistry) :
     threadRegistry(threadRegistry),
+    scriptContext(scriptContext),
     cache(nullptr),
     registration(nullptr)
 {
@@ -89,7 +90,11 @@ ScriptCacheRegistry<T>::Clear(bool isThreadClear)
     if (this->registration != nullptr)
     {
         Assert(this->cache);
-        this->cache->Clear();
+        if (!this->scriptContext->IsFinalized())
+        {
+            // If ScriptContext is finalized, then cache is invalid
+            this->cache->Clear();
+        }
         // Thread clear will reset the registry, so we don't need to call unregister
         if (!isThreadClear)
         {

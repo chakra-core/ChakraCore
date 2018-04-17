@@ -139,8 +139,8 @@ namespace Js
         hasUsedInlineCache(false),
         hasProtoOrStoreFieldInlineCache(false),
         hasIsInstInlineCache(false),
-        noSpecialPropertyRegistry(threadContext->GetNoSpecialPropertyRegistry()),
-        onlyWritablePropertyRegistry(threadContext->GetOnlyWritablePropertyRegistry()),
+        noSpecialPropertyRegistry(this, threadContext->GetNoSpecialPropertyRegistry()),
+        onlyWritablePropertyRegistry(this, threadContext->GetOnlyWritablePropertyRegistry()),
         firstInterpreterFrameReturnAddress(nullptr),
         builtInLibraryFunctions(nullptr),
         isWeakReferenceDictionaryListCleared(false)
