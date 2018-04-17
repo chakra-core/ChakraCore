@@ -1178,15 +1178,7 @@ namespace Js
     template <class T> void
     ByteCodeDumper::DumpReg1(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
-        switch (op)
-        {
-        case OpCode::ObjectFreeze:
-            Output::Print(_u(" R%d.freeze()"), data->R0);
-            break;
-        default:
-            DumpReg(data->R0);
-            break;
-        }
+        DumpReg(data->R0);
     }
 
     template <class T> void

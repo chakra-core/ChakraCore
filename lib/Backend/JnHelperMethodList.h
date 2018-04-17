@@ -313,7 +313,6 @@ HELPERCALL(EnsureObjectLiteralType, Js::JavascriptOperators::EnsureObjectLiteral
 
 HELPERCALL(OP_InitClass, Js::JavascriptOperators::OP_InitClass, AttrCanThrow)
 
-HELPERCALL(OP_Freeze, Js::JavascriptOperators::OP_Freeze, AttrCanThrow)
 HELPERCALL(OP_ClearAttributes, Js::JavascriptOperators::OP_ClearAttributes, AttrCanThrow)
 
 HELPERCALL(OP_CmEq_A, Js::JavascriptOperators::OP_CmEq_A, 0)

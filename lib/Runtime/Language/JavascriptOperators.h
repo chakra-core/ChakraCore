@@ -594,7 +594,6 @@ namespace Js
         static void SetAttributes(RecyclableObject* object, PropertyId propId, const PropertyDescriptor& descriptor, bool force);
 
         static void OP_ClearAttributes(Var instance, PropertyId propertyId);
-        static void OP_Freeze(Var instance);
 
         static Var RootToThisObject(const Var object, ScriptContext * const scriptContext);
         static Var CallGetter(RecyclableObject * const function, Var const object, ScriptContext * const scriptContext);

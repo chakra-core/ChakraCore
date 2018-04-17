@@ -8914,17 +8914,6 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         }
     }
 
-    void JavascriptOperators::OP_Freeze(Var instance)
-    {
-        Assert(instance);
-
-        if (RecyclableObject::Is(instance))
-        {
-            RecyclableObject* obj = RecyclableObject::FromVar(instance);
-            obj->Freeze();
-        }
-    }
-
     BOOL JavascriptOperators::Reject(bool throwOnError, ScriptContext* scriptContext, int32 errorCode, PropertyId propertyId)
     {
         Assert(scriptContext);
