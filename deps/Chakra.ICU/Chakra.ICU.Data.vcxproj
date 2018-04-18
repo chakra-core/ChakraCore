@@ -19,7 +19,6 @@
   <Import Project="$(MSBuildThisFileDirectory)Chakra.ICU.Build.props" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
-    <GenCCodePath>$(OutBaseDir)\bin\$(PlatformPathName.ToLower())_$(Configuration.ToLower())\Chakra.ICU.GenCCode.exe</GenCCodePath>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <Link Condition="'$(ChakraICU)'=='shared'">
@@ -27,16 +26,12 @@
       <NoEntryPoint>true</NoEntryPoint>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup Condition="'$(BuildLocalICU)'=='true'">
-    <None Include="$(IntDir)icudt$(IcuVersionMajor)l_dat.obj" /> <!-- forces the automagic build system to create a lib from the obj -->
+  <ItemGroup Condition="'$(BuildChakraICUData)'=='true'">
+    <!-- TODO(jahorto): allow the data file to be trimmed or allow an alternate data file to be supplied -->
     <CustomBuild Include="$(MSBuildThisFileDirectory)source\data\in\icudt$(IcuVersionMajor)l.dat">
-      <Command>$(GenCCodePath) --object --destdir $(IntDir) --entrypoint icudt$(IcuVersionMajor) $(IcuSourceDirectory)\data\in\icudt$(IcuVersionMajor)l.dat</Command>
+      <Command>cmd /c "powershell $(ChakraCoreRootDirectory)\tools\icu\create_data_obj.ps1 -d $(MSBuildThisFileDirectory)icu\source\data\in\icudt$(IcuVersionMajor)l.dat -p $(Platform) -c $(Configuration) -m '$(MSBuildBinPath)\msbuild.exe' -i $(IntDir) -v $(IcuVersionMajor)"</Command>
       <Outputs>$(IntDir)icudt$(IcuVersionMajor)l_dat.obj</Outputs>
     </CustomBuild>
-    <ProjectReference Include="$(MSBuildThisFileDirectory)Chakra.ICU.GenCCode.vcxproj">
-      <Project>{FA9E9590-0E6C-40F9-9527-E608F2DFA76D}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

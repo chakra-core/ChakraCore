@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
+
+<!-- Chakra.ICU.Toolutil -->
+<!--
+  This project contains all of the library code for ICU tools such as GenCCode.
+  GenCCode produces a platform-agnostic object file, but must be built in the host architecture.
+  As a result, GenCCode.vcxproj and this project are built separately from the rest
+ -->
+
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
@@ -23,7 +31,11 @@
     <ClCompile>
       <PreprocessorDefinitions>
         %(PreprocessorDefinitions);
-        U_TOOLUTIL_IMPLEMENTATION=1
+        U_COMBINED_IMPLEMENTATION=1;
+        U_TOOLUTIL_IMPLEMENTATION=1;
+        U_STUBDATA_IMPLEMENTATION=1;
+        U_COMMON_IMPLEMENTATION=1;
+        U_I18N_IMPLEMENTATION=1
       </PreprocessorDefinitions>
 
       <AdditionalIncludeDirectories>
@@ -31,11 +43,21 @@
         $(IcuSourceDirectory)\common;
         $(IcuSourceDirectory)\i18n
       </AdditionalIncludeDirectories>
+
+      <!-- Some ICU files use embedded UTF-8 -->
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup Condition="'$(BuildLocalICU)'=='true'">
     <ClCompile Include="$(IcuToolutilSources)" />
+    <ClCompile Include="$(IcuCommonSources)" />
+    <ClCompile Include="$(IcuI18nSources)" />
+    <ClCompile Include="$(IcuStubdataSources)" />
+
     <ClInclude Include="$(IcuToolutilHeaders)" />
+    <ClInclude Include="$(IcuCommonHeaders)" />
+    <ClInclude Include="$(IcuI18nHeaders)" />
+    <ClInclude Include="$(IcuStubdataHeaders)" />
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

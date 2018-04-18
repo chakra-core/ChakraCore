@@ -29,6 +29,7 @@
     </ClCompile>
     <Link Condition="'$(ChakraICU)'=='shared'">
       <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>%(AdditionalDependencies);advapi32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup Condition="'$(BuildLocalICU)'=='true'">
