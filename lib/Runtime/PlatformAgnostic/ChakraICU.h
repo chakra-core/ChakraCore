@@ -22,6 +22,7 @@
 #include "unicode/udat.h"
 #include "unicode/udatpg.h"
 #include "unicode/uloc.h"
+#include "unicode/ulocdata.h"
 #include "unicode/unumsys.h"
 #include "unicode/ustring.h"
 #include "unicode/unorm2.h"
