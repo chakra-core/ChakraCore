@@ -1601,16 +1601,8 @@ LABEL1:
 
         Assert(functionInfo);
 
-        ScriptFunctionWithInlineCache * funcObjectWithInlineCache = ScriptFunctionWithInlineCache::Is(*functionRef) ? ScriptFunctionWithInlineCache::FromVar(*functionRef) : nullptr;
         if (functionInfo->IsDeferredParseFunction())
         {
-            if (funcObjectWithInlineCache)
-            {
-                // If inline caches were populated from a function body that has been redeferred, the caches have been cleaned up,
-                // so clear the pointers. REVIEW: Is this a perf loss in some cases?
-                funcObjectWithInlineCache->ClearBorrowedInlineCacheOnFunctionObject();
-            }
-
             funcBody = functionInfo->Parse(functionRef);
             fParsed = funcBody->IsFunctionParsed() ? TRUE : FALSE;
 
@@ -1635,18 +1627,6 @@ LABEL1:
 #endif
 
         JavascriptMethod thunkEntryPoint = (*functionRef)->UpdateUndeferredBody(funcBody);
-
-        if (funcObjectWithInlineCache && !funcObjectWithInlineCache->GetHasOwnInlineCaches())
-        {
-            // If the function object needs to use the inline caches from the function body, point them to the
-            // function body's caches. This is required in two redeferral cases:
-            //
-            // 1. We might have cleared the caches on the function object (ClearBorrowedInlineCacheOnFunctionObject)
-            //    above if the function body was redeferred.
-            // 2. Another function object could have been called before and undeferred the function body, thereby creating
-            //    new inline caches. This function object would still be pointing to the old ones and needs updating.
-            funcObjectWithInlineCache->SetInlineCachesFromFunctionBody();
-        }
 
         return thunkEntryPoint;
     }
