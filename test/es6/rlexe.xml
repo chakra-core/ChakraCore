@@ -1459,6 +1459,11 @@
 </test>
 <test>
   <default>
+    <files>setUserFuncAsProto.js</files>
+  </default>
+</test>
+<test>
+  <default>
     <files>function-expr-capture2.js</files>
     <compile-flags>-force:deferparse</compile-flags>
   </default>

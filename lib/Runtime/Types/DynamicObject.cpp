@@ -350,6 +350,9 @@ namespace Js
         AssertMsg(DynamicObject::IsTypeHandlerCompatibleForObjectHeaderInlining(this->GetTypeHandler(), type->GetTypeHandler()),
             "Object is ObjectHeaderInlined and should have compatible TypeHandlers for proper transition");
 
+        AssertMsg(!JavascriptObject::IsPrototypeOfStopAtProxy(this, type->GetPrototype(), GetScriptContext()),
+            "Replacing the type should not create a cycle in the prototype chain");
+
         this->type = type;
     }
 
