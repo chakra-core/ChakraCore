@@ -1262,6 +1262,30 @@ void GlobOpt::FinalizeInductionVariables(Loop *const loop, GlobOptBlockData *con
     }
 }
 
+void
+GlobOpt::InvalidateInductionVariables(IR::Instr * instr)
+{
+    Assert(instr->GetDst() != nullptr && instr->GetDst()->IsRegOpnd());
+
+    // Induction variables are always var syms.
+    StackSym * dstSym = instr->GetDst()->AsRegOpnd()->m_sym;
+    if (!dstSym->IsVar())
+    {
+        dstSym = dstSym->GetVarEquivSym(this->func);
+    }
+
+    // If this is an induction variable, then treat it the way the prepass would have if it had seen
+    // the assignment and the resulting change to the value number, and mark it as indeterminate.
+    for (Loop * loop = this->currentBlock->loop; loop; loop = loop->parent)
+    {
+        InductionVariable *iv = nullptr;
+        if (loop->inductionVariables && loop->inductionVariables->TryGetReference(dstSym->m_id, &iv))
+        {
+            iv->SetChangeIsIndeterminate();
+        }
+    }
+}
+
 GlobOpt::SymBoundType GlobOpt::DetermineSymBoundOffsetOrValueRelativeToLandingPad(
     StackSym *const sym,
     const bool landingPadValueIsLowerBound,
