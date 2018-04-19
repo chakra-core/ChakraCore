@@ -2232,50 +2232,53 @@ case_2:
         const char16 *pThisSz = pThis->GetSz();
         charcount_t pThisLength = pThis->GetLength();
 
-        bool isAscii = true;
-        for (charcount_t i = 0; i < pThisLength; i++)
+        if (useInvariant)
         {
-            if (pThisSz[i] >= 0x80)
-            {
-                isAscii = false;
-                break;
-            }
-        }
-
-        if (isAscii)
-        {
-            char16 *ret = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, UInt32Math::Add(pThisLength, 1));
-            const char16 diffBetweenCases = 32;
+            bool isAscii = true;
             for (charcount_t i = 0; i < pThisLength; i++)
             {
-                char16 cur = pThisSz[i];
-                if (toUpper)
+                if (pThisSz[i] >= 0x80)
                 {
-                    if (cur >= _u('a') && cur <= _u('z'))
-                    {
-                        ret[i] = cur - diffBetweenCases;
-                    }
-                    else
-                    {
-                        ret[i] = cur;
-                    }
-                }
-                else
-                {
-                    if (cur >= _u('A') && cur <= _u('Z'))
-                    {
-                        ret[i] = cur + diffBetweenCases;
-                    }
-                    else
-                    {
-                        ret[i] = cur;
-                    }
+                    isAscii = false;
+                    break;
                 }
             }
 
-            ret[pThisLength] = 0;
+            if (isAscii)
+            {
+                char16 *ret = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, UInt32Math::Add(pThisLength, 1));
+                const char16 diffBetweenCases = 32;
+                for (charcount_t i = 0; i < pThisLength; i++)
+                {
+                    char16 cur = pThisSz[i];
+                    if (toUpper)
+                    {
+                        if (cur >= _u('a') && cur <= _u('z'))
+                        {
+                            ret[i] = cur - diffBetweenCases;
+                        }
+                        else
+                        {
+                            ret[i] = cur;
+                        }
+                    }
+                    else
+                    {
+                        if (cur >= _u('A') && cur <= _u('Z'))
+                        {
+                            ret[i] = cur + diffBetweenCases;
+                        }
+                        else
+                        {
+                            ret[i] = cur;
+                        }
+                    }
+                }
 
-            return JavascriptString::NewWithBuffer(ret, pThisLength, scriptContext);
+                ret[pThisLength] = 0;
+
+                return JavascriptString::NewWithBuffer(ret, pThisLength, scriptContext);
+            }
         }
 
         // pre-flight to get the length required, as it may be longer than the original string
