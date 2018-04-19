@@ -2675,7 +2675,7 @@ CommonNumber:
             return TRUE;
         }
 
-        if (!TaggedNumber::Is(instance))
+        if (!TaggedNumber::Is(instance) && !TaggedNumber::Is(thisInstance))
         {
             return JavascriptOperators::SetProperty(RecyclableObject::UnsafeFromVar(thisInstance), RecyclableObject::UnsafeFromVar(instance), propertyId, newValue, info, scriptContext, flags);
         }
