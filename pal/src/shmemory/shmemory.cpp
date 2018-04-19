@@ -901,7 +901,7 @@ SHMPTR SHMGetInfo(SHM_INFO_ID element)
     SHM_FIRST_HEADER *header = NULL;
     SHMPTR retval = 0;
 
-    if(element < 0 || element >= SIID_LAST)
+    if(element >= SIID_LAST)
     {
         ASSERT("Invalid SHM info element %d\n", element);
         return 0;
@@ -943,7 +943,7 @@ BOOL SHMSetInfo(SHM_INFO_ID element, SHMPTR value)
 {
     SHM_FIRST_HEADER *header;
 
-    if(element < 0 || element >= SIID_LAST)
+    if(element >= SIID_LAST)
     {
         ASSERT("Invalid SHM info element %d\n", element);
         return FALSE;
