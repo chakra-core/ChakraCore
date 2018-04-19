@@ -8,6 +8,8 @@
 namespace Js {
     uint64      Tick::s_luFreq;
     uint64      Tick::s_luBegin;
+    bool Tick::TickStaticInitializer::s_isInitialized = false;
+    Tick::TickStaticInitializer Tick::s_tickStaticInitializer;
 
 #if DBG
     uint64      Tick::s_DEBUG_luStart   = 0;
@@ -780,10 +782,10 @@ namespace Js {
     {
         return m_lnDelta >= tdOther.m_lnDelta;
     }
-    void Tick::InitType()
+    void Tick::TickStaticInitializer::InitType()
     {
-        /* CheckWin32( */ QueryPerformanceFrequency((LARGE_INTEGER *) &s_luFreq);
-        /* CheckWin32( */ QueryPerformanceCounter((LARGE_INTEGER *) &s_luBegin);
+        /* CheckWin32( */ QueryPerformanceFrequency((LARGE_INTEGER *) &Tick::s_luFreq);
+        /* CheckWin32( */ QueryPerformanceCounter((LARGE_INTEGER *) &Tick::s_luBegin);
 
 #if DBG
         s_luBegin += s_DEBUG_luStart;

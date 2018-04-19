@@ -33,8 +33,6 @@ namespace Js {
     {
     // Construction
     public:
-        static  void            InitType();
-
                                 Tick();
     private:
                                 Tick(uint64 luTick);
@@ -71,6 +69,26 @@ namespace Js {
                 uint64          m_luTick;           // Current time sample
 
         friend TickDelta;
+    
+    private:
+        class TickStaticInitializer
+        {
+        public:
+            TickStaticInitializer() 
+            { 
+                if (!s_isInitialized)
+                {
+                    s_isInitialized = true;
+                    InitType();
+                }
+            }
+        private:
+            static bool s_isInitialized;
+
+            static void InitType();
+        };
+        
+        static TickStaticInitializer s_tickStaticInitializer;
     };
 
 
