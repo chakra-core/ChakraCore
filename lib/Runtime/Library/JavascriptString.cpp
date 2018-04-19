@@ -2228,8 +2228,55 @@ case_2:
         }
 
         ScriptContext* scriptContext = pThis->type->GetScriptContext();
-
         ApiError error = ApiError::NoError;
+        const char16 *pThisSz = pThis->GetSz();
+        charcount_t pThisLength = pThis->GetLength();
+
+        bool isAscii = true;
+        for (charcount_t i = 0; i < pThisLength; i++)
+        {
+            if (pThisSz[i] >= 0x80)
+            {
+                isAscii = false;
+                break;
+            }
+        }
+
+        if (isAscii)
+        {
+            char16 *ret = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, UInt32Math::Add(pThisLength, 1));
+            const char16 diffBetweenCases = 32;
+            for (charcount_t i = 0; i < pThisLength; i++)
+            {
+                char16 cur = pThisSz[i];
+                if (toUpper)
+                {
+                    if (cur >= _u('a') && cur <= _u('z'))
+                    {
+                        ret[i] = cur - diffBetweenCases;
+                    }
+                    else
+                    {
+                        ret[i] = cur;
+                    }
+                }
+                else
+                {
+                    if (cur >= _u('A') && cur <= _u('Z'))
+                    {
+                        ret[i] = cur + diffBetweenCases;
+                    }
+                    else
+                    {
+                        ret[i] = cur;
+                    }
+                }
+            }
+
+            ret[pThisLength] = 0;
+
+            return JavascriptString::NewWithBuffer(ret, pThisLength, scriptContext);
+        }
 
         // pre-flight to get the length required, as it may be longer than the original string
         // NOTE: ICU and Win32(/POSIX) implementations of these functions differ slightly in how to get the required number of characters.
