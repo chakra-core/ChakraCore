@@ -5110,7 +5110,7 @@ Lowerer::LowerUpdateNewScObjectCache(IR::Instr * insertInstr, IR::Opnd *dst, IR:
         indirOpnd = IR::IndirOpnd::New(r1, Js::Type::GetOffsetOfTypeId(), TyInt32, this->m_func);
         IR::IntConstOpnd *intOpnd = IR::IntConstOpnd::New(Js::TypeIds_Function, TyInt32, this->m_func, true);
         IR::BranchInstr* branchInstr = InsertCompareBranch(indirOpnd, intOpnd, Js::OpCode::BrNeq_A, labelFallThru, insertInstr);
-        InsertObjectPoison(src1RegOpnd, branchInstr, insertInstr);
+        InsertObjectPoison(src1RegOpnd, branchInstr, insertInstr, false);
     }
 
     // Every function has a constructor cache, even if only the default blank one.
@@ -5304,13 +5304,15 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
     newObjInstr->SetSrc1(IR::HelperCallOpnd::New(helperMethod, func));
     newObjInstr = GenerateDirectCall(newObjInstr, targetOpnd, Js::CallFlags_New);
 
-    InsertCompareBranch(
+    IR::BranchInstr* branchInstr = InsertCompareBranch(
         IR::IndirOpnd::New(resultObjOpnd, 0, TyMachPtr, func),
         LoadVTableValueOpnd(insertInstr, VTableValue::VtableJavascriptArray),
         Js::OpCode::BrEq_A,
         true,
         labelDone,
         insertInstr);
+
+    InsertObjectPoison(resultObjOpnd, branchInstr, insertInstr, true);
     // We know we have a native array, so store the weak ref and call site index.
     InsertMove(
         IR::IndirOpnd::New(resultObjOpnd, Js::JavascriptNativeArray::GetOffsetOfArrayCallSiteIndex(), TyUint16, func),
@@ -7198,7 +7200,7 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
         IR::LabelInstr* labelCheckEquivalentType = IR::LabelInstr::New(Js::OpCode::Label, func, true);
         IR::BranchInstr* branchInstr = InsertCompareBranch(typeOpnd, expectedTypeOpnd, Js::OpCode::BrNeq_A, labelCheckEquivalentType, instrChk);
 
-        InsertObjectPoison(regOpnd, branchInstr, instrChk);
+        InsertObjectPoison(regOpnd, branchInstr, instrChk, false);
 
         IR::LabelInstr *labelTypeCheckSucceeded = IR::LabelInstr::New(Js::OpCode::Label, func, false);
         InsertBranch(Js::OpCode::Br, labelTypeCheckSucceeded, instrChk);
@@ -7249,7 +7251,7 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
     else
     {
         IR::BranchInstr* branchInstr = InsertCompareBranch(typeOpnd, expectedTypeOpnd, Js::OpCode::BrNeq_A, labelSecondChance != nullptr ? labelSecondChance : labelTypeCheckFailed, instrChk);
-        InsertObjectPoison(regOpnd, branchInstr, instrChk);
+        InsertObjectPoison(regOpnd, branchInstr, instrChk, false);
     }
 
     // Don't pin the type for polymorphic operations. The code can successfully execute even if this type is no longer referenced by any objects,
@@ -7265,10 +7267,10 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
 }
 
 void
-Lowerer::InsertObjectPoison(IR::Opnd* poisonedOpnd, IR::BranchInstr* branchInstr, IR::Instr* insertInstr)
+Lowerer::InsertObjectPoison(IR::Opnd* poisonedOpnd, IR::BranchInstr* branchInstr, IR::Instr* insertInstr, bool isForStore)
 {
 #ifndef _M_ARM
-    LowererMD::InsertObjectPoison(poisonedOpnd, branchInstr, insertInstr);
+    LowererMD::InsertObjectPoison(poisonedOpnd, branchInstr, insertInstr, isForStore);
 #endif
 }
 
@@ -7627,7 +7629,7 @@ Lowerer::GeneratePropertyGuardCheck(IR::Instr *insertPointInstr, IR::PropertySym
         IR::MemRefOpnd* guardOpnd = IR::MemRefOpnd::New(guard, TyMachPtr, this->m_func, IR::AddrOpndKindDynamicGuardValueRef);
         IR::BranchInstr *branchInstr = InsertCompareBranch(guardOpnd, zeroOpnd, Js::OpCode::BrEq_A, labelBailOut, insertPointInstr);
         IR::RegOpnd *objPtrReg = IR::RegOpnd::New(propertySymOpnd->GetObjectSym(), TyMachPtr, m_func);
-        InsertObjectPoison(objPtrReg, branchInstr, insertPointInstr);
+        InsertObjectPoison(objPtrReg, branchInstr, insertPointInstr, false);
     }
     else
     {
@@ -8341,7 +8343,7 @@ Lowerer::LowerAddLeftDeadForString(IR::Instr *instr)
         labelHelper,
         insertBeforeInstr);
 
-    InsertObjectPoison(opndLeft->AsRegOpnd(), branchInstr, insertBeforeInstr);
+    InsertObjectPoison(opndLeft->AsRegOpnd(), branchInstr, insertBeforeInstr, false);
 
     GenerateStringTest(opndRight->AsRegOpnd(), insertBeforeInstr, labelHelper);
 
@@ -13842,7 +13844,7 @@ void Lowerer::GenerateObjectTypeTest(IR::RegOpnd *srcReg, IR::Instr *instrInsert
         labelHelper,
         instrInsert);
 
-    InsertObjectPoison(srcReg, branchInstr, instrInsert);
+    InsertObjectPoison(srcReg, branchInstr, instrInsert, false);
 }
 
 const VTableValue Lowerer::VtableAddresses[static_cast<ValueType::TSize>(ObjectType::Count)] =
@@ -14339,10 +14341,7 @@ IR::RegOpnd *Lowerer::GenerateArrayTest(
             goodArrayLabel,
             insertBeforeInstr);
 
-        if (!isStore)
-        {
-            InsertObjectPoison(arrayOpnd, branchInstr, insertBeforeInstr);
-        }
+        InsertObjectPoison(arrayOpnd, branchInstr, insertBeforeInstr, isStore);
 
         IR::LabelInstr *notFloatArrayLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
         insertBeforeInstr->InsertBefore(notFloatArrayLabel);
@@ -14366,10 +14365,7 @@ IR::RegOpnd *Lowerer::GenerateArrayTest(
             isNotArrayLabel,
             insertBeforeInstr);
 
-        if (!isStore)
-        {
-            InsertObjectPoison(arrayOpnd, branchInstr, insertBeforeInstr);
-        }
+        InsertObjectPoison(arrayOpnd, branchInstr, insertBeforeInstr, isStore);
 
         m_lowererMD.LoadHelperArgument(insertBeforeInstr, arrayOpnd);
 
@@ -14404,10 +14400,7 @@ IR::RegOpnd *Lowerer::GenerateArrayTest(
                 isNotArrayLabel,
                 insertBeforeInstr);
 
-            if (!isStore)
-            {
-                InsertObjectPoison(arrayOpnd, branchInstr, insertBeforeInstr);
-            }
+            InsertObjectPoison(arrayOpnd, branchInstr, insertBeforeInstr, isStore);
             insertBeforeInstr->InsertBefore(goodArrayLabel);
         }
         else
@@ -14419,10 +14412,7 @@ IR::RegOpnd *Lowerer::GenerateArrayTest(
                 isNotArrayLabel,
                 insertBeforeInstr);
 
-            if (!isStore)
-            {
-                InsertObjectPoison(arrayOpnd, branchInstr, insertBeforeInstr);
-            }
+            InsertObjectPoison(arrayOpnd, branchInstr, insertBeforeInstr, isStore);
         }
 
     }
@@ -15261,10 +15251,7 @@ Lowerer::GenerateFastElemIStringIndexCommon(IR::Instr * instrInsert, bool isStor
         LoadVTableValueOpnd(instrInsert, VTableValue::VtablePropertyString),
         Js::OpCode::BrNeq_A, notPropStrLabel, instrInsert);
 
-    if (!isStore)
-    {
-        InsertObjectPoison(indexOpnd, branchInstr, instrInsert);
-    }
+    InsertObjectPoison(indexOpnd, branchInstr, instrInsert, isStore);
 
     InsertBranch(Js::OpCode::Br, propStrLoadedLabel, instrInsert);
 
@@ -15275,10 +15262,7 @@ Lowerer::GenerateFastElemIStringIndexCommon(IR::Instr * instrInsert, bool isStor
         LoadVTableValueOpnd(instrInsert, VTableValue::VtableLiteralStringWithPropertyStringPtr),
         Js::OpCode::BrNeq_A, labelHelper, instrInsert);
 
-    if (!isStore)
-    {
-        InsertObjectPoison(indexOpnd, branchInstr, instrInsert);
-    }
+    InsertObjectPoison(indexOpnd, branchInstr, instrInsert, isStore);
 
     IR::IndirOpnd * propStrOpnd = IR::IndirOpnd::New(indexOpnd, Js::LiteralStringWithPropertyStringPtr::GetOffsetOfPropertyString(), TyMachPtr, m_func);
     InsertCompareBranch(propStrOpnd, IR::IntConstOpnd::New(NULL, TyMachPtr, m_func), Js::OpCode::BrNeq_A, labelHelper, instrInsert);
@@ -15507,7 +15491,8 @@ Lowerer::GenerateFastElemIIntIndexCommon(
             if(arrayRegOpnd->HeadSegmentLengthSym())
             {
                 headSegmentLengthOpnd = IR::RegOpnd::New(arrayRegOpnd->HeadSegmentLengthSym(), TyUint32, m_func);
-                DebugOnly(headSegmentLengthOpnd->AsRegOpnd()->FreezeSymValue());
+                // This value can change over the course of this function
+                //DebugOnly(headSegmentLengthOpnd->AsRegOpnd()->FreezeSymValue());
                 autoReuseHeadSegmentLengthOpnd.Initialize(headSegmentLengthOpnd, m_func);
             }
             if (arrayRegOpnd->EliminatedLowerBoundCheck())
@@ -15639,6 +15624,8 @@ Lowerer::GenerateFastElemIIntIndexCommon(
     const bool needBailOutToHelper = !!(bailOutKind & (IR::BailOutOnArrayAccessHelperCall));
     const bool needBailOutOnSegmentLengthCompare = needBailOutToHelper || needBailOutOnInvalidLength;
 
+    bool usingSegmentLengthIncreasedLabel = false;
+
     if(indexIsLessThanHeadSegmentLength || needBailOutOnSegmentLengthCompare)
     {
         if (needBailOutOnSegmentLengthCompare)
@@ -15716,6 +15703,7 @@ Lowerer::GenerateFastElemIIntIndexCommon(
     else if (isStore && !baseValueType.IsLikelyTypedArray()) //  #if (opcode == StElemI_A)
     {
         IR::LabelInstr *labelDone = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+        LABELNAME(labelDone);
         IR::LabelInstr *labelSegmentLengthIncreased = nullptr;
 
         const bool isPush = instr->m_opcode != Js::OpCode::StElemI_A && instr->m_opcode != Js::OpCode::StElemI_A_Strict;
@@ -15739,7 +15727,11 @@ Lowerer::GenerateFastElemIIntIndexCommon(
                 // for the case where the length was increased (index >= length), and pass it back to GenerateFastStElemI, which
                 // will fill in the rest.
                 labelSegmentLengthIncreased = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, isInHelperBlock);
+                LABELNAME(labelSegmentLengthIncreased);
                 *pLabelSegmentLengthIncreased = labelSegmentLengthIncreased;
+
+                // Since this is effectively a separate exit point, we need to do the spectre mitigations in this place as well.
+                usingSegmentLengthIncreasedLabel = true;
             }
             else
             {
@@ -15788,16 +15780,24 @@ Lowerer::GenerateFastElemIIntIndexCommon(
                     //     jae  $helper
                     //     and  [array + offsetOf(objectArrayOrFlags)], ~Js::DynamicObjectFlags::HasNoMissingValues
                     // indexLessThanSize:
+                    //     if(!index->IsConstOpnd()) {
+                    //       sub  temp, index, [headSegment + offset(size)]
+                    //       sar  temp, 31
+                    //       and  index, temp
+                    //     }
 
                     IR::LabelInstr *const indexGreaterThanLengthLabel = InsertLabel(true /* isHelper */, instr);
+                    LABELNAME(indexGreaterThanLengthLabel);
                     IR::LabelInstr *const indexLessThanSizeLabel = InsertLabel(isInHelperBlock, instr);
+                    LABELNAME(indexLessThanSizeLabel);
 
                     //     jne  indexGreaterThanLength // branch for (cmp index, headSegmentLength)
+                    InsertBranch(Js::OpCode::BrNeq_A, indexGreaterThanLengthLabel, indexGreaterThanLengthLabel);
+
                     //     cmp  index, [headSegment + offset(size)]
                     //     jae  $helper
                     //     jmp  indexLessThanSize
                     // indexGreaterThanLength:
-                    InsertBranch(Js::OpCode::BrNeq_A, indexGreaterThanLengthLabel, indexGreaterThanLengthLabel);
                     InsertCompareBranch(
                         indexValueOpnd,
                         IR::IndirOpnd::New(headSegmentOpnd, offsetof(Js::SparseArraySegmentBase, size), TyUint32, m_func),
@@ -15805,6 +15805,7 @@ Lowerer::GenerateFastElemIIntIndexCommon(
                         true /* isUnsigned */,
                         labelHelper,
                         indexGreaterThanLengthLabel);
+
                     InsertBranch(Js::OpCode::Br, indexLessThanSizeLabel, indexGreaterThanLengthLabel);
 
                     // indexGreaterThanLength:
@@ -15819,6 +15820,7 @@ Lowerer::GenerateFastElemIIntIndexCommon(
                         true /* isUnsigned */,
                         labelHelper,
                         indexLessThanSizeLabel);
+
                     CompileAssert(
                         static_cast<Js::DynamicObjectFlags>(static_cast<uint8>(Js::DynamicObjectFlags::HasNoMissingValues)) ==
                         Js::DynamicObjectFlags::HasNoMissingValues);
@@ -15832,7 +15834,36 @@ Lowerer::GenerateFastElemIIntIndexCommon(
                             true),
                         indexLessThanSizeLabel);
 
+                    // In speculative cases, we want to avoid a write to an array setting the length to something huge, which
+                    // would then allow subsequent reads to hit arbitrary memory (in the speculative path). This is done with
+                    // a mask generated from the difference between the index and the size. Since we should have already gone
+                    // to the helper in any case where this would execute, it's a functional no-op.
+
                     // indexLessThanSize:
+                    //     if(!index->IsConstOpnd()) {
+                    //       sub  temp, index, [headSegment + offset(size)]
+                    //       sar  temp, 31
+                    //       and  index, temp
+                    //     }
+                    if (!indexValueOpnd->IsConstOpnd()
+                        && (baseValueType.IsLikelyTypedArray()
+                            ? CONFIG_FLAG_RELEASE(PoisonTypedArrayStore)
+                            : ((indirType == TyVar && CONFIG_FLAG_RELEASE(PoisonVarArrayStore))
+                                || (IRType_IsNativeInt(indirType) && CONFIG_FLAG_RELEASE(PoisonIntArrayStore))
+                                || (IRType_IsFloat(indirType) && CONFIG_FLAG_RELEASE(PoisonFloatArrayStore)))
+                            )
+                        )
+                    {
+                        IR::RegOpnd* temp = IR::RegOpnd::New(TyUint32, m_func);
+                        InsertSub(
+                            false,
+                            temp,
+                            indexValueOpnd,
+                            IR::IndirOpnd::New(headSegmentOpnd, offsetof(Js::SparseArraySegmentBase, size), TyUint32, m_func),
+                            instr);
+                        InsertShift(Js::OpCode::Shr_A, false, temp, temp, IR::IntConstOpnd::New(31, TyInt8, m_func), instr);
+                        InsertAnd(indexValueOpnd, indexValueOpnd, temp, instr);
+                    }
                     break;
                 }
             }
@@ -15846,6 +15877,7 @@ Lowerer::GenerateFastElemIIntIndexCommon(
         if(isPush)
         {
             IR::LabelInstr *const updateLengthLabel = InsertLabel(isInHelperBlock, instr);
+            LABELNAME(updateLengthLabel);
 
             if(!doUpperBoundCheck && !headSegmentLengthOpnd)
             {
@@ -15922,6 +15954,12 @@ Lowerer::GenerateFastElemIIntIndexCommon(
         indirOpnd = IR::IndirOpnd::New(headSegmentOpnd, offsetof(Js::SparseArraySegmentBase, length), TyUint32, this->m_func);
         InsertMove(indirOpnd, newLengthOpnd, instr);
 
+        // We've changed the head segment length, so we may need to change the head segment length opnd
+        if (headSegmentLengthOpnd != nullptr && !headSegmentLengthOpnd->IsIndirOpnd())
+        {
+            InsertMove(headSegmentLengthOpnd, newLengthOpnd, instr);
+        }
+
         if (checkArrayLengthOverflow)
         {
             //      CMP newLength, [base + offset(length)]
@@ -15961,6 +15999,7 @@ Lowerer::GenerateFastElemIIntIndexCommon(
             InsertMove(instr->GetDst(), newLengthOpnd, instr);
         }
 
+        // Calling code assumes that indirOpnd is initialized before labelSegmentLengthIncreased is reached
         if(labelSegmentLengthIncreased && labelSegmentLengthIncreased != labelDone)
         {
             // labelSegmentLengthIncreased:
@@ -15977,6 +16016,7 @@ Lowerer::GenerateFastElemIIntIndexCommon(
             if (*pIsTypedArrayElement && isStore)
             {
                 IR::LabelInstr *labelInlineSet = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+                LABELNAME(labelInlineSet);
 
                 //For positive index beyond length or negative index its essentially nop for typed array store
                 InsertBranch(
@@ -15990,6 +16030,7 @@ Lowerer::GenerateFastElemIIntIndexCommon(
                 {
                     // Enter an ophelper block
                     IR::LabelInstr * opHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
+                    LABELNAME(opHelper);
                     instr->InsertBefore(opHelper);
 
                     IR::Instr *toNumberInstr = IR::Instr::New(Js::OpCode::Call, this->m_func);
@@ -16093,6 +16134,12 @@ Lowerer::GenerateFastElemIIntIndexCommon(
             IR::IndirOpnd *lengthIndirOpnd = IR::IndirOpnd::New(headSegmentOpnd, offsetof(Js::SparseArraySegmentBase, length), TyUint32, this->m_func);
             InsertMove(lengthIndirOpnd, newLengthOpnd, instr);
 
+            // We've changed the head segment length, so we may need to change the head segment length opnd
+            if (headSegmentLengthOpnd != nullptr && !headSegmentLengthOpnd->IsIndirOpnd())
+            {
+                InsertMove(headSegmentLengthOpnd, newLengthOpnd, instr);
+            }
+
             //      MOV [base + offset(length)], newLength
             lengthIndirOpnd = IR::IndirOpnd::New(arrayOpnd, Js::JavascriptArray::GetOffsetOfLength(), TyUint32, this->m_func);
             InsertMove(lengthIndirOpnd, newLengthOpnd, instr);
@@ -16108,12 +16155,40 @@ Lowerer::GenerateFastElemIIntIndexCommon(
         }
     } // #endif
 
+    // Should we poison the load of the address to/from which the store/load happens?
     bool shouldPoisonLoad = maskOpnd != nullptr
-        && (baseValueType.IsLikelyTypedArray()
-            ? CONFIG_FLAG_RELEASE(PoisonTypedArrayLoad)
-            : ((indirType == TyVar && CONFIG_FLAG_RELEASE(PoisonVarArrayLoad))
-                || (IRType_IsNativeInt(indirType) && CONFIG_FLAG_RELEASE(PoisonIntArrayLoad))
-                || (IRType_IsFloat(indirType) && CONFIG_FLAG_RELEASE(PoisonFloatArrayLoad))));
+        && (
+            (!isStore &&
+                (baseValueType.IsLikelyTypedArray()
+                    ? CONFIG_FLAG_RELEASE(PoisonTypedArrayLoad)
+                    : ((indirType == TyVar && CONFIG_FLAG_RELEASE(PoisonVarArrayLoad))
+                    || (IRType_IsNativeInt(indirType) && CONFIG_FLAG_RELEASE(PoisonIntArrayLoad))
+                    || (IRType_IsFloat(indirType) && CONFIG_FLAG_RELEASE(PoisonFloatArrayLoad)))
+                    )
+                )
+            ||
+            (isStore &&
+                (baseValueType.IsLikelyTypedArray()
+                    ? CONFIG_FLAG_RELEASE(PoisonTypedArrayStore)
+                    : ((indirType == TyVar && CONFIG_FLAG_RELEASE(PoisonVarArrayStore))
+                    || (IRType_IsNativeInt(indirType) && CONFIG_FLAG_RELEASE(PoisonIntArrayStore))
+                    || (IRType_IsFloat(indirType) && CONFIG_FLAG_RELEASE(PoisonFloatArrayStore)))
+                    )
+                )
+            )
+        ;
+
+    // We have two exit paths for this function in the store case when we might grow the head
+    // segment, due to tracking for missing elements. This unfortunately means that we need a
+    // copy of the poisoning code on the other exit path, since the determination of the path
+    // and the use of the path determination to decide whether we found the missing value are
+    // things that have to happen on opposite sides of the poisoning.
+    IR::Instr* insertForSegmentLengthIncreased = nullptr;
+    if (shouldPoisonLoad && usingSegmentLengthIncreasedLabel)
+    {
+        insertForSegmentLengthIncreased = (*pLabelSegmentLengthIncreased)->m_next;
+    }
+
 #if TARGET_32
     if (shouldPoisonLoad)
     {
@@ -16126,6 +16201,10 @@ Lowerer::GenerateFastElemIIntIndexCommon(
         {
             IR::RegOpnd* newIndexValueOpnd = IR::RegOpnd::New(TyUint32, m_func);
             InsertAnd(newIndexValueOpnd, indexValueOpnd, IR::IntConstOpnd::New(INT32_MAX, TyUint32, m_func), instr);
+            if(insertForSegmentLengthIncreased != nullptr)
+            {
+                InsertAnd(newIndexValueOpnd, indexValueOpnd, IR::IntConstOpnd::New(INT32_MAX, TyUint32, m_func), insertForSegmentLengthIncreased);
+            }
             indexValueOpnd = newIndexValueOpnd;
         }
     }
@@ -16141,7 +16220,12 @@ Lowerer::GenerateFastElemIIntIndexCommon(
             indirOpnd = IR::IndirOpnd::New(arrayOpnd, bufferOffset, TyMachPtr, this->m_func);
             headSegmentOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
             autoReuseHeadSegmentOpnd.Initialize(headSegmentOpnd, m_func);
+            IR::AutoReuseOpnd reuseIndir(indirOpnd, m_func);
             InsertMove(headSegmentOpnd, indirOpnd, instr);
+            if(insertForSegmentLengthIncreased != nullptr)
+            {
+                InsertMove(headSegmentOpnd, indirOpnd, insertForSegmentLengthIncreased);
+            }
         }
 
         //  indirOpnd = [headSegment + index]
@@ -16182,7 +16266,7 @@ Lowerer::GenerateFastElemIIntIndexCommon(
             if (baseValueType.IsLikelyTypedArray())
             {
                 int lengthOffset;
-                lengthOffset = Js::Float64Array::GetOffsetOfLength();
+                lengthOffset = GetArrayOffsetOfHeadSegment(baseValueType);
                 headSegmentLengthOpnd = IR::IndirOpnd::New(arrayOpnd, lengthOffset, TyUint32, m_func);
                 autoReuseHeadSegmentLengthOpnd.Initialize(headSegmentLengthOpnd, m_func);
             }
@@ -16209,6 +16293,12 @@ Lowerer::GenerateFastElemIIntIndexCommon(
             IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV_TRUNC, lengthOpnd, headSegmentLengthOpnd, m_func);
             instr->InsertBefore(instrMov);
             LowererMD::Legalize(instrMov);
+            if (insertForSegmentLengthIncreased != nullptr)
+            {
+                IR::Instr * instrMov2 = IR::Instr::New(Js::OpCode::MOV_TRUNC, lengthOpnd, headSegmentLengthOpnd, m_func);
+                insertForSegmentLengthIncreased->InsertBefore(instrMov2);
+                LowererMD::Legalize(instrMov2);
+            }
 
             if (lengthOpnd->GetSize() != MachPtr)
             {
@@ -16224,6 +16314,13 @@ Lowerer::GenerateFastElemIIntIndexCommon(
         instr->InsertBefore(instrMov);
         LowererMD::Legalize(instrMov);
 
+        if (insertForSegmentLengthIncreased != nullptr)
+        {
+            IR::Instr * instrMov2 = IR::Instr::New(Js::OpCode::MOV_TRUNC, indexValueRegOpnd, indexValueOpnd, m_func);
+            insertForSegmentLengthIncreased->InsertBefore(instrMov2);
+            LowererMD::Legalize(instrMov2);
+        }
+
         if (indexValueRegOpnd->GetSize() != MachPtr)
         {
             indexValueRegOpnd = indexValueRegOpnd->UseWithNewType(TyMachPtr, this->m_func)->AsRegOpnd();
@@ -16232,13 +16329,23 @@ Lowerer::GenerateFastElemIIntIndexCommon(
         localMaskOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
         InsertSub(false, localMaskOpnd, indexValueRegOpnd, lengthOpnd, instr);
         InsertShift(Js::OpCode::Shr_A, false, localMaskOpnd, localMaskOpnd, IR::IntConstOpnd::New(63, TyInt8, m_func), instr);
+        if (insertForSegmentLengthIncreased != nullptr)
+        {
+            InsertSub(false, localMaskOpnd, indexValueRegOpnd, lengthOpnd, insertForSegmentLengthIncreased);
+            InsertShift(Js::OpCode::Shr_A, false, localMaskOpnd, localMaskOpnd, IR::IntConstOpnd::New(63, TyInt8, m_func), insertForSegmentLengthIncreased);
+        }
 #else
         localMaskOpnd = IR::RegOpnd::New(TyInt32, m_func);
         InsertSub(false, localMaskOpnd, indexValueOpnd, headSegmentLengthOpnd, instr);
         InsertShift(Js::OpCode::Shr_A, false, localMaskOpnd, localMaskOpnd, IR::IntConstOpnd::New(31, TyInt8, m_func), instr);
+        if (insertForSegmentLengthIncreased != nullptr)
+        {
+            InsertSub(false, localMaskOpnd, indexValueOpnd, headSegmentLengthOpnd, insertForSegmentLengthIncreased);
+            InsertShift(Js::OpCode::Shr_A, false, localMaskOpnd, localMaskOpnd, IR::IntConstOpnd::New(31, TyInt8, m_func), insertForSegmentLengthIncreased);
+        }
 #endif
 
-        if (IRType_IsNativeInt(indirType) || indirType == TyVar)
+        if ((IRType_IsNativeInt(indirType) || indirType == TyVar) && !isStore)
         {
             *maskOpnd = localMaskOpnd;
         }
@@ -16254,6 +16361,10 @@ Lowerer::GenerateFastElemIIntIndexCommon(
                 IR::RegOpnd* fullIndexOpnd = IR::RegOpnd::New(indirOpnd->GetIndexOpnd()->GetType(), m_func);
                 InsertShift(Js::OpCode::Shl_A, false, fullIndexOpnd, indirOpnd->GetIndexOpnd(), IR::IntConstOpnd::New(indirOpnd->GetScale(), TyInt8, m_func), instr);
                 IR::IndirOpnd* newIndir = IR::IndirOpnd::New(indirOpnd->GetBaseOpnd(), fullIndexOpnd, indirType, m_func);
+                if (insertForSegmentLengthIncreased != nullptr)
+                {
+                    InsertShift(Js::OpCode::Shl_A, false, fullIndexOpnd, indirOpnd->GetIndexOpnd(), IR::IntConstOpnd::New(indirOpnd->GetScale(), TyInt8, m_func), insertForSegmentLengthIncreased);
+                }
                 if (indirOpnd->GetOffset() != 0)
                 {
                     newIndir->SetOffset(indirOpnd->GetOffset());
@@ -16261,9 +16372,22 @@ Lowerer::GenerateFastElemIIntIndexCommon(
                 indirOpnd = newIndir;
             }
 #endif
+            IR::AutoReuseOpnd reuseIndir(indirOpnd, m_func);
 
             InsertLea(loadAddr, indirOpnd, instr);
             InsertAnd(loadAddr, loadAddr, localMaskOpnd, instr);
+            if (insertForSegmentLengthIncreased != nullptr)
+            {
+                InsertLea(loadAddr, indirOpnd, insertForSegmentLengthIncreased);
+                InsertAnd(loadAddr, loadAddr, localMaskOpnd, insertForSegmentLengthIncreased);
+
+                // We want to export a segmentLengthIncreasedLabel to the caller that is after the poisoning
+                // code, since that's also the code that generates indirOpnd in this case.
+                IR::LabelInstr* exportedSegmentLengthIncreasedLabel = IR::LabelInstr::New(Js::OpCode::Label, insertForSegmentLengthIncreased->m_func, (*pLabelSegmentLengthIncreased)->isOpHelper);
+                LABELNAME(exportedSegmentLengthIncreasedLabel);
+                insertForSegmentLengthIncreased->InsertBefore(exportedSegmentLengthIncreasedLabel);
+                *pLabelSegmentLengthIncreased = exportedSegmentLengthIncreasedLabel;
+            }
             indirOpnd = IR::IndirOpnd::New(loadAddr, 0, indirType, m_func);
         }
     }
@@ -16999,7 +17123,7 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
     //  TEST index, 1                       -- index tagged int
     //  JEQ $helper
     //  MOV r2, index
-    //  SAR r2, Js::VarTag_Shift            -- remote atom tag
+    //  SAR r2, Js::VarTag_Shift            -- remove atom tag
     //  JS $helper                          -- exclude negative index
     //  MOV r4, [base + offset(head)]
     //  CMP r2, [r4 + offset(length)]       -- bounds check
@@ -17043,6 +17167,7 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
     }
 
     bool isTypedArrayElement, isStringIndex, indirOpndOverflowed = false;
+    IR::Opnd* maskOpnd = nullptr;
     indirOpnd =
         GenerateFastElemICommon(
             stElem,
@@ -17054,7 +17179,7 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
             &isTypedArrayElement,
             &isStringIndex,
             &emitBailout,
-            nullptr,
+            &maskOpnd,
             &labelSegmentLengthIncreased,
             true,       /* checkArrayLengthOverflow */
             false,      /* forceGenerateFastPath */
@@ -17424,7 +17549,34 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
                     IR::Opnd *indexOpnd = indirOpnd->GetIndexOpnd();
                     if (indexOpnd == nullptr)
                     {
-                        indexOpnd = IR::IntConstOpnd::New(indirOpnd->GetOffset(), TyInt32, this->m_func);
+                        if (indirOpnd->GetOffset() == 0)
+                        {
+                            // There are two ways that we can get an indirOpnd with no index and 0 offset.
+                            // The first is that we're storing to element 0 in the array by constant offset.
+                            // The second is that we got a pointer back that has spectre masking, so it's going
+                            // to not have the appropriate index into the array. In that case, we need to regen
+                            // the index.
+                            // The plan is
+                            // 1. get the backing buffer pointer
+                            // 2. subtract that from the indexOpnd to get the numeric index
+                            // This is unfortunately slightly worse perf for constant writes of vars to index 0
+                            // of Uint8ClampedArrays, but that's hopefully uncommon enough that the impact will
+                            // be minimal
+
+                            //  MOV backingBufferOpnd, [base + offset(arrayBuffer)]
+                            //  SUB indexOpnd, backingBufferOpnd
+                            int bufferOffset = GetArrayOffsetOfHeadSegment(baseValueType);
+                            IR::IndirOpnd* arrayBufferOpnd = IR::IndirOpnd::New(stElem->GetDst()->AsIndirOpnd()->GetBaseOpnd(), bufferOffset, TyMachPtr, this->m_func);
+                            IR::RegOpnd* backingBufferOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+                            InsertMove(backingBufferOpnd, arrayBufferOpnd, instr);
+                            IR::RegOpnd* tempIndexOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+                            InsertSub(false, tempIndexOpnd, indirOpnd->GetBaseOpnd(), backingBufferOpnd, instr);
+                            indexOpnd = tempIndexOpnd->UseWithNewType(TyInt32, this->m_func);
+                        }
+                        else
+                        {
+                            indexOpnd = IR::IntConstOpnd::New(indirOpnd->GetOffset(), TyInt32, this->m_func);
+                        }
                     }
                     else
                     {
@@ -17557,6 +17709,9 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
         {
             IR::Instr *const insertBeforeInstr = labelSegmentLengthIncreased->m_next;
 
+            // We might be changing the array to have missing values here, or we might be
+            // changing it to extend it; in either case, we're not going to make it _not_
+            // have missing values after this operation, so just write and fallthrough.
             // labelSegmentLengthIncreased:
             //     mov  [segment + index], src
             //     jmp  $fallThru
@@ -23336,7 +23491,7 @@ Lowerer::GenerateLdHomeObj(IR::Instr* instr)
     IR::BranchInstr* branchInstr = InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddressOpnd,
         Js::OpCode::BrEq_A, true, labelDone, instr);
 
-    InsertObjectPoison(instanceRegOpnd, branchInstr, instr);
+    InsertObjectPoison(instanceRegOpnd, branchInstr, instr, false);
 
     IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::ScriptFunction::GetOffsetOfHomeObj(), TyMachPtr, func);
     Lowerer::InsertMove(instanceRegOpnd, indirOpnd, instr);
@@ -23511,7 +23666,7 @@ Lowerer::GenerateSetHomeObj(IR::Instr* instrInsert)
     IR::BranchInstr *branchInstr = InsertCompareBranch(IR::IndirOpnd::New(funcObjRegOpnd, 0, TyMachPtr, func), vtableAddressOpnd,
         Js::OpCode::BrNeq_A, true, labelScriptFunction, instrInsert);
 
-    InsertObjectPoison(funcObjRegOpnd, branchInstr, instrInsert);
+    InsertObjectPoison(funcObjRegOpnd, branchInstr, instrInsert, false);
 
     instrInsert->InsertBefore(labelForGeneratorScriptFunction);
 
@@ -23599,7 +23754,7 @@ Lowerer::GenerateGetCurrentFunctionObject(IR::Instr * instr)
     IR::LabelInstr * labelDone = IR::LabelInstr::New(Js::OpCode::Label, func, false);
     IR::BranchInstr *branchInstr = InsertCompareBranch(IR::IndirOpnd::New(functionObjectOpnd, 0, TyMachPtr, func), vtableAddressOpnd,
         Js::OpCode::BrNeq_A, true, labelDone, insertBeforeInstr);
-    InsertObjectPoison(functionObjectOpnd, branchInstr, insertBeforeInstr);
+    InsertObjectPoison(functionObjectOpnd, branchInstr, insertBeforeInstr, false);
     IR::RegOpnd * boxedFunctionObjectOpnd = IR::RegOpnd::New(TyMachPtr, func);
     InsertMove(boxedFunctionObjectOpnd, IR::IndirOpnd::New(functionObjectOpnd,
         Js::StackScriptFunction::GetOffsetOfBoxedScriptFunction(), TyMachPtr, func), insertBeforeInstr);
@@ -25569,7 +25724,7 @@ Lowerer::GenerateStringTest(IR::RegOpnd *srcReg, IR::Instr *insertInstr, IR::Lab
         {
             branchInstr = InsertCompareBranch(src1, src2, Js::OpCode::BrNeq_A, labelHelper, insertInstr);
         }
-        InsertObjectPoison(srcReg, branchInstr, insertInstr);
+        InsertObjectPoison(srcReg, branchInstr, insertInstr, false);
     }
 }
 

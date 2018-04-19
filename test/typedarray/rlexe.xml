@@ -301,6 +301,13 @@ Below test fails with difference in space. Investigate the cause and re-enable t
   </test>
   <test>
     <default>
+      <files>Uint8ClampedArray2.js</files>
+      <tags>typedarray</tags>
+      <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>setDifferentTypes.js</files>
       <baseline>setDifferentTypes.baseline</baseline>
       <tags>typedarray</tags>

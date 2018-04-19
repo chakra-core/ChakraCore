@@ -7149,7 +7149,7 @@ bool LowererMD::GenerateObjectTest(IR::Opnd * opndSrc, IR::Instr * insertInstr, 
         // JNE $labelHelper
         IR::BranchInstr* branchInstr = IR::BranchInstr::New(Js::OpCode::JNE, labelTarget, this->m_func);
         insertInstr->InsertBefore(branchInstr);
-        InsertObjectPoison(opndSrc, branchInstr, insertInstr);
+        InsertObjectPoison(opndSrc, branchInstr, insertInstr, false);
     }
     return true;
 }
@@ -9464,9 +9464,9 @@ LowererMD::LowerTypeof(IR::Instr * typeOfInstr)
 }
 
 void
-LowererMD::InsertObjectPoison(IR::Opnd* poisonedOpnd, IR::BranchInstr* branchInstr, IR::Instr* insertInstr)
+LowererMD::InsertObjectPoison(IR::Opnd* poisonedOpnd, IR::BranchInstr* branchInstr, IR::Instr* insertInstr, bool isForStore)
 {
-    if (CONFIG_FLAG_RELEASE(PoisonObjects))
+    if ((isForStore && CONFIG_FLAG_RELEASE(PoisonObjectsForStores)) || (!isForStore && CONFIG_FLAG_RELEASE(PoisonObjectsForLoads)))
     {
         Js::OpCode opcode;
         if (branchInstr->m_opcode == Js::OpCode::JNE)
@@ -9475,7 +9475,7 @@ LowererMD::InsertObjectPoison(IR::Opnd* poisonedOpnd, IR::BranchInstr* branchIns
         }
         else
         {
-            AssertOrFailFast(branchInstr->m_opcode == Js::OpCode::JEQ);
+            AssertOrFailFastMsg(branchInstr->m_opcode == Js::OpCode::JEQ, "Unexpected branch type in InsertObjectPoison preceeding instruction");
             opcode = Js::OpCode::CMOVE;
         }
         AssertOrFailFast(branchInstr->m_prev->m_opcode == Js::OpCode::CMP || branchInstr->m_prev->m_opcode == Js::OpCode::TEST);
