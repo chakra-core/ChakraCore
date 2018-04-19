@@ -64,7 +64,7 @@
 #define WASM_PREFIX_NUMERIC 0xfc
 #define WASM_PREFIX_THREADS 0xfe
 
-WASM_PREFIX(Numeric, WASM_PREFIX_NUMERIC, Wasm::NontrappingConversions::IsEnabled(), "WebAssembly nontrapping float-to-int conversion support is not enabled")
+WASM_PREFIX(Numeric, WASM_PREFIX_NUMERIC, Wasm::WasmNontrapping::IsEnabled(), "WebAssembly nontrapping float-to-int conversion support is not enabled")
 WASM_PREFIX(Threads, WASM_PREFIX_THREADS, Wasm::Threads::IsEnabled(), "WebAssembly Threads support is not enabled")
 #if ENABLE_DEBUG_CONFIG_OPTIONS
 // We won't even look at that prefix in release builds
@@ -305,7 +305,7 @@ WASM_UNARY__OPCODE(I64TruncU_F32,     0xaf, L_F , Conv_Check_FTUL, true, "i64.tr
 WASM_UNARY__OPCODE(I64TruncS_F64,     0xb0, L_D , Conv_Check_DTL , true, "i64.trunc_s/f64")
 WASM_UNARY__OPCODE(I64TruncU_F64,     0xb1, L_D , Conv_Check_DTUL, true, "i64.trunc_u/f64")
 
-#define __has_nontrapping (Wasm::NontrappingConversions::IsEnabled())
+#define __has_nontrapping (Wasm::WasmNontrapping::IsEnabled())
 #define __prefix (WASM_PREFIX_NUMERIC << 8)
 WASM_UNARY__OPCODE(I32SatTruncS_F32, __prefix | 0x00, I_F, Conv_Sat_FTI, __has_nontrapping, "i32.trunc_s:sat/f32")
 WASM_UNARY__OPCODE(I32SatTruncU_F32, __prefix | 0x01, I_F, Conv_Sat_FTU, __has_nontrapping, "i32.trunc_u:sat/f32")

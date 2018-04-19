@@ -1263,6 +1263,13 @@
   <test>
     <default>
       <files>spec.js</files>
+      <baseline>baselines/nontrapping_conversions.baseline</baseline>
+      <compile-flags>-wasm -args features/nontrapping/conversions.wast -endargs -WasmNontrapping</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
       <baseline>baselines/atomic_load.baseline</baseline>
       <compile-flags>-wasm -args features/threads/atomic_load.wast -endargs -WasmThreads -ESSharedArrayBuffer</compile-flags>
     </default>

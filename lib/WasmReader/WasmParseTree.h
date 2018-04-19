@@ -21,7 +21,7 @@ namespace Wasm
         bool IsEnabled();
     };
 
-    namespace NontrappingConversions
+    namespace WasmNontrapping
     {
         bool IsEnabled();
     };
