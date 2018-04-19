@@ -1304,8 +1304,6 @@ namespace Js
 #endif
 
         this->operationStack = Anew(GeneralAllocator(), JsUtil::Stack<Var>, GeneralAllocator());
-
-        Tick::InitType();
     }
 
     void ScriptContext::Initialize()
