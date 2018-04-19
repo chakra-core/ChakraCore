@@ -4722,11 +4722,17 @@ IR::Opnd* LowererMD::Subtract2To31(IR::Opnd* src1, IR::Opnd* intMinFP, IRType ty
     return adjSrc;
 }
 
-IR::Opnd* LowererMD::GenerateTruncChecks(IR::Instr* instr)
+template <bool Saturate>
+IR::Opnd*
+LowererMD::GenerateTruncChecks(_In_ IR::Instr* instr, _In_opt_ IR::LabelInstr* doneLabel)
 {
+    AnalysisAssert(!Saturate || doneLabel);
+
     IR::LabelInstr * conversion = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-    IR::LabelInstr * throwLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
+    IR::LabelInstr * nanLabel = Saturate ? IR::LabelInstr::New(Js::OpCode::Label, m_func, true) : nullptr;
+    IR::LabelInstr * oobLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
     IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* dst = instr->GetDst();
 
     IR::Opnd * src64 = nullptr;
     if (src1->IsFloat32())
@@ -4739,31 +4745,57 @@ IR::Opnd* LowererMD::GenerateTruncChecks(IR::Instr* instr)
         src64 = src1;
     }
 
-     IR::RegOpnd* limitReg = MaterializeDoubleConstFromInt(instr->GetDst()->IsUInt32() ?
+     IR::RegOpnd* limitReg = MaterializeDoubleConstFromInt(dst->IsUInt32() ?
         m_func->GetThreadContextInfo()->GetDoubleNegOneAddr() :
         m_func->GetThreadContextInfo()->GetDoubleIntMinMinusOneAddr(), instr);
 
-    m_lowerer->InsertCompareBranch(src64, limitReg, Js::OpCode::BrLe_A, throwLabel, instr);
+    m_lowerer->InsertCompareBranch(src64, limitReg, Js::OpCode::BrLe_A, oobLabel, instr);
 
-    limitReg = MaterializeDoubleConstFromInt(instr->GetDst()->IsUInt32() ?
+    limitReg = MaterializeDoubleConstFromInt(dst->IsUInt32() ?
         m_func->GetThreadContextInfo()->GetDoubleUintMaxPlusOneAddr() :
         m_func->GetThreadContextInfo()->GetDoubleIntMaxPlusOneAddr(), instr);
 
     m_lowerer->InsertCompareBranch(limitReg, src64, Js::OpCode::BrGt_A, conversion, instr, true /*no NaN check*/);
-    instr->InsertBefore(throwLabel);
-    this->m_lowerer->GenerateThrow(IR::IntConstOpnd::New(SCODE_CODE(VBSERR_Overflow), TyInt32, m_func), instr);
-    //no jump here we aren't coming back
+
+    instr->InsertBefore(oobLabel);
+    if (Saturate)
+    {
+        IR::LabelInstr * tooBigLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
+        IR::RegOpnd* zeroReg = IR::RegOpnd::New(TyFloat64, m_func);
+        LoadFloatZero(zeroReg, instr);
+
+        m_lowerer->InsertCompareBranch(src64, zeroReg, Js::OpCode::BrGt_A, tooBigLabel, instr, true /*no NaN check*/);
+        instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JP, nanLabel, m_func));
+
+        m_lowerer->InsertMove(dst, IR::IntConstOpnd::New(dst->IsUnsigned() ? 0 : INT32_MIN, dst->GetType(), m_func), instr);
+        m_lowerer->InsertBranch(Js::OpCode::Br, doneLabel, instr);
+
+        instr->InsertBefore(tooBigLabel);
+        m_lowerer->InsertMove(dst, IR::IntConstOpnd::New(dst->IsUnsigned() ? UINT32_MAX : INT32_MAX, dst->GetType(), m_func), instr);
+        m_lowerer->InsertBranch(Js::OpCode::Br, doneLabel, instr);
+
+        instr->InsertBefore(nanLabel);
+        m_lowerer->InsertMove(dst, IR::IntConstOpnd::New(0, dst->GetType(), m_func), instr);
+        m_lowerer->InsertBranch(Js::OpCode::Br, doneLabel, instr);
+    }
+    else
+    {
+        m_lowerer->GenerateThrow(IR::IntConstOpnd::New(SCODE_CODE(VBSERR_Overflow), TyInt32, m_func), instr);
+        //no jump here we aren't coming back
+    }
 
     instr->InsertBefore(conversion);
     return src64;
 }
 
+template <bool Saturate>
 void
-LowererMD::GenerateTruncWithCheck(IR::Instr * instr)
+LowererMD::GenerateTruncWithCheck(_In_ IR::Instr * instr)
 {
     Assert(AutoSystemInfo::Data.SSE2Available());
 
-    IR::Opnd* src64 = GenerateTruncChecks(instr); //converts src to double and checks if  MIN <= src <= MAX
+    IR::LabelInstr * doneLabel = Saturate ? IR::LabelInstr::New(Js::OpCode::Label, m_func) : nullptr;
+    IR::Opnd* src64 = GenerateTruncChecks<Saturate>(instr, doneLabel); //converts src to double and checks if  MIN <= src <= MAX
 
     IR::Opnd* dst = instr->GetDst();
 
@@ -4784,12 +4816,17 @@ LowererMD::GenerateTruncWithCheck(IR::Instr * instr)
     {
         instr->InsertBefore(IR::Instr::New(Js::OpCode::CVTTSD2SI, dst, src64, m_func));
     }
-
+    if (Saturate)
+    {
+        instr->InsertBefore(doneLabel);
+    }
     instr->UnlinkSrc1();
     instr->UnlinkDst();
     instr->Remove();
 }
 
+template void LowererMD::GenerateTruncWithCheck<false>(_In_ IR::Instr * instr);
+template void LowererMD::GenerateTruncWithCheck<true>(_In_ IR::Instr * instr);
 
 void
 LowererMD::GenerateCtz(IR::Instr * instr)

@@ -923,6 +923,7 @@ FLAGR(Boolean, WasmExperimental, "Enable WebAssembly experimental features", DEF
 // Not having the DEFAULT_CONFIG_XXXX macro ensures we use CONFIG_FLAG_RELEASE instead of CONFIG_FLAG
 FLAGPR_EXPERIMENTAL_WASM(Boolean, WasmSignExtends , "Use new WebAssembly sign extension operators")
 FLAGPR_EXPERIMENTAL_WASM(Boolean, WasmSimd        , "Enable SIMD in WebAssembly")
+FLAGPR_EXPERIMENTAL_WASM(Boolean, NontrappingConversions, "Enable non-trapping float-to-int conversions in WebAssembly")
 
 FLAGNR(Boolean, AssertBreak           , "Debug break on assert", false)
 FLAGNR(Boolean, AssertPopUp           , "Pop up asserts (default: false)", false)

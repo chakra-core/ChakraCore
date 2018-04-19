@@ -21,6 +21,11 @@ namespace Wasm
         bool IsEnabled();
     };
 
+    namespace NontrappingConversions
+    {
+        bool IsEnabled();
+    };
+
     namespace WasmTypes
     {
         enum WasmType

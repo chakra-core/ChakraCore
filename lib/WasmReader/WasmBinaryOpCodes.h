@@ -60,9 +60,11 @@
 #define WASM_PREFIX(prefixname, op, imp, errorMsg)
 #endif
 
-#define WASM_PREFIX_THREADS 0xfe
 #define WASM_PREFIX_TRACING 0xf0
+#define WASM_PREFIX_NUMERIC 0xfc
+#define WASM_PREFIX_THREADS 0xfe
 
+WASM_PREFIX(Numeric, WASM_PREFIX_NUMERIC, Wasm::NontrappingConversions::IsEnabled(), "WebAssembly nontrapping float-to-int conversion support is not enabled")
 WASM_PREFIX(Threads, WASM_PREFIX_THREADS, Wasm::Threads::IsEnabled(), "WebAssembly Threads support is not enabled")
 #if ENABLE_DEBUG_CONFIG_OPTIONS
 // We won't even look at that prefix in release builds
@@ -303,6 +305,20 @@ WASM_UNARY__OPCODE(I64TruncU_F32,     0xaf, L_F , Conv_Check_FTUL, true, "i64.tr
 WASM_UNARY__OPCODE(I64TruncS_F64,     0xb0, L_D , Conv_Check_DTL , true, "i64.trunc_s/f64")
 WASM_UNARY__OPCODE(I64TruncU_F64,     0xb1, L_D , Conv_Check_DTUL, true, "i64.trunc_u/f64")
 
+#define __has_nontrapping (Wasm::NontrappingConversions::IsEnabled())
+#define __prefix (WASM_PREFIX_NUMERIC << 8)
+WASM_UNARY__OPCODE(I32SatTruncS_F32, __prefix | 0x00, I_F, Conv_Sat_FTI, __has_nontrapping, "i32.trunc_s:sat/f32")
+WASM_UNARY__OPCODE(I32SatTruncU_F32, __prefix | 0x01, I_F, Conv_Sat_FTU, __has_nontrapping, "i32.trunc_u:sat/f32")
+WASM_UNARY__OPCODE(I32SatTruncS_F64, __prefix | 0x02, I_D, Conv_Sat_DTI, __has_nontrapping, "i32.trunc_s:sat/f64")
+WASM_UNARY__OPCODE(I32SatTruncU_F64, __prefix | 0x03, I_D, Conv_Sat_DTU, __has_nontrapping, "i32.trunc_u:sat/f64")
+
+WASM_UNARY__OPCODE(I64SatTruncS_F32, __prefix | 0x04, L_F, Conv_Sat_FTL, __has_nontrapping, "i64.trunc_s:sat/f32")
+WASM_UNARY__OPCODE(I64SatTruncU_F32, __prefix | 0x05, L_F, Conv_Sat_FTUL, __has_nontrapping, "i64.trunc_u:sat/f32")
+WASM_UNARY__OPCODE(I64SatTruncS_F64, __prefix | 0x06, L_D, Conv_Sat_DTL, __has_nontrapping, "i64.trunc_s:sat/f64")
+WASM_UNARY__OPCODE(I64SatTruncU_F64, __prefix | 0x07, L_D, Conv_Sat_DTUL, __has_nontrapping, "i64.trunc_u:sat/f64")
+#undef __has_nontrapping
+#undef __prefix
+
 WASM_UNARY__OPCODE(F32SConvertI32,    0xb2, F_I , Fround_Int     , true, "f32.convert_s/i32")
 WASM_UNARY__OPCODE(F32UConvertI32,    0xb3, F_I , Conv_UTF       , true, "f32.convert_u/i32")
 WASM_UNARY__OPCODE(F32SConvertI64,    0xb4, F_L , Conv_LTF       , true, "f32.convert_s/i64")
@@ -417,6 +433,7 @@ WASM_UNARY__OPCODE(PrintF64         , __prefix | 0x0f, D_D , PrintF64         , 
 #endif
 
 #undef WASM_PREFIX_THREADS
+#undef WASM_PREFIX_NUMERIC
 #undef WASM_PREFIX_TRACING
 #undef WASM_PREFIX
 #undef WASM_OPCODE

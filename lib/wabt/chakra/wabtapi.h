@@ -72,6 +72,7 @@ namespace ChakraWabt
             bool sign_extends : 1;
             bool threads : 1;
             bool simd : 1;
+            bool sat_float_to_int : 1;
         } features;
     };
 

@@ -25,10 +25,39 @@ public:
     template <typename T> bool static LessThan(T aLeft, T aRight);
     template <typename T> bool static LessOrEqual(T aLeft, T aRight);
     template <typename T> using CmpPtr = bool(*)(T a, T b);
-    template <typename STYPE, typename UTYPE, UTYPE MAX, UTYPE NEG_ZERO, UTYPE NEG_ONE, CmpPtr<UTYPE> CMP1, CmpPtr<UTYPE> CMP2> static bool isInRange(STYPE srcVal);
-    template <typename STYPE> static bool isNaN(STYPE src);
+    template <
+        typename SourceType,
+        typename DstType,
+        typename ReinterpretType,
+        ReinterpretType Max,
+        ReinterpretType NegZero,
+        ReinterpretType NegOne,
+        CmpPtr<ReinterpretType> MaxCmp,
+        CmpPtr<ReinterpretType> NegOneCmp,
+        bool Saturate,
+        DstType MinResult,
+        DstType MaxResult>
+    static DstType ConvertFloatToInt(SourceType srcVal, _In_ Js::ScriptContext* scriptContext);
+    template <typename STYPE> static bool IsNaN(STYPE src);
 
     template<typename To, typename From> static To SignExtend(To value);
+
+    template <bool Saturate>
+    static int64 F32ToI64(float src, _In_ Js::ScriptContext* scriptContext);
+    template <bool Saturate>
+    static uint64 F32ToU64(float src, _In_ Js::ScriptContext* scriptContext);
+    template <bool Saturate>
+    static int64 F64ToI64(double src, _In_ Js::ScriptContext* scriptContext);
+    template <bool Saturate>
+    static uint64 F64ToU64(double src, _In_ Js::ScriptContext* scriptContext);
+    template <bool Saturate>
+    static int32 F32ToI32(float src, _In_ Js::ScriptContext* scriptContext);
+    template <bool Saturate>
+    static uint32 F32ToU32(float src, _In_ Js::ScriptContext* scriptContext);
+    template <bool Saturate>
+    static int32 F64ToI32(double src, _In_ Js::ScriptContext* scriptContext);
+    template <bool Saturate>
+    static uint32 F64ToU32(double src, _In_ Js::ScriptContext* scriptContext);
 };
 
 } //namespace Wasm

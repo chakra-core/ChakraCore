@@ -278,6 +278,7 @@ GlobOpt::CSEAddInstr(
         break;
 
     case Js::OpCode::Conv_Prim:
+    case Js::OpCode::Conv_Prim_Sat:
         exprAttributes = ConvAttributes(instr->GetDst()->IsUnsigned(), instr->GetSrc1()->IsUnsigned());
         break;
     }
@@ -534,6 +535,7 @@ GlobOpt::CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSr
             break;
 
         case Js::OpCode::Conv_Prim:
+        case Js::OpCode::Conv_Prim_Sat:
             exprAttributes = ConvAttributes(instr->GetDst()->IsUnsigned(), instr->GetSrc1()->IsUnsigned());
             break;
 

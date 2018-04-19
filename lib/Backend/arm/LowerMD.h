@@ -101,6 +101,7 @@ public:
             void            GenerateClz(IR::Instr * instr);
             void            GenerateCtz(IR::Instr * instr) { Assert(UNREACHED); }
             void            GeneratePopCnt(IR::Instr * instr) { Assert(UNREACHED); }
+            template <bool Saturate>
             void            GenerateTruncWithCheck(IR::Instr * instr) { Assert(UNREACHED); }
             void            GenerateFastDivByPow2(IR::Instr *instr);
             bool            GenerateFastAdd(IR::Instr * instrAdd);

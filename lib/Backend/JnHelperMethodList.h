@@ -547,12 +547,15 @@ HELPERCALL(DirectMath_NearestFlt, (float(*)(float)) Wasm::WasmMath::Nearest<floa
 HELPERCALL(PopCnt32, Math::PopCnt32, 0)
 HELPERCALL(PopCnt64, (int64(*)(int64)) Wasm::WasmMath::PopCnt<int64>, 0)
 
-#define CONVERSION_HELPER(HELPER_TYPE) HELPERCALL(HELPER_TYPE, Js::JavascriptConversion::##HELPER_TYPE, AttrCanThrow)
-CONVERSION_HELPER(F32TOI64)
-CONVERSION_HELPER(F32TOU64)
-CONVERSION_HELPER(F64TOI64)
-CONVERSION_HELPER(F64TOU64)
-#undef CONVERSION_HELPER
+HELPERCALL(F32ToI64, (int64(*)(float, Js::ScriptContext*)) Wasm::WasmMath::F32ToI64<false /* saturating */>, AttrCanThrow)
+HELPERCALL(F32ToU64, (uint64(*)(float, Js::ScriptContext*)) Wasm::WasmMath::F32ToU64<false /* saturating */>, AttrCanThrow)
+HELPERCALL(F64ToI64, (int64(*)(double, Js::ScriptContext*)) Wasm::WasmMath::F64ToI64<false /* saturating */>, AttrCanThrow)
+HELPERCALL(F64ToU64, (uint64(*)(double, Js::ScriptContext*)) Wasm::WasmMath::F64ToU64<false /* saturating */>, AttrCanThrow)
+
+HELPERCALL(F32ToI64Sat, (int64(*)(float, Js::ScriptContext*)) Wasm::WasmMath::F32ToI64<true /* saturating */>, AttrCanThrow)
+HELPERCALL(F32ToU64Sat, (uint64(*)(float, Js::ScriptContext*)) Wasm::WasmMath::F32ToU64<true /* saturating */>, AttrCanThrow)
+HELPERCALL(F64ToI64Sat, (int64(*)(double, Js::ScriptContext*)) Wasm::WasmMath::F64ToI64<true /* saturating */>, AttrCanThrow)
+HELPERCALL(F64ToU64Sat, (uint64(*)(double, Js::ScriptContext*)) Wasm::WasmMath::F64ToU64<true /* saturating */>, AttrCanThrow)
 
 HELPERCALL(I64TOF64,        Js::JavascriptConversion::LongToDouble,        0)
 HELPERCALL(UI64TOF64,       Js::JavascriptConversion::ULongToDouble,       0)

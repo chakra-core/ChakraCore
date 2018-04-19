@@ -31,7 +31,21 @@ bool IsEnabled()
 #endif
 }
 }
+
+namespace NontrappingConversions
+{
+    bool IsEnabled()
+    {
+#ifdef ENABLE_WASM
+        return CONFIG_FLAG_RELEASE(NontrappingConversions);
+#else
+        return false;
+#endif
+    }
 }
+
+}
+
 
 #ifdef ENABLE_WASM
 

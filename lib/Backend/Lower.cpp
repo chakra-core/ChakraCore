@@ -1914,11 +1914,16 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 Assert(UNREACHED);
             }
             break;
+        case Js::OpCode::Conv_Prim_Sat:
+        {
+            GenerateTruncWithCheck<true /* Saturate */>(instr);
+            break;
+        }
         case Js::OpCode::Conv_Prim:
         {
             if (IR::Instr::FindSingleDefInstr(Js::OpCode::TrapIfTruncOverflow, instr->GetSrc1()))
             {
-                GenerateTruncWithCheck(instr);
+                GenerateTruncWithCheck<false /* Saturate */>(instr);
                 break;
             }
 
@@ -19789,13 +19794,14 @@ IR::RegOpnd * Lowerer::GetRegOpnd(IR::Opnd* opnd, IR::Instr* insertInstr, Func* 
     return regOpnd;
 }
 
-void Lowerer::GenerateTruncWithCheck(IR::Instr* instr)
+template <bool Saturate>
+void Lowerer::GenerateTruncWithCheck(_In_ IR::Instr* instr)
 {
 
     Assert(instr->GetSrc1()->IsFloat());
     if (instr->GetDst()->IsInt32() || instr->GetDst()->IsUInt32())
     {
-        m_lowererMD.GenerateTruncWithCheck(instr);
+        m_lowererMD.GenerateTruncWithCheck<Saturate>(instr);
     }
     else
     {
@@ -19810,8 +19816,17 @@ void Lowerer::GenerateTruncWithCheck(IR::Instr* instr)
         {
             m_lowererMD.LoadDoubleHelperArgument(instr, instr->GetSrc1());
         }
-        IR::JnHelperMethod helperList[2][2] = { IR::HelperF32TOI64, IR::HelperF32TOU64, IR::HelperF64TOI64 ,IR::HelperF64TOU64 };
-        IR::JnHelperMethod helper = helperList[instr->GetSrc1()->GetType() != TyFloat32][instr->GetDst()->GetType() == TyUint64];
+        IR::JnHelperMethod helper;
+        if (Saturate)
+        {
+            IR::JnHelperMethod helperList[2][2] = { IR::HelperF32ToI64Sat, IR::HelperF32ToU64Sat, IR::HelperF64ToI64Sat ,IR::HelperF64ToU64Sat };
+            helper = helperList[instr->GetSrc1()->GetType() != TyFloat32][instr->GetDst()->GetType() == TyUint64];
+        }
+        else
+        {
+            IR::JnHelperMethod helperList[2][2] = { IR::HelperF32ToI64, IR::HelperF32ToU64, IR::HelperF64ToI64 ,IR::HelperF64ToU64 };
+            helper = helperList[instr->GetSrc1()->GetType() != TyFloat32][instr->GetDst()->GetType() == TyUint64];
+        }
         instr->UnlinkSrc1();
         this->m_lowererMD.ChangeToHelperCall(instr, helper);
     }

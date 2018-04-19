@@ -13884,6 +13884,7 @@ swap_srcs:
     case Js::OpCode::TrapIfUnalignedAccess:
     case Js::OpCode::FromVar:
     case Js::OpCode::Conv_Prim:
+    case Js::OpCode::Conv_Prim_Sat:
     case Js::OpCode::LdC_A_I4:
     case Js::OpCode::LdStr:
     case Js::OpCode::InitFld:
