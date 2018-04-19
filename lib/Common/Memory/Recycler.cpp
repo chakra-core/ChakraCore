@@ -2915,7 +2915,7 @@ Recycler::EndMarkOnLowMemory()
             // The fail-fast is present for two reasons:
             // 1) Defense-in-depth for cases we hadn't thought about
             // 2) Deal with cases like -MaxMarkStackPageCount:1 which can still hang without the fail-fast
-            MarkStack_OOM_fatal_error();
+            MarkStack_OOM_unrecoverable_error();
         }
 
         autoHeap.Rescan(RescanFlags_None);

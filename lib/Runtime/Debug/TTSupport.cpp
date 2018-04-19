@@ -6,7 +6,7 @@
 
 #if ENABLE_TTD
 
-void TTDAbort_fatal_error(const char* msg)
+void TTDAbort_unrecoverable_error(const char* msg)
 {
     Output::Print(_u("TTD assert failed: %S\n"), msg);
 

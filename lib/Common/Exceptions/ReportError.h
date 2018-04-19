@@ -43,26 +43,26 @@ extern "C" void ReportFatalException(
 void JavascriptDispatch_OOM_fatal_error(
     __in ULONG_PTR context);
 
-void CustomHeap_BadPageState_fatal_error(
+void CustomHeap_BadPageState_unrecoverable_error(
     __in ULONG_PTR context);
 
-void Amd64StackWalkerOutOfContexts_fatal_error(
+void Amd64StackWalkerOutOfContexts_unrecoverable_error(
     __in ULONG_PTR context);
 
-void FailedToBox_OOM_fatal_error(
+void FailedToBox_OOM_unrecoverable_error(
     __in ULONG_PTR context);
 
 #if defined(RECYCLER_WRITE_BARRIER) && defined(TARGET_64)
-void X64WriteBarrier_OOM_fatal_error();
+void X64WriteBarrier_OOM_unrecoverable_error();
 #endif
 
 void DebugHeap_OOM_fatal_error();
 
-void MarkStack_OOM_fatal_error();
+void MarkStack_OOM_unrecoverable_error();
 
 void Binary_Inconsistency_fatal_error();
 void Version_Inconsistency_fatal_error();
-void EntryExitRecord_Corrupted_fatal_error();
+void EntryExitRecord_Corrupted_unrecoverable_error();
 void UnexpectedExceptionHandling_fatal_error();
 
 #ifdef LARGEHEAPBLOCK_ENCODING
@@ -70,10 +70,10 @@ void LargeHeapBlock_Metadata_Corrupted(
     __in ULONG_PTR context, __in unsigned char calculatedCheckSum);
 #endif
 
-void FromDOM_NoScriptScope_fatal_error();
-void Debugger_AttachDetach_fatal_error(HRESULT hr);
-void RpcFailure_fatal_error(HRESULT hr);
-void OutOfMemory_fatal_error();
+void FromDOM_NoScriptScope_unrecoverable_error();
+void Debugger_AttachDetach_unrecoverable_error(HRESULT hr);
+void RpcFailure_unrecoverable_error(HRESULT hr);
+void OutOfMemory_unrecoverable_error();
 
 #ifndef DISABLE_SEH
 // RtlReportException is available on Vista and up, but we cannot use it for OOB release.

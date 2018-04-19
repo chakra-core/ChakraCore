@@ -17,7 +17,7 @@ namespace Js
             if (kind == ExceptionKind_OutOfMemory &&
                 CONFIG_FLAG(EnableFatalErrorOnOOM) && !threadContext->TestThreadContextFlag(ThreadContextFlagDisableFatalOnOOM))
             {
-                OutOfMemory_fatal_error();
+                OutOfMemory_unrecoverable_error();
             }
 
             if (threadContext->IsScriptActive())

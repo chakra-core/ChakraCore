@@ -444,7 +444,7 @@
 #endif
 
 #if ENABLE_TTD
-#define TTDAssert(C, M) { if(!(C)) TTDAbort_fatal_error(M); }
+#define TTDAssert(C, M) { if(!(C)) TTDAbort_unrecoverable_error(M); }
 #else
 #define TTDAssert(C, M)
 #endif

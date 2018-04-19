@@ -2582,7 +2582,7 @@ HeapPageAllocator<T>::ProtectPages(__in char* address, size_t pageCount, __in vo
         || ((uint)(((char *)address) - segment->GetAddress()) > (segment->GetPageCount() - pageCount) * AutoSystemInfo::PageSize))
     {
         // OOPJIT TODO: don't bring down the whole JIT process
-        CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+        CustomHeap_BadPageState_unrecoverable_error((ULONG_PTR)this);
         return FALSE;
     }
 
@@ -2604,7 +2604,7 @@ HeapPageAllocator<T>::ProtectPages(__in char* address, size_t pageCount, __in vo
         || memBasicInfo.RegionSize < pageCount * AutoSystemInfo::PageSize
         || desiredOldProtectFlag != memBasicInfo.Protect)
     {
-        CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+        CustomHeap_BadPageState_unrecoverable_error((ULONG_PTR)this);
         return FALSE;
     }
 
@@ -2614,7 +2614,7 @@ HeapPageAllocator<T>::ProtectPages(__in char* address, size_t pageCount, __in vo
         (dwVirtualProtectFlags & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE)) &&
         ((dwVirtualProtectFlags & PAGE_TARGETS_NO_UPDATE) == 0))
     {
-        CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+        CustomHeap_BadPageState_unrecoverable_error((ULONG_PTR)this);
         return FALSE;
     }
 #endif
@@ -2636,7 +2636,7 @@ HeapPageAllocator<T>::ProtectPages(__in char* address, size_t pageCount, __in vo
     BOOL retVal = VirtualProtect(address, pageCount * AutoSystemInfo::PageSize, dwVirtualProtectFlags, &oldProtect);
     if (retVal == FALSE)
     {
-        CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+        CustomHeap_BadPageState_unrecoverable_error((ULONG_PTR)this);
     }
     else
     {

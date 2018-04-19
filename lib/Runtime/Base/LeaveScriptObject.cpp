@@ -18,7 +18,7 @@ namespace Js
         if (scriptContext->GetThreadContext() &&
             scriptContext->GetThreadContext()->IsNoScriptScope())
         {
-            FromDOM_NoScriptScope_fatal_error();
+            FromDOM_NoScriptScope_unrecoverable_error();
         }
 
         // Keep a copy locally so the optimizer can just copy prop it to the dtor

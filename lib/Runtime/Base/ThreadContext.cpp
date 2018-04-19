@@ -2085,7 +2085,7 @@ ThreadContext::DisposeObjects(Recycler * recycler)
     // Callers of DisposeObjects should ensure !IsNoScriptScope() before calling DisposeObjects.
     if (this->IsNoScriptScope())
     {
-        FromDOM_NoScriptScope_fatal_error();
+        FromDOM_NoScriptScope_unrecoverable_error();
     }
 
     if (!this->IsScriptActive())
@@ -2131,7 +2131,7 @@ ThreadContext::PushEntryExitRecord(Js::ScriptEntryExitRecord * record)
                 && !IS_ASAN_FAKE_STACK_ADDR(record)
                 && !IS_ASAN_FAKE_STACK_ADDR(lastRecord)))
         {
-            EntryExitRecord_Corrupted_fatal_error();
+            EntryExitRecord_Corrupted_unrecoverable_error();
         }
     }
 
@@ -2153,7 +2153,7 @@ void ThreadContext::PopEntryExitRecord(Js::ScriptEntryExitRecord * record)
             && !IS_ASAN_FAKE_STACK_ADDR(this->entryExitRecord)
             && !IS_ASAN_FAKE_STACK_ADDR(next))))
     {
-        EntryExitRecord_Corrupted_fatal_error();
+        EntryExitRecord_Corrupted_unrecoverable_error();
     }
 
     this->entryExitRecord = next;

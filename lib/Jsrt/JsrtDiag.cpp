@@ -95,7 +95,7 @@ CHAKRA_API JsDiagStartDebugging(
             HRESULT hr;
             if (FAILED(hr = scriptContext->OnDebuggerAttached()))
             {
-                Debugger_AttachDetach_fatal_error(hr); // Inconsistent state, we can't continue from here
+                Debugger_AttachDetach_unrecoverable_error(hr); // Inconsistent state, we can't continue from here
                 return JsErrorFatal;
             }
 
@@ -147,7 +147,7 @@ CHAKRA_API JsDiagStopDebugging(
             HRESULT hr;
             if (FAILED(hr = scriptContext->OnDebuggerDetached()))
             {
-                Debugger_AttachDetach_fatal_error(hr); // Inconsistent state, we can't continue from here
+                Debugger_AttachDetach_unrecoverable_error(hr); // Inconsistent state, we can't continue from here
                 return JsErrorFatal;
             }
 

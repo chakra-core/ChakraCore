@@ -63,7 +63,7 @@ LPVOID VirtualAllocWrapper::AllocPages(LPVOID lpAddress, size_t pageCount, DWORD
             BOOL result = VirtualProtect(address, dwSize, protectFlags, &oldProtectFlags);
             if (result == FALSE)
             {
-                CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+                CustomHeap_BadPageState_unrecoverable_error((ULONG_PTR)this);
             }
         }
     }
@@ -329,7 +329,7 @@ LPVOID PreReservedVirtualAllocWrapper::AllocPages(LPVOID lpAddress, size_t pageC
                 || memBasicInfo.RegionSize < requestedNumOfSegments * AutoSystemInfo::Data.GetAllocationGranularityPageSize()
                 || memBasicInfo.State == MEM_COMMIT)
             {
-                CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+                CustomHeap_BadPageState_unrecoverable_error((ULONG_PTR)this);
             }
         }
         else
@@ -380,7 +380,7 @@ LPVOID PreReservedVirtualAllocWrapper::AllocPages(LPVOID lpAddress, size_t pageC
                     BOOL result = VirtualProtect(allocatedAddress, dwSize, protectFlags, &oldProtect);
                     if (result == FALSE)
                     {
-                        CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+                        CustomHeap_BadPageState_unrecoverable_error((ULONG_PTR)this);
                     }
                     AssertMsg(oldProtect == (PAGE_EXECUTE_READWRITE), "CFG Bitmap gets allocated and bits will be set to invalid only upon passing these flags.");
                 }

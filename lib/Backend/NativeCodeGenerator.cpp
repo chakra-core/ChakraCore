@@ -3750,7 +3750,7 @@ JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
         if (callType == RemoteCallType::MemFree)
         {
             // if freeing memory fails due to OOM, it means we failed to fill with debug breaks -- so failfast
-            RpcFailure_fatal_error(hr);
+            RpcFailure_unrecoverable_error(hr);
         }
         else
         {
@@ -3764,13 +3764,13 @@ JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
 
     if (CONFIG_FLAG(CrashOnOOPJITFailure))
     {
-        RpcFailure_fatal_error(hr);
+        RpcFailure_unrecoverable_error(hr);
     }
     // we only expect to see these hresults in case server has been closed. failfast otherwise
     if (hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED) &&
         hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED_DNE))
     {
-        RpcFailure_fatal_error(hr);
+        RpcFailure_unrecoverable_error(hr);
     }
 
     // if JIT process is gone, record that and stop trying to call it
@@ -3791,7 +3791,7 @@ JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
         return false;
     default:
         Assert(UNREACHED);
-        RpcFailure_fatal_error(hr);
+        RpcFailure_unrecoverable_error(hr);
     }
     return false;
 }
