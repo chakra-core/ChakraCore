@@ -2303,7 +2303,7 @@ case_2:
         }
         else
         {
-            charcount_t bufferLength = requiredStringLength + 1;
+            charcount_t bufferLength = UInt32Math::Add(requiredStringLength, 1);
             char16* buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, bufferLength);
             charcount_t actualStringLength = ChangeStringLinguisticCase<toUpper, useInvariant>(pThis->GetSz(), pThis->GetLength(), buffer, bufferLength, &error);
             Assert(actualStringLength == requiredStringLength && error == ApiError::NoError);
