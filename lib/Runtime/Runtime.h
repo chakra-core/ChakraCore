@@ -280,7 +280,11 @@ namespace Js
     class AsmJSByteCodeGenerator;
     enum AsmJSMathBuiltinFunction: int;
     //////////////////////////////////////////////////////////////////////////
+#if ENABLE_WEAK_REFERENCE_REGIONS
+    template <typename T> using WeakPropertyIdMap = JsUtil::WeakReferenceRegionDictionary<PropertyId, T*, PrimeSizePolicy>;
+#else
     template <typename T> using WeakPropertyIdMap = JsUtil::WeakReferenceDictionary<PropertyId, T, PrimeSizePolicy>;
+#endif
     typedef WeakPropertyIdMap<PropertyString> PropertyStringCacheMap;
     typedef WeakPropertyIdMap<JavascriptSymbol> SymbolCacheMap;
 

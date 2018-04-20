@@ -102,6 +102,8 @@ namespace JsUtil
         Field(int) freeCount;
         Field(int) modFunctionIndex;
 
+        static const int FreeListSentinel = -2;
+
 #if PROFILE_DICTIONARY
         FieldNoBarrier(DictionaryStats*) stats;
 #endif
@@ -780,9 +782,9 @@ namespace JsUtil
 
         static bool IsFreeEntry(const EntryType &entry)
         {
-            // A free entry's next index will be (-2 - nextIndex), such that it is always <= -2, for fast entry iteration
+            // A free entry's next index will be (FreeListSentinel - nextIndex), such that it is always <= FreeListSentinel, for fast entry iteration
             // allowing for skipping over free entries. -1 is reserved for the end-of-chain marker for a used entry.
-            return entry.next <= -2;
+            return entry.next <= FreeListSentinel;
         }
 
         void SetNextFreeEntryIndex(EntryType &freeEntry, const int nextFreeEntryIndex)
@@ -791,15 +793,15 @@ namespace JsUtil
             Assert(nextFreeEntryIndex >= -1);
             Assert(nextFreeEntryIndex < count);
 
-            // The last entry in the free list chain will have a next of -2 to indicate that it is a free entry. The end of the
+            // The last entry in the free list chain will have a next of FreeListSentinel to indicate that it is a free entry. The end of the
             // free list chain is identified using freeCount.
-            freeEntry.next = nextFreeEntryIndex >= 0 ? -2 - nextFreeEntryIndex : -2;
+            freeEntry.next = nextFreeEntryIndex >= 0 ? FreeListSentinel - nextFreeEntryIndex : FreeListSentinel;
         }
 
         static int GetNextFreeEntryIndex(const EntryType &freeEntry)
         {
             Assert(IsFreeEntry(freeEntry));
-            return -2 - freeEntry.next;
+            return FreeListSentinel - freeEntry.next;
         }
 
         template <typename LookupType>
@@ -1327,8 +1329,8 @@ namespace JsUtil
                 bucketIndex(0u - 1)
             #if DBG
                 ,
-                previousEntryIndexInBucket(-2),
-                indexOfEntryAfterRemovedEntry(-2)
+                previousEntryIndexInBucket(FreeListSentinel),
+                indexOfEntryAfterRemovedEntry(FreeListSentinel)
             #endif
             {
                 if(dictionary.Count() != 0)
@@ -1345,9 +1347,9 @@ namespace JsUtil
                 Assert(this->entryIndex >= -1);
                 Assert(this->entryIndex < dictionary.count);
                 Assert(bucketIndex == 0u - 1 || bucketIndex <= bucketCount);
-                Assert(previousEntryIndexInBucket >= -2);
+                Assert(previousEntryIndexInBucket >= FreeListSentinel);
                 Assert(previousEntryIndexInBucket < dictionary.count);
-                Assert(indexOfEntryAfterRemovedEntry >= -2);
+                Assert(indexOfEntryAfterRemovedEntry >= FreeListSentinel);
                 Assert(indexOfEntryAfterRemovedEntry < dictionary.count);
 
                 return Base::IsValid() && this->entryIndex >= 0;

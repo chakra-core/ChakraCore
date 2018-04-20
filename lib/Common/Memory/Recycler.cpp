@@ -193,6 +193,9 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     pinnedObjectMap(1024, HeapAllocator::GetNoMemProtectInstance()),
     weakReferenceMap(1024, HeapAllocator::GetNoMemProtectInstance()),
     weakReferenceCleanupId(0),
+#if ENABLE_WEAK_REFERENCE_REGIONS
+    weakReferenceRegionList(HeapAllocator::GetNoMemProtectInstance()),
+#endif
     collectionWrapper(&DefaultRecyclerCollectionWrapper::Instance),
     isScriptActive(false),
     isInScript(false),
@@ -3096,7 +3099,9 @@ Recycler::SweepWeakReference()
 
     // REVIEW: Clean up the weak reference map concurrently?
     bool hasCleanup = false;
+#if defined(GCETW) && defined(ENABLE_JS_ETW)
     uint scannedCount = weakReferenceMap.Count();
+#endif
 
     weakReferenceMap.Map([&hasCleanup](RecyclerWeakReferenceBase * weakRef) -> bool
     {
@@ -3122,13 +3127,82 @@ Recycler::SweepWeakReference()
 
         return true;
     });
+
+#if defined(GCETW) && defined(ENABLE_JS_ETW)
+    uint regionScannedCount = 0;
+    uint regionClearedCount = 0;
+#endif
+
+#if ENABLE_WEAK_REFERENCE_REGIONS
+
+    auto edIt = this->weakReferenceRegionList.GetEditingIterator();
+    while (edIt.Next())
+    {
+        RecyclerWeakReferenceRegion region = edIt.Data();
+        // We want to see if user code has any reference to the region, if not, we can free the whole thing
+        if (!region.GetHeapBlock()->TestObjectMarkedBit(region.GetPtr()))
+        {
+            edIt.RemoveCurrent();
+            hasCleanup = true;
+#if defined(GCETW) && defined(ENABLE_JS_ETW)
+            regionClearedCount += (uint)region.GetCount();
+#endif
+            continue;
+        }
+
+        // The region is referenced, clean up any stale weak references
+        RecyclerWeakReferenceRegionItem<void*>* refs = region.GetPtr();
+#if defined(GCETW) && defined(ENABLE_JS_ETW)
+        regionScannedCount += (uint)region.GetCount();
+#endif
+        for (size_t i = 0; i < region.GetCount(); ++i)
+        {
+            RecyclerWeakReferenceRegionItem<void*> &ref = refs[i];
+            if (ref.ptr == nullptr)
+            {
+                continue;
+            }
+
+            if (((uintptr_t)ref.heapBlock & 0x1) == 0x1)
+            {
+                // Background thread marked this ref. Unmark it, and keep it
+                ref.heapBlock = (HeapBlock*)((uintptr_t)ref.heapBlock & ~0x1);
+                continue;
+            }
+
+            if (ref.heapBlock == nullptr)
+            {
+                HeapBlock* block = this->FindHeapBlock(ref.ptr);
+                if (block == nullptr)
+                {
+                    // This is not a real reference
+                    AssertMsg(false, "WeakReferenceRegionItems should only contain recycler references");
+                    continue;
+                }
+                else
+                {
+                    ref.heapBlock = block;
+                }
+            }
+
+            if (!ref.heapBlock->TestObjectMarkedBit(ref))
+            {
+                ref.ptr = nullptr;
+                ref.heapBlock = nullptr;
+                hasCleanup = true;
+#if defined(GCETW) && defined(ENABLE_JS_ETW)
+                regionClearedCount++;
+#endif
+            }
+        }
+    }
+#endif
+
     this->weakReferenceCleanupId += hasCleanup;
 
-#ifdef GCETW
+#if defined(GCETW) && defined(ENABLE_JS_ETW)
     const uint keptCount = weakReferenceMap.Count();
-    const uint scannedBytes = scannedCount * sizeof(RecyclerWeakReferenceBase*);
-    const uint cleanedBytes = (scannedCount - keptCount) * sizeof(RecyclerWeakReferenceBase*);
-    GCETW(GC_SWEEP_WEAKREF_STOP, (this, scannedBytes, cleanedBytes));
+    GCETW(GC_SWEEP_WEAKREF_STOP_EX, (this, scannedCount, (scannedCount - keptCount), regionScannedCount, regionClearedCount));
 #endif
 
     RECYCLER_PROFILE_EXEC_END(this, Js::SweepWeakPhase);
@@ -5363,6 +5437,49 @@ Recycler::BackgroundMark()
 }
 
 void
+Recycler::BackgroundMarkWeakRefs()
+{
+#if ENABLE_WEAK_REFERENCE_REGIONS
+    auto iterator = this->weakReferenceRegionList.GetIterator();
+    while (iterator.Next())
+    {
+        RecyclerWeakReferenceRegion region = iterator.Data();
+        RecyclerWeakReferenceRegionItem<void*> *items = region.GetPtr();
+        size_t count = region.GetCount();
+        for (size_t index = 0; index < count; ++index)
+        {
+            RecyclerWeakReferenceRegionItem<void*> &item = items[index];
+            if (item.ptr == nullptr)
+            {
+                continue;
+            }
+
+            if (((uintptr_t)item.heapBlock & 0x1) == 0x1)
+            {
+                // This weak reference is already marked
+                continue;
+            }
+
+            if (item.heapBlock == nullptr)
+            {
+                item.heapBlock = this->FindHeapBlock(item.ptr);
+                if (item.heapBlock == nullptr)
+                {
+                    // This isn't a real weak reference, ignore it
+                    continue;
+                }
+            }
+
+            if (item.heapBlock->TestObjectMarkedBit(item.ptr))
+            {
+                item.heapBlock = (HeapBlock*) ((uintptr_t)item.heapBlock | 0x1);
+            }
+        }
+    }
+#endif
+}
+
+void
 Recycler::BackgroundResetMarks()
 {
     RECYCLER_PROFILE_EXEC_BACKGROUND_BEGIN(this, Js::BackgroundResetMarksPhase);
@@ -5935,7 +6052,11 @@ Recycler::DoBackgroundWork(bool forceForeground)
             // fall-through
         case CollectionStateConcurrentMark:
             this->BackgroundMark();
-            Assert(this->collectionState == CollectionStateConcurrentMark);
+            this->collectionState = CollectionStateConcurrentMarkWeakRef;
+            // fall-through
+        case CollectionStateConcurrentMarkWeakRef:
+            this->BackgroundMarkWeakRefs();
+            Assert(this->collectionState == CollectionStateConcurrentMarkWeakRef);
             RECORD_TIMESTAMP(concurrentMarkFinishTime);
             break;
         case CollectionStateConcurrentFinishMark:
