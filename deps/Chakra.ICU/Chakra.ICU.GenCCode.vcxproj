@@ -36,20 +36,8 @@
   <ItemGroup Condition="'$(BuildLocalICU)'=='true'">
     <ClCompile Include="$(IcuGenccodeSources)" />
     <ClInclude Include="$(IcuGenccodeHeaders)" />
-    <ProjectReference Include="$(MSBuildThisFileDirectory)Chakra.ICU.Common.vcxproj">
-      <Project>{EE2A3111-4D85-427C-B0AB-E6B0EA7FFB44}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-    <ProjectReference Include="$(MSBuildThisFileDirectory)Chakra.ICU.i18n.vcxproj">
-      <Project>{0494C753-5BB9-45AA-874E-E61B9922E88F}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
     <ProjectReference Include="$(MSBuildThisFileDirectory)Chakra.ICU.Toolutil.vcxproj">
       <Project>{A87105AD-8F4A-4D7A-9096-EFD30DBA3E01}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-    <ProjectReference Include="$(MSBuildThisFileDirectory)Chakra.ICU.Stubdata.vcxproj">
-      <Project>{E14F373D-05A0-4259-A5E9-AFE8405FB847}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
   </ItemGroup>

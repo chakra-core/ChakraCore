@@ -17,16 +17,6 @@
   <PropertyGroup Condition="'$(RunCodeAnalysis)'=='' AND '$(Configuration)'=='Release'">
     <RunCodeAnalysis>$(BuildWithCodeAnalysis)</RunCodeAnalysis>
   </PropertyGroup>
-  <PropertyGroup>
-    <EnableIntl Condition="'$(EnableIntl)'==''">true</EnableIntl>
-    <EnableIntl Condition="'$(BuildLite)'=='true'">false</EnableIntl>
-
-    <ChakraICU Condition="'$(ChakraICU)'==''">false</ChakraICU>
-    <!-- ARM does not support ICU until we figure out how to link icudtXXl.dat without genccode.exe -->
-    <ChakraICU Condition="'$(Platform)'=='ARM'">false</ChakraICU>
-
-    <IcuLibraryDependencies Condition="'$(ChakraICU)'=='windows'">icuuc.lib;icuin.lib</IcuLibraryDependencies>
-  </PropertyGroup>
   <Import Condition="'$(ChakraICU)'!='false' AND exists('$(ChakraCoreRootDirectory)deps\Chakra.ICU\Chakra.ICU.props')" Project="$(ChakraCoreRootDirectory)deps\Chakra.ICU\Chakra.ICU.props" />
   <ItemDefinitionGroup>
     <ClCompile>
