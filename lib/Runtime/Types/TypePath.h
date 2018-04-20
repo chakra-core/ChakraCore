@@ -245,13 +245,14 @@ public:
                 return nullptr;
         }
 
+        template<bool isSetter = false>
         int Add(const PropertyRecord * propertyRecord)
         {
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
             Assert(this->GetPathLength() == this->GetMaxInitializedLength());
             this->GetData()->maxInitializedLength++;
 #endif
-            return AddInternal<true>(propertyRecord);
+            return AddInternal<!isSetter>(propertyRecord);
         }
 
         uint8 GetPathLength() { return this->GetData()->pathLength; }

@@ -13,18 +13,6 @@ namespace Js
     }
 
     template <typename T>
-    DictionaryTypeHandlerBase<T>* DictionaryTypeHandlerBase<T>::CreateTypeHandlerForArgumentsInStrictMode(Recycler * recycler, ScriptContext * scriptContext)
-    {
-        DictionaryTypeHandlerBase<T> * dictTypeHandler = New(recycler, 8, 0, 0);
-
-        dictTypeHandler->Add(scriptContext->GetPropertyName(Js::PropertyIds::callee), PropertyWritable, scriptContext);
-        dictTypeHandler->Add(scriptContext->GetPropertyName(Js::PropertyIds::length), PropertyBuiltInMethodDefaults, scriptContext);
-        dictTypeHandler->Add(scriptContext->GetPropertyName(Js::PropertyIds::_symbolIterator), PropertyBuiltInMethodDefaults, scriptContext);
-
-        return dictTypeHandler;
-    }
-
-    template <typename T>
     DictionaryTypeHandlerBase<T>::DictionaryTypeHandlerBase(Recycler* recycler) :
         DynamicTypeHandler(1),
         nextPropertyIndex(0)
