@@ -29,7 +29,11 @@
     </ClCompile>
     <Link Condition="'$(ChakraICU)'=='shared'">
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>%(AdditionalDependencies);advapi32.lib</AdditionalDependencies>
+      <!-- Unsure why InitializeSecurityDescriptor, SetSecurityDescriptorDacl, and others require this only for ARM -->
+      <AdditionalDependencies Condition="'$(Platform)'=='ARM'">
+        advapi32.lib;
+        %(AdditionalDependencies)
+      </AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup Condition="'$(BuildLocalICU)'=='true'">

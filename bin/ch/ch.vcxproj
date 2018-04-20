@@ -49,6 +49,11 @@
         $(IcuLibraryDependencies);
         %(AdditionalDependencies)
       </AdditionalDependencies>
+      <!-- Unsure why InitializeSecurityDescriptor, SetSecurityDescriptorDacl, and others require this only for ARM -->
+      <AdditionalDependencies Condition="'$(ChakraICU)'=='static' AND '$(Platform)'=='ARM'">
+        advapi32.lib;
+        %(AdditionalDependencies)
+      </AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
