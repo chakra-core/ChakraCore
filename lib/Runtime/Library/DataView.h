@@ -104,106 +104,109 @@ namespace Js
         template<> void SwapRoutine(double* input, double* dest) {*((uint64*)dest) = RtlUlonglongByteSwap(*((uint64*)input)); }
 
         template<typename TypeName>
-        Var GetValue(uint32 byteOffset, const char16* funcName, BOOL isLittleEndian = FALSE)
+        Var GetValue(Var offset, const char16* funcName, BOOL isLittleEndian = FALSE)
         {
             ScriptContext* scriptContext = GetScriptContext();
             if (this->GetArrayBuffer()->IsDetached())
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, funcName);
             }
-            if ((byteOffset + sizeof(TypeName) <= GetLength()) && (byteOffset <= GetLength()))
+
+            uint32 length = GetLength();
+            if (length < sizeof(TypeName))
             {
-                TypeName item;
-                TypeName* typedBuffer = (TypeName*)(buffer + byteOffset);
-                if (!isLittleEndian)
-                {
-                    SwapRoutine<TypeName>(typedBuffer, &item);
-                }
-                else
-                {
-                    item = *typedBuffer;
-                }
-                return JavascriptNumber::ToVar(item, GetScriptContext());
+                JavascriptError::ThrowRangeError(scriptContext, JSERR_DataView_InvalidOffset, funcName);
+            }
+            uint32 byteOffset = ArrayBuffer::ToIndex(offset, JSERR_DataView_InvalidOffset, scriptContext, length - sizeof(TypeName), false);
+
+            TypeName item;
+            TypeName* typedBuffer = (TypeName*)(buffer + byteOffset);
+            if (!isLittleEndian)
+            {
+                SwapRoutine<TypeName>(typedBuffer, &item);
             }
             else
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_InvalidOffset);
+                item = *typedBuffer;
             }
+            return JavascriptNumber::ToVar(item, GetScriptContext());
         }
 
         template<typename TypeName>
-        inline Var GetValueWithCheck(uint32 byteOffset, const char16* funcName, BOOL isLittleEndian = FALSE)
+        inline Var GetValueWithCheck(Var offset, const char16* funcName, BOOL isLittleEndian = FALSE)
         {
-            return GetValueWithCheck<TypeName, TypeName*>(byteOffset, isLittleEndian, funcName);
+            return GetValueWithCheck<TypeName, TypeName*>(offset, isLittleEndian, funcName);
         }
 
         template<typename TypeName, typename PointerAccessTypeName>
-        Var GetValueWithCheck(uint32 byteOffset, BOOL isLittleEndian, const char16* funcName)
+        Var GetValueWithCheck(Var offset, BOOL isLittleEndian, const char16* funcName)
         {
             ScriptContext* scriptContext = GetScriptContext();
             if (this->GetArrayBuffer()->IsDetached())
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, funcName);
             }
-            if ((byteOffset + sizeof(TypeName) <= GetLength()) && (byteOffset <= GetLength()))
+
+            uint32 length = GetLength();
+            if (length < sizeof(TypeName))
             {
-                TypeName item;
-                TypeName *typedBuffer = (TypeName*)(buffer + byteOffset);
-                if (!isLittleEndian)
-                {
-                    SwapRoutine<TypeName>(typedBuffer, &item);
-                }
-                else
-                {
-                    item = *static_cast<PointerAccessTypeName>(typedBuffer);
-                }
-                return JavascriptNumber::ToVarWithCheck(item, GetScriptContext());
+                JavascriptError::ThrowRangeError(scriptContext, JSERR_DataView_InvalidOffset, funcName);
+            }
+            uint32 byteOffset = ArrayBuffer::ToIndex(offset, JSERR_DataView_InvalidOffset, scriptContext, length - sizeof(TypeName), false);
+
+            TypeName item;
+            TypeName *typedBuffer = (TypeName*)(buffer + byteOffset);
+            if (!isLittleEndian)
+            {
+                SwapRoutine<TypeName>(typedBuffer, &item);
             }
             else
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_InvalidOffset);
+                item = *static_cast<PointerAccessTypeName>(typedBuffer);
             }
+            return JavascriptNumber::ToVarWithCheck(item, GetScriptContext());
         }
 
         template<typename TypeName>
-        inline void SetValue(uint32 byteOffset, TypeName value, const char16 *funcName, BOOL isLittleEndian = FALSE)
+        inline void SetValue(Var offset, TypeName value, const char16 *funcName, BOOL isLittleEndian = FALSE)
         {
-            SetValue<TypeName, TypeName*>(byteOffset, value, isLittleEndian, funcName);
+            SetValue<TypeName, TypeName*>(offset, value, isLittleEndian, funcName);
         }
 
         template<typename TypeName, typename PointerAccessTypeName>
-        void SetValue(uint32 byteOffset, TypeName value, BOOL isLittleEndian, const char16 *funcName)
+        void SetValue(Var offset, TypeName value, BOOL isLittleEndian, const char16 *funcName)
         {
             ScriptContext* scriptContext = GetScriptContext();
             if (this->GetArrayBuffer()->IsDetached())
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, funcName);
             }
-            if ((byteOffset + sizeof(TypeName) <= GetLength()) && (byteOffset <= GetLength()))
+
+            uint32 length = GetLength();
+            if (length < sizeof(TypeName))
             {
-                TypeName* typedBuffer = (TypeName*)(buffer + byteOffset);
-                if (!isLittleEndian)
-                {
-                    SwapRoutine<TypeName>(&value, typedBuffer);
-                }
-                else
-                {
-                    *static_cast<PointerAccessTypeName>(typedBuffer) = value;
-                }
+                JavascriptError::ThrowRangeError(scriptContext, JSERR_DataView_InvalidOffset, funcName);
+            }
+            uint32 byteOffset = ArrayBuffer::ToIndex(offset, JSERR_DataView_InvalidOffset, scriptContext, length - sizeof(TypeName), false);
+
+            TypeName* typedBuffer = (TypeName*)(buffer + byteOffset);
+            if (!isLittleEndian)
+            {
+                SwapRoutine<TypeName>(&value, typedBuffer);
             }
             else
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_InvalidOffset);
+                *static_cast<PointerAccessTypeName>(typedBuffer) = value;
             }
         }
 
 #ifdef _M_ARM
         // For ARM, memory access for float/double address causes data alignment exception if the address is not aligned.
         // Provide template specialization (only) for these scenarios.
-        template<> Var GetValueWithCheck<float>(uint32 byteOffset, const char16 *funcName, BOOL isLittleEndian /* = FALSE */);
-        template<> Var GetValueWithCheck<double>(uint32 byteOffset, const char16 *funcName, BOOL isLittleEndian /* = FALSE */);
-        template<> void SetValue<float>(uint32 byteOffset, float value, const char16 *funcName, BOOL isLittleEndian /* = FALSE */);
-        template<> void SetValue<double>(uint32 byteOffset, double value, const char16 *funcName, BOOL isLittleEndian /* = FALSE */);
+        template<> Var GetValueWithCheck<float>(Var offset, const char16 *funcName, BOOL isLittleEndian /* = FALSE */);
+        template<> Var GetValueWithCheck<double>(Var offset, const char16 *funcName, BOOL isLittleEndian /* = FALSE */);
+        template<> void SetValue<float>(Var offset, float value, const char16 *funcName, BOOL isLittleEndian /* = FALSE */);
+        template<> void SetValue<double>(Var offset, double value, const char16 *funcName, BOOL isLittleEndian /* = FALSE */);
 #endif
 
         Field(uint32) byteOffset;
