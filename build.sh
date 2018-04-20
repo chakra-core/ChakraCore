@@ -408,7 +408,7 @@ done
 if [[ $USE_LOCAL_ICU == 1 ]]; then
     LOCAL_ICU_DIR="$CHAKRACORE_DIR/deps/Chakra.ICU/icu"
     if [[ ! -d $LOCAL_ICU_DIR ]]; then
-        "$PYTHON2_BINARY" "$CHAKRACORE_DIR/tools/configure_icu.py" 57.1 $ALWAYS_YES
+        "$PYTHON2_BINARY" "$CHAKRACORE_DIR/tools/icu/configure.py" 57.1 $ALWAYS_YES
     fi
 
     # if there is still no directory, then the user declined the license agreement
