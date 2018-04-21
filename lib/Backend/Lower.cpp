@@ -9223,7 +9223,8 @@ Lowerer::LowerStArrViewElem(IR::Instr * instr)
             instr->FreeSrc2();
         }
     }
-    InsertMove(dst, src1, done);
+    // wasm memory buffer is not recycler allocated, so we shouldn't generate write barrier 
+    InsertMove(dst, src1, done, false);
 
     instr->Remove();
     return instrPrev;
