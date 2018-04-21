@@ -1264,7 +1264,15 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/nontrapping_conversions.baseline</baseline>
-      <compile-flags>-wasm -args features/nontrapping/conversions.wast -endargs -WasmNontrapping</compile-flags>
+      <compile-flags>-wasm -args features/nontrapping/nontrapping_conversions.wast -endargs -WasmNontrapping</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/nontrapping_conversions.baseline</baseline>
+      <compile-flags>-wasm -args features/nontrapping/nontrapping_conversions.wast -endargs -nonative -WasmNontrapping</compile-flags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>

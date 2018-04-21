@@ -4728,11 +4728,13 @@ LowererMD::GenerateTruncChecks(_In_ IR::Instr* instr, _In_opt_ IR::LabelInstr* d
 {
     AnalysisAssert(!Saturate || doneLabel);
 
-    IR::LabelInstr * conversion = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-    IR::LabelInstr * nanLabel = Saturate ? IR::LabelInstr::New(Js::OpCode::Label, m_func, true) : nullptr;
-    IR::LabelInstr * oobLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
-    IR::Opnd* src1 = instr->GetSrc1();
     IR::Opnd* dst = instr->GetDst();
+    Assert(dst->IsInt32() || dst->IsUInt32());
+
+    IR::LabelInstr * nanLabel = (Saturate && dst->IsSigned()) ? IR::LabelInstr::New(Js::OpCode::Label, m_func, true) : nullptr;
+    IR::LabelInstr * conversion = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+    IR::LabelInstr * tooSmallLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
+    IR::Opnd* src1 = instr->GetSrc1();
 
     IR::Opnd * src64 = nullptr;
     if (src1->IsFloat32())
@@ -4749,7 +4751,7 @@ LowererMD::GenerateTruncChecks(_In_ IR::Instr* instr, _In_opt_ IR::LabelInstr* d
         m_func->GetThreadContextInfo()->GetDoubleNegOneAddr() :
         m_func->GetThreadContextInfo()->GetDoubleIntMinMinusOneAddr(), instr);
 
-    m_lowerer->InsertCompareBranch(src64, limitReg, Js::OpCode::BrLe_A, oobLabel, instr);
+    m_lowerer->InsertCompareBranch(src64, limitReg, Js::OpCode::BrLe_A, tooSmallLabel, instr);
 
     limitReg = MaterializeDoubleConstFromInt(dst->IsUInt32() ?
         m_func->GetThreadContextInfo()->GetDoubleUintMaxPlusOneAddr() :
@@ -4757,29 +4759,33 @@ LowererMD::GenerateTruncChecks(_In_ IR::Instr* instr, _In_opt_ IR::LabelInstr* d
 
     m_lowerer->InsertCompareBranch(limitReg, src64, Js::OpCode::BrGt_A, conversion, instr, true /*no NaN check*/);
 
-    instr->InsertBefore(oobLabel);
     if (Saturate)
     {
-        IR::LabelInstr * tooBigLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
-        IR::RegOpnd* zeroReg = IR::RegOpnd::New(TyFloat64, m_func);
-        LoadFloatZero(zeroReg, instr);
+        // Insert a label to mark this as the start of a helper block, so layout knows to move it
+        m_lowerer->InsertLabel(true, instr);
 
-        m_lowerer->InsertCompareBranch(src64, zeroReg, Js::OpCode::BrGt_A, tooBigLabel, instr, true /*no NaN check*/);
-        instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JP, nanLabel, m_func));
+        // NaN case is same as too small case for unsigned, so combine them
+        instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JP, dst->IsSigned() ? nanLabel : tooSmallLabel, m_func));
 
-        m_lowerer->InsertMove(dst, IR::IntConstOpnd::New(dst->IsUnsigned() ? 0 : INT32_MIN, dst->GetType(), m_func), instr);
-        m_lowerer->InsertBranch(Js::OpCode::Br, doneLabel, instr);
-
-        instr->InsertBefore(tooBigLabel);
+        // Overflow case
         m_lowerer->InsertMove(dst, IR::IntConstOpnd::New(dst->IsUnsigned() ? UINT32_MAX : INT32_MAX, dst->GetType(), m_func), instr);
         m_lowerer->InsertBranch(Js::OpCode::Br, doneLabel, instr);
 
-        instr->InsertBefore(nanLabel);
-        m_lowerer->InsertMove(dst, IR::IntConstOpnd::New(0, dst->GetType(), m_func), instr);
+        instr->InsertBefore(tooSmallLabel);
+        m_lowerer->InsertMove(dst, IR::IntConstOpnd::New(dst->IsUnsigned() ? 0 : INT32_MIN, dst->GetType(), m_func), instr);
         m_lowerer->InsertBranch(Js::OpCode::Br, doneLabel, instr);
+
+
+        if (dst->IsSigned())
+        {
+            instr->InsertBefore(nanLabel);
+            m_lowerer->InsertMove(dst, IR::IntConstOpnd::New(0, dst->GetType(), m_func), instr);
+            m_lowerer->InsertBranch(Js::OpCode::Br, doneLabel, instr);
+        }
     }
     else
     {
+        instr->InsertBefore(tooSmallLabel);
         m_lowerer->GenerateThrow(IR::IntConstOpnd::New(SCODE_CODE(VBSERR_Overflow), TyInt32, m_func), instr);
         //no jump here we aren't coming back
     }
