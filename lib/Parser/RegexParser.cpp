@@ -257,6 +257,7 @@ namespace UnifiedRegex
 
             if (codePoint > 0x10FFFF)
             {
+                DeferredFailIfUnicode(JSERR_RegExpInvalidEscape);
                 return 0;
             }
             i++;
