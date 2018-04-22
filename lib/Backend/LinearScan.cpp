@@ -1037,7 +1037,7 @@ LinearScan::IsSymNonTempLocalVar(StackSym *sym)
 {
     Assert(sym);
 
-    if (this->func->IsJitInDebugMode() && sym->HasByteCodeRegSlot())
+    if (sym->HasByteCodeRegSlot())
     {
         Js::RegSlot slotIndex = sym->GetByteCodeRegSlot();
 
@@ -1530,56 +1530,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     }
 
     // In the debug mode, fill in the rest of non temp locals as well in the records so that the restore stub will just get it automatically.
-
-    if (this->func->IsJitInDebugMode())
-    {
-        // Need to allow filling the formal args slots.
-
-        if (func->GetJITFunctionBody()->HasPropIdToFormalsMap())
-        {
-            Assert(func->GetJITFunctionBody()->GetInParamsCount() > 0);
-            uint32 endIndex = min(func->GetJITFunctionBody()->GetFirstNonTempLocalIndex() + func->GetJITFunctionBody()->GetInParamsCount() - 1, func->GetJITFunctionBody()->GetEndNonTempLocalIndex());
-            for (uint32 index = func->GetJITFunctionBody()->GetFirstNonTempLocalIndex(); index < endIndex; index++)
-            {
-                StackSym * stackSym = this->func->m_symTable->FindStackSym(index);
-                if (stackSym != nullptr)
-                {
-                    Func * stackSymFunc = stackSym->GetByteCodeFunc();
-
-                    Js::RegSlot regSlotId = stackSym->GetByteCodeRegSlot();
-                    if (func->IsNonTempLocalVar(regSlotId))
-                    {
-                        if (!func->GetJITFunctionBody()->IsRegSlotFormal(regSlotId - func->GetJITFunctionBody()->GetFirstNonTempLocalIndex()))
-                        {
-                            continue;
-                        }
-
-                        uint dataIndex = stackSymFunc->inlineDepth;
-                        Assert(dataIndex == 0);     // There is no inlining while in debug mode
-
-                        // Filling in which are not filled already.
-                        __analysis_assume(dataIndex == 0);
-                        if (funcBailOutData[dataIndex].localOffsets[regSlotId] == 0)
-                        {
-                            int32 offset = GetStackOffset(regSlotId);
-
-#ifdef MD_GROW_LOCALS_AREA_UP
-                            Assert(offset >= 0);
-#else
-                            Assert(offset < 0);
-#endif
-
-                            funcBailOutData[dataIndex].localOffsets[regSlotId] = this->func->AdjustOffsetValue(offset);
-
-                            // We don't support typespec for debug, rework on the bellow assert once we start support them.
-                            Assert(!stackSym->IsInt32() && !stackSym->IsFloat64() && !stackSym->IsSimd128());
-                        }
-                    }
-                }
-            }
-        }
-    }
-
+    
     // fill in the out params
     uint startCallCount = bailOutInfo->startCallCount;
 
@@ -2982,7 +2933,7 @@ LinearScan::AllocateStackSpace(Lifetime *spilledRange)
 
     StackSlot * newStackSlot = nullptr;
 
-    if (!PHASE_OFF(Js::StackPackPhase, this->func) && !this->func->IsJitInDebugMode() && !spilledRange->cantStackPack)
+    if (!PHASE_OFF(Js::StackPackPhase, this->func) && !spilledRange->cantStackPack)
     {
         // Search for a free stack slot to re-use
         FOREACH_SLIST_ENTRY_EDITING(StackSlot *, slot, this->stackSlotsFreeList, iter)

@@ -194,7 +194,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     if (doStackNestedFunc && GetJITFunctionBody()->GetNestedCount() != 0 &&
         (this->IsTopFunc() || this->GetTopFunc()->m_workItem->Type() != JsLoopBodyWorkItemType)) // make sure none of the functions inlined in a jitted loop body allocate nested functions on the stack
     {
-        Assert(!(this->IsJitInDebugMode() && !GetJITFunctionBody()->IsLibraryCode()));
+        Assert(!GetJITFunctionBody()->IsLibraryCode());
         stackNestedFunc = true;
         this->GetTopFunc()->hasAnyStackNestedFunc = true;
     }
@@ -241,11 +241,6 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     m_argsSize = -1;
     m_savedRegSize = -1;
 #endif
-
-    if (this->IsJitInDebugMode())
-    {
-        m_nonTempLocalVars = Anew(this->m_alloc, BVSparse<JitArenaAllocator>, this->m_alloc);
-    }
 
     if (GetJITFunctionBody()->IsCoroutine())
     {
@@ -380,7 +375,7 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
 void
 Func::TryCodegen()
 {
-    Assert(!IsJitInDebugMode() || !GetJITFunctionBody()->HasTry());
+    Assert(!GetJITFunctionBody()->HasTry());
 
     BEGIN_CODEGEN_PHASE(this, Js::BackEndPhase);
     {
@@ -723,7 +718,6 @@ Func::SetArgOffset(StackSym *stackSym, int32 offset)
 void
 Func::EnsureLocalVarSlots()
 {
-    Assert(IsJitInDebugMode());
 
     if (!this->HasLocalVarSlotCreated())
     {
@@ -790,7 +784,7 @@ Func::GetLocalVarSlotOffset(int32 slotId)
 void Func::OnAddSym(Sym* sym)
 {
     Assert(sym);
-    if (this->IsJitInDebugMode() && this->IsNonTempLocalVar(sym->m_id))
+    if (this->IsNonTempLocalVar(sym->m_id))
     {
         Assert(m_nonTempLocalVars);
         m_nonTempLocalVars->Set(sym->m_id);
@@ -806,12 +800,6 @@ Func::GetHasLocalVarChangedOffset()
 {
     this->EnsureLocalVarSlots();
     return m_hasLocalVarChangedOffset;
-}
-
-bool
-Func::IsJitInDebugMode() const
-{
-    return m_workItem->IsJitInDebugMode();
 }
 
 bool
@@ -1149,8 +1137,7 @@ Func::IsAggressiveIntTypeSpecDisabled() const
 bool Func::CanAllocInPreReservedHeapPageSegment ()
 {
 #ifdef _CONTROL_FLOW_GUARD
-    return PHASE_FORCE1(Js::PreReservedHeapAllocPhase) || (!PHASE_OFF1(Js::PreReservedHeapAllocPhase) &&
-        !IsJitInDebugMode()
+    return PHASE_FORCE1(Js::PreReservedHeapAllocPhase) || (!PHASE_OFF1(Js::PreReservedHeapAllocPhase)
 #if _M_IX86
         && m_workItem->GetJitMode() == ExecutionMode::FullJit
 

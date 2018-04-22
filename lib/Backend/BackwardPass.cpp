@@ -83,7 +83,6 @@ BackwardPass::DoMarkTempObjects() const
     // only mark temp object on the backward store phase
     return (tag == Js::BackwardPhase) && !PHASE_OFF(Js::MarkTempPhase, this->func) &&
         !PHASE_OFF(Js::MarkTempObjectPhase, this->func) && func->DoGlobOpt() && func->GetHasTempObjectProducingInstr() &&
-        !func->IsJitInDebugMode() &&
         func->DoGlobOptsForGeneratorFunc();
 
     // Why MarkTempObject is disabled under debugger:
@@ -141,7 +140,7 @@ BackwardPass::DoDeadStore(Func* func, StackSym* sym)
     // Dead store is disabled under debugger for non-temp local vars.
     return
         DoDeadStore(func) &&
-        !(func->IsJitInDebugMode() && sym->HasByteCodeRegSlot() && func->IsNonTempLocalVar(sym->GetByteCodeRegSlot())) &&
+        !(sym->HasByteCodeRegSlot() && func->IsNonTempLocalVar(sym->GetByteCodeRegSlot())) &&
         func->DoGlobOptsForGeneratorFunc();
 }
 
@@ -153,7 +152,6 @@ BackwardPass::DoTrackNegativeZero() const
         !PHASE_OFF(Js::TrackNegativeZeroPhase, func) &&
         func->DoGlobOpt() &&
         !IsPrePass() &&
-        !func->IsJitInDebugMode() &&
         func->DoGlobOptsForGeneratorFunc();
 }
 
@@ -166,7 +164,6 @@ BackwardPass::DoTrackBitOpsOrNumber() const
         tag == Js::BackwardPhase &&
         func->DoGlobOpt() &&
         !IsPrePass() &&
-        !func->IsJitInDebugMode() &&
         func->DoGlobOptsForGeneratorFunc();
 #else
     return false;
@@ -182,7 +179,6 @@ BackwardPass::DoTrackIntOverflow() const
         tag == Js::BackwardPhase &&
         !IsPrePass() &&
         globOpt->DoLossyIntTypeSpec() &&
-        !func->IsJitInDebugMode() &&
         func->DoGlobOptsForGeneratorFunc();
 }
 
@@ -2386,40 +2382,6 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
         tempBv->Minus(bailOutInfo->liveFloat64Syms);
         Assert(tempBv->IsEmpty());
 #endif
-
-        if (this->func->IsJitInDebugMode())
-        {
-            // Add to byteCodeUpwardExposedUsed the non-temp local vars used so far to restore during bail out.
-            // The ones that are not used so far will get their values from bytecode when we continue after bail out in interpreter.
-            Assert(this->func->m_nonTempLocalVars);
-            tempBv->And(this->func->m_nonTempLocalVars, bailOutInfo->liveVarSyms);
-
-            // Remove syms that are restored in other ways than byteCodeUpwardExposedUsed.
-            FOREACH_SLIST_ENTRY(ConstantStackSymValue, value, &bailOutInfo->usedCapturedValues.constantValues)
-            {
-                Assert(value.Key()->HasByteCodeRegSlot() || value.Key()->GetInstrDef()->m_opcode == Js::OpCode::BytecodeArgOutCapture);
-                if (value.Key()->HasByteCodeRegSlot())
-                {
-                    tempBv->Clear(value.Key()->GetByteCodeRegSlot());
-                }
-            }
-            NEXT_SLIST_ENTRY;
-            FOREACH_SLIST_ENTRY(CopyPropSyms, value, &bailOutInfo->usedCapturedValues.copyPropSyms)
-            {
-                Assert(value.Key()->HasByteCodeRegSlot() || value.Key()->GetInstrDef()->m_opcode == Js::OpCode::BytecodeArgOutCapture);
-                if (value.Key()->HasByteCodeRegSlot())
-                {
-                    tempBv->Clear(value.Key()->GetByteCodeRegSlot());
-                }
-            }
-            NEXT_SLIST_ENTRY;
-            if (bailOutInfo->usedCapturedValues.argObjSyms)
-            {
-                tempBv->Minus(bailOutInfo->usedCapturedValues.argObjSyms);
-            }
-
-            byteCodeUpwardExposedUsed->Or(tempBv);
-        }
 
         if (instr->m_opcode != Js::OpCode::BailOnException) // see comment at the beginning of this function
         {

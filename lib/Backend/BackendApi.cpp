@@ -35,7 +35,7 @@ void SetProfileModeNativeCodeGen(NativeCodeGenerator *pNativeCodeGen, BOOL fSet)
 
 void UpdateNativeCodeGeneratorForDebugMode(NativeCodeGenerator* nativeCodeGen)
 {
-    nativeCodeGen->UpdateQueueForDebugMode();
+    
 }
 
 CriticalSection *GetNativeCodeGenCriticalSection(NativeCodeGenerator *pNativeCodeGen)

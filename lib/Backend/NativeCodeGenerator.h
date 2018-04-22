@@ -101,7 +101,6 @@ private:
     Js::CodeGenRecyclableData *GatherCodeGenData(Js::FunctionBody *const topFunctionBody, Js::FunctionBody *const functionBody, Js::EntryPointInfo *const entryPoint, CodeGenWorkItem* workItem, void* function = nullptr);
 
 public:
-    void UpdateQueueForDebugMode();
     bool IsBackgroundJIT() const;
     void EnterScriptStart();
     void FreeNativeCodeGenAllocation(void* codeAddress);

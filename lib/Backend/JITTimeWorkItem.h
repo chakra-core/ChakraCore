@@ -20,7 +20,6 @@ public:
     intptr_t GetLoopHeaderAddr() const;
 
     bool IsLoopBody() const;
-    bool IsJitInDebugMode() const;
     
     intptr_t GetCallsCountAddress() const;
     intptr_t GetJittedLoopIterationsSinceLastBailoutAddr() const;

@@ -237,11 +237,6 @@ BailOutInfo::FinalizeBailOutRecord(Func * func)
 #endif
     }
 #else
-    if (func->IsJitInDebugMode())
-    {
-        // Turn positive SP-relative base locals offset into negative frame-pointer-relative offset
-        func->AjustLocalVarSlotOffset();
-    }
 
     currentBailOutRecord = bailOutRecord;
     int32 inlineeArgStackSize = func->GetInlineeArgumentStackSize();
@@ -1503,7 +1498,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
         // Following _AddressOfReturnAddress <= real address of "returnAddress". Suffices for RemoteStackWalker to test partially initialized interpreter frame.
         Js::InterpreterStackFrame::PushPopFrameHelper pushPopFrameHelper(newInstance, returnAddress, _AddressOfReturnAddress());
 #ifdef ENABLE_SCRIPT_DEBUGGING
-        aReturn = isInDebugMode ? newInstance->DebugProcess() : newInstance->Process();
+
 #else
         aReturn = newInstance->Process();
 #endif

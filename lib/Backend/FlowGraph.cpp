@@ -4351,29 +4351,7 @@ BasicBlock::CleanUpValueMaps()
 
     if (!deadSymsBv.IsEmpty())
     {
-        if (this->func->IsJitInDebugMode())
-        {
-            // Do not remove non-temp local vars from liveVarSyms (i.e. do not let them become dead).
-            // We will need to restore all initialized/used so far non-temp local during bail out.
-            // (See BackwardPass::ProcessBailOutInfo)
-            Assert(this->func->m_nonTempLocalVars);
-            BVSparse<JitArenaAllocator> tempBv(tempAlloc);
-            tempBv.Minus(&deadSymsBv, this->func->m_nonTempLocalVars);
-            this->globOptData.liveVarSyms->Minus(&tempBv);
-#if DBG
-            tempBv.And(this->globOptData.liveInt32Syms, this->func->m_nonTempLocalVars);
-            AssertMsg(tempBv.IsEmpty(), "Type spec is disabled under debugger. How come did we get a non-temp local in liveInt32Syms?");
-            tempBv.And(this->globOptData.liveLossyInt32Syms, this->func->m_nonTempLocalVars);
-            AssertMsg(tempBv.IsEmpty(), "Type spec is disabled under debugger. How come did we get a non-temp local in liveLossyInt32Syms?");
-            tempBv.And(this->globOptData.liveFloat64Syms, this->func->m_nonTempLocalVars);
-            AssertMsg(tempBv.IsEmpty(), "Type spec is disabled under debugger. How come did we get a non-temp local in liveFloat64Syms?");
-#endif
-        }
-        else
-        {
-            this->globOptData.liveVarSyms->Minus(&deadSymsBv);
-        }
-
+        this->globOptData.liveVarSyms->Minus(&deadSymsBv);
         this->globOptData.liveInt32Syms->Minus(&deadSymsBv);
         this->globOptData.liveLossyInt32Syms->Minus(&deadSymsBv);
         this->globOptData.liveFloat64Syms->Minus(&deadSymsBv);

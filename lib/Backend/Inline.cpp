@@ -23,8 +23,7 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
 
     bool doInline = (inlinerData->GetInlineeCount() > 0 || inlinerData->IsLdFldInlineePresent());
     if (PHASE_OFF(Js::InlinePhase, this->topFunc) ||
-        PHASE_OFF(Js::InlinePhase, func) ||
-        func->IsJitInDebugMode())
+        PHASE_OFF(Js::InlinePhase, func))
     {
         doInline = false;
     }
@@ -1284,7 +1283,6 @@ Inline::BuildInlinee(JITTimeFunctionBody* funcBody, const FunctionJITTimeInfo * 
 
     CodeGenWorkItemIDL * workItemData = JitAnewStruct(this->topFunc->m_alloc, CodeGenWorkItemIDL);
 
-    workItemData->isJitInDebugMode = this->topFunc->IsJitInDebugMode();
     workItemData->type = JsFunctionType;
     workItemData->jitMode = static_cast<char>(this->topFunc->GetWorkItem()->GetJitMode());
     workItemData->nativeDataAddr = this->topFunc->GetWorkItem()->GetWorkItemData()->nativeDataAddr;
@@ -2841,7 +2839,6 @@ Inline::InlineCallApplyTarget_Shared(IR::Instr *callInstr, bool originalCallTarg
     // inlinee
     CodeGenWorkItemIDL * workItemData = JitAnewStruct(this->topFunc->m_alloc, CodeGenWorkItemIDL);
 
-    workItemData->isJitInDebugMode = this->topFunc->IsJitInDebugMode();
     workItemData->type = JsFunctionType;
     workItemData->jitMode = static_cast<char>(this->topFunc->GetWorkItem()->GetJitMode());
     workItemData->nativeDataAddr = this->topFunc->GetWorkItem()->GetWorkItemData()->nativeDataAddr;
@@ -3581,7 +3578,6 @@ Inline::InlineGetterSetterFunction(IR::Instr *accessorInstr, const FunctionJITTi
     // inlinee
     CodeGenWorkItemIDL * workItemData = JitAnewStruct(this->topFunc->m_alloc, CodeGenWorkItemIDL);
 
-    workItemData->isJitInDebugMode = this->topFunc->IsJitInDebugMode();
     workItemData->type = JsFunctionType;
     workItemData->jitMode = static_cast<char>(this->topFunc->GetWorkItem()->GetJitMode());
     workItemData->nativeDataAddr = this->topFunc->GetWorkItem()->GetWorkItemData()->nativeDataAddr;
@@ -3938,7 +3934,6 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *co
 
     CodeGenWorkItemIDL * workItemData = JitAnewStruct(this->topFunc->m_alloc, CodeGenWorkItemIDL);
 
-    workItemData->isJitInDebugMode = this->topFunc->IsJitInDebugMode();
     workItemData->type = JsFunctionType;
     workItemData->jitMode = static_cast<char>(this->topFunc->GetWorkItem()->GetJitMode());
     workItemData->nativeDataAddr = this->topFunc->GetWorkItem()->GetWorkItemData()->nativeDataAddr;
