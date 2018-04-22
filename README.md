@@ -2,8 +2,6 @@
 
 [![Join the chat at https://gitter.im/Microsoft/ChakraCore](https://badges.gitter.im/Microsoft/ChakraCore.svg)](https://gitter.im/Microsoft/ChakraCore?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Licensed under the MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Microsoft/ChakraCore/blob/master/LICENSE.txt)
-[![GitHub issues](https://img.shields.io/github/issues/Microsoft/ChakraCore.svg?&colorB=ff0000)](https://github.com/Microsoft/ChakraCore/issues)
-[![GitHub pull requests](https://img.shields.io/github/issues-pr/Microsoft/ChakraCore.svg?colorB=1FBF14)](https://github.com/Microsoft/ChakraCore/pulls)
 
 ChakraCore is the core part of Chakra, the high-performance JavaScript engine that powers Microsoft Edge and Windows applications written in HTML/CSS/JS.  ChakraCore supports Just-in-time (JIT) compilation of JavaScript for x86/x64/ARM, garbage collection, and a wide range of the latest JavaScript features.  ChakraCore also supports the [JavaScript Runtime (JSRT) APIs](https://github.com/Microsoft/ChakraCore/wiki/JavaScript-Runtime-%28JSRT%29-Overview), which allows you to easily embed ChakraCore in your applications.
 
