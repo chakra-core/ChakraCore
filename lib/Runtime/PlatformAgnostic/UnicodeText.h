@@ -21,6 +21,7 @@ namespace PlatformAgnostic
             InvalidParameter,
             InvalidUnicodeText,
             InsufficientBuffer,
+            OutOfMemory,
             UntranslatedError
         };
 
