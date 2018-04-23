@@ -67,3 +67,5 @@ JsCreateEnhancedFunction
 JsSetHostPromiseRejectionTracker
 
 JsGetProxyProperties
+
+LogicalStringCompareImpl

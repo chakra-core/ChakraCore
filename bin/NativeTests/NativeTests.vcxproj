@@ -25,9 +25,8 @@
         $(MSBuildThisFileDirectory);
         $(ChakraCoreRootDirectory)Lib\Common;
         $(ChakraCoreRootDirectory)bin\External;
-        %(AdditionalIncludeDirectories)
+     $(ChakraCoreRootDirectory)lib\Runtime;   %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
-
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <SmallerTypeCheck>false</SmallerTypeCheck>
       <MinimalRebuild>false</MinimalRebuild>
@@ -51,6 +50,7 @@
     <ClCompile Include="MemoryPolicyTest.cpp" />
     <ClCompile Include="NativeTests.cpp" />
     <ClCompile Include="ThreadServiceTest.cpp" />
+    <ClCompile Include="UnicodeTextTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\lib\Common\Codex\Chakra.Common.Codex.vcxproj">
