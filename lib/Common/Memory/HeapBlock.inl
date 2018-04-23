@@ -221,9 +221,6 @@ HeapBlock::UpdateAttributesOfMarkedObjects(MarkContext * markContext, void * obj
     }        
 
 #ifdef RECYCLER_STATS
-    RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), markData.markCount);
-    RECYCLER_STATS_INTERLOCKED_ADD(markContext->GetRecycler(), markData.markBytes, objectSize);
-
     // Don't count track or finalize it if we still have to process it in thread because of OOM
     if ((attributes & (TrackBit | NewTrackBit)) != (TrackBit | NewTrackBit))
     {

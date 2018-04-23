@@ -216,9 +216,6 @@ bool SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::UpdateAttributesOfMar
     }
 
 #ifdef RECYCLER_STATS
-    RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), markData.markCount);
-    RECYCLER_STATS_INTERLOCKED_ADD(markContext->GetRecycler(), markData.markBytes, objectSize);
-
     // Count track or finalize if we don't have to process it in thread because of OOM.
     if ((attributes & (TrackBit | NewTrackBit)) != (TrackBit | NewTrackBit))
     {
