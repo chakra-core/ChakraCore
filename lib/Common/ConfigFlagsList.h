@@ -523,6 +523,7 @@ PHASE(All)
 
 #define DEFAULT_CONFIG_LowMemoryCap         (0xB900000) // 185 MB - based on memory cap for process on low-capacity device
 #define DEFAULT_CONFIG_NewPagesCapDuringBGSweeping    (15000 * 4)
+#define DEFAULT_CONFIG_MaxSingleAllocSizeInMB  (2048)
 
 #define DEFAULT_CONFIG_MaxCodeFill          (500)
 #define DEFAULT_CONFIG_MaxLoopsPerFunction  (10)
@@ -1614,6 +1615,8 @@ FLAGNR(Boolean, ForceSoftwareWriteBarrier, "Use to turn off write watch to test 
 FLAGNR(Boolean, VerifyBarrierBit, "Verify software write barrier bit is set while marking", DEFAULT_CONFIG_VerifyBarrierBit)
 FLAGNR(Boolean, EnableBGFreeZero, "Use to turn off background freeing and zeroing to simulate linux", DEFAULT_CONFIG_EnableBGFreeZero)
 FLAGNR(Boolean, KeepRecyclerTrackData, "Keep recycler track data after sweep until reuse", DEFAULT_CONFIG_KeepRecyclerTrackData)
+
+FLAGNR(Number, MaxSingleAllocSizeInMB, "Max size(in MB) in single allocation", DEFAULT_CONFIG_MaxSingleAllocSizeInMB)
 
 #undef FLAG_REGOVR_EXP
 #undef FLAG_EXPERIMENTAL

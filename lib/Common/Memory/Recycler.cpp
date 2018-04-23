@@ -1320,11 +1320,22 @@ Recycler::LargeAlloc(HeapInfo* heap, size_t size, ObjectInfoBits attributes)
 {
     Assert((attributes & InternalObjectInfoBitMask) == attributes);
 
-    if (size >= HeapConstants::MaxLargeObjectSize)
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+    size_t limit = GetRecyclerFlagsTable().MaxSingleAllocSizeInMB * 1024 * 1024;
+#else
+    size_t limit = CONFIG_FLAG(MaxSingleAllocSizeInMB) * 1024 * 1024;
+#endif
+
+    if (size >= limit)
     {
         if (nothrow == false)
         {
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+            this->IsMemProtectMode() ? MemGCSingleAllocationLimit_fatal_error() :
+                RecyclerSingleAllocationLimit_fatal_error();
+#else
             this->OutOfMemory();
+#endif
         }
         else
         {
