@@ -44,3 +44,7 @@ if (!(exp)) \
 #include "Core/CommonTypedefs.h"
 
 #include <FileLoadHelpers.h>
+#include "TestHooks.h"
+
+extern TestHooks g_testHooks;
+extern bool g_testHooksLoaded;
