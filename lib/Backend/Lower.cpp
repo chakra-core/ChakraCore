@@ -15260,12 +15260,13 @@ Lowerer::GenerateFastElemIStringIndexCommon(IR::Instr * instrInsert, bool isStor
         IR::IndirOpnd::New(indexOpnd, 0, TyMachPtr, m_func),
         LoadVTableValueOpnd(instrInsert, VTableValue::VtablePropertyString),
         Js::OpCode::BrNeq_A, notPropStrLabel, instrInsert);
-    InsertBranch(Js::OpCode::Br, propStrLoadedLabel, instrInsert);
 
     if (!isStore)
     {
         InsertObjectPoison(indexOpnd, branchInstr, instrInsert);
     }
+
+    InsertBranch(Js::OpCode::Br, propStrLoadedLabel, instrInsert);
 
     instrInsert->InsertBefore(notPropStrLabel);
 
