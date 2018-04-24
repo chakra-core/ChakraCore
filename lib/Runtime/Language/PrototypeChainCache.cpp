@@ -296,13 +296,7 @@ NoSpecialPropertyCache::IsDefaultHandledSpecialProperty(_In_ JavascriptString* p
 bool
 NoSpecialPropertyCache::IsCached(_In_ RecyclableObject* prototype)
 {
-    if (!prototype->GetType()->ThisAndPrototypesHaveNoSpecialProperties())
-    {
-        return false;
-    }
-    DynamicObject* dynamicObject = JavascriptOperators::TryFromVar<DynamicObject>(prototype);
-
-    return dynamicObject && !dynamicObject->IsCrossSiteObject();
+    return prototype->GetType()->ThisAndPrototypesHaveNoSpecialProperties();
 }
 
 void
@@ -314,13 +308,7 @@ NoSpecialPropertyCache::Cache(_In_ Type* type)
 bool
 NoSpecialPropertyCache::CheckObject(_In_ RecyclableObject* object)
 {
-    if (object->HasAnySpecialProperties() || object->HasDeferredTypeHandler())
-    {
-        return false;
-    }
-    DynamicObject* dynamicObject = JavascriptOperators::TryFromVar<DynamicObject>(object);
-
-    return dynamicObject && !dynamicObject->IsCrossSiteObject();
+    return !object->HasAnySpecialProperties() && !object->HasDeferredTypeHandler();
 }
 
 #if DBG
