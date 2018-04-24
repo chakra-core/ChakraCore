@@ -487,6 +487,39 @@ var tests = [
     }
   },
   {
+      name: "Super used after object literal in constructor",
+      body: function () {
+        class emptyLiteral extends Object{
+          constructor(){
+            const bar = {};
+            super();
+          }
+        }
+        class methodLiteral extends Object{
+          constructor(){
+            const bar = { c () {}};
+            super();
+          }
+        }
+        class functionLiteral extends Object{
+          constructor(){
+            const bar = { c : function () {}};
+            super();
+          }
+        }
+        class getSetLiteral extends Object{
+          constructor(){
+            const bar = { hid : 5, get c () {return hid;}, set c (x) { hid = x; }};
+            super();
+          }
+        }
+        assert.doesNotThrow(()=>{new emptyLiteral()}, "Super should be valid in constructor after literal.");
+        assert.doesNotThrow(()=>{new methodLiteral()}, "Super should be valid in constructor after literal.");
+        assert.doesNotThrow(()=>{new functionLiteral()}, "Super should be valid in constructor after literal.");
+        assert.doesNotThrow(()=>{new getSetLiteral()}, "Super should be valid in constructor after literal.");
+      }
+  },
+  {
     name: "Super used outside the class declaration function",
     body: function () {
       class A1
