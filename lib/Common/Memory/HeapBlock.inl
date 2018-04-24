@@ -165,25 +165,34 @@ HeapBlock::UpdateAttributesOfMarkedObjects(MarkContext * markContext, void * obj
 
     if (attributes & TrackBit)
     {
-        FinalizableObject * trackedObject = (FinalizableObject *)objectAddress;
-
-#if ENABLE_PARTIAL_GC
-        if (!markContext->GetRecycler()->inPartialCollectMode)
+#ifdef RECYCLER_VISITED_HOST
+        if (GetHeapBlockType() == HeapBlock::HeapBlockType::LargeBlockType)
+        {
+            IRecyclerVisitedObject* recyclerVisited = static_cast<IRecyclerVisitedObject*>(objectAddress);
+            noOOMDuringMark = markContext->AddPreciselyTracedObject(recyclerVisited);
+        }
+        else
 #endif
         {
-#if ENABLE_CONCURRENT_GC
-            if (markContext->GetRecycler()->DoQueueTrackedObject())
-            {
-                if (!markContext->AddTrackedObject(trackedObject))
-                {
-                    noOOMDuringMark = false;
-                }
-            }
-            else
+            FinalizableObject * trackedObject = (FinalizableObject *)objectAddress;
+#if ENABLE_PARTIAL_GC
+            if (!markContext->GetRecycler()->inPartialCollectMode)
 #endif
             {
-                // Process the tracked object right now
-                markContext->MarkTrackedObject(trackedObject);
+#if ENABLE_CONCURRENT_GC
+                if (markContext->GetRecycler()->DoQueueTrackedObject())
+                {
+                    if (!markContext->AddTrackedObject(trackedObject))
+                    {
+                        noOOMDuringMark = false;
+                    }
+                }
+                else
+#endif
+                {
+                    // Process the tracked object right now
+                    markContext->MarkTrackedObject(trackedObject);
+                }
             }
         }
 
