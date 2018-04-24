@@ -6910,6 +6910,10 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JavascriptLibrary *library = scriptContext->GetLibrary();
         HeapArgumentsObject *argsObj = library->CreateHeapArguments(frameObj, formalsCount, !!funcCallee->IsStrictMode());
 
+#if DBG
+        DynamicTypeHandler* typeHandler = argsObj->GetTypeHandler();
+#endif
+
         //
         // Set the number of arguments of Arguments Object
         //
@@ -6928,6 +6932,8 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             JavascriptOperators::SetProperty(argsObj, argsObj, PropertyIds::callee,
                 StackScriptFunction::EnsureBoxed(BOX_PARAM(funcCallee, nullptr, _u("callee"))), scriptContext);
         }
+
+        AssertMsg(argsObj->GetTypeHandler() == typeHandler || scriptContext->IsScriptContextInDebugMode(), "type handler should not transition because we initialized it correctly");
 
         return argsObj;
     }

@@ -262,6 +262,7 @@ namespace Js
         Field(DynamicType *) generatorConstructorPrototypeObjectType;
         Field(DynamicType *) constructorPrototypeObjectType;
         Field(DynamicType *) heapArgumentsType;
+        Field(DynamicType *) strictHeapArgumentsType;
         Field(DynamicType *) activationObjectType;
         Field(DynamicType *) arrayType;
         Field(DynamicType *) nativeIntArrayType;

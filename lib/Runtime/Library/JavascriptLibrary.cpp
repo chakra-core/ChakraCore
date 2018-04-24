@@ -398,6 +398,45 @@ namespace Js
         heapArgumentsType = DynamicType::New(scriptContext, TypeIds_Arguments, objectPrototype, nullptr,
             SimpleDictionaryTypeHandler::New(scriptContext, HeapArgumentsPropertyDescriptors, _countof(HeapArgumentsPropertyDescriptors), 0, 0, true, true), true, true);
 
+        TypePath *const strictHeapArgumentsTypePath = TypePath::New(recycler);
+        strictHeapArgumentsTypePath->Add(BuiltInPropertyRecords::callee);
+        strictHeapArgumentsTypePath->Add<true /*isSetter*/>(BuiltInPropertyRecords::callee);
+        strictHeapArgumentsTypePath->Add(BuiltInPropertyRecords::length);
+        strictHeapArgumentsTypePath->Add(BuiltInPropertyRecords::_symbolIterator);
+        ObjectSlotAttributes *strictHeapArgumentsAttributes = RecyclerNewArrayLeaf(recycler, ObjectSlotAttributes, strictHeapArgumentsTypePath->GetPathSize());
+        strictHeapArgumentsAttributes[0] = (ObjectSlotAttributes)(ObjectSlotAttr_Writable | ObjectSlotAttr_Accessor);
+        strictHeapArgumentsAttributes[1] = ObjectSlotAttr_Setter;
+        strictHeapArgumentsAttributes[2] = (ObjectSlotAttributes)PropertyBuiltInMethodDefaults;
+        strictHeapArgumentsAttributes[3] = (ObjectSlotAttributes)PropertyBuiltInMethodDefaults;
+        for (int i = 4; i < strictHeapArgumentsTypePath->GetPathSize(); ++i)
+        {
+            strictHeapArgumentsAttributes[i] = ObjectSlotAttr_Default;
+        }
+        PathTypeSetterSlotIndex * strictHeapArgumentsSetters = RecyclerNewArrayLeaf(recycler, PathTypeSetterSlotIndex, strictHeapArgumentsTypePath->GetPathSize());
+        strictHeapArgumentsSetters[0] = 1;
+        for (int i = 1; i < strictHeapArgumentsTypePath->GetPathSize(); ++i)
+        {
+            strictHeapArgumentsSetters[i] = NoSetterSlot;
+        }
+        strictHeapArgumentsType = DynamicType::New(
+            scriptContext,
+            TypeIds_Arguments,
+            objectPrototype,
+            nullptr,
+            PathTypeHandlerWithAttr::New(
+                scriptContext,
+                strictHeapArgumentsTypePath,
+                strictHeapArgumentsAttributes,
+                strictHeapArgumentsSetters,
+                1 /*setterCount*/,
+                strictHeapArgumentsTypePath->GetPathLength(),
+                strictHeapArgumentsTypePath->GetPathLength() /*inlineSlotCapacity*/,
+                sizeof(HeapArgumentsObject) /*offsetOfInlineSlots*/,
+                true /*isLocked*/,
+                true /*isShared*/),
+            true /*isLocked*/,
+            true /*isShared*/);
+
 #define INIT_SIMPLE_TYPE(field, typeId, prototype) \
         field = DynamicType::New(scriptContext, typeId, prototype, nullptr, \
             PathTypeHandlerNoAttr::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true)
@@ -5517,26 +5556,15 @@ namespace Js
     HeapArgumentsObject* JavascriptLibrary::CreateHeapArguments(Var frameObj, uint32 formalCount, bool isStrictMode)
     {
         AssertMsg(heapArgumentsType, "Where's heapArgumentsType?");
+        Assert(strictHeapArgumentsType);
 
         Recycler *recycler = this->GetRecycler();
 
         EnsureArrayPrototypeValuesFunction(); //InitializeArrayPrototype can be delay loaded, which could prevent us from access to array.prototype.values
 
-        DynamicType * argumentsType = nullptr;
+        DynamicType * argumentsType = isStrictMode ? strictHeapArgumentsType : heapArgumentsType;
 
-        if (isStrictMode)
-        {
-            //TODO: Make DictionaryTypeHandler shareable - So that Arguments' type can be cached on the javascriptLibrary.
-            DictionaryTypeHandler * dictTypeHandlerForArgumentsInStrictMode = DictionaryTypeHandler::CreateTypeHandlerForArgumentsInStrictMode(recycler, scriptContext);
-            argumentsType = DynamicType::New(scriptContext, TypeIds_Arguments, objectPrototype, nullptr,
-                dictTypeHandlerForArgumentsInStrictMode, false, false);
-        }
-        else
-        {
-            argumentsType = heapArgumentsType;
-        }
-
-        return RecyclerNew(recycler, HeapArgumentsObject, recycler,
+        return RecyclerNewPlusZ(recycler, argumentsType->GetTypeHandler()->GetInlineSlotCapacity() * sizeof(Var), HeapArgumentsObject, recycler,
             frameObj != GetNull() ? static_cast<ActivationObject*>(frameObj) : nullptr,
             formalCount, argumentsType);
     }
