@@ -402,7 +402,9 @@ namespace Js
         Var aValue = nullptr;
         if (JavascriptOperators::CheckIfObjectAndProtoChainHasNoSpecialProperties(this))
         {
-            if (this->GetPrototype() == this->GetLibrary()->GetObjectPrototype())
+            if (this->GetPrototype() == requestContext->GetLibrary()->GetObjectPrototype() &&
+                !this->IsCrossSiteObject() &&
+                !requestContext->GetLibrary()->GetObjectPrototype()->IsCrossSiteObject())
             {
                 aValue = (propertyId == PropertyIds::valueOf)
                     ? requestContext->GetLibrary()->GetObjectValueOfFunction()
