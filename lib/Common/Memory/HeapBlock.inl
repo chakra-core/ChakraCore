@@ -158,41 +158,31 @@ bool
 HeapBlock::UpdateAttributesOfMarkedObjects(MarkContext * markContext, void * objectAddress, size_t objectSize, unsigned char attributes, Fn fn)
 {
 #ifdef RECYCLER_VISITED_HOST
-    Assert(GetHeapBlockType() != HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType && GetHeapBlockType() != HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType);
+    Assert(GetHeapBlockType() != HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType && GetHeapBlockType() != HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType && GetHeapBlockType() != HeapBlock::HeapBlockType::LargeBlockType);
 #endif
 
     bool noOOMDuringMark = true;
 
     if (attributes & TrackBit)
     {
-#ifdef RECYCLER_VISITED_HOST
-        if (GetHeapBlockType() == HeapBlock::HeapBlockType::LargeBlockType)
-        {
-            IRecyclerVisitedObject* recyclerVisited = static_cast<IRecyclerVisitedObject*>(objectAddress);
-            noOOMDuringMark = markContext->AddPreciselyTracedObject(recyclerVisited);
-        }
-        else
+        FinalizableObject * trackedObject = (FinalizableObject *)objectAddress;
+#if ENABLE_PARTIAL_GC
+        if (!markContext->GetRecycler()->inPartialCollectMode)
 #endif
         {
-            FinalizableObject * trackedObject = (FinalizableObject *)objectAddress;
-#if ENABLE_PARTIAL_GC
-            if (!markContext->GetRecycler()->inPartialCollectMode)
+#if ENABLE_CONCURRENT_GC
+            if (markContext->GetRecycler()->DoQueueTrackedObject())
+            {
+                if (!markContext->AddTrackedObject(trackedObject))
+                {
+                    noOOMDuringMark = false;
+                }
+            }
+            else
 #endif
             {
-#if ENABLE_CONCURRENT_GC
-                if (markContext->GetRecycler()->DoQueueTrackedObject())
-                {
-                    if (!markContext->AddTrackedObject(trackedObject))
-                    {
-                        noOOMDuringMark = false;
-                    }
-                }
-                else
-#endif
-                {
-                    // Process the tracked object right now
-                    markContext->MarkTrackedObject(trackedObject);
-                }
+                // Process the tracked object right now
+                markContext->MarkTrackedObject(trackedObject);
             }
         }
 

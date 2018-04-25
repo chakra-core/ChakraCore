@@ -719,6 +719,82 @@ LargeHeapBlock::Mark(void* objectAddress, MarkContext * markContext)
 template void LargeHeapBlock::Mark<true>(void* objectAddress, MarkContext * markContext);
 template void LargeHeapBlock::Mark<false>(void* objectAddress, MarkContext * markContext);
 
+#ifdef RECYCLER_VISITED_HOST
+template <bool doSpecialMark, typename Fn>
+bool
+LargeHeapBlock::UpdateAttributesOfMarkedObjects(MarkContext * markContext, void * objectAddress, size_t objectSize, unsigned char attributes, Fn fn)
+{
+    bool noOOMDuringMark = true;
+
+    if (attributes & TrackBit)
+    {
+        Assert((attributes & LeafBit) == 0);
+        IRecyclerVisitedObject* recyclerVisited = static_cast<IRecyclerVisitedObject*>(objectAddress);
+        noOOMDuringMark = markContext->AddPreciselyTracedObject(recyclerVisited);
+
+        if (noOOMDuringMark)
+        {
+            // Object has been successfully processed, so clear NewTrackBit
+            attributes &= ~NewTrackBit;
+        }
+        else
+        {
+            // Set the NewTrackBit, so that the main thread will redo tracking
+            attributes |= NewTrackBit;
+            noOOMDuringMark = false;
+        }
+        fn(attributes);
+    }
+    else
+    {
+        // only need to scan non-leaf objects
+        if ((attributes & LeafBit) == 0)
+        {
+            if (!markContext->AddMarkedObject(objectAddress, objectSize))
+            {
+                noOOMDuringMark = false;
+            }
+        }
+
+        // Special mark-time behavior for finalizable objects on certain GC's
+        if (doSpecialMark)
+        {
+            if (attributes & FinalizeBit)
+            {
+                FinalizableObject * trackedObject = (FinalizableObject *)objectAddress;
+                trackedObject->OnMark();
+            }
+        }
+    }
+
+#ifdef RECYCLER_STATS
+    RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), markData.markCount);
+    RECYCLER_STATS_INTERLOCKED_ADD(markContext->GetRecycler(), markData.markBytes, objectSize);
+
+    // Don't count track or finalize it if we still have to process it in thread because of OOM
+    if ((attributes & (TrackBit | NewTrackBit)) != (TrackBit | NewTrackBit))
+    {
+        // Only count those we have queued, so we don't double count
+        if (attributes & TrackBit)
+        {
+            RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), trackCount);
+        }
+        if (attributes & FinalizeBit)
+        {
+            // we counted the finalizable object here,
+            // turn off the new bit so we don't count it again
+            // on Rescan
+            attributes &= ~NewFinalizeBit;
+            fn(attributes);
+            RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), finalizeCount);
+        }
+    }
+#endif
+
+    return noOOMDuringMark;
+}
+#endif
+
 bool
 LargeHeapBlock::TestObjectMarkedBit(void* objectAddress)
 {
