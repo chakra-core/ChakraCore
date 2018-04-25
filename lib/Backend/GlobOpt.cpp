@@ -5523,6 +5523,18 @@ GlobOpt::IsPrepassSrcValueInfoPrecise(IR::Opnd *const src, Value *const srcValue
         *isSafeToTransferInPrepass = false;
     }
 
+    if (src->IsAddrOpnd() &&
+        srcValue->GetValueInfo()->GetSymStore() &&
+        srcValue->GetValueInfo()->GetSymStore()->IsStackSym() &&
+        srcValue->GetValueInfo()->GetSymStore()->AsStackSym()->IsFromByteCodeConstantTable())
+    {
+        if (isSafeToTransferInPrepass)
+        {
+            *isSafeToTransferInPrepass = false;
+        }
+        return true;
+    }
+
     if (!src->IsRegOpnd() || !srcValue)
     {
         return false;
