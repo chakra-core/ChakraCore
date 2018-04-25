@@ -184,7 +184,7 @@ namespace Js
 #if DBG
     void JsBuiltInEngineInterfaceExtensionObject::DumpByteCode()
     {
-        Output::Print(_u("Dumping JS Built Ins Byte Code:\r"));
+        Output::Print(_u("Dumping JS Built Ins Byte Code:\n"));
         Assert(this->jsBuiltInByteCode);
         Js::ByteCodeDumper::DumpRecursively(jsBuiltInByteCode);
     }
@@ -407,7 +407,7 @@ namespace Js
 
         DynamicObject* obj = DynamicObject::FromVar(args.Values[1]);
         unsigned propCount = TaggedInt::ToUInt32(args.Values[2]);
-        
+
         Assert(callInfo.Count == 3 + propCount);
 
         for (unsigned i = 0; i < propCount; i++)
@@ -415,7 +415,7 @@ namespace Js
             JavascriptString *propName = JavascriptString::FromVar(args.Values[i + 3]);
             obj->SetPropertyWithAttributes(JavascriptOperators::GetPropertyId(propName, scriptContext), scriptContext->GetLibrary()->GetNull(), PropertyWritable, nullptr);
         }
-        
+
         return obj;
     }
 
