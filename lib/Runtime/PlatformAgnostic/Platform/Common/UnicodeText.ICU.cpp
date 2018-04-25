@@ -120,6 +120,9 @@ namespace PlatformAgnostic
             case U_TRUNCATED_CHAR_FOUND:
             case U_ILLEGAL_CHAR_FOUND:
                 return ApiError::InvalidUnicodeText;
+            case U_INDEX_OUTOFBOUNDS_ERROR: // this is int32 overflow for u_strToCase
+            case U_MEMORY_ALLOCATION_ERROR:
+                return ApiError::OutOfMemory;
             default:
                 return ApiError::UntranslatedError;
             }
@@ -188,11 +191,7 @@ namespace PlatformAgnostic
 
             UErrorCode status = U_ZERO_ERROR;
             int required = unorm2_normalize(normalizer, reinterpret_cast<const UChar *>(sourceString), sourceLength, reinterpret_cast<UChar *>(destString), destLength, &status);
-
-            if (U_FAILURE(status))
-            {
-                *pErrorOut = ApiError::InsufficientBuffer;
-            }
+            *pErrorOut = TranslateUErrorCode(status);
 
             return required;
         }
@@ -251,8 +250,6 @@ namespace PlatformAgnostic
                 resultStringLength = u_strToLower((UChar*) destString, destLength,
                     (UChar*) sourceString, sourceLength, locale, &errorCode);
             }
-
-            AssertMsg(resultStringLength > 0, "u_strToCase must return required destString length");
 
             *pErrorOut = TranslateUErrorCode(errorCode);
 

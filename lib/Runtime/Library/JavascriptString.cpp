@@ -2282,33 +2282,69 @@ case_2:
         }
 
         // pre-flight to get the length required, as it may be longer than the original string
-        // NOTE: ICU and Win32(/POSIX) implementations of these functions differ slightly in how to get the required number of characters.
+        // ICU and Win32(/POSIX) implementations of these functions differ slightly in how to get the required number of characters.
         // For Win32 (LCMapStringEx), you must provide nullptr/0, as providing a buffer that is too small will cause an error and will *not*
         // report the number of characters required. For ICU, however, you can provide a buffer that is too short, and it will still return
         // the length it actually needs.
-        // TODO: Investigate pre-allocating buffers for ICU, as the ICU case will be the default going forward
-        charcount_t requiredStringLength = ChangeStringLinguisticCase<toUpper, useInvariant>(pThis->GetSz(), pThis->GetLength(), nullptr, 0, &error);
-        Assert(error == ApiError::NoError || error == ApiError::InsufficientBuffer);
+        //
+        // This is a small performance optimization because to(Upper|Lower)Case is can show up hot in certain scenarios.
+        // ICU still allows nullptr/0 to be passed to get the string length, and more conservative callers of ChangeStringLinguisticCase should do just that.
+        // TODO(jahorto): A truly PlatformAgnostic API wouldn't require cases like this. Once PlatformAgnostic is allowed to use
+        // Chakra's memory subsystems, this API should be converted to one that only takes a source string and returns a Recycler-allocated
+        // string in the correct case, performed using whatever operation is the fastest available on that platform.
+#ifdef INTL_ICU
+        charcount_t guessBufferLength = UInt32Math::Add(pThisLength, 1);
+        char16 *guessBuffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, guessBufferLength);
+#else
+        charcount_t guessBufferLength = 0;
+        char16 *guessBuffer = nullptr;
+#endif
 
-        // REVIEW: this assert may be too defensive if strings can get shorter through upper/lower casing
-        Assert(requiredStringLength >= pThis->GetLength());
+        charcount_t requiredStringLength = ChangeStringLinguisticCase<toUpper, useInvariant>(pThis->GetSz(), pThis->GetLength(), guessBuffer, guessBufferLength, &error);
+        if (error == ApiError::OutOfMemory)
+        {
+            Throw::OutOfMemory();
+        }
 
+        // We exit ToCaseCore early if the source string is 0-length, and casing a non-zero length string should
+        // never result in a zero-length string.
+        AssertOrFailFast(requiredStringLength > 0 && IsValidCharCount(requiredStringLength));
+
+#ifdef INTL_ICU
+        if (error == ApiError::NoError)
+        {
+            if (requiredStringLength == 1)
+            {
+                // don't create a new string in case we may have cached this string earlier
+                return scriptContext->GetLibrary()->GetCharStringCache().GetStringForChar(guessBuffer[0]);
+            }
+            else
+            {
+                // use requiredStringLength instead of guessBufferLength because the string can get shorter
+                return JavascriptString::NewWithBuffer(guessBuffer, requiredStringLength, scriptContext);
+            }
+        }
+        AssertOrFailFast(error == ApiError::InsufficientBuffer);
+#else
+        AssertOrFailFast(error == ApiError::NoError);
         if (requiredStringLength == 1)
         {
-            // Fast path for one-char strings
+            // this one-char string special case is only for non-ICU because there should never be a case where the error
+            // was InsufficientBufer but the required length was 1
             char16 buffer[2] = { pThis->GetSz()[0], 0 };
             charcount_t actualStringLength = ChangeStringLinguisticCase<toUpper, useInvariant>(pThis->GetSz(), pThis->GetLength(), buffer, 2, &error);
-            Assert(actualStringLength == 1 && error == ApiError::NoError);
+            AssertOrFailFast(actualStringLength == 1 && error == ApiError::NoError);
             return scriptContext->GetLibrary()->GetCharStringCache().GetStringForChar(buffer[0]);
         }
-        else
-        {
-            charcount_t bufferLength = requiredStringLength + 1;
-            char16* buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, bufferLength);
-            charcount_t actualStringLength = ChangeStringLinguisticCase<toUpper, useInvariant>(pThis->GetSz(), pThis->GetLength(), buffer, bufferLength, &error);
-            Assert(actualStringLength == requiredStringLength && error == ApiError::NoError);
-            return JavascriptString::NewWithBuffer(buffer, actualStringLength, scriptContext);
-        }
+#endif
+
+        AssertOrFailFast(requiredStringLength > 1);
+
+        charcount_t bufferLength = UInt32Math::Add(requiredStringLength, 1);
+        char16* buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, bufferLength);
+        charcount_t actualStringLength = ChangeStringLinguisticCase<toUpper, useInvariant>(pThis->GetSz(), pThis->GetLength(), buffer, bufferLength, &error);
+        AssertOrFailFast(actualStringLength == requiredStringLength && error == ApiError::NoError);
+        return JavascriptString::NewWithBuffer(buffer, actualStringLength, scriptContext);
     }
 
     Var JavascriptString::EntryTrim(RecyclableObject* function, CallInfo callInfo, ...)
