@@ -819,16 +819,22 @@ print(glo_t19_k);
 // dynamic via eval
 let glo_t19_l = 'let glo_t19_l';
 {
-    eval("function glo_t19_l(one) { }; print(glo_t19_l);");
+    try { eval("function glo_t19_l(one) { }; print(glo_t19_l);"); } catch (e) { print(e); }
     print(glo_t19_l);
 }
 print(glo_t19_l);
 print(this.glo_t19_l);
 
+{
+    try { eval("function declaredLater(one) { }; print(declaredLater);"); } catch (e) { print(e); }
+}
+let declaredLater = 'let declaredLater';
+print(declaredLater);
+
 glo_t19_l = 'outer let glo_t19_l';
 {
     let glo_t19_l = 'inner let glo_t19_l';
-    eval("function glo_t19_l(two) { }; print(glo_t19_l);");
+    try { eval("function glo_t19_l(two) { }; print(glo_t19_l);"); } catch (e) { print(e); }
     print(glo_t19_l);
 }
 print(glo_t19_l);

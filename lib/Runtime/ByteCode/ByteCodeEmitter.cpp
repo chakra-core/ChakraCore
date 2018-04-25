@@ -5572,28 +5572,65 @@ void ByteCodeGenerator::EmitPropTypeof(Js::RegSlot lhsLocation, Symbol *sym, Ide
 
 void ByteCodeGenerator::EnsureNoRedeclarations(ParseNodeBlock *pnodeBlock, FuncInfo *funcInfo)
 {
-    // Emit dynamic runtime checks for variable re-declarations. Only necessary for global functions (script or eval).
+    // Emit dynamic runtime checks for re-declarations. Only necessary for global functions (script or eval).
     // In eval only var declarations can cause redeclaration, and only in non-strict mode, because let/const variables
-    // remain local to the eval code.
+    // and functions remain local to the eval code.
 
     Assert(pnodeBlock->nop == knopBlock);
     Assert(pnodeBlock->blockType == PnodeBlockType::Global || pnodeBlock->scope->GetScopeType() == ScopeType_GlobalEvalBlock);
 
+    auto emitEnsureNoRootFld = [this](Symbol * sym, Js::OpCode opCode)
+    {
+        FuncInfo *funcInfo = this->TopFuncInfo();
+        Assert(sym->GetIsGlobal());
+        Js::PropertyId propertyId = sym->EnsurePosition(this);
+        this->m_writer.ElementRootU(opCode, funcInfo->FindOrAddReferencedPropertyId(propertyId));
+    };
+
     if (!(this->flags & fscrEvalCode))
     {
-        IterateBlockScopedVariables(pnodeBlock, [this](ParseNode *pnode)
+        // scan for let/const
+        // these will conflict with all global properties including other global let and const variables
+        IterateBlockScopedVariables(pnodeBlock, [&](ParseNode *pnode)
         {
-            FuncInfo *funcInfo = this->TopFuncInfo();
-            Symbol *sym = pnode->AsParseNodeVar()->sym;
-
-            Assert(sym->GetIsGlobal());
-
-            Js::PropertyId propertyId = sym->EnsurePosition(this);
-
-            this->m_writer.ElementRootU(Js::OpCode::EnsureNoRootFld, funcInfo->FindOrAddReferencedPropertyId(propertyId));
+            emitEnsureNoRootFld(pnode->AsParseNodeVar()->sym, Js::OpCode::EnsureNoRootFld);
         });
     }
 
+    // scan for function declarations
+    // these behave like "var" declarations and will conflict with properties 
+    // on the root object (that excludes global let and const variables)
+    for (ParseNodePtr pnode = pnodeBlock->pnodeScopes; pnode;)
+    {
+        switch (pnode->nop) {
+
+        case knopFncDecl:
+            if (pnode->AsParseNodeFnc()->IsDeclaration())
+            {
+                emitEnsureNoRootFld(pnode->AsParseNodeFnc()->pnodeName->sym, Js::OpCode::EnsureNoRootRedeclFld);
+            }
+
+            pnode = pnode->AsParseNodeFnc()->pnodeNext;
+            break;
+
+        case knopBlock:
+            pnode = pnode->AsParseNodeBlock()->pnodeNext;
+            break;
+
+        case knopCatch:
+            pnode = pnode->AsParseNodeCatch()->pnodeNext;
+            break;
+
+        case knopWith:
+            pnode = pnode->AsParseNodeWith()->pnodeNext;
+            break;
+
+        default:
+            Assert(UNREACHED);
+        }
+    }
+
+    // scan for var declarations
     for (ParseNode *pnode = funcInfo->root->pnodeVars; pnode; pnode = pnode->AsParseNodeVar()->pnodeNext)
     {
         Symbol* sym = pnode->AsParseNodeVar()->sym;
