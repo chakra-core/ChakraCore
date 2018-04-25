@@ -109,6 +109,10 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     recyclerFlagsTable(configFlagsTable),
     recyclerPageAllocator(this, policyManager, configFlagsTable, RecyclerHeuristic::Instance.DefaultMaxFreePageCount, RecyclerHeuristic::Instance.DefaultMaxAllocPageCount),
     recyclerLargeBlockPageAllocator(this, policyManager, configFlagsTable, RecyclerHeuristic::Instance.DefaultMaxFreePageCount),
+#ifdef ENABLE_JS_ETW
+    collectionStartReason(ETWEventGCActivationTrigger::ETWEvent_GC_Trigger_Unknown),
+    collectionFinishReason(ETWEventGCActivationTrigger::ETWEvent_GC_Trigger_Unknown),
+#endif
     threadService(nullptr),
 #ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
     recyclerWithBarrierPageAllocator(this, policyManager, configFlagsTable, RecyclerHeuristic::Instance.DefaultMaxFreePageCount, PageAllocator::DefaultMaxAllocPageCount, true),
@@ -3144,10 +3148,18 @@ Recycler::Sweep(bool concurrent)
             // Continue as if the concurrent sweep were executing
             // Next time we check for completion, we will finish the sweep just as if it had happened out of thread.
         }
+
+#ifdef ENABLE_JS_ETW
+        collectionFinishReason = ETWEventGCActivationTrigger::ETWEvent_GC_Trigger_Status_StartedConcurrent;
+#endif
         return true;
     }
 #endif
 
+#ifdef ENABLE_JS_ETW
+    // The false below just means we don't need a concurrent sweep as we have completed a sweep above.
+    collectionFinishReason = ETWEventGCActivationTrigger::ETWEvent_GC_Trigger_Status_Completed;
+#endif
     return false;
 }
 
@@ -3694,6 +3706,12 @@ Recycler::CollectWithHeuristic()
             // Maybe improve this heuristic by looking at how many free pages are in the page allocator.
             if (autoHeap.uncollectedNewPageCount > this->uncollectedNewPageCountPartialCollect)
             {
+#ifdef ENABLE_JS_ETW
+                if (IS_UNKNOWN_GC_TRIGGER(collectionStartReason))
+                {
+                    collectionStartReason = ETWEventGCActivationTrigger::ETWEvent_GC_Trigger_Partial_GC_AllocSize_Heuristic;
+                }
+#endif
                 return Collect<flags>();
             }
         }
@@ -3916,6 +3934,38 @@ Recycler::DoCollect(CollectionFlags flags)
             return true;
         }
         Assert(this->backgroundFinishMarkCount == 0);
+#endif
+
+#ifdef ENABLE_JS_ETW
+        this->collectionStartFlags = flags;
+
+        if (flags == CollectOnScriptIdle)
+        {
+            collectionStartReason = ETWEventGCActivationTrigger::ETWEvent_GC_Trigger_IdleCollect;
+        }
+
+        const BOOL timedIfScriptActive = flags & CollectHeuristic_TimeIfScriptActive;
+        const BOOL timedIfInScript = flags & CollectHeuristic_TimeIfInScript;
+        if (IS_UNKNOWN_GC_TRIGGER(collectionStartReason) && (flags & CollectHeuristic_Mask))
+        {
+            if (timedIfScriptActive)
+            {
+                collectionStartReason = ETWEventGCActivationTrigger::ETWEvent_GC_Trigger_TimeAndAllocSizeIfScriptActive_Heuristic;
+            }
+            else if (timedIfInScript)
+            {
+                collectionStartReason = ETWEventGCActivationTrigger::ETWEvent_GC_Trigger_TimeAndAllocSizeIfInScript_Heuristic;
+            }
+            else
+            {
+                collectionStartReason = ETWEventGCActivationTrigger::ETWEvent_GC_Trigger_TimeAndAllocSize_Heuristic;
+            }
+        }
+
+        if (IS_UNKNOWN_GC_TRIGGER(collectionStartReason))
+        {
+            this->collectionStartReason = ETWEventGCActivationTrigger::ETWEvent_GC_Trigger_NoHeuristic;
+        }
 #endif
 
 #if DBG || defined RECYCLER_TRACE
@@ -4274,6 +4324,7 @@ Recycler::CollectionBegin()
 {
     RECYCLER_PROFILE_EXEC_BEGIN2(this, Js::RecyclerPhase, phase);
     GCETW_INTERNAL(GC_START, (this, GetETWEventGCActivationKind<phase>()));
+    GCETW_INTERNAL(GC_START2, (this, GetETWEventGCActivationKind<phase>(), this->collectionStartReason, this->collectionStartFlags));
 }
 
 template <Js::Phase phase>
@@ -4281,6 +4332,7 @@ void
 Recycler::CollectionEnd()
 {
     GCETW_INTERNAL(GC_STOP, (this, GetETWEventGCActivationKind<phase>()));
+    GCETW_INTERNAL(GC_STOP2, (this, GetETWEventGCActivationKind<phase>(), this->collectionFinishReason, this->collectionStartFlags));
     RECYCLER_PROFILE_EXEC_END2(this, phase, Js::RecyclerPhase);
 }
 
@@ -4481,6 +4533,9 @@ Recycler::CollectOnConcurrentThread()
         {
             Output::Print(_u("%04X> RC(%p): %s: %s\n"), this->mainThreadId, this, Js::PhaseNames[Js::ThreadCollectPhase], _u("Timeout"));
         }
+#endif
+#ifdef ENABLE_JS_ETW
+        collectionFinishReason = ETWEventGCActivationTrigger::ETWEvent_GC_Trigger_Status_FailedTimeout;
 #endif
         this->CollectionEnd<Js::ThreadCollectPhase>();
 
@@ -5216,6 +5271,9 @@ Recycler::StartBackgroundMark(bool foregroundResetMark, bool foregroundFindRoots
             {
                 // Disable concurrent mark
                 this->enableConcurrentMark = false;
+#ifdef ENABLE_JS_ETW
+                collectionFinishReason = ETWEventGCActivationTrigger::ETWEvent_GC_Trigger_Status_Failed;
+#endif
                 return false;
             }
         }
@@ -5252,9 +5310,16 @@ Recycler::StartBackgroundMark(bool foregroundResetMark, bool foregroundFindRoots
             this->RevertPrepareBackgroundFindRoots();
         }
         this->collectionState = CollectionStateNotCollecting;
+
+#ifdef ENABLE_JS_ETW
+        collectionFinishReason = ETWEventGCActivationTrigger::ETWEvent_GC_Trigger_Status_Failed;
+#endif
         return false;
     }
 
+#ifdef ENABLE_JS_ETW
+    collectionFinishReason = ETWEventGCActivationTrigger::ETWEvent_GC_Trigger_Status_StartedConcurrent;
+#endif
     return true;
 }
 
@@ -5735,6 +5800,7 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
     if (collectionState == CollectionStateRescanWait)
     {
         GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentRescan));
+        GCETW_INTERNAL(GC_START2, (this, ETWEvent_ConcurrentRescan, this->collectionStartReason, this->collectionStartFlags));
 
 #ifdef RECYCLER_TRACE
 #if ENABLE_PARTIAL_GC
@@ -5765,6 +5831,7 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
             Assert(this->IsMarkState());
             RECYCLER_PROFILE_EXEC_END2(this, concurrentPhase, Js::RecyclerPhase);
             GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentRescan));
+            GCETW_INTERNAL(GC_STOP2, (this, ETWEvent_ConcurrentRescan, this->collectionStartReason, this->collectionStartFlags));
 
             // we timeout trying to mark.
             return false;
@@ -5791,6 +5858,7 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
         needConcurrentSweep = this->Sweep(concurrent);
 #endif
         GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentRescan));
+        GCETW_INTERNAL(GC_STOP2, (this, ETWEvent_ConcurrentRescan, this->collectionStartReason, this->collectionStartFlags));
     }
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     else if (collectionState == CollectionStateConcurrentSweepPass1Wait)
@@ -5860,6 +5928,7 @@ void
 Recycler::FinishTransferSwept(CollectionFlags flags)
 {
     GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentTransferSwept));
+    GCETW_INTERNAL(GC_START2, (this, ETWEvent_ConcurrentTransferSwept, this->collectionStartReason, this->collectionStartFlags));
     GCETW(GC_FLUSHZEROPAGE_START, (this));
 
     Assert(collectionState == CollectionStateTransferSweptWait);
@@ -5898,6 +5967,7 @@ Recycler::FinishTransferSwept(CollectionFlags flags)
     GCETW(GC_TRANSFERSWEPTOBJECTS_STOP, (this));
 
     GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentTransferSwept));
+    GCETW_INTERNAL(GC_STOP2, (this, ETWEvent_ConcurrentTransferSwept, this->collectionStartReason, this->collectionStartFlags));
 }
 
 #if !DISABLE_SEH
@@ -5990,6 +6060,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
         RECYCLER_PROFILE_EXEC_BACKGROUND_BEGIN(this, this->collectionState == CollectionStateConcurrentFinishMark ?
             Js::BackgroundFinishMarkPhase : Js::ConcurrentMarkPhase);
         GCETW_INTERNAL(GC_START, (this, BackgroundMarkETWEventGCActivationKind(this->collectionState)));
+        GCETW_INTERNAL(GC_START2, (this, BackgroundMarkETWEventGCActivationKind(this->collectionState), this->collectionStartReason, this->collectionStartFlags));
         DebugOnly(this->markContext.GetPageAllocator()->SetConcurrentThreadId(::GetCurrentThreadId()));
         Assert(this->enableConcurrentMark);
         if (this->collectionState != CollectionStateConcurrentFinishMark)
@@ -6022,6 +6093,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
             break;
         };
         GCETW_INTERNAL(GC_STOP, (this, BackgroundMarkETWEventGCActivationKind(this->collectionState)));
+        GCETW_INTERNAL(GC_STOP2, (this, BackgroundMarkETWEventGCActivationKind(this->collectionState), this->collectionStartReason, this->collectionStartFlags));
         RECYCLER_PROFILE_EXEC_BACKGROUND_END(this, this->collectionState == CollectionStateConcurrentFinishMark ?
             Js::BackgroundFinishMarkPhase : Js::ConcurrentMarkPhase);
 
@@ -6064,11 +6136,13 @@ Recycler::DoBackgroundWork(bool forceForeground)
             if (this->collectionState == CollectionStateConcurrentSweepPass1)
             {
                 GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep_Pass1));
+                GCETW_INTERNAL(GC_START2, (this, ETWEvent_ConcurrentSweep_Pass1, this->collectionStartReason, this->collectionStartFlags));
             }
             else
 #endif
             {
                 GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep));
+                GCETW_INTERNAL(GC_START2, (this, ETWEvent_ConcurrentSweep, this->collectionStartReason, this->collectionStartFlags));
             }
 
             GCETW(GC_BACKGROUNDZEROPAGE_START, (this));
@@ -6095,6 +6169,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
             if (this->collectionState == CollectionStateConcurrentSweepPass1)
             {
                 GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep_Pass1));
+                GCETW_INTERNAL(GC_STOP2, (this, ETWEvent_ConcurrentSweep_Pass1, this->collectionStartReason, this->collectionStartFlags));
             }
 #endif
 
@@ -6178,6 +6253,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
             {
                 Assert(this->collectionState == CollectionStateConcurrentSweep);
                 GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep));
+                GCETW_INTERNAL(GC_STOP2, (this, ETWEvent_ConcurrentSweep, this->collectionStartReason, this->collectionStartFlags));
             }
             this->collectionState = CollectionStateTransferSweptWait;
         }
@@ -6345,8 +6421,10 @@ Recycler::DoTwoPassConcurrentSweepPreCheck()
         {
             // We fire the ETW event only when the actual 2-pass check is performed. This is to avoid messing up ETL processing of test runs when in partial collect.
             GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep_TwoPassSweepPreCheck));
+            GCETW_INTERNAL(GC_START2, (this, ETWEvent_ConcurrentSweep_TwoPassSweepPreCheck, this->collectionStartReason, this->collectionStartFlags));
             this->allowAllocationsDuringConcurrentSweepForCollection = this->autoHeap.DoTwoPassConcurrentSweepPreCheck();
             GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep_TwoPassSweepPreCheck));
+            GCETW_INTERNAL(GC_STOP2, (this, ETWEvent_ConcurrentSweep_TwoPassSweepPreCheck, this->collectionStartReason, this->collectionStartFlags));
         }
     }
 }
@@ -6355,24 +6433,28 @@ void
 Recycler::FinishConcurrentSweepPass1()
 {
     GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep_FinishPass1));
+    GCETW_INTERNAL(GC_START2, (this, ETWEvent_ConcurrentSweep_FinishPass1, this->collectionStartReason, this->collectionStartFlags));
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
     {
         AssertMsg(this->allowAllocationsDuringConcurrentSweepForCollection, "Two pass concurrent sweep must be turned on.");
         this->autoHeap.FinishConcurrentSweepPass1(this->recyclerSweepInstance);
     }
     GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep_FinishPass1));
+    GCETW_INTERNAL(GC_STOP2, (this, ETWEvent_ConcurrentSweep_FinishPass1, this->collectionStartReason, this->collectionStartFlags));
 }
 
 void
 Recycler::FinishSweepPrep()
 {
     GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep_FinishSweepPrep));
+    GCETW_INTERNAL(GC_START2, (this, ETWEvent_ConcurrentSweep_FinishSweepPrep, this->collectionStartReason, this->collectionStartFlags));
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
     {
         AssertMsg(this->allowAllocationsDuringConcurrentSweepForCollection, "Two pass concurrent sweep must be turned on.");
         this->autoHeap.FinishSweepPrep(this->recyclerSweepInstance);
     }
     GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep_FinishSweepPrep));
+    GCETW_INTERNAL(GC_STOP2, (this, ETWEvent_ConcurrentSweep_FinishSweepPrep, this->collectionStartReason, this->collectionStartFlags));
 }
 
 void
@@ -6380,12 +6462,14 @@ Recycler::FinishConcurrentSweep()
 {
 #if SUPPORT_WIN32_SLIST
     GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep_FinishTwoPassSweep));
+    GCETW_INTERNAL(GC_START2, (this, ETWEvent_ConcurrentSweep_FinishTwoPassSweep, this->collectionStartReason, this->collectionStartFlags));
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
     {
         AssertMsg(this->allowAllocationsDuringConcurrentSweepForCollection, "Two pass concurrent sweep must be turned on.");
         this->autoHeap.FinishConcurrentSweep();
     }
     GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep_FinishTwoPassSweep));
+    GCETW_INTERNAL(GC_STOP2, (this, ETWEvent_ConcurrentSweep_FinishTwoPassSweep, this->collectionStartReason, this->collectionStartFlags));
 #endif
 }
 #endif
@@ -6482,6 +6566,11 @@ Recycler::FinishCollection()
 
 #if ENABLE_MEM_STATS
     autoHeap.ReportMemStats();
+#endif
+
+#ifdef ENABLE_JS_ETW
+    this->collectionStartReason = ETWEventGCActivationTrigger::ETWEvent_GC_Trigger_Unknown;
+    this->collectionFinishReason = ETWEventGCActivationTrigger::ETWEvent_GC_Trigger_Unknown;
 #endif
 
     RECORD_TIMESTAMP(currentCollectionEndTime);

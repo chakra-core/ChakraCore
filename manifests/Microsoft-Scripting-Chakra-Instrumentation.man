@@ -983,6 +983,16 @@
                     name="Memprotect_GC_PreSweepCallback"
                     value="115"
                     />
+                <task
+                    eventGUID="{493BE439-9A73-4303-AE84-5437F2A04EBA}"
+                    name="Jscript_GC2"
+                    value="116"
+                />
+                <task
+                    eventGUID="{78B2F90D-2786-405B-9FFD-E6E45E12AC1D}"
+                    name="Memprotect_GC2"
+                    value="117"
+                />
             </tasks>
             <maps>
                 <valueMap name="MethodAddressRangeMap">
@@ -1320,7 +1330,26 @@
                     name="SweptBytes"
                     />
                 </template>
-                <template tid="GCBucketStats">
+              <template tid="GCTriggerInfo">
+                <data
+                    inType="win:Pointer"
+                    name="RecyclerID"
+                    outType="win:HexInt64"
+                    />
+                <data
+                    inType="win:UInt32"
+                    name="Phase"
+                    />
+                <data
+                    inType="win:UInt32"
+                    name="CollectionTrigger"
+                    />
+                <data
+                    inType="win:UInt32"
+                    name="CollectionStartFlags"
+                    />
+              </template>
+              <template tid="GCBucketStats">
                 <data
                     inType="win:Pointer"
                     name="RecyclerID"
@@ -4096,8 +4125,7 @@
                     value="242"
                     />
                 <event
-                    keywords="JScriptGCBucketStats"
-                    level="win:Verbose"
+                    keywords="JScriptGarbageCollection"
                     opcode="win:Info"
                     symbol="JSCRIPT_GC_BUCKET_STATS"
                     task="Jscript_GC_Bucket_Stats"
@@ -4105,8 +4133,7 @@
                     value="243"
                     />
                 <event
-                    keywords="MemProtectGCBucketStats"
-                    level="win:Verbose"
+                    keywords="MemProtectGarbageCollection"
                     opcode="win:Info"
                     symbol="MEMPROTECT_GC_BUCKET_STATS"
                     task="Memprotect_GC_Bucket_Stats"
@@ -4176,6 +4203,54 @@
                     template="GCPhase"
                     value="252"
                     />
+                <event
+                    keywords="JScriptGarbageCollection"
+                    opcode="win:Stop"
+                    symbol="JSCRIPT_GC_SWEEP_WEAKREF_STOP_EX"
+                    task="Jscript_GC_SweepWeakRef"
+                    template="GCInThreadSweepData"
+                    value="253"
+                    />
+                <event
+                    keywords="MemProtectGarbageCollection"
+                    opcode="win:Stop"
+                    symbol="MEMPROTECT_GC_SWEEP_WEAKREF_STOP_EX"
+                    task="Memprotect_GC_SweepWeakRef"
+                    template="GCInThreadSweepData"
+                    value="254"
+                    />
+                <event
+                    keywords="JScriptGarbageCollection"
+                    opcode="win:Start"
+                    symbol="JSCRIPT_GC_START2"
+                    task="Jscript_GC2"
+                    template="GCTriggerInfo"
+                    value="255"
+                        />
+                <event
+                    keywords="JScriptGarbageCollection"
+                    opcode="win:Stop"
+                    symbol="JSCRIPT_GC_STOP2"
+                    task="Jscript_GC2"
+                    template="GCTriggerInfo"
+                    value="256"
+                        />
+                <event
+                    keywords="MemProtectGarbageCollection"
+                    opcode="win:Start"
+                    symbol="MEMPROTECT_GC_START2"
+                    task="Memprotect_GC2"
+                    template="GCTriggerInfo"
+                    value="257"
+                        />
+                <event
+                    keywords="MemProtectGarbageCollection"
+                    opcode="win:Stop"
+                    symbol="MEMPROTECT_GC_STOP2"
+                    task="Memprotect_GC2"
+                    template="GCTriggerInfo"
+                    value="258"
+                        />
             </events>
             </provider>
         </events>

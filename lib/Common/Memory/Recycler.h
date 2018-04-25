@@ -53,6 +53,23 @@ namespace Memory
         ETWEvent_ConcurrentSweep_FinishTwoPassSweep     = 21,     // Drain the SLIST at the end of the 2-pass concurrent sweep and begin normal allocations.
     };
 
+#define IS_UNKNOWN_GC_TRIGGER(v)    (v == ETWEvent_GC_Trigger_Unknown)
+
+    enum ETWEventGCActivationTrigger : unsigned
+    {
+        ETWEvent_GC_Trigger_Unknown                                    = 0,
+        ETWEvent_GC_Trigger_IdleCollect                                = 1,
+        ETWEvent_GC_Trigger_Partial_GC_AllocSize_Heuristic             = 2,
+        ETWEvent_GC_Trigger_TimeAndAllocSize_Heuristic                 = 3,
+        ETWEvent_GC_Trigger_TimeAndAllocSizeIfScriptActive_Heuristic   = 4,
+        ETWEvent_GC_Trigger_TimeAndAllocSizeIfInScript_Heuristic       = 5,
+        ETWEvent_GC_Trigger_NoHeuristic                                = 6,
+        ETWEvent_GC_Trigger_Status_Completed                           = 7,
+        ETWEvent_GC_Trigger_Status_StartedConcurrent                   = 8,
+        ETWEvent_GC_Trigger_Status_Failed                              = 9,
+        ETWEvent_GC_Trigger_Status_FailedTimeout                       = 10
+    };
+
 template <typename T> class RecyclerRootPtr;
 
 class AutoBooleanToggle
@@ -750,6 +767,12 @@ private:
         CollectionState _exitState;
     };
 
+#if defined(ENABLE_JS_ETW)
+    uint collectionStartReason;
+    CollectionFlags collectionStartFlags;
+    uint collectionFinishReason;
+#endif
+
     CollectionState collectionState;
     JsUtil::ThreadService *threadService;
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
@@ -843,6 +866,8 @@ private:
     // We add one because there is a small amount of the page reserved for page pool metadata
     // so we need to allocate an additional page to be sure
     // Currently, this works out to 2 pages on 32-bit and 5 pages on 64-bit
+    // NOTE: We have reduced the PageCount for small blocks to 1. This brought down the number of pages reserved for x64 from 5 to 2. This has not shown
+    // any adverse impact.
     static const int PrimaryMarkStackReservedPageCount =
         ((SmallAllocationBlockAttributes::PageCount * MarkContext::MarkCandidateSize) / SmallAllocationBlockAttributes::MinObjectSize) + 1;
 

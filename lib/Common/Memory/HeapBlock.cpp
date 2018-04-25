@@ -187,6 +187,7 @@ SmallHeapBlockT<TBlockAttributes>::ConstructorCommon(HeapBucket * bucket, ushort
     this->Init(objectSize, objectCount);
     Assert(heapBlockType < HeapBlock::HeapBlockType::SmallAllocBlockTypeCount + HeapBlock::HeapBlockType::MediumAllocBlockTypeCount);
     Assert(objectCount > 1 && objectCount == (this->GetPageCount() * AutoSystemInfo::PageSize) / objectSize);
+
 #if defined(RECYCLER_SLOW_CHECK_ENABLED)
     heapBucket->heapInfo->heapBlockCount[heapBlockType]++;
 #endif

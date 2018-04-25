@@ -281,7 +281,11 @@ HRESULT HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>::GenerateVali
 
             const char16 *format = _u("0x%04hX, 0x%04hX");
             IfErrorGotoCleanup(fwprintf(file, format, (*blockMap)[i][j].lastObjectIndexOnPage, (*blockMap)[i][j].pageObjectCount));
+#if USE_FEWER_PAGES_PER_BLOCK
+            IfErrorGotoCleanup(fwprintf(file, _u(" }\n")));
+#else
             IfErrorGotoCleanup(fwprintf(file, (j < SmallAllocationBlockAttributes::PageCount - 1 ? _u(" },\n") : _u(" }\n"))));
+#endif
         }
         IfErrorGotoCleanup(fwprintf(file, (i < HeapConstants::BucketCount - 1 ? _u("    },\n") : _u("    }\n"))));
     }
