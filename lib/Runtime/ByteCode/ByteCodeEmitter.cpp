@@ -8771,9 +8771,17 @@ void SetNewArrayElements(ParseNode *pnode, Js::RegSlot arrayLocation, ByteCodeGe
 // will not short-circuit in some cases and is not complete (for example: var i=(x==y))
 // This uses Aho and Ullman style double-branch generation (p. 494 ASU); we will need to peephole optimize or replace
 // with special case for single-branch style.
-void EmitBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabel, Js::ByteCodeLabel falseLabel, ByteCodeGenerator *byteCodeGenerator,
-    FuncInfo *funcInfo)
+void EmitBooleanExpression(
+    _In_ ParseNode* expr,
+    Js::ByteCodeLabel trueLabel,
+    Js::ByteCodeLabel falseLabel,
+    _In_ ByteCodeGenerator* byteCodeGenerator,
+    _In_ FuncInfo* funcInfo,
+    bool trueFallthrough,
+    bool falseFallthrough)
 {
+    Assert(!trueFallthrough || !falseFallthrough);
+
     byteCodeGenerator->StartStatement(expr);
     switch (expr->nop)
     {
@@ -8781,10 +8789,10 @@ void EmitBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabel, Js::Byt
     case knopLogOr:
     {
         Js::ByteCodeLabel leftFalse = byteCodeGenerator->Writer()->DefineLabel();
-        EmitBooleanExpression(expr->AsParseNodeBin()->pnode1, trueLabel, leftFalse, byteCodeGenerator, funcInfo);
+        EmitBooleanExpression(expr->AsParseNodeBin()->pnode1, trueLabel, leftFalse, byteCodeGenerator, funcInfo, false, true);
         funcInfo->ReleaseLoc(expr->AsParseNodeBin()->pnode1);
         byteCodeGenerator->Writer()->MarkLabel(leftFalse);
-        EmitBooleanExpression(expr->AsParseNodeBin()->pnode2, trueLabel, falseLabel, byteCodeGenerator, funcInfo);
+        EmitBooleanExpression(expr->AsParseNodeBin()->pnode2, trueLabel, falseLabel, byteCodeGenerator, funcInfo, trueFallthrough, falseFallthrough);
         funcInfo->ReleaseLoc(expr->AsParseNodeBin()->pnode2);
         break;
     }
@@ -8792,16 +8800,16 @@ void EmitBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabel, Js::Byt
     case knopLogAnd:
     {
         Js::ByteCodeLabel leftTrue = byteCodeGenerator->Writer()->DefineLabel();
-        EmitBooleanExpression(expr->AsParseNodeBin()->pnode1, leftTrue, falseLabel, byteCodeGenerator, funcInfo);
+        EmitBooleanExpression(expr->AsParseNodeBin()->pnode1, leftTrue, falseLabel, byteCodeGenerator, funcInfo, true, false);
         funcInfo->ReleaseLoc(expr->AsParseNodeBin()->pnode1);
         byteCodeGenerator->Writer()->MarkLabel(leftTrue);
-        EmitBooleanExpression(expr->AsParseNodeBin()->pnode2, trueLabel, falseLabel, byteCodeGenerator, funcInfo);
+        EmitBooleanExpression(expr->AsParseNodeBin()->pnode2, trueLabel, falseLabel, byteCodeGenerator, funcInfo, trueFallthrough, falseFallthrough);
         funcInfo->ReleaseLoc(expr->AsParseNodeBin()->pnode2);
         break;
     }
 
     case knopLogNot:
-        EmitBooleanExpression(expr->AsParseNodeUni()->pnode1, falseLabel, trueLabel, byteCodeGenerator, funcInfo);
+        EmitBooleanExpression(expr->AsParseNodeUni()->pnode1, falseLabel, trueLabel, byteCodeGenerator, funcInfo, falseFallthrough, trueFallthrough);
         funcInfo->ReleaseLoc(expr->AsParseNodeUni()->pnode1);
         break;
 
@@ -8818,13 +8826,22 @@ void EmitBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabel, Js::Byt
         funcInfo->ReleaseLoc(expr->AsParseNodeBin()->pnode1);
         byteCodeGenerator->Writer()->BrReg2(nopToOp[expr->nop], trueLabel, expr->AsParseNodeBin()->pnode1->location,
             expr->AsParseNodeBin()->pnode2->location);
-        byteCodeGenerator->Writer()->Br(falseLabel);
+        if (!falseFallthrough)
+        {
+            byteCodeGenerator->Writer()->Br(falseLabel);
+        }
         break;
     case knopTrue:
-        byteCodeGenerator->Writer()->Br(trueLabel);
+        if (!trueFallthrough)
+        {
+            byteCodeGenerator->Writer()->Br(trueLabel);
+        }
         break;
     case knopFalse:
-        byteCodeGenerator->Writer()->Br(falseLabel);
+        if (!falseFallthrough)
+        {
+            byteCodeGenerator->Writer()->Br(falseLabel);
+        }
         break;
     default:
         // Note: we usually release the temp assigned to a node after we Emit it.
@@ -8832,8 +8849,18 @@ void EmitBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabel, Js::Byt
         // and the caller of EmitBooleanExpression expects to be able to release this register.
 
         Emit(expr, byteCodeGenerator, funcInfo, false);
-        byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrTrue_A, trueLabel, expr->location);
-        byteCodeGenerator->Writer()->Br(falseLabel);
+        if (trueFallthrough)
+        {
+            byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrFalse_A, falseLabel, expr->location);
+        }
+        else
+        {
+            byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrTrue_A, trueLabel, expr->location);
+            if (!falseFallthrough)
+            {
+                byteCodeGenerator->Writer()->Br(falseLabel);
+            }
+        }
         break;
     }
 
@@ -8878,7 +8905,7 @@ void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabe
         // this time we want a boolean expression, since Logical Not is nice and only returns true or false
         Js::ByteCodeLabel emitTrue = byteCodeGenerator->Writer()->DefineLabel();
         Js::ByteCodeLabel emitFalse = byteCodeGenerator->Writer()->DefineLabel();
-        EmitBooleanExpression(expr->AsParseNodeUni()->pnode1, emitFalse, emitTrue, byteCodeGenerator, funcInfo);
+        EmitBooleanExpression(expr->AsParseNodeUni()->pnode1, emitFalse, emitTrue, byteCodeGenerator, funcInfo, false, true);
         byteCodeGenerator->Writer()->MarkLabel(emitTrue);
         byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, writeto);
         byteCodeGenerator->Writer()->Br(trueLabel);
@@ -9017,7 +9044,7 @@ void EmitLoop(
         if (!ByteCodeGenerator::IsFalse(cond) ||
             byteCodeGenerator->IsInDebugMode())
         {
-            EmitBooleanExpression(cond, loopEntrance, continuePastLoop, byteCodeGenerator, funcInfo);
+            EmitBooleanExpression(cond, loopEntrance, continuePastLoop, byteCodeGenerator, funcInfo, false, false);
         }
         funcInfo->ReleaseLoc(cond);
     }
@@ -9029,7 +9056,7 @@ void EmitLoop(
                 cond->AsParseNodeInt()->lw != 0))
             {
                 Js::ByteCodeLabel trueLabel = byteCodeGenerator->Writer()->DefineLabel();
-                EmitBooleanExpression(cond, trueLabel, continuePastLoop, byteCodeGenerator, funcInfo);
+                EmitBooleanExpression(cond, trueLabel, continuePastLoop, byteCodeGenerator, funcInfo, true, false);
                 byteCodeGenerator->Writer()->MarkLabel(trueLabel);
             }
             funcInfo->ReleaseLoc(cond);
@@ -9091,7 +9118,7 @@ void ByteCodeGenerator::EmitInvertedLoop(ParseNodeLoop* outerLoop, ParseNodeFor*
     // Emit a zero trip test for the original outer-loop
     Js::ByteCodeLabel zeroTrip = this->m_writer.DefineLabel();
     ParseNode* testNode = this->GetParser()->CopyPnode(outerLoop->AsParseNodeFor()->pnodeCond);
-    EmitBooleanExpression(testNode, zeroTrip, afterInvertedLoop, this, funcInfo);
+    EmitBooleanExpression(testNode, zeroTrip, afterInvertedLoop, this, funcInfo, true, false);
     this->m_writer.MarkLabel(zeroTrip);
     funcInfo->ReleaseLoc(testNode);
 
@@ -10725,7 +10752,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         Js::ByteCodeLabel trueLabel = byteCodeGenerator->Writer()->DefineLabel();
         Js::ByteCodeLabel falseLabel = byteCodeGenerator->Writer()->DefineLabel();
         Js::ByteCodeLabel skipLabel = byteCodeGenerator->Writer()->DefineLabel();
-        EmitBooleanExpression(pnode->AsParseNodeTri()->pnode1, trueLabel, falseLabel, byteCodeGenerator, funcInfo);
+        EmitBooleanExpression(pnode->AsParseNodeTri()->pnode1, trueLabel, falseLabel, byteCodeGenerator, funcInfo, true, false);
         byteCodeGenerator->Writer()->MarkLabel(trueLabel);
         funcInfo->ReleaseLoc(pnode->AsParseNodeTri()->pnode1);
 
@@ -11036,7 +11063,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
 
         Js::ByteCodeLabel trueLabel = byteCodeGenerator->Writer()->DefineLabel();
         Js::ByteCodeLabel falseLabel = byteCodeGenerator->Writer()->DefineLabel();
-        EmitBooleanExpression(pnodeIf->pnodeCond, trueLabel, falseLabel, byteCodeGenerator, funcInfo);
+        EmitBooleanExpression(pnodeIf->pnodeCond, trueLabel, falseLabel, byteCodeGenerator, funcInfo, true, false);
         funcInfo->ReleaseLoc(pnodeIf->pnodeCond);
 
         byteCodeGenerator->EndStatement(pnodeIf);
