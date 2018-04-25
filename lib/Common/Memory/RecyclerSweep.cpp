@@ -182,6 +182,7 @@ RecyclerSweep::FinishSweep()
     if (recycler->collectionState == CollectionStateConcurrentSweepPass2)
     {
         GCETW_INTERNAL(GC_START, (recycler, ETWEvent_ConcurrentSweep_Pass2));
+        GCETW_INTERNAL(GC_START2, (recycler, ETWEvent_ConcurrentSweep_Pass2, recycler->collectionStartReason, recycler->collectionStartFlags));
     }
 #endif
 
@@ -266,6 +267,7 @@ RecyclerSweep::FinishSweep()
     if (recycler->collectionState == CollectionStateConcurrentSweepPass2)
     {
         GCETW_INTERNAL(GC_STOP, (recycler, ETWEvent_ConcurrentSweep_Pass2));
+        GCETW_INTERNAL(GC_STOP2, (recycler, ETWEvent_ConcurrentSweep_Pass2, recycler->collectionStartReason, recycler->collectionStartFlags));
     }
 #endif
 #endif

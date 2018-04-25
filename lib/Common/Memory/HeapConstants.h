@@ -50,18 +50,9 @@ class SmallAllocationBlockAttributes
 public:
     static const size_t MinObjectSize = HeapConstants::ObjectGranularity;
 
-#if USE_FEWER_PAGES_PER_BLOCK
     static const size_t PageCount = 1;
-#else
-#if defined(TARGET_32)
-    static const size_t PageCount = 2;
-#else
-    static const size_t PageCount = 4;
-#endif
-#endif
     static const size_t BitVectorCount = ((PageCount * AutoSystemInfo::PageSize) / HeapConstants::ObjectGranularity);
     static const ushort MaxAddressBit = BitVectorCount - 1;
-
     static const uint   BucketCount = HeapConstants::BucketCount;
     static const size_t BucketGranularity = HeapConstants::ObjectGranularity;
     static const uint   MaxObjectSize = HeapConstants::MaxSmallObjectSize;
@@ -80,11 +71,7 @@ public:
 class MediumAllocationBlockAttributes
 {
 public:
-#if USE_FEWER_PAGES_PER_BLOCK
     static const size_t PageCount = 8;
-#else
-    static const size_t PageCount = 8;
-#endif
     static const size_t MinObjectSize = HeapConstants::MaxSmallObjectSize;
     static const ushort BitVectorCount = ((PageCount * AutoSystemInfo::PageSize) / HeapConstants::ObjectGranularity);
     static const size_t MaxAddressBit = (BitVectorCount - 1);
