@@ -42,8 +42,8 @@ PHASE(All)
         PHASE(WasmSection) // Supports -trace
         PHASE(WasmOpCodeDistribution) // Support -dump
         // Wasm features per functions
-        PHASE(WasmDeferred)
-        PHASE(WasmValidatePrejit)
+        PHASE(WasmDeferred, DefaultOn)
+        PHASE(WasmValidatePrejit, DefaultOff)
         PHASE(WasmInOut) // Trace input and output of wasm calls
         PHASE(WasmMemWrites) // Trace memory writes
     PHASE(Asmjs)

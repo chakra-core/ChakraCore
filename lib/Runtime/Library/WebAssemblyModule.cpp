@@ -238,7 +238,7 @@ WebAssemblyModule::CreateModule(
         for (uint i = 0; i < webAssemblyModule->GetWasmFunctionCount(); ++i)
         {
             currentBody = webAssemblyModule->GetWasmFunctionInfo(i)->GetBody();
-            if (!PHASE_OFF(WasmDeferredPhase, currentBody))
+            if (PHASE_ENABLED(WasmDeferredPhase, currentBody))
             {
                 continue;
             }
@@ -285,7 +285,7 @@ WebAssemblyModule::ValidateModule(
 
             Wasm::WasmBytecodeGenerator::ValidateFunction(scriptContext, readerInfo);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-            if (PHASE_ON(WasmValidatePrejitPhase, body))
+            if (PHASE_ENABLED(WasmValidatePrejitPhase, body))
             {
                 CONFIG_FLAG(MaxAsmJsInterpreterRunCount) = 0;
                 WasmScriptFunction * funcObj = scriptContext->GetLibrary()->CreateWasmScriptFunction(body);
