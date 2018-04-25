@@ -3657,6 +3657,12 @@ Recycler::CollectInternal()
     }
 
     // Start a collection now.
+#if DBG && defined(RECYCLER_TRACE)
+    if (this->GetRecyclerFlagsTable().Trace.IsEnabled(Js::RecyclerPhase) && CONFIG_FLAG_RELEASE(Verbose))
+    {
+        Output::Print(_u("[%d] Starting GC - Reason-3 [CollectionState: %d] \n"), this->collectionCount, this->collectionState);
+    }
+#endif
     return Collect<flags>();
 }
 
@@ -3694,6 +3700,12 @@ Recycler::CollectWithHeuristic()
             // Maybe improve this heuristic by looking at how many free pages are in the page allocator.
             if (autoHeap.uncollectedNewPageCount > this->uncollectedNewPageCountPartialCollect)
             {
+#if DBG && defined(RECYCLER_TRACE)
+                if (this->GetRecyclerFlagsTable().Trace.IsEnabled(Js::RecyclerPhase) && CONFIG_FLAG_RELEASE(Verbose))
+                {
+                    Output::Print(_u("[GC #%d] Starting Partial GC - Reason-1 [CollectionState: %d] \n"), this->collectionCount, this->collectionState);
+                }
+#endif
                 return Collect<flags>();
             }
         }
@@ -3727,6 +3739,12 @@ Recycler::CollectWithHeuristic()
     }
 
     // Passed all the heuristic, do some GC work, maybe
+#if DBG && defined(RECYCLER_TRACE)
+    if (this->GetRecyclerFlagsTable().Trace.IsEnabled(Js::RecyclerPhase) && CONFIG_FLAG_RELEASE(Verbose))
+    {
+        Output::Print(_u("[GC #%d] Starting GC with Heuristic - Reason-2 [CollectionState: %d] \n"), this->collectionCount, this->collectionState);
+    }
+#endif
     return Collect<(CollectionFlags)(flags & ~CollectMode_Partial)>();
 }
 
@@ -5597,6 +5615,12 @@ Recycler::FinishConcurrentCollectWrapped(CollectionFlags flags)
 #if ENABLE_CONCURRENT_GC
     this->skipStack = ((flags & CollectOverride_SkipStack) != 0);
     DebugOnly(this->isConcurrentGCOnIdle = (flags == CollectOnScriptIdle));
+#endif
+#if DBG && defined(RECYCLER_TRACE)
+    if (this->GetRecyclerFlagsTable().Trace.IsEnabled(Js::RecyclerPhase) && CONFIG_FLAG_RELEASE(Verbose))
+    {
+        Output::Print(_u("[%d] Finishing Concurrent GC [CollectionState: %d] \n"), this->collectionCount, this->collectionState);
+    }
 #endif
     BOOL collected = collectionWrapper->ExecuteRecyclerCollectionFunction(this, &Recycler::FinishConcurrentCollect, flags);
     return collected;

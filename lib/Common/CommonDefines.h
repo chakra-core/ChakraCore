@@ -181,6 +181,7 @@
 #define RECYCLER_PAGE_HEAP                          // PageHeap support, on by default, off in ChakraCore release build
 #endif
 
+#define USE_FEWER_PAGES_PER_BLOCK 1
 
 #ifndef ENABLE_VALGRIND
 #define ENABLE_CONCURRENT_GC 1
