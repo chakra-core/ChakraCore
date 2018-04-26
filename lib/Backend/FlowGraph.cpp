@@ -4525,7 +4525,7 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
         Assert(blockData.hoistableFields == nullptr);
         blockData.InitBlockData(globOpt, globOpt->func);
     }
-    else if (blockData.hoistableFields)
+    else if (blockData.hoistableFields && this->globOptData.liveFields)
     {
         Assert(globOpt->TrackHoistableFields());
         blockData.hoistableFields->And(this->globOptData.liveFields);
