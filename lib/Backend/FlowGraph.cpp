@@ -2921,60 +2921,59 @@ FlowGraph::PeepCm(IR::Instr *instr)
     if (ldFound)
     {
         // Split Ld_A into "Ld_A TRUE"/"Ld_A FALSE"
+        IR::Opnd* branchTakenResult = nullptr;
+        IR::Opnd* fallthroughResult = nullptr;
+        IR::Opnd* ld2Dest = nullptr;
         if (brIsTrue)
         {
-            instrNew = IR::Instr::New(Js::OpCode::Ld_A, instrLd->GetSrc1(), trueOpnd, instrBr->m_func);
-            instrNew->SetByteCodeOffset(instrBr);
-            instrNew->GetDst()->AsRegOpnd()->m_fgPeepTmp = true;
-            instrBr->InsertBefore(instrNew);
-            instrNew = IR::Instr::New(Js::OpCode::Ld_A, instrLd->GetDst(), trueOpnd, instrBr->m_func);
-            instrNew->SetByteCodeOffset(instrBr);
-            instrNew->GetDst()->AsRegOpnd()->m_fgPeepTmp = true;
-            instrBr->InsertBefore(instrNew);
-
-            instrNew = IR::Instr::New(Js::OpCode::Ld_A, instrLd->GetSrc1(), falseOpnd, instrLd->m_func);
-            instrLd->InsertBefore(instrNew);
-            instrNew->SetByteCodeOffset(instrLd);
-            instrNew->GetDst()->AsRegOpnd()->m_fgPeepTmp = true;
-            instrLd->ReplaceSrc1(falseOpnd);
-
+            branchTakenResult = trueOpnd;
+            fallthroughResult = falseOpnd;
             if (instrLd2)
             {
-                instrLd2->ReplaceSrc1(falseOpnd);
-
-                instrNew = IR::Instr::New(Js::OpCode::Ld_A, instrLd2->GetDst(), trueOpnd, instrBr->m_func);
-                instrBr->InsertBefore(instrNew);
-                instrNew->SetByteCodeOffset(instrBr);
-                instrNew->GetDst()->AsRegOpnd()->m_fgPeepTmp = true;
+                ld2Dest = instrLd2->GetDst();
             }
         }
         else
         {
             instrBr->AsBranchInstr()->Invert();
-
-            instrNew = IR::Instr::New(Js::OpCode::Ld_A, instrLd->GetSrc1(), falseOpnd, instrBr->m_func);
-            instrBr->InsertBefore(instrNew);
-            instrNew->SetByteCodeOffset(instrBr);
-            instrNew->GetDst()->AsRegOpnd()->m_fgPeepTmp = true;
-            instrNew = IR::Instr::New(Js::OpCode::Ld_A, instrLd->GetDst(), falseOpnd, instrBr->m_func);
-            instrBr->InsertBefore(instrNew);
-            instrNew->SetByteCodeOffset(instrBr);
-            instrNew->GetDst()->AsRegOpnd()->m_fgPeepTmp = true;
-
-            instrNew = IR::Instr::New(Js::OpCode::Ld_A, instrLd->GetSrc1(), trueOpnd, instrLd->m_func);
-            instrLd->InsertBefore(instrNew);
-            instrNew->SetByteCodeOffset(instrLd);
-            instrLd->ReplaceSrc1(trueOpnd);
-            instrNew->GetDst()->AsRegOpnd()->m_fgPeepTmp = true;
-
+            branchTakenResult = falseOpnd;
+            fallthroughResult = trueOpnd;
             if (instrLd2)
             {
-                instrLd2->ReplaceSrc1(trueOpnd);
-                instrNew = IR::Instr::New(Js::OpCode::Ld_A, instrLd->GetSrc1(), trueOpnd, instrBr->m_func);
-                instrBr->InsertBefore(instrNew);
-                instrNew->SetByteCodeOffset(instrBr);
-                instrNew->GetDst()->AsRegOpnd()->m_fgPeepTmp = true;
+                ld2Dest = instrLd->GetSrc1();
             }
+        }
+
+        // Create the two Lds before the branch
+        instrNew = IR::Instr::New(Js::OpCode::Ld_A, instrLd->GetSrc1(), branchTakenResult, instrBr->m_func);
+        instrNew->SetByteCodeOffset(instrBr);
+        instrNew->GetDst()->AsRegOpnd()->m_fgPeepTmp = true;
+        instrBr->InsertBefore(instrNew);
+
+        instrNew = IR::Instr::New(Js::OpCode::Ld_A, instrLd->GetDst(), branchTakenResult, instrBr->m_func);
+        instrNew->SetByteCodeOffset(instrBr);
+        instrNew->GetDst()->AsRegOpnd()->m_fgPeepTmp = true;
+        instrBr->InsertBefore(instrNew);
+
+        // Create the one or two Lds after the branch
+        instrNew = IR::Instr::New(Js::OpCode::Ld_A, instrLd->GetSrc1(), fallthroughResult, instrLd->m_func);
+        instrLd->InsertBefore(instrNew);
+        instrNew->SetByteCodeOffset(instrLd);
+        instrNew->GetDst()->AsRegOpnd()->m_fgPeepTmp = true;
+        instrLd->ReplaceSrc1(fallthroughResult);
+
+        // We need to annotate instrLd as being an fgPeepTmp load, or we have issues with bailout placement
+        instrLd->GetDst()->AsRegOpnd()->m_fgPeepTmp = true;
+
+        if (instrLd2)
+        {
+            // this is the "compare result" temp
+            instrLd2->ReplaceSrc1(fallthroughResult);
+
+            instrNew = IR::Instr::New(Js::OpCode::Ld_A, ld2Dest, trueOpnd, instrBr->m_func);
+            instrBr->InsertBefore(instrNew);
+            instrNew->SetByteCodeOffset(instrBr);
+            instrNew->GetDst()->AsRegOpnd()->m_fgPeepTmp = true;
         }
     }
 
