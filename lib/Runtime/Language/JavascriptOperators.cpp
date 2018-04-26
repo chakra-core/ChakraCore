@@ -4530,6 +4530,10 @@ CommonNumber:
         ScriptContext* scriptContext,
         PropertyOperationFlags flags)
     {
+        
+        INT_PTR vt = (INT_PTR)nullptr;
+        vt = VirtualTableInfoBase::GetVirtualTable(instance);
+
         if (TaggedInt::Is(aElementIndex))
         {
             int32 indexInt = TaggedInt::ToInt32(aElementIndex);
@@ -4540,11 +4544,12 @@ CommonNumber:
                 {
                     arr->SetItem(indexInt, iValue);
                 }
-                return TRUE;
+                return vt != VirtualTableInfoBase::GetVirtualTable(instance);
             }
         }
 
-        return JavascriptOperators::OP_SetElementI(instance, aElementIndex, JavascriptNumber::ToVar(iValue, scriptContext), scriptContext, flags);
+        JavascriptOperators::OP_SetElementI(instance, aElementIndex, JavascriptNumber::ToVar(iValue, scriptContext), scriptContext, flags);
+        return vt != VirtualTableInfoBase::GetVirtualTable(instance);
     }
 
     BOOL JavascriptOperators::OP_SetNativeIntElementI_UInt32(
@@ -4586,6 +4591,10 @@ CommonNumber:
         PropertyOperationFlags flags,
         double dValue)
     {
+        
+        INT_PTR vt = (INT_PTR)nullptr;
+        vt = VirtualTableInfoBase::GetVirtualTable(instance);
+
         if (TaggedInt::Is(aElementIndex))
         {
             int32 indexInt = TaggedInt::ToInt32(aElementIndex);
@@ -4596,16 +4605,17 @@ CommonNumber:
                 {
                     arr->SetItem(indexInt, dValue);
                 }
-                return TRUE;
+                return vt != VirtualTableInfoBase::GetVirtualTable(instance);
             }
         }
 
-        return JavascriptOperators::OP_SetElementI(instance, aElementIndex, JavascriptNumber::ToVarWithCheck(dValue, scriptContext), scriptContext, flags);
+        JavascriptOperators::OP_SetElementI(instance, aElementIndex, JavascriptNumber::ToVarWithCheck(dValue, scriptContext), scriptContext, flags);
+        return vt != VirtualTableInfoBase::GetVirtualTable(instance);
     }
 
     BOOL JavascriptOperators::OP_SetNativeFloatElementI_UInt32(
-        Var instance, uint32
-        aElementIndex,
+        Var instance,
+        uint32 aElementIndex,
         ScriptContext* scriptContext,
         PropertyOperationFlags flags,
         double dValue)

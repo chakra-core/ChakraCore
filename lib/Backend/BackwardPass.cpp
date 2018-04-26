@@ -4124,8 +4124,9 @@ BackwardPass::UpdateArrayBailOutKind(IR::Instr *const instr)
 
     IR::BailOutKind includeBailOutKinds = IR::BailOutInvalid;
     if(!baseValueType.IsNotNativeArray() &&
-        (!baseValueType.IsLikelyNativeArray() || instr->GetSrc1()->IsVar()) &&
-        !currentBlock->noImplicitCallNativeArrayUses->IsEmpty())
+        (!baseValueType.IsLikelyNativeArray() || !instr->GetSrc1()->IsInt32()) &&
+        !currentBlock->noImplicitCallNativeArrayUses->IsEmpty() &&
+        !(instr->GetBailOutKind() & IR::BailOutOnArrayAccessHelperCall))
     {
         // There is an upwards-exposed use of a native array. Since the array referenced by this instruction can be aliased,
         // this instruction needs to bail out if it converts the native array even if this array specifically is not
