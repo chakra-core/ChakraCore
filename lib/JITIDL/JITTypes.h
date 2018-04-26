@@ -659,6 +659,7 @@ typedef struct FunctionJITTimeDataIDL
     CHAKRA_PTR weakFuncRef;
 } FunctionJITTimeDataIDL;
 
+#if !FLOATVAR
 typedef struct XProcNumberPageSegment
 {
     struct XProcNumberPageSegment* nextSegment;
@@ -670,6 +671,7 @@ typedef struct XProcNumberPageSegment
     CHAKRA_PTR allocEndAddress;
     CHAKRA_PTR pageSegment;
 } XProcNumberPageSegment;
+#endif
 
 typedef struct PolymorphicInlineCacheIDL
 {
@@ -704,7 +706,9 @@ typedef struct CodeGenWorkItemIDL
     unsigned int inlineeInfoCount;
     unsigned int symIdToValueTypeMapCount;
     X64_PAD4(1)
+#if !FLOATVAR
     XProcNumberPageSegment * xProcNumberPageSegment;
+#endif
 
     PolymorphicInlineCacheInfoIDL * selfInfo;
 
@@ -852,7 +856,9 @@ typedef struct JITOutputIDL
     NativeDataFixupTable* nativeDataFixupTable;
     NativeDataBuffer* buffer;
     EquivalentTypeGuardOffsets* equivalentTypeGuardOffsets;
+#if !FLOATVAR
     XProcNumberPageSegment* numberPageSegments;
+#endif
     __int64 startTime;
 } JITOutputIDL;
 

@@ -829,6 +829,8 @@ ServerRemoteCodeGen(
             profiler->Initialize(pageAllocator, nullptr);
         }
 #endif
+
+#if !FLOATVAR
         if (jitWorkItem->GetWorkItemData()->xProcNumberPageSegment)
         {
             jitData->numberPageSegments = (XProcNumberPageSegment*)midl_user_allocate(sizeof(XProcNumberPageSegment));
@@ -840,6 +842,7 @@ ServerRemoteCodeGen(
 
             memcpy_s(jitData->numberPageSegments, sizeof(XProcNumberPageSegment), jitWorkItem->GetWorkItemData()->xProcNumberPageSegment, sizeof(XProcNumberPageSegment));
         }
+#endif
 
         Func::Codegen(
             &jitArena,

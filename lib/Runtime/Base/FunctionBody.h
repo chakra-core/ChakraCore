@@ -341,12 +341,14 @@ namespace Js
 
         Field(NativeCodeData *) inProcJITNaticeCodedata;
         FieldNoBarrier(char*) nativeDataBuffer;
+#if !FLOATVAR
         union
         {
             Field(Field(JavascriptNumber*)*) numberArray;
             Field(CodeGenNumberChunk*) numberChunks;
         };
         Field(XProcNumberPageSegment*) numberPageSegments;
+#endif
 
         FieldNoBarrier(SmallSpanSequence *) nativeThrowSpanSequence;
         typedef JsUtil::BaseHashSet<RecyclerWeakReference<FunctionBody>*, Recycler, PowerOf2SizePolicy> WeakFuncRefSet;
@@ -456,6 +458,7 @@ namespace Js
         char** GetNativeDataBufferRef() { return &nativeDataBuffer; }
         char* GetNativeDataBuffer() { return nativeDataBuffer; }
         void SetInProcJITNativeCodeData(NativeCodeData* nativeCodeData) { inProcJITNaticeCodedata = nativeCodeData; }
+#if !FLOATVAR
         void SetNumberChunks(CodeGenNumberChunk* chunks)
         {
             Assert(numberPageSegments == nullptr);
@@ -472,6 +475,7 @@ namespace Js
             numberPageSegments = segments;
         }
 #endif
+#endif
 
     protected:
         EntryPointInfo(Js::JavascriptMethod method, JavascriptLibrary* library, void* validationCookie, ThreadContext* context = nullptr, bool isLoopBody = false) :
@@ -480,7 +484,10 @@ namespace Js
             nativeThrowSpanSequence(nullptr), workItem(nullptr), weakFuncRefSet(nullptr),
             jitTransferData(nullptr), sharedPropertyGuards(nullptr), propertyGuardCount(0), propertyGuardWeakRefs(nullptr),
             equivalentTypeCacheCount(0), equivalentTypeCaches(nullptr), constructorCaches(nullptr), state(NotScheduled), inProcJITNaticeCodedata(nullptr),
-            numberChunks(nullptr), numberPageSegments(nullptr), polymorphicInlineCacheInfo(nullptr), runtimeTypeRefs(nullptr),
+#if !FLOATVAR
+            numberChunks(nullptr), numberPageSegments(nullptr), 
+#endif
+            polymorphicInlineCacheInfo(nullptr), runtimeTypeRefs(nullptr),
             isLoopBody(isLoopBody), hasJittedStackClosure(false), registeredEquivalentTypeCacheRef(nullptr), bailoutRecordMap(nullptr), inlineeFrameMap(nullptr),
 #if PDATA_ENABLED
             xdataInfo(nullptr),
