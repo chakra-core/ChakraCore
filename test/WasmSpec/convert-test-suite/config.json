@@ -6,6 +6,7 @@
     "testsuite/js-api",
 
     "features/extends",
+    "features/nontrapping",
     "features/threads"
   ],
   "features": [{
@@ -38,6 +39,15 @@
     "files": [
       "chakra_extends_i32",
       "chakra_extends_i64"
+    ]
+  }, {
+    "required": true,
+    "flags": ["-WasmNontrapping"],
+    "folders": [
+      "features/nontrapping"
+    ],
+    "files": [
+      "nontrapping_conversions"
     ]
   }, {
     "required": true,

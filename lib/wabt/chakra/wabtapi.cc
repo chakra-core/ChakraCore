@@ -76,6 +76,10 @@ Features GetWabtFeatures(const ChakraContext& ctx)
     {
         features.enable_simd();
     }
+    if (ctx.features.sat_float_to_int)
+    {
+        features.enable_sat_float_to_int();
+    }
     return features;
 }
 

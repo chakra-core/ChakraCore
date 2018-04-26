@@ -4,8 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-namespace Wasm
-{
+using namespace Wasm;
+
 template<typename T> 
 inline T WasmMath::Shl( T aLeft, T aRight )
 {
@@ -130,21 +130,44 @@ template <typename T> bool WasmMath::LessOrEqual(T aLeft, T aRight)
     return aLeft <= aRight;
 }
 
-template <typename STYPE,
-    typename UTYPE,
-    UTYPE MAX,
-    UTYPE NEG_ZERO,
-    UTYPE NEG_ONE,
-    WasmMath::CmpPtr<UTYPE> CMP1,
-    WasmMath::CmpPtr<UTYPE> CMP2>
-bool WasmMath::isInRange(STYPE srcVal)
+template <
+    typename SrcType,
+    typename DstType,
+    typename ReinterpretType,
+    ReinterpretType Max,
+    ReinterpretType NegZero,
+    ReinterpretType NegOne,
+    WasmMath::CmpPtr<ReinterpretType> MaxCmp,
+    WasmMath::CmpPtr<ReinterpretType> NegOneCmp,
+    bool Saturate,
+    DstType MinResult,
+    DstType MaxResult>
+DstType WasmMath::ConvertFloatToInt(SrcType srcVal, _In_ Js::ScriptContext * scriptContext)
 {
-    Assert(sizeof(STYPE) == sizeof(UTYPE));
-    UTYPE val = *reinterpret_cast<UTYPE*> (&srcVal);
-    return (CMP1(val, MAX)) || (val >= NEG_ZERO && CMP2(val, NEG_ONE));
+    CompileAssert(sizeof(SrcType) == sizeof(ReinterpretType));
+
+    if (IsNaN(srcVal))
+    {
+        if (!Saturate)
+        {
+            Js::JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, VBSERR_Overflow);
+        }
+        return 0;
+    }
+
+    ReinterpretType val = *reinterpret_cast<ReinterpretType*> (&srcVal);
+    if (MaxCmp(val, Max) || (val >= NegZero && NegOneCmp(val, NegOne)))
+    {
+        return static_cast<DstType>(srcVal);
+    }
+    if (!Saturate)
+    {
+        Js::JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, VBSERR_Overflow);
+    }
+    return (srcVal < 0) ? MinResult : MaxResult;
 }
 
-template <typename STYPE> bool  WasmMath::isNaN(STYPE src)
+template <typename STYPE> bool  WasmMath::IsNaN(STYPE src)
 {
     return src != src;
 }
@@ -229,4 +252,154 @@ To WasmMath::SignExtend(To value)
     return static_cast<To>(static_cast<From>(value));
 }
 
+template <bool Saturate>
+int32 WasmMath::F32ToI32(float src, _In_ Js::ScriptContext* scriptContext)
+{
+    return WasmMath::ConvertFloatToInt<
+        float, // SrcType
+        int32, // DstType
+        uint32, // ReinterpretType
+        Js::NumberConstants::k_Float32TwoTo31,
+        Js::NumberConstants::k_Float32NegZero,
+        Js::NumberConstants::k_Float32NegTwoTo31,
+        &WasmMath::LessThan<uint32>,
+        &WasmMath::LessOrEqual<uint32>,
+        Saturate,
+        INT32_MIN,
+        INT32_MAX>(
+            src,
+            scriptContext);
+}
+
+template <bool Saturate>
+uint32 WasmMath::F32ToU32(float src, _In_ Js::ScriptContext* scriptContext)
+{
+    return WasmMath::ConvertFloatToInt<
+        float, // SrcType
+        uint32, // DstType
+        uint32, // ReinterpretType
+        Js::NumberConstants::k_Float32TwoTo32,
+        Js::NumberConstants::k_Float32NegZero,
+        Js::NumberConstants::k_Float32NegOne,
+        &WasmMath::LessThan<uint32>,
+        &WasmMath::LessThan<uint32>,
+        Saturate,
+        0,
+        UINT32_MAX>(
+            src,
+            scriptContext);
+}
+
+template <bool Saturate>
+int32 WasmMath::F64ToI32(double src, _In_ Js::ScriptContext* scriptContext)
+{
+    return WasmMath::ConvertFloatToInt<
+        double, // SrcType
+        int32, // DstType
+        uint64, // ReinterpretType
+        Js::NumberConstants::k_TwoTo31,
+        Js::NumberConstants::k_NegZero,
+        Js::NumberConstants::k_NegTwoTo31,
+        &WasmMath::LessOrEqual<uint64>,
+        &WasmMath::LessOrEqual<uint64>,
+        Saturate,
+        INT32_MIN,
+        INT32_MAX>(
+            src,
+            scriptContext);
+}
+
+template <bool Saturate>
+uint32 WasmMath::F64ToU32(double src, _In_ Js::ScriptContext* scriptContext)
+{
+    return WasmMath::ConvertFloatToInt<
+        double, // SrcType
+        uint32, // DstType
+        uint64, // ReinterpretType
+        Js::NumberConstants::k_TwoTo32,
+        Js::NumberConstants::k_NegZero,
+        Js::NumberConstants::k_NegOne,
+        &WasmMath::LessOrEqual<uint64>,
+        &WasmMath::LessThan<uint64>,
+        Saturate,
+        0,
+        UINT32_MAX>(
+            src,
+            scriptContext);
+}
+
+template <bool Saturate>
+int64 WasmMath::F32ToI64(float src, _In_ Js::ScriptContext* scriptContext)
+{
+    return WasmMath::ConvertFloatToInt<
+        float, // SrcType
+        int64, // DstType
+        uint32, // ReinterpretType
+        Js::NumberConstants::k_Float32TwoTo63,
+        Js::NumberConstants::k_Float32NegZero,
+        Js::NumberConstants::k_Float32NegTwoTo63,
+        &WasmMath::LessThan<uint32>,
+        &WasmMath::LessOrEqual<uint32>,
+        Saturate,
+        INT64_MIN,
+        INT64_MAX>(
+            src,
+            scriptContext);
+}
+
+template <bool Saturate>
+uint64 WasmMath::F32ToU64(float src, _In_ Js::ScriptContext* scriptContext)
+{
+    return WasmMath::ConvertFloatToInt<
+        float, // SrcType
+        uint64, // DstType
+        uint32, // ReinterpretType
+        Js::NumberConstants::k_Float32TwoTo64,
+        Js::NumberConstants::k_Float32NegZero,
+        Js::NumberConstants::k_Float32NegOne,
+        &WasmMath::LessThan<uint32>,
+        &WasmMath::LessThan<uint32>,
+        Saturate,
+        0,
+        UINT64_MAX>(
+            src,
+            scriptContext);
+}
+
+template <bool Saturate>
+int64 WasmMath::F64ToI64(double src, _In_ Js::ScriptContext* scriptContext)
+{
+    return WasmMath::ConvertFloatToInt<
+        double, // SrcType
+        int64, // DstType
+        uint64, // ReinterpretType
+        Js::NumberConstants::k_TwoTo63,
+        Js::NumberConstants::k_NegZero,
+        Js::NumberConstants::k_NegTwoTo63,
+        &WasmMath::LessThan<uint64>,
+        &WasmMath::LessOrEqual<uint64>,
+        Saturate,
+        INT64_MIN,
+        INT64_MAX>(
+            src,
+            scriptContext);
+}
+
+template <bool Saturate>
+uint64 WasmMath::F64ToU64(double src, _In_ Js::ScriptContext* scriptContext)
+{
+    return WasmMath::ConvertFloatToInt<
+        double, // SrcType
+        uint64, // DstType
+        uint64, // ReinterpretType
+        Js::NumberConstants::k_TwoTo64,
+        Js::NumberConstants::k_NegZero,
+        Js::NumberConstants::k_NegOne,
+        &WasmMath::LessThan<uint64>,
+        &WasmMath::LessThan<uint64>,
+        Saturate,
+        0,
+        UINT64_MAX>(
+            src,
+            scriptContext);
 }

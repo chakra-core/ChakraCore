@@ -31,7 +31,21 @@ bool IsEnabled()
 #endif
 }
 }
+
+namespace WasmNontrapping
+{
+    bool IsEnabled()
+    {
+#ifdef ENABLE_WASM
+        return CONFIG_FLAG_RELEASE(WasmNontrapping);
+#else
+        return false;
+#endif
+    }
 }
+
+}
+
 
 #ifdef ENABLE_WASM
 
