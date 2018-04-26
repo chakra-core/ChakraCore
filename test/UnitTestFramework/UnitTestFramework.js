@@ -167,9 +167,15 @@ var testRunner = function testRunner() {
                 _verbose = options.verbose;
             }
 
+            const onlyFlag = WScript.Arguments.filter((arg) => arg.substring(0, 6) === "-only:")
+            let only = undefined;
+            if (onlyFlag.length === 1) {
+                only = onlyFlag[0].substring(6).split(",");
+            }
+
             for (var i in testsToRun) {
                 var isRunnable = typeof testsToRun[i] === objectType;
-                if (isRunnable) {
+                if (isRunnable && (only === undefined || only.includes(i) || only.includes(testsToRun[i].name))) {
                     this.runTest(i, testsToRun[i].name, testsToRun[i].body);
                 }
             }
