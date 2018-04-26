@@ -2918,6 +2918,11 @@ FlowGraph::PeepCm(IR::Instr *instr)
     trueOpnd->SetValueType(ValueType::Boolean);
     falseOpnd->SetValueType(ValueType::Boolean);
 
+    if (!brIsTrue)
+    {
+        instrBr->AsBranchInstr()->Invert();
+    }
+
     if (ldFound)
     {
         // Split Ld_A into "Ld_A TRUE"/"Ld_A FALSE"
@@ -2950,8 +2955,6 @@ FlowGraph::PeepCm(IR::Instr *instr)
         }
         else
         {
-            instrBr->AsBranchInstr()->Invert();
-
             instrNew = IR::Instr::New(Js::OpCode::Ld_A, instrLd->GetSrc1(), falseOpnd, instrBr->m_func);
             instrBr->InsertBefore(instrNew);
             instrNew->SetByteCodeOffset(instrBr);
@@ -2970,7 +2973,7 @@ FlowGraph::PeepCm(IR::Instr *instr)
             if (instrLd2)
             {
                 instrLd2->ReplaceSrc1(trueOpnd);
-                instrNew = IR::Instr::New(Js::OpCode::Ld_A, instrLd->GetSrc1(), trueOpnd, instrBr->m_func);
+                instrNew = IR::Instr::New(Js::OpCode::Ld_A, instrLd2->GetDst(), falseOpnd, instrBr->m_func);
                 instrBr->InsertBefore(instrNew);
                 instrNew->SetByteCodeOffset(instrBr);
                 instrNew->GetDst()->AsRegOpnd()->m_fgPeepTmp = true;
