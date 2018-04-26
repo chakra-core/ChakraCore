@@ -86,6 +86,7 @@ SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>::SmallFinalizableHeap
     Assert(!this->isPendingDispose);
 }
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template <>
 SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::SmallFinalizableHeapBlockT(HeapBucketT<SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>> * bucket, ushort objectSize, ushort objectCount)
     : Base(bucket, objectSize, objectCount, MediumFinalizableBlockType)
@@ -97,6 +98,7 @@ SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::SmallFinalizableHea
     Assert(this->disposedObjectListTail == nullptr);
     Assert(!this->isPendingDispose);
 }
+#endif
 
 #ifdef RECYCLER_VISITED_HOST
 template <class TBlockAttributes>
@@ -658,20 +660,26 @@ namespace Memory
     template class SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>;
     template void SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>::ProcessMarkedObject<true>(void* objectAddress, MarkContext * markContext);
     template void SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>::ProcessMarkedObject<false>(void* objectAddress, MarkContext * markContext);
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     template class SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>;
     template void SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<true>(void* objectAddress, MarkContext * markContext);;
     template void SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<false>(void* objectAddress, MarkContext * markContext);;
+#endif
 #ifdef RECYCLER_VISITED_HOST
     template class SmallRecyclerVisitedHostHeapBlockT<SmallAllocationBlockAttributes>;
     template void SmallRecyclerVisitedHostHeapBlockT<SmallAllocationBlockAttributes>::ProcessMarkedObject<true>(void* objectAddress, MarkContext * markContext);
     template void SmallRecyclerVisitedHostHeapBlockT<SmallAllocationBlockAttributes>::ProcessMarkedObject<false>(void* objectAddress, MarkContext * markContext);
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     template class SmallRecyclerVisitedHostHeapBlockT<MediumAllocationBlockAttributes>;
     template void SmallRecyclerVisitedHostHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<true>(void* objectAddress, MarkContext * markContext);;
     template void SmallRecyclerVisitedHostHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<false>(void* objectAddress, MarkContext * markContext);;
 #endif
+#endif
 
 #ifdef RECYCLER_WRITE_BARRIER
     template class SmallFinalizableWithBarrierHeapBlockT<SmallAllocationBlockAttributes>;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     template class SmallFinalizableWithBarrierHeapBlockT<MediumAllocationBlockAttributes>;
+#endif
 #endif
 }

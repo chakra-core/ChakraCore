@@ -9,6 +9,21 @@ class BucketStatsReporter;
 #endif
 class HeapInfo
 {
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    friend class HeapInfoStaticConstructor;
+    template <class TBlockAttributes>
+    friend class ValidPointers;
+    template <typename TBlockType>
+    friend class SmallNormalHeapBucketBase;
+
+    struct HeapInfoStaticConstructor
+    {
+        HeapInfoStaticConstructor();
+    };
+
+    static HeapInfoStaticConstructor heapInfoStaticConstructor;
+#endif
+
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     friend class ::ScriptMemoryDumper;
 #endif
@@ -54,11 +69,13 @@ public:
                 auto& bucket = this->GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat);
                 return bucket.IsPageHeapEnabled(attributes);
             }
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
             else if (HeapInfo::IsMediumObject(size))
             {
                 auto& bucket = this->GetMediumBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat);
                 return bucket.IsPageHeapEnabled(attributes);
             }
+#endif
             else
             {
                 return this->largeObjectBucket.IsPageHeapEnabled(attributes);
@@ -106,8 +123,10 @@ public:
     template <ObjectInfoBits attributes>
     void FreeSmallObject(void* object, size_t bytes);
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     template <ObjectInfoBits attributes>
     void FreeMediumObject(void* object, size_t bytes);
+#endif
 
 #if ENABLE_PARTIAL_GC
     void SweepPartialReusePages(RecyclerSweep& recyclerSweep);
@@ -151,6 +170,7 @@ public:
 
 public:
     static bool IsSmallObject(size_t nBytes) { return nBytes <= HeapConstants::MaxSmallObjectSize; }
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     static bool IsMediumObject(size_t nBytes)
     {
 #ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
@@ -159,10 +179,11 @@ public:
         return false;
 #endif
     }
+#endif
 
     static bool IsSmallBlockAllocation(size_t nBytes)
     {
-#if SMALLBLOCK_MEDIUM_ALLOC
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS && SMALLBLOCK_MEDIUM_ALLOC
         return HeapInfo::IsSmallObject(nBytes) || HeapInfo::IsMediumObject(nBytes);
 #else
         return HeapInfo::IsSmallObject(nBytes);
@@ -180,23 +201,95 @@ public:
 
     static BOOL IsAlignedSize(size_t sizeCat) { return (sizeCat != 0) && (0 == (sizeCat & HeapInfo::ObjectAlignmentMask)); }
     static BOOL IsAlignedSmallObjectSize(size_t sizeCat) { return (sizeCat != 0) && (HeapInfo::IsSmallObject(sizeCat) && (0 == (sizeCat & HeapInfo::ObjectAlignmentMask))); }
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     static BOOL IsAlignedMediumObjectSize(size_t sizeCat) { return (sizeCat != 0) && (HeapInfo::IsMediumObject(sizeCat) && (0 == (sizeCat & HeapInfo::ObjectAlignmentMask))); }
+#endif
 
-    static size_t GetAlignedSize(size_t size) { return AllocSizeMath::Align(size, HeapConstants::ObjectGranularity); }
-    static size_t GetAlignedSizeNoCheck(size_t size) { return Math::Align<size_t>(size, HeapConstants::ObjectGranularity); }
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    static ushort GetAlignmentBucketIndex(size_t sizeCat)
+    {
+        Assert(IsAlignedSmallObjectSize(sizeCat));
 
+        ushort sizeCatIndex = (ushort)(sizeCat >> HeapConstants::ObjectAllocationShift) - 1;
+        return HeapInfo::heapBucketSizeBucketIndexLookup[sizeCatIndex];
+    }
+#endif
+
+    static size_t GetAlignedSize(size_t size) 
+    {
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+        if (size <= HeapConstants::MaxObjectSizeWithMinGranularity)
+        {
+            return AllocSizeMath::Align(size, HeapConstants::ObjectGranularity);
+        }
+        else if (size <= HeapConstants::MaxSmallObjectSize)
+        {
+            size_t minAlignedSizeCat = AllocSizeMath::Align(size, HeapConstants::ObjectGranularity);
+            uint bucketIndex = GetAlignmentBucketIndex(minAlignedSizeCat);
+            Assert(bucketIndex < HeapConstants::TotalAlignmentBucketCount);
+            Assert(size <= HeapInfo::heapBucketSizes[bucketIndex].bucketSizeCat);
+            return HeapInfo::heapBucketSizes[bucketIndex].bucketSizeCat;
+        }
+        else
+#endif
+        {
+            return AllocSizeMath::Align(size, HeapConstants::ObjectGranularity);
+        }
+    }
+
+    static size_t GetAlignedSizeNoCheck(size_t size) 
+    {
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+        if (size <= HeapConstants::MaxObjectSizeWithMinGranularity)
+        {
+            return AllocSizeMath::Align(size, HeapConstants::ObjectGranularity);
+        }
+        else if (size <= HeapConstants::MaxSmallObjectSize)
+        {
+            size_t closestAlignedSizeCat = Math::Align<size_t>(size, HeapConstants::ObjectGranularity);
+            uint bucketIndex = GetAlignmentBucketIndex(closestAlignedSizeCat);
+            Assert(bucketIndex < HeapConstants::TotalAlignmentBucketCount);
+            Assert(size <= HeapInfo::heapBucketSizes[bucketIndex].bucketSizeCat);
+            return HeapInfo::heapBucketSizes[bucketIndex].bucketSizeCat;
+        }
+        else
+#endif
+        {
+            return Math::Align<size_t>(size, HeapConstants::ObjectGranularity);
+        }
+    }
+
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 #ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
     static size_t GetMediumObjectAlignedSize(size_t size) { return AllocSizeMath::Align(size, HeapConstants::MediumObjectGranularity); }
     static size_t GetMediumObjectAlignedSizeNoCheck(size_t size) { return Math::Align<size_t>(size, HeapConstants::MediumObjectGranularity); }
 #endif
+#endif
 
-    static inline uint GetBucketIndex(size_t sizeCat) { Assert(IsAlignedSmallObjectSize(sizeCat)); return (uint)(sizeCat >> HeapConstants::ObjectAllocationShift) - 1; }
+    static inline ushort GetBucketIndex(size_t sizeCat) 
+    {
+        Assert(IsAlignedSmallObjectSize(sizeCat));
+
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+        if (sizeCat > HeapConstants::MaxObjectSizeWithMinGranularity)
+        {
+            ushort bucketIndex = GetAlignmentBucketIndex(sizeCat);
+            return bucketIndex;
+        }
+        else
+#endif
+        {
+            return (ushort)(sizeCat >> HeapConstants::ObjectAllocationShift) - 1;
+        }
+    }
 
     template <typename TBlockAttributes>
     static uint GetObjectSizeForBucketIndex(uint bucketIndex);
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 #ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
     static uint GetMediumBucketIndex(size_t sizeCat) { Assert(IsAlignedMediumObjectSize(sizeCat)); return (uint)((sizeCat - HeapConstants::MaxSmallObjectSize - 1) / HeapConstants::MediumObjectGranularity); }
+#endif
 #endif
 
     static BOOL IsAlignedAddress(void * address) { return (0 == (((size_t)address) & HeapInfo::ObjectAlignmentMask)); }
@@ -205,12 +298,14 @@ private:
     template <ObjectInfoBits attributes>
     typename SmallHeapBlockType<attributes, SmallAllocationBlockAttributes>::BucketType& GetBucket(size_t sizeCat);
     
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 #ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
 #if SMALLBLOCK_MEDIUM_ALLOC
     template <ObjectInfoBits attributes>
     typename SmallHeapBlockType<attributes, MediumAllocationBlockAttributes>::BucketType& GetMediumBucket(size_t sizeCat);
 #else
     LargeHeapBucket& GetMediumBucket(size_t sizeCat);
+#endif
 #endif
 #endif
 
@@ -265,6 +360,7 @@ private:
     }
 #endif
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     template <>
     MediumLeafHeapBlock *& GetNewHeapBlockList<MediumLeafHeapBlock>(HeapBucketT<MediumLeafHeapBlock> * heapBucket)
     {
@@ -304,6 +400,7 @@ private:
     {
         return this->newMediumFinalizableWithBarrierHeapBlockList;
     }
+#endif
 #endif
 
     void SetupBackgroundSweep(RecyclerSweep& recyclerSweep);
@@ -404,8 +501,15 @@ private:
 #endif
     };
 
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    static HeapBucketObjectGranularityInfo heapBucketSizes[HeapConstants::BucketCount];
+    static ushort heapBucketSizeBucketIndexLookup[HeapConstants::TotalSmallObjectSizeCatCount];
+#endif
+
     static ValidPointersMap<SmallAllocationBlockAttributes>  smallAllocValidPointersMap;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     static ValidPointersMap<MediumAllocationBlockAttributes> mediumAllocValidPointersMap;
+#endif
 
 public:
 #ifdef ENABLE_TEST_HOOKS
@@ -444,6 +548,7 @@ public:
 #endif
 #endif
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 #if ENABLE_CONCURRENT_GC
     MediumLeafHeapBlock * newMediumLeafHeapBlockList;
     MediumNormalHeapBlock * newMediumNormalHeapBlockList;
@@ -457,17 +562,23 @@ public:
     MediumFinalizableWithBarrierHeapBlock * newMediumFinalizableWithBarrierHeapBlockList;
 #endif
 #endif
+#endif
 
 #ifdef RECYCLER_PAGE_HEAP
     PageHeapMode pageHeapMode;
     bool isPageHeapEnabled;
     BVStatic<HeapConstants::BucketCount> smallBlockPageHeapBucketFilter;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     BVStatic<HeapConstants::MediumBucketCount> mediumBlockPageHeapBucketFilter;
+#endif
     bool captureAllocCallStack;
     bool captureFreeCallStack;
     PageHeapBlockTypeFilter pageHeapBlockType;
 #endif
 
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    HeapBucketGroup<SmallAllocationBlockAttributes> heapBuckets[HeapConstants::TotalAlignmentBucketCount];
+#else
     HeapBucketGroup<SmallAllocationBlockAttributes> heapBuckets[HeapConstants::BucketCount];
 
 #ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
@@ -475,6 +586,7 @@ public:
     HeapBucketGroup<MediumAllocationBlockAttributes> mediumHeapBuckets[HeapConstants::MediumBucketCount];
 #else
     LargeHeapBucket mediumHeapBuckets[HeapConstants::MediumBucketCount];
+#endif
 #endif
 #endif
     LargeHeapBucket largeObjectBucket;
@@ -613,10 +725,11 @@ template <ObjectInfoBits attributes>
 typename SmallHeapBlockType<attributes, SmallAllocationBlockAttributes>::BucketType&
 HeapInfo::GetBucket(size_t sizeCat)
 {
-    uint bucket = HeapInfo::GetBucketIndex(sizeCat);
+    ushort bucket = HeapInfo::GetBucketIndex(sizeCat);
     return this->heapBuckets[bucket].GetBucket<attributes>();
 }
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 #ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
 #if SMALLBLOCK_MEDIUM_ALLOC
 template <ObjectInfoBits attributes>
@@ -636,6 +749,7 @@ HeapInfo::GetMediumBucket(size_t sizeCat)
 }
 #endif
 #endif
+#endif
 
 template <ObjectInfoBits attributes, bool nothrow>
 inline char *
@@ -646,6 +760,7 @@ HeapInfo::RealAlloc(Recycler * recycler, size_t sizeCat, size_t size)
     return bucket.template RealAlloc<attributes, nothrow>(recycler, sizeCat, size);
 }
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 #if defined(BUCKETIZE_MEDIUM_ALLOCATIONS)
 #if SMALLBLOCK_MEDIUM_ALLOC
 template <ObjectInfoBits attributes, bool nothrow>
@@ -666,6 +781,7 @@ HeapInfo::MediumAlloc(Recycler * recycler, size_t sizeCat)
 }
 #endif
 #endif
+#endif
 
 template <ObjectInfoBits attributes>
 inline void
@@ -675,6 +791,7 @@ HeapInfo::FreeSmallObject(void* object, size_t sizeCat)
     return this->GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat).ExplicitFree(object, sizeCat);
 }
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template <ObjectInfoBits attributes>
 inline void
 HeapInfo::FreeMediumObject(void* object, size_t sizeCat)
@@ -682,7 +799,7 @@ HeapInfo::FreeMediumObject(void* object, size_t sizeCat)
     Assert(HeapInfo::IsAlignedMediumObjectSize(sizeCat));
     return this->GetMediumBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat).ExplicitFree(object, sizeCat);
 }
-
+#endif
 template <ObjectInfoBits attributes>
 bool
 HeapInfo::IntegrateBlock(char * blockAddress, PageSegment * segment, Recycler * recycler, size_t sizeCat)
@@ -727,29 +844,28 @@ HeapInfo::SmallAllocatorAlloc(Recycler * recycler, SmallHeapBlockAllocatorType *
 // Forward declaration of explicit specialization before instantiation
 template <>
 HRESULT HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>::GenerateValidPointersMapForBlockType(FILE* file);
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template <>
 HRESULT HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes>::GenerateValidPointersMapForBlockType(FILE* file);
+#endif
 #endif
 
 // Template instantiation
 extern template class HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 extern template class HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes>;
+#endif
 
 template <typename TBlockAttributes>
 inline uint HeapInfo::GetObjectSizeForBucketIndex(uint bucketIndex)
 {
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    Assert(bucketIndex < HeapConstants::TotalAlignmentBucketCount);
+    return HeapInfo::heapBucketSizes[bucketIndex].bucketSizeCat;
+#else
     return (bucketIndex + 1) << HeapConstants::ObjectAllocationShift;
-}
-
-#ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
-template <>
-inline uint HeapInfo::GetObjectSizeForBucketIndex<MediumAllocationBlockAttributes>(uint bucketIndex)
-{
-    Assert(IsMediumObject(HeapConstants::MaxSmallObjectSize + ((bucketIndex + 1) * HeapConstants::MediumObjectGranularity)));
-    return HeapConstants::MaxSmallObjectSize + ((bucketIndex + 1) * HeapConstants::MediumObjectGranularity);
-}
 #endif
-
+}
 
 template <typename TBlockAttributes>
 inline typename SmallHeapBlockT<TBlockAttributes>::SmallHeapBlockBitVector const *
@@ -772,6 +888,30 @@ HeapInfo::GetValidPointersMapForBucket(uint bucketIndex)
     return smallAllocValidPointersMap.GetValidPointersForIndex(bucketIndex);
 }
 
+template <typename TBlockAttributes>
+inline typename SmallHeapBlockT<TBlockAttributes>::BlockInfo const *
+HeapInfo::GetBlockInfo(uint objectSize)
+{
+    return smallAllocValidPointersMap.GetBlockInfo(GetBucketIndex(objectSize));
+}
+
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+template <>
+inline typename SmallHeapBlockT<MediumAllocationBlockAttributes>::BlockInfo const *
+HeapInfo::GetBlockInfo<MediumAllocationBlockAttributes>(uint objectSize)
+{
+    return mediumAllocValidPointersMap.GetBlockInfo(GetMediumBucketIndex(objectSize));
+}
+
+#ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
+template <>
+inline uint HeapInfo::GetObjectSizeForBucketIndex<MediumAllocationBlockAttributes>(uint bucketIndex)
+{
+    Assert(IsMediumObject(HeapConstants::MaxSmallObjectSize + ((bucketIndex + 1) * HeapConstants::MediumObjectGranularity)));
+    return HeapConstants::MaxSmallObjectSize + ((bucketIndex + 1) * HeapConstants::MediumObjectGranularity);
+}
+#endif
+
 template <>
 inline typename SmallHeapBlockT<MediumAllocationBlockAttributes>::SmallHeapBlockBitVector const *
 HeapInfo::GetInvalidBitVector<MediumAllocationBlockAttributes>(uint objectSize)
@@ -792,19 +932,5 @@ HeapInfo::GetValidPointersMapForBucket<MediumAllocationBlockAttributes>(uint buc
 {
     return mediumAllocValidPointersMap.GetValidPointersForIndex(bucketIndex);
 }
-
-template <typename TBlockAttributes>
-inline typename SmallHeapBlockT<TBlockAttributes>::BlockInfo const *
-HeapInfo::GetBlockInfo(uint objectSize)
-{
-    return smallAllocValidPointersMap.GetBlockInfo(GetBucketIndex(objectSize));
-}
-
-template <>
-inline typename SmallHeapBlockT<MediumAllocationBlockAttributes>::BlockInfo const *
-HeapInfo::GetBlockInfo<MediumAllocationBlockAttributes>(uint objectSize)
-{
-    return mediumAllocValidPointersMap.GetBlockInfo(GetMediumBucketIndex(objectSize));
-}
-
+#endif
 }

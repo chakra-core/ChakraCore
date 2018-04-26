@@ -57,6 +57,7 @@ RecyclerSweep::BeginSweep(Recycler * recycler, RecyclerSweepManager * recyclerSw
     recyclerVisitedHostData.pendingMergeNewHeapBlockList = heapInfo->newRecyclerVisitedHostHeapBlockList;
 #endif
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     mediumLeafData.pendingMergeNewHeapBlockList = heapInfo->newMediumLeafHeapBlockList;
     mediumNormalData.pendingMergeNewHeapBlockList = heapInfo->newMediumNormalHeapBlockList;
 #ifdef RECYCLER_WRITE_BARRIER
@@ -67,7 +68,7 @@ RecyclerSweep::BeginSweep(Recycler * recycler, RecyclerSweepManager * recyclerSw
 #ifdef RECYCLER_VISITED_HOST
     mediumRecyclerVisitedHostData.pendingMergeNewHeapBlockList = heapInfo->newMediumRecyclerVisitedHostHeapBlockList;
 #endif
-
+#endif
 
     heapInfo->newLeafHeapBlockList = nullptr;
     heapInfo->newNormalHeapBlockList = nullptr;
@@ -80,6 +81,7 @@ RecyclerSweep::BeginSweep(Recycler * recycler, RecyclerSweepManager * recyclerSw
     heapInfo->newFinalizableWithBarrierHeapBlockList = nullptr;
 #endif
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     heapInfo->newMediumLeafHeapBlockList = nullptr;
     heapInfo->newMediumNormalHeapBlockList = nullptr;
     heapInfo->newMediumFinalizableHeapBlockList = nullptr;
@@ -90,7 +92,7 @@ RecyclerSweep::BeginSweep(Recycler * recycler, RecyclerSweepManager * recyclerSw
     heapInfo->newMediumNormalWithBarrierHeapBlockList = nullptr;
     heapInfo->newMediumFinalizableWithBarrierHeapBlockList = nullptr;
 #endif
-
+#endif
 #endif
 }
 
@@ -126,6 +128,7 @@ RecyclerSweep::ShutdownCleanup()
         Assert(this->finalizableData.bucketData[i].pendingEmptyBlockList == nullptr);
     }
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     MediumLeafHeapBucket::DeleteHeapBlockList(this->mediumLeafData.pendingMergeNewHeapBlockList, recycler);
     MediumNormalHeapBucket::DeleteHeapBlockList(this->mediumNormalData.pendingMergeNewHeapBlockList, recycler);
 #ifdef RECYCLER_WRITE_BARRIER
@@ -152,6 +155,7 @@ RecyclerSweep::ShutdownCleanup()
 #endif
         Assert(this->mediumFinalizableData.bucketData[i].pendingEmptyBlockList == nullptr);
     }
+#endif
 #endif
 }
 
@@ -207,6 +211,7 @@ RecyclerSweep::MergePendingNewMediumHeapBlockList()
     });
 }
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template void RecyclerSweep::MergePendingNewMediumHeapBlockList<MediumLeafHeapBlock>();
 template void RecyclerSweep::MergePendingNewMediumHeapBlockList<MediumNormalHeapBlock>();
 template void RecyclerSweep::MergePendingNewMediumHeapBlockList<MediumFinalizableHeapBlock>();
@@ -216,6 +221,7 @@ template void RecyclerSweep::MergePendingNewMediumHeapBlockList<MediumRecyclerVi
 #ifdef RECYCLER_WRITE_BARRIER
 template void RecyclerSweep::MergePendingNewMediumHeapBlockList<MediumNormalWithBarrierHeapBlock>();
 template void RecyclerSweep::MergePendingNewMediumHeapBlockList<MediumFinalizableWithBarrierHeapBlock>();
+#endif
 #endif
 
 bool
@@ -247,6 +253,7 @@ RecyclerSweep::HasPendingNewHeapBlocks() const
         || withBarrierData.pendingMergeNewHeapBlockList != nullptr
         || finalizableWithBarrierData.pendingMergeNewHeapBlockList != nullptr
 #endif
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
         || mediumLeafData.pendingMergeNewHeapBlockList != nullptr
         || mediumNormalData.pendingMergeNewHeapBlockList != nullptr
         || mediumFinalizableData.pendingMergeNewHeapBlockList != nullptr
@@ -254,7 +261,7 @@ RecyclerSweep::HasPendingNewHeapBlocks() const
         || mediumWithBarrierData.pendingMergeNewHeapBlockList != nullptr
         || mediumFinalizableWithBarrierData.pendingMergeNewHeapBlockList != nullptr
 #endif
-
+#endif
         ;
 }
 #endif
@@ -272,18 +279,22 @@ RecyclerSweep::GetPendingMergeNewHeapBlockCount(HeapInfo const * heapInfo)
         + HeapBlockList::Count(finalizableData.pendingMergeNewHeapBlockList)
 #ifdef RECYCLER_VISITED_HOST
         + HeapBlockList::Count(recyclerVisitedHostData.pendingMergeNewHeapBlockList)
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
         + HeapBlockList::Count(mediumRecyclerVisitedHostData.pendingMergeNewHeapBlockList)
+#endif
 #endif
 #ifdef RECYCLER_WRITE_BARRIER
         + HeapBlockList::Count(withBarrierData.pendingMergeNewHeapBlockList)
         + HeapBlockList::Count(finalizableWithBarrierData.pendingMergeNewHeapBlockList)
 #endif
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
         + HeapBlockList::Count(mediumLeafData.pendingMergeNewHeapBlockList)
         + HeapBlockList::Count(mediumNormalData.pendingMergeNewHeapBlockList)
         + HeapBlockList::Count(mediumFinalizableData.pendingMergeNewHeapBlockList)
 #ifdef RECYCLER_WRITE_BARRIER
         + HeapBlockList::Count(mediumWithBarrierData.pendingMergeNewHeapBlockList)
         + HeapBlockList::Count(mediumFinalizableWithBarrierData.pendingMergeNewHeapBlockList)
+#endif
 #endif
         ;
 }

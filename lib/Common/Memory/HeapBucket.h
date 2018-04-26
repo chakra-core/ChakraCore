@@ -44,6 +44,7 @@ public:
         this->smallBlockVerifyListConsistencyData.hasSetupVerifyListConsistencyData = true;
     }
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     void SetupVerifyListConsistencyDataForMediumBlock(MediumHeapBlock* block, bool expectFull, bool expectDispose)
     {
         this->mediumBlockVerifyListConsistencyData.nextAllocableBlockHead = block;
@@ -51,12 +52,22 @@ public:
         this->mediumBlockVerifyListConsistencyData.expectDispose = expectDispose;
         this->mediumBlockVerifyListConsistencyData.hasSetupVerifyListConsistencyData = true;
     }
+#endif
 
     GenericRecyclerVerifyListConsistencyData<SmallAllocationBlockAttributes>  smallBlockVerifyListConsistencyData;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     GenericRecyclerVerifyListConsistencyData<MediumAllocationBlockAttributes> mediumBlockVerifyListConsistencyData;
+#endif
 };
 
 #endif
+
+class HeapBucketObjectGranularityInfo
+{
+public:
+    ushort bucketSizeCat;
+    ushort objectGranularity;
+};
 
 // NOTE: HeapBucket can't have vtable, because we allocate them inline with recycler with custom initializer
 class HeapBucket
@@ -66,8 +77,10 @@ public:
 
     HeapInfo * GetHeapInfo() const;
     uint GetSizeCat() const;
-    uint GetBucketIndex() const;
+    ushort GetBucketIndex() const;
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     uint GetMediumBucketIndex() const;
+#endif
 
     template <typename TBlockType>
     static void EnumerateObjects(TBlockType * heapBlockList, ObjectInfoBits infoBits, void(*CallBackFunction)(void * address, size_t size));
@@ -75,6 +88,11 @@ public:
 protected:
     HeapInfo * heapInfo;
     uint sizeCat;
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    ushort bucketIndex;
+    ushort objectAlignment;
+#endif
+
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     bool allocationsStartedDuringConcurrentSweep;
     bool concurrentSweepAllocationsThresholdExceeded;
@@ -217,7 +235,11 @@ protected:
     static bool const IsFinalizableWriteBarrierBucket = TBlockType::RequiredAttributes == FinalizableWithBarrierBit;
 #endif
 
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    void Initialize(HeapInfo * heapInfo, DECLSPEC_GUARD_OVERFLOW uint sizeCat, DECLSPEC_GUARD_OVERFLOW ushort objectAlignment);
+#else
     void Initialize(HeapInfo * heapInfo, DECLSPEC_GUARD_OVERFLOW uint sizeCat);
+#endif
     void AppendAllocableHeapBlockList(TBlockType * list);
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     void EnsureAllocableHeapBlockList();

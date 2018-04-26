@@ -185,8 +185,13 @@ SmallHeapBlockT<TBlockAttributes>::ConstructorCommon(HeapBucket * bucket, ushort
 {
     this->heapBucket = bucket;
     this->Init(objectSize, objectCount);
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    Assert(heapBlockType < HeapBlock::HeapBlockType::SmallAllocBlockTypeCount);
+    Assert(objectCount == (this->GetPageCount() * AutoSystemInfo::PageSize) / objectSize);
+#else
     Assert(heapBlockType < HeapBlock::HeapBlockType::SmallAllocBlockTypeCount + HeapBlock::HeapBlockType::MediumAllocBlockTypeCount);
     Assert(objectCount > 1 && objectCount == (this->GetPageCount() * AutoSystemInfo::PageSize) / objectSize);
+#endif
 
 #if defined(RECYCLER_SLOW_CHECK_ENABLED)
     heapBucket->heapInfo->heapBlockCount[heapBlockType]++;
@@ -207,13 +212,14 @@ SmallHeapBlockT<TBlockAttributes>::ConstructorCommon(HeapBucket * bucket, ushort
 template <class TBlockAttributes>
 SmallHeapBlockT<TBlockAttributes>::SmallHeapBlockT(HeapBucket * bucket, ushort objectSize, ushort objectCount, HeapBlockType heapBlockType)
     : HeapBlock(heapBlockType),
-    bucketIndex(HeapInfo::GetBucketIndex(objectSize)),
-    validPointers(HeapInfo::smallAllocValidPointersMap.GetValidPointersForIndex(HeapInfo::GetBucketIndex(objectSize))),
+    bucketIndex(bucket->GetBucketIndex()),
+    validPointers(HeapInfo::smallAllocValidPointersMap.GetValidPointersForIndex(bucket->GetBucketIndex())),
     objectSize(objectSize), objectCount(objectCount)
 {
     ConstructorCommon(bucket, objectSize, objectCount, heapBlockType);
 }
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template <>
 SmallHeapBlockT<MediumAllocationBlockAttributes>::SmallHeapBlockT(HeapBucket * bucket, ushort objectSize, ushort objectCount, HeapBlockType heapBlockType)
     : HeapBlock((HeapBlockType)(heapBlockType)),
@@ -223,7 +229,7 @@ SmallHeapBlockT<MediumAllocationBlockAttributes>::SmallHeapBlockT(HeapBucket * b
 {
     ConstructorCommon(bucket, objectSize, objectCount, heapBlockType);
 }
-
+#endif
 template <class TBlockAttributes>
 SmallHeapBlockT<TBlockAttributes>::~SmallHeapBlockT()
 {
@@ -244,15 +250,26 @@ template <class TBlockAttributes>
 uint
 SmallHeapBlockT<TBlockAttributes>::GetObjectBitDeltaForBucketIndex(uint bucketIndex)
 {
-    return bucketIndex + 1;
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    if (HeapInfo::heapBucketSizes[bucketIndex].objectGranularity > HeapConstants::ObjectGranularity)
+    {
+        return HeapInfo::heapBucketSizes[bucketIndex].bucketSizeCat / HeapConstants::ObjectGranularity;
+    }
+    else
+#endif
+    {
+        return bucketIndex + 1;
+    }
 }
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template <>
 uint
 SmallHeapBlockT<MediumAllocationBlockAttributes>::GetObjectBitDeltaForBucketIndex(uint bucketIndex)
 {
     return HeapInfo::GetObjectSizeForBucketIndex<MediumAllocationBlockAttributes>(bucketIndex) / HeapConstants::ObjectGranularity;
 }
+#endif
 
 template <class TBlockAttributes>
 uint
@@ -261,13 +278,60 @@ SmallHeapBlockT<TBlockAttributes>::GetPageCount() const
     return TBlockAttributes::PageCount;
 }
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template <>
 uint
 SmallHeapBlockT<MediumAllocationBlockAttributes>::GetUnusablePageCount()
 {
     return ((MediumAllocationBlockAttributes::PageCount * AutoSystemInfo::PageSize) % this->objectSize) / AutoSystemInfo::PageSize;
 }
+#endif
 
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+template <class TBlockAttributes>
+void
+SmallHeapBlockT<TBlockAttributes>::ProtectUnusablePages()
+{
+    size_t count = this->GetUnusablePageCount();
+    if (count > 0)
+    {
+        char* startPage = this->address + (TBlockAttributes::PageCount - count) * AutoSystemInfo::PageSize;
+        DWORD oldProtect;
+        BOOL ret = ::VirtualProtect(startPage, count * AutoSystemInfo::PageSize, PAGE_READONLY, &oldProtect);
+        Assert(ret && oldProtect == PAGE_READWRITE);
+#ifdef RECYCLER_WRITE_WATCH
+        if (!CONFIG_FLAG(ForceSoftwareWriteBarrier))
+        {
+            ::ResetWriteWatch(startPage, count*AutoSystemInfo::PageSize);
+        }
+#endif
+    }
+}
+
+template <class TBlockAttributes>
+void
+SmallHeapBlockT<TBlockAttributes>::RestoreUnusablePages()
+{
+    size_t count = this->GetUnusablePageCount();
+    if (count > 0)
+    {
+        char* startPage = (char*)this->address + (TBlockAttributes::PageCount - count) * AutoSystemInfo::PageSize;
+        DWORD oldProtect;
+        BOOL ret = ::VirtualProtect(startPage, count * AutoSystemInfo::PageSize, PAGE_READWRITE, &oldProtect);
+
+#if DBG
+        HeapBlock* block = this->heapBucket->heapInfo->recycler->heapBlockMap.GetHeapBlock(this->address);
+        // only need to do this after the unusable page is already successfully protected
+        // currently we don't have a flag to save that, but it should not fail after it successfully added to blockmap (see SetPage() implementation)
+        if (block)
+        {
+            Assert(block == this);
+            Assert(ret && oldProtect == PAGE_READONLY);
+        }
+#endif
+    }
+}
+#else
 template <>
 void
 SmallHeapBlockT<MediumAllocationBlockAttributes>::ProtectUnusablePages()
@@ -311,7 +375,7 @@ SmallHeapBlockT<MediumAllocationBlockAttributes>::RestoreUnusablePages()
 #endif
     }
 }
-
+#endif
 
 template <class TBlockAttributes>
 void
@@ -1706,7 +1770,9 @@ SmallHeapBlockT<TBlockAttributes>::EnqueueProcessedObject(FreeObject ** list, vo
     Assert(GetAddressIndex(objectAddress) == index);
 
     Assert(index != SmallHeapBlockT<TBlockAttributes>::InvalidAddressBit);
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     Assert(this->objectCount != 1);
+#endif
 
 #if DBG || defined(RECYCLER_STATS)
     if (list == &this->freeObjectList)
@@ -2013,8 +2079,11 @@ SmallHeapBlockT<TBlockAttributes>::MarkImplicitRoots()
 
 #if DBG
     uint localObjectSize = this->GetObjectSize();
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    Assert(localObjectSize <= HeapConstants::MaxSmallObjectSize);
+#else
     Assert(localObjectSize <= HeapConstants::MaxMediumObjectSize);
-
+#endif
     ushort markCountPerPage[TBlockAttributes::PageCount];
     for (uint i = 0; i < TBlockAttributes::PageCount; i++)
     {
@@ -2377,13 +2446,17 @@ namespace Memory
 {
 // Instantiate the template
 template class SmallHeapBlockT<SmallAllocationBlockAttributes>;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template class SmallHeapBlockT<MediumAllocationBlockAttributes>;
+#endif
 };
 
 #define TBlockTypeAttributes SmallAllocationBlockAttributes
 #include "SmallBlockDeclarations.inl"
 #undef TBlockTypeAttributes
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 #define TBlockTypeAttributes MediumAllocationBlockAttributes
 #include "SmallBlockDeclarations.inl"
 #undef TBlockTypeAttributes
+#endif

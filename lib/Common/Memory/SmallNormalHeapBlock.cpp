@@ -15,7 +15,11 @@ SmallNormalHeapBlockT<TBlockAttributes>::New(HeapBucketT<SmallNormalHeapBlockT<T
     ushort objectSize = (ushort)bucket->sizeCat;
     ushort objectCount = (ushort)(TBlockAttributes::PageCount * AutoSystemInfo::PageSize) / objectSize;
 
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    HeapBlockType blockType = HeapBlock::SmallNormalBlockType;
+#else
     HeapBlockType blockType = (TBlockAttributes::IsSmallBlock ? HeapBlock::SmallNormalBlockType : HeapBlock::MediumNormalBlockType);
+#endif
     return NoMemProtectHeapNewNoThrowPlusPrefixZ(Base::GetAllocPlusSize(objectCount), SmallNormalHeapBlockT<TBlockAttributes>, bucket, objectSize, objectCount, blockType);
 }
 
@@ -31,7 +35,11 @@ SmallNormalWithBarrierHeapBlockT<TBlockAttributes>::New(HeapBucketT<SmallNormalW
     ushort objectSize = (ushort)bucket->sizeCat;
     ushort objectCount = (ushort)(TBlockAttributes::PageCount * AutoSystemInfo::PageSize) / objectSize;
 
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    HeapBlockType blockType = HeapBlock::SmallNormalBlockWithBarrierType;
+#else
     HeapBlockType blockType = (TBlockAttributes::IsSmallBlock ? HeapBlock::SmallNormalBlockWithBarrierType : HeapBlock::MediumNormalBlockWithBarrierType);
+#endif
     return NoMemProtectHeapNewNoThrowPlusPrefixZ(Base::GetAllocPlusSize(objectCount), SmallNormalWithBarrierHeapBlockT<TBlockAttributes>, bucket, objectSize, objectCount, blockType);
 }
 #endif
@@ -66,11 +74,13 @@ SmallNormalHeapBlockT<SmallAllocationBlockAttributes>::SmallNormalHeapBlockT(Hea
 {
 }
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template <>
 SmallNormalHeapBlockT<MediumAllocationBlockAttributes>::SmallNormalHeapBlockT(HeapBucketT<SmallNormalHeapBlockT<MediumAllocationBlockAttributes>> * bucket, ushort objectSize, ushort objectCount)
     : Base(bucket, objectSize, objectCount, MediumNormalBlockType)
 {
 }
+#endif
 
 template <class TBlockAttributes>
 void
@@ -194,9 +204,13 @@ SmallNormalHeapBlockT<TBlockAttributes>::GetFreeObjectListOnAllocator(FreeObject
 namespace Memory
 {
     template class SmallNormalHeapBlockT<SmallAllocationBlockAttributes>;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     template class SmallNormalHeapBlockT<MediumAllocationBlockAttributes>;
+#endif
 #ifdef RECYCLER_WRITE_BARRIER
     template class SmallNormalWithBarrierHeapBlockT<SmallAllocationBlockAttributes>;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     template class SmallNormalWithBarrierHeapBlockT<MediumAllocationBlockAttributes>;
+#endif
 #endif
 }

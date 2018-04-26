@@ -243,6 +243,22 @@ template <class TBlockAttributes> class SmallNormalHeapBlockT;
 template <class TBlockAttributes> class SmallLeafHeapBlockT;
 template <class TBlockAttributes> class SmallFinalizableHeapBlockT;
 
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+#define INSTANTIATE_MED_BLOCKTYPES(TemplateType)
+#define INSTANTIATE_SWB_MED_BLOCKTYPES(TemplateType)
+#define INSTANTIATE_RECYCLER_VISITED_MED_BLOCKTYPES(TemplateType)
+#else
+#define INSTANTIATE_MED_BLOCKTYPES(TemplateType) \
+    template class TemplateType<Memory::MediumNormalHeapBlock>; \
+    template class TemplateType<Memory::MediumLeafHeapBlock>; \
+    template class TemplateType<Memory::MediumFinalizableHeapBlock>;
+#define INSTANTIATE_MED_SWB_BLOCKTYPES(TemplateType) \
+    template class TemplateType<Memory::MediumNormalWithBarrierHeapBlock>; \
+    template class TemplateType<Memory::MediumFinalizableWithBarrierHeapBlock>;
+#define INSTANTIATE_RECYCLER_VISITED_MED_BLOCKTYPES(TemplateType) \
+    template class TemplateType<Memory::MediumRecyclerVisitedHostHeapBlock>;
+#endif
+
 #ifdef RECYCLER_WRITE_BARRIER
 template <class TBlockAttributes> class SmallNormalWithBarrierHeapBlockT;
 template <class TBlockAttributes> class SmallFinalizableWithBarrierHeapBlockT;
@@ -250,10 +266,7 @@ template <class TBlockAttributes> class SmallFinalizableWithBarrierHeapBlockT;
 #define INSTANTIATE_SWB_BLOCKTYPES(TemplateType) \
     template class TemplateType<Memory::SmallNormalWithBarrierHeapBlock>; \
     template class TemplateType<Memory::SmallFinalizableWithBarrierHeapBlock>; \
-    template class TemplateType<Memory::MediumNormalWithBarrierHeapBlock>; \
-    template class TemplateType<Memory::MediumFinalizableWithBarrierHeapBlock>; \
-
-
+    INSTANTIATE_SWB_MED_BLOCKTYPES(TemplateType)
 #else
 #define INSTANTIATE_SWB_BLOCKTYPES(TemplateType)
 #endif
@@ -262,7 +275,7 @@ template <class TBlockAttributes> class SmallFinalizableWithBarrierHeapBlockT;
 template <class TBlockAttributes> class SmallRecyclerVisitedHostHeapBlockT;
 #define INSTANTIATE_RECYCLER_VISITED_BLOCKTYPES(TemplateType) \
     template class TemplateType<Memory::SmallRecyclerVisitedHostHeapBlock>; \
-    template class TemplateType<Memory::MediumRecyclerVisitedHostHeapBlock>; \
+    INSTANTIATE_RECYCLER_VISITED_MED_BLOCKTYPES(TemplateType) \
 
 #else
 #define INSTANTIATE_RECYCLER_VISITED_BLOCKTYPES(TemplateType)
@@ -272,9 +285,7 @@ template <class TBlockAttributes> class SmallRecyclerVisitedHostHeapBlockT;
     template class TemplateType<Memory::SmallNormalHeapBlock>;        \
     template class TemplateType<Memory::SmallLeafHeapBlock>; \
     template class TemplateType<Memory::SmallFinalizableHeapBlock>; \
-    template class TemplateType<Memory::MediumNormalHeapBlock>; \
-    template class TemplateType<Memory::MediumLeafHeapBlock>; \
-    template class TemplateType<Memory::MediumFinalizableHeapBlock>; \
+    INSTANTIATE_MED_BLOCKTYPES(TemplateType) \
     INSTANTIATE_SWB_BLOCKTYPES(TemplateType) \
     INSTANTIATE_RECYCLER_VISITED_BLOCKTYPES(TemplateType) \
 
@@ -295,6 +306,7 @@ public:
 #ifdef RECYCLER_VISITED_HOST
         SmallRecyclerVisitedHostBlockType,
 #endif
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
         MediumNormalBlockType,
         MediumLeafBlockType,
         MediumFinalizableBlockType,
@@ -305,6 +317,7 @@ public:
 #ifdef RECYCLER_VISITED_HOST
         MediumRecyclerVisitedHostBlockType,
 #endif
+#endif
         LargeBlockType,
 
 #ifdef RECYCLER_VISITED_HOST
@@ -313,36 +326,74 @@ public:
         SmallAllocBlockTypeCount = 6,
 #endif
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 #ifdef RECYCLER_VISITED_HOST
         MediumAllocBlockTypeCount = 6, // Actual number of types for blocks containing medium allocations
 #else
         MediumAllocBlockTypeCount = 5,
 #endif
+#endif
 
-        SmallBlockTypeCount = SmallAllocBlockTypeCount + MediumAllocBlockTypeCount,      // Distinct block types independent of allocation size using SmallHeapBlockT
+        SmallBlockTypeCount = SmallAllocBlockTypeCount
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+        + MediumAllocBlockTypeCount
+#endif
+        ,      // Distinct block types independent of allocation size using SmallHeapBlockT
         LargeBlockTypeCount = 1, // There is only one LargeBlockType
 
         BlockTypeCount = SmallBlockTypeCount + LargeBlockTypeCount,
     };
-    bool IsNormalBlock() const { return this->GetHeapBlockType() == SmallNormalBlockType || this->GetHeapBlockType() == MediumNormalBlockType; }
-    bool IsLeafBlock() const { return this->GetHeapBlockType() == SmallLeafBlockType || this->GetHeapBlockType() == MediumLeafBlockType; }
+    bool IsNormalBlock() const {
+        return this->GetHeapBlockType() == SmallNormalBlockType
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+            || this->GetHeapBlockType() == MediumNormalBlockType
+#endif
+            ;
+    }
+    bool IsLeafBlock() const {
+        return this->GetHeapBlockType() == SmallLeafBlockType
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+            || this->GetHeapBlockType() == MediumLeafBlockType
+#endif
+            ;
+    }
     bool IsFinalizableBlock() const 
     {
-        return this->GetHeapBlockType() == SmallFinalizableBlockType || this->GetHeapBlockType() == MediumFinalizableBlockType
+        return this->GetHeapBlockType() == SmallFinalizableBlockType 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+            || this->GetHeapBlockType() == MediumFinalizableBlockType
+#endif
 #ifdef RECYCLER_VISITED_HOST
             || IsRecyclerVisitedHostBlock()
 #endif
             ;
     }
 #ifdef RECYCLER_VISITED_HOST
-    bool IsRecyclerVisitedHostBlock() const { return this->GetHeapBlockType() == SmallRecyclerVisitedHostBlockType || this->GetHeapBlockType() == MediumRecyclerVisitedHostBlockType; }
+    bool IsRecyclerVisitedHostBlock() const {
+        return this->GetHeapBlockType() == SmallRecyclerVisitedHostBlockType
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+            || this->GetHeapBlockType() == MediumRecyclerVisitedHostBlockType
+#endif
+            ;
+    }
 #endif
 
 #ifdef RECYCLER_WRITE_BARRIER
     bool IsAnyNormalBlock() const { return IsNormalBlock() || IsNormalWriteBarrierBlock(); }
     bool IsAnyFinalizableBlock() const { return IsFinalizableBlock() || IsFinalizableWriteBarrierBlock(); }
-    bool IsNormalWriteBarrierBlock() const { return this->GetHeapBlockType() == SmallNormalBlockWithBarrierType || this->GetHeapBlockType() == MediumNormalBlockWithBarrierType; }
-    bool IsFinalizableWriteBarrierBlock() const { return this->GetHeapBlockType() == SmallFinalizableBlockWithBarrierType || this->GetHeapBlockType() == MediumFinalizableBlockWithBarrierType; }
+    bool IsNormalWriteBarrierBlock() const {
+        return this->GetHeapBlockType() == SmallNormalBlockWithBarrierType
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+            || this->GetHeapBlockType() == MediumNormalBlockWithBarrierType
+#endif
+            ;
+    }
+    bool IsFinalizableWriteBarrierBlock() const { return this->GetHeapBlockType() == SmallFinalizableBlockWithBarrierType
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+        || this->GetHeapBlockType() == MediumFinalizableBlockWithBarrierType
+#endif
+    ;
+    }
 #else
     bool IsAnyFinalizableBlock() const { return IsFinalizableBlock(); }
     bool IsAnyNormalBlock() const { return IsNormalBlock(); }
@@ -562,7 +613,7 @@ public:
     HeapBucket * heapBucket;
 
     // Review: Should GetBucketIndex return a short instead of an int?
-    const uint bucketIndex;
+    const ushort bucketIndex;
     const ushort objectSize; // size in bytes
     const ushort objectCount;
 
@@ -616,8 +667,8 @@ public:
 public:
     ~SmallHeapBlockT();
 
-    void ProtectUnusablePages() {}
-    void RestoreUnusablePages() {}
+    void ProtectUnusablePages();
+    void RestoreUnusablePages();
 
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
     virtual void WBVerifyBitIsSet(char* addr) override
@@ -660,7 +711,17 @@ public:
 
     uint GetUnusablePageCount()
     {
-        return 0;
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+        // Note: This will always return 0 with the PageCount 1 for small blocks; but is needed if we tweak the page count.
+        if (this->GetPageCount() > 1 && this->objectSize > HeapConstants::MaxObjectSizeWithMinGranularity)
+        {
+            return ((TBlockAttributes::PageCount * AutoSystemInfo::PageSize) % this->objectSize) / AutoSystemInfo::PageSize;
+        }
+        else
+#endif
+        {
+            return 0;
+        }
     }
 
 #ifdef RECYCLER_WRITE_BARRIER
@@ -823,7 +884,8 @@ public:
     virtual void SetTrackerData(void * address, void * data) override;
 #endif
 
-    static ushort GetAddressBitIndex(void * objectAddress);
+    ushort GetAddressBitIndex(void * objectAddress);
+    static ushort GetAddressBitIndex(void * objectAddress, uint bucketIndex);
     static void * GetRealAddressFromInterior(void * objectAddress, uint objectSize, byte bucketIndex);
 
 protected:
@@ -894,6 +956,7 @@ private:
 #endif
 };
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 // Forward declare specializations
 template<>
 SmallHeapBlockT<MediumAllocationBlockAttributes>::SmallHeapBlockT(HeapBucket * bucket, ushort objectSize, ushort objectCount, HeapBlockType heapBlockType);
@@ -913,17 +976,23 @@ SmallHeapBlockT<MediumAllocationBlockAttributes>::ProtectUnusablePages();
 template <>
 void
 SmallHeapBlockT<MediumAllocationBlockAttributes>::RestoreUnusablePages();
+#endif
 
 // Declare the class templates
 typedef SmallHeapBlockT<SmallAllocationBlockAttributes>  SmallHeapBlock;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 typedef SmallHeapBlockT<MediumAllocationBlockAttributes> MediumHeapBlock;
+#endif
 
 extern template class SmallHeapBlockT<SmallAllocationBlockAttributes>;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 extern template class SmallHeapBlockT<MediumAllocationBlockAttributes>;
+#endif
 
 extern template class ValidPointers<SmallAllocationBlockAttributes>;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 extern template class ValidPointers<MediumAllocationBlockAttributes>;
-
+#endif
 
 class HeapBlockList
 {

@@ -1132,10 +1132,12 @@ bool Recycler::ExplicitFreeInternalWrapper(void* buffer, size_t size)
         return ExplicitFreeInternal<attributes, SmallAllocationBlockAttributes>(buffer, size, HeapInfo::GetAlignedSizeNoCheck(allocSize));
     }
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     if (HeapInfo::IsMediumObject(allocSize))
     {
         return ExplicitFreeInternal<attributes, MediumAllocationBlockAttributes>(buffer, size, HeapInfo::GetMediumObjectAlignedSizeNoCheck(allocSize));
     }
+#endif
 
     return false;
 }
@@ -1205,11 +1207,13 @@ bool Recycler::ExplicitFreeInternal(void* buffer, size_t size, size_t sizeCat)
 
 #endif
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     if (TBlockAttributes::IsMediumBlock)
     {
         heapInfo->FreeMediumObject<attributes>(buffer, sizeCat);
     }
     else
+#endif
     {
         heapInfo->FreeSmallObject<attributes>(buffer, sizeCat);
     }
@@ -1380,7 +1384,7 @@ void Recycler::GetNormalHeapBlockAllocatorInfoForNativeAllocation(size_t allocSi
     allocatorAddress = (char*)this + offsetof(Recycler, autoHeap)
         + offsetof(HeapInfoManager, defaultHeap)
         + offsetof(HeapInfo, heapBuckets)
-        + sizeof(HeapBucketGroup<SmallAllocationBlockAttributes>)*((uint)(allocSize >> HeapConstants::ObjectAllocationShift) - 1)
+        + sizeof(HeapBucketGroup<SmallAllocationBlockAttributes>)*((uint) HeapInfo::GetBucketIndex(allocSize))
         + HeapBucketGroup<SmallAllocationBlockAttributes>::GetHeapBucketOffset()
         + HeapBucketT<SmallNormalHeapBlockT<SmallAllocationBlockAttributes>>::GetAllocatorHeadOffset();
 
@@ -2905,10 +2909,12 @@ Recycler::FindImplicitRootObject(void* candidate, RecyclerHeapObjectInfo& heapOb
     {
         return ((SmallHeapBlock*)heapBlock)->FindImplicitRootObject(candidate, this, heapObject);
     }
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     else if (!heapBlock->IsLargeHeapBlock())
     {
         return ((MediumHeapBlock*)heapBlock)->FindImplicitRootObject(candidate, this, heapObject);
     }
+#endif
     else
     {
         return ((LargeHeapBlock*)heapBlock)->FindImplicitRootObject(candidate, this, heapObject);
@@ -7021,8 +7027,12 @@ Recycler::PrintHeapBlockMemoryStats(char16 const * name, HeapBlock::HeapBlockTyp
         allocableFreeByteCount -= partialUnusedBytes;
     }
 #endif
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    size_t blockPages = SmallAllocationBlockAttributes::PageCount;
+#else
     size_t blockPages = type < HeapBlock::HeapBlockType::SmallAllocBlockTypeCount ?
         SmallAllocationBlockAttributes::PageCount : MediumAllocationBlockAttributes::PageCount;
+#endif
     size_t totalByteCount = (collectionStats.heapBlockCount[type] - collectionStats.heapBlockFreeCount[type]) * blockPages * AutoSystemInfo::PageSize;
     size_t liveByteCount = totalByteCount - collectionStats.heapBlockFreeByteCount[type];
     Output::Print(_u(" %6s: %10d %10d"), name, liveByteCount, allocableFreeByteCount);
@@ -7035,11 +7045,13 @@ Recycler::PrintHeapBlockMemoryStats(char16 const * name, HeapBlock::HeapBlockTyp
       || type == HeapBlock::HeapBlockType::SmallNormalBlockWithBarrierType
       || type == HeapBlock::HeapBlockType::SmallFinalizableBlockWithBarrierType
 #endif
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
       || type == HeapBlock::HeapBlockType::MediumNormalBlockType
       || type == HeapBlock::HeapBlockType::MediumFinalizableBlockType
 #ifdef RECYCLER_WRITE_BARRIER
       || type == HeapBlock::HeapBlockType::MediumNormalBlockWithBarrierType
       || type == HeapBlock::HeapBlockType::MediumFinalizableBlockWithBarrierType
+#endif
 #endif
       ))
     {
@@ -7062,11 +7074,13 @@ Recycler::PrintHeapBlockMemoryStats(char16 const * name, HeapBlock::HeapBlockTyp
         || type == HeapBlock::HeapBlockType::SmallNormalBlockWithBarrierType
         || type == HeapBlock::HeapBlockType::SmallFinalizableBlockWithBarrierType
 #endif
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
         || type == HeapBlock::HeapBlockType::MediumNormalBlockType
         || type == HeapBlock::HeapBlockType::MediumFinalizableBlockType
 #ifdef RECYCLER_WRITE_BARRIER
         || type == HeapBlock::HeapBlockType::MediumNormalBlockWithBarrierType
         || type == HeapBlock::HeapBlockType::MediumFinalizableBlockWithBarrierType
+#endif
 #endif
         ))
     {
@@ -7229,6 +7243,7 @@ Recycler::PrintMemoryStats()
 #endif
     PrintHeapBlockMemoryStats(_u("SmLeaf"), HeapBlock::SmallLeafBlockType);
     Output::Print(_u("\n"));
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     PrintHeapBlockMemoryStats(_u("Medium"), HeapBlock::MediumNormalBlockType);
     Output::Print(_u("\n"));
     PrintHeapBlockMemoryStats(_u("MdFin"), HeapBlock::MediumFinalizableBlockType);
@@ -7241,6 +7256,7 @@ Recycler::PrintMemoryStats()
 #endif
     PrintHeapBlockMemoryStats(_u("MdLeaf"), HeapBlock::MediumLeafBlockType);
     Output::Print(_u("\n"));
+#endif
 
     size_t largeHeapBlockUnusedByteCount = collectionStats.largeHeapBlockTotalByteCount - collectionStats.largeHeapBlockUsedByteCount
         - collectionStats.heapBlockFreeByteCount[HeapBlock::LargeBlockType];
@@ -7262,6 +7278,7 @@ Recycler::PrintMemoryStats()
 #ifdef RECYCLER_WRITE_BARRIER
         + collectionStats.numEmptySmallBlocks[HeapBlock::SmallFinalizableBlockWithBarrierType]
 #endif
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
         + collectionStats.numEmptySmallBlocks[HeapBlock::MediumNormalBlockType]
 #ifdef RECYCLER_WRITE_BARRIER
         + collectionStats.numEmptySmallBlocks[HeapBlock::MediumNormalBlockWithBarrierType]
@@ -7270,8 +7287,12 @@ Recycler::PrintMemoryStats()
 #ifdef RECYCLER_WRITE_BARRIER
         + collectionStats.numEmptySmallBlocks[HeapBlock::MediumFinalizableBlockWithBarrierType]
 #endif
+#endif
         , collectionStats.numEmptySmallBlocks[HeapBlock::SmallLeafBlockType]
-        + collectionStats.numEmptySmallBlocks[HeapBlock::MediumLeafBlockType],
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+        + collectionStats.numEmptySmallBlocks[HeapBlock::MediumLeafBlockType]
+#endif
+        ,
         collectionStats.numZeroedOutSmallBlocks);
 }
 
@@ -7337,7 +7358,9 @@ Recycler::PrintCollectStats()
     {
         Output::Print(_u(" |  Reuse     : %5d %10d %10d"),
             collectionStats.smallNonLeafHeapBlockPartialReuseCount[HeapBlock::SmallNormalBlockType],
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
             collectionStats.smallNonLeafHeapBlockPartialReuseBytes[HeapBlock::MediumNormalBlockType],
+#endif
             collectionStats.smallNonLeafHeapBlockPartialReuseCount[HeapBlock::SmallNormalBlockType] * AutoSystemInfo::PageSize
             - collectionStats.smallNonLeafHeapBlockPartialReuseBytes[HeapBlock::SmallNormalBlockType]);
     }
@@ -7397,6 +7420,7 @@ Recycler::PrintCollectStats()
 #endif
     Output::Print(_u("\n"));
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     PrintHeapBlockStats(_u("Medium"), HeapBlock::MediumNormalBlockType);
 #if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect)
@@ -7462,6 +7486,7 @@ Recycler::PrintCollectStats()
     }
 #endif
     Output::Print(_u("\n"));
+#endif
 
     // TODO: This can't possibly be correct...check on this later
     PrintHeapBlockStats(_u("Large"), HeapBlock::LargeBlockType);
@@ -8608,6 +8633,7 @@ ULONG Recycler::EventWriteFreeMemoryBlock(HeapBlock* heapBlock)
                 objectSize = smallHeapBlock->GetObjectSize();
             }
             break;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
         case HeapBlock::HeapBlockType::MediumFinalizableBlockType:
         case HeapBlock::HeapBlockType::MediumNormalBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
@@ -8621,6 +8647,7 @@ ULONG Recycler::EventWriteFreeMemoryBlock(HeapBlock* heapBlock)
                 blockSize = (ULONG)(mediumHeapBlock->GetEndAddress() - memoryAddress);
                 objectSize = mediumHeapBlock->GetObjectSize();
             }
+#endif
         case HeapBlock::HeapBlockType::LargeBlockType:
                 {
                 LargeHeapBlock* largeHeapBlock = static_cast<LargeHeapBlock*>(heapBlock);

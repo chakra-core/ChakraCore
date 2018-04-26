@@ -7,6 +7,10 @@
 class HeapConstants
 {
 public:
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    static const uint MaxSmallObjectSize = 3584; // We only have small and large objects now.
+    static const uint MaxObjectSizeWithMinGranularity = 768;
+#else
 #if defined(TARGET_32)
     static const uint MaxSmallObjectSize = 512;
 #else
@@ -17,6 +21,7 @@ public:
     static const uint MaxMediumObjectSize = 8 * 1024; // Maximum medium object size is 8K
 #else
     static const uint MaxMediumObjectSize = 9216;
+#endif
 #endif
 
     static const uint MaxLargeObjectSize = 1u << 31; // Maximum recycler object is 2GB
@@ -29,7 +34,25 @@ public:
 
     static const uint ObjectAllocationShift = 4;        // 16
     static const uint ObjectGranularity = 1 << ObjectAllocationShift;
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    /*
+    Multiplier  Alignment   # of Buckets
+    1               16          48
+    2               32           8
+    4               64           8
+    8               128          8
+    16              256          4
+    Total # of Buckets:         76
+    */
+    static const ushort TotalAlignmentBucketCount = 76;
+    static const uint BucketCount = TotalAlignmentBucketCount;
+    static const uint TotalSmallObjectSizeCatCount = MaxSmallObjectSize / ObjectGranularity;
+    static const ushort AlignmentBucketStrides = 5;
+    static const ushort AlignmentBucketMultipliers[AlignmentBucketStrides];
+    static const ushort AlignmentBucketCounts[AlignmentBucketStrides];
+#else
     static const uint BucketCount = (MaxSmallObjectSize >> ObjectAllocationShift);
+#endif
 
 #ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
     static const uint MediumObjectGranularity = 256;
@@ -68,6 +91,7 @@ public:
     static BOOL IsAlignedObjectSize(size_t sizeCat);
 };
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 class MediumAllocationBlockAttributes
 {
 public:
@@ -89,6 +113,7 @@ public:
 
     static BOOL IsAlignedObjectSize(size_t sizeCat);
 };
+#endif
 
 class LargeAllocationBlockAttributes
 {

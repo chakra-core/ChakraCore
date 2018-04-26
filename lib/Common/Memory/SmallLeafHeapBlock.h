@@ -39,5 +39,7 @@ private:
 };
 
 typedef SmallLeafHeapBlockT<SmallAllocationBlockAttributes> SmallLeafHeapBlock;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 typedef SmallLeafHeapBlockT<MediumAllocationBlockAttributes>   MediumLeafHeapBlock;
+#endif
 }

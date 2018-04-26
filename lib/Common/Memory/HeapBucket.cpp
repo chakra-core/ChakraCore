@@ -40,17 +40,23 @@ HeapBucket::GetSizeCat() const
     return this->sizeCat;
 }
 
-uint
+ushort
 HeapBucket::GetBucketIndex() const
 {
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    return this->bucketIndex;
+#else
     return HeapInfo::GetBucketIndex(this->sizeCat);
+#endif
 }
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 uint
 HeapBucket::GetMediumBucketIndex() const
 {
     return HeapInfo::GetMediumBucketIndex(this->sizeCat);
 }
+#endif
 
 namespace Memory
 {
@@ -209,11 +215,23 @@ HeapBucketT<TBlockType>::FlushInterlockedSList(PSLIST_HEADER list)
 }
 #endif
 
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+template <typename TBlockType>
+void
+HeapBucketT<TBlockType>::Initialize(HeapInfo * heapInfo, uint sizeCat, ushort objectAlignment)
+#else
 template <typename TBlockType>
 void
 HeapBucketT<TBlockType>::Initialize(HeapInfo * heapInfo, uint sizeCat)
+#endif
 {
     this->heapInfo = heapInfo;
+
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    this->objectAlignment = objectAlignment;
+    this->bucketIndex = HeapInfo::GetBucketIndex(sizeCat);
+#endif
+
 #ifdef RECYCLER_PAGE_HEAP
     this->isPageHeapEnabled = heapInfo->IsPageHeapEnabledForBlock<typename TBlockType::HeapBlockAttributes>(sizeCat);
 #endif
@@ -929,12 +947,14 @@ HeapBucketT<TBlockType>::VerifyBlockConsistencyInList(TBlockType * heapBlock, Re
         expectDispose = &recyclerSweep.smallBlockVerifyListConsistencyData.expectDispose;
         nextAllocableBlockHead = recyclerSweep.smallBlockVerifyListConsistencyData.nextAllocableBlockHead;
     }
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     else if (TBlockType::HeapBlockAttributes::IsMediumBlock)
     {
         expectFull = &recyclerSweep.mediumBlockVerifyListConsistencyData.expectFull;
         expectDispose = &recyclerSweep.mediumBlockVerifyListConsistencyData.expectDispose;
         nextAllocableBlockHead = recyclerSweep.mediumBlockVerifyListConsistencyData.nextAllocableBlockHead;
     }
+#endif
     else
     {
         Assert(false);
@@ -993,11 +1013,13 @@ HeapBucketT<TBlockType>::VerifyBlockConsistencyInList(TBlockType * heapBlock, Re
         expectFull = recyclerSweep.smallBlockVerifyListConsistencyData.expectFull;
         expectDispose = recyclerSweep.smallBlockVerifyListConsistencyData.expectDispose;
     }
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     else if (TBlockType::HeapBlockAttributes::IsMediumBlock)
     {
         expectFull = recyclerSweep.mediumBlockVerifyListConsistencyData.expectFull;
         expectDispose = recyclerSweep.mediumBlockVerifyListConsistencyData.expectDispose;
     }
+#endif
     else
     {
         Assert(false);
@@ -1050,11 +1072,13 @@ HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlock
         Assert(recyclerSweep.smallBlockVerifyListConsistencyData.hasSetupVerifyListConsistencyData);
         recyclerSweep.smallBlockVerifyListConsistencyData.hasSetupVerifyListConsistencyData = false;
     }
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     else if (TBlockType::HeapBlockAttributes::IsMediumBlock)
     {
         Assert(recyclerSweep.mediumBlockVerifyListConsistencyData.hasSetupVerifyListConsistencyData);
         recyclerSweep.mediumBlockVerifyListConsistencyData.hasSetupVerifyListConsistencyData = false;
     }
+#endif
     else
     {
         Assert(false);
@@ -1328,10 +1352,12 @@ HeapBucketT<TBlockType>::SweepBucket(RecyclerSweep& recyclerSweep)
     {
         recyclerSweep.SetupVerifyListConsistencyDataForSmallBlock((SmallHeapBlock*) savedNextAllocableBlockHead, true, false);
     }
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     else if (TBlockType::HeapBlockAttributes::IsMediumBlock)
     {
         recyclerSweep.SetupVerifyListConsistencyDataForMediumBlock((MediumHeapBlock*) savedNextAllocableBlockHead, true, false);
     }
+#endif
     else
     {
         Assert(false);
@@ -1358,10 +1384,12 @@ HeapBucketT<TBlockType>::SweepBucket(RecyclerSweep& recyclerSweep)
     {
         recyclerSweep.SetupVerifyListConsistencyDataForSmallBlock(nullptr, true, false);
     }
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     else if (TBlockType::HeapBlockAttributes::IsMediumBlock)
     {
         recyclerSweep.SetupVerifyListConsistencyDataForMediumBlock(nullptr, true, false);
     }
+#endif
     else
     {
         Assert(false);
@@ -1723,10 +1751,12 @@ HeapBucketT<TBlockType>::FinishConcurrentSweepPass1(RecyclerSweep& recyclerSweep
         {
             recyclerSweep.SetupVerifyListConsistencyDataForSmallBlock(nullptr, true, false);
         }
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
         else if (TBlockType::HeapBlockAttributes::IsMediumBlock)
         {
             recyclerSweep.SetupVerifyListConsistencyDataForMediumBlock(nullptr, true, false);
         }
+#endif
         else
         {
             Assert(false);
@@ -1957,10 +1987,12 @@ HeapBucketT<TBlockType>::Verify()
     {
         recyclerVerifyListConsistencyData.smallBlockVerifyListConsistencyData.SetupVerifyListConsistencyData((SmallHeapBlock*) nullptr, true, false);
     }
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     else if (TBlockType::HeapBlockAttributes::IsMediumBlock)
     {
         recyclerVerifyListConsistencyData.mediumBlockVerifyListConsistencyData.SetupVerifyListConsistencyData((MediumHeapBlock*) nullptr, true, false);
     }
+#endif
     else
     {
         Assert(false);
@@ -1981,10 +2013,12 @@ HeapBucketT<TBlockType>::Verify()
         {
             recyclerVerifyListConsistencyData.smallBlockVerifyListConsistencyData.SetupVerifyListConsistencyData((SmallHeapBlock*) nullptr, true, false);
         }
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
         else if (TBlockType::HeapBlockAttributes::IsMediumBlock)
         {
             recyclerVerifyListConsistencyData.mediumBlockVerifyListConsistencyData.SetupVerifyListConsistencyData((MediumHeapBlock*) nullptr, true, false);
         }
+#endif
         else
         {
             Assert(false);
@@ -2004,10 +2038,12 @@ HeapBucketT<TBlockType>::Verify()
     {
         recyclerVerifyListConsistencyData.smallBlockVerifyListConsistencyData.SetupVerifyListConsistencyData((SmallHeapBlock*) this->nextAllocableBlockHead, true, false);
     }
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     else if (TBlockType::HeapBlockAttributes::IsMediumBlock)
     {
         recyclerVerifyListConsistencyData.mediumBlockVerifyListConsistencyData.SetupVerifyListConsistencyData((MediumHeapBlock*) this->nextAllocableBlockHead, true, false);
     }
+#endif
     else
     {
         Assert(false);
@@ -2065,10 +2101,28 @@ HeapBucketT<TBlockType>::VerifyMark()
 }
 #endif
 
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+template <class TBlockAttributes>
+void
+HeapBucketGroup<TBlockAttributes>::Initialize(HeapInfo * heapInfo, uint sizeCat, ushort objectAlignment)
+#else
 template <class TBlockAttributes>
 void
 HeapBucketGroup<TBlockAttributes>::Initialize(HeapInfo * heapInfo, uint sizeCat)
+#endif
 {
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    heapBucket.Initialize(heapInfo, sizeCat, objectAlignment);
+    leafHeapBucket.Initialize(heapInfo, sizeCat, objectAlignment);
+#ifdef RECYCLER_WRITE_BARRIER
+    smallNormalWithBarrierHeapBucket.Initialize(heapInfo, sizeCat, objectAlignment);
+    smallFinalizableWithBarrierHeapBucket.Initialize(heapInfo, sizeCat, objectAlignment);
+#endif
+    finalizableHeapBucket.Initialize(heapInfo, sizeCat, objectAlignment);
+#ifdef RECYCLER_VISITED_HOST
+    recyclerVisitedHostHeapBucket.Initialize(heapInfo, sizeCat, objectAlignment);
+#endif
+#else
     heapBucket.Initialize(heapInfo, sizeCat);
     leafHeapBucket.Initialize(heapInfo, sizeCat);
 #ifdef RECYCLER_WRITE_BARRIER
@@ -2078,6 +2132,7 @@ HeapBucketGroup<TBlockAttributes>::Initialize(HeapInfo * heapInfo, uint sizeCat)
     finalizableHeapBucket.Initialize(heapInfo, sizeCat);
 #ifdef RECYCLER_VISITED_HOST
     recyclerVisitedHostHeapBucket.Initialize(heapInfo, sizeCat);
+#endif
 #endif
 }
 
@@ -2511,7 +2566,9 @@ HeapBucketGroup<TBlockAttributes>::AllocatorsAreEmpty()
 namespace Memory
 {
     template class HeapBucketGroup<SmallAllocationBlockAttributes>;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     template class HeapBucketGroup<MediumAllocationBlockAttributes>;
+#endif
 
     EXPLICIT_INSTANTIATE_WITH_SMALL_HEAP_BLOCK_TYPE(HeapBucketT);
 };

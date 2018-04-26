@@ -189,7 +189,9 @@ HeapBlockMap32::GetMarkBitVectorForPages(void * address)
 }
 
 template BVStatic<SmallAllocationBlockAttributes::BitVectorCount>* HeapBlockMap32::GetMarkBitVectorForPages<SmallAllocationBlockAttributes::BitVectorCount>(void * address);
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template BVStatic<MediumAllocationBlockAttributes::BitVectorCount>* HeapBlockMap32::GetMarkBitVectorForPages<MediumAllocationBlockAttributes::BitVectorCount>(void * address);
+#endif
 
 uint
 HeapBlockMap32::GetMarkCount(void * address, uint pageCount)
@@ -338,7 +340,9 @@ HeapBlockMap32::SetPageMarkCount(void * address, ushort markCount)
 }
 
 template void HeapBlockMap32::VerifyMarkCountForPages<SmallAllocationBlockAttributes::BitVectorCount>(void* address, uint pageCount);
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template void HeapBlockMap32::VerifyMarkCountForPages<MediumAllocationBlockAttributes::BitVectorCount>(void* address, uint pageCount);
+#endif
 
 template <uint BitVectorCount>
 void
@@ -676,6 +680,7 @@ HeapBlockMap32::RescanPage(void * dirtyPage, bool* anyObjectsMarkedOnPage, Recyc
         case HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType:
             return RescanHeapBlock<SmallRecyclerVisitedHostHeapBlock>(dirtyPage, blockType, chunk, id2, anyObjectsMarkedOnPage, recycler);
 #endif
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
         case HeapBlock::HeapBlockType::MediumNormalBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
         case HeapBlock::HeapBlockType::MediumNormalBlockWithBarrierType:
@@ -690,6 +695,7 @@ HeapBlockMap32::RescanPage(void * dirtyPage, bool* anyObjectsMarkedOnPage, Recyc
         case HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType:
             return RescanHeapBlock<MediumRecyclerVisitedHostHeapBlock>(dirtyPage, blockType, chunk, id2, anyObjectsMarkedOnPage, recycler);
 #endif
+#endif
         default:
             // Shouldn't be here -- leaf blocks aren't rescanned, and large blocks are handled separately
             Assert(false);
@@ -702,8 +708,10 @@ HeapBlockMap32::RescanPage(void * dirtyPage, bool* anyObjectsMarkedOnPage, Recyc
 
 template bool HeapBlockMap32::RescanHeapBlock<SmallNormalHeapBlock>(void * dirtyPage, HeapBlock::HeapBlockType blockType, L2MapChunk* chunk, uint id2, bool* anyObjectsMarkedOnPage, Recycler * recycler);
 template bool HeapBlockMap32::RescanHeapBlock<SmallFinalizableHeapBlock>(void * dirtyPage, HeapBlock::HeapBlockType blockType, L2MapChunk* chunk, uint id2, bool* anyObjectsMarkedOnPage, Recycler * recycler);
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template bool HeapBlockMap32::RescanHeapBlock<MediumNormalHeapBlock>(void * dirtyPage, HeapBlock::HeapBlockType blockType, L2MapChunk* chunk, uint id2, bool* anyObjectsMarkedOnPage, Recycler * recycler);
 template bool HeapBlockMap32::RescanHeapBlock<MediumFinalizableHeapBlock>(void * dirtyPage, HeapBlock::HeapBlockType blockType, L2MapChunk* chunk, uint id2, bool* anyObjectsMarkedOnPage, Recycler * recycler);
+#endif
 
 template <class TBlockType>
 bool
@@ -754,12 +762,14 @@ HeapBlockMap32::GetHeapBlockForRescan(HeapBlockMap32::L2MapChunk* chunk, uint id
     return (SmallFinalizableHeapBlock*) chunk->map[id2];
 }
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template <>
 MediumFinalizableHeapBlock*
 HeapBlockMap32::GetHeapBlockForRescan(HeapBlockMap32::L2MapChunk* chunk, uint id2) const
 {
     return (MediumFinalizableHeapBlock*)chunk->map[id2];
 }
+#endif
 
 #ifdef RECYCLER_VISITED_HOST
 template <>
@@ -770,6 +780,7 @@ HeapBlockMap32::GetHeapBlockForRescan(HeapBlockMap32::L2MapChunk* chunk, uint id
 }
 #endif
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 #ifdef RECYCLER_VISITED_HOST
 template <>
 MediumRecyclerVisitedHostHeapBlock*
@@ -777,6 +788,7 @@ HeapBlockMap32::GetHeapBlockForRescan(HeapBlockMap32::L2MapChunk* chunk, uint id
 {
     return (MediumRecyclerVisitedHostHeapBlock*)chunk->map[id2];
 }
+#endif
 #endif
 
 void
@@ -1067,6 +1079,7 @@ HeapBlockMap32::OOMRescan(Recycler * recycler)
                                 break;
 #endif
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
                             case HeapBlock::HeapBlockType::MediumNormalBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
                             case HeapBlock::HeapBlockType::MediumNormalBlockWithBarrierType:
@@ -1094,7 +1107,7 @@ HeapBlockMap32::OOMRescan(Recycler * recycler)
                                 }
                                 break;
 #endif
-
+#endif
                             default:
                                 // Shouldn't be here -- leaf blocks aren't rescanned, and large blocks are handled separately
                                 Assert(false);
@@ -1122,8 +1135,10 @@ HeapBlockMap32::OOMRescan(Recycler * recycler)
 
 template bool HeapBlockMap32::RescanHeapBlockOnOOM<SmallNormalHeapBlock>(SmallNormalHeapBlock* heapBlock, char* pageAddress, HeapBlock::HeapBlockType blockType, uint bucketIndex, L2MapChunk * chunk, Recycler * recycler);
 template bool HeapBlockMap32::RescanHeapBlockOnOOM<SmallFinalizableHeapBlock>(SmallFinalizableHeapBlock* heapBlock, char* pageAddress, HeapBlock::HeapBlockType blockType, uint bucketIndex, L2MapChunk * chunk, Recycler * recycler);
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template bool HeapBlockMap32::RescanHeapBlockOnOOM<MediumNormalHeapBlock>(MediumNormalHeapBlock* heapBlock, char* pageAddress, HeapBlock::HeapBlockType blockType, uint bucketIndex, L2MapChunk * chunk, Recycler * recycler);
 template bool HeapBlockMap32::RescanHeapBlockOnOOM<MediumFinalizableHeapBlock>(MediumFinalizableHeapBlock* heapBlock, char* pageAddress, HeapBlock::HeapBlockType blockType, uint bucketIndex, L2MapChunk * chunk, Recycler * recycler);
+#endif
 
 template <class TBlockType>
 bool
@@ -1326,7 +1341,9 @@ BVStatic<BitCount>* HeapBlockMap64::GetMarkBitVectorForPages(void * address)
 }
 
 template BVStatic<SmallAllocationBlockAttributes::BitVectorCount>* HeapBlockMap64::GetMarkBitVectorForPages<SmallAllocationBlockAttributes::BitVectorCount>(void * address);
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template BVStatic<MediumAllocationBlockAttributes::BitVectorCount>* HeapBlockMap64::GetMarkBitVectorForPages<MediumAllocationBlockAttributes::BitVectorCount>(void * address);
+#endif
 
 uint
 HeapBlockMap64::GetMarkCount(void * address, uint pageCount)
@@ -1540,7 +1557,9 @@ HeapBlockMap64::SetPageMarkCount(void * address, ushort markCount)
 }
 
 template void HeapBlockMap64::VerifyMarkCountForPages<SmallAllocationBlockAttributes::BitVectorCount>(void* address, uint pageCount);
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template void HeapBlockMap64::VerifyMarkCountForPages<MediumAllocationBlockAttributes::BitVectorCount>(void* address, uint pageCount);
+#endif
 
 template <uint BitVectorCount>
 void

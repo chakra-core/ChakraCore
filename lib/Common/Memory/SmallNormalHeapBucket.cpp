@@ -111,7 +111,7 @@ SmallNormalHeapBucketBase<TBlockType>::RescanObjectsOnPage(TBlockType * block, c
     // We do it this way so that we can figure out if we need to rescan the first few bytes of the page
     // if the actual first object on this page is not located at the start of the page
     char* const startObjectAddress = blockStartAddress + (firstObjectOnPageIndex * localObjectSize);
-    const uint startBitIndex = TBlockType::GetAddressBitIndex(startObjectAddress);
+    const uint startBitIndex = TBlockType::GetAddressBitIndex(startObjectAddress, bucketIndex);
     const uint pageStartBitIndex = pageByteOffset >> HeapConstants::ObjectAllocationShift;
 
     Assert(pageByteOffset / AutoSystemInfo::PageSize < USHRT_MAX);
@@ -809,32 +809,49 @@ SmallNormalHeapBucketBase<TBlockType>::Sweep(RecyclerSweep& recyclerSweep)
 namespace Memory
 {
     template class SmallNormalHeapBucketBase<SmallNormalHeapBlock>;
-    template class SmallNormalHeapBucketBase<MediumNormalHeapBlock>;
 
 #ifdef RECYCLER_WRITE_BARRIER
     template class SmallNormalHeapBucketBase<SmallNormalWithBarrierHeapBlock>;
-    template class SmallNormalHeapBucketBase<MediumNormalWithBarrierHeapBlock>;
 #endif
 
     template class SmallNormalHeapBucketBase<SmallFinalizableHeapBlock>;
-    template class SmallNormalHeapBucketBase<MediumFinalizableHeapBlock>;
 
 #ifdef RECYCLER_VISITED_HOST
     template class SmallNormalHeapBucketBase<SmallRecyclerVisitedHostHeapBlock>;
-    template class SmallNormalHeapBucketBase<MediumRecyclerVisitedHostHeapBlock>;
 #endif
 
 #ifdef RECYCLER_WRITE_BARRIER
     template class SmallNormalHeapBucketBase<SmallFinalizableWithBarrierHeapBlock>;
-    template class SmallNormalHeapBucketBase<MediumFinalizableWithBarrierHeapBlock>;
 #endif
 
     template void SmallNormalHeapBucketBase<SmallNormalHeapBlock>::Sweep(RecyclerSweep& recyclerSweep);
-    template void SmallNormalHeapBucketBase<MediumNormalHeapBlock>::Sweep(RecyclerSweep& recyclerSweep);
 
 #ifdef RECYCLER_WRITE_BARRIER
     template void SmallNormalHeapBucketBase<SmallNormalWithBarrierHeapBlock>::Sweep(RecyclerSweep& recyclerSweep);
+#endif
+
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    template class SmallNormalHeapBucketBase<MediumNormalHeapBlock>;
+
+#ifdef RECYCLER_WRITE_BARRIER
+    template class SmallNormalHeapBucketBase<MediumNormalWithBarrierHeapBlock>;
+#endif
+
+    template class SmallNormalHeapBucketBase<MediumFinalizableHeapBlock>;
+
+#ifdef RECYCLER_VISITED_HOST
+    template class SmallNormalHeapBucketBase<MediumRecyclerVisitedHostHeapBlock>;
+#endif
+
+#ifdef RECYCLER_WRITE_BARRIER
+    template class SmallNormalHeapBucketBase<MediumFinalizableWithBarrierHeapBlock>;
+#endif
+
+    template void SmallNormalHeapBucketBase<MediumNormalHeapBlock>::Sweep(RecyclerSweep& recyclerSweep);
+
+#ifdef RECYCLER_WRITE_BARRIER
     template void SmallNormalHeapBucketBase<MediumNormalWithBarrierHeapBlock>::Sweep(RecyclerSweep& recyclerSweep);
+#endif
 #endif
 }
 

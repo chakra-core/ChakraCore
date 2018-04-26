@@ -19,11 +19,58 @@ template _ALWAYSINLINE char* HeapInfo::RealAlloc<NoBit, false>(Recycler * recycl
 // with VS2013 or below.
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
 const uint SmallAllocationBlockAttributes::MaxSmallObjectCount;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 const uint MediumAllocationBlockAttributes::MaxSmallObjectCount;
+#endif
+#endif
+
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+/*
+Multiplier  Alignment   # of Buckets
+1               16          48
+2               32           8
+4               64           8
+8               128          8
+16              256          4
+Total # of Buckets:         76
+*/
+const ushort HeapConstants::AlignmentBucketMultipliers[] = { 1, 2, 4, 8, 16 };
+const ushort HeapConstants::AlignmentBucketCounts[] = { 48, 8, 8, 8, 4 };
+HeapInfo::HeapInfoStaticConstructor HeapInfo::heapInfoStaticConstructor;
+HeapBucketObjectGranularityInfo HeapInfo::heapBucketSizes[HeapConstants::BucketCount];
+ushort HeapInfo::heapBucketSizeBucketIndexLookup[HeapConstants::TotalSmallObjectSizeCatCount];
+
+HeapInfo::HeapInfoStaticConstructor::HeapInfoStaticConstructor()
+{
+    ushort bucketIndex = 0;
+    ushort currentSizeCat = 0;
+    ushort currentBucketObjectAlignment = 0;
+
+    for (uint stride = 0; stride < HeapConstants::AlignmentBucketStrides; stride++)
+    {
+        for (uint strideBucketIndex = 0; strideBucketIndex < HeapConstants::AlignmentBucketCounts[stride]; strideBucketIndex++)
+        {
+            currentBucketObjectAlignment = HeapConstants::AlignmentBucketMultipliers[stride] * HeapConstants::ObjectGranularity;
+            currentSizeCat += currentBucketObjectAlignment;
+            HeapInfo::heapBucketSizes[bucketIndex].bucketSizeCat = currentSizeCat;
+            HeapInfo::heapBucketSizes[bucketIndex].objectGranularity = currentBucketObjectAlignment;
+
+            //size_t currentBucketMinSize = currentSizeCat - currentBucketObjectAlignment;
+            for (ushort i = 0; i < currentBucketObjectAlignment / HeapConstants::ObjectGranularity; i++)
+            {
+                HeapInfo::heapBucketSizeBucketIndexLookup[(ushort)((currentSizeCat - (i * HeapConstants::ObjectGranularity)) >> HeapConstants::ObjectAllocationShift) - 1] = bucketIndex;
+            }
+
+            bucketIndex++;
+        }
+    }
+}
 #endif
 
 HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>  HeapInfo::smallAllocValidPointersMap;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes> HeapInfo::mediumAllocValidPointersMap;
+#endif
 
 template <class TBlockAttributes>
 ValidPointers<TBlockAttributes>::ValidPointers(ushort const * validPointers, uint bucketIndex)
@@ -74,6 +121,10 @@ template <class TBlockAttributes>
 uint ValidPointers<TBlockAttributes>::CalculateBucketInfo(uint bucketIndex, uint * indexPerObject)
 {
     uint bucketSize;
+
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    bucketSize = HeapInfo::heapBucketSizes[bucketIndex].bucketSizeCat;
+#else
     if (TBlockAttributes::IsSmallBlock)
     {
         bucketSize = TBlockAttributes::MinObjectSize + HeapConstants::ObjectGranularity * bucketIndex;
@@ -82,6 +133,8 @@ uint ValidPointers<TBlockAttributes>::CalculateBucketInfo(uint bucketIndex, uint
     {
         bucketSize = TBlockAttributes::MinObjectSize + HeapConstants::MediumObjectGranularity * (bucketIndex + 1);
     }
+#endif
+
     *indexPerObject = bucketSize / HeapConstants::ObjectGranularity;
     return ((TBlockAttributes::PageCount * AutoSystemInfo::PageSize) / bucketSize) * bucketSize / HeapConstants::ObjectGranularity;
 }
@@ -143,6 +196,9 @@ void HeapInfo::ValidPointersMap<TBlockAttributes>::GenerateValidPointersMap(Vali
 
         uint bucketSize;
 
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+        bucketSize = HeapInfo::heapBucketSizes[i].bucketSizeCat;
+#else
         if (TBlockAttributes::IsSmallBlock)
         {
             bucketSize = TBlockAttributes::MinObjectSize + HeapConstants::ObjectGranularity * i;
@@ -151,6 +207,7 @@ void HeapInfo::ValidPointersMap<TBlockAttributes>::GenerateValidPointersMap(Vali
         {
             bucketSize = TBlockAttributes::MinObjectSize + HeapConstants::MediumObjectGranularity * (i + 1);
         }
+#endif
 
         uint stride = bucketSize / HeapConstants::ObjectGranularity;
         uint maxObjectCountForBucket = ((TBlockAttributes::PageCount * AutoSystemInfo::PageSize) / bucketSize);
@@ -299,6 +356,7 @@ cleanup:
     return hr;
 }
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template <>
 HRESULT HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes>::GenerateValidPointersMapForBlockType(FILE* file)
 {
@@ -397,6 +455,7 @@ cleanup:
     free(invalid);
     return hr;
 }
+#endif
 
 template <class TBlockAttributes>
 HRESULT HeapInfo::ValidPointersMap<TBlockAttributes>::GenerateValidPointersMapHeader(LPCWSTR vpmFullPath)
@@ -425,11 +484,12 @@ HRESULT HeapInfo::ValidPointersMap<TBlockAttributes>::GenerateValidPointersMapHe
         if (fwprintf(file, header) >= 0)
         {
             hr = ValidPointersMap<SmallAllocationBlockAttributes>::GenerateValidPointersMapForBlockType(file);
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
             if (SUCCEEDED(hr))
             {
                 hr = ValidPointersMap<MediumAllocationBlockAttributes>::GenerateValidPointersMapForBlockType(file);
             }
-
+#endif
             fwprintf(file, _u("#endif // USE_STATIC_VPM\n"));
         }
 
@@ -459,6 +519,7 @@ HeapInfo::HeapInfo(AllocationPolicyManager * policyManager, Js::ConfigFlagsTable
 #ifdef RECYCLER_VISITED_HOST
     newRecyclerVisitedHostHeapBlockList(nullptr),
 #endif
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     newMediumLeafHeapBlockList(nullptr),
     newMediumNormalHeapBlockList(nullptr),
 #ifdef RECYCLER_WRITE_BARRIER
@@ -469,6 +530,7 @@ HeapInfo::HeapInfo(AllocationPolicyManager * policyManager, Js::ConfigFlagsTable
     newMediumRecyclerVisitedHostHeapBlockList(nullptr),
 #endif
     newMediumFinalizableHeapBlockList(nullptr),
+#endif
 #endif
 #ifdef RECYCLER_FINALIZE_CHECK
     liveFinalizableObjectCount(0),
@@ -514,14 +576,20 @@ HeapInfo::~HeapInfo()
 
 #if ENABLE_CONCURRENT_GC
     SmallFinalizableHeapBucket::FinalizeHeapBlockList(this->newFinalizableHeapBlockList);
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     MediumFinalizableHeapBucket::FinalizeHeapBlockList(this->newMediumFinalizableHeapBlockList);
+#endif
 #ifdef RECYCLER_VISITED_HOST
     SmallRecyclerVisitedHostHeapBucket::FinalizeHeapBlockList(this->newRecyclerVisitedHostHeapBlockList);
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     MediumRecyclerVisitedHostHeapBucket::FinalizeHeapBlockList(this->newMediumRecyclerVisitedHostHeapBlockList);
+#endif
 #endif
 #ifdef RECYCLER_WRITE_BARRIER
     SmallFinalizableWithBarrierHeapBucket::FinalizeHeapBlockList(this->newFinalizableWithBarrierHeapBlockList);
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     MediumFinalizableWithBarrierHeapBucket::FinalizeHeapBlockList(this->newMediumFinalizableWithBarrierHeapBlockList);
+#endif
 #endif
 #endif
 
@@ -555,6 +623,7 @@ HeapInfo::~HeapInfo()
 #endif
     SmallFinalizableHeapBucket::DeleteHeapBlockList(this->newFinalizableHeapBlockList, recycler);
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     MediumLeafHeapBucket::DeleteHeapBlockList(this->newMediumLeafHeapBlockList, recycler);
     MediumNormalHeapBucket::DeleteHeapBlockList(this->newMediumNormalHeapBlockList, recycler);
 #ifdef RECYCLER_WRITE_BARRIER
@@ -562,10 +631,13 @@ HeapInfo::~HeapInfo()
     MediumFinalizableWithBarrierHeapBucket::DeleteHeapBlockList(this->newMediumFinalizableWithBarrierHeapBlockList, recycler);
 #endif
     MediumFinalizableHeapBucket::DeleteHeapBlockList(this->newMediumFinalizableHeapBlockList, recycler);
+#endif
 
 #ifdef RECYCLER_VISITED_HOST
     SmallFinalizableHeapBucket::DeleteHeapBlockList(this->newRecyclerVisitedHostHeapBlockList, recycler);
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     MediumFinalizableHeapBucket::DeleteHeapBlockList(this->newMediumRecyclerVisitedHostHeapBlockList, recycler);
+#endif
 #endif
 
 #endif
@@ -640,10 +712,17 @@ HeapInfo::Initialize(Recycler * recycler
 
         this->pageHeapBlockType = blockTypeFilter;
 
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+        for (int i = 0; i < HeapConstants::TotalAlignmentBucketCount; i++)
+#else
         for (int i = 0; i < HeapConstants::BucketCount + HeapConstants::MediumBucketCount; i++)
+#endif
         {
             if (pBucketNumberRange->InRange(i))
             {
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+                this->smallBlockPageHeapBucketFilter.Set(i);
+#else
                 if (i < HeapConstants::BucketCount)
                 {
                     this->smallBlockPageHeapBucketFilter.Set(i);
@@ -652,6 +731,7 @@ HeapInfo::Initialize(Recycler * recycler
                 {
                     this->mediumBlockPageHeapBucketFilter.Set(i - HeapConstants::BucketCount);
                 }
+#endif
             }
         }
     }
@@ -662,10 +742,16 @@ HeapInfo::Initialize(Recycler * recycler
     }
 #endif
 
+
     for (uint i = 0; i < HeapConstants::BucketCount; i++)
     {
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+        heapBuckets[i].Initialize(this, heapBucketSizes[i].bucketSizeCat, heapBucketSizes[i].objectGranularity);
+#else
         heapBuckets[i].Initialize(this, (i + 1) << HeapConstants::ObjectAllocationShift);
-    }
+#endif
+}
+
     RECYCLER_SLOW_CHECK(memset(this->heapBlockCount, 0, sizeof(this->heapBlockCount)));
 
 #ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
@@ -679,7 +765,11 @@ HeapInfo::Initialize(Recycler * recycler
     }
 #endif
 
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    largeObjectBucket.Initialize(this, HeapConstants::MaxSmallObjectSize);
+#else
     largeObjectBucket.Initialize(this, HeapConstants::MaxMediumObjectSize);
+#endif
 }
 
 #if defined(PROFILE_RECYCLER_ALLOC) || defined(RECYCLER_MEMORY_VERIFY) || defined(MEMSPECT_TRACKING) || defined(ETW_MEMORY_TRACKING)
@@ -715,7 +805,9 @@ HeapInfo::Initialize(Recycler * recycler, void(*trackNativeAllocCallBack)(Recycl
 #endif
 
 #ifdef RECYCLER_PAGE_HEAP
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template bool HeapInfo::IsPageHeapEnabledForBlock<MediumAllocationBlockAttributes>(const size_t objectSize);
+#endif
 template bool HeapInfo::IsPageHeapEnabledForBlock<SmallAllocationBlockAttributes>(const size_t objectSize);
 template bool HeapInfo::IsPageHeapEnabledForBlock<LargeAllocationBlockAttributes>(const size_t objectSize);
 
@@ -728,10 +820,12 @@ bool HeapInfo::IsPageHeapEnabledForBlock(const size_t objectSize)
         {
             return smallBlockPageHeapBucketFilter.Test(GetBucketIndex(objectSize)) != 0;
         }
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
         else if (TBlockAttributes::IsMediumBlock)
         {
             return mediumBlockPageHeapBucketFilter.Test(GetMediumBucketIndex(objectSize)) != 0;
         }
+#endif
         else
         {
             return ((byte)this->pageHeapBlockType & (byte)PageHeapBlockTypeFilter::PageHeapBlockTypeFilterLarge) != 0;
@@ -787,6 +881,7 @@ HeapInfo::ResetMarks(ResetMarkFlags flags)
             heapBlock->MarkImplicitRoots();
         });
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
         HeapBlockList::ForEach(newMediumLeafHeapBlockList, [flags](MediumLeafHeapBlock * heapBlock)
         {
             heapBlock->MarkImplicitRoots();
@@ -812,6 +907,7 @@ HeapInfo::ResetMarks(ResetMarkFlags flags)
         {
             heapBlock->MarkImplicitRoots();
         });
+#endif
     }
 #endif
 }
@@ -862,6 +958,7 @@ HeapInfo::ScanInitialImplicitRoots()
 #if ENABLE_CONCURRENT_GC
     // NOTE: Don't need to do newLeafHeapBlockList
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     HeapBlockList::ForEach(newMediumNormalHeapBlockList, [this](MediumNormalHeapBlock * heapBlock)
     {
         heapBlock->ScanInitialImplicitRoots(recycler);
@@ -883,7 +980,7 @@ HeapInfo::ScanInitialImplicitRoots()
     {
         heapBlock->ScanInitialImplicitRoots(recycler);
     });
-
+#endif
 #endif
 
 }
@@ -936,6 +1033,7 @@ HeapInfo::ScanNewImplicitRoots()
     });
 
     // NOTE: need to do newLeafHeapBlockList to find new memory
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     HeapBlockList::ForEach(newMediumLeafHeapBlockList, [this](MediumLeafHeapBlock * heapBlock)
     {
         heapBlock->ScanNewImplicitRoots(recycler);
@@ -962,7 +1060,7 @@ HeapInfo::ScanNewImplicitRoots()
     {
         heapBlock->ScanNewImplicitRoots(recycler);
     });
-
+#endif
 #endif
 }
 
@@ -989,19 +1087,28 @@ HeapInfo::Finalize(RecyclerSweep& recyclerSweep)
 #if ENABLE_CONCURRENT_GC
     // Merge the new blocks before we sweep the finalizable object in thread
     recyclerSweep.MergePendingNewHeapBlockList<SmallFinalizableHeapBlock>();
-    recyclerSweep.MergePendingNewMediumHeapBlockList<MediumFinalizableHeapBlock>();
-
 #ifdef RECYCLER_WRITE_BARRIER
     recyclerSweep.MergePendingNewHeapBlockList<SmallFinalizableWithBarrierHeapBlock>();
-    recyclerSweep.MergePendingNewMediumHeapBlockList<MediumFinalizableWithBarrierHeapBlock>();
 #endif
 #ifdef RECYCLER_VISITED_HOST
     recyclerSweep.MergePendingNewHeapBlockList<SmallRecyclerVisitedHostHeapBlock>();
-    recyclerSweep.MergePendingNewMediumHeapBlockList<MediumRecyclerVisitedHostHeapBlock>();
 #endif
 #endif
 
-    RECYCLER_PROFILE_EXEC_BEGIN(recycler, Js::FinalizePhase);    
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+#if ENABLE_CONCURRENT_GC
+    // Merge the new blocks before we sweep the finalizable object in thread
+    recyclerSweep.MergePendingNewMediumHeapBlockList<MediumFinalizableHeapBlock>();
+#ifdef RECYCLER_WRITE_BARRIER
+    recyclerSweep.MergePendingNewMediumHeapBlockList<MediumFinalizableWithBarrierHeapBlock>();
+#endif
+#ifdef RECYCLER_VISITED_HOST
+    recyclerSweep.MergePendingNewMediumHeapBlockList<MediumRecyclerVisitedHostHeapBlock>();
+#endif
+#endif
+#endif
+
+    RECYCLER_PROFILE_EXEC_BEGIN(recycler, Js::FinalizePhase);
 
     largeObjectBucket.Finalize();
 
@@ -1061,8 +1168,7 @@ HeapInfo::Sweep(RecyclerSweep& recyclerSweep, bool concurrent)
 #endif
     largeObjectBucket.Sweep(recyclerSweep);
 
-    RECYCLER_PROFILE_EXEC_END(recyclerSweep.GetRecycler(), Js::SweepLargePhase);
-
+    RECYCLER_PROFILE_EXEC_END(recycler, Js::SweepLargePhase);
     RECYCLER_SLOW_CHECK(VerifyLargeHeapBlockCount());
     RECYCLER_SLOW_CHECK(Assert(this->newFinalizableObjectCount == 0));
 }
@@ -1091,13 +1197,16 @@ HeapInfo::SweepSmallNonFinalizable(RecyclerSweep& recyclerSweep)
 #if ENABLE_CONCURRENT_GC
     recyclerSweep.MergePendingNewHeapBlockList<SmallLeafHeapBlock>();
     recyclerSweep.MergePendingNewHeapBlockList<SmallNormalHeapBlock>();
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     recyclerSweep.MergePendingNewMediumHeapBlockList<MediumLeafHeapBlock>();
     recyclerSweep.MergePendingNewMediumHeapBlockList<MediumNormalHeapBlock>();
+#endif
 #ifdef RECYCLER_WRITE_BARRIER
     recyclerSweep.MergePendingNewHeapBlockList<SmallNormalWithBarrierHeapBlock>();
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     recyclerSweep.MergePendingNewMediumHeapBlockList<MediumNormalWithBarrierHeapBlock>();
 #endif
-
+#endif
     // Finalizable are already merge before in SweepHeap
     Assert(!recyclerSweep.HasPendingNewHeapBlocks());
 #endif
@@ -1612,6 +1721,7 @@ HeapInfo::EnumerateObjects(ObjectInfoBits infoBits, void (*CallBackFunction)(voi
 #endif
     HeapBucket::EnumerateObjects(newFinalizableHeapBlockList, infoBits, CallBackFunction);
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     HeapBucket::EnumerateObjects(newMediumLeafHeapBlockList, infoBits, CallBackFunction);
     HeapBucket::EnumerateObjects(newMediumNormalHeapBlockList, infoBits, CallBackFunction);
 #ifdef RECYCLER_WRITE_BARRIER
@@ -1623,6 +1733,7 @@ HeapInfo::EnumerateObjects(ObjectInfoBits infoBits, void (*CallBackFunction)(voi
     HeapBucket::EnumerateObjects(newMediumRecyclerVisitedHostHeapBlockList, infoBits, CallBackFunction);
 #endif
     HeapBucket::EnumerateObjects(newMediumFinalizableHeapBlockList, infoBits, CallBackFunction);
+#endif
 #endif
 }
 
@@ -1657,6 +1768,7 @@ HeapInfo::GetSmallHeapBlockCount(bool checkCount) const
     currentSmallHeapBlockCount += HeapBlockList::Count(this->newFinalizableWithBarrierHeapBlockList);
 #endif
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     currentSmallHeapBlockCount += HeapBlockList::Count(this->newMediumLeafHeapBlockList);
     currentSmallHeapBlockCount += HeapBlockList::Count(this->newMediumNormalHeapBlockList);
 #ifdef RECYCLER_VISITED_HOST
@@ -1666,6 +1778,7 @@ HeapInfo::GetSmallHeapBlockCount(bool checkCount) const
 #ifdef RECYCLER_WRITE_BARRIER
     currentSmallHeapBlockCount += HeapBlockList::Count(this->newMediumNormalWithBarrierHeapBlockList);
     currentSmallHeapBlockCount += HeapBlockList::Count(this->newMediumFinalizableWithBarrierHeapBlockList);
+#endif
 #endif
 
     // TODO: Update recycler sweep
@@ -1684,19 +1797,26 @@ HeapInfo::GetSmallHeapBlockCount(bool checkCount) const
         + this->heapBlockCount[HeapBlock::HeapBlockType::SmallFinalizableBlockType]
 #ifdef RECYCLER_VISITED_HOST
         + this->heapBlockCount[HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType]
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
         + this->heapBlockCount[HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType]
 #endif
+#endif
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
         + this->heapBlockCount[HeapBlock::HeapBlockType::MediumNormalBlockType]
         + this->heapBlockCount[HeapBlock::HeapBlockType::MediumLeafBlockType]
-        + this->heapBlockCount[HeapBlock::HeapBlockType::MediumFinalizableBlockType];
-
+        + this->heapBlockCount[HeapBlock::HeapBlockType::MediumFinalizableBlockType]
+#endif
+        ;
 
 #ifdef RECYCLER_WRITE_BARRIER
     expectedHeapBlockCount +=
         this->heapBlockCount[HeapBlock::HeapBlockType::SmallNormalBlockWithBarrierType]
         + this->heapBlockCount[HeapBlock::HeapBlockType::SmallFinalizableBlockWithBarrierType]
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
         + this->heapBlockCount[HeapBlock::HeapBlockType::MediumNormalBlockWithBarrierType]
-        + this->heapBlockCount[HeapBlock::HeapBlockType::MediumFinalizableBlockWithBarrierType];
+        + this->heapBlockCount[HeapBlock::HeapBlockType::MediumFinalizableBlockWithBarrierType]
+#endif
+        ;
 
 #endif
     Assert(!checkCount || currentSmallHeapBlockCount == expectedHeapBlockCount);
@@ -1761,10 +1881,13 @@ HeapInfo::Check()
     currentSmallHeapBlockCount += Check(true, false, this->newFinalizableHeapBlockList);
 #ifdef RECYCLER_VISITED_HOST
     currentSmallHeapBlockCount += Check(true, false, this->newRecyclerVisitedHostHeapBlockList);
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     currentSmallHeapBlockCount += Check(true, false, this->newMediumRecyclerVisitedHostHeapBlockList);
 #endif
 #endif
+#endif
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 #if ENABLE_CONCURRENT_GC
     currentSmallHeapBlockCount += Check(true, false, this->newMediumLeafHeapBlockList);
     currentSmallHeapBlockCount += Check(true, false, this->newMediumNormalHeapBlockList);
@@ -1774,6 +1897,7 @@ HeapInfo::Check()
 #endif
     currentSmallHeapBlockCount += Check(true, false, this->newMediumFinalizableHeapBlockList);
 #endif
+#endif
 
     size_t expectedHeapBlockCount =
         this->heapBlockCount[HeapBlock::HeapBlockType::SmallNormalBlockType]
@@ -1781,18 +1905,26 @@ HeapInfo::Check()
         + this->heapBlockCount[HeapBlock::HeapBlockType::SmallFinalizableBlockType]
 #ifdef RECYCLER_VISITED_HOST
         + this->heapBlockCount[HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType]
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
         + this->heapBlockCount[HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType]
 #endif
+#endif
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
         + this->heapBlockCount[HeapBlock::HeapBlockType::MediumNormalBlockType]
         + this->heapBlockCount[HeapBlock::HeapBlockType::MediumLeafBlockType]
-        + this->heapBlockCount[HeapBlock::HeapBlockType::MediumFinalizableBlockType];
+        + this->heapBlockCount[HeapBlock::HeapBlockType::MediumFinalizableBlockType]
+#endif
+        ;
 
 #ifdef RECYCLER_WRITE_BARRIER
     expectedHeapBlockCount +=
         this->heapBlockCount[HeapBlock::HeapBlockType::SmallNormalBlockWithBarrierType]
         + this->heapBlockCount[HeapBlock::HeapBlockType::SmallFinalizableBlockWithBarrierType]
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
         + this->heapBlockCount[HeapBlock::HeapBlockType::MediumNormalBlockWithBarrierType]
-        + this->heapBlockCount[HeapBlock::HeapBlockType::MediumFinalizableBlockWithBarrierType];
+        + this->heapBlockCount[HeapBlock::HeapBlockType::MediumFinalizableBlockWithBarrierType]
+#endif
+        ;
 
 #endif
 
@@ -1821,7 +1953,9 @@ template size_t HeapInfo::Check<SmallLeafHeapBlock>(bool expectFull, bool expect
 template size_t HeapInfo::Check<SmallFinalizableHeapBlock>(bool expectFull, bool expectPending, SmallFinalizableHeapBlock * list, SmallFinalizableHeapBlock * tail);
 #ifdef RECYCLER_VISITED_HOST
 template size_t HeapInfo::Check<SmallRecyclerVisitedHostHeapBlock>(bool expectFull, bool expectPending, SmallRecyclerVisitedHostHeapBlock * list, SmallRecyclerVisitedHostHeapBlock * tail);
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template size_t HeapInfo::Check<MediumRecyclerVisitedHostHeapBlock>(bool expectFull, bool expectPending, MediumRecyclerVisitedHostHeapBlock * list, MediumRecyclerVisitedHostHeapBlock * tail);
+#endif
 #endif
 template size_t HeapInfo::Check<LargeHeapBlock>(bool expectFull, bool expectPending, LargeHeapBlock * list, LargeHeapBlock * tail);
 #ifdef RECYCLER_WRITE_BARRIER
@@ -1829,14 +1963,16 @@ template size_t HeapInfo::Check<SmallNormalWithBarrierHeapBlock>(bool expectFull
 template size_t HeapInfo::Check<SmallFinalizableWithBarrierHeapBlock>(bool expectFull, bool expectPending, SmallFinalizableWithBarrierHeapBlock * list, SmallFinalizableWithBarrierHeapBlock * tail);
 #endif
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template size_t HeapInfo::Check<MediumNormalHeapBlock>(bool expectFull, bool expectPending, MediumNormalHeapBlock * list, MediumNormalHeapBlock * tail);
 template size_t HeapInfo::Check<MediumLeafHeapBlock>(bool expectFull, bool expectPending, MediumLeafHeapBlock * list, MediumLeafHeapBlock * tail);
 template size_t HeapInfo::Check<MediumFinalizableHeapBlock>(bool expectFull, bool expectPending, MediumFinalizableHeapBlock * list, MediumFinalizableHeapBlock * tail);
-template size_t HeapInfo::Check<LargeHeapBlock>(bool expectFull, bool expectPending, LargeHeapBlock * list, LargeHeapBlock * tail);
 #ifdef RECYCLER_WRITE_BARRIER
 template size_t HeapInfo::Check<MediumNormalWithBarrierHeapBlock>(bool expectFull, bool expectPending, MediumNormalWithBarrierHeapBlock * list, MediumNormalWithBarrierHeapBlock * tail);
 template size_t HeapInfo::Check<MediumFinalizableWithBarrierHeapBlock>(bool expectFull, bool expectPending, MediumFinalizableWithBarrierHeapBlock * list, MediumFinalizableWithBarrierHeapBlock * tail);
 #endif
+#endif
+template size_t HeapInfo::Check<LargeHeapBlock>(bool expectFull, bool expectPending, LargeHeapBlock * list, LargeHeapBlock * tail);
 
 void
 HeapInfo::VerifySmallHeapBlockCount()
@@ -1900,6 +2036,7 @@ HeapInfo::Verify()
     });
 #endif
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 #if ENABLE_CONCURRENT_GC
     HeapBlockList::ForEach(newMediumLeafHeapBlockList, [](MediumLeafHeapBlock * heapBlock)
     {
@@ -1929,6 +2066,7 @@ HeapInfo::Verify()
     {
         heapBlock->Verify();
     });
+#endif
 #endif
 }
 #endif
@@ -1982,6 +2120,7 @@ HeapInfo::VerifyMark()
     });
 #endif
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 #if ENABLE_CONCURRENT_GC
     HeapBlockList::ForEach(newMediumLeafHeapBlockList, [](MediumLeafHeapBlock * heapBlock)
     {
@@ -2011,6 +2150,7 @@ HeapInfo::VerifyMark()
     {
         heapBlock->VerifyMark();
     });
+#endif
 #endif
 }
 #endif
@@ -2345,17 +2485,21 @@ BOOL SmallAllocationBlockAttributes::IsAlignedObjectSize(size_t sizeCat)
     return HeapInfo::IsAlignedSmallObjectSize(sizeCat);
 }
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 /* static */
 BOOL MediumAllocationBlockAttributes::IsAlignedObjectSize(size_t sizeCat)
 {
     return HeapInfo::IsAlignedMediumObjectSize(sizeCat);
 }
+#endif
 
 namespace Memory
 {
 template class HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>;
 template class ValidPointers<SmallAllocationBlockAttributes>;
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template class HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes>;
 template class ValidPointers<MediumAllocationBlockAttributes>;
+#endif
 };

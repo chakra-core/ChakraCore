@@ -170,8 +170,11 @@
 #endif
 
 // GC features
+#define USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS 1
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 #define BUCKETIZE_MEDIUM_ALLOCATIONS 1              // *** TODO: Won't build if disabled currently
 #define SMALLBLOCK_MEDIUM_ALLOC 1                   // *** TODO: Won't build if disabled currently
+#endif
 #define LARGEHEAPBLOCK_ENCODING 1                   // Large heap block metadata encoding
 #ifndef CHAKRACORE_LITE
 #define IDLE_DECOMMIT_ENABLED 1                     // Idle Decommit

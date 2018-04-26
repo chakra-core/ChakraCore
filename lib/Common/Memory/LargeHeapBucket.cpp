@@ -412,7 +412,11 @@ LargeHeapBucket::TryAllocFromExplicitFreeList(Recycler * recycler, size_t sizeCa
         char * memBlock = (char *)currFreeObject;
         LargeObjectHeader * header = LargeHeapBlock::GetHeaderFromAddress(memBlock);
         Assert(header->isExplicitFreed);
+#if BUCKETIZE_MEDIUM_ALLOCATIONS
         Assert(HeapInfo::GetMediumObjectAlignedSizeNoCheck(header->objectSize) == this->sizeCat);
+#else
+        Assert(HeapInfo::GetAlignedSizeNoCheck(header->objectSize) == this->sizeCat);
+#endif
         if (header->objectSize < sizeCat)
         {
             prevFreeObject = currFreeObject;
@@ -468,7 +472,11 @@ LargeHeapBucket::TryAllocFromExplicitFreeList(Recycler * recycler, size_t sizeCa
 void
 LargeHeapBucket::ExplicitFree(void * object, size_t sizeCat)
 {
+#ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
     Assert(HeapInfo::GetMediumObjectAlignedSizeNoCheck(sizeCat) == this->sizeCat);
+#else
+    Assert(HeapInfo::GetAlignedSizeNoCheck(sizeCat) == this->sizeCat);
+#endif
     LargeObjectHeader * header = LargeHeapBlock::GetHeaderFromAddress(object);
     Assert(header->GetAttributes(this->heapInfo->recycler->Cookie) == ObjectInfoBits::NoBit || header->GetAttributes(this->heapInfo->recycler->Cookie) == ObjectInfoBits::LeafBit);
     Assert(!header->isExplicitFreed);

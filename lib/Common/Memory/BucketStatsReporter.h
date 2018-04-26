@@ -21,7 +21,9 @@ template<> char16 DumpBucketTypeName<RecyclerVisitedHostBit>::name[] = _u("Visit
 template <typename TBlockType>
 struct DumpBlockTypeName { static char16 name[]; };
 template<> char16 DumpBlockTypeName<SmallAllocationBlockAttributes>::name[] = _u("(S)");
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template<> char16 DumpBlockTypeName<MediumAllocationBlockAttributes>::name[] = _u("(M)");
+#endif
 #endif  // DUMP_FRAGMENTATION_STATS
 
 template <ObjectInfoBits TBucketType>
@@ -39,8 +41,9 @@ template<> uint16 EtwBucketTypeEnum<RecyclerVisitedHostBit>::code = 5;
 template <typename TBlockType>
 struct EtwBlockTypeEnum { static uint16 code; };
 template<> uint16 EtwBlockTypeEnum<SmallAllocationBlockAttributes>::code = 0;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template<> uint16 EtwBlockTypeEnum<MediumAllocationBlockAttributes>::code = 1;
-
+#endif
 class BucketStatsReporter
 {
 private:

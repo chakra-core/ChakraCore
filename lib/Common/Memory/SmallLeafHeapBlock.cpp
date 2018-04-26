@@ -21,15 +21,21 @@ template <>
 SmallLeafHeapBlockT<SmallAllocationBlockAttributes>::SmallLeafHeapBlockT(HeapBucketT<SmallLeafHeapBlockT<SmallAllocationBlockAttributes>> * bucket, ushort objectSize, ushort objectCount)
     : Base(bucket, objectSize, objectCount, HeapBlock::HeapBlockType::SmallLeafBlockType)
 {
-    Assert(objectCount > 1 && objectCount == (this->GetPageCount() * AutoSystemInfo::PageSize)/ objectSize);
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    Assert(objectCount == (this->GetPageCount() * AutoSystemInfo::PageSize) / objectSize);
+#else
+    Assert(objectCount > 1 && objectCount == (this->GetPageCount() * AutoSystemInfo::PageSize) / objectSize);
+#endif
 }
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template <>
 SmallLeafHeapBlockT<MediumAllocationBlockAttributes>::SmallLeafHeapBlockT(HeapBucketT<SmallLeafHeapBlockT<MediumAllocationBlockAttributes>> * bucket, ushort objectSize, ushort objectCount)
     : Base(bucket, objectSize, objectCount, HeapBlock::HeapBlockType::MediumLeafBlockType)
 {
     Assert(objectCount > 1 && objectCount == (this->GetPageCount() * AutoSystemInfo::PageSize) / objectSize);
 }
+#endif
 
 template <class TBlockAttributes>
 void
@@ -59,5 +65,7 @@ namespace Memory
 {
     // Declare the class templates
     template class SmallLeafHeapBlockT<SmallAllocationBlockAttributes>;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     template class SmallLeafHeapBlockT<MediumAllocationBlockAttributes>;
+#endif
 }

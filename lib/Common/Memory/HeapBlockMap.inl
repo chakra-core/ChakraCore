@@ -95,8 +95,10 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
         break;
 
     case HeapBlock::HeapBlockType::SmallLeafBlockType:
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     case HeapBlock::HeapBlockType::MediumLeafBlockType:
         // Leaf blocks don't need to be scanned.  Do nothing.
+#endif
         break;
 
     case HeapBlock::HeapBlockType::SmallNormalBlockType:
@@ -107,7 +109,7 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
             byte bucketIndex = chunk->blockInfo[id2].bucketIndex;
 
             // See if it's an invalid offset using the invalid bit vector and if so, do nothing.
-            if (!HeapInfo::GetInvalidBitVectorForBucket<SmallAllocationBlockAttributes>(bucketIndex)->Test(SmallHeapBlock::GetAddressBitIndex(candidate)))
+            if (!HeapInfo::GetInvalidBitVectorForBucket<SmallAllocationBlockAttributes>(bucketIndex)->Test(SmallHeapBlock::GetAddressBitIndex(candidate, bucketIndex)))
             {
                 uint objectSize = HeapInfo::GetObjectSizeForBucketIndex<SmallAllocationBlockAttributes>(bucketIndex);
                 if (!markContext->AddMarkedObject(candidate, objectSize))
@@ -118,6 +120,7 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
             }
         }
         break;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     case HeapBlock::HeapBlockType::MediumNormalBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
     case HeapBlock::HeapBlockType::MediumNormalBlockWithBarrierType:
@@ -136,6 +139,7 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
             }
         }
         break;
+#endif
     case HeapBlock::HeapBlockType::SmallFinalizableBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
     case HeapBlock::HeapBlockType::SmallFinalizableBlockWithBarrierType:
@@ -155,6 +159,7 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
         }
         break;
 #endif
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     case HeapBlock::HeapBlockType::MediumFinalizableBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
     case HeapBlock::HeapBlockType::MediumFinalizableBlockWithBarrierType:
@@ -173,6 +178,7 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
             ((MediumRecyclerVisitedHostHeapBlock*)chunk->map[id2])->ProcessMarkedObject<doSpecialMark>(realCandidate, markContext);
         }
         break;
+#endif
 #endif
     case HeapBlock::HeapBlockType::LargeBlockType:
         ((LargeHeapBlock*)chunk->map[id2])->Mark<doSpecialMark>(candidate, markContext);
@@ -214,6 +220,7 @@ HeapBlockMap32::OnSpecialMark(L2MapChunk * chunk, void * candidate)
         break;
     }
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     case HeapBlock::HeapBlockType::MediumFinalizableBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
     case HeapBlock::HeapBlockType::MediumFinalizableBlockWithBarrierType:
@@ -223,6 +230,7 @@ HeapBlockMap32::OnSpecialMark(L2MapChunk * chunk, void * candidate)
         success = mediumBlock->TryGetAttributes(candidate, &attributes);
         break;
     }
+#endif
 
     case HeapBlock::HeapBlockType::LargeBlockType:
     {
@@ -355,6 +363,7 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
             }
         }
         break;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     case HeapBlock::HeapBlockType::MediumLeafBlockType:
         {
             // We want to scan leaf blocks for preventing UAFs due to interior pointers on stack.
@@ -386,6 +395,7 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
             }
         }
         break;
+#endif
     case HeapBlock::HeapBlockType::SmallFinalizableBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
     case HeapBlock::HeapBlockType::SmallFinalizableBlockWithBarrierType:
@@ -400,6 +410,7 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
             ((SmallFinalizableHeapBlock*)chunk->map[id2])->ProcessMarkedObject<doSpecialMark>(realCandidate, markContext);
         }
         break;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     case HeapBlock::HeapBlockType::MediumFinalizableBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
     case HeapBlock::HeapBlockType::MediumFinalizableBlockWithBarrierType:
@@ -414,6 +425,7 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
             ((MediumFinalizableHeapBlock*)chunk->map[id2])->ProcessMarkedObject<doSpecialMark>(realCandidate, markContext);
     }
         break;
+#endif
 #ifdef RECYCLER_VISITED_HOST
     case HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType:
         {
@@ -426,6 +438,7 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
             ((SmallRecyclerVisitedHostHeapBlock*)chunk->map[id2])->ProcessMarkedObject<false>(realCandidate, markContext);
         }
         break;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     case HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType:
         {
             void * realCandidate = ((MediumFinalizableHeapBlock*)chunk->map[id2])->GetRealAddressFromInterior(candidate);
@@ -437,6 +450,7 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
             ((MediumRecyclerVisitedHostHeapBlock*)chunk->map[id2])->ProcessMarkedObject<false>(realCandidate, markContext);
         }
         break;
+#endif
 #endif
     case HeapBlock::HeapBlockType::LargeBlockType:
         {

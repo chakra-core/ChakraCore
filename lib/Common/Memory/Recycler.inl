@@ -152,6 +152,7 @@ Recycler::AllocWithAttributesInlined(DECLSPEC_GUARD_OVERFLOW size_t size)
 #ifdef RECYCLER_MEMORY_VERIFY
     size_t alignedSize = HeapInfo::GetAlignedSizeNoCheck(allocSize);
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     if (HeapInfo::IsMediumObject(allocSize))
     {
 #if SMALLBLOCK_MEDIUM_ALLOC
@@ -168,6 +169,7 @@ Recycler::AllocWithAttributesInlined(DECLSPEC_GUARD_OVERFLOW size_t size)
         }
 #endif
     }
+#endif
 
     this->FillCheckPad(memBlock, size, alignedSize);
 #endif
@@ -297,12 +299,15 @@ Recycler::RealAllocFromBucket(HeapInfo* heap, size_t size)
         sizeCat = (uint)HeapInfo::GetAlignedSizeNoCheck(size);
         memBlock = heap->RealAlloc<attributes, nothrow>(this, sizeCat, size);
     }
+
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 #ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
     else
     {
         sizeCat = (uint)HeapInfo::GetMediumObjectAlignedSizeNoCheck(size);
         memBlock = heap->MediumAlloc<attributes, nothrow>(this, sizeCat, size);
     }
+#endif
 #endif
 
     // If we are not allowed to throw, then the memory returned here could be null so check for that
@@ -373,11 +378,13 @@ Recycler::RealAlloc(HeapInfo* heap, size_t size)
         return RealAllocFromBucket<attributes, /* isSmallAlloc = */ true, nothrow>(heap, size);
     }
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 #ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
     if (HeapInfo::IsMediumObject(size))
     {
         return RealAllocFromBucket<attributes, /* isSmallAlloc = */ false, nothrow>(heap, size);
     }
+#endif
 #endif
 
     return LargeAlloc<nothrow>(heap, size, attributes);
@@ -563,6 +570,20 @@ SmallHeapBlockT<TBlockAttributes>::GetObjectBitDelta()
     return this->objectSize / HeapConstants::ObjectGranularity;
 }
 
+template <class TBlockAttributes>
+__forceinline ushort
+SmallHeapBlockT<TBlockAttributes>::GetAddressBitIndex(void * objectAddress, uint bucketIndex)
+{
+    Assert(HeapInfo::IsAlignedAddress(objectAddress));
+
+    ushort offset = (ushort)(::Math::PointerCastToIntegralTruncate<uint>(objectAddress) % (TBlockAttributes::PageCount * AutoSystemInfo::PageSize));
+    offset = offset >> HeapConstants::ObjectAllocationShift;
+
+    Assert(offset <= USHRT_MAX);
+    Assert(offset <= TBlockAttributes::MaxAddressBit);
+    return (ushort)offset;
+}
+
 // Map any object address to it's bit index in the heap block bit vectors.
 // static
 template <class TBlockAttributes>
@@ -599,7 +620,9 @@ SmallHeapBlockT<TBlockAttributes>::GetRealAddressFromInterior(void * interiorAdd
     size_t rawInteriorAddress = reinterpret_cast<size_t>(interiorAddress);
     size_t baseAddress = rawInteriorAddress & ~(TBlockAttributes::PageCount * AutoSystemInfo::PageSize - 1);
     ushort offset = (ushort)(rawInteriorAddress - baseAddress);
-    offset = validPointers.GetInteriorAddressIndex(offset >> HeapConstants::ObjectAllocationShift);
+    offset = offset >> HeapConstants::ObjectAllocationShift;
+
+    offset = validPointers.GetInteriorAddressIndex(offset);
 
     if (offset == SmallHeapBlockT<TBlockAttributes>::InvalidAddressBit)
     {

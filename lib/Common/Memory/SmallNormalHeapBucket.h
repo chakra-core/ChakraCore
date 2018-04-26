@@ -84,30 +84,46 @@ template <typename TBlockAttributes>
 class SmallNormalHeapBucketT : public SmallNormalHeapBucketBase<SmallNormalHeapBlockT<TBlockAttributes>> {};
 
 typedef SmallNormalHeapBucketT<SmallAllocationBlockAttributes> SmallNormalHeapBucket;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 typedef SmallNormalHeapBucketT<MediumAllocationBlockAttributes> MediumNormalHeapBucket;
+#endif
 
 #ifdef RECYCLER_WRITE_BARRIER
 template <typename TBlockAttributes>
 class SmallNormalWithBarrierHeapBucketT : public SmallNormalHeapBucketBase<SmallNormalWithBarrierHeapBlockT<TBlockAttributes>>
 {
 public:
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    void Initialize(HeapInfo * heapInfo, uint sizeCat, ushort objectAlignment)
+#else
     void Initialize(HeapInfo * heapInfo, uint sizeCat)
+#endif
     {
         CompileAssert(SmallNormalWithBarrierHeapBucketT::IsLeafBucket == false);
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+        __super::Initialize(heapInfo, sizeCat, objectAlignment);
+#else
         __super::Initialize(heapInfo, sizeCat);
+#endif
     }
 };
 
 typedef SmallNormalWithBarrierHeapBucketT<SmallAllocationBlockAttributes> SmallNormalWithBarrierHeapBucket;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 typedef SmallNormalWithBarrierHeapBucketT<MediumAllocationBlockAttributes> MediumNormalWithBarrierHeapBucket;
+#endif
 
 #endif
 
 extern template class SmallNormalHeapBucketBase<SmallNormalHeapBlock>;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 extern template class SmallNormalHeapBucketBase<MediumNormalHeapBlock>;
+#endif
 
 #ifdef RECYCLER_WRITE_BARRIER
 extern template class SmallNormalHeapBucketBase<SmallNormalWithBarrierHeapBlock>;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 extern template class SmallNormalHeapBucketBase<MediumNormalWithBarrierHeapBlock>;
+#endif
 #endif
 }

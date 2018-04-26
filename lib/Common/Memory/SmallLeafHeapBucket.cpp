@@ -51,5 +51,7 @@ SmallLeafHeapBucketT<TBlockAttributes>::VerifyMark()
 namespace Memory
 {
     template class SmallLeafHeapBucketT<SmallAllocationBlockAttributes>;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     template class SmallLeafHeapBucketT<MediumAllocationBlockAttributes>;
+#endif
 }
