@@ -64,7 +64,7 @@ namespace Js
         Field(Var) homeObj;
         Field(bool) hasInlineCaches;
 
-        Var FormatToString(JavascriptString* inputString);
+        JavascriptString * FormatToString(JavascriptString* inputString);
         static JavascriptString* GetComputedName(Var computedNameVar, ScriptContext * scriptContext);
         static bool GetSymbolName(Var computedNameVar, const char16** symbolName, charcount_t *length);
     protected:
@@ -108,7 +108,7 @@ namespace Js
         virtual ScriptFunctionType * DuplicateType() override;
 
         virtual Var GetSourceString() const;
-        virtual Var EnsureSourceString();
+        virtual JavascriptString * EnsureSourceString();
 
         bool GetHasInlineCaches() { return hasInlineCaches; }
         void SetHasInlineCaches(bool has) { hasInlineCaches = has; }

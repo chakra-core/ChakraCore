@@ -1790,7 +1790,7 @@ LABEL1:
         this->GetDynamicType()->SetEntryPoint(method);
     }
 
-    Var JavascriptFunction::EnsureSourceString()
+    JavascriptString * JavascriptFunction::EnsureSourceString()
     {
         return this->GetLibrary()->GetFunctionDisplayString();
     }

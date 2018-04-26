@@ -328,11 +328,11 @@ namespace Js
         return this->GetFunctionProxy()->EnsureDeserialized()->GetCachedSourceString();
     }
 
-    Var ScriptFunction::FormatToString(JavascriptString* inputString)
+    JavascriptString * ScriptFunction::FormatToString(JavascriptString* inputString)
     {
         FunctionProxy* proxy = this->GetFunctionProxy();
         ParseableFunctionInfo * pFuncBody = proxy->EnsureDeserialized();
-        Var returnStr = nullptr;
+        JavascriptString * returnStr = nullptr;
 
         EnterPinnedScope((volatile void**)& inputString);
 
@@ -440,12 +440,12 @@ namespace Js
         return returnStr;
     }
 
-    Var ScriptFunction::EnsureSourceString()
+    JavascriptString * ScriptFunction::EnsureSourceString()
     {
         // The function may be defer serialize, need to be deserialized
         FunctionProxy* proxy = this->GetFunctionProxy();
         ParseableFunctionInfo * pFuncBody = proxy->EnsureDeserialized();
-        Var cachedSourceString = pFuncBody->GetCachedSourceString();
+        JavascriptString * cachedSourceString = pFuncBody->GetCachedSourceString();
         if (cachedSourceString != nullptr)
         {
             return cachedSourceString;

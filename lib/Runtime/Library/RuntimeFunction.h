@@ -27,7 +27,7 @@ namespace Js
         // See RuntimeFunction::EnsureSourceString() for details.
         Field(Var) functionNameId;
         virtual Var GetSourceString() const { return functionNameId; }
-        virtual Var EnsureSourceString();
+        virtual JavascriptString * EnsureSourceString();
 
 #if ENABLE_TTD
     public:

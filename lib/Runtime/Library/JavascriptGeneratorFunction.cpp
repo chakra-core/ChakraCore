@@ -248,7 +248,7 @@ namespace Js
         return scriptFunction->GetSourceString();
     }
 
-    Var JavascriptGeneratorFunction::EnsureSourceString()
+    JavascriptString * JavascriptGeneratorFunction::EnsureSourceString()
     {
         return scriptFunction->EnsureSourceString();
     }

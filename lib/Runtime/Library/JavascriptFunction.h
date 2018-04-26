@@ -177,7 +177,7 @@ namespace Js
 
         BOOL IsScriptFunction() const;
         virtual Var GetSourceString() const { return nullptr; }
-        virtual Var EnsureSourceString();
+        virtual JavascriptString * EnsureSourceString();
         virtual BOOL IsExternalFunction() { return FALSE; }
         virtual BOOL IsWinRTFunction() { return FALSE; }
         BOOL IsStrictMode() const;

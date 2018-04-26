@@ -1454,7 +1454,7 @@ namespace Js
 #endif
         CopyDeferParseField(scopeSlotArraySize);
         CopyDeferParseField(paramScopeSlotArraySize);
-        other->SetCachedSourceString(this->GetCachedSourceString());
+        other->SetCachedSourceStringWeakRef(this->GetCachedSourceStringWeakRef());
         CopyDeferParseField(m_isAsmjsMode);
         CopyDeferParseField(m_isAsmJsFunction);
         CopyDeferParseField(deferredPrototypeType);
@@ -1895,6 +1895,41 @@ namespace Js
         // TODO: Disabling the creation of deferred stubs for now. We need to rethink the design again as the current behavior
         // is not usable with precise capturing.
         this->SetDeferredStubs(nullptr);
+    }
+
+    JavascriptString * ParseableFunctionInfo::GetCachedSourceString()
+    {
+        RecyclerWeakReference<JavascriptString> * weakRef = GetCachedSourceStringWeakRef();
+        if (weakRef)
+        {
+            JavascriptString * string = weakRef->Get();
+            if (string)
+            {
+                return string;
+            }
+            this->SetAuxPtr(AuxPointerType::CachedSourceString, nullptr);
+        }
+        return nullptr;
+    }
+
+    void ParseableFunctionInfo::SetCachedSourceString(JavascriptString * sourceString)
+    {
+        Assert(this->GetCachedSourceString() == nullptr);
+        if (sourceString)
+        {
+            this->SetCachedSourceStringWeakRef(this->GetRecycler()->CreateWeakReferenceHandle(sourceString));
+        }
+    }
+
+    RecyclerWeakReference<JavascriptString> * ParseableFunctionInfo::GetCachedSourceStringWeakRef()
+    {
+        return static_cast<RecyclerWeakReference<JavascriptString> *>(this->GetAuxPtr(AuxPointerType::CachedSourceString));
+    }
+
+    void ParseableFunctionInfo::SetCachedSourceStringWeakRef(RecyclerWeakReference<JavascriptString> * weakRef)
+    {
+        Assert(this->GetCachedSourceString() == nullptr);
+        this->SetAuxPtr(AuxPointerType::CachedSourceString, weakRef);
     }
 
     FunctionInfoArray ParseableFunctionInfo::GetNestedFuncArray()
