@@ -833,6 +833,22 @@ namespace Js
             }
             return false;
         }
+        if (this->HasObjectArray())
+        {
+            if (PHASE_TRACE1(ObjectCopyPhase))
+            {
+                Output::Print(_u("ObjectCopy: Can't copy: to obj has object array\n"));
+            }
+            return false;
+        }
+        if (from->GetOffsetOfInlineSlots() != this->GetOffsetOfInlineSlots())
+        {
+            if (PHASE_TRACE1(ObjectCopyPhase))
+            {
+                Output::Print(_u("ObjectCopy: Can't copy: Don't have same inline slot offset\n"));
+            }
+            return false;
+        }
         if (PathTypeHandlerBase::FromTypeHandler(from->GetTypeHandler())->HasAccessors())
         {
             if (PHASE_TRACE1(ObjectCopyPhase))
@@ -845,7 +861,7 @@ namespace Js
         {
             if (PHASE_TRACE1(ObjectCopyPhase))
             {
-                Output::Print(_u("ObjectCopy: Can't copy: Protoytypes don't match\n"));
+                Output::Print(_u("ObjectCopy: Can't copy: Prototypes don't match\n"));
             }
             return false;
         }
@@ -879,6 +895,10 @@ namespace Js
 
     bool DynamicObject::TryCopy(DynamicObject* from)
     {
+        if (PHASE_OFF1(ObjectCopyPhase))
+        {
+            return false;
+        }
         // Validate that objects are compatible
         if (!this->IsCompatibleForCopy(from))
         {
@@ -913,7 +933,12 @@ namespace Js
 
             CopyArray(thisInlineSlots, inlineSlotCapacity, fromInlineSlots, inlineSlotCapacity);
         }
-
+        if (from->HasObjectArray())
+        {
+            Assert(!this->HasObjectArray());
+            Assert(!this->IsObjectHeaderInlinedTypeHandler());
+            this->SetObjectArray(JavascriptArray::DeepCopyInstance(from->GetObjectArrayOrFlagsAsArray()));
+        }
         if (PHASE_TRACE1(ObjectCopyPhase))
         {
             Output::Print(_u("ObjectCopy succeeded\n"));
