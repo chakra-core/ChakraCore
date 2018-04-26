@@ -113,6 +113,7 @@ public:
 
 private:
     void                InsertInstr(IR::Instr *instr, IR::Instr* insertBeforeInstr);
+    template <bool insertLdAForLocal = true>
     void                AddInstr(IR::Instr *instr, uint32 offset);
     BranchReloc *       AddBranchInstr(IR::BranchInstr *instr, uint32 offset, uint32 targetOffset);
 #ifdef BYTECODE_BRANCH_ISLAND

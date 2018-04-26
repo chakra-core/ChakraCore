@@ -34,6 +34,57 @@ if ((isTopLevel)) \
     byteCodeGenerator->EndStatement(pnode); \
 }
 
+BOOL MayUseLocation(Js::RegSlot location, ParseNode* pnodeSE)
+{
+    if (location == pnodeSE->location)
+    {
+        return true;
+    }
+    uint fnop = ParseNode::Grfnop(pnodeSE->nop);
+    if (fnop & fnopLeaf)
+    {
+        // pnodeSE is a leaf and can't kill anything.
+        return false;
+    }
+
+    if (fnop & fnopUni)
+    {
+        // pnodeSE is a unary op, so recurse to the source (if present - e.g., [] may have no opnd).
+        if (pnodeSE->nop == knopTempRef)
+        {
+            return false;
+        }
+        else
+        {
+            return pnodeSE->AsParseNodeUni()->pnode1 && MayUseLocation(location, pnodeSE->AsParseNodeUni()->pnode1);
+        }
+    }
+    else if (fnop & fnopBin)
+    {
+        // pnodeSE is a binary (or ternary) op, so recurse to the sources (if present).
+        return MayUseLocation(location, pnodeSE->AsParseNodeBin()->pnode1) ||
+            (pnodeSE->AsParseNodeBin()->pnode2 && MayUseLocation(location, pnodeSE->AsParseNodeBin()->pnode2));
+    }
+    else if (pnodeSE->nop == knopQmark)
+    {
+        ParseNodeTri * pnodeTriSE = pnodeSE->AsParseNodeTri();
+        return MayUseLocation(location, pnodeTriSE->pnode1) ||
+            MayUseLocation(location, pnodeTriSE->pnode2) ||
+            MayUseLocation(location, pnodeTriSE->pnode3);
+    }
+    else if (pnodeSE->nop == knopCall || pnodeSE->nop == knopNew)
+    {
+        return MayUseLocation(location, pnodeSE->AsParseNodeCall()->pnodeTarget) ||
+            (pnodeSE->AsParseNodeCall()->pnodeArgs && MayUseLocation(location, pnodeSE->AsParseNodeCall()->pnodeArgs));
+    }
+    else if (pnodeSE->nop == knopList)
+    {
+        return true;
+    }
+
+    return false;
+}
+
 BOOL MayHaveSideEffectOnNode(ParseNode *pnode, ParseNode *pnodeSE)
 {
     // Try to determine whether pnodeSE may kill the named var represented by pnode.
@@ -4813,11 +4864,11 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
         if (rhsLocation != sym->GetLocation())
         {
             this->m_writer.Reg2(Js::OpCode::Ld_A, sym->GetLocation(), rhsLocation);
+        }
 
-            if (this->ShouldTrackDebuggerMetadata() && isLetDecl)
-            {
-                this->UpdateDebuggerPropertyInitializationOffset(sym->GetLocation(), sym->GetPosition());
-            }
+        if (this->ShouldTrackDebuggerMetadata() && isLetDecl)
+        {
+            this->UpdateDebuggerPropertyInitializationOffset(sym->GetLocation(), sym->GetPosition());
         }
     }
     if (fLabelDefined)
@@ -8635,7 +8686,7 @@ void SetNewArrayElements(ParseNode *pnode, Js::RegSlot arrayLocation, ByteCodeGe
         Assert(!pnode->AsParseNodeArrLit()->hasMissingValues);
         byteCodeGenerator->Writer()->Auxiliary(
             Js::OpCode::NewScIntArray,
-            pnode->location,
+            arrayLocation,
             ints,
             auxSize,
             argCount);
@@ -8657,7 +8708,7 @@ void SetNewArrayElements(ParseNode *pnode, Js::RegSlot arrayLocation, ByteCodeGe
         Assert(!pnode->AsParseNodeArrLit()->hasMissingValues);
         byteCodeGenerator->Writer()->Auxiliary(
             Js::OpCode::NewScFltArray,
-            pnode->location,
+            arrayLocation,
             doubles,
             auxSize,
             argCount);
@@ -8668,13 +8719,17 @@ void SetNewArrayElements(ParseNode *pnode, Js::RegSlot arrayLocation, ByteCodeGe
     bool arrayLitOpt = pnode->AsParseNodeArrLit()->arrayOfTaggedInts && pnode->AsParseNodeArrLit()->count > 1;
     Assert(!arrayLitOpt || !nativeArrays);
 
-    Js::RegSlot spreadArrLoc = arrayLocation;
+    Js::RegSlot origArrLoc = arrayLocation;
     Js::AuxArray<uint32> *spreadIndices = nullptr;
     const uint extraAlloc = UInt32Math::Mul(spreadCount, sizeof(uint32));
     if (pnode->AsParseNodeArrLit()->spreadCount > 0)
     {
         arrayLocation = funcInfo->AcquireTmpRegister();
         spreadIndices = AnewPlus(byteCodeGenerator->GetAllocator(), extraAlloc, Js::AuxArray<uint32>, spreadCount);
+    }
+    else if (args != nullptr)
+    {
+        arrayLocation = funcInfo->AcquireTmpRegister();
     }
 
     byteCodeGenerator->Writer()->Reg1Unsigned1(
@@ -8796,8 +8851,13 @@ void SetNewArrayElements(ParseNode *pnode, Js::RegSlot arrayLocation, ByteCodeGe
 
     if (pnode->AsParseNodeArrLit()->spreadCount > 0)
     {
-        byteCodeGenerator->Writer()->Reg2Aux(Js::OpCode::SpreadArrayLiteral, spreadArrLoc, arrayLocation, spreadIndices, UInt32Math::Add(sizeof(Js::AuxArray<uint32>), extraAlloc), extraAlloc);
+        byteCodeGenerator->Writer()->Reg2Aux(Js::OpCode::SpreadArrayLiteral, origArrLoc, arrayLocation, spreadIndices, UInt32Math::Add(sizeof(Js::AuxArray<uint32>), extraAlloc), extraAlloc);
         AdeletePlus(byteCodeGenerator->GetAllocator(), extraAlloc, spreadIndices);
+        funcInfo->ReleaseTmpRegister(arrayLocation);
+    }
+    else if (origArrLoc != arrayLocation)
+    {
+        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, origArrLoc, arrayLocation);
         funcInfo->ReleaseTmpRegister(arrayLocation);
     }
 }
@@ -8882,7 +8942,7 @@ void EmitBooleanExpression(
         // Note: we usually release the temp assigned to a node after we Emit it.
         // But in this case, EmitBooleanExpression is just a wrapper around a normal Emit call,
         // and the caller of EmitBooleanExpression expects to be able to release this register.
-
+        expr->isUsed = true;
         Emit(expr, byteCodeGenerator, funcInfo, false);
         if (trueFallthrough)
         {
@@ -8912,9 +8972,17 @@ void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabe
     {
         byteCodeGenerator->StartStatement(expr);
         Js::ByteCodeLabel leftFalse = byteCodeGenerator->Writer()->DefineLabel();
+        if (CONFIG_FLAG(BytecodeOptimizer))
+        {
+            expr->AsParseNodeBin()->pnode1->isUsed = expr->isUsed;
+        }
         EmitGeneratingBooleanExpression(expr->AsParseNodeBin()->pnode1, trueLabel, false, leftFalse, true, writeto, byteCodeGenerator, funcInfo);
         funcInfo->ReleaseLoc(expr->AsParseNodeBin()->pnode1);
         byteCodeGenerator->Writer()->MarkLabel(leftFalse);
+        if (CONFIG_FLAG(BytecodeOptimizer))
+        {
+            expr->AsParseNodeBin()->pnode2->isUsed = expr->isUsed;
+        }
         EmitGeneratingBooleanExpression(expr->AsParseNodeBin()->pnode2, trueLabel, truefallthrough, falseLabel, falsefallthrough, writeto, byteCodeGenerator, funcInfo);
         funcInfo->ReleaseLoc(expr->AsParseNodeBin()->pnode2);
         byteCodeGenerator->EndStatement(expr);
@@ -8925,9 +8993,17 @@ void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabe
     {
         byteCodeGenerator->StartStatement(expr);
         Js::ByteCodeLabel leftTrue = byteCodeGenerator->Writer()->DefineLabel();
+        if (CONFIG_FLAG(BytecodeOptimizer))
+        {
+            expr->AsParseNodeBin()->pnode1->isUsed = expr->isUsed;
+        }
         EmitGeneratingBooleanExpression(expr->AsParseNodeBin()->pnode1, leftTrue, true, falseLabel, false, writeto, byteCodeGenerator, funcInfo);
         funcInfo->ReleaseLoc(expr->AsParseNodeBin()->pnode1);
         byteCodeGenerator->Writer()->MarkLabel(leftTrue);
+        if (CONFIG_FLAG(BytecodeOptimizer))
+        {
+            expr->AsParseNodeBin()->pnode2->isUsed = expr->isUsed;
+        }
         EmitGeneratingBooleanExpression(expr->AsParseNodeBin()->pnode2, trueLabel, truefallthrough, falseLabel, falsefallthrough, writeto, byteCodeGenerator, funcInfo);
         funcInfo->ReleaseLoc(expr->AsParseNodeBin()->pnode2);
         byteCodeGenerator->EndStatement(expr);
@@ -8940,12 +9016,22 @@ void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabe
         // this time we want a boolean expression, since Logical Not is nice and only returns true or false
         Js::ByteCodeLabel emitTrue = byteCodeGenerator->Writer()->DefineLabel();
         Js::ByteCodeLabel emitFalse = byteCodeGenerator->Writer()->DefineLabel();
+        if (CONFIG_FLAG(BytecodeOptimizer))
+        {
+            expr->AsParseNodeUni()->pnode1->isUsed = expr->isUsed;
+        }
         EmitBooleanExpression(expr->AsParseNodeUni()->pnode1, emitFalse, emitTrue, byteCodeGenerator, funcInfo, false, true);
         byteCodeGenerator->Writer()->MarkLabel(emitTrue);
-        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, writeto);
+        if (expr->AsParseNodeUni()->pnode1->isUsed)
+        {
+            byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, writeto);
+        }
         byteCodeGenerator->Writer()->Br(trueLabel);
         byteCodeGenerator->Writer()->MarkLabel(emitFalse);
-        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, writeto);
+        if (expr->AsParseNodeUni()->pnode1->isUsed)
+        {
+            byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, writeto);
+        }
         if (!falsefallthrough)
         {
             byteCodeGenerator->Writer()->Br(falseLabel);
@@ -9007,12 +9093,16 @@ void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabe
         // But in this case, EmitBooleanExpression is just a wrapper around a normal Emit call,
         // and the caller of EmitBooleanExpression expects to be able to release this register.
 
+        expr->isUsed = expr->isUsed || truefallthrough || falsefallthrough;
         // For diagnostics purposes, register the name and dot to the statement list.
         if (expr->nop == knopName || expr->nop == knopDot)
         {
             byteCodeGenerator->StartStatement(expr);
             Emit(expr, byteCodeGenerator, funcInfo, false);
-            byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, writeto, expr->location);
+            if (expr->isUsed)
+            {
+                byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, writeto, expr->location);
+            }
             // The inliner likes small bytecode
             if (!(truefallthrough || falsefallthrough))
             {
@@ -9030,7 +9120,10 @@ void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabe
         else
         {
             Emit(expr, byteCodeGenerator, funcInfo, false);
-            byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, writeto, expr->location);
+            if (expr->isUsed)
+            {
+                byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, writeto, expr->location);
+            }
             // The inliner likes small bytecode
             if (!(truefallthrough || falsefallthrough))
             {
@@ -10656,6 +10749,16 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         ParseNode *lhs = pnode->AsParseNodeBin()->pnode1;
         ParseNode *rhs = pnode->AsParseNodeBin()->pnode2;
         byteCodeGenerator->StartStatement(pnode);
+
+        if (lhs->nop == knopName &&
+            lhs->AsParseNodeName()->sym &&
+            rhs->location == Js::Constants::NoRegister &&
+            lhs->AsParseNodeName()->sym->GetScope()->GetFunc() == funcInfo &&
+            !MayUseLocation(lhs->AsParseNodeName()->sym->GetLocation(), rhs) &&
+            CONFIG_FLAG(BytecodeOptimizer))
+        {
+            rhs->location = lhs->AsParseNodeName()->sym->GetLocation();
+        }
         if (pnode->isUsed || fReturnValue)
         {
             // If the assignment result is used, grab a register to hold it and pass it to EmitAssignment,
@@ -10787,6 +10890,10 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         Js::ByteCodeLabel trueLabel = byteCodeGenerator->Writer()->DefineLabel();
         Js::ByteCodeLabel falseLabel = byteCodeGenerator->Writer()->DefineLabel();
         Js::ByteCodeLabel skipLabel = byteCodeGenerator->Writer()->DefineLabel();
+        if (CONFIG_FLAG(BytecodeOptimizer))
+        {
+            pnode->AsParseNodeTri()->pnode1->isUsed = pnode->isUsed || fReturnValue;
+        }
         EmitBooleanExpression(pnode->AsParseNodeTri()->pnode1, trueLabel, falseLabel, byteCodeGenerator, funcInfo, true, false);
         byteCodeGenerator->Writer()->MarkLabel(trueLabel);
         funcInfo->ReleaseLoc(pnode->AsParseNodeTri()->pnode1);
@@ -10794,10 +10901,19 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         // For boolean expressions that compute a result, we have to burn a register for the result
         // so that the back end can identify it cheaply as a single temp lifetime. Revisit this if we do
         // full-on renaming in the back end.
-        funcInfo->AcquireLoc(pnode);
-
+        if (CONFIG_FLAG(BytecodeOptimizer))
+        {
+            pnode->AsParseNodeTri()->pnode2->isUsed = pnode->isUsed || fReturnValue;
+        }
+        if (pnode->AsParseNodeTri()->pnode2->isUsed)
+        {
+            funcInfo->AcquireLoc(pnode);
+        }
         Emit(pnode->AsParseNodeTri()->pnode2, byteCodeGenerator, funcInfo, false);
-        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, pnode->location, pnode->AsParseNodeTri()->pnode2->location);
+        if (pnode->AsParseNodeTri()->pnode2->isUsed)
+        {
+            byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, pnode->location, pnode->AsParseNodeTri()->pnode2->location);
+        }
         funcInfo->ReleaseLoc(pnode->AsParseNodeTri()->pnode2);
 
         // Record the branch bytecode offset
@@ -10806,8 +10922,15 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         byteCodeGenerator->Writer()->Br(skipLabel);
 
         byteCodeGenerator->Writer()->MarkLabel(falseLabel);
+        if (CONFIG_FLAG(BytecodeOptimizer))
+        {
+            pnode->AsParseNodeTri()->pnode3->isUsed = pnode->isUsed || fReturnValue;
+        }
         Emit(pnode->AsParseNodeTri()->pnode3, byteCodeGenerator, funcInfo, false);
-        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, pnode->location, pnode->AsParseNodeTri()->pnode3->location);
+        if (pnode->AsParseNodeTri()->pnode3->isUsed)
+        {
+            byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, pnode->location, pnode->AsParseNodeTri()->pnode3->location);
+        }
         funcInfo->ReleaseLoc(pnode->AsParseNodeTri()->pnode3);
 
         byteCodeGenerator->Writer()->MarkLabel(skipLabel);
@@ -10905,6 +11028,14 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
 
             if (initNode != nullptr)
             {
+                if (sym &&
+                    initNode->location == Js::Constants::NoRegister &&
+                    sym->GetScope()->GetFunc() == funcInfo &&
+                    !MayUseLocation(sym->GetLocation(), initNode) &&
+                    CONFIG_FLAG(BytecodeOptimizer))
+                {
+                    initNode->location = sym->GetLocation();
+                }
                 Emit(initNode, byteCodeGenerator, funcInfo, false);
                 rhsLocation = initNode->location;
 

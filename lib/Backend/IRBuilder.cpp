@@ -1145,6 +1145,7 @@ void IRBuilder::InsertInstr(IR::Instr *instr, IR::Instr* insertBeforeInstr)
 ///
 ///----------------------------------------------------------------------------
 
+template <bool insertLdAForLocal>
 void
 IRBuilder::AddInstr(IR::Instr *instr, uint32 offset)
 {
@@ -1179,13 +1180,26 @@ IRBuilder::AddInstr(IR::Instr *instr, uint32 offset)
             topFunc->SetHasTempObjectProducingInstr(true);
         }
     }
-
 #if DBG_DUMP
     if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::IRBuilderPhase, this->m_func->GetTopFunc()->GetSourceContextId(), this->m_func->GetTopFunc()->GetLocalFunctionId()))
     {
         instr->Dump();
     }
 #endif
+
+    if (insertLdAForLocal && instr->GetDst() && instr->GetDst()->IsRegOpnd() && instr->GetDst()->GetStackSym()->HasByteCodeRegSlot())
+    {
+        StackSym* dstSym = instr->GetDst()->GetStackSym();
+        Js::RegSlot dstRegSlot = dstSym->GetByteCodeRegSlot();
+        if (!this->RegIsTemp(dstRegSlot) && !this->RegIsConstant(dstRegSlot))
+        {
+            IR::Opnd* dst = instr->UnlinkDst();
+            IR::RegOpnd* tmpReg = IR::RegOpnd::New(dst->GetType(), m_func);
+            instr->SetDst(tmpReg);
+            IR::Instr* intermediateLd = IR::Instr::New(Js::OpCode::Ld_A, dst, tmpReg, m_func);
+            this->AddInstr<false>(intermediateLd, offset);
+        }
+    }
 }
 
 IR::IndirOpnd *
