@@ -808,6 +808,13 @@ SmallHeapBlockT<TBlockAttributes>::GetRecycler() const
 
 #if DBG
 template <class TBlockAttributes>
+HeapInfo *
+SmallHeapBlockT<TBlockAttributes>::GetHeapInfo() const
+{
+    return this->heapBucket->heapInfo;
+}
+
+template <class TBlockAttributes>
 BOOL
 SmallHeapBlockT<TBlockAttributes>::IsFreeObject(void * objectAddress)
 {
@@ -1219,7 +1226,7 @@ SmallHeapBlockT<TBlockAttributes>::DoPartialReusePage(RecyclerSweep const& recyc
     // could increase in thread sweep time.
     // OTOH, if the object size is really large, the calculation below will reduce the chance for a page to be
     // partial. we might need to watch out for that.
-    return (expectFreeByteCount + objectSize >= recyclerSweep.GetPartialCollectSmallHeapBlockReuseMinFreeBytes());
+    return (expectFreeByteCount + objectSize >= recyclerSweep.GetManager()->GetPartialCollectSmallHeapBlockReuseMinFreeBytes());
 }
 
 #if DBG
@@ -1287,7 +1294,7 @@ SmallHeapBlockT<TBlockAttributes>::AdjustPartialUncollectedAllocBytes(RecyclerSw
     Assert(newAllocatedCount >= newObjectExpectSweepCount);
     Assert(this->lastUncollectedAllocBytes >= newObjectExpectSweepCount * this->objectSize);
 
-    recyclerSweep.SubtractSweepNewObjectAllocBytes(newObjectExpectSweepCount * this->objectSize);
+    recyclerSweep.GetManager()->SubtractSweepNewObjectAllocBytes(newObjectExpectSweepCount * this->objectSize);
 }
 #endif  // RECYCLER_VERIFY_MARK
 
@@ -1351,7 +1358,7 @@ SmallHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queu
 
 #if ENABLE_PARTIAL_GC
         // Accounting for partial heuristics
-        recyclerSweep.AddUnaccountedNewObjectAllocBytes(this);
+        recyclerSweep.GetManager()->AddUnaccountedNewObjectAllocBytes(this);
 #endif
     }
 
@@ -1373,7 +1380,7 @@ SmallHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queu
     RECYCLER_STATS_INC(recycler, heapBlockCount[this->GetHeapBlockType()]);
 
 #if ENABLE_PARTIAL_GC
-    if (recyclerSweep.DoAdjustPartialHeuristics() && allocable)
+    if (recyclerSweep.GetManager()->DoAdjustPartialHeuristics() && allocable)
     {
         this->AdjustPartialUncollectedAllocBytes(recyclerSweep, expectSweepCount);
     }

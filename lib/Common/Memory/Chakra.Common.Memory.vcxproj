@@ -90,7 +90,9 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)SectionAllocWrapper.cpp" />
-    <ClCompile Include="DelayDeletingFunctionTable.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)HeapInfoManager.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)RecyclerSweepManager.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)DelayDeletingFunctionTable.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AllocationPolicyManager.h" />
@@ -107,6 +109,7 @@
     </ClInclude>
     <ClInclude Include="AutoAllocatorObjectPtr.h" />
     <ClInclude Include="AutoPtr.h" />
+    <ClInclude Include="BucketStatsReporter.h" />
     <ClInclude Include="CollectionState.h" />
     <ClInclude Include="CommonMemoryPch.h" />
     <ClInclude Include="CustomHeap.h" />
@@ -118,6 +121,7 @@
     <ClInclude Include="HeapBucket.h" />
     <ClInclude Include="HeapConstants.h" />
     <ClInclude Include="HeapInfo.h" />
+    <ClInclude Include="HeapInfoManager.h" />
     <ClInclude Include="IdleDecommitPageAllocator.h" />
     <ClInclude Include="LargeHeapBlock.h" />
     <ClInclude Include="LeakReport.h" />
@@ -137,6 +141,7 @@
     <ClInclude Include="RecyclerPointers.h" />
     <ClInclude Include="RecyclerRootPtr.h" />
     <ClInclude Include="RecyclerSweep.h" />
+    <ClInclude Include="RecyclerSweepManager.h" />
     <ClInclude Include="RecyclerWeakReference.h" />
     <ClInclude Include="RecyclerWriteBarrierManager.h" />
     <ClInclude Include="SectionAllocWrapper.h" />

@@ -33,6 +33,7 @@ if (flags.Trace.IsEnabled(Js::PageHeapPhase)) \
 
 class Recycler;
 class HeapBucket;
+class HeapInfo;
 template <typename TBlockType> class HeapBucketT;
 class  RecyclerSweep;
 class MarkContext;
@@ -129,6 +130,8 @@ enum ObjectInfoBits : unsigned short
 
     ClientTrackedBit            = 0x0400,       // This allocation is client tracked
     TraceBit                    = 0x0800,
+
+    IsolatedBit                 = 0x1000,
 
     // Additional definitions based on above
 
@@ -445,6 +448,7 @@ public:
 
 
 #if DBG
+    virtual HeapInfo * GetHeapInfo() const = 0;
     virtual BOOL IsFreeObject(void* objectAddress) = 0;
 #endif
     virtual BOOL IsValidObject(void* objectAddress) = 0;
@@ -752,6 +756,7 @@ public:
     SmallHeapBlockBitVector * GetDebugFreeBitVector() { return &debugFreeBits; }
 #endif
 #if DBG
+    virtual HeapInfo * GetHeapInfo() const override;
     virtual BOOL IsFreeObject(void* objectAddress) override;
 #endif
     virtual BOOL IsValidObject(void* objectAddress) override;

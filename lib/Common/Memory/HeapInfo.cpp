@@ -469,20 +469,14 @@ HeapInfo::HeapInfo() :
     pendingDisposableObjectCount(0),
     newFinalizableObjectCount(0),
 #endif
-#if ENABLE_PARTIAL_GC
-    uncollectedNewPageCount(0),
-    unusedPartialCollectFreeBytes(0),
-#endif
-    uncollectedAllocBytes(0),
-    lastUncollectedAllocBytes(0),
-    pendingZeroPageCount(0)
 #ifdef RECYCLER_PAGE_HEAP
-    , pageHeapMode(PageHeapMode::PageHeapModeOff)
-    , isPageHeapEnabled(false)
-    , pageHeapBlockType(PageHeapBlockTypeFilter::PageHeapBlockTypeFilterAll)
-    , captureAllocCallStack(false)
-    , captureFreeCallStack(false)
+    pageHeapMode(PageHeapMode::PageHeapModeOff),
+    isPageHeapEnabled(false),
+    pageHeapBlockType(PageHeapBlockTypeFilter::PageHeapBlockTypeFilterAll),
+    captureAllocCallStack(false),
+    captureFreeCallStack(false),
 #endif
+    hasPendingTransferDisposedObjects(false)
 {
 }
 
@@ -966,11 +960,45 @@ HeapInfo::AddLargeHeapBlock(size_t size)
     return largeObjectBucket.AddLargeHeapBlock(size, /* nothrow = */ true);
 }
 
-void HeapInfo::SweepBuckets(RecyclerSweep& recyclerSweep, bool concurrent)
+void
+HeapInfo::Finalize(RecyclerSweep& recyclerSweep)
 {
     Recycler * recycler = recyclerSweep.GetRecycler();
-    // TODO: Remove below workaround for unreferenced local after enabled -profile for GC
-    static_cast<Recycler*>(recycler);
+#ifdef RECYCLER_STATS
+    memset(&recycler->collectionStats.numEmptySmallBlocks, 0, sizeof(recycler->collectionStats.numEmptySmallBlocks));
+    recycler->collectionStats.numZeroedOutSmallBlocks = 0;
+#endif
+#ifdef RECYCLER_FINALIZE_CHECK
+    this->newFinalizableObjectCount = 0;
+#endif
+    RECYCLER_SLOW_CHECK(VerifySmallHeapBlockCount());
+
+#if ENABLE_CONCURRENT_GC
+    // Merge the new blocks before we sweep the finalizable object in thread
+    recyclerSweep.MergePendingNewHeapBlockList<SmallFinalizableHeapBlock>();
+    recyclerSweep.MergePendingNewMediumHeapBlockList<MediumFinalizableHeapBlock>();
+
+#ifdef RECYCLER_WRITE_BARRIER
+    recyclerSweep.MergePendingNewHeapBlockList<SmallFinalizableWithBarrierHeapBlock>();
+    recyclerSweep.MergePendingNewMediumHeapBlockList<MediumFinalizableWithBarrierHeapBlock>();
+#endif
+#ifdef RECYCLER_VISITED_HOST
+    recyclerSweep.MergePendingNewHeapBlockList<SmallRecyclerVisitedHostHeapBlock>();
+    recyclerSweep.MergePendingNewMediumHeapBlockList<MediumRecyclerVisitedHostHeapBlock>();
+#endif
+#endif
+
+    RECYCLER_PROFILE_EXEC_BEGIN(recycler, Js::FinalizePhase);    
+
+    largeObjectBucket.Finalize();
+
+#if defined(BUCKETIZE_MEDIUM_ALLOCATIONS) && !(SMALLBLOCK_MEDIUM_ALLOC)
+    for (uint i = 0; i < HeapConstants::MediumBucketCount; i++)
+    {
+        mediumHeapBuckets[i].Finalize();
+    }
+#endif
+
     for (uint i = 0; i < HeapConstants::BucketCount; i++)
     {
         heapBuckets[i].SweepFinalizableObjects(recyclerSweep);
@@ -984,6 +1012,13 @@ void HeapInfo::SweepBuckets(RecyclerSweep& recyclerSweep, bool concurrent)
     }
 #endif
 
+    RECYCLER_PROFILE_EXEC_END(recycler, Js::FinalizePhase);
+}
+
+void
+HeapInfo::Sweep(RecyclerSweep& recyclerSweep, bool concurrent)
+{
+    RECYCLER_PROFILE_EXEC_BEGIN(recyclerSweep.GetRecycler(), Js::SweepSmallPhase);
 
 #if ENABLE_CONCURRENT_GC
     if (concurrent)
@@ -1002,7 +1037,7 @@ void HeapInfo::SweepBuckets(RecyclerSweep& recyclerSweep, bool concurrent)
         this->SweepSmallNonFinalizable(recyclerSweep);
     }
 
-    RECYCLER_PROFILE_EXEC_CHANGE(recycler, Js::SweepSmallPhase, Js::SweepLargePhase);
+    RECYCLER_PROFILE_EXEC_CHANGE(recyclerSweep.GetRecycler(), Js::SweepSmallPhase, Js::SweepLargePhase);
 
 #if defined(BUCKETIZE_MEDIUM_ALLOCATIONS) && !(SMALLBLOCK_MEDIUM_ALLOC)
     // CONCURRENT-TODO: Allow this in the background as well
@@ -1012,55 +1047,9 @@ void HeapInfo::SweepBuckets(RecyclerSweep& recyclerSweep, bool concurrent)
     }
 #endif
     largeObjectBucket.Sweep(recyclerSweep);
-}
 
-void
-HeapInfo::Sweep(RecyclerSweep& recyclerSweep, bool concurrent)
-{
-#ifdef RECYCLER_FINALIZE_CHECK
-    this->newFinalizableObjectCount = 0;
-#endif
-    // Initialize this to false. Individual heap buckets can set it to true
+    RECYCLER_PROFILE_EXEC_END(recyclerSweep.GetRecycler(), Js::SweepLargePhase);
 
-    Recycler * recycler = recyclerSweep.GetRecycler();
-    RECYCLER_PROFILE_EXEC_BEGIN(recycler, Js::SweepSmallPhase);
-
-#ifdef RECYCLER_STATS
-    memset(&recycler->collectionStats.numEmptySmallBlocks, 0, sizeof(recycler->collectionStats.numEmptySmallBlocks));
-    recycler->collectionStats.numZeroedOutSmallBlocks = 0;
-#endif
-
-    RECYCLER_SLOW_CHECK(VerifySmallHeapBlockCount());
-
-    // Call finalize before sweeping so that the finalizer can still access object it referenced
-
-    largeObjectBucket.Finalize();
-
-#if defined(BUCKETIZE_MEDIUM_ALLOCATIONS) && !(SMALLBLOCK_MEDIUM_ALLOC)
-    for (uint i=0; i < HeapConstants::MediumBucketCount; i++)
-    {
-        mediumHeapBuckets[i].Finalize();
-    }
-#endif
-
-#if ENABLE_CONCURRENT_GC
-    // Merge the new blocks before we sweep the finalizable object in thread
-    recyclerSweep.MergePendingNewHeapBlockList<SmallFinalizableHeapBlock>();
-    recyclerSweep.MergePendingNewMediumHeapBlockList<MediumFinalizableHeapBlock>();
-   
-#ifdef RECYCLER_WRITE_BARRIER
-    recyclerSweep.MergePendingNewHeapBlockList<SmallFinalizableWithBarrierHeapBlock>();
-    recyclerSweep.MergePendingNewMediumHeapBlockList<MediumFinalizableWithBarrierHeapBlock>();
-#endif
-#ifdef RECYCLER_VISITED_HOST
-    recyclerSweep.MergePendingNewHeapBlockList<SmallRecyclerVisitedHostHeapBlock>();
-    recyclerSweep.MergePendingNewMediumHeapBlockList<MediumRecyclerVisitedHostHeapBlock>();
-#endif
-#endif
-
-    SweepBuckets(recyclerSweep, concurrent);
-
-    RECYCLER_PROFILE_EXEC_END(recycler, Js::SweepLargePhase);
     RECYCLER_SLOW_CHECK(VerifyLargeHeapBlockCount());
     RECYCLER_SLOW_CHECK(Assert(this->newFinalizableObjectCount == 0));
 }
@@ -1155,192 +1144,10 @@ HeapInfo::Rescan(RescanFlags flags)
 
 
 #if ENABLE_MEM_STATS
-
-#ifdef DUMP_FRAGMENTATION_STATS
-template <ObjectInfoBits TBucketType>
-struct DumpBucketTypeName { static char16 name[]; };
-template<> char16 DumpBucketTypeName<NoBit>::name[] = _u("Normal ");
-template<> char16 DumpBucketTypeName<LeafBit>::name[] = _u("Leaf   ");
-template<> char16 DumpBucketTypeName<FinalizeBit>::name[] = _u("Fin    ");
-#ifdef RECYCLER_WRITE_BARRIER
-template<> char16 DumpBucketTypeName<WithBarrierBit>::name[] = _u("NormWB ");
-template<> char16 DumpBucketTypeName<FinalizableWithBarrierBit>::name[] = _u("FinWB  ");
-#endif
-#ifdef RECYCLER_VISITED_HOST
-template<> char16 DumpBucketTypeName<RecyclerVisitedHostBit>::name[] = _u("Visited");
-#endif
-template <typename TBlockType>
-struct DumpBlockTypeName { static char16 name[]; };
-template<> char16 DumpBlockTypeName<SmallAllocationBlockAttributes>::name[] = _u("(S)");
-template<> char16 DumpBlockTypeName<MediumAllocationBlockAttributes>::name[] = _u("(M)");
-#endif  // DUMP_FRAGMENTATION_STATS
-
-template <ObjectInfoBits TBucketType>
-struct EtwBucketTypeEnum { static uint16 code; };
-template<> uint16 EtwBucketTypeEnum<NoBit>::code = 0;
-template<> uint16 EtwBucketTypeEnum<LeafBit>::code = 1;
-template<> uint16 EtwBucketTypeEnum<FinalizeBit>::code = 2;
-#ifdef RECYCLER_WRITE_BARRIER
-template<> uint16 EtwBucketTypeEnum<WithBarrierBit>::code = 3;
-template<> uint16 EtwBucketTypeEnum<FinalizableWithBarrierBit>::code = 4;
-#endif
-#ifdef RECYCLER_VISITED_HOST
-template<> uint16 EtwBucketTypeEnum<RecyclerVisitedHostBit>::code = 5;
-#endif
-template <typename TBlockType>
-struct EtwBlockTypeEnum { static uint16 code; };
-template<> uint16 EtwBlockTypeEnum<SmallAllocationBlockAttributes>::code = 0;
-template<> uint16 EtwBlockTypeEnum<MediumAllocationBlockAttributes>::code = 1;
-
-class BucketStatsReporter
-{
-private:
-    static const uint16 LargeBucketNameCode = 2 << 8;
-    static const uint16 TotalBucketNameCode = 3 << 8;
-
-    Recycler* recycler;
-    HeapBucketStats total;
-
-    template <class TBlockAttributes, ObjectInfoBits TBucketType>
-    uint16 BucketNameCode() const
-    {
-        return EtwBucketTypeEnum<TBucketType>::code + (EtwBlockTypeEnum<TBlockAttributes>::code << 8);
-    }
-
-    bool IsMemProtectMode() const
-    {
-        return recycler->IsMemProtectMode();
-    }
-
-public:
-    BucketStatsReporter(Recycler* recycler)
-        : recycler(recycler)
-    {
-        DUMP_FRAGMENTATION_STATS_ONLY(DumpHeader());
-    }
-
-    bool IsEtwEnabled() const
-    {
-        return IS_GCETW_Enabled(GC_BUCKET_STATS);
-    }
-
-    bool IsDumpEnabled() const
-    {
-        return DUMP_FRAGMENTATION_STATS_IS(!!recycler->GetRecyclerFlagsTable().DumpFragmentationStats);
-    }
-
-    bool IsEnabled() const
-    {
-        return IsEtwEnabled() || IsDumpEnabled();
-    }
-
-    template <class TBlockType>
-    void PreAggregateBucketStats(TBlockType* list)
-    {
-        HeapBlockList::ForEach(list, [](TBlockType* heapBlock)
-        {
-            // Process blocks not in allocator in pre-pass. They are not put into buckets yet.
-            if (!heapBlock->IsInAllocator())
-            {
-                heapBlock->heapBucket->PreAggregateBucketStats(heapBlock);
-            }
-        });
-    }
-
-    template <class TBlockAttributes, ObjectInfoBits TBucketType>
-    void GetBucketStats(HeapBucketGroup<TBlockAttributes>& group)
-    {
-        auto& bucket = group.template GetBucket<TBucketType>();
-        bucket.AggregateBucketStats();
-
-        const auto& stats = bucket.GetMemStats();
-        total.Aggregate(stats);
-
-        if (stats.totalByteCount > 0)
-        {
-            const uint16 bucketNameCode = BucketNameCode<TBlockAttributes, TBucketType>();
-            const uint16 sizeCat = static_cast<uint16>(bucket.GetSizeCat());
-            GCETW(GC_BUCKET_STATS, (recycler, bucketNameCode, sizeCat, stats.objectByteCount, stats.totalByteCount));
-#ifdef DUMP_FRAGMENTATION_STATS
-            DumpStats<TBlockAttributes, TBucketType>(sizeCat, stats);
-#endif
-        }
-    }
-
-    void GetBucketStats(LargeHeapBucket& bucket)
-    {
-        bucket.AggregateBucketStats();
-
-        const auto& stats = bucket.GetMemStats();
-        total.Aggregate(stats);
-
-        if (stats.totalByteCount > 0)
-        {
-            const uint16 sizeCat = static_cast<uint16>(bucket.GetSizeCat());
-            GCETW(GC_BUCKET_STATS, (recycler, LargeBucketNameCode, sizeCat, stats.objectByteCount, stats.totalByteCount));
-            DUMP_FRAGMENTATION_STATS_ONLY(DumpLarge(stats));
-        }
-    }
-
-    void Report()
-    {
-        GCETW(GC_BUCKET_STATS, (recycler, TotalBucketNameCode, 0, total.objectByteCount, total.totalByteCount));
-        DUMP_FRAGMENTATION_STATS_ONLY(DumpFooter());
-    }
-
-#ifdef DUMP_FRAGMENTATION_STATS
-    void DumpHeader()
-    {
-        if (IsDumpEnabled())
-        {
-            Output::Print(_u("[FRAG %d] Post-Collection State\n"), ::GetTickCount());
-            Output::Print(_u("---------------------------------------------------------------------------------------\n"));
-            Output::Print(_u("                  #Blk   #Objs    #Fin     ObjBytes   FreeBytes  TotalBytes UsedPercent\n"));
-            Output::Print(_u("---------------------------------------------------------------------------------------\n"));
-        }
-    }
-
-    template <class TBlockAttributes, ObjectInfoBits TBucketType>
-    void DumpStats(uint sizeCat, const HeapBucketStats& stats)
-    {
-        if (IsDumpEnabled())
-        {
-            Output::Print(_u("%-7s%s %4d : "),
-                DumpBucketTypeName<TBucketType>::name, DumpBlockTypeName<TBlockAttributes>::name, sizeCat);
-            stats.Dump();
-        }
-    }
-
-    void DumpLarge(const HeapBucketStats& stats)
-    {
-        if (IsDumpEnabled())
-        {
-            Output::Print(_u("Large           : "));
-            stats.Dump();
-        }
-    }
-
-    void DumpFooter()
-    {
-        if (IsDumpEnabled())
-        {
-            Output::Print(_u("---------------------------------------------------------------------------------------\n"));
-            Output::Print(_u("Total           : "));
-            total.Dump();
-        }
-    }
-#endif
-};
-
+#include "BucketStatsReporter.h"
 void
-HeapInfo::ReportMemStats()
+HeapInfo::GetBucketStats(BucketStatsReporter& report)
 {
-    BucketStatsReporter report(recycler);
-    if (!report.IsEnabled())
-    {
-        return;
-    }
-
 #if ENABLE_CONCURRENT_GC
     // Pre aggregate pass on all the heap blocks that are not merged into bucket's lists yet
     report.PreAggregateBucketStats(this->newNormalHeapBlockList);
@@ -1399,7 +1206,6 @@ HeapInfo::ReportMemStats()
 #endif
 
     report.GetBucketStats(largeObjectBucket);
-    report.Report();
 }
 
 #endif  // ENABLE_MEM_STATS
@@ -1430,9 +1236,9 @@ HeapInfo::SweepPartialReusePages(RecyclerSweep& recyclerSweep)
 
     // Only count the byte that we would have freed but we are not reusing it if we are doing a partial GC
     // This will increase the GC pressure and make partial less and less likely.
-    if (recyclerSweep.InPartialCollect())
+    if (recyclerSweep.GetManager()->InPartialCollect())
     {
-        this->unusedPartialCollectFreeBytes += recyclerSweep.GetPartialUnusedFreeByteCount();
+        recyclerSweep.GetRecycler()->autoHeap.unusedPartialCollectFreeBytes += recyclerSweep.GetManager()->GetPartialUnusedFreeByteCount();
     }
 }
 
@@ -1692,7 +1498,7 @@ HeapInfo::DisposeObjects()
     // Calling dispose may enter the GC again and dispose more objects, loop until we don't have any more
     while (recycler->hasDisposableObject);
 
-    recycler->hasPendingTransferDisposedObjects = true;
+    this->hasPendingTransferDisposedObjects = true;
 #if ENABLE_CONCURRENT_GC
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 
     // As during concurrent sweep we start/stop allocations it is safer to prevent transferring disposed objects altogether.
@@ -1718,16 +1524,15 @@ HeapInfo::DisposeObjects()
 void
 HeapInfo::TransferDisposedObjects()
 {
-    Recycler * recycler = this->recycler;
-    Assert(recycler->hasPendingTransferDisposedObjects);
+    Assert(this->hasPendingTransferDisposedObjects);
 #if ENABLE_CONCURRENT_GC
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 
-    Assert(!recycler->IsConcurrentExecutingState() && !recycler->IsConcurrentSweepState());
+    Assert(!this->recycler->IsConcurrentExecutingState() && !this->recycler->IsConcurrentSweepState());
 #else
-    Assert(!recycler->IsConcurrentExecutingState());
+    Assert(!this->recycler->IsConcurrentExecutingState());
 #endif
 #endif
-    recycler->hasPendingTransferDisposedObjects = false;
+    this->hasPendingTransferDisposedObjects = false;
 
     // move the disposed object back to the free lists
     for (uint i = 0; i < HeapConstants::BucketCount; i++)
@@ -1832,11 +1637,11 @@ HeapInfo::GetSmallHeapBlockCount(bool checkCount) const
 
     // TODO: Update recycler sweep
     // Recycler can be null if we have OOM in the ctor
-    if (this->recycler && this->recycler->recyclerSweep != nullptr)
+    if (this->recycler && this->recycler->recyclerSweepManager != nullptr)
     {
         // This function can't be called in the background
-        Assert(!this->recycler->recyclerSweep->IsBackground());
-        currentSmallHeapBlockCount += this->recycler->recyclerSweep->SetPendingMergeNewHeapBlockCount();
+        Assert(!this->recycler->recyclerSweepManager->IsBackground());
+        currentSmallHeapBlockCount += this->recycler->recyclerSweepManager->GetPendingMergeNewHeapBlockCount(this);
     }
 #endif
 #ifdef RECYCLER_SLOW_CHECK_ENABLED
@@ -2178,22 +1983,10 @@ HeapInfo::VerifyMark()
 #endif
 
 #ifdef RECYCLER_FINALIZE_CHECK
-void
-HeapInfo::VerifyFinalize()
+size_t
+HeapInfo::GetFinalizeCount()
 {
-    // We can't check this if we are marking
-    Assert(!this->recycler->IsMarkState());
-
-    size_t currentFinalizableObjectCount = this->liveFinalizableObjectCount - this->newFinalizableObjectCount - this->pendingDisposableObjectCount;
-#if DBG
-    Assert(currentFinalizableObjectCount == this->recycler->collectionStats.finalizeCount);
-#else
-    if (currentFinalizableObjectCount != this->recycler->collectionStats.finalizeCount)
-    {
-        Output::Print(_u("ERROR: Recycler dropped some finalizable objects"));
-        DebugBreak();
-    }
-#endif
+    return this->liveFinalizableObjectCount - this->newFinalizableObjectCount - this->pendingDisposableObjectCount;
 }
 #endif
 

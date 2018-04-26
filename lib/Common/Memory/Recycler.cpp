@@ -135,7 +135,7 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
 #endif
     externalRootMarker(NULL),
     externalRootMarkerContext(NULL),
-    recyclerSweep(nullptr),
+    recyclerSweepManager(nullptr),
     inEndMarkOnLowMemory(false),
     enableScanInteriorPointers(CUSTOM_CONFIG_FLAG(configFlagsTable, RecyclerForceMarkInterior)),
     enableScanImplicitRoots(false),
@@ -174,6 +174,7 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
 #if DBG
     isExternalStackSkippingGC(false),
     isProcessingRescan(false),
+    recyclerIsolatedHeapStressAllocationCount(0),
 #endif
 #if ENABLE_PARTIAL_GC
     inPartialCollectMode(false),
@@ -194,7 +195,6 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     inDisposeWrapper(false),
     hasDisposableObject(false),
     tickCountNextDispose(0),
-    hasPendingTransferDisposedObjects(false),
     transientPinnedObject(nullptr),
     pinnedObjectMap(1024, HeapAllocator::GetNoMemProtectInstance()),
     weakReferenceMap(1024, HeapAllocator::GetNoMemProtectInstance()),
@@ -517,10 +517,10 @@ Recycler::~Recycler()
 
     // We only sometime clean up the state after abort concurrent to not collection
     // Still need to delete heap block that is held by the recyclerSweep
-    if (recyclerSweep != nullptr)
+    if (recyclerSweepManager != nullptr)
     {
-        recyclerSweep->ShutdownCleanup();
-        recyclerSweep = nullptr;
+        recyclerSweepManager->ShutdownCleanup();
+        recyclerSweepManager = nullptr;
     }
 
     if (mainThreadHandle != nullptr)
@@ -829,8 +829,8 @@ Recycler::Initialize(const bool forceInThread, JsUtil::ThreadService *threadServ
     isPageHeapEnabled = autoHeap.IsPageHeapEnabled();
     if (IsPageHeapEnabled())
     {
-        capturePageHeapAllocStack = autoHeap.captureAllocCallStack;
-        capturePageHeapFreeStack = autoHeap.captureFreeCallStack;
+        capturePageHeapAllocStack = autoHeap.GetDefaultHeap()->captureAllocCallStack || autoHeap.GetIsolatedHeap()->captureAllocCallStack;
+        capturePageHeapFreeStack = autoHeap.GetDefaultHeap()->captureFreeCallStack || autoHeap.GetIsolatedHeap()->captureFreeCallStack;
     }
 #endif
 
@@ -1275,6 +1275,7 @@ bool Recycler::ExplicitFreeInternal(void* buffer, size_t size, size_t sizeCat)
     Assert(this->FindHeapObject(buffer, FindHeapObjectFlags_NoFreeBitVerify, info));
     Assert((info.GetAttributes() & ~ObjectInfoBits::LeafBit) == 0);          // Only NoBit or LeafBit
 
+    HeapInfo * heapInfo = this->GetHeapInfo<attributes>();
 #if DBG || defined(RECYCLER_MEMORY_VERIFY) || defined(RECYCLER_PAGE_HEAP)
 
     // Either the mainThreadHandle is null (we're not thread bound)
@@ -1285,6 +1286,18 @@ bool Recycler::ExplicitFreeInternal(void* buffer, size_t size, size_t sizeCat)
     HeapBlock* heapBlock = this->FindHeapBlock(buffer);
 
     Assert(heapBlock != nullptr);
+
+#if DBG
+    if (this->GetRecyclerFlagsTable().RecyclerIsolatedHeapStress != 0)
+    {
+        heapInfo = heapBlock->GetHeapInfo();
+    }
+    else
+    {
+        Assert(heapInfo == heapBlock->GetHeapInfo());
+    }
+#endif
+
 #ifdef RECYCLER_PAGE_HEAP
     if (this->IsPageHeapEnabled())
     {
@@ -1313,11 +1326,11 @@ bool Recycler::ExplicitFreeInternal(void* buffer, size_t size, size_t sizeCat)
 
     if (TBlockAttributes::IsMediumBlock)
     {
-        autoHeap.FreeMediumObject<attributes>(buffer, sizeCat);
+        heapInfo->FreeMediumObject<attributes>(buffer, sizeCat);
     }
     else
     {
-        autoHeap.FreeSmallObject<attributes>(buffer, sizeCat);
+        heapInfo->FreeSmallObject<attributes>(buffer, sizeCat);
     }
 
     if (size > sizeof(FreeObject) || TBlockAttributes::IsMediumBlock)
@@ -1395,7 +1408,7 @@ Recycler::TryLargeAlloc(HeapInfo * heap, size_t size, ObjectInfoBits attributes,
     {
         if (heap->largeObjectBucket.IsPageHeapEnabled(attributes))
         {
-            memBlock = heap->largeObjectBucket.PageHeapAlloc(this, sizeCat, size, (ObjectInfoBits)attributes, autoHeap.pageHeapMode, nothrow);
+            memBlock = heap->largeObjectBucket.PageHeapAlloc(this, sizeCat, size, (ObjectInfoBits)attributes, heap->pageHeapMode, nothrow);
             if (memBlock != nullptr)
             {
 #ifdef RECYCLER_ZERO_MEM_CHECK
@@ -2379,7 +2392,7 @@ Recycler::ResetCollectionState()
 #endif
 #ifdef RECYCLER_FINALIZE_CHECK
     // Reset the collection stats.
-    this->collectionStats.finalizeCount = this->autoHeap.liveFinalizableObjectCount - this->autoHeap.newFinalizableObjectCount - this->autoHeap.pendingDisposableObjectCount;
+    this->collectionStats.finalizeCount = this->autoHeap.GetFinalizeCount();
 #endif
 }
 
@@ -2784,7 +2797,7 @@ Recycler::RootMark(CollectionState markState)
         // to modify scannedRootBytes here, correct?
 #if ENABLE_PARTIAL_GC
         // return large root scanned byte to not get into partial mode if we are low on memory
-        scannedRootBytes = RecyclerSweep::MaxPartialCollectRescanRootBytes + 1;
+        scannedRootBytes = RecyclerSweepManager::MaxPartialCollectRescanRootBytes + 1;
 #endif
     }
 
@@ -3077,12 +3090,12 @@ Recycler::Sweep(bool concurrent)
     RECYCLER_PROFILE_EXEC_BEGIN(this, concurrent? Js::ConcurrentSweepPhase : Js::SweepPhase);
 
 #if ENABLE_PARTIAL_GC
-    recyclerSweepInstance.BeginSweep(this, rescanRootBytes, adjustPartialHeuristics);
+    recyclerSweepManagerInstance.BeginSweep(this, rescanRootBytes, adjustPartialHeuristics);
 #else
-    recyclerSweepInstance.BeginSweep(this);
+    recyclerSweepManagerInstance.BeginSweep(this);
 #endif
 
-    this->SweepHeap(concurrent, *recyclerSweep);
+    this->SweepHeap(concurrent, *recyclerSweepManager);
 #if ENABLE_CONCURRENT_GC
     if (concurrent)
     {
@@ -3117,8 +3130,8 @@ Recycler::Sweep(bool concurrent)
     else
 #endif
     {
-        recyclerSweep->FinishSweep();
-        recyclerSweep->EndSweep();
+        recyclerSweepManager->FinishSweep();
+        recyclerSweepManager->EndSweep();
     }
 
     RECYCLER_PROFILE_EXEC_END(this, concurrent? Js::ConcurrentSweepPhase : Js::SweepPhase);
@@ -3226,7 +3239,7 @@ Recycler::SweepWeakReference()
 }
 
 void
-Recycler::SweepHeap(bool concurrent, RecyclerSweep& recyclerSweep)
+Recycler::SweepHeap(bool concurrent, RecyclerSweepManager& recyclerSweepManager)
 {
     Assert(!this->hasPendingDeleteGuestArena);
     Assert(!this->isHeapEnumInProgress);
@@ -3273,7 +3286,7 @@ Recycler::SweepHeap(bool concurrent, RecyclerSweep& recyclerSweep)
     recyclerWithBarrierPageAllocator.SuspendIdleDecommit();
 #endif
     recyclerLargeBlockPageAllocator.SuspendIdleDecommit();
-    autoHeap.Sweep(recyclerSweep, concurrent);
+    autoHeap.FinalizeAndSweep(recyclerSweepManager, concurrent);
 #ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
     recyclerWithBarrierPageAllocator.ResumeIdleDecommit();
 #endif
@@ -3321,12 +3334,12 @@ Recycler::SweepHeap(bool concurrent, RecyclerSweep& recyclerSweep)
 
 #if ENABLE_PARTIAL_GC && ENABLE_CONCURRENT_GC
 void
-Recycler::BackgroundFinishPartialCollect(RecyclerSweep * recyclerSweep)
+Recycler::BackgroundFinishPartialCollect(RecyclerSweepManager * recyclerSweepManager)
 {
     Assert(this->inPartialCollectMode);
-    Assert(recyclerSweep != nullptr && recyclerSweep->IsBackground());
+    Assert(recyclerSweepManager != nullptr && recyclerSweepManager->IsBackground());
     this->hasBackgroundFinishPartial = true;
-    this->autoHeap.FinishPartialCollect(recyclerSweep);
+    this->autoHeap.FinishPartialCollect(recyclerSweepManager);
     this->inPartialCollectMode = false;
 }
 #endif
@@ -3699,7 +3712,7 @@ Recycler::CollectWithHeuristic()
         {
             Assert(enablePartialCollect);
             Assert(allocSize);
-            Assert(this->uncollectedNewPageCountPartialCollect >= RecyclerSweep::MinPartialUncollectedNewPageCount
+            Assert(this->uncollectedNewPageCountPartialCollect >= RecyclerSweepManager::MinPartialUncollectedNewPageCount
                 && this->uncollectedNewPageCountPartialCollect <= RecyclerHeuristic::Instance.MaxPartialUncollectedNewPageCount);
 
             // PARTIAL-GC-REVIEW: For now, we have only alloc size heuristic
@@ -3859,7 +3872,7 @@ Recycler::DoCollect(CollectionFlags flags)
     this->Verify(Js::RecyclerPhase);
 #endif
 #ifdef RECYCLER_FINALIZE_CHECK
-    autoHeap.VerifyFinalize();
+    this->VerifyFinalize();
 #endif
 #if ENABLE_PARTIAL_GC
     BOOL partial = flags & CollectMode_Partial;
@@ -4243,16 +4256,16 @@ Recycler::ClearPartialCollect()
 }
 
 void
-Recycler::FinishPartialCollect(RecyclerSweep * recyclerSweep)
+Recycler::FinishPartialCollect(RecyclerSweepManager * recyclerSweepManager)
 {
-    Assert(recyclerSweep == nullptr || !recyclerSweep->IsBackground());
+    Assert(recyclerSweepManager == nullptr || !recyclerSweepManager->IsBackground());
     RECYCLER_PROFILE_EXEC_BEGIN(this, Js::FinishPartialPhase);
     Assert(inPartialCollectMode);
 #if ENABLE_CONCURRENT_GC
     Assert(!this->DoQueueTrackedObject());
 #endif
 
-    autoHeap.FinishPartialCollect(recyclerSweep);
+    autoHeap.FinishPartialCollect(recyclerSweepManager);
     this->inPartialCollectMode = false;
     ClearPartialCollect();
     RECYCLER_PROFILE_EXEC_END(this, Js::FinishPartialPhase);
@@ -4880,9 +4893,9 @@ bool Recycler::AbortConcurrent(bool restoreState)
                 this->FinishSweepPrep();
                 this->FinishConcurrentSweepPass1();
                 this->collectionState = CollectionStateConcurrentSweepPass2;
-                this->recyclerSweep->FinishSweep();
+                this->recyclerSweepManager->FinishSweep();
                 this->FinishConcurrentSweep();
-                this->recyclerSweep->EndBackground();
+                this->recyclerSweepManager->EndBackground();
 
                 uint sweptBytes = 0;
 #ifdef RECYCLER_STATS
@@ -5351,7 +5364,7 @@ Recycler::StartConcurrentSweepCollect()
     // We don't have rescan data if we disabled concurrent mark, assume the worst
     // (which means it is harder to get into partial collect mode)
 #if ENABLE_PARTIAL_GC
-    bool needConcurrentSweep = this->Sweep(RecyclerSweep::MaxPartialCollectRescanRootBytes, true, true);
+    bool needConcurrentSweep = this->Sweep(RecyclerSweepManager::MaxPartialCollectRescanRootBytes, true, true);
 #else
     bool needConcurrentSweep = this->Sweep(true);
 #endif
@@ -5625,15 +5638,15 @@ Recycler::BackgroundFinishMark()
 }
 
 void
-Recycler::SweepPendingObjects(RecyclerSweep& recyclerSweep)
+Recycler::SweepPendingObjects(RecyclerSweepManager& recyclerSweepManager)
 {
-    autoHeap.SweepPendingObjects(recyclerSweep);
+    autoHeap.SweepPendingObjects(recyclerSweepManager);
 }
 
 void
-Recycler::ConcurrentTransferSweptObjects(RecyclerSweep& recyclerSweep)
+Recycler::ConcurrentTransferSweptObjects(RecyclerSweepManager& recyclerSweepManager)
 {
-    Assert(!recyclerSweep.IsBackground());
+    Assert(!recyclerSweepManager.IsBackground());
     Assert((this->collectionState & Collection_TransferSwept) == Collection_TransferSwept);
 #if ENABLE_PARTIAL_GC
     if (this->hasBackgroundFinishPartial)
@@ -5642,16 +5655,16 @@ Recycler::ConcurrentTransferSweptObjects(RecyclerSweep& recyclerSweep)
         this->ClearPartialCollect();
     }
 #endif
-    autoHeap.ConcurrentTransferSweptObjects(recyclerSweep);
+    autoHeap.ConcurrentTransferSweptObjects(recyclerSweepManager);
 }
 
 #if ENABLE_PARTIAL_GC
 void
-Recycler::ConcurrentPartialTransferSweptObjects(RecyclerSweep& recyclerSweep)
+Recycler::ConcurrentPartialTransferSweptObjects(RecyclerSweepManager& recyclerSweepManager)
 {
-    Assert(!recyclerSweep.IsBackground());
+    Assert(!recyclerSweepManager.IsBackground());
     Assert(!this->hasBackgroundFinishPartial);
-    autoHeap.ConcurrentPartialTransferSweptObjects(recyclerSweep);
+    autoHeap.ConcurrentPartialTransferSweptObjects(recyclerSweepManager);
 }
 #endif
 
@@ -5875,9 +5888,9 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
                 Output::Print(_u("[GC #%d] Finishing Sweep Pass2 in-thread. \n"), this->collectionCount);
             }
 #endif
-            this->recyclerSweep->FinishSweep();
+            this->recyclerSweepManager->FinishSweep();
             this->FinishConcurrentSweep();
-            this->recyclerSweep->EndBackground();
+            this->recyclerSweepManager->EndBackground();
 
             uint sweptBytes = 0;
 #ifdef RECYCLER_STATS
@@ -5950,19 +5963,19 @@ Recycler::FinishTransferSwept(CollectionFlags flags)
     GCETW(GC_FLUSHZEROPAGE_STOP, (this));
     GCETW(GC_TRANSFERSWEPTOBJECTS_START, (this));
 
-    Assert(this->recyclerSweep != nullptr);
-    Assert(!this->recyclerSweep->IsBackground());
+    Assert(this->recyclerSweepManager != nullptr);
+    Assert(!this->recyclerSweepManager->IsBackground());
 #if ENABLE_PARTIAL_GC
     if (this->inPartialCollectMode)
     {
-        ConcurrentPartialTransferSweptObjects(*this->recyclerSweep);
+        ConcurrentPartialTransferSweptObjects(*this->recyclerSweepManager);
     }
     else
 #endif
     {
-        ConcurrentTransferSweptObjects(*this->recyclerSweep);
+        ConcurrentTransferSweptObjects(*this->recyclerSweepManager);
     }
-    recyclerSweep->EndSweep();
+    recyclerSweepManager->EndSweep();
 
     GCETW(GC_TRANSFERSWEPTOBJECTS_STOP, (this));
 
@@ -6162,8 +6175,8 @@ Recycler::DoBackgroundWork(bool forceForeground)
             GCETW(GC_BACKGROUNDZEROPAGE_STOP, (this));
             GCETW(GC_BACKGROUNDSWEEP_START, (this));
 
-            Assert(this->recyclerSweep != nullptr);
-            this->recyclerSweep->BackgroundSweep();
+        Assert(this->recyclerSweepManager != nullptr);
+        this->recyclerSweepManager->BackgroundSweep();
 
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
             if (this->collectionState == CollectionStateConcurrentSweepPass1)
@@ -6208,9 +6221,9 @@ Recycler::DoBackgroundWork(bool forceForeground)
                 }
 #endif
                 this->FinishConcurrentSweepPass1();
-                this->recyclerSweep->FinishSweep();
+                this->recyclerSweepManager->FinishSweep();
                 this->FinishConcurrentSweep();
-                this->recyclerSweep->EndBackground();
+                this->recyclerSweepManager->EndBackground();
 
                 this->collectionState = CollectionStateConcurrentSweepPass2Wait;
             }
@@ -6414,7 +6427,7 @@ Recycler::DoTwoPassConcurrentSweepPreCheck()
         //         SLIST during concurrent sweep.
         //      2. We are not in a Partial GC.
         //      3. At-least one heap bucket exceeds the RecyclerHeuristic::AllocDuringConcurrentSweepHeapBlockThreshold.
-        this->allowAllocationsDuringConcurrentSweepForCollection = this->isInScript && !this->recyclerSweep->InPartialCollect();
+        this->allowAllocationsDuringConcurrentSweepForCollection = this->isInScript && !this->recyclerSweepManager->InPartialCollect();
 
         // Do the actual 2-pass check only if the first 2 checks pass.
         if (this->allowAllocationsDuringConcurrentSweepForCollection)
@@ -6437,7 +6450,7 @@ Recycler::FinishConcurrentSweepPass1()
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
     {
         AssertMsg(this->allowAllocationsDuringConcurrentSweepForCollection, "Two pass concurrent sweep must be turned on.");
-        this->autoHeap.FinishConcurrentSweepPass1(this->recyclerSweepInstance);
+        this->autoHeap.FinishConcurrentSweepPass1(this->recyclerSweepManagerInstance);
     }
     GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep_FinishPass1));
     GCETW_INTERNAL(GC_STOP2, (this, ETWEvent_ConcurrentSweep_FinishPass1, this->collectionStartReason, this->collectionStartFlags));
@@ -6451,7 +6464,7 @@ Recycler::FinishSweepPrep()
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
     {
         AssertMsg(this->allowAllocationsDuringConcurrentSweepForCollection, "Two pass concurrent sweep must be turned on.");
-        this->autoHeap.FinishSweepPrep(this->recyclerSweepInstance);
+        this->autoHeap.FinishSweepPrep(this->recyclerSweepManagerInstance);
     }
     GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep_FinishSweepPrep));
     GCETW_INTERNAL(GC_STOP2, (this, ETWEvent_ConcurrentSweep_FinishSweepPrep, this->collectionStartReason, this->collectionStartFlags));
@@ -6531,7 +6544,7 @@ Recycler::FinishCollection()
     this->Verify(Js::RecyclerPhase);
 #endif
 #ifdef RECYCLER_FINALIZE_CHECK
-    autoHeap.VerifyFinalize();
+    this->VerifyFinalize();
 #endif
 
 #ifdef ENABLE_JS_ETW
@@ -6543,7 +6556,7 @@ Recycler::FinishCollection()
 #ifdef RECYCLER_FINALIZE_CHECK
     if (!this->IsMarkState())
     {
-        autoHeap.VerifyFinalize();
+        this->VerifyFinalize();
     }
 #endif
 
@@ -6565,7 +6578,7 @@ Recycler::FinishCollection()
 #endif
 
 #if ENABLE_MEM_STATS
-    autoHeap.ReportMemStats();
+    autoHeap.ReportMemStats(this);
 #endif
 
 #ifdef ENABLE_JS_ETW
@@ -9150,6 +9163,25 @@ Recycler::WBCheckIsRecyclerAddress(char* addr)
 }
 #endif
 
+#ifdef RECYCLER_FINALIZE_CHECK
+void
+Recycler::VerifyFinalize()
+{
+    // We can't check this if we are marking
+    Assert(!this->IsMarkState());
+
+    size_t currentFinalizableObjectCount = this->autoHeap.GetFinalizeCount();
+#if DBG
+    Assert(currentFinalizableObjectCount == this->collectionStats.finalizeCount);
+#else
+    if (currentFinalizableObjectCount != >this->collectionStats.finalizeCount)
+    {
+        Output::Print(_u("ERROR: Recycler dropped some finalizable objects"));
+        DebugBreak();
+    }
+#endif
+}
+#endif
 size_t
 RecyclerHeapObjectInfo::GetSize() const
 {

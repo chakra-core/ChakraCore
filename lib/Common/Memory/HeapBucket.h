@@ -9,7 +9,6 @@ namespace Memory
 // a size bucket in the heap for small object
 
 class HeapInfo;
-class RecyclerSweep;
 #if DBG
 template <class TBlockAttributes>
 class GenericRecyclerVerifyListConsistencyData
@@ -65,6 +64,7 @@ class HeapBucket
 public:
     HeapBucket();
 
+    HeapInfo * GetHeapInfo() const;
     uint GetSizeCat() const;
     uint GetBucketIndex() const;
     uint GetMediumBucketIndex() const;

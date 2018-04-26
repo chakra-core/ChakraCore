@@ -13,18 +13,14 @@ class RecyclerSweep
 #endif
 {
 public:
-#if ENABLE_PARTIAL_GC
-    void BeginSweep(Recycler * recycler, size_t rescanRootBytes, bool adjustPartialHeuristics);
-#else
-    void BeginSweep(Recycler * recycler);
-#endif
-    void FinishSweep();
-    void EndSweep();
+
+    void BeginSweep(Recycler * recycler, RecyclerSweepManager * recyclerSweepManager, HeapInfo * heapInfo);
     void ShutdownCleanup();
 
     Recycler * GetRecycler() const;
+    RecyclerSweepManager * GetManager() const;
+
     bool IsBackground() const;
-    bool HasSetupBackgroundSweep() const;
     void FlushPendingTransferDisposedObjects();
 
 #if ENABLE_CONCURRENT_GC
@@ -36,9 +32,6 @@ public:
     template <typename TBlockType> void QueueEmptyHeapBlock(HeapBucketT<TBlockType> const *heapBucket, TBlockType * heapBlock);
     template <typename TBlockType> void TransferPendingEmptyHeapBlocks(HeapBucketT<TBlockType> * heapBucket);
 
-    void BackgroundSweep();
-    void BeginBackground(bool forceForeground);
-    void EndBackground();
 
     template <typename TBlockType> void SetPendingMergeNewHeapBlockList(TBlockType * heapBlockList);
     template <typename TBlockType> void MergePendingNewHeapBlockList();
@@ -49,32 +42,14 @@ public:
     template <typename TBlockType> void SaveNextAllocableBlockHead(HeapBucketT<TBlockType> const * heapBucket);
 #endif
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
-    template < typename TBlockType> size_t GetHeapBlockCount(HeapBucketT<TBlockType> const * heapBucket);
-    size_t SetPendingMergeNewHeapBlockCount();
+    template <typename TBlockType> size_t GetHeapBlockCount(HeapBucketT<TBlockType> const * heapBucket);
+    size_t GetPendingMergeNewHeapBlockCount(HeapInfo const * heapInfo);
 #endif
 #endif
 
-    template <typename TBlockAttributes>
-    void AddUnaccountedNewObjectAllocBytes(SmallHeapBlockT<TBlockAttributes> * smallHeapBlock);
 #if ENABLE_PARTIAL_GC
     bool InPartialCollectMode() const;
     bool InPartialCollect() const;
-    void StartPartialCollectMode();
-    bool DoPartialCollectMode();
-    bool DoAdjustPartialHeuristics() const;
-    bool AdjustPartialHeuristics();
-    void SubtractSweepNewObjectAllocBytes(size_t newObjectExpectSweepByteCount);
-    size_t GetNewObjectAllocBytes() const;
-    size_t GetNewObjectFreeBytes() const;
-    size_t GetPartialUnusedFreeByteCount() const;
-    size_t GetPartialCollectSmallHeapBlockReuseMinFreeBytes() const;
-
-    template <typename TBlockAttributes>
-    void NotifyAllocableObjects(SmallHeapBlockT<TBlockAttributes> * smallHeapBlock);
-    void AddUnusedFreeByteCount(uint expectedFreeByteCount);
-
-    static const uint MinPartialUncollectedNewPageCount; // 4MB pages
-    static const uint MaxPartialCollectRescanRootBytes; // 5MB
 #endif
 
 private:
@@ -142,9 +117,10 @@ private:
 #endif
 
 private:
-    bool IsMemProtectMode();
-
     Recycler * recycler;
+    RecyclerSweepManager * recyclerSweepManager;
+    HeapInfo * heapInfo;
+
     Data<SmallLeafHeapBlock> leafData;
     Data<SmallNormalHeapBlock> normalData;
     Data<SmallFinalizableHeapBlock> finalizableData;
@@ -166,31 +142,9 @@ private:
     Data<MediumFinalizableWithBarrierHeapBlock> mediumFinalizableWithBarrierData;
 #endif
 
-    bool background;
-    bool forceForeground;
     bool hasPendingSweepSmallHeapBlocks;
     bool hasPendingEmptyBlocks;
-    bool inPartialCollect;
-#if ENABLE_PARTIAL_GC
-    bool adjustPartialHeuristics;
-    size_t lastPartialUncollectedAllocBytes;
-    size_t nextPartialUncollectedAllocBytes;
 
-    // Sweep data for partial activation heuristic
-    size_t rescanRootBytes;
-    size_t reuseHeapBlockCount;
-    size_t reuseByteCount;
-
-    // Partial reuse Heuristic
-    size_t partialCollectSmallHeapBlockReuseMinFreeBytes;
-
-    // Data to update unusedPartialCollectFreeBytes
-    size_t partialUnusedFreeByteCount;
-
-#if DBG
-    bool partial;
-#endif
-#endif
 };
 
 #if ENABLE_CONCURRENT_GC
@@ -295,10 +249,14 @@ RecyclerSweep::SaveNextAllocableBlockHead(HeapBucketT<TBlockType> const * heapBu
 }
 #endif
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
-template < typename TBlockType>
+template <typename TBlockType>
 size_t
 RecyclerSweep::GetHeapBlockCount(HeapBucketT<TBlockType> const * heapBucket)
 {
+    if (heapBucket->heapInfo != this->heapInfo)
+    {
+        return 0;
+    }
     auto& bucketData = this->GetBucketData(heapBucket);
     return HeapBlockList::Count(bucketData.pendingSweepList)
         + HeapBlockList::Count(bucketData.pendingEmptyBlockList);

@@ -404,6 +404,12 @@ LargeHeapBlock::IsValidObject(void* objectAddress)
 }
 
 #if DBG
+HeapInfo *
+LargeHeapBlock::GetHeapInfo() const
+{
+    return this->heapInfo;
+}
+
 BOOL
 LargeHeapBlock::IsFreeObject(void * objectAddress)
 {
@@ -1723,7 +1729,7 @@ LargeHeapBlock::FinalizeObject(Recycler* recycler, LargeObjectHeader* header)
     this->HeaderList()[header->objectIndex] = nullptr;
 
 #ifdef RECYCLER_FINALIZE_CHECK
-    recycler->autoHeap.pendingDisposableObjectCount++;
+    this->heapInfo->pendingDisposableObjectCount++;
 #endif
 }
 

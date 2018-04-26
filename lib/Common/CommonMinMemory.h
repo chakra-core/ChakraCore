@@ -33,11 +33,13 @@ class FinalizableObject;
 #include "Memory/SmallFinalizableHeapBucket.h"
 #include "Memory/LargeHeapBucket.h"
 #include "Memory/HeapInfo.h"
+#include "Memory/HeapInfoManager.h"
 
 #include "Memory/HeapBlockMap.h"
 #include "Memory/RecyclerObjectDumper.h"
 #include "Memory/RecyclerWeakReference.h"
 #include "Memory/RecyclerSweep.h"
+#include "Memory/RecyclerSweepManager.h"
 #include "Memory/RecyclerHeuristic.h"
 #include "Memory/MarkContext.h"
 #include "Memory/MarkContextWrapper.h"

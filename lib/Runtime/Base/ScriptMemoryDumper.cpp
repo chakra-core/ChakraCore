@@ -34,7 +34,8 @@ void ScriptMemoryDumper::Init()
 Js::Var ScriptMemoryDumper::Dump()
 {
     Recycler* recycler = scriptContext->GetRecycler();
-    HeapInfo* heapInfo = recycler->GetAutoHeap();
+    // TODO: Need to go thru isolatedHeap as well
+    HeapInfo* heapInfo = recycler->GetDefaultHeapInfo();
 
     for (uint32 i = 0 ; i < HeapConstants::BucketCount; i++)
     {

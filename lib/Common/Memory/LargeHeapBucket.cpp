@@ -666,7 +666,7 @@ LargeHeapBucket::SweepLargeHeapBlockList(RecyclerSweep& recyclerSweep, LargeHeap
             break;
         case SweepStatePendingDispose:
             Assert(!recyclerSweep.IsBackground());
-            Assert(!recycler->hasPendingTransferDisposedObjects);
+            Assert(!this->heapInfo->hasPendingTransferDisposedObjects);
             heapBlock->SetNextBlock(this->pendingDisposeLargeBlockList);
             this->pendingDisposeLargeBlockList = heapBlock;
             heapBlock->SetIsInPendingDisposeList(true);

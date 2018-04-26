@@ -413,7 +413,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
             heapBlock->SetNextBlock(unusedBlockList);
             unusedBlockList = heapBlock;
 
-            recyclerSweep.AddUnusedFreeByteCount(expectFreeByteCount);
+            recyclerSweep.GetManager()->AddUnusedFreeByteCount(expectFreeByteCount);
             RECYCLER_STATS_ADD(recyclerSweep.GetRecycler(), smallNonLeafHeapBlockPartialUnusedBytes[heapBlock->GetHeapBlockType()], expectFreeByteCount);
             RECYCLER_STATS_INC(recyclerSweep.GetRecycler(), smallNonLeafHeapBlockPartialUnusedCount[heapBlock->GetHeapBlockType()]);
         }

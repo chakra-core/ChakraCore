@@ -4,6 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 namespace Memory
 {
+#if ENABLE_MEM_STATS
+class BucketStatsReporter;
+#endif
 class HeapInfo
 {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -40,6 +43,30 @@ public:
         return objectSize - (objectSize % sizeof(void*));
     }
 
+    template<ObjectInfoBits attributes>
+    bool IsPageHeapEnabled(size_t size)
+    {
+        if (IsPageHeapEnabled())
+        {
+            size_t sizeCat = HeapInfo::GetAlignedSizeNoCheck(size);
+            if (HeapInfo::IsSmallObject(size))
+            {
+                auto& bucket = this->GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat);
+                return bucket.IsPageHeapEnabled(attributes);
+            }
+            else if (HeapInfo::IsMediumObject(size))
+            {
+                auto& bucket = this->GetMediumBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat);
+                return bucket.IsPageHeapEnabled(attributes);
+            }
+            else
+            {
+                return this->largeObjectBucket.IsPageHeapEnabled(attributes);
+            }
+        }
+        return false;
+    }
+
     template <typename TBlockAttributes>
     bool IsPageHeapEnabledForBlock(const size_t objectSize);
 #else
@@ -47,7 +74,7 @@ public:
 #endif
 
 #if ENABLE_MEM_STATS
-    void ReportMemStats();
+    void GetBucketStats(BucketStatsReporter& report);
 #endif
 
     template <ObjectInfoBits attributes, bool nothrow>
@@ -73,6 +100,7 @@ public:
 #if ENABLE_PARTIAL_GC || ENABLE_CONCURRENT_GC
     void SweepPendingObjects(RecyclerSweep& recyclerSweep);
 #endif
+    void Finalize(RecyclerSweep& recyclerSweep);
     void Sweep(RecyclerSweep& recyclerSweep, bool concurrent);
 
     template <ObjectInfoBits attributes>
@@ -175,9 +203,9 @@ public:
     static void * GetAlignedAddress(void * address) { return (void*)((uintptr_t)address & ~(uintptr_t)HeapInfo::ObjectAlignmentMask); }
 private:
     template <ObjectInfoBits attributes>
-    typename SmallHeapBlockType<attributes, SmallAllocationBlockAttributes>::BucketType& GetBucket(size_t sizeCat);
-
-    void SweepBuckets(RecyclerSweep& recyclerSweep, bool concurrent);
+    typename SmallHeapBlockType<attributes, SmallAllocationBlockAttributes>::BucketType& GetBucket(size_t sizeCat);    
+    
+    void SweepNonFinalizableBuckets(RecyclerSweep& recyclerSweep, bool concurrent);
 
 #ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
 #if SMALLBLOCK_MEDIUM_ALLOC
@@ -289,7 +317,6 @@ private:
 #endif
 
     void SweepSmallNonFinalizable(RecyclerSweep& recyclerSweep);
-    void SweepLargeNonFinalizable(RecyclerSweep& recyclerSweep);
 
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
     size_t GetSmallHeapBlockCount(bool checkCount = false) const;
@@ -404,15 +431,6 @@ public:
     static typename SmallHeapBlockT<TBlockAttributes>::BlockInfo const * GetBlockInfo(uint objectSize);
 
 private:
-    size_t uncollectedAllocBytes;
-    size_t lastUncollectedAllocBytes;
-    size_t uncollectedExternalBytes;
-    uint pendingZeroPageCount;
-#if ENABLE_PARTIAL_GC
-    size_t uncollectedNewPageCount;
-    size_t unusedPartialCollectFreeBytes;
-#endif
-
     Recycler * recycler;
 
 #if ENABLE_CONCURRENT_GC
@@ -463,6 +481,7 @@ private:
 #endif
 #endif
     LargeHeapBucket largeObjectBucket;
+    bool hasPendingTransferDisposedObjects;
 
     static const size_t ObjectAlignmentMask = HeapConstants::ObjectGranularity - 1;         // 0xF
 #if defined(RECYCLER_SLOW_CHECK_ENABLED)
@@ -472,7 +491,7 @@ private:
     size_t liveFinalizableObjectCount;
     size_t newFinalizableObjectCount;
     size_t pendingDisposableObjectCount;
-    void VerifyFinalize();
+    size_t GetFinalizeCount();
 #endif
 
     friend class Recycler;
@@ -501,6 +520,8 @@ private:
 #endif
     friend class LargeHeapBlock;
     friend class RecyclerSweep;
+
+    friend class HeapInfoManager;
 };
 
 template <ObjectInfoBits attributes>

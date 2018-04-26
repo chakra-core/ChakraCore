@@ -107,7 +107,7 @@ SmallHeapBlockAllocator<TBlockType>::Clear()
         if (remainingFreeObjectList == nullptr)
         {
             uint lastFreeCount = heapBlock->GetAndClearLastFreeCount();
-            heapBlock->heapBucket->heapInfo->uncollectedAllocBytes += lastFreeCount * heapBlock->GetObjectSize();
+            heapBlock->heapBucket->heapInfo->recycler->autoHeap.uncollectedAllocBytes += lastFreeCount * heapBlock->GetObjectSize();
             Assert(heapBlock->lastUncollectedAllocBytes == 0);
             DebugOnly(heapBlock->lastUncollectedAllocBytes = lastFreeCount * heapBlock->GetObjectSize());
         }
