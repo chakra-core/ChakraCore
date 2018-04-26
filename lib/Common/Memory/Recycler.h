@@ -681,8 +681,10 @@ class Recycler
     friend class ActiveScriptProfilerHeapEnum;
 #endif
     friend class ScriptEngineBase;  // This is for disabling GC for certain Host operations.
+#if !FLOATVAR
     friend class ::CodeGenNumberThreadAllocator;
     friend struct ::XProcNumberPageSegmentManager;
+#endif
 public:
     static const uint ConcurrentThreadStackSize = 300000;
     static const bool FakeZeroLengthArray = true;

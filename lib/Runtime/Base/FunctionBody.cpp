@@ -8968,8 +8968,9 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
             DeleteNativeCodeData(this->inProcJITNaticeCodedata);
             this->inProcJITNaticeCodedata = nullptr;
+#if !FLOATVAR
             this->numberChunks = nullptr;
-
+#endif
             if (this->nativeDataBuffer)
             {
                 NativeDataBuffer* buffer = (NativeDataBuffer*)(this->nativeDataBuffer - offsetof(NativeDataBuffer, data));

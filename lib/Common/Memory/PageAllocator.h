@@ -10,8 +10,10 @@
 struct PageMemoryData;
 #endif
 
+#if !FLOATVAR
 class CodeGenNumberThreadAllocator;
 struct XProcNumberPageSegmentManager;
+#endif
 
 namespace Memory
 {
@@ -488,8 +490,10 @@ template<> inline PageAllocatorBaseCommon::AllocatorType PageAllocatorBaseCommon
 template<typename TVirtualAlloc, typename TSegment, typename TPageSegment>
 class PageAllocatorBase: public PageAllocatorBaseCommon
 {
+#if !FLOATVAR
     friend class ::CodeGenNumberThreadAllocator;
     friend struct ::XProcNumberPageSegmentManager;
+#endif
     // Allowing recycler to report external memory allocation.
     friend class Recycler;
 public:

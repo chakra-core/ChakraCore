@@ -1029,6 +1029,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         workItem->GetEntryPoint()->SetHasJittedStackClosure();
     }
 
+#if !FLOATVAR
     if (jitWriteData.numberPageSegments)
     {
         if (jitWriteData.numberPageSegments->pageAddress == 0)
@@ -1042,6 +1043,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             epInfo->SetNumberPageSegment(jitWriteData.numberPageSegments);
         }
     }
+#endif
 
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
