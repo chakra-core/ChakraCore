@@ -120,6 +120,20 @@ var tests = [
         }
     },
     {
+        name: "target has object array",
+        body: function ()
+        {
+            let orig = {};
+            orig.a = 1;
+            orig[0] = 2;
+            let newObj = {};
+            newObj[0] = 3;
+            Object.assign(newObj, orig);
+            assert.areEqual(newObj.a, orig.a);
+            assert.areEqual(newObj[0], orig[0]);
+        }
+    },
+    {
         name: "has object array with non-enumerable prop",
         body: function ()
         {

@@ -6,5 +6,6 @@ ObjectCopy: Can't copy: Prototypes don't match
 ObjectCopy: Can't copy: from obj has non-enumerable properties
 ObjectCopy succeeded
 ObjectCopy succeeded
+ObjectCopy: Can't copy: to obj has object array
 ObjectCopy: Can't copy: Don't have PathTypeHandler
 pass
