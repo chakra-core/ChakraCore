@@ -502,6 +502,34 @@ const tests = [
             assert.throws(() => dtf.format(8.64e15 + 1), RangeError, "Formatting a time after the end of ES time");
         }
     },
+    {
+        name: "https://github.com/Microsoft/ChakraCore/issues/5048",
+        body() {
+            if (isWinGlob) {
+                // Intl-WinGlob produces different results than Intl-ICU on these tests,
+                // and capturing Intl-WinGlob's behavior is not valuable as it will soon be going away
+                return;
+            }
+
+            const defaultOptions = new Intl.DateTimeFormat("ja-JP").resolvedOptions();
+            assert.areEqual("ja-JP", defaultOptions.locale, "This test requires the ja-JP locale to be present");
+
+            const d = new Date(2018, 3, 26, 12, 0, 0);
+            function test(expected, options) {
+                const msg = `Testing with options ${JSON.stringify(options)}`;
+                assert.areEqual(expected, d.toLocaleString("ja-JP", options), `toLocaleString - ${msg}`);
+                const dtf = new Intl.DateTimeFormat("ja-JP", options);
+                assert.areEqual(expected, dtf.format(d), `format - ${msg}`);
+                assert.areEqual(expected, dtf.formatToParts(d).map((p) => p.value).join(""), `formatToParts - ${msg}`);
+            }
+
+            assert.areEqual("2018/4/26", d.toLocaleDateString("ja-JP"), "Default toLocaleDateString options in ICU use slashes instead of Japanese characters");
+            test("2018年4月26日", { day: 'numeric', month: 'short', year: 'numeric' });
+            test("2018年4月", { month: 'short', year: 'numeric' });
+            test("4月26日", { day: 'numeric', month: 'short' });
+            test("4月", { month: 'short' });
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: !WScript.Arguments.includes("summary") });
