@@ -1074,32 +1074,15 @@ private:
     template <ObjectInfoBits attributes>
     HeapInfo * GetHeapInfoForAllocation()
     {
-#if DBG
-        if (this->GetRecyclerFlagsTable().IsEnabled(Js::RecyclerIsolatedHeapStressFlag))
-        {
-            recyclerIsolatedHeapStressAllocationCount++;
-            if ((recyclerIsolatedHeapStressAllocationCount % this->GetRecyclerFlagsTable().RecyclerIsolatedHeapStress) != 0)
-            {
-                return this->autoHeap.GetIsolatedHeap();
-            }
-        }
-#endif
         return this->GetHeapInfo<attributes>();
     }
 
     template <ObjectInfoBits attributes>
     HeapInfo * GetHeapInfo()
     {
-        if (attributes & IsolatedBit)
-        {
-            return this->autoHeap.GetIsolatedHeap();
-        }
         return this->autoHeap.GetDefaultHeap();
     }
 
-#if DBG
-    uint recyclerIsolatedHeapStressAllocationCount;
-#endif
 #ifdef PROFILE_MEM
     RecyclerMemoryData * memoryData;
 #endif
@@ -1167,7 +1150,6 @@ public:
 
     void Prime();
     void* GetOwnerContext() { return (void*) this->collectionWrapper; }
-    //PageAllocator * GetPageAllocator() { return threadPageAllocator; }
     bool NeedOOMRescan() const;
     void SetNeedOOMRescan();
     void ClearNeedOOMRescan();
@@ -1377,21 +1359,21 @@ public:
     char* GetAddressOfAllocator(size_t sizeCat)
     {
         Assert(HeapInfo::IsAlignedSmallObjectSize(sizeCat));
-        return (char*)this->GetHeapInfo<attributes>()->GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat).GetAllocator();
+        return (char*)this->GetHeapInfo<attributes>()->template GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat).GetAllocator();
     }
 
     template <ObjectInfoBits attributes>
     uint32 GetEndAddressOffset(size_t sizeCat)
     {
         Assert(HeapInfo::IsAlignedSmallObjectSize(sizeCat));
-        return this->GetHeapInfo<attributes>()->GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat).GetAllocator()->GetEndAddressOffset();
+        return this->GetHeapInfo<attributes>()->template GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat).GetAllocator()->GetEndAddressOffset();
     }
 
     template <ObjectInfoBits attributes>
     uint32 GetFreeObjectListOffset(size_t sizeCat)
     {
         Assert(HeapInfo::IsAlignedSmallObjectSize(sizeCat));
-        return this->GetHeapInfo<attributes>()->GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat).GetAllocator()->GetFreeObjectListOffset();
+        return this->GetHeapInfo<attributes>()->template GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat).GetAllocator()->GetFreeObjectListOffset();
     }
 
     void GetNormalHeapBlockAllocatorInfoForNativeAllocation(size_t sizeCat, void*& allocatorAddress, uint32& endAddressOffset, uint32& freeListOffset, bool allowBumpAllocation, bool isOOPJIT);
@@ -2271,7 +2253,7 @@ public:
 #endif
 
 #if DBG
-    virtual HeapInfo * GetHeapInfo() const override { Assert(false); return false; }
+    virtual HeapInfo * GetHeapInfo() const override { Assert(false); return nullptr; }
     virtual BOOL IsFreeObject(void* objectAddress) override { Assert(false); return false; }
 #endif
     virtual BOOL IsValidObject(void* objectAddress) override { Assert(false); return false; }

@@ -203,10 +203,8 @@ public:
     static void * GetAlignedAddress(void * address) { return (void*)((uintptr_t)address & ~(uintptr_t)HeapInfo::ObjectAlignmentMask); }
 private:
     template <ObjectInfoBits attributes>
-    typename SmallHeapBlockType<attributes, SmallAllocationBlockAttributes>::BucketType& GetBucket(size_t sizeCat);    
+    typename SmallHeapBlockType<attributes, SmallAllocationBlockAttributes>::BucketType& GetBucket(size_t sizeCat);
     
-    void SweepNonFinalizableBuckets(RecyclerSweep& recyclerSweep, bool concurrent);
-
 #ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
 #if SMALLBLOCK_MEDIUM_ALLOC
     template <ObjectInfoBits attributes>
@@ -376,7 +374,7 @@ private:
 
         inline const ValidPointers<TBlockAttributes> GetValidPointersForIndex(uint bucketIndex) const
         {
-            AnalysisAssert(bucketIndex < TBlockAttributes::BucketCount);  
+            AnalysisAssert(bucketIndex < TBlockAttributes::BucketCount);
             ushort const * validPointers = nullptr;
 #if USE_VPM_TABLE
             validPointers = validPointersBuffer[bucketIndex];
@@ -386,7 +384,7 @@ private:
 
         inline const typename SmallHeapBlockT<TBlockAttributes>::SmallHeapBlockBitVector * GetInvalidBitVector(uint index) const
         {
-            AnalysisAssert(index < TBlockAttributes::BucketCount);            
+            AnalysisAssert(index < TBlockAttributes::BucketCount);
 #if USE_STATIC_VPM
             return &(*invalidBitsBuffers)[index];
 #else
@@ -503,9 +501,10 @@ public:
 
      void SuspendIdleDecommitNonLeaf();
      void ResumeIdleDecommitNonLeaf();
-#ifdef IDLE_DECOMMIT_ENABLED
+
      void EnterIdleDecommit();
      IdleDecommitSignal LeaveIdleDecommit(bool allowTimer);
+#ifdef IDLE_DECOMMIT_ENABLED
      DWORD IdleDecommit();
 #endif
 #if DBG

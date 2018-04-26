@@ -169,7 +169,6 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
 #if DBG
     isExternalStackSkippingGC(false),
     isProcessingRescan(false),
-    recyclerIsolatedHeapStressAllocationCount(0),
 #endif
 #if ENABLE_PARTIAL_GC
     inPartialCollectMode(false),
@@ -1054,15 +1053,14 @@ Recycler::LeaveIdleDecommit()
                 Output::Flush();
             }
 #endif
+
+#pragma prefast(suppress:6387, "INVALID_PARAM_VALUE_1 We will never reach here if concurrentIdleDecommitEvent is NULL.");
             SetEvent(this->concurrentIdleDecommitEvent);
         }
     }
 
 #else
-    ForEachPageAllocator([](IdleDecommitPageAllocator* pageAlloc)
-    {
-        pageAlloc->LeaveIdleDecommit(false);
-    });
+    autoHeap.LeaveIdleDecommit(false /*allowTimer*/);
 #endif
 }
 
@@ -1178,14 +1176,7 @@ bool Recycler::ExplicitFreeInternal(void* buffer, size_t size, size_t sizeCat)
     Assert(heapBlock != nullptr);
 
 #if DBG
-    if (this->GetRecyclerFlagsTable().RecyclerIsolatedHeapStress != 0)
-    {
-        heapInfo = heapBlock->GetHeapInfo();
-    }
-    else
-    {
-        Assert(heapInfo == heapBlock->GetHeapInfo());
-    }
+    Assert(heapInfo == heapBlock->GetHeapInfo());
 #endif
 
 #ifdef RECYCLER_PAGE_HEAP
@@ -1387,11 +1378,7 @@ void Recycler::GetNormalHeapBlockAllocatorInfoForNativeAllocation(size_t allocSi
     Assert(HeapInfo::IsSmallObject(allocSize));
 
     allocatorAddress = (char*)this + offsetof(Recycler, autoHeap)
-#ifdef RECYCLER_ISOLATED_HEAP
-        + (isolated ? offsetof(HeapInfoManager, isolatedHeap) : offsetof(HeapInfoManager, defaultHeap))
-#else
         + offsetof(HeapInfoManager, defaultHeap)
-#endif
         + offsetof(HeapInfo, heapBuckets)
         + sizeof(HeapBucketGroup<SmallAllocationBlockAttributes>)*((uint)(allocSize >> HeapConstants::ObjectAllocationShift) - 1)
         + HeapBucketGroup<SmallAllocationBlockAttributes>::GetHeapBucketOffset()
@@ -3186,7 +3173,7 @@ Recycler::SweepHeap(bool concurrent, RecyclerSweepManager& recyclerSweepManager)
 #if ENABLE_BACKGROUND_PAGE_ZEROING
         if (CONFIG_FLAG(EnableBGFreeZero))
         {
-            Assert(!autoHeap.HasZeroQueuedPages());            
+            Assert(!autoHeap.HasZeroQueuedPages());
         }
 #endif
 

@@ -1377,7 +1377,6 @@ FLAGNR(Number,  MinBailOutsBeforeRejit, "Minimum number of bailouts for a single
 FLAGNR(Number,  MinBailOutsBeforeRejitForLoops, "Minimum number of bailouts for a single bailout record after which a rejit is considered", DEFAULT_CONFIG_MinBailOutsBeforeRejitForLoops)
 FLAGNR(Boolean, LibraryStackFrame           , "Display library stack frame", DEFAULT_CONFIG_LibraryStackFrame)
 FLAGNR(Boolean, LibraryStackFrameDebugger   , "Assume debugger support for library stack frame", DEFAULT_CONFIG_LibraryStackFrameDebugger)
-FLAGNR(Number, RecyclerIsolatedHeapStress, "Stress allocation on isolated heap", 2)
 #ifdef RECYCLER_STRESS
 FLAGNR(Boolean, RecyclerStress        , "Stress the recycler by collect on every allocation call", false)
 #if ENABLE_CONCURRENT_GC

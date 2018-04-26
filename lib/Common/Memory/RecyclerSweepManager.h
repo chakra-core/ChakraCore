@@ -60,7 +60,6 @@ private:
 
     Recycler * recycler;
     RecyclerSweep defaultHeapRecyclerSweep;
-    RecyclerSweep isolatedHeapRecyclerSweep;
 
     bool background;
     bool forceForeground;
@@ -95,7 +94,7 @@ template <typename TBlockType>
 size_t
 RecyclerSweepManager::GetHeapBlockCount(HeapBucketT<TBlockType> const * heapBucket)
 {
-    return this->defaultHeapRecyclerSweep.GetHeapBlockCount(heapBucket) + this->isolatedHeapRecyclerSweep.GetHeapBlockCount(heapBucket);
+    return this->defaultHeapRecyclerSweep.GetHeapBlockCount(heapBucket);
 }
 #endif
 };

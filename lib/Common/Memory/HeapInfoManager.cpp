@@ -9,40 +9,35 @@ namespace Memory
 template <class Fn>
 bool HeapInfoManager::AreAllHeapInfo(Fn fn)
 {
-    return fn(defaultHeap) && fn(isolatedHeap);
+    return fn(defaultHeap);
 }
 
 template <class Fn>
 bool HeapInfoManager::IsAnyHeapInfo(Fn fn)
 {
-    return fn(defaultHeap) || fn(isolatedHeap);
+    return fn(defaultHeap);
 }
 
 template <class Fn>
 void HeapInfoManager::ForEachHeapInfo(Fn fn)
 {
     fn(defaultHeap);
-    fn(isolatedHeap);
 }
 
 template <class Fn>
 void HeapInfoManager::ForEachHeapInfo(RecyclerSweepManager& recyclerSweepManager, Fn fn)
 {
     fn(defaultHeap, recyclerSweepManager.defaultHeapRecyclerSweep);
-    fn(isolatedHeap, recyclerSweepManager.isolatedHeapRecyclerSweep);
 }
 
 template <class Fn>
 void HeapInfoManager::ForEachHeapInfo(RecyclerSweepManager * recyclerSweepManager, Fn fn)
 {
     fn(defaultHeap, recyclerSweepManager? &recyclerSweepManager->defaultHeapRecyclerSweep : nullptr);
-    fn(isolatedHeap, recyclerSweepManager? &recyclerSweepManager->isolatedHeapRecyclerSweep : nullptr);
 }
 
 HeapInfoManager::HeapInfoManager(AllocationPolicyManager * policyManager, Js::ConfigFlagsTable& configFlagsTable, IdleDecommitPageAllocator * leafPageAllocator) :
-    isolatedLeafPageAllocator(&isolatedHeap, policyManager, configFlagsTable, RecyclerHeuristic::Instance.DefaultMaxFreePageCount, RecyclerHeuristic::Instance.DefaultMaxAllocPageCount),
     defaultHeap(policyManager, configFlagsTable, leafPageAllocator),
-    isolatedHeap(policyManager, configFlagsTable, &isolatedLeafPageAllocator),
 #if ENABLE_PARTIAL_GC
     uncollectedNewPageCount(0),
     unusedPartialCollectFreeBytes(0),
@@ -474,7 +469,6 @@ HeapInfoManager::Close()
     {
         heapInfo.CloseNonLeaf();
     });
-    this->isolatedLeafPageAllocator.Close();
 }
 
 void
@@ -494,7 +488,7 @@ HeapInfoManager::ResumeIdleDecommitNonLeaf()
         heapInfo.ResumeIdleDecommitNonLeaf();
     });
 }
-#ifdef IDLE_DECOMMIT_ENABLED
+
 void
 HeapInfoManager::EnterIdleDecommit()
 {
@@ -516,6 +510,7 @@ HeapInfoManager::LeaveIdleDecommit(bool allowTimer)
     return idleDecommitSignal;
 }
 
+#ifdef IDLE_DECOMMIT_ENABLED
 DWORD
 HeapInfoManager::IdleDecommit()
 {

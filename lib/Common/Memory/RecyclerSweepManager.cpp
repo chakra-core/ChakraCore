@@ -53,6 +53,10 @@ RecyclerSweepManager::BeginSweep(Recycler * recycler)
         // We are about to sweep, give the runtime a chance to see the now-immutable state of the world.
         // And clean up all the cache not monitor by the GC (e.g. inline caches)
         AUTO_NO_EXCEPTION_REGION;
+
+        // RecyclerSweep may not be initialized till later in this function but
+        // GCETW relies on the recycler pointer being correctly set up
+        this->recycler = recycler;
         GCETW(GC_PRESWEEPCALLBACK_START, (this));
         recycler->collectionWrapper->PreSweepCallback();
         GCETW(GC_PRESWEEPCALLBACK_STOP, (this));
@@ -66,8 +70,6 @@ RecyclerSweepManager::BeginSweep(Recycler * recycler)
     recycler->recyclerSweepManager = this;
 
     this->defaultHeapRecyclerSweep.BeginSweep(recycler, this, recycler->autoHeap.GetDefaultHeap());
-    this->isolatedHeapRecyclerSweep.BeginSweep(recycler, this, recycler->autoHeap.GetIsolatedHeap());
-
 
 #if ENABLE_PARTIAL_GC
     Assert(recycler->clientTrackedObjectList.Empty());
@@ -133,7 +135,7 @@ RecyclerSweepManager::FinishSweep()
     if (recycler->collectionState == CollectionStateConcurrentSweepPass2)
     {
         GCETW_INTERNAL(GC_START, (recycler, ETWEvent_ConcurrentSweep_Pass2));
-        GCETW_INTERNAL(GC_START2, (recycler, ETWEvent_ConcurrentSweep_Pass2, this->collectionStartReason, this->collectionStartFlags));
+        GCETW_INTERNAL(GC_START2, (recycler, ETWEvent_ConcurrentSweep_Pass2, recycler->collectionStartReason, recycler->collectionStartFlags));
     }
 #endif
 
@@ -217,7 +219,7 @@ RecyclerSweepManager::FinishSweep()
     if (recycler->collectionState == CollectionStateConcurrentSweepPass2)
     {
         GCETW_INTERNAL(GC_STOP, (recycler, ETWEvent_ConcurrentSweep_Pass2));
-        GCETW_INTERNAL(GC_STOP2, (recycler, ETWEvent_ConcurrentSweep_Pass2, this->collectionStartReason, this->collectionStartFlags));
+        GCETW_INTERNAL(GC_STOP2, (recycler, ETWEvent_ConcurrentSweep_Pass2, recycler->collectionStartReason, recycler->collectionStartFlags));
     }
 #endif
 #endif
@@ -255,7 +257,6 @@ void
 RecyclerSweepManager::ShutdownCleanup()
 {
     this->defaultHeapRecyclerSweep.ShutdownCleanup();
-    this->isolatedHeapRecyclerSweep.ShutdownCleanup();
 }
 
 #if ENABLE_CONCURRENT_GC
@@ -583,6 +584,6 @@ RecyclerSweepManager::DoAdjustPartialHeuristics() const
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
 size_t RecyclerSweepManager::GetPendingMergeNewHeapBlockCount(HeapInfo const * heapInfo)
 {
-    return this->defaultHeapRecyclerSweep.GetPendingMergeNewHeapBlockCount(heapInfo) + this->isolatedHeapRecyclerSweep.GetPendingMergeNewHeapBlockCount(heapInfo);
+    return this->defaultHeapRecyclerSweep.GetPendingMergeNewHeapBlockCount(heapInfo);
 }
 #endif

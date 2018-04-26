@@ -12,6 +12,7 @@ set (CCM_SOURCE_FILES ${CCM_SOURCE_FILES}
     HeapBlockMap.cpp
     HeapBucket.cpp
     HeapInfo.cpp
+    HeapInfoManager.cpp
     IdleDecommitPageAllocator.cpp
     LargeHeapBlock.cpp
     LargeHeapBucket.cpp
@@ -26,6 +27,7 @@ set (CCM_SOURCE_FILES ${CCM_SOURCE_FILES}
     RecyclerObjectGraphDumper.cpp
     RecyclerPageAllocator.cpp
     RecyclerSweep.cpp
+    RecyclerSweepManager.cpp
     RecyclerWriteBarrierManager.cpp
     SmallFinalizableHeapBlock.cpp
     SmallFinalizableHeapBucket.cpp

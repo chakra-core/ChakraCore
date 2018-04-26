@@ -131,8 +131,6 @@ enum ObjectInfoBits : unsigned short
     ClientTrackedBit            = 0x0400,       // This allocation is client tracked
     TraceBit                    = 0x0800,
 
-    IsolatedBit                 = 0x1000,
-
     // Additional definitions based on above
 
 #ifdef RECYCLER_STATS

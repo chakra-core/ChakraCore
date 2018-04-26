@@ -1311,6 +1311,7 @@ size_t HeapInfo::GetWriteWatchPageCount()
 }
 #endif
 #endif
+
 void
 HeapInfo::SweepPendingObjects(RecyclerSweep& recyclerSweep)
 {
@@ -2108,7 +2109,6 @@ void HeapInfo::ResumeIdleDecommitNonLeaf()
     });
 }
 
-#ifdef IDLE_DECOMMIT_ENABLED
 void
 HeapInfo::EnterIdleDecommit()
 {
@@ -2130,6 +2130,7 @@ HeapInfo::LeaveIdleDecommit(bool allowTimer)
     return idleDecommitSignal;
 }
 
+#ifdef IDLE_DECOMMIT_ENABLED
 DWORD HeapInfo::IdleDecommit()
 {
     DWORD waitTime = INFINITE;

@@ -18,11 +18,6 @@ public:
         return &defaultHeap;
     }
 
-    HeapInfo * GetIsolatedHeap()
-    {
-        return &isolatedHeap;
-    }
-
     void Initialize(Recycler * recycler
 #ifdef RECYCLER_PAGE_HEAP
         , PageHeapMode pageheapmode = PageHeapMode::PageHeapModeOff
@@ -109,9 +104,9 @@ public:
 
     void SuspendIdleDecommitNonLeaf();
     void ResumeIdleDecommitNonLeaf();
-#ifdef IDLE_DECOMMIT_ENABLED
     void EnterIdleDecommit();
     IdleDecommitSignal LeaveIdleDecommit(bool allowTimer);
+#ifdef IDLE_DECOMMIT_ENABLED
     DWORD IdleDecommit();
 #endif
 #if DBG
@@ -204,10 +199,7 @@ private:
     friend class HeapInfo;
     friend class RecyclerSweepManager;
 
-    RecyclerPageAllocator isolatedLeafPageAllocator;
     HeapInfo defaultHeap;
-    HeapInfo isolatedHeap;
-
 
     size_t uncollectedAllocBytes;
     size_t lastUncollectedAllocBytes;
