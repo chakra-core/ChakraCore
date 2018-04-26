@@ -2165,8 +2165,8 @@ namespace Js
         nextPath->SetPropertyTypes(PropertyTypesWritableDataOnlyDetection | PropertyTypesHasSpecialProperties, this->GetPropertyTypes());
 
         PropertyAttributes isWritableAttribute = ((key.GetAttributes() & ObjectSlotAttr_Writable) && !(key.GetAttributes() & ObjectSlotAttr_Accessor)) ? PropertyWritable : PropertyNone;
-        library->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(nextPath, isWritableAttribute, propertyRecord);
-        library->GetTypesWithNoSpecialPropertyProtoChainCache()->ProcessProperty(nextPath, isWritableAttribute, propertyRecord);
+        library->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(nextPath, isWritableAttribute, propertyRecord, scriptContext);
+        library->GetTypesWithNoSpecialPropertyProtoChainCache()->ProcessProperty(nextPath, isWritableAttribute, propertyRecord, scriptContext);
 
         (*propertyIndex) = index;
 

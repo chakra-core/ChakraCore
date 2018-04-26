@@ -480,8 +480,8 @@ namespace Js
 
         Field(ModuleRecordList*) moduleRecordList;
 
-        Field(OnlyWritablePropertyProtoChainCache*) typesWithOnlyWritablePropertyProtoChain;
-        Field(NoSpecialPropertyProtoChainCache*) typesWithNoSpecialPropertyProtoChain;
+        Field(OnlyWritablePropertyProtoChainCache) typesWithOnlyWritablePropertyProtoChain;
+        Field(NoSpecialPropertyProtoChainCache) typesWithNoSpecialPropertyProtoChain;
 
         Field(uint64) randSeed0, randSeed1;
         Field(bool) isPRNGSeeded;
@@ -529,7 +529,7 @@ namespace Js
 
         static void InitializeProperties(ThreadContext * threadContext);
 
-        JavascriptLibrary(GlobalObject* globalObject) :
+        JavascriptLibrary(GlobalObject* globalObject, Recycler * recycler) :
             JavascriptLibraryBase(globalObject),
             inProfileMode(false),
             inDispatchProfileMode(false),
@@ -556,8 +556,9 @@ namespace Js
             bindRefChunkBegin(nullptr),
             bindRefChunkCurrent(nullptr),
             bindRefChunkEnd(nullptr),
-            dynamicFunctionReference(nullptr)
-
+            dynamicFunctionReference(nullptr),
+            typesWithOnlyWritablePropertyProtoChain(recycler),
+            typesWithNoSpecialPropertyProtoChain(recycler)
         {
             this->globalObject = globalObject;
         }
@@ -1101,9 +1102,8 @@ namespace Js
         template <> PropertyStringCacheMap* GetPropertyMap<PropertyString>() { return this->propertyStringMap; }
         template <> SymbolCacheMap* GetPropertyMap<JavascriptSymbol>() { return this->symbolMap; }
 
-
-        Field(OnlyWritablePropertyProtoChainCache*) GetTypesWithOnlyWritablePropertyProtoChainCache() const { return this->typesWithOnlyWritablePropertyProtoChain; }
-        Field(NoSpecialPropertyProtoChainCache*) GetTypesWithNoSpecialPropertyProtoChainCache() const { return this->typesWithNoSpecialPropertyProtoChain; }
+        Field(OnlyWritablePropertyProtoChainCache*) GetTypesWithOnlyWritablePropertyProtoChainCache() { return &this->typesWithOnlyWritablePropertyProtoChain; }
+        Field(NoSpecialPropertyProtoChainCache*) GetTypesWithNoSpecialPropertyProtoChainCache() { return &this->typesWithNoSpecialPropertyProtoChain; }
 
         static bool IsDefaultArrayValuesFunction(RecyclableObject * function, ScriptContext *scriptContext);
         static bool ArrayIteratorPrototypeHasUserDefinedNext(ScriptContext *scriptContext);

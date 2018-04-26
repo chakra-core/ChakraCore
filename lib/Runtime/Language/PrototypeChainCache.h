@@ -33,6 +33,8 @@ public:
     void Register();
     void Clear(bool isThreadClear);
     void AssignCache(_In_ T* cache);
+
+    ScriptContext * GetScriptContext() const { return scriptContext; }
 private:
     T* cache;
     ScriptCacheRegistry<T>** registration;
@@ -44,9 +46,8 @@ template <typename T>
 class PrototypeChainCache
 {
 public:
-    PrototypeChainCache(
-        _In_ ScriptContext* scriptContext,
-        _In_ ScriptCacheRegistry<PrototypeChainCache<T>>* scriptRegistry);
+    PrototypeChainCache(_In_ Recycler * recycler);
+    void Initialize(_In_ ScriptCacheRegistry<PrototypeChainCache<T>>* scriptRegistry);
     void Register(_In_ Type* type);
     bool Check(_In_ RecyclableObject* object);
     bool CheckProtoChain(_In_ RecyclableObject* prototype);
@@ -56,16 +57,14 @@ public:
     void ProcessProperty(
         _In_ DynamicTypeHandler* typeHandler,
         PropertyAttributes attributes,
-        _In_ KeyType propertyKey);
+        _In_ KeyType propertyKey,
+        ScriptContext * scriptContext);
 
 private:
     bool CheckProtoChainInternal(_In_ RecyclableObject* prototype);
 
-    Field(T) cache;
-    Field(JsUtil::List<Type*>*) types;
+    Field(JsUtil::List<Type*>) types;
     Field(ScriptCacheRegistry<PrototypeChainCache<T>>*) scriptRegistry;
-
-    Field(ScriptContext*) scriptContext;
 };
 
 // This cache contains types ensured to have no @@toPrimitive, @@toStringTag, toString, or valueOf properties in it
@@ -74,15 +73,14 @@ private:
 class NoSpecialPropertyCache
 {
 public:
-    NoSpecialPropertyCache(_In_ ScriptContext* scriptContext);
-
     template <typename KeyType>
-    bool ProcessProperty(
+    static bool ProcessProperty(
         _In_ DynamicTypeHandler* typeHandler,
         PropertyAttributes attributes,
-        _In_ KeyType propertyKey);
-    bool CheckObject(_In_ RecyclableObject* object);
-    bool IsCached(_In_ RecyclableObject* prototype);
+        _In_ KeyType propertyKey,
+        ScriptContext * scriptContext);
+    static bool CheckObject(_In_ RecyclableObject* object);
+    static bool IsCached(_In_ RecyclableObject* prototype);
 
     static void ClearType(_In_ Type* type);
 
@@ -101,11 +99,8 @@ public:
     static bool IsDefaultHandledSpecialProperty(_In_ PropertyRecord const* propertyRecord);
     static bool IsDefaultHandledSpecialProperty(_In_ JavascriptString* propertyString);
 #if DBG
-    void RegistrationAssert(_In_ Type* type);
+    static void RegistrationAssert(_In_ Type* type);
 #endif
-
-private:
-    Field(ScriptContext*) scriptContext;
 };
 
 // This cache contains types ensured to have only writable data properties in it and all objects in its prototype chain
@@ -125,25 +120,21 @@ private:
 class OnlyWritablePropertyCache
 {
 public:
-    OnlyWritablePropertyCache(_In_ ScriptContext* scriptContext);
-
     template <typename KeyType>
-    bool ProcessProperty(
+    static bool ProcessProperty(
         _In_ DynamicTypeHandler* typeHandler,
         PropertyAttributes attributes,
-        _In_ KeyType propertyKey);
-    bool CheckObject(_In_ RecyclableObject* object);
-    bool IsCached(_In_ RecyclableObject* prototype);
+        _In_ KeyType propertyKey,
+        ScriptContext * scriptContext);
+    static bool CheckObject(_In_ RecyclableObject* object);
+    static bool IsCached(_In_ RecyclableObject* prototype);
 
     static void ClearType(_In_ Type* type);
 
     static void Cache(_In_ Type* type);
 #if DBG
-    void RegistrationAssert(_In_ Type* type);
+    static void RegistrationAssert(_In_ Type* type);
 #endif
-
-private:
-    Field(ScriptContext*) scriptContext;
 };
 
 typedef PrototypeChainCache<OnlyWritablePropertyCache> OnlyWritablePropertyProtoChainCache;
@@ -161,9 +152,10 @@ inline void
 PrototypeChainCache<T>::ProcessProperty(
     _In_ DynamicTypeHandler* typeHandler,
     PropertyAttributes attributes,
-    _In_ KeyType propertyKey)
+    _In_ KeyType propertyKey,
+    ScriptContext * scriptContext)
 {
-    if (this->cache.ProcessProperty(typeHandler, attributes, propertyKey))
+    if (T::ProcessProperty(typeHandler, attributes, propertyKey, scriptContext))
     {
         this->Clear();
     }
@@ -174,7 +166,8 @@ inline bool
 NoSpecialPropertyCache::ProcessProperty(
     _In_ DynamicTypeHandler* typeHandler,
     PropertyAttributes attributes,
-    _In_ KeyType propertyKey)
+    _In_ KeyType propertyKey, 
+    ScriptContext * scriptContext)
 {
     if (IsSpecialProperty(propertyKey))
     {
@@ -192,15 +185,16 @@ inline bool
 OnlyWritablePropertyCache::ProcessProperty(
     _In_ DynamicTypeHandler* typeHandler,
     PropertyAttributes attributes,
-    _In_ KeyType propertyKey)
+    _In_ KeyType propertyKey,
+    ScriptContext * scriptContext)
 {
     if (!(attributes & PropertyWritable))
     {
         typeHandler->ClearHasOnlyWritableDataProperties();
         if (typeHandler->GetFlags() & DynamicTypeHandler::IsPrototypeFlag)
         {
-            PropertyId propertyId = DynamicTypeHandler::TMapKey_GetPropertyId(this->scriptContext, propertyKey);
-            this->scriptContext->InvalidateStoreFieldCaches(propertyId);
+            PropertyId propertyId = DynamicTypeHandler::TMapKey_GetPropertyId(scriptContext, propertyKey);
+            scriptContext->InvalidateStoreFieldCaches(propertyId);
             return true;
         }
     }

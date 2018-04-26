@@ -84,8 +84,8 @@ namespace Js
         this->recycler = scriptContext->GetRecycler();
         this->undeclBlockVarSentinel = RecyclerNew(recycler, UndeclaredBlockVariable, StaticType::New(scriptContext, TypeIds_Null, nullptr, nullptr));
 
-        this->typesWithOnlyWritablePropertyProtoChain = RecyclerNew(recycler, OnlyWritablePropertyProtoChainCache, scriptContext, scriptContext->GetOnlyWritablePropertyRegistry());
-        this->typesWithNoSpecialPropertyProtoChain = RecyclerNew(recycler, NoSpecialPropertyProtoChainCache, scriptContext, scriptContext->GetNoSpecialPropertyRegistry());
+        this->typesWithOnlyWritablePropertyProtoChain.Initialize(scriptContext->GetOnlyWritablePropertyRegistry());
+        this->typesWithNoSpecialPropertyProtoChain.Initialize(scriptContext->GetNoSpecialPropertyRegistry());
 
         // Library is not zero-initialized. memset the memory occupied by builtinFunctions array to 0.
         ClearArray(builtinFunctions, BuiltinFunction::Count);

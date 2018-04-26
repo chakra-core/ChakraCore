@@ -374,8 +374,8 @@ namespace Js
 #endif
         propertyMap->Add(propertyRecord, descriptor);
 
-        scriptContext->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, attributes, propertyRecord);
-        scriptContext->GetLibrary()->GetTypesWithNoSpecialPropertyProtoChainCache()->ProcessProperty(this, attributes, propertyRecord);
+        scriptContext->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, attributes, propertyRecord, scriptContext);
+        scriptContext->GetLibrary()->GetTypesWithNoSpecialPropertyProtoChainCache()->ProcessProperty(this, attributes, propertyRecord, scriptContext);
     }
 
     template <typename T>
@@ -1329,7 +1329,7 @@ namespace Js
             {
                 descriptor->Attributes &= (~PropertyWritable);
 
-                instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, descriptor->Attributes, propertyId);
+                instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, descriptor->Attributes, propertyId, scriptContext);
             }
             instance->ChangeType();
             return true;
@@ -1720,8 +1720,8 @@ namespace Js
                 SetSlotUnchecked(instance, descriptor->GetSetterPropertyIndex(), setter);
             }
             instance->ChangeType();
-            library->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, PropertyNone, propertyRecord);
-            library->GetTypesWithNoSpecialPropertyProtoChainCache()->ProcessProperty(this, PropertyNone, propertyRecord);
+            library->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, PropertyNone, propertyRecord, scriptContext);
+            library->GetTypesWithNoSpecialPropertyProtoChainCache()->ProcessProperty(this, PropertyNone, propertyRecord, scriptContext);
 
             SetPropertyUpdateSideEffect(instance, propertyId, nullptr, SideEffects_Any);
 
@@ -1771,8 +1771,8 @@ namespace Js
         SetSlotUnchecked(instance, newDescriptor.GetGetterPropertyIndex(), getter);
         SetSlotUnchecked(instance, newDescriptor.GetSetterPropertyIndex(), setter);
 
-        library->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, PropertyNone, propertyRecord);
-        library->GetTypesWithNoSpecialPropertyProtoChainCache()->ProcessProperty(this, PropertyNone, propertyRecord);
+        library->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, PropertyNone, propertyRecord, scriptContext);
+        library->GetTypesWithNoSpecialPropertyProtoChainCache()->ProcessProperty(this, PropertyNone, propertyRecord, scriptContext);
 
         SetPropertyUpdateSideEffect(instance, propertyId, nullptr, SideEffects_Any);
 
@@ -1938,7 +1938,7 @@ namespace Js
                 {
                     instance->SetHasNoEnumerableProperties(false);
                 }
-                instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, descriptor->Attributes, propertyId);
+                instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, descriptor->Attributes, propertyId, scriptContext);
             }
 
             SetPropertyUpdateSideEffect(instance, propertyId, value, possibleSideEffects);
@@ -1997,7 +1997,7 @@ namespace Js
                 instance->SetHasNoEnumerableProperties(false);
             }
 
-            instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, descriptor->Attributes, propertyId);
+            instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, descriptor->Attributes, propertyId, scriptContext);
 
             return true;
         }
@@ -2184,7 +2184,7 @@ namespace Js
         }
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
-        library->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, attributes, propertyId);
+        library->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, attributes, propertyId, scriptContext);
         if (NoSpecialPropertyCache::IsSpecialProperty(propertyId) && !this->GetHasSpecialProperties())
         {
             if (!NoSpecialPropertyCache::IsDefaultSpecialProperty(instance, library, propertyId))
