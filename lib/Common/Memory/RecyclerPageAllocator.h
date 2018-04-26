@@ -5,11 +5,11 @@
 namespace Memory
 {
 
-
+class HeapInfo;
 class RecyclerPageAllocator : public IdleDecommitPageAllocator
 {
 public:
-    RecyclerPageAllocator(Recycler* recycler, AllocationPolicyManager * policyManager,
+    RecyclerPageAllocator(HeapInfo * heapInfo, AllocationPolicyManager * policyManager,
         Js::ConfigFlagsTable& flagTable, uint maxFreePageCount, uint maxAllocPageCount = PageAllocator::DefaultMaxAllocPageCount, bool enableWriteBarrier = false);
 #if ENABLE_CONCURRENT_GC
 #ifdef RECYCLER_WRITE_WATCH
@@ -41,8 +41,8 @@ private:
 #if ENABLE_BACKGROUND_PAGE_ZEROING
     ZeroPageQueue zeroPageQueue;
 #endif
-    
-    Recycler* recycler;
+
+    HeapInfo * heapInfo;
 
     bool IsMemProtectMode();
 };

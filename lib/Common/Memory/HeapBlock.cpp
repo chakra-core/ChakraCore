@@ -229,7 +229,7 @@ SmallHeapBlockT<TBlockAttributes>::~SmallHeapBlockT()
 {
     Assert((this->segment == nullptr && this->address == nullptr) ||
         (this->IsLeafBlock()) ||
-        this->GetPageAllocator(heapBucket->heapInfo->recycler)->IsClosed());
+        this->GetPageAllocator()->IsClosed());
 
 #if defined(RECYCLER_SLOW_CHECK_ENABLED)
     heapBucket->heapInfo->heapBlockCount[this->GetHeapBlockType()]--;
@@ -403,7 +403,7 @@ SmallHeapBlockT<TBlockAttributes>::ReassignPages(Recycler * recycler)
 
     PageSegment * segment;
 
-    auto pageAllocator = this->GetPageAllocator(recycler);
+    auto pageAllocator = this->GetPageAllocator();
     uint pagecount = this->GetPageCount();
     char * address = pageAllocator->AllocPagesPageAligned(pagecount, &segment);
 
@@ -428,9 +428,9 @@ SmallHeapBlockT<TBlockAttributes>::ReassignPages(Recycler * recycler)
 
     if (!this->SetPage(address, segment, recycler))
     {
-        this->GetPageAllocator(recycler)->SuspendIdleDecommit();
+        this->GetPageAllocator()->SuspendIdleDecommit();
         this->ReleasePages(recycler);
-        this->GetPageAllocator(recycler)->ResumeIdleDecommit();
+        this->GetPageAllocator()->ResumeIdleDecommit();
         return FALSE;
     }
 
@@ -518,7 +518,7 @@ SmallHeapBlockT<TBlockAttributes>::ReleasePages(Recycler * recycler)
         this->RestoreUnusablePages();
     }
 
-    this->GetPageAllocator(recycler)->ReleasePages(address, this->GetPageCount(), this->GetPageSegment());
+    this->GetPageAllocator()->ReleasePages(address, this->GetPageCount(), this->GetPageSegment());
 
     this->segment = nullptr;
     this->address = nullptr;
@@ -536,7 +536,7 @@ SmallHeapBlockT<TBlockAttributes>::BackgroundReleasePagesSweep(Recycler* recycle
     {
         this->RestoreUnusablePages();
     }
-    this->GetPageAllocator(recycler)->BackgroundReleasePages(address, this->GetPageCount(), this->GetPageSegment());
+    this->GetPageAllocator()->BackgroundReleasePages(address, this->GetPageCount(), this->GetPageSegment());
 
     this->address = nullptr;
     this->segment = nullptr;
@@ -558,7 +558,7 @@ SmallHeapBlockT<TBlockAttributes>::ReleasePagesShutdown(Recycler * recycler)
 
     // Don't release the page in shut down, the page allocator will release them faster
     // Leaf block's allocator need not be closed
-    Assert(this->IsLeafBlock() || this->GetPageAllocator(recycler)->IsClosed());
+    Assert(this->IsLeafBlock() || this->GetPageAllocator()->IsClosed());
 #endif
 
 }

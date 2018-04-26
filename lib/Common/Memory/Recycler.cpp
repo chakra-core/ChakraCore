@@ -107,17 +107,12 @@ template _ALWAYSINLINE _Ret_notnull_ void * __cdecl operator new<Recycler>(size_
 Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllocator * pageAllocator, void (*outOfMemoryFunc)(), Js::ConfigFlagsTable& configFlagsTable) :
     collectionState(CollectionStateNotCollecting),
     recyclerFlagsTable(configFlagsTable),
-    recyclerPageAllocator(this, policyManager, configFlagsTable, RecyclerHeuristic::Instance.DefaultMaxFreePageCount, RecyclerHeuristic::Instance.DefaultMaxAllocPageCount),
-    recyclerLargeBlockPageAllocator(this, policyManager, configFlagsTable, RecyclerHeuristic::Instance.DefaultMaxFreePageCount),
+    autoHeap(policyManager, configFlagsTable, pageAllocator),
 #ifdef ENABLE_JS_ETW
     collectionStartReason(ETWEventGCActivationTrigger::ETWEvent_GC_Trigger_Unknown),
     collectionFinishReason(ETWEventGCActivationTrigger::ETWEvent_GC_Trigger_Unknown),
 #endif
     threadService(nullptr),
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-    recyclerWithBarrierPageAllocator(this, policyManager, configFlagsTable, RecyclerHeuristic::Instance.DefaultMaxFreePageCount, PageAllocator::DefaultMaxAllocPageCount, true),
-#endif
-    threadPageAllocator(pageAllocator),
     markPagePool(configFlagsTable),
     parallelMarkPagePool1(configFlagsTable),
     parallelMarkPagePool2(configFlagsTable),
@@ -127,7 +122,7 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     parallelMarkContext2(this, &this->parallelMarkPagePool2),
     parallelMarkContext3(this, &this->parallelMarkPagePool3),
 #if ENABLE_PARTIAL_GC
-    clientTrackedObjectAllocator(_u("CTO-List"), GetPageAllocator(), Js::Throw::OutOfMemory),
+    clientTrackedObjectAllocator(_u("CTO-List"), pageAllocator, Js::Throw::OutOfMemory),
 #endif
     outOfMemoryFunc(outOfMemoryFunc),
 #ifdef RECYCLER_TEST_SUPPORT
@@ -265,20 +260,14 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     verifyEnabled =  GetRecyclerFlagsTable().IsEnabled(Js::RecyclerVerifyFlag);
     if (verifyEnabled)
     {
-        ForEachPageAllocator([](IdleDecommitPageAllocator* pageAlloc)
-        {
-            pageAlloc->EnableVerify();
-        });
+        autoHeap.EnableVerify();
     }
 #endif
 
 #ifdef RECYCLER_NO_PAGE_REUSE
     if (GetRecyclerFlagsTable().RecyclerNoPageReuse)
     {
-        ForEachPageAllocator([](IdleDecommitPageAllocator* pageAlloc)
-        {
-            pageAlloc->DisablePageReuse();
-        });
+        autoHeap.DisablePageReuse();
     }
 #endif
 
@@ -304,11 +293,6 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     RecyclerMemoryTracking::ReportRecyclerCreate(this);
 #if DBG_DUMP
     forceTraceMark = false;
-    recyclerPageAllocator.debugName = _u("Recycler");
-    recyclerLargeBlockPageAllocator.debugName = _u("RecyclerLargeBlock");
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-    recyclerWithBarrierPageAllocator.debugName = _u("RecyclerWithBarrier");
-#endif
 #endif
     isHeapEnumInProgress = false;
     isCollectionDisabled = false;
@@ -348,11 +332,7 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
 void
 Recycler::SetDisableThreadAccessCheck()
 {
-    recyclerPageAllocator.SetDisableThreadAccessCheck();
-    recyclerLargeBlockPageAllocator.SetDisableThreadAccessCheck();
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-    recyclerWithBarrierPageAllocator.SetDisableThreadAccessCheck();
-#endif
+    autoHeap.SetDisableThreadAccessCheck();
     disableThreadAccessCheck = true;
 }
 #endif
@@ -383,29 +363,11 @@ Recycler::LogMemProtectHeapSize(bool fromGC)
 #ifdef ENABLE_JS_ETW
     if (IS_JS_ETW(EventEnabledMEMPROTECT_GC_HEAP_SIZE()))
     {
-        IdleDecommitPageAllocator* recyclerPageAllocator = GetRecyclerPageAllocator();
-        IdleDecommitPageAllocator* recyclerLeafPageAllocator = GetRecyclerLeafPageAllocator();
-        IdleDecommitPageAllocator* recyclerLargeBlockPageAllocator = GetRecyclerLargeBlockPageAllocator();
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-        IdleDecommitPageAllocator* recyclerWithBarrierPageAllocator = GetRecyclerWithBarrierPageAllocator();
-#endif
-
-        size_t usedBytes = (recyclerPageAllocator->usedBytes + recyclerLeafPageAllocator->usedBytes +
-                            recyclerLargeBlockPageAllocator->usedBytes);
-        size_t reservedBytes = (recyclerPageAllocator->reservedBytes + recyclerLeafPageAllocator->reservedBytes +
-                                recyclerLargeBlockPageAllocator->reservedBytes);
-        size_t committedBytes = (recyclerPageAllocator->committedBytes + recyclerLeafPageAllocator->committedBytes +
-                                 recyclerLargeBlockPageAllocator->committedBytes);
-        size_t numberOfSegments = (recyclerPageAllocator->numberOfSegments +
-                                   recyclerLeafPageAllocator->numberOfSegments +
-                                   recyclerLargeBlockPageAllocator->numberOfSegments);
-
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-        usedBytes += recyclerWithBarrierPageAllocator->usedBytes;
-        reservedBytes += recyclerWithBarrierPageAllocator->reservedBytes;
-        committedBytes += recyclerWithBarrierPageAllocator->committedBytes;
-        numberOfSegments += recyclerWithBarrierPageAllocator->numberOfSegments;
-#endif
+       
+        size_t usedBytes = autoHeap.GetUsedBytes();
+        size_t reservedBytes = autoHeap.GetReservedBytes();
+        size_t committedBytes = autoHeap.GetCommittedBytes();
+        size_t numberOfSegments = autoHeap.GetNumberOfSegments();
 
         JS_ETW(EventWriteMEMPROTECT_GC_HEAP_SIZE(this, usedBytes, reservedBytes, committedBytes, numberOfSegments, fromGC));
     }
@@ -437,11 +399,7 @@ Recycler::SetDisableConcurrentThreadExitedCheck()
 void
 Recycler::ResetThreadId()
 {
-    // Transfer all the page allocator to the current thread id
-    ForEachPageAllocator([](IdleDecommitPageAllocator* pageAlloc)
-    {
-        pageAlloc->ClearConcurrentThreadId();
-    });
+    autoHeap.ResetThreadId();
 #if ENABLE_CONCURRENT_GC
     if (this->IsConcurrentEnabled())
     {
@@ -529,11 +487,7 @@ Recycler::~Recycler()
     }
 #endif
 
-    recyclerPageAllocator.Close();
-    recyclerLargeBlockPageAllocator.Close();
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-    recyclerWithBarrierPageAllocator.Close();
-#endif
+    autoHeap.Close();
 
     markContext.Release();
     parallelMarkContext1.Release();
@@ -583,10 +537,7 @@ Recycler::~Recycler()
 
 #if DBG
     // Disable idle decommit asserts
-    ForEachPageAllocator([](IdleDecommitPageAllocator* pageAlloc)
-    {
-        pageAlloc->ShutdownIdleDecommit();
-    });
+    autoHeap.ShutdownIdleDecommit();
 #endif
     Assert(this->collectionState == CollectionStateExit || this->collectionState == CollectionStateNotCollecting);
 #if ENABLE_CONCURRENT_GC
@@ -829,8 +780,8 @@ Recycler::Initialize(const bool forceInThread, JsUtil::ThreadService *threadServ
     isPageHeapEnabled = autoHeap.IsPageHeapEnabled();
     if (IsPageHeapEnabled())
     {
-        capturePageHeapAllocStack = autoHeap.GetDefaultHeap()->captureAllocCallStack || autoHeap.GetIsolatedHeap()->captureAllocCallStack;
-        capturePageHeapFreeStack = autoHeap.GetDefaultHeap()->captureFreeCallStack || autoHeap.GetIsolatedHeap()->captureFreeCallStack;
+        capturePageHeapAllocStack = autoHeap.DoCaptureAllocCallStack();
+        capturePageHeapFreeStack = autoHeap.DoCaptureFreeCallStack();
     }
 #endif
 
@@ -903,15 +854,14 @@ Recycler::Initialize(const bool forceInThread, JsUtil::ThreadService *threadServ
     }
 #endif
 
-#if ENABLE_CONCURRENT_GC
+#if ENABLE_PARTIAL_GC || ENABLE_CONCURRENT_GC
 #ifdef RECYCLER_WRITE_WATCH
     if (!CONFIG_FLAG(ForceSoftwareWriteBarrier))
     {
         if (needWriteWatch)
         {
             // need write watch to support concurrent and/or partial collection
-            recyclerPageAllocator.EnableWriteWatch();
-            recyclerLargeBlockPageAllocator.EnableWriteWatch();
+            autoHeap.EnableWriteWatch();
         }
     }
 #endif
@@ -993,62 +943,8 @@ Recycler::IsMemProtectMode()
 size_t
 Recycler::GetUsedBytes()
 {
-    size_t usedBytes = threadPageAllocator->usedBytes;
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-    usedBytes += recyclerWithBarrierPageAllocator.usedBytes;
-#endif
-    usedBytes += recyclerPageAllocator.usedBytes;
-    usedBytes += recyclerLargeBlockPageAllocator.usedBytes;
-
-#if GLOBAL_ENABLE_WRITE_BARRIER
-    if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
-    {
-        Assert(recyclerPageAllocator.usedBytes == 0);
-    }
-#endif
-    return usedBytes;
+    return autoHeap.GetUsedBytes();
 }
-
-IdleDecommitPageAllocator*
-Recycler::GetRecyclerPageAllocator()
-{
-    // TODO: SWB this is for Finalizable leaf allocation, which we didn't implement leaf bucket for it
-    // remove this after the finalizable leaf bucket is implemented
-#if GLOBAL_ENABLE_WRITE_BARRIER
-    if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
-    {
-        return &this->recyclerWithBarrierPageAllocator;
-    }
-    else
-#endif
-    {
-#if defined(RECYCLER_WRITE_WATCH) || !defined(RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE)
-        return &this->recyclerPageAllocator;
-#else
-        return &this->recyclerWithBarrierPageAllocator;
-#endif
-    }
-}
-
-IdleDecommitPageAllocator*
-Recycler::GetRecyclerLargeBlockPageAllocator()
-{
-    return &this->recyclerLargeBlockPageAllocator;
-}
-
-IdleDecommitPageAllocator*
-Recycler::GetRecyclerLeafPageAllocator()
-{
-    return this->threadPageAllocator;
-}
-
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-IdleDecommitPageAllocator*
-Recycler::GetRecyclerWithBarrierPageAllocator()
-{
-    return &this->recyclerWithBarrierPageAllocator;
-}
-#endif
 
 #if DBG
 BOOL
@@ -1085,10 +981,7 @@ Recycler::Prime()
         return;
     }
 #endif
-    ForEachPageAllocator([](IdleDecommitPageAllocator* pageAlloc)
-    {
-        pageAlloc->Prime(RecyclerPageAllocator::DefaultPrimePageCount);
-    });
+   autoHeap.Prime();
 }
 
 void
@@ -1104,19 +997,27 @@ Recycler::AddExternalMemoryUsage(size_t size)
 
 bool Recycler::RequestExternalMemoryAllocation(size_t size)
 {
-    return recyclerPageAllocator.RequestAlloc(size);
+    AllocationPolicyManager * allocationPolicyManager = autoHeap.GetAllocationPolicyManager();
+    return !allocationPolicyManager || allocationPolicyManager->RequestAlloc(size);
 }
 
 void Recycler::ReportExternalMemoryFailure(size_t size)
 {
-    recyclerPageAllocator.ReportFailure(size);
+    AllocationPolicyManager * allocationPolicyManager = autoHeap.GetAllocationPolicyManager();
+    if (allocationPolicyManager)
+    {
+        allocationPolicyManager->ReportFailure(size);
+    }
 }
 
 void Recycler::ReportExternalMemoryFree(size_t size)
 {
-    recyclerPageAllocator.ReportFree(size);
+    AllocationPolicyManager * allocationPolicyManager = autoHeap.GetAllocationPolicyManager();
+    if (allocationPolicyManager)
+    {
+        allocationPolicyManager->ReportFree(size);
+    }
 }
-
 
 /*------------------------------------------------------------------------------------------------
  * Idle Decommit
@@ -1125,10 +1026,7 @@ void Recycler::ReportExternalMemoryFree(size_t size)
 void
 Recycler::EnterIdleDecommit()
 {
-    ForEachPageAllocator([](IdleDecommitPageAllocator* pageAlloc)
-    {
-        pageAlloc->EnterIdleDecommit();
-    });
+    autoHeap.EnterIdleDecommit();
 #ifdef IDLE_DECOMMIT_ENABLED
     ::InterlockedCompareExchange(&needIdleDecommitSignal, IdleDecommitSignal_None, IdleDecommitSignal_NeedTimer);
 #endif
@@ -1139,16 +1037,8 @@ Recycler::LeaveIdleDecommit()
 {
 #ifdef IDLE_DECOMMIT_ENABLED
     bool allowTimer = (this->concurrentIdleDecommitEvent != nullptr);
-    IdleDecommitSignal idleDecommitSignalRecycler = recyclerPageAllocator.LeaveIdleDecommit(allowTimer);
-    IdleDecommitSignal idleDecommitSignalRecyclerLargeBlock = recyclerLargeBlockPageAllocator.LeaveIdleDecommit(allowTimer);
-    IdleDecommitSignal idleDecommitSignal = max(idleDecommitSignalRecycler, idleDecommitSignalRecyclerLargeBlock);
-    IdleDecommitSignal idleDecommitSignalThread = threadPageAllocator->LeaveIdleDecommit(allowTimer);
-    idleDecommitSignal = max(idleDecommitSignal, idleDecommitSignalThread);
-
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-    IdleDecommitSignal idleDecommitSignalRecyclerWithBarrier = recyclerWithBarrierPageAllocator.LeaveIdleDecommit(allowTimer);
-    idleDecommitSignal = max(idleDecommitSignal, idleDecommitSignalRecyclerWithBarrier);
-#endif
+    IdleDecommitSignal idleDecommitSignal = autoHeap.LeaveIdleDecommit(allowTimer);
+    
     if (idleDecommitSignal != IdleDecommitSignal_None)
     {
         Assert(allowTimer);
@@ -1496,8 +1386,14 @@ void Recycler::GetNormalHeapBlockAllocatorInfoForNativeAllocation(size_t allocSi
     Assert(HeapInfo::IsAlignedSize(allocSize));
     Assert(HeapInfo::IsSmallObject(allocSize));
 
-    allocatorAddress = (char*)this + offsetof(Recycler, autoHeap) + offsetof(HeapInfo, heapBuckets) +
-        sizeof(HeapBucketGroup<SmallAllocationBlockAttributes>)*((uint)(allocSize >> HeapConstants::ObjectAllocationShift) - 1)
+    allocatorAddress = (char*)this + offsetof(Recycler, autoHeap)
+#ifdef RECYCLER_ISOLATED_HEAP
+        + (isolated ? offsetof(HeapInfoManager, isolatedHeap) : offsetof(HeapInfoManager, defaultHeap))
+#else
+        + offsetof(HeapInfoManager, defaultHeap)
+#endif
+        + offsetof(HeapInfo, heapBuckets)
+        + sizeof(HeapBucketGroup<SmallAllocationBlockAttributes>)*((uint)(allocSize >> HeapConstants::ObjectAllocationShift) - 1)
         + HeapBucketGroup<SmallAllocationBlockAttributes>::GetHeapBucketOffset()
         + HeapBucketT<SmallNormalHeapBlockT<SmallAllocationBlockAttributes>>::GetAllocatorHeadOffset();
 
@@ -2513,8 +2409,7 @@ Recycler::RescanMark(DWORD waitTime)
 #ifdef RECYCLER_WRITE_WATCH
             if (!CONFIG_FLAG(ForceSoftwareWriteBarrier))
             {
-                Assert(recyclerPageAllocator.GetWriteWatchPageCount() == 0);
-                Assert(recyclerLargeBlockPageAllocator.GetWriteWatchPageCount() == 0);
+                Assert(autoHeap.GetWriteWatchPageCount() == 0);
             }
 #endif
             return this->backgroundRescanRootBytes;
@@ -2556,9 +2451,7 @@ Recycler::FinishMark(DWORD waitTime)
 #ifdef RECYCLER_WRITE_WATCH
             if (!CONFIG_FLAG(ForceSoftwareWriteBarrier))
             {
-                Assert(this->backgroundFinishMarkCount == 0 ||
-                    (this->recyclerPageAllocator.GetWriteWatchPageCount() == 0 &&
-                        this->recyclerLargeBlockPageAllocator.GetWriteWatchPageCount() == 0));
+                Assert(this->backgroundFinishMarkCount == 0 || autoHeap.GetWriteWatchPageCount() == 0);
             }
 #endif
         }
@@ -2889,10 +2782,7 @@ Recycler::EndMarkOnLowMemory()
     RecyclerVerboseTrace(GetRecyclerFlagsTable(), _u("OOM during mark- rerunning mark\n"));
 
     // Try to release as much memory as possible
-    ForEachPageAllocator([](IdleDecommitPageAllocator* pageAlloc)
-    {
-        pageAlloc->DecommitNow();
-    });
+    autoHeap.DecommitNow();
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     uint iterations = 0;
@@ -3110,7 +3000,7 @@ Recycler::Sweep(bool concurrent)
                 if (!CONFIG_FLAG(ForceSoftwareWriteBarrier))
                 {
                     RECYCLER_PROFILE_EXEC_BEGIN(this, Js::ResetWriteWatchPhase);
-                    if (!recyclerPageAllocator.ResetWriteWatch() || !recyclerLargeBlockPageAllocator.ResetWriteWatch())
+                    if (!autoHeap.ResetWriteWatch())
                     {
                         // Shouldn't happen
                         Assert(false);
@@ -3253,12 +3143,7 @@ Recycler::SweepHeap(bool concurrent, RecyclerSweepManager& recyclerSweepManager)
 #if ENABLE_BACKGROUND_PAGE_ZEROING
         if (CONFIG_FLAG(EnableBGFreeZero))
         {
-            // Only queue up non-leaf pages- leaf pages don't need to be zeroed out
-            recyclerPageAllocator.StartQueueZeroPage();
-            recyclerLargeBlockPageAllocator.StartQueueZeroPage();
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-            recyclerWithBarrierPageAllocator.StartQueueZeroPage();
-#endif
+            autoHeap.StartQueueZeroPage();
         }
 #endif
     }
@@ -3281,17 +3166,8 @@ Recycler::SweepHeap(bool concurrent, RecyclerSweepManager& recyclerSweepManager)
     {
         GCETW(GC_SWEEP_START, (this));
     }
-    recyclerPageAllocator.SuspendIdleDecommit();
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-    recyclerWithBarrierPageAllocator.SuspendIdleDecommit();
-#endif
-    recyclerLargeBlockPageAllocator.SuspendIdleDecommit();
+
     autoHeap.FinalizeAndSweep(recyclerSweepManager, concurrent);
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-    recyclerWithBarrierPageAllocator.ResumeIdleDecommit();
-#endif
-    recyclerPageAllocator.ResumeIdleDecommit();
-    recyclerLargeBlockPageAllocator.ResumeIdleDecommit();
 
 #if ENABLE_CONCURRENT_GC
     if (concurrent)
@@ -3299,11 +3175,7 @@ Recycler::SweepHeap(bool concurrent, RecyclerSweepManager& recyclerSweepManager)
 #if ENABLE_BACKGROUND_PAGE_ZEROING
         if (CONFIG_FLAG(EnableBGFreeZero))
         {
-            recyclerPageAllocator.StopQueueZeroPage();
-            recyclerLargeBlockPageAllocator.StopQueueZeroPage();
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-            recyclerWithBarrierPageAllocator.StopQueueZeroPage();
-#endif
+            autoHeap.StopQueueZeroPage();
         }
 #endif
 
@@ -3314,11 +3186,7 @@ Recycler::SweepHeap(bool concurrent, RecyclerSweepManager& recyclerSweepManager)
 #if ENABLE_BACKGROUND_PAGE_ZEROING
         if (CONFIG_FLAG(EnableBGFreeZero))
         {
-            Assert(!recyclerPageAllocator.HasZeroQueuedPages());
-            Assert(!recyclerLargeBlockPageAllocator.HasZeroQueuedPages());
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-            Assert(!recyclerWithBarrierPageAllocator.HasZeroQueuedPages());
-#endif
+            Assert(!autoHeap.HasZeroQueuedPages());            
         }
 #endif
 
@@ -4151,10 +4019,7 @@ Recycler::EndCollection()
             Output::Print(_u("%04X> RC(%p): %s\n"), this->mainThreadId, this, _u("Decommit now"));
         }
 #endif
-        ForEachPageAllocator([](IdleDecommitPageAllocator* pageAlloc)
-        {
-            pageAlloc->DecommitNow();
-        });
+        autoHeap.DecommitNow();
         this->inDecommitNowCollection = false;
     }
 
@@ -4610,13 +4475,8 @@ Recycler::FinishConcurrent()
                 {
                     // Help with the background thread to zero and flush zero pages
                     // if we are going to wait anyways.
-                    recyclerPageAllocator.ZeroQueuedPages();
-                    recyclerLargeBlockPageAllocator.ZeroQueuedPages();
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-                    recyclerWithBarrierPageAllocator.ZeroQueuedPages();
-#endif
-
-                    this->FlushBackgroundPages();
+                    autoHeap.ZeroQueuedPages();
+                    autoHeap.FlushBackgroundPages();
                 }
             }
 #endif
@@ -5277,7 +5137,7 @@ Recycler::StartBackgroundMark(bool foregroundResetMark, bool foregroundFindRoots
         if (!CONFIG_FLAG(ForceSoftwareWriteBarrier))
         {
             RECYCLER_PROFILE_EXEC_BEGIN(this, Js::ResetWriteWatchPhase);
-            bool hasWriteWatch = (recyclerPageAllocator.ResetWriteWatch() && recyclerLargeBlockPageAllocator.ResetWriteWatch());
+            bool hasWriteWatch = autoHeap.ResetWriteWatch();
             RECYCLER_PROFILE_EXEC_END(this, Js::ResetWriteWatchPhase);
 
             if (!hasWriteWatch)
@@ -5717,30 +5577,6 @@ Recycler::WaitForConcurrentThread(DWORD waitTime)
     return (ret == WAIT_OBJECT_0);
 }
 
-#if ENABLE_BACKGROUND_PAGE_FREEING
-void
-Recycler::FlushBackgroundPages()
-{
-    recyclerPageAllocator.SuspendIdleDecommit();
-    recyclerPageAllocator.FlushBackgroundPages();
-    recyclerPageAllocator.ResumeIdleDecommit();
-
-    recyclerLargeBlockPageAllocator.SuspendIdleDecommit();
-    recyclerLargeBlockPageAllocator.FlushBackgroundPages();
-    recyclerLargeBlockPageAllocator.ResumeIdleDecommit();
-
-    this->threadPageAllocator->SuspendIdleDecommit();
-    this->threadPageAllocator->FlushBackgroundPages();
-    this->threadPageAllocator->ResumeIdleDecommit();
-
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-    recyclerWithBarrierPageAllocator.SuspendIdleDecommit();
-    recyclerWithBarrierPageAllocator.FlushBackgroundPages();
-    recyclerWithBarrierPageAllocator.ResumeIdleDecommit();
-#endif
-}
-#endif
-
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
 AutoProtectPages::AutoProtectPages(Recycler* recycler, bool protectEnabled) :
     isReadOnly(false),
@@ -5951,13 +5787,12 @@ Recycler::FinishTransferSwept(CollectionFlags flags)
     collectionState = CollectionStateTransferSwept;
 
 #if ENABLE_BACKGROUND_PAGE_FREEING
-    if (CONFIG_FLAG(EnableBGFreeZero))
-    {
-        // We should have zeroed all the pages in the background thread
-        Assert(!recyclerPageAllocator.HasZeroQueuedPages());
-        Assert(!recyclerLargeBlockPageAllocator.HasZeroQueuedPages());
-        this->FlushBackgroundPages();
-    }
+        if (CONFIG_FLAG(EnableBGFreeZero))
+        {
+            // We should have zeroed all the pages in the background thread
+            Assert(!autoHeap.HasZeroQueuedPages());
+            autoHeap.FlushBackgroundPages();
+        }
 #endif
 
     GCETW(GC_FLUSHZEROPAGE_STOP, (this));
@@ -6161,15 +5996,11 @@ Recycler::DoBackgroundWork(bool forceForeground)
             GCETW(GC_BACKGROUNDZEROPAGE_START, (this));
 
 #if ENABLE_BACKGROUND_PAGE_ZEROING
-            if (CONFIG_FLAG(EnableBGFreeZero))
-            {
-                // Zero the queued pages first so they are available to be allocated
-                recyclerPageAllocator.BackgroundZeroQueuedPages();
-                recyclerLargeBlockPageAllocator.BackgroundZeroQueuedPages();
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-                recyclerWithBarrierPageAllocator.BackgroundZeroQueuedPages();
-#endif
-            }
+        if (CONFIG_FLAG(EnableBGFreeZero))
+        {
+            // Zero the queued pages first so they are available to be allocated
+            autoHeap.BackgroundZeroQueuedPages();
+        }
 #endif
 
             GCETW(GC_BACKGROUNDZEROPAGE_STOP, (this));
@@ -6212,11 +6043,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
                     // Drain the zero queue again as we might have free more during sweep
                     // in the background
                     GCETW(GC_BACKGROUNDZEROPAGE_START, (this));
-                    recyclerPageAllocator.BackgroundZeroQueuedPages();
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-                    recyclerWithBarrierPageAllocator.BackgroundZeroQueuedPages();
-#endif
-                    recyclerLargeBlockPageAllocator.BackgroundZeroQueuedPages();
+                    autoHeap.BackgroundZeroQueuedPages();
                     GCETW(GC_BACKGROUNDZEROPAGE_STOP, (this));
                 }
 #endif
@@ -6247,11 +6074,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
                 // Drain the zero queue again as we might have free more during sweep
                 // in the background
                 GCETW(GC_BACKGROUNDZEROPAGE_START, (this));
-                recyclerPageAllocator.BackgroundZeroQueuedPages();
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-                recyclerWithBarrierPageAllocator.BackgroundZeroQueuedPages();
-#endif
-                recyclerLargeBlockPageAllocator.BackgroundZeroQueuedPages();
+                autoHeap.BackgroundZeroQueuedPages();
                 GCETW(GC_BACKGROUNDZEROPAGE_STOP, (this));
             }
 #endif
@@ -6327,16 +6150,7 @@ Recycler::ThreadProc()
 #ifdef IDLE_DECOMMIT_ENABLED
         needIdleDecommitSignal = IdleDecommitSignal_None;
 
-        DWORD threadPageAllocatorWaitTime = threadPageAllocator->IdleDecommit();
-        DWORD recyclerPageAllocatorWaitTime = recyclerPageAllocator.IdleDecommit();
-        DWORD waitTime = min(threadPageAllocatorWaitTime, recyclerPageAllocatorWaitTime);
-        DWORD recyclerLargeBlockPageAllocatorWaitTime = recyclerLargeBlockPageAllocator.IdleDecommit();
-        waitTime = min(waitTime, recyclerLargeBlockPageAllocatorWaitTime);
-
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-        DWORD recyclerWithBarrierPageAllocatorWaitTime = recyclerWithBarrierPageAllocator.IdleDecommit();
-        waitTime = min(waitTime, recyclerWithBarrierPageAllocatorWaitTime);
-#endif
+        DWORD waitTime = autoHeap.IdleDecommit();
         if (waitTime == INFINITE)
         {
             DWORD ret = ::InterlockedCompareExchange(&needIdleDecommitSignal, IdleDecommitSignal_NeedSignal, IdleDecommitSignal_None);
@@ -6531,10 +6345,7 @@ Recycler::FinishCollection()
     // Do a partial page decommit now
     if (decommitOnFinish)
     {
-        ForEachPageAllocator([](IdleDecommitPageAllocator* pageAlloc)
-        {
-            pageAlloc->DecommitNow(false);
-        });
+        autoHeap.DecommitNow(false);
         this->decommitOnFinish = false;
     }
 
@@ -7696,9 +7507,9 @@ void Recycler::VerifyPageHeapFillAfterAlloc(char* memBlock, size_t size, ObjectI
         if (heapBlock->IsLargeHeapBlock())
         {
             LargeHeapBlock* largeHeapBlock = (LargeHeapBlock*)heapBlock;
-            if (largeHeapBlock->InPageHeapMode()
+            if (largeHeapBlock->InPageHeapMode() 
 #ifdef RECYCLER_NO_PAGE_REUSE
-                && !largeHeapBlock->GetPageAllocator(this)->IsPageReuseDisabled()
+                && !largeHeapBlock->GetPageAllocator(largeHeapBlock->heapInfo)->IsPageReuseDisabled()
 #endif
                 )
             {
@@ -8557,7 +8368,7 @@ ArenaAllocator *
 Recycler::CreateGuestArena(char16 const * name, void (*outOfMemoryFunc)())
 {
     // Note, guest arenas use the large block allocator.
-    return guestArenaList.PrependNode(&HeapAllocator::Instance, name, &recyclerLargeBlockPageAllocator, outOfMemoryFunc);
+    return guestArenaList.PrependNode(&HeapAllocator::Instance, name, this->GetDefaultHeapInfo()->GetRecyclerLargeBlockPageAllocator(), outOfMemoryFunc);
 }
 
 void

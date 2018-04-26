@@ -39,7 +39,10 @@ void HeapInfoManager::ForEachHeapInfo(RecyclerSweepManager * recyclerSweepManage
     fn(isolatedHeap, recyclerSweepManager? &recyclerSweepManager->isolatedHeapRecyclerSweep : nullptr);
 }
 
-HeapInfoManager::HeapInfoManager() :
+HeapInfoManager::HeapInfoManager(AllocationPolicyManager * policyManager, Js::ConfigFlagsTable& configFlagsTable, IdleDecommitPageAllocator * leafPageAllocator) :
+    isolatedLeafPageAllocator(&isolatedHeap, policyManager, configFlagsTable, RecyclerHeuristic::Instance.DefaultMaxFreePageCount, RecyclerHeuristic::Instance.DefaultMaxAllocPageCount),
+    defaultHeap(policyManager, configFlagsTable, leafPageAllocator),
+    isolatedHeap(policyManager, configFlagsTable, &isolatedLeafPageAllocator),
 #if ENABLE_PARTIAL_GC
     uncollectedNewPageCount(0),
     unusedPartialCollectFreeBytes(0),
@@ -134,6 +137,8 @@ HeapInfoManager::Rescan(RescanFlags flags)
 void
 HeapInfoManager::FinalizeAndSweep(RecyclerSweepManager& recyclerSweepManager, bool concurrent)
 {
+    SuspendIdleDecommitNonLeaf();
+
     // Call finalize before sweeping so that the finalizer can still access object it referenced
     ForEachHeapInfo(recyclerSweepManager, [&](HeapInfo& heapInfo, RecyclerSweep& recyclerSweep)
     {
@@ -143,6 +148,8 @@ HeapInfoManager::FinalizeAndSweep(RecyclerSweepManager& recyclerSweepManager, bo
     {
         heapInfo.Sweep(recyclerSweep, concurrent);
     });
+
+    ResumeIdleDecommitNonLeaf();
 }
 
 void 
@@ -155,6 +162,35 @@ HeapInfoManager::SweepSmallNonFinalizable(RecyclerSweepManager& recyclerSweepMan
 }
 
 #if ENABLE_PARTIAL_GC || ENABLE_CONCURRENT_GC
+#ifdef RECYCLER_WRITE_WATCH 
+void HeapInfoManager::EnableWriteWatch()
+{
+    ForEachHeapInfo([](HeapInfo& heapInfo)
+    {
+        heapInfo.EnableWriteWatch();
+    });
+}
+
+bool HeapInfoManager::ResetWriteWatch()
+{
+    return AreAllHeapInfo([](HeapInfo& heapInfo)
+    {
+        return heapInfo.ResetWriteWatch();
+    });
+}
+
+#if DBG
+size_t HeapInfoManager::GetWriteWatchPageCount()
+{
+    size_t writeWatchPageCount = 0;
+    ForEachHeapInfo([&](HeapInfo& heapInfo)
+    {
+        writeWatchPageCount += heapInfo.GetWriteWatchPageCount();
+    });
+    return writeWatchPageCount;
+}
+#endif
+#endif
 void
 HeapInfoManager::SweepPendingObjects(RecyclerSweepManager& recyclerSweepManager)
 {
@@ -300,6 +336,23 @@ HeapInfoManager::AllocatorsAreEmpty()
     });
 }
 
+void
+HeapInfoManager::ResetThreadId()
+{
+    ForEachHeapInfo([](HeapInfo& heapInfo)
+    {
+        return heapInfo.ResetThreadId();
+    });
+}
+
+void
+HeapInfoManager::SetDisableThreadAccessCheck()
+{
+    ForEachHeapInfo([](HeapInfo& heapInfo)
+    {
+        return heapInfo.SetDisableThreadAccessCheck();
+    });
+}
 #endif
 
 #ifdef RECYCLER_FINALIZE_CHECK
@@ -328,6 +381,15 @@ HeapInfoManager::Check()
 
 #ifdef RECYCLER_MEMORY_VERIFY
 void
+HeapInfoManager::EnableVerify()
+{
+    ForEachHeapInfo([](HeapInfo& heapInfo)
+    {
+        heapInfo.EnableVerify();
+    });
+}
+
+void
 HeapInfoManager::Verify()
 {
     ForEachHeapInfo([](HeapInfo& heapInfo)
@@ -344,6 +406,16 @@ HeapInfoManager::VerifyMark()
     ForEachHeapInfo([](HeapInfo& heapInfo)
     {
         heapInfo.VerifyMark();
+    });
+}
+#endif
+#ifdef RECYCLER_NO_PAGE_REUSE
+void
+HeapInfoManager::DisablePageReuse()
+{
+    ForEachHeapInfo([](HeapInfo& heapInfo)
+    {
+        heapInfo.DisablePageReuse();
     });
 }
 #endif
@@ -379,6 +451,261 @@ HeapInfoManager::IsPageHeapEnabled()
     return IsAnyHeapInfo([](HeapInfo& heapInfo)
     {
         return heapInfo.IsPageHeapEnabled();
+    });
+}
+#endif
+
+// ==============================================================
+// Page allocator APIs
+// ==============================================================
+void
+HeapInfoManager::Prime()
+{
+    ForEachHeapInfo([](HeapInfo& heapInfo)
+    {
+        heapInfo.Prime();
+    });
+}
+
+void
+HeapInfoManager::Close()
+{
+    ForEachHeapInfo([](HeapInfo& heapInfo)
+    {
+        heapInfo.CloseNonLeaf();
+    });
+    this->isolatedLeafPageAllocator.Close();
+}
+
+void
+HeapInfoManager::SuspendIdleDecommitNonLeaf()
+{
+    ForEachHeapInfo([](HeapInfo& heapInfo)
+    {
+        heapInfo.SuspendIdleDecommitNonLeaf();
+    });
+}
+
+void
+HeapInfoManager::ResumeIdleDecommitNonLeaf()
+{
+    ForEachHeapInfo([](HeapInfo& heapInfo)
+    {
+        heapInfo.ResumeIdleDecommitNonLeaf();
+    });
+}
+#ifdef IDLE_DECOMMIT_ENABLED
+void
+HeapInfoManager::EnterIdleDecommit()
+{
+    ForEachHeapInfo([](HeapInfo& heapInfo)
+    {
+        heapInfo.EnterIdleDecommit();
+    });
+}
+
+IdleDecommitSignal
+HeapInfoManager::LeaveIdleDecommit(bool allowTimer)
+{
+    IdleDecommitSignal idleDecommitSignal = IdleDecommitSignal_None;
+    ForEachHeapInfo([&idleDecommitSignal, allowTimer](HeapInfo& heapInfo)
+    {
+        IdleDecommitSignal signal = heapInfo.LeaveIdleDecommit(allowTimer);
+        idleDecommitSignal = max(idleDecommitSignal, signal);
+    });
+    return idleDecommitSignal;
+}
+
+DWORD
+HeapInfoManager::IdleDecommit()
+{
+    DWORD waitTime = INFINITE;
+    ForEachHeapInfo([&](HeapInfo& heapInfo)
+    {
+        DWORD heapInfoWaitTime = heapInfo.IdleDecommit();
+        waitTime = min(waitTime, heapInfoWaitTime);
+    });
+    return waitTime;
+}
+
+#endif
+
+#if DBG
+void
+HeapInfoManager::ShutdownIdleDecommit()
+{
+    ForEachHeapInfo([](HeapInfo& heapInfo)
+    {
+        heapInfo.ShutdownIdleDecommit();
+    });
+}
+#endif
+
+#if ENABLE_BACKGROUND_PAGE_ZEROING
+void HeapInfoManager::StartQueueZeroPage()
+{
+    ForEachHeapInfo([](HeapInfo& heapInfo)
+    {
+        heapInfo.StartQueueZeroPage();
+    });
+}
+
+void HeapInfoManager::StopQueueZeroPage()
+{
+    ForEachHeapInfo([](HeapInfo& heapInfo)
+    {
+        heapInfo.StopQueueZeroPage();
+    });
+}
+
+void HeapInfoManager::BackgroundZeroQueuedPages()
+{
+    ForEachHeapInfo([](HeapInfo& heapInfo)
+    {
+        heapInfo.BackgroundZeroQueuedPages();
+    });
+}
+
+void HeapInfoManager::ZeroQueuedPages()
+{
+    ForEachHeapInfo([](HeapInfo& heapInfo)
+    {
+        heapInfo.ZeroQueuedPages();
+    });
+}
+\
+void HeapInfoManager::FlushBackgroundPages()
+{
+    ForEachHeapInfo([](HeapInfo& heapInfo)
+    {
+        heapInfo.FlushBackgroundPages();
+    });
+}
+
+#if DBG
+bool HeapInfoManager::HasZeroQueuedPages()
+{
+    return IsAnyHeapInfo([](HeapInfo& heapInfo)
+    {
+        return heapInfo.HasZeroQueuedPages();
+    });
+}
+#endif
+#endif
+
+void
+HeapInfoManager::DecommitNow(bool all)
+{
+    ForEachHeapInfo([=](HeapInfo& heapInfo)
+    {
+        heapInfo.DecommitNow(all);
+    });
+}
+
+size_t
+HeapInfoManager::GetUsedBytes()
+{
+    size_t usedBytes = 0;
+    ForEachHeapInfo([&](HeapInfo& heapInfo)
+    {
+        usedBytes += heapInfo.GetUsedBytes();
+    });
+    return usedBytes;
+}
+
+size_t
+HeapInfoManager::GetReservedBytes()
+{
+    size_t reservedBytes = 0;
+    ForEachHeapInfo([&](HeapInfo& heapInfo)
+    {
+        reservedBytes += heapInfo.GetReservedBytes();
+    });
+    return reservedBytes;
+}
+
+size_t
+HeapInfoManager::GetCommittedBytes()
+{
+    size_t commitedBytes = 0;
+    ForEachHeapInfo([&](HeapInfo& heapInfo)
+    {
+        commitedBytes += heapInfo.GetCommittedBytes();
+    });
+    return commitedBytes;
+}
+
+size_t
+HeapInfoManager::GetNumberOfSegments()
+{
+    size_t numberOfSegments = 0;
+    ForEachHeapInfo([&](HeapInfo& heapInfo)
+    {
+        numberOfSegments += heapInfo.GetNumberOfSegments();
+    });
+    return numberOfSegments;
+}
+
+AllocationPolicyManager *
+HeapInfoManager::GetAllocationPolicyManager()
+{
+    return this->defaultHeap.GetRecyclerLeafPageAllocator()->GetAllocationPolicyManager();
+}
+
+bool
+HeapInfoManager::IsRecyclerPageAllocator(PageAllocator * pageAllocator)
+{
+    return IsAnyHeapInfo([=](HeapInfo& heapInfo)
+    {
+        return (heapInfo.GetRecyclerPageAllocator() == pageAllocator);
+    });
+}
+
+bool
+HeapInfoManager::IsRecyclerLeafPageAllocator(PageAllocator * pageAllocator)
+{
+    return IsAnyHeapInfo([=](HeapInfo& heapInfo)
+    {
+        return (heapInfo.GetRecyclerLeafPageAllocator() == pageAllocator);
+    });
+}
+
+bool
+HeapInfoManager::IsRecyclerLargeBlockPageAllocator(PageAllocator * pageAllocator)
+{
+    return IsAnyHeapInfo([=](HeapInfo& heapInfo)
+    {
+        return (heapInfo.GetRecyclerLargeBlockPageAllocator() == pageAllocator);
+    });
+}
+
+#ifdef RECYCLER_WRITE_BARRIER
+bool
+HeapInfoManager::IsRecyclerWithBarrierPageAllocator(PageAllocator * pageAllocator)
+{
+    return IsAnyHeapInfo([=](HeapInfo& heapInfo)
+    {
+        return (heapInfo.GetRecyclerWithBarrierPageAllocator() == pageAllocator);
+    });
+}
+#endif
+
+#ifdef RECYCLER_PAGE_HEAP
+bool
+HeapInfoManager::DoCaptureAllocCallStack()
+{
+    return IsAnyHeapInfo([=](HeapInfo& heapInfo)
+    {
+        return heapInfo.captureAllocCallStack;
+    });
+}
+
+bool
+HeapInfoManager::DoCaptureFreeCallStack()
+{
+    return IsAnyHeapInfo([=](HeapInfo& heapInfo)
+    {
+        return heapInfo.captureFreeCallStack;
     });
 }
 #endif

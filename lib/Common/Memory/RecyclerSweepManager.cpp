@@ -169,8 +169,7 @@ RecyclerSweepManager::FinishSweep()
                 if (!this->IsBackground())
                 {
                     RECYCLER_PROFILE_EXEC_BEGIN(recycler, Js::ResetWriteWatchPhase);
-                    if (!recycler->recyclerPageAllocator.ResetWriteWatch() ||
-                        !recycler->recyclerLargeBlockPageAllocator.ResetWriteWatch())
+                    if (!recycler->autoHeap.ResetWriteWatch())
                     {
                         // Shouldn't happen
                         Assert(false);

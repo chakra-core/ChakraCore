@@ -423,7 +423,7 @@ public:
     }
 #endif
 
-    IdleDecommitPageAllocator* GetPageAllocator(Recycler* recycler);
+    IdleDecommitPageAllocator* GetPageAllocator(HeapInfo * heapInfo);
 
     bool GetAndClearNeedOOMRescan()
     {
@@ -867,6 +867,8 @@ protected:
     template <typename TBlockType>
     bool FindHeapObjectImpl(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject);
 protected:
+    IdleDecommitPageAllocator * GetPageAllocator();
+
     void Init(ushort objectSize, ushort objectCount);
     void ConstructorCommon(HeapBucket * bucket, ushort objectSize, ushort objectCount, HeapBlockType heapBlockType);
 

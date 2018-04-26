@@ -13,7 +13,7 @@ class HeapInfo
     friend class ::ScriptMemoryDumper;
 #endif
 public:
-    HeapInfo();
+    HeapInfo(AllocationPolicyManager * policyManager, Js::ConfigFlagsTable& configFlagsTable, IdleDecommitPageAllocator * leafPageAllocator);
     ~HeapInfo();
 
     void Initialize(Recycler * recycler
@@ -326,6 +326,7 @@ private:
 #if DBG
     bool AllocatorsAreEmpty();
 #endif
+
 private:
     template <typename TBlockAttributes>
     class ValidPointersMap
@@ -430,9 +431,7 @@ public:
     template <typename TBlockAttributes>
     static typename SmallHeapBlockT<TBlockAttributes>::BlockInfo const * GetBlockInfo(uint objectSize);
 
-private:
     Recycler * recycler;
-
 #if ENABLE_CONCURRENT_GC
     SmallLeafHeapBlock * newLeafHeapBlockList;
     SmallNormalHeapBlock * newNormalHeapBlockList;
@@ -493,6 +492,93 @@ private:
     size_t pendingDisposableObjectCount;
     size_t GetFinalizeCount();
 #endif
+
+ public:
+     // ==============================================================
+     // Page allocator APIs
+     // ==============================================================
+     void Prime();
+     void CloseNonLeaf();
+     void DecommitNow(bool all);
+
+     void SuspendIdleDecommitNonLeaf();
+     void ResumeIdleDecommitNonLeaf();
+#ifdef IDLE_DECOMMIT_ENABLED
+     void EnterIdleDecommit();
+     IdleDecommitSignal LeaveIdleDecommit(bool allowTimer);
+     DWORD IdleDecommit();
+#endif
+#if DBG
+     void ShutdownIdleDecommit();
+     void ResetThreadId();
+     void SetDisableThreadAccessCheck();
+#endif
+
+     size_t GetUsedBytes();
+     size_t GetReservedBytes();
+     size_t GetCommittedBytes();
+     size_t GetNumberOfSegments();
+
+     IdleDecommitPageAllocator * GetRecyclerLeafPageAllocator();
+     IdleDecommitPageAllocator * GetRecyclerPageAllocator();
+     IdleDecommitPageAllocator * GetRecyclerLargeBlockPageAllocator();
+#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
+     IdleDecommitPageAllocator * GetRecyclerWithBarrierPageAllocator();
+#endif
+
+#if ENABLE_BACKGROUND_PAGE_ZEROING
+     void StartQueueZeroPage();
+     void StopQueueZeroPage();
+     void BackgroundZeroQueuedPages();
+     void ZeroQueuedPages();
+     void FlushBackgroundPages();
+#if DBG
+     bool HasZeroQueuedPages();
+#endif
+#endif
+
+#if ENABLE_PARTIAL_GC || ENABLE_CONCURRENT_GC
+#ifdef RECYCLER_WRITE_WATCH 
+     void EnableWriteWatch();
+     bool ResetWriteWatch();
+#if DBG
+     size_t GetWriteWatchPageCount();
+#endif
+#endif
+#endif
+
+#ifdef RECYCLER_MEMORY_VERIFY
+     void EnableVerify();
+#endif
+#ifdef RECYCLER_NO_PAGE_REUSE
+     void DisablePageReuse();
+#endif
+private:
+    template<typename Action>
+    void ForEachPageAllocator(Action action)
+    {
+        ForEachNonLeafPageAllocator(action);
+        action(this->recyclerLeafPageAllocator);
+    }
+
+    template<typename Action>
+    void ForEachNonLeafPageAllocator(Action action)
+    {
+        action(&this->recyclerPageAllocator);
+        action(&this->recyclerLargeBlockPageAllocator);
+#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
+        action(&this->recyclerWithBarrierPageAllocator);
+#endif
+    }
+
+
+    IdleDecommitPageAllocator * recyclerLeafPageAllocator;
+
+#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
+    RecyclerPageAllocator recyclerWithBarrierPageAllocator;
+#endif
+    RecyclerPageAllocator recyclerPageAllocator;
+    RecyclerPageAllocator recyclerLargeBlockPageAllocator;
 
     friend class Recycler;
     friend class HeapBucket;

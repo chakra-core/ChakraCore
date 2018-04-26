@@ -732,24 +732,6 @@ public:
     };
 
 private:
-    IdleDecommitPageAllocator * threadPageAllocator;
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-    RecyclerPageAllocator recyclerWithBarrierPageAllocator;
-#endif
-    RecyclerPageAllocator recyclerPageAllocator;
-    RecyclerPageAllocator recyclerLargeBlockPageAllocator;
-public:
-    template<typename Action>
-    void ForEachPageAllocator(Action action)
-    {
-        action(&this->recyclerPageAllocator);
-        action(&this->recyclerLargeBlockPageAllocator);
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-        action(&this->recyclerWithBarrierPageAllocator);
-#endif
-        action(threadPageAllocator);
-    }
-private:
     class AutoSwitchCollectionStates
     {
     public:
@@ -1185,7 +1167,7 @@ public:
 
     void Prime();
     void* GetOwnerContext() { return (void*) this->collectionWrapper; }
-    PageAllocator * GetPageAllocator() { return threadPageAllocator; }
+    //PageAllocator * GetPageAllocator() { return threadPageAllocator; }
     bool NeedOOMRescan() const;
     void SetNeedOOMRescan();
     void ClearNeedOOMRescan();
@@ -1205,13 +1187,6 @@ public:
     void SetIsInScript(bool isInScript);
     bool ShouldIdleCollectOnExit();
     void ScheduleNextCollection();
-
-    IdleDecommitPageAllocator * GetRecyclerLeafPageAllocator();
-    IdleDecommitPageAllocator * GetRecyclerPageAllocator();
-    IdleDecommitPageAllocator * GetRecyclerLargeBlockPageAllocator();
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-    IdleDecommitPageAllocator * GetRecyclerWithBarrierPageAllocator();
-#endif
 
     BOOL IsShuttingDown() const { return this->isShuttingDown; }
 #if ENABLE_CONCURRENT_GC
@@ -1402,21 +1377,21 @@ public:
     char* GetAddressOfAllocator(size_t sizeCat)
     {
         Assert(HeapInfo::IsAlignedSmallObjectSize(sizeCat));
-        return (char*)this->GetHeapInfo<attributes>()->GetBucket<attributes>(sizeCat).GetAllocator();
+        return (char*)this->GetHeapInfo<attributes>()->GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat).GetAllocator();
     }
 
     template <ObjectInfoBits attributes>
     uint32 GetEndAddressOffset(size_t sizeCat)
     {
         Assert(HeapInfo::IsAlignedSmallObjectSize(sizeCat));
-        return this->GetHeapInfo<attributes>()->GetBucket<attributes>(sizeCat).GetAllocator()->GetEndAddressOffset();
+        return this->GetHeapInfo<attributes>()->GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat).GetAllocator()->GetEndAddressOffset();
     }
 
     template <ObjectInfoBits attributes>
     uint32 GetFreeObjectListOffset(size_t sizeCat)
     {
         Assert(HeapInfo::IsAlignedSmallObjectSize(sizeCat));
-        return this->GetHeapInfo<attributes>()->GetBucket<attributes>(sizeCat).GetAllocator()->GetFreeObjectListOffset();
+        return this->GetHeapInfo<attributes>()->GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat).GetAllocator()->GetFreeObjectListOffset();
     }
 
     void GetNormalHeapBlockAllocatorInfoForNativeAllocation(size_t sizeCat, void*& allocatorAddress, uint32& endAddressOffset, uint32& freeListOffset, bool allowBumpAllocation, bool isOOPJIT);
@@ -1781,7 +1756,6 @@ private:
     template <CollectionFlags flags>
     BOOL TryFinishConcurrentCollect();
     BOOL WaitForConcurrentThread(DWORD waitTime);
-    void FlushBackgroundPages();
     BOOL FinishConcurrentCollect(CollectionFlags flags);
     void FinishTransferSwept(CollectionFlags flags);
     BOOL FinishConcurrentCollectWrapped(CollectionFlags flags);

@@ -440,8 +440,14 @@ HRESULT HeapInfo::ValidPointersMap<TBlockAttributes>::GenerateValidPointersMapHe
 }
 #endif
 
-HeapInfo::HeapInfo() :
+HeapInfo::HeapInfo(AllocationPolicyManager * policyManager, Js::ConfigFlagsTable& configFlagsTable, IdleDecommitPageAllocator * leafPageAllocator) :
     recycler(nullptr),
+    recyclerLeafPageAllocator(leafPageAllocator),
+    recyclerPageAllocator(this, policyManager, configFlagsTable, RecyclerHeuristic::Instance.DefaultMaxFreePageCount, RecyclerHeuristic::Instance.DefaultMaxAllocPageCount),
+    recyclerLargeBlockPageAllocator(this, policyManager, configFlagsTable, RecyclerHeuristic::Instance.DefaultMaxFreePageCount),
+#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
+    recyclerWithBarrierPageAllocator(this, policyManager, configFlagsTable, RecyclerHeuristic::Instance.DefaultMaxFreePageCount, PageAllocator::DefaultMaxAllocPageCount, true),
+#endif
 #if ENABLE_CONCURRENT_GC
     newLeafHeapBlockList(nullptr),
     newNormalHeapBlockList(nullptr),
@@ -478,6 +484,13 @@ HeapInfo::HeapInfo() :
 #endif
     hasPendingTransferDisposedObjects(false)
 {
+#if DBG_DUMP
+    recyclerPageAllocator.debugName = _u("Recycler");
+    recyclerLargeBlockPageAllocator.debugName = _u("RecyclerLargeBlock");
+#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
+    recyclerWithBarrierPageAllocator.debugName = _u("RecyclerWithBarrier");
+#endif
+#endif
 }
 
 HeapInfo::~HeapInfo()
@@ -1092,7 +1105,7 @@ HeapInfo::SweepSmallNonFinalizable(RecyclerSweep& recyclerSweep)
     {
         // finalizer may trigger arena allocations, do don't suspend the leaf (thread) page allocator
         // until  we are going to sweep leaf pages.
-        recycler->GetRecyclerLeafPageAllocator()->SuspendIdleDecommit();
+        this->GetRecyclerLeafPageAllocator()->SuspendIdleDecommit();
     }
     for (uint i=0; i<HeapConstants::BucketCount; i++)
     {
@@ -1109,7 +1122,7 @@ HeapInfo::SweepSmallNonFinalizable(RecyclerSweep& recyclerSweep)
     if (!recyclerSweep.IsBackground())
     {
         // large block don't use the leaf page allocator, we can resume idle decommit now
-        recycler->GetRecyclerLeafPageAllocator()->ResumeIdleDecommit();
+        this->GetRecyclerLeafPageAllocator()->ResumeIdleDecommit();
 
         RECYCLER_SLOW_CHECK(VerifySmallHeapBlockCount());
         RECYCLER_SLOW_CHECK(VerifyLargeHeapBlockCount());
@@ -1278,7 +1291,26 @@ HeapInfo::PrepareSweep()
 }
 #endif
 
-#if ENABLE_CONCURRENT_GC
+#if ENABLE_PARTIAL_GC || ENABLE_CONCURRENT_GC
+#ifdef RECYCLER_WRITE_WATCH 
+void HeapInfo::EnableWriteWatch()
+{
+    recyclerPageAllocator.EnableWriteWatch(); 
+    recyclerLargeBlockPageAllocator.EnableWriteWatch();
+}
+
+bool HeapInfo::ResetWriteWatch()
+{
+    return recyclerPageAllocator.ResetWriteWatch() && recyclerLargeBlockPageAllocator.ResetWriteWatch();
+}
+
+#if DBG
+size_t HeapInfo::GetWriteWatchPageCount()
+{
+    return this->recyclerPageAllocator.GetWriteWatchPageCount() + this->recyclerLargeBlockPageAllocator.GetWriteWatchPageCount();
+}
+#endif
+#endif
 void
 HeapInfo::SweepPendingObjects(RecyclerSweep& recyclerSweep)
 {
@@ -1990,6 +2022,27 @@ HeapInfo::GetFinalizeCount()
 }
 #endif
 
+#ifdef RECYCLER_MEMORY_VERIFY
+void
+HeapInfo::EnableVerify()
+{
+    ForEachPageAllocator([](IdleDecommitPageAllocator* pageAlloc)
+    {
+        pageAlloc->EnableVerify();
+    });
+}
+#endif
+
+#ifdef RECYCLER_NO_PAGE_REUSE
+void
+HeapInfo::DisablePageReuse()
+{
+    ForEachPageAllocator([](IdleDecommitPageAllocator* pageAlloc)
+    {
+        pageAlloc->DisablePageReuse();
+    });
+}
+#endif
 #if DBG
 bool
 HeapInfo::AllocatorsAreEmpty()
@@ -2016,6 +2069,273 @@ HeapInfo::AllocatorsAreEmpty()
     return true;
 }
 #endif
+
+// ==============================================================
+// Page allocator APIs
+// ==============================================================
+void
+HeapInfo::Prime()
+{
+    ForEachPageAllocator([](IdleDecommitPageAllocator * pageAlloc)
+    {
+        pageAlloc->Prime(RecyclerPageAllocator::DefaultPrimePageCount);
+    });
+}
+
+void
+HeapInfo::CloseNonLeaf()
+{
+    ForEachNonLeafPageAllocator([](IdleDecommitPageAllocator * pageAlloc)
+    {
+        pageAlloc->Close();
+    });
+}
+
+void
+HeapInfo::SuspendIdleDecommitNonLeaf()
+{
+    ForEachNonLeafPageAllocator([](IdleDecommitPageAllocator * pageAlloc)
+    {
+        pageAlloc->SuspendIdleDecommit();
+    });
+}
+
+void HeapInfo::ResumeIdleDecommitNonLeaf()
+{
+    ForEachNonLeafPageAllocator([](IdleDecommitPageAllocator * pageAlloc)
+    {
+        pageAlloc->ResumeIdleDecommit();
+    });
+}
+
+#ifdef IDLE_DECOMMIT_ENABLED
+void
+HeapInfo::EnterIdleDecommit()
+{
+    ForEachPageAllocator([](IdleDecommitPageAllocator * pageAlloc)
+    {
+        pageAlloc->EnterIdleDecommit();
+    });
+}
+
+IdleDecommitSignal
+HeapInfo::LeaveIdleDecommit(bool allowTimer)
+{
+    IdleDecommitSignal idleDecommitSignal = IdleDecommitSignal_None;
+    ForEachPageAllocator([&idleDecommitSignal, allowTimer](IdleDecommitPageAllocator * pageAlloc)
+    {
+        IdleDecommitSignal signal = pageAlloc->LeaveIdleDecommit(allowTimer);
+        idleDecommitSignal = max(idleDecommitSignal, signal);
+    });
+    return idleDecommitSignal;
+}
+
+DWORD HeapInfo::IdleDecommit()
+{
+    DWORD waitTime = INFINITE;
+    ForEachPageAllocator([&](IdleDecommitPageAllocator * pageAlloc)
+    {
+        DWORD pageAllocatorWaitTime = pageAlloc->IdleDecommit();
+        waitTime = min(waitTime, pageAllocatorWaitTime);
+    });
+    return waitTime;
+}
+#endif
+
+#if DBG
+void
+HeapInfo::ShutdownIdleDecommit()
+{
+    ForEachPageAllocator([](IdleDecommitPageAllocator * pageAlloc)
+    {
+        pageAlloc->ShutdownIdleDecommit();
+    });
+}
+#endif
+
+void
+HeapInfo::DecommitNow(bool all)
+{
+    ForEachPageAllocator([=](IdleDecommitPageAllocator * pageAlloc)
+    {
+        pageAlloc->DecommitNow(all);
+    });
+}
+
+size_t
+HeapInfo::GetUsedBytes()
+{
+#if GLOBAL_ENABLE_WRITE_BARRIER
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+    {
+        Assert(recyclerPageAllocator.usedBytes == 0);
+    }
+#endif
+
+    size_t usedBytes = 0;
+    ForEachPageAllocator([&](IdleDecommitPageAllocator * pageAlloc)
+    {
+        usedBytes += pageAlloc->usedBytes;
+    });
+    return usedBytes;
+}
+
+size_t
+HeapInfo::GetReservedBytes()
+{
+    size_t reservedBytes = 0;
+    ForEachPageAllocator([&](IdleDecommitPageAllocator * pageAlloc)
+    {
+        reservedBytes += pageAlloc->reservedBytes;
+    });
+    return reservedBytes;
+}
+
+size_t
+HeapInfo::GetCommittedBytes()
+{
+    size_t committedBytes = 0;
+    ForEachPageAllocator([&](IdleDecommitPageAllocator * pageAlloc)
+    {
+        committedBytes += pageAlloc->committedBytes;
+    });
+    return committedBytes;
+}
+
+size_t
+HeapInfo::GetNumberOfSegments()
+{
+    size_t numberOfSegments = 0;
+    ForEachPageAllocator([&](IdleDecommitPageAllocator * pageAlloc)
+    {
+        numberOfSegments += pageAlloc->numberOfSegments;
+    });
+    return numberOfSegments;
+}
+
+IdleDecommitPageAllocator*
+HeapInfo::GetRecyclerPageAllocator()
+{
+    // TODO: SWB this is for Finalizable leaf allocation, which we didn't implement leaf bucket for it
+    // remove this after the finalizable leaf bucket is implemented
+#if GLOBAL_ENABLE_WRITE_BARRIER
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+    {
+        return &this->recyclerWithBarrierPageAllocator;
+    }
+    else
+#endif
+    {
+#if defined(RECYCLER_WRITE_WATCH) || !defined(RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE)
+        return &this->recyclerPageAllocator;
+#else
+        return &this->recyclerWithBarrierPageAllocator;
+#endif
+    }
+}
+
+IdleDecommitPageAllocator*
+HeapInfo::GetRecyclerLargeBlockPageAllocator()
+{
+    return &this->recyclerLargeBlockPageAllocator;
+}
+
+IdleDecommitPageAllocator*
+HeapInfo::GetRecyclerLeafPageAllocator()
+{
+    return this->recyclerLeafPageAllocator;
+}
+
+#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
+IdleDecommitPageAllocator*
+HeapInfo::GetRecyclerWithBarrierPageAllocator()
+{
+    return &this->recyclerWithBarrierPageAllocator;
+}
+#endif
+
+#if ENABLE_BACKGROUND_PAGE_ZEROING
+void
+HeapInfo::StartQueueZeroPage()
+{
+    // Only queue up non-leaf pages- leaf pages don't need to be zeroed out
+    ForEachNonLeafPageAllocator([](IdleDecommitPageAllocator * pageAlloc)
+    {
+        pageAlloc->StartQueueZeroPage();
+    });
+}
+
+void
+HeapInfo::StopQueueZeroPage()
+{
+    ForEachNonLeafPageAllocator([](IdleDecommitPageAllocator * pageAlloc)
+    {
+        pageAlloc->StopQueueZeroPage();
+    });
+}
+
+void
+HeapInfo::BackgroundZeroQueuedPages()
+{
+    ForEachNonLeafPageAllocator([](IdleDecommitPageAllocator * pageAlloc)
+    {
+        pageAlloc->BackgroundZeroQueuedPages();
+    });
+}
+
+void
+HeapInfo::ZeroQueuedPages()
+{
+    ForEachNonLeafPageAllocator([](IdleDecommitPageAllocator * pageAlloc)
+    {
+        pageAlloc->ZeroQueuedPages();
+    });
+}
+
+void
+HeapInfo::FlushBackgroundPages()
+{
+    ForEachPageAllocator([](IdleDecommitPageAllocator * pageAlloc)
+    {
+        pageAlloc->SuspendIdleDecommit();
+        pageAlloc->FlushBackgroundPages();
+        pageAlloc->ResumeIdleDecommit();
+    });
+}
+
+#if DBG
+bool HeapInfo::HasZeroQueuedPages()
+{
+    bool hasZeroQueuedPage = false;
+    ForEachNonLeafPageAllocator([&](IdleDecommitPageAllocator * pageAlloc)
+    {
+        hasZeroQueuedPage = hasZeroQueuedPage || pageAlloc->HasZeroQueuedPages();
+    });
+    return hasZeroQueuedPage;
+}
+#endif
+#endif
+
+#if DBG
+void
+HeapInfo::ResetThreadId()
+{
+    ForEachPageAllocator([](IdleDecommitPageAllocator* pageAlloc)
+    {
+        pageAlloc->ClearConcurrentThreadId();
+    });
+}
+
+void
+HeapInfo::SetDisableThreadAccessCheck()
+{
+    ForEachNonLeafPageAllocator([](IdleDecommitPageAllocator* pageAlloc)
+    {
+        pageAlloc->SetDisableThreadAccessCheck();
+    });
+}
+#endif
+
 
 // Block attribute functions
 /* static */

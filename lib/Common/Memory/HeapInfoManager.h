@@ -11,7 +11,7 @@ class RecyclerSweepManager;
 class HeapInfoManager
 {
 public:
-    HeapInfoManager();
+    HeapInfoManager(AllocationPolicyManager * policyManager, Js::ConfigFlagsTable& configFlagsTable, IdleDecommitPageAllocator * leafPageAllocator);
 
     HeapInfo * GetDefaultHeap()
     {
@@ -99,6 +99,71 @@ public:
 #ifdef RECYCLER_VERIFY_MARK
     void VerifyMark();
 #endif
+
+    // ==============================================================
+    // Page allocator APIs
+    // ==============================================================
+    void Prime();
+    void Close();
+    void DecommitNow(bool all = true);
+
+    void SuspendIdleDecommitNonLeaf();
+    void ResumeIdleDecommitNonLeaf();
+#ifdef IDLE_DECOMMIT_ENABLED
+    void EnterIdleDecommit();
+    IdleDecommitSignal LeaveIdleDecommit(bool allowTimer);
+    DWORD IdleDecommit();
+#endif
+#if DBG
+    void ShutdownIdleDecommit();
+    void ResetThreadId();
+    void SetDisableThreadAccessCheck();
+#endif
+
+    AllocationPolicyManager * GetAllocationPolicyManager();
+    bool IsRecyclerPageAllocator(PageAllocator * pageAllocator);
+    bool IsRecyclerLeafPageAllocator(PageAllocator * pageAllocator);
+    bool IsRecyclerLargeBlockPageAllocator(PageAllocator * pageAllocator);
+#ifdef RECYCLER_WRITE_BARRIER
+    bool IsRecyclerWithBarrierPageAllocator(PageAllocator * pageAllocator);
+#endif
+    size_t GetUsedBytes();
+    size_t GetReservedBytes();
+    size_t GetCommittedBytes();
+    size_t GetNumberOfSegments();
+
+#if ENABLE_BACKGROUND_PAGE_ZEROING
+    void StartQueueZeroPage();
+    void StopQueueZeroPage();
+    void BackgroundZeroQueuedPages();
+    void FlushBackgroundPages();
+    void ZeroQueuedPages();
+#if DBG
+    bool HasZeroQueuedPages();
+#endif
+#endif
+
+#if ENABLE_PARTIAL_GC || ENABLE_CONCURRENT_GC
+#ifdef RECYCLER_WRITE_WATCH 
+    void EnableWriteWatch();
+    bool ResetWriteWatch();
+#if DBG
+    size_t GetWriteWatchPageCount();
+#endif
+#endif
+#endif
+
+#ifdef RECYCLER_MEMORY_VERIFY
+    void EnableVerify();
+#endif
+#ifdef RECYCLER_NO_PAGE_REUSE
+    void DisablePageReuse();
+#endif
+
+#ifdef RECYCLER_PAGE_HEAP
+    bool DoCaptureAllocCallStack();
+    bool DoCaptureFreeCallStack();
+#endif
 private:
     template <class Fn>
     void ForEachHeapInfo(Fn fn);
@@ -139,6 +204,7 @@ private:
     friend class HeapInfo;
     friend class RecyclerSweepManager;
 
+    RecyclerPageAllocator isolatedLeafPageAllocator;
     HeapInfo defaultHeap;
     HeapInfo isolatedHeap;
 
