@@ -350,12 +350,13 @@ public:
 
     // GlobOpt Stuff
 public:
-    IR::LabelInstr*         CanProveConditionalBranch(IR::BranchInstr *branch, GlobOpt* globOpt, GlobHashTable * localSymToValueMap);
-    bool         CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt);
     bool         PathDepBranchFolding(GlobOpt* globOptState);
     void         MergePredBlocksValueMaps(GlobOpt* globOptState);
 private:
     void         CleanUpValueMaps();
+    void         CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt);
+    Value *      FindValueInLocalThenGlobalValueTableAndUpdate(GlobOpt *globOpt, GlobHashTable * localSymToValueMap, IR::Instr *instr, Sym *dstSym, Sym *srcSym);
+    IR::LabelInstr*         CanProveConditionalBranch(IR::BranchInstr *branch, GlobOpt* globOpt, GlobHashTable * localSymToValueMap);
 
 #if DBG_DUMP
 public:
@@ -385,7 +386,6 @@ public:
 
     // Deadstore data
     BVSparse<JitArenaAllocator> *              upwardExposedUses;
-    BVSparse<JitArenaAllocator> *              successorBlockUses;
     BVSparse<JitArenaAllocator> *              upwardExposedFields;
     BVSparse<JitArenaAllocator> *              typesNeedingKnownObjectLayout;
     BVSparse<JitArenaAllocator> *              slotDeadStoreCandidates;
@@ -431,7 +431,6 @@ private:
         isLoopHeader(false),
         hasCall(false),
         upwardExposedUses(nullptr),
-        successorBlockUses(nullptr),
         upwardExposedFields(nullptr),
         typesNeedingKnownObjectLayout(nullptr),
         slotDeadStoreCandidates(nullptr),

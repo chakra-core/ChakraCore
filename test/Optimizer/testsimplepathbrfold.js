@@ -216,3 +216,24 @@ function iterator(x) {
 iterator(5);
 iterator(100);
 iterator(5);
+print("Done iterator\n");
+
+function next2(arr, len) {
+  if (len > 5) {
+    return {done:true, value:undefined};
+  }
+  return {done:false, value:arr[len]};
+}
+
+function iterator2(x) {
+  var arr = [0,1,2,3,4,5,6,7,8,9,10];
+  var res = next2(arr, x);
+  if (!res.done) {
+    print(res.value);
+  }
+}
+
+iterator2(5);
+iterator2(100);
+iterator2(5);
+print("Done iterator2\n");
