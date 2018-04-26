@@ -157,7 +157,6 @@ GlobOpt::DoFieldCopyProp(Loop * loop) const
 bool
 GlobOpt::DoFieldHoisting(Loop *loop)
 {
-#if 0
     if (loop == nullptr)
     {
         return false;
@@ -187,9 +186,6 @@ GlobOpt::DoFieldHoisting(Loop *loop)
     }
 
     return loop->CanDoFieldHoist();
-#endif
-
-    return false;
 }
 
 bool
