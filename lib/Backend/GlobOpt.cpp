@@ -6362,29 +6362,10 @@ bool BoolAndIntStaticAndTypeMismatch(Value* src1Val, Value* src2Val, Js::Var src
         (src2ValInfo->IsNumber() && src2Var && src1ValInfo->IsBoolean() && src2Var != Js::TaggedInt::ToVarUnchecked(0) && src2Var != Js::TaggedInt::ToVarUnchecked(1));
 }
 
+
 bool
-GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Value **pDstVal)
+GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2Val, Js::Var src1Var, Js::Var src2Var, bool *result)
 {
-    if (!src1Val)
-    {
-        return false;
-    }
-
-    int64 left64, right64;
-    Js::Var src1Var = this->GetConstantVar(instr->GetSrc1(), src1Val);
-
-    Js::Var src2Var = nullptr;
-
-    if (instr->GetSrc2())
-    {
-        if (!src2Val)
-        {
-            return false;
-        }
-
-        src2Var = this->GetConstantVar(instr->GetSrc2(), src2Val);
-    }
-
     auto AreSourcesEqual = [&](Value * val1, Value * val2) -> bool
     {
         // NaN !== NaN, and objects can have valueOf/toString
@@ -6397,20 +6378,34 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
     //Assert(!src1Var || !Js::JavascriptOperators::IsObject(src1Var));
     //Assert(!src2Var || !Js::JavascriptOperators::IsObject(src2Var));
 
-    BOOL result;
+    int64 left64, right64;
+    int left, right;
     int32 constVal;
+
     switch (instr->m_opcode)
     {
-#define BRANCH(OPCODE,CMP,TYPE,UNSIGNEDNESS) \
+#define BRANCHSIGNED(OPCODE,CMP,TYPE,UNSIGNEDNESS) \
     case Js::OpCode::##OPCODE: \
-        if (src1Val->GetValueInfo()->TryGetInt64ConstantValue(&left64, UNSIGNEDNESS) && \
-            src2Val->GetValueInfo()->TryGetInt64ConstantValue(&right64, UNSIGNEDNESS)) \
+        if (src1Val && src2Val) \
         { \
-            result = (TYPE)left64 CMP (TYPE)right64; \
-        } \
-        else if (AreSourcesEqual(src1Val, src2Val)) \
-        { \
-            result = 0 CMP 0; \
+            if (src1Val->GetValueInfo()->TryGetIntConstantValue(&left, UNSIGNEDNESS) && \
+                src2Val->GetValueInfo()->TryGetIntConstantValue(&right, UNSIGNEDNESS)) \
+            { \
+                *result = (TYPE)left CMP(TYPE)right; \
+            } \
+            if (src1Val->GetValueInfo()->TryGetInt64ConstantValue(&left64, UNSIGNEDNESS) && \
+                src2Val->GetValueInfo()->TryGetInt64ConstantValue(&right64, UNSIGNEDNESS)) \
+            { \
+                *result = (TYPE)left64 CMP(TYPE)right64; \
+            } \
+            else if (AreSourcesEqual(src1Val, src2Val)) \
+            { \
+                *result = 0 CMP 0; \
+            } \
+            else \
+            { \
+                return false; \
+            } \
         } \
         else \
         { \
@@ -6418,70 +6413,55 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         } \
         break;
 
-    BRANCH(BrEq_I4, == , int64, false)
-    BRANCH(BrGe_I4, >= , int64, false)
-    BRANCH(BrGt_I4, >, int64, false)
-    BRANCH(BrLt_I4, <, int64, false)
-    BRANCH(BrLe_I4, <= , int64, false)
-    BRANCH(BrNeq_I4, != , int64, false)
-    BRANCH(BrUnGe_I4, >= , uint64, true)
-    BRANCH(BrUnGt_I4, >, uint64, true)
-    BRANCH(BrUnLt_I4, <, uint64, true)
-    BRANCH(BrUnLe_I4, <= , uint64, true)
-    case Js::OpCode::BrEq_A:
-    case Js::OpCode::BrNotNeq_A:
-        if (!src1Var || !src2Var)
-        {
-            if (BoolAndIntStaticAndTypeMismatch(src1Val, src2Val, src1Var, src2Var))
-            {
-                result = false;
-            }
-            else if (AreSourcesEqual(src1Val, src2Val))
-            {
-                result = true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        else
-        {
-            if (func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts))
-            {
-                // TODO: OOP JIT, const folding
-                return false;
-            }
-            result = Js::JavascriptOperators::Equal(src1Var, src2Var, this->func->GetScriptContext());
-        }
+        BRANCHSIGNED(BrEq_I4, == , int64, false)
+            BRANCHSIGNED(BrGe_I4, >= , int64, false)
+            BRANCHSIGNED(BrGt_I4, > , int64, false)
+            BRANCHSIGNED(BrLt_I4, < , int64, false)
+            BRANCHSIGNED(BrLe_I4, <= , int64, false)
+            BRANCHSIGNED(BrNeq_I4, != , int64, false)
+            BRANCHSIGNED(BrUnGe_I4, >= , uint64, true)
+            BRANCHSIGNED(BrUnGt_I4, > , uint64, true)
+            BRANCHSIGNED(BrUnLt_I4, < , uint64, true)
+            BRANCHSIGNED(BrUnLe_I4, <= , uint64, true)
+#undef BRANCHSIGNED
+#define BRANCH(OPCODE,CMP,VARCMPFUNC) \
+    case Js::OpCode::##OPCODE: \
+        if (src1Val && src2Val && src1Val->GetValueInfo()->TryGetIntConstantValue(&left) && \
+            src2Val->GetValueInfo()->TryGetIntConstantValue(&right)) \
+        { \
+            *result = left CMP right; \
+        } \
+        else if (src1Val && src2Val && AreSourcesEqual(src1Val, src2Val)) \
+        { \
+            *result = 0 CMP 0; \
+        } \
+        else if (src1Var && src2Var) \
+        { \
+            if (func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts)) \
+            { \
+                return false; \
+            } \
+            *result = VARCMPFUNC(src1Var, src2Var, this->func->GetScriptContext()); \
+        } \
+        else \
+        { \
+            return false; \
+        } \
         break;
-    case Js::OpCode::BrNeq_A:
-    case Js::OpCode::BrNotEq_A:
-        if (!src1Var || !src2Var)
-        {
-            if (BoolAndIntStaticAndTypeMismatch(src1Val, src2Val, src1Var, src2Var))
-            {
-                result = true;
-            }
-            else if (AreSourcesEqual(src1Val, src2Val))
-            {
-                result = false;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        else
-        {
-            if (func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts))
-            {
-                // TODO: OOP JIT, const folding
-                return false;
-            }
-            result = Js::JavascriptOperators::NotEqual(src1Var, src2Var, this->func->GetScriptContext());
-        }
-        break;
+
+    BRANCH(BrEq_A, ==, Js::JavascriptOperators::Equal)
+    BRANCH(BrNotNeq_A, == , Js::JavascriptOperators::Equal)
+    BRANCH(BrGe_A, >= , Js::JavascriptOperators::GreaterEqual)
+    BRANCH(BrNotGe_A, <, !Js::JavascriptOperators::GreaterEqual)
+    BRANCH(BrLt_A, <, Js::JavascriptOperators::Less)
+    BRANCH(BrNotLt_A, >= , !Js::JavascriptOperators::Less)
+    BRANCH(BrGt_A, >, Js::JavascriptOperators::Greater)
+    BRANCH(BrNotGt_A, <= , !Js::JavascriptOperators::Greater)
+    BRANCH(BrLe_A, <= , Js::JavascriptOperators::LessEqual)
+    BRANCH(BrNotLe_A, >, !Js::JavascriptOperators::LessEqual)
+    BRANCH(BrNeq_A, != , Js::JavascriptOperators::NotEqual)
+    BRANCH(BrNotEq_A, != , Js::JavascriptOperators::NotEqual)
+#undef BRANCH
     case Js::OpCode::BrSrEq_A:
     case Js::OpCode::BrSrNotNeq_A:
         if (!src1Var || !src2Var)
@@ -6500,13 +6480,13 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
                 (src2ValInfo->IsBoolean() && src1ValInfo->IsDefinite() && !src1ValInfo->HasBeenBoolean()) ||
                 (src2ValInfo->IsNumber() && src1ValInfo->IsDefinite() && !src1ValInfo->HasBeenNumber()) ||
                 (src2ValInfo->IsString() && src1ValInfo->IsDefinite() && !src1ValInfo->HasBeenString())
-               )
+                )
             {
-                result = false;
+                *result = false;
             }
             else if (AreSourcesEqual(src1Val, src2Val))
             {
-                result = true;
+                *result = true;
             }
             else
             {
@@ -6520,7 +6500,7 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
                 // TODO: OOP JIT, const folding
                 return false;
             }
-            result = Js::JavascriptOperators::StrictEqual(src1Var, src2Var, this->func->GetScriptContext());
+            *result = Js::JavascriptOperators::StrictEqual(src1Var, src2Var, this->func->GetScriptContext());
         }
         break;
 
@@ -6542,13 +6522,13 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
                 (src2ValInfo->IsBoolean() && src1ValInfo->IsDefinite() && !src1ValInfo->HasBeenBoolean()) ||
                 (src2ValInfo->IsNumber() && src1ValInfo->IsDefinite() && !src1ValInfo->HasBeenNumber()) ||
                 (src2ValInfo->IsString() && src1ValInfo->IsDefinite() && !src1ValInfo->HasBeenString())
-               )
+                )
             {
-                result = true;
+                *result = true;
             }
             else if (AreSourcesEqual(src1Val, src2Val))
             {
-                result = false;
+                *result = false;
             }
             else
             {
@@ -6562,7 +6542,7 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
                 // TODO: OOP JIT, const folding
                 return false;
             }
-            result = Js::JavascriptOperators::NotStrictEqual(src1Var, src2Var, this->func->GetScriptContext());
+            *result = Js::JavascriptOperators::NotStrictEqual(src1Var, src2Var, this->func->GetScriptContext());
         }
         break;
 
@@ -6570,15 +6550,15 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
     case Js::OpCode::BrTrue_A:
     {
         ValueInfo *const src1ValueInfo = src1Val->GetValueInfo();
-        if(src1ValueInfo->IsNull() || src1ValueInfo->IsUndefined())
+        if (src1ValueInfo->IsNull() || src1ValueInfo->IsUndefined())
         {
-            result = instr->m_opcode == Js::OpCode::BrFalse_A;
+            *result = instr->m_opcode == Js::OpCode::BrFalse_A;
             break;
         }
-        if(src1ValueInfo->IsObject() && src1ValueInfo->GetObjectType() > ObjectType::Object)
+        if (src1ValueInfo->IsObject() && src1ValueInfo->GetObjectType() > ObjectType::Object)
         {
             // Specific object types that are tracked are equivalent to 'true'
-            result = instr->m_opcode == Js::OpCode::BrTrue_A;
+            *result = instr->m_opcode == Js::OpCode::BrTrue_A;
             break;
         }
 
@@ -6591,10 +6571,10 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         {
             return false;
         }
-        result = Js::JavascriptConversion::ToBoolean(src1Var, this->func->GetScriptContext());
-        if(instr->m_opcode == Js::OpCode::BrFalse_A)
+        *result = Js::JavascriptConversion::ToBoolean(src1Var, this->func->GetScriptContext());
+        if (instr->m_opcode == Js::OpCode::BrFalse_A)
         {
-            result = !result;
+            *result = !(*result);
         }
         break;
     }
@@ -6607,13 +6587,44 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
             return false;
         }
 
-        result = constVal == 0;
+        *result = constVal == 0;
         break;
 
     default:
         return false;
-#undef BRANCH
     }
+    return true;
+}
+
+bool
+GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Value **pDstVal)
+{
+    if (!src1Val)
+    {
+        return false;
+    }
+
+    Js::Var src1Var = this->GetConstantVar(instr->GetSrc1(), src1Val);
+
+    Js::Var src2Var = nullptr;
+
+    if (instr->GetSrc2())
+    {
+        if (!src2Val)
+        {
+            return false;
+        }
+
+        src2Var = this->GetConstantVar(instr->GetSrc2(), src2Val);
+    }
+
+    bool result;
+
+    if (!CanProveConditionalBranch(instr, src1Val, src2Val, src1Var, src2Var, &result))
+    {
+        return false;
+    }
+
 
     this->OptConstFoldBr(!!result, instr);
 
