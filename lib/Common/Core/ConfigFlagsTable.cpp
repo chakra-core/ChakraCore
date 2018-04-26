@@ -338,6 +338,11 @@ namespace Js
 
         // set all parent flags to their default (setting all child flags to their right values)
         this->SetAllParentFlagsAsDefaultValue();
+
+#if defined(ENABLE_DEBUG_CONFIG_OPTIONS) && CONFIG_PARSE_CONFIG_FILE
+        rawInputIndex = 0;
+        memset(rawInput, 0, sizeof(rawInput));
+#endif
     }
 
 

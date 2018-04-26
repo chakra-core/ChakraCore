@@ -502,6 +502,12 @@ namespace Js
 
                 bool            flagPresent[FlagCount];
 
+#if defined(ENABLE_DEBUG_CONFIG_OPTIONS) && CONFIG_PARSE_CONFIG_FILE
+                // save the jscript.config for easier to get the raw input while analyzing dump file
+                char16          rawInput[512];
+                int             rawInputIndex;
+#endif
+
     private:
         //
         // This variable is defined for the constructor
