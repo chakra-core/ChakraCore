@@ -495,7 +495,7 @@ class PageAllocatorBase: public PageAllocatorBaseCommon
     friend struct ::XProcNumberPageSegmentManager;
 #endif
     // Allowing recycler to report external memory allocation.
-    friend class Recycler;
+    friend class HeapInfo;
 public:
     static uint const DefaultMaxFreePageCount = 0x400;       // 4 MB
     static uint const DefaultLowMaxFreePageCount = 0x100;    // 1 MB for low-memory process
@@ -661,7 +661,7 @@ public:
     bool IsClosed() const { return isClosed; }
     void Close() { Assert(!isClosed); isClosed = true; }
 
-    AllocationPolicyManager * GetAllocationPolicyManager() { return policyManager; }
+    AllocationPolicyManager * GetAllocationPolicyManager() const { return policyManager; }
 
     uint GetMaxAllocPageCount();
 

@@ -660,6 +660,7 @@ class Recycler
 {
     friend class RecyclerScanMemoryCallback;
     friend class RecyclerSweep;
+    friend class RecyclerSweepManager;
     friend class MarkContext;
     friend class HeapBlock;
     friend class HeapBlockMap32;
@@ -730,24 +731,6 @@ public:
         Recycler* _recycler;
     };
 
-private:
-    IdleDecommitPageAllocator * threadPageAllocator;
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-    RecyclerPageAllocator recyclerWithBarrierPageAllocator;
-#endif
-    RecyclerPageAllocator recyclerPageAllocator;
-    RecyclerPageAllocator recyclerLargeBlockPageAllocator;
-public:
-    template<typename Action>
-    void ForEachPageAllocator(Action action)
-    {
-        action(&this->recyclerPageAllocator);
-        action(&this->recyclerLargeBlockPageAllocator);
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-        action(&this->recyclerWithBarrierPageAllocator);
-#endif
-        action(threadPageAllocator);
-    }
 private:
     class AutoSwitchCollectionStates
     {
@@ -841,8 +824,6 @@ private:
     bool capturePageHeapFreeStack;
 
     inline bool IsPageHeapEnabled() const { return isPageHeapEnabled; }
-    template<ObjectInfoBits attributes>
-    bool IsPageHeapEnabled(size_t size);
     inline bool ShouldCapturePageHeapAllocStack() const { return capturePageHeapAllocStack; }
     void VerifyPageHeapFillAfterAlloc(char* memBlock, size_t size, ObjectInfoBits attributes);
 #else
@@ -951,7 +932,6 @@ private:
     bool needOOMRescan;
     bool hasDisposableObject;
     DWORD tickCountNextDispose;
-    bool hasPendingTransferDisposedObjects;
     bool inExhaustiveCollection;
     bool hasExhaustiveCandidate;
     bool inCacheCleanupCollection;
@@ -1051,8 +1031,8 @@ private:
 #endif
 
     Js::ConfigFlagsTable&  recyclerFlagsTable;
-    RecyclerSweep recyclerSweepInstance;
-    RecyclerSweep * recyclerSweep;
+    RecyclerSweepManager recyclerSweepManagerInstance;
+    RecyclerSweepManager * recyclerSweepManager;
 
     static const uint tickDiffToNextCollect = 300;
 
@@ -1089,7 +1069,19 @@ private:
 #endif
 
     // destruct autoHeap after backgroundProfilerPageAllocator;
-    HeapInfo autoHeap;
+    HeapInfoManager autoHeap;   
+
+    template <ObjectInfoBits attributes>
+    HeapInfo * GetHeapInfoForAllocation()
+    {
+        return this->GetHeapInfo<attributes>();
+    }
+
+    template <ObjectInfoBits attributes>
+    HeapInfo * GetHeapInfo()
+    {
+        return this->autoHeap.GetDefaultHeap();
+    }
 
 #ifdef PROFILE_MEM
     RecyclerMemoryData * memoryData;
@@ -1158,7 +1150,6 @@ public:
 
     void Prime();
     void* GetOwnerContext() { return (void*) this->collectionWrapper; }
-    PageAllocator * GetPageAllocator() { return threadPageAllocator; }
     bool NeedOOMRescan() const;
     void SetNeedOOMRescan();
     void ClearNeedOOMRescan();
@@ -1178,13 +1169,6 @@ public:
     void SetIsInScript(bool isInScript);
     bool ShouldIdleCollectOnExit();
     void ScheduleNextCollection();
-
-    IdleDecommitPageAllocator * GetRecyclerLeafPageAllocator();
-    IdleDecommitPageAllocator * GetRecyclerPageAllocator();
-    IdleDecommitPageAllocator * GetRecyclerLargeBlockPageAllocator();
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-    IdleDecommitPageAllocator * GetRecyclerWithBarrierPageAllocator();
-#endif
 
     BOOL IsShuttingDown() const { return this->isShuttingDown; }
 #if ENABLE_CONCURRENT_GC
@@ -1253,7 +1237,7 @@ public:
 
     void SetCollectionWrapper(RecyclerCollectionWrapper * wrapper);
     static size_t GetAlignedSize(size_t size) { return HeapInfo::GetAlignedSize(size); }
-    HeapInfo* GetAutoHeap() { return &autoHeap; }
+    HeapInfo* GetDefaultHeapInfo() { return autoHeap.GetDefaultHeap(); }
     template <CollectionFlags flags>
     BOOL CollectNow();
 
@@ -1375,21 +1359,21 @@ public:
     char* GetAddressOfAllocator(size_t sizeCat)
     {
         Assert(HeapInfo::IsAlignedSmallObjectSize(sizeCat));
-        return (char*)this->autoHeap.GetBucket<attributes>(sizeCat).GetAllocator();
+        return (char*)this->GetHeapInfo<attributes>()->template GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat).GetAllocator();
     }
 
     template <ObjectInfoBits attributes>
     uint32 GetEndAddressOffset(size_t sizeCat)
     {
         Assert(HeapInfo::IsAlignedSmallObjectSize(sizeCat));
-        return this->autoHeap.GetBucket<attributes>(sizeCat).GetAllocator()->GetEndAddressOffset();
+        return this->GetHeapInfo<attributes>()->template GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat).GetAllocator()->GetEndAddressOffset();
     }
 
     template <ObjectInfoBits attributes>
     uint32 GetFreeObjectListOffset(size_t sizeCat)
     {
         Assert(HeapInfo::IsAlignedSmallObjectSize(sizeCat));
-        return this->autoHeap.GetBucket<attributes>(sizeCat).GetAllocator()->GetFreeObjectListOffset();
+        return this->GetHeapInfo<attributes>()->template GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat).GetAllocator()->GetFreeObjectListOffset();
     }
 
     void GetNormalHeapBlockAllocatorInfoForNativeAllocation(size_t sizeCat, void*& allocatorAddress, uint32& endAddressOffset, uint32& freeListOffset, bool allowBumpAllocation, bool isOOPJIT);
@@ -1650,8 +1634,8 @@ private:
     bool Sweep(bool concurrent = false);
 #endif
     void SweepWeakReference();
-    void SweepHeap(bool concurrent, RecyclerSweep& recyclerSweep);
-    void FinishSweep(RecyclerSweep& recyclerSweep);
+    void SweepHeap(bool concurrent, RecyclerSweepManager& recyclerSweepManager);
+    void FinishSweep(RecyclerSweepManager& recyclerSweepManager);
 
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     void DoTwoPassConcurrentSweepPreCheck();
@@ -1685,10 +1669,10 @@ private:
 #if ENABLE_PARTIAL_GC
     void ProcessClientTrackedObjects();
     bool PartialCollect(bool concurrent);
-    void FinishPartialCollect(RecyclerSweep * recyclerSweep = nullptr);
+    void FinishPartialCollect(RecyclerSweepManager * recyclerSweep = nullptr);
     void ClearPartialCollect();
 #if ENABLE_CONCURRENT_GC
-    void BackgroundFinishPartialCollect(RecyclerSweep * recyclerSweep);
+    void BackgroundFinishPartialCollect(RecyclerSweepManager * recyclerSweep);
 #endif
 
 #endif
@@ -1754,7 +1738,6 @@ private:
     template <CollectionFlags flags>
     BOOL TryFinishConcurrentCollect();
     BOOL WaitForConcurrentThread(DWORD waitTime);
-    void FlushBackgroundPages();
     BOOL FinishConcurrentCollect(CollectionFlags flags);
     void FinishTransferSwept(CollectionFlags flags);
     BOOL FinishConcurrentCollectWrapped(CollectionFlags flags);
@@ -1771,10 +1754,10 @@ private:
 
     char* GetScriptThreadStackTop();
 
-    void SweepPendingObjects(RecyclerSweep& recyclerSweep);
-    void ConcurrentTransferSweptObjects(RecyclerSweep& recyclerSweep);
+    void SweepPendingObjects(RecyclerSweepManager& recyclerSweepManager);
+    void ConcurrentTransferSweptObjects(RecyclerSweepManager& recyclerSweepManager);
 #if ENABLE_PARTIAL_GC
-    void ConcurrentPartialTransferSweptObjects(RecyclerSweep& recyclerSweep);
+    void ConcurrentPartialTransferSweptObjects(RecyclerSweepManager& recyclerSweepManager);
 #endif // ENABLE_PARTIAL_GC
 #endif // ENABLE_CONCURRENT_GC
 
@@ -1810,6 +1793,7 @@ private:
 #endif
     friend class LargeHeapBlock;
     friend class HeapInfo;
+    friend class HeapInfoManager;
     friend class LargeHeapBucket;
 
     template <typename TBlockType>
@@ -2083,6 +2067,10 @@ public:
     static void WBVerifyBitIsSet(char* addr, char* target);
     static bool WBCheckIsRecyclerAddress(char* addr);
 #endif
+
+#ifdef RECYCLER_FINALIZE_CHECK
+    void VerifyFinalize();
+#endif
 };
 
 
@@ -2265,6 +2253,7 @@ public:
 #endif
 
 #if DBG
+    virtual HeapInfo * GetHeapInfo() const override { Assert(false); return nullptr; }
     virtual BOOL IsFreeObject(void* objectAddress) override { Assert(false); return false; }
 #endif
     virtual BOOL IsValidObject(void* objectAddress) override { Assert(false); return false; }
@@ -2307,21 +2296,21 @@ template <typename SmallHeapBlockAllocatorType>
 void
 Recycler::AddSmallAllocator(SmallHeapBlockAllocatorType * allocator, size_t sizeCat)
 {
-    autoHeap.AddSmallAllocator(allocator, sizeCat);
+    this->GetDefaultHeapInfo()->AddSmallAllocator(allocator, sizeCat);
 }
 
 template <typename SmallHeapBlockAllocatorType>
 void
 Recycler::RemoveSmallAllocator(SmallHeapBlockAllocatorType * allocator, size_t sizeCat)
 {
-    autoHeap.RemoveSmallAllocator(allocator, sizeCat);
+    this->GetDefaultHeapInfo()->RemoveSmallAllocator(allocator, sizeCat);
 }
 
 template <ObjectInfoBits attributes, typename SmallHeapBlockAllocatorType>
 char *
 Recycler::SmallAllocatorAlloc(SmallHeapBlockAllocatorType * allocator, DECLSPEC_GUARD_OVERFLOW size_t sizeCat, size_t size)
 {
-    return autoHeap.SmallAllocatorAlloc<attributes>(this, allocator, sizeCat, size);
+    return this->GetDefaultHeapInfo()->SmallAllocatorAlloc<attributes>(this, allocator, sizeCat, size);
 }
 
 // Dummy recycler allocator policy classes to choose the allocation function

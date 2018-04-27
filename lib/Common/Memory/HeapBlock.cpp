@@ -229,7 +229,7 @@ SmallHeapBlockT<TBlockAttributes>::~SmallHeapBlockT()
 {
     Assert((this->segment == nullptr && this->address == nullptr) ||
         (this->IsLeafBlock()) ||
-        this->GetPageAllocator(heapBucket->heapInfo->recycler)->IsClosed());
+        this->GetPageAllocator()->IsClosed());
 
 #if defined(RECYCLER_SLOW_CHECK_ENABLED)
     heapBucket->heapInfo->heapBlockCount[this->GetHeapBlockType()]--;
@@ -403,7 +403,7 @@ SmallHeapBlockT<TBlockAttributes>::ReassignPages(Recycler * recycler)
 
     PageSegment * segment;
 
-    auto pageAllocator = this->GetPageAllocator(recycler);
+    auto pageAllocator = this->GetPageAllocator();
     uint pagecount = this->GetPageCount();
     char * address = pageAllocator->AllocPagesPageAligned(pagecount, &segment);
 
@@ -428,9 +428,9 @@ SmallHeapBlockT<TBlockAttributes>::ReassignPages(Recycler * recycler)
 
     if (!this->SetPage(address, segment, recycler))
     {
-        this->GetPageAllocator(recycler)->SuspendIdleDecommit();
+        this->GetPageAllocator()->SuspendIdleDecommit();
         this->ReleasePages(recycler);
-        this->GetPageAllocator(recycler)->ResumeIdleDecommit();
+        this->GetPageAllocator()->ResumeIdleDecommit();
         return FALSE;
     }
 
@@ -518,7 +518,7 @@ SmallHeapBlockT<TBlockAttributes>::ReleasePages(Recycler * recycler)
         this->RestoreUnusablePages();
     }
 
-    this->GetPageAllocator(recycler)->ReleasePages(address, this->GetPageCount(), this->GetPageSegment());
+    this->GetPageAllocator()->ReleasePages(address, this->GetPageCount(), this->GetPageSegment());
 
     this->segment = nullptr;
     this->address = nullptr;
@@ -536,7 +536,7 @@ SmallHeapBlockT<TBlockAttributes>::BackgroundReleasePagesSweep(Recycler* recycle
     {
         this->RestoreUnusablePages();
     }
-    this->GetPageAllocator(recycler)->BackgroundReleasePages(address, this->GetPageCount(), this->GetPageSegment());
+    this->GetPageAllocator()->BackgroundReleasePages(address, this->GetPageCount(), this->GetPageSegment());
 
     this->address = nullptr;
     this->segment = nullptr;
@@ -558,7 +558,7 @@ SmallHeapBlockT<TBlockAttributes>::ReleasePagesShutdown(Recycler * recycler)
 
     // Don't release the page in shut down, the page allocator will release them faster
     // Leaf block's allocator need not be closed
-    Assert(this->IsLeafBlock() || this->GetPageAllocator(recycler)->IsClosed());
+    Assert(this->IsLeafBlock() || this->GetPageAllocator()->IsClosed());
 #endif
 
 }
@@ -807,6 +807,13 @@ SmallHeapBlockT<TBlockAttributes>::GetRecycler() const
 }
 
 #if DBG
+template <class TBlockAttributes>
+HeapInfo *
+SmallHeapBlockT<TBlockAttributes>::GetHeapInfo() const
+{
+    return this->heapBucket->heapInfo;
+}
+
 template <class TBlockAttributes>
 BOOL
 SmallHeapBlockT<TBlockAttributes>::IsFreeObject(void * objectAddress)
@@ -1219,7 +1226,7 @@ SmallHeapBlockT<TBlockAttributes>::DoPartialReusePage(RecyclerSweep const& recyc
     // could increase in thread sweep time.
     // OTOH, if the object size is really large, the calculation below will reduce the chance for a page to be
     // partial. we might need to watch out for that.
-    return (expectFreeByteCount + objectSize >= recyclerSweep.GetPartialCollectSmallHeapBlockReuseMinFreeBytes());
+    return (expectFreeByteCount + objectSize >= recyclerSweep.GetManager()->GetPartialCollectSmallHeapBlockReuseMinFreeBytes());
 }
 
 #if DBG
@@ -1287,7 +1294,7 @@ SmallHeapBlockT<TBlockAttributes>::AdjustPartialUncollectedAllocBytes(RecyclerSw
     Assert(newAllocatedCount >= newObjectExpectSweepCount);
     Assert(this->lastUncollectedAllocBytes >= newObjectExpectSweepCount * this->objectSize);
 
-    recyclerSweep.SubtractSweepNewObjectAllocBytes(newObjectExpectSweepCount * this->objectSize);
+    recyclerSweep.GetManager()->SubtractSweepNewObjectAllocBytes(newObjectExpectSweepCount * this->objectSize);
 }
 #endif  // RECYCLER_VERIFY_MARK
 
@@ -1351,7 +1358,7 @@ SmallHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queu
 
 #if ENABLE_PARTIAL_GC
         // Accounting for partial heuristics
-        recyclerSweep.AddUnaccountedNewObjectAllocBytes(this);
+        recyclerSweep.GetManager()->AddUnaccountedNewObjectAllocBytes(this);
 #endif
     }
 
@@ -1373,7 +1380,7 @@ SmallHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queu
     RECYCLER_STATS_INC(recycler, heapBlockCount[this->GetHeapBlockType()]);
 
 #if ENABLE_PARTIAL_GC
-    if (recyclerSweep.DoAdjustPartialHeuristics() && allocable)
+    if (recyclerSweep.GetManager()->DoAdjustPartialHeuristics() && allocable)
     {
         this->AdjustPartialUncollectedAllocBytes(recyclerSweep, expectSweepCount);
     }

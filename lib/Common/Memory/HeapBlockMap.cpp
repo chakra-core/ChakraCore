@@ -590,7 +590,7 @@ HeapBlockMap32::ForEachSegment(Recycler * recycler, Fn func)
 
             PageAllocator* segmentPageAllocator = (PageAllocator*)currentSegment->GetAllocator();
 
-            Assert(segmentPageAllocator == block->GetPageAllocator(recycler));
+            Assert(segmentPageAllocator == block->GetPageAllocator(block->GetHeapInfo()));
 #if defined(TARGET_64)
             // On 64 bit, the segment may span multiple HeapBlockMap32 structures.
             // Limit the processing to the portion of the segment in this HeapBlockMap32.
@@ -798,8 +798,8 @@ HeapBlockMap32::ChangeProtectionLevel(Recycler* recycler, DWORD protectFlags, DW
     {
         // Ideally, we shouldn't to exclude LargeBlocks here but guest arenas are allocated
         // from this allocator and we touch them during marking if they're pending delete
-        if ((segmentPageAllocator != recycler->GetRecyclerLeafPageAllocator())
-            && (segmentPageAllocator != recycler->GetRecyclerLargeBlockPageAllocator()))
+        if (!recycler->autoHeap.IsRecyclerLeafPageAllocator(segmentPageAllocator)
+            && !recycler->autoHeap.IsRecyclerLargeBlockPageAllocator(segmentPageAllocator))
         {
             Assert(currentSegment->IsPageSegment());
             ((PageSegment*)currentSegment)->ChangeSegmentProtection(protectFlags, expectedOldFlags);
@@ -904,7 +904,7 @@ HeapBlockMap32::Rescan(Recycler * recycler, bool resetWriteWatch)
         {
             // Call GetWriteWatch for Small non-leaf segments.
             // Large blocks have their own separate write watch handling.
-            if (segmentPageAllocator == recycler->GetRecyclerPageAllocator())
+            if (recycler->autoHeap.IsRecyclerPageAllocator(segmentPageAllocator))
             {
                 Assert(segmentLength <= MaxGetWriteWatchPages * PageSize);
 
@@ -942,7 +942,7 @@ HeapBlockMap32::Rescan(Recycler * recycler, bool resetWriteWatch)
 #endif
 
 #ifdef RECYCLER_WRITE_BARRIER
-        if (segmentPageAllocator == recycler->GetRecyclerWithBarrierPageAllocator())
+        if (recycler->autoHeap.IsRecyclerWithBarrierPageAllocator(segmentPageAllocator))
         {
             // Loop through pages for this segment and check write barrier.
             size_t pageCount = segmentLength / AutoSystemInfo::PageSize;
@@ -973,8 +973,8 @@ HeapBlockMap32::Rescan(Recycler * recycler, bool resetWriteWatch)
             return;
         }
 #endif
-        Assert(segmentPageAllocator == recycler->GetRecyclerLeafPageAllocator() ||
-            segmentPageAllocator == recycler->GetRecyclerLargeBlockPageAllocator());
+        Assert(recycler->autoHeap.IsRecyclerLeafPageAllocator(segmentPageAllocator) ||
+            recycler->autoHeap.IsRecyclerLargeBlockPageAllocator(segmentPageAllocator));
     });
 
     return scannedPageCount;
@@ -994,9 +994,9 @@ HeapBlockMap32::OOMRescan(Recycler * recycler)
 
         // Process Small non-leaf segments (including write barrier blocks).
         // Large blocks have their own separate write watch handling.
-        if (segmentPageAllocator == recycler->GetRecyclerPageAllocator()
+        if (recycler->autoHeap.IsRecyclerPageAllocator(segmentPageAllocator)
 #ifdef RECYCLER_WRITE_BARRIER
-            || segmentPageAllocator == recycler->GetRecyclerWithBarrierPageAllocator()
+            || recycler->autoHeap.IsRecyclerWithBarrierPageAllocator(segmentPageAllocator)
 #endif
             )
         {
@@ -1107,8 +1107,8 @@ HeapBlockMap32::OOMRescan(Recycler * recycler)
         }
         else
         {
-            Assert(segmentPageAllocator == recycler->GetRecyclerLeafPageAllocator() ||
-                segmentPageAllocator == recycler->GetRecyclerLargeBlockPageAllocator());
+            Assert(recycler->autoHeap.IsRecyclerLeafPageAllocator(segmentPageAllocator) ||
+                recycler->autoHeap.IsRecyclerLargeBlockPageAllocator(segmentPageAllocator));
         }
     });
 

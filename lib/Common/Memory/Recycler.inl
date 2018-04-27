@@ -19,7 +19,7 @@ Recycler::IntegrateBlock(char * blockAddress, PageSegment * segment, size_t allo
     // This should only happen during a pre-collection callback.
     Assert(this->collectionState == Collection_PreCollection);
 
-    bool success = autoHeap.IntegrateBlock<attributes>(blockAddress, segment, this, allocSize);
+    bool success = this->GetHeapInfoForAllocation<attributes>()->IntegrateBlock<attributes>(blockAddress, segment, this, allocSize);
 #ifdef PROFILE_RECYCLER_ALLOC
     if (success)
     {
@@ -97,24 +97,25 @@ Recycler::AllocWithAttributesInlined(DECLSPEC_GUARD_OVERFLOW size_t size)
 #endif
 
     char* memBlock = nullptr;
+    HeapInfo * heapInfo = this->GetHeapInfoForAllocation<attributes>();
 #if GLOBAL_ENABLE_WRITE_BARRIER
     if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
     {
         if ((attributes & InternalObjectInfoBitMask) != LeafBit)
         {
             // none leaf allocation or Finalizable Leaf allocation,  adding WithBarrierBit
-            memBlock = RealAlloc<(ObjectInfoBits)((attributes | WithBarrierBit) & InternalObjectInfoBitMask), nothrow>(&autoHeap, allocSize);
+            memBlock = RealAlloc<(ObjectInfoBits)((attributes | WithBarrierBit) & InternalObjectInfoBitMask), nothrow>(heapInfo, allocSize);
         }
         else
         {
             // pure Leaf allocation
-            memBlock = RealAlloc<(ObjectInfoBits)(attributes & InternalObjectInfoBitMask), nothrow>(&autoHeap, allocSize);
+            memBlock = RealAlloc<(ObjectInfoBits)(attributes & InternalObjectInfoBitMask), nothrow>(heapInfo, allocSize);
         }
     }
     else
 #endif
     {
-        memBlock = RealAlloc<(ObjectInfoBits)(attributes & InternalObjectInfoBitMask), nothrow>(&autoHeap, allocSize);
+        memBlock = RealAlloc<(ObjectInfoBits)(attributes & InternalObjectInfoBitMask), nothrow>(heapInfo, allocSize);
     }
 
     if (nothrow)
@@ -282,32 +283,6 @@ Recycler::AllocZeroWithAttributesInlined(DECLSPEC_GUARD_OVERFLOW size_t size)
     return obj;
 }
 
-#ifdef RECYCLER_PAGE_HEAP
-template<ObjectInfoBits attributes>
-bool Recycler::IsPageHeapEnabled(size_t size)
-{
-    if (IsPageHeapEnabled())
-    {
-        size_t sizeCat = HeapInfo::GetAlignedSizeNoCheck(size);
-        if (HeapInfo::IsSmallObject(size))
-        {
-            auto& bucket = this->autoHeap.GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat);
-            return bucket.IsPageHeapEnabled(attributes);
-        }
-        else if (HeapInfo::IsMediumObject(size))
-        {
-            auto& bucket = this->autoHeap.GetMediumBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat);
-            return bucket.IsPageHeapEnabled(attributes);
-        }
-        else
-        {
-            return this->autoHeap.largeObjectBucket.IsPageHeapEnabled(attributes);
-        }
-    }
-    return false;
-}
-#endif
-
 template <ObjectInfoBits attributes, bool isSmallAlloc, bool nothrow>
 inline char*
 Recycler::RealAllocFromBucket(HeapInfo* heap, size_t size)
@@ -353,7 +328,7 @@ Recycler::RealAllocFromBucket(HeapInfo* heap, size_t size)
         )
     {
         // TODO: looks the check has been done already
-        if (this->IsPageHeapEnabled<attributes>(size))
+        if (heap->IsPageHeapEnabled<attributes>(size))
         {
             VerifyZeroFill(memBlock, size);
         }

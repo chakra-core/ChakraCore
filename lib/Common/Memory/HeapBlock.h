@@ -33,6 +33,7 @@ if (flags.Trace.IsEnabled(Js::PageHeapPhase)) \
 
 class Recycler;
 class HeapBucket;
+class HeapInfo;
 template <typename TBlockType> class HeapBucketT;
 class  RecyclerSweep;
 class MarkContext;
@@ -420,7 +421,7 @@ public:
     }
 #endif
 
-    IdleDecommitPageAllocator* GetPageAllocator(Recycler* recycler);
+    IdleDecommitPageAllocator* GetPageAllocator(HeapInfo * heapInfo);
 
     bool GetAndClearNeedOOMRescan()
     {
@@ -445,6 +446,7 @@ public:
 
 
 #if DBG
+    virtual HeapInfo * GetHeapInfo() const = 0;
     virtual BOOL IsFreeObject(void* objectAddress) = 0;
 #endif
     virtual BOOL IsValidObject(void* objectAddress) = 0;
@@ -752,6 +754,7 @@ public:
     SmallHeapBlockBitVector * GetDebugFreeBitVector() { return &debugFreeBits; }
 #endif
 #if DBG
+    virtual HeapInfo * GetHeapInfo() const override;
     virtual BOOL IsFreeObject(void* objectAddress) override;
 #endif
     virtual BOOL IsValidObject(void* objectAddress) override;
@@ -862,6 +865,8 @@ protected:
     template <typename TBlockType>
     bool FindHeapObjectImpl(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject);
 protected:
+    IdleDecommitPageAllocator * GetPageAllocator();
+
     void Init(ushort objectSize, ushort objectCount);
     void ConstructorCommon(HeapBucket * bucket, ushort objectSize, ushort objectCount, HeapBlockType heapBlockType);
 

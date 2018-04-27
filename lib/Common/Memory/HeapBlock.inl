@@ -19,30 +19,37 @@ SmallHeapBlockT<TBlockAttributes>::SetAttributes(void * address, unsigned char a
 
 inline
 IdleDecommitPageAllocator*
-HeapBlock::GetPageAllocator(Recycler* recycler)
+HeapBlock::GetPageAllocator(HeapInfo * heapInfo)
 {
     switch (this->GetHeapBlockType())
     {
     case SmallLeafBlockType:
     case MediumLeafBlockType:
-        return recycler->GetRecyclerLeafPageAllocator();
+        return heapInfo->GetRecyclerLeafPageAllocator();
     case LargeBlockType:
-        return recycler->GetRecyclerLargeBlockPageAllocator();
+        return heapInfo->GetRecyclerLargeBlockPageAllocator();
 #ifdef RECYCLER_WRITE_BARRIER
     case SmallNormalBlockWithBarrierType:
     case SmallFinalizableBlockWithBarrierType:
     case MediumNormalBlockWithBarrierType:
     case MediumFinalizableBlockWithBarrierType:
 #ifdef RECYCLER_WRITE_BARRIER_ALLOC_THREAD_PAGE
-        return recycler->GetRecyclerLeafPageAllocator();
+        return heapInfo->GetRecyclerLeafPageAllocator();
 #elif defined(RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE)
-        return recycler->GetRecyclerWithBarrierPageAllocator();
+        return heapInfo->GetRecyclerWithBarrierPageAllocator();
 #endif
 #endif
 
     default:
-        return recycler->GetRecyclerPageAllocator();
+        return heapInfo->GetRecyclerPageAllocator();
     };
+}
+
+template <class TBlockAttributes>
+IdleDecommitPageAllocator*
+SmallHeapBlockT<TBlockAttributes>::GetPageAllocator()
+{
+    return __super::GetPageAllocator(this->heapBucket->heapInfo);
 }
 
 template <class TBlockAttributes>

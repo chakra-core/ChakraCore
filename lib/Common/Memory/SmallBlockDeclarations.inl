@@ -116,7 +116,7 @@ SmallHeapBlockT<TBlockTypeAttributes>::SweepObject<SweepMode_InThread>(Recycler 
         this->AsFinalizableBlock<TBlockTypeAttributes>()->AddPendingDisposeObject();
 
 #ifdef RECYCLER_FINALIZE_CHECK
-        recycler->autoHeap.pendingDisposableObjectCount++;
+        this->heapBucket->heapInfo->pendingDisposableObjectCount++;
 #endif
     }
     else

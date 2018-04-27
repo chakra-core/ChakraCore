@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
 
-RecyclerPageAllocator::RecyclerPageAllocator(Recycler* recycler, AllocationPolicyManager * policyManager,
+RecyclerPageAllocator::RecyclerPageAllocator(HeapInfo * heapInfo, AllocationPolicyManager * policyManager,
     Js::ConfigFlagsTable& flagTable, uint maxFreePageCount, uint maxAllocPageCount, bool enableWriteBarrier)
     : IdleDecommitPageAllocator(policyManager,
         PageAllocatorType_Recycler,
@@ -18,12 +18,12 @@ RecyclerPageAllocator::RecyclerPageAllocator(Recycler* recycler, AllocationPolic
         enableWriteBarrier
         )
 {
-    this->recycler = recycler;
+    this->heapInfo = heapInfo;
 }
 
 bool RecyclerPageAllocator::IsMemProtectMode()
 {
-    return recycler->IsMemProtectMode();
+    return heapInfo->GetRecycler()->IsMemProtectMode();
 }
 
 #if ENABLE_CONCURRENT_GC

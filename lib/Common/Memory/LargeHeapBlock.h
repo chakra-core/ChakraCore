@@ -123,6 +123,7 @@ public:
     Recycler * GetRecycler() const;
 
 #if DBG
+    virtual HeapInfo * GetHeapInfo() const override;
     virtual BOOL IsFreeObject(void* objectAddress) override;
 #endif
     virtual BOOL IsValidObject(void* objectAddress) override;

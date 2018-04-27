@@ -206,7 +206,7 @@ LargeHeapBlock::LargeHeapBlock(__in char * address, size_t pageCount, Segment * 
 
 LargeHeapBlock::~LargeHeapBlock()
 {
-    AssertMsg(this->segment == nullptr || this->heapInfo->recycler->recyclerLargeBlockPageAllocator.IsClosed(),
+    AssertMsg(this->segment == nullptr || this->heapInfo->recyclerLargeBlockPageAllocator.IsClosed(),
         "ReleasePages needs to be called before delete");
     RECYCLER_PERF_COUNTER_DEC(LargeHeapBlockCount);
 
@@ -308,7 +308,7 @@ LargeHeapBlock::ReleasePagesShutdown(Recycler * recycler)
     recycler->heapBlockMap.ClearHeapBlock(this->address, this->pageCount);
 
     // Don't release the page in shut down, the page allocator will release them faster
-    Assert(recycler->recyclerLargeBlockPageAllocator.IsClosed());
+    Assert(this->heapInfo->recyclerLargeBlockPageAllocator.IsClosed());
 #endif
 }
 
@@ -343,7 +343,7 @@ LargeHeapBlock::ReleasePages(Recycler * recycler)
 {
     Assert(segment != nullptr);
 
-    IdleDecommitPageAllocator* pageAllocator = recycler->GetRecyclerLargeBlockPageAllocator();
+    IdleDecommitPageAllocator* pageAllocator = heapInfo->GetRecyclerLargeBlockPageAllocator();
     char* blockStartAddress = this->address;
     size_t realPageCount = this->pageCount;
 #ifdef RECYCLER_PAGE_HEAP
@@ -404,6 +404,12 @@ LargeHeapBlock::IsValidObject(void* objectAddress)
 }
 
 #if DBG
+HeapInfo *
+LargeHeapBlock::GetHeapInfo() const
+{
+    return this->heapInfo;
+}
+
 BOOL
 LargeHeapBlock::IsFreeObject(void * objectAddress)
 {
@@ -1577,7 +1583,7 @@ LargeHeapBlock::Sweep(RecyclerSweep& recyclerSweep, bool queuePendingSweep)
 bool
 LargeHeapBlock::TrimObject(Recycler* recycler, LargeObjectHeader* header, size_t sizeOfObject, bool inDispose)
 {
-    IdleDecommitPageAllocator* pageAllocator = recycler->GetRecyclerLargeBlockPageAllocator();
+    IdleDecommitPageAllocator* pageAllocator = heapInfo->GetRecyclerLargeBlockPageAllocator();
     uint pageSize = AutoSystemInfo::PageSize ;
 
     // If we have to trim an object, either we need to have more than one object in the
@@ -1723,7 +1729,7 @@ LargeHeapBlock::FinalizeObject(Recycler* recycler, LargeObjectHeader* header)
     this->HeaderList()[header->objectIndex] = nullptr;
 
 #ifdef RECYCLER_FINALIZE_CHECK
-    recycler->autoHeap.pendingDisposableObjectCount++;
+    this->heapInfo->pendingDisposableObjectCount++;
 #endif
 }
 
@@ -2063,7 +2069,7 @@ void LargeHeapBlock::FillFreeMemory(Recycler * recycler, __in_bcount(size) void 
 #endif
 
 #if defined(RECYCLER_NO_PAGE_REUSE)
-    if (this->InPageHeapMode() && this->GetPageAllocator(this->GetRecycler())->IsPageReuseDisabled())
+    if (this->InPageHeapMode() && this->GetPageAllocator(this->heapInfo)->IsPageReuseDisabled())
     {
         this->PageHeapLockPages();
     }

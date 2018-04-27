@@ -7,7 +7,6 @@
 namespace Memory
 {
 class HeapInfo;
-class RecyclerSweep;
 
 // CONSIDER: Templatizing this so that we can have separate leaf large allocations
 // and finalizable allocations

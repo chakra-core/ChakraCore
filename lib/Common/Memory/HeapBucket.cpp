@@ -28,6 +28,12 @@ HeapBucket::HeapBucket() :
 #endif
 }
 
+HeapInfo *
+HeapBucket::GetHeapInfo() const
+{
+    return this->heapInfo;
+}
+
 uint
 HeapBucket::GetSizeCat() const
 {
@@ -345,7 +351,7 @@ HeapBucketT<TBlockType>::IntegrateBlock(char * blockAddress, PageSegment * segme
     this->heapBlockCount++;
 #endif
 
-    this->heapInfo->uncollectedAllocBytes += heapBlock->GetAndClearLastFreeCount() * heapBlock->GetObjectSize();
+    recycler->autoHeap.uncollectedAllocBytes += heapBlock->GetAndClearLastFreeCount() * heapBlock->GetObjectSize();
     RecyclerMemoryTracking::ReportAllocation(recycler, blockAddress, heapBlock->GetObjectSize() * heapBlock->GetObjectCount());
     RECYCLER_PERF_COUNTER_ADD(LiveObject,heapBlock->GetObjectCount());
     RECYCLER_PERF_COUNTER_ADD(LiveObjectSize, heapBlock->GetObjectSize() * heapBlock->GetObjectCount());
@@ -444,9 +450,9 @@ HeapBucketT<TBlockType>::GetNonEmptyHeapBlockCount(bool checkCount) const
 #endif
 
     // Recycler can be null if we have OOM in the ctor
-    if (this->GetRecycler() && this->GetRecycler()->recyclerSweep != nullptr)
+    if (this->GetRecycler() && this->GetRecycler()->recyclerSweepManager != nullptr)
     {
-        currentHeapBlockCount += this->GetRecycler()->recyclerSweep->GetHeapBlockCount(this);
+        currentHeapBlockCount += this->GetRecycler()->recyclerSweepManager->GetHeapBlockCount(this);
     }
 #endif
 
@@ -681,7 +687,7 @@ HeapBucketT<TBlockType>::SnailAlloc(Recycler * recycler, TBlockAllocatorType * a
 #if ENABLE_CONCURRENT_GC
 #if ENABLE_PARTIAL_GC
         // wait for background sweeping finish if there are too many pages allocated during background sweeping
-        if (recycler->IsConcurrentSweepExecutingState() && this->heapInfo->uncollectedNewPageCount > (uint)CONFIG_FLAG(NewPagesCapDuringBGSweeping))
+        if (recycler->IsConcurrentSweepExecutingState() && recycler->autoHeap.uncollectedNewPageCount > (uint)CONFIG_FLAG(NewPagesCapDuringBGSweeping))
 #else
         if (recycler->IsConcurrentSweepExecutingState())
 #endif
@@ -789,7 +795,7 @@ HeapBucketT<TBlockType>::CreateHeapBlock(Recycler * recycler)
     }
 
     // Add it to head of heap block list so we will keep track of the block
-    recycler->autoHeap.AppendNewHeapBlock(heapBlock, this);
+    this->heapInfo->AppendNewHeapBlock(heapBlock, this);
 #if defined(RECYCLER_SLOW_CHECK_ENABLED) || ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
 #if ENABLE_CONCURRENT_GC
     ::InterlockedIncrement(&this->newHeapBlockCount);
@@ -1104,7 +1110,7 @@ HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlock
             recyclerSweep.GetRecycler()->PrintBlockStatus(this, heapBlock, _u("[**2**] finished Sweep Pass1, heapblock added to pendingSweepList."));
 #endif
 #if ENABLE_PARTIAL_GC
-            recyclerSweep.NotifyAllocableObjects(heapBlock);
+            recyclerSweep.GetManager()->NotifyAllocableObjects(heapBlock);
 #endif
             break;
         }
@@ -1137,7 +1143,7 @@ HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlock
             //AssertMsg(!HeapBlockList::Contains(heapBlock, finalizableHeapBucket->pendingDisposeList), "The heap block already exists in the pendingDisposeList.");
             heapBlock->template AsFinalizableBlock<typename TBlockType::HeapBlockAttributes>()->SetNextBlock(finalizableHeapBucket->pendingDisposeList);
             finalizableHeapBucket->pendingDisposeList = heapBlock->template AsFinalizableBlock<typename TBlockType::HeapBlockAttributes>();
-            Assert(!recycler->hasPendingTransferDisposedObjects);
+            Assert(!this->heapInfo->hasPendingTransferDisposedObjects);
             recycler->hasDisposableObject = true;
 #ifdef RECYCLER_TRACE
             recyclerSweep.GetRecycler()->PrintBlockStatus(this, heapBlock, _u("[**3**] finished Sweep Pass1, heapblock added to pendingDisposeList."));
@@ -1184,7 +1190,7 @@ HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlock
             recyclerSweep.GetRecycler()->PrintBlockStatus(this, heapBlock, _u("[**6**] finished Sweep Pass1, heapblock added to heapBlockList."));
 #endif
 #if ENABLE_PARTIAL_GC
-            recyclerSweep.NotifyAllocableObjects(heapBlock);
+            recyclerSweep.GetManager()->NotifyAllocableObjects(heapBlock);
 #endif
             break;
         }
@@ -1265,7 +1271,7 @@ HeapBucketT<TBlockType>::SweepBucket(RecyclerSweep& recyclerSweep)
     DebugOnly(TBlockType * savedNextAllocableBlockHead);
     RECYCLER_SLOW_CHECK(this->VerifyHeapBlockCount(recyclerSweep.IsBackground()));
 #if ENABLE_CONCURRENT_GC
-    if (recyclerSweep.HasSetupBackgroundSweep())
+    if (recyclerSweep.GetManager()->HasSetupBackgroundSweep())
     {
         // SetupBackgroundSweep set nextAllocableBlockHead to null already
         Assert(IsAllocationStopped());
@@ -1380,7 +1386,7 @@ HeapBucketT<TBlockType>::AllowAllocationsDuringConcurrentSweep()
     }
 
 #if ENABLE_PARTIAL_GC
-    bool isPartialGC = (recycler->recyclerSweep != nullptr) && recycler->recyclerSweep->InPartialCollect();
+    bool isPartialGC = (recycler->recyclerSweepManager != nullptr) && recycler->recyclerSweepManager->InPartialCollect();
 #else
     bool isPartialGC = false;
 #endif
@@ -1423,7 +1429,7 @@ void
 HeapBucketT<TBlockType>::StartAllocationDuringConcurrentSweep()
 {
     Recycler * recycler = this->GetRecycler();
-    Assert(!recycler->recyclerSweep->InPartialCollect());
+    Assert(!recycler->recyclerSweepManager->InPartialCollect());
     Assert(!this->IsAnyFinalizableBucket());
 
     Assert(this->IsAllocationStopped());
@@ -1880,7 +1886,7 @@ template <typename TBlockType>
 size_t
 HeapBucketT<TBlockType>::Check(bool checkCount)
 {
-    Assert(this->GetRecycler()->recyclerSweep == nullptr);
+    Assert(this->GetRecycler()->recyclerSweepManager == nullptr);
     UpdateAllocators();
     size_t smallHeapBlockCount = HeapInfo::Check(true, false, this->fullBlockList);
     bool allocatingDuringConcurrentSweep = false;

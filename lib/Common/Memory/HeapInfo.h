@@ -4,13 +4,16 @@
 //-------------------------------------------------------------------------------------------------------
 namespace Memory
 {
+#if ENABLE_MEM_STATS
+class BucketStatsReporter;
+#endif
 class HeapInfo
 {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     friend class ::ScriptMemoryDumper;
 #endif
 public:
-    HeapInfo();
+    HeapInfo(AllocationPolicyManager * policyManager, Js::ConfigFlagsTable& configFlagsTable, IdleDecommitPageAllocator * leafPageAllocator);
     ~HeapInfo();
 
     void Initialize(Recycler * recycler
@@ -40,6 +43,30 @@ public:
         return objectSize - (objectSize % sizeof(void*));
     }
 
+    template<ObjectInfoBits attributes>
+    bool IsPageHeapEnabled(size_t size)
+    {
+        if (IsPageHeapEnabled())
+        {
+            size_t sizeCat = HeapInfo::GetAlignedSizeNoCheck(size);
+            if (HeapInfo::IsSmallObject(size))
+            {
+                auto& bucket = this->GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat);
+                return bucket.IsPageHeapEnabled(attributes);
+            }
+            else if (HeapInfo::IsMediumObject(size))
+            {
+                auto& bucket = this->GetMediumBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat);
+                return bucket.IsPageHeapEnabled(attributes);
+            }
+            else
+            {
+                return this->largeObjectBucket.IsPageHeapEnabled(attributes);
+            }
+        }
+        return false;
+    }
+
     template <typename TBlockAttributes>
     bool IsPageHeapEnabledForBlock(const size_t objectSize);
 #else
@@ -47,7 +74,7 @@ public:
 #endif
 
 #if ENABLE_MEM_STATS
-    void ReportMemStats();
+    void GetBucketStats(BucketStatsReporter& report);
 #endif
 
     template <ObjectInfoBits attributes, bool nothrow>
@@ -73,6 +100,7 @@ public:
 #if ENABLE_PARTIAL_GC || ENABLE_CONCURRENT_GC
     void SweepPendingObjects(RecyclerSweep& recyclerSweep);
 #endif
+    void Finalize(RecyclerSweep& recyclerSweep);
     void Sweep(RecyclerSweep& recyclerSweep, bool concurrent);
 
     template <ObjectInfoBits attributes>
@@ -176,9 +204,7 @@ public:
 private:
     template <ObjectInfoBits attributes>
     typename SmallHeapBlockType<attributes, SmallAllocationBlockAttributes>::BucketType& GetBucket(size_t sizeCat);
-
-    void SweepBuckets(RecyclerSweep& recyclerSweep, bool concurrent);
-
+    
 #ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
 #if SMALLBLOCK_MEDIUM_ALLOC
     template <ObjectInfoBits attributes>
@@ -289,7 +315,6 @@ private:
 #endif
 
     void SweepSmallNonFinalizable(RecyclerSweep& recyclerSweep);
-    void SweepLargeNonFinalizable(RecyclerSweep& recyclerSweep);
 
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
     size_t GetSmallHeapBlockCount(bool checkCount = false) const;
@@ -299,6 +324,7 @@ private:
 #if DBG
     bool AllocatorsAreEmpty();
 #endif
+
 private:
     template <typename TBlockAttributes>
     class ValidPointersMap
@@ -348,7 +374,7 @@ private:
 
         inline const ValidPointers<TBlockAttributes> GetValidPointersForIndex(uint bucketIndex) const
         {
-            AnalysisAssert(bucketIndex < TBlockAttributes::BucketCount);  
+            AnalysisAssert(bucketIndex < TBlockAttributes::BucketCount);
             ushort const * validPointers = nullptr;
 #if USE_VPM_TABLE
             validPointers = validPointersBuffer[bucketIndex];
@@ -358,7 +384,7 @@ private:
 
         inline const typename SmallHeapBlockT<TBlockAttributes>::SmallHeapBlockBitVector * GetInvalidBitVector(uint index) const
         {
-            AnalysisAssert(index < TBlockAttributes::BucketCount);            
+            AnalysisAssert(index < TBlockAttributes::BucketCount);
 #if USE_STATIC_VPM
             return &(*invalidBitsBuffers)[index];
 #else
@@ -403,18 +429,7 @@ public:
     template <typename TBlockAttributes>
     static typename SmallHeapBlockT<TBlockAttributes>::BlockInfo const * GetBlockInfo(uint objectSize);
 
-private:
-    size_t uncollectedAllocBytes;
-    size_t lastUncollectedAllocBytes;
-    size_t uncollectedExternalBytes;
-    uint pendingZeroPageCount;
-#if ENABLE_PARTIAL_GC
-    size_t uncollectedNewPageCount;
-    size_t unusedPartialCollectFreeBytes;
-#endif
-
     Recycler * recycler;
-
 #if ENABLE_CONCURRENT_GC
     SmallLeafHeapBlock * newLeafHeapBlockList;
     SmallNormalHeapBlock * newNormalHeapBlockList;
@@ -463,6 +478,7 @@ private:
 #endif
 #endif
     LargeHeapBucket largeObjectBucket;
+    bool hasPendingTransferDisposedObjects;
 
     static const size_t ObjectAlignmentMask = HeapConstants::ObjectGranularity - 1;         // 0xF
 #if defined(RECYCLER_SLOW_CHECK_ENABLED)
@@ -472,8 +488,96 @@ private:
     size_t liveFinalizableObjectCount;
     size_t newFinalizableObjectCount;
     size_t pendingDisposableObjectCount;
-    void VerifyFinalize();
+    size_t GetFinalizeCount();
 #endif
+
+ public:
+     // ==============================================================
+     // Page allocator APIs
+     // ==============================================================
+     void Prime();
+     void CloseNonLeaf();
+     void DecommitNow(bool all);
+
+     void SuspendIdleDecommitNonLeaf();
+     void ResumeIdleDecommitNonLeaf();
+
+     void EnterIdleDecommit();
+     IdleDecommitSignal LeaveIdleDecommit(bool allowTimer);
+#ifdef IDLE_DECOMMIT_ENABLED
+     DWORD IdleDecommit();
+#endif
+#if DBG
+     void ShutdownIdleDecommit();
+     void ResetThreadId();
+     void SetDisableThreadAccessCheck();
+#endif
+
+     size_t GetUsedBytes();
+     size_t GetReservedBytes();
+     size_t GetCommittedBytes();
+     size_t GetNumberOfSegments();
+
+     IdleDecommitPageAllocator * GetRecyclerLeafPageAllocator();
+     IdleDecommitPageAllocator * GetRecyclerPageAllocator();
+     IdleDecommitPageAllocator * GetRecyclerLargeBlockPageAllocator();
+#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
+     IdleDecommitPageAllocator * GetRecyclerWithBarrierPageAllocator();
+#endif
+
+#if ENABLE_BACKGROUND_PAGE_ZEROING
+     void StartQueueZeroPage();
+     void StopQueueZeroPage();
+     void BackgroundZeroQueuedPages();
+     void ZeroQueuedPages();
+     void FlushBackgroundPages();
+#if DBG
+     bool HasZeroQueuedPages();
+#endif
+#endif
+
+#if ENABLE_PARTIAL_GC || ENABLE_CONCURRENT_GC
+#ifdef RECYCLER_WRITE_WATCH 
+     void EnableWriteWatch();
+     bool ResetWriteWatch();
+#if DBG
+     size_t GetWriteWatchPageCount();
+#endif
+#endif
+#endif
+
+#ifdef RECYCLER_MEMORY_VERIFY
+     void EnableVerify();
+#endif
+#ifdef RECYCLER_NO_PAGE_REUSE
+     void DisablePageReuse();
+#endif
+private:
+    template<typename Action>
+    void ForEachPageAllocator(Action action)
+    {
+        ForEachNonLeafPageAllocator(action);
+        action(this->recyclerLeafPageAllocator);
+    }
+
+    template<typename Action>
+    void ForEachNonLeafPageAllocator(Action action)
+    {
+        action(&this->recyclerPageAllocator);
+        action(&this->recyclerLargeBlockPageAllocator);
+#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
+        action(&this->recyclerWithBarrierPageAllocator);
+#endif
+    }
+
+
+    IdleDecommitPageAllocator * recyclerLeafPageAllocator;
+
+#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
+    RecyclerPageAllocator recyclerWithBarrierPageAllocator;
+#endif
+    RecyclerPageAllocator recyclerPageAllocator;
+    RecyclerPageAllocator recyclerLargeBlockPageAllocator;
 
     friend class Recycler;
     friend class HeapBucket;
@@ -501,6 +605,8 @@ private:
 #endif
     friend class LargeHeapBlock;
     friend class RecyclerSweep;
+
+    friend class HeapInfoManager;
 };
 
 template <ObjectInfoBits attributes>
