@@ -4435,17 +4435,20 @@ BasicBlock::CleanUpValueMaps()
 void
 BasicBlock::SetTrackingByteCodeUpwardExposedUsedSym(SymID symID)
 {
-    Sym* sym = this->func->m_symTable->Find(symID);
-    if (sym)
+    if (this->trackingByteCodeUpwardExposedUsed)
     {
-        SetTrackingByteCodeUpwardExposedUsedSym(sym);
+        Sym* sym = this->func->m_symTable->Find(symID);
+        if (sym)
+        {
+            SetTrackingByteCodeUpwardExposedUsedSym(sym);
+        }
     }
 }
 
 void
 BasicBlock::SetTrackingByteCodeUpwardExposedUsedSym(Sym* sym)
 {
-    if (sym->IsStackSym())
+    if (this->trackingByteCodeUpwardExposedUsed && sym->IsStackSym())
     {
         StackSym* stackSym = sym->AsStackSym();
         if (stackSym->HasByteCodeRegSlot())
@@ -4459,7 +4462,7 @@ BasicBlock::SetTrackingByteCodeUpwardExposedUsedSym(Sym* sym)
 void
 BasicBlock::ClearTrackingByteCodeUpwardExposedUsedSym(Sym* sym)
 {
-    if (sym->IsStackSym())
+    if (this->trackingByteCodeUpwardExposedUsed && sym->IsStackSym())
     {
         StackSym* stackSym = sym->AsStackSym();
         if (stackSym->HasByteCodeRegSlot())
@@ -4493,25 +4496,28 @@ void
 BasicBlock::OrByteCodeUpwardExposedUsed(const BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed)
 {
 #if DBG
-    // Convert new sym to the corresponding bytecode register
-    FOREACH_BITSET_IN_SPARSEBV(symID, byteCodeUpwardExposedUsed)
+    if (this->trackingByteCodeUpwardExposedUsed)
     {
-        if (!this->byteCodeUpwardExposedUsed->Test(symID))
+        // Convert new sym to the corresponding bytecode register
+        FOREACH_BITSET_IN_SPARSEBV(symID, byteCodeUpwardExposedUsed)
         {
-            SetTrackingByteCodeUpwardExposedUsedSym(symID);
+            if (!this->byteCodeUpwardExposedUsed->Test(symID))
+            {
+                SetTrackingByteCodeUpwardExposedUsedSym(symID);
+            }
         }
+        NEXT_BITSET_IN_SPARSEBV;
     }
-    NEXT_BITSET_IN_SPARSEBV;
 #endif
     this->byteCodeUpwardExposedUsed->Or(byteCodeUpwardExposedUsed);
 }
 
 void
-BasicBlock::SetByteCodeUpwardExposedUsed(BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed)
+BasicBlock::SetByteCodeUpwardExposedUsed(BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed, bool trackByteCodeRegister)
 {
     this->byteCodeUpwardExposedUsed = byteCodeUpwardExposedUsed;
 #if DBG
-    if (byteCodeUpwardExposedUsed)
+    if (byteCodeUpwardExposedUsed && trackByteCodeRegister)
     {
         JitArenaAllocator* alloc = byteCodeUpwardExposedUsed->GetAllocator();
         this->trackingByteCodeUpwardExposedUsed = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
@@ -4521,6 +4527,10 @@ BasicBlock::SetByteCodeUpwardExposedUsed(BVSparse<JitArenaAllocator>* byteCodeUp
             SetTrackingByteCodeUpwardExposedUsedSym(symID);
         }
         NEXT_BITSET_IN_SPARSEBV;
+    }
+    else
+    {
+        this->trackingByteCodeUpwardExposedUsed = nullptr;
     }
 #endif
 }

@@ -50,12 +50,25 @@ bool
 BackwardPass::DoByteCodeUpwardExposedUsed() const
 {
     return (
-        (this->tag == Js::DeadStorePhase && this->func->hasBailout) ||
-        (this->func->HasTry() && this->func->DoOptimizeTry() && this->tag == Js::BackwardPhase)
+        (this->tag == Js::DeadStorePhase && (
+            this->func->hasBailout ||
+            (this->func->HasTry() && this->func->DoOptimizeTry())
+        ))
 #if DBG
-        || tag == Js::CaptureByteCodeRegUsePhase
+        || (tag == Js::CaptureByteCodeRegUsePhase && !PHASE_OFF(Js::CaptureByteCodeRegUsePhase, this->func))
 #endif
     );
+}
+
+bool BackwardPass::DoCaptureByteCodeUpwardExposedUsed() const
+{
+#if DBG
+    return (this->tag == Js::CaptureByteCodeRegUsePhase || this->tag == Js::DeadStorePhase) &&
+        this->DoByteCodeUpwardExposedUsed() &&
+        this->func->DoGlobOpt();
+#else
+    return false;
+#endif
 }
 
 bool
@@ -330,7 +343,7 @@ BackwardPass::Optimize()
         return;
     }
 
-    if (tag == Js::CaptureByteCodeRegUsePhase && (PHASE_OFF(tag, this->func) || this->func->GetJITFunctionBody()->IsAsmJsMode()))
+    if (tag == Js::CaptureByteCodeRegUsePhase && (!DoCaptureByteCodeUpwardExposedUsed() || this->func->GetJITFunctionBody()->IsAsmJsMode()))
     {
         return;
     }
@@ -1150,7 +1163,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
     block->upwardExposedFields = upwardExposedFields;
     block->typesNeedingKnownObjectLayout = typesNeedingKnownObjectLayout;
     block->fieldHoistCandidates = fieldHoistCandidates;
-    block->SetByteCodeUpwardExposedUsed(byteCodeUpwardExposedUsed);
+    block->SetByteCodeUpwardExposedUsed(byteCodeUpwardExposedUsed, DoCaptureByteCodeUpwardExposedUsed());
 #if DBG
     block->byteCodeRestoreSyms = byteCodeRestoreSyms;
     block->excludeByteCodeUpwardExposedTracking = excludeByteCodeUpwardExposedTracking;
@@ -1607,6 +1620,25 @@ BackwardPass::OptBlock(BasicBlock * block)
             intOverflowDoesNotMatterInRangeBySymId->ClearAll();
         }
     }
+
+#if DBG
+    if (DoCaptureByteCodeUpwardExposedUsed())
+    {
+        if (tag == Js::CaptureByteCodeRegUsePhase)
+        {
+            // Keep track of all the bytecode upward exposed after CaptureByteCodeRegUse pass
+            block->capturedByteCodeUpwardExposedUsed = block->trackingByteCodeUpwardExposedUsed->CopyNew(this->globOpt->alloc);
+            // Exclude unwanted syms 
+            block->capturedByteCodeUpwardExposedUsed->Minus(block->excludeByteCodeUpwardExposedTracking);
+        }
+        else if (!block->isDead)
+        {
+            Assert(tag == Js::DeadStorePhase);
+            Assert(block->capturedByteCodeUpwardExposedUsed);
+            VerifyByteCodeUpwardExposed(block, block->capturedByteCodeUpwardExposedUsed, nullptr, Js::Constants::NoByteCodeOffset);
+        }
+    }
+#endif
 }
 
 void
@@ -2335,8 +2367,7 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
     BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed = nullptr;
 
 #if DBG
-    if (!PHASE_OFF(Js::CaptureByteCodeRegUsePhase, this->func) &&
-        tag == Js::DeadStorePhase &&
+    if (DoCaptureByteCodeUpwardExposedUsed() &&
         bailOutInfo->bailOutFunc->HasByteCodeOffset() &&
         bailOutInfo->bailOutFunc->instrTrackingByteCodeUpwardExposedUsed)
     {
@@ -7728,102 +7759,106 @@ BackwardPass::CheckWriteThroughSymInRegion(Region* region, StackSym* sym)
 void
 BackwardPass::VerifyByteCodeUpwardExposed(BasicBlock* block, BVSparse<JitArenaAllocator>* trackingByteCodeUpwardExposedUsed, IR::Instr* instr, uint32 bytecodeOffset)
 {
-    Assert(instr);
-    Assert(bytecodeOffset != Js::Constants::NoByteCodeOffset);
-
-    if (this->tag == Js::DeadStorePhase && this->DoByteCodeUpwardExposedUsed() && func->DoGlobOpt())
+    Assert(this->tag == Js::DeadStorePhase);
+    // The calculated bytecode upward exposed should be the same between Backward and DeadStore passes
+    if (trackingByteCodeUpwardExposedUsed && !trackingByteCodeUpwardExposedUsed->IsEmpty())
     {
-        // The calculated bytecode upward exposed should be the same between Backward and DeadStore passes
-        if (trackingByteCodeUpwardExposedUsed && !trackingByteCodeUpwardExposedUsed->IsEmpty())
+        // We don't need to track bytecodeUpwardExposeUses if we don't have bailout
+        // We've collected the Backward bytecodeUpwardExposeUses for nothing, oh well.
+        if (this->func->hasBailout)
         {
-            // We don't need to track bytecodeUpwardExposeUses if we don't have bailout
-            // We've collected the Backward bytecodeUpwardExposeUses for nothing, oh well.
-            if (this->func->hasBailout)
+            BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed = block->trackingByteCodeUpwardExposedUsed->CopyNew(this->tempAlloc);
+            if (instr && instr->GetByteCodeOffset() == bytecodeOffset &&
+                byteCodeUpwardExposedUsed &&
+                !trackingByteCodeUpwardExposedUsed->Equal(byteCodeUpwardExposedUsed))
             {
-                BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed = block->trackingByteCodeUpwardExposedUsed->CopyNew(this->tempAlloc);
-                if (instr->GetByteCodeOffset() == bytecodeOffset &&
-                    byteCodeUpwardExposedUsed &&
-                    !trackingByteCodeUpwardExposedUsed->Equal(byteCodeUpwardExposedUsed))
+                BVSparse<JitArenaAllocator>* notInDeadStore = trackingByteCodeUpwardExposedUsed->MinusNew(byteCodeUpwardExposedUsed);
+                // Make sure all the registers found in backward pass are present
+                if (notInDeadStore->IsEmpty())
                 {
-                    BVSparse<JitArenaAllocator>* notInDeadStore = trackingByteCodeUpwardExposedUsed->MinusNew(byteCodeUpwardExposedUsed);
-                    // Make sure all the registers found in backward pass are present
-                    if (notInDeadStore->IsEmpty())
-                    {
-                        // DeadStore pass thinks there are more registers to restore than is really needed
-                        // This can happen if FGPeeps reordered a load around a branch and
-                        // thus the load might not have been processed yet in DeadStore pass
-                        BVSparse<JitArenaAllocator>* notInBackward = byteCodeUpwardExposedUsed->MinusNew(trackingByteCodeUpwardExposedUsed);
+                    // DeadStore pass thinks there are more registers to restore than is really needed
+                    // This can happen if FGPeeps reordered a load around a branch and
+                    // thus the load might not have been processed yet in DeadStore pass
+                    BVSparse<JitArenaAllocator>* notInBackward = byteCodeUpwardExposedUsed->MinusNew(trackingByteCodeUpwardExposedUsed);
 
-                        IR::Instr* prev = instr->m_prev;
-                        while (prev && prev->GetDst() && prev->m_func->HasByteCodeOffset() && prev->GetByteCodeOffset() == bytecodeOffset)
+                    IR::Instr* prev = instr->m_prev;
+                    while (prev && prev->GetDst() && prev->m_func->HasByteCodeOffset() && prev->GetByteCodeOffset() == bytecodeOffset)
+                    {
+                        StackSym* sym = prev->GetDst()->GetStackSym();
+                        if (sym && sym->HasByteCodeRegSlot() && notInBackward->TestAndClear(sym->GetByteCodeRegSlot()))
                         {
-                            StackSym* sym = prev->GetDst()->GetStackSym();
-                            if (sym && sym->HasByteCodeRegSlot() && notInBackward->TestAndClear(sym->GetByteCodeRegSlot()))
-                            {
-                                // This symbol has a def in this bytecode offset, do not warn about it
-                                byteCodeUpwardExposedUsed->Clear(sym->GetByteCodeRegSlot());
-                            }
-                            prev = prev->m_prev;
+                            // This symbol has a def in this bytecode offset, do not warn about it
+                            byteCodeUpwardExposedUsed->Clear(sym->GetByteCodeRegSlot());
                         }
-                        JitAdelete(notInBackward->GetAllocator(), notInBackward);
+                        prev = prev->m_prev;
                     }
-                    JitAdelete(notInDeadStore->GetAllocator(), notInDeadStore);
+                    JitAdelete(notInBackward->GetAllocator(), notInBackward);
+                }
+                JitAdelete(notInDeadStore->GetAllocator(), notInDeadStore);
+            }
+
+            if (!byteCodeUpwardExposedUsed || !trackingByteCodeUpwardExposedUsed->Equal(byteCodeUpwardExposedUsed))
+            {
+                Output::Print(_u("\n\nByteCode Updward Exposed mismatch after DeadStore\n"));
+                if (instr)
+                {
+                    Output::Print(_u("Mismatch Instr:\n"));
+                    instr->Dump();
+                }
+                else
+                {
+                    Output::Print(_u("Mismatch Block #%u\n"), this->currentBlock->GetBlockNum());
+                    this->func->DumpFullFunctionName();
                 }
 
-                if (!byteCodeUpwardExposedUsed || !trackingByteCodeUpwardExposedUsed->Equal(byteCodeUpwardExposedUsed))
+                BVSparse<JitArenaAllocator>* notInDeadStore = byteCodeUpwardExposedUsed ? trackingByteCodeUpwardExposedUsed->MinusNew(byteCodeUpwardExposedUsed) : trackingByteCodeUpwardExposedUsed;
+                BVSparse<JitArenaAllocator>* notInBackward = byteCodeUpwardExposedUsed ? byteCodeUpwardExposedUsed->MinusNew(trackingByteCodeUpwardExposedUsed) : nullptr;
+                if (!notInDeadStore->IsEmpty())
                 {
-                    Output::Print(_u("\n\nByteCode Updward Exposed mismatch after DeadStore\nMismatch Instr:\n"));
-                    instr->Dump();
-
-                    BVSparse<JitArenaAllocator>* notInDeadStore = byteCodeUpwardExposedUsed ? trackingByteCodeUpwardExposedUsed->MinusNew(byteCodeUpwardExposedUsed) : trackingByteCodeUpwardExposedUsed;
-                    BVSparse<JitArenaAllocator>* notInBackward = byteCodeUpwardExposedUsed ? byteCodeUpwardExposedUsed->MinusNew(trackingByteCodeUpwardExposedUsed) : nullptr;
-                    if (!notInDeadStore->IsEmpty())
+                    Output::Print(_u("  ByteCode Register list present in Backward pass missing in DeadStore pass:\n"));
+                    FOREACH_BITSET_IN_SPARSEBV(bytecodeReg, notInDeadStore)
                     {
-                        Output::Print(_u("  ByteCode Register list present in Backward pass missing in DeadStore pass:\n"));
-                        FOREACH_BITSET_IN_SPARSEBV(bytecodeReg, notInDeadStore)
-                        {
-                            Output::Print(_u("    R%u\n"), bytecodeReg);
-                        }
-                        NEXT_BITSET_IN_SPARSEBV;
+                        Output::Print(_u("    R%u\n"), bytecodeReg);
                     }
+                    NEXT_BITSET_IN_SPARSEBV;
+                }
 
-                    if (notInBackward && !notInBackward->IsEmpty())
-                    {
-                        Output::Print(_u("  ByteCode Register list present in DeadStore pass missing in Backward pass:\n"));
-                        const auto findOriginalSym = [&] (uint32 reg) -> uint32 {
-                            FOREACH_BITSET_IN_SPARSEBV(symID, block->GetByteCodeUpwardExposedUsed())
+                if (notInBackward && !notInBackward->IsEmpty())
+                {
+                    Output::Print(_u("  ByteCode Register list present in DeadStore pass missing in Backward pass:\n"));
+                    const auto findOriginalSym = [&] (uint32 reg) -> uint32 {
+                        FOREACH_BITSET_IN_SPARSEBV(symID, block->GetByteCodeUpwardExposedUsed())
+                        {
+                            Sym* sym = this->func->m_symTable->Find(symID);
+                            if (sym != nullptr && sym->IsStackSym())
                             {
-                                Sym* sym = this->func->m_symTable->Find(symID);
-                                if (sym != nullptr && sym->IsStackSym())
+                                StackSym* stackSym = sym->AsStackSym();
+                                if (stackSym->HasByteCodeRegSlot())
                                 {
-                                    StackSym* stackSym = sym->AsStackSym();
-                                    if (stackSym->HasByteCodeRegSlot())
+                                    Js::RegSlot bytecode = stackSym->GetByteCodeRegSlot();
+                                    if (bytecode == reg)
                                     {
-                                        Js::RegSlot bytecode = stackSym->GetByteCodeRegSlot();
-                                        if (bytecode == reg)
-                                        {
-                                            return symID;
-                                        }
+                                        return symID;
                                     }
                                 }
                             }
-                            NEXT_BITSET_IN_SPARSEBV;
-                            return 0;
-                        };
-
-                        FOREACH_BITSET_IN_SPARSEBV(bytecodeReg, notInBackward)
-                        {
-                            Output::Print(_u("    R%u, s%u\n"), bytecodeReg, findOriginalSym(bytecodeReg));
                         }
                         NEXT_BITSET_IN_SPARSEBV;
-                    }
+                        return 0;
+                    };
 
-                    AssertMsg(false, "ByteCode Updward Exposed Used Mismatch");
+                    FOREACH_BITSET_IN_SPARSEBV(bytecodeReg, notInBackward)
+                    {
+                        Output::Print(_u("    R%u, s%u\n"), bytecodeReg, findOriginalSym(bytecodeReg));
+                    }
+                    NEXT_BITSET_IN_SPARSEBV;
                 }
-                if (byteCodeUpwardExposedUsed)
-                {
-                    JitAdelete(this->tempAlloc, byteCodeUpwardExposedUsed);
-                }
+
+                AssertMsg(false, "ByteCode Updward Exposed Used Mismatch");
+            }
+            if (byteCodeUpwardExposedUsed)
+            {
+                JitAdelete(this->tempAlloc, byteCodeUpwardExposedUsed);
             }
         }
     }

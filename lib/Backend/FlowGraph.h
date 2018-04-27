@@ -351,7 +351,7 @@ public:
     void SetByteCodeUpwardExposedUsedSym(Sym* sym);
     void ClearByteCodeUpwardExposedUsedSym(Sym* sym);
     void OrByteCodeUpwardExposedUsed(const BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed);
-    void SetByteCodeUpwardExposedUsed(BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed);
+    void SetByteCodeUpwardExposedUsed(BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed, bool trackByteCodeRegister);
     void FreeByteCodeUpwardExposedUsed();
 
     void Reset();
@@ -396,6 +396,7 @@ public:
     TempNumberTracker *                     tempNumberTracker;
     TempObjectTracker *                     tempObjectTracker;
 #if DBG
+    BVSparse<JitArenaAllocator> *           capturedByteCodeUpwardExposedUsed = nullptr;
     BVSparse<JitArenaAllocator> *           trackingByteCodeUpwardExposedUsed = nullptr;
     BVSparse<JitArenaAllocator> *           excludeByteCodeUpwardExposedTracking = nullptr;
     TempObjectVerifyTracker *               tempObjectVerifyTracker;
