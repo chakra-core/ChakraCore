@@ -409,7 +409,6 @@ void WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
         m_sourceInfo,
         m_sourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId,
         wasmInfo->GetNumber(),
-        nullptr,
         Js::FunctionInfo::Attributes::ErrorOnNew,
         Js::FunctionBody::Flags_None
 #ifdef PERF_COUNTERS

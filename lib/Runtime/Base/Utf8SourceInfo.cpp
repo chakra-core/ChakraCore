@@ -43,7 +43,8 @@ namespace Js
         debugModeSourceLength(0),
         m_isInDebugMode(false),
 #endif
-        callerUtf8SourceInfo(nullptr)
+        callerUtf8SourceInfo(nullptr),
+        boundedPropertyRecordHashSet(scriptContext->GetRecycler())
 #ifndef NTBUILD
         ,sourceRef(scriptSource)
 #endif

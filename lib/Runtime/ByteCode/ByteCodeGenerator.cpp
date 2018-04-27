@@ -726,7 +726,6 @@ ByteCodeGenerator::ByteCodeGenerator(Js::ScriptContext* scriptContext, Js::Scope
     parentScopeInfo(parentScopeInfo),
     dynamicScopeCount(0),
     isBinding(false),
-    propertyRecords(nullptr),
     inDestructuredPattern(false)
 {
     m_writer.Create();
@@ -1121,11 +1120,6 @@ FuncInfo * ByteCodeGenerator::StartBindGlobalStatements(ParseNodeProg *pnode)
         byteCodeFunction = this->pCurrentFunction;
         byteCodeFunction->RemoveDeferParseAttribute();
         byteCodeFunction->ResetByteCodeGenVisitState();
-        if (byteCodeFunction->GetBoundPropertyRecords() == nullptr)
-        {
-            // This happens when we try to re-use the function body which was created due to serialized bytecode.
-            byteCodeFunction->SetBoundPropertyRecords(EnsurePropertyRecordList());
-        }
     }
     else if ((this->flags & fscrDeferredFnc))
     {
@@ -1312,12 +1306,6 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
         Js::FunctionBody * parsedFunctionBody = this->pCurrentFunction;
         parsedFunctionBody->RemoveDeferParseAttribute();
 
-        if (parsedFunctionBody->GetBoundPropertyRecords() == nullptr)
-        {
-            // This happens when we try to re-use the function body which was created due to serialized bytecode.
-            parsedFunctionBody->SetBoundPropertyRecords(EnsurePropertyRecordList());
-        }
-
         Assert(!parsedFunctionBody->IsDeferredParseFunction() || parsedFunctionBody->IsReparsed());
 
         pnodeFnc->SetDeclaration(parsedFunctionBody->GetIsDeclaration());
@@ -1368,15 +1356,13 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
 
         if (createFunctionBody)
         {
-            ENTER_PINNED_SCOPE(Js::PropertyRecordList, propertyRecordList);
-            propertyRecordList = EnsurePropertyRecordList();
             if (reuseNestedFunc)
             {
                 if (!reuseNestedFunc->IsFunctionBody())
                 {
                     reuseNestedFunc->GetUtf8SourceInfo()->StopTrackingDeferredFunction(reuseNestedFunc->GetLocalFunctionId());
                     Js::FunctionBody * parsedFunctionBody =
-                        Js::FunctionBody::NewFromParseableFunctionInfo(reuseNestedFunc->GetParseableFunctionInfo(), propertyRecordList);
+                        Js::FunctionBody::NewFromParseableFunctionInfo(reuseNestedFunc->GetParseableFunctionInfo());
                     autoRestoreFunctionInfo.funcBody = parsedFunctionBody;
                     parseableFunctionInfo = parsedFunctionBody;
                 }
@@ -1389,7 +1375,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
             else
             {
                 parseableFunctionInfo = Js::FunctionBody::NewFromRecycler(scriptContext, name, nameLength, shortNameOffset, pnodeFnc->nestedCount, m_utf8SourceInfo,
-                    m_utf8SourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId, functionId, propertyRecordList
+                    m_utf8SourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId, functionId
                     , attributes
                     , pnodeFnc->IsClassConstructor() ?
                         Js::FunctionBody::FunctionBodyFlags::Flags_None :
@@ -1399,18 +1385,9 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
 #endif
                 );
             }
-            LEAVE_PINNED_SCOPE();
         }
         else
         {
-            ENTER_PINNED_SCOPE(Js::PropertyRecordList, propertyRecordList);
-            propertyRecordList = nullptr;
-
-            if (funcExprWithName)
-            {
-                propertyRecordList = EnsurePropertyRecordList();
-            }
-
             if (reuseNestedFunc)
             {
                 Assert(!reuseNestedFunc->IsFunctionBody() || reuseNestedFunc->GetFunctionBody()->GetByteCode() != nullptr);
@@ -1420,12 +1397,11 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
             }
             else
             {
-                parseableFunctionInfo = Js::ParseableFunctionInfo::New(scriptContext, pnodeFnc->nestedCount, functionId, m_utf8SourceInfo, name, nameLength, shortNameOffset, propertyRecordList, attributes,
+                parseableFunctionInfo = Js::ParseableFunctionInfo::New(scriptContext, pnodeFnc->nestedCount, functionId, m_utf8SourceInfo, name, nameLength, shortNameOffset, attributes,
                                         pnodeFnc->IsClassConstructor() ?
                                             Js::FunctionBody::FunctionBodyFlags::Flags_None :
                                             Js::FunctionBody::FunctionBodyFlags::Flags_HasNoExplicitReturnValue);
             }
-            LEAVE_PINNED_SCOPE();
         }
 
         // In either case register the function reference
@@ -2183,24 +2159,6 @@ void ByteCodeGenerator::Begin(
     this->funcInfosToFinalize = nullptr;
 
     this->funcInfoStack = Anew(alloc, SList<FuncInfo*>, alloc);
-
-    // If pRootFunc is not null, this is a deferred parse function
-    // so reuse the property record list bound there since some of the symbols could have
-    // been bound. If it's null, we need to create a new property record list
-    if (pRootFunc != nullptr)
-    {
-        this->propertyRecords = pRootFunc->GetBoundPropertyRecords();
-    }
-    else
-    {
-        this->propertyRecords = nullptr;
-    }
-
-    Js::FunctionBody *fakeGlobalFunc = scriptContext->GetLibrary()->GetFakeGlobalFuncForUndefer();
-    if (fakeGlobalFunc)
-    {
-        fakeGlobalFunc->ClearBoundPropertyRecords();
-    }
 }
 
 HRESULT GenerateByteCode(__in ParseNodeProg *pnode, __in uint32 grfscr, __in Js::ScriptContext* scriptContext, __inout Js::ParseableFunctionInfo ** ppRootFunc,
@@ -5197,9 +5155,6 @@ Js::FunctionBody * ByteCodeGenerator::MakeGlobalFunctionBody(ParseNode *pnode)
 {
     Js::FunctionBody * func;
 
-    ENTER_PINNED_SCOPE(Js::PropertyRecordList, propertyRecordList);
-    propertyRecordList = EnsurePropertyRecordList();
-
     func =
         Js::FunctionBody::NewFromRecycler(
             scriptContext,
@@ -5210,7 +5165,6 @@ Js::FunctionBody * ByteCodeGenerator::MakeGlobalFunctionBody(ParseNode *pnode)
             m_utf8SourceInfo,
             m_utf8SourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId,
             pnode->AsParseNodeFnc()->functionId,
-            propertyRecordList,
             Js::FunctionInfo::Attributes::None,
             Js::FunctionBody::FunctionBodyFlags::Flags_HasNoExplicitReturnValue
 #ifdef PERF_COUNTERS
@@ -5220,7 +5174,6 @@ Js::FunctionBody * ByteCodeGenerator::MakeGlobalFunctionBody(ParseNode *pnode)
 
     func->SetIsGlobalFunc(true);
     scriptContext->GetLibrary()->RegisterDynamicFunctionReference(func);
-    LEAVE_PINNED_SCOPE();
 
     return func;
 }
@@ -5253,10 +5206,6 @@ Js::FunctionBody *ByteCodeGenerator::EnsureFakeGlobalFuncForUndefer(ParseNode *p
     {
         func = this->MakeGlobalFunctionBody(pnode);
         scriptContext->GetLibrary()->SetFakeGlobalFuncForUndefer(func);
-    }
-    else
-    {
-        func->SetBoundPropertyRecords(EnsurePropertyRecordList());
     }
     if (pnode->AsParseNodeFnc()->GetStrictMode() != 0)
     {

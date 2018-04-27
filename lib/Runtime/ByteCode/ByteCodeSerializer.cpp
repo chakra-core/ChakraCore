@@ -3722,7 +3722,7 @@ public:
                 sourceInfo,
                 functionNumber,
                 sourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId,
-                firstFunctionId + functionId, nullptr, (FunctionInfo::Attributes)attributes,
+                firstFunctionId + functionId, (FunctionInfo::Attributes)attributes,
                 Js::FunctionBody::FunctionBodyFlags::Flags_None  // bytecode serializer will initialize
 #ifdef PERF_COUNTERS
                 , (deferDeserializeFunctionInfo != nullptr)
@@ -3738,7 +3738,7 @@ public:
         }
         else
         {
-            *function = ParseableFunctionInfo::New(this->scriptContext, nestedCount, firstFunctionId + functionId, utf8SourceInfo, displayName, displayNameLength, displayShortNameOffset, nullptr, (FunctionInfo::Attributes)attributes,
+            *function = ParseableFunctionInfo::New(this->scriptContext, nestedCount, firstFunctionId + functionId, utf8SourceInfo, displayName, displayNameLength, displayShortNameOffset, (FunctionInfo::Attributes)attributes,
                         Js::FunctionBody::FunctionBodyFlags::Flags_None);
         }
 
