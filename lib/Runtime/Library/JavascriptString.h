@@ -51,6 +51,7 @@ namespace Js
         char16 GetItem(charcount_t index);
 
         virtual void GetPropertyRecord(_Out_ PropertyRecord const** propertyRecord, bool dontLookupFromDictionary = false);
+        virtual void CachePropertyRecord(_In_ PropertyRecord const* propertyRecord);
 
         _Ret_range_(m_charLength, m_charLength) charcount_t GetLength() const;
 

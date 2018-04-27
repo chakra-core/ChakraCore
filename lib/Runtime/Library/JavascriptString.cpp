@@ -235,6 +235,11 @@ namespace Js
         GetScriptContext()->GetOrAddPropertyRecord(GetString(), GetLength(), propertyRecord);
     }
 
+    void JavascriptString::CachePropertyRecord(_In_ PropertyRecord const* propertyRecord)
+    {
+        // Base string doesn't have enough room to keep this value, so do nothing
+    }
+
     JavascriptString* JavascriptString::FromVar(Var aValue)
     {
         AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptString'");

@@ -9,6 +9,7 @@ namespace Js
     class SubString sealed : public JavascriptString
     {
         Field(void const *) originalFullStringReference;          // Only here to prevent recycler to free this buffer.
+        Field(void const *) unused; // Recycler would allocate this space anyway due to bucket sizing, so make it explicit
 
         SubString(void const * originalFullStringReference, const char16* subString, charcount_t length, ScriptContext *scriptContext);
 
@@ -22,5 +23,6 @@ namespace Js
         virtual void const * GetOriginalStringReference() override;
         virtual size_t GetAllocatedByteCount() const override;
         virtual bool IsSubstring() const override;
+        virtual void CachePropertyRecord(_In_ PropertyRecord const* propertyRecord) override;
     };
 }

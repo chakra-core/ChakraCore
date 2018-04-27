@@ -96,4 +96,12 @@ namespace Js
         return false;
     }
 
+    void SubString::CachePropertyRecord(_In_ PropertyRecord const* propertyRecord)
+    {
+        // Now that the property record owns a copy of the string data, transform
+        // this instance into a more efficient type.
+        this->originalFullStringReference = nullptr;
+        LiteralStringWithPropertyStringPtr* converted = LiteralStringWithPropertyStringPtr::ConvertString(this);
+        converted->CachePropertyRecordImpl(propertyRecord);
+    }
 }
