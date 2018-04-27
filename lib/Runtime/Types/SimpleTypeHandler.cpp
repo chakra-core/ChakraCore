@@ -789,7 +789,8 @@ namespace Js
                 // Clearing the attribute may have changed the type handler, so make sure
                 // we access the current one.
                 DynamicTypeHandler* const typeHandler = GetCurrentTypeHandler(instance);
-                instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(typeHandler, PropertyNone, propertyId);
+                JavascriptLibrary * library = instance->GetLibrary();
+                library->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(typeHandler, PropertyNone, propertyId, library->GetScriptContext());
             }
         }
         return true;
@@ -988,7 +989,8 @@ namespace Js
                 {
                     instance->SetHasNoEnumerableProperties(false);
                 }
-                instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(typeHandler, attributes, propertyId);
+                JavascriptLibrary * library = instance->GetLibrary();
+                library->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(typeHandler, attributes, propertyId, library->GetScriptContext());
             }
             SetSlotUnchecked(instance, index, value);
             PropertyValueInfo::Set(info, instance, static_cast<PropertyIndex>(index), descriptors[index].Attributes);
@@ -1024,7 +1026,8 @@ namespace Js
                 {
                     instance->SetHasNoEnumerableProperties(false);
                 }
-                instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, descriptors[i].Attributes, propertyId);
+                JavascriptLibrary * library = instance->GetLibrary();
+                library->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, descriptors[i].Attributes, propertyId, library->GetScriptContext());
                 return true;
             }
         }
@@ -1086,8 +1089,8 @@ namespace Js
             instance->SetHasNoEnumerableProperties(false);
         }
 
-        library->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, attributes, propertyId);
-        library->GetTypesWithNoSpecialPropertyProtoChainCache()->ProcessProperty(this, attributes, propertyId);
+        library->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, attributes, propertyId, scriptContext);
+        library->GetTypesWithNoSpecialPropertyProtoChainCache()->ProcessProperty(this, attributes, propertyId, scriptContext);
 
         SetSlotUnchecked(instance, propertyCount, value);
         PropertyValueInfo::Set(info, instance, static_cast<PropertyIndex>(propertyCount), attributes);

@@ -113,14 +113,17 @@ ScriptCacheRegistry<T>::AssignCache(_In_ T* cache)
 }
 
 template <typename T>
-PrototypeChainCache<T>::PrototypeChainCache(
-    _In_ ScriptContext* scriptContext,
-    _In_ ScriptCacheRegistry<PrototypeChainCache<T>>* scriptRegistry) :
-        scriptContext(scriptContext),
-        cache(scriptContext),
-        scriptRegistry(scriptRegistry)
+PrototypeChainCache<T>::PrototypeChainCache(_In_ Recycler * recycler) :
+    scriptRegistry(nullptr),
+    types(recycler)
 {
-    this->types = JsUtil::List<Type*>::New(scriptContext->GetRecycler()); 
+}
+
+template <typename T>
+void
+PrototypeChainCache<T>::Initialize(_In_ ScriptCacheRegistry<PrototypeChainCache<T>>* scriptRegistry)
+{
+    this->scriptRegistry = scriptRegistry;
     scriptRegistry->AssignCache(this);
 }
 
@@ -129,17 +132,17 @@ void
 PrototypeChainCache<T>::Register(_In_ Type* type)
 {
     Assert(type);
-    Assert(type->GetScriptContext() == this->scriptContext);
-    Assert(!scriptContext->IsClosed());
+    Assert(type->GetScriptContext() == scriptRegistry->GetScriptContext());
+    Assert(!scriptRegistry->GetScriptContext()->IsClosed());
 #if DBG
-    this->cache.RegistrationAssert(type);
+    T::RegistrationAssert(type);
 #endif
 
-    if (this->types->Count() == 0)
+    if (this->types.Count() == 0)
     {
         this->scriptRegistry->Register();
     }
-    this->types->Add(type);
+    this->types.Add(type);
 }
 
 template <typename T>
@@ -160,7 +163,7 @@ PrototypeChainCache<T>::Check(_In_ RecyclableObject* object)
         }
     }
 
-    if (!this->cache.CheckObject(object))
+    if (!T::CheckObject(object))
     {
         return false;
     }
@@ -174,7 +177,7 @@ PrototypeChainCache<T>::CheckProtoChain(_In_ RecyclableObject* prototype)
 {
     Assert(prototype);
 
-    if (this->cache.IsCached(prototype))
+    if (T::IsCached(prototype))
     {
         Assert(CheckProtoChainInternal(prototype));
         return true;
@@ -203,7 +206,7 @@ PrototypeChainCache<T>::CheckProtoChainInternal(RecyclableObject* prototype)
         {
             onlyOneScriptContext = false;
         }
-        if (!this->cache.CheckObject(prototype))
+        if (!T::CheckObject(prototype))
         {
             return false;
         }
@@ -222,16 +225,11 @@ template <typename T>
 void
 PrototypeChainCache<T>::Clear()
 {
-    for (int i = 0; i < this->types->Count(); ++i)
+    for (int i = 0; i < this->types.Count(); ++i)
     {
-        this->cache.ClearType(this->types->Item(i));
+        T::ClearType(this->types.Item(i));
     }
-    this->types->ClearAndZero();
-}
-
-NoSpecialPropertyCache::NoSpecialPropertyCache(_In_ ScriptContext* scriptContext) :
-    scriptContext(scriptContext)
-{
+    this->types.ClearAndZero();
 }
 
 void
@@ -318,11 +316,6 @@ NoSpecialPropertyCache::RegistrationAssert(_In_ Type* type)
     Assert(type->ThisAndPrototypesHaveNoSpecialProperties());
 }
 #endif
-
-OnlyWritablePropertyCache::OnlyWritablePropertyCache(_In_ ScriptContext* scriptContext) :
-    scriptContext(scriptContext)
-{
-}
 
 void
 OnlyWritablePropertyCache::ClearType(_In_ Type* type)

@@ -45,7 +45,8 @@ namespace Js
     void GlobalObject::Initialize(ScriptContext * scriptContext)
     {
         Assert(type->javascriptLibrary == nullptr);
-        JavascriptLibrary* localLibrary = RecyclerNewFinalized(scriptContext->GetRecycler(), JavascriptLibrary, this);
+        Recycler * recycler = scriptContext->GetRecycler();
+        JavascriptLibrary* localLibrary = RecyclerNewFinalized(recycler, JavascriptLibrary, this, recycler);
         scriptContext->SetLibrary(localLibrary);
         type->javascriptLibrary = localLibrary;
         scriptContext->InitializeCache();

@@ -1032,8 +1032,8 @@ namespace Js
 #endif
             propertyMap->Add(TMapKey_ConvertKey<TMapKey>(scriptContext, propertyKey), descriptor);
 
-            library->GetTypesWithNoSpecialPropertyProtoChainCache()->ProcessProperty(this, attributes, propertyKey);
-            library->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, attributes, propertyKey);
+            library->GetTypesWithNoSpecialPropertyProtoChainCache()->ProcessProperty(this, attributes, propertyKey, scriptContext);
+            library->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, attributes, propertyKey, scriptContext);
         }
     }
 
@@ -2000,8 +2000,8 @@ namespace Js
                 // Clearing the attribute may have changed the type handler, so make sure
                 // we access the current one.
                 DynamicTypeHandler *const typeHandler = GetCurrentTypeHandler(instance);
-
-                instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(typeHandler, PropertyNone, propertyId);
+                JavascriptLibrary * library = instance->GetLibrary();
+                library->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(typeHandler, PropertyNone, propertyId, library->GetScriptContext());
             }
         }
         return true;
@@ -2467,7 +2467,7 @@ namespace Js
                 instance->SetHasNoEnumerableProperties(false);
             }
 
-            instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, descriptor->Attributes, propertyId);
+            instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, descriptor->Attributes, propertyId, scriptContext);
 
             SetPropertyUpdateSideEffect(instance, propertyId, value, possibleSideEffects);
             return true;
@@ -2580,7 +2580,8 @@ namespace Js
                     instance->SetHasNoEnumerableProperties(false);
                 }
 
-                instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, descriptor->Attributes, propertyId);
+                JavascriptLibrary * library = instance->GetLibrary();
+                library->GetTypesWithOnlyWritablePropertyProtoChainCache()->ProcessProperty(this, descriptor->Attributes, propertyId, library->GetScriptContext());
 
                 return true;
             }
