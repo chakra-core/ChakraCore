@@ -427,14 +427,14 @@ namespace Js
     }
 
     FunctionBody * FunctionBody::NewFromRecycler(ScriptContext * scriptContext, const char16 * displayName, uint displayNameLength, uint displayShortNameOffset, uint nestedCount,
-        Utf8SourceInfo* sourceInfo, uint uScriptId, Js::LocalFunctionId functionId, Js::PropertyRecordList* boundPropertyRecords, FunctionInfo::Attributes attributes, FunctionBodyFlags flags
+        Utf8SourceInfo* sourceInfo, uint uScriptId, Js::LocalFunctionId functionId, FunctionInfo::Attributes attributes, FunctionBodyFlags flags
 #ifdef PERF_COUNTERS
             , bool isDeserializedFunction
 #endif
             )
     {
             return FunctionBody::NewFromRecycler(scriptContext, displayName, displayNameLength, displayShortNameOffset, nestedCount, sourceInfo,
-            scriptContext->GetThreadContext()->NewFunctionNumber(), uScriptId, functionId, boundPropertyRecords, attributes, flags
+            scriptContext->GetThreadContext()->NewFunctionNumber(), uScriptId, functionId, attributes, flags
 #ifdef PERF_COUNTERS
             , isDeserializedFunction
 #endif
@@ -442,21 +442,21 @@ namespace Js
     }
 
     FunctionBody * FunctionBody::NewFromRecycler(ScriptContext * scriptContext, const char16 * displayName, uint displayNameLength, uint displayShortNameOffset, uint nestedCount,
-        Utf8SourceInfo* sourceInfo, uint uFunctionNumber, uint uScriptId, Js::LocalFunctionId  functionId, Js::PropertyRecordList* boundPropertyRecords, FunctionInfo::Attributes attributes, FunctionBodyFlags flags
+        Utf8SourceInfo* sourceInfo, uint uFunctionNumber, uint uScriptId, Js::LocalFunctionId  functionId, FunctionInfo::Attributes attributes, FunctionBodyFlags flags
 #ifdef PERF_COUNTERS
             , bool isDeserializedFunction
 #endif
             )
     {
 #ifdef PERF_COUNTERS
-            return RecyclerNewWithBarrierFinalized(scriptContext->GetRecycler(), FunctionBody, scriptContext, displayName, displayNameLength, displayShortNameOffset, nestedCount, sourceInfo, uFunctionNumber, uScriptId, functionId, boundPropertyRecords, attributes, flags, isDeserializedFunction);
+            return RecyclerNewWithBarrierFinalized(scriptContext->GetRecycler(), FunctionBody, scriptContext, displayName, displayNameLength, displayShortNameOffset, nestedCount, sourceInfo, uFunctionNumber, uScriptId, functionId, attributes, flags, isDeserializedFunction);
 #else
-            return RecyclerNewWithBarrierFinalized(scriptContext->GetRecycler(), FunctionBody, scriptContext, displayName, displayNameLength, displayShortNameOffset, nestedCount, sourceInfo, uFunctionNumber, uScriptId, functionId, boundPropertyRecords, attributes, flags);
+            return RecyclerNewWithBarrierFinalized(scriptContext->GetRecycler(), FunctionBody, scriptContext, displayName, displayNameLength, displayShortNameOffset, nestedCount, sourceInfo, uFunctionNumber, uScriptId, functionId, attributes, flags);
 #endif
     }
 
     FunctionBody *
-    FunctionBody::NewFromParseableFunctionInfo(ParseableFunctionInfo * parseableFunctionInfo, PropertyRecordList * boundPropertyRecords)
+    FunctionBody::NewFromParseableFunctionInfo(ParseableFunctionInfo * parseableFunctionInfo)
     {
         ScriptContext * scriptContext = parseableFunctionInfo->GetScriptContext();
         uint nestedCount = parseableFunctionInfo->GetNestedCount();
@@ -464,10 +464,6 @@ namespace Js
         FunctionBody * functionBody = RecyclerNewWithBarrierFinalized(scriptContext->GetRecycler(),
             FunctionBody,
             parseableFunctionInfo);
-        if (!functionBody->GetBoundPropertyRecords())
-        {
-            functionBody->SetBoundPropertyRecords(boundPropertyRecords);
-        }
 
         // Initialize nested function array, update back pointers
         for (uint i = 0; i < nestedCount; i++)
@@ -481,12 +477,12 @@ namespace Js
 
     FunctionBody::FunctionBody(ScriptContext* scriptContext, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, uint nestedCount,
         Utf8SourceInfo* utf8SourceInfo, uint uFunctionNumber, uint uScriptId,
-        Js::LocalFunctionId  functionId, Js::PropertyRecordList* boundPropertyRecords, FunctionInfo::Attributes attributes, FunctionBodyFlags flags
+        Js::LocalFunctionId  functionId, FunctionInfo::Attributes attributes, FunctionBodyFlags flags
 #ifdef PERF_COUNTERS
         , bool isDeserializedFunction
 #endif
         ) :
-        ParseableFunctionInfo(scriptContext->CurrentThunk, nestedCount, functionId, utf8SourceInfo, scriptContext, uFunctionNumber, displayName, displayNameLength, displayShortNameOffset, attributes, boundPropertyRecords, flags),
+        ParseableFunctionInfo(scriptContext->CurrentThunk, nestedCount, functionId, utf8SourceInfo, scriptContext, uFunctionNumber, displayName, displayNameLength, displayShortNameOffset, attributes, flags),
         counters(this),
         m_uScriptId(uScriptId),
         cleanedUp(false),
@@ -1359,36 +1355,19 @@ namespace Js
     }
 #endif
 
-    bool
-    ParseableFunctionInfo::IsTrackedPropertyId(PropertyId pid)
-    {
-        Assert(this->GetBoundPropertyRecords() != nullptr);
-
-        PropertyRecordList* trackedProperties = this->GetBoundPropertyRecords();
-        const PropertyRecord* prop = nullptr;
-        if (trackedProperties->TryGetValue(pid, &prop))
-        {
-            Assert(prop != nullptr);
-
-            return true;
-        }
-
-        return this->m_scriptContext->IsTrackedPropertyId(pid);
-    }
-
     PropertyId
     ParseableFunctionInfo::GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR> const& propName)
     {
-        Assert(this->GetBoundPropertyRecords() != nullptr);
-
         const Js::PropertyRecord* propRecord = nullptr;
+        ScriptContext * scriptContext = this->m_scriptContext;
+        scriptContext->GetOrAddPropertyRecord(propName, &propRecord);
 
-        this->m_scriptContext->GetOrAddPropertyRecord(propName, &propRecord);
-
-        PropertyId pid = propRecord->GetPropertyId();
-        this->GetBoundPropertyRecords()->Item(pid, propRecord);
-
-        return pid;
+        PropertyId propertyId = propRecord->GetPropertyId();
+        if (!scriptContext->IsTrackedPropertyId(propertyId))
+        {
+            this->m_utf8SourceInfo->GetBoundedPropertyRecordHashSet()->Item(propRecord);
+        }
+        return propertyId;
     }
 
     SmallSpanSequence::SmallSpanSequence()
@@ -1568,7 +1547,7 @@ namespace Js
     // ParseableFunctionInfo methods
     ParseableFunctionInfo::ParseableFunctionInfo(JavascriptMethod entryPoint, int nestedCount,
         LocalFunctionId functionId, Utf8SourceInfo* sourceInfo, ScriptContext* scriptContext, uint functionNumber,
-        const char16* displayName, uint displayNameLength, uint displayShortNameOffset, FunctionInfo::Attributes attributes, Js::PropertyRecordList* propertyRecords, FunctionBodyFlags flags) :
+        const char16* displayName, uint displayNameLength, uint displayShortNameOffset, FunctionInfo::Attributes attributes, FunctionBodyFlags flags) :
       FunctionProxy(scriptContext, sourceInfo, functionNumber),
 #if DYNAMIC_INTERPRETER_THUNK
       m_dynamicInterpreterThunk(nullptr),
@@ -1626,7 +1605,6 @@ namespace Js
             nestedArray = nullptr;
         }
 
-        SetBoundPropertyRecords(propertyRecords);
         if ((attributes & Js::FunctionInfo::DeferredParse) == 0)
         {
             void* validationCookie = nullptr;
@@ -1680,12 +1658,11 @@ namespace Js
 
         proxy->Copy(this);
 
-        SetBoundPropertyRecords(proxy->GetBoundPropertyRecords());
         SetDisplayName(proxy->GetDisplayName(), proxy->GetDisplayNameLength(), proxy->GetShortDisplayNameOffset());
     }
 
     ParseableFunctionInfo* ParseableFunctionInfo::New(ScriptContext* scriptContext, int nestedCount,
-        LocalFunctionId functionId, Utf8SourceInfo* sourceInfo, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, Js::PropertyRecordList* propertyRecords, FunctionInfo::Attributes attributes, FunctionBodyFlags flags)
+        LocalFunctionId functionId, Utf8SourceInfo* sourceInfo, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, FunctionInfo::Attributes attributes, FunctionBodyFlags flags)
     {
 #if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
         Assert(
@@ -1721,7 +1698,6 @@ namespace Js
             displayNameLength,
             displayShortNameOffset,
             (FunctionInfo::Attributes)(attributes | FunctionInfo::Attributes::DeferredParse),
-            propertyRecords,
             flags);
     }
 
@@ -2217,9 +2193,6 @@ namespace Js
         bool asmjsParseFailed = false;
         BOOL fParsed = FALSE;
         FunctionBody* returnFunctionBody = nullptr;
-        ENTER_PINNED_SCOPE(Js::PropertyRecordList, propertyRecordList);
-        Recycler* recycler = this->m_scriptContext->GetRecycler();
-        propertyRecordList = RecyclerNew(recycler, Js::PropertyRecordList, recycler);
 
         bool isDebugOrAsmJsReparse = false;
         FunctionBody* funcBody = nullptr;
@@ -2236,7 +2209,7 @@ namespace Js
             if (!this->m_hasBeenParsed)
             {
                 this->GetUtf8SourceInfo()->StopTrackingDeferredFunction(this->GetLocalFunctionId());
-                funcBody = FunctionBody::NewFromParseableFunctionInfo(this, propertyRecordList);
+                funcBody = FunctionBody::NewFromParseableFunctionInfo(this);
                 autoRestoreFunctionInfo.funcBody = funcBody;
 
                 PERF_COUNTER_DEC(Code, DeferredFunction);
@@ -2478,8 +2451,6 @@ namespace Js
             returnFunctionBody = this->GetFunctionBody();
         }
 
-        LEAVE_PINNED_SCOPE();
-
         if (asmjsParseFailed)
         {
             // disable asm.js and reparse on failure
@@ -2497,10 +2468,6 @@ namespace Js
         Assert(m_isAsmjsMode);
 
         FunctionBody* returnFunctionBody = nullptr;
-        ENTER_PINNED_SCOPE(Js::PropertyRecordList, propertyRecordList);
-        Recycler* recycler = this->m_scriptContext->GetRecycler();
-        propertyRecordList = RecyclerNew(recycler, Js::PropertyRecordList, recycler);
-
         FunctionBody* funcBody = nullptr;
 
         funcBody = FunctionBody::NewFromRecycler(
@@ -2513,7 +2480,6 @@ namespace Js
             this->m_functionNumber,
             this->GetUtf8SourceInfo()->GetSrcInfo()->sourceContextInfo->sourceContextId,
             this->GetLocalFunctionId(),
-            propertyRecordList,
             (FunctionInfo::Attributes)(this->GetAttributes() & ~(FunctionInfo::Attributes::DeferredDeserialize | FunctionInfo::Attributes::DeferredParse)),
             Js::FunctionBody::FunctionBodyFlags::Flags_HasNoExplicitReturnValue
 #ifdef PERF_COUNTERS
@@ -2587,8 +2553,6 @@ namespace Js
         Assert(funcBody->GetFunctionBody() == funcBody);
 
         returnFunctionBody = funcBody;
-
-        LEAVE_PINNED_SCOPE();
 
         return returnFunctionBody;
     }

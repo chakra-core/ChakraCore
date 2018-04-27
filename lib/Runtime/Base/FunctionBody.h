@@ -58,7 +58,6 @@ namespace Js
     class JavascriptNumber;
 #pragma endregion
 
-    typedef JsUtil::BaseDictionary<Js::PropertyId, const Js::PropertyRecord*, RecyclerNonLeafAllocator, PowerOf2SizePolicy, DefaultComparer, JsUtil::SimpleDictionaryEntry> PropertyRecordList;
     typedef JsUtil::BaseHashSet<void*, Recycler, PowerOf2SizePolicy> TypeRefSet;
 
      // Definition of scopes such as With, Catch and Block which will be used further in the debugger for additional look-ups.
@@ -1669,7 +1668,7 @@ namespace Js
         };
 
     protected:
-        ParseableFunctionInfo(JavascriptMethod method, int nestedFunctionCount, LocalFunctionId functionId, Utf8SourceInfo* sourceInfo, ScriptContext* scriptContext, uint functionNumber, const char16* displayName, uint m_displayNameLength, uint displayShortNameOffset, FunctionInfo::Attributes attributes, Js::PropertyRecordList* propertyRecordList, FunctionBodyFlags flags);
+        ParseableFunctionInfo(JavascriptMethod method, int nestedFunctionCount, LocalFunctionId functionId, Utf8SourceInfo* sourceInfo, ScriptContext* scriptContext, uint functionNumber, const char16* displayName, uint m_displayNameLength, uint displayShortNameOffset, FunctionInfo::Attributes attributes, FunctionBodyFlags flags);
 
         ParseableFunctionInfo(ParseableFunctionInfo * proxy);
 
@@ -1702,7 +1701,7 @@ namespace Js
         uint GetNestedCount() const { return nestedArray == nullptr ? 0 : nestedArray->nestedCount; }
 
     public:
-        static ParseableFunctionInfo* New(ScriptContext* scriptContext, int nestedFunctionCount, LocalFunctionId functionId, Utf8SourceInfo* utf8SourceInfo, const char16* displayName, uint m_displayNameLength, uint displayShortNameOffset, Js::PropertyRecordList* propertyRecordList, FunctionInfo::Attributes attributes, FunctionBodyFlags flags);
+        static ParseableFunctionInfo* New(ScriptContext* scriptContext, int nestedFunctionCount, LocalFunctionId functionId, Utf8SourceInfo* utf8SourceInfo, const char16* displayName, uint m_displayNameLength, uint displayShortNameOffset, FunctionInfo::Attributes attributes, FunctionBodyFlags flags);
         static ParseableFunctionInfo* NewDeferredFunctionFromFunctionBody(FunctionBody *functionBody);
 
         DEFINE_VTABLE_CTOR_NO_REGISTER(ParseableFunctionInfo, FunctionProxy);
@@ -1815,7 +1814,6 @@ namespace Js
         ScopeInfo* GetScopeInfo() const { return static_cast<ScopeInfo*>(this->GetAuxPtr(AuxPointerType::ScopeInfo)); }
         void SetScopeInfo(ScopeInfo* scopeInfo) {  this->SetAuxPtr(AuxPointerType::ScopeInfo, scopeInfo); }
         PropertyId GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR> const& propName);
-        bool IsTrackedPropertyId(PropertyId pid);
 
         void SetScopeSlotArraySizes(uint scopeSlotCount, uint scopeSlotCountForParamScope)
         {
@@ -1828,17 +1826,6 @@ namespace Js
         {
             SetScopeSlotArraySizes(scopeSlotCount, scopeSlotCountForParamScope);
             this->SetAuxPtr(AuxPointerType::PropertyIdsForScopeSlotArray, propertyIdsForScopeSlotArray);
-        }
-
-        Js::PropertyRecordList* GetBoundPropertyRecords() { return this->m_boundPropertyRecords; }
-        void SetBoundPropertyRecords(Js::PropertyRecordList* boundPropertyRecords)
-        {
-            Assert(this->m_boundPropertyRecords == nullptr);
-            this->m_boundPropertyRecords = boundPropertyRecords;
-        }
-        void ClearBoundPropertyRecords()
-        {
-            this->m_boundPropertyRecords = nullptr;
         }
 
         void SetInitialDefaultEntryPoint();
@@ -2039,7 +2026,6 @@ namespace Js
         FieldWithBarrier(ULONG) m_columnNumber;
         FieldWithBarrier(const char16*) m_displayName;  // Optional name
         FieldWithBarrier(uint) m_displayNameLength;
-        FieldWithBarrier(PropertyRecordList*) m_boundPropertyRecords;
         FieldWithBarrier(NestedArray*) nestedArray;
 
     public:
@@ -2439,7 +2425,7 @@ namespace Js
 #endif
 
         FunctionBody(ScriptContext* scriptContext, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, uint nestedCount, Utf8SourceInfo* sourceInfo,
-            uint uFunctionNumber, uint uScriptId, Js::LocalFunctionId functionId, Js::PropertyRecordList* propRecordList, FunctionInfo::Attributes attributes, FunctionBodyFlags flags
+            uint uFunctionNumber, uint uScriptId, Js::LocalFunctionId functionId, FunctionInfo::Attributes attributes, FunctionBodyFlags flags
 #ifdef PERF_COUNTERS
             , bool isDeserializedFunction = false
 #endif
@@ -2460,7 +2446,7 @@ namespace Js
 
     public:
         FunctionBody(ByteCodeCache* cache, Utf8SourceInfo* sourceInfo, ScriptContext* scriptContext):
-            ParseableFunctionInfo((JavascriptMethod) nullptr, 0, (LocalFunctionId) 0, sourceInfo, scriptContext, 0, nullptr, 0, 0, FunctionInfo::Attributes::None, nullptr, Flags_None)
+            ParseableFunctionInfo((JavascriptMethod) nullptr, 0, (LocalFunctionId) 0, sourceInfo, scriptContext, 0, nullptr, 0, 0, FunctionInfo::Attributes::None, Flags_None)
         {
             // Dummy constructor- does nothing
             // Must be stack allocated
@@ -2468,21 +2454,21 @@ namespace Js
         }
 
         static FunctionBody * NewFromRecycler(Js::ScriptContext * scriptContext, const char16 * displayName, uint displayNameLength, uint displayShortNameOffset, uint nestedCount,
-            Utf8SourceInfo* sourceInfo, uint uScriptId, Js::LocalFunctionId functionId, Js::PropertyRecordList* boundPropertyRecords, FunctionInfo::Attributes attributes
+            Utf8SourceInfo* sourceInfo, uint uScriptId, Js::LocalFunctionId functionId, FunctionInfo::Attributes attributes
             , FunctionBodyFlags flags
 #ifdef PERF_COUNTERS
             , bool isDeserializedFunction
 #endif
             );
         static FunctionBody * NewFromRecycler(Js::ScriptContext * scriptContext, const char16 * displayName, uint displayNameLength, uint displayShortNameOffset, uint nestedCount,
-            Utf8SourceInfo* sourceInfo, uint uFunctionNumber, uint uScriptId, Js::LocalFunctionId functionId, Js::PropertyRecordList* boundPropertyRecords, FunctionInfo::Attributes attributes
+            Utf8SourceInfo* sourceInfo, uint uFunctionNumber, uint uScriptId, Js::LocalFunctionId functionId, FunctionInfo::Attributes attributes
             , FunctionBodyFlags flags
 #ifdef PERF_COUNTERS
             , bool isDeserializedFunction
 #endif
             );
 
-        static FunctionBody * NewFromParseableFunctionInfo(ParseableFunctionInfo * info, PropertyRecordList *boundPropertyRecords);
+        static FunctionBody * NewFromParseableFunctionInfo(ParseableFunctionInfo * info);
 
         FunctionEntryPointInfo * GetEntryPointInfo(int index) const;
         FunctionEntryPointInfo * TryGetEntryPointInfo(int index) const;

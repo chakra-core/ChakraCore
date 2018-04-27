@@ -14,7 +14,6 @@ private:
     Js::ScriptContext* scriptContext;
     ArenaAllocator *alloc;
     uint32 flags;
-    Js::PropertyRecordList* propertyRecords;
     SList<FuncInfo*> *funcInfoStack;
     ParseNodeBlock *currentBlock;
     ParseNode *currentTopStatement;
@@ -125,17 +124,6 @@ public:
 
     ArenaAllocator *GetAllocator() {
         return alloc;
-    }
-
-    Js::PropertyRecordList* EnsurePropertyRecordList()
-    {
-        if (this->propertyRecords == nullptr)
-        {
-            Recycler* recycler = this->scriptContext->GetRecycler();
-            this->propertyRecords = RecyclerNew(recycler, Js::PropertyRecordList, recycler);
-        }
-
-        return this->propertyRecords;
     }
 
     bool IsEvalWithNoParentScopeInfo()
