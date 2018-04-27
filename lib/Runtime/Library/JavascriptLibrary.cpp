@@ -279,7 +279,7 @@ namespace Js
         INIT_ERROR_PROTO(uriErrorPrototype, InitializeURIErrorPrototype);
 
 #ifdef ENABLE_WASM
-        if (CONFIG_FLAG(Wasm) && !PHASE_OFF1(Js::WasmPhase))
+        if (CONFIG_FLAG(Wasm) && PHASE_ENABLED1(WasmPhase))
         {
             INIT_ERROR_PROTO(webAssemblyCompileErrorPrototype, InitializeWebAssemblyCompileErrorPrototype);
             INIT_ERROR_PROTO(webAssemblyRuntimeErrorPrototype, InitializeWebAssemblyRuntimeErrorPrototype);
@@ -340,7 +340,7 @@ namespace Js
             DeferredTypeHandler<InitializeStringIteratorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
 #ifdef ENABLE_WASM
-        if (CONFIG_FLAG(Wasm) && !PHASE_OFF1(Js::WasmPhase))
+        if (CONFIG_FLAG(Wasm) && PHASE_ENABLED1(WasmPhase))
         {
             webAssemblyMemoryPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
@@ -483,7 +483,7 @@ namespace Js
         INIT_SIMPLE_TYPE(uriErrorType, TypeIds_Error, uriErrorPrototype);
 
 #ifdef ENABLE_WASM
-        if (CONFIG_FLAG(Wasm) && !PHASE_OFF1(Js::WasmPhase))
+        if (CONFIG_FLAG(Wasm) && PHASE_ENABLED1(WasmPhase))
         {
             INIT_SIMPLE_TYPE(webAssemblyCompileErrorType, TypeIds_Error, webAssemblyCompileErrorPrototype);
             INIT_SIMPLE_TYPE(webAssemblyRuntimeErrorType, TypeIds_Error, webAssemblyRuntimeErrorPrototype);
@@ -576,7 +576,7 @@ namespace Js
         numberTypeDynamic = DynamicType::New(scriptContext, TypeIds_NumberObject, numberPrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
 
 #ifdef ENABLE_WASM
-        if (CONFIG_FLAG(Wasm) && !PHASE_OFF1(Js::WasmPhase))
+        if (CONFIG_FLAG(Wasm) && PHASE_ENABLED1(WasmPhase))
         {
             webAssemblyModuleType = DynamicType::New(scriptContext, TypeIds_WebAssemblyModule, webAssemblyModulePrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
             webAssemblyInstanceType = DynamicType::New(scriptContext, TypeIds_WebAssemblyInstance, webAssemblyInstancePrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
@@ -1461,7 +1461,7 @@ namespace Js
         AddFunction(globalObject, PropertyIds::URIError, uriErrorConstructor);
 
 #ifdef ENABLE_WASM
-        if (CONFIG_FLAG(Wasm) && !PHASE_OFF1(Js::WasmPhase))
+        if (CONFIG_FLAG(Wasm) && PHASE_ENABLED1(WasmPhase))
         {
             webAssemblyCompileFunction = nullptr;
             // new WebAssembly object

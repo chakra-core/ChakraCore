@@ -79,7 +79,7 @@ namespace Js
 
     enum Phase: unsigned short
     {
-#define PHASE(name, ...) name##Phase,
+#define PHASE(name) name##Phase,
 #include "ConfigFlagsList.h"
         PhaseCount,
         InvalidPhase
@@ -553,16 +553,6 @@ namespace Js
         void TranslateFlagConfiguration();
     };
 
-    template<bool IsEnabledByDefault>
-    struct PhaseIsEnabled
-    {
-        template<Phase phase>
-        static const bool IsEnabled();
-        template<Phase phase, typename FUNC>
-        static const bool IsEnabled(FUNC func);
-        template<Phase phase>
-        static const bool IsEnabled(uint sourceContextId, Js::LocalFunctionId functionId);
-    };
 
     class Profiler;
 
@@ -573,21 +563,6 @@ namespace Js
         static Configuration        Global;
         bool EnableJitInDebugMode();
 
-        template<Phase phase>
-        static inline const bool IsPhaseEnabled()
-        {
-            return PhaseIsEnabled<PhaseEnabledByDefault[phase]>::IsEnabled<phase>();
-        }
-        template<Phase phase, typename FUNC>
-        static inline const bool IsPhaseEnabled(FUNC func)
-        {
-            return PhaseIsEnabled<PhaseEnabledByDefault[phase]>::IsEnabled<phase, FUNC>(func);
-        }
-        template<Phase phase>
-        static inline const bool IsPhaseEnabled(uint sourceContextId, Js::LocalFunctionId functionId)
-        {
-            return PhaseIsEnabled<PhaseEnabledByDefault[phase]>::IsEnabled<phase>(sourceContextId, functionId);
-        }
         // Public in case the client wants to have
         // a separate config from the global one
         Configuration();
@@ -595,10 +570,6 @@ namespace Js
 
 //Create macros for a useful subset of the config options that either get the value from the configuration (if the option is enabled) or
 //just use the hard coded default value (if not). All the ...IsEnabled(...) default to false.
-#define PHASE_ENABLED1(phase)       (Js::Configuration::IsPhaseEnabled<phase>())
-#define PHASE_ENABLED(phase, func)  (Js::Configuration::IsPhaseEnabled<phase>(func))
-#define PHASE_ENABLED_RAW(phase, sourceId, functionId) \
-                                    (Js::Configuration::IsPhaseEnabled<phase>(sourceId, functionId))
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
 #define CONFIG_ISENABLED(flag)      (Js::Configuration::Global.flags.IsEnabled(flag))
 #define CUSTOM_CONFIG_ISENABLED(flags, flag)      (flags.IsEnabled(flag))
@@ -894,46 +865,22 @@ namespace Js
 #define PHASE_PRINT_INTRUSIVE_TESTTRACE1(phase, ...) (false)
 #endif
 
-enum PhaseDefault {DefaultOn, DefaultOff};
-constexpr bool IsPhaseEnabledByDefault(PhaseDefault value = DefaultOff) { return value == DefaultOn; }
-constexpr bool PhaseEnabledByDefault[PhaseCount] =
+#define PHASE_ENABLED1(phase)       (Js::PhaseIsEnabled::phase())
+#define PHASE_ENABLED(phase, func)  (Js::PhaseIsEnabled::phase(func))
+#define PHASE_ENABLED_RAW(phase, sourceId, functionId) \
+                                    (Js::PhaseIsEnabled::phase(sourceId, functionId))
+struct PhaseIsEnabled
 {
-#define PHASE(name, ...) IsPhaseEnabledByDefault(__VA_ARGS__),
+#define PHASE_DEFAULT_ON(name) \
+        static bool name##Phase() { return !PHASE_OFF1(Js::name##Phase); } \
+        template<typename FUNC> static bool name##Phase(FUNC func) { return !PHASE_OFF(Js::name##Phase, func); } \
+        static bool name##Phase(uint sourceId, Js::LocalFunctionId functionId) { return !PHASE_OFF_RAW(Js::name##Phase, sourceId, functionId); }
+#define PHASE_DEFAULT_OFF(name) \
+        static bool name##Phase() { return PHASE_ON1(Js::name##Phase); } \
+        template<typename FUNC> static bool name##Phase(FUNC func) { return PHASE_ON(Js::name##Phase, func); } \
+        static bool name##Phase(uint sourceId, Js::LocalFunctionId functionId) { return PHASE_ON_RAW(Js::name##Phase, sourceId, functionId); }
 #include "ConfigFlagsList.h"
-#undef PHASE
-};
-
-template<> template<Phase phase>
-const bool Js::PhaseIsEnabled<true>::IsEnabled()
-{
-    return !PHASE_OFF1(phase);
-}
-template<> template<Phase phase>
-const bool Js::PhaseIsEnabled<false>::IsEnabled()
-{
-    return PHASE_ON1(phase);
-}
-template<> template<Phase phase, typename FUNC>
-const bool Js::PhaseIsEnabled<true>::IsEnabled(FUNC func)
-{
-    return !PHASE_OFF(phase, func);
-}
-template<> template<Phase phase, typename FUNC>
-const bool Js::PhaseIsEnabled<false>::IsEnabled(FUNC func)
-{
-    return PHASE_ON(phase, func);
-}
-template<> template<Phase phase>
-const bool Js::PhaseIsEnabled<true>::IsEnabled(uint sourceContextId, Js::LocalFunctionId functionId)
-{
-    return !PHASE_OFF_RAW(phase, sourceContextId, functionId);
-}
-template<> template<Phase phase>
-const bool Js::PhaseIsEnabled<false>::IsEnabled(uint sourceContextId, Js::LocalFunctionId functionId)
-{
-    return PHASE_ON_RAW(hase, sourceContextId, functionId);
-}
-
+    };
 
 ///----------------------------------------------------------------------------
 ///----------------------------------------------------------------------------

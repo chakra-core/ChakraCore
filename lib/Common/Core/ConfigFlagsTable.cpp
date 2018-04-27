@@ -269,7 +269,7 @@ namespace Js
 
     const char16* const PhaseNames[PhaseCount + 1] =
     {
-    #define PHASE(name, ...) _u(#name),
+    #define PHASE(name) _u(#name),
     #include "ConfigFlagsList.h"
         NULL
     #undef PHASE

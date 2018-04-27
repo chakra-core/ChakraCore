@@ -4780,7 +4780,7 @@ BOOL Parser::DeferredParse(Js::LocalFunctionId functionId)
         {
             return false;
         }
-        if (PHASE_OFF_RAW(Js::DeferParsePhase, m_sourceContextInfo->sourceContextId, functionId))
+        if (!PHASE_ENABLED_RAW(DeferParsePhase, m_sourceContextInfo->sourceContextId, functionId))
         {
             return false;
         }
@@ -5894,7 +5894,7 @@ void Parser::ParseTopLevelDeferredFunc(ParseNodeFnc * pnodeFnc, ParseNodeFnc * p
 bool Parser::DoParallelParse(ParseNodeFnc * pnodeFnc) const
 {
 #if ENABLE_BACKGROUND_PARSING
-    if (!PHASE_ON_RAW(Js::ParallelParsePhase, m_sourceContextInfo->sourceContextId, pnodeFnc->functionId))
+    if (!PHASE_ENABLED_RAW(ParallelParsePhase, m_sourceContextInfo->sourceContextId, pnodeFnc->functionId))
     {
         return false;
     }
