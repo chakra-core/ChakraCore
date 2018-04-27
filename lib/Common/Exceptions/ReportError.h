@@ -28,7 +28,7 @@ enum ErrorReason
     Fatal_TTDAbort = 20,
     Fatal_Failed_API_Result = 21,
     Fatal_OutOfMemory = 22,
-    Fatal_RecyclerVisitedHost_LargeHeapBlock = 23,
+    // Unused = 23,
     Fatal_JsBuiltIn_Error = 24,
 };
 

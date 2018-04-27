@@ -130,6 +130,12 @@ public:
 
     template <bool doSpecialMark>
     void Mark(void* objectAddress, MarkContext * markContext);
+
+#ifdef RECYCLER_VISITED_HOST
+    template <bool doSpecialMark, typename Fn>
+    bool UpdateAttributesOfMarkedObjects(MarkContext * markContext, void * objectAddress, size_t objectSize, unsigned char attributes, Fn fn);
+#endif
+
     virtual byte* GetRealAddressFromInterior(void* interiorAddress) override;
     bool TestObjectMarkedBit(void* objectAddress) override;
     void SetObjectMarkedBit(void* objectAddress) override;

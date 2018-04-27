@@ -512,17 +512,14 @@ LargeHeapBlock::AllocFreeListEntry(DECLSPEC_GUARD_OVERFLOW size_t size, ObjectIn
 {
     Assert((attributes & InternalObjectInfoBitMask) == attributes);
     Assert(HeapInfo::IsAlignedSize(size));
+#ifdef RECYCLER_VISITED_HOST
+    AssertMsg((attributes & TrackBit) == 0 || (attributes & RecyclerVisitedHostBit), "Large tracked object implemented just for recycler visited objects");
+#else
     AssertMsg((attributes & TrackBit) == 0, "Large tracked object collection not implemented");
+#endif
     Assert(entry->heapBlock == this);
     Assert(entry->headerIndex < this->objectCount);
     Assert(this->HeaderList()[entry->headerIndex] == nullptr);
-
-#ifdef RECYCLER_VISITED_HOST
-    if (attributes & RecyclerVisitedHostBit)
-    {
-        ReportFatalException(NULL, E_FAIL, Fatal_RecyclerVisitedHost_LargeHeapBlock, 1);
-    }
-#endif
 
     uint headerIndex = entry->headerIndex;
     size_t originalSize = entry->objectSize;
@@ -600,12 +597,10 @@ LargeHeapBlock::Alloc(DECLSPEC_GUARD_OVERFLOW size_t size, ObjectInfoBits attrib
 {
     Assert(HeapInfo::IsAlignedSize(size) || InPageHeapMode());
     Assert((attributes & InternalObjectInfoBitMask) == attributes);
-    AssertMsg((attributes & TrackBit) == 0, "Large tracked object collection not implemented");
 #ifdef RECYCLER_VISITED_HOST
-    if (attributes & RecyclerVisitedHostBit)
-    {
-        ReportFatalException(NULL, E_FAIL, Fatal_RecyclerVisitedHost_LargeHeapBlock, 2);
-    }
+    AssertMsg((attributes & TrackBit) == 0 || (attributes & RecyclerVisitedHostBit), "Large tracked object implemented just for recycler visited objects");
+#else
+    AssertMsg((attributes & TrackBit) == 0, "Large tracked object collection not implemented");
 #endif
 
     LargeObjectHeader * header = (LargeObjectHeader *)allocAddressEnd;
@@ -729,6 +724,82 @@ LargeHeapBlock::Mark(void* objectAddress, MarkContext * markContext)
 
 template void LargeHeapBlock::Mark<true>(void* objectAddress, MarkContext * markContext);
 template void LargeHeapBlock::Mark<false>(void* objectAddress, MarkContext * markContext);
+
+#ifdef RECYCLER_VISITED_HOST
+template <bool doSpecialMark, typename Fn>
+bool
+LargeHeapBlock::UpdateAttributesOfMarkedObjects(MarkContext * markContext, void * objectAddress, size_t objectSize, unsigned char attributes, Fn fn)
+{
+    bool noOOMDuringMark = true;
+
+    if (attributes & TrackBit)
+    {
+        Assert((attributes & LeafBit) == 0);
+        IRecyclerVisitedObject* recyclerVisited = static_cast<IRecyclerVisitedObject*>(objectAddress);
+        noOOMDuringMark = markContext->AddPreciselyTracedObject(recyclerVisited);
+
+        if (noOOMDuringMark)
+        {
+            // Object has been successfully processed, so clear NewTrackBit
+            attributes &= ~NewTrackBit;
+        }
+        else
+        {
+            // Set the NewTrackBit, so that the main thread will redo tracking
+            attributes |= NewTrackBit;
+            noOOMDuringMark = false;
+        }
+        fn(attributes);
+    }
+    else
+    {
+        // only need to scan non-leaf objects
+        if ((attributes & LeafBit) == 0)
+        {
+            if (!markContext->AddMarkedObject(objectAddress, objectSize))
+            {
+                noOOMDuringMark = false;
+            }
+        }
+
+        // Special mark-time behavior for finalizable objects on certain GC's
+        if (doSpecialMark)
+        {
+            if (attributes & FinalizeBit)
+            {
+                FinalizableObject * trackedObject = (FinalizableObject *)objectAddress;
+                trackedObject->OnMark();
+            }
+        }
+    }
+
+#ifdef RECYCLER_STATS
+    RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), markData.markCount);
+    RECYCLER_STATS_INTERLOCKED_ADD(markContext->GetRecycler(), markData.markBytes, objectSize);
+
+    // Don't count track or finalize it if we still have to process it in thread because of OOM
+    if ((attributes & (TrackBit | NewTrackBit)) != (TrackBit | NewTrackBit))
+    {
+        // Only count those we have queued, so we don't double count
+        if (attributes & TrackBit)
+        {
+            RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), trackCount);
+        }
+        if (attributes & FinalizeBit)
+        {
+            // we counted the finalizable object here,
+            // turn off the new bit so we don't count it again
+            // on Rescan
+            attributes &= ~NewFinalizeBit;
+            fn(attributes);
+            RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), finalizeCount);
+        }
+    }
+#endif
+
+    return noOOMDuringMark;
+}
+#endif
 
 bool
 LargeHeapBlock::TestObjectMarkedBit(void* objectAddress)
@@ -1249,7 +1320,20 @@ LargeHeapBlock::RescanOnePage(Recycler * recycler)
 #endif
         if (objectSize > 0) // otherwize the object total size is less than a pointer size
         {
-            if (!recycler->AddMark(objectAddress, objectSize))
+            bool noOOMDuringMark = true;
+#ifdef RECYCLER_VISITED_HOST
+            if (attributes & TrackBit)
+            {
+                noOOMDuringMark = recycler->AddPreciselyTracedMark(reinterpret_cast<IRecyclerVisitedObject*>(objectAddress));
+            }
+            else
+#endif
+            {
+                Assert(!(attributes & TrackBit));
+                noOOMDuringMark = recycler->AddMark(objectAddress, objectSize);
+            }
+
+            if (!noOOMDuringMark)
             {
                 this->SetNeedOOMRescan(recycler);
             }
@@ -1364,7 +1448,20 @@ LargeHeapBlock::RescanMultiPage(Recycler * recycler)
         // Avoid writing to the page unnecessary by checking first
         if (header->markOnOOMRescan)
         {
-            if (!recycler->AddMark(objectAddress, objectSize))
+            bool noOOMDuringMark = true;
+#ifdef RECYCLER_VISITED_HOST
+            if (attributes & TrackBit)
+            {
+                noOOMDuringMark = recycler->AddPreciselyTracedMark(reinterpret_cast<IRecyclerVisitedObject*>(objectAddress));
+            }
+            else
+#endif
+            {
+                Assert(!(attributes & TrackBit));
+                noOOMDuringMark = recycler->AddMark(objectAddress, objectSize);
+            }
+
+            if (!noOOMDuringMark)
             {
                 this->SetNeedOOMRescan(recycler);
 #ifdef RECYCLER_PAGE_HEAP
@@ -1406,18 +1503,23 @@ LargeHeapBlock::RescanMultiPage(Recycler * recycler)
             char * objectAddressEnd = objectAddress + objectSize;
             // Walk through the object, checking if any of its pages have been written to
             // If it has, then queue up this object for marking
+#ifdef RECYCLER_VISITED_HOST
+            bool tracedObject = attributes & TrackBit;
+            char * objectAddressStart = objectAddress;
+#endif
             do
             {
                 char * pageStart = (char *)(((size_t)objectAddress) & ~(size_t)(AutoSystemInfo::PageSize - 1));
 
                 /*
-                * The rescan logic for large object is as follows:
+                * The rescan logic for large conservatively scanned object is as follows:
                 *  - We rescan the object if it was marked during concurrent mark
                 *  - If it was marked, since the large object has multiple pages, we'll rescan only the parts that were changed
                 *  - So for each page in the large object, check if it's been written to, and if it hasn't, skip looking at that region
                 *  - If we can't get the write watch, rescan that region
                 *  - However, this logic applies only if we're not rescanning because of an OOM
                 *  - If we are rescanning this object because of OOM (i.e !rescanBecauseOfOOM = false), rescan the whole object
+                * For large traced objects we rescan the object and if one of its pages has changed we will rescan the entire object
                 *
                 * We cache the result of the write watch and the page that it was checked on so that we don't call GetWriteWatch on the same
                 * page twice and inadvertently reset the write watch on a page where we've already scanned an object
@@ -1446,22 +1548,54 @@ LargeHeapBlock::RescanMultiPage(Recycler * recycler)
                 // We're interested in only rescanning the parts of the object that have changed, not the whole
                 // object. So just queue that up for marking
                 char * checkEnd = min(pageStart + AutoSystemInfo::PageSize, objectAddressEnd);
-                if (!recycler->AddMark(objectAddress, (checkEnd - objectAddress)))
+
+#ifdef RECYCLER_VISITED_HOST
+                if (tracedObject)
                 {
-                    this->SetNeedOOMRescan(recycler);
-#ifdef RECYCLER_PAGE_HEAP
-                    if (!header->isObjectPageLocked)
-#endif
+                    // The object has one dirty page so we need to trace it
+                    if (!recycler->AddPreciselyTracedMark(reinterpret_cast<IRecyclerVisitedObject*>(objectAddressStart)))
                     {
-                        header->markOnOOMRescan = true;
+                        this->SetNeedOOMRescan(recycler);
+#ifdef RECYCLER_PAGE_HEAP
+                        if (!header->isObjectPageLocked)
+#endif
+                        {
+                            header->markOnOOMRescan = true;
+                        }
                     }
+
+                    rescanCount = objectSize / AutoSystemInfo::PageSize +
+                        (objectSize % AutoSystemInfo::PageSize != 0 ? 1 : 0);
+#ifdef RECYCLER_STATS
+                    objectScanned = true;
+                    recycler->collectionStats.markData.rescanLargePageCount += rescanCount;
+                    recycler->collectionStats.markData.rescanLargeByteCount += objectSize;
+#endif
+                    // We don't need to continue as we are tracing the whole object
+                    break;
                 }
+                else
+#endif
+                {
+                    Assert(!(attributes & TrackBit));
+                    if (!recycler->AddMark(objectAddress, (checkEnd - objectAddress)))
+                    {
+                        this->SetNeedOOMRescan(recycler);
+#ifdef RECYCLER_PAGE_HEAP
+                        if (!header->isObjectPageLocked)
+#endif
+                        {
+                            header->markOnOOMRescan = true;
+                        }
+                    }
 
 #ifdef RECYCLER_STATS
-                objectScanned = true;
-                recycler->collectionStats.markData.rescanLargePageCount++;
-                recycler->collectionStats.markData.rescanLargeByteCount += (checkEnd - objectAddress);
+                    objectScanned = true;
+                    recycler->collectionStats.markData.rescanLargePageCount++;
+                    recycler->collectionStats.markData.rescanLargeByteCount += (checkEnd - objectAddress);
 #endif
+                }
+
                 objectAddress = checkEnd;
                 rescanCount++;
             }
