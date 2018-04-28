@@ -104,7 +104,7 @@ set _error=0
   echo -- jenkins.testone.cmd ^>^> Running native tests... this can take some time
   if not exist %_LogDir%\ mkdir %_LogDir%
   set _LogFile=%_LogDir%\nativetests.log
-  call :do %_TestDir%\runnativetests.cmd -%1 -binDir %_BinDir% > %_LogFile% 2>&1
+  call :do %_TestDir%\runnativetests.cmd -%1 -binDir %_BinDir% -d yes > %_LogFile% 2>&1
   echo -- jenkins.testone.cmd ^>^> Running native tests... DONE!
 
   if "%_error%" NEQ "0" (
