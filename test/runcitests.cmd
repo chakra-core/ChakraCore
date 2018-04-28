@@ -146,7 +146,7 @@ set _HadFailures=0
   echo -- runcitests.cmd ^>^> Running native tests... this can take some time
   if not exist %_LogDir%\ mkdir %_LogDir%
   set _LogFile=%_TestDir%\logs\%1_%2\nativetests.log
-  call :do %_TestDir%\runnativetests.cmd -%1%2 > %_LogFile% 2>&1
+  call :do %_TestDir%\runnativetests.cmd -%1%2 -d yes > %_LogFile% 2>&1
   echo -- runcitests.cmd ^>^> Running native tests... DONE!
 
   if "%_error%" NEQ "0" (
