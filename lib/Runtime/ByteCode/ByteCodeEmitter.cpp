@@ -5594,6 +5594,57 @@ void ByteCodeGenerator::EnsureNoRedeclarations(ParseNodeBlock *pnodeBlock, FuncI
         });
     }
 
+    auto emitRedeclCheck = [this](Symbol * sym, FuncInfo * funcInfo)
+    {
+        Js::PropertyId propertyId = sym->EnsurePosition(this);
+
+        if (this->flags & fscrEval)
+        {
+            if (!funcInfo->byteCodeFunction->GetIsStrictMode())
+            {
+                this->m_writer.ScopedProperty(Js::OpCode::ScopedEnsureNoRedeclFld, ByteCodeGenerator::RootObjectRegister,
+                    funcInfo->FindOrAddReferencedPropertyId(propertyId));
+            }
+        }
+        else
+        {
+            this->m_writer.ElementRootU(Js::OpCode::EnsureNoRootRedeclFld, funcInfo->FindOrAddReferencedPropertyId(propertyId));
+        }
+    };
+
+    // scan for function declarations
+    // these behave like "var" declarations
+    for (ParseNodePtr pnode = pnodeBlock->pnodeScopes; pnode;)
+    {
+        switch (pnode->nop) {
+
+        case knopFncDecl:
+            if (pnode->AsParseNodeFnc()->IsDeclaration())
+            {
+                emitRedeclCheck(pnode->AsParseNodeFnc()->pnodeName->sym, funcInfo);
+            }
+
+            pnode = pnode->AsParseNodeFnc()->pnodeNext;
+            break;
+
+        case knopBlock:
+            pnode = pnode->AsParseNodeBlock()->pnodeNext;
+            break;
+
+        case knopCatch:
+            pnode = pnode->AsParseNodeCatch()->pnodeNext;
+            break;
+
+        case knopWith:
+            pnode = pnode->AsParseNodeWith()->pnodeNext;
+            break;
+
+        default:
+            Assert(UNREACHED);
+        }
+    }
+
+    // scan for var declarations
     for (ParseNode *pnode = funcInfo->root->pnodeVars; pnode; pnode = pnode->AsParseNodeVar()->pnodeNext)
     {
         Symbol* sym = pnode->AsParseNodeVar()->sym;
@@ -5618,20 +5669,7 @@ void ByteCodeGenerator::EnsureNoRedeclarations(ParseNodeBlock *pnodeBlock, FuncI
 
         if (sym->GetSymbolType() == STVariable)
         {
-            Js::PropertyId propertyId = sym->EnsurePosition(this);
-
-            if (this->flags & fscrEval)
-            {
-                if (!funcInfo->byteCodeFunction->GetIsStrictMode())
-                {
-                    this->m_writer.ScopedProperty(Js::OpCode::ScopedEnsureNoRedeclFld, ByteCodeGenerator::RootObjectRegister,
-                        funcInfo->FindOrAddReferencedPropertyId(propertyId));
-                }
-            }
-            else
-            {
-                this->m_writer.ElementRootU(Js::OpCode::EnsureNoRootRedeclFld, funcInfo->FindOrAddReferencedPropertyId(propertyId));
-            }
+            emitRedeclCheck(sym, funcInfo);
         }
     }
 }

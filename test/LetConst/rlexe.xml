@@ -391,4 +391,9 @@
       <files>shadowedsetter.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>funcDeclConflict.js</files>
+    </default>
+  </test>
 </regress-exe>

@@ -160,27 +160,27 @@ function j() { }
 const j
 function k() { }
 var k
-function l(one) { }
-function l(one) { }
-function l(one) { }
-function l(two) { }
-function l(two) { }
+ReferenceError: Let/Const redeclaration
+let l
+let l
+ReferenceError: Let/Const redeclaration
+inner let l
 outer let l
-TypeError: Assignment to const
+ReferenceError: Let/Const redeclaration
 const m
 const m
-TypeError: Assignment to const
+ReferenceError: Let/Const redeclaration
 inner const m
 const m
-function m(three) { }
-function m(three) { }
+ReferenceError: Let/Const redeclaration
+inner let m
 const m
 function n() { }
 function n() { }
 function n() { }
-ReferenceError: Use before declaration
+ReferenceError: Let/Const redeclaration
 let o
-TypeError: Assignment to const
+ReferenceError: Let/Const redeclaration
 const p
 function q() { }
 var q
@@ -239,32 +239,34 @@ function glo_t19_j() { }
 const glo_t19_j
 function glo_t19_k() { }
 var glo_t19_k
-function glo_t19_l(one) { }
-function glo_t19_l(one) { }
-function glo_t19_l(one) { }
+ReferenceError: Let/Const redeclaration
+let glo_t19_l
+let glo_t19_l
 undefined
-function glo_t19_l(two) { }
-function glo_t19_l(two) { }
+ReferenceError: Let/Const redeclaration
+let declaredLater
+ReferenceError: Let/Const redeclaration
+inner let glo_t19_l
 outer let glo_t19_l
 undefined
-TypeError: Assignment to const
+ReferenceError: Let/Const redeclaration
 const glo_t19_m
 const glo_t19_m
 undefined
-TypeError: Assignment to const
+ReferenceError: Let/Const redeclaration
 inner const m
 const glo_t19_m
 undefined
-function glo_t19_m(three) { }
-function glo_t19_m(three) { }
+ReferenceError: Let/Const redeclaration
+inner let m
 const glo_t19_m
 undefined
 function glo_t19_n() { }
 function glo_t19_n() { }
 function glo_t19_n() { }
-ReferenceError: Use before declaration
+ReferenceError: Let/Const redeclaration
 let glo_t19_o
-TypeError: Assignment to const
+ReferenceError: Let/Const redeclaration
 const glo_t19_p
 function glo_t19_q() { }
 var glo_t19_q
