@@ -632,6 +632,7 @@ namespace Js
 #define PHASE_VERBOSE_TRACE_RAW(phase, sourceId, functionId) \
     ((PHASE_TRACE_RAW((phase), (sourceId), (functionId))) && Js::Configuration::Global.flags.Verbose)
 
+#define PHASE_DUMP1(phase)          Js::Configuration::Global.flags.Dump.IsEnabled((phase))
 #define PHASE_DUMP(phase, func)     Js::Configuration::Global.flags.Dump.IsEnabled((phase), (func)->GetSourceContextId(),(func)->GetLocalFunctionId())
 
 #define PHASE_DEBUGBREAK_ON_PHASE_BEGIN(phase, func) Js::Configuration::Global.flags.DebugBreakOnPhaseBegin.IsEnabled((phase), (func)->GetSourceContextId(), (func)->GetLocalFunctionId())
@@ -863,6 +864,23 @@ namespace Js
 #else
 #define PHASE_PRINT_INTRUSIVE_TESTTRACE1(phase, ...) (false)
 #endif
+
+#define PHASE_ENABLED1(phase)       (Js::PhaseIsEnabled::phase())
+#define PHASE_ENABLED(phase, func)  (Js::PhaseIsEnabled::phase(func))
+#define PHASE_ENABLED_RAW(phase, sourceId, functionId) \
+                                    (Js::PhaseIsEnabled::phase(sourceId, functionId))
+struct PhaseIsEnabled
+{
+#define PHASE_DEFAULT_ON(name) \
+        static bool name##Phase() { return !PHASE_OFF1(Js::name##Phase); } \
+        template<typename FUNC> static bool name##Phase(FUNC func) { return !PHASE_OFF(Js::name##Phase, func); } \
+        static bool name##Phase(uint sourceId, Js::LocalFunctionId functionId) { return !PHASE_OFF_RAW(Js::name##Phase, sourceId, functionId); }
+#define PHASE_DEFAULT_OFF(name) \
+        static bool name##Phase() { return PHASE_ON1(Js::name##Phase); } \
+        template<typename FUNC> static bool name##Phase(FUNC func) { return PHASE_ON(Js::name##Phase, func); } \
+        static bool name##Phase(uint sourceId, Js::LocalFunctionId functionId) { return PHASE_ON_RAW(Js::name##Phase, sourceId, functionId); }
+#include "ConfigFlagsList.h"
+    };
 
 ///----------------------------------------------------------------------------
 ///----------------------------------------------------------------------------

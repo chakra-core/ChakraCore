@@ -195,7 +195,7 @@ void WebAssemblyInstance::CreateWasmFunctions(WebAssemblyModule * wasmModule, Sc
 
         env->SetWasmFunction(i, funcObj);
 
-        if (!PHASE_OFF(WasmDeferredPhase, body))
+        if (PHASE_ENABLED(WasmDeferredPhase, body))
         {
             // if we still have WasmReaderInfo we haven't yet parsed
             if (body->GetAsmJsFunctionInfo()->GetWasmReaderInfo())

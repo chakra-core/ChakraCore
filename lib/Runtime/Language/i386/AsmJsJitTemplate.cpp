@@ -1569,7 +1569,7 @@ namespace Js
         {
             int size = 0;
 #if DBG_DUMP
-            if (PHASE_ON1(AsmjsFunctionEntryPhase))
+            if (PHASE_ENABLED1(AsmjsFunctionEntryPhase))
             {
                 Var CommonCallHelper = (void(*)(Js::ScriptFunction*))AsmJSCommonCallHelper;
                 size += MOV::EncodeInstruction<int>(buffer, InstrParamsRegImm<int32>(RegEAX, (int32)CommonCallHelper));

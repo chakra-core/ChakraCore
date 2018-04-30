@@ -2,7 +2,16 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#ifdef PHASE
+#if defined(PHASE) || defined(PHASE_DEFAULT_ON) || defined(PHASE_DEFAULT_OFF)
+#ifndef PHASE
+#define PHASE(name)
+#endif
+#ifndef PHASE_DEFAULT_ON
+#define PHASE_DEFAULT_ON PHASE
+#endif
+#ifndef PHASE_DEFAULT_OFF
+#define PHASE_DEFAULT_OFF PHASE
+#endif
 PHASE(All)
     PHASE(BGJit)
     PHASE(Module)
@@ -10,7 +19,7 @@ PHASE(All)
         PHASE(JsLibInit)
     PHASE(Parse)
         PHASE(RegexCompile)
-        PHASE(DeferParse)
+        PHASE_DEFAULT_ON(DeferParse)
         PHASE(Redeferral)
         PHASE(DeferEventHandlers)
         PHASE(FunctionSourceInfoParse)
@@ -19,7 +28,7 @@ PHASE(All)
         PHASE(SkipNestedDeferred)
         PHASE(CacheScopeInfoNames)
         PHASE(ScanAhead)
-        PHASE(ParallelParse)
+        PHASE_DEFAULT_OFF(ParallelParse)
         PHASE(EarlyReferenceErrors)
     PHASE(ByteCode)
         PHASE(CachedScope)
@@ -35,15 +44,15 @@ PHASE(All)
     PHASE(Delay)
         PHASE(Speculation)
         PHASE(GatherCodeGenData)
-    PHASE(Wasm)
+    PHASE_DEFAULT_ON(Wasm)
         // Wasm frontend
         PHASE(WasmBytecode) // Supports -off,-dump,-trace,-profile
         PHASE(WasmReader) // Support -trace,-profile
         PHASE(WasmSection) // Supports -trace
         PHASE(WasmOpCodeDistribution) // Support -dump
         // Wasm features per functions
-        PHASE(WasmDeferred)
-        PHASE(WasmValidatePrejit)
+        PHASE_DEFAULT_ON(WasmDeferred)
+        PHASE_DEFAULT_OFF(WasmValidatePrejit)
         PHASE(WasmInOut) // Trace input and output of wasm calls
         PHASE(WasmMemWrites) // Trace memory writes
     PHASE(Asmjs)
@@ -51,11 +60,11 @@ PHASE(All)
         PHASE(AsmjsEncoder)
         PHASE(AsmjsInterpreter)
         PHASE(AsmJsJITTemplate)
-        PHASE(AsmjsFunctionEntry)
+        PHASE_DEFAULT_OFF(AsmjsFunctionEntry)
         PHASE(AsmjsInterpreterStack)
         PHASE(AsmjsEntryPointInfo)
         PHASE(AsmjsCallDebugBreak)
-        PHASE(BackEnd)
+    PHASE(BackEnd)
         PHASE(IRBuilder)
             PHASE(SwitchOpt)
             PHASE(BailOnNoProfile)
@@ -382,6 +391,8 @@ PHASE(All)
         PHASE(NativeCodeData)
         PHASE(XData)
 #undef PHASE
+#undef PHASE_DEFAULT_ON
+#undef PHASE_DEFAULT_OFF
 #endif
 
 #ifndef DEFAULT_CONFIG_BgJitDelay
