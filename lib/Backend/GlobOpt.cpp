@@ -197,6 +197,9 @@ GlobOpt::Optimize()
         // isn't available for some of the symbols created during the backward pass, or the forward pass.
         // Keep track of the last symbol for which we're guaranteed to have data.
         this->maxInitialSymID = this->func->m_symTable->GetMaxSymID();
+#if DBG
+        this->BackwardPass(Js::CaptureByteCodeRegUsePhase);
+#endif
         this->BackwardPass(Js::BackwardPhase);
         this->ForwardPass();
         this->BackwardPass(Js::DeadStorePhase);
