@@ -4,7 +4,7 @@
     <default>
       <tags>exclude_test,Slow</tags>
       <files>eval-nativecodedata.js</files>
-      <compile-flags>-CollectGarbage -force:fieldhoist</compile-flags>
+      <compile-flags>-CollectGarbage</compile-flags>
       <baseline />
     </default>
   </test>

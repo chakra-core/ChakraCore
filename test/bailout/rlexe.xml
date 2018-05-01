@@ -231,7 +231,7 @@
     <default>
       <files>bailout-branch.js</files>
       <baseline>bailout-branch.baseline</baseline>
-      <compile-flags>-forcejitloopbody -force:fieldhoist</compile-flags>
+      <compile-flags>-forcejitloopbody</compile-flags>
     </default>
   </test>
   <test>
