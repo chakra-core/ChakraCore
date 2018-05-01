@@ -23,18 +23,18 @@ namespace PlatformAgnostic
         static const UNormalizer2 *StaticUNormalizerFactory(NormalizationForm nf)
         {
             static_assert(
-                NormalizationForm::C == UNORM2_COMPOSE &&
-                NormalizationForm::D == UNORM2_DECOMPOSE &&
+                static_cast<int>(NormalizationForm::C) == static_cast<int>(UNORM2_COMPOSE) &&
+                static_cast<int>(NormalizationForm::D) == static_cast<int>(UNORM2_DECOMPOSE) &&
                 // Deciding between ICU_NORMALIZATION_NFC and ICU_NORMALIZATION_NFKC
                 // Depends on ::KC and ::KD being INT_MIN + their non-K forms
                 // We can't just make them negative of their non-K forms because UNORM2_COMPOSE == 0
-                NormalizationForm::KC == INT_MIN + UNORM2_COMPOSE &&
-                NormalizationForm::KD == INT_MIN + UNORM2_DECOMPOSE &&
+                static_cast<int>(NormalizationForm::KC) == INT_MIN + static_cast<int>(UNORM2_COMPOSE) &&
+                static_cast<int>(NormalizationForm::KD) == INT_MIN + static_cast<int>(UNORM2_DECOMPOSE) &&
                 (
-                    NormalizationForm::Other != NormalizationForm::C &&
-                    NormalizationForm::Other != NormalizationForm::D &&
-                    NormalizationForm::Other != NormalizationForm::KC &&
-                    NormalizationForm::Other != NormalizationForm::KD
+                    static_cast<int>(NormalizationForm::Other) != static_cast<int>(NormalizationForm::C) &&
+                    static_cast<int>(NormalizationForm::Other) != static_cast<int>(NormalizationForm::D) &&
+                    static_cast<int>(NormalizationForm::Other) != static_cast<int>(NormalizationForm::KC) &&
+                    static_cast<int>(NormalizationForm::Other) != static_cast<int>(NormalizationForm::KD)
                 ),
                 "Invalid NormalizationForm enum configuration"
             );
