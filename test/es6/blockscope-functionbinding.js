@@ -454,7 +454,7 @@ print('\nTest 19: function declaration var binding should be ignored when same n
     (function () {
         let l = 'let l';
         {
-            eval("function l(one) { }; print(l);");
+            try { eval("function l(one) { }; print(l);"); } catch (e) { print(e); }
             print(l);
         }
         print(l);
@@ -462,7 +462,7 @@ print('\nTest 19: function declaration var binding should be ignored when same n
         l = 'outer let l';
         {
             let l = 'inner let l';
-            eval("function l(two) { }; print(l);");
+            try { eval("function l(two) { }; print(l);"); } catch (e) { print(e); }
             print(l);
         }
         print(l);
@@ -819,16 +819,22 @@ print(glo_t19_k);
 // dynamic via eval
 let glo_t19_l = 'let glo_t19_l';
 {
-    eval("function glo_t19_l(one) { }; print(glo_t19_l);");
+    try { eval("function glo_t19_l(one) { }; print(glo_t19_l);"); } catch (e) { print(e); }
     print(glo_t19_l);
 }
 print(glo_t19_l);
 print(this.glo_t19_l);
 
+{
+    try { eval("function declaredLater(one) { }; print(declaredLater);"); } catch (e) { print(e); }
+}
+let declaredLater = 'let declaredLater';
+print(declaredLater);
+
 glo_t19_l = 'outer let glo_t19_l';
 {
     let glo_t19_l = 'inner let glo_t19_l';
-    eval("function glo_t19_l(two) { }; print(glo_t19_l);");
+    try { eval("function glo_t19_l(two) { }; print(glo_t19_l);"); } catch (e) { print(e); }
     print(glo_t19_l);
 }
 print(glo_t19_l);
