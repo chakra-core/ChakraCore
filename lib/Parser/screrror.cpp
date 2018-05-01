@@ -237,6 +237,20 @@ void CompileScriptException::Free()
     }
 }
 
+void CompileScriptException::CopyInto(CompileScriptException* pse)
+{
+    ScriptException::CopyInto(pse);
+
+    pse->line = this->line;
+    pse->ichMinLine = this->ichMinLine;
+    pse->hasLineNumberInfo = this->hasLineNumberInfo;
+
+    if (this->bstrLine)
+    {
+        pse->bstrLine = SysAllocStringLen(this->bstrLine, SysStringLen(this->bstrLine));
+    }
+}
+
 HRESULT  CompileScriptException::ProcessError(IScanner * pScan, HRESULT hr, ParseNode * pnodeBase)
 {
     // fill in the ScriptException structure

@@ -304,6 +304,29 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
         }
     }
 
+    // BgParse feature control
+    //     0 - Disable BgParse
+    //     1 - Enable BgParse
+    dwValue = 0;
+    dwSize = sizeof(dwValue);
+    if (NOERROR == RegGetValueW(hk, nullptr, _u("EnableBgParse"), RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
+    {
+        Js::ConfigFlagsTable &configFlags = Js::Configuration::Global.flags;
+        configFlags.Enable(Js::BgParseFlag);
+        if (dwValue == 0)
+        {
+            configFlags.SetAsBoolean(Js::BgParseFlag, false);
+        }
+        else if (dwValue == 1)
+        {
+            configFlags.SetAsBoolean(Js::BgParseFlag, true);
+        }
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+        Output::Print(_u("BgParse controlled by registry: %u\n"), dwValue);
+#endif
+    }
+
     // Spectre mitigation feature control
     // This setting allows enabling\disabling spectre mitigations
     //     0 - Disable Spectre mitigations

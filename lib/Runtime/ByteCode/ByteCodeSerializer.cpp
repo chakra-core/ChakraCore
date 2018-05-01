@@ -4027,6 +4027,10 @@ public:
     {
         auto topFunction = ReadInt32(functions, &functionCount);
         firstFunctionId = sourceInfo->GetSrcInfo()->sourceContextInfo->nextLocalFunctionId;
+        // this needs to be addressed somehow...need to be able to merge sourcecontexts?
+        // it looks like in chakra!Parser::ParseFncDecl, nextLocalFunctionId is what the next function number is, then it is incremented
+        // so, if we start with a new/clean ID of 0, then add n to it, then the next
+        //sourceInfo->GetSrcInfo()->sourceContextInfo->nextLocalFunctionId += functionCount * 2;
         sourceInfo->GetSrcInfo()->sourceContextInfo->nextLocalFunctionId += functionCount;
         sourceInfo->EnsureInitialized(functionCount);
         sourceInfo->GetSrcInfo()->sourceContextInfo->EnsureInitialized();

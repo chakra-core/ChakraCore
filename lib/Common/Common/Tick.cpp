@@ -857,6 +857,11 @@ namespace Js {
         }
     }
 
+    double Tick::ToMilliseconds() const
+    {
+        return ToMicroseconds() / 1000.f;
+    }
+
     int TickDelta::ToMilliseconds() const
     {
         if (*this == Infinite())

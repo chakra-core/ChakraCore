@@ -1,6 +1,7 @@
 add_library (Chakra.Parser OBJECT
     Alloc.cpp
     BackgroundParser.cpp
+    BGParseManager.cpp
     CaseInsensitive.cpp
     CharClassifier.cpp
     CharSet.cpp

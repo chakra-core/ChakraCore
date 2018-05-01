@@ -139,6 +139,8 @@ void ThreadBoundThreadContextManager::DestroyAllContexts()
         entries.Remove(currentEntry);
         ThreadContextTLSEntry::CleanupThread();
 
+        BGParseManager::DeleteBGParseManager();
+
 #if ENABLE_BACKGROUND_JOB_PROCESSOR
         if (s_sharedJobProcessor != NULL)
         {
@@ -158,9 +160,13 @@ void ThreadBoundThreadContextManager::DestroyAllContexts()
 #endif
 }
 
-void ThreadBoundThreadContextManager::DestroyAllContextsAndEntries()
+void ThreadBoundThreadContextManager::DestroyAllContextsAndEntries(bool shouldDeleteCurrentTlsEntry)
 {
     AutoCriticalSection lock(ThreadContext::GetCriticalSection());
+
+    // When shouldDeleteCurrentTlsEntry is true, the comparison in the while loop will always be true, so
+    // every entry in the list will be deleted.
+    ThreadContextTLSEntry* currentThreadEntry = shouldDeleteCurrentTlsEntry ? nullptr : ThreadContextTLSEntry::GetEntryForCurrentThread();
 
     while (!entries.Empty())
     {
@@ -184,8 +190,15 @@ void ThreadBoundThreadContextManager::DestroyAllContextsAndEntries()
             HeapDelete(threadContext);
         }
 
-        ThreadContextTLSEntry::Delete(entry);
+        if (currentThreadEntry != entry)
+        {
+            // Note: This deletes the ThreadContextTLSEntry but does not remove its pointer
+            // from the thread's TLS
+            ThreadContextTLSEntry::Delete(entry);
+        }
     }
+
+    BGParseManager::DeleteBGParseManager();
 
 #if ENABLE_BACKGROUND_JOB_PROCESSOR
     if (s_sharedJobProcessor != NULL)
