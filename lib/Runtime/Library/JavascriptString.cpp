@@ -3006,7 +3006,7 @@ case_2:
         // TODO: Use GetString here instead of GetSz (need to modify DblFromHex and StrToDbl to take a length)
         for (pch = this->GetSz(); IsWhiteSpaceCharacter(*pch); pch++)
             ;
-        if (0 == *pch)
+        if (pch == this->m_pszValue + len)
         {
             *result = 0;
             return true;

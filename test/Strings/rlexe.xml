@@ -251,4 +251,10 @@
       <tags>exclude_debug,Slow</tags>
     </default>
   </test>  -->
+  <test>
+    <default>
+      <files>null_embedded_string_toDouble.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>
