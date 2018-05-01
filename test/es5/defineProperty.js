@@ -530,6 +530,20 @@ var tests = {
     }
   },
 
+  test35: {
+    name: "Set and unset getter property on a non-configurable property",
+    body: function() {
+        function function_1(a,b,c)
+        {
+            return 1;
+        }
+
+        function_1.__defineGetter__("length",function(){});
+        Object.defineProperty(function_1,"length", { value:(0x0a000030/2) });
+        assert.areEqual(function_1.length, 0x0a000030/2, "value in defineProperty not assigned");
+    }
+  },
+
   // Note: this test irreversibly changes the dummy object (that's important when dummy object is document/window), 
   //       it should in the very end.
   test_last_01: {
