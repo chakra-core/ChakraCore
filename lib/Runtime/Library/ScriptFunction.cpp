@@ -41,7 +41,7 @@ namespace Js
     ScriptFunction::ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType)
         : ScriptFunctionBase(deferredPrototypeType, proxy->GetFunctionInfo()),
         environment((FrameDisplay*)&NullFrameDisplay), cachedScopeObj(nullptr), homeObj(nullptr),
-        hasInlineCaches(false), hasSuperReference(false), isActiveScript(false)
+        hasInlineCaches(false)
     {
         Assert(proxy->GetFunctionInfo()->GetFunctionProxy() == proxy);
         Assert(proxy->EnsureDeferredPrototypeType() == deferredPrototypeType);
@@ -75,8 +75,6 @@ namespace Js
 
         ScriptContext* scriptContext = functionProxy->GetScriptContext();
 
-        bool hasSuperReference = functionProxy->HasSuperReference();
-
         if (functionProxy->IsFunctionBody() && functionProxy->GetFunctionBody()->GetInlineCachesOnFunctionObject())
         {
             Js::FunctionBody * functionBody = functionProxy->GetFunctionBody();
@@ -97,8 +95,6 @@ namespace Js
                 // allocate inline cache for this function object
                 pfuncScriptWithInlineCache->CreateInlineCache();
             }
-
-            pfuncScriptWithInlineCache->SetHasSuperReference(hasSuperReference);
 
             ScriptFunctionType *scFuncType = functionProxy->GetUndeferredFunctionType();
             if (scFuncType)
@@ -121,8 +117,6 @@ namespace Js
         {
             ScriptFunction* pfuncScript = scriptContext->GetLibrary()->CreateScriptFunction(functionProxy);
             pfuncScript->SetEnvironment(environment);
-
-            pfuncScript->SetHasSuperReference(hasSuperReference);
 
             ScriptFunctionType *scFuncType = functionProxy->GetUndeferredFunctionType();
             if (scFuncType)
@@ -495,7 +489,7 @@ namespace Js
                 Js::Throw::FatalInternalError();
             }
 
-            if (pFuncBody->IsLambda() || isActiveScript || this->GetFunctionInfo()->IsClassConstructor()
+            if (pFuncBody->IsLambda() || this->GetFunctionInfo()->IsActiveScript() || this->GetFunctionInfo()->IsClassConstructor()
 #ifdef ENABLE_PROJECTION
                 || scriptContext->GetConfig()->IsWinRTEnabled()
 #endif
@@ -655,8 +649,6 @@ namespace Js
         }
 
         ssfi->ComputedNameInfo = TTD_CONVERT_JSVAR_TO_TTDVAR(this->GetComputedNameVar());
-
-        ssfi->HasSuperReference = this->hasSuperReference;
     }
 #endif
 
@@ -689,13 +681,9 @@ namespace Js
 
         ScriptContext* scriptContext = functionProxy->GetScriptContext();
 
-        bool hasSuperReference = functionProxy->HasSuperReference();
-
+        Assert(!functionProxy->HasSuperReference());
         AsmJsScriptFunction* asmJsFunc = scriptContext->GetLibrary()->CreateAsmJsScriptFunction(functionProxy);
         asmJsFunc->SetEnvironment(environment);
-
-        Assert(!hasSuperReference);
-        asmJsFunc->SetHasSuperReference(hasSuperReference);
 
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(asmJsFunc, EtwTrace::GetFunctionId(functionProxy)));
 
@@ -1062,6 +1050,11 @@ namespace Js
             return computedName;
         }
         return nullptr;
+    }
+
+    bool ScriptFunction::HasSuperReference()
+    {
+        return this->GetFunctionProxy()->HasSuperReference();
     }
 
     void ScriptFunctionWithInlineCache::ClearInlineCacheOnFunctionObject()

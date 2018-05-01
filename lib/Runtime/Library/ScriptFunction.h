@@ -63,8 +63,6 @@ namespace Js
         Field(ActivationObjectEx *) cachedScopeObj;
         Field(Var) homeObj;
         Field(bool) hasInlineCaches;
-        Field(bool) hasSuperReference;
-        Field(bool) isActiveScript;
 
         Var FormatToString(JavascriptString* inputString);
         static JavascriptString* GetComputedName(Var computedNameVar, ScriptContext * scriptContext);
@@ -115,10 +113,7 @@ namespace Js
         bool GetHasInlineCaches() { return hasInlineCaches; }
         void SetHasInlineCaches(bool has) { hasInlineCaches = has; }
 
-        bool HasSuperReference() { return hasSuperReference; }
-        void SetHasSuperReference(bool has) { hasSuperReference = has; }
-
-        void SetIsActiveScript(bool is) { isActiveScript = is; }
+        bool HasSuperReference();
 
         virtual Var GetHomeObj() const override { return homeObj; }
         virtual void SetHomeObj(Var homeObj) override { this->homeObj = homeObj; }               

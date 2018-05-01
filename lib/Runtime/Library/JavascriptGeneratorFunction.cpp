@@ -105,11 +105,8 @@ namespace Js
         FunctionProxy* functionProxy = (*infoRef)->GetFunctionProxy();
         ScriptContext* scriptContext = functionProxy->GetScriptContext();
 
-        bool hasSuperReference = functionProxy->HasSuperReference();
-
         GeneratorVirtualScriptFunction* scriptFunction = scriptContext->GetLibrary()->CreateGeneratorVirtualScriptFunction(functionProxy);
         scriptFunction->SetEnvironment(environment);
-        scriptFunction->SetHasSuperReference(hasSuperReference);
 
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(scriptFunction, EtwTrace::GetFunctionId(functionProxy)));
 

@@ -177,9 +177,6 @@ namespace TTD
 
             //If the function has computed name information and what it is (check if this is an invalid ptr)
             TTDVar ComputedNameInfo;
-
-            //Flags matching the runtime definitions
-            bool HasSuperReference;
         };
 
         ////
