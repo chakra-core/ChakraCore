@@ -155,6 +155,7 @@ namespace Js
             DetermineInlineHeadSegmentPointer<T, InlinePropertySlots, false>(array);
         if(wasZeroAllocated)
         {
+            AssertOrFailFast(size <= SparseArraySegmentBase::INLINE_CHUNK_SIZE);
             if(length != 0)
             {
                 head->length = length;
@@ -238,6 +239,14 @@ namespace Js
                 DetermineAllocationSize<className, inlineSlots>(length, &allocationPlusSize, &alignedInlineElementSlots);
             }
 
+            // alignedInlineElementSlots is actually the 'size' of the segment. The size of the segment should not be greater than InlineHead segment limit, otherwise the inline
+            // segment may not be interpreted as inline segment if the length extends to the size.
+            // the size could increase because of allignment.
+            // Update the size so that it does not exceed SparseArraySegmentBase::INLINE_CHUNK_SIZE.
+
+            uint inlineChunkSize = SparseArraySegmentBase::INLINE_CHUNK_SIZE;
+            uint size = min(alignedInlineElementSlots, inlineChunkSize);
+
             array = RecyclerNewPlusZ(recycler, allocationPlusSize, className, length, arrayType);
 
             // An new array's head segment length is initialized to zero despite the array length being nonzero because the segment
@@ -250,9 +259,9 @@ namespace Js
             // a variable until it is fully initialized, there is no way for script code to use the array while it still has missing
             // values.
             SparseArraySegment<unitType> *head =
-                InitArrayAndHeadSegment<className, inlineSlots>(array, length, alignedInlineElementSlots, true);
+                InitArrayAndHeadSegment<className, inlineSlots>(array, length, size, true);
 
-            head->FillSegmentBuffer(length, alignedInlineElementSlots);
+            head->FillSegmentBuffer(length, size);
 
             Assert(array->HasNoMissingValues());
             return array;
