@@ -37,7 +37,6 @@ private:
     void ProcessTransfers(IR::Instr * instr);
     void ProcessFieldKills(IR::Instr * instr);
     template<typename T> void ClearBucketsOnFieldKill(IR::Instr *instr, HashTable<T> *table);
-    void ProcessFieldHoistKills(IR::Instr * instr);
     bool ProcessBailOutInfo(IR::Instr * instr);
     void ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo);
     void ProcessPendingPreOpBailOutInfo(IR::Instr *const currentInstr);
@@ -107,8 +106,6 @@ private:
 
     bool DoByteCodeUpwardExposedUsed() const;
     void DoSetDead(IR::Opnd * opnd, bool isDead) const;
-    bool DoFieldHoistCandidates() const;
-    bool DoFieldHoistCandidates(Loop * loop) const;
     bool DoMarkTempObjects() const;
     bool DoMarkTempNumbers() const;
     bool DoMarkTempNumbersOnTempObjects() const;

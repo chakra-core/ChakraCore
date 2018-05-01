@@ -3631,13 +3631,6 @@ Loop::CanDoFieldCopyProp()
 }
 
 bool
-Loop::CanDoFieldHoist()
-{
-    // We can do field hoist wherever we can do copy prop
-    return CanDoFieldCopyProp();
-}
-
-bool
 Loop::CanHoistInvariants() const
 {
     Func * func = this->GetHeadBlock()->firstInstr->m_func->GetTopFunc();
@@ -4522,13 +4515,7 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
     // Consider: We can recreate values for hoisted field so it can copy prop out of the loop
     if (blockData.symToValueMap == nullptr)
     {
-        Assert(blockData.hoistableFields == nullptr);
         blockData.InitBlockData(globOpt, globOpt->func);
-    }
-    else if (blockData.hoistableFields && this->globOptData.liveFields)
-    {
-        Assert(globOpt->TrackHoistableFields());
-        blockData.hoistableFields->And(this->globOptData.liveFields);
     }
 
     if (!globOpt->DoObjTypeSpec())

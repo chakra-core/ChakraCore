@@ -383,7 +383,6 @@ public:
     BVSparse<JitArenaAllocator> *              upwardExposedUses;
     BVSparse<JitArenaAllocator> *              upwardExposedFields;
     BVSparse<JitArenaAllocator> *              typesNeedingKnownObjectLayout;
-    BVSparse<JitArenaAllocator> *              fieldHoistCandidates;
     BVSparse<JitArenaAllocator> *              slotDeadStoreCandidates;
     TempNumberTracker *                     tempNumberTracker;
     TempObjectTracker *                     tempObjectTracker;
@@ -455,7 +454,6 @@ private:
         isBreakCompensationBlockAtSource(false),
         isBreakCompensationBlockAtSink(false),
 #endif
-        fieldHoistCandidates(nullptr),
         dataUseCount(0),
         intOverflowDoesNotMatterRange(nullptr),
         func(func),
@@ -553,7 +551,6 @@ class Loop
 {
     friend FlowGraph;
 private:
-    typedef JsUtil::BaseDictionary<SymID, StackSym *, JitArenaAllocator, PowerOf2SizePolicy> FieldHoistSymMap;
     typedef JsUtil::BaseDictionary<PropertySym *, Value *, JitArenaAllocator> InitialValueFieldMap;
 
     Js::ImplicitCallFlags implicitCallFlags;
@@ -587,11 +584,6 @@ public:
 
     BailOutInfo *       bailOutInfo;
     IR::BailOutInstr *  toPrimitiveSideEffectCheck;
-    BVSparse<JitArenaAllocator> * fieldHoistCandidates;
-    BVSparse<JitArenaAllocator> * liveInFieldHoistCandidates;
-    BVSparse<JitArenaAllocator> * fieldHoistCandidateTypes;
-    SListBase<IR::Instr *> prepassFieldHoistInstrCandidates;
-    FieldHoistSymMap fieldHoistSymMap;
     IR::Instr *         endDisableImplicitCall;
     BVSparse<JitArenaAllocator> * hoistedFields;
     BVSparse<JitArenaAllocator> * hoistedFieldCopySyms;
@@ -727,8 +719,6 @@ public:
         forceFloat64SymsOnEntry(nullptr),
         symsDefInLoop(nullptr),
         symsAssignedToInLoop(nullptr),
-        fieldHoistCandidateTypes(nullptr),
-        fieldHoistSymMap(alloc),
         needImplicitCallBailoutChecksForJsArrayCheckHoist(false),
         inductionVariables(nullptr),
         dominatingLoopCountableBlock(nullptr),
@@ -755,7 +745,6 @@ public:
     void SetLoopFlags(Js::LoopFlags val) { loopFlags = val; }
     bool                CanHoistInvariants() const;
     bool                CanDoFieldCopyProp();
-    bool                CanDoFieldHoist();
     void                SetHasCall();
     IR::LabelInstr *    GetLoopTopInstr() const;
     void                SetLoopTopInstr(IR::LabelInstr * loopTop);

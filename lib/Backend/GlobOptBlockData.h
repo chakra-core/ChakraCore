@@ -118,7 +118,6 @@ public:
         liveInt32Syms(nullptr),
         liveLossyInt32Syms(nullptr),
         liveFloat64Syms(nullptr),
-        hoistableFields(nullptr),
         argObjSyms(nullptr),
         maybeTempObjectSyms(nullptr),
         canStoreTempObjectSyms(nullptr),
@@ -158,7 +157,6 @@ public:
     // Conversely, a lossless int32 sym can be reused to avoid a lossy conversion.
     BVSparse<JitArenaAllocator> *           liveLossyInt32Syms;
     BVSparse<JitArenaAllocator> *           liveFloat64Syms;
-    BVSparse<JitArenaAllocator> *           hoistableFields;
     BVSparse<JitArenaAllocator> *           argObjSyms;
     BVSparse<JitArenaAllocator> *           maybeTempObjectSyms;
     BVSparse<JitArenaAllocator> *           canStoreTempObjectSyms;

@@ -524,7 +524,6 @@ public:
 
     // GlobOptFields.cpp
     void                    ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> * bv, bool inGlobOpt);
-    static bool             DoFieldHoisting(Loop * loop);
 
     IR::ByteCodeUsesInstr * ConvertToByteCodeUses(IR::Instr * isntr);
     bool GetIsAsmJSFunc()const{ return isAsmJSFunc; };
@@ -556,7 +555,6 @@ private:
     bool                    CheckIfPropOpEmitsTypeCheck(IR::Instr *instr, IR::PropertySymOpnd *opnd);
     IR::PropertySymOpnd *   CreateOpndForTypeCheckOnly(IR::PropertySymOpnd* opnd, Func* func);
     bool                    FinishOptPropOp(IR::Instr *instr, IR::PropertySymOpnd *opnd, BasicBlock* block = nullptr, bool updateExistingValue = false, bool* emitsTypeCheckOut = nullptr, bool* changesTypeValueOut = nullptr);
-    void                    FinishOptHoistedPropOps(Loop * loop);
     IR::Instr *             SetTypeCheckBailOut(IR::Opnd *opnd, IR::Instr *instr, BailOutInfo *bailOutInfo);
     void                    OptArguments(IR::Instr *Instr);
     void                    TrackInstrsForScopeObjectRemoval(IR::Instr * instr);
@@ -895,7 +893,6 @@ private:
     bool                    DoFieldCopyProp(Loop * loop) const;
     bool                    DoFunctionFieldCopyProp() const;
 
-    bool                    DoFieldHoisting() const;
     bool                    DoObjTypeSpec() const;
     bool                    DoObjTypeSpec(Loop * loop) const;
     bool                    DoFieldRefOpts() const { return DoObjTypeSpec(); }
@@ -904,26 +901,8 @@ private:
     bool                    DoFieldPRE() const;
     bool                    DoFieldPRE(Loop *loop) const;
 
-    bool                    FieldHoistOptSrc(IR::Opnd *opnd, IR::Instr *instr, PropertySym * propertySym);
-    void                    FieldHoistOptDst(IR::Instr * instr, PropertySym * propertySym, Value * src1Val);
-
-    bool                    TrackHoistableFields() const;
-    void                    PreparePrepassFieldHoisting(Loop * loop);
-    void                    PrepareFieldHoisting(Loop * loop);
-    void                    CheckFieldHoistCandidate(IR::Instr * instr, PropertySym * sym);
-    Loop *                  FindFieldHoistStackSym(Loop * startLoop, SymID propertySymId, StackSym ** copySym, IR::Instr * instrToHoist = nullptr) const;
-    bool                    CopyPropHoistedFields(PropertySym * sym, IR::Opnd ** ppOpnd, IR::Instr * instr);
-    void                    HoistFieldLoad(PropertySym * sym, Loop * loop, IR::Instr * instr, Value * oldValue, Value * newValue);
-    void                    HoistNewFieldLoad(PropertySym * sym, Loop * loop, IR::Instr * instr, Value * oldValue, Value * newValue);
-    void                    GenerateHoistFieldLoad(PropertySym * sym, Loop * loop, IR::Instr * instr, StackSym * newStackSym, Value * oldValue, Value * newValue);
-    void                    HoistFieldLoadValue(Loop * loop, Value * newValue, SymID symId, Js::OpCode opcode, IR::Opnd * srcOpnd);
-    void                    ReloadFieldHoistStackSym(IR::Instr * instr, PropertySym * propertySym);
-    void                    CopyStoreFieldHoistStackSym(IR::Instr * storeFldInstr, PropertySym * sym, Value * src1Val);
     Value *                 CreateFieldSrcValue(PropertySym * sym, PropertySym * originalSym, IR::Opnd **ppOpnd, IR::Instr * instr);
 
-    static bool             HasHoistableFields(BasicBlock const * block);
-    static bool             HasHoistableFields(GlobOptBlockData const * globOptData);
-    bool                    IsHoistablePropertySym(SymID symId) const;
     bool                    NeedBailOnImplicitCallWithFieldOpts(Loop *loop, bool hasLiveFields) const;
     IR::Instr *             EnsureDisableImplicitCallRegion(Loop * loop);
     void                    UpdateObjPtrValueType(IR::Opnd * opnd, IR::Instr * instr);
@@ -933,9 +912,7 @@ private:
 
 #if DBG
     bool                    IsPropertySymId(SymID symId) const;
-    bool                    IsHoistedPropertySym(PropertySym * sym) const;
-    bool                    IsHoistedPropertySym(SymID symId, Loop * loop) const;
-
+    
     static void             AssertCanCopyPropOrCSEFieldLoad(IR::Instr * instr);
 #endif
 
