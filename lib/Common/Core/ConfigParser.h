@@ -39,6 +39,11 @@ private:
 
     void ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser);
 
+#ifdef _WIN32
+    static void ConfigParser::SetConfigStringFromRegistry(_In_ HKEY hk, _In_ const char16* subKeyName, _In_ const char16* valName, _Inout_ Js::String& str);
+    static void ConfigParser::ReadRegistryString(_In_ HKEY hk, _In_ const char16* subKeyName, _In_ const char16* valName, _Out_ const char16** sz, _Out_ DWORD* length);
+#endif
+
 public:
     static ConfigParser s_moduleConfigParser;
 

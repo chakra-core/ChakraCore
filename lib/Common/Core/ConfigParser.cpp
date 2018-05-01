@@ -252,7 +252,7 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
     dwSize = sizeof(dwValue);
     if (NOERROR == RegGetValueW(hk, nullptr, _u("EnumerationCompat"), RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
     {
-        if(dwValue == 1)
+        if (dwValue == 1)
         {
             Js::Configuration::Global.flags.EnumerationCompat = true;
         }
@@ -267,7 +267,7 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
     dwSize = sizeof(dwValue);
     if (NOERROR == RegGetValueW(hk, nullptr, _u("FailFastIfDisconnectedDelegate"), RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
     {
-        if(dwValue == 1)
+        if (dwValue == 1)
         {
             Js::Configuration::Global.flags.FailFastIfDisconnectedDelegate = true;
         }
@@ -347,8 +347,66 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
         }
     }
 
+#ifdef ENABLE_BASIC_TELEMETRY
+    SetConfigStringFromRegistry(hk, _u("Telemetry"), _u("Discriminator1"), Js::Configuration::Global.flags.TelemetryDiscriminator1);
+    SetConfigStringFromRegistry(hk, _u("Telemetry"), _u("Discriminator2"), Js::Configuration::Global.flags.TelemetryDiscriminator2);
+    SetConfigStringFromRegistry(hk, _u("Telemetry"), _u("RunType"), Js::Configuration::Global.flags.TelemetryRunType);
+#endif
+
 #endif // _WIN32
 }
+
+#ifdef _WIN32
+
+void ConfigParser::SetConfigStringFromRegistry(_In_ HKEY hk, _In_ const char16* subKeyName, _In_ const char16* valName, _Inout_ Js::String& str)
+{
+    const char16* regValue = nullptr;
+    DWORD len = 0;
+    ReadRegistryString(hk, subKeyName, valName, &regValue, &len);
+    if (regValue != nullptr)
+    {
+        str = regValue;
+        // Js::String  makes a copy of buffer so delete here
+        NoCheckHeapDeleteArray(len, regValue);
+    }
+}
+
+/**
+ * Read a string from the registry.  Will return nullptr if string registry entry 
+ * doesn't exist, or if we can't allocate memory.  
+ * Will allocate a char16* buffer on the heap. Caller is responsible for freeing.
+ */
+void ConfigParser::ReadRegistryString(_In_ HKEY hk, _In_ const char16* subKeyName, _In_ const char16* valName, _Out_ const char16** sz, _Out_ DWORD* length)
+{
+    DWORD bufLength = 0;
+    *length = 0;
+    *sz = nullptr;
+
+    // first read to get size of string
+    DWORD result = RegGetValueW(hk, subKeyName, valName, RRF_RT_REG_SZ, nullptr, nullptr, &bufLength);
+    if (NOERROR == result)
+    {
+        if (bufLength > 0)
+        {
+            byte* buf = NoCheckHeapNewArrayZ(byte, bufLength);
+            if (buf != nullptr)
+            {
+                result = RegGetValueW(hk, subKeyName, valName, RRF_RT_REG_SZ, nullptr, buf, &bufLength);
+                if (NOERROR == result)
+                {
+                    // if successful, bufLength won't include null terminator so add 1
+                    *length = (bufLength / sizeof(char16)) + 1;
+                    *sz = reinterpret_cast<char16*>(buf);
+                }
+                else
+                {
+                    NoCheckHeapDeleteArray(bufLength, buf);
+                }
+            }
+        }
+    }
+}
+#endif // _WIN32
 
 void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser, const char16* strCustomConfigFile)
 {

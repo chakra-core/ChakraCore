@@ -1616,6 +1616,12 @@ FLAGNR(Boolean, KeepRecyclerTrackData, "Keep recycler track data after sweep unt
 
 FLAGNR(Number, MaxSingleAllocSizeInMB, "Max size(in MB) in single allocation", DEFAULT_CONFIG_MaxSingleAllocSizeInMB)
 
+#ifdef ENABLE_BASIC_TELEMETRY
+FLAGR(String, TelemetryRunType, "Value sent with telemetry events indicating origin class of data.  E.g., if data was triggered from Edge Crawler.", _u(""))
+FLAGR(String, TelemetryDiscriminator1, "Value sent with telemetry events. Used to identify filter telemetry data to specific runs.", _u(""))
+FLAGR(String, TelemetryDiscriminator2, "Value sent with telemetry events. Used to identify filter telemetry data to specific runs.", _u(""))
+#endif
+
 #undef FLAG_REGOVR_EXP
 #undef FLAG_EXPERIMENTAL
 #undef FLAG
