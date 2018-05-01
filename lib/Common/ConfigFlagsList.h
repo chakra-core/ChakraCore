@@ -1615,6 +1615,10 @@ FLAGNR(Boolean, VerifyBarrierBit, "Verify software write barrier bit is set whil
 FLAGNR(Boolean, EnableBGFreeZero, "Use to turn off background freeing and zeroing to simulate linux", DEFAULT_CONFIG_EnableBGFreeZero)
 FLAGNR(Boolean, KeepRecyclerTrackData, "Keep recycler track data after sweep until reuse", DEFAULT_CONFIG_KeepRecyclerTrackData)
 
+FLAGR(String, TelemetryRunOrigin, "Value sent with telemetry events indicating origin class of data.  E.g., if data was triggered from Edge Crawler.", _u(""))
+FLAGR(String, TelemetryDiscriminator1, "Value sent with telemetry events. Used to identify filter telemetry data to specific runs.", _u(""))
+FLAGR(String, TelemetryDiscriminator2, "Value sent with telemetry events. Used to identify filter telemetry data to specific runs.", _u(""))
+
 #undef FLAG_REGOVR_EXP
 #undef FLAG_EXPERIMENTAL
 #undef FLAG
