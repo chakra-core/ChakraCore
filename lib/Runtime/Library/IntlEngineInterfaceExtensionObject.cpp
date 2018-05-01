@@ -32,7 +32,11 @@ using namespace PlatformAgnostic::ICUHelpers;
 #define ICU_ASSERT(e, expr)                                                   \
     do                                                                        \
     {                                                                         \
-        if (ICU_FAILURE(e))                                                   \
+        if (e == U_MEMORY_ALLOCATION_ERROR)                                   \
+        {                                                                     \
+            Js::Throw::OutOfMemory();                                         \
+        }                                                                     \
+        else if (ICU_FAILURE(e))                                              \
         {                                                                     \
             AssertOrFailFastMsg(false, ICU_ERRORMESSAGE(e));                  \
         }                                                                     \
@@ -398,6 +402,17 @@ namespace Js
         T ret = static_cast<T>(p);
         AssertMsg(p >= 0 && ret < T::Max, "Invalid value for enum property");
         return ret;
+    }
+
+    template <typename T>
+    static _Ret_notnull_ T AssertNotNullOrOOM(_In_ T value)
+    {
+        if (value == nullptr)
+        {
+            Throw::OutOfMemory();
+        }
+
+        return value;
     }
 
     template <size_t N>
@@ -1067,13 +1082,15 @@ namespace Js
             int i = 0;
             for (collation = uenum_next(collations, &collationLen, &status); collation != nullptr; collation = uenum_next(collations, &collationLen, &status))
             {
+                ICU_ASSERT(status, collation != nullptr && collationLen > 0);
                 if (strcmp(collation, "standard") == 0 || strcmp(collation, "search") == 0)
                 {
                     // continue does not create holes in ret because i is set outside the loop
                     continue;
                 }
 
-                const char *unicodeCollation = uloc_toUnicodeLocaleType("collation", collation);
+                // OS#17172584: OOM during uloc_toUnicodeLocaleType can make this return nullptr even for known collations
+                const char *unicodeCollation = AssertNotNullOrOOM(uloc_toUnicodeLocaleType("collation", collation));
                 const size_t unicodeCollationLen = strlen(unicodeCollation);
 
                 // we only need strlen(unicodeCollation) + 1 char16s because unicodeCollation will always be ASCII (funnily enough)
@@ -1161,7 +1178,10 @@ namespace Js
             int i = 0;
             for (calendar = uenum_next(calendars, &calendarLen, &status); calendar != nullptr; calendar = uenum_next(calendars, &calendarLen, &status))
             {
-                const char *unicodeCalendar = uloc_toUnicodeLocaleType("calendar", calendar);
+                ICU_ASSERT(status, calendar != nullptr && calendarLen > 0);
+
+                // OS#17172584: OOM during uloc_toUnicodeLocaleType can make this return nullptr even for known calendars
+                const char *unicodeCalendar = AssertNotNullOrOOM(uloc_toUnicodeLocaleType("calendar", calendar));
                 const size_t unicodeCalendarLen = strlen(unicodeCalendar);
 
                 // we only need strlen(unicodeCalendar) + 1 char16s because unicodeCalendar will always be ASCII (funnily enough)
@@ -2590,7 +2610,15 @@ namespace Js
         {
             int curLen = -1;
             const UChar *cur = uenum_unext(available, &curLen, &status);
-            ICU_ASSERT(status, curLen > 0);
+            ICU_ASSERT(status, true);
+            if (curLen == 0)
+            {
+                // OS#17175014: in rare cases, ICU will return U_ZERO_ERROR and a valid `cur` string but a length of 0
+                // This only happens in an OOM during uenum_(u)next
+                Throw::OutOfMemory();
+            }
+
+            AssertOrFailFast(curLen > 0);
             if (_wcsicmp(reinterpret_cast<const char16 *>(cur), tz->GetSz()) == 0)
             {
                 ucal_getCanonicalTimeZoneID(cur, curLen, match, _countof(match), nullptr, &status);
