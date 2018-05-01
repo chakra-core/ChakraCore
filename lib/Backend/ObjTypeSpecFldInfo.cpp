@@ -4,6 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "Backend.h"
+#include "NativeEntryPointData.h"
+#include "JitTransferData.h"
 
 CompileAssert(sizeof(ObjTypeSpecFldIDL) == sizeof(ObjTypeSpecFldInfo));
 
@@ -336,7 +338,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::InlineCache* cac
             // These shared property guards are registered on the main thread and checked during entry point installation
             // (see NativeCodeGenerator::CheckCodeGenDone) to ensure that no property became read-only while we were
             // JIT-ing on the background thread.
-            propertyGuard = entryPoint->RegisterSharedPropertyGuard(propertyId, scriptContext);
+            propertyGuard = entryPoint->GetNativeEntryPointData()->RegisterSharedPropertyGuard(propertyId, scriptContext);
         }
     }
     else if (isProto)
@@ -353,7 +355,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::InlineCache* cac
             fieldValue = prototypeObject->GetInlineSlot(slotIndex);
         }
         isMissing = localCache.u.proto.isMissing;
-        propertyGuard = entryPoint->RegisterSharedPropertyGuard(propertyId, scriptContext);
+        propertyGuard = entryPoint->GetNativeEntryPointData()->RegisterSharedPropertyGuard(propertyId, scriptContext);
     }
     else
     {
@@ -411,7 +413,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::InlineCache* cac
 
             if (fixedProperty != nullptr && propertyGuard == nullptr)
             {
-                propertyGuard = entryPoint->RegisterSharedPropertyGuard(propertyId, scriptContext);
+                propertyGuard = entryPoint->GetNativeEntryPointData()->RegisterSharedPropertyGuard(propertyId, scriptContext);
             }
 
             if (fixedProperty != nullptr && Js::JavascriptFunction::Is(fixedProperty))
@@ -487,7 +489,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::InlineCache* cac
                     }
 
                     // We must keep the runtime cache alive as long as this entry point exists and may try to dereference it.
-                    entryPoint->RegisterConstructorCache(runtimeConstructorCache, recycler);
+                    entryPoint->GetNativeEntryPointData()->RegisterConstructorCache(runtimeConstructorCache, recycler);
                     ctorCache = RecyclerNew(recycler, JITTimeConstructorCache, functionObject, runtimeConstructorCache);
 
                     if (PHASE_TRACE(Js::FixedNewObjPhase, functionBody))
@@ -902,7 +904,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::PolymorphicInlin
     }
 
     Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(cacheId);
-    Js::PropertyGuard* propertyGuard = entryPoint->RegisterSharedPropertyGuard(propertyId, scriptContext);
+    Js::PropertyGuard* propertyGuard = entryPoint->GetNativeEntryPointData()->RegisterSharedPropertyGuard(propertyId, scriptContext);
 
     // For polymorphic, non-equivalent objTypeSpecFldInfo's, hasFixedValue is true only if each of the inline caches has a fixed function for the given cacheId, or
     // in the case of an accessor cache, only if the there is only one version of the accessor.

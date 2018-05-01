@@ -198,13 +198,6 @@ namespace Js
         return type;
     }
 
-    uint32 ScriptFunction::GetFrameHeight(FunctionEntryPointInfo* entryPointInfo) const
-    {
-        Assert(this->GetFunctionBody() != nullptr);
-
-        return this->GetFunctionBody()->GetFrameHeight(entryPointInfo);
-    }
-
     bool ScriptFunction::HasFunctionBody()
     {
         // for asmjs we want to first check if the FunctionObject has a function body. Check that the function is not deferred

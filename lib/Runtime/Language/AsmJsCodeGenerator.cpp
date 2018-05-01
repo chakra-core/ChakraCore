@@ -33,7 +33,7 @@ namespace Js
             //set entrypointinfo address and nativeAddress with TJ address
             Js::JavascriptMethod method = reinterpret_cast<Js::JavascriptMethod>(address);
             entrypointInfo->jsMethod = method;
-            entrypointInfo->SetNativeAddress(method);
+            entrypointInfo->SetTJNativeAddress(method, mScriptContext->GetNativeCodeGenerator());
 #if ENABLE_DEBUG_CONFIG_OPTIONS
             funcEntrypointInfo->SetIsTJMode(true);
 #endif

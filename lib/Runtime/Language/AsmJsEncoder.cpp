@@ -254,7 +254,7 @@ namespace Js
                 functionBody->GetColumnNumber(),
                 functionBody->GetDisplayName()));
             entryPointInfo->SetTJCodeGenDone(); // set the codegen to done state for TJ
-            entryPointInfo->SetCodeSize(codeSize);
+            entryPointInfo->SetTJCodeSize(codeSize);
             return buffer;
         }
         return nullptr;

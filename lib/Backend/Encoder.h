@@ -11,7 +11,7 @@
 ///
 ///---------------------------------------------------------------------------
 
-typedef JsUtil::List<NativeOffsetInlineeFramePair, ArenaAllocator> InlineeFrameMap;
+typedef JsUtil::List<NativeOffsetInlineeFramePair, ArenaAllocator> ArenaInlineeFrameMap;
 typedef JsUtil::List<IR::PragmaInstr*, ArenaAllocator> PragmaInstrList;
 typedef JsUtil::List<uint32, ArenaAllocator> OffsetList;
 typedef JsUtil::List<BranchJumpTableWrapper*, ArenaAllocator> JmpTableList;
@@ -35,11 +35,11 @@ private:
     uint32          m_encodeBufferSize;
     ArenaAllocator *m_tempAlloc;
 
-    InlineeFrameMap* m_inlineeFrameMap;
+    ArenaInlineeFrameMap* m_inlineeFrameMap;
     uint32 m_inlineeFrameMapDataOffset;
     uint32 m_inlineeFrameMapRecordCount;
-    typedef JsUtil::List<LazyBailOutRecord, ArenaAllocator> BailoutRecordMap;
-    BailoutRecordMap* m_bailoutRecordMap;
+    typedef JsUtil::List<LazyBailOutRecord, ArenaAllocator> ArenaBailoutRecordMap;
+    ArenaBailoutRecordMap* m_bailoutRecordMap;
 #if DBG_DUMP
     void DumpInlineeFrameMap(size_t baseAddress);
     uint32 *        m_offsetBuffer;

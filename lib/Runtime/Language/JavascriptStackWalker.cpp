@@ -1546,7 +1546,7 @@ namespace Js
 
         if (!StackFrame::IsInStackCheckCode(entry, codeAddr, stackCheckCodeHeight))
         {
-            inlinedFrame = (struct InlinedFrame *)(((uint8 *)framePointer) - entryPointInfo->frameHeight);
+            inlinedFrame = (struct InlinedFrame *)(((uint8 *)framePointer) - entryPointInfo->GetFrameHeight());
         }
 
         return inlinedFrame;

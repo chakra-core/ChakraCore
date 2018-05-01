@@ -88,7 +88,6 @@ namespace Js
         FunctionProxy * GetFunctionProxy() const;
         ScriptFunctionType * GetScriptFunctionType() const;
 
-        uint32 GetFrameHeight(FunctionEntryPointInfo* entryPointInfo) const;
         FrameDisplay* GetEnvironment() const { return environment; }
         void SetEnvironment(FrameDisplay * environment);
         ActivationObjectEx *GetCachedScope() const { return cachedScopeObj; }

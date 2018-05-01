@@ -7,7 +7,6 @@ class ThreadContext;
 class ExpirableObject: public FinalizableObject
 {
 public:
-    friend class ThreadContext;
     ExpirableObject(ThreadContext* threadContext);
 
     virtual void Finalize(bool isShutdown);
@@ -24,10 +23,13 @@ public:
     void SetIsObjectUsed();
     bool SupportsExpiration()
     {
-        return (registrationHandle != nullptr);
+        return (GetRegistrationHandle() != nullptr);
     }
 
+    // Used by ThreadContext
+    void * GetRegistrationHandle();
+    void SetRegistrationHandle(void * registrationHandle);
+    void ClearRegistrationHandle();
 private:
-    Field(void*) registrationHandle;
-    Field(bool) isUsed;
+    Field(intptr_t) registrationHandle;
 };

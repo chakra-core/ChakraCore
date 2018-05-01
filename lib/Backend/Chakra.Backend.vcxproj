@@ -253,8 +253,12 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)ValueInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITThunkEmitter.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)IntConstMath.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)NativeEntryPointData.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JitTransferData.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="JitTransferData.h" />
+    <ClInclude Include="NativeEntryPointData.h" />
     <ClInclude Include="AgenPeeps.h" />
     <ClInclude Include="arm64\ARM64Encoder.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM64'">true</ExcludedFromBuild>
