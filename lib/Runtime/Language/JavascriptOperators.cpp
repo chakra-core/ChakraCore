@@ -7092,7 +7092,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 {
                     if (!RecyclableObject::Is(extends))
                     {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidPrototype, _u("extends"));
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew);
                     }
                     RecyclableObject * extendsObj = RecyclableObject::FromVar(extends);
                     if (!JavascriptOperators::IsConstructor(extendsObj))
