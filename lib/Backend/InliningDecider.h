@@ -27,9 +27,11 @@ public:
     bool InlineIntoTopFunc() const;
     bool InlineIntoInliner(Js::FunctionBody *const inliner) const;
 
-    Js::FunctionInfo *Inline(Js::FunctionBody *const inliner, Js::FunctionInfo* functionInfo, bool isConstructorCall, bool isPolymorphicCall, uint16 constantArgInfo, Js::ProfileId callSiteId, uint recursiveInlineDepth, bool allowRecursiveInline);
+    Js::FunctionInfo *Inline(Js::FunctionBody *const inliner, Js::FunctionInfo* functionInfo, bool isConstructorCall, bool isPolymorphicCall, bool isCallback, uint16 constantArgInfo, Js::ProfileId callSiteId, uint recursiveInlineDepth, bool allowRecursiveInline);
     Js::FunctionInfo *InlineCallSite(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId, uint recursiveInlineDepth = 0);
     Js::FunctionInfo *GetCallSiteFuncInfo(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId, bool* isConstructorCall, bool* isPolymorphicCall);
+    Js::FunctionInfo * InlineCallback(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId, uint recursiveInlineDepth);
+    Js::FunctionInfo * GetCallSiteCallbackInfo(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId);
     uint16 GetConstantArgInfo(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId);
     bool HasCallSiteInfo(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId);
     uint InlinePolymorphicCallSite(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId, Js::FunctionBody** functionBodyArray, uint functionBodyArrayLength, bool* canInlineArray, uint recursiveInlineDepth = 0);
@@ -70,7 +72,7 @@ public:
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
     static void TraceInlining(Js::FunctionBody *const inliner, const char16* inlineeName, const char16* inlineeFunctionIdandNumberString, uint inlineeByteCodeCount,
-        Js::FunctionBody* topFunc, uint inlinedByteCodeCount, Js::FunctionBody *const inlinee, uint callSiteId, bool isLoopBody, uint builtIn = -1);
+        Js::FunctionBody* topFunc, uint inlinedByteCodeCount, Js::FunctionBody *const inlinee, uint callSiteId, bool isLoopBody, bool isCallback, uint builtIn = -1);
 #endif
 
 private:
@@ -105,6 +107,10 @@ private:
     Output::Print(__VA_ARGS__); \
     Output::Flush(); \
     }
+#define INLINE_TRACE_AND_TESTTRACE(...) \
+    INLINE_TRACE(__VA_ARGS__)\
+    INLINE_TESTTRACE(__VA_ARGS__)
+
 #define INLINE_TESTTRACE_VERBOSE(...) \
     if (Js::Configuration::Global.flags.Verbose && Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::InlinePhase, topFunc->GetSourceContextId(), topFunc->GetLocalFunctionId())) \
     { \

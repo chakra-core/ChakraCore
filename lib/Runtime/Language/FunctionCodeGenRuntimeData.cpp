@@ -152,4 +152,35 @@ namespace Js
         }
         return inlineeData;
     }
+
+    const FunctionCodeGenRuntimeData *FunctionCodeGenRuntimeData::GetCallbackInlinee(const ProfileId profiledCallSiteId) const
+    {
+        Assert(profiledCallSiteId < functionBody->GetProfiledCallSiteCount());
+
+        return callbackInlinees ? callbackInlinees[profiledCallSiteId] : nullptr;
+    }
+
+    FunctionCodeGenRuntimeData *FunctionCodeGenRuntimeData::EnsureCallbackInlinee(
+        Recycler *const recycler,
+        const ProfileId profiledCallSiteId,
+        FunctionBody *const inlinee)
+    {
+        Assert(recycler);
+        Assert(profiledCallSiteId < functionBody->GetProfiledCallSiteCount());
+        Assert(inlinee);
+
+        if (!callbackInlinees)
+        {
+            callbackInlinees = RecyclerNewArrayZ(recycler, Field(FunctionCodeGenRuntimeData *), functionBody->GetProfiledCallSiteCount());
+        }
+
+        FunctionCodeGenRuntimeData * inlineeData = callbackInlinees[profiledCallSiteId];
+        if (!inlineeData)
+        {
+            inlineeData = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
+            callbackInlinees[profiledCallSiteId] = inlineeData;
+        }
+
+        return inlineeData;
+    }
 }

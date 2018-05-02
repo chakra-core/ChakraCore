@@ -84,6 +84,30 @@ namespace Js
         }
     };
 
+    struct CallbackArgOutInfo
+    {
+        bool CanInlineCallback(Js::ArgSlot argIndex)
+        {
+            return canInlineCallback && hasCallbackArgument && argNumber == argIndex;
+        }
+
+        // False if there is more than one ArgIn that is a function object or a function object with arg number greater than MaxInlineeArgoutCount
+        Field(uint8) canInlineCallback : 1;
+
+        // True if there is at least one ArgIn that is a function object.
+        Field(uint8) hasCallbackArgument : 1;
+
+        Field(uint8) isPolymorphic : 1;
+
+        // Used to correlate from callee's ArgIn to this ArgOut
+        Field(uint8) argNumber : 5;
+
+        static_assert(Js::InlineeCallInfo::MaxInlineeArgoutCount < (1 << 5), "Ensure CallbackArgOutInfo::argNumber is large enough to hold all inline arguments");
+
+        Field(Js::SourceId) sourceId;
+        Field(Js::LocalFunctionId) functionId;
+    };
+
     struct CallSiteInfo
     {
         Field(ValueType) returnType;
@@ -92,6 +116,7 @@ namespace Js
         Field(uint16) dontInline : 1;
         Field(uint16) isPolymorphic : 1;
         Field(InlineCacheIndex) ldFldInlineCacheId;
+        Field(CallbackArgOutInfo) callbackArgOutInfo;
         union _u_type
         {
             struct
@@ -436,9 +461,10 @@ namespace Js
         void RecordAsmJsCallSiteInfo(FunctionBody* callerBody, ProfileId callSiteId, FunctionBody* calleeBody);
 #endif
         void RecordCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, FunctionInfo * calleeFunctionInfo, JavascriptFunction* calleeFunction, uint actualArgCount, bool isConstructorCall, InlineCacheIndex ldFldInlineCacheId = Js::Constants::NoInlineCacheIndex);
-        void RecordConstParameterAtCallSite(ProfileId callSiteId, int argNum);
+        void RecordParameterAtCallSite(FunctionBody * functionBody, ProfileId callSiteId, Var arg, int argNum, Js::RegSlot regSlot);
         static bool HasCallSiteInfo(FunctionBody* functionBody);
         bool HasCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId); // Does a particular callsite have ProfileInfo?
+        FunctionInfo * GetCallbackInfo(FunctionBody * functionBody, ProfileId callSiteId);
         FunctionInfo * GetCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, bool *isConstructorCall, bool *isPolymorphicCall);
         CallSiteInfo * GetCallSiteInfo() const { return callSiteInfo; }
         uint16 GetConstantArgInfo(ProfileId callSiteId);
@@ -649,6 +675,9 @@ namespace Js
         DynamicProfileInfo(FunctionBody * functionBody);
 
         friend class SourceDynamicProfileManager;
+
+        static FunctionInfo * GetFunctionInfo(FunctionBody * functionBody, Js::SourceId sourceId, Js::LocalFunctionId functionId);
+        static void GetSourceAndFunctionId(FunctionBody * functionBody, FunctionInfo * calleeFunctionInfo, JavascriptFunction * calleeFunction, Js::SourceId * sourceId, Js::LocalFunctionId * functionId);
 
     public:
         bool IsAggressiveIntTypeSpecDisabled(const bool isJitLoopBody) const

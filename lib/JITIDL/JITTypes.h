@@ -205,11 +205,22 @@ typedef struct BVSparseNodeIDL
     __int64 data;
 } BVSparseNodeIDL;
 
+typedef struct CallbackArgOutInfoIDL
+{
+    byte argInfoButs;
+    IDL_PAD1(0)
+    IDL_PAD2(1)
+    unsigned int sourceId;
+    unsigned int functionId;
+} CallbackArgOutInfoIDL;
+
 typedef struct CallSiteIDL
 {
     unsigned short bitFields;
     unsigned short returnType;
     unsigned int ldFldInlineCacheId;
+    CallbackArgOutInfoIDL callbackArgOutInfoIDL;
+    X64_PAD4(0)
     unsigned int sourceId;
     unsigned int functionId;
 } CallSiteIDL;
@@ -641,10 +652,13 @@ typedef struct FunctionJITTimeDataIDL
 
     unsigned int inlineeCount;
     unsigned int ldFldInlineeCount;
+    unsigned int callbackInlineeCount;
     IDL_DEF([size_is(inlineeCount)]) struct FunctionJITTimeDataIDL ** inlinees;
     IDL_DEF([size_is(inlineeCount)]) boolean * inlineesRecursionFlags;
 
     IDL_DEF([size_is(ldFldInlineeCount)]) struct FunctionJITTimeDataIDL ** ldFldInlinees;
+
+    IDL_DEF([size_is(callbackInlineeCount)]) struct FunctionJITTimeDataIDL ** callbackInlinees;
 
     X64_PAD4(1)
     unsigned int objTypeSpecFldInfoCount;

@@ -27,6 +27,9 @@ namespace Js
         // inlined
         Field(Field(FunctionCodeGenRuntimeData *)*) ldFldInlinees;
 
+        // There will be a non-null entry for each call site where a function is passed in as an argument
+        Field(Field(FunctionCodeGenRuntimeData *)*) callbackInlinees;
+
         Field(FunctionCodeGenRuntimeData *) next;
 
     public:
@@ -38,6 +41,7 @@ namespace Js
         FunctionCodeGenRuntimeData *GetNext() const { return next; };
         Field(FunctionCodeGenRuntimeData*)* GetInlinees() const { return inlinees; }
         Field(FunctionCodeGenRuntimeData*)* GetLdFldInlinees() const { return ldFldInlinees; }
+        Field(FunctionCodeGenRuntimeData*)* GetCallbackInlinees() const { return callbackInlinees; }
         const FunctionCodeGenRuntimeData *GetForTarget(FunctionBody *targetFuncBody) const;
         const InlineCachePointerArray<InlineCache> *ClonedInlineCaches() const;
         InlineCachePointerArray<InlineCache> *ClonedInlineCaches();
@@ -59,6 +63,12 @@ namespace Js
         FunctionCodeGenRuntimeData *EnsureLdFldInlinee(
             Recycler *const recycler,
             const InlineCacheIndex inlineCacheIndex,
+            FunctionBody *const inlinee);
+
+        const FunctionCodeGenRuntimeData * GetCallbackInlinee(const ProfileId profiledCallSiteId) const;
+        FunctionCodeGenRuntimeData * EnsureCallbackInlinee(
+            Recycler *const recycler,
+            const ProfileId profiledCallSiteId,
             FunctionBody *const inlinee);
 
         // This function walks all the chained jittimedata and returns the one which match the functionInfo.

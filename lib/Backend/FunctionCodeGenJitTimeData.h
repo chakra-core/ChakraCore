@@ -31,6 +31,7 @@ namespace Js
         // There will be a non-null entry for each profiled call site where a function is to be inlined
         Field(Field(FunctionCodeGenJitTimeData*)*) inlinees;
         Field(Field(FunctionCodeGenJitTimeData*)*) ldFldInlinees;
+        Field(Field(FunctionCodeGenJitTimeData*)*) callbackInlinees;
         Field(RecyclerWeakReference<FunctionBody>*) weakFuncRef;
 
         Field(PolymorphicInlineCacheInfoIDL*) inlineeInfo;
@@ -45,6 +46,9 @@ namespace Js
         // Number of counts of getter setter to be inlined. This is not an exact count as inline caches are shared and we have no way of knowing
         // accurate count.
         Field(uint) ldFldInlineeCount;
+
+        // Number of functions passed as arguments to be inlined.
+        Field(uint) callbackInlineeCount;
 
         // For polymorphic call site we will have linked list of FunctionCodeGenJitTimeData
         // Each is differentiated by id starting from 0, 1
@@ -90,6 +94,7 @@ namespace Js
     public:
         const FunctionCodeGenJitTimeData *GetInlinee(const ProfileId profiledCallSiteId) const;
         const FunctionCodeGenJitTimeData *GetLdFldInlinee(const InlineCacheIndex inlineCacheIndex) const;
+        const FunctionCodeGenJitTimeData * GetCallbackInlinee(const ProfileId profiledCallSiteId) const;
         FunctionCodeGenJitTimeData *AddInlinee(
             Recycler *const recycler,
             const ProfileId profiledCallSiteId,
@@ -97,6 +102,7 @@ namespace Js
             bool isInlined = true);
         uint InlineeCount() const;
         uint LdFldInlineeCount() const;
+        uint CallbackInlineeCount() const;
         bool IsLdFldInlineePresent() const { return ldFldInlineeCount != 0; }
 
         RecyclerWeakReference<FunctionBody> *GetWeakFuncRef() const { return this->weakFuncRef; }
@@ -116,6 +122,11 @@ namespace Js
         FunctionCodeGenJitTimeData *AddLdFldInlinee(
             Recycler *const recycler,
             const InlineCacheIndex inlineCacheIndex,
+            FunctionInfo *const inlinee);
+
+        FunctionCodeGenJitTimeData * AddCallbackInlinee(
+            Recycler *const recycler,
+            const ProfileId profiledCallSiteId,
             FunctionInfo *const inlinee);
 
         bool IsPolymorphicCallSite(const ProfileId profiledCallSiteId) const;

@@ -150,6 +150,7 @@ namespace Js
         }
         for (ProfileId i = 0; i < functionBody->GetProfiledCallSiteCount(); ++i)
         {
+            callSiteInfo[i].callbackArgOutInfo.canInlineCallback = true;
             callSiteInfo[i].returnType = ValueType::Uninitialized;
             callSiteInfo[i].u.functionData.sourceId = NoSourceId;
         }
@@ -412,11 +413,71 @@ namespace Js
         return false;
     }
 
-    void DynamicProfileInfo::RecordConstParameterAtCallSite(ProfileId callSiteId, int argNum)
+    void DynamicProfileInfo::RecordParameterAtCallSite(FunctionBody * functionBody, ProfileId callSiteId, Var arg, int argNum, Js::RegSlot regSlot)
     {
+#if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
+        // If we persistsAcrossScriptContext, the dynamic profile info may be referred to by multiple function body from
+        // different script context
+        Assert(!DynamicProfileInfo::NeedProfileInfoList() || this->persistsAcrossScriptContexts || this->functionBody == functionBody);
+#endif
+
         Assert(argNum < Js::InlineeCallInfo::MaxInlineeArgoutCount);
         Assert(callSiteId < functionBody->GetProfiledCallSiteCount());
-        callSiteInfo[callSiteId].isArgConstant = callSiteInfo[callSiteId].isArgConstant | (1 << argNum);
+
+        if (!PHASE_ENABLED(InlineCallbacksPhase, functionBody))
+        {
+            if (TaggedInt::Is(arg) && regSlot < functionBody->GetConstantCount())
+            {
+                callSiteInfo[callSiteId].isArgConstant = callSiteInfo[callSiteId].isArgConstant | (1 << argNum);
+            }
+            return;
+        }
+
+        CallbackArgOutInfo & callbackInfo = callSiteInfo[callSiteId].callbackArgOutInfo;
+        if (arg != nullptr && RecyclableObject::Is(arg) && JavascriptFunction::Is(arg))
+        {
+            if (callbackInfo.canInlineCallback)
+            {
+                if (callbackInfo.hasCallbackArgument && argNum != callbackInfo.argNumber)
+                {
+                    callbackInfo.canInlineCallback = false;
+                }
+                else if (!callbackInfo.isPolymorphic)
+                {
+                    Js::SourceId sourceId;
+                    Js::LocalFunctionId functionId;
+                    JavascriptFunction * callback = JavascriptFunction::UnsafeFromVar(arg);
+                    GetSourceAndFunctionId(functionBody, callback->GetFunctionInfo(), callback, &sourceId, &functionId);
+
+                    if (callbackInfo.hasCallbackArgument)
+                    {
+                        if (sourceId != callbackInfo.sourceId || functionId != callbackInfo.functionId)
+                        {
+                            callbackInfo.isPolymorphic = true;
+                        }
+                    }
+                    else
+                    {
+                        callbackInfo.hasCallbackArgument = true;
+                        callbackInfo.sourceId = sourceId;
+                        callbackInfo.functionId = functionId;
+                        callbackInfo.argNumber = argNum;
+                    }
+                }
+            }
+        }
+        else
+        {
+            if (callbackInfo.hasCallbackArgument && callbackInfo.argNumber == argNum)
+            {
+                callbackInfo.canInlineCallback = false;
+            }
+
+            if (TaggedInt::Is(arg) && regSlot < functionBody->GetConstantCount())
+            {
+                callSiteInfo[callSiteId].isArgConstant = callSiteInfo[callSiteId].isArgConstant | (1 << argNum);
+            }
+        }
     }
 
     uint16 DynamicProfileInfo::GetConstantArgInfo(ProfileId callSiteId)
@@ -512,6 +573,66 @@ namespace Js
     }
 #endif
 
+    void DynamicProfileInfo::GetSourceAndFunctionId(FunctionBody * functionBody, FunctionInfo* calleeFunctionInfo, JavascriptFunction * calleeFunction, Js::SourceId * sourceId, Js::LocalFunctionId * functionId)
+    {
+        Assert(sourceId != nullptr && functionId != nullptr);
+
+        *sourceId = InvalidSourceId;
+
+        if (calleeFunction == nullptr)
+        {
+            *functionId = CallSiteNonFunction;
+            return;
+        }
+
+        if (!calleeFunctionInfo->HasBody())
+        {
+            if (functionBody->GetScriptContext() == calleeFunction->GetScriptContext())
+            {
+                *sourceId = BuiltInSourceId;
+                *functionId = calleeFunctionInfo->GetLocalFunctionId();
+            }
+            else
+            {
+                *functionId = CallSiteCrossContext;
+            }
+            return;
+        }
+
+        // We can only inline function that are from the same script context. So only record that data
+        // We're about to call this function so deserialize it right now
+        FunctionProxy * calleeFunctionProxy = calleeFunctionInfo->GetFunctionProxy();
+        if (functionBody->GetScriptContext() == calleeFunctionProxy->GetScriptContext())
+        {
+            if (functionBody->GetSecondaryHostSourceContext() == calleeFunctionProxy->GetSecondaryHostSourceContext())
+            {
+                if (functionBody->GetHostSourceContext() == calleeFunctionProxy->GetHostSourceContext())
+                {
+                    *sourceId = CurrentSourceId; // Caller and callee in same file
+                }
+                else
+                {
+                    *sourceId = (Js::SourceId)calleeFunctionProxy->GetHostSourceContext(); // Caller and callee in different files
+                }
+                *functionId = calleeFunctionProxy->GetLocalFunctionId();
+            }
+            else if (calleeFunctionProxy->GetHostSourceContext() == Js::Constants::JsBuiltInSourceContext)
+            {
+                *sourceId = JsBuiltInSourceId;
+                *functionId = calleeFunctionProxy->GetLocalFunctionId();
+            }
+            else
+            {
+                // Pretend that we are cross context when call is crossing script file.
+                *functionId = CallSiteCrossContext;
+            }
+        }
+        else
+        {
+            *functionId = CallSiteCrossContext;
+        }
+    }
+
     void DynamicProfileInfo::RecordCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, FunctionInfo* calleeFunctionInfo, JavascriptFunction* calleeFunction, uint actualArgCount, bool isConstructorCall, InlineCacheIndex ldFldInlineCacheId)
     {
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
@@ -542,60 +663,9 @@ namespace Js
 
             Js::LocalFunctionId oldFunctionId = callSiteInfo[callSiteId].u.functionData.functionId;
 
-            Js::SourceId sourceId = InvalidSourceId;
+            Js::SourceId sourceId;
             Js::LocalFunctionId functionId;
-            if (calleeFunctionInfo == nullptr)
-            {
-                functionId = CallSiteNonFunction;
-            }
-            else if (!calleeFunctionInfo->HasBody())
-            {
-                Assert(calleeFunction); // calleeFunction can only be passed as null if the calleeFunctionInfo was null (which is checked above)
-                if (functionBody->GetScriptContext() == calleeFunction->GetScriptContext())
-                {
-                    sourceId = BuiltInSourceId;
-                    functionId = calleeFunctionInfo->GetLocalFunctionId();
-                }
-                else
-                {
-                    functionId = CallSiteCrossContext;
-                }
-            }
-            else
-            {
-                // We can only inline function that are from the same script context. So only record that data
-                // We're about to call this function so deserialize it right now
-                FunctionProxy* calleeFunctionProxy = calleeFunctionInfo->GetFunctionProxy();
-                if (functionBody->GetScriptContext() == calleeFunctionProxy->GetScriptContext())
-                {
-                    if (functionBody->GetSecondaryHostSourceContext() == calleeFunctionProxy->GetSecondaryHostSourceContext())
-                    {
-                        if (functionBody->GetHostSourceContext() == calleeFunctionProxy->GetHostSourceContext())
-                        {
-                            sourceId = CurrentSourceId; // Caller and callee in same file
-                        }
-                        else
-                        {
-                            sourceId = (Js::SourceId)calleeFunctionProxy->GetHostSourceContext(); // Caller and callee in different files
-                        }
-                        functionId = calleeFunctionProxy->GetLocalFunctionId();
-                    }
-                    else if (calleeFunctionProxy->GetHostSourceContext() == Js::Constants::JsBuiltInSourceContext)
-                    {
-                        sourceId = JsBuiltInSourceId;
-                        functionId = calleeFunctionProxy->GetLocalFunctionId();
-                    }
-                    else
-                    {
-                        // Pretend that we are cross context when call is crossing script file.
-                        functionId = CallSiteCrossContext;
-                    }
-                }
-                else
-                {
-                    functionId = CallSiteCrossContext;
-                }
-            }
+            GetSourceAndFunctionId(functionBody, calleeFunctionInfo, calleeFunction, &sourceId, &functionId);
 
             if (oldSourceId == NoSourceId)
             {
@@ -866,6 +936,65 @@ namespace Js
         return callSiteInfo[callSiteId].u.functionData.sourceId != NoSourceId;
     }
 
+    FunctionInfo * DynamicProfileInfo::GetFunctionInfo(FunctionBody* functionBody, Js::SourceId sourceId, Js::LocalFunctionId functionId)
+    {
+        if (sourceId == BuiltInSourceId)
+        {
+            return JavascriptBuiltInFunction::GetFunctionInfo(functionId);
+        }
+
+        if (sourceId == CurrentSourceId) // caller and callee in same file
+        {
+            FunctionProxy *inlineeProxy = functionBody->GetUtf8SourceInfo()->FindFunction(functionId);
+            return inlineeProxy ? inlineeProxy->GetFunctionInfo() : nullptr;
+        }
+
+        if (sourceId == JsBuiltInSourceId)
+        {
+            // For call across files find the function from the right source
+            JsUtil::List<RecyclerWeakReference<Utf8SourceInfo>*, Recycler, false, Js::FreeListedRemovePolicy> * sourceList = functionBody->GetScriptContext()->GetSourceList();
+            for (int i = 0; i < sourceList->Count(); i++)
+            {
+                if (sourceList->IsItemValid(i))
+                {
+                    Utf8SourceInfo *srcInfo = sourceList->Item(i)->Get();
+                    if (srcInfo && srcInfo->GetHostSourceContext() == Js::Constants::JsBuiltInSourceContext)
+                    {
+                        FunctionProxy *inlineeProxy = srcInfo->FindFunction(functionId);
+                        if (inlineeProxy)
+                        {
+                            return inlineeProxy->GetFunctionInfo();
+                        }
+                        else
+                        {
+                            return nullptr;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (sourceId != NoSourceId && sourceId != InvalidSourceId)
+        {
+            // For call across files find the function from the right source
+            JsUtil::List<RecyclerWeakReference<Utf8SourceInfo>*, Recycler, false, Js::FreeListedRemovePolicy> * sourceList = functionBody->GetScriptContext()->GetSourceList();
+            for (int i = 0; i < sourceList->Count(); i++)
+            {
+                if (sourceList->IsItemValid(i))
+                {
+                    Utf8SourceInfo *srcInfo = sourceList->Item(i)->Get();
+                    if (srcInfo && srcInfo->GetHostSourceContext() == sourceId)
+                    {
+                        FunctionProxy *inlineeProxy = srcInfo->FindFunction(functionId);
+                        return inlineeProxy ? inlineeProxy->GetFunctionInfo() : nullptr;
+                    }
+                }
+            }
+        }
+
+        return nullptr;
+    }
+
     FunctionInfo * DynamicProfileInfo::GetCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, bool *isConstructorCall, bool *isPolymorphicCall)
     {
         Assert(functionBody);
@@ -878,69 +1007,34 @@ namespace Js
         {
             return nullptr;
         }
+
         if (!callSiteInfo[callSiteId].isPolymorphic)
         {
             Js::SourceId sourceId = callSiteInfo[callSiteId].u.functionData.sourceId;
             Js::LocalFunctionId functionId = callSiteInfo[callSiteId].u.functionData.functionId;
-            if (sourceId == BuiltInSourceId)
-            {
-                return JavascriptBuiltInFunction::GetFunctionInfo(functionId);
-            }
-
-            if (sourceId == CurrentSourceId) // caller and callee in same file
-            {
-                FunctionProxy *inlineeProxy = functionBody->GetUtf8SourceInfo()->FindFunction(functionId);
-                return inlineeProxy ? inlineeProxy->GetFunctionInfo() : nullptr;
-            }
-
-            if (sourceId == JsBuiltInSourceId)
-            {
-                // For call across files find the function from the right source
-                JsUtil::List<RecyclerWeakReference<Utf8SourceInfo>*, Recycler, false, Js::FreeListedRemovePolicy> * sourceList = functionBody->GetScriptContext()->GetSourceList();
-                for (int i = 0; i < sourceList->Count(); i++)
-                {
-                    if (sourceList->IsItemValid(i))
-                    {
-                        Utf8SourceInfo *srcInfo = sourceList->Item(i)->Get();
-                        if (srcInfo && srcInfo->GetHostSourceContext() == Js::Constants::JsBuiltInSourceContext)
-                        {
-                            FunctionProxy *inlineeProxy = srcInfo->FindFunction(functionId);
-                            if (inlineeProxy)
-                            {
-                                return inlineeProxy->GetFunctionInfo();
-                            }
-                            else
-                            {
-                                return nullptr;
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (sourceId != NoSourceId && sourceId != InvalidSourceId)
-            {
-                // For call across files find the function from the right source
-                JsUtil::List<RecyclerWeakReference<Utf8SourceInfo>*, Recycler, false, Js::FreeListedRemovePolicy> * sourceList = functionBody->GetScriptContext()->GetSourceList();
-                for (int i = 0; i < sourceList->Count(); i++)
-                {
-                    if (sourceList->IsItemValid(i))
-                    {
-                        Utf8SourceInfo *srcInfo = sourceList->Item(i)->Get();
-                        if (srcInfo && srcInfo->GetHostSourceContext() == sourceId)
-                        {
-                            FunctionProxy *inlineeProxy = srcInfo->FindFunction(functionId);
-                            return inlineeProxy ? inlineeProxy->GetFunctionInfo() : nullptr;
-                        }
-                    }
-                }
-            }
+            return GetFunctionInfo(functionBody, sourceId, functionId);
         }
         else
         {
             *isPolymorphicCall = true;
         }
         return nullptr;
+    }
+
+    FunctionInfo * DynamicProfileInfo::GetCallbackInfo(FunctionBody* functionBody, ProfileId callSiteId)
+    {
+        Assert(functionBody != nullptr);
+        Js::ProfileId callSiteCount = functionBody->GetProfiledCallSiteCount();
+        Assert(callSiteId < callSiteCount);
+        Assert(functionBody->IsJsBuiltInCode() || functionBody->IsPublicLibraryCode() || HasCallSiteInfo(functionBody));
+
+        CallbackArgOutInfo & callbackInfo = callSiteInfo[callSiteId].callbackArgOutInfo;
+        if (!callbackInfo.canInlineCallback || !callbackInfo.hasCallbackArgument || callbackInfo.isPolymorphic)
+        {
+            return nullptr;
+        }
+
+        return GetFunctionInfo(functionBody, callbackInfo.sourceId, callbackInfo.functionId);
     }
 
     uint DynamicProfileInfo::GetLdFldCacheIndexFromCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId)

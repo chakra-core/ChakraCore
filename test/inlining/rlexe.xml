@@ -294,4 +294,12 @@
       <compile-flags>-loopinterpretcount:1 -bgjit-</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>InlineCallbacks.js</files>
+      <compile-flags>-testtrace:InlineCallbacks</compile-flags>
+      <baseline>InlineCallbacks.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
 </regress-exe>

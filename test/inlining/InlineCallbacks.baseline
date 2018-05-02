@@ -1,0 +1,4 @@
+foo
+foo
+INLINING : Inlining callback at	CallSite: 0	Caller: Dispatch ( (#1.1), #2)
+foo

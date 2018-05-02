@@ -1195,6 +1195,7 @@ namespace Js
             FormalsPropIdArray = 21,
             ForInCacheArray = 22,
             SlotIdInCachedScopeToNestedIndexArray = 23,
+            CodeGenCallbackRuntimeData = 24,
 
             Max,
             Invalid = 0xff
@@ -2780,6 +2781,10 @@ namespace Js
         Field(FunctionCodeGenRuntimeData*)* GetCodeGenRuntimeDataWithLock() const { return static_cast<Field(FunctionCodeGenRuntimeData*)*>(this->GetAuxPtrWithLock(AuxPointerType::CodeGenRuntimeData)); }
         void SetCodeGenRuntimeData(FunctionCodeGenRuntimeData** codeGenRuntimeData) { this->SetAuxPtr(AuxPointerType::CodeGenRuntimeData, codeGenRuntimeData); }
 
+        Field(FunctionCodeGenRuntimeData*)* GetCodeGenCallbackRuntimeData() const { return static_cast<Field(FunctionCodeGenRuntimeData*)*>(this->GetAuxPtr(AuxPointerType::CodeGenCallbackRuntimeData)); }
+        Field(FunctionCodeGenRuntimeData*)* GetCodeGenCallbackRuntimeDataWithLock() const { return static_cast<Field(FunctionCodeGenRuntimeData*)*>(this->GetAuxPtrWithLock(AuxPointerType::CodeGenCallbackRuntimeData)); }
+        void SetCodeGenCallbackRuntimeData(FunctionCodeGenRuntimeData** codeGenArgumentRuntimeData) { this->SetAuxPtr(AuxPointerType::CodeGenCallbackRuntimeData, codeGenArgumentRuntimeData); }
+
         template <typename TStatementMapList>
         static StatementMap * GetNextNonSubexpressionStatementMap(TStatementMapList *statementMapList, int & startingAtIndex);
         static StatementMap * GetPrevNonSubexpressionStatementMap(StatementMapList *statementMapList, int & startingAtIndex);
@@ -3326,6 +3331,11 @@ namespace Js
         FunctionCodeGenRuntimeData *EnsureLdFldInlineeCodeGenRuntimeData(
             Recycler *const recycler,
             const InlineCacheIndex inlineCacheIndex,
+            FunctionBody *const inlinee);
+        const FunctionCodeGenRuntimeData * GetCallbackInlineeCodeGenRuntimeData(const ProfileId profiledCallSiteId) const;
+        FunctionCodeGenRuntimeData * EnsureCallbackInlineeCodeGenRuntimeData(
+            Recycler *const recycler,
+            __in_range(0, profiledCallSiteCount - 1) const ProfileId profiledCallSiteId,
             FunctionBody *const inlinee);
 
         void LoadDynamicProfileInfo();

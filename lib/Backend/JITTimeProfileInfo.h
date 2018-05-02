@@ -34,6 +34,7 @@ public:
     Js::ImplicitCallFlags GetLoopImplicitCallFlags(uint loopNum) const;
     Js::ImplicitCallFlags GetImplicitCallFlags() const;
     Js::LoopFlags GetLoopFlags(uint loopNum) const;
+    bool CanInlineCallback(Js::ArgSlot argIndex, Js::ProfileId callSiteId) const;
 
     uint GetLoopCount() const;
 

@@ -271,6 +271,13 @@ JITTimeProfileInfo::GetLoopFlags(uint loopNum) const
     return GetLoopFlags()->GetRange<Js::LoopFlags>(loopNum * Js::LoopFlags::COUNT, Js::LoopFlags::COUNT);
 }
 
+bool 
+JITTimeProfileInfo::CanInlineCallback(Js::ArgSlot argIndex, Js::ProfileId callSiteId) const
+{
+    Assert(callSiteId < GetProfiledCallSiteCount());
+    return GetCallSiteInfo()[callSiteId].callbackArgOutInfo.CanInlineCallback(argIndex);
+}
+
 uint16
 JITTimeProfileInfo::GetConstantArgInfo(Js::ProfileId callSiteId) const
 {
