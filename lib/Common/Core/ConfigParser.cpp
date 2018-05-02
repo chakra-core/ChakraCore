@@ -387,7 +387,7 @@ void ConfigParser::ReadRegistryString(_In_ HKEY hk, _In_ const char16* valName, 
             buf = NoCheckHeapNewArrayZ(byte, bufLength);
             if (buf != nullptr)
             {
-                DWORD strLength;
+                DWORD strLength = 0;
                 if (NOERROR != RegGetValueW(hk, nullptr, valName, RRF_RT_REG_SZ, nullptr, buf, &strLength))
                 {
                     // failed to read registry key
