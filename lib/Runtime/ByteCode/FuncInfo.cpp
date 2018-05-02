@@ -53,8 +53,8 @@ FuncInfo::FuncInfo(
     firstTmpReg(Js::Constants::NoRegister),
     curTmpReg(Js::Constants::NoRegister),
     argsPlaceHolderSlotCount(0),
-    originalAttributes(Js::FunctionInfo::Attributes::None),
 
+    canDefer(false),
     callsEval(false),
     childCallsEval(false),
     hasArguments(false),
@@ -118,9 +118,9 @@ FuncInfo::FuncInfo(
     {
         // Disable (re-)deferral of this function temporarily. Add it to the list of FuncInfo's to be processed when 
         // byte code gen is done.
-        this->originalAttributes = byteCodeFunction->GetAttributes();
+        this->canDefer = !!(byteCodeFunction->GetAttributes() & Js::FunctionInfo::Attributes::CanDefer);
         byteCodeGenerator->AddFuncInfoToFinalizationSet(this);
-        byteCodeFunction->SetAttributes((Js::FunctionInfo::Attributes)(this->originalAttributes & ~Js::FunctionInfo::Attributes::CanDefer));
+        byteCodeFunction->SetAttributes((Js::FunctionInfo::Attributes)(byteCodeFunction->GetAttributes() & ~Js::FunctionInfo::Attributes::CanDefer));
     }
 }
 

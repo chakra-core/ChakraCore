@@ -905,7 +905,7 @@ namespace Js
             if ((ULONG)sourceLength > deferParseThreshold && !PHASE_OFF1(Phase::DeferParsePhase))
             {
                 // Defer function bodies declared inside large dynamic blocks.
-                grfscr |= fscrDeferFncParse;
+                grfscr |= fscrWillDeferFncParse;
             }
 
             grfscr = grfscr | fscrDynamicCode;

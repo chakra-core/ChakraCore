@@ -2059,7 +2059,7 @@ void Parser::ReduceDeferredScriptLength(size_t chars)
 {
     // If we're in deferred mode, subtract the given char count from the total length,
     // and see if this puts us under the deferral threshold.
-    if ((m_grfscr & fscrDeferFncParse) &&
+    if (((m_grfscr & (fscrCanDeferFncParse | fscrWillDeferFncParse)) == (fscrCanDeferFncParse | fscrWillDeferFncParse)) &&
         (
             PHASE_OFF1(Js::DeferEventHandlersPhase) ||
             (m_grfscr & fscrGlobalCode)
@@ -2077,7 +2077,7 @@ void Parser::ReduceDeferredScriptLength(size_t chars)
         if (m_length < Parser::GetDeferralThreshold(this->m_sourceContextInfo->IsSourceProfileLoaded()))
         {
             // Stop deferring.
-            m_grfscr &= ~fscrDeferFncParse;
+            m_grfscr &= ~fscrWillDeferFncParse;
             m_stoppedDeferredParse = TRUE;
         }
     }
@@ -4775,9 +4775,9 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
     return pnodeList;
 }
 
-BOOL Parser::DeferredParse(Js::LocalFunctionId functionId)
+BOOL Parser::WillDeferParse(Js::LocalFunctionId functionId)
 {
-    if ((m_grfscr & fscrDeferFncParse) != 0)
+    if ((m_grfscr & fscrWillDeferFncParse) != 0)
     {
         if (m_stoppedDeferredParse)
         {
@@ -5236,14 +5236,15 @@ void Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
         CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(ES6, Lambda, m_scriptContext);
     }
 
-    uint uDeferSave = m_grfscr & fscrDeferFncParse;
+    uint uCanDeferSave = m_grfscr & fscrCanDeferFncParse;
+    uint uDeferSave = m_grfscr & fscrWillDeferFncParse;
     if (flags & fFncClassMember)
     {
         // Disable deferral on class members or other construct with unusual text bounds
         // as these are usually trivial, and re-parsing is problematic.
         // NOTE: It is probably worth supporting these cases for memory and load-time purposes,
         // especially as they become more and more common.
-        m_grfscr &= ~fscrDeferFncParse;
+        m_grfscr &= ~(fscrCanDeferFncParse | fscrWillDeferFncParse);
     }
 
     bool isTopLevelDeferredFunc = false;
@@ -5267,17 +5268,16 @@ void Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
 
         BOOL isDeferredFnc = IsDeferredFnc();
         // These are the conditions that prohibit upfront deferral *and* redeferral.
-        isTopLevelDeferredFunc =
-            (DeferredParse(pnodeFnc->functionId)
+        isTopLevelDeferredFunc = 
+                (m_grfscr & fscrCanDeferFncParse)
                 && !m_InAsmMode
                 // Don't defer a module function wrapper because we need to do export resolution at parse time
-                && !fModule
-                );
+                && !fModule;
 
         pnodeFnc->SetCanBeDeferred(isTopLevelDeferredFunc && ParseNodeFnc::CanBeRedeferred(pnodeFnc->fncFlags));
 
         // These are heuristic conditions that prohibit upfront deferral but not redeferral.
-        isTopLevelDeferredFunc = isTopLevelDeferredFunc && !isDeferredFnc &&
+        isTopLevelDeferredFunc = isTopLevelDeferredFunc && !isDeferredFnc && WillDeferParse(pnodeFnc->functionId) &&
             (!isLikelyIIFE || !topLevelStmt || PHASE_FORCE_RAW(Js::DeferParsePhase, m_sourceContextInfo->sourceContextId, pnodeFnc->functionId));
 
 #if ENABLE_BACKGROUND_PARSING
@@ -5722,6 +5722,7 @@ void Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
     {
         FinishParseFncExprScope(pnodeFnc, pnodeFncExprScope);
     }
+    m_grfscr |= uCanDeferSave;
     if (!m_stoppedDeferredParse)
     {
         m_grfscr |= uDeferSave;
@@ -11259,7 +11260,7 @@ ParseNodeProg * Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, char
     {
         // Don't do deferred parsing if debugger is attached or feature is disabled
         // by command-line switch.
-        grfscr &= ~fscrDeferFncParse;
+        grfscr &= ~fscrWillDeferFncParse;
     }
     else if (!isGlobalCode &&
         (
@@ -11270,7 +11271,7 @@ ParseNodeProg * Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, char
     {
         // Don't defer event handlers in debug/rundown mode, because we need to register the document,
         // so we need to create a full FunctionBody for the script body.
-        grfscr &= ~fscrDeferFncParse;
+        grfscr &= ~fscrWillDeferFncParse;
     }
 
     m_grfscr = grfscr;
@@ -11777,7 +11778,7 @@ HRESULT Parser::ParseFunctionInBackground(ParseNodeFnc * pnodeFnc, ParseContext 
     pnodeFnc->pnodeScopes = pnodeBlock;
     m_ppnodeScope = &pnodeBlock->pnodeScopes;
 
-    uint uDeferSave = m_grfscr & fscrDeferFncParse;
+    uint uDeferSave = m_grfscr & (fscrCanDeferFncParse | fscrWillDeferFncParse);
 
     try
     {
