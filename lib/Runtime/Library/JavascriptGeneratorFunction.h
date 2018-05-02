@@ -55,7 +55,7 @@ namespace Js
         virtual bool IsAnonymousFunction() const override;
 
         virtual Var GetSourceString() const;
-        virtual Var EnsureSourceString();
+        virtual JavascriptString * EnsureSourceString();
 
         virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info) override;
         virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;

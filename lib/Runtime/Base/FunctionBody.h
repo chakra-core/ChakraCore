@@ -1940,12 +1940,9 @@ namespace Js
 
         virtual void Finalize(bool isShutdown) override;
 
-        Var GetCachedSourceString() { return this->GetAuxPtr(AuxPointerType::CachedSourceString); }
-        void SetCachedSourceString(Var sourceString)
-        {
-            Assert(this->GetCachedSourceString() == nullptr);
-            this->SetAuxPtr(AuxPointerType::CachedSourceString, sourceString);
-        }
+        JavascriptString * GetCachedSourceString();
+
+        void SetCachedSourceString(JavascriptString * sourceString);
 
         FunctionInfoArray GetNestedFuncArray();
         FunctionInfo* GetNestedFunc(uint index);
@@ -1958,7 +1955,9 @@ namespace Js
         void SetDeferredStubs(DeferredFunctionStub *stub) { this->SetAuxPtr(AuxPointerType::DeferredStubs, stub); }
         void RegisterFuncToDiag(ScriptContext * scriptContext, char16 const * pszTitle);
         bool IsES6ModuleCode() const;
-
+    private:
+        RecyclerWeakReference<JavascriptString> * GetCachedSourceStringWeakRef();
+        void SetCachedSourceStringWeakRef(RecyclerWeakReference<JavascriptString> * weakRef);
     protected:
         static HRESULT MapDeferredReparseError(HRESULT& hrParse, const CompileScriptException& se);
 
