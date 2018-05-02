@@ -4232,6 +4232,11 @@ BackwardPass::ProcessStackSymUse(StackSym * stackSym, BOOLEAN isNonByteCodeUse)
         return true;
     }
 
+    if (this->DoMarkTempNumbers())
+    {
+        Assert((block->loop != nullptr) == block->tempNumberTracker->HasTempTransferDependencies());
+        block->tempNumberTracker->ProcessUse(stackSym, this);
+    }
     if (this->DoMarkTempObjects())
     {
         Assert((block->loop != nullptr) == block->tempObjectTracker->HasTempTransferDependencies());
@@ -4294,17 +4299,7 @@ BackwardPass::ProcessSymUse(Sym * sym, bool isRegOpndUse, BOOLEAN isNonByteCodeU
         }
     }
 
-    StackSym * stackSym = sym->AsStackSym();
-    bool isUsed = ProcessStackSymUse(stackSym, isNonByteCodeUse);
-
-    if (!IsCollectionPass() && isRegOpndUse && this->DoMarkTempNumbers())
-    {
-        // Collect mark temp number information
-        Assert((block->loop != nullptr) == block->tempNumberTracker->HasTempTransferDependencies());
-        block->tempNumberTracker->ProcessUse(stackSym, this);
-    }
-
-    return isUsed;
+    return ProcessStackSymUse(sym->AsStackSym(), isNonByteCodeUse);
 }
 
 bool
