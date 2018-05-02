@@ -27,7 +27,6 @@
         $(ChakraCoreRootDirectory)bin\External;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
-
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <SmallerTypeCheck>false</SmallerTypeCheck>
       <MinimalRebuild>false</MinimalRebuild>
@@ -47,6 +46,7 @@
     <ClCompile Include="CodexTests.cpp" />
     <ClCompile Include="FileLoadHelpers.cpp" />
     <ClCompile Include="FunctionExecutionTest.cpp" />
+    <ClCompile Include="JsDiagApiTest.cpp" />
     <ClCompile Include="JsRTApiTest.cpp" />
     <ClCompile Include="MemoryPolicyTest.cpp" />
     <ClCompile Include="NativeTests.cpp" />
