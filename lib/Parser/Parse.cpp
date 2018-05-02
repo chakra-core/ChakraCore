@@ -1568,7 +1568,7 @@ void Parser::CreateSpecialSymbolDeclarations(ParseNodeFnc * pnodeFnc)
         return;
     }
 
-    bool isTopLevelEventHandler = (this->m_grfscr & fscrImplicitThis || this->m_grfscr & fscrImplicitParents) && !pnodeFnc->IsNested();
+    bool isTopLevelEventHandler = (this->m_grfscr & fscrImplicitThis) && !pnodeFnc->IsNested();
 
     // Create a 'this' symbol for non-lambda functions with references to 'this', and all class constructors and top level event hanlders.
     ParseNodePtr varDeclNode = CreateSpecialVarDeclIfNeeded(pnodeFnc, wellKnownPropertyPids._this, pnodeFnc->IsClassConstructor() || isTopLevelEventHandler);

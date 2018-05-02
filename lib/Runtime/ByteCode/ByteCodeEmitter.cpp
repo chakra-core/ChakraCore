@@ -3507,7 +3507,7 @@ void ByteCodeGenerator::StartEmitFunction(ParseNodeFnc *pnodeFnc)
 
     if (funcInfo->byteCodeFunction->IsFunctionParsed() && funcInfo->root->pnodeBody != nullptr)
     {
-        if (funcInfo->GetParsedFunctionBody()->GetByteCode() == nullptr && !(flags & (fscrEval | fscrImplicitThis | fscrImplicitParents)))
+        if (funcInfo->GetParsedFunctionBody()->GetByteCode() == nullptr && !(flags & (fscrEval | fscrImplicitThis)))
         {
             // Only set the environment depth if it's truly known (i.e., not in eval or event handler).
             funcInfo->GetParsedFunctionBody()->SetEnvDepth(this->envDepth);
@@ -3993,7 +3993,7 @@ void ByteCodeGenerator::StartEmitCatch(ParseNodeCatch *pnodeCatch)
     FuncInfo *funcInfo = scope->GetFunc();
 
     // Catch scope is a dynamic object if it can be passed to a scoped lookup helper (i.e., eval is present or we're in an event handler).
-    if (funcInfo->GetCallsEval() || funcInfo->GetChildCallsEval() || (this->flags & (fscrEval | fscrImplicitThis | fscrImplicitParents)))
+    if (funcInfo->GetCallsEval() || funcInfo->GetChildCallsEval() || (this->flags & (fscrEval | fscrImplicitThis)))
     {
         scope->SetIsObject();
     }
@@ -4069,7 +4069,7 @@ void ByteCodeGenerator::StartEmitBlock(ParseNodeBlock *pnodeBlock)
     PushBlock(pnodeBlock);
 
     Scope *scope = pnodeBlock->scope;
-    if (pnodeBlock->GetCallsEval() || pnodeBlock->GetChildCallsEval() || (this->flags & (fscrEval | fscrImplicitThis | fscrImplicitParents)))
+    if (pnodeBlock->GetCallsEval() || pnodeBlock->GetChildCallsEval() || (this->flags & (fscrEval | fscrImplicitThis)))
     {
         Assert(scope->GetIsObject());
     }
@@ -4301,7 +4301,7 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
 
     if (sym == nullptr || sym->GetIsGlobal())
     {
-        if (this->flags & (fscrEval | fscrImplicitThis | fscrImplicitParents))
+        if (this->flags & (fscrEval | fscrImplicitThis))
         {
             // Load of a symbol with unknown scope from within eval.
             // Get it from the closure environment.
@@ -4731,11 +4731,11 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
                 this->m_writer.ElementP(GetScopedStFldOpCode(funcInfo, isConsoleScopeLetConst), rhsLocation, cacheId);
             }
         }
-        else if (this->flags & (fscrImplicitThis | fscrImplicitParents))
+        else if (this->flags & fscrImplicitThis)
         {
             uint cacheId = funcInfo->FindOrAddInlineCacheId(funcInfo->GetEnvRegister(), propertyId, false, true);
 
-            // In "eval", store to a symbol with unknown scope goes through the closure environment.
+            // In HTML event handler, store to a symbol with unknown scope goes through the closure environment.
             this->m_writer.ElementP(GetScopedStFldOpCode(funcInfo, isConsoleScopeLetConst), rhsLocation, cacheId);
         }
         else
@@ -5106,11 +5106,11 @@ void ByteCodeGenerator::EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, Ident
                 this->m_writer.ElementP(Js::OpCode::ScopedLdFld, lhsLocation, cacheId);
             }
         }
-        else if (this->flags & (fscrImplicitThis | fscrImplicitParents))
+        else if (this->flags & fscrImplicitThis)
         {
             uint cacheId = funcInfo->FindOrAddInlineCacheId(funcInfo->GetEnvRegister(), propertyId, false, false);
 
-            // Load of a symbol with unknown scope from within eval or event handler.
+            // Load of a symbol with unknown scope from within event handler.
             // Get it from the closure environment.
             this->m_writer.ElementP(Js::OpCode::ScopedLdFld, lhsLocation, cacheId);
         }
@@ -5323,7 +5323,7 @@ void ByteCodeGenerator::EmitPropDelete(Js::RegSlot lhsLocation, Symbol *sym, Ide
     if (sym == nullptr || sym->GetIsGlobal())
     {
         Js::PropertyId propertyId = sym ? sym->EnsurePosition(this) : pid->GetPropertyId();
-        if (this->flags & (fscrEval | fscrImplicitThis | fscrImplicitParents))
+        if (this->flags & (fscrEval | fscrImplicitThis))
         {
             this->m_writer.ScopedProperty(Js::OpCode::ScopedDeleteFld, lhsLocation,
                 funcInfo->FindOrAddReferencedPropertyId(propertyId));
@@ -5511,7 +5511,7 @@ void ByteCodeGenerator::EmitPropTypeof(Js::RegSlot lhsLocation, Symbol *sym, Ide
                 this->EmitTypeOfFld(funcInfo, propertyId, lhsLocation, funcInfo->GetEnvRegister(), Js::OpCode::ScopedLdFldForTypeOf);
             }
         }
-        else if (this->flags & (fscrImplicitThis | fscrImplicitParents))
+        else if (this->flags & fscrImplicitThis)
         {
             this->EmitTypeOfFld(funcInfo, propertyId, lhsLocation, funcInfo->GetEnvRegister(), Js::OpCode::ScopedLdFldForTypeOf);
         }
