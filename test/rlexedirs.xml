@@ -350,4 +350,9 @@
     <tags>require_wasm,exclude_serialized,require_backend,exclude_xplat</tags>
   </default>
 </dir>
+<dir>
+  <default>
+    <files>PRE</files>
+  </default>
+</dir>
 </regress-exe>

@@ -280,7 +280,8 @@ public:
     void            SwapOpnds();
     void            TransferTo(Instr * instr);
     void            TransferDstAttributesTo(Instr * instr);
-    IR::Instr *     Copy();
+    IR::Instr *     Copy(bool copyDst = true);
+    IR::Instr *     CopyWithoutDst();
     IR::Instr *     Clone();
     IR::Instr *     ConvertToBailOutInstr(IR::Instr * bailOutTarget, BailOutKind kind, uint32 bailOutOffset = Js::Constants::NoByteCodeOffset);
     IR::Instr *     ConvertToBailOutInstr(BailOutInfo * bailOutInfo, BailOutKind kind, bool useAuxBailout = false);
@@ -327,7 +328,7 @@ public:
 #endif
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     void            DumpTestTrace();
-    void            DumpFieldCopyPropTestTrace();
+    void            DumpFieldCopyPropTestTrace(bool inLandingPad);
 #endif
     uint32          GetByteCodeOffset() const;
     uint32          GetNumber() const;
